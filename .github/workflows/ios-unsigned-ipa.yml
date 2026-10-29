@@ -1,0 +1,92 @@
+# Builds an unsigned iOS app and packages it as an .ipa artifact.
+# Sign and install it from Windows with Sideloadly and a free Apple ID.
+name: iOS unsigned IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["**"]
+    paths:
+      - 'App.tsx'
+      - 'index.ts'
+      - 'src/**'
+      - 'modules/**'
+      - 'assets/**'
+      - 'app.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/ios-unsigned-ipa.yml'
+
+concurrency:
+  group: ios-ipa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          pod --version
+          node --version
+
+      - name: Install JavaScript dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Generate the iOS project
+        run: npx expo prebuild --platform ios --clean
+        env:
+          CI: 1
+
+      - name: Archive without code signing
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -workspace ios/Chronicles.xcworkspace \
+            -scheme Chronicles \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/Chronicles.xcarchive" \
+            archive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            | tee "$RUNNER_TEMP/xcodebuild.log" | grep -E "error:|warning: .*WalkRecorder|\*\* ARCHIVE" || true
+          test -d "$RUNNER_TEMP/Chronicles.xcarchive/Products/Applications/Chronicles.app"
+
+      - name: Package the .ipa
+        run: |
+          cd "$RUNNER_TEMP"
+          rm -rf Payload
+          mkdir Payload
+          cp -R Chronicles.xcarchive/Products/Applications/Chronicles.app Payload/
+          VERSION=$(node -p "require('$GITHUB_WORKSPACE/app.json').expo.version")
+          zip -qry "Chronicles-$VERSION-${GITHUB_SHA::7}-unsigned.ipa" Payload
+          ls -lh *.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Chronicles-unsigned-ipa
+          path: ${{ runner.temp }}/*.ipa
+          retention-days: 30
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: ${{ runner.temp }}/xcodebuild.log
+          retention-days: 7

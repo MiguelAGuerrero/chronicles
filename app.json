@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "Chronicles",
+    "slug": "chronicles",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "bundleIdentifier": "com.miguelaguerrero.chronicles",
+      "supportsTablet": false,
+      "infoPlist": {
+        "UIBackgroundModes": ["location"],
+        "NSLocationWhenInUseUsageDescription": "Chronicles records the streets you walk while a walk is in progress.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Chronicles keeps recording your walk with the phone in your pocket and resumes it if the app is closed mid-walk. It only records while a walk is in progress.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "plugins": [
+      "expo-sqlite",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "17.0"
+          }
+        }
+      ]
+    ]
+  }
+}
