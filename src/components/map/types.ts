@@ -1,7 +1,8 @@
 import type { StyleProp, ViewStyle } from 'react-native';
 import type { Bounds } from '../../lib/geo';
 import type { RoadFeature } from '../../lib/streets';
-import type { CaptureKind, LngLat, StreetSegment } from '../../lib/types';
+import type { CapturePin } from '../../lib/pins';
+import type { LngLat, StreetSegment } from '../../lib/types';
 
 export const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
 /** OpenMapTiles tops out at z14; road detail is only complete from there. */
@@ -21,12 +22,6 @@ export const COLORS = {
   veil: '#d7dbe0',
 };
 
-export interface MapCapture {
-  id: string;
-  lngLat: LngLat;
-  kind: CaptureKind;
-}
-
 export interface Padding {
   top: number;
   right: number;
@@ -41,7 +36,9 @@ export interface WalkMapProps {
   traceOpacity?: number;
   walked: StreetSegment[];
   fog: StreetSegment[];
-  captures: MapCapture[];
+  /** Capture pins, each opening its captures when pressed. */
+  pins: CapturePin[];
+  onPinPress?: (pin: CapturePin) => void;
   walker?: LngLat | null;
   /** Keeps the camera centered here while set. */
   follow?: LngLat | null;
@@ -134,16 +131,11 @@ export function traceGeoJSON(runs: LngLat[][]): GeoJSON.FeatureCollection {
   };
 }
 
-export function pointsGeoJSON(captures: MapCapture[], walker?: LngLat | null): GeoJSON.FeatureCollection {
-  const features: GeoJSON.Feature[] = captures.map((c) => ({
-    type: 'Feature',
-    properties: { kind: c.kind },
-    geometry: { type: 'Point', coordinates: c.lngLat },
-  }));
-  if (walker) {
-    features.push({ type: 'Feature', properties: { kind: 'walker' }, geometry: { type: 'Point', coordinates: walker } });
-  }
-  return { type: 'FeatureCollection', features };
+export function walkerGeoJSON(walker?: LngLat | null): GeoJSON.FeatureCollection {
+  return {
+    type: 'FeatureCollection',
+    features: walker ? [{ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: walker } }] : [],
+  };
 }
 
 export const WORLD_VEIL: GeoJSON.FeatureCollection = {
@@ -154,11 +146,3 @@ export const WORLD_VEIL: GeoJSON.FeatureCollection = {
     geometry: { type: 'Polygon', coordinates: [[[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]]] },
   }],
 };
-
-export const pointColor = [
-  'match', ['get', 'kind'],
-  'photo', COLORS.photo,
-  'voice', COLORS.voice,
-  'text', COLORS.text,
-  COLORS.walker,
-] as const;

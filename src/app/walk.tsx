@@ -3,7 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Linking, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WalkMap } from '../components/map/WalkMap';
-import type { MapCapture } from '../components/map/types';
+import { CaptureViewer } from '../components/CaptureView';
+import { Icon, type IconName } from '../components/icons';
 import { Banner, Button, HoldButton, theme } from '../components/ui';
 import { db } from '../lib/db';
 import { boundsOf } from '../lib/geo';
@@ -12,7 +13,8 @@ import { recorder } from '../lib/recorder';
 import type { RecorderStatus } from '../lib/recorder/types';
 import { stopWalk } from '../lib/session';
 import { formatDistance, formatDuration, formatElapsed } from '../lib/summary';
-import type { LngLat, StreetSegment, Walk } from '../lib/types';
+import { pinsFor } from '../lib/pins';
+import type { Capture, StreetSegment, Walk } from '../lib/types';
 import { useCaptures } from '../lib/useCaptures';
 import { useLiveTrace } from '../lib/useLiveTrace';
 
@@ -102,13 +104,8 @@ export default function WalkScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hereKey]);
 
-  const mapCaptures: MapCapture[] = useMemo(
-    () =>
-      cap.captures
-        .filter((c) => c.lat != null && c.lon != null)
-        .map((c) => ({ id: c.id, kind: c.kind, lngLat: [c.lon!, c.lat!] as LngLat })),
-    [cap.captures],
-  );
+  const pins = useMemo(() => pinsFor(cap.captures), [cap.captures]);
+  const [viewing, setViewing] = useState<Capture[] | null>(null);
 
   async function stop() {
     if (!walk || stopping) return;
@@ -148,14 +145,14 @@ export default function WalkScreen() {
 
   const elapsed = walk ? now - walk.started_at : 0;
   const weak = status.kind === 'recording' && live.lastFixAt != null && now - live.lastFixAt > WEAK_GPS_MS;
-  const state =
+  // The growing trace says it is recording; the status only shows when it is not.
+  const problem =
     status.kind === 'error' ? { label: 'Not recording', color: theme.danger }
     : status.kind === 'waiting' || status.kind === 'idle' ? { label: 'Waiting for GPS', color: theme.warn }
     : weak ? { label: 'Weak GPS', color: theme.warn }
-    : { label: 'Recording', color: theme.ok };
+    : null;
   const recordingVoice = cap.voiceStartedAt != null;
-  const count = cap.captures.length;
-  const pillLabel = `${state.label}. ${formatDuration(elapsed)}, ${formatDistance(live.distanceM)}, ${count} ${count === 1 ? 'capture' : 'captures'}`;
+  const statsLabel = `${formatDuration(elapsed)} walked, ${formatDistance(live.distanceM)}`;
 
   return (
     <View style={styles.screen}>
@@ -163,20 +160,21 @@ export default function WalkScreen() {
         trace={live.runs}
         walked={walked}
         fog={fog}
-        captures={mapCaptures}
+        pins={pins}
+        onPinPress={(pin) => setViewing(pin.captures)}
         walker={live.here}
         follow={live.here}
         initialCenter={live.here ?? undefined}
         initialZoom={16}
       />
-      <View style={[styles.top, { top: 12 }]} pointerEvents="box-none">
-        <View style={styles.pill} accessible accessibilityLabel={pillLabel} accessibilityLiveRegion="polite">
-          <View style={[styles.statusDot, { backgroundColor: state.color }]} />
-          <Text style={styles.pillStrong}>{state.label}</Text>
-          <Text style={styles.pillText}>
-            {formatElapsed(elapsed)} · {formatDistance(live.distanceM)} · {count} {count === 1 ? 'capture' : 'captures'}
-          </Text>
-        </View>
+
+      <View style={[styles.top, { top: insets.top + 12 }]} pointerEvents="box-none">
+        {problem && (
+          <View style={styles.chip} accessible accessibilityLabel={problem.label} accessibilityLiveRegion="polite">
+            <View style={[styles.statusDot, { backgroundColor: problem.color }]} />
+            <Text style={styles.chipText}>{problem.label}</Text>
+          </View>
+        )}
         {notice && (
           <Banner
             tone={notice.tone}
@@ -193,42 +191,60 @@ export default function WalkScreen() {
         )}
       </View>
 
-      <View style={[styles.bar, { paddingBottom: 12 + insets.bottom }]}>
-        <View style={styles.barInner}>
-          <View style={styles.stopRow}>
-            <HoldButton
-              testID="stop"
-              label="Hold to stop"
-              busyLabel="Stopping…"
-              onHold={stop}
-              busy={stopping}
-              disabled={!walk}
-              style={styles.stop}
+      {/* Captures float in the lower-middle of the screen, where either thumb
+          reaches; the bottom edge is the least accurate place to tap. */}
+      <View style={[styles.captures, { bottom: insets.bottom + 92 }]} pointerEvents="box-none">
+        {recordingVoice ? (
+          <View style={styles.voiceRow}>
+            <RoundButton testID="voice-discard" icon="trash-outline" label="Discard voice memo" onPress={cap.discardVoice} tone="light" />
+            <View style={styles.voiceLive} accessible accessibilityLabel={`Recording voice memo, ${formatElapsed(now - cap.voiceStartedAt!)}`}>
+              <View style={styles.recDot} />
+              <Text style={styles.voiceLiveText}>{formatElapsed(now - cap.voiceStartedAt!)}</Text>
+            </View>
+            <RoundButton
+              testID="voice-save"
+              icon="checkmark"
+              label="Save voice memo"
+              onPress={async () => {
+                if (await cap.finishVoice()) tapFeedback();
+              }}
+              tone="voice"
+              busy={cap.busy === 'voice'}
             />
           </View>
-          {/* Captures sit lowest, in the thumb's reach, and Stop is away from them. */}
+        ) : (
           <View style={styles.captureRow}>
-            <Button testID="cap-photo" style={styles.cap} tall variant="secondary" label="Photo" onPress={photo} busy={cap.busy === 'photo'} disabled={stopping || recordingVoice} />
-            <Button
+            <RoundButton testID="cap-photo" icon="camera" label="Take a photo" onPress={photo} busy={cap.busy === 'photo'} disabled={stopping} />
+            <RoundButton
               testID="cap-voice"
-              style={styles.cap}
-              tall
-              variant={recordingVoice ? 'danger' : 'secondary'}
-              label={recordingVoice ? `Recording voice, ${formatElapsed(now - cap.voiceStartedAt!)}. Stop` : 'Voice'}
+              icon="mic"
+              label="Record a voice memo"
               onPress={async () => {
-                if (await cap.toggleVoice()) tapFeedback();
+                if (await cap.startVoice()) tapFeedback();
               }}
               busy={cap.busy === 'voice'}
               disabled={stopping}
-            >
-              {recordingVoice ? (
-                <Text style={styles.voiceLive}>● {formatElapsed(now - cap.voiceStartedAt!)} · Stop</Text>
-              ) : undefined}
-            </Button>
-            <Button testID="cap-note" style={styles.cap} tall variant="secondary" label="Note" onPress={() => setNoteOpen(true)} disabled={stopping} />
+            />
+            <RoundButton testID="cap-note" icon="create" label="Write a note" onPress={() => setNoteOpen(true)} disabled={stopping} />
           </View>
+        )}
+      </View>
+
+      <View style={[styles.bar, { paddingBottom: 10 + insets.bottom }]}>
+        <View style={styles.barInner}>
+          <Text style={styles.stats} accessibilityLabel={statsLabel}>
+            {formatElapsed(elapsed)} · {formatDistance(live.distanceM)}
+          </Text>
+          <HoldButton testID="stop" label="Hold to stop" busyLabel="Stopping…" onHold={stop} busy={stopping} disabled={!walk}>
+            <View style={styles.stopInner}>
+              <Icon name="stop" size={18} color={theme.ink} />
+              <Text style={styles.stopText}>Hold</Text>
+            </View>
+          </HoldButton>
         </View>
       </View>
+
+      <CaptureViewer captures={viewing} onClose={() => setViewing(null)} />
 
       <Modal visible={noteOpen} transparent animationType="fade" onRequestClose={() => setNoteOpen(false)}>
         {/* Every way out keeps the draft; only Save clears it. */}
@@ -263,25 +279,66 @@ export default function WalkScreen() {
   );
 }
 
+/** A large round icon button; the label is what screen readers say. */
+function RoundButton(props: {
+  icon: IconName;
+  label: string;
+  onPress: () => void;
+  tone?: 'light' | 'voice';
+  busy?: boolean;
+  disabled?: boolean;
+  testID?: string;
+}) {
+  const voice = props.tone === 'voice';
+  const inactive = props.disabled || props.busy;
+  return (
+    <Pressable
+      testID={props.testID}
+      accessibilityRole="button"
+      accessibilityLabel={props.label}
+      accessibilityState={{ disabled: !!inactive, busy: !!props.busy }}
+      disabled={inactive}
+      onPress={props.onPress}
+      style={({ pressed }) => [styles.round, voice && styles.roundVoice, inactive && styles.disabled, pressed && styles.pressed]}
+    >
+      <Icon name={props.icon} size={30} color={voice ? '#ffffff' : theme.ink} />
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
-  top: { position: 'absolute', left: 12, right: 12, gap: 8, alignItems: 'flex-start', maxWidth: 640, alignSelf: 'center' },
-  pill: {
+  top: { position: 'absolute', left: 12, right: 12, gap: 8, alignItems: 'center', maxWidth: 640, alignSelf: 'center' },
+  chip: {
     flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.surface, borderRadius: 999,
-    paddingVertical: 8, paddingHorizontal: 14, borderWidth: 1, borderColor: theme.line,
+    paddingVertical: 6, paddingHorizontal: 12, borderWidth: 1, borderColor: theme.line,
   },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
-  pillStrong: { color: theme.ink, fontWeight: '700', fontSize: 15 },
-  pillText: { color: theme.ink, fontWeight: '500', fontSize: 15, fontVariant: ['tabular-nums'] },
+  chipText: { color: theme.ink, fontWeight: '600', fontSize: 14 },
   toast: { backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 14, alignSelf: 'center' },
   toastText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
-  bar: { backgroundColor: theme.bg, paddingHorizontal: 12, paddingTop: 10, borderTopWidth: 1, borderColor: theme.line },
-  barInner: { gap: 18, maxWidth: 640, width: '100%', alignSelf: 'center' },
-  stopRow: { flexDirection: 'row', justifyContent: 'flex-end' },
-  stop: { paddingHorizontal: 22 },
-  captureRow: { flexDirection: 'row', gap: 12 },
-  cap: { flex: 1 },
-  voiceLive: { color: '#ffffff', fontSize: 16, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  captures: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
+  captureRow: { flexDirection: 'row', gap: 20 },
+  voiceRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  round: {
+    width: 68, height: 68, borderRadius: 34, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1.5, borderColor: theme.edge,
+    shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 4,
+  },
+  roundVoice: { backgroundColor: '#6b21a8', borderColor: '#6b21a8' },
+  disabled: { opacity: 0.5 },
+  pressed: { opacity: 0.8 },
+  voiceLive: {
+    flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.surface, borderRadius: 999,
+    paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: theme.line,
+  },
+  recDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: theme.danger },
+  voiceLiveText: { color: theme.ink, fontSize: 18, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  bar: { backgroundColor: theme.bg, paddingHorizontal: 16, paddingTop: 10, borderTopWidth: 1, borderColor: theme.line },
+  barInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', maxWidth: 640, width: '100%', alignSelf: 'center' },
+  stats: { color: theme.ink, fontSize: 17, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  stopInner: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  stopText: { color: theme.ink, fontSize: 15, fontWeight: '600' },
   modalBack: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' },
   modalWrap: { flex: 1, justifyContent: 'flex-start', paddingHorizontal: 16 },
   modal: { backgroundColor: theme.surface, borderRadius: theme.radius, padding: 16, gap: 12, maxWidth: 520, width: '100%', alignSelf: 'center' },

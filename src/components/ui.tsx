@@ -78,6 +78,8 @@ export function HoldButton(props: {
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
   testID?: string;
+  /** Replaces the label text, e.g. with an icon; the label stays the spoken name. */
+  children?: ReactNode;
 }) {
   const [fill] = useState(() => new Animated.Value(0));
   const fired = useRef(false);
@@ -124,7 +126,7 @@ export function HoldButton(props: {
           {props.busyLabel ? <Text style={styles.label}>{props.busyLabel}</Text> : null}
         </View>
       ) : (
-        <Text style={styles.label}>{props.label}</Text>
+        props.children ?? <Text style={styles.label}>{props.label}</Text>
       )}
     </Pressable>
   );

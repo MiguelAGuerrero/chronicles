@@ -2,7 +2,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { distanceM, filterFixes, lineLengthM, positionAt, stepToward } from '../geo';
-import { cursorAt, groupCaptures, schedule, PATH_AND_PAUSES_MS } from '../replay';
+import { groupCaptures, nextStop, PATH_MS, schedule, walkTimeAt } from '../replay';
+import { pinsFor } from '../pins';
 import { tileAt } from '../tileMath';
 import { snap } from '../snapper';
 import { deriveSegments, type RoadFeature } from '../streets';
@@ -109,7 +110,7 @@ test('filterFixes drops inaccurate fixes and impossible jumps', () => {
   assert.deepEqual(positionAt(filterFixes(pts), 7500)!.map((n) => n.toFixed(7)), [O[0].toFixed(7), (O[1] + dLat * 0.05).toFixed(7)]);
 });
 
-test('replay: fixed length, nearby captures share one pause', () => {
+test('replay: the path runs in fixed time and stops at each group of captures', () => {
   const trace = walkAlong([at(0, 0), at(3, 0)]);
   const cap = (id: string, t: number, x: number, kind: Capture['kind'] = 'text'): Capture => ({
     id, walk_id: 'w1', t, lat: at(x, 0)[1], lon: at(x, 0)[0], kind, file_path: null, body: kind === 'voice' ? '6000' : 'hi', segment_id: null,
@@ -117,23 +118,21 @@ test('replay: fixed length, nearby captures share one pause', () => {
   const caps = [cap('a', 20_000, 0.1), cap('b', 30_000, 0.15, 'voice'), cap('c', 150_000, 2.5)];
   const groups = groupCaptures(caps);
   assert.equal(groups.length, 2);
-  assert.ok(groups[0].ms >= 6500, 'the pause lasts as long as the voice memo');
+  assert.deepEqual(groups[0].captures.map((c) => c.id), ['a', 'b'], 'nearby captures share one stop, in order');
 
   const s = schedule(trace, caps, 0);
-  assert.equal(s.totalMs, PATH_AND_PAUSES_MS);
-  assert.equal(cursorAt(s, 0).kind, 'moving');
-  assert.equal(cursorAt(s, s.totalMs + 1).kind, 'done');
-  // The cursor stops exactly at each group's time.
-  let pausedAt = new Set<number>();
-  for (let ms = 0; ms < s.totalMs; ms += 50) {
-    const c = cursorAt(s, ms);
-    if (c.kind === 'paused') pausedAt.add(c.walkT);
-  }
-  assert.deepEqual([...pausedAt], [20_000, 150_000]);
+  assert.equal(s.movingMs, PATH_MS);
+  assert.ok(s.groups[0].atMs < s.groups[1].atMs);
+  // The stop comes when the path reaches the group's time, and not before.
+  assert.equal(nextStop(s, s.groups[0].atMs - 1, 0), null);
+  assert.equal(nextStop(s, s.groups[0].atMs, 0), 0);
+  assert.equal(nextStop(s, s.groups[1].atMs + 5, 1), 1);
+  assert.equal(nextStop(s, PATH_MS, 2), null, 'nothing left once every group was shown');
+  assert.ok(Math.abs(walkTimeAt(s, s.groups[0].atMs) - 20_000) < 1);
 
-  // A two-hour walk replays in the same time as a ten-minute one.
+  // A two-hour walk's path runs in the same time as a ten-minute one.
   const long = walkAlong([at(0, 0), at(3, 0), at(0, 0), at(3, 0), at(0, 0)]);
-  assert.equal(schedule(long, [], 0).totalMs, PATH_AND_PAUSES_MS);
+  assert.equal(schedule(long, [], 0).movingMs, PATH_MS);
 });
 
 test('derive: copies of a street from two tiles stitch into the same pieces as the whole street', () => {
@@ -193,28 +192,33 @@ test('replay: gaps collapse, so a resumed walk does not crawl across the night',
   const morning = walkAlong([at(0, 0), at(1, 0)]);
   const evening = walkAlong([at(1, 0), at(2, 0)], 'w1', morning.at(-1)!.t + 12 * 3600_000);
   const s = schedule([...morning, ...evening], [], 0);
-  // Find when the replay crosses into the evening part.
   let crossed = -1;
-  for (let ms = 0; ms <= s.totalMs; ms += 50) {
-    if (cursorAt(s, ms).walkT >= evening[0].t) { crossed = ms; break; }
+  for (let ms = 0; ms <= s.movingMs; ms += 50) {
+    if (walkTimeAt(s, ms) >= evening[0].t) { crossed = ms; break; }
   }
   const activeShare = (morning.at(-1)!.t - morning[0].t) / ((morning.at(-1)!.t - morning[0].t) + (evening.at(-1)!.t - evening[0].t));
   assert.ok(Math.abs(crossed / s.movingMs - activeShare) < 0.1, `crossed at ${crossed} ms of ${s.movingMs}`);
 });
 
-test('replay: every capture gets a moment, with a floor, and an empty walk is short', () => {
+test('replay: every capture keeps its stop, and an empty walk has no path to run', () => {
   const trace = walkAlong([at(0, 0), at(3, 0)]);
   const many: Capture[] = Array.from({ length: 300 }, (_, i) => ({
     id: String(i), walk_id: 'w1', t: i * 150, lat: null, lon: null, kind: 'photo', file_path: 'x', body: null, segment_id: null,
   }));
   const s = schedule(trace, many, 0);
-  assert.ok(s.groups.every((g) => g.ms >= 1500), 'no strobe');
-  assert.ok(s.totalMs <= PATH_AND_PAUSES_MS);
   assert.equal(s.groups.reduce((n, g) => n + g.captures.length, 0), 300, 'nothing dropped');
-  // Three photos at one spot are shown one after another, not just the first.
-  const three = groupCaptures(many.slice(0, 3));
-  assert.equal(three.length, 1);
-  assert.equal(three[0].items.length, 3);
-  // Nothing recorded: no thirty seconds of empty map.
-  assert.equal(schedule([], [], 0).totalMs, 0);
+  assert.equal(schedule([], [], 0).movingMs, 0);
+});
+
+test('pins: nearby captures share a pin, and the pin says what it holds', () => {
+  const cap = (id: string, x: number, kind: Capture['kind'], t = 0): Capture => ({
+    id, walk_id: 'w', t, lat: at(x, 0)[1], lon: at(x, 0)[0], kind, file_path: null, body: null, segment_id: null,
+  });
+  const pins = pinsFor([cap('a', 0, 'photo'), cap('b', 0.1, 'photo', 5), cap('c', 0.15, 'voice', 9), cap('d', 2, 'text', 20)]);
+  assert.equal(pins.length, 2);
+  assert.deepEqual(pins[0].captures.map((c) => c.id), ['a', 'b', 'c']);
+  assert.equal(pins[0].kind, 'mixed');
+  assert.equal(pins[1].kind, 'text');
+  // A capture without a position has no pin.
+  assert.equal(pinsFor([{ ...cap('e', 0, 'photo'), lat: null, lon: null }]).length, 0);
 });

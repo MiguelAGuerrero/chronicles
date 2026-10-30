@@ -5,11 +5,13 @@ import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useRef, useState } from 'react';
 import { db } from './db';
 import { newId } from './id';
-import { keepFile } from './media';
+import { dropTemp, keepFile } from './media';
 import type { Capture, CaptureKind, LngLat } from './types';
 
 /** A fix older than this is not trusted as "where the capture was taken". */
 const FRESH_FIX_MS = 15_000;
+/** A voice memo shorter than this was an accidental tap. */
+const MIN_VOICE_MS = 1000;
 
 type Busy = CaptureKind | null;
 
@@ -110,14 +112,26 @@ export function useCaptures(
       setVoiceStartedAt(voiceStamp.current.t);
     });
 
-  /** Stops and saves the memo in progress. Resolves false if it could not be saved. */
+  async function stopRecorder(): Promise<number> {
+    const duration = voice.getStatus().durationMillis;
+    await voice.stop();
+    setVoiceStartedAt(null);
+    await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true, allowsBackgroundRecording: false });
+    return duration;
+  }
+
+  /**
+   * Stops and saves the memo in progress. A memo shorter than MIN_VOICE_MS is
+   * an accidental tap and is dropped. Resolves false if it could not be saved.
+   */
   async function finishVoice(): Promise<boolean> {
     if (voiceStartedAt == null && !voice.isRecording) return true;
     const run = async () => {
-      const duration = voice.getStatus().durationMillis;
-      await voice.stop();
-      setVoiceStartedAt(null);
-      await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true, allowsBackgroundRecording: false });
+      const duration = await stopRecorder();
+      if (duration < MIN_VOICE_MS) {
+        dropTemp(voice.uri);
+        return;
+      }
       if (!voice.uri) throw new Error('The voice memo could not be saved.');
       // Native records AAC in .m4a; on web the extension is only part of the key.
       const ext = /\.(\w{2,4})$/.exec(voice.uri.split('?')[0])?.[1] ?? (voice.uri.startsWith('blob:') ? 'webm' : 'm4a');
@@ -125,6 +139,16 @@ export function useCaptures(
     };
     if (lock.current) return false;
     return guarded('voice', run);
+  }
+
+  /** Stops the memo in progress and throws it away. */
+  async function discardVoice(): Promise<boolean> {
+    if (voiceStartedAt == null && !voice.isRecording) return true;
+    if (lock.current) return false;
+    return guarded('voice', async () => {
+      await stopRecorder();
+      dropTemp(voice.uri);
+    });
   }
 
   const saveNote = (text: string) =>
@@ -137,8 +161,9 @@ export function useCaptures(
     busy,
     voiceStartedAt,
     takePhoto,
-    toggleVoice: () => (voiceStartedAt == null ? startVoice() : finishVoice()),
+    startVoice,
     finishVoice,
+    discardVoice,
     saveNote,
   };
 }

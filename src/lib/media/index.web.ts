@@ -46,3 +46,8 @@ export async function resolveMedia(ref: string): Promise<string | null> {
 export function releaseMedia(uri: string) {
   if (uri.startsWith('blob:')) URL.revokeObjectURL(uri);
 }
+
+/** Releases a temporary capture that is not being kept (a discarded memo). */
+export function dropTemp(tempUri: string | null) {
+  if (tempUri?.startsWith('blob:')) URL.revokeObjectURL(tempUri);
+}

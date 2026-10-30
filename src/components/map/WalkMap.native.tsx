@@ -1,13 +1,14 @@
 import {
-  Camera, GeoJSONSource, Layer, Map, VectorSource, type CameraRef, type MapRef, type VectorSourceRef,
+  Camera, GeoJSONSource, Layer, Map, Marker, VectorSource, type CameraRef, type MapRef, type VectorSourceRef,
 } from '@maplibre/maplibre-react-native';
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { CapturePinView, pinLabel } from '../CapturePinView';
 import type { RoadFeature } from '../../lib/streets';
 import { TILEJSON_URL } from '../../lib/tiles';
 import {
-  COLORS, DERIVE_ZOOM, MAP_STYLE_URL, WORLD_VEIL, pointColor, pointsGeoJSON, segmentsGeoJSON,
-  traceGeoJSON, type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
+  COLORS, DERIVE_ZOOM, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, walkerGeoJSON,
+  type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
 const VIEW_TIMEOUT_MS = 4000;
@@ -28,7 +29,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const fog = useMemo(() => segmentsGeoJSON(props.fog), [props.fog]);
   const walked = useMemo(() => segmentsGeoJSON(props.walked), [props.walked]);
   const trace = useMemo(() => traceGeoJSON(props.trace), [props.trace]);
-  const points = useMemo(() => pointsGeoJSON(props.captures, props.walker), [props.captures, props.walker]);
+  const points = useMemo(() => walkerGeoJSON(props.walker), [props.walker]);
 
   useEffect(() => {
     if (ready && props.follow) cameraRef.current?.jumpTo({ center: props.follow });
@@ -138,12 +139,19 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         </GeoJSONSource>
         <GeoJSONSource id="points" data={points}>
           <Layer id="points" type="circle" paint={{
-            'circle-color': pointColor as never,
-            'circle-radius': ['match', ['get', 'kind'], 'walker', 7, 6],
+            'circle-color': COLORS.walker,
+            'circle-radius': 7,
             'circle-stroke-color': '#ffffff',
             'circle-stroke-width': 2,
           }} />
         </GeoJSONSource>
+        {props.pins.map((pin) => (
+          <Marker key={pin.id} id={pin.id} lngLat={pin.lngLat}>
+            <Pressable accessibilityRole="button" accessibilityLabel={pinLabel(pin)} onPress={() => props.onPinPress?.(pin)} hitSlop={6}>
+              <CapturePinView pin={pin} />
+            </Pressable>
+          </Marker>
+        ))}
       </Map>
       {props.covered && <View style={styles.cover} pointerEvents="none" />}
     </View>

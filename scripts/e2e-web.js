@@ -57,6 +57,12 @@ const style = {
   ],
 };
 
+// E2E_SHOTS=<dir> saves screenshots along the way, for looking at the UI.
+const SHOTS = process.env.E2E_SHOTS;
+async function shot(page, name) {
+  if (SHOTS) await page.screenshot({ path: path.join(SHOTS, `${name}.png`) });
+}
+
 function check(ok, what) {
   if (!ok) throw new Error(`FAILED: ${what}`);
   console.log(`ok - ${what}`);
@@ -65,11 +71,12 @@ function check(ok, what) {
 (async () => {
   const server = await serve();
   const url = `http://localhost:${server.address().port}${BASE}/`;
-  const browser = await chromium.launch();
+  // A fake microphone, so voice memos can be recorded headless.
+  const browser = await chromium.launch({ args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] });
   const start = at(-0.5, -0.5);
   const ctx = await browser.newContext({
     viewport: { width: 390, height: 844 },
-    permissions: ['geolocation'],
+    permissions: ['geolocation', 'microphone'],
     geolocation: { longitude: start[0], latitude: start[1], accuracy: 6 },
   });
   const page = await ctx.newPage();
@@ -91,6 +98,8 @@ function check(ok, what) {
     await page.goto(url);
     await page.click('[data-testid=start]');
     await page.waitForSelector('[data-testid=stop]');
+    await page.waitForTimeout(2500);
+    await shot(page, '01-walk-start');
 
     // Walk 300 m at 5 m/s, one fix a second (the fix filter rejects anything over 7 m/s).
     const route = [at(-0.5, -0.5), at(0.5, -0.5), at(0.5, 0.5), at(1.5, 0.5)];
@@ -101,10 +110,23 @@ function check(ok, what) {
     for (let k = 0; k < pts.length; k++) {
       await ctx.setGeolocation({ longitude: pts[k][0], latitude: pts[k][1], accuracy: 6 });
       await page.waitForTimeout(1000);
+      if (k === 10) {
+        // A memo can be thrown away instead of saved.
+        await page.click('[data-testid=cap-voice]');
+        await page.waitForSelector('[data-testid=voice-discard]');
+        await page.waitForTimeout(1500);
+        await shot(page, '02-voice-recording');
+        await page.click('[data-testid=voice-discard]');
+        await page.waitForSelector('[data-testid=cap-voice]');
+        check((await page.locator('[aria-label^="Voice memo"]').count()) === 0, 'a discarded voice memo is not kept');
+      }
       if (k === 25) {
         await page.click('[data-testid=cap-note]');
         await page.fill('[data-testid=note-input]', 'The bakery smelled of cardamom.');
         await page.click('[data-testid=note-save]');
+        await page.waitForTimeout(2500);
+        check((await page.locator('[aria-label="Note. Open"]').count()) === 1, 'the note is pinned on the map');
+        await shot(page, '03-walking');
       }
       if (k === 40) {
         // A reload mid-walk is how the web resumes: it must land back on the walk.
@@ -140,10 +162,22 @@ function check(ok, what) {
       if (!moment) await page.waitForTimeout(500);
     }
     check(moment, 'the note gets its moment in the replay');
+    await page.waitForTimeout(3000);
+    await shot(page, '04-replay-moment');
+    check((await page.getByText('cardamom').count()) > 0, 'the replay waits at the note until a tap');
+    await page.click('[data-testid=moment]');
 
     await page.waitForSelector('[data-testid=to-name]', { timeout: 45000 });
     const card = (await page.locator('body').innerText()).replace(/\s+/g, ' ');
     check(/\b3 new streets\b/.test(card), `the card counts 3 new streets (${card.slice(0, 80)})`);
+    await page.waitForTimeout(800);
+    await shot(page, '05-card');
+    await page.click('[aria-label="Note. Open"]');
+    await page.waitForSelector('text=The bakery smelled of cardamom.');
+    await page.waitForTimeout(1200);
+    await shot(page, '06-pin-opened');
+    check(true, 'a pin on the card opens its capture');
+    await page.click('[aria-label="Close"]');
 
     await page.click('[data-testid=to-name]');
     await page.fill('[data-testid=epilogue-input]', 'Cardamom and the river.');

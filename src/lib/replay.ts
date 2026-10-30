@@ -2,9 +2,11 @@ import { distanceM } from './geo';
 import type { Capture, LngLat, TracePoint } from './types';
 
 /**
- * Timing for the end-of-session ceremony. The concept doc fixes the shape
- * (five beats, always in the same order) and the length (about forty seconds
- * whatever the walk's length); this turns a walk into that schedule.
+ * Timing for the end-of-session ceremony: five beats, always in the same
+ * order. The path itself runs in a fixed PATH_MS whatever the walk's length.
+ * At each capture the path stops and waits for the viewer: photos stay up,
+ * voice memos play to the end, until a tap moves on (the owner's call, over
+ * the concept doc's fixed forty seconds). Skip still jumps to the card.
  *
  * The path runs in "active time": stretches with no fixes longer than
  * GAP_MS (the app was closed, the tab hidden, a long stop indoors) are
@@ -12,95 +14,45 @@ import type { Capture, LngLat, TracePoint } from './types';
  */
 
 export const FOG_MS = 4000;
-/** Beats two and three together: the path runs, captures interrupt. */
-export const PATH_AND_PAUSES_MS = 30_000;
-const MIN_MOVING_MS = 10_000;
-const MAX_PAUSES_MS = PATH_AND_PAUSES_MS - MIN_MOVING_MS;
-const ITEM_MS: Record<Capture['kind'], number> = { photo: 3000, text: 3000, voice: 0 };
-const MAX_VOICE_MS = 8000;
-/** No capture is shown for less than this; past it, groups become contact sheets, then merge. */
-const MIN_ITEM_MS = 1500;
+/** How long the path takes to run, not counting the stops at captures. */
+export const PATH_MS = 30_000;
 const GROUP_M = 40;
 const GROUP_GAP_MS = 120_000;
 export const GAP_MS = 60_000;
 /** Active time a collapsed gap still takes, so the cut reads as a cut. */
 const HOP_MS = 5000;
 
-export interface PauseItem {
-  capture: Capture;
-  /** Offset within the pause at which this capture comes up. */
-  from: number;
-  ms: number;
-}
-
 export interface PauseGroup {
   /** Walk time at which the path stops for this group. */
   t: number;
   at: LngLat | null;
+  /** Shown one after another, each until the viewer moves on. */
   captures: Capture[];
-  /** One capture after another; empty when shown together as a contact sheet. */
-  items: PauseItem[];
-  /** Replay time this pause lasts. */
-  ms: number;
 }
 
 export interface Schedule {
   /** Active-time span of the path. */
   start: number;
   end: number;
+  /** Replay time the path takes to run; 0 when there is no trace to draw. */
   movingMs: number;
-  groups: (PauseGroup & { activeT: number })[];
-  totalMs: number;
+  /** Each group, with the replay time (into the path) at which it stops the path. */
+  groups: (PauseGroup & { activeT: number; atMs: number })[];
   /** Converts walk time to active time. */
   toActive(t: number): number;
   /** Converts active time back to walk time. */
   toWalk(a: number): number;
 }
 
-const voiceMs = (c: Capture) => Math.min(Number(c.body) || 0, MAX_VOICE_MS) + 500;
-const itemMs = (c: Capture) => (c.kind === 'voice' ? Math.max(MIN_ITEM_MS, voiceMs(c)) : ITEM_MS[c.kind]);
-
-function layout(g: PauseGroup, scale: number) {
-  let from = 0;
-  g.items = g.captures.map((capture) => {
-    const ms = Math.max(MIN_ITEM_MS, Math.round(itemMs(capture) * scale));
-    const item = { capture, from, ms };
-    from += ms;
-    return item;
-  });
-  g.ms = from;
-}
-
-/** Captures taken close together, in space and time, share one pause. */
+/** Captures taken close together, in space and time, share one stop. */
 export function groupCaptures(captures: Capture[]): PauseGroup[] {
-  let groups: PauseGroup[] = [];
+  const groups: PauseGroup[] = [];
   for (const c of [...captures].sort((a, b) => a.t - b.t)) {
     const pos: LngLat | null = c.lat != null && c.lon != null ? [c.lon, c.lat] : null;
     const g = groups[groups.length - 1];
     const near = g && c.t - g.t <= GROUP_GAP_MS && (!g.at || !pos || distanceM(g.at, pos) <= GROUP_M);
     if (near) g.captures.push(c);
-    else groups.push({ t: c.t, at: pos, captures: [c], items: [], ms: 0 });
-  }
-  // Each capture gets its own moment, scaled to fit the pause budget.
-  const natural = groups.reduce((s, g) => s + g.captures.reduce((x, c) => x + itemMs(c), 0), 0);
-  const scale = natural > MAX_PAUSES_MS ? MAX_PAUSES_MS / natural : 1;
-  for (const g of groups) layout(g, scale);
-  if (groups.reduce((s, g) => s + g.ms, 0) <= MAX_PAUSES_MS) return groups;
-
-  // Too many to show one by one: each group becomes one contact sheet ...
-  for (const g of groups) {
-    g.items = [];
-    g.ms = MIN_ITEM_MS;
-  }
-  // ... and neighbouring sheets merge until they fit.
-  while (groups.length * MIN_ITEM_MS > MAX_PAUSES_MS) {
-    const merged: PauseGroup[] = [];
-    for (let i = 0; i < groups.length; i += 2) {
-      const a = groups[i];
-      const b = groups[i + 1];
-      merged.push(b ? { ...a, captures: [...a.captures, ...b.captures] } : a);
-    }
-    groups = merged;
+    else groups.push({ t: c.t, at: pos, captures: [c] });
   }
   return groups;
 }
@@ -138,50 +90,31 @@ function activeClock(fixes: TracePoint[]) {
 }
 
 export function schedule(fixes: TracePoint[], captures: Capture[], startedAt: number): Schedule {
-  const groups = groupCaptures(captures);
   const { toActive, toWalk } = activeClock(fixes);
   const startT = fixes[0]?.t ?? startedAt;
   const endT = Math.max(fixes.at(-1)?.t ?? startT, ...captures.map((c) => c.t), startT + 1);
   const start = toActive(startT);
   const end = toActive(endT);
-  const pauses = groups.reduce((s, g) => s + g.ms, 0);
-  // Nothing to draw: no point running an empty path; captures still get their moment.
-  const movingMs = fixes.length < 2 ? 0 : Math.max(MIN_MOVING_MS, PATH_AND_PAUSES_MS - pauses);
-  return {
-    start,
-    end,
-    movingMs,
-    groups: groups.map((g) => ({ ...g, activeT: Math.min(Math.max(toActive(g.t), start), end) })),
-    totalMs: movingMs + pauses,
-    toActive,
-    toWalk,
-  };
+  // Nothing to draw: no point running an empty path; captures still get their stop.
+  const movingMs = fixes.length < 2 ? 0 : PATH_MS;
+  const span = end - start;
+  const groups = groupCaptures(captures).map((g) => {
+    const activeT = Math.min(Math.max(toActive(g.t), start), end);
+    return { ...g, activeT, atMs: span > 0 ? ((activeT - start) / span) * movingMs : 0 };
+  });
+  return { start, end, movingMs, groups, toActive, toWalk };
 }
 
-export type Cursor =
-  | { kind: 'moving'; walkT: number }
-  | { kind: 'paused'; walkT: number; group: PauseGroup; index: number; elapsed: number }
-  | { kind: 'done'; walkT: number };
+/** Walk time at `ms` into the path (time spent stopped at captures not counted). */
+export function walkTimeAt(s: Schedule, ms: number): number {
+  if (s.movingMs <= 0) return s.toWalk(s.end);
+  const f = Math.min(1, Math.max(0, ms / s.movingMs));
+  return s.toWalk(s.start + f * (s.end - s.start));
+}
 
-/** Where the replay is, `ms` after the path started running. */
-export function cursorAt(s: Schedule, ms: number): Cursor {
-  const span = s.end - s.start;
-  const rate = s.movingMs > 0 ? span / s.movingMs : 0; // active ms per replay ms while moving
-  let replay = 0;
-  let a = s.start;
-  const moveTo = (target: number) => (rate > 0 ? (target - a) / rate : 0);
-  for (let i = 0; i < s.groups.length; i++) {
-    const g = s.groups[i];
-    const moveMs = moveTo(g.activeT);
-    if (ms < replay + moveMs) return { kind: 'moving', walkT: s.toWalk(a + (ms - replay) * rate) };
-    replay += moveMs;
-    a = g.activeT;
-    if (ms < replay + g.ms) return { kind: 'paused', walkT: s.toWalk(a), group: g, index: i, elapsed: ms - replay };
-    replay += g.ms;
-  }
-  const rest = moveTo(s.end);
-  if (ms < replay + rest) return { kind: 'moving', walkT: s.toWalk(a + (ms - replay) * rate) };
-  return { kind: 'done', walkT: s.toWalk(s.end) };
+/** The first group not yet shown whose stop the path has reached, if any. */
+export function nextStop(s: Schedule, ms: number, shown: number): number | null {
+  return shown < s.groups.length && s.groups[shown].atMs <= ms ? shown : null;
 }
 
 export type TimedRun = { t: number; p: LngLat }[];

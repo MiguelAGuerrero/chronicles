@@ -1,22 +1,20 @@
-import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  AccessibilityInfo, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View,
+  AccessibilityInfo, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WalkMap } from '../../components/map/WalkMap';
-import { planViews, type MapCapture, type WalkMapHandle } from '../../components/map/types';
+import { CaptureContent, CaptureViewer } from '../../components/CaptureView';
+import { planViews, type WalkMapHandle } from '../../components/map/types';
 import { Button, theme } from '../../components/ui';
 import { db } from '../../lib/db';
 import { snapWalk } from '../../lib/finish';
 import { ensureTileBuild } from '../../lib/tiles';
-import { releaseMedia, resolveMedia } from '../../lib/media';
-import {
-  cursorAt, FOG_MS, schedule, timedRuns, traceUntil, walkerAt, type Cursor, type PauseGroup,
-} from '../../lib/replay';
+import { pinsFor } from '../../lib/pins';
+import { FOG_MS, nextStop, schedule, timedRuns, traceUntil, walkerAt, walkTimeAt } from '../../lib/replay';
 import { formatCaptures, formatDistance, formatDuration, loadReplay, suggestTitle, type ReplayData } from '../../lib/summary';
-import type { Capture, LngLat } from '../../lib/types';
+import type { Capture } from '../../lib/types';
 
 type Beat = 'reading' | 'fog' | 'path' | 'card' | 'name';
 const FRAME_MS = 66; // ~15 fps keeps the map responsive on a phone
@@ -29,7 +27,6 @@ export default function Replay() {
   const mapRef = useRef<WalkMapHandle>(null);
   const [data, setData] = useState<ReplayData | null>(null);
   const [status, setStatus] = useState<'loading' | 'missing' | 'ready'>('loading');
-  const [media, setMedia] = useState<Map<string, string>>(new Map());
   // The beat and its start time change together, so no render ever sees one
   // beat with another beat's clock.
   const [phase, setPhase] = useState<{ beat: Beat; t0: number }>(() => ({ beat: 'reading', t0: Date.now() }));
@@ -41,7 +38,11 @@ export default function Replay() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [reduceMotion, setReduceMotion] = useState(false);
-  const player = useRef<AudioPlayer | null>(null);
+  // At a capture the path waits for a tap: which group, which capture in it,
+  // and the path time it stopped at. `shown` counts groups already visited.
+  const [stop, setStop] = useState<{ group: number; item: number; atMs: number } | null>(null);
+  const shown = useRef(0);
+  const [viewing, setViewing] = useState<Capture[] | null>(null);
   // Opened from the log: the replay runs the same, and ends on the card.
   const rewatch = ceremony === '0';
   const beat = phase.beat;
@@ -51,6 +52,8 @@ export default function Replay() {
     const t = Date.now();
     setPhase({ beat: b, t0: t });
     setNow(t);
+    setStop(null);
+    if (b === 'fog') shown.current = 0;
     if (b === 'fog' || b === 'card') setFitKey((k) => k + 1);
   }, []);
 
@@ -92,14 +95,6 @@ export default function Replay() {
         setData(d);
         setTitle(d.walk.title ?? suggestTitle(d.walk));
       }
-      const resolved = new Map<string, string>();
-      for (const c of d.captures) {
-        if (!c.file_path) continue;
-        const uri = await resolveMedia(c.file_path).catch(() => null);
-        if (uri) resolved.set(c.id, uri);
-      }
-      if (!alive) return;
-      setMedia(resolved);
       // With a screen reader, the animation says nothing; start on the card.
       // (react-native-web always answers yes, so the web relies on the
       // live-region announcements instead.)
@@ -110,47 +105,47 @@ export default function Replay() {
       alive = false;
     };
   }, [id, go]);
-  useEffect(() => () => {
-    for (const uri of media.values()) releaseMedia(uri);
-  }, [media]);
 
 
   const sched = useMemo(() => (data ? schedule(data.fixes, data.captures, data.walk.started_at) : null), [data]);
   const runs = useMemo(() => (data ? timedRuns(data.fixes) : []), [data]);
-  const cursor: Cursor | null = sched && beat === 'path' ? cursorAt(sched, clock) : null;
-  // One clock drives beats one to three, and moves on when a beat is over.
+  // One clock drives beats one to three. It stands still while a capture is
+  // up, and moves on when a beat is over.
   useEffect(() => {
-    if (beat !== 'fog' && beat !== 'path') return;
+    if ((beat !== 'fog' && beat !== 'path') || stop) return;
     const timer = setInterval(() => {
       const t = Date.now();
       const elapsed = t - phase.t0;
-      if (beat === 'fog' && elapsed >= FOG_MS) go('path');
-      else if (beat === 'path' && sched && cursorAt(sched, elapsed).kind === 'done') go('card');
+      if (beat === 'fog') {
+        if (elapsed >= FOG_MS) go('path');
+        else setNow(t);
+        return;
+      }
+      if (!sched) return;
+      const g = nextStop(sched, elapsed, shown.current);
+      if (g != null) {
+        shown.current = g + 1;
+        setStop({ group: g, item: 0, atMs: sched.groups[g].atMs });
+      } else if (elapsed >= sched.movingMs && shown.current >= sched.groups.length) go('card');
       else setNow(t);
     }, FRAME_MS);
     return () => clearInterval(timer);
-  }, [beat, phase.t0, sched, go]);
+  }, [beat, phase.t0, sched, go, stop]);
 
-  // The capture moment on screen now, and the item within a slideshow pause.
-  const paused = cursor?.kind === 'paused' ? cursor : null;
-  const item = paused?.group.items.find((i) => paused.elapsed >= i.from && paused.elapsed < i.from + i.ms) ?? null;
-  const momentKey = paused ? `${paused.index}:${item?.capture.id ?? 'sheet'}` : null;
-
-  // A voice memo plays for its own moment and stops when the moment ends,
-  // when the replay is skipped, or when the screen closes.
-  useEffect(() => {
-    player.current?.remove();
-    player.current = null;
-    if (!item || item.capture.kind !== 'voice') return;
-    const uri = media.get(item.capture.id);
-    if (!uri) return;
-    player.current = createAudioPlayer(uri);
-    player.current.play();
-  }, [momentKey, item, media]);
-  useEffect(() => () => {
-    player.current?.remove();
-    player.current = null;
-  }, []);
+  const stopGroup = stop && sched ? sched.groups[stop.group] : null;
+  const stopCapture = stopGroup ? stopGroup.captures[stop!.item] : null;
+  /** Next capture in this stop, or back to the path where it stopped. */
+  const advance = () => {
+    if (!stop || !stopGroup) return;
+    if (stop.item < stopGroup.captures.length - 1) {
+      setStop({ ...stop, item: stop.item + 1 });
+      return;
+    }
+    const t = Date.now();
+    setPhase({ beat: 'path', t0: t - stop.atMs });
+    setNow(t);
+    setStop(null);
+  };
 
   // Words for screen readers at each beat and each capture.
   useEffect(() => {
@@ -161,16 +156,19 @@ export default function Replay() {
     if (beat === 'card') AccessibilityInfo.announceForAccessibility('Summary');
   }, [beat, data]);
   useEffect(() => {
-    if (!paused) return;
-    const c = item?.capture ?? paused.group.captures[0];
+    if (!stopCapture) return;
+    const c = stopCapture;
     AccessibilityInfo.announceForAccessibility(
-      c.kind === 'text' ? c.body ?? 'Note' : `${c.kind === 'photo' ? 'Photo' : 'Voice memo'}, ${timeOf(c)}`,
+      c.kind === 'text' ? c.body ?? 'Note' : `${c.kind === 'photo' ? 'Photo' : 'Voice memo'}, ${timeOf(c)}. Tap to continue.`,
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [momentKey]);
+  }, [stopCapture]);
 
-  const walkT = cursor?.walkT ?? (beat === 'card' || beat === 'name' ? sched?.toWalk(sched.end) ?? 0 : sched?.toWalk(sched?.start ?? 0) ?? 0);
-  const traceBucket = beat === 'path' ? Math.floor(clock / TRACE_STEP_MS) : -1;
+  const pathMs = stop ? stop.atMs : clock;
+  const walkT = !sched ? 0
+    : beat === 'path' ? walkTimeAt(sched, pathMs)
+    : beat === 'card' || beat === 'name' ? sched.toWalk(sched.end)
+    : sched.toWalk(sched.start);
+  const traceBucket = beat === 'path' ? Math.floor(pathMs / TRACE_STEP_MS) : -1;
   const trace = useMemo(
     () => {
       if (!data) return [];
@@ -193,15 +191,11 @@ export default function Replay() {
     return [...data.fog, ...data.walked.slice(lit)];
   }, [data, beat, lit]);
 
+  // Captures are pinned where they were taken as the path reaches them; on
+  // the card every pin opens its captures.
   const passedCount = data ? data.captures.filter((c) => beat === 'card' || beat === 'name' || (beat === 'path' && c.t <= walkT)).length : 0;
-  const passed: MapCapture[] = useMemo(
-    () =>
-      (data?.captures ?? [])
-        .slice()
-        .sort((a, b) => a.t - b.t)
-        .slice(0, passedCount)
-        .filter((c) => c.lat != null && c.lon != null)
-        .map((c) => ({ id: c.id, kind: c.kind, lngLat: [c.lon!, c.lat!] as LngLat })),
+  const pins = useMemo(
+    () => pinsFor((data?.captures ?? []).slice().sort((a, b) => a.t - b.t).slice(0, passedCount)),
     [data, passedCount],
   );
 
@@ -246,7 +240,8 @@ export default function Replay() {
         traceOpacity={beat === 'fog' || beat === 'reading' ? 0.3 : 1}
         walked={shownWalked}
         fog={fog}
-        captures={passed}
+        pins={pins}
+        onPinPress={beat === 'card' || beat === 'name' ? (pin) => setViewing(pin.captures) : undefined}
         walker={walker}
         follow={beat === 'path' && !reduceMotion ? walker : null}
         fitBounds={data.bounds}
@@ -274,7 +269,29 @@ export default function Replay() {
         </View>
       )}
 
-      {paused && <CaptureMoment group={paused.group} item={item?.capture ?? null} media={media} reduceMotion={reduceMotion} />}
+      {stopCapture && stopGroup && (
+        // A capture stays up, and a voice memo plays to its end, until a tap.
+        <Pressable
+          testID="moment"
+          style={styles.moment}
+          onPress={advance}
+          accessibilityRole="button"
+          accessibilityLabel="Continue"
+          accessibilityHint="Shows the next capture, or carries on along the walk"
+        >
+          <CaptureContent
+            key={stopCapture.id}
+            capture={stopCapture}
+            autoPlay
+            footer={stopGroup.captures.length > 1 ? `${stop!.item + 1} of ${stopGroup.captures.length}` : undefined}
+          />
+          <View style={[styles.continue, { top: insets.top + 16 }]} pointerEvents="none">
+            <Text style={styles.continueText}>Tap to continue</Text>
+          </View>
+        </Pressable>
+      )}
+
+      <CaptureViewer captures={viewing} onClose={() => setViewing(null)} />
 
       {(beat === 'fog' || beat === 'path') && (
         <View style={[styles.skip, { top: insets.top + 12 }]}>
@@ -311,7 +328,7 @@ export default function Replay() {
                   {formatDistance(s?.distance_m ?? 0)} · {formatDuration(s?.duration_ms ?? Math.max(0, (data.walk.ended_at ?? data.walk.started_at) - data.walk.started_at))}
                   {s && s.streets_walked > 0 ? ` · ${s.streets_walked} ${s.streets_walked === 1 ? 'street' : 'streets'} walked` : ''}
                 </Text>
-                {s && formatCaptures(s) ? <Text style={styles.cardMuted}>{formatCaptures(s)}</Text> : null}
+                {s && formatCaptures(s) ? <Text style={styles.cardMuted}>{formatCaptures(s)} · tap a pin to open</Text> : null}
                 {data.walk.epilogue ? <Text style={styles.epilogue}>“{data.walk.epilogue}”</Text> : null}
                 <View style={styles.row}>
                   <Button variant="secondary" style={styles.flex} label="Watch again" onPress={() => go('fog')} />
@@ -380,46 +397,6 @@ function headline(s: ReplayData['summary'], d: ReplayData) {
 
 const timeOf = (c: Capture) => new Date(c.t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
-function CaptureMoment(props: { group: PauseGroup; item: Capture | null; media: Map<string, string>; reduceMotion: boolean }) {
-  const { group, item, media } = props;
-  if (!item) {
-    // Too many captures to show one by one: a contact sheet of the group.
-    const photos = group.captures.filter((c) => c.kind === 'photo' && media.has(c.id));
-    const others = group.captures.filter((c) => c.kind !== 'photo');
-    return (
-      <View style={styles.moment} pointerEvents="none">
-        <View style={styles.sheetGrid}>
-          {photos.slice(0, 9).map((p) => (
-            <Image key={p.id} source={{ uri: media.get(p.id)! }} style={styles.thumb} resizeMode="cover" />
-          ))}
-        </View>
-        <View style={styles.momentText}>
-          {others.slice(0, 3).map((c) => (
-            <Text key={c.id} style={c.kind === 'text' ? styles.note : styles.voice} numberOfLines={2}>
-              {c.kind === 'text' ? c.body : `▶ Voice memo, ${Math.round((Number(c.body) || 0) / 1000)} s`}
-            </Text>
-          ))}
-          <Text style={styles.momentTime}>
-            {group.captures.length} captures · {timeOf(group.captures[0])}
-          </Text>
-        </View>
-      </View>
-    );
-  }
-  const uri = media.get(item.id);
-  return (
-    <View style={styles.moment} pointerEvents="none">
-      {item.kind === 'photo' && uri && <Image source={{ uri }} style={styles.photo} resizeMode="cover" />}
-      <View style={styles.momentText}>
-        {item.kind === 'text' && <Text style={styles.note}>{item.body}</Text>}
-        {item.kind === 'voice' && <Text style={styles.voice}>▶ Voice memo, {Math.round((Number(item.body) || 0) / 1000)} s</Text>}
-        {item.kind === 'photo' && !uri && <Text style={styles.note}>Photo</Text>}
-        <Text style={styles.momentTime}>{timeOf(item)}</Text>
-      </View>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
   center: { alignItems: 'center', justifyContent: 'center', gap: 16 },
@@ -434,17 +411,9 @@ const styles = StyleSheet.create({
   headlineLabel: { fontSize: 17, color: theme.ink, fontWeight: '600' },
   headlineNote: { fontSize: 14, color: theme.muted, textAlign: 'center', marginTop: 6 },
   skip: { position: 'absolute', right: 12 },
-  moment: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(20,24,32,0.6)', justifyContent: 'flex-end' },
-  photo: { ...StyleSheet.absoluteFill },
-  sheetGrid: { ...StyleSheet.absoluteFill, flexDirection: 'row', flexWrap: 'wrap', padding: 8, gap: 8, alignContent: 'center', justifyContent: 'center' },
-  thumb: { width: '30%', aspectRatio: 1, borderRadius: 8 },
-  momentText: {
-    margin: 16, padding: 16, gap: 8, backgroundColor: 'rgba(255,255,255,0.96)', borderRadius: theme.radius,
-    maxWidth: 560, alignSelf: 'center', width: '92%',
-  },
-  note: { fontSize: 20, lineHeight: 27, color: theme.ink },
-  voice: { fontSize: 16, color: '#6b21a8', fontWeight: '600' },
-  momentTime: { fontSize: 14, color: theme.muted },
+  moment: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(20,24,32,0.85)' },
+  continue: { position: 'absolute', alignSelf: 'center', backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: 999, paddingVertical: 6, paddingHorizontal: 14 },
+  continueText: { color: theme.ink, fontSize: 14, fontWeight: '600' },
   sheetWrap: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '70%' },
   sheet: { backgroundColor: theme.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
   sheetContent: { padding: 16, gap: 10, maxWidth: 640, width: '100%', alignSelf: 'center' },

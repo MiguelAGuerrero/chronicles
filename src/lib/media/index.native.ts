@@ -23,3 +23,14 @@ export async function resolveMedia(ref: string): Promise<string | null> {
 
 /** Native URIs need no cleanup; present for parity with web object URLs. */
 export function releaseMedia(_uri: string) {}
+
+/** Deletes a temporary capture file that is not being kept (a discarded memo). */
+export function dropTemp(tempUri: string | null) {
+  if (!tempUri) return;
+  try {
+    const f = new File(tempUri);
+    if (f.exists) f.delete();
+  } catch {
+    // already gone
+  }
+}

@@ -33,11 +33,9 @@ export default function RootLayout() {
         }}
       >
         <Stack.Screen name="index" options={{ title: 'Chronicles' }} />
-        {/* No way back from a walk but Stop: leaving would strand it open. */}
-        <Stack.Screen
-          name="walk"
-          options={{ title: 'Walking', headerBackVisible: false, headerLeft: () => null, gestureEnabled: false }}
-        />
+        {/* No header: the growing trace says a walk is on. No way back but
+            Stop, either: leaving would strand the walk open. */}
+        <Stack.Screen name="walk" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="replay/[id]" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
       </Stack>
     </SafeAreaProvider>

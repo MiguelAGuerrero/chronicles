@@ -1,12 +1,15 @@
-import { Map as MapLibreMap, setWorkerUrl, type GeoJSONFeature, type MapMouseEvent } from 'maplibre-gl';
+import { Map as MapLibreMap, Marker, setWorkerUrl, type GeoJSONFeature, type MapMouseEvent } from 'maplibre-gl';
 // @ts-expect-error: a CSS side-effect import, which Metro bundles on web.
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
 import { StyleSheet, View } from 'react-native';
+import { CapturePinView, pinLabel } from '../CapturePinView';
+import type { CapturePin } from '../../lib/pins';
 import type { RoadFeature } from '../../lib/streets';
 import {
-  COLORS, DERIVE_ZOOM, MAP_STYLE_URL, WORLD_VEIL, pointColor, pointsGeoJSON, segmentsGeoJSON,
-  traceGeoJSON, type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
+  COLORS, DERIVE_ZOOM, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, walkerGeoJSON,
+  type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
 const VECTOR_SOURCE = 'openmaptiles';
@@ -33,8 +36,8 @@ function addOverlay(map: MapLibreMap) {
     paint: { 'line-color': COLORS.trace, 'line-width': 2.5, 'line-opacity': 0.85 } });
   map.addLayer({ id: 'points', type: 'circle', source: 'points',
     paint: {
-      'circle-color': pointColor as never,
-      'circle-radius': ['match', ['get', 'kind'], 'walker', 7, 6],
+      'circle-color': COLORS.walker,
+      'circle-radius': 7,
       'circle-stroke-color': '#ffffff',
       'circle-stroke-width': 2,
     } });
@@ -110,8 +113,52 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     if (ready) mapRef.current?.setPaintProperty('trace', 'line-opacity', 0.85 * (props.traceOpacity ?? 1));
   }, [ready, props.traceOpacity]);
   useEffect(() => {
-    if (ready) setData('points', pointsGeoJSON(props.captures, props.walker));
-  }, [ready, props.captures, props.walker]);
+    if (ready) setData('points', walkerGeoJSON(props.walker));
+  }, [ready, props.walker]);
+
+  // Capture pins are DOM markers rendered with the same view as on native.
+  const onPinPress = useRef(props.onPinPress);
+  onPinPress.current = props.onPinPress;
+  const markers = useRef(new Map<string, { marker: Marker; root: Root; key: string }>());
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    const live = new Set<string>();
+    for (const pin of props.pins) {
+      live.add(pin.id);
+      const key = `${pin.lngLat.join(',')}|${pin.kind}|${pin.captures.length}`;
+      const existing = markers.current.get(pin.id);
+      if (existing?.key === key) continue;
+      existing?.marker.remove();
+      existing?.root.unmount();
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.setAttribute('aria-label', pinLabel(pin));
+      el.style.cssText = 'background:none;border:0;padding:0;cursor:pointer';
+      const current: CapturePin = pin;
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        onPinPress.current?.(current);
+      });
+      const root = createRoot(el);
+      root.render(<CapturePinView pin={pin} />);
+      const marker = new Marker({ element: el }).setLngLat(pin.lngLat).addTo(map);
+      markers.current.set(pin.id, { marker, root, key });
+    }
+    for (const [id, m] of markers.current) {
+      if (live.has(id)) continue;
+      m.marker.remove();
+      m.root.unmount();
+      markers.current.delete(id);
+    }
+  }, [ready, props.pins]);
+  useEffect(() => () => {
+    for (const m of markers.current.values()) {
+      m.marker.remove();
+      m.root.unmount();
+    }
+    markers.current.clear();
+  }, []);
   useEffect(() => {
     if (ready) mapRef.current?.setPaintProperty('veil', 'fill-opacity', props.veil ? 0.45 : 0);
   }, [ready, props.veil]);

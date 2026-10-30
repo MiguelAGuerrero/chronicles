@@ -51,8 +51,11 @@ Read this before changing recording, streets, the replay or storage.
 
 - The spec is the owner's "Explorer App Concept" doc in Claude Docs. This app is its
   v0, "the chronicle": start, walk, capture (photo, voice, text), stop, replay. The
-  replay is the make-or-break; respect its rules: five beats, fixed order, about 40 s,
-  restraint (no confetti, streaks or badges), and the lows stay in.
+  replay is the make-or-break; respect its rules: five beats in fixed order, restraint
+  (no confetti, streaks or badges), and the lows stay in.
+- **The replay waits at each capture** (the owner's call, over the doc's fixed ~40 s):
+  the path runs in a fixed 30 s, but stops at every capture until a tap. Photos stay
+  up and voice memos play to the end. Skip jumps to the card.
 - **Local-only.** No accounts, no backend, nothing leaves the device. The owner chose
   this over Supabase for v0; don't add a server without asking.
 - **No simulation.** Web traces the real browser location live while the page is open
@@ -61,6 +64,29 @@ Read this before changing recording, streets, the replay or storage.
 - **Web is a fallback.** A mobile feature with no web workaround stays off on web
   (background recording, for example). A limited version is fine where one works
   (photos open a file picker on desktop).
+
+## Walk screen layout (decided with the owner, after research)
+
+- Capture controls are large icon buttons (camera, mic, pencil) in a centered row,
+  floating in the lower-middle of the screen. Time, distance and hold-to-stop sit in
+  a thin strip at the very bottom, with Stop at the right end, away from the captures.
+- Why: Hoober's touch research shows taps are most accurate near the center and
+  least accurate at the top and bottom edges and in corners. About half of phone use
+  is one-handed, mostly with the right thumb, and grips change with the task. Strava,
+  AllTrails and Komoot keep record and capture controls low on the screen, and Google
+  Maps floats its controls at the bottom right. A centered row needs no handedness
+  setting.
+- Text is kept to a minimum. There is no header or "Recording" label, because the
+  growing trace shows a walk is on. A status chip appears only when something is
+  wrong: waiting for GPS, weak GPS, or not recording.
+- Captures are pins on the map (`src/lib/pins.ts`; captures within 25 m share a pin,
+  with a count), on the walk screen and on the replay card. Tapping a pin opens its
+  captures in `CaptureViewer`.
+- Recording a voice memo swaps the row for discard, a timer and save. A memo shorter
+  than 1 s is dropped as an accidental tap.
+- Next round, not built yet: treat standing still (a long stay inside a small radius)
+  as a pause in the replay, so the dot doesn't jitter in place. The raw trace stays
+  untouched.
 
 ## Working with the owner
 
@@ -180,6 +206,15 @@ Read this before changing recording, streets, the replay or storage.
   credits pieces of 40 m or less only if the trace ran down their middle.
   `WALKED_THRESHOLD` (0.5) is still an open product decision.
 
+### Icons and pins
+
+- Icons come from `@expo/vector-icons` (Ionicons), via `src/components/icons.tsx`.
+  Every icon-only button needs an `accessibilityLabel`.
+- On web, pins are maplibre-gl DOM `Marker`s whose content is rendered with
+  `react-dom/client` `createRoot`, using the same `CapturePinView` as native. Unmount
+  the roots when a marker goes away. On native they are MapLibre RN `<Marker>`
+  children.
+
 ### Replay
 
 - Change the beat and its start time together (`phase = { beat, t0 }`) and do beat
@@ -187,10 +222,11 @@ Read this before changing recording, streets, the replay or storage.
   on "Watch again".
 - The path runs in active time: gaps over 60 s collapse to a 5 s hop
   (`activeClock` in `replay.ts`).
-- Each capture is shown for at least 1.5 s. Past the budget, groups become contact
-  sheets and then merge; captures are never dropped.
-- A voice memo plays only during its own moment; stop the player when the moment
-  changes.
+- At a stop the clock stands still. `stop.atMs` holds the path time, and resuming
+  sets `t0 = now - atMs`. `shown` counts the groups already visited; reset it on
+  "Watch again".
+- `CaptureContent` plays a voice memo itself and is keyed by capture id, so moving
+  on or skipping unmounts the player and stops the sound.
 
 ## Deploying the web build
 
@@ -214,6 +250,8 @@ Read this before changing recording, streets, the replay or storage.
 - `npm run export:web && npm run e2e:web` runs a headless walk end to end with mocked
   GPS and a fake z14 GeoJSON street grid in place of the tile host. A walk at 5 m/s
   with one fix a second passes the speed gate; faster is dropped as GPS jumps.
+  Chromium runs with a fake microphone for voice memos. Set `E2E_SHOTS=<dir>` to
+  save screenshots of each screen.
 - Before calling work done, run `npm run typecheck`, `npm run lint`, `npm test` and
   the e2e.
 - **Native has never run on a device.** Say so in any report that touches native
