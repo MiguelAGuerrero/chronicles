@@ -4,7 +4,7 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Banner, Button, theme } from '../components/ui';
 import { db } from '../lib/db';
 import { newId } from '../lib/id';
-import { recorder, type RecorderSource } from '../lib/recorder';
+import { recorder } from '../lib/recorder';
 import { formatDistance, formatDuration, loadSummary, suggestTitle, type WalkSummary } from '../lib/summary';
 import type { Walk } from '../lib/types';
 
@@ -13,7 +13,7 @@ type Row = Pick<WalkSummary, 'walk' | 'distanceM' | 'durationMs' | 'newStreets'>
 export default function Log() {
   const [rows, setRows] = useState<Row[]>([]);
   const [open, setOpen] = useState<Walk | null>(null);
-  const [starting, setStarting] = useState<RecorderSource | null>(null);
+  const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useFocusEffect(
@@ -37,23 +37,23 @@ export default function Log() {
     }, []),
   );
 
-  const start = async (source: RecorderSource) => {
+  const start = async () => {
     setError(null);
-    setStarting(source);
+    setStarting(true);
     const id = newId();
     try {
-      await recorder.start(id, source);
-      await db.createWalk({ id, started_at: recorder.now(), ended_at: null, title: null, epilogue: null, open: true, area: null });
+      await recorder.start(id);
+      await db.createWalk({ id, started_at: Date.now(), ended_at: null, title: null, epilogue: null, open: true, area: null });
       router.push('/walk');
     } catch (e) {
       await recorder.stop().catch(() => {});
       setError(e instanceof Error ? e.message : String(e));
     } finally {
-      setStarting(null);
+      setStarting(false);
     }
   };
 
-  const { background, simulate } = recorder.capabilities;
+  const { background } = recorder.capabilities;
 
   return (
     <FlatList
@@ -66,8 +66,8 @@ export default function Log() {
           <Text style={styles.lede}>Tap start, walk, capture, tap stop. The fog clears when you stop.</Text>
           {!background && (
             <Banner>
-              Web fallback: recording runs only while this tab is open and visible, and the screen is kept awake.
-              The phone app keeps recording in your pocket. Use a simulated walk to try the loop from a desk.
+              Web version: your walk is traced live while this tab is open and visible, and the screen is kept awake.
+              Hiding the tab or locking the phone pauses tracing. The phone app keeps recording in your pocket.
             </Banner>
           )}
           {error && <Banner tone="error">{error}</Banner>}
@@ -75,23 +75,7 @@ export default function Log() {
             <Button testID="resume" label="Return to the open walk" onPress={() => router.push('/walk')} />
           ) : (
             <View style={styles.actions}>
-              <Button
-                testID="start-gps"
-                label="Start walk"
-                onPress={() => start('gps')}
-                busy={starting === 'gps'}
-                disabled={starting != null}
-              />
-              {simulate && (
-                <Button
-                  testID="start-sim"
-                  variant="secondary"
-                  label="Start a simulated walk"
-                  onPress={() => start('simulated')}
-                  busy={starting === 'simulated'}
-                  disabled={starting != null}
-                />
-              )}
+              <Button testID="start" label="Start walk" onPress={start} busy={starting} />
             </View>
           )}
           <Text style={styles.section}>Walks</Text>

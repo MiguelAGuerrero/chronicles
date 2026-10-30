@@ -35,7 +35,6 @@ export default function WalkScreen() {
   const [error, setError] = useState<string | null>(null);
   const voice = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const [voiceStart, setVoiceStart] = useState<number | null>(null);
-  const simulated = recorder.capabilities.simulate && !!recorder.walkTo;
 
   // Load the open walk and re-attach the recorder if the app was restarted.
   useEffect(() => {
@@ -59,7 +58,7 @@ export default function WalkScreen() {
 
   useEffect(() => recorder.subscribe((p) => setPoints((prev) => [...prev, p])), []);
   useEffect(() => {
-    const t = setInterval(() => setNow(recorder.now()), 1000);
+    const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
 
@@ -96,7 +95,7 @@ export default function WalkScreen() {
   async function addCapture(kind: CaptureKind, file_path: string | null, body: string | null) {
     if (!walk) return;
     const c: Capture = {
-      id: newId(), walk_id: walk.id, t: recorder.now(), kind, file_path, body, segment_id: null,
+      id: newId(), walk_id: walk.id, t: Date.now(), kind, file_path, body, segment_id: null,
       lat: here?.[1] ?? null, lon: here?.[0] ?? null,
     };
     await db.addCapture(c);
@@ -160,14 +159,13 @@ export default function WalkScreen() {
     if (!walk) return;
     setBusy('stop');
     if (voiceStart != null) await toggleVoice();
-    const endedAt = recorder.now();
+    const endedAt = Date.now();
     await recorder.stop();
     await finishWalk(walk.id, endedAt, (b) => mapRef.current?.collect(b) ?? Promise.reject(new Error('no map')));
     router.replace(`/replay/${walk.id}`);
   }
 
   const elapsed = walk ? now - walk.started_at : 0;
-  const needsPlacement = simulated && points.length === 0;
 
   return (
     <View style={styles.screen}>
@@ -178,10 +176,9 @@ export default function WalkScreen() {
         fog={fog}
         captures={mapCaptures}
         walker={here}
-        follow={simulated ? null : here}
+        follow={here}
         initialCenter={here ?? undefined}
         initialZoom={16}
-        onPress={simulated ? (p) => recorder.walkTo?.(p) : undefined}
       />
       <View style={[styles.top, { top: 12 }]} pointerEvents="box-none">
         <View style={styles.stats}>
@@ -191,14 +188,7 @@ export default function WalkScreen() {
           <Text style={styles.statSep}>·</Text>
           <Text style={styles.stat}>{captures.length} {captures.length === 1 ? 'capture' : 'captures'}</Text>
         </View>
-        {simulated && (
-          <Banner>
-            {needsPlacement
-              ? 'Simulated walk: tap the map to place yourself.'
-              : 'Simulated walk: tap the map to walk there. Taps queue up into a route.'}
-          </Banner>
-        )}
-        {!simulated && !recorder.capabilities.background && (
+        {!recorder.capabilities.background && (
           <Banner>Keep this tab open and visible; the browser pauses location when it is hidden.</Banner>
         )}
         {error && <Banner tone="error">{error}</Banner>}

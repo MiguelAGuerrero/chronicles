@@ -29,9 +29,8 @@ npx expo run:ios     # or: eas build --profile development
 
 | | Phone (iOS / Android) | Web fallback |
 |---|---|---|
-| Recording | Background location task, keeps running with the screen off | Foreground only: the tab must stay open and visible; holds a screen wake lock |
-| Simulated walk | No | Yes: tap the map to place yourself, then tap where to walk |
-| Resume | Open walk is resumed at launch | Open walk is resumed on reload, with the same source (GPS or simulated) |
+| Recording | Background location task, keeps running with the screen off | Live tracing while the app is open and visible; holds a screen wake lock. Hiding the tab or locking the screen pauses it, leaving a gap in the trace |
+| Resume | Open walk is resumed at launch | Open walk is resumed on reload |
 | Storage | SQLite (`expo-sqlite`), media in the app's Documents folder | IndexedDB, media stored as data URLs |
 | Map | MapLibre React Native v11 | maplibre-gl JS |
 
@@ -60,7 +59,7 @@ concept doc specifies for v0.
 src/app/                  screens (Expo Router): log, walk, replay/[id]
 src/components/map/       WalkMap.native.tsx and WalkMap.web.tsx, shared props
 src/lib/db/               index.native.ts (SQLite) and index.web.ts (IndexedDB)
-src/lib/recorder/         index.native.ts (background task) and index.web.ts (GPS + simulation)
+src/lib/recorder/         index.native.ts (background task) and index.web.ts (live browser geolocation)
 src/lib/media/            where captured files are kept, per platform
 src/lib/streets.ts        tile features to street segments
 src/lib/snapper.ts        trace to visited segments

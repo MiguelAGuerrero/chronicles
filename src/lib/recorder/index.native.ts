@@ -62,7 +62,7 @@ async function startUpdates() {
 }
 
 export const recorder: Recorder = {
-  capabilities: { background: true, simulate: false },
+  capabilities: { background: true },
   async start(walkId) {
     await ensurePermission();
     currentWalk = walkId;
@@ -78,5 +78,4 @@ export const recorder: Recorder = {
   },
   isRecording: () => currentWalk != null,
   subscribe,
-  now: () => Date.now(),
 };
