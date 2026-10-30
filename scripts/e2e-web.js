@@ -120,6 +120,18 @@ function check(ok, what) {
         await page.waitForSelector('[data-testid=cap-voice]');
         check((await page.locator('[aria-label^="Voice memo"]').count()) === 0, 'a discarded voice memo is not kept');
       }
+      if (k === 15) {
+        // The camera takes video too. The web caps clips at 15 s; a longer one is turned away.
+        const fixtures = path.join(__dirname, 'fixtures');
+        let [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('[data-testid=cap-photo]')]);
+        await chooser.setFiles(path.join(fixtures, 'clip-20s.webm'));
+        await page.waitForSelector('text=/Videos can be up to 15 seconds/');
+        check(true, 'a video over the web limit is turned away');
+        [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('[data-testid=cap-photo]')]);
+        await chooser.setFiles(path.join(fixtures, 'clip-4s.webm'));
+        await page.waitForTimeout(2500);
+        check((await page.locator('[aria-label="Video. Open"]').count()) === 1, 'a short video is kept and pinned');
+      }
       if (k === 25) {
         await page.click('[data-testid=cap-note]');
         await page.fill('[data-testid=note-input]', 'The bakery smelled of cardamom.');
@@ -155,6 +167,17 @@ function check(ok, what) {
       if (!reading) await page.waitForTimeout(50);
     }
     check(reading, 'the first beat reads the streets');
+
+    // The video's stop comes first: it plays, and waits for Continue.
+    await page.waitForSelector('video', { timeout: 60000 });
+    await page.waitForTimeout(1500);
+    await shot(page, '04a-replay-video');
+    const playing = await page.evaluate(() => {
+      const v = document.querySelector('video');
+      return !!v && v.currentTime > 0 && !v.paused;
+    });
+    check(playing, 'the video plays at its stop in the replay');
+    await page.click('[data-testid=moment]');
 
     let moment = false;
     for (let k = 0; k < 120 && !moment; k++) {

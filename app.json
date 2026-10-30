@@ -49,7 +49,8 @@
         "expo-image-picker",
         {
           "cameraPermission": "Chronicles takes photos that stay inside your walk.",
-          "photosPermission": false
+          "photosPermission": false,
+          "microphonePermission": "Chronicles records sound with videos you take on a walk."
         }
       ],
       [
@@ -59,7 +60,8 @@
           "enableBackgroundRecording": true
         }
       ],
-      "@maplibre/maplibre-react-native"
+      "@maplibre/maplibre-react-native",
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": false

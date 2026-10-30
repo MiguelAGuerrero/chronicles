@@ -17,6 +17,7 @@
     "expo-sqlite": "~58.0.14",
     "expo-status-bar": "~58.0.4",
     "expo-task-manager": "~58.0.12",
+    "expo-video": "~58.0.13",
     "maplibre-gl": "^6.16.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",

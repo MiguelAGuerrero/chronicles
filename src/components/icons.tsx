@@ -10,6 +10,7 @@ export function Icon(props: { name: IconName; size?: number; color: string }) {
 
 export const KIND_ICON: Record<CaptureKind | 'mixed', IconName> = {
   photo: 'camera',
+  video: 'videocam',
   voice: 'mic',
   text: 'create',
   mixed: 'images',
@@ -17,6 +18,7 @@ export const KIND_ICON: Record<CaptureKind | 'mixed', IconName> = {
 
 export const KIND_LABEL: Record<CaptureKind, string> = {
   photo: 'Photo',
+  video: 'Video',
   voice: 'Voice memo',
   text: 'Note',
 };

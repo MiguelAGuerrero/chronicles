@@ -30,7 +30,7 @@ export interface TracePoint {
   course: number | null;
 }
 
-export type CaptureKind = 'photo' | 'voice' | 'text';
+export type CaptureKind = 'photo' | 'video' | 'voice' | 'text';
 
 export interface Capture {
   id: string;
@@ -44,7 +44,7 @@ export interface Capture {
    * relative to the app's Documents folder. Web: a key in the media store.
    */
   file_path: string | null;
-  /** Text body for notes; duration in ms for voice memos. */
+  /** Text body for notes; duration in ms for voice memos and videos. */
   body: string | null;
   segment_id: string | null;
 }
@@ -77,6 +77,8 @@ export interface WalkSummary {
   new_streets: number;
   streets_walked: number;
   photos: number;
+  /** Absent on summaries written before video existed. */
+  videos?: number;
   voices: number;
   notes: number;
   /** False when no street could be read for the walk's area (offline, tiles failed). */

@@ -1,5 +1,7 @@
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import { useEffect, useState } from 'react';
+import { useEventListener } from 'expo';
+import { useVideoPlayer, VideoView } from 'expo-video';
+import { useEffect, useRef, useState } from 'react';
 import { Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { releaseMedia, resolveMedia } from '../lib/media';
@@ -75,6 +77,31 @@ function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () =
   );
 }
 
+/** A video, fitted to the screen with the platform's own controls; `autoPlay` starts it with sound. */
+function VideoPlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () => void }) {
+  const player = useVideoPlayer(props.uri, (p) => {
+    p.loop = false;
+  });
+  // A player told to play before it has loaded ignores it on web, so it
+  // starts once it is ready (and at once if it already is).
+  const started = useRef(false);
+  const start = () => {
+    if (!props.autoPlay || started.current) return;
+    started.current = true;
+    player.play();
+  };
+  useEventListener(player, 'statusChange', ({ status }) => {
+    if (status === 'readyToPlay') start();
+  });
+  useEffect(() => {
+    if (player.status === 'readyToPlay') start();
+    // Checked once, on mount; later readiness comes through statusChange.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [player]);
+  useEventListener(player, 'playToEnd', () => props.onFinished?.());
+  return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls accessibilityLabel="Video" />;
+}
+
 /**
  * One capture, full screen over whatever is behind it: the photo fills it, a
  * note is set large, a voice memo gets a player.
@@ -85,7 +112,9 @@ export function CaptureContent(props: { capture: Capture; autoPlay?: boolean; on
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
       {capture.kind === 'photo' && uri && <Image source={{ uri }} style={StyleSheet.absoluteFill} resizeMode="contain" accessibilityLabel="Photo" />}
-      <View style={styles.card} pointerEvents="box-none">
+      {capture.kind === 'video' && uri && <VideoPlayer uri={uri} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} />}
+      {/* Over a video the card sits at the top, clear of the player's controls. */}
+      <View style={[styles.card, capture.kind === 'video' && styles.cardTop]} pointerEvents="box-none">
         {capture.kind === 'text' && <Text style={styles.note}>{capture.body}</Text>}
         {capture.kind === 'voice' && uri && (
           <VoicePlayer uri={uri} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} durationMs={Number(capture.body) || 0} />
@@ -147,6 +176,7 @@ const styles = StyleSheet.create({
     position: 'absolute', left: 0, right: 0, bottom: 0, margin: 16, padding: 16, gap: 10,
     backgroundColor: 'rgba(255,255,255,0.96)', borderRadius: theme.radius, maxWidth: 560, alignSelf: 'center', width: '92%',
   },
+  cardTop: { bottom: undefined, top: 72 },
   note: { fontSize: 20, lineHeight: 27, color: theme.ink },
   meta: { fontSize: 14, color: theme.muted },
   voice: { flexDirection: 'row', alignItems: 'center', gap: 12 },

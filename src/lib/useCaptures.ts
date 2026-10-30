@@ -3,6 +3,7 @@ import {
 } from 'expo-audio';
 import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 import { db } from './db';
 import { newId } from './id';
 import { dropTemp, keepFile } from './media';
@@ -12,6 +13,11 @@ import type { Capture, CaptureKind, LngLat } from './types';
 const FRESH_FIX_MS = 15_000;
 /** A voice memo shorter than this was an accidental tap. */
 const MIN_VOICE_MS = 1000;
+/**
+ * Longest video. A minute of phone video is 50 to 150 MB; the web gets less,
+ * since a browser's storage is smaller and can be cleared.
+ */
+const MAX_VIDEO_S = Platform.OS === 'web' ? 15 : 30;
 
 type Busy = CaptureKind | null;
 
@@ -82,6 +88,7 @@ export function useCaptures(
     }
   }
 
+  /** The system camera, in photo or video mode as the person picks there. */
   const takePhoto = () =>
     guarded('photo', async () => {
       const stamp = stampNow();
@@ -90,9 +97,27 @@ export function useCaptures(
         setError({ message: 'Camera access is off for Chronicles.', openSettings: !perm.canAskAgain });
         return;
       }
-      const res = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.8 });
+      const res = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images', 'videos'],
+        quality: 0.8,
+        videoMaxDuration: MAX_VIDEO_S,
+        videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium,
+      });
       if (res.canceled || !res.assets[0]) return;
       const asset = res.assets[0];
+      if (asset.type === 'video') {
+        // The web picker reports seconds, native milliseconds.
+        const ms = Platform.OS === 'web' ? (asset.duration ?? 0) * 1000 : (asset.duration ?? 0);
+        // Browsers cannot cap a recording, so an over-long clip is turned away here.
+        if (ms > MAX_VIDEO_S * 1000 + 500) {
+          dropTemp(asset.uri);
+          setError({ message: `Videos can be up to ${MAX_VIDEO_S} seconds here. That one was ${Math.round(ms / 1000)} s.` });
+          return;
+        }
+        const ext = asset.mimeType?.split('/')[1]?.replace('quicktime', 'mov') ?? 'mp4';
+        await add('video', stamp, await keepFile(asset.uri, walkId!, `${newId()}.${ext}`), String(Math.round(ms)));
+        return;
+      }
       const ext = asset.mimeType?.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
       await add('photo', stamp, await keepFile(asset.uri, walkId!, `${newId()}.${ext}`), null);
     });

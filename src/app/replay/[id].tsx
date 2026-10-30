@@ -270,25 +270,44 @@ export default function Replay() {
       )}
 
       {stopCapture && stopGroup && (
-        // A capture stays up, and a voice memo plays to its end, until a tap.
-        <Pressable
-          testID="moment"
-          style={styles.moment}
-          onPress={advance}
-          accessibilityRole="button"
-          accessibilityLabel="Continue"
-          accessibilityHint="Shows the next capture, or carries on along the walk"
-        >
-          <CaptureContent
-            key={stopCapture.id}
-            capture={stopCapture}
-            autoPlay
-            footer={stopGroup.captures.length > 1 ? `${stop!.item + 1} of ${stopGroup.captures.length}` : undefined}
-          />
-          <View style={[styles.continue, { top: insets.top + 16 }]} pointerEvents="none">
-            <Text style={styles.continueText}>Tap to continue</Text>
-          </View>
-        </Pressable>
+        // A capture stays up, and a voice memo or video plays to its end,
+        // until a tap. Photos and notes move on with a tap anywhere; a memo or
+        // video has its own controls to tap, so it moves on with Continue.
+        <View style={styles.moment}>
+          {(() => {
+            const media = stopCapture.kind === 'voice' || stopCapture.kind === 'video';
+            const content = (
+              <CaptureContent
+                key={stopCapture.id}
+                capture={stopCapture}
+                autoPlay
+                footer={stopGroup.captures.length > 1 ? `${stop!.item + 1} of ${stopGroup.captures.length}` : undefined}
+              />
+            );
+            return media ? (
+              <>
+                {content}
+                <View style={[styles.continueBar, { top: insets.top + 12 }]} pointerEvents="box-none">
+                  <Button testID="moment" label="Continue" onPress={advance} accessibilityHint="Shows the next capture, or carries on along the walk" />
+                </View>
+              </>
+            ) : (
+              <Pressable
+                testID="moment"
+                style={StyleSheet.absoluteFill}
+                onPress={advance}
+                accessibilityRole="button"
+                accessibilityLabel="Continue"
+                accessibilityHint="Shows the next capture, or carries on along the walk"
+              >
+                {content}
+                <View style={[styles.continue, { top: insets.top + 16 }]} pointerEvents="none">
+                  <Text style={styles.continueText}>Tap to continue</Text>
+                </View>
+              </Pressable>
+            );
+          })()}
+        </View>
       )}
 
       <CaptureViewer captures={viewing} onClose={() => setViewing(null)} />
@@ -414,6 +433,7 @@ const styles = StyleSheet.create({
   moment: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(20,24,32,0.85)' },
   continue: { position: 'absolute', alignSelf: 'center', backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: 999, paddingVertical: 6, paddingHorizontal: 14 },
   continueText: { color: theme.ink, fontSize: 14, fontWeight: '600' },
+  continueBar: { position: 'absolute', left: 16, right: 16, alignItems: 'center' },
   sheetWrap: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '70%' },
   sheet: { backgroundColor: theme.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
   sheetContent: { padding: 16, gap: 10, maxWidth: 640, width: '100%', alignSelf: 'center' },

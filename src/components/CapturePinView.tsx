@@ -5,6 +5,7 @@ import { Icon, KIND_ICON } from './icons';
 
 const PIN_COLOR: Record<CapturePin['kind'], string> = {
   photo: COLORS.photo,
+  video: COLORS.video,
   voice: COLORS.voice,
   text: COLORS.text,
   mixed: COLORS.trace,
@@ -27,7 +28,7 @@ export function CapturePinView({ pin }: { pin: CapturePin }) {
 export function pinLabel(pin: CapturePin): string {
   const n = pin.captures.length;
   if (n > 1) return `${n} captures here. Open`;
-  return { photo: 'Photo', voice: 'Voice memo', text: 'Note' }[pin.captures[0].kind] + '. Open';
+  return { photo: 'Photo', video: 'Video', voice: 'Voice memo', text: 'Note' }[pin.captures[0].kind] + '. Open';
 }
 
 const styles = StyleSheet.create({

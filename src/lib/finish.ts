@@ -82,6 +82,7 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
     new_streets: [...keys].filter((k) => !earlier.has(k)).length,
     streets_walked: keys.size,
     photos: captures.filter((c) => c.kind === 'photo').length,
+    videos: captures.filter((c) => c.kind === 'video').length,
     voices: captures.filter((c) => c.kind === 'voice').length,
     notes: captures.filter((c) => c.kind === 'text').length,
     streets_read: segments.length > 0,

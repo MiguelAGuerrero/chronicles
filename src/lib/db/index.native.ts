@@ -45,6 +45,10 @@ const MIGRATIONS = [
   );
   CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
   `,
+  // Video captures.
+  `
+  ALTER TABLE walk_summary ADD COLUMN videos INTEGER NOT NULL DEFAULT 0;
+  `,
 ];
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
@@ -174,9 +178,9 @@ export const db: Db = {
         );
       }
       await t.runAsync(
-        `INSERT OR REPLACE INTO walk_summary (walk_id, build, distance_m, duration_ms, new_streets, streets_walked, photos, voices, notes, streets_read)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        s.walk_id, s.build, s.distance_m, s.duration_ms, s.new_streets, s.streets_walked, s.photos, s.voices, s.notes, s.streets_read ? 1 : 0,
+        `INSERT OR REPLACE INTO walk_summary (walk_id, build, distance_m, duration_ms, new_streets, streets_walked, photos, videos, voices, notes, streets_read)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        s.walk_id, s.build, s.distance_m, s.duration_ms, s.new_streets, s.streets_walked, s.photos, s.videos ?? 0, s.voices, s.notes, s.streets_read ? 1 : 0,
       );
       await t.runAsync('UPDATE walk SET snapped_build = ? WHERE id = ?', s.build, walkId);
     });

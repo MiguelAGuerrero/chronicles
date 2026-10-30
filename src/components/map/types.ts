@@ -17,6 +17,7 @@ export const COLORS = {
   trace: '#1d3557',
   walker: '#1d3557',
   photo: '#0f766e',
+  video: '#b42318',
   voice: '#7b2cbf',
   text: '#a16207',
   veil: '#d7dbe0',

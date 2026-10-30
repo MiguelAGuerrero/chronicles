@@ -214,7 +214,7 @@ export default function WalkScreen() {
           </View>
         ) : (
           <View style={styles.captureRow}>
-            <RoundButton testID="cap-photo" icon="camera" label="Take a photo" onPress={photo} busy={cap.busy === 'photo'} disabled={stopping} />
+            <RoundButton testID="cap-photo" icon="camera" label="Take a photo or video" onPress={photo} busy={cap.busy === 'photo'} disabled={stopping} />
             <RoundButton
               testID="cap-voice"
               icon="mic"
