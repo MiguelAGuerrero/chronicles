@@ -2,6 +2,8 @@
 
 A pocket-first walking chronicle for iOS: it records where you walk at street level, keeps the photos and notes you take along the way, and replays the walk as a souvenir.
 
+What the app is and why it is built this way: [docs/concept.md](docs/concept.md).
+
 This first version is the recording foundation: start and stop a walk, record the trace in the background with the screen off, resume it if the app is closed mid-walk, and send a test notification.
 
 ## How it is built
