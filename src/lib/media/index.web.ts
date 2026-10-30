@@ -31,9 +31,10 @@ async function downscale(blob: Blob): Promise<Blob> {
 
 export async function keepFile(tempUri: string, walkId: string, name: string): Promise<string> {
   const blob = await downscale(await (await fetch(tempUri)).blob());
-  if (tempUri.startsWith('blob:')) URL.revokeObjectURL(tempUri);
   const key = `walks/${walkId}/${name}`;
   await mediaStore.put(key, blob);
+  // Only once it is stored: a failed put leaves the memo retryable.
+  if (tempUri.startsWith('blob:')) URL.revokeObjectURL(tempUri);
   return key;
 }
 

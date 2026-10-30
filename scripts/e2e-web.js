@@ -117,8 +117,22 @@ function check(ok, what) {
         await page.waitForTimeout(1500);
         await shot(page, '02-voice-recording');
         await page.click('[data-testid=voice-discard]');
-        await page.waitForSelector('[data-testid=cap-voice]');
+        await page.waitForSelector('[data-testid=voice-undo]');
         check((await page.locator('[aria-label^="Voice memo"]').count()) === 0, 'a discarded voice memo is not kept');
+        await page.click('[data-testid=voice-undo]');
+        await page.waitForSelector('text=/Voice memo discarded/', { state: 'detached' });
+        await page.waitForTimeout(2500);
+        check((await page.locator('[aria-label="Voice memo. Open"]').count()) === 1, 'undo brings a discarded memo back');
+        // A tap and an immediate save is an accidental tap: not kept, and said so.
+        await page.click('[data-testid=cap-voice]');
+        await page.waitForSelector('[data-testid=voice-save]');
+        await page.click('[data-testid=voice-save]');
+        await page.waitForSelector('text=Too short, not kept');
+        check(true, 'a memo under a second is not kept, and the walker is told');
+        // A tap on Stop says it needs holding.
+        await page.click('[data-testid=stop]');
+        await page.waitForSelector('text=Hold to stop the walk');
+        check(true, 'a tap on Stop explains it needs a hold');
       }
       if (k === 15) {
         // The camera takes video too. The web caps clips at 15 s; a longer one is turned away.
@@ -129,15 +143,17 @@ function check(ok, what) {
         check(true, 'a video over the web limit is turned away');
         [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('[data-testid=cap-photo]')]);
         await chooser.setFiles(path.join(fixtures, 'clip-4s.webm'));
+        await page.waitForSelector('text=Video saved here');
         await page.waitForTimeout(2500);
-        check((await page.locator('[aria-label="Video. Open"]').count()) === 1, 'a short video is kept and pinned');
+        // Within ~30 m at walking zoom, the video shares a pin with the memo.
+        check((await page.locator('[aria-label="2 captures here. Open"]').count()) === 1, 'a short video is kept, sharing a pin with the memo nearby');
       }
       if (k === 25) {
         await page.click('[data-testid=cap-note]');
         await page.fill('[data-testid=note-input]', 'The bakery smelled of cardamom.');
         await page.click('[data-testid=note-save]');
         await page.waitForTimeout(2500);
-        check((await page.locator('[aria-label="Note. Open"]').count()) === 1, 'the note is pinned on the map');
+        check((await page.locator('[aria-label="Note. Open"], [aria-label$="captures here. Open"]').count()) >= 1, 'the note is pinned on the map');
         await shot(page, '03-walking');
       }
       if (k === 40) {
@@ -168,8 +184,15 @@ function check(ok, what) {
     }
     check(reading, 'the first beat reads the streets');
 
-    // The video's stop comes first: it plays, and waits for Continue.
-    await page.waitForSelector('video', { timeout: 60000 });
+    // The memo and the video share the first stop. Step past the memo with
+    // Continue; the video then plays, and waits for Continue too.
+    for (let k = 0; k < 4 && !(await page.locator('video').count()); k++) {
+      await page.waitForSelector('[data-testid=moment]', { timeout: 60000 });
+      await page.waitForTimeout(900);
+      if (!(await page.locator('video').count())) await page.click('[data-testid=moment]');
+      await page.waitForTimeout(400);
+    }
+    await page.waitForSelector('video', { timeout: 30000 });
     await page.waitForTimeout(1500);
     await shot(page, '04a-replay-video');
     const playing = await page.evaluate(() => {
@@ -195,7 +218,14 @@ function check(ok, what) {
     check(/\b3 new streets\b/.test(card), `the card counts 3 new streets (${card.slice(0, 80)})`);
     await page.waitForTimeout(800);
     await shot(page, '05-card');
-    await page.click('[aria-label="Note. Open"]');
+    // The card's zoom groups nearby captures; open the pin holding the note
+    // (the last one taken) and step to it.
+    const pinsOnCard = page.locator('[aria-label$=". Open"]');
+    await pinsOnCard.nth((await pinsOnCard.count()) - 1).click();
+    for (let k = 0; k < 6 && !(await page.getByText('The bakery smelled of cardamom.').count()); k++) {
+      await page.click('[aria-label="Next capture"]');
+      await page.waitForTimeout(300);
+    }
     await page.waitForSelector('text=The bakery smelled of cardamom.');
     await page.waitForTimeout(1200);
     await shot(page, '06-pin-opened');
@@ -207,6 +237,12 @@ function check(ok, what) {
     await page.click('[data-testid=save]');
     await page.waitForSelector('text=Cardamom and the river.');
     check((await page.locator('[data-testid=start]').count()) === 1, 'the log appears once in the stack');
+
+    // Re-watching from the log moves through the captures without a tap.
+    await page.getByText('Cardamom and the river.').click();
+    await page.waitForSelector('[data-testid=done]', { timeout: 90000 });
+    check(true, 're-watching from the log reaches the card with no taps');
+    await page.click('[data-testid=done]');
     check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
   } catch (e) {
     console.error(e.message);

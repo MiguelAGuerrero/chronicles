@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import {
   AccessibilityInfo, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
@@ -11,13 +11,19 @@ import { Button, theme } from '../../components/ui';
 import { db } from '../../lib/db';
 import { snapWalk } from '../../lib/finish';
 import { ensureTileBuild } from '../../lib/tiles';
-import { pinsFor } from '../../lib/pins';
-import { FOG_MS, nextStop, schedule, timedRuns, traceUntil, walkerAt, walkTimeAt } from '../../lib/replay';
+import { KIND_LABEL } from '../../components/icons';
+import { focusOn } from '../../lib/focus';
+import { setAudioModeAsync } from 'expo-audio';
+import { FOG_MS, nextStop, PATH_MS, schedule, timedRuns, traceUntil, walkerAt, walkTimeAt } from '../../lib/replay';
 import { formatCaptures, formatDistance, formatDuration, loadReplay, suggestTitle, type ReplayData } from '../../lib/summary';
 import type { Capture } from '../../lib/types';
 
 type Beat = 'reading' | 'fog' | 'path' | 'card' | 'name';
 const FRAME_MS = 66; // ~15 fps keeps the map responsive on a phone
+/** Taps this soon after a capture appears are ignored, so a double tap skips nothing. */
+const TAP_GUARD_MS = 600;
+/** On a re-watch, how long a photo or note stays up before moving on. */
+const AUTO_MS = 4000;
 /** The drawn trace is rebuilt at most this often; the walker dot moves every frame. */
 const TRACE_STEP_MS = 200;
 
@@ -40,21 +46,31 @@ export default function Replay() {
   const [reduceMotion, setReduceMotion] = useState(false);
   // At a capture the path waits for a tap: which group, which capture in it,
   // and the path time it stopped at. `shown` counts groups already visited.
-  const [stop, setStop] = useState<{ group: number; item: number; atMs: number } | null>(null);
+  const [stop, setStop] = useState<{ group: number; item: number; atMs: number; shownAt: number } | null>(null);
   const shown = useRef(0);
   const [viewing, setViewing] = useState<Capture[] | null>(null);
-  // Opened from the log: the replay runs the same, and ends on the card.
+  // Opened from the log, or watched again: the stops move on by themselves.
   const rewatch = ceremony === '0';
+  const [watched, setWatched] = useState(false);
+  const auto = rewatch || watched;
+  // A screen reader hears the captures, not the animation: no fog, no path.
+  const [srMode, setSrMode] = useState(false);
+  const continueRef = useRef<ComponentRef<typeof Pressable>>(null);
   const beat = phase.beat;
   const clock = now - phase.t0;
 
-  const go = useCallback((b: Beat) => {
+  const go = useCallback((b: Beat, skipPathMs = 0) => {
     const t = Date.now();
-    setPhase({ beat: b, t0: t });
+    setPhase({ beat: b, t0: t - skipPathMs });
     setNow(t);
     setStop(null);
-    if (b === 'fog') shown.current = 0;
+    if (b === 'fog' || b === 'path') shown.current = 0;
     if (b === 'fog' || b === 'card') setFitKey((k) => k + 1);
+  }, []);
+
+  // Memos and videos play with the ringer switch off, as the voice is the point.
+  useEffect(() => {
+    setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -95,11 +111,14 @@ export default function Replay() {
         setData(d);
         setTitle(d.walk.title ?? suggestTitle(d.walk));
       }
-      // With a screen reader, the animation says nothing; start on the card.
-      // (react-native-web always answers yes, so the web relies on the
-      // live-region announcements instead.)
+      // With a screen reader the animation says nothing: it goes straight to
+      // the captures, one after another, then the card. (react-native-web
+      // always answers yes, so the web keeps the animation and announces.)
       const sr = Platform.OS !== 'web' && (await AccessibilityInfo.isScreenReaderEnabled().catch(() => false));
-      go(sr ? 'card' : 'fog');
+      if (sr) {
+        setSrMode(true);
+        go('path', PATH_MS);
+      } else go('fog');
     })();
     return () => {
       alive = false;
@@ -125,7 +144,7 @@ export default function Replay() {
       const g = nextStop(sched, elapsed, shown.current);
       if (g != null) {
         shown.current = g + 1;
-        setStop({ group: g, item: 0, atMs: sched.groups[g].atMs });
+        setStop({ group: g, item: 0, atMs: sched.groups[g].atMs, shownAt: t });
       } else if (elapsed >= sched.movingMs && shown.current >= sched.groups.length) go('card');
       else setNow(t);
     }, FRAME_MS);
@@ -134,18 +153,50 @@ export default function Replay() {
 
   const stopGroup = stop && sched ? sched.groups[stop.group] : null;
   const stopCapture = stopGroup ? stopGroup.captures[stop!.item] : null;
-  /** Next capture in this stop, or back to the path where it stopped. */
-  const advance = () => {
+  /**
+   * Next capture in this stop, or back to the path where it stopped. Taps in
+   * the first TAP_GUARD_MS after a capture appears are ignored, so a double
+   * tap (a reflex on photos) never skips one unseen.
+   */
+  const advance = (fromAuto = false) => {
     if (!stop || !stopGroup) return;
+    const t = Date.now();
+    if (!fromAuto && t - stop.shownAt < TAP_GUARD_MS) return;
     if (stop.item < stopGroup.captures.length - 1) {
-      setStop({ ...stop, item: stop.item + 1 });
+      setStop({ ...stop, item: stop.item + 1, shownAt: t });
       return;
     }
-    const t = Date.now();
     setPhase({ beat: 'path', t0: t - stop.atMs });
     setNow(t);
     setStop(null);
   };
+
+  // On a re-watch, a photo or note moves on after AUTO_MS, and a memo or
+  // video when it ends (or a little after its length, if no end comes).
+  const stopKey = stop ? `${stop.group}:${stop.item}` : null;
+  const advanceRef = useRef(advance);
+  useEffect(() => {
+    advanceRef.current = advance;
+  });
+  useEffect(() => {
+    if (!auto || !stopCapture) return;
+    const media = stopCapture.kind === 'voice' || stopCapture.kind === 'video';
+    const ms = media ? (Number(stopCapture.body) || 0) + 2500 : AUTO_MS;
+    const timer = setTimeout(() => advanceRef.current(true), ms);
+    return () => clearTimeout(timer);
+    // Once per capture shown; stopCapture changes with stopKey.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auto, stopKey]);
+
+  // Focus moves to Continue when a capture comes up, so keyboard and screen
+  // reader users land on the way forward.
+  useEffect(() => {
+    if (!stopKey) return;
+    const t = setTimeout(() => {
+      focusOn(continueRef);
+    }, 250);
+    return () => clearTimeout(t);
+  }, [stopKey]);
 
   // Words for screen readers at each beat and each capture.
   useEffect(() => {
@@ -158,10 +209,9 @@ export default function Replay() {
   useEffect(() => {
     if (!stopCapture) return;
     const c = stopCapture;
-    AccessibilityInfo.announceForAccessibility(
-      c.kind === 'text' ? c.body ?? 'Note' : `${c.kind === 'photo' ? 'Photo' : 'Voice memo'}, ${timeOf(c)}. Tap to continue.`,
-    );
-  }, [stopCapture]);
+    const what = c.kind === 'text' ? `Note: ${c.body ?? ''}` : `${KIND_LABEL[c.kind]}, ${timeOf(c)}`;
+    AccessibilityInfo.announceForAccessibility(`${what}. ${auto ? '' : 'Continue when ready.'}`);
+  }, [stopCapture, auto]);
 
   const pathMs = stop ? stop.atMs : clock;
   const walkT = !sched ? 0
@@ -194,8 +244,8 @@ export default function Replay() {
   // Captures are pinned where they were taken as the path reaches them; on
   // the card every pin opens its captures.
   const passedCount = data ? data.captures.filter((c) => beat === 'card' || beat === 'name' || (beat === 'path' && c.t <= walkT)).length : 0;
-  const pins = useMemo(
-    () => pinsFor((data?.captures ?? []).slice().sort((a, b) => a.t - b.t).slice(0, passedCount)),
+  const pinned = useMemo(
+    () => (data?.captures ?? []).slice().sort((a, b) => a.t - b.t).slice(0, passedCount),
     [data, passedCount],
   );
 
@@ -240,8 +290,8 @@ export default function Replay() {
         traceOpacity={beat === 'fog' || beat === 'reading' ? 0.3 : 1}
         walked={shownWalked}
         fog={fog}
-        pins={pins}
-        onPinPress={beat === 'card' || beat === 'name' ? (pin) => setViewing(pin.captures) : undefined}
+        captures={pinned}
+        onPinPress={beat === 'card' || beat === 'name' ? setViewing : undefined}
         walker={walker}
         follow={beat === 'path' && !reduceMotion ? walker : null}
         fitBounds={data.bounds}
@@ -270,47 +320,46 @@ export default function Replay() {
       )}
 
       {stopCapture && stopGroup && (
-        // A capture stays up, and a voice memo or video plays to its end,
-        // until a tap. Photos and notes move on with a tap anywhere; a memo or
-        // video has its own controls to tap, so it moves on with Continue.
+        // A capture stays up, and a memo or video plays to its end, until
+        // Continue (or, on a re-watch, until it moves on by itself). A photo
+        // or note also moves on with a tap anywhere on it.
         <View style={styles.moment}>
-          {(() => {
-            const media = stopCapture.kind === 'voice' || stopCapture.kind === 'video';
-            const content = (
-              <CaptureContent
-                key={stopCapture.id}
-                capture={stopCapture}
-                autoPlay
-                footer={stopGroup.captures.length > 1 ? `${stop!.item + 1} of ${stopGroup.captures.length}` : undefined}
-              />
-            );
-            return media ? (
-              <>
-                {content}
-                <View style={[styles.continueBar, { top: insets.top + 12 }]} pointerEvents="box-none">
-                  <Button testID="moment" label="Continue" onPress={advance} accessibilityHint="Shows the next capture, or carries on along the walk" />
-                </View>
-              </>
-            ) : (
+          {stopCapture.kind !== 'voice' && stopCapture.kind !== 'video' && (
+            <Pressable style={StyleSheet.absoluteFill} onPress={() => advance()} accessible={false} />
+          )}
+          <CaptureContent
+            key={stopCapture.id}
+            ref={stopCapture.kind === 'video' ? undefined : continueRef}
+            capture={stopCapture}
+            autoPlay
+            topInset={insets.top}
+            onVoiceFinished={auto ? () => advance(true) : undefined}
+            footer={stopGroup.captures.length > 1 ? `${stop!.item + 1} of ${stopGroup.captures.length}` : undefined}
+            action={
+              stopCapture.kind === 'video'
+                ? undefined
+                : { label: 'Continue', hint: 'Shows the next capture, or carries on along the walk', onPress: () => advance(), testID: 'moment' }
+            }
+          />
+          {stopCapture.kind === 'video' && (
+            // Above the player's own controls, within thumb reach.
+            <View style={[styles.continueBar, { bottom: insets.bottom + 88 }]} pointerEvents="box-none">
               <Pressable
+                ref={continueRef}
                 testID="moment"
-                style={StyleSheet.absoluteFill}
-                onPress={advance}
                 accessibilityRole="button"
-                accessibilityLabel="Continue"
                 accessibilityHint="Shows the next capture, or carries on along the walk"
+                onPress={() => advance()}
+                style={styles.continueBtn}
               >
-                {content}
-                <View style={[styles.continue, { top: insets.top + 16 }]} pointerEvents="none">
-                  <Text style={styles.continueText}>Tap to continue</Text>
-                </View>
+                <Text style={styles.continueBtnText}>Continue</Text>
               </Pressable>
-            );
-          })()}
+            </View>
+          )}
         </View>
       )}
 
-      <CaptureViewer captures={viewing} onClose={() => setViewing(null)} />
+      <CaptureViewer key={viewing?.[0]?.id ?? 'none'} captures={viewing} onClose={() => setViewing(null)} />
 
       {(beat === 'fog' || beat === 'path') && (
         <View style={[styles.skip, { top: insets.top + 12 }]}>
@@ -350,7 +399,16 @@ export default function Replay() {
                 {s && formatCaptures(s) ? <Text style={styles.cardMuted}>{formatCaptures(s)} · tap a pin to open</Text> : null}
                 {data.walk.epilogue ? <Text style={styles.epilogue}>“{data.walk.epilogue}”</Text> : null}
                 <View style={styles.row}>
-                  <Button variant="secondary" style={styles.flex} label="Watch again" onPress={() => go('fog')} />
+                  <Button
+                    variant="secondary"
+                    style={styles.flex}
+                    label="Watch again"
+                    onPress={() => {
+                      setWatched(true);
+                      if (srMode) go('path', PATH_MS);
+                      else go('fog');
+                    }}
+                  />
                   {rewatch ? (
                     <Button testID="done" style={styles.flex} label="Done" onPress={close} />
                   ) : (
@@ -431,9 +489,9 @@ const styles = StyleSheet.create({
   headlineNote: { fontSize: 14, color: theme.muted, textAlign: 'center', marginTop: 6 },
   skip: { position: 'absolute', right: 12 },
   moment: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(20,24,32,0.85)' },
-  continue: { position: 'absolute', alignSelf: 'center', backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: 999, paddingVertical: 6, paddingHorizontal: 14 },
-  continueText: { color: theme.ink, fontSize: 14, fontWeight: '600' },
   continueBar: { position: 'absolute', left: 16, right: 16, alignItems: 'center' },
+  continueBtn: { minHeight: 48, paddingHorizontal: 24, borderRadius: 24, backgroundColor: theme.accent, alignItems: 'center', justifyContent: 'center' },
+  continueBtnText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
   sheetWrap: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '70%' },
   sheet: { backgroundColor: theme.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
   sheetContent: { padding: 16, gap: 10, maxWidth: 640, width: '100%', alignSelf: 'center' },

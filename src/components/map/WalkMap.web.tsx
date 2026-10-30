@@ -8,7 +8,7 @@ import { CapturePinView, pinLabel } from '../CapturePinView';
 import type { CapturePin } from '../../lib/pins';
 import type { RoadFeature } from '../../lib/streets';
 import {
-  COLORS, DERIVE_ZOOM, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, walkerGeoJSON,
+  COLORS, DERIVE_ZOOM, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -77,6 +77,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   }
   const onPress = useRef(props.onPress);
   onPress.current = props.onPress;
+  const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
   const duration = props.animate === false ? 0 : 600;
 
   useEffect(() => {
@@ -95,6 +96,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       readyPromise.current!.resolve();
     });
     map.on('click', (e: MapMouseEvent) => onPress.current?.([e.lngLat.lng, e.lngLat.lat]));
+    const track = () => setView({ zoom: map.getZoom(), lat: map.getCenter().lat });
+    map.on('zoomend', track);
+    map.on('load', track);
     return () => {
       map.remove();
       mapRef.current = null;
@@ -116,46 +120,63 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     if (ready) setData('points', walkerGeoJSON(props.walker));
   }, [ready, props.walker]);
 
-  // Capture pins are DOM markers rendered with the same view as on native.
-  const onPinPress = useRef(props.onPinPress);
-  onPinPress.current = props.onPinPress;
+  // Capture pins are DOM markers rendered with the same view as on native,
+  // grouped for the current zoom. Clicks look the pin up by id, so a pin
+  // whose members changed never opens stale captures.
+  const pins = useZoomPins(props.captures, view?.zoom ?? null, view?.lat ?? null);
+  const latest = useRef({ pins: new Map<string, CapturePin>(), onPinPress: props.onPinPress });
+  useEffect(() => {
+    latest.current = { pins: new Map(pins.map((p) => [p.id, p])), onPinPress: props.onPinPress };
+  });
   const markers = useRef(new Map<string, { marker: Marker; root: Root; key: string }>());
+  const interactive = !!props.onPinPress;
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
+    // Unmounting a root inside React's commit warns; do it just after.
+    const drop = (m: { marker: Marker; root: Root }) => {
+      m.marker.remove();
+      queueMicrotask(() => m.root.unmount());
+    };
     const live = new Set<string>();
-    for (const pin of props.pins) {
+    for (const pin of pins) {
       live.add(pin.id);
-      const key = `${pin.lngLat.join(',')}|${pin.kind}|${pin.captures.length}`;
+      const key = `${pin.lngLat.join(',')}|${pin.kind}|${pin.captures.length}|${interactive}`;
       const existing = markers.current.get(pin.id);
       if (existing?.key === key) continue;
-      existing?.marker.remove();
-      existing?.root.unmount();
-      const el = document.createElement('button');
-      el.type = 'button';
-      el.setAttribute('aria-label', pinLabel(pin));
-      el.style.cssText = 'background:none;border:0;padding:0;cursor:pointer';
-      const current: CapturePin = pin;
-      el.addEventListener('click', (e) => {
-        e.stopPropagation();
-        onPinPress.current?.(current);
-      });
+      if (existing) drop(existing);
+      // A 48 px target around the 36 px pin: the touch minimum on phones.
+      const el = document.createElement(interactive ? 'button' : 'div');
+      el.setAttribute('aria-label', pinLabel(pin, interactive));
+      if (interactive) {
+        (el as HTMLButtonElement).type = 'button';
+        el.style.cssText = 'background:none;border:0;padding:6px;cursor:pointer';
+        const id = pin.id;
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const p = latest.current.pins.get(id);
+          if (p) latest.current.onPinPress?.(p.captures);
+        });
+      } else {
+        el.setAttribute('role', 'img');
+        el.style.cssText = 'padding:6px;pointer-events:none';
+      }
       const root = createRoot(el);
       root.render(<CapturePinView pin={pin} />);
-      const marker = new Marker({ element: el }).setLngLat(pin.lngLat).addTo(map);
+      // Anchored at the stem's foot, so the marked point stays visible.
+      const marker = new Marker({ element: el, anchor: 'bottom', offset: [0, 6] }).setLngLat(pin.lngLat).addTo(map);
       markers.current.set(pin.id, { marker, root, key });
     }
     for (const [id, m] of markers.current) {
       if (live.has(id)) continue;
-      m.marker.remove();
-      m.root.unmount();
+      drop(m);
       markers.current.delete(id);
     }
-  }, [ready, props.pins]);
+  }, [ready, pins, interactive]);
   useEffect(() => () => {
     for (const m of markers.current.values()) {
       m.marker.remove();
-      m.root.unmount();
+      queueMicrotask(() => m.root.unmount());
     }
     markers.current.clear();
   }, []);

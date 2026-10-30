@@ -1,7 +1,7 @@
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useEventListener } from 'expo';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import { useEffect, useRef, useState } from 'react';
+import { forwardRef, useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { releaseMedia, resolveMedia } from '../lib/media';
@@ -103,80 +103,140 @@ function VideoPlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () =
 }
 
 /**
- * One capture, full screen over whatever is behind it: the photo fills it, a
- * note is set large, a voice memo gets a player.
+ * One capture, full screen over whatever is behind it: the photo or video
+ * fills it, a note is set large, a voice memo gets a player. `nav` adds
+ * previous and next buttons to the capture's own card, so they never sit
+ * under a long note.
  */
-export function CaptureContent(props: { capture: Capture; autoPlay?: boolean; onVoiceFinished?: () => void; footer?: string }) {
+export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
+  capture: Capture;
+  autoPlay?: boolean;
+  onVoiceFinished?: () => void;
+  footer?: string;
+  /** Space kept clear at the top, e.g. under the safe area and a top bar. */
+  topInset?: number;
+  nav?: { onPrev?: () => void; onNext?: () => void };
+  /** A primary action in the card (the replay's Continue), within thumb reach. The ref is the action's. */
+  action?: { label: string; hint?: string; onPress: () => void; testID?: string };
+}>(function CaptureContent(props, actionRef) {
   const { capture } = props;
   const uri = useMediaUri(capture);
+  const video = capture.kind === 'video';
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
       {capture.kind === 'photo' && uri && <Image source={{ uri }} style={StyleSheet.absoluteFill} resizeMode="contain" accessibilityLabel="Photo" />}
-      {capture.kind === 'video' && uri && <VideoPlayer uri={uri} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} />}
+      {video && uri && <VideoPlayer uri={uri} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} />}
       {/* Over a video the card sits at the top, clear of the player's controls. */}
-      <View style={[styles.card, capture.kind === 'video' && styles.cardTop]} pointerEvents="box-none">
-        {capture.kind === 'text' && <Text style={styles.note}>{capture.body}</Text>}
-        {capture.kind === 'voice' && uri && (
-          <VoicePlayer uri={uri} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} durationMs={Number(capture.body) || 0} />
-        )}
-        {capture.kind !== 'text' && !uri && <Text style={styles.note}>{KIND_LABEL[capture.kind]}</Text>}
-        <Text style={styles.meta}>
-          {KIND_LABEL[capture.kind]} · {timeOf(capture)}
-          {props.footer ? ` · ${props.footer}` : ''}
-        </Text>
+      <View style={[styles.cardRow, video ? { top: (props.topInset ?? 0) + 72 } : styles.cardRowBottom]} pointerEvents="box-none">
+        <View style={styles.card}>
+          {capture.kind === 'text' && <Text style={styles.note}>{capture.body}</Text>}
+          {capture.kind === 'voice' && uri && (
+            <VoicePlayer uri={uri} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} durationMs={Number(capture.body) || 0} />
+          )}
+          {capture.kind !== 'text' && !uri && <Text style={styles.note}>{KIND_LABEL[capture.kind]}</Text>}
+          <View style={styles.metaRow}>
+            <Text style={styles.meta}>
+              {KIND_LABEL[capture.kind]} · {timeOf(capture)}
+              {props.footer ? ` · ${props.footer}` : ''}
+            </Text>
+            {props.action && (
+              <Pressable
+                ref={actionRef}
+                testID={props.action.testID}
+                accessibilityRole="button"
+                accessibilityHint={props.action.hint}
+                onPress={props.action.onPress}
+                style={({ pressed }) => [styles.action, pressed && styles.dim]}
+              >
+                <Text style={styles.actionText}>{props.action.label}</Text>
+                <Icon name="chevron-forward" size={20} color="#ffffff" />
+              </Pressable>
+            )}
+            {props.nav && (
+              <View style={styles.nav}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Previous capture"
+                  disabled={!props.nav.onPrev}
+                  onPress={props.nav.onPrev}
+                  style={[styles.navBtn, !props.nav.onPrev && styles.dim]}
+                >
+                  <Icon name="chevron-back" size={24} color={theme.ink} />
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Next capture"
+                  disabled={!props.nav.onNext}
+                  onPress={props.nav.onNext}
+                  style={[styles.navBtn, !props.nav.onNext && styles.dim]}
+                >
+                  <Icon name="chevron-forward" size={24} color={theme.ink} />
+                </Pressable>
+              </View>
+            )}
+          </View>
+        </View>
       </View>
     </View>
   );
-}
+});
 
-/** Opens the captures behind a map pin, one at a time. */
+/**
+ * Opens the captures behind a map pin, one at a time. Callers key it by the
+ * pin they open, so it always starts on that pin's first capture.
+ */
 export function CaptureViewer(props: { captures: Capture[] | null; onClose: () => void }) {
   const insets = useSafeAreaInsets();
   const [index, setIndex] = useState(0);
   const list = props.captures ?? [];
-  const current = list[Math.min(index, list.length - 1)];
+  const i = Math.min(index, Math.max(0, list.length - 1));
+  const current = list[i];
+  const close = () => {
+    setIndex(0);
+    props.onClose();
+  };
   return (
-    <Modal visible={list.length > 0} animationType="fade" onRequestClose={props.onClose} onShow={() => setIndex(0)}>
+    <Modal visible={list.length > 0} animationType="fade" onRequestClose={close}>
       <View style={styles.viewer}>
-        {current && <CaptureContent key={current.id} capture={current} footer={list.length > 1 ? `${index + 1} of ${list.length}` : undefined} />}
+        {current && (
+          <CaptureContent
+            key={current.id}
+            capture={current}
+            topInset={insets.top}
+            footer={list.length > 1 ? `${i + 1} of ${list.length}` : undefined}
+            nav={
+              list.length > 1
+                ? { onPrev: i > 0 ? () => setIndex(i - 1) : undefined, onNext: i < list.length - 1 ? () => setIndex(i + 1) : undefined }
+                : undefined
+            }
+          />
+        )}
         <View style={[styles.viewerTop, { top: insets.top + 8 }]}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={props.onClose} style={styles.roundBtn} hitSlop={8}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={close} style={styles.roundBtn} hitSlop={8}>
             <Icon name="close" size={26} color={theme.ink} />
           </Pressable>
         </View>
-        {list.length > 1 && (
-          <View style={[styles.viewerNav, { bottom: insets.bottom + 140 }]} pointerEvents="box-none">
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Previous capture"
-              disabled={index === 0}
-              onPress={() => setIndex((i) => Math.max(0, i - 1))}
-              style={[styles.roundBtn, index === 0 && styles.dim]}
-            >
-              <Icon name="chevron-back" size={26} color={theme.ink} />
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Next capture"
-              disabled={index >= list.length - 1}
-              onPress={() => setIndex((i) => Math.min(list.length - 1, i + 1))}
-              style={[styles.roundBtn, index >= list.length - 1 && styles.dim]}
-            >
-              <Icon name="chevron-forward" size={26} color={theme.ink} />
-            </Pressable>
-          </View>
-        )}
       </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  // A full-width row centers the card on any screen width.
+  cardRow: { position: 'absolute', left: 0, right: 0, paddingHorizontal: 16, alignItems: 'center' },
+  cardRowBottom: { bottom: 16 },
   card: {
-    position: 'absolute', left: 0, right: 0, bottom: 0, margin: 16, padding: 16, gap: 10,
-    backgroundColor: 'rgba(255,255,255,0.96)', borderRadius: theme.radius, maxWidth: 560, alignSelf: 'center', width: '92%',
+    padding: 16, gap: 10, width: '100%', maxWidth: 560,
+    backgroundColor: 'rgba(255,255,255,0.96)', borderRadius: theme.radius,
   },
-  cardTop: { bottom: undefined, top: 72 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  nav: { flexDirection: 'row', gap: 8 },
+  action: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 48, paddingLeft: 18, paddingRight: 12,
+    borderRadius: 24, backgroundColor: theme.accent,
+  },
+  actionText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
+  navBtn: { width: 48, height: 48, borderRadius: 24, borderWidth: 1.5, borderColor: theme.edge, alignItems: 'center', justifyContent: 'center' },
   note: { fontSize: 20, lineHeight: 27, color: theme.ink },
   meta: { fontSize: 14, color: theme.muted },
   voice: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -186,7 +246,6 @@ const styles = StyleSheet.create({
   voiceTime: { fontSize: 14, color: theme.ink, fontVariant: ['tabular-nums'] },
   viewer: { flex: 1, backgroundColor: '#14181f' },
   viewerTop: { position: 'absolute', right: 12 },
-  viewerNav: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between' },
   roundBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center' },
   dim: { opacity: 0.35 },
 });

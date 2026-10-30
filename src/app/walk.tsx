@@ -1,19 +1,22 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Linking, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { forwardRef, useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
+import {
+  AccessibilityInfo, Animated, BackHandler, Easing, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, StyleSheet, Text,
+  TextInput, View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WalkMap } from '../components/map/WalkMap';
 import { CaptureViewer } from '../components/CaptureView';
 import { Icon, type IconName } from '../components/icons';
 import { Banner, Button, HoldButton, theme } from '../components/ui';
 import { db } from '../lib/db';
+import { focusOn } from '../lib/focus';
 import { boundsOf } from '../lib/geo';
 import { successFeedback, tapFeedback } from '../lib/haptics';
 import { recorder } from '../lib/recorder';
 import type { RecorderStatus } from '../lib/recorder/types';
 import { stopWalk } from '../lib/session';
 import { formatDistance, formatDuration, formatElapsed } from '../lib/summary';
-import { pinsFor } from '../lib/pins';
 import type { Capture, StreetSegment, Walk } from '../lib/types';
 import { useCaptures } from '../lib/useCaptures';
 import { useLiveTrace } from '../lib/useLiveTrace';
@@ -45,7 +48,9 @@ export default function WalkScreen() {
   const [stopping, setStopping] = useState(false);
   const [fog, setFog] = useState<StreetSegment[]>([]);
   const [walked, setWalked] = useState<StreetSegment[]>([]);
-  const voiceFailed = useRef(false);
+  // The memo whose save failed at Stop; holding Stop again ends the walk without it.
+  const giveUpMemo = useRef(false);
+  const saveRef = useRef<PressableRef>(null);
 
   useEffect(() => {
     db.getOpenWalk().then((w) => (w ? setWalk(w) : router.replace('/')));
@@ -104,20 +109,18 @@ export default function WalkScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hereKey]);
 
-  const pins = useMemo(() => pinsFor(cap.captures), [cap.captures]);
   const [viewing, setViewing] = useState<Capture[] | null>(null);
 
   async function stop() {
     if (!walk || stopping) return;
     setStopping(true);
     try {
-      if (cap.voiceStartedAt != null && !voiceFailed.current) {
-        const saved = await cap.finishVoice();
-        if (!saved) {
-          voiceFailed.current = true;
-          setNotice({ message: 'The voice memo could not be saved. Hold Stop again to end the walk without it.', tone: 'error', sticky: true });
-          return;
-        }
+      // Waits for any voice action in flight (a start, a save) before ending.
+      const r = await cap.finishVoice();
+      if ((r === 'failed' || cap.unsaved) && !giveUpMemo.current) {
+        giveUpMemo.current = true;
+        setNotice({ message: 'The voice memo could not be saved. Retry, or hold Stop again to end the walk without it.', tone: 'error', sticky: true });
+        return;
       }
       await stopWalk(walk.id);
       successFeedback();
@@ -140,8 +143,52 @@ export default function WalkScreen() {
   }
 
   async function photo() {
-    if (await cap.takePhoto()) tapFeedback();
+    const kept = await cap.takePhoto();
+    if (!kept) return;
+    tapFeedback();
+    setToast(kept === 'video' ? 'Video saved here' : 'Photo saved here');
   }
+
+  async function startVoice() {
+    if (await cap.startVoice()) {
+      tapFeedback();
+      giveUpMemo.current = false;
+      AccessibilityInfo.announceForAccessibility('Recording voice memo');
+    }
+  }
+
+  async function saveVoice() {
+    const r = await cap.finishVoice();
+    if (r === 'saved') {
+      tapFeedback();
+      setToast('Voice memo saved here');
+      AccessibilityInfo.announceForAccessibility('Voice memo saved');
+    } else if (r === 'dropped') {
+      setToast('Too short, not kept');
+      AccessibilityInfo.announceForAccessibility('Too short, not kept');
+    }
+  }
+
+  async function discardVoice() {
+    if ((await cap.discardVoice()) === 'discarded') AccessibilityInfo.announceForAccessibility('Voice memo discarded. Undo is available.');
+  }
+
+  // While a memo records, Android's back button does nothing, and the web
+  // warns before a reload or close; leaving would cut the memo short.
+  const recordingNow = cap.voiceStartedAt != null;
+  useEffect(() => {
+    if (!recordingNow) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => true);
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    if (Platform.OS === 'web') window.addEventListener('beforeunload', warn);
+    // Focus moves to Save, which replaced the mic the person just tapped.
+    const t = setTimeout(() => focusOn(saveRef), 300);
+    return () => {
+      sub.remove();
+      clearTimeout(t);
+      if (Platform.OS === 'web') window.removeEventListener('beforeunload', warn);
+    };
+  }, [recordingNow]);
 
   const elapsed = walk ? now - walk.started_at : 0;
   const weak = status.kind === 'recording' && live.lastFixAt != null && now - live.lastFixAt > WEAK_GPS_MS;
@@ -160,8 +207,9 @@ export default function WalkScreen() {
         trace={live.runs}
         walked={walked}
         fog={fog}
-        pins={pins}
-        onPinPress={(pin) => setViewing(pin.captures)}
+        captures={cap.captures}
+        // Opening a capture would hide a memo that is still recording.
+        onPinPress={recordingVoice || stopping ? undefined : setViewing}
         walker={live.here}
         follow={live.here}
         initialCenter={live.here ?? undefined}
@@ -194,38 +242,71 @@ export default function WalkScreen() {
       {/* Captures float in the lower-middle of the screen, where either thumb
           reaches; the bottom edge is the least accurate place to tap. */}
       <View style={[styles.captures, { bottom: insets.bottom + 92 }]} pointerEvents="box-none">
-        {recordingVoice ? (
-          <View style={styles.voiceRow}>
-            <RoundButton testID="voice-discard" icon="trash-outline" label="Discard voice memo" onPress={cap.discardVoice} tone="light" />
-            <View style={styles.voiceLive} accessible accessibilityLabel={`Recording voice memo, ${formatElapsed(now - cap.voiceStartedAt!)}`}>
-              <View style={styles.recDot} />
-              <Text style={styles.voiceLiveText}>{formatElapsed(now - cap.voiceStartedAt!)}</Text>
-            </View>
-            <RoundButton
-              testID="voice-save"
-              icon="checkmark"
-              label="Save voice memo"
-              onPress={async () => {
-                if (await cap.finishVoice()) tapFeedback();
-              }}
-              tone="voice"
-              busy={cap.busy === 'voice'}
-            />
+        {recordingVoice && (
+          <View style={styles.voiceLive} accessible accessibilityLabel="Recording voice memo">
+            <PulseDot />
+            <Text style={styles.voiceLiveText}>{formatElapsed(now - cap.voiceStartedAt!)}</Text>
           </View>
-        ) : (
-          <View style={styles.captureRow}>
-            <RoundButton testID="cap-photo" icon="camera" label="Take a photo or video" onPress={photo} busy={cap.busy === 'photo'} disabled={stopping} />
-            <RoundButton
-              testID="cap-voice"
-              icon="mic"
-              label="Record a voice memo"
-              onPress={async () => {
-                if (await cap.startVoice()) tapFeedback();
-              }}
-              busy={cap.busy === 'voice'}
-              disabled={stopping}
-            />
-            <RoundButton testID="cap-note" icon="create" label="Write a note" onPress={() => setNoteOpen(true)} disabled={stopping} />
+        )}
+        {/* While recording, Save takes the mic's own place, so tapping the mic
+            again saves; Discard is smaller and set apart from it. */}
+        <View style={styles.captureRow}>
+          <View style={styles.slot}>
+            {recordingVoice ? (
+              <RoundButton
+                testID="voice-discard"
+                icon="trash-outline"
+                label="Discard voice memo"
+                hint="Throws this recording away. You can undo for a few seconds."
+                onPress={discardVoice}
+                small
+              />
+            ) : (
+              <RoundButton testID="cap-photo" icon="camera" label="Take a photo or video" onPress={photo} busy={cap.busy === 'photo'} disabled={stopping || cap.busy === 'voice'} />
+            )}
+          </View>
+          <View style={styles.slot}>
+            {recordingVoice ? (
+              <RoundButton
+                ref={saveRef}
+                testID="voice-save"
+                icon="stop"
+                label="Stop and save voice memo"
+                onPress={saveVoice}
+                tone="voice"
+                busy={cap.busy === 'voice'}
+              />
+            ) : (
+              <RoundButton
+                testID="cap-voice"
+                icon="mic"
+                label="Record a voice memo"
+                onPress={startVoice}
+                busy={cap.busy === 'voice'}
+                disabled={stopping}
+              />
+            )}
+          </View>
+          <View style={styles.slot}>
+            {!recordingVoice && (
+              <RoundButton testID="cap-note" icon="document-text" label="Write a note" onPress={() => setNoteOpen(true)} disabled={stopping} />
+            )}
+          </View>
+        </View>
+        {cap.discarded && !recordingVoice && (
+          <View style={styles.undo} accessibilityLiveRegion="polite">
+            <Text style={styles.undoText}>Voice memo discarded</Text>
+            <Pressable testID="voice-undo" accessibilityRole="button" onPress={() => cap.undoDiscard()} hitSlop={10} style={styles.undoBtn}>
+              <Text style={styles.undoBtnText}>Undo</Text>
+            </Pressable>
+          </View>
+        )}
+        {cap.unsaved && !recordingVoice && (
+          <View style={styles.undo} accessibilityLiveRegion="polite">
+            <Text style={styles.undoText}>Voice memo not saved</Text>
+            <Pressable accessibilityRole="button" onPress={() => cap.retrySave()} hitSlop={10} style={styles.undoBtn}>
+              <Text style={styles.undoBtnText}>Retry</Text>
+            </Pressable>
           </View>
         )}
       </View>
@@ -235,7 +316,15 @@ export default function WalkScreen() {
           <Text style={styles.stats} accessibilityLabel={statsLabel}>
             {formatElapsed(elapsed)} · {formatDistance(live.distanceM)}
           </Text>
-          <HoldButton testID="stop" label="Hold to stop" busyLabel="Stopping…" onHold={stop} busy={stopping} disabled={!walk}>
+          <HoldButton
+            testID="stop"
+            label="Hold to stop"
+            busyLabel="Stopping…"
+            onHold={stop}
+            onTap={() => setToast('Hold to stop the walk')}
+            busy={stopping}
+            disabled={!walk}
+          >
             <View style={styles.stopInner}>
               <Icon name="stop" size={18} color={theme.ink} />
               <Text style={styles.stopText}>Hold</Text>
@@ -244,7 +333,7 @@ export default function WalkScreen() {
         </View>
       </View>
 
-      <CaptureViewer captures={viewing} onClose={() => setViewing(null)} />
+      <CaptureViewer key={viewing?.[0]?.id ?? 'none'} captures={viewing} onClose={() => setViewing(null)} />
 
       <Modal visible={noteOpen} transparent animationType="fade" onRequestClose={() => setNoteOpen(false)}>
         {/* Every way out keeps the draft; only Save clears it. */}
@@ -280,30 +369,62 @@ export default function WalkScreen() {
 }
 
 /** A large round icon button; the label is what screen readers say. */
-function RoundButton(props: {
+type PressableRef = ComponentRef<typeof Pressable>;
+
+const RoundButton = forwardRef<PressableRef, {
   icon: IconName;
   label: string;
+  hint?: string;
   onPress: () => void;
   tone?: 'light' | 'voice';
+  small?: boolean;
   busy?: boolean;
   disabled?: boolean;
   testID?: string;
-}) {
+}>(function RoundButton(props, ref) {
   const voice = props.tone === 'voice';
   const inactive = props.disabled || props.busy;
   return (
     <Pressable
+      ref={ref}
       testID={props.testID}
       accessibilityRole="button"
       accessibilityLabel={props.label}
+      accessibilityHint={props.hint}
       accessibilityState={{ disabled: !!inactive, busy: !!props.busy }}
       disabled={inactive}
       onPress={props.onPress}
-      style={({ pressed }) => [styles.round, voice && styles.roundVoice, inactive && styles.disabled, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.round,
+        props.small && styles.roundSmall,
+        voice && styles.roundVoice,
+        inactive && styles.disabled,
+        pressed && styles.pressed,
+      ]}
     >
-      <Icon name={props.icon} size={30} color={voice ? '#ffffff' : theme.ink} />
+      <Icon name={props.icon} size={props.small ? 24 : 30} color={voice ? '#ffffff' : theme.ink} />
     </Pressable>
   );
+});
+
+/** The recording light: pulses, unless reduced motion is on. */
+function PulseDot() {
+  const [o] = useState(() => new Animated.Value(1));
+  useEffect(() => {
+    let loop: Animated.CompositeAnimation | null = null;
+    AccessibilityInfo.isReduceMotionEnabled().then((reduce) => {
+      if (reduce) return;
+      loop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(o, { toValue: 0.3, duration: 500, easing: Easing.inOut(Easing.quad), useNativeDriver: Platform.OS !== 'web' }),
+          Animated.timing(o, { toValue: 1, duration: 500, easing: Easing.inOut(Easing.quad), useNativeDriver: Platform.OS !== 'web' }),
+        ]),
+      );
+      loop.start();
+    }).catch(() => {});
+    return () => loop?.stop();
+  }, [o]);
+  return <Animated.View style={[styles.recDot, { opacity: o }]} />;
 }
 
 const styles = StyleSheet.create({
@@ -317,15 +438,23 @@ const styles = StyleSheet.create({
   chipText: { color: theme.ink, fontWeight: '600', fontSize: 14 },
   toast: { backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 14, alignSelf: 'center' },
   toastText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
-  captures: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
-  captureRow: { flexDirection: 'row', gap: 20 },
-  voiceRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  captures: { position: 'absolute', left: 0, right: 0, alignItems: 'center', gap: 12 },
+  captureRow: { flexDirection: 'row', alignItems: 'center', gap: 20 },
+  slot: { width: 68, height: 68, alignItems: 'center', justifyContent: 'center' },
   round: {
     width: 68, height: 68, borderRadius: 34, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1.5, borderColor: theme.edge,
     shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 4,
   },
+  roundSmall: { width: 52, height: 52, borderRadius: 26 },
   roundVoice: { backgroundColor: '#6b21a8', borderColor: '#6b21a8' },
+  undo: {
+    flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: theme.ink, borderRadius: 999,
+    paddingVertical: 8, paddingLeft: 16, paddingRight: 8,
+  },
+  undoText: { color: '#ffffff', fontSize: 15, fontWeight: '600' },
+  undoBtn: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)' },
+  undoBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.8 },
   voiceLive: {

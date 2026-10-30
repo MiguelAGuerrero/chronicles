@@ -54,8 +54,14 @@ Read this before changing recording, streets, the replay or storage.
   replay is the make-or-break; respect its rules: five beats in fixed order, restraint
   (no confetti, streaks or badges), and the lows stay in.
 - **The replay waits at each capture** (the owner's call, over the doc's fixed ~40 s):
-  the path runs in a fixed 30 s, but stops at every capture until a tap. Photos stay
-  up and voice memos play to the end. Skip jumps to the card.
+  the path runs in a fixed 30 s, but stops at every capture until Continue. Photos
+  stay up; voice memos and videos play to the end. Skip jumps to the card.
+- **Re-watches move on by themselves** (the owner's call): "Watch again", and replays
+  opened from the log, advance after 4 s for a photo or note, and when a memo or
+  video ends. Only the first replay after a walk waits for taps.
+- **Video** comes from the camera button (the system camera's own video mode),
+  capped at 30 s on phones and 15 s on web. The mic stays the separate pocket
+  recorder.
 - **Local-only.** No accounts, no backend, nothing leaves the device. The owner chose
   this over Supabase for v0; don't add a server without asking.
 - **No simulation.** Web traces the real browser location live while the page is open
@@ -79,11 +85,17 @@ Read this before changing recording, streets, the replay or storage.
 - Text is kept to a minimum. There is no header or "Recording" label, because the
   growing trace shows a walk is on. A status chip appears only when something is
   wrong: waiting for GPS, weak GPS, or not recording.
-- Captures are pins on the map (`src/lib/pins.ts`; captures within 25 m share a pin,
-  with a count), on the walk screen and on the replay card. Tapping a pin opens its
-  captures in `CaptureViewer`.
-- Recording a voice memo swaps the row for discard, a timer and save. A memo shorter
-  than 1 s is dropped as an accidental tap.
+- Captures are pins on the map, on the walk screen and on the replay card. The map
+  groups them itself by screen distance (`useZoomPins`: pins within 44 px at the
+  current zoom share one, showing the count), so they never pile up when zoomed out.
+  Pins are anchored at their stem's foot, so the walker's dot stays visible. Tapping
+  a pin opens its captures in `CaptureViewer`.
+- While a voice memo records, Stop & save takes the mic's own slot. Discard is
+  smaller and in the camera's slot, and it is undoable for 5 s. A pulsing timer sits
+  above the row. A memo under 1 s of wall-clock time is dropped with a "Too short,
+  not kept" toast. A memo that fails to save offers Retry. Leaving the screen
+  mid-memo saves it.
+- A quick tap on Stop shows "Hold to stop the walk".
 - Next round, not built yet: treat standing still (a long stay inside a small radius)
   as a pause in the replay, so the dot doesn't jitter in place. The raw trace stays
   untouched.
@@ -211,9 +223,29 @@ Read this before changing recording, streets, the replay or storage.
 - Icons come from `@expo/vector-icons` (Ionicons), via `src/components/icons.tsx`.
   Every icon-only button needs an `accessibilityLabel`.
 - On web, pins are maplibre-gl DOM `Marker`s whose content is rendered with
-  `react-dom/client` `createRoot`, using the same `CapturePinView` as native. Unmount
-  the roots when a marker goes away. On native they are MapLibre RN `<Marker>`
-  children.
+  `react-dom/client` `createRoot`, using the same `CapturePinView` as native.
+  Unmount the roots in a `queueMicrotask`, because unmounting inside React's commit
+  warns. Clicks look the pin up by id in a ref, so they never open stale captures.
+- On native, pins are MapLibre RN `<Marker>` children. Use the Marker's own `onPress`:
+  on iOS the annotation's tap recognizer swallows touches meant for a Pressable inside
+  it.
+
+### Voice memos
+
+- All voice actions (start, save, discard, undo, retry) run on one promise queue in
+  `useCaptures`, so taps never interleave. Stop waits for that queue.
+- Never call `stop()` on a recorder that already stopped by itself: on web it waits
+  forever for `dataavailable`. `stopRecorder` checks `isRecording` and races a 3 s
+  timeout.
+- `getStatus().durationMillis` is 0 once a native recorder has stopped. Judge
+  "accidental tap" by wall-clock time, never by that number.
+- The web image picker reports video `duration` in seconds; native reports
+  milliseconds.
+- `findNodeHandle` doesn't exist on web. Use `focusOn(ref)` in `src/lib/focus.ts`.
+- React Compiler lint treats a ref passed inside a props object (`props.x.ref`) as
+  a ref read during render. Use `forwardRef` instead.
+- expo-video on web ignores `play()` before the source has loaded. Start it on
+  `statusChange` → `readyToPlay`.
 
 ### Replay
 
@@ -225,8 +257,16 @@ Read this before changing recording, streets, the replay or storage.
 - At a stop the clock stands still. `stop.atMs` holds the path time, and resuming
   sets `t0 = now - atMs`. `shown` counts the groups already visited; reset it on
   "Watch again".
-- `CaptureContent` plays a voice memo itself and is keyed by capture id, so moving
-  on or skipping unmounts the player and stops the sound.
+- `CaptureContent` plays a voice memo or video itself and is keyed by capture id, so
+  moving on or skipping unmounts the player and stops the sound.
+- Taps in the first 600 ms after a capture appears are ignored, so a double tap never
+  skips one unseen.
+- A capture after the last fix stops the path at its end. The path span is the trace;
+  captures are clamped to it.
+- With a screen reader on (native only, since react-native-web always says yes), the
+  replay skips the fog and path and goes through the captures, then the card.
+- The replay sets `playsInSilentMode` when it mounts, or memos are silent with the
+  iPhone's ringer switch off.
 
 ## Deploying the web build
 

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { distanceM, filterFixes, lineLengthM, positionAt, stepToward } from '../geo';
 import { groupCaptures, nextStop, PATH_MS, schedule, walkTimeAt } from '../replay';
-import { pinsFor } from '../pins';
+import { metersPerPixel, PIN_GROUP_PX, pinsFor } from '../pins';
 import { tileAt } from '../tileMath';
 import { snap } from '../snapper';
 import { deriveSegments, type RoadFeature } from '../streets';
@@ -210,15 +210,37 @@ test('replay: every capture keeps its stop, and an empty walk has no path to run
   assert.equal(schedule([], [], 0).movingMs, 0);
 });
 
-test('pins: nearby captures share a pin, and the pin says what it holds', () => {
+test('pins: grouped by screen distance at the zoom, joining the nearest pin', () => {
   const cap = (id: string, x: number, kind: Capture['kind'], t = 0): Capture => ({
     id, walk_id: 'w', t, lat: at(x, 0)[1], lon: at(x, 0)[0], kind, file_path: null, body: null, segment_id: null,
   });
-  const pins = pinsFor([cap('a', 0, 'photo'), cap('b', 0.1, 'photo', 5), cap('c', 0.15, 'voice', 9), cap('d', 2, 'text', 20)]);
-  assert.equal(pins.length, 2);
-  assert.deepEqual(pins[0].captures.map((c) => c.id), ['a', 'b', 'c']);
-  assert.equal(pins[0].kind, 'mixed');
-  assert.equal(pins[1].kind, 'text');
+  const caps = [cap('a', 0, 'photo'), cap('b', 0.1, 'photo', 5), cap('c', 0.15, 'voice', 9), cap('d', 2, 'text', 20)];
+  // Zoomed in (44 px ~ 30 m at z16 here): the three captures 10-15 m apart share a pin.
+  const near = pinsFor(caps, PIN_GROUP_PX * metersPerPixel(16, O[1]));
+  assert.equal(near.length, 2);
+  assert.deepEqual(near[0].captures.map((c) => c.id), ['a', 'b', 'c']);
+  assert.equal(near[0].kind, 'mixed');
+  // Zoomed out to fit a whole walk (z13: 44 px ~ 260 m): everything 200 m apart merges.
+  assert.equal(pinsFor(caps, PIN_GROUP_PX * metersPerPixel(13, O[1])).length, 1);
+  // A capture joins the nearest pin, not merely the first within reach.
+  const ab = pinsFor([cap('p', 0, 'photo'), cap('q', 0.4, 'photo', 1), cap('r', 0.38, 'text', 2)], 30);
+  assert.deepEqual(ab.map((p) => p.captures.map((c) => c.id)), [['p'], ['q', 'r']]);
+  // The same captures in any order make the same pins.
+  assert.deepEqual(
+    pinsFor([...caps].reverse(), 30).map((p) => p.id),
+    pinsFor(caps, 30).map((p) => p.id),
+  );
   // A capture without a position has no pin.
-  assert.equal(pinsFor([{ ...cap('e', 0, 'photo'), lat: null, lon: null }]).length, 0);
+  assert.equal(pinsFor([{ ...cap('e', 0, 'photo'), lat: null, lon: null }], 30).length, 0);
+});
+
+test('replay: a capture after the trace ends stops the path at its end, not after a long stand', () => {
+  const trace = walkAlong([at(0, 0), at(3, 0)]);
+  const last = trace.at(-1)!.t;
+  const late: Capture = {
+    id: 'late', walk_id: 'w1', t: last + 40 * 60_000, lat: null, lon: null, kind: 'photo', file_path: 'x', body: null, segment_id: null,
+  };
+  const s = schedule(trace, [late], 0);
+  assert.equal(s.groups[0].atMs, PATH_MS, 'its stop comes as the path ends');
+  assert.ok(Math.abs(walkTimeAt(s, PATH_MS / 2) - (trace[0].t + last) / 2) < 6000, 'the walker moves through the trace all the way');
 });

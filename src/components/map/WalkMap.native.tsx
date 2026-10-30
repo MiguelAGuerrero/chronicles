@@ -2,12 +2,12 @@ import {
   Camera, GeoJSONSource, Layer, Map, Marker, VectorSource, type CameraRef, type MapRef, type VectorSourceRef,
 } from '@maplibre/maplibre-react-native';
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { CapturePinView, pinLabel } from '../CapturePinView';
 import type { RoadFeature } from '../../lib/streets';
 import { TILEJSON_URL } from '../../lib/tiles';
 import {
-  COLORS, DERIVE_ZOOM, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, walkerGeoJSON,
+  COLORS, DERIVE_ZOOM, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -24,6 +24,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const regionChanged = useRef<(() => void) | null>(null);
   const rendered = useRef<(() => void) | null>(null);
   const size = useRef({ width: 0, height: 0 });
+  const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
+  // Pins grouped for the current zoom, so nearby ones merge instead of piling up.
+  const pins = useZoomPins(props.captures, view?.zoom ?? props.initialZoom ?? null, view?.lat ?? null);
   const duration = props.animate === false ? 0 : 600;
 
   const fog = useMemo(() => segmentsGeoJSON(props.fog), [props.fog]);
@@ -108,7 +111,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           setReady(true);
           for (const r of readyWaiters.current.splice(0)) r();
         }}
-        onRegionDidChange={() => regionChanged.current?.()}
+        onRegionDidChange={(e) => {
+          regionChanged.current?.();
+          const { zoom, center } = e.nativeEvent;
+          setView((v) => (v && Math.abs(v.zoom - zoom) < 0.25 ? v : { zoom, lat: center[1] }));
+        }}
         onDidFinishRenderingMapFully={() => rendered.current?.()}
       >
         <Camera
@@ -145,11 +152,24 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             'circle-stroke-width': 2,
           }} />
         </GeoJSONSource>
-        {props.pins.map((pin) => (
-          <Marker key={pin.id} id={pin.id} lngLat={pin.lngLat}>
-            <Pressable accessibilityRole="button" accessibilityLabel={pinLabel(pin)} onPress={() => props.onPinPress?.(pin)} hitSlop={6}>
+        {/* The Marker's own onPress: on iOS the annotation's tap recognizer
+            swallows touches meant for a Pressable inside it. */}
+        {pins.map((pin) => (
+          <Marker
+            key={`${pin.id}:${pin.captures.length}`}
+            id={`${pin.id}:${pin.captures.length}`}
+            lngLat={pin.lngLat}
+            anchor="bottom"
+            onPress={props.onPinPress ? () => props.onPinPress?.(pin.captures) : undefined}
+          >
+            <View
+              accessible
+              accessibilityRole={props.onPinPress ? 'button' : 'image'}
+              accessibilityLabel={pinLabel(pin, !!props.onPinPress)}
+              style={styles.pinHit}
+            >
               <CapturePinView pin={pin} />
-            </Pressable>
+            </View>
           </Marker>
         ))}
       </Map>
@@ -161,4 +181,6 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
 const styles = StyleSheet.create({
   wrap: { flex: 1, overflow: 'hidden' },
   cover: { ...StyleSheet.absoluteFill, backgroundColor: COLORS.veil },
+  // A 48 pt target around the 36 pt pin.
+  pinHit: { paddingHorizontal: 6, paddingTop: 4 },
 });

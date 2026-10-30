@@ -1,8 +1,9 @@
 import type { StyleProp, ViewStyle } from 'react-native';
 import type { Bounds } from '../../lib/geo';
 import type { RoadFeature } from '../../lib/streets';
-import type { CapturePin } from '../../lib/pins';
-import type { LngLat, StreetSegment } from '../../lib/types';
+import { useMemo } from 'react';
+import { metersPerPixel, PIN_GROUP_PX, pinsFor, type CapturePin } from '../../lib/pins';
+import type { Capture, LngLat, StreetSegment } from '../../lib/types';
 
 export const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
 /** OpenMapTiles tops out at z14; road detail is only complete from there. */
@@ -37,9 +38,13 @@ export interface WalkMapProps {
   traceOpacity?: number;
   walked: StreetSegment[];
   fog: StreetSegment[];
-  /** Capture pins, each opening its captures when pressed. */
-  pins: CapturePin[];
-  onPinPress?: (pin: CapturePin) => void;
+  /**
+   * Captures to pin where they were taken. The map groups them itself, by
+   * screen distance at its current zoom, so nearby pins never pile up.
+   */
+  captures: Capture[];
+  /** Opens a pin's captures; without it, pins are shown but not pressable. */
+  onPinPress?: (captures: Capture[]) => void;
   walker?: LngLat | null;
   /** Keeps the camera centered here while set. */
   follow?: LngLat | null;
@@ -147,3 +152,17 @@ export const WORLD_VEIL: GeoJSON.FeatureCollection = {
     geometry: { type: 'Polygon', coordinates: [[[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]]] },
   }],
 };
+
+/**
+ * Pins for the map's current zoom. The zoom is rounded to half levels, so
+ * pins regroup when the view zooms, not on every camera move.
+ */
+export function useZoomPins(captures: Capture[], zoom: number | null, lat: number | null): CapturePin[] {
+  const z = zoom == null ? 16 : Math.round(zoom * 2) / 2;
+  const at = lat ?? captures.find((c) => c.lat != null)?.lat ?? 0;
+  const latBucket = Math.round(at);
+  return useMemo(
+    () => pinsFor(captures, PIN_GROUP_PX * metersPerPixel(z, latBucket)),
+    [captures, z, latBucket],
+  );
+}

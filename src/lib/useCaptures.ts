@@ -19,7 +19,22 @@ const MIN_VOICE_MS = 1000;
  */
 const MAX_VIDEO_S = Platform.OS === 'web' ? 15 : 30;
 
+/** How long a stop may take before it is given up on. */
+const STOP_TIMEOUT_MS = 3000;
+/** How long a discarded memo can be brought back. */
+export const UNDO_MS = 5000;
+
 type Busy = CaptureKind | null;
+
+export type VoiceResult = 'saved' | 'dropped' | 'discarded' | 'failed' | 'none';
+
+interface StoppedMemo {
+  uri: string | null;
+  stamp: { t: number; at: LngLat | null };
+  ms: number;
+  /** Shorter than MIN_VOICE_MS while the recorder was running: an accidental tap. */
+  short: boolean;
+}
 
 /**
  * Photo, voice memo and note capture for the open walk. Each capture is
@@ -44,6 +59,7 @@ export function useCaptures(
     if (e) errorCb.current?.(e);
   };
   const lock = useRef(false); // taps arrive faster than state updates
+  const alive = useRef(true); // the screen is still mounted
   const voiceStamp = useRef<{ t: number; at: LngLat | null } | null>(null);
   const voice = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const pos = useRef({ here, lastFixAt });
@@ -68,7 +84,11 @@ export function useCaptures(
       lat: stamp.at?.[1] ?? null, lon: stamp.at?.[0] ?? null,
     };
     await db.addCapture(c);
-    setCaptures((prev) => [...prev, c]);
+    // Without a fresh fix, it is stored unplaced (the trace places it at
+    // stop), but pinned meanwhile at the last known position.
+    const last = pos.current.here;
+    const shown = c.lat == null && last ? { ...c, lat: last[1], lon: last[0] } : c;
+    if (alive.current) setCaptures((prev) => [...prev, shown]);
   }
 
   async function guarded(kind: CaptureKind, fn: () => Promise<void>) {
@@ -88,9 +108,10 @@ export function useCaptures(
     }
   }
 
-  /** The system camera, in photo or video mode as the person picks there. */
-  const takePhoto = () =>
-    guarded('photo', async () => {
+  /** The system camera, in photo or video mode as the person picks there. Resolves the kind kept, if any. */
+  const takePhoto = async (): Promise<'photo' | 'video' | null> => {
+    let kept: 'photo' | 'video' | null = null;
+    await guarded('photo', async () => {
       const stamp = stampNow();
       const perm = await ImagePicker.requestCameraPermissionsAsync();
       if (!perm.granted) {
@@ -116,65 +137,202 @@ export function useCaptures(
         }
         const ext = asset.mimeType?.split('/')[1]?.replace('quicktime', 'mov') ?? 'mp4';
         await add('video', stamp, await keepFile(asset.uri, walkId!, `${newId()}.${ext}`), String(Math.round(ms)));
+        kept = 'video';
         return;
       }
       const ext = asset.mimeType?.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
       await add('photo', stamp, await keepFile(asset.uri, walkId!, `${newId()}.${ext}`), null);
+      kept = 'photo';
     });
+    return kept;
+  };
 
-  const startVoice = () =>
-    guarded('voice', async () => {
-      const perm = await requestRecordingPermissionsAsync();
-      if (!perm.granted) {
-        setError({ message: 'Microphone access is off for Chronicles.', openSettings: !perm.canAskAgain });
-        return;
-      }
-      // Keeps recording with the phone locked and in a pocket.
-      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true, allowsBackgroundRecording: true });
-      await voice.prepareToRecordAsync();
-      voiceStamp.current = stampNow();
-      voice.record();
-      setVoiceStartedAt(voiceStamp.current.t);
-    });
+  // Voice memo actions run one after another on this queue, so a tap on
+  // Save, Discard or Stop never interleaves with a start or another save.
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
+  const voiceOn = useRef(false);
+  const enqueue = <T,>(fn: () => Promise<T>): Promise<T> => {
+    const run = queue.current.then(fn, fn);
+    queue.current = run.catch(() => {});
+    return run;
+  };
+  const withBusy = async <T,>(fn: () => Promise<T>): Promise<T> => {
+    setBusy('voice');
+    try {
+      return await fn();
+    } finally {
+      if (alive.current) setBusy(null);
+    }
+  };
 
-  async function stopRecorder(): Promise<number> {
-    const duration = voice.getStatus().durationMillis;
-    await voice.stop();
-    setVoiceStartedAt(null);
-    await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true, allowsBackgroundRecording: false });
-    return duration;
+  /** A stopped memo that could not be saved, kept so it can be retried. */
+  const [unsaved, setUnsaved] = useState<StoppedMemo | null>(null);
+  /** A memo just discarded, kept for UNDO_MS so the discard can be undone. */
+  const [discarded, setDiscarded] = useState<StoppedMemo | null>(null);
+  const discardTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const resetAudioMode = () =>
+    setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true, allowsBackgroundRecording: false }).catch(() => {});
+
+  const startVoice = (): Promise<boolean> =>
+    enqueue(() =>
+      withBusy(async () => {
+        if (!walkId || voiceOn.current) return false;
+        try {
+          const perm = await requestRecordingPermissionsAsync();
+          if (!perm.granted) {
+            setError({ message: 'Microphone access is off for Chronicles.', openSettings: !perm.canAskAgain });
+            return false;
+          }
+          // Keeps recording with the phone locked and in a pocket.
+          await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true, allowsBackgroundRecording: true });
+          await voice.prepareToRecordAsync();
+          if (!alive.current) {
+            // The screen went away while preparing: never leave the mic on.
+            await resetAudioMode();
+            return false;
+          }
+          voiceStamp.current = stampNow();
+          voice.record();
+          voiceOn.current = true;
+          setVoiceStartedAt(voiceStamp.current.t);
+          return true;
+        } catch (e) {
+          await resetAudioMode();
+          setError({ message: e instanceof Error ? e.message : String(e) });
+          return false;
+        }
+      }),
+    );
+
+  /**
+   * Stops the recorder and returns what it recorded. Never hangs: a recorder
+   * that already stopped by itself (mic unplugged, capture ended by the
+   * browser) is not stopped again, and a stop that does not answer gives up.
+   */
+  async function stopRecorder(): Promise<StoppedMemo> {
+    const stamp = voiceStamp.current ?? stampNow();
+    const wallMs = Date.now() - stamp.t;
+    const status = voice.getStatus();
+    const wasRecording = voice.isRecording;
+    if (wasRecording) {
+      await Promise.race([voice.stop(), new Promise((r) => setTimeout(r, STOP_TIMEOUT_MS))]).catch(() => {});
+    }
+    voiceOn.current = false;
+    if (alive.current) setVoiceStartedAt(null);
+    await resetAudioMode();
+    // The recorder's own duration is 0 once it has stopped; the wall clock is not.
+    const ms = status.durationMillis > 0 ? status.durationMillis : wallMs;
+    return { uri: voice.uri, stamp, ms, short: wasRecording && wallMs < MIN_VOICE_MS };
+  }
+
+  async function saveMemo(m: StoppedMemo): Promise<void> {
+    if (!m.uri) throw new Error('The voice memo could not be saved.');
+    // Native records AAC in .m4a; on web the extension is only part of the key.
+    const ext = /\.(\w{2,4})$/.exec(m.uri.split('?')[0])?.[1] ?? (m.uri.startsWith('blob:') ? 'webm' : 'm4a');
+    await add('voice', m.stamp, await keepFile(m.uri, walkId!, `${newId()}.${ext}`), String(Math.round(m.ms)));
   }
 
   /**
-   * Stops and saves the memo in progress. A memo shorter than MIN_VOICE_MS is
-   * an accidental tap and is dropped. Resolves false if it could not be saved.
+   * Stops and saves the memo in progress, waiting for any voice action in
+   * flight first. A memo under MIN_VOICE_MS was an accidental tap and is
+   * dropped. A memo that fails to save is kept for retrySave.
    */
-  async function finishVoice(): Promise<boolean> {
-    if (voiceStartedAt == null && !voice.isRecording) return true;
-    const run = async () => {
-      const duration = await stopRecorder();
-      if (duration < MIN_VOICE_MS) {
-        dropTemp(voice.uri);
-        return;
-      }
-      if (!voice.uri) throw new Error('The voice memo could not be saved.');
-      // Native records AAC in .m4a; on web the extension is only part of the key.
-      const ext = /\.(\w{2,4})$/.exec(voice.uri.split('?')[0])?.[1] ?? (voice.uri.startsWith('blob:') ? 'webm' : 'm4a');
-      await add('voice', voiceStamp.current ?? stampNow(), await keepFile(voice.uri, walkId!, `${newId()}.${ext}`), String(Math.round(duration)));
-    };
-    if (lock.current) return false;
-    return guarded('voice', run);
-  }
+  const finishVoice = (): Promise<VoiceResult> =>
+    enqueue(() =>
+      withBusy(async () => {
+        if (!voiceOn.current) return 'none';
+        const m = await stopRecorder();
+        if (m.short) {
+          dropTemp(m.uri);
+          return 'dropped';
+        }
+        try {
+          await saveMemo(m);
+          return 'saved';
+        } catch (e) {
+          if (alive.current) setUnsaved(m);
+          setError({ message: `The voice memo could not be saved: ${e instanceof Error ? e.message : e}` });
+          return 'failed';
+        }
+      }),
+    );
 
-  /** Stops the memo in progress and throws it away. */
-  async function discardVoice(): Promise<boolean> {
-    if (voiceStartedAt == null && !voice.isRecording) return true;
-    if (lock.current) return false;
-    return guarded('voice', async () => {
-      await stopRecorder();
-      dropTemp(voice.uri);
-    });
-  }
+  /** Retries a memo whose save failed. */
+  const retrySave = (): Promise<VoiceResult> =>
+    enqueue(() =>
+      withBusy(async () => {
+        const m = unsaved;
+        if (!m) return 'none';
+        try {
+          await saveMemo(m);
+          setUnsaved(null);
+          return 'saved';
+        } catch (e) {
+          setError({ message: `The voice memo could not be saved: ${e instanceof Error ? e.message : e}` });
+          return 'failed';
+        }
+      }),
+    );
+
+  const forgetDiscarded = () => {
+    if (discardTimer.current) clearTimeout(discardTimer.current);
+    discardTimer.current = null;
+  };
+
+  /** Stops the memo in progress and sets it aside; it is deleted after UNDO_MS unless undone. */
+  const discardVoice = (): Promise<VoiceResult> =>
+    enqueue(() =>
+      withBusy(async () => {
+        if (!voiceOn.current) return 'none';
+        const m = await stopRecorder();
+        forgetDiscarded();
+        setDiscarded((prev) => {
+          if (prev) dropTemp(prev.uri);
+          return m;
+        });
+        discardTimer.current = setTimeout(() => {
+          setDiscarded((cur) => {
+            if (cur === m) dropTemp(m.uri);
+            return cur === m ? null : cur;
+          });
+        }, UNDO_MS);
+        return 'discarded';
+      }),
+    );
+
+  /** Brings back the memo just discarded, and saves it. */
+  const undoDiscard = (): Promise<VoiceResult> =>
+    enqueue(() =>
+      withBusy(async () => {
+        const m = discarded;
+        if (!m) return 'none';
+        forgetDiscarded();
+        setDiscarded(null);
+        try {
+          await saveMemo(m);
+          return 'saved';
+        } catch (e) {
+          setUnsaved(m);
+          setError({ message: `The voice memo could not be saved: ${e instanceof Error ? e.message : e}` });
+          return 'failed';
+        }
+      }),
+    );
+
+  // Leaving the screen mid-memo (browser Back, a reload) saves it rather than
+  // losing it or leaving the mic on.
+  const finishRef = useRef(finishVoice);
+  useEffect(() => {
+    finishRef.current = finishVoice;
+  });
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+      if (voiceOn.current) finishRef.current().catch(() => {});
+    };
+  }, []);
 
   const saveNote = (text: string) =>
     guarded('text', async () => {
@@ -189,6 +347,10 @@ export function useCaptures(
     startVoice,
     finishVoice,
     discardVoice,
+    undoDiscard,
+    discarded: discarded != null,
+    retrySave,
+    unsaved: unsaved != null,
     saveNote,
   };
 }

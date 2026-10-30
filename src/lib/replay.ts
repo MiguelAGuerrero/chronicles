@@ -92,7 +92,10 @@ function activeClock(fixes: TracePoint[]) {
 export function schedule(fixes: TracePoint[], captures: Capture[], startedAt: number): Schedule {
   const { toActive, toWalk } = activeClock(fixes);
   const startT = fixes[0]?.t ?? startedAt;
-  const endT = Math.max(fixes.at(-1)?.t ?? startT, ...captures.map((c) => c.t), startT + 1);
+  // The path spans the trace. A capture before the first fix or after the last
+  // (GPS lost indoors, say) stops the path at that end, rather than leaving
+  // the walker standing still while the clock runs on to it.
+  const endT = Math.max(fixes.at(-1)?.t ?? startT, startT + 1);
   const start = toActive(startT);
   const end = toActive(endT);
   // Nothing to draw: no point running an empty path; captures still get their stop.

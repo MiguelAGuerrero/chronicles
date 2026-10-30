@@ -78,6 +78,8 @@ export function HoldButton(props: {
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
   testID?: string;
+  /** A press let go before the hold completed, e.g. to explain that it needs holding. */
+  onTap?: () => void;
   /** Replaces the label text, e.g. with an icon; the label stays the spoken name. */
   children?: ReactNode;
 }) {
@@ -114,6 +116,10 @@ export function HoldButton(props: {
       disabled={inactive}
       onPressIn={start}
       onPressOut={cancel}
+      // A release before the hold completed: say it needs holding.
+      onPress={() => {
+        if (!fired.current) props.onTap?.();
+      }}
       style={[styles.btn, styles.hold, inactive && styles.disabled, props.style]}
     >
       <Animated.View
@@ -179,7 +185,8 @@ const styles = StyleSheet.create({
   label: { fontSize: 16, fontWeight: '600', color: theme.ink },
   busyRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   hold: { minHeight: 44, backgroundColor: theme.surface, borderWidth: 1.5, borderColor: theme.ink },
-  holdFill: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: '#f2c7b4' },
+  // 3.5:1 against the white button, so the hold's progress is visible.
+  holdFill: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: '#d9663a' },
   banner: {
     flexDirection: 'row',
     alignItems: 'center',
