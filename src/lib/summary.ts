@@ -1,10 +1,9 @@
 import { db } from './db';
-import { filterFixes, splitAtGaps, traceDistanceM, type Bounds } from './geo';
+import { filterFixes, splitAtGaps, type Bounds } from './geo';
 import { walkBounds } from './finish';
-import { streetKey } from './streets';
-import type { Capture, LngLat, StreetSegment, TracePoint, VisitedSegment, Walk } from './types';
+import type { Capture, LngLat, StreetSegment, TracePoint, Walk, WalkSummary } from './types';
 
-export interface WalkSummary {
+export interface ReplayData {
   walk: Walk;
   fixes: TracePoint[];
   runs: LngLat[][];
@@ -13,24 +12,20 @@ export interface WalkSummary {
   /** Walked segments, ordered by when the trace first reached them. */
   walked: (StreetSegment & { first_t: number })[];
   fog: StreetSegment[];
-  newStreets: number;
-  streetsWalked: number;
-  distanceM: number;
-  durationMs: number;
+  summary: WalkSummary | null;
 }
 
-export async function loadSummary(walkId: string): Promise<WalkSummary | null> {
+/** Everything the replay draws. `summary` is null until the walk has been snapped. */
+export async function loadReplay(walkId: string): Promise<ReplayData | null> {
   const walk = await db.getWalk(walkId);
   if (!walk) return null;
-  const points = await db.getPoints(walkId);
-  const fixes = filterFixes(points);
+  const fixes = filterFixes(await db.getPoints(walkId), walk.started_at);
   const captures = await db.getCaptures(walkId);
-  const bounds = walkBounds(points);
+  const bounds = walkBounds(fixes);
   const segments = bounds ? await db.getSegmentsIn(bounds) : [];
   const visited = await db.getVisited(walkId);
   const byId = new Map(segments.map((s) => [s.id, s]));
   const visitedIds = new Set(visited.map((v) => v.segment_id));
-
   const walked = visited
     .map((v) => {
       const s = byId.get(v.segment_id);
@@ -38,20 +33,7 @@ export async function loadSummary(walkId: string): Promise<WalkSummary | null> {
     })
     .filter((s): s is StreetSegment & { first_t: number } => s != null)
     .sort((a, b) => a.first_t - b.first_t);
-
-  // A street is new if no earlier walk touched any piece of it.
-  const earlier = new Set((await db.listWalks()).filter((w) => w.started_at < walk.started_at).map((w) => w.id));
-  const all: VisitedSegment[] = await db.getVisited();
-  const earlierIds = new Set(all.filter((v) => earlier.has(v.walk_id)).map((v) => v.segment_id));
-  const keyOf = (id: string) => {
-    const s = byId.get(id);
-    return s ? streetKey(s) : id;
-  };
-  const earlierKeys = new Set([...earlierIds].map(keyOf));
-  const keys = new Set(walked.map(streetKey));
-  const newStreets = [...keys].filter((k) => !earlierKeys.has(k)).length;
-
-  const end = walk.ended_at ?? fixes.at(-1)?.t ?? walk.started_at;
+  const summary = (await db.listSummaries()).find((s) => s.walk_id === walkId) ?? null;
   return {
     walk,
     fixes,
@@ -60,10 +42,7 @@ export async function loadSummary(walkId: string): Promise<WalkSummary | null> {
     bounds,
     walked,
     fog: segments.filter((s) => !visitedIds.has(s.id)),
-    newStreets,
-    streetsWalked: keys.size,
-    distanceM: traceDistanceM(fixes),
-    durationMs: Math.max(0, end - walk.started_at),
+    summary,
   };
 }
 
@@ -81,8 +60,25 @@ export function formatDistance(m: number): string {
   return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(m < 10_000 ? 2 : 1)} km`;
 }
 
+/** m:ss under ten minutes, so a just-started walk visibly counts; minutes after. */
+export function formatElapsed(ms: number): string {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  if (s < 600) return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  return formatDuration(ms);
+}
+
 export function formatDuration(ms: number): string {
   const min = Math.round(ms / 60_000);
+  if (min < 1) return `${Math.max(0, Math.round(ms / 1000))} s`;
   if (min < 60) return `${min} min`;
   return `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')} min`;
+}
+
+/** "2 photos · 1 note", leaving out kinds with none. */
+export function formatCaptures(c: { photos: number; voices: number; notes: number }): string {
+  const parts: string[] = [];
+  if (c.photos) parts.push(`${c.photos} ${c.photos === 1 ? 'photo' : 'photos'}`);
+  if (c.voices) parts.push(`${c.voices} ${c.voices === 1 ? 'voice memo' : 'voice memos'}`);
+  if (c.notes) parts.push(`${c.notes} ${c.notes === 1 ? 'note' : 'notes'}`);
+  return parts.join(' · ');
 }

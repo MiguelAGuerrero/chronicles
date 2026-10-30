@@ -1,15 +1,16 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { distanceM, filterFixes, positionAt, stepToward } from '../geo';
+import { distanceM, filterFixes, lineLengthM, positionAt, stepToward } from '../geo';
 import { cursorAt, groupCaptures, schedule, PATH_AND_PAUSES_MS } from '../replay';
+import { tileAt } from '../tileMath';
 import { snap } from '../snapper';
 import { deriveSegments, type RoadFeature } from '../streets';
 import type { Capture, LngLat, TracePoint } from '../types';
 
 // A small grid near Fox Point, Providence: two east-west streets 100 m apart
-// and one north-south street joining them.
-const O: LngLat = [-71.4, 41.82];
+// and one north-south street joining them, well inside one z14 tile.
+const O: LngLat = [-71.4, 41.812];
 const dLat = 100 / 111320;
 const dLon = 100 / (111320 * Math.cos((O[1] * Math.PI) / 180));
 const at = (x: number, y: number): LngLat => [O[0] + x * dLon, O[1] + y * dLat];
@@ -66,7 +67,7 @@ test('derive: finds crossings and T-junctions without a shared vertex', () => {
     road([at(0, 0), at(3, 0)], { class: 'minor', name: 'Wickenden Street' }),
     road([at(1, -1), at(1, 1)], { class: 'minor', name: 'Brook Street' }), // crosses
     road([at(2, 0.005), at(2, 1)], { class: 'minor', name: 'Hope Street' }), // ends half a meter short
-    road([at(0.5, -0.2), at(0.5, 0.2)], { class: 'path', subclass: 'crossing' }), // crosswalk
+    road([at(0.5, -0.08), at(0.5, 0.08)], { class: 'path', subclass: 'footway' }), // a 16 m crosswalk
   ]);
   const len = (name: string) => segs.filter((s) => s.name === name).map((s) => Math.round(s.length_m / 10) * 10).sort((a, b) => a - b);
   assert.deepEqual(len('Wickenden Street'), [100, 100, 100], 'cut at Brook and at Hope, not at the crosswalk');
@@ -133,4 +134,87 @@ test('replay: fixed length, nearby captures share one pause', () => {
   // A two-hour walk replays in the same time as a ten-minute one.
   const long = walkAlong([at(0, 0), at(3, 0), at(0, 0), at(3, 0), at(0, 0)]);
   assert.equal(schedule(long, [], 0).totalMs, PATH_AND_PAUSES_MS);
+});
+
+test('derive: copies of a street from two tiles stitch into the same pieces as the whole street', () => {
+  const t = tileAt(O);
+  const edge = t.e; // the tile's east edge
+  const m = dLon / 100; // one meter of longitude
+  const lat = O[1];
+  const full = road([[edge - 300 * m, lat], [edge + 300 * m, lat]], { class: 'minor' });
+  // Each tile carries its copy plus a buffer reaching into its neighbour.
+  const west = road([[edge - 300 * m, lat], [edge + 40 * m, lat]], { class: 'minor' });
+  const east = road([[edge - 40 * m, lat], [edge + 300 * m, lat]], { class: 'minor' });
+  const ids = (f: RoadFeature[]) => deriveSegments(f).map((s) => s.id).sort();
+  assert.deepEqual(ids([west, east]), ids([full]));
+  assert.deepEqual(ids([east, west, west]), ids([full]), 'order and duplicates do not matter');
+  // With only one tile loaded, the street runs off its edge: nothing partial is stored.
+  assert.deepEqual(ids([west]), []);
+});
+
+test('derive: lines of one MultiLineString cut each other, and a loop keeps its length', () => {
+  const multi: RoadFeature = {
+    geometry: { type: 'MultiLineString', coordinates: [[at(0, 0), at(2, 0)], [at(1, -1), at(1, 1)]] },
+    properties: { class: 'minor' },
+  };
+  assert.deepEqual(deriveSegments([multi]).map((s) => Math.round(s.length_m / 10) * 10), [100, 100, 100, 100]);
+  // A loop court whose stem meets it away from the ring's first vertex.
+  const ring = [at(0, 0), at(0.4, 0), at(0.4, 0.4), at(0, 0.4), at(0, 0)];
+  const segs = deriveSegments([road(ring, { class: 'minor' }), road([at(0.2, 0), at(0.2, -0.5)], { class: 'minor' })]);
+  const total = segs.reduce((d, s) => d + s.length_m, 0);
+  assert.ok(Math.abs(total - (lineLengthM(ring) + 50)) < 2, `kept ${total.toFixed(0)} m`);
+});
+
+test('snap: reaching a corner does not credit the short piece around it', () => {
+  // North St comes down to Main; the offset junctions leave a 30 m piece of Main.
+  const segs = deriveSegments([
+    road([at(-1, 0), at(1, 0)], { class: 'minor', name: 'Main Street' }),
+    road([at(0, 1), at(0, 0)], { class: 'minor', name: 'North Street' }),
+    road([at(0.3, 0), at(0.3, -1)], { class: 'minor', name: 'South Street' }),
+  ]);
+  const short = segs.find((s) => s.name === 'Main Street' && Math.round(s.length_m) === 30)!;
+  assert.ok(short, 'the 30 m piece exists');
+  const toCorner = snap('w', walkAlong([at(0, 1), at(0, 0)]), segs);
+  assert.ok(!toCorner.some((v) => v.segment_id === short.id));
+  const along = snap('w', walkAlong([at(-0.3, 0.03), at(0.6, 0.03)]), segs);
+  assert.ok(along.some((v) => v.segment_id === short.id), 'walking along it still credits it');
+});
+
+test('filterFixes: a bad first fix does not lock out the good ones after it', () => {
+  const base = { walk_id: 'w', speed: null, course: null, accuracy_m: 10 };
+  const bad = { ...base, t: 0, lat: O[1] + dLat * 3, lon: O[0] }; // 300 m off, looks accurate
+  const good = [5, 10, 15, 20].map((s, i) => ({ ...base, t: s * 1000, lat: O[1] + dLat * 0.01 * i, lon: O[0] }));
+  assert.deepEqual(filterFixes([bad, ...good]).map((p) => p.t), [5000, 10000, 15000, 20000]);
+  // A cached position from before the walk began is dropped.
+  assert.deepEqual(filterFixes([{ ...base, t: 0, lat: O[1], lon: O[0] }, ...good], 6000).map((p) => p.t), [5000, 10000, 15000, 20000]);
+});
+
+test('replay: gaps collapse, so a resumed walk does not crawl across the night', () => {
+  const morning = walkAlong([at(0, 0), at(1, 0)]);
+  const evening = walkAlong([at(1, 0), at(2, 0)], 'w1', morning.at(-1)!.t + 12 * 3600_000);
+  const s = schedule([...morning, ...evening], [], 0);
+  // Find when the replay crosses into the evening part.
+  let crossed = -1;
+  for (let ms = 0; ms <= s.totalMs; ms += 50) {
+    if (cursorAt(s, ms).walkT >= evening[0].t) { crossed = ms; break; }
+  }
+  const activeShare = (morning.at(-1)!.t - morning[0].t) / ((morning.at(-1)!.t - morning[0].t) + (evening.at(-1)!.t - evening[0].t));
+  assert.ok(Math.abs(crossed / s.movingMs - activeShare) < 0.1, `crossed at ${crossed} ms of ${s.movingMs}`);
+});
+
+test('replay: every capture gets a moment, with a floor, and an empty walk is short', () => {
+  const trace = walkAlong([at(0, 0), at(3, 0)]);
+  const many: Capture[] = Array.from({ length: 300 }, (_, i) => ({
+    id: String(i), walk_id: 'w1', t: i * 150, lat: null, lon: null, kind: 'photo', file_path: 'x', body: null, segment_id: null,
+  }));
+  const s = schedule(trace, many, 0);
+  assert.ok(s.groups.every((g) => g.ms >= 1500), 'no strobe');
+  assert.ok(s.totalMs <= PATH_AND_PAUSES_MS);
+  assert.equal(s.groups.reduce((n, g) => n + g.captures.length, 0), 300, 'nothing dropped');
+  // Three photos at one spot are shown one after another, not just the first.
+  const three = groupCaptures(many.slice(0, 3));
+  assert.equal(three.length, 1);
+  assert.equal(three[0].items.length, 3);
+  // Nothing recorded: no thirty seconds of empty map.
+  assert.equal(schedule([], [], 0).totalMs, 0);
 });

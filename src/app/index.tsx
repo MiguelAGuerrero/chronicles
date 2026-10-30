@@ -1,36 +1,36 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Banner, Button, theme } from '../components/ui';
 import { db } from '../lib/db';
-import { newId } from '../lib/id';
 import { recorder } from '../lib/recorder';
-import { formatDistance, formatDuration, loadSummary, suggestTitle, type WalkSummary } from '../lib/summary';
-import type { Walk } from '../lib/types';
+import { RecorderError } from '../lib/recorder/types';
+import { startWalk } from '../lib/session';
+import { formatCaptures, formatDistance, formatDuration, suggestTitle } from '../lib/summary';
+import type { Walk, WalkSummary } from '../lib/types';
 
-type Row = Pick<WalkSummary, 'walk' | 'distanceM' | 'durationMs' | 'newStreets'> & { captures: number };
+type Row = { walk: Walk; summary: WalkSummary | null };
 
 export default function Log() {
   const [rows, setRows] = useState<Row[]>([]);
   const [open, setOpen] = useState<Walk | null>(null);
   const [starting, setStarting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; openSettings?: boolean } | null>(null);
+  const [now, setNow] = useState(() => Date.now());
 
   useFocusEffect(
     useCallback(() => {
       let live = true;
-      (async () => {
-        const walks = await db.listWalks();
-        const openWalk = walks.find((w) => w.open) ?? null;
-        const done = await Promise.all(walks.filter((w) => !w.open).map((w) => loadSummary(w.id)));
-        if (!live) return;
-        setOpen(openWalk);
-        setRows(
-          done
-            .filter((s): s is WalkSummary => s != null)
-            .map((s) => ({ walk: s.walk, distanceM: s.distanceM, durationMs: s.durationMs, newStreets: s.newStreets, captures: s.captures.length })),
-        );
-      })();
+      // Reads walks and their stored summaries only: no traces, no media.
+      Promise.all([db.listWalks(), db.listSummaries()])
+        .then(([walks, summaries]) => {
+          if (!live) return;
+          const byWalk = new Map(summaries.map((s) => [s.walk_id, s]));
+          setOpen(walks.find((w) => w.open) ?? null);
+          setRows(walks.filter((w) => !w.open).map((walk) => ({ walk, summary: byWalk.get(walk.id) ?? null })));
+          setNow(Date.now());
+        })
+        .catch((e) => live && setError({ message: e instanceof Error ? e.message : String(e) }));
       return () => {
         live = false;
       };
@@ -40,14 +40,14 @@ export default function Log() {
   const start = async () => {
     setError(null);
     setStarting(true);
-    const id = newId();
     try {
-      await recorder.start(id);
-      await db.createWalk({ id, started_at: Date.now(), ended_at: null, title: null, epilogue: null, open: true, area: null });
-      router.push('/walk');
+      const { warning } = await startWalk();
+      router.push(warning ? { pathname: '/walk', params: { warning } } : '/walk');
     } catch (e) {
-      await recorder.stop().catch(() => {});
-      setError(e instanceof Error ? e.message : String(e));
+      setError({
+        message: e instanceof Error ? e.message : String(e),
+        openSettings: e instanceof RecorderError && e.openSettings,
+      });
     } finally {
       setStarting(false);
     }
@@ -63,41 +63,59 @@ export default function Log() {
       keyExtractor={(r) => r.walk.id}
       ListHeaderComponent={
         <View style={styles.header}>
-          <Text style={styles.lede}>Tap start, walk, capture, tap stop. The fog clears when you stop.</Text>
-          {!background && (
+          {!open && <Text style={styles.lede}>Tap start, walk, capture, then stop. The fog clears when you stop.</Text>}
+          {!background && !open && (
             <Banner>
-              Web version: your walk is traced live while this tab is open and visible, and the screen is kept awake.
-              Hiding the tab or locking the phone pauses tracing. The phone app keeps recording in your pocket.
+              On the web, your walk is traced while this page is open and on screen. Switching apps or locking the
+              phone pauses it. The phone app keeps recording in your pocket.
             </Banner>
           )}
-          {error && <Banner tone="error">{error}</Banner>}
-          {open ? (
-            <Button testID="resume" label="Return to the open walk" onPress={() => router.push('/walk')} />
-          ) : (
-            <View style={styles.actions}>
-              <Button testID="start" label="Start walk" onPress={start} busy={starting} />
-            </View>
+          {error && (
+            <Banner
+              tone="error"
+              onDismiss={() => setError(null)}
+              action={error.openSettings ? { label: 'Open Settings', onPress: () => Linking.openSettings() } : undefined}
+            >
+              {error.message}
+            </Banner>
           )}
-          <Text style={styles.section}>Walks</Text>
+          {open ? (
+            <Button testID="resume" label="Return to your walk" onPress={() => router.push('/walk')} tall>
+              <View style={styles.recordingRow}>
+                <View style={styles.dot} />
+                <Text style={styles.resumeText}>Recording · {formatDuration(now - open.started_at)} · Return to walk</Text>
+              </View>
+            </Button>
+          ) : (
+            <Button testID="start" label="Start walk" onPress={start} busy={starting} busyLabel="Starting…" tall />
+          )}
+          <Text style={styles.section} accessibilityRole="header">Walks</Text>
         </View>
       }
       ListEmptyComponent={<Text style={styles.empty}>No walks yet. Your first one will show up here.</Text>}
-      renderItem={({ item }) => (
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push(`/replay/${item.walk.id}?ceremony=0`)}
-          style={({ pressed }) => [styles.card, pressed && { opacity: 0.85 }]}
-        >
-          <Text style={styles.cardTitle}>{item.walk.title ?? suggestTitle(item.walk)}</Text>
-          <Text style={styles.cardMeta}>
-            {new Date(item.walk.started_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-            {' · '}{formatDistance(item.distanceM)} · {formatDuration(item.durationMs)}
-            {' · '}{item.newStreets} new {item.newStreets === 1 ? 'street' : 'streets'}
-            {item.captures ? ` · ${item.captures} ${item.captures === 1 ? 'capture' : 'captures'}` : ''}
-          </Text>
-          {item.walk.epilogue ? <Text style={styles.epilogue}>“{item.walk.epilogue}”</Text> : null}
-        </Pressable>
-      )}
+      renderItem={({ item }) => {
+        const title = item.walk.title ?? suggestTitle(item.walk);
+        const s = item.summary;
+        const date = new Date(item.walk.started_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+        const meta = s
+          ? [date, formatDistance(s.distance_m), formatDuration(s.duration_ms), `${s.new_streets} new ${s.new_streets === 1 ? 'street' : 'streets'}`]
+              .concat(formatCaptures(s) || [])
+              .join(' · ')
+          : `${date} · Open to finish reading its streets`;
+        return (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Replay ${title}`}
+            accessibilityHint={meta}
+            onPress={() => router.push(`/replay/${item.walk.id}?ceremony=0`)}
+            style={({ pressed }) => [styles.card, pressed && { opacity: 0.85 }]}
+          >
+            <Text style={styles.cardTitle}>{title}</Text>
+            <Text style={styles.cardMeta}>{meta}</Text>
+            {item.walk.epilogue ? <Text style={styles.epilogue}>“{item.walk.epilogue}”</Text> : null}
+          </Pressable>
+        );
+      }}
     />
   );
 }
@@ -107,11 +125,13 @@ const styles = StyleSheet.create({
   content: { padding: 16, gap: 10, maxWidth: 640, width: '100%', alignSelf: 'center' },
   header: { gap: 12, marginBottom: 4 },
   lede: { color: theme.muted, fontSize: 15, lineHeight: 21 },
-  actions: { gap: 10 },
+  recordingRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: theme.accentInk },
+  resumeText: { color: theme.accentInk, fontSize: 16, fontWeight: '600' },
   section: { marginTop: 12, fontSize: 13, fontWeight: '700', color: theme.muted, textTransform: 'uppercase', letterSpacing: 0.6 },
   empty: { color: theme.muted, fontSize: 15, paddingVertical: 24, textAlign: 'center' },
   card: { backgroundColor: theme.surface, borderRadius: theme.radius, padding: 14, gap: 4, borderWidth: 1, borderColor: theme.line },
   cardTitle: { fontSize: 17, fontWeight: '600', color: theme.ink },
-  cardMeta: { fontSize: 13, color: theme.muted },
-  epilogue: { fontSize: 14, color: theme.ink, fontStyle: 'italic', marginTop: 4 },
+  cardMeta: { fontSize: 14, color: theme.muted, lineHeight: 19 },
+  epilogue: { fontSize: 15, color: theme.ink, fontStyle: 'italic', marginTop: 4 },
 });

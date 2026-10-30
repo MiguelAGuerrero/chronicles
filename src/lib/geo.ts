@@ -75,21 +75,63 @@ export function boundsOf(points: LngLat[], padM = 0): Bounds | null {
 // filtered only when read, so the trace stays recomputable.
 const MAX_ACCURACY_M = 50;
 const MAX_WALK_SPEED_MS = 7; // anything faster is a GPS jump on foot
+/** A cached fix from before the walk began (a last-known location) is not part of it. */
+const MAX_STALE_MS = 5000;
+/** Consecutive rejected fixes that agree with each other mean the anchor was the outlier. */
+const REANCHOR_AFTER = 3;
 
-export function filterFixes(points: TracePoint[]): TracePoint[] {
-  const out: TracePoint[] = [];
-  for (const p of points) {
-    if (p.accuracy_m != null && (p.accuracy_m < 0 || p.accuracy_m > MAX_ACCURACY_M)) continue;
-    const prev = out[out.length - 1];
-    if (prev) {
-      const dt = (p.t - prev.t) / 1000;
-      if (dt <= 0) continue;
-      const v = distanceM([prev.lon, prev.lat], [p.lon, p.lat]) / dt;
-      if (v > MAX_WALK_SPEED_MS) continue;
+const speedMs = (a: TracePoint, b: TracePoint) => {
+  const dt = (b.t - a.t) / 1000;
+  return dt <= 0 ? Infinity : distanceM([a.lon, a.lat], [b.lon, b.lat]) / dt;
+};
+
+/**
+ * Incremental fix filter: accuracy gate, staleness gate, and a speed gate
+ * against the last accepted fix. A bad fix that slipped through as the anchor
+ * would otherwise reject every good fix after it, so when several rejected
+ * fixes in a row agree with each other, they replace an anchor that stood
+ * alone.
+ */
+export class FixFilter {
+  readonly accepted: TracePoint[] = [];
+  private rejected: TracePoint[] = [];
+  /** Length of the run the newest accepted fix belongs to. */
+  private runLength = 0;
+
+  constructor(private readonly startedAt: number | null = null) {}
+
+  /** Returns how many fixes were dropped from the end of `accepted` (0 or 1), for incremental callers. */
+  push(p: TracePoint): { added: TracePoint[]; removed: number } {
+    if (p.accuracy_m != null && (p.accuracy_m < 0 || p.accuracy_m > MAX_ACCURACY_M)) return { added: [], removed: 0 };
+    if (this.startedAt != null && p.t < this.startedAt - MAX_STALE_MS) return { added: [], removed: 0 };
+    const prev = this.accepted[this.accepted.length - 1];
+    if (prev && p.t <= prev.t) return { added: [], removed: 0 };
+    if (!prev || speedMs(prev, p) <= MAX_WALK_SPEED_MS) {
+      this.accepted.push(p);
+      this.rejected = [];
+      this.runLength++;
+      return { added: [p], removed: 0 };
     }
-    out.push(p);
+    const last = this.rejected[this.rejected.length - 1];
+    this.rejected = last && speedMs(last, p) <= MAX_WALK_SPEED_MS ? [...this.rejected, p] : [p];
+    if (this.rejected.length < REANCHOR_AFTER) return { added: [], removed: 0 };
+    let removed = 0;
+    if (this.runLength === 1) {
+      this.accepted.pop();
+      removed = 1;
+    }
+    const added = this.rejected;
+    this.accepted.push(...added);
+    this.rejected = [];
+    this.runLength = added.length;
+    return { added, removed };
   }
-  return out;
+}
+
+export function filterFixes(points: TracePoint[], startedAt: number | null = null): TracePoint[] {
+  const f = new FixFilter(startedAt);
+  for (const p of points) f.push(p);
+  return f.accepted;
 }
 
 /** Splits a filtered trace wherever two fixes are more than `gapMs` apart. */

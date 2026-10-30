@@ -1,8 +1,9 @@
-import type { Capture, StreetSegment, TracePoint, VisitedSegment, Walk } from '../types';
+import type { Capture, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 
 /**
  * Local-only storage, mirroring the concept doc's tables. Native uses
- * expo-sqlite; web uses IndexedDB. Nothing leaves the device.
+ * expo-sqlite; web uses IndexedDB. Nothing leaves the device. Writes are
+ * serialized so the background recorder and the UI never interleave.
  */
 export interface Db {
   createWalk(walk: Walk): Promise<void>;
@@ -18,10 +19,24 @@ export interface Db {
   updateCapture(id: string, patch: Partial<Omit<Capture, 'id'>>): Promise<void>;
   getCaptures(walkId: string): Promise<Capture[]>;
 
-  putSegments(segments: StreetSegment[]): Promise<void>;
+  /** Stores freshly derived segments and the walk's visited rows in one transaction. */
+  saveSnap(walkId: string, segments: StreetSegment[], visited: VisitedSegment[], summary: WalkSummary): Promise<void>;
   /** Cached segments whose geometry touches the bounds. */
   getSegmentsIn(bounds: [number, number, number, number]): Promise<StreetSegment[]>;
-  /** Replaces the visited rows for a walk; derived data is recomputed, never patched. */
-  setVisited(walkId: string, rows: VisitedSegment[]): Promise<void>;
-  getVisited(walkId?: string): Promise<VisitedSegment[]>;
+  getVisited(walkId: string): Promise<VisitedSegment[]>;
+  /** Every segment id any walk has credited. */
+  visitedSegmentIds(): Promise<Set<string>>;
+  /** Street keys visited by walks that started before `startedAt`. */
+  streetKeysBefore(startedAt: number): Promise<Set<string>>;
+  listSummaries(): Promise<WalkSummary[]>;
+
+  getMeta(key: string): Promise<string | null>;
+  setMeta(key: string, value: string): Promise<void>;
+  /**
+   * Drops the street segment cache and marks every walk for re-snapping. Run
+   * when the tile build changes: history is recomputed from the trace, never
+   * patched. Each walk's visited rows and summary stay until its re-snap
+   * replaces them, so the log and new-street counts keep working meanwhile.
+   */
+  purgeDerived(): Promise<void>;
 }

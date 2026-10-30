@@ -1,27 +1,29 @@
 import {
-  Camera, GeoJSONSource, Layer, Map, type CameraRef, type MapRef,
+  Camera, GeoJSONSource, Layer, Map, VectorSource, type CameraRef, type MapRef, type VectorSourceRef,
 } from '@maplibre/maplibre-react-native';
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
-import { StyleSheet, useWindowDimensions, View } from 'react-native';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import type { RoadFeature } from '../../lib/streets';
+import { TILEJSON_URL } from '../../lib/tiles';
 import {
   COLORS, DERIVE_ZOOM, MAP_STYLE_URL, WORLD_VEIL, pointColor, pointsGeoJSON, segmentsGeoJSON,
-  traceGeoJSON, viewCenters, type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
+  traceGeoJSON, type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
-// Rendered features carry no source-layer name on native, so they are sorted
-// by shape and properties instead.
-const ROAD_CLASSES = new Set([
-  'motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'minor', 'service', 'track', 'path',
-  'raceway', 'busway', 'bus_guideway', 'rail', 'transit', 'ferry',
-]);
-const PLACE_CLASSES = new Set(['neighbourhood', 'quarter', 'suburb', 'hamlet', 'village', 'town', 'city']);
+const VIEW_TIMEOUT_MS = 4000;
+/** Invisible layers that make the query source load its tiles. */
+const HIDDEN = { 'line-opacity': 0 } as const;
 
 export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(props, ref) {
   const mapRef = useRef<MapRef>(null);
   const cameraRef = useRef<CameraRef>(null);
+  const queryRef = useRef<VectorSourceRef>(null);
+  const [ready, setReady] = useState(false);
+  const readyWaiters = useRef<(() => void)[]>([]);
+  const regionChanged = useRef<(() => void) | null>(null);
   const rendered = useRef<(() => void) | null>(null);
-  const { width, height } = useWindowDimensions();
+  const size = useRef({ width: 0, height: 0 });
+  const duration = props.animate === false ? 0 : 600;
 
   const fog = useMemo(() => segmentsGeoJSON(props.fog), [props.fog]);
   const walked = useMemo(() => segmentsGeoJSON(props.walked), [props.walked]);
@@ -29,51 +31,71 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const points = useMemo(() => pointsGeoJSON(props.captures, props.walker), [props.captures, props.walker]);
 
   useEffect(() => {
-    if (props.follow) cameraRef.current?.jumpTo({ center: props.follow });
-  }, [props.follow]);
+    if (ready && props.follow) cameraRef.current?.jumpTo({ center: props.follow });
+  }, [ready, props.follow]);
   useEffect(() => {
-    if (props.fitBounds) {
-      cameraRef.current?.fitBounds(props.fitBounds, {
-        padding: { top: 48, right: 48, bottom: 48, left: 48 }, duration: 600,
-      });
-    }
-  }, [props.fitBounds]);
+    if (!ready || !props.fitBounds) return;
+    const pad = props.fitPadding ?? { top: 48, right: 48, bottom: 48, left: 48 };
+    cameraRef.current?.fitBounds(props.fitBounds, { padding: pad, duration });
+    // Refits when the caller changes fitKey, not on every new bounds array.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, props.fitKey]);
 
-  const settled = () =>
-    new Promise<void>((resolve) => {
-      const timer = setTimeout(resolve, 4000);
-      rendered.current = () => {
-        clearTimeout(timer);
-        resolve();
+  const whenReady = () => (ready ? Promise.resolve() : new Promise<void>((r) => readyWaiters.current.push(r)));
+
+  /** Waits for the camera move to land and the new view to finish rendering. */
+  const settle = () =>
+    new Promise<boolean>((resolve) => {
+      const timer = setTimeout(() => {
+        regionChanged.current = null;
+        rendered.current = null;
+        resolve(false);
+      }, VIEW_TIMEOUT_MS);
+      regionChanged.current = () => {
+        regionChanged.current = null;
+        // Only a render that starts after the move counts.
+        rendered.current = () => {
+          rendered.current = null;
+          clearTimeout(timer);
+          resolve(true);
+        };
       };
     });
 
   useImperativeHandle(ref, () => ({
-    async collect(bounds): Promise<CollectedFeatures> {
-      const out: CollectedFeatures = { roads: [], names: [], places: [] };
+    size: () => size.current,
+    async collect(centers): Promise<CollectedFeatures> {
+      await whenReady();
+      const out: CollectedFeatures = { roads: [], names: [], places: [], complete: true };
       const map = mapRef.current;
-      if (!map) return out;
+      const source = queryRef.current;
+      if (!map || !source) return { ...out, complete: false };
       const before = await map.getViewState();
-      for (const center of viewCenters(bounds, width, height)) {
-        const wait = settled();
+      const toRoad = (f: GeoJSON.Feature): RoadFeature => ({
+        geometry: f.geometry as RoadFeature['geometry'],
+        properties: (f.properties ?? {}) as Record<string, unknown>,
+      });
+      for (const center of centers) {
+        const wait = settle();
         cameraRef.current?.jumpTo({ center, zoom: DERIVE_ZOOM });
-        await wait;
-        for (const f of await map.queryRenderedFeatures()) {
-          const props = (f.properties ?? {}) as Record<string, unknown>;
-          const cls = String(props.class ?? '');
-          const feature: RoadFeature = { geometry: f.geometry as RoadFeature['geometry'], properties: props };
-          const isLine = f.geometry?.type === 'LineString' || f.geometry?.type === 'MultiLineString';
-          if (isLine && ROAD_CLASSES.has(cls)) (props.name ? out.names : out.roads).push(feature);
-          else if (f.geometry?.type === 'Point' && PLACE_CLASSES.has(cls)) out.places.push(feature);
-        }
+        if (!(await wait)) out.complete = false;
+        out.roads.push(...(await source.querySourceFeatures({ sourceLayer: 'transportation' })).map(toRoad));
+        out.names.push(...(await source.querySourceFeatures({ sourceLayer: 'transportation_name' })).map(toRoad));
+        out.places.push(...(await source.querySourceFeatures({ sourceLayer: 'place' })).map(toRoad));
       }
       cameraRef.current?.jumpTo({ center: before.center, zoom: before.zoom });
       return out;
     },
-  }), [width, height]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [ready]);
 
   return (
-    <View style={[styles.wrap, props.style]}>
+    <View
+      style={[styles.wrap, props.style]}
+      onLayout={(e: LayoutChangeEvent) => {
+        size.current = { width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height };
+      }}
+    >
       <Map
         ref={mapRef}
         style={StyleSheet.absoluteFill}
@@ -81,26 +103,38 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         attribution
         logo={false}
         onPress={(e) => props.onPress?.(e.nativeEvent.lngLat)}
+        onDidFinishLoadingMap={() => {
+          setReady(true);
+          for (const r of readyWaiters.current.splice(0)) r();
+        }}
+        onRegionDidChange={() => regionChanged.current?.()}
         onDidFinishRenderingMapFully={() => rendered.current?.()}
       >
         <Camera
           ref={cameraRef}
           initialViewState={{ center: props.initialCenter ?? [-71.4, 41.82], zoom: props.initialZoom ?? 15 }}
         />
+        {/* The same tiles the style draws, as a source the app can query in full:
+            rendered-feature queries would miss culled labels and unstyled layers. */}
+        <VectorSource id="omt-query" ref={queryRef} url={TILEJSON_URL}>
+          <Layer id="q-roads" type="line" source-layer="transportation" paint={HIDDEN} />
+          <Layer id="q-names" type="line" source-layer="transportation_name" paint={HIDDEN} />
+          <Layer id="q-places" type="circle" source-layer="place" paint={{ 'circle-opacity': 0 }} />
+        </VectorSource>
         <GeoJSONSource id="veil" data={WORLD_VEIL}>
           <Layer id="veil" type="fill" paint={{ 'fill-color': COLORS.veil, 'fill-opacity': props.veil ? 0.45 : 0 }} />
         </GeoJSONSource>
         <GeoJSONSource id="fog" data={fog}>
           <Layer id="fog" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-            paint={{ 'line-color': COLORS.fog, 'line-width': 3, 'line-opacity': 0.55 }} />
+            paint={{ 'line-color': COLORS.fog, 'line-width': 3 }} />
         </GeoJSONSource>
         <GeoJSONSource id="walked" data={walked}>
           <Layer id="walked" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-            paint={{ 'line-color': COLORS.walked, 'line-width': 5 }} />
+            paint={{ 'line-color': COLORS.walked, 'line-width': 6 }} />
         </GeoJSONSource>
         <GeoJSONSource id="trace" data={trace}>
           <Layer id="trace" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-            paint={{ 'line-color': COLORS.trace, 'line-width': 2.5, 'line-opacity': 0.85 }} />
+            paint={{ 'line-color': COLORS.trace, 'line-width': 2.5, 'line-opacity': 0.85 * (props.traceOpacity ?? 1) }} />
         </GeoJSONSource>
         <GeoJSONSource id="points" data={points}>
           <Layer id="points" type="circle" paint={{
@@ -111,8 +145,12 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           }} />
         </GeoJSONSource>
       </Map>
+      {props.covered && <View style={styles.cover} pointerEvents="none" />}
     </View>
   );
 });
 
-const styles = StyleSheet.create({ wrap: { flex: 1, overflow: 'hidden' } });
+const styles = StyleSheet.create({
+  wrap: { flex: 1, overflow: 'hidden' },
+  cover: { ...StyleSheet.absoluteFill, backgroundColor: COLORS.veil },
+});

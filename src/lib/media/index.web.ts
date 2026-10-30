@@ -1,14 +1,48 @@
+import { mediaStore } from '../db/index.web';
+
 /**
- * The web fallback has no Documents folder, so captured media is kept in
- * IndexedDB as a data: URL alongside the capture row.
+ * The web fallback has no Documents folder. Captured media is kept as Blobs
+ * in its own IndexedDB store, keyed from the capture row, so capture rows
+ * stay small and the log never loads photos. Photos are downscaled first:
+ * the browser hands over the camera's full-size original.
  */
-export async function keepFile(tempUri: string, _walkId: string, _name: string): Promise<string> {
-  if (tempUri.startsWith('data:')) return tempUri;
-  const blob = await (await fetch(tempUri)).blob();
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(blob);
-  });
+
+const MAX_EDGE_PX = 2048;
+const JPEG_QUALITY = 0.8;
+
+async function downscale(blob: Blob): Promise<Blob> {
+  if (!blob.type.startsWith('image/') || typeof createImageBitmap === 'undefined') return blob;
+  try {
+    const bmp = await createImageBitmap(blob, { imageOrientation: 'from-image' } as ImageBitmapOptions);
+    const scale = Math.min(1, MAX_EDGE_PX / Math.max(bmp.width, bmp.height));
+    const w = Math.round(bmp.width * scale);
+    const h = Math.round(bmp.height * scale);
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    canvas.getContext('2d')!.drawImage(bmp, 0, 0, w, h);
+    bmp.close();
+    const out = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', JPEG_QUALITY));
+    return out && out.size < blob.size ? out : blob;
+  } catch {
+    return blob; // an undecodable image is kept as it came
+  }
+}
+
+export async function keepFile(tempUri: string, walkId: string, name: string): Promise<string> {
+  const blob = await downscale(await (await fetch(tempUri)).blob());
+  if (tempUri.startsWith('blob:')) URL.revokeObjectURL(tempUri);
+  const key = `walks/${walkId}/${name}`;
+  await mediaStore.put(key, blob);
+  return key;
+}
+
+export async function resolveMedia(ref: string): Promise<string | null> {
+  if (ref.startsWith('data:')) return ref; // written before the media store existed
+  const blob = await mediaStore.get(ref);
+  return blob ? URL.createObjectURL(blob) : null;
+}
+
+export function releaseMedia(uri: string) {
+  if (uri.startsWith('blob:')) URL.revokeObjectURL(uri);
 }

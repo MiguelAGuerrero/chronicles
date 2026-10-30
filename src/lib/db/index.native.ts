@@ -1,70 +1,110 @@
 import * as SQLite from 'expo-sqlite';
-import type { Capture, StreetSegment, TracePoint, VisitedSegment, Walk } from '../types';
+import type { Capture, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 import { segmentBbox } from './segmentBounds';
 import type { Db } from './types';
 
-const SCHEMA = `
-PRAGMA journal_mode = WAL;
-CREATE TABLE IF NOT EXISTS walk (
-  id TEXT PRIMARY KEY, started_at INTEGER NOT NULL, ended_at INTEGER,
-  title TEXT, epilogue TEXT, open INTEGER NOT NULL, area TEXT
-);
-CREATE TABLE IF NOT EXISTS trace_point (
-  walk_id TEXT NOT NULL, t INTEGER NOT NULL, lat REAL NOT NULL, lon REAL NOT NULL,
-  accuracy_m REAL, speed REAL, course REAL
-);
-CREATE INDEX IF NOT EXISTS trace_point_walk ON trace_point (walk_id, t);
-CREATE TABLE IF NOT EXISTS capture (
-  id TEXT PRIMARY KEY, walk_id TEXT NOT NULL, t INTEGER NOT NULL, lat REAL, lon REAL,
-  kind TEXT NOT NULL, file_path TEXT, body TEXT, segment_id TEXT
-);
-CREATE INDEX IF NOT EXISTS capture_walk ON capture (walk_id, t);
-CREATE TABLE IF NOT EXISTS street_segment (
-  id TEXT PRIMARY KEY, name TEXT, kind_detail TEXT NOT NULL, length_m REAL NOT NULL,
-  geometry TEXT NOT NULL, w REAL NOT NULL, s REAL NOT NULL, e REAL NOT NULL, n REAL NOT NULL
-);
-CREATE INDEX IF NOT EXISTS street_segment_bbox ON street_segment (w, e, s, n);
-CREATE TABLE IF NOT EXISTS visited_segment (
-  segment_id TEXT NOT NULL, walk_id TEXT NOT NULL, covered_fraction REAL NOT NULL, first_t INTEGER NOT NULL,
-  PRIMARY KEY (segment_id, walk_id)
-);
-`;
+// Ordered migrations; PRAGMA user_version records how many have run.
+const MIGRATIONS = [
+  `
+  CREATE TABLE walk (
+    id TEXT PRIMARY KEY, started_at INTEGER NOT NULL, ended_at INTEGER,
+    title TEXT, epilogue TEXT, open INTEGER NOT NULL, area TEXT
+  );
+  CREATE TABLE trace_point (
+    walk_id TEXT NOT NULL, t INTEGER NOT NULL, lat REAL NOT NULL, lon REAL NOT NULL,
+    accuracy_m REAL, speed REAL, course REAL
+  );
+  CREATE INDEX trace_point_walk ON trace_point (walk_id, t);
+  CREATE TABLE capture (
+    id TEXT PRIMARY KEY, walk_id TEXT NOT NULL, t INTEGER NOT NULL, lat REAL, lon REAL,
+    kind TEXT NOT NULL, file_path TEXT, body TEXT, segment_id TEXT
+  );
+  CREATE INDEX capture_walk ON capture (walk_id, t);
+  CREATE TABLE street_segment (
+    id TEXT PRIMARY KEY, name TEXT, kind_detail TEXT NOT NULL, length_m REAL NOT NULL,
+    geometry TEXT NOT NULL, w REAL NOT NULL, s REAL NOT NULL, e REAL NOT NULL, n REAL NOT NULL
+  );
+  CREATE INDEX street_segment_bbox ON street_segment (w, e, s, n);
+  CREATE TABLE visited_segment (
+    segment_id TEXT NOT NULL, walk_id TEXT NOT NULL, covered_fraction REAL NOT NULL, first_t INTEGER NOT NULL,
+    PRIMARY KEY (segment_id, walk_id)
+  );
+  `,
+  // Versioned derived cache, per-walk summaries and the media/meta tables.
+  `
+  ALTER TABLE walk ADD COLUMN snapped_build TEXT;
+  DELETE FROM street_segment;
+  DELETE FROM visited_segment;
+  ALTER TABLE street_segment ADD COLUMN build TEXT NOT NULL DEFAULT '';
+  ALTER TABLE visited_segment ADD COLUMN street_key TEXT NOT NULL DEFAULT '';
+  CREATE INDEX visited_segment_walk ON visited_segment (walk_id);
+  CREATE TABLE walk_summary (
+    walk_id TEXT PRIMARY KEY, build TEXT NOT NULL, distance_m REAL NOT NULL, duration_ms INTEGER NOT NULL,
+    new_streets INTEGER NOT NULL, streets_walked INTEGER NOT NULL,
+    photos INTEGER NOT NULL, voices INTEGER NOT NULL, notes INTEGER NOT NULL, streets_read INTEGER NOT NULL
+  );
+  CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+  `,
+];
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 function conn() {
   if (!dbPromise) {
-    dbPromise = SQLite.openDatabaseAsync('chronicles.db').then(async (d) => {
-      await d.execAsync(SCHEMA);
+    dbPromise = (async () => {
+      const d = await SQLite.openDatabaseAsync('chronicles.db');
+      await d.execAsync('PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;');
+      const row = await d.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
+      for (let v = row?.user_version ?? 0; v < MIGRATIONS.length; v++) {
+        await d.withExclusiveTransactionAsync(async (txn) => {
+          await txn.execAsync(MIGRATIONS[v]);
+          await txn.execAsync(`PRAGMA user_version = ${v + 1}`);
+        });
+      }
       return d;
+    })().catch((e) => {
+      dbPromise = null; // let the next call try again instead of failing forever
+      throw e;
     });
   }
   return dbPromise;
 }
 
+// Every write goes through one queue and one exclusive transaction, so the
+// background location task and the UI never collide on the connection.
+let queue: Promise<unknown> = Promise.resolve();
+function write(task: (txn: SQLite.SQLiteDatabase) => Promise<void>): Promise<void> {
+  const run = queue.then(async () => (await conn()).withExclusiveTransactionAsync(task));
+  queue = run.catch(() => {});
+  return run;
+}
+
 type WalkRow = Omit<Walk, 'open'> & { open: number };
 const toWalk = (r: WalkRow): Walk => ({ ...r, open: r.open === 1 });
 
-function setClause<T extends object>(patch: T) {
-  const keys = Object.keys(patch) as (keyof T)[];
+const WALK_COLUMNS = ['started_at', 'ended_at', 'title', 'epilogue', 'open', 'area', 'snapped_build'] as const;
+const CAPTURE_COLUMNS = ['walk_id', 't', 'lat', 'lon', 'kind', 'file_path', 'body', 'segment_id'] as const;
+
+/** UPDATE ... SET for the given patch; only known column names reach the SQL. */
+function setClause(patch: Record<string, unknown>, allowed: readonly string[]) {
+  const keys = Object.keys(patch).filter((k) => allowed.includes(k));
   const values = keys.map((k) => {
     const v = patch[k];
     return typeof v === 'boolean' ? (v ? 1 : 0) : (v as SQLite.SQLiteBindValue);
   });
-  return { sql: keys.map((k) => `${String(k)} = ?`).join(', '), values };
+  return { sql: keys.map((k) => `${k} = ?`).join(', '), values };
 }
 
 export const db: Db = {
-  async createWalk(w) {
-    const d = await conn();
-    await d.runAsync(
-      'INSERT INTO walk (id, started_at, ended_at, title, epilogue, open, area) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      w.id, w.started_at, w.ended_at, w.title, w.epilogue, w.open ? 1 : 0, w.area,
-    );
+  createWalk(w) {
+    return write((t) => t.runAsync(
+      'INSERT INTO walk (id, started_at, ended_at, title, epilogue, open, area, snapped_build) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      w.id, w.started_at, w.ended_at, w.title, w.epilogue, w.open ? 1 : 0, w.area, w.snapped_build,
+    ).then(() => {}));
   },
-  async updateWalk(id, patch) {
-    const { sql, values } = setClause(patch);
-    if (!sql) return;
-    await (await conn()).runAsync(`UPDATE walk SET ${sql} WHERE id = ?`, ...values, id);
+  updateWalk(id, patch) {
+    const { sql, values } = setClause(patch, WALK_COLUMNS);
+    if (!sql) return Promise.resolve();
+    return write((t) => t.runAsync(`UPDATE walk SET ${sql} WHERE id = ?`, ...values, id).then(() => {}));
   },
   async getWalk(id) {
     const r = await (await conn()).getFirstAsync<WalkRow>('SELECT * FROM walk WHERE id = ?', id);
@@ -81,74 +121,102 @@ export const db: Db = {
     return r ? toWalk(r) : null;
   },
 
-  async appendPoints(points) {
-    if (points.length === 0) return;
-    const d = await conn();
-    await d.withTransactionAsync(async () => {
-      for (const p of points) {
-        await d.runAsync(
-          'INSERT INTO trace_point (walk_id, t, lat, lon, accuracy_m, speed, course) VALUES (?, ?, ?, ?, ?, ?, ?)',
-          p.walk_id, p.t, p.lat, p.lon, p.accuracy_m, p.speed, p.course,
-        );
+  appendPoints(points) {
+    if (points.length === 0) return Promise.resolve();
+    return write(async (t) => {
+      const stmt = await t.prepareAsync(
+        'INSERT INTO trace_point (walk_id, t, lat, lon, accuracy_m, speed, course) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      );
+      try {
+        for (const p of points) await stmt.executeAsync(p.walk_id, p.t, p.lat, p.lon, p.accuracy_m, p.speed, p.course);
+      } finally {
+        await stmt.finalizeAsync();
       }
     });
   },
   async getPoints(walkId) {
-    return (await conn()).getAllAsync<TracePoint>(
-      'SELECT * FROM trace_point WHERE walk_id = ? ORDER BY t', walkId,
-    );
+    return (await conn()).getAllAsync<TracePoint>('SELECT * FROM trace_point WHERE walk_id = ? ORDER BY t', walkId);
   },
 
-  async addCapture(c) {
-    await (await conn()).runAsync(
+  addCapture(c) {
+    return write((t) => t.runAsync(
       'INSERT INTO capture (id, walk_id, t, lat, lon, kind, file_path, body, segment_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
       c.id, c.walk_id, c.t, c.lat, c.lon, c.kind, c.file_path, c.body, c.segment_id,
-    );
+    ).then(() => {}));
   },
-  async updateCapture(id, patch) {
-    const { sql, values } = setClause(patch);
-    if (!sql) return;
-    await (await conn()).runAsync(`UPDATE capture SET ${sql} WHERE id = ?`, ...values, id);
+  updateCapture(id, patch) {
+    const { sql, values } = setClause(patch, CAPTURE_COLUMNS);
+    if (!sql) return Promise.resolve();
+    return write((t) => t.runAsync(`UPDATE capture SET ${sql} WHERE id = ?`, ...values, id).then(() => {}));
   },
   async getCaptures(walkId) {
     return (await conn()).getAllAsync<Capture>('SELECT * FROM capture WHERE walk_id = ? ORDER BY t', walkId);
   },
 
-  async putSegments(segments) {
-    const d = await conn();
-    await d.withTransactionAsync(async () => {
-      for (const s of segments) {
-        const [w, so, e, n] = segmentBbox(s);
-        await d.runAsync(
-          'INSERT OR REPLACE INTO street_segment (id, name, kind_detail, length_m, geometry, w, s, e, n) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-          s.id, s.name, s.kind_detail, s.length_m, JSON.stringify(s.geometry), w, so, e, n,
+  saveSnap(walkId, segments, visited, s) {
+    return write(async (t) => {
+      const seg = await t.prepareAsync(
+        'INSERT OR REPLACE INTO street_segment (id, name, kind_detail, length_m, geometry, w, s, e, n, build) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      );
+      try {
+        for (const x of segments) {
+          const [w, so, e, n] = segmentBbox(x);
+          await seg.executeAsync(x.id, x.name, x.kind_detail, x.length_m, JSON.stringify(x.geometry), w, so, e, n, x.build);
+        }
+      } finally {
+        await seg.finalizeAsync();
+      }
+      await t.runAsync('DELETE FROM visited_segment WHERE walk_id = ?', walkId);
+      for (const v of visited) {
+        await t.runAsync(
+          'INSERT INTO visited_segment (segment_id, walk_id, covered_fraction, first_t, street_key) VALUES (?, ?, ?, ?, ?)',
+          v.segment_id, v.walk_id, v.covered_fraction, v.first_t, v.street_key,
         );
       }
+      await t.runAsync(
+        `INSERT OR REPLACE INTO walk_summary (walk_id, build, distance_m, duration_ms, new_streets, streets_walked, photos, voices, notes, streets_read)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        s.walk_id, s.build, s.distance_m, s.duration_ms, s.new_streets, s.streets_walked, s.photos, s.voices, s.notes, s.streets_read ? 1 : 0,
+      );
+      await t.runAsync('UPDATE walk SET snapped_build = ? WHERE id = ?', s.build, walkId);
     });
   },
   async getSegmentsIn([w, s, e, n]) {
     const rows = await (await conn()).getAllAsync<Omit<StreetSegment, 'geometry'> & { geometry: string }>(
-      'SELECT id, name, kind_detail, length_m, geometry FROM street_segment WHERE w <= ? AND e >= ? AND s <= ? AND n >= ?',
+      'SELECT id, name, kind_detail, length_m, geometry, build FROM street_segment WHERE w <= ? AND e >= ? AND s <= ? AND n >= ?',
       e, w, n, s,
     );
     return rows.map((r) => ({ ...r, geometry: JSON.parse(r.geometry) }));
   },
-  async setVisited(walkId, rows) {
-    const d = await conn();
-    await d.withTransactionAsync(async () => {
-      await d.runAsync('DELETE FROM visited_segment WHERE walk_id = ?', walkId);
-      for (const v of rows) {
-        await d.runAsync(
-          'INSERT INTO visited_segment (segment_id, walk_id, covered_fraction, first_t) VALUES (?, ?, ?, ?)',
-          v.segment_id, v.walk_id, v.covered_fraction, v.first_t,
-        );
-      }
-    });
-  },
   async getVisited(walkId) {
-    const d = await conn();
-    return walkId
-      ? d.getAllAsync<VisitedSegment>('SELECT * FROM visited_segment WHERE walk_id = ?', walkId)
-      : d.getAllAsync<VisitedSegment>('SELECT * FROM visited_segment');
+    return (await conn()).getAllAsync<VisitedSegment>('SELECT * FROM visited_segment WHERE walk_id = ?', walkId);
+  },
+  async visitedSegmentIds() {
+    const rows = await (await conn()).getAllAsync<{ segment_id: string }>('SELECT DISTINCT segment_id FROM visited_segment');
+    return new Set(rows.map((r) => r.segment_id));
+  },
+  async streetKeysBefore(startedAt) {
+    const rows = await (await conn()).getAllAsync<{ street_key: string }>(
+      'SELECT DISTINCT v.street_key FROM visited_segment v JOIN walk w ON w.id = v.walk_id WHERE w.started_at < ?',
+      startedAt,
+    );
+    return new Set(rows.map((r) => r.street_key));
+  },
+  async listSummaries() {
+    const rows = await (await conn()).getAllAsync<Omit<WalkSummary, 'streets_read'> & { streets_read: number }>(
+      'SELECT * FROM walk_summary',
+    );
+    return rows.map((r) => ({ ...r, streets_read: r.streets_read === 1 }));
+  },
+
+  async getMeta(key) {
+    const r = await (await conn()).getFirstAsync<{ value: string }>('SELECT value FROM meta WHERE key = ?', key);
+    return r?.value ?? null;
+  },
+  setMeta(key, value) {
+    return write((t) => t.runAsync('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)', key, value).then(() => {}));
+  },
+  purgeDerived() {
+    return write((t) => t.execAsync('DELETE FROM street_segment; UPDATE walk SET snapped_build = NULL;'));
   },
 };

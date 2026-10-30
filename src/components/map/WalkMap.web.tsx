@@ -6,10 +6,12 @@ import { StyleSheet, View } from 'react-native';
 import type { RoadFeature } from '../../lib/streets';
 import {
   COLORS, DERIVE_ZOOM, MAP_STYLE_URL, WORLD_VEIL, pointColor, pointsGeoJSON, segmentsGeoJSON,
-  traceGeoJSON, viewCenters, type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
+  traceGeoJSON, type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
 const VECTOR_SOURCE = 'openmaptiles';
+/** Tiles that never arrive must not hang the stop. */
+const VIEW_TIMEOUT_MS = 4000;
 
 // Copied into public/ by scripts/copy-maplibre-worker.js on install.
 setWorkerUrl('/maplibre-gl-worker.mjs');
@@ -23,9 +25,9 @@ function addOverlay(map: MapLibreMap) {
   for (const id of ['fog', 'walked', 'trace', 'points']) map.addSource(id, { type: 'geojson', data: empty });
   const lineLayout = { 'line-cap': 'round', 'line-join': 'round' } as const;
   map.addLayer({ id: 'fog', type: 'line', source: 'fog', layout: lineLayout,
-    paint: { 'line-color': COLORS.fog, 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 1.5, 17, 5], 'line-opacity': 0.55 } }, firstSymbol);
+    paint: { 'line-color': COLORS.fog, 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 1.5, 17, 4] } }, firstSymbol);
   map.addLayer({ id: 'walked', type: 'line', source: 'walked', layout: lineLayout,
-    paint: { 'line-color': COLORS.walked, 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 2.5, 17, 8] } }, firstSymbol);
+    paint: { 'line-color': COLORS.walked, 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 3, 17, 8] } }, firstSymbol);
   map.addLayer({ id: 'trace', type: 'line', source: 'trace', layout: lineLayout,
     paint: { 'line-color': COLORS.trace, 'line-width': 2.5, 'line-opacity': 0.85 } });
   map.addLayer({ id: 'points', type: 'circle', source: 'points',
@@ -41,12 +43,22 @@ function toRoadFeature(f: GeoJSONFeature): RoadFeature {
   return { geometry: f.geometry as RoadFeature['geometry'], properties: f.properties };
 }
 
-const idle = (map: MapLibreMap) =>
-  new Promise<void>((resolve) => {
-    const timer = setTimeout(resolve, 4000); // tiles that never arrive must not hang the stop
+/** Whether the street source is loaded; false if the style has no such source. */
+const sourceLoaded = (map: MapLibreMap) => {
+  try {
+    return map.isSourceLoaded(VECTOR_SOURCE);
+  } catch {
+    return false;
+  }
+};
+
+/** Resolves true once the view's tiles have loaded, false on timeout. */
+const settled = (map: MapLibreMap) =>
+  new Promise<boolean>((resolve) => {
+    const timer = setTimeout(() => resolve(sourceLoaded(map)), VIEW_TIMEOUT_MS);
     map.once('idle', () => {
       clearTimeout(timer);
-      resolve();
+      resolve(sourceLoaded(map));
     });
   });
 
@@ -54,8 +66,14 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const [ready, setReady] = useState(false);
+  const readyPromise = useRef<{ promise: Promise<void>; resolve: () => void } | null>(null);
+  if (!readyPromise.current) {
+    let resolve!: () => void;
+    readyPromise.current = { promise: new Promise<void>((r) => (resolve = r)), resolve };
+  }
   const onPress = useRef(props.onPress);
   onPress.current = props.onPress;
+  const duration = props.animate === false ? 0 : 600;
 
   useEffect(() => {
     if (!container.current) return;
@@ -70,6 +88,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     map.on('load', () => {
       addOverlay(map);
       setReady(true);
+      readyPromise.current!.resolve();
     });
     map.on('click', (e: MapMouseEvent) => onPress.current?.([e.lngLat.lng, e.lngLat.lat]));
     return () => {
@@ -87,6 +106,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   useEffect(() => { if (ready) setData('walked', segmentsGeoJSON(props.walked)); }, [ready, props.walked]);
   useEffect(() => { if (ready) setData('trace', traceGeoJSON(props.trace)); }, [ready, props.trace]);
   useEffect(() => {
+    if (ready) mapRef.current?.setPaintProperty('trace', 'line-opacity', 0.85 * (props.traceOpacity ?? 1));
+  }, [ready, props.traceOpacity]);
+  useEffect(() => {
     if (ready) setData('points', pointsGeoJSON(props.captures, props.walker));
   }, [ready, props.captures, props.walker]);
   useEffect(() => {
@@ -98,21 +120,36 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   useEffect(() => {
     if (ready && props.fitBounds) {
       const [w, s, e, n] = props.fitBounds;
-      mapRef.current?.fitBounds([[w, s], [e, n]], { padding: 48, maxZoom: 17, duration: 600 });
+      const padding = props.fitPadding ?? { top: 48, right: 48, bottom: 48, left: 48 };
+      mapRef.current?.fitBounds([[w, s], [e, n]], { padding, maxZoom: 17, duration });
     }
-  }, [ready, props.fitBounds]);
+    // Refits when the caller changes fitKey, not on every new bounds array.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, props.fitKey]);
 
   useImperativeHandle(ref, () => ({
-    async collect(bounds): Promise<CollectedFeatures> {
+    size() {
+      const c = mapRef.current?.getCanvas();
+      return { width: c?.clientWidth ?? 0, height: c?.clientHeight ?? 0 };
+    },
+    async collect(centers): Promise<CollectedFeatures> {
+      await readyPromise.current!.promise;
       const map = mapRef.current;
-      const out: CollectedFeatures = { roads: [], names: [], places: [] };
-      if (!map) return out;
+      const out: CollectedFeatures = { roads: [], names: [], places: [], complete: true };
+      // A style without the street source has nothing to read.
+      if (!map || !map.getSource(VECTOR_SOURCE)) return { ...out, complete: false };
       const before = { center: map.getCenter(), zoom: map.getZoom() };
-      const canvas = map.getCanvas();
-      for (const center of viewCenters(bounds, canvas.clientWidth, canvas.clientHeight)) {
+      for (const center of centers) {
         map.jumpTo({ center, zoom: DERIVE_ZOOM });
-        await idle(map);
-        const q = (sourceLayer: string) => map.querySourceFeatures(VECTOR_SOURCE, { sourceLayer }).map(toRoadFeature);
+        if (!(await settled(map))) out.complete = false;
+        const q = (sourceLayer: string) => {
+          try {
+            return map.querySourceFeatures(VECTOR_SOURCE, { sourceLayer }).map(toRoadFeature);
+          } catch {
+            out.complete = false;
+            return [];
+          }
+        };
         out.roads.push(...q('transportation'));
         out.names.push(...q('transportation_name'));
         out.places.push(...q('place'));
@@ -125,8 +162,12 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   return (
     <View style={[styles.wrap, props.style]}>
       <div ref={container} style={{ position: 'absolute', inset: 0 }} />
+      {props.covered && <View style={styles.cover} pointerEvents="none" />}
     </View>
   );
 });
 
-const styles = StyleSheet.create({ wrap: { flex: 1, overflow: 'hidden' } });
+const styles = StyleSheet.create({
+  wrap: { flex: 1, overflow: 'hidden' },
+  cover: { ...StyleSheet.absoluteFill, backgroundColor: COLORS.veil },
+});

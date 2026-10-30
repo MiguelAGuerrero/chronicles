@@ -55,7 +55,8 @@
       [
         "expo-audio",
         {
-          "microphonePermission": "Chronicles records voice notes during a walk."
+          "microphonePermission": "Chronicles records voice notes during a walk.",
+          "enableBackgroundRecording": true
         }
       ],
       "@maplibre/maplibre-react-native"

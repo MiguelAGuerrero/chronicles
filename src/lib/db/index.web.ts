@@ -1,26 +1,59 @@
-import type { Capture, StreetSegment, TracePoint, VisitedSegment, Walk } from '../types';
+import type { Capture, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 import { intersects, segmentBbox } from './segmentBounds';
 import type { Db } from './types';
 
 // Same tables as the native SQLite store, as IndexedDB object stores.
 const DB_NAME = 'chronicles';
-const VERSION = 1;
+const VERSION = 2;
+
+/** Raised when another open tab holds an older version of the database. */
+export class BlockedByOtherTabError extends Error {
+  constructor() {
+    super('Chronicles is open in another tab with an older version. Close the other tab to continue.');
+  }
+}
+
+function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number) {
+  if (oldVersion < 1) {
+    d.createObjectStore('walk', { keyPath: 'id' });
+    d.createObjectStore('trace_point', { autoIncrement: true }).createIndex('walk_id', 'walk_id');
+    d.createObjectStore('capture', { keyPath: 'id' }).createIndex('walk_id', 'walk_id');
+    d.createObjectStore('street_segment', { keyPath: 'id' });
+    d.createObjectStore('visited_segment', { keyPath: ['segment_id', 'walk_id'] }).createIndex('walk_id', 'walk_id');
+  }
+  if (oldVersion < 2) {
+    // Segments are now tagged with their tile build; old rows are rebuilt.
+    tx.objectStore('street_segment').clear();
+    tx.objectStore('visited_segment').clear();
+    d.createObjectStore('walk_summary', { keyPath: 'walk_id' });
+    d.createObjectStore('meta', { keyPath: 'key' });
+    d.createObjectStore('media', { keyPath: 'key' });
+  }
+}
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 function conn(): Promise<IDBDatabase> {
   if (!dbPromise) {
-    dbPromise = new Promise((resolve, reject) => {
+    dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
       const req = indexedDB.open(DB_NAME, VERSION);
-      req.onupgradeneeded = () => {
+      req.onupgradeneeded = (e) => migrate(req.result, req.transaction!, e.oldVersion);
+      req.onblocked = () => reject(new BlockedByOtherTabError());
+      req.onsuccess = () => {
         const d = req.result;
-        d.createObjectStore('walk', { keyPath: 'id' });
-        d.createObjectStore('trace_point', { autoIncrement: true }).createIndex('walk_id', 'walk_id');
-        d.createObjectStore('capture', { keyPath: 'id' }).createIndex('walk_id', 'walk_id');
-        d.createObjectStore('street_segment', { keyPath: 'id' });
-        d.createObjectStore('visited_segment', { keyPath: ['segment_id', 'walk_id'] }).createIndex('walk_id', 'walk_id');
+        // A newer version opened in another tab: step aside so it can upgrade.
+        d.onversionchange = () => {
+          d.close();
+          dbPromise = null;
+        };
+        d.onclose = () => {
+          dbPromise = null;
+        };
+        resolve(d);
       };
-      req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
+    }).catch((e) => {
+      dbPromise = null; // retry on the next call instead of failing forever
+      throw e;
     });
   }
   return dbPromise;
@@ -36,7 +69,7 @@ const committed = (tx: IDBTransaction) =>
   new Promise<void>((resolve, reject) => {
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
-    tx.onabort = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error ?? new Error('Transaction aborted'));
   });
 
 async function store(name: string, mode: IDBTransactionMode = 'readonly') {
@@ -48,9 +81,11 @@ async function byWalk<T>(name: string, walkId: string): Promise<T[]> {
 }
 
 async function patch<T extends { id: string }>(name: string, id: string, p: Partial<T>) {
-  const s = await store(name, 'readwrite');
+  const tx = (await conn()).transaction(name, 'readwrite');
+  const s = tx.objectStore(name);
   const cur = (await done(s.get(id))) as T | undefined;
-  if (cur) await done(s.put({ ...cur, ...p }));
+  if (cur) s.put({ ...cur, ...p });
+  await committed(tx);
 }
 
 export const db: Db = {
@@ -92,26 +127,63 @@ export const db: Db = {
     return (await byWalk<Capture>('capture', walkId)).sort((a, b) => a.t - b.t);
   },
 
-  async putSegments(segments) {
-    const tx = (await conn()).transaction('street_segment', 'readwrite');
-    const s = tx.objectStore('street_segment');
-    for (const seg of segments) s.put(seg);
+  async saveSnap(walkId, segments, visited, summary) {
+    const names = ['street_segment', 'visited_segment', 'walk_summary', 'walk'];
+    const tx = (await conn()).transaction(names, 'readwrite');
+    const seg = tx.objectStore('street_segment');
+    for (const x of segments) seg.put(x);
+    const vis = tx.objectStore('visited_segment');
+    for (const k of (await done(vis.index('walk_id').getAllKeys(walkId))) as IDBValidKey[]) vis.delete(k);
+    for (const v of visited) vis.put(v);
+    tx.objectStore('walk_summary').put(summary);
+    const walks = tx.objectStore('walk');
+    const w = (await done(walks.get(walkId))) as Walk | undefined;
+    if (w) walks.put({ ...w, snapped_build: summary.build });
     await committed(tx);
   },
   async getSegmentsIn(bounds) {
     const all = (await done((await store('street_segment')).getAll())) as StreetSegment[];
     return all.filter((s) => intersects(segmentBbox(s), bounds));
   },
-  async setVisited(walkId, rows) {
-    const tx = (await conn()).transaction('visited_segment', 'readwrite');
-    const s = tx.objectStore('visited_segment');
-    const old = (await done(s.index('walk_id').getAllKeys(walkId))) as IDBValidKey[];
-    for (const k of old) s.delete(k);
-    for (const r of rows) s.put(r);
+  async getVisited(walkId) {
+    return byWalk<VisitedSegment>('visited_segment', walkId);
+  },
+  async visitedSegmentIds() {
+    const keys = (await done((await store('visited_segment')).getAllKeys())) as [string, string][];
+    return new Set(keys.map((k) => k[0]));
+  },
+  async streetKeysBefore(startedAt) {
+    const earlier = new Set((await db.listWalks()).filter((w) => w.started_at < startedAt).map((w) => w.id));
+    const all = (await done((await store('visited_segment')).getAll())) as VisitedSegment[];
+    return new Set(all.filter((v) => earlier.has(v.walk_id)).map((v) => v.street_key));
+  },
+  async listSummaries() {
+    return (await done((await store('walk_summary')).getAll())) as WalkSummary[];
+  },
+
+  async getMeta(key) {
+    const r = (await done((await store('meta')).get(key))) as { value: string } | undefined;
+    return r?.value ?? null;
+  },
+  async setMeta(key, value) {
+    await done((await store('meta', 'readwrite')).put({ key, value }));
+  },
+  async purgeDerived() {
+    const tx = (await conn()).transaction(['street_segment', 'walk'], 'readwrite');
+    tx.objectStore('street_segment').clear();
+    const walks = tx.objectStore('walk');
+    for (const w of (await done(walks.getAll())) as Walk[]) walks.put({ ...w, snapped_build: null });
     await committed(tx);
   },
-  async getVisited(walkId) {
-    if (walkId) return byWalk<VisitedSegment>('visited_segment', walkId);
-    return (await done((await store('visited_segment')).getAll())) as VisitedSegment[];
+};
+
+/** Web media lives in its own store, as Blobs, keyed from Capture.file_path. */
+export const mediaStore = {
+  async put(key: string, blob: Blob) {
+    await done((await store('media', 'readwrite')).put({ key, blob }));
+  },
+  async get(key: string): Promise<Blob | null> {
+    const r = (await done((await store('media')).get(key))) as { blob: Blob } | undefined;
+    return r?.blob ?? null;
   },
 };

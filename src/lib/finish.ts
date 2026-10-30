@@ -1,9 +1,10 @@
 import type { CollectedFeatures } from '../components/map/types';
 import { db } from './db';
-import { boundsOf, distanceM, filterFixes, positionAt, type Bounds } from './geo';
+import { boundsOf, distanceM, filterFixes, positionAt, traceDistanceM, type Bounds } from './geo';
 import { snap } from './snapper';
 import { deriveSegments, type RoadFeature } from './streets';
-import type { LngLat, StreetSegment, TracePoint } from './types';
+import { ensureTileBuild } from './tiles';
+import type { LngLat, StreetSegment, TracePoint, Walk, WalkSummary } from './types';
 
 const AREA_PAD_M = 150;
 const NEIGHBORHOOD = ['neighbourhood', 'quarter', 'suburb'];
@@ -25,43 +26,81 @@ export function pickArea(places: RoadFeature[], at: LngLat): string | null {
   return null;
 }
 
-export function walkBounds(points: TracePoint[], padM = AREA_PAD_M): Bounds | null {
-  return boundsOf(filterFixes(points).map((p) => [p.lon, p.lat] as LngLat), padM);
+export function walkBounds(fixes: TracePoint[], padM = AREA_PAD_M): Bounds | null {
+  return boundsOf(fixes.map((p) => [p.lon, p.lat] as LngLat), padM);
+}
+
+export interface Collector {
+  /** Plans camera stops covering the bounds, nearest the trace first. */
+  plan(bounds: Bounds, trace: LngLat[]): LngLat[];
+  collect(centers: LngLat[]): Promise<CollectedFeatures>;
 }
 
 /**
- * Runs when a walk stops: derives street segments for the walked area from
- * the tiles on screen, snaps the trace onto them, and closes the walk.
+ * Derives the streets for a walk's area from the tiles and snaps the trace
+ * onto them, then writes the visited rows and the walk's summary in one
+ * transaction. Runs after stop, behind the replay's first beat, and again
+ * whenever the tile build has changed since the walk was last snapped.
  * Everything written here is derived and can be recomputed from the trace.
  */
-export async function finishWalk(
-  walkId: string,
-  endedAt: number,
-  collect: (b: Bounds) => Promise<CollectedFeatures>,
-): Promise<void> {
-  const points = await db.getPoints(walkId);
-  const fixes = filterFixes(points);
-  const bounds = walkBounds(points);
-  let area: string | null = null;
+export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSummary> {
+  const build = await ensureTileBuild();
+  const points = await db.getPoints(walk.id);
+  const fixes = filterFixes(points, walk.started_at);
+  const bounds = walkBounds(fixes);
+  let derived: StreetSegment[] = [];
+  let area = walk.area;
 
   if (bounds) {
-    const features = await collect(bounds).catch(() => null);
+    const trace = fixes.map((p) => [p.lon, p.lat] as LngLat);
+    const features = await collector.collect(collector.plan(bounds, trace)).catch(() => null);
     if (features) {
-      await db.putSegments(deriveSegments(features.roads, features.names));
+      derived = deriveSegments(features.roads, features.names, build);
       const mid = fixes[Math.floor(fixes.length / 2)];
-      area = pickArea(features.places, [mid.lon, mid.lat]);
+      area = pickArea(features.places, [mid.lon, mid.lat]) ?? area;
     }
-    const segments = await db.getSegmentsIn(bounds);
-    await db.setVisited(walkId, snap(walkId, points, segments));
-    await placeCaptures(walkId, fixes, segments);
   }
 
-  await db.updateWalk(walkId, { open: false, ended_at: endedAt, area });
+  // Cached pieces from earlier walks of this build, plus the ones just derived.
+  const byId = new Map<string, StreetSegment>();
+  if (bounds) for (const s of await db.getSegmentsIn(bounds)) if (s.build === build) byId.set(s.id, s);
+  for (const s of derived) byId.set(s.id, s);
+  const segments = [...byId.values()];
+
+  const visited = snap(walk.id, points, segments, walk.started_at);
+  const earlier = await db.streetKeysBefore(walk.started_at);
+  const keys = new Set(visited.map((v) => v.street_key));
+  const captures = await db.getCaptures(walk.id);
+  await placeCaptures(captures, fixes, segments);
+
+  const end = walk.ended_at ?? fixes.at(-1)?.t ?? walk.started_at;
+  const summary: WalkSummary = {
+    walk_id: walk.id,
+    build,
+    distance_m: traceDistanceM(fixes),
+    duration_ms: Math.max(0, end - walk.started_at),
+    new_streets: [...keys].filter((k) => !earlier.has(k)).length,
+    streets_walked: keys.size,
+    photos: captures.filter((c) => c.kind === 'photo').length,
+    voices: captures.filter((c) => c.kind === 'voice').length,
+    notes: captures.filter((c) => c.kind === 'text').length,
+    streets_read: segments.length > 0,
+  };
+  await db.saveSnap(walk.id, derived, visited, summary);
+  if (area !== walk.area) await db.updateWalk(walk.id, { area });
+  return summary;
 }
 
-/** Fills each capture's position from the trace, and the street it was taken on. */
-async function placeCaptures(walkId: string, fixes: TracePoint[], segments: StreetSegment[]) {
-  for (const c of await db.getCaptures(walkId)) {
+/**
+ * Places each capture on the trace by its time, unless it was stamped with
+ * a fresh fix when taken, and notes the street it was taken on.
+ */
+async function placeCaptures(
+  captures: { id: string; t: number; lat: number | null; lon: number | null }[],
+  fixes: TracePoint[],
+  segments: StreetSegment[],
+) {
+  for (const c of captures) {
     const pos = c.lat != null && c.lon != null ? ([c.lon, c.lat] as LngLat) : positionAt(fixes, c.t);
     if (!pos) continue;
     let best: { id: string; d: number } | null = null;
@@ -72,5 +111,7 @@ async function placeCaptures(walkId: string, fixes: TracePoint[], segments: Stre
           if (d < 40 && (!best || d < best.d)) best = { id: s.id, d };
         }
     await db.updateCapture(c.id, { lat: pos[1], lon: pos[0], segment_id: best?.id ?? null });
+    c.lat = pos[1];
+    c.lon = pos[0];
   }
 }
