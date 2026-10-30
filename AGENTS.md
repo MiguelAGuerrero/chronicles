@@ -149,7 +149,8 @@ Read this before changing recording, streets, the replay or storage.
 - maplibre-gl 6 loads its worker as a separate module, which Metro doesn't bundle.
   `scripts/copy-maplibre-worker.js` (postinstall) copies it into `public/`, and
   `setWorkerUrl('/maplibre-gl-worker.mjs')` points at it. Static hosts must serve
-  `.mjs` as `text/javascript`. A deploy under a sub-path needs that URL changed.
+  `.mjs` as `text/javascript`. The worker URL is prefixed with `process.env.EXPO_BASE_URL`,
+  so sub-path deploys work.
 - On native, `queryRenderedFeatures` misses culled labels and unstyled layers. Query a
   `VectorSource` (with invisible layers so its tiles load) via `querySourceFeatures`,
   the same as `querySourceFeatures` on web.
@@ -190,6 +191,20 @@ Read this before changing recording, streets, the replay or storage.
   sheets and then merge; captures are never dropped.
 - A voice memo plays only during its own moment; stop the player when the moment
   changes.
+
+## Deploying the web build
+
+- `.github/workflows/pages.yml` publishes to GitHub Pages at
+  `https://miguelaguerrero.github.io/chronicles/` on pushes to `main` and
+  `web-prototype`. It runs the typecheck and tests, then exports with
+  `CHRONICLES_BASE_URL=/chronicles`.
+- `app.config.js` turns that variable into `experiments.baseUrl`; without it, builds
+  serve from the root.
+- Pages has no fallback for app routes, so the workflow copies `index.html` to
+  `404.html`. Without it, a reload on `/chronicles/walk`, which is how a web walk
+  resumes, would 404.
+- To check a sub-path build locally: `CHRONICLES_BASE_URL=/chronicles npm run export:web`,
+  then `E2E_BASE=/chronicles npm run e2e:web`.
 
 ## Testing
 

@@ -20,6 +20,9 @@ npm run lint
 npm run e2e:web      # headless walk end to end against dist/ (mocked GPS, fake streets)
 ```
 
+The web build is deployed to GitHub Pages at https://miguelaguerrero.github.io/chronicles/
+on every push to `main` or `web-prototype`, by `.github/workflows/pages.yml`.
+
 Notes for agents working on this repo, including decisions and known traps, are in
 [AGENTS.md](AGENTS.md).
 

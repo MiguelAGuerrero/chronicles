@@ -1,6 +1,7 @@
 // End-to-end check of the web build: walk, note, hold-to-stop, replay, name, log.
 //
 //   npm run export:web && node scripts/e2e-web.js
+//   CHRONICLES_BASE_URL=/chronicles npm run export:web && E2E_BASE=/chronicles node scripts/e2e-web.js
 //
 // Test harness only: the browser's GPS is mocked with Playwright, and the tile
 // host is replaced by a small fake street grid (a GeoJSON source tiled at z14,
@@ -12,12 +13,21 @@ const path = require('path');
 const { chromium } = require('playwright');
 
 const DIST = path.join(__dirname, '..', 'dist');
+// The sub-path the build was exported for (GitHub Pages serves it at /chronicles).
+const BASE = process.env.E2E_BASE ?? '';
 const TYPES = { '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json', '.ttf': 'font/ttf' };
 
 function serve() {
-  // SPA fallback to index.html; .mjs must be served as JavaScript for the map worker.
+  // Unknown paths get index.html, as GitHub Pages serves 404.html; .mjs must be
+  // served as JavaScript for the map worker. Paths outside BASE are a 404.
   const server = http.createServer((q, r) => {
-    let p = path.join(DIST, decodeURIComponent(q.url.split('?')[0]));
+    const pathname = decodeURIComponent(q.url.split('?')[0]);
+    if (!pathname.startsWith(`${BASE}/`)) {
+      r.writeHead(404);
+      r.end();
+      return;
+    }
+    let p = path.join(DIST, pathname.slice(BASE.length));
     if (!fs.existsSync(p) || fs.statSync(p).isDirectory()) p = path.join(DIST, 'index.html');
     r.writeHead(200, { 'content-type': TYPES[path.extname(p)] || 'application/octet-stream' });
     fs.createReadStream(p).pipe(r);
@@ -54,7 +64,7 @@ function check(ok, what) {
 
 (async () => {
   const server = await serve();
-  const url = `http://localhost:${server.address().port}/`;
+  const url = `http://localhost:${server.address().port}${BASE}/`;
   const browser = await chromium.launch();
   const start = at(-0.5, -0.5);
   const ctx = await browser.newContext({
@@ -95,6 +105,12 @@ function check(ok, what) {
         await page.click('[data-testid=cap-note]');
         await page.fill('[data-testid=note-input]', 'The bakery smelled of cardamom.');
         await page.click('[data-testid=note-save]');
+      }
+      if (k === 40) {
+        // A reload mid-walk is how the web resumes: it must land back on the walk.
+        await page.reload();
+        await page.waitForSelector('[data-testid=stop]');
+        check(page.url().endsWith(`${BASE}/walk`), 'a reload mid-walk resumes the walk');
       }
     }
     await page.waitForTimeout(2200);

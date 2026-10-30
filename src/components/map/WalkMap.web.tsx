@@ -13,8 +13,9 @@ const VECTOR_SOURCE = 'openmaptiles';
 /** Tiles that never arrive must not hang the stop. */
 const VIEW_TIMEOUT_MS = 4000;
 
-// Copied into public/ by scripts/copy-maplibre-worker.js on install.
-setWorkerUrl('/maplibre-gl-worker.mjs');
+// Copied into public/ by scripts/copy-maplibre-worker.js on install, and served
+// under the site's base path (set by experiments.baseUrl) when it has one.
+setWorkerUrl(`${process.env.EXPO_BASE_URL ?? ''}/maplibre-gl-worker.mjs`);
 
 function addOverlay(map: MapLibreMap) {
   const empty: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
