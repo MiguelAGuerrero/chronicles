@@ -195,8 +195,8 @@ Read this before changing recording, streets, the replay or storage.
 ## Deploying the web build
 
 - `.github/workflows/pages.yml` publishes to GitHub Pages at
-  `https://miguelaguerrero.github.io/chronicles/` on pushes to `main` and
-  `web-prototype`. It runs the typecheck and tests, then exports with
+  `https://miguelaguerrero.github.io/chronicles/` on pushes to `main`, the only
+  branch the Pages environment accepts (the owner's choice). It runs the typecheck and tests, then exports with
   `CHRONICLES_BASE_URL=/chronicles`.
 - `app.config.js` turns that variable into `experiments.baseUrl`; without it, builds
   serve from the root.
