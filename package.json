@@ -41,7 +41,8 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/lib/__tests__/*.test.ts",
     "postinstall": "node scripts/copy-maplibre-worker.js",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "e2e:web": "node scripts/e2e-web.js"
   },
   "private": true
 }

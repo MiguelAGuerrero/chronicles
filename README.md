@@ -17,7 +17,11 @@ npm run export:web   # static build in dist/, servable by any static host
 npm test             # street derivation, snapping, fix filtering and replay timing
 npm run typecheck
 npm run lint
+npm run e2e:web      # headless walk end to end against dist/ (mocked GPS, fake streets)
 ```
+
+Notes for agents working on this repo, including decisions and known traps, are in
+[AGENTS.md](AGENTS.md).
 
 Native needs a development build (not Expo Go): the map is a native module and
 background location is unavailable in Expo Go on iOS.
