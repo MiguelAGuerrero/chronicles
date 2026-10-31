@@ -77,7 +77,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     async collectView(): Promise<CollectedFeatures> {
       await whenReady();
       const source = queryRef.current;
-      const out: CollectedFeatures = { roads: [], names: [], places: [], complete: true };
+      const out: CollectedFeatures = { roads: [], names: [], places: [], pois: [], complete: true };
       if (!source || !mapRef.current) return { ...out, complete: false };
       // Below z14 the tiles are simplified and miss minor streets: pieces cut
       // from them would get other ids than the same streets at z14.
@@ -89,6 +89,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       out.roads = (await source.querySourceFeatures({ sourceLayer: 'transportation' })).map(toRoad);
       out.names = (await source.querySourceFeatures({ sourceLayer: 'transportation_name' })).map(toRoad);
       out.places = (await source.querySourceFeatures({ sourceLayer: 'place' })).map(toRoad);
+      out.pois = (await source.querySourceFeatures({ sourceLayer: 'poi' })).map(toRoad);
       return out;
     },
     showPoint(at, padding) {
@@ -113,7 +114,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     },
     async collect(centers, shouldStop): Promise<CollectedFeatures> {
       await whenReady();
-      const out: CollectedFeatures = { roads: [], names: [], places: [], complete: true };
+      const out: CollectedFeatures = { roads: [], names: [], places: [], pois: [], complete: true };
       const map = mapRef.current;
       const source = queryRef.current;
       if (!map || !source) return { ...out, complete: false };
@@ -133,6 +134,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         out.roads.push(...(await source.querySourceFeatures({ sourceLayer: 'transportation' })).map(toRoad));
         out.names.push(...(await source.querySourceFeatures({ sourceLayer: 'transportation_name' })).map(toRoad));
         out.places.push(...(await source.querySourceFeatures({ sourceLayer: 'place' })).map(toRoad));
+        out.pois.push(...(await source.querySourceFeatures({ sourceLayer: 'poi' })).map(toRoad));
       }
       cameraRef.current?.jumpTo({ center: before.center, zoom: before.zoom });
       return out;
@@ -192,6 +194,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           <Layer id="q-roads" type="line" source-layer="transportation" paint={HIDDEN} />
           <Layer id="q-names" type="line" source-layer="transportation_name" paint={HIDDEN} />
           <Layer id="q-places" type="circle" source-layer="place" paint={{ 'circle-opacity': 0 }} />
+          <Layer id="q-pois" type="circle" source-layer="poi" paint={{ 'circle-opacity': 0 }} />
         </VectorSource>
         <GeoJSONSource id="veil" data={WORLD_VEIL}>
           <Layer id="veil" type="fill" paint={{ 'fill-color': COLORS.veil, 'fill-opacity': props.veil ? 0.45 : 0 }} />

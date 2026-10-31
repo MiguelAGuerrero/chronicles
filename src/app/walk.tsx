@@ -11,6 +11,7 @@ import { CaptionEditor } from '../components/Caption';
 import { CaptureViewer } from '../components/CaptureView';
 import { Icon, KIND_LABEL, type IconName } from '../components/icons';
 import { Banner, Button, HoldButton, theme } from '../components/ui';
+import { placesFromTilePois } from '../lib/discovery/tilePois';
 import { db } from '../lib/db';
 import { focusOn } from '../lib/focus';
 import { boundsOf, distanceM, distanceToLinesM, nearPoints, pausedMs } from '../lib/geo';
@@ -155,6 +156,7 @@ export default function WalkScreen() {
       const features = await mapRef.current?.collectView().catch(() => null);
       if (features?.complete && features.roads.length && build !== 'unknown') {
         await db.putSegments(deriveSegments(features.roads, features.names, build)).catch(() => {});
+        await db.putPlaces(placesFromTilePois(features.pois, build, { complete: features.complete })).catch(() => {});
       } else if (!features?.complete) {
         run.at = null; // zoomed out or not loaded yet: read the streets again on the next fix
       }

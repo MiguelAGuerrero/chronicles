@@ -1,4 +1,5 @@
 import type { Area, WalkArea } from '../areas/types';
+import type { Offered, Place } from '../discovery/types';
 import type { Capture, Pause, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 
 /**
@@ -59,10 +60,19 @@ export interface Db {
   streetKeysBefore(startedAt: number): Promise<Set<string>>;
   listSummaries(): Promise<WalkSummary[]>;
 
+  /** Caches places read from the tiles (v1 discovery); same key, newer row. */
+  putPlaces(places: Place[]): Promise<void>;
+  /** Cached places inside the bounds. */
+  placesIn(bounds: [number, number, number, number]): Promise<Place[]>;
+  /** Records places as offered. Offered is truth and is never cleared. */
+  addOffered(rows: Offered[]): Promise<void>;
+  /** Every place ever offered, by scan or ambient. */
+  listOffered(): Promise<Offered[]>;
+
   getMeta(key: string): Promise<string | null>;
   setMeta(key: string, value: string): Promise<void>;
   /**
-   * Drops the street segment cache and marks every walk for re-snapping. Run
+   * Drops the derived stores (`DERIVED_STORES`: street segments, places) and marks every walk for re-snapping. Run
    * when the tile build changes: history is recomputed from the trace, never
    * patched. Each walk's visited rows and summary stay until its re-snap
    * replaces them, so the log and new-street counts keep working meanwhile.

@@ -49,6 +49,11 @@ xs.forEach((x) => features.push({ type: 'Feature', properties: { class: 'minor' 
 features.push({ type: 'Feature', properties: { class: 'neighbourhood', name: 'Fox Point' }, geometry: { type: 'Point', coordinates: at(1, 0) } });
 // A town point 2.9 km east: in reach of the walk, but outside the z14 tiles read for its streets.
 features.push({ type: 'Feature', properties: { class: 'city', name: 'Providence' }, geometry: { type: 'Point', coordinates: at(29, 0) } });
+// Points of interest for discovery (D1): a café and an unnamed artwork are
+// kept, a bus stop is not a place to offer.
+features.push({ type: 'Feature', properties: { class: 'cafe', subclass: 'cafe', name: 'Coffee Exchange' }, geometry: { type: 'Point', coordinates: at(0.6, -0.4) } });
+features.push({ type: 'Feature', properties: { class: 'art_gallery', subclass: 'artwork' }, geometry: { type: 'Point', coordinates: at(1.1, 0.6) } });
+features.push({ type: 'Feature', properties: { class: 'bus', subclass: 'bus_stop', name: 'Wickenden at Hope' }, geometry: { type: 'Point', coordinates: at(0.4, -0.6) } });
 const style = {
   version: 8,
   // maxzoom 14 matters: at the default 18, lines are clipped to z18 tiles, which real data never is.
@@ -99,6 +104,9 @@ function check(ok, what) {
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+  // Nothing leaves the device (D10): every request goes to this server or the tile host.
+  const hosts = new Set();
+  ctx.on('request', (r) => { const u = new URL(r.url()); if (/^(https?|wss?):$/.test(u.protocol)) hosts.add(u.host); });
   await ctx.route('https://tiles.openfreemap.org/**', (r) =>
     r.fulfill({
       contentType: 'application/json',
@@ -420,6 +428,19 @@ function check(ok, what) {
         && placed.rows.length === 4 && placed.rows.every((r) => r.metres > 0),
       `the walk is placed in Fox Point, Providence, Rhode Island (${JSON.stringify(levels)})`,
     );
+    // Places of interest are read with the streets and cached, tagged with the build (D1).
+    const pois = await page.evaluate(() => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const r = req.result.transaction('place', 'readonly').objectStore('place').getAll();
+        r.onsuccess = () => resolve(r.result);
+      };
+    }));
+    const poiNames = pois.map((p) => `${p.category}:${p.name}`).sort();
+    check(
+      JSON.stringify(poiNames) === JSON.stringify(['art:Public art', 'food:Coffee Exchange']) && pois.every((p) => p.build === '20261028_001001_pt'),
+      `the walk's reads cache its places of interest, and no bus stop (${poiNames.join(', ')})`,
+    );
     await page.waitForTimeout(800);
     await shot(page, '05-card');
     // The card's zoom groups nearby captures; open the pin holding the note
@@ -571,6 +592,8 @@ function check(ok, what) {
     await page.waitForSelector('[data-testid=nav-bar]', { timeout: 40000 });
     check(/\/walk(\?|$)/.test(page.url()) && /Fox Point/.test(await page.locator('[data-testid=nav-bar]').innerText()), 'a star\u2019s Walk here starts a walk navigating there, once there is a fix');
     await shot(page, '12-home-go');
+    const away = [...hosts].filter((h) => !h.startsWith('localhost') && h !== 'tiles.openfreemap.org');
+    check(away.length === 0, `nothing is sent anywhere but the map tiles (${away.join(', ')})`);
     check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
   } catch (e) {
     console.error(e.message);

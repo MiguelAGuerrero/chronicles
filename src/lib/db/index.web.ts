@@ -1,12 +1,14 @@
 import { staleAreas } from '../areas/assign';
 import type { Area, WalkArea } from '../areas/types';
+import type { Offered, Place } from '../discovery/types';
+import { DERIVED_STORES } from './stores';
 import type { Capture, Pause, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 import { intersects, segmentBbox } from './segmentBounds';
 import type { Db } from './types';
 
 // Same tables as the native SQLite store, as IndexedDB object stores.
 const DB_NAME = 'chronicles';
-const VERSION = 4;
+const VERSION = 5;
 
 /** Raised when another open tab holds an older version of the database. */
 export class BlockedByOtherTabError extends Error {
@@ -40,6 +42,13 @@ function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number) {
     const wa = d.createObjectStore('walk_area', { keyPath: ['walk_id', 'area_key'] });
     wa.createIndex('walk_id', 'walk_id');
     wa.createIndex('area_key', 'area_key');
+  }
+  if (oldVersion < 5) {
+    // v1 discovery: the place cache, and the truth of what was offered, marked and recalled.
+    d.createObjectStore('place', { keyPath: 'key' }).createIndex('lat', 'lat');
+    d.createObjectStore('offered', { keyPath: 'key' });
+    d.createObjectStore('mark', { keyPath: 'id' }).createIndex('walk_id', 'walk_id');
+    d.createObjectStore('recall', { keyPath: 'capture_id' });
   }
 }
 
@@ -232,9 +241,32 @@ export const db: Db = {
   async setMeta(key, value) {
     await done((await store('meta', 'readwrite')).put({ key, value }));
   },
+  async putPlaces(places) {
+    if (places.length === 0) return;
+    const tx = (await conn()).transaction('place', 'readwrite');
+    const st = tx.objectStore('place');
+    // `lat` is stored beside `at` for the index (a key path can't reach into an array).
+    for (const p of places) st.put({ ...p, lat: p.at[1] });
+    await committed(tx);
+  },
+  async placesIn([w, s, e, n]) {
+    const rows = (await done((await store('place')).index('lat').getAll(IDBKeyRange.bound(s, n)))) as (Place & { lat?: number })[];
+    return rows.filter((p) => p.at[0] >= w && p.at[0] <= e).map(({ lat: _lat, ...p }) => p);
+  },
+  async addOffered(rows) {
+    if (rows.length === 0) return;
+    const tx = (await conn()).transaction('offered', 'readwrite');
+    const st = tx.objectStore('offered');
+    // First offer wins: re-offering never moves the record.
+    for (const o of rows) st.add(o).onerror = (ev) => { ev.preventDefault(); ev.stopPropagation(); };
+    await committed(tx);
+  },
+  async listOffered() {
+    return (await done((await store('offered')).getAll())) as Offered[];
+  },
   async purgeDerived() {
-    const tx = (await conn()).transaction(['street_segment', 'walk'], 'readwrite');
-    tx.objectStore('street_segment').clear();
+    const tx = (await conn()).transaction([...DERIVED_STORES, 'walk'], 'readwrite');
+    for (const s of DERIVED_STORES) tx.objectStore(s).clear();
     const walks = tx.objectStore('walk');
     for (const w of (await done(walks.getAll())) as Walk[]) walks.put({ ...w, snapped_build: null });
     await committed(tx);

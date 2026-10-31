@@ -1,5 +1,7 @@
 import * as SQLite from 'expo-sqlite';
 import type { Area, WalkArea } from '../areas/types';
+import type { CategoryId, MarkOrigin, Offered, Place } from '../discovery/types';
+import { DERIVED_STORES } from './stores';
 import type { Capture, Pause, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 import { segmentBbox } from './segmentBounds';
 import type { Db } from './types';
@@ -70,6 +72,29 @@ const MIGRATIONS = [
   );
   CREATE INDEX walk_area_area ON walk_area (area_key);
   `,
+  // v1 discovery: the place cache, and the truth of what was offered, marked and recalled.
+  `
+  CREATE TABLE place (
+    key TEXT PRIMARY KEY, name TEXT NOT NULL, category TEXT NOT NULL,
+    lon REAL NOT NULL, lat REAL NOT NULL, generic INTEGER NOT NULL, build TEXT NOT NULL
+  );
+  CREATE INDEX place_at ON place (lat, lon);
+  CREATE TABLE offered (
+    key TEXT PRIMARY KEY, name TEXT NOT NULL, category TEXT NOT NULL,
+    lon REAL NOT NULL, lat REAL NOT NULL, generic INTEGER NOT NULL,
+    offered_at INTEGER NOT NULL, origin TEXT NOT NULL
+  );
+  CREATE TABLE mark (
+    id TEXT PRIMARY KEY, walk_id TEXT, key TEXT NOT NULL, name TEXT NOT NULL, category TEXT NOT NULL,
+    lon REAL NOT NULL, lat REAL NOT NULL, generic INTEGER NOT NULL, origin TEXT NOT NULL,
+    state TEXT NOT NULL, created_at INTEGER NOT NULL, resolved_at INTEGER, capture_id TEXT
+  );
+  CREATE INDEX mark_walk ON mark (walk_id);
+  CREATE TABLE recall (
+    capture_id TEXT PRIMARY KEY, frequency TEXT NOT NULL, until INTEGER,
+    last_fired_at INTEGER, fired_count INTEGER NOT NULL, last_walk_id TEXT
+  );
+  `,
 ];
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
@@ -102,6 +127,11 @@ function write(task: (txn: SQLite.SQLiteDatabase) => Promise<void>): Promise<voi
   queue = run.catch(() => {});
   return run;
 }
+
+type PlaceRow = { key: string; name: string; category: CategoryId; lon: number; lat: number; generic: number; build: string };
+const toPlace = ({ lon, lat, generic, ...r }: PlaceRow): Place => ({ ...r, at: [lon, lat], generic: generic === 1 });
+type OfferedRow = Omit<PlaceRow, 'build'> & { offered_at: number; origin: MarkOrigin };
+const toOffered = ({ lon, lat, generic, ...r }: OfferedRow): Offered => ({ ...r, at: [lon, lat], generic: generic === 1 });
 
 type WalkRow = Omit<Walk, 'open'> & { open: number };
 const toWalk = (r: WalkRow): Walk => ({ ...r, open: r.open === 1 });
@@ -299,7 +329,44 @@ export const db: Db = {
   setMeta(key, value) {
     return write((t) => t.runAsync('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)', key, value).then(() => {}));
   },
+  putPlaces(places) {
+    if (places.length === 0) return Promise.resolve();
+    return write(async (t) => {
+      const st = await t.prepareAsync(
+        'INSERT OR REPLACE INTO place (key, name, category, lon, lat, generic, build) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      );
+      try {
+        for (const p of places) await st.executeAsync(p.key, p.name, p.category, p.at[0], p.at[1], p.generic ? 1 : 0, p.build);
+      } finally {
+        await st.finalizeAsync();
+      }
+    });
+  },
+  async placesIn([w, s, e, n]) {
+    const rows = await (await conn()).getAllAsync<PlaceRow>(
+      'SELECT * FROM place WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ?', s, n, w, e,
+    );
+    return rows.map(toPlace);
+  },
+  addOffered(rows) {
+    if (rows.length === 0) return Promise.resolve();
+    return write(async (t) => {
+      // First offer wins: re-offering never moves the record.
+      const st = await t.prepareAsync(
+        'INSERT OR IGNORE INTO offered (key, name, category, lon, lat, generic, offered_at, origin) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      );
+      try {
+        for (const o of rows) await st.executeAsync(o.key, o.name, o.category, o.at[0], o.at[1], o.generic ? 1 : 0, o.offered_at, o.origin);
+      } finally {
+        await st.finalizeAsync();
+      }
+    });
+  },
+  async listOffered() {
+    return (await (await conn()).getAllAsync<OfferedRow>('SELECT * FROM offered')).map(toOffered);
+  },
   purgeDerived() {
-    return write((t) => t.execAsync('DELETE FROM street_segment; UPDATE walk SET snapped_build = NULL;'));
+    const clear = DERIVED_STORES.map((s) => `DELETE FROM ${s};`).join(' ');
+    return write((t) => t.execAsync(`${clear} UPDATE walk SET snapped_build = NULL;`));
   },
 };

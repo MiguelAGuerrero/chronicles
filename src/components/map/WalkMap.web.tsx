@@ -369,7 +369,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     async collectView(): Promise<CollectedFeatures> {
       await readyPromise.current!.promise;
       const map = mapRef.current;
-      const out: CollectedFeatures = { roads: [], names: [], places: [], complete: true };
+      const out: CollectedFeatures = { roads: [], names: [], places: [], pois: [], complete: true };
       if (!map || !map.getSource(VECTOR_SOURCE)) return { ...out, complete: false };
       // Below z14 the tiles are simplified and miss minor streets: pieces cut
       // from them would get other ids than the same streets at z14.
@@ -386,6 +386,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       out.roads = q('transportation');
       out.names = q('transportation_name');
       out.places = q('place');
+      out.pois = q('poi');
       return out;
     },
     showPoint(at, padding) {
@@ -410,7 +411,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     async collect(centers, shouldStop): Promise<CollectedFeatures> {
       await readyPromise.current!.promise;
       const map = mapRef.current;
-      const out: CollectedFeatures = { roads: [], names: [], places: [], complete: true };
+      const out: CollectedFeatures = { roads: [], names: [], places: [], pois: [], complete: true };
       // A style without the street source has nothing to read.
       if (!map || !map.getSource(VECTOR_SOURCE)) return { ...out, complete: false };
       const before = { center: map.getCenter(), zoom: map.getZoom() };
@@ -432,6 +433,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         out.roads.push(...q('transportation'));
         out.names.push(...q('transportation_name'));
         out.places.push(...q('place'));
+        out.pois.push(...q('poi'));
       }
       map.jumpTo(before);
       return out;

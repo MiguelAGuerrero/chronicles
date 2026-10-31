@@ -97,6 +97,8 @@ export interface CollectedFeatures {
   roads: RoadFeature[];
   names: RoadFeature[];
   places: RoadFeature[];
+  /** Points of interest (the tiles' `poi` layer), for discovery. */
+  pois: RoadFeature[];
   /** False when some views timed out before their tiles loaded. */
   complete: boolean;
 }

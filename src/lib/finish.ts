@@ -4,6 +4,7 @@ import { boundsOf, distanceM, filterFixes, pausedMs, positionAt, smoothDwells, t
 import { snap } from './snapper';
 import { deriveSegments, type RoadFeature } from './streets';
 import { assignAreas, snapDone } from './areas/assign';
+import { placesFromTilePois } from './discovery/tilePois';
 import { appBoundaries } from './areas/boundaries';
 import { placesFromTiles } from './areas/tilePlaces';
 import type { Area, WalkArea } from './areas/types';
@@ -68,6 +69,8 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
       // Views that timed out leave streets unread: the walk is snapped again later.
       streetsRead = features.complete;
       derived = deriveSegments(features.roads, features.names, build);
+      // Places of interest come from the same z14 reads as the streets (D1).
+      await db.putPlaces(placesFromTilePois(features.pois ?? [], build)).catch(() => {});
       const mid = fixes[Math.floor(fixes.length / 2)];
       area = pickArea(features.places, [mid.lon, mid.lat]) ?? area;
       const center: LngLat = [(bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2];
