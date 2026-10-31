@@ -8,7 +8,7 @@ import { CapturePinView, pinLabel } from '../CapturePinView';
 import type { CapturePin } from '../../lib/pins';
 import type { RoadFeature } from '../../lib/streets';
 import {
-  COLORS, DERIVE_ZOOM, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, useZoomPins, walkerGeoJSON,
+  COLORS, DERIVE_ZOOM, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -77,6 +77,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   }
   const onPress = useRef(props.onPress);
   onPress.current = props.onPress;
+  const onUserMove = useRef(props.onUserMove);
+  onUserMove.current = props.onUserMove;
   const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
   const duration = props.animate === false ? 0 : 600;
 
@@ -97,6 +99,13 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     });
     map.on('click', (e: MapMouseEvent) => onPress.current?.([e.lngLat.lng, e.lngLat.lat]));
     const track = () => setView({ zoom: map.getZoom(), lat: map.getCenter().lat });
+    // Only gestures carry an originalEvent; camera moves made in code do not.
+    const moved = (e: { originalEvent?: unknown }) => {
+      if (e.originalEvent) onUserMove.current?.();
+    };
+    map.on('dragstart', moved);
+    map.on('zoomstart', moved);
+    map.on('rotatestart', moved);
     map.on('zoomend', track);
     map.on('load', track);
     return () => {
@@ -184,6 +193,14 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     if (ready) mapRef.current?.setPaintProperty('veil', 'fill-opacity', props.veil ? 0.45 : 0);
   }, [ready, props.veil]);
   useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    map.setPaintProperty('fog', 'line-color', props.fogEmphasis ? FOG_BOLD : COLORS.fog);
+    map.setPaintProperty('fog', 'line-width', props.fogEmphasis
+      ? ['interpolate', ['linear'], ['zoom'], 13, 2.5, 17, 7]
+      : ['interpolate', ['linear'], ['zoom'], 13, 1.5, 17, 4]);
+  }, [ready, props.fogEmphasis]);
+  useEffect(() => {
     if (ready && props.follow) mapRef.current?.jumpTo({ center: props.follow });
   }, [ready, props.follow]);
   useEffect(() => {
@@ -200,6 +217,24 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     size() {
       const c = mapRef.current?.getCanvas();
       return { width: c?.clientWidth ?? 0, height: c?.clientHeight ?? 0 };
+    },
+    async collectView(): Promise<CollectedFeatures> {
+      await readyPromise.current!.promise;
+      const map = mapRef.current;
+      const out: CollectedFeatures = { roads: [], names: [], places: [], complete: true };
+      if (!map || !map.getSource(VECTOR_SOURCE)) return { ...out, complete: false };
+      const q = (sourceLayer: string) => {
+        try {
+          return map.querySourceFeatures(VECTOR_SOURCE, { sourceLayer }).map(toRoadFeature);
+        } catch {
+          out.complete = false;
+          return [];
+        }
+      };
+      out.roads = q('transportation');
+      out.names = q('transportation_name');
+      out.places = q('place');
+      return out;
     },
     async collect(centers): Promise<CollectedFeatures> {
       await readyPromise.current!.promise;

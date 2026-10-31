@@ -7,7 +7,7 @@ import { CapturePinView, pinLabel } from '../CapturePinView';
 import type { RoadFeature } from '../../lib/streets';
 import { TILEJSON_URL } from '../../lib/tiles';
 import {
-  COLORS, DERIVE_ZOOM, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, useZoomPins, walkerGeoJSON,
+  COLORS, DERIVE_ZOOM, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -68,6 +68,20 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
 
   useImperativeHandle(ref, () => ({
     size: () => size.current,
+    async collectView(): Promise<CollectedFeatures> {
+      await whenReady();
+      const source = queryRef.current;
+      const out: CollectedFeatures = { roads: [], names: [], places: [], complete: true };
+      if (!source) return { ...out, complete: false };
+      const toRoad = (f: GeoJSON.Feature): RoadFeature => ({
+        geometry: f.geometry as RoadFeature['geometry'],
+        properties: (f.properties ?? {}) as Record<string, unknown>,
+      });
+      out.roads = (await source.querySourceFeatures({ sourceLayer: 'transportation' })).map(toRoad);
+      out.names = (await source.querySourceFeatures({ sourceLayer: 'transportation_name' })).map(toRoad);
+      out.places = (await source.querySourceFeatures({ sourceLayer: 'place' })).map(toRoad);
+      return out;
+    },
     async collect(centers): Promise<CollectedFeatures> {
       await whenReady();
       const out: CollectedFeatures = { roads: [], names: [], places: [], complete: true };
@@ -111,6 +125,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           setReady(true);
           for (const r of readyWaiters.current.splice(0)) r();
         }}
+        onRegionWillChange={(e) => {
+          if (e.nativeEvent.userInteraction) props.onUserMove?.();
+        }}
         onRegionDidChange={(e) => {
           regionChanged.current?.();
           const { zoom, center } = e.nativeEvent;
@@ -134,7 +151,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         </GeoJSONSource>
         <GeoJSONSource id="fog" data={fog}>
           <Layer id="fog" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-            paint={{ 'line-color': COLORS.fog, 'line-width': 3 }} />
+            paint={{ 'line-color': props.fogEmphasis ? FOG_BOLD : COLORS.fog, 'line-width': props.fogEmphasis ? 5 : 3 }} />
         </GeoJSONSource>
         <GeoJSONSource id="walked" data={walked}>
           <Layer id="walked" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }}

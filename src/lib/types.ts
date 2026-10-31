@@ -47,6 +47,18 @@ export interface Capture {
   /** Text body for notes; duration in ms for voice memos and videos. */
   body: string | null;
   segment_id: string | null;
+  /** A photo's caption, drawn as a bar over it; the photo file itself is untouched. */
+  caption?: string | null;
+  /** Where the caption bar sits, as a fraction of the photo's height from the top. */
+  caption_y?: number | null;
+}
+
+/** A stretch of a walk the walker paused: nothing is recorded, and it does not count as walking. */
+export interface Pause {
+  walk_id: string;
+  started_at: number;
+  /** Null while the walk is paused. */
+  ended_at: number | null;
 }
 
 export interface StreetSegment {

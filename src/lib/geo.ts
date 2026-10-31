@@ -168,3 +168,85 @@ export function positionAt(points: TracePoint[], t: number): LngLat | null {
   const last = points[points.length - 1];
   return [last.lon, last.lat];
 }
+
+/** Paused stretches of a walk, as [start, end] times; an open pause runs to `now`. */
+export type PauseSpan = { started_at: number; ended_at: number | null };
+
+/** Fixes outside every pause: a batch delivered late never puts a paused stretch on the map. */
+export function withoutPauses<T extends { t: number }>(points: T[], pauses: PauseSpan[], now = Infinity): T[] {
+  if (pauses.length === 0) return points;
+  return points.filter((p) => !pauses.some((q) => p.t >= q.started_at && p.t <= (q.ended_at ?? now)));
+}
+
+/** Total paused time between `from` and `to`. */
+export function pausedMs(pauses: PauseSpan[], from: number, to: number): number {
+  let ms = 0;
+  for (const p of pauses) {
+    const a = Math.max(from, p.started_at);
+    const b = Math.min(to, p.ended_at ?? to);
+    if (b > a) ms += b - a;
+  }
+  return ms;
+}
+
+/** A stay this long inside DWELL_RADIUS_M counts as standing still (a shop, a café). */
+export const DWELL_MIN_MS = 2 * 60_000;
+export const DWELL_RADIUS_M = 25;
+
+export interface Dwell {
+  t0: number;
+  t1: number;
+  at: LngLat;
+}
+
+/**
+ * Stretches where the walker stayed within DWELL_RADIUS_M of where the
+ * stretch began for at least DWELL_MIN_MS. GPS jitter inside a building
+ * wanders tens of meters, so the radius is generous; walking on at 1 m/s
+ * leaves it within half a minute, far short of the minimum stay.
+ */
+export function dwellsOf(fixes: TracePoint[]): Dwell[] {
+  const out: Dwell[] = [];
+  let i = 0;
+  while (i < fixes.length) {
+    const anchor: LngLat = [fixes[i].lon, fixes[i].lat];
+    let j = i;
+    let sx = 0;
+    let sy = 0;
+    while (j < fixes.length && distanceM(anchor, [fixes[j].lon, fixes[j].lat]) <= DWELL_RADIUS_M) {
+      sx += fixes[j].lon;
+      sy += fixes[j].lat;
+      j++;
+    }
+    const n = j - i;
+    if (n >= 2 && fixes[j - 1].t - fixes[i].t >= DWELL_MIN_MS) {
+      out.push({ t0: fixes[i].t, t1: fixes[j - 1].t, at: [sx / n, sy / n] });
+      i = j;
+    } else {
+      i++;
+    }
+  }
+  return out;
+}
+
+/**
+ * The trace with each dwell's jitter replaced by its center, held from
+ * arrival to departure: for drawing, replaying and measuring distance.
+ * The stored trace is never changed.
+ */
+export function smoothDwells(fixes: TracePoint[]): TracePoint[] {
+  const dwells = dwellsOf(fixes);
+  if (dwells.length === 0) return fixes;
+  const out: TracePoint[] = [];
+  let d = 0;
+  for (const p of fixes) {
+    while (d < dwells.length && p.t > dwells[d].t1) d++;
+    const w = dwells[d];
+    if (w && p.t >= w.t0 && p.t <= w.t1) {
+      if (p.t === w.t0 || p.t === w.t1) out.push({ ...p, lon: w.at[0], lat: w.at[1], speed: 0 });
+      continue;
+    }
+    out.push(p);
+  }
+  return out;
+}

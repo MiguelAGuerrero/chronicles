@@ -77,8 +77,8 @@ export function useCaptures(
     return { t, at: h && f != null && t - f <= FRESH_FIX_MS ? h : null };
   };
 
-  async function add(kind: CaptureKind, stamp: { t: number; at: LngLat | null }, file_path: string | null, body: string | null) {
-    if (!walkId) return;
+  async function add(kind: CaptureKind, stamp: { t: number; at: LngLat | null }, file_path: string | null, body: string | null): Promise<string | null> {
+    if (!walkId) return null;
     const c: Capture = {
       id: newId(), walk_id: walkId, t: stamp.t, kind, file_path, body, segment_id: null,
       lat: stamp.at?.[1] ?? null, lon: stamp.at?.[0] ?? null,
@@ -89,6 +89,7 @@ export function useCaptures(
     const last = pos.current.here;
     const shown = c.lat == null && last ? { ...c, lat: last[1], lon: last[0] } : c;
     if (alive.current) setCaptures((prev) => [...prev, shown]);
+    return c.id;
   }
 
   async function guarded(kind: CaptureKind, fn: () => Promise<void>) {
@@ -108,9 +109,9 @@ export function useCaptures(
     }
   }
 
-  /** The system camera, in photo or video mode as the person picks there. Resolves the kind kept, if any. */
-  const takePhoto = async (): Promise<'photo' | 'video' | null> => {
-    let kept: 'photo' | 'video' | null = null;
+  /** The system camera, in photo or video mode as the person picks there. Resolves what was kept, if anything. */
+  const takePhoto = async (): Promise<{ kind: 'photo' | 'video'; id: string } | null> => {
+    let kept: { kind: 'photo' | 'video'; id: string } | null = null;
     await guarded('photo', async () => {
       const stamp = stampNow();
       const perm = await ImagePicker.requestCameraPermissionsAsync();
@@ -136,13 +137,13 @@ export function useCaptures(
           return;
         }
         const ext = asset.mimeType?.split('/')[1]?.replace('quicktime', 'mov') ?? 'mp4';
-        await add('video', stamp, await keepFile(asset.uri, walkId!, `${newId()}.${ext}`), String(Math.round(ms)));
-        kept = 'video';
+        const id = await add('video', stamp, await keepFile(asset.uri, walkId!, `${newId()}.${ext}`), String(Math.round(ms)));
+        if (id) kept = { kind: 'video', id };
         return;
       }
       const ext = asset.mimeType?.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
-      await add('photo', stamp, await keepFile(asset.uri, walkId!, `${newId()}.${ext}`), null);
-      kept = 'photo';
+      const id = await add('photo', stamp, await keepFile(asset.uri, walkId!, `${newId()}.${ext}`), null);
+      if (id) kept = { kind: 'photo', id };
     });
     return kept;
   };
@@ -334,6 +335,12 @@ export function useCaptures(
     };
   }, []);
 
+  /** Sets or clears a photo's caption, and where its bar sits. */
+  async function setCaption(id: string, caption: string | null, y: number) {
+    await db.updateCapture(id, { caption, caption_y: caption ? y : null });
+    setCaptures((prev) => prev.map((c) => (c.id === id ? { ...c, caption, caption_y: caption ? y : null } : c)));
+  }
+
   const saveNote = (text: string) =>
     guarded('text', async () => {
       if (text.trim()) await add('text', stampNow(), null, text.trim());
@@ -352,5 +359,6 @@ export function useCaptures(
     retrySave,
     unsaved: unsaved != null,
     saveNote,
+    setCaption,
   };
 }

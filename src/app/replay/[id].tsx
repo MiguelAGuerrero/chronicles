@@ -5,18 +5,21 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WalkMap } from '../../components/map/WalkMap';
+import { CaptionEditor } from '../../components/Caption';
+import { Icon, KIND_LABEL } from '../../components/icons';
+import { exportWalk } from '../../lib/export';
 import { CaptureContent, CaptureViewer } from '../../components/CaptureView';
 import { planViews, type WalkMapHandle } from '../../components/map/types';
 import { Button, theme } from '../../components/ui';
 import { db } from '../../lib/db';
 import { snapWalk } from '../../lib/finish';
 import { ensureTileBuild } from '../../lib/tiles';
-import { KIND_LABEL } from '../../components/icons';
 import { focusOn } from '../../lib/focus';
 import { setAudioModeAsync } from 'expo-audio';
 import { FOG_MS, nextStop, PATH_MS, schedule, timedRuns, traceUntil, walkerAt, walkTimeAt } from '../../lib/replay';
 import { formatCaptures, formatDistance, formatDuration, loadReplay, suggestTitle, type ReplayData } from '../../lib/summary';
-import type { Capture } from '../../lib/types';
+import type { Capture, LngLat } from '../../lib/types';
+import { capturesHere, type HereResult } from '../../lib/here';
 
 type Beat = 'reading' | 'fog' | 'path' | 'card' | 'name';
 const FRAME_MS = 66; // ~15 fps keeps the map responsive on a phone
@@ -49,6 +52,13 @@ export default function Replay() {
   const [stop, setStop] = useState<{ group: number; item: number; atMs: number; shownAt: number } | null>(null);
   const shown = useRef(0);
   const [viewing, setViewing] = useState<Capture[] | null>(null);
+  // What happened here: a tap on the card's map shows every capture near that spot, on any walk.
+  const [here, setHere] = useState<HereResult | null>(null);
+  const [captioning, setCaptioning] = useState<Capture | null>(null);
+  const [backup, setBackup] = useState<string | null>(null);
+  const showHere = (at: LngLat) => {
+    capturesHere(at).then((r) => r.captures.length && setHere(r)).catch(() => {});
+  };
   // Opened from the log, or watched again: the stops move on by themselves.
   const rewatch = ceremony === '0';
   const [watched, setWatched] = useState(false);
@@ -292,6 +302,7 @@ export default function Replay() {
         fog={fog}
         captures={pinned}
         onPinPress={beat === 'card' || beat === 'name' ? setViewing : undefined}
+        onPress={beat === 'card' || beat === 'name' ? showHere : undefined}
         walker={walker}
         follow={beat === 'path' && !reduceMotion ? walker : null}
         fitBounds={data.bounds}
@@ -359,7 +370,31 @@ export default function Replay() {
         </View>
       )}
 
-      <CaptureViewer key={viewing?.[0]?.id ?? 'none'} captures={viewing} onClose={() => setViewing(null)} />
+      <CaptureViewer
+        key={viewing?.[0]?.id ?? 'none'}
+        captures={viewing && viewing.map((v) => data.captures.find((c) => c.id === v.id) ?? v)}
+        onClose={() => setViewing(null)}
+        onEditCaption={setCaptioning}
+      />
+      <CaptionEditor
+        key={captioning?.id ?? 'none'}
+        capture={captioning}
+        onClose={() => setCaptioning(null)}
+        onSave={async (caption, y) => {
+          if (captioning) {
+            await db.updateCapture(captioning.id, { caption, caption_y: caption ? y : null }).catch(() => {});
+            setData((d) => d && { ...d, captures: d.captures.map((c) => (c.id === captioning.id ? { ...c, caption, caption_y: caption ? y : null } : c)) });
+          }
+          setCaptioning(null);
+        }}
+      />
+      <CaptureViewer
+        key={here ? `here:${here.captures[0].id}` : 'here'}
+        title="What happened here"
+        captures={here?.captures ?? null}
+        context={here?.context}
+        onClose={() => setHere(null)}
+      />
 
       {(beat === 'fog' || beat === 'path') && (
         <View style={[styles.skip, { top: insets.top + 12 }]}>
@@ -398,6 +433,24 @@ export default function Replay() {
                 </Text>
                 {s && formatCaptures(s) ? <Text style={styles.cardMuted}>{formatCaptures(s)} · tap a pin to open</Text> : null}
                 {data.walk.epilogue ? <Text style={styles.epilogue}>“{data.walk.epilogue}”</Text> : null}
+                <Pressable
+                  testID="backup"
+                  accessibilityRole="button"
+                  onPress={async () => {
+                    setBackup('Preparing…');
+                    try {
+                      await exportWalk(data.walk.id);
+                      setBackup(Platform.OS === 'web' ? 'Downloaded' : null);
+                    } catch (e) {
+                      setBackup(e instanceof Error ? e.message : 'Could not back up this walk');
+                    }
+                  }}
+                  style={styles.backup}
+                  hitSlop={6}
+                >
+                  <Icon name="archive-outline" size={18} color={theme.ink} />
+                  <Text style={styles.backupText}>{backup ?? 'Back up this walk'}</Text>
+                </Pressable>
                 <View style={styles.row}>
                   <Button
                     variant="secondary"
@@ -490,6 +543,8 @@ const styles = StyleSheet.create({
   skip: { position: 'absolute', right: 12 },
   moment: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(20,24,32,0.85)' },
   continueBar: { position: 'absolute', left: 16, right: 16, alignItems: 'center' },
+  backup: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, alignSelf: 'flex-start' },
+  backupText: { color: theme.ink, fontSize: 15, fontWeight: '600', textDecorationLine: 'underline' },
   continueBtn: { minHeight: 48, paddingHorizontal: 24, borderRadius: 24, backgroundColor: theme.accent, alignItems: 'center', justifyContent: 'center' },
   continueBtnText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
   sheetWrap: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '70%' },

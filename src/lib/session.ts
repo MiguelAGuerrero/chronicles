@@ -47,7 +47,9 @@ export function startWalk(): Promise<{ walk: Walk; warning?: string }> {
 export function stopWalk(walkId: string): Promise<void> {
   if (!stopping) {
     stopping = (async () => {
-      await db.updateWalk(walkId, { ended_at: Date.now(), open: false });
+      const at = Date.now();
+      await db.updateWalk(walkId, { ended_at: at, open: false });
+      await db.endPause(walkId, at);
       await recorder.stop();
     })().finally(() => {
       stopping = null;
@@ -56,13 +58,38 @@ export function stopWalk(walkId: string): Promise<void> {
   return stopping;
 }
 
-/** At launch or reload: re-attaches the recorder to an open walk. Returns it, if any. */
+/**
+ * Pauses the walk: the pause is written first, then recording stops, so no
+ * position is recorded while paused and the paused time does not count.
+ */
+export async function pauseWalk(walkId: string): Promise<void> {
+  await db.startPause(walkId, Date.now());
+  await recorder.stop();
+}
+
+/** Ends the pause and picks recording back up. */
+export async function resumeWalk(walkId: string): Promise<void> {
+  await db.endPause(walkId, Date.now());
+  await recorder.resume(walkId);
+}
+
+/** Whether a walk is paused right now. */
+export async function isPaused(walkId: string): Promise<boolean> {
+  return (await db.getPauses(walkId)).some((p) => p.ended_at == null);
+}
+
+/**
+ * At launch or reload: re-attaches the recorder to an open walk, unless the
+ * walk was left paused. Returns it, if any.
+ */
 export async function reconcileOpenWalk(): Promise<Walk | null> {
   const open = await db.getOpenWalk();
   if (!open) {
     if (recorder.isRecording()) await recorder.stop();
     return null;
   }
-  if (!recorder.isRecording()) await recorder.resume(open.id);
+  const paused = await isPaused(open.id);
+  if (paused && recorder.isRecording()) await recorder.stop();
+  if (!paused && !recorder.isRecording()) await recorder.resume(open.id);
   return open;
 }

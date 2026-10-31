@@ -1,10 +1,10 @@
-import type { Capture, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
+import type { Capture, Pause, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 import { intersects, segmentBbox } from './segmentBounds';
 import type { Db } from './types';
 
 // Same tables as the native SQLite store, as IndexedDB object stores.
 const DB_NAME = 'chronicles';
-const VERSION = 2;
+const VERSION = 3;
 
 /** Raised when another open tab holds an older version of the database. */
 export class BlockedByOtherTabError extends Error {
@@ -28,6 +28,9 @@ function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number) {
     d.createObjectStore('walk_summary', { keyPath: 'walk_id' });
     d.createObjectStore('meta', { keyPath: 'key' });
     d.createObjectStore('media', { keyPath: 'key' });
+  }
+  if (oldVersion < 3) {
+    d.createObjectStore('pause', { keyPath: ['walk_id', 'started_at'] }).createIndex('walk_id', 'walk_id');
   }
 }
 
@@ -125,6 +128,40 @@ export const db: Db = {
   },
   async getCaptures(walkId) {
     return (await byWalk<Capture>('capture', walkId)).sort((a, b) => a.t - b.t);
+  },
+
+  async capturesIn([w, s, e, n]) {
+    const all = (await done((await store('capture')).getAll())) as Capture[];
+    return all
+      .filter((c) => c.lat != null && c.lon != null && c.lat >= s && c.lat <= n && c.lon >= w && c.lon <= e)
+      .sort((a, b) => a.t - b.t);
+  },
+
+  async startPause(walkId, at) {
+    const tx = (await conn()).transaction('pause', 'readwrite');
+    const st = tx.objectStore('pause');
+    const mine = (await done(st.index('walk_id').getAll(walkId))) as Pause[];
+    if (!mine.some((p) => p.ended_at == null)) st.put({ walk_id: walkId, started_at: at, ended_at: null });
+    await committed(tx);
+  },
+  async endPause(walkId, at) {
+    const tx = (await conn()).transaction('pause', 'readwrite');
+    const st = tx.objectStore('pause');
+    for (const p of (await done(st.index('walk_id').getAll(walkId))) as Pause[]) {
+      if (p.ended_at == null) st.put({ ...p, ended_at: at });
+    }
+    await committed(tx);
+  },
+  async getPauses(walkId) {
+    return (await byWalk<Pause>('pause', walkId)).sort((a, b) => a.started_at - b.started_at);
+  },
+
+  async putSegments(segments) {
+    if (segments.length === 0) return;
+    const tx = (await conn()).transaction('street_segment', 'readwrite');
+    const st = tx.objectStore('street_segment');
+    for (const x of segments) st.put(x);
+    await committed(tx);
   },
 
   async saveSnap(walkId, segments, visited, summary) {

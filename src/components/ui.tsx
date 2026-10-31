@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
-  ActivityIndicator, Animated, Easing, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle,
+  ActivityIndicator, Animated, Easing, Platform, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle,
 } from 'react-native';
 
 // Text on these colors meets WCAG AA (4.5:1); checked against white and bg.
@@ -68,6 +68,12 @@ export function Button(props: {
   );
 }
 
+/**
+ * A long press would otherwise select the label as text (iOS Safari), which
+ * cancels the hold; the touch callout is the menu that follows it.
+ */
+const noSelect = Platform.OS === 'web' ? ({ userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' } as object) : null;
+
 /** Ends something irreversible: hold for HOLD_MS while the button fills. */
 const HOLD_MS = 800;
 export function HoldButton(props: {
@@ -120,7 +126,7 @@ export function HoldButton(props: {
       onPress={() => {
         if (!fired.current) props.onTap?.();
       }}
-      style={[styles.btn, styles.hold, inactive && styles.disabled, props.style]}
+      style={[styles.btn, styles.hold, noSelect, inactive && styles.disabled, props.style]}
     >
       <Animated.View
         pointerEvents="none"

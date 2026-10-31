@@ -1,5 +1,5 @@
 import * as SQLite from 'expo-sqlite';
-import type { Capture, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
+import type { Capture, Pause, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 import { segmentBbox } from './segmentBounds';
 import type { Db } from './types';
 
@@ -49,6 +49,13 @@ const MIGRATIONS = [
   `
   ALTER TABLE walk_summary ADD COLUMN videos INTEGER NOT NULL DEFAULT 0;
   `,
+  // Pauses, photo captions, and capture lookup by place.
+  `
+  CREATE TABLE pause (walk_id TEXT NOT NULL, started_at INTEGER NOT NULL, ended_at INTEGER, PRIMARY KEY (walk_id, started_at));
+  ALTER TABLE capture ADD COLUMN caption TEXT;
+  ALTER TABLE capture ADD COLUMN caption_y REAL;
+  CREATE INDEX capture_place ON capture (lat, lon);
+  `,
 ];
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
@@ -86,7 +93,7 @@ type WalkRow = Omit<Walk, 'open'> & { open: number };
 const toWalk = (r: WalkRow): Walk => ({ ...r, open: r.open === 1 });
 
 const WALK_COLUMNS = ['started_at', 'ended_at', 'title', 'epilogue', 'open', 'area', 'snapped_build'] as const;
-const CAPTURE_COLUMNS = ['walk_id', 't', 'lat', 'lon', 'kind', 'file_path', 'body', 'segment_id'] as const;
+const CAPTURE_COLUMNS = ['walk_id', 't', 'lat', 'lon', 'kind', 'file_path', 'body', 'segment_id', 'caption', 'caption_y'] as const;
 
 /** UPDATE ... SET for the given patch; only known column names reach the SQL. */
 function setClause(patch: Record<string, unknown>, allowed: readonly string[]) {
@@ -144,8 +151,8 @@ export const db: Db = {
 
   addCapture(c) {
     return write((t) => t.runAsync(
-      'INSERT INTO capture (id, walk_id, t, lat, lon, kind, file_path, body, segment_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      c.id, c.walk_id, c.t, c.lat, c.lon, c.kind, c.file_path, c.body, c.segment_id,
+      'INSERT INTO capture (id, walk_id, t, lat, lon, kind, file_path, body, segment_id, caption, caption_y) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      c.id, c.walk_id, c.t, c.lat, c.lon, c.kind, c.file_path, c.body, c.segment_id, c.caption ?? null, c.caption_y ?? null,
     ).then(() => {}));
   },
   updateCapture(id, patch) {
@@ -155,6 +162,42 @@ export const db: Db = {
   },
   async getCaptures(walkId) {
     return (await conn()).getAllAsync<Capture>('SELECT * FROM capture WHERE walk_id = ? ORDER BY t', walkId);
+  },
+
+  async capturesIn([w, s, e, n]) {
+    return (await conn()).getAllAsync<Capture>(
+      'SELECT * FROM capture WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ? ORDER BY t', s, n, w, e,
+    );
+  },
+
+  startPause(walkId, at) {
+    return write(async (t) => {
+      const open = await t.getFirstAsync('SELECT 1 FROM pause WHERE walk_id = ? AND ended_at IS NULL', walkId);
+      if (!open) await t.runAsync('INSERT INTO pause (walk_id, started_at, ended_at) VALUES (?, ?, NULL)', walkId, at);
+    });
+  },
+  endPause(walkId, at) {
+    return write((t) => t.runAsync('UPDATE pause SET ended_at = ? WHERE walk_id = ? AND ended_at IS NULL', at, walkId).then(() => {}));
+  },
+  async getPauses(walkId) {
+    return (await conn()).getAllAsync<Pause>('SELECT * FROM pause WHERE walk_id = ? ORDER BY started_at', walkId);
+  },
+
+  putSegments(segments) {
+    if (segments.length === 0) return Promise.resolve();
+    return write(async (t) => {
+      const seg = await t.prepareAsync(
+        'INSERT OR REPLACE INTO street_segment (id, name, kind_detail, length_m, geometry, w, s, e, n, build) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      );
+      try {
+        for (const x of segments) {
+          const [w, so, e, n] = segmentBbox(x);
+          await seg.executeAsync(x.id, x.name, x.kind_detail, x.length_m, JSON.stringify(x.geometry), w, so, e, n, x.build);
+        }
+      } finally {
+        await seg.finalizeAsync();
+      }
+    });
   },
 
   saveSnap(walkId, segments, visited, s) {

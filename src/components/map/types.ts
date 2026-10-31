@@ -12,6 +12,9 @@ export const DERIVE_ZOOM = 14;
 export const MAX_DERIVE_VIEWS = 36;
 
 // Lines and dots need 3:1 against the base map (WCAG 1.4.11).
+/** Bold fog: unwalked streets near the walker, when asked for. */
+export const FOG_BOLD = '#3f4a5a';
+
 export const COLORS = {
   fog: '#6b7480',
   walked: '#c2410c',
@@ -43,6 +46,8 @@ export interface WalkMapProps {
    * screen distance at its current zoom, so nearby pins never pile up.
    */
   captures: Capture[];
+  /** Called when the person pans, zooms or rotates the map themselves. */
+  onUserMove?: () => void;
   /** Opens a pin's captures; without it, pins are shown but not pressable. */
   onPinPress?: (captures: Capture[]) => void;
   walker?: LngLat | null;
@@ -59,6 +64,8 @@ export interface WalkMapProps {
   initialZoom?: number;
   /** Greys the base map so walked streets stand out. */
   veil?: boolean;
+  /** Draws the fog (unwalked streets) bold, to find them at a glance. */
+  fogEmphasis?: boolean;
   /** Hides the map behind an opaque cover, e.g. while the camera steps through views. */
   covered?: boolean;
   onPress?: (lngLat: LngLat) => void;
@@ -78,6 +85,8 @@ export interface WalkMapHandle {
   collect(centers: LngLat[]): Promise<CollectedFeatures>;
   /** The map's size in pixels, for planning views. */
   size(): { width: number; height: number };
+  /** Road and place features in the tiles already loaded for the current view; the camera does not move. */
+  collectView(): Promise<CollectedFeatures>;
 }
 
 /**

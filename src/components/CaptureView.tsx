@@ -2,36 +2,18 @@ import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useEventListener } from 'expo';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { forwardRef, useEffect, useRef, useState, type ComponentRef } from 'react';
-import { Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Modal, Platform, Pressable, StyleSheet, Text, View, type LayoutRectangle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { releaseMedia, resolveMedia } from '../lib/media';
+import { saveKeeper } from '../lib/export';
+import { resolveMedia } from '../lib/media';
 import type { Capture } from '../lib/types';
+import { useMediaUri } from '../lib/useMediaUri';
+import { useBaker } from './Baker';
+import { CaptionBar, usePhotoRect } from './Caption';
 import { Icon, KIND_LABEL } from './icons';
 import { theme } from './ui';
 
-/** Resolves a capture's stored media to a URI it can be shown or played from. */
-export function useMediaUri(capture: Capture | null): string | null {
-  const [uri, setUri] = useState<string | null>(null);
-  useEffect(() => {
-    let alive = true;
-    let resolved: string | null = null;
-    if (capture?.file_path) {
-      resolveMedia(capture.file_path)
-        .then((u) => {
-          resolved = u;
-          if (alive) setUri(u);
-          else if (u) releaseMedia(u);
-        })
-        .catch(() => alive && setUri(null));
-    }
-    return () => {
-      alive = false;
-      setUri(null);
-      if (resolved) releaseMedia(resolved);
-    };
-  }, [capture?.file_path]);
-  return uri;
-}
+export { useMediaUri };
 
 const timeOf = (c: Capture) => new Date(c.t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
@@ -122,9 +104,12 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
   const { capture } = props;
   const uri = useMediaUri(capture);
   const video = capture.kind === 'video';
+  const [box, setBox] = useState<LayoutRectangle | null>(null);
+  const rect = usePhotoRect(capture.kind === 'photo' ? uri : null, box);
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+    <View style={StyleSheet.absoluteFill} pointerEvents="box-none" onLayout={(e) => setBox(e.nativeEvent.layout)}>
       {capture.kind === 'photo' && uri && <Image source={{ uri }} style={StyleSheet.absoluteFill} resizeMode="contain" accessibilityLabel="Photo" />}
+      {capture.kind === 'photo' && capture.caption && rect && <CaptionBar text={capture.caption} y={capture.caption_y ?? 0.75} rect={rect} />}
       {video && uri && <VideoPlayer uri={uri} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} />}
       {/* Over a video the card sits at the top, clear of the player's controls. */}
       <View style={[styles.cardRow, video ? { top: (props.topInset ?? 0) + 72 } : styles.cardRowBottom]} pointerEvents="box-none">
@@ -185,10 +170,37 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
  * Opens the captures behind a map pin, one at a time. Callers key it by the
  * pin they open, so it always starts on that pin's first capture.
  */
-export function CaptureViewer(props: { captures: Capture[] | null; onClose: () => void }) {
+export function CaptureViewer(props: {
+  captures: Capture[] | null;
+  onClose: () => void;
+  /** Extra words per capture, e.g. which walk it came from. */
+  context?: Map<string, string>;
+  /** A heading over the captures, e.g. "What happened here". */
+  title?: string;
+  /** Offers a caption edit on photos. */
+  onEditCaption?: (c: Capture) => void;
+}) {
   const insets = useSafeAreaInsets();
   const [index, setIndex] = useState(0);
   const list = props.captures ?? [];
+  // Keepers leave the app on request: to Photos on a phone, as a download on
+  // the web. A captioned photo is saved with its caption baked in.
+  const [baker, bake] = useBaker();
+  const [saveState, setSaveState] = useState<{ id: string; text: string } | null>(null);
+  const saveCurrent = async (c: Capture) => {
+    setSaveState({ id: c.id, text: 'Saving…' });
+    try {
+      let baked: string | undefined;
+      if (c.kind === 'photo' && c.caption && c.file_path) {
+        const uri = await resolveMedia(c.file_path);
+        if (uri) baked = await bake(uri, c.caption, c.caption_y ?? 0.75);
+      }
+      await saveKeeper(c, baked);
+      setSaveState({ id: c.id, text: Platform.OS === 'web' ? 'Downloaded' : 'Saved to Photos' });
+    } catch (e) {
+      setSaveState({ id: c.id, text: e instanceof Error ? e.message : 'Could not save' });
+    }
+  };
   const i = Math.min(index, Math.max(0, list.length - 1));
   const current = list[i];
   const close = () => {
@@ -203,7 +215,7 @@ export function CaptureViewer(props: { captures: Capture[] | null; onClose: () =
             key={current.id}
             capture={current}
             topInset={insets.top}
-            footer={list.length > 1 ? `${i + 1} of ${list.length}` : undefined}
+            footer={[props.context?.get(current.id), list.length > 1 ? `${i + 1} of ${list.length}` : null].filter(Boolean).join(' · ') || undefined}
             nav={
               list.length > 1
                 ? { onPrev: i > 0 ? () => setIndex(i - 1) : undefined, onNext: i < list.length - 1 ? () => setIndex(i + 1) : undefined }
@@ -211,7 +223,42 @@ export function CaptureViewer(props: { captures: Capture[] | null; onClose: () =
             }
           />
         )}
+        {baker}
+        {saveState && saveState.id === current?.id && (
+          <View style={[styles.saved, { top: insets.top + 64 }]} accessibilityLiveRegion="polite" pointerEvents="none">
+            <Text style={styles.savedText}>{saveState.text}</Text>
+          </View>
+        )}
+        {props.title ? (
+          <View style={[styles.viewerTitle, { top: insets.top + 14 }]} pointerEvents="none">
+            <Text style={styles.viewerTitleText} accessibilityRole="header">{props.title}</Text>
+          </View>
+        ) : null}
         <View style={[styles.viewerTop, { top: insets.top + 8 }]}>
+          {current && (current.kind === 'photo' || current.kind === 'video') && current.file_path && (
+            <Pressable
+              testID="viewer-save"
+              accessibilityRole="button"
+              accessibilityLabel={Platform.OS === 'web' ? 'Download' : 'Save to Photos'}
+              onPress={() => saveCurrent(current)}
+              style={styles.roundBtn}
+              hitSlop={8}
+            >
+              <Icon name="download-outline" size={24} color={theme.ink} />
+            </Pressable>
+          )}
+          {current?.kind === 'photo' && props.onEditCaption && (
+            <Pressable
+              testID="viewer-caption"
+              accessibilityRole="button"
+              accessibilityLabel={current.caption ? 'Edit caption' : 'Add caption'}
+              onPress={() => props.onEditCaption?.(current)}
+              style={styles.roundBtn}
+              hitSlop={8}
+            >
+              <Text style={styles.aa}>Aa</Text>
+            </Pressable>
+          )}
           <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={close} style={styles.roundBtn} hitSlop={8}>
             <Icon name="close" size={26} color={theme.ink} />
           </Pressable>
@@ -245,7 +292,12 @@ const styles = StyleSheet.create({
   trackFill: { height: 6, backgroundColor: '#6b21a8' },
   voiceTime: { fontSize: 14, color: theme.ink, fontVariant: ['tabular-nums'] },
   viewer: { flex: 1, backgroundColor: '#14181f' },
-  viewerTop: { position: 'absolute', right: 12 },
+  viewerTop: { position: 'absolute', right: 12, flexDirection: 'row', gap: 10 },
+  aa: { fontSize: 18, fontWeight: '800', color: theme.ink },
+  saved: { position: 'absolute', right: 12, backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12, maxWidth: 280 },
+  savedText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
+  viewerTitle: { position: 'absolute', left: 16, right: 72, backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: 999, paddingVertical: 8, paddingHorizontal: 14, alignSelf: 'flex-start' },
+  viewerTitleText: { color: theme.ink, fontSize: 15, fontWeight: '700' },
   roundBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center' },
   dim: { opacity: 0.35 },
 });

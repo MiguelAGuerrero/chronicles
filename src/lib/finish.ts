@@ -1,6 +1,6 @@
 import type { CollectedFeatures } from '../components/map/types';
 import { db } from './db';
-import { boundsOf, distanceM, filterFixes, positionAt, traceDistanceM, type Bounds } from './geo';
+import { boundsOf, distanceM, filterFixes, pausedMs, positionAt, smoothDwells, traceDistanceM, withoutPauses, type Bounds } from './geo';
 import { snap } from './snapper';
 import { deriveSegments, type RoadFeature } from './streets';
 import { ensureTileBuild } from './tiles';
@@ -45,7 +45,8 @@ export interface Collector {
  */
 export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSummary> {
   const build = await ensureTileBuild();
-  const points = await db.getPoints(walk.id);
+  const pauses = await db.getPauses(walk.id);
+  const points = withoutPauses(await db.getPoints(walk.id), pauses);
   const fixes = filterFixes(points, walk.started_at);
   const bounds = walkBounds(fixes);
   let derived: StreetSegment[] = [];
@@ -77,8 +78,10 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
   const summary: WalkSummary = {
     walk_id: walk.id,
     build,
-    distance_m: traceDistanceM(fixes),
-    duration_ms: Math.max(0, end - walk.started_at),
+    // Jitter while standing still is not distance walked.
+    distance_m: traceDistanceM(smoothDwells(fixes)),
+    // Paused time is not walking time.
+    duration_ms: Math.max(0, end - walk.started_at - pausedMs(pauses, walk.started_at, end)),
     new_streets: [...keys].filter((k) => !earlier.has(k)).length,
     streets_walked: keys.size,
     photos: captures.filter((c) => c.kind === 'photo').length,

@@ -1,4 +1,4 @@
-import type { Capture, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
+import type { Capture, Pause, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 
 /**
  * Local-only storage, mirroring the concept doc's tables. Native uses
@@ -18,6 +18,17 @@ export interface Db {
   addCapture(capture: Capture): Promise<void>;
   updateCapture(id: string, patch: Partial<Omit<Capture, 'id'>>): Promise<void>;
   getCaptures(walkId: string): Promise<Capture[]>;
+  /** Captures of every walk whose position lies inside the bounds. */
+  capturesIn(bounds: [number, number, number, number]): Promise<Capture[]>;
+
+  /** Starts a pause; at most one pause is open per walk. */
+  startPause(walkId: string, at: number): Promise<void>;
+  /** Ends the walk's open pause, if any. */
+  endPause(walkId: string, at: number): Promise<void>;
+  getPauses(walkId: string): Promise<Pause[]>;
+
+  /** Caches street segments derived outside a snap (streets around the walker). */
+  putSegments(segments: StreetSegment[]): Promise<void>;
 
   /** Stores freshly derived segments and the walk's visited rows in one transaction. */
   saveSnap(walkId: string, segments: StreetSegment[], visited: VisitedSegment[], summary: WalkSummary): Promise<void>;

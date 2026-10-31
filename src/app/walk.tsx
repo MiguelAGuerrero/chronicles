@@ -1,30 +1,37 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { forwardRef, useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
+import { forwardRef, useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import {
   AccessibilityInfo, Animated, BackHandler, Easing, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, StyleSheet, Text,
   TextInput, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WalkMap } from '../components/map/WalkMap';
+import type { WalkMapHandle } from '../components/map/types';
+import { CaptionEditor } from '../components/Caption';
 import { CaptureViewer } from '../components/CaptureView';
 import { Icon, type IconName } from '../components/icons';
 import { Banner, Button, HoldButton, theme } from '../components/ui';
 import { db } from '../lib/db';
 import { focusOn } from '../lib/focus';
-import { boundsOf } from '../lib/geo';
+import { boundsOf, pausedMs } from '../lib/geo';
+import { capturesHere, type HereResult } from '../lib/here';
+import { deriveSegments, streetKey } from '../lib/streets';
 import { successFeedback, tapFeedback } from '../lib/haptics';
 import { recorder } from '../lib/recorder';
 import type { RecorderStatus } from '../lib/recorder/types';
-import { stopWalk } from '../lib/session';
+import { pauseWalk, resumeWalk, stopWalk } from '../lib/session';
 import { formatDistance, formatDuration, formatElapsed } from '../lib/summary';
-import type { Capture, StreetSegment, Walk } from '../lib/types';
+import type { Capture, LngLat, Pause, StreetSegment, Walk } from '../lib/types';
 import { useCaptures } from '../lib/useCaptures';
 import { useLiveTrace } from '../lib/useLiveTrace';
 
-const FOG_RADIUS_M = 400;
+/** Streets around the walker: read from the map and shown as fog this far out. */
+const NEAR_RADIUS_M = 1000;
 /** No accepted fix for this long while recording reads as weak GPS. */
 const WEAK_GPS_MS = 20_000;
 const NOTICE_MS = 6000;
+/** How long "Aa Caption" stays offered after a photo. */
+const CAPTION_OFFER_MS = 6000;
 
 type Notice = { message: string; tone?: 'info' | 'error'; openSettings?: boolean; sticky?: boolean };
 
@@ -32,6 +39,10 @@ export default function WalkScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ warning?: string }>();
   const [walk, setWalk] = useState<Walk | null>(null);
+  const [pauses, setPauses] = useState<Pause[]>([]);
+  const [pausing, setPausing] = useState(false);
+  // The map follows the walker until they pan or zoom it themselves.
+  const [following, setFollowing] = useState(true);
   const [status, setStatus] = useState<RecorderStatus>({ kind: 'idle' });
   const [now, setNow] = useState(() => Date.now());
   // One-off notices: a start warning, or the web's visibility rule.
@@ -51,9 +62,17 @@ export default function WalkScreen() {
   // The memo whose save failed at Stop; holding Stop again ends the walk without it.
   const giveUpMemo = useRef(false);
   const saveRef = useRef<PressableRef>(null);
+  const mapRef = useRef<WalkMapHandle>(null);
 
   useEffect(() => {
-    db.getOpenWalk().then((w) => (w ? setWalk(w) : router.replace('/')));
+    db.getOpenWalk().then(async (w) => {
+      if (!w) {
+        router.replace('/');
+        return;
+      }
+      setWalk(w);
+      setPauses(await db.getPauses(w.id));
+    });
   }, []);
   useEffect(
     () =>
@@ -90,14 +109,20 @@ export default function WalkScreen() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  // Fog from streets already derived on earlier walks, around where you are,
-  // refreshed when you move about 100 m.
+  // Streets around the walker, refreshed when they move about 100 m: the map
+  // reads the streets in its loaded tiles, they join the cache, and those no
+  // walk has credited show as fog.
   const hereKey = live.here ? `${live.here[0].toFixed(3)},${live.here[1].toFixed(3)}` : null;
   useEffect(() => {
     if (!live.here) return;
     let alive = true;
     (async () => {
-      const segs = await db.getSegmentsIn(boundsOf([live.here!], FOG_RADIUS_M)!);
+      const features = await mapRef.current?.collectView().catch(() => null);
+      if (features && features.roads.length) {
+        const build = (await db.getMeta('tile_build')) ?? 'unknown';
+        await db.putSegments(deriveSegments(features.roads, features.names, build)).catch(() => {});
+      }
+      const segs = await db.getSegmentsIn(boundsOf([live.here!], NEAR_RADIUS_M)!);
       const visited = await db.visitedSegmentIds();
       if (!alive) return;
       setFog(segs.filter((s) => !visited.has(s.id)));
@@ -108,6 +133,19 @@ export default function WalkScreen() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hereKey]);
+  // Unwalked streets near me: a count, and the fog drawn boldly over a veiled map.
+  const [showUnwalked, setShowUnwalked] = useState(false);
+  const unwalkedCount = useMemo(() => new Set(fog.map(streetKey)).size, [fog]);
+
+  // What happened here: a tap on the map shows every capture taken near that
+  // spot, on any walk.
+  const [here, setHere] = useState<HereResult | null>(null);
+  async function showHere(at: LngLat) {
+    if (cap.voiceStartedAt != null) return;
+    const r = await capturesHere(at);
+    if (r.captures.length) setHere(r);
+    else setToast('Nothing captured here yet');
+  }
 
   const [viewing, setViewing] = useState<Capture[] | null>(null);
 
@@ -132,6 +170,28 @@ export default function WalkScreen() {
     }
   }
 
+  async function togglePause() {
+    if (!walk || pausing) return;
+    setPausing(true);
+    try {
+      if (paused) {
+        await resumeWalk(walk.id);
+        AccessibilityInfo.announceForAccessibility('Walk resumed');
+      } else {
+        // A memo in progress is saved first; a paused walk records nothing.
+        await cap.finishVoice();
+        await pauseWalk(walk.id);
+        AccessibilityInfo.announceForAccessibility('Walk paused. Nothing is recorded until you resume.');
+      }
+      setPauses(await db.getPauses(walk.id));
+      tapFeedback();
+    } catch (e) {
+      setNotice({ message: `Could not ${paused ? 'resume' : 'pause'}: ${e instanceof Error ? e.message : e}`, tone: 'error' });
+    } finally {
+      setPausing(false);
+    }
+  }
+
   async function saveNote() {
     const ok = await cap.saveNote(note);
     if (ok) {
@@ -142,11 +202,21 @@ export default function WalkScreen() {
     }
   }
 
+  // After a photo, a caption is offered for a few seconds; it is opt-in.
+  const [justTook, setJustTook] = useState<string | null>(null);
+  const [captioning, setCaptioning] = useState<Capture | null>(null);
+  useEffect(() => {
+    if (!justTook) return;
+    const t = setTimeout(() => setJustTook(null), CAPTION_OFFER_MS);
+    return () => clearTimeout(t);
+  }, [justTook]);
+
   async function photo() {
     const kept = await cap.takePhoto();
     if (!kept) return;
     tapFeedback();
-    setToast(kept === 'video' ? 'Video saved here' : 'Photo saved here');
+    if (kept.kind === 'photo') setJustTook(kept.id);
+    else setToast('Video saved here');
   }
 
   async function startVoice() {
@@ -190,11 +260,14 @@ export default function WalkScreen() {
     };
   }, [recordingNow]);
 
-  const elapsed = walk ? now - walk.started_at : 0;
+  const paused = pauses.some((p) => p.ended_at == null);
+  // Paused time does not count as walking.
+  const elapsed = walk ? now - walk.started_at - pausedMs(pauses, walk.started_at, now) : 0;
   const weak = status.kind === 'recording' && live.lastFixAt != null && now - live.lastFixAt > WEAK_GPS_MS;
   // The growing trace says it is recording; the status only shows when it is not.
   const problem =
-    status.kind === 'error' ? { label: 'Not recording', color: theme.danger }
+    paused ? { label: 'Paused', color: theme.muted }
+    : status.kind === 'error' ? { label: 'Not recording', color: theme.danger }
     : status.kind === 'waiting' || status.kind === 'idle' ? { label: 'Waiting for GPS', color: theme.warn }
     : weak ? { label: 'Weak GPS', color: theme.warn }
     : null;
@@ -211,7 +284,12 @@ export default function WalkScreen() {
         // Opening a capture would hide a memo that is still recording.
         onPinPress={recordingVoice || stopping ? undefined : setViewing}
         walker={live.here}
-        follow={live.here}
+        follow={following ? live.here : null}
+        onUserMove={() => setFollowing(false)}
+        onPress={showHere}
+        veil={showUnwalked}
+        fogEmphasis={showUnwalked}
+        ref={mapRef}
         initialCenter={live.here ?? undefined}
         initialZoom={16}
       />
@@ -293,6 +371,23 @@ export default function WalkScreen() {
             )}
           </View>
         </View>
+        {justTook && !recordingVoice && (
+          <View style={styles.undo} accessibilityLiveRegion="polite">
+            <Text style={styles.undoText}>Photo saved here</Text>
+            <Pressable
+              testID="add-caption"
+              accessibilityRole="button"
+              onPress={() => {
+                setCaptioning(cap.captures.find((c) => c.id === justTook) ?? null);
+                setJustTook(null);
+              }}
+              hitSlop={10}
+              style={styles.undoBtn}
+            >
+              <Text style={styles.undoBtnText}>Aa Caption</Text>
+            </Pressable>
+          </View>
+        )}
         {cap.discarded && !recordingVoice && (
           <View style={styles.undo} accessibilityLiveRegion="polite">
             <Text style={styles.undoText}>Voice memo discarded</Text>
@@ -316,6 +411,18 @@ export default function WalkScreen() {
           <Text style={styles.stats} accessibilityLabel={statsLabel}>
             {formatElapsed(elapsed)} · {formatDistance(live.distanceM)}
           </Text>
+          <View style={styles.barActions}>
+          <Pressable
+            testID={paused ? 'resume-walk' : 'pause-walk'}
+            accessibilityRole="button"
+            accessibilityLabel={paused ? 'Resume the walk' : 'Pause the walk'}
+            accessibilityHint={paused ? undefined : 'Stops recording until you resume'}
+            onPress={togglePause}
+            disabled={pausing || stopping || !walk}
+            style={({ pressed }) => [styles.pauseBtn, paused && styles.pauseBtnOn, pressed && styles.pressed]}
+          >
+            <Icon name={paused ? 'play' : 'pause'} size={20} color={paused ? '#ffffff' : theme.ink} />
+          </Pressable>
           <HoldButton
             testID="stop"
             label="Hold to stop"
@@ -327,13 +434,66 @@ export default function WalkScreen() {
           >
             <View style={styles.stopInner}>
               <Icon name="stop" size={18} color={theme.ink} />
-              <Text style={styles.stopText}>Hold</Text>
+              <Text style={styles.stopText} selectable={false}>Hold</Text>
             </View>
           </HoldButton>
+          </View>
         </View>
       </View>
 
-      <CaptureViewer key={viewing?.[0]?.id ?? 'none'} captures={viewing} onClose={() => setViewing(null)} />
+      <Pressable
+        testID="unwalked"
+        accessibilityRole="switch"
+        accessibilityState={{ checked: showUnwalked }}
+        accessibilityLabel="Show unwalked streets near me"
+        onPress={() => setShowUnwalked((v) => !v)}
+        style={({ pressed }) => [styles.edgeBtn, { left: 12, bottom: insets.bottom + 78 }, showUnwalked && styles.edgeBtnOn, pressed && styles.pressed]}
+      >
+        <Icon name="footsteps-outline" size={22} color={showUnwalked ? '#ffffff' : theme.ink} />
+      </Pressable>
+      {showUnwalked && (
+        <View style={[styles.unwalked, { left: 12, bottom: insets.bottom + 128 }]} accessibilityLiveRegion="polite" pointerEvents="none">
+          <Text style={styles.unwalkedText}>
+            {unwalkedCount} unwalked {unwalkedCount === 1 ? 'street' : 'streets'} within 1 km
+          </Text>
+        </View>
+      )}
+
+      {!following && live.here && (
+        // Back to following the walker, after looking around the map.
+        <Pressable
+          testID="recenter"
+          accessibilityRole="button"
+          accessibilityLabel="Recenter on your position"
+          onPress={() => setFollowing(true)}
+          style={({ pressed }) => [styles.edgeBtn, { right: 12, bottom: insets.bottom + 78 }, pressed && styles.pressed]}
+        >
+          <Icon name="locate" size={22} color={theme.ink} />
+        </Pressable>
+      )}
+
+      <CaptureViewer
+        key={viewing?.[0]?.id ?? 'none'}
+        captures={viewing && viewing.map((v) => cap.captures.find((c) => c.id === v.id) ?? v)}
+        onClose={() => setViewing(null)}
+        onEditCaption={setCaptioning}
+      />
+      <CaptionEditor
+        key={captioning?.id ?? 'none'}
+        capture={captioning}
+        onClose={() => setCaptioning(null)}
+        onSave={async (caption, y) => {
+          if (captioning) await cap.setCaption(captioning.id, caption, y).catch(() => setToast('The caption could not be saved'));
+          setCaptioning(null);
+        }}
+      />
+      <CaptureViewer
+        key={here ? `here:${here.captures[0].id}` : 'here'}
+        title="What happened here"
+        captures={here?.captures ?? null}
+        context={here?.context}
+        onClose={() => setHere(null)}
+      />
 
       <Modal visible={noteOpen} transparent animationType="fade" onRequestClose={() => setNoteOpen(false)}>
         {/* Every way out keeps the draft; only Save clears it. */}
@@ -467,6 +627,21 @@ const styles = StyleSheet.create({
   barInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', maxWidth: 640, width: '100%', alignSelf: 'center' },
   stats: { color: theme.ink, fontSize: 17, fontWeight: '600', fontVariant: ['tabular-nums'] },
   stopInner: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  barActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  pauseBtn: {
+    width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1.5, borderColor: theme.ink, backgroundColor: theme.surface,
+  },
+  pauseBtnOn: { backgroundColor: theme.ink },
+  edgeBtnOn: { backgroundColor: theme.ink, borderColor: theme.ink },
+  unwalked: { position: 'absolute', backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12 },
+  unwalkedText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
+  // Small round controls at the map's edges, as in AllTrails.
+  edgeBtn: {
+    position: 'absolute', width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.edge,
+    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 3,
+  },
   stopText: { color: theme.ink, fontSize: 15, fontWeight: '600' },
   modalBack: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' },
   modalWrap: { flex: 1, justifyContent: 'flex-start', paddingHorizontal: 16 },
