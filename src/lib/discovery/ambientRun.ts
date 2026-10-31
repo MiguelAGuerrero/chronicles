@@ -1,10 +1,10 @@
 import { AppState } from 'react-native';
 import { db } from '../db';
-import { boundsOf, distanceM, filterFixes, nearPoints, withoutPauses } from '../geo';
+import { boundsOf, filterFixes, withoutPauses } from '../geo';
 import { notifier } from '../notify';
-import type { LngLat, StreetSegment, Walk } from '../types';
-import { ambientCheck } from './ambient';
-import { QUIET_KEY } from './recallCheck';
+import type { LngLat, Walk } from '../types';
+import { ambientBlocked, ambientCheck, isPursuing, unwalkedPieces } from './ambient';
+import { QUIET_KEY, RECALL_LAST_KEY } from './recallCheck';
 import { marksFromScan, offeredFrom } from './scan';
 import { cacheTilesAround } from './tileFetch';
 import { newId } from '../id';
@@ -15,8 +15,6 @@ export const AMBIENT_KEY = 'ambient_walk';
 const FIRED_KEY = 'ambient_fired';
 /** A hint's mark that a tapped notification asked to open (A9). */
 export const MARK_OPEN_KEY = 'mark_open';
-/** Pieces this close to the walk's own trace count as walked this walk (A5). */
-const ON_TRACE_M = 20;
 /** Only the recent fixes matter for the heading; the trace check reads them all. */
 const RECENT = 120;
 
@@ -41,31 +39,8 @@ export async function runAmbient(walk: Walk, now = Date.now()): Promise<void> {
   if (running) return;
   running = true;
   try {
-    const [opted, quiet, firedRaw, nav] = await Promise.all([
-      db.getMeta(AMBIENT_KEY), db.getMeta(QUIET_KEY), db.getMeta(FIRED_KEY), db.getMeta('nav'),
-    ]);
-    if (opted !== walk.id || quiet === walk.id) return;
-    const pauses = await db.getPauses(walk.id);
-    const points = await db.getPoints(walk.id);
-    const accepted = filterFixes(withoutPauses(points, pauses), walk.started_at);
-    const last = accepted[accepted.length - 1];
-    if (!last) return;
-    const here: LngLat = [last.lon, last.lat];
-    // New ground: read its tiles, without the map (A11). A failure keeps the cache.
-    await cacheTilesAround(here);
-    const build = await db.getMeta('tile_build');
-    const places = (await db.placesIn(boundsOf([here], 160)!)).filter((p) => p.build === build);
-    if (!places.length) return;
-    const visited = await db.visitedSegmentIds();
-    const walkedNow = nearPoints(accepted.map((p) => [p.lon, p.lat] as LngLat), ON_TRACE_M);
-    const unwalked = (await db.getSegmentsIn(boundsOf([here], 200)!)).filter((s) => !visited.has(s.id) && !walkedNow(mid(s)));
-    const marks = await db.listMarks(walk.id);
-    const open = marks.filter((m) => m.state === 'open');
-    // One at a time (A8): no hint while a scan mark is pursued or an ambient one is open.
-    const pursuing =
-      open.some((m) => m.origin === 'ambient') ||
-      open.some((m) => distanceM(m.at, here) <= 150) ||
-      (nav != null && /"kind":"mark"/.test(nav) && JSON.parse(nav).walk_id === walk.id);
+    // The cheap checks first: most batches stop here (audit).
+    const [opted, quiet, firedRaw] = await Promise.all([db.getMeta(AMBIENT_KEY), db.getMeta(QUIET_KEY), db.getMeta(FIRED_KEY)]);
     let fired = { walkId: walk.id, count: 0, lastAt: null as number | null };
     try {
       const f = firedRaw ? JSON.parse(firedRaw) : null;
@@ -73,9 +48,34 @@ export async function runAmbient(walk: Walk, now = Date.now()): Promise<void> {
     } catch {
       // a fresh count
     }
+    if (ambientBlocked({ enabled: opted === walk.id, quiet: quiet === walk.id, walkId: walk.id, fired, now })) return;
+    const pauses = await db.getPauses(walk.id);
+    const points = await db.getPoints(walk.id);
+    const accepted = filterFixes(withoutPauses(points, pauses), walk.started_at);
+    const last = accepted[accepted.length - 1];
+    if (!last) return;
+    const here: LngLat = [last.lon, last.lat];
+    const trace = accepted.map((p) => [p.lon, p.lat] as LngLat);
+    const [nav, recallLast, marks] = await Promise.all([db.getMeta('nav'), db.getMeta(RECALL_LAST_KEY), db.listMarks(walk.id)]);
+    let navMarkId: string | null = null;
+    try {
+      const n = nav ? JSON.parse(nav) : null;
+      if (n?.walk_id === walk.id && n.dest?.kind === 'mark') navMarkId = n.dest.markId ?? null;
+    } catch {
+      // no route
+    }
+    const open = marks.filter((m) => m.state === 'open');
+    if (isPursuing({ open, here, fixes: trace, navMarkId })) return;
+    // New ground: read its tiles, without the map (A11). A failure keeps the cache.
+    await cacheTilesAround(here);
+    const build = await db.getMeta('tile_build');
+    const places = (await db.placesIn(boundsOf([here], 160)!)).filter((p) => p.build === build);
+    if (!places.length) return;
+    const unwalked = unwalkedPieces(await db.getSegmentsIn(boundsOf([here], 200)!), await visitedIds(), trace);
     const hint = ambientCheck({
       enabled: true, quiet: false, walkId: walk.id, startedAt: walk.started_at, pauses,
-      fixes: points.slice(-RECENT), places, unwalked, offered: await db.listOffered(), fired, now, pursuing,
+      fixes: points.slice(-RECENT), places, unwalked, offered: await db.listOffered(), fired, now,
+      pursuing: false, lastRecallAt: recallLast ? Number(recallLast) : null,
     });
     if (!hint) return;
     const [mark] = marksFromScan([hint.place], { walkId: walk.id, now, newId, origin: 'ambient' });
@@ -90,7 +90,9 @@ export async function runAmbient(walk: Walk, now = Date.now()): Promise<void> {
   }
 }
 
-function mid(s: StreetSegment): LngLat {
-  const line = s.geometry[0] ?? [];
-  return line[Math.floor(line.length / 2)] ?? [0, 0];
+// Every street piece any walk credited, read at most once a minute: it only grows at a stop.
+let visited: { at: number; ids: Set<string> } | null = null;
+async function visitedIds(): Promise<Set<string>> {
+  if (!visited || Date.now() - visited.at > 60_000) visited = { at: Date.now(), ids: await db.visitedSegmentIds() };
+  return visited.ids;
 }

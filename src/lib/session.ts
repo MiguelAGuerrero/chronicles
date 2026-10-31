@@ -61,6 +61,7 @@ export function stopWalk(walkId: string): Promise<void> {
       await db.endPause(walkId, at);
       await recorder.stop();
       void notifier.pauseEnded(walkId);
+      void notifier.walkEnded(walkId);
       // Navigation ends with the walk (N10).
       await clearNav().catch(() => {});
     })().finally(() => {

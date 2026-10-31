@@ -140,7 +140,9 @@ export function foundBy(at: LngLat, marks: Mark[]): Mark | null {
   for (const x of marks) {
     if (x.state !== 'open') continue;
     const d = distanceM(at, x.at);
-    if (d <= SCAN_RULES.revealM && d < bestD) [best, bestD] = [x, d];
+    // An ambient mark is found only where it is named (A10).
+    const reach = x.origin === 'ambient' ? AMBIENT_REVEAL_M : SCAN_RULES.revealM;
+    if (d <= reach && d < bestD) [best, bestD] = [x, d];
   }
   return best;
 }

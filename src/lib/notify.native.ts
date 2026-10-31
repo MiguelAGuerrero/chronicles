@@ -88,6 +88,9 @@ export const notifier: Notifier = {
       trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: PAUSE_REMIND_MS / 1000, channelId: CHANNEL },
     });
   },
+  async walkEnded(walkId) {
+    for (const id of [`recall-${walkId}`, `ambient-${walkId}`]) await Notifications.dismissNotificationAsync(id).catch(() => {});
+  },
   async ask() {
     await permitted();
   },

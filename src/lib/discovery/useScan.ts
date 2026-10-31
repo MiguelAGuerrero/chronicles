@@ -85,12 +85,16 @@ export function useScan(opts: {
     [open, revealed],
   );
 
-  const scan = useCallback(async (force = false) => {
+  /** Resolves with how the scan ended, or undefined when it didn't start. */
+  const scan = useCallback(async (force = false): Promise<string | undefined> => {
     const { walkId, here, map, onNotice } = latest.current;
     const m = map();
     // A ref, set before the first await: a double tap starts one scan, not two (audit).
     if (!walkId || starting.current || !m) return;
-    if (!here) return onNotice('Waiting for your position');
+    if (!here) {
+      onNotice('Waiting for your position');
+      return;
+    }
     starting.current = true;
     try {
       if (!force && !(await loadPrefs().catch(() => null))) {
@@ -100,12 +104,16 @@ export function useScan(opts: {
       cancelled.current = false;
       setScanning(true);
       const r = await runScan({ center: here, walkId, map: m, shouldStop: () => cancelled.current || !mounted.current });
-      if (!mounted.current || r.outcome === 'cancelled' || r.outcome === 'closed') return;
-      if (r.outcome === 'busy') return onNotice('Finding a route first. Scan again in a moment.');
+      if (!mounted.current || r.outcome === 'cancelled' || r.outcome === 'closed') return r.outcome;
+      if (r.outcome === 'busy') {
+        onNotice('Finding a route first. Scan again in a moment.');
+        return r.outcome;
+      }
       const note = r.outcome === 'full' || r.outcome === 'few' ? scanNote(r.outcome, r.marks.length) ?? `${r.marks.length} marks nearby` : scanNote(r.outcome, 0)!;
       onNotice(note, r.outcome === 'failed' ? 'error' : 'info');
       AccessibilityInfo.announceForAccessibility(note);
       await reload();
+      return r.outcome;
     } catch (e) {
       onNotice(`The scan didn’t finish: ${e instanceof Error ? e.message : e}`, 'error');
     } finally {

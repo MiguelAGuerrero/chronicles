@@ -278,3 +278,9 @@ test('scan: the replay names a find with its category; an unnamed one by its lab
   assert.equal(foundLine(marks, 'c2'), 'Found: Public art');
   assert.equal(foundLine(marks, 'c3'), null);
 });
+
+test('scan: a capture finds an ambient mark only within 30 m (audit, A10)', () => {
+  const [mark] = marksFromScan([place('A', 'food', m(100, 0))], { walkId: 'w1', now: 0, newId: () => 'a', origin: 'ambient' });
+  assert.equal(foundBy(m(55, 0), [mark]), null);
+  assert.equal(foundBy(m(75, 0), [mark])?.id, 'a');
+});

@@ -26,11 +26,12 @@ export function DiscoveryPrefs(props: {
 }) {
   const [prefs, setPrefs] = useState<Prefs>(() => props.initial ?? {});
   // Auto-scan (A2): kept beside the preferences, saved with them.
-  const [auto, setAuto] = useState(false);
+  // Null until read, so a quick Done can't overwrite a saved "on" (audit).
+  const [auto, setAuto] = useState<boolean | null>(null);
   useEffect(() => {
     if (!props.visible) return;
     let alive = true;
-    loadAutoScan().then((v) => alive && setAuto(v), () => {});
+    loadAutoScan().then((v) => alive && setAuto(v), () => alive && setAuto(false));
     return () => {
       alive = false;
     };
@@ -69,13 +70,13 @@ export function DiscoveryPrefs(props: {
             })}
           </ScrollView>
           <View style={styles.row}>
-            <Text style={styles.cat}>Scan when a walk starts</Text>
-            <Switch testID="auto-scan" accessibilityLabel="Scan when a walk starts" value={auto} onValueChange={setAuto} />
+            <Text style={styles.cat} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>Scan when a walk starts</Text>
+            <Switch testID="auto-scan" accessibilityLabel="Scan when a walk starts" value={!!auto} disabled={auto == null} onValueChange={setAuto} />
           </View>
           <View style={styles.actions}>
             <Button variant="ghost" label="Cancel" onPress={props.onClose} />
             <Button testID="prefs-done" label={props.actionLabel} onPress={() => {
-              saveAutoScan(auto).catch(() => {});
+              if (auto != null) saveAutoScan(auto).catch(() => {});
               props.onDone(prefs);
             }} />
           </View>

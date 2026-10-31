@@ -13,6 +13,7 @@ export const notifier: Notifier = {
   // Reminders on the web fire only while the page is open, on the walk screen (R3).
   async recall() {},
   async ask() {},
+  async walkEnded() {},
   // Ambient is phone-only (A1).
   async ambient() {},
 };

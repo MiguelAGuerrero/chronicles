@@ -377,6 +377,40 @@ Read this before changing recording, streets, the replay or storage.
   - **Native** (unverified on a device): the task's check, notifications,
     actions and cold-start taps.
 
+- **Ambient hints** (phone only; `discovery/ambient.ts` pure, `ambientRun.ts`, `tileDecode.ts`, `tileFetch.ts`):
+  - Opt-in per walk (meta `ambient_walk`) from the walk's options card, beside
+    Quiet walk (meta `quiet_walk`, both platforms).
+  - The location task runs reminders first, then `runAmbient`, on each batch.
+    A reminder holds hints back for a minute (`recall_last`). A reminder check
+    still in flight counts as one.
+  - Cheap checks come first (`ambientBlocked`: off, quiet, a silent walk, the
+    budget).
+  - **Draws are stable hashes:** a quarter of walks draw silent, and each
+    place's coin is drawn once per walk (`coinFor`). A coin tossed every
+    second would always land.
+  - An ambient mark holds the next hint back only until you reach it
+    (`isPursuing`). It is named, and found by a capture, within 30 m.
+  - "Walked this walk" uses the point halfway along a piece, not its middle
+    vertex, which is often the junction you crossed.
+  - The heading is the device course only when the trace agrees, or when
+    there is no trace and the course isn't Android's 0 ("no bearing").
+  - **Tiles are decoded in code:** pbf 5 (`PbfReader`/`PbfWriter`, there is no
+    default export) and @mapbox/vector-tile 3.
+    - It fetches the 3x3 tiles around you in parallel, 10 s timeout each, and
+      caches only once all nine are in. A failure waits 2 min.
+    - `tile_url` is stored beside `tile_build` in `ensureTileBuild`, and the
+      session's read set resets on a build change.
+    - Decoded tiles give the same street ids as the map read (a test with
+      `mvtFixture.ts`, a test-only encoder, since the tile host is blocked
+      from cloud sessions).
+  - Hints in front are a pill, else a notification. A tap stores `mark_open`.
+    The walk re-reads marks on returning to the front. Stop dismisses the
+    walk's notifications.
+  - Auto-scan (meta `auto_scan`, in the preferences) waits for a route to be
+    found, and counts as done only once it ran.
+  - **Native** (unverified on a device): the whole ambient path, background
+    fetch while iOS keeps location running, notifications.
+
 ## Working with the owner
 
 - **Ask before architectural decisions:** libraries, data model, platform strategy,

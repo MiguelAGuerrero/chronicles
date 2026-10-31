@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import {
-  AccessibilityInfo, ActivityIndicator, Animated, BackHandler, Switch, Easing, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, StyleSheet, Text,
+  AccessibilityInfo, ActivityIndicator, Animated, AppState, BackHandler, Switch, Easing, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, StyleSheet, Text,
   TextInput, useWindowDimensions, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -96,6 +96,14 @@ export default function WalkScreen() {
   const saveRef = useRef<PressableRef>(null);
   const mapRef = useRef<WalkMapHandle>(null);
   const [viewing, setViewing] = useState<Capture[] | null>(null);
+  // The walk's options card (A2).
+  const [options, setOptions] = useState(false);
+  // Counts returns to the front, so a hint or reminder tapped in the background is picked up.
+  const [resumed, setResumed] = useState(0);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (st) => st === 'active' && setResumed((n) => n + 1));
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     db.getOpenWalk().then(async (w) => {
@@ -205,16 +213,20 @@ export default function WalkScreen() {
   async function pressMap(at: LngLat, radiusM?: number) {
     if (cap.voiceStartedAt != null || stopping || viewing || here || scan.scanning) return;
     setMarkOpen(null);
+    setOptions(false);
     tapFeedback();
     const tap = ++hereTaps.current;
     const r = await capturesHere(at, cap.captures, radiusM).catch(() => null);
     if (tap !== hereTaps.current) return; // a newer press won
     setSpot({ at, here: r && r.captures.length ? r : null, from: live.here });
   }
-  // The spot card goes once you walk on, or with Back (Android) and Escape (web).
+  // The spot card (and the options card) goes once you walk on, or with Back (Android) and Escape (web).
   useEffect(() => {
-    if (!spot) return;
-    const close = () => setSpot(null);
+    if (!spot && !options) return;
+    const close = () => {
+      setSpot(null);
+      setOptions(false);
+    };
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
       close();
       return true;
@@ -225,7 +237,7 @@ export default function WalkScreen() {
       back.remove();
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
-  }, [spot]);
+  }, [spot, options]);
   useEffect(() => {
     if (!spot?.from || !live.here || distanceM(spot.from, live.here) < 30) return;
     const t = setTimeout(() => setSpot(null), 0);
@@ -333,10 +345,9 @@ export default function WalkScreen() {
     return () => {
       alive = false;
     };
-  }, [walk, params.recall]);
+  }, [walk, params.recall, resumed]);
   // This walk's options (A2): a quiet walk (no reminders, no hints), and on a
   // phone, ambient hints (A1), off unless turned on for this walk.
-  const [options, setOptions] = useState(false);
   const [quiet, setQuiet] = useState(false);
   const [ambientOn, setAmbientOn] = useState(false);
   useEffect(() => {
@@ -371,6 +382,11 @@ export default function WalkScreen() {
     const t = setTimeout(() => setHint(null), 15_000);
     return () => clearTimeout(t);
   }, [hint]);
+  // Back in front (a notification tapped, the phone unlocked): marks a hint
+  // made in the background are re-read, and a tapped one opens (A9, audit).
+  useEffect(() => {
+    if (resumed) reloadMarks();
+  }, [resumed, reloadMarks]);
   // A tapped hint notification opens the walk on its mark, with Go here (A9).
   useEffect(() => {
     if (!walk) return;
@@ -386,19 +402,32 @@ export default function WalkScreen() {
     return () => {
       alive = false;
     };
-  }, [walk, reloadMarks]);
+  }, [walk, reloadMarks, resumed]);
   // Auto-scan (A2): once per walk, at its first fix, when set in the preferences.
+  // It waits while a route is found (both read the map), and is marked done only once it ran.
   const scanNow = scan.scan;
-  const autoTried = useRef(false);
+  const autoBusy = useRef(false);
+  const autoDone = useRef(false);
+  const navFinding = navigation.finding;
   useEffect(() => {
-    if (!walk || !live.here || autoTried.current) return;
-    autoTried.current = true;
+    if (!walk || !live.here || navFinding || autoBusy.current || autoDone.current) return;
+    autoBusy.current = true;
     (async () => {
-      if (!(await loadAutoScan()) || (await db.getMeta('auto_scanned')) === walk.id) return;
-      await db.setMeta('auto_scanned', walk.id);
-      scanNow();
-    })().catch(() => {});
-  }, [walk, live.here, scanNow]);
+      if (!(await loadAutoScan()) || (await db.getMeta('auto_scanned')) === walk.id) {
+        autoDone.current = true;
+        return;
+      }
+      const outcome = await scanNow();
+      if (outcome && outcome !== 'busy') {
+        autoDone.current = true;
+        await db.setMeta('auto_scanned', walk.id);
+      }
+    })()
+      .catch(() => {})
+      .finally(() => {
+        autoBusy.current = false;
+      });
+  }, [walk, live.here, navFinding, scanNow]);
   const walkStart: LngLat | null = live.runs[0]?.[0] ?? null;
   // Once, after the first 100 m of a first walk: how to go somewhere.
   const hinted = useRef(false);
@@ -649,12 +678,14 @@ export default function WalkScreen() {
             <Text style={styles.chipText}>{problem.label}</Text>
           </View>
         )}
-        {hint && (
+        {hint && !spot && !openMark && !options && (
           <View testID="ambient-hint" style={styles.undo}>
             <Text style={styles.undoText}>{hint.text}</Text>
             <Pressable
               accessibilityRole="button"
+              accessibilityLabel={`Show the hint: ${hint.text}`}
               onPress={() => {
+                setOptions(false);
                 setMarkOpen(hint.markId);
                 setHint(null);
               }}
@@ -662,6 +693,9 @@ export default function WalkScreen() {
               style={styles.undoBtn}
             >
               <Text style={styles.undoBtnText}>Show</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Dismiss the hint" onPress={() => setHint(null)} hitSlop={10}>
+              <Icon name="close" size={18} color="#ffffff" />
             </Pressable>
           </View>
         )}
@@ -791,7 +825,7 @@ export default function WalkScreen() {
           <Pressable
             testID="walk-options"
             accessibilityRole="button"
-            accessibilityLabel="Walk options"
+            accessibilityLabel={quiet ? 'Walk options, quiet walk on' : 'Walk options'}
             accessibilityState={{ expanded: options }}
             onPress={() => {
               setSpot(null);
@@ -900,7 +934,7 @@ export default function WalkScreen() {
 
       {options && (
         <View style={[styles.spotRow, { bottom: insets.bottom + 92 + 68 + 12 }]} pointerEvents="box-none">
-          <View testID="options-card" style={styles.spot}>
+          <View testID="options-card" style={styles.spot} accessibilityViewIsModal>
             <Text style={styles.spotTitle} accessibilityRole="header">This walk</Text>
             <View style={styles.optionRow}>
               <View style={{ flex: 1 }}>
@@ -922,7 +956,9 @@ export default function WalkScreen() {
               <View style={styles.optionRow}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.optionLabel}>Hints along the way</Text>
-                  <Text style={styles.markSub}>Up to three nudges toward something on a street you haven’t walked.</Text>
+                  <Text style={styles.markSub}>
+                    {quiet ? 'Off during a quiet walk.' : 'Up to three nudges toward something on a street you haven’t walked.'}
+                  </Text>
                 </View>
                 <Switch
                   testID="ambient"
@@ -956,7 +992,9 @@ export default function WalkScreen() {
             )}
             <Text style={styles.markSub}>
               {live.here ? `${formatDistance(distanceM(live.here, openMark.at))} away. ` : ''}
-              {scan.revealed.has(openMark.id) ? 'Take a photo, a memo or a note here to find it.' : 'Walk within 60 m to see what it is.'}
+              {scan.revealed.has(openMark.id)
+                ? 'Take a photo, a memo or a note here to find it.'
+                : `Walk within ${openMark.origin === 'ambient' ? 30 : 60} m to see what it is.`}
             </Text>
             <View style={styles.spotActions}>
               <Button

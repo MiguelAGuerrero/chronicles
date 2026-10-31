@@ -12,13 +12,15 @@ export const TILEJSON_URL = 'https://tiles.openfreemap.org/planet';
  * dated build directory in the TileJSON's tile URL). Falls back to the last
  * build seen when offline.
  */
+/** The tile URL the last TileJSON gave, stored beside its build by ensureTileBuild (A11). */
+let pendingUrl: string | null = null;
+
 export async function currentTileBuild(): Promise<string> {
   try {
     const res = await fetch(TILEJSON_URL);
     const json = (await res.json()) as { tiles?: string[] };
     const url = json.tiles?.[0] ?? '';
-    // Kept for the location task, which reads tiles itself, without the map (A11).
-    if (url) await db.setMeta('tile_url', url).catch(() => {});
+    if (url) pendingUrl = url;
     const m = /\/([0-9]{8}_[0-9A-Za-z_]+)\/\{z\}/.exec(url);
     if (m) return m[1];
     if (url) return url;
@@ -40,6 +42,8 @@ export async function ensureTileBuild(): Promise<string> {
     if (stored != null) await db.purgeDerived();
     await db.setMeta('tile_build', build);
   }
+  // With its build, never apart: the location task reads tiles itself, tagged with that build (A11).
+  if (pendingUrl && build !== 'unknown') await db.setMeta('tile_url', pendingUrl).catch(() => {});
   // The rules for crediting streets changed: walks re-snap when their replay
   // next opens, keeping their old summary until then. Street pieces are kept.
   const rules = `${SNAP_RULES}/${AREA_RULES}/${BOUNDARY_PACKS_ID}`;

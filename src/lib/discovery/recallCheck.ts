@@ -10,6 +10,8 @@ import type { Recall } from './types';
 export const QUIET_KEY = 'quiet_walk';
 /** Captures a tapped reminder notification asked to open, for whichever screen mounts next (R4). */
 export const RECALL_OPEN_KEY = 'recall_open';
+/** When a reminder last fired: ambient holds back a minute after (R7). */
+export const RECALL_LAST_KEY = 'recall_last';
 /** A check runs again only after this much walking (audit: not every fix, every second). */
 const STEP_M = 10;
 
@@ -57,7 +59,9 @@ let last: { walkId: string; at: LngLat } | null = null;
 /** Resolves true when a reminder fired: ambient waits for the next batch (R7). */
 export function checkRecalls(walkId: string, path: LngLat[], now = Date.now()): Promise<boolean> {
   const end = path[path.length - 1];
-  if (!end || running) return Promise.resolve(false);
+  // A check in flight may yet fire: ambient waits for it too (R7).
+  if (!end) return Promise.resolve(false);
+  if (running) return Promise.resolve(true);
   if (last && last.walkId === walkId && path.every((p) => distanceM(p, last!.at) < STEP_M)) return Promise.resolve(false);
   running = (async () => {
     last = { walkId, at: end };
@@ -74,6 +78,7 @@ export function checkRecalls(walkId: string, path: LngLat[], now = Date.now()): 
       if (next.kind === 'clear') await stopRecall(recall.capture_id);
       else await saveRecall({ ...recall, ...next.patch });
     }
+    await db.setMeta(RECALL_LAST_KEY, String(now));
     await deliver(walkId, due.map((d) => d.capture));
     return true;
   })()

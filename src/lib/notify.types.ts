@@ -11,6 +11,8 @@ export interface Notifier {
   recall(text: { title: string; body: string }, captureIds: string[], walkId: string): Promise<void>;
   /** An ambient hint (A7, A9): category, distance and side; a tap opens its mark. Phone only. */
   ambient(text: string, markId: string, walkId: string): Promise<void>;
+  /** The walk ended: its reminder and hint notifications go (audit). */
+  walkEnded(walkId: string): Promise<void>;
   /** Asks for notifications while the app is in front (a reminder was set); the location task only checks. */
   ask(): Promise<void>;
 }
