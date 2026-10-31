@@ -32,3 +32,11 @@ export function onTileEdge([lon, lat]: LngLat, tolM = 1.5): boolean {
   return Math.abs(x - Math.round(x)) < tol || Math.abs(y - Math.round(y)) < tol;
 }
 
+
+/** The z14 tiles covering a box (west, south, east, north), as [x, y]. */
+export function tilesIn([w, s, e, n]: [number, number, number, number]): [number, number][] {
+  const out: [number, number][] = [];
+  for (let x = Math.floor(lonToX(w)); x <= Math.floor(lonToX(e)); x++)
+    for (let y = Math.floor(latToY(n)); y <= Math.floor(latToY(s)); y++) out.push([x, y]);
+  return out;
+}

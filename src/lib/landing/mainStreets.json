@@ -1,0 +1,4 @@
+{
+  "_note": "Common names for a town's main street, the last fallback when nothing is dense. US-leaning to begin with; other countries add their own (High Street, Hauptstrasse) as data.",
+  "names": ["Main", "Broad", "Market", "High", "Front", "Water", "State", "Church", "Center", "Centre", "Commercial", "Congress"]
+}

@@ -1,5 +1,6 @@
 import { db } from '../db';
-import { deriveSegments, type RoadFeature } from '../streets';
+import type { CollectedFeatures } from '../../components/map/types';
+import { deriveSegments } from '../streets';
 import { tileAt, TILE_ZOOM } from '../tileMath';
 import type { LngLat } from '../types';
 import { decodeTile } from './tileDecode';
@@ -27,6 +28,26 @@ async function fetchTile(url: string): Promise<ArrayBuffer> {
 }
 
 /**
+ * Fetches and decodes z14 tiles in code, in parallel, each with its own
+ * timeout. All or nothing: any failure rejects, so a partial read is never used.
+ */
+export async function fetchTiles(url: string, tiles: [number, number][]): Promise<CollectedFeatures> {
+  const bodies = await Promise.all(
+    tiles.map(([x, y]) => fetchTile(url.replace('{z}', String(TILE_ZOOM)).replace('{x}', String(x)).replace('{y}', String(y)))),
+  );
+  const out: CollectedFeatures = { roads: [], names: [], places: [], pois: [], complete: true };
+  for (let i = 0; i < tiles.length; i++) {
+    const [x, y] = tiles[i];
+    const f = decodeTile(new Uint8Array(bodies[i]), TILE_ZOOM, x, y);
+    out.roads.push(...f.roads);
+    out.names.push(...f.names);
+    out.places.push(...f.places);
+    out.pois.push(...f.pois);
+  }
+  return out;
+}
+
+/**
  * Entering a new z14 tile, it and its 8 neighbours are fetched from the
  * tile host and decoded in code (the location task can't move the map), and
  * their streets and places cached with the tile build. A failed fetch leaves
@@ -48,20 +69,7 @@ export function cacheTilesAround(at: LngLat): Promise<boolean> {
     if (read.has(key)) return false;
     const want: [number, number][] = [];
     for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) want.push([here.x + dx, here.y + dy]);
-    const roads: RoadFeature[] = [];
-    const names: RoadFeature[] = [];
-    const pois: RoadFeature[] = [];
-    // In parallel, each with its own timeout: a stalled request can't hold ambient for the session.
-    const bodies = await Promise.all(
-      want.map(([x, y]) => fetchTile(url.replace('{z}', String(TILE_ZOOM)).replace('{x}', String(x)).replace('{y}', String(y)))),
-    );
-    for (let i = 0; i < want.length; i++) {
-      const [x, y] = want[i];
-      const f = decodeTile(new Uint8Array(bodies[i]), TILE_ZOOM, x, y);
-      roads.push(...f.roads);
-      names.push(...f.names);
-      pois.push(...f.pois);
-    }
+    const { roads, names, pois } = await fetchTiles(url, want);
     // Written only once all nine are in: a partial read caches nothing.
     await db.putSegments(deriveSegments(roads, names, build));
     await db.putPlaces(placesFromTilePois(pois, build));

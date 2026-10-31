@@ -89,3 +89,22 @@ export function placesFromTilePois(features: (TileFeature & { zoom?: number })[]
   }
   return [...out.values()];
 }
+
+/** Transit the landing prefers to start from (L7): railway stations and halts, bus stations, ferry terminals. */
+const TRANSIT: Record<string, readonly string[]> = {
+  railway: ['station', 'halt', 'subway', 'light_rail'],
+  bus: ['bus_station'],
+  ferry_terminal: ['ferry_terminal'],
+};
+
+export function transitFromTilePois(features: (TileFeature & { zoom?: number })[]): LngLat[] {
+  const out = new Map<string, LngLat>();
+  for (const f of features) {
+    if (f.geometry?.type !== 'Point') continue;
+    const props = f.properties ?? {};
+    if (!TRANSIT[String(props.class ?? '')]?.includes(String(props.subclass ?? ''))) continue;
+    const [lon, lat] = f.geometry.coordinates as LngLat;
+    out.set(`${lon.toFixed(5)},${lat.toFixed(5)}`, [lon, lat]);
+  }
+  return [...out.values()];
+}
