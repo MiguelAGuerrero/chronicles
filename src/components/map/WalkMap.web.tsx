@@ -13,6 +13,7 @@ import type { Star } from '../../lib/places';
 import type { CapturePin } from '../../lib/pins';
 import type { RoadFeature } from '../../lib/streets';
 import type { LngLat } from '../../lib/types';
+import { useGlideFrames, type GlideFrame } from '../../lib/useGlidingWalker';
 import {
   COLORS, coneGeoJSON, DERIVE_ZOOM, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
@@ -118,8 +119,33 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   onUserMove.current = props.onUserMove;
   const onCameraChange = useRef(props.onCameraChange);
   onCameraChange.current = props.onCameraChange;
+  const pointerDown = useRef(false);
   const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
   perfCount('render:map');
+  // On the live walk the dot, cone and camera glide between fixes. They are
+  // moved by a render loop outside React (a DOM marker is cheap to move; the
+  // GeoJSON layers starved the page at 30 fps). The replay, on its own clock,
+  // keeps the layers.
+  const glideOn = props.glideWalker === true;
+  const puck = useRef<{ marker: Marker; el: HTMLElement; cone: HTMLElement } | null>(null);
+  const lastFrame = useRef<GlideFrame>({ walker: null, heading: null });
+  const followRef = useRef(props.follow);
+  const applyFrame = (f: GlideFrame) => {
+    lastFrame.current = f;
+    const p = puck.current;
+    if (!p) return;
+    p.el.style.display = f.walker ? '' : 'none';
+    if (!f.walker) return;
+    p.marker.setLngLat(f.walker);
+    p.cone.style.display = f.heading == null ? 'none' : '';
+    if (f.heading != null) p.cone.style.transform = `rotate(${f.heading}deg)`;
+    // The camera follows the dot, so they move together; never while a hand is on the map.
+    if (followRef.current && !pointerDown.current) mapRef.current?.jumpTo({ center: f.walker });
+  };
+  useGlideFrames(props.walker, props.walkerHeading, glideOn, applyFrame);
+  useEffect(() => {
+    followRef.current = props.follow;
+  });
   const duration = props.animate === false ? 0 : 600;
   const animateRef = useRef(props.animate !== false);
   useEffect(() => {
@@ -220,6 +246,16 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     };
     map.on('dragstart', moved);
     map.on('rotatestart', moved);
+    // A camera move made in code cancels a drag in progress, and the glide moves
+    // the camera every frame. So follow-moves wait while a pointer is down.
+    const down = () => { pointerDown.current = true; };
+    const up = () => { pointerDown.current = false; };
+    map.on('mousedown', down);
+    map.on('touchstart', down);
+    map.on('mouseup', up);
+    map.on('touchend', up);
+    map.on('touchcancel', up);
+    map.on('dragend', up);
     if (props.attributionTop) map.addControl(new AttributionControl({ compact: true }), 'top-right');
     map.on('zoomend', track);
     // A pan changes the latitude the merge radius is measured at.
@@ -257,16 +293,39 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   }, [ready, props.landing]);
   useEffect(() => { if (ready) setData('marks', marksGeoJSON(props.marks)); }, [ready, props.marks]);
   useEffect(() => {
-    if (ready) setData('cone', coneGeoJSON(props.walker, props.walkerHeading, view?.zoom ?? 16));
-  }, [ready, props.walker, props.walkerHeading, view]);
+    if (ready) setData('cone', coneGeoJSON(glideOn ? null : props.walker, props.walkerHeading, view?.zoom ?? 16));
+  }, [ready, glideOn, props.walker, props.walkerHeading, view]);
   useEffect(() => {
     if (!ready) return;
     for (const id of ['trace', 'trace-history-line']) mapRef.current?.setPaintProperty(id, 'line-opacity', props.traceOpacity ?? 1);
     for (const id of ['trace-edge', 'trace-history-edge']) mapRef.current?.setPaintProperty(id, 'line-opacity', 0.9 * (props.traceOpacity ?? 1));
   }, [ready, props.traceOpacity]);
   useEffect(() => {
-    if (ready) setData('points', walkerGeoJSON(props.walker));
-  }, [ready, props.walker]);
+    if (ready) setData('points', walkerGeoJSON(glideOn ? null : props.walker));
+  }, [ready, glideOn, props.walker]);
+  // The live walk's dot and cone: one marker, drawn at the same size as the layers.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map || !glideOn) return;
+    const el = document.createElement('div');
+    el.dataset.testid = 'walker-puck';
+    el.setAttribute('aria-hidden', 'true');
+    el.style.cssText = 'width:100px;height:100px;position:relative;pointer-events:none;display:none';
+    const fill = (inset: string) => `position:absolute;inset:0;${inset}`;
+    el.innerHTML =
+      `<svg data-cone viewBox="0 0 100 100" style="${fill('transform-origin:50px 50px')}">` +
+      `<path d="M50 50 L30 15.36 A40 40 0 0 1 70 15.36 Z" fill="${COLORS.walker}" fill-opacity="0.25"/></svg>` +
+      `<svg viewBox="0 0 100 100" style="${fill('')}"><circle cx="50" cy="50" r="7" fill="${COLORS.walker}" stroke="#ffffff" stroke-width="2"/></svg>`;
+    const cone = el.querySelector('[data-cone]') as HTMLElement;
+    const marker = new Marker({ element: el, anchor: 'center' }).setLngLat([0, 0]).addTo(map);
+    puck.current = { marker, el, cone };
+    applyFrame(lastFrame.current);
+    return () => {
+      marker.remove();
+      puck.current = null;
+    };
+    // applyFrame only reads refs.
+  }, [ready, glideOn]);
 
   // Capture pins are DOM markers rendered with the same view as on native,
   // grouped for the current zoom. Clicks look the pin up by id, so a pin
@@ -505,14 +564,17 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   }, [ready, props.fogEmphasis]);
   useEffect(() => {
     const map = mapRef.current;
-    if (!ready || !props.follow || !map) return;
+    if (!ready || !props.follow || !map || pointerDown.current) return;
+    // On the live walk the render loop moves the camera; this recenters at once
+    // (Recenter, a read ending) on the dot as it is showing.
+    const to = glideOn ? (lastFrame.current.walker ?? props.follow) : props.follow;
     // Under 2 px is no move worth a frame (perf).
-    const p = map.project(props.follow);
+    const p = map.project(to);
     const c = map.getCanvas();
     if (Math.hypot(p.x - c.clientWidth / 2, p.y - c.clientHeight / 2) < 2) return;
     perfCount('camera');
-    map.jumpTo({ center: props.follow });
-  }, [ready, props.follow]);
+    map.jumpTo({ center: to });
+  }, [ready, props.follow, glideOn]);
   // A fit is a request made while mounted: a map brought back (the home, after a walk) keeps its view.
   const fitAtMount = useRef(props.fitKey);
   useEffect(() => {

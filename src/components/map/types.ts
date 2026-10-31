@@ -96,6 +96,8 @@ export interface WalkMapProps {
   /** The way the walker is going (degrees from north), drawn as a soft cone; null hides it. */
   walkerHeading?: number | null;
   walker?: LngLat | null;
+  /** Glide the dot, cone and camera between fixes (the live walk). Off, the dot is placed as given (the replay's clock). */
+  glideWalker?: boolean;
   /** Keeps the camera centered here while set. */
   follow?: LngLat | null;
   /** Fits the camera to these bounds whenever `fitKey` changes. */
