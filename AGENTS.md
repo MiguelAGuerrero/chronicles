@@ -96,9 +96,72 @@ Read this before changing recording, streets, the replay or storage.
   not kept" toast. A memo that fails to save offers Retry. Leaving the screen
   mid-memo saves it.
 - A quick tap on Stop shows "Hold to stop the walk".
-- Next round, not built yet: treat standing still (a long stay inside a small radius)
-  as a pause in the replay, so the dot doesn't jitter in place. The raw trace stays
-  untouched.
+- Pills (the caption offer, voice Undo, Retry) sit above the capture row, so the
+  row never moves under the thumb. The small edge buttons (unwalked streets, and
+  Recenter while not following) stack at the right edge above the row and one pill
+  (`EDGE_BOTTOM`), inside the 640 column on wide screens. Zooming keeps following;
+  only a pan or a turn stops it (web; native can't tell zoom from pan yet).
+
+## Round 3: pause, standstills, place memory, captions, export (the owner's calls)
+
+- **Pause stops recording.** `pauseWalk` writes the pause row, then stops the
+  recorder. `resumeWalk` starts the recorder first (via `start`, which asks for
+  location again, since a one-time grant can lapse), and ends the pause only if
+  that worked. Pause sits beside Hold (48 px, 20 px apart), Resume is filled
+  orange, Stop is disabled while a pause or resume is in flight, and a sticky
+  reminder shows after 10 min paused. A phone notification would need
+  expo-notifications: ask first.
+- **A pause is a break in the trace however short.** `isBreak(a, b, pauses)` in
+  `geo.ts` is used by `splitAtGaps`, `traceDistanceM`, the snapper, `timedRuns`
+  and the replay's `activeClock`. Pass the walk's pauses everywhere a trace is
+  drawn, measured or replayed. `useLiveTrace` takes the pauses too, drops fixes
+  inside them, and doesn't report a pause as a hidden-page gap.
+- **Captures still work while paused** (the owner's call). An unstamped one is
+  placed where the pause began, not on a line across it.
+- **Standstills** (`dwellsOf` / `smoothDwells`): fixes are averaged into 30 s bins.
+  A stay grows while each bin is within 25 m of the stay's running center, and it
+  survives two bins outside (GPS jumps). It must last 2 min, its first and last
+  thirds must sit within 15 m of each other (so slow drifting walks aren't
+  stays), and when speed is reported its median must be ≤ 0.3 m/s (so circling
+  a fountain isn't a stay). Neighboring stays at one spot merge. Without
+  reported speed, slow circling inside 25 m can still read as a stay. The live
+  distance uses the same smoothing as the card. Walks summarized before this
+  keep their old distance until they re-snap.
+- **What happened here:** a long press on the walk screen (so stray taps do
+  nothing), a tap on the replay card. The reach is 44 px at the current zoom,
+  clamped to 15–150 m (`pressRadiusM`). The open walk's captures are passed in as
+  shown, because an unstamped one has no stored place until stop. Web taps wait
+  300 ms so a double-tap zoom isn't also a press.
+- **Unwalked streets near me** count named streets only (the owner's call), within
+  1 km by real distance. Pieces along this walk's trace (20 m) are left out of
+  the fog until stop credits them. While the toggle is on, the trace is drawn in
+  the accent, because navy on bold fog is 1.4:1.
+- **Street reads from the live view (`collectView`) only count at z14.** Below
+  z14, tiles are simplified and pieces get other ids, so `collectView` returns
+  `complete: false` and nothing is cached. On web it also keeps only features
+  from z14 tiles (`feature._z`). The walk screen tags them with the build from
+  `ensureTileBuild()`, never `'unknown'`, and runs once per 100 m actually moved,
+  one run at a time.
+- **Captions are data** (`caption`, `caption_y`) and are baked in only when saved
+  out. Sizes are fractions of the photo's width with no pixel minimums
+  (`CAPTION_STYLE`, `captionMetrics`, `captionTop`), shared by `CaptionBar` and
+  both bakers, so the saved photo matches the screen. The bar is centered on `y`
+  by its measured height. 80 characters at most. The canvas baker breaks words
+  too wide alone character by character (CJK).
+- **iOS can't present a Modal over a Modal.** The caption editor opens inside
+  the viewer as an overlay (`CaptionEditor overlay`), never as a sibling Modal.
+- **Native baking** sizes the view in points (`px / PixelRatio`), passes the pixel
+  `width`/`height` to `captureRef`, uses `useRenderInContext` on iOS, sits behind
+  the viewer's cover instead of off screen, and runs one bake at a time. Not tried
+  on a device.
+- **Saving keepers** uses expo-media-library's `Asset.create` (the legacy
+  `saveToLibraryAsync` throws), with `requestPermissionsAsync(true)` (write-only).
+  The plugin's read permissions are blocked in `app.json`. Media is always reached
+  through `resolveMedia`, so legacy absolute and `data:` refs still work.
+- **The backup zip is streamed** (`writeWalkBundle`: fflate `Zip` +
+  `ZipPassThrough`, 1 MB chunks, written to a file handle on native and kept as
+  Blob parts on web). Missing media is counted, marked in walk.json and reported.
+  There is no import yet.
 
 ## Working with the owner
 
@@ -178,6 +241,11 @@ Read this before changing recording, streets, the replay or storage.
   - For callbacks passed into hooks, store them in a ref that is updated in an effect.
 - react-native-web's `AccessibilityInfo.isScreenReaderEnabled()` always resolves
   `true`. Don't branch on it on web.
+- A long press on web needs two guards. `user-select: none` and
+  `-webkit-touch-callout: none` stop iOS Safari from selecting the label. A
+  Pressable `onLongPress` (with `delayLongPress` beyond the hold) stops Android
+  Chrome's `contextmenu`, which react-native-web otherwise treats as the end of the
+  press. HoldButton has both.
 - `headerBackVisible: false` is ignored on web; also set `headerLeft: () => null`.
   After the replay modal, return with `router.dismissTo('/')`; `replace('/')`
   stacks a second log.
@@ -287,6 +355,9 @@ Read this before changing recording, streets, the replay or storage.
 - `npm test` runs unit tests for derivation, snapping, fix filtering and replay
   timing. Keep fixtures well inside one z14 tile unless you are testing tile edges.
   At lon -71.4, lat 41.82 a tile edge is 50 m away; the tests use lat 41.812.
+- e2e notes: a pin's tap area is 48 px, so the "what happened here" press goes
+  30 px beside it. Captions are checked through their aria-label after the photo's
+  size has loaded. Each capture adds a replay stop, so the test loops on Continue.
 - `npm run export:web && npm run e2e:web` runs a headless walk end to end with mocked
   GPS and a fake z14 GeoJSON street grid in place of the tile host. A walk at 5 m/s
   with one fix a second passes the speed gate; faster is dropped as GPS jumps.
