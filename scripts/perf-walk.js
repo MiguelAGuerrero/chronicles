@@ -1,3 +1,7 @@
+// PERF_SEED=<n> adds n fixes of history to the walk first (a long walk), and
+// PERF_PROFILE=<file> records a CPU profile of the walking part and prints the
+// functions taking the most time (export with --no-minify for readable names).
+//
 // Long-walk harness: walks the web build through a dense fake downtown for
 // PERF_MIN minutes (default 10), with a scan and a photo every two minutes,
 // and samples the page's heap, DOM nodes, listeners, markers and main-thread
@@ -68,6 +72,7 @@ if (require.main === module) (async () => {
       body: JSON.stringify(r.request().url().endsWith('/planet') ? { tiles: ['https://tiles.openfreemap.org/planet/20261028_001001_pt/{z}/{x}/{y}.pbf'] } : style),
     });
   });
+  await ctx.addInitScript(() => { window.__perf = {}; });
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
@@ -79,14 +84,24 @@ if (require.main === module) (async () => {
   const sample = async (label) => {
     await cdp.send('HeapProfiler.collectGarbage').catch(() => {});
     const mm = await metrics();
+    const perf = await page.evaluate(() => ({ ...window.__perf }));
+    const rates = {};
+    if (sample.lastPerf) for (const [k, v] of Object.entries(perf)) rates[k] = +((v - (sample.lastPerf[k] ?? 0)) / 30).toFixed(2);
+    sample.lastPerf = perf;
     const dom = await page.evaluate(() => ({
       markers: document.querySelectorAll('.maplibregl-marker').length,
       canvases: document.querySelectorAll('canvas').length,
       imgs: document.querySelectorAll('img').length,
     }));
-    const cpu = last ? ((mm.TaskDuration - last.TaskDuration) / ((mm.Timestamp - last.Timestamp) || 1)) * 100 : 0;
+    const dt = last ? (mm.Timestamp - last.Timestamp) || 1 : 1;
+    const pct = (k) => (last ? +(((mm[k] - last[k]) / dt) * 100).toFixed(1) : 0);
+    const perS = (k) => (last ? +((mm[k] - last[k]) / dt).toFixed(1) : 0);
+    const row = {
+      label, heapMB: +(mm.JSHeapUsedSize / 1e6).toFixed(1), nodes: mm.Nodes, listeners: mm.JSEventListeners,
+      cpuPct: pct('TaskDuration'), scriptPct: pct('ScriptDuration'), layoutPct: pct('LayoutDuration'), stylePct: pct('RecalcStyleDuration'),
+      layoutsPerS: perS('LayoutCount'), stylesPerS: perS('RecalcStyleCount'), ...dom, perSecond: rates,
+    };
     last = mm;
-    const row = { label, heapMB: +(mm.JSHeapUsedSize / 1e6).toFixed(1), nodes: mm.Nodes, listeners: mm.JSEventListeners, docs: mm.Documents, cpuPct: +cpu.toFixed(1), ...dom };
     samples.push(row);
     console.log(JSON.stringify(row));
   };
@@ -96,7 +111,43 @@ if (require.main === module) (async () => {
     await page.click('[data-testid=start]');
     await page.waitForSelector('[data-testid=stop]');
     await page.waitForTimeout(3000);
+    const SEED = Number(process.env.PERF_SEED ?? 0);
+    if (SEED) {
+      // A long walk so far: SEED fixes, one a second, along the grid, ending where the walk starts.
+      await page.evaluate(({ n, o, dLat, dLon }) => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const d = req.result;
+          const tx = d.transaction(['walk', 'trace_point'], 'readwrite');
+          const walks = tx.objectStore('walk').getAll();
+          walks.onsuccess = () => {
+            const w = walks.result.find((x) => x.open);
+            const t0 = Date.now() - n * 1000;
+            tx.objectStore('walk').put({ ...w, started_at: t0 - 1000 });
+            const tp = tx.objectStore('trace_point');
+            for (let i = 0; i < n; i++) {
+              // Back and forth along 800 m streets, 2.5 m a fix.
+              const leg = Math.floor((i * 2.5) / 800);
+              const along = (i * 2.5) % 800;
+              const x = -400 + (leg % 2 ? 800 - along : along);
+              const y = -400 - 80 * ((leg % 10) + 1);
+              tp.add({ walk_id: w.id, t: t0 + i * 1000, lat: o[1] + y * dLat, lon: o[0] + x * dLon, accuracy_m: 6, speed: 2.5, course: null });
+            }
+          };
+          tx.oncomplete = () => { d.close(); resolve(); };
+        };
+      }), { n: SEED, o: O, dLat, dLon });
+      await page.reload();
+      await page.waitForSelector('[data-testid=stop]', { timeout: 30000 });
+      await page.waitForTimeout(4000);
+    }
     await sample('start');
+    const PROFILE = process.env.PERF_PROFILE;
+    if (PROFILE) {
+      await cdp.send('Profiler.enable');
+      await cdp.send('Profiler.setSamplingInterval', { interval: 500 });
+      await cdp.send('Profiler.start');
+    }
     // A lawnmower walk over the grid at 2.5 m/s, one fix a second.
     const legs = [];
     for (let row = 0; row < 12; row++) {
@@ -127,6 +178,38 @@ if (require.main === module) (async () => {
         if (chooser) await chooser.setFiles(path.join(__dirname, 'fixtures', 'photo.jpg'));
       }
       if (k > 0 && k % 30 === 0) await sample(`${Math.round(k / 60 * 10) / 10} min`);
+    }
+    if (PROFILE) {
+      const { profile } = await cdp.send('Profiler.stop');
+      fs.writeFileSync(PROFILE, JSON.stringify(profile));
+      const byId = new Map(profile.nodes.map((n) => [n.id, n]));
+      const self = new Map();
+      const total = profile.timeDeltas.reduce((a, b) => a + b, 0);
+      profile.samples.forEach((id, i) => {
+        const f = byId.get(id).callFrame;
+        const k = `${f.functionName || '(anonymous)'} ${f.url.split('/').pop()}:${f.lineNumber + 1}`;
+        self.set(k, (self.get(k) ?? 0) + (profile.timeDeltas[i] ?? 0));
+      });
+      // Inclusive time: each function counted once per sample it is on the stack of.
+      const parent = new Map();
+      for (const n of profile.nodes) for (const c of n.children ?? []) parent.set(c, n.id);
+      const incl = new Map();
+      profile.samples.forEach((id, i) => {
+        const seen = new Set();
+        for (let n = id; n != null; n = parent.get(n)) {
+          const f = byId.get(n).callFrame;
+          if (!f.url.includes('/_expo/')) continue;
+          const k = `${f.functionName || '(anonymous)'}:${f.lineNumber + 1}`;
+          if (seen.has(k)) continue;
+          seen.add(k);
+          incl.set(k, (incl.get(k) ?? 0) + (profile.timeDeltas[i] ?? 0));
+        }
+      });
+      const busy = profile.samples.reduce((a, id, i) => (byId.get(id).callFrame.functionName === '(idle)' ? a : a + (profile.timeDeltas[i] ?? 0)), 0);
+      console.log(`\nBusy ${((busy / total) * 100).toFixed(1)}% of ${(total / 1e6).toFixed(1)} s. App functions by inclusive time:`);
+      for (const [k, v] of [...incl].sort((a, b) => b[1] - a[1]).slice(0, 40)) console.log(`${((v / total) * 100).toFixed(1).padStart(5)}%  ${k}`);
+      console.log(`\nCPU profile (${(total / 1e6).toFixed(1)} s), top self time:`);
+      for (const [k, v] of [...self].sort((a, b) => b[1] - a[1]).slice(0, 25)) console.log(`${((v / total) * 100).toFixed(1).padStart(5)}%  ${k}`);
     }
     const first = samples[1] ?? samples[0];
     const end = samples[samples.length - 1];

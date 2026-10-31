@@ -15,6 +15,9 @@ const FIRST_FIX_WAIT_MS = 10_000;
 
 let walkId: string | null = null;
 let watchId: number | null = null;
+/** When the last fix came, so a passing watch error doesn't read as waiting for GPS. */
+let lastFixAt = 0;
+const WAITING_AFTER_MS = 10_000;
 let pending: Promise<void> | null = null;
 let wakeLock: { release(): Promise<void> } | null = null;
 
@@ -60,6 +63,7 @@ function watch(id: string): Promise<void> {
   }
   stopWatch();
   walkId = id;
+  lastFixAt = 0;
   setStatus({ kind: 'waiting' });
   return new Promise((resolve, reject) => {
     let settled = false;
@@ -72,6 +76,7 @@ function watch(id: string): Promise<void> {
         clearTimeout(timer);
         settle(resolve);
         if (walkId !== id) return;
+        lastFixAt = Date.now();
         record({
           walk_id: id,
           t: pos.timestamp,
@@ -84,7 +89,10 @@ function watch(id: string): Promise<void> {
       },
       (err) => {
         if (err.code !== err.PERMISSION_DENIED) {
-          setStatus({ kind: 'waiting' }); // no signal for now; the watch keeps trying
+          // No signal for now; the watch keeps trying. Browsers report these between good fixes
+          // too (every fix, in Chromium): only without a fix for a while is it "waiting", or the
+          // status (and the screen) flips twice a second. A longer silence is "Weak GPS" (perf).
+          if (Date.now() - lastFixAt > WAITING_AFTER_MS) setStatus({ kind: 'waiting' });
           return;
         }
         clearTimeout(timer);

@@ -1,7 +1,7 @@
 import {
   Camera, GeoJSONSource, Layer, Map, Marker, VectorSource, type CameraRef, type MapRef, type VectorSourceRef,
 } from '@maplibre/maplibre-react-native';
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { forwardRef, memo, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { CapturePinView, pinLabel } from '../CapturePinView';
 import { MarkPinView, markLabel } from '../MarkPinView';
@@ -10,7 +10,7 @@ import { namedStars, StarView, starLabel } from '../StarView';
 import type { RoadFeature } from '../../lib/streets';
 import { TILEJSON_URL } from '../../lib/tiles';
 import {
-  COLORS, coneGeoJSON, DERIVE_ZOOM, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, useZoomPins, walkerGeoJSON,
+  COLORS, coneGeoJSON, DERIVE_ZOOM, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -36,7 +36,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
 
   const fog = useMemo(() => segmentsGeoJSON(props.fog), [props.fog]);
   const walked = useMemo(() => segmentsGeoJSON(props.walked), [props.walked]);
-  const trace = useMemo(() => traceGeoJSON(props.trace), [props.trace]);
+  // The history changes once per chunk; only the tail is re-sent with each publish (perf, Nov 1).
+  const split = useMemo(() => splitTrace(props.trace), [props.trace]);
+  const traceTail = useMemo(() => traceGeoJSON(split.tail), [split.tail]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const traceHistory = useMemo(() => traceGeoJSON(split.history), [split.historyKey]);
   const route = useMemo(() => routeGeoJSON(props.route), [props.route]);
   const pockets = useMemo(() => pocketsGeoJSON(props.landing), [props.landing]);
   const strips = useMemo(() => stripsGeoJSON(props.landing), [props.landing]);
@@ -230,13 +234,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           <Layer id="route-edge" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': '#ffffff', 'line-width': 12 }} />
           <Layer id="route" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': COLORS.route, 'line-width': 8 }} />
         </GeoJSONSource>
-        <GeoJSONSource id="trace" data={trace}>
-          {/* The trace on a white edge, so it reads over fog, walked streets and the base map alike. */}
-          <Layer id="trace-edge" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-            paint={{ 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': 0.9 * (props.traceOpacity ?? 1) }} />
-          <Layer id="trace" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-            paint={{ 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth, 'line-opacity': props.traceOpacity ?? 1 }} />
-        </GeoJSONSource>
+        {/* The trace on a white edge, so it reads over fog, walked streets and the base map alike:
+            the history (memoized, so it isn't serialized again each render) and the live tail. */}
+        <TraceSource id="trace-history" data={traceHistory} opacity={props.traceOpacity ?? 1} />
+        <TraceSource id="trace" data={traceTail} opacity={props.traceOpacity ?? 1} />
         <GeoJSONSource id="cone" data={cone}>
           <Layer id="cone" type="fill" paint={{ 'fill-color': COLORS.walker, 'fill-opacity': 0.25 }} />
         </GeoJSONSource>
@@ -326,4 +327,19 @@ const styles = StyleSheet.create({
   cover: { ...StyleSheet.absoluteFill, backgroundColor: COLORS.veil },
   // A 48 pt target around the 36 pt pin.
   pinHit: { paddingHorizontal: 6, paddingTop: 4 },
+});
+
+/**
+ * One part of the trace. Memoized: MapLibre RN serializes a GeoJSONSource's
+ * data on every render, so an unchanged history must not re-render (perf).
+ */
+const TraceSource = memo(function TraceSource(props: { id: string; data: GeoJSON.FeatureCollection; opacity: number }) {
+  return (
+    <GeoJSONSource id={props.id} data={props.data}>
+      <Layer id={`${props.id}-edge`} type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+        paint={{ 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': 0.9 * props.opacity }} />
+      <Layer id={`${props.id}-line`} type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+        paint={{ 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth, 'line-opacity': props.opacity }} />
+    </GeoJSONSource>
+  );
 });

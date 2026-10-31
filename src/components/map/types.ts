@@ -209,6 +209,26 @@ export function traceGeoJSON(runs: LngLat[][]): GeoJSON.FeatureCollection {
   };
 }
 
+/** The live trace's history is re-sent to the map once per this many fixes, not every publish. */
+export const TRACE_CHUNK = 100;
+
+/**
+ * The trace as a history (finished runs, and the open run up to its last
+ * chunk boundary) and a short live tail from there (perf, Nov 1). A map
+ * re-tiles a GeoJSON source whole on each update, so only the tail, at most
+ * TRACE_CHUNK points, is sent with every publish. `historyKey` changes only
+ * when the history does.
+ */
+export function splitTrace(runs: LngLat[][]): { history: LngLat[][]; tail: LngLat[][]; historyKey: string } {
+  if (!runs.length) return { history: [], tail: [], historyKey: '0' };
+  const open = runs[runs.length - 1];
+  const done = runs.slice(0, -1);
+  const cut = Math.floor((open.length - 1) / TRACE_CHUNK) * TRACE_CHUNK;
+  const history = cut > 0 ? [...done, open.slice(0, cut + 1)] : done;
+  const tail = [open.slice(cut)];
+  return { history, tail, historyKey: `${runs.length}:${cut}:${done.reduce((n, r) => n + r.length, 0)}` };
+}
+
 export function walkerGeoJSON(walker?: LngLat | null): GeoJSON.FeatureCollection {
   return {
     type: 'FeatureCollection',

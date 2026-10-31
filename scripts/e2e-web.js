@@ -112,6 +112,8 @@ function check(ok, what) {
       value: { get type() { return type; }, set type(v) { type = v; seen.push(v); } },
     });
   });
+  // Opt-in render and map-update counters (src/lib/perfCount.ts).
+  await ctx.addInitScript(() => { window.__perf = {}; });
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
@@ -176,6 +178,8 @@ function check(ok, what) {
       return { bodyDivs: await page.evaluate(() => document.body.children.length), listeners: mm.JSEventListeners, nodes: mm.Nodes };
     };
     const leak0 = await leakSample();
+    const perf0 = await page.evaluate(() => ({ ...window.__perf }));
+    const perfT0 = Date.now();
 
     // Walk 300 m at 5 m/s, one fix a second (the fix filter rejects anything over 7 m/s).
     const route = [at(-0.5, -0.5), at(0.5, -0.5), at(0.5, 0.5), at(1.5, 0.5)];
@@ -337,6 +341,15 @@ function check(ok, what) {
       if (k === 39) {
         // 40 s of walking with captures, a scan and a route: the page stays the same size (leak regression).
         const leak1 = await leakSample();
+        // Reactivity budget (Nov 1): one fix a second must not re-render the screen several times,
+        // nor re-send the map's sources more often than it changes.
+        const perf1 = await page.evaluate(() => ({ ...window.__perf }));
+        const secs = (Date.now() - perfT0) / 1000;
+        const rate = (k) => ((perf1[k] ?? 0) - (perf0[k] ?? 0)) / secs;
+        // This window is busy with taps (memos, a video, a note, a long press); steady walking is about
+        // 1.4 renders a second (scripts/perf-walk.js). Before the fixes it was 3.7 here.
+        check(rate('render:walk') <= 2.5 && rate('setData:cone') <= 1.05 && rate('setData:trace') <= 0.6,
+          `walking stays within its render budget (walk ${rate('render:walk').toFixed(2)}/s, cone ${rate('setData:cone').toFixed(2)}/s, trace ${rate('setData:trace').toFixed(2)}/s)`);
         check(leak1.bodyDivs - leak0.bodyDivs <= 3 && leak1.listeners - leak0.listeners < 2000,
           `walking leaks no portals or listeners (body ${leak0.bodyDivs} → ${leak1.bodyDivs}, listeners ${leak0.listeners} → ${leak1.listeners}, nodes ${leak0.nodes} → ${leak1.nodes})`);
       }

@@ -3,6 +3,7 @@ import { AttributionControl, Map as MapLibreMap, Marker, setWorkerUrl, type GeoJ
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
+import { perfCount } from '../../lib/perfCount';
 import { StyleSheet, View } from 'react-native';
 import { CapturePinView, pinLabel } from '../CapturePinView';
 import { MarkPinView, markLabel, type MarkPin } from '../MarkPinView';
@@ -13,7 +14,7 @@ import type { CapturePin } from '../../lib/pins';
 import type { RoadFeature } from '../../lib/streets';
 import type { LngLat } from '../../lib/types';
 import {
-  COLORS, coneGeoJSON, DERIVE_ZOOM, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, useZoomPins, walkerGeoJSON,
+  COLORS, coneGeoJSON, DERIVE_ZOOM, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -31,7 +32,11 @@ function addOverlay(map: MapLibreMap) {
   const firstSymbol = map.getStyle().layers.find((l: { type: string; id: string }) => l.type === 'symbol')?.id;
   map.addSource('veil', { type: 'geojson', data: WORLD_VEIL });
   map.addLayer({ id: 'veil', type: 'fill', source: 'veil', paint: { 'fill-color': COLORS.veil, 'fill-opacity': 0 } }, firstSymbol);
-  for (const id of ['pockets', 'strips', 'fog', 'walked', 'route', 'trace', 'cone', 'marks', 'points']) map.addSource(id, { type: 'geojson', data: empty });
+  // Lines are simplified a little more than the default and keep a smaller tile buffer: less to
+  // re-tile on each update (perf, Nov 1; tolerance 0.375 and buffer 128 are maplibre's defaults).
+  const lineSource = { type: 'geojson' as const, data: empty, tolerance: 1, buffer: 64 };
+  for (const id of ['fog', 'walked', 'route', 'trace-history', 'trace']) map.addSource(id, lineSource);
+  for (const id of ['pockets', 'strips', 'cone', 'marks', 'points']) map.addSource(id, { type: 'geojson', data: empty });
   const lineLayout = { 'line-cap': 'round', 'line-join': 'round' } as const;
   // Hotspots under the streets: pockets shaded, strips bold, in the one green no other layer uses (L9).
   // Stale areas (an older map or rules) are dimmed until looked at again (L11).
@@ -47,10 +52,11 @@ function addOverlay(map: MapLibreMap) {
   map.addLayer({ id: 'route-edge', type: 'line', source: 'route', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': 12 } });
   map.addLayer({ id: 'route', type: 'line', source: 'route', layout: lineLayout, paint: { 'line-color': COLORS.route, 'line-width': 8 } });
   // The trace on a white edge, so it reads over fog, walked streets and the base map alike.
-  map.addLayer({ id: 'trace-edge', type: 'line', source: 'trace', layout: lineLayout,
-    paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': 0.9 } });
-  map.addLayer({ id: 'trace', type: 'line', source: 'trace', layout: lineLayout,
-    paint: { 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth } });
+  // Two sources, one look: the history (re-sent once per chunk) and the live tail (each publish).
+  for (const [id, source] of [['trace-history-edge', 'trace-history'], ['trace-edge', 'trace']])
+    map.addLayer({ id, type: 'line', source, layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': 0.9 } });
+  for (const [id, source] of [['trace-history-line', 'trace-history'], ['trace', 'trace']])
+    map.addLayer({ id, type: 'line', source, layout: lineLayout, paint: { 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth } });
   // The way the walker is going, under the dot; and marked spots (a destination, a pressed spot).
   map.addLayer({ id: 'cone', type: 'fill', source: 'cone', paint: { 'fill-color': COLORS.walker, 'fill-opacity': 0.25 } });
   map.addLayer({ id: 'marks', type: 'circle', source: 'marks',
@@ -108,6 +114,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const onUserMove = useRef(props.onUserMove);
   onUserMove.current = props.onUserMove;
   const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
+  perfCount('render:map');
   const duration = props.animate === false ? 0 : 600;
   const animateRef = useRef(props.animate !== false);
   useEffect(() => {
@@ -189,7 +196,13 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       e.originalEvent.preventDefault();
       fireHold(e.lngLat);
     });
-    const track = () => setView({ zoom: map.getZoom(), lat: map.getCenter().lat });
+    // Only a real change of zoom or latitude band re-renders: a follow camera's moveend each fix
+    // would otherwise re-render the map component and re-send the cone (perf, Nov 1).
+    const track = () => {
+      const zoom = map.getZoom();
+      const lat = map.getCenter().lat;
+      setView((v) => (v && Math.abs(v.zoom - zoom) < 0.05 && Math.abs(v.lat - lat) < 0.01 ? v : { zoom, lat }));
+    };
     // Only gestures carry an originalEvent; camera moves made in code do not.
     // Zooming keeps following, as in Google Maps: only a pan or a turn looks away.
     const moved = (e: { originalEvent?: unknown }) => {
@@ -212,12 +225,20 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const setData = (id: string, data: GeoJSON.FeatureCollection) =>
+  const setData = (id: string, data: GeoJSON.FeatureCollection) => {
+    perfCount(`setData:${id}`);
     (mapRef.current?.getSource(id) as { setData(d: GeoJSON.FeatureCollection): void } | undefined)?.setData(data);
+  };
 
   useEffect(() => { if (ready) setData('fog', segmentsGeoJSON(props.fog)); }, [ready, props.fog]);
   useEffect(() => { if (ready) setData('walked', segmentsGeoJSON(props.walked)); }, [ready, props.walked]);
-  useEffect(() => { if (ready) setData('trace', traceGeoJSON(props.trace)); }, [ready, props.trace]);
+  const split = useMemo(() => splitTrace(props.trace), [props.trace]);
+  const history = useRef(split.history);
+  useEffect(() => {
+    history.current = split.history;
+  });
+  useEffect(() => { if (ready) setData('trace-history', traceGeoJSON(history.current)); }, [ready, split.historyKey]);
+  useEffect(() => { if (ready) setData('trace', traceGeoJSON(split.tail)); }, [ready, split.tail]);
   useEffect(() => { if (ready) setData('route', routeGeoJSON(props.route)); }, [ready, props.route]);
   useEffect(() => {
     if (!ready) return;
@@ -230,8 +251,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   }, [ready, props.walker, props.walkerHeading, view]);
   useEffect(() => {
     if (!ready) return;
-    mapRef.current?.setPaintProperty('trace', 'line-opacity', props.traceOpacity ?? 1);
-    mapRef.current?.setPaintProperty('trace-edge', 'line-opacity', 0.9 * (props.traceOpacity ?? 1));
+    for (const id of ['trace', 'trace-history-line']) mapRef.current?.setPaintProperty(id, 'line-opacity', props.traceOpacity ?? 1);
+    for (const id of ['trace-edge', 'trace-history-edge']) mapRef.current?.setPaintProperty(id, 'line-opacity', 0.9 * (props.traceOpacity ?? 1));
   }, [ready, props.traceOpacity]);
   useEffect(() => {
     if (ready) setData('points', walkerGeoJSON(props.walker));
@@ -473,7 +494,14 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       : ['interpolate', ['linear'], ['zoom'], 13, FOG_STYLE.widthMin, 17, FOG_STYLE.widthMax]);
   }, [ready, props.fogEmphasis]);
   useEffect(() => {
-    if (ready && props.follow) mapRef.current?.jumpTo({ center: props.follow });
+    const map = mapRef.current;
+    if (!ready || !props.follow || !map) return;
+    // Under 2 px is no move worth a frame (perf).
+    const p = map.project(props.follow);
+    const c = map.getCanvas();
+    if (Math.hypot(p.x - c.clientWidth / 2, p.y - c.clientHeight / 2) < 2) return;
+    perfCount('camera');
+    map.jumpTo({ center: props.follow });
   }, [ready, props.follow]);
   useEffect(() => {
     if (ready && props.fitBounds) {

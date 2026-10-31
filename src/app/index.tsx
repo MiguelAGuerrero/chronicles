@@ -12,6 +12,7 @@ import { Icon } from '../components/icons';
 import { Banner, Button, theme } from '../components/ui';
 import type { Area, WalkArea } from '../lib/areas/types';
 import { db } from '../lib/db';
+import { perfCount } from '../lib/perfCount';
 import { categoryOf } from '../lib/discovery/categories';
 import { takeRecallOpen } from '../lib/discovery/recallCheck';
 import { loadPrefs, runScan, savePrefs } from '../lib/discovery/runScan';
@@ -45,6 +46,7 @@ const boundsKey = (b: Bounds | null) => (b ? b.map((v) => v.toFixed(5)).join(','
  * placing old walks (which reads their traces) lives in lib/backlog.
  */
 export default function Home() {
+  perfCount('render:home');
   const insets = useSafeAreaInsets();
   const { height: screenH } = useWindowDimensions();
   const mapRef = useRef<WalkMapHandle>(null);

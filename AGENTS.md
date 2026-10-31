@@ -607,6 +607,23 @@ Read this before changing recording, streets, the replay or storage.
   `<body>` and the listener count don't grow while walking. `scripts/perf-walk.js`
   walks a dense fake downtown for `PERF_MIN` minutes and prints heap, nodes,
   listeners and CPU every 30 s.
+- **Reactivity budget** (Nov 1, after profiling and `docs/research-reactivity.md`):
+  - Steady walking renders the walk screen about 1.4 times a second (it was
+    4) and the map component 0.8 (it was 4.5). The e2e fails above 2.5 in
+    its busy window. `perfCount` (`lib/perfCount.ts`) counts renders, map
+    `setData` and camera moves when the page defines `window.__perf`.
+  - The clock and the memo timer tick in their own components (`Ticking`,
+    `WalkStats`); the screen's `now` ticks every 5 s.
+  - The recorder status is set only when it changes. A browser's watch error
+    between good fixes isn't "waiting" until 10 s without a fix.
+  - The map updates `view` only when zoom moves 0.05 or latitude moves 0.01°.
+    It skips follow moves under 2 px.
+  - The trace is a history source re-sent once per 100 fixes, plus a live
+    tail (`splitTrace`). On native, `TraceSource` is memoized, because MapLibre
+    RN serializes a source's data on every render.
+  - Line sources use `tolerance: 1, buffer: 64`.
+  - Profiling shows the app's own JavaScript under 2% of a desktop core; the
+    rest is the map drawing. Fewer updates is what helps.
 - **Web memory on iPhone:** the maps use `pixelRatio` ≤ 2,
   `maxTileCacheZoomLevels: 2` and `fadeDuration: 0`. The photo resize shrinks
   its canvas to 0 after use (iOS caps canvas memory per tab). Cached street

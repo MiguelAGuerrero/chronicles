@@ -1,7 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
-import { AccessibilityInfo, ActivityIndicator, Animated, AppState, BackHandler, Switch, Easing, KeyboardAvoidingView, Linking, Platform, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Animated, AppState, BackHandler, Switch, Easing, KeyboardAvoidingView, Linking, Platform, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View, type StyleProp, type TextStyle } from 'react-native';
 import { Modal } from '../components/Modal';
+import { perfCount } from '../lib/perfCount';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WalkMap } from '../components/map/WalkMap';
 import { COLORS, type WalkMapHandle } from '../components/map/types';
@@ -51,6 +52,36 @@ const EDGE_BOTTOM = 236;
 /** No accepted fix for this long while recording reads as weak GPS. */
 const WEAK_GPS_MS = 20_000;
 const NOTICE_MS = 6000;
+/** The screen's own clock: weak GPS (20 s) and the pause reminder (10 min) need no finer. */
+const SLOW_TICK_MS = 5000;
+
+/** Text that updates itself every second, so its parent doesn't re-render to tick it (perf). */
+function Ticking(props: { text: (now: number) => string; style?: StyleProp<TextStyle>; label?: (now: number) => string }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <Text style={props.style} accessibilityLabel={props.label?.(now)}>
+      {props.text(now)}
+    </Text>
+  );
+}
+
+/** Time walked (paused time left out) and distance, in the bottom strip. */
+function WalkStats(props: { startedAt: number | null; pauses: Pause[]; distanceM: number }) {
+  const { startedAt, pauses, distanceM } = props;
+  const elapsed = (now: number) => (startedAt == null ? 0 : now - startedAt - pausedMs(pauses, startedAt, now));
+  return (
+    <Ticking
+      style={styles.stats}
+      text={(now) => `${formatElapsed(elapsed(now))} · ${formatDistance(distanceM)}`}
+      label={(now) => `${formatDuration(elapsed(now))} walked, ${formatDistance(distanceM)}`}
+    />
+  );
+}
+
 /** A reminder's card goes after this long, or this far walked on. */
 const REMINDER_MS = 30_000;
 const REMINDER_AWAY_M = 100;
@@ -60,6 +91,7 @@ const CAPTION_OFFER_MS = 6000;
 type Notice = { message: string; tone?: 'info' | 'error'; openSettings?: boolean; sticky?: boolean };
 
 export default function WalkScreen() {
+  perfCount('render:walk');
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const edgeRight = Math.max(12, (width - 640) / 2 + 12);
@@ -117,13 +149,16 @@ export default function WalkScreen() {
   useEffect(
     () =>
       recorder.subscribeStatus((s) => {
-        setStatus(s);
+        // The recorder reports "recording" with every fix: only a change re-renders the screen (perf).
+        setStatus((prev) => (prev.kind === s.kind && JSON.stringify(prev) === JSON.stringify(s) ? prev : s));
         if (s.kind === 'error') setNotice({ message: s.message, tone: 'error', openSettings: s.openSettings, sticky: true });
       }),
     [],
   );
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
+    // Slow on purpose: only weak GPS and the pause reminder read it. The clock and the memo
+    // timer tick in their own small components, so the screen isn't re-rendered each second (perf).
+    const t = setInterval(() => setNow(Date.now()), SLOW_TICK_MS);
     return () => clearInterval(t);
   }, []);
 
@@ -575,7 +610,6 @@ export default function WalkScreen() {
 
   const paused = pauses.some((p) => p.ended_at == null);
   // Paused time does not count as walking.
-  const elapsed = walk ? now - walk.started_at - pausedMs(pauses, walk.started_at, now) : 0;
   const weak = status.kind === 'recording' && live.lastFixAt != null && now - live.lastFixAt > WEAK_GPS_MS;
   // The growing trace says it is recording; the status only shows when it is not.
   const problem =
@@ -594,7 +628,6 @@ export default function WalkScreen() {
   }, [openPause, now]);
   const recordingVoice = cap.voiceStartedAt != null;
   const scanDisabled = scan.scanning || navigation.finding || !live.here || recordingVoice || stopping;
-  const statsLabel = `${formatDuration(elapsed)} walked, ${formatDistance(live.distanceM)}`;
 
   return (
     <View style={styles.screen}>
@@ -739,7 +772,7 @@ export default function WalkScreen() {
         {recordingVoice && (
           <View style={styles.voiceLive} accessible accessibilityLabel="Recording voice memo">
             <PulseDot />
-            <Text style={styles.voiceLiveText}>{formatElapsed(now - cap.voiceStartedAt!)}</Text>
+            <Ticking style={styles.voiceLiveText} text={(t) => formatElapsed(t - cap.voiceStartedAt!)} />
           </View>
         )}
         {justTook && !recordingVoice && !spot && !openMark && !options && (
@@ -824,9 +857,7 @@ export default function WalkScreen() {
 
       <View style={[styles.bar, { paddingBottom: 10 + insets.bottom }]}>
         <View style={styles.barInner}>
-          <Text style={styles.stats} accessibilityLabel={statsLabel}>
-            {formatElapsed(elapsed)} · {formatDistance(live.distanceM)}
-          </Text>
+          <WalkStats startedAt={walk?.started_at ?? null} pauses={pauses} distanceM={live.distanceM} />
           <View style={styles.barActions}>
           <Pressable
             testID="walk-options"
