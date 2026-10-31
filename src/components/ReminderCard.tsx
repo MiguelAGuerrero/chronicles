@@ -15,7 +15,8 @@ export function ReminderCard(props: { captures: Capture[]; onOpen: () => void; o
   const photo = props.captures.length === 1 && props.captures[0].kind === 'photo' ? props.captures[0] : null;
   const uri = useMediaUri(photo);
   return (
-    <View testID="reminder" style={styles.card} accessibilityLiveRegion="polite">
+    // Announced once by the screen, not as a live region too (it would be read twice on Android).
+    <View testID="reminder" style={styles.card}>
       <Pressable
         testID="reminder-open"
         accessibilityRole="button"
@@ -30,7 +31,7 @@ export function ReminderCard(props: { captures: Capture[]; onOpen: () => void; o
         )}
         <View style={{ flex: 1 }}>
           <Text style={styles.title} numberOfLines={1}>{text.title}</Text>
-          <Text style={styles.body} numberOfLines={3}>{text.body}</Text>
+          <Text style={styles.body} numberOfLines={2}>{text.body}</Text>
         </View>
       </Pressable>
       <Pressable testID="reminder-dismiss" accessibilityRole="button" accessibilityLabel="Dismiss" onPress={props.onDismiss} style={styles.close} hitSlop={8}>

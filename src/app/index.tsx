@@ -2,6 +2,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, ActivityIndicator, Linking, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CaptureViewer } from '../components/CaptureView';
 import { DiscoveryPrefs } from '../components/DiscoveryPrefs';
 import { HomeSheet, SHEET_PEEK, type SheetMode } from '../components/HomeSheet';
 import type { MarkPin } from '../components/MarkPinView';
@@ -12,6 +13,7 @@ import { Banner, Button, theme } from '../components/ui';
 import type { Area, WalkArea } from '../lib/areas/types';
 import { db } from '../lib/db';
 import { categoryOf } from '../lib/discovery/categories';
+import { takeRecallOpen } from '../lib/discovery/recallCheck';
 import { loadPrefs, runScan, savePrefs } from '../lib/discovery/runScan';
 import { adoptable, scanNote, type Prefs } from '../lib/discovery/scan';
 import type { Mark } from '../lib/discovery/types';
@@ -24,7 +26,7 @@ import { saveNav } from '../lib/nav/store';
 import type { Waypoint } from '../lib/nav/types';
 import { startWalk } from '../lib/session';
 import { formatDuration } from '../lib/summary';
-import type { LngLat, Pause, Walk, WalkSummary } from '../lib/types';
+import type { Capture, LngLat, Pause, Walk, WalkSummary } from '../lib/types';
 
 const NONE: never[] = [];
 /** With nothing walked yet: the world, and one line. */
@@ -66,6 +68,7 @@ export default function Home() {
   const scanCancelled = useRef(false);
   const [prefsFor, setPrefsFor] = useState<{ initial: Prefs | null; then: LngLat | null } | null>(null);
   const [markOpen, setMarkOpen] = useState<string | null>(null);
+  const [recalled, setRecalled] = useState<Capture[] | null>(null);
   const [scanNotice, setScanNotice] = useState<{ message: string; tone?: 'info' | 'error' } | null>(null);
   useEffect(() => {
     if (!scanNotice) return;
@@ -84,8 +87,11 @@ export default function Home() {
         const openPauses = openWalk ? await db.getPauses(openWalk.id) : [];
         if (!live) return null;
         const marks = await db.listMarks(null).catch(() => [] as Mark[]);
+        // A reminder notification tapped with no walk open lands here (R4).
+        const recalled = openWalk ? [] : await takeRecallOpen().catch(() => [] as Capture[]);
         if (!live) return null;
         setHomeMarks(marks);
+        if (recalled.length) setRecalled(recalled);
         setData({ walks, summaries, areas, rows });
         setOpen(openWalk);
         setPauses(openPauses);
@@ -337,6 +343,7 @@ export default function Home() {
           <Icon name="options-outline" size={22} color={theme.ink} />
         </Pressable>
       )}
+      <CaptureViewer key={recalled?.[0]?.id ?? 'none'} captures={recalled} onClose={() => setRecalled(null)} autoPlay remind />
       <DiscoveryPrefs
         key={prefsFor ? JSON.stringify(prefsFor.initial) : 'closed'}
         visible={prefsFor != null}

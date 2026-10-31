@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import {
-  AccessibilityInfo, ActivityIndicator, Animated, AppState, BackHandler, Easing, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, StyleSheet, Text,
+  AccessibilityInfo, ActivityIndicator, Animated, BackHandler, Easing, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, StyleSheet, Text,
   TextInput, useWindowDimensions, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,7 +13,7 @@ import { Icon, KIND_LABEL, type IconName } from '../components/icons';
 import { Banner, Button, HoldButton, theme } from '../components/ui';
 import { DiscoveryPrefs } from '../components/DiscoveryPrefs';
 import { ReminderCard } from '../components/ReminderCard';
-import { checkRecalls } from '../lib/discovery/recallCheck';
+import { checkRecalls, onRecallFired, takeRecallOpen } from '../lib/discovery/recallCheck';
 import { categoryOf } from '../lib/discovery/categories';
 import { savePrefs } from '../lib/discovery/runScan';
 import { placesFromTilePois } from '../lib/discovery/tilePois';
@@ -52,6 +52,9 @@ const EDGE_BOTTOM = 236;
 /** No accepted fix for this long while recording reads as weak GPS. */
 const WEAK_GPS_MS = 20_000;
 const NOTICE_MS = 6000;
+/** A reminder's card goes after this long, or this far walked on. */
+const REMINDER_MS = 30_000;
+const REMINDER_AWAY_M = 100;
 /** How long "Aa Caption" stays offered after a photo. */
 const CAPTION_OFFER_MS = 6000;
 
@@ -283,41 +286,53 @@ export default function WalkScreen() {
     return () => clearTimeout(t);
   }, [navMark, endNav]);
   // Remind me here (v1 slice 4): a flagged capture comes back when this walk
-  // passes it, checked on each accepted fix while the screen is in front (R2, R3).
-  const [reminder, setReminder] = useState<Capture[] | null>(null);
+  // passes it (R2, R3). The web checks on each accepted fix here; on a phone
+  // the location task checks every batch, and fires reach this card while the
+  // screen is in front. A second fire joins the open card (R7).
+  const [reminder, setReminder] = useState<{ captures: Capture[]; at: LngLat | null; shownAt: number } | null>(null);
+  const hereRef = useRef(live.here);
+  useEffect(() => {
+    hereRef.current = live.here;
+  }, [live.here]);
+  useEffect(
+    () =>
+      onRecallFired((due) => {
+        setReminder((r) => {
+          const all = [...(r?.captures ?? []), ...due.filter((c) => !r?.captures.some((x) => x.id === c.id))];
+          return { captures: all, at: hereRef.current, shownAt: Date.now() };
+        });
+        AccessibilityInfo.announceForAccessibility(due.length > 1 ? `${due.length} memories here` : 'A memory from here');
+      }),
+    [],
+  );
   useEffect(() => {
     const at = live.here;
-    if (!walk || !at || AppState.currentState !== 'active') return;
+    if (!walk || !at || Platform.OS !== 'web') return;
+    checkRecalls(walk.id, [at]).catch(() => {});
+  }, [walk, live.here]);
+  // The card goes by itself after half a minute or 100 m walked on (it stays fired).
+  useEffect(() => {
+    if (!reminder) return;
+    const walkedOn = reminder.at && live.here && distanceM(reminder.at, live.here) > REMINDER_AWAY_M;
+    const t = setTimeout(() => setReminder(null), walkedOn ? 0 : Math.max(0, reminder.shownAt + REMINDER_MS - Date.now()));
+    return () => clearTimeout(t);
+  }, [reminder, live.here]);
+  // A tapped reminder notification opens its captures, playing (R4).
+  const [autoPlay, setAutoPlay] = useState(false);
+  useEffect(() => {
+    if (!walk) return;
     let alive = true;
-    checkRecalls(walk.id, at)
-      .then((due) => {
-        if (!alive || !due.length) return;
-        setReminder(due);
-        AccessibilityInfo.announceForAccessibility(due.length > 1 ? `${due.length} memories here` : 'A memory from here');
+    takeRecallOpen()
+      .then((found) => {
+        if (!alive || !found.length) return;
+        setAutoPlay(true);
+        setViewing(found);
       })
       .catch(() => {});
     return () => {
       alive = false;
     };
-  }, [walk, live.here]);
-  // A reminder notification tapped in the background opens its captures here (R4).
-  const recallParam = params.recall;
-  useEffect(() => {
-    if (!recallParam || !walk) return;
-    const ids = new Set(recallParam.split(','));
-    let alive = true;
-    (async () => {
-      const at = live.here;
-      const near = at ? await db.capturesIn(boundsOf([at], 300)!) : [];
-      const found = near.filter((c) => ids.has(c.id));
-      if (alive && found.length) setViewing(found);
-    })().catch(() => {});
-    return () => {
-      alive = false;
-    };
-    // Once per tapped notification; the position at that moment is enough.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recallParam, walk]);
+  }, [walk, params.recall]);
   const walkStart: LngLat | null = live.runs[0]?.[0] ?? null;
   // Once, after the first 100 m of a first walk: how to go somewhere.
   const hinted = useRef(false);
@@ -557,16 +572,6 @@ export default function WalkScreen() {
             </Pressable>
           </View>
         )}
-        {reminder && (
-          <ReminderCard
-            captures={reminder}
-            onOpen={() => {
-              setViewing(reminder);
-              setReminder(null);
-            }}
-            onDismiss={() => setReminder(null)}
-          />
-        )}
         {arrived && (
           <View style={styles.toast}>
             <Text style={[styles.toastText, styles.flashText]}>{arrived}</Text>
@@ -577,6 +582,17 @@ export default function WalkScreen() {
             <View style={[styles.statusDot, { backgroundColor: problem.color }]} />
             <Text style={styles.chipText}>{problem.label}</Text>
           </View>
+        )}
+        {reminder && (
+          <ReminderCard
+            captures={reminder.captures}
+            onOpen={() => {
+              setAutoPlay(true);
+              setViewing(reminder.captures);
+              setReminder(null);
+            }}
+            onDismiss={() => setReminder(null)}
+          />
         )}
         {notice && (
           <Banner
@@ -847,8 +863,13 @@ export default function WalkScreen() {
       <CaptureViewer
         key={viewing?.[0]?.id ?? 'none'}
         captures={viewing && viewing.map((v) => cap.captures.find((c) => c.id === v.id) ?? v)}
-        onClose={() => setViewing(null)}
+        onClose={() => {
+          setViewing(null);
+          setAutoPlay(false);
+        }}
+        autoPlay={autoPlay}
         remind
+        walkId={walk?.id ?? null}
         onSaveCaption={(c, caption, y) => cap.setCaption(c.id, caption, y)}
         onGoHere={navigation.finding || scan.scanning ? undefined : (c) => {
           setViewing(null);
@@ -905,6 +926,7 @@ export default function WalkScreen() {
         key={`here:${hereKey}`}
         title="What happened here"
         remind
+        walkId={walk?.id ?? null}
         captures={here?.captures ?? null}
         context={here?.context}
         onClose={() => setHere(null)}

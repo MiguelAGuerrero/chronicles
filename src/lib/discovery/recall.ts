@@ -1,6 +1,6 @@
 import { distanceM } from '../geo';
 import type { Capture, LngLat } from '../types';
-import type { Recall } from './types';
+import type { Recall, RecallFrequency } from './types';
 
 /** Remind me here's numbers (R2, R4, R5). */
 export const RECALL_RULES = {
@@ -29,7 +29,8 @@ function rested(r: Recall, now: number): boolean {
  * until-date. A quiet walk has none.
  */
 export function dueRecalls(o: {
-  here: LngLat;
+  /** The accepted fix, or every accepted fix of a batch. */
+  here: LngLat | LngLat[];
   walkId: string;
   now: number;
   quiet: boolean;
@@ -38,12 +39,14 @@ export function dueRecalls(o: {
 }): { recall: Recall; capture: Capture }[] {
   if (o.quiet) return [];
   const byId = new Map(o.captures.map((c) => [c.id, c]));
+  const path: LngLat[] = typeof o.here[0] === 'number' ? [o.here as LngLat] : (o.here as LngLat[]);
   const out: { recall: Recall; capture: Capture }[] = [];
   for (const r of o.recalls) {
     const c = byId.get(r.capture_id);
     if (!c || c.lat == null || c.lon == null || c.walk_id === o.walkId || r.last_walk_id === o.walkId) continue;
     if (isExpired(r, o.now) || !rested(r, o.now)) continue;
-    if (distanceM(o.here, [c.lon, c.lat]) <= RECALL_RULES.reachM) out.push({ recall: r, capture: c });
+    const at: LngLat = [c.lon, c.lat];
+    if (path.some((p) => distanceM(p, at) <= RECALL_RULES.reachM)) out.push({ recall: r, capture: c });
   }
   return out;
 }
@@ -56,15 +59,23 @@ export function afterFire(r: Recall, walkId: string, now: number):
   return { kind: 'update', patch: { last_fired_at: now, fired_count: r.fired_count + 1, last_walk_id: walkId } };
 }
 
+/**
+ * A new flag. Set during a walk, it counts as fired in that walk, so the
+ * capture being looked at doesn't come back two seconds later (audit).
+ */
+export function newRecall(captureId: string, frequency: RecallFrequency, until: number | null, openWalkId: string | null): Recall {
+  return { capture_id: captureId, frequency, until, last_fired_at: null, fired_count: 0, last_walk_id: openWalkId };
+}
+
+/** An edit changes how often and until when, never what firing wrote (R9). */
+export const editedRecall = (fresh: Recall, frequency: RecallFrequency, until: number | null): Recall => ({ ...fresh, frequency, until });
+
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const KIND_WORD: Record<Capture['kind'], string> = { photo: 'Photo', video: 'Video', voice: 'Voice memo', text: 'Note' };
 
 /** The reminder's words, carrying the content (R4); two or more in reach are one (R7). */
 export function reminderText(captures: Capture[]): { title: string; body: string } {
-  if (captures.length > 1) {
-    const d = new Date(Math.min(...captures.map((c) => c.t)));
-    return { title: `${captures.length} memories here`, body: `From ${MONTHS[d.getMonth()]} ${d.getDate()} on` };
-  }
+  if (captures.length > 1) return { title: `${captures.length} memories here`, body: kindsOf(captures) };
   const c = captures[0];
   if (c.kind === 'text' && c.body) {
     const text = c.body.trim();
@@ -73,4 +84,18 @@ export function reminderText(captures: Capture[]): { title: string; body: string
   if (c.caption) return { title: 'A memory from here', body: c.caption };
   const d = new Date(c.t);
   return { title: 'A memory from here', body: `${KIND_WORD[c.kind]}, ${MONTHS[d.getMonth()]} ${d.getDate()}` };
+}
+
+const ONE: Record<Capture['kind'], string> = { photo: 'a photo', video: 'a video', voice: 'a voice memo', text: 'a note' };
+const MANY: Record<Capture['kind'], string> = { photo: 'photos', video: 'videos', voice: 'voice memos', text: 'notes' };
+
+/** "A photo and a note", "2 voice memos and a note". */
+function kindsOf(captures: Capture[]): string {
+  const order: Capture['kind'][] = ['photo', 'video', 'voice', 'text'];
+  const parts = order
+    .map((k) => [k, captures.filter((c) => c.kind === k).length] as const)
+    .filter(([, n]) => n > 0)
+    .map(([k, n]) => (n === 1 ? ONE[k] : `${n} ${MANY[k]}`));
+  const text = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : parts[0];
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }

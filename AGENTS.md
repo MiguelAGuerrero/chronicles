@@ -354,6 +354,29 @@ Read this before changing recording, streets, the replay or storage.
     (storing it needs a migration); Undo for Dismiss; grouping home marks by
     screen distance.
 
+- **Remind me here** (`discovery/recall.ts` pure, `recallCheck.ts`):
+  - Every write goes through `saveRecall`/`stopRecall`, which keep the
+    in-memory copy honest.
+  - A check runs after 10 m walked. On web, the walk screen checks each fix. On
+    a phone, the location task checks every accepted fix of each batch
+    (`filterFixes` + `withoutPauses`).
+  - Where a fire goes is decided when it is shown (`deliver`): the walk
+    screen's card if it is in front and listening, else a notification with a
+    fixed `recall-<walk>` identifier.
+  - A flag set during a walk counts as fired in it (`newRecall`). An edit
+    keeps what firing wrote (`editedRecall`).
+  - A tapped notification stores its ids in meta `recall_open`. The next
+    screen to mount opens them, playing: the walk, or the home with no walk
+    open.
+  - Notification permission is asked when a reminder is saved (in front),
+    never from the task. "Stop reminding me" opens the app, because with the
+    app killed a background action reaches no listener.
+  - The card goes after 30 s or 100 m. Repeat fires merge into it.
+  - **Deferred:** clearing flags whose capture is gone (there is no delete
+    yet). The quiet-walk toggle arrives with ambient.
+  - **Native** (unverified on a device): the task's check, notifications,
+    actions and cold-start taps.
+
 ## Working with the owner
 
 - **Ask before architectural decisions:** libraries, data model, platform strategy,

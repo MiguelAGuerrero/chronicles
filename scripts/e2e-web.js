@@ -683,19 +683,33 @@ function check(ok, what) {
     const reminded = await page.waitForSelector('[data-testid=reminder]', { timeout: 15000 }).then(() => true, () => false);
     check(reminded && /memor|note/i.test(await page.locator('[data-testid=reminder]').innerText()), 'a later walk passing a flagged capture brings it back');
     await shot(page, '13-reminder');
-    await page.click('[data-testid=reminder-open]');
-    await page.waitForSelector('[aria-label="Close"]');
-    check(true, 'the reminder opens its capture');
-    await page.click('[aria-label="Close"]');
-    // Once: the flag clears on its first fire (R6, R9).
-    const recalls = await page.evaluate(() => new Promise((resolve) => {
+    const recallRows = () => page.evaluate(() => new Promise((resolve) => {
       const req = indexedDB.open('chronicles');
       req.onsuccess = () => {
         const r = req.result.transaction('recall', 'readonly').objectStore('recall').getAll();
-        r.onsuccess = () => resolve(r.result.length);
+        r.onsuccess = () => resolve(r.result);
       };
     }));
-    check(recalls === 0, `a "once" reminder clears when it fires (${recalls} left)`);
+    // Once: the flag clears on its first fire (R6, R9).
+    const left = (await recallRows()).length;
+    check(left === 0, `a "once" reminder clears when it fires (${left} left)`);
+    await page.click('[data-testid=reminder-open]');
+    await page.waitForSelector('[data-testid=viewer-remind]');
+    check(true, 'the reminder opens its capture');
+    // Flagged again here, mid-walk, every visit: it waits for the next walk, not two seconds (audit).
+    await page.click('[data-testid=viewer-remind]');
+    await page.click('[data-testid=remind-visit]');
+    await page.click('[data-testid=remind-save]');
+    await page.waitForSelector('text=It will come back when you pass here');
+    await page.click('[aria-label="Close"]');
+    for (let j = 1; j <= 4; j++) {
+      await ctx.setGeolocation({ longitude: pts[25][0], latitude: pts[25][1] + j * 0.00005, accuracy: 6 });
+      await page.waitForTimeout(1000);
+    }
+    await page.waitForTimeout(2000);
+    const again = await recallRows();
+    check((await page.locator('[data-testid=reminder]').count()) === 0 && again.length === 1 && again[0].fired_count === 0,
+      'a capture flagged mid-walk doesn’t come back in that walk');
     const away = [...hosts].filter((h) => !h.startsWith('localhost') && h !== 'tiles.openfreemap.org');
     check(away.length === 0, `nothing is sent anywhere but the map tiles (${away.join(', ')})`);
     check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);

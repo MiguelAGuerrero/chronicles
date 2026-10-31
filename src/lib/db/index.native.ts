@@ -214,6 +214,10 @@ export const db: Db = {
     return (await conn()).getAllAsync<Capture>('SELECT * FROM capture WHERE walk_id = ? ORDER BY t', walkId);
   },
 
+  async getCapturesByIds(ids) {
+    if (!ids.length) return [];
+    return (await conn()).getAllAsync<Capture>(`SELECT * FROM capture WHERE id IN (${ids.map(() => '?').join(',')}) ORDER BY t`, ...ids);
+  },
   async capturesIn([w, s, e, n]) {
     return (await conn()).getAllAsync<Capture>(
       'SELECT * FROM capture WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ? ORDER BY t', s, n, w, e,

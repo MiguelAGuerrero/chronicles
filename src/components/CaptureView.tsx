@@ -5,6 +5,9 @@ import { forwardRef, useEffect, useRef, useState, type ComponentRef } from 'reac
 import { Image, Linking, Modal, Platform, Pressable, StyleSheet, Text, View, type LayoutRectangle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { db } from '../lib/db';
+import { editedRecall, newRecall } from '../lib/discovery/recall';
+import { saveRecall, stopRecall, storedRecall } from '../lib/discovery/recallCheck';
+import { notifier } from '../lib/notify';
 import type { Recall } from '../lib/discovery/types';
 import { dropBaked, KeeperError, saveKeeper } from '../lib/export';
 import { releaseMedia, resolveMedia } from '../lib/media';
@@ -286,6 +289,10 @@ export function CaptureViewer(props: {
   onGoHere?: (c: Capture) => void;
   /** Offers "Remind me here" (v1, R1); the viewer reads and writes the flags itself. */
   remind?: boolean;
+  /** The open walk, if any: a flag set during it waits for the next walk (audit). */
+  walkId?: string | null;
+  /** Plays a memo or video as it opens (a reminder opened, R4). */
+  autoPlay?: boolean;
 }) {
   const insets = useSafeAreaInsets();
   const [index, setIndex] = useState(0);
@@ -354,6 +361,7 @@ export function CaptureViewer(props: {
           <CaptureContent
             key={current.id}
             capture={current}
+            autoPlay={props.autoPlay}
             topInset={insets.top}
             footer={[props.context?.get(current.id), list.length > 1 ? `${i + 1} of ${list.length}` : null].filter(Boolean).join(' · ') || undefined}
             nav={
@@ -457,24 +465,29 @@ export function CaptureViewer(props: {
         {reminding && (
           <RemindEditor
             key={reminding.id}
-            captureId={reminding.id}
             current={recalls.get(reminding.id) ?? null}
             onClose={() => setReminding(null)}
-            onSave={async (r) => {
+            onSave={async (frequency, until) => {
+              const id = reminding.id;
               setReminding(null);
               try {
-                await db.setRecall(r);
+                // Read fresh: a fire while the viewer was open must not be undone (R9).
+                const fresh = await storedRecall(id);
+                const r = fresh ? editedRecall(fresh, frequency, until) : newRecall(id, frequency, until, props.walkId ?? null);
+                await saveRecall(r);
+                // Asked here, in front: the location task can't show a prompt (audit).
+                notifier.ask().catch(() => {});
                 setRecalls((m) => new Map(m).set(r.capture_id, r));
                 setSaveState({ id: r.capture_id, text: 'It will come back when you pass here' });
               } catch {
-                setSaveState({ id: r.capture_id, text: 'The reminder could not be saved' });
+                setSaveState({ id, text: 'The reminder could not be saved' });
               }
             }}
             onStop={async () => {
               const id = reminding.id;
               setReminding(null);
               try {
-                await db.clearRecall(id);
+                await stopRecall(id);
                 setRecalls((m) => {
                   const n = new Map(m);
                   n.delete(id);

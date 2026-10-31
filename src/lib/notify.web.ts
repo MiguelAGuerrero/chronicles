@@ -12,4 +12,5 @@ export const notifier: Notifier = {
   async pauseEnded() {},
   // Reminders on the web fire only while the page is open, on the walk screen (R3).
   async recall() {},
+  async ask() {},
 };

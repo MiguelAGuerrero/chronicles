@@ -1,37 +1,95 @@
+import { AppState } from 'react-native';
 import { db } from '../db';
-import { boundsOf } from '../geo';
+import { boundsOf, distanceM } from '../geo';
+import { notifier } from '../notify';
 import type { Capture, LngLat } from '../types';
-import { afterFire, dueRecalls, isExpired, RECALL_RULES } from './recall';
+import { afterFire, dueRecalls, isExpired, RECALL_RULES, reminderText } from './recall';
+import type { Recall } from './types';
 
 /** The walk being kept quiet (A2, R8): no reminders, no ambient alerts. */
 export const QUIET_KEY = 'quiet_walk';
+/** Captures a tapped reminder notification asked to open, for whichever screen mounts next (R4). */
+export const RECALL_OPEN_KEY = 'recall_open';
+/** A check runs again only after this much walking (audit: not every fix, every second). */
+const STEP_M = 10;
 
-let running: Promise<Capture[]> | null = null;
+// The flags, kept in memory between checks; every write goes through here.
+let cache: Recall[] | null = null;
+const recalls = async () => (cache ??= await db.listRecalls());
+export async function saveRecall(r: Recall) {
+  await db.setRecall(r);
+  cache = null;
+}
+export async function stopRecall(captureId: string) {
+  await db.clearRecall(captureId);
+  cache = null;
+}
+/** The flag as stored now, for an edit that must not undo a fire (R9). */
+export async function storedRecall(captureId: string): Promise<Recall | null> {
+  cache = null;
+  return (await recalls()).find((r) => r.capture_id === captureId) ?? null;
+}
+
+// Fires go to the walk screen when it is in front, else to a notification:
+// decided when a fire is shown, not where it was checked (audit).
+let screen: ((captures: Capture[]) => void) | null = null;
+export function onRecallFired(fn: (captures: Capture[]) => void): () => void {
+  screen = fn;
+  return () => {
+    if (screen === fn) screen = null;
+  };
+}
+async function deliver(walkId: string, captures: Capture[]) {
+  if (screen && AppState.currentState === 'active') screen(captures);
+  else await notifier.recall(reminderText(captures), captures.map((c) => c.id), walkId).catch(() => {});
+}
+
+let running: Promise<void> | null = null;
+let last: { walkId: string; at: LngLat } | null = null;
 
 /**
- * Checks the flagged captures near `here` and fires those due (R2, R5, R6,
- * R9): "once" clears, the rest count and remember this walk, and flags past
- * their until-date end silently. One check at a time, shared by the walk
- * screen (in front) and the location task (in the background), so a fix
- * never fires one twice.
+ * Checks the flagged captures near the walk's latest accepted fixes and fires
+ * those due (R2, R5, R6, R9): "once" clears, the rest count and remember this
+ * walk, flags past their until-date end silently. One check at a time,
+ * shared by the walk screen and the location task; a check that finds itself
+ * overlapping another is skipped, the next fix checks again.
  */
-export function checkRecalls(walkId: string, here: LngLat, now = Date.now()): Promise<Capture[]> {
-  if (running) return running.then(() => [] as Capture[]);
+export function checkRecalls(walkId: string, path: LngLat[], now = Date.now()): Promise<void> {
+  const end = path[path.length - 1];
+  if (!end || running) return running ?? Promise.resolve();
+  if (last && last.walkId === walkId && path.every((p) => distanceM(p, last!.at) < STEP_M)) return Promise.resolve();
   running = (async () => {
-    const recalls = await db.listRecalls();
-    if (!recalls.length) return [];
-    for (const r of recalls) if (isExpired(r, now)) await db.clearRecall(r.capture_id);
+    last = { walkId, at: end };
+    const all = await recalls();
+    if (!all.length) return;
+    for (const r of all) if (isExpired(r, now)) await stopRecall(r.capture_id);
     const quiet = (await db.getMeta(QUIET_KEY)) === walkId;
-    const near = await db.capturesIn(boundsOf([here], RECALL_RULES.reachM + 10)!);
-    const due = dueRecalls({ here, walkId, now, quiet, recalls, captures: near });
+    if (quiet) return;
+    const box = boundsOf(path, RECALL_RULES.reachM + 10)!;
+    const due = dueRecalls({ here: path, walkId, now, quiet, recalls: await recalls(), captures: await db.capturesIn(box) });
+    if (!due.length) return;
     for (const { recall } of due) {
       const next = afterFire(recall, walkId, now);
-      if (next.kind === 'clear') await db.clearRecall(recall.capture_id);
-      else await db.setRecall({ ...recall, ...next.patch });
+      if (next.kind === 'clear') await stopRecall(recall.capture_id);
+      else await saveRecall({ ...recall, ...next.patch });
     }
-    return due.map((d) => d.capture);
-  })().finally(() => {
-    running = null;
-  });
+    await deliver(walkId, due.map((d) => d.capture));
+  })()
+    .catch(() => {})
+    .finally(() => {
+      running = null;
+    });
   return running;
+}
+
+/** The captures a tapped notification asked to open, once (R4); found by id, wherever the walker is now. */
+export async function takeRecallOpen(): Promise<Capture[]> {
+  const raw = await db.getMeta(RECALL_OPEN_KEY);
+  if (!raw) return [];
+  await db.setMeta(RECALL_OPEN_KEY, '');
+  try {
+    return await db.getCapturesByIds(JSON.parse(raw) as string[]);
+  } catch {
+    return [];
+  }
 }

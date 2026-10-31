@@ -8,5 +8,7 @@ export interface Notifier {
    * A flagged capture came back while the app is in the background (R3): one
    * notification carrying its content, with "Stop reminding me" (R8).
    */
-  recall(text: { title: string; body: string }, captureIds: string[]): Promise<void>;
+  recall(text: { title: string; body: string }, captureIds: string[], walkId: string): Promise<void>;
+  /** Asks for notifications while the app is in front (a reminder was set); the location task only checks. */
+  ask(): Promise<void>;
 }

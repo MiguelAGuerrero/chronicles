@@ -7,8 +7,8 @@ const DAY = 86_400_000;
 const FREQUENCIES: { id: RecallFrequency; label: string }[] = [
   { id: 'once', label: 'Once' },
   { id: 'visit', label: 'Every visit' },
-  { id: 'weekly', label: 'At most weekly' },
-  { id: 'monthly', label: 'At most monthly' },
+  { id: 'weekly', label: 'Weekly at most' },
+  { id: 'monthly', label: 'Monthly at most' },
 ];
 /** The until-date, as a few spans from now: no date picker to fight on three platforms. */
 const UNTIL: { id: string; label: string; days: number | null }[] = [
@@ -18,11 +18,7 @@ const UNTIL: { id: string; label: string; days: number | null }[] = [
   { id: 'year', label: '1 year', days: 365 },
 ];
 
-/** The span chip closest to an existing until-date. */
-function nearestSpan(until: number): string {
-  const days = (until - Date.now()) / DAY;
-  return UNTIL.filter((x) => x.days != null).reduce((a, b) => (Math.abs(b.days! - days) < Math.abs(a.days! - days) ? b : a)).id;
-}
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /**
  * Remind me here (R1, R8): how often a capture comes back when a later walk
@@ -30,26 +26,23 @@ function nearestSpan(until: number): string {
  * second one (iOS can't present a Modal over a Modal).
  */
 export function RemindEditor(props: {
-  captureId: string;
   current: Recall | null;
-  onSave: (r: Recall) => void;
+  /** How often, and the until-date (null: no end). */
+  onSave: (frequency: RecallFrequency, until: number | null) => void;
   onStop: () => void;
   onClose: () => void;
 }) {
   const [frequency, setFrequency] = useState<RecallFrequency>(props.current?.frequency ?? 'once');
-  const [until, setUntil] = useState<string>(() => (props.current?.until == null ? 'none' : nearestSpan(props.current.until)));
-  // An until-date left as it was keeps its exact day.
-  const [untilTouched, setUntilTouched] = useState(false);
+  // An end already set is its own chip, "Ends Nov 2", kept to the day unless another is picked.
+  const kept = props.current?.until ?? null;
+  const [until, setUntil] = useState<string>(kept != null ? 'kept' : 'none');
+  const items = kept != null
+    ? [{ id: 'kept', label: `Ends ${MONTHS[new Date(kept).getMonth()]} ${new Date(kept).getDate()}` }, ...UNTIL]
+    : UNTIL;
   const save = () => {
+    if (until === 'kept') return props.onSave(frequency, kept);
     const span = UNTIL.find((x) => x.id === until)?.days ?? null;
-    props.onSave({
-      capture_id: props.captureId,
-      frequency,
-      until: !untilTouched && props.current ? props.current.until : span == null ? null : Date.now() + span * DAY,
-      last_fired_at: props.current?.last_fired_at ?? null,
-      fired_count: props.current?.fired_count ?? 0,
-      last_walk_id: props.current?.last_walk_id ?? null,
-    });
+    props.onSave(frequency, span == null ? null : Date.now() + span * DAY);
   };
   return (
     <View style={[StyleSheet.absoluteFill, styles.back]}>
@@ -57,10 +50,7 @@ export function RemindEditor(props: {
         <Text style={styles.title} accessibilityRole="header">Remind me here</Text>
         <Text style={styles.sub}>When a later walk passes within 75 m, this comes back.</Text>
         <Group label="How often" items={FREQUENCIES} value={frequency} onChange={(v) => setFrequency(v as RecallFrequency)} />
-        <Group label="Until" items={UNTIL} value={until} onChange={(v) => {
-          setUntil(v);
-          setUntilTouched(true);
-        }} />
+        <Group label="Until" items={items} value={until} onChange={setUntil} />
         <View style={styles.actions}>
           {props.current && <Button testID="remind-stop" variant="secondary" label="Stop reminding me" onPress={props.onStop} />}
           <View style={{ flex: 1 }} />

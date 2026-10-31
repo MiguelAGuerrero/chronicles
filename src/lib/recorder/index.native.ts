@@ -2,10 +2,9 @@ import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import { AppState, PermissionsAndroid, Platform } from 'react-native';
 import { db } from '../db';
-import { reminderText } from '../discovery/recall';
 import { checkRecalls } from '../discovery/recallCheck';
-import { notifier } from '../notify';
-import type { TracePoint } from '../types';
+import { filterFixes, withoutPauses } from '../geo';
+import type { LngLat, TracePoint } from '../types';
 import { currentStatus, emit, setStatus, subscribe, subscribeStatus } from './emitter';
 import { RecorderError, type Recorder } from './types';
 
@@ -57,13 +56,12 @@ TaskManager.defineTask<{ locations: Location.LocationObject[] }>(TASK, async ({ 
     await db.appendPoints(points);
     setStatus({ kind: 'recording' });
     emit(points);
-    // In the background, a flagged capture comes back as a notification (R3);
-    // in front, the walk screen shows it itself. Only a fix good enough to place.
-    const last = [...points].reverse().find((p) => p.accuracy_m == null || p.accuracy_m <= 50);
-    if (last && AppState.currentState !== 'active') {
-      const due = await checkRecalls(walk.id, [last.lon, last.lat]).catch(() => []);
-      if (due.length) await notifier.recall(reminderText(due), due.map((c) => c.id)).catch(() => {});
-    }
+    // A flagged capture comes back (R3): checked against every accepted fix of
+    // the batch (the fix filter, outside pauses); in the background it is a
+    // notification, in front the walk screen's card.
+    const pauses = await db.getPauses(walk.id).catch(() => []);
+    const accepted = filterFixes(withoutPauses(points, pauses), walk.started_at).map((p) => [p.lon, p.lat] as LngLat);
+    if (accepted.length) await checkRecalls(walk.id, accepted).catch(() => {});
   } catch (e) {
     setStatus({ kind: 'error', message: `Positions could not be saved: ${e instanceof Error ? e.message : e}` });
   }

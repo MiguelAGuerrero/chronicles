@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { RECALL_RULES, afterFire, dueRecalls, isExpired, reminderText } from '../discovery/recall';
+import { RECALL_RULES, afterFire, dueRecalls, editedRecall, isExpired, newRecall, reminderText } from '../discovery/recall';
 import type { Recall } from '../discovery/types';
 import type { Capture, LngLat } from '../types';
 
@@ -74,4 +74,30 @@ test('recall: the reminder carries the content (R4)', () => {
   assert.deepEqual(reminderText([capture('a', { kind: 'video', body: null })]), { title: 'A memory from here', body: 'Video, Oct 20' });
   assert.deepEqual(reminderText([capture('a', { kind: 'photo', body: null })]), { title: 'A memory from here', body: 'Photo, Oct 20' });
   assert.deepEqual(reminderText([capture('a', { kind: 'photo', body: null, caption: 'Mural on Wickenden' })]), { title: 'A memory from here', body: 'Mural on Wickenden' });
+});
+
+// Audit regressions (slice 4).
+
+test('recall: a flag set during a walk waits for the next one (audit 1)', () => {
+  const r = newRecall('a', 'once', null, 'w1');
+  assert.equal(r.last_walk_id, 'w1');
+  assert.deepEqual(due({ recalls: [r], captures: [capture('a')], walkId: 'w1' }), []);
+  assert.deepEqual(due({ recalls: [r], captures: [capture('a')], walkId: 'w2' }), ['a']);
+  assert.equal(newRecall('a', 'once', null, null).last_walk_id, null);
+});
+
+test('recall: an edit keeps what firing wrote (audit 11)', () => {
+  const fresh = recall('a', { frequency: 'weekly', last_fired_at: NOW, fired_count: 4, last_walk_id: 'w3' });
+  assert.deepEqual(editedRecall(fresh, 'monthly', NOW + DAY), { ...fresh, frequency: 'monthly', until: NOW + DAY });
+});
+
+test('recall: any accepted fix of a batch can bring it back (audit 10)', () => {
+  const got = dueRecalls({ here: [m(200, 0), m(60, 0), m(-200, 0)], walkId: 'w1', now: NOW, quiet: false, recalls: [recall('a')], captures: [capture('a')] });
+  assert.equal(got.length, 1);
+});
+
+test('recall: two memories name their kinds (UI review)', () => {
+  const t = reminderText([capture('a', { kind: 'photo', body: null }), capture('b')]);
+  assert.deepEqual(t, { title: '2 memories here', body: 'A photo and a note' });
+  assert.equal(reminderText([capture('a', { kind: 'voice', body: null }), capture('b', { kind: 'voice', body: null }), capture('c')]).body, '2 voice memos and a note');
 });

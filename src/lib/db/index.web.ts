@@ -150,6 +150,11 @@ export const db: Db = {
     return (await byWalk<Capture>('capture', walkId)).sort((a, b) => a.t - b.t);
   },
 
+  async getCapturesByIds(ids) {
+    const st = await store('capture');
+    const got = await Promise.all(ids.map((id) => done(st.get(id)) as Promise<Capture | undefined>));
+    return got.filter((c): c is Capture => !!c).sort((a, b) => a.t - b.t);
+  },
   async capturesIn([w, s, e, n]) {
     const all = (await done((await store('capture')).getAll())) as Capture[];
     return all
