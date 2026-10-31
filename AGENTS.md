@@ -196,6 +196,43 @@ Read this before changing recording, streets, the replay or storage.
   Blob parts on web). Missing media is counted, marked in walk.json and reported.
   There is no import yet.
 
+## v0.5: places (in progress; the spec is the concept doc's "v0.5" tab)
+
+- **No dataset is hard-coded** (the owner's rule). `src/lib/areas/assign.ts`
+  knows only two interfaces from `areas/types.ts`:
+  - `PlaceCandidate`: a named point with a level and a reach.
+  - `BoundarySource`: which country and state contain a point.
+  Datasets reach it through adapters:
+  - Map tiles go through `tilePlaces.ts`, the only file that knows the
+    OpenMapTiles place classes.
+  - Outlines ship in the app's own boundary-pack format (`boundaryPack.ts`).
+    `scripts/build-boundaries.js` builds one from Natural Earth; another dataset
+    gets its own script that writes the same pack.
+  Area keys are level + name + parent key, never a dataset's ids. Tests run the
+  assignment against in-memory sources, and only adapter tests touch real data.
+- **One model on both platforms.** `Area` and `WalkArea` are cache, stored
+  through the shared `Db` interface: SQLite migration 5 on native, IndexedDB
+  v4 on web. They are written with the walk's snap in one transaction. Areas no
+  walk refers to are dropped. Offline, a walk keeps its old rows. The view
+  must read only walks, summaries, `Area` and `WalkArea`, never traces or media.
+- **Placement.** The active trace (the filter applied, no pauses, gaps or
+  standstills) is cut into 50 m pieces. Each piece counts for the nearest place
+  within reach at each level: neighborhood 1 km, town/village 3 km, city
+  10 km. Between a town and a city, the closer for its size wins.
+  - States come from the boundary pack. A point within 1 km outside every
+    outline (a pier) takes the nearest state. Without a pack, the tiles' state
+    points stand in.
+  - Town and city points rarely lie in a walk's z14 street tiles, so
+    `collectPlaces` reads the place layer at z10 (`PLACES_ZOOM`) around the walk.
+  - Changing `AREA_RULES` or a pack's edition re-places every walk through the
+    `snap_rules` meta.
+- **Natural Earth's 50m admin-1 is too coarse.** It leaves Manhattan, Hoboken
+  and Miami Beach outside every state. The shipped US pack is built from the
+  10m edition (577 KB). Rebuild it with
+  `node scripts/build-boundaries.js <ne_10m_admin_1_states_provinces.geojson> US assets/boundaries/us.json`
+  (GitHub's raw host for `nvkelso/natural-earth-vector` is reachable from
+  cloud sessions; naciscdn.org is not).
+
 ## Working with the owner
 
 - **Ask before architectural decisions:** libraries, data model, platform strategy,
