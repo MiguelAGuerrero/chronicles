@@ -592,6 +592,23 @@ Read this before changing recording, streets, the replay or storage.
   After the replay modal, return with `router.dismissTo('/')`; `replace('/')`
   stacks a second log.
 
+- **Never import `Modal` from react-native; use `components/Modal`.**
+  react-native-web's Modal creates its portal's `<div>` during render and
+  removes it in an effect's cleanup. The home screen stays rendered but hidden
+  (its effects disconnected) under the walk, so each of its re-renders appended
+  a new portal to `<body>`, each with React's full set of event listeners:
+  about three a second, until the owner's iPhone tab crashed mid-walk (Nov 1).
+  The wrapper renders the Modal only while it is visible. The e2e checks that
+  `<body>` and the listener count don't grow while walking. `scripts/perf-walk.js`
+  walks a dense fake downtown for `PERF_MIN` minutes and prints heap, nodes,
+  listeners and CPU every 30 s.
+- **Web memory on iPhone:** the maps use `pixelRatio` ≤ 2,
+  `maxTileCacheZoomLevels: 2` and `fadeDuration: 0`. The photo resize shrinks
+  its canvas to 0 after use (iOS caps canvas memory per tab). Cached street
+  pieces are read by z14 tile (IndexedDB v7 `tile` index, backfilled), never
+  with `getAll()` over the store. The walk's fog read is never discarded by the
+  next fix, and visited ids are read once per walk screen.
+
 ### Map (maplibre-gl on web, MapLibre RN v11 on native)
 
 - maplibre-gl 6 loads its worker as a separate module, which Metro doesn't bundle.

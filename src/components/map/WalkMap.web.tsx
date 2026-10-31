@@ -123,6 +123,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       zoom: props.initialZoom ?? 15,
       // Top right on the home, where the sheet never covers it (OSM requires it visible).
       attributionControl: props.attributionTop ? false : { compact: true },
+      // iPhone browsers give a tab little GPU memory, and two maps live during a walk:
+      // at most 2x the pixels (a 3x canvas is 2.25x the memory), and a small tile cache.
+      pixelRatio: Math.min(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1, 2),
+      maxTileCacheZoomLevels: 2,
+      fadeDuration: 0,
     });
     mapRef.current = map;
     map.on('load', () => {

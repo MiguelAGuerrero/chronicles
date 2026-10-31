@@ -23,6 +23,9 @@ async function downscale(blob: Blob): Promise<Blob> {
     canvas.getContext('2d')!.drawImage(bmp, 0, 0, w, h);
     bmp.close();
     const out = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', JPEG_QUALITY));
+    // iOS keeps a canvas's memory until it is shrunk, and caps a tab's canvases in total.
+    canvas.width = 0;
+    canvas.height = 0;
     return out && out.size < blob.size ? out : blob;
   } catch {
     return blob; // an undecodable image is kept as it came

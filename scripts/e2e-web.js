@@ -51,7 +51,7 @@ features.push({ type: 'Feature', properties: { class: 'neighbourhood', name: 'Fo
 features.push({ type: 'Feature', properties: { class: 'city', name: 'Providence' }, geometry: { type: 'Point', coordinates: at(29, 0) } });
 // Points of interest for discovery (D1): a café and an unnamed artwork are
 // kept, a bus stop is not a place to offer.
-features.push({ type: 'Feature', properties: { class: 'cafe', subclass: 'cafe', name: 'Coffee Exchange' }, geometry: { type: 'Point', coordinates: at(0.6, -0.4) } });
+features.push({ type: 'Feature', properties: { class: 'cafe', subclass: 'cafe', name: 'Coffee Exchange' }, geometry: { type: 'Point', coordinates: at(0.65, -0.35) } });
 features.push({ type: 'Feature', properties: { class: 'art_gallery', subclass: 'artwork' }, geometry: { type: 'Point', coordinates: at(1.1, 0.6) } });
 features.push({ type: 'Feature', properties: { class: 'bus', subclass: 'bus_stop', name: 'Wickenden at Hope' }, geometry: { type: 'Point', coordinates: at(0.4, -0.6) } });
 // Three more out east: over 500 m from where the walk scans, but within a home scan around Fox Point (S11).
@@ -121,8 +121,11 @@ function check(ok, what) {
   ctx.on('request', (r) => { const u = new URL(r.url()); if (/^(https?|wss?):$/.test(u.protocol)) hosts.add(u.host); });
   // The app's own tile reads (landing, ambient) get the same fake world as vector tiles.
   const { encodeTile } = await import('./mvt-encode.mjs');
-  await ctx.route('https://tiles.openfreemap.org/**', (r) => {
+  // Slow tiles on demand, so Cancel can land while a read is still out.
+  let tileDelayMs = 0;
+  await ctx.route('https://tiles.openfreemap.org/**', async (r) => {
     const tile = /\/(\d+)\/(\d+)\/(\d+)\.pbf$/.exec(r.request().url());
+    if (tile && tileDelayMs) await new Promise((res) => setTimeout(res, tileDelayMs));
     if (tile) {
       const [z, x, y] = tile.slice(1).map(Number);
       return r.fulfill({ contentType: 'application/x-protobuf', body: Buffer.from(encodeTile(features, z, x, y)) });
@@ -163,6 +166,16 @@ function check(ok, what) {
     const walkMarks = () => page.locator('.maplibregl-map').last().locator('[data-testid=mark-pin]');
     check((await walkMarks().count()) === 2 && (await page.locator('[aria-label="A mark to find. Open"]').count()) >= 2, 'a scan drops a "?" mark for each place nearby (S3, S7)');
     await shot(page, '01b-marks');
+
+    // Leaks (the owner's iPhone tab crashed mid-walk): nothing may pile up while walking.
+    const cdp = await ctx.newCDPSession(page);
+    await cdp.send('Performance.enable');
+    const leakSample = async () => {
+      await cdp.send('HeapProfiler.collectGarbage').catch(() => {});
+      const mm = Object.fromEntries((await cdp.send('Performance.getMetrics')).metrics.map((x) => [x.name, x.value]));
+      return { bodyDivs: await page.evaluate(() => document.body.children.length), listeners: mm.JSEventListeners, nodes: mm.Nodes };
+    };
+    const leak0 = await leakSample();
 
     // Walk 300 m at 5 m/s, one fix a second (the fix filter rejects anything over 7 m/s).
     const route = [at(-0.5, -0.5), at(0.5, -0.5), at(0.5, 0.5), at(1.5, 0.5)];
@@ -225,7 +238,7 @@ function check(ok, what) {
         await page.waitForTimeout(2500);
         // Within ~30 m at walking zoom, the video shares a pin with the memo.
         check((await page.locator('[aria-label="2 captures here. Open"]').count()) === 1, 'a short video is kept, sharing a pin with the memo nearby');
-        // The video was taken 36 m from the café: it finds the mark (S8).
+        // The video is taken about 40 m from the café: it finds the mark (S8). (The memo at step 10, 62 m off, does not.)
         check((await walkMarks().count()) === 1 && (await page.locator('[aria-label="Coffee Exchange, Food & drink. Open"]').count()) === 0, 'a capture within 60 m finds the mark');
       }
       if (k === 25) {
@@ -320,6 +333,12 @@ function check(ok, what) {
         await shot(page, '03c-unwalked');
         check(true, 'unwalked streets near me shows a count');
         await page.click('[data-testid=unwalked]');
+      }
+      if (k === 39) {
+        // 40 s of walking with captures, a scan and a route: the page stays the same size (leak regression).
+        const leak1 = await leakSample();
+        check(leak1.bodyDivs - leak0.bodyDivs <= 3 && leak1.listeners - leak0.listeners < 2000,
+          `walking leaks no portals or listeners (body ${leak0.bodyDivs} → ${leak1.bodyDivs}, listeners ${leak0.listeners} → ${leak1.listeners}, nodes ${leak0.nodes} → ${leak1.nodes})`);
       }
       if (k === 40) {
         // A reload mid-walk is how the web resumes: it must land back on the walk.
@@ -686,11 +705,13 @@ function check(ok, what) {
         await page.mouse.up();
       };
       // Cancel goes at once and keeps nothing (audit).
+      tileDelayMs = 4000;
       await press(st);
       await page.click('[data-testid=look-here]');
       await page.click('[data-testid=look-cancel]');
       const gone = (await page.locator('[data-testid=look-cancel]').count()) === 0;
-      await page.waitForTimeout(2500);
+      await page.waitForTimeout(6000);
+      tileDelayMs = 0;
       check(gone && (await page.locator('[data-testid=start-here]').count()) === 0, 'cancelling a look stops it at once, with nothing kept');
       await press(st);
       await page.click('[data-testid=look-here]');

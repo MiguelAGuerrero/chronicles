@@ -4,12 +4,12 @@ import type { LandingRow } from '../landing/view';
 import type { Mark, Offered, Place, Recall } from '../discovery/types';
 import { DERIVED_STORES } from './stores';
 import type { Capture, Pause, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
-import { intersects, segmentBbox } from './segmentBounds';
+import { intersects, segmentBbox, segmentTile, tileKeysFor } from './segmentBounds';
 import type { Db } from './types';
 
 // Same tables as the native SQLite store, as IndexedDB object stores.
 const DB_NAME = 'chronicles';
-const VERSION = 6;
+const VERSION = 7;
 
 /** Raised when another open tab holds an older version of the database. */
 export class BlockedByOtherTabError extends Error {
@@ -54,6 +54,18 @@ function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number) {
   if (oldVersion < 6) {
     // v1.5 landing: areas analyzed for where to start (a cache, kept across builds and shown stale).
     d.createObjectStore('landing', { keyPath: 'key' });
+  }
+  if (oldVersion < 7) {
+    // Street pieces filed by z14 tile, so a read near you never loads the whole cache (perf, Nov 1).
+    const seg = tx.objectStore('street_segment');
+    seg.createIndex('tile', 'tile');
+    const cur = seg.openCursor();
+    cur.onsuccess = () => {
+      const c = cur.result;
+      if (!c) return;
+      c.update({ ...c.value, tile: segmentTile(c.value as StreetSegment) });
+      c.continue();
+    };
   }
 }
 
@@ -190,7 +202,7 @@ export const db: Db = {
     if (segments.length === 0) return;
     const tx = (await conn()).transaction('street_segment', 'readwrite');
     const st = tx.objectStore('street_segment');
-    for (const x of segments) st.put(x);
+    for (const x of segments) st.put({ ...x, tile: segmentTile(x) });
     await committed(tx);
   },
 
@@ -198,7 +210,7 @@ export const db: Db = {
     const names = ['street_segment', 'visited_segment', 'walk_summary', 'walk', 'area', 'walk_area'];
     const tx = (await conn()).transaction(names, 'readwrite');
     const seg = tx.objectStore('street_segment');
-    for (const x of segments) seg.put(x);
+    for (const x of segments) seg.put({ ...x, tile: segmentTile(x) });
     const vis = tx.objectStore('visited_segment');
     for (const k of (await done(vis.index('walk_id').getAllKeys(walkId))) as IDBValidKey[]) vis.delete(k);
     for (const v of visited) vis.put(v);
@@ -225,8 +237,10 @@ export const db: Db = {
     return (await done((await store('walk_area')).getAll())) as WalkArea[];
   },
   async getSegmentsIn(bounds) {
-    const all = (await done((await store('street_segment')).getAll())) as StreetSegment[];
-    return all.filter((s) => intersects(segmentBbox(s), bounds));
+    // By tile, not the whole store (perf, Nov 1).
+    const idx = (await conn()).transaction('street_segment', 'readonly').objectStore('street_segment').index('tile');
+    const rows = await Promise.all(tileKeysFor(bounds).map((k) => done(idx.getAll(k)) as Promise<(StreetSegment & { tile?: string })[]>));
+    return rows.flat().filter((s) => intersects(segmentBbox(s), bounds)).map(({ tile: _t, ...s }) => s);
   },
   async getVisited(walkId) {
     return byWalk<VisitedSegment>('visited_segment', walkId);

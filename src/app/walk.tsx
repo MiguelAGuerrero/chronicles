@@ -1,9 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
-import {
-  AccessibilityInfo, ActivityIndicator, Animated, AppState, BackHandler, Switch, Easing, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, StyleSheet, Text,
-  TextInput, useWindowDimensions, View,
-} from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Animated, AppState, BackHandler, Switch, Easing, KeyboardAvoidingView, Linking, Platform, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { Modal } from '../components/Modal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WalkMap } from '../components/map/WalkMap';
 import { COLORS, type WalkMapHandle } from '../components/map/types';
@@ -160,6 +158,14 @@ export default function WalkScreen() {
     ensureTileBuild().then(setBuild, () => setBuild('unknown'));
   }, []);
   const fogRun = useRef<{ busy: boolean; at: LngLat | null }>({ busy: false, at: null });
+  const visitedRef = useRef<Set<string> | null>(null);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
   const liveRuns = useRef(live.runs);
   useEffect(() => {
     liveRuns.current = live.runs;
@@ -170,7 +176,6 @@ export default function WalkScreen() {
     if (!now || build == null || run.busy || (run.at && distanceM(run.at, now) < FOG_STEP_M)) return;
     run.busy = true;
     run.at = now;
-    let alive = true;
     (async () => {
       const features = await mapRef.current?.collectView().catch(() => null);
       if (features?.complete && features.roads.length && build !== 'unknown') {
@@ -183,8 +188,12 @@ export default function WalkScreen() {
       const segs = (await db.getSegmentsIn(boundsOf([now], NEAR_RADIUS_M)!)).filter(
         (x) => distanceToLinesM(now, x.geometry) <= NEAR_RADIUS_M,
       );
-      const visited = await db.visitedSegmentIds();
-      if (!alive) return;
+      // Credited streets change only at a stop: read once per walk screen.
+      visitedRef.current ??= await db.visitedSegmentIds();
+      const visited = visitedRef.current;
+      // The screen may have gone; a newer fix never cancels a run already under way (perf: a slow
+      // read on a phone was always thrown away by the next fix, 2 s later).
+      if (!mountedRef.current) return;
       // Streets this walk has already gone down are only credited at stop;
       // until then, those along the trace are left out of the fog.
       const walkedNow = nearPoints(liveRuns.current.flat(), ON_TRACE_M);
@@ -195,9 +204,6 @@ export default function WalkScreen() {
       .finally(() => {
         run.busy = false;
       });
-    return () => {
-      alive = false;
-    };
   }, [live.here, build]);
   // Unwalked streets near me: a count, and the fog drawn boldly over a veiled map.
   const [showUnwalked, setShowUnwalked] = useState(false);

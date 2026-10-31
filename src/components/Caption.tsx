@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  Image, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View,
-  type GestureResponderEvent, type LayoutRectangle,
-} from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View, type GestureResponderEvent, type LayoutRectangle } from 'react-native';
+import { Modal } from './Modal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Capture } from '../lib/types';
 import { useMediaUri } from '../lib/useMediaUri';

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Modal } from './Modal';
 import { CATEGORIES } from '../lib/discovery/categories';
 import { loadAutoScan, saveAutoScan } from '../lib/discovery/runScan';
 import type { Pref, Prefs } from '../lib/discovery/scan';
