@@ -70,7 +70,8 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
 
   const visited = snap(walk.id, points, segments, walk.started_at, pauses);
   const earlier = await db.streetKeysBefore(walk.started_at);
-  const keys = new Set(visited.map((v) => v.street_key));
+  // Streets are counted by name (the owner's call); unnamed paths clear fog but are not streets.
+  const keys = new Set(visited.map((v) => v.street_key).filter((k) => k.startsWith('name:')));
   const captures = await db.getCaptures(walk.id);
   await placeCaptures(captures, smoothDwells(fixes), pauses, segments);
 

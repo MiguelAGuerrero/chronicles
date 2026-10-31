@@ -74,6 +74,32 @@ Read this before changing recording, streets, the replay or storage.
 - **Web is a fallback.** A mobile feature with no web workaround stays off on web
   (background recording, for example). A limited version is fine where one works
   (photos open a file picker on desktop).
+- **Native first** (the owner's rule). Every feature is built on the Expo modules
+  and components the phone app uses. Web gets its own code only where no Expo
+  module covers the feature on web, and each such exception is listed here with
+  its reason:
+  - **Map:** maplibre-gl. MapLibre RN has no web build.
+  - **Storage:** IndexedDB (`db/index.web.ts`, `media/index.web.ts`).
+    expo-sqlite's web build needs `SharedArrayBuffer`, which needs
+    cross-origin isolation headers GitHub Pages can't send. expo-file-system
+    has no web build.
+  - **Location:** `navigator.geolocation` (`recorder/index.web.ts`).
+    expo-location's web watch is unfit for a walk: it emits fixes under the
+    browser's watch id but looks callbacks up by its own, so fixes can be
+    dropped or the wrong watch cleared. It also swallows errors and never asks
+    for high accuracy.
+  - **Caption baking:** canvas (`Baker.web.tsx`). react-native-view-shot has
+    no web build.
+  - **Reminders:** expo-notifications has no web build. The walk screen's own
+    sticky reminder is the web's.
+  - **Browser fixes** with no native counterpart: `webStyles.web.ts` (pinned
+    viewport, long-press guards) and the muted-autoplay fallback.
+  Before adding web-only code, check `node_modules/<module>/build/*.web.*` for
+  a web implementation, and add it to this list with its reason.
+- **Backing up a walk is deferred** (the owner's call) until the export system
+  has a proper place in the app. It is tested on a phone first. The code
+  (`lib/export`, `writeWalkBundle`) stays, but nothing in the UI reaches it.
+  Saving a single keeper from the viewer stays.
 
 ## Walk screen layout (decided with the owner, after research)
 
@@ -113,8 +139,11 @@ Read this before changing recording, streets, the replay or storage.
   location again, since a one-time grant can lapse), and ends the pause only if
   that worked. Pause sits beside Hold (48 px, 20 px apart), Resume is filled
   orange, Stop is disabled while a pause or resume is in flight, and a sticky
-  reminder shows after 10 min paused. A phone notification would need
-  expo-notifications: ask first.
+  reminder shows after 10 min paused. On a phone, a local notification
+  (expo-notifications, `lib/notify`) is scheduled for the same moment when the
+  pause starts, and cancelled on resume or stop. Notification permission is
+  asked for at the first pause, not at launch. In front, the banner is
+  suppressed, because the screen's own reminder shows.
 - **A pause is a break in the trace however short.** `isBreak(a, b, pauses)` in
   `geo.ts` is used by `splitAtGaps`, `traceDistanceM`, the snapper, `timedRuns`
   and the replay's `activeClock`. Pass the walk's pauses everywhere a trace is
@@ -162,7 +191,7 @@ Read this before changing recording, streets, the replay or storage.
   `saveToLibraryAsync` throws), with `requestPermissionsAsync(true)` (write-only).
   The plugin's read permissions are blocked in `app.json`. Media is always reached
   through `resolveMedia`, so legacy absolute and `data:` refs still work.
-- **The backup zip is streamed** (`writeWalkBundle`: fflate `Zip` +
+- **The backup zip (deferred, not in the UI) is streamed** (`writeWalkBundle`: fflate `Zip` +
   `ZipPassThrough`, 1 MB chunks, written to a file handle on native and kept as
   Blob parts on web). Missing media is counted, marked in walk.json and reported.
   There is no import yet.
@@ -289,6 +318,14 @@ Read this before changing recording, streets, the replay or storage.
 - Snapping ignores the 20 m at each end of a piece, where the junctions are, and
   credits pieces of 40 m or less only if the trace ran down their middle.
   `WALKED_THRESHOLD` (0.5) is still an open product decision.
+- **Walking along, not across** (the owner's call): a sample only counts where
+  the trace runs within 35° of the street's direction, using the trace's heading
+  over 10 m either side, so crossing at a corner credits nothing. A named street
+  counts only once about a block of it was walked (`STREET_MIN_M` 80 m, or 80%
+  of a shorter street). Until then its pieces stay fog. "Streets walked" and
+  "new streets" count named streets only. Changing these rules means bumping
+  `SNAP_RULES` in `tiles.ts`, which marks every walk to re-snap when its replay
+  next opens.
 
 ### Icons and pins
 

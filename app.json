@@ -76,6 +76,12 @@
           "savePhotosPermission": "Chronicles saves the photos and videos you choose to your library.",
           "granularPermissions": []
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#c2410c"
+        }
       ]
     ],
     "experiments": {

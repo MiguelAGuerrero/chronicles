@@ -1,5 +1,6 @@
 import { db } from './db';
 import { newId } from './id';
+import { notifier } from './notify';
 import { recorder } from './recorder';
 import type { Walk } from './types';
 
@@ -51,6 +52,7 @@ export function stopWalk(walkId: string): Promise<void> {
       await db.updateWalk(walkId, { ended_at: at, open: false });
       await db.endPause(walkId, at);
       await recorder.stop();
+      void notifier.pauseEnded(walkId);
     })().finally(() => {
       stopping = null;
     });
@@ -60,11 +62,14 @@ export function stopWalk(walkId: string): Promise<void> {
 
 /**
  * Pauses the walk: the pause is written first, then recording stops, so no
- * position is recorded while paused and the paused time does not count.
+ * position is recorded while paused and the paused time does not count. A
+ * phone reminds the walker later if the pause runs long (asking for
+ * permission at the first pause, without holding the pause up).
  */
 export async function pauseWalk(walkId: string): Promise<void> {
   await db.startPause(walkId, Date.now());
   await recorder.stop();
+  notifier.pauseStarted(walkId).catch(() => {});
 }
 
 /**
@@ -75,6 +80,7 @@ export async function pauseWalk(walkId: string): Promise<void> {
 export async function resumeWalk(walkId: string): Promise<void> {
   await recorder.start(walkId);
   await db.endPause(walkId, Date.now());
+  void notifier.pauseEnded(walkId);
 }
 
 /** Whether a walk is paused right now. */

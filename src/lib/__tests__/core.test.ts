@@ -90,6 +90,26 @@ test('snap: credits only the pieces walked, within the 20 m buffer', () => {
   for (const v of visited) assert.ok(v.covered_fraction >= 0.5 && v.covered_fraction <= 1);
 });
 
+test('snap: crossing streets along a main street credits none of them, and a street needs about a block', () => {
+  // Main runs east; Oak, Elm and Ash cross it every 100 m.
+  const segs = deriveSegments([
+    road([at(-1, 0), at(4, 0)], { class: 'minor', name: 'Main Street' }),
+    road([at(1, -1), at(1, 1)], { class: 'minor', name: 'Oak Street' }),
+    road([at(2, -1), at(2, 1)], { class: 'minor', name: 'Elm Street' }),
+    road([at(3, -1), at(3, 1)], { class: 'minor', name: 'Ash Street' }),
+  ]);
+  const named = (v: { segment_id: string }[]) => new Set(v.map((x) => segs.find((s) => s.id === x.segment_id)!.name));
+  // Down Main, across all three, on the sidewalk 8 m off its line.
+  const main = named(snap('w', walkAlong([at(-0.9, 0.08), at(3.9, 0.08)]), segs));
+  assert.deepEqual([...main], ['Main Street'], 'the cross streets are crossed, not walked');
+  // 40 m up Oak and back: not a block.
+  const peek = named(snap('w', walkAlong([at(0.5, 0.05), at(1, 0.05), at(1.03, 0.4), at(1.03, 0.05), at(1.5, 0.05)]), segs));
+  assert.ok(!peek.has('Oak Street'), 'a few steps in and back out is not walking it');
+  // The whole block of Oak, 100 m: walked.
+  const block = named(snap('w', walkAlong([at(1.03, 0), at(1.03, 1)]), segs));
+  assert.ok(block.has('Oak Street'), 'a block of it is');
+});
+
 test('snap: no interpolation across gaps over 60 s', () => {
   const segs = deriveSegments(roads, names);
   const a = walkAlong([at(0, 0), at(0.05, 0)]);
@@ -175,7 +195,8 @@ test('snap: reaching a corner does not credit the short piece around it', () => 
   assert.ok(short, 'the 30 m piece exists');
   const toCorner = snap('w', walkAlong([at(0, 1), at(0, 0)]), segs);
   assert.ok(!toCorner.some((v) => v.segment_id === short.id));
-  const along = snap('w', walkAlong([at(-0.3, 0.03), at(0.6, 0.03)]), segs);
+  // Walking along Main for well over a block credits it, the short piece included.
+  const along = snap('w', walkAlong([at(-0.95, 0.03), at(0.95, 0.03)]), segs);
   assert.ok(along.some((v) => v.segment_id === short.id), 'walking along it still credits it');
 });
 

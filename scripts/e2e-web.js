@@ -312,7 +312,8 @@ function check(ok, what) {
     check(captionShown, 'the photo shows its caption in the replay');
     await page.waitForSelector('[data-testid=to-name]', { timeout: 45000 });
     const card = (await page.locator('body').innerText()).replace(/\s+/g, ' ');
-    check(/\b3 new streets\b/.test(card), `the card counts 3 new streets (${card.slice(0, 80)})`);
+    // A block each of Transit and Arnold; the unnamed block between them clears fog but is not a street.
+    check(/\b2 new streets\b/.test(card), `the card counts the 2 named streets walked (${card.slice(0, 80)})`);
     await page.waitForTimeout(800);
     await shot(page, '05-card');
     // The card's zoom groups nearby captures; open the pin holding the note
@@ -328,16 +329,6 @@ function check(ok, what) {
     await shot(page, '06-pin-opened');
     check(true, 'a pin on the card opens its capture');
     await page.click('[aria-label="Close"]');
-
-    // The walk backs up as a zip with its trace, captures and media.
-    const [dl] = await Promise.all([page.waitForEvent('download'), page.click('[data-testid=backup]')]);
-    const zipPath = await dl.path();
-    const { unzipSync, strFromU8 } = require('fflate');
-    const files = unzipSync(fs.readFileSync(zipPath));
-    const json = JSON.parse(strFromU8(files['walk.json']));
-    const mediaCount = Object.keys(files).filter((f) => f.startsWith('media/')).length;
-    check(json.trace.length > 30 && json.captures.length >= 4 && mediaCount >= 3, `the backup holds the trace, captures and media (${json.trace.length} fixes, ${json.captures.length} captures, ${mediaCount} files)`);
-    check(json.captures.some((c) => c.caption === 'Mural on Wickenden'), 'the caption is in the backup');
 
     await page.click('[data-testid=to-name]');
     await page.fill('[data-testid=epilogue-input]', 'Cardamom and the river.');

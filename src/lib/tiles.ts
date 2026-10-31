@@ -36,5 +36,18 @@ export async function ensureTileBuild(): Promise<string> {
     if (stored != null) await db.purgeDerived();
     await db.setMeta('tile_build', build);
   }
+  // The rules for crediting streets changed: walks re-snap when their replay
+  // next opens, keeping their old summary until then. Street pieces are kept.
+  if ((await db.getMeta('snap_rules')) !== SNAP_RULES) {
+    for (const w of await db.listWalks()) if (w.snapped_build) await db.updateWalk(w.id, { snapped_build: null });
+    await db.setMeta('snap_rules', SNAP_RULES);
+  }
   return build;
 }
+
+/**
+ * The version of the snapping rules (snapper.ts). Bump it when they change
+ * what counts as walked, so every walk is snapped again.
+ * 2: walking along a street, not across it; about a block for a named street.
+ */
+const SNAP_RULES = '2';

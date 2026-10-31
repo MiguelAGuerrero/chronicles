@@ -18,6 +18,7 @@ import { capturesHere, type HereResult } from '../lib/here';
 import { deriveSegments, streetKey } from '../lib/streets';
 import { successFeedback, tapFeedback } from '../lib/haptics';
 import { recorder } from '../lib/recorder';
+import { PAUSE_REMIND_MS } from '../lib/notify';
 import { ensureTileBuild } from '../lib/tiles';
 import type { RecorderStatus } from '../lib/recorder/types';
 import { pauseWalk, resumeWalk, stopWalk } from '../lib/session';
@@ -30,8 +31,6 @@ import { useLiveTrace } from '../lib/useLiveTrace';
 const NEAR_RADIUS_M = 1000;
 /** The streets around the walker are read again after this far. */
 const FOG_STEP_M = 100;
-/** A pause this long gets a reminder that nothing is being recorded. */
-const PAUSE_REMIND_MS = 10 * 60_000;
 /** A street piece whose middle the live trace passed this close to counts as walked for now. */
 const ON_TRACE_M = 20;
 

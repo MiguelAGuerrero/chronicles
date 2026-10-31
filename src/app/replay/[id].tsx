@@ -1,12 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import {
-  AccessibilityInfo, ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
+  AccessibilityInfo, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WalkMap } from '../../components/map/WalkMap';
-import { Icon, KIND_LABEL } from '../../components/icons';
-import { exportWalk } from '../../lib/export';
+import { KIND_LABEL } from '../../components/icons';
 import { CaptureContent, CaptureViewer } from '../../components/CaptureView';
 import { planViews, type WalkMapHandle } from '../../components/map/types';
 import { Button, theme } from '../../components/ui';
@@ -27,7 +26,6 @@ const FRAME_MS = 66; // ~15 fps keeps the map responsive on a phone
 const TAP_GUARD_MS = 600;
 /** On a re-watch, how long a photo or note stays up before moving on. */
 const AUTO_MS = 4000;
-const BACKUP_BUSY = 'Preparing…';
 /** The drawn trace is rebuilt at most this often; the walker dot moves every frame. */
 const TRACE_STEP_MS = 200;
 
@@ -55,13 +53,6 @@ export default function Replay() {
   const [viewing, setViewing] = useState<Capture[] | null>(null);
   // What happened here: a tap on the card's map shows every capture near that spot, on any walk.
   const [here, setHere] = useState<HereResult | null>(null);
-  const [backup, setBackup] = useState<string | null>(null);
-  // A result shows for a few seconds, then the link reads as before.
-  useEffect(() => {
-    if (!backup || backup === BACKUP_BUSY) return;
-    const t = setTimeout(() => setBackup(null), 4000);
-    return () => clearTimeout(t);
-  }, [backup]);
   const hereTaps = useRef(0);
   const [hereKey, setHereKey] = useState(0);
   const showHere = (at: LngLat, radiusM?: number) => {
@@ -422,28 +413,6 @@ export default function Replay() {
                 </Text>
                 {s && formatCaptures(s) ? <Text style={styles.cardMuted}>{formatCaptures(s)} · tap a pin to open</Text> : null}
                 {data.walk.epilogue ? <Text style={styles.epilogue}>“{data.walk.epilogue}”</Text> : null}
-                <Pressable
-                  testID="backup"
-                  accessibilityRole="button"
-                  accessibilityState={{ busy: backup === BACKUP_BUSY, disabled: backup === BACKUP_BUSY }}
-                  disabled={backup === BACKUP_BUSY}
-                  onPress={async () => {
-                    setBackup(BACKUP_BUSY);
-                    try {
-                      const { missing } = await exportWalk(data.walk.id);
-                      const done = Platform.OS === 'web' ? 'Downloaded' : 'Ready to save';
-                      setBackup(missing ? `${done}, but ${missing} ${missing === 1 ? 'file was' : 'files were'} missing` : done);
-                    } catch (e) {
-                      setBackup(e instanceof Error ? e.message : 'Could not back up this walk');
-                    }
-                  }}
-                  style={styles.backup}
-                  hitSlop={6}
-                >
-                  <Icon name={Platform.OS === 'web' ? 'download-outline' : 'share-outline'} size={18} color={theme.ink} />
-                  {backup === BACKUP_BUSY ? <ActivityIndicator size="small" color={theme.ink} /> : null}
-                  <Text style={styles.backupText} accessibilityLiveRegion="polite">{backup ?? 'Back up this walk'}</Text>
-                </Pressable>
                 <View style={styles.row}>
                   <Button
                     variant="secondary"
@@ -535,8 +504,6 @@ const styles = StyleSheet.create({
   headlineNote: { fontSize: 14, color: theme.muted, textAlign: 'center', marginTop: 6 },
   skip: { position: 'absolute', right: 12 },
   moment: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(20,24,32,0.85)' },
-  backup: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, alignSelf: 'flex-start' },
-  backupText: { color: theme.ink, fontSize: 15, fontWeight: '600', textDecorationLine: 'underline' },
   sheetWrap: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '70%' },
   sheet: { backgroundColor: theme.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
   sheetContent: { padding: 16, gap: 10, maxWidth: 640, width: '100%', alignSelf: 'center' },
