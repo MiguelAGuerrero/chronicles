@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { distanceM, filterFixes, lineLengthM, positionAt, stepToward } from '../geo';
+import { distanceM, dwellsOf, filterFixes, lineLengthM, pausedMs, positionAt, smoothDwells, stepToward, traceDistanceM, withoutPauses } from '../geo';
 import { groupCaptures, nextStop, PATH_MS, schedule, walkTimeAt } from '../replay';
 import { metersPerPixel, PIN_GROUP_PX, pinsFor } from '../pins';
 import { tileAt } from '../tileMath';
@@ -243,4 +243,36 @@ test('replay: a capture after the trace ends stops the path at its end, not afte
   const s = schedule(trace, [late], 0);
   assert.equal(s.groups[0].atMs, PATH_MS, 'its stop comes as the path ends');
   assert.ok(Math.abs(walkTimeAt(s, PATH_MS / 2) - (trace[0].t + last) / 2) < 6000, 'the walker moves through the trace all the way');
+});
+
+test('standstills: a long stay in a small radius becomes one still point, with no jitter distance', () => {
+  const walkIn = walkAlong([at(0, 0), at(1, 0)]);
+  // Ten minutes in a shop: fixes wandering ~15 m around one spot, every 5 s.
+  const t0 = walkIn.at(-1)!.t;
+  const shop: TracePoint[] = Array.from({ length: 120 }, (_, i) => ({
+    walk_id: 'w1', t: t0 + (i + 1) * 5000,
+    lat: at(1, 0)[1] + Math.sin(i * 1.7) * dLat * 0.12, lon: at(1, 0)[0] + Math.cos(i * 2.3) * dLon * 0.12,
+    accuracy_m: 20, speed: 0, course: null,
+  }));
+  const walkOut = walkAlong([at(1, 0), at(2, 0)], 'w1', shop.at(-1)!.t);
+  const all = [...walkIn, ...shop, ...walkOut];
+  const dwells = dwellsOf(all);
+  assert.equal(dwells.length, 1);
+  assert.ok(dwells[0].t1 - dwells[0].t0 >= 9 * 60_000);
+  const smooth = smoothDwells(all);
+  const jitter = traceDistanceM(all) - traceDistanceM(smooth);
+  assert.ok(jitter > 500, `the shop's jitter (${Math.round(jitter)} m) no longer counts`);
+  assert.ok(Math.abs(traceDistanceM(smooth) - 200) < 40, `about 200 m walked, got ${Math.round(traceDistanceM(smooth))}`);
+  // Walking past at a normal pace is never a standstill.
+  assert.equal(dwellsOf(walkAlong([at(0, 0), at(3, 0)])).length, 0);
+});
+
+test('pauses: fixes inside a pause are dropped, and paused time does not count', () => {
+  const pts = walkAlong([at(0, 0), at(3, 0)]);
+  const pause = { started_at: pts[10].t, ended_at: pts[20].t };
+  const kept = withoutPauses(pts, [pause]);
+  assert.ok(kept.every((p) => p.t < pause.started_at || p.t > pause.ended_at));
+  assert.equal(pausedMs([pause], pts[0].t, pts.at(-1)!.t), pause.ended_at - pause.started_at);
+  // An open pause runs to the end of the window.
+  assert.equal(pausedMs([{ started_at: 1000, ended_at: null }], 0, 5000), 4000);
 });

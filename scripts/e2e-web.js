@@ -155,6 +155,59 @@ function check(ok, what) {
         await page.waitForTimeout(2500);
         check((await page.locator('[aria-label="Note. Open"], [aria-label$="captures here. Open"]').count()) >= 1, 'the note is pinned on the map');
         await shot(page, '03-walking');
+        // What happened here: a tap where the note was taken (the map follows
+        // the walker, so that is the map's center) shows it.
+        const box = await page.locator('canvas.maplibregl-canvas').boundingBox();
+        await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+        await page.waitForSelector('text=What happened here');
+        check((await page.getByText('The bakery smelled of cardamom.').count()) > 0, 'a tap on the map shows what happened there');
+        await page.click('[aria-label="Close"]');
+      }
+      if (k === 30) {
+        // A photo, then the opt-in caption.
+        const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('[data-testid=cap-photo]')]);
+        await chooser.setFiles(path.join(__dirname, 'fixtures', 'photo.jpg'));
+        await page.click('[data-testid=add-caption]');
+        await page.fill('[data-testid=caption-input]', 'Mural on Wickenden');
+        await page.waitForTimeout(400);
+        await shot(page, '03b-caption');
+        await page.click('[data-testid=caption-save]');
+        await page.waitForTimeout(800);
+        check(true, 'a photo can take a caption');
+      }
+      if (k === 33) {
+        // Pause: positions sent while paused are not recorded, and the clock stops.
+        await page.click('[data-testid=pause-walk]');
+        await page.waitForSelector('text=Paused');
+        const before = await page.locator('text=/ · \\d+ m$/').first().innerText();
+        for (let j = 0; j < 3; j++) {
+          await ctx.setGeolocation({ longitude: pts[k][0] + 0.002, latitude: pts[k][1] + 0.002, accuracy: 6 });
+          await page.waitForTimeout(1000);
+        }
+        await page.waitForTimeout(2200);
+        const during = await page.locator('text=/ · \\d+ m$/').first().innerText();
+        check(before.split(' · ')[1] === during.split(' · ')[1], `nothing is recorded while paused (${before} → ${during})`);
+        await page.click('[data-testid=resume-walk]');
+        await page.waitForSelector('[data-testid=pause-walk]');
+        await ctx.setGeolocation({ longitude: pts[k][0], latitude: pts[k][1], accuracy: 6 });
+      }
+      if (k === 36) {
+        // Looking around: a drag stops the map following; Recenter brings it back.
+        const box = await page.locator('canvas.maplibregl-canvas').boundingBox();
+        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 3);
+        await page.mouse.down();
+        await page.mouse.move(box.x + box.width / 2 + 120, box.y + box.height / 3 + 60, { steps: 8 });
+        await page.mouse.up();
+        await page.waitForSelector('[data-testid=recenter]');
+        await page.click('[data-testid=recenter]');
+        await page.waitForSelector('[data-testid=recenter]', { state: 'detached' });
+        check(true, 'after looking around, Recenter brings the map back');
+        // Unwalked streets near me.
+        await page.click('[data-testid=unwalked]');
+        await page.waitForSelector('text=/unwalked streets? within 1 km/');
+        await shot(page, '03c-unwalked');
+        check(true, 'unwalked streets near me shows a count');
+        await page.click('[data-testid=unwalked]');
       }
       if (k === 40) {
         // A reload mid-walk is how the web resumes: it must land back on the walk.
@@ -231,6 +284,16 @@ function check(ok, what) {
     await shot(page, '06-pin-opened');
     check(true, 'a pin on the card opens its capture');
     await page.click('[aria-label="Close"]');
+
+    // The walk backs up as a zip with its trace, captures and media.
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.click('[data-testid=backup]')]);
+    const zipPath = await dl.path();
+    const { unzipSync, strFromU8 } = require('fflate');
+    const files = unzipSync(fs.readFileSync(zipPath));
+    const json = JSON.parse(strFromU8(files['walk.json']));
+    const mediaCount = Object.keys(files).filter((f) => f.startsWith('media/')).length;
+    check(json.trace.length > 30 && json.captures.length >= 4 && mediaCount >= 3, `the backup holds the trace, captures and media (${json.trace.length} fixes, ${json.captures.length} captures, ${mediaCount} files)`);
+    check(json.captures.some((c) => c.caption === 'Mural on Wickenden'), 'the caption is in the backup');
 
     await page.click('[data-testid=to-name]');
     await page.fill('[data-testid=epilogue-input]', 'Cardamom and the river.');
