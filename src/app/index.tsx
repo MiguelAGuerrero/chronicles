@@ -1,47 +1,117 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { FlatList, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { Linking, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { HomeSheet, SHEET_PEEK, type SheetMode } from '../components/HomeSheet';
+import { WalkMap } from '../components/map/WalkMap';
+import { planViews, type WalkMapHandle } from '../components/map/types';
 import { Banner, Button, theme } from '../components/ui';
+import type { Area, WalkArea } from '../lib/areas/types';
 import { db } from '../lib/db';
+import { snapWalk } from '../lib/finish';
+import { pausedMs } from '../lib/geo';
+import { levelForZoom, placeAll, placesIndex, starsFor, unplacedWalks } from '../lib/places';
 import { recorder } from '../lib/recorder';
 import { RecorderError } from '../lib/recorder/types';
 import { startWalk } from '../lib/session';
-import { formatCaptures, formatDistance, formatDuration, suggestTitle } from '../lib/summary';
-import { pausedMs } from '../lib/geo';
+import { formatDuration } from '../lib/summary';
 import type { Pause, Walk, WalkSummary } from '../lib/types';
 
-type Row = { walk: Walk; summary: WalkSummary | null };
+const NONE: never[] = [];
+/** With nothing walked yet: the world, and one line. */
+const WORLD = { center: [-40, 30] as [number, number], zoom: 1.2 };
+/** Walks a pass already tried this session; a failure waits for the next launch (criterion 25). */
+const tried = new Set<string>();
 
-export default function Log() {
-  const [rows, setRows] = useState<Row[]>([]);
+/**
+ * Home is the places map (the owner's call, after AllTrails and Strava): stars
+ * where you have walked, a sheet that peeks with a summary and lists walks,
+ * and one Start button. It reads only walks, summaries, Area and WalkArea,
+ * never a trace or a file.
+ */
+export default function Home() {
+  const insets = useSafeAreaInsets();
+  const mapRef = useRef<WalkMapHandle>(null);
+  const [data, setData] = useState<{ walks: Walk[]; summaries: WalkSummary[]; areas: Area[]; rows: WalkArea[] } | null>(null);
   const [open, setOpen] = useState<Walk | null>(null);
   const [pauses, setPauses] = useState<Pause[]>([]);
+  const [now, setNow] = useState(() => Date.now());
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<{ message: string; openSettings?: boolean } | null>(null);
-  const [now, setNow] = useState(() => Date.now());
+  const [mode, setMode] = useState<SheetMode>({ kind: 'summary' });
+  const [sheetH, setSheetH] = useState(SHEET_PEEK + insets.bottom);
+  const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
+  const [fitKey, setFitKey] = useState(0);
+  const [placing, setPlacing] = useState<{ done: number; of: number } | null>(null);
+
+  const load = useCallback(async () => {
+    const [walks, summaries, areas, rows] = await Promise.all([db.listWalks(), db.listSummaries(), db.listAreas(), db.listWalkAreas()]);
+    const openWalk = walks.find((w) => w.open) ?? null;
+    const openPauses = openWalk ? await db.getPauses(openWalk.id) : [];
+    return { walks, summaries, areas, rows, openWalk, openPauses };
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
       let live = true;
-      // Reads walks and their stored summaries only: no traces, no media.
-      // The open walk's pauses are a handful of rows, read so the time shown is walking time.
-      Promise.all([db.listWalks(), db.listSummaries()])
-        .then(async ([walks, summaries]) => {
-          const openWalk = walks.find((w) => w.open) ?? null;
-          const openPauses = openWalk ? await db.getPauses(openWalk.id) : [];
-          if (!live) return;
-          const byWalk = new Map(summaries.map((s) => [s.walk_id, s]));
-          setOpen(openWalk);
-          setPauses(openPauses);
-          setRows(walks.filter((w) => !w.open).map((walk) => ({ walk, summary: byWalk.get(walk.id) ?? null })));
-          setNow(Date.now());
+      const apply = (d: Awaited<ReturnType<typeof load>>, fit: boolean) => {
+        if (!live) return;
+        setData({ walks: d.walks, summaries: d.summaries, areas: d.areas, rows: d.rows });
+        setOpen(d.openWalk);
+        setPauses(d.openPauses);
+        setNow(Date.now());
+        if (fit) setFitKey((k) => k + 1);
+      };
+      load()
+        .then(async (d) => {
+          apply(d, true);
+          // Walks with no places yet (from before v0.5, or offline at stop) are
+          // placed in one pass, behind a cover, while the map reads their tiles.
+          const todo = unplacedWalks(d.walks, d.rows).filter((w) => !tried.has(w.id));
+          if (!todo.length || !live) return;
+          todo.forEach((w) => tried.add(w.id));
+          setPlacing({ done: 0, of: todo.length });
+          const byId = new Map(todo.map((w) => [w.id, w]));
+          await placeAll(
+            todo.map((w) => w.id),
+            async (id) => {
+              const map = mapRef.current;
+              if (!map) throw new Error('No map');
+              await snapWalk(byId.get(id)!, {
+                plan: (bounds, trace) => {
+                  const { width, height } = map.size();
+                  return planViews(bounds, width, height, trace);
+                },
+                collect: (centers) => map.collect(centers),
+                collectPlaces: (center) => map.collectPlaces(center),
+              });
+            },
+            (done) => live && setPlacing({ done, of: todo.length }),
+            () => !live,
+          );
+          if (live) {
+            setPlacing(null);
+            apply(await load(), true);
+          }
         })
-        .catch((e) => live && setError({ message: e instanceof Error ? e.message : String(e) }));
+        .catch((e) => {
+          if (!live) return;
+          setPlacing(null);
+          setError({ message: e instanceof Error ? e.message : String(e) });
+        });
       return () => {
         live = false;
       };
-    }, []),
+    }, [load]),
   );
+
+  const index = useMemo(() => placesIndex(data?.areas ?? [], data?.rows ?? [], data?.walks ?? []), [data]);
+  const summaries = useMemo(() => new Map((data?.summaries ?? []).map((s) => [s.walk_id, s])), [data]);
+  const unplaced = useMemo(() => unplacedWalks(data?.walks ?? [], data?.rows ?? []), [data]);
+  const stars = useMemo(() => {
+    if (!view) return [];
+    return starsFor(index, levelForZoom(view.zoom, index.multiCountry), view.zoom, view.lat);
+  }, [index, view]);
 
   const start = async () => {
     setError(null);
@@ -50,97 +120,90 @@ export default function Log() {
       const { warning } = await startWalk();
       router.push(warning ? { pathname: '/walk', params: { warning } } : '/walk');
     } catch (e) {
-      setError({
-        message: e instanceof Error ? e.message : String(e),
-        openSettings: e instanceof RecorderError && e.openSettings,
-      });
+      setError({ message: e instanceof Error ? e.message : String(e), openSettings: e instanceof RecorderError && e.openSettings });
     } finally {
       setStarting(false);
     }
   };
 
-  const { background } = recorder.capabilities;
+  const empty = data != null && index.walkCount === 0 && !open;
+  const paused = pauses.some((p) => p.ended_at == null);
 
   return (
-    <FlatList
-      style={styles.screen}
-      contentContainerStyle={styles.content}
-      data={rows}
-      keyExtractor={(r) => r.walk.id}
-      ListHeaderComponent={
-        <View style={styles.header}>
-          {!open && <Text style={styles.lede}>Tap start, walk, capture, then stop. The fog clears when you stop.</Text>}
-          {!background && !open && (
-            <Banner>
-              On the web, your walk is traced while this page is open and on screen. Switching apps or locking the
-              phone pauses it. The phone app keeps recording in your pocket.
-            </Banner>
-          )}
-          {error && (
-            <Banner
-              tone="error"
-              onDismiss={() => setError(null)}
-              action={error.openSettings ? { label: 'Open Settings', onPress: () => Linking.openSettings() } : undefined}
-            >
-              {error.message}
-            </Banner>
-          )}
+    <View style={styles.screen}>
+      <WalkMap
+        ref={mapRef}
+        trace={NONE}
+        walked={NONE}
+        fog={NONE}
+        captures={NONE}
+        stars={stars}
+        onStarPress={(s) => setMode({ kind: 'place', key: s.keys[0] })}
+        onViewChange={setView}
+        fitBounds={index.bounds}
+        fitKey={fitKey}
+        fitPadding={{ top: insets.top + 60, right: 48, bottom: sheetH + 96, left: 48 }}
+        initialCenter={WORLD.center}
+        initialZoom={WORLD.zoom}
+        covered={placing != null}
+      />
+
+      <View style={[styles.top, { top: insets.top + 8 }]} pointerEvents="box-none">
+        {error && (
+          <Banner
+            tone="error"
+            onDismiss={() => setError(null)}
+            action={error.openSettings ? { label: 'Open Settings', onPress: () => Linking.openSettings() } : undefined}
+          >
+            {error.message}
+          </Banner>
+        )}
+        {empty && !recorder.capabilities.background && (
+          <Banner>On the web, a walk is traced while this page is open and on screen.</Banner>
+        )}
+      </View>
+
+      {(empty || placing) && (
+        <View style={styles.center} pointerEvents="none" accessibilityLiveRegion="polite">
+          <Text style={styles.centerText}>
+            {placing ? `Placing your walks (${placing.done} of ${placing.of})` : 'Walk somewhere and it is starred here'}
+          </Text>
+        </View>
+      )}
+
+      {(mode.kind === 'summary' || open) && (
+        <View style={[styles.startRow, { bottom: sheetH + 16 }]} pointerEvents="box-none">
           {open ? (
-            <Button testID="resume" label="Return to your walk" onPress={() => router.push('/walk')} tall>
+            <Button testID="resume" label="Return to your walk" onPress={() => router.push('/walk')} tall style={styles.startBtn}>
               <View style={styles.recordingRow}>
                 <View style={styles.dot} />
                 <Text style={styles.resumeText}>
-                  {pauses.some((p) => p.ended_at == null) ? 'Paused' : 'Recording'} ·{' '}
-                  {formatDuration(now - open.started_at - pausedMs(pauses, open.started_at, now))} · Return to walk
+                  {paused ? 'Paused' : 'Recording'} · {formatDuration(now - open.started_at - pausedMs(pauses, open.started_at, now))} · Return
                 </Text>
               </View>
             </Button>
           ) : (
-            <Button testID="start" label="Start walk" onPress={start} busy={starting} busyLabel="Starting…" tall />
+            <Button testID="start" label="Start walk" onPress={start} busy={starting} busyLabel="Starting…" tall style={styles.startBtn} />
           )}
-          <Text style={styles.section} accessibilityRole="header">Walks</Text>
         </View>
-      }
-      ListEmptyComponent={<Text style={styles.empty}>No walks yet. Your first one will show up here.</Text>}
-      renderItem={({ item }) => {
-        const title = item.walk.title ?? suggestTitle(item.walk);
-        const s = item.summary;
-        const date = new Date(item.walk.started_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-        const meta = s
-          ? [date, formatDistance(s.distance_m), formatDuration(s.duration_ms), `${s.new_streets} new ${s.new_streets === 1 ? 'street' : 'streets'}`]
-              .concat(formatCaptures(s) || [])
-              .join(' · ')
-          : `${date} · Open to finish reading its streets`;
-        return (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Replay ${title}`}
-            accessibilityHint={meta}
-            onPress={() => router.push(`/replay/${item.walk.id}?ceremony=0`)}
-            style={({ pressed }) => [styles.card, pressed && { opacity: 0.85 }]}
-          >
-            <Text style={styles.cardTitle}>{title}</Text>
-            <Text style={styles.cardMeta}>{meta}</Text>
-            {item.walk.epilogue ? <Text style={styles.epilogue}>“{item.walk.epilogue}”</Text> : null}
-          </Pressable>
-        );
-      }}
-    />
+      )}
+
+      <HomeSheet index={index} summaries={summaries} unplaced={unplaced} mode={mode} onMode={setMode} onHeight={setSheetH} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
-  content: { padding: 16, gap: 10, maxWidth: 640, width: '100%', alignSelf: 'center' },
-  header: { gap: 12, marginBottom: 4 },
-  lede: { color: theme.muted, fontSize: 15, lineHeight: 21 },
+  top: { position: 'absolute', left: 12, right: 12, gap: 8, maxWidth: 640, alignSelf: 'center' },
+  center: { position: 'absolute', left: 24, right: 24, top: '38%', alignItems: 'center' },
+  centerText: {
+    backgroundColor: 'rgba(255,255,255,0.94)', color: theme.ink, fontSize: 16, fontWeight: '600',
+    paddingVertical: 10, paddingHorizontal: 16, borderRadius: 999, overflow: 'hidden', textAlign: 'center',
+  },
+  startRow: { position: 'absolute', left: 16, right: 16, alignItems: 'center' },
+  startBtn: { minWidth: 220, borderRadius: 999, paddingHorizontal: 28 },
   recordingRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: theme.accentInk },
   resumeText: { color: theme.accentInk, fontSize: 16, fontWeight: '600' },
-  section: { marginTop: 12, fontSize: 13, fontWeight: '700', color: theme.muted, textTransform: 'uppercase', letterSpacing: 0.6 },
-  empty: { color: theme.muted, fontSize: 15, paddingVertical: 24, textAlign: 'center' },
-  card: { backgroundColor: theme.surface, borderRadius: theme.radius, padding: 14, gap: 4, borderWidth: 1, borderColor: theme.line },
-  cardTitle: { fontSize: 17, fontWeight: '600', color: theme.ink },
-  cardMeta: { fontSize: 14, color: theme.muted, lineHeight: 19 },
-  epilogue: { fontSize: 15, color: theme.ink, fontStyle: 'italic', marginTop: 4 },
 });

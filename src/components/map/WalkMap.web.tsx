@@ -5,6 +5,8 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 're
 import { createRoot, type Root } from 'react-dom/client';
 import { StyleSheet, View } from 'react-native';
 import { CapturePinView, pinLabel } from '../CapturePinView';
+import { StarView, starLabel } from '../StarView';
+import type { Star } from '../../lib/places';
 import type { CapturePin } from '../../lib/pins';
 import type { RoadFeature } from '../../lib/streets';
 import type { LngLat } from '../../lib/types';
@@ -251,6 +253,63 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       queueMicrotask(() => m.root.unmount());
     }
     markers.current.clear();
+  }, []);
+  // Stars (the home map) are DOM markers too, drawn with the same view as on
+  // native. Clicks look the star up by id, so a merged star never opens stale places.
+  const onViewChange = useRef(props.onViewChange);
+  useEffect(() => {
+    onViewChange.current = props.onViewChange;
+  });
+  useEffect(() => {
+    if (view) onViewChange.current?.(view);
+  }, [view]);
+  const starLatest = useRef({ stars: new Map<string, Star>(), onStarPress: props.onStarPress });
+  useEffect(() => {
+    starLatest.current = { stars: new Map((props.stars ?? []).map((st) => [st.id, st])), onStarPress: props.onStarPress };
+  });
+  const starMarkers = useRef(new Map<string, { marker: Marker; root: Root; key: string }>());
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    const drop = (m: { marker: Marker; root: Root }) => {
+      m.marker.remove();
+      queueMicrotask(() => m.root.unmount());
+    };
+    const live = new Set<string>();
+    for (const star of props.stars ?? []) {
+      live.add(star.id);
+      const key = `${star.at.join(',')}|${star.count}|${star.walkIds.length}|${star.label}`;
+      const existing = starMarkers.current.get(star.id);
+      if (existing?.key === key) continue;
+      if (existing) drop(existing);
+      // A 48 px target around the 36 px star.
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.setAttribute('aria-label', starLabel(star));
+      el.style.cssText = 'background:none;border:0;padding:6px;cursor:pointer';
+      const id = star.id;
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const st = starLatest.current.stars.get(id);
+        if (st) starLatest.current.onStarPress?.(st);
+      });
+      const root = createRoot(el);
+      root.render(<StarView star={star} />);
+      const marker = new Marker({ element: el, anchor: 'center' }).setLngLat(star.at).addTo(map);
+      starMarkers.current.set(star.id, { marker, root, key });
+    }
+    for (const [id, m] of starMarkers.current) {
+      if (live.has(id)) continue;
+      drop(m);
+      starMarkers.current.delete(id);
+    }
+  }, [ready, props.stars]);
+  useEffect(() => () => {
+    for (const m of starMarkers.current.values()) {
+      m.marker.remove();
+      queueMicrotask(() => m.root.unmount());
+    }
+    starMarkers.current.clear();
   }, []);
   useEffect(() => {
     if (ready) mapRef.current?.setPaintProperty('veil', 'fill-opacity', props.veil ? 0.45 : 0);

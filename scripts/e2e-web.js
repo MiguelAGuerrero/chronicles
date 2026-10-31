@@ -101,6 +101,10 @@ function check(ok, what) {
 
   try {
     await page.goto(url);
+    // Home is the places map; with nothing walked, one line and Start (H1, H2).
+    await page.waitForSelector('text=Walk somewhere and it is starred here');
+    check((await page.locator('canvas.maplibregl-canvas').count()) === 1 && (await page.locator('[data-testid=start]').count()) === 1, 'home opens on the map, empty, with Start');
+    await shot(page, '00-home-empty');
     await page.click('[data-testid=start]');
     await page.waitForSelector('[data-testid=stop]');
     await page.waitForTimeout(2500);
@@ -163,7 +167,8 @@ function check(ok, what) {
         // What happened here: a long press near where the note was taken (the
         // map follows the walker, so near the map's center) shows it. A plain
         // tap there does nothing.
-        const box = await page.locator('canvas.maplibregl-canvas').boundingBox();
+        // The home map stays mounted under the walk screen; the walk's map is the last.
+        const box = await page.locator('canvas.maplibregl-canvas').last().boundingBox();
         // Beside the pin (whose tap area covers the spot itself): ~27 m away at this zoom.
         const spot = { x: box.x + box.width / 2 + 30, y: box.y + box.height / 2 + 10 };
         await page.mouse.click(spot.x, spot.y);
@@ -210,7 +215,7 @@ function check(ok, what) {
       }
       if (k === 36) {
         // Looking around: a drag stops the map following; Recenter brings it back.
-        const box = await page.locator('canvas.maplibregl-canvas').boundingBox();
+        const box = await page.locator('canvas.maplibregl-canvas').last().boundingBox();
         await page.mouse.move(box.x + box.width / 2, box.y + box.height / 3);
         await page.mouse.down();
         await page.mouse.move(box.x + box.width / 2 + 120, box.y + box.height / 3 + 60, { steps: 8 });
@@ -352,13 +357,27 @@ function check(ok, what) {
     await page.click('[data-testid=to-name]');
     await page.fill('[data-testid=epilogue-input]', 'Cardamom and the river.');
     await page.click('[data-testid=save]');
-    await page.waitForSelector('text=Cardamom and the river.');
-    check((await page.locator('[data-testid=start]').count()) === 1, 'the log appears once in the stack');
-
-    // Re-watching from the log moves through the captures without a tap.
-    await page.getByText('Cardamom and the river.').click();
+    // Back home: the walk is a star where it was walked (H1, H7).
+    await page.waitForSelector('[data-testid=home-sheet]');
+    check((await page.locator('[data-testid=start]').count()) === 1, 'home appears once in the stack');
+    await page.waitForSelector('[aria-label^="Fox Point,"]', { timeout: 15000 });
+    await shot(page, '08-home-star');
+    check(true, 'the walk is a star on the home map');
+    // A star lists its place's walks in the sheet, with the place's parents (H6).
+    await page.click('[aria-label^="Fox Point,"]');
+    await page.waitForSelector('[data-testid=place-title]');
+    const sheet = (await page.locator('[data-testid=home-sheet]').innerText()).replace(/\s+/g, ' ');
+    check(/Fox Point/.test(sheet) && /Providence, Rhode Island/.test(sheet) && /Cardamom and the river\./.test(sheet), `a star lists its place's walks (${sheet.slice(0, 120)})`);
+    await shot(page, '09-home-place');
+    // Back to the map, then the Walks list: every stopped walk; one opens its replay as a re-watch (H4, H5).
+    await page.click('[data-testid=sheet-map]');
+    await page.click('[data-testid=sheet-walks]');
+    await page.waitForSelector('[data-testid=walk-row]');
+    check((await page.locator('[data-testid=walk-row]').count()) === 1, 'the walks list has the one stopped walk');
+    await shot(page, '10-home-walks');
+    await page.locator('[data-testid=walk-row]').first().click();
     await page.waitForSelector('[data-testid=done]', { timeout: 90000 });
-    check(true, 're-watching from the log reaches the card with no taps');
+    check(true, 're-watching from the walks list reaches the card with no taps');
 
     // A replay opened with no tap at all (a fresh page, as after a reload)
     // may not start a video with sound: it plays muted and offers the sound.
@@ -399,6 +418,9 @@ function check(ok, what) {
     check(sound, 'a tap on it turns the sound on');
     await fresh.close();
     await page.click('[data-testid=done]');
+    await page.waitForSelector('[data-testid=home-sheet]');
+    // The sheet kept its walks list (H5), so it is counted rather than Start.
+    check((await page.locator('[data-testid=home-sheet]').count()) === 1 && (await page.locator('[data-testid=walk-row]').count()) === 1, 'done returns to the one home, its walks list as it was');
     check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
   } catch (e) {
     console.error(e.message);

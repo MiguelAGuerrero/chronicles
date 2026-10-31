@@ -89,10 +89,14 @@ export function placesIndex(areaList: Area[], rows: WalkArea[], walkList: Walk[]
     elsewhere.set(a.key, e);
   }
   const countries = new Set([...byArea.keys()].filter((k) => areas.get(k)!.level === 'country'));
-  const points: LngLat[] = [
-    ...[...byArea.keys()].map((k) => areas.get(k)!).filter((a) => a.level === 'neighborhood' || a.level === 'town').map((a): LngLat => [a.lon, a.lat]),
-    ...[...elsewhere.values()].map((e) => e.at),
-  ];
+  // The fit covers what is starred up close (neighborhoods and "elsewhere"):
+  // a town's own point can lie kilometres from where it was walked. With
+  // neither, it falls back to the towns, then the states.
+  const pointsAt = (level: AreaLevel): LngLat[] =>
+    [...byArea.keys()].map((k) => areas.get(k)!).filter((a) => a.level === level).map((a): LngLat => [a.lon, a.lat]);
+  let points: LngLat[] = [...pointsAt('neighborhood'), ...[...elsewhere.values()].map((e) => e.at)];
+  if (!points.length) points = pointsAt('town');
+  if (!points.length) points = pointsAt('state');
   const bounds: Bounds | null = points.length
     ? [Math.min(...points.map((p) => p[0])), Math.min(...points.map((p) => p[1])), Math.max(...points.map((p) => p[0])), Math.max(...points.map((p) => p[1]))]
     : null;

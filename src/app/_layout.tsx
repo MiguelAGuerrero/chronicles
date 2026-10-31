@@ -32,7 +32,8 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: theme.bg },
         }}
       >
-        <Stack.Screen name="index" options={{ title: 'Chronicles' }} />
+        {/* Home is the places map, edge to edge: no header. */}
+        <Stack.Screen name="index" options={{ headerShown: false, title: 'Chronicles' }} />
         {/* No header: the growing trace says a walk is on. No way back but
             Stop, either: leaving would strand the walk open. */}
         <Stack.Screen name="walk" options={{ headerShown: false, gestureEnabled: false }} />

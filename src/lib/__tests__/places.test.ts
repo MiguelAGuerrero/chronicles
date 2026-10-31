@@ -113,6 +113,12 @@ test('home: the map fits every place walked', () => {
   const [w, s, e, n] = index.bounds!;
   for (const a of [upper, southEnd]) assert.ok(a.lon >= w && a.lon <= e && a.lat >= s && a.lat <= n);
   assert.equal(placesIndex([], [], []).bounds, null, 'nothing walked: no bounds, a world view');
+  // A town's own point can be kilometres from where it was walked: the fit
+  // covers the places starred up close (neighborhoods, "elsewhere"), not it.
+  const farTown = area('town', 'Bigcity', nj.key, -74.0, 40.82);
+  const hood = area('neighborhood', 'Old Mill', farTown.key, -74.21, 40.83);
+  const lone = placesIndex([us, nj, farTown, hood], [...[us, nj, farTown, hood].map((a) => row('w1', a, 500, 1000))], [walk('w1', 1000)]);
+  assert.ok(lone.bounds![2] < -74.1, 'the far town point is left out of the fit');
 });
 
 test('home: bulk placement runs one pass at a time, keeps what it placed and leaves the rest for next time', async () => {

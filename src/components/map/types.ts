@@ -3,6 +3,7 @@ import type { Bounds } from '../../lib/geo';
 import type { RoadFeature } from '../../lib/streets';
 import { useMemo } from 'react';
 import { metersPerPixel, PIN_GROUP_PX, pinsFor, type CapturePin } from '../../lib/pins';
+import type { Star } from '../../lib/places';
 import type { Capture, LngLat, StreetSegment } from '../../lib/types';
 
 export const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
@@ -50,6 +51,11 @@ export interface WalkMapProps {
   onUserMove?: () => void;
   /** Opens a pin's captures; without it, pins are shown but not pressable. */
   onPinPress?: (captures: Capture[]) => void;
+  /** Places walked, drawn as stars (the home map); the caller picks them for the zoom. */
+  stars?: Star[];
+  onStarPress?: (star: Star) => void;
+  /** Called with the zoom and latitude once the camera settles, for picking stars. */
+  onViewChange?: (view: { zoom: number; lat: number }) => void;
   walker?: LngLat | null;
   /** Keeps the camera centered here while set. */
   follow?: LngLat | null;

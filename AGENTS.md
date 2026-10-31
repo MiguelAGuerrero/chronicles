@@ -283,8 +283,19 @@ Read this before changing recording, streets, the replay or storage.
   from OpenFreeMap's TileJSON. On a change it purges street segments and nulls each
   walk's `snapped_build`; the walk re-snaps when its replay next opens. Visited rows
   and summaries are kept until then, so the log and new-street counts keep working.
-- **The log never loads traces or media.** It reads `listWalks()` plus
-  `listSummaries()`. Keep it that way.
+- **Home is the places map** (the owner's call, v0.5; the log screen is gone).
+  `src/app/index.tsx` shows stars where walks were, at the level for the zoom
+  (`levelForZoom`: neighborhoods from z11, towns from z6, states below, and
+  countries below z3 once two countries are walked). Stars merge within 44 px,
+  and all are one size. A bottom sheet (`HomeSheet`, built on Animated and
+  responders, no library) peeks with "N walks · M places" and opens to the
+  walks list or a place's walks. Start floats above it.
+  - Walks with no places are placed in one pass behind a cover
+    (`placeAll`); a failure waits for the next launch.
+  - It reads only walks, summaries, `Area` and `WalkArea` (`places.ts`), never
+    traces or media. Keep it that way.
+  - The home map stays mounted under the walk screen, so the e2e targets the
+    walk's map with `.last()`.
 
 ## Gotchas (each of these cost real time)
 

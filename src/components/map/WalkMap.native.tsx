@@ -4,6 +4,7 @@ import {
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { CapturePinView, pinLabel } from '../CapturePinView';
+import { StarView, starLabel } from '../StarView';
 import type { RoadFeature } from '../../lib/streets';
 import { TILEJSON_URL } from '../../lib/tiles';
 import {
@@ -159,6 +160,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           regionChanged.current?.();
           const { zoom, center } = e.nativeEvent;
           setView((v) => (v && Math.abs(v.zoom - zoom) < 0.25 ? v : { zoom, lat: center[1] }));
+          props.onViewChange?.({ zoom, lat: center[1] });
         }}
         onDidFinishRenderingMapFully={() => rendered.current?.()}
       >
@@ -218,6 +220,19 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
               style={styles.pinHit}
             >
               <CapturePinView pin={pin} />
+            </View>
+          </Marker>
+        ))}
+        {(props.stars ?? []).map((star) => (
+          <Marker
+            key={`star:${star.id}:${star.count}`}
+            id={`star:${star.id}:${star.count}`}
+            lngLat={star.at}
+            anchor="center"
+            onPress={props.onStarPress ? () => props.onStarPress?.(star) : undefined}
+          >
+            <View accessible accessibilityRole="button" accessibilityLabel={starLabel(star)} style={styles.pinHit}>
+              <StarView star={star} />
             </View>
           </Marker>
         ))}
