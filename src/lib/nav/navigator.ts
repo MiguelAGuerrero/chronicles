@@ -12,12 +12,25 @@ export const tooFar = (from: LngLat, to: LngLat) => distanceM(from, to) > NAV.ma
  * A route from the first source that has one, or the reason there is none
  * (N3-N5). Sources are tried in order: walk me back puts the trace first.
  */
-export function routeTo(sources: RouteSource[], from: LngLat, to: LngLat): { route: Route | null; reason?: string } {
+/** A later source must beat an earlier one by this share to replace it ('shortest'). */
+const SHORTER_BY = 0.9;
+
+/**
+ * A route from the sources: the first that answers, or with 'shortest' the
+ * shortest of them, an earlier source kept unless a later one is clearly
+ * shorter. Walk me back uses 'shortest' with the trace first, so it never
+ * retraces a detour the streets can skip (the owner's call, Nov 1).
+ */
+export function routeTo(sources: RouteSource[], from: LngLat, to: LngLat, pick: 'first' | 'shortest' = 'first'): { route: Route | null; reason?: string } {
   if (tooFar(from, to)) return { route: null, reason: 'Too far to walk from here' };
+  let best: Route | null = null;
   for (const s of sources) {
     const route = s.route(from, to);
-    if (route) return { route };
+    if (!route) continue;
+    if (pick === 'first') return { route };
+    if (!best || route.lengthM < best.lengthM * SHORTER_BY) best = route;
   }
+  if (best) return { route: best };
   // The streets read reach only so far around both ends: "nearby" keeps that honest.
   return { route: null, reason: 'No walking route found nearby' };
 }

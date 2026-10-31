@@ -83,6 +83,13 @@ export function useNavigation(opts: {
     return streetRouteSource([...new Map([...cached, ...read].map((s) => [s.id, s])).values()]);
   };
 
+  /** The streets already cached between two points: no camera moves. */
+  const cachedStreets = async (bounds: Bounds): Promise<RouteSource> => {
+    const segs = await db.getSegmentsIn(bounds).catch(() => [] as StreetSegment[]);
+    const s = streetRouteSource(segs);
+    return { ...s, id: 'cached-streets' };
+  };
+
   const goTo = useCallback(async (dest: Waypoint) => {
     const { walk, here } = latest.current;
     if (!walk || busy.current) return;
@@ -107,14 +114,18 @@ export function useNavigation(opts: {
       pending.current = null;
       if (tooFar(from, dest.at)) return fail('Too far to walk from here');
       setFinding(true);
-      // Back along this walk first, for its start or a capture (walk me back).
+      // Back along this walk, for its start or a capture (walk me back), against the streets
+      // already cached around you; the shorter wins, so it never retraces a detour (owner, Nov 1).
       const list: RouteSource[] = [];
-      if (dest.kind === 'start' || dest.kind === 'capture') list.push(traceRouteSource(points, pauses, walk.started_at));
-      let found = routeTo(list, from, dest.at);
+      if (dest.kind === 'start' || dest.kind === 'capture') {
+        list.push(traceRouteSource(points, pauses, walk.started_at));
+        list.push(await cachedStreets(boundsOf([from, dest.at], AREA_PAD_M)!));
+      }
+      let found = routeTo(list, from, dest.at, 'shortest');
       if (!found.route) {
         list.push(await readStreets(boundsOf([from, dest.at], AREA_PAD_M)!, [from, dest.at]));
         if (cancelled.current) return;
-        found = routeTo(list, from, dest.at);
+        found = routeTo(list, from, dest.at, 'shortest');
       }
       if (!found.route) return fail(found.reason ?? 'No walking route found nearby');
       // Stopped while the route was being found: nothing to navigate.
@@ -174,7 +185,7 @@ export function useNavigation(opts: {
       let next = step.state;
       if (announceStep(s.leftM, next.leftM)) AccessibilityInfo.announceForAccessibility(`${formatDistance(next.leftM)} left to ${s.dest.label}`);
       if (step.reroute) {
-        const again = routeTo(sources.current, here, s.dest.at).route;
+        const again = routeTo(sources.current, here, s.dest.at, 'shortest').route;
         if (again) {
           next = { ...next, route: again, leftM: again.lengthM, offCount: 0, offRoute: false };
           latest.current.onNotice('New route');

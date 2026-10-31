@@ -213,3 +213,17 @@ test('heading: the way you are walking, only once you are moving', () => {
   const north = walk([at(0, 0), at(0, 0.5)]).map((p) => ({ ...p, course: null }));
   assert.ok(Math.abs(headingOf(north)! - 0) < 5 || Math.abs(headingOf(north)! - 360) < 5, 'north is 0°');
 });
+
+test('nav: the shortest route wins, so walk me back never retraces a detour the streets can skip (owner, Nov 1)', () => {
+  const mk = (id: string, lengthM: number): RouteSource => ({ id, route: (from, to) => ({ path: [from, to], lengthM, source: id }) });
+  const none: RouteSource = { id: 'none', route: () => null };
+  const a: LngLat = [-71.4, 41.812];
+  const b: LngLat = [-71.398, 41.812];
+  // The trace back is 513 m; the streets have 300 m: the streets win.
+  assert.equal(routeTo([mk('trace', 513), mk('streets', 300)], a, b, 'shortest').route?.source, 'streets');
+  // Within 10% of each other, the way you came wins (it is known to be walkable).
+  assert.equal(routeTo([mk('trace', 320), mk('streets', 300)], a, b, 'shortest').route?.source, 'trace');
+  assert.equal(routeTo([none, mk('streets', 300)], a, b, 'shortest').route?.source, 'streets');
+  // The default is still first that answers.
+  assert.equal(routeTo([mk('trace', 513), mk('streets', 300)], a, b).route?.source, 'trace');
+});

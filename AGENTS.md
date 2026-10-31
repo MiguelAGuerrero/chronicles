@@ -264,6 +264,11 @@ Read this before changing recording, streets, the replay or storage.
   - off route means more than 50 m away for 2 fixes; it re-routes at once,
     then at most every 15 s
   - arrival is within 30 m
+- **Walk me back takes the shorter way** (the owner's call, Nov 1, after a
+  screenshot of a 513 m retrace around a block where a straight street ran
+  ~300 m): the trace route and the streets already cached around you are both
+  tried (`routeTo(..., 'shortest')`), and the trace is kept unless the streets
+  are at least 10% shorter. Re-routes pick the same way.
 - **Walk me back never cuts a corner.** A trace shortcut joins two points
   within 30 m only if they are at least 100 m apart along the walk: a loop,
   not the two sides of a corner. The first version cut corners through
