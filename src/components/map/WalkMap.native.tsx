@@ -51,8 +51,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   useEffect(() => {
     if (ready && props.follow) cameraRef.current?.jumpTo({ center: props.follow });
   }, [ready, props.follow]);
+  // A fit is a request made while mounted: a map brought back (the home, after a walk) keeps its view.
+  const fitAtMount = useRef(props.fitKey);
   useEffect(() => {
-    if (!ready || !props.fitBounds) return;
+    if (!ready || !props.fitBounds || props.fitKey === fitAtMount.current) return;
+    fitAtMount.current = undefined;
     const pad = props.fitPadding ?? { top: 48, right: 48, bottom: 48, left: 48 };
     cameraRef.current?.fitBounds(props.fitBounds, { padding: pad, duration });
     // Refits when the caller changes fitKey, not on every new bounds array.
@@ -182,6 +185,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         onRegionDidChange={(e) => {
           regionChanged.current?.();
           const { zoom, center } = e.nativeEvent;
+          props.onCameraChange?.({ center: [center[0], center[1]], zoom });
           setView((v) => (v && Math.abs(v.zoom - zoom) < 0.25 ? v : { zoom, lat: center[1] }));
           // Only a real change of view: not every settle, which would redraw every star.
           const last = lastView.current;

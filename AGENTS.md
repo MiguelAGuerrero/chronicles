@@ -519,9 +519,15 @@ Read this before changing recording, streets, the replay or storage.
     (`placeAll`); a failure waits for the next launch.
   - It reads only walks, summaries, `Area` and `WalkArea` (`places.ts`), never
     traces or media. Keep it that way.
-  - The home map stays mounted under the walk screen, so the e2e targets the
-    walk's map with `.last()`. Two live maps during a walk is a known cost,
-    deferred until it can be measured on a phone.
+  - **The home map is taken down while the home isn't focused** (a walk, a
+    replay: `useIsFocused`), so a phone's browser holds one live map, not two
+    (the owner's go-ahead, Nov 1, after the research ranked it third).
+    - It comes back where it was. `onCameraChange` saves the canvas's own
+      middle, never `getCenter()`, which is the padded centre a fit leaves
+      behind.
+    - A map applies a fit only when `fitKey` changes after it mounted, so a
+      map brought back doesn't refit.
+    - The e2e checks there is one canvas during a walk.
   - **Placing old walks** happens in `lib/backlog.ts`, the home's one read of
     traces.
     - It runs in one pass, and every map read in it times out.

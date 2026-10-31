@@ -75,6 +75,8 @@ export interface WalkMapProps {
   /** Places walked, drawn as stars (the home map); the caller picks them for the zoom. */
   stars?: Star[];
   onStarPress?: (star: Star) => void;
+  /** Called with the camera once it settles, so a map taken down can come back where it was. */
+  onCameraChange?: (camera: { center: LngLat; zoom: number }) => void;
   /** Called with the zoom and latitude once the camera settles, for picking stars. */
   onViewChange?: (view: { zoom: number; lat: number }) => void;
   /** The star drawn as selected (ringed), by id. */

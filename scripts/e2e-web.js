@@ -177,6 +177,8 @@ function check(ok, what) {
       const mm = Object.fromEntries((await cdp.send('Performance.getMetrics')).metrics.map((x) => [x.name, x.value]));
       return { bodyDivs: await page.evaluate(() => document.body.children.length), listeners: mm.JSEventListeners, nodes: mm.Nodes };
     };
+    // One live map during a walk: the home's is taken down while it isn't on screen (perf, Nov 1).
+    check((await page.locator('canvas.maplibregl-canvas').count()) === 1, 'only the walk\u2019s map is live during a walk');
     const leak0 = await leakSample();
     const perf0 = await page.evaluate(() => ({ ...window.__perf }));
     const perfT0 = Date.now();

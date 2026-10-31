@@ -82,6 +82,9 @@ function toRoadFeature(f: GeoJSONFeature & { _z?: number }): RoadFeature {
 /** Whether the street source is loaded; false if the style has no such source. */
 const sourceLoaded = (map: MapLibreMap) => {
   try {
+    // isSourceLoaded logs an error instead of throwing for a missing source (a map just taken down,
+    // a style without it): check first.
+    if (!map.getStyle?.() || !map.getSource(VECTOR_SOURCE)) return false;
     return map.isSourceLoaded(VECTOR_SOURCE);
   } catch {
     return false;
@@ -113,6 +116,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   onLongPress.current = props.onLongPress;
   const onUserMove = useRef(props.onUserMove);
   onUserMove.current = props.onUserMove;
+  const onCameraChange = useRef(props.onCameraChange);
+  onCameraChange.current = props.onCameraChange;
   const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
   perfCount('render:map');
   const duration = props.animate === false ? 0 : 600;
@@ -201,6 +206,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     const track = () => {
       const zoom = map.getZoom();
       const lat = map.getCenter().lat;
+      // The canvas's own middle: getCenter() is the padded centre a fit leaves behind, which a map
+      // made fresh (without the padding) would put elsewhere.
+      const canvas = map.getCanvas();
+      const c = map.unproject([canvas.clientWidth / 2, canvas.clientHeight / 2]);
+      onCameraChange.current?.({ center: [c.lng, c.lat], zoom });
       setView((v) => (v && Math.abs(v.zoom - zoom) < 0.05 && Math.abs(v.lat - lat) < 0.01 ? v : { zoom, lat }));
     };
     // Only gestures carry an originalEvent; camera moves made in code do not.
@@ -503,8 +513,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     perfCount('camera');
     map.jumpTo({ center: props.follow });
   }, [ready, props.follow]);
+  // A fit is a request made while mounted: a map brought back (the home, after a walk) keeps its view.
+  const fitAtMount = useRef(props.fitKey);
   useEffect(() => {
-    if (ready && props.fitBounds) {
+    if (ready && props.fitBounds && props.fitKey !== fitAtMount.current) {
+      fitAtMount.current = undefined;
       const [w, s, e, n] = props.fitBounds;
       const padding = props.fitPadding ?? { top: 48, right: 48, bottom: 48, left: 48 };
       mapRef.current?.fitBounds([[w, s], [e, n]], { padding, maxZoom: 17, duration });

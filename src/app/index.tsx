@@ -1,4 +1,4 @@
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useIsFocused } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, ActivityIndicator, Linking, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -73,6 +73,18 @@ export default function Home() {
   // The map refits only when the places walked change (a new walk, a pass),
   // never just for coming back: a replay keeps the view you left (H5).
   const fittedTo = useRef('');
+  // The map's camera, kept while the map is down (a walk, a replay) and restored when it returns.
+  const focused = useIsFocused();
+  const cameraNow = useRef<{ center: LngLat; zoom: number } | null>(null);
+  const [savedCamera, setSavedCamera] = useState<{ center: LngLat; zoom: number } | null>(null);
+  useFocusEffect(
+    useCallback(
+      () => () => {
+        setSavedCamera(cameraNow.current);
+      },
+      [],
+    ),
+  );
   // Scan here (S1, S11): marks found from the home wait for the next walk.
   const [homeMarks, setHomeMarks] = useState<Mark[]>([]);
   const [scanning, setScanning] = useState(false);
@@ -513,6 +525,9 @@ export default function Home() {
       )}
 
       <View style={[StyleSheet.absoluteFill, styles.under]}>
+        {/* Only while the home is on screen: during a walk or a replay its map is taken down, so a
+            phone's browser holds one live map, not two, and it comes back where it was (perf, Nov 1). */}
+        {focused && (
         <WalkMap
           ref={mapRef}
           trace={NONE}
@@ -549,11 +564,13 @@ export default function Home() {
           fitBounds={fit.bounds}
           fitKey={fit.key}
           fitPadding={{ top: insets.top + 60, right: 48, bottom: sheetH + 96, left: 48 }}
-          initialCenter={WORLD.center}
-          initialZoom={WORLD.zoom}
+          initialCenter={savedCamera?.center ?? WORLD.center}
+          initialZoom={savedCamera?.zoom ?? WORLD.zoom}
+          onCameraChange={(c) => (cameraNow.current = c)}
           covered={placing != null || scanning}
           attributionTop
         />
+        )}
       </View>
     </View>
   );
