@@ -1,5 +1,5 @@
-import { distanceM } from '../geo';
-import type { LngLat } from '../types';
+import { distanceM, distanceToLinesM } from '../geo';
+import type { LngLat, StreetSegment } from '../types';
 import { CATEGORIES, categoryOf } from './categories';
 import { isOffered } from './places';
 import type { CategoryId, Mark, MarkOrigin, Offered, Place } from './types';
@@ -140,8 +140,8 @@ export function foundBy(at: LngLat, marks: Mark[]): Mark | null {
   return best;
 }
 
-/** A re-scan replaces this walk's open marks; resolved ones stay (S10). */
-export const toReplace = (marks: Mark[], walkId: string): string[] =>
+/** A re-scan replaces this walk's open marks (or the home's, with null); resolved ones stay (S10). */
+export const toReplace = (marks: Mark[], walkId: string | null): string[] =>
   marks.filter((x) => x.walk_id === walkId && x.state === 'open').map((x) => x.id);
 
 /** Home-scan marks the next walk adopts: open, and under 14 days old (S11). */
@@ -177,4 +177,16 @@ export function scanNote(outcome: ScanOutcome, n: number): string | null {
     case 'failed':
       return 'Couldn’t read the map here';
   }
+}
+
+/** A dismissed mark on the card: a low, kept in view, named by the nearest named street within 150 m (S9). */
+export function passedOnLine(at: LngLat, segments: StreetSegment[]): string {
+  let best: string | null = null;
+  let bestD = 150;
+  for (const x of segments) {
+    if (!x.name) continue;
+    const d = distanceToLinesM(at, x.geometry);
+    if (d <= bestD) [best, bestD] = [x.name, d];
+  }
+  return best ? `Passed on: a mark near ${best}` : 'Passed on: a mark';
 }

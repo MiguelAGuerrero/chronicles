@@ -9,7 +9,9 @@ import type { LngLat } from '../types';
 export interface Waypoint {
   at: LngLat;
   label: string;
-  kind: 'start' | 'capture' | 'point' | 'place';
+  kind: 'start' | 'capture' | 'point' | 'place' | 'mark';
+  /** A scan's mark: labelled "Mark" until it is revealed, then by its name (S12). */
+  markId?: string;
 }
 
 export interface Route {

@@ -11,7 +11,11 @@ import { CaptionEditor } from '../components/Caption';
 import { CaptureViewer } from '../components/CaptureView';
 import { Icon, KIND_LABEL, type IconName } from '../components/icons';
 import { Banner, Button, HoldButton, theme } from '../components/ui';
+import { DiscoveryPrefs } from '../components/DiscoveryPrefs';
+import { categoryOf } from '../lib/discovery/categories';
+import { savePrefs } from '../lib/discovery/runScan';
 import { placesFromTilePois } from '../lib/discovery/tilePois';
+import { useScan } from '../lib/discovery/useScan';
 import { db } from '../lib/db';
 import { focusOn } from '../lib/focus';
 import { boundsOf, distanceM, distanceToLinesM, nearPoints, pausedMs } from '../lib/geo';
@@ -192,7 +196,8 @@ export default function WalkScreen() {
   const hereTaps = useRef(0);
   const [hereKey, setHereKey] = useState(0);
   async function pressMap(at: LngLat, radiusM?: number) {
-    if (cap.voiceStartedAt != null || stopping || viewing || here) return;
+    if (cap.voiceStartedAt != null || stopping || viewing || here || scan.scanning) return;
+    setMarkOpen(null);
     tapFeedback();
     const tap = ++hereTaps.current;
     const r = await capturesHere(at, cap.captures, radiusM).catch(() => null);
@@ -243,6 +248,30 @@ export default function WalkScreen() {
     onError: (m) => setNotice({ message: m, tone: 'error' }),
     onNotice: (m) => setArrived(m),
   });
+  // Scan (v1 slice 2): marks to find within 500 m.
+  const fixes = useMemo(() => live.runs.flat(), [live.runs]);
+  const [markOpen, setMarkOpen] = useState<string | null>(null);
+  const scan = useScan({
+    walkId: walk?.id ?? null,
+    here: live.here,
+    fixes,
+    captures: cap.captures,
+    map: () => mapRef.current,
+    onNotice: (message, tone) => setNotice({ message, tone }),
+    onFound: (m) => {
+      successFeedback();
+      setArrived(`Found: ${m.name}`);
+      AccessibilityInfo.announceForAccessibility(`Found: ${m.name}, ${categoryOf(m.category).label}`);
+    },
+  });
+  const openMark = scan.open.find((m) => m.id === markOpen) ?? null;
+  // Going to a mark: "Mark" until it is revealed, then its name (S12).
+  const navMarkId = navigation.nav?.dest.kind === 'mark' ? navigation.nav.dest.markId : undefined;
+  const navMark = navMarkId ? scan.marks.find((m) => m.id === navMarkId) : undefined;
+  const relabel = navigation.relabel;
+  useEffect(() => {
+    if (navMark && scan.revealed.has(navMark.id)) relabel(navMark.name);
+  }, [navMark, scan.revealed, relabel]);
   const walkStart: LngLat | null = live.runs[0]?.[0] ?? null;
   // Once, after the first 100 m of a first walk: how to go somewhere.
   const hinted = useRef(false);
@@ -417,14 +446,22 @@ export default function WalkScreen() {
         walker={live.here}
         walkerHeading={live.heading}
         // Not while a route is found: the street read moves the camera itself.
-        follow={following && !navigation.finding ? live.here : null}
-        onPress={() => setSpot(null)}
+        follow={following && !navigation.finding && !scan.scanning ? live.here : null}
+        onPress={() => {
+          setSpot(null);
+          setMarkOpen(null);
+        }}
+        discoveries={scan.pins}
+        onDiscoveryPress={recordingVoice || stopping ? undefined : (id) => {
+          setSpot(null);
+          setMarkOpen(id);
+        }}
         marks={marks}
         onUserMove={() => setFollowing(false)}
         // A long press, so a stray tap while walking does nothing.
         onLongPress={pressMap}
         route={routeLine}
-        covered={navigation.finding}
+        covered={navigation.finding || scan.scanning}
         veil={showUnwalked}
         fogEmphasis={showUnwalked}
         ref={mapRef}
@@ -461,6 +498,15 @@ export default function WalkScreen() {
             <ActivityIndicator color={theme.ink} />
             <Text style={styles.findingText}>Finding a route</Text>
             <Pressable testID="nav-cancel" accessibilityRole="button" accessibilityLabel="Cancel finding a route" onPress={navigation.cancel} style={styles.findingCancel} hitSlop={8}>
+              <Text style={styles.findingCancelText}>Cancel</Text>
+            </Pressable>
+          </View>
+        )}
+        {scan.scanning && (
+          <View style={styles.finding} accessibilityLiveRegion="polite">
+            <ActivityIndicator color={theme.ink} />
+            <Text style={styles.findingText}>Scanning…</Text>
+            <Pressable testID="scan-cancel" accessibilityRole="button" accessibilityLabel="Cancel the scan" onPress={scan.cancel} style={styles.findingCancel} hitSlop={8}>
               <Text style={styles.findingCancelText}>Cancel</Text>
             </Pressable>
           </View>
@@ -502,7 +548,7 @@ export default function WalkScreen() {
             <Text style={styles.voiceLiveText}>{formatElapsed(now - cap.voiceStartedAt!)}</Text>
           </View>
         )}
-        {justTook && !recordingVoice && !spot && (
+        {justTook && !recordingVoice && !spot && !openMark && (
           <View style={styles.undo} accessibilityLiveRegion="polite">
             <Text style={styles.undoText}>Photo saved here</Text>
             <Pressable
@@ -519,7 +565,7 @@ export default function WalkScreen() {
             </Pressable>
           </View>
         )}
-        {cap.discarded && !recordingVoice && !spot && (
+        {cap.discarded && !recordingVoice && !spot && !openMark && (
           <View style={styles.undo} accessibilityLiveRegion="polite">
             <Text style={styles.undoText}>Voice memo discarded</Text>
             <Pressable testID="voice-undo" accessibilityRole="button" onPress={() => cap.undoDiscard()} hitSlop={10} style={styles.undoBtn}>
@@ -527,7 +573,7 @@ export default function WalkScreen() {
             </Pressable>
           </View>
         )}
-        {cap.unsaved && !recordingVoice && !spot && (
+        {cap.unsaved && !recordingVoice && !spot && !openMark && (
           <View style={styles.undo} accessibilityLiveRegion="polite">
             <Text style={styles.undoText}>Voice memo not saved</Text>
             <Pressable accessibilityRole="button" onPress={() => cap.retrySave()} hitSlop={10} style={styles.undoBtn}>
@@ -649,11 +695,27 @@ export default function WalkScreen() {
           accessibilityLabel="Walk me back to the start"
           disabled={navigation.finding}
           onPress={() => navigation.goTo({ at: walkStart, label: 'Start', kind: 'start' })}
-          style={({ pressed }) => [styles.edgeBtn, { right: edgeRight, bottom: insets.bottom + EDGE_BOTTOM + 112 }, pressed && styles.pressed]}
+          style={({ pressed }) => [styles.edgeBtn, { right: edgeRight, bottom: insets.bottom + EDGE_BOTTOM + 168 }, pressed && styles.pressed]}
         >
           <Icon name="arrow-undo" size={22} color={theme.ink} />
         </Pressable>
       )}
+
+      {/* Scan: about six marks to find within 500 m (S1). */}
+      <Pressable
+        testID="scan"
+        accessibilityRole="button"
+        accessibilityLabel="Scan for places to find nearby"
+        disabled={scan.scanning || navigation.finding || !live.here || recordingVoice || stopping}
+        onPress={() => {
+          setSpot(null);
+          setMarkOpen(null);
+          scan.scan();
+        }}
+        style={({ pressed }) => [styles.edgeBtn, { right: edgeRight, bottom: insets.bottom + EDGE_BOTTOM + 112 }, (!live.here || scan.scanning) && styles.edgeBtnOff, pressed && styles.pressed]}
+      >
+        <Icon name="scan-outline" size={22} color={theme.ink} />
+      </Pressable>
 
       {!following && live.here && (
         // Back to following the walker, after looking around the map.
@@ -667,6 +729,64 @@ export default function WalkScreen() {
           <Icon name="locate" size={22} color={theme.ink} />
         </Pressable>
       )}
+
+      {openMark && !spot && (
+        // A mark's card, in the spot card's place (S7, S9, S12).
+        <View style={[styles.spotRow, { bottom: insets.bottom + 92 + 68 + 12 }]} pointerEvents="box-none">
+          <View testID="mark-card" style={styles.spot} accessibilityViewIsModal>
+            {scan.revealed.has(openMark.id) ? (
+              <Text style={styles.spotTitle} accessibilityRole="header">
+                {openMark.name} · {categoryOf(openMark.category).label}
+              </Text>
+            ) : (
+              <Text style={styles.spotTitle} accessibilityRole="header">A mark to find</Text>
+            )}
+            <Text style={styles.markSub}>
+              {live.here ? `${formatDistance(distanceM(live.here, openMark.at))} away. ` : ''}
+              {scan.revealed.has(openMark.id) ? 'Take a photo, a memo or a note here to find it.' : 'Walk within 60 m to see what it is.'}
+            </Text>
+            <View style={styles.spotActions}>
+              <Button
+                testID="mark-go"
+                label="Go here"
+                onPress={() => {
+                  const m = openMark;
+                  setMarkOpen(null);
+                  navigation.goTo({ at: m.at, label: scan.revealed.has(m.id) ? m.name : 'Mark', kind: 'mark', markId: m.id });
+                }}
+                disabled={navigation.finding}
+              />
+              <Button
+                testID="mark-dismiss"
+                variant="secondary"
+                label="Dismiss"
+                onPress={() => {
+                  const id = openMark.id;
+                  setMarkOpen(null);
+                  if (navMarkId === id) navigation.end();
+                  scan.dismiss(id);
+                  setToast('Passed on');
+                }}
+              />
+              <Pressable testID="mark-close" accessibilityRole="button" accessibilityLabel="Close" onPress={() => setMarkOpen(null)} style={styles.spotClose} hitSlop={8}>
+                <Icon name="close" size={22} color={theme.ink} />
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      )}
+      <DiscoveryPrefs
+        key={scan.asking ? 'asking' : 'idle'}
+        visible={scan.asking}
+        initial={null}
+        actionLabel="Scan"
+        onClose={() => scan.setAsking(false)}
+        onDone={async (prefs) => {
+          scan.setAsking(false);
+          await savePrefs(prefs).catch(() => {});
+          scan.scan(true);
+        }}
+      />
 
       <CaptureViewer
         key={viewing?.[0]?.id ?? 'none'}
@@ -856,6 +976,8 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
   },
   spotTitle: { fontSize: 16, fontWeight: '700', color: theme.ink },
+  markSub: { fontSize: 14, color: theme.muted },
+  edgeBtnOff: { opacity: 0.5 },
   spotActions: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
   spotClose: { marginLeft: 'auto', width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   toast: { backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 14, alignSelf: 'center' },

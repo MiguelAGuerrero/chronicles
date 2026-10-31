@@ -54,6 +54,10 @@ features.push({ type: 'Feature', properties: { class: 'city', name: 'Providence'
 features.push({ type: 'Feature', properties: { class: 'cafe', subclass: 'cafe', name: 'Coffee Exchange' }, geometry: { type: 'Point', coordinates: at(0.6, -0.4) } });
 features.push({ type: 'Feature', properties: { class: 'art_gallery', subclass: 'artwork' }, geometry: { type: 'Point', coordinates: at(1.1, 0.6) } });
 features.push({ type: 'Feature', properties: { class: 'bus', subclass: 'bus_stop', name: 'Wickenden at Hope' }, geometry: { type: 'Point', coordinates: at(0.4, -0.6) } });
+// Three more out east: over 500 m from where the walk scans, but within a home scan around Fox Point (S11).
+features.push({ type: 'Feature', properties: { class: 'park', subclass: 'park', name: 'Gano Park' }, geometry: { type: 'Point', coordinates: at(5.4, 0.6) } });
+features.push({ type: 'Feature', properties: { class: 'bakery', subclass: 'bakery', name: 'Sunny Bakery' }, geometry: { type: 'Point', coordinates: at(5.2, -1.0) } });
+features.push({ type: 'Feature', properties: { class: 'museum', subclass: 'museum', name: 'Fox Point Museum' }, geometry: { type: 'Point', coordinates: at(4.6, 1.8) } });
 const style = {
   version: 8,
   // maxzoom 14 matters: at the default 18, lines are clipped to z18 tiles, which real data never is.
@@ -131,6 +135,19 @@ function check(ok, what) {
     await page.waitForTimeout(2500);
     await shot(page, '01-walk-start');
 
+    // Scan (v1 slice 2). The first scan asks preferences first (S14), then
+    // reads the 500 m around you: a café and an unnamed artwork, not the bus stop (S2, S15).
+    await page.click('[data-testid=scan]');
+    await page.waitForSelector('[data-testid=prefs-done]');
+    check((await page.locator('[data-testid^=pref-][data-testid$=-normal][aria-checked=true]').count()) === 8, 'the first scan asks preferences, all normal');
+    await page.click('[data-testid=pref-food-more]');
+    await shot(page, '01a-prefs');
+    await page.click('[data-testid=prefs-done]');
+    await page.waitForSelector('text=Only 2 spots nearby', { timeout: 30000 });
+    const walkMarks = () => page.locator('.maplibregl-map').last().locator('[data-testid=mark-pin]');
+    check((await walkMarks().count()) === 2 && (await page.locator('[aria-label="A mark to find. Open"]').count()) >= 2, 'a scan drops a "?" mark for each place nearby (S3, S7)');
+    await shot(page, '01b-marks');
+
     // Walk 300 m at 5 m/s, one fix a second (the fix filter rejects anything over 7 m/s).
     const route = [at(-0.5, -0.5), at(0.5, -0.5), at(0.5, 0.5), at(1.5, 0.5)];
     const pts = [];
@@ -167,6 +184,10 @@ function check(ok, what) {
         await page.waitForSelector('text=Hold to stop the walk');
         check(true, 'a tap on Stop explains it needs a hold');
       }
+      if (k === 13) {
+        // Within 60 m, the café's mark shows what it is (S7).
+        check((await page.locator('[aria-label="Coffee Exchange, Food & drink. Open"]').count()) === 1, 'a mark shows its name and category within 60 m');
+      }
       if (k === 15) {
         // The camera takes video too. The web caps clips at 15 s; a longer one is turned away.
         const fixtures = path.join(__dirname, 'fixtures');
@@ -180,6 +201,8 @@ function check(ok, what) {
         await page.waitForTimeout(2500);
         // Within ~30 m at walking zoom, the video shares a pin with the memo.
         check((await page.locator('[aria-label="2 captures here. Open"]').count()) === 1, 'a short video is kept, sharing a pin with the memo nearby');
+        // The video was taken 36 m from the café: it finds the mark (S8).
+        check((await walkMarks().count()) === 1 && (await page.locator('[aria-label="Coffee Exchange, Food & drink. Open"]').count()) === 0, 'a capture within 60 m finds the mark');
       }
       if (k === 25) {
         await page.click('[data-testid=cap-note]');
@@ -207,6 +230,15 @@ function check(ok, what) {
         await page.waitForSelector('text=What happened here');
         check((await page.getByText('The bakery smelled of cardamom.').count()) > 0, 'a long press on the map shows what happened there');
         await page.click('[aria-label="Close"]');
+      }
+      if (k === 28) {
+        // Go here on a mark routes to it, labelled "Mark" until it is revealed (S12).
+        await walkMarks().first().click();
+        await page.waitForSelector('[data-testid=mark-card]');
+        check(/A mark to find/.test(await page.locator('[data-testid=mark-card]').innerText()), 'an unrevealed mark’s card does not say what it is');
+        await page.click('[data-testid=mark-go]');
+        await page.waitForSelector('[data-testid=nav-bar]', { timeout: 30000 });
+        check(/· Mark$/.test(await page.locator('[data-testid=nav-left]').innerText()), 'going to a mark says "Mark" until it is revealed');
       }
       if (k === 30) {
         // A photo, then the opt-in caption.
@@ -262,6 +294,17 @@ function check(ok, what) {
         await page.reload();
         await page.waitForSelector('[data-testid=stop]');
         check(page.url().endsWith(`${BASE}/walk`), 'a reload mid-walk resumes the walk');
+      }
+      if (k === 44) {
+        const bar = await page.waitForSelector('[data-testid=nav-left]', { timeout: 30000 }).then((e) => e.innerText(), () => '');
+        check(/Public art/.test(bar), `revealed, the mark is named in the bar (${bar})`);
+      }
+      if (k === 54) {
+        // Dismiss passes on a mark (S9).
+        await page.click('[aria-label="Public art, Art. Open"]');
+        await page.click('[data-testid=mark-dismiss]');
+        await page.waitForTimeout(500);
+        check((await walkMarks().count()) === 0, 'dismiss passes on a mark');
       }
     }
     await page.waitForTimeout(2200);
@@ -438,9 +481,14 @@ function check(ok, what) {
     }));
     const poiNames = pois.map((p) => `${p.category}:${p.name}`).sort();
     check(
-      JSON.stringify(poiNames) === JSON.stringify(['art:Public art', 'food:Coffee Exchange']) && pois.every((p) => p.build === '20261028_001001_pt'),
+      poiNames.includes('art:Public art') && poiNames.includes('food:Coffee Exchange') && !poiNames.some((n) => /Wickenden at Hope/.test(n))
+        && pois.every((p) => p.build === '20261028_001001_pt'),
       `the walk's reads cache its places of interest, and no bus stop (${poiNames.join(', ')})`,
     );
+    // The card counts finds by category, and keeps the mark passed on as a low (S9, S13).
+    check(/Found 1 food & drink/.test(card) || (await page.locator('[data-testid=card-finds]').innerText()) === 'Found 1 food & drink', 'the card counts finds by category');
+    const low = await page.locator('[data-testid=card-low]').allInnerTexts();
+    check(low.length === 1 && /^Passed on: a mark near Arnold Street$/.test(low[0]), `the card keeps the dismissed mark as a low (${low.join(' | ')})`);
     await page.waitForTimeout(800);
     await shot(page, '05-card');
     // The card's zoom groups nearby captures; open the pin holding the note
@@ -572,6 +620,26 @@ function check(ok, what) {
     await page.waitForTimeout(500);
     check((await page.locator('text=/Placing your walks/').count()) === 0, 'the walk is placed again and the cover goes');
 
+    // Scan here, from the home (S1, S11): a long press just below Fox Point's star.
+    {
+      const st = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
+      const p = { x: st.x + st.width / 2, y: st.y + st.height / 2 + 50 };
+      await page.mouse.move(p.x, p.y);
+      await page.mouse.down();
+      await page.waitForTimeout(700);
+      await page.mouse.up();
+      await shot(page, '11a-home-press');
+      await page.click('[data-testid=scan-here]');
+      await page.waitForSelector('text=Only 3 spots nearby', { timeout: 30000 });
+      check((await page.locator('[data-testid=mark-pin]').count()) === 3, 'Scan here on the home leaves three marks for the next walk');
+      await shot(page, '11b-home-scan');
+      // Preferences are editable from the home (S14).
+      await page.click('[data-testid=prefs-open]');
+      await page.waitForSelector('[data-testid=prefs-done]');
+      check((await page.locator('[data-testid=pref-food-more][aria-checked=true]').count()) === 1, 'the home opens the preferences as they were left');
+      await page.click('text=Cancel');
+    }
+
     // From the home, a star's Walk here starts a walk navigating there (N11),
     // even when the phone has no position yet: it routes on the first fix (audit).
     await page.evaluate(() => {
@@ -592,6 +660,8 @@ function check(ok, what) {
     await page.waitForSelector('[data-testid=nav-bar]', { timeout: 40000 });
     check(/\/walk(\?|$)/.test(page.url()) && /Fox Point/.test(await page.locator('[data-testid=nav-bar]').innerText()), 'a star\u2019s Walk here starts a walk navigating there, once there is a fix');
     await shot(page, '12-home-go');
+    // The walk adopts the marks scanned from the home (S11).
+    check((await page.locator('.maplibregl-map').last().locator('[data-testid=mark-pin]').count()) === 3, 'the next walk adopts the home’s marks');
     const away = [...hosts].filter((h) => !h.startsWith('localhost') && h !== 'tiles.openfreemap.org');
     check(away.length === 0, `nothing is sent anywhere but the map tiles (${away.join(', ')})`);
     check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);

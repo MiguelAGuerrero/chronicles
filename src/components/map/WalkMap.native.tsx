@@ -4,6 +4,7 @@ import {
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { CapturePinView, pinLabel } from '../CapturePinView';
+import { MarkPinView, markLabel } from '../MarkPinView';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { RoadFeature } from '../../lib/streets';
 import { TILEJSON_URL } from '../../lib/tiles';
@@ -251,6 +252,19 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
               style={styles.pinHit}
             >
               <CapturePinView pin={pin} />
+            </View>
+          </Marker>
+        ))}
+        {(props.discoveries ?? []).map((pin) => (
+          <Marker
+            key={`mark:${pin.id}:${pin.revealed}`}
+            id={`mark:${pin.id}:${pin.revealed}`}
+            lngLat={pin.at}
+            anchor="bottom"
+            onPress={props.onDiscoveryPress ? () => props.onDiscoveryPress?.(pin.id) : undefined}
+          >
+            <View accessible accessibilityRole="button" accessibilityLabel={markLabel(pin)} style={styles.pinHit}>
+              <MarkPinView pin={pin} />
             </View>
           </Marker>
         ))}

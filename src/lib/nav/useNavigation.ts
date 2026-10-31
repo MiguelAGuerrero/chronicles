@@ -196,5 +196,15 @@ export function useNavigation(opts: {
     };
   }, [here, lastFixAt, paused, end, goTo]);
 
-  return { nav, finding, goTo, end, cancel };
+  /** Renames the destination in place: a mark, once revealed, is called by its name (S12). */
+  const relabel = useCallback((label: string) => {
+    const s = navRef.current;
+    const walk = latest.current.walk;
+    if (!s || s.dest.label === label || !walk) return;
+    const dest = { ...s.dest, label };
+    apply({ ...s, dest });
+    saveNav(walk.id, dest).catch(() => {});
+  }, []);
+
+  return { nav, finding, goTo, end, cancel, relabel };
 }

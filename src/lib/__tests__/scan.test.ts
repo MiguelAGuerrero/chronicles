@@ -11,6 +11,7 @@ import {
   foundBy,
   isRevealed,
   marksFromScan,
+  passedOnLine,
   pickMarks,
   scanNote,
   scanSummary,
@@ -219,4 +220,16 @@ test('scan: cached places from another build are not candidates (audit 7)', () =
   const read = [place('New', 'food', m(200, 0))];
   const cached = [{ ...place('Old', 'art', m(-200, 0)), build: 'b0' }, place('Kept', 'parks', m(0, 200))];
   assert.deepEqual(candidatesFrom(read, cached, 'b1').map((p) => p.name).sort(), ['Kept', 'New']);
+});
+
+test('scan: a dismissed mark is a low on the card, named by its nearest street (S9)', () => {
+  const seg = (name: string | null, y: number) => ({
+    id: `s${y}`, name, kind_detail: 'residential', length_m: 200, build: 'b1',
+    geometry: [[m(-100, y), m(100, y)]],
+  });
+  const at = m(0, 10);
+  assert.equal(passedOnLine(at, [seg('Wickenden Street', 0), seg('Transit Street', 100)]), 'Passed on: a mark near Wickenden Street');
+  assert.equal(passedOnLine(at, [seg(null, 0), seg('Transit Street', 100)]), 'Passed on: a mark near Transit Street', 'named streets only');
+  assert.equal(passedOnLine(at, [seg('Far Street', 900)]), 'Passed on: a mark', 'none within 150 m');
+  assert.equal(passedOnLine(at, []), 'Passed on: a mark');
 });

@@ -1,5 +1,7 @@
+import type { Mark } from './discovery/types';
+import { passedOnLine } from './discovery/scan';
 import { db } from './db';
-import { filterFixes, splitAtGaps, type Bounds, withoutPauses, smoothDwells } from './geo';
+import { boundsOf, filterFixes, splitAtGaps, type Bounds, withoutPauses, smoothDwells } from './geo';
 import { walkBounds } from './finish';
 import type { Capture, LngLat, Pause, StreetSegment, TracePoint, Walk, WalkSummary } from './types';
 
@@ -14,6 +16,10 @@ export interface ReplayData {
   walked: (StreetSegment & { first_t: number })[];
   fog: StreetSegment[];
   summary: WalkSummary | null;
+  /** The walk's scan marks (v1): found ones show with their capture, dismissed ones as lows. */
+  marks: Mark[];
+  /** One line per dismissed mark: "Passed on: a mark near Wickenden St" (S9). */
+  lows: string[];
 }
 
 /** Everything the replay draws. `summary` is null until the walk has been snapped. */
@@ -37,7 +43,15 @@ export async function loadReplay(walkId: string): Promise<ReplayData | null> {
     .filter((s): s is StreetSegment & { first_t: number } => s != null)
     .sort((a, b) => a.first_t - b.first_t);
   const summary = (await db.listSummaries()).find((s) => s.walk_id === walkId) ?? null;
+  const marks = await db.listMarks(walkId).catch(() => [] as Mark[]);
+  const lows: string[] = [];
+  for (const m of marks.filter((x) => x.state === 'dismissed')) {
+    const near = await db.getSegmentsIn(boundsOf([m.at], 150)!).catch(() => [] as StreetSegment[]);
+    lows.push(passedOnLine(m.at, near));
+  }
   return {
+    marks,
+    lows,
     walk,
     fixes,
     pauses,

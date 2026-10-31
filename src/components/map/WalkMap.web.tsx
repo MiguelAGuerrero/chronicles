@@ -5,6 +5,7 @@ import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState }
 import { createRoot, type Root } from 'react-dom/client';
 import { StyleSheet, View } from 'react-native';
 import { CapturePinView, pinLabel } from '../CapturePinView';
+import { MarkPinView, markLabel, type MarkPin } from '../MarkPinView';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { Star } from '../../lib/places';
 import type { CapturePin } from '../../lib/pins';
@@ -333,6 +334,54 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       queueMicrotask(() => m.root.unmount());
     }
     starMarkers.current.clear();
+  }, []);
+  // A scan's marks, as DOM markers like the stars; clicks look the mark up by id.
+  const markLatest = useRef(props.onDiscoveryPress);
+  useEffect(() => {
+    markLatest.current = props.onDiscoveryPress;
+  });
+  const markMarkers = useRef(new Map<string, { marker: Marker; root: Root; key: string }>());
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    const drop = (m: { marker: Marker; root: Root }) => {
+      m.marker.remove();
+      queueMicrotask(() => m.root.unmount());
+    };
+    const live = new Set<string>();
+    for (const pin of props.discoveries ?? []) {
+      live.add(pin.id);
+      const key = `${pin.at.join(',')}|${pin.revealed}|${pin.name}|${pin.icon}`;
+      const existing = markMarkers.current.get(pin.id);
+      if (existing?.key === key) continue;
+      if (existing) drop(existing);
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.dataset.testid = 'mark-pin';
+      el.setAttribute('aria-label', markLabel(pin));
+      el.style.cssText = 'background:none;border:0;padding:4px 6px 0;cursor:pointer';
+      const id = pin.id;
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        markLatest.current?.(id);
+      });
+      const root = createRoot(el);
+      root.render(<MarkPinView pin={pin as MarkPin} />);
+      const marker = new Marker({ element: el, anchor: 'bottom', offset: [0, 6] }).setLngLat(pin.at).addTo(map);
+      markMarkers.current.set(pin.id, { marker, root, key });
+    }
+    for (const [id, m] of markMarkers.current) {
+      if (live.has(id)) continue;
+      drop(m);
+      markMarkers.current.delete(id);
+    }
+  }, [ready, props.discoveries]);
+  useEffect(() => () => {
+    for (const m of markMarkers.current.values()) {
+      m.marker.remove();
+      queueMicrotask(() => m.root.unmount());
+    }
+    markMarkers.current.clear();
   }, []);
   useEffect(() => {
     if (ready) mapRef.current?.setPaintProperty('veil', 'fill-opacity', props.veil ? 0.45 : 0);

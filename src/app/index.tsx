@@ -1,14 +1,20 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Linking, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Linking, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { DiscoveryPrefs } from '../components/DiscoveryPrefs';
 import { HomeSheet, SHEET_PEEK, type SheetMode } from '../components/HomeSheet';
+import type { MarkPin } from '../components/MarkPinView';
 import { WalkMap } from '../components/map/WalkMap';
 import type { WalkMapHandle } from '../components/map/types';
 import { Icon } from '../components/icons';
 import { Banner, Button, theme } from '../components/ui';
 import type { Area, WalkArea } from '../lib/areas/types';
 import { db } from '../lib/db';
+import { categoryOf } from '../lib/discovery/categories';
+import { loadPrefs, runScan, savePrefs } from '../lib/discovery/runScan';
+import { adoptable, scanNote, type Prefs } from '../lib/discovery/scan';
+import type { Mark } from '../lib/discovery/types';
 import { placeBacklog } from '../lib/backlog';
 import { pausedMs, type Bounds } from '../lib/geo';
 import { levelForZoom, placesIndex, starsFor, unplacedWalks, type Star } from '../lib/places';
@@ -54,6 +60,18 @@ export default function Home() {
   // The map refits only when the places walked change (a new walk, a pass),
   // never just for coming back: a replay keeps the view you left (H5).
   const fittedTo = useRef('');
+  // Scan here (S1, S11): marks found from the home wait for the next walk.
+  const [homeMarks, setHomeMarks] = useState<Mark[]>([]);
+  const [scanning, setScanning] = useState(false);
+  const scanCancelled = useRef(false);
+  const [prefsFor, setPrefsFor] = useState<{ initial: Prefs | null; then: LngLat | null } | null>(null);
+  const [markOpen, setMarkOpen] = useState<string | null>(null);
+  const [scanNotice, setScanNotice] = useState<{ message: string; tone?: 'info' | 'error' } | null>(null);
+  useEffect(() => {
+    if (!scanNotice) return;
+    const t = setTimeout(() => setScanNotice(null), 6000);
+    return () => clearTimeout(t);
+  }, [scanNotice]);
   const skip = useRef(false);
 
   useFocusEffect(
@@ -65,6 +83,9 @@ export default function Home() {
         const openWalk = walks.find((w) => w.open) ?? null;
         const openPauses = openWalk ? await db.getPauses(openWalk.id) : [];
         if (!live) return null;
+        const marks = await db.listMarks(null).catch(() => [] as Mark[]);
+        if (!live) return null;
+        setHomeMarks(marks);
         setData({ walks, summaries, areas, rows });
         setOpen(openWalk);
         setPauses(openPauses);
@@ -145,6 +166,38 @@ export default function Home() {
     }
   };
 
+  // Only marks still waiting: open, and under 14 days old (S11).
+  const markPins = useMemo<MarkPin[]>(() => {
+    const live = new Set(adoptable(homeMarks, now));
+    return homeMarks
+      .filter((m) => live.has(m.id))
+      .map((m) => ({ id: m.id, at: m.at, revealed: false, icon: categoryOf(m.category).icon as MarkPin['icon'], name: m.name, category: categoryOf(m.category).label }));
+  }, [homeMarks, now]);
+  const openMark = homeMarks.find((m) => m.id === markOpen) ?? null;
+
+  const scanHere = async (at: LngLat, asked = false) => {
+    const map = mapRef.current;
+    if (!map || scanning) return;
+    if (!asked && !(await loadPrefs().catch(() => null))) {
+      setPrefsFor({ initial: null, then: at });
+      return;
+    }
+    scanCancelled.current = false;
+    setScanning(true);
+    try {
+      const r = await runScan({ center: at, walkId: null, map, shouldStop: () => scanCancelled.current });
+      if (r.outcome === 'cancelled') return;
+      const message = r.outcome === 'full' ? `${r.marks.length} marks to find on your next walk` : scanNote(r.outcome, r.marks.length)!;
+      setScanNotice({ message, tone: r.outcome === 'failed' ? 'error' : 'info' });
+      AccessibilityInfo.announceForAccessibility(message);
+      setHomeMarks(await db.listMarks(null).catch(() => homeMarks));
+    } catch (e) {
+      setScanNotice({ message: `The scan didn’t finish: ${e instanceof Error ? e.message : e}`, tone: 'error' });
+    } finally {
+      setScanning(false);
+    }
+  };
+
   const empty = data != null && index.walkCount === 0 && !open;
   const paused = pauses.some((p) => p.ended_at == null);
   const elapsed = open ? formatDuration(now - open.started_at - pausedMs(pauses, open.started_at, now)) : '';
@@ -201,6 +254,20 @@ export default function Home() {
             {error.message}
           </Banner>
         )}
+        {scanning && (
+          <View style={styles.scanning} accessibilityLiveRegion="polite">
+            <ActivityIndicator color={theme.ink} />
+            <Text style={styles.scanningText}>Scanning…</Text>
+            <Pressable testID="scan-cancel" accessibilityRole="button" accessibilityLabel="Cancel the scan" onPress={() => (scanCancelled.current = true)} style={styles.scanCancel} hitSlop={8}>
+              <Text style={styles.scanCancelText}>Cancel</Text>
+            </Pressable>
+          </View>
+        )}
+        {scanNotice && (
+          <Banner tone={scanNotice.tone} onDismiss={() => setScanNotice(null)}>
+            {scanNotice.message}
+          </Banner>
+        )}
         {empty && !recorder.capabilities.background && (
           <Banner>On the web, a walk is traced while this page is open and on screen.</Banner>
         )}
@@ -218,12 +285,69 @@ export default function Home() {
                 start({ at, label: 'Your spot', kind: 'point' });
               }}
             />
+            <Button
+              testID="scan-here"
+              variant="secondary"
+              label="Scan here"
+              disabled={scanning}
+              onPress={() => {
+                const at = spot;
+                setSpot(null);
+                scanHere(at);
+              }}
+            />
             <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={() => setSpot(null)} style={styles.spotClose} hitSlop={8}>
               <Icon name="close" size={22} color={theme.ink} />
             </Pressable>
           </View>
         </View>
       )}
+
+      {openMark && !spot && !open && (
+        <View style={[styles.startRow, styles.over, { bottom: sheetH + 16 }]} pointerEvents="box-none">
+          <View style={styles.spot} testID="home-mark">
+            <Text style={styles.markText}>A mark to find</Text>
+            <Button
+              testID="home-mark-go"
+              label="Walk here"
+              onPress={() => {
+                const m = openMark;
+                setMarkOpen(null);
+                start({ at: m.at, label: 'Mark', kind: 'mark', markId: m.id });
+              }}
+            />
+            <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={() => setMarkOpen(null)} style={styles.spotClose} hitSlop={8}>
+              <Icon name="close" size={22} color={theme.ink} />
+            </Pressable>
+          </View>
+        </View>
+      )}
+
+      {/* What scans look for, editable from the home (S14). */}
+      {!placing && (
+        <Pressable
+          testID="prefs-open"
+          accessibilityRole="button"
+          accessibilityLabel="What scans look for"
+          onPress={async () => setPrefsFor({ initial: await loadPrefs().catch(() => null), then: null })}
+          style={({ pressed }) => [styles.prefsBtn, styles.over, { top: insets.top + 8 }, pressed && { opacity: 0.7 }]}
+        >
+          <Icon name="options-outline" size={22} color={theme.ink} />
+        </Pressable>
+      )}
+      <DiscoveryPrefs
+        key={prefsFor ? JSON.stringify(prefsFor.initial) : 'closed'}
+        visible={prefsFor != null}
+        initial={prefsFor?.initial ?? null}
+        actionLabel={prefsFor?.then ? 'Scan' : 'Save'}
+        onClose={() => setPrefsFor(null)}
+        onDone={async (prefs) => {
+          const then = prefsFor?.then ?? null;
+          setPrefsFor(null);
+          await savePrefs(prefs).catch(() => {});
+          if (then) scanHere(then, true);
+        }}
+      />
 
       {(empty || placing) && (
         <View style={[styles.center, styles.over]} pointerEvents="box-none" accessibilityLiveRegion="polite">
@@ -256,9 +380,18 @@ export default function Home() {
           fog={NONE}
           captures={NONE}
           stars={stars}
+          discoveries={open ? NONE : markPins}
+          onDiscoveryPress={(id) => {
+            setSpot(null);
+            setMarkOpen(id);
+          }}
           selectedStar={selected?.id ?? null}
           // Only zoomed in to streets: a press on a zoomed-out map lands kilometres from anywhere walkable.
-          onLongPress={(at) => !open && placing == null && (view?.zoom ?? 0) >= 12 && setSpot(at)}
+          onLongPress={(at) => {
+            if (open || placing != null || scanning || (view?.zoom ?? 0) < 12) return;
+            setMarkOpen(null);
+            setSpot(at);
+          }}
           onStarPress={pressStar}
           onViewChange={setView}
           fitBounds={fit.bounds}
@@ -266,7 +399,7 @@ export default function Home() {
           fitPadding={{ top: insets.top + 60, right: 48, bottom: sheetH + 96, left: 48 }}
           initialCenter={WORLD.center}
           initialZoom={WORLD.zoom}
-          covered={placing != null}
+          covered={placing != null || scanning}
           attributionTop
         />
       </View>
@@ -278,7 +411,8 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
   under: { zIndex: 0 },
   over: { zIndex: 1 },
-  top: { position: 'absolute', left: 12, right: 12, gap: 8, maxWidth: 640, alignSelf: 'center' },
+  // Clear of the preferences button at the top left.
+  top: { position: 'absolute', left: 64, right: 12, gap: 8, maxWidth: 640, alignSelf: 'center' },
   center: { position: 'absolute', left: 24, right: 24, top: '38%', alignItems: 'center', gap: 10 },
   centerText: {
     backgroundColor: 'rgba(255,255,255,0.94)', color: theme.ink, fontSize: 16, fontWeight: '600',
@@ -292,6 +426,18 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
   },
   spotClose: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  markText: { fontSize: 15, fontWeight: '600', color: theme.ink, paddingLeft: 10 },
+  prefsBtn: {
+    position: 'absolute', left: 12, width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.edge,
+  },
+  scanning: {
+    flexDirection: 'row', alignItems: 'center', gap: 10, alignSelf: 'center', backgroundColor: theme.surface, borderRadius: 999,
+    paddingVertical: 6, paddingLeft: 14, paddingRight: 6,
+  },
+  scanningText: { fontSize: 15, fontWeight: '600', color: theme.ink },
+  scanCancel: { minHeight: 36, paddingHorizontal: 12, justifyContent: 'center' },
+  scanCancelText: { fontSize: 15, fontWeight: '600', color: theme.accent },
   startBtn: { minWidth: 220, borderRadius: 999, paddingHorizontal: 28 },
   recordingRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: theme.accentInk },

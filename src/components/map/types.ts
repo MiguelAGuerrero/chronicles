@@ -1,3 +1,4 @@
+import type { MarkPin } from '../MarkPinView';
 import type { StyleProp, ViewStyle } from 'react-native';
 import type { Bounds } from '../../lib/geo';
 import type { RoadFeature } from '../../lib/streets';
@@ -64,6 +65,9 @@ export interface WalkMapProps {
   attributionTop?: boolean;
   /** A route being navigated, drawn bold under the trace (N6). */
   route?: LngLat[] | null;
+  /** A scan's marks, as "?" pins until revealed (v1 discovery). */
+  discoveries?: MarkPin[];
+  onDiscoveryPress?: (id: string) => void;
   /** Spots to mark: where a route goes, or where a long press landed. */
   marks?: LngLat[];
   /** The way the walker is going (degrees from north), drawn as a soft cone; null hides it. */

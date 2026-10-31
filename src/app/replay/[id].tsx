@@ -1,3 +1,6 @@
+import { categoryOf } from '../../lib/discovery/categories';
+import { scanSummary } from '../../lib/discovery/scan';
+import type { Mark } from '../../lib/discovery/types';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import {
@@ -284,6 +287,7 @@ export default function Replay() {
 
   const s = data.summary;
   const head = headline(s, data);
+  const finds = scanSummary(data.marks);
 
   const save = async () => {
     if (saving) return;
@@ -353,7 +357,10 @@ export default function Replay() {
             autoPlay
             topInset={insets.top}
             onVoiceFinished={auto ? () => advance(true) : undefined}
-            footer={stopGroup.captures.length > 1 ? `${stop!.item + 1} of ${stopGroup.captures.length}` : undefined}
+            footer={[
+              foundLine(data.marks, stopCapture.id),
+              stopGroup.captures.length > 1 ? `${stop!.item + 1} of ${stopGroup.captures.length}` : null,
+            ].filter(Boolean).join(' · ') || undefined}
             action={{ label: 'Continue', hint: 'Shows the next capture, or carries on along the walk', onPress: () => advance(), testID: 'moment' }}
           />
         </View>
@@ -413,6 +420,14 @@ export default function Replay() {
                   {s && s.streets_walked > 0 ? ` · ${s.streets_walked} ${s.streets_walked === 1 ? 'street' : 'streets'} walked` : ''}
                 </Text>
                 {s && formatCaptures(s) ? <Text style={styles.cardMuted}>{formatCaptures(s)} · tap a pin to open</Text> : null}
+                {finds ? (
+                  <Text testID="card-finds" style={styles.cardMuted}>
+                    {finds.found ? `Found ${finds.finds}` : 'Nothing found'}
+                  </Text>
+                ) : null}
+                {data.lows.map((line, i) => (
+                  <Text key={i} testID="card-low" style={styles.cardMuted}>{line}</Text>
+                ))}
                 {data.walk.epilogue ? <Text style={styles.epilogue}>“{data.walk.epilogue}”</Text> : null}
                 <View style={styles.row}>
                   <Button
@@ -521,3 +536,9 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1.5, borderColor: theme.edge, borderRadius: 10, padding: 12, fontSize: 16, color: theme.ink },
   error: { color: theme.danger, fontSize: 14 },
 });
+
+/** At a capture's stop: the mark it found, with its category (S13). */
+function foundLine(marks: Mark[], captureId: string): string | null {
+  const m = marks.find((x) => x.state === 'found' && x.capture_id === captureId);
+  return m ? `Found: ${m.name} · ${categoryOf(m.category).label}` : null;
+}
