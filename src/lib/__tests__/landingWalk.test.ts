@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { distanceM } from '../geo';
-import { LANDING_WALK, deadZoneNudge, loopWaypoint, planLoop, stripAt } from '../landing/walk';
+import { LANDING_WALK, deadZoneDue, deadZoneNudge, loopWaypoint, nextLeg, planLoop, stripAt } from '../landing/walk';
 import type { LngLat } from '../types';
 
 // v1.5 slice 3 (on the walk), written from criteria L13-L16 before the code.
@@ -19,22 +19,23 @@ test('walk: the loop goes from the landing through each pocket, nearest first, a
     { name: 'Middle', centre: m(800, 200) },
   ];
   const legs = planLoop(O, pockets);
-  assert.deepEqual(legs.map((l) => l.label), ['Near', 'Middle', 'Far', 'Start here']);
+  assert.deepEqual(legs.map((l) => l.label), ['Near', 'Middle', 'Far', 'Back to the start']);
   assert.deepEqual(legs[legs.length - 1].at, O);
 });
 
 test('walk: the loop keeps within the 10 km limit; the rest are left (L13)', () => {
-  const pockets = [{ name: 'A', centre: m(2000, 0) }, { name: 'B', centre: m(4000, 0) }, { name: 'C', centre: m(6000, 0) }];
+  const pockets = [{ name: 'A', centre: m(1500, 0) }, { name: 'B', centre: m(3000, 0) }, { name: 'C', centre: m(4500, 0) }];
   const legs = planLoop(O, pockets);
-  // Out and back, straight-line: A and B (8 km round trip); C would make 12 km.
-  assert.deepEqual(legs.map((l) => l.label), ['A', 'B', 'Start here']);
+  // Out and back, straight-line: A and B make 6 km; with C, 9 km, which walked on streets
+  // (about 1.3 times the straight line) would pass 10 km (audit).
+  assert.deepEqual(legs.map((l) => l.label), ['A', 'B', 'Back to the start']);
   let total = 0;
   let at = O;
   for (const l of legs) {
     total += distanceM(at, l.at);
     at = l.at;
   }
-  assert.ok(total <= LANDING_WALK.loopMaxM);
+  assert.ok(total * LANDING_WALK.detour <= LANDING_WALK.loopMaxM);
 });
 
 test('walk: on a strip within 30 m, the chip names it (L14)', () => {
@@ -61,6 +62,34 @@ test('walk: the loop is one waypoint: the landing first (scanned on arrival), th
   assert.equal(w.label, 'Thayer Street');
   assert.deepEqual(w.leg, { n: 1, of: 4 });
   assert.equal(w.scanOnArrive, true);
-  assert.deepEqual(w.legs!.map((l) => `${l.leg!.n} ${l.label}`), ['2 Near', '3 Far', '4 Start here']);
+  assert.deepEqual(w.legs!.map((l) => `${l.leg!.n} ${l.label}`), ['2 Near', '3 Far', '4 Back to the start']);
   assert.ok(w.legs!.every((l) => !l.scanOnArrive));
+});
+
+// Audit regressions (v1.5 slice 3).
+
+test('walk: the strip chip holds until 45 m off, so jitter at 30 m doesn’t blink it (audit 11)', () => {
+  const strips = [{ name: 'Thayer Street', lines: [[m(0, -100), m(0, 200)]] }];
+  assert.equal(stripAt(m(40, 50), strips, 'Thayer Street'), 'Thayer Street');
+  assert.equal(stripAt(m(50, 50), strips, 'Thayer Street'), null);
+  assert.equal(stripAt(m(40, 50), strips, null), null);
+});
+
+test('walk: the next leg is taken from the one reached, skipped ones included (audit 1, 3)', () => {
+  const w = loopWaypoint(O, 'Thayer Street', [{ name: 'Near', centre: m(300, 0) }, { name: 'Far', centre: m(900, 0) }]);
+  const second = nextLeg(w)!;
+  assert.equal(second.label, 'Near');
+  assert.equal(second.legs!.length, 2);
+  const third = nextLeg(second)!;
+  assert.equal(third.label, 'Far');
+  assert.equal(nextLeg(third)!.label, 'Back to the start');
+  assert.equal(nextLeg(nextLeg(third)!), null);
+  assert.equal(nextLeg({ at: O, label: 'x', kind: 'point' }), null);
+});
+
+test('walk: the dead-zone check is free until it could fire (audit 6, 8)', () => {
+  const pockets = [{ name: 'Thayer Street', centre: m(0, 600), strip: true }];
+  assert.equal(deadZoneDue({ here: m(0, 0), pockets, farSinceMs: 5 * 60_000 }), false, 'not yet 10 min');
+  assert.equal(deadZoneDue({ here: m(0, 0), pockets: [{ name: 'Far', centre: m(0, 5000) }], farSinceMs: 11 * 60_000 }), false, 'none within reach');
+  assert.equal(deadZoneDue({ here: m(0, 0), pockets, farSinceMs: 11 * 60_000 }), true);
 });

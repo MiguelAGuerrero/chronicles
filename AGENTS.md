@@ -453,6 +453,25 @@ Read this before changing recording, streets, the replay or storage.
   builds and drawn dimmed when stale (`LANDING_CODE`, bumped by hand). An area
   centred within 1 km of a remembered one replaces it. Markers are rebuilt only
   when areas change, never per zoom. A strip's name keeps 80 m from the pin.
+- **On the walk** (slice 3, `landing/walk.ts` pure):
+  - **The loop** is one waypoint whose `legs` carry the rest (`loopWaypoint`,
+    `nextLeg`). Pockets are taken nearest first while the loop's straight
+    lines × 1.3 stay within 10 km.
+  - **Arrival:** the next leg is saved to meta `nav` before it is routed, and
+    routed by the fix effect once nothing is busy (`pending`), after
+    `afterArrive` (the landing's scan) settles. So a reload between legs
+    resumes, and a scan never fights the route read.
+  - **Skips:** a leg too far or unroutable is skipped with a notice.
+  - **Chip:** "On <strip>" goes on at 30 m and off past 45 m (`stripAt` with
+    the current strip).
+  - **Dead-zone pill:** nothing is read from storage until it could fire
+    (`deadZoneDue`). It doesn't count paused time, shows only when no card,
+    hint, route or scan is up, and is spent only once seen.
+  - Remembered areas of the current rules are read again on returning to the
+    front.
+- **The trace hides while navigating** (the owner's call, Nov 2: an indoor
+  jumble buried the route back). It is still recorded and comes back when
+  navigation ends.
 - **The e2e serves its fake world as real vector tiles** (`scripts/mvt-encode.mjs`)
   to the app's own decoder; the base map still uses the GeoJSON style.
 - **Native** (unverified on a device): layer order (no `beforeId` yet), markers,

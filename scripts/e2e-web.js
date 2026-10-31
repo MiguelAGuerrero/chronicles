@@ -385,6 +385,10 @@ function check(ok, what) {
     await page.waitForSelector('[data-testid=nav-bar]');
     const left0 = await navLeft();
     check(left0 > 250 && left0 < 350 && /Start/.test(await page.locator('[data-testid=nav-bar]').innerText()), `walk me back routes to the start (${left0} m)`);
+    // The trace steps aside while navigating, so the route reads (the owner's call, Nov 2).
+    const traceOpacity = () => page.locator('[data-trace-opacity]').last().getAttribute('data-trace-opacity');
+    await page.waitForTimeout(500);
+    check((await traceOpacity()) === '0', 'the trace hides while navigating');
     await shot(page, '03d-walk-back');
     const back = [...pts].reverse();
     for (let k = 0; k < 24; k++) {
@@ -407,6 +411,7 @@ function check(ok, what) {
       sawArrival = (await page.locator('text=/You.re here: Start/').count()) > 0;
     }
     check(sawArrival && (await page.locator('[data-testid=nav-bar]').count()) === 0, 'arriving at the start says so, and navigation ends (N9)');
+    check((await traceOpacity()) === '1', 'the trace comes back once navigation ends');
     // A long press on the map, then Go here, routes over the streets (N3, N11); End clears it (N10).
     {
       const box = await page.locator('canvas.maplibregl-canvas').last().boundingBox();

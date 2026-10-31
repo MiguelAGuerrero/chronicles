@@ -12,6 +12,7 @@ import { announceStep, navStep, routeTo, startNav, tooFar, type NavState } from 
 import { clearNav, loadNav, saveNav } from './store';
 import { streetRouteSource } from './streetRoute';
 import { traceRouteSource } from './traceRoute';
+import { nextLeg } from '../landing/walk';
 import type { RouteSource, Waypoint } from './types';
 
 /** Streets are read this far around both ends of a route. */
@@ -39,6 +40,8 @@ export function useNavigation(opts: {
   onArrive: (dest: Waypoint) => void;
   onError: (message: string) => void;
   onNotice: (message: string) => void;
+  /** Awaited after an arrival, before a loop's next leg is routed (a scan at the landing, L16). */
+  afterArrive?: (dest: Waypoint) => Promise<void>;
 }) {
   const [nav, setNav] = useState<NavState | null>(null);
   const [finding, setFinding] = useState(false);
@@ -95,7 +98,15 @@ export function useNavigation(opts: {
     if (!walk || busy.current) return;
     busy.current = true;
     cancelled.current = false;
-    const fail = (message: string) => {
+    const fail = async (message: string) => {
+      // A loop skips a leg it can't reach (too far, or no route) and goes on (L13, audit).
+      const next = nextLeg(dest);
+      if (next) {
+        latest.current.onNotice(`No route to ${dest.label}: on to ${next.label}`);
+        await saveNav(walk.id, next);
+        pending.current = next;
+        return;
+      }
       // A destination that can't be reached is forgotten, so a reload doesn't try it again.
       clearNav().catch(() => {});
       latest.current.onError(message);
@@ -112,7 +123,7 @@ export function useNavigation(opts: {
         return;
       }
       pending.current = null;
-      if (tooFar(from, dest.at)) return fail('Too far to walk from here');
+      if (tooFar(from, dest.at)) return await fail('Too far to walk from here');
       setFinding(true);
       // Back along this walk, for its start or a capture (walk me back), against the streets
       // already cached around you; the shorter wins, so it never retraces a detour (owner, Nov 1).
@@ -127,18 +138,7 @@ export function useNavigation(opts: {
         if (cancelled.current) return;
         found = routeTo(list, from, dest.at, 'shortest');
       }
-      if (!found.route) {
-        // A loop skips a leg it can't route, and says so (L13).
-        const [next, ...rest] = dest.legs ?? [];
-        if (next) {
-          latest.current.onNotice(`No route to ${dest.label}: on to ${next.label}`);
-          busy.current = false;
-          setFinding(false);
-          await goToRef.current?.({ ...next, legs: rest });
-          return;
-        }
-        return fail(found.reason ?? 'No walking route found nearby');
-      }
+      if (!found.route) return await fail(found.reason ?? 'No walking route found nearby');
       // Stopped while the route was being found: nothing to navigate.
       if (!(await db.getWalk(walk.id))?.open) return;
       sources.current = list;
@@ -151,11 +151,6 @@ export function useNavigation(opts: {
       setFinding(false);
     }
   }, []);
-
-  const goToRef = useRef(goTo);
-  useEffect(() => {
-    goToRef.current = goTo;
-  }, [goTo]);
 
   /** Stops finding a route: the street read ends after the view at hand. */
   const cancel = useCallback(() => {
@@ -195,10 +190,23 @@ export function useNavigation(opts: {
       const step = navStep(s, here, now);
       if (step.state.arrived) {
         latest.current.onArrive(s.dest);
-        end();
-        // A loop goes on to its next leg (L13).
-        const [next, ...rest] = s.dest.legs ?? [];
-        if (next) goTo({ ...next, legs: rest }).catch(() => {});
+        const next = nextLeg(s.dest);
+        if (!next) {
+          end();
+          latest.current.afterArrive?.(s.dest).catch(() => {});
+          return;
+        }
+        // A loop goes on to its next leg (L13). It is saved first, so a reload in between resumes it,
+        // and routed only once whatever the arrival does (a scan at the landing) has settled and no
+        // other read holds the map: the fix effect takes a pending leg when nothing is busy (audit).
+        apply(null);
+        sources.current = [];
+        const walkId = latest.current.walk?.id;
+        (async () => {
+          if (walkId) await saveNav(walkId, next).catch(() => {});
+          await latest.current.afterArrive?.(s.dest).catch(() => {});
+          pending.current = next;
+        })();
         return;
       }
       let next = step.state;

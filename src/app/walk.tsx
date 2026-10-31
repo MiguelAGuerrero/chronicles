@@ -16,8 +16,8 @@ import { AMBIENT_KEY, MARK_OPEN_KEY, onAmbientHint } from '../lib/discovery/ambi
 import { checkRecalls, onRecallFired, QUIET_KEY, takeRecallOpen } from '../lib/discovery/recallCheck';
 import { categoryOf } from '../lib/discovery/categories';
 import { loadAutoScan, loadPrefs, savePrefs } from '../lib/discovery/runScan';
-import { deadZoneNudge, inDeadZone, stripAt } from '../lib/landing/walk';
-import type { LandingRow } from '../lib/landing/view';
+import { deadZoneDue, deadZoneNudge, inDeadZone, stripAt } from '../lib/landing/walk';
+import { LANDING_VERSION, type LandingRow } from '../lib/landing/view';
 import { placesFromTilePois } from '../lib/discovery/tilePois';
 import { useScan } from '../lib/discovery/useScan';
 import { db } from '../lib/db';
@@ -305,8 +305,6 @@ export default function WalkScreen() {
     map: () => mapRef.current,
     onArrive: (dest) => {
       successFeedback();
-      // The landing: a scan there, once, when scanning has its preferences (L16).
-      if (dest.scanOnArrive) arrivedScan.current = true;
       // Said once: the line on screen is announced by the screen reader here, not by a live region.
       setArrived(`You’re here: ${dest.label}`);
       AccessibilityInfo.announceForAccessibility(`You're here: ${dest.label}`);
@@ -314,6 +312,12 @@ export default function WalkScreen() {
     // Errors stay up long enough to read at a glance, and can be dismissed.
     onError: (m) => setNotice({ message: m, tone: 'error' }),
     onNotice: (m) => setArrived(m),
+    // The landing: a scan there, once, when scanning has its preferences (L16); a loop's next
+    // leg waits for it, so the two never fight over the map (audit).
+    afterArrive: async (dest) => {
+      if (!dest.scanOnArrive || !(await loadPrefs().catch(() => null))) return;
+      await scanRef.current?.(true);
+    },
   });
   // Scan (v1 slice 2): marks to find within 500 m.
   const fixes = useMemo(() => live.runs.flat(), [live.runs]);
@@ -476,62 +480,70 @@ export default function WalkScreen() {
         autoBusy.current = false;
       });
   }, [walk, live.here, navFinding, scanNow]);
-  // Hotspots on the walk (v1.5 slice 3): the remembered areas' strips and pockets.
+  // Hotspots on the walk (v1.5 slice 3): the remembered areas' strips and pockets, current rules
+  // only, read again on returning to the front (an area looked at meanwhile, audit).
   const [landings, setLandings] = useState<LandingRow[]>([]);
   useEffect(() => {
     let alive = true;
-    db.listLandings().then((r) => alive && setLandings(r), () => {});
+    db.listLandings().then((r) => alive && setLandings(r.filter((x) => x.rules === LANDING_VERSION)), () => {});
     return () => {
       alive = false;
     };
-  }, []);
+  }, [resumed]);
   const hotStrips = useMemo(() => landings.flatMap((r) => r.analysis.strips), [landings]);
   const hotPockets = useMemo(
     () => landings.flatMap((r) => r.analysis.pockets.map((p) => ({ name: p.name, centre: p.centre, strip: p.strips.length > 0 }))),
     [landings],
   );
-  const onStrip = live.here && hotStrips.length ? stripAt(live.here, hotStrips) : null;
-  // A dead zone, 10 min from every pocket: once a walk, a pill toward the nearest (L15).
+  // On a strip: on within 30 m, off past 45 m, so jitter at the edge doesn't blink it (audit).
+  const [onStrip, setOnStrip] = useState<string | null>(null);
+  useEffect(() => {
+    const at = live.here;
+    const t = setTimeout(() => setOnStrip((cur) => (at && hotStrips.length ? stripAt(at, hotStrips, cur) : null)), 0);
+    return () => clearTimeout(t);
+  }, [live.here, hotStrips]);
+  // A dead zone, 10 min (walking, not paused) from every pocket: once a walk, a pill toward the
+  // nearest (L15). Nothing is read from storage until it could fire (audit).
   const farSince = useRef<number | null>(null);
+  const nudgedRef = useRef<boolean | null>(null);
   const [nudge, setNudge] = useState<{ text: string; at: LngLat; name: string } | null>(null);
+  const pausedNow = pauses.some((p) => p.ended_at == null);
   useEffect(() => {
     const at = live.here;
     if (!walk || !at || !hotPockets.length) return;
     const now = Date.now();
-    if (!inDeadZone(at, hotPockets)) {
+    if (pausedNow || !inDeadZone(at, hotPockets)) {
       farSince.current = null;
       return;
     }
     farSince.current ??= now;
     const far = now - farSince.current;
+    if (nudgedRef.current || !deadZoneDue({ here: at, pockets: hotPockets, farSinceMs: far })) return;
     let alive = true;
-    Promise.all([db.getMeta(QUIET_KEY), db.getMeta(NUDGED_KEY)])
-      .then(([q, n]) => {
-        if (!alive) return;
-        const got = deadZoneNudge({ here: at, pockets: hotPockets, farSinceMs: far, quiet: q === walk.id, nudged: n === walk.id });
-        if (!got) return;
-        db.setMeta(NUDGED_KEY, walk.id).catch(() => {});
-        setNudge(got);
-        AccessibilityInfo.announceForAccessibility(got.text);
-      })
-      .catch(() => {});
+    (async () => {
+      nudgedRef.current ??= (await db.getMeta(NUDGED_KEY)) === walk.id;
+      const got = deadZoneNudge({ here: at, pockets: hotPockets, farSinceMs: far, quiet, nudged: nudgedRef.current });
+      if (alive && got) setNudge(got);
+    })().catch(() => {});
     return () => {
       alive = false;
     };
-  }, [walk, live.here, hotPockets]);
+  }, [walk, live.here, hotPockets, quiet, pausedNow]);
+  // Spent only once it has been seen: not under a card, a hint, a route or a scan (audit).
+  const nudgeShown = !!nudge && !hint && !spot && !openMark && !options && !navigation.nav && !navigation.finding && !scan.scanning;
   useEffect(() => {
-    if (!nudge) return;
+    if (!nudgeShown || !walk) return;
+    if (!nudgedRef.current) {
+      nudgedRef.current = true;
+      db.setMeta(NUDGED_KEY, walk.id).catch(() => {});
+      AccessibilityInfo.announceForAccessibility(nudge!.text);
+    }
     const t = setTimeout(() => setNudge(null), 20_000);
     return () => clearTimeout(t);
-  }, [nudge]);
-  // The scan on reaching the landing (L16), once the arrival has been shown.
-  const arrivedScan = useRef(false);
+  }, [nudgeShown, walk, nudge]);
+  const scanRef = useRef(scan.scan);
   useEffect(() => {
-    if (!arrivedScan.current || navigation.nav) return;
-    arrivedScan.current = false;
-    (async () => {
-      if (await loadPrefs().catch(() => null)) scan.scan(true);
-    })();
+    scanRef.current = scan.scan;
   });
   const walkStart: LngLat | null = live.runs[0]?.[0] ?? null;
   // Once, after the first 100 m of a first walk: how to go somewhere.
@@ -720,6 +732,8 @@ export default function WalkScreen() {
         // A long press, so a stray tap while walking does nothing.
         onLongPress={pressMap}
         route={routeLine}
+        // While navigating the trace steps aside, so the route reads; it is still recorded (the owner's call, Nov 2).
+        traceOpacity={navigation.nav ? 0 : 1}
         covered={navigation.finding || scan.scanning}
         veil={showUnwalked}
         fogEmphasis={showUnwalked}
@@ -737,7 +751,7 @@ export default function WalkScreen() {
               testID="nav-left"
               style={styles.navText}
               numberOfLines={1}
-              accessibilityLabel={`${formatDistance(navigation.nav.leftM)} left to ${navigation.nav.dest.label}`}
+              accessibilityLabel={`${navigation.nav.dest.leg ? `Leg ${navigation.nav.dest.leg.n} of ${navigation.nav.dest.leg.of}: ` : ''}${formatDistance(navigation.nav.leftM)} left to ${navigation.nav.dest.label}`}
             >
               {formatDistance(navigation.nav.leftM)} · {navigation.nav.dest.leg ? `${navigation.nav.dest.leg.n} of ${navigation.nav.dest.leg.of} · ` : ''}{navigation.nav.dest.label}
             </Text>
@@ -788,9 +802,9 @@ export default function WalkScreen() {
             <Text style={styles.chipText}>{problem.label}</Text>
           </View>
         )}
-        {nudge && !hint && !spot && !openMark && !options && (
+        {nudgeShown && nudge && (
           <View testID="dead-zone" style={styles.undo}>
-            <Text style={styles.undoText}>{nudge.text}</Text>
+            <Text style={[styles.undoText, { flexShrink: 1 }]} numberOfLines={2}>{nudge.text}</Text>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`Go to ${nudge.name}`}
