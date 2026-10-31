@@ -133,6 +133,8 @@ Read this before changing recording, streets, the replay or storage.
   not kept" toast. A memo that fails to save offers Retry. Leaving the screen
   mid-memo saves it.
 - A quick tap on Stop shows "Hold to stop the walk".
+- Walk options (Quiet walk; on a phone, hints) sit in the bottom strip, left of Pause
+  (the owner's call, v1): walk-level settings stay with the walk's controls.
 - Pills (the caption offer, voice Undo, Retry) sit above the capture row, so the
   row never moves under the thumb. The small edge buttons (unwalked streets, and
   Recenter while not following) stack at the right edge above the row and one pill
