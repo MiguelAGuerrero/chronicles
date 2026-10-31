@@ -34,9 +34,20 @@ export function onTileEdge([lon, lat]: LngLat, tolM = 1.5): boolean {
 
 
 /** The z14 tiles covering a box (west, south, east, north), as [x, y]. */
-export function tilesIn([w, s, e, n]: [number, number, number, number]): [number, number][] {
-  const out: [number, number][] = [];
+export function tilesIn([w, s, e, n]: [number, number, number, number], zoom = TILE_ZOOM): [number, number][] {
+  const out = new Map<string, [number, number]>();
+  const n2 = 2 ** zoom;
+  const lonToX = (lon: number) => ((lon + 180) / 360) * n2;
+  const latToY = (lat: number) => {
+    const r = (lat * Math.PI) / 180;
+    return ((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * n2;
+  };
+  // x wraps at the antimeridian; y is clamped at the poles (audit).
+  const clampY = (y: number) => Math.min(n2 - 1, Math.max(0, Number.isFinite(y) ? Math.floor(y) : y > 0 ? n2 - 1 : 0));
   for (let x = Math.floor(lonToX(w)); x <= Math.floor(lonToX(e)); x++)
-    for (let y = Math.floor(latToY(n)); y <= Math.floor(latToY(s)); y++) out.push([x, y]);
-  return out;
+    for (let y = clampY(latToY(Math.min(n, 85.0511))); y <= clampY(latToY(Math.max(s, -85.0511))); y++) {
+      const wx = ((x % n2) + n2) % n2;
+      out.set(`${wx},${y}`, [wx, y]);
+    }
+  return [...out.values()];
 }

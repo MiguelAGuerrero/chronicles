@@ -17,8 +17,10 @@ import { takeRecallOpen } from '../lib/discovery/recallCheck';
 import { loadPrefs, runScan, savePrefs } from '../lib/discovery/runScan';
 import { adoptable, scanNote, type Prefs } from '../lib/discovery/scan';
 import type { Mark } from '../lib/discovery/types';
+import { readArea } from '../lib/landing/read';
+import { isStale, keyFor, landingView, LANDING_VERSION, type LandingRow } from '../lib/landing/view';
 import { placeBacklog } from '../lib/backlog';
-import { pausedMs, type Bounds } from '../lib/geo';
+import { boundsOf, pausedMs, type Bounds } from '../lib/geo';
 import { levelForZoom, placesIndex, starsFor, unplacedWalks, type Star } from '../lib/places';
 import { recorder } from '../lib/recorder';
 import { RecorderError } from '../lib/recorder/types';
@@ -58,7 +60,13 @@ export default function Home() {
   const [placing, setPlacing] = useState<{ done: number; of: number } | null>(null);
   const [selected, setSelected] = useState<Star | null>(null);
   // A long press on the home map: walk there (N11).
-  const [spot, setSpot] = useState<LngLat | null>(null);
+  const [spot, setSpot] = useState<{ at: LngLat; zoom: number } | null>(null);
+  // What's good here (v1.5): remembered areas, and the one being read.
+  const [landings, setLandings] = useState<LandingRow[]>([]);
+  const [looking, setLooking] = useState(false);
+  const lookCancelled = useRef(false);
+  const [pinOpen, setPinOpen] = useState<string | null>(null);
+  const [build, setBuild] = useState<string | null>(null);
   // The map refits only when the places walked change (a new walk, a pass),
   // never just for coming back: a replay keeps the view you left (H5).
   const fittedTo = useRef('');
@@ -91,6 +99,8 @@ export default function Home() {
         const recalled = openWalk ? [] : await takeRecallOpen().catch(() => [] as Capture[]);
         if (!live) return null;
         setHomeMarks(marks);
+        setLandings(await db.listLandings().catch(() => [] as LandingRow[]));
+        setBuild(await db.getMeta('tile_build').catch(() => null));
         if (recalled.length) setRecalled(recalled);
         setData({ walks, summaries, areas, rows });
         setOpen(openWalk);
@@ -180,6 +190,40 @@ export default function Home() {
       .map((m) => ({ id: m.id, at: m.at, revealed: false, icon: categoryOf(m.category).icon as MarkPin['icon'], name: m.name, category: categoryOf(m.category).label }));
   }, [homeMarks, now]);
   const openMark = homeMarks.find((m) => m.id === markOpen) ?? null;
+  // Remembered areas show from street zoom (L11), stale ones too, offline.
+  const landingShown = useMemo(() => ((view?.zoom ?? 0) >= 12 ? landingView(landings) : null), [landings, view?.zoom]);
+  const openPin = landings.find((r) => r.key === pinOpen) ?? null;
+
+  const lookHere = async (at: LngLat) => {
+    if (looking) return;
+    lookCancelled.current = false;
+    setLooking(true);
+    try {
+      const r = await readArea(at, () => lookCancelled.current);
+      if (!r.ok) {
+        if (r.reason === 'failed') setScanNotice({ message: 'Couldn’t read the map here', tone: 'error' });
+        return;
+      }
+      const tile = await db.getMeta('tile_build').catch(() => null);
+      const row: LandingRow = { key: keyFor(landings, r.centre), centre: r.centre, analysis: r.analysis, build: tile ?? 'unknown', rules: LANDING_VERSION, analyzed_at: Date.now() };
+      await db.putLanding(row);
+      const rows = [...landings.filter((x) => x.key !== row.key), row];
+      setLandings(rows);
+      setBuild(tile);
+      const pts = [...r.analysis.pockets.flatMap((p) => p.hull), ...(r.analysis.landing ? [r.analysis.landing.at] : [])];
+      // Fitted with room around it, so the pockets sit in their streets rather than fill the screen.
+      const box = pts.length ? boundsOf(pts, 250) : null;
+      if (box) setFit((f) => ({ bounds: box, key: f.key + 1 }));
+      const top = r.analysis.pockets[0]?.name ?? r.analysis.landing?.street;
+      const message = `${r.analysis.reason}${r.analysis.basis === 'density' && top ? `: ${top}` : ''}. A best guess from the map.`;
+      setScanNotice({ message });
+      AccessibilityInfo.announceForAccessibility(
+        r.analysis.strips.length ? `${message} Strips: ${r.analysis.strips.map((x) => x.name).join(', ')}.` : message,
+      );
+    } finally {
+      setLooking(false);
+    }
+  };
 
   const scanHere = async (at: LngLat, asked = false) => {
     const map = mapRef.current;
@@ -269,6 +313,15 @@ export default function Home() {
             </Pressable>
           </View>
         )}
+        {looking && (
+          <View style={styles.scanning} accessibilityLiveRegion="polite">
+            <ActivityIndicator color={theme.ink} />
+            <Text style={styles.scanningText}>Looking around…</Text>
+            <Pressable testID="look-cancel" accessibilityRole="button" accessibilityLabel="Stop looking around" onPress={() => (lookCancelled.current = true)} style={styles.scanCancel} hitSlop={8}>
+              <Text style={styles.scanCancelText}>Cancel</Text>
+            </Pressable>
+          </View>
+        )}
         {scanNotice && (
           <Banner tone={scanNotice.tone} onDismiss={() => setScanNotice(null)}>
             {scanNotice.message}
@@ -281,31 +334,87 @@ export default function Home() {
 
       {spot && (
         <View style={[styles.startRow, styles.over, { bottom: sheetH + 16 }]} pointerEvents="box-none">
-          <View style={styles.spot}>
+          <View style={[styles.spot, styles.spotWrap]}>
+            {/* Walk here and Scan here only at street zoom; what's good here from z10 (L1). */}
+            {spot.zoom >= 12 && (
+              <Button
+                testID="walk-here"
+                label="Walk here"
+                disabled={scanning || looking}
+                onPress={() => {
+                  const at = spot.at;
+                  setSpot(null);
+                  start({ at, label: 'Your spot', kind: 'point' });
+                }}
+              />
+            )}
+            {spot.zoom >= 12 && (
+              <Button
+                testID="scan-here"
+                variant="secondary"
+                label="Scan here"
+                disabled={scanning || looking}
+                onPress={() => {
+                  const at = spot.at;
+                  setSpot(null);
+                  scanHere(at);
+                }}
+              />
+            )}
             <Button
-              testID="walk-here"
-              label="Walk here"
-              disabled={scanning}
-              onPress={() => {
-                const at = spot;
-                setSpot(null);
-                start({ at, label: 'Your spot', kind: 'point' });
-              }}
-            />
-            <Button
-              testID="scan-here"
+              testID="look-here"
               variant="secondary"
-              label="Scan here"
-              disabled={scanning}
+              label="What's good here?"
+              disabled={scanning || looking}
               onPress={() => {
-                const at = spot;
+                const at = spot.at;
                 setSpot(null);
-                scanHere(at);
+                lookHere(at);
               }}
             />
             <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={() => setSpot(null)} style={styles.spotClose} hitSlop={8}>
               <Icon name="close" size={22} color={theme.ink} />
             </Pressable>
+          </View>
+        </View>
+      )}
+
+      {openPin && !spot && !open && (
+        <View style={[styles.startRow, styles.over, { bottom: sheetH + 16 }]} pointerEvents="box-none">
+          <View testID="start-card" style={styles.startCard} accessibilityViewIsModal>
+            <Text style={styles.startTitle} accessibilityRole="header">
+              Start here{openPin.analysis.landing?.street ? ` · ${openPin.analysis.landing.street}` : ''}
+            </Text>
+            <Text style={styles.startSub}>
+              {isStale(openPin, build ?? openPin.build) ? 'From an older map: press and hold to look again. ' : ''}
+              {openPin.analysis.reason}. A best guess from the map.
+            </Text>
+            <View style={styles.spotWrap}>
+              <Button
+                testID="start-walk"
+                label="Walk here"
+                disabled={scanning || looking || starting}
+                onPress={() => {
+                  const l = openPin.analysis.landing;
+                  setPinOpen(null);
+                  if (l) start({ at: l.at, label: l.street ?? 'Start here', kind: 'point' });
+                }}
+              />
+              <Button
+                testID="start-scan"
+                variant="secondary"
+                label="Scan here"
+                disabled={scanning || looking}
+                onPress={() => {
+                  const l = openPin.analysis.landing;
+                  setPinOpen(null);
+                  if (l) scanHere(l.at);
+                }}
+              />
+              <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={() => setPinOpen(null)} style={styles.spotClose} hitSlop={8}>
+                <Icon name="close" size={22} color={theme.ink} />
+              </Pressable>
+            </View>
           </View>
         </View>
       )}
@@ -396,10 +505,19 @@ export default function Home() {
           }}
           selectedStar={selected?.id ?? null}
           // Only zoomed in to streets: a press on a zoomed-out map lands kilometres from anywhere walkable.
+          // Only from z10: a press on a zoomed-out map lands kilometres from anywhere walkable.
           onLongPress={(at) => {
-            if (open || placing != null || scanning || (view?.zoom ?? 0) < 12) return;
+            const zoom = view?.zoom ?? 0;
+            if (open || placing != null || scanning || looking || zoom < 10) return;
             setMarkOpen(null);
-            setSpot(at);
+            setPinOpen(null);
+            setSpot({ at, zoom });
+          }}
+          landing={open ? null : landingShown}
+          onLandingPinPress={(key) => {
+            setSpot(null);
+            setMarkOpen(null);
+            setPinOpen(key);
           }}
           onStarPress={pressStar}
           onViewChange={setView}
@@ -435,6 +553,13 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
   },
   spotClose: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  spotWrap: { flexWrap: 'wrap', justifyContent: 'center', maxWidth: 520 },
+  startCard: {
+    backgroundColor: theme.surface, borderRadius: theme.radius, padding: 14, gap: 8, width: '100%', maxWidth: 520,
+    shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
+  },
+  startTitle: { fontSize: 16, fontWeight: '700', color: theme.ink },
+  startSub: { fontSize: 14, color: theme.muted },
   markText: { fontSize: 15, fontWeight: '600', color: theme.ink, paddingLeft: 10 },
   prefsBtn: {
     position: 'absolute', left: 12, width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center',

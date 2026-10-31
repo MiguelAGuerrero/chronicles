@@ -6,13 +6,14 @@ import { createRoot, type Root } from 'react-dom/client';
 import { StyleSheet, View } from 'react-native';
 import { CapturePinView, pinLabel } from '../CapturePinView';
 import { MarkPinView, markLabel, type MarkPin } from '../MarkPinView';
+import { StartHereView, StripLabel } from '../LandingMarks';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { Star } from '../../lib/places';
 import type { CapturePin } from '../../lib/pins';
 import type { RoadFeature } from '../../lib/streets';
 import type { LngLat } from '../../lib/types';
 import {
-  COLORS, coneGeoJSON, DERIVE_ZOOM, marksGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, useZoomPins, walkerGeoJSON,
+  COLORS, coneGeoJSON, DERIVE_ZOOM, HOTSPOT, marksGeoJSON, pocketsGeoJSON, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -30,8 +31,12 @@ function addOverlay(map: MapLibreMap) {
   const firstSymbol = map.getStyle().layers.find((l: { type: string; id: string }) => l.type === 'symbol')?.id;
   map.addSource('veil', { type: 'geojson', data: WORLD_VEIL });
   map.addLayer({ id: 'veil', type: 'fill', source: 'veil', paint: { 'fill-color': COLORS.veil, 'fill-opacity': 0 } }, firstSymbol);
-  for (const id of ['fog', 'walked', 'route', 'trace', 'cone', 'marks', 'points']) map.addSource(id, { type: 'geojson', data: empty });
+  for (const id of ['pockets', 'strips', 'fog', 'walked', 'route', 'trace', 'cone', 'marks', 'points']) map.addSource(id, { type: 'geojson', data: empty });
   const lineLayout = { 'line-cap': 'round', 'line-join': 'round' } as const;
+  // Hotspots under the streets: pockets shaded, strips bold, in the one green no other layer uses (L9).
+  map.addLayer({ id: 'pockets', type: 'fill', source: 'pockets', paint: { 'fill-color': HOTSPOT, 'fill-opacity': 0.14 } }, firstSymbol);
+  map.addLayer({ id: 'strips', type: 'line', source: 'strips', layout: lineLayout,
+    paint: { 'line-color': HOTSPOT, 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 4, 17, 10], 'line-opacity': 0.9 } }, firstSymbol);
   map.addLayer({ id: 'fog', type: 'line', source: 'fog', layout: lineLayout,
     paint: { 'line-color': COLORS.fog, 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 1.5, 17, 4] } }, firstSymbol);
   map.addLayer({ id: 'walked', type: 'line', source: 'walked', layout: lineLayout,
@@ -204,6 +209,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   useEffect(() => { if (ready) setData('walked', segmentsGeoJSON(props.walked)); }, [ready, props.walked]);
   useEffect(() => { if (ready) setData('trace', traceGeoJSON(props.trace)); }, [ready, props.trace]);
   useEffect(() => { if (ready) setData('route', routeGeoJSON(props.route)); }, [ready, props.route]);
+  useEffect(() => {
+    if (!ready) return;
+    setData('pockets', pocketsGeoJSON(props.landing));
+    setData('strips', stripsGeoJSON(props.landing));
+  }, [ready, props.landing]);
   useEffect(() => { if (ready) setData('marks', marksGeoJSON(props.marks)); }, [ready, props.marks]);
   useEffect(() => {
     if (ready) setData('cone', coneGeoJSON(props.walker, props.walkerHeading, view?.zoom ?? 16));
@@ -382,6 +392,53 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       queueMicrotask(() => m.root.unmount());
     }
     markMarkers.current.clear();
+  }, []);
+  // Strip names and Start here pins, as DOM markers like the stars.
+  const pinLatest = useRef(props.onLandingPinPress);
+  useEffect(() => {
+    pinLatest.current = props.onLandingPinPress;
+  });
+  const landingMarkers = useRef<{ marker: Marker; root: Root }[]>([]);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    for (const m of landingMarkers.current) {
+      m.marker.remove();
+      const r = m.root;
+      queueMicrotask(() => r.unmount());
+    }
+    landingMarkers.current = [];
+    for (const s of props.landing?.strips ?? []) {
+      const el = document.createElement('div');
+      el.style.pointerEvents = 'none';
+      el.setAttribute('aria-hidden', 'true');
+      const root = createRoot(el);
+      root.render(<StripLabel name={s.name} />);
+      landingMarkers.current.push({ marker: new Marker({ element: el, anchor: 'top', offset: [0, 8] }).setLngLat(s.at).addTo(map), root });
+    }
+    for (const p of props.landing?.pins ?? []) {
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.dataset.testid = 'start-here';
+      el.setAttribute('aria-label', `Start here${p.street ? `, on ${p.street}` : ''}. Open`);
+      el.style.cssText = 'background:none;border:0;padding:0;cursor:pointer';
+      const key = p.key;
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        pinLatest.current?.(key);
+      });
+      const root = createRoot(el);
+      root.render(<StartHereView />);
+      landingMarkers.current.push({ marker: new Marker({ element: el, anchor: 'bottom' }).setLngLat(p.at).addTo(map), root });
+    }
+  }, [ready, props.landing]);
+  useEffect(() => () => {
+    for (const m of landingMarkers.current) {
+      m.marker.remove();
+      const r = m.root;
+      queueMicrotask(() => r.unmount());
+    }
+    landingMarkers.current = [];
   }, []);
   useEffect(() => {
     if (ready) mapRef.current?.setPaintProperty('veil', 'fill-opacity', props.veil ? 0.45 : 0);

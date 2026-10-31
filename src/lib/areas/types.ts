@@ -17,6 +17,8 @@ export interface PlaceCandidate {
   at: LngLat;
   /** How far from it a walk still counts as in it (a city reaches further than a village). */
   reachM: number;
+  /** The source's own word for it (city, town, village...), where it has one. */
+  kind?: string;
 }
 
 /** A named region a boundary source found a point inside. */

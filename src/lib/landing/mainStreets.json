@@ -1,4 +1,23 @@
 {
-  "_note": "Common names for a town's main street, the last fallback when nothing is dense. US-leaning to begin with; other countries add their own (High Street, Hauptstrasse) as data.",
-  "names": ["Main", "Broad", "Market", "High", "Front", "Water", "State", "Church", "Center", "Centre", "Commercial", "Congress"]
+  "_note": "Common names for a town's main street, the last fallback when nothing is dense. Matched on the name with its directions and street word removed (\"North Main St.\" is \"Main\"), or whole. US-leaning to begin with; other countries add their own as data.",
+  "names": [
+    "Main",
+    "Broad",
+    "Market",
+    "High",
+    "Front",
+    "Water",
+    "State",
+    "Church",
+    "Center",
+    "Centre",
+    "Commercial",
+    "Congress",
+    "High Street",
+    "Hauptstraße",
+    "Hauptstrasse",
+    "Rue Principale",
+    "Grande Rue",
+    "Calle Mayor"
+  ]
 }

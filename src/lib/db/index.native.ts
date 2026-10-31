@@ -1,5 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 import type { Area, WalkArea } from '../areas/types';
+import type { LandingRow } from '../landing/view';
 import type { CategoryId, Mark, MarkOrigin, MarkState, Offered, Place, Recall } from '../discovery/types';
 import { DERIVED_STORES } from './stores';
 import type { Capture, Pause, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
@@ -93,6 +94,13 @@ const MIGRATIONS = [
   CREATE TABLE recall (
     capture_id TEXT PRIMARY KEY, frequency TEXT NOT NULL, until INTEGER,
     last_fired_at INTEGER, fired_count INTEGER NOT NULL, last_walk_id TEXT
+  );
+  `,
+  // v1.5 landing: areas analyzed for where to start (a cache, kept across builds and shown stale).
+  `
+  CREATE TABLE landing (
+    key TEXT PRIMARY KEY, lon REAL NOT NULL, lat REAL NOT NULL, analysis TEXT NOT NULL,
+    build TEXT NOT NULL, rules TEXT NOT NULL, analyzed_at INTEGER NOT NULL
   );
   `,
 ];
@@ -332,6 +340,18 @@ export const db: Db = {
     return rows.map((r) => ({ ...r, streets_read: r.streets_read === 1 }));
   },
 
+  putLanding(r) {
+    return write((t) =>
+      t.runAsync(
+        'INSERT OR REPLACE INTO landing (key, lon, lat, analysis, build, rules, analyzed_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        r.key, r.centre[0], r.centre[1], JSON.stringify(r.analysis), r.build, r.rules, r.analyzed_at,
+      ).then(() => {}),
+    );
+  },
+  async listLandings() {
+    const rows = await (await conn()).getAllAsync<Omit<LandingRow, 'centre' | 'analysis'> & { lon: number; lat: number; analysis: string }>('SELECT * FROM landing');
+    return rows.map(({ lon, lat, analysis, ...r }) => ({ ...r, centre: [lon, lat] as [number, number], analysis: JSON.parse(analysis) }));
+  },
   async getMeta(key) {
     const r = await (await conn()).getFirstAsync<{ value: string }>('SELECT value FROM meta WHERE key = ?', key);
     return r?.value ?? null;

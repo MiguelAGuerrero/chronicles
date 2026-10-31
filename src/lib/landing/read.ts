@@ -9,6 +9,9 @@ import { tilesIn } from '../tileMath';
 import type { LngLat } from '../types';
 import { analyzeArea, centreFor, LANDING_RULES, type AreaAnalysis } from './analyze';
 
+/** Towns and cities are in the place layer from z10; z11 tiles keep the read to a few. */
+const TOWNS_ZOOM = 11;
+
 export type AreaRead = { ok: true; centre: LngLat; analysis: AreaAnalysis } | { ok: false; reason: 'failed' | 'cancelled' };
 
 async function readAround(url: string, build: string, at: LngLat) {
@@ -32,10 +35,12 @@ export async function readArea(pressed: LngLat, shouldStop: () => boolean): Prom
     const build = await ensureTileBuild().catch(() => 'unknown');
     const url = await db.getMeta('tile_url');
     if (!url || build === 'unknown') return { ok: false, reason: 'failed' };
-    let read = await readAround(url, build, pressed);
+    // The towns first, from a coarse z11 read of the 3 km around: a z14 read of the area alone
+    // would miss a city 2-3 km off (audit). Without it, the pressed spot is the centre.
+    const wide = await fetchTiles(url, tilesIn(boundsOf([pressed], LANDING_RULES.townM)!, TOWNS_ZOOM), TOWNS_ZOOM).catch(() => null);
     if (shouldStop()) return { ok: false, reason: 'cancelled' };
-    const centre = centreFor(pressed, read.towns);
-    if (centre !== pressed) read = await readAround(url, build, centre);
+    const centre = centreFor(pressed, wide ? placesFromTiles(wide.places) : []);
+    const read = await readAround(url, build, centre);
     if (shouldStop()) return { ok: false, reason: 'cancelled' };
     return { ok: true, centre, analysis: analyzeArea({ centre, ...read }) };
   } catch {

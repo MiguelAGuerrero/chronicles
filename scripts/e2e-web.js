@@ -58,6 +58,14 @@ features.push({ type: 'Feature', properties: { class: 'bus', subclass: 'bus_stop
 features.push({ type: 'Feature', properties: { class: 'park', subclass: 'park', name: 'Gano Park' }, geometry: { type: 'Point', coordinates: at(5.4, 0.6) } });
 features.push({ type: 'Feature', properties: { class: 'bakery', subclass: 'bakery', name: 'Sunny Bakery' }, geometry: { type: 'Point', coordinates: at(5.2, -1.0) } });
 features.push({ type: 'Feature', properties: { class: 'museum', subclass: 'museum', name: 'Fox Point Museum' }, geometry: { type: 'Point', coordinates: at(4.6, 1.8) } });
+// Providence's centre (v1.5 landing): Thayer Street lined with shops for 250 m, beside the city point,
+// far from every walk and scan above.
+features.push({ type: 'Feature', properties: { class: 'tertiary', name: 'Thayer Street' }, geometry: { type: 'LineString', coordinates: [at(28, -3), at(28, 3)] } });
+features.push({ type: 'Feature', properties: { class: 'minor', name: 'Angell Street' }, geometry: { type: 'LineString', coordinates: [at(26, 0.2), at(30, 0.2)] } });
+for (let i = 0; i <= 10; i++) {
+  const [cls, sub] = i % 2 ? ['cafe', 'cafe'] : ['shop', 'gift'];
+  features.push({ type: 'Feature', properties: { class: cls, subclass: sub, name: `Thayer ${i}` }, geometry: { type: 'Point', coordinates: at(28 + (i % 2 ? 0.15 : -0.15), -1.2 + i * 0.25) } });
+}
 const style = {
   version: 8,
   // maxzoom 14 matters: at the default 18, lines are clipped to z18 tiles, which real data never is.
@@ -111,16 +119,23 @@ function check(ok, what) {
   // Nothing leaves the device (D10): every request goes to this server or the tile host.
   const hosts = new Set();
   ctx.on('request', (r) => { const u = new URL(r.url()); if (/^(https?|wss?):$/.test(u.protocol)) hosts.add(u.host); });
-  await ctx.route('https://tiles.openfreemap.org/**', (r) =>
-    r.fulfill({
+  // The app's own tile reads (landing, ambient) get the same fake world as vector tiles.
+  const { encodeTile } = await import('./mvt-encode.mjs');
+  await ctx.route('https://tiles.openfreemap.org/**', (r) => {
+    const tile = /\/(\d+)\/(\d+)\/(\d+)\.pbf$/.exec(r.request().url());
+    if (tile) {
+      const [z, x, y] = tile.slice(1).map(Number);
+      return r.fulfill({ contentType: 'application/x-protobuf', body: Buffer.from(encodeTile(features, z, x, y)) });
+    }
+    return r.fulfill({
       contentType: 'application/json',
       body: JSON.stringify(
         r.request().url().endsWith('/planet')
           ? { tiles: ['https://tiles.openfreemap.org/planet/20261028_001001_pt/{z}/{x}/{y}.pbf'] }
           : style,
       ),
-    }),
-  );
+    });
+  });
 
   try {
     await page.goto(url);
@@ -657,6 +672,54 @@ function check(ok, what) {
       await page.waitForSelector('[data-testid=prefs-done]');
       check((await page.locator('[data-testid=pref-food-more][aria-checked=true]').count()) === 1, 'the home opens the preferences as they were left');
       await page.click('text=Cancel');
+    }
+
+    // What's good here (v1.5): a long press, then a read of the area around the city
+    // nearby, finds Thayer Street's strip and puts Start here on it (L1, L2, L5, L7, L9).
+    {
+      const st = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
+      await page.waitForTimeout(1100);
+      await page.mouse.move(st.x + st.width / 2, st.y + st.height / 2 + 50);
+      await page.mouse.down();
+      await page.waitForTimeout(700);
+      await page.mouse.up();
+      await page.click('[data-testid=look-here]');
+      await page.waitForSelector('text=/Busiest area: Thayer Street. A best guess from the map./', { timeout: 30000 });
+      await page.waitForTimeout(1500);
+      await shot(page, '11c-landing');
+      check((await page.getByText('Thayer Street', { exact: true }).count()) >= 1 && (await page.locator('[data-testid=start-here]').count()) === 1,
+        'what\u2019s good here finds the strip, named, with one Start here');
+      const rows = () => page.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const g = req.result.transaction('landing', 'readonly').objectStore('landing').getAll();
+          g.onsuccess = () => resolve(g.result);
+        };
+      }));
+      const first = await rows();
+      check(first.length === 1 && first[0].analysis.landing.street === 'Thayer Street', 'the area is remembered, its landing on Thayer Street');
+      await page.click('[data-testid=start-here]');
+      await page.waitForSelector('[data-testid=start-card]');
+      check(/Start here · Thayer Street/.test(await page.locator('[data-testid=start-card]').innerText()) && (await page.locator('[data-testid=start-walk]').count()) === 1,
+        'Start here offers Walk here and Scan here');
+      await page.click('[data-testid=start-card] [aria-label=Close]');
+      // Remembered: after a reload, it is still on the map, offline (L11).
+      await page.reload();
+      await page.waitForSelector('[aria-label^="Fox Point,"]', { timeout: 30000 });
+      await page.waitForTimeout(1500);
+      check((await page.locator('[data-testid=start-here]').count()) === 1, 'the analyzed area is still on the map after a reload');
+      // Again: the same area is replaced, not added (L12).
+      const st2 = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
+      await page.mouse.move(st2.x + st2.width / 2, st2.y + st2.height / 2 + 50);
+      await page.mouse.down();
+      await page.waitForTimeout(700);
+      await page.mouse.up();
+      await page.click('[data-testid=look-here]');
+      await page.waitForSelector('text=/Busiest area/', { timeout: 30000 });
+      check((await rows()).length === 1, 'looking again replaces the area');
+      await page.reload();
+      await page.waitForSelector('[aria-label^="Fox Point,"]', { timeout: 30000 });
+      await page.waitForTimeout(1000);
     }
 
     // From the home, a star's Walk here starts a walk navigating there (N11),

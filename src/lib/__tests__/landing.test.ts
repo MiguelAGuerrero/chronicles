@@ -127,7 +127,9 @@ test('landing: the landing point is on a named street; a station by the pocket c
   const t = run({ places: alongThayer(0, 250), segments: segs, transit: [station] });
   assert.equal(t.landing!.via, 'transit');
   assert.ok(onNamedStreet(t.landing!.at, segs));
-  assert.ok(distanceM(t.landing!.at, station) < 15, 'beside the station');
+  // On the pocket's own street, level with the station (audit 5).
+  assert.equal(t.landing!.street, 'Thayer Street');
+  assert.ok(distanceM(t.landing!.at, m(0, 130)) < 15, 'level with the station');
   // A station far from every pocket doesn't pull the landing.
   assert.notEqual(run({ places: alongThayer(0, 250), segments: segs, transit: [m(600, -600)] }).landing!.via, 'transit');
 });
@@ -193,4 +195,107 @@ test('landing: a 1.5 km read is at most 16 z14 tiles, all covering the circle (L
     const t = tileAt(corner);
     assert.ok(tiles.some(([x, y]) => x === t.x && y === t.y));
   }
+});
+
+// Audit regressions (v1.5 slice 1).
+
+test('landing: a street that bends, loops or repeats its name keeps its strips (audit 1)', () => {
+  // A U-shaped street: two arms 120 m apart, joined at the bottom, shops all along.
+  const u = [...street('Loop Road', [-60, 300], [-60, 0]), ...street('Loop Road', [-60, 0], [60, 0]), ...street('Loop Road', [60, 0], [60, 300])];
+  const uShops = [
+    ...Array.from({ length: 12 }, (_, i) => place(`L${i}`, 'food', m(-75, 300 - i * 25))),
+    ...Array.from({ length: 12 }, (_, i) => place(`R${i}`, 'shops', m(75, 25 + i * 25))),
+  ];
+  const ru = analyzeArea({ centre: O, places: uShops, segments: u, towns: [], transit: [] });
+  assert.ok(ru.strips.some((s) => s.name === 'Loop Road' && s.lengthM >= 250), JSON.stringify(ru.strips.map((s) => [s.name, s.lengthM])));
+  // A ring road 150 m across with a shop every 26 m.
+  const ring: StreetSegment[] = [];
+  const pts: [number, number][] = Array.from({ length: 19 }, (_, i) => [75 * Math.cos((2 * Math.PI * i) / 18), 75 * Math.sin((2 * Math.PI * i) / 18)]);
+  for (let i = 1; i < pts.length; i++) ring.push(...street('Circle Drive', pts[i - 1], pts[i]));
+  const ringShops = Array.from({ length: 18 }, (_, i) => place(`C${i}`, 'shops', m(88 * Math.cos((2 * Math.PI * i) / 18), 88 * Math.sin((2 * Math.PI * i) / 18))));
+  assert.ok(analyzeArea({ centre: O, places: ringShops, segments: ring, towns: [], transit: [] }).strips.some((s) => s.name === 'Circle Drive'));
+  // Two Broadways 300 m apart, both lined: two strips.
+  const two = [...street('Broadway', [0, -200], [0, 200]), ...street('Broadway', [300, -200], [300, 200])];
+  const twoShops = [0, 300].flatMap((x) => Array.from({ length: 17 }, (_, i) => place(`B${x},${i}`, 'shops', m(x + 15, -200 + i * 25))));
+  assert.equal(analyzeArea({ centre: O, places: twoShops, segments: two, towns: [], transit: [] }).strips.filter((s) => s.name === 'Broadway').length, 2);
+});
+
+test('landing: a strip without a pocket is still the place to start (audit 2)', () => {
+  // Seven shops over 250 m: a strip, too light for a pocket.
+  const shops = Array.from({ length: 7 }, (_, i) => place(`S${i}`, 'shops', m(15, (i * 250) / 6)));
+  const roads = [...grid(), ...street('Broad Street', [-600, 550], [600, 550], 'primary'), ...street('Market Street', [550, -600], [550, 600], 'secondary')];
+  const r = run({ places: shops, segments: roads });
+  assert.equal(r.basis, 'density');
+  assert.deepEqual(r.strips.map((s) => s.name), ['Thayer Street']);
+  assert.equal(r.landing!.street, 'Thayer Street');
+});
+
+test('landing: two clusters with a gap are not one pocket (audit 3)', () => {
+  const cluster = (x: number, y: number, tag: string) =>
+    Array.from({ length: 9 }, (_, i) => place(`${tag}${i}`, 'food', m(x + (i % 3) * 20, y + Math.floor(i / 3) * 20)));
+  const r = run({ places: [...cluster(-320, 160, 'a'), ...cluster(-160, 300, 'b')], segments: [] });
+  assert.ok(r.pockets.every((p) => p.spanM < 200 || p.weight < 8 || false), 'no pocket spans the gap');
+  assert.equal(r.pockets.length, 0);
+});
+
+test('landing: a station lands on the pocket’s own street; the densest-cell landing stays close (audit 5, 6)', () => {
+  const segs = [...grid(), ...street('Rail Yard Road', [160, -600], [160, 600])];
+  const r = run({ places: alongThayer(0, 250), segments: segs, transit: [m(150, 125)] });
+  assert.equal(r.landing!.via, 'transit');
+  assert.equal(r.landing!.street, 'Thayer Street');
+  // A pocket on unnamed paths, its nearest named street 700 m off: land in the pocket, unnamed.
+  const square: Place[] = [];
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) square.push(place(`Sq ${i},${j}`, 'culture', m(i * 60, j * 60)));
+  const far = analyzeArea({ centre: O, places: square, segments: street('Far Street', [-600, 800], [600, 800]), towns: [], transit: [] });
+  assert.equal(far.landing!.street, null);
+  assert.ok(distanceM(far.landing!.at, m(90, 90)) < 150);
+});
+
+test('landing: main roads try every pair by rank, crossing mid-piece, near the centre (audit 7)', () => {
+  const long = (name: string, a: [number, number], b: [number, number], cls: string): StreetSegment =>
+    ({ id: name, name, kind_detail: cls, length_m: 1000, build: 'b1', geometry: [[m(...a), m(...b)]] });
+  const roads = [
+    long('North Primary', [-600, 50], [600, 50], 'primary'),
+    long('South Primary', [-600, -50], [600, -50], 'primary'),
+    long('Cross Avenue', [200, -600], [200, 600], 'secondary'),
+  ];
+  const r = analyzeArea({ centre: O, places: [], segments: roads, towns: [], transit: [] });
+  assert.equal(r.basis, 'main-roads');
+  assert.ok(distanceM(r.landing!.at, m(200, 50)) < 5 || distanceM(r.landing!.at, m(200, -50)) < 5, JSON.stringify(r.landing));
+});
+
+test('landing: main-street names in their usual forms (audit 8)', () => {
+  for (const name of ['Main St.', 'North Main Street', 'High Street East', 'Market Square', 'Main St NW', 'Hauptstraße']) {
+    const r = analyzeArea({ centre: O, places: [], segments: street(name, [-600, 100], [600, 100]), towns: [], transit: [] });
+    assert.equal(r.basis, 'main-street', name);
+  }
+  assert.equal(analyzeArea({ centre: O, places: [], segments: street('Mainland Road', [-600, 100], [600, 100]), towns: [], transit: [] }).basis, 'centre');
+});
+
+test('landing: tiles wrap at the antimeridian, and a read with no tiles fails (audit 10)', () => {
+  const tiles = tilesIn([179.99, 0, -179.99 + 360, 0.01]);
+  assert.ok(tiles.every(([x]) => x >= 0 && x < 2 ** 14));
+  assert.ok(tilesIn([0, 89.99, 0.01, 90]).length >= 1);
+});
+
+test('landing: a city wins over a village in range (audit 11)', () => {
+  const towns: PlaceCandidate[] = [
+    { level: 'town', name: 'Little Village', at: m(500, 0), reachM: 3000, kind: 'village' },
+    { level: 'town', name: 'Providence', at: m(2500, 0), reachM: 10_000, kind: 'city' },
+  ];
+  assert.deepEqual(centreFor(O, towns), m(2500, 0));
+});
+
+test('landing: a heavy downtown with 15,000 street pieces stays well under budget (audit 9)', () => {
+  const segs: StreetSegment[] = [];
+  for (let x = -1500; x <= 1500; x += 40) segs.push(...street(`Ave ${x}`, [x, -1500], [x, 1500]));
+  for (let y = -1500; y <= 1500; y += 40) segs.push(...street(`St ${y}`, [-1500, y], [1500, y]));
+  let seed = 3;
+  const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32);
+  const places = Array.from({ length: 5000 }, (_, i) => place(`P${i}`, 'food', m((rnd() - 0.5) * 800, (rnd() - 0.5) * 800)));
+  const transit = Array.from({ length: 200 }, () => m((rnd() - 0.5) * 800, (rnd() - 0.5) * 800));
+  const t0 = performance.now();
+  analyzeArea({ centre: O, places, segments: segs, towns: [], transit });
+  const ms = performance.now() - t0;
+  assert.ok(ms < 400, `${Math.round(ms)} ms (a phone is several times slower)`);
 });

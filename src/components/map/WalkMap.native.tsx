@@ -5,11 +5,12 @@ import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState }
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { CapturePinView, pinLabel } from '../CapturePinView';
 import { MarkPinView, markLabel } from '../MarkPinView';
+import { StartHereView, StripLabel } from '../LandingMarks';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { RoadFeature } from '../../lib/streets';
 import { TILEJSON_URL } from '../../lib/tiles';
 import {
-  COLORS, coneGeoJSON, DERIVE_ZOOM, marksGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, useZoomPins, walkerGeoJSON,
+  COLORS, coneGeoJSON, DERIVE_ZOOM, HOTSPOT, marksGeoJSON, pocketsGeoJSON, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -37,6 +38,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const walked = useMemo(() => segmentsGeoJSON(props.walked), [props.walked]);
   const trace = useMemo(() => traceGeoJSON(props.trace), [props.trace]);
   const route = useMemo(() => routeGeoJSON(props.route), [props.route]);
+  const pockets = useMemo(() => pocketsGeoJSON(props.landing), [props.landing]);
+  const strips = useMemo(() => stripsGeoJSON(props.landing), [props.landing]);
   const marks = useMemo(() => marksGeoJSON(props.marks), [props.marks]);
   const cone = useMemo(() => coneGeoJSON(props.walker, props.walkerHeading, view?.zoom ?? 16), [props.walker, props.walkerHeading, view]);
   const points = useMemo(() => walkerGeoJSON(props.walker), [props.walker]);
@@ -200,6 +203,13 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         <GeoJSONSource id="veil" data={WORLD_VEIL}>
           <Layer id="veil" type="fill" paint={{ 'fill-color': COLORS.veil, 'fill-opacity': props.veil ? 0.45 : 0 }} />
         </GeoJSONSource>
+        {/* Hotspots under the streets, in the one green no other layer uses (L9). */}
+        <GeoJSONSource id="pockets" data={pockets}>
+          <Layer id="pockets" type="fill" paint={{ 'fill-color': HOTSPOT, 'fill-opacity': 0.14 }} />
+        </GeoJSONSource>
+        <GeoJSONSource id="strips" data={strips}>
+          <Layer id="strips" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': HOTSPOT, 'line-width': 7, 'line-opacity': 0.9 }} />
+        </GeoJSONSource>
         <GeoJSONSource id="fog" data={fog}>
           <Layer id="fog" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }}
             paint={{ 'line-color': props.fogEmphasis ? FOG_BOLD : COLORS.fog, 'line-width': props.fogEmphasis ? 5 : 3 }} />
@@ -265,6 +275,24 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           >
             <View accessible accessibilityRole="button" accessibilityLabel={markLabel(pin)} style={styles.pinHit}>
               <MarkPinView pin={pin} />
+            </View>
+          </Marker>
+        ))}
+        {(props.landing?.strips ?? []).map((s, i) => (
+          <Marker key={`strip:${i}:${s.name}`} id={`strip:${i}:${s.name}`} lngLat={s.at} anchor="top">
+            <StripLabel name={s.name} />
+          </Marker>
+        ))}
+        {(props.landing?.pins ?? []).map((p) => (
+          <Marker
+            key={`start:${p.key}`}
+            id={`start:${p.key}`}
+            lngLat={p.at}
+            anchor="bottom"
+            onPress={props.onLandingPinPress ? () => props.onLandingPinPress?.(p.key) : undefined}
+          >
+            <View accessible accessibilityRole="button" accessibilityLabel={`Start here${p.street ? `, on ${p.street}` : ''}. Open`} style={styles.pinHit}>
+              <StartHereView />
             </View>
           </Marker>
         ))}

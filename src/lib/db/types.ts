@@ -1,5 +1,6 @@
 import type { Area, WalkArea } from '../areas/types';
 import type { Mark, Offered, Place, Recall } from '../discovery/types';
+import type { LandingRow } from '../landing/view';
 import type { Capture, Pause, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 
 /**
@@ -83,6 +84,10 @@ export interface Db {
   /** Stop reminding me, or a "once" that fired (R6, R8). */
   clearRecall(captureId: string): Promise<void>;
   listRecalls(): Promise<Recall[]>;
+
+  /** Remembers an analyzed area (L11); the same key replaces it (L12). */
+  putLanding(row: LandingRow): Promise<void>;
+  listLandings(): Promise<LandingRow[]>;
 
   getMeta(key: string): Promise<string | null>;
   setMeta(key: string, value: string): Promise<void>;

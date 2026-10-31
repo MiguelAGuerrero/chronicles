@@ -1,4 +1,5 @@
 import type { MarkPin } from '../MarkPinView';
+import type { LandingView } from '../../lib/landing/view';
 import type { StyleProp, ViewStyle } from 'react-native';
 import type { Bounds } from '../../lib/geo';
 import type { RoadFeature } from '../../lib/streets';
@@ -16,6 +17,10 @@ export const MAX_DERIVE_VIEWS = 36;
 // Lines and dots need 3:1 against the base map (WCAG 1.4.11).
 /** Bold fog: unwalked streets near the walker, when asked for. */
 export const FOG_BOLD = '#3f4a5a';
+
+/** Hotspots (v1.5): the one colour no other layer uses, 3:1 or more on the base map (L9). */
+export const HOTSPOT = '#059669';
+export const HOTSPOT_INK = '#065f46';
 
 export const COLORS = {
   fog: '#6b7480',
@@ -68,6 +73,9 @@ export interface WalkMapProps {
   /** A scan's marks, as "?" pins until revealed (v1 discovery). */
   discoveries?: MarkPin[];
   onDiscoveryPress?: (id: string) => void;
+  /** Remembered hotspots: pockets shaded, strips drawn and named, a Start here pin per area (v1.5). */
+  landing?: LandingView | null;
+  onLandingPinPress?: (key: string) => void;
   /** Spots to mark: where a route goes, or where a long press landed. */
   marks?: LngLat[];
   /** The way the walker is going (degrees from north), drawn as a soft cone; null hides it. */
@@ -229,6 +237,21 @@ export function routeGeoJSON(route: LngLat[] | null | undefined): GeoJSON.Featur
   return {
     type: 'FeatureCollection',
     features: route && route.length > 1 ? [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: route } }] : [],
+  };
+}
+
+export function pocketsGeoJSON(v: LandingView | null | undefined): GeoJSON.FeatureCollection {
+  return {
+    type: 'FeatureCollection',
+    features: (v?.pockets ?? []).filter((p) => p.hull.length >= 3).map((p) => ({
+      type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[...p.hull, p.hull[0]]] },
+    })),
+  };
+}
+export function stripsGeoJSON(v: LandingView | null | undefined): GeoJSON.FeatureCollection {
+  return {
+    type: 'FeatureCollection',
+    features: (v?.strips ?? []).map((s) => ({ type: 'Feature', properties: {}, geometry: { type: 'MultiLineString', coordinates: s.lines } })),
   };
 }
 

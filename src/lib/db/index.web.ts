@@ -1,5 +1,6 @@
 import { staleAreas } from '../areas/assign';
 import type { Area, WalkArea } from '../areas/types';
+import type { LandingRow } from '../landing/view';
 import type { Mark, Offered, Place, Recall } from '../discovery/types';
 import { DERIVED_STORES } from './stores';
 import type { Capture, Pause, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
@@ -8,7 +9,7 @@ import type { Db } from './types';
 
 // Same tables as the native SQLite store, as IndexedDB object stores.
 const DB_NAME = 'chronicles';
-const VERSION = 5;
+const VERSION = 6;
 
 /** Raised when another open tab holds an older version of the database. */
 export class BlockedByOtherTabError extends Error {
@@ -49,6 +50,10 @@ function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number) {
     d.createObjectStore('offered', { keyPath: 'key' });
     d.createObjectStore('mark', { keyPath: 'id' }).createIndex('walk_id', 'walk_id');
     d.createObjectStore('recall', { keyPath: 'capture_id' });
+  }
+  if (oldVersion < 6) {
+    // v1.5 landing: areas analyzed for where to start (a cache, kept across builds and shown stale).
+    d.createObjectStore('landing', { keyPath: 'key' });
   }
 }
 
@@ -239,6 +244,14 @@ export const db: Db = {
     return (await done((await store('walk_summary')).getAll())) as WalkSummary[];
   },
 
+  async putLanding(r) {
+    const tx = (await conn()).transaction('landing', 'readwrite');
+    tx.objectStore('landing').put(r);
+    await committed(tx);
+  },
+  async listLandings() {
+    return (await done((await store('landing')).getAll())) as LandingRow[];
+  },
   async getMeta(key) {
     const r = (await done((await store('meta')).get(key))) as { value: string } | undefined;
     return r?.value ?? null;

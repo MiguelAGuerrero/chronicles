@@ -34,7 +34,7 @@ export function placesFromTiles(features: TileFeature[]): PlaceCandidate[] {
     const name = f.properties?.name;
     if (!kind || typeof name !== 'string' || !name || f.geometry.type !== 'Point') continue;
     const at = f.geometry.coordinates as LngLat;
-    out.set(`${kind.level}|${name}|${at[0].toFixed(5)}|${at[1].toFixed(5)}`, { level: kind.level, name, at, reachM: kind.reachM });
+    out.set(`${kind.level}|${name}|${at[0].toFixed(5)}|${at[1].toFixed(5)}`, { level: kind.level, name, at, reachM: kind.reachM, kind: String(f.properties?.class) });
   }
   return [...out.values()];
 }
