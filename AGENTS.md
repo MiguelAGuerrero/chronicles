@@ -328,6 +328,14 @@ Read this before changing recording, streets, the replay or storage.
   switch, so the screen's bottom bar ends halfway up. `webStyles.web.ts` pins
   `#root` to the viewport (`position: fixed; inset: 0`) and scrolls back to 0
   whenever nothing is being typed in.
+- Browsers refuse to start sound without a tap; iOS refuses every time, and the
+  replay reaches its stops on its own clock. expo-video's web `play()` doesn't
+  even catch the refusal. So on web a video that hasn't started 800 ms after
+  `play()` plays muted with a "Tap for sound" button, and a refused memo (its
+  play button still showing) moves on after 4 s in a replay that advances by
+  itself. iOS also draws no frame of a video that hasn't played. Headless
+  Chromium allows sound regardless (any earlier tap counts), so the e2e copies
+  iOS's rule into a fresh page by overriding `HTMLMediaElement.prototype.play`.
 - expo-video on web ignores `play()` before the source has loaded. Start it on
   `statusChange` → `readyToPlay`.
 

@@ -72,7 +72,10 @@ function check(ok, what) {
   const server = await serve();
   const url = `http://localhost:${server.address().port}${BASE}/`;
   // A fake microphone, so voice memos can be recorded headless.
-  const browser = await chromium.launch({ args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] });
+  // Sound only after a tap, as on iOS: the replay reaches its stops on its own clock.
+  const browser = await chromium.launch({
+    args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--autoplay-policy=user-gesture-required'],
+  });
   const start = at(-0.5, -0.5);
   const ctx = await browser.newContext({
     viewport: { width: 390, height: 844 },
@@ -83,7 +86,7 @@ function check(ok, what) {
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
-  await page.route('https://tiles.openfreemap.org/**', (r) =>
+  await ctx.route('https://tiles.openfreemap.org/**', (r) =>
     r.fulfill({
       contentType: 'application/json',
       body: JSON.stringify(
@@ -265,6 +268,16 @@ function check(ok, what) {
       return !!v && v.currentTime > 0 && !v.paused;
     });
     check(playing, 'the video plays at its stop in the replay');
+    if (await page.locator('[data-testid=video-sound]').count()) {
+      // Sound was refused without a tap: it plays muted, and one tap brings the sound.
+      await page.click('[data-testid=video-sound]');
+      await page.waitForTimeout(500);
+      const sound = await page.evaluate(() => {
+        const v = document.querySelector('video');
+        return !!v && !v.muted && !v.paused;
+      });
+      check(sound, 'a video that could not start with sound plays muted, and a tap turns the sound on');
+    }
     // The player fills the screen's width, above the strip with Continue.
     const vbox = await page.locator('video').boundingBox();
     const cbox = await page.locator('[data-testid=moment]').boundingBox();
@@ -336,6 +349,45 @@ function check(ok, what) {
     await page.getByText('Cardamom and the river.').click();
     await page.waitForSelector('[data-testid=done]', { timeout: 90000 });
     check(true, 're-watching from the log reaches the card with no taps');
+
+    // A replay opened with no tap at all (a fresh page, as after a reload)
+    // may not start a video with sound: it plays muted and offers the sound.
+    const fresh = await ctx.newPage();
+    fresh.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+    // iOS's rule, which headless Chromium does not enforce: sound needs a tap first.
+    await fresh.addInitScript(() => {
+      let tapped = false;
+      document.addEventListener('pointerdown', () => (tapped = true), true);
+      const play = HTMLMediaElement.prototype.play;
+      HTMLMediaElement.prototype.play = function () {
+        if (!this.muted && !tapped) return Promise.reject(new DOMException('play() needs a tap', 'NotAllowedError'));
+        return play.call(this);
+      };
+    });
+    await fresh.goto(page.url());
+    // The memo comes first and is refused too: it waits a moment, as a photo does, and moves on.
+    await fresh.waitForSelector('[aria-label="Play voice memo"]', { timeout: 90000 });
+    const memoAt = Date.now();
+    await fresh.waitForSelector('video', { timeout: 15000 });
+    const memoMs = Date.now() - memoAt;
+    check(memoMs > 3000 && memoMs < 9000, `a refused memo moves on after a few seconds (${(memoMs / 1000).toFixed(1)} s)`);
+    // Muted playback with the button, within a second or two (the clip is short and moves on by itself).
+    const muted = await fresh
+      .waitForFunction(() => {
+        const v = document.querySelector('video');
+        return !!v && v.muted && !v.paused && !!document.querySelector('[data-testid=video-sound]');
+      }, null, { timeout: 3000 })
+      .then(() => true, () => false);
+    await shot(fresh, '07-video-sound');
+    check(muted, 'with no tap yet, the video plays muted with a sound button');
+    await fresh.click('[data-testid=video-sound]');
+    await fresh.waitForTimeout(500);
+    const sound = await fresh.evaluate(() => {
+      const v = document.querySelector('video');
+      return !!v && !v.muted && !v.paused;
+    });
+    check(sound, 'a tap on it turns the sound on');
+    await fresh.close();
     await page.click('[data-testid=done]');
     check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
   } catch (e) {

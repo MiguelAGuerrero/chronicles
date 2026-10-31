@@ -1,6 +1,6 @@
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useEventListener } from 'expo';
-import { useVideoPlayer, VideoView } from 'expo-video';
+import { useVideoPlayer, VideoView, type VideoPlayer as VideoPlayerType } from 'expo-video';
 import { forwardRef, useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Image, Linking, Modal, Platform, Pressable, StyleSheet, Text, View, type LayoutRectangle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,13 +17,37 @@ export { useMediaUri };
 
 const timeOf = (c: Capture) => new Date(c.t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
+/** How long a memo or video may take to start playing before it is treated as refused. */
+const AUTOPLAY_CHECK_MS = 800;
+/** A refused memo in a replay that moves on by itself waits this long, as a photo does. */
+const REFUSED_MOVE_ON_MS = 4000;
+
 /** A voice memo with a play/pause control; `autoPlay` starts it, `onFinished` fires when it ends. */
 function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () => void; durationMs: number }) {
   const player = useAudioPlayer(props.uri);
   const status = useAudioPlayerStatus(player);
   const { autoPlay, onFinished } = props;
+  const playing = useRef(false);
+  const finished = useRef(onFinished);
   useEffect(() => {
-    if (autoPlay && status.isLoaded) player.play();
+    playing.current = status.playing;
+    finished.current = onFinished;
+  }, [status.playing, onFinished]);
+  // A browser that refuses to start it without a tap (iOS) leaves the play
+  // button showing; a replay that moves on by itself then moves on after a
+  // while, instead of waiting for an end that never comes.
+  const refused = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!autoPlay || !status.isLoaded) return;
+    player.play();
+    if (Platform.OS !== 'web') return;
+    const check = setTimeout(() => {
+      if (!playing.current) refused.current = setTimeout(() => finished.current?.(), REFUSED_MOVE_ON_MS);
+    }, AUTOPLAY_CHECK_MS);
+    return () => {
+      clearTimeout(check);
+      if (refused.current) clearTimeout(refused.current);
+    };
     // Only once the memo has loaded.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status.isLoaded]);
@@ -38,6 +62,7 @@ function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () =
         accessibilityRole="button"
         accessibilityLabel={status.playing ? 'Pause voice memo' : 'Play voice memo'}
         onPress={() => {
+          if (refused.current) clearTimeout(refused.current);
           if (status.playing) player.pause();
           else {
             if (status.didJustFinish || (total && status.currentTime >= total - 0.1)) player.seekTo(0);
@@ -59,31 +84,78 @@ function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () =
   );
 }
 
-/** A video, fitted to the screen with the platform's own controls; `autoPlay` starts it with sound. */
+
+/** Mutes or unmutes a player and plays it (the player is a mutable native object, not React state). */
+function playWithSound(player: VideoPlayerType, sound: boolean) {
+  player.muted = !sound;
+  player.play();
+}
+
+/**
+ * A video, fitted to the screen with the platform's own controls; `autoPlay`
+ * starts it with sound. Browsers (iOS always) refuse sound unless a tap
+ * started it, and the replay reaches a video on its own clock: then it
+ * plays muted, as social feeds do, with a button to turn the sound on.
+ */
 function VideoPlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () => void }) {
   const player = useVideoPlayer(props.uri, (p) => {
     p.loop = false;
   });
+  const [mutedForAutoplay, setMutedForAutoplay] = useState(false);
   // A player told to play before it has loaded ignores it on web, so it
   // starts once it is ready (and at once if it already is).
   const started = useRef(false);
+  const playing = useRef(false);
+  const check = useRef<ReturnType<typeof setTimeout> | null>(null);
   const start = () => {
     if (!props.autoPlay || started.current) return;
     started.current = true;
     player.play();
+    if (Platform.OS !== 'web') return;
+    check.current = setTimeout(() => {
+      if (playing.current) return;
+      playWithSound(player, false);
+      setMutedForAutoplay(true);
+    }, AUTOPLAY_CHECK_MS);
   };
+  useEventListener(player, 'playingChange', ({ isPlaying }) => {
+    playing.current = isPlaying;
+  });
   useEventListener(player, 'statusChange', ({ status }) => {
     if (status === 'readyToPlay') start();
   });
   useEffect(() => {
     if (player.status === 'readyToPlay') start();
+    return () => {
+      if (check.current) clearTimeout(check.current);
+    };
     // Checked once, on mount; later readiness comes through statusChange.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [player]);
   useEventListener(player, 'playToEnd', () => props.onFinished?.());
-  // Sized with width and height, not left/right/top/bottom: on web this style
-  // lands on the <video> tag itself, which keeps its own size otherwise.
-  return <VideoView player={player} style={styles.fill} contentFit="contain" nativeControls playsInline accessibilityLabel="Video" />;
+  return (
+    <>
+      {/* Sized with width and height, not left/right/top/bottom: on web this
+          style lands on the <video> tag itself, which keeps its own size otherwise. */}
+      <VideoView player={player} style={styles.fill} contentFit="contain" nativeControls playsInline accessibilityLabel="Video" />
+      {mutedForAutoplay && (
+        <Pressable
+          testID="video-sound"
+          accessibilityRole="button"
+          accessibilityLabel="Turn the sound on"
+          onPress={() => {
+            // A tap may unmute: browsers allow sound from here on.
+            playWithSound(player, true);
+            setMutedForAutoplay(false);
+          }}
+          style={styles.soundBtn}
+        >
+          <Icon name="volume-mute" size={20} color="#ffffff" />
+          <Text style={styles.soundText}>Tap for sound</Text>
+        </Pressable>
+      )}
+    </>
+  );
 }
 
 /**
@@ -339,6 +411,11 @@ const styles = StyleSheet.create({
   // A full-width row centers the card on any screen width.
   cardRow: { position: 'absolute', left: 0, right: 0, paddingHorizontal: 16, alignItems: 'center' },
   fill: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
+  soundBtn: {
+    position: 'absolute', alignSelf: 'center', top: '45%', flexDirection: 'row', alignItems: 'center', gap: 8,
+    minHeight: 48, paddingHorizontal: 18, borderRadius: 24, backgroundColor: 'rgba(0,0,0,0.7)',
+  },
+  soundText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
   mediaScreen: { backgroundColor: '#000000' },
   mediaArea: { flex: 1 },
   // The thin strip under a photo or video: its details, then its actions.
