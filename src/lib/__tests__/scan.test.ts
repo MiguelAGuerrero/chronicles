@@ -17,6 +17,7 @@ import {
   passedOnLine,
   pickMarks,
   scanNote,
+  scanMessage,
   scanSummary,
   toReplace,
   type Prefs,
@@ -59,7 +60,7 @@ test('scan: the rules live in SCAN_RULES (S3)', () => {
 
 test('scan: only places inside 500 m are candidates (S2)', () => {
   const inside = ring(12, 300);
-  const outside = [place('Far Cafe', 'food', m(520, 0)), place('Far Park', 'parks', m(0, -700))];
+  const outside = [place('Far Cafe', 'history', m(520, 0)), place('Far Park', 'parks', m(0, -700))];
   for (let seed = 1; seed < 30; seed++) {
     const got = pickMarks({ candidates: [...inside, ...outside], center: O, offered: [], prefs: ALL_NORMAL, random: rng(seed) });
     assert.ok(got.picked.every((p) => distanceM(p.at, O) <= 500), `seed ${seed}`);
@@ -83,12 +84,12 @@ test('scan: 1-2 wildcards ignore preferences (S3)', () => {
   // Every category but parks is "less"; one park far from the rest. Over many
   // scans the park, drawn by weight 2 on its own, shows up, and the "less"
   // places still fill the wildcard slots.
-  const prefs: Prefs = Object.fromEntries(CATS.map((c) => [c, c === 'food' ? 'more' : 'less']));
+  const prefs: Prefs = Object.fromEntries(CATS.map((c) => [c, c === 'history' ? 'more' : 'less']));
   let art = 0;
   let scans = 0;
   for (let seed = 1; seed <= 200; seed++) {
     const cands = [
-      ...Array.from({ length: 10 }, (_, i) => place(`Cafe ${i}`, 'food', m(-400 + i * 110, 200))),
+      ...Array.from({ length: 10 }, (_, i) => place(`Cafe ${i}`, 'history', m(-400 + i * 110, 200))),
       ...Array.from({ length: 10 }, (_, i) => place(`Art ${i}`, 'art', m(-400 + i * 110, -200))),
     ];
     const got = pickMarks({ candidates: cands, center: O, offered: [], prefs, random: rng(seed) });
@@ -193,7 +194,7 @@ test('scan: the card counts finds by category, found and dismissed (S13)', () =>
 });
 
 test('scan: too few, none and failed reads (S15)', () => {
-  const two = [place('A', 'food', m(200, 0)), place('B', 'art', m(-200, 0))];
+  const two = [place('A', 'history', m(200, 0)), place('B', 'art', m(-200, 0))];
   const few = pickMarks({ candidates: two, center: O, offered: [], prefs: ALL_NORMAL, random: rng(1) });
   assert.equal(few.picked.length, 2);
   assert.equal(few.outcome, 'few');
@@ -210,8 +211,8 @@ test('scan: too few, none and failed reads (S15)', () => {
 
 test('scan: one place keyed twice across a rounding line is offered once (audit 3)', () => {
   // Either side of -71.40005: two keys for one café 0.3 m apart.
-  const a = place('Twin Cafe', 'food', [-71.400052, 41.8145]);
-  const b = place('Twin Cafe', 'food', [-71.400048, 41.8145]);
+  const a = place('Twin Cafe', 'history', [-71.400052, 41.8145]);
+  const b = place('Twin Cafe', 'history', [-71.400048, 41.8145]);
   assert.notEqual(a.key, b.key);
   for (let seed = 1; seed < 10; seed++) {
     const { picked } = pickMarks({ candidates: [a, b], center: O, offered: [], prefs: {}, random: rng(seed) });
@@ -220,7 +221,7 @@ test('scan: one place keyed twice across a rounding line is offered once (audit 
 });
 
 test('scan: cached places from another build are not candidates (audit 7)', () => {
-  const read = [place('New', 'food', m(200, 0))];
+  const read = [place('New', 'history', m(200, 0))];
   const cached = [{ ...place('Old', 'art', m(-200, 0)), build: 'b0' }, place('Kept', 'parks', m(0, 200))];
   assert.deepEqual(candidatesFrom(read, cached, 'b1').map((p) => p.name).sort(), ['Kept', 'New']);
 });
@@ -246,7 +247,7 @@ test('scan: a read that did not finish fails unless what is known fills the scan
   assert.equal(readFailed({ read: true, complete: false, candidates: six, center: O, offered: [] }), false, 'enough known to fill it');
   assert.equal(readFailed({ read: true, complete: true, candidates: [], center: O, offered: [] }), false, 'a full read that found nothing is "nothing here"');
   // Cached places outside the circle don't count toward filling it.
-  const far = Array.from({ length: 8 }, (_, i) => place(`Far ${i}`, 'food', m(600 + i * 120, 0)));
+  const far = Array.from({ length: 8 }, (_, i) => place(`Far ${i}`, 'history', m(600 + i * 120, 0)));
   assert.equal(readFailed({ read: true, complete: false, candidates: far, center: O, offered: [] }), true);
 });
 
@@ -283,4 +284,14 @@ test('scan: a capture finds an ambient mark only within 30 m (audit, A10)', () =
   const [mark] = marksFromScan([place('A', 'food', m(100, 0))], { walkId: 'w1', now: 0, newId: () => 'a', origin: 'ambient' });
   assert.equal(foundBy(m(55, 0), [mark]), null);
   assert.equal(foundBy(m(75, 0), [mark])?.id, 'a');
+});
+
+test('scan: the note gives the marks and the busy streets together (S22)', () => {
+  assert.equal(scanMessage('full', 6, { strips: 2, pockets: 0 }), '6 marks nearby · 2 busy streets');
+  assert.equal(scanMessage('few', 1, { strips: 1, pockets: 0 }), 'Only 1 spot nearby · 1 busy street');
+  assert.equal(scanMessage('few', 2, null), 'Only 2 spots nearby');
+  assert.equal(scanMessage('none', 0, { strips: 0, pockets: 1 }), 'No marks here · 1 busy pocket');
+  assert.equal(scanMessage('none', 0, { strips: 0, pockets: 0 }), 'Nothing to find here yet');
+  assert.equal(scanMessage('failed', 0, { strips: 3, pockets: 0 }), 'Couldn’t read the map here · 3 busy streets');
+  assert.equal(scanMessage('failed', 0, null), 'Couldn’t read the map here');
 });

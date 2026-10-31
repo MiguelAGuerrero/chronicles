@@ -6,7 +6,9 @@ import { db } from '../db';
 import type { Capture, LngLat } from '../types';
 import { categoryOf } from './categories';
 import { loadPrefs, runScan } from './runScan';
-import { foundBy, isRevealed, scanNote } from './scan';
+import { sweepArea } from '../landing/read';
+import type { LandingRow } from '../landing/view';
+import { foundBy, isRevealed, scanMessage, sweepCount } from './scan';
 import type { Mark } from './types';
 
 /**
@@ -23,6 +25,8 @@ export function useScan(opts: {
   map: () => WalkMapHandle | null;
   onNotice: (message: string, tone?: 'info' | 'error') => void;
   onFound: (mark: Mark) => void;
+  /** The scan's sweep remembered an area of busy streets (S21). */
+  onSwept: (row: LandingRow) => void;
 }) {
   const [marks, setMarks] = useState<Mark[]>([]);
   // Revealed marks, grown fix by fix: not every fix of a long walk against every mark (audit).
@@ -104,12 +108,20 @@ export function useScan(opts: {
       cancelled.current = false;
       setScanning(true);
       const r = await runScan({ center: here, walkId, map: m, shouldStop: () => cancelled.current || !mounted.current });
+      // Marks first; the walk shows them while the sweep reads.
+      if (r.outcome !== 'cancelled' && r.outcome !== 'closed' && r.outcome !== 'busy' && mounted.current) await reload();
       if (!mounted.current || r.outcome === 'cancelled' || r.outcome === 'closed') return r.outcome;
       if (r.outcome === 'busy') {
         onNotice('Finding a route first. Scan again in a moment.');
         return r.outcome;
       }
-      const note = r.outcome === 'full' || r.outcome === 'few' ? scanNote(r.outcome, r.marks.length) ?? `${r.marks.length} marks nearby` : scanNote(r.outcome, 0)!;
+      // The sweep (S21): the busy streets of the 1.5 km around, with no camera moves. A failed
+      // or cancelled one keeps the marks.
+      const stop = () => cancelled.current || !mounted.current;
+      const row = await sweepArea(here, stop);
+      if (row && mounted.current) latest.current.onSwept(row);
+      if (!mounted.current) return r.outcome;
+      const note = scanMessage(r.outcome, r.marks.length, stop() ? null : sweepCount(row?.analysis));
       onNotice(note, r.outcome === 'failed' ? 'error' : 'info');
       AccessibilityInfo.announceForAccessibility(note);
       await reload();

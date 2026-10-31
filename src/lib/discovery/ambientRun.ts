@@ -76,7 +76,6 @@ export async function runAmbient(walk: Walk, now = Date.now()): Promise<void> {
       enabled: true, quiet: false, walkId: walk.id, startedAt: walk.started_at, pauses,
       fixes: points.slice(-RECENT), places, unwalked, offered: await db.listOffered(), fired, now,
       pursuing: false, lastRecallAt: recallLast ? Number(recallLast) : null,
-      includeChains: (await db.getMeta('discovery_chains')) === '1',
     });
     if (!hint) return;
     const [mark] = marksFromScan([hint.place], { walkId: walk.id, now, newId, origin: 'ambient' });

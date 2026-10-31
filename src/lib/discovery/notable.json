@@ -1,0 +1,10 @@
+{
+  "_note": "Words that mark a place of worship, a civic building, a cemetery or a library as historic or notable (S20). Matched as whole words or phrases after normalizeBrand. Data, not code: edit freely.",
+  "words": [
+    "old", "historic", "historical", "ancient", "colonial", "heritage", "landmark",
+    "burial ground", "burying ground", "burial place", "churchyard", "graveyard",
+    "cathedral", "basilica", "abbey", "priory", "minster", "mission", "monastery", "convent",
+    "meeting house", "meetinghouse", "state house", "statehouse", "capitol", "custom house", "customs house",
+    "athenaeum", "atheneum"
+  ]
+}

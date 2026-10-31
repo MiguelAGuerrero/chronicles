@@ -1,5 +1,6 @@
 import type { TileFeature } from '../areas/tilePlaces';
 import type { LngLat } from '../types';
+import { MARK_CATEGORIES, notableName } from './noise';
 import { placeKey } from './places';
 import type { CategoryId, Place } from './types';
 
@@ -56,6 +57,16 @@ export function categoryOfPoi(cls: string, sub: string): CategoryId | null {
   return null;
 }
 
+/** Places that count toward busy streets but are never marks (S19). */
+const NEVER_MARKS = new Set(['cinema', 'dog_park', 'picnic_site']);
+/** Marks only when the name says historic or notable (S20); the many plain ones are not attractions. */
+const MARK_BY_NAME = new Set(['place_of_worship', 'town_hall', 'cemetery', 'library']);
+
+function markableFor(cls: string, category: CategoryId, name: string): boolean {
+  if (!MARK_CATEGORIES.includes(category) || NEVER_MARKS.has(cls)) return false;
+  return !MARK_BY_NAME.has(cls) || notableName(name);
+}
+
 /** Unnamed places worth keeping, by subclass, and the label they show (D4). */
 const GENERIC: Record<string, string> = { artwork: 'Public art', viewpoint: 'A viewpoint' };
 
@@ -76,7 +87,8 @@ export function placesFromTilePois(features: (TileFeature & { zoom?: number })[]
     if (type !== 'Point' && type !== 'MultiPoint') continue;
     const props = f.properties ?? {};
     const sub = String(props.subclass ?? '');
-    const category = categoryOfPoi(String(props.class ?? ''), sub);
+    const cls = String(props.class ?? '');
+    const category = categoryOfPoi(cls, sub);
     if (!category) continue;
     const raw = typeof props.name === 'string' ? props.name.trim() : '';
     const generic = !raw;
@@ -86,7 +98,8 @@ export function placesFromTilePois(features: (TileFeature & { zoom?: number })[]
     if (!Array.isArray(c) || !Number.isFinite(c[0]) || !Number.isFinite(c[1])) continue;
     const at: LngLat = [c[0], c[1]];
     const key = placeKey(category, generic ? null : raw, at);
-    if (!out.has(key)) out.set(key, { key, name: generic ? GENERIC[sub] : raw, category, at, generic, build });
+    const name = generic ? GENERIC[sub] : raw;
+    if (!out.has(key)) out.set(key, { key, name, category, at, generic, build, markable: markableFor(cls, category, name) });
   }
   return [...out.values()];
 }

@@ -16,10 +16,10 @@ import { perfCount } from '../lib/perfCount';
 import { categoryOf } from '../lib/discovery/categories';
 import { takeRecallOpen } from '../lib/discovery/recallCheck';
 import { loadPrefs, runScan, savePrefs } from '../lib/discovery/runScan';
-import { adoptable, scanNote, type Prefs } from '../lib/discovery/scan';
+import { adoptable, scanMessage, sweepCount, type Prefs } from '../lib/discovery/scan';
 import type { Mark } from '../lib/discovery/types';
-import { readArea } from '../lib/landing/read';
-import { keyFor, landingView, LANDING_VERSION, staleNote, type LandingRow } from '../lib/landing/view';
+import { readArea, rememberArea, sweepArea } from '../lib/landing/read';
+import { landingView, staleNote, type LandingRow } from '../lib/landing/view';
 import { loopWaypoint } from '../lib/landing/walk';
 import { ensureTileBuild } from '../lib/tiles';
 import { placeBacklog } from '../lib/backlog';
@@ -228,9 +228,7 @@ export default function Home() {
         return;
       }
       const tile = await db.getMeta('tile_build').catch(() => null);
-      const known = await db.listLandings().catch(() => landings);
-      const row: LandingRow = { key: keyFor(known, r.centre), centre: r.centre, analysis: r.analysis, build: tile ?? 'unknown', rules: LANDING_VERSION, analyzed_at: Date.now() };
-      await db.putLanding(row);
+      const row = await rememberArea(r.centre, r.analysis, tile ?? 'unknown');
       setLandings((rows) => [...rows.filter((x) => x.key !== row.key), row]);
       setBuild(tile);
       const pts = [...r.analysis.pockets.flatMap((p) => p.hull), ...(r.analysis.landing ? [r.analysis.landing.at] : [])];
@@ -261,7 +259,14 @@ export default function Home() {
     try {
       const r = await runScan({ center: at, walkId: null, map, shouldStop: () => scanCancelled.current });
       if (r.outcome === 'cancelled' || r.outcome === 'closed' || r.outcome === 'busy') return;
-      const message = r.outcome === 'full' ? `${r.marks.length} marks to find on your next walk` : scanNote(r.outcome, r.marks.length)!;
+      // The sweep (S21): the busy streets around, with no camera moves, after the marks.
+      const row = await sweepArea(at, () => scanCancelled.current);
+      if (scanCancelled.current) return;
+      if (row) {
+        setLandings((rows) => [...rows.filter((x) => x.key !== row.key), row]);
+        setBuild(row.build);
+      }
+      const message = scanMessage(r.outcome, r.marks.length, sweepCount(row?.analysis), `${r.marks.length} marks to find on your next walk`);
       setScanNotice({ message, tone: r.outcome === 'failed' ? 'error' : 'info' });
       AccessibilityInfo.announceForAccessibility(message);
       setHomeMarks(await db.listMarks(null).catch(() => homeMarks));

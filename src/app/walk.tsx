@@ -17,7 +17,7 @@ import { checkRecalls, onRecallFired, QUIET_KEY, takeRecallOpen } from '../lib/d
 import { categoryOf } from '../lib/discovery/categories';
 import { loadAutoScan, loadPrefs, savePrefs } from '../lib/discovery/runScan';
 import { deadZoneDue, deadZoneNudge, inDeadZone, stripAt } from '../lib/landing/walk';
-import { LANDING_VERSION, type LandingRow } from '../lib/landing/view';
+import { landingView, LANDING_VERSION, type LandingRow } from '../lib/landing/view';
 import { placesFromTilePois } from '../lib/discovery/tilePois';
 import { useScan } from '../lib/discovery/useScan';
 import { db } from '../lib/db';
@@ -322,6 +322,8 @@ export default function WalkScreen() {
   // Scan (v1 slice 2): marks to find within 500 m.
   const fixes = useMemo(() => live.runs.flat(), [live.runs]);
   const [markOpen, setMarkOpen] = useState<string | null>(null);
+  // Hotspots: the remembered areas, current rules only. A scan's sweep adds one (S21).
+  const [landings, setLandings] = useState<LandingRow[]>([]);
   const scan = useScan({
     walkId: walk?.id ?? null,
     here: live.here,
@@ -329,6 +331,7 @@ export default function WalkScreen() {
     captures: cap.captures,
     map: () => mapRef.current,
     onNotice: (message, tone) => setNotice({ message, tone }),
+    onSwept: (row) => setLandings((rows) => [...rows.filter((x) => x.key !== row.key), row]),
     onFound: (m) => {
       successFeedback();
       setArrived(`Found: ${m.name}`);
@@ -482,7 +485,6 @@ export default function WalkScreen() {
   }, [walk, live.here, navFinding, scanNow]);
   // Hotspots on the walk (v1.5 slice 3): the remembered areas' strips and pockets, current rules
   // only, read again on returning to the front (an area looked at meanwhile, audit).
-  const [landings, setLandings] = useState<LandingRow[]>([]);
   useEffect(() => {
     let alive = true;
     db.listLandings().then((r) => alive && setLandings(r.filter((x) => x.rules === LANDING_VERSION)), () => {});
@@ -491,6 +493,8 @@ export default function WalkScreen() {
     };
   }, [resumed]);
   const hotStrips = useMemo(() => landings.flatMap((r) => r.analysis.strips), [landings]);
+  // Drawn on the walk map too (S21): pockets, strips and their names; Start here is the home's.
+  const hotView = useMemo(() => (landings.length ? { ...landingView(landings, build), pins: [] } : null), [landings, build]);
   const hotPockets = useMemo(
     () => landings.flatMap((r) => r.analysis.pockets.map((p) => ({ name: p.name, centre: p.centre, strip: p.strips.length > 0 }))),
     [landings],
@@ -708,6 +712,7 @@ export default function WalkScreen() {
   return (
     <View style={styles.screen}>
       <WalkMap
+        landing={hotView}
         trace={live.runs}
         walked={walked}
         fog={fog}

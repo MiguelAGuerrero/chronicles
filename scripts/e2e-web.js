@@ -49,9 +49,11 @@ xs.forEach((x) => features.push({ type: 'Feature', properties: { class: 'minor' 
 features.push({ type: 'Feature', properties: { class: 'neighbourhood', name: 'Fox Point' }, geometry: { type: 'Point', coordinates: at(1, 0) } });
 // A town point 2.9 km east: in reach of the walk, but outside the z14 tiles read for its streets.
 features.push({ type: 'Feature', properties: { class: 'city', name: 'Providence' }, geometry: { type: 'Point', coordinates: at(29, 0) } });
-// Points of interest for discovery (D1): a café and an unnamed artwork are
-// kept, a bus stop is not a place to offer.
-features.push({ type: 'Feature', properties: { class: 'cafe', subclass: 'cafe', name: 'Coffee Exchange' }, geometry: { type: 'Point', coordinates: at(0.65, -0.35) } });
+// Points of interest for discovery (D1): a memorial and an unnamed artwork are
+// marks; a café and a plain church are places but never marks (S18, S20); a bus stop is not a place.
+features.push({ type: 'Feature', properties: { class: 'monument', subclass: 'memorial', name: 'Hessian Memorial' }, geometry: { type: 'Point', coordinates: at(0.65, -0.35) } });
+features.push({ type: 'Feature', properties: { class: 'cafe', subclass: 'cafe', name: 'Coffee Exchange' }, geometry: { type: 'Point', coordinates: at(-0.6, 0.4) } });
+features.push({ type: 'Feature', properties: { class: 'place_of_worship', subclass: 'place_of_worship', name: 'Grace Church' }, geometry: { type: 'Point', coordinates: at(-0.4, -0.6) } });
 features.push({ type: 'Feature', properties: { class: 'art_gallery', subclass: 'artwork' }, geometry: { type: 'Point', coordinates: at(1.1, 0.6) } });
 features.push({ type: 'Feature', properties: { class: 'bus', subclass: 'bus_stop', name: 'Wickenden at Hope' }, geometry: { type: 'Point', coordinates: at(0.4, -0.6) } });
 // Three more out east: over 500 m from where the walk scans, but within a home scan around Fox Point (S11).
@@ -159,13 +161,17 @@ function check(ok, what) {
     // reads the 500 m around you: a café and an unnamed artwork, not the bus stop (S2, S15).
     await page.click('[data-testid=scan]');
     await page.waitForSelector('[data-testid=prefs-done]');
-    check((await page.locator('[data-testid^=pref-][data-testid$=-normal][aria-checked=true]').count()) === 8, 'the first scan asks preferences, all normal');
+    check((await page.locator('[data-testid^=pref-][data-testid$=-normal][aria-checked=true]').count()) === 5 && (await page.locator('[data-testid^=pref-food-]').count()) === 0,
+      'the first scan asks preferences, all normal, for the five attraction categories only (S23)');
     check((await page.locator('[data-testid=auto-scan]').count()) === 1, 'the preferences offer a scan when a walk starts (A2)');
-    await page.click('[data-testid=pref-food-more]');
+    await page.click('[data-testid=pref-art-more]');
     await shot(page, '01a-prefs');
     await page.click('[data-testid=prefs-done]');
     await page.waitForSelector('text=Only 2 spots nearby', { timeout: 30000 });
     const walkMarks = () => page.locator('.maplibregl-map').last().locator('[data-testid=mark-pin]');
+    // The sweep (S21, S22): Thayer Street's strip, 1.1 km east, shows on the walk map, and the note counts it.
+    await page.waitForSelector('text=/Only 2 spots nearby · 1 busy street/', { timeout: 30000 });
+    check((await page.locator('.maplibregl-map').last().getByText('Thayer Street', { exact: true }).count()) >= 1, 'a scan also shows the busy streets around (S21, S22)');
     check((await walkMarks().count()) === 2 && (await page.locator('[aria-label="A mark to find. Open"]').count()) >= 2, 'a scan drops a "?" mark for each place nearby (S3, S7)');
     await shot(page, '01b-marks');
 
@@ -229,7 +235,7 @@ function check(ok, what) {
       }
       if (k === 13) {
         // Within 60 m, the café's mark shows what it is (S7).
-        check((await page.locator('[aria-label="Coffee Exchange, Food & drink. Open"]').count()) === 1, 'a mark shows its name and category within 60 m');
+        check((await page.locator('[aria-label="Hessian Memorial, History & landmarks. Open"]').count()) === 1, 'a mark shows its name and category within 60 m');
       }
       if (k === 15) {
         // The camera takes video too. The web caps clips at 15 s; a longer one is turned away.
@@ -245,7 +251,7 @@ function check(ok, what) {
         // Within ~30 m at walking zoom, the video shares a pin with the memo.
         check((await page.locator('[aria-label="2 captures here. Open"]').count()) === 1, 'a short video is kept, sharing a pin with the memo nearby');
         // The video is taken about 40 m from the café: it finds the mark (S8). (The memo at step 10, 62 m off, does not.)
-        check((await walkMarks().count()) === 1 && (await page.locator('[aria-label="Coffee Exchange, Food & drink. Open"]').count()) === 0, 'a capture within 60 m finds the mark');
+        check((await walkMarks().count()) === 1 && (await page.locator('[aria-label="Hessian Memorial, History & landmarks. Open"]').count()) === 0, 'a capture within 60 m finds the mark');
       }
       if (k === 25) {
         await page.click('[data-testid=cap-note]');
@@ -554,12 +560,12 @@ function check(ok, what) {
     }));
     const poiNames = pois.map((p) => `${p.category}:${p.name}`).sort();
     check(
-      poiNames.includes('art:Public art') && poiNames.includes('food:Coffee Exchange') && !poiNames.some((n) => /Wickenden at Hope/.test(n))
+      poiNames.includes('art:Public art') && poiNames.includes('history:Hessian Memorial') && poiNames.includes('food:Coffee Exchange') && !poiNames.some((n) => /Wickenden at Hope/.test(n))
         && pois.every((p) => p.build === '20261028_001001_pt'),
       `the walk's reads cache its places of interest, and no bus stop (${poiNames.join(', ')})`,
     );
     // The card counts finds by category, and keeps the mark passed on as a low (S9, S13).
-    check(/Found 1 food & drink/.test(card) || (await page.locator('[data-testid=card-finds]').innerText()) === 'Found 1 food & drink', 'the card counts finds by category');
+    check(/Found 1 history/.test(card) || (await page.locator('[data-testid=card-finds]').innerText()) === 'Found 1 history', 'the card counts finds by category');
     const low = await page.locator('[data-testid=card-low]').allInnerTexts();
     check(low.length === 1 && /^Passed on: a mark near Arnold Street$/.test(low[0]), `the card keeps the dismissed mark as a low (${low.join(' | ')})`);
     await page.waitForTimeout(800);
@@ -703,13 +709,13 @@ function check(ok, what) {
       await page.mouse.up();
       await shot(page, '11a-home-press');
       await page.click('[data-testid=scan-here]');
-      await page.waitForSelector('text=Only 3 spots nearby', { timeout: 30000 });
-      check((await page.locator('[data-testid=mark-pin]').count()) === 3, 'Scan here on the home leaves three marks for the next walk');
+      await page.waitForSelector('text=Only 2 spots nearby', { timeout: 30000 });
+      check((await page.locator('[data-testid=mark-pin]').count()) === 2, 'Scan here on the home leaves two marks for the next walk, not the bakery (S18)');
       await shot(page, '11b-home-scan');
       // Preferences are editable from the home (S14).
       await page.click('[data-testid=prefs-open]');
       await page.waitForSelector('[data-testid=prefs-done]');
-      check((await page.locator('[data-testid=pref-food-more][aria-checked=true]').count()) === 1, 'the home opens the preferences as they were left');
+      check((await page.locator('[data-testid=pref-art-more][aria-checked=true]').count()) === 1, 'the home opens the preferences as they were left');
       await page.click('text=Cancel');
     }
 
@@ -725,6 +731,7 @@ function check(ok, what) {
         await page.mouse.up();
       };
       // Cancel goes at once and keeps nothing (audit).
+      const pinsBefore = await page.locator('[data-testid=start-here]').count();
       tileDelayMs = 4000;
       await press(st);
       await page.click('[data-testid=look-here]');
@@ -732,7 +739,7 @@ function check(ok, what) {
       const gone = (await page.locator('[data-testid=look-cancel]').count()) === 0;
       await page.waitForTimeout(6000);
       tileDelayMs = 0;
-      check(gone && (await page.locator('[data-testid=start-here]').count()) === 0, 'cancelling a look stops it at once, with nothing kept');
+      check(gone && (await page.locator('[data-testid=start-here]').count()) === pinsBefore, 'cancelling a look stops it at once, with nothing kept');
       await press(st);
       await page.click('[data-testid=look-here]');
       await page.waitForSelector('text=/Busiest area: Thayer Street. A best guess from the map./', { timeout: 30000 });
@@ -795,7 +802,7 @@ function check(ok, what) {
     check(/\/walk(\?|$)/.test(page.url()) && /Fox Point/.test(await page.locator('[data-testid=nav-bar]').innerText()), 'a star\u2019s Walk here starts a walk navigating there, once there is a fix');
     await shot(page, '12-home-go');
     // The walk adopts the marks scanned from the home (S11).
-    check((await page.locator('.maplibregl-map').last().locator('[data-testid=mark-pin]').count()) === 3, 'the next walk adopts the home’s marks');
+    check((await page.locator('.maplibregl-map').last().locator('[data-testid=mark-pin]').count()) === 2, 'the next walk adopts the home’s marks');
     // A later walk passing the flagged capture brings it back, in front (R2, R3, R4).
     // At a walking pace: a jump would be dropped as a GPS glitch.
     for (let j = 1; j <= 26; j++) {

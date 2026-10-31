@@ -1,7 +1,7 @@
 import { distanceM, distanceToLinesM } from '../geo';
 import type { LngLat, StreetSegment } from '../types';
 import { CATEGORIES, categoryOf } from './categories';
-import { isChain } from './noise';
+import { isMarkable } from './noise';
 import { isOffered } from './places';
 import type { CategoryId, Mark, MarkOrigin, Offered, Place } from './types';
 
@@ -59,8 +59,6 @@ export function pickMarks(o: {
   offered: Offered[];
   prefs: Prefs;
   random?: () => number;
-  /** Chains are left out unless asked for (the owner's call, Nov 2; meta `discovery_chains`). */
-  includeChains?: boolean;
 }): { picked: Place[]; outcome: Exclude<ScanOutcome, 'failed'> } {
   const random = o.random ?? Math.random;
   const seen = new Set<string>();
@@ -68,7 +66,8 @@ export function pickMarks(o: {
   for (const p of o.candidates) {
     if (seen.has(p.key)) continue;
     seen.add(p.key);
-    if (!o.includeChains && isChain(p.name, p.category)) continue;
+    // Attractions only: food, shops and nightlife show as busy streets instead (S18-S20).
+    if (!isMarkable(p)) continue;
     const d = distanceM(p.at, o.center);
     // A place keyed twice (it straddles a rounding line) is one place: the same test as Offered.
     if (d <= SCAN_RULES.radiusM && d > SCAN_RULES.clearM && !isOffered(p, o.offered) && !isOffered(p, kept)) kept.push(p);
@@ -217,6 +216,26 @@ export function scanNote(outcome: ScanOutcome, n: number): string | null {
       return 'Couldn’t read the map here';
   }
 }
+
+/** What the sweep found (S21): named busy strips, and pockets with no strip of their own. */
+export type SweepCount = { strips: number; pockets: number } | null;
+
+const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`;
+
+/** The scan's note: the marks and the busy streets together (S22). */
+export function scanMessage(outcome: ScanOutcome, n: number, sweep: SweepCount, full = `${plural(n, 'mark')} nearby`): string {
+  const busy = sweepNote(sweep);
+  const marks = outcome === 'full' ? full : outcome === 'none' && busy ? 'No marks here' : scanNote(outcome, n)!;
+  return busy ? `${marks} · ${busy}` : marks;
+}
+
+/** "2 busy streets · 1 busy pocket", or empty. */
+export const sweepNote = (sweep: SweepCount): string =>
+  sweep ? [sweep.strips && plural(sweep.strips, 'busy street'), sweep.pockets && plural(sweep.pockets, 'busy pocket')].filter(Boolean).join(' · ') : '';
+
+/** The sweep's count from an analysis: named strips, and pockets with no strip of their own. */
+export const sweepCount = (a: { strips: unknown[]; pockets: { strips: unknown[] }[]; basis: string } | null | undefined): SweepCount =>
+  a ? (a.basis === 'density' ? { strips: a.strips.length, pockets: a.pockets.filter((p) => !p.strips.length).length } : { strips: 0, pockets: 0 }) : null;
 
 /** A dismissed mark on the card: a low, kept in view, named by the nearest named street within 150 m (S9). */
 export function passedOnLine(at: LngLat, segments: StreetSegment[]): string {

@@ -42,7 +42,7 @@ const check = (over: Partial<Parameters<typeof ambientCheck>[0]> = {}) =>
     startedAt: T0 - 1000,
     pauses: [],
     fixes: walkNorth(),
-    places: [place('Coffee Exchange', 'food', m(0, 100))],
+    places: [place('Coffee Exchange', 'history', m(0, 100))],
     unwalked: [street(100)],
     offered: [],
     fired: { count: 0, lastAt: null },
@@ -74,15 +74,15 @@ test('ambient: the gate reads accepted fixes only (A3)', () => {
   const fixes = walkNorth();
   const [lon, lat] = m(30, 5);
   fixes.push({ walk_id: 'w1', t: T0 + 48_000, lat, lon, accuracy_m: 90, speed: 1.25, course: null });
-  const east = place('East Cafe', 'food', m(120, 5));
+  const east = place('East Cafe', 'history', m(120, 5));
   assert.equal(check({ fixes, places: [east], unwalked: [street(5)] }), null);
 });
 
 test('ambient: within 150 m and ±45° ahead; course, else a fix 20-30 m back; none, no alert (A4)', () => {
-  assert.ok(check({ places: [place('Near', 'food', m(0, 140))], unwalked: [street(140)] }));
-  assert.equal(check({ places: [place('Far', 'food', m(0, 160))], unwalked: [street(160)] }), null, 'beyond 150 m');
-  assert.equal(check({ places: [place('Side', 'food', m(100, 50))], unwalked: [street(50)] }), null, 'over 45° off');
-  assert.equal(check({ places: [place('Behind', 'food', m(0, -100))], unwalked: [street(-100)] }), null, 'behind');
+  assert.ok(check({ places: [place('Near', 'history', m(0, 140))], unwalked: [street(140)] }));
+  assert.equal(check({ places: [place('Far', 'history', m(0, 160))], unwalked: [street(160)] }), null, 'beyond 150 m');
+  assert.equal(check({ places: [place('Side', 'history', m(100, 50))], unwalked: [street(50)] }), null, 'over 45° off');
+  assert.equal(check({ places: [place('Behind', 'history', m(0, -100))], unwalked: [street(-100)] }), null, 'behind');
   // The heading: the device's course when it has one.
   const veer = walkNorth(12, { course: 20 });
   assert.equal(headingOfFixes(veer), 20);
@@ -98,7 +98,7 @@ test('ambient: within 150 m and ±45° ahead; course, else a fix 20-30 m back; n
 });
 
 test('ambient: a walked street or an offered place disqualifies (A5)', () => {
-  const p = place('Coffee Exchange', 'food', m(0, 100));
+  const p = place('Coffee Exchange', 'history', m(0, 100));
   assert.equal(check({ unwalked: [] }), null, 'no unwalked street beside it');
   assert.equal(check({ unwalked: [street(140)] }), null, 'the street is 40 m away');
   const offered: Offered[] = [{ key: p.key, name: p.name, category: p.category, at: p.at, generic: false, offered_at: 1, origin: 'scan' }];
@@ -123,10 +123,10 @@ test('ambient: 3 a walk, 10 min apart; a quarter of walks have none; a coin for 
 test('ambient: the words give category, distance and side, never the name (A7)', () => {
   assert.equal(ambientText('art', 123, 'left'), 'Some art, 120 m ahead, on your left');
   assert.equal(ambientText('food', 87, 'ahead'), 'Somewhere to eat, 90 m ahead');
-  const got = check({ places: [place('Coffee Exchange', 'food', m(20, 100))], unwalked: [street(100)] })!;
+  const got = check({ places: [place('Coffee Exchange', 'history', m(20, 100))], unwalked: [street(100)] })!;
   assert.equal(got.side, 'right');
   assert.ok(!got.text.includes('Coffee'));
-  assert.equal(got.text, 'Somewhere to eat, 100 m ahead, on your right');
+  assert.equal(got.text, 'Some history, 100 m ahead, on your right');
 });
 
 test('ambient: silent while a scan mark is pursued or an ambient mark is open (A8)', () => {
@@ -174,7 +174,7 @@ test('ambient: the coin is drawn once per place and walk, not every batch (audit
   assert.ok(Math.abs(wins / 400 - 0.5) < 0.08, `${wins / 400}`);
   for (const k of places.slice(0, 20)) assert.equal(coinFor(LIVE_WALK, k), coinFor(LIVE_WALK, k), 'the same every batch');
   // In the gate: a place that lost its coin stays out however many batches pass.
-  const p = place('Coffee Exchange', 'food', m(0, 100));
+  const p = place('Coffee Exchange', 'history', m(0, 100));
   const lost = (() => {
     for (let i = 0; ; i++) if (!walkSilent(`c${i}`) && !coinFor(`c${i}`, p.key)) return `c${i}`;
   })();

@@ -1,5 +1,6 @@
 import raw from './chains.json';
-import type { CategoryId } from './types';
+import notable from './notable.json';
+import type { CategoryId, Place } from './types';
 
 /**
  * Chains aren't discoveries (the owner's call, Nov 2). OpenMapTiles carries no
@@ -34,3 +35,25 @@ export function isChain(name: string, category: CategoryId): boolean {
   if (!n) return false;
   return CHAINS[category].some((c) => n === c || n.startsWith(c + ' '));
 }
+
+/**
+ * A ? mark is for an attraction or a unique place (S18): the categories a
+ * sightseer goes out of their way for. Food, shops and nightlife are an
+ * area's ordinary activity; they show as its busy streets instead.
+ */
+export const MARK_CATEGORIES: readonly CategoryId[] = ['art', 'history', 'parks', 'culture', 'viewpoints'];
+
+const NOTABLE = notable.words.map(normalizeBrand);
+/** The name marks it as historic or notable (S20): a listed word or phrase, as whole words. */
+export function notableName(name: string): boolean {
+  const n = ` ${normalizeBrand(name)} `;
+  return NOTABLE.some((w) => n.includes(` ${w} `));
+}
+
+/**
+ * Whether a place can become a mark (S18-S20). `markable: false` comes from
+ * the adapter (a cinema, a plain church); a row cached before it existed is
+ * judged by its category alone.
+ */
+export const isMarkable = (p: Pick<Place, 'name' | 'category' | 'markable'>): boolean =>
+  MARK_CATEGORIES.includes(p.category) && p.markable !== false && !isChain(p.name, p.category);

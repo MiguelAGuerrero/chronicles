@@ -4,7 +4,7 @@ import { boundsOf } from '../geo';
 import { newId } from '../id';
 import { mapReads } from '../mapReads';
 import { withTimeout } from '../places';
-import { isChain } from './noise';
+import { isMarkable } from './noise';
 import { ensureTileBuild } from '../tiles';
 import type { LngLat } from '../types';
 import { candidatesFrom, marksFromScan, offeredFrom, pickMarks, readFailed, SCAN_RULES, toReplace, type Prefs, type ScanOutcome } from './scan';
@@ -30,9 +30,6 @@ export const savePrefs = (prefs: Prefs) => db.setMeta(PREFS_KEY, JSON.stringify(
 /** Auto-scan (A2): a scan when a walk starts, set with the preferences. */
 export const loadAutoScan = async () => (await db.getMeta('auto_scan')) === '1';
 export const saveAutoScan = (on: boolean) => db.setMeta('auto_scan', on ? '1' : '');
-/** Chains are left out of suggestions unless this is on (the owner's call, Nov 2). */
-export const loadIncludeChains = async () => (await db.getMeta('discovery_chains')) === '1';
-export const saveIncludeChains = (on: boolean) => db.setMeta('discovery_chains', on ? '1' : '');
 
 /** 'busy': another map read (a route's) holds the camera; 'closed': the walk ended mid-scan. */
 export type ScanResult = { outcome: ScanOutcome | 'cancelled' | 'busy' | 'closed'; marks: Mark[] };
@@ -70,12 +67,12 @@ async function scan(o: { center: LngLat; walkId: string | null; map: WalkMapHand
   const got = features ? placesFromTilePois(features.pois, build) : [];
   if (build !== 'unknown') await db.putPlaces(got).catch(() => {});
   const cached = build !== 'unknown' ? await db.placesIn(bounds).catch(() => []) : [];
-  const [offered, existing, prefs, includeChains] = await Promise.all([db.listOffered(), db.listMarks(o.walkId), loadPrefs(), loadIncludeChains()]);
-  // Chains don't count toward filling the scan either.
-  const candidates = candidatesFrom(got, cached, build).filter((p) => includeChains || !isChain(p.name, p.category));
+  const [offered, existing, prefs] = await Promise.all([db.listOffered(), db.listMarks(o.walkId), loadPrefs()]);
+  // Only attractions count toward filling the scan (S18-S20).
+  const candidates = candidatesFrom(got, cached, build).filter(isMarkable);
   // Tiles that didn't load: "Couldn't read the map here", and nothing changes (S15).
   if (readFailed({ read: features != null, complete: !!features?.complete, candidates, center: o.center, offered })) return { outcome: 'failed', marks: [] };
-  const { picked, outcome } = pickMarks({ candidates, center: o.center, offered, prefs: prefs ?? {}, includeChains });
+  const { picked, outcome } = pickMarks({ candidates, center: o.center, offered, prefs: prefs ?? {} });
   if (outcome === 'none') return { outcome, marks: [] };
   // A walk stopped mid-scan gets no marks, and spends no places.
   if (o.walkId && !(await db.getWalk(o.walkId))?.open) return { outcome: 'closed', marks: [] };
