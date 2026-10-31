@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import {
-  AccessibilityInfo, ActivityIndicator, Animated, BackHandler, Easing, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, StyleSheet, Text,
+  AccessibilityInfo, ActivityIndicator, Animated, BackHandler, Switch, Easing, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, StyleSheet, Text,
   TextInput, useWindowDimensions, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,9 +13,10 @@ import { Icon, KIND_LABEL, type IconName } from '../components/icons';
 import { Banner, Button, HoldButton, theme } from '../components/ui';
 import { DiscoveryPrefs } from '../components/DiscoveryPrefs';
 import { ReminderCard } from '../components/ReminderCard';
-import { checkRecalls, onRecallFired, takeRecallOpen } from '../lib/discovery/recallCheck';
+import { AMBIENT_KEY, MARK_OPEN_KEY, onAmbientHint } from '../lib/discovery/ambientRun';
+import { checkRecalls, onRecallFired, QUIET_KEY, takeRecallOpen } from '../lib/discovery/recallCheck';
 import { categoryOf } from '../lib/discovery/categories';
-import { savePrefs } from '../lib/discovery/runScan';
+import { loadAutoScan, savePrefs } from '../lib/discovery/runScan';
 import { placesFromTilePois } from '../lib/discovery/tilePois';
 import { useScan } from '../lib/discovery/useScan';
 import { db } from '../lib/db';
@@ -25,7 +26,7 @@ import { capturesHere, type HereResult } from '../lib/here';
 import { deriveSegments, streetKey } from '../lib/streets';
 import { successFeedback, tapFeedback } from '../lib/haptics';
 import { recorder } from '../lib/recorder';
-import { PAUSE_REMIND_MS } from '../lib/notify';
+import { notifier, PAUSE_REMIND_MS } from '../lib/notify';
 import { ensureTileBuild } from '../lib/tiles';
 import type { RecorderStatus } from '../lib/recorder/types';
 import { pauseWalk, resumeWalk, stopWalk } from '../lib/session';
@@ -333,6 +334,71 @@ export default function WalkScreen() {
       alive = false;
     };
   }, [walk, params.recall]);
+  // This walk's options (A2): a quiet walk (no reminders, no hints), and on a
+  // phone, ambient hints (A1), off unless turned on for this walk.
+  const [options, setOptions] = useState(false);
+  const [quiet, setQuiet] = useState(false);
+  const [ambientOn, setAmbientOn] = useState(false);
+  useEffect(() => {
+    if (!walk) return;
+    let alive = true;
+    Promise.all([db.getMeta(QUIET_KEY), db.getMeta(AMBIENT_KEY)])
+      .then(([q, a]) => {
+        if (!alive) return;
+        setQuiet(q === walk.id);
+        setAmbientOn(a === walk.id);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [walk]);
+  const setWalkFlag = (key: string, on: boolean) => walk && db.setMeta(key, on ? walk.id : '').catch(() => {});
+  // A hint in front is a pill, not a banner (A8); Show opens its mark.
+  const [hint, setHint] = useState<{ text: string; markId: string } | null>(null);
+  const reloadMarks = scan.reload;
+  useEffect(
+    () =>
+      onAmbientHint((text, markId) => {
+        reloadMarks();
+        setHint({ text, markId });
+        AccessibilityInfo.announceForAccessibility(text);
+      }),
+    [reloadMarks],
+  );
+  useEffect(() => {
+    if (!hint) return;
+    const t = setTimeout(() => setHint(null), 15_000);
+    return () => clearTimeout(t);
+  }, [hint]);
+  // A tapped hint notification opens the walk on its mark, with Go here (A9).
+  useEffect(() => {
+    if (!walk) return;
+    let alive = true;
+    db.getMeta(MARK_OPEN_KEY)
+      .then(async (id) => {
+        if (!id || !alive) return;
+        await db.setMeta(MARK_OPEN_KEY, '');
+        await reloadMarks();
+        if (alive) setMarkOpen(id);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [walk, reloadMarks]);
+  // Auto-scan (A2): once per walk, at its first fix, when set in the preferences.
+  const scanNow = scan.scan;
+  const autoTried = useRef(false);
+  useEffect(() => {
+    if (!walk || !live.here || autoTried.current) return;
+    autoTried.current = true;
+    (async () => {
+      if (!(await loadAutoScan()) || (await db.getMeta('auto_scanned')) === walk.id) return;
+      await db.setMeta('auto_scanned', walk.id);
+      scanNow();
+    })().catch(() => {});
+  }, [walk, live.here, scanNow]);
   const walkStart: LngLat | null = live.runs[0]?.[0] ?? null;
   // Once, after the first 100 m of a first walk: how to go somewhere.
   const hinted = useRef(false);
@@ -583,6 +649,22 @@ export default function WalkScreen() {
             <Text style={styles.chipText}>{problem.label}</Text>
           </View>
         )}
+        {hint && (
+          <View testID="ambient-hint" style={styles.undo}>
+            <Text style={styles.undoText}>{hint.text}</Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                setMarkOpen(hint.markId);
+                setHint(null);
+              }}
+              hitSlop={10}
+              style={styles.undoBtn}
+            >
+              <Text style={styles.undoBtnText}>Show</Text>
+            </Pressable>
+          </View>
+        )}
         {reminder && (
           <ReminderCard
             captures={reminder.captures}
@@ -620,7 +702,7 @@ export default function WalkScreen() {
             <Text style={styles.voiceLiveText}>{formatElapsed(now - cap.voiceStartedAt!)}</Text>
           </View>
         )}
-        {justTook && !recordingVoice && !spot && !openMark && (
+        {justTook && !recordingVoice && !spot && !openMark && !options && (
           <View style={styles.undo} accessibilityLiveRegion="polite">
             <Text style={styles.undoText}>Photo saved here</Text>
             <Pressable
@@ -637,7 +719,7 @@ export default function WalkScreen() {
             </Pressable>
           </View>
         )}
-        {cap.discarded && !recordingVoice && !spot && !openMark && (
+        {cap.discarded && !recordingVoice && !spot && !openMark && !options && (
           <View style={styles.undo} accessibilityLiveRegion="polite">
             <Text style={styles.undoText}>Voice memo discarded</Text>
             <Pressable testID="voice-undo" accessibilityRole="button" onPress={() => cap.undoDiscard()} hitSlop={10} style={styles.undoBtn}>
@@ -645,7 +727,7 @@ export default function WalkScreen() {
             </Pressable>
           </View>
         )}
-        {cap.unsaved && !recordingVoice && !spot && !openMark && (
+        {cap.unsaved && !recordingVoice && !spot && !openMark && !options && (
           <View style={styles.undo} accessibilityLiveRegion="polite">
             <Text style={styles.undoText}>Voice memo not saved</Text>
             <Pressable accessibilityRole="button" onPress={() => cap.retrySave()} hitSlop={10} style={styles.undoBtn}>
@@ -706,6 +788,20 @@ export default function WalkScreen() {
             {formatElapsed(elapsed)} · {formatDistance(live.distanceM)}
           </Text>
           <View style={styles.barActions}>
+          <Pressable
+            testID="walk-options"
+            accessibilityRole="button"
+            accessibilityLabel="Walk options"
+            accessibilityState={{ expanded: options }}
+            onPress={() => {
+              setSpot(null);
+              setMarkOpen(null);
+              setOptions((v) => !v);
+            }}
+            style={({ pressed }) => [styles.pauseBtn, options && styles.optionsOn, pressed && styles.pressed]}
+          >
+            <Icon name={quiet ? 'notifications-off-outline' : 'options-outline'} size={20} color={options ? '#ffffff' : theme.ink} />
+          </Pressable>
           <Pressable
             testID={paused ? 'resume-walk' : 'pause-walk'}
             accessibilityRole="button"
@@ -802,6 +898,51 @@ export default function WalkScreen() {
         </Pressable>
       )}
 
+      {options && (
+        <View style={[styles.spotRow, { bottom: insets.bottom + 92 + 68 + 12 }]} pointerEvents="box-none">
+          <View testID="options-card" style={styles.spot}>
+            <Text style={styles.spotTitle} accessibilityRole="header">This walk</Text>
+            <View style={styles.optionRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.optionLabel}>Quiet walk</Text>
+                <Text style={styles.markSub}>No reminders{Platform.OS === 'web' ? '' : ' and no hints'} on this walk.</Text>
+              </View>
+              <Switch
+                testID="quiet-walk"
+                accessibilityLabel="Quiet walk"
+                value={quiet}
+                onValueChange={(v) => {
+                  setQuiet(v);
+                  setWalkFlag(QUIET_KEY, v);
+                }}
+              />
+            </View>
+            {/* Ambient is phone-only (A1): the web shows no setting. */}
+            {Platform.OS !== 'web' && (
+              <View style={styles.optionRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.optionLabel}>Hints along the way</Text>
+                  <Text style={styles.markSub}>Up to three nudges toward something on a street you haven’t walked.</Text>
+                </View>
+                <Switch
+                  testID="ambient"
+                  accessibilityLabel="Hints along the way"
+                  value={ambientOn}
+                  disabled={quiet}
+                  onValueChange={(v) => {
+                    setAmbientOn(v);
+                    setWalkFlag(AMBIENT_KEY, v);
+                    if (v) notifier.ask().catch(() => {});
+                  }}
+                />
+              </View>
+            )}
+            <Pressable testID="options-close" accessibilityRole="button" accessibilityLabel="Close" onPress={() => setOptions(false)} style={[styles.spotClose, { position: 'absolute', top: 4, right: 4 }]} hitSlop={8}>
+              <Icon name="close" size={22} color={theme.ink} />
+            </Pressable>
+          </View>
+        </View>
+      )}
       {openMark && !spot && (
         // A mark's card, in the spot card's place (S7, S9, S12).
         <View style={[styles.spotRow, { bottom: insets.bottom + 92 + 68 + 12 }]} pointerEvents="box-none">
@@ -1057,6 +1198,9 @@ const styles = StyleSheet.create({
   },
   spotTitle: { fontSize: 16, fontWeight: '700', color: theme.ink },
   markSub: { fontSize: 14, color: theme.muted },
+  optionRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48 },
+  optionLabel: { fontSize: 15, fontWeight: '600', color: theme.ink },
+  optionsOn: { backgroundColor: theme.ink, borderColor: theme.ink },
   edgeBtnOff: { opacity: 0.5 },
   spotActions: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
   spotClose: { marginLeft: 'auto', width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },

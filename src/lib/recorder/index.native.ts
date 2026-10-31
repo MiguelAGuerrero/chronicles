@@ -2,6 +2,7 @@ import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import { AppState, PermissionsAndroid, Platform } from 'react-native';
 import { db } from '../db';
+import { runAmbient } from '../discovery/ambientRun';
 import { checkRecalls } from '../discovery/recallCheck';
 import { filterFixes, withoutPauses } from '../geo';
 import type { LngLat, TracePoint } from '../types';
@@ -61,7 +62,9 @@ TaskManager.defineTask<{ locations: Location.LocationObject[] }>(TASK, async ({ 
     // notification, in front the walk screen's card.
     const pauses = await db.getPauses(walk.id).catch(() => []);
     const accepted = filterFixes(withoutPauses(points, pauses), walk.started_at).map((p) => [p.lon, p.lat] as LngLat);
-    if (accepted.length) await checkRecalls(walk.id, accepted).catch(() => {});
+    // A reminder goes first; ambient waits for the next batch (R7).
+    const reminded = accepted.length ? await checkRecalls(walk.id, accepted).catch(() => false) : false;
+    if (!reminded && accepted.length) await runAmbient(walk).catch(() => {});
   } catch (e) {
     setStatus({ kind: 'error', message: `Positions could not be saved: ${e instanceof Error ? e.message : e}` });
   }

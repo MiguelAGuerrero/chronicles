@@ -17,6 +17,8 @@ export async function currentTileBuild(): Promise<string> {
     const res = await fetch(TILEJSON_URL);
     const json = (await res.json()) as { tiles?: string[] };
     const url = json.tiles?.[0] ?? '';
+    // Kept for the location task, which reads tiles itself, without the map (A11).
+    if (url) await db.setMeta('tile_url', url).catch(() => {});
     const m = /\/([0-9]{8}_[0-9A-Za-z_]+)\/\{z\}/.exec(url);
     if (m) return m[1];
     if (url) return url;

@@ -44,7 +44,7 @@ async function deliver(walkId: string, captures: Capture[]) {
   else await notifier.recall(reminderText(captures), captures.map((c) => c.id), walkId).catch(() => {});
 }
 
-let running: Promise<void> | null = null;
+let running: Promise<boolean> | null = null;
 let last: { walkId: string; at: LngLat } | null = null;
 
 /**
@@ -54,28 +54,30 @@ let last: { walkId: string; at: LngLat } | null = null;
  * shared by the walk screen and the location task; a check that finds itself
  * overlapping another is skipped, the next fix checks again.
  */
-export function checkRecalls(walkId: string, path: LngLat[], now = Date.now()): Promise<void> {
+/** Resolves true when a reminder fired: ambient waits for the next batch (R7). */
+export function checkRecalls(walkId: string, path: LngLat[], now = Date.now()): Promise<boolean> {
   const end = path[path.length - 1];
-  if (!end || running) return running ?? Promise.resolve();
-  if (last && last.walkId === walkId && path.every((p) => distanceM(p, last!.at) < STEP_M)) return Promise.resolve();
+  if (!end || running) return Promise.resolve(false);
+  if (last && last.walkId === walkId && path.every((p) => distanceM(p, last!.at) < STEP_M)) return Promise.resolve(false);
   running = (async () => {
     last = { walkId, at: end };
     const all = await recalls();
-    if (!all.length) return;
+    if (!all.length) return false;
     for (const r of all) if (isExpired(r, now)) await stopRecall(r.capture_id);
     const quiet = (await db.getMeta(QUIET_KEY)) === walkId;
-    if (quiet) return;
+    if (quiet) return false;
     const box = boundsOf(path, RECALL_RULES.reachM + 10)!;
     const due = dueRecalls({ here: path, walkId, now, quiet, recalls: await recalls(), captures: await db.capturesIn(box) });
-    if (!due.length) return;
+    if (!due.length) return false;
     for (const { recall } of due) {
       const next = afterFire(recall, walkId, now);
       if (next.kind === 'clear') await stopRecall(recall.capture_id);
       else await saveRecall({ ...recall, ...next.patch });
     }
     await deliver(walkId, due.map((d) => d.capture));
+    return true;
   })()
-    .catch(() => {})
+    .catch(() => false)
     .finally(() => {
       running = null;
     });

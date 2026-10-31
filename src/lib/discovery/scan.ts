@@ -125,8 +125,13 @@ export const offeredFrom = (picked: Place[], now: number, origin: MarkOrigin = '
 /** A mark shows its name once an accepted fix came within 60 m, and stays shown once resolved (S7). */
 export function isRevealed(mark: Mark, fixes: LngLat[]): boolean {
   if (mark.state !== 'open') return true;
-  return fixes.some((f) => distanceM(f, mark.at) <= SCAN_RULES.revealM);
+  // An ambient mark is named only on arrival (A10).
+  const reach = mark.origin === 'ambient' ? AMBIENT_REVEAL_M : SCAN_RULES.revealM;
+  return fixes.some((f) => distanceM(f, mark.at) <= reach);
 }
+
+/** AMBIENT_RULES.revealM, kept here so scan.ts doesn't import the ambient gate. */
+const AMBIENT_REVEAL_M = 30;
 
 /** The open mark a capture at `at` finds: the nearest within 60 m (S8). */
 export function foundBy(at: LngLat, marks: Mark[]): Mark | null {

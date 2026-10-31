@@ -140,6 +140,7 @@ function check(ok, what) {
     await page.click('[data-testid=scan]');
     await page.waitForSelector('[data-testid=prefs-done]');
     check((await page.locator('[data-testid^=pref-][data-testid$=-normal][aria-checked=true]').count()) === 8, 'the first scan asks preferences, all normal');
+    check((await page.locator('[data-testid=auto-scan]').count()) === 1, 'the preferences offer a scan when a walk starts (A2)');
     await page.click('[data-testid=pref-food-more]');
     await shot(page, '01a-prefs');
     await page.click('[data-testid=prefs-done]');
@@ -183,6 +184,14 @@ function check(ok, what) {
         await page.click('[data-testid=stop]');
         await page.waitForSelector('text=Hold to stop the walk');
         check(true, 'a tap on Stop explains it needs a hold');
+      }
+      if (k === 6) {
+        // This walk's options: quiet walk on both platforms; hints are phone-only, so the web has none (A1, A2).
+        await page.click('[data-testid=walk-options]');
+        await page.waitForSelector('[data-testid=options-card]');
+        check((await page.locator('[data-testid=quiet-walk]').count()) === 1 && (await page.locator('[data-testid=ambient]').count()) === 0, 'walk options offer a quiet walk, and no ambient hints on the web');
+        await shot(page, '01c-options');
+        await page.click('[data-testid=options-close]');
       }
       if (k === 13) {
         // Within 60 m, the café's mark shows what it is (S7).

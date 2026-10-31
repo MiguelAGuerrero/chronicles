@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { CATEGORIES } from '../lib/discovery/categories';
+import { loadAutoScan, saveAutoScan } from '../lib/discovery/runScan';
 import type { Pref, Prefs } from '../lib/discovery/scan';
 import { Icon, type IconName } from './icons';
 import { Button, theme } from './ui';
@@ -24,6 +25,16 @@ export function DiscoveryPrefs(props: {
   onClose: () => void;
 }) {
   const [prefs, setPrefs] = useState<Prefs>(() => props.initial ?? {});
+  // Auto-scan (A2): kept beside the preferences, saved with them.
+  const [auto, setAuto] = useState(false);
+  useEffect(() => {
+    if (!props.visible) return;
+    let alive = true;
+    loadAutoScan().then((v) => alive && setAuto(v), () => {});
+    return () => {
+      alive = false;
+    };
+  }, [props.visible]);
   return (
     <Modal visible={props.visible} transparent animationType="fade" onRequestClose={props.onClose}>
       <View style={styles.back}>
@@ -57,9 +68,16 @@ export function DiscoveryPrefs(props: {
               );
             })}
           </ScrollView>
+          <View style={styles.row}>
+            <Text style={styles.cat}>Scan when a walk starts</Text>
+            <Switch testID="auto-scan" accessibilityLabel="Scan when a walk starts" value={auto} onValueChange={setAuto} />
+          </View>
           <View style={styles.actions}>
             <Button variant="ghost" label="Cancel" onPress={props.onClose} />
-            <Button testID="prefs-done" label={props.actionLabel} onPress={() => props.onDone(prefs)} />
+            <Button testID="prefs-done" label={props.actionLabel} onPress={() => {
+              saveAutoScan(auto).catch(() => {});
+              props.onDone(prefs);
+            }} />
           </View>
         </View>
       </View>

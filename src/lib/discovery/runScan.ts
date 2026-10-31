@@ -26,6 +26,9 @@ export async function loadPrefs(): Promise<Prefs | null> {
   }
 }
 export const savePrefs = (prefs: Prefs) => db.setMeta(PREFS_KEY, JSON.stringify(prefs));
+/** Auto-scan (A2): a scan when a walk starts, set with the preferences. */
+export const loadAutoScan = async () => (await db.getMeta('auto_scan')) === '1';
+export const saveAutoScan = (on: boolean) => db.setMeta('auto_scan', on ? '1' : '');
 
 /** 'busy': another map read (a route's) holds the camera; 'closed': the walk ended mid-scan. */
 export type ScanResult = { outcome: ScanOutcome | 'cancelled' | 'busy' | 'closed'; marks: Mark[] };

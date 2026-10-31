@@ -18,7 +18,15 @@ Notifications.setNotificationCategoryAsync(RECALL_CATEGORY, [
   { identifier: STOP_ACTION, buttonTitle: 'Stop reminding me', options: { opensAppToForeground: true } },
 ]).catch(() => {});
 Notifications.addNotificationResponseReceivedListener((res) => {
-  const data = res.notification.request.content.data as { captureIds?: string[] } | undefined;
+  const data = res.notification.request.content.data as { captureIds?: string[]; markId?: string } | undefined;
+  // An ambient hint opens the walk on its mark, with Go here (A9).
+  if (data?.markId && res.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) {
+    db.setMeta('mark_open', data.markId)
+      .then(() => import('expo-router'))
+      .then(({ router }) => router.navigate('/walk'))
+      .catch(() => {});
+    return;
+  }
   const ids = data?.captureIds ?? [];
   if (!ids.length) return;
   Notifications.dismissNotificationAsync(res.notification.request.identifier).catch(() => {});
@@ -82,6 +90,14 @@ export const notifier: Notifier = {
   },
   async ask() {
     await permitted();
+  },
+  async ambient(text, markId, walkId) {
+    if (!(await permitted(false))) return;
+    await Notifications.scheduleNotificationAsync({
+      identifier: `ambient-${walkId}`,
+      content: { title: 'Something nearby', body: text, data: { markId } },
+      trigger: Platform.OS === 'android' ? { channelId: CHANNEL } : null,
+    });
   },
   async recall(text, captureIds, walkId) {
     if (!(await permitted(false))) return;
