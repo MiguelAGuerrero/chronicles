@@ -4,7 +4,7 @@ import {
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { CapturePinView, pinLabel } from '../CapturePinView';
-import { StarView, starLabel } from '../StarView';
+import { namedStars, StarView, starLabel } from '../StarView';
 import type { RoadFeature } from '../../lib/streets';
 import { TILEJSON_URL } from '../../lib/tiles';
 import {
@@ -26,6 +26,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const rendered = useRef<(() => void) | null>(null);
   const size = useRef({ width: 0, height: 0 });
   const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
+  const lastView = useRef<{ zoom: number; lat: number } | null>(null);
+  const names = useMemo(() => namedStars(props.stars ?? []), [props.stars]);
   // Pins grouped for the current zoom, so nearby ones merge instead of piling up.
   const pins = useZoomPins(props.captures, view?.zoom ?? props.initialZoom ?? null, view?.lat ?? null);
   const duration = props.animate === false ? 0 : 600;
@@ -86,6 +88,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       out.places = (await source.querySourceFeatures({ sourceLayer: 'place' })).map(toRoad);
       return out;
     },
+    showPoint(at, padding) {
+      cameraRef.current?.easeTo({ center: at, padding, duration: props.animate === false ? 0 : 400 });
+    },
     async collectPlaces(center) {
       await whenReady();
       const map = mapRef.current;
@@ -140,6 +145,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         style={StyleSheet.absoluteFill}
         mapStyle={MAP_STYLE_URL}
         attribution
+        attributionPosition={props.attributionTop ? { top: 8, right: 8 } : undefined}
         logo={false}
         onPress={(e) => {
           const at = e.nativeEvent.lngLat;
@@ -160,7 +166,12 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           regionChanged.current?.();
           const { zoom, center } = e.nativeEvent;
           setView((v) => (v && Math.abs(v.zoom - zoom) < 0.25 ? v : { zoom, lat: center[1] }));
-          props.onViewChange?.({ zoom, lat: center[1] });
+          // Only a real change of view: not every settle, which would redraw every star.
+          const last = lastView.current;
+          if (!last || Math.abs(last.zoom - zoom) >= 0.25 || Math.abs(last.lat - center[1]) > 0.05) {
+            lastView.current = { zoom, lat: center[1] };
+            props.onViewChange?.(lastView.current);
+          }
         }}
         onDidFinishRenderingMapFully={() => rendered.current?.()}
       >
@@ -232,7 +243,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             onPress={props.onStarPress ? () => props.onStarPress?.(star) : undefined}
           >
             <View accessible accessibilityRole="button" accessibilityLabel={starLabel(star)} style={styles.pinHit}>
-              <StarView star={star} />
+              <StarView star={star} selected={star.id === props.selectedStar} named={names.has(star.id)} />
             </View>
           </Marker>
         ))}

@@ -1,7 +1,8 @@
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
-  Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type GestureResponderEvent,
+  AccessibilityInfo, Animated, BackHandler, Easing, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions,
+  type GestureResponderEvent,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { placeWalks, type PlacesIndex } from '../lib/places';
@@ -16,11 +17,15 @@ export type SheetMode = { kind: 'summary' } | { kind: 'walks' } | { kind: 'place
 /** The sheet's height when it peeks over the map, above the safe area. */
 export const SHEET_PEEK = 76;
 
+type Size = 'peek' | 'half' | 'full';
+
 /**
  * The home map's bottom sheet, as in AllTrails and Google Maps: it peeks with
- * a one-line summary and a Walks button, and drags (or taps) up to list walks,
- * every one or a place's. Built on Animated and the responder system, so it
- * is the same on phones and on the web.
+ * a one-line summary and a Walks button, and opens to half or full height to
+ * list walks, every one or a place's. The handle and header drag between the
+ * three heights; the buttons do the same for a screen reader or a keyboard,
+ * and back (Android) or Escape (web) lowers it. Built on Animated and the
+ * responder system, so it is the same on phones and on the web.
  */
 export function HomeSheet(props: {
   index: PlacesIndex;
@@ -30,43 +35,96 @@ export function HomeSheet(props: {
   onMode: (m: SheetMode) => void;
   /** Called with the sheet's height whenever it settles, so the map and Start sit clear of it. */
   onHeight?: (h: number) => void;
+  /** While old walks are being placed, rows can't open a replay. */
+  busy?: boolean;
 }) {
   const insets = useSafeAreaInsets();
   const { height: screenH } = useWindowDimensions();
-  const peek = SHEET_PEEK + insets.bottom;
-  const full = Math.round(screenH * 0.62);
+  const heights: Record<Size, number> = {
+    peek: SHEET_PEEK + insets.bottom,
+    half: Math.round(screenH * 0.5),
+    full: Math.round(screenH - insets.top - 56),
+  };
   const expanded = props.mode.kind !== 'summary';
-  const [h] = useState(() => new Animated.Value(peek));
-  const target = expanded ? full : peek;
+  // Opening a list starts at half height; the drag can take it to full.
+  const [openSize, setOpenSize] = useState<Exclude<Size, 'peek'>>('half');
+  const size: Size = expanded ? openSize : 'peek';
+  const target = heights[size];
+  const [h] = useState(() => new Animated.Value(heights.peek));
+  const [reduceMotion, setReduceMotion] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    AccessibilityInfo.isReduceMotionEnabled().then((v) => alive && setReduceMotion(v), () => {});
+    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
+    return () => {
+      alive = false;
+      sub.remove();
+    };
+  }, []);
   const onHeight = useRef(props.onHeight);
   useEffect(() => {
     onHeight.current = props.onHeight;
   });
   useEffect(() => {
-    Animated.timing(h, { toValue: target, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start(() =>
+    Animated.timing(h, { toValue: target, duration: reduceMotion ? 0 : 220, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start(() =>
       onHeight.current?.(target),
     );
-  }, [h, target]);
+  }, [h, target, reduceMotion]);
 
-  // Dragging the handle: up past a third opens the walks, down past a third closes.
-  const drag = useRef({ y: 0, from: 0 });
+  const setSize = (next: Size) => {
+    if (next === 'peek') props.onMode({ kind: 'summary' });
+    else {
+      setOpenSize(next);
+      if (!expanded) props.onMode({ kind: 'walks' });
+    }
+  };
+  // Back on Android, and Escape on the web, lower an open sheet before anything else.
+  const onModeRef = useRef(props.onMode);
+  useEffect(() => {
+    onModeRef.current = props.onMode;
+  });
+  useEffect(() => {
+    if (!expanded) return;
+    const back = BackHandler.addEventListener('hardwareBackPress', () => {
+      onModeRef.current({ kind: 'summary' });
+      return true;
+    });
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onModeRef.current({ kind: 'summary' });
+    if (Platform.OS === 'web' && typeof window !== 'undefined') window.addEventListener('keydown', onKey);
+    return () => {
+      back.remove();
+      if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
+    };
+  }, [expanded]);
+
+  // Dragging the handle or header: it settles at the nearest of the three
+  // heights, however the gesture ends (released, or taken by something else).
+  const drag = useRef({ y: 0, from: 0, moved: false });
+  const settle = (pageY: number) => {
+    const moved = drag.current.y - pageY;
+    if (!drag.current.moved && Math.abs(moved) < 6) {
+      setSize(expanded ? 'peek' : 'half');
+      return;
+    }
+    const at = drag.current.from + moved;
+    const nearest = (Object.keys(heights) as Size[]).sort((x, y) => Math.abs(heights[x] - at) - Math.abs(heights[y] - at))[0];
+    if (nearest === size) Animated.timing(h, { toValue: target, duration: reduceMotion ? 0 : 160, useNativeDriver: false }).start();
+    else setSize(nearest);
+  };
   const dragProps = {
     onStartShouldSetResponder: () => true,
     onMoveShouldSetResponder: () => true,
+    onResponderTerminationRequest: () => false,
     onResponderGrant: (e: GestureResponderEvent) => {
-      drag.current = { y: e.nativeEvent.pageY, from: target };
+      drag.current = { y: e.nativeEvent.pageY, from: target, moved: false };
     },
     onResponderMove: (e: GestureResponderEvent) => {
-      h.setValue(Math.max(peek, Math.min(full, drag.current.from - (e.nativeEvent.pageY - drag.current.y))));
+      const dy = e.nativeEvent.pageY - drag.current.y;
+      if (Math.abs(dy) >= 6) drag.current.moved = true;
+      h.setValue(Math.max(heights.peek, Math.min(heights.full, drag.current.from - dy)));
     },
-    onResponderRelease: (e: GestureResponderEvent) => {
-      const moved = drag.current.y - e.nativeEvent.pageY;
-      const third = (full - peek) / 3;
-      if (!expanded && moved > third) props.onMode({ kind: 'walks' });
-      else if (expanded && -moved > third) props.onMode({ kind: 'summary' });
-      else if (Math.abs(moved) < 6) props.onMode(expanded ? { kind: 'summary' } : { kind: 'walks' });
-      else Animated.timing(h, { toValue: target, duration: 160, useNativeDriver: false }).start();
-    },
+    onResponderRelease: (e: GestureResponderEvent) => settle(e.nativeEvent.pageY),
+    onResponderTerminate: (e: GestureResponderEvent) => settle(e.nativeEvent.pageY),
   };
 
   const { index } = props;
@@ -75,50 +133,69 @@ export function HomeSheet(props: {
   const unplacedIds = new Set(props.unplaced.map((w) => w.id));
   const summary = index.walkCount
     ? `${index.walkCount} ${index.walkCount === 1 ? 'walk' : 'walks'} · ${index.placeCount} ${index.placeCount === 1 ? 'place' : 'places'}`
-    : 'No walks yet';
+    : '';
 
   return (
     <Animated.View testID="home-sheet" style={[styles.sheet, { height: h, paddingBottom: insets.bottom }]}>
-      <View {...dragProps} style={styles.handleArea} accessible={false}>
-        <View style={styles.handle} />
-      </View>
-      <View style={styles.header}>
-        {place ? (
-          <View style={styles.headerText}>
-            <Text testID="place-title" style={styles.title} accessibilityRole="header" numberOfLines={1}>{place.title}</Text>
-            <Text style={styles.meta} numberOfLines={2}>
-              {[place.subtitle, `${place.walks.length} ${place.walks.length === 1 ? 'walk' : 'walks'}`, formatDistance(place.metres)].filter(Boolean).join(' · ')}
+      <View testID="sheet-drag" {...dragProps} style={styles.dragArea}>
+        <View style={styles.handleArea}>
+          <View style={styles.handle} />
+        </View>
+        <View style={styles.header}>
+          {place ? (
+            <View style={styles.headerText}>
+              <Text testID="place-title" style={styles.title} accessibilityRole="header" numberOfLines={1}>{place.title}</Text>
+              <Text style={styles.meta} numberOfLines={2}>
+                {[place.subtitle, `${place.walks.length} ${place.walks.length === 1 ? 'walk' : 'walks'}`, formatDistance(place.metres)].filter(Boolean).join(' · ')}
+              </Text>
+            </View>
+          ) : (
+            <Text style={[styles.title, styles.headerText]} accessibilityRole="header" numberOfLines={1}>
+              {expanded ? 'Walks' : summary}
             </Text>
-          </View>
-        ) : (
-          <Text style={[styles.title, styles.headerText]} accessibilityRole="header" numberOfLines={1}>
-            {expanded ? 'Walks' : summary}
-          </Text>
-        )}
-        {expanded ? (
-          <Pressable testID="sheet-map" accessibilityRole="button" accessibilityLabel="Back to the map" onPress={() => props.onMode({ kind: 'summary' })} style={styles.pill} hitSlop={8}>
-            <Icon name="map-outline" size={18} color={theme.ink} />
-            <Text style={styles.pillText}>Map</Text>
-          </Pressable>
-        ) : (
-          index.walkCount > 0 && (
-            <Pressable testID="sheet-walks" accessibilityRole="button" accessibilityLabel="Show your walks" onPress={() => props.onMode({ kind: 'walks' })} style={styles.pill} hitSlop={8}>
-              <Icon name="list" size={18} color={theme.ink} />
-              <Text style={styles.pillText}>Walks</Text>
+          )}
+          {expanded ? (
+            <Pressable
+              testID="sheet-map"
+              accessibilityRole="button"
+              accessibilityLabel="Back to the map"
+              accessibilityState={{ expanded: true }}
+              onPress={() => props.onMode({ kind: 'summary' })}
+              style={styles.pill}
+              hitSlop={8}
+            >
+              <Icon name="map-outline" size={18} color={theme.ink} />
+              <Text style={styles.pillText}>Map</Text>
             </Pressable>
-          )
-        )}
+          ) : (
+            index.walkCount > 0 && (
+              <Pressable
+                testID="sheet-walks"
+                accessibilityRole="button"
+                accessibilityLabel="Show your walks"
+                accessibilityState={{ expanded: false }}
+                onPress={() => props.onMode({ kind: 'walks' })}
+                style={styles.pill}
+                hitSlop={8}
+              >
+                <Icon name="list" size={18} color={theme.ink} />
+                <Text style={styles.pillText}>Walks</Text>
+              </Pressable>
+            )
+          )}
+        </View>
       </View>
       {expanded && (
         <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
           {(place ? place.walks : all.filter((w) => !unplacedIds.has(w.id))).map((w) => (
-            <WalkRow key={w.id} walk={w} summary={props.summaries.get(w.id) ?? null} />
+            <WalkRow key={w.id} walk={w} summary={props.summaries.get(w.id) ?? null} disabled={props.busy} />
           ))}
           {!place && props.unplaced.length > 0 && (
             <>
               <Text style={styles.section} accessibilityRole="header">Not placed yet</Text>
+              <Text style={styles.note}>Placed when you’re online. Open one to place it now.</Text>
               {props.unplaced.map((w) => (
-                <WalkRow key={w.id} walk={w} summary={props.summaries.get(w.id) ?? null} />
+                <WalkRow key={w.id} walk={w} summary={props.summaries.get(w.id) ?? null} disabled={props.busy} />
               ))}
             </>
           )}
@@ -128,12 +205,13 @@ export function HomeSheet(props: {
   );
 }
 
-function WalkRow({ walk, summary: s }: { walk: Walk; summary: WalkSummary | null }) {
+function WalkRow({ walk, summary: s, disabled }: { walk: Walk; summary: WalkSummary | null; disabled?: boolean }) {
   const title = walk.title ?? suggestTitle(walk);
   const date = new Date(walk.started_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   const meta = s
-    ? [date, formatDistance(s.distance_m), formatDuration(s.duration_ms), `${s.new_streets} new ${s.new_streets === 1 ? 'street' : 'streets'}`]
+    ? [date, formatDistance(s.distance_m), formatDuration(s.duration_ms), s.new_streets ? `${s.new_streets} new ${s.new_streets === 1 ? 'street' : 'streets'}` : '']
         .concat(formatCaptures(s) || [])
+        .filter(Boolean)
         .join(' · ')
     : `${date} · Open to finish reading its streets`;
   return (
@@ -142,8 +220,10 @@ function WalkRow({ walk, summary: s }: { walk: Walk; summary: WalkSummary | null
       accessibilityRole="button"
       accessibilityLabel={`Replay ${title}`}
       accessibilityHint={meta}
+      accessibilityState={{ disabled: !!disabled }}
+      disabled={disabled}
       onPress={() => router.push(`/replay/${walk.id}?ceremony=0`)}
-      style={({ pressed }) => [styles.row, pressed && { opacity: 0.85 }]}
+      style={({ pressed }) => [styles.row, (pressed || disabled) && { opacity: 0.6 }]}
     >
       <Text style={styles.rowTitle}>{title}</Text>
       <Text style={styles.rowMeta}>{meta}</Text>
@@ -153,12 +233,15 @@ function WalkRow({ walk, summary: s }: { walk: Walk; summary: WalkSummary | null
 }
 
 const styles = StyleSheet.create({
+  // In the 640 column on wide screens, like the rest of the app.
   sheet: {
-    position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: theme.bg,
+    position: 'absolute', bottom: 0, width: '100%', maxWidth: 640, alignSelf: 'center', backgroundColor: theme.bg,
     borderTopLeftRadius: 18, borderTopRightRadius: 18,
     shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 10, shadowOffset: { width: 0, height: -2 }, elevation: 8,
   },
-  handleArea: { alignItems: 'center', paddingTop: 8, paddingBottom: 6 },
+  // The handle and header drag the sheet; no text in them gets selected on the web.
+  dragArea: Platform.OS === 'web' ? ({ userSelect: 'none' } as object) : {},
+  handleArea: { alignItems: 'center', paddingTop: 10, paddingBottom: 10, minHeight: 24 },
   handle: { width: 40, height: 5, borderRadius: 3, backgroundColor: theme.edge },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, minHeight: 48, maxWidth: 640, width: '100%', alignSelf: 'center' },
   headerText: { flex: 1 },
@@ -171,6 +254,7 @@ const styles = StyleSheet.create({
   pillText: { fontSize: 15, fontWeight: '600', color: theme.ink },
   list: { flex: 1 },
   listContent: { padding: 16, gap: 10, maxWidth: 640, width: '100%', alignSelf: 'center' },
+  note: { fontSize: 14, color: theme.muted, marginTop: -4 },
   section: { marginTop: 12, fontSize: 13, fontWeight: '700', color: theme.muted, textTransform: 'uppercase', letterSpacing: 0.6 },
   row: { backgroundColor: theme.surface, borderRadius: theme.radius, padding: 14, gap: 4, borderWidth: 1, borderColor: theme.line },
   rowTitle: { fontSize: 17, fontWeight: '600', color: theme.ink },

@@ -65,7 +65,8 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
     const trace = fixes.map((p) => [p.lon, p.lat] as LngLat);
     const features = await collector.collect(collector.plan(bounds, trace)).catch(() => null);
     if (features) {
-      streetsRead = true;
+      // Views that timed out leave streets unread: the walk is snapped again later.
+      streetsRead = features.complete;
       derived = deriveSegments(features.roads, features.names, build);
       const mid = fixes[Math.floor(fixes.length / 2)];
       area = pickArea(features.places, [mid.lon, mid.lat]) ?? area;

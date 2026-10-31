@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import { areaKey } from '../areas/assign';
 import type { Area, AreaLevel, WalkArea } from '../areas/types';
 import { metersPerPixel } from '../pins';
-import { levelForZoom, placeAll, placesIndex, placeWalks, starsFor, unplacedWalks } from '../places';
+import { levelForZoom, placeAll, placesIndex, placeWalks, starsFor, unplacedWalks, withTimeout } from '../places';
 import type { Walk } from '../types';
 
 // Slice 2 of v0.5 (the home map), written from its acceptance criteria before
@@ -143,4 +143,48 @@ test('home: bulk placement runs one pass at a time, keeps what it placed and lea
     stopAfterOne.stopped = true;
   }, undefined, () => stopAfterOne.stopped);
   assert.deepEqual(partial, ['x']);
+});
+
+// Regression tests from the home slice's audit and UI review, written before the fixes.
+
+test('audit: a merged star carries every place it stands for, to zoom in to', () => {
+  const merged = starsFor(index, 'neighborhood', 11, 40.8).find((s) => s.count > 1)!;
+  assert.equal(merged.points.length, merged.count);
+  assert.ok(merged.points.some((p) => p[0] === upper.lon && p[1] === upper.lat));
+  assert.ok(merged.points.some((p) => p[0] === southEnd.lon && p[1] === southEnd.lat));
+});
+
+test('audit: a walk with no town is "Elsewhere in" its state, starred and fitted', () => {
+  const ny = area('state', 'New York', us.key, -75, 43);
+  const w = walk('r1', 1000);
+  const idx = placesIndex([us, ny], [row('r1', us, 900, 1000), row('r1', ny, 900, 1000, -76.5, 42.4)], [w]);
+  for (const [level, zoom] of [['town', 8], ['neighborhood', 13]] as const) {
+    const s = starsFor(idx, level, zoom, 42.4).find((x) => x.label === 'Elsewhere in New York');
+    assert.ok(s, `starred at ${level}`);
+    assert.ok(Math.abs(s!.at[0] - -76.5) < 1e-9, 'where it was walked');
+  }
+  assert.equal(idx.placeCount, 1);
+  assert.ok(idx.bounds && idx.bounds[0] <= -76.5 && idx.bounds[2] >= -76.5, 'in the fit');
+  assert.equal(placeWalks(idx, starsFor(idx, 'town', 8, 42.4)[0].keys[0]).walks[0].id, 'r1');
+});
+
+test('audit: a walk snapped under the current rules is placed, even with no places to show', () => {
+  const snapped = { ...walk('z1', 1000), snapped_build: 'b1' } as Walk;
+  assert.deepEqual(unplacedWalks([snapped], []), []);
+  assert.deepEqual(unplacedWalks([walk('z2', 1000)], []).map((w) => w.id), ['z2']);
+});
+
+test('audit: a walk counts as tried only once its placing begins', async () => {
+  const tried: string[] = [];
+  const state = { stop: false };
+  await placeAll(['a', 'b', 'c'], async () => {
+    state.stop = true;
+  }, undefined, () => state.stop, (id) => tried.push(id));
+  assert.deepEqual(tried, ['a'], 'left midway: b and c are tried next time');
+});
+
+test('audit: a map that never answers times out instead of hanging the pass', async () => {
+  const never = new Promise<string>(() => {});
+  await assert.rejects(withTimeout(never, 20, 'map'), /map/);
+  assert.equal(await withTimeout(Promise.resolve('ok'), 20, 'map'), 'ok');
 });

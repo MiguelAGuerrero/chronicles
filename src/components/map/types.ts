@@ -56,6 +56,10 @@ export interface WalkMapProps {
   onStarPress?: (star: Star) => void;
   /** Called with the zoom and latitude once the camera settles, for picking stars. */
   onViewChange?: (view: { zoom: number; lat: number }) => void;
+  /** The star drawn as selected (ringed), by id. */
+  selectedStar?: string | null;
+  /** Puts the map's attribution at the top right, clear of a bottom sheet. */
+  attributionTop?: boolean;
   walker?: LngLat | null;
   /** Keeps the camera centered here while set. */
   follow?: LngLat | null;
@@ -102,6 +106,8 @@ export interface WalkMapHandle {
    * there and back; null when the tiles did not load.
    */
   collectPlaces(center: LngLat): Promise<RoadFeature[] | null>;
+  /** Moves the camera to a point, keeping the padding clear (a sheet over the map). */
+  showPoint(at: LngLat, padding: Padding): void;
 }
 
 /** The zoom the wide read of place points happens at: a z10 tile spans about 30 km. */

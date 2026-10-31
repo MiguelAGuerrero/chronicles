@@ -11,7 +11,10 @@ export interface PlacesIndex {
   areas: Map<string, Area>;
   /** Per area key: the stopped walks in it, and the metres walked there. */
   byArea: Map<string, { walkIds: Set<string>; metres: number; lastT: number }>;
-  /** Per town key: the walks that were in the town but in none of its neighborhoods. */
+  /**
+   * Per town key: the walks in the town but in none of its neighborhoods. Per
+   * state key: the walks in the state but in no town (a rural walk).
+   */
   elsewhere: Map<string, { walkIds: Set<string>; at: LngLat; metres: number; lastT: number }>;
   walks: Map<string, Walk>;
   /** Stopped walks, placed or not. */
@@ -32,6 +35,8 @@ export interface Star {
   count: number;
   /** The area keys (or elsewhere ids) behind it. */
   keys: string[];
+  /** Where each place behind it is: a merged star zooms in to these. */
+  points: LngLat[];
 }
 
 const ELSEWHERE = 'elsewhere:';
@@ -61,31 +66,33 @@ export function placesIndex(areaList: Area[], rows: WalkArea[], walkList: Walk[]
     e.lastT = Math.max(e.lastT, r.last_t);
     byArea.set(r.area_key, e);
   }
-  // A walk in a town but in none of that town's neighborhoods is "elsewhere" in it, where it was walked.
+  // A walk in a town but in none of that town's neighborhoods is "elsewhere"
+  // in the town; one in a state but in no town is "elsewhere" in the state.
+  // Either is starred where it was walked.
   const elsewhere: PlacesIndex['elsewhere'] = new Map();
-  const hoodParents = new Map<string, Set<string>>();
+  const childParents = new Map<string, Set<string>>();
   for (const r of live) {
     const a = areas.get(r.area_key)!;
-    if (a.level === 'neighborhood' && a.parent_key) {
-      const set = hoodParents.get(r.walk_id) ?? new Set<string>();
+    if ((a.level === 'neighborhood' || a.level === 'town') && a.parent_key) {
+      const set = childParents.get(r.walk_id) ?? new Set<string>();
       set.add(a.parent_key);
-      hoodParents.set(r.walk_id, set);
+      childParents.set(r.walk_id, set);
     }
   }
   const sums = new Map<string, { lon: number; lat: number; n: number }>();
   for (const r of live) {
     const a = areas.get(r.area_key)!;
-    if (a.level !== 'town' || hoodParents.get(r.walk_id)?.has(a.key)) continue;
+    if ((a.level !== 'town' && a.level !== 'state') || childParents.get(r.walk_id)?.has(a.key)) continue;
     const e = elsewhere.get(a.key) ?? { walkIds: new Set<string>(), at: [0, 0] as LngLat, metres: 0, lastT: 0 };
     e.walkIds.add(r.walk_id);
     e.metres += r.metres;
     e.lastT = Math.max(e.lastT, r.last_t);
-    const s = sums.get(a.key) ?? { lon: 0, lat: 0, n: 0 };
-    s.lon += r.lon;
-    s.lat += r.lat;
-    s.n++;
-    sums.set(a.key, s);
-    e.at = [s.lon / s.n, s.lat / s.n];
+    const sum = sums.get(a.key) ?? { lon: 0, lat: 0, n: 0 };
+    sum.lon += r.lon;
+    sum.lat += r.lat;
+    sum.n++;
+    sums.set(a.key, sum);
+    e.at = [sum.lon / sum.n, sum.lat / sum.n];
     elsewhere.set(a.key, e);
   }
   const countries = new Set([...byArea.keys()].filter((k) => areas.get(k)!.level === 'country'));
@@ -118,13 +125,16 @@ export function starsFor(index: PlacesIndex, level: AreaLevel, zoom: number, lat
   const base: Star[] = [];
   for (const [key, e] of index.byArea) {
     const a = index.areas.get(key)!;
-    if (a.level === level) base.push({ id: key, label: a.name, at: [a.lon, a.lat], walkIds: [...e.walkIds], count: 1, keys: [key] });
+    if (a.level === level) base.push({ id: key, label: a.name, at: [a.lon, a.lat], walkIds: [...e.walkIds], count: 1, keys: [key], points: [[a.lon, a.lat]] });
   }
-  if (level === 'neighborhood') {
-    for (const [town, e] of index.elsewhere) {
-      const id = ELSEWHERE + town;
-      base.push({ id, label: `Elsewhere in ${index.areas.get(town)!.name}`, at: e.at, walkIds: [...e.walkIds], count: 1, keys: [id] });
-    }
+  // "Elsewhere" stars stand in for the level a walk lacks: a town's at
+  // neighborhood level, a state's at town level and closer.
+  for (const [parent, e] of index.elsewhere) {
+    const parentLevel = index.areas.get(parent)!.level;
+    const shown = parentLevel === 'town' ? level === 'neighborhood' : level === 'town' || level === 'neighborhood';
+    if (!shown) continue;
+    const id = ELSEWHERE + parent;
+    base.push({ id, label: `Elsewhere in ${index.areas.get(parent)!.name}`, at: e.at, walkIds: [...e.walkIds], count: 1, keys: [id], points: [e.at] });
   }
   // The busiest place leads its group; ties by name, so the grouping is stable.
   base.sort((x, y) => y.walkIds.length - x.walkIds.length || x.label.localeCompare(y.label));
@@ -143,8 +153,9 @@ export function starsFor(index: PlacesIndex, level: AreaLevel, zoom: number, lat
     if (best) {
       best.count += 1;
       best.keys.push(...s.keys);
+      best.points.push(...s.points);
       best.walkIds = [...new Set([...best.walkIds, ...s.walkIds])];
-    } else stars.push({ ...s, walkIds: [...s.walkIds], keys: [...s.keys] });
+    } else stars.push({ ...s, walkIds: [...s.walkIds], keys: [...s.keys], points: [...s.points] });
   }
   return stars;
 }
@@ -156,13 +167,13 @@ function distance(a: LngLat, b: LngLat): number {
 
 /** What the sheet shows for one place: its name, its parents, its walks newest first and the metres walked there. */
 export function placeWalks(index: PlacesIndex, key: string): { title: string; subtitle: string; walks: Walk[]; metres: number } {
-  const town = key.startsWith(ELSEWHERE) ? key.slice(ELSEWHERE.length) : null;
-  const entry = town ? index.elsewhere.get(town) : index.byArea.get(key);
-  const self = town ? null : index.areas.get(key);
-  const title = town ? `Elsewhere in ${index.areas.get(town)?.name ?? ''}` : (self?.name ?? '');
+  const parent = key.startsWith(ELSEWHERE) ? key.slice(ELSEWHERE.length) : null;
+  const entry = parent ? index.elsewhere.get(parent) : index.byArea.get(key);
+  const self = parent ? null : index.areas.get(key);
+  const title = parent ? `Elsewhere in ${index.areas.get(parent)?.name ?? ''}` : (self?.name ?? '');
   // Parents, nearest first, short of the country: "Montclair, New Jersey".
   const names: string[] = [];
-  for (let p = town ? index.areas.get(town)?.parent_key ?? null : self?.parent_key ?? null; p; p = index.areas.get(p)?.parent_key ?? null) {
+  for (let p = parent ? index.areas.get(parent)?.parent_key ?? null : self?.parent_key ?? null; p; p = index.areas.get(p)?.parent_key ?? null) {
     const a = index.areas.get(p);
     if (!a || a.level === 'country') break;
     names.push(a.name);
@@ -171,10 +182,31 @@ export function placeWalks(index: PlacesIndex, key: string): { title: string; su
   return { title, subtitle: names.join(', '), walks, metres: entry?.metres ?? 0 };
 }
 
-/** Stopped walks with no places yet (offline at stop, or from before v0.5). */
+/**
+ * Stopped walks with no places yet (offline at stop, or from before v0.5).
+ * A walk snapped under the current rules counts as placed even with nothing
+ * to show (no fixes, nowhere named), so it is not tried at every launch.
+ */
 export function unplacedWalks(walks: Walk[], rows: WalkArea[]): Walk[] {
   const placed = new Set(rows.map((r) => r.walk_id));
-  return walks.filter((w) => stopped(w) && !placed.has(w.id));
+  return walks.filter((w) => stopped(w) && !placed.has(w.id) && !w.snapped_build);
+}
+
+/** Rejects if the promise has not settled in `ms`, naming what it waited for. */
+export function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(`${what} did not answer in ${Math.round(ms / 1000)} s`)), ms);
+    p.then(
+      (v) => {
+        clearTimeout(t);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(t);
+        reject(e);
+      },
+    );
+  });
 }
 
 let running: Promise<{ placed: string[]; failed: string[] }> | null = null;
@@ -189,12 +221,15 @@ export function placeAll(
   placeOne: (id: string) => Promise<void>,
   onProgress?: (done: number) => void,
   stopped?: () => boolean,
+  /** Called as each walk's placing begins; a walk never begun is not tried. */
+  onAttempt?: (id: string) => void,
 ): Promise<{ placed: string[]; failed: string[] }> {
   if (running) return running;
   const pass = (async () => {
     const placed: string[] = [];
     const failed: string[] = [];
     for (let i = 0; i < ids.length; i++) {
+      onAttempt?.(ids[i]);
       try {
         await placeOne(ids[i]);
         placed.push(ids[i]);

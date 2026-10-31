@@ -369,8 +369,29 @@ function check(ok, what) {
     const sheet = (await page.locator('[data-testid=home-sheet]').innerText()).replace(/\s+/g, ' ');
     check(/Fox Point/.test(sheet) && /Providence, Rhode Island/.test(sheet) && /Cardamom and the river\./.test(sheet), `a star lists its place's walks (${sheet.slice(0, 120)})`);
     await shot(page, '09-home-place');
-    // Back to the map, then the Walks list: every stopped walk; one opens its replay as a re-watch (H4, H5).
+    // Back to the map. A mouse drag on the sheet's header settles at a step, never halfway (audit).
     await page.click('[data-testid=sheet-map]');
+    await page.waitForTimeout(400);
+    const head = await page.locator('[data-testid=sheet-drag]').boundingBox();
+    await page.mouse.move(head.x + head.width / 2, head.y + head.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(head.x + head.width / 2, head.y - 260, { steps: 8 });
+    await page.mouse.up();
+    await page.waitForTimeout(500);
+    const vh = page.viewportSize().height;
+    const sheetH = (await page.locator('[data-testid=home-sheet]').boundingBox()).height;
+    check([Math.round(vh * 0.5), vh - 56].some((h) => Math.abs(sheetH - h) < 30), `a dragged sheet settles at a step (${Math.round(sheetH)} px)`);
+    await page.click('[data-testid=sheet-map]');
+    await page.waitForTimeout(400);
+    // The map view survives a replay (H5): pan, note the star, replay, come back.
+    const home = await page.locator('canvas.maplibregl-canvas').first().boundingBox();
+    await page.mouse.move(home.x + home.width / 2, home.y + 200);
+    await page.mouse.down();
+    await page.mouse.move(home.x + home.width / 2 + 70, home.y + 250, { steps: 6 });
+    await page.mouse.up();
+    await page.waitForTimeout(600);
+    const starBefore = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
+    // The Walks list: every stopped walk; one opens its replay as a re-watch (H4, H5).
     await page.click('[data-testid=sheet-walks]');
     await page.waitForSelector('[data-testid=walk-row]');
     check((await page.locator('[data-testid=walk-row]').count()) === 1, 'the walks list has the one stopped walk');
@@ -421,6 +442,32 @@ function check(ok, what) {
     await page.waitForSelector('[data-testid=home-sheet]');
     // The sheet kept its walks list (H5), so it is counted rather than Start.
     check((await page.locator('[data-testid=home-sheet]').count()) === 1 && (await page.locator('[data-testid=walk-row]').count()) === 1, 'done returns to the one home, its walks list as it was');
+    await page.waitForTimeout(800);
+    const starAfter = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
+    check(Math.abs(starAfter.x - starBefore.x) < 3 && Math.abs(starAfter.y - starBefore.y) < 3, `the map kept its view across the replay (${Math.round(starBefore.x)},${Math.round(starBefore.y)} → ${Math.round(starAfter.x)},${Math.round(starAfter.y)})`);
+
+    // Bulk placement (H8): a walk with no places is placed at the next opening,
+    // behind a cover that can be skipped.
+    await page.evaluate(() => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const d = req.result;
+        const tx = d.transaction(['walk_area', 'area', 'walk'], 'readwrite');
+        tx.objectStore('walk_area').clear();
+        tx.objectStore('area').clear();
+        const walks = tx.objectStore('walk');
+        const all = walks.getAll();
+        all.onsuccess = () => { for (const w of all.result) walks.put({ ...w, snapped_build: null }); };
+        tx.oncomplete = () => { d.close(); resolve(); };
+      };
+    }));
+    await page.reload();
+    await page.waitForSelector('text=/Placing your walks/', { timeout: 20000 });
+    check((await page.locator('[data-testid=skip-placing]').count()) === 1, 'placing old walks shows a cover that can be skipped');
+    await shot(page, '11-home-placing');
+    await page.waitForSelector('[aria-label^="Fox Point,"]', { timeout: 60000 });
+    await page.waitForTimeout(500);
+    check((await page.locator('text=/Placing your walks/').count()) === 0, 'the walk is placed again and the cover goes');
     check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
   } catch (e) {
     console.error(e.message);

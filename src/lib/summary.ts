@@ -61,7 +61,7 @@ export function suggestTitle(walk: Walk): string {
 }
 
 export function formatDistance(m: number): string {
-  return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(m < 10_000 ? 2 : 1)} km`;
+  return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`;
 }
 
 /** m:ss under ten minutes, so a just-started walk visibly counts; minutes after. */

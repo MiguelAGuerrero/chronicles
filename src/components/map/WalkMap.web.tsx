@@ -1,11 +1,11 @@
-import { Map as MapLibreMap, Marker, setWorkerUrl, type GeoJSONFeature, type MapMouseEvent, type MapTouchEvent } from 'maplibre-gl';
+import { AttributionControl, Map as MapLibreMap, Marker, setWorkerUrl, type GeoJSONFeature, type MapMouseEvent, type MapTouchEvent } from 'maplibre-gl';
 // @ts-expect-error: a CSS side-effect import, which Metro bundles on web.
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { StyleSheet, View } from 'react-native';
 import { CapturePinView, pinLabel } from '../CapturePinView';
-import { StarView, starLabel } from '../StarView';
+import { namedStars, StarView, starLabel } from '../StarView';
 import type { Star } from '../../lib/places';
 import type { CapturePin } from '../../lib/pins';
 import type { RoadFeature } from '../../lib/streets';
@@ -91,6 +91,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   onUserMove.current = props.onUserMove;
   const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
   const duration = props.animate === false ? 0 : 600;
+  const animateRef = useRef(props.animate !== false);
+  useEffect(() => {
+    animateRef.current = props.animate !== false;
+  });
 
   useEffect(() => {
     if (!container.current) return;
@@ -99,7 +103,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       style: MAP_STYLE_URL,
       center: props.initialCenter ?? [-71.4, 41.82],
       zoom: props.initialZoom ?? 15,
-      attributionControl: { compact: true },
+      // Top right on the home, where the sheet never covers it (OSM requires it visible).
+      attributionControl: props.attributionTop ? false : { compact: true },
     });
     mapRef.current = map;
     map.on('load', () => {
@@ -169,7 +174,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     };
     map.on('dragstart', moved);
     map.on('rotatestart', moved);
+    if (props.attributionTop) map.addControl(new AttributionControl({ compact: true }), 'top-right');
     map.on('zoomend', track);
+    // A pan changes the latitude the merge radius is measured at.
+    map.on('moveend', track);
     map.on('load', track);
     return () => {
       clearTimeout(pressTimer);
@@ -268,6 +276,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     starLatest.current = { stars: new Map((props.stars ?? []).map((st) => [st.id, st])), onStarPress: props.onStarPress };
   });
   const starMarkers = useRef(new Map<string, { marker: Marker; root: Root; key: string }>());
+  const names = useMemo(() => namedStars(props.stars ?? []), [props.stars]);
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
@@ -278,7 +287,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     const live = new Set<string>();
     for (const star of props.stars ?? []) {
       live.add(star.id);
-      const key = `${star.at.join(',')}|${star.count}|${star.walkIds.length}|${star.label}`;
+      const selected = star.id === props.selectedStar;
+      const named = names.has(star.id);
+      const key = `${star.at.join(',')}|${star.count}|${star.walkIds.length}|${star.label}|${selected}|${named}`;
       const existing = starMarkers.current.get(star.id);
       if (existing?.key === key) continue;
       if (existing) drop(existing);
@@ -294,7 +305,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         if (st) starLatest.current.onStarPress?.(st);
       });
       const root = createRoot(el);
-      root.render(<StarView star={star} />);
+      root.render(<StarView star={star} selected={selected} named={named} />);
       const marker = new Marker({ element: el, anchor: 'center' }).setLngLat(star.at).addTo(map);
       starMarkers.current.set(star.id, { marker, root, key });
     }
@@ -303,7 +314,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       drop(m);
       starMarkers.current.delete(id);
     }
-  }, [ready, props.stars]);
+  }, [ready, props.stars, props.selectedStar, names]);
   useEffect(() => () => {
     for (const m of starMarkers.current.values()) {
       m.marker.remove();
@@ -364,6 +375,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       out.names = q('transportation_name');
       out.places = q('place');
       return out;
+    },
+    showPoint(at, padding) {
+      mapRef.current?.easeTo({ center: at, padding, duration: animateRef.current ? 400 : 0 });
     },
     async collectPlaces(center) {
       await readyPromise.current!.promise;

@@ -295,7 +295,32 @@ Read this before changing recording, streets, the replay or storage.
   - It reads only walks, summaries, `Area` and `WalkArea` (`places.ts`), never
     traces or media. Keep it that way.
   - The home map stays mounted under the walk screen, so the e2e targets the
-    walk's map with `.last()`.
+    walk's map with `.last()`. Two live maps during a walk is a known cost,
+    deferred until it can be measured on a phone.
+  - **Placing old walks** happens in `lib/backlog.ts`, the home's one read of
+    traces.
+    - It runs in one pass, and every map read in it times out.
+    - It needs a known tile build to start.
+    - A walk counts as tried only once its placing begins. Leaving the screen
+      or tapping Skip stops the pass after the walk at hand.
+    - A walk is "placed" once snapped under the current rules, even with no
+      rows to show. A partial street read (`complete: false`) is not done.
+  - The map refits only when the places walked change, never just because the
+    screen came back into focus, so a replay keeps the user's view.
+  - **Stars:**
+    - A merged star zooms in to its places' points. A single star is selected
+      (ringed) and eased above the sheet with `showPoint`.
+    - The 8 busiest single stars show their name.
+    - A walk with no town is "Elsewhere in" its state, at town and
+      neighborhood zoom.
+  - **The sheet** has three heights (peek, half, full).
+    - The handle and header both drag it, with
+      `onResponderTerminationRequest: false` and a settle on terminate, so a
+      mouse drag never leaves it stuck halfway.
+    - Back (Android) and Escape (web) lower it.
+- react-native-web gives a one-line `Text` (`numberOfLines={1}`) `maxWidth:
+  100%` of its parent. A label wider than its parent (a star's name) needs an
+  explicit `maxWidth`, or it truncates to the parent's width.
 
 ## Gotchas (each of these cost real time)
 
