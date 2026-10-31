@@ -108,7 +108,8 @@ export const recorder: Recorder = {
     } finally {
       pending = null;
     }
-    await holdWakeLock();
+    // Stopped while waiting for the first fix: no screen lock to hold.
+    if (walkId === id) await holdWakeLock();
     return {};
   },
   async stop() {

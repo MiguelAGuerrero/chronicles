@@ -146,8 +146,8 @@ export default function Replay() {
   }, [id, go]);
 
 
-  const sched = useMemo(() => (data ? schedule(data.fixes, data.captures, data.walk.started_at) : null), [data]);
-  const runs = useMemo(() => (data ? timedRuns(data.fixes) : []), [data]);
+  const sched = useMemo(() => (data ? schedule(data.fixes, data.captures, data.walk.started_at, data.pauses) : null), [data]);
+  const runs = useMemo(() => (data ? timedRuns(data.fixes, data.pauses) : []), [data]);
   // One clock drives beats one to three. It stands still while a capture is
   // up, and moves on when a beat is over.
   useEffect(() => {

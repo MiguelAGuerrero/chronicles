@@ -122,6 +122,10 @@ export function HoldButton(props: {
       disabled={inactive}
       onPressIn={start}
       onPressOut={cancel}
+      // Android Chrome fires contextmenu on a long press at about 500 ms,
+      // which ends a press unless it has a long-press handler of its own.
+      onLongPress={() => {}}
+      delayLongPress={HOLD_MS + 1000}
       // A release before the hold completed: say it needs holding.
       onPress={() => {
         if (!fired.current) props.onTap?.();

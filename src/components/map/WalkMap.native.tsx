@@ -162,7 +162,12 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         </GeoJSONSource>
         <GeoJSONSource id="trace" data={trace}>
           <Layer id="trace" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-            paint={{ 'line-color': COLORS.trace, 'line-width': 2.5, 'line-opacity': 0.85 * (props.traceOpacity ?? 1) }} />
+            paint={{
+              // Over bold fog the usual navy trace would vanish (1.4:1); the accent stands out.
+              'line-color': props.fogEmphasis ? COLORS.walked : COLORS.trace,
+              'line-width': props.fogEmphasis ? 4 : 2.5,
+              'line-opacity': 0.85 * (props.traceOpacity ?? 1),
+            }} />
         </GeoJSONSource>
         <GeoJSONSource id="points" data={points}>
           <Layer id="points" type="circle" paint={{

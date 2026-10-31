@@ -205,7 +205,7 @@ function check(ok, what) {
         check(true, 'after looking around, Recenter brings the map back');
         // Unwalked streets near me.
         await page.click('[data-testid=unwalked]');
-        await page.waitForSelector('text=/unwalked streets? within 1 km/');
+        await page.waitForSelector('text=/unwalked nearby/');
         await shot(page, '03c-unwalked');
         check(true, 'unwalked streets near me shows a count');
         await page.click('[data-testid=unwalked]');

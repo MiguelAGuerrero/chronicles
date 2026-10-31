@@ -112,11 +112,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     map.on('dblclick', () => clearTimeout(pressTimer));
     const track = () => setView({ zoom: map.getZoom(), lat: map.getCenter().lat });
     // Only gestures carry an originalEvent; camera moves made in code do not.
+    // Zooming keeps following, as in Google Maps: only a pan or a turn looks away.
     const moved = (e: { originalEvent?: unknown }) => {
       if (e.originalEvent) onUserMove.current?.();
     };
     map.on('dragstart', moved);
-    map.on('zoomstart', moved);
     map.on('rotatestart', moved);
     map.on('zoomend', track);
     map.on('load', track);
@@ -212,6 +212,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     map.setPaintProperty('fog', 'line-width', props.fogEmphasis
       ? ['interpolate', ['linear'], ['zoom'], 13, 2.5, 17, 7]
       : ['interpolate', ['linear'], ['zoom'], 13, 1.5, 17, 4]);
+    // Over bold fog the usual navy trace would vanish (1.4:1); the accent stands out.
+    map.setPaintProperty('trace', 'line-color', props.fogEmphasis ? COLORS.walked : COLORS.trace);
+    map.setPaintProperty('trace', 'line-width', props.fogEmphasis ? 4 : 2.5);
   }, [ready, props.fogEmphasis]);
   useEffect(() => {
     if (ready && props.follow) mapRef.current?.jumpTo({ center: props.follow });

@@ -67,10 +67,14 @@ export async function pauseWalk(walkId: string): Promise<void> {
   await recorder.stop();
 }
 
-/** Ends the pause and picks recording back up. */
+/**
+ * Picks recording back up, then ends the pause. Location permission is asked
+ * for again (a one-time grant can lapse during a long pause); if it is
+ * refused, this throws and the walk stays paused.
+ */
 export async function resumeWalk(walkId: string): Promise<void> {
+  await recorder.start(walkId);
   await db.endPause(walkId, Date.now());
-  await recorder.resume(walkId);
 }
 
 /** Whether a walk is paused right now. */

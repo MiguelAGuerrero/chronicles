@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import {
   AccessibilityInfo, Animated, BackHandler, Easing, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, StyleSheet, Text,
-  TextInput, View,
+  TextInput, useWindowDimensions, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WalkMap } from '../components/map/WalkMap';
@@ -30,6 +30,8 @@ import { useLiveTrace } from '../lib/useLiveTrace';
 const NEAR_RADIUS_M = 1000;
 /** The streets around the walker are read again after this far. */
 const FOG_STEP_M = 100;
+/** The edge buttons start above the capture row (bottom 92, 68 tall) and one pill. */
+const EDGE_BOTTOM = 236;
 /** No accepted fix for this long while recording reads as weak GPS. */
 const WEAK_GPS_MS = 20_000;
 const NOTICE_MS = 6000;
@@ -40,6 +42,8 @@ type Notice = { message: string; tone?: 'info' | 'error'; openSettings?: boolean
 
 export default function WalkScreen() {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const edgeRight = Math.max(12, (width - 640) / 2 + 12);
   const params = useLocalSearchParams<{ warning?: string }>();
   const [walk, setWalk] = useState<Walk | null>(null);
   const [pauses, setPauses] = useState<Pause[]>([]);
@@ -73,8 +77,9 @@ export default function WalkScreen() {
         router.replace('/');
         return;
       }
-      setWalk(w);
+      // Pauses first, so a paused walk never shows as running with paused time on the clock.
       setPauses(await db.getPauses(w.id));
+      setWalk(w);
     });
   }, []);
   useEffect(
@@ -98,7 +103,7 @@ export default function WalkScreen() {
   const onCaptureError = useCallback((e: { message: string; openSettings?: boolean }) => {
     setNotice({ message: e.message, tone: 'error', openSettings: e.openSettings });
   }, []);
-  const live = useLiveTrace(walk?.id ?? null, walk?.started_at ?? null, onGap);
+  const live = useLiveTrace(walk?.id ?? null, walk?.started_at ?? null, pauses, onGap);
   const cap = useCaptures(walk?.id ?? null, live.here, live.lastFixAt, onCaptureError);
 
   useEffect(() => {
@@ -208,11 +213,12 @@ export default function WalkScreen() {
         await pauseWalk(walk.id);
         AccessibilityInfo.announceForAccessibility('Walk paused. Nothing is recorded until you resume.');
       }
-      setPauses(await db.getPauses(walk.id));
       tapFeedback();
     } catch (e) {
-      setNotice({ message: `Could not ${paused ? 'resume' : 'pause'}: ${e instanceof Error ? e.message : e}`, tone: 'error' });
+      setNotice({ message: `Could not ${paused ? 'resume' : 'pause'}: ${e instanceof Error ? e.message : e}`, tone: 'error', sticky: true });
     } finally {
+      // The screen shows whatever the database holds, even after a failure.
+      setPauses(await db.getPauses(walk.id).catch(() => pauses));
       setPausing(false);
     }
   }
@@ -343,12 +349,46 @@ export default function WalkScreen() {
       </View>
 
       {/* Captures float in the lower-middle of the screen, where either thumb
-          reaches; the bottom edge is the least accurate place to tap. */}
+          reaches; the bottom edge is the least accurate place to tap. Pills
+          (caption, undo, retry) sit above the row, so the row never moves. */}
       <View style={[styles.captures, { bottom: insets.bottom + 92 }]} pointerEvents="box-none">
         {recordingVoice && (
           <View style={styles.voiceLive} accessible accessibilityLabel="Recording voice memo">
             <PulseDot />
             <Text style={styles.voiceLiveText}>{formatElapsed(now - cap.voiceStartedAt!)}</Text>
+          </View>
+        )}
+        {justTook && !recordingVoice && (
+          <View style={styles.undo} accessibilityLiveRegion="polite">
+            <Text style={styles.undoText}>Photo saved here</Text>
+            <Pressable
+              testID="add-caption"
+              accessibilityRole="button"
+              onPress={() => {
+                setCaptioning(cap.captures.find((c) => c.id === justTook) ?? null);
+                setJustTook(null);
+              }}
+              hitSlop={10}
+              style={styles.undoBtn}
+            >
+              <Text style={styles.undoBtnText}>Aa Caption</Text>
+            </Pressable>
+          </View>
+        )}
+        {cap.discarded && !recordingVoice && (
+          <View style={styles.undo} accessibilityLiveRegion="polite">
+            <Text style={styles.undoText}>Voice memo discarded</Text>
+            <Pressable testID="voice-undo" accessibilityRole="button" onPress={() => cap.undoDiscard()} hitSlop={10} style={styles.undoBtn}>
+              <Text style={styles.undoBtnText}>Undo</Text>
+            </Pressable>
+          </View>
+        )}
+        {cap.unsaved && !recordingVoice && (
+          <View style={styles.undo} accessibilityLiveRegion="polite">
+            <Text style={styles.undoText}>Voice memo not saved</Text>
+            <Pressable accessibilityRole="button" onPress={() => cap.retrySave()} hitSlop={10} style={styles.undoBtn}>
+              <Text style={styles.undoBtnText}>Retry</Text>
+            </Pressable>
           </View>
         )}
         {/* While recording, Save takes the mic's own place, so tapping the mic
@@ -396,39 +436,6 @@ export default function WalkScreen() {
             )}
           </View>
         </View>
-        {justTook && !recordingVoice && (
-          <View style={styles.undo} accessibilityLiveRegion="polite">
-            <Text style={styles.undoText}>Photo saved here</Text>
-            <Pressable
-              testID="add-caption"
-              accessibilityRole="button"
-              onPress={() => {
-                setCaptioning(cap.captures.find((c) => c.id === justTook) ?? null);
-                setJustTook(null);
-              }}
-              hitSlop={10}
-              style={styles.undoBtn}
-            >
-              <Text style={styles.undoBtnText}>Aa Caption</Text>
-            </Pressable>
-          </View>
-        )}
-        {cap.discarded && !recordingVoice && (
-          <View style={styles.undo} accessibilityLiveRegion="polite">
-            <Text style={styles.undoText}>Voice memo discarded</Text>
-            <Pressable testID="voice-undo" accessibilityRole="button" onPress={() => cap.undoDiscard()} hitSlop={10} style={styles.undoBtn}>
-              <Text style={styles.undoBtnText}>Undo</Text>
-            </Pressable>
-          </View>
-        )}
-        {cap.unsaved && !recordingVoice && (
-          <View style={styles.undo} accessibilityLiveRegion="polite">
-            <Text style={styles.undoText}>Voice memo not saved</Text>
-            <Pressable accessibilityRole="button" onPress={() => cap.retrySave()} hitSlop={10} style={styles.undoBtn}>
-              <Text style={styles.undoBtnText}>Retry</Text>
-            </Pressable>
-          </View>
-        )}
       </View>
 
       <View style={[styles.bar, { paddingBottom: 10 + insets.bottom }]}>
@@ -455,7 +462,7 @@ export default function WalkScreen() {
             onHold={stop}
             onTap={() => setToast('Hold to stop the walk')}
             busy={stopping}
-            disabled={!walk}
+            disabled={!walk || pausing}
           >
             <View style={styles.stopInner}>
               <Icon name="stop" size={18} color={theme.ink} />
@@ -466,21 +473,27 @@ export default function WalkScreen() {
         </View>
       </View>
 
+      {/* Small round controls stacked at the right edge, above the capture
+          row and its pills (as in AllTrails), and inside the 640 column on
+          wide screens. */}
       <Pressable
         testID="unwalked"
         accessibilityRole="switch"
         accessibilityState={{ checked: showUnwalked }}
+        aria-checked={showUnwalked}
         accessibilityLabel="Show unwalked streets near me"
         onPress={() => setShowUnwalked((v) => !v)}
-        style={({ pressed }) => [styles.edgeBtn, { left: 12, bottom: insets.bottom + 78 }, showUnwalked && styles.edgeBtnOn, pressed && styles.pressed]}
+        style={({ pressed }) => [styles.edgeBtn, { right: edgeRight, bottom: insets.bottom + EDGE_BOTTOM + 56 }, showUnwalked && styles.edgeBtnOn, pressed && styles.pressed]}
       >
         <Icon name="footsteps-outline" size={22} color={showUnwalked ? '#ffffff' : theme.ink} />
       </Pressable>
       {showUnwalked && (
-        <View style={[styles.unwalked, { left: 12, bottom: insets.bottom + 128 }]} accessibilityLiveRegion="polite" pointerEvents="none">
-          <Text style={styles.unwalkedText}>
-            {unwalkedCount} unwalked {unwalkedCount === 1 ? 'street' : 'streets'} within 1 km
-          </Text>
+        <View
+          style={[styles.unwalked, { right: edgeRight + 52, bottom: insets.bottom + EDGE_BOTTOM + 56 + 7 }]}
+          accessibilityLiveRegion="polite"
+          pointerEvents="none"
+        >
+          <Text style={styles.unwalkedText}>{unwalkedCount} unwalked nearby</Text>
         </View>
       )}
 
@@ -491,7 +504,7 @@ export default function WalkScreen() {
           accessibilityRole="button"
           accessibilityLabel="Recenter on your position"
           onPress={() => setFollowing(true)}
-          style={({ pressed }) => [styles.edgeBtn, { right: 12, bottom: insets.bottom + 78 }, pressed && styles.pressed]}
+          style={({ pressed }) => [styles.edgeBtn, { right: edgeRight, bottom: insets.bottom + EDGE_BOTTOM }, pressed && styles.pressed]}
         >
           <Icon name="locate" size={22} color={theme.ink} />
         </Pressable>
@@ -638,7 +651,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8, paddingLeft: 16, paddingRight: 8,
   },
   undoText: { color: '#ffffff', fontSize: 15, fontWeight: '600' },
-  undoBtn: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)' },
+  undoBtn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)' },
   undoBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.8 },
@@ -652,12 +665,13 @@ const styles = StyleSheet.create({
   barInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', maxWidth: 640, width: '100%', alignSelf: 'center' },
   stats: { color: theme.ink, fontSize: 17, fontWeight: '600', fontVariant: ['tabular-nums'] },
   stopInner: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  barActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  barActions: { flexDirection: 'row', alignItems: 'center', gap: 20 },
   pauseBtn: {
-    width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center',
+    width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1.5, borderColor: theme.ink, backgroundColor: theme.surface,
   },
-  pauseBtnOn: { backgroundColor: theme.ink },
+  // Resume is the one thing to do while paused.
+  pauseBtnOn: { backgroundColor: theme.accent, borderColor: theme.accent },
   edgeBtnOn: { backgroundColor: theme.ink, borderColor: theme.ink },
   unwalked: { position: 'absolute', backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12 },
   unwalkedText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },

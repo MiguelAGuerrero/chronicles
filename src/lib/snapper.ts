@@ -1,4 +1,4 @@
-import { filterFixes, pointSegmentDist, projector, splitAtGaps } from './geo';
+import { filterFixes, pointSegmentDist, projector, splitAtGaps, type PauseSpan } from './geo';
 import { samples, streetKey } from './streets';
 import type { StreetSegment, TracePoint, VisitedSegment } from './types';
 
@@ -25,17 +25,18 @@ type XY = [number, number];
 /**
  * Credits street segments by how much of their length (away from the
  * junction at each end) lies within BUFFER_M of the trace. Gaps over 60 s
- * are not interpolated across.
+ * and pauses are not interpolated across.
  */
 export function snap(
   walkId: string,
   points: TracePoint[],
   segments: StreetSegment[],
   startedAt: number | null = null,
+  pauses: PauseSpan[] = [],
 ): VisitedSegment[] {
   const fixes = filterFixes(points, startedAt);
   if (fixes.length < 2 || segments.length === 0) return [];
-  const runs = splitAtGaps(fixes);
+  const runs = splitAtGaps(fixes, 60_000, pauses);
   const proj = projector([fixes[0].lon, fixes[0].lat]);
 
   // Grid index over trace edges, each tagged with the time it was walked.

@@ -1,9 +1,9 @@
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
-import { PermissionsAndroid, Platform } from 'react-native';
+import { AppState, PermissionsAndroid, Platform } from 'react-native';
 import { db } from '../db';
 import type { TracePoint } from '../types';
-import { emit, setStatus, subscribe, subscribeStatus } from './emitter';
+import { currentStatus, emit, setStatus, subscribe, subscribeStatus } from './emitter';
 import { RecorderError, type Recorder } from './types';
 
 /**
@@ -100,6 +100,11 @@ async function startUpdates() {
     },
   });
 }
+
+// Location turned back on in Settings: pick the open walk back up on return.
+AppState.addEventListener('change', (state) => {
+  if (state === 'active' && currentWalk && currentStatus().kind === 'error') recorder.resume(currentWalk).catch(() => {});
+});
 
 export const recorder: Recorder = {
   capabilities: { background: true },

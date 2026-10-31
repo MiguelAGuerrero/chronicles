@@ -1,11 +1,12 @@
 import { db } from './db';
 import { filterFixes, splitAtGaps, type Bounds, withoutPauses, smoothDwells } from './geo';
 import { walkBounds } from './finish';
-import type { Capture, LngLat, StreetSegment, TracePoint, Walk, WalkSummary } from './types';
+import type { Capture, LngLat, Pause, StreetSegment, TracePoint, Walk, WalkSummary } from './types';
 
 export interface ReplayData {
   walk: Walk;
   fixes: TracePoint[];
+  pauses: Pause[];
   runs: LngLat[][];
   captures: Capture[];
   bounds: Bounds | null;
@@ -20,7 +21,8 @@ export async function loadReplay(walkId: string): Promise<ReplayData | null> {
   const walk = await db.getWalk(walkId);
   if (!walk) return null;
   // Standstills are drawn and replayed as a still dot, not GPS jitter.
-  const fixes = smoothDwells(filterFixes(withoutPauses(await db.getPoints(walkId), await db.getPauses(walkId)), walk.started_at));
+  const pauses = await db.getPauses(walkId);
+  const fixes = smoothDwells(filterFixes(withoutPauses(await db.getPoints(walkId), pauses), walk.started_at));
   const captures = await db.getCaptures(walkId);
   const bounds = walkBounds(fixes);
   const segments = bounds ? await db.getSegmentsIn(bounds) : [];
@@ -38,7 +40,8 @@ export async function loadReplay(walkId: string): Promise<ReplayData | null> {
   return {
     walk,
     fixes,
-    runs: splitAtGaps(fixes),
+    pauses,
+    runs: splitAtGaps(fixes, 60_000, pauses),
     captures,
     bounds,
     walked,

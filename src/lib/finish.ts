@@ -68,7 +68,7 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
   for (const s of derived) byId.set(s.id, s);
   const segments = [...byId.values()];
 
-  const visited = snap(walk.id, points, segments, walk.started_at);
+  const visited = snap(walk.id, points, segments, walk.started_at, pauses);
   const earlier = await db.streetKeysBefore(walk.started_at);
   const keys = new Set(visited.map((v) => v.street_key));
   const captures = await db.getCaptures(walk.id);
@@ -79,7 +79,7 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
     walk_id: walk.id,
     build,
     // Jitter while standing still is not distance walked.
-    distance_m: traceDistanceM(smoothDwells(fixes)),
+    distance_m: traceDistanceM(smoothDwells(fixes), pauses),
     // Paused time is not walking time.
     duration_ms: Math.max(0, end - walk.started_at - pausedMs(pauses, walk.started_at, end)),
     new_streets: [...keys].filter((k) => !earlier.has(k)).length,

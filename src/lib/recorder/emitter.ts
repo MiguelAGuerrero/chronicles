@@ -25,6 +25,9 @@ export function subscribeStatus(cb: (s: RecorderStatus) => void) {
   };
 }
 
+/** The latest status. */
+export const currentStatus = () => lastStatus;
+
 export function setStatus(s: RecorderStatus) {
   lastStatus = s;
   for (const l of statusListeners) l(s);

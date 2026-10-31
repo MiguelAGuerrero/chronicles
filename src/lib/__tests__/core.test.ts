@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { distanceM, dwellsOf, filterFixes, lineLengthM, pausedMs, positionAt, smoothDwells, stepToward, traceDistanceM, withoutPauses } from '../geo';
+import { distanceM, dwellsOf, filterFixes, lineLengthM, pausedMs, positionAt, smoothDwells, splitAtGaps, stepToward, traceDistanceM, withoutPauses } from '../geo';
 import { groupCaptures, nextStop, PATH_MS, schedule, walkTimeAt } from '../replay';
 import { metersPerPixel, PIN_GROUP_PX, pinsFor } from '../pins';
 import { tileAt } from '../tileMath';
@@ -283,6 +283,17 @@ test('standstills: one GPS jump does not split a stay, and slow walking in circl
   // A slow stroll that drifts 50 m over five minutes stays walking, even with no speed reported.
   const stroll = stay(300, t0, (i) => at(1 + i / 600, 0), 0.18).map((p) => ({ ...p, speed: null }));
   assert.equal(dwellsOf([...walkIn, ...stroll]).length, 0);
+});
+
+test('pauses: a short pause still breaks the trace, so nothing is measured across it', () => {
+  const before = walkAlong([at(0, 0), at(1, 0)]);
+  // Paused for 20 s while carried 80 m on, then walking again.
+  const t = before.at(-1)!.t;
+  const pause = { started_at: t + 1000, ended_at: t + 21_000 };
+  const after = walkAlong([at(1.8, 0), at(2, 0)], 'w1', pause.ended_at);
+  const all = [...before, ...after];
+  assert.ok(Math.abs(traceDistanceM(all, [pause]) - 110) < 15, `about 110 m (not 200), got ${Math.round(traceDistanceM(all, [pause]))}`);
+  assert.equal(splitAtGaps(all, 60_000, [pause]).length, 2);
 });
 
 test('pauses: fixes inside a pause are dropped, and paused time does not count', () => {

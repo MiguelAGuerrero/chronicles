@@ -1,4 +1,4 @@
-import { distanceM } from './geo';
+import { distanceM, isBreak, type PauseSpan } from './geo';
 import type { Capture, LngLat, TracePoint } from './types';
 
 /**
@@ -10,7 +10,8 @@ import type { Capture, LngLat, TracePoint } from './types';
  *
  * The path runs in "active time": stretches with no fixes longer than
  * GAP_MS (the app was closed, the tab hidden, a long stop indoors) are
- * collapsed to a short hop, so the walk never crawls across a gap.
+ * collapsed to a short hop, so the walk never crawls across a gap. A pause
+ * is a hop too, however short: the dot never glides across a paused stretch.
  */
 
 export const FOG_MS = 4000;
@@ -61,10 +62,10 @@ export function groupCaptures(captures: Capture[]): PauseGroup[] {
  * Active-time mapping: each gap longer than GAP_MS between fixes (t0 to t1)
  * keeps its first HOP_MS and loses the rest.
  */
-function activeClock(fixes: TracePoint[]) {
+function activeClock(fixes: TracePoint[], pauses: PauseSpan[]) {
   const gaps: { t0: number; t1: number }[] = [];
   for (let i = 1; i < fixes.length; i++) {
-    if (fixes[i].t - fixes[i - 1].t > GAP_MS) gaps.push({ t0: fixes[i - 1].t, t1: fixes[i].t });
+    if (isBreak(fixes[i - 1], fixes[i], pauses, GAP_MS)) gaps.push({ t0: fixes[i - 1].t, t1: fixes[i].t });
   }
   const toActive = (t: number) => {
     let removed = 0;
@@ -89,8 +90,8 @@ function activeClock(fixes: TracePoint[]) {
   return { toActive, toWalk };
 }
 
-export function schedule(fixes: TracePoint[], captures: Capture[], startedAt: number): Schedule {
-  const { toActive, toWalk } = activeClock(fixes);
+export function schedule(fixes: TracePoint[], captures: Capture[], startedAt: number, pauses: PauseSpan[] = []): Schedule {
+  const { toActive, toWalk } = activeClock(fixes, pauses);
   const startT = fixes[0]?.t ?? startedAt;
   // The path spans the trace. A capture before the first fix or after the last
   // (GPS lost indoors, say) stops the path at that end, rather than leaving
@@ -171,10 +172,10 @@ export function walkerAt(runs: TimedRun[], t: number): LngLat | null {
   return last;
 }
 
-export function timedRuns(fixes: TracePoint[]): TimedRun[] {
+export function timedRuns(fixes: TracePoint[], pauses: PauseSpan[] = []): TimedRun[] {
   const runs: TimedRun[] = [];
   fixes.forEach((f, i) => {
-    if (i === 0 || f.t - fixes[i - 1].t > GAP_MS) runs.push([]);
+    if (i === 0 || isBreak(fixes[i - 1], f, pauses, GAP_MS)) runs.push([]);
     runs[runs.length - 1].push({ t: f.t, p: [f.lon, f.lat] });
   });
   return runs;

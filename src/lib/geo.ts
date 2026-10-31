@@ -145,12 +145,21 @@ export function filterFixes(points: TracePoint[], startedAt: number | null = nul
   return f.accepted;
 }
 
-/** Splits a filtered trace wherever two fixes are more than `gapMs` apart. */
-export function splitAtGaps(points: TracePoint[], gapMs = 60_000): LngLat[][] {
+/**
+ * Whether the trace breaks between two consecutive fixes: they are more than
+ * `gapMs` apart, or the walk was paused between them. The trace never draws
+ * or measures a straight line across a break.
+ */
+export function isBreak(a: { t: number }, b: { t: number }, pauses: PauseSpan[] = [], gapMs = 60_000): boolean {
+  return b.t - a.t > gapMs || pauses.some((p) => p.started_at < b.t && (p.ended_at ?? Infinity) > a.t);
+}
+
+/** Splits a filtered trace at each break: a gap over `gapMs`, or a pause. */
+export function splitAtGaps(points: TracePoint[], gapMs = 60_000, pauses: PauseSpan[] = []): LngLat[][] {
   const runs: LngLat[][] = [];
   let cur: LngLat[] = [];
   for (let i = 0; i < points.length; i++) {
-    if (i > 0 && points[i].t - points[i - 1].t > gapMs) {
+    if (i > 0 && isBreak(points[i - 1], points[i], pauses, gapMs)) {
       if (cur.length) runs.push(cur);
       cur = [];
     }
@@ -160,8 +169,8 @@ export function splitAtGaps(points: TracePoint[], gapMs = 60_000): LngLat[][] {
   return runs;
 }
 
-export function traceDistanceM(points: TracePoint[]): number {
-  return splitAtGaps(points).reduce((d, run) => d + lineLengthM(run), 0);
+export function traceDistanceM(points: TracePoint[], pauses: PauseSpan[] = []): number {
+  return splitAtGaps(points, 60_000, pauses).reduce((d, run) => d + lineLengthM(run), 0);
 }
 
 /** Position on the trace at time t, interpolated between the bracketing fixes. */

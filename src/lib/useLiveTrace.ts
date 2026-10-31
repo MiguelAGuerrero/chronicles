@@ -1,13 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { db } from './db';
-import { distanceM, FixFilter } from './geo';
+import { FixFilter, isBreak, smoothDwells, traceDistanceM, withoutPauses, type PauseSpan } from './geo';
 import { recorder } from './recorder';
 import type { LngLat, TracePoint } from './types';
 
 /** How often the screen (and the map) is refreshed from the live trace. */
 const PUBLISH_MS = 2000;
-const GAP_MS = 60_000;
 
 export interface LiveTrace {
   runs: LngLat[][];
@@ -20,7 +19,6 @@ export interface LiveTrace {
 interface Acc {
   filter: FixFilter;
   runs: LngLat[][];
-  distance: number;
   seen: Set<number>;
   gap: { ms: number; at: number } | null;
 }
@@ -35,10 +33,18 @@ const EMPTY: LiveTrace = { runs: [], here: null, distanceM: 0, lastFixAt: null }
 export function useLiveTrace(
   walkId: string | null,
   startedAt: number | null,
-  /** Called once per gap in the trace, when it is first published. */
+  /** The walk's pauses: nothing inside one is drawn, and the trace breaks across each. */
+  pauses: PauseSpan[],
+  /** Called once per gap in the trace (not a pause), when it is first published. */
   onGap?: (ms: number) => void,
 ): LiveTrace {
   const [state, setState] = useState<LiveTrace>(EMPTY);
+  const pausesRef = useRef(pauses);
+  const rebuildRef = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    pausesRef.current = pauses;
+    rebuildRef.current?.();
+  }, [pauses]);
   const gapCb = useRef(onGap);
   useEffect(() => {
     gapCb.current = onGap;
@@ -48,25 +54,31 @@ export function useLiveTrace(
 
   useEffect(() => {
     if (!walkId) return;
-    const a: Acc = { filter: new FixFilter(startedAt), runs: [], distance: 0, seen: new Set(), gap: null };
+    const a: Acc = { filter: new FixFilter(startedAt), runs: [], seen: new Set(), gap: null };
 
     const rebuild = () => {
-      // A re-anchor can remove the newest fix; rebuilding the runs from the
-      // accepted list keeps that rare case simple and correct.
+      // A re-anchor can remove the newest fix, and a new pause changes where
+      // the trace breaks; rebuilding the runs from the accepted list keeps
+      // those rare cases simple and correct.
       a.runs = [];
-      a.distance = 0;
       const fixes = a.filter.accepted;
       for (let i = 0; i < fixes.length; i++) addRun(fixes[i], fixes[i - 1]);
     };
     const addRun = (p: TracePoint, prev: TracePoint | undefined) => {
+      const ps = pausesRef.current;
+      if (withoutPauses([p], ps).length === 0) return; // recorded as the pause began
       const pos: LngLat = [p.lon, p.lat];
-      if (!prev || p.t - prev.t > GAP_MS) {
-        if (prev) a.gap = { ms: p.t - prev.t, at: p.t };
+      if (!prev || !a.runs.length || isBreak(prev, p, ps)) {
+        if (prev && !isBreak(prev, p, ps, Infinity)) a.gap = { ms: p.t - prev.t, at: p.t };
         a.runs.push([pos]);
       } else {
         a.runs[a.runs.length - 1].push(pos);
-        a.distance += distanceM([prev.lon, prev.lat], pos);
       }
+    };
+    rebuildRef.current = () => {
+      rebuild();
+      dirty.current = true;
+      publish();
     };
     const add = (p: TracePoint) => {
       if (a.seen.has(p.t)) return; // a fix can arrive both live and from the initial load
@@ -100,7 +112,8 @@ export function useLiveTrace(
       setState({
         runs: a.runs.map((r) => r.slice()),
         here: last ? [last.lon, last.lat] : null,
-        distanceM: a.distance,
+        // The same measure as the walk's card: no jitter while standing still, nothing across a pause.
+        distanceM: traceDistanceM(smoothDwells(withoutPauses(fixes, pausesRef.current)), pausesRef.current),
         lastFixAt: last?.t ?? null,
       });
     }
@@ -112,6 +125,7 @@ export function useLiveTrace(
       }
     });
     return () => {
+      rebuildRef.current = null;
       unsub();
       clearInterval(timer);
       appState.remove();
