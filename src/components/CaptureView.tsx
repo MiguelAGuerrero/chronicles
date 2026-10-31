@@ -81,38 +81,103 @@ function VideoPlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () =
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [player]);
   useEventListener(player, 'playToEnd', () => props.onFinished?.());
-  return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls accessibilityLabel="Video" />;
+  // Sized with width and height, not left/right/top/bottom: on web this style
+  // lands on the <video> tag itself, which keeps its own size otherwise.
+  return <VideoView player={player} style={styles.fill} contentFit="contain" nativeControls playsInline accessibilityLabel="Video" />;
 }
 
 /**
- * One capture, full screen over whatever is behind it: the photo or video
- * fills it, a note is set large, a voice memo gets a player. `nav` adds
- * previous and next buttons to the capture's own card, so they never sit
- * under a long note.
+ * One capture, full screen. A photo or video fills everything above a thin
+ * strip holding its details and the actions (previous and next, or the
+ * replay's Continue), so the player's own controls never meet them. A note
+ * or voice memo sits in a card over whatever is behind it.
  */
 export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
   capture: Capture;
   autoPlay?: boolean;
   onVoiceFinished?: () => void;
   footer?: string;
-  /** Space kept clear at the top, e.g. under the safe area and a top bar. */
+  /** Unused by the full-screen layout; kept so callers can pass the safe area. */
   topInset?: number;
   nav?: { onPrev?: () => void; onNext?: () => void };
-  /** A primary action in the card (the replay's Continue), within thumb reach. The ref is the action's. */
+  /** A primary action (the replay's Continue), within thumb reach. The ref is the action's. */
   action?: { label: string; hint?: string; onPress: () => void; testID?: string };
 }>(function CaptureContent(props, actionRef) {
   const { capture } = props;
+  const insets = useSafeAreaInsets();
   const uri = useMediaUri(capture);
-  const video = capture.kind === 'video';
+  const media = (capture.kind === 'photo' || capture.kind === 'video') && !!uri;
   const [box, setBox] = useState<LayoutRectangle | null>(null);
   const rect = usePhotoRect(capture.kind === 'photo' ? uri : null, box);
+  const meta = `${KIND_LABEL[capture.kind]} · ${timeOf(capture)}${props.footer ? ` · ${props.footer}` : ''}`;
+  const actions = (onDark: boolean) => (
+    <>
+      {props.action && (
+        <Pressable
+          ref={actionRef}
+          testID={props.action.testID}
+          accessibilityRole="button"
+          accessibilityHint={props.action.hint}
+          onPress={props.action.onPress}
+          style={({ pressed }) => [styles.action, pressed && styles.dim]}
+        >
+          <Text style={styles.actionText}>{props.action.label}</Text>
+          <Icon name="chevron-forward" size={20} color="#ffffff" />
+        </Pressable>
+      )}
+      {props.nav && (
+        <View style={styles.nav}>
+          {([['Previous capture', 'chevron-back', props.nav.onPrev], ['Next capture', 'chevron-forward', props.nav.onNext]] as const).map(
+            ([label, icon, onPress]) => (
+              <Pressable
+                key={label}
+                accessibilityRole="button"
+                accessibilityLabel={label}
+                disabled={!onPress}
+                onPress={onPress}
+                style={[styles.navBtn, onDark && styles.navBtnDark, !onPress && styles.dim]}
+              >
+                <Icon name={icon} size={24} color={onDark ? '#ffffff' : theme.ink} />
+              </Pressable>
+            ),
+          )}
+        </View>
+      )}
+    </>
+  );
+
+  if (media) {
+    return (
+      // Keyed apart from the card layout, which shows while the file loads:
+      // reusing its views would leave the media area unmeasured on web.
+      <View key="media" style={[StyleSheet.absoluteFill, styles.mediaScreen]} pointerEvents="box-none">
+        <View
+          style={styles.mediaArea}
+          onLayout={(e) => setBox(e.nativeEvent.layout)}
+          // A photo lets taps through (the replay moves on with one); a video
+          // keeps its controls. Set on the photo, not this view: on web a view
+          // with pointerEvents "none" never reports its layout.
+          pointerEvents="box-none"
+        >
+          {capture.kind === 'photo' && (
+            <Image source={{ uri: uri! }} style={StyleSheet.absoluteFill} resizeMode="contain" accessibilityLabel="Photo" pointerEvents="none" />
+          )}
+          {capture.kind === 'photo' && capture.caption && rect && <CaptionBar text={capture.caption} y={capture.caption_y ?? 0.6} rect={rect} />}
+          {capture.kind === 'video' && <VideoPlayer uri={uri!} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} />}
+        </View>
+        <View style={[styles.strip, { paddingBottom: insets.bottom + 10 }]}>
+          <View style={styles.stripInner}>
+            <Text style={styles.stripMeta} numberOfLines={2}>{meta}</Text>
+            {actions(true)}
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="box-none" onLayout={(e) => setBox(e.nativeEvent.layout)}>
-      {capture.kind === 'photo' && uri && <Image source={{ uri }} style={StyleSheet.absoluteFill} resizeMode="contain" accessibilityLabel="Photo" />}
-      {capture.kind === 'photo' && capture.caption && rect && <CaptionBar text={capture.caption} y={capture.caption_y ?? 0.75} rect={rect} />}
-      {video && uri && <VideoPlayer uri={uri} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} />}
-      {/* Over a video the card sits at the top, clear of the player's controls. */}
-      <View style={[styles.cardRow, video ? { top: (props.topInset ?? 0) + 72 } : styles.cardRowBottom]} pointerEvents="box-none">
+    <View key="card" style={StyleSheet.absoluteFill} pointerEvents="box-none">
+      <View style={[styles.cardRow, { bottom: insets.bottom + 16 }]} pointerEvents="box-none">
         <View style={styles.card}>
           {capture.kind === 'text' && <Text style={styles.note}>{capture.body}</Text>}
           {capture.kind === 'voice' && uri && (
@@ -120,45 +185,8 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
           )}
           {capture.kind !== 'text' && !uri && <Text style={styles.note}>{KIND_LABEL[capture.kind]}</Text>}
           <View style={styles.metaRow}>
-            <Text style={styles.meta}>
-              {KIND_LABEL[capture.kind]} · {timeOf(capture)}
-              {props.footer ? ` · ${props.footer}` : ''}
-            </Text>
-            {props.action && (
-              <Pressable
-                ref={actionRef}
-                testID={props.action.testID}
-                accessibilityRole="button"
-                accessibilityHint={props.action.hint}
-                onPress={props.action.onPress}
-                style={({ pressed }) => [styles.action, pressed && styles.dim]}
-              >
-                <Text style={styles.actionText}>{props.action.label}</Text>
-                <Icon name="chevron-forward" size={20} color="#ffffff" />
-              </Pressable>
-            )}
-            {props.nav && (
-              <View style={styles.nav}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Previous capture"
-                  disabled={!props.nav.onPrev}
-                  onPress={props.nav.onPrev}
-                  style={[styles.navBtn, !props.nav.onPrev && styles.dim]}
-                >
-                  <Icon name="chevron-back" size={24} color={theme.ink} />
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Next capture"
-                  disabled={!props.nav.onNext}
-                  onPress={props.nav.onNext}
-                  style={[styles.navBtn, !props.nav.onNext && styles.dim]}
-                >
-                  <Icon name="chevron-forward" size={24} color={theme.ink} />
-                </Pressable>
-              </View>
-            )}
+            <Text style={[styles.meta, styles.metaText]}>{meta}</Text>
+            {actions(false)}
           </View>
         </View>
       </View>
@@ -310,7 +338,15 @@ export function CaptureViewer(props: {
 const styles = StyleSheet.create({
   // A full-width row centers the card on any screen width.
   cardRow: { position: 'absolute', left: 0, right: 0, paddingHorizontal: 16, alignItems: 'center' },
-  cardRowBottom: { bottom: 16 },
+  fill: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
+  mediaScreen: { backgroundColor: '#000000' },
+  mediaArea: { flex: 1 },
+  // The thin strip under a photo or video: its details, then its actions.
+  strip: { backgroundColor: '#14181f', paddingTop: 10, paddingHorizontal: 16, borderTopWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.15)' },
+  stripInner: { flexDirection: 'row', alignItems: 'center', gap: 12, width: '100%', maxWidth: 640, alignSelf: 'center', minHeight: 48 },
+  stripMeta: { flex: 1, color: 'rgba(255,255,255,0.85)', fontSize: 14 },
+  navBtnDark: { borderColor: 'rgba(255,255,255,0.5)' },
+  metaText: { flex: 1 },
   card: {
     padding: 16, gap: 10, width: '100%', maxWidth: 560,
     backgroundColor: 'rgba(255,255,255,0.96)', borderRadius: theme.radius,

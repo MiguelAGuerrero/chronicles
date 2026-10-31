@@ -56,6 +56,10 @@ Read this before changing recording, streets, the replay or storage.
 - **The replay waits at each capture** (the owner's call, over the doc's fixed ~40 s):
   the path runs in a fixed 30 s, but stops at every capture until Continue. Photos
   stay up; voice memos and videos play to the end. Skip jumps to the card.
+- **Photos and videos are full screen** (the owner's call): the media fills
+  everything above a thin dark strip with the details and the actions (‹ ›, or the
+  replay's Continue). Notes and memos keep their card. The replay uses the same
+  layout at its photo and video stops.
 - **Re-watches move on by themselves** (the owner's call): "Watch again", and replays
   opened from the log, advance after 4 s for a photo or note, and when a memo or
   video ends. Only the first replay after a walk waits for taps.
@@ -312,6 +316,18 @@ Read this before changing recording, streets, the replay or storage.
 - `findNodeHandle` doesn't exist on web. Use `focusOn(ref)` in `src/lib/focus.ts`.
 - React Compiler lint treats a ref passed inside a props object (`props.x.ref`) as
   a ref read during render. Use `forwardRef` instead.
+- expo-video's web `VideoView` puts its `style` straight on the `<video>` tag. A
+  video doesn't stretch to left/right/top/bottom, so size it with `width` and
+  `height` of 100% (`styles.fill`), or it sits at its own size in a corner. Pass
+  `playsInline` too.
+- On web, a View that React reuses from another layout (same type, same position)
+  never reports `onLayout`. When a component swaps between two layouts (the
+  capture's card while its file loads, then the full-screen media), key each
+  root so it mounts fresh.
+- iOS can leave the page scrolled after the keyboard, the system camera or an app
+  switch, so the screen's bottom bar ends halfway up. `webStyles.web.ts` pins
+  `#root` to the viewport (`position: fixed; inset: 0`) and scrolls back to 0
+  whenever nothing is being typed in.
 - expo-video on web ignores `play()` before the source has loaded. Start it on
   `statusChange` → `readyToPlay`.
 

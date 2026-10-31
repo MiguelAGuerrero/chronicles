@@ -356,33 +356,14 @@ export default function Replay() {
           )}
           <CaptureContent
             key={stopCapture.id}
-            ref={stopCapture.kind === 'video' ? undefined : continueRef}
+            ref={continueRef}
             capture={stopCapture}
             autoPlay
             topInset={insets.top}
             onVoiceFinished={auto ? () => advance(true) : undefined}
             footer={stopGroup.captures.length > 1 ? `${stop!.item + 1} of ${stopGroup.captures.length}` : undefined}
-            action={
-              stopCapture.kind === 'video'
-                ? undefined
-                : { label: 'Continue', hint: 'Shows the next capture, or carries on along the walk', onPress: () => advance(), testID: 'moment' }
-            }
+            action={{ label: 'Continue', hint: 'Shows the next capture, or carries on along the walk', onPress: () => advance(), testID: 'moment' }}
           />
-          {stopCapture.kind === 'video' && (
-            // Above the player's own controls, within thumb reach.
-            <View style={[styles.continueBar, { bottom: insets.bottom + 88 }]} pointerEvents="box-none">
-              <Pressable
-                ref={continueRef}
-                testID="moment"
-                accessibilityRole="button"
-                accessibilityHint="Shows the next capture, or carries on along the walk"
-                onPress={() => advance()}
-                style={styles.continueBtn}
-              >
-                <Text style={styles.continueBtnText}>Continue</Text>
-              </Pressable>
-            </View>
-          )}
         </View>
       )}
 
@@ -554,11 +535,8 @@ const styles = StyleSheet.create({
   headlineNote: { fontSize: 14, color: theme.muted, textAlign: 'center', marginTop: 6 },
   skip: { position: 'absolute', right: 12 },
   moment: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(20,24,32,0.85)' },
-  continueBar: { position: 'absolute', left: 16, right: 16, alignItems: 'center' },
   backup: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, alignSelf: 'flex-start' },
   backupText: { color: theme.ink, fontSize: 15, fontWeight: '600', textDecorationLine: 'underline' },
-  continueBtn: { minHeight: 48, paddingHorizontal: 24, borderRadius: 24, backgroundColor: theme.accent, alignItems: 'center', justifyContent: 'center' },
-  continueBtnText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
   sheetWrap: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '70%' },
   sheet: { backgroundColor: theme.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
   sheetContent: { padding: 16, gap: 10, maxWidth: 640, width: '100%', alignSelf: 'center' },

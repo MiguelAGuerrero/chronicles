@@ -265,6 +265,10 @@ function check(ok, what) {
       return !!v && v.currentTime > 0 && !v.paused;
     });
     check(playing, 'the video plays at its stop in the replay');
+    // The player fills the screen's width, above the strip with Continue.
+    const vbox = await page.locator('video').boundingBox();
+    const cbox = await page.locator('[data-testid=moment]').boundingBox();
+    check(vbox && cbox && vbox.width >= 389 && vbox.y + vbox.height <= cbox.y, `the video fills the width above the strip (${vbox && Math.round(vbox.width)} wide)`);
     await page.click('[data-testid=moment]');
 
     let moment = false;
