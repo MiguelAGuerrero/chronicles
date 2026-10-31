@@ -155,10 +155,11 @@ function check(ok, what) {
         await page.waitForTimeout(2500);
         check((await page.locator('[aria-label="Note. Open"], [aria-label$="captures here. Open"]').count()) >= 1, 'the note is pinned on the map');
         await shot(page, '03-walking');
-        // What happened here: a tap where the note was taken (the map follows
-        // the walker, so that is the map's center) shows it.
+        // What happened here: a tap near where the note was taken (the map
+        // follows the walker, so near the map's center) shows it.
         const box = await page.locator('canvas.maplibregl-canvas').boundingBox();
-        await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+        // Beside the pin (whose tap area covers the spot itself): ~27 m away at this zoom.
+        await page.mouse.click(box.x + box.width / 2 + 30, box.y + box.height / 2 + 10);
         await page.waitForSelector('text=What happened here');
         check((await page.getByText('The bakery smelled of cardamom.').count()) > 0, 'a tap on the map shows what happened there');
         await page.click('[aria-label="Close"]');
@@ -266,6 +267,21 @@ function check(ok, what) {
     check((await page.getByText('cardamom').count()) > 0, 'the replay waits at the note until a tap');
     await page.click('[data-testid=moment]');
 
+    // Continue through any stops left (the captioned photo), checking its caption shows.
+    let captionShown = false;
+    for (let k = 0; k < 90 && !(await page.locator('[data-testid=to-name]').count()); k++) {
+      if (await page.locator('[data-testid=moment]').count()) {
+        // Give the photo time to load and its caption bar to be placed.
+        await page.waitForTimeout(1200);
+        if (await page.locator('[aria-label="Caption: Mural on Wickenden"]').count()) {
+          if (!captionShown) await shot(page, '04b-replay-caption');
+          captionShown = true;
+        }
+        await page.click('[data-testid=moment]').catch(() => {});
+      }
+      await page.waitForTimeout(500);
+    }
+    check(captionShown, 'the photo shows its caption in the replay');
     await page.waitForSelector('[data-testid=to-name]', { timeout: 45000 });
     const card = (await page.locator('body').innerText()).replace(/\s+/g, ' ');
     check(/\b3 new streets\b/.test(card), `the card counts 3 new streets (${card.slice(0, 80)})`);
