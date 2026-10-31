@@ -1,5 +1,6 @@
 import { bearingDeg, distanceM, distanceToLinesM, filterFixes, lineLengthM, nearPoints, stepToward, withoutPauses, type PauseSpan } from '../geo';
 import type { LngLat, StreetSegment, TracePoint } from '../types';
+import { isChain } from './noise';
 import { isOffered } from './places';
 import { isRevealed } from './scan';
 import type { CategoryId, Mark, Offered, Place } from './types';
@@ -144,6 +145,8 @@ export function ambientCheck(o: {
   pursuing: boolean;
   /** When a reminder last fired: it goes first (R7). */
   lastRecallAt?: number | null;
+  /** Chains are never hinted at unless asked for (meta `discovery_chains`). */
+  includeChains?: boolean;
   /** Tests only: a coin in place of each place's own (coinFor). */
   random?: () => number;
 }): { place: Place; distanceM: number; side: Side; text: string } | null {
@@ -162,6 +165,7 @@ export function ambientCheck(o: {
     const t = turn(heading, bearingDeg(here, p.at));
     if (Math.abs(t) > AMBIENT_RULES.coneDeg) continue;
     if (isOffered(p, o.offered)) continue;
+    if (!o.includeChains && isChain(p.name, p.category)) continue;
     if (!o.unwalked.some((s) => distanceToLinesM(p.at, s.geometry) <= AMBIENT_RULES.streetM)) continue;
     // Each candidate passes its coin, the same one every batch.
     if (o.random ? o.random() >= AMBIENT_RULES.coinP : !coinFor(o.walkId, p.key)) continue;

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { Modal } from './Modal';
 import { CATEGORIES } from '../lib/discovery/categories';
-import { loadAutoScan, saveAutoScan } from '../lib/discovery/runScan';
+import { loadAutoScan, loadIncludeChains, saveAutoScan, saveIncludeChains } from '../lib/discovery/runScan';
 import type { Pref, Prefs } from '../lib/discovery/scan';
 import { Icon, type IconName } from './icons';
 import { Button, theme } from './ui';
@@ -29,10 +29,13 @@ export function DiscoveryPrefs(props: {
   // Auto-scan (A2): kept beside the preferences, saved with them.
   // Null until read, so a quick Done can't overwrite a saved "on" (audit).
   const [auto, setAuto] = useState<boolean | null>(null);
+  // "Leave out chains" is on by default; stored as its opposite (`discovery_chains`).
+  const [noChains, setNoChains] = useState<boolean | null>(null);
   useEffect(() => {
     if (!props.visible) return;
     let alive = true;
     loadAutoScan().then((v) => alive && setAuto(v), () => alive && setAuto(false));
+    loadIncludeChains().then((v) => alive && setNoChains(!v), () => alive && setNoChains(true));
     return () => {
       alive = false;
     };
@@ -74,10 +77,15 @@ export function DiscoveryPrefs(props: {
             <Text style={styles.cat} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>Scan when a walk starts</Text>
             <Switch testID="auto-scan" accessibilityLabel="Scan when a walk starts" value={!!auto} disabled={auto == null} onValueChange={setAuto} />
           </View>
+          <View style={styles.row}>
+            <Text style={styles.cat} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>Leave out chains</Text>
+            <Switch testID="no-chains" accessibilityLabel="Leave out chains" value={noChains !== false} disabled={noChains == null} onValueChange={setNoChains} />
+          </View>
           <View style={styles.actions}>
             <Button variant="ghost" label="Cancel" onPress={props.onClose} />
             <Button testID="prefs-done" label={props.actionLabel} onPress={() => {
               if (auto != null) saveAutoScan(auto).catch(() => {});
+              if (noChains != null) saveIncludeChains(!noChains).catch(() => {});
               props.onDone(prefs);
             }} />
           </View>

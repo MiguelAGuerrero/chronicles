@@ -1,6 +1,7 @@
 import { distanceM, distanceToLinesM } from '../geo';
 import type { LngLat, StreetSegment } from '../types';
 import { CATEGORIES, categoryOf } from './categories';
+import { isChain } from './noise';
 import { isOffered } from './places';
 import type { CategoryId, Mark, MarkOrigin, Offered, Place } from './types';
 
@@ -58,6 +59,8 @@ export function pickMarks(o: {
   offered: Offered[];
   prefs: Prefs;
   random?: () => number;
+  /** Chains are left out unless asked for (the owner's call, Nov 2; meta `discovery_chains`). */
+  includeChains?: boolean;
 }): { picked: Place[]; outcome: Exclude<ScanOutcome, 'failed'> } {
   const random = o.random ?? Math.random;
   const seen = new Set<string>();
@@ -65,6 +68,7 @@ export function pickMarks(o: {
   for (const p of o.candidates) {
     if (seen.has(p.key)) continue;
     seen.add(p.key);
+    if (!o.includeChains && isChain(p.name, p.category)) continue;
     const d = distanceM(p.at, o.center);
     // A place keyed twice (it straddles a rounding line) is one place: the same test as Offered.
     if (d <= SCAN_RULES.radiusM && d > SCAN_RULES.clearM && !isOffered(p, o.offered) && !isOffered(p, kept)) kept.push(p);

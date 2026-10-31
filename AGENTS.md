@@ -333,6 +333,13 @@ Read this before changing recording, streets, the replay or storage.
   so a scan runs its pool through `isOffered` against itself.
   - **Unnamed:** only subclass `artwork` ("Public art") and `viewpoint` ("A viewpoint")
     are kept. Two unnamed artworks in one ~10 m cell are one place (accepted).
+- **Chains aren't discoveries** (the owner's call, Nov 2, after a scan offered a
+  Domino's). OpenMapTiles has no brand tag, so `discovery/noise.ts` matches names
+  against `chains.json` (data, per category, whole leading words after
+  `normalizeBrand`: "Domino's Pizza" yes, "Subway Art Supply" in shops no). Scan
+  candidates and ambient hints leave them out unless meta `discovery_chains` is
+  '1' (the preferences' "Leave out chains" switch, on by default). Food courts
+  are dropped in `tilePois`. Landing's density still counts chains.
 - **Truth vs cache:** `DERIVED_STORES` (`db/stores.ts`: street segments, places)
   are cleared by `purgeDerived`; `KEPT_STORES` (offered, mark, recall) never are.
   SQLite migration 6, IndexedDB v5. Cached places are used only for the current

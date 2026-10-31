@@ -16,7 +16,8 @@ const POI: Record<string, Rule[]> = {
   art_gallery: [[['artwork'], 'art'], [['art'], 'shops'], [['gallery', 'art_gallery', 'arts_centre'], 'culture']],
   restaurant: [['*', 'food']],
   cafe: [['*', 'food']],
-  fast_food: [[['fast_food', 'food_court'], 'food']],
+  // Food courts are a mall's, not a find (the owner's call, Nov 2).
+  fast_food: [[['fast_food'], 'food']],
   ice_cream: [['*', 'food']],
   bakery: [['*', 'food']],
   grocery: [[['deli', 'delicatessen', 'marketplace'], 'food']],
