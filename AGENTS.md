@@ -92,6 +92,13 @@ Read this before changing recording, streets, the replay or storage.
     no web build.
   - **Reminders:** expo-notifications has no web build. The walk screen's own
     sticky reminder is the web's.
+  - **Audio mode:** `navigator.audioSession` (`lib/audioMode.web.ts`).
+    expo-audio's web `setAudioModeAsync` is an empty function, so
+    `playsInSilentMode` never reached the web, and iPhone browsers played memos
+    and videos silently. The Audio Session API (Safari 16.4+) is the web's
+    equivalent: `playback` plays with the ringer off, and `play-and-record`
+    is used while a memo records. Always go through `setAudioMode` in
+    `lib/audioMode`, never `setAudioModeAsync` directly.
   - **Browser fixes** with no native counterpart: `webStyles.web.ts` (pinned
     viewport, long-press guards) and the muted-autoplay fallback.
   Before adding web-only code, check `node_modules/<module>/build/*.web.*` for

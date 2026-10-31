@@ -84,6 +84,17 @@ function check(ok, what) {
     permissions: ['geolocation', 'microphone'],
     geolocation: { longitude: start[0], latitude: start[1], accuracy: 6 },
   });
+  // iOS's Audio Session API, which Chromium lacks: the stub records what the
+  // app asks for, so the web's "play with the ringer off" can be checked.
+  await ctx.addInitScript(() => {
+    const seen = [];
+    window.__audioSessions = seen;
+    let type = 'auto';
+    Object.defineProperty(navigator, 'audioSession', {
+      configurable: true,
+      value: { get type() { return type; }, set type(v) { type = v; seen.push(v); } },
+    });
+  });
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
@@ -103,6 +114,8 @@ function check(ok, what) {
     await page.goto(url);
     // Home is the places map; with nothing walked, one line and Start (H1, H2).
     await page.waitForSelector('text=Walk somewhere and it is starred here');
+    // Memos and videos play with the ringer switch off, on the web too (bug: silent playback on iPhone).
+    check(await page.evaluate(() => navigator.audioSession.type) === 'playback', 'the page asks to play sound even in silent mode');
     check((await page.locator('canvas.maplibregl-canvas').count()) === 1 && (await page.locator('[data-testid=start]').count()) === 1, 'home opens on the map, empty, with Start');
     await shot(page, '00-home-empty');
     await page.click('[data-testid=start]');
@@ -125,8 +138,11 @@ function check(ok, what) {
         await page.waitForSelector('[data-testid=voice-discard]');
         await page.waitForTimeout(1500);
         await shot(page, '02-voice-recording');
+        check(await page.evaluate(() => navigator.audioSession.type) === 'play-and-record', 'recording a memo switches the page to record');
         await page.click('[data-testid=voice-discard]');
         await page.waitForSelector('[data-testid=voice-undo]');
+        await page.waitForTimeout(500);
+        check(await page.evaluate(() => navigator.audioSession.type) === 'playback', 'after the memo, sound plays even in silent mode again');
         check((await page.locator('[aria-label^="Voice memo"]').count()) === 0, 'a discarded voice memo is not kept');
         await page.click('[data-testid=voice-undo]');
         await page.waitForSelector('text=/Voice memo discarded/', { state: 'detached' });

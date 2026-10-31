@@ -1,6 +1,7 @@
 import {
-  RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder,
+  RecordingPresets, requestRecordingPermissionsAsync, useAudioRecorder,
 } from 'expo-audio';
+import { setAudioMode } from './audioMode';
 import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
@@ -173,7 +174,7 @@ export function useCaptures(
   const discardTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const resetAudioMode = () =>
-    setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true, allowsBackgroundRecording: false }).catch(() => {});
+    setAudioMode({ allowsRecording: false, playsInSilentMode: true, allowsBackgroundRecording: false }).catch(() => {});
 
   const startVoice = (): Promise<boolean> =>
     enqueue(() =>
@@ -186,7 +187,7 @@ export function useCaptures(
             return false;
           }
           // Keeps recording with the phone locked and in a pocket.
-          await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true, allowsBackgroundRecording: true });
+          await setAudioMode({ allowsRecording: true, playsInSilentMode: true, allowsBackgroundRecording: true });
           await voice.prepareToRecordAsync();
           if (!alive.current) {
             // The screen went away while preparing: never leave the mic on.

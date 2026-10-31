@@ -13,7 +13,7 @@ import { db } from '../../lib/db';
 import { snapWalk } from '../../lib/finish';
 import { ensureTileBuild } from '../../lib/tiles';
 import { focusOn } from '../../lib/focus';
-import { setAudioModeAsync } from 'expo-audio';
+import { setAudioMode } from '../../lib/audioMode';
 import { FOG_MS, nextStop, PATH_MS, schedule, timedRuns, traceUntil, walkerAt, walkTimeAt } from '../../lib/replay';
 import { formatCaptures, formatDistance, formatDuration, loadReplay, suggestTitle, type ReplayData } from '../../lib/summary';
 import type { Capture, LngLat } from '../../lib/types';
@@ -87,7 +87,7 @@ export default function Replay() {
 
   // Memos and videos play with the ringer switch off, as the voice is the point.
   useEffect(() => {
-    setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false }).catch(() => {});
+    setAudioMode({ playsInSilentMode: true, allowsRecording: false }).catch(() => {});
   }, []);
 
   useEffect(() => {

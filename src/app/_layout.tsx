@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { theme } from '../components/ui';
 import '../components/webStyles';
+import { setAudioMode } from '../lib/audioMode';
 import { reconcileOpenWalk } from '../lib/session';
 import { ensureTileBuild } from '../lib/tiles';
 
@@ -11,6 +12,8 @@ export default function RootLayout() {
   // An open walk is picked back up at launch or reload, wherever the app
   // opened: recording re-attaches and the walk screen comes back.
   useEffect(() => {
+    // Memos and videos play with the ringer switch off, wherever they are opened.
+    setAudioMode({ playsInSilentMode: true, allowsRecording: false }).catch(() => {});
     // Notices a new map build early, so the fog on the walk screen is never stale.
     ensureTileBuild().catch(() => {});
     reconcileOpenWalk()
