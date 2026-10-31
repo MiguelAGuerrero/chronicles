@@ -5,7 +5,7 @@ import { Modal } from '../components/Modal';
 import { perfCount } from '../lib/perfCount';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WalkMap } from '../components/map/WalkMap';
-import { COLORS, type WalkMapHandle } from '../components/map/types';
+import { COLORS, HOTSPOT, type WalkMapHandle } from '../components/map/types';
 import { CaptionEditor } from '../components/Caption';
 import { CaptureViewer } from '../components/CaptureView';
 import { Icon, KIND_LABEL, type IconName } from '../components/icons';
@@ -15,7 +15,9 @@ import { ReminderCard } from '../components/ReminderCard';
 import { AMBIENT_KEY, MARK_OPEN_KEY, onAmbientHint } from '../lib/discovery/ambientRun';
 import { checkRecalls, onRecallFired, QUIET_KEY, takeRecallOpen } from '../lib/discovery/recallCheck';
 import { categoryOf } from '../lib/discovery/categories';
-import { loadAutoScan, savePrefs } from '../lib/discovery/runScan';
+import { loadAutoScan, loadPrefs, savePrefs } from '../lib/discovery/runScan';
+import { deadZoneNudge, inDeadZone, stripAt } from '../lib/landing/walk';
+import type { LandingRow } from '../lib/landing/view';
 import { placesFromTilePois } from '../lib/discovery/tilePois';
 import { useScan } from '../lib/discovery/useScan';
 import { db } from '../lib/db';
@@ -81,6 +83,9 @@ function WalkStats(props: { startedAt: number | null; pauses: Pause[]; distanceM
     />
   );
 }
+
+/** The walk that has had its dead-zone nudge (L15): once a walk. */
+const NUDGED_KEY = 'deadzone_walk';
 
 /** A reminder's card goes after this long, or this far walked on. */
 const REMINDER_MS = 30_000;
@@ -300,6 +305,8 @@ export default function WalkScreen() {
     map: () => mapRef.current,
     onArrive: (dest) => {
       successFeedback();
+      // The landing: a scan there, once, when scanning has its preferences (L16).
+      if (dest.scanOnArrive) arrivedScan.current = true;
       // Said once: the line on screen is announced by the screen reader here, not by a live region.
       setArrived(`You’re here: ${dest.label}`);
       AccessibilityInfo.announceForAccessibility(`You're here: ${dest.label}`);
@@ -469,6 +476,63 @@ export default function WalkScreen() {
         autoBusy.current = false;
       });
   }, [walk, live.here, navFinding, scanNow]);
+  // Hotspots on the walk (v1.5 slice 3): the remembered areas' strips and pockets.
+  const [landings, setLandings] = useState<LandingRow[]>([]);
+  useEffect(() => {
+    let alive = true;
+    db.listLandings().then((r) => alive && setLandings(r), () => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const hotStrips = useMemo(() => landings.flatMap((r) => r.analysis.strips), [landings]);
+  const hotPockets = useMemo(
+    () => landings.flatMap((r) => r.analysis.pockets.map((p) => ({ name: p.name, centre: p.centre, strip: p.strips.length > 0 }))),
+    [landings],
+  );
+  const onStrip = live.here && hotStrips.length ? stripAt(live.here, hotStrips) : null;
+  // A dead zone, 10 min from every pocket: once a walk, a pill toward the nearest (L15).
+  const farSince = useRef<number | null>(null);
+  const [nudge, setNudge] = useState<{ text: string; at: LngLat; name: string } | null>(null);
+  useEffect(() => {
+    const at = live.here;
+    if (!walk || !at || !hotPockets.length) return;
+    const now = Date.now();
+    if (!inDeadZone(at, hotPockets)) {
+      farSince.current = null;
+      return;
+    }
+    farSince.current ??= now;
+    const far = now - farSince.current;
+    let alive = true;
+    Promise.all([db.getMeta(QUIET_KEY), db.getMeta(NUDGED_KEY)])
+      .then(([q, n]) => {
+        if (!alive) return;
+        const got = deadZoneNudge({ here: at, pockets: hotPockets, farSinceMs: far, quiet: q === walk.id, nudged: n === walk.id });
+        if (!got) return;
+        db.setMeta(NUDGED_KEY, walk.id).catch(() => {});
+        setNudge(got);
+        AccessibilityInfo.announceForAccessibility(got.text);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [walk, live.here, hotPockets]);
+  useEffect(() => {
+    if (!nudge) return;
+    const t = setTimeout(() => setNudge(null), 20_000);
+    return () => clearTimeout(t);
+  }, [nudge]);
+  // The scan on reaching the landing (L16), once the arrival has been shown.
+  const arrivedScan = useRef(false);
+  useEffect(() => {
+    if (!arrivedScan.current || navigation.nav) return;
+    arrivedScan.current = false;
+    (async () => {
+      if (await loadPrefs().catch(() => null)) scan.scan(true);
+    })();
+  });
   const walkStart: LngLat | null = live.runs[0]?.[0] ?? null;
   // Once, after the first 100 m of a first walk: how to go somewhere.
   const hinted = useRef(false);
@@ -675,7 +739,7 @@ export default function WalkScreen() {
               numberOfLines={1}
               accessibilityLabel={`${formatDistance(navigation.nav.leftM)} left to ${navigation.nav.dest.label}`}
             >
-              {formatDistance(navigation.nav.leftM)} · {navigation.nav.dest.label}
+              {formatDistance(navigation.nav.leftM)} · {navigation.nav.dest.leg ? `${navigation.nav.dest.leg.n} of ${navigation.nav.dest.leg.of} · ` : ''}{navigation.nav.dest.label}
             </Text>
             <Pressable testID="nav-end" accessibilityRole="button" accessibilityLabel="End navigation" onPress={navigation.end} style={styles.navEnd} hitSlop={8}>
               <Text style={styles.navEndText}>End</Text>
@@ -711,10 +775,38 @@ export default function WalkScreen() {
             <Text style={[styles.toastText, styles.flashText]}>{arrived}</Text>
           </View>
         )}
+        {onStrip && !problem && (
+          // Quiet: a chip, not a notification or a hint (L14).
+          <View testID="on-strip" style={styles.chip}>
+            <View style={[styles.statusDot, { backgroundColor: HOTSPOT }]} />
+            <Text style={styles.chipText}>On {onStrip}</Text>
+          </View>
+        )}
         {problem && (
           <View style={styles.chip} accessible accessibilityLabel={problem.label} accessibilityLiveRegion="polite">
             <View style={[styles.statusDot, { backgroundColor: problem.color }]} />
             <Text style={styles.chipText}>{problem.label}</Text>
+          </View>
+        )}
+        {nudge && !hint && !spot && !openMark && !options && (
+          <View testID="dead-zone" style={styles.undo}>
+            <Text style={styles.undoText}>{nudge.text}</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Go to ${nudge.name}`}
+              onPress={() => {
+                const n = nudge;
+                setNudge(null);
+                navigation.goTo({ at: n.at, label: n.name, kind: 'place' });
+              }}
+              hitSlop={10}
+              style={styles.undoBtn}
+            >
+              <Text style={styles.undoBtnText}>Go here</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Dismiss" onPress={() => setNudge(null)} hitSlop={10}>
+              <Icon name="close" size={18} color="#ffffff" />
+            </Pressable>
           </View>
         )}
         {hint && !spot && !openMark && !options && (

@@ -12,6 +12,11 @@ export interface Waypoint {
   kind: 'start' | 'capture' | 'point' | 'place' | 'mark';
   /** A scan's mark: labelled "Mark" until it is revealed, then by its name (S12). */
   markId?: string;
+  /** A loop (v1.5, L13): the legs after this one, and where this one sits ("1 of 3"). */
+  legs?: Waypoint[];
+  leg?: { n: number; of: number };
+  /** Reaching it runs a scan there (the landing, L16). */
+  scanOnArrive?: boolean;
 }
 
 export interface Route {

@@ -746,8 +746,9 @@ function check(ok, what) {
       check(first.length === 1 && first[0].analysis.landing.street === 'Thayer Street', 'the area is remembered, its landing on Thayer Street');
       await page.click('[data-testid=start-here]');
       await page.waitForSelector('[data-testid=start-card]');
-      check(/Start here · Thayer Street/.test(await page.locator('[data-testid=start-card]').innerText()) && (await page.locator('[data-testid=start-walk]').count()) === 1,
-        'Start here offers Walk here and Scan here');
+      check(/Start here · Thayer Street/.test(await page.locator('[data-testid=start-card]').innerText()) && (await page.locator('[data-testid=start-walk]').count()) === 1
+        && (await page.locator('[data-testid=start-loop]').count()) === 1,
+        'Start here offers Walk here, Scan here and Walk the loop (L10, L13)');
       await page.click('[data-testid=start-card] [aria-label=Close]');
       // Remembered: after a reload, it is still on the map, offline (L11).
       await page.reload();

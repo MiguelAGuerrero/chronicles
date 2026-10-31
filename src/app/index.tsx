@@ -20,6 +20,7 @@ import { adoptable, scanNote, type Prefs } from '../lib/discovery/scan';
 import type { Mark } from '../lib/discovery/types';
 import { readArea } from '../lib/landing/read';
 import { keyFor, landingView, LANDING_VERSION, staleNote, type LandingRow } from '../lib/landing/view';
+import { loopWaypoint } from '../lib/landing/walk';
 import { ensureTileBuild } from '../lib/tiles';
 import { placeBacklog } from '../lib/backlog';
 import { boundsOf, pausedMs, type Bounds } from '../lib/geo';
@@ -431,9 +432,23 @@ export default function Home() {
                 onPress={() => {
                   const l = openPin.analysis.landing;
                   setPinOpen(null);
-                  if (l) start({ at: l.at, label: l.street ?? 'Start here', kind: 'point' });
+                  // Reaching it runs a scan there (L16).
+                  if (l) start({ at: l.at, label: l.street ?? 'Start here', kind: 'point', scanOnArrive: true });
                 }}
               />
+              {openPin.analysis.pockets.length > 0 && openPin.analysis.landing && (
+                <Button
+                  testID="start-loop"
+                  variant="secondary"
+                  label="Walk the loop"
+                  disabled={scanning || looking || starting}
+                  onPress={() => {
+                    const l = openPin.analysis.landing!;
+                    setPinOpen(null);
+                    start(loopWaypoint(l.at, l.street, openPin.analysis.pockets));
+                  }}
+                />
+              )}
               <Button
                 testID="start-scan"
                 variant="secondary"

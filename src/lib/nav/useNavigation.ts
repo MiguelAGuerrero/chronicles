@@ -90,7 +90,7 @@ export function useNavigation(opts: {
     return { ...s, id: 'cached-streets' };
   };
 
-  const goTo = useCallback(async (dest: Waypoint) => {
+  const goTo = useCallback(async (dest: Waypoint): Promise<void> => {
     const { walk, here } = latest.current;
     if (!walk || busy.current) return;
     busy.current = true;
@@ -127,7 +127,18 @@ export function useNavigation(opts: {
         if (cancelled.current) return;
         found = routeTo(list, from, dest.at, 'shortest');
       }
-      if (!found.route) return fail(found.reason ?? 'No walking route found nearby');
+      if (!found.route) {
+        // A loop skips a leg it can't route, and says so (L13).
+        const [next, ...rest] = dest.legs ?? [];
+        if (next) {
+          latest.current.onNotice(`No route to ${dest.label}: on to ${next.label}`);
+          busy.current = false;
+          setFinding(false);
+          await goToRef.current?.({ ...next, legs: rest });
+          return;
+        }
+        return fail(found.reason ?? 'No walking route found nearby');
+      }
       // Stopped while the route was being found: nothing to navigate.
       if (!(await db.getWalk(walk.id))?.open) return;
       sources.current = list;
@@ -140,6 +151,11 @@ export function useNavigation(opts: {
       setFinding(false);
     }
   }, []);
+
+  const goToRef = useRef(goTo);
+  useEffect(() => {
+    goToRef.current = goTo;
+  }, [goTo]);
 
   /** Stops finding a route: the street read ends after the view at hand. */
   const cancel = useCallback(() => {
@@ -180,6 +196,9 @@ export function useNavigation(opts: {
       if (step.state.arrived) {
         latest.current.onArrive(s.dest);
         end();
+        // A loop goes on to its next leg (L13).
+        const [next, ...rest] = s.dest.legs ?? [];
+        if (next) goTo({ ...next, legs: rest }).catch(() => {});
         return;
       }
       let next = step.state;
