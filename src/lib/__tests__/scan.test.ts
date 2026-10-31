@@ -33,7 +33,7 @@ const dLon = 1 / (111320 * Math.cos((O[1] * Math.PI) / 180));
 /** A point x metres east and y metres north of O. */
 const m = (x: number, y: number): LngLat => [O[0] + x * dLon, O[1] + y * dLat];
 const place = (name: string, category: CategoryId, at: LngLat, generic = false): Place => ({
-  key: placeKey(category, generic ? null : name, at), name, category, at, generic, build: 'b1',
+  key: placeKey(category, generic ? null : name, at), name, category, at, generic, build: 'b1', markable: true,
 });
 /** A seeded random source, so draws repeat. */
 function rng(seed = 1) {
@@ -290,7 +290,7 @@ test('scan: the note gives the marks and the busy streets together (S22)', () =>
   assert.equal(scanMessage('full', 6, { strips: 2, pockets: 0 }), '6 marks nearby · 2 busy streets');
   assert.equal(scanMessage('few', 1, { strips: 1, pockets: 0 }), 'Only 1 spot nearby · 1 busy street');
   assert.equal(scanMessage('few', 2, null), 'Only 2 spots nearby');
-  assert.equal(scanMessage('none', 0, { strips: 0, pockets: 1 }), 'No marks here · 1 busy pocket');
+  assert.equal(scanMessage('none', 0, { strips: 0, pockets: 1 }), 'No marks here · 1 busy area');
   assert.equal(scanMessage('none', 0, { strips: 0, pockets: 0 }), 'Nothing to find here yet');
   assert.equal(scanMessage('failed', 0, { strips: 3, pockets: 0 }), 'Couldn’t read the map here · 3 busy streets');
   assert.equal(scanMessage('failed', 0, null), 'Couldn’t read the map here');

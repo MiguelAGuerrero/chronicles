@@ -17,7 +17,7 @@ import { checkRecalls, onRecallFired, QUIET_KEY, takeRecallOpen } from '../lib/d
 import { categoryOf } from '../lib/discovery/categories';
 import { loadAutoScan, loadPrefs, savePrefs } from '../lib/discovery/runScan';
 import { deadZoneDue, deadZoneNudge, inDeadZone, stripAt } from '../lib/landing/walk';
-import { landingView, LANDING_VERSION, type LandingRow } from '../lib/landing/view';
+import { landingView, LANDING_VERSION, nearAreas, type LandingRow } from '../lib/landing/view';
 import { placesFromTilePois } from '../lib/discovery/tilePois';
 import { useScan } from '../lib/discovery/useScan';
 import { db } from '../lib/db';
@@ -494,7 +494,13 @@ export default function WalkScreen() {
   }, [resumed]);
   const hotStrips = useMemo(() => landings.flatMap((r) => r.analysis.strips), [landings]);
   // Drawn on the walk map too (S21): pockets, strips and their names; Start here is the home's.
-  const hotView = useMemo(() => (landings.length ? { ...landingView(landings, build), pins: [] } : null), [landings, build]);
+  // Only areas within 3 km (audit), keyed so a new fix doesn't rebuild the labels.
+  const nearKeys = nearAreas(landings, live.here).map((r) => r.key).join('|');
+  const hotView = useMemo(() => {
+    const keys = new Set(nearKeys.split('|'));
+    const near = landings.filter((r) => keys.has(r.key));
+    return near.length ? { ...landingView(near, build), pins: [] } : null;
+  }, [landings, build, nearKeys]);
   const hotPockets = useMemo(
     () => landings.flatMap((r) => r.analysis.pockets.map((p) => ({ name: p.name, centre: p.centre, strip: p.strips.length > 0 }))),
     [landings],

@@ -4,10 +4,9 @@ import { boundsOf } from '../geo';
 import { newId } from '../id';
 import { mapReads } from '../mapReads';
 import { withTimeout } from '../places';
-import { isMarkable } from './noise';
 import { ensureTileBuild } from '../tiles';
 import type { LngLat } from '../types';
-import { candidatesFrom, marksFromScan, offeredFrom, pickMarks, readFailed, SCAN_RULES, toReplace, type Prefs, type ScanOutcome } from './scan';
+import { marksFromScan, offeredFrom, pickMarks, SCAN_RULES, scanInputs, toReplace, type Prefs, type ScanOutcome } from './scan';
 import { placesFromTilePois } from './tilePois';
 import type { Mark } from './types';
 
@@ -68,10 +67,10 @@ async function scan(o: { center: LngLat; walkId: string | null; map: WalkMapHand
   if (build !== 'unknown') await db.putPlaces(got).catch(() => {});
   const cached = build !== 'unknown' ? await db.placesIn(bounds).catch(() => []) : [];
   const [offered, existing, prefs] = await Promise.all([db.listOffered(), db.listMarks(o.walkId), loadPrefs()]);
-  // Only attractions count toward filling the scan (S18-S20).
-  const candidates = candidatesFrom(got, cached, build).filter(isMarkable);
+
   // Tiles that didn't load: "Couldn't read the map here", and nothing changes (S15).
-  if (readFailed({ read: features != null, complete: !!features?.complete, candidates, center: o.center, offered })) return { outcome: 'failed', marks: [] };
+  const { failed, candidates } = scanInputs({ read: got, cached, build, center: o.center, offered, wasRead: features != null, complete: !!features?.complete });
+  if (failed) return { outcome: 'failed', marks: [] };
   const { picked, outcome } = pickMarks({ candidates, center: o.center, offered, prefs: prefs ?? {} });
   if (outcome === 'none') return { outcome, marks: [] };
   // A walk stopped mid-scan gets no marks, and spends no places.

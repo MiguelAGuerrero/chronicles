@@ -344,16 +344,26 @@ Read this before changing recording, streets, the replay or storage.
     libraries are marks only when the name holds a word from `notable.json`
     (whole words after `normalizeBrand`).
   - Chains (`chains.json`, per category, whole leading words) are never marks.
-  - `isMarkable` gates scan candidates (before `readFailed`) and ambient hints. A
-    row cached before `markable` existed is judged by its category alone.
+  - `isMarkable` gates scan candidates and ambient hints. A row without
+    `markable` (cached before it) is not a mark until read again. SQLite
+    migration 8 adds the column (`db/placeRow.ts` maps it); IndexedDB stores
+    the whole object.
+  - `scanInputs`: whether a read failed is judged by every place read, the
+    candidates by attractions alone, so ordinary areas aren't "couldn't read".
   - The preferences list only the five attraction categories. Food courts are
     dropped in `tilePois`.
-- **A scan also sweeps** (`sweepArea` in `landing/read.ts`): after its marks, it
-  reads the 1.5 km around with the tile decoder (no camera, outside `mapReads`),
-  analyzes it, and remembers it as a landing row (replacing one within 1 km).
-  - A failed or cancelled sweep keeps the marks. The note is `scanMessage`
-    ("Only 2 spots nearby · 1 busy street").
-  - The walk map draws remembered hotspots (`hotView`: no Start here pins).
+- **A scan also sweeps** (`sweepArea` in `landing/read.ts`): once the scan has
+  ended (so it never holds the cover, Stop, or a loop's next leg), it reads the
+  1.5 km around with the tile decoder (no camera, outside `mapReads`), analyzes
+  it, and remembers it as a landing row. One sweep at a time.
+  - A current area centred within 1 km (`sweepCovered`) is shown instead, so a
+    sweep never replaces a "What's good here" area or refetches its tiles.
+  - The note is `scanMessage`: the marks first, then "· 1 busy street" when
+    the sweep lands. A failed sweep keeps the marks.
+  - The walk map draws areas within 3 km (`nearAreas`, keyed so fixes don't
+    rebuild the labels), without Start here pins.
+  - Chains have no culture list: cinemas are never marks, and the list only
+    hid theatres.
 - **Truth vs cache:** `DERIVED_STORES` (`db/stores.ts`: street segments, places)
   are cleared by `purgeDerived`; `KEPT_STORES` (offered, mark, recall) never are.
   SQLite migration 6, IndexedDB v5. Cached places are used only for the current

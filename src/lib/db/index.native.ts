@@ -1,7 +1,8 @@
 import * as SQLite from 'expo-sqlite';
+import { placeFromRow, placeToRow, type PlaceRow } from './placeRow';
 import type { Area, WalkArea } from '../areas/types';
 import type { LandingRow } from '../landing/view';
-import type { CategoryId, Mark, MarkOrigin, MarkState, Offered, Place, Recall } from '../discovery/types';
+import type { Mark, MarkOrigin, MarkState, Offered, Recall } from '../discovery/types';
 import { DERIVED_STORES } from './stores';
 import type { Capture, Pause, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 import { segmentBbox } from './segmentBounds';
@@ -103,6 +104,10 @@ const MIGRATIONS = [
     build TEXT NOT NULL, rules TEXT NOT NULL, analyzed_at INTEGER NOT NULL
   );
   `,
+  // 8: whether a place can be a mark (S18-S20); null for rows cached before it, which are not.
+  `
+  ALTER TABLE place ADD COLUMN markable INTEGER;
+  `,
 ];
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
@@ -136,9 +141,8 @@ function write(task: (txn: SQLite.SQLiteDatabase) => Promise<void>): Promise<voi
   return run;
 }
 
-type PlaceRow = { key: string; name: string; category: CategoryId; lon: number; lat: number; generic: number; build: string };
-const toPlace = ({ lon, lat, generic, ...r }: PlaceRow): Place => ({ ...r, at: [lon, lat], generic: generic === 1 });
-type OfferedRow = Omit<PlaceRow, 'build'> & { offered_at: number; origin: MarkOrigin };
+const toPlace = placeFromRow;
+type OfferedRow = Omit<PlaceRow, 'build' | 'markable'> & { offered_at: number; origin: MarkOrigin };
 const toOffered = ({ lon, lat, generic, ...r }: OfferedRow): Offered => ({ ...r, at: [lon, lat], generic: generic === 1 });
 
 type MarkRow = Omit<Mark, 'at' | 'generic'> & { lon: number; lat: number; generic: number };
@@ -363,10 +367,13 @@ export const db: Db = {
     if (places.length === 0) return Promise.resolve();
     return write(async (t) => {
       const st = await t.prepareAsync(
-        'INSERT OR REPLACE INTO place (key, name, category, lon, lat, generic, build) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        'INSERT OR REPLACE INTO place (key, name, category, lon, lat, generic, build, markable) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
       );
       try {
-        for (const p of places) await st.executeAsync(p.key, p.name, p.category, p.at[0], p.at[1], p.generic ? 1 : 0, p.build);
+        for (const p of places) {
+          const r = placeToRow(p);
+          await st.executeAsync(r.key, r.name, r.category, r.lon, r.lat, r.generic, r.build, r.markable);
+        }
       } finally {
         await st.finalizeAsync();
       }

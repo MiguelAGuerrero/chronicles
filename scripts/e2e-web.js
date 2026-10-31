@@ -166,11 +166,18 @@ function check(ok, what) {
     check((await page.locator('[data-testid=auto-scan]').count()) === 1, 'the preferences offer a scan when a walk starts (A2)');
     await page.click('[data-testid=pref-art-more]');
     await shot(page, '01a-prefs');
+    // Slow tiles for the sweep: the scan ends, and Stop works, before its busy streets come in (audit).
+    tileDelayMs = 3000;
     await page.click('[data-testid=prefs-done]');
     await page.waitForSelector('text=Only 2 spots nearby', { timeout: 30000 });
+    const swept = (await page.locator('text=/busy street/').count()) > 0;
+    check(!swept && (await page.locator('[data-testid=scan-cancel]').count()) === 0
+      && (await page.locator('[data-testid=stop]').getAttribute('aria-disabled')) !== 'true',
+      'the sweep runs after the scan ends: no cover, and Stop stays enabled (audit)');
     const walkMarks = () => page.locator('.maplibregl-map').last().locator('[data-testid=mark-pin]');
     // The sweep (S21, S22): Thayer Street's strip, 1.1 km east, shows on the walk map, and the note counts it.
     await page.waitForSelector('text=/Only 2 spots nearby · 1 busy street/', { timeout: 30000 });
+    tileDelayMs = 0;
     check((await page.locator('.maplibregl-map').last().getByText('Thayer Street', { exact: true }).count()) >= 1, 'a scan also shows the busy streets around (S21, S22)');
     check((await walkMarks().count()) === 2 && (await page.locator('[aria-label="A mark to find. Open"]').count()) >= 2, 'a scan drops a "?" mark for each place nearby (S3, S7)');
     await shot(page, '01b-marks');

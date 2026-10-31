@@ -259,16 +259,23 @@ export default function Home() {
     try {
       const r = await runScan({ center: at, walkId: null, map, shouldStop: () => scanCancelled.current });
       if (r.outcome === 'cancelled' || r.outcome === 'closed' || r.outcome === 'busy') return;
-      // The sweep (S21): the busy streets around, with no camera moves, after the marks.
-      const row = await sweepArea(at, () => scanCancelled.current);
-      if (scanCancelled.current) return;
-      if (row) {
-        setLandings((rows) => [...rows.filter((x) => x.key !== row.key), row]);
-        setBuild(row.build);
-      }
-      const message = scanMessage(r.outcome, r.marks.length, sweepCount(row?.analysis), `${r.marks.length} marks to find on your next walk`);
+      const full = `${r.marks.length} marks to find on your next walk`;
+      const message = scanMessage(r.outcome, r.marks.length, null, full);
       setScanNotice({ message, tone: r.outcome === 'failed' ? 'error' : 'info' });
       AccessibilityInfo.announceForAccessibility(message);
+      // The sweep (S21), after the scan has ended, so Cancel never hides marks already made (audit).
+      const outcome = r.outcome;
+      const n = r.marks.length;
+      sweepArea(at, () => false).then((row) => {
+        if (!row) return;
+        setLandings((rows) => [...rows.filter((x) => x.key !== row.key), row]);
+        setBuild(row.build);
+        const count = sweepCount(row.analysis);
+        if (!count || (!count.strips && !count.pockets)) return;
+        const both = scanMessage(outcome, n, count, full);
+        setScanNotice({ message: both, tone: outcome === 'failed' ? 'error' : 'info' });
+        AccessibilityInfo.announceForAccessibility(both);
+      }, () => {});
       setHomeMarks(await db.listMarks(null).catch(() => homeMarks));
     } catch (e) {
       setScanNotice({ message: `The scan didn’t finish: ${e instanceof Error ? e.message : e}`, tone: 'error' });

@@ -36,6 +36,7 @@ export function useScan(opts: {
   const [asking, setAsking] = useState(false);
   const cancelled = useRef(false);
   const starting = useRef(false);
+  const sweeping = useRef(false);
   // Leaving the screen stops a scan between views; nothing is set on an unmounted screen.
   const mounted = useRef(true);
   useEffect(() => {
@@ -108,23 +109,36 @@ export function useScan(opts: {
       cancelled.current = false;
       setScanning(true);
       const r = await runScan({ center: here, walkId, map: m, shouldStop: () => cancelled.current || !mounted.current });
-      // Marks first; the walk shows them while the sweep reads.
-      if (r.outcome !== 'cancelled' && r.outcome !== 'closed' && r.outcome !== 'busy' && mounted.current) await reload();
       if (!mounted.current || r.outcome === 'cancelled' || r.outcome === 'closed') return r.outcome;
       if (r.outcome === 'busy') {
         onNotice('Finding a route first. Scan again in a moment.');
         return r.outcome;
       }
-      // The sweep (S21): the busy streets of the 1.5 km around, with no camera moves. A failed
-      // or cancelled one keeps the marks.
-      const stop = () => cancelled.current || !mounted.current;
-      const row = await sweepArea(here, stop);
-      if (row && mounted.current) latest.current.onSwept(row);
-      if (!mounted.current) return r.outcome;
-      const note = scanMessage(r.outcome, r.marks.length, stop() ? null : sweepCount(row?.analysis));
+      const note = scanMessage(r.outcome, r.marks.length, null);
       onNotice(note, r.outcome === 'failed' ? 'error' : 'info');
       AccessibilityInfo.announceForAccessibility(note);
       await reload();
+      // The sweep (S21): the busy streets of the 1.5 km around, with no camera moves, after the
+      // scan has ended, so it never holds the cover, Stop or the next leg (audit). A failed one
+      // keeps the marks; one at a time.
+      if (!sweeping.current) {
+        sweeping.current = true;
+        const outcome = r.outcome;
+        const n = r.marks.length;
+        sweepArea(here, () => !mounted.current)
+          .then((row) => {
+            if (!row || !mounted.current) return;
+            latest.current.onSwept(row);
+            const count = sweepCount(row.analysis);
+            if (!count || (!count.strips && !count.pockets)) return;
+            const both = scanMessage(outcome, n, count);
+            latest.current.onNotice(both, outcome === 'failed' ? 'error' : 'info');
+            AccessibilityInfo.announceForAccessibility(both);
+          })
+          .finally(() => {
+            sweeping.current = false;
+          });
+      }
       return r.outcome;
     } catch (e) {
       onNotice(`The scan didn’t finish: ${e instanceof Error ? e.message : e}`, 'error');

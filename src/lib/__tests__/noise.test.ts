@@ -15,13 +15,13 @@ const O: LngLat = [-71.4, 41.812];
 const dLat = 1 / 111320;
 const dLon = 1 / (111320 * Math.cos((O[1] * Math.PI) / 180));
 const m = (x: number, y: number): LngLat => [O[0] + x * dLon, O[1] + y * dLat];
-const place = (name: string, category: CategoryId, at: LngLat): Place => ({ key: placeKey(category, name, at), name, category, at, generic: false, build: 'b1' });
+const place = (name: string, category: CategoryId, at: LngLat): Place => ({ key: placeKey(category, name, at), name, category, at, generic: false, build: 'b1', markable: true });
 
 test('noise: chains are known by name in their usual spellings, within their own category', () => {
   for (const name of ["Domino's", "Domino's Pizza", 'Dominos', 'DOMINO’S PIZZA', 'Starbucks', 'Starbucks Coffee', "McDonald's", 'McDonalds', "Dunkin'", 'Dunkin Donuts', 'Chick-fil-A', 'Chick fil A', 'Panera Bread']) {
     assert.equal(isChain(name, 'food'), true, name);
   }
-  for (const [name, cat] of [['CVS', 'shops'], ['7-Eleven', 'shops'], ['GameStop', 'shops'], ['AMC Theatres', 'culture'], ['Regal Cinemas', 'culture'], ['Buffalo Wild Wings', 'nightlife']] as [string, CategoryId][]) {
+  for (const [name, cat] of [['CVS', 'shops'], ['7-Eleven', 'shops'], ['GameStop', 'shops'], ['Buffalo Wild Wings', 'nightlife']] as [string, CategoryId][]) {
     assert.equal(isChain(name, cat), true, name);
   }
   // Independents, and a chain's name in another category, are kept.

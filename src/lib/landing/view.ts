@@ -79,3 +79,24 @@ export function landingView(rows: LandingRow[], build: string | null): LandingVi
   }
   return v;
 }
+
+/**
+ * A current area (this build, these rules) centred within 1 km of a scan
+ * covers it: the sweep shows that one rather than reading again, so it never
+ * replaces a "What's good here" area or refetches its tiles (audit).
+ */
+export function sweepCovered(rows: LandingRow[], at: LngLat, build: string): LandingRow | null {
+  let best: LandingRow | null = null;
+  let bestD = SAME_AREA_M;
+  for (const r of rows) {
+    if (isStale(r, build)) continue;
+    const d = distanceM(r.centre, at);
+    if (d <= bestD) [best, bestD] = [r, d];
+  }
+  return best;
+}
+
+/** The walk map draws only areas centred within this of the walker (audit: every area ever seen, as DOM labels). */
+export const NEAR_AREA_M = 3000;
+export const nearAreas = (rows: LandingRow[], here: LngLat | null): LandingRow[] =>
+  here ? rows.filter((r) => distanceM(r.centre, here) <= NEAR_AREA_M) : [];

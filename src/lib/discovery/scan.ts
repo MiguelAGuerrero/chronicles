@@ -175,6 +175,17 @@ export function readFailed(o: { read: boolean; complete: boolean; candidates: Pl
   return usable.length < SCAN_RULES.count;
 }
 
+/**
+ * A scan's pool (S15, S18): whether the read failed is judged by every place
+ * read, so an ordinary area isn't "couldn't read" for having few attractions
+ * (audit); the candidates are the attractions alone.
+ */
+export function scanInputs(o: { read: Place[]; cached: Place[]; build: string; center: LngLat; offered: Offered[]; wasRead: boolean; complete: boolean }): { failed: boolean; candidates: Place[] } {
+  const all = candidatesFrom(o.read, o.cached, o.build);
+  const failed = readFailed({ read: o.wasRead, complete: o.complete, candidates: all, center: o.center, offered: o.offered });
+  return { failed, candidates: all.filter(isMarkable) };
+}
+
 /** At a capture's stop in the replay: the mark it found (S13); an unnamed one by its label alone. */
 export function foundLine(marks: Mark[], captureId: string): string | null {
   const m = marks.find((x) => x.state === 'found' && x.capture_id === captureId);
@@ -229,9 +240,9 @@ export function scanMessage(outcome: ScanOutcome, n: number, sweep: SweepCount, 
   return busy ? `${marks} · ${busy}` : marks;
 }
 
-/** "2 busy streets · 1 busy pocket", or empty. */
+/** "2 busy streets · 1 busy area", or empty. */
 export const sweepNote = (sweep: SweepCount): string =>
-  sweep ? [sweep.strips && plural(sweep.strips, 'busy street'), sweep.pockets && plural(sweep.pockets, 'busy pocket')].filter(Boolean).join(' · ') : '';
+  sweep ? [sweep.strips && plural(sweep.strips, 'busy street'), sweep.pockets && plural(sweep.pockets, 'busy area')].filter(Boolean).join(' · ') : '';
 
 /** The sweep's count from an analysis: named strips, and pockets with no strip of their own. */
 export const sweepCount = (a: { strips: unknown[]; pockets: { strips: unknown[] }[]; basis: string } | null | undefined): SweepCount =>

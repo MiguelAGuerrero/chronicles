@@ -51,9 +51,9 @@ export function notableName(name: string): boolean {
 }
 
 /**
- * Whether a place can become a mark (S18-S20). `markable: false` comes from
- * the adapter (a cinema, a plain church); a row cached before it existed is
- * judged by its category alone.
+ * Whether a place can become a mark (S18-S20). The adapter sets `markable`;
+ * a row cached before it existed has none and is not a mark until it is read
+ * again (audit: a plain church cached last week).
  */
 export const isMarkable = (p: Pick<Place, 'name' | 'category' | 'markable'>): boolean =>
-  MARK_CATEGORIES.includes(p.category) && p.markable !== false && !isChain(p.name, p.category);
+  p.markable === true && MARK_CATEGORIES.includes(p.category) && !isChain(p.name, p.category);

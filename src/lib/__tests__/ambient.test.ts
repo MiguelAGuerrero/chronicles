@@ -19,7 +19,7 @@ const dLat = 1 / 111320;
 const dLon = 1 / (111320 * Math.cos((O[1] * Math.PI) / 180));
 const m = (x: number, y: number): LngLat => [O[0] + x * dLon, O[1] + y * dLat];
 const T0 = Date.UTC(2026, 9, 31, 15);
-const place = (name: string, category: CategoryId, at: LngLat): Place => ({ key: placeKey(category, name, at), name, category, at, generic: false, build: 'b1' });
+const place = (name: string, category: CategoryId, at: LngLat): Place => ({ key: placeKey(category, name, at), name, category, at, generic: false, build: 'b1', markable: true });
 /** Walking north along x = 0 at 1.25 m/s, one fix every 4 s (5 m apart), ending at (0, 0). */
 const walkNorth = (n = 12, over: Partial<TracePoint> = {}): TracePoint[] =>
   Array.from({ length: n }, (_, i) => {
