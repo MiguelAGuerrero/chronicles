@@ -55,29 +55,37 @@ export function categoryOfPoi(cls: string, sub: string): CategoryId | null {
   return null;
 }
 
-/** Unnamed places worth keeping, and the label they show (D4). */
-const GENERIC: Partial<Record<CategoryId, string>> = { art: 'Public art', viewpoints: 'A viewpoint' };
+/** Unnamed places worth keeping, by subclass, and the label they show (D4). */
+const GENERIC: Record<string, string> = { artwork: 'Public art', viewpoint: 'A viewpoint' };
+
+/** The tiles' top zoom: every POI is in it, and parent tiles snap points to a coarser grid. */
+const POI_ZOOM = 14;
 
 /**
  * Places from the tiles' POI points, one per place however many tiles carried
  * it (D5). A read that isn't complete (below z14) yields nothing to cache (D2).
  */
-export function placesFromTilePois(features: TileFeature[], build: string, opts: { complete?: boolean } = {}): Place[] {
+export function placesFromTilePois(features: (TileFeature & { zoom?: number })[], build: string, opts: { complete?: boolean } = {}): Place[] {
   if (opts.complete === false) return [];
   const out = new Map<string, Place>();
   for (const f of features) {
-    if (f.geometry?.type !== 'Point') continue;
+    // Parent tiles still on screen while z14 loads are left out (D2).
+    if (f.zoom != null && f.zoom !== POI_ZOOM) continue;
+    const type = f.geometry?.type;
+    if (type !== 'Point' && type !== 'MultiPoint') continue;
     const props = f.properties ?? {};
-    const category = categoryOfPoi(String(props.class ?? ''), String(props.subclass ?? ''));
+    const sub = String(props.subclass ?? '');
+    const category = categoryOfPoi(String(props.class ?? ''), sub);
     if (!category) continue;
     const raw = typeof props.name === 'string' ? props.name.trim() : '';
     const generic = !raw;
-    if (generic && !GENERIC[category]) continue;
-    const c = f.geometry.coordinates as LngLat;
+    if (generic && !GENERIC[sub]) continue;
+    // The poi layer is points; a feature with several is kept at its first.
+    const c = (type === 'MultiPoint' ? (f.geometry.coordinates as LngLat[])[0] : f.geometry.coordinates) as LngLat;
     if (!Array.isArray(c) || !Number.isFinite(c[0]) || !Number.isFinite(c[1])) continue;
     const at: LngLat = [c[0], c[1]];
     const key = placeKey(category, generic ? null : raw, at);
-    if (!out.has(key)) out.set(key, { key, name: generic ? GENERIC[category]! : raw, category, at, generic, build });
+    if (!out.has(key)) out.set(key, { key, name: generic ? GENERIC[sub] : raw, category, at, generic, build });
   }
   return [...out.values()];
 }

@@ -156,7 +156,8 @@ export default function WalkScreen() {
       const features = await mapRef.current?.collectView().catch(() => null);
       if (features?.complete && features.roads.length && build !== 'unknown') {
         await db.putSegments(deriveSegments(features.roads, features.names, build)).catch(() => {});
-        await db.putPlaces(placesFromTilePois(features.pois, build, { complete: features.complete })).catch(() => {});
+        // Not awaited: the fog shouldn't wait on the place cache.
+        db.putPlaces(placesFromTilePois(features.pois, build, { complete: features.complete })).catch(() => {});
       } else if (!features?.complete) {
         run.at = null; // zoomed out or not loaded yet: read the streets again on the next fix
       }

@@ -109,3 +109,32 @@ test('places: 16k features derive in well under a second (D9)', () => {
   assert.ok(got.length > 1000);
   assert.ok(ms < 300, `${Math.round(ms)} ms`);
 });
+
+// Audit regressions (slice 1).
+
+test('places: parent tiles below z14 are not cached (audit 1, D2)', () => {
+  const f = { ...poi('cafe', 'cafe', 'Coffee Exchange', at(0, 0)), zoom: 13 };
+  assert.deepEqual(placesFromTilePois([f], 'b1'), []);
+  assert.equal(placesFromTilePois([{ ...f, zoom: 14 }], 'b1').length, 1);
+});
+
+test('places: only unnamed artworks and viewpoints are kept, not unnamed zoos or attractions (audit 2, D4)', () => {
+  const got = placesFromTilePois([
+    poi('attraction', 'attraction', null, at(0, 0)),
+    poi('zoo', 'zoo', null, at(1, 0)),
+    poi('attraction', 'viewpoint', null, at(2, 0)),
+  ], 'b1');
+  assert.deepEqual(got.map((p) => p.name), ['A viewpoint']);
+});
+
+test('places: names fold the same whatever their Unicode form (audit 5, D5)', () => {
+  const composed = 'Café Zoë';
+  const decomposed = 'Café Zoë';
+  assert.equal(placeKey('food', composed, at(0, 0)), placeKey('food', decomposed, at(0, 0)));
+});
+
+test('places: a MultiPoint POI is kept at its first point (audit 6)', () => {
+  const f = { geometry: { type: 'MultiPoint', coordinates: [at(0, 0), at(0.1, 0)] }, properties: { class: 'cafe', subclass: 'cafe', name: 'Twin' } };
+  const [p] = placesFromTilePois([f], 'b1');
+  assert.deepEqual(p.at, at(0, 0));
+});

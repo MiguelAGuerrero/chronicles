@@ -23,6 +23,8 @@ import type { LngLat, StreetSegment } from './types';
 export interface RoadFeature {
   geometry: { type: string; coordinates: unknown };
   properties: Record<string, unknown> | null;
+  /** The zoom of the tile it came from, where the map says (maplibre-gl's `_z`). */
+  zoom?: number;
 }
 
 const EXCLUDED_CLASSES = new Set([

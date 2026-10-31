@@ -310,6 +310,29 @@ Read this before changing recording, streets, the replay or storage.
   - Walk me back is the top edge button.
   - A pin's viewer has Go here.
 
+## v1: discovery (in progress; the spec is the concept doc's "v1: discovery" tab)
+
+- **Places of interest** come from the tiles' `poi` layer, read in the same z14
+  reads as streets (`collectView`, `collect`, so `snapWalk` and the walk screen),
+  into a `place` cache tagged with the build. `discovery/tilePois.ts` is the only
+  file that knows the poi classes; its table is the tab's. Sources sit behind
+  `PlaceSource`.
+- **Keys:** category + name (NFC, trimmed, `toLowerCase`, never the locale's) +
+  position to 4 decimals. One POI can straddle a rounding line and get two keys,
+  so a scan runs its pool through `isOffered` against itself.
+  - **Unnamed:** only subclass `artwork` ("Public art") and `viewpoint` ("A viewpoint")
+    are kept. Two unnamed artworks in one ~10 m cell are one place (accepted).
+- **Truth vs cache:** `DERIVED_STORES` (`db/stores.ts`: street segments, places)
+  are cleared by `purgeDerived`; `KEPT_STORES` (offered, mark, recall) never are.
+  SQLite migration 6, IndexedDB v5. Cached places are used only for the current
+  build (`candidatesFrom`), since a purge can race a live read.
+- **Parent tiles:** maplibre-gl's `querySourceFeatures` returns parent tiles still
+  standing in while z14 loads; `toRoadFeature` carries `_z` as `zoom`, and POIs
+  off z14 are dropped. Native features carry no zoom (unverified on a device).
+- **Native:** the invisible `q-pois` layer makes the poi source layer load; whether
+  it's needed (or costs layout) is unverified on a device.
+- **Deferred:** an index for Offered (it's read whole; fine for thousands).
+
 ## Working with the owner
 
 - **Ask before architectural decisions:** libraries, data model, platform strategy,

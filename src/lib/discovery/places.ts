@@ -8,7 +8,8 @@ export const SAME_PLACE_M = 50;
 /** An unnamed place ("Public art") within this of one offered is that one. */
 export const SAME_GENERIC_M = 15;
 
-export const normalizeName = (name: string) => name.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+/** Trimmed, spaces collapsed, one Unicode form, case-folded the same on every device's locale. */
+export const normalizeName = (name: string) => name.normalize('NFC').trim().replace(/\s+/g, ' ').toLowerCase();
 
 /** category + normalized name + position rounded to 4 decimals; an unnamed place has no name part (D5). */
 export function placeKey(category: CategoryId, name: string | null, at: LngLat): string {

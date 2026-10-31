@@ -1,5 +1,5 @@
 import type { Area, WalkArea } from '../areas/types';
-import type { Offered, Place } from '../discovery/types';
+import type { Mark, Offered, Place } from '../discovery/types';
 import type { Capture, Pause, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 
 /**
@@ -68,6 +68,14 @@ export interface Db {
   addOffered(rows: Offered[]): Promise<void>;
   /** Every place ever offered, by scan or ambient. */
   listOffered(): Promise<Offered[]>;
+  /**
+   * A scan's result in one transaction: the replaced marks are marked so, the
+   * new ones stored, and their places recorded as offered (S6, S10).
+   */
+  saveScan(scan: { replace: string[]; marks: Mark[]; offered: Offered[] }): Promise<void>;
+  /** A walk's marks; `null` gives the home's (no walk yet). */
+  listMarks(walkId: string | null): Promise<Mark[]>;
+  updateMark(id: string, patch: Partial<Omit<Mark, 'id'>>): Promise<void>;
 
   getMeta(key: string): Promise<string | null>;
   setMeta(key: string, value: string): Promise<void>;

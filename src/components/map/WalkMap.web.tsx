@@ -58,8 +58,8 @@ const DOUBLE_TAP_MS = 300;
 /** Held this long without moving, a press is a long press. */
 const LONG_PRESS_MS = 500;
 
-function toRoadFeature(f: GeoJSONFeature): RoadFeature {
-  return { geometry: f.geometry as RoadFeature['geometry'], properties: f.properties };
+function toRoadFeature(f: GeoJSONFeature & { _z?: number }): RoadFeature {
+  return { geometry: f.geometry as RoadFeature['geometry'], properties: f.properties, zoom: f._z };
 }
 
 /** Whether the street source is loaded; false if the style has no such source. */

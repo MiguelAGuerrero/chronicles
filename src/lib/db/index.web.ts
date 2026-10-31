@@ -1,6 +1,6 @@
 import { staleAreas } from '../areas/assign';
 import type { Area, WalkArea } from '../areas/types';
-import type { Offered, Place } from '../discovery/types';
+import type { Mark, Offered, Place } from '../discovery/types';
 import { DERIVED_STORES } from './stores';
 import type { Capture, Pause, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 import { intersects, segmentBbox } from './segmentBounds';
@@ -263,6 +263,32 @@ export const db: Db = {
   },
   async listOffered() {
     return (await done((await store('offered')).getAll())) as Offered[];
+  },
+  async saveScan({ replace, marks, offered }) {
+    const tx = (await conn()).transaction(['mark', 'offered'], 'readwrite');
+    const ms = tx.objectStore('mark');
+    for (const id of replace) {
+      const r = ms.get(id);
+      r.onsuccess = () => {
+        const m = r.result as Mark | undefined;
+        if (m && m.state === 'open') ms.put({ ...m, state: 'replaced' });
+      };
+    }
+    for (const x of marks) ms.add(x);
+    const os = tx.objectStore('offered');
+    // First offer wins: re-offering never moves the record.
+    for (const o of offered) os.add(o).onerror = (ev) => { ev.preventDefault(); ev.stopPropagation(); };
+    await committed(tx);
+  },
+  async listMarks(walkId) {
+    // IndexedDB indexes skip null keys, so the home's marks are found by a scan of the store.
+    const all = walkId == null
+      ? ((await done((await store('mark')).getAll())) as Mark[]).filter((x) => x.walk_id == null)
+      : await byWalk<Mark>('mark', walkId);
+    return all.sort((a, b) => a.created_at - b.created_at);
+  },
+  async updateMark(id, p) {
+    await patch<Mark>('mark', id, p);
   },
   async purgeDerived() {
     const tx = (await conn()).transaction([...DERIVED_STORES, 'walk'], 'readwrite');
