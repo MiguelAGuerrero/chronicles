@@ -10,7 +10,7 @@ import { namedStars, StarView, starLabel } from '../StarView';
 import type { RoadFeature } from '../../lib/streets';
 import { TILEJSON_URL } from '../../lib/tiles';
 import {
-  COLORS, coneGeoJSON, DERIVE_ZOOM, HOTSPOT, marksGeoJSON, pocketsGeoJSON, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, useZoomPins, walkerGeoJSON,
+  COLORS, coneGeoJSON, DERIVE_ZOOM, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -205,14 +205,22 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         </GeoJSONSource>
         {/* Hotspots under the streets, in the one green no other layer uses (L9). */}
         <GeoJSONSource id="pockets" data={pockets}>
-          <Layer id="pockets" type="fill" paint={{ 'fill-color': HOTSPOT, 'fill-opacity': 0.14 }} />
+          <Layer id="pockets" type="fill" paint={{ 'fill-color': HOTSPOT, 'fill-opacity': ['case', ['get', 'stale'], 0.06, 0.14] }} />
         </GeoJSONSource>
         <GeoJSONSource id="strips" data={strips}>
-          <Layer id="strips" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': HOTSPOT, 'line-width': 7, 'line-opacity': 0.9 }} />
+          <Layer id="strips" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{
+            'line-color': HOTSPOT,
+            'line-width': ['interpolate', ['linear'], ['zoom'], 12, 3, 17, 10],
+            'line-opacity': ['case', ['get', 'stale'], 0.4, 0.9],
+          }} />
         </GeoJSONSource>
         <GeoJSONSource id="fog" data={fog}>
           <Layer id="fog" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-            paint={{ 'line-color': props.fogEmphasis ? FOG_BOLD : COLORS.fog, 'line-width': props.fogEmphasis ? 5 : 3 }} />
+            paint={{
+              'line-color': props.fogEmphasis ? FOG_BOLD : COLORS.fog,
+              'line-opacity': props.fogEmphasis ? 1 : FOG_STYLE.opacity,
+              'line-width': props.fogEmphasis ? 5 : FOG_STYLE.widthMax,
+            }} />
         </GeoJSONSource>
         <GeoJSONSource id="walked" data={walked}>
           <Layer id="walked" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }}
@@ -223,13 +231,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           <Layer id="route" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': COLORS.route, 'line-width': 8 }} />
         </GeoJSONSource>
         <GeoJSONSource id="trace" data={trace}>
+          {/* The trace on a white edge, so it reads over fog, walked streets and the base map alike. */}
+          <Layer id="trace-edge" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+            paint={{ 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': 0.9 * (props.traceOpacity ?? 1) }} />
           <Layer id="trace" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-            paint={{
-              // Over bold fog the usual navy trace would vanish (1.4:1); the accent stands out.
-              'line-color': props.fogEmphasis ? COLORS.walked : COLORS.trace,
-              'line-width': props.fogEmphasis ? 4 : 2.5,
-              'line-opacity': 0.85 * (props.traceOpacity ?? 1),
-            }} />
+            paint={{ 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth, 'line-opacity': props.traceOpacity ?? 1 }} />
         </GeoJSONSource>
         <GeoJSONSource id="cone" data={cone}>
           <Layer id="cone" type="fill" paint={{ 'fill-color': COLORS.walker, 'fill-opacity': 0.25 }} />
@@ -278,8 +284,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             </View>
           </Marker>
         ))}
-        {(props.landing?.strips ?? []).map((s, i) => (
-          <Marker key={`strip:${i}:${s.name}`} id={`strip:${i}:${s.name}`} lngLat={s.at} anchor="top">
+        {[...(props.landing?.strips ?? []), ...(props.landing?.labels ?? [])].map((s) => (
+          <Marker key={`label:${s.name}:${s.at.join(',')}`} id={`label:${s.name}:${s.at.join(',')}`} lngLat={s.at} anchor="center">
             <StripLabel name={s.name} />
           </Marker>
         ))}

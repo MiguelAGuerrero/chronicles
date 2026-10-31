@@ -13,7 +13,7 @@ import type { CapturePin } from '../../lib/pins';
 import type { RoadFeature } from '../../lib/streets';
 import type { LngLat } from '../../lib/types';
 import {
-  COLORS, coneGeoJSON, DERIVE_ZOOM, HOTSPOT, marksGeoJSON, pocketsGeoJSON, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, useZoomPins, walkerGeoJSON,
+  COLORS, coneGeoJSON, DERIVE_ZOOM, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -34,18 +34,23 @@ function addOverlay(map: MapLibreMap) {
   for (const id of ['pockets', 'strips', 'fog', 'walked', 'route', 'trace', 'cone', 'marks', 'points']) map.addSource(id, { type: 'geojson', data: empty });
   const lineLayout = { 'line-cap': 'round', 'line-join': 'round' } as const;
   // Hotspots under the streets: pockets shaded, strips bold, in the one green no other layer uses (L9).
-  map.addLayer({ id: 'pockets', type: 'fill', source: 'pockets', paint: { 'fill-color': HOTSPOT, 'fill-opacity': 0.14 } }, firstSymbol);
+  // Stale areas (an older map or rules) are dimmed until looked at again (L11).
+  map.addLayer({ id: 'pockets', type: 'fill', source: 'pockets', paint: { 'fill-color': HOTSPOT, 'fill-opacity': ['case', ['get', 'stale'], 0.06, 0.14] } }, firstSymbol);
   map.addLayer({ id: 'strips', type: 'line', source: 'strips', layout: lineLayout,
-    paint: { 'line-color': HOTSPOT, 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 4, 17, 10], 'line-opacity': 0.9 } }, firstSymbol);
+    paint: { 'line-color': HOTSPOT, 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 3, 17, 10], 'line-opacity': ['case', ['get', 'stale'], 0.4, 0.9] } }, firstSymbol);
   map.addLayer({ id: 'fog', type: 'line', source: 'fog', layout: lineLayout,
-    paint: { 'line-color': COLORS.fog, 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 1.5, 17, 4] } }, firstSymbol);
+    paint: { 'line-color': COLORS.fog, 'line-opacity': FOG_STYLE.opacity,
+      'line-width': ['interpolate', ['linear'], ['zoom'], 13, FOG_STYLE.widthMin, 17, FOG_STYLE.widthMax] } }, firstSymbol);
   map.addLayer({ id: 'walked', type: 'line', source: 'walked', layout: lineLayout,
     paint: { 'line-color': COLORS.walked, 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 3, 17, 8] } }, firstSymbol);
   // The route under the trace and walker, so where you walked stays on top (N6).
   map.addLayer({ id: 'route-edge', type: 'line', source: 'route', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': 12 } });
   map.addLayer({ id: 'route', type: 'line', source: 'route', layout: lineLayout, paint: { 'line-color': COLORS.route, 'line-width': 8 } });
+  // The trace on a white edge, so it reads over fog, walked streets and the base map alike.
+  map.addLayer({ id: 'trace-edge', type: 'line', source: 'trace', layout: lineLayout,
+    paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': 0.9 } });
   map.addLayer({ id: 'trace', type: 'line', source: 'trace', layout: lineLayout,
-    paint: { 'line-color': COLORS.trace, 'line-width': 2.5, 'line-opacity': 0.85 } });
+    paint: { 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth } });
   // The way the walker is going, under the dot; and marked spots (a destination, a pressed spot).
   map.addLayer({ id: 'cone', type: 'fill', source: 'cone', paint: { 'fill-color': COLORS.walker, 'fill-opacity': 0.25 } });
   map.addLayer({ id: 'marks', type: 'circle', source: 'marks',
@@ -219,7 +224,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     if (ready) setData('cone', coneGeoJSON(props.walker, props.walkerHeading, view?.zoom ?? 16));
   }, [ready, props.walker, props.walkerHeading, view]);
   useEffect(() => {
-    if (ready) mapRef.current?.setPaintProperty('trace', 'line-opacity', 0.85 * (props.traceOpacity ?? 1));
+    if (!ready) return;
+    mapRef.current?.setPaintProperty('trace', 'line-opacity', props.traceOpacity ?? 1);
+    mapRef.current?.setPaintProperty('trace-edge', 'line-opacity', 0.9 * (props.traceOpacity ?? 1));
   }, [ready, props.traceOpacity]);
   useEffect(() => {
     if (ready) setData('points', walkerGeoJSON(props.walker));
@@ -414,7 +421,15 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       el.setAttribute('aria-hidden', 'true');
       const root = createRoot(el);
       root.render(<StripLabel name={s.name} />);
-      landingMarkers.current.push({ marker: new Marker({ element: el, anchor: 'top', offset: [0, 8] }).setLngLat(s.at).addTo(map), root });
+      landingMarkers.current.push({ marker: new Marker({ element: el, anchor: 'center' }).setLngLat(s.at).addTo(map), root });
+    }
+    for (const l of props.landing?.labels ?? []) {
+      const el = document.createElement('div');
+      el.style.pointerEvents = 'none';
+      el.setAttribute('aria-hidden', 'true');
+      const root = createRoot(el);
+      root.render(<StripLabel name={l.name} />);
+      landingMarkers.current.push({ marker: new Marker({ element: el, anchor: 'center' }).setLngLat(l.at).addTo(map), root });
     }
     for (const p of props.landing?.pins ?? []) {
       const el = document.createElement('button');
@@ -447,12 +462,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     const map = mapRef.current;
     if (!ready || !map) return;
     map.setPaintProperty('fog', 'line-color', props.fogEmphasis ? FOG_BOLD : COLORS.fog);
+    map.setPaintProperty('fog', 'line-opacity', props.fogEmphasis ? 1 : FOG_STYLE.opacity);
     map.setPaintProperty('fog', 'line-width', props.fogEmphasis
       ? ['interpolate', ['linear'], ['zoom'], 13, 2.5, 17, 7]
-      : ['interpolate', ['linear'], ['zoom'], 13, 1.5, 17, 4]);
-    // Over bold fog the usual navy trace would vanish (1.4:1); the accent stands out.
-    map.setPaintProperty('trace', 'line-color', props.fogEmphasis ? COLORS.walked : COLORS.trace);
-    map.setPaintProperty('trace', 'line-width', props.fogEmphasis ? 4 : 2.5);
+      : ['interpolate', ['linear'], ['zoom'], 13, FOG_STYLE.widthMin, 17, FOG_STYLE.widthMax]);
   }, [ready, props.fogEmphasis]);
   useEffect(() => {
     if (ready && props.follow) mapRef.current?.jumpTo({ center: props.follow });

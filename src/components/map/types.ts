@@ -18,14 +18,27 @@ export const MAX_DERIVE_VIEWS = 36;
 /** Bold fog: unwalked streets near the walker, when asked for. */
 export const FOG_BOLD = '#3f4a5a';
 
-/** Hotspots (v1.5): the one colour no other layer uses, 3:1 or more on the base map (L9). */
-export const HOTSPOT = '#059669';
-export const HOTSPOT_INK = '#065f46';
+/**
+ * Hotspots (v1.5): magenta, the one hue no other layer uses (the owner's
+ * call, after the trace took green), 3:1 or more on the base map (L9).
+ */
+export const HOTSPOT = '#d6268c';
+export const HOTSPOT_INK = '#86145a';
+/** The Start here pin's fill: white text on it reads at AA. */
+export const HOTSPOT_PIN = '#a3166a';
+
+/**
+ * The fog is quiet unless asked for (the owner's call, Nov 1): after a scan
+ * it covers every street around, and the trace must still read over it.
+ * The trace is green, wider than the fog, on a white edge.
+ */
+export const FOG_STYLE = { opacity: 0.5, widthMin: 1, widthMax: 2.5, traceWidth: 4.5, edgeWidth: 7.5 } as const;
 
 export const COLORS = {
-  fog: '#6b7480',
+  fog: '#8b939e',
   walked: '#c2410c',
-  trace: '#1d3557',
+  /** Where you walked: green (the owner's call), on a white edge. */
+  trace: '#15803d',
   /** A route being navigated: map-navigation blue, with a white edge (N6). */
   route: '#2563eb',
   walker: '#1d3557',
@@ -244,14 +257,14 @@ export function pocketsGeoJSON(v: LandingView | null | undefined): GeoJSON.Featu
   return {
     type: 'FeatureCollection',
     features: (v?.pockets ?? []).filter((p) => p.hull.length >= 3).map((p) => ({
-      type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[...p.hull, p.hull[0]]] },
+      type: 'Feature', properties: { stale: p.stale }, geometry: { type: 'Polygon', coordinates: [[...p.hull, p.hull[0]]] },
     })),
   };
 }
 export function stripsGeoJSON(v: LandingView | null | undefined): GeoJSON.FeatureCollection {
   return {
     type: 'FeatureCollection',
-    features: (v?.strips ?? []).map((s) => ({ type: 'Feature', properties: {}, geometry: { type: 'MultiLineString', coordinates: s.lines } })),
+    features: (v?.strips ?? []).map((s) => ({ type: 'Feature', properties: { stale: s.stale }, geometry: { type: 'MultiLineString', coordinates: s.lines } })),
   };
 }
 

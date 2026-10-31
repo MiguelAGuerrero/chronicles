@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { HOTSPOT_INK, HOTSPOT } from './map/types';
+import { HOTSPOT_INK, HOTSPOT_PIN } from './map/types';
 import { Icon } from './icons';
 
 /** A strip's name, on the map beside it (L9). */
@@ -33,10 +33,10 @@ const styles = StyleSheet.create({
   },
   pinWrap: { alignItems: 'center' },
   pin: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: HOTSPOT, borderRadius: 999,
+    flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: HOTSPOT_PIN, borderRadius: 999,
     paddingVertical: 6, paddingHorizontal: 12, borderWidth: 2, borderColor: '#ffffff',
     shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 3,
   },
   pinText: { color: '#ffffff', fontSize: 14, fontWeight: '800' },
-  stem: { width: 3, height: 8, backgroundColor: HOTSPOT },
+  stem: { width: 3, height: 8, backgroundColor: HOTSPOT_PIN },
 });

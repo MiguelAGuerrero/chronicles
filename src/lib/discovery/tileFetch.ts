@@ -15,15 +15,18 @@ const RETRY_MS = 2 * 60_000;
 const FETCH_MS = 10_000;
 let failedAt: { tile: string; at: number } | null = null;
 
-async function fetchTile(url: string): Promise<ArrayBuffer> {
+async function fetchTile(url: string, shouldStop?: () => boolean): Promise<ArrayBuffer> {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), FETCH_MS);
+  // Cancel stops the fetch itself, not just what is done with it (audit).
+  const poll = shouldStop ? setInterval(() => shouldStop() && ctl.abort(), 200) : null;
   try {
     const res = await fetch(url, { signal: ctl.signal });
     if (!res.ok) throw new Error(`${res.status}`);
     return await res.arrayBuffer();
   } finally {
     clearTimeout(t);
+    if (poll) clearInterval(poll);
   }
 }
 
@@ -31,10 +34,10 @@ async function fetchTile(url: string): Promise<ArrayBuffer> {
  * Fetches and decodes z14 tiles in code, in parallel, each with its own
  * timeout. All or nothing: any failure rejects, so a partial read is never used.
  */
-export async function fetchTiles(url: string, tiles: [number, number][], zoom = TILE_ZOOM): Promise<CollectedFeatures> {
+export async function fetchTiles(url: string, tiles: [number, number][], zoom = TILE_ZOOM, shouldStop?: () => boolean): Promise<CollectedFeatures> {
   if (!tiles.length) throw new Error('No tiles to read');
   const bodies = await Promise.all(
-    tiles.map(([x, y]) => fetchTile(url.replace('{z}', String(zoom)).replace('{x}', String(x)).replace('{y}', String(y)))),
+    tiles.map(([x, y]) => fetchTile(url.replace('{z}', String(zoom)).replace('{x}', String(x)).replace('{y}', String(y)), shouldStop)),
   );
   const out: CollectedFeatures = { roads: [], names: [], places: [], pois: [], complete: true };
   for (let i = 0; i < tiles.length; i++) {

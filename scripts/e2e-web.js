@@ -58,13 +58,13 @@ features.push({ type: 'Feature', properties: { class: 'bus', subclass: 'bus_stop
 features.push({ type: 'Feature', properties: { class: 'park', subclass: 'park', name: 'Gano Park' }, geometry: { type: 'Point', coordinates: at(5.4, 0.6) } });
 features.push({ type: 'Feature', properties: { class: 'bakery', subclass: 'bakery', name: 'Sunny Bakery' }, geometry: { type: 'Point', coordinates: at(5.2, -1.0) } });
 features.push({ type: 'Feature', properties: { class: 'museum', subclass: 'museum', name: 'Fox Point Museum' }, geometry: { type: 'Point', coordinates: at(4.6, 1.8) } });
-// Providence's centre (v1.5 landing): Thayer Street lined with shops for 250 m, beside the city point,
-// far from every walk and scan above.
-features.push({ type: 'Feature', properties: { class: 'tertiary', name: 'Thayer Street' }, geometry: { type: 'LineString', coordinates: [at(28, -3), at(28, 3)] } });
-features.push({ type: 'Feature', properties: { class: 'minor', name: 'Angell Street' }, geometry: { type: 'LineString', coordinates: [at(26, 0.2), at(30, 0.2)] } });
+// A busy strip 1.1 km east of Fox Point (v1.5 landing): Thayer Street lined with shops for 250 m,
+// inside the read around a press at Fox Point, and far from every walk and scan above.
+features.push({ type: 'Feature', properties: { class: 'tertiary', name: 'Thayer Street' }, geometry: { type: 'LineString', coordinates: [at(11, -3), at(11, 3)] } });
+features.push({ type: 'Feature', properties: { class: 'minor', name: 'Angell Street' }, geometry: { type: 'LineString', coordinates: [at(9, 0.2), at(13, 0.2)] } });
 for (let i = 0; i <= 10; i++) {
   const [cls, sub] = i % 2 ? ['cafe', 'cafe'] : ['shop', 'gift'];
-  features.push({ type: 'Feature', properties: { class: cls, subclass: sub, name: `Thayer ${i}` }, geometry: { type: 'Point', coordinates: at(28 + (i % 2 ? 0.15 : -0.15), -1.2 + i * 0.25) } });
+  features.push({ type: 'Feature', properties: { class: cls, subclass: sub, name: `Thayer ${i}` }, geometry: { type: 'Point', coordinates: at(11 + (i % 2 ? 0.15 : -0.15), -1.2 + i * 0.25) } });
 }
 const style = {
   version: 8,
@@ -678,11 +678,21 @@ function check(ok, what) {
     // nearby, finds Thayer Street's strip and puts Start here on it (L1, L2, L5, L7, L9).
     {
       const st = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
-      await page.waitForTimeout(1100);
-      await page.mouse.move(st.x + st.width / 2, st.y + st.height / 2 + 50);
-      await page.mouse.down();
-      await page.waitForTimeout(700);
-      await page.mouse.up();
+      const press = async (box) => {
+        await page.waitForTimeout(1100);
+        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 + 50);
+        await page.mouse.down();
+        await page.waitForTimeout(700);
+        await page.mouse.up();
+      };
+      // Cancel goes at once and keeps nothing (audit).
+      await press(st);
+      await page.click('[data-testid=look-here]');
+      await page.click('[data-testid=look-cancel]');
+      const gone = (await page.locator('[data-testid=look-cancel]').count()) === 0;
+      await page.waitForTimeout(2500);
+      check(gone && (await page.locator('[data-testid=start-here]').count()) === 0, 'cancelling a look stops it at once, with nothing kept');
+      await press(st);
       await page.click('[data-testid=look-here]');
       await page.waitForSelector('text=/Busiest area: Thayer Street. A best guess from the map./', { timeout: 30000 });
       await page.waitForTimeout(1500);

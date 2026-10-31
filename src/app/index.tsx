@@ -18,7 +18,8 @@ import { loadPrefs, runScan, savePrefs } from '../lib/discovery/runScan';
 import { adoptable, scanNote, type Prefs } from '../lib/discovery/scan';
 import type { Mark } from '../lib/discovery/types';
 import { readArea } from '../lib/landing/read';
-import { isStale, keyFor, landingView, LANDING_VERSION, type LandingRow } from '../lib/landing/view';
+import { keyFor, landingView, LANDING_VERSION, staleNote, type LandingRow } from '../lib/landing/view';
+import { ensureTileBuild } from '../lib/tiles';
 import { placeBacklog } from '../lib/backlog';
 import { boundsOf, pausedMs, type Bounds } from '../lib/geo';
 import { levelForZoom, placesIndex, starsFor, unplacedWalks, type Star } from '../lib/places';
@@ -100,7 +101,8 @@ export default function Home() {
         if (!live) return null;
         setHomeMarks(marks);
         setLandings(await db.listLandings().catch(() => [] as LandingRow[]));
-        setBuild(await db.getMeta('tile_build').catch(() => null));
+        // The served build, once it's known (the launch's own check may still be running), for marking stale areas.
+        setBuild(await ensureTileBuild().then((b) => (b === 'unknown' ? null : b), () => null));
         if (recalled.length) setRecalled(recalled);
         setData({ walks, summaries, areas, rows });
         setOpen(openWalk);
@@ -191,28 +193,35 @@ export default function Home() {
   }, [homeMarks, now]);
   const openMark = homeMarks.find((m) => m.id === markOpen) ?? null;
   // Remembered areas show from street zoom (L11), stale ones too, offline.
-  const landingShown = useMemo(() => ((view?.zoom ?? 0) >= 12 ? landingView(landings) : null), [landings, view?.zoom]);
+  // Built once per change of the areas, not per zoom, so the markers aren't remade on every gesture (audit).
+  const landingAll = useMemo(() => landingView(landings, build), [landings, build]);
+  const streetZoom = (view?.zoom ?? 0) >= 12;
+  const landingShown = streetZoom ? landingAll : null;
   const openPin = landings.find((r) => r.key === pinOpen) ?? null;
 
   const lookHere = async (at: LngLat) => {
     if (looking) return;
     lookCancelled.current = false;
     setLooking(true);
+    setSelected(null);
+    setMode({ kind: 'summary' });
     try {
       const r = await readArea(at, () => lookCancelled.current);
+      if (lookCancelled.current) return;
       if (!r.ok) {
         if (r.reason === 'failed') setScanNotice({ message: 'Couldn’t read the map here', tone: 'error' });
         return;
       }
       const tile = await db.getMeta('tile_build').catch(() => null);
-      const row: LandingRow = { key: keyFor(landings, r.centre), centre: r.centre, analysis: r.analysis, build: tile ?? 'unknown', rules: LANDING_VERSION, analyzed_at: Date.now() };
+      const known = await db.listLandings().catch(() => landings);
+      const row: LandingRow = { key: keyFor(known, r.centre), centre: r.centre, analysis: r.analysis, build: tile ?? 'unknown', rules: LANDING_VERSION, analyzed_at: Date.now() };
       await db.putLanding(row);
-      const rows = [...landings.filter((x) => x.key !== row.key), row];
-      setLandings(rows);
+      setLandings((rows) => [...rows.filter((x) => x.key !== row.key), row]);
       setBuild(tile);
       const pts = [...r.analysis.pockets.flatMap((p) => p.hull), ...(r.analysis.landing ? [r.analysis.landing.at] : [])];
       // Fitted with room around it, so the pockets sit in their streets rather than fill the screen.
-      const box = pts.length ? boundsOf(pts, 250) : null;
+      // Nothing to frame: zoom to the centre at street zoom, where Start here shows (audit).
+      const box = boundsOf(pts.length ? pts : [r.centre], pts.length ? 250 : 600);
       if (box) setFit((f) => ({ bounds: box, key: f.key + 1 }));
       const top = r.analysis.pockets[0]?.name ?? r.analysis.landing?.street;
       const message = `${r.analysis.reason}${r.analysis.basis === 'density' && top ? `: ${top}` : ''}. A best guess from the map.`;
@@ -221,7 +230,7 @@ export default function Home() {
         r.analysis.strips.length ? `${message} Strips: ${r.analysis.strips.map((x) => x.name).join(', ')}.` : message,
       );
     } finally {
-      setLooking(false);
+      if (!lookCancelled.current) setLooking(false);
     }
   };
 
@@ -273,7 +282,7 @@ export default function Home() {
               </View>
             </Button>
           ) : (
-            <Button testID="start" label="Start walk" onPress={() => start()} busy={starting} busyLabel="Starting…" disabled={placing != null || scanning} tall style={styles.startBtn} />
+            <Button testID="start" label="Start walk" onPress={() => start()} busy={starting} busyLabel="Starting…" disabled={placing != null || scanning || looking} tall style={styles.startBtn} />
           )}
         </View>
       )}
@@ -317,7 +326,18 @@ export default function Home() {
           <View style={styles.scanning} accessibilityLiveRegion="polite">
             <ActivityIndicator color={theme.ink} />
             <Text style={styles.scanningText}>Looking around…</Text>
-            <Pressable testID="look-cancel" accessibilityRole="button" accessibilityLabel="Stop looking around" onPress={() => (lookCancelled.current = true)} style={styles.scanCancel} hitSlop={8}>
+            <Pressable
+              testID="look-cancel"
+              accessibilityRole="button"
+              accessibilityLabel="Stop looking around"
+              onPress={() => {
+                // Gone at once; the read stops its fetches and writes nothing (audit).
+                lookCancelled.current = true;
+                setLooking(false);
+              }}
+              style={styles.scanCancel}
+              hitSlop={8}
+            >
               <Text style={styles.scanCancelText}>Cancel</Text>
             </Pressable>
           </View>
@@ -334,7 +354,7 @@ export default function Home() {
 
       {spot && (
         <View style={[styles.startRow, styles.over, { bottom: sheetH + 16 }]} pointerEvents="box-none">
-          <View style={[styles.spot, styles.spotWrap]}>
+          <View style={styles.spotStack}>
             {/* Walk here and Scan here only at street zoom; what's good here from z10 (L1). */}
             {spot.zoom >= 12 && (
               <Button
@@ -381,12 +401,12 @@ export default function Home() {
 
       {openPin && !spot && !open && (
         <View style={[styles.startRow, styles.over, { bottom: sheetH + 16 }]} pointerEvents="box-none">
-          <View testID="start-card" style={styles.startCard} accessibilityViewIsModal>
+          <View testID="start-card" style={styles.startCard}>
             <Text style={styles.startTitle} accessibilityRole="header">
               Start here{openPin.analysis.landing?.street ? ` · ${openPin.analysis.landing.street}` : ''}
             </Text>
             <Text style={styles.startSub}>
-              {isStale(openPin, build ?? openPin.build) ? 'From an older map: press and hold to look again. ' : ''}
+              {build && staleNote(openPin, build) ? `${staleNote(openPin, build)} ` : ''}
               {openPin.analysis.reason}. A best guess from the map.
             </Text>
             <View style={styles.spotWrap}>
@@ -517,6 +537,9 @@ export default function Home() {
           onLandingPinPress={(key) => {
             setSpot(null);
             setMarkOpen(null);
+            // The card sits above the sheet: the sheet goes down to make room (audit).
+            setSelected(null);
+            setMode({ kind: 'summary' });
             setPinOpen(key);
           }}
           onStarPress={pressStar}
@@ -553,7 +576,12 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
   },
   spotClose: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  spotWrap: { flexWrap: 'wrap', justifyContent: 'center', maxWidth: 520 },
+  spotWrap: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
+  // Up to three actions: stacked, full width, so none wraps alone at 390 px (audit).
+  spotStack: {
+    backgroundColor: theme.surface, borderRadius: theme.radius, padding: 10, gap: 8, width: '100%', maxWidth: 360,
+    shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
+  },
   startCard: {
     backgroundColor: theme.surface, borderRadius: theme.radius, padding: 14, gap: 8, width: '100%', maxWidth: 520,
     shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,

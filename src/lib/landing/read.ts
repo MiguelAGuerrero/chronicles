@@ -12,10 +12,13 @@ import { analyzeArea, centreFor, LANDING_RULES, type AreaAnalysis } from './anal
 /** Towns and cities are in the place layer from z10; z11 tiles keep the read to a few. */
 const TOWNS_ZOOM = 11;
 
+class Cancelled extends Error {}
+
 export type AreaRead = { ok: true; centre: LngLat; analysis: AreaAnalysis } | { ok: false; reason: 'failed' | 'cancelled' };
 
-async function readAround(url: string, build: string, at: LngLat) {
-  const features = await fetchTiles(url, tilesIn(boundsOf([at], LANDING_RULES.radiusM)!));
+async function readAround(url: string, build: string, at: LngLat, shouldStop: () => boolean) {
+  const features = await fetchTiles(url, tilesIn(boundsOf([at], LANDING_RULES.radiusM)!), undefined, shouldStop);
+  if (shouldStop()) throw new Cancelled();
   const segments = deriveSegments(features.roads, features.names, build);
   const places = placesFromTilePois(features.pois, build);
   // Cached like any read, tagged with the build (L2).
@@ -37,13 +40,13 @@ export async function readArea(pressed: LngLat, shouldStop: () => boolean): Prom
     if (!url || build === 'unknown') return { ok: false, reason: 'failed' };
     // The towns first, from a coarse z11 read of the 3 km around: a z14 read of the area alone
     // would miss a city 2-3 km off (audit). Without it, the pressed spot is the centre.
-    const wide = await fetchTiles(url, tilesIn(boundsOf([pressed], LANDING_RULES.townM)!, TOWNS_ZOOM), TOWNS_ZOOM).catch(() => null);
+    const wide = await fetchTiles(url, tilesIn(boundsOf([pressed], LANDING_RULES.townM)!, TOWNS_ZOOM), TOWNS_ZOOM, shouldStop).catch(() => null);
     if (shouldStop()) return { ok: false, reason: 'cancelled' };
     const centre = centreFor(pressed, wide ? placesFromTiles(wide.places) : []);
-    const read = await readAround(url, build, centre);
+    const read = await readAround(url, build, centre, shouldStop);
     if (shouldStop()) return { ok: false, reason: 'cancelled' };
     return { ok: true, centre, analysis: analyzeArea({ centre, ...read }) };
-  } catch {
-    return { ok: false, reason: 'failed' };
+  } catch (e) {
+    return { ok: false, reason: e instanceof Cancelled || shouldStop() ? 'cancelled' : 'failed' };
   }
 }

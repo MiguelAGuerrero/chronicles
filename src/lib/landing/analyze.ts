@@ -12,7 +12,7 @@ import mainStreets from './mainStreets.json';
 export const LANDING_RULES = {
   /** The area read around the centre. */
   radiusM: 1500,
-  /** A town or city point this close is the centre. */
+  /** Towns are looked for this far around the press (a coarse read); only one within radiusM becomes the centre. */
   townM: 3000,
   /** The density grid's cell, and the flat kernel each cell counts within. */
   cellM: 50,
@@ -56,9 +56,10 @@ export interface Pocket {
   weight: number;
   spanM: number;
   centre: LngLat;
-  /** An outline for shading (the convex hull of its dense cells). */
+  /** An outline for shading (the convex hull of its places, padded). */
   hull: LngLat[];
-  strips: Strip[];
+  /** The names of its strips, heaviest first; their lines are kept once, in AreaAnalysis.strips. */
+  strips: string[];
 }
 
 export type LandingBasis = 'density' | 'main-roads' | 'main-street' | 'centre';
@@ -78,19 +79,19 @@ export interface AreaAnalysis {
   landing: Landing | null;
 }
 
-/** The centre to analyze around: the nearest town or city within 3 km, else the spot pressed (L1). */
-const KIND_RANK: Record<string, number> = { city: 3, borough: 3, town: 2 };
-/** The centre to analyze around: the nearest town or city within 3 km, a city before a town, never a village (L1, audit). */
+const CENTRE_KINDS = new Set(['city', 'borough', 'town']);
+/**
+ * The centre to analyze around (L1): the nearest town or city close enough
+ * that the pressed spot stays inside the read (its radius), never a village;
+ * else the spot pressed (audit).
+ */
 export function centreFor(pressed: LngLat, towns: PlaceCandidate[]): LngLat {
   let best: LngLat = pressed;
-  let bestKey: [number, number] = [0, Infinity];
+  let bestD: number = LANDING_RULES.radiusM;
   for (const t of towns) {
-    if (t.level !== 'town') continue;
-    const rank = t.kind ? (KIND_RANK[t.kind] ?? 0) : 2;
-    if (rank === 0) continue;
+    if (t.level !== 'town' || (t.kind && !CENTRE_KINDS.has(t.kind))) continue;
     const d = distanceM(pressed, t.at);
-    if (d > LANDING_RULES.townM) continue;
-    if (rank > bestKey[0] || (rank === bestKey[0] && d < bestKey[1])) [best, bestKey] = [t.at, [rank, d]];
+    if (d <= bestD) [best, bestD] = [t.at, d];
   }
   return best;
 }
@@ -439,7 +440,7 @@ export function analyzeArea(o: {
     }
     if (best) membersOf[groupOf.get(best)!].push(p);
   }
-  type PocketX = Pocket & { members: Set<Pt>; list: Pt[] };
+  type PocketX = Omit<Pocket, 'strips'> & { members: Set<Pt>; list: Pt[]; strips: StripX[] };
   const pockets: PocketX[] = [];
   for (const members of membersOf) {
     const weight = members.reduce((acc, p) => acc + p.w, 0);
@@ -478,7 +479,7 @@ export function analyzeArea(o: {
   }
   const strip = ({ members: _m, ...rest }: StripX): Strip => rest;
   const cleanStrips = strips.map(strip);
-  const cleanPockets: Pocket[] = pockets.map(({ members: _m, list: _l, strips: ps, ...p }) => ({ ...p, strips: ps.map((x) => strip(x as StripX)) }));
+  const cleanPockets: Pocket[] = pockets.map(({ members: _m, list: _l, strips: ps, ...p }) => ({ ...p, strips: ps.map((x) => x.name) }));
   /** Onto a named street within reach, else where it is, unnamed (audit). */
   const land = (p: XY, via: Landing['via']): Landing => {
     const n = nearestNamed(p, SNAP_M);
@@ -487,7 +488,7 @@ export function analyzeArea(o: {
 
   if (pockets.length || strips.length) {
     const top = pockets[0];
-    const topStrips = top ? (top.strips as StripX[]) : [...strips].sort((a, b) => b.weight - a.weight);
+    const topStrips = top ? top.strips : [...strips].sort((a, b) => b.weight - a.weight);
     let landing: Landing | null = null;
     // A station by the pocket first, landing on the pocket's own street (L7).
     if (top) {

@@ -176,8 +176,12 @@ Read this before changing recording, streets, the replay or storage.
   300 ms so a double-tap zoom isn't also a press.
 - **Unwalked streets near me** count named streets only (the owner's call), within
   1 km by real distance. Pieces along this walk's trace (20 m) are left out of
-  the fog until stop credits them. While the toggle is on, the trace is drawn in
-  the accent, because navy on bold fog is 1.4:1.
+  the fog until stop credits them.
+- **The trace is green, on a white edge, and the fog is quiet** (the owner's
+  call, Nov 1, after a scan's read filled a phone's walk map with grey). Fog is
+  `FOG_STYLE`: 50% opacity, 1–2.5 px, narrower than the 4.5 px trace. It is bold
+  only while "unwalked streets near me" is on. `colors.test.ts` checks the
+  hues and contrasts.
 - **Street reads from the live view (`collectView`) only count at z14.** Below
   z14, tiles are simplified and pieces get other ids, so `collectView` returns
   `complete: false` and nothing is cached. On web it also keeps only features
@@ -412,6 +416,42 @@ Read this before changing recording, streets, the replay or storage.
     found, and counts as done only once it ran.
   - **Native** (unverified on a device): the whole ambient path, background
     fetch while iOS keeps location running, notifications.
+
+## v1.5: landing (in progress; the spec is the concept doc's "v1.5: landing" tab)
+
+- **What's good here** (a home long press from z10): `landing/read.ts` reads
+  the area with the tile decoder, with no camera moves, on both platforms.
+  - A z11 read finds the towns, and the nearest town or city within 1.5 km
+    becomes the centre (never a village, and never one so far that the press
+    falls outside the read).
+  - It then reads the z14 tiles of 1.5 km around the centre.
+  - Cancel aborts the fetches and keeps nothing.
+- **The analysis** (`landing/analyze.ts`, pure) finds hotspots by density
+  only: the eight scan categories, weighted.
+  - **Strips:** a named street's frontage places (within 30 m), linked place
+    to place no more than a block (80 m) apart, measured by their joining
+    tree, so bends, loops and same-named streets work. A strip needs ≥5
+    places, ≥1 per 40 m, over ≥200 m.
+  - **Pockets:** places with ≥4 weight within 100 m, linked the same way;
+    ≥8 weight, spanning ≥200 m.
+  - **Naming:** a pocket takes its heaviest strip, else its neighbourhood,
+    else "A busy pocket".
+  - **Landing:** a station by the pocket lands on the pocket's own street,
+    else the strip's busiest point, else the densest place. A landing snaps
+    at most 150 m.
+  - **Fallbacks** (main roads, main-street names from `mainStreets.json`, the
+    centre) apply only with nothing dense.
+  - Bucketed lookups: 5,000 places in about 0.2 s on a desktop.
+- **Hotspots are magenta** (`HOTSPOT`), the one hue no other layer uses;
+  the pin is `HOTSPOT_PIN` for AA text. Remembered areas
+  (`landing` store: SQLite migration 7, IndexedDB v6) are a cache kept across
+  builds and drawn dimmed when stale (`LANDING_CODE`, bumped by hand). An area
+  centred within 1 km of a remembered one replaces it. Markers are rebuilt only
+  when areas change, never per zoom. A strip's name keeps 80 m from the pin.
+- **The e2e serves its fake world as real vector tiles** (`scripts/mvt-encode.mjs`)
+  to the app's own decoder; the base map still uses the GeoJSON style.
+- **Native** (unverified on a device): layer order (no `beforeId` yet), markers,
+  migration 7.
 
 ## Working with the owner
 
