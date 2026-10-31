@@ -46,7 +46,9 @@ function conn(): Promise<IDBDatabase> {
         // A newer version opened in another tab: step aside so it can upgrade.
         d.onversionchange = () => {
           d.close();
-          dbPromise = null;
+          // This tab's code is older than the database now: it cannot open it again.
+          dbPromise = Promise.reject(new Error('A newer version of Chronicles is open in another tab. Reload this page to keep going.'));
+          dbPromise.catch(() => {});
         };
         d.onclose = () => {
           dbPromise = null;

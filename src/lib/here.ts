@@ -3,12 +3,12 @@ import { boundsOf, distanceM, pausedMs } from './geo';
 import { suggestTitle } from './summary';
 import type { Capture, LngLat } from './types';
 
-/** "What happened here" looks this far around the tapped spot. */
+/** "What happened here" looks this far around the tapped spot, unless the map says how far a tap reaches. */
 export const HERE_RADIUS_M = 50;
 
 export interface HereResult {
   captures: Capture[];
-  /** Per capture id: "Oct 20 · 40 min in · Tuesday evening in Fox Point". */
+  /** Per capture id: "Tuesday evening in Fox Point · 40 min in"; the capture's own line has its date. */
   context: Map<string, string>;
 }
 
@@ -37,9 +37,8 @@ export async function capturesHere(
       w = { title: walk.title ?? suggestTitle(walk), startedAt: walk.started_at, pauses: await db.getPauses(walk.id) };
       walks.set(c.walk_id, w);
     }
-    const date = new Date(c.t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     const minutesIn = Math.max(0, Math.round((c.t - w.startedAt - pausedMs(w.pauses, w.startedAt, c.t)) / 60_000));
-    context.set(c.id, `${date} · ${minutesIn} min in · ${w.title}`);
+    context.set(c.id, `${w.title} · ${minutesIn ? `${minutesIn} min in` : 'at the start'}`);
   }
   return { captures: near.filter((c) => context.has(c.id)), context };
 }

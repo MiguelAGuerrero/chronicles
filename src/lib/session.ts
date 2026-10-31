@@ -93,7 +93,9 @@ export async function reconcileOpenWalk(): Promise<Walk | null> {
     return null;
   }
   const paused = await isPaused(open.id);
-  if (paused && recorder.isRecording()) await recorder.stop();
+  // After a relaunch the recorder's own flag is false even if the OS kept
+  // updates running through the pause; stop checks with the OS itself.
+  if (paused) await recorder.stop();
   if (!paused && !recorder.isRecording()) await recorder.resume(open.id);
   return open;
 }

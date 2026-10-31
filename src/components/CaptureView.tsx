@@ -2,14 +2,14 @@ import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useEventListener } from 'expo';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { forwardRef, useEffect, useRef, useState, type ComponentRef } from 'react';
-import { Image, Modal, Platform, Pressable, StyleSheet, Text, View, type LayoutRectangle } from 'react-native';
+import { Image, Linking, Modal, Platform, Pressable, StyleSheet, Text, View, type LayoutRectangle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { saveKeeper } from '../lib/export';
-import { resolveMedia } from '../lib/media';
+import { dropBaked, KeeperError, saveKeeper } from '../lib/export';
+import { releaseMedia, resolveMedia } from '../lib/media';
 import type { Capture } from '../lib/types';
 import { useMediaUri } from '../lib/useMediaUri';
 import { useBaker } from './Baker';
-import { CaptionBar, usePhotoRect } from './Caption';
+import { CaptionBar, CaptionEditor, usePhotoRect } from './Caption';
 import { Icon, KIND_LABEL } from './icons';
 import { theme } from './ui';
 
@@ -177,39 +177,55 @@ export function CaptureViewer(props: {
   context?: Map<string, string>;
   /** A heading over the captures, e.g. "What happened here". */
   title?: string;
-  /** Offers a caption edit on photos. */
-  onEditCaption?: (c: Capture) => void;
+  /** Offers a caption edit on photos; the editor opens inside the viewer. */
+  onSaveCaption?: (c: Capture, caption: string | null, y: number) => Promise<void>;
 }) {
   const insets = useSafeAreaInsets();
   const [index, setIndex] = useState(0);
+  const [captioning, setCaptioning] = useState<Capture | null>(null);
   const list = props.captures ?? [];
   // Keepers leave the app on request: to Photos on a phone, as a download on
   // the web. A captioned photo is saved with its caption baked in.
   const [baker, bake] = useBaker();
-  const [saveState, setSaveState] = useState<{ id: string; text: string } | null>(null);
+  const [saveState, setSaveState] = useState<{ id: string; text: string; busy?: boolean; openSettings?: boolean } | null>(null);
+  useEffect(() => {
+    if (!saveState || saveState.busy || saveState.openSettings) return;
+    const t = setTimeout(() => setSaveState(null), 3000);
+    return () => clearTimeout(t);
+  }, [saveState]);
   const saveCurrent = async (c: Capture) => {
-    setSaveState({ id: c.id, text: 'Saving…' });
+    if (saveState?.busy) return;
+    setSaveState({ id: c.id, text: 'Saving…', busy: true });
+    let source: string | null = null;
+    let baked: string | undefined;
     try {
-      let baked: string | undefined;
       if (c.kind === 'photo' && c.caption && c.file_path) {
-        const uri = await resolveMedia(c.file_path);
-        if (uri) baked = await bake(uri, c.caption, c.caption_y ?? 0.75);
+        source = await resolveMedia(c.file_path);
+        if (source) baked = await bake(source, c.caption, c.caption_y ?? 0.6);
       }
       await saveKeeper(c, baked);
       setSaveState({ id: c.id, text: Platform.OS === 'web' ? 'Downloaded' : 'Saved to Photos' });
     } catch (e) {
-      setSaveState({ id: c.id, text: e instanceof Error ? e.message : 'Could not save' });
+      setSaveState({ id: c.id, text: e instanceof Error ? e.message : 'Could not save', openSettings: e instanceof KeeperError && e.openSettings });
+    } finally {
+      if (source) releaseMedia(source);
+      if (baked) dropBaked(baked);
     }
   };
   const i = Math.min(index, Math.max(0, list.length - 1));
   const current = list[i];
   const close = () => {
     setIndex(0);
+    setCaptioning(null);
     props.onClose();
   };
+  const busy = !!saveState?.busy;
   return (
-    <Modal visible={list.length > 0} animationType="fade" onRequestClose={close}>
+    <Modal visible={list.length > 0} animationType="fade" onRequestClose={captioning ? () => setCaptioning(null) : close}>
       <View style={styles.viewer}>
+        {/* The baker draws behind everything; the cover hides it. */}
+        {baker}
+        <View style={[StyleSheet.absoluteFill, styles.viewer]} />
         {current && (
           <CaptureContent
             key={current.id}
@@ -223,36 +239,45 @@ export function CaptureViewer(props: {
             }
           />
         )}
-        {baker}
         {saveState && saveState.id === current?.id && (
-          <View style={[styles.saved, { top: insets.top + 64 }]} accessibilityLiveRegion="polite" pointerEvents="none">
+          <View style={[styles.saved, { top: insets.top + 64 }]} accessibilityLiveRegion="polite" pointerEvents="box-none">
             <Text style={styles.savedText}>{saveState.text}</Text>
+            {saveState.openSettings && (
+              <Pressable accessibilityRole="button" onPress={() => Linking.openSettings()} hitSlop={8}>
+                <Text style={[styles.savedText, styles.savedAction]}>Open Settings</Text>
+              </Pressable>
+            )}
           </View>
         )}
-        {props.title ? (
-          <View style={[styles.viewerTitle, { top: insets.top + 14 }]} pointerEvents="none">
-            <Text style={styles.viewerTitleText} accessibilityRole="header">{props.title}</Text>
+        {/* Title and buttons share one row, so a long title never runs under them. */}
+        <View style={[styles.viewerTop, { top: insets.top + 8 }]} pointerEvents="box-none">
+          <View style={styles.viewerTitleSlot} pointerEvents="none">
+            {props.title ? (
+              <View style={styles.viewerTitle}>
+                <Text style={styles.viewerTitleText} accessibilityRole="header" numberOfLines={1}>{props.title}</Text>
+              </View>
+            ) : null}
           </View>
-        ) : null}
-        <View style={[styles.viewerTop, { top: insets.top + 8 }]}>
           {current && (current.kind === 'photo' || current.kind === 'video') && current.file_path && (
             <Pressable
               testID="viewer-save"
               accessibilityRole="button"
               accessibilityLabel={Platform.OS === 'web' ? 'Download' : 'Save to Photos'}
+              accessibilityState={{ busy, disabled: busy }}
+              disabled={busy}
               onPress={() => saveCurrent(current)}
-              style={styles.roundBtn}
+              style={[styles.roundBtn, busy && styles.dim]}
               hitSlop={8}
             >
               <Icon name="download-outline" size={24} color={theme.ink} />
             </Pressable>
           )}
-          {current?.kind === 'photo' && props.onEditCaption && (
+          {current?.kind === 'photo' && props.onSaveCaption && (
             <Pressable
               testID="viewer-caption"
               accessibilityRole="button"
               accessibilityLabel={current.caption ? 'Edit caption' : 'Add caption'}
-              onPress={() => props.onEditCaption?.(current)}
+              onPress={() => setCaptioning(current)}
               style={styles.roundBtn}
               hitSlop={8}
             >
@@ -263,6 +288,20 @@ export function CaptureViewer(props: {
             <Icon name="close" size={26} color={theme.ink} />
           </Pressable>
         </View>
+        {captioning && (
+          // Inside this Modal, not a second one: iOS will not present a Modal over a Modal.
+          <CaptionEditor
+            overlay
+            key={captioning.id}
+            capture={captioning}
+            onClose={() => setCaptioning(null)}
+            onSave={async (caption, y) => {
+              const c = captioning;
+              setCaptioning(null);
+              await props.onSaveCaption?.(c, caption, y).catch(() => setSaveState({ id: c.id, text: 'The caption could not be saved' }));
+            }}
+          />
+        )}
       </View>
     </Modal>
   );
@@ -292,11 +331,13 @@ const styles = StyleSheet.create({
   trackFill: { height: 6, backgroundColor: '#6b21a8' },
   voiceTime: { fontSize: 14, color: theme.ink, fontVariant: ['tabular-nums'] },
   viewer: { flex: 1, backgroundColor: '#14181f' },
-  viewerTop: { position: 'absolute', right: 12, flexDirection: 'row', gap: 10 },
+  viewerTop: { position: 'absolute', left: 16, right: 12, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  viewerTitleSlot: { flex: 1, alignItems: 'flex-start' },
+  savedAction: { textDecorationLine: 'underline', fontWeight: '700' },
   aa: { fontSize: 18, fontWeight: '800', color: theme.ink },
-  saved: { position: 'absolute', right: 12, backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12, maxWidth: 280 },
+  saved: { position: 'absolute', right: 12, flexDirection: 'row', gap: 10, alignItems: 'center', backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12, maxWidth: 280 },
   savedText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
-  viewerTitle: { position: 'absolute', left: 16, right: 72, backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: 999, paddingVertical: 8, paddingHorizontal: 14, alignSelf: 'flex-start' },
+  viewerTitle: { backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: 999, paddingVertical: 8, paddingHorizontal: 14, maxWidth: '100%' },
   viewerTitleText: { color: theme.ink, fontSize: 15, fontWeight: '700' },
   roundBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center' },
   dim: { opacity: 0.35 },

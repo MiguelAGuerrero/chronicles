@@ -7,13 +7,15 @@ import { recorder } from '../lib/recorder';
 import { RecorderError } from '../lib/recorder/types';
 import { startWalk } from '../lib/session';
 import { formatCaptures, formatDistance, formatDuration, suggestTitle } from '../lib/summary';
-import type { Walk, WalkSummary } from '../lib/types';
+import { pausedMs } from '../lib/geo';
+import type { Pause, Walk, WalkSummary } from '../lib/types';
 
 type Row = { walk: Walk; summary: WalkSummary | null };
 
 export default function Log() {
   const [rows, setRows] = useState<Row[]>([]);
   const [open, setOpen] = useState<Walk | null>(null);
+  const [pauses, setPauses] = useState<Pause[]>([]);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<{ message: string; openSettings?: boolean } | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -22,11 +24,15 @@ export default function Log() {
     useCallback(() => {
       let live = true;
       // Reads walks and their stored summaries only: no traces, no media.
+      // The open walk's pauses are a handful of rows, read so the time shown is walking time.
       Promise.all([db.listWalks(), db.listSummaries()])
-        .then(([walks, summaries]) => {
+        .then(async ([walks, summaries]) => {
+          const openWalk = walks.find((w) => w.open) ?? null;
+          const openPauses = openWalk ? await db.getPauses(openWalk.id) : [];
           if (!live) return;
           const byWalk = new Map(summaries.map((s) => [s.walk_id, s]));
-          setOpen(walks.find((w) => w.open) ?? null);
+          setOpen(openWalk);
+          setPauses(openPauses);
           setRows(walks.filter((w) => !w.open).map((walk) => ({ walk, summary: byWalk.get(walk.id) ?? null })));
           setNow(Date.now());
         })
@@ -83,7 +89,10 @@ export default function Log() {
             <Button testID="resume" label="Return to your walk" onPress={() => router.push('/walk')} tall>
               <View style={styles.recordingRow}>
                 <View style={styles.dot} />
-                <Text style={styles.resumeText}>Recording · {formatDuration(now - open.started_at)} · Return to walk</Text>
+                <Text style={styles.resumeText}>
+                  {pauses.some((p) => p.ended_at == null) ? 'Paused' : 'Recording'} ·{' '}
+                  {formatDuration(now - open.started_at - pausedMs(pauses, open.started_at, now))} · Return to walk
+                </Text>
               </View>
             </Button>
           ) : (

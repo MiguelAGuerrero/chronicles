@@ -68,7 +68,8 @@ export interface WalkMapProps {
   fogEmphasis?: boolean;
   /** Hides the map behind an opaque cover, e.g. while the camera steps through views. */
   covered?: boolean;
-  onPress?: (lngLat: LngLat) => void;
+  /** A press on the map, with how far around it counts as "here" at the current zoom. */
+  onPress?: (lngLat: LngLat, radiusM: number) => void;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -174,4 +175,10 @@ export function useZoomPins(captures: Capture[], zoom: number | null, lat: numbe
     () => pinsFor(captures, PIN_GROUP_PX * metersPerPixel(z, latBucket)),
     [captures, z, latBucket],
   );
+}
+
+/** A press reaches 44 px around it, the same as pin grouping, in meters at this zoom (15 to 150 m). */
+export function pressRadiusM(zoom: number, lat: number): number {
+  const mPerPx = (40_075_016.686 * Math.cos((lat * Math.PI) / 180)) / (512 * 2 ** zoom);
+  return Math.max(15, Math.min(150, 44 * mPerPx));
 }

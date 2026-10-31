@@ -7,7 +7,7 @@ import { CapturePinView, pinLabel } from '../CapturePinView';
 import type { RoadFeature } from '../../lib/streets';
 import { TILEJSON_URL } from '../../lib/tiles';
 import {
-  COLORS, DERIVE_ZOOM, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, useZoomPins, walkerGeoJSON,
+  COLORS, DERIVE_ZOOM, pressRadiusM, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -123,7 +123,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         mapStyle={MAP_STYLE_URL}
         attribution
         logo={false}
-        onPress={(e) => props.onPress?.(e.nativeEvent.lngLat)}
+        onPress={(e) => {
+          const at = e.nativeEvent.lngLat;
+          props.onPress?.(at, pressRadiusM(view?.zoom ?? 16, at[1]));
+        }}
         onDidFinishLoadingMap={() => {
           setReady(true);
           for (const r of readyWaiters.current.splice(0)) r();

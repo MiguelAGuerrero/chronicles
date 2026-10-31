@@ -180,9 +180,12 @@ function check(ok, what) {
         // Pause: positions sent while paused are not recorded, and the clock stops.
         await page.click('[data-testid=pause-walk]');
         await page.waitForSelector('text=Paused');
+        // One publish cycle, so a fix taken just before the pause is already counted.
+        await page.waitForTimeout(2500);
         const before = await page.locator('text=/ · \\d+ m$/').first().innerText();
-        for (let j = 0; j < 3; j++) {
-          await ctx.setGeolocation({ longitude: pts[k][0] + 0.002, latitude: pts[k][1] + 0.002, accuracy: 6 });
+        // Walking on at a believable pace (4 m a second), which the speed gate would keep.
+        for (let j = 1; j <= 3; j++) {
+          await ctx.setGeolocation({ longitude: pts[k][0], latitude: pts[k][1] + j * 0.000036, accuracy: 6 });
           await page.waitForTimeout(1000);
         }
         await page.waitForTimeout(2200);

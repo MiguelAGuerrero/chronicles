@@ -165,10 +165,10 @@ export default function WalkScreen() {
   const [here, setHere] = useState<HereResult | null>(null);
   const hereTaps = useRef(0);
   const [hereKey, setHereKey] = useState(0);
-  async function showHere(at: LngLat) {
+  async function showHere(at: LngLat, radiusM?: number) {
     if (cap.voiceStartedAt != null || stopping || viewing || here) return;
     const tap = ++hereTaps.current;
-    const r = await capturesHere(at, cap.captures).catch(() => null);
+    const r = await capturesHere(at, cap.captures, radiusM).catch(() => null);
     if (tap !== hereTaps.current) return; // a newer tap won
     if (!r) setToast('Could not look up this spot');
     else if (r.captures.length) {
@@ -514,7 +514,7 @@ export default function WalkScreen() {
         key={viewing?.[0]?.id ?? 'none'}
         captures={viewing && viewing.map((v) => cap.captures.find((c) => c.id === v.id) ?? v)}
         onClose={() => setViewing(null)}
-        onEditCaption={setCaptioning}
+        onSaveCaption={(c, caption, y) => cap.setCaption(c.id, caption, y)}
       />
       <CaptionEditor
         key={captioning?.id ?? 'none'}

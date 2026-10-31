@@ -1,6 +1,6 @@
 import type { CollectedFeatures } from '../components/map/types';
 import { db } from './db';
-import { boundsOf, distanceM, filterFixes, pausedMs, positionAt, smoothDwells, traceDistanceM, withoutPauses, type Bounds } from './geo';
+import { boundsOf, distanceM, filterFixes, pausedMs, positionAt, smoothDwells, traceDistanceM, withoutPauses, type Bounds, type PauseSpan } from './geo';
 import { snap } from './snapper';
 import { deriveSegments, type RoadFeature } from './streets';
 import { ensureTileBuild } from './tiles';
@@ -72,7 +72,7 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
   const earlier = await db.streetKeysBefore(walk.started_at);
   const keys = new Set(visited.map((v) => v.street_key));
   const captures = await db.getCaptures(walk.id);
-  await placeCaptures(captures, fixes, segments);
+  await placeCaptures(captures, smoothDwells(fixes), pauses, segments);
 
   const end = walk.ended_at ?? fixes.at(-1)?.t ?? walk.started_at;
   const summary: WalkSummary = {
@@ -97,15 +97,19 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
 
 /**
  * Places each capture on the trace by its time, unless it was stamped with
- * a fresh fix when taken, and notes the street it was taken on.
+ * a fresh fix when taken, and notes the street it was taken on. The trace is
+ * the smoothed one, so a capture during a standstill sits on the still dot;
+ * one taken while paused sits where the pause began, not on a line across it.
  */
 async function placeCaptures(
   captures: { id: string; t: number; lat: number | null; lon: number | null }[],
   fixes: TracePoint[],
+  pauses: PauseSpan[],
   segments: StreetSegment[],
 ) {
   for (const c of captures) {
-    const pos = c.lat != null && c.lon != null ? ([c.lon, c.lat] as LngLat) : positionAt(fixes, c.t);
+    const inPause = pauses.find((p) => c.t >= p.started_at && c.t <= (p.ended_at ?? Infinity));
+    const pos = c.lat != null && c.lon != null ? ([c.lon, c.lat] as LngLat) : positionAt(fixes, inPause ? inPause.started_at : c.t);
     if (!pos) continue;
     let best: { id: string; d: number } | null = null;
     for (const s of segments)

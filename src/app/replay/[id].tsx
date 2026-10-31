@@ -1,11 +1,10 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import {
-  AccessibilityInfo, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
+  AccessibilityInfo, ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WalkMap } from '../../components/map/WalkMap';
-import { CaptionEditor } from '../../components/Caption';
 import { Icon, KIND_LABEL } from '../../components/icons';
 import { exportWalk } from '../../lib/export';
 import { CaptureContent, CaptureViewer } from '../../components/CaptureView';
@@ -19,6 +18,7 @@ import { setAudioModeAsync } from 'expo-audio';
 import { FOG_MS, nextStop, PATH_MS, schedule, timedRuns, traceUntil, walkerAt, walkTimeAt } from '../../lib/replay';
 import { formatCaptures, formatDistance, formatDuration, loadReplay, suggestTitle, type ReplayData } from '../../lib/summary';
 import type { Capture, LngLat } from '../../lib/types';
+import { pausedMs } from '../../lib/geo';
 import { capturesHere, type HereResult } from '../../lib/here';
 
 type Beat = 'reading' | 'fog' | 'path' | 'card' | 'name';
@@ -27,6 +27,7 @@ const FRAME_MS = 66; // ~15 fps keeps the map responsive on a phone
 const TAP_GUARD_MS = 600;
 /** On a re-watch, how long a photo or note stays up before moving on. */
 const AUTO_MS = 4000;
+const BACKUP_BUSY = 'Preparing…';
 /** The drawn trace is rebuilt at most this often; the walker dot moves every frame. */
 const TRACE_STEP_MS = 200;
 
@@ -54,14 +55,19 @@ export default function Replay() {
   const [viewing, setViewing] = useState<Capture[] | null>(null);
   // What happened here: a tap on the card's map shows every capture near that spot, on any walk.
   const [here, setHere] = useState<HereResult | null>(null);
-  const [captioning, setCaptioning] = useState<Capture | null>(null);
   const [backup, setBackup] = useState<string | null>(null);
+  // A result shows for a few seconds, then the link reads as before.
+  useEffect(() => {
+    if (!backup || backup === BACKUP_BUSY) return;
+    const t = setTimeout(() => setBackup(null), 4000);
+    return () => clearTimeout(t);
+  }, [backup]);
   const hereTaps = useRef(0);
   const [hereKey, setHereKey] = useState(0);
-  const showHere = (at: LngLat) => {
+  const showHere = (at: LngLat, radiusM?: number) => {
     if (here || viewing) return;
     const tap = ++hereTaps.current;
-    capturesHere(at)
+    capturesHere(at, [], radiusM)
       .then((r) => {
         if (tap !== hereTaps.current || !r.captures.length) return;
         setHereKey(tap);
@@ -384,18 +390,10 @@ export default function Replay() {
         key={viewing?.[0]?.id ?? 'none'}
         captures={viewing && viewing.map((v) => data.captures.find((c) => c.id === v.id) ?? v)}
         onClose={() => setViewing(null)}
-        onEditCaption={setCaptioning}
-      />
-      <CaptionEditor
-        key={captioning?.id ?? 'none'}
-        capture={captioning}
-        onClose={() => setCaptioning(null)}
-        onSave={async (caption, y) => {
-          if (captioning) {
-            await db.updateCapture(captioning.id, { caption, caption_y: caption ? y : null }).catch(() => {});
-            setData((d) => d && { ...d, captures: d.captures.map((c) => (c.id === captioning.id ? { ...c, caption, caption_y: caption ? y : null } : c)) });
-          }
-          setCaptioning(null);
+        onSaveCaption={async (c, caption, y) => {
+          // A failed write throws to the viewer, which says so; the screen only changes once it is stored.
+          await db.updateCapture(c.id, { caption, caption_y: caption ? y : null });
+          setData((d) => d && { ...d, captures: d.captures.map((x) => (x.id === c.id ? { ...x, caption, caption_y: caption ? y : null } : x)) });
         }}
       />
       <CaptureViewer
@@ -438,7 +436,7 @@ export default function Replay() {
                   <Text style={styles.heroLabel}>{head.small}</Text>
                 </View>
                 <Text style={styles.cardLine}>
-                  {formatDistance(s?.distance_m ?? 0)} · {formatDuration(s?.duration_ms ?? Math.max(0, (data.walk.ended_at ?? data.walk.started_at) - data.walk.started_at))}
+                  {formatDistance(s?.distance_m ?? 0)} · {formatDuration(s?.duration_ms ?? Math.max(0, (data.walk.ended_at ?? data.walk.started_at) - data.walk.started_at - pausedMs(data.pauses, data.walk.started_at, data.walk.ended_at ?? data.walk.started_at)))}
                   {s && s.streets_walked > 0 ? ` · ${s.streets_walked} ${s.streets_walked === 1 ? 'street' : 'streets'} walked` : ''}
                 </Text>
                 {s && formatCaptures(s) ? <Text style={styles.cardMuted}>{formatCaptures(s)} · tap a pin to open</Text> : null}
@@ -446,11 +444,14 @@ export default function Replay() {
                 <Pressable
                   testID="backup"
                   accessibilityRole="button"
+                  accessibilityState={{ busy: backup === BACKUP_BUSY, disabled: backup === BACKUP_BUSY }}
+                  disabled={backup === BACKUP_BUSY}
                   onPress={async () => {
-                    setBackup('Preparing…');
+                    setBackup(BACKUP_BUSY);
                     try {
-                      await exportWalk(data.walk.id);
-                      setBackup(Platform.OS === 'web' ? 'Downloaded' : null);
+                      const { missing } = await exportWalk(data.walk.id);
+                      const done = Platform.OS === 'web' ? 'Downloaded' : 'Ready to save';
+                      setBackup(missing ? `${done}, but ${missing} ${missing === 1 ? 'file was' : 'files were'} missing` : done);
                     } catch (e) {
                       setBackup(e instanceof Error ? e.message : 'Could not back up this walk');
                     }
@@ -458,8 +459,9 @@ export default function Replay() {
                   style={styles.backup}
                   hitSlop={6}
                 >
-                  <Icon name="archive-outline" size={18} color={theme.ink} />
-                  <Text style={styles.backupText}>{backup ?? 'Back up this walk'}</Text>
+                  <Icon name={Platform.OS === 'web' ? 'download-outline' : 'share-outline'} size={18} color={theme.ink} />
+                  {backup === BACKUP_BUSY ? <ActivityIndicator size="small" color={theme.ink} /> : null}
+                  <Text style={styles.backupText} accessibilityLiveRegion="polite">{backup ?? 'Back up this walk'}</Text>
                 </Pressable>
                 <View style={styles.row}>
                   <Button

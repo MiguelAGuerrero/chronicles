@@ -1,41 +1,48 @@
 import type { ReactElement } from 'react';
-import { CAPTION_BAR } from './Caption';
+import { captionMetrics, captionTop } from './Caption';
+
+/** Breaks text into lines no wider than `max`, by word, and by character for a word (or a CJK run) too wide alone. */
+function wrap(g: CanvasRenderingContext2D, text: string, max: number): string[] {
+  const lines: string[] = [];
+  let line = '';
+  const push = (piece: string, sep: string) => {
+    const next = line ? `${line}${sep}${piece}` : piece;
+    if (g.measureText(next).width <= max) line = next;
+    else if (g.measureText(piece).width <= max) {
+      if (line) lines.push(line);
+      line = piece;
+    } else {
+      for (const ch of piece) push(ch, '');
+    }
+  };
+  for (const w of text.split(/\s+/).filter(Boolean)) push(w, line ? ' ' : '');
+  if (line) lines.push(line);
+  return lines;
+}
 
 /**
  * Draws a photo with its caption bar into a new JPEG, for export. The bar is
- * placed and sized against the photo exactly as it is on screen.
+ * sized and placed against the photo with the same numbers as on screen.
  */
 async function bake(uri: string, caption: string, y: number): Promise<string> {
   const blob = await (await fetch(uri)).blob();
-  const bmp = await createImageBitmap(blob);
+  const bmp = await createImageBitmap(blob, { imageOrientation: 'from-image' });
   const canvas = document.createElement('canvas');
   canvas.width = bmp.width;
   canvas.height = bmp.height;
   const g = canvas.getContext('2d')!;
   g.drawImage(bmp, 0, 0);
-  const h = bmp.height;
-  const font = Math.max(15, h * CAPTION_BAR.fontFrac);
-  g.font = `600 ${font}px -apple-system, system-ui, sans-serif`;
-  // Wrap to the photo's width, as the on-screen bar does.
-  const words = caption.split(/\s+/);
-  const lines: string[] = [];
-  let line = '';
-  for (const w of words) {
-    const next = line ? `${line} ${w}` : w;
-    if (g.measureText(next).width > bmp.width * 0.92 && line) {
-      lines.push(line);
-      line = w;
-    } else line = next;
-  }
-  if (line) lines.push(line);
-  const barH = Math.max(Math.max(36, h * CAPTION_BAR.heightFrac), lines.length * font * 1.25 + font * 0.6);
-  const top = Math.max(0, Math.min(y * h - barH / 2, h - barH));
+  const m = captionMetrics(bmp.width);
+  g.font = `600 ${m.fontSize}px -apple-system, system-ui, sans-serif`;
+  const lines = wrap(g, caption, bmp.width - 2 * m.padX);
+  const barH = lines.length * m.lineHeight + 2 * m.padY;
+  const top = captionTop(bmp.height, y, barH);
   g.fillStyle = 'rgba(0,0,0,0.55)';
   g.fillRect(0, top, bmp.width, barH);
   g.fillStyle = '#ffffff';
   g.textAlign = 'center';
   g.textBaseline = 'middle';
-  lines.forEach((l, i) => g.fillText(l, bmp.width / 2, top + barH / 2 + (i - (lines.length - 1) / 2) * font * 1.25));
+  lines.forEach((l, i) => g.fillText(l, bmp.width / 2, top + m.padY + (i + 0.5) * m.lineHeight));
   bmp.close();
   const out = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', 0.9));
   if (!out) throw new Error('The captioned photo could not be made.');

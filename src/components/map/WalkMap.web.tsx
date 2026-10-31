@@ -9,7 +9,7 @@ import type { CapturePin } from '../../lib/pins';
 import type { RoadFeature } from '../../lib/streets';
 import type { LngLat } from '../../lib/types';
 import {
-  COLORS, DERIVE_ZOOM, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, useZoomPins, walkerGeoJSON,
+  COLORS, DERIVE_ZOOM, pressRadiusM, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -107,7 +107,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     map.on('click', (e: MapMouseEvent) => {
       clearTimeout(pressTimer);
       const at: LngLat = [e.lngLat.lng, e.lngLat.lat];
-      pressTimer = setTimeout(() => onPress.current?.(at), DOUBLE_TAP_MS);
+      pressTimer = setTimeout(() => onPress.current?.(at, pressRadiusM(map.getZoom(), at[1])), DOUBLE_TAP_MS);
     });
     map.on('dblclick', () => clearTimeout(pressTimer));
     const track = () => setView({ zoom: map.getZoom(), lat: map.getCenter().lat });
