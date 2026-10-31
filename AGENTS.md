@@ -333,13 +333,27 @@ Read this before changing recording, streets, the replay or storage.
   so a scan runs its pool through `isOffered` against itself.
   - **Unnamed:** only subclass `artwork` ("Public art") and `viewpoint` ("A viewpoint")
     are kept. Two unnamed artworks in one ~10 m cell are one place (accepted).
-- **Chains aren't discoveries** (the owner's call, Nov 2, after a scan offered a
-  Domino's). OpenMapTiles has no brand tag, so `discovery/noise.ts` matches names
-  against `chains.json` (data, per category, whole leading words after
-  `normalizeBrand`: "Domino's Pizza" yes, "Subway Art Supply" in shops no). Scan
-  candidates and ambient hints leave them out unless meta `discovery_chains` is
-  '1' (the preferences' "Leave out chains" switch, on by default). Food courts
-  are dropped in `tilePois`. Landing's density still counts chains.
+- **A mark is for an attraction** (the owner's call, Nov 2: scans kept offering
+  food, bars and a Domino's). The ordinary activity of an area shows as its busy
+  streets instead.
+  - `MARK_CATEGORIES` (`discovery/noise.ts`): art, history, parks, culture,
+    viewpoints. Food, shops and nightlife stay in the place cache only to feed the
+    landing's density.
+  - `tilePois` sets `markable` per place. Cinemas, dog parks and picnic sites are
+    never marks. Places of worship, town halls, courthouses, cemeteries and
+    libraries are marks only when the name holds a word from `notable.json`
+    (whole words after `normalizeBrand`).
+  - Chains (`chains.json`, per category, whole leading words) are never marks.
+  - `isMarkable` gates scan candidates (before `readFailed`) and ambient hints. A
+    row cached before `markable` existed is judged by its category alone.
+  - The preferences list only the five attraction categories. Food courts are
+    dropped in `tilePois`.
+- **A scan also sweeps** (`sweepArea` in `landing/read.ts`): after its marks, it
+  reads the 1.5 km around with the tile decoder (no camera, outside `mapReads`),
+  analyzes it, and remembers it as a landing row (replacing one within 1 km).
+  - A failed or cancelled sweep keeps the marks. The note is `scanMessage`
+    ("Only 2 spots nearby · 1 busy street").
+  - The walk map draws remembered hotspots (`hotView`: no Start here pins).
 - **Truth vs cache:** `DERIVED_STORES` (`db/stores.ts`: street segments, places)
   are cleared by `purgeDerived`; `KEPT_STORES` (offered, mark, recall) never are.
   SQLite migration 6, IndexedDB v5. Cached places are used only for the current
