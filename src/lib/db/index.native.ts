@@ -1,6 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 import type { Area, WalkArea } from '../areas/types';
-import type { CategoryId, Mark, MarkOrigin, MarkState, Offered, Place } from '../discovery/types';
+import type { CategoryId, Mark, MarkOrigin, MarkState, Offered, Place, Recall } from '../discovery/types';
 import { DERIVED_STORES } from './stores';
 import type { Capture, Pause, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 import { segmentBbox } from './segmentBounds';
@@ -389,6 +389,20 @@ export const db: Db = {
       ? await d.getAllAsync<MarkRow>('SELECT * FROM mark WHERE walk_id IS NULL ORDER BY created_at')
       : await d.getAllAsync<MarkRow>('SELECT * FROM mark WHERE walk_id = ? ORDER BY created_at', walkId);
     return rows.map(toMark);
+  },
+  setRecall(r) {
+    return write((t) =>
+      t.runAsync(
+        'INSERT OR REPLACE INTO recall (capture_id, frequency, until, last_fired_at, fired_count, last_walk_id) VALUES (?, ?, ?, ?, ?, ?)',
+        r.capture_id, r.frequency, r.until, r.last_fired_at, r.fired_count, r.last_walk_id,
+      ).then(() => {}),
+    );
+  },
+  clearRecall(captureId) {
+    return write((t) => t.runAsync('DELETE FROM recall WHERE capture_id = ?', captureId).then(() => {}));
+  },
+  async listRecalls() {
+    return (await conn()).getAllAsync<Recall>('SELECT * FROM recall');
   },
   updateMark(id, patch) {
     const { sql, values } = setClause(patch, MARK_COLUMNS);

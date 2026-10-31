@@ -2,12 +2,34 @@ import * as Notifications from 'expo-notifications';
 // Named: lint's namespace check cannot follow the package's nested `export *` to it.
 import { AndroidImportance } from 'expo-notifications';
 import { Platform } from 'react-native';
+import { db } from './db';
 import type { Notifier } from './notify.types';
 
 /** A pause this long gets a reminder that nothing is being recorded. */
 export const PAUSE_REMIND_MS = 10 * 60_000;
 const CHANNEL = 'walk';
 const pauseId = (walkId: string) => `pause-${walkId}`;
+const RECALL_CATEGORY = 'recall';
+const STOP_ACTION = 'stop';
+
+// "Stop reminding me" on the notification itself (R8): cleared without opening the app.
+Notifications.setNotificationCategoryAsync(RECALL_CATEGORY, [
+  { identifier: STOP_ACTION, buttonTitle: 'Stop reminding me', options: { opensAppToForeground: false } },
+]).catch(() => {});
+Notifications.addNotificationResponseReceivedListener((res) => {
+  const data = res.notification.request.content.data as { captureIds?: string[] } | undefined;
+  const ids = data?.captureIds ?? [];
+  if (!ids.length) return;
+  if (res.actionIdentifier === STOP_ACTION) {
+    for (const id of ids) db.clearRecall(id).catch(() => {});
+    return;
+  }
+  // A tap opens the walk with the memory up, playing (R4).
+  // expo-router is loaded lazily: this module loads with the location task, before the router's entry.
+  if (res.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) {
+    import('expo-router').then(({ router }) => router.push({ pathname: '/walk', params: { recall: ids.join(',') } })).catch(() => {});
+  }
+});
 
 // In front, the walk screen shows its own reminder; the notification is for a phone in a pocket.
 Notifications.setNotificationHandler({
@@ -43,6 +65,14 @@ export const notifier: Notifier = {
       identifier: pauseId(walkId),
       content: { title: 'Your walk is still paused', body: 'Nothing is being recorded. Open Chronicles to resume or stop it.' },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: PAUSE_REMIND_MS / 1000, channelId: CHANNEL },
+    });
+  },
+  async recall(text, captureIds) {
+    // Asked here at the latest: a phone in a pocket has no other way to hear it.
+    if (!(await permitted())) return;
+    await Notifications.scheduleNotificationAsync({
+      content: { title: text.title, body: text.body, categoryIdentifier: RECALL_CATEGORY, data: { captureIds } },
+      trigger: Platform.OS === 'android' ? { channelId: CHANNEL } : null,
     });
   },
   async pauseEnded(walkId) {

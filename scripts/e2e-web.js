@@ -229,6 +229,14 @@ function check(ok, what) {
         await page.click('[data-testid=here-open]');
         await page.waitForSelector('text=What happened here');
         check((await page.getByText('The bakery smelled of cardamom.').count()) > 0, 'a long press on the map shows what happened there');
+        // Remind me here, from the viewer: once by default, with an optional end (R1).
+        await page.click('[data-testid=viewer-remind]');
+        await page.waitForSelector('[data-testid=remind-editor]');
+        check((await page.locator('[data-testid=remind-once][aria-checked=true]').count()) === 1 && (await page.locator('[data-testid=remind-none][aria-checked=true]').count()) === 1, 'remind me here offers how often, once by default, and until when');
+        await shot(page, '03a-remind');
+        await page.click('[data-testid=remind-save]');
+        await page.waitForSelector('text=It will come back when you pass here');
+        check((await page.locator('[aria-label="Reminder set. Change or stop it"]').count()) === 1, 'the viewer shows the reminder is set');
         await page.click('[aria-label="Close"]');
       }
       if (k === 28) {
@@ -373,6 +381,8 @@ function check(ok, what) {
       check(true, 'End clears the route');
     }
 
+    // The walk back passed the flagged capture again: never in the walk that recorded it (R2).
+    check((await page.locator('[data-testid=reminder]').count()) === 0, 'a flagged capture does not come back in its own walk');
     await page.click('[data-testid=stop]');
     await page.waitForTimeout(600);
     check(page.url().endsWith('/walk'), 'a tap on Stop does not end the walk');
@@ -662,6 +672,30 @@ function check(ok, what) {
     await shot(page, '12-home-go');
     // The walk adopts the marks scanned from the home (S11).
     check((await page.locator('.maplibregl-map').last().locator('[data-testid=mark-pin]').count()) === 3, 'the next walk adopts the home’s marks');
+    // A later walk passing the flagged capture brings it back, in front (R2, R3, R4).
+    // At a walking pace: a jump would be dropped as a GPS glitch.
+    for (let j = 1; j <= 26; j++) {
+      const f = j / 26;
+      await ctx.setGeolocation({ longitude: route[0][0] + (pts[25][0] - route[0][0]) * f, latitude: route[0][1] + (pts[25][1] - route[0][1]) * f, accuracy: 6 });
+      await page.waitForTimeout(1000);
+      if (await page.locator('[data-testid=reminder]').count()) break;
+    }
+    const reminded = await page.waitForSelector('[data-testid=reminder]', { timeout: 15000 }).then(() => true, () => false);
+    check(reminded && /memor|note/i.test(await page.locator('[data-testid=reminder]').innerText()), 'a later walk passing a flagged capture brings it back');
+    await shot(page, '13-reminder');
+    await page.click('[data-testid=reminder-open]');
+    await page.waitForSelector('[aria-label="Close"]');
+    check(true, 'the reminder opens its capture');
+    await page.click('[aria-label="Close"]');
+    // Once: the flag clears on its first fire (R6, R9).
+    const recalls = await page.evaluate(() => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const r = req.result.transaction('recall', 'readonly').objectStore('recall').getAll();
+        r.onsuccess = () => resolve(r.result.length);
+      };
+    }));
+    check(recalls === 0, `a "once" reminder clears when it fires (${recalls} left)`);
     const away = [...hosts].filter((h) => !h.startsWith('localhost') && h !== 'tiles.openfreemap.org');
     check(away.length === 0, `nothing is sent anywhere but the map tiles (${away.join(', ')})`);
     check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);

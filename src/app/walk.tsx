@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import {
-  AccessibilityInfo, ActivityIndicator, Animated, BackHandler, Easing, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, StyleSheet, Text,
+  AccessibilityInfo, ActivityIndicator, Animated, AppState, BackHandler, Easing, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, StyleSheet, Text,
   TextInput, useWindowDimensions, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,6 +12,8 @@ import { CaptureViewer } from '../components/CaptureView';
 import { Icon, KIND_LABEL, type IconName } from '../components/icons';
 import { Banner, Button, HoldButton, theme } from '../components/ui';
 import { DiscoveryPrefs } from '../components/DiscoveryPrefs';
+import { ReminderCard } from '../components/ReminderCard';
+import { checkRecalls } from '../lib/discovery/recallCheck';
 import { categoryOf } from '../lib/discovery/categories';
 import { savePrefs } from '../lib/discovery/runScan';
 import { placesFromTilePois } from '../lib/discovery/tilePois';
@@ -61,7 +63,7 @@ export default function WalkScreen() {
   const edgeRight = Math.max(12, (width - 640) / 2 + 12);
   /** The top column's side margin: centered in 640 on wide screens, like the rest. */
   const sideInset = Math.max(12, (width - 640) / 2);
-  const params = useLocalSearchParams<{ warning?: string; started?: string }>();
+  const params = useLocalSearchParams<{ warning?: string; started?: string; recall?: string }>();
   const [walk, setWalk] = useState<Walk | null>(null);
   const [pauses, setPauses] = useState<Pause[]>([]);
   const [pausing, setPausing] = useState(false);
@@ -89,6 +91,7 @@ export default function WalkScreen() {
   const giveUpMemo = useRef(false);
   const saveRef = useRef<PressableRef>(null);
   const mapRef = useRef<WalkMapHandle>(null);
+  const [viewing, setViewing] = useState<Capture[] | null>(null);
 
   useEffect(() => {
     db.getOpenWalk().then(async (w) => {
@@ -279,6 +282,42 @@ export default function WalkScreen() {
     const t = setTimeout(endNav, 0);
     return () => clearTimeout(t);
   }, [navMark, endNav]);
+  // Remind me here (v1 slice 4): a flagged capture comes back when this walk
+  // passes it, checked on each accepted fix while the screen is in front (R2, R3).
+  const [reminder, setReminder] = useState<Capture[] | null>(null);
+  useEffect(() => {
+    const at = live.here;
+    if (!walk || !at || AppState.currentState !== 'active') return;
+    let alive = true;
+    checkRecalls(walk.id, at)
+      .then((due) => {
+        if (!alive || !due.length) return;
+        setReminder(due);
+        AccessibilityInfo.announceForAccessibility(due.length > 1 ? `${due.length} memories here` : 'A memory from here');
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [walk, live.here]);
+  // A reminder notification tapped in the background opens its captures here (R4).
+  const recallParam = params.recall;
+  useEffect(() => {
+    if (!recallParam || !walk) return;
+    const ids = new Set(recallParam.split(','));
+    let alive = true;
+    (async () => {
+      const at = live.here;
+      const near = at ? await db.capturesIn(boundsOf([at], 300)!) : [];
+      const found = near.filter((c) => ids.has(c.id));
+      if (alive && found.length) setViewing(found);
+    })().catch(() => {});
+    return () => {
+      alive = false;
+    };
+    // Once per tapped notification; the position at that moment is enough.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recallParam, walk]);
   const walkStart: LngLat | null = live.runs[0]?.[0] ?? null;
   // Once, after the first 100 m of a first walk: how to go somewhere.
   const hinted = useRef(false);
@@ -305,7 +344,6 @@ export default function WalkScreen() {
     [navigation.nav, spot],
   );
 
-  const [viewing, setViewing] = useState<Capture[] | null>(null);
 
   async function stop() {
     if (!walk || stopping) return;
@@ -518,6 +556,16 @@ export default function WalkScreen() {
               <Text style={styles.findingCancelText}>Cancel</Text>
             </Pressable>
           </View>
+        )}
+        {reminder && (
+          <ReminderCard
+            captures={reminder}
+            onOpen={() => {
+              setViewing(reminder);
+              setReminder(null);
+            }}
+            onDismiss={() => setReminder(null)}
+          />
         )}
         {arrived && (
           <View style={styles.toast}>
@@ -800,6 +848,7 @@ export default function WalkScreen() {
         key={viewing?.[0]?.id ?? 'none'}
         captures={viewing && viewing.map((v) => cap.captures.find((c) => c.id === v.id) ?? v)}
         onClose={() => setViewing(null)}
+        remind
         onSaveCaption={(c, caption, y) => cap.setCaption(c.id, caption, y)}
         onGoHere={navigation.finding || scan.scanning ? undefined : (c) => {
           setViewing(null);
@@ -855,6 +904,7 @@ export default function WalkScreen() {
       <CaptureViewer
         key={`here:${hereKey}`}
         title="What happened here"
+        remind
         captures={here?.captures ?? null}
         context={here?.context}
         onClose={() => setHere(null)}

@@ -4,4 +4,9 @@ export interface Notifier {
   pauseStarted(walkId: string): Promise<void>;
   /** The pause ended (resumed or stopped): the reminder is no longer due. */
   pauseEnded(walkId: string): Promise<void>;
+  /**
+   * A flagged capture came back while the app is in the background (R3): one
+   * notification carrying its content, with "Stop reminding me" (R8).
+   */
+  recall(text: { title: string; body: string }, captureIds: string[]): Promise<void>;
 }

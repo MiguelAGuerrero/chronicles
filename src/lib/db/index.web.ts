@@ -1,6 +1,6 @@
 import { staleAreas } from '../areas/assign';
 import type { Area, WalkArea } from '../areas/types';
-import type { Mark, Offered, Place } from '../discovery/types';
+import type { Mark, Offered, Place, Recall } from '../discovery/types';
 import { DERIVED_STORES } from './stores';
 import type { Capture, Pause, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 import { intersects, segmentBbox } from './segmentBounds';
@@ -286,6 +286,19 @@ export const db: Db = {
       ? ((await done((await store('mark')).getAll())) as Mark[]).filter((x) => x.walk_id == null)
       : await byWalk<Mark>('mark', walkId);
     return all.sort((a, b) => a.created_at - b.created_at);
+  },
+  async setRecall(r) {
+    const tx = (await conn()).transaction('recall', 'readwrite');
+    tx.objectStore('recall').put(r);
+    await committed(tx);
+  },
+  async clearRecall(captureId) {
+    const tx = (await conn()).transaction('recall', 'readwrite');
+    tx.objectStore('recall').delete(captureId);
+    await committed(tx);
+  },
+  async listRecalls() {
+    return (await done((await store('recall')).getAll())) as Recall[];
   },
   async updateMark(id, p) {
     await patch<Mark>('mark', id, p);

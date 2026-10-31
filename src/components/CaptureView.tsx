@@ -4,12 +4,15 @@ import { useVideoPlayer, VideoView, type VideoPlayer as VideoPlayerType } from '
 import { forwardRef, useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Image, Linking, Modal, Platform, Pressable, StyleSheet, Text, View, type LayoutRectangle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { db } from '../lib/db';
+import type { Recall } from '../lib/discovery/types';
 import { dropBaked, KeeperError, saveKeeper } from '../lib/export';
 import { releaseMedia, resolveMedia } from '../lib/media';
 import type { Capture } from '../lib/types';
 import { useMediaUri } from '../lib/useMediaUri';
 import { useBaker } from './Baker';
 import { CaptionBar, CaptionEditor, usePhotoRect } from './Caption';
+import { RemindEditor } from './RemindEditor';
 import { Icon, KIND_LABEL } from './icons';
 import { theme } from './ui';
 
@@ -281,11 +284,25 @@ export function CaptureViewer(props: {
   onSaveCaption?: (c: Capture, caption: string | null, y: number) => Promise<void>;
   /** Offers navigating to where the capture was taken (during a walk). */
   onGoHere?: (c: Capture) => void;
+  /** Offers "Remind me here" (v1, R1); the viewer reads and writes the flags itself. */
+  remind?: boolean;
 }) {
   const insets = useSafeAreaInsets();
   const [index, setIndex] = useState(0);
   const [captioning, setCaptioning] = useState<Capture | null>(null);
   const list = props.captures ?? [];
+  // Remind me here: the flags of the captures shown, read when the viewer opens.
+  const [recalls, setRecalls] = useState<Map<string, Recall>>(() => new Map());
+  const [reminding, setReminding] = useState<Capture | null>(null);
+  const listKey = list.map((c) => c.id).join(',');
+  useEffect(() => {
+    if (!props.remind || !listKey) return;
+    let alive = true;
+    db.listRecalls().then((rs) => alive && setRecalls(new Map(rs.map((r) => [r.capture_id, r]))), () => {});
+    return () => {
+      alive = false;
+    };
+  }, [props.remind, listKey]);
   // Keepers leave the app on request: to Photos on a phone, as a download on
   // the web. A captioned photo is saved with its caption baked in.
   const [baker, bake] = useBaker();
@@ -319,11 +336,16 @@ export function CaptureViewer(props: {
   const close = () => {
     setIndex(0);
     setCaptioning(null);
+    setReminding(null);
     props.onClose();
   };
   const busy = !!saveState?.busy;
   return (
-    <Modal visible={list.length > 0} animationType="fade" onRequestClose={captioning ? () => setCaptioning(null) : close}>
+    <Modal
+      visible={list.length > 0}
+      animationType="fade"
+      onRequestClose={captioning ? () => setCaptioning(null) : reminding ? () => setReminding(null) : close}
+    >
       <View style={styles.viewer}>
         {/* The baker draws behind everything; the cover hides it. */}
         {baker}
@@ -386,6 +408,18 @@ export function CaptureViewer(props: {
               <Text style={styles.aa}>Aa</Text>
             </Pressable>
           )}
+          {current && current.lat != null && props.remind && (
+            <Pressable
+              testID="viewer-remind"
+              accessibilityRole="button"
+              accessibilityLabel={recalls.has(current.id) ? 'Reminder set. Change or stop it' : 'Remind me here'}
+              onPress={() => setReminding(current)}
+              style={styles.roundBtn}
+              hitSlop={8}
+            >
+              <Icon name={recalls.has(current.id) ? 'notifications' : 'notifications-outline'} size={22} color={theme.ink} />
+            </Pressable>
+          )}
           {current && current.lat != null && props.onGoHere && (
             <Pressable
               testID="viewer-go"
@@ -417,6 +451,39 @@ export function CaptureViewer(props: {
               const c = captioning;
               setCaptioning(null);
               await props.onSaveCaption?.(c, caption, y).catch(() => setSaveState({ id: c.id, text: 'The caption could not be saved' }));
+            }}
+          />
+        )}
+        {reminding && (
+          <RemindEditor
+            key={reminding.id}
+            captureId={reminding.id}
+            current={recalls.get(reminding.id) ?? null}
+            onClose={() => setReminding(null)}
+            onSave={async (r) => {
+              setReminding(null);
+              try {
+                await db.setRecall(r);
+                setRecalls((m) => new Map(m).set(r.capture_id, r));
+                setSaveState({ id: r.capture_id, text: 'It will come back when you pass here' });
+              } catch {
+                setSaveState({ id: r.capture_id, text: 'The reminder could not be saved' });
+              }
+            }}
+            onStop={async () => {
+              const id = reminding.id;
+              setReminding(null);
+              try {
+                await db.clearRecall(id);
+                setRecalls((m) => {
+                  const n = new Map(m);
+                  n.delete(id);
+                  return n;
+                });
+                setSaveState({ id, text: 'No more reminders here' });
+              } catch {
+                setSaveState({ id, text: 'The reminder could not be stopped' });
+              }
             }}
           />
         )}

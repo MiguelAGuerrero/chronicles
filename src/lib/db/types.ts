@@ -1,5 +1,5 @@
 import type { Area, WalkArea } from '../areas/types';
-import type { Mark, Offered, Place } from '../discovery/types';
+import type { Mark, Offered, Place, Recall } from '../discovery/types';
 import type { Capture, Pause, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 
 /**
@@ -76,6 +76,11 @@ export interface Db {
   /** A walk's marks; `null` gives the home's (no walk yet). */
   listMarks(walkId: string | null): Promise<Mark[]>;
   updateMark(id: string, patch: Partial<Omit<Mark, 'id'>>): Promise<void>;
+  /** Remind me here on a capture (R1): sets or replaces its flag. */
+  setRecall(r: Recall): Promise<void>;
+  /** Stop reminding me, or a "once" that fired (R6, R8). */
+  clearRecall(captureId: string): Promise<void>;
+  listRecalls(): Promise<Recall[]>;
 
   getMeta(key: string): Promise<string | null>;
   setMeta(key: string, value: string): Promise<void>;

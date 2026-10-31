@@ -368,6 +368,7 @@ export default function Replay() {
         key={viewing?.[0]?.id ?? 'none'}
         captures={viewing && viewing.map((v) => data.captures.find((c) => c.id === v.id) ?? v)}
         onClose={() => setViewing(null)}
+        remind
         onSaveCaption={async (c, caption, y) => {
           // A failed write throws to the viewer, which says so; the screen only changes once it is stored.
           await db.updateCapture(c.id, { caption, caption_y: caption ? y : null });
@@ -377,6 +378,7 @@ export default function Replay() {
       <CaptureViewer
         key={`here:${hereKey}`}
         title="What happened here"
+        remind
         captures={here?.captures ?? null}
         context={here?.context}
         onClose={() => setHere(null)}

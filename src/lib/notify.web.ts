@@ -10,4 +10,6 @@ export const PAUSE_REMIND_MS = 10 * 60_000;
 export const notifier: Notifier = {
   async pauseStarted() {},
   async pauseEnded() {},
+  // Reminders on the web fire only while the page is open, on the walk screen (R3).
+  async recall() {},
 };
