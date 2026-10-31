@@ -186,7 +186,7 @@ export default function Home() {
     setScanning(true);
     try {
       const r = await runScan({ center: at, walkId: null, map, shouldStop: () => scanCancelled.current });
-      if (r.outcome === 'cancelled') return;
+      if (r.outcome === 'cancelled' || r.outcome === 'closed' || r.outcome === 'busy') return;
       const message = r.outcome === 'full' ? `${r.marks.length} marks to find on your next walk` : scanNote(r.outcome, r.marks.length)!;
       setScanNotice({ message, tone: r.outcome === 'failed' ? 'error' : 'info' });
       AccessibilityInfo.announceForAccessibility(message);
@@ -223,7 +223,7 @@ export default function Home() {
               </View>
             </Button>
           ) : (
-            <Button testID="start" label="Start walk" onPress={() => start()} busy={starting} busyLabel="Starting…" disabled={placing != null} tall style={styles.startBtn} />
+            <Button testID="start" label="Start walk" onPress={() => start()} busy={starting} busyLabel="Starting…" disabled={placing != null || scanning} tall style={styles.startBtn} />
           )}
         </View>
       )}
@@ -279,6 +279,7 @@ export default function Home() {
             <Button
               testID="walk-here"
               label="Walk here"
+              disabled={scanning}
               onPress={() => {
                 const at = spot;
                 setSpot(null);
@@ -310,6 +311,7 @@ export default function Home() {
             <Button
               testID="home-mark-go"
               label="Walk here"
+              disabled={scanning}
               onPress={() => {
                 const m = openMark;
                 setMarkOpen(null);
@@ -411,8 +413,8 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
   under: { zIndex: 0 },
   over: { zIndex: 1 },
-  // Clear of the preferences button at the top left.
-  top: { position: 'absolute', left: 64, right: 12, gap: 8, maxWidth: 640, alignSelf: 'center' },
+  // Clear of the preferences button at the top left, and balanced on the right.
+  top: { position: 'absolute', left: 64, right: 64, gap: 8, maxWidth: 640, alignSelf: 'center' },
   center: { position: 'absolute', left: 24, right: 24, top: '38%', alignItems: 'center', gap: 10 },
   centerText: {
     backgroundColor: 'rgba(255,255,255,0.94)', color: theme.ink, fontSize: 16, fontWeight: '600',

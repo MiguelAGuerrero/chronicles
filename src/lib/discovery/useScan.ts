@@ -25,10 +25,21 @@ export function useScan(opts: {
   onFound: (mark: Mark) => void;
 }) {
   const [marks, setMarks] = useState<Mark[]>([]);
+  // Revealed marks, grown fix by fix: not every fix of a long walk against every mark (audit).
+  const [revealed, setRevealed] = useState<Set<string>>(() => new Set());
   const [scanning, setScanning] = useState(false);
   // The first scan asks preferences first (S14).
   const [asking, setAsking] = useState(false);
   const cancelled = useRef(false);
+  const starting = useRef(false);
+  // Leaving the screen stops a scan between views; nothing is set on an unmounted screen.
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const latest = useRef(opts);
   useEffect(() => {
     latest.current = opts;
@@ -48,7 +59,23 @@ export function useScan(opts: {
   }, [opts.walkId]);
 
   const open = useMemo(() => marks.filter((m) => m.state === 'open'), [marks]);
-  const revealed = useMemo(() => new Set(open.filter((m) => isRevealed(m, opts.fixes)).map((m) => m.id)), [open, opts.fixes]);
+  // Once the walk's fixes are in (a reload), every one counts; after that, each new fix alone.
+  const seeded = useRef(false);
+  useEffect(() => {
+    if (seeded.current || !marks.length || !opts.fixes.length) return;
+    seeded.current = true;
+    const fixes = opts.fixes;
+    // Not cleared on a rerun: seeded is already set, so this is the one pass.
+    setTimeout(() => setRevealed((r) => new Set([...r, ...marks.filter((x) => x.state === 'open' && isRevealed(x, fixes)).map((x) => x.id)])), 0);
+  }, [marks, opts.fixes]);
+  useEffect(() => {
+    const here = opts.here;
+    if (!here) return;
+    const fresh = open.filter((m) => !revealed.has(m.id) && isRevealed(m, [here]));
+    if (!fresh.length) return;
+    const t = setTimeout(() => setRevealed((r) => new Set([...r, ...fresh.map((m) => m.id)])), 0);
+    return () => clearTimeout(t);
+  }, [opts.here, open, revealed]);
   const pins = useMemo<MarkPin[]>(
     () =>
       open.map((m) => {
@@ -61,17 +88,20 @@ export function useScan(opts: {
   const scan = useCallback(async (force = false) => {
     const { walkId, here, map, onNotice } = latest.current;
     const m = map();
-    if (!walkId || scanning || !m) return;
+    // A ref, set before the first await: a double tap starts one scan, not two (audit).
+    if (!walkId || starting.current || !m) return;
     if (!here) return onNotice('Waiting for your position');
-    if (!force && !(await loadPrefs().catch(() => null))) {
-      setAsking(true);
-      return;
-    }
-    cancelled.current = false;
-    setScanning(true);
+    starting.current = true;
     try {
-      const r = await runScan({ center: here, walkId, map: m, shouldStop: () => cancelled.current });
-      if (r.outcome === 'cancelled') return;
+      if (!force && !(await loadPrefs().catch(() => null))) {
+        setAsking(true);
+        return;
+      }
+      cancelled.current = false;
+      setScanning(true);
+      const r = await runScan({ center: here, walkId, map: m, shouldStop: () => cancelled.current || !mounted.current });
+      if (!mounted.current || r.outcome === 'cancelled' || r.outcome === 'closed') return;
+      if (r.outcome === 'busy') return onNotice('Finding a route first. Scan again in a moment.');
       const note = r.outcome === 'full' || r.outcome === 'few' ? scanNote(r.outcome, r.marks.length) ?? `${r.marks.length} marks nearby` : scanNote(r.outcome, 0)!;
       onNotice(note, r.outcome === 'failed' ? 'error' : 'info');
       AccessibilityInfo.announceForAccessibility(note);
@@ -79,9 +109,10 @@ export function useScan(opts: {
     } catch (e) {
       onNotice(`The scan didn’t finish: ${e instanceof Error ? e.message : e}`, 'error');
     } finally {
-      setScanning(false);
+      starting.current = false;
+      if (mounted.current) setScanning(false);
     }
-  }, [scanning, reload]);
+  }, [reload]);
   const cancel = useCallback(() => {
     cancelled.current = true;
   }, []);
@@ -91,29 +122,28 @@ export function useScan(opts: {
     await reload();
   }, [reload]);
 
-  // A new capture within 60 m of an open mark finds the nearer one (S8).
-  const seen = useRef<Set<string> | null>(null);
+  // A capture within 60 m of an open mark finds the nearer one (S8). Only a
+  // capture with its own place (an unstamped one has none until stop), made
+  // after the scan; a reload re-reads the old ones, which find nothing new.
+  // Each capture and each mark is handled once, whatever the effect's reruns.
+  const handled = useRef(new Set<string>());
+  const resolved = useRef(new Set<string>());
   useEffect(() => {
-    const ids = new Set(opts.captures.map((c) => c.id));
-    if (seen.current == null) {
-      seen.current = ids;
-      return;
-    }
-    const fresh = opts.captures.filter((c) => !seen.current!.has(c.id));
-    seen.current = ids;
+    const fresh = opts.captures.filter((c) => !handled.current.has(c.id) && c.lat != null && c.lon != null);
     if (!fresh.length || !open.length) return;
+    for (const c of fresh) handled.current.add(c.id);
     (async () => {
-      let left = open;
+      let found = false;
       for (const c of fresh) {
-        const at: LngLat | null = c.lat != null && c.lon != null ? [c.lon, c.lat] : latest.current.here;
-        // Only a capture made after the scan finds its mark: a reload re-reads older ones.
-        const m = at && foundBy(at, left.filter((x) => x.created_at <= c.t));
+        const left = open.filter((x) => !resolved.current.has(x.id) && x.created_at <= c.t);
+        const m = foundBy([c.lon!, c.lat!], left);
         if (!m) continue;
-        left = left.filter((x) => x.id !== m.id);
+        resolved.current.add(m.id);
+        found = true;
         await db.updateMark(m.id, { state: 'found', resolved_at: Date.now(), capture_id: c.id }).catch(() => {});
         latest.current.onFound(m);
       }
-      await reload();
+      if (found) await reload();
     })();
   }, [opts.captures, open, reload]);
 

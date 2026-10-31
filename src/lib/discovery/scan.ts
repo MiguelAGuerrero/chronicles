@@ -141,8 +141,36 @@ export function foundBy(at: LngLat, marks: Mark[]): Mark | null {
 }
 
 /** A re-scan replaces this walk's open marks (or the home's, with null); resolved ones stay (S10). */
-export const toReplace = (marks: Mark[], walkId: string | null): string[] =>
-  marks.filter((x) => x.walk_id === walkId && x.state === 'open').map((x) => x.id);
+export const toReplace = (marks: Mark[], walkId: string | null, center?: LngLat): string[] =>
+  marks
+    // A home scan replaces only the home marks around it, not those planned for another town.
+    .filter((x) => x.walk_id === walkId && x.state === 'open' && (walkId != null || !center || distanceM(x.at, center) <= HOME_REPLACE_M))
+    .map((x) => x.id);
+
+/** A home re-scan replaces the open home marks this close to it. */
+export const HOME_REPLACE_M = 1000;
+
+/**
+ * Whether a scan's read failed (S15): no read, or a read that didn't finish
+ * whose places, with the cache, can't fill the scan. A failed scan changes
+ * nothing; a full read that found nothing is "nothing to find here".
+ */
+export function readFailed(o: { read: boolean; complete: boolean; candidates: Place[]; center: LngLat; offered: Offered[] }): boolean {
+  if (!o.read) return true;
+  if (o.complete) return false;
+  const usable = o.candidates.filter((p) => {
+    const d = distanceM(p.at, o.center);
+    return d <= SCAN_RULES.radiusM && d > SCAN_RULES.clearM && !isOffered(p, o.offered);
+  });
+  return usable.length < SCAN_RULES.count;
+}
+
+/** At a capture's stop in the replay: the mark it found (S13); an unnamed one by its label alone. */
+export function foundLine(marks: Mark[], captureId: string): string | null {
+  const m = marks.find((x) => x.state === 'found' && x.capture_id === captureId);
+  if (!m) return null;
+  return m.generic ? `Found: ${m.name}` : `Found: ${m.name} · ${categoryOf(m.category).label}`;
+}
 
 /** Home-scan marks the next walk adopts: open, and under 14 days old (S11). */
 export const adoptable = (marks: Mark[], now: number): string[] =>

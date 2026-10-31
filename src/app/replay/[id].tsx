@@ -1,6 +1,4 @@
-import { categoryOf } from '../../lib/discovery/categories';
-import { scanSummary } from '../../lib/discovery/scan';
-import type { Mark } from '../../lib/discovery/types';
+import { foundLine, scanSummary } from '../../lib/discovery/scan';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import {
@@ -537,8 +535,3 @@ const styles = StyleSheet.create({
   error: { color: theme.danger, fontSize: 14 },
 });
 
-/** At a capture's stop: the mark it found, with its category (S13). */
-function foundLine(marks: Mark[], captureId: string): string | null {
-  const m = marks.find((x) => x.state === 'found' && x.capture_id === captureId);
-  return m ? `Found: ${m.name} · ${categoryOf(m.category).label}` : null;
-}

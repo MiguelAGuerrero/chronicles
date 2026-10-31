@@ -3,6 +3,7 @@ import { AccessibilityInfo } from 'react-native';
 import { planViews, type WalkMapHandle } from '../../components/map/types';
 import { db } from '../db';
 import { boundsOf, type Bounds } from '../geo';
+import { mapReads } from '../mapReads';
 import { withTimeout } from '../places';
 import { deriveSegments } from '../streets';
 import { formatDistance } from '../summary';
@@ -72,7 +73,10 @@ export function useNavigation(opts: {
       const { width, height } = m.size();
       const views = planViews(bounds, width, height, ends);
       const ms = Math.min(READ_MAX_MS, Math.max(READ_MIN_MS, views.length * VIEW_MS));
-      const features = await withTimeout(m.collect(views, () => cancelled.current), ms, 'The map').catch(() => null);
+      // One map read at a time: a scan in progress holds the camera, and the cache stands in.
+      const features = await mapReads
+        .run(() => withTimeout(m.collect(views, () => cancelled.current), ms, 'The map'))
+        .catch(() => null);
       if (features) read = deriveSegments(features.roads, features.names);
     }
     const cached = await db.getSegmentsIn(bounds).catch(() => [] as StreetSegment[]);

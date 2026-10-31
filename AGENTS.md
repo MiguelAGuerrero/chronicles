@@ -332,6 +332,27 @@ Read this before changing recording, streets, the replay or storage.
 - **Native:** the invisible `q-pois` layer makes the poi source layer load; whether
   it's needed (or costs layout) is unverified on a device.
 - **Deferred:** an index for Offered (it's read whole; fine for thousands).
+- **Scan** (`discovery/scan.ts` pure, `runScan.ts`, `useScan.ts`):
+  - The Scan edge button sits at +112; walk me back moved to +168, and stays the top one.
+  - Marks are rounded squares ("?" until revealed), distinct from round capture
+    pins and stars.
+  - The first scan asks preferences (meta `discovery_prefs`); the home's top-left
+    button edits them.
+  - **One map read at a time** (`lib/mapReads.ts`): a scan and a route's street
+    read both step the camera. Navigation's entry points, pins and Stop are
+    disabled while scanning. A navigation read during a scan gets the cache only.
+  - A timeout stops `collect` too (`shouldStop`), or its last `jumpTo` would move
+    the camera after the cover lifts.
+  - A read that didn't finish fails ("Couldn't read the map here", nothing
+    changes) unless the known places can fill all six (`readFailed`).
+  - Only a capture with its own place, made after the scan, finds a mark; each
+    capture and mark is handled once.
+  - Reveal grows fix by fix, with one pass over the walk's fixes after a reload.
+  - A walk stopped mid-scan gets no marks. A home re-scan replaces only home
+    marks within 1 km. A route to a mark ends when it is found or replaced.
+  - **Deferred:** the "Passed on" street is looked up from the cache at replay
+    (storing it needs a migration); Undo for Dismiss; grouping home marks by
+    screen distance.
 
 ## Working with the owner
 

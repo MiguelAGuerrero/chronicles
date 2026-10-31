@@ -272,6 +272,13 @@ export default function WalkScreen() {
   useEffect(() => {
     if (navMark && scan.revealed.has(navMark.id)) relabel(navMark.name);
   }, [navMark, scan.revealed, relabel]);
+  // Found or replaced, a mark is no longer somewhere to go (audit).
+  const endNav = navigation.end;
+  useEffect(() => {
+    if (!navMark || navMark.state === 'open') return;
+    const t = setTimeout(endNav, 0);
+    return () => clearTimeout(t);
+  }, [navMark, endNav]);
   const walkStart: LngLat | null = live.runs[0]?.[0] ?? null;
   // Once, after the first 100 m of a first walk: how to go somewhere.
   const hinted = useRef(false);
@@ -432,6 +439,7 @@ export default function WalkScreen() {
     setNotice({ message: `Paused for ${formatDuration(now - openPause.started_at)}. Nothing is recorded until you resume.`, sticky: true });
   }, [openPause, now]);
   const recordingVoice = cap.voiceStartedAt != null;
+  const scanDisabled = scan.scanning || navigation.finding || !live.here || recordingVoice || stopping;
   const statsLabel = `${formatDuration(elapsed)} walked, ${formatDistance(live.distanceM)}`;
 
   return (
@@ -442,7 +450,7 @@ export default function WalkScreen() {
         fog={fog}
         captures={cap.captures}
         // Opening a capture would hide a memo that is still recording.
-        onPinPress={recordingVoice || stopping ? undefined : setViewing}
+        onPinPress={recordingVoice || stopping || scan.scanning ? undefined : setViewing}
         walker={live.here}
         walkerHeading={live.heading}
         // Not while a route is found: the street read moves the camera itself.
@@ -452,7 +460,7 @@ export default function WalkScreen() {
           setMarkOpen(null);
         }}
         discoveries={scan.pins}
-        onDiscoveryPress={recordingVoice || stopping ? undefined : (id) => {
+        onDiscoveryPress={recordingVoice || stopping || scan.scanning ? undefined : (id) => {
           setSpot(null);
           setMarkOpen(id);
         }}
@@ -652,7 +660,7 @@ export default function WalkScreen() {
             onHold={stop}
             onTap={() => setToast('Hold to stop the walk')}
             busy={stopping}
-            disabled={!walk || pausing}
+            disabled={!walk || pausing || scan.scanning}
           >
             <View style={styles.stopInner}>
               <Icon name="stop" size={18} color={theme.ink} />
@@ -693,7 +701,7 @@ export default function WalkScreen() {
           testID="walk-back"
           accessibilityRole="button"
           accessibilityLabel="Walk me back to the start"
-          disabled={navigation.finding}
+          disabled={navigation.finding || scan.scanning}
           onPress={() => navigation.goTo({ at: walkStart, label: 'Start', kind: 'start' })}
           style={({ pressed }) => [styles.edgeBtn, { right: edgeRight, bottom: insets.bottom + EDGE_BOTTOM + 168 }, pressed && styles.pressed]}
         >
@@ -706,13 +714,13 @@ export default function WalkScreen() {
         testID="scan"
         accessibilityRole="button"
         accessibilityLabel="Scan for places to find nearby"
-        disabled={scan.scanning || navigation.finding || !live.here || recordingVoice || stopping}
+        disabled={scanDisabled}
         onPress={() => {
           setSpot(null);
           setMarkOpen(null);
           scan.scan();
         }}
-        style={({ pressed }) => [styles.edgeBtn, { right: edgeRight, bottom: insets.bottom + EDGE_BOTTOM + 112 }, (!live.here || scan.scanning) && styles.edgeBtnOff, pressed && styles.pressed]}
+        style={({ pressed }) => [styles.edgeBtn, { right: edgeRight, bottom: insets.bottom + EDGE_BOTTOM + 112 }, scanDisabled && styles.edgeBtnOff, pressed && styles.pressed]}
       >
         <Icon name="scan-outline" size={22} color={theme.ink} />
       </Pressable>
@@ -754,7 +762,7 @@ export default function WalkScreen() {
                   setMarkOpen(null);
                   navigation.goTo({ at: m.at, label: scan.revealed.has(m.id) ? m.name : 'Mark', kind: 'mark', markId: m.id });
                 }}
-                disabled={navigation.finding}
+                disabled={navigation.finding || scan.scanning}
               />
               <Button
                 testID="mark-dismiss"
@@ -793,7 +801,7 @@ export default function WalkScreen() {
         captures={viewing && viewing.map((v) => cap.captures.find((c) => c.id === v.id) ?? v)}
         onClose={() => setViewing(null)}
         onSaveCaption={(c, caption, y) => cap.setCaption(c.id, caption, y)}
-        onGoHere={navigation.finding ? undefined : (c) => {
+        onGoHere={navigation.finding || scan.scanning ? undefined : (c) => {
           setViewing(null);
           if (c.lat != null && c.lon != null) navigation.goTo({ at: [c.lon, c.lat], label: KIND_LABEL[c.kind], kind: 'capture' });
         }}
@@ -821,7 +829,7 @@ export default function WalkScreen() {
                   setSpot(null);
                   navigation.goTo({ at, label: 'Your spot', kind: 'point' });
                 }}
-                disabled={navigation.finding}
+                disabled={navigation.finding || scan.scanning}
               />
               {spot.here && (
                 <Button

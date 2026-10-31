@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48 },
   cat: { flex: 1, fontSize: 15, color: theme.ink },
   seg: { flexDirection: 'row', borderWidth: 1, borderColor: theme.edge, borderRadius: 10, overflow: 'hidden' },
-  choice: { minWidth: 60, minHeight: 40, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' },
+  choice: { minWidth: 60, minHeight: 44, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' },
   choiceOn: { backgroundColor: theme.ink },
   choiceText: { fontSize: 13, fontWeight: '600', color: theme.ink },
   choiceTextOn: { color: '#ffffff' },

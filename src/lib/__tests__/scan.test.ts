@@ -3,9 +3,12 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { distanceM } from '../geo';
 import { placeKey } from '../discovery/places';
+import { mapReadLock } from '../mapReads';
 import {
   SCAN_RULES,
   adoptable,
+  foundLine,
+  readFailed,
   candidatesFrom,
   drawWeighted,
   foundBy,
@@ -232,4 +235,46 @@ test('scan: a dismissed mark is a low on the card, named by its nearest street (
   assert.equal(passedOnLine(at, [seg(null, 0), seg('Transit Street', 100)]), 'Passed on: a mark near Transit Street', 'named streets only');
   assert.equal(passedOnLine(at, [seg('Far Street', 900)]), 'Passed on: a mark', 'none within 150 m');
   assert.equal(passedOnLine(at, []), 'Passed on: a mark');
+});
+
+// Audit regressions (slice 2).
+
+test('scan: a read that did not finish fails unless what is known fills the scan (audit 4, S15)', () => {
+  const six = ring(16, 400);
+  assert.equal(readFailed({ read: false, complete: false, candidates: six, center: O, offered: [] }), true, 'no read at all');
+  assert.equal(readFailed({ read: true, complete: false, candidates: six.slice(0, 2), center: O, offered: [] }), true, 'half-loaded tiles');
+  assert.equal(readFailed({ read: true, complete: false, candidates: six, center: O, offered: [] }), false, 'enough known to fill it');
+  assert.equal(readFailed({ read: true, complete: true, candidates: [], center: O, offered: [] }), false, 'a full read that found nothing is "nothing here"');
+  // Cached places outside the circle don't count toward filling it.
+  const far = Array.from({ length: 8 }, (_, i) => place(`Far ${i}`, 'food', m(600 + i * 120, 0)));
+  assert.equal(readFailed({ read: true, complete: false, candidates: far, center: O, offered: [] }), true);
+});
+
+test('scan: one map read at a time (audit 1, 2)', async () => {
+  const lock = mapReadLock();
+  let release!: () => void;
+  const first = lock.run(() => new Promise<string>((r) => (release = () => r('a'))));
+  assert.equal(lock.busy(), true);
+  assert.equal(await lock.run(async () => 'b'), null, 'a second read is turned away while one runs');
+  release();
+  assert.equal(await first, 'a');
+  assert.equal(lock.busy(), false);
+  assert.equal(await lock.run(async () => 'c'), 'c');
+});
+
+test('scan: a home re-scan replaces only the home marks near it (audit 10)', () => {
+  const base = { key: 'k', name: 'n', category: 'food' as const, generic: false, origin: 'scan' as const, created_at: 0, resolved_at: null, capture_id: null, walk_id: null, state: 'open' as const };
+  const marks: Mark[] = [{ ...base, id: 'near', at: m(300, 0) }, { ...base, id: 'far', at: m(5000, 0) }];
+  assert.deepEqual(toReplace(marks, null, O), ['near']);
+});
+
+test('scan: the replay names a find with its category; an unnamed one by its label alone (S13)', () => {
+  const base = { key: 'k', at: O, origin: 'scan' as const, created_at: 0, resolved_at: 1, walk_id: 'w1', state: 'found' as const };
+  const marks: Mark[] = [
+    { ...base, id: '1', name: 'Coffee Exchange', category: 'food', generic: false, capture_id: 'c1' },
+    { ...base, id: '2', name: 'Public art', category: 'art', generic: true, capture_id: 'c2' },
+  ];
+  assert.equal(foundLine(marks, 'c1'), 'Found: Coffee Exchange · Food & drink');
+  assert.equal(foundLine(marks, 'c2'), 'Found: Public art');
+  assert.equal(foundLine(marks, 'c3'), null);
 });

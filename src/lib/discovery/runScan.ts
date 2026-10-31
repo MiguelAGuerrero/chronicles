@@ -2,10 +2,11 @@ import { planViews, type WalkMapHandle } from '../../components/map/types';
 import { db } from '../db';
 import { boundsOf } from '../geo';
 import { newId } from '../id';
+import { mapReads } from '../mapReads';
 import { withTimeout } from '../places';
 import { ensureTileBuild } from '../tiles';
 import type { LngLat } from '../types';
-import { candidatesFrom, marksFromScan, offeredFrom, pickMarks, SCAN_RULES, toReplace, type Prefs, type ScanOutcome } from './scan';
+import { candidatesFrom, marksFromScan, offeredFrom, pickMarks, readFailed, SCAN_RULES, toReplace, type Prefs, type ScanOutcome } from './scan';
 import { placesFromTilePois } from './tilePois';
 import type { Mark } from './types';
 
@@ -26,7 +27,8 @@ export async function loadPrefs(): Promise<Prefs | null> {
 }
 export const savePrefs = (prefs: Prefs) => db.setMeta(PREFS_KEY, JSON.stringify(prefs));
 
-export type ScanResult = { outcome: ScanOutcome | 'cancelled'; marks: Mark[] };
+/** 'busy': another map read (a route's) holds the camera; 'closed': the walk ended mid-scan. */
+export type ScanResult = { outcome: ScanOutcome | 'cancelled' | 'busy' | 'closed'; marks: Mark[] };
 
 /**
  * A scan around `center` (S2-S6, S10, S15): the z14 tiles of the 500 m
@@ -41,23 +43,36 @@ export async function runScan(o: {
   map: WalkMapHandle;
   shouldStop: () => boolean;
 }): Promise<ScanResult> {
+  return (await mapReads.run(() => scan(o))) ?? { outcome: 'busy', marks: [] };
+}
+
+async function scan(o: { center: LngLat; walkId: string | null; map: WalkMapHandle; shouldStop: () => boolean }): Promise<ScanResult> {
   const build = await ensureTileBuild().catch(() => 'unknown');
   const bounds = boundsOf([o.center], SCAN_RULES.radiusM)!;
   const { width, height } = o.map.size();
   const views = planViews(bounds, width, height, [o.center]);
   const ms = Math.min(READ_MAX_MS, Math.max(READ_MIN_MS, views.length * VIEW_MS));
-  const features = await withTimeout(o.map.collect(views, o.shouldStop), ms, 'The map').catch(() => null);
+  // A timeout stops the read too, so it never moves the camera after the cover lifts.
+  let timedOut = false;
+  const read = o.map.collect(views, () => timedOut || o.shouldStop());
+  const features = await withTimeout(read, ms, 'The map').catch(() => {
+    timedOut = true;
+    return read.catch(() => null).then(() => null);
+  });
   if (o.shouldStop()) return { outcome: 'cancelled', marks: [] };
-  const read = features ? placesFromTilePois(features.pois, build) : [];
-  if (build !== 'unknown') await db.putPlaces(read).catch(() => {});
+  const got = features ? placesFromTilePois(features.pois, build) : [];
+  if (build !== 'unknown') await db.putPlaces(got).catch(() => {});
   const cached = build !== 'unknown' ? await db.placesIn(bounds).catch(() => []) : [];
-  // Nothing read and nothing cached: the map couldn't be read here (S15).
-  if ((!features || (!features.complete && read.length === 0)) && cached.length === 0) return { outcome: 'failed', marks: [] };
+  const candidates = candidatesFrom(got, cached, build);
   const [offered, existing, prefs] = await Promise.all([db.listOffered(), db.listMarks(o.walkId), loadPrefs()]);
-  const { picked, outcome } = pickMarks({ candidates: candidatesFrom(read, cached, build), center: o.center, offered, prefs: prefs ?? {} });
+  // Tiles that didn't load: "Couldn't read the map here", and nothing changes (S15).
+  if (readFailed({ read: features != null, complete: !!features?.complete, candidates, center: o.center, offered })) return { outcome: 'failed', marks: [] };
+  const { picked, outcome } = pickMarks({ candidates, center: o.center, offered, prefs: prefs ?? {} });
   if (outcome === 'none') return { outcome, marks: [] };
+  // A walk stopped mid-scan gets no marks, and spends no places.
+  if (o.walkId && !(await db.getWalk(o.walkId))?.open) return { outcome: 'closed', marks: [] };
   const now = Date.now();
   const marks = marksFromScan(picked, { walkId: o.walkId, now, newId });
-  await db.saveScan({ replace: toReplace(existing, o.walkId), marks, offered: offeredFrom(picked, now) });
+  await db.saveScan({ replace: toReplace(existing, o.walkId, o.center), marks, offered: offeredFrom(picked, now) });
   return { outcome, marks };
 }
