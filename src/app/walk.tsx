@@ -13,7 +13,7 @@ import { Icon, type IconName } from '../components/icons';
 import { Banner, Button, HoldButton, theme } from '../components/ui';
 import { db } from '../lib/db';
 import { focusOn } from '../lib/focus';
-import { boundsOf, distanceM, distanceToLinesM, pausedMs } from '../lib/geo';
+import { boundsOf, distanceM, distanceToLinesM, nearPoints, pausedMs } from '../lib/geo';
 import { capturesHere, type HereResult } from '../lib/here';
 import { deriveSegments, streetKey } from '../lib/streets';
 import { successFeedback, tapFeedback } from '../lib/haptics';
@@ -30,6 +30,15 @@ import { useLiveTrace } from '../lib/useLiveTrace';
 const NEAR_RADIUS_M = 1000;
 /** The streets around the walker are read again after this far. */
 const FOG_STEP_M = 100;
+/** A pause this long gets a reminder that nothing is being recorded. */
+const PAUSE_REMIND_MS = 10 * 60_000;
+/** A street piece whose middle the live trace passed this close to counts as walked for now. */
+const ON_TRACE_M = 20;
+
+function midpointOf(s: StreetSegment): LngLat {
+  const line = s.geometry[0] ?? [];
+  return line[Math.floor(line.length / 2)] ?? [0, 0];
+}
 /** The edge buttons start above the capture row (bottom 92, 68 tall) and one pill. */
 const EDGE_BOTTOM = 236;
 /** No accepted fix for this long while recording reads as weak GPS. */
@@ -126,6 +135,10 @@ export default function WalkScreen() {
     ensureTileBuild().then(setBuild, () => setBuild('unknown'));
   }, []);
   const fogRun = useRef<{ busy: boolean; at: LngLat | null }>({ busy: false, at: null });
+  const liveRuns = useRef(live.runs);
+  useEffect(() => {
+    liveRuns.current = live.runs;
+  }, [live.runs]);
   useEffect(() => {
     const now = live.here;
     const run = fogRun.current;
@@ -145,7 +158,10 @@ export default function WalkScreen() {
       );
       const visited = await db.visitedSegmentIds();
       if (!alive) return;
-      setFog(segs.filter((x) => !visited.has(x.id)));
+      // Streets this walk has already gone down are only credited at stop;
+      // until then, those along the trace are left out of the fog.
+      const walkedNow = nearPoints(liveRuns.current.flat(), ON_TRACE_M);
+      setFog(segs.filter((x) => !visited.has(x.id) && !walkedNow(midpointOf(x))));
       setWalked(segs.filter((x) => visited.has(x.id)));
     })()
       .catch(() => {})
@@ -158,7 +174,8 @@ export default function WalkScreen() {
   }, [live.here, build]);
   // Unwalked streets near me: a count, and the fog drawn boldly over a veiled map.
   const [showUnwalked, setShowUnwalked] = useState(false);
-  const unwalkedCount = useMemo(() => new Set(fog.map(streetKey)).size, [fog]);
+  // Named streets only (the owner's call): unnamed paths are fog, not a count.
+  const unwalkedCount = useMemo(() => new Set(fog.filter((x) => x.name).map(streetKey)).size, [fog]);
 
   // What happened here: a tap on the map shows every capture taken near that
   // spot, on any walk.
@@ -167,6 +184,7 @@ export default function WalkScreen() {
   const [hereKey, setHereKey] = useState(0);
   async function showHere(at: LngLat, radiusM?: number) {
     if (cap.voiceStartedAt != null || stopping || viewing || here) return;
+    tapFeedback();
     const tap = ++hereTaps.current;
     const r = await capturesHere(at, cap.captures, radiusM).catch(() => null);
     if (tap !== hereTaps.current) return; // a newer tap won
@@ -302,6 +320,14 @@ export default function WalkScreen() {
     : status.kind === 'waiting' || status.kind === 'idle' ? { label: 'Waiting for GPS', color: theme.warn }
     : weak ? { label: 'Weak GPS', color: theme.warn }
     : null;
+  // A forgotten pause loses the rest of the walk: after a while, say so once per pause.
+  const openPause = pauses.find((p) => p.ended_at == null);
+  const remindedFor = useRef<number | null>(null);
+  useEffect(() => {
+    if (!openPause || remindedFor.current === openPause.started_at || now - openPause.started_at < PAUSE_REMIND_MS) return;
+    remindedFor.current = openPause.started_at;
+    setNotice({ message: `Paused for ${formatDuration(now - openPause.started_at)}. Nothing is recorded until you resume.`, sticky: true });
+  }, [openPause, now]);
   const recordingVoice = cap.voiceStartedAt != null;
   const statsLabel = `${formatDuration(elapsed)} walked, ${formatDistance(live.distanceM)}`;
 
@@ -317,7 +343,8 @@ export default function WalkScreen() {
         walker={live.here}
         follow={following ? live.here : null}
         onUserMove={() => setFollowing(false)}
-        onPress={showHere}
+        // A long press, so a stray tap while walking does nothing.
+        onLongPress={showHere}
         veil={showUnwalked}
         fogEmphasis={showUnwalked}
         ref={mapRef}

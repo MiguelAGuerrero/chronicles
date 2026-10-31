@@ -127,6 +127,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           const at = e.nativeEvent.lngLat;
           props.onPress?.(at, pressRadiusM(view?.zoom ?? 16, at[1]));
         }}
+        onLongPress={(e) => {
+          const at = e.nativeEvent.lngLat;
+          props.onLongPress?.(at, pressRadiusM(view?.zoom ?? 16, at[1]));
+        }}
         onDidFinishLoadingMap={() => {
           setReady(true);
           for (const r of readyWaiters.current.splice(0)) r();

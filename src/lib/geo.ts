@@ -68,6 +68,30 @@ export function distanceToLinesM(p: LngLat, lines: LngLat[][]): number {
   return best;
 }
 
+/**
+ * A quick "within `radiusM` of any of these points" test, through a grid of
+ * radius-sized cells, so checking many places against a long trace stays
+ * linear.
+ */
+export function nearPoints(points: LngLat[], radiusM: number): (p: LngLat) => boolean {
+  if (points.length === 0) return () => false;
+  const proj = projector(points[0]);
+  const cells = new Map<string, LngLat[]>();
+  const cell = (xy: [number, number]) => [Math.floor(xy[0] / radiusM), Math.floor(xy[1] / radiusM)];
+  for (const p of points) {
+    const [cx, cy] = cell(proj(p));
+    const k = `${cx},${cy}`;
+    (cells.get(k) ?? cells.set(k, []).get(k)!).push(p);
+  }
+  return (p) => {
+    const [cx, cy] = cell(proj(p));
+    for (let dx = -1; dx <= 1; dx++)
+      for (let dy = -1; dy <= 1; dy++)
+        for (const q of cells.get(`${cx + dx},${cy + dy}`) ?? []) if (distanceM(p, q) <= radiusM) return true;
+    return false;
+  };
+}
+
 export type Bounds = [west: number, south: number, east: number, north: number];
 
 export function boundsOf(points: LngLat[], padM = 0): Bounds | null {

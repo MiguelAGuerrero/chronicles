@@ -1,4 +1,4 @@
-import { Map as MapLibreMap, Marker, setWorkerUrl, type GeoJSONFeature, type MapMouseEvent } from 'maplibre-gl';
+import { Map as MapLibreMap, Marker, setWorkerUrl, type GeoJSONFeature, type MapMouseEvent, type MapTouchEvent } from 'maplibre-gl';
 // @ts-expect-error: a CSS side-effect import, which Metro bundles on web.
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
@@ -46,6 +46,8 @@ function addOverlay(map: MapLibreMap) {
 
 /** A second tap within this long makes a double-tap zoom, not a press. */
 const DOUBLE_TAP_MS = 300;
+/** Held this long without moving, a press is a long press. */
+const LONG_PRESS_MS = 500;
 
 function toRoadFeature(f: GeoJSONFeature): RoadFeature {
   return { geometry: f.geometry as RoadFeature['geometry'], properties: f.properties };
@@ -81,6 +83,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   }
   const onPress = useRef(props.onPress);
   onPress.current = props.onPress;
+  const onLongPress = useRef(props.onLongPress);
+  onLongPress.current = props.onLongPress;
   const onUserMove = useRef(props.onUserMove);
   onUserMove.current = props.onUserMove;
   const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
@@ -104,12 +108,57 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     // maplibre fires click for each tap of a double-tap zoom: wait to see
     // whether a second tap follows before treating it as a press.
     let pressTimer: ReturnType<typeof setTimeout> | undefined;
+    let heldAt = 0;
     map.on('click', (e: MapMouseEvent) => {
       clearTimeout(pressTimer);
+      if (Date.now() - heldAt < 1000) return; // the end of a long press
       const at: LngLat = [e.lngLat.lng, e.lngLat.lat];
       pressTimer = setTimeout(() => onPress.current?.(at, pressRadiusM(map.getZoom(), at[1])), DOUBLE_TAP_MS);
     });
     map.on('dblclick', () => clearTimeout(pressTimer));
+    // A long press: held still for LONG_PRESS_MS with one finger or the
+    // mouse, or the browser's own context menu gesture (right click, or a
+    // long touch on Android). The click that ends it is not also a press.
+    let holdTimer: ReturnType<typeof setTimeout> | undefined;
+    let holdFrom: { x: number; y: number } | null = null;
+    const fireHold = (lngLat: { lng: number; lat: number }) => {
+      clearTimeout(holdTimer);
+      holdFrom = null;
+      if (Date.now() - heldAt < 1000) return;
+      heldAt = Date.now();
+      clearTimeout(pressTimer);
+      const at: LngLat = [lngLat.lng, lngLat.lat];
+      onLongPress.current?.(at, pressRadiusM(map.getZoom(), at[1]));
+    };
+    const startHold = (e: MapMouseEvent | MapTouchEvent) => {
+      const touches = (e.originalEvent as TouchEvent).touches;
+      if (!onLongPress.current || (touches && touches.length > 1)) return cancelHold();
+      holdFrom = { x: e.point.x, y: e.point.y };
+      const lngLat = e.lngLat;
+      clearTimeout(holdTimer);
+      holdTimer = setTimeout(() => fireHold(lngLat), LONG_PRESS_MS);
+    };
+    const moveHold = (e: MapMouseEvent | MapTouchEvent) => {
+      if (holdFrom && Math.hypot(e.point.x - holdFrom.x, e.point.y - holdFrom.y) > 8) cancelHold();
+    };
+    const cancelHold = () => {
+      clearTimeout(holdTimer);
+      holdFrom = null;
+    };
+    map.on('mousedown', startHold);
+    map.on('touchstart', startHold);
+    map.on('mousemove', moveHold);
+    map.on('touchmove', moveHold);
+    map.on('mouseup', cancelHold);
+    map.on('touchend', cancelHold);
+    map.on('touchcancel', cancelHold);
+    map.on('dragstart', cancelHold);
+    map.on('contextmenu', (e: MapMouseEvent) => {
+      if (!onLongPress.current) return;
+      e.preventDefault();
+      e.originalEvent.preventDefault();
+      fireHold(e.lngLat);
+    });
     const track = () => setView({ zoom: map.getZoom(), lat: map.getCenter().lat });
     // Only gestures carry an originalEvent; camera moves made in code do not.
     // Zooming keeps following, as in Google Maps: only a pan or a turn looks away.
@@ -122,6 +171,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     map.on('load', track);
     return () => {
       clearTimeout(pressTimer);
+      clearTimeout(holdTimer);
       map.remove();
       mapRef.current = null;
     };

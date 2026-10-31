@@ -155,13 +155,21 @@ function check(ok, what) {
         await page.waitForTimeout(2500);
         check((await page.locator('[aria-label="Note. Open"], [aria-label$="captures here. Open"]').count()) >= 1, 'the note is pinned on the map');
         await shot(page, '03-walking');
-        // What happened here: a tap near where the note was taken (the map
-        // follows the walker, so near the map's center) shows it.
+        // What happened here: a long press near where the note was taken (the
+        // map follows the walker, so near the map's center) shows it. A plain
+        // tap there does nothing.
         const box = await page.locator('canvas.maplibregl-canvas').boundingBox();
         // Beside the pin (whose tap area covers the spot itself): ~27 m away at this zoom.
-        await page.mouse.click(box.x + box.width / 2 + 30, box.y + box.height / 2 + 10);
+        const spot = { x: box.x + box.width / 2 + 30, y: box.y + box.height / 2 + 10 };
+        await page.mouse.click(spot.x, spot.y);
+        await page.waitForTimeout(800);
+        check((await page.getByText('What happened here').count()) === 0 && (await page.getByText('Nothing captured here yet').count()) === 0, 'a plain tap on the walk map does nothing');
+        await page.mouse.move(spot.x, spot.y);
+        await page.mouse.down();
+        await page.waitForTimeout(700);
+        await page.mouse.up();
         await page.waitForSelector('text=What happened here');
-        check((await page.getByText('The bakery smelled of cardamom.').count()) > 0, 'a tap on the map shows what happened there');
+        check((await page.getByText('The bakery smelled of cardamom.').count()) > 0, 'a long press on the map shows what happened there');
         await page.click('[aria-label="Close"]');
       }
       if (k === 30) {

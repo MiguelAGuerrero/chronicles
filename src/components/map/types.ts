@@ -70,6 +70,8 @@ export interface WalkMapProps {
   covered?: boolean;
   /** A press on the map, with how far around it counts as "here" at the current zoom. */
   onPress?: (lngLat: LngLat, radiusM: number) => void;
+  /** A long press on the map (about half a second), with the same reach as onPress. */
+  onLongPress?: (lngLat: LngLat, radiusM: number) => void;
   style?: StyleProp<ViewStyle>;
 }
 
