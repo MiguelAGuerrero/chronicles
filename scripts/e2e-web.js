@@ -47,6 +47,8 @@ const ys = [-1.5, -0.5, 0.5, 1.5];
 ys.forEach((y, i) => features.push({ type: 'Feature', properties: { class: 'minor', name: names[i] }, geometry: { type: 'LineString', coordinates: [at(-2, y), at(4, y)] } }));
 xs.forEach((x) => features.push({ type: 'Feature', properties: { class: 'minor' }, geometry: { type: 'LineString', coordinates: [at(x, -2), at(x, 2)] } }));
 features.push({ type: 'Feature', properties: { class: 'neighbourhood', name: 'Fox Point' }, geometry: { type: 'Point', coordinates: at(1, 0) } });
+// A town point 2.9 km east: in reach of the walk, but outside the z14 tiles read for its streets.
+features.push({ type: 'Feature', properties: { class: 'city', name: 'Providence' }, geometry: { type: 'Point', coordinates: at(29, 0) } });
 const style = {
   version: 8,
   // maxzoom 14 matters: at the default 18, lines are clipped to z18 tiles, which real data never is.
@@ -314,6 +316,23 @@ function check(ok, what) {
     const card = (await page.locator('body').innerText()).replace(/\s+/g, ' ');
     // A block each of Transit and Arnold; the unnamed block between them clears fog but is not a street.
     check(/\b2 new streets\b/.test(card), `the card counts the 2 named streets walked (${card.slice(0, 80)})`);
+    // The walk is placed, down to its neighborhood, with the town found by the wide read
+    // and the state from the bundled outlines.
+    const placed = await page.evaluate(() => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const tx = req.result.transaction(['area', 'walk_area'], 'readonly');
+        const a = tx.objectStore('area').getAll();
+        const w = tx.objectStore('walk_area').getAll();
+        tx.oncomplete = () => resolve({ areas: a.result, rows: w.result });
+      };
+    }));
+    const levels = Object.fromEntries(placed.areas.map((x) => [x.level, x.name]));
+    check(
+      levels.neighborhood === 'Fox Point' && levels.town === 'Providence' && levels.state === 'Rhode Island' && levels.country === 'United States of America'
+        && placed.rows.length === 4 && placed.rows.every((r) => r.metres > 0),
+      `the walk is placed in Fox Point, Providence, Rhode Island (${JSON.stringify(levels)})`,
+    );
     await page.waitForTimeout(800);
     await shot(page, '05-card');
     // The card's zoom groups nearby captures; open the pin holding the note

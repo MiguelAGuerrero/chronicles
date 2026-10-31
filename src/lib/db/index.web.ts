@@ -1,10 +1,12 @@
+import { staleAreas } from '../areas/assign';
+import type { Area, WalkArea } from '../areas/types';
 import type { Capture, Pause, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 import { intersects, segmentBbox } from './segmentBounds';
 import type { Db } from './types';
 
 // Same tables as the native SQLite store, as IndexedDB object stores.
 const DB_NAME = 'chronicles';
-const VERSION = 3;
+const VERSION = 4;
 
 /** Raised when another open tab holds an older version of the database. */
 export class BlockedByOtherTabError extends Error {
@@ -31,6 +33,13 @@ function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number) {
   }
   if (oldVersion < 3) {
     d.createObjectStore('pause', { keyPath: ['walk_id', 'started_at'] }).createIndex('walk_id', 'walk_id');
+  }
+  if (oldVersion < 4) {
+    // v0.5: the places each walk was in (a cache, rebuilt when a walk is placed again).
+    d.createObjectStore('area', { keyPath: 'key' });
+    const wa = d.createObjectStore('walk_area', { keyPath: ['walk_id', 'area_key'] });
+    wa.createIndex('walk_id', 'walk_id');
+    wa.createIndex('area_key', 'area_key');
   }
 }
 
@@ -166,8 +175,8 @@ export const db: Db = {
     await committed(tx);
   },
 
-  async saveSnap(walkId, segments, visited, summary) {
-    const names = ['street_segment', 'visited_segment', 'walk_summary', 'walk'];
+  async saveSnap(walkId, segments, visited, summary, placed) {
+    const names = ['street_segment', 'visited_segment', 'walk_summary', 'walk', 'area', 'walk_area'];
     const tx = (await conn()).transaction(names, 'readwrite');
     const seg = tx.objectStore('street_segment');
     for (const x of segments) seg.put(x);
@@ -178,7 +187,23 @@ export const db: Db = {
     const walks = tx.objectStore('walk');
     const w = (await done(walks.get(walkId))) as Walk | undefined;
     if (w) walks.put({ ...w, snapped_build: summary.build });
+    if (placed) {
+      const wa = tx.objectStore('walk_area');
+      for (const k of (await done(wa.index('walk_id').getAllKeys(walkId))) as IDBValidKey[]) wa.delete(k);
+      const areas = tx.objectStore('area');
+      for (const a of placed.areas) areas.put(a);
+      for (const r of placed.rows) wa.put(r);
+      // Areas no walk refers to any more (a renamed place, say) go.
+      const rows = ((await done(wa.getAll())) as WalkArea[]);
+      for (const key of staleAreas((await done(areas.getAllKeys())) as string[], rows)) areas.delete(key);
+    }
     await committed(tx);
+  },
+  async listAreas() {
+    return (await done((await store('area')).getAll())) as Area[];
+  },
+  async listWalkAreas() {
+    return (await done((await store('walk_area')).getAll())) as WalkArea[];
   },
   async getSegmentsIn(bounds) {
     const all = (await done((await store('street_segment')).getAll())) as StreetSegment[];

@@ -122,6 +122,7 @@ export default function Replay() {
             return planViews(bounds, width, height, trace);
           },
           collect: (centers) => mapRef.current!.collect(centers),
+          collectPlaces: (center) => mapRef.current!.collectPlaces(center),
         }).catch(() => null);
         d = (await loadReplay(id).catch(() => null)) ?? d;
         if (!alive) return;

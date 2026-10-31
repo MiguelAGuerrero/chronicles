@@ -9,7 +9,7 @@ import type { CapturePin } from '../../lib/pins';
 import type { RoadFeature } from '../../lib/streets';
 import type { LngLat } from '../../lib/types';
 import {
-  COLORS, DERIVE_ZOOM, pressRadiusM, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, useZoomPins, walkerGeoJSON,
+  COLORS, DERIVE_ZOOM, PLACES_ZOOM, pressRadiusM, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -305,6 +305,22 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       out.names = q('transportation_name');
       out.places = q('place');
       return out;
+    },
+    async collectPlaces(center) {
+      await readyPromise.current!.promise;
+      const map = mapRef.current;
+      if (!map || !map.getSource(VECTOR_SOURCE)) return null;
+      const before = { center: map.getCenter(), zoom: map.getZoom() };
+      map.jumpTo({ center, zoom: PLACES_ZOOM });
+      const ok = await settled(map);
+      let places: RoadFeature[] | null = null;
+      try {
+        places = ok ? map.querySourceFeatures(VECTOR_SOURCE, { sourceLayer: 'place' }).map(toRoadFeature) : null;
+      } catch {
+        places = null;
+      }
+      map.jumpTo(before);
+      return places;
     },
     async collect(centers): Promise<CollectedFeatures> {
       await readyPromise.current!.promise;

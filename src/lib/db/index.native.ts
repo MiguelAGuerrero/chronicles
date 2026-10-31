@@ -1,4 +1,5 @@
 import * as SQLite from 'expo-sqlite';
+import type { Area, WalkArea } from '../areas/types';
 import type { Capture, Pause, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 import { segmentBbox } from './segmentBounds';
 import type { Db } from './types';
@@ -55,6 +56,19 @@ const MIGRATIONS = [
   ALTER TABLE capture ADD COLUMN caption TEXT;
   ALTER TABLE capture ADD COLUMN caption_y REAL;
   CREATE INDEX capture_place ON capture (lat, lon);
+  `,
+  // v0.5: the places each walk was in (a cache, rebuilt when a walk is placed again).
+  `
+  CREATE TABLE area (
+    key TEXT PRIMARY KEY, level TEXT NOT NULL, name TEXT NOT NULL, parent_key TEXT,
+    lon REAL NOT NULL, lat REAL NOT NULL, rules TEXT NOT NULL
+  );
+  CREATE TABLE walk_area (
+    walk_id TEXT NOT NULL, area_key TEXT NOT NULL, metres REAL NOT NULL,
+    first_t INTEGER NOT NULL, last_t INTEGER NOT NULL, lon REAL NOT NULL, lat REAL NOT NULL,
+    PRIMARY KEY (walk_id, area_key)
+  );
+  CREATE INDEX walk_area_area ON walk_area (area_key);
   `,
 ];
 
@@ -200,7 +214,7 @@ export const db: Db = {
     });
   },
 
-  saveSnap(walkId, segments, visited, s) {
+  saveSnap(walkId, segments, visited, s, placed) {
     return write(async (t) => {
       const seg = await t.prepareAsync(
         'INSERT OR REPLACE INTO street_segment (id, name, kind_detail, length_m, geometry, w, s, e, n, build) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
@@ -226,7 +240,29 @@ export const db: Db = {
         s.walk_id, s.build, s.distance_m, s.duration_ms, s.new_streets, s.streets_walked, s.photos, s.videos ?? 0, s.voices, s.notes, s.streets_read ? 1 : 0,
       );
       await t.runAsync('UPDATE walk SET snapped_build = ? WHERE id = ?', s.build, walkId);
+      if (placed) {
+        await t.runAsync('DELETE FROM walk_area WHERE walk_id = ?', walkId);
+        for (const a of placed.areas) {
+          await t.runAsync(
+            'INSERT OR REPLACE INTO area (key, level, name, parent_key, lon, lat, rules) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            a.key, a.level, a.name, a.parent_key, a.lon, a.lat, a.rules,
+          );
+        }
+        for (const r of placed.rows) {
+          await t.runAsync(
+            'INSERT INTO walk_area (walk_id, area_key, metres, first_t, last_t, lon, lat) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            r.walk_id, r.area_key, r.metres, r.first_t, r.last_t, r.lon, r.lat,
+          );
+        }
+        await t.runAsync('DELETE FROM area WHERE key NOT IN (SELECT DISTINCT area_key FROM walk_area)');
+      }
     });
+  },
+  async listAreas() {
+    return (await conn()).getAllAsync<Area>('SELECT * FROM area');
+  },
+  async listWalkAreas() {
+    return (await conn()).getAllAsync<WalkArea>('SELECT * FROM walk_area');
   },
   async getSegmentsIn([w, s, e, n]) {
     const rows = await (await conn()).getAllAsync<Omit<StreetSegment, 'geometry'> & { geometry: string }>(

@@ -1,3 +1,5 @@
+import { AREA_RULES } from './areas/rules';
+import { appBoundaries } from './areas/boundaries';
 import { db } from './db';
 
 export { TILE_ZOOM, tileAt, tileRect, onTileEdge, type TileRect } from './tileMath';
@@ -38,16 +40,19 @@ export async function ensureTileBuild(): Promise<string> {
   }
   // The rules for crediting streets changed: walks re-snap when their replay
   // next opens, keeping their old summary until then. Street pieces are kept.
-  if ((await db.getMeta('snap_rules')) !== SNAP_RULES) {
+  const rules = `${SNAP_RULES}/${AREA_RULES}/${appBoundaries.id}`;
+  if ((await db.getMeta('snap_rules')) !== rules) {
     for (const w of await db.listWalks()) if (w.snapped_build) await db.updateWalk(w.id, { snapped_build: null });
-    await db.setMeta('snap_rules', SNAP_RULES);
+    await db.setMeta('snap_rules', rules);
   }
   return build;
 }
 
 /**
  * The version of the snapping rules (snapper.ts). Bump it when they change
- * what counts as walked, so every walk is snapped again.
+ * what counts as walked, so every walk is snapped again. The area rules and
+ * the boundary packs' editions count too: a change to either places every
+ * walk again.
  * 2: walking along a street, not across it; about a block for a named street.
  */
 const SNAP_RULES = '2';

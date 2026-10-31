@@ -7,7 +7,7 @@ import { CapturePinView, pinLabel } from '../CapturePinView';
 import type { RoadFeature } from '../../lib/streets';
 import { TILEJSON_URL } from '../../lib/tiles';
 import {
-  COLORS, DERIVE_ZOOM, pressRadiusM, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, useZoomPins, walkerGeoJSON,
+  COLORS, DERIVE_ZOOM, PLACES_ZOOM, pressRadiusM, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -84,6 +84,23 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       out.names = (await source.querySourceFeatures({ sourceLayer: 'transportation_name' })).map(toRoad);
       out.places = (await source.querySourceFeatures({ sourceLayer: 'place' })).map(toRoad);
       return out;
+    },
+    async collectPlaces(center) {
+      await whenReady();
+      const map = mapRef.current;
+      const source = queryRef.current;
+      if (!map || !source) return null;
+      const before = await map.getViewState();
+      const wait = settle();
+      cameraRef.current?.jumpTo({ center, zoom: PLACES_ZOOM });
+      const ok = await wait;
+      const places = ok
+        ? (await source.querySourceFeatures({ sourceLayer: 'place' }).catch(() => null))?.map(
+            (f: GeoJSON.Feature): RoadFeature => ({ geometry: f.geometry as RoadFeature['geometry'], properties: (f.properties ?? {}) as Record<string, unknown> }),
+          ) ?? null
+        : null;
+      cameraRef.current?.jumpTo({ center: before.center, zoom: before.zoom });
+      return places;
     },
     async collect(centers): Promise<CollectedFeatures> {
       await whenReady();

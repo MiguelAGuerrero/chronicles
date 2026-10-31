@@ -1,3 +1,4 @@
+import type { Area, WalkArea } from '../areas/types';
 import type { Capture, Pause, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 
 /**
@@ -30,8 +31,23 @@ export interface Db {
   /** Caches street segments derived outside a snap (streets around the walker). */
   putSegments(segments: StreetSegment[]): Promise<void>;
 
-  /** Stores freshly derived segments and the walk's visited rows in one transaction. */
-  saveSnap(walkId: string, segments: StreetSegment[], visited: VisitedSegment[], summary: WalkSummary): Promise<void>;
+  /**
+   * Stores freshly derived segments, the walk's visited rows and summary in one
+   * transaction. With `placed`, the walk's area rows are replaced too, and
+   * areas no walk refers to any more are dropped; without it (the place points
+   * could not be read) the walk keeps the areas it had.
+   */
+  saveSnap(
+    walkId: string,
+    segments: StreetSegment[],
+    visited: VisitedSegment[],
+    summary: WalkSummary,
+    placed?: { areas: Area[]; rows: WalkArea[] } | null,
+  ): Promise<void>;
+  /** Every area any walk was placed in. */
+  listAreas(): Promise<Area[]>;
+  /** Every walk's area rows: what the places view is built from. */
+  listWalkAreas(): Promise<WalkArea[]>;
   /** Cached segments whose geometry touches the bounds. */
   getSegmentsIn(bounds: [number, number, number, number]): Promise<StreetSegment[]>;
   getVisited(walkId: string): Promise<VisitedSegment[]>;

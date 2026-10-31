@@ -3,6 +3,10 @@ import { db } from './db';
 import { boundsOf, distanceM, filterFixes, pausedMs, positionAt, smoothDwells, traceDistanceM, withoutPauses, type Bounds, type PauseSpan } from './geo';
 import { snap } from './snapper';
 import { deriveSegments, type RoadFeature } from './streets';
+import { assignAreas } from './areas/assign';
+import { appBoundaries } from './areas/boundaries';
+import { placesFromTiles } from './areas/tilePlaces';
+import type { Area, WalkArea } from './areas/types';
 import { ensureTileBuild } from './tiles';
 import type { LngLat, StreetSegment, TracePoint, Walk, WalkSummary } from './types';
 
@@ -34,6 +38,8 @@ export interface Collector {
   /** Plans camera stops covering the bounds, nearest the trace first. */
   plan(bounds: Bounds, trace: LngLat[]): LngLat[];
   collect(centers: LngLat[]): Promise<CollectedFeatures>;
+  /** Place points over a wider area than the street tiles (towns and cities); null when they could not be read. */
+  collectPlaces(center: LngLat): Promise<RoadFeature[] | null>;
 }
 
 /**
@@ -52,6 +58,8 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
   let derived: StreetSegment[] = [];
   let area = walk.area;
 
+  // The places the walk was in: kept as they were when the place points can't be read (offline).
+  let placed: { areas: Area[]; rows: WalkArea[] } | null = null;
   if (bounds) {
     const trace = fixes.map((p) => [p.lon, p.lat] as LngLat);
     const features = await collector.collect(collector.plan(bounds, trace)).catch(() => null);
@@ -59,9 +67,15 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
       derived = deriveSegments(features.roads, features.names, build);
       const mid = fixes[Math.floor(fixes.length / 2)];
       area = pickArea(features.places, [mid.lon, mid.lat]) ?? area;
+      const center: LngLat = [(bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2];
+      const wide = await collector.collectPlaces(center).catch(() => null);
+      if (wide) {
+        const placement = assignAreas(walk.id, points, pauses, placesFromTiles([...features.places, ...wide]), appBoundaries, walk.started_at);
+        placed = { areas: [...placement.areas.values()], rows: placement.rows };
+        area = placement.title ?? area;
+      }
     }
   }
-
   // Cached pieces from earlier walks of this build, plus the ones just derived.
   const byId = new Map<string, StreetSegment>();
   if (bounds) for (const s of await db.getSegmentsIn(bounds)) if (s.build === build) byId.set(s.id, s);
@@ -91,7 +105,7 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
     notes: captures.filter((c) => c.kind === 'text').length,
     streets_read: segments.length > 0,
   };
-  await db.saveSnap(walk.id, derived, visited, summary);
+  await db.saveSnap(walk.id, derived, visited, summary, placed);
   if (area !== walk.area) await db.updateWalk(walk.id, { area });
   return summary;
 }

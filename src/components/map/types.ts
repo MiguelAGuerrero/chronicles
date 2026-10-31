@@ -90,7 +90,16 @@ export interface WalkMapHandle {
   size(): { width: number; height: number };
   /** Road and place features in the tiles already loaded for the current view; the camera does not move. */
   collectView(): Promise<CollectedFeatures>;
+  /**
+   * Place points around a spot at PLACES_ZOOM, where town and city points are
+   * in reach (they rarely lie in a walk's own z14 tiles). The camera moves
+   * there and back; null when the tiles did not load.
+   */
+  collectPlaces(center: LngLat): Promise<RoadFeature[] | null>;
 }
+
+/** The zoom the wide read of place points happens at: a z10 tile spans about 30 km. */
+export const PLACES_ZOOM = 10;
 
 /**
  * Centers of DERIVE_ZOOM views that cover the bounds, for a viewport of the
