@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HomeSheet, SHEET_PEEK, type SheetMode } from '../components/HomeSheet';
 import { WalkMap } from '../components/map/WalkMap';
 import type { WalkMapHandle } from '../components/map/types';
+import { Icon } from '../components/icons';
 import { Banner, Button, theme } from '../components/ui';
 import type { Area, WalkArea } from '../lib/areas/types';
 import { db } from '../lib/db';
@@ -13,9 +14,11 @@ import { pausedMs, type Bounds } from '../lib/geo';
 import { levelForZoom, placesIndex, starsFor, unplacedWalks, type Star } from '../lib/places';
 import { recorder } from '../lib/recorder';
 import { RecorderError } from '../lib/recorder/types';
+import { saveNav } from '../lib/nav/store';
+import type { Waypoint } from '../lib/nav/types';
 import { startWalk } from '../lib/session';
 import { formatDuration } from '../lib/summary';
-import type { Pause, Walk, WalkSummary } from '../lib/types';
+import type { LngLat, Pause, Walk, WalkSummary } from '../lib/types';
 
 const NONE: never[] = [];
 /** With nothing walked yet: the world, and one line. */
@@ -45,7 +48,9 @@ export default function Home() {
   const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
   const [fit, setFit] = useState<{ bounds: Bounds | null; key: number }>({ bounds: null, key: 0 });
   const [placing, setPlacing] = useState<{ done: number; of: number } | null>(null);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Star | null>(null);
+  // A long press on the home map: walk there (N11).
+  const [spot, setSpot] = useState<LngLat | null>(null);
   // The map refits only when the places walked change (a new walk, a pass),
   // never just for coming back: a replay keeps the view you left (H5).
   const fittedTo = useRef('');
@@ -118,17 +123,19 @@ export default function Home() {
       setFit((f) => ({ bounds: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)], key: f.key + 1 }));
       return;
     }
-    setSelected(s.id);
+    setSelected(s);
     setMode({ kind: 'place', key: s.keys[0] });
     // Above the sheet, which opens to half the screen.
     mapRef.current?.showPoint(s.at, { top: insets.top + 48, right: 24, bottom: Math.round(screenH * 0.5) + 24, left: 24 });
   };
 
-  const start = async () => {
+  /** Starts a walk; with a destination, the walk screen navigates there as it opens. */
+  const start = async (dest?: Waypoint) => {
     setError(null);
     setStarting(true);
     try {
-      const { warning } = await startWalk();
+      const { walk, warning } = await startWalk();
+      if (dest) await saveNav(walk.id, dest);
       router.push(warning ? { pathname: '/walk', params: { warning } } : '/walk');
     } catch (e) {
       setError({ message: e instanceof Error ? e.message : String(e), openSettings: e instanceof RecorderError && e.openSettings });
@@ -144,7 +151,7 @@ export default function Home() {
   return (
     <View style={styles.screen}>
       {/* Start and the sheet come first, for a screen reader or a keyboard; the map draws beneath them. */}
-      {(mode.kind === 'summary' || open) && (
+      {(mode.kind === 'summary' || open) && !spot && (
         <View style={[styles.startRow, styles.over, { bottom: sheetH + 16 }]} pointerEvents="box-none">
           {open ? (
             <Button
@@ -162,7 +169,7 @@ export default function Home() {
               </View>
             </Button>
           ) : (
-            <Button testID="start" label="Start walk" onPress={start} busy={starting} busyLabel="Starting…" disabled={placing != null} tall style={styles.startBtn} />
+            <Button testID="start" label="Start walk" onPress={() => start()} busy={starting} busyLabel="Starting…" disabled={placing != null} tall style={styles.startBtn} />
           )}
         </View>
       )}
@@ -178,7 +185,8 @@ export default function Home() {
             setMode(m);
           }}
           onHeight={setSheetH}
-          busy={placing != null}
+          busy={placing != null || starting}
+          onGoToPlace={selected && !open ? () => start({ at: selected.at, label: selected.label, kind: 'place' }) : undefined}
         />
       </View>
 
@@ -196,6 +204,25 @@ export default function Home() {
           <Banner>On the web, a walk is traced while this page is open and on screen.</Banner>
         )}
       </View>
+
+      {spot && (
+        <View style={[styles.startRow, styles.over, { bottom: sheetH + 16 }]} pointerEvents="box-none">
+          <View style={styles.spot}>
+            <Button
+              testID="walk-here"
+              label="Walk here"
+              onPress={() => {
+                const at = spot;
+                setSpot(null);
+                start({ at, label: 'Your spot', kind: 'point' });
+              }}
+            />
+            <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={() => setSpot(null)} style={styles.spotClose} hitSlop={8}>
+              <Icon name="close" size={22} color={theme.ink} />
+            </Pressable>
+          </View>
+        </View>
+      )}
 
       {(empty || placing) && (
         <View style={[styles.center, styles.over]} pointerEvents="box-none" accessibilityLiveRegion="polite">
@@ -228,7 +255,8 @@ export default function Home() {
           fog={NONE}
           captures={NONE}
           stars={stars}
-          selectedStar={selected}
+          selectedStar={selected?.id ?? null}
+          onLongPress={(at) => !open && placing == null && setSpot(at)}
           onStarPress={pressStar}
           onViewChange={setView}
           fitBounds={fit.bounds}
@@ -257,6 +285,11 @@ const styles = StyleSheet.create({
   skip: { minHeight: 44, paddingHorizontal: 18, justifyContent: 'center', borderRadius: 22, backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.edge },
   skipText: { color: theme.ink, fontSize: 15, fontWeight: '600' },
   startRow: { position: 'absolute', left: 16, right: 16, alignItems: 'center' },
+  spot: {
+    flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.surface, borderRadius: 999, padding: 6, paddingLeft: 6,
+    shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
+  },
+  spotClose: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   startBtn: { minWidth: 220, borderRadius: 999, paddingHorizontal: 28 },
   recordingRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: theme.accentInk },

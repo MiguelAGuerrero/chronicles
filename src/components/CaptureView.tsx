@@ -279,6 +279,8 @@ export function CaptureViewer(props: {
   title?: string;
   /** Offers a caption edit on photos; the editor opens inside the viewer. */
   onSaveCaption?: (c: Capture, caption: string | null, y: number) => Promise<void>;
+  /** Offers navigating to where the capture was taken (during a walk). */
+  onGoHere?: (c: Capture) => void;
 }) {
   const insets = useSafeAreaInsets();
   const [index, setIndex] = useState(0);
@@ -382,6 +384,22 @@ export function CaptureViewer(props: {
               hitSlop={8}
             >
               <Text style={styles.aa}>Aa</Text>
+            </Pressable>
+          )}
+          {current && current.lat != null && props.onGoHere && (
+            <Pressable
+              testID="viewer-go"
+              accessibilityRole="button"
+              accessibilityLabel="Go here"
+              onPress={() => {
+                const c = current;
+                setIndex(0);
+                props.onGoHere?.(c);
+              }}
+              style={styles.roundBtn}
+              hitSlop={8}
+            >
+              <Icon name="navigate" size={22} color={theme.ink} />
             </Pressable>
           )}
           <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={close} style={styles.roundBtn} hitSlop={8}>

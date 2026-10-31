@@ -1,0 +1,26 @@
+import type { LngLat } from '../types';
+
+/**
+ * Navigation's contract. A destination is a Waypoint; a RouteSource turns two
+ * points into a walking Route, or says it can't. The navigator knows only
+ * these, so a later source (suggested spots, downloaded regions) plugs in
+ * without changing it (criterion N15).
+ */
+export interface Waypoint {
+  at: LngLat;
+  label: string;
+  kind: 'start' | 'capture' | 'point' | 'place';
+}
+
+export interface Route {
+  path: LngLat[];
+  lengthM: number;
+  /** The RouteSource id that made it. */
+  source: string;
+}
+
+export interface RouteSource {
+  id: string;
+  /** A walking route from `from` to `to`, or null when this source has none. */
+  route(from: LngLat, to: LngLat): Route | null;
+}

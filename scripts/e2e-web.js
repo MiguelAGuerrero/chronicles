@@ -178,6 +178,8 @@ function check(ok, what) {
         await page.mouse.down();
         await page.waitForTimeout(700);
         await page.mouse.up();
+        // The press sheet offers Go here, and what happened here when captures are near.
+        await page.click('[data-testid=here-open]');
         await page.waitForSelector('text=What happened here');
         check((await page.getByText('The bakery smelled of cardamom.').count()) > 0, 'a long press on the map shows what happened there');
         await page.click('[aria-label="Close"]');
@@ -239,6 +241,56 @@ function check(ok, what) {
       }
     }
     await page.waitForTimeout(2200);
+
+    // Navigate (slice 4). Walk me back routes to the start along the trace and counts down (N1, N7).
+    const meters = (t) => {
+      const m = /([\d.]+)\s*(km|m)\b/.exec(t);
+      return m ? parseFloat(m[1]) * (m[2] === 'km' ? 1000 : 1) : NaN;
+    };
+    const navLeft = async () => meters(await page.locator('[data-testid=nav-left]').innerText());
+    await page.click('[data-testid=walk-back]');
+    await page.waitForSelector('[data-testid=nav-bar]');
+    const left0 = await navLeft();
+    check(left0 > 250 && left0 < 350 && /Start/.test(await page.locator('[data-testid=nav-bar]').innerText()), `walk me back routes to the start (${left0} m)`);
+    await shot(page, '03d-walk-back');
+    const back = [...pts].reverse();
+    for (let k = 0; k < 24; k++) {
+      await ctx.setGeolocation({ longitude: back[k][0], latitude: back[k][1], accuracy: 6 });
+      await page.waitForTimeout(1000);
+    }
+    await page.waitForTimeout(2200);
+    const left1 = await navLeft();
+    check(left1 < left0 - 80, `the distance left counts down (${left0} → ${left1} m)`);
+    // Arrival shows for 4 s, about 30 m out: watch for it on the way.
+    let sawArrival = false;
+    for (let k = 24; k < back.length; k++) {
+      await ctx.setGeolocation({ longitude: back[k][0], latitude: back[k][1], accuracy: 6 });
+      await page.waitForTimeout(1000);
+      sawArrival ||= (await page.locator('text=/You.re here: Start/').count()) > 0;
+    }
+    await ctx.setGeolocation({ longitude: route[0][0], latitude: route[0][1], accuracy: 6 });
+    for (let k = 0; k < 6 && !sawArrival; k++) {
+      await page.waitForTimeout(1000);
+      sawArrival = (await page.locator('text=/You.re here: Start/').count()) > 0;
+    }
+    check(sawArrival && (await page.locator('[data-testid=nav-bar]').count()) === 0, 'arriving at the start says so, and navigation ends (N9)');
+    // A long press on the map, then Go here, routes over the streets (N3, N11); End clears it (N10).
+    {
+      const box = await page.locator('canvas.maplibregl-canvas').last().boundingBox();
+      const spot = { x: box.x + box.width / 2 + 90, y: box.y + box.height / 2 - 120 };
+      await page.mouse.move(spot.x, spot.y);
+      await page.mouse.down();
+      await page.waitForTimeout(700);
+      await page.mouse.up();
+      await page.click('[data-testid=go-here]');
+      await page.waitForSelector('[data-testid=nav-bar]', { timeout: 30000 });
+      const left = await navLeft();
+      check(left > 50 && left < 1500, `a long press, then Go here, routes over the streets (${left} m)`);
+      await shot(page, '03e-go-here');
+      await page.click('[data-testid=nav-end]');
+      await page.waitForSelector('[data-testid=nav-bar]', { state: 'detached', timeout: 5000 });
+      check(true, 'End clears the route');
+    }
 
     await page.click('[data-testid=stop]');
     await page.waitForTimeout(600);
@@ -468,6 +520,14 @@ function check(ok, what) {
     await page.waitForSelector('[aria-label^="Fox Point,"]', { timeout: 60000 });
     await page.waitForTimeout(500);
     check((await page.locator('text=/Placing your walks/').count()) === 0, 'the walk is placed again and the cover goes');
+
+    // From the home, a star's Go here starts a walk navigating there (N11).
+    await page.click('[aria-label^="Fox Point,"]');
+    await page.waitForSelector('[data-testid=place-go]');
+    await page.click('[data-testid=place-go]');
+    await page.waitForSelector('[data-testid=nav-bar]', { timeout: 40000 });
+    check(page.url().endsWith('/walk') && /Fox Point/.test(await page.locator('[data-testid=nav-bar]').innerText()), 'a star\u2019s Go here starts a walk navigating there');
+    await shot(page, '12-home-go');
     check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
   } catch (e) {
     console.error(e.message);

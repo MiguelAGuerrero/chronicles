@@ -233,6 +233,41 @@ Read this before changing recording, streets, the replay or storage.
   (GitHub's raw host for `nvkelso/natural-earth-vector` is reachable from
   cloud sessions; naciscdn.org is not).
 
+## v0.5: navigate (walk me back is one use; the owner's calls)
+
+- **Navigation runs inside a walk**, which keeps recording. The routes are
+  computed on the device; nothing is sent anywhere.
+  - Sources sit behind `RouteSource` (`lib/nav/types.ts`), so suggested spots
+    or downloaded regions can add one without touching the navigator.
+  - `traceRouteSource` routes along this walk's trace: walk me back, or back
+    to a pin.
+  - `streetRouteSource` routes over the streets derived from tiles. Before
+    routing, `useNavigation` reads the streets between the two ends with
+    `collect` (z14, behind the cover), then adds the cached ones.
+  - `routeTo` tries the sources in order, and says why when none can.
+- **Rules** (`lib/nav/rules.ts`):
+  - a street must be within 150 m of each end
+  - over 10 km is too far
+  - off route means more than 50 m away for 2 fixes; it re-routes at once,
+    then at most every 15 s
+  - arrival is within 30 m
+- **Walk me back never cuts a corner.** A trace shortcut joins two points
+  within 30 m only if they are at least 100 m apart along the walk: a loop,
+  not the two sides of a corner. The first version cut corners through
+  buildings; a screenshot showed it.
+- **The destination is kept with the open walk** (meta `nav`), so a reload
+  resumes, routing again. From the home, Go here or Walk here saves the
+  destination before opening the walk screen. Stop clears it.
+- **UI.**
+  - A blue top bar shows the distance left and where to, with End. The route
+    is blue with a white edge, under the trace.
+  - "Off your route" shows as a chip.
+  - Arrival shows "You're here: <name>" for 4 s, with a success haptic.
+  - The long press on the walk map opens a small sheet: Go here, plus "What
+    happened here (N)" when captures are near.
+  - Walk me back is the top edge button.
+  - A pin's viewer has Go here.
+
 ## Working with the owner
 
 - **Ask before architectural decisions:** libraries, data model, platform strategy,

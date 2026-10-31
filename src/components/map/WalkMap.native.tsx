@@ -8,7 +8,7 @@ import { namedStars, StarView, starLabel } from '../StarView';
 import type { RoadFeature } from '../../lib/streets';
 import { TILEJSON_URL } from '../../lib/tiles';
 import {
-  COLORS, DERIVE_ZOOM, PLACES_ZOOM, pressRadiusM, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, useZoomPins, walkerGeoJSON,
+  COLORS, DERIVE_ZOOM, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -35,6 +35,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const fog = useMemo(() => segmentsGeoJSON(props.fog), [props.fog]);
   const walked = useMemo(() => segmentsGeoJSON(props.walked), [props.walked]);
   const trace = useMemo(() => traceGeoJSON(props.trace), [props.trace]);
+  const route = useMemo(() => routeGeoJSON(props.route), [props.route]);
   const points = useMemo(() => walkerGeoJSON(props.walker), [props.walker]);
 
   useEffect(() => {
@@ -196,6 +197,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         <GeoJSONSource id="walked" data={walked}>
           <Layer id="walked" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }}
             paint={{ 'line-color': COLORS.walked, 'line-width': 6 }} />
+        </GeoJSONSource>
+        <GeoJSONSource id="route" data={route}>
+          <Layer id="route-edge" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': '#ffffff', 'line-width': 9 }} />
+          <Layer id="route" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': COLORS.route, 'line-width': 6 }} />
         </GeoJSONSource>
         <GeoJSONSource id="trace" data={trace}>
           <Layer id="trace" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }}

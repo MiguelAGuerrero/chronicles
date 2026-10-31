@@ -1,5 +1,6 @@
 import { db } from './db';
 import { newId } from './id';
+import { clearNav } from './nav/store';
 import { notifier } from './notify';
 import { recorder } from './recorder';
 import type { Walk } from './types';
@@ -53,6 +54,8 @@ export function stopWalk(walkId: string): Promise<void> {
       await db.endPause(walkId, at);
       await recorder.stop();
       void notifier.pauseEnded(walkId);
+      // Navigation ends with the walk (N10).
+      await clearNav().catch(() => {});
     })().finally(() => {
       stopping = null;
     });

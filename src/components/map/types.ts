@@ -20,6 +20,8 @@ export const COLORS = {
   fog: '#6b7480',
   walked: '#c2410c',
   trace: '#1d3557',
+  /** A route being navigated: map-navigation blue, with a white edge (N6). */
+  route: '#2563eb',
   walker: '#1d3557',
   photo: '#0f766e',
   video: '#b42318',
@@ -60,6 +62,8 @@ export interface WalkMapProps {
   selectedStar?: string | null;
   /** Puts the map's attribution at the top right, clear of a bottom sheet. */
   attributionTop?: boolean;
+  /** A route being navigated, drawn bold under the trace (N6). */
+  route?: LngLat[] | null;
   walker?: LngLat | null;
   /** Keeps the camera centered here while set. */
   follow?: LngLat | null;
@@ -204,4 +208,12 @@ export function useZoomPins(captures: Capture[], zoom: number | null, lat: numbe
 export function pressRadiusM(zoom: number, lat: number): number {
   const mPerPx = (40_075_016.686 * Math.cos((lat * Math.PI) / 180)) / (512 * 2 ** zoom);
   return Math.max(15, Math.min(150, 44 * mPerPx));
+}
+
+/** A navigated route as one line, or nothing. */
+export function routeGeoJSON(route: LngLat[] | null | undefined): GeoJSON.FeatureCollection {
+  return {
+    type: 'FeatureCollection',
+    features: route && route.length > 1 ? [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: route } }] : [],
+  };
 }

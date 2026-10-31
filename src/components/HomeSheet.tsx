@@ -37,6 +37,8 @@ export function HomeSheet(props: {
   onHeight?: (h: number) => void;
   /** While old walks are being placed, rows can't open a replay. */
   busy?: boolean;
+  /** Starts a walk navigating to the place shown (N11). */
+  onGoToPlace?: () => void;
 }) {
   const insets = useSafeAreaInsets();
   const { height: screenH } = useWindowDimensions();
@@ -185,6 +187,14 @@ export function HomeSheet(props: {
           )}
         </View>
       </View>
+      {place && props.onGoToPlace && (
+        <View style={styles.goRow}>
+          <Pressable testID="place-go" accessibilityRole="button" accessibilityLabel={`Start a walk to ${place.title}`} onPress={props.onGoToPlace} disabled={props.busy} style={({ pressed }) => [styles.go, (pressed || props.busy) && { opacity: 0.7 }]}>
+            <Icon name="navigate" size={18} color="#ffffff" />
+            <Text style={styles.goText}>Go here</Text>
+          </Pressable>
+        </View>
+      )}
       {expanded && (
         <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
           {(place ? place.walks : all.filter((w) => !unplacedIds.has(w.id))).map((w) => (
@@ -255,6 +265,9 @@ const styles = StyleSheet.create({
   list: { flex: 1 },
   listContent: { padding: 16, gap: 10, maxWidth: 640, width: '100%', alignSelf: 'center' },
   note: { fontSize: 14, color: theme.muted, marginTop: -4 },
+  goRow: { paddingHorizontal: 16, paddingTop: 4, maxWidth: 640, width: '100%', alignSelf: 'center' },
+  go: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 48, borderRadius: 24, backgroundColor: theme.accent, alignSelf: 'flex-start', paddingHorizontal: 20 },
+  goText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
   section: { marginTop: 12, fontSize: 13, fontWeight: '700', color: theme.muted, textTransform: 'uppercase', letterSpacing: 0.6 },
   row: { backgroundColor: theme.surface, borderRadius: theme.radius, padding: 14, gap: 4, borderWidth: 1, borderColor: theme.line },
   rowTitle: { fontSize: 17, fontWeight: '600', color: theme.ink },

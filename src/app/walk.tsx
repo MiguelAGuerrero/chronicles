@@ -6,10 +6,10 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WalkMap } from '../components/map/WalkMap';
-import type { WalkMapHandle } from '../components/map/types';
+import { COLORS, type WalkMapHandle } from '../components/map/types';
 import { CaptionEditor } from '../components/Caption';
 import { CaptureViewer } from '../components/CaptureView';
-import { Icon, type IconName } from '../components/icons';
+import { Icon, KIND_LABEL, type IconName } from '../components/icons';
 import { Banner, Button, HoldButton, theme } from '../components/ui';
 import { db } from '../lib/db';
 import { focusOn } from '../lib/focus';
@@ -26,6 +26,7 @@ import { formatDistance, formatDuration, formatElapsed } from '../lib/summary';
 import type { Capture, LngLat, Pause, StreetSegment, Walk } from '../lib/types';
 import { useCaptures } from '../lib/useCaptures';
 import { useLiveTrace } from '../lib/useLiveTrace';
+import { useNavigation } from '../lib/nav/useNavigation';
 
 /** Streets around the walker: read from the map and shown as fog this far out. */
 const NEAR_RADIUS_M = 1000;
@@ -176,23 +177,42 @@ export default function WalkScreen() {
   // Named streets only (the owner's call): unnamed paths are fog, not a count.
   const unwalkedCount = useMemo(() => new Set(fog.filter((x) => x.name).map(streetKey)).size, [fog]);
 
-  // What happened here: a tap on the map shows every capture taken near that
-  // spot, on any walk.
+  // A long press on the map opens a small sheet for that spot: Go here, and
+  // what happened here (every capture near it, on any walk) when there is any.
   const [here, setHere] = useState<HereResult | null>(null);
+  const [spot, setSpot] = useState<{ at: LngLat; here: HereResult | null } | null>(null);
   const hereTaps = useRef(0);
   const [hereKey, setHereKey] = useState(0);
-  async function showHere(at: LngLat, radiusM?: number) {
+  async function pressMap(at: LngLat, radiusM?: number) {
     if (cap.voiceStartedAt != null || stopping || viewing || here) return;
     tapFeedback();
     const tap = ++hereTaps.current;
     const r = await capturesHere(at, cap.captures, radiusM).catch(() => null);
-    if (tap !== hereTaps.current) return; // a newer tap won
-    if (!r) setToast('Could not look up this spot');
-    else if (r.captures.length) {
-      setHereKey(tap);
-      setHere(r);
-    } else setToast('Nothing captured here yet');
+    if (tap !== hereTaps.current) return; // a newer press won
+    setSpot({ at, here: r && r.captures.length ? r : null });
   }
+
+  // Navigating (slice 4): inside the walk, which keeps recording.
+  const [arrived, setArrived] = useState<string | null>(null);
+  useEffect(() => {
+    if (!arrived) return;
+    const t = setTimeout(() => setArrived(null), 4000);
+    return () => clearTimeout(t);
+  }, [arrived]);
+  const navigation = useNavigation({
+    walk,
+    here: live.here,
+    lastFixAt: live.lastFixAt,
+    paused: pauses.some((p) => p.ended_at == null),
+    map: () => mapRef.current,
+    onArrive: (dest) => {
+      successFeedback();
+      setArrived(`You’re here: ${dest.label}`);
+      AccessibilityInfo.announceForAccessibility(`You're here: ${dest.label}`);
+    },
+    onError: (m) => setToast(m),
+  });
+  const walkStart: LngLat | null = live.runs[0]?.[0] ?? null;
 
   const [viewing, setViewing] = useState<Capture[] | null>(null);
 
@@ -343,7 +363,9 @@ export default function WalkScreen() {
         follow={following ? live.here : null}
         onUserMove={() => setFollowing(false)}
         // A long press, so a stray tap while walking does nothing.
-        onLongPress={showHere}
+        onLongPress={pressMap}
+        route={navigation.nav?.route.path ?? null}
+        covered={navigation.finding}
         veil={showUnwalked}
         fogEmphasis={showUnwalked}
         ref={mapRef}
@@ -352,6 +374,33 @@ export default function WalkScreen() {
       />
 
       <View style={[styles.top, { top: insets.top + 12 }]} pointerEvents="box-none">
+        {navigation.nav && (
+          <View testID="nav-bar" style={styles.navBar} accessibilityLiveRegion="polite">
+            <Icon name="navigate" size={20} color="#ffffff" />
+            <Text testID="nav-left" style={styles.navText} numberOfLines={1}>
+              {formatDistance(navigation.nav.leftM)} · {navigation.nav.dest.label}
+            </Text>
+            <Pressable testID="nav-end" accessibilityRole="button" accessibilityLabel="End navigation" onPress={navigation.end} style={styles.navEnd} hitSlop={8}>
+              <Text style={styles.navEndText}>End</Text>
+            </Pressable>
+          </View>
+        )}
+        {navigation.nav?.offRoute && (
+          <View style={styles.chip} accessibilityLiveRegion="polite">
+            <View style={[styles.statusDot, { backgroundColor: theme.warn }]} />
+            <Text style={styles.chipText}>Off your route</Text>
+          </View>
+        )}
+        {navigation.finding && (
+          <View style={styles.toast} accessibilityLiveRegion="polite">
+            <Text style={styles.toastText}>Finding a route</Text>
+          </View>
+        )}
+        {arrived && (
+          <View style={styles.toast} accessibilityLiveRegion="polite">
+            <Text style={styles.toastText}>{arrived}</Text>
+          </View>
+        )}
         {problem && (
           <View style={styles.chip} accessible accessibilityLabel={problem.label} accessibilityLiveRegion="polite">
             <View style={[styles.statusDot, { backgroundColor: problem.color }]} />
@@ -523,6 +572,20 @@ export default function WalkScreen() {
         </View>
       )}
 
+      {walkStart && !navigation.nav && (
+        // Walk me back: the way back to where this walk began (N1, N11).
+        <Pressable
+          testID="walk-back"
+          accessibilityRole="button"
+          accessibilityLabel="Walk me back to the start"
+          disabled={navigation.finding}
+          onPress={() => navigation.goTo({ at: walkStart, label: 'Start', kind: 'start' })}
+          style={({ pressed }) => [styles.edgeBtn, { right: edgeRight, bottom: insets.bottom + EDGE_BOTTOM + 112 }, pressed && styles.pressed]}
+        >
+          <Icon name="return-down-back" size={22} color={theme.ink} />
+        </Pressable>
+      )}
+
       {!following && live.here && (
         // Back to following the walker, after looking around the map.
         <Pressable
@@ -541,6 +604,10 @@ export default function WalkScreen() {
         captures={viewing && viewing.map((v) => cap.captures.find((c) => c.id === v.id) ?? v)}
         onClose={() => setViewing(null)}
         onSaveCaption={(c, caption, y) => cap.setCaption(c.id, caption, y)}
+        onGoHere={(c) => {
+          setViewing(null);
+          if (c.lat != null && c.lon != null) navigation.goTo({ at: [c.lon, c.lat], label: KIND_LABEL[c.kind], kind: 'capture' });
+        }}
       />
       <CaptionEditor
         key={captioning?.id ?? 'none'}
@@ -551,6 +618,42 @@ export default function WalkScreen() {
           setCaptioning(null);
         }}
       />
+      {spot && (
+        <View style={[styles.spotRow, { bottom: insets.bottom + 92 }]} pointerEvents="box-none">
+          <View style={styles.spot} accessibilityViewIsModal>
+            <Text style={styles.spotTitle} accessibilityRole="header">This spot</Text>
+            <View style={styles.spotActions}>
+              <Button
+                testID="go-here"
+                label="Go here"
+                onPress={() => {
+                  const at = spot.at;
+                  setSpot(null);
+                  navigation.goTo({ at, label: 'Your spot', kind: 'point' });
+                }}
+                disabled={navigation.finding}
+              />
+              {spot.here && (
+                <Button
+                  testID="here-open"
+                  variant="secondary"
+                  label={`What happened here (${spot.here.captures.length})`}
+                  onPress={() => {
+                    const r = spot.here!;
+                    setSpot(null);
+                    setHereKey((k) => k + 1);
+                    setHere(r);
+                  }}
+                />
+              )}
+              <Pressable testID="spot-close" accessibilityRole="button" accessibilityLabel="Close" onPress={() => setSpot(null)} style={styles.spotClose} hitSlop={8}>
+                <Icon name="close" size={22} color={theme.ink} />
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      )}
+
       <CaptureViewer
         key={`here:${hereKey}`}
         title="What happened here"
@@ -660,6 +763,22 @@ const styles = StyleSheet.create({
   },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
   chipText: { color: theme.ink, fontWeight: '600', fontSize: 14 },
+  // Navigating: what is left and where to, as on a maps app's top bar, with End.
+  navBar: {
+    flexDirection: 'row', alignItems: 'center', gap: 10, alignSelf: 'stretch', backgroundColor: COLORS.route, borderRadius: 14,
+    paddingLeft: 14, paddingRight: 6, minHeight: 56,
+  },
+  navText: { flex: 1, color: '#ffffff', fontSize: 18, fontWeight: '700' },
+  navEnd: { minHeight: 44, minWidth: 64, paddingHorizontal: 14, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  navEndText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
+  spotRow: { position: 'absolute', left: 12, right: 12, alignItems: 'center' },
+  spot: {
+    backgroundColor: theme.surface, borderRadius: theme.radius, padding: 14, gap: 10, width: '100%', maxWidth: 520,
+    shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
+  },
+  spotTitle: { fontSize: 16, fontWeight: '700', color: theme.ink },
+  spotActions: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
+  spotClose: { marginLeft: 'auto', width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   toast: { backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 14, alignSelf: 'center' },
   toastText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
   captures: { position: 'absolute', left: 0, right: 0, alignItems: 'center', gap: 12 },
