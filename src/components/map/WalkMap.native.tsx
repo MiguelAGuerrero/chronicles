@@ -9,6 +9,7 @@ import { StartHereView, StripLabel } from '../LandingMarks';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { RoadFeature } from '../../lib/streets';
 import { TILEJSON_URL } from '../../lib/tiles';
+import { useGlidingWalker } from '../../lib/useGlidingWalker';
 import {
   COLORS, coneGeoJSON, DERIVE_ZOOM, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
@@ -45,12 +46,15 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const pockets = useMemo(() => pocketsGeoJSON(props.landing), [props.landing]);
   const strips = useMemo(() => stripsGeoJSON(props.landing), [props.landing]);
   const marks = useMemo(() => marksGeoJSON(props.marks), [props.marks]);
-  const cone = useMemo(() => coneGeoJSON(props.walker, props.walkerHeading, view?.zoom ?? 16), [props.walker, props.walkerHeading, view]);
-  const points = useMemo(() => walkerGeoJSON(props.walker), [props.walker]);
+  // The dot, cone and camera glide between fixes instead of jumping.
+  const glide = useGlidingWalker(props.walker, props.walkerHeading, props.glideWalker === true);
+  const cone = useMemo(() => coneGeoJSON(glide.walker, glide.heading, view?.zoom ?? 16), [glide.walker, glide.heading, view]);
+  const points = useMemo(() => walkerGeoJSON(glide.walker), [glide.walker]);
 
   useEffect(() => {
-    if (ready && props.follow) cameraRef.current?.jumpTo({ center: props.follow });
-  }, [ready, props.follow]);
+    // Follows the gliding dot, so the camera and the dot move together.
+    if (ready && props.follow) cameraRef.current?.jumpTo({ center: glide.walker ?? props.follow });
+  }, [ready, props.follow, glide.walker]);
   // A fit is a request made while mounted: a map brought back (the home, after a walk) keeps its view.
   const fitAtMount = useRef(props.fitKey);
   useEffect(() => {

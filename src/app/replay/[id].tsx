@@ -22,13 +22,13 @@ import { pausedMs } from '../../lib/geo';
 import { capturesHere, type HereResult } from '../../lib/here';
 
 type Beat = 'reading' | 'fog' | 'path' | 'card' | 'name';
-const FRAME_MS = 66; // ~15 fps keeps the map responsive on a phone
+const FRAME_MS = 33; // ~30 fps: the dot reads as a slider, not as steps (was 66; unverified on a phone)
 /** Taps this soon after a capture appears are ignored, so a double tap skips nothing. */
 const TAP_GUARD_MS = 600;
 /** On a re-watch, how long a photo or note stays up before moving on. */
 const AUTO_MS = 4000;
 /** The drawn trace is rebuilt at most this often; the walker dot moves every frame. */
-const TRACE_STEP_MS = 200;
+const TRACE_STEP_MS = 100;
 
 export default function Replay() {
   const { id, ceremony } = useLocalSearchParams<{ id: string; ceremony?: string }>();

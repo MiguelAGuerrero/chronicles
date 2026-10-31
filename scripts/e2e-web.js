@@ -241,6 +241,8 @@ function check(ok, what) {
         await page.click('[data-testid=options-close]');
       }
       if (k === 13) {
+        // The live walk's dot is one gliding marker; the layers stay empty for it.
+        check((await page.locator('[data-testid=walker-puck]').count()) === 1 && (await page.locator('[data-testid=walker-puck] svg').count()) === 2, 'the walker is one gliding marker, dot and cone');
         // Within 60 m, the café's mark shows what it is (S7).
         check((await page.locator('[aria-label="Hessian Memorial, History & landmarks. Open"]').count()) === 1, 'a mark shows its name and category within 60 m');
       }
