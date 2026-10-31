@@ -267,6 +267,24 @@ test('standstills: a long stay in a small radius becomes one still point, with n
   assert.equal(dwellsOf(walkAlong([at(0, 0), at(3, 0)])).length, 0);
 });
 
+test('standstills: one GPS jump does not split a stay, and slow walking in circles is not one', () => {
+  const walkIn = walkAlong([at(0, 0), at(1, 0)]);
+  const t0 = walkIn.at(-1)!.t;
+  const stay = (n: number, from: number, spot: (i: number) => LngLat, speed: number): TracePoint[] =>
+    Array.from({ length: n }, (_, i) => ({
+      walk_id: 'w1', t: from + (i + 1) * 1000, lon: spot(i)[0], lat: spot(i)[1], accuracy_m: 20, speed, course: null,
+    }));
+  // Ten still minutes with one fix 30 m off halfway through.
+  const still = stay(600, t0, (i) => (i === 300 ? at(1.3, 0) : at(1, 0)), 0);
+  assert.equal(dwellsOf([...walkIn, ...still]).length, 1);
+  // Four minutes circling a 10 m fountain at 0.8 m/s stays walking.
+  const circle = stay(240, t0, (i) => [at(1, 0.1)[0] + Math.sin(i * 0.08) * dLon * 0.1, at(1, 0.1)[1] - Math.cos(i * 0.08) * dLat * 0.1], 0.8);
+  assert.equal(dwellsOf([...walkIn, ...circle]).length, 0);
+  // A slow stroll that drifts 50 m over five minutes stays walking, even with no speed reported.
+  const stroll = stay(300, t0, (i) => at(1 + i / 600, 0), 0.18).map((p) => ({ ...p, speed: null }));
+  assert.equal(dwellsOf([...walkIn, ...stroll]).length, 0);
+});
+
 test('pauses: fixes inside a pause are dropped, and paused time does not count', () => {
   const pts = walkAlong([at(0, 0), at(3, 0)]);
   const pause = { started_at: pts[10].t, ended_at: pts[20].t };

@@ -57,6 +57,17 @@ export function pointSegmentDist(
   return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy));
 }
 
+/** The shortest distance from a point to any of these lines, in meters. */
+export function distanceToLinesM(p: LngLat, lines: LngLat[][]): number {
+  const proj = projector(p);
+  let best = Infinity;
+  for (const line of lines) {
+    for (let i = 1; i < line.length; i++) best = Math.min(best, pointSegmentDist([0, 0], proj(line[i - 1]), proj(line[i])));
+    if (line.length === 1) best = Math.min(best, distanceM(p, line[0]));
+  }
+  return best;
+}
+
 export type Bounds = [west: number, south: number, east: number, north: number];
 
 export function boundsOf(points: LngLat[], padM = 0): Bounds | null {
@@ -192,6 +203,12 @@ export function pausedMs(pauses: PauseSpan[], from: number, to: number): number 
 /** A stay this long inside DWELL_RADIUS_M counts as standing still (a shop, a café). */
 export const DWELL_MIN_MS = 2 * 60_000;
 export const DWELL_RADIUS_M = 25;
+/** Fixes are averaged over this long before looking for a stay, which damps indoor jitter. */
+const DWELL_BIN_MS = 30_000;
+/** A stay survives this many averaged positions outside its radius in a row (a GPS jump). */
+const DWELL_MISSES = 2;
+/** Standing still reports a speed near 0 even while the position wanders; circling a fountain does not. */
+const DWELL_MAX_SPEED = 0.3;
 
 export interface Dwell {
   t0: number;
@@ -199,34 +216,96 @@ export interface Dwell {
   at: LngLat;
 }
 
+interface Bin {
+  t0: number;
+  t1: number;
+  lon: number;
+  lat: number;
+  n: number;
+  speeds: number[];
+}
+
+const binAt = (b: Bin): LngLat => [b.lon / b.n, b.lat / b.n];
+
+function centroid(bins: Bin[]): LngLat {
+  let lon = 0;
+  let lat = 0;
+  let n = 0;
+  for (const b of bins) {
+    lon += b.lon;
+    lat += b.lat;
+    n += b.n;
+  }
+  return [lon / n, lat / n];
+}
+
 /**
- * Stretches where the walker stayed within DWELL_RADIUS_M of where the
- * stretch began for at least DWELL_MIN_MS. GPS jitter inside a building
- * wanders tens of meters, so the radius is generous; walking on at 1 m/s
- * leaves it within half a minute, far short of the minimum stay.
+ * A stay rather than slow walking: where the reported speed is known, it
+ * stays near 0; and the first and last thirds of the stay sit in the same
+ * place, so a slow stroll that drifts across the radius is not a stay.
+ */
+function isStill(bins: Bin[]): boolean {
+  const speeds = bins.flatMap((b) => b.speeds).sort((a, b) => a - b);
+  if (speeds.length >= bins.reduce((n, b) => n + b.n, 0) / 2 && speeds[speeds.length >> 1] > DWELL_MAX_SPEED) return false;
+  const third = Math.max(1, Math.floor(bins.length / 3));
+  return distanceM(centroid(bins.slice(0, third)), centroid(bins.slice(-third))) <= DWELL_RADIUS_M * 0.6;
+}
+
+/**
+ * Stretches where the walker stood still for at least DWELL_MIN_MS. Fixes
+ * are averaged into 30 s bins; a stay grows while each bin falls within
+ * DWELL_RADIUS_M of the stay's running center, riding out a couple of GPS
+ * jumps, and neighboring stays at the same spot are merged, so one café stop
+ * is one stay however much the fixes wander.
  */
 export function dwellsOf(fixes: TracePoint[]): Dwell[] {
-  const out: Dwell[] = [];
-  let i = 0;
-  while (i < fixes.length) {
-    const anchor: LngLat = [fixes[i].lon, fixes[i].lat];
-    let j = i;
-    let sx = 0;
-    let sy = 0;
-    while (j < fixes.length && distanceM(anchor, [fixes[j].lon, fixes[j].lat]) <= DWELL_RADIUS_M) {
-      sx += fixes[j].lon;
-      sy += fixes[j].lat;
-      j++;
+  const bins: Bin[] = [];
+  for (const f of fixes) {
+    let b = bins[bins.length - 1];
+    if (!b || f.t - b.t0 >= DWELL_BIN_MS) {
+      b = { t0: f.t, t1: f.t, lon: 0, lat: 0, n: 0, speeds: [] };
+      bins.push(b);
     }
-    const n = j - i;
-    if (n >= 2 && fixes[j - 1].t - fixes[i].t >= DWELL_MIN_MS) {
-      out.push({ t0: fixes[i].t, t1: fixes[j - 1].t, at: [sx / n, sy / n] });
-      i = j;
+    b.t1 = f.t;
+    b.lon += f.lon;
+    b.lat += f.lat;
+    b.n++;
+    if (f.speed != null && f.speed >= 0) b.speeds.push(f.speed);
+  }
+  const found: (Dwell & { bins: Bin[] })[] = [];
+  let i = 0;
+  while (i < bins.length) {
+    const members = [bins[i]];
+    let center = binAt(bins[i]);
+    let misses = 0;
+    let last = i;
+    for (let j = i + 1; j < bins.length && misses <= DWELL_MISSES; j++) {
+      if (distanceM(center, binAt(bins[j])) <= DWELL_RADIUS_M) {
+        members.push(bins[j]);
+        center = centroid(members);
+        misses = 0;
+        last = j;
+      } else {
+        misses++;
+      }
+    }
+    if (bins[last].t1 - bins[i].t0 >= DWELL_MIN_MS && members.length >= 2 && isStill(members)) {
+      // A jump inside the stay belongs to it: the walker never left.
+      const all = bins.slice(i, last + 1);
+      const prev = found[found.length - 1];
+      if (prev && all[0].t0 - prev.t1 <= 4 * DWELL_BIN_MS && distanceM(prev.at, center) <= DWELL_RADIUS_M) {
+        prev.bins.push(...members);
+        prev.t1 = bins[last].t1;
+        prev.at = centroid(prev.bins);
+      } else {
+        found.push({ t0: bins[i].t0, t1: bins[last].t1, at: center, bins: members });
+      }
+      i = last + 1;
     } else {
       i++;
     }
   }
-  return out;
+  return found.map(({ t0, t1, at }) => ({ t0, t1, at }));
 }
 
 /**

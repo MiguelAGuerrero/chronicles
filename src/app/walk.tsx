@@ -13,11 +13,12 @@ import { Icon, type IconName } from '../components/icons';
 import { Banner, Button, HoldButton, theme } from '../components/ui';
 import { db } from '../lib/db';
 import { focusOn } from '../lib/focus';
-import { boundsOf, pausedMs } from '../lib/geo';
+import { boundsOf, distanceM, distanceToLinesM, pausedMs } from '../lib/geo';
 import { capturesHere, type HereResult } from '../lib/here';
 import { deriveSegments, streetKey } from '../lib/streets';
 import { successFeedback, tapFeedback } from '../lib/haptics';
 import { recorder } from '../lib/recorder';
+import { ensureTileBuild } from '../lib/tiles';
 import type { RecorderStatus } from '../lib/recorder/types';
 import { pauseWalk, resumeWalk, stopWalk } from '../lib/session';
 import { formatDistance, formatDuration, formatElapsed } from '../lib/summary';
@@ -27,6 +28,8 @@ import { useLiveTrace } from '../lib/useLiveTrace';
 
 /** Streets around the walker: read from the map and shown as fog this far out. */
 const NEAR_RADIUS_M = 1000;
+/** The streets around the walker are read again after this far. */
+const FOG_STEP_M = 100;
 /** No accepted fix for this long while recording reads as weak GPS. */
 const WEAK_GPS_MS = 20_000;
 const NOTICE_MS = 6000;
@@ -109,30 +112,45 @@ export default function WalkScreen() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  // Streets around the walker, refreshed when they move about 100 m: the map
-  // reads the streets in its loaded tiles, they join the cache, and those no
-  // walk has credited show as fog.
-  const hereKey = live.here ? `${live.here[0].toFixed(3)},${live.here[1].toFixed(3)}` : null;
+  // Streets around the walker, refreshed when they move 100 m: the map reads
+  // the streets in its loaded z14 tiles, they join the cache tagged with the
+  // build being served, and those no walk has credited show as fog. One run
+  // at a time; a move during a run is picked up by the next refresh.
+  const [build, setBuild] = useState<string | null>(null);
   useEffect(() => {
-    if (!live.here) return;
+    ensureTileBuild().then(setBuild, () => setBuild('unknown'));
+  }, []);
+  const fogRun = useRef<{ busy: boolean; at: LngLat | null }>({ busy: false, at: null });
+  useEffect(() => {
+    const now = live.here;
+    const run = fogRun.current;
+    if (!now || build == null || run.busy || (run.at && distanceM(run.at, now) < FOG_STEP_M)) return;
+    run.busy = true;
+    run.at = now;
     let alive = true;
     (async () => {
       const features = await mapRef.current?.collectView().catch(() => null);
-      if (features && features.roads.length) {
-        const build = (await db.getMeta('tile_build')) ?? 'unknown';
+      if (features?.complete && features.roads.length && build !== 'unknown') {
         await db.putSegments(deriveSegments(features.roads, features.names, build)).catch(() => {});
+      } else if (!features?.complete) {
+        run.at = null; // zoomed out or not loaded yet: read the streets again on the next fix
       }
-      const segs = await db.getSegmentsIn(boundsOf([live.here!], NEAR_RADIUS_M)!);
+      const segs = (await db.getSegmentsIn(boundsOf([now], NEAR_RADIUS_M)!)).filter(
+        (x) => distanceToLinesM(now, x.geometry) <= NEAR_RADIUS_M,
+      );
       const visited = await db.visitedSegmentIds();
       if (!alive) return;
-      setFog(segs.filter((s) => !visited.has(s.id)));
-      setWalked(segs.filter((s) => visited.has(s.id)));
-    })();
+      setFog(segs.filter((x) => !visited.has(x.id)));
+      setWalked(segs.filter((x) => visited.has(x.id)));
+    })()
+      .catch(() => {})
+      .finally(() => {
+        run.busy = false;
+      });
     return () => {
       alive = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hereKey]);
+  }, [live.here, build]);
   // Unwalked streets near me: a count, and the fog drawn boldly over a veiled map.
   const [showUnwalked, setShowUnwalked] = useState(false);
   const unwalkedCount = useMemo(() => new Set(fog.map(streetKey)).size, [fog]);
@@ -140,11 +158,18 @@ export default function WalkScreen() {
   // What happened here: a tap on the map shows every capture taken near that
   // spot, on any walk.
   const [here, setHere] = useState<HereResult | null>(null);
+  const hereTaps = useRef(0);
+  const [hereKey, setHereKey] = useState(0);
   async function showHere(at: LngLat) {
-    if (cap.voiceStartedAt != null) return;
-    const r = await capturesHere(at);
-    if (r.captures.length) setHere(r);
-    else setToast('Nothing captured here yet');
+    if (cap.voiceStartedAt != null || stopping || viewing || here) return;
+    const tap = ++hereTaps.current;
+    const r = await capturesHere(at, cap.captures).catch(() => null);
+    if (tap !== hereTaps.current) return; // a newer tap won
+    if (!r) setToast('Could not look up this spot');
+    else if (r.captures.length) {
+      setHereKey(tap);
+      setHere(r);
+    } else setToast('Nothing captured here yet');
   }
 
   const [viewing, setViewing] = useState<Capture[] | null>(null);
@@ -488,7 +513,7 @@ export default function WalkScreen() {
         }}
       />
       <CaptureViewer
-        key={here ? `here:${here.captures[0].id}` : 'here'}
+        key={`here:${hereKey}`}
         title="What happened here"
         captures={here?.captures ?? null}
         context={here?.context}

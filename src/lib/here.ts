@@ -17,10 +17,16 @@ export interface HereResult {
  * where in its walk it was taken. This is the chronicle read by place
  * instead of by time.
  */
-export async function capturesHere(at: LngLat, radiusM = HERE_RADIUS_M): Promise<HereResult> {
-  const near = (await db.capturesIn(boundsOf([at], radiusM)!))
-    .filter((c) => c.lat != null && c.lon != null && distanceM(at, [c.lon, c.lat]) <= radiusM)
-    .sort((a, b) => a.t - b.t);
+export async function capturesHere(
+  at: LngLat,
+  /** The open walk's captures as shown: one taken without a fix has no stored place until stop. */
+  live: Capture[] = [],
+  radiusM = HERE_RADIUS_M,
+): Promise<HereResult> {
+  const isNear = (c: Capture) => c.lat != null && c.lon != null && distanceM(at, [c.lon, c.lat]) <= radiusM;
+  const stored = (await db.capturesIn(boundsOf([at], radiusM)!)).filter(isNear);
+  const ids = new Set(stored.map((c) => c.id));
+  const near = [...stored, ...live.filter((c) => !ids.has(c.id) && isNear(c))].sort((a, b) => a.t - b.t);
   const context = new Map<string, string>();
   const walks = new Map<string, { title: string; startedAt: number; pauses: Awaited<ReturnType<typeof db.getPauses>> }>();
   for (const c of near) {

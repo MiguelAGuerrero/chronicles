@@ -72,7 +72,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       await whenReady();
       const source = queryRef.current;
       const out: CollectedFeatures = { roads: [], names: [], places: [], complete: true };
-      if (!source) return { ...out, complete: false };
+      if (!source || !mapRef.current) return { ...out, complete: false };
+      // Below z14 the tiles are simplified and miss minor streets: pieces cut
+      // from them would get other ids than the same streets at z14.
+      if (Math.floor((await mapRef.current.getViewState()).zoom) < DERIVE_ZOOM) return { ...out, complete: false };
       const toRoad = (f: GeoJSON.Feature): RoadFeature => ({
         geometry: f.geometry as RoadFeature['geometry'],
         properties: (f.properties ?? {}) as Record<string, unknown>,

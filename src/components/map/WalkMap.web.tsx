@@ -7,6 +7,7 @@ import { StyleSheet, View } from 'react-native';
 import { CapturePinView, pinLabel } from '../CapturePinView';
 import type { CapturePin } from '../../lib/pins';
 import type { RoadFeature } from '../../lib/streets';
+import type { LngLat } from '../../lib/types';
 import {
   COLORS, DERIVE_ZOOM, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
@@ -42,6 +43,9 @@ function addOverlay(map: MapLibreMap) {
       'circle-stroke-width': 2,
     } });
 }
+
+/** A second tap within this long makes a double-tap zoom, not a press. */
+const DOUBLE_TAP_MS = 300;
 
 function toRoadFeature(f: GeoJSONFeature): RoadFeature {
   return { geometry: f.geometry as RoadFeature['geometry'], properties: f.properties };
@@ -97,7 +101,15 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       setReady(true);
       readyPromise.current!.resolve();
     });
-    map.on('click', (e: MapMouseEvent) => onPress.current?.([e.lngLat.lng, e.lngLat.lat]));
+    // maplibre fires click for each tap of a double-tap zoom: wait to see
+    // whether a second tap follows before treating it as a press.
+    let pressTimer: ReturnType<typeof setTimeout> | undefined;
+    map.on('click', (e: MapMouseEvent) => {
+      clearTimeout(pressTimer);
+      const at: LngLat = [e.lngLat.lng, e.lngLat.lat];
+      pressTimer = setTimeout(() => onPress.current?.(at), DOUBLE_TAP_MS);
+    });
+    map.on('dblclick', () => clearTimeout(pressTimer));
     const track = () => setView({ zoom: map.getZoom(), lat: map.getCenter().lat });
     // Only gestures carry an originalEvent; camera moves made in code do not.
     const moved = (e: { originalEvent?: unknown }) => {
@@ -109,6 +121,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     map.on('zoomend', track);
     map.on('load', track);
     return () => {
+      clearTimeout(pressTimer);
       map.remove();
       mapRef.current = null;
     };
@@ -223,9 +236,13 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       const map = mapRef.current;
       const out: CollectedFeatures = { roads: [], names: [], places: [], complete: true };
       if (!map || !map.getSource(VECTOR_SOURCE)) return { ...out, complete: false };
+      // Below z14 the tiles are simplified and miss minor streets: pieces cut
+      // from them would get other ids than the same streets at z14.
+      if (Math.floor(map.getZoom()) < DERIVE_ZOOM) return { ...out, complete: false };
       const q = (sourceLayer: string) => {
         try {
-          return map.querySourceFeatures(VECTOR_SOURCE, { sourceLayer }).map(toRoadFeature);
+          // Parent tiles kept on screen while z14 loads are left out too.
+          return map.querySourceFeatures(VECTOR_SOURCE, { sourceLayer }).filter((f) => f._z === DERIVE_ZOOM).map(toRoadFeature);
         } catch {
           out.complete = false;
           return [];

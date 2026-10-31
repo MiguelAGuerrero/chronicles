@@ -56,8 +56,18 @@ export default function Replay() {
   const [here, setHere] = useState<HereResult | null>(null);
   const [captioning, setCaptioning] = useState<Capture | null>(null);
   const [backup, setBackup] = useState<string | null>(null);
+  const hereTaps = useRef(0);
+  const [hereKey, setHereKey] = useState(0);
   const showHere = (at: LngLat) => {
-    capturesHere(at).then((r) => r.captures.length && setHere(r)).catch(() => {});
+    if (here || viewing) return;
+    const tap = ++hereTaps.current;
+    capturesHere(at)
+      .then((r) => {
+        if (tap !== hereTaps.current || !r.captures.length) return;
+        setHereKey(tap);
+        setHere(r);
+      })
+      .catch(() => {});
   };
   // Opened from the log, or watched again: the stops move on by themselves.
   const rewatch = ceremony === '0';
@@ -389,7 +399,7 @@ export default function Replay() {
         }}
       />
       <CaptureViewer
-        key={here ? `here:${here.captures[0].id}` : 'here'}
+        key={`here:${hereKey}`}
         title="What happened here"
         captures={here?.captures ?? null}
         context={here?.context}
