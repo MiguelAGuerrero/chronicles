@@ -214,7 +214,7 @@ export const db: Db = {
     });
   },
 
-  saveSnap(walkId, segments, visited, s, placed) {
+  saveSnap(walkId, segments, visited, s, placed, complete = true) {
     return write(async (t) => {
       const seg = await t.prepareAsync(
         'INSERT OR REPLACE INTO street_segment (id, name, kind_detail, length_m, geometry, w, s, e, n, build) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
@@ -239,7 +239,7 @@ export const db: Db = {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         s.walk_id, s.build, s.distance_m, s.duration_ms, s.new_streets, s.streets_walked, s.photos, s.videos ?? 0, s.voices, s.notes, s.streets_read ? 1 : 0,
       );
-      await t.runAsync('UPDATE walk SET snapped_build = ? WHERE id = ?', s.build, walkId);
+      await t.runAsync('UPDATE walk SET snapped_build = ? WHERE id = ?', complete ? s.build : null, walkId);
       if (placed) {
         await t.runAsync('DELETE FROM walk_area WHERE walk_id = ?', walkId);
         for (const a of placed.areas) {

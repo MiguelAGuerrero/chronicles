@@ -47,7 +47,8 @@ function simplify(ring) {
     }
   }
   const outRing = ring.filter((_, i) => keep[i]).map(([x, y]) => [round(x), round(y)]);
-  return outRing.length >= 4 ? outRing : null;
+  // A small island collapses under simplification: keep it whole instead of losing it.
+  return outRing.length >= 4 ? outRing : ring.map(([x, y]) => [round(x), round(y)]);
 }
 
 const data = JSON.parse(fs.readFileSync(src, 'utf8'));
@@ -57,7 +58,8 @@ for (const f of data.features) {
   const p = f.properties;
   if (!wanted.has(p.iso_a2)) continue;
   const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
-  const polygons = polys.map((rings) => rings.map(simplify).filter(Boolean)).filter((rings) => rings.length && rings[0]);
+  // Outer ring first, then holes; a polygon is never left with a hole as its outline.
+  const polygons = polys.map((rings) => rings.map(simplify)).filter((rings) => rings[0] && rings[0].length >= 4);
   if (!polygons.length) continue;
   const xs = polygons.flatMap((r) => r[0].map((c) => c[0]));
   const ys = polygons.flatMap((r) => r[0].map((c) => c[1]));

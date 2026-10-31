@@ -3,7 +3,7 @@ import { db } from './db';
 import { boundsOf, distanceM, filterFixes, pausedMs, positionAt, smoothDwells, traceDistanceM, withoutPauses, type Bounds, type PauseSpan } from './geo';
 import { snap } from './snapper';
 import { deriveSegments, type RoadFeature } from './streets';
-import { assignAreas } from './areas/assign';
+import { assignAreas, snapDone } from './areas/assign';
 import { appBoundaries } from './areas/boundaries';
 import { placesFromTiles } from './areas/tilePlaces';
 import type { Area, WalkArea } from './areas/types';
@@ -60,18 +60,21 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
 
   // The places the walk was in: kept as they were when the place points can't be read (offline).
   let placed: { areas: Area[]; rows: WalkArea[] } | null = null;
+  let streetsRead = false;
   if (bounds) {
     const trace = fixes.map((p) => [p.lon, p.lat] as LngLat);
     const features = await collector.collect(collector.plan(bounds, trace)).catch(() => null);
     if (features) {
+      streetsRead = true;
       derived = deriveSegments(features.roads, features.names, build);
       const mid = fixes[Math.floor(fixes.length / 2)];
       area = pickArea(features.places, [mid.lon, mid.lat]) ?? area;
       const center: LngLat = [(bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2];
       const wide = await collector.collectPlaces(center).catch(() => null);
       if (wide) {
-        const placement = assignAreas(walk.id, points, pauses, placesFromTiles([...features.places, ...wide]), appBoundaries, walk.started_at);
+        const placement = assignAreas(walk.id, points, pauses, placesFromTiles([...features.places, ...wide]), appBoundaries(), walk.started_at);
         placed = { areas: [...placement.areas.values()], rows: placement.rows };
+        // No neighborhood or town: the nearest named place (pickArea above) stays the title.
         area = placement.title ?? area;
       }
     }
@@ -105,7 +108,10 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
     notes: captures.filter((c) => c.kind === 'text').length,
     streets_read: segments.length > 0,
   };
-  await db.saveSnap(walk.id, derived, visited, summary, placed);
+  // Without its places (the wide read failed or timed out), the walk is snapped
+  // again at its next replay rather than marked done.
+  // A walk with no trace has nothing to read, and is done.
+  await db.saveSnap(walk.id, derived, visited, summary, placed, snapDone({ streetsRead: !bounds || streetsRead, placesRead: !bounds || placed != null }));
   if (area !== walk.area) await db.updateWalk(walk.id, { area });
   return summary;
 }

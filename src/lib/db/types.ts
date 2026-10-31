@@ -43,6 +43,8 @@ export interface Db {
     visited: VisitedSegment[],
     summary: WalkSummary,
     placed?: { areas: Area[]; rows: WalkArea[] } | null,
+    /** False leaves the walk unmarked (snapped_build null), so its next replay snaps it again. */
+    complete?: boolean,
   ): Promise<void>;
   /** Every area any walk was placed in. */
   listAreas(): Promise<Area[]>;

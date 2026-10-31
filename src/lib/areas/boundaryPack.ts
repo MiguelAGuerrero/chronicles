@@ -36,10 +36,11 @@ function inRing(p: LngLat, ring: LngLat[]): boolean {
 const inPolygon = (p: LngLat, rings: LngLat[][]) => inRing(p, rings[0]) && !rings.slice(1).some((hole) => inRing(p, hole));
 
 /**
- * Outlines stop at a simplified coastline, so a pier or a beach can sit just
- * outside every one: such a point takes the state whose edge is within this.
+ * Outlines stop at a simplified coastline, so a pier, a beach or a small
+ * island (City Island, Peaks Island) can sit outside every one: such a point
+ * takes the state whose edge is within this.
  */
-export const COAST_REACH_M = 1000;
+export const COAST_REACH_M = 3000;
 
 /** Distance in meters from p to a ring's edge, on a local flat projection. */
 function ringDistanceM(p: LngLat, ring: LngLat[]): number {

@@ -20,6 +20,8 @@ const CLASSES: Record<string, { level: AreaLevel; reachM: number }> = {
   village: { level: 'town', reachM: AREA_REACH_M.town },
   town: { level: 'town', reachM: AREA_REACH_M.town },
   city: { level: 'town', reachM: AREA_REACH_M.city },
+  // New York's boroughs: Harlem is 12 km from the city's own point.
+  borough: { level: 'town', reachM: AREA_REACH_M.city },
   state: { level: 'state', reachM: AREA_REACH_M.state },
   country: { level: 'country', reachM: AREA_REACH_M.country },
 };

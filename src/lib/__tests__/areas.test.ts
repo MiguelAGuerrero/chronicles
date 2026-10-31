@@ -2,7 +2,8 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { test } from 'node:test';
-import { assignAreas, staleAreas } from '../areas/assign';
+import { areaKey, assignAreas, snapDone, staleAreas } from '../areas/assign';
+import { BOUNDARY_PACKS_ID } from '../areas/boundaries';
 import { boundarySource } from '../areas/boundaryPack';
 import { AREA_REACH_M } from '../areas/rules';
 import { placesFromTiles } from '../areas/tilePlaces';
@@ -92,9 +93,10 @@ test('area: no town or city within reach leaves only state and country', () => {
 });
 
 test('area: a city counts from further away than a town', () => {
-  const city = place('town', 'Newark', at(70, 0), AREA_REACH_M.city);
+  // 4.2 km off: past a town's reach, inside a city's, and in the same state.
+  const city = place('town', 'Newark', at(40, 0), AREA_REACH_M.city);
   const r = assignAreas('w', walk([at(10, 30), at(12, 30)]), [], [city, upper], boundaries);
-  assert.equal(nameOf(r, levelOf(r, 'town')[0].area_key), 'Newark', '6 km from a city is in its reach');
+  assert.equal(nameOf(r, levelOf(r, 'town')[0].area_key), 'Newark', '4 km from a city is in its reach');
 });
 
 test('area: pauses, gaps and standstills add no metres', () => {
@@ -206,12 +208,13 @@ test('boundaries: a pack answers which country and state a point is in, holes in
     states: [{ name: 'Shore State', code: 'TL-S', country: 'TL', at: [0, 0], bbox: [-74.1, 40.7, -74.0, 40.8], polygons: [[[[-74.1, 40.7], [-74.0, 40.7], [-74.0, 40.8], [-74.1, 40.8], [-74.1, 40.7]]]] }],
   }]);
   assert.equal(offCoast.containing([-73.995, 40.75])?.state?.name, 'Shore State', '420 m off the edge');
-  assert.equal(offCoast.containing([-73.97, 40.75]), null, '2.5 km off is not');
+  assert.equal(offCoast.containing([-73.95, 40.75]), null, '4.2 km off is not');
 });
 
 test('boundaries: the shipped US pack places real points', () => {
   const pack = createRequire(import.meta.url)('../../../assets/boundaries/us.json');
   const us = boundarySource([pack]);
+  assert.equal(us.id, BOUNDARY_PACKS_ID, 'the id the app checks rules against is the shipped pack’s');
   assert.equal(us.containing([-74.209, 40.817])?.state?.name, 'New Jersey', 'Montclair');
   assert.equal(us.containing([-73.985, 40.758])?.state?.name, 'New York', 'Midtown, across the river');
   assert.equal(us.containing([-71.4, 41.82])?.state?.name, 'Rhode Island', 'Providence');
@@ -219,4 +222,57 @@ test('boundaries: the shipped US pack places real points', () => {
   assert.equal(us.containing([-80.13, 25.79])?.state?.name, 'Florida', 'Miami Beach, on its barrier island');
   assert.equal(us.containing([-74.209, 40.817])?.country?.code, 'US');
   assert.equal(us.containing([-40, 40]), null, 'mid-Atlantic');
+  // Small islands the simplified coast lost (audit finding 3).
+  assert.equal(us.containing([-73.786, 40.847])?.state?.name, 'New York', 'City Island, the Bronx');
+  assert.equal(us.containing([-70.195, 43.655])?.state?.name, 'Maine', 'Peaks Island');
+  assert.equal(us.containing([-73.926, 40.793])?.state?.name, 'New York', 'Randalls Island');
+});
+
+// Regression tests from the slice's adversarial audit, written before the fixes.
+
+test('audit: a town across a state line never takes a sample, and a neighborhood keeps one parent', () => {
+  // Walking just west of the line (in North State): a South State town's point
+  // is nearer for its size than North State's city point.
+  const hob = place('town', 'Hoboken', at(52, 0));
+  const nyc = place('town', 'Metropolis', at(20, 0), AREA_REACH_M.city);
+  const village = place('neighborhood', 'West Village', at(47, 1));
+  const chelsea = place('neighborhood', 'Chelsea', at(47, 8));
+  const r = assignAreas('w', walk([at(46, 0), at(46, 9)]), [], [hob, nyc, village, chelsea], boundaries);
+  assert.ok(!levelOf(r, 'town').some((w) => nameOf(r, w.area_key) === 'Hoboken'), 'Hoboken is in another state');
+  const villages = levelOf(r, 'neighborhood').filter((w) => nameOf(r, w.area_key) === 'West Village');
+  assert.equal(villages.length, 1, 'one West Village');
+});
+
+test('audit: a walk with no distance still gets its country and state', () => {
+  const still: TracePoint[] = Array.from({ length: 60 }, (_, i) => ({ walk_id: 'w', t: i * 5000, lon: at(0, 1)[0], lat: at(0, 1)[1], accuracy_m: 10, speed: 0, course: null }));
+  const r = assignAreas('w', still, [], [montclair, upper], boundaries);
+  assert.equal(levelOf(r, 'country').length, 1);
+  assert.equal(levelOf(r, 'state').length, 1);
+});
+
+test('audit: a walk is never titled by its state alone', () => {
+  const r = assignAreas('w', walk([at(20, 80), at(22, 80)]), [], [], boundaries);
+  assert.equal(r.title, null, 'the caller falls back to the nearest named place');
+});
+
+test('audit: a neighborhood with no town is dropped, not hung under the state', () => {
+  const r = assignAreas('w', walk([at(20, 80), at(22, 80)]), [], [place('neighborhood', 'Harlem', at(21, 81))], boundaries);
+  assert.deepEqual(r.rows.map((w) => r.areas.get(w.area_key)!.level).sort(), ['country', 'state']);
+});
+
+test('audit: area keys cannot collide through the characters in a name', () => {
+  assert.notEqual(areaKey('town', 'X|state:Y', 'country:Z'), areaKey('town', 'X', areaKey('state', 'Y', 'country:Z')));
+  assert.notEqual(areaKey('town', 'X|state:Y', null), areaKey('town', 'X', 'state:Y'));
+});
+
+test('audit: boroughs count as towns, with a city’s reach', () => {
+  const pt = (cls: string, name: string, p: LngLat) => ({ geometry: { type: 'Point', coordinates: p }, properties: { class: cls, name } });
+  const c = placesFromTiles([pt('borough', 'Manhattan', at(0, 0))]);
+  assert.equal(c[0]?.level, 'town');
+  assert.equal(c[0]?.reachM, AREA_REACH_M.city);
+});
+
+test('audit: a snap counts as done only once its places were read', () => {
+  assert.equal(snapDone({ streetsRead: true, placesRead: false }), false, 'try again at the next replay');
+  assert.equal(snapDone({ streetsRead: true, placesRead: true }), true);
 });

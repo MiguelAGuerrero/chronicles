@@ -175,7 +175,7 @@ export const db: Db = {
     await committed(tx);
   },
 
-  async saveSnap(walkId, segments, visited, summary, placed) {
+  async saveSnap(walkId, segments, visited, summary, placed, complete = true) {
     const names = ['street_segment', 'visited_segment', 'walk_summary', 'walk', 'area', 'walk_area'];
     const tx = (await conn()).transaction(names, 'readwrite');
     const seg = tx.objectStore('street_segment');
@@ -186,7 +186,7 @@ export const db: Db = {
     tx.objectStore('walk_summary').put(summary);
     const walks = tx.objectStore('walk');
     const w = (await done(walks.get(walkId))) as Walk | undefined;
-    if (w) walks.put({ ...w, snapped_build: summary.build });
+    if (w) walks.put({ ...w, snapped_build: complete ? summary.build : null });
     if (placed) {
       const wa = tx.objectStore('walk_area');
       for (const k of (await done(wa.index('walk_id').getAllKeys(walkId))) as IDBValidKey[]) wa.delete(k);
