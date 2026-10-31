@@ -136,7 +136,8 @@ export default function Home() {
     try {
       const { walk, warning } = await startWalk();
       if (dest) await saveNav(walk.id, dest);
-      router.push(warning ? { pathname: '/walk', params: { warning } } : '/walk');
+      // A walk started by "Walk here" says so as it opens: it is recording, not just a route.
+      router.push(warning ? { pathname: '/walk', params: { warning } } : dest ? { pathname: '/walk', params: { started: '1' } } : '/walk');
     } catch (e) {
       setError({ message: e instanceof Error ? e.message : String(e), openSettings: e instanceof RecorderError && e.openSettings });
     } finally {
@@ -256,7 +257,8 @@ export default function Home() {
           captures={NONE}
           stars={stars}
           selectedStar={selected?.id ?? null}
-          onLongPress={(at) => !open && placing == null && setSpot(at)}
+          // Only zoomed in to streets: a press on a zoomed-out map lands kilometres from anywhere walkable.
+          onLongPress={(at) => !open && placing == null && (view?.zoom ?? 0) >= 12 && setSpot(at)}
           onStarPress={pressStar}
           onViewChange={setView}
           fitBounds={fit.bounds}

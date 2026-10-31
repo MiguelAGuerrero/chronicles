@@ -64,6 +64,10 @@ export interface WalkMapProps {
   attributionTop?: boolean;
   /** A route being navigated, drawn bold under the trace (N6). */
   route?: LngLat[] | null;
+  /** Spots to mark: where a route goes, or where a long press landed. */
+  marks?: LngLat[];
+  /** The way the walker is going (degrees from north), drawn as a soft cone; null hides it. */
+  walkerHeading?: number | null;
   walker?: LngLat | null;
   /** Keeps the camera centered here while set. */
   follow?: LngLat | null;
@@ -98,8 +102,12 @@ export interface CollectedFeatures {
 }
 
 export interface WalkMapHandle {
-  /** Moves the camera across these view centers at DERIVE_ZOOM and gathers road and place features. */
-  collect(centers: LngLat[]): Promise<CollectedFeatures>;
+  /**
+   * Moves the camera across these view centers at DERIVE_ZOOM and gathers
+   * road and place features. `shouldStop` is checked between views: true
+   * ends the read early (Cancel), with what was read so far.
+   */
+  collect(centers: LngLat[], shouldStop?: () => boolean): Promise<CollectedFeatures>;
   /** The map's size in pixels, for planning views. */
   size(): { width: number; height: number };
   /** Road and place features in the tiles already loaded for the current view; the camera does not move. */
@@ -216,4 +224,31 @@ export function routeGeoJSON(route: LngLat[] | null | undefined): GeoJSON.Featur
     type: 'FeatureCollection',
     features: route && route.length > 1 ? [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: route } }] : [],
   };
+}
+
+/** Points to mark (a destination, a pressed spot), as circles. */
+export function marksGeoJSON(marks: LngLat[] | undefined): GeoJSON.FeatureCollection {
+  return {
+    type: 'FeatureCollection',
+    features: (marks ?? []).map((p) => ({ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: p } })),
+  };
+}
+
+/** The heading cone's size on screen, and its spread. */
+export const CONE_PX = 40;
+const CONE_DEG = 60;
+
+/** A 60° sector ahead of the walker, CONE_PX long at this zoom; empty without a heading. */
+export function coneGeoJSON(at: LngLat | null | undefined, heading: number | null | undefined, zoom: number): GeoJSON.FeatureCollection {
+  if (!at || heading == null) return { type: 'FeatureCollection', features: [] };
+  const r = metersPerPixel(zoom, at[1]) * CONE_PX;
+  const ring: LngLat[] = [at];
+  for (let k = 0; k <= 8; k++) {
+    const deg = ((heading - CONE_DEG / 2 + (CONE_DEG * k) / 8) * Math.PI) / 180;
+    const dx = Math.sin(deg) * r;
+    const dy = Math.cos(deg) * r;
+    ring.push([at[0] + dx / (111_320 * Math.cos((at[1] * Math.PI) / 180)), at[1] + dy / 110_540]);
+  }
+  ring.push(at);
+  return { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [ring] } }] };
 }

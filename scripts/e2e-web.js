@@ -282,6 +282,20 @@ function check(ok, what) {
       await page.mouse.down();
       await page.waitForTimeout(700);
       await page.mouse.up();
+      await page.waitForSelector('[data-testid=go-here]');
+      // The card sits above the capture row: the camera is still the camera (audit).
+      const cam = await page.locator('[data-testid=cap-photo]').boundingBox();
+      const atCam = await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-testid]')?.getAttribute('data-testid'), { x: cam.x + cam.width / 2, y: cam.y + cam.height / 2 });
+      check(atCam === 'cap-photo', `the spot card leaves the capture row free (${atCam})`);
+      // A tap on the map closes it (a click within 1 s of a long press is its end, not a tap).
+      await page.waitForTimeout(1100);
+      await page.mouse.click(box.x + 40, box.y + 200);
+      await page.waitForTimeout(700);
+      check((await page.locator('[data-testid=go-here]').count()) === 0, 'a tap on the map closes the spot card');
+      await page.mouse.move(spot.x, spot.y);
+      await page.mouse.down();
+      await page.waitForTimeout(700);
+      await page.mouse.up();
       await page.click('[data-testid=go-here]');
       await page.waitForSelector('[data-testid=nav-bar]', { timeout: 30000 });
       const left = await navLeft();
@@ -521,12 +535,25 @@ function check(ok, what) {
     await page.waitForTimeout(500);
     check((await page.locator('text=/Placing your walks/').count()) === 0, 'the walk is placed again and the cover goes');
 
-    // From the home, a star's Go here starts a walk navigating there (N11).
+    // From the home, a star's Walk here starts a walk navigating there (N11),
+    // even when the phone has no position yet: it routes on the first fix (audit).
+    await page.evaluate(() => {
+      const g = navigator.geolocation;
+      const watch = g.watchPosition.bind(g);
+      g.watchPosition = (ok, err, o) => {
+        const t0 = Date.now();
+        return watch((p) => Date.now() - t0 > 4000 && ok(p), err, o);
+      };
+    });
     await page.click('[aria-label^="Fox Point,"]');
     await page.waitForSelector('[data-testid=place-go]');
     await page.click('[data-testid=place-go]');
+    await page.waitForURL(/\/walk/, { timeout: 30000 });
+    check(await page.waitForSelector('text=Walk started · recording', { timeout: 10000 }).then(() => true, () => false), 'a walk started from the home says it is recording');
+    await page.waitForTimeout(5000);
+    await ctx.setGeolocation({ longitude: route[0][0], latitude: route[0][1] + 0.00002, accuracy: 6 });
     await page.waitForSelector('[data-testid=nav-bar]', { timeout: 40000 });
-    check(page.url().endsWith('/walk') && /Fox Point/.test(await page.locator('[data-testid=nav-bar]').innerText()), 'a star\u2019s Go here starts a walk navigating there');
+    check(/\/walk(\?|$)/.test(page.url()) && /Fox Point/.test(await page.locator('[data-testid=nav-bar]').innerText()), 'a star\u2019s Walk here starts a walk navigating there, once there is a fix');
     await shot(page, '12-home-go');
     check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
   } catch (e) {

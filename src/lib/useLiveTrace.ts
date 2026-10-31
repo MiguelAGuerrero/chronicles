@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { db } from './db';
 import { FixFilter, isBreak, smoothDwells, traceDistanceM, withoutPauses, type PauseSpan } from './geo';
+import { headingOf } from './nav/navigator';
 import { recorder } from './recorder';
 import type { LngLat, TracePoint } from './types';
 
@@ -14,6 +15,8 @@ export interface LiveTrace {
   distanceM: number;
   /** Time of the newest accepted fix. */
   lastFixAt: number | null;
+  /** The way the walker is going, in degrees from north; null when standing still. */
+  heading: number | null;
 }
 
 interface Acc {
@@ -23,7 +26,7 @@ interface Acc {
   gap: { ms: number; at: number } | null;
 }
 
-const EMPTY: LiveTrace = { runs: [], here: null, distanceM: 0, lastFixAt: null };
+const EMPTY: LiveTrace = { runs: [], here: null, distanceM: 0, lastFixAt: null, heading: null };
 
 /**
  * The open walk's trace, kept incrementally: each fix is filtered and added
@@ -115,6 +118,7 @@ export function useLiveTrace(
         // The same measure as the walk's card: no jitter while standing still, nothing across a pause.
         distanceM: traceDistanceM(smoothDwells(withoutPauses(fixes, pausesRef.current)), pausesRef.current),
         lastFixAt: last?.t ?? null,
+        heading: headingOf(fixes.slice(-30)),
       });
     }
     const timer = setInterval(publish, PUBLISH_MS);

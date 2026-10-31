@@ -258,9 +258,44 @@ Read this before changing recording, streets, the replay or storage.
 - **The destination is kept with the open walk** (meta `nav`), so a reload
   resumes, routing again. From the home, Go here or Walk here saves the
   destination before opening the walk screen. Stop clears it.
+- **After the audit.**
+  - **Routing:** joins happen per query (`WalkGraph.withExtra`), so the graph
+    never grows. Both ends on one street piece link directly. The trace join
+    is capped at 150 m; beyond that, the streets take over.
+  - **Re-routing:** a failed re-route reads the streets again, at most once a
+    minute.
+  - **Arrival:** reaching the end of the streets counts as arriving, for a
+    spot in a park or a block.
+  - **The street read:** its time scales with the views (5 s each, 15–90 s),
+    and Cancel stops it between views (`collect(centers, shouldStop)`).
+    Following pauses while it runs, so `follow` doesn't fight the camera.
+  - **The destination:** it waits for the first fix (a walk just started from
+    the home has none). Every error clears it, so a reload doesn't repeat the
+    failure, and it is only saved while the walk is still open. One route is
+    found at a time.
+  - **Screen readers:** the bar is not a live region. The distance is
+    announced at 100 m steps (50 m under 200 m), at start and on a new route.
+  - **Deferred:** bridges and tunnels still join the streets they cross. The
+    fix changes how pieces are cut, and so their ids. It needs its own change,
+    with a street-cache purge and a `SNAP_RULES` bump.
 - **UI.**
-  - A blue top bar shows the distance left and where to, with End. The route
-    is blue with a white edge, under the trace.
+  - A blue top bar shows the distance left and where to, with a white End
+    pill. It is centered in the 640 column. The route (8 px, a 12 px white
+    edge) is drawn only ahead of you, under the trace.
+  - A ring marks the destination, and a long press's spot.
+  - A soft 60° cone on the walker shows the way they're going (`headingOf`:
+    the device's course, else the last 8 m or more, once moving at 0.5 m/s or
+    faster). The map stays north-up (the owner's call).
+  - Errors are 6 s banners. "Finding a route" is a spinner pill with Cancel.
+    Walk me back (`arrow-undo`) shows once you are more than 50 m from the
+    start.
+  - The spot card sits above the capture row, hiding the pills. A map tap,
+    walking 30 m, Back or Escape closes it.
+  - A one-time hint after the first 100 m tells you about the long press.
+  - From the home, "Walk here" (a star's sheet, or a long press at z12 or
+    closer) opens the walk with "Walk started · recording".
+  - A click within 1 s of a long press is ignored as its end. The e2e waits
+    1.1 s before tapping the map after one.
   - "Off your route" shows as a chip.
   - Arrival shows "You're here: <name>" for 4 s, with a success haptic.
   - The long press on the walk map opens a small sheet: Go here, plus "What

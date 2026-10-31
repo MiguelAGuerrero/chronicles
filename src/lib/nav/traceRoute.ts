@@ -43,9 +43,11 @@ export function traceRouteSource(points: TracePoint[], pauses: PauseSpan[], star
   return {
     id,
     route(from, to) {
-      // Joined from wherever you stand to the nearest point you walked (N1).
-      const a = g.closest(from);
-      const b = g.closest(to);
+      // Joined from where you stand to the nearest point you walked (N1),
+      // within NAV.joinM: further off, a straight line would cross blocks,
+      // and the streets take over.
+      const a = g.nearest(from, NAV.joinM);
+      const b = g.nearest(to, NAV.joinM);
       if (a == null || b == null) return null;
       const s = g.shortest(a, b);
       if (!s) return null;

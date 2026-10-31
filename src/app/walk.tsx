@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import {
-  AccessibilityInfo, Animated, BackHandler, Easing, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, StyleSheet, Text,
+  AccessibilityInfo, ActivityIndicator, Animated, BackHandler, Easing, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, StyleSheet, Text,
   TextInput, useWindowDimensions, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,6 +26,7 @@ import { formatDistance, formatDuration, formatElapsed } from '../lib/summary';
 import type { Capture, LngLat, Pause, StreetSegment, Walk } from '../lib/types';
 import { useCaptures } from '../lib/useCaptures';
 import { useLiveTrace } from '../lib/useLiveTrace';
+import { routeAhead } from '../lib/nav/navigator';
 import { useNavigation } from '../lib/nav/useNavigation';
 
 /** Streets around the walker: read from the map and shown as fog this far out. */
@@ -53,7 +54,9 @@ export default function WalkScreen() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const edgeRight = Math.max(12, (width - 640) / 2 + 12);
-  const params = useLocalSearchParams<{ warning?: string }>();
+  /** The top column's side margin: centered in 640 on wide screens, like the rest. */
+  const sideInset = Math.max(12, (width - 640) / 2);
+  const params = useLocalSearchParams<{ warning?: string; started?: string }>();
   const [walk, setWalk] = useState<Walk | null>(null);
   const [pauses, setPauses] = useState<Pause[]>([]);
   const [pausing, setPausing] = useState(false);
@@ -65,6 +68,8 @@ export default function WalkScreen() {
   const [notice, setNotice] = useState<Notice | null>(() =>
     params.warning
       ? { message: params.warning }
+      : params.started
+        ? { message: 'Walk started · recording' }
       : recorder.capabilities.background
         ? null
         : { message: 'Keep this page open and on screen while you walk.' },
@@ -180,7 +185,7 @@ export default function WalkScreen() {
   // A long press on the map opens a small sheet for that spot: Go here, and
   // what happened here (every capture near it, on any walk) when there is any.
   const [here, setHere] = useState<HereResult | null>(null);
-  const [spot, setSpot] = useState<{ at: LngLat; here: HereResult | null } | null>(null);
+  const [spot, setSpot] = useState<{ at: LngLat; here: HereResult | null; from: LngLat | null } | null>(null);
   const hereTaps = useRef(0);
   const [hereKey, setHereKey] = useState(0);
   async function pressMap(at: LngLat, radiusM?: number) {
@@ -189,8 +194,28 @@ export default function WalkScreen() {
     const tap = ++hereTaps.current;
     const r = await capturesHere(at, cap.captures, radiusM).catch(() => null);
     if (tap !== hereTaps.current) return; // a newer press won
-    setSpot({ at, here: r && r.captures.length ? r : null });
+    setSpot({ at, here: r && r.captures.length ? r : null, from: live.here });
   }
+  // The spot card goes once you walk on, or with Back (Android) and Escape (web).
+  useEffect(() => {
+    if (!spot) return;
+    const close = () => setSpot(null);
+    const back = BackHandler.addEventListener('hardwareBackPress', () => {
+      close();
+      return true;
+    });
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close();
+    if (Platform.OS === 'web' && typeof window !== 'undefined') window.addEventListener('keydown', onKey);
+    return () => {
+      back.remove();
+      if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
+    };
+  }, [spot]);
+  useEffect(() => {
+    if (!spot?.from || !live.here || distanceM(spot.from, live.here) < 30) return;
+    const t = setTimeout(() => setSpot(null), 0);
+    return () => clearTimeout(t);
+  }, [spot, live.here]);
 
   // Navigating (slice 4): inside the walk, which keeps recording.
   const [arrived, setArrived] = useState<string | null>(null);
@@ -207,12 +232,39 @@ export default function WalkScreen() {
     map: () => mapRef.current,
     onArrive: (dest) => {
       successFeedback();
+      // Said once: the line on screen is announced by the screen reader here, not by a live region.
       setArrived(`You’re here: ${dest.label}`);
       AccessibilityInfo.announceForAccessibility(`You're here: ${dest.label}`);
     },
-    onError: (m) => setToast(m),
+    // Errors stay up long enough to read at a glance, and can be dismissed.
+    onError: (m) => setNotice({ message: m, tone: 'error' }),
+    onNotice: (m) => setArrived(m),
   });
   const walkStart: LngLat | null = live.runs[0]?.[0] ?? null;
+  // Once, after the first 100 m of a first walk: how to go somewhere.
+  const hinted = useRef(false);
+  useEffect(() => {
+    if (hinted.current || live.distanceM < 100) return;
+    hinted.current = true;
+    db.getMeta('hint_go')
+      .then((v) => {
+        if (v) return;
+        setNotice({ message: 'Press and hold the map to go somewhere, or to see what happened there.' });
+        return db.setMeta('hint_go', '1');
+      })
+      .catch(() => {});
+  }, [live.distanceM]);
+  // Walk me back once there is somewhere to walk back from.
+  const awayFromStart = !!walkStart && !!live.here && distanceM(walkStart, live.here) > 50;
+  // The route ahead of you only; what is behind is walked.
+  const routeLine = useMemo(
+    () => (navigation.nav ? (live.here ? routeAhead(navigation.nav.route.path, live.here) : navigation.nav.route.path) : null),
+    [navigation.nav, live.here],
+  );
+  const marks = useMemo<LngLat[]>(
+    () => [...(navigation.nav ? [navigation.nav.dest.at] : []), ...(spot ? [spot.at] : [])],
+    [navigation.nav, spot],
+  );
 
   const [viewing, setViewing] = useState<Capture[] | null>(null);
 
@@ -360,11 +412,15 @@ export default function WalkScreen() {
         // Opening a capture would hide a memo that is still recording.
         onPinPress={recordingVoice || stopping ? undefined : setViewing}
         walker={live.here}
-        follow={following ? live.here : null}
+        walkerHeading={live.heading}
+        // Not while a route is found: the street read moves the camera itself.
+        follow={following && !navigation.finding ? live.here : null}
+        onPress={() => setSpot(null)}
+        marks={marks}
         onUserMove={() => setFollowing(false)}
         // A long press, so a stray tap while walking does nothing.
         onLongPress={pressMap}
-        route={navigation.nav?.route.path ?? null}
+        route={routeLine}
         covered={navigation.finding}
         veil={showUnwalked}
         fogEmphasis={showUnwalked}
@@ -373,11 +429,17 @@ export default function WalkScreen() {
         initialZoom={16}
       />
 
-      <View style={[styles.top, { top: insets.top + 12 }]} pointerEvents="box-none">
+      <View style={[styles.top, { top: insets.top + 12, left: sideInset, right: sideInset }]} pointerEvents="box-none">
         {navigation.nav && (
-          <View testID="nav-bar" style={styles.navBar} accessibilityLiveRegion="polite">
+          // Not a live region: it changes with every fix. The distance is announced in steps instead.
+          <View testID="nav-bar" style={styles.navBar}>
             <Icon name="navigate" size={20} color="#ffffff" />
-            <Text testID="nav-left" style={styles.navText} numberOfLines={1}>
+            <Text
+              testID="nav-left"
+              style={styles.navText}
+              numberOfLines={1}
+              accessibilityLabel={`${formatDistance(navigation.nav.leftM)} left to ${navigation.nav.dest.label}`}
+            >
               {formatDistance(navigation.nav.leftM)} · {navigation.nav.dest.label}
             </Text>
             <Pressable testID="nav-end" accessibilityRole="button" accessibilityLabel="End navigation" onPress={navigation.end} style={styles.navEnd} hitSlop={8}>
@@ -392,13 +454,17 @@ export default function WalkScreen() {
           </View>
         )}
         {navigation.finding && (
-          <View style={styles.toast} accessibilityLiveRegion="polite">
-            <Text style={styles.toastText}>Finding a route</Text>
+          <View style={styles.finding} accessibilityLiveRegion="polite">
+            <ActivityIndicator color={theme.ink} />
+            <Text style={styles.findingText}>Finding a route</Text>
+            <Pressable testID="nav-cancel" accessibilityRole="button" accessibilityLabel="Cancel finding a route" onPress={navigation.cancel} style={styles.findingCancel} hitSlop={8}>
+              <Text style={styles.findingCancelText}>Cancel</Text>
+            </Pressable>
           </View>
         )}
         {arrived && (
-          <View style={styles.toast} accessibilityLiveRegion="polite">
-            <Text style={styles.toastText}>{arrived}</Text>
+          <View style={styles.toast}>
+            <Text style={[styles.toastText, styles.flashText]}>{arrived}</Text>
           </View>
         )}
         {problem && (
@@ -433,7 +499,7 @@ export default function WalkScreen() {
             <Text style={styles.voiceLiveText}>{formatElapsed(now - cap.voiceStartedAt!)}</Text>
           </View>
         )}
-        {justTook && !recordingVoice && (
+        {justTook && !recordingVoice && !spot && (
           <View style={styles.undo} accessibilityLiveRegion="polite">
             <Text style={styles.undoText}>Photo saved here</Text>
             <Pressable
@@ -450,7 +516,7 @@ export default function WalkScreen() {
             </Pressable>
           </View>
         )}
-        {cap.discarded && !recordingVoice && (
+        {cap.discarded && !recordingVoice && !spot && (
           <View style={styles.undo} accessibilityLiveRegion="polite">
             <Text style={styles.undoText}>Voice memo discarded</Text>
             <Pressable testID="voice-undo" accessibilityRole="button" onPress={() => cap.undoDiscard()} hitSlop={10} style={styles.undoBtn}>
@@ -458,7 +524,7 @@ export default function WalkScreen() {
             </Pressable>
           </View>
         )}
-        {cap.unsaved && !recordingVoice && (
+        {cap.unsaved && !recordingVoice && !spot && (
           <View style={styles.undo} accessibilityLiveRegion="polite">
             <Text style={styles.undoText}>Voice memo not saved</Text>
             <Pressable accessibilityRole="button" onPress={() => cap.retrySave()} hitSlop={10} style={styles.undoBtn}>
@@ -572,7 +638,7 @@ export default function WalkScreen() {
         </View>
       )}
 
-      {walkStart && !navigation.nav && (
+      {awayFromStart && walkStart && !navigation.nav && (
         // Walk me back: the way back to where this walk began (N1, N11).
         <Pressable
           testID="walk-back"
@@ -582,7 +648,7 @@ export default function WalkScreen() {
           onPress={() => navigation.goTo({ at: walkStart, label: 'Start', kind: 'start' })}
           style={({ pressed }) => [styles.edgeBtn, { right: edgeRight, bottom: insets.bottom + EDGE_BOTTOM + 112 }, pressed && styles.pressed]}
         >
-          <Icon name="return-down-back" size={22} color={theme.ink} />
+          <Icon name="arrow-undo" size={22} color={theme.ink} />
         </Pressable>
       )}
 
@@ -604,7 +670,7 @@ export default function WalkScreen() {
         captures={viewing && viewing.map((v) => cap.captures.find((c) => c.id === v.id) ?? v)}
         onClose={() => setViewing(null)}
         onSaveCaption={(c, caption, y) => cap.setCaption(c.id, caption, y)}
-        onGoHere={(c) => {
+        onGoHere={navigation.finding ? undefined : (c) => {
           setViewing(null);
           if (c.lat != null && c.lon != null) navigation.goTo({ at: [c.lon, c.lat], label: KIND_LABEL[c.kind], kind: 'capture' });
         }}
@@ -619,7 +685,8 @@ export default function WalkScreen() {
         }}
       />
       {spot && (
-        <View style={[styles.spotRow, { bottom: insets.bottom + 92 }]} pointerEvents="box-none">
+        // Above the capture row (bottom 92, 68 tall), in the pills' place, so the row never moves or hides.
+        <View style={[styles.spotRow, { bottom: insets.bottom + 92 + 68 + 12 }]} pointerEvents="box-none">
           <View style={styles.spot} accessibilityViewIsModal>
             <Text style={styles.spotTitle} accessibilityRole="header">This spot</Text>
             <View style={styles.spotActions}>
@@ -769,8 +836,17 @@ const styles = StyleSheet.create({
     paddingLeft: 14, paddingRight: 6, minHeight: 56,
   },
   navText: { flex: 1, color: '#ffffff', fontSize: 18, fontWeight: '700' },
-  navEnd: { minHeight: 44, minWidth: 64, paddingHorizontal: 14, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-  navEndText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
+  // A white pill: 5.2:1 for its blue text.
+  navEnd: { minHeight: 44, minWidth: 64, paddingHorizontal: 14, borderRadius: 22, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
+  navEndText: { color: COLORS.route, fontSize: 16, fontWeight: '700' },
+  finding: {
+    flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: theme.surface, borderRadius: 999, paddingLeft: 14, paddingRight: 4,
+    minHeight: 52, borderWidth: 1, borderColor: theme.line,
+  },
+  findingText: { color: theme.ink, fontSize: 16, fontWeight: '600' },
+  findingCancel: { minHeight: 44, paddingHorizontal: 14, justifyContent: 'center', borderRadius: 22 },
+  findingCancelText: { color: theme.ink, fontSize: 16, fontWeight: '700', textDecorationLine: 'underline' },
+  flashText: { fontSize: 16 },
   spotRow: { position: 'absolute', left: 12, right: 12, alignItems: 'center' },
   spot: {
     backgroundColor: theme.surface, borderRadius: theme.radius, padding: 14, gap: 10, width: '100%', maxWidth: 520,

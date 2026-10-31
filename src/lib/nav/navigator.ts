@@ -1,4 +1,4 @@
-import { distanceM, pointSegmentDist, projector } from '../geo';
+import { bearingDeg, distanceM, pointSegmentDist, projector } from '../geo';
 import type { LngLat } from '../types';
 import { NAV } from './rules';
 import type { Route, RouteSource, Waypoint } from './types';
@@ -18,7 +18,8 @@ export function routeTo(sources: RouteSource[], from: LngLat, to: LngLat): { rou
     const route = s.route(from, to);
     if (route) return { route };
   }
-  return { route: null, reason: 'No walking route here' };
+  // The streets read reach only so far around both ends: "nearby" keeps that honest.
+  return { route: null, reason: 'No walking route found nearby' };
 }
 
 /** How far is left along the path from where you are, and how far off it you are (N7, N8). */
@@ -43,6 +44,62 @@ export function progressOn(path: LngLat[], at: LngLat): { leftM: number; offM: n
   return { leftM: left, offM: best.d };
 }
 
+/** The route from where you are on it to its end: the part already walked is not drawn. */
+export function routeAhead(path: LngLat[], at: LngLat): LngLat[] {
+  if (path.length < 2) return path;
+  const proj = projector(at);
+  const xy = path.map(proj);
+  let best = { i: 1, t: 0, d: Infinity };
+  for (let i = 1; i < xy.length; i++) {
+    const [ax, ay] = xy[i - 1];
+    const [bx, by] = xy[i];
+    const len2 = (bx - ax) ** 2 + (by - ay) ** 2;
+    const t = len2 ? Math.max(0, Math.min(1, (-ax * (bx - ax) - ay * (by - ay)) / len2)) : 0;
+    const d = Math.hypot(ax + t * (bx - ax), ay + t * (by - ay));
+    if (d < best.d) best = { i, t, d };
+  }
+  const a = path[best.i - 1];
+  const b = path[best.i];
+  const on: LngLat = [a[0] + (b[0] - a[0]) * best.t, a[1] + (b[1] - a[1]) * best.t];
+  return [on, ...path.slice(best.i)];
+}
+
+/**
+ * Whether the distance left just crossed a step worth saying aloud: every
+ * 100 m, every 50 m under 200 m. The bar updates on every fix; a screen
+ * reader hears only these.
+ */
+export function announceStep(prevM: number, leftM: number): boolean {
+  if (leftM >= prevM) return false;
+  const step = leftM < 200 ? 50 : 100;
+  return Math.floor(prevM / step) !== Math.floor(leftM / step);
+}
+
+/** Moving slower than this, there is no heading to show. */
+const HEADING_MIN_SPEED = 0.5;
+
+/**
+ * The way you are walking, in degrees clockwise from north: the device's own
+ * course when it reports one while moving, else the direction of the last
+ * few metres. Null while standing still.
+ */
+export function headingOf(fixes: { t: number; lon: number; lat: number; speed: number | null; course: number | null }[]): number | null {
+  const last = fixes[fixes.length - 1];
+  if (!last) return null;
+  if (last.course != null && last.course >= 0 && (last.speed ?? 0) >= HEADING_MIN_SPEED) return last.course;
+  for (let i = fixes.length - 2; i >= 0; i--) {
+    const f = fixes[i];
+    const d = distanceM([f.lon, f.lat], [last.lon, last.lat]);
+    if (d >= 8) {
+      const dt = (last.t - f.t) / 1000;
+      if (dt <= 0 || d / dt < HEADING_MIN_SPEED) return null;
+      return bearingDeg([f.lon, f.lat], [last.lon, last.lat]);
+    }
+    if (last.t - f.t > 30_000) break;
+  }
+  return null;
+}
+
 export interface NavState {
   dest: Waypoint;
   route: Route;
@@ -65,6 +122,9 @@ export function startNav(dest: Waypoint, route: Route, _now: number): NavState {
  */
 export function navStep(state: NavState, at: LngLat, now: number): { state: NavState; reroute: boolean } {
   if (distanceM(at, state.dest.at) <= NAV.arriveM) return { state: { ...state, arrived: true, leftM: 0, offRoute: false }, reroute: false };
+  // The end of the route counts too: a spot in a park or a block lies off the streets that reach it.
+  const routeEnd = state.route.path.length > 1 ? state.route.path[state.route.path.length - 2] : state.dest.at;
+  if (distanceM(at, routeEnd) <= NAV.arriveM) return { state: { ...state, arrived: true, leftM: 0, offRoute: false }, reroute: false };
   const p = progressOn(state.route.path, at);
   const off = p.offM > NAV.offM;
   const offCount = off ? state.offCount + 1 : 0;

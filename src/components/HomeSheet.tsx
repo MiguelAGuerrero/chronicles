@@ -191,7 +191,7 @@ export function HomeSheet(props: {
         <View style={styles.goRow}>
           <Pressable testID="place-go" accessibilityRole="button" accessibilityLabel={`Start a walk to ${place.title}`} onPress={props.onGoToPlace} disabled={props.busy} style={({ pressed }) => [styles.go, (pressed || props.busy) && { opacity: 0.7 }]}>
             <Icon name="navigate" size={18} color="#ffffff" />
-            <Text style={styles.goText}>Go here</Text>
+            <Text style={styles.goText}>Walk here</Text>
           </Pressable>
         </View>
       )}

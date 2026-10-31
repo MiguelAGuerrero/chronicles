@@ -42,6 +42,37 @@ export class WalkGraph {
     this.edges[b].push({ to: a, m });
   }
 
+  /**
+   * Runs `fn` with extra points and links added for one query, then takes
+   * them away again, so routing never grows the graph. Extra points are not
+   * indexed for `within`.
+   */
+  withExtra<T>(points: LngLat[], links: [number, number, number][], fn: (ids: number[]) => T): T {
+    const base = this.points.length;
+    const ids = points.map((p) => {
+      this.points.push(p);
+      this.edges.push([]);
+      return this.points.length - 1;
+    });
+    const touched: number[] = [];
+    const resolve = (i: number) => (i < 0 ? ids[-i - 1] : i);
+    for (const [a0, b0, m] of links) {
+      const a = resolve(a0);
+      const b = resolve(b0);
+      if (a === b) continue;
+      this.edges[a].push({ to: b, m });
+      this.edges[b].push({ to: a, m });
+      touched.push(a, b);
+    }
+    try {
+      return fn(ids);
+    } finally {
+      for (const i of touched) if (i < base) this.edges[i] = this.edges[i].filter((e) => e.to < base);
+      this.points.length = base;
+      this.edges.length = base;
+    }
+  }
+
   /** Points within `radiusM` of p, nearest first. */
   within(p: LngLat, radiusM: number): number[] {
     const [cx, cy] = this.cell(p);

@@ -8,7 +8,7 @@ import { namedStars, StarView, starLabel } from '../StarView';
 import type { RoadFeature } from '../../lib/streets';
 import { TILEJSON_URL } from '../../lib/tiles';
 import {
-  COLORS, DERIVE_ZOOM, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, useZoomPins, walkerGeoJSON,
+  COLORS, coneGeoJSON, DERIVE_ZOOM, marksGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -36,6 +36,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const walked = useMemo(() => segmentsGeoJSON(props.walked), [props.walked]);
   const trace = useMemo(() => traceGeoJSON(props.trace), [props.trace]);
   const route = useMemo(() => routeGeoJSON(props.route), [props.route]);
+  const marks = useMemo(() => marksGeoJSON(props.marks), [props.marks]);
+  const cone = useMemo(() => coneGeoJSON(props.walker, props.walkerHeading, view?.zoom ?? 16), [props.walker, props.walkerHeading, view]);
   const points = useMemo(() => walkerGeoJSON(props.walker), [props.walker]);
 
   useEffect(() => {
@@ -109,7 +111,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       cameraRef.current?.jumpTo({ center: before.center, zoom: before.zoom });
       return places;
     },
-    async collect(centers): Promise<CollectedFeatures> {
+    async collect(centers, shouldStop): Promise<CollectedFeatures> {
       await whenReady();
       const out: CollectedFeatures = { roads: [], names: [], places: [], complete: true };
       const map = mapRef.current;
@@ -121,6 +123,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         properties: (f.properties ?? {}) as Record<string, unknown>,
       });
       for (const center of centers) {
+        if (shouldStop?.()) {
+          out.complete = false;
+          break;
+        }
         const wait = settle();
         cameraRef.current?.jumpTo({ center, zoom: DERIVE_ZOOM });
         if (!(await wait)) out.complete = false;
@@ -199,8 +205,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             paint={{ 'line-color': COLORS.walked, 'line-width': 6 }} />
         </GeoJSONSource>
         <GeoJSONSource id="route" data={route}>
-          <Layer id="route-edge" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': '#ffffff', 'line-width': 9 }} />
-          <Layer id="route" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': COLORS.route, 'line-width': 6 }} />
+          <Layer id="route-edge" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': '#ffffff', 'line-width': 12 }} />
+          <Layer id="route" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': COLORS.route, 'line-width': 8 }} />
         </GeoJSONSource>
         <GeoJSONSource id="trace" data={trace}>
           <Layer id="trace" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }}
@@ -210,6 +216,12 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
               'line-width': props.fogEmphasis ? 4 : 2.5,
               'line-opacity': 0.85 * (props.traceOpacity ?? 1),
             }} />
+        </GeoJSONSource>
+        <GeoJSONSource id="cone" data={cone}>
+          <Layer id="cone" type="fill" paint={{ 'fill-color': COLORS.walker, 'fill-opacity': 0.25 }} />
+        </GeoJSONSource>
+        <GeoJSONSource id="marks" data={marks}>
+          <Layer id="marks" type="circle" paint={{ 'circle-color': '#ffffff', 'circle-radius': 9, 'circle-stroke-color': COLORS.walker, 'circle-stroke-width': 4 }} />
         </GeoJSONSource>
         <GeoJSONSource id="points" data={points}>
           <Layer id="points" type="circle" paint={{

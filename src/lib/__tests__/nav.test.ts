@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { distanceM, stepToward } from '../geo';
-import { NAV, navStep, progressOn, routeTo, startNav, tooFar } from '../nav/navigator';
+import { announceStep, headingOf, NAV, navStep, progressOn, routeAhead, routeTo, startNav, tooFar } from '../nav/navigator';
 import { streetRouteSource } from '../nav/streetRoute';
 import { traceRouteSource } from '../nav/traceRoute';
 import type { RouteSource } from '../nav/types';
@@ -150,7 +150,7 @@ test('nav: routeTo tries each source in turn and says why when none can (N3-N5, 
   const none: RouteSource = { id: 'none', route: () => null };
   const straight: RouteSource = { id: 'straight', route: (a, b) => ({ path: [a, b], lengthM: distanceM(a, b), source: 'straight' }) };
   assert.equal(routeTo([none, straight], at(0, 0), at(1, 0)).route?.source, 'straight');
-  assert.equal(routeTo([none], at(0, 0), at(1, 0)).reason, 'No walking route here');
+  assert.equal(routeTo([none], at(0, 0), at(1, 0)).reason, 'No walking route found nearby');
   assert.equal(routeTo([straight], at(0, 0), at(200, 0)).reason, 'Too far to walk from here');
 });
 
@@ -159,4 +159,57 @@ test('nav: walk me back never cuts a corner the walk turned, only a loop it came
   const trace = walk([at(0, 0), at(3, 0), at(3, 2)]);
   const r = traceRouteSource(trace, []).route(at(3, 2), at(0, 0))!;
   assert.ok(r.lengthM >= 495, `the corner is walked round, not cut: ${Math.round(r.lengthM)} m`);
+});
+
+// Regression tests from the slice's audit and UI review, written before the fixes.
+
+test('audit: a destination on the same block is reached along it, not back via the corner', () => {
+  const src = streetRouteSource(grid);
+  const r = src.route(at(0.2, 0.02), at(0.7, 0.02))!;
+  assert.ok(r.lengthM < 60, `about 50 m along the block, got ${Math.round(r.lengthM)}`);
+});
+
+test('audit: routing leaves the street graph as it was (no growth per query)', () => {
+  const src = streetRouteSource(grid);
+  const first = src.route(at(0.02, 0.5), at(2.98, 1.6))!.lengthM;
+  for (let k = 0; k < 20; k++) src.route(at(0.02 + k * 0.01, 0.5), at(2.98, 1.6 - k * 0.01));
+  assert.equal(Math.round(src.route(at(0.02, 0.5), at(2.98, 1.6))!.lengthM), Math.round(first));
+});
+
+test('audit: walk me back joins the trace only within 150 m; further off, the streets take over', () => {
+  const trace = walk([at(0, 0), at(3, 0)]);
+  const src = traceRouteSource(trace, []);
+  assert.ok(src.route(at(1, 1), at(0, 0)), '100 m off: joins');
+  assert.equal(src.route(at(1, 3), at(0, 0)), null, '300 m off: not a straight line through the block');
+});
+
+test('audit: reaching the end of the route is arriving, even for a spot off the streets', () => {
+  const offStreet = { at: at(3, 2.6), label: 'A park', kind: 'point' as const };
+  // As routes are built: the streets, then a last leg from the street to the spot itself.
+  const toPark = { ...route, path: [...route.path, offStreet.at] };
+  const s = startNav(offStreet, toPark, 0);
+  assert.equal(navStep(s, at(3, 1.8), 1000).state.arrived, true, 'the streets end at (3, 2), 60 m short of the spot');
+});
+
+test('audit: the route is drawn only ahead of you', () => {
+  const ahead = routeAhead(route.path, at(1, 0.1));
+  assert.ok(distanceM(ahead[0], at(1, 0)) < 2, 'from where you are on it');
+  assert.equal(ahead.length, 3);
+  assert.ok(distanceM(ahead.at(-1)!, at(3, 2)) < 1);
+});
+
+test('audit: the distance left is announced in steps, not on every fix', () => {
+  assert.equal(announceStep(560, 530), false);
+  assert.equal(announceStep(510, 495), true, 'crossing 500 m');
+  assert.equal(announceStep(160, 145), true, 'every 50 m under 200 m');
+  assert.equal(announceStep(140, 120), false);
+});
+
+test('heading: the way you are walking, only once you are moving', () => {
+  const east = walk([at(0, 0), at(0.5, 0)]);
+  assert.ok(Math.abs(headingOf(east)! - 90) < 5, 'east is 90°');
+  const still: TracePoint[] = east.map((p) => ({ ...p, lon: east[0].lon, lat: east[0].lat, speed: 0 }));
+  assert.equal(headingOf(still), null);
+  const north = walk([at(0, 0), at(0, 0.5)]).map((p) => ({ ...p, course: null }));
+  assert.ok(Math.abs(headingOf(north)! - 0) < 5 || Math.abs(headingOf(north)! - 360) < 5, 'north is 0°');
 });

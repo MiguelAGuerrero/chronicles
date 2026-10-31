@@ -33,8 +33,8 @@ export function streetRouteSource(segments: StreetSegment[]): RouteSource {
     }
   }
   const proj = projector(first);
-  /** The nearest point on any street within NAV.joinM, added to the graph and linked to its edge's ends. */
-  const join = (p: LngLat): { i: number; m: number } | null => {
+  /** The nearest point on any street within NAV.joinM: which line, where on it, and how far off. */
+  const join = (p: LngLat): { e: { a: number; b: number }; on: LngLat; t: number; m: number } | null => {
     const xy = proj(p);
     let best: { e: { a: number; b: number }; d: number } | null = null;
     for (const e of lines) {
@@ -49,10 +49,7 @@ export function streetRouteSource(segments: StreetSegment[]): RouteSource {
     const len2 = (bx - ax) ** 2 + (by - ay) ** 2;
     const t = len2 ? Math.max(0, Math.min(1, ((xy[0] - ax) * (bx - ax) + (xy[1] - ay) * (by - ay)) / len2)) : 0;
     const on: LngLat = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
-    const i = g.add(on);
-    g.link(i, best.e.a);
-    g.link(i, best.e.b);
-    return { i, m: distanceM(p, on) };
+    return { e: best.e, on, t, m: distanceM(p, on) };
   };
   const id = 'streets';
   return {
@@ -61,9 +58,20 @@ export function streetRouteSource(segments: StreetSegment[]): RouteSource {
       const a = join(from);
       const b = join(to);
       if (!a || !b) return null;
-      const s = g.shortest(a.i, b.i);
-      if (!s) return null;
-      return { path: [from, ...s.path.map((i) => g.points[i]), to], lengthM: a.m + s.m + b.m, source: id };
+      // Each end joins its line for this query only (-1 and -2 are the two ends).
+      const links: [number, number, number][] = [
+        [-1, a.e.a, distanceM(a.on, g.points[a.e.a])],
+        [-1, a.e.b, distanceM(a.on, g.points[a.e.b])],
+        [-2, b.e.a, distanceM(b.on, g.points[b.e.a])],
+        [-2, b.e.b, distanceM(b.on, g.points[b.e.b])],
+      ];
+      // Both on one stretch of street: straight along it, not round by a corner.
+      if (a.e === b.e) links.push([-1, -2, distanceM(a.on, b.on)]);
+      return g.withExtra([a.on, b.on], links, ([ia, ib]) => {
+        const s = g.shortest(ia, ib);
+        if (!s) return null;
+        return { path: [from, ...s.path.map((i) => g.points[i]), to], lengthM: a.m + s.m + b.m, source: id };
+      });
     },
   };
 }

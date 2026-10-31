@@ -11,7 +11,7 @@ import type { CapturePin } from '../../lib/pins';
 import type { RoadFeature } from '../../lib/streets';
 import type { LngLat } from '../../lib/types';
 import {
-  COLORS, DERIVE_ZOOM, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, useZoomPins, walkerGeoJSON,
+  COLORS, coneGeoJSON, DERIVE_ZOOM, marksGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, traceGeoJSON, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -29,17 +29,21 @@ function addOverlay(map: MapLibreMap) {
   const firstSymbol = map.getStyle().layers.find((l: { type: string; id: string }) => l.type === 'symbol')?.id;
   map.addSource('veil', { type: 'geojson', data: WORLD_VEIL });
   map.addLayer({ id: 'veil', type: 'fill', source: 'veil', paint: { 'fill-color': COLORS.veil, 'fill-opacity': 0 } }, firstSymbol);
-  for (const id of ['fog', 'walked', 'route', 'trace', 'points']) map.addSource(id, { type: 'geojson', data: empty });
+  for (const id of ['fog', 'walked', 'route', 'trace', 'cone', 'marks', 'points']) map.addSource(id, { type: 'geojson', data: empty });
   const lineLayout = { 'line-cap': 'round', 'line-join': 'round' } as const;
   map.addLayer({ id: 'fog', type: 'line', source: 'fog', layout: lineLayout,
     paint: { 'line-color': COLORS.fog, 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 1.5, 17, 4] } }, firstSymbol);
   map.addLayer({ id: 'walked', type: 'line', source: 'walked', layout: lineLayout,
     paint: { 'line-color': COLORS.walked, 'line-width': ['interpolate', ['linear'], ['zoom'], 13, 3, 17, 8] } }, firstSymbol);
   // The route under the trace and walker, so where you walked stays on top (N6).
-  map.addLayer({ id: 'route-edge', type: 'line', source: 'route', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': 9 } });
-  map.addLayer({ id: 'route', type: 'line', source: 'route', layout: lineLayout, paint: { 'line-color': COLORS.route, 'line-width': 6 } });
+  map.addLayer({ id: 'route-edge', type: 'line', source: 'route', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': 12 } });
+  map.addLayer({ id: 'route', type: 'line', source: 'route', layout: lineLayout, paint: { 'line-color': COLORS.route, 'line-width': 8 } });
   map.addLayer({ id: 'trace', type: 'line', source: 'trace', layout: lineLayout,
     paint: { 'line-color': COLORS.trace, 'line-width': 2.5, 'line-opacity': 0.85 } });
+  // The way the walker is going, under the dot; and marked spots (a destination, a pressed spot).
+  map.addLayer({ id: 'cone', type: 'fill', source: 'cone', paint: { 'fill-color': COLORS.walker, 'fill-opacity': 0.25 } });
+  map.addLayer({ id: 'marks', type: 'circle', source: 'marks',
+    paint: { 'circle-color': '#ffffff', 'circle-radius': 9, 'circle-stroke-color': COLORS.walker, 'circle-stroke-width': 4 } });
   map.addLayer({ id: 'points', type: 'circle', source: 'points',
     paint: {
       'circle-color': COLORS.walker,
@@ -199,6 +203,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   useEffect(() => { if (ready) setData('walked', segmentsGeoJSON(props.walked)); }, [ready, props.walked]);
   useEffect(() => { if (ready) setData('trace', traceGeoJSON(props.trace)); }, [ready, props.trace]);
   useEffect(() => { if (ready) setData('route', routeGeoJSON(props.route)); }, [ready, props.route]);
+  useEffect(() => { if (ready) setData('marks', marksGeoJSON(props.marks)); }, [ready, props.marks]);
+  useEffect(() => {
+    if (ready) setData('cone', coneGeoJSON(props.walker, props.walkerHeading, view?.zoom ?? 16));
+  }, [ready, props.walker, props.walkerHeading, view]);
   useEffect(() => {
     if (ready) mapRef.current?.setPaintProperty('trace', 'line-opacity', 0.85 * (props.traceOpacity ?? 1));
   }, [ready, props.traceOpacity]);
@@ -399,7 +407,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       map.jumpTo(before);
       return places;
     },
-    async collect(centers): Promise<CollectedFeatures> {
+    async collect(centers, shouldStop): Promise<CollectedFeatures> {
       await readyPromise.current!.promise;
       const map = mapRef.current;
       const out: CollectedFeatures = { roads: [], names: [], places: [], complete: true };
@@ -407,6 +415,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       if (!map || !map.getSource(VECTOR_SOURCE)) return { ...out, complete: false };
       const before = { center: map.getCenter(), zoom: map.getZoom() };
       for (const center of centers) {
+        if (shouldStop?.()) {
+          out.complete = false;
+          break;
+        }
         map.jumpTo({ center, zoom: DERIVE_ZOOM });
         if (!(await settled(map))) out.complete = false;
         const q = (sourceLayer: string) => {
