@@ -64,3 +64,43 @@ test('still 4: without still spells, reading is unchanged', () => {
   for (let s = 0; s <= 60; s++) pts.push(fix(s, 1.4 * s, 0, 5));
   assert.deepEqual(readTrace(pts, 0, [], []), readTrace(pts, 0, []));
 });
+
+// The motion audit (Nov 1): regression tests written before the fixes.
+
+test('motion audit 1: a still spell spanning a ride never joins the two sides into a walked line', () => {
+  const pts: TracePoint[] = [];
+  for (let s = 0; s <= 60; s++) pts.push({ ...fix(s, 1.4 * s, 0, 8), speed: 1.4 });
+  for (let s = 61; s <= 120; s++) pts.push({ ...fix(s, 84, 0, 8), speed: 0 }); // waiting at the stop
+  for (let s = 121; s <= 300; s++) pts.push({ ...fix(s, 84 + 12 * (s - 120), 0, 8), speed: 12 });
+  for (let s = 301; s <= 320; s++) pts.push({ ...fix(s, 84 + 2160, 0, 8), speed: 0 });
+  for (let s = 321; s <= 380; s++) pts.push({ ...fix(s, 2244 + 1.4 * (s - 320), 0, 8), speed: 1.4 });
+  // Still from the stop, all through the ride, to the far stop.
+  const tr = readTrace(pts, 0, [], [{ started_at: 61_000, ended_at: 320_000 }]);
+  assert.equal(tr.rides.length, 1);
+  const walked = traceDistances(tr).walkedM;
+  assert.ok(walked < 250, `walked ${walked.toFixed(0)} m: only the two walks, about 168 m`);
+});
+
+test('motion audit 2: a still spell left open (a reload) holds nothing once the walker clearly walks away', () => {
+  const pts: TracePoint[] = [];
+  for (let s = 0; s <= 400; s++) pts.push(fix(s, 1.4 * s, 0, 8));
+  const tr = readTrace(pts, 0, [], [{ started_at: 60_000, ended_at: null }]);
+  const walked = traceDistances(tr).walkedM;
+  assert.ok(walked > 500, `walked ${walked.toFixed(0)} m of 560`);
+});
+
+test('motion audit 3: a bike ride the sensors call still (no steps) keeps its distance', () => {
+  const pts: TracePoint[] = [];
+  for (let s = 0; s <= 300; s++) pts.push(fix(s, 5 * s, 0, 8));
+  const tr = readTrace(pts, 0, [], [{ started_at: 0, ended_at: 300_000 }]);
+  const walked = traceDistances(tr).walkedM;
+  assert.ok(walked > 1300, `walked ${walked.toFixed(0)} m of 1500`);
+});
+
+test('motion audit 3b: inside a spell, one fix far off is still held, not drawn out to', () => {
+  const pts: TracePoint[] = [];
+  for (let s = 0; s <= 30; s++) pts.push(fix(s, 1.4 * s, 0, 5));
+  for (let s = 31; s <= 60; s++) pts.push(fix(s, 42 + (s === 45 ? 60 : 3 * Math.sin(s)), 3 * Math.cos(s), 8));
+  const tr = readTrace(pts, 0, [], [{ started_at: 31_000, ended_at: 60_000 }]);
+  assert.ok(tr.walked.every((p) => distanceM([p.lon, p.lat], at(102, 0)) > 30), 'the lone far fix is not drawn');
+});

@@ -148,15 +148,12 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const puck = useRef<{ marker: Marker; el: HTMLElement; cone: HTMLElement } | null>(null);
   const lastFrame = useRef<GlideFrame>({ walker: null, heading: null });
   const followRef = useRef(props.follow);
-  // The trace's newest point, and when the link to the dot was last drawn (at most 10 times a second).
+  // The trace's newest point. The link to the dot is drawn once per fix, to where the dot is
+  // heading, never per frame: each draw re-tiles the source in the worker (motion audit 5).
   const traceEnd = useRef<LngLat | null>(null);
-  const linked = useRef(!!props.walkerSource);
-  const linkAt = useRef(0);
-  const drawLink = (walker: LngLat | null, force = false) => {
-    const t = Date.now();
-    if (!force && t - linkAt.current < 100) return;
-    linkAt.current = t;
+  const drawLink = (walker: LngLat | null) => {
     const end = traceEnd.current;
+    perfCount('setData:trace-link');
     const src = mapRef.current?.getSource('trace-link') as { setData(d: GeoJSON.FeatureCollection): void } | undefined;
     // Never across a pause or a gap: a link that long isn't the line catching up.
     src?.setData(traceGeoJSON(end && walker && distanceM(end, walker) <= LINK_MAX_M ? [[end, walker]] : []));
@@ -168,7 +165,6 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     p.el.style.display = f.walker ? '' : 'none';
     if (!f.walker) return;
     p.marker.setLngLat(f.walker);
-    if (linked.current) drawLink(f.walker);
     // The e2e reads where the dot is (only when it is measuring: window.__perf).
     if ((window as { __perf?: unknown }).__perf) p.el.dataset.at = `${f.walker[0]},${f.walker[1]}`;
     p.cone.style.display = f.heading == null ? 'none' : '';
@@ -179,7 +175,6 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   useGlideFrames(props.walker, props.walkerHeading, glideOn, applyFrame, 0, props.walkerSource);
   useEffect(() => {
     followRef.current = props.follow;
-    linked.current = !!props.walkerSource;
   });
   // Camera moves take the app's camera timing, and jump with reduce motion on (M2).
   const reduced = useReducedMotion();
@@ -326,9 +321,15 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     setData('trace', traceGeoJSON(split.tail));
     const open = split.tail[split.tail.length - 1];
     traceEnd.current = props.walkerSource && open?.length ? open[open.length - 1] : null;
-    drawLink(lastFrame.current.walker, true);
+    drawLink(props.walkerSource?.get()?.lead ?? null);
     // drawLink only reads refs.
   }, [ready, split.tail, props.walkerSource]);
+  useEffect(() => {
+    const source = props.walkerSource;
+    if (!ready || !source) return;
+    return source.subscribe((s) => drawLink(s.lead));
+    // drawLink only reads refs.
+  }, [ready, props.walkerSource]);
   useEffect(() => { if (ready) setData('rides', traceGeoJSON(props.rides ?? [])); }, [ready, props.rides]);
   useEffect(() => { if (ready) setData('route', routeGeoJSON(props.route)); }, [ready, props.route]);
   useEffect(() => {
@@ -370,8 +371,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       marker.remove();
       puck.current = null;
     };
-    // applyFrame (and drawLink, which it calls) only reads refs.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // applyFrame only reads refs.
   }, [ready, glideOn]);
 
   // Capture pins are DOM markers rendered with the same view as on native,

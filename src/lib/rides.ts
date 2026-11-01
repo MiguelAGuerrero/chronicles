@@ -231,7 +231,7 @@ export function readTrace(
     walked.push(...settleJitter(filtered(seg.slice(at))));
   }
   return {
-    walked: stills.length ? holdStill(walked, stills) : walked,
+    walked: stills.length ? holdStill(walked, stills, [...pauses, ...rides.map((r) => ({ started_at: r.t0, ended_at: r.t1 }))]) : walked,
     rides,
     breaks: [...pauses, ...rides.map((r) => ({ started_at: r.t0, ended_at: r.t1 }))],
     pauses,
@@ -247,16 +247,28 @@ export function liveRuns(tr: ReadTrace): LngLat[][] {
   return splitAtGaps(smoothDwells(tr.walked), RIDE_RULES.gapMs, tr.breaks);
 }
 
-/**
- * Walked fixes inside each still spell held at one spot (where the walk stopped, or their centre), from the first
- * fix in it to the last, however short the spell: the sensors said the walker
- * stood there, so the GPS's wander is no movement (Motion, MO8). Ride fixes
- * are not walked, so a ride is never cut by a spell (MO9).
- */
 /** A still spell is held at the last walked fix before it, if that came this soon before the spell's first. */
 const STILL_ANCHOR_MS = 10_000;
+/** Only fixes this close to the spot are held: at least this far (m; indoor drift wanders 40 m and more), or three times the anchor's accuracy... */
+const STILL_REACH_M = 50;
+/** ...and this many fixes in a row beyond it mean the walker left, whatever the sensors said (motion audit 3). */
+const STILL_LEAVE = 3;
 
-function holdStill(walked: TracePoint[], stills: PauseSpan[]): TracePoint[] {
+/**
+ * Walked fixes inside each still spell held at one spot, from the first fix
+ * held to the last: the sensors said the walker stood there, so the GPS's
+ * wander is no movement (Motion, MO8). Ride fixes are not walked, so a ride
+ * is never cut by a spell (MO9).
+ * - A spell is cut at every break (a ride, a pause, a gap), and each part is
+ *   held on its own, so a spell over a ride never joins its two sides into a
+ *   walked line (motion audit 1).
+ * - The spot is where the walk stopped when it stopped just before (drift
+ *   often starts once the walker stands), else the part's first fixes.
+ * - Only fixes near the spot are held; a lone one far off is dropped, and
+ *   three in a row far off end the holding: the walker left, as on a bike
+ *   with no steps, or after a spell left open by a reload (audit 2, 3).
+ */
+function holdStill(walked: TracePoint[], stills: PauseSpan[], breaks: PauseSpan[]): TracePoint[] {
   const spells = [...stills].sort((a, b) => a.started_at - b.started_at);
   const out: TracePoint[] = [];
   let i = 0;
@@ -265,18 +277,43 @@ function holdStill(walked: TracePoint[], stills: PauseSpan[]): TracePoint[] {
     while (i < walked.length && walked[i].t < sp.started_at) out.push(walked[i++]);
     const inside: TracePoint[] = [];
     while (i < walked.length && walked[i].t <= end) inside.push(walked[i++]);
-    if (!inside.length) continue;
-    // Held where the walk stopped, when it stopped just before: drift (indoors, say) often
-    // starts once the walker stands, so the wander's centre can sit away from the spot.
-    const before = out[out.length - 1];
-    const fresh = before && inside[0].t - before.t <= STILL_ANCHOR_MS;
-    const lon = fresh ? before.lon : inside.reduce((a, p) => a + p.lon, 0) / inside.length;
-    const lat = fresh ? before.lat : inside.reduce((a, p) => a + p.lat, 0) / inside.length;
-    out.push({ ...inside[0], lon, lat, speed: 0 });
-    if (inside.length > 1) out.push({ ...inside[inside.length - 1], lon, lat, speed: 0 });
+    // Each part between breaks is held on its own.
+    let from = 0;
+    for (let k = 1; k <= inside.length; k++) {
+      if (k < inside.length && !isBreak(inside[k - 1], inside[k], breaks)) continue;
+      holdPart(inside.slice(from, k), out, breaks);
+      from = k;
+    }
   }
   while (i < walked.length) out.push(walked[i++]);
   return out;
+}
+
+function holdPart(part: TracePoint[], out: TracePoint[], breaks: PauseSpan[]) {
+  if (!part.length) return;
+  const before = out[out.length - 1];
+  const fresh = before && part[0].t - before.t <= STILL_ANCHOR_MS && !isBreak(before, part[0], breaks);
+  const head = part.slice(0, 10);
+  const spot: LngLat = fresh ? [before.lon, before.lat] : [head.reduce((a, p) => a + p.lon, 0) / head.length, head.reduce((a, p) => a + p.lat, 0) / head.length];
+  const reach = Math.max(STILL_REACH_M, 3 * ((fresh ? before.accuracy_m : part[0].accuracy_m) ?? 0));
+  let first: TracePoint | null = null;
+  let last: TracePoint | null = null;
+  let away = 0;
+  let k = 0;
+  for (; k < part.length; k++) {
+    if (distanceM(spot, pos(part[k])) <= reach) {
+      first ??= part[k];
+      last = part[k];
+      away = 0;
+    } else if (++away >= STILL_LEAVE) {
+      k -= STILL_LEAVE - 1;
+      break;
+    }
+  }
+  if (first) out.push({ ...first, lon: spot[0], lat: spot[1], speed: 0 });
+  if (last && last !== first) out.push({ ...last, lon: spot[0], lat: spot[1], speed: 0 });
+  // Left: the rest of the part is walked as it came.
+  for (; k < part.length; k++) out.push(part[k]);
 }
 
 /** Walked and ridden fixes together, in time order: for places, placing captures and the replay's dot. */

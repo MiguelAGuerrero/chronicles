@@ -117,3 +117,20 @@ test('steps 7: before enough samples, or after a gap in them, it says unknown', 
   feed(d, signal(5, handHeld()));
   assert.equal(d.state(5000 + STEPS.gapMs + 1), 'unknown', 'no samples for a while: unknown again');
 });
+
+// The motion audit (Nov 1).
+
+test('motion audit 3c: a slow stroll (a step every 1.2 s) is walking, never still', () => {
+  const d = new StepDetector();
+  const states = feed(d, signal(20, walk(1 / 1.2)));
+  assert.ok(states.filter((x) => x.t > 5000).every((x) => x.s !== 'still'), 'never still');
+});
+
+test('motion audit 6: before any steady walk it says unknown, not still, and walking begins at its first step', () => {
+  const d = new StepDetector();
+  const states = feed(d, signal(1.8, walk(1.8)));
+  assert.ok(states.every((x) => x.s !== 'still'), 'not still in the first moments of a walk');
+  const more = feed(d, signal(6, walk(1.8), 1850));
+  const first = more.find((x) => x.s === 'walking')!;
+  assert.ok(d.walkingSince() != null && d.walkingSince()! < first.t - 600, `walking since ${d.walkingSince()}, found at ${first.t}`);
+});

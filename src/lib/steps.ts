@@ -14,9 +14,9 @@ export const STEPS = {
   peak: 0.6,
   /** Between two steps the bounce dips at least this far below rest (m/s²): a tap on the screen only spikes up. */
   dip: 0.3,
-  /** Steps come 0.3-1 s apart (1-3.3 a second). */
+  /** Steps come 0.3-1.3 s apart: a slow stroll steps about every 1.2 s (motion audit 3). */
   minGapMs: 300,
-  maxGapMs: 1000,
+  maxGapMs: 1300,
   /** Walking: this many steps, evenly spaced, within the last windowMs. */
   steps: 3,
   windowMs: 3000,
@@ -94,13 +94,26 @@ export class StepDetector {
       const gaps = recent.slice(1).map((t, i) => t - recent[i]);
       const lo = Math.min(...gaps);
       const hi = Math.max(...gaps);
-      if (lo >= STEPS.minGapMs && hi <= STEPS.maxGapMs && hi <= STEPS.evenRatio * lo) return (this.firm = 'walking');
+      if (lo >= STEPS.minGapMs && hi <= STEPS.maxGapMs && hi <= STEPS.evenRatio * lo) {
+        this.since ??= recent[0];
+        return (this.firm = 'walking');
+      }
     }
     const last = this.steps[this.steps.length - 1];
-    if (last == null || now - last >= STEPS.stillAfterMs) return (this.firm = 'still');
+    if (last == null || now - last >= STEPS.stillAfterMs) {
+      this.since = null;
+      return (this.firm = 'still');
+    }
     // A step lately, but not a steady walk (yet, or any more): keep the last firm answer.
     return this.firm;
   }
 
-  private firm: MotionState = 'still';
+  /** Unknown until the first firm answer: a walk that sets off at once is never called still (motion audit 6). */
+  private firm: MotionState = 'unknown';
+  private since: number | null = null;
+
+  /** When the current walk began: its first step, a few seconds before it was sure (motion audit 6). */
+  walkingSince(): number | null {
+    return this.since;
+  }
 }

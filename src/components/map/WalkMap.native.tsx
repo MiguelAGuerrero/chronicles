@@ -8,10 +8,11 @@ import { MarkPinView, markKey, markLabel } from '../MarkPinView';
 import { StripLabel } from '../LandingMarks';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { RoadFeature } from '../../lib/streets';
-import type { Capture } from '../../lib/types';
+import type { Capture, LngLat } from '../../lib/types';
 import { TILEJSON_URL } from '../../lib/tiles';
 import { useGlidingWalker } from '../../lib/useGlidingWalker';
 import { distanceM } from '../../lib/geo';
+import type { DotSource } from '../../lib/liveDot';
 import { markEnter, pinDrops, sameSeen } from '../../lib/enter';
 import { useReducedMotion } from '../../lib/motion';
 import { MOTION } from '../../lib/motionTokens';
@@ -76,9 +77,12 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   // The trace's end joins the live dot, so the line always reaches it (the live dot, Nov 1); never across a pause or gap.
   const openRun = split.tail[split.tail.length - 1];
   const traceEnd = props.walkerSource && openRun?.length ? openRun[openRun.length - 1] : null;
+  // Drawn once per fix, to where the dot is heading, not per glide frame: MapLibre RN serializes a
+  // source on each change (motion audit 5).
+  const dotLead = useDotLead(props.walkerSource);
   const traceLink = useMemo(
-    () => traceGeoJSON(traceEnd && glide.walker && distanceM(traceEnd, glide.walker) <= LINK_MAX_M ? [[traceEnd, glide.walker]] : []),
-    [traceEnd, glide.walker],
+    () => traceGeoJSON(traceEnd && dotLead && distanceM(traceEnd, dotLead) <= LINK_MAX_M ? [[traceEnd, dotLead]] : []),
+    [traceEnd, dotLead],
   );
   const cone = useMemo(() => coneGeoJSON(glide.walker, glide.heading, view?.zoom ?? 16), [glide.walker, glide.heading, view]);
   const points = useMemo(() => walkerGeoJSON(glide.walker), [glide.walker]);
@@ -401,6 +405,16 @@ const TraceSource = memo(function TraceSource(props: { id: string; data: GeoJSON
 
 /** The trace's end joins the live dot only this close; farther, it's a pause or gap, not lag. */
 const LINK_MAX_M = 60;
+
+/** Where the live dot is heading, updated once per fix. */
+function useDotLead(source: DotSource | null | undefined): LngLat | null {
+  const [lead, setLead] = useState<LngLat | null>(() => source?.get()?.lead ?? null);
+  useEffect(() => {
+    if (!source) return;
+    return source.subscribe((s) => setLead(s.lead));
+  }, [source]);
+  return source ? lead : null;
+}
 
 const NO_CAPTURES: Capture[] = [];
 

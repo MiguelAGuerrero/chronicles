@@ -1151,9 +1151,15 @@ export default function WalkScreen() {
               <View testID="motion-off" style={styles.optionRow}>
                 <Icon name="walk-outline" size={20} color={theme.ink} />
                 <Text style={[styles.markSub, { flex: 1 }]}>
-                  {motionAccess === 'unavailable' ? 'Motion isn’t available here: standing still may drift.' : 'Motion off: standing still may drift.'}
+                  {motionAccess === 'unavailable'
+                    ? 'Motion isn’t available here: standing still may drift.'
+                    : motionAccess === 'denied'
+                      ? Platform.OS === 'web'
+                        ? 'Motion is blocked: allow Motion & Orientation Access in Settings › Safari. Standing still may drift.'
+                        : 'Motion is blocked: allow Motion & Fitness for Chronicles in Settings. Standing still may drift.'
+                      : 'Motion off: standing still may drift.'}
                 </Text>
-                {motionAccess === 'off' && (
+                {(motionAccess === 'off' || motionAccess === 'denied') && (
                   <Pressable testID="motion-on" accessibilityRole="button" accessibilityLabel="Turn on motion" onPress={() => void askMotion()} hitSlop={8}>
                     <Text style={styles.optionLabel}>Turn on</Text>
                   </Pressable>
