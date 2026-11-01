@@ -30,6 +30,9 @@ const AUTO_MS = 4000;
 /** The drawn trace is rebuilt at most this often; the walker dot moves every frame. */
 const TRACE_STEP_MS = 100;
 
+// A screen that throws shows what broke, with Try again, never a blank page (bug, Nov 1).
+export { ScreenError as ErrorBoundary } from '../../components/ScreenError';
+
 export default function Replay() {
   const { id, ceremony } = useLocalSearchParams<{ id: string; ceremony?: string }>();
   const insets = useSafeAreaInsets();
@@ -103,8 +106,9 @@ export default function Replay() {
   useEffect(() => {
     let alive = true;
     (async () => {
-      // A new tile build drops the street cache and marks walks for re-snapping.
-      const build = await ensureTileBuild().catch(() => 'unknown');
+      // The walk opens from the device first: the network is only asked
+      // after, behind "Reading the streets" (bug, Nov 1: an iPhone sat on a
+      // blank screen after Stop while the TileJSON fetch stalled).
       let d = await loadReplay(id).catch(() => null);
       if (!alive) return;
       if (!d) {
@@ -115,6 +119,10 @@ export default function Replay() {
       setTitle(d.walk.title ?? suggestTitle(d.walk));
       setEpilogue(d.walk.epilogue ?? '');
       setStatus('ready');
+      // A new tile build drops the street cache and marks walks for re-snapping.
+      const build = await ensureTileBuild().catch(() => 'unknown');
+      if (!alive) return;
+      if (build !== 'unknown') d = (await loadReplay(id).catch(() => null)) ?? d;
       const stale = build !== 'unknown' && d.walk.snapped_build !== build;
       if (!d.summary || !d.walk.snapped_build || stale) {
         await snapWalk(d.walk, {

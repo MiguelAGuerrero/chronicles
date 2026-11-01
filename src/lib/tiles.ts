@@ -1,6 +1,7 @@
 import { AREA_RULES } from './areas/rules';
 import { BOUNDARY_PACKS_ID } from './areas/boundaries';
 import { db } from './db';
+import { fetchTileBuild, TILEJSON_MS } from './tileBuild';
 
 export { TILE_ZOOM, tileAt, tileRect, onTileEdge, type TileRect } from './tileMath';
 
@@ -16,16 +17,11 @@ export const TILEJSON_URL = 'https://tiles.openfreemap.org/planet';
 let pendingUrl: string | null = null;
 
 export async function currentTileBuild(): Promise<string> {
-  try {
-    const res = await fetch(TILEJSON_URL);
-    const json = (await res.json()) as { tiles?: string[] };
-    const url = json.tiles?.[0] ?? '';
-    if (url) pendingUrl = url;
-    const m = /\/([0-9]{8}_[0-9A-Za-z_]+)\/\{z\}/.exec(url);
-    if (m) return m[1];
-    if (url) return url;
-  } catch {
-    // offline: keep using what we have
+  // Within a time limit: offline, slow or stalled, keep using what we have.
+  const read = await fetchTileBuild((u, init) => fetch(u, init), TILEJSON_MS, TILEJSON_URL);
+  if (read) {
+    pendingUrl = read.url;
+    return read.build;
   }
   return (await db.getMeta('tile_build')) ?? 'unknown';
 }
