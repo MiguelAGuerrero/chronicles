@@ -153,8 +153,10 @@ export default function Replay() {
   }, [id, go]);
 
 
-  const sched = useMemo(() => (data ? schedule(data.fixes, data.captures, data.walk.started_at, data.pauses) : null), [data]);
+  const sched = useMemo(() => (data ? schedule(data.fixes, data.captures, data.walk.started_at, data.pauses, data.rides) : null), [data]);
+  // The dot follows walked and ridden fixes alike; the solid trace is only what was walked (R5, R10).
   const runs = useMemo(() => (data ? timedRuns(data.fixes, data.pauses) : []), [data]);
+  const walkedRuns = useMemo(() => (data ? timedRuns(data.walkedFixes, data.breaks) : []), [data]);
   // One clock drives beats one to three. It stands still while a capture is
   // up, and moves on when a beat is over.
   useEffect(() => {
@@ -251,11 +253,20 @@ export default function Replay() {
       if (!data) return [];
       if (beat === 'reading' || beat === 'fog') return data.runs; // shown faintly
       if (beat === 'card' || beat === 'name') return data.runs;
-      return traceUntil(runs, data.runs, walkT);
+      return traceUntil(walkedRuns, data.runs, walkT);
     },
     // Rebuilt on TRACE_STEP_MS buckets, not every frame.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data, beat, runs, traceBucket],
+    [data, beat, walkedRuns, traceBucket],
+  );
+  const rides = useMemo(
+    () => {
+      if (!data) return [];
+      if (beat !== 'path') return data.rideRuns;
+      return traceUntil(data.rideTimed, data.rideRuns, walkT);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [data, beat, traceBucket],
   );
   const walker = beat === 'path' ? walkerAt(runs, walkT) : null;
 
@@ -292,6 +303,8 @@ export default function Replay() {
   }
 
   const s = data.summary;
+  // Ridden distance (R6): the summary's, else the trace's for a summary written before rides.
+  const rideM = s?.ride_m ?? data.rideM;
   const head = headline(s, data);
   const finds = foundList(data.found.map((f) => f.name));
   const passed = passedLine(data.passed);
@@ -316,6 +329,7 @@ export default function Replay() {
       <WalkMap
         ref={mapRef}
         trace={trace}
+        rides={rides}
         traceOpacity={beat === 'fog' || beat === 'reading' ? 0.3 : 1}
         walked={shownWalked}
         fog={fog}
@@ -428,9 +442,11 @@ export default function Replay() {
                   <Text style={styles.heroLabel}>{head.small}</Text>
                 </View>
                 <Text style={styles.cardLine}>
-                  {formatDistance(s?.distance_m ?? 0)} · {formatDuration(s?.duration_ms ?? Math.max(0, (data.walk.ended_at ?? data.walk.started_at) - data.walk.started_at - pausedMs(data.pauses, data.walk.started_at, data.walk.ended_at ?? data.walk.started_at)))}
+                  <Text testID="card-distance">{formatDistance(s?.distance_m ?? 0)}</Text> · {formatDuration(s?.duration_ms ?? Math.max(0, (data.walk.ended_at ?? data.walk.started_at) - data.walk.started_at - pausedMs(data.pauses, data.walk.started_at, data.walk.ended_at ?? data.walk.started_at)))}
                   {s && s.streets_walked > 0 ? ` · ${s.streets_walked} ${s.streets_walked === 1 ? 'street' : 'streets'} walked` : ''}
                 </Text>
+                {/* A ride on its own line, so the card's line doesn't say "walked" twice (rides audit, UI). */}
+                {rideM >= 1 ? <Text testID="card-ride" style={styles.cardMuted}>+ {formatDistance(rideM)} by ride</Text> : null}
                 {s && formatCaptures(s) ? <Text style={styles.cardMuted}>{formatCaptures(s)} · tap a pin to open</Text> : null}
                 {finds ? <Text testID="card-finds" style={styles.cardMuted}>{finds}</Text> : null}
                 {/* The lows stay in (E11): what came within view and wasn't stopped for. */}

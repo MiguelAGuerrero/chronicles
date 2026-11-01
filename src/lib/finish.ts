@@ -1,6 +1,7 @@
 import type { CollectedFeatures } from '../components/map/types';
 import { db } from './db';
-import { boundsOf, distanceM, filterFixes, pausedMs, positionAt, smoothDwells, traceDistanceM, withoutPauses, type Bounds, type PauseSpan } from './geo';
+import { boundsOf, distanceM, pausedMs, positionAt, withoutPauses, type Bounds, type PauseSpan } from './geo';
+import { keptFixes, readTrace, smoothKept, traceDistances } from './rides';
 import { snap } from './snapper';
 import { deriveSegments, type RoadFeature } from './streets';
 import { assignAreas, snapDone } from './areas/assign';
@@ -54,17 +55,22 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
   const build = await ensureTileBuild();
   const pauses = await db.getPauses(walk.id);
   const points = withoutPauses(await db.getPoints(walk.id), pauses);
-  const fixes = filterFixes(points, walk.started_at);
+  const tr = readTrace(points, walk.started_at, pauses);
+  // Streets are read where you walked (a ride credits none, R7); places and captures take the rides too (R8, R9).
+  const fixes = tr.walked;
+  const kept = keptFixes(tr);
   const bounds = walkBounds(fixes);
+  const keptBounds = walkBounds(kept);
   let derived: StreetSegment[] = [];
   let area = walk.area;
 
   // The places the walk was in: kept as they were when the place points can't be read (offline).
   let placed: { areas: Area[]; rows: WalkArea[] } | null = null;
   let streetsRead = false;
+  let features: CollectedFeatures | null = null;
   if (bounds) {
     const trace = fixes.map((p) => [p.lon, p.lat] as LngLat);
-    const features = await collector.collect(collector.plan(bounds, trace)).catch(() => null);
+    features = await collector.collect(collector.plan(bounds, trace)).catch(() => null);
     if (features) {
       // Views that timed out leave streets unread: the walk is snapped again later.
       streetsRead = features.complete;
@@ -73,14 +79,17 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
       await db.putPlaces(placesFromTilePois(features.pois ?? [], build)).catch(() => {});
       const mid = fixes[Math.floor(fixes.length / 2)];
       area = pickArea(features.places, [mid.lon, mid.lat]) ?? area;
-      const center: LngLat = [(bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2];
-      const wide = await collector.collectPlaces(center).catch(() => null);
-      if (wide) {
-        const placement = assignAreas(walk.id, points, pauses, placesFromTiles([...features.places, ...wide]), appBoundaries(), walk.started_at);
-        placed = { areas: [...placement.areas.values()], rows: placement.rows };
-        // No neighborhood or town: the nearest named place (pickArea above) stays the title.
-        area = placement.title ?? area;
-      }
+    }
+  }
+  // A walk that is all ride is still placed from its ride (R8); a failed street read waits, as before.
+  if (keptBounds && (features || !bounds)) {
+    const center: LngLat = [(keptBounds[0] + keptBounds[2]) / 2, (keptBounds[1] + keptBounds[3]) / 2];
+    const wide = await collector.collectPlaces(center).catch(() => null);
+    if (wide) {
+      const placement = assignAreas(walk.id, points, pauses, placesFromTiles([...(features?.places ?? []), ...wide]), appBoundaries(), walk.started_at);
+      placed = { areas: [...placement.areas.values()], rows: placement.rows };
+      // No neighborhood or town: the nearest named place (pickArea above) stays the title.
+      area = placement.title ?? area;
     }
   }
   // Cached pieces from earlier walks of this build, plus the ones just derived.
@@ -94,14 +103,17 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
   // Streets are counted by name (the owner's call); unnamed paths clear fog but are not streets.
   const keys = new Set(visited.map((v) => v.street_key).filter((k) => k.startsWith('name:')));
   const captures = await db.getCaptures(walk.id);
-  await placeCaptures(captures, smoothDwells(fixes), pauses, segments);
+  // A capture on a ride lands on the ride line (R9).
+  await placeCaptures(captures, smoothKept(tr), pauses, segments);
 
-  const end = walk.ended_at ?? fixes.at(-1)?.t ?? walk.started_at;
+  const end = walk.ended_at ?? kept.at(-1)?.t ?? walk.started_at;
+  const { walkedM, rideM } = traceDistances(tr);
   const summary: WalkSummary = {
     walk_id: walk.id,
     build,
-    // Jitter while standing still is not distance walked.
-    distance_m: traceDistanceM(smoothDwells(fixes), pauses),
+    // Jitter while standing still is not distance walked, and a ride is its own distance (R6).
+    distance_m: walkedM,
+    ride_m: rideM,
     // Paused time is not walking time.
     duration_ms: Math.max(0, end - walk.started_at - pausedMs(pauses, walk.started_at, end)),
     new_streets: [...keys].filter((k) => !earlier.has(k)).length,
@@ -115,7 +127,7 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
   // Without its places (the wide read failed or timed out), the walk is snapped
   // again at its next replay rather than marked done.
   // A walk with no trace has nothing to read, and is done.
-  await db.saveSnap(walk.id, derived, visited, summary, placed, snapDone({ streetsRead: !bounds || streetsRead, placesRead: !bounds || placed != null }));
+  await db.saveSnap(walk.id, derived, visited, summary, placed, snapDone({ streetsRead: !bounds || streetsRead, placesRead: !keptBounds || placed != null }));
   if (area !== walk.area) await db.updateWalk(walk.id, { area });
   return summary;
 }

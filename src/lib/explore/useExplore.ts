@@ -3,7 +3,7 @@ import type { MarkPin } from '../../components/MarkPinView';
 import { db } from '../db';
 import { categoryOf } from '../discovery/categories';
 import { boundsOf, distanceM } from '../geo';
-import { tapFeedback } from '../haptics';
+import { feedback } from '../motion';
 import { sweepCovered } from '../landing/view';
 import type { Capture, LngLat } from '../types';
 import {
@@ -38,6 +38,8 @@ export function useExplore(opts: {
   walkId: string | null;
   exploring: boolean;
   here: LngLat | null;
+  /** On a ride (rides, R12): nothing is named, no pocket alert, no read starts until you are on foot. */
+  riding?: boolean;
   /** Every accepted fix of this walk, for what it revealed after a reload (E7). */
   fixes: LngLat[];
   captures: Capture[];
@@ -133,18 +135,20 @@ export function useExplore(opts: {
   }, [loadKnown, loadItems, readAt]);
 
   const { here, exploring } = opts;
+  const riding = !!opts.riding;
   useEffect(() => {
     if (!here || !opts.walkId) return;
     if (!itemsAt.current || distanceM(itemsAt.current, here) >= RELOAD_M) loadItems(here).catch(() => {});
+    if (riding) return;
     if (checkedAt.current && distanceM(checkedAt.current, here) < CHECK_M) return;
     checkedAt.current = here;
     maybeRead(here).catch(() => {});
-  }, [here, opts.walkId, loadItems, maybeRead]);
+  }, [here, riding, opts.walkId, loadItems, maybeRead]);
 
   // Switched to exploring: check at once, so busy streets a quiet read skipped come in now, not 25 m on.
   useEffect(() => {
     const at = latest.current.here;
-    if (!exploring || !at) return;
+    if (!exploring || !at || latest.current.riding) return;
     checkedAt.current = at;
     maybeRead(at).catch(() => {});
   }, [exploring, maybeRead]);
@@ -187,12 +191,12 @@ export function useExplore(opts: {
     return () => clearTimeout(t);
   }, [exploring, items, opts.fixes]);
   useEffect(() => {
-    if (!exploring || !here || !items.length) return;
+    if (!exploring || !here || !items.length || riding) return;
     const fresh = [...revealedKeys(items, [here])].filter((k) => !revealed.has(k));
     if (!fresh.length) return;
     const t = setTimeout(() => setRevealed((r) => new Set([...r, ...fresh])), 0);
     return () => clearTimeout(t);
-  }, [exploring, here, items, revealed]);
+  }, [exploring, here, riding, items, revealed]);
 
   // A capture within 60 m finds the nearest place, on any walk, whatever its kind (E8, E9, E18).
   // Each capture is handled once; an unstamped one has no place until stop.
@@ -232,12 +236,12 @@ export function useExplore(opts: {
   // The pocket alert (E19): a light tap, once a walk per place, as it comes into range as a "?".
   const alerted = useRef(new Set<string>());
   useEffect(() => {
-    if (!exploring || !settings.haptic) return;
+    if (!exploring || !settings.haptic || riding) return;
     const due = alertsDue(shown.filter((s) => s.state === 'unknown').map((s) => s.item.key), alerted.current);
     if (!due.length) return;
     for (const k of due) alerted.current.add(k);
-    tapFeedback();
-  }, [exploring, settings.haptic, shown]);
+    feedback('tap');
+  }, [exploring, settings.haptic, riding, shown]);
 
   const pins = useMemo<MarkPin[]>(() => {
     const pin = (item: ChecklistItem, o: Partial<MarkPin>): MarkPin => {

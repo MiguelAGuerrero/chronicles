@@ -130,7 +130,11 @@ const MIGRATIONS = [
     key TEXT PRIMARY KEY, lon REAL NOT NULL, lat REAL NOT NULL, build TEXT NOT NULL, read_at INTEGER NOT NULL, candidates TEXT NOT NULL
   );
   `,
-  // 10: moments (M3, M6): a capture, and a find, may belong to no walk. SQLite
+  // 10: ridden distance (rides, R6). Null on summaries written before it, so the replay falls back to the trace's.
+  `
+  ALTER TABLE walk_summary ADD COLUMN ride_m REAL;
+  `,
+  // 11: moments (M3, M6): a capture, and a find, may belong to no walk. SQLite
   // can't drop NOT NULL in place, so both tables are rebuilt; read by time for days.
   `
   CREATE TABLE capture_new (
@@ -335,9 +339,9 @@ export const db: Db = {
         );
       }
       await t.runAsync(
-        `INSERT OR REPLACE INTO walk_summary (walk_id, build, distance_m, duration_ms, new_streets, streets_walked, photos, videos, voices, notes, streets_read)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        s.walk_id, s.build, s.distance_m, s.duration_ms, s.new_streets, s.streets_walked, s.photos, s.videos ?? 0, s.voices, s.notes, s.streets_read ? 1 : 0,
+        `INSERT OR REPLACE INTO walk_summary (walk_id, build, distance_m, duration_ms, new_streets, streets_walked, photos, videos, voices, notes, streets_read, ride_m)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        s.walk_id, s.build, s.distance_m, s.duration_ms, s.new_streets, s.streets_walked, s.photos, s.videos ?? 0, s.voices, s.notes, s.streets_read ? 1 : 0, s.ride_m ?? 0,
       );
       await t.runAsync('UPDATE walk SET snapped_build = ? WHERE id = ?', complete ? s.build : null, walkId);
       if (placed) {
@@ -389,7 +393,7 @@ export const db: Db = {
     const rows = await (await conn()).getAllAsync<Omit<WalkSummary, 'streets_read'> & { streets_read: number }>(
       'SELECT * FROM walk_summary',
     );
-    return rows.map((r) => ({ ...r, streets_read: r.streets_read === 1 }));
+    return rows.map((r) => ({ ...r, ride_m: r.ride_m ?? undefined, streets_read: r.streets_read === 1 }));
   },
 
   saveChecklists({ areas, items, read }) {

@@ -85,7 +85,10 @@ export interface VisitedSegment {
 export interface WalkSummary {
   walk_id: string;
   build: string;
+  /** Walked distance: rides are not walking (R6). */
   distance_m: number;
+  /** Ridden distance; absent on summaries written before rides existed. */
+  ride_m?: number;
   duration_ms: number;
   new_streets: number;
   streets_walked: number;

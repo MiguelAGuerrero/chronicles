@@ -1006,6 +1006,27 @@ function check(ok, what) {
     const reminded = await page.waitForSelector('[data-testid=reminder]', { timeout: 15000 }).then(() => true, () => false);
     check(reminded && /memor|note/i.test(await page.locator('[data-testid=reminder]').innerText()), 'a later walk passing a flagged capture brings it back');
     await shot(page, '13-reminder');
+    // Memories on revisit: the first walk's captures nearby show as faint pins on this quiet walk
+    // (MR1, MR6), but not the one whose reminder card is up (MR7).
+    const captureRows = () => page.evaluate(() => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const g = req.result.transaction('capture', 'readonly').objectStore('capture').getAll();
+        g.onsuccess = () => resolve(g.result);
+      };
+    }));
+    const memoryPins = () => walkMap().locator('[data-testid=memory-pin]');
+    await page.waitForSelector('[data-testid=memory-pin]', { timeout: 15000 }).catch(() => null);
+    const flaggedNote = (await captureRows()).find((c) => /cardamom/.test(c.body ?? ''));
+    const shownIds = (await memoryPins().evaluateAll((els) => els.map((e) => e.dataset.ids))).join(',');
+    check((await memoryPins().count()) >= 1 && !shownIds.includes(flaggedNote.id),
+      `a later walk shows the earlier walk's captures nearby as memory pins, minus the one being reminded (MR1, MR6, MR7: ${await memoryPins().count()} pins)`);
+    // Read by place, never the whole store (audit 2).
+    const indexed = await page.evaluate(() => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => resolve([...req.result.transaction('capture', 'readonly').objectStore('capture').indexNames]);
+    }));
+    check(indexed.includes('lat'), `captures are read by latitude, not with getAll over the store (audit 2: ${indexed.join(', ')})`);
     const recallRows = () => page.evaluate(() => new Promise((resolve) => {
       const req = indexedDB.open('chronicles');
       req.onsuccess = () => {
@@ -1033,6 +1054,42 @@ function check(ok, what) {
     const again = await recallRows();
     check((await page.locator('[data-testid=reminder]').count()) === 0 && again.length === 1 && again[0].fired_count === 0,
       'a capture flagged mid-walk doesn’t come back in that walk');
+    // A memory pin: faded and smaller than a capture pin (MR3); a tap previews it (MR4), and the preview
+    // opens the viewer with every memory from that spot (MR5).
+    await page.waitForSelector('[data-testid=memory-pin]', { timeout: 15000 });
+    const look = await memoryPins().first().evaluate((el) => ({ opacity: Number(getComputedStyle(el.firstElementChild).opacity), label: el.getAttribute('aria-label') }));
+    check(look.opacity < 0.7 && /memor/i.test(look.label), `memory pins are faint and named as memories (MR3: opacity ${look.opacity}, "${look.label}")`);
+    // Under this walk's own pins, never over them (audit 6).
+    const z = await memoryPins().first().evaluate((el) => getComputedStyle(el).zIndex);
+    check(z === '0', `memory pins sit under capture pins (audit 6: z-index ${z})`);
+    // The tapped pin's own capture leads the preview (audit 3).
+    const tappedIds = (await memoryPins().first().getAttribute('data-ids')).split(',');
+    const tappedFirst = (await captureRows()).find((c) => c.id === tappedIds[0]);
+    // ✕ and Escape close it (MR4).
+    await memoryPins().first().click();
+    await page.waitForSelector('[data-testid=memory-preview]');
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(200);
+    const goneEsc = (await page.locator('[data-testid=memory-preview]').count()) === 0;
+    await memoryPins().first().click();
+    await page.waitForSelector('[data-testid=memory-preview]');
+    await page.click('[data-testid=memory-close]');
+    await page.waitForTimeout(200);
+    check(goneEsc && (await page.locator('[data-testid=memory-preview]').count()) === 0, 'Escape and ✕ close the preview (MR4)');
+    await memoryPins().first().click();
+    await page.waitForSelector('[data-testid=memory-preview]');
+    const preview = await page.locator('[data-testid=memory-preview]').innerText();
+    const kindWord = { photo: /Photo|\w/, video: /Video/, voice: /Voice memo/, text: /\w/ }[tappedFirst.kind];
+    // The first line with words: the kind's icon is a glyph on its own line.
+    const firstLine = preview.split('\n').map((l) => l.trim()).find((l) => /[A-Za-z0-9]/.test(l)) ?? '';
+    check(kindWord.test(firstLine) && (tappedFirst.kind !== 'text' || firstLine === (tappedFirst.body ?? '').split('\n')[0]),
+      `the preview shows the tapped pin's own capture (audit 3: ${tappedFirst.kind}, "${firstLine}")`);
+    check(/20\d\d|Nov|Oct/.test(preview) && /Fox Point|Cardamom/.test(preview), `a tap previews the memory with its date and walk (MR4: ${preview.replace(/\s+/g, ' ').slice(0, 80)})`);
+    check((await page.locator('[data-testid=reminder]').count()) === 0, 'opening a memory never brings a card or a buzz of its own');
+    await page.click('[data-testid=memory-open]');
+    await page.waitForSelector('text=Memories here');
+    check((await page.locator('[data-testid=memory-preview]').count()) === 0, 'the preview opens the viewer with the memories from that spot (MR5)');
+    await page.click('[aria-label="Close"]');
     // A tapped reminder notification opens its capture, playing (NT8). First with the walk screen in front:
     // the service worker's message reaches the page's listener, and the capture opens at once (audit 1).
     const noteId = await page.evaluate(() => new Promise((resolve) => {
@@ -1054,6 +1111,46 @@ function check(ok, what) {
       && !page.url().includes('notice='), 'a tap that opened the app opens its capture on the walk, and leaves the URL clean');
     await page.click('[aria-label="Close"]');
 
+    // Rides (R5, R6, R11): a bus leg at 12 m/s, one fix a second, is drawn dashed and reads "On a ride",
+    // never "Weak GPS" (the bug, Nov 1: a bus kept its first fix and showed Weak GPS); the card shows
+    // walked and ridden distance apart.
+    const busFrom = pts[25];
+    for (let j = 0; j < 4; j++) {
+      await ctx.setGeolocation({ longitude: busFrom[0], latitude: busFrom[1] + j * 0.00001, accuracy: 6 });
+      await page.waitForTimeout(1000);
+    }
+    const busStep = 12 / (111320 * Math.cos((busFrom[1] * Math.PI) / 180));
+    let rideChip = false;
+    let weakSeen = false;
+    for (let j = 1; j <= 45; j++) {
+      await ctx.setGeolocation({ longitude: busFrom[0] + j * busStep, latitude: busFrom[1] + 0.00003, accuracy: 6 });
+      await page.waitForTimeout(1000);
+      if (await page.getByText('Weak GPS').count()) weakSeen = true;
+      if (j >= 30 && !rideChip) rideChip = (await page.getByText('On a ride').count()) > 0;
+    }
+    await page.waitForTimeout(2200);
+    await shot(page, '14-ride');
+    check(rideChip, 'a bus leg reads "On a ride" (R11)');
+    check(!weakSeen, 'a bus leg never reads "Weak GPS" (R11)');
+    const rides = await page.locator('[data-rides]').last().getAttribute('data-rides');
+    check(Number(rides?.split(':')[0]) === 1 && Number(rides?.split(':')[1]) > 30, `the ride is drawn as its own dashed line (R5: ${rides})`);
+    const stats = await page.locator('[data-testid=walk-stats]').innerText();
+    check(/^\d+:\d\d · \d+ m\n\+ \d+ m ride$/.test(stats), `the walk's distance shows the ride apart, on its own line (R6: "${stats}")`);
+    const holdBox = await page.locator('[data-testid=stop]').boundingBox();
+    await page.mouse.move(holdBox.x + holdBox.width / 2, holdBox.y + holdBox.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(1100);
+    await page.mouse.up();
+    await page.waitForURL(/replay/, { timeout: 30000 });
+    await page.waitForSelector('[data-testid=skip]', { timeout: 60000 });
+    await page.click('[data-testid=skip]');
+    await page.waitForSelector('[data-testid=card-ride]', { timeout: 60000 });
+    const cardDistance = await page.locator('[data-testid=card-distance]').innerText();
+    const cardRide = await page.locator('[data-testid=card-ride]').innerText();
+    await shot(page, '14b-ride-card');
+    // The bus leg is 45 s at 12 m/s: about 540 m, with no jog from the stop (the audit's run-up, Nov 1).
+    const rideMetres = Number(/\+ (\d+) m by ride/.exec(cardRide)?.[1]);
+    check(/^\d+ m$/.test(cardDistance) && rideMetres > 480 && rideMetres < 600, `the card shows walked, and the ride on its own line (R6: "${cardDistance}", "${cardRide}")`);
     // Moments and days (the concept doc's "Moments and days" tab, M1-M17), in a fresh browser: nothing kept yet.
     {
       const ctx2 = await browser.newContext({

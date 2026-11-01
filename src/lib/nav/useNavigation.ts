@@ -35,6 +35,8 @@ export function useNavigation(opts: {
   here: LngLat | null;
   lastFixAt: number | null;
   paused: boolean;
+  /** On a ride (rides, R12): no re-route and no "off your route"; arriving still counts. */
+  riding?: boolean;
   map: () => WalkMapHandle | null;
   onArrive: (dest: Waypoint) => void;
   onError: (message: string) => void;
@@ -183,8 +185,11 @@ export function useNavigation(opts: {
         return;
       }
       let next = step.state;
+      // A bus or trolley follows its own line: leaving the route on one is not getting lost (R12).
+      const riding = !!latest.current.riding;
+      if (riding) next = { ...next, offCount: 0, offRoute: false };
       if (announceStep(s.leftM, next.leftM)) AccessibilityInfo.announceForAccessibility(`${formatDistance(next.leftM)} left to ${s.dest.label}`);
-      if (step.reroute) {
+      if (step.reroute && !riding) {
         const again = routeTo(sources.current, here, s.dest.at, 'shortest').route;
         if (again) {
           next = { ...next, route: again, leftM: again.lengthM, offCount: 0, offRoute: false };

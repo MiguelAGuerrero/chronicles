@@ -23,6 +23,8 @@ import { db } from '../lib/db';
 import { focusOn } from '../lib/focus';
 import { boundsOf, distanceM, distanceToLinesM, nearPoints, pausedMs } from '../lib/geo';
 import { capturesHere, type HereResult } from '../lib/here';
+import { groupFirst, groupRadiusM, MEMORY_RULES, memoriesNear, memoryReader } from '../lib/memories';
+import { MemoryPreview } from '../components/MemoryPreview';
 import { deriveSegments, streetKey } from '../lib/streets';
 import { feedback, MOTION } from '../lib/motion';
 import { recorder } from '../lib/recorder';
@@ -57,28 +59,32 @@ const NOTICE_MS = 6000;
 const SLOW_TICK_MS = 5000;
 
 /** Text that updates itself every second, so its parent doesn't re-render to tick it (perf). */
-function Ticking(props: { text: (now: number) => string; style?: StyleProp<TextStyle>; label?: (now: number) => string }) {
+function Ticking(props: { text: (now: number) => string; style?: StyleProp<TextStyle>; label?: (now: number) => string; testID?: string; numberOfLines?: number }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
   return (
-    <Text style={props.style} accessibilityLabel={props.label?.(now)}>
+    <Text testID={props.testID} style={props.style} numberOfLines={props.numberOfLines} accessibilityLabel={props.label?.(now)}>
       {props.text(now)}
     </Text>
   );
 }
 
-/** Time walked (paused time left out) and distance, in the bottom strip. */
-function WalkStats(props: { startedAt: number | null; pauses: Pause[]; distanceM: number }) {
-  const { startedAt, pauses, distanceM } = props;
+/** Time walked (paused time left out) and distance, in the bottom strip; a ride's distance after it (R6). */
+function WalkStats(props: { startedAt: number | null; pauses: Pause[]; distanceM: number; rideM: number }) {
+  const { startedAt, pauses, distanceM, rideM } = props;
   const elapsed = (now: number) => (startedAt == null ? 0 : now - startedAt - pausedMs(pauses, startedAt, now));
+  // The ride on a second, smaller line, so the strip keeps its width at 390 px (rides audit, UI).
+  const ride = rideM >= 1 ? `\n+ ${formatDistance(rideM)} ride` : '';
   return (
     <Ticking
+      testID="walk-stats"
       style={styles.stats}
-      text={(now) => `${formatElapsed(elapsed(now))} · ${formatDistance(distanceM)}`}
-      label={(now) => `${formatDuration(elapsed(now))} walked, ${formatDistance(distanceM)}`}
+      numberOfLines={ride ? 2 : 1}
+      text={(now) => `${formatElapsed(elapsed(now))} · ${formatDistance(distanceM)}${ride}`}
+      label={(now) => `${formatDistance(distanceM)} walked in ${formatDuration(elapsed(now))}${rideM >= 1 ? `, plus ${formatDistance(rideM)} by ride` : ''}`}
     />
   );
 }
@@ -215,7 +221,8 @@ export default function WalkScreen() {
   useEffect(() => {
     const now = live.here;
     const run = fogRun.current;
-    if (!now || build == null || run.busy || (run.at && distanceM(run.at, now) < FOG_STEP_M)) return;
+    // Not on a ride: its streets aren't walked, and a bus would read the map every few seconds (rides audit 13).
+    if (!now || build == null || live.riding || run.busy || (run.at && distanceM(run.at, now) < FOG_STEP_M)) return;
     run.busy = true;
     run.at = now;
     (async () => {
@@ -246,7 +253,7 @@ export default function WalkScreen() {
       .finally(() => {
         run.busy = false;
       });
-  }, [live.here, build]);
+  }, [live.here, live.riding, build]);
   // Unwalked streets near me: a count, and the fog drawn boldly over a veiled map.
   const [showUnwalked, setShowUnwalked] = useState(false);
   // Named streets only (the owner's call): unnamed paths are fog, not a count.
@@ -255,6 +262,8 @@ export default function WalkScreen() {
   // A long press on the map opens a small sheet for that spot: Go here, and
   // what happened here (every capture near it, on any walk) when there is any.
   const [here, setHere] = useState<HereResult | null>(null);
+  // A memory pin's preview (MR4).
+  const [memory, setMemory] = useState<{ result: HereResult; from: LngLat | null } | null>(null);
   const [spot, setSpot] = useState<{ at: LngLat; here: HereResult | null; from: LngLat | null } | null>(null);
   const hereTaps = useRef(0);
   const [hereKey, setHereKey] = useState(0);
@@ -266,6 +275,7 @@ export default function WalkScreen() {
     if (cap.voiceStartedAt != null || stopping || viewing || here || settingsOpen) return;
     setMarkOpen(null);
     setOptions(false);
+    setMemory(null);
     feedback('tap');
     const tap = ++hereTaps.current;
     const r = await capturesHere(at, cap.captures, radiusM).catch(() => null);
@@ -274,9 +284,10 @@ export default function WalkScreen() {
   }
   // The spot card (and the options card) goes once you walk on, or with Back (Android) and Escape (web).
   useEffect(() => {
-    if (!spot && !options && !settingsOpen) return;
+    if (!spot && !options && !settingsOpen && !memory) return;
     const close = () => {
       setSpot(null);
+      setMemory(null);
       setOptions(false);
       // Settings close as Cancel does (audit, UI).
       setSettingsOpen(false);
@@ -293,7 +304,7 @@ export default function WalkScreen() {
       back.remove();
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
-  }, [spot, options, settingsOpen]);
+  }, [spot, options, settingsOpen, memory]);
   useEffect(() => {
     if (!spot?.from || !live.here || distanceM(spot.from, live.here) < 30) return;
     const t = setTimeout(() => setSpot(null), 0);
@@ -312,6 +323,7 @@ export default function WalkScreen() {
     here: live.here,
     lastFixAt: live.lastFixAt,
     paused: pauses.some((p) => p.ended_at == null),
+    riding: live.riding,
     map: () => mapRef.current,
     onArrive: (dest) => {
       feedback('success');
@@ -342,6 +354,7 @@ export default function WalkScreen() {
     walkId: walk?.id ?? null,
     exploring,
     here: live.here,
+    riding: live.riding,
     fixes,
     captures: cap.captures,
     route: routeLine,
@@ -381,6 +394,46 @@ export default function WalkScreen() {
   // the location task checks every batch, and fires reach this card while the
   // screen is in front. A second fire joins the open card (R7).
   const [reminder, setReminder] = useState<{ captures: Capture[]; at: LngLat | null; shownAt: number } | null>(null);
+  // Memories on revisit: earlier walks' captures within 100 m, as faint pins, on every walk (the
+  // owner's call), never a buzz or a notification (MR1, MR6). The area is read once per 50 m (MR8).
+  const [memoryPool, setMemoryPool] = useState<Capture[]>([]);
+  // One reader per walk: a slow read lands even as fixes come in, a failed one is tried again, and
+  // it sends only a changed set (audit 1, 10).
+  const [memoryReads] = useState(() => memoryReader((at) => db.capturesIn(boundsOf([at], MEMORY_RULES.readBoxM)!), setMemoryPool));
+  useEffect(() => () => memoryReads.stop(), [memoryReads]);
+  useEffect(() => {
+    if (live.here) memoryReads.poll(live.here);
+  }, [live.here, memoryReads]);
+  // A capture whose reminder card is up has no pin meanwhile (MR7); the pins change only with the set (MR8).
+  const memoryIds = memoriesNear({ pool: memoryPool, here: live.here, walkId: walk?.id ?? null, hidden: new Set(reminder?.captures.map((c) => c.id) ?? []) })
+    .map((c) => c.id)
+    .join(',');
+  const memories = useMemo(() => {
+    const ids = new Set(memoryIds.split(','));
+    return memoryPool.filter((c) => ids.has(c.id));
+  }, [memoryIds, memoryPool]);
+  const [memoryView, setMemoryView] = useState<HereResult | null>(null);
+  const memoryTaps = useRef(0);
+  const openMemory = async (group: Capture[], at: LngLat) => {
+    const tap = ++memoryTaps.current;
+    // The tapped pin's own captures first, then every other memory from that spot, reaching the
+    // group's farthest member (MR5, audit 3); this walk's own captures aren't memories.
+    const r = await capturesHere(at, [], groupRadiusM(at, group)).catch(() => null);
+    if (tap !== memoryTaps.current) return;
+    const captures = groupFirst(group, r?.captures ?? [], walk?.id ?? null);
+    if (!captures.length) return;
+    // One card at a time (audit 5).
+    setSpot(null);
+    setMarkOpen(null);
+    setOptions(false);
+    setMemory({ result: { captures, context: r?.context ?? new Map() }, from: live.here });
+  };
+  // The preview goes once you walk 30 m on (MR4).
+  useEffect(() => {
+    if (!memory?.from || !live.here || distanceM(memory.from, live.here) < MEMORY_RULES.closeM) return;
+    const t = setTimeout(() => setMemory(null), 0);
+    return () => clearTimeout(t);
+  }, [memory, live.here]);
   const hereRef = useRef(live.here);
   useEffect(() => {
     hereRef.current = live.here;
@@ -485,7 +538,8 @@ export default function WalkScreen() {
     const at = live.here;
     if (!walk || !at || !hotPockets.length) return;
     const now = Date.now();
-    if (pausedNow || !inDeadZone(at, hotPockets)) {
+    // Riding is not walking far from everything (rides audit 13).
+    if (pausedNow || live.riding || !inDeadZone(at, hotPockets)) {
       farSince.current = null;
       return;
     }
@@ -501,9 +555,9 @@ export default function WalkScreen() {
     return () => {
       alive = false;
     };
-  }, [walk, live.here, hotPockets, quiet, pausedNow]);
+  }, [walk, live.here, live.riding, hotPockets, quiet, pausedNow]);
   // Spent only once it has been seen: not under a card, a route or settings, never on a quiet walk (audit).
-  const nudgeShown = !!nudge && !quiet && !spot && !openMark && !options && !settingsOpen && !navigation.nav && !navigation.finding;
+  const nudgeShown = !!nudge && !quiet && !spot && !openMark && !options && !memory && !settingsOpen && !navigation.nav && !navigation.finding;
   useEffect(() => {
     if (!nudgeShown || !walk) return;
     if (!nudgedRef.current) {
@@ -650,13 +704,15 @@ export default function WalkScreen() {
 
   const paused = pauses.some((p) => p.ended_at == null);
   // Paused time does not count as walking.
-  const weak = status.kind === 'recording' && live.lastFixAt != null && now - live.lastFixAt > WEAK_GPS_MS;
+  // Weak GPS is no usable fix for a while, judged before the speed gate: a bus's fixes are good ones (R11).
+  const weak = status.kind === 'recording' && live.lastGoodAt != null && now - live.lastGoodAt > WEAK_GPS_MS;
   // The growing trace says it is recording; the status only shows when it is not.
   const problem =
     paused ? { label: 'Paused', color: theme.muted }
     : status.kind === 'error' ? { label: 'Not recording', color: theme.danger }
     : status.kind === 'waiting' || status.kind === 'idle' ? { label: 'Waiting for GPS', color: theme.warn }
     : weak ? { label: 'Weak GPS', color: theme.warn }
+    : live.riding ? { label: 'On a ride', color: theme.muted }
     : null;
   // A forgotten pause loses the rest of the walk: after a while, say so once per pause.
   const openPause = pauses.find((p) => p.ended_at == null);
@@ -673,6 +729,7 @@ export default function WalkScreen() {
       <WalkMap
         landing={hotView}
         trace={live.runs}
+        rides={live.rides}
         walked={walked}
         fog={fog}
         captures={cap.captures}
@@ -686,12 +743,16 @@ export default function WalkScreen() {
         onPress={() => {
           setSpot(null);
           setMarkOpen(null);
+          setMemory(null);
         }}
+        memories={memories}
+        onMemoryPress={recordingVoice || stopping || settingsOpen ? undefined : (group, at) => void openMemory(group, at)}
         discoveries={explore.pins}
         onDiscoveryPress={recordingVoice || stopping || settingsOpen ? undefined : (id) => {
           // A found place is shown, not a card to open: its capture's pin is the thing to tap (audit, UI).
           if (explore.found.has(id)) return;
           setSpot(null);
+          setMemory(null);
           setMarkOpen(id);
         }}
         marks={marks}
@@ -822,7 +883,7 @@ export default function WalkScreen() {
             <Ticking style={styles.voiceLiveText} text={(t) => formatElapsed(t - cap.voiceStartedAt!)} />
           </View>
         )}
-        {justTook && !recordingVoice && !spot && !openMark && !options && (
+        {justTook && !recordingVoice && !spot && !openMark && !options && !memory && (
           <View style={styles.undo} accessibilityLiveRegion="polite">
             <Text style={styles.undoText}>Photo saved here</Text>
             <Pressable
@@ -839,7 +900,7 @@ export default function WalkScreen() {
             </Pressable>
           </View>
         )}
-        {cap.discarded && !recordingVoice && !spot && !openMark && !options && (
+        {cap.discarded && !recordingVoice && !spot && !openMark && !options && !memory && (
           <View style={styles.undo} accessibilityLiveRegion="polite">
             <Text style={styles.undoText}>Voice memo discarded</Text>
             <Pressable testID="voice-undo" accessibilityRole="button" onPress={() => cap.undoDiscard()} hitSlop={10} style={styles.undoBtn}>
@@ -847,7 +908,7 @@ export default function WalkScreen() {
             </Pressable>
           </View>
         )}
-        {cap.unsaved && !recordingVoice && !spot && !openMark && !options && (
+        {cap.unsaved && !recordingVoice && !spot && !openMark && !options && !memory && (
           <View style={styles.undo} accessibilityLiveRegion="polite">
             <Text style={styles.undoText}>Voice memo not saved</Text>
             <Pressable accessibilityRole="button" onPress={() => cap.retrySave()} hitSlop={10} style={styles.undoBtn}>
@@ -904,7 +965,7 @@ export default function WalkScreen() {
 
       <View style={[styles.bar, { paddingBottom: 10 + insets.bottom }]}>
         <View style={styles.barInner}>
-          <WalkStats startedAt={walk?.started_at ?? null} pauses={pauses} distanceM={live.distanceM} />
+          <WalkStats startedAt={walk?.started_at ?? null} pauses={pauses} distanceM={live.distanceM} rideM={live.rideM} />
           <View style={styles.barActions}>
           <Pressable
             testID="walk-options"
@@ -914,6 +975,7 @@ export default function WalkScreen() {
             onPress={() => {
               setSpot(null);
               setMarkOpen(null);
+              setMemory(null);
               setOptions((v) => !v);
             }}
             style={({ pressed }) => [styles.pauseBtn, options && styles.optionsOn, pressed && styles.pressed]}
@@ -1104,6 +1166,20 @@ export default function WalkScreen() {
           setCaptioning(null);
         }}
       />
+      {memory && !spot && !recordingVoice && (
+        <View style={[styles.spotRow, { bottom: insets.bottom + 92 + 68 + 12 }]} pointerEvents="box-none">
+          <MemoryPreview
+            captures={memory.result.captures}
+            walkLine={memory.result.context.get(memory.result.captures[0].id) ?? null}
+            onOpen={() => {
+              const r = memory.result;
+              setMemory(null);
+              setMemoryView(r);
+            }}
+            onClose={() => setMemory(null)}
+          />
+        </View>
+      )}
       {spot && (
         // Above the capture row (bottom 92, 68 tall), in the pills' place, so the row never moves or hides.
         <View style={[styles.spotRow, { bottom: insets.bottom + 92 + 68 + 12 }]} pointerEvents="box-none">
@@ -1141,6 +1217,14 @@ export default function WalkScreen() {
         </View>
       )}
 
+      <CaptureViewer
+        title="Memories here"
+        remind
+        walkId={walk?.id ?? null}
+        captures={memoryView?.captures ?? null}
+        context={memoryView?.context}
+        onClose={() => setMemoryView(null)}
+      />
       <CaptureViewer
         key={`here:${hereKey}`}
         title="What happened here"
@@ -1311,7 +1395,7 @@ const styles = StyleSheet.create({
   voiceLiveText: { color: theme.ink, fontSize: 18, fontWeight: '700', fontVariant: ['tabular-nums'] },
   bar: { backgroundColor: theme.bg, paddingHorizontal: 16, paddingTop: 10, borderTopWidth: 1, borderColor: theme.line },
   barInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', maxWidth: 640, width: '100%', alignSelf: 'center' },
-  stats: { color: theme.ink, fontSize: 17, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  stats: { color: theme.ink, fontSize: 17, fontWeight: '600', fontVariant: ['tabular-nums'], flexShrink: 1 },
   stopInner: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   barActions: { flexDirection: 'row', alignItems: 'center', gap: 20 },
   pauseBtn: {

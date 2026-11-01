@@ -59,6 +59,8 @@ export interface Padding {
 export interface WalkMapProps {
   /** Trace runs, already split at gaps. */
   trace: LngLat[][];
+  /** Rides (a trolley, a bus), drawn dashed in the trace's green, under it (rides, R5). */
+  rides?: LngLat[][];
   /** 0 to 1; the replay's first beat shows the trace faintly. */
   traceOpacity?: number;
   walked: StreetSegment[];
@@ -72,6 +74,10 @@ export interface WalkMapProps {
   onUserMove?: () => void;
   /** Opens a pin's captures; without it, pins are shown but not pressable. */
   onPinPress?: (captures: Capture[]) => void;
+  /** Captures from earlier walks nearby, drawn as faint pins (Memories on revisit, MR1-MR3). */
+  memories?: Capture[];
+  /** A memory pin was tapped, with its group's captures and where it sits. */
+  onMemoryPress?: (captures: Capture[], at: LngLat) => void;
   /** Places walked, drawn as stars (the home map); the caller picks them for the zoom. */
   stars?: Star[];
   onStarPress?: (star: Star) => void;
@@ -206,6 +212,9 @@ export function segmentsGeoJSON(segments: StreetSegment[]): GeoJSON.FeatureColle
     })),
   };
 }
+
+/** A ride's dash, in line widths: long enough to read as a line, gapped enough to read as not walked. */
+export const RIDE_DASH = [1.6, 1.4];
 
 export function traceGeoJSON(runs: LngLat[][]): GeoJSON.FeatureCollection {
   return {
