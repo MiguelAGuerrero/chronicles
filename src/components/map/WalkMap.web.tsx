@@ -14,7 +14,7 @@ import type { CapturePin } from '../../lib/pins';
 import type { RoadFeature } from '../../lib/streets';
 import type { LngLat } from '../../lib/types';
 import { useGlideFrames, type GlideFrame } from '../../lib/useGlidingWalker';
-import { useReducedMotion } from 'react-native-reanimated';
+import { useReducedMotion } from '../../lib/motion';
 import { MOTION } from '../../lib/motionTokens';
 import {
   COLORS, coneGeoJSON, DERIVE_ZOOM, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, useZoomPins, walkerGeoJSON,
@@ -587,7 +587,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       const [w, s, e, n] = props.fitBounds;
       const padding = props.fitPadding ?? { top: 48, right: 48, bottom: 48, left: 48 };
       perfCount('fit');
-      mapRef.current?.fitBounds([[w, s], [e, n]], { padding, maxZoom: 17, duration });
+      mapRef.current?.fitBounds([[w, s], [e, n]], { padding, maxZoom: props.fitMaxZoom ?? 17, duration });
     }
     // Refits when the caller changes fitKey, not on every new bounds array.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -622,7 +622,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       return out;
     },
     showPoint(at, padding) {
-      mapRef.current?.easeTo({ center: at, padding, duration: animateRef.current ? 400 : 0 });
+      mapRef.current?.easeTo({ center: at, padding, duration: animateRef.current ? MOTION.ease : 0 });
     },
     async collectPlaces(center) {
       await readyPromise.current!.promise;

@@ -25,7 +25,7 @@ import { focusOn } from '../lib/focus';
 import { boundsOf, distanceM, distanceToLinesM, nearPoints, pausedMs } from '../lib/geo';
 import { capturesHere, type HereResult } from '../lib/here';
 import { deriveSegments, streetKey } from '../lib/streets';
-import { successFeedback, tapFeedback } from '../lib/haptics';
+import { feedback, MOTION } from '../lib/motion';
 import { recorder } from '../lib/recorder';
 import { notifier, PAUSE_REMIND_MS } from '../lib/notify';
 import { ensureTileBuild } from '../lib/tiles';
@@ -260,7 +260,7 @@ export default function WalkScreen() {
     if (cap.voiceStartedAt != null || stopping || viewing || here || scan.scanning) return;
     setMarkOpen(null);
     setOptions(false);
-    tapFeedback();
+    feedback('tap');
     const tap = ++hereTaps.current;
     const r = await capturesHere(at, cap.captures, radiusM).catch(() => null);
     if (tap !== hereTaps.current) return; // a newer press won
@@ -304,7 +304,7 @@ export default function WalkScreen() {
     paused: pauses.some((p) => p.ended_at == null),
     map: () => mapRef.current,
     onArrive: (dest) => {
-      successFeedback();
+      feedback('success');
       // Said once: the line on screen is announced by the screen reader here, not by a live region.
       setArrived(`You’re here: ${dest.label}`);
       AccessibilityInfo.announceForAccessibility(`You're here: ${dest.label}`);
@@ -333,7 +333,7 @@ export default function WalkScreen() {
     onNotice: (message, tone) => setNotice({ message, tone }),
     onSwept: (row) => setLandings((rows) => [...rows.filter((x) => x.key !== row.key), row]),
     onFound: (m) => {
-      successFeedback();
+      feedback('success');
       setArrived(`Found: ${m.name}`);
       AccessibilityInfo.announceForAccessibility(`Found: ${m.name}, ${categoryOf(m.category).label}`);
     },
@@ -594,7 +594,7 @@ export default function WalkScreen() {
         return;
       }
       await stopWalk(walk.id);
-      successFeedback();
+      feedback('success');
       router.replace(`/replay/${walk.id}`);
     } catch (e) {
       setNotice({ message: `The walk could not be stopped: ${e instanceof Error ? e.message : e}`, tone: 'error', sticky: true });
@@ -616,7 +616,7 @@ export default function WalkScreen() {
         await pauseWalk(walk.id);
         AccessibilityInfo.announceForAccessibility('Walk paused. Nothing is recorded until you resume.');
       }
-      tapFeedback();
+      feedback('tap');
     } catch (e) {
       setNotice({ message: `Could not ${paused ? 'resume' : 'pause'}: ${e instanceof Error ? e.message : e}`, tone: 'error', sticky: true });
     } finally {
@@ -631,7 +631,7 @@ export default function WalkScreen() {
     if (ok) {
       setNote('');
       setNoteOpen(false);
-      tapFeedback();
+      feedback('tap');
       setToast('Note saved here');
     }
   }
@@ -648,14 +648,14 @@ export default function WalkScreen() {
   async function photo() {
     const kept = await cap.takePhoto();
     if (!kept) return;
-    tapFeedback();
+    feedback('tap');
     if (kept.kind === 'photo') setJustTook(kept.id);
     else setToast('Video saved here');
   }
 
   async function startVoice() {
     if (await cap.startVoice()) {
-      tapFeedback();
+      feedback('tap');
       giveUpMemo.current = false;
       AccessibilityInfo.announceForAccessibility('Recording voice memo');
     }
@@ -664,7 +664,7 @@ export default function WalkScreen() {
   async function saveVoice() {
     const r = await cap.finishVoice();
     if (r === 'saved') {
-      tapFeedback();
+      feedback('tap');
       setToast('Voice memo saved here');
       AccessibilityInfo.announceForAccessibility('Voice memo saved');
     } else if (r === 'dropped') {
@@ -1347,8 +1347,8 @@ function PulseDot() {
       if (reduce) return;
       loop = Animated.loop(
         Animated.sequence([
-          Animated.timing(o, { toValue: 0.3, duration: 500, easing: Easing.inOut(Easing.quad), useNativeDriver: Platform.OS !== 'web' }),
-          Animated.timing(o, { toValue: 1, duration: 500, easing: Easing.inOut(Easing.quad), useNativeDriver: Platform.OS !== 'web' }),
+          Animated.timing(o, { toValue: 0.3, duration: MOTION.pulse, easing: Easing.inOut(Easing.quad), useNativeDriver: Platform.OS !== 'web' }),
+          Animated.timing(o, { toValue: 1, duration: MOTION.pulse, easing: Easing.inOut(Easing.quad), useNativeDriver: Platform.OS !== 'web' }),
         ]),
       );
       loop.start();

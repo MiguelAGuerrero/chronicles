@@ -2,11 +2,10 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator, Animated, Easing, Platform, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle,
 } from 'react-native';
-import Reanimated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
-import { liftIn, liftOut } from '../lib/motion';
+import { nativeDriver, useReducedMotion } from '../lib/motion';
 import { MOTION, PRESS_SCALE } from '../lib/motionTokens';
 
-const PressableAnim = Reanimated.createAnimatedComponent(Pressable);
+const PressableAnim = Animated.createAnimatedComponent(Pressable);
 
 // Text on these colors meets WCAG AA (4.5:1); checked against white and bg.
 export const theme = {
@@ -43,10 +42,11 @@ export function Button(props: {
 }) {
   const v = props.variant ?? 'primary';
   const fg = v === 'primary' || v === 'danger' ? theme.accentInk : theme.ink;
-  // Pressed down slightly while held, sprung back on release (M4); still with reduce motion (M2).
+  // Pressed down slightly while held, sprung back on release (M4). The dimming stays as the press's
+  // sign with reduce motion on, when nothing moves (M2, audit 4).
   const reduced = useReducedMotion();
-  const scale = useSharedValue(1);
-  const pressStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.get() }] }));
+  const [scale] = useState(() => new Animated.Value(1));
+  const [pressed, setPressed] = useState(false);
   return (
     <PressableAnim
       testID={props.testID}
@@ -57,17 +57,21 @@ export function Button(props: {
       disabled={props.disabled || props.busy}
       onPress={props.onPress}
       onPressIn={() => {
-        if (!reduced) scale.set(withTiming(PRESS_SCALE, { duration: MOTION.fast }));
+        setPressed(true);
+        if (!reduced) Animated.timing(scale, { toValue: PRESS_SCALE, duration: MOTION.fast, useNativeDriver: nativeDriver }).start();
       }}
       onPressOut={() => {
-        scale.set(reduced ? 1 : withSpring(1, MOTION.spring));
+        setPressed(false);
+        if (reduced) scale.setValue(1);
+        else Animated.spring(scale, { toValue: 1, ...MOTION.spring, useNativeDriver: nativeDriver }).start();
       }}
       style={[
         styles.btn,
         props.tall && styles.tall,
         styles[v],
         (props.disabled || props.busy) && styles.disabled,
-        pressStyle,
+        pressed && styles.pressed,
+        { transform: [{ scale }] },
         props.style,
       ]}
     >
@@ -118,7 +122,7 @@ export function HoldButton(props: {
   const cancel = () => {
     if (fired.current) return;
     fill.stopAnimation();
-    Animated.timing(fill, { toValue: 0, duration: 150, useNativeDriver: false }).start();
+    Animated.timing(fill, { toValue: 0, duration: MOTION.fast, useNativeDriver: false }).start();
   };
   useEffect(() => {
     if (!props.busy) fill.setValue(0);
@@ -163,12 +167,21 @@ export function HoldButton(props: {
   );
 }
 
-/** A pill, chip or toast that lifts in and fades out (M7). */
-export function LiftIn(props: { style?: StyleProp<ViewStyle>; children: ReactNode; testID?: string; accessibilityLiveRegion?: 'none' | 'polite' | 'assertive' }) {
+/**
+ * A pill, chip or toast that lifts in (M7): a fade with a short rise. It goes
+ * at once when removed, so no copy lingers to be read out again (audit 5).
+ */
+export function LiftIn(props: { style?: StyleProp<ViewStyle>; children: ReactNode; testID?: string; accessibilityLiveRegion?: 'none' | 'polite' | 'assertive'; accessibilityRole?: 'alert' }) {
+  const reduced = useReducedMotion();
+  const [t] = useState(() => new Animated.Value(reduced ? 1 : 0));
+  useEffect(() => {
+    if (!reduced) Animated.timing(t, { toValue: 1, duration: MOTION.lift, easing: Easing.out(Easing.cubic), useNativeDriver: nativeDriver }).start();
+  }, [t, reduced]);
+  const lift = { opacity: t, transform: [{ translateY: t.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }] };
   return (
-    <Reanimated.View testID={props.testID ?? 'lift-in'} entering={liftIn} exiting={liftOut} style={props.style} accessibilityLiveRegion={props.accessibilityLiveRegion}>
+    <Animated.View testID={props.testID ?? 'lift-in'} style={[props.style, lift]} accessibilityLiveRegion={props.accessibilityLiveRegion} accessibilityRole={props.accessibilityRole}>
       {props.children}
-    </Reanimated.View>
+    </Animated.View>
   );
 }
 
@@ -180,10 +193,7 @@ export function Banner(props: {
 }) {
   const error = props.tone === 'error';
   return (
-    <Reanimated.View
-      testID="lift-in"
-      entering={liftIn}
-      exiting={liftOut}
+    <LiftIn
       style={[styles.banner, error && styles.bannerError]}
       accessibilityRole={error ? 'alert' : undefined}
       accessibilityLiveRegion={error ? 'assertive' : 'polite'}
@@ -199,7 +209,7 @@ export function Banner(props: {
           <Text style={styles.bannerCloseText}>✕</Text>
         </Pressable>
       )}
-    </Reanimated.View>
+    </LiftIn>
   );
 }
 

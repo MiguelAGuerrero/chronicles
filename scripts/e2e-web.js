@@ -130,24 +130,24 @@ function check(ok, what) {
         }
     }).observe(document, { childList: true, subtree: true });
   });
-  // How far a button is pressed down (M4): its scale while held, read from its transform.
+  // How far a button is pressed down (M4): its own scale and opacity while held, and its scale after.
   const pressedScale = async (pg, selector) => {
-    const box = await pg.locator(selector).first().boundingBox();
+    const loc = pg.locator(selector).first();
+    const box = await loc.boundingBox();
+    const read = () => loc.evaluate((el) => {
+      const t = getComputedStyle(el).transform;
+      return { scale: t && t !== 'none' ? new DOMMatrix(t).a : 1, opacity: Number(getComputedStyle(el).opacity) };
+    });
     await pg.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await pg.mouse.down();
     await pg.waitForTimeout(250);
-    const scale = await pg.locator(selector).first().evaluate((el) => {
-      for (let e = el; e; e = e.parentElement) {
-        const t = getComputedStyle(e).transform;
-        if (t && t !== 'none') return new DOMMatrix(t).a;
-      }
-      return 1;
-    });
+    const held = await read();
     // Away, then up: the press is cancelled, not fired.
     await pg.mouse.move(box.x + box.width / 2, box.y - 300, { steps: 4 });
     await pg.mouse.up();
-    await pg.waitForTimeout(300);
-    return scale;
+    await pg.waitForTimeout(500);
+    const after = await read();
+    return { scale: held.scale, opacity: held.opacity, after: after.scale };
   };
   const page = await ctx.newPage();
   const errors = [];
@@ -186,7 +186,7 @@ function check(ok, what) {
     check((await page.locator('canvas.maplibregl-canvas').count()) === 1 && (await page.locator('[data-testid=start]').count()) === 1, 'home opens on the map, empty, with Start');
     await shot(page, '00-home-empty');
     const held = await pressedScale(page, '[data-testid=start]');
-    check(held > 0.95 && held < 0.99, `a large button presses down while held (M4: ${held.toFixed(3)})`);
+    check(held.scale > 0.95 && held.scale < 0.99 && held.after === 1, `a large button presses down while held, and springs back (M4: ${held.scale.toFixed(3)} → ${held.after})`);
     await page.click('[data-testid=start]');
     await page.waitForSelector('[data-testid=stop]');
     await page.waitForTimeout(2500);
@@ -217,6 +217,10 @@ function check(ok, what) {
     check((await walkMarks().count()) === 2 && (await page.locator('[aria-label="A mark to find. Open"]').count()) >= 2, 'a scan drops a "?" mark for each place nearby (S3, S7)');
     const lifts = await page.evaluate(() => window.__lifts.map((l) => ({ animated: l.animated, text: l.el.innerText.slice(0, 40) })));
     check(lifts.some((l) => /spots nearby/.test(l.text) && l.animated), `a banner lifts in rather than popping (M7: ${JSON.stringify(lifts.slice(0, 3))})`);
+    // Dismissed, it goes at once: no copy of it lingers, announced again as an alert (audit 5).
+    await page.locator('[data-testid=lift-in]', { hasText: 'spots nearby' }).locator('[aria-label=Dismiss]').click();
+    await page.waitForTimeout(60);
+    check((await page.locator('[data-testid=lift-in]', { hasText: 'spots nearby' }).count()) === 0, 'a dismissed banner leaves no copy behind (audit 5)');
     await shot(page, '01b-marks');
 
     // Leaks (the owner's iPhone tab crashed mid-walk): nothing may pile up while walking.
@@ -676,8 +680,8 @@ function check(ok, what) {
     const starBefore = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
     const sheetTop = (await page.locator('[data-testid=home-sheet]').boundingBox()).y;
     const fitsAfter = await page.evaluate(() => window.__perf.fit ?? 0);
-    check(fitsAfter === fitsBefore + 1 && starBefore.y + starBefore.height < sheetTop && starBefore.y > 0,
-      `opening the walks list zooms out to every place walked, above the sheet (M6: ${fitsAfter - fitsBefore} fit, star at ${Math.round(starBefore.y)}, sheet at ${Math.round(sheetTop)})`);
+    check(fitsAfter === fitsBefore && starBefore.y + starBefore.height < sheetTop && starBefore.y > 0,
+      `opening the walks list leaves a view that already shows every place alone (M6, audit 7: ${fitsAfter - fitsBefore} fits, star at ${Math.round(starBefore.y)}, sheet at ${Math.round(sheetTop)})`);
     check((await page.locator('[data-testid=walk-row]').count()) === 1, 'the walks list has the one stopped walk');
     await shot(page, '10-home-walks');
     await page.locator('[data-testid=walk-row]').first().click();
@@ -743,8 +747,33 @@ function check(ok, what) {
       await still.click('[data-testid=sheet-walks]');
       await still.waitForTimeout(60);
       const open = (await still.locator('[data-testid=home-sheet]').boundingBox()).height;
-      check(flat === 1 && open - peek > 200, `with reduce motion on, nothing presses down and the sheet snaps open (M2: scale ${flat}, ${Math.round(peek)} → ${Math.round(open)} px in 60 ms)`);
+      check(flat.scale === 1 && flat.opacity < 1 && open - peek > 200,
+        `with reduce motion on, nothing moves, the press still shows, and the sheet snaps open (M2, audit 4: scale ${flat.scale}, opacity ${flat.opacity}, ${Math.round(peek)} → ${Math.round(open)} px in 60 ms)`);
       await still.close();
+    }
+    // A spring cut short by a drag still reports where the sheet ended (audit 2): Start sits on the
+    // peeking sheet. Touch, as on a phone: in a browser a mouse drag on a moving element is cancelled.
+    {
+      const springy = await ctx.newPage();
+      springy.on('pageerror', (e) => errors.push(String(e)));
+      await springy.goto(page.url());
+      await springy.waitForSelector('[data-testid=home-sheet]');
+      await springy.waitForTimeout(800);
+      await springy.click('[data-testid=sheet-walks]');
+      await springy.waitForTimeout(700);
+      await springy.click('[data-testid=sheet-map]');
+      await springy.waitForTimeout(60);
+      const hd = await springy.locator('[data-testid=sheet-drag]').boundingBox();
+      const touch = await springy.context().newCDPSession(springy);
+      const x = hd.x + hd.width / 2;
+      const vh = springy.viewportSize().height;
+      await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y: hd.y + 10 }] });
+      for (let y = hd.y + 30; y < vh - 10; y += 60) await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y }] });
+      await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await springy.waitForTimeout(900);
+      const startBox = await springy.locator('[data-testid=start]').boundingBox({ timeout: 3000 }).catch(() => null);
+      check(!!startBox && startBox.y > vh * 0.7, `after a drag cuts a spring short, Start sits on the peeking sheet (audit 2: Start at ${startBox ? Math.round(startBox.y) : 'none'} of ${vh})`);
+      await springy.close();
     }
 
     // Bulk placement (H8): a walk with no places is placed at the next opening,

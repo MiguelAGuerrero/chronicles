@@ -10,7 +10,7 @@ import { namedStars, StarView, starLabel } from '../StarView';
 import type { RoadFeature } from '../../lib/streets';
 import { TILEJSON_URL } from '../../lib/tiles';
 import { useGlidingWalker } from '../../lib/useGlidingWalker';
-import { useReducedMotion } from 'react-native-reanimated';
+import { useReducedMotion } from '../../lib/motion';
 import { MOTION } from '../../lib/motionTokens';
 import {
   COLORS, coneGeoJSON, DERIVE_ZOOM, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, useZoomPins, walkerGeoJSON,
@@ -112,7 +112,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       return out;
     },
     showPoint(at, padding) {
-      cameraRef.current?.easeTo({ center: at, padding, duration: props.animate === false || reduced ? 0 : 400 });
+      cameraRef.current?.easeTo({ center: at, padding, duration: props.animate === false || reduced ? 0 : MOTION.ease });
     },
     async collectPlaces(center) {
       await whenReady();

@@ -19,6 +19,7 @@ import { loadPrefs, runScan, savePrefs } from '../lib/discovery/runScan';
 import { adoptable, scanMessage, sweepCount, type Prefs } from '../lib/discovery/scan';
 import type { Mark } from '../lib/discovery/types';
 import { readArea, rememberArea, sweepArea } from '../lib/landing/read';
+import { zoomOutFor } from '../lib/zoomOut';
 import { landingView, staleNote, type LandingRow } from '../lib/landing/view';
 import { loopWaypoint } from '../lib/landing/walk';
 import { ensureTileBuild } from '../lib/tiles';
@@ -49,7 +50,7 @@ const boundsKey = (b: Bounds | null) => (b ? b.map((v) => v.toFixed(5)).join(','
 export default function Home() {
   perfCount('render:home');
   const insets = useSafeAreaInsets();
-  const { height: screenH } = useWindowDimensions();
+  const { height: screenH, width: screenW } = useWindowDimensions();
   const mapRef = useRef<WalkMapHandle>(null);
   const [data, setData] = useState<{ walks: Walk[]; summaries: WalkSummary[]; areas: Area[]; rows: WalkArea[] } | null>(null);
   const [open, setOpen] = useState<Walk | null>(null);
@@ -60,7 +61,8 @@ export default function Home() {
   const [mode, setMode] = useState<SheetMode>({ kind: 'summary' });
   const [sheetH, setSheetH] = useState(SHEET_PEEK + insets.bottom);
   const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
-  const [fit, setFit] = useState<{ bounds: Bounds | null; key: number }>({ bounds: null, key: 0 });
+  // A fit may bring its own frame (the walks list's zoom-out, framed above the sheet it opens to).
+  const [fit, setFit] = useState<{ bounds: Bounds | null; key: number; padding?: { top: number; right: number; bottom: number; left: number }; maxZoom?: number }>({ bounds: null, key: 0 });
   const [placing, setPlacing] = useState<{ done: number; of: number } | null>(null);
   const [selected, setSelected] = useState<Star | null>(null);
   // A long press on the home map: walk there (N11).
@@ -323,11 +325,12 @@ export default function Home() {
           onMode={(m) => {
             if (m.kind !== 'place') setSelected(null);
             // Opening the walks list zooms out to every place walked (M6), at once, framed above the
-            // half-height sheet it is opening to.
+            // half-height sheet it opens to; only when they aren't all in view already, and never
+            // closer than now (audit 7).
             if (m.kind === 'walks' && mode.kind === 'summary' && index.bounds) {
-              const bounds = index.bounds;
-              setSheetH(Math.round(screenH * 0.5));
-              setFit((f) => ({ bounds, key: f.key + 1 }));
+              const padding = { top: insets.top + 60, right: 48, bottom: Math.round(screenH * 0.5) + 96, left: 48 };
+              const z = zoomOutFor({ camera: cameraNow.current, size: { width: screenW, height: screenH }, padding, places: index.bounds });
+              if (z) setFit((f) => ({ bounds: z.bounds, key: f.key + 1, padding, maxZoom: z.maxZoom }));
             }
             setMode(m);
           }}
@@ -597,7 +600,8 @@ export default function Home() {
           onViewChange={setView}
           fitBounds={fit.bounds}
           fitKey={fit.key}
-          fitPadding={{ top: insets.top + 60, right: 48, bottom: sheetH + 96, left: 48 }}
+          fitPadding={fit.padding ?? { top: insets.top + 60, right: 48, bottom: sheetH + 96, left: 48 }}
+          fitMaxZoom={fit.maxZoom}
           initialCenter={savedCamera?.center ?? WORLD.center}
           initialZoom={savedCamera?.zoom ?? WORLD.zoom}
           onCameraChange={(c) => (cameraNow.current = c)}

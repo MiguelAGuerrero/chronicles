@@ -1,21 +1,43 @@
-import { FadeInUp, FadeOut, ReduceMotion, useReducedMotion } from 'react-native-reanimated';
+import { useEffect, useState } from 'react';
+import { AccessibilityInfo, Platform } from 'react-native';
 import { successFeedback, tapFeedback, warnFeedback } from './haptics';
-import { MOTION } from './motionTokens';
 
 export { durationFor, MOTION, PRESS_SCALE } from './motionTokens';
-export { useReducedMotion };
 
 /**
- * Motion for the app (the "Polish: motion" tab). Effects run on Reanimated's
- * UI thread or as the map's own camera moves, never through React state per
- * frame (M3). Reanimated follows the system's reduce-motion setting by itself
- * (`ReduceMotion.System`), on the web through `prefers-reduced-motion`, so
- * the e2e forces it with `emulateMedia` (M2).
+ * Motion for the app (the "Polish: motion" tab), on React Native's own
+ * Animated: transforms and opacity on the phone's native thread, nothing per
+ * frame through React state (M3), and no extra library in the web build (the
+ * owner's call, Nov 1: Reanimated added 140 KB gzipped for four effects).
  */
 
-/** A pill or banner lifting in: a fade with a short rise, and a fade out (M7). */
-export const liftIn = FadeInUp.duration(MOTION.lift).withInitialValues({ transform: [{ translateY: 8 }] }).reduceMotion(ReduceMotion.System);
-export const liftOut = FadeOut.duration(MOTION.fast).reduceMotion(ReduceMotion.System);
+/** The system's reduce-motion setting at launch, read synchronously on the web so the first frame is right. */
+let reducedNow = Platform.OS === 'web' && typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+AccessibilityInfo.isReduceMotionEnabled().then((v) => (reducedNow = v), () => {});
+
+/** Reduce motion, kept live: a change during a session applies at once (M2, audit 3). */
+export function useReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(reducedNow);
+  useEffect(() => {
+    let alive = true;
+    AccessibilityInfo.isReduceMotionEnabled().then((v) => {
+      reducedNow = v;
+      if (alive) setReduced(v);
+    }, () => {});
+    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', (v: boolean) => {
+      reducedNow = v;
+      setReduced(v);
+    });
+    return () => {
+      alive = false;
+      sub.remove();
+    };
+  }, []);
+  return reduced;
+}
+
+/** Native driver where it exists: react-native-web runs Animated in JavaScript. */
+export const nativeDriver = Platform.OS !== 'web';
 
 export type FeedbackKind = 'tap' | 'success' | 'warning';
 

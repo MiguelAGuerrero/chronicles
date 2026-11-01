@@ -10,13 +10,17 @@ export const MOTION = {
   base: 220,
   /** A pill or banner lifting in. */
   lift: 180,
-  /** A camera fit or ease. */
+  /** A camera fit. */
   camera: 600,
+  /** A camera ease to one point (a selected star). */
+  ease: 400,
+  /** One beat of a pulse (the recording dot). */
+  pulse: 500,
   /** The one spring: settles without a visible bounce. */
   spring: { damping: 28, stiffness: 240, mass: 1 },
 } as const;
 
-export type MotionToken = 'fast' | 'base' | 'lift' | 'camera';
+export type MotionToken = 'fast' | 'base' | 'lift' | 'camera' | 'ease' | 'pulse';
 
 /** Large buttons shrink to this while pressed (M4). */
 export const PRESS_SCALE = 0.97;

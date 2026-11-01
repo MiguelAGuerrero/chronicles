@@ -514,30 +514,40 @@ Read this before changing recording, streets, the replay or storage.
 ## Polish: motion (the spec is the concept doc's "Polish: motion" tab)
 
 - **Restraint holds:** effects are short and physical (a press, a settle, a
-  lift), never celebratory. The owner's defaults (Nov 1): Reanimated, no sounds
-  yet.
-- **One set of timings:** `lib/motionTokens.ts` (pure: `MOTION`, `PRESS_SCALE`,
-  `durationFor`) and `lib/motion.ts` (`liftIn`/`liftOut`, `feedback(kind)`,
-  `useReducedMotion`). Never hard-code a duration.
-- **Reanimated 4 + worklets** are direct dependencies. babel-preset-expo adds the
-  worklets plugin by itself. Under the React Compiler lint, write shared values
-  with `.set()` and read them with `.get()`, never `.value =`.
-- **Reduce motion:** Reanimated follows the system setting (`ReduceMotion.System`;
-  on web `prefers-reduced-motion`). The map's camera durations follow it too.
-  The e2e forces it with `emulateMedia({ reducedMotion: 'reduce' })`.
-- **Effects never re-render per frame.** Button press (`Button` in `ui.tsx`),
-  the home sheet's spring (`HomeSheet`), and `LiftIn`/`Banner` all run on
-  Reanimated. Wrap a new pill in `LiftIn`.
-- **The walks list zooms out** to every place walked as it opens, framed above
-  the half sheet (`index.tsx` onMode; `perfCount('fit')` lets the e2e count it).
-- **Sound:** none yet. When it comes, it is opt-in and must not use the memo's
-  audio session, which plays with the ringer off.
-- **Deferred** (agree with the Explore work first): a star bounce, a pin drop
-  on capture, the ? flipping to its name, a pulse on finding a place.
-- **Native** (unverified on a device): Reanimated on the phone, the spring
-  sheet, layout animations.
-- The e2e's mouse drag on the home map doesn't pan it (found while testing M6),
-  so H5's "kept its view across the replay" check compares an unmoved view.
+  lift), never celebratory. No sounds yet.
+- **React Native's own Animated, not Reanimated** (the owner's call, Nov 1, after
+  the audit: Reanimated added 723 KB raw, 140 KB gzipped, +36% to the web
+  bundle, for four effects, and its web layer read reduce motion once and
+  cloned exiting nodes). It is still in node_modules through expo-router, but
+  never import it; the bundle only pays for what is imported. Revisit it only
+  for gesture-driven animation.
+- **One set of timings:** `lib/motionTokens.ts` (pure: `MOTION` fast, base,
+  lift, camera, ease, pulse, spring; `PRESS_SCALE`; `durationFor`) and
+  `lib/motion.ts` (`useReducedMotion`, live through `AccessibilityInfo`;
+  `nativeDriver`; `feedback(kind)` for every haptic). Never hard-code a duration
+  or call the haptics directly.
+- **Effects:**
+  - `Button` presses down to 0.97 on the native driver and keeps the 0.8
+    dimming, the press's only sign with reduce motion on.
+  - `HomeSheet` springs its height in JavaScript (height can't use the native
+    driver). It reports every move's end, finished or cut short, and a grab
+    mid-move holds where the sheet is.
+  - `LiftIn` (and `Banner`, built on it) fades and rises in, and goes at once
+    when removed.
+- **The walks list zooms out** only when the view doesn't already hold every
+  place, and never closer than the current zoom (`lib/zoomOut.ts`, pure). It is
+  framed above the half sheet it opens to, with the fit's own padding.
+  `fitMaxZoom` is web only (MapLibre RN's fitBounds has none). `perfCount('fit')`
+  lets the e2e count fits.
+- **Testing motion on the web:** `emulateMedia({ reducedMotion: 'reduce' })`.
+  A mouse drag on a moving element is cancelled by the browser and reads as a
+  tap, so drag a moving sheet with CDP touch events, as on a phone.
+- **Deferred** (after Explore): a star bounce, a pin drop on capture, the ?
+  flipping to its name, a pulse on finding a place.
+- **Native** (unverified on a device): the native-driver press and lift, the
+  sheet spring.
+- The e2e's mouse drag on the home map doesn't pan it, so H5's "kept its view
+  across the replay" check compares an unmoved view.
 
 ## Working with the owner
 

@@ -105,6 +105,8 @@ export interface WalkMapProps {
   fitKey?: number;
   /** Space kept clear of the fitted bounds, e.g. for a sheet over the map. */
   fitPadding?: Padding;
+  /** The closest a fit may zoom (web; MapLibre RN's fitBounds has no maxZoom). Default 17. */
+  fitMaxZoom?: number;
   /** False for reduced motion: camera changes jump instead of animating. */
   animate?: boolean;
   initialCenter?: LngLat;

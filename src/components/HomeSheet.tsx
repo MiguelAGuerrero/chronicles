@@ -1,10 +1,10 @@
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
-  BackHandler, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions,
+  Animated, BackHandler, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions,
   type GestureResponderEvent,
 } from 'react-native';
-import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { useReducedMotion } from '../lib/motion';
 import { MOTION } from '../lib/motionTokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { placeWalks, type PlacesIndex } from '../lib/places';
@@ -54,22 +54,25 @@ export function HomeSheet(props: {
   const [openSize, setOpenSize] = useState<Exclude<Size, 'peek'>>('half');
   const size: Size = expanded ? openSize : 'peek';
   const target = heights[size];
-  // The sheet settles at its height with the app's one spring (M5), on the UI thread. Reanimated
-  // follows the system's reduce-motion setting, so then it snaps (M2).
-  const h = useSharedValue(heights.peek);
-  const sheetStyle = useAnimatedStyle(() => ({ height: h.get() }));
+  // The sheet settles at its height with the app's one spring (M5), or snaps with reduce motion on
+  // (M2). Height can't use the native driver, so it runs in JavaScript, as it did.
+  const [h] = useState(() => new Animated.Value(heights.peek));
+  const reduced = useReducedMotion();
   const onHeight = useRef(props.onHeight);
   useEffect(() => {
     onHeight.current = props.onHeight;
   });
-  const [report] = useState(() => (v: number) => onHeight.current?.(v));
+  // Every move reports where the sheet ends, finished or cut short by a drag (audit 2).
+  const [moveTo] = useState(() => (to: number, snap: boolean) => {
+    const done = () => onHeight.current?.(to);
+    if (snap) {
+      h.setValue(to);
+      done();
+    } else Animated.spring(h, { toValue: to, ...MOTION.spring, useNativeDriver: false }).start(done);
+  });
   useEffect(() => {
-    h.set(
-      withSpring(target, MOTION.spring, (done) => {
-        if (done) runOnJS(report)(target);
-      }),
-    );
-  }, [h, target, report]);
+    moveTo(target, reduced);
+  }, [moveTo, target, reduced]);
 
   const setSize = (next: Size) => {
     if (next === 'peek') props.onMode({ kind: 'summary' });
@@ -108,7 +111,7 @@ export function HomeSheet(props: {
     }
     const at = drag.current.from + moved;
     const nearest = (Object.keys(heights) as Size[]).sort((x, y) => Math.abs(heights[x] - at) - Math.abs(heights[y] - at))[0];
-    if (nearest === size) h.set(withSpring(target, MOTION.spring));
+    if (nearest === size) moveTo(target, reduced);
     else setSize(nearest);
   };
   const dragProps = {
@@ -116,12 +119,14 @@ export function HomeSheet(props: {
     onMoveShouldSetResponder: () => true,
     onResponderTerminationRequest: () => false,
     onResponderGrant: (e: GestureResponderEvent) => {
+      // Grabbed mid-move, it holds where it is rather than jumping to where it was going (audit).
       drag.current = { y: e.nativeEvent.pageY, from: target, moved: false };
+      h.stopAnimation((v) => (drag.current.from = v));
     },
     onResponderMove: (e: GestureResponderEvent) => {
       const dy = e.nativeEvent.pageY - drag.current.y;
       if (Math.abs(dy) >= 6) drag.current.moved = true;
-      h.set(Math.max(heights.peek, Math.min(heights.full, drag.current.from - dy)));
+      h.setValue(Math.max(heights.peek, Math.min(heights.full, drag.current.from - dy)));
     },
     onResponderRelease: (e: GestureResponderEvent) => settle(e.nativeEvent.pageY),
     onResponderTerminate: (e: GestureResponderEvent) => settle(e.nativeEvent.pageY),
@@ -136,7 +141,7 @@ export function HomeSheet(props: {
     : '';
 
   return (
-    <Animated.View testID="home-sheet" style={[styles.sheet, { paddingBottom: insets.bottom }, sheetStyle]}>
+    <Animated.View testID="home-sheet" style={[styles.sheet, { height: h, paddingBottom: insets.bottom }]}>
       <View testID="sheet-drag" {...dragProps} style={styles.dragArea}>
         <View style={styles.handleArea}>
           <View style={styles.handle} />
