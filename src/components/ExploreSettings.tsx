@@ -23,6 +23,8 @@ export function ExploreSettings(props: {
   /** The range to preview on the host's map while the panel is open; null when it closes. */
   onPreview: (rangeM: number | null) => void;
   bottomInset: number;
+  /** Whether there is a position to draw the ring around. */
+  hasRing?: boolean;
   /** The panel's height, for the host to fit the ring above it. */
   onHeight?: (h: number) => void;
 }) {
@@ -80,7 +82,8 @@ export function ExploreSettings(props: {
           <View style={{ gap: 6 }}>
             <Text style={styles.section}>“?” range</Text>
             <Text style={styles.sub}>
-              A “?” shows for places within {s.rangeM} m of you, {walkNote(s.rangeM)}. The ring on the map shows how far that is.
+              A “?” shows for places within {s.rangeM} m of you, {walkNote(s.rangeM)}.
+              {props.hasRing === false ? ' The ring shows on the map once there’s a position.' : ' The ring on the map shows how far that is.'}
             </Text>
             <RangeSlider value={s.rangeM} onChange={setRange} />
           </View>

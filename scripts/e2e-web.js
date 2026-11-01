@@ -152,6 +152,7 @@ function check(ok, what) {
     // Memos and videos play with the ringer switch off, on the web too (bug: silent playback on iPhone).
     check(await page.evaluate(() => navigator.audioSession.type) === 'playback', 'the page asks to play sound even in silent mode');
     check((await page.locator('canvas.maplibregl-canvas').count()) === 1 && (await page.locator('[data-testid=start]').count()) === 1, 'home opens on the map, empty, with Start');
+    check((await page.locator('[data-testid=start-explore]').count()) === 1, 'beside Start, Explore starts a walk that explores (E1)');
     await shot(page, '00-home-empty');
     await page.click('[data-testid=start]');
     await page.waitForSelector('[data-testid=stop]');
@@ -259,8 +260,9 @@ function check(ok, what) {
         await page.click('[data-testid=explore-walk]');
         await shot(page, '01c-options');
         await page.click('[data-testid=options-close]');
-        await page.waitForTimeout(800);
-        check((await walkMap().getByText('Thayer Street', { exact: true }).count()) >= 1, 'an exploring walk shows the busy streets the same read found');
+        // The quiet read kept no busy streets (the owner's call); switching Explore on reads them at once.
+        await walkMap().getByText('Thayer Street', { exact: true }).first().waitFor({ timeout: 15000 }).catch(() => {});
+        check((await walkMap().getByText('Thayer Street', { exact: true }).count()) >= 1, 'switching Explore on brings in the busy streets around');
       }
       if (k === 8) {
         // 75 m from the memorial: inside the 100 m range, a "?" that doesn't say what it is (E6).
@@ -287,7 +289,7 @@ function check(ok, what) {
         check((await page.locator('[aria-label="2 captures here. Open"]').count()) === 1, 'a short video is kept, sharing a pin with the memo nearby');
         // The video is taken about 40 m from the memorial: it finds it (E8). (The memo at step 10, 62 m off, does not.)
         await page.waitForTimeout(500);
-        check((await page.locator('[aria-label="Found: Hessian Memorial, History & landmarks. Open"]').count()) === 1, 'a capture within 60 m finds the place, which stays drawn as found');
+        check((await page.locator('[aria-label="Found: Hessian Memorial, History & landmarks"]').count()) === 1, 'a capture within 60 m finds the place, which stays drawn as found');
       }
       if (k === 25) {
         await page.click('[data-testid=cap-note]');
@@ -301,7 +303,8 @@ function check(ok, what) {
         // tap there does nothing.
         // The home map stays mounted under the walk screen; the walk's map is the last.
         const box = await page.locator('canvas.maplibregl-canvas').last().boundingBox();
-        // Beside the pin (whose tap area covers the spot itself): ~27 m away at this zoom.
+        // Beside the pin (whose tap area covers the spot itself): ~27 m away at this zoom. The memorial's
+        // found pin sits here too; it lets taps through to the map and the capture (audit, UI).
         const spot = { x: box.x + box.width / 2 + 30, y: box.y + box.height / 2 + 10 };
         await page.mouse.click(spot.x, spot.y);
         await page.waitForTimeout(800);
@@ -847,11 +850,8 @@ function check(ok, what) {
     await page.waitForSelector('[data-testid=nav-bar]', { timeout: 40000 });
     check(/\/walk(\?|$)/.test(page.url()) && /Fox Point/.test(await page.locator('[data-testid=nav-bar]').innerText()), 'a star\u2019s Walk here starts a walk navigating there, once there is a fix');
     await shot(page, '12-home-go');
-    // A walk starts quiet even from the home (E1); reminders come back on an exploring walk (E9).
+    // A walk from a star starts quiet (E1); reminders still come back on a quiet walk (the owner's call, after the audit).
     check((await walkMarks().count()) === 0, 'a new walk starts quiet');
-    await page.click('[data-testid=walk-options]');
-    await page.click('[data-testid=explore-walk]');
-    await page.click('[data-testid=options-close]');
     // A later walk passing the flagged capture brings it back, in front (R2, R3, R4).
     // At a walking pace: a jump would be dropped as a GPS glitch.
     for (let j = 1; j <= 26; j++) {
@@ -895,6 +895,8 @@ function check(ok, what) {
     check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
   } catch (e) {
     console.error(e.message);
+    // E2E_FAIL_SHOT=<file> saves what the page showed when it failed.
+    if (process.env.E2E_FAIL_SHOT) await page.screenshot({ path: process.env.E2E_FAIL_SHOT }).catch(() => {});
     process.exitCode = 1;
   } finally {
     await browser.close();

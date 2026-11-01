@@ -71,7 +71,10 @@ function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number) {
   if (oldVersion < 8) {
     // v1 explore: checklists and finds (kept), and where reads happened (derived).
     d.createObjectStore('checklist_area', { keyPath: 'key' });
-    d.createObjectStore('checklist_item', { keyPath: 'key' }).createIndex('area_key', 'area_key');
+    const items = d.createObjectStore('checklist_item', { keyPath: 'key' });
+    items.createIndex('area_key', 'area_key');
+    // Read by latitude, never the whole kept store (audit 7; iPhone memory).
+    items.createIndex('lat', 'lat');
     d.createObjectStore('find', { keyPath: 'key' }).createIndex('walk_id', 'walk_id');
     d.createObjectStore('explore_read', { keyPath: 'key' });
   }
@@ -286,7 +289,7 @@ export const db: Db = {
           }),
       ),
     );
-    for (const i of items) itemStore.put(i);
+    for (const i of items) itemStore.put({ ...i, lat: i.at[1] });
     for (const a of areas) tx.objectStore('checklist_area').put(a);
     tx.objectStore('explore_read').put(read);
     return finished;
@@ -295,8 +298,8 @@ export const db: Db = {
     return (await done((await store('checklist_area')).getAll())) as ChecklistArea[];
   },
   async checklistItemsIn([w, s, e, n]) {
-    const all = (await done((await store('checklist_item')).getAll())) as ChecklistItem[];
-    return all.filter((i) => i.at[0] >= w && i.at[0] <= e && i.at[1] >= s && i.at[1] <= n);
+    const band = (await done((await store('checklist_item')).index('lat').getAll(IDBKeyRange.bound(s, n)))) as (ChecklistItem & { lat?: number })[];
+    return band.filter((i) => i.at[0] >= w && i.at[0] <= e).map(({ lat: _lat, ...i }) => i);
   },
   async listExploreReads() {
     return (await done((await store('explore_read')).getAll())) as ExploreRead[];

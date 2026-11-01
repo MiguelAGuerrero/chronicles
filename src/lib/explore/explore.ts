@@ -110,6 +110,21 @@ export interface ExploreRead {
 
 export type AreaRef = { level: ChecklistArea['level']; name: string; at: LngLat };
 
+/** How far around its point an area's checklist reaches: its own reach, at most one read (E3, audit 2). */
+const coverM = (c: { reachM: number }) => Math.min(c.reachM, EXPLORE_RULES.readM);
+
+/** The same area seen twice: one level and name, points within 1 km (audit 5: a town's point moves with the zoom it came from). */
+export const SAME_AREA_M = 1000;
+export const sameArea = (a: { level: string; name: string; at: LngLat }, b: { level: string; name: string; at: LngLat }) =>
+  a.level === b.level && a.name === b.name && distanceM(a.at, b.at) <= SAME_AREA_M;
+
+/** Candidates with each area once, the first seen standing for the rest. */
+export function uniqueAreas(cs: PlaceCandidate[]): PlaceCandidate[] {
+  const out: PlaceCandidate[] = [];
+  for (const c of cs) if (!out.some((o) => sameArea(o, c))) out.push(c);
+  return out;
+}
+
 /** The key of an area's checklist: level, name and its point to 4 decimals, as the home's Area rows have them. */
 export const checklistKey = (a: AreaRef): string => JSON.stringify([a.level, a.name, a.at[0].toFixed(4), a.at[1].toFixed(4)]);
 
@@ -124,7 +139,8 @@ export function areaFor(at: LngLat, candidates: PlaceCandidate[]): AreaRef | nul
   let townScore = Infinity;
   for (const c of candidates) {
     const d = distanceM(at, c.at);
-    if (d > c.reachM) continue;
+    // Only as far as a checklist can see (audit 2): a city's 10 km outskirts are orphans, not lost.
+    if (d > coverM(c)) continue;
     if (c.level === 'neighborhood' && d < hoodD) [hood, hoodD] = [c, d];
     else if (c.level === 'town' && d / c.reachM < townScore) [town, townScore] = [c, d / c.reachM];
   }
@@ -132,8 +148,6 @@ export function areaFor(at: LngLat, candidates: PlaceCandidate[]): AreaRef | nul
   return c ? { level: c.level as AreaRef['level'], name: c.name, at: c.at } : null;
 }
 
-/** How far around its point an area's checklist reaches: its own reach, at most one read (E3). */
-const coverM = (c: PlaceCandidate) => Math.min(c.reachM, EXPLORE_RULES.readM);
 
 /** Whether a read around `centre` saw all of the area, so its checklist is whole. */
 const covers = (centre: LngLat, c: PlaceCandidate) => distanceM(centre, c.at) + coverM(c) <= EXPLORE_RULES.readM + 1;
@@ -142,28 +156,42 @@ const covers = (centre: LngLat, c: PlaceCandidate) => distanceM(centre, c.at) + 
  * One read's checklists (E2, E3): each attraction (markable, with a kind)
  * goes to its area; only areas the read saw whole are built, with 0 when they
  * hold nothing, so they aren't read again. Places no area reaches are kept as
- * orphans (area null), shown but never counted.
+ * orphans (area null), shown but never counted. Areas already built for this
+ * build are never rebuilt or stolen from (audit 3): `built` holds them, and
+ * `known` the candidates earlier reads found, so a place keeps its area even
+ * when this read can't see that area's point.
  */
-export function buildChecklists(o: { places: Place[]; candidates: PlaceCandidate[]; centre: LngLat; build: string; now: number }): {
-  areas: ChecklistArea[];
-  items: ChecklistItem[];
-} {
+export function buildChecklists(o: {
+  places: Place[];
+  candidates: PlaceCandidate[];
+  centre: LngLat;
+  build: string;
+  now: number;
+  built?: Pick<ChecklistArea, 'level' | 'name' | 'at'>[];
+  known?: PlaceCandidate[];
+}): { areas: ChecklistArea[]; items: ChecklistItem[] } {
+  const built = o.built ?? [];
+  const all = uniqueAreas([...o.candidates, ...(o.known ?? [])]);
   const areas = new Map<string, ChecklistArea>();
-  for (const c of o.candidates) {
+  for (const c of uniqueAreas(o.candidates)) {
     if ((c.level !== 'neighborhood' && c.level !== 'town') || !covers(o.centre, c)) continue;
+    if (built.some((b) => sameArea(b, c))) continue;
     const ref: AreaRef = { level: c.level, name: c.name, at: c.at };
-    const key = checklistKey(ref);
-    if (!areas.has(key)) areas.set(key, { key, ...ref, build: o.build, built_at: o.now, count: 0 });
+    areas.set(checklistKey(ref), { key: checklistKey(ref), ...ref, build: o.build, built_at: o.now, count: 0 });
   }
   const items: ChecklistItem[] = [];
   for (const p of o.places) {
     if (!p.kind || !isMarkable(p)) continue;
     // A place keyed twice (it straddles a rounding line) is one place.
     if (isOffered(p, items)) continue;
-    const ref = areaFor(p.at, o.candidates);
-    const key = ref ? checklistKey(ref) : null;
-    if (key && !areas.has(key)) continue; // its area wasn't seen whole: the read around it builds it
-    if (!key && distanceM(p.at, o.centre) > EXPLORE_RULES.readM) continue;
+    const ref = areaFor(p.at, all);
+    let key: string | null = null;
+    if (ref) {
+      const mine = [...areas.values()].find((x) => sameArea(x, ref));
+      // Its area is built already (it holds it), or not seen whole here (its own read builds it).
+      if (!mine) continue;
+      key = mine.key;
+    } else if (distanceM(p.at, o.centre) > EXPLORE_RULES.readM) continue;
     items.push({ key: p.key, area_key: key, name: p.name, category: p.category, kind: p.kind, at: p.at, generic: p.generic });
     if (key) areas.get(key)!.count++;
   }
@@ -178,16 +206,15 @@ export function buildChecklists(o: { places: Place[]; candidates: PlaceCandidate
 export function readCentre(o: {
   fix: LngLat;
   candidates: PlaceCandidate[];
-  areas: Pick<ChecklistArea, 'key' | 'build'>[];
+  areas: Pick<ChecklistArea, 'level' | 'name' | 'at' | 'build'>[];
   reads: Pick<ExploreRead, 'centre' | 'build'>[];
   build: string;
 }): LngLat | null {
   const near = o.reads.some((r) => r.build === o.build && distanceM(r.centre, o.fix) <= EXPLORE_RULES.rereadM);
   if (!near) return o.fix;
-  const ref = areaFor(o.fix, o.candidates);
+  const ref = areaFor(o.fix, uniqueAreas(o.candidates));
   if (!ref) return null;
-  const key = checklistKey(ref);
-  return o.areas.some((a) => a.key === key && a.build === o.build) ? null : ref.at;
+  return o.areas.some((a) => a.build === o.build && sameArea(a, ref)) ? null : ref.at;
 }
 
 /** After a failed read, the next waits 2 min and 100 m walked (E5). */
@@ -343,10 +370,11 @@ export function placeCount(
   finds: Find[],
 ): { count: HomeCount; found: Find[] } | null {
   if (a.level !== 'neighborhood' && a.level !== 'town') return null;
-  const key = checklistKey({ level: a.level, name: a.name, at: [a.lon, a.lat] });
-  const list = areas.find((x) => x.key === key);
+  const here = { level: a.level, name: a.name, at: [a.lon, a.lat] as LngLat };
+  // The nearest same-named list: a town's point differs with the zoom it was read at (audit 5).
+  const list = areas.filter((x) => sameArea(x, here)).sort((x, y) => distanceM(x.at, here.at) - distanceM(y.at, here.at))[0];
   if (!list) return null;
-  const found = finds.filter((f) => f.area_key === key);
+  const found = finds.filter((f) => f.area_key === list.key);
   const count = homeCount(list, found.length);
   return count ? { count, found } : null;
 }
@@ -357,10 +385,15 @@ export function countLine(c: HomeCount, locale?: string, timeZone?: string): str
   return `${c.found} of ${c.total} · list from ${date}`;
 }
 
-type Found = { name: string; category: CategoryId; generic: boolean };
+type Found = { name: string; category: CategoryId; generic: boolean; kind?: Kind };
 
-/** At a capture's stop in the replay: the place it found (E11); an unnamed one by its label alone. */
-export const foundLine = (f: Found): string => (f.generic ? `Found: ${f.name}` : `Found: ${f.name} · ${categoryOf(f.category).label}`);
+/**
+ * At a capture's stop in the replay: the place it found (E11); an unnamed one
+ * by its label alone. Labelled by its kind, as on the walk's card (audit, UI);
+ * a mark found before explore has only its category.
+ */
+export const foundLine = (f: Found): string =>
+  f.generic ? `Found: ${f.name}` : `Found: ${f.name} · ${f.kind ? kindOf(f.kind).label : categoryOf(f.category).label}`;
 
 /** The card's finds, by category, most first (E11): "Found 2 art · 1 culture". Null with none. */
 export function findsLine(found: { category: CategoryId }[]): string | null {
@@ -380,6 +413,15 @@ export function foundList(names: string[]): string | null {
   const shown = names.slice(0, names.length > 4 ? 3 : 4).join(' · ');
   const more = names.length - (names.length > 4 ? 3 : names.length);
   return `Found ${shown}${more > 0 ? ` and ${more} more` : ''}`;
+}
+
+/**
+ * What a walk passed without stopping (E11, audit 9): places of shown kinds
+ * named by a fix after exploring began, not found on this walk.
+ */
+export function passedCount(o: { items: ChecklistItem[]; fixes: { at: LngLat; t: number }[]; since: number; hidden: Set<Kind>; foundHere: Set<string> }): number {
+  const named = revealedKeys(o.items.filter((i) => !o.hidden.has(i.kind)), o.fixes.filter((f) => f.t >= o.since).map((f) => f.at));
+  return [...named].filter((k) => !o.foundHere.has(k)).length;
 }
 
 /** The card's low (E11): places revealed on the walk but not captured. */

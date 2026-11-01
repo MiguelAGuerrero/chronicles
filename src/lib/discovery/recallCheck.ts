@@ -3,7 +3,6 @@ import { db } from '../db';
 import { boundsOf, distanceM } from '../geo';
 import { notifier } from '../notify';
 import type { Capture, LngLat } from '../types';
-import { EXPLORE_KEY } from '../explore/explore';
 import { afterFire, dueRecalls, isExpired, RECALL_RULES, reminderText } from './recall';
 import type { Recall } from './types';
 
@@ -64,9 +63,9 @@ export function checkRecalls(walkId: string, path: LngLat[], now = Date.now()): 
     const all = await recalls();
     if (!all.length) return false;
     for (const r of all) if (isExpired(r, now)) await stopRecall(r.capture_id);
-    // A walk is quiet unless it explores (E9): no reminders then.
-    const quiet = (await db.getMeta(EXPLORE_KEY)) !== walkId;
-    if (quiet) return false;
+    // Reminders come back on every walk, quiet or exploring (the owner's call, after the audit):
+    // a reminder is set on purpose, not discovery.
+    const quiet = false;
     const box = boundsOf(path, RECALL_RULES.reachM + 10)!;
     const due = dueRecalls({ here: path, walkId, now, quiet, recalls: await recalls(), captures: await db.capturesIn(box) });
     if (!due.length) return false;

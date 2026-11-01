@@ -30,9 +30,9 @@ const NAME_WIDTH = 140;
 export function MarkPinView({ pin }: { pin: MarkPin }) {
   const shown = pin.revealed || pin.found;
   return (
-    <View style={[styles.wrap, pin.faint && styles.faint]} pointerEvents="none">
+    <View style={[styles.wrap, pin.faint && styles.faint, pin.found && styles.wrapFound]} pointerEvents="none">
       <View style={[styles.head, pin.found && styles.headFound]}>
-        {shown ? <Icon name={pin.icon} size={18} color="#ffffff" /> : <Text style={styles.q}>?</Text>}
+        {shown ? <Icon name={pin.icon} size={pin.found ? 13 : 18} color="#ffffff" /> : <Text style={styles.q}>?</Text>}
         {pin.found && (
           <View style={styles.check}>
             <Icon name="checkmark" size={11} color={FOUND_COLOR} />
@@ -40,7 +40,7 @@ export function MarkPinView({ pin }: { pin: MarkPin }) {
         )}
       </View>
       <View style={[styles.stem, pin.found && styles.stemFound]} />
-      {shown && !pin.faint && (
+      {shown && !pin.faint && !pin.found && (
         <Text style={styles.name} numberOfLines={1}>
           {pin.name}
         </Text>
@@ -50,7 +50,7 @@ export function MarkPinView({ pin }: { pin: MarkPin }) {
 }
 
 export function markLabel(pin: MarkPin): string {
-  if (pin.found) return `Found: ${pin.name}, ${pin.category}. Open`;
+  if (pin.found) return `Found: ${pin.name}, ${pin.category}`;
   if (pin.faint) return 'A place on the way. Open';
   return pin.revealed ? `${pin.name}, ${pin.category}. Open` : 'A place to find. Open';
 }
@@ -80,7 +80,9 @@ const styles = StyleSheet.create({
   },
   q: { color: '#ffffff', fontSize: 19, fontWeight: '800', lineHeight: 22 },
   faint: { opacity: 0.45 },
-  headFound: { backgroundColor: FOUND_COLOR },
+  // Smaller than a "?", and without a name: a find is a quiet note on the map, not a target (audit, UI).
+  wrapFound: { width: 26, height: 32 },
+  headFound: { backgroundColor: FOUND_COLOR, width: 24, height: 24, borderRadius: 7 },
   stemFound: { backgroundColor: FOUND_COLOR },
   check: {
     position: 'absolute', right: -6, top: -6, width: 16, height: 16, borderRadius: 8, backgroundColor: '#ffffff',

@@ -14,7 +14,7 @@ import type { Area, WalkArea } from '../lib/areas/types';
 import { db } from '../lib/db';
 import { perfCount } from '../lib/perfCount';
 import { categoryOf } from '../lib/discovery/categories';
-import { countLine, placeCount, type ChecklistArea, type ChecklistItem, type Find } from '../lib/explore/explore';
+import { countLine, EXPLORE_KEY, exploredKey, placeCount, type ChecklistArea, type ChecklistItem, type Find } from '../lib/explore/explore';
 import { takeRecallOpen } from '../lib/discovery/recallCheck';
 import { readArea, rememberArea } from '../lib/landing/read';
 import { landingView, type LandingRow } from '../lib/landing/view';
@@ -181,11 +181,16 @@ export default function Home() {
   };
 
   /** Starts a walk; with a destination, the walk screen navigates there as it opens. */
-  const start = async (dest?: Waypoint) => {
+  /** Starts a walk; with a destination, the walk screen navigates there as it opens; `explore` starts it exploring (E1). */
+  const start = async (dest?: Waypoint, explore = false) => {
     setError(null);
     setStarting(true);
     try {
       const { walk, warning } = await startWalk();
+      if (explore) {
+        await db.setMeta(EXPLORE_KEY, walk.id);
+        await db.setMeta(exploredKey(walk.id), String(Date.now()));
+      }
       if (dest) await saveNav(walk.id, dest);
       // A walk started by "Walk here" says so as it opens: it is recording, not just a route.
       router.push(warning ? { pathname: '/walk', params: { warning } } : dest ? { pathname: '/walk', params: { started: '1' } } : '/walk');
@@ -309,7 +314,25 @@ export default function Home() {
               </View>
             </Button>
           ) : (
-            <Button testID="start" label="Start walk" onPress={() => start()} busy={starting} busyLabel="Starting…" disabled={placing != null || looking} tall style={styles.startBtn} />
+            // Two ways in (the owner's call, after the audit): a quiet walk, or one that explores from the first step.
+            <View style={styles.startPair}>
+              <Button testID="start" label="Start walk" onPress={() => start()} busy={starting} busyLabel="Starting…" disabled={placing != null || looking} tall style={styles.startBtn} />
+              <Button
+                testID="start-explore"
+                variant="secondary"
+                // The label is what a screen reader says; the button shows "Explore".
+                label="Explore: start a walk that shows places to find as you get close"
+                onPress={() => start(undefined, true)}
+                disabled={placing != null || looking || starting}
+                tall
+                style={styles.exploreBtn}
+              >
+                <View style={styles.recordingRow}>
+                  <Icon name="compass-outline" size={20} color={theme.ink} />
+                  <Text style={styles.exploreText}>Explore</Text>
+                </View>
+              </Button>
+            </View>
           )}
         </View>
       )}
@@ -539,7 +562,10 @@ const styles = StyleSheet.create({
   scanningText: { fontSize: 15, fontWeight: '600', color: theme.ink },
   scanCancel: { minHeight: 36, paddingHorizontal: 12, justifyContent: 'center' },
   scanCancelText: { fontSize: 15, fontWeight: '600', color: theme.accent },
-  startBtn: { minWidth: 220, borderRadius: 999, paddingHorizontal: 28 },
+  startBtn: { minWidth: 180, borderRadius: 999, paddingHorizontal: 24 },
+  startPair: { flexDirection: 'row', gap: 10, alignItems: 'center' },
+  exploreBtn: { borderRadius: 999, paddingHorizontal: 18 },
+  exploreText: { color: theme.ink, fontSize: 16, fontWeight: '600' },
   recordingRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: theme.accentInk },
   resumeText: { color: theme.accentInk, fontSize: 16, fontWeight: '600' },

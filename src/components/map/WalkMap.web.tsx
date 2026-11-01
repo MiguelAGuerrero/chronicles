@@ -475,12 +475,15 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       el.type = 'button';
       el.dataset.testid = 'mark-pin';
       el.setAttribute('aria-label', markLabel(pin));
-      el.style.cssText = 'background:none;border:0;padding:4px 6px 0;cursor:pointer';
+      // A found place is shown, not pressed: its pin lets taps through to the capture beside it (audit, UI).
+      el.style.cssText = pin.found ? 'background:none;border:0;padding:4px 6px 0;pointer-events:none' : 'background:none;border:0;padding:4px 6px 0;cursor:pointer';
+      if (pin.found) el.tabIndex = -1;
       const id = pin.id;
-      el.addEventListener('click', (e) => {
-        e.stopPropagation();
-        markLatest.current?.(id);
-      });
+      if (!pin.found)
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          markLatest.current?.(id);
+        });
       const root = createRoot(el);
       root.render(<MarkPinView pin={pin as MarkPin} />);
       const marker = new Marker({ element: el, anchor: 'bottom', offset: [0, 6] }).setLngLat(pin.at).addTo(map);

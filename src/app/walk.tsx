@@ -255,6 +255,10 @@ export default function WalkScreen() {
   const [spot, setSpot] = useState<{ at: LngLat; here: HereResult | null; from: LngLat | null } | null>(null);
   const hereTaps = useRef(0);
   const [hereKey, setHereKey] = useState(0);
+  // Settings (E16-E21), opened from the walk's options; the range is previewed as a ring on this map.
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [preview, setPreview] = useState<number | null>(null);
+  const [panelH, setPanelH] = useState(0);
   async function pressMap(at: LngLat, radiusM?: number) {
     if (cap.voiceStartedAt != null || stopping || viewing || here || settingsOpen) return;
     setMarkOpen(null);
@@ -267,10 +271,14 @@ export default function WalkScreen() {
   }
   // The spot card (and the options card) goes once you walk on, or with Back (Android) and Escape (web).
   useEffect(() => {
-    if (!spot && !options) return;
+    if (!spot && !options && !settingsOpen) return;
     const close = () => {
       setSpot(null);
       setOptions(false);
+      // Settings close as Cancel does (audit, UI).
+      setSettingsOpen(false);
+      setPreview(null);
+      setFollowing(true);
     };
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
       close();
@@ -282,7 +290,7 @@ export default function WalkScreen() {
       back.remove();
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
-  }, [spot, options]);
+  }, [spot, options, settingsOpen]);
   useEffect(() => {
     if (!spot?.from || !live.here || distanceM(spot.from, live.here) < 30) return;
     const t = setTimeout(() => setSpot(null), 0);
@@ -334,6 +342,8 @@ export default function WalkScreen() {
     fixes,
     captures: cap.captures,
     route: routeLine,
+    routePath: navigation.nav?.route.path ?? null,
+    previewRangeM: preview,
     onAreas: reloadLandings,
     onFound: (item) => {
       // Quietly on a quiet walk (E9): kept, shown in the replay, nothing on screen.
@@ -353,9 +363,6 @@ export default function WalkScreen() {
     if (navItem && (explore.revealed.has(navItem.key) || explore.found.has(navItem.key))) relabel(navItem.name);
   }, [navItem, explore.revealed, explore.found, relabel]);
   // The range preview (E21): the ring is drawn on this map, around you, only while settings are open.
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [preview, setPreview] = useState<number | null>(null);
-  const [panelH, setPanelH] = useState(0);
   const ring = useMemo(() => (preview != null && live.here ? { center: live.here, radiusM: preview } : null), [preview, live.here]);
   const ringFit = useMemo(() => (ring ? boundsOf([ring.center], ring.radiusM * 1.15) : null), [ring]);
   const [ringKey, setRingKey] = useState(0);
@@ -363,6 +370,8 @@ export default function WalkScreen() {
   const onPreview = useCallback((m: number | null) => {
     setPreview(m);
     if (m != null) setRingKey((k) => k + 1);
+    // Closed: back to following you, out of the ring's zoom (audit, UI).
+    else setFollowing(true);
   }, []);
   // Remind me here (v1 slice 4): a flagged capture comes back when this walk
   // passes it (R2, R3). The web checks on each accepted fix here; on a phone
@@ -426,8 +435,11 @@ export default function WalkScreen() {
     setExploring(on);
     if (!on) setMarkOpen(null);
     db.setMeta(EXPLORE_KEY, on ? walk.id : '').catch(() => {});
-    // Its replay counts what it passed (E11).
-    if (on) db.setMeta(exploredKey(walk.id), '1').catch(() => {});
+    // Its replay counts what it passed from here on (E11, audit 9): the first time it was switched on.
+    if (on) {
+      const key = exploredKey(walk.id);
+      db.getMeta(key).then((v) => (v ? undefined : db.setMeta(key, String(Date.now()))), () => {}).catch(() => {});
+    }
   };
   // Hotspots on the walk (v1.5 slice 3): the remembered areas' strips and pockets, current rules
   // only, read again on returning to the front (an area looked at meanwhile, audit).
@@ -668,6 +680,8 @@ export default function WalkScreen() {
         }}
         discoveries={explore.pins}
         onDiscoveryPress={recordingVoice || stopping || settingsOpen ? undefined : (id) => {
+          // A found place is shown, not a card to open: its capture's pin is the thing to tap (audit, UI).
+          if (explore.found.has(id)) return;
           setSpot(null);
           setMarkOpen(id);
         }}
@@ -1049,6 +1063,7 @@ export default function WalkScreen() {
       )}
       <ExploreSettings
         visible={settingsOpen}
+        hasRing={!!live.here}
         bottomInset={insets.bottom}
         onHeight={setPanelH}
         onClose={() => setSettingsOpen(false)}

@@ -292,9 +292,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             id={`mark:${pin.id}:${markKey(pin)}`}
             lngLat={pin.at}
             anchor="bottom"
-            onPress={props.onDiscoveryPress ? () => props.onDiscoveryPress?.(pin.id) : undefined}
+            onPress={props.onDiscoveryPress && !pin.found ? () => props.onDiscoveryPress?.(pin.id) : undefined}
           >
-            <View accessible accessibilityRole="button" accessibilityLabel={markLabel(pin)} style={styles.pinHit}>
+            <View accessible accessibilityRole={pin.found ? 'image' : 'button'} accessibilityLabel={markLabel(pin)} style={pin.found ? undefined : styles.pinHit}>
               <MarkPinView pin={pin} />
             </View>
           </Marker>

@@ -1,6 +1,7 @@
 import type { CategoryId, Mark } from './discovery/types';
 import { db } from './db';
-import { exploredKey, revealedKeys } from './explore/explore';
+import { exploredKey, passedCount, type Kind } from './explore/explore';
+import { loadSettings } from './explore/settings';
 import { filterFixes, splitAtGaps, type Bounds, withoutPauses, smoothDwells } from './geo';
 import { walkBounds } from './finish';
 import type { Capture, LngLat, Pause, StreetSegment, TracePoint, Walk, WalkSummary } from './types';
@@ -17,7 +18,7 @@ export interface ReplayData {
   fog: StreetSegment[];
   summary: WalkSummary | null;
   /** Places this walk found, each with its capture (E11): explore's finds, and marks found before explore. */
-  found: { capture_id: string; name: string; category: CategoryId; generic: boolean }[];
+  found: { capture_id: string; name: string; category: CategoryId; generic: boolean; kind?: Kind }[];
   /** Places named on this walk (within 60 m) but not captured, for the card's low (E11); 0 on a quiet walk. */
   passed: number;
 }
@@ -48,14 +49,21 @@ export async function loadReplay(walkId: string): Promise<ReplayData | null> {
   const finds = await db.listFinds(walkId).catch(() => []);
   const found = [
     ...marks.filter((x) => x.state === 'found' && x.capture_id).map((x) => ({ capture_id: x.capture_id!, name: x.name, category: x.category, generic: x.generic })),
-    ...finds.map((f) => ({ capture_id: f.capture_id, name: f.name, category: f.category, generic: f.generic })),
+    ...finds.map((f) => ({ capture_id: f.capture_id, name: f.name, category: f.category, generic: f.generic, kind: f.kind })),
   ];
+  // What it passed without stopping (E11, audit 9): only once it was exploring, only kinds shown, minus its own finds.
   let passed = 0;
-  if (bounds && (await db.getMeta(exploredKey(walkId)).catch(() => null)) === '1') {
-    const everFound = new Set((await db.listFinds().catch(() => [])).map((f) => f.key));
+  const explored = await db.getMeta(exploredKey(walkId)).catch(() => null);
+  if (bounds && explored) {
+    // '1' from before the audit: count from the start.
+    const since = Number(explored) > 1 ? Number(explored) : 0;
+    const hidden = (await loadSettings().catch(() => null))?.hidden ?? new Set<Kind>();
     const items = await db.checklistItemsIn(bounds).catch(() => []);
-    const named = revealedKeys(items, fixes.map((p) => [p.lon, p.lat] as LngLat));
-    passed = [...named].filter((k) => !everFound.has(k)).length;
+    passed = passedCount({
+      items, since, hidden,
+      fixes: fixes.map((p) => ({ at: [p.lon, p.lat] as LngLat, t: p.t })),
+      foundHere: new Set(finds.map((f) => f.key)),
+    });
   }
   return {
     found,

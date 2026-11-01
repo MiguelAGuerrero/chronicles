@@ -365,22 +365,28 @@ Read this before changing recording, streets, the replay or storage.
   `settings.ts`). The owner wanted discoveries in the moment, not a planned list
   (Nov 1).
   - **A walk starts quiet** (meta `explore_walk` holds the exploring walk's id).
-    Quiet is navigation plus captures: no "?" marks, magenta, strip chip,
-    dead-zone pill or reminders (`recallCheck` treats any walk but the
-    exploring one as quiet). The Explore switch is in the walk's options card;
-    turning it on also sets `explored:<walk>` so the replay counts its passes.
+    Quiet is navigation plus captures: no "?" marks, magenta, strip chip or
+    dead-zone pill. Reminders fire on every walk (the owner's call, after the
+    audit: a reminder is set on purpose). Explore starts from the home's
+    Explore button beside Start walk, or the switch in the walk's options;
+    either sets `explored:<walk>` to the time it began, so the replay counts
+    only what it passed from then.
   - **Checklists build on every walk, quiet too** (so a capture can find a place):
     `readCentre` decides when (a fix 1 km from every read of this build, or in
     an area with no checklist of this build). One decoder read of 1.5 km around
     the area's point (else the fix), plus a z11 read for towns, builds the
     checklists of the areas it saw whole (`buildChecklists`: an area's reach,
-    capped at 1.5 km, inside the read) and the busy streets (`rememberArea`,
-    unless `sweepCovered`). One read at a time; a failure waits 2 min and
-    100 m (`retryAllowed`).
+    capped at 1.5 km, inside the read), never rebuilding or taking from an area
+    already built for this build (`built`, `known`). Busy streets are saved only
+    on an exploring walk (`remember`); switching Explore on reads them at once
+    where a quiet read skipped them. One read at a time; a failure waits 2 min
+    and 100 m (`retryAllowed`), route reads too. The build is checked at most
+    every 10 min (`exploreBuild`), never per fix.
   - **Membership:** nearest neighborhood point within 1 km, else the town or city
-    within reach (closer for its size), else an orphan (`area_key` null: shown,
-    never counted). Checklist keys are level + name + point to 4 decimals
-    (`checklistKey`), which the home's Area rows match (`placeCount`).
+    within its reach capped at 1.5 km (closer for its size), else an orphan
+    (`area_key` null: shown, never counted). One area is one level and name
+    within 1 km (`sameArea`): a town's point moves with the zoom it was read at,
+    so the home matches by that, not by the key (`placeCount`).
   - **Storage:** `checklist_area`, `checklist_item`, `find` (kept), `explore_read`
     (derived: a build change clears it, so areas are read again and rebuilt,
     E4). SQLite migration 9, IndexedDB v8. Items snapshot the place; `kind` is
@@ -392,6 +398,15 @@ Read this before changing recording, streets, the replay or storage.
     first (`routeProbes`, every 500 m).
   - **Finding:** a capture within 60 m of an unfound place, any kind, any walk
     (`findFor`); the first find of a place stands. Walking past only names it.
+    Captures that already found a place are handled before any other is
+    looked at, so a reload never finds a second place for them. A found pin is
+    small, nameless and lets taps through to the capture beside it.
+  - **Web reads by latitude** (`checklist_item` index `lat`), never `getAll()`
+    over the kept store.
+  - **Deferred:** an unstamped capture can't find a place (it has no position
+    until stop); a place moved by a new build can be found twice; the pocket
+    alert likely needs the screen on (native); the home preview ignores the
+    kind switches and doesn't restore the view after.
   - **Settings** (`ExploreSettings`, a panel, not a modal): what I'm into (8
     kinds, meta `explore_hidden`), the range (`explore_range`), the pocket alert
     (`explore_haptic`, phone only, a light tap once per place per walk). The
@@ -425,7 +440,7 @@ Read this before changing recording, streets, the replay or storage.
     app killed a background action reaches no listener.
   - The card goes after 30 s or 100 m. Repeat fires merge into it.
   - **Deferred:** clearing flags whose capture is gone (there is no delete
-    yet). Reminders fire only on an exploring walk (E9).
+    yet). Reminders fire on every walk, quiet or exploring.
   - **Native** (unverified on a device): the task's check, notifications,
     actions and cold-start taps.
 

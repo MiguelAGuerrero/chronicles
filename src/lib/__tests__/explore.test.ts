@@ -20,6 +20,7 @@ import {
   foundLine,
   homeCount,
   placeCount,
+  passedCount,
   passedLine,
   readCentre,
   retryAllowed,
@@ -100,15 +101,15 @@ test('E3: a place goes to the nearest neighborhood within 1 km', () => {
 test('E3: with no neighborhood within 1 km, the town within its reach; with neither, none', () => {
   const t = town('Providence', m(0, 0));
   const far = hood('Far', m(5000, 0));
-  assert.deepEqual(areaFor(m(2000, 0), [t, far]), { level: 'town', name: 'Providence', at: m(0, 0) });
+  assert.deepEqual(areaFor(m(1200, 0), [t, far]), { level: 'town', name: 'Providence', at: m(0, 0) });
   assert.equal(areaFor(m(20000, 0), [t, far]), null);
 });
 
 test('E3: between a town and a city, the closer for its size wins', () => {
   const small = town('Small', m(0, 0), 3000);
-  const city = town('City', m(6000, 0), 10_000);
-  // 2.5 km from the town (0.83 of its reach), 3.5 km from the city (0.35 of its reach).
-  assert.equal(areaFor(m(2500, 0), [small, city])?.name, 'City');
+  const city = town('City', m(2600, 0), 10_000);
+  // 1.2 km from the town (0.4 of its reach), 1.4 km from the city (0.14 of its reach).
+  assert.equal(areaFor(m(1200, 0), [small, city])?.name, 'City');
 });
 
 test('checklist keys come from the area point, so the home can find them', () => {
@@ -331,6 +332,7 @@ test('E23: a route is probed every 500 m, so each area along it is read once', (
 
 test('E11: a found place shows its name and category with its capture; the card lists finds by category', () => {
   assert.equal(foundLine({ name: 'RISD Museum', category: 'culture', generic: false }), 'Found: RISD Museum · Culture');
+  assert.equal(foundLine({ name: 'RISD Museum', category: 'culture', generic: false, kind: 'museums' }), 'Found: RISD Museum · Museums and galleries');
   assert.equal(foundLine({ name: 'Public art', category: 'art', generic: true }), 'Found: Public art');
   assert.equal(findsLine([{ category: 'art' }, { category: 'culture' }, { category: 'art' }]), 'Found 2 art · 1 culture');
   assert.equal(findsLine([]), null);
@@ -349,4 +351,49 @@ test('E10: a home place finds its checklist by level, name and point; found coun
   assert.deepEqual(got && { found: got.count.found, total: got.count.total, names: got.found.length }, { found: 2, total: 4, names: 2 });
   assert.equal(placeCount({ level: 'state', name: 'Rhode Island', lon: 0, lat: 0 }, [a], []), null);
   assert.equal(placeCount({ level: 'neighborhood', name: 'Elsewhere', lon: 0, lat: 0 }, [a], []), null);
+});
+
+// ——— Audit regressions (slice 5) ———
+
+test('audit 2: a place beyond what a town checklist can see is an orphan, still shown, never dropped', () => {
+  const city = town('City', O, 10_000);
+  const p = place('Suburb Museum', m(4000, 0));
+  // Read around the fix 4 km out: the city's checklist isn't seen whole, so the place is kept as an orphan.
+  const r = buildChecklists({ places: [p], candidates: [city], centre: m(4000, 0), build: 'b1', now: 1 });
+  assert.equal(r.items.length, 1);
+  assert.equal(r.items[0].area_key, null);
+  // And a read around the city point never counts a place it can't fully see.
+  const r2 = buildChecklists({ places: [p], candidates: [city], centre: O, build: 'b1', now: 1 });
+  assert.equal(r2.areas[0].count, 0);
+});
+
+test('audit 3: a later read never rebuilds or steals from an area built for this build', () => {
+  const x = hood('X', O);
+  const p = place('Museum', m(200, 0));
+  const first = buildChecklists({ places: [p], candidates: [x], centre: O, build: 'b1', now: 1 });
+  // Read B, centred 1.2 km away, can't see X's point; it must not orphan P or rebuild X.
+  const second = buildChecklists({ places: [p], candidates: [], centre: m(1200, 0), build: 'b1', now: 2, built: first.areas, known: [x] });
+  assert.equal(second.areas.length, 0);
+  assert.equal(second.items.length, 0, 'P stays with X, not written again as an orphan');
+  // A read that covers X again leaves it as it was.
+  const again = buildChecklists({ places: [p], candidates: [x], centre: O, build: 'b1', now: 3, built: first.areas, known: [x] });
+  assert.equal(again.areas.length, 0);
+});
+
+test('audit 5: the same town seen at two zooms is one area; the home finds it', () => {
+  const z14 = town('Providence', [-71.41201, 41.82365]);
+  const z11 = town('Providence', [-71.4128, 41.8241]);
+  const built = buildChecklists({ places: [], candidates: [z14], centre: z14.at, build: 'b1', now: 1 }).areas;
+  assert.equal(readCentre({ fix: [-71.4115, 41.8240], candidates: [z11, z14], areas: built, reads: [{ centre: z14.at, build: 'b1' }], build: 'b1' }), null);
+  const a: ChecklistArea = { ...built[0], count: 5 };
+  assert.ok(placeCount({ level: 'town', name: 'Providence', lon: -71.4135, lat: 41.8245 }, [a], []));
+});
+
+test('audit 9: what a walk passed counts shown kinds, after exploring began, minus this walk’s finds', () => {
+  const a = item('Museum', m(10, 0));
+  const c = item('Church', m(20, 0), 'churches');
+  const b = item('Before', m(500, 0));
+  const fixes = [{ at: m(500, 0), t: 1 }, { at: O, t: 10 }];
+  assert.equal(passedCount({ items: [a, c, b], fixes, since: 5, hidden: new Set<Kind>(['churches']), foundHere: new Set() }), 1);
+  assert.equal(passedCount({ items: [a, c, b], fixes, since: 5, hidden: new Set(), foundHere: new Set([a.key]) }), 1);
 });
