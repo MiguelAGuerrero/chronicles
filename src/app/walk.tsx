@@ -1170,6 +1170,8 @@ export default function WalkScreen() {
       {memory && !spot && !recordingVoice && (
         <View style={[styles.spotRow, { bottom: insets.bottom + 92 + 68 + 12 }]} pointerEvents="box-none">
           <MemoryPreview
+            // A new pin's preview starts fresh: never the last pin's photo (audit 1).
+            key={memory.result.captures[0].id}
             captures={memory.result.captures}
             walkLine={memory.result.context.get(memory.result.captures[0].id) ?? null}
             onOpen={() => {

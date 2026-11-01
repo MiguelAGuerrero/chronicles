@@ -67,7 +67,8 @@ export async function writeWalkBundle(walkId: string, io: BundleIO): Promise<{ w
     walk,
     summary: summaries.find((s) => s.walk_id === walkId) ?? null,
     pauses,
-    captures: captures.map((c) => ({ ...c, media: media[c.id] ?? null, media_missing: !!c.file_path && !media[c.id] })),
+    // A photo's small copy isn't in the bundle: its path would dangle (audit 9).
+    captures: captures.map(({ thumb_path: _thumb, ...c }) => ({ ...c, media: media[c.id] ?? null, media_missing: !!c.file_path && !media[c.id] })),
     trace: points,
   };
   const doc = new ZipPassThrough('walk.json');

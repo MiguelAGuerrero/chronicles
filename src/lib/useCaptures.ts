@@ -220,7 +220,7 @@ export function useCaptures(
       if (id) {
         kept = { kind: 'photo', id };
         // Its small copy for previews (TH1), after the capture is kept: never holds it up or fails it (TH2).
-        void makeThumb(path).then((thumb) => {
+        void makeThumb({ id, walk_id: folder(), t: Date.now(), lat: null, lon: null, kind: 'photo', file_path: path, body: null, segment_id: null }).then((thumb) => {
           if (!thumb) return;
           void db.updateCapture(id, { thumb_path: thumb }).catch(() => {});
           if (alive.current) setCaptures((prev) => prev.map((x) => (x.id === id ? { ...x, thumb_path: thumb } : x)));

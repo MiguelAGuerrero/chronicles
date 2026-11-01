@@ -1,6 +1,7 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { reminderText } from '../lib/discovery/recall';
 import type { Capture } from '../lib/types';
+import { thumbShown } from '../lib/thumbPlan';
 import { useMediaUri } from '../lib/useMediaUri';
 import { Icon } from './icons';
 import { theme } from './ui';
@@ -13,7 +14,8 @@ import { theme } from './ui';
 export function ReminderCard(props: { captures: Capture[]; onOpen: () => void; onDismiss: () => void }) {
   const text = reminderText(props.captures);
   const photo = props.captures.length === 1 && props.captures[0].kind === 'photo' ? props.captures[0] : null;
-  const uri = useMediaUri(photo);
+  // Its small copy when there is one (audit 8), else the photo as before.
+  const uri = useMediaUri(photo ? { ...photo, file_path: thumbShown(photo, false) ?? photo.file_path } : null);
   return (
     // Announced once by the screen, not as a live region too (it would be read twice on Android).
     <View testID="reminder" style={styles.card}>

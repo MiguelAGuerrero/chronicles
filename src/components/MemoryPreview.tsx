@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { db } from '../lib/db';
 import { makeThumb } from '../lib/media/thumb';
-import { wantsThumb } from '../lib/thumbPlan';
+import { thumbShown, wantsThumb } from '../lib/thumbPlan';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { previewLine } from '../lib/memories';
 import type { Capture } from '../lib/types';
@@ -21,23 +21,30 @@ export function MemoryPreview(props: {
   onClose: () => void;
 }) {
   const first = props.captures[0];
-  // A photo's small copy, made once for an older photo that has none (TH3, TH4); the full photo
-  // only until then. A missing file falls back to the kind's icon.
-  const [thumb, setThumb] = useState<string | null>(first.thumb_path ?? null);
+  // A photo's small copy (TH4). An older photo makes it once, here (TH3), read fresh from storage,
+  // since the walk's memory pool may be older than its copy (audit 3). Until it lands, the icon
+  // rather than a second full decode (audit 7); a copy whose file is gone, the photo (audit 6).
+  const [row, setRow] = useState<Capture>(first);
   useEffect(() => {
-    if (!wantsThumb(first)) return;
+    if (first.kind !== 'photo') return;
     let alive = true;
-    void makeThumb(first.file_path!).then((t) => {
+    (async () => {
+      const fresh = (await db.getCapturesByIds([first.id]).catch(() => []))[0] ?? first;
+      if (!alive) return;
+      setRow(fresh);
+      if (!wantsThumb(fresh)) return;
+      const t = await makeThumb(fresh);
       if (!t) return;
-      void db.updateCapture(first.id, { thumb_path: t }).catch(() => {});
-      if (alive) setThumb(t);
-    });
+      void db.updateCapture(fresh.id, { thumb_path: t }).catch(() => {});
+      if (alive) setRow({ ...fresh, thumb_path: t });
+    })();
     return () => {
       alive = false;
     };
   }, [first]);
-  const shown = first.kind === 'photo' ? { ...first, file_path: thumb ?? first.file_path } : null;
-  const uri = useMediaUri(shown);
+  const [copyBroken, setCopyBroken] = useState(false);
+  const ref = thumbShown(row, copyBroken);
+  const uri = useMediaUri(ref ? { ...row, file_path: ref } : null);
   const [broken, setBroken] = useState<string | null>(null);
   const more = props.captures.length - 1;
   const date = new Date(first.t).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
@@ -53,7 +60,12 @@ export function MemoryPreview(props: {
       >
         <View style={styles.thumb}>
           {uri && broken !== uri ? (
-            <Image source={{ uri }} style={StyleSheet.absoluteFill} resizeMode="cover" onError={() => setBroken(uri)} />
+            <Image
+              source={{ uri }}
+              style={StyleSheet.absoluteFill}
+              resizeMode="cover"
+              onError={() => (ref === row.thumb_path && ref !== row.file_path ? setCopyBroken(true) : setBroken(uri))}
+            />
           ) : (
             <Icon name={KIND_ICON[first.kind]} size={24} color={theme.muted} />
           )}

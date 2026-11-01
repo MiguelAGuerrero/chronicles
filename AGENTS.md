@@ -635,8 +635,29 @@ Read this before changing recording, streets, the replay or storage.
     press, a mark, or the options card replace it, and it hides while a memo
     records. The Undo, Retry and caption pills hide under it.
   - It opens a second `CaptureViewer` titled "Memories here".
-  - A photo that won't load falls back to the kind's icon. Deferred: real
-    thumbnails (it decodes the full photo).
+  - A photo that won't load falls back to the kind's icon.
+- **Thumbnails** (TH1-TH5, the owner's calls, Nov 1: save a small copy, with
+  expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
+  - Each new photo gets a 240 px JPEG copy, made after the capture is kept and
+    never holding it up. Older photos get theirs the first time a preview shows
+    them, read fresh from storage first.
+  - The copy is stored as `Capture.thumb_path` (SQLite migration 12;
+    IndexedDB stores the record whole, so no version bump). It is named by the
+    capture (`<id>.thumb.jpg` under its walk or `moments`), never cut from an
+    old ref.
+  - One decode, bounded as it loads (`manipulate(uri, { maxWidth, maxHeight })`),
+    and the manipulator's context and image are released after. On iPhone web,
+    an unreleased one leaves full-size canvases behind.
+  - `THUMB.none` marks a photo that won't decode, so it isn't tried again. Two
+    asks at once share one job. A leftover copy is replaced (`keepFile`
+    `replace`).
+  - Previews show the copy, the icon while it is being made, and the photo
+    when the copy's file is gone (`thumbShown`). The reminder card uses it
+    too. The backup bundle leaves `thumb_path` out.
+  - The memory preview is keyed by its first capture, so a new pin never shows
+    the last one's photo.
+  - **Native** (unverified on a device): migration 12, the manipulator, and
+    whether EXIF orientation survives the copy.
 - **Under this walk's pins:** memory markers get z-index 0 on web and are drawn
   first on native. A faint pin shrinks toward its stem's foot. Its label is "N
   memories here".

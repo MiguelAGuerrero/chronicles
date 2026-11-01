@@ -32,7 +32,7 @@ async function downscale(blob: Blob): Promise<Blob> {
   }
 }
 
-export async function keepFile(tempUri: string, walkId: string, name: string): Promise<string> {
+export async function keepFile(tempUri: string, walkId: string, name: string, _opts: { replace?: boolean } = {}): Promise<string> {
   const blob = await downscale(await (await fetch(tempUri)).blob());
   const key = `walks/${walkId}/${name}`;
   await mediaStore.put(key, blob);

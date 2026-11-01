@@ -7,10 +7,13 @@ import { Directory, File, Paths } from 'expo-file-system';
  * Returns a path relative to Documents: the container's absolute path can
  * change across app updates and restores, so it is rebuilt at read time.
  */
-export async function keepFile(tempUri: string, walkId: string, name: string): Promise<string> {
+export async function keepFile(tempUri: string, walkId: string, name: string, opts: { replace?: boolean } = {}): Promise<string> {
   const dir = new Directory(Paths.document, 'walks', walkId);
   dir.create({ intermediates: true, idempotent: true });
-  await new File(tempUri).move(new File(dir, name));
+  const dest = new File(dir, name);
+  // A thumbnail left by an earlier try is replaced (audit 3); a capture's own file is never overwritten.
+  if (opts.replace && dest.exists) dest.delete();
+  await new File(tempUri).move(dest);
   return `walks/${walkId}/${name}`;
 }
 

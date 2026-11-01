@@ -467,9 +467,9 @@ function check(ok, what) {
           };
         })));
         const drops = await page.evaluate((n) => window.__enters.slice(n).filter((e) => e.kind === 'drop').map((e) => ({ animated: e.animated, ids: e.ids })), before);
-        // A small copy is kept with it (TH1): stored on the capture, decodable, at most 240 px.
-        await page.waitForTimeout(800);
-        const thumb = await page.evaluate((id) => new Promise((resolve) => {
+        // A small copy is kept with it (TH1): stored on the capture, decodable, at most 240 px. Polled: it
+        // is made after the capture is kept, in its own time (TH2).
+        const readThumb = (id) => page.evaluate((id) => new Promise((resolve) => {
           const req = indexedDB.open('chronicles');
           req.onsuccess = () => {
             const db = req.result;
@@ -488,7 +488,12 @@ function check(ok, what) {
               m.onerror = () => resolve({ path, size: null });
             };
           };
-        }), photoId);
+        }), id);
+        let thumb = await readThumb(photoId);
+        for (let i = 0; i < 20 && !thumb.w; i++) {
+          await page.waitForTimeout(250);
+          thumb = await readThumb(photoId);
+        }
         check(!!thumb.path && Math.max(thumb.w, thumb.h) <= 240 && Math.max(thumb.w, thumb.h) >= 100,
           `a new photo keeps a small copy beside it (TH1: ${JSON.stringify(thumb)})`);
         await page.waitForTimeout(600);
