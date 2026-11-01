@@ -10,7 +10,7 @@ import type { Db } from './types';
 
 // Same tables as the native SQLite store, as IndexedDB object stores.
 const DB_NAME = 'chronicles';
-const VERSION = 8;
+const VERSION = 9;
 
 /** Raised when another open tab holds an older version of the database. */
 export class BlockedByOtherTabError extends Error {
@@ -77,6 +77,11 @@ function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number) {
     items.createIndex('lat', 'lat');
     d.createObjectStore('find', { keyPath: 'key' }).createIndex('walk_id', 'walk_id');
     d.createObjectStore('explore_read', { keyPath: 'key' });
+  }
+  if (oldVersion < 9) {
+    // Memories on revisit read captures by place every 50 m: by latitude, never the whole store
+    // (audit 2; iPhone memory). A capture with no place has no lat and isn't in the index.
+    tx.objectStore('capture').createIndex('lat', 'lat');
   }
 }
 
@@ -184,9 +189,9 @@ export const db: Db = {
     return got.filter((c): c is Capture => !!c).sort((a, b) => a.t - b.t);
   },
   async capturesIn([w, s, e, n]) {
-    const all = (await done((await store('capture')).getAll())) as Capture[];
-    return all
-      .filter((c) => c.lat != null && c.lon != null && c.lat >= s && c.lat <= n && c.lon >= w && c.lon <= e)
+    const band = (await done((await store('capture')).index('lat').getAll(IDBKeyRange.bound(s, n)))) as Capture[];
+    return band
+      .filter((c) => c.lon != null && c.lon >= w && c.lon <= e)
       .sort((a, b) => a.t - b.t);
   },
 

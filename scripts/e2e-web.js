@@ -1006,6 +1006,12 @@ function check(ok, what) {
     const shownIds = (await memoryPins().evaluateAll((els) => els.map((e) => e.dataset.ids))).join(',');
     check((await memoryPins().count()) >= 1 && !shownIds.includes(flaggedNote.id),
       `a later walk shows the earlier walk's captures nearby as memory pins, minus the one being reminded (MR1, MR6, MR7: ${await memoryPins().count()} pins)`);
+    // Read by place, never the whole store (audit 2).
+    const indexed = await page.evaluate(() => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => resolve([...req.result.transaction('capture', 'readonly').objectStore('capture').indexNames]);
+    }));
+    check(indexed.includes('lat'), `captures are read by latitude, not with getAll over the store (audit 2: ${indexed.join(', ')})`);
     const recallRows = () => page.evaluate(() => new Promise((resolve) => {
       const req = indexedDB.open('chronicles');
       req.onsuccess = () => {
@@ -1037,10 +1043,32 @@ function check(ok, what) {
     // opens the viewer with every memory from that spot (MR5).
     await page.waitForSelector('[data-testid=memory-pin]', { timeout: 15000 });
     const look = await memoryPins().first().evaluate((el) => ({ opacity: Number(getComputedStyle(el.firstElementChild).opacity), label: el.getAttribute('aria-label') }));
-    check(look.opacity < 0.7 && /^Memor/.test(look.label), `memory pins are faint and named as memories (MR3: opacity ${look.opacity}, "${look.label}")`);
+    check(look.opacity < 0.7 && /memor/i.test(look.label), `memory pins are faint and named as memories (MR3: opacity ${look.opacity}, "${look.label}")`);
+    // Under this walk's own pins, never over them (audit 6).
+    const z = await memoryPins().first().evaluate((el) => getComputedStyle(el).zIndex);
+    check(z === '0', `memory pins sit under capture pins (audit 6: z-index ${z})`);
+    // The tapped pin's own capture leads the preview (audit 3).
+    const tappedIds = (await memoryPins().first().getAttribute('data-ids')).split(',');
+    const tappedFirst = (await captureRows()).find((c) => c.id === tappedIds[0]);
+    // ✕ and Escape close it (MR4).
+    await memoryPins().first().click();
+    await page.waitForSelector('[data-testid=memory-preview]');
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(200);
+    const goneEsc = (await page.locator('[data-testid=memory-preview]').count()) === 0;
+    await memoryPins().first().click();
+    await page.waitForSelector('[data-testid=memory-preview]');
+    await page.click('[data-testid=memory-close]');
+    await page.waitForTimeout(200);
+    check(goneEsc && (await page.locator('[data-testid=memory-preview]').count()) === 0, 'Escape and ✕ close the preview (MR4)');
     await memoryPins().first().click();
     await page.waitForSelector('[data-testid=memory-preview]');
     const preview = await page.locator('[data-testid=memory-preview]').innerText();
+    const kindWord = { photo: /Photo|\w/, video: /Video/, voice: /Voice memo/, text: /\w/ }[tappedFirst.kind];
+    // The first line with words: the kind's icon is a glyph on its own line.
+    const firstLine = preview.split('\n').map((l) => l.trim()).find((l) => /[A-Za-z0-9]/.test(l)) ?? '';
+    check(kindWord.test(firstLine) && (tappedFirst.kind !== 'text' || firstLine === (tappedFirst.body ?? '').split('\n')[0]),
+      `the preview shows the tapped pin's own capture (audit 3: ${tappedFirst.kind}, "${firstLine}")`);
     check(/20\d\d|Nov|Oct/.test(preview) && /Fox Point|Cardamom/.test(preview), `a tap previews the memory with its date and walk (MR4: ${preview.replace(/\s+/g, ' ').slice(0, 80)})`);
     check((await page.locator('[data-testid=reminder]').count()) === 0, 'opening a memory never brings a card or a buzz of its own');
     await page.click('[data-testid=memory-open]');

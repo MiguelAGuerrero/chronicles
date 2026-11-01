@@ -39,14 +39,15 @@ export function CapturePinView({ pin, faint = false }: { pin: CapturePin; faint?
 export function pinLabel(pin: CapturePin, interactive = true, memory = false): string {
   const n = pin.captures.length;
   const what = memory
-    ? n > 1 ? `Memories here, ${n}` : `Memory: ${KIND_LABEL[pin.captures[0].kind]}`
+    ? n > 1 ? `${n} memories here` : `Memory: ${KIND_LABEL[pin.captures[0].kind]}`
     : n > 1 ? `${n} captures here` : KIND_LABEL[pin.captures[0].kind];
   return interactive ? `${what}. Open` : what;
 }
 
 const styles = StyleSheet.create({
   wrap: { width: 36, height: PIN_HEIGHT, alignItems: 'center' },
-  faint: { opacity: 0.55, transform: [{ scale: 0.75 }] },
+  // Shrunk toward the stem's foot, so it still marks its point (audit 7).
+  faint: { opacity: 0.55, transform: [{ scale: 0.75 }], transformOrigin: 'bottom' },
   head: {
     width: 36,
     height: 36,

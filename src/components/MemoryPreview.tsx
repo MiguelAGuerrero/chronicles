@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { previewLine } from '../lib/memories';
 import type { Capture } from '../lib/types';
@@ -19,6 +20,7 @@ export function MemoryPreview(props: {
   const first = props.captures[0];
   // A thumbnail only for a photo; a missing file falls back to the kind's icon.
   const uri = useMediaUri(first.kind === 'photo' ? first : null);
+  const [broken, setBroken] = useState<string | null>(null);
   const more = props.captures.length - 1;
   const date = new Date(first.t).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   const line = previewLine(first);
@@ -32,13 +34,18 @@ export function MemoryPreview(props: {
         style={styles.body}
       >
         <View style={styles.thumb}>
-          {uri ? <Image source={{ uri }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : <Icon name={KIND_ICON[first.kind]} size={24} color={theme.muted} />}
+          {uri && broken !== uri ? (
+            <Image source={{ uri }} style={StyleSheet.absoluteFill} resizeMode="cover" onError={() => setBroken(uri)} />
+          ) : (
+            <Icon name={KIND_ICON[first.kind]} size={24} color={theme.muted} />
+          )}
         </View>
         <View style={styles.text}>
           <Text style={styles.line} numberOfLines={2}>{line}</Text>
           <Text style={styles.meta} numberOfLines={1}>
-            {[date, props.walkLine, more > 0 ? `${more} more here` : null].filter(Boolean).join(' · ')}
+            {[date, props.walkLine].filter(Boolean).join(' · ')}
           </Text>
+          {more > 0 && <Text style={styles.meta}>{`${more} more here`}</Text>}
         </View>
       </Pressable>
       <Pressable testID="memory-close" accessibilityRole="button" accessibilityLabel="Close the memory" onPress={props.onClose} style={styles.close} hitSlop={8}>

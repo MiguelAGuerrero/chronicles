@@ -48,3 +48,54 @@ export function previewLine(c: Capture): string {
   const ms = Number(c.body);
   return Number.isFinite(ms) && ms > 0 ? `${LABEL[c.kind]} · ${clock(ms)}` : LABEL[c.kind];
 }
+
+/**
+ * Reads the area around you at most once per 50 m (MR8), one read at a time.
+ * A slow read is never thrown away because a fix came in meanwhile, and a
+ * failed one marks nothing as read, so the next fix tries again (audit 1).
+ * It sends only when the set of captures changed (audit 10).
+ */
+export function memoryReader(read: (at: LngLat) => Promise<Capture[]>, onPool: (pool: Capture[]) => void) {
+  let readAt: LngLat | null = null;
+  let busy = false;
+  let lastIds: string | null = null;
+  let stopped = false;
+  return {
+    poll(here: LngLat) {
+      if (busy || stopped || !needsRead(readAt, here)) return;
+      busy = true;
+      readAt = here;
+      read(here).then(
+        (pool) => {
+          busy = false;
+          if (stopped) return;
+          const ids = pool.map((c) => c.id).sort().join(',');
+          if (ids === lastIds) return;
+          lastIds = ids;
+          onPool(pool);
+        },
+        () => {
+          busy = false;
+          readAt = null;
+        },
+      );
+    },
+    stop() {
+      stopped = true;
+    },
+  };
+}
+
+/** How far around a tapped group to look (audit 3): its farthest member and a margin, at least What happened here's 50 m. */
+export function groupRadiusM(at: LngLat, group: Capture[]): number {
+  let far = 0;
+  for (const c of group) if (c.lat != null && c.lon != null) far = Math.max(far, distanceM(at, [c.lon, c.lat]));
+  return Math.max(50, Math.ceil(far + 10));
+}
+
+/** What a tapped group opens (audit 3): its own captures first, then the rest nearby, oldest first; never this walk's. */
+export function groupFirst(group: Capture[], nearby: Capture[], walkId: string | null): Capture[] {
+  const ids = new Set(group.map((c) => c.id));
+  const rest = nearby.filter((c) => !ids.has(c.id)).sort((a, b) => a.t - b.t);
+  return [...group, ...rest].filter((c) => c.walk_id !== walkId);
+}

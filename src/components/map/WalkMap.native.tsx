@@ -272,6 +272,26 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             'circle-stroke-width': 2,
           }} />
         </GeoJSONSource>
+        {/* Memories from earlier walks: the same pins, faint, with their own tap (MR1-MR4), drawn
+            before this walk's pins so those stay on top (audit 6). */}
+        {memoryPins.map((pin) => (
+          <Marker
+            key={`memory:${pin.id}:${pin.captures.map((c) => c.id).join(',')}`}
+            id={`memory:${pin.id}`}
+            lngLat={pin.lngLat}
+            anchor="bottom"
+            onPress={props.onMemoryPress ? () => props.onMemoryPress?.(pin.captures, pin.lngLat) : undefined}
+          >
+            <View
+              accessible
+              accessibilityRole={props.onMemoryPress ? 'button' : 'image'}
+              accessibilityLabel={pinLabel(pin, !!props.onMemoryPress, true)}
+              style={styles.pinHit}
+            >
+              <CapturePinView pin={pin} faint />
+            </View>
+          </Marker>
+        ))}
         {/* The Marker's own onPress: on iOS the annotation's tap recognizer
             swallows touches meant for a Pressable inside it. */}
         {pins.map((pin) => (
@@ -289,25 +309,6 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
               style={styles.pinHit}
             >
               <CapturePinView pin={pin} />
-            </View>
-          </Marker>
-        ))}
-        {/* Memories from earlier walks: the same pins, faint, with their own tap (MR1-MR4). */}
-        {memoryPins.map((pin) => (
-          <Marker
-            key={`memory:${pin.id}:${pin.captures.length}`}
-            id={`memory:${pin.id}:${pin.captures.length}`}
-            lngLat={pin.lngLat}
-            anchor="bottom"
-            onPress={props.onMemoryPress ? () => props.onMemoryPress?.(pin.captures, pin.lngLat) : undefined}
-          >
-            <View
-              accessible
-              accessibilityRole={props.onMemoryPress ? 'button' : 'image'}
-              accessibilityLabel={pinLabel(pin, !!props.onMemoryPress, true)}
-              style={styles.pinHit}
-            >
-              <CapturePinView pin={pin} faint />
             </View>
           </Marker>
         ))}

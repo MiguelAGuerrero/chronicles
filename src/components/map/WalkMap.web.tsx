@@ -1,7 +1,7 @@
 import { AttributionControl, Map as MapLibreMap, Marker, setWorkerUrl, type GeoJSONFeature, type MapMouseEvent, type MapTouchEvent } from 'maplibre-gl';
 // @ts-expect-error: a CSS side-effect import, which Metro bundles on web.
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState, type RefObject } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { perfCount } from '../../lib/perfCount';
 import { StyleSheet, View } from 'react-native';
@@ -120,7 +120,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const onLongPress = useRef(props.onLongPress);
   const onUserMove = useRef(props.onUserMove);
   const onCameraChange = useRef(props.onCameraChange);
-  useEffect(() => {
+  // Before paint, so a click right after a render never reaches the previous handler (audit 8).
+  useLayoutEffect(() => {
     onPress.current = props.onPress;
     onLongPress.current = props.onLongPress;
     onUserMove.current = props.onUserMove;
@@ -682,6 +683,8 @@ function usePinMarkers(
       root.render(<CapturePinView pin={pin} faint={memory} />);
       // Anchored at the stem's foot, so the marked point stays visible.
       const marker = new Marker({ element: el, anchor: 'bottom', offset: [0, 6] }).setLngLat(pin.lngLat).addTo(map);
+      // Memories sit under this walk's pins, so a new capture over an old one opens the new one (audit 6).
+      marker.getElement().style.zIndex = memory ? '0' : '1';
       markers.current.set(pin.id, { marker, root, key });
     }
     for (const [id, m] of markers.current) {

@@ -23,7 +23,7 @@ import { db } from '../lib/db';
 import { focusOn } from '../lib/focus';
 import { boundsOf, distanceM, distanceToLinesM, nearPoints, pausedMs } from '../lib/geo';
 import { capturesHere, type HereResult } from '../lib/here';
-import { MEMORY_RULES, memoriesNear, needsRead } from '../lib/memories';
+import { groupFirst, groupRadiusM, MEMORY_RULES, memoriesNear, memoryReader } from '../lib/memories';
 import { MemoryPreview } from '../components/MemoryPreview';
 import { deriveSegments, streetKey } from '../lib/streets';
 import { feedback, MOTION } from '../lib/motion';
@@ -267,6 +267,7 @@ export default function WalkScreen() {
     if (cap.voiceStartedAt != null || stopping || viewing || here || settingsOpen) return;
     setMarkOpen(null);
     setOptions(false);
+    setMemory(null);
     feedback('tap');
     const tap = ++hereTaps.current;
     const r = await capturesHere(at, cap.captures, radiusM).catch(() => null);
@@ -386,17 +387,13 @@ export default function WalkScreen() {
   // Memories on revisit: earlier walks' captures within 100 m, as faint pins, on every walk (the
   // owner's call), never a buzz or a notification (MR1, MR6). The area is read once per 50 m (MR8).
   const [memoryPool, setMemoryPool] = useState<Capture[]>([]);
-  const memoryReadAt = useRef<LngLat | null>(null);
+  // One reader per walk: a slow read lands even as fixes come in, a failed one is tried again, and
+  // it sends only a changed set (audit 1, 10).
+  const [memoryReads] = useState(() => memoryReader((at) => db.capturesIn(boundsOf([at], MEMORY_RULES.readBoxM)!), setMemoryPool));
+  useEffect(() => () => memoryReads.stop(), [memoryReads]);
   useEffect(() => {
-    const at = live.here;
-    if (!at || !needsRead(memoryReadAt.current, at)) return;
-    memoryReadAt.current = at;
-    let alive = true;
-    db.capturesIn(boundsOf([at], MEMORY_RULES.readBoxM)!).then((c) => alive && setMemoryPool(c), () => {});
-    return () => {
-      alive = false;
-    };
-  }, [live.here]);
+    if (live.here) memoryReads.poll(live.here);
+  }, [live.here, memoryReads]);
   // A capture whose reminder card is up has no pin meanwhile (MR7); the pins change only with the set (MR8).
   const memoryIds = memoriesNear({ pool: memoryPool, here: live.here, walkId: walk?.id ?? null, hidden: new Set(reminder?.captures.map((c) => c.id) ?? []) })
     .map((c) => c.id)
@@ -409,14 +406,16 @@ export default function WalkScreen() {
   const memoryTaps = useRef(0);
   const openMemory = async (group: Capture[], at: LngLat) => {
     const tap = ++memoryTaps.current;
-    // Every memory from that spot, oldest first, with its walk (MR5); this walk's own captures aren't memories.
-    const r = await capturesHere(at, [], 50).catch(() => null);
+    // The tapped pin's own captures first, then every other memory from that spot, reaching the
+    // group's farthest member (MR5, audit 3); this walk's own captures aren't memories.
+    const r = await capturesHere(at, [], groupRadiusM(at, group)).catch(() => null);
     if (tap !== memoryTaps.current) return;
-    const mine = new Set(cap.captures.map((c) => c.id));
-    const captures = (r?.captures ?? group).filter((c) => !mine.has(c.id));
+    const captures = groupFirst(group, r?.captures ?? [], walk?.id ?? null);
     if (!captures.length) return;
+    // One card at a time (audit 5).
     setSpot(null);
     setMarkOpen(null);
+    setOptions(false);
     setMemory({ result: { captures, context: r?.context ?? new Map() }, from: live.here });
   };
   // The preview goes once you walk 30 m on (MR4).
@@ -547,7 +546,7 @@ export default function WalkScreen() {
     };
   }, [walk, live.here, hotPockets, quiet, pausedNow]);
   // Spent only once it has been seen: not under a card, a route or settings, never on a quiet walk (audit).
-  const nudgeShown = !!nudge && !quiet && !spot && !openMark && !options && !settingsOpen && !navigation.nav && !navigation.finding;
+  const nudgeShown = !!nudge && !quiet && !spot && !openMark && !options && !memory && !settingsOpen && !navigation.nav && !navigation.finding;
   useEffect(() => {
     if (!nudgeShown || !walk) return;
     if (!nudgedRef.current) {
@@ -739,6 +738,7 @@ export default function WalkScreen() {
           // A found place is shown, not a card to open: its capture's pin is the thing to tap (audit, UI).
           if (explore.found.has(id)) return;
           setSpot(null);
+          setMemory(null);
           setMarkOpen(id);
         }}
         marks={marks}
@@ -869,7 +869,7 @@ export default function WalkScreen() {
             <Ticking style={styles.voiceLiveText} text={(t) => formatElapsed(t - cap.voiceStartedAt!)} />
           </View>
         )}
-        {justTook && !recordingVoice && !spot && !openMark && !options && (
+        {justTook && !recordingVoice && !spot && !openMark && !options && !memory && (
           <View style={styles.undo} accessibilityLiveRegion="polite">
             <Text style={styles.undoText}>Photo saved here</Text>
             <Pressable
@@ -886,7 +886,7 @@ export default function WalkScreen() {
             </Pressable>
           </View>
         )}
-        {cap.discarded && !recordingVoice && !spot && !openMark && !options && (
+        {cap.discarded && !recordingVoice && !spot && !openMark && !options && !memory && (
           <View style={styles.undo} accessibilityLiveRegion="polite">
             <Text style={styles.undoText}>Voice memo discarded</Text>
             <Pressable testID="voice-undo" accessibilityRole="button" onPress={() => cap.undoDiscard()} hitSlop={10} style={styles.undoBtn}>
@@ -894,7 +894,7 @@ export default function WalkScreen() {
             </Pressable>
           </View>
         )}
-        {cap.unsaved && !recordingVoice && !spot && !openMark && !options && (
+        {cap.unsaved && !recordingVoice && !spot && !openMark && !options && !memory && (
           <View style={styles.undo} accessibilityLiveRegion="polite">
             <Text style={styles.undoText}>Voice memo not saved</Text>
             <Pressable accessibilityRole="button" onPress={() => cap.retrySave()} hitSlop={10} style={styles.undoBtn}>
@@ -961,6 +961,7 @@ export default function WalkScreen() {
             onPress={() => {
               setSpot(null);
               setMarkOpen(null);
+              setMemory(null);
               setOptions((v) => !v);
             }}
             style={({ pressed }) => [styles.pauseBtn, options && styles.optionsOn, pressed && styles.pressed]}
@@ -1151,7 +1152,7 @@ export default function WalkScreen() {
           setCaptioning(null);
         }}
       />
-      {memory && !spot && (
+      {memory && !spot && !recordingVoice && (
         <View style={[styles.spotRow, { bottom: insets.bottom + 92 + 68 + 12 }]} pointerEvents="box-none">
           <MemoryPreview
             captures={memory.result.captures}
