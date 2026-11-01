@@ -797,6 +797,15 @@ Read this before changing recording, streets, the replay or storage.
   (loops, divided streets). Pieces that run off the loaded tiles are dropped.
 - Lines that overhang their home tile by more than 80 m are treated as untiled and
   split across every tile they cross. This is what keeps hand-made fixtures working.
+- **Junction points are unprojected from the first line kept, not the first line read**
+  (the fog streaks, Nov 1). The inverse scale once ignored that offset, so every
+  inserted junction collapsed onto one spot whenever a crosswalk came first or the first
+  line was stitched: straight 200 m bridges to one point, 10x the streets. Real tiles hit
+  it on most multi-tile reads; hand-made fixtures rarely do. `STREET_CODE` (`tiles.ts`)
+  drops the street cache once when derivation changes, and areas analyzed before
+  `LANDING_CODE` l3 are left off the map. Real OpenMapTiles tiles for tests: tileserver-gl's
+  `test_data.zip` release on GitHub has a planetiler Zurich mbtiles, reachable from cloud
+  sessions.
 - Avoid anything O(n²) over features. Index with `EdgeGrid`. A 3.6 km downtown, about
   16k features, should derive in under a second.
 - Snapping ignores the 20 m at each end of a piece, where the junctions are, and

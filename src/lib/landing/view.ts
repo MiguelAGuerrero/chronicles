@@ -2,8 +2,11 @@ import { distanceM } from '../geo';
 import type { LngLat } from '../types';
 import { LANDING_RULES, type AreaAnalysis } from './analyze';
 
-/** Bumped by hand when the analysis or the main-street list changes, as SNAP_RULES is (audit). */
-export const LANDING_CODE = 'l2';
+/**
+ * Bumped by hand when the analysis or the main-street list changes, as SNAP_RULES is (audit).
+ * l3: areas analyzed from streets with collapsed junctions (the fog streaks, Nov 1) are stale.
+ */
+export const LANDING_CODE = 'l3';
 /** Changes whenever the rules or the code do, so remembered areas show as stale until analyzed again (L11). */
 export const LANDING_VERSION = `${LANDING_CODE}:${JSON.stringify(LANDING_RULES)}`;
 
@@ -64,6 +67,14 @@ function labelAt(lines: LngLat[][], peak: LngLat, pin: LngLat | null): LngLat {
 }
 
 /**
+ * Areas analyzed before l3 drew their strips from streets whose junctions had
+ * collapsed onto one spot (the fog streaks, Nov 1): they are left off the map
+ * until a long press analyzes them again.
+ */
+const FIRST_SOUND_CODE = 3;
+export const predatesStreetFix = (r: LandingRow) => Number(/^l(\d+):/.exec(r.rules)?.[1] ?? 0) < FIRST_SOUND_CODE;
+
+/**
  * What the map draws for remembered areas (L9): shapes and names only, never
  * a score or rank; stale ones dimmed. Information only: no Start here pin
  * (retired by explore), though a strip's name still keeps clear of where the
@@ -72,6 +83,7 @@ function labelAt(lines: LngLat[][], peak: LngLat, pin: LngLat | null): LngLat {
 export function landingView(rows: LandingRow[], build: string | null): LandingView {
   const v: LandingView = { pockets: [], strips: [], labels: [] };
   for (const r of rows) {
+    if (predatesStreetFix(r)) continue;
     const stale = build != null && isStale(r, build);
     const pin = r.analysis.landing?.at ?? null;
     for (const p of r.analysis.pockets) {

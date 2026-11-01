@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { distanceM, dwellsOf, filterFixes, lineLengthM, pausedMs, positionAt, smoothDwells, splitAtGaps, stepToward, traceDistanceM, withoutPauses } from '../geo';
+import { distanceM, distanceToLinesM, dwellsOf, filterFixes, lineLengthM, pausedMs, positionAt, smoothDwells, splitAtGaps, stepToward, traceDistanceM, withoutPauses } from '../geo';
 import { groupCaptures, nextStop, PATH_MS, schedule, walkTimeAt } from '../replay';
 import { metersPerPixel, PIN_GROUP_PX, pinsFor } from '../pins';
 import { tileAt } from '../tileMath';
@@ -182,6 +182,47 @@ test('derive: lines of one MultiLineString cut each other, and a loop keeps its 
   const segs = deriveSegments([road(ring, { class: 'minor' }), road([at(0.2, 0), at(0.2, -0.5)], { class: 'minor' })]);
   const total = segs.reduce((d, s) => d + s.length_m, 0);
   assert.ok(Math.abs(total - (lineLengthM(ring) + 50)) < 2, `kept ${total.toFixed(0)} m`);
+});
+
+/** Every vertex of every piece lies on the streets it came from: none is invented elsewhere. */
+function assertOnStreets(segs: ReturnType<typeof deriveSegments>, streets: LngLat[][]) {
+  for (const s of segs)
+    for (const p of s.geometry.flat())
+      assert.ok(distanceToLinesM(p, streets) < 0.5, `${s.id} has a vertex ${distanceToLinesM(p, streets).toFixed(0)} m off every street`);
+}
+
+test('derive: junctions stay where the streets cross when the first line is a crosswalk (streaks, Nov 1)', () => {
+  // A scan's sweep in Hampden filled the walk map with fog streaks: every junction point
+  // collapsed onto one spot whenever the first line read wasn't the first line kept.
+  const crosswalk = road([at(0.5, -0.08), at(0.5, 0.08)], { class: 'path', subclass: 'footway' });
+  const main = road([at(0, 0), at(3, 0)], { class: 'minor', name: 'Main Street' });
+  const brook = road([at(1, -1), at(1, 1)], { class: 'minor', name: 'Brook Street' });
+  const hope = road([at(2, -1), at(2, 1)], { class: 'minor', name: 'Hope Street' });
+  const streets = [main, brook, hope].map((r) => r.geometry.coordinates as LngLat[]);
+  const segs = deriveSegments([crosswalk, main, brook, hope]);
+  assertOnStreets(segs, streets);
+  const total = segs.reduce((d, s) => d + s.length_m, 0);
+  assert.ok(Math.abs(total - 700) < 2, `kept ${total.toFixed(0)} m of 700 m`);
+  // The order roads come in never changes the pieces.
+  const ids = (f: RoadFeature[]) => deriveSegments(f).map((s) => s.id).sort();
+  assert.deepEqual(ids([crosswalk, main, brook, hope]), ids([main, brook, hope, crosswalk]));
+});
+
+test('derive: junctions stay put when the first line is stitched to a copy from the next tile', () => {
+  // Stitching starts the first chain at its far end, away from the first point read.
+  const t = tileAt(O);
+  const m = dLon / 100;
+  const lat = O[1];
+  const west = road([[t.e - 300 * m, lat], [t.e + 40 * m, lat]], { class: 'minor' });
+  const east = road([[t.e - 40 * m, lat], [t.e + 300 * m, lat]], { class: 'minor' });
+  const cross = road([[t.e - 150 * m, lat - 100 * dLat / 100], [t.e - 150 * m, lat + 100 * dLat / 100]], { class: 'minor' });
+  const streets = [[[t.e - 300 * m, lat], [t.e + 300 * m, lat]], cross.geometry.coordinates as LngLat[]] as LngLat[][];
+  for (const order of [[east, west, cross], [west, east, cross], [cross, east, west]]) {
+    const segs = deriveSegments(order);
+    assertOnStreets(segs, streets);
+    const total = segs.reduce((d, s) => d + s.length_m, 0);
+    assert.ok(Math.abs(total - 800) < 2, `kept ${total.toFixed(0)} m of 800 m`);
+  }
 });
 
 test('snap: reaching a corner does not credit the short piece around it', () => {
