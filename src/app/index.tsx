@@ -93,7 +93,13 @@ export default function Home() {
   const [panelH, setPanelH] = useState(0);
   const [recalled, setRecalled] = useState<Capture[] | null>(null);
   // A reminder tapped while the home is in front (no walk open) opens here at once (audit 1).
-  useEffect(() => onRecallOpen((found) => setRecalled(found)), []);
+  // With a walk open, the walk screen opens a tapped reminder; the home beneath it doesn't too (it
+  // opened twice, one viewer over the other).
+  const openRef = useRef(open);
+  useEffect(() => {
+    openRef.current = open;
+  });
+  useEffect(() => onRecallOpen((found) => !openRef.current && setRecalled(found)), []);
   const [scanNotice, setScanNotice] = useState<{ message: string; tone?: 'info' | 'error' } | null>(null);
   useEffect(() => {
     if (!scanNotice) return;

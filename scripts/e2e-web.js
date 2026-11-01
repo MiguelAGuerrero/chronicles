@@ -228,6 +228,14 @@ function check(ok, what) {
     check(held.scale > 0.95 && held.scale < 0.99 && held.after === 1, `a large button presses down while held, and springs back (M4: ${held.scale.toFixed(3)} → ${held.after})`);
     await page.click('[data-testid=start]');
     await page.waitForSelector('[data-testid=stop]');
+    // Caught as it appears: the walk's one-time long-press hint (after 100 m), dismissed at once, must
+    // leave no copy behind to be read out again (audit 5).
+    const hintLoc = page.locator('[data-testid=lift-in]', { hasText: 'Press and hold the map' });
+    const hintDismissed = hintLoc.waitFor({ timeout: 180000 }).then(async () => {
+      await hintLoc.locator('[aria-label=Dismiss]').click();
+      await page.waitForTimeout(60);
+      return (await hintLoc.count()) === 0;
+    }, () => null);
     await page.waitForTimeout(2500);
     await shot(page, '01-walk-start');
 
@@ -277,12 +285,7 @@ function check(ok, what) {
     // Motion (M7): banners lift in rather than pop, and a dismissed one leaves no copy behind (audit 5).
     const lifts = await page.evaluate(() => window.__lifts.map((l) => ({ animated: l.animated, text: l.el.innerText.slice(0, 40) })));
     check(lifts.some((l) => /On the web/.test(l.text) && l.animated), `a banner lifts in rather than popping (M7: ${JSON.stringify(lifts.slice(0, 3))})`);
-    const webBanner = page.locator('[data-testid=lift-in]', { hasText: 'On the web' });
-    if (await webBanner.locator('[aria-label=Dismiss]').count()) {
-      await webBanner.locator('[aria-label=Dismiss]').click();
-      await page.waitForTimeout(60);
-      check((await page.locator('[data-testid=lift-in]', { hasText: 'On the web' }).count()) === 0, 'a dismissed banner leaves no copy behind (audit 5)');
-    }
+
 
     // Leaks (the owner's iPhone tab crashed mid-walk): nothing may pile up while walking.
     const cdp = await ctx.newCDPSession(page);
@@ -587,6 +590,8 @@ function check(ok, what) {
     await page.waitForTimeout(600);
     check(page.url().endsWith('/walk'), 'a tap on Stop does not end the walk');
 
+    const dismissed = await hintDismissed;
+    check(dismissed === true, `a dismissed banner leaves no copy behind (audit 5${dismissed == null ? ': the hint never showed' : ''})`);
     const box = await page.locator('[data-testid=stop]').boundingBox();
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     let releaseTilejson;
@@ -757,12 +762,25 @@ function check(ok, what) {
     await page.waitForTimeout(400);
     // The map view survives a replay (H5): pan, note the star, replay, come back.
     const home = await page.locator('canvas.maplibregl-canvas').first().boundingBox();
-    // Grabbed at the side, clear of the star the walks list's zoom-out (M6) centred.
-    await page.mouse.move(home.x + 50, home.y + 400);
+    // Grabbed where the map itself is under the pointer: not the star, nor Start or the sheet floating
+    // over it (the old grab pressed Start, so this check compared a view that never moved).
+    const grab = await page.evaluate(({ w, h }) => {
+      for (let y = 140; y < h - 220; y += 40)
+        for (let x = 40; x < w - 40; x += 40) {
+          const e = document.elementFromPoint(x, y);
+          if (e?.tagName === 'CANVAS') return { x, y };
+        }
+      return null;
+    }, { w: home.width, h: home.height });
+    const starPanned = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
+    await page.mouse.move(home.x + grab.x, home.y + grab.y);
     await page.mouse.down();
-    await page.mouse.move(home.x + 120, home.y + 450, { steps: 6 });
+    await page.mouse.move(home.x + grab.x + 40, home.y + grab.y + 30, { steps: 6 });
     await page.mouse.up();
     await page.waitForTimeout(600);
+    const starMoved = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
+    check(Math.abs(starMoved.x - starPanned.x - 40) < 6 && Math.abs(starMoved.y - starPanned.y - 30) < 6,
+      `a drag on the home map pans it, so the next check compares a moved view (${Math.round(starPanned.x)},${Math.round(starPanned.y)} → ${Math.round(starMoved.x)},${Math.round(starMoved.y)})`);
     const fitsBefore = await page.evaluate(() => window.__perf.fit ?? 0);
     // The Walks list: every stopped walk; one opens its replay as a re-watch (H4, H5).
     // Opening it zooms out to every place walked (M6), framing the star above the sheet.
@@ -1088,7 +1106,7 @@ function check(ok, what) {
     await page.click('[data-testid=memory-open]');
     await page.waitForSelector('text=Memories here');
     check((await page.locator('[data-testid=memory-preview]').count()) === 0, 'the preview opens the viewer with the memories from that spot (MR5)');
-    await page.click('[aria-label="Close"]');
+    await page.click('[data-testid=viewer-close]');
     // A tapped reminder notification opens its capture, playing (NT8). First with the walk screen in front:
     // the service worker's message reaches the page's listener, and the capture opens at once (audit 1).
     const noteId = await page.evaluate(() => new Promise((resolve) => {
@@ -1102,13 +1120,16 @@ function check(ok, what) {
     await page.evaluate((m) => navigator.serviceWorker.dispatchEvent(new MessageEvent('message', { data: m })), tap);
     check(await page.waitForSelector('text=The bakery smelled of cardamom.', { timeout: 10000 }).then(() => true, () => false),
       'a reminder tapped with the walk in front opens its capture at once');
-    await page.click('[aria-label="Close"]');
+    await page.click('[data-testid=viewer-close]');
     // Then a cold open: no window was open, so the service worker opened one carrying the tap. With the
     // walk still open, the home sends it on to the walk, which opens the capture (audit 2).
     await page.goto(`${url}?notice=${encodeURIComponent(JSON.stringify(tap))}`);
     check(await page.waitForSelector('text=The bakery smelled of cardamom.', { timeout: 20000 }).then(() => true, () => false)
       && !page.url().includes('notice='), 'a tap that opened the app opens its capture on the walk, and leaves the URL clean');
-    await page.click('[aria-label="Close"]');
+    await page.waitForTimeout(800);
+    const viewers = await page.locator('[data-testid=viewer-close]').count();
+    check(viewers === 1, `it opens once, on the walk: the home beneath doesn't open it too (${viewers} viewers)`);
+    await page.click('[data-testid=viewer-close]');
 
     const away = [...hosts].filter((h) => !h.startsWith('localhost') && h !== 'tiles.openfreemap.org');
     check(away.length === 0, `nothing is sent anywhere but the map tiles (${away.join(', ')})`);
