@@ -70,5 +70,6 @@ const STREET_CODE = '2';
  * the boundary packs' editions count too: a change to either places every
  * walk again.
  * 2: walking along a street, not across it; about a block for a named street.
+ * 3: rides credit no street, and walks gain their ridden distance and places (rides, R14).
  */
-const SNAP_RULES = '2';
+const SNAP_RULES = '3';

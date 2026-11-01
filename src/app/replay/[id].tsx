@@ -153,8 +153,10 @@ export default function Replay() {
   }, [id, go]);
 
 
-  const sched = useMemo(() => (data ? schedule(data.fixes, data.captures, data.walk.started_at, data.pauses) : null), [data]);
+  const sched = useMemo(() => (data ? schedule(data.fixes, data.captures, data.walk.started_at, data.pauses, data.rides) : null), [data]);
+  // The dot follows walked and ridden fixes alike; the solid trace is only what was walked (R5, R10).
   const runs = useMemo(() => (data ? timedRuns(data.fixes, data.pauses) : []), [data]);
+  const walkedRuns = useMemo(() => (data ? timedRuns(data.walkedFixes, data.breaks) : []), [data]);
   // One clock drives beats one to three. It stands still while a capture is
   // up, and moves on when a beat is over.
   useEffect(() => {
@@ -251,11 +253,20 @@ export default function Replay() {
       if (!data) return [];
       if (beat === 'reading' || beat === 'fog') return data.runs; // shown faintly
       if (beat === 'card' || beat === 'name') return data.runs;
-      return traceUntil(runs, data.runs, walkT);
+      return traceUntil(walkedRuns, data.runs, walkT);
     },
     // Rebuilt on TRACE_STEP_MS buckets, not every frame.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data, beat, runs, traceBucket],
+    [data, beat, walkedRuns, traceBucket],
+  );
+  const rides = useMemo(
+    () => {
+      if (!data) return [];
+      if (beat !== 'path') return data.rideRuns;
+      return traceUntil(data.rideTimed, data.rideRuns, walkT);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [data, beat, traceBucket],
   );
   const walker = beat === 'path' ? walkerAt(runs, walkT) : null;
 
@@ -316,6 +327,7 @@ export default function Replay() {
       <WalkMap
         ref={mapRef}
         trace={trace}
+        rides={rides}
         traceOpacity={beat === 'fog' || beat === 'reading' ? 0.3 : 1}
         walked={shownWalked}
         fog={fog}
@@ -428,7 +440,7 @@ export default function Replay() {
                   <Text style={styles.heroLabel}>{head.small}</Text>
                 </View>
                 <Text style={styles.cardLine}>
-                  {formatDistance(s?.distance_m ?? 0)} · {formatDuration(s?.duration_ms ?? Math.max(0, (data.walk.ended_at ?? data.walk.started_at) - data.walk.started_at - pausedMs(data.pauses, data.walk.started_at, data.walk.ended_at ?? data.walk.started_at)))}
+                  <Text testID="card-distance">{rideLine(s?.distance_m ?? 0, s?.ride_m ?? data.rideM)}</Text> · {formatDuration(s?.duration_ms ?? Math.max(0, (data.walk.ended_at ?? data.walk.started_at) - data.walk.started_at - pausedMs(data.pauses, data.walk.started_at, data.walk.ended_at ?? data.walk.started_at)))}
                   {s && s.streets_walked > 0 ? ` · ${s.streets_walked} ${s.streets_walked === 1 ? 'street' : 'streets'} walked` : ''}
                 </Text>
                 {s && formatCaptures(s) ? <Text style={styles.cardMuted}>{formatCaptures(s)} · tap a pin to open</Text> : null}
@@ -490,6 +502,11 @@ export default function Replay() {
       )}
     </View>
   );
+}
+
+/** "3.2 km walked · 4.1 km by ride" with a ride (R6); just the distance without one. */
+function rideLine(walkedM: number, rideM: number): string {
+  return rideM >= 1 ? `${formatDistance(walkedM)} walked · ${formatDistance(rideM)} by ride` : formatDistance(walkedM);
 }
 
 /** The fog beat's headline, honest about walks whose streets could not be read. */

@@ -1,4 +1,5 @@
 import { distanceM, isBreak, type PauseSpan } from './geo';
+import { RIDE_RULES } from './rides';
 import type { Capture, LngLat, TracePoint } from './types';
 
 /**
@@ -58,21 +59,22 @@ export function groupCaptures(captures: Capture[]): PauseGroup[] {
   return groups;
 }
 
-/**
- * Active-time mapping: each gap longer than GAP_MS between fixes (t0 to t1)
- * keeps its first HOP_MS and loses the rest.
- */
-function activeClock(fixes: TracePoint[], pauses: PauseSpan[]) {
-  const gaps: { t0: number; t1: number }[] = [];
-  for (let i = 1; i < fixes.length; i++) {
-    if (isBreak(fixes[i - 1], fixes[i], pauses, GAP_MS)) gaps.push({ t0: fixes[i - 1].t, t1: fixes[i].t });
-  }
+/** A stretch of walk time that takes `len` of active time: a gap's hop, or a ride squeezed evenly. */
+interface Warp {
+  t0: number;
+  t1: number;
+  len: number;
+  /** A ride is squeezed evenly; a gap keeps its first `len` and loses the rest. */
+  even: boolean;
+}
+
+function clock(warps: Warp[]) {
   const toActive = (t: number) => {
     let removed = 0;
-    for (const g of gaps) {
-      if (t >= g.t1) removed += g.t1 - g.t0 - HOP_MS;
+    for (const w of warps) {
+      if (t >= w.t1) removed += w.t1 - w.t0 - w.len;
       else {
-        if (t > g.t0) removed += Math.max(0, t - g.t0 - HOP_MS);
+        if (t > w.t0) removed += w.even ? (t - w.t0) * (1 - w.len / (w.t1 - w.t0)) : Math.max(0, t - w.t0 - w.len);
         break;
       }
     }
@@ -80,23 +82,68 @@ function activeClock(fixes: TracePoint[], pauses: PauseSpan[]) {
   };
   const toWalk = (a: number) => {
     let removed = 0;
-    for (const g of gaps) {
-      // In active time, this gap is just its hop.
-      if (a < g.t0 - removed + HOP_MS) break;
-      removed += g.t1 - g.t0 - HOP_MS;
+    for (const w of warps) {
+      // In active time, this stretch is just its `len`.
+      const from = w.t0 - removed;
+      if (w.even) {
+        if (a < from) break;
+        if (a < from + w.len) return w.t0 + ((a - from) * (w.t1 - w.t0)) / w.len;
+      } else if (a < from + w.len) break;
+      removed += w.t1 - w.t0 - w.len;
     }
     return a + removed;
   };
   return { toActive, toWalk };
 }
 
-export function schedule(fixes: TracePoint[], captures: Capture[], startedAt: number, pauses: PauseSpan[] = []): Schedule {
-  const { toActive, toWalk } = activeClock(fixes, pauses);
+/**
+ * Active-time mapping: each gap longer than GAP_MS between fixes (t0 to t1)
+ * keeps its first HOP_MS and loses the rest. Each ride (R10) keeps its real
+ * share of the path up to RIDE_RULES.replayMs, all rides together at most
+ * RIDE_RULES.ridesShare of it, squeezed evenly so the dot glides along it.
+ */
+function activeClock(fixes: TracePoint[], pauses: PauseSpan[], rides: RideSpan[] = [], from = 0, to = 0) {
+  const gaps: Warp[] = [];
+  for (let i = 1; i < fixes.length; i++) {
+    if (isBreak(fixes[i - 1], fixes[i], pauses, GAP_MS)) gaps.push({ t0: fixes[i - 1].t, t1: fixes[i].t, len: HOP_MS, even: false });
+  }
+  const spans = rides
+    .map((r) => ({ t0: Math.max(r.t0, from), t1: Math.min(r.t1, to) }))
+    .filter((r) => r.t1 > r.t0);
+  if (!spans.length) return clock(gaps);
+  const plain = clock(gaps);
+  const total = plain.toActive(to) - plain.toActive(from);
+  const ridden = spans.reduce((d, r) => d + (r.t1 - r.t0), 0);
+  // Walked active time; a walk that is all ride keeps its real timing.
+  const walked = total - ridden;
+  if (walked <= 0) return plain;
+  // Rides over their cap get a fixed share; the rest keep theirs, recomputed until none is over.
+  const capped = new Set<number>();
+  let len = 0;
+  for (;;) {
+    const c = capped.size;
+    const q = Math.min(RIDE_RULES.replayMs, (PATH_MS * RIDE_RULES.ridesShare) / Math.max(c, 1)) / PATH_MS;
+    const free = walked + spans.reduce((d, r, i) => d + (capped.has(i) ? 0 : r.t1 - r.t0), 0);
+    len = c ? (q * free) / (1 - c * q) : 0;
+    const all = free + c * len;
+    const over = spans.findIndex((r, i) => !capped.has(i) && ((r.t1 - r.t0) / all) * PATH_MS > RIDE_RULES.replayMs);
+    if (over < 0) break;
+    capped.add(over);
+  }
+  const warps: Warp[] = [...gaps, ...spans.map((r, i) => ({ ...r, len: capped.has(i) ? len : r.t1 - r.t0, even: true }))];
+  return clock(warps.sort((a, b) => a.t0 - b.t0));
+}
+
+/** A ride's first and last fix, for the replay's clock. */
+export type RideSpan = { t0: number; t1: number };
+
+export function schedule(fixes: TracePoint[], captures: Capture[], startedAt: number, pauses: PauseSpan[] = [], rides: RideSpan[] = []): Schedule {
   const startT = fixes[0]?.t ?? startedAt;
   // The path spans the trace. A capture before the first fix or after the last
   // (GPS lost indoors, say) stops the path at that end, rather than leaving
   // the walker standing still while the clock runs on to it.
   const endT = Math.max(fixes.at(-1)?.t ?? startT, startT + 1);
+  const { toActive, toWalk } = activeClock(fixes, pauses, rides, startT, endT);
   const start = toActive(startT);
   const end = toActive(endT);
   // Nothing to draw: no point running an empty path; captures still get their stop.

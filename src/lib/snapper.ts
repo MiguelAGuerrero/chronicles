@@ -1,4 +1,5 @@
-import { filterFixes, pointSegmentDist, projector, splitAtGaps, type PauseSpan } from './geo';
+import { pointSegmentDist, projector, splitAtGaps, type PauseSpan } from './geo';
+import { readTrace } from './rides';
 import { samples, streetKey } from './streets';
 import type { StreetSegment, TracePoint, VisitedSegment } from './types';
 
@@ -49,9 +50,10 @@ export function snap(
   startedAt: number | null = null,
   pauses: PauseSpan[] = [],
 ): VisitedSegment[] {
-  const fixes = filterFixes(points, startedAt);
+  // Walked fixes only: a ride credits no street, and breaks the trace however short (R7).
+  const { walked: fixes, breaks } = readTrace(points, startedAt, pauses);
   if (fixes.length < 2 || segments.length === 0) return [];
-  const runs = splitAtGaps(fixes, 60_000, pauses);
+  const runs = splitAtGaps(fixes, 60_000, breaks);
   const proj = projector([fixes[0].lon, fixes[0].lat]);
 
   // Grid index over trace edges, each tagged with the time it was walked and

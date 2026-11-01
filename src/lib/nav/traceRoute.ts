@@ -1,4 +1,5 @@
-import { distanceM, filterFixes, isBreak, smoothDwells, withoutPauses, type PauseSpan } from '../geo';
+import { distanceM, isBreak, smoothDwells, type PauseSpan } from '../geo';
+import { readTrace } from '../rides';
 import type { LngLat, TracePoint } from '../types';
 import { WalkGraph } from './graph';
 import { NAV } from './rules';
@@ -16,14 +17,16 @@ const LOOP_MIN_M = 100;
  * joined: nothing was walked across them.
  */
 export function traceRouteSource(points: TracePoint[], pauses: PauseSpan[], startedAt: number | null = null): RouteSource {
-  const fixes = smoothDwells(filterFixes(withoutPauses(points, pauses), startedAt));
+  // Walked ground only: walk me back never follows a ride (R13), and a ride breaks the trace.
+  const { walked, breaks } = readTrace(points, startedAt, pauses);
+  const fixes = smoothDwells(walked);
   const g = new WalkGraph(fixes.length ? [fixes[0].lon, fixes[0].lat] : [0, 0]);
   // How far along the walk each point was, so a shortcut only skips a loop.
   const along: number[] = [];
   let prev: { i: number; f: TracePoint } | null = null;
   for (const f of fixes) {
     const p: LngLat = [f.lon, f.lat];
-    const joined = prev && !isBreak(prev.f, f, pauses);
+    const joined = prev && !isBreak(prev.f, f, breaks);
     if (prev && joined && distanceM(g.points[prev.i], p) < STEP_M) continue;
     const i = g.add(p);
     along[i] = prev && joined ? along[prev.i] + distanceM(g.points[prev.i], p) : (prev ? along[prev.i] + LOOP_MIN_M : 0);

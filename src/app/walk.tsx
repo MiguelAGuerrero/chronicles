@@ -59,28 +59,30 @@ const NOTICE_MS = 6000;
 const SLOW_TICK_MS = 5000;
 
 /** Text that updates itself every second, so its parent doesn't re-render to tick it (perf). */
-function Ticking(props: { text: (now: number) => string; style?: StyleProp<TextStyle>; label?: (now: number) => string }) {
+function Ticking(props: { text: (now: number) => string; style?: StyleProp<TextStyle>; label?: (now: number) => string; testID?: string }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
   return (
-    <Text style={props.style} accessibilityLabel={props.label?.(now)}>
+    <Text testID={props.testID} style={props.style} accessibilityLabel={props.label?.(now)}>
       {props.text(now)}
     </Text>
   );
 }
 
-/** Time walked (paused time left out) and distance, in the bottom strip. */
-function WalkStats(props: { startedAt: number | null; pauses: Pause[]; distanceM: number }) {
-  const { startedAt, pauses, distanceM } = props;
+/** Time walked (paused time left out) and distance, in the bottom strip; a ride's distance after it (R6). */
+function WalkStats(props: { startedAt: number | null; pauses: Pause[]; distanceM: number; rideM: number }) {
+  const { startedAt, pauses, distanceM, rideM } = props;
   const elapsed = (now: number) => (startedAt == null ? 0 : now - startedAt - pausedMs(pauses, startedAt, now));
+  const ride = rideM >= 1 ? ` + ${formatDistance(rideM)} ride` : '';
   return (
     <Ticking
+      testID="walk-stats"
       style={styles.stats}
-      text={(now) => `${formatElapsed(elapsed(now))} · ${formatDistance(distanceM)}`}
-      label={(now) => `${formatDuration(elapsed(now))} walked, ${formatDistance(distanceM)}`}
+      text={(now) => `${formatElapsed(elapsed(now))} · ${formatDistance(distanceM)}${ride}`}
+      label={(now) => `${formatDuration(elapsed(now))} walked, ${formatDistance(distanceM)}${rideM >= 1 ? `, plus ${formatDistance(rideM)} by ride` : ''}`}
     />
   );
 }
@@ -318,6 +320,7 @@ export default function WalkScreen() {
     here: live.here,
     lastFixAt: live.lastFixAt,
     paused: pauses.some((p) => p.ended_at == null),
+    riding: live.riding,
     map: () => mapRef.current,
     onArrive: (dest) => {
       feedback('success');
@@ -348,6 +351,7 @@ export default function WalkScreen() {
     walkId: walk?.id ?? null,
     exploring,
     here: live.here,
+    riding: live.riding,
     fixes,
     captures: cap.captures,
     route: routeLine,
@@ -696,13 +700,15 @@ export default function WalkScreen() {
 
   const paused = pauses.some((p) => p.ended_at == null);
   // Paused time does not count as walking.
-  const weak = status.kind === 'recording' && live.lastFixAt != null && now - live.lastFixAt > WEAK_GPS_MS;
+  // Weak GPS is no usable fix for a while, judged before the speed gate: a bus's fixes are good ones (R11).
+  const weak = status.kind === 'recording' && live.lastGoodAt != null && now - live.lastGoodAt > WEAK_GPS_MS;
   // The growing trace says it is recording; the status only shows when it is not.
   const problem =
     paused ? { label: 'Paused', color: theme.muted }
     : status.kind === 'error' ? { label: 'Not recording', color: theme.danger }
     : status.kind === 'waiting' || status.kind === 'idle' ? { label: 'Waiting for GPS', color: theme.warn }
     : weak ? { label: 'Weak GPS', color: theme.warn }
+    : live.riding ? { label: 'On a ride', color: theme.muted }
     : null;
   // A forgotten pause loses the rest of the walk: after a while, say so once per pause.
   const openPause = pauses.find((p) => p.ended_at == null);
@@ -719,6 +725,7 @@ export default function WalkScreen() {
       <WalkMap
         landing={hotView}
         trace={live.runs}
+        rides={live.rides}
         walked={walked}
         fog={fog}
         captures={cap.captures}
@@ -954,7 +961,7 @@ export default function WalkScreen() {
 
       <View style={[styles.bar, { paddingBottom: 10 + insets.bottom }]}>
         <View style={styles.barInner}>
-          <WalkStats startedAt={walk?.started_at ?? null} pauses={pauses} distanceM={live.distanceM} />
+          <WalkStats startedAt={walk?.started_at ?? null} pauses={pauses} distanceM={live.distanceM} rideM={live.rideM} />
           <View style={styles.barActions}>
           <Pressable
             testID="walk-options"

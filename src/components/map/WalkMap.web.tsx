@@ -17,7 +17,7 @@ import { useGlideFrames, type GlideFrame } from '../../lib/useGlidingWalker';
 import { useReducedMotion } from '../../lib/motion';
 import { MOTION } from '../../lib/motionTokens';
 import {
-  COLORS, coneGeoJSON, DERIVE_ZOOM, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, useZoomPins, walkerGeoJSON,
+  COLORS, coneGeoJSON, DERIVE_ZOOM, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -38,7 +38,7 @@ function addOverlay(map: MapLibreMap) {
   // Lines are simplified a little more than the default and keep a smaller tile buffer: less to
   // re-tile on each update (perf, Nov 1; tolerance 0.375 and buffer 128 are maplibre's defaults).
   const lineSource = { type: 'geojson' as const, data: empty, tolerance: 1, buffer: 64 };
-  for (const id of ['fog', 'walked', 'route', 'trace-history', 'trace']) map.addSource(id, lineSource);
+  for (const id of ['fog', 'walked', 'route', 'rides', 'trace-history', 'trace']) map.addSource(id, lineSource);
   for (const id of ['pockets', 'strips', 'cone', 'marks', 'points', 'ring']) map.addSource(id, { type: 'geojson', data: empty });
   const lineLayout = { 'line-cap': 'round', 'line-join': 'round' } as const;
   // Hotspots under the streets: pockets shaded, strips bold, in the one green no other layer uses (L9).
@@ -54,6 +54,10 @@ function addOverlay(map: MapLibreMap) {
   // The route under the trace and walker, so where you walked stays on top (N6).
   map.addLayer({ id: 'route-edge', type: 'line', source: 'route', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': 12 } });
   map.addLayer({ id: 'route', type: 'line', source: 'route', layout: lineLayout, paint: { 'line-color': COLORS.route, 'line-width': 8 } });
+  // Rides dashed on the same white edge, under the walked trace where they meet (R5).
+  map.addLayer({ id: 'rides-edge', type: 'line', source: 'rides', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': 0.9 } });
+  map.addLayer({ id: 'rides', type: 'line', source: 'rides', layout: { 'line-cap': 'butt', 'line-join': 'round' },
+    paint: { 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth, 'line-dasharray': RIDE_DASH } });
   // The trace on a white edge, so it reads over fog, walked streets and the base map alike.
   // Two sources, one look: the history (re-sent once per chunk) and the live tail (each publish).
   for (const [id, source] of [['trace-history-edge', 'trace-history'], ['trace-edge', 'trace']])
@@ -295,6 +299,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   });
   useEffect(() => { if (ready) setData('trace-history', traceGeoJSON(history.current)); }, [ready, split.historyKey]);
   useEffect(() => { if (ready) setData('trace', traceGeoJSON(split.tail)); }, [ready, split.tail]);
+  useEffect(() => { if (ready) setData('rides', traceGeoJSON(props.rides ?? [])); }, [ready, props.rides]);
   useEffect(() => { if (ready) setData('route', routeGeoJSON(props.route)); }, [ready, props.route]);
   useEffect(() => {
     if (!ready) return;
@@ -308,8 +313,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   }, [ready, glideOn, props.walker, props.walkerHeading, view]);
   useEffect(() => {
     if (!ready) return;
-    for (const id of ['trace', 'trace-history-line']) mapRef.current?.setPaintProperty(id, 'line-opacity', props.traceOpacity ?? 1);
-    for (const id of ['trace-edge', 'trace-history-edge']) mapRef.current?.setPaintProperty(id, 'line-opacity', 0.9 * (props.traceOpacity ?? 1));
+    for (const id of ['trace', 'trace-history-line', 'rides']) mapRef.current?.setPaintProperty(id, 'line-opacity', props.traceOpacity ?? 1);
+    for (const id of ['trace-edge', 'trace-history-edge', 'rides-edge']) mapRef.current?.setPaintProperty(id, 'line-opacity', 0.9 * (props.traceOpacity ?? 1));
   }, [ready, props.traceOpacity]);
   useEffect(() => {
     if (ready) setData('points', walkerGeoJSON(glideOn ? null : props.walker));
@@ -613,7 +618,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
 
   return (
     <View style={[styles.wrap, props.style]}>
-      <div ref={container} style={{ position: 'absolute', inset: 0 }} data-trace-opacity={String(props.traceOpacity ?? 1)} data-ring={props.ring ? String(props.ring.radiusM) : ''} />
+      <div ref={container} style={{ position: 'absolute', inset: 0 }} data-trace-opacity={String(props.traceOpacity ?? 1)} data-rides={`${props.rides?.length ?? 0}:${props.rides?.reduce((n, r) => n + r.length, 0) ?? 0}`} data-ring={props.ring ? String(props.ring.radiusM) : ''} />
       {props.covered && <View style={styles.cover} pointerEvents="none" />}
     </View>
   );

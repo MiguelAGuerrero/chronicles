@@ -14,7 +14,7 @@ import { useGlidingWalker } from '../../lib/useGlidingWalker';
 import { useReducedMotion } from '../../lib/motion';
 import { MOTION } from '../../lib/motionTokens';
 import {
-  COLORS, coneGeoJSON, DERIVE_ZOOM, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, useZoomPins, walkerGeoJSON,
+  COLORS, coneGeoJSON, DERIVE_ZOOM, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -46,6 +46,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   // The history changes once per chunk; only the tail is re-sent with each publish (perf, Nov 1).
   const split = useMemo(() => splitTrace(props.trace), [props.trace]);
   const traceTail = useMemo(() => traceGeoJSON(split.tail), [split.tail]);
+  const rides = useMemo(() => traceGeoJSON(props.rides ?? []), [props.rides]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const traceHistory = useMemo(() => traceGeoJSON(split.history), [split.historyKey]);
   const route = useMemo(() => routeGeoJSON(props.route), [props.route]);
@@ -251,6 +252,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         </GeoJSONSource>
         {/* The trace on a white edge, so it reads over fog, walked streets and the base map alike:
             the history (memoized, so it isn't serialized again each render) and the live tail. */}
+        <TraceSource id="rides" data={rides} opacity={props.traceOpacity ?? 1} dashed />
         <TraceSource id="trace-history" data={traceHistory} opacity={props.traceOpacity ?? 1} />
         <TraceSource id="trace" data={traceTail} opacity={props.traceOpacity ?? 1} />
         <GeoJSONSource id="cone" data={cone}>
@@ -360,13 +362,14 @@ const styles = StyleSheet.create({
  * One part of the trace. Memoized: MapLibre RN serializes a GeoJSONSource's
  * data on every render, so an unchanged history must not re-render (perf).
  */
-const TraceSource = memo(function TraceSource(props: { id: string; data: GeoJSON.FeatureCollection; opacity: number }) {
+const TraceSource = memo(function TraceSource(props: { id: string; data: GeoJSON.FeatureCollection; opacity: number; dashed?: boolean }) {
   return (
     <GeoJSONSource id={props.id} data={props.data}>
       <Layer id={`${props.id}-edge`} type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }}
         paint={{ 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': 0.9 * props.opacity }} />
-      <Layer id={`${props.id}-line`} type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-        paint={{ 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth, 'line-opacity': props.opacity }} />
+      {/* A ride is dashed (rides, R5). */}
+      <Layer id={`${props.id}-line`} type="line" layout={{ 'line-cap': props.dashed ? 'butt' : 'round', 'line-join': 'round' }}
+        paint={{ 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth, 'line-opacity': props.opacity, ...(props.dashed ? { 'line-dasharray': RIDE_DASH } : {}) }} />
     </GeoJSONSource>
   );
 });

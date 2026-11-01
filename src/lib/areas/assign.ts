@@ -1,4 +1,5 @@
-import { distanceM, filterFixes, isBreak, smoothDwells, withoutPauses, type PauseSpan } from '../geo';
+import { distanceM, isBreak, smoothDwells, type PauseSpan } from '../geo';
+import { keptFixes, readTrace } from '../rides';
 import type { LngLat, TracePoint } from '../types';
 import { AREA_RULES, AREA_SAMPLE_M } from './rules';
 import type { Area, AreaLevel, BoundarySource, PlaceCandidate, Region, WalkArea } from './types';
@@ -50,7 +51,8 @@ export function assignAreas(
   boundaries: BoundarySource,
   startedAt: number | null = null,
 ): Placement {
-  const fixes = smoothDwells(filterFixes(withoutPauses(points, pauses), startedAt));
+  // Ridden metres count too: riding through a neighborhood is being there (R8).
+  const fixes = smoothDwells(keptFixes(readTrace(points, startedAt, pauses)));
   const rules = `${AREA_RULES}/${boundaries.id}`;
 
   const nearest = (level: AreaLevel, p: LngLat, allowed: (c: PlaceCandidate) => boolean = () => true): PlaceCandidate | null => {

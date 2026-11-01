@@ -1110,6 +1110,48 @@ function check(ok, what) {
       && !page.url().includes('notice='), 'a tap that opened the app opens its capture on the walk, and leaves the URL clean');
     await page.click('[aria-label="Close"]');
 
+    // Rides (R5, R6, R11): a bus leg at 12 m/s, one fix a second, is drawn dashed and reads "On a ride",
+    // never "Weak GPS" (the bug, Nov 1: a bus kept its first fix and showed Weak GPS); the card shows
+    // walked and ridden distance apart.
+    const busFrom = pts[25];
+    for (let j = 0; j < 4; j++) {
+      await ctx.setGeolocation({ longitude: busFrom[0], latitude: busFrom[1] + j * 0.00001, accuracy: 6 });
+      await page.waitForTimeout(1000);
+    }
+    const busStep = 12 / (111320 * Math.cos((busFrom[1] * Math.PI) / 180));
+    let rideChip = false;
+    let weakSeen = false;
+    for (let j = 1; j <= 45; j++) {
+      await ctx.setGeolocation({ longitude: busFrom[0] + j * busStep, latitude: busFrom[1] + 0.00003, accuracy: 6 });
+      await page.waitForTimeout(1000);
+      if (await page.getByText('Weak GPS').count()) weakSeen = true;
+      if (j >= 30 && !rideChip) rideChip = (await page.getByText('On a ride').count()) > 0;
+    }
+    await page.waitForTimeout(2200);
+    await shot(page, '14-ride');
+    check(rideChip, 'a bus leg reads "On a ride" (R11)');
+    check(!weakSeen, 'a bus leg never reads "Weak GPS" (R11)');
+    const rides = await page.locator('[data-rides]').last().getAttribute('data-rides');
+    check(Number(rides?.split(':')[0]) === 1 && Number(rides?.split(':')[1]) > 30, `the ride is drawn as its own dashed line (R5: ${rides})`);
+    const stats = await page.locator('[data-testid=walk-stats]').innerText();
+    check(/\+ \d+ m ride/.test(stats), `the walk's distance shows the ride apart (R6: "${stats}")`);
+    const holdBox = await page.locator('[data-testid=stop]').boundingBox();
+    await page.mouse.move(holdBox.x + holdBox.width / 2, holdBox.y + holdBox.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(1100);
+    await page.mouse.up();
+    await page.waitForURL(/replay/, { timeout: 30000 });
+    await page.waitForSelector('[data-testid=skip]', { timeout: 60000 });
+    await page.click('[data-testid=skip]');
+    await page.waitForSelector('[data-testid=card-distance]', { timeout: 60000 });
+    let cardDistance = '';
+    for (let k = 0; k < 60 && !/by ride/.test(cardDistance); k++) {
+      cardDistance = await page.locator('[data-testid=card-distance]').innerText();
+      if (!/by ride/.test(cardDistance)) await page.waitForTimeout(500);
+    }
+    await shot(page, '14b-ride-card');
+    check(/\d+ m walked · \d+ m by ride/.test(cardDistance), `the card reads walked and ridden apart (R6: "${cardDistance}")`);
+
     const away = [...hosts].filter((h) => !h.startsWith('localhost') && h !== 'tiles.openfreemap.org');
     check(away.length === 0, `nothing is sent anywhere but the map tiles (${away.join(', ')})`);
     check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);

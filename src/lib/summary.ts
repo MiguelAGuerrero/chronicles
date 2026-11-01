@@ -2,15 +2,29 @@ import type { CategoryId, Mark } from './discovery/types';
 import { db } from './db';
 import { exploredKey, passedCount, type Kind } from './explore/explore';
 import { loadSettings } from './explore/settings';
-import { filterFixes, splitAtGaps, type Bounds, withoutPauses, smoothDwells } from './geo';
+import { splitAtGaps, type Bounds, smoothDwells, type PauseSpan } from './geo';
+import { keptFixes, readTrace, rideRuns, timedRideRuns, traceDistances } from './rides';
+import type { TimedRun } from './replay';
 import { walkBounds } from './finish';
 import type { Capture, LngLat, Pause, StreetSegment, TracePoint, Walk, WalkSummary } from './types';
 
 export interface ReplayData {
   walk: Walk;
+  /** Walked and ridden fixes, in time order: the dot follows these. */
   fixes: TracePoint[];
+  /** Walked fixes only, and where they break (pauses and rides): the solid trace. */
+  walkedFixes: TracePoint[];
+  breaks: PauseSpan[];
   pauses: Pause[];
+  /** The solid, walked trace. */
   runs: LngLat[][];
+  /** Each ride, drawn dashed (R5), with times for drawing it as the dot goes. */
+  rideRuns: LngLat[][];
+  rideTimed: TimedRun[];
+  /** Each ride's first and last fix, for the replay's clock (R10). */
+  rides: { t0: number; t1: number }[];
+  /** Ridden distance, from the trace: a summary written before rides has none (R6). */
+  rideM: number;
   captures: Capture[];
   bounds: Bounds | null;
   /** Walked segments, ordered by when the trace first reached them. */
@@ -29,10 +43,14 @@ export async function loadReplay(walkId: string): Promise<ReplayData | null> {
   if (!walk) return null;
   // Standstills are drawn and replayed as a still dot, not GPS jitter.
   const pauses = await db.getPauses(walkId);
-  const fixes = smoothDwells(filterFixes(withoutPauses(await db.getPoints(walkId), pauses), walk.started_at));
+  const tr = readTrace(await db.getPoints(walkId), walk.started_at, pauses);
+  const fixes = smoothDwells(keptFixes(tr));
+  const walkedFixes = smoothDwells(tr.walked);
   const captures = await db.getCaptures(walkId);
+  // The view takes in the rides; streets and fog are only where you walked (R7).
   const bounds = walkBounds(fixes);
-  const segments = bounds ? await db.getSegmentsIn(bounds) : [];
+  const streetBounds = walkBounds(walkedFixes);
+  const segments = streetBounds ? await db.getSegmentsIn(streetBounds) : [];
   const visited = await db.getVisited(walkId);
   const byId = new Map(segments.map((s) => [s.id, s]));
   const visitedIds = new Set(visited.map((v) => v.segment_id));
@@ -54,14 +72,15 @@ export async function loadReplay(walkId: string): Promise<ReplayData | null> {
   // What it passed without stopping (E11, audit 9): only once it was exploring, only kinds shown, minus its own finds.
   let passed = 0;
   const explored = await db.getMeta(exploredKey(walkId)).catch(() => null);
-  if (bounds && explored) {
+  if (streetBounds && explored) {
     // '1' from before the audit: count from the start.
     const since = Number(explored) > 1 ? Number(explored) : 0;
     const hidden = (await loadSettings().catch(() => null))?.hidden ?? new Set<Kind>();
-    const items = await db.checklistItemsIn(bounds).catch(() => []);
+    const items = await db.checklistItemsIn(streetBounds).catch(() => []);
     passed = passedCount({
       items, since, hidden,
-      fixes: fixes.map((p) => ({ at: [p.lon, p.lat] as LngLat, t: p.t })),
+      // Riding past names nothing (R12).
+      fixes: walkedFixes.map((p) => ({ at: [p.lon, p.lat] as LngLat, t: p.t })),
       foundHere: new Set(finds.map((f) => f.key)),
     });
   }
@@ -70,8 +89,14 @@ export async function loadReplay(walkId: string): Promise<ReplayData | null> {
     passed,
     walk,
     fixes,
+    walkedFixes,
+    breaks: tr.breaks,
     pauses,
-    runs: splitAtGaps(fixes, 60_000, pauses),
+    runs: splitAtGaps(walkedFixes, 60_000, tr.breaks),
+    rideRuns: rideRuns(tr),
+    rideTimed: timedRideRuns(tr),
+    rides: tr.rides.map((r) => ({ t0: r.t0, t1: r.t1 })),
+    rideM: traceDistances(tr).rideM,
     captures,
     bounds,
     walked,

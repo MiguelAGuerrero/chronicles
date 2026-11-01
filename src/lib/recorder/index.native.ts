@@ -3,7 +3,7 @@ import * as TaskManager from 'expo-task-manager';
 import { AppState, PermissionsAndroid, Platform } from 'react-native';
 import { db } from '../db';
 import { checkRecalls } from '../discovery/recallCheck';
-import { filterFixes, withoutPauses } from '../geo';
+import { keptFixes, readTrace } from '../rides';
 import type { LngLat, TracePoint } from '../types';
 import { currentStatus, emit, setStatus, subscribe, subscribeStatus } from './emitter';
 import { RecorderError, type Recorder } from './types';
@@ -24,6 +24,10 @@ import { RecorderError, type Recorder } from './types';
 
 const TASK = 'chronicles-trace';
 let currentWalk: string | null = null;
+
+/** The task's recent fixes, enough to tell a ride (RIDE_RULES.windowMs and its edges). */
+const TAIL_MS = 120_000;
+let tail: { walkId: string | null; points: TracePoint[] } = { walkId: null, points: [] };
 
 TaskManager.defineTask<{ locations: Location.LocationObject[] }>(TASK, async ({ data, error }) => {
   if (error) {
@@ -59,8 +63,15 @@ TaskManager.defineTask<{ locations: Location.LocationObject[] }>(TASK, async ({ 
     // A flagged capture comes back (R3): checked against every accepted fix of
     // the batch (the fix filter, outside pauses); in the background it is a
     // notification, in front the walk screen's card.
+    // Read with the last two minutes before it, so a bus's fixes are a ride, not jumps (rides, R12).
     const pauses = await db.getPauses(walk.id).catch(() => []);
-    const accepted = filterFixes(withoutPauses(points, pauses), walk.started_at).map((p) => [p.lon, p.lat] as LngLat);
+    if (tail.walkId !== walk.id) tail = { walkId: walk.id, points: [] };
+    const newest = points.reduce((t, p) => Math.max(t, p.t), 0);
+    tail.points = [...tail.points, ...points].filter((p) => p.t > newest - TAIL_MS);
+    const inBatch = new Set(points.map((p) => p.t));
+    const accepted = keptFixes(readTrace(tail.points, walk.started_at, pauses))
+      .filter((p) => inBatch.has(p.t))
+      .map((p) => [p.lon, p.lat] as LngLat);
     if (accepted.length) await checkRecalls(walk.id, accepted).catch(() => false);
   } catch (e) {
     setStatus({ kind: 'error', message: `Positions could not be saved: ${e instanceof Error ? e.message : e}` });
