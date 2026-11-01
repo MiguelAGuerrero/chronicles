@@ -190,6 +190,13 @@ Read this before changing recording, streets, the replay or storage.
   - The live map draws `liveRuns` (standstills held still, as the replay does).
   - Corners can round by a few metres at poor accuracy. Tests count ground
     covered, never exact fix counts. `SNAP_RULES` 4.
+- **Share GPS log** (the owner's go-ahead, Nov 1, after the trace and dot sat
+  far from where they stood indoors): the walk's options hand the walk's raw
+  readings (seconds, position, accuracy, speed, course) and placed captures to
+  the share sheet (`gpsLog`, React Native's `Share`, so `navigator.share` on
+  web), or the clipboard on a desktop. The text is read when the card opens: a
+  browser opens the share sheet only straight from a tap. Nothing is sent
+  anywhere by the app.
 - **What happened here:** a long press on the walk screen (so stray taps do
   nothing), a tap on the replay card. The reach is 44 px at the current zoom,
   clamped to 15–150 m (`pressRadiusM`). The open walk's captures are passed in as
