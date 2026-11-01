@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Animated, BackHandler, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions,
   type GestureResponderEvent,
@@ -25,8 +25,6 @@ export type SheetMode =
 /** The sheet's height when it peeks over the map, above the safe area. */
 export const SHEET_PEEK = 76;
 
-type Size = 'peek' | 'half' | 'full';
-
 /**
  * The home map's bottom sheet, as in AllTrails and Google Maps: it peeks with
  * a one-line summary and a Walks button, and opens to half or full height to
@@ -35,43 +33,47 @@ type Size = 'peek' | 'half' | 'full';
  * and back (Android) or Escape (web) lowers it. Built on Animated and the
  * responder system, so it is the same on phones and on the web.
  */
-export function HomeSheet(props: {
-  index: PlacesIndex;
-  summaries: Map<string, WalkSummary>;
-  unplaced: Walk[];
-  mode: SheetMode;
-  onMode: (m: SheetMode) => void;
+/** A drawer's three heights, as in AllTrails and Google Maps. */
+export type SheetSize = 'peek' | 'half' | 'full';
+
+/**
+ * The drag, the three heights and Back/Escape of every drawer in the app (the
+ * places sheet, Navigate's pre-start drawer, Explore's): one frame, so every
+ * tab drags the same way (Navigation & tabs). The handle and header drag
+ * between the heights; a tap on them toggles peek and half; back (Android) or
+ * Escape (web) lowers it. Built on Animated and the responder system, so it is
+ * the same on phones and on the web.
+ */
+export function SheetFrame(props: {
+  size: SheetSize;
+  onSize: (s: SheetSize) => void;
+  header: ReactNode;
+  children?: ReactNode;
+  /** The peek's height above the bottom inset. */
+  peek?: number;
+  /** The safe area under the sheet; 0 above a tab bar, which keeps it. */
+  bottomInset?: number;
+  /** The height the sheet can grow into (the screen above a tab bar). */
+  areaHeight?: number;
   /** Called with the sheet's height whenever it settles, so the map's fits sit clear of it. */
   onHeight?: (h: number) => void;
-  /** The sheet's live height, owned by the screen so what floats above it (Start) moves with it
+  /** The sheet's live height, owned by the screen so what floats above it moves with it
    *  frame by frame, never from a height reported when a move ends. Read once, at mount. */
   height?: Animated.Value;
-  /** While old walks are being placed, rows can't open a replay. */
-  busy?: boolean;
-  /** Starts a walk navigating to the place shown (N11). */
-  onGoToPlace?: () => void;
-  /** The place's checklist count and found places (E10), in the place view only. */
-  placeExtra?: { count: string; found: string[] } | null;
-  /** Days with something in them, newest first (M7). */
-  days?: Day[];
-  /** Opens moments in the viewer (M8). */
-  onOpenMoments?: (captures: Capture[]) => void;
-  /** Opens a finished walk's actions: remove its media, or delete it (D1, D2). */
-  onWalkActions?: (walkId: string) => void;
-  /** The home's clock, for naming today and yesterday. */
-  now: number;
+  testID?: string;
+  dragTestID?: string;
 }) {
   const insets = useSafeAreaInsets();
   const { height: screenH } = useWindowDimensions();
-  const heights: Record<Size, number> = {
-    peek: SHEET_PEEK + insets.bottom,
-    half: Math.round(screenH * 0.5),
-    full: Math.round(screenH - insets.top - 56),
+  const bottom = props.bottomInset ?? insets.bottom;
+  const areaH = props.areaHeight ?? screenH;
+  const heights: Record<SheetSize, number> = {
+    peek: (props.peek ?? SHEET_PEEK) + bottom,
+    half: Math.round(areaH * 0.5),
+    full: Math.round(areaH - insets.top - 56),
   };
-  const expanded = props.mode.kind !== 'summary';
-  // Opening a list starts at half height; the drag can take it to full.
-  const [openSize, setOpenSize] = useState<Exclude<Size, 'peek'>>('half');
-  const size: Size = expanded ? openSize : 'peek';
+  const { size } = props;
+  const expanded = size !== 'peek';
   const target = heights[size];
   // The sheet settles at its height with the app's one spring (M5), or snaps with reduce motion on
   // (M2). Height can't use the native driver, so it runs in JavaScript, as it did.
@@ -93,25 +95,18 @@ export function HomeSheet(props: {
     moveTo(target, reduced);
   }, [moveTo, target, reduced]);
 
-  const setSize = (next: Size) => {
-    if (next === 'peek') props.onMode({ kind: 'summary' });
-    else {
-      setOpenSize(next);
-      if (!expanded) props.onMode(props.index.walkCount || !(props.days ?? []).length ? { kind: 'walks' } : { kind: 'days' });
-    }
-  };
   // Back on Android, and Escape on the web, lower an open sheet before anything else.
-  const onModeRef = useRef(props.onMode);
+  const onSizeRef = useRef(props.onSize);
   useEffect(() => {
-    onModeRef.current = props.onMode;
+    onSizeRef.current = props.onSize;
   });
   useEffect(() => {
     if (!expanded) return;
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
-      onModeRef.current({ kind: 'summary' });
+      onSizeRef.current('peek');
       return true;
     });
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onModeRef.current({ kind: 'summary' });
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onSizeRef.current('peek');
     if (Platform.OS === 'web' && typeof window !== 'undefined') window.addEventListener('keydown', onKey);
     return () => {
       back.remove();
@@ -125,13 +120,13 @@ export function HomeSheet(props: {
   const settle = (pageY: number) => {
     const moved = drag.current.y - pageY;
     if (!drag.current.moved && Math.abs(moved) < 6) {
-      setSize(expanded ? 'peek' : 'half');
+      props.onSize(expanded ? 'peek' : 'half');
       return;
     }
     const at = drag.current.from + moved;
-    const nearest = (Object.keys(heights) as Size[]).sort((x, y) => Math.abs(heights[x] - at) - Math.abs(heights[y] - at))[0];
+    const nearest = (Object.keys(heights) as SheetSize[]).sort((x, y) => Math.abs(heights[x] - at) - Math.abs(heights[y] - at))[0];
     if (nearest === size) moveTo(target, reduced);
-    else setSize(nearest);
+    else props.onSize(nearest);
   };
   const dragProps = {
     onStartShouldSetResponder: () => true,
@@ -151,6 +146,63 @@ export function HomeSheet(props: {
     onResponderTerminate: (e: GestureResponderEvent) => settle(e.nativeEvent.pageY),
   };
 
+  return (
+    <Animated.View testID={props.testID} style={[styles.sheet, { height: h, paddingBottom: bottom }]}>
+      <View testID={props.dragTestID} {...dragProps} style={styles.dragArea}>
+        <View style={styles.handleArea}>
+          <View style={styles.handle} />
+        </View>
+        {props.header}
+      </View>
+      {props.children}
+    </Animated.View>
+  );
+}
+
+/**
+ * The places sheet (Chronicle): it peeks with a one-line summary and a Walks
+ * button, and opens to half or full height to list walks, every one or a
+ * place's, and days. Its frame is SheetFrame.
+ */
+export function HomeSheet(props: {
+  index: PlacesIndex;
+  summaries: Map<string, WalkSummary>;
+  unplaced: Walk[];
+  mode: SheetMode;
+  onMode: (m: SheetMode) => void;
+  /** Called with the sheet's height whenever it settles, so the map's fits sit clear of it. */
+  onHeight?: (h: number) => void;
+  /** The sheet's live height (see SheetFrame). */
+  height?: Animated.Value;
+  bottomInset?: number;
+  areaHeight?: number;
+  /** While old walks are being placed, rows can't open a replay. */
+  busy?: boolean;
+  /** Starts a walk navigating to the place shown (N11). */
+  onGoToPlace?: () => void;
+  /** The place's found places (E10), in the place view only. */
+  placeExtra?: { count?: string; found: string[] } | null;
+  /** Days with something in them, newest first (M7). */
+  days?: Day[];
+  /** Opens moments in the viewer (M8). */
+  onOpenMoments?: (captures: Capture[]) => void;
+  /** Opens a finished walk's actions: remove its media, or delete it (D1, D2). */
+  onWalkActions?: (walkId: string) => void;
+  /** The home's clock, for naming today and yesterday. */
+  now: number;
+}) {
+  const expanded = props.mode.kind !== 'summary';
+  // Opening a list starts at half height; the drag can take it to full.
+  const [openSize, setOpenSize] = useState<Exclude<SheetSize, 'peek'>>('half');
+  const size: SheetSize = expanded ? openSize : 'peek';
+  const setSize = (next: SheetSize) => {
+    if (next === 'peek') props.onMode({ kind: 'summary' });
+    else {
+      setOpenSize(next);
+      if (!expanded) props.onMode(props.index.walkCount || !(props.days ?? []).length ? { kind: 'walks' } : { kind: 'days' });
+    }
+  };
+
   const { index } = props;
   const all = [...index.walks.values()].sort((x, y) => y.started_at - x.started_at);
   const place = props.mode.kind === 'place' ? placeWalks(index, props.mode.key) : null;
@@ -168,11 +220,16 @@ export function HomeSheet(props: {
   const nowT = props.now;
 
   return (
-    <Animated.View testID="home-sheet" style={[styles.sheet, { height: h, paddingBottom: insets.bottom }]}>
-      <View testID="sheet-drag" {...dragProps} style={styles.dragArea}>
-        <View style={styles.handleArea}>
-          <View style={styles.handle} />
-        </View>
+    <SheetFrame
+      testID="home-sheet"
+      dragTestID="sheet-drag"
+      size={size}
+      onSize={setSize}
+      onHeight={props.onHeight}
+      height={props.height}
+      bottomInset={props.bottomInset}
+      areaHeight={props.areaHeight}
+      header={
         <View style={styles.header}>
           {day ? (
             <View style={styles.headerText}>
@@ -185,9 +242,9 @@ export function HomeSheet(props: {
               <Text style={styles.meta} numberOfLines={2}>
                 {[place.subtitle, `${place.walks.length} ${place.walks.length === 1 ? 'walk' : 'walks'}`, formatDistance(place.metres)].filter(Boolean).join(' · ')}
               </Text>
-              {props.placeExtra && (
+              {props.placeExtra?.count ? (
                 <Text testID="place-count" style={styles.meta} numberOfLines={1}>{props.placeExtra.count}</Text>
-              )}
+              ) : null}
             </View>
           ) : (
             <Text style={[styles.title, styles.headerText]} accessibilityRole="header" numberOfLines={1}>
@@ -254,7 +311,8 @@ export function HomeSheet(props: {
             </View>
           )}
         </View>
-      </View>
+      }
+    >
       {place && props.onGoToPlace && (
         <View style={styles.goRow}>
           <Pressable testID="place-go" accessibilityRole="button" accessibilityLabel={`Start a walk to ${place.title}`} onPress={props.onGoToPlace} disabled={props.busy} style={({ pressed }) => [styles.go, (pressed || props.busy) && { opacity: 0.7 }]}>
@@ -327,7 +385,7 @@ export function HomeSheet(props: {
           )}
         </ScrollView>
       )}
-    </Animated.View>
+    </SheetFrame>
   );
 }
 
