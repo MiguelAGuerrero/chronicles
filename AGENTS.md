@@ -47,6 +47,29 @@ Docs: https://docs.expo.dev/eas/index.md
 What the app is, the decisions already made, and the traps found while building it.
 Read this before changing recording, streets, the replay or storage.
 
+## Positioning (the owner's call, Nov 1; the concept doc's "Positioning" section)
+
+- **A companion for wandering towns and cities:** it suggests where to drift, finds the
+  way, keeps what you notice where you noticed it, and gives the outing back. It
+  replaces juggling AllTrails (the way), a camera and notes (the moments) and Relive
+  (the replay). Navigation is for exploring, and exploring is for making memories:
+  give dedicated work to features that need both halves.
+- **Three tabs are the loop** (spec: the doc's "Navigation & tabs" tab): Explore
+  before (busy areas, places to find, later the interesting ways through an area),
+  Navigate during (the way, quick capture, the walk), Chronicle after (moments,
+  walks, replays, revisits).
+- **Principles:** the interesting way, not only the fastest (a scenic route through
+  busy strips and things worth seeing; Walk me back stays shortest). Follow the wind
+  (a route is a suggestion; drifting isn't nagged). Nothing is a score: no
+  completion, streaks or coverage metrics; unwalked streets and fog stay faint, and a
+  find is a memory, never a count. Capture is the hinge between the tabs.
+- **Out of scope:** trails and nature navigation, offline maps and routing, automatic
+  3D or video replays, completion and leaderboards, fitness tracking. Open data
+  (OpenStreetMap via OpenFreeMap) with signal assumed.
+- **Open (in the doc):** two things are named Explore (the tab and the walk's mode);
+  whether to drop counts like "N of M" (NV14) and "Passed N places"; what the Explore
+  tab lists in a city where AllTrails lists trails.
+
 ## Product and where the spec lives
 
 - The spec is the owner's "Explorer App Concept" doc in Claude Docs. This app is its
