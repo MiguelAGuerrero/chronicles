@@ -3,6 +3,10 @@ import type { LngLat } from '../types';
 export type CategoryId =
   | 'art' | 'food' | 'shops' | 'history' | 'parks' | 'culture' | 'viewpoints' | 'nightlife';
 
+/** The finer kinds of attraction the "What I'm into" filter switches (E16). */
+export type Kind =
+  | 'public_art' | 'museums' | 'theatres' | 'monuments' | 'churches' | 'cemeteries' | 'parks' | 'viewpoints';
+
 /** A place worth offering, from whatever source; cache, tagged with the build it came from. */
 export interface Place {
   /** category + normalized name + position rounded to 4 decimals (`placeKey`). */
@@ -19,6 +23,11 @@ export interface Place {
    * Missing on rows cached before it: judged by category alone.
    */
   markable?: boolean;
+  /**
+   * The attraction's kind (E16), set by the tiles adapter on a fresh read. Not
+   * kept in the place cache: checklists are built from fresh reads only.
+   */
+  kind?: Kind;
 }
 
 /** Truth: a place the app has offered. Never cleared. */

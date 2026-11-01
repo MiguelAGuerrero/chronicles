@@ -2,7 +2,7 @@ import type { TileFeature } from '../areas/tilePlaces';
 import type { LngLat } from '../types';
 import { MARK_CATEGORIES, notableName } from './noise';
 import { placeKey } from './places';
-import type { CategoryId, Place } from './types';
+import type { CategoryId, Kind, Place } from './types';
 
 /*
  * The OpenMapTiles `poi` layer, and what each class is to the app: the v1 tab's
@@ -67,6 +67,26 @@ function markableFor(cls: string, category: CategoryId, name: string): boolean {
   return !MARK_BY_NAME.has(cls) || notableName(name);
 }
 
+/** An attraction's kind for the filter (E16): the history and culture categories split finer. */
+function kindFor(cls: string, category: CategoryId): Kind | undefined {
+  switch (category) {
+    case 'art':
+      return 'public_art';
+    case 'parks':
+      return 'parks';
+    case 'viewpoints':
+      return 'viewpoints';
+    case 'history':
+      if (cls === 'place_of_worship') return 'churches';
+      if (cls === 'cemetery') return 'cemeteries';
+      return 'monuments';
+    case 'culture':
+      return cls === 'theatre' ? 'theatres' : 'museums';
+    default:
+      return undefined;
+  }
+}
+
 /** Unnamed places worth keeping, by subclass, and the label they show (D4). */
 const GENERIC: Record<string, string> = { artwork: 'Public art', viewpoint: 'A viewpoint' };
 
@@ -99,7 +119,10 @@ export function placesFromTilePois(features: (TileFeature & { zoom?: number })[]
     const at: LngLat = [c[0], c[1]];
     const key = placeKey(category, generic ? null : raw, at);
     const name = generic ? GENERIC[sub] : raw;
-    if (!out.has(key)) out.set(key, { key, name, category, at, generic, build, markable: markableFor(cls, category, name) });
+    if (out.has(key)) continue;
+    const markable = markableFor(cls, category, name);
+    const kind = markable ? kindFor(cls, category) : undefined;
+    out.set(key, { key, name, category, at, generic, build, markable, ...(kind ? { kind } : {}) });
   }
   return [...out.values()];
 }
