@@ -58,21 +58,25 @@ Read this before changing recording, streets, the replay or storage.
   before (busy areas, places to find, later the interesting ways through an area),
   Navigate during (the way, quick capture, the walk), Chronicle after (moments,
   walks, replays, revisits).
-- **All walk set-up lives in Navigate's pre-start drawer** (as in AllTrails): mode,
-  kinds and range, destination and route, reminders and alerts. Other tabs hand a
-  choice to the drawer and never set up a walk themselves: Explore previews a route
-  and its Walk this way fills the drawer (NV29-NV31). Navigate opened with no
-  destination is the wandering start.
-- **Principles:** the interesting way, not only the fastest (a scenic route through
-  busy strips and things worth seeing; Walk me back stays shortest). Follow the wind
+- **Start just starts; the drawer holds the extras** (the owner's call, Nov 1,
+  after AllTrails' Navigate page; spec rev 31). Start sits at the drawer's peek and
+  starts at once where you are, with the saved choices and the destination if one is
+  set. Pulling the drawer up shows the additional settings: quiet or Explore, what
+  I'm into and the range, the destination (a long press on Navigate's map),
+  reminders and alerts. Walk here stays a one-tap start from Chronicle and Explore
+  and never fills the drawer.
+- **Suggested routes are deferred** (the owner's call, Nov 1): routes to a
+  destination with detours shaped by preferences (streets with life, things worth
+  seeing), Explore's route preview and "Walk this way" are their own later slice.
+- **Principles:** the interesting way, not only the fastest (the suggested-routes
+  slice; Walk me back stays shortest). Follow the wind
   (a route is a suggestion; drifting isn't nagged). Nothing is a score: no
   completion, streaks or coverage metrics; unwalked streets and fog stay faint, and a
   find is a memory, never a count. Capture is the hinge between the tabs.
 - **Out of scope:** trails and nature navigation, offline maps and routing, automatic
   3D or video replays, completion and leaderboards, fitness tracking. Open data
   (OpenStreetMap via OpenFreeMap) with signal assumed.
-- **Defaults taken (Nov 1):** Walk here fills the drawer like Walk this way (NV12,
-  NV15), and the Explore tab shows places to find and finds with no counts (NV14).
+- **No counts on the Explore tab** (NV14): places to find and finds, never "N of M".
 - **Open (in the doc):** two things are named Explore (the tab and the walk's mode);
   whether the replay keeps "Passed N places"; what the Explore tab lists in a city
   where AllTrails lists trails.
