@@ -1,5 +1,6 @@
 import type { Area, WalkArea } from '../areas/types';
 import type { Mark, Offered, Place, Recall } from '../discovery/types';
+import type { ChecklistArea, ChecklistItem, ExploreRead, Find } from '../explore/explore';
 import type { LandingRow } from '../landing/view';
 import type { Capture, Pause, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 
@@ -88,6 +89,22 @@ export interface Db {
   /** Remembers an analyzed area (L11); the same key replaces it (L12). */
   putLanding(row: LandingRow): Promise<void>;
   listLandings(): Promise<LandingRow[]>;
+
+  /**
+   * One explore read in one transaction (E2, E4): each built area's items are
+   * replaced and its checklist stored; orphan items are added; where the read
+   * happened is recorded. Finds are never touched.
+   */
+  saveChecklists(r: { areas: ChecklistArea[]; items: ChecklistItem[]; read: ExploreRead }): Promise<void>;
+  listChecklistAreas(): Promise<ChecklistArea[]>;
+  /** Checklist items (and orphans) inside the bounds. */
+  checklistItemsIn(bounds: [number, number, number, number]): Promise<ChecklistItem[]>;
+  /** Where explore reads happened, under which build (derived). */
+  listExploreReads(): Promise<ExploreRead[]>;
+  /** A capture found a place (E8); the first find of a place stands. */
+  addFind(f: Find): Promise<void>;
+  /** Every find, or one walk's. */
+  listFinds(walkId?: string): Promise<Find[]>;
 
   getMeta(key: string): Promise<string | null>;
   setMeta(key: string, value: string): Promise<void>;

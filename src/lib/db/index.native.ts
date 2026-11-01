@@ -1,4 +1,5 @@
 import * as SQLite from 'expo-sqlite';
+import { areaFromRow, areaToRow, findFromRow, findToRow, itemFromRow, itemToRow, readFromRow, readToRow, type AreaRow, type FindRow, type ItemRow, type ReadRow } from './exploreRow';
 import { placeFromRow, placeToRow, type PlaceRow } from './placeRow';
 import type { Area, WalkArea } from '../areas/types';
 import type { LandingRow } from '../landing/view';
@@ -107,6 +108,27 @@ const MIGRATIONS = [
   // 8: whether a place can be a mark (S18-S20); null for rows cached before it, which are not.
   `
   ALTER TABLE place ADD COLUMN markable INTEGER;
+  `,
+  // 9: explore (E13): checklists and finds are kept; where reads happened is derived.
+  `
+  CREATE TABLE checklist_area (
+    key TEXT PRIMARY KEY, level TEXT NOT NULL, name TEXT NOT NULL, lon REAL NOT NULL, lat REAL NOT NULL,
+    build TEXT NOT NULL, built_at INTEGER NOT NULL, count INTEGER NOT NULL
+  );
+  CREATE TABLE checklist_item (
+    key TEXT PRIMARY KEY, area_key TEXT, name TEXT NOT NULL, category TEXT NOT NULL, kind TEXT NOT NULL,
+    lon REAL NOT NULL, lat REAL NOT NULL, generic INTEGER NOT NULL
+  );
+  CREATE INDEX checklist_item_area ON checklist_item (area_key);
+  CREATE INDEX checklist_item_lat ON checklist_item (lat);
+  CREATE TABLE find (
+    key TEXT PRIMARY KEY, area_key TEXT, walk_id TEXT NOT NULL, capture_id TEXT NOT NULL, found_at INTEGER NOT NULL,
+    name TEXT NOT NULL, category TEXT NOT NULL, kind TEXT NOT NULL, lon REAL NOT NULL, lat REAL NOT NULL, generic INTEGER NOT NULL
+  );
+  CREATE INDEX find_walk ON find (walk_id);
+  CREATE TABLE explore_read (
+    key TEXT PRIMARY KEY, lon REAL NOT NULL, lat REAL NOT NULL, build TEXT NOT NULL, read_at INTEGER NOT NULL, candidates TEXT NOT NULL
+  );
   `,
 ];
 
@@ -344,6 +366,65 @@ export const db: Db = {
     return rows.map((r) => ({ ...r, streets_read: r.streets_read === 1 }));
   },
 
+  saveChecklists({ areas, items, read }) {
+    return write(async (t) => {
+      // A rebuilt area's old items go first (E4).
+      for (const a of areas) await t.runAsync('DELETE FROM checklist_item WHERE area_key = ?', a.key);
+      const st = await t.prepareAsync(
+        'INSERT OR REPLACE INTO checklist_item (key, area_key, name, category, kind, lon, lat, generic) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      );
+      try {
+        for (const i of items) {
+          const r = itemToRow(i);
+          await st.executeAsync(r.key, r.area_key, r.name, r.category, r.kind, r.lon, r.lat, r.generic);
+        }
+      } finally {
+        await st.finalizeAsync();
+      }
+      for (const a of areas) {
+        const r = areaToRow(a);
+        await t.runAsync(
+          'INSERT OR REPLACE INTO checklist_area (key, level, name, lon, lat, build, built_at, count) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          r.key, r.level, r.name, r.lon, r.lat, r.build, r.built_at, r.count,
+        );
+      }
+      const r = readToRow(read);
+      await t.runAsync(
+        'INSERT OR REPLACE INTO explore_read (key, lon, lat, build, read_at, candidates) VALUES (?, ?, ?, ?, ?, ?)',
+        r.key, r.lon, r.lat, r.build, r.read_at, r.candidates,
+      );
+    });
+  },
+  async listChecklistAreas() {
+    return (await (await conn()).getAllAsync<AreaRow>('SELECT * FROM checklist_area')).map(areaFromRow);
+  },
+  async checklistItemsIn([w, s, e, n]) {
+    const rows = await (await conn()).getAllAsync<ItemRow>(
+      'SELECT * FROM checklist_item WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ?', s, n, w, e,
+    );
+    return rows.map(itemFromRow);
+  },
+  async listExploreReads() {
+    return (await (await conn()).getAllAsync<ReadRow>('SELECT * FROM explore_read')).map(readFromRow);
+  },
+  addFind(f) {
+    const r = findToRow(f);
+    return write((t) =>
+      t.runAsync(
+        // The first find of a place stands.
+        `INSERT OR IGNORE INTO find (key, area_key, walk_id, capture_id, found_at, name, category, kind, lon, lat, generic)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        r.key, r.area_key, r.walk_id, r.capture_id, r.found_at, r.name, r.category, r.kind, r.lon, r.lat, r.generic,
+      ).then(() => {}),
+    );
+  },
+  async listFinds(walkId) {
+    const d = await conn();
+    const rows = walkId
+      ? await d.getAllAsync<FindRow>('SELECT * FROM find WHERE walk_id = ? ORDER BY found_at', walkId)
+      : await d.getAllAsync<FindRow>('SELECT * FROM find ORDER BY found_at');
+    return rows.map(findFromRow);
+  },
   putLanding(r) {
     return write((t) =>
       t.runAsync(
