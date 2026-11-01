@@ -309,7 +309,7 @@ export default function Replay() {
         {status === 'missing' ? (
           <>
             <Text style={styles.missing}>This walk could not be found.</Text>
-            <Button label="Back to walks" onPress={() => router.dismissTo('/')} />
+            <Button label="Back to walks" onPress={() => router.dismissTo('/chronicle')} />
           </>
         ) : (
           <Text style={styles.muted}>Opening your walk…</Text>
@@ -331,13 +331,13 @@ export default function Replay() {
     setSaveError(null);
     try {
       await db.updateWalk(data.walk.id, { title: title.trim() || suggestTitle(data.walk), epilogue: epilogue.trim() || null });
-      router.dismissTo('/');
+      router.dismissTo('/chronicle');
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : String(e));
       setSaving(false);
     }
   };
-  const close = () => (router.canGoBack() ? router.back() : router.dismissTo('/'));
+  const close = () => (router.canGoBack() ? router.back() : router.dismissTo('/chronicle'));
   const sheetPad = { top: 48 + insets.top, right: 32, bottom: sheetH + 24, left: 32 };
 
   return (
@@ -538,7 +538,7 @@ export default function Replay() {
         walkId={actionsOpen ? data.walk.id : null}
         onClose={() => setActionsOpen(false)}
         // A deleted walk has nothing left to replay; Undo shows on the home (D5).
-        onDone={(kind) => kind === 'walk' && router.dismissTo('/')}
+        onDone={(kind) => kind === 'walk' && router.dismissTo('/chronicle')}
       />
       <UndoToast style={{ top: insets.top + 12 }} />
     </View>

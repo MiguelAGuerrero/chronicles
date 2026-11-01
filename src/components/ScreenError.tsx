@@ -15,7 +15,7 @@ export function ScreenError({ error, retry }: ErrorBoundaryProps) {
       <Text style={styles.body}>Your walk is saved.</Text>
       <Text style={styles.detail} selectable>{error?.message || String(error)}</Text>
       <Button label="Try again" onPress={() => void retry()} />
-      <Button label="Back to walks" variant="secondary" onPress={() => router.dismissTo('/')} style={{ marginTop: 12 }} />
+      <Button label="Back to walks" variant="secondary" onPress={() => router.dismissTo('/chronicle')} style={{ marginTop: 12 }} />
     </View>
   );
 }

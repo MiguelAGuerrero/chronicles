@@ -24,6 +24,8 @@ export function ExploreSettings(props: {
   /** The range to preview on the host's map while the panel is open; null when it closes. */
   onPreview: (rangeM: number | null) => void;
   bottomInset: number;
+  /** Where the panel's foot sits: above the walk's capture row there, which is always one tap away (rev 34). */
+  bottom?: number;
   /** Whether there is a position to draw the ring around. */
   hasRing?: boolean;
   /** The panel's height, for the host to fit the ring above it. */
@@ -68,7 +70,7 @@ export function ExploreSettings(props: {
   return (
     <View
       testID="settings"
-      style={[styles.panel, { paddingBottom: props.bottomInset + 12 }]}
+      style={[styles.panel, { paddingBottom: props.bottomInset + 12 }, props.bottom != null && { bottom: props.bottom, borderBottomLeftRadius: 16, borderBottomRightRadius: 16 }]}
       accessibilityViewIsModal
       onLayout={(e) => props.onHeight?.(e.nativeEvent.layout.height)}
     >

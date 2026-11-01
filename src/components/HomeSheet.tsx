@@ -55,6 +55,8 @@ export function SheetFrame(props: {
   bottomInset?: number;
   /** The height the sheet can grow into (the screen above a tab bar). */
   areaHeight?: number;
+  /** Space kept free above the sheet at every height, for what must stay one tap away (Navigate's capture row). */
+  topReserve?: number;
   /** Called with the sheet's height whenever it settles, so the map's fits sit clear of it. */
   onHeight?: (h: number) => void;
   /** The sheet's live height, owned by the screen so what floats above it moves with it
@@ -70,8 +72,9 @@ export function SheetFrame(props: {
   const heights: Record<SheetSize, number> = {
     peek: (props.peek ?? SHEET_PEEK) + bottom,
     half: Math.round(areaH * 0.5),
-    full: Math.round(areaH - insets.top - 56),
+    full: Math.round(areaH - insets.top - 56 - (props.topReserve ?? 0)),
   };
+  heights.half = Math.min(heights.half, heights.full);
   const { size } = props;
   const expanded = size !== 'peek';
   const target = heights[size];

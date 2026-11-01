@@ -106,6 +106,9 @@ type Notice = { message: string; tone?: 'info' | 'error'; openSettings?: boolean
 // A screen that throws shows what broke, with Try again, never a blank page (bug, Nov 1).
 export { ScreenError as ErrorBoundary } from '../components/ScreenError';
 
+/** The walk's settings panel sits this far up, clear of the capture row (bottom + 92, 68 tall) and its gap. */
+const SETTINGS_FOOT = 92 + 68 + 12;
+
 export default function WalkScreen() {
   perfCount('render:walk');
   const insets = useSafeAreaInsets();
@@ -1147,7 +1150,9 @@ export default function WalkScreen() {
       <ExploreSettings
         visible={settingsOpen}
         hasRing={!!live.here}
-        bottomInset={insets.bottom}
+        // Above the capture row and the strip: capture stays one tap away while settings are open (rev 34).
+        bottomInset={0}
+        bottom={insets.bottom + SETTINGS_FOOT}
         onHeight={setPanelH}
         onClose={() => setSettingsOpen(false)}
         onPreview={onPreview}

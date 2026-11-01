@@ -9,6 +9,9 @@ import { setAudioMode } from '../lib/audioMode';
 import { reconcileOpenWalk } from '../lib/session';
 import { ensureTileBuild } from '../lib/tiles';
 
+/** The tabs are the stack's first screen, so a walk or a replay always has them beneath. */
+export const unstable_settings = { initialRouteName: '(tabs)' };
+
 export default function RootLayout() {
   // An open walk is picked back up at launch or reload, wherever the app
   // opened: recording re-attaches and the walk screen comes back.
@@ -36,8 +39,9 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: theme.bg },
         }}
       >
-        {/* Home is the places map, edge to edge: no header. */}
-        <Stack.Screen name="index" options={{ headerShown: false, title: 'Chronicles' }} />
+        {/* The three tabs (Explore, Navigate, Chronicle), edge to edge: no header. The walk and the
+            replays sit over them, full screen, so the tab bar is hidden while they are up (NV6). */}
+        <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Chronicles' }} />
         {/* No header: the growing trace says a walk is on. No way back but
             Stop, either: leaving would strand the walk open. */}
         <Stack.Screen name="walk" options={{ headerShown: false, gestureEnabled: false }} />
