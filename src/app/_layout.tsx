@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { theme } from '../components/ui';
 import '../components/webStyles';
+import '../components/pwa';
 import { setAudioMode } from '../lib/audioMode';
 import { reconcileOpenWalk } from '../lib/session';
 import { ensureTileBuild } from '../lib/tiles';

@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View, type LayoutChangeEvent } from 'react-native';
 import { clampRange, EXPLORE_RULES, KINDS, type Kind } from '../lib/explore/explore';
 import { loadSettings, saveSettings, type ExploreSettings as Settings } from '../lib/explore/settings';
+import { loadNoticePrefs, saveNoticePrefs, type NoticePrefs } from '../lib/notify';
 import { Icon, type IconName } from './icons';
+import { NotificationSettings } from './NotificationSettings';
 import { Button, theme } from './ui';
 
 /** About how long the range takes to walk, at 1.3 m/s. */
@@ -12,8 +14,8 @@ const walkNote = (m: number) => {
 };
 
 /**
- * Settings (E16, E19-E21): what I'm into, the "?" range with a live preview,
- * and the pocket alert. A panel over the lower part of the screen, not a
+ * Settings (E16, E19-E21, NT4-NT6): what I'm into, the "?" range with a live
+ * preview, the pocket alert, and notifications. A panel over the lower part of the screen, not a
  * modal: the map above it shows the range as a ring around you (the host
  * draws it from `onPreview`), so no second map is ever made.
  */
@@ -29,6 +31,7 @@ export function ExploreSettings(props: {
   onHeight?: (h: number) => void;
 }) {
   const [s, setS] = useState<Settings | null>(null);
+  const [np, setNp] = useState<NoticePrefs | null>(null);
   const { visible, onPreview } = props;
   useEffect(() => {
     if (!visible) return;
@@ -41,6 +44,7 @@ export function ExploreSettings(props: {
       },
       () => {},
     );
+    loadNoticePrefs().then((p) => alive && setNp(p), () => {});
     return () => {
       alive = false;
     };
@@ -98,6 +102,7 @@ export function ExploreSettings(props: {
               </View>
             ))}
           </View>
+          {np && <NotificationSettings value={np} onChange={setNp} />}
           {/* The pocket alert is a tap you feel; a browser has none to give (E19). */}
           {Platform.OS !== 'web' && (
             <View style={styles.row}>
@@ -118,6 +123,7 @@ export function ExploreSettings(props: {
           disabled={!s}
           onPress={() => {
             if (s) saveSettings(s).catch(() => {});
+            if (np) saveNoticePrefs(np).catch(() => {});
             close();
           }}
         />
