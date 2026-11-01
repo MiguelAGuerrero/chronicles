@@ -1,7 +1,9 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
-import { AccessibilityInfo, ActivityIndicator, Animated, AppState, BackHandler, Share, Switch, Easing, KeyboardAvoidingView, Linking, Platform, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View, type StyleProp, type TextStyle } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Animated, AppState, BackHandler, Share, Switch, Easing, KeyboardAvoidingView, Linking, Platform, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { Modal } from '../components/Modal';
+import { onWalkGap, useOpenWalk } from '../components/OpenWalk';
+import { Ticking } from '../components/Ticking';
 import { perfCount } from '../lib/perfCount';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WalkMap } from '../components/map/WalkMap';
@@ -12,7 +14,7 @@ import { Icon, KIND_LABEL, type IconName } from '../components/icons';
 import { Banner, Button, HoldButton, LiftIn, theme } from '../components/ui';
 import { ExploreSettings } from '../components/ExploreSettings';
 import { ReminderCard } from '../components/ReminderCard';
-import { checkRecalls, onRecallFired, onRecallOpen, takeRecallOpen } from '../lib/discovery/recallCheck';
+import { onRecallFired, onRecallOpen, takeRecallOpen } from '../lib/discovery/recallCheck';
 import { categoryOf } from '../lib/discovery/categories';
 import { deadZoneDue, deadZoneNudge, inDeadZone, stripAt } from '../lib/landing/walk';
 import { landingView, LANDING_VERSION, nearAreas, type LandingRow } from '../lib/landing/view';
@@ -35,8 +37,8 @@ import { pauseWalk, resumeWalk, stopWalk } from '../lib/session';
 import { formatDistance, formatDuration, formatElapsed } from '../lib/summary';
 import type { Capture, LngLat, Pause, StreetSegment, Walk } from '../lib/types';
 import { useCaptures } from '../lib/useCaptures';
-import { useLiveTrace } from '../lib/useLiveTrace';
 import { gpsLog } from '../lib/gpsLog';
+import { notifyWalkChanged } from '../lib/walkEvents';
 import { routeAhead } from '../lib/nav/navigator';
 import { useNavigation } from '../lib/nav/useNavigation';
 import { useVisible } from '../lib/deletion/useDeletions';
@@ -61,20 +63,6 @@ const WEAK_GPS_MS = 20_000;
 const NOTICE_MS = 6000;
 /** The screen's own clock: weak GPS (20 s) and the pause reminder (10 min) need no finer. */
 const SLOW_TICK_MS = 5000;
-
-/** Text that updates itself every second, so its parent doesn't re-render to tick it (perf). */
-function Ticking(props: { text: (now: number) => string; style?: StyleProp<TextStyle>; label?: (now: number) => string; testID?: string; numberOfLines?: number }) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, []);
-  return (
-    <Text testID={props.testID} style={props.style} numberOfLines={props.numberOfLines} accessibilityLabel={props.label?.(now)}>
-      {props.text(now)}
-    </Text>
-  );
-}
 
 /** Time walked (paused time left out) and distance, in the bottom strip; a ride's distance after it (R6). */
 function WalkStats(props: { startedAt: number | null; pauses: Pause[]; distanceM: number; rideM: number }) {
@@ -107,6 +95,9 @@ type Notice = { message: string; tone?: 'info' | 'error'; openSettings?: boolean
 // A screen that throws shows what broke, with Try again, never a blank page (bug, Nov 1).
 export { ScreenError as ErrorBoundary } from '../components/ScreenError';
 
+/** The walk's settings panel sits this far up, clear of the capture row (bottom + 92, 68 tall) and its gap. */
+const SETTINGS_FOOT = 92 + 68 + 12;
+
 export default function WalkScreen() {
   perfCount('render:walk');
   const insets = useSafeAreaInsets();
@@ -116,7 +107,10 @@ export default function WalkScreen() {
   const sideInset = Math.max(12, (width - 640) / 2);
   const params = useLocalSearchParams<{ warning?: string; started?: string; recall?: string }>();
   const [walk, setWalk] = useState<Walk | null>(null);
-  const [pauses, setPauses] = useState<Pause[]>([]);
+  // The open walk's pauses and live trace are kept above this screen, so they go on while it is
+  // minimized (NV8); this screen shows them.
+  const openWalk = useOpenWalk();
+  const pauses = openWalk.pauses;
   const [pausing, setPausing] = useState(false);
   // The map follows the walker until they pan or zoom it themselves.
   const [following, setFollowing] = useState(true);
@@ -161,8 +155,6 @@ export default function WalkScreen() {
         router.replace('/');
         return;
       }
-      // Pauses first, so a paused walk never shows as running with paused time on the clock.
-      setPauses(await db.getPauses(w.id));
       setWalk(w);
     });
   }, []);
@@ -190,7 +182,9 @@ export default function WalkScreen() {
   const onCaptureError = useCallback((e: { message: string; openSettings?: boolean }) => {
     setNotice({ message: e.message, tone: 'error', openSettings: e.openSettings });
   }, []);
-  const live = useLiveTrace(walk?.id ?? null, walk?.started_at ?? null, pauses, onGap);
+  useEffect(() => onWalkGap(onGap), [onGap]);
+  // The keeper's trace, once it holds this walk.
+  const live = openWalk.live;
   const cap = useCaptures(walk?.id ?? null, live.here, live.lastFixAt, onCaptureError);
   // A deleted moment leaves the pins, Explore and the viewer at once (D3, D5).
   const captures = useVisible(cap.captures);
@@ -431,9 +425,10 @@ export default function WalkScreen() {
     else setFollowing(true);
   }, []);
   // Remind me here (v1 slice 4): a flagged capture comes back when this walk
-  // passes it (R2, R3). The web checks on each accepted fix here; on a phone
-  // the location task checks every batch, and fires reach this card while the
-  // screen is in front. A second fire joins the open card (R7).
+  // passes it (R2, R3). The web checks on each accepted fix in the open walk's
+  // keeper, minimized or not (NV8); on a phone the location task checks every
+  // batch. Fires reach this card while the screen is in front. A second fire
+  // joins the open card (R7).
   const [reminder, setReminder] = useState<{ captures: Capture[]; at: LngLat | null; shownAt: number } | null>(null);
   // Memories on revisit: earlier walks' captures within 100 m, as faint pins, on every walk (the
   // owner's call), never a buzz or a notification (MR1, MR6). The area is read once per 50 m (MR8).
@@ -494,11 +489,6 @@ export default function WalkScreen() {
       }),
     [],
   );
-  useEffect(() => {
-    const at = live.here;
-    if (!walk || !at || Platform.OS !== 'web') return;
-    checkRecalls(walk.id, [at]).catch(() => {});
-  }, [walk, live.here]);
   // The card goes by itself after half a minute or 100 m walked on (it stays fired).
   useEffect(() => {
     if (!reminder) return;
@@ -657,6 +647,16 @@ export default function WalkScreen() {
     }
   }
 
+  // The walk goes on beneath the tabs: the recorder, the trace and the reminders are kept above
+  // this screen (NV8). Never mid-memo: leaving would cut it short.
+  function minimize() {
+    if (recordingVoice || stopping) return;
+    feedback('tap');
+    AccessibilityInfo.announceForAccessibility('Walk minimized. Still recording.');
+    if (router.canGoBack()) router.back();
+    else router.replace('/');
+  }
+
   async function togglePause() {
     if (!walk || pausing) return;
     setPausing(true);
@@ -675,7 +675,7 @@ export default function WalkScreen() {
       setNotice({ message: `Could not ${paused ? 'resume' : 'pause'}: ${e instanceof Error ? e.message : e}`, tone: 'error', sticky: true });
     } finally {
       // The screen shows whatever the database holds, even after a failure.
-      setPauses(await db.getPauses(walk.id).catch(() => pauses));
+      await notifyWalkChanged();
       setPausing(false);
     }
   }
@@ -838,6 +838,22 @@ export default function WalkScreen() {
             </Pressable>
           </View>
         )}
+        {/* Minimize (NV7): down to the recording bar above the tabs, still recording. At the top-left
+            edge, under the navigation bar when one shows, away from the capture row and Stop. */}
+        <View style={styles.minRow} pointerEvents="box-none">
+          <Pressable
+            testID="walk-minimize"
+            accessibilityRole="button"
+            accessibilityLabel="Minimize the walk"
+            accessibilityHint="It keeps recording. The bar above the tabs brings it back."
+            onPress={minimize}
+            disabled={recordingVoice || stopping}
+            hitSlop={6}
+            style={({ pressed }) => [styles.edgeBtn, styles.minBtn, (recordingVoice || stopping) && styles.disabled, pressed && styles.pressed]}
+          >
+            <Icon name="chevron-down" size={24} color={theme.ink} />
+          </Pressable>
+        </View>
         {navigation.nav?.offRoute && (
           <LiftIn style={styles.chip} accessibilityLiveRegion="polite">
             <View style={[styles.statusDot, { backgroundColor: theme.warn }]} />
@@ -1191,7 +1207,9 @@ export default function WalkScreen() {
       <ExploreSettings
         visible={settingsOpen}
         hasRing={!!live.here}
-        bottomInset={insets.bottom}
+        // Above the capture row and the strip: capture stays one tap away while settings are open (rev 34).
+        bottomInset={0}
+        bottom={insets.bottom + SETTINGS_FOOT}
         onHeight={setPanelH}
         onClose={() => setSettingsOpen(false)}
         onPreview={onPreview}
@@ -1466,6 +1484,8 @@ const styles = StyleSheet.create({
   // Resume is the one thing to do while paused.
   pauseBtnOn: { backgroundColor: theme.accent, borderColor: theme.accent },
   edgeBtnOn: { backgroundColor: theme.ink, borderColor: theme.ink },
+  minRow: { alignSelf: 'stretch', flexDirection: 'row' },
+  minBtn: { position: 'relative' },
   unwalked: { position: 'absolute', backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12 },
   unwalkedText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
   // Small round controls at the map's edges, as in AllTrails.

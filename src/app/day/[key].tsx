@@ -286,7 +286,7 @@ export default function DayReplay() {
         {status === 'missing' ? (
           <>
             <Text style={styles.missing}>Nothing was kept on this day.</Text>
-            <Button label="Back to the map" onPress={() => router.dismissTo('/')} />
+            <Button label="Back to the map" onPress={() => router.dismissTo('/chronicle')} />
           </>
         ) : (
           <Text style={styles.muted}>Opening your day…</Text>
@@ -295,7 +295,7 @@ export default function DayReplay() {
     );
   }
 
-  const close = () => (router.canGoBack() ? router.back() : router.dismissTo('/'));
+  const close = () => (router.canGoBack() ? router.back() : router.dismissTo('/chronicle'));
 
   return (
     <View style={styles.screen}>

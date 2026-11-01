@@ -80,12 +80,20 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     if (ready && props.follow) cameraRef.current?.jumpTo({ center: glide.walker ?? props.follow });
   }, [ready, props.follow, glide.walker]);
   // A fit is a request made while mounted: a map brought back (the home, after a walk) keeps its view.
+  const onFitSettled = useRef(props.onFitSettled);
+  useEffect(() => {
+    onFitSettled.current = props.onFitSettled;
+  });
   const fitAtMount = useRef(props.fitKey);
   useEffect(() => {
     if (!ready || !props.fitBounds || props.fitKey === fitAtMount.current) return;
     fitAtMount.current = undefined;
     const pad = props.fitPadding ?? { top: 48, right: 48, bottom: 48, left: 48 };
     cameraRef.current?.fitBounds(props.fitBounds, { padding: pad, duration });
+    // MapLibre RN reports no end to a fit: it is taken as settled once its animation has run.
+    const key = props.fitKey ?? 0;
+    const t = setTimeout(() => onFitSettled.current?.(key), (duration ?? 0) + 100);
+    return () => clearTimeout(t);
     // Refits when the caller changes fitKey, not on every new bounds array.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, props.fitKey]);

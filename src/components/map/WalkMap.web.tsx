@@ -125,12 +125,14 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const onLongPress = useRef(props.onLongPress);
   const onUserMove = useRef(props.onUserMove);
   const onCameraChange = useRef(props.onCameraChange);
+  const onFitSettled = useRef(props.onFitSettled);
   // Before paint, so a click right after a render never reaches the previous handler (audit 8).
   useLayoutEffect(() => {
     onPress.current = props.onPress;
     onLongPress.current = props.onLongPress;
     onUserMove.current = props.onUserMove;
     onCameraChange.current = props.onCameraChange;
+    onFitSettled.current = props.onFitSettled;
   });
   const pointerDown = useRef(false);
   const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
@@ -537,6 +539,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       const padding = props.fitPadding ?? { top: 48, right: 48, bottom: 48, left: 48 };
       perfCount('fit');
       mapRef.current?.fitBounds([[w, s], [e, n]], { padding, maxZoom: props.fitMaxZoom ?? 17, duration });
+      // Settled once its move has run, if the map is still up then (a fit that moves nothing ends at once).
+      const key = props.fitKey ?? 0;
+      const t = setTimeout(() => onFitSettled.current?.(key), duration + 150);
+      return () => clearTimeout(t);
     }
     // Refits when the caller changes fitKey, not on every new bounds array.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -623,7 +629,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
 
   return (
     <View style={[styles.wrap, props.style]}>
-      <div ref={container} style={{ position: 'absolute', inset: 0 }} data-trace-opacity={String(props.traceOpacity ?? 1)} data-rides={`${props.rides?.length ?? 0}:${props.rides?.reduce((n, r) => n + r.length, 0) ?? 0}`} data-ring={props.ring ? String(props.ring.radiusM) : ''} />
+      <div ref={container} style={{ position: 'absolute', inset: 0 }} data-trace-opacity={String(props.traceOpacity ?? 1)} data-rides={`${props.rides?.length ?? 0}:${props.rides?.reduce((n, r) => n + r.length, 0) ?? 0}`} data-ring={props.ring ? String(props.ring.radiusM) : ''} data-trace-end={traceEnd(props.trace)} />
       {props.covered && <View style={styles.cover} pointerEvents="none" />}
     </View>
   );
@@ -713,4 +719,11 @@ function usePinMarkers(
     }
     markers.current.clear();
   }, []);
+}
+
+/** Where the drawn trace ends, for the e2e: ground covered, never a count of fixes. */
+function traceEnd(trace: LngLat[][] | undefined): string {
+  const run = trace?.filter((r) => r.length).at(-1);
+  const p = run?.[run.length - 1];
+  return p ? `${p[0].toFixed(6)},${p[1].toFixed(6)}` : '';
 }
