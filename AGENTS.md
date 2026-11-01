@@ -190,6 +190,53 @@ Read this before changing recording, streets, the replay or storage.
   - The live map draws `liveRuns` (standstills held still, as the replay does).
   - Corners can round by a few metres at poor accuracy. Tests count ground
     covered, never exact fix counts. `SNAP_RULES` 4.
+- **The live dot** (`liveDot.ts`, the owner's go-ahead, Nov 1, after the dot
+  lagged, slid back over walked ground and swung at sharp angles: it was the
+  newest point of a trace re-read every 2 s).
+  - Each fix updates it at once through a constant-velocity Kalman filter per
+    axis (`DotStore`, fed in `useLiveTrace`). The map glides to it without
+    re-rendering the walk screen (`useGlideFrames(..., source)`), toward
+    `lead`: one fix interval ahead while moving, so the glide ends where the
+    walker is.
+  - Without motion: held still unless the speed is steady in one direction
+    for 3 fixes and, from a standstill, the fix left by its accuracy. A gap
+    over 60 s or a jump over 150 m restarts it at the fix.
+  - A short link line joins the trace's end to the dot (60 m at most), drawn
+    once per fix (`setData:trace-link`), never per frame.
+  - The e2e reads the dot's spot from `data-at` on the puck (only when
+    `window.__perf` is set) and checks it moves on every fix.
+- **Motion** (the concept doc's "Motion" tab, MO1-MO10; the owner's calls,
+  Nov 1, after research: GPS can't tell 10 m of drift from a walk; steps can).
+  - `expo-sensors` DeviceMotion on every platform; Expo's Pedometer has no web
+    build, so `steps.ts` (pure) finds steps in the acceleration's size
+    (gravity removed): peaks of 0.6 m/s² or more, 0.3-1.3 s apart, with a dip
+    below rest between (a tap only spikes up). Walking: 3 evenly spaced steps
+    in 3 s; still: none for 3 s; unknown before the first firm answer.
+  - Permission is asked first thing in the Start, Walk here and Resume taps
+    (`askMotion`: an iPhone's browser prompts only straight from a tap).
+    After a reload it is restored without a tap where possible
+    (`restoreMotion`); on iPhone web the options offer Turn on. Declined or
+    unavailable, the walk runs on the GPS filters, and the options say so
+    (denied: allow it in Settings).
+  - Read only while a walk is open, on screen and not paused
+    (`useWalkMotion`). The dot is told (`setMotion`): still holds it unless
+    three far fixes agree; walking follows at once and turns away fixes over
+    4 m/s; three fixes in a row at ride speed (4.5 m/s) hand it back to the
+    GPS, since a bus reads still.
+  - **Still spells** (`Still`, kept truth beside pauses: SQLite migration 13,
+    IndexedDB v11) are passed to `readTrace(..., stills)` by the live trace,
+    `snapWalk` (snap, places), the replay and walk me back. `SNAP_RULES` 5.
+    `holdStill` cuts each spell at every break (rides, pauses, gaps), holds a
+    part at the last walked fix just before it (else its first fixes), holds
+    only fixes within 50 m or 3x accuracy, and stops holding after 3 in a row
+    beyond that (a bike, a slow stroll read as still, or a spell left open).
+    The walk screen closes a spell left open by a reload when it loads.
+  - **After the audit:** 11 findings, 9 fixed (`motion audit N` in
+    `still.test.ts` and `steps.test.ts`). Deferred: the backup bundle leaves
+    spells out.
+  - **Native** (unverified on a device): DeviceMotion's units and update
+    interval on iOS and Android, the iOS motion permission text, migration
+    13, AppState `inactive` ending spells, the native link line.
 - **Share GPS log** (the owner's go-ahead, Nov 1, after the trace and dot sat
   far from where they stood indoors): the walk's options hand the walk's raw
   readings (seconds, position, accuracy, speed, course) and placed captures to
