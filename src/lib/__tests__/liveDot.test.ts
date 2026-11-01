@@ -161,7 +161,7 @@ test('motion 1: told still, the dot doesn\'t move however the GPS wanders', () =
   assert.ok(rows.every((r) => r.shown!.heading == null));
 });
 
-test('motion 2: told still, a stay that began on a bad fix moves to where three fixes in a row agree', () => {
+test('motion 2: told still, a stay that began on a bad fix moves to where five fixes in a row sit together', () => {
   const dot = new LiveDot();
   dot.setMotion('still');
   const bad = at(80, 0);
@@ -198,4 +198,19 @@ test('motion 5: on a ride the sensors read still, but the dot follows the bus', 
   const rows = run(dot, feed(busRide, 60, { sigma: 2 }));
   const end = rows.at(-1)!;
   assert.ok(distanceM(end.shown!.at, end.truth) < 40, `${distanceM(end.shown!.at, end.truth).toFixed(0)} m behind the bus`);
+});
+
+test('motion 6: told still, drift wider than three accuracies that keeps moving never moves the dot (e2e, indoors)', () => {
+  const dot = new LiveDot();
+  dot.setMotion('still');
+  // A 20 m loop at about 7 m a fix, reporting 10 m accuracy: up to 40 m from the spot.
+  const fixes = [];
+  for (let s = 0; s <= 40; s++) {
+    const a = Math.max(0, s - 5) * 0.35;
+    const [lon, lat] = at(Math.sin(a) * 20, (1 - Math.cos(a)) * 20);
+    fixes.push({ p: { walk_id: 'w', t: s * 1000, lon, lat, accuracy_m: 10, speed: null, course: null } as TracePoint, truth: O });
+  }
+  const rows = run(dot, fixes);
+  const moved = distanceM(rows[5].shown!.at, rows.at(-1)!.shown!.at);
+  assert.ok(moved < 1, `moved ${moved.toFixed(1)} m`);
 });

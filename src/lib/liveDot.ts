@@ -34,10 +34,14 @@ export const LIVE_DOT = {
   qWalking: 1,
   /** ...and a fix that would mean going faster than this from the dot (m/s) is a jump. */
   walkMaxMs: 4,
-  /** Told still (MO5): a fix this many accuracies away, three times in a row and agreeing, means the stay began on a bad fix. */
+  /** Told still (MO5): fixes this many accuracies away, stillSettled of them in a row sitting together within their
+   * accuracy, mean the stay began on a bad fix. Drift keeps moving, so it never settles there (indoors, e2e). */
   stillFarShare: 3,
-  /** Three fixes in a row this fast (m/s) are a ride: the GPS wins over the sensors, which read a bus as still (MO9). */
+  stillSettled: 5,
+  /** Net travel this fast (m/s) over rideWindowMs is a ride: the GPS wins over the sensors, which read a bus as
+   * still (MO9). Net, not fix to fix: indoor drift jumps fast but goes nowhere. */
   rideMs: 4.5,
+  rideWindowMs: 10_000,
 } as const;
 
 export interface DotState {
@@ -110,9 +114,8 @@ export class LiveDot {
   private state: DotState | null = null;
   /** What the motion sensors say (Motion); 'unknown' leaves the dot to the GPS alone. */
   private motion: MotionState = 'unknown';
-  private lastXY: [number, number] | null = null;
-  /** Fixes in a row moving at ride speed. */
-  private fastRun = 0;
+  /** Recent fixes (projected), for telling a ride by its net travel. */
+  private recent: { x: number; y: number; t: number }[] = [];
   /** Still: fixes in a row far from the dot. Walking: fixes in a row turned away as jumps. */
   private odd: [number, number][] = [];
 
@@ -153,19 +156,23 @@ export class LiveDot {
       this.shownXY = [0, 0];
       this.moving = false;
       this.lastT = p.t;
-      this.lastXY = [0, 0];
-      this.fastRun = 0;
+      this.recent = [{ x: 0, y: 0, t: p.t }];
       this.odd = [];
       this.state = { at: fix, lead: fix, heading: null, t: p.t };
       return this.state;
     }
 
     const [zx, zy] = this.toXY!(fix);
-    const raw = this.lastXY ? Math.hypot(zx - this.lastXY[0], zy - this.lastXY[1]) / dt : 0;
-    this.fastRun = raw >= LIVE_DOT.rideMs ? this.fastRun + 1 : 0;
-    this.lastXY = [zx, zy];
+    this.recent.push({ x: zx, y: zy, t: p.t });
+    while (this.recent.length > 2 && p.t - this.recent[1].t >= LIVE_DOT.rideWindowMs) this.recent.shift();
+    const old = this.recent[0];
+    const span = (p.t - old.t) / 1000;
+    // Fast by the fix before this one too, so one jump doesn't make a ride.
+    const prev = this.recent[this.recent.length - 2];
+    const net = (q: { x: number; y: number; t: number }) => (q.t > old.t ? Math.hypot(q.x - old.x, q.y - old.y) / ((q.t - old.t) / 1000) : 0);
+    const riding = span * 1000 >= LIVE_DOT.rideWindowMs * 0.8 && net({ x: zx, y: zy, t: p.t }) >= LIVE_DOT.rideMs && !!prev && net(prev) >= LIVE_DOT.rideMs;
     // On a ride the sensors read still; the GPS decides (MO9).
-    const mode: MotionState = this.fastRun >= 3 ? 'unknown' : this.motion;
+    const mode: MotionState = riding ? 'unknown' : this.motion;
 
     if (mode === 'walking') {
       // A fix faster than a walk from where the dot is heading is a jump (MO7), unless three in a row agree.
@@ -195,7 +202,7 @@ export class LiveDot {
       // Held where it stands (MO5), unless the stay began on a bad fix: three far fixes in a row that agree.
       const far = Math.hypot(zx - this.shownXY[0], zy - this.shownXY[1]) > LIVE_DOT.stillFarShare * acc;
       this.odd = far ? [...this.odd, [zx, zy]] : [];
-      if (this.agree(this.odd, acc)) this.restart(this.mean(this.odd), r);
+      if (this.settled(this.odd, acc)) this.restart(this.mean(this.odd), r);
       this.dirs = [];
       this.moving = false;
       return this.publish(p.t, false);
@@ -243,6 +250,14 @@ export class LiveDot {
   private agree(pts: [number, number][], acc: number): boolean {
     if (pts.length < 3) return false;
     return pts.slice(1).every((q, i) => Math.hypot(q[0] - pts[i][0], q[1] - pts[i][1]) <= 2 * acc + LIVE_DOT.walkMaxMs);
+  }
+
+  /** At least stillSettled points, all within their accuracy of their middle: one place, not drift. */
+  private settled(pts: [number, number][], acc: number): boolean {
+    if (pts.length < LIVE_DOT.stillSettled) return false;
+    const last = pts.slice(-LIVE_DOT.stillSettled);
+    const m = this.mean(last);
+    return last.every((q) => Math.hypot(q[0] - m[0], q[1] - m[1]) <= acc);
   }
 
   private mean(pts: [number, number][]): [number, number] {

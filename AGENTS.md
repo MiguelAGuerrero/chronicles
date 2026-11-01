@@ -104,6 +104,12 @@ Read this before changing recording, streets, the replay or storage.
     equivalent: `playback` plays with the ringer off, and `play-and-record`
     is used while a memo records. Always go through `setAudioMode` in
     `lib/audioMode`, never `setAudioModeAsync` directly.
+  - **Motion samples:** the browser's `devicemotion` event
+    (`motionSource/index.web.ts`). expo-sensors 58's web DeviceMotion has no
+    `addListener` (its web module only starts and stops observing), so
+    subscribing through it threw and took the walk screen down; the e2e's
+    fresh motion context caught it. Its web permission and availability calls
+    work and are still used (`askMotion`).
   - **Browser fixes** with no native counterpart: `webStyles.web.ts` (pinned
     viewport, long-press guards) and the muted-autoplay fallback.
   Before adding web-only code, check `node_modules/<module>/build/*.web.*` for
@@ -220,9 +226,12 @@ Read this before changing recording, streets, the replay or storage.
     (denied: allow it in Settings).
   - Read only while a walk is open, on screen and not paused
     (`useWalkMotion`). The dot is told (`setMotion`): still holds it unless
-    three far fixes agree; walking follows at once and turns away fixes over
-    4 m/s; three fixes in a row at ride speed (4.5 m/s) hand it back to the
-    GPS, since a bus reads still.
+    five far fixes (3x accuracy) sit together within their accuracy (a stay
+    begun on a bad fix; drift keeps moving, so it never settles); walking
+    follows at once and turns away fixes over 4 m/s; net travel of 4.5 m/s
+    over 10 s, by this fix and the one before, hands it back to the GPS,
+    since a bus reads still. Net, never fix to fix: indoor drift jumps fast
+    but goes nowhere.
   - **Still spells** (`Still`, kept truth beside pauses: SQLite migration 13,
     IndexedDB v11) are passed to `readTrace(..., stills)` by the live trace,
     `snapWalk` (snap, places), the replay and walk me back. `SNAP_RULES` 5.

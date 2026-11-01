@@ -2,6 +2,7 @@ import { DeviceMotion } from 'expo-sensors';
 import { useEffect, useRef, useState } from 'react';
 import { AppState, Platform } from 'react-native';
 import { db } from './db';
+import { subscribeMotion } from './motionSource';
 import type { DotSource } from './liveDot';
 import { StepDetector, STEPS, type MotionState } from './steps';
 import type { Still } from './types';
@@ -143,11 +144,7 @@ export function useWalkMotion(
     const detector = new StepDetector();
     let state: MotionState = 'unknown';
     let open: number | null = null;
-    if (Platform.OS !== 'web') DeviceMotion.setUpdateInterval(50);
-    const sub = DeviceMotion.addListener((e) => {
-      const g = e.accelerationIncludingGravity;
-      if (g) detector.push({ t: Date.now(), x: g.x, y: g.y, z: g.z });
-    });
+    const stopSamples = subscribeMotion((g) => detector.push({ t: Date.now(), x: g.x, y: g.y, z: g.z }));
     const begin = (at: number) => {
       open = at;
       setStills((s) => [...s, { walk_id: walkId, started_at: at, ended_at: null }]);
@@ -174,7 +171,7 @@ export function useWalkMotion(
     }, CHECK_MS);
     return () => {
       clearInterval(timer);
-      sub.remove();
+      stopSamples();
       end(Date.now());
       stateRef.current = 'unknown';
       dotRef.current?.setMotion?.('unknown');
