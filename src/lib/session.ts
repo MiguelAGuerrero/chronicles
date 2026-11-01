@@ -4,6 +4,7 @@ import { clearNav } from './nav/store';
 import { notifier } from './notify';
 import { recorder } from './recorder';
 import type { Walk } from './types';
+import { notifyWalkChanged } from './walkEvents';
 
 /**
  * The walk lifecycle, in one place so every screen goes through the same
@@ -34,6 +35,8 @@ export function startWalk(): Promise<{ walk: Walk; warning?: string }> {
         throw e;
       }
       // Marks scanned from the home belong to the next walk (S11); a failure leaves them for the one after.
+      // The keeper above the tabs picks it up (NV8).
+      void notifyWalkChanged();
       return { walk, warning };
     })().finally(() => {
       starting = null;
@@ -54,6 +57,7 @@ export function stopWalk(walkId: string): Promise<void> {
       await db.updateWalk(walkId, { ended_at: at, open: false });
       await db.endPause(walkId, at);
       await recorder.stop();
+      void notifyWalkChanged();
       void notifier.pauseEnded(walkId);
       void notifier.walkEnded(walkId);
       // Navigation ends with the walk (N10).
@@ -76,6 +80,7 @@ export async function pauseWalk(walkId: string): Promise<void> {
   notifier.ask('pause').catch(() => {});
   await db.startPause(walkId, Date.now());
   await recorder.stop();
+  void notifyWalkChanged();
   notifier.pauseStarted(walkId).catch(() => {});
 }
 
@@ -87,6 +92,7 @@ export async function pauseWalk(walkId: string): Promise<void> {
 export async function resumeWalk(walkId: string): Promise<void> {
   await recorder.start(walkId);
   await db.endPause(walkId, Date.now());
+  void notifyWalkChanged();
   void notifier.pauseEnded(walkId);
 }
 

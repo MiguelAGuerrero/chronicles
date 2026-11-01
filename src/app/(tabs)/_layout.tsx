@@ -1,6 +1,10 @@
-import { Tabs } from 'expo-router/js-tabs';
+import { useIsFocused } from 'expo-router';
+import { BottomTabBar, BottomTabBarHeightCallbackContext, Tabs, type BottomTabBarProps } from 'expo-router/js-tabs';
+import { useContext } from 'react';
+import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon, type IconName } from '../../components/icons';
+import { RecordingBar } from '../../components/RecordingBar';
 import { theme } from '../../components/ui';
 import { TABS } from '../../lib/startPlan';
 
@@ -17,11 +21,36 @@ export const unstable_settings = { initialRouteName: 'index' };
 /** The tab bar's height above the safe area. */
 const TAB_BAR_H = 58;
 
+const ignoreHeight = () => {};
+
+/**
+ * The tab bar, with the recording bar just above it while a walk is open and
+ * minimized (NV9). The two are measured as one, so every tab's drawer sits
+ * above both (`useBottomTabBarHeight`).
+ */
+function TabBarWithRecording(props: BottomTabBarProps & { minimized: boolean }) {
+  const { minimized, ...bar } = props;
+  const setHeight = useContext(BottomTabBarHeightCallbackContext);
+  return (
+    <View onLayout={(e) => setHeight?.(e.nativeEvent.layout.height)}>
+      {minimized && <RecordingBar />}
+      {/* The tab bar would report its own height alone. */}
+      <BottomTabBarHeightCallbackContext.Provider value={ignoreHeight}>
+        <BottomTabBar {...bar} />
+      </BottomTabBarHeightCallbackContext.Provider>
+    </View>
+  );
+}
+
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
+  // The tabs are in front: the walk, if one is open, is minimized. Under the walk screen or a replay
+  // the bar is taken down, so nothing beneath ticks (NV6, NV9).
+  const minimized = useIsFocused();
   return (
     <Tabs
       backBehavior="initialRoute"
+      tabBar={(p) => <TabBarWithRecording {...p} minimized={minimized} />}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: theme.accent,
