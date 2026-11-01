@@ -1049,8 +1049,9 @@ function check(ok, what) {
       };
     }));
     await page.reload();
-    await page.waitForSelector('text=/Placing your walks/', { timeout: 20000 });
-    check((await page.locator('[data-testid=skip-placing]').count()) === 1, 'placing old walks shows a cover that can be skipped');
+    // Waited for as one: a single walk can be placed between seeing the text and counting the button.
+    const placingCover = await page.waitForSelector('[data-testid=skip-placing]', { timeout: 20000 }).then(() => true, () => false);
+    check(placingCover, 'placing old walks shows a cover that can be skipped');
     await shot(page, '11-home-placing');
     await page.waitForSelector('[aria-label^="Fox Point,"]', { timeout: 60000 });
     await page.waitForTimeout(500);
