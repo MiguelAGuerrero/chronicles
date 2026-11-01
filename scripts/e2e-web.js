@@ -15,7 +15,7 @@ const { chromium } = require('playwright');
 const DIST = path.join(__dirname, '..', 'dist');
 // The sub-path the build was exported for (GitHub Pages serves it at /chronicles).
 const BASE = process.env.E2E_BASE ?? '';
-const TYPES = { '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json', '.ttf': 'font/ttf' };
+const TYPES = { '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json', '.ttf': 'font/ttf', '.webmanifest': 'application/manifest+json' };
 
 function serve() {
   // Unknown paths get index.html, as GitHub Pages serves 404.html; .mjs must be
@@ -95,13 +95,16 @@ function check(ok, what) {
   const url = `http://localhost:${server.address().port}${BASE}/`;
   // A fake microphone, so voice memos can be recorded headless.
   // Sound only after a tap, as on iOS: the replay reaches its stops on its own clock.
+  // The full Chromium in headless mode ('chromium' channel): the old headless shell always denies
+  // notifications, whatever is granted, so the test notification couldn't be checked (NT6).
   const browser = await chromium.launch({
+    channel: 'chromium',
     args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--autoplay-policy=user-gesture-required'],
   });
   const start = at(-0.5, -0.5);
   const ctx = await browser.newContext({
     viewport: { width: 390, height: 844 },
-    permissions: ['geolocation', 'microphone'],
+    permissions: ['geolocation', 'microphone', 'notifications'],
     geolocation: { longitude: start[0], latitude: start[1], accuracy: 6 },
   });
   // iOS's Audio Session API, which Chromium lacks: the stub records what the
@@ -186,6 +189,37 @@ function check(ok, what) {
     check(await page.evaluate(() => navigator.audioSession.type) === 'playback', 'the page asks to play sound even in silent mode');
     check((await page.locator('canvas.maplibregl-canvas').count()) === 1 && (await page.locator('[data-testid=start]').count()) === 1, 'home opens on the map, empty, with Start');
     check((await page.locator('[data-testid=start-explore]').count()) === 1, 'beside Start, Explore starts a walk that explores (E1)');
+
+    // Notifications on the web (v1 slice 6). Installable: the manifest is linked under the base path and served (NT1).
+    const manifestHref = await page.evaluate(() => document.querySelector('link[rel=manifest]')?.getAttribute('href'));
+    const manifest = manifestHref ? await page.evaluate(async (h) => (await fetch(h)).json(), manifestHref) : null;
+    check(manifestHref === `${BASE}/manifest.webmanifest` && manifest?.display === 'standalone' && manifest.icons.some((i) => i.sizes === '512x512')
+      && (await page.evaluate(() => !!document.querySelector('link[rel=apple-touch-icon]'))),
+      'the web app can be installed: a manifest with icons, and Apple home-screen tags (NT1)');
+    // The service worker is registered at the base path and active (NT2).
+    const sw = await page.evaluate(async () => {
+      const r = await Promise.race([navigator.serviceWorker.ready, new Promise((res) => setTimeout(() => res(null), 10000))]);
+      return r ? { scope: r.scope, active: !!r.active } : null;
+    });
+    check(sw && sw.active && sw.scope.endsWith(`${BASE}/`), `the service worker is active at the base path (${JSON.stringify(sw)})`);
+    // Settings: a switch per kind, both on; the test notification is a real one (NT4, NT6).
+    await page.click('[data-testid=settings-open]');
+    await page.waitForSelector('[data-testid=notify-settings]');
+    const isOn = (id) => page.locator(`[data-testid=${id}] input`).isChecked();
+    check((await isOn('notify-recall')) && (await isOn('notify-pause')), 'notifications: Remind me here and the pause reminder, both on by default (NT4)');
+    await page.click('[data-testid=notify-test]');
+    await page.waitForSelector('[data-testid=notify-sent]', { timeout: 10000 });
+    const shownNotes = await page.evaluate(async () => (await (await navigator.serviceWorker.ready).getNotifications()).map((n) => `${n.title}|${n.tag}`));
+    check(shownNotes.includes('A memory from here|test'), `the test notification is shown through the service worker (${shownNotes.join(', ')}) (NT6)`);
+    await shot(page, '00a-notify-settings');
+    // A kind switched off stays off (NT4).
+    await page.click('[data-testid=notify-pause]');
+    await page.click('[data-testid=settings-done]');
+    await page.click('[data-testid=settings-open]');
+    await page.waitForSelector('[data-testid=notify-settings]');
+    check((await isOn('notify-recall')) && !(await isOn('notify-pause')), 'a notification kind switched off stays off');
+    await page.click('[data-testid=notify-pause]');
+    await page.click('[data-testid=settings-done]');
     await shot(page, '00-home-empty');
     const held = await pressedScale(page, '[data-testid=start]');
     check(held.scale > 0.95 && held.scale < 0.99 && held.after === 1, `a large button presses down while held, and springs back (M4: ${held.scale.toFixed(3)} → ${held.after})`);
@@ -984,6 +1018,27 @@ function check(ok, what) {
     const again = await recallRows();
     check((await page.locator('[data-testid=reminder]').count()) === 0 && again.length === 1 && again[0].fired_count === 0,
       'a capture flagged mid-walk doesn’t come back in that walk');
+    // A tapped reminder notification opens its capture, playing (NT8). First with the walk screen in front:
+    // the service worker's message reaches the page's listener, and the capture opens at once (audit 1).
+    const noteId = await page.evaluate(() => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const g = req.result.transaction('capture', 'readonly').objectStore('capture').getAll();
+        g.onsuccess = () => resolve(g.result.find((c) => /cardamom/.test(c.body ?? ''))?.id ?? null);
+      };
+    }));
+    const tap = { type: 'notice-response', id: 'recall-x', data: { captureIds: [noteId] }, action: null };
+    await page.evaluate((m) => navigator.serviceWorker.dispatchEvent(new MessageEvent('message', { data: m })), tap);
+    check(await page.waitForSelector('text=The bakery smelled of cardamom.', { timeout: 10000 }).then(() => true, () => false),
+      'a reminder tapped with the walk in front opens its capture at once');
+    await page.click('[aria-label="Close"]');
+    // Then a cold open: no window was open, so the service worker opened one carrying the tap. With the
+    // walk still open, the home sends it on to the walk, which opens the capture (audit 2).
+    await page.goto(`${url}?notice=${encodeURIComponent(JSON.stringify(tap))}`);
+    check(await page.waitForSelector('text=The bakery smelled of cardamom.', { timeout: 20000 }).then(() => true, () => false)
+      && !page.url().includes('notice='), 'a tap that opened the app opens its capture on the walk, and leaves the URL clean');
+    await page.click('[aria-label="Close"]');
+
     const away = [...hosts].filter((h) => !h.startsWith('localhost') && h !== 'tiles.openfreemap.org');
     check(away.length === 0, `nothing is sent anywhere but the map tiles (${away.join(', ')})`);
     check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);

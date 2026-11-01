@@ -84,6 +84,29 @@ export function checkRecalls(walkId: string, path: LngLat[], now = Date.now()): 
   return running;
 }
 
+// A tapped reminder opens on the screen in front at once (audit 1): meta only waits for a cold start.
+let opener: ((captures: Capture[]) => void) | null = null;
+export function onRecallOpen(fn: (captures: Capture[]) => void): () => void {
+  opener = fn;
+  return () => {
+    if (opener === fn) opener = null;
+  };
+}
+/** Opens a tapped reminder's captures where a screen listens; else keeps them for the next screen (R4). Resolves whether one opened. */
+export async function openRecall(ids: string[]): Promise<boolean> {
+  if (opener) {
+    const found = await db.getCapturesByIds(ids).catch(() => []);
+    if (found.length && opener) {
+      opener(found);
+      return true;
+    }
+  }
+  await db.setMeta(RECALL_OPEN_KEY, JSON.stringify(ids));
+  return false;
+}
+/** Whether a tapped reminder is waiting for the next screen. */
+export const recallWaiting = async () => !!(await db.getMeta(RECALL_OPEN_KEY));
+
 /** The captures a tapped notification asked to open, once (R4); found by id, wherever the walker is now. */
 export async function takeRecallOpen(): Promise<Capture[]> {
   const raw = await db.getMeta(RECALL_OPEN_KEY);

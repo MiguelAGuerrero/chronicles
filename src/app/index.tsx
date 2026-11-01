@@ -15,7 +15,7 @@ import { db } from '../lib/db';
 import { perfCount } from '../lib/perfCount';
 import { categoryOf } from '../lib/discovery/categories';
 import { countLine, EXPLORE_KEY, exploredKey, placeCount, type ChecklistArea, type ChecklistItem, type Find } from '../lib/explore/explore';
-import { takeRecallOpen } from '../lib/discovery/recallCheck';
+import { onRecallOpen, recallWaiting, takeRecallOpen } from '../lib/discovery/recallCheck';
 import { readArea, rememberArea } from '../lib/landing/read';
 import { landingView, type LandingRow } from '../lib/landing/view';
 import { zoomOutFor } from '../lib/zoomOut';
@@ -92,6 +92,8 @@ export default function Home() {
   const [previewItems, setPreviewItems] = useState<ChecklistItem[]>([]);
   const [panelH, setPanelH] = useState(0);
   const [recalled, setRecalled] = useState<Capture[] | null>(null);
+  // A reminder tapped while the home is in front (no walk open) opens here at once (audit 1).
+  useEffect(() => onRecallOpen((found) => setRecalled(found)), []);
   const [scanNotice, setScanNotice] = useState<{ message: string; tone?: 'info' | 'error' } | null>(null);
   useEffect(() => {
     if (!scanNotice) return;
@@ -110,6 +112,11 @@ export default function Home() {
         const openPauses = openWalk ? await db.getPauses(openWalk.id) : [];
         if (!live) return null;
         // A reminder notification tapped with no walk open lands here (R4).
+        // With a walk open, a tapped reminder waiting from a cold start opens on the walk (audit 2).
+        if (openWalk && (await recallWaiting().catch(() => false))) {
+          router.push('/walk');
+          return null;
+        }
         const recalled = openWalk ? [] : await takeRecallOpen().catch(() => [] as Capture[]);
         if (!live) return null;
         setChecklists(await db.listChecklistAreas().catch(() => [] as ChecklistArea[]));
