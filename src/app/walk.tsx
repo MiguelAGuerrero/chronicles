@@ -39,6 +39,7 @@ import { useLiveTrace } from '../lib/useLiveTrace';
 import { routeAhead } from '../lib/nav/navigator';
 import { useNavigation } from '../lib/nav/useNavigation';
 import { useVisible } from '../lib/deletion/useDeletions';
+import { deletions } from '../lib/deletion';
 import { UndoToast } from '../components/UndoToast';
 
 /** Streets around the walker: read from the map and shown as fog this far out. */
@@ -282,8 +283,10 @@ export default function WalkScreen() {
     setMemory(null);
     feedback('tap');
     const tap = ++hereTaps.current;
-    const r = await capturesHere(at, captures, radiusM).catch(() => null);
+    const found = await capturesHere(at, captures, radiusM).catch(() => null);
     if (tap !== hereTaps.current) return; // a newer press won
+    // Storage still holds what waits in Undo: it isn't counted here (deletion audit 7).
+    const r = found && { ...found, captures: found.captures.filter((c) => !deletions.hidden().has(c.id)) };
     setSpot({ at, here: r && r.captures.length ? r : null, from: live.here });
   }
   // The spot card (and the options card) goes once you walk on, or with Back (Android) and Escape (web).
@@ -403,6 +406,8 @@ export default function WalkScreen() {
   const [memoryStore, setMemoryPool] = useState<Capture[]>([]);
   // A memory deleted from its viewer leaves its pin (D3).
   const memoryPool = useVisible(memoryStore);
+  // The memory card drops what was deleted from its viewer (deletion audit 7).
+  const memoryShown = useVisible(memory?.result.captures);
   // One reader per walk: a slow read lands even as fixes come in, a failed one is tried again, and
   // it sends only a changed set (audit 1, 10).
   const [memoryReads] = useState(() => memoryReader((at) => db.capturesIn(boundsOf([at], MEMORY_RULES.readBoxM)!), setMemoryPool));
@@ -426,7 +431,7 @@ export default function WalkScreen() {
     // group's farthest member (MR5, audit 3); this walk's own captures aren't memories.
     const r = await capturesHere(at, [], groupRadiusM(at, group)).catch(() => null);
     if (tap !== memoryTaps.current) return;
-    const captures = groupFirst(group, r?.captures ?? [], walk?.id ?? null);
+    const captures = groupFirst(group, r?.captures ?? [], walk?.id ?? null).filter((c) => !deletions.hidden().has(c.id));
     if (!captures.length) return;
     // One card at a time (audit 5).
     setSpot(null);
@@ -1173,15 +1178,15 @@ export default function WalkScreen() {
           setCaptioning(null);
         }}
       />
-      {memory && !spot && !recordingVoice && (
+      {memory && memoryShown.length > 0 && !spot && !recordingVoice && (
         <View style={[styles.spotRow, { bottom: insets.bottom + 92 + 68 + 12 }]} pointerEvents="box-none">
           <MemoryPreview
             // A new pin's preview starts fresh: never the last pin's photo (audit 1).
-            key={memory.result.captures[0].id}
-            captures={memory.result.captures}
-            walkLine={memory.result.context.get(memory.result.captures[0].id) ?? null}
+            key={memoryShown[0].id}
+            captures={memoryShown}
+            walkLine={memory.result.context.get(memoryShown[0].id) ?? null}
             onOpen={() => {
-              const r = memory.result;
+              const r = { ...memory.result, captures: memoryShown };
               setMemory(null);
               setMemoryView(r);
             }}
@@ -1244,8 +1249,8 @@ export default function WalkScreen() {
         onClose={() => setHere(null)}
       />
 
-      {/* Where the walk's other pills sit, above the capture row, so the row never moves (D5). */}
-      <UndoToast style={{ bottom: insets.bottom + 92 + 68 + 12 }} />
+      {/* At the top, clear of the voice memo's own Undo and the caption pill above the capture row (UI review). */}
+      <UndoToast style={{ top: insets.top + 64 }} />
 
       <Modal visible={noteOpen} transparent animationType="fade" onRequestClose={() => setNoteOpen(false)}>
         {/* Every way out keeps the draft; only Save clears it. */}

@@ -95,6 +95,7 @@ export async function planMoment(c: Capture): Promise<ConfirmText> {
 export function deleteMoment(c: Capture) {
   deletions.schedule({
     kind: 'moment',
+    what: c.kind,
     ids: [c.id],
     run: async () => {
       const [fresh] = await db.getCapturesByIds([c.id]);

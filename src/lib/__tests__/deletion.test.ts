@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
-  filesOf, isMedia, mediaRemoveText, momentDeleteText, recountNewStreets, sizeText, summaryLess, toastText, walkDeleteText,
+  countsOf, filesOf, isMedia, isNamedStreet, mediaRemoveText, momentDeleteText, recountNewStreets, sizeText, summaryLess, toastText, walkDeleteText,
 } from '../deletion/core';
 import { createPending, type PendingJob } from '../deletion/pending';
 import type { Capture, WalkSummary } from '../types';
@@ -138,12 +138,12 @@ test('D7: deleting a walk recounts later walks\' new streets without it', () => 
     { id: 'C', started_at: 3 },
   ];
   const visited = [
-    { walk_id: 'A', street_key: 'x' },
-    { walk_id: 'B', street_key: 'x' },
-    { walk_id: 'B', street_key: 'y' },
-    { walk_id: 'C', street_key: 'y' },
-    { walk_id: 'C', street_key: 'z' },
-    { walk_id: 'C', street_key: 'z' }, // two pieces of one street count once
+    { walk_id: 'A', street_key: 'name:x' },
+    { walk_id: 'B', street_key: 'name:x' },
+    { walk_id: 'B', street_key: 'name:y' },
+    { walk_id: 'C', street_key: 'name:y' },
+    { walk_id: 'C', street_key: 'name:z' },
+    { walk_id: 'C', street_key: 'name:z' }, // two pieces of one street count once
   ];
   const stored = new Map([['B', 1], ['C', 1]]);
   // A is gone: its rows are out of the lists.
@@ -151,8 +151,21 @@ test('D7: deleting a walk recounts later walks\' new streets without it', () => 
   assert.deepEqual(changed, [{ walk_id: 'B', new_streets: 2 }], 'x is new on B now; C is unchanged');
 });
 
+// Audit 1 (Nov 1): unnamed paths clear fog but are never streets (finish.ts counts by name); the
+// recount once counted their segment ids and raised other walks' "new streets".
+test('audit 1: the recount counts named streets only, as a snap does', () => {
+  const walks = [{ id: 'B', started_at: 2 }];
+  const visited = [
+    { walk_id: 'B', street_key: 'name:Hope St' },
+    { walk_id: 'B', street_key: 'footway|1,2|3,4|5,6' },
+  ];
+  assert.deepEqual(recountNewStreets(walks, visited, new Map([['B', 1]])), [], 'one named street, as stored');
+  assert.equal(isNamedStreet('name:Hope St'), true);
+  assert.equal(isNamedStreet('footway|1,2|3,4|5,6'), false);
+});
+
 test('D7: walks with no summary are left alone', () => {
-  const changed = recountNewStreets([{ id: 'B', started_at: 2 }], [{ walk_id: 'B', street_key: 'x' }], new Map());
+  const changed = recountNewStreets([{ id: 'B', started_at: 2 }], [{ walk_id: 'B', street_key: 'name:x' }], new Map());
   assert.deepEqual(changed, []);
 });
 
@@ -170,6 +183,13 @@ test('D9: removing moments takes them off the walk\'s counts, never below zero',
   assert.equal(s.distance_m, 1200, 'the walk itself is untouched');
   const old = summaryLess({ ...summary, videos: undefined }, [cap('c', 'video')]);
   assert.equal(old.videos, 0);
+});
+
+// Audit 3: a delete that overlaps a snap must not leave a count off by one, so counts come from the
+// rows left, never by subtraction.
+test('audit 3: counts come from the capture rows', () => {
+  assert.deepEqual(countsOf([cap('a', 'photo'), cap('b', 'photo'), cap('c', 'voice'), cap('d', 'text')]), { photos: 2, videos: 0, voices: 1, notes: 1 });
+  assert.deepEqual(countsOf([]), { photos: 0, videos: 0, voices: 0, notes: 0 });
 });
 
 test('D2: only photos, videos and memos are media', () => {
@@ -218,4 +238,21 @@ test('D5: the pill names what went', () => {
   assert.equal(toastText('walk'), 'Walk deleted');
   assert.equal(toastText('media'), 'Photos, videos and memos removed');
   assert.equal(toastText('moment'), 'Moment deleted');
+  // UI review: the pill names the kind the confirm named.
+  assert.equal(toastText('moment', 'photo'), 'Photo deleted');
+  assert.equal(toastText('moment', 'voice'), 'Voice memo deleted');
+});
+
+// Audit 10: delete A fails while delete B waits; A's items come back, and the failure must still be
+// told, beside B's Undo.
+test('audit 10: a failure of an earlier delete is kept beside the newer one\'s Undo', async () => {
+  const t = fakeTimers();
+  const p = createPending(t);
+  const log: string[] = [];
+  p.schedule(job(['a'], log, true));
+  p.schedule({ ...job(['b'], log), kind: 'moment', what: 'photo' });
+  await settle();
+  assert.equal(p.hidden().has('a'), false, 'A came back');
+  assert.deepEqual(p.state().pending, { kind: 'moment', what: 'photo' }, 'B still waits, naming its kind');
+  assert.equal(p.state().error, "Couldn't delete. Try again.", 'and A\'s failure is still there to show');
 });

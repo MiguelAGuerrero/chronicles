@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MarkPin } from '../../components/MarkPinView';
 import { db } from '../db';
+import { deletions } from '../deletion';
 import { categoryOf } from '../discovery/categories';
 import { boundsOf, distanceM } from '../geo';
 import { feedback } from '../motion';
@@ -74,15 +75,20 @@ export function useExplore(opts: {
     let alive = true;
     loadSettings().then((s) => alive && setSettings(s), () => {});
     const off = onSettings((s) => setSettings(s));
-    db.listFinds().then((f) => {
-      if (!alive) return;
-      // Captures that already found a place are handled: a reload never lets them find a second (audit 4).
-      for (const x of f) handled.current.add(x.capture_id);
-      setFound(new Set(f.map((x) => x.key)));
-    }, () => alive && setFound(new Set()));
+    const readFinds = () =>
+      db.listFinds().then((f) => {
+        if (!alive) return;
+        // Captures that already found a place are handled: a reload never lets them find a second (audit 4).
+        for (const x of f) handled.current.add(x.capture_id);
+        setFound(new Set(f.map((x) => x.key)));
+      }, () => alive && setFound((was) => was ?? new Set()));
+    readFinds();
+    // A deleted moment takes its find: the place can be found again on this walk (deletion audit 6).
+    const offDeleted = deletions.onCommitted(() => void readFinds());
     return () => {
       alive = false;
       off();
+      offDeleted();
     };
   }, []);
 

@@ -27,6 +27,9 @@ export function filesOf(captures: Pick<Capture, 'file_path' | 'thumb_path'>[]): 
   return out;
 }
 
+/** Streets are counted by name (the owner's call): an unnamed path's key is its segment id, never a street. */
+export const isNamedStreet = (key: string): boolean => key.startsWith('name:');
+
 /**
  * Each walk's new streets counted again from the visited rows left (D7): a
  * street is new on the first walk, by start time, that walked it. Only walks
@@ -39,6 +42,7 @@ export function recountNewStreets(
 ): { walk_id: string; new_streets: number }[] {
   const keysOf = new Map<string, Set<string>>();
   for (const v of visited) {
+    if (!isNamedStreet(v.street_key)) continue;
     let s = keysOf.get(v.walk_id);
     if (!s) keysOf.set(v.walk_id, (s = new Set()));
     s.add(v.street_key);
@@ -55,6 +59,12 @@ export function recountNewStreets(
     if (was != null && was !== fresh) out.push({ walk_id: w.id, new_streets: fresh });
   }
   return out;
+}
+
+/** A walk's moment counts, from its capture rows (D9, audit 3): never by subtraction. */
+export function countsOf(captures: Pick<Capture, 'kind'>[]): Pick<WalkSummary, 'photos' | 'videos' | 'voices' | 'notes'> {
+  const n = (k: CaptureKind) => captures.filter((c) => c.kind === k).length;
+  return { photos: n('photo'), videos: n('video'), voices: n('voice'), notes: n('text') };
 }
 
 /** The walk's counts without the removed moments (D9); the walk's own numbers stay. */
@@ -114,7 +124,11 @@ export function momentDeleteText(kind: CaptureKind, bytes: number): ConfirmText 
   return { title: `Delete this ${KIND_NOUN[kind]}?`, body: withSize('You can undo it for 5 seconds.', bytes), confirm: 'Delete' };
 }
 
-/** D5: the pill's words. */
-export function toastText(kind: DeleteKind): string {
-  return kind === 'walk' ? 'Walk deleted' : kind === 'media' ? 'Photos, videos and memos removed' : 'Moment deleted';
+/** D5: the pill's words, naming the moment's kind when it is known. */
+export function toastText(kind: DeleteKind, what?: CaptureKind): string {
+  if (kind === 'walk') return 'Walk deleted';
+  if (kind === 'media') return 'Photos, videos and memos removed';
+  if (!what) return 'Moment deleted';
+  const noun = KIND_NOUN[what];
+  return `${noun[0].toUpperCase()}${noun.slice(1)} deleted`;
 }

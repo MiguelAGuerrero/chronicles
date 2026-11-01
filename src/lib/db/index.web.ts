@@ -1,7 +1,7 @@
 import { staleAreas } from '../areas/assign';
 import type { Area, WalkArea } from '../areas/types';
 import { exploredKey, type ChecklistArea, type ChecklistItem, type ExploreRead, type Find } from '../explore/explore';
-import { recountNewStreets, summaryLess } from '../deletion/core';
+import { countsOf, recountNewStreets } from '../deletion/core';
 import type { LandingRow } from '../landing/view';
 import type { Mark, Offered, Place, Recall } from '../discovery/types';
 import { DERIVED_STORES } from './stores';
@@ -282,12 +282,13 @@ export const db: Db = {
           : (await Promise.all(walkIds.map((w) => done(finds.index('walk_id').getAll(w!)) as Promise<Find[]>))).flat();
         for (const f of rows) if (gone.has(f.capture_id)) finds.delete(f.key);
       }
-      // The walks' counts follow (D9).
+      // The walks' counts follow, from the rows left (D9, audit 3).
       const sums = tx.objectStore('walk_summary');
       for (const w of new Set(got.map((c) => c.walk_id))) {
         if (w == null) continue;
         const s = (await done(sums.get(w))) as WalkSummary | undefined;
-        if (s) sums.put(summaryLess(s, got.filter((c) => c.walk_id === w)));
+        const left = (await done(capStore.index('walk_id').getAll(w))) as Capture[];
+        if (s) sums.put({ ...s, ...countsOf(left) });
       }
     });
   },
@@ -320,17 +321,22 @@ export const db: Db = {
   },
 
   async saveSnap(walkId, segments, visited, summary, placed, complete = true) {
-    const names = ['street_segment', 'visited_segment', 'walk_summary', 'walk', 'area', 'walk_area'];
+    const names = ['street_segment', 'visited_segment', 'walk_summary', 'walk', 'area', 'walk_area', 'capture'];
     const tx = (await conn()).transaction(names, 'readwrite');
+    const walks = tx.objectStore('walk');
+    const w = (await done(walks.get(walkId))) as Walk | undefined;
+    // A walk deleted while its streets were read gets nothing back (audit 2).
+    if (!w) return committed(tx);
+    // Counts from the rows as they stand now, so a moment deleted meanwhile isn't counted (audit 3).
+    const rowsNow = (await done(tx.objectStore('capture').index('walk_id').getAll(walkId))) as Capture[];
+    summary = { ...summary, ...countsOf(rowsNow) };
     const seg = tx.objectStore('street_segment');
     for (const x of segments) seg.put({ ...x, tile: segmentTile(x) });
     const vis = tx.objectStore('visited_segment');
     for (const k of (await done(vis.index('walk_id').getAllKeys(walkId))) as IDBValidKey[]) vis.delete(k);
     for (const v of visited) vis.put(v);
     tx.objectStore('walk_summary').put(summary);
-    const walks = tx.objectStore('walk');
-    const w = (await done(walks.get(walkId))) as Walk | undefined;
-    if (w) walks.put({ ...w, snapped_build: complete ? summary.build : null });
+    walks.put({ ...w, snapped_build: complete ? summary.build : null });
     if (placed) {
       const wa = tx.objectStore('walk_area');
       for (const k of (await done(wa.index('walk_id').getAllKeys(walkId))) as IDBValidKey[]) wa.delete(k);

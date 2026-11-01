@@ -1532,6 +1532,7 @@ function check(ok, what) {
         await page.waitForSelector('text=The bakery smelled of cardamom.');
       };
       await openNote();
+      await page.click('[data-testid=viewer-more]');
       await page.click('[data-testid=viewer-delete]');
       await page.waitForSelector('[data-testid=confirm]');
       const ask = await page.locator('[data-testid=confirm]').innerText();
@@ -1539,10 +1540,11 @@ function check(ok, what) {
       await shot(page, '25-confirm-moment');
       await page.click('[data-testid=confirm-cancel]');
       check((await page.getByText('The bakery smelled of cardamom.').count()) > 0, 'Cancel keeps the moment (D4)');
+      await page.click('[data-testid=viewer-more]');
       await page.click('[data-testid=viewer-delete]');
       await page.click('[data-testid=confirm-delete]');
       await page.waitForSelector('[data-testid=undo-toast]');
-      check(/Moment deleted/.test(await toast()) && (await page.getByText('The bakery smelled of cardamom.').count()) === 0,
+      check(/Note deleted/.test(await toast()) && (await page.getByText('The bakery smelled of cardamom.').count()) === 0,
         'a deleted moment leaves at once, with Undo (D3, D5)');
       await shot(page, '26-undo-moment');
       check((await capsOf()).some((c) => c.id === noteCap.id), 'nothing is stored before the 5 s are up (D5)');
@@ -1553,6 +1555,7 @@ function check(ok, what) {
       check((await capsOf()).some((c) => c.id === noteCap.id) && (await page.locator('[data-testid=undo-toast]').count()) === 0, 'Undo brings the moment back as it was (D5)');
       await openNote();
       check(true, 'the moment is back on the map after Undo');
+      await page.click('[data-testid=viewer-more]');
       await page.click('[data-testid=viewer-delete]');
       await page.click('[data-testid=confirm-delete]');
       await page.waitForSelector('[data-testid=undo-toast]');
@@ -1621,7 +1624,8 @@ function check(ok, what) {
       const seen = new Set();
       const wrong = [];
       for (const w of walksLeft) {
-        const keys = new Set(visited.filter((v) => v.walk_id === w.id).map((v) => v.street_key));
+        // Named streets only, as a snap counts them (audit 1).
+        const keys = new Set(visited.filter((v) => v.walk_id === w.id && v.street_key.startsWith('name:')).map((v) => v.street_key));
         const fresh = [...keys].filter((k) => !seen.has(k)).length;
         keys.forEach((k) => seen.add(k));
         const sm = (await all('walk_summary')).find((x) => x.walk_id === w.id);

@@ -335,15 +335,18 @@ const clock = (t: number) => new Date(t).toLocaleTimeString(undefined, { hour: '
 
 /** A line of a day's timeline (M8): a moment opens in the viewer; a walk is one row that opens its replay. */
 /** A finished walk's More button (D1, D2), beside its row, never inside it. */
-function MoreButton({ walk, title, onMore }: { walk: Walk; title: string; onMore?: (walkId: string) => void }) {
+function MoreButton({ walk, title, onMore, disabled }: { walk: Walk; title: string; onMore?: (walkId: string) => void; disabled?: boolean }) {
   if (!onMore || walk.open) return null;
   return (
     <Pressable
       testID="walk-more"
       accessibilityRole="button"
       accessibilityLabel={`More for ${title}`}
+      // While old walks are being placed, a walk's streets may still be read (deletion audit 2).
+      disabled={disabled}
+      accessibilityState={{ disabled: !!disabled }}
       onPress={() => onMore(walk.id)}
-      style={({ pressed }) => [styles.more, pressed && { opacity: 0.6 }]}
+      style={({ pressed }) => [styles.more, (pressed || disabled) && { opacity: 0.4 }]}
       hitSlop={4}
     >
       <Icon name="ellipsis-horizontal" size={22} color={theme.ink} />
@@ -373,7 +376,7 @@ function EntryRow({ entry: e, summary: s, disabled, onOpen, onMore }: { entry: D
           <Text style={styles.rowMeta}>{line}</Text>
         </View>
       </Pressable>
-      <MoreButton walk={e.walk} title={title} onMore={onMore} />
+      <MoreButton walk={e.walk} title={title} onMore={onMore} disabled={disabled} />
       </View>
     );
   }
@@ -422,7 +425,7 @@ function WalkRow({ walk, summary: s, disabled, onMore }: { walk: Walk; summary: 
         <Text style={styles.rowMeta}>{meta}</Text>
         {walk.epilogue ? <Text style={styles.epilogue}>“{walk.epilogue}”</Text> : null}
       </Pressable>
-      <MoreButton walk={walk} title={title} onMore={onMore} />
+      <MoreButton walk={walk} title={title} onMore={onMore} disabled={disabled} />
     </View>
   );
 }

@@ -4,7 +4,7 @@ import { placeFromRow, placeToRow, type PlaceRow } from './placeRow';
 import type { Area, WalkArea } from '../areas/types';
 import type { LandingRow } from '../landing/view';
 import type { Mark, MarkOrigin, MarkState, Offered, Recall } from '../discovery/types';
-import { recountNewStreets, summaryLess } from '../deletion/core';
+import { countsOf, recountNewStreets } from '../deletion/core';
 import { exploredKey } from '../explore/explore';
 import { DERIVED_STORES } from './stores';
 import type { Capture, Pause, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
@@ -321,12 +321,11 @@ export const db: Db = {
       await t.runAsync(`DELETE FROM capture WHERE id IN (${marks})`, ...ids);
       await t.runAsync(`DELETE FROM recall WHERE capture_id IN (${marks})`, ...ids);
       if (!opts.keepFinds) await t.runAsync(`DELETE FROM find WHERE capture_id IN (${marks})`, ...ids);
-      // The walks' counts follow (D9).
+      // The walks' counts follow, from the rows left (D9, audit 3).
       for (const w of new Set(got.map((c) => c.walk_id))) {
         if (w == null) continue;
-        const r = await t.getFirstAsync<Omit<WalkSummary, 'streets_read'> & { streets_read: number }>('SELECT * FROM walk_summary WHERE walk_id = ?', w);
-        if (!r) continue;
-        const s = summaryLess({ ...r, streets_read: r.streets_read === 1 }, got.filter((c) => c.walk_id === w));
+        const left = await t.getAllAsync<{ kind: Capture['kind'] }>('SELECT kind FROM capture WHERE walk_id = ?', w);
+        const s = countsOf(left);
         await t.runAsync(
           'UPDATE walk_summary SET photos = ?, videos = ?, voices = ?, notes = ? WHERE walk_id = ?',
           s.photos, s.videos ?? 0, s.voices, s.notes, w,
@@ -365,8 +364,13 @@ export const db: Db = {
     });
   },
 
-  saveSnap(walkId, segments, visited, s, placed, complete = true) {
+  saveSnap(walkId, segments, visited, snapSummary, placed, complete = true) {
     return write(async (t) => {
+      // A walk deleted while its streets were read gets nothing back (audit 2).
+      if (!(await t.getFirstAsync('SELECT 1 FROM walk WHERE id = ?', walkId))) return;
+      // Counts from the rows as they stand now, so a moment deleted meanwhile isn't counted (audit 3).
+      const rowsNow = await t.getAllAsync<{ kind: Capture['kind'] }>('SELECT kind FROM capture WHERE walk_id = ?', walkId);
+      const s = { ...snapSummary, ...countsOf(rowsNow) };
       const seg = await t.prepareAsync(
         'INSERT OR REPLACE INTO street_segment (id, name, kind_detail, length_m, geometry, w, s, e, n, build) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       );

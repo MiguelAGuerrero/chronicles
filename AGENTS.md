@@ -795,8 +795,9 @@ Read this before changing recording, streets, the replay or storage.
 - **Three deletes, to free storage** (the owner's calls, Nov 1): a whole walk,
   a walk's photos, videos and memos (the walk stays), or one moment. A walk's
   actions are its More (⋯) button on its home-sheet row (walks list and a
-  day's timeline) and on its replay card (`WalkActions`). A moment's is the
-  capture viewer's Delete, wherever the viewer opens. No Storage screen.
+  day's timeline) and on its replay card (`WalkActions`). A moment's is Delete
+  in the capture viewer's More (⋯) menu, wherever the viewer opens. No
+  Storage screen.
 - **As if it never happened:** a deleted walk takes its trace, pauses,
   captures and files, summary, visited and area rows (areas no walk uses go),
   finds, reminders, marks and `explored:<walk>`; later walks' new streets are
@@ -821,12 +822,44 @@ Read this before changing recording, streets, the replay or storage.
   - `UndoToast` renders in each screen and in the viewer; only the newest
     mounted one shows (a phone's Modal hides what the screen draws).
   - The home reads again when a delete reached storage (`useOnDeleted`).
-- **Deferred:** a phone's leftover files after a failed delete (no sweep yet);
-  a day replay's "Watch again" still stops at a moment deleted during it; the
-  replay card keeps a deleted moment's find in its line until reopened; a
-  notification already shown for a deleted moment opens nothing.
+- **After the audit (Nov 1):** 13 findings, 8 fixed.
+  - The recount counts named streets only (`isNamedStreet`, shared with
+    `finish.ts`).
+  - `saveSnap` writes nothing for a deleted walk, and takes its counts from
+    the capture rows inside its transaction (`countsOf`), as `deleteCaptures`
+    does. A delete overlapping a snap can't leave a count off.
+  - A loose moment deleted before its fix finds nothing (`findForMoment`).
+  - Explore re-reads finds after a delete.
+  - Memory cards and "What happened here" skip what waits in Undo.
+  - The viewer's Save and Delete share one More (⋯) menu, so its row fits
+    320 px.
+  - The pill names the kind ("Photo deleted"), shows an earlier delete's
+    failure beside a newer Undo, and is announced on iOS. On the walk screen
+    it sits at the top, clear of the voice memo's Undo.
+  - Walk actions close on Escape on the web (react-native-web's Modal doesn't
+    send it). Cancel shows in every state, and More is disabled while old
+    walks are being placed.
+  - Regression tests: `deletion.test.ts` (audit 1, 3, 10). The snap guard,
+    moment finds, Explore and memory filtering are covered only by the e2e's
+    flow and typecheck.
+- **Deferred:**
+  - A phone's leftover files after a failed delete (no sweep yet).
+  - A thumbnail finishing after its moment went leaves its file.
+  - A reminder check already running can write a recall back for a capture
+    deleted mid-check, and a moment waiting in Undo can still fire.
+  - A day replay's "Watch again" still stops at a moment deleted during it.
+  - The replay card and the home's finds and checklist counts lag a delete
+    until read again.
+  - Native legacy `file://` refs from an old container leak on moment and
+    media deletes (a walk delete removes its folder).
+  - The home's reload after a delete reruns its whole load.
+  - On the web, a hidden page counts as the background, so switching tabs
+    stores a waiting delete at once.
+  - A notification already shown for a deleted moment opens nothing.
 - **Native** (unverified on a device): the SQLite deletes, file and folder
-  removal, `Directory.size`, and the Undo pill over the viewer's Modal.
+  removal, `Directory.size`, the Undo pill over the viewer's Modal, the
+  background commit, and `router.dismissTo` right after the actions Modal
+  closes (iOS can drop a navigation during a Modal's dismissal).
 
 ## Working with the owner
 

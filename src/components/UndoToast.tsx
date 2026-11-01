@@ -1,5 +1,5 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
-import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { AccessibilityInfo, Platform, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { toastText } from '../lib/deletion/core';
 import { deletions } from '../lib/deletion';
 import { usePendingState } from '../lib/deletion/useDeletions';
@@ -34,19 +34,23 @@ export function UndoToast(props: { style?: StyleProp<ViewStyle> }) {
   }, [id]);
   const top = useSyncExternalStore(subscribeHosts, topHost, topHost);
   const st = usePendingState();
-  if (top !== id || (!st.pending && !st.error)) return null;
+  const mine = top === id;
+  // A failure is told even while a newer delete waits (deletion audit 10).
+  const text = st.error ?? (st.pending ? toastText(st.pending.kind, st.pending.what) : null);
+  // iOS reads no live regions: the pill is announced, with its Undo (UI review).
+  useEffect(() => {
+    if (!mine || !text || Platform.OS !== 'ios') return;
+    AccessibilityInfo.announceForAccessibility(st.pending && !st.error ? `${text}. Undo is available.` : text);
+  }, [mine, text, st.pending, st.error]);
+  if (!mine || !text) return null;
   return (
     <View style={[styles.wrap, props.style]} pointerEvents="box-none">
       <LiftIn style={styles.pill} testID="undo-toast" accessibilityLiveRegion="polite">
-        {st.pending ? (
-          <>
-            <Text style={styles.text}>{toastText(st.pending.kind)}</Text>
-            <Pressable testID="undo" accessibilityRole="button" accessibilityLabel="Undo" onPress={() => deletions.undo()} hitSlop={8} style={styles.undo}>
-              <Text style={styles.undoText}>Undo</Text>
-            </Pressable>
-          </>
-        ) : (
-          <Text style={styles.text}>{st.error}</Text>
+        <Text style={styles.text}>{text}</Text>
+        {st.pending && (
+          <Pressable testID="undo" accessibilityRole="button" accessibilityLabel="Undo" onPress={() => deletions.undo()} hitSlop={8} style={styles.undo}>
+            <Text style={styles.undoText}>Undo</Text>
+          </Pressable>
         )}
       </LiftIn>
     </View>

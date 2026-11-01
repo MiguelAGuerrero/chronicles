@@ -1,3 +1,4 @@
+import type { CaptureKind } from '../types';
 import type { DeleteKind } from './core';
 
 /**
@@ -10,6 +11,8 @@ import type { DeleteKind } from './core';
 
 export interface PendingJob {
   kind: DeleteKind;
+  /** A single moment's kind, so the pill can name it. */
+  what?: CaptureKind;
   /** Walk and capture ids every screen hides while it waits, and after it went. */
   ids: string[];
   /** Does the delete in storage. */
@@ -22,7 +25,7 @@ export const FAILED_TEXT = "Couldn't delete. Try again.";
 
 export interface PendingState {
   /** The delete Undo would reach, while it waits. */
-  pending: { kind: DeleteKind } | null;
+  pending: { kind: DeleteKind; what?: CaptureKind } | null;
   error: string | null;
 }
 
@@ -95,7 +98,7 @@ export function createPending(o: {
       hide(job.ids);
       const timer = o.setTimer(() => void release(), waitMs);
       waiting = { job, timer };
-      set({ pending: { kind: job.kind }, error: null });
+      set({ pending: { kind: job.kind, what: job.what }, error: null });
     },
     undo(): void {
       if (!waiting) return;

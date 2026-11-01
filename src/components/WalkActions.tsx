@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { deleteWalk, planWalk, removeWalkMedia, type WalkPlan } from '../lib/deletion';
 import type { DeleteKind } from '../lib/deletion/core';
 import { suggestTitle } from '../lib/summary';
@@ -37,6 +37,22 @@ export function WalkActions(props: { walkId: string | null; onClose: () => void;
   }, [walkId]);
 
   const close = () => (asking ? setAsking(null) : props.onClose());
+  // Escape on the web: react-native-web's Modal doesn't send it to onRequestClose (e2e, Nov 1).
+  const closeRef = useRef(close);
+  useEffect(() => {
+    closeRef.current = close;
+  });
+  useEffect(() => {
+    if (!walkId || Platform.OS !== 'web' || typeof window === 'undefined') return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      // The sheet beneath keeps its own Escape for itself.
+      e.stopImmediatePropagation();
+      closeRef.current();
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [walkId]);
   const confirm = () => {
     if (!plan || !asking) return;
     if (asking === 'walk') deleteWalk(plan);
@@ -71,15 +87,16 @@ export function WalkActions(props: { walkId: string | null; onClose: () => void;
                     <Text style={styles.itemHint}>Its trace, moments and streets walked</Text>
                   </View>
                 </Pressable>
-                <Pressable accessibilityRole="button" onPress={props.onClose} style={({ pressed }) => [styles.cancel, pressed && styles.pressed]}>
-                  <Text style={styles.cancelText}>Cancel</Text>
-                </Pressable>
               </>
             ) : failed ? (
               <Text style={styles.itemHint}>This walk can’t be changed right now.</Text>
             ) : (
               <ActivityIndicator color={theme.ink} accessibilityLabel="Loading" />
             )}
+            {/* In every state, so a slow or failed read never traps a screen reader (UI review). */}
+            <Pressable testID="actions-cancel" accessibilityRole="button" onPress={props.onClose} style={({ pressed }) => [styles.cancel, pressed && styles.pressed]}>
+              <Text style={styles.cancelText}>Cancel</Text>
+            </Pressable>
           </View>
         )}
         {asking && plan && (
