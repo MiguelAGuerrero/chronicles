@@ -14,6 +14,8 @@ import type { CapturePin } from '../../lib/pins';
 import type { RoadFeature } from '../../lib/streets';
 import type { LngLat } from '../../lib/types';
 import { useGlideFrames, type GlideFrame } from '../../lib/useGlidingWalker';
+import { useReducedMotion } from 'react-native-reanimated';
+import { MOTION } from '../../lib/motionTokens';
 import {
   COLORS, coneGeoJSON, DERIVE_ZOOM, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
@@ -146,10 +148,12 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   useEffect(() => {
     followRef.current = props.follow;
   });
-  const duration = props.animate === false ? 0 : 600;
-  const animateRef = useRef(props.animate !== false);
+  // Camera moves take the app's camera timing, and jump with reduce motion on (M2).
+  const reduced = useReducedMotion();
+  const duration = props.animate === false || reduced ? 0 : MOTION.camera;
+  const animateRef = useRef(props.animate !== false && !reduced);
   useEffect(() => {
-    animateRef.current = props.animate !== false;
+    animateRef.current = props.animate !== false && !reduced;
   });
 
   useEffect(() => {
@@ -582,6 +586,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       fitAtMount.current = undefined;
       const [w, s, e, n] = props.fitBounds;
       const padding = props.fitPadding ?? { top: 48, right: 48, bottom: 48, left: 48 };
+      perfCount('fit');
       mapRef.current?.fitBounds([[w, s], [e, n]], { padding, maxZoom: 17, duration });
     }
     // Refits when the caller changes fitKey, not on every new bounds array.

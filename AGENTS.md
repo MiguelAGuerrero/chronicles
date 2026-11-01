@@ -508,6 +508,34 @@ Read this before changing recording, streets, the replay or storage.
 - **Native** (unverified on a device): layer order (no `beforeId` yet), markers,
   migration 7.
 
+## Polish: motion (the spec is the concept doc's "Polish: motion" tab)
+
+- **Restraint holds:** effects are short and physical (a press, a settle, a
+  lift), never celebratory. The owner's defaults (Nov 1): Reanimated, no sounds
+  yet.
+- **One set of timings:** `lib/motionTokens.ts` (pure: `MOTION`, `PRESS_SCALE`,
+  `durationFor`) and `lib/motion.ts` (`liftIn`/`liftOut`, `feedback(kind)`,
+  `useReducedMotion`). Never hard-code a duration.
+- **Reanimated 4 + worklets** are direct dependencies. babel-preset-expo adds the
+  worklets plugin by itself. Under the React Compiler lint, write shared values
+  with `.set()` and read them with `.get()`, never `.value =`.
+- **Reduce motion:** Reanimated follows the system setting (`ReduceMotion.System`;
+  on web `prefers-reduced-motion`). The map's camera durations follow it too.
+  The e2e forces it with `emulateMedia({ reducedMotion: 'reduce' })`.
+- **Effects never re-render per frame.** Button press (`Button` in `ui.tsx`),
+  the home sheet's spring (`HomeSheet`), and `LiftIn`/`Banner` all run on
+  Reanimated. Wrap a new pill in `LiftIn`.
+- **The walks list zooms out** to every place walked as it opens, framed above
+  the half sheet (`index.tsx` onMode; `perfCount('fit')` lets the e2e count it).
+- **Sound:** none yet. When it comes, it is opt-in and must not use the memo's
+  audio session, which plays with the ringer off.
+- **Deferred** (agree with the Explore work first): a star bounce, a pin drop
+  on capture, the ? flipping to its name, a pulse on finding a place.
+- **Native** (unverified on a device): Reanimated on the phone, the spring
+  sheet, layout animations.
+- The e2e's mouse drag on the home map doesn't pan it (found while testing M6),
+  so H5's "kept its view across the replay" check compares an unmoved view.
+
 ## Working with the owner
 
 - **Ask before architectural decisions:** libraries, data model, platform strategy,

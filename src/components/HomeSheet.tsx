@@ -1,9 +1,11 @@
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
-  AccessibilityInfo, Animated, BackHandler, Easing, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions,
+  BackHandler, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions,
   type GestureResponderEvent,
 } from 'react-native';
+import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { MOTION } from '../lib/motionTokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { placeWalks, type PlacesIndex } from '../lib/places';
 import { formatCaptures, formatDistance, formatDuration, suggestTitle } from '../lib/summary';
@@ -52,26 +54,22 @@ export function HomeSheet(props: {
   const [openSize, setOpenSize] = useState<Exclude<Size, 'peek'>>('half');
   const size: Size = expanded ? openSize : 'peek';
   const target = heights[size];
-  const [h] = useState(() => new Animated.Value(heights.peek));
-  const [reduceMotion, setReduceMotion] = useState(false);
-  useEffect(() => {
-    let alive = true;
-    AccessibilityInfo.isReduceMotionEnabled().then((v) => alive && setReduceMotion(v), () => {});
-    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
-    return () => {
-      alive = false;
-      sub.remove();
-    };
-  }, []);
+  // The sheet settles at its height with the app's one spring (M5), on the UI thread. Reanimated
+  // follows the system's reduce-motion setting, so then it snaps (M2).
+  const h = useSharedValue(heights.peek);
+  const sheetStyle = useAnimatedStyle(() => ({ height: h.get() }));
   const onHeight = useRef(props.onHeight);
   useEffect(() => {
     onHeight.current = props.onHeight;
   });
+  const [report] = useState(() => (v: number) => onHeight.current?.(v));
   useEffect(() => {
-    Animated.timing(h, { toValue: target, duration: reduceMotion ? 0 : 220, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start(() =>
-      onHeight.current?.(target),
+    h.set(
+      withSpring(target, MOTION.spring, (done) => {
+        if (done) runOnJS(report)(target);
+      }),
     );
-  }, [h, target, reduceMotion]);
+  }, [h, target, report]);
 
   const setSize = (next: Size) => {
     if (next === 'peek') props.onMode({ kind: 'summary' });
@@ -110,7 +108,7 @@ export function HomeSheet(props: {
     }
     const at = drag.current.from + moved;
     const nearest = (Object.keys(heights) as Size[]).sort((x, y) => Math.abs(heights[x] - at) - Math.abs(heights[y] - at))[0];
-    if (nearest === size) Animated.timing(h, { toValue: target, duration: reduceMotion ? 0 : 160, useNativeDriver: false }).start();
+    if (nearest === size) h.set(withSpring(target, MOTION.spring));
     else setSize(nearest);
   };
   const dragProps = {
@@ -123,7 +121,7 @@ export function HomeSheet(props: {
     onResponderMove: (e: GestureResponderEvent) => {
       const dy = e.nativeEvent.pageY - drag.current.y;
       if (Math.abs(dy) >= 6) drag.current.moved = true;
-      h.setValue(Math.max(heights.peek, Math.min(heights.full, drag.current.from - dy)));
+      h.set(Math.max(heights.peek, Math.min(heights.full, drag.current.from - dy)));
     },
     onResponderRelease: (e: GestureResponderEvent) => settle(e.nativeEvent.pageY),
     onResponderTerminate: (e: GestureResponderEvent) => settle(e.nativeEvent.pageY),
@@ -138,7 +136,7 @@ export function HomeSheet(props: {
     : '';
 
   return (
-    <Animated.View testID="home-sheet" style={[styles.sheet, { height: h, paddingBottom: insets.bottom }]}>
+    <Animated.View testID="home-sheet" style={[styles.sheet, { paddingBottom: insets.bottom }, sheetStyle]}>
       <View testID="sheet-drag" {...dragProps} style={styles.dragArea}>
         <View style={styles.handleArea}>
           <View style={styles.handle} />

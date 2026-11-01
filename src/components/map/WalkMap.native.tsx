@@ -10,6 +10,8 @@ import { namedStars, StarView, starLabel } from '../StarView';
 import type { RoadFeature } from '../../lib/streets';
 import { TILEJSON_URL } from '../../lib/tiles';
 import { useGlidingWalker } from '../../lib/useGlidingWalker';
+import { useReducedMotion } from 'react-native-reanimated';
+import { MOTION } from '../../lib/motionTokens';
 import {
   COLORS, coneGeoJSON, DERIVE_ZOOM, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
@@ -33,7 +35,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const names = useMemo(() => namedStars(props.stars ?? []), [props.stars]);
   // Pins grouped for the current zoom, so nearby ones merge instead of piling up.
   const pins = useZoomPins(props.captures, view?.zoom ?? props.initialZoom ?? null, view?.lat ?? null);
-  const duration = props.animate === false ? 0 : 600;
+  // Camera moves take the app's camera timing, and jump with reduce motion on (M2).
+  const reduced = useReducedMotion();
+  const duration = props.animate === false || reduced ? 0 : MOTION.camera;
 
   const fog = useMemo(() => segmentsGeoJSON(props.fog), [props.fog]);
   const walked = useMemo(() => segmentsGeoJSON(props.walked), [props.walked]);
@@ -108,7 +112,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       return out;
     },
     showPoint(at, padding) {
-      cameraRef.current?.easeTo({ center: at, padding, duration: props.animate === false ? 0 : 400 });
+      cameraRef.current?.easeTo({ center: at, padding, duration: props.animate === false || reduced ? 0 : 400 });
     },
     async collectPlaces(center) {
       await whenReady();

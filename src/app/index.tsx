@@ -322,6 +322,13 @@ export default function Home() {
           mode={mode}
           onMode={(m) => {
             if (m.kind !== 'place') setSelected(null);
+            // Opening the walks list zooms out to every place walked (M6), at once, framed above the
+            // half-height sheet it is opening to.
+            if (m.kind === 'walks' && mode.kind === 'summary' && index.bounds) {
+              const bounds = index.bounds;
+              setSheetH(Math.round(screenH * 0.5));
+              setFit((f) => ({ bounds, key: f.key + 1 }));
+            }
             setMode(m);
           }}
           onHeight={setSheetH}

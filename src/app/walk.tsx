@@ -9,7 +9,7 @@ import { COLORS, HOTSPOT, type WalkMapHandle } from '../components/map/types';
 import { CaptionEditor } from '../components/Caption';
 import { CaptureViewer } from '../components/CaptureView';
 import { Icon, KIND_LABEL, type IconName } from '../components/icons';
-import { Banner, Button, HoldButton, theme } from '../components/ui';
+import { Banner, Button, HoldButton, LiftIn, theme } from '../components/ui';
 import { DiscoveryPrefs } from '../components/DiscoveryPrefs';
 import { ReminderCard } from '../components/ReminderCard';
 import { AMBIENT_KEY, MARK_OPEN_KEY, onAmbientHint } from '../lib/discovery/ambientRun';
@@ -773,10 +773,10 @@ export default function WalkScreen() {
           </View>
         )}
         {navigation.nav?.offRoute && (
-          <View style={styles.chip} accessibilityLiveRegion="polite">
+          <LiftIn style={styles.chip} accessibilityLiveRegion="polite">
             <View style={[styles.statusDot, { backgroundColor: theme.warn }]} />
             <Text style={styles.chipText}>Off your route</Text>
-          </View>
+          </LiftIn>
         )}
         {navigation.finding && (
           <View style={styles.finding} accessibilityLiveRegion="polite">
@@ -797,16 +797,16 @@ export default function WalkScreen() {
           </View>
         )}
         {arrived && (
-          <View style={styles.toast}>
+          <LiftIn style={styles.toast}>
             <Text style={[styles.toastText, styles.flashText]}>{arrived}</Text>
-          </View>
+          </LiftIn>
         )}
         {onStrip && !problem && (
           // Quiet: a chip, not a notification or a hint (L14).
-          <View testID="on-strip" style={styles.chip}>
+          <LiftIn testID="on-strip" style={styles.chip}>
             <View style={[styles.statusDot, { backgroundColor: HOTSPOT }]} />
             <Text style={styles.chipText}>On {onStrip}</Text>
-          </View>
+          </LiftIn>
         )}
         {problem && (
           <View style={styles.chip} accessible accessibilityLabel={problem.label} accessibilityLiveRegion="polite">
@@ -877,9 +877,9 @@ export default function WalkScreen() {
           </Banner>
         )}
         {toast && (
-          <View style={styles.toast} accessibilityLiveRegion="polite">
+          <LiftIn style={styles.toast} accessibilityLiveRegion="polite">
             <Text style={styles.toastText}>{toast}</Text>
-          </View>
+          </LiftIn>
         )}
       </View>
 
