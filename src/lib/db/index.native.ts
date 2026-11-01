@@ -130,9 +130,9 @@ const MIGRATIONS = [
     key TEXT PRIMARY KEY, lon REAL NOT NULL, lat REAL NOT NULL, build TEXT NOT NULL, read_at INTEGER NOT NULL, candidates TEXT NOT NULL
   );
   `,
-  // 10: ridden distance (rides, R6). Summaries written before it read 0 until the walk re-snaps.
+  // 10: ridden distance (rides, R6). Null on summaries written before it, so the replay falls back to the trace's.
   `
-  ALTER TABLE walk_summary ADD COLUMN ride_m REAL NOT NULL DEFAULT 0;
+  ALTER TABLE walk_summary ADD COLUMN ride_m REAL;
   `,
 ];
 
@@ -367,7 +367,7 @@ export const db: Db = {
     const rows = await (await conn()).getAllAsync<Omit<WalkSummary, 'streets_read'> & { streets_read: number }>(
       'SELECT * FROM walk_summary',
     );
-    return rows.map((r) => ({ ...r, streets_read: r.streets_read === 1 }));
+    return rows.map((r) => ({ ...r, ride_m: r.ride_m ?? undefined, streets_read: r.streets_read === 1 }));
   },
 
   saveChecklists({ areas, items, read }) {

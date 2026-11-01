@@ -4,7 +4,7 @@ import { db } from './db';
 import { isBreak, splitAtGaps, type PauseSpan } from './geo';
 import { headingOf } from './nav/navigator';
 import { recorder } from './recorder';
-import { keptFixes, readTrace, rideRuns, ridingAt, traceDistances } from './rides';
+import { keptFixes, readTrace, rideRuns, ridingAt, traceDistances, type ReadTrace } from './rides';
 import type { LngLat, TracePoint } from './types';
 
 /** How often the screen (and the map) is refreshed from the live trace. */
@@ -28,6 +28,17 @@ export interface LiveTrace {
   riding: boolean;
   /** The way the walker is going, in degrees from north; null when standing still. */
   heading: number | null;
+}
+
+/** The same ride lines as last time, kept as they were, so the map isn't sent them again (rides audit 4). */
+function sameRuns(a: LngLat[][], b: LngLat[][]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i];
+    const y = b[i];
+    if (x.length !== y.length || x[0]?.[0] !== y[0]?.[0] || x[x.length - 1]?.[0] !== y[y.length - 1]?.[0] || x[x.length - 1]?.[1] !== y[y.length - 1]?.[1]) return false;
+  }
+  return true;
 }
 
 const EMPTY: LiveTrace = { runs: [], rides: [], here: null, distanceM: 0, rideM: 0, lastFixAt: null, lastGoodAt: null, riding: false, heading: null };
@@ -70,6 +81,7 @@ export function useLiveTrace(
   const reportedGap = useRef<number | null>(null);
   const dirty = useRef(false);
   const riding = useRef(false);
+  const lastRead = useRef<{ tr: ReadTrace; here: LngLat | null } | null>(null);
 
   useEffect(() => {
     if (!walkId) return;
@@ -112,9 +124,11 @@ export function useLiveTrace(
       // The same measure as the walk's card: no jitter while standing still, nothing across a pause or ride.
       const { walkedM, rideM } = traceDistances(tr);
       riding.current = ridingAt(tr, here, Date.now());
-      setState({
+      lastRead.current = { tr, here };
+      const rides = rideRuns(tr);
+      setState((prev) => ({
         runs: splitAtGaps(tr.walked, 60_000, tr.breaks),
-        rides: rideRuns(tr),
+        rides: sameRuns(prev.rides, rides) ? prev.rides : rides,
         here,
         distanceM: walkedM,
         rideM,
@@ -122,15 +136,24 @@ export function useLiveTrace(
         lastGoodAt: tr.lastGoodAt,
         riding: riding.current,
         heading: headingOf(kept.slice(-30)),
-      });
+      }));
     }
     refreshRef.current = () => {
       dirty.current = true;
       publish();
     };
-    // On a ride, "On a ride" ends by the clock too, after a long stop with no fixes.
+    // "On a ride" also ends by the clock, after a long stop with no fixes: checked on the
+    // last read, without reading the trace again (rides audit 4).
     const timer = setInterval(() => {
-      if (riding.current) dirty.current = true;
+      const last = lastRead.current;
+      if (!dirty.current && riding.current && last && AppState.currentState === 'active') {
+        const now = ridingAt(last.tr, last.here, Date.now());
+        if (now !== riding.current) {
+          riding.current = now;
+          setState((prev) => ({ ...prev, riding: now }));
+        }
+        return;
+      }
       publish();
     }, PUBLISH_MS);
     const appState = AppState.addEventListener('change', (s) => {

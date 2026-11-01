@@ -19,11 +19,16 @@ export const RIDE_RULES = {
   speedOverMs: 5000,
   /** A ride runs from its first fix at this speed or more to its last (R3). */
   edge: 3,
-  /** Inside a ride, faster than this from the last kept fix is a jump (R2: a train's top speed). */
-  maxSpeed: 70,
-  /** Two rides this close in time are one, when the stretch between is a stop or still moving (R3). */
+  /** Inside a ride, faster than this from the last kept fix is a jump (R2: a high-speed train's top speed). */
+  maxSpeed: 100,
+  /** A ride reaches at least this far from where it began: GPS drifting off and back is not one (audit 9). */
+  minReachM: 200,
+  /** Two rides are one across a stop (this close in time and space), or across traffic still moving at `edge` (R3). */
   joinMs: 180_000,
   joinM: 150,
+  /** "On a ride" ends after this long walking, this far from where the ride stopped (audit 5). */
+  offMs: 20_000,
+  offM: 30,
   /** The walk and a ride always meet across a step this short. */
   joinSlackM: 25,
   /** A gap without fixes this long ends a ride, as it breaks the walked trace. */
@@ -54,13 +59,22 @@ export interface ReadTrace {
 }
 
 /**
+ * The phone's own speed, where it gives one. Android reports 0 for "no reading"
+ * (expo-location sets it without `hasSpeed()`), so a 0 is worked out from
+ * movement instead, which is near 0 when standing anyway (audit 2).
+ */
+const reported = (p: TracePoint): number | null => (p.speed != null && p.speed > 0 ? p.speed : null);
+
+/**
  * Speed at each fix: the phone's own reading where it gives one, else the
- * movement over the last RIDE_RULES.speedOverMs, which a wobbling fix barely moves.
+ * movement over the last RIDE_RULES.speedOverMs (or since the fix before, when
+ * fixes are further apart), which a wobbling fix barely moves.
  */
 function speedsOf(seg: TracePoint[]): number[] {
   let k = 0;
   return seg.map((p, i) => {
-    if (p.speed != null && p.speed >= 0) return p.speed;
+    const r = reported(p);
+    if (r != null) return r;
     while (k < i - 1 && p.t - seg[k + 1].t >= RIDE_RULES.speedOverMs) k++;
     if (k >= i) return 0;
     const q = seg[k];
@@ -69,14 +83,15 @@ function speedsOf(seg: TracePoint[]): number[] {
   });
 }
 
-/** The same, looking ahead. */
+/** The same, looking ahead: to the first fix RIDE_RULES.speedOverMs on, else the last one (audit 1). */
 function speedsAhead(seg: TracePoint[]): number[] {
   let k = 0;
   return seg.map((p, i) => {
-    if (p.speed != null && p.speed >= 0) return p.speed;
-    if (k < i) k = i;
-    while (k + 1 < seg.length && seg[k + 1].t - p.t <= RIDE_RULES.speedOverMs) k++;
-    if (k === i) return 0;
+    const r = reported(p);
+    if (r != null) return r;
+    if (k <= i) k = Math.min(i + 1, seg.length - 1);
+    while (k + 1 < seg.length && seg[k].t - p.t < RIDE_RULES.speedOverMs) k++;
+    if (k <= i) return 0;
     const q = seg[k];
     const dt = (q.t - p.t) / 1000;
     return dt > 0 ? distanceM([p.lon, p.lat], [q.lon, q.lat]) / dt : 0;
@@ -100,15 +115,28 @@ function ridesIn(seg: TracePoint[]): [number, number][] {
   // either side of a fix never makes it look moving (a GPS jump at a bus stop).
   const ahead = speedsAhead(seg);
   const still = v.map((x, i) => Math.min(x, ahead[i]));
-  const fast = new Uint8Array(n);
+  // Windows [j, i] of at least windowMs, sliding: more than half their speeds (v[j+1..i]) over
+  // RIDE_RULES.speed, counted as they slide, so a long walk reads in linear time (audit 4, 9).
+  const marks = new Int32Array(n + 1);
   let j = 0;
+  let over = 0;
   for (let i = 0; i < n; i++) {
-    while (j + 1 <= i && seg[i].t - seg[j + 1].t >= RIDE_RULES.windowMs) j++;
+    if (i > 0 && v[i] > RIDE_RULES.speed) over++;
+    while (j + 1 <= i && seg[i].t - seg[j + 1].t >= RIDE_RULES.windowMs) {
+      j++;
+      if (v[j] > RIDE_RULES.speed) over--;
+    }
     const span = seg[i].t - seg[j].t;
     if (span < RIDE_RULES.windowMs || i - j + 1 < RIDE_RULES.minFixes) continue;
-    if (median(v.slice(j + 1, i + 1)) <= RIDE_RULES.speed) continue;
+    if (2 * over <= i - j) continue;
     if (distanceM(pos(seg[j]), pos(seg[i])) / (span / 1000) < RIDE_RULES.net) continue;
-    fast.fill(1, j, i + 1);
+    marks[j]++;
+    marks[i + 1]--;
+  }
+  const fast = new Uint8Array(n);
+  for (let i = 0, open = 0; i < n; i++) {
+    open += marks[i];
+    fast[i] = open > 0 ? 1 : 0;
   }
   // Runs of fixes in fast windows, trimmed to their first and last fix moving at ride pace.
   const found: [number, number][] = [];
@@ -119,11 +147,19 @@ function ridesIn(seg: TracePoint[]): [number, number][] {
     }
     let k = i;
     while (k + 1 < n && fast[k + 1]) k++;
-    let a = i;
-    let b = k;
-    while (a <= b && still[a] < RIDE_RULES.edge) a++;
-    while (b >= a && still[b] < RIDE_RULES.edge) b--;
-    if (a <= b) found.push([a, b]);
+    // From its first truly fast fix back to the last stop before it, and on from its
+    // last to the first stop after: hurrying to a stop and standing there is not the ride.
+    let first = i;
+    while (first <= k && still[first] <= RIDE_RULES.speed) first++;
+    let last = k;
+    while (last >= first && still[last] <= RIDE_RULES.speed) last--;
+    if (first <= last) {
+      let a = first;
+      while (a > i && still[a - 1] > RIDE_RULES.edge) a--;
+      let b = last;
+      while (b < k && still[b + 1] > RIDE_RULES.edge) b++;
+      found.push([a, b]);
+    }
     i = k + 1;
   }
   // A stop or traffic between two rides joins them (R3).
@@ -133,16 +169,22 @@ function ridesIn(seg: TracePoint[]): [number, number][] {
     if (prev) {
       const dt = seg[r[0]].t - seg[prev[1]].t;
       const near = distanceM(pos(seg[prev[1]]), pos(seg[r[0]])) <= RIDE_RULES.joinM;
+      // Traffic joins however long it lasts (audit 6); a stop, for up to joinMs.
       const moving = median(v.slice(prev[1] + 1, r[0])) >= RIDE_RULES.edge;
-      if (dt <= RIDE_RULES.joinMs && (near || moving)) {
+      if (moving || (dt <= RIDE_RULES.joinMs && near)) {
         prev[1] = r[1];
         continue;
       }
     }
     joined.push([r[0], r[1]]);
   }
-  // A burst shorter than the window is a GPS jump, not a ride (R2).
-  return joined.filter(([a, b]) => seg[b].t - seg[a].t >= RIDE_RULES.windowMs);
+  // A burst shorter than the window is a GPS jump, not a ride (R2); so is drifting off and back (audit 9).
+  return joined.filter(([a, b]) => {
+    if (seg[b].t - seg[a].t < RIDE_RULES.windowMs) return false;
+    let reach = 0;
+    for (let x = a + 1; x <= b && reach < RIDE_RULES.minReachM; x++) reach = Math.max(reach, distanceM(pos(seg[a]), pos(seg[x])));
+    return reach >= RIDE_RULES.minReachM;
+  });
 }
 
 /** Fixes through a fresh filter: each stretch anchors on its own first fix. */
@@ -195,6 +237,15 @@ export function readTrace(points: TracePoint[], startedAt: number | null, pauses
 export function keptFixes(tr: ReadTrace): TracePoint[] {
   if (!tr.rides.length) return tr.walked;
   return [...tr.walked, ...tr.rides.flatMap((r) => r.fixes)].sort((a, b) => a.t - b.t);
+}
+
+/**
+ * Walked fixes with their standstills held still (smoothDwells), and ride fixes as
+ * they are: a stop inside a ride is part of the ride, never a gap in it (audit 3).
+ */
+export function smoothKept(tr: ReadTrace): TracePoint[] {
+  if (!tr.rides.length) return smoothDwells(tr.walked);
+  return [...smoothDwells(tr.walked), ...tr.rides.flatMap((r) => r.fixes)].sort((a, b) => a.t - b.t);
 }
 
 /** The newest walked fix before t and the oldest after, unless a pause or a gap lies between. */
@@ -255,7 +306,8 @@ export function traceDistances(tr: ReadTrace): { walkedM: number; rideM: number 
 /**
  * On a ride now (R11, R12): the newest ride is still within RIDE_RULES.joinMs,
  * and since it you are within RIDE_RULES.joinM of where it ended (a stop) or
- * still moving at ride pace (traffic).
+ * still moving at ride pace (traffic), unless you have walked off: offMs at
+ * walking pace, more than offM from where it stopped.
  */
 export function ridingAt(tr: ReadTrace, here: LngLat | null, now: number): boolean {
   const r = tr.rides[tr.rides.length - 1];
@@ -263,6 +315,9 @@ export function ridingAt(tr: ReadTrace, here: LngLat | null, now: number): boole
   const since = tr.walked.filter((p) => p.t > r.t1);
   if (!since.length) return true;
   const end = r.fixes[r.fixes.length - 1];
-  if (here && distanceM(pos(end), here) <= RIDE_RULES.joinM) return true;
-  return median(speedsOf([end, ...since]).slice(1)) >= RIDE_RULES.edge;
+  const away = here ? distanceM(pos(end), here) : Infinity;
+  // Walking off: a while at walking pace, a few steps from where the ride stopped (audit 5).
+  const pace = median(speedsOf([end, ...since]).slice(1));
+  if (pace < RIDE_RULES.edge && since[since.length - 1].t - since[0].t >= RIDE_RULES.offMs && away > RIDE_RULES.offM) return false;
+  return away <= RIDE_RULES.joinM || pace >= RIDE_RULES.edge;
 }

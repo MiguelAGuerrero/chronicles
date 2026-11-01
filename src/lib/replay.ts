@@ -111,7 +111,9 @@ function activeClock(fixes: TracePoint[], pauses: PauseSpan[], rides: RideSpan[]
     .map((r) => ({ t0: Math.max(r.t0, from), t1: Math.min(r.t1, to) }))
     .filter((r) => r.t1 > r.t0);
   if (!spans.length) return clock(gaps);
-  const plain = clock(gaps);
+  // A stop inside a ride is the ride's, never a gap of its own: warps must not overlap (audit 3).
+  const outside = gaps.filter((g) => !spans.some((r) => g.t0 < r.t1 && g.t1 > r.t0));
+  const plain = clock(outside);
   const total = plain.toActive(to) - plain.toActive(from);
   const ridden = spans.reduce((d, r) => d + (r.t1 - r.t0), 0);
   // Walked active time; a walk that is all ride keeps its real timing.
@@ -130,7 +132,12 @@ function activeClock(fixes: TracePoint[], pauses: PauseSpan[], rides: RideSpan[]
     if (over < 0) break;
     capped.add(over);
   }
-  const warps: Warp[] = [...gaps, ...spans.map((r, i) => ({ ...r, len: capped.has(i) ? len : r.t1 - r.t0, even: true }))];
+  let lens = spans.map((r, i) => (capped.has(i) ? len : r.t1 - r.t0));
+  // All rides together take at most ridesShare of the path, however many there are (audit 10).
+  const most = (RIDE_RULES.ridesShare / (1 - RIDE_RULES.ridesShare)) * walked;
+  const sum = lens.reduce((a, b) => a + b, 0);
+  if (sum > most) lens = lens.map((l) => (l * most) / sum);
+  const warps: Warp[] = [...outside, ...spans.map((r, i) => ({ ...r, len: lens[i], even: true }))];
   return clock(warps.sort((a, b) => a.t0 - b.t0));
 }
 

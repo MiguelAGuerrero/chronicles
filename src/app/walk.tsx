@@ -59,14 +59,14 @@ const NOTICE_MS = 6000;
 const SLOW_TICK_MS = 5000;
 
 /** Text that updates itself every second, so its parent doesn't re-render to tick it (perf). */
-function Ticking(props: { text: (now: number) => string; style?: StyleProp<TextStyle>; label?: (now: number) => string; testID?: string }) {
+function Ticking(props: { text: (now: number) => string; style?: StyleProp<TextStyle>; label?: (now: number) => string; testID?: string; numberOfLines?: number }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
   return (
-    <Text testID={props.testID} style={props.style} accessibilityLabel={props.label?.(now)}>
+    <Text testID={props.testID} style={props.style} numberOfLines={props.numberOfLines} accessibilityLabel={props.label?.(now)}>
       {props.text(now)}
     </Text>
   );
@@ -76,13 +76,15 @@ function Ticking(props: { text: (now: number) => string; style?: StyleProp<TextS
 function WalkStats(props: { startedAt: number | null; pauses: Pause[]; distanceM: number; rideM: number }) {
   const { startedAt, pauses, distanceM, rideM } = props;
   const elapsed = (now: number) => (startedAt == null ? 0 : now - startedAt - pausedMs(pauses, startedAt, now));
-  const ride = rideM >= 1 ? ` + ${formatDistance(rideM)} ride` : '';
+  // The ride on a second, smaller line, so the strip keeps its width at 390 px (rides audit, UI).
+  const ride = rideM >= 1 ? `\n+ ${formatDistance(rideM)} ride` : '';
   return (
     <Ticking
       testID="walk-stats"
       style={styles.stats}
+      numberOfLines={ride ? 2 : 1}
       text={(now) => `${formatElapsed(elapsed(now))} · ${formatDistance(distanceM)}${ride}`}
-      label={(now) => `${formatDuration(elapsed(now))} walked, ${formatDistance(distanceM)}${rideM >= 1 ? `, plus ${formatDistance(rideM)} by ride` : ''}`}
+      label={(now) => `${formatDistance(distanceM)} walked in ${formatDuration(elapsed(now))}${rideM >= 1 ? `, plus ${formatDistance(rideM)} by ride` : ''}`}
     />
   );
 }
@@ -219,7 +221,8 @@ export default function WalkScreen() {
   useEffect(() => {
     const now = live.here;
     const run = fogRun.current;
-    if (!now || build == null || run.busy || (run.at && distanceM(run.at, now) < FOG_STEP_M)) return;
+    // Not on a ride: its streets aren't walked, and a bus would read the map every few seconds (rides audit 13).
+    if (!now || build == null || live.riding || run.busy || (run.at && distanceM(run.at, now) < FOG_STEP_M)) return;
     run.busy = true;
     run.at = now;
     (async () => {
@@ -250,7 +253,7 @@ export default function WalkScreen() {
       .finally(() => {
         run.busy = false;
       });
-  }, [live.here, build]);
+  }, [live.here, live.riding, build]);
   // Unwalked streets near me: a count, and the fog drawn boldly over a veiled map.
   const [showUnwalked, setShowUnwalked] = useState(false);
   // Named streets only (the owner's call): unnamed paths are fog, not a count.
@@ -535,7 +538,8 @@ export default function WalkScreen() {
     const at = live.here;
     if (!walk || !at || !hotPockets.length) return;
     const now = Date.now();
-    if (pausedNow || !inDeadZone(at, hotPockets)) {
+    // Riding is not walking far from everything (rides audit 13).
+    if (pausedNow || live.riding || !inDeadZone(at, hotPockets)) {
       farSince.current = null;
       return;
     }
@@ -551,7 +555,7 @@ export default function WalkScreen() {
     return () => {
       alive = false;
     };
-  }, [walk, live.here, hotPockets, quiet, pausedNow]);
+  }, [walk, live.here, live.riding, hotPockets, quiet, pausedNow]);
   // Spent only once it has been seen: not under a card, a route or settings, never on a quiet walk (audit).
   const nudgeShown = !!nudge && !quiet && !spot && !openMark && !options && !memory && !settingsOpen && !navigation.nav && !navigation.finding;
   useEffect(() => {
@@ -1391,7 +1395,7 @@ const styles = StyleSheet.create({
   voiceLiveText: { color: theme.ink, fontSize: 18, fontWeight: '700', fontVariant: ['tabular-nums'] },
   bar: { backgroundColor: theme.bg, paddingHorizontal: 16, paddingTop: 10, borderTopWidth: 1, borderColor: theme.line },
   barInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', maxWidth: 640, width: '100%', alignSelf: 'center' },
-  stats: { color: theme.ink, fontSize: 17, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  stats: { color: theme.ink, fontSize: 17, fontWeight: '600', fontVariant: ['tabular-nums'], flexShrink: 1 },
   stopInner: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   barActions: { flexDirection: 'row', alignItems: 'center', gap: 20 },
   pauseBtn: {

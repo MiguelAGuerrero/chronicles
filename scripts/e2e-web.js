@@ -1134,7 +1134,7 @@ function check(ok, what) {
     const rides = await page.locator('[data-rides]').last().getAttribute('data-rides');
     check(Number(rides?.split(':')[0]) === 1 && Number(rides?.split(':')[1]) > 30, `the ride is drawn as its own dashed line (R5: ${rides})`);
     const stats = await page.locator('[data-testid=walk-stats]').innerText();
-    check(/\+ \d+ m ride/.test(stats), `the walk's distance shows the ride apart (R6: "${stats}")`);
+    check(/^\d+:\d\d · \d+ m\n\+ \d+ m ride$/.test(stats), `the walk's distance shows the ride apart, on its own line (R6: "${stats}")`);
     const holdBox = await page.locator('[data-testid=stop]').boundingBox();
     await page.mouse.move(holdBox.x + holdBox.width / 2, holdBox.y + holdBox.height / 2);
     await page.mouse.down();
@@ -1143,14 +1143,13 @@ function check(ok, what) {
     await page.waitForURL(/replay/, { timeout: 30000 });
     await page.waitForSelector('[data-testid=skip]', { timeout: 60000 });
     await page.click('[data-testid=skip]');
-    await page.waitForSelector('[data-testid=card-distance]', { timeout: 60000 });
-    let cardDistance = '';
-    for (let k = 0; k < 60 && !/by ride/.test(cardDistance); k++) {
-      cardDistance = await page.locator('[data-testid=card-distance]').innerText();
-      if (!/by ride/.test(cardDistance)) await page.waitForTimeout(500);
-    }
+    await page.waitForSelector('[data-testid=card-ride]', { timeout: 60000 });
+    const cardDistance = await page.locator('[data-testid=card-distance]').innerText();
+    const cardRide = await page.locator('[data-testid=card-ride]').innerText();
     await shot(page, '14b-ride-card');
-    check(/\d+ m walked · \d+ m by ride/.test(cardDistance), `the card reads walked and ridden apart (R6: "${cardDistance}")`);
+    // The bus leg is 45 s at 12 m/s: about 540 m, with no jog from the stop (the audit's run-up, Nov 1).
+    const rideMetres = Number(/\+ (\d+) m by ride/.exec(cardRide)?.[1]);
+    check(/^\d+ m$/.test(cardDistance) && rideMetres > 480 && rideMetres < 600, `the card shows walked, and the ride on its own line (R6: "${cardDistance}", "${cardRide}")`);
 
     const away = [...hosts].filter((h) => !h.startsWith('localhost') && h !== 'tiles.openfreemap.org');
     check(away.length === 0, `nothing is sent anywhere but the map tiles (${away.join(', ')})`);

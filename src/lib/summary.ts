@@ -3,7 +3,7 @@ import { db } from './db';
 import { exploredKey, passedCount, type Kind } from './explore/explore';
 import { loadSettings } from './explore/settings';
 import { splitAtGaps, type Bounds, smoothDwells, type PauseSpan } from './geo';
-import { keptFixes, readTrace, rideRuns, timedRideRuns, traceDistances } from './rides';
+import { readTrace, rideRuns, smoothKept, timedRideRuns, traceDistances } from './rides';
 import type { TimedRun } from './replay';
 import { walkBounds } from './finish';
 import type { Capture, LngLat, Pause, StreetSegment, TracePoint, Walk, WalkSummary } from './types';
@@ -44,7 +44,7 @@ export async function loadReplay(walkId: string): Promise<ReplayData | null> {
   // Standstills are drawn and replayed as a still dot, not GPS jitter.
   const pauses = await db.getPauses(walkId);
   const tr = readTrace(await db.getPoints(walkId), walk.started_at, pauses);
-  const fixes = smoothDwells(keptFixes(tr));
+  const fixes = smoothKept(tr);
   const walkedFixes = smoothDwells(tr.walked);
   const captures = await db.getCaptures(walkId);
   // The view takes in the rides; streets and fog are only where you walked (R7).

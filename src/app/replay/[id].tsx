@@ -303,6 +303,8 @@ export default function Replay() {
   }
 
   const s = data.summary;
+  // Ridden distance (R6): the summary's, else the trace's for a summary written before rides.
+  const rideM = s?.ride_m ?? data.rideM;
   const head = headline(s, data);
   const finds = foundList(data.found.map((f) => f.name));
   const passed = passedLine(data.passed);
@@ -440,9 +442,11 @@ export default function Replay() {
                   <Text style={styles.heroLabel}>{head.small}</Text>
                 </View>
                 <Text style={styles.cardLine}>
-                  <Text testID="card-distance">{rideLine(s?.distance_m ?? 0, s?.ride_m ?? data.rideM)}</Text> · {formatDuration(s?.duration_ms ?? Math.max(0, (data.walk.ended_at ?? data.walk.started_at) - data.walk.started_at - pausedMs(data.pauses, data.walk.started_at, data.walk.ended_at ?? data.walk.started_at)))}
+                  <Text testID="card-distance">{formatDistance(s?.distance_m ?? 0)}</Text> · {formatDuration(s?.duration_ms ?? Math.max(0, (data.walk.ended_at ?? data.walk.started_at) - data.walk.started_at - pausedMs(data.pauses, data.walk.started_at, data.walk.ended_at ?? data.walk.started_at)))}
                   {s && s.streets_walked > 0 ? ` · ${s.streets_walked} ${s.streets_walked === 1 ? 'street' : 'streets'} walked` : ''}
                 </Text>
+                {/* A ride on its own line, so the card's line doesn't say "walked" twice (rides audit, UI). */}
+                {rideM >= 1 ? <Text testID="card-ride" style={styles.cardMuted}>+ {formatDistance(rideM)} by ride</Text> : null}
                 {s && formatCaptures(s) ? <Text style={styles.cardMuted}>{formatCaptures(s)} · tap a pin to open</Text> : null}
                 {finds ? <Text testID="card-finds" style={styles.cardMuted}>{finds}</Text> : null}
                 {/* The lows stay in (E11): what came within view and wasn't stopped for. */}
@@ -502,11 +506,6 @@ export default function Replay() {
       )}
     </View>
   );
-}
-
-/** "3.2 km walked · 4.1 km by ride" with a ride (R6); just the distance without one. */
-function rideLine(walkedM: number, rideM: number): string {
-  return rideM >= 1 ? `${formatDistance(walkedM)} walked · ${formatDistance(rideM)} by ride` : formatDistance(walkedM);
 }
 
 /** The fog beat's headline, honest about walks whose streets could not be read. */

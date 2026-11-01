@@ -7,7 +7,7 @@ import type { BoundarySource, PlaceCandidate } from '../areas/types';
 import { distanceM, filterFixes, isBreak, positionAt } from '../geo';
 import { traceRouteSource } from '../nav/traceRoute';
 import { PATH_MS, schedule, walkTimeAt } from '../replay';
-import { keptFixes, readTrace, rideRuns, ridingAt, RIDE_RULES, traceDistances } from '../rides';
+import { keptFixes, readTrace, rideRuns, ridingAt, RIDE_RULES, smoothKept, traceDistances } from '../rides';
 import { snap } from '../snapper';
 import type { Capture, LngLat, StreetSegment, TracePoint } from '../types';
 
@@ -339,4 +339,91 @@ test('rides: hurrying to the stop, then standing, is not part of the ride (R3, t
   assert.equal(tr.rides.length, 1);
   assert.ok(tr.rides[0].t0 >= 85_000, `the ride starts at the stop, not on the way to it (${tr.rides[0].t0})`);
   assert.ok(Math.abs(traceDistances(tr).rideM - 120 * BUS) < 30);
+});
+
+// ---- After the audit (Nov 1) -------------------------------------------------
+
+test('rides audit 1: a ride is found with a fix only every 10 s and no speed from the phone', () => {
+  const tr = readTrace(trip([{ v: WALK, s: 120 }, { v: 10, s: 300 }, { v: WALK, s: 120 }], { dtMs: 10_000 }), 0);
+  assert.equal(tr.rides.length, 1);
+  assert.ok(traceDistances(tr).rideM > 2500);
+});
+
+test('rides audit 2: a phone reporting speed 0 for "no reading" (Android) still rides', () => {
+  const pts = trip([{ v: WALK, s: 60 }, { v: BUS, s: 120 }, { v: WALK, s: 60 }]).map((p) => ({ ...p, speed: 0 }));
+  assert.equal(readTrace(pts, 0).rides.length, 1);
+});
+
+test('rides audit 3: a long stop inside a ride keeps the replay clock moving forward, the ride within 4 s', () => {
+  const pts = trip([{ v: WALK, s: 900 }, { v: BUS, s: 300 }, { v: 0, s: 150 }, { v: BUS, s: 300 }, { v: WALK, s: 900 }], { reported: true });
+  const tr = readTrace(pts, 0);
+  assert.equal(tr.rides.length, 1);
+  const fixes = smoothKept(tr);
+  const s = schedule(fixes, [], 0, [], tr.rides);
+  let prev = -Infinity;
+  for (let t = 0; t <= pts.at(-1)!.t; t += 1000) {
+    const a = s.toActive(t);
+    assert.ok(a >= prev, `toActive goes back at ${t}: ${prev} → ${a}`);
+    prev = a;
+    assert.ok(Math.abs(s.toWalk(a) - t) < 2 || s.toActive(s.toWalk(a)) - a < 2);
+  }
+  const r = tr.rides[0];
+  const ms = ((s.toActive(r.t1) - s.toActive(r.t0)) / (s.end - s.start)) * PATH_MS;
+  assert.ok(ms <= RIDE_RULES.replayMs + 1, `ride takes ${ms} ms`);
+  // A short walk around the same ride: still 4 s at most.
+  const short = trip([{ v: WALK, s: 60 }, { v: BUS, s: 300 }, { v: 0, s: 150 }, { v: BUS, s: 300 }, { v: WALK, s: 60 }], { reported: true });
+  const tr2 = readTrace(short, 0);
+  const s2 = schedule(smoothKept(tr2), [], 0, [], tr2.rides);
+  const r2 = tr2.rides[0];
+  const ms2 = ((s2.toActive(r2.t1) - s2.toActive(r2.t0)) / (s2.end - s2.start)) * PATH_MS;
+  assert.ok(ms2 <= RIDE_RULES.replayMs + 1, `short walk: ride takes ${ms2} ms`);
+});
+
+test('rides audit 5: "On a ride" ends within about 30 s of walking off', () => {
+  const ride = trip([{ v: WALK, s: 60 }, { v: BUS, s: 120 }], { reported: true });
+  const off = trip([{ v: WALK, s: 40 }], { t0: ride.at(-1)!.t + 1000, from: [60 * WALK + 120 * BUS, 0], reported: true });
+  const tr = readTrace([...ride, ...off], 0);
+  const end = off.at(-1)!;
+  assert.equal(ridingAt(tr, [end.lon, end.lat], end.t), false);
+});
+
+test('rides audit 6: a bus crawling at 4 m/s for 4 minutes between fast stretches is one ride', () => {
+  const tr = readTrace(trip([{ v: WALK, s: 60 }, { v: BUS, s: 60 }, { v: 4, s: 240 }, { v: BUS, s: 60 }, { v: WALK, s: 60 }], { reported: true }), 0);
+  assert.equal(tr.rides.length, 1);
+  assert.ok(traceDistances(tr).walkedM < 200);
+});
+
+test('rides audit 8: a high-speed train at 83 m/s is a ride', () => {
+  const tr = readTrace(trip([{ v: WALK, s: 60 }, { v: 83, s: 120 }, { v: WALK, s: 60 }], { reported: true }), 0);
+  assert.equal(tr.rides.length, 1);
+  assert.ok(traceDistances(tr).rideM > 9000);
+});
+
+test('rides audit 9: GPS drifting 160 m off and back while walking is no ride', () => {
+  // No speed from the phone: 20 s out at 8 m/s, 20 s back.
+  const pts = [
+    ...trip([{ v: WALK, s: 120 }]),
+    ...trip([{ v: 8, s: 20, north: true }, { v: -8, s: 20, north: true }], { t0: 121_000, from: [120 * WALK, 0] }).slice(1),
+    ...trip([{ v: WALK, s: 120 }], { t0: 161_000, from: [120 * WALK, 0] }),
+  ];
+  assert.equal(readTrace(pts, 0).rides.length, 0);
+});
+
+test('rides audit 10: many rides together take at most half the replay', () => {
+  const legs: Leg[] = [{ v: WALK, s: 600 }];
+  // Each ride under its own 4 s, together over half: 3000 s ridden, 1800 s walked.
+  for (let k = 0; k < 10; k++) legs.push({ v: BUS, s: 300 }, { v: WALK, s: 120 });
+  const tr = readTrace(trip(legs, { reported: true }), 0);
+  assert.equal(tr.rides.length, 10);
+  const s = schedule(keptFixes(tr), [], 0, [], tr.rides);
+  const total = tr.rides.reduce((d, r) => d + (s.toActive(r.t1) - s.toActive(r.t0)), 0) / (s.end - s.start);
+  assert.ok(total <= RIDE_RULES.ridesShare + 0.01, `rides take ${Math.round(total * 100)}%`);
+});
+
+test('rides audit 7: a walk is titled by where you walked, not where you rode through', () => {
+  // 300 m in Fox Point, then 4 km of bus through Providence to Downcity, then 100 m.
+  const pts = trip([{ v: WALK, s: 215 }, { v: BUS, s: 310 }, { v: WALK, s: 70 }], { reported: true });
+  const r = assignAreas('w', pts, [], places, oneState, 0);
+  assert.equal(r.title, 'Fox Point');
+  assert.ok(r.rows.some((w) => r.areas.get(w.area_key)!.name === 'Downcity'), 'the ride still counts for places');
 });

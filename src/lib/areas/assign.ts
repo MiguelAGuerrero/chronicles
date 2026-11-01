@@ -1,5 +1,5 @@
-import { distanceM, isBreak, smoothDwells, type PauseSpan } from '../geo';
-import { keptFixes, readTrace } from '../rides';
+import { distanceM, isBreak, type PauseSpan } from '../geo';
+import { readTrace, smoothKept } from '../rides';
 import type { LngLat, TracePoint } from '../types';
 import { AREA_RULES, AREA_SAMPLE_M } from './rules';
 import type { Area, AreaLevel, BoundarySource, PlaceCandidate, Region, WalkArea } from './types';
@@ -52,7 +52,9 @@ export function assignAreas(
   startedAt: number | null = null,
 ): Placement {
   // Ridden metres count too: riding through a neighborhood is being there (R8).
-  const fixes = smoothDwells(keptFixes(readTrace(points, startedAt, pauses)));
+  const tr = readTrace(points, startedAt, pauses);
+  const fixes = smoothKept(tr);
+  const ridden = (t: number) => tr.rides.some((r) => t >= r.t0 && t <= r.t1);
   const rules = `${AREA_RULES}/${boundaries.id}`;
 
   const nearest = (level: AreaLevel, p: LngLat, allowed: (c: PlaceCandidate) => boolean = () => true): PlaceCandidate | null => {
@@ -119,13 +121,14 @@ export function assignAreas(
   if (samples.length === 0 && fixes.length) sample([fixes[0].lon, fixes[0].lat], fixes[0].t, 0);
 
   const areas = new Map<string, Area>();
-  const acc = new Map<string, { metres: number; first_t: number; last_t: number; lon: number; lat: number; weight: number }>();
+  const acc = new Map<string, { metres: number; walked: number; first_t: number; last_t: number; lon: number; lat: number; weight: number }>();
   const add = (level: AreaLevel, region: { name: string; at: LngLat }, parent: string | null, s: Sample) => {
     const key = areaKey(level, region.name, parent);
     if (!areas.has(key)) areas.set(key, { key, level, name: region.name, parent_key: parent, lon: region.at[0], lat: region.at[1], rules });
-    const a = acc.get(key) ?? { metres: 0, first_t: s.t, last_t: s.t, lon: 0, lat: 0, weight: 0 };
+    const a = acc.get(key) ?? { metres: 0, walked: 0, first_t: s.t, last_t: s.t, lon: 0, lat: 0, weight: 0 };
     const weight = s.w || 1;
     a.metres += s.w;
+    if (!ridden(s.t)) a.walked += s.w;
     a.first_t = Math.min(a.first_t, s.t);
     a.last_t = Math.max(a.last_t, s.t);
     a.lon += s.p[0] * weight;
@@ -161,8 +164,13 @@ export function assignAreas(
   const rows: WalkArea[] = [...acc].map(([area_key, a]) => ({
     walk_id: walkId, area_key, metres: Math.round(a.metres), first_t: a.first_t, last_t: a.last_t, lon: a.lon / a.weight, lat: a.lat / a.weight,
   }));
+  // Titled by where you walked (rides audit 7); by where you rode only when you walked nowhere.
+  const walkedIn = (key: string) => acc.get(key)!.walked;
+  const anyWalked = rows.some((r) => walkedIn(r.area_key) > 0);
   const most = (level: AreaLevel) =>
-    rows.filter((r) => areas.get(r.area_key)!.level === level).sort((x, y) => y.metres - x.metres)[0];
+    rows
+      .filter((r) => areas.get(r.area_key)!.level === level && (!anyWalked || walkedIn(r.area_key) > 0))
+      .sort((x, y) => (anyWalked ? walkedIn(y.area_key) - walkedIn(x.area_key) : y.metres - x.metres))[0];
   // Never titled by a state alone: the caller falls back to the nearest named place.
   const top = most('neighborhood') ?? most('town');
   return { areas, rows, title: top ? areas.get(top.area_key)!.name : null };

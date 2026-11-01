@@ -1,7 +1,7 @@
 import type { CollectedFeatures } from '../components/map/types';
 import { db } from './db';
-import { boundsOf, distanceM, pausedMs, positionAt, smoothDwells, withoutPauses, type Bounds, type PauseSpan } from './geo';
-import { keptFixes, readTrace, traceDistances } from './rides';
+import { boundsOf, distanceM, pausedMs, positionAt, withoutPauses, type Bounds, type PauseSpan } from './geo';
+import { keptFixes, readTrace, smoothKept, traceDistances } from './rides';
 import { snap } from './snapper';
 import { deriveSegments, type RoadFeature } from './streets';
 import { assignAreas, snapDone } from './areas/assign';
@@ -104,7 +104,7 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
   const keys = new Set(visited.map((v) => v.street_key).filter((k) => k.startsWith('name:')));
   const captures = await db.getCaptures(walk.id);
   // A capture on a ride lands on the ride line (R9).
-  await placeCaptures(captures, smoothDwells(kept), pauses, segments);
+  await placeCaptures(captures, smoothKept(tr), pauses, segments);
 
   const end = walk.ended_at ?? kept.at(-1)?.t ?? walk.started_at;
   const { walkedM, rideM } = traceDistances(tr);
