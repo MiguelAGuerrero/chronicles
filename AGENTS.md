@@ -90,8 +90,13 @@ Read this before changing recording, streets, the replay or storage.
     for high accuracy.
   - **Caption baking:** canvas (`Baker.web.tsx`). react-native-view-shot has
     no web build.
-  - **Reminders:** expo-notifications has no web build. The walk screen's own
-    sticky reminder is the web's.
+  - **Notifications:** a service worker (`public/sw.js`, through
+    `notify/transport.web.ts`). expo-notifications has no web build. Local only:
+    no push subscription, no server. An installed web app (the manifest and
+    Apple tags from `components/pwa.web.ts`) shows them while its page is
+    hidden but alive; iOS shows web notifications only for a Home Screen app,
+    with no actions, and suspends a hidden page, so a pocketed iPhone gets
+    nothing. Scheduled notices (the pause reminder) are page timers.
   - **Audio mode:** `navigator.audioSession` (`lib/audioMode.web.ts`).
     expo-audio's web `setAudioModeAsync` is an empty function, so
     `playsInSilentMode` never reached the web, and iPhone browsers played memos
@@ -443,6 +448,29 @@ Read this before changing recording, streets, the replay or storage.
     yet). Reminders fire on every walk, quiet or exploring.
   - **Native** (unverified on a device): the task's check, notifications,
     actions and cold-start taps.
+
+- **Notifications** (slice 6, NT1-NT12; `notify/core.ts` pure, `transport.native.ts`,
+  `transport.web.ts`, `index.ts`). The owner wanted the web to try their look and
+  feel, with phones following the same decisions (Nov 1).
+  - **One contract:** the app says what (`Notice`: kind, id, title, body, data,
+    actions, `inFront`); a `NoticeTransport` says how. Reminder and pause code
+    call `notifier` and never a platform API. Taps and actions come back through
+    `onResponse` and `routeResponse` the same on both: open (captures wait in
+    meta `recall_open`) or stop (`stopRecall`).
+  - **Kinds and switches:** Remind me here and Pause reminder, both on (meta
+    `notify_off` lists those off, so a new kind starts on). Off sends no
+    notification; the screen's own card and sticky reminder still show.
+  - **Permission** is asked only from a tap in front (a reminder set, the first
+    pause, a switch turned on, the test); a reminder from the background only
+    checks. Settings explains denied and unsupported (an iPhone tab not
+    installed).
+  - **In front:** reminders and pauses are for the background; the test sets
+    `inFront`. The phone lists background notices quietly in front; the web
+    skips them while the page is visible.
+  - **Web cold open:** with no window, `sw.js` opens the scope with the tap in
+    `?notice=`, read once (`noticeFromUrl`) and removed from the URL.
+  - **Native** (unverified on a device): the transport behind the contract,
+    including the early-tap queue for a cold start and the test banner.
 
 - **Tiles decoded in code** (`tileDecode.ts`, `tileFetch.ts`; ambient hints, which
   brought them, were retired by explore): pbf 5 (`PbfReader`/`PbfWriter`, no
@@ -820,7 +848,9 @@ Read this before changing recording, streets, the replay or storage.
   GPS and a fake z14 GeoJSON street grid in place of the tile host. A walk at 5 m/s
   with one fix a second passes the speed gate; faster is dropped as GPS jumps.
   Chromium runs with a fake microphone for voice memos. Set `E2E_SHOTS=<dir>` to
-  save screenshots of each screen.
+  save screenshots of each screen, and `E2E_FAIL_SHOT=<file>` for the page at a
+  failure. It launches the full Chromium headless (`channel: 'chromium'`): the
+  old headless shell denies notifications whatever is granted.
 - Before calling work done, run `npm run typecheck`, `npm run lint`, `npm test` and
   the e2e.
 - **Native has never run on a device.** Say so in any report that touches native
