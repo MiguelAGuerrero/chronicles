@@ -370,6 +370,13 @@ function check(ok, what) {
         await page.waitForSelector('[data-testid=options-card]');
         await page.click('[data-testid=explore-walk]');
         await shot(page, '01c-options');
+        // The GPS log goes to the share sheet with every raw reading (the GPS log, Nov 1).
+        await page.evaluate(() => { navigator.share = (d) => { window.__shared = d; return Promise.resolve(); }; });
+        await page.waitForTimeout(500);
+        await page.click('[data-testid=share-gps-log]');
+        const shared = await page.waitForFunction(() => window.__shared, null, { timeout: 5000 }).then((h) => h.jsonValue()).catch(() => null);
+        const rows = shared?.text?.split('\n') ?? [];
+        check(rows[0]?.startsWith('# Chronicles GPS log') && rows.includes('s,lat,lon,accuracy_m,speed_ms,course') && rows.filter((r) => /^\d+\.\d,/.test(r)).length >= 5, `the walk's options share its GPS log (${rows.length} lines)`);
         await page.click('[data-testid=options-close]');
         // The quiet read kept no busy streets (the owner's call); switching Explore on reads them at once.
         await walkMap().getByText('Thayer Street', { exact: true }).first().waitFor({ timeout: 15000 }).catch(() => {});

@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
-import { AccessibilityInfo, ActivityIndicator, Animated, AppState, BackHandler, Switch, Easing, KeyboardAvoidingView, Linking, Platform, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View, type StyleProp, type TextStyle } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Animated, AppState, BackHandler, Share, Switch, Easing, KeyboardAvoidingView, Linking, Platform, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View, type StyleProp, type TextStyle } from 'react-native';
 import { Modal } from '../components/Modal';
 import { perfCount } from '../lib/perfCount';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -36,6 +36,7 @@ import { formatDistance, formatDuration, formatElapsed } from '../lib/summary';
 import type { Capture, LngLat, Pause, StreetSegment, Walk } from '../lib/types';
 import { useCaptures } from '../lib/useCaptures';
 import { useLiveTrace } from '../lib/useLiveTrace';
+import { gpsLog } from '../lib/gpsLog';
 import { routeAhead } from '../lib/nav/navigator';
 import { useNavigation } from '../lib/nav/useNavigation';
 import { useVisible } from '../lib/deletion/useDeletions';
@@ -144,6 +145,9 @@ export default function WalkScreen() {
   const [viewing, setViewing] = useState<Capture[] | null>(null);
   // The walk's options card (A2).
   const [options, setOptions] = useState(false);
+  // The GPS log, read when the card opens, so a tap can share it at once (a browser
+  // only opens the share sheet straight from a tap, not after a wait).
+  const logText = useRef<string | null>(null);
   // Counts returns to the front, so a hint or reminder tapped in the background is picked up.
   const [resumed, setResumed] = useState(0);
   useEffect(() => {
@@ -289,6 +293,36 @@ export default function WalkScreen() {
     const r = found && { ...found, captures: found.captures.filter((c) => !deletions.hidden().has(c.id)) };
     setSpot({ at, here: r && r.captures.length ? r : null, from: live.here });
   }
+  useEffect(() => {
+    logText.current = null;
+    if (!options || !walk) return;
+    let live = true;
+    void Promise.all([db.getPoints(walk.id), db.getCaptures(walk.id)]).then(([points, captures]) => {
+      if (!live) return;
+      const device = Platform.OS === 'web' ? navigator.userAgent : `${Platform.OS} ${Platform.Version}`;
+      logText.current = gpsLog({ startedAt: walk.started_at, points, captures, userAgent: device });
+    });
+    return () => {
+      live = false;
+    };
+  }, [options, walk]);
+  const shareLog = useCallback(() => {
+    const text = logText.current;
+    if (!text) {
+      setNotice({ message: 'The GPS log is still being read. Try again in a moment.' });
+      return;
+    }
+    Share.share({ message: text, title: 'Chronicles GPS log' }).catch(async () => {
+      // A browser without a share sheet (a desktop): copy it instead.
+      const clip = Platform.OS === 'web' ? navigator.clipboard : undefined;
+      if (clip) {
+        await clip.writeText(text).then(
+          () => setNotice({ message: 'GPS log copied. Paste it in a message.' }),
+          () => setNotice({ message: 'Couldn’t share or copy the GPS log.', tone: 'error' }),
+        );
+      }
+    });
+  }, []);
   // The spot card (and the options card) goes once you walk on, or with Back (Android) and Escape (web).
   useEffect(() => {
     if (!spot && !options && !settingsOpen && !memory) return;
@@ -1104,6 +1138,16 @@ export default function WalkScreen() {
               <Icon name="settings-outline" size={20} color={theme.ink} />
               <Text style={[styles.optionLabel, { flex: 1 }]}>What I’m into, and the “?” range</Text>
               <Icon name="chevron-forward" size={18} color={theme.muted} />
+            </Pressable>
+            <Pressable
+              testID="share-gps-log"
+              accessibilityRole="button"
+              accessibilityLabel="Share this walk’s GPS log, to help fix location problems"
+              onPress={shareLog}
+              style={({ pressed }) => [styles.optionRow, pressed && styles.pressed]}
+            >
+              <Icon name="share-outline" size={20} color={theme.ink} />
+              <Text style={[styles.optionLabel, { flex: 1 }]}>Share GPS log</Text>
             </Pressable>
             <Pressable testID="options-close" accessibilityRole="button" accessibilityLabel="Close" onPress={() => setOptions(false)} style={[styles.spotClose, { position: 'absolute', top: 4, right: 4 }]} hitSlop={8}>
               <Icon name="close" size={22} color={theme.ink} />
