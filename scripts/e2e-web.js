@@ -467,6 +467,30 @@ function check(ok, what) {
           };
         })));
         const drops = await page.evaluate((n) => window.__enters.slice(n).filter((e) => e.kind === 'drop').map((e) => ({ animated: e.animated, ids: e.ids })), before);
+        // A small copy is kept with it (TH1): stored on the capture, decodable, at most 240 px.
+        await page.waitForTimeout(800);
+        const thumb = await page.evaluate((id) => new Promise((resolve) => {
+          const req = indexedDB.open('chronicles');
+          req.onsuccess = () => {
+            const db = req.result;
+            const g = db.transaction('capture', 'readonly').objectStore('capture').get(id);
+            g.onsuccess = () => {
+              const path = g.result?.thumb_path;
+              if (!path) return resolve({ path: null });
+              const stores = [...db.objectStoreNames].filter((n) => /media/.test(n));
+              const m = db.transaction(stores[0], 'readonly').objectStore(stores[0]).get(path);
+              m.onsuccess = async () => {
+                const blob = m.result instanceof Blob ? m.result : m.result?.blob;
+                if (!blob) return resolve({ path, size: null });
+                const bmp = await createImageBitmap(blob);
+                resolve({ path, w: bmp.width, h: bmp.height });
+              };
+              m.onerror = () => resolve({ path, size: null });
+            };
+          };
+        }), photoId);
+        check(!!thumb.path && Math.max(thumb.w, thumb.h) <= 240 && Math.max(thumb.w, thumb.h) >= 100,
+          `a new photo keeps a small copy beside it (TH1: ${JSON.stringify(thumb)})`);
         await page.waitForTimeout(600);
         const lingering = await walkMap().locator('[data-testid=enter-drop]').count();
         check(drops.some((d) => d.animated && d.ids.split(',').includes(photoId)) && lingering === 0,

@@ -52,6 +52,8 @@ export interface Capture {
   caption?: string | null;
   /** Where the caption bar sits, as a fraction of the photo's height from the top. */
   caption_y?: number | null;
+  /** A small copy of a photo for previews (TH1), beside it; null until made, or when the photo is already small. */
+  thumb_path?: string | null;
 }
 
 /** A stretch of a walk the walker paused: nothing is recorded, and it does not count as walking. */

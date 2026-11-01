@@ -157,6 +157,10 @@ const MIGRATIONS = [
   ALTER TABLE find_new RENAME TO find;
   CREATE INDEX find_walk ON find (walk_id);
   `,
+  // 12: a photo's small copy for previews (TH1, TH5). Null until made.
+  `
+  ALTER TABLE capture ADD COLUMN thumb_path TEXT;
+  `,
 ];
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
@@ -204,7 +208,7 @@ type WalkRow = Omit<Walk, 'open'> & { open: number };
 const toWalk = (r: WalkRow): Walk => ({ ...r, open: r.open === 1 });
 
 const WALK_COLUMNS = ['started_at', 'ended_at', 'title', 'epilogue', 'open', 'area', 'snapped_build'] as const;
-const CAPTURE_COLUMNS = ['walk_id', 't', 'lat', 'lon', 'kind', 'file_path', 'body', 'segment_id', 'caption', 'caption_y'] as const;
+const CAPTURE_COLUMNS = ['walk_id', 't', 'lat', 'lon', 'kind', 'file_path', 'body', 'segment_id', 'caption', 'caption_y', 'thumb_path'] as const;
 
 /** UPDATE ... SET for the given patch; only known column names reach the SQL. */
 function setClause(patch: Record<string, unknown>, allowed: readonly string[]) {
@@ -262,8 +266,8 @@ export const db: Db = {
 
   addCapture(c) {
     return write((t) => t.runAsync(
-      'INSERT INTO capture (id, walk_id, t, lat, lon, kind, file_path, body, segment_id, caption, caption_y) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      c.id, c.walk_id, c.t, c.lat, c.lon, c.kind, c.file_path, c.body, c.segment_id, c.caption ?? null, c.caption_y ?? null,
+      'INSERT INTO capture (id, walk_id, t, lat, lon, kind, file_path, body, segment_id, caption, caption_y, thumb_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      c.id, c.walk_id, c.t, c.lat, c.lon, c.kind, c.file_path, c.body, c.segment_id, c.caption ?? null, c.caption_y ?? null, c.thumb_path ?? null,
     ).then(() => {}));
   },
   updateCapture(id, patch) {

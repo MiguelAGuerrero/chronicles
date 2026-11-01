@@ -10,6 +10,7 @@ import { newId } from './id';
 import { locateOnce } from './locate';
 import type { LocateResult } from './locate/types';
 import { dropTemp, keepFile } from './media';
+import { makeThumb } from './media/thumb';
 import type { Capture, CaptureKind, LngLat } from './types';
 
 /** A fix older than this is not trusted as "where the capture was taken". */
@@ -214,8 +215,17 @@ export function useCaptures(
         return;
       }
       const ext = asset.mimeType?.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
-      const id = await add('photo', stamp, await keepFile(asset.uri, folder(), `${newId()}.${ext}`), null);
-      if (id) kept = { kind: 'photo', id };
+      const path = await keepFile(asset.uri, folder(), `${newId()}.${ext}`);
+      const id = await add('photo', stamp, path, null);
+      if (id) {
+        kept = { kind: 'photo', id };
+        // Its small copy for previews (TH1), after the capture is kept: never holds it up or fails it (TH2).
+        void makeThumb(path).then((thumb) => {
+          if (!thumb) return;
+          void db.updateCapture(id, { thumb_path: thumb }).catch(() => {});
+          if (alive.current) setCaptures((prev) => prev.map((x) => (x.id === id ? { ...x, thumb_path: thumb } : x)));
+        });
+      }
     });
     return kept;
   };

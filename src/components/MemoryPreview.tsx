@@ -1,4 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { db } from '../lib/db';
+import { makeThumb } from '../lib/media/thumb';
+import { wantsThumb } from '../lib/thumbPlan';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { previewLine } from '../lib/memories';
 import type { Capture } from '../lib/types';
@@ -18,8 +21,23 @@ export function MemoryPreview(props: {
   onClose: () => void;
 }) {
   const first = props.captures[0];
-  // A thumbnail only for a photo; a missing file falls back to the kind's icon.
-  const uri = useMediaUri(first.kind === 'photo' ? first : null);
+  // A photo's small copy, made once for an older photo that has none (TH3, TH4); the full photo
+  // only until then. A missing file falls back to the kind's icon.
+  const [thumb, setThumb] = useState<string | null>(first.thumb_path ?? null);
+  useEffect(() => {
+    if (!wantsThumb(first)) return;
+    let alive = true;
+    void makeThumb(first.file_path!).then((t) => {
+      if (!t) return;
+      void db.updateCapture(first.id, { thumb_path: t }).catch(() => {});
+      if (alive) setThumb(t);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [first]);
+  const shown = first.kind === 'photo' ? { ...first, file_path: thumb ?? first.file_path } : null;
+  const uri = useMediaUri(shown);
   const [broken, setBroken] = useState<string | null>(null);
   const more = props.captures.length - 1;
   const date = new Date(first.t).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
