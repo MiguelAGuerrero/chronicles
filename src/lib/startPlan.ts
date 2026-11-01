@@ -59,6 +59,19 @@ export function startPlan(input: { walkId: string; now: number; mode: StartMode;
   return { meta, params };
 }
 
+/**
+ * Walk here, and Navigate's Return to walk (NV10): with no walk open it starts
+ * one; with one open it routes that walk there, as the walk's own Go here (its
+ * destination in meta nav, which the walk screen routes when it comes back),
+ * and returns to it. Nowhere chosen, it only returns.
+ */
+export type WalkHerePlan = { kind: 'start' } | { kind: 'return' } | { kind: 'route'; meta: [string, string][] };
+export function walkHerePlan(openWalkId: string | null, dest: Waypoint | null): WalkHerePlan {
+  if (!openWalkId) return { kind: 'start' };
+  if (!dest) return { kind: 'return' };
+  return { kind: 'route', meta: [[NAV_KEY, navValue(openWalkId, dest)]] };
+}
+
 /** The three tabs, in order (NV1), with their web paths (NV5). */
 export type TabId = 'explore' | 'navigate' | 'chronicle';
 export const TABS: { id: TabId; route: string; path: string; label: string; icon: string; iconOn: string }[] = [
