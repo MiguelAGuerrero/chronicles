@@ -550,6 +550,29 @@ Read this before changing recording, streets, the replay or storage.
 - **Native** (unverified on a device): layer order (no `beforeId` yet), markers,
   migration 7.
 
+## Memories on revisit (the spec is the concept doc's "Memories on revisit" tab)
+
+- **Earlier walks' captures nearby show as faint pins** (`lib/memories.ts`, pure),
+  on every walk, quiet or exploring (the owner's call, Nov 1). They never buzz
+  and never notify; "Remind me here" stays the loud, flagged version.
+  - The pins hold captures within 100 m of the latest accepted fix, at most 6,
+    nearest first, never this walk's own.
+  - A capture whose reminder card is up has no pin meanwhile.
+- **Cheap:** the area is read with `db.capturesIn` in a 150 m box, once per 50 m
+  walked (`needsRead`). Filtering runs on that pool, and the map gets a new array
+  only when the set of ids changes.
+- **The pins:** the same round `CapturePinView`, `faint` (75%, 55% opacity), on
+  their own map layer (`memories`, `onMemoryPress`). They are not mixed into
+  `captures` or Explore's `discoveries`.
+  - On web both pin layers go through the module-level `usePinMarkers`, whose
+    key includes the member ids. Memory pins carry `data-testid=memory-pin` and
+    `data-ids`.
+- **A tap previews** (`MemoryPreview`, above the capture row, hidden under the
+  spot card). Its contents come from `capturesHere` within 50 m of the pin. It
+  closes on a map tap, ✕, Back or Escape, or after walking 30 m. The preview
+  opens a second `CaptureViewer` titled "Memories here".
+- **Native** (unverified on a device): the memory Markers.
+
 ## Polish: motion (the spec is the concept doc's "Polish: motion" tab)
 
 - **Restraint holds:** effects are short and physical (a press, a settle, a
