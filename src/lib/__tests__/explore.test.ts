@@ -15,7 +15,11 @@ import {
   clampRange,
   countLine,
   findFor,
+  findsLine,
+  foundList,
+  foundLine,
   homeCount,
+  placeCount,
   passedLine,
   readCentre,
   retryAllowed,
@@ -323,4 +327,26 @@ test('E23: a route is probed every 500 m, so each area along it is read once', (
   const probes = routeProbes([O, m(2000, 0)]);
   assert.equal(probes.length, 5);
   assert.deepEqual(probes[0], O);
+});
+
+test('E11: a found place shows its name and category with its capture; the card lists finds by category', () => {
+  assert.equal(foundLine({ name: 'RISD Museum', category: 'culture', generic: false }), 'Found: RISD Museum · Culture');
+  assert.equal(foundLine({ name: 'Public art', category: 'art', generic: true }), 'Found: Public art');
+  assert.equal(findsLine([{ category: 'art' }, { category: 'culture' }, { category: 'art' }]), 'Found 2 art · 1 culture');
+  assert.equal(findsLine([]), null);
+});
+
+test('E11: the card lists the places found on this walk, by name', () => {
+  assert.equal(foundList(['RISD Museum', 'Old North Church']), 'Found RISD Museum · Old North Church');
+  assert.equal(foundList(['A', 'B', 'C', 'D', 'E']), 'Found A · B · C and 2 more');
+  assert.equal(foundList([]), null);
+});
+
+test('E10: a home place finds its checklist by level, name and point; found counts only its own finds', () => {
+  const a: ChecklistArea = { ...area('Fox Point', [-71.40001, 41.81204]), count: 4 };
+  const f = (key: string, area_key: string | null) => ({ key, area_key }) as unknown as Parameters<typeof placeCount>[2][number];
+  const got = placeCount({ level: 'neighborhood', name: 'Fox Point', lon: -71.40003, lat: 41.81201 }, [a], [f('x', a.key), f('y', a.key), f('z', 'other')]);
+  assert.deepEqual(got && { found: got.count.found, total: got.count.total, names: got.found.length }, { found: 2, total: 4, names: 2 });
+  assert.equal(placeCount({ level: 'state', name: 'Rhode Island', lon: 0, lat: 0 }, [a], []), null);
+  assert.equal(placeCount({ level: 'neighborhood', name: 'Elsewhere', lon: 0, lat: 0 }, [a], []), null);
 });

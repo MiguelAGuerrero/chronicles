@@ -1,4 +1,5 @@
 import type { AreaLevel, PlaceCandidate } from '../areas/types';
+import { CATEGORIES, categoryOf } from '../discovery/categories';
 import { isMarkable } from '../discovery/noise';
 import { isOffered } from '../discovery/places';
 import type { CategoryId, Kind, Place } from '../discovery/types';
@@ -13,6 +14,11 @@ export type { Kind } from '../discovery/types';
  * here reads storage or the map; the runtime (`exploreRun.ts`) and the
  * screens call in.
  */
+
+/** Meta: the walk that is exploring (E1). Any other walk is quiet (E9): no layers, no reminders. */
+export const EXPLORE_KEY = 'explore_walk';
+/** Meta, per walk: it explored at some point, so its replay counts what it passed (E11). */
+export const exploredKey = (walkId: string) => `explored:${walkId}`;
 
 export const EXPLORE_RULES = {
   /** One read covers this much around its centre (E2), with the tile decoder. */
@@ -327,10 +333,53 @@ export interface HomeCount {
 export const homeCount = (a: Pick<ChecklistArea, 'count' | 'built_at'>, found: number): HomeCount | null =>
   a.count > 0 ? { found: Math.min(found, a.count), total: a.count, builtAt: a.built_at } : null;
 
+/**
+ * A home place's count and found places (E10): its checklist is found by the
+ * area's level, name and point, which the home's Area rows carry too.
+ */
+export function placeCount(
+  a: { level: AreaLevel; name: string; lon: number; lat: number },
+  areas: ChecklistArea[],
+  finds: Find[],
+): { count: HomeCount; found: Find[] } | null {
+  if (a.level !== 'neighborhood' && a.level !== 'town') return null;
+  const key = checklistKey({ level: a.level, name: a.name, at: [a.lon, a.lat] });
+  const list = areas.find((x) => x.key === key);
+  if (!list) return null;
+  const found = finds.filter((f) => f.area_key === key);
+  const count = homeCount(list, found.length);
+  return count ? { count, found } : null;
+}
+
 /** "12 of 87 · list from Nov 1" (E10). */
 export function countLine(c: HomeCount, locale?: string, timeZone?: string): string {
   const date = new Date(c.builtAt).toLocaleDateString(locale, { month: 'short', day: 'numeric', timeZone });
   return `${c.found} of ${c.total} · list from ${date}`;
+}
+
+type Found = { name: string; category: CategoryId; generic: boolean };
+
+/** At a capture's stop in the replay: the place it found (E11); an unnamed one by its label alone. */
+export const foundLine = (f: Found): string => (f.generic ? `Found: ${f.name}` : `Found: ${f.name} · ${categoryOf(f.category).label}`);
+
+/** The card's finds, by category, most first (E11): "Found 2 art · 1 culture". Null with none. */
+export function findsLine(found: { category: CategoryId }[]): string | null {
+  if (!found.length) return null;
+  const order = CATEGORIES.map((c) => c.id);
+  const by = new Map<CategoryId, number>();
+  for (const x of found) by.set(x.category, (by.get(x.category) ?? 0) + 1);
+  return `Found ${[...by]
+    .sort((a, b) => b[1] - a[1] || order.indexOf(a[0]) - order.indexOf(b[0]))
+    .map(([c, n]) => `${n} ${categoryOf(c).noun}`)
+    .join(' · ')}`;
+}
+
+/** The card's finds by name (E11): "Found RISD Museum · Old North Church", three at most, then how many more. */
+export function foundList(names: string[]): string | null {
+  if (!names.length) return null;
+  const shown = names.slice(0, names.length > 4 ? 3 : 4).join(' · ');
+  const more = names.length - (names.length > 4 ? 3 : names.length);
+  return `Found ${shown}${more > 0 ? ` and ${more} more` : ''}`;
 }
 
 /** The card's low (E11): places revealed on the walk but not captured. */

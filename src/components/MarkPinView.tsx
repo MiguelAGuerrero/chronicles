@@ -2,12 +2,16 @@ import { StyleSheet, Text, View } from 'react-native';
 import type { IconName } from './icons';
 import { Icon } from './icons';
 
-/** A scan's mark on the map: what the pin needs, nothing that tells a wildcard from a match (S4). */
+/** An explore mark on the map (E6-E8, E22): what the pin needs. */
 export interface MarkPin {
   id: string;
   at: [number, number];
-  /** Within 60 m once: the category icon and the name show (S7). */
+  /** Within 60 m once: the category icon and the name show (E7). */
   revealed: boolean;
+  /** Found by a capture (E8): the icon with a check, at any distance. */
+  found?: boolean;
+  /** On the way, beyond your range (E22): a faint "?". */
+  faint?: boolean;
   icon: IconName;
   name: string;
   /** Spoken with the name: "Food & drink". */
@@ -24,13 +28,19 @@ const NAME_WIDTH = 140;
  * Anchored at its bottom, like a capture pin.
  */
 export function MarkPinView({ pin }: { pin: MarkPin }) {
+  const shown = pin.revealed || pin.found;
   return (
-    <View style={styles.wrap} pointerEvents="none">
-      <View style={styles.head}>
-        {pin.revealed ? <Icon name={pin.icon} size={18} color="#ffffff" /> : <Text style={styles.q}>?</Text>}
+    <View style={[styles.wrap, pin.faint && styles.faint]} pointerEvents="none">
+      <View style={[styles.head, pin.found && styles.headFound]}>
+        {shown ? <Icon name={pin.icon} size={18} color="#ffffff" /> : <Text style={styles.q}>?</Text>}
+        {pin.found && (
+          <View style={styles.check}>
+            <Icon name="checkmark" size={11} color={FOUND_COLOR} />
+          </View>
+        )}
       </View>
-      <View style={styles.stem} />
-      {pin.revealed && (
+      <View style={[styles.stem, pin.found && styles.stemFound]} />
+      {shown && !pin.faint && (
         <Text style={styles.name} numberOfLines={1}>
           {pin.name}
         </Text>
@@ -40,8 +50,16 @@ export function MarkPinView({ pin }: { pin: MarkPin }) {
 }
 
 export function markLabel(pin: MarkPin): string {
-  return pin.revealed ? `${pin.name}, ${pin.category}. Open` : 'A mark to find. Open';
+  if (pin.found) return `Found: ${pin.name}, ${pin.category}. Open`;
+  if (pin.faint) return 'A place on the way. Open';
+  return pin.revealed ? `${pin.name}, ${pin.category}. Open` : 'A place to find. Open';
 }
+
+/** What changes a pin's look, for re-rendering a marker only when it changes. */
+export const markKey = (pin: MarkPin) => `${pin.revealed ? 'r' : ''}${pin.found ? 'f' : ''}${pin.faint ? 'w' : ''}`;
+
+/** Found places: the trace's green family, so a find reads as walked, not as a capture. */
+export const FOUND_COLOR = '#1f7a4d';
 
 const styles = StyleSheet.create({
   wrap: { width: 36, height: 44, alignItems: 'center', overflow: 'visible' },
@@ -61,6 +79,13 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   q: { color: '#ffffff', fontSize: 19, fontWeight: '800', lineHeight: 22 },
+  faint: { opacity: 0.45 },
+  headFound: { backgroundColor: FOUND_COLOR },
+  stemFound: { backgroundColor: FOUND_COLOR },
+  check: {
+    position: 'absolute', right: -6, top: -6, width: 16, height: 16, borderRadius: 8, backgroundColor: '#ffffff',
+    alignItems: 'center', justifyContent: 'center',
+  },
   stem: { width: 3, height: 8, backgroundColor: MARK_COLOR, borderBottomLeftRadius: 2, borderBottomRightRadius: 2 },
   // Hangs below the anchor, as a star's name does; an explicit width so web doesn't clip it to the pin.
   name: {

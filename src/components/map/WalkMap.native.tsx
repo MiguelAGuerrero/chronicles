@@ -4,14 +4,14 @@ import {
 import { forwardRef, memo, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { CapturePinView, pinLabel } from '../CapturePinView';
-import { MarkPinView, markLabel } from '../MarkPinView';
-import { StartHereView, StripLabel } from '../LandingMarks';
+import { MarkPinView, markKey, markLabel } from '../MarkPinView';
+import { StripLabel } from '../LandingMarks';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { RoadFeature } from '../../lib/streets';
 import { TILEJSON_URL } from '../../lib/tiles';
 import { useGlidingWalker } from '../../lib/useGlidingWalker';
 import {
-  COLORS, coneGeoJSON, DERIVE_ZOOM, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, useZoomPins, walkerGeoJSON,
+  COLORS, coneGeoJSON, DERIVE_ZOOM, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -46,6 +46,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const pockets = useMemo(() => pocketsGeoJSON(props.landing), [props.landing]);
   const strips = useMemo(() => stripsGeoJSON(props.landing), [props.landing]);
   const marks = useMemo(() => marksGeoJSON(props.marks), [props.marks]);
+  const ring = useMemo(() => ringGeoJSON(props.ring), [props.ring]);
   // The dot, cone and camera glide between fixes instead of jumping.
   const glide = useGlidingWalker(props.walker, props.walkerHeading, props.glideWalker === true);
   const cone = useMemo(() => coneGeoJSON(glide.walker, glide.heading, view?.zoom ?? 16), [glide.walker, glide.heading, view]);
@@ -249,6 +250,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         <GeoJSONSource id="cone" data={cone}>
           <Layer id="cone" type="fill" paint={{ 'fill-color': COLORS.walker, 'fill-opacity': 0.25 }} />
         </GeoJSONSource>
+        {/* The range preview (E21): a soft disc with a firm edge. */}
+        <GeoJSONSource id="ring" data={ring}>
+          <Layer id="ring-fill" type="fill" paint={{ 'fill-color': RING_COLOR, 'fill-opacity': 0.12 }} />
+          <Layer id="ring" type="line" paint={{ 'line-color': RING_COLOR, 'line-width': 2.5, 'line-dasharray': [2, 1.5] }} />
+        </GeoJSONSource>
         <GeoJSONSource id="marks" data={marks}>
           <Layer id="marks" type="circle" paint={{ 'circle-color': '#ffffff', 'circle-radius': 9, 'circle-stroke-color': COLORS.walker, 'circle-stroke-width': 4 }} />
         </GeoJSONSource>
@@ -282,8 +288,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         ))}
         {(props.discoveries ?? []).map((pin) => (
           <Marker
-            key={`mark:${pin.id}:${pin.revealed}`}
-            id={`mark:${pin.id}:${pin.revealed}`}
+            key={`mark:${pin.id}:${markKey(pin)}`}
+            id={`mark:${pin.id}:${markKey(pin)}`}
             lngLat={pin.at}
             anchor="bottom"
             onPress={props.onDiscoveryPress ? () => props.onDiscoveryPress?.(pin.id) : undefined}
@@ -296,19 +302,6 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         {[...(props.landing?.strips ?? []), ...(props.landing?.labels ?? [])].map((s) => (
           <Marker key={`label:${s.name}:${s.at.join(',')}`} id={`label:${s.name}:${s.at.join(',')}`} lngLat={s.at} anchor="center">
             <StripLabel name={s.name} />
-          </Marker>
-        ))}
-        {(props.landing?.pins ?? []).map((p) => (
-          <Marker
-            key={`start:${p.key}`}
-            id={`start:${p.key}`}
-            lngLat={p.at}
-            anchor="bottom"
-            onPress={props.onLandingPinPress ? () => props.onLandingPinPress?.(p.key) : undefined}
-          >
-            <View accessible accessibilityRole="button" accessibilityLabel={`Start here${p.street ? `, on ${p.street}` : ''}. Open`} style={styles.pinHit}>
-              <StartHereView />
-            </View>
           </Marker>
         ))}
         {(props.stars ?? []).map((star) => (

@@ -3,15 +3,12 @@ import { db } from '../db';
 import { boundsOf, distanceM } from '../geo';
 import { notifier } from '../notify';
 import type { Capture, LngLat } from '../types';
+import { EXPLORE_KEY } from '../explore/explore';
 import { afterFire, dueRecalls, isExpired, RECALL_RULES, reminderText } from './recall';
 import type { Recall } from './types';
 
-/** The walk being kept quiet (A2, R8): no reminders, no ambient alerts. */
-export const QUIET_KEY = 'quiet_walk';
 /** Captures a tapped reminder notification asked to open, for whichever screen mounts next (R4). */
 export const RECALL_OPEN_KEY = 'recall_open';
-/** When a reminder last fired: ambient holds back a minute after (R7). */
-export const RECALL_LAST_KEY = 'recall_last';
 /** A check runs again only after this much walking (audit: not every fix, every second). */
 const STEP_M = 10;
 
@@ -56,10 +53,9 @@ let last: { walkId: string; at: LngLat } | null = null;
  * shared by the walk screen and the location task; a check that finds itself
  * overlapping another is skipped, the next fix checks again.
  */
-/** Resolves true when a reminder fired: ambient waits for the next batch (R7). */
+/** Resolves true when a reminder fired. */
 export function checkRecalls(walkId: string, path: LngLat[], now = Date.now()): Promise<boolean> {
   const end = path[path.length - 1];
-  // A check in flight may yet fire: ambient waits for it too (R7).
   if (!end) return Promise.resolve(false);
   if (running) return Promise.resolve(true);
   if (last && last.walkId === walkId && path.every((p) => distanceM(p, last!.at) < STEP_M)) return Promise.resolve(false);
@@ -68,7 +64,8 @@ export function checkRecalls(walkId: string, path: LngLat[], now = Date.now()): 
     const all = await recalls();
     if (!all.length) return false;
     for (const r of all) if (isExpired(r, now)) await stopRecall(r.capture_id);
-    const quiet = (await db.getMeta(QUIET_KEY)) === walkId;
+    // A walk is quiet unless it explores (E9): no reminders then.
+    const quiet = (await db.getMeta(EXPLORE_KEY)) !== walkId;
     if (quiet) return false;
     const box = boundsOf(path, RECALL_RULES.reachM + 10)!;
     const due = dueRecalls({ here: path, walkId, now, quiet, recalls: await recalls(), captures: await db.capturesIn(box) });
@@ -78,7 +75,6 @@ export function checkRecalls(walkId: string, path: LngLat[], now = Date.now()): 
       if (next.kind === 'clear') await stopRecall(recall.capture_id);
       else await saveRecall({ ...recall, ...next.patch });
     }
-    await db.setMeta(RECALL_LAST_KEY, String(now));
     await deliver(walkId, due.map((d) => d.capture));
     return true;
   })()

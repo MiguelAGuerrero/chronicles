@@ -15,5 +15,4 @@ export const notifier: Notifier = {
   async ask() {},
   async walkEnded() {},
   // Ambient is phone-only (A1).
-  async ambient() {},
 };

@@ -39,6 +39,8 @@ export function HomeSheet(props: {
   busy?: boolean;
   /** Starts a walk navigating to the place shown (N11). */
   onGoToPlace?: () => void;
+  /** The place's checklist count and found places (E10), in the place view only. */
+  placeExtra?: { count: string; found: string[] } | null;
 }) {
   const insets = useSafeAreaInsets();
   const { height: screenH } = useWindowDimensions();
@@ -150,6 +152,9 @@ export function HomeSheet(props: {
               <Text style={styles.meta} numberOfLines={2}>
                 {[place.subtitle, `${place.walks.length} ${place.walks.length === 1 ? 'walk' : 'walks'}`, formatDistance(place.metres)].filter(Boolean).join(' · ')}
               </Text>
+              {props.placeExtra && (
+                <Text testID="place-count" style={styles.meta} numberOfLines={1}>{props.placeExtra.count}</Text>
+              )}
             </View>
           ) : (
             <Text style={[styles.title, styles.headerText]} accessibilityRole="header" numberOfLines={1}>
@@ -197,6 +202,9 @@ export function HomeSheet(props: {
       )}
       {expanded && (
         <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
+          {place && props.placeExtra && props.placeExtra.found.length > 0 && (
+            <Text testID="place-found" style={styles.note}>Found here: {props.placeExtra.found.join(' · ')}</Text>
+          )}
           {(place ? place.walks : all.filter((w) => !unplacedIds.has(w.id))).map((w) => (
             <WalkRow key={w.id} walk={w} summary={props.summaries.get(w.id) ?? null} disabled={props.busy} />
           ))}
