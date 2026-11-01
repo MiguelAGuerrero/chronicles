@@ -23,6 +23,10 @@ export async function stopRecall(captureId: string) {
   await db.clearRecall(captureId);
   cache = null;
 }
+/** Drops the in-memory flags after a delete took some with it (D3), so the next check reads storage. */
+export function forgetRecalls() {
+  cache = null;
+}
 /** The flag as stored now, for an edit that must not undo a fire (R9). */
 export async function storedRecall(captureId: string): Promise<Recall | null> {
   cache = null;

@@ -29,6 +29,20 @@ export interface Db {
   /** Captures of every walk whose position lies inside the bounds. */
   capturesIn(bounds: [number, number, number, number]): Promise<Capture[]>;
 
+  /**
+   * Deletes a walk and everything tied to it, in one transaction (D1): its
+   * trace, pauses, captures, summary, visited and area rows (areas no walk
+   * uses go too), finds, reminders, marks and meta; later walks' new streets
+   * are counted again without it (D7). Media files are the caller's.
+   */
+  deleteWalk(walkId: string): Promise<void>;
+  /**
+   * Deletes captures by id, in one transaction (D2, D3): their rows and
+   * reminders, and their finds unless `keepFinds`; their walks' counts drop
+   * (D9). Media files are the caller's.
+   */
+  deleteCaptures(ids: string[], opts?: { keepFinds?: boolean }): Promise<void>;
+
   /** Starts a pause; at most one pause is open per walk. */
   startPause(walkId: string, at: number): Promise<void>;
   /** Ends the walk's open pause, if any. */

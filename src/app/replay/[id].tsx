@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WalkMap } from '../../components/map/WalkMap';
-import { KIND_LABEL } from '../../components/icons';
+import { Icon, KIND_LABEL } from '../../components/icons';
 import { CaptureContent, CaptureViewer } from '../../components/CaptureView';
 import { planViews, type WalkMapHandle } from '../../components/map/types';
 import { Button, theme } from '../../components/ui';
@@ -18,6 +18,10 @@ import { setAudioMode } from '../../lib/audioMode';
 import { FOG_MS, nextStop, PATH_MS, schedule, timedRuns, traceUntil, walkerAt, walkTimeAt } from '../../lib/replay';
 import { formatCaptures, formatDistance, formatDuration, loadReplay, suggestTitle, type ReplayData } from '../../lib/summary';
 import type { Capture, LngLat } from '../../lib/types';
+import { summaryLess } from '../../lib/deletion/core';
+import { useHidden } from '../../lib/deletion/useDeletions';
+import { UndoToast } from '../../components/UndoToast';
+import { WalkActions } from '../../components/WalkActions';
 import { pausedMs } from '../../lib/geo';
 import { capturesHere, type HereResult } from '../../lib/here';
 
@@ -37,7 +41,19 @@ export default function Replay() {
   const { id, ceremony } = useLocalSearchParams<{ id: string; ceremony?: string }>();
   const insets = useSafeAreaInsets();
   const mapRef = useRef<WalkMapHandle>(null);
-  const [data, setData] = useState<ReplayData | null>(null);
+  const [stored, setData] = useState<ReplayData | null>(null);
+  // A deleted moment leaves the pins, the stops and the counts at once (D3, D9).
+  const hidden = useHidden();
+  const data = useMemo(() => {
+    if (!stored || !stored.captures.some((c) => hidden.has(c.id))) return stored;
+    const gone = stored.captures.filter((c) => hidden.has(c.id));
+    return {
+      ...stored,
+      captures: stored.captures.filter((c) => !hidden.has(c.id)),
+      summary: stored.summary && summaryLess(stored.summary, gone),
+    };
+  }, [stored, hidden]);
+  const [actionsOpen, setActionsOpen] = useState(false);
   const [status, setStatus] = useState<'loading' | 'missing' | 'ready'>('loading');
   // The beat and its start time change together, so no render ever sees one
   // beat with another beat's clock.
@@ -436,7 +452,21 @@ export default function Replay() {
           >
             {beat === 'card' ? (
               <>
-                <Text style={styles.cardTitle} accessibilityRole="header">{data.walk.title ?? suggestTitle(data.walk)}</Text>
+                <View style={styles.titleRow}>
+                  <Text style={[styles.cardTitle, styles.flex]} accessibilityRole="header">{data.walk.title ?? suggestTitle(data.walk)}</Text>
+                  {!data.walk.open && (
+                    <Pressable
+                      testID="card-more"
+                      accessibilityRole="button"
+                      accessibilityLabel="More for this walk"
+                      onPress={() => setActionsOpen(true)}
+                      style={({ pressed }) => [styles.more, pressed && { opacity: 0.6 }]}
+                      hitSlop={4}
+                    >
+                      <Icon name="ellipsis-horizontal" size={22} color={theme.ink} />
+                    </Pressable>
+                  )}
+                </View>
                 <View style={styles.hero} accessible accessibilityLabel={head.spoken}>
                   <Text style={styles.heroNumber}>{head.big}</Text>
                   <Text style={styles.heroLabel}>{head.small}</Text>
@@ -504,6 +534,13 @@ export default function Replay() {
           </ScrollView>
         </KeyboardAvoidingView>
       )}
+      <WalkActions
+        walkId={actionsOpen ? data.walk.id : null}
+        onClose={() => setActionsOpen(false)}
+        // A deleted walk has nothing left to replay; Undo shows on the home (D5).
+        onDone={(kind) => kind === 'walk' && router.dismissTo('/')}
+      />
+      <UndoToast style={{ top: insets.top + 12 }} />
     </View>
   );
 }
@@ -547,6 +584,8 @@ const styles = StyleSheet.create({
   sheet: { backgroundColor: theme.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
   sheetContent: { padding: 16, gap: 10, maxWidth: 640, width: '100%', alignSelf: 'center' },
   cardTitle: { fontSize: 22, fontWeight: '700', color: theme.ink },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  more: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginRight: -8 },
   hero: { flexDirection: 'row', alignItems: 'baseline', gap: 10 },
   heroNumber: { fontSize: 40, fontWeight: '800', color: theme.accent, fontVariant: ['tabular-nums'] },
   heroLabel: { fontSize: 18, fontWeight: '600', color: theme.ink },

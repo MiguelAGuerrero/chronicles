@@ -56,6 +56,8 @@ export function HomeSheet(props: {
   days?: Day[];
   /** Opens moments in the viewer (M8). */
   onOpenMoments?: (captures: Capture[]) => void;
+  /** Opens a finished walk's actions: remove its media, or delete it (D1, D2). */
+  onWalkActions?: (walkId: string) => void;
   /** The home's clock, for naming today and yesterday. */
   now: number;
 }) {
@@ -300,6 +302,7 @@ export function HomeSheet(props: {
                     summary={e.kind === 'walk' ? props.summaries.get(e.walk.id) ?? null : null}
                     disabled={props.busy}
                     onOpen={(c) => props.onOpenMoments?.(c)}
+                    onMore={props.onWalkActions}
                   />
                 ))
               : <Text style={styles.note}>Nothing kept on this day.</Text>}
@@ -311,14 +314,14 @@ export function HomeSheet(props: {
             <Text testID="place-found" style={styles.note}>Found here: {props.placeExtra.found.join(' · ')}</Text>
           )}
           {(place ? place.walks : all.filter((w) => !unplacedIds.has(w.id))).map((w) => (
-            <WalkRow key={w.id} walk={w} summary={props.summaries.get(w.id) ?? null} disabled={props.busy} />
+            <WalkRow key={w.id} walk={w} summary={props.summaries.get(w.id) ?? null} disabled={props.busy} onMore={props.onWalkActions} />
           ))}
           {!place && props.unplaced.length > 0 && (
             <>
               <Text style={styles.section} accessibilityRole="header">Not placed yet</Text>
               <Text style={styles.note}>Placed when you’re online. Open one to place it now.</Text>
               {props.unplaced.map((w) => (
-                <WalkRow key={w.id} walk={w} summary={props.summaries.get(w.id) ?? null} disabled={props.busy} />
+                <WalkRow key={w.id} walk={w} summary={props.summaries.get(w.id) ?? null} disabled={props.busy} onMore={props.onWalkActions} />
               ))}
             </>
           )}
@@ -331,26 +334,50 @@ export function HomeSheet(props: {
 const clock = (t: number) => new Date(t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
 /** A line of a day's timeline (M8): a moment opens in the viewer; a walk is one row that opens its replay. */
-function EntryRow({ entry: e, summary: s, disabled, onOpen }: { entry: DayEntry; summary: WalkSummary | null; disabled?: boolean; onOpen: (c: Capture[]) => void }) {
+/** A finished walk's More button (D1, D2), beside its row, never inside it. */
+function MoreButton({ walk, title, onMore, disabled }: { walk: Walk; title: string; onMore?: (walkId: string) => void; disabled?: boolean }) {
+  if (!onMore || walk.open) return null;
+  return (
+    <Pressable
+      testID="walk-more"
+      accessibilityRole="button"
+      accessibilityLabel={`More for ${title}`}
+      // While old walks are being placed, a walk's streets may still be read (deletion audit 2).
+      disabled={disabled}
+      accessibilityState={{ disabled: !!disabled }}
+      onPress={() => onMore(walk.id)}
+      style={({ pressed }) => [styles.more, (pressed || disabled) && { opacity: 0.4 }]}
+      hitSlop={4}
+    >
+      <Icon name="ellipsis-horizontal" size={22} color={theme.ink} />
+    </Pressable>
+  );
+}
+
+function EntryRow({ entry: e, summary: s, disabled, onOpen, onMore }: { entry: DayEntry; summary: WalkSummary | null; disabled?: boolean; onOpen: (c: Capture[]) => void; onMore?: (walkId: string) => void }) {
   if (e.kind === 'walk') {
     const n = e.captures.length;
     const line = ['Walk', s ? formatDistance(s.distance_m) : null, `${n} ${n === 1 ? 'moment' : 'moments'}`].filter(Boolean).join(' · ');
+    const title = e.walk.title ?? suggestTitle(e.walk);
     return (
+      <View style={styles.withMore}>
       <Pressable
         testID="timeline-walk"
         accessibilityRole="button"
         accessibilityLabel={`${clock(e.t)}, ${line}. Replay it`}
         disabled={disabled}
         onPress={() => router.push(`/replay/${e.walk.id}?ceremony=0`)}
-        style={({ pressed }) => [styles.entry, (pressed || disabled) && { opacity: 0.6 }]}
+        style={({ pressed }) => [styles.entry, styles.flex, (pressed || disabled) && { opacity: 0.6 }]}
       >
         <Text style={styles.time}>{clock(e.t)}</Text>
         <Icon name="walk" size={20} color={theme.accent} />
         <View style={styles.entryText}>
-          <Text style={styles.rowTitle} numberOfLines={1}>{e.walk.title ?? suggestTitle(e.walk)}</Text>
+          <Text style={styles.rowTitle} numberOfLines={1}>{title}</Text>
           <Text style={styles.rowMeta}>{line}</Text>
         </View>
       </Pressable>
+      <MoreButton walk={e.walk} title={title} onMore={onMore} disabled={disabled} />
+      </View>
     );
   }
   const c = e.capture;
@@ -373,7 +400,7 @@ function EntryRow({ entry: e, summary: s, disabled, onOpen }: { entry: DayEntry;
   );
 }
 
-function WalkRow({ walk, summary: s, disabled }: { walk: Walk; summary: WalkSummary | null; disabled?: boolean }) {
+function WalkRow({ walk, summary: s, disabled, onMore }: { walk: Walk; summary: WalkSummary | null; disabled?: boolean; onMore?: (walkId: string) => void }) {
   const title = walk.title ?? suggestTitle(walk);
   const date = new Date(walk.started_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   const meta = s
@@ -383,20 +410,23 @@ function WalkRow({ walk, summary: s, disabled }: { walk: Walk; summary: WalkSumm
         .join(' · ')
     : `${date} · Open to finish reading its streets`;
   return (
-    <Pressable
-      testID="walk-row"
-      accessibilityRole="button"
-      accessibilityLabel={`Replay ${title}`}
-      accessibilityHint={meta}
-      accessibilityState={{ disabled: !!disabled }}
-      disabled={disabled}
-      onPress={() => router.push(`/replay/${walk.id}?ceremony=0`)}
-      style={({ pressed }) => [styles.row, (pressed || disabled) && { opacity: 0.6 }]}
-    >
-      <Text style={styles.rowTitle}>{title}</Text>
-      <Text style={styles.rowMeta}>{meta}</Text>
-      {walk.epilogue ? <Text style={styles.epilogue}>“{walk.epilogue}”</Text> : null}
-    </Pressable>
+    <View style={styles.withMore}>
+      <Pressable
+        testID="walk-row"
+        accessibilityRole="button"
+        accessibilityLabel={`Replay ${title}`}
+        accessibilityHint={meta}
+        accessibilityState={{ disabled: !!disabled }}
+        disabled={disabled}
+        onPress={() => router.push(`/replay/${walk.id}?ceremony=0`)}
+        style={({ pressed }) => [styles.row, styles.flex, (pressed || disabled) && { opacity: 0.6 }]}
+      >
+        <Text style={styles.rowTitle}>{title}</Text>
+        <Text style={styles.rowMeta}>{meta}</Text>
+        {walk.epilogue ? <Text style={styles.epilogue}>“{walk.epilogue}”</Text> : null}
+      </Pressable>
+      <MoreButton walk={walk} title={title} onMore={onMore} disabled={disabled} />
+    </View>
   );
 }
 
@@ -437,5 +467,8 @@ const styles = StyleSheet.create({
   row: { backgroundColor: theme.surface, borderRadius: theme.radius, padding: 14, gap: 4, borderWidth: 1, borderColor: theme.line },
   rowTitle: { fontSize: 17, fontWeight: '600', color: theme.ink },
   rowMeta: { fontSize: 14, color: theme.muted, lineHeight: 19 },
+  withMore: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  flex: { flex: 1 },
+  more: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   epilogue: { fontSize: 15, color: theme.ink, fontStyle: 'italic', marginTop: 4 },
 });

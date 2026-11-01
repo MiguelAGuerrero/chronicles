@@ -4,6 +4,8 @@ import { placeFromRow, placeToRow, type PlaceRow } from './placeRow';
 import type { Area, WalkArea } from '../areas/types';
 import type { LandingRow } from '../landing/view';
 import type { Mark, MarkOrigin, MarkState, Offered, Recall } from '../discovery/types';
+import { countsOf, recountNewStreets } from '../deletion/core';
+import { exploredKey } from '../explore/explore';
 import { DERIVED_STORES } from './stores';
 import type { Capture, Pause, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 import { segmentBbox } from './segmentBounds';
@@ -292,6 +294,46 @@ export const db: Db = {
     );
   },
 
+  deleteWalk(walkId) {
+    return write(async (t) => {
+      await t.runAsync('DELETE FROM recall WHERE capture_id IN (SELECT id FROM capture WHERE walk_id = ?)', walkId);
+      for (const table of ['capture', 'trace_point', 'pause', 'visited_segment', 'walk_area', 'find', 'mark', 'walk_summary']) {
+        await t.runAsync(`DELETE FROM ${table} WHERE walk_id = ?`, walkId);
+      }
+      await t.runAsync('DELETE FROM meta WHERE key = ?', exploredKey(walkId));
+      await t.runAsync('DELETE FROM walk WHERE id = ?', walkId);
+      // Places only this walk was in go (D8).
+      await t.runAsync('DELETE FROM area WHERE key NOT IN (SELECT DISTINCT area_key FROM walk_area)');
+      // Later walks are counted again without it (D7).
+      const walks = await t.getAllAsync<{ id: string; started_at: number }>('SELECT id, started_at FROM walk');
+      const visited = await t.getAllAsync<{ walk_id: string; street_key: string }>('SELECT walk_id, street_key FROM visited_segment');
+      const stored = await t.getAllAsync<{ walk_id: string; new_streets: number }>('SELECT walk_id, new_streets FROM walk_summary');
+      for (const ch of recountNewStreets(walks, visited, new Map(stored.map((r) => [r.walk_id, r.new_streets])))) {
+        await t.runAsync('UPDATE walk_summary SET new_streets = ? WHERE walk_id = ?', ch.new_streets, ch.walk_id);
+      }
+    });
+  },
+  deleteCaptures(ids, opts = {}) {
+    if (!ids.length) return Promise.resolve();
+    const marks = ids.map(() => '?').join(',');
+    return write(async (t) => {
+      const got = await t.getAllAsync<Capture>(`SELECT * FROM capture WHERE id IN (${marks})`, ...ids);
+      await t.runAsync(`DELETE FROM capture WHERE id IN (${marks})`, ...ids);
+      await t.runAsync(`DELETE FROM recall WHERE capture_id IN (${marks})`, ...ids);
+      if (!opts.keepFinds) await t.runAsync(`DELETE FROM find WHERE capture_id IN (${marks})`, ...ids);
+      // The walks' counts follow, from the rows left (D9, audit 3).
+      for (const w of new Set(got.map((c) => c.walk_id))) {
+        if (w == null) continue;
+        const left = await t.getAllAsync<{ kind: Capture['kind'] }>('SELECT kind FROM capture WHERE walk_id = ?', w);
+        const s = countsOf(left);
+        await t.runAsync(
+          'UPDATE walk_summary SET photos = ?, videos = ?, voices = ?, notes = ? WHERE walk_id = ?',
+          s.photos, s.videos ?? 0, s.voices, s.notes, w,
+        );
+      }
+    });
+  },
+
   startPause(walkId, at) {
     return write(async (t) => {
       const open = await t.getFirstAsync('SELECT 1 FROM pause WHERE walk_id = ? AND ended_at IS NULL', walkId);
@@ -322,8 +364,13 @@ export const db: Db = {
     });
   },
 
-  saveSnap(walkId, segments, visited, s, placed, complete = true) {
+  saveSnap(walkId, segments, visited, snapSummary, placed, complete = true) {
     return write(async (t) => {
+      // A walk deleted while its streets were read gets nothing back (audit 2).
+      if (!(await t.getFirstAsync('SELECT 1 FROM walk WHERE id = ?', walkId))) return;
+      // Counts from the rows as they stand now, so a moment deleted meanwhile isn't counted (audit 3).
+      const rowsNow = await t.getAllAsync<{ kind: Capture['kind'] }>('SELECT kind FROM capture WHERE walk_id = ?', walkId);
+      const s = { ...snapSummary, ...countsOf(rowsNow) };
       const seg = await t.prepareAsync(
         'INSERT OR REPLACE INTO street_segment (id, name, kind_detail, length_m, geometry, w, s, e, n, build) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       );

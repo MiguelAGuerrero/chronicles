@@ -1,5 +1,6 @@
 import type { CollectedFeatures } from '../components/map/types';
 import { db } from './db';
+import { isNamedStreet } from './deletion/core';
 import { boundsOf, distanceM, pausedMs, positionAt, withoutPauses, type Bounds, type PauseSpan } from './geo';
 import { keptFixes, readTrace, smoothKept, traceDistances } from './rides';
 import { snap } from './snapper';
@@ -101,7 +102,7 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
   const visited = snap(walk.id, points, segments, walk.started_at, pauses);
   const earlier = await db.streetKeysBefore(walk.started_at);
   // Streets are counted by name (the owner's call); unnamed paths clear fog but are not streets.
-  const keys = new Set(visited.map((v) => v.street_key).filter((k) => k.startsWith('name:')));
+  const keys = new Set(visited.map((v) => v.street_key).filter(isNamedStreet));
   const captures = await db.getCaptures(walk.id);
   // A capture on a ride lands on the ride line (R9).
   await placeCaptures(captures, smoothKept(tr), pauses, segments);

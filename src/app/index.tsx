@@ -34,6 +34,9 @@ import type { Waypoint } from '../lib/nav/types';
 import { startWalk } from '../lib/session';
 import { formatDuration } from '../lib/summary';
 import type { Capture, LngLat, Pause, Walk, WalkSummary } from '../lib/types';
+import { useHidden, useOnDeleted } from '../lib/deletion/useDeletions';
+import { UndoToast } from '../components/UndoToast';
+import { WalkActions } from '../components/WalkActions';
 
 const NONE: never[] = [];
 /** With nothing walked yet: the world, and one line. */
@@ -57,7 +60,22 @@ export default function Home() {
   const insets = useSafeAreaInsets();
   const { height: screenH, width: screenW } = useWindowDimensions();
   const mapRef = useRef<WalkMapHandle>(null);
-  const [data, setData] = useState<{ walks: Walk[]; summaries: WalkSummary[]; areas: Area[]; rows: WalkArea[] } | null>(null);
+  const [stored, setData] = useState<{ walks: Walk[]; summaries: WalkSummary[]; areas: Area[]; rows: WalkArea[] } | null>(null);
+  // Deleted walks and moments leave at once, while Undo waits and after (D5, D8); a stored delete reads again (D9).
+  const hidden = useHidden();
+  const data = useMemo(() => {
+    if (!stored || !stored.walks.some((w) => hidden.has(w.id))) return stored;
+    return {
+      walks: stored.walks.filter((w) => !hidden.has(w.id)),
+      summaries: stored.summaries.filter((x) => !hidden.has(x.walk_id)),
+      areas: stored.areas,
+      rows: stored.rows.filter((r) => !hidden.has(r.walk_id)),
+    };
+  }, [stored, hidden]);
+  // Read again while in front once a delete reached storage (D9): counts, stars, places.
+  const reload = useRef<(() => void) | null>(null);
+  useOnDeleted(() => reload.current?.());
+  const [actionsFor, setActionsFor] = useState<string | null>(null);
   const [open, setOpen] = useState<Walk | null>(null);
   const [pauses, setPauses] = useState<Pause[]>([]);
   const [now, setNow] = useState(() => Date.now());
@@ -105,7 +123,11 @@ export default function Home() {
   const [panelH, setPanelH] = useState(0);
   const [recalled, setRecalled] = useState<Capture[] | null>(null);
   // Moments (M1-M9, M16): every capture's row, the viewer for a timeline row or a pin, and a memo in progress.
-  const [captures, setCaptures] = useState<Capture[]>([]);
+  const [storedCaptures, setCaptures] = useState<Capture[]>([]);
+  const captures = useMemo(
+    () => storedCaptures.filter((c) => !hidden.has(c.id) && !(c.walk_id && hidden.has(c.walk_id))),
+    [storedCaptures, hidden],
+  );
   const [viewing, setViewing] = useState<Capture[] | null>(null);
   const [memoOn, setMemoOn] = useState(false);
   // A reminder tapped while the home is in front (no walk open) opens here at once (audit 1).
@@ -168,6 +190,9 @@ export default function Home() {
         }
         return { walks, rows };
       };
+      reload.current = () => {
+        load().catch(() => {});
+      };
       load()
         .then(async (d) => {
           if (!d) return;
@@ -187,6 +212,7 @@ export default function Home() {
         .finally(() => live && setPlacing(null));
       return () => {
         live = false;
+        reload.current = null;
         setPlacing(null);
       };
     }, []),
@@ -438,6 +464,7 @@ export default function Home() {
           placeExtra={placeExtra}
           days={days}
           onOpenMoments={setViewing}
+          onWalkActions={setActionsFor}
           now={now}
         />
       </View>
@@ -544,6 +571,8 @@ export default function Home() {
           setCaptures((prev) => prev.map((x) => (x.id === c.id ? { ...x, caption, caption_y: caption ? y : null } : x)));
         }}
       />
+      <WalkActions walkId={actionsFor} onClose={() => setActionsFor(null)} />
+      <UndoToast style={{ top: insets.top + 64 }} />
       <View style={[StyleSheet.absoluteFill, styles.over]} pointerEvents="box-none">
         <ExploreSettings
           visible={settingsOpen}
