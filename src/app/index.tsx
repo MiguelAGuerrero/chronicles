@@ -1,6 +1,6 @@
 import { router, useFocusEffect, useIsFocused } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, Linking, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Animated, Linking, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CaptureViewer } from '../components/CaptureView';
 import { ExploreSettings } from '../components/ExploreSettings';
@@ -65,6 +65,10 @@ export default function Home() {
   const [error, setError] = useState<{ message: string; openSettings?: boolean } | null>(null);
   const [mode, setMode] = useState<SheetMode>({ kind: 'summary' });
   const [sheetH, setSheetH] = useState(SHEET_PEEK + insets.bottom);
+  // The sheet's live height: Start rides on it as it moves. `sheetH` arrives only when a move ends
+  // (a spring's tail can take a second), so Start once floated mid-screen over a closed sheet.
+  const [sheetAnim] = useState(() => new Animated.Value(SHEET_PEEK + insets.bottom));
+  const [aboveSheet] = useState(() => ({ bottom: Animated.add(sheetAnim, 16) }));
   const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
   // A fit may bring its own frame (the walks list's zoom-out, framed above the sheet it opens to).
   const [fit, setFit] = useState<{ bounds: Bounds | null; key: number; padding?: { top: number; right: number; bottom: number; left: number }; maxZoom?: number }>({ bounds: null, key: 0 });
@@ -356,8 +360,8 @@ export default function Home() {
       {/* With no walk open the row stays mounted while the sheet or a spot card is up, only hidden,
           so a voice memo in progress is never cut short (audit). */}
       {(open ? !spot : true) && (
-        <View
-          style={[styles.startRow, styles.over, { bottom: sheetH + 16 }, !open && !barShown && styles.hidden]}
+        <Animated.View
+          style={[styles.startRow, styles.over, aboveSheet, !open && !barShown && styles.hidden]}
           pointerEvents="box-none"
         >
           {open ? (
@@ -400,7 +404,7 @@ export default function Home() {
             </View>
             </View>
           )}
-        </View>
+        </Animated.View>
       )}
 
       <View style={[StyleSheet.absoluteFill, styles.over]} pointerEvents="box-none">
@@ -424,6 +428,7 @@ export default function Home() {
             setMode(m);
           }}
           onHeight={setSheetH}
+          height={sheetAnim}
           busy={placing != null || starting}
           onGoToPlace={selected && !open ? () => start({ at: selected.at, label: selected.label, kind: 'place' }) : undefined}
           placeExtra={placeExtra}
@@ -474,7 +479,7 @@ export default function Home() {
       </View>
 
       {spot && (
-        <View style={[styles.startRow, styles.over, { bottom: sheetH + 16 }]} pointerEvents="box-none">
+        <Animated.View style={[styles.startRow, styles.over, aboveSheet]} pointerEvents="box-none">
           <View style={styles.spotStack}>
             {/* Walk here only at street zoom; what's good here from z10 (L1). */}
             {spot.zoom >= 12 && (
@@ -504,7 +509,7 @@ export default function Home() {
               <Icon name="close" size={22} color={theme.ink} />
             </Pressable>
           </View>
-        </View>
+        </Animated.View>
       )}
 
       {/* Settings: what I'm into, the "?" range, the pocket alert (E16, E19-E21). */}
