@@ -8,7 +8,7 @@ import { ensureTileBuild } from '../tiles';
 import { tilesIn } from '../tileMath';
 import type { LngLat } from '../types';
 import { analyzeArea, centreFor, LANDING_RULES, type AreaAnalysis } from './analyze';
-import { keyFor, LANDING_VERSION, sweepCovered, type LandingRow } from './view';
+import { keyFor, LANDING_VERSION, type LandingRow } from './view';
 
 /** Towns and cities are in the place layer from z10; z11 tiles keep the read to a few. */
 const TOWNS_ZOOM = 11;
@@ -17,7 +17,7 @@ class Cancelled extends Error {}
 
 export type AreaRead = { ok: true; centre: LngLat; analysis: AreaAnalysis } | { ok: false; reason: 'failed' | 'cancelled' };
 
-async function readAround(url: string, build: string, at: LngLat, shouldStop: () => boolean) {
+export async function readAround(url: string, build: string, at: LngLat, shouldStop: () => boolean) {
   const features = await fetchTiles(url, tilesIn(boundsOf([at], LANDING_RULES.radiusM)!), undefined, shouldStop);
   if (shouldStop()) throw new Cancelled();
   const segments = deriveSegments(features.roads, features.names, build);
@@ -49,28 +49,6 @@ export async function readArea(pressed: LngLat, shouldStop: () => boolean): Prom
     return { ok: true, centre, analysis: analyzeArea({ centre, ...read }) };
   } catch (e) {
     return { ok: false, reason: e instanceof Cancelled || shouldStop() ? 'cancelled' : 'failed' };
-  }
-}
-
-/**
- * A scan's sweep (S21): the busy streets of the 1.5 km around where the scan
- * was made, read the same way with no town centring, and remembered like
- * "What's good here". A current area within 1 km is shown instead. Resolves null
- * when the read failed or was cancelled; the scan's marks stand either way.
- */
-export async function sweepArea(at: LngLat, shouldStop: () => boolean): Promise<LandingRow | null> {
-  try {
-    const build = await ensureTileBuild().catch(() => 'unknown');
-    const url = await db.getMeta('tile_url');
-    if (!url || build === 'unknown' || shouldStop()) return null;
-    // An area already analyzed here, current: shown as it is, never replaced or read again (audit).
-    const covered = sweepCovered(await db.listLandings().catch(() => []), at, build);
-    if (covered) return covered;
-    const read = await readAround(url, build, at, shouldStop);
-    if (shouldStop()) return null;
-    return await rememberArea(at, analyzeArea({ centre: at, ...read }), build);
-  } catch {
-    return null;
   }
 }
 

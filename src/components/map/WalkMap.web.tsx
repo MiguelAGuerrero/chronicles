@@ -6,8 +6,8 @@ import { createRoot, type Root } from 'react-dom/client';
 import { perfCount } from '../../lib/perfCount';
 import { StyleSheet, View } from 'react-native';
 import { CapturePinView, pinLabel } from '../CapturePinView';
-import { MarkPinView, markLabel, type MarkPin } from '../MarkPinView';
-import { StartHereView, StripLabel } from '../LandingMarks';
+import { MarkPinView, markKey, markLabel, type MarkPin } from '../MarkPinView';
+import { StripLabel } from '../LandingMarks';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { Star } from '../../lib/places';
 import type { CapturePin } from '../../lib/pins';
@@ -17,7 +17,7 @@ import { useGlideFrames, type GlideFrame } from '../../lib/useGlidingWalker';
 import { useReducedMotion } from '../../lib/motion';
 import { MOTION } from '../../lib/motionTokens';
 import {
-  COLORS, coneGeoJSON, DERIVE_ZOOM, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, useZoomPins, walkerGeoJSON,
+  COLORS, coneGeoJSON, DERIVE_ZOOM, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -39,7 +39,7 @@ function addOverlay(map: MapLibreMap) {
   // re-tile on each update (perf, Nov 1; tolerance 0.375 and buffer 128 are maplibre's defaults).
   const lineSource = { type: 'geojson' as const, data: empty, tolerance: 1, buffer: 64 };
   for (const id of ['fog', 'walked', 'route', 'trace-history', 'trace']) map.addSource(id, lineSource);
-  for (const id of ['pockets', 'strips', 'cone', 'marks', 'points']) map.addSource(id, { type: 'geojson', data: empty });
+  for (const id of ['pockets', 'strips', 'cone', 'marks', 'points', 'ring']) map.addSource(id, { type: 'geojson', data: empty });
   const lineLayout = { 'line-cap': 'round', 'line-join': 'round' } as const;
   // Hotspots under the streets: pockets shaded, strips bold, in the one green no other layer uses (L9).
   // Stale areas (an older map or rules) are dimmed until looked at again (L11).
@@ -61,6 +61,9 @@ function addOverlay(map: MapLibreMap) {
   for (const [id, source] of [['trace-history-line', 'trace-history'], ['trace', 'trace']])
     map.addLayer({ id, type: 'line', source, layout: lineLayout, paint: { 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth } });
   // The way the walker is going, under the dot; and marked spots (a destination, a pressed spot).
+  // The range preview (E21): a soft disc with a firm edge, under the walker.
+  map.addLayer({ id: 'ring-fill', type: 'fill', source: 'ring', paint: { 'fill-color': RING_COLOR, 'fill-opacity': 0.12 } });
+  map.addLayer({ id: 'ring', type: 'line', source: 'ring', paint: { 'line-color': RING_COLOR, 'line-width': 2.5, 'line-dasharray': [2, 1.5] } });
   map.addLayer({ id: 'cone', type: 'fill', source: 'cone', paint: { 'fill-color': COLORS.walker, 'fill-opacity': 0.25 } });
   map.addLayer({ id: 'marks', type: 'circle', source: 'marks',
     paint: { 'circle-color': '#ffffff', 'circle-radius': 9, 'circle-stroke-color': COLORS.walker, 'circle-stroke-width': 4 } });
@@ -296,6 +299,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     setData('strips', stripsGeoJSON(props.landing));
   }, [ready, props.landing]);
   useEffect(() => { if (ready) setData('marks', marksGeoJSON(props.marks)); }, [ready, props.marks]);
+  useEffect(() => { if (ready) setData('ring', ringGeoJSON(props.ring)); }, [ready, props.ring]);
   useEffect(() => {
     if (ready) setData('cone', coneGeoJSON(glideOn ? null : props.walker, props.walkerHeading, view?.zoom ?? 16));
   }, [ready, glideOn, props.walker, props.walkerHeading, view]);
@@ -451,7 +455,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     }
     starMarkers.current.clear();
   }, []);
-  // A scan's marks, as DOM markers like the stars; clicks look the mark up by id.
+  // Explore's "?" marks, as DOM markers like the stars; clicks look the mark up by id.
   const markLatest = useRef(props.onDiscoveryPress);
   useEffect(() => {
     markLatest.current = props.onDiscoveryPress;
@@ -467,7 +471,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     const live = new Set<string>();
     for (const pin of props.discoveries ?? []) {
       live.add(pin.id);
-      const key = `${pin.at.join(',')}|${pin.revealed}|${pin.name}|${pin.icon}`;
+      const key = `${pin.at.join(',')}|${markKey(pin)}|${pin.name}|${pin.icon}`;
       const existing = markMarkers.current.get(pin.id);
       if (existing?.key === key) continue;
       if (existing) drop(existing);
@@ -475,12 +479,15 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       el.type = 'button';
       el.dataset.testid = 'mark-pin';
       el.setAttribute('aria-label', markLabel(pin));
-      el.style.cssText = 'background:none;border:0;padding:4px 6px 0;cursor:pointer';
+      // A found place is shown, not pressed: its pin lets taps through to the capture beside it (audit, UI).
+      el.style.cssText = pin.found ? 'background:none;border:0;padding:4px 6px 0;pointer-events:none' : 'background:none;border:0;padding:4px 6px 0;cursor:pointer';
+      if (pin.found) el.tabIndex = -1;
       const id = pin.id;
-      el.addEventListener('click', (e) => {
-        e.stopPropagation();
-        markLatest.current?.(id);
-      });
+      if (!pin.found)
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          markLatest.current?.(id);
+        });
       const root = createRoot(el);
       root.render(<MarkPinView pin={pin as MarkPin} />);
       const marker = new Marker({ element: el, anchor: 'bottom', offset: [0, 6] }).setLngLat(pin.at).addTo(map);
@@ -499,11 +506,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     }
     markMarkers.current.clear();
   }, []);
-  // Strip names and Start here pins, as DOM markers like the stars.
-  const pinLatest = useRef(props.onLandingPinPress);
-  useEffect(() => {
-    pinLatest.current = props.onLandingPinPress;
-  });
+  // Strip and pocket names, as DOM markers like the stars.
   const landingMarkers = useRef<{ marker: Marker; root: Root }[]>([]);
   useEffect(() => {
     const map = mapRef.current;
@@ -529,21 +532,6 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       const root = createRoot(el);
       root.render(<StripLabel name={l.name} />);
       landingMarkers.current.push({ marker: new Marker({ element: el, anchor: 'center' }).setLngLat(l.at).addTo(map), root });
-    }
-    for (const p of props.landing?.pins ?? []) {
-      const el = document.createElement('button');
-      el.type = 'button';
-      el.dataset.testid = 'start-here';
-      el.setAttribute('aria-label', `Start here${p.street ? `, on ${p.street}` : ''}. Open`);
-      el.style.cssText = 'background:none;border:0;padding:0;cursor:pointer';
-      const key = p.key;
-      el.addEventListener('click', (e) => {
-        e.stopPropagation();
-        pinLatest.current?.(key);
-      });
-      const root = createRoot(el);
-      root.render(<StartHereView />);
-      landingMarkers.current.push({ marker: new Marker({ element: el, anchor: 'bottom' }).setLngLat(p.at).addTo(map), root });
     }
   }, [ready, props.landing]);
   useEffect(() => () => {
@@ -674,7 +662,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
 
   return (
     <View style={[styles.wrap, props.style]}>
-      <div ref={container} style={{ position: 'absolute', inset: 0 }} data-trace-opacity={String(props.traceOpacity ?? 1)} />
+      <div ref={container} style={{ position: 'absolute', inset: 0 }} data-trace-opacity={String(props.traceOpacity ?? 1)} data-ring={props.ring ? String(props.ring.radiusM) : ''} />
       {props.covered && <View style={styles.cover} pointerEvents="none" />}
     </View>
   );

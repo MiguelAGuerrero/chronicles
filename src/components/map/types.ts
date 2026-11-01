@@ -85,14 +85,15 @@ export interface WalkMapProps {
   attributionTop?: boolean;
   /** A route being navigated, drawn bold under the trace (N6). */
   route?: LngLat[] | null;
-  /** A scan's marks, as "?" pins until revealed (v1 discovery). */
+  /** Explore's marks, as "?" pins until revealed (E6-E8, E22). */
   discoveries?: MarkPin[];
   onDiscoveryPress?: (id: string) => void;
-  /** Remembered hotspots: pockets shaded, strips drawn and named, a Start here pin per area (v1.5). */
+  /** Remembered hotspots: pockets shaded, strips drawn and named, as information (v1.5). */
   landing?: LandingView | null;
-  onLandingPinPress?: (key: string) => void;
   /** Spots to mark: where a route goes, or where a long press landed. */
   marks?: LngLat[];
+  /** The "?" range preview (E21): a ring around a point, drawn only while the setting is open. */
+  ring?: { center: LngLat; radiusM: number } | null;
   /** The way the walker is going (degrees from north), drawn as a soft cone; null hides it. */
   walkerHeading?: number | null;
   walker?: LngLat | null;
@@ -293,6 +294,23 @@ export function stripsGeoJSON(v: LandingView | null | undefined): GeoJSON.Featur
     features: (v?.strips ?? []).map((s) => ({ type: 'Feature', properties: { stale: s.stale }, geometry: { type: 'MultiLineString', coordinates: s.lines } })),
   };
 }
+
+/** The range preview's ring (E21), as a 64-sided polygon. */
+export function ringGeoJSON(ring: { center: LngLat; radiusM: number } | null | undefined): GeoJSON.FeatureCollection {
+  if (!ring) return { type: 'FeatureCollection', features: [] };
+  const [lon, lat] = ring.center;
+  const dLat = ring.radiusM / 111320;
+  const dLon = ring.radiusM / (111320 * Math.cos((lat * Math.PI) / 180));
+  const coords: LngLat[] = [];
+  for (let i = 0; i <= 64; i++) {
+    const a = (i / 64) * 2 * Math.PI;
+    coords.push([lon + dLon * Math.cos(a), lat + dLat * Math.sin(a)]);
+  }
+  return { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [coords] } }] };
+}
+
+/** The ring's colour: the walker's blue, so it reads as "around you". */
+export const RING_COLOR = '#1a73e8';
 
 /** Points to mark (a destination, a pressed spot), as circles. */
 export function marksGeoJSON(marks: LngLat[] | undefined): GeoJSON.FeatureCollection {

@@ -50,18 +50,19 @@ features.push({ type: 'Feature', properties: { class: 'neighbourhood', name: 'Fo
 // A town point 2.9 km east: in reach of the walk, but outside the z14 tiles read for its streets.
 features.push({ type: 'Feature', properties: { class: 'city', name: 'Providence' }, geometry: { type: 'Point', coordinates: at(29, 0) } });
 // Points of interest for discovery (D1): a memorial and an unnamed artwork are
-// marks; a café and a plain church are places but never marks (S18, S20); a bus stop is not a place.
+// attractions on Fox Point's checklist; a café and a plain church are places but never
+// on a checklist (S18, S20); a bus stop is not a place.
 features.push({ type: 'Feature', properties: { class: 'monument', subclass: 'memorial', name: 'Hessian Memorial' }, geometry: { type: 'Point', coordinates: at(0.65, -0.35) } });
 features.push({ type: 'Feature', properties: { class: 'cafe', subclass: 'cafe', name: 'Coffee Exchange' }, geometry: { type: 'Point', coordinates: at(-0.6, 0.4) } });
 features.push({ type: 'Feature', properties: { class: 'place_of_worship', subclass: 'place_of_worship', name: 'Grace Church' }, geometry: { type: 'Point', coordinates: at(-0.4, -0.6) } });
 features.push({ type: 'Feature', properties: { class: 'art_gallery', subclass: 'artwork' }, geometry: { type: 'Point', coordinates: at(1.1, 0.6) } });
 features.push({ type: 'Feature', properties: { class: 'bus', subclass: 'bus_stop', name: 'Wickenden at Hope' }, geometry: { type: 'Point', coordinates: at(0.4, -0.6) } });
-// Three more out east: over 500 m from where the walk scans, but within a home scan around Fox Point (S11).
+// Three more out east, within Fox Point's 1 km but far from the walk: on its checklist, never in range (E3, E6).
 features.push({ type: 'Feature', properties: { class: 'park', subclass: 'park', name: 'Gano Park' }, geometry: { type: 'Point', coordinates: at(5.4, 0.6) } });
 features.push({ type: 'Feature', properties: { class: 'bakery', subclass: 'bakery', name: 'Sunny Bakery' }, geometry: { type: 'Point', coordinates: at(5.2, -1.0) } });
 features.push({ type: 'Feature', properties: { class: 'museum', subclass: 'museum', name: 'Fox Point Museum' }, geometry: { type: 'Point', coordinates: at(4.6, 1.8) } });
 // A busy strip 1.1 km east of Fox Point (v1.5 landing): Thayer Street lined with shops for 250 m,
-// inside the read around a press at Fox Point, and far from every walk and scan above.
+// inside the read around a press at Fox Point, and inside the walk's own explore read (E2).
 features.push({ type: 'Feature', properties: { class: 'tertiary', name: 'Thayer Street' }, geometry: { type: 'LineString', coordinates: [at(11, -3), at(11, 3)] } });
 features.push({ type: 'Feature', properties: { class: 'minor', name: 'Angell Street' }, geometry: { type: 'LineString', coordinates: [at(9, 0.2), at(13, 0.2)] } });
 for (let i = 0; i <= 10; i++) {
@@ -156,7 +157,7 @@ function check(ok, what) {
   // Nothing leaves the device (D10): every request goes to this server or the tile host.
   const hosts = new Set();
   ctx.on('request', (r) => { const u = new URL(r.url()); if (/^(https?|wss?):$/.test(u.protocol)) hosts.add(u.host); });
-  // The app's own tile reads (landing, ambient) get the same fake world as vector tiles.
+  // The app's own tile reads (landing, explore) get the same fake world as vector tiles.
   const { encodeTile } = await import('./mvt-encode.mjs');
   // Slow tiles on demand, so Cancel can land while a read is still out.
   let tileDelayMs = 0;
@@ -184,6 +185,7 @@ function check(ok, what) {
     // Memos and videos play with the ringer switch off, on the web too (bug: silent playback on iPhone).
     check(await page.evaluate(() => navigator.audioSession.type) === 'playback', 'the page asks to play sound even in silent mode');
     check((await page.locator('canvas.maplibregl-canvas').count()) === 1 && (await page.locator('[data-testid=start]').count()) === 1, 'home opens on the map, empty, with Start');
+    check((await page.locator('[data-testid=start-explore]').count()) === 1, 'beside Start, Explore starts a walk that explores (E1)');
     await shot(page, '00-home-empty');
     const held = await pressedScale(page, '[data-testid=start]');
     check(held.scale > 0.95 && held.scale < 0.99 && held.after === 1, `a large button presses down while held, and springs back (M4: ${held.scale.toFixed(3)} → ${held.after})`);
@@ -192,36 +194,58 @@ function check(ok, what) {
     await page.waitForTimeout(2500);
     await shot(page, '01-walk-start');
 
-    // Scan (v1 slice 2). The first scan asks preferences first (S14), then
-    // reads the 500 m around you: a café and an unnamed artwork, not the bus stop (S2, S15).
-    await page.click('[data-testid=scan]');
-    await page.waitForSelector('[data-testid=prefs-done]');
-    check((await page.locator('[data-testid^=pref-][data-testid$=-normal][aria-checked=true]').count()) === 5 && (await page.locator('[data-testid^=pref-food-]').count()) === 0,
-      'the first scan asks preferences, all normal, for the five attraction categories only (S23)');
-    check((await page.locator('[data-testid=auto-scan]').count()) === 1, 'the preferences offer a scan when a walk starts (A2)');
-    await page.click('[data-testid=pref-art-more]');
-    await shot(page, '01a-prefs');
-    // Slow tiles for the sweep: the scan ends, and Stop works, before its busy streets come in (audit).
-    tileDelayMs = 3000;
-    await page.click('[data-testid=prefs-done]');
-    await page.waitForSelector('text=Only 2 spots nearby', { timeout: 30000 });
-    const swept = (await page.locator('text=/busy street/').count()) > 0;
-    check(!swept && (await page.locator('[data-testid=scan-cancel]').count()) === 0
-      && (await page.locator('[data-testid=stop]').getAttribute('aria-disabled')) !== 'true',
-      'the sweep runs after the scan ends: no cover, and Stop stays enabled (audit)');
-    const walkMarks = () => page.locator('.maplibregl-map').last().locator('[data-testid=mark-pin]');
-    // The sweep (S21, S22): Thayer Street's strip, 1.1 km east, shows on the walk map, and the note counts it.
-    await page.waitForSelector('text=/Only 2 spots nearby · 1 busy street/', { timeout: 30000 });
-    tileDelayMs = 0;
-    check((await page.locator('.maplibregl-map').last().getByText('Thayer Street', { exact: true }).count()) >= 1, 'a scan also shows the busy streets around (S21, S22)');
-    check((await walkMarks().count()) === 2 && (await page.locator('[aria-label="A mark to find. Open"]').count()) >= 2, 'a scan drops a "?" mark for each place nearby (S3, S7)');
+    // Explore (v1 slice 5). A walk starts quiet: no "?" marks, no busy streets, though its checklist
+    // is read in the background (E1, E2, E9).
+    const walkMap = () => page.locator('.maplibregl-map').last();
+    const walkMarks = () => walkMap().locator('[data-testid=mark-pin]');
+    const placesRead = () => page.evaluate(() => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const tx = req.result.transaction(['checklist_area', 'checklist_item'], 'readonly');
+        const a = tx.objectStore('checklist_area').getAll();
+        const i = tx.objectStore('checklist_item').getAll();
+        tx.oncomplete = () => resolve({ areas: a.result, items: i.result });
+      };
+    }));
+    let read = { areas: [], items: [] };
+    for (let i = 0; i < 30 && !read.areas.length; i++) {
+      await page.waitForTimeout(500);
+      read = await placesRead();
+    }
+    const fox = read.areas.find((x) => x.name === 'Fox Point');
+    check(fox && fox.count === 4 && read.items.filter((x) => x.area_key === fox.key).map((x) => x.name).sort().join(',') === 'Fox Point Museum,Gano Park,Hessian Memorial,Public art',
+      `a quiet walk still builds its neighborhood's checklist, attractions only (${JSON.stringify(read.areas.map((x) => [x.name, x.count]))})`);
+    check((await walkMarks().count()) === 0 && (await walkMap().getByText('Thayer Street', { exact: true }).count()) === 0, 'a quiet walk shows no "?" marks and no busy streets');
+    // Settings, from the walk's options: the range previewed as a ring around you (E16, E20, E21).
+    await page.click('[data-testid=walk-options]');
+    await page.waitForSelector('[data-testid=options-card]');
+    check((await page.locator('[data-testid=explore-walk][aria-checked=false], [data-testid=explore-walk]:not([aria-checked=true])').count()) === 1, 'Explore starts off on a new walk (E1)');
+    await page.click('[data-testid=open-settings]');
+    await page.waitForSelector('[data-testid=settings]');
+    const ringNow = () => page.locator('[data-ring]').last().getAttribute('data-ring');
+    await page.waitForTimeout(500);
+    check((await page.locator('[data-testid=range-value]').innerText()) === '100 m' && (await ringNow()) === '100', 'the range is 100 m by default, drawn as a ring on the walk map while settings are open');
+    await page.click('[data-testid=range-plus]');
+    await page.waitForTimeout(300);
+    check((await page.locator('[data-testid=range-value]').innerText()) === '120 m' && (await ringNow()) === '120', 'the ring redraws as the range changes');
+    await page.click('[data-testid=range-minus]');
+    for (let i = 0; i < 6; i++) await page.click('[data-testid=range-minus]');
+    check((await page.locator('[data-testid=range-value]').innerText()) === '60 m', 'the range never goes under 60 m');
+    for (let i = 0; i < 2; i++) await page.click('[data-testid=range-plus]');
+    check((await page.locator('[data-testid=kind-churches]').count()) === 1 && (await page.locator('[data-testid=pocket-alert]').count()) === 0, 'what I’m into lists the kinds; the web has no pocket alert');
+    await shot(page, '01a-settings');
+    await page.click('[data-testid=settings-done]');
+    await page.waitForTimeout(300);
+    check((await ringNow()) === '', 'the ring is never on the walk map outside settings');
+    // Motion (M7): banners lift in rather than pop, and a dismissed one leaves no copy behind (audit 5).
     const lifts = await page.evaluate(() => window.__lifts.map((l) => ({ animated: l.animated, text: l.el.innerText.slice(0, 40) })));
-    check(lifts.some((l) => /spots nearby/.test(l.text) && l.animated), `a banner lifts in rather than popping (M7: ${JSON.stringify(lifts.slice(0, 3))})`);
-    // Dismissed, it goes at once: no copy of it lingers, announced again as an alert (audit 5).
-    await page.locator('[data-testid=lift-in]', { hasText: 'spots nearby' }).locator('[aria-label=Dismiss]').click();
-    await page.waitForTimeout(60);
-    check((await page.locator('[data-testid=lift-in]', { hasText: 'spots nearby' }).count()) === 0, 'a dismissed banner leaves no copy behind (audit 5)');
-    await shot(page, '01b-marks');
+    check(lifts.some((l) => /On the web/.test(l.text) && l.animated), `a banner lifts in rather than popping (M7: ${JSON.stringify(lifts.slice(0, 3))})`);
+    const webBanner = page.locator('[data-testid=lift-in]', { hasText: 'On the web' });
+    if (await webBanner.locator('[aria-label=Dismiss]').count()) {
+      await webBanner.locator('[aria-label=Dismiss]').click();
+      await page.waitForTimeout(60);
+      check((await page.locator('[data-testid=lift-in]', { hasText: 'On the web' }).count()) === 0, 'a dismissed banner leaves no copy behind (audit 5)');
+    }
 
     // Leaks (the owner's iPhone tab crashed mid-walk): nothing may pile up while walking.
     const cdp = await ctx.newCDPSession(page);
@@ -274,18 +298,25 @@ function check(ok, what) {
         check(true, 'a tap on Stop explains it needs a hold');
       }
       if (k === 6) {
-        // This walk's options: quiet walk on both platforms; hints are phone-only, so the web has none (A1, A2).
+        // Explore on, for this walk (E1): the busy streets show, as information (E2, S21).
         await page.click('[data-testid=walk-options]');
         await page.waitForSelector('[data-testid=options-card]');
-        check((await page.locator('[data-testid=quiet-walk]').count()) === 1 && (await page.locator('[data-testid=ambient]').count()) === 0, 'walk options offer a quiet walk, and no ambient hints on the web');
+        await page.click('[data-testid=explore-walk]');
         await shot(page, '01c-options');
         await page.click('[data-testid=options-close]');
+        // The quiet read kept no busy streets (the owner's call); switching Explore on reads them at once.
+        await walkMap().getByText('Thayer Street', { exact: true }).first().waitFor({ timeout: 15000 }).catch(() => {});
+        check((await walkMap().getByText('Thayer Street', { exact: true }).count()) >= 1, 'switching Explore on brings in the busy streets around');
+      }
+      if (k === 8) {
+        // 75 m from the memorial: inside the 100 m range, a "?" that doesn't say what it is (E6).
+        check((await walkMarks().count()) === 1 && (await page.locator('[aria-label="A place to find. Open"]').count()) === 1, 'a "?" shows for a place within range, and only that one');
       }
       if (k === 13) {
         // The live walk's dot is one gliding marker; the layers stay empty for it.
         check((await page.locator('[data-testid=walker-puck]').count()) === 1 && (await page.locator('[data-testid=walker-puck] svg').count()) === 2, 'the walker is one gliding marker, dot and cone');
-        // Within 60 m, the café's mark shows what it is (S7).
-        check((await page.locator('[aria-label="Hessian Memorial, History & landmarks. Open"]').count()) === 1, 'a mark shows its name and category within 60 m');
+        // Within 60 m, the memorial's "?" shows what it is (E7).
+        check((await page.locator('[aria-label="Hessian Memorial, History & landmarks. Open"]').count()) === 1, 'a "?" shows its name and category within 60 m');
       }
       if (k === 15) {
         // The camera takes video too. The web caps clips at 15 s; a longer one is turned away.
@@ -300,8 +331,9 @@ function check(ok, what) {
         await page.waitForTimeout(2500);
         // Within ~30 m at walking zoom, the video shares a pin with the memo.
         check((await page.locator('[aria-label="2 captures here. Open"]').count()) === 1, 'a short video is kept, sharing a pin with the memo nearby');
-        // The video is taken about 40 m from the café: it finds the mark (S8). (The memo at step 10, 62 m off, does not.)
-        check((await walkMarks().count()) === 1 && (await page.locator('[aria-label="Hessian Memorial, History & landmarks. Open"]').count()) === 0, 'a capture within 60 m finds the mark');
+        // The video is taken about 40 m from the memorial: it finds it (E8). (The memo at step 10, 62 m off, does not.)
+        await page.waitForTimeout(500);
+        check((await page.locator('[aria-label="Found: Hessian Memorial, History & landmarks"]').count()) === 1, 'a capture within 60 m finds the place, which stays drawn as found');
       }
       if (k === 25) {
         await page.click('[data-testid=cap-note]');
@@ -315,7 +347,8 @@ function check(ok, what) {
         // tap there does nothing.
         // The home map stays mounted under the walk screen; the walk's map is the last.
         const box = await page.locator('canvas.maplibregl-canvas').last().boundingBox();
-        // Beside the pin (whose tap area covers the spot itself): ~27 m away at this zoom.
+        // Beside the pin (whose tap area covers the spot itself): ~27 m away at this zoom. The memorial's
+        // found pin sits here too; it lets taps through to the map and the capture (audit, UI).
         const spot = { x: box.x + box.width / 2 + 30, y: box.y + box.height / 2 + 10 };
         await page.mouse.click(spot.x, spot.y);
         await page.waitForTimeout(800);
@@ -339,13 +372,15 @@ function check(ok, what) {
         await page.click('[aria-label="Close"]');
       }
       if (k === 28) {
-        // Go here on a mark routes to it, labelled "Mark" until it is revealed (S12).
-        await walkMarks().first().click();
+        // Go here on a "?" routes to it, unnamed until it is revealed (E12).
+        await page.locator('[aria-label="A place to find. Open"]').first().click();
         await page.waitForSelector('[data-testid=mark-card]');
-        check(/A mark to find/.test(await page.locator('[data-testid=mark-card]').innerText()), 'an unrevealed mark’s card does not say what it is');
+        check(/A place to find/.test(await page.locator('[data-testid=mark-card]').innerText()), 'an unrevealed place’s card does not say what it is');
         await page.click('[data-testid=mark-go]');
         await page.waitForSelector('[data-testid=nav-bar]', { timeout: 30000 });
-        check(/· Mark$/.test(await page.locator('[data-testid=nav-left]').innerText()), 'going to a mark says "Mark" until it is revealed');
+        check(/· A place to find$/.test(await page.locator('[data-testid=nav-left]').innerText()), 'going to a place says "A place to find" until it is revealed');
+        // On the way (E22): nothing else is in range of this short route, so no faint marks beyond the target.
+        check((await page.locator('[aria-label="A place on the way. Open"]').count()) === 0, 'no faint marks where nothing lies along the route');
       }
       if (k === 30) {
         // A photo, then the opt-in caption.
@@ -397,7 +432,7 @@ function check(ok, what) {
         await page.click('[data-testid=unwalked]');
       }
       if (k === 39) {
-        // 40 s of walking with captures, a scan and a route: the page stays the same size (leak regression).
+        // 40 s of walking with captures, an explore read and a route: the page stays the same size (leak regression).
         const leak1 = await leakSample();
         // Reactivity budget (Nov 1): one fix a second must not re-render the screen several times,
         // nor re-send the map's sources more often than it changes.
@@ -419,14 +454,23 @@ function check(ok, what) {
       }
       if (k === 44) {
         const bar = await page.waitForSelector('[data-testid=nav-left]', { timeout: 30000 }).then((e) => e.innerText(), () => '');
-        check(/Public art/.test(bar), `revealed, the mark is named in the bar (${bar})`);
+        check(/Public art/.test(bar), `revealed, the place is named in the bar (${bar})`);
       }
       if (k === 54) {
-        // Dismiss passes on a mark (S9).
-        await page.click('[aria-label="Public art, Art. Open"]');
-        await page.click('[data-testid=mark-dismiss]');
+        // What I'm into (E17): public art switched off hides its "?" at once; back on, it shows again.
+        check((await page.locator('[aria-label="Public art, Art. Open"]').count()) === 1, 'the artwork shows, named, beside you');
+        await page.click('[data-testid=walk-options]');
+        await page.click('[data-testid=open-settings]');
+        await page.click('[data-testid=kind-public_art]');
+        await page.click('[data-testid=settings-done]');
         await page.waitForTimeout(500);
-        check((await walkMarks().count()) === 0, 'dismiss passes on a mark');
+        check((await page.locator('[aria-label="Public art, Art. Open"]').count()) === 0, 'a kind switched off loses its "?" marks');
+        await page.click('[data-testid=walk-options]');
+        await page.click('[data-testid=open-settings]');
+        await page.click('[data-testid=kind-public_art]');
+        await page.click('[data-testid=settings-done]');
+        await page.waitForTimeout(500);
+        check((await page.locator('[aria-label="Public art, Art. Open"]').count()) === 1, 'switched back on, it shows at once');
       }
     }
     await page.waitForTimeout(2200);
@@ -614,10 +658,10 @@ function check(ok, what) {
         && pois.every((p) => p.build === '20261028_001001_pt'),
       `the walk's reads cache its places of interest, and no bus stop (${poiNames.join(', ')})`,
     );
-    // The card counts finds by category, and keeps the mark passed on as a low (S9, S13).
-    check(/Found 1 history/.test(card) || (await page.locator('[data-testid=card-finds]').innerText()) === 'Found 1 history', 'the card counts finds by category');
+    // The card lists the walk's finds, and keeps what it passed without stopping as a low (E11).
+    check((await page.locator('[data-testid=card-finds]').innerText()) === 'Found Hessian Memorial', 'the card lists the places found');
     const low = await page.locator('[data-testid=card-low]').allInnerTexts();
-    check(low.length === 1 && /^Passed on: a mark near Arnold Street$/.test(low[0]), `the card keeps the dismissed mark as a low (${low.join(' | ')})`);
+    check(low.length === 1 && low[0] === 'Passed 1 place you didn’t stop for', `the card keeps the place passed as a low (${low.join(' | ')})`);
     await page.waitForTimeout(800);
     await shot(page, '05-card');
     // The card's zoom groups nearby captures; open the pin holding the note
@@ -799,28 +843,25 @@ function check(ok, what) {
     await page.waitForTimeout(500);
     check((await page.locator('text=/Placing your walks/').count()) === 0, 'the walk is placed again and the cover goes');
 
-    // Scan here, from the home (S1, S11): a long press just below Fox Point's star.
-    {
-      const st = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
-      const p = { x: st.x + st.width / 2, y: st.y + st.height / 2 + 50 };
-      await page.mouse.move(p.x, p.y);
-      await page.mouse.down();
-      await page.waitForTimeout(700);
-      await page.mouse.up();
-      await shot(page, '11a-home-press');
-      await page.click('[data-testid=scan-here]');
-      await page.waitForSelector('text=Only 2 spots nearby', { timeout: 30000 });
-      check((await page.locator('[data-testid=mark-pin]').count()) === 2, 'Scan here on the home leaves two marks for the next walk, not the bakery (S18)');
-      await shot(page, '11b-home-scan');
-      // Preferences are editable from the home (S14).
-      await page.click('[data-testid=prefs-open]');
-      await page.waitForSelector('[data-testid=prefs-done]');
-      check((await page.locator('[data-testid=pref-art-more][aria-checked=true]').count()) === 1, 'the home opens the preferences as they were left');
-      await page.click('text=Cancel');
-    }
+    // The place view counts Fox Point's checklist, never the overview (E10).
+    check((await page.locator('[data-testid=place-count]').count()) === 0 && (await page.locator('[data-testid=mark-pin]').count()) === 0, 'the home shows no count and no "?" on the overview');
+    await page.click('[aria-label^="Fox Point,"]');
+    await page.waitForSelector('[data-testid=place-count]');
+    check(/^1 of 4 · list from /.test(await page.locator('[data-testid=place-count]').innerText()), `Fox Point's place view says how many of its places were found (${await page.locator('[data-testid=place-count]').innerText()})`);
+    check(/Hessian Memorial/.test(await page.locator('[data-testid=place-found]').innerText()), 'and which');
+    await page.click('[data-testid=sheet-map]');
+    // Settings from the home: the ring around where the last walk was, with the places inside it (E21).
+    await page.click('[data-testid=settings-open]');
+    await page.waitForSelector('[data-testid=settings]');
+    await page.waitForTimeout(1500);
+    check((await page.locator('[data-ring]').first().getAttribute('data-ring')) === '100', 'the home previews the range as a ring');
+    await shot(page, '11a-home-settings');
+    await page.click('text=Cancel');
+    await page.waitForTimeout(500);
+    check((await page.locator('[data-ring]').first().getAttribute('data-ring')) === '' && (await page.locator('[data-testid=mark-pin]').count()) === 0, 'closing settings takes the ring and its places away');
 
     // What's good here (v1.5): a long press, then a read of the area around the city
-    // nearby, finds Thayer Street's strip and puts Start here on it (L1, L2, L5, L7, L9).
+    // nearby, finds Thayer Street's strip, as information: no Start here pin (L1, L2, L5, L7, L9, explore).
     {
       const st = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
       const press = async (box) => {
@@ -831,7 +872,14 @@ function check(ok, what) {
         await page.mouse.up();
       };
       // Cancel goes at once and keeps nothing (audit).
-      const pinsBefore = await page.locator('[data-testid=start-here]').count();
+      const rowCount = async () => (await page.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const g = req.result.transaction('landing', 'readonly').objectStore('landing').getAll();
+          g.onsuccess = () => resolve(g.result.length);
+        };
+      })));
+      const rowsBefore = await rowCount();
       tileDelayMs = 4000;
       await press(st);
       await page.click('[data-testid=look-here]');
@@ -839,14 +887,14 @@ function check(ok, what) {
       const gone = (await page.locator('[data-testid=look-cancel]').count()) === 0;
       await page.waitForTimeout(6000);
       tileDelayMs = 0;
-      check(gone && (await page.locator('[data-testid=start-here]').count()) === pinsBefore, 'cancelling a look stops it at once, with nothing kept');
+      check(gone && (await rowCount()) === rowsBefore, 'cancelling a look stops it at once, with nothing kept');
       await press(st);
       await page.click('[data-testid=look-here]');
       await page.waitForSelector('text=/Busiest area: Thayer Street. A best guess from the map./', { timeout: 30000 });
       await page.waitForTimeout(1500);
       await shot(page, '11c-landing');
-      check((await page.getByText('Thayer Street', { exact: true }).count()) >= 1 && (await page.locator('[data-testid=start-here]').count()) === 1,
-        'what\u2019s good here finds the strip, named, with one Start here');
+      check((await page.getByText('Thayer Street', { exact: true }).count()) >= 1 && (await page.locator('[data-testid=start-here]').count()) === 0,
+        'what\u2019s good here finds the strip, named, with no Start here pin');
       const rows = () => page.evaluate(() => new Promise((resolve) => {
         const req = indexedDB.open('chronicles');
         req.onsuccess = () => {
@@ -855,18 +903,13 @@ function check(ok, what) {
         };
       }));
       const first = await rows();
-      check(first.length === 1 && first[0].analysis.landing.street === 'Thayer Street', 'the area is remembered, its landing on Thayer Street');
-      await page.click('[data-testid=start-here]');
-      await page.waitForSelector('[data-testid=start-card]');
-      check(/Start here · Thayer Street/.test(await page.locator('[data-testid=start-card]').innerText()) && (await page.locator('[data-testid=start-walk]').count()) === 1
-        && (await page.locator('[data-testid=start-loop]').count()) === 1,
-        'Start here offers Walk here, Scan here and Walk the loop (L10, L13)');
-      await page.click('[data-testid=start-card] [aria-label=Close]');
+      // The walk's own explore read remembered the area around its start; the look adds the city's.
+      check(first.some((r) => r.analysis.strips.some((x) => x.name === 'Thayer Street')), 'the area is remembered, Thayer Street among its strips');
       // Remembered: after a reload, it is still on the map, offline (L11).
       await page.reload();
       await page.waitForSelector('[aria-label^="Fox Point,"]', { timeout: 30000 });
       await page.waitForTimeout(1500);
-      check((await page.locator('[data-testid=start-here]').count()) === 1, 'the analyzed area is still on the map after a reload');
+      check((await page.getByText('Thayer Street', { exact: true }).count()) >= 1, 'the analyzed area is still on the map after a reload');
       // Again: the same area is replaced, not added (L12).
       const st2 = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
       await page.mouse.move(st2.x + st2.width / 2, st2.y + st2.height / 2 + 50);
@@ -875,7 +918,7 @@ function check(ok, what) {
       await page.mouse.up();
       await page.click('[data-testid=look-here]');
       await page.waitForSelector('text=/Busiest area/', { timeout: 30000 });
-      check((await rows()).length === 1, 'looking again replaces the area');
+      check((await rows()).length === first.length, 'looking again replaces the area');
       await page.reload();
       await page.waitForSelector('[aria-label^="Fox Point,"]', { timeout: 30000 });
       await page.waitForTimeout(1000);
@@ -901,8 +944,8 @@ function check(ok, what) {
     await page.waitForSelector('[data-testid=nav-bar]', { timeout: 40000 });
     check(/\/walk(\?|$)/.test(page.url()) && /Fox Point/.test(await page.locator('[data-testid=nav-bar]').innerText()), 'a star\u2019s Walk here starts a walk navigating there, once there is a fix');
     await shot(page, '12-home-go');
-    // The walk adopts the marks scanned from the home (S11).
-    check((await page.locator('.maplibregl-map').last().locator('[data-testid=mark-pin]').count()) === 2, 'the next walk adopts the home’s marks');
+    // A walk from a star starts quiet (E1); reminders still come back on a quiet walk (the owner's call, after the audit).
+    check((await walkMarks().count()) === 0, 'a new walk starts quiet');
     // A later walk passing the flagged capture brings it back, in front (R2, R3, R4).
     // At a walking pace: a jump would be dropped as a GPS glitch.
     for (let j = 1; j <= 26; j++) {
@@ -946,6 +989,8 @@ function check(ok, what) {
     check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
   } catch (e) {
     console.error(e.message);
+    // E2E_FAIL_SHOT=<file> saves what the page showed when it failed.
+    if (process.env.E2E_FAIL_SHOT) await page.screenshot({ path: process.env.E2E_FAIL_SHOT }).catch(() => {});
     process.exitCode = 1;
   } finally {
     await browser.close();

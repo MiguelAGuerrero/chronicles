@@ -12,7 +12,6 @@ import { announceStep, navStep, routeTo, startNav, tooFar, type NavState } from 
 import { clearNav, loadNav, saveNav } from './store';
 import { streetRouteSource } from './streetRoute';
 import { traceRouteSource } from './traceRoute';
-import { nextLeg } from '../landing/walk';
 import type { RouteSource, Waypoint } from './types';
 
 /** Streets are read this far around both ends of a route. */
@@ -40,8 +39,6 @@ export function useNavigation(opts: {
   onArrive: (dest: Waypoint) => void;
   onError: (message: string) => void;
   onNotice: (message: string) => void;
-  /** Awaited after an arrival, before a loop's next leg is routed (a scan at the landing, L16). */
-  afterArrive?: (dest: Waypoint) => Promise<void>;
 }) {
   const [nav, setNav] = useState<NavState | null>(null);
   const [finding, setFinding] = useState(false);
@@ -99,14 +96,6 @@ export function useNavigation(opts: {
     busy.current = true;
     cancelled.current = false;
     const fail = async (message: string) => {
-      // A loop skips a leg it can't reach (too far, or no route) and goes on (L13, audit).
-      const next = nextLeg(dest);
-      if (next) {
-        latest.current.onNotice(`No route to ${dest.label}: on to ${next.label}`);
-        await saveNav(walk.id, next);
-        pending.current = next;
-        return;
-      }
       // A destination that can't be reached is forgotten, so a reload doesn't try it again.
       clearNav().catch(() => {});
       latest.current.onError(message);
@@ -190,23 +179,7 @@ export function useNavigation(opts: {
       const step = navStep(s, here, now);
       if (step.state.arrived) {
         latest.current.onArrive(s.dest);
-        const next = nextLeg(s.dest);
-        if (!next) {
-          end();
-          latest.current.afterArrive?.(s.dest).catch(() => {});
-          return;
-        }
-        // A loop goes on to its next leg (L13). It is saved first, so a reload in between resumes it,
-        // and routed only once whatever the arrival does (a scan at the landing) has settled and no
-        // other read holds the map: the fix effect takes a pending leg when nothing is busy (audit).
-        apply(null);
-        sources.current = [];
-        const walkId = latest.current.walk?.id;
-        (async () => {
-          if (walkId) await saveNav(walkId, next).catch(() => {});
-          await latest.current.afterArrive?.(s.dest).catch(() => {});
-          pending.current = next;
-        })();
+        end();
         return;
       }
       let next = step.state;

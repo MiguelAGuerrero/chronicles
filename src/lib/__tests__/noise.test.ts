@@ -1,10 +1,9 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ambientCheck } from '../discovery/ambient';
 import { CHAINS, isChain, isMarkable, normalizeBrand } from '../discovery/noise';
 import { placeKey } from '../discovery/places';
-import { pickMarks } from '../discovery/scan';
+import { buildChecklists } from '../explore/explore';
 import { placesFromTilePois } from '../discovery/tilePois';
 import type { CategoryId, Place } from '../discovery/types';
 import type { LngLat } from '../types';
@@ -81,29 +80,9 @@ test('noise: worship, civic sites, cemeteries and libraries only when the name s
   ]) assert.equal(markable(f), false, f.properties.name);
 });
 
-test('noise: a scan offers attractions only', () => {
-  const cands = [place("Domino's Pizza", 'food', m(200, 0)), place('Coffee Exchange', 'food', m(-200, 0)), place('Thayer Gifts', 'shops', m(0, 250)), place('Gano Park', 'parks', m(0, -250))];
-  for (let seed = 1; seed < 10; seed++) {
-    let s = seed;
-    const random = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 2 ** 32);
-    const { picked } = pickMarks({ candidates: cands, center: O, offered: [], prefs: {}, random });
-    assert.deepEqual(picked.map((p) => p.name), ['Gano Park']);
-  }
-});
-
-test('noise: ambient never hints at food or a chain', () => {
-  const fixes = Array.from({ length: 12 }, (_, i) => {
-    const [lon, lat] = m(0, -(11 - i) * 5);
-    return { walk_id: 'w1', t: 1e12 + i * 4000, lat, lon, accuracy_m: 5, speed: 1.25, course: null };
-  });
-  const street = { id: 's', name: 'Hope Street', kind_detail: 'residential', length_m: 400, build: 'b1', geometry: [[m(-200, 100), m(200, 100)]] };
-  const base = {
-    enabled: true, quiet: false, walkId: 'w-live', startedAt: 1e12 - 1000, pauses: [], fixes, unwalked: [street], offered: [],
-    fired: { count: 0, lastAt: null }, now: 1e12 + 60_000, pursuing: false, random: () => 0.1,
-  };
-  let walkId = 'w0';
-  for (let i = 0; ambientCheck({ ...base, walkId: `w${i}`, places: [place('Gano Park', 'parks', m(0, 100))] }) == null; i++) walkId = `w${i + 1}`;
-  assert.equal(ambientCheck({ ...base, walkId, places: [place("Domino's", 'food', m(0, 100))] }), null);
-  assert.equal(ambientCheck({ ...base, walkId, places: [place('Coffee Exchange', 'food', m(0, 100))] }), null);
-  assert.equal(ambientCheck({ ...base, walkId, places: [{ ...place('Grace Church', 'history', m(0, 100)), markable: false }] }), null);
+test('noise: a checklist holds attractions only, never food, shops or a chain (S18, E2)', () => {
+  const k = (p: Place): Place => ({ ...p, kind: 'parks' });
+  const cands = [place("Domino's Pizza", 'food', m(200, 0)), place('Coffee Exchange', 'food', m(-200, 0)), place('Thayer Gifts', 'shops', m(0, 250)), k(place('Gano Park', 'parks', m(0, -250)))];
+  const r = buildChecklists({ places: cands, candidates: [{ level: 'neighborhood', name: 'H', at: O, reachM: 1000 }], centre: O, build: 'b1', now: 1 });
+  assert.deepEqual(r.items.map((p) => p.name), ['Gano Park']);
 });

@@ -1,4 +1,3 @@
-import { adoptable } from './discovery/scan';
 import { db } from './db';
 import { newId } from './id';
 import { clearNav } from './nav/store';
@@ -14,10 +13,6 @@ import type { Walk } from './types';
 
 let starting: Promise<{ walk: Walk; warning?: string }> | null = null;
 let stopping: Promise<void> | null = null;
-
-async function adoptHomeMarks(walkId: string, now: number) {
-  for (const id of adoptable(await db.listMarks(null), now)) await db.updateMark(id, { walk_id: walkId });
-}
 
 /** Starts a walk, or returns the one already open. Throws RecorderError. */
 export function startWalk(): Promise<{ walk: Walk; warning?: string }> {
@@ -39,7 +34,6 @@ export function startWalk(): Promise<{ walk: Walk; warning?: string }> {
         throw e;
       }
       // Marks scanned from the home belong to the next walk (S11); a failure leaves them for the one after.
-      await adoptHomeMarks(walk.id, walk.started_at).catch(() => {});
       return { walk, warning };
     })().finally(() => {
       starting = null;

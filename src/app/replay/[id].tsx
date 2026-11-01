@@ -1,4 +1,4 @@
-import { foundLine, scanSummary } from '../../lib/discovery/scan';
+import { foundLine, foundList, passedLine } from '../../lib/explore/explore';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import {
@@ -285,7 +285,8 @@ export default function Replay() {
 
   const s = data.summary;
   const head = headline(s, data);
-  const finds = scanSummary(data.marks);
+  const finds = foundList(data.found.map((f) => f.name));
+  const passed = passedLine(data.passed);
 
   const save = async () => {
     if (saving) return;
@@ -356,7 +357,10 @@ export default function Replay() {
             topInset={insets.top}
             onVoiceFinished={auto ? () => advance(true) : undefined}
             footer={[
-              foundLine(data.marks, stopCapture.id),
+              (() => {
+                const f = data.found.find((x) => x.capture_id === stopCapture.id);
+                return f ? foundLine(f) : null;
+              })(),
               stopGroup.captures.length > 1 ? `${stop!.item + 1} of ${stopGroup.captures.length}` : null,
             ].filter(Boolean).join(' · ') || undefined}
             action={{ label: 'Continue', hint: 'Shows the next capture, or carries on along the walk', onPress: () => advance(), testID: 'moment' }}
@@ -420,14 +424,9 @@ export default function Replay() {
                   {s && s.streets_walked > 0 ? ` · ${s.streets_walked} ${s.streets_walked === 1 ? 'street' : 'streets'} walked` : ''}
                 </Text>
                 {s && formatCaptures(s) ? <Text style={styles.cardMuted}>{formatCaptures(s)} · tap a pin to open</Text> : null}
-                {finds ? (
-                  <Text testID="card-finds" style={styles.cardMuted}>
-                    {finds.found ? `Found ${finds.finds}` : 'Nothing found'}
-                  </Text>
-                ) : null}
-                {data.lows.map((line, i) => (
-                  <Text key={i} testID="card-low" style={styles.cardMuted}>{line}</Text>
-                ))}
+                {finds ? <Text testID="card-finds" style={styles.cardMuted}>{finds}</Text> : null}
+                {/* The lows stay in (E11): what came within view and wasn't stopped for. */}
+                {passed ? <Text testID="card-low" style={styles.cardMuted}>{passed}</Text> : null}
                 {data.walk.epilogue ? <Text style={styles.epilogue}>“{data.walk.epilogue}”</Text> : null}
                 <View style={styles.row}>
                   <Button

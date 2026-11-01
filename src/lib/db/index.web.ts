@@ -1,5 +1,6 @@
 import { staleAreas } from '../areas/assign';
 import type { Area, WalkArea } from '../areas/types';
+import type { ChecklistArea, ChecklistItem, ExploreRead, Find } from '../explore/explore';
 import type { LandingRow } from '../landing/view';
 import type { Mark, Offered, Place, Recall } from '../discovery/types';
 import { DERIVED_STORES } from './stores';
@@ -9,7 +10,7 @@ import type { Db } from './types';
 
 // Same tables as the native SQLite store, as IndexedDB object stores.
 const DB_NAME = 'chronicles';
-const VERSION = 7;
+const VERSION = 8;
 
 /** Raised when another open tab holds an older version of the database. */
 export class BlockedByOtherTabError extends Error {
@@ -66,6 +67,16 @@ function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number) {
       c.update({ ...c.value, tile: segmentTile(c.value as StreetSegment) });
       c.continue();
     };
+  }
+  if (oldVersion < 8) {
+    // v1 explore: checklists and finds (kept), and where reads happened (derived).
+    d.createObjectStore('checklist_area', { keyPath: 'key' });
+    const items = d.createObjectStore('checklist_item', { keyPath: 'key' });
+    items.createIndex('area_key', 'area_key');
+    // Read by latitude, never the whole kept store (audit 7; iPhone memory).
+    items.createIndex('lat', 'lat');
+    d.createObjectStore('find', { keyPath: 'key' }).createIndex('walk_id', 'walk_id');
+    d.createObjectStore('explore_read', { keyPath: 'key' });
   }
 }
 
@@ -258,6 +269,50 @@ export const db: Db = {
     return (await done((await store('walk_summary')).getAll())) as WalkSummary[];
   },
 
+  async saveChecklists({ areas, items, read }) {
+    const tx = (await conn()).transaction(['checklist_area', 'checklist_item', 'explore_read'], 'readwrite');
+    const itemStore = tx.objectStore('checklist_item');
+    const finished = committed(tx);
+    // A rebuilt area's old items go first (E4); keys gone from the new list don't linger.
+    await Promise.all(
+      areas.map(
+        (a) =>
+          new Promise<void>((resolve, reject) => {
+            const req = itemStore.index('area_key').openKeyCursor(IDBKeyRange.only(a.key));
+            req.onsuccess = () => {
+              const c = req.result;
+              if (!c) return resolve();
+              itemStore.delete(c.primaryKey);
+              c.continue();
+            };
+            req.onerror = () => reject(req.error);
+          }),
+      ),
+    );
+    for (const i of items) itemStore.put({ ...i, lat: i.at[1] });
+    for (const a of areas) tx.objectStore('checklist_area').put(a);
+    tx.objectStore('explore_read').put(read);
+    return finished;
+  },
+  async listChecklistAreas() {
+    return (await done((await store('checklist_area')).getAll())) as ChecklistArea[];
+  },
+  async checklistItemsIn([w, s, e, n]) {
+    const band = (await done((await store('checklist_item')).index('lat').getAll(IDBKeyRange.bound(s, n)))) as (ChecklistItem & { lat?: number })[];
+    return band.filter((i) => i.at[0] >= w && i.at[0] <= e).map(({ lat: _lat, ...i }) => i);
+  },
+  async listExploreReads() {
+    return (await done((await store('explore_read')).getAll())) as ExploreRead[];
+  },
+  async addFind(f) {
+    const tx = (await conn()).transaction('find', 'readwrite');
+    // The first find of a place stands.
+    tx.objectStore('find').add(f).onerror = (e) => e.preventDefault();
+    return committed(tx).catch(() => {});
+  },
+  async listFinds(walkId) {
+    return (walkId ? await byWalk<Find>('find', walkId) : ((await done((await store('find')).getAll())) as Find[]));
+  },
   async putLanding(r) {
     const tx = (await conn()).transaction('landing', 'readwrite');
     tx.objectStore('landing').put(r);

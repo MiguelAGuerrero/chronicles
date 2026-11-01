@@ -39,12 +39,11 @@ test('landing: rows are kept across builds, marked stale, never silently redone 
   assert.ok(!DERIVED_STORES.includes('landing') && !KEPT_STORES.includes('landing'));
 });
 
-test('landing: the view draws pockets, named strips and one Start here per area; no scores (L9)', () => {
+test('landing: the view draws pockets and named strips, as information: no Start here pin, no scores (L9, explore)', () => {
   const v = landingView([row(m(0, 0), analysis('Thayer Street', m(0, 100))), row(m(5000, 0), analysis('Wickenden Street', m(5000, 100)))], 'b1');
   assert.equal(v.pockets.length, 2);
   assert.deepEqual(v.strips.map((s) => s.name).sort(), ['Thayer Street', 'Wickenden Street']);
-  assert.equal(v.pins.length, 2);
-  assert.ok(v.pins.every((p) => p.label === 'Start here'));
+  assert.ok(!('pins' in v), 'Start here pins are retired');
   const text = JSON.stringify(v);
   assert.ok(!/weight|score|rank/.test(text), 'nothing in the view carries a score');
 });

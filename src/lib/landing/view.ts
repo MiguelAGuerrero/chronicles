@@ -41,7 +41,6 @@ export interface LandingView {
   strips: { lines: LngLat[][]; name: string; at: LngLat; stale: boolean }[];
   /** Names of pockets with no strip of their own (a neighbourhood, "A busy pocket"), at their centre (L9). */
   labels: { name: string; at: LngLat }[];
-  pins: { at: LngLat; label: 'Start here'; street: string | null; key: string }[];
 }
 
 /** A strip's name keeps at least this far from its area's Start here pin, so the two never stack (audit). */
@@ -64,9 +63,14 @@ function labelAt(lines: LngLat[][], peak: LngLat, pin: LngLat | null): LngLat {
   return best;
 }
 
-/** What the map draws for remembered areas (L9): shapes and names only, never a score or rank; stale ones dimmed. */
+/**
+ * What the map draws for remembered areas (L9): shapes and names only, never
+ * a score or rank; stale ones dimmed. Information only: no Start here pin
+ * (retired by explore), though a strip's name still keeps clear of where the
+ * pin was, its busiest point.
+ */
 export function landingView(rows: LandingRow[], build: string | null): LandingView {
-  const v: LandingView = { pockets: [], strips: [], labels: [], pins: [] };
+  const v: LandingView = { pockets: [], strips: [], labels: [] };
   for (const r of rows) {
     const stale = build != null && isStale(r, build);
     const pin = r.analysis.landing?.at ?? null;
@@ -75,7 +79,6 @@ export function landingView(rows: LandingRow[], build: string | null): LandingVi
       if (!p.strips.length) v.labels.push({ name: p.name, at: p.centre });
     }
     for (const s of r.analysis.strips) v.strips.push({ lines: s.lines, name: s.name, at: labelAt(s.lines, s.peak, pin), stale });
-    if (r.analysis.landing) v.pins.push({ at: r.analysis.landing.at, label: 'Start here', street: r.analysis.landing.street, key: r.key });
   }
   return v;
 }

@@ -1,14 +1,8 @@
 import { bearingDeg, distanceM, distanceToLinesM } from '../geo';
-import { NAV } from '../nav/navigator';
-import type { Waypoint } from '../nav/types';
 import type { LngLat } from '../types';
 
-/** On the walk (v1.5 slice 3, L13-L16). */
+/** On the walk (v1.5 slice 3, L14-L15; the loop, L13 and L16, retired by explore). */
 export const LANDING_WALK = {
-  /** The loop stays within navigation's limit... */
-  loopMaxM: NAV.maxM,
-  /** ...walked on streets, about this many times its straight lines (audit). */
-  detour: 1.3,
   /** On a strip: within this of its lines; off it again past the second (no blinking at the edge). */
   stripM: 30,
   stripOffM: 45,
@@ -18,40 +12,7 @@ export const LANDING_WALK = {
   deadMs: 10 * 60_000,
   /** ...with one within this to nudge toward. */
   nudgeM: 1500,
-  /** Reaching the landing (a scan there). */
-  arriveM: 30,
 } as const;
-
-export interface LoopLeg {
-  at: LngLat;
-  label: string;
-}
-
-/**
- * The loop (L13): from the landing through each pocket's centre, nearest
- * next each time, and back; a pocket is taken only while the loop, out and
- * back in straight lines, stays within the limit. The rest are left for
- * another walk.
- */
-export function planLoop(start: LngLat, pockets: { name: string; centre: LngLat }[]): LoopLeg[] {
-  const legs: LoopLeg[] = [];
-  const left = [...pockets];
-  let at = start;
-  let walked = 0;
-  while (left.length) {
-    let best = 0;
-    for (let i = 1; i < left.length; i++) if (distanceM(at, left[i].centre) < distanceM(at, left[best].centre)) best = i;
-    const next = left[best];
-    const leg = distanceM(at, next.centre);
-    if ((walked + leg + distanceM(next.centre, start)) * LANDING_WALK.detour > LANDING_WALK.loopMaxM) break;
-    walked += leg;
-    legs.push({ at: next.centre, label: next.name });
-    at = next.centre;
-    left.splice(best, 1);
-  }
-  legs.push({ at: start, label: 'Back to the start' });
-  return legs;
-}
 
 /** The strip you are on, within 30 m, for the quiet chip (L14); the one you were on holds until 45 m. */
 export function stripAt(here: LngLat, strips: { name: string; lines: LngLat[][] }[], current: string | null = null): string | null {
@@ -93,24 +54,6 @@ export function deadZoneNudge(o: {
 /** Whether the walker is in a dead zone now: further than 400 m from every pocket. */
 export const inDeadZone = (here: LngLat, pockets: { centre: LngLat }[]) =>
   pockets.length > 0 && pockets.every((p) => distanceM(here, p.centre) > LANDING_WALK.deadM);
-
-/**
- * The loop as one waypoint (L13): first the landing, then each pocket nearest
- * first, and back to the landing, numbered "1 of N".
- */
-export function loopWaypoint(at: LngLat, street: string | null, pockets: { name: string; centre: LngLat }[]): Waypoint {
-  const rest = planLoop(at, pockets);
-  const all = [{ at, label: street ?? 'Start here' }, ...rest];
-  const legs: Waypoint[] = all.map((l, i) => ({ at: l.at, label: l.label, kind: 'place', leg: { n: i + 1, of: all.length }, scanOnArrive: i === 0 }));
-  return { ...legs[0], legs: legs.slice(1) };
-}
-
-
-/** The loop's next leg after this one, carrying the rest (L13); null at its end. */
-export function nextLeg(dest: Waypoint): Waypoint | null {
-  const [next, ...rest] = dest.legs ?? [];
-  return next ? { ...next, legs: rest } : null;
-}
 
 /** Whether a dead-zone nudge could fire now, before any storage read (audit: not two reads a fix). */
 export function deadZoneDue(o: { here: LngLat; pockets: { name?: string; centre: LngLat }[]; farSinceMs: number }): boolean {

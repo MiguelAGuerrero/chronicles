@@ -10,16 +10,15 @@ import { CaptionEditor } from '../components/Caption';
 import { CaptureViewer } from '../components/CaptureView';
 import { Icon, KIND_LABEL, type IconName } from '../components/icons';
 import { Banner, Button, HoldButton, LiftIn, theme } from '../components/ui';
-import { DiscoveryPrefs } from '../components/DiscoveryPrefs';
+import { ExploreSettings } from '../components/ExploreSettings';
 import { ReminderCard } from '../components/ReminderCard';
-import { AMBIENT_KEY, MARK_OPEN_KEY, onAmbientHint } from '../lib/discovery/ambientRun';
-import { checkRecalls, onRecallFired, QUIET_KEY, takeRecallOpen } from '../lib/discovery/recallCheck';
+import { checkRecalls, onRecallFired, takeRecallOpen } from '../lib/discovery/recallCheck';
 import { categoryOf } from '../lib/discovery/categories';
-import { loadAutoScan, loadPrefs, savePrefs } from '../lib/discovery/runScan';
 import { deadZoneDue, deadZoneNudge, inDeadZone, stripAt } from '../lib/landing/walk';
 import { landingView, LANDING_VERSION, nearAreas, type LandingRow } from '../lib/landing/view';
 import { placesFromTilePois } from '../lib/discovery/tilePois';
-import { useScan } from '../lib/discovery/useScan';
+import { EXPLORE_KEY, exploredKey, kindOf } from '../lib/explore/explore';
+import { useExplore } from '../lib/explore/useExplore';
 import { db } from '../lib/db';
 import { focusOn } from '../lib/focus';
 import { boundsOf, distanceM, distanceToLinesM, nearPoints, pausedMs } from '../lib/geo';
@@ -27,7 +26,7 @@ import { capturesHere, type HereResult } from '../lib/here';
 import { deriveSegments, streetKey } from '../lib/streets';
 import { feedback, MOTION } from '../lib/motion';
 import { recorder } from '../lib/recorder';
-import { notifier, PAUSE_REMIND_MS } from '../lib/notify';
+import { PAUSE_REMIND_MS } from '../lib/notify';
 import { ensureTileBuild } from '../lib/tiles';
 import type { RecorderStatus } from '../lib/recorder/types';
 import { pauseWalk, resumeWalk, stopWalk } from '../lib/session';
@@ -256,8 +255,12 @@ export default function WalkScreen() {
   const [spot, setSpot] = useState<{ at: LngLat; here: HereResult | null; from: LngLat | null } | null>(null);
   const hereTaps = useRef(0);
   const [hereKey, setHereKey] = useState(0);
+  // Settings (E16-E21), opened from the walk's options; the range is previewed as a ring on this map.
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [preview, setPreview] = useState<number | null>(null);
+  const [panelH, setPanelH] = useState(0);
   async function pressMap(at: LngLat, radiusM?: number) {
-    if (cap.voiceStartedAt != null || stopping || viewing || here || scan.scanning) return;
+    if (cap.voiceStartedAt != null || stopping || viewing || here || settingsOpen) return;
     setMarkOpen(null);
     setOptions(false);
     feedback('tap');
@@ -268,10 +271,14 @@ export default function WalkScreen() {
   }
   // The spot card (and the options card) goes once you walk on, or with Back (Android) and Escape (web).
   useEffect(() => {
-    if (!spot && !options) return;
+    if (!spot && !options && !settingsOpen) return;
     const close = () => {
       setSpot(null);
       setOptions(false);
+      // Settings close as Cancel does (audit, UI).
+      setSettingsOpen(false);
+      setPreview(null);
+      setFollowing(true);
     };
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
       close();
@@ -283,7 +290,7 @@ export default function WalkScreen() {
       back.remove();
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
-  }, [spot, options]);
+  }, [spot, options, settingsOpen]);
   useEffect(() => {
     if (!spot?.from || !live.here || distanceM(spot.from, live.here) < 30) return;
     const t = setTimeout(() => setSpot(null), 0);
@@ -312,47 +319,60 @@ export default function WalkScreen() {
     // Errors stay up long enough to read at a glance, and can be dismissed.
     onError: (m) => setNotice({ message: m, tone: 'error' }),
     onNotice: (m) => setArrived(m),
-    // The landing: a scan there, once, when scanning has its preferences (L16); a loop's next
-    // leg waits for it, so the two never fight over the map (audit).
-    afterArrive: async (dest) => {
-      if (!dest.scanOnArrive || !(await loadPrefs().catch(() => null))) return;
-      await scanRef.current?.(true);
-    },
   });
-  // Scan (v1 slice 2): marks to find within 500 m.
+  // The route ahead of you only; what is behind is walked.
+  const routeLine = useMemo(
+    () => (navigation.nav ? (live.here ? routeAhead(navigation.nav.route.path, live.here) : navigation.nav.route.path) : null),
+    [navigation.nav, live.here],
+  );
+  // Explore (v1 slice 5): checklists are built quietly on every walk (E2); the layers show only
+  // on an exploring walk (E1, E9), and a capture finds a place on any walk.
   const fixes = useMemo(() => live.runs.flat(), [live.runs]);
   const [markOpen, setMarkOpen] = useState<string | null>(null);
-  // Hotspots: the remembered areas, current rules only. A scan's sweep adds one (S21).
   const [landings, setLandings] = useState<LandingRow[]>([]);
-  const scan = useScan({
+  const [exploring, setExploring] = useState(false);
+  const quiet = !exploring;
+  const reloadLandings = useCallback(() => {
+    db.listLandings().then((r) => setLandings(r.filter((x) => x.rules === LANDING_VERSION)), () => {});
+  }, []);
+  const explore = useExplore({
     walkId: walk?.id ?? null,
+    exploring,
     here: live.here,
     fixes,
     captures: cap.captures,
-    map: () => mapRef.current,
-    onNotice: (message, tone) => setNotice({ message, tone }),
-    onSwept: (row) => setLandings((rows) => [...rows.filter((x) => x.key !== row.key), row]),
-    onFound: (m) => {
+    route: routeLine,
+    routePath: navigation.nav?.route.path ?? null,
+    previewRangeM: preview,
+    onAreas: reloadLandings,
+    onFound: (item) => {
+      // Quietly on a quiet walk (E9): kept, shown in the replay, nothing on screen.
+      if (!exploring) return;
       feedback('success');
-      setArrived(`Found: ${m.name}`);
-      AccessibilityInfo.announceForAccessibility(`Found: ${m.name}, ${categoryOf(m.category).label}`);
+      setArrived(`Found: ${item.name}`);
+      AccessibilityInfo.announceForAccessibility(`Found: ${item.name}, ${categoryOf(item.category).label}`);
     },
   });
-  const openMark = scan.open.find((m) => m.id === markOpen) ?? null;
-  // Going to a mark: "Mark" until it is revealed, then its name (S12).
-  const navMarkId = navigation.nav?.dest.kind === 'mark' ? navigation.nav.dest.markId : undefined;
-  const navMark = navMarkId ? scan.marks.find((m) => m.id === navMarkId) : undefined;
+  const openMark = markOpen ? explore.itemOf(markOpen) : null;
+  const openMarkNamed = !!openMark && (explore.revealed.has(openMark.key) || explore.found.has(openMark.key));
+  // Going to a place: "A place to find" until it is revealed, then its name (E12).
+  const navKey = navigation.nav?.dest.kind === 'find' ? navigation.nav.dest.placeKey : undefined;
+  const navItem = navKey ? explore.itemOf(navKey) : null;
   const relabel = navigation.relabel;
   useEffect(() => {
-    if (navMark && scan.revealed.has(navMark.id)) relabel(navMark.name);
-  }, [navMark, scan.revealed, relabel]);
-  // Found or replaced, a mark is no longer somewhere to go (audit).
-  const endNav = navigation.end;
-  useEffect(() => {
-    if (!navMark || navMark.state === 'open') return;
-    const t = setTimeout(endNav, 0);
-    return () => clearTimeout(t);
-  }, [navMark, endNav]);
+    if (navItem && (explore.revealed.has(navItem.key) || explore.found.has(navItem.key))) relabel(navItem.name);
+  }, [navItem, explore.revealed, explore.found, relabel]);
+  // The range preview (E21): the ring is drawn on this map, around you, only while settings are open.
+  const ring = useMemo(() => (preview != null && live.here ? { center: live.here, radiusM: preview } : null), [preview, live.here]);
+  const ringFit = useMemo(() => (ring ? boundsOf([ring.center], ring.radiusM * 1.15) : null), [ring]);
+  const [ringKey, setRingKey] = useState(0);
+  // Each new range refits the map to the ring, above the panel.
+  const onPreview = useCallback((m: number | null) => {
+    setPreview(m);
+    if (m != null) setRingKey((k) => k + 1);
+    // Closed: back to following you, out of the ring's zoom (audit, UI).
+    else setFollowing(true);
+  }, []);
   // Remind me here (v1 slice 4): a flagged capture comes back when this walk
   // passes it (R2, R3). The web checks on each accepted fix here; on a phone
   // the location task checks every batch, and fires reach this card while the
@@ -401,106 +421,40 @@ export default function WalkScreen() {
       alive = false;
     };
   }, [walk, params.recall, resumed]);
-  // This walk's options (A2): a quiet walk (no reminders, no hints), and on a
-  // phone, ambient hints (A1), off unless turned on for this walk.
-  const [quiet, setQuiet] = useState(false);
-  const [ambientOn, setAmbientOn] = useState(false);
+  // This walk explores only once switched on (E1); otherwise it is quiet: navigation and captures (E9).
   useEffect(() => {
     if (!walk) return;
     let alive = true;
-    Promise.all([db.getMeta(QUIET_KEY), db.getMeta(AMBIENT_KEY)])
-      .then(([q, a]) => {
-        if (!alive) return;
-        setQuiet(q === walk.id);
-        setAmbientOn(a === walk.id);
-      })
-      .catch(() => {});
+    db.getMeta(EXPLORE_KEY).then((v) => alive && setExploring(v === walk.id), () => {});
     return () => {
       alive = false;
     };
   }, [walk]);
-  const setWalkFlag = (key: string, on: boolean) => walk && db.setMeta(key, on ? walk.id : '').catch(() => {});
-  // A hint in front is a pill, not a banner (A8); Show opens its mark.
-  const [hint, setHint] = useState<{ text: string; markId: string } | null>(null);
-  const reloadMarks = scan.reload;
-  useEffect(
-    () =>
-      onAmbientHint((text, markId) => {
-        reloadMarks();
-        setHint({ text, markId });
-        AccessibilityInfo.announceForAccessibility(text);
-      }),
-    [reloadMarks],
-  );
-  useEffect(() => {
-    if (!hint) return;
-    const t = setTimeout(() => setHint(null), 15_000);
-    return () => clearTimeout(t);
-  }, [hint]);
-  // Back in front (a notification tapped, the phone unlocked): marks a hint
-  // made in the background are re-read, and a tapped one opens (A9, audit).
-  useEffect(() => {
-    if (resumed) reloadMarks();
-  }, [resumed, reloadMarks]);
-  // A tapped hint notification opens the walk on its mark, with Go here (A9).
-  useEffect(() => {
+  const setExplore = (on: boolean) => {
     if (!walk) return;
-    let alive = true;
-    db.getMeta(MARK_OPEN_KEY)
-      .then(async (id) => {
-        if (!id || !alive) return;
-        await db.setMeta(MARK_OPEN_KEY, '');
-        await reloadMarks();
-        if (alive) setMarkOpen(id);
-      })
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, [walk, reloadMarks, resumed]);
-  // Auto-scan (A2): once per walk, at its first fix, when set in the preferences.
-  // It waits while a route is found (both read the map), and is marked done only once it ran.
-  const scanNow = scan.scan;
-  const autoBusy = useRef(false);
-  const autoDone = useRef(false);
-  const navFinding = navigation.finding;
-  useEffect(() => {
-    if (!walk || !live.here || navFinding || autoBusy.current || autoDone.current) return;
-    autoBusy.current = true;
-    (async () => {
-      if (!(await loadAutoScan()) || (await db.getMeta('auto_scanned')) === walk.id) {
-        autoDone.current = true;
-        return;
-      }
-      const outcome = await scanNow();
-      if (outcome && outcome !== 'busy') {
-        autoDone.current = true;
-        await db.setMeta('auto_scanned', walk.id);
-      }
-    })()
-      .catch(() => {})
-      .finally(() => {
-        autoBusy.current = false;
-      });
-  }, [walk, live.here, navFinding, scanNow]);
+    setExploring(on);
+    if (!on) setMarkOpen(null);
+    db.setMeta(EXPLORE_KEY, on ? walk.id : '').catch(() => {});
+    // Its replay counts what it passed from here on (E11, audit 9): the first time it was switched on.
+    if (on) {
+      const key = exploredKey(walk.id);
+      db.getMeta(key).then((v) => (v ? undefined : db.setMeta(key, String(Date.now()))), () => {}).catch(() => {});
+    }
+  };
   // Hotspots on the walk (v1.5 slice 3): the remembered areas' strips and pockets, current rules
   // only, read again on returning to the front (an area looked at meanwhile, audit).
   useEffect(() => {
-    let alive = true;
-    db.listLandings().then((r) => alive && setLandings(r.filter((x) => x.rules === LANDING_VERSION)), () => {});
-    return () => {
-      alive = false;
-    };
-  }, [resumed]);
+    reloadLandings();
+  }, [resumed, reloadLandings]);
   const hotStrips = useMemo(() => landings.flatMap((r) => r.analysis.strips), [landings]);
-  // Drawn on the walk map too (S21): pockets, strips and their names; Start here is the home's.
+  // Drawn on an exploring walk only (E9), as information: pockets, strips and their names.
   // Only areas within 3 km (audit), keyed so a new fix doesn't rebuild the labels.
   const nearKeys = nearAreas(landings, live.here).map((r) => r.key).join('|');
   const hotView = useMemo(() => {
     const keys = new Set(nearKeys.split('|'));
     const near = landings.filter((r) => keys.has(r.key));
-    return near.length ? { ...landingView(near, build), pins: [] } : null;
-  }, [landings, build, nearKeys]);
+    return near.length && exploring ? landingView(near, build) : null;
+  }, [landings, build, nearKeys, exploring]);
   const hotPockets = useMemo(
     () => landings.flatMap((r) => r.analysis.pockets.map((p) => ({ name: p.name, centre: p.centre, strip: p.strips.length > 0 }))),
     [landings],
@@ -509,9 +463,9 @@ export default function WalkScreen() {
   const [onStrip, setOnStrip] = useState<string | null>(null);
   useEffect(() => {
     const at = live.here;
-    const t = setTimeout(() => setOnStrip((cur) => (at && hotStrips.length ? stripAt(at, hotStrips, cur) : null)), 0);
+    const t = setTimeout(() => setOnStrip((cur) => (at && hotStrips.length && exploring ? stripAt(at, hotStrips, cur) : null)), 0);
     return () => clearTimeout(t);
-  }, [live.here, hotStrips]);
+  }, [live.here, hotStrips, exploring]);
   // A dead zone, 10 min (walking, not paused) from every pocket: once a walk, a pill toward the
   // nearest (L15). Nothing is read from storage until it could fire (audit).
   const farSince = useRef<number | null>(null);
@@ -539,8 +493,8 @@ export default function WalkScreen() {
       alive = false;
     };
   }, [walk, live.here, hotPockets, quiet, pausedNow]);
-  // Spent only once it has been seen: not under a card, a hint, a route or a scan (audit).
-  const nudgeShown = !!nudge && !hint && !spot && !openMark && !options && !navigation.nav && !navigation.finding && !scan.scanning;
+  // Spent only once it has been seen: not under a card, a route or settings, never on a quiet walk (audit).
+  const nudgeShown = !!nudge && !quiet && !spot && !openMark && !options && !settingsOpen && !navigation.nav && !navigation.finding;
   useEffect(() => {
     if (!nudgeShown || !walk) return;
     if (!nudgedRef.current) {
@@ -551,10 +505,6 @@ export default function WalkScreen() {
     const t = setTimeout(() => setNudge(null), 20_000);
     return () => clearTimeout(t);
   }, [nudgeShown, walk, nudge]);
-  const scanRef = useRef(scan.scan);
-  useEffect(() => {
-    scanRef.current = scan.scan;
-  });
   const walkStart: LngLat | null = live.runs[0]?.[0] ?? null;
   // Once, after the first 100 m of a first walk: how to go somewhere.
   const hinted = useRef(false);
@@ -571,11 +521,6 @@ export default function WalkScreen() {
   }, [live.distanceM]);
   // Walk me back once there is somewhere to walk back from.
   const awayFromStart = !!walkStart && !!live.here && distanceM(walkStart, live.here) > 50;
-  // The route ahead of you only; what is behind is walked.
-  const routeLine = useMemo(
-    () => (navigation.nav ? (live.here ? routeAhead(navigation.nav.route.path, live.here) : navigation.nav.route.path) : null),
-    [navigation.nav, live.here],
-  );
   const marks = useMemo<LngLat[]>(
     () => [...(navigation.nav ? [navigation.nav.dest.at] : []), ...(spot ? [spot.at] : [])],
     [navigation.nav, spot],
@@ -713,7 +658,6 @@ export default function WalkScreen() {
     setNotice({ message: `Paused for ${formatDuration(now - openPause.started_at)}. Nothing is recorded until you resume.`, sticky: true });
   }, [openPause, now]);
   const recordingVoice = cap.voiceStartedAt != null;
-  const scanDisabled = scan.scanning || navigation.finding || !live.here || recordingVoice || stopping;
 
   return (
     <View style={styles.screen}>
@@ -724,29 +668,35 @@ export default function WalkScreen() {
         fog={fog}
         captures={cap.captures}
         // Opening a capture would hide a memo that is still recording.
-        onPinPress={recordingVoice || stopping || scan.scanning ? undefined : setViewing}
+        onPinPress={recordingVoice || stopping || settingsOpen ? undefined : setViewing}
         walker={live.here}
         glideWalker
         walkerHeading={live.heading}
         // Not while a route is found: the street read moves the camera itself.
-        follow={following && !navigation.finding && !scan.scanning ? live.here : null}
+        follow={following && !navigation.finding && !ring ? live.here : null}
         onPress={() => {
           setSpot(null);
           setMarkOpen(null);
         }}
-        discoveries={scan.pins}
-        onDiscoveryPress={recordingVoice || stopping || scan.scanning ? undefined : (id) => {
+        discoveries={explore.pins}
+        onDiscoveryPress={recordingVoice || stopping || settingsOpen ? undefined : (id) => {
+          // A found place is shown, not a card to open: its capture's pin is the thing to tap (audit, UI).
+          if (explore.found.has(id)) return;
           setSpot(null);
           setMarkOpen(id);
         }}
         marks={marks}
+        ring={ring}
+        fitBounds={ringFit}
+        fitKey={ringKey}
+        fitPadding={{ top: insets.top + 24, bottom: panelH + 24, left: 24, right: 24 }}
         onUserMove={() => setFollowing(false)}
         // A long press, so a stray tap while walking does nothing.
         onLongPress={pressMap}
         route={routeLine}
         // While navigating the trace steps aside, so the route reads; it is still recorded (the owner's call, Nov 2).
         traceOpacity={navigation.nav ? 0 : 1}
-        covered={navigation.finding || scan.scanning}
+        covered={navigation.finding}
         veil={showUnwalked}
         fogEmphasis={showUnwalked}
         ref={mapRef}
@@ -763,9 +713,9 @@ export default function WalkScreen() {
               testID="nav-left"
               style={styles.navText}
               numberOfLines={1}
-              accessibilityLabel={`${navigation.nav.dest.leg ? `Leg ${navigation.nav.dest.leg.n} of ${navigation.nav.dest.leg.of}: ` : ''}${formatDistance(navigation.nav.leftM)} left to ${navigation.nav.dest.label}`}
+              accessibilityLabel={`${formatDistance(navigation.nav.leftM)} left to ${navigation.nav.dest.label}`}
             >
-              {formatDistance(navigation.nav.leftM)} · {navigation.nav.dest.leg ? `${navigation.nav.dest.leg.n} of ${navigation.nav.dest.leg.of} · ` : ''}{navigation.nav.dest.label}
+              {formatDistance(navigation.nav.leftM)} · {navigation.nav.dest.label}
             </Text>
             <Pressable testID="nav-end" accessibilityRole="button" accessibilityLabel="End navigation" onPress={navigation.end} style={styles.navEnd} hitSlop={8}>
               <Text style={styles.navEndText}>End</Text>
@@ -783,15 +733,6 @@ export default function WalkScreen() {
             <ActivityIndicator color={theme.ink} />
             <Text style={styles.findingText}>Finding a route</Text>
             <Pressable testID="nav-cancel" accessibilityRole="button" accessibilityLabel="Cancel finding a route" onPress={navigation.cancel} style={styles.findingCancel} hitSlop={8}>
-              <Text style={styles.findingCancelText}>Cancel</Text>
-            </Pressable>
-          </View>
-        )}
-        {scan.scanning && (
-          <View style={styles.finding} accessibilityLiveRegion="polite">
-            <ActivityIndicator color={theme.ink} />
-            <Text style={styles.findingText}>Scanning…</Text>
-            <Pressable testID="scan-cancel" accessibilityRole="button" accessibilityLabel="Cancel the scan" onPress={scan.cancel} style={styles.findingCancel} hitSlop={8}>
               <Text style={styles.findingCancelText}>Cancel</Text>
             </Pressable>
           </View>
@@ -831,27 +772,6 @@ export default function WalkScreen() {
               <Text style={styles.undoBtnText}>Go here</Text>
             </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel="Dismiss" onPress={() => setNudge(null)} hitSlop={10}>
-              <Icon name="close" size={18} color="#ffffff" />
-            </Pressable>
-          </View>
-        )}
-        {hint && !spot && !openMark && !options && (
-          <View testID="ambient-hint" style={styles.undo}>
-            <Text style={styles.undoText}>{hint.text}</Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Show the hint: ${hint.text}`}
-              onPress={() => {
-                setOptions(false);
-                setMarkOpen(hint.markId);
-                setHint(null);
-              }}
-              hitSlop={10}
-              style={styles.undoBtn}
-            >
-              <Text style={styles.undoBtnText}>Show</Text>
-            </Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel="Dismiss the hint" onPress={() => setHint(null)} hitSlop={10}>
               <Icon name="close" size={18} color="#ffffff" />
             </Pressable>
           </View>
@@ -980,7 +900,7 @@ export default function WalkScreen() {
           <Pressable
             testID="walk-options"
             accessibilityRole="button"
-            accessibilityLabel={quiet ? 'Walk options, quiet walk on' : 'Walk options'}
+            accessibilityLabel={exploring ? 'Walk options, exploring' : 'Walk options'}
             accessibilityState={{ expanded: options }}
             onPress={() => {
               setSpot(null);
@@ -989,7 +909,7 @@ export default function WalkScreen() {
             }}
             style={({ pressed }) => [styles.pauseBtn, options && styles.optionsOn, pressed && styles.pressed]}
           >
-            <Icon name={quiet ? 'notifications-off-outline' : 'options-outline'} size={20} color={options ? '#ffffff' : theme.ink} />
+            <Icon name={exploring ? 'compass-outline' : 'options-outline'} size={20} color={options ? '#ffffff' : theme.ink} />
           </Pressable>
           <Pressable
             testID={paused ? 'resume-walk' : 'pause-walk'}
@@ -1009,7 +929,7 @@ export default function WalkScreen() {
             onHold={stop}
             onTap={() => setToast('Hold to stop the walk')}
             busy={stopping}
-            disabled={!walk || pausing || scan.scanning}
+            disabled={!walk || pausing}
           >
             <View style={styles.stopInner}>
               <Icon name="stop" size={18} color={theme.ink} />
@@ -1050,29 +970,13 @@ export default function WalkScreen() {
           testID="walk-back"
           accessibilityRole="button"
           accessibilityLabel="Walk me back to the start"
-          disabled={navigation.finding || scan.scanning}
+          disabled={navigation.finding}
           onPress={() => navigation.goTo({ at: walkStart, label: 'Start', kind: 'start' })}
           style={({ pressed }) => [styles.edgeBtn, { right: edgeRight, bottom: insets.bottom + EDGE_BOTTOM + 168 }, pressed && styles.pressed]}
         >
           <Icon name="arrow-undo" size={22} color={theme.ink} />
         </Pressable>
       )}
-
-      {/* Scan: about six marks to find within 500 m (S1). */}
-      <Pressable
-        testID="scan"
-        accessibilityRole="button"
-        accessibilityLabel="Scan for places to find nearby"
-        disabled={scanDisabled}
-        onPress={() => {
-          setSpot(null);
-          setMarkOpen(null);
-          scan.scan();
-        }}
-        style={({ pressed }) => [styles.edgeBtn, { right: edgeRight, bottom: insets.bottom + EDGE_BOTTOM + 112 }, scanDisabled && styles.edgeBtnOff, pressed && styles.pressed]}
-      >
-        <Icon name="scan-outline" size={22} color={theme.ink} />
-      </Pressable>
 
       {!following && live.here && (
         // Back to following the walker, after looking around the map.
@@ -1093,63 +997,51 @@ export default function WalkScreen() {
             <Text style={styles.spotTitle} accessibilityRole="header">This walk</Text>
             <View style={styles.optionRow}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.optionLabel}>Quiet walk</Text>
-                <Text style={styles.markSub}>No reminders{Platform.OS === 'web' ? '' : ' and no hints'} on this walk.</Text>
+                <Text style={styles.optionLabel}>Explore</Text>
+                <Text style={styles.markSub}>
+                  {exploring
+                    ? 'Places to find show as “?” when they’re close, with busy streets and reminders.'
+                    : 'Off: a quiet walk, just navigation and your captures. Captures still find places.'}
+                </Text>
               </View>
-              <Switch
-                testID="quiet-walk"
-                accessibilityLabel="Quiet walk"
-                value={quiet}
-                onValueChange={(v) => {
-                  setQuiet(v);
-                  setWalkFlag(QUIET_KEY, v);
-                }}
-              />
+              <Switch testID="explore-walk" accessibilityLabel="Explore" value={exploring} onValueChange={setExplore} />
             </View>
-            {/* Ambient is phone-only (A1): the web shows no setting. */}
-            {Platform.OS !== 'web' && (
-              <View style={styles.optionRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.optionLabel}>Hints along the way</Text>
-                  <Text style={styles.markSub}>
-                    {quiet ? 'Off during a quiet walk.' : 'Up to three nudges toward something on a street you haven’t walked.'}
-                  </Text>
-                </View>
-                <Switch
-                  testID="ambient"
-                  accessibilityLabel="Hints along the way"
-                  value={ambientOn}
-                  disabled={quiet}
-                  onValueChange={(v) => {
-                    setAmbientOn(v);
-                    setWalkFlag(AMBIENT_KEY, v);
-                    if (v) notifier.ask().catch(() => {});
-                  }}
-                />
-              </View>
-            )}
+            <Pressable
+              testID="open-settings"
+              accessibilityRole="button"
+              accessibilityLabel="Settings: what I’m into and the question mark range"
+              onPress={() => {
+                setOptions(false);
+                setMarkOpen(null);
+                setSpot(null);
+                setSettingsOpen(true);
+              }}
+              style={({ pressed }) => [styles.optionRow, pressed && styles.pressed]}
+            >
+              <Icon name="settings-outline" size={20} color={theme.ink} />
+              <Text style={[styles.optionLabel, { flex: 1 }]}>What I’m into, and the “?” range</Text>
+              <Icon name="chevron-forward" size={18} color={theme.muted} />
+            </Pressable>
             <Pressable testID="options-close" accessibilityRole="button" accessibilityLabel="Close" onPress={() => setOptions(false)} style={[styles.spotClose, { position: 'absolute', top: 4, right: 4 }]} hitSlop={8}>
               <Icon name="close" size={22} color={theme.ink} />
             </Pressable>
           </View>
         </View>
       )}
-      {openMark && !spot && (
-        // A mark's card, in the spot card's place (S7, S9, S12).
+      {openMark && !spot && !quiet && (
+        // A place's card, in the spot card's place (E7, E8, E12).
         <View style={[styles.spotRow, { bottom: insets.bottom + 92 + 68 + 12 }]} pointerEvents="box-none">
           <View testID="mark-card" style={styles.spot} accessibilityViewIsModal>
-            {scan.revealed.has(openMark.id) ? (
-              <Text style={styles.spotTitle} accessibilityRole="header">
-                {openMark.name} · {categoryOf(openMark.category).label}
-              </Text>
-            ) : (
-              <Text style={styles.spotTitle} accessibilityRole="header">A mark to find</Text>
-            )}
+            <Text style={styles.spotTitle} accessibilityRole="header">
+              {openMarkNamed ? `${openMark.name} · ${kindOf(openMark.kind).label}` : 'A place to find'}
+            </Text>
             <Text style={styles.markSub}>
               {live.here ? `${formatDistance(distanceM(live.here, openMark.at))} away. ` : ''}
-              {scan.revealed.has(openMark.id)
-                ? 'Take a photo, a memo or a note here to find it.'
-                : `Walk within ${openMark.origin === 'ambient' ? 30 : 60} m to see what it is.`}
+              {explore.found.has(openMark.key)
+                ? 'Found.'
+                : openMarkNamed
+                  ? 'Take a photo, a memo or a note here to find it.'
+                  : 'Walk within 60 m to see what it is.'}
             </Text>
             <View style={styles.spotActions}>
               <Button
@@ -1158,21 +1050,9 @@ export default function WalkScreen() {
                 onPress={() => {
                   const m = openMark;
                   setMarkOpen(null);
-                  navigation.goTo({ at: m.at, label: scan.revealed.has(m.id) ? m.name : 'Mark', kind: 'mark', markId: m.id });
+                  navigation.goTo({ at: m.at, label: openMarkNamed ? m.name : 'A place to find', kind: 'find', placeKey: m.key });
                 }}
-                disabled={navigation.finding || scan.scanning}
-              />
-              <Button
-                testID="mark-dismiss"
-                variant="secondary"
-                label="Dismiss"
-                onPress={() => {
-                  const id = openMark.id;
-                  setMarkOpen(null);
-                  if (navMarkId === id) navigation.end();
-                  scan.dismiss(id);
-                  setToast('Passed on');
-                }}
+                disabled={navigation.finding}
               />
               <Pressable testID="mark-close" accessibilityRole="button" accessibilityLabel="Close" onPress={() => setMarkOpen(null)} style={styles.spotClose} hitSlop={8}>
                 <Icon name="close" size={22} color={theme.ink} />
@@ -1181,17 +1061,13 @@ export default function WalkScreen() {
           </View>
         </View>
       )}
-      <DiscoveryPrefs
-        key={scan.asking ? 'asking' : 'idle'}
-        visible={scan.asking}
-        initial={null}
-        actionLabel="Scan"
-        onClose={() => scan.setAsking(false)}
-        onDone={async (prefs) => {
-          scan.setAsking(false);
-          await savePrefs(prefs).catch(() => {});
-          scan.scan(true);
-        }}
+      <ExploreSettings
+        visible={settingsOpen}
+        hasRing={!!live.here}
+        bottomInset={insets.bottom}
+        onHeight={setPanelH}
+        onClose={() => setSettingsOpen(false)}
+        onPreview={onPreview}
       />
 
       <CaptureViewer
@@ -1205,7 +1081,7 @@ export default function WalkScreen() {
         remind
         walkId={walk?.id ?? null}
         onSaveCaption={(c, caption, y) => cap.setCaption(c.id, caption, y)}
-        onGoHere={navigation.finding || scan.scanning ? undefined : (c) => {
+        onGoHere={navigation.finding ? undefined : (c) => {
           setViewing(null);
           if (c.lat != null && c.lon != null) navigation.goTo({ at: [c.lon, c.lat], label: KIND_LABEL[c.kind], kind: 'capture' });
         }}
@@ -1233,7 +1109,7 @@ export default function WalkScreen() {
                   setSpot(null);
                   navigation.goTo({ at, label: 'Your spot', kind: 'point' });
                 }}
-                disabled={navigation.finding || scan.scanning}
+                disabled={navigation.finding}
               />
               {spot.here && (
                 <Button
