@@ -3,7 +3,7 @@ import type { MarkPin } from '../../components/MarkPinView';
 import { db } from '../db';
 import { categoryOf } from '../discovery/categories';
 import { boundsOf, distanceM } from '../geo';
-import { tapFeedback } from '../haptics';
+import { feedback } from '../motion';
 import { sweepCovered } from '../landing/view';
 import type { Capture, LngLat } from '../types';
 import {
@@ -236,7 +236,7 @@ export function useExplore(opts: {
     const due = alertsDue(shown.filter((s) => s.state === 'unknown').map((s) => s.item.key), alerted.current);
     if (!due.length) return;
     for (const k of due) alerted.current.add(k);
-    tapFeedback();
+    feedback('tap');
   }, [exploring, settings.haptic, shown]);
 
   const pins = useMemo<MarkPin[]>(() => {
