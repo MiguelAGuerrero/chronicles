@@ -1,5 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import type { Star } from '../lib/places';
+import { starEnter } from '../lib/enter';
+import { Enter, useOwnEnter } from './Enter';
 import { Icon } from './icons';
 import { theme } from './ui';
 
@@ -25,10 +27,14 @@ export function namedStars(stars: Star[]): Set<string> {
  * zoom, their count beside a small star (so it never reads as a group of
  * capture pins). The selected one is ringed; the busiest carry their name.
  */
-export function StarView({ star, selected, named }: { star: Star; selected?: boolean; named?: boolean }) {
-  return (
-    <View style={styles.wrap} pointerEvents="none">
-      <View style={[styles.star, selected && styles.selected]}>
+const ownStar = (prev: boolean, next: boolean) => starEnter(prev, next);
+
+/** `enter` is the map's call on web; without it the view notices its own selection (native). M9. */
+export function StarView({ star, selected, named, enter }: { star: Star; selected?: boolean; named?: boolean; enter?: 'bounce' | null }) {
+  const own = useOwnEnter(!!selected, ownStar);
+  const kind = enter === undefined ? own.kind : enter;
+  const head = (
+    <View style={[styles.star, selected && styles.selected]}>
         {star.count > 1 ? (
           <View style={styles.merged}>
             <Icon name="star" size={11} color="#ffffff" />
@@ -37,7 +43,17 @@ export function StarView({ star, selected, named }: { star: Star; selected?: boo
         ) : (
           <Icon name="star" size={18} color="#ffffff" />
         )}
-      </View>
+    </View>
+  );
+  return (
+    <View style={styles.wrap} pointerEvents="none">
+      {kind === 'bounce' ? (
+        <Enter key={own.n} kind="bounce">
+          {head}
+        </Enter>
+      ) : (
+        head
+      )}
       {named && (
         <Text style={styles.name} numberOfLines={1}>
           {star.label}

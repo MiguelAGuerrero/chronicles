@@ -1,4 +1,5 @@
 import { AppState } from 'react-native';
+import { createOpeners } from '../openers';
 import { db } from '../db';
 import { boundsOf, distanceM } from '../geo';
 import { notifier } from '../notify';
@@ -85,21 +86,17 @@ export function checkRecalls(walkId: string, path: LngLat[], now = Date.now()): 
 }
 
 // A tapped reminder opens on the screen in front at once (audit 1): meta only waits for a cold start.
-let opener: ((captures: Capture[]) => void) | null = null;
-export function onRecallOpen(fn: (captures: Capture[]) => void): () => void {
-  opener = fn;
-  return () => {
-    if (opener === fn) opener = null;
-  };
+// Every screen that can open one listens; the newest is asked first, and one that can't passes it on.
+const openers = createOpeners<Capture[]>();
+/** Listen for tapped reminders; return true when this screen opened it. */
+export function onRecallOpen(fn: (captures: Capture[]) => boolean): () => void {
+  return openers.add(fn);
 }
-/** Opens a tapped reminder's captures where a screen listens; else keeps them for the next screen (R4). Resolves whether one opened. */
+/** Opens a tapped reminder's captures where a screen takes them; else keeps them for the next screen (R4). Resolves whether one opened. */
 export async function openRecall(ids: string[]): Promise<boolean> {
-  if (opener) {
+  if (openers.size()) {
     const found = await db.getCapturesByIds(ids).catch(() => []);
-    if (found.length && opener) {
-      opener(found);
-      return true;
-    }
+    if (found.length && openers.offer(found)) return true;
   }
   await db.setMeta(RECALL_OPEN_KEY, JSON.stringify(ids));
   return false;

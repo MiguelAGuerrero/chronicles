@@ -11,6 +11,7 @@ import type { RoadFeature } from '../../lib/streets';
 import type { Capture } from '../../lib/types';
 import { TILEJSON_URL } from '../../lib/tiles';
 import { useGlidingWalker } from '../../lib/useGlidingWalker';
+import { markEnter, pinDrops, sameSeen } from '../../lib/enter';
 import { useReducedMotion } from '../../lib/motion';
 import { MOTION } from '../../lib/motionTokens';
 import {
@@ -37,6 +38,21 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   // Pins grouped for the current zoom, so nearby ones merge instead of piling up.
   const pins = useZoomPins(props.captures, view?.zoom ?? props.initialZoom ?? null, view?.lat ?? null);
   const memoryPins = useZoomPins(props.memories ?? NO_CAPTURES, view?.zoom ?? props.initialZoom ?? null, view?.lat ?? null);
+  // What was on screen before this change, for the deferred four (M10-M12): a remounted pin's view
+  // gets its entrance from here. Nothing animates on first render, nor for captures older than the screen.
+  const [openedAt] = useState(() => Date.now());
+  const [seenMarks, setSeenMarks] = useState<ReadonlyMap<string, string>>(() => new globalThis.Map());
+  const [seenCaptures, setSeenCaptures] = useState<ReadonlySet<string>>(() => new Set());
+  // New state only on a real change: the discoveries array is new on every fix (audit 2, render budget).
+  useEffect(() => {
+    const marks = (props.discoveries ?? []).map((p) => [p.id, markState(p)] as const);
+    const ids = props.captures.map((c) => c.id);
+    const t = setTimeout(() => {
+      setSeenMarks((cur) => (sameSeen(cur, marks) ? cur : new globalThis.Map(marks)));
+      setSeenCaptures((cur) => (cur.size === ids.length && ids.every((id) => cur.has(id)) ? cur : new Set(ids)));
+    }, 0);
+    return () => clearTimeout(t);
+  }, [props.discoveries, props.captures]);
   // Camera moves take the app's camera timing, and jump with reduce motion on (M2).
   const reduced = useReducedMotion();
   const duration = props.animate === false || reduced ? 0 : MOTION.camera;
@@ -310,7 +326,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
               accessibilityLabel={pinLabel(pin, !!props.onPinPress)}
               style={styles.pinHit}
             >
-              <CapturePinView pin={pin} />
+              <CapturePinView pin={pin} drop={pinDrops(pin.captures, seenCaptures, openedAt)} />
             </View>
           </Marker>
         ))}
@@ -323,7 +339,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             onPress={props.onDiscoveryPress && !pin.found ? () => props.onDiscoveryPress?.(pin.id) : undefined}
           >
             <View accessible accessibilityRole={pin.found ? 'image' : 'button'} accessibilityLabel={markLabel(pin)} style={pin.found ? undefined : styles.pinHit}>
-              <MarkPinView pin={pin} />
+              <MarkPinView pin={pin} enter={seenMarks.size ? markEnter(markFrom(seenMarks.get(pin.id)), pin) : null} />
             </View>
           </Marker>
         ))}
@@ -375,3 +391,6 @@ const TraceSource = memo(function TraceSource(props: { id: string; data: GeoJSON
 });
 
 const NO_CAPTURES: Capture[] = [];
+
+const markState = (p: { revealed: boolean; found?: boolean; faint?: boolean }) => `${p.revealed ? 'r' : ''}${p.found ? 'f' : ''}${p.faint ? 'w' : ''}`;
+const markFrom = (v: string | undefined) => (v == null ? undefined : { revealed: v.includes('r'), found: v.includes('f'), faint: v.includes('w') });

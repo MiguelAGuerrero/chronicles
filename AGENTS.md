@@ -471,7 +471,12 @@ Read this before changing recording, streets, the replay or storage.
     `inFront`. The phone lists background notices quietly in front; the web
     skips them while the page is visible.
   - **A tap opens at once** where a screen listens (`onRecallOpen`, the walk or
-    the home); meta `recall_open` waits only for a cold start. A phone also
+    the home); meta `recall_open` waits only for a cold start.
+    - Listeners stack (`lib/openers.ts`), newest first, and return whether they
+      opened it. The home declines while a walk is open, so the tap goes on to
+      the walk.
+    - A single slot once let the walk screen take the home's place and leave
+      none, and a tap opened on both screens at once (Nov 1). A phone also
     reads `getLastNotificationResponse()` at load, so a tap that launched the
     app is kept.
   - **Web cold open:** with no window, `sw.js` opens the scope with the tap in
@@ -635,6 +640,9 @@ Read this before changing recording, streets, the replay or storage.
 - **Under this walk's pins:** memory markers get z-index 0 on web and are drawn
   first on native. A faint pin shrinks toward its stem's foot. Its label is "N
   memories here".
+- **A clock badge** (MR10, after the audit: a faded pin read as "my pin, faded")
+  marks a memory pin as from the past. It is a solid ink disc with a white clock,
+  outside the fade, unlike a find's white check.
 - **Native** (unverified on a device): the memory Markers.
 
 ## Polish: motion (the spec is the concept doc's "Polish: motion" tab)
@@ -668,8 +676,28 @@ Read this before changing recording, streets, the replay or storage.
 - **Testing motion on the web:** `emulateMedia({ reducedMotion: 'reduce' })`.
   A mouse drag on a moving element is cancelled by the browser and reads as a
   tap, so drag a moving sheet with CDP touch events, as on a phone.
-- **Deferred** (after Explore): a star bounce, a pin drop on capture, the ?
-  flipping to its name, a pulse on finding a place.
+- **The deferred four** (M9-M12; `lib/enter.ts` pure, `components/Enter.tsx`).
+  Each plays once, when its change happens in front of you, never when a
+  screen opens or reloads.
+  - A selected star settles from 85%.
+  - A new capture's pin drops 12 px.
+  - A revealed "?" turns in a quarter turn.
+  - A find grows a ring that fades; the pin stays still and lets taps through.
+  - On web, a map rebuilds a marker on every change, so the map decides
+    (`markEnter`, `starEnter`, `pinDrops` against what it showed before).
+  - On native, the map keeps what was shown in state. A star's view stays
+    mounted and notices its own selection (`useOwnEnter`).
+  - A view latches its entrance at mount, so a later render can't cut it short,
+    and `Enter` renders the plain child once it has played (no transform or
+    layer left on the pin).
+  - The turn starts at 60°, so the "?" is seen turning. A place coming back from
+    a faint route pin doesn't turn again.
+  - On native, `seenMarks` and `seenCaptures` change only on a real change
+    (`sameSeen`), because the discoveries array is new on every fix. The
+    star's `useOwnEnter` counts changes, so each selection plays afresh.
+  - The e2e records each entrance as it appears (`window.__enters`: kind,
+    whether it moved a frame later, its marker's label and ids), so a stuck or
+    vacuous wrapper fails.
 - **Native** (unverified on a device): the native-driver press and lift, the
   sheet spring.
 - The e2e's mouse drag on the home map doesn't pan it, so H5's "kept its view

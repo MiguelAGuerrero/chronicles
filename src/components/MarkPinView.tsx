@@ -1,4 +1,7 @@
+import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import type { EnterKind } from '../lib/enter';
+import { Enter } from './Enter';
 import type { IconName } from './icons';
 import { Icon } from './icons';
 
@@ -27,7 +30,23 @@ const NAME_WIDTH = 140;
  * a "?" until it is revealed, then the category's icon and the name below.
  * Anchored at its bottom, like a capture pin.
  */
-export function MarkPinView({ pin }: { pin: MarkPin }) {
+/**
+ * `enter` is the map's call: both maps rebuild a mark's view on each change, and know what it
+ * showed before (M11 turns, M12 pulses). Kept from mount, so a later render can't cut it short.
+ */
+export function MarkPinView({ pin, enter }: { pin: MarkPin; enter?: EnterKind | null }) {
+  const [kind] = useState(enter ?? null);
+  const body = <MarkBody pin={pin} />;
+  if (kind === 'flip' || kind === 'pulse')
+    return (
+      <Enter kind={kind} ring={[styles.ringAt, pin.found && styles.ringFound]}>
+        {body}
+      </Enter>
+    );
+  return body;
+}
+
+function MarkBody({ pin }: { pin: MarkPin }) {
   const shown = pin.revealed || pin.found;
   return (
     <View style={[styles.wrap, pin.faint && styles.faint, pin.found && styles.wrapFound]} pointerEvents="none">
@@ -84,6 +103,9 @@ const styles = StyleSheet.create({
   wrapFound: { width: 26, height: 32 },
   headFound: { backgroundColor: FOUND_COLOR, width: 24, height: 24, borderRadius: 7 },
   stemFound: { backgroundColor: FOUND_COLOR },
+  // A find's ring grows from the head (M12).
+  ringAt: { top: 0, left: 1, width: 34, height: 34, borderRadius: 9 },
+  ringFound: { left: 1, width: 24, height: 24, borderRadius: 7 },
   check: {
     position: 'absolute', right: -6, top: -6, width: 16, height: 16, borderRadius: 8, backgroundColor: '#ffffff',
     alignItems: 'center', justifyContent: 'center',

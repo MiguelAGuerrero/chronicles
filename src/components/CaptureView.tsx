@@ -445,7 +445,7 @@ export function CaptureViewer(props: {
               <Icon name="navigate" size={22} color={theme.ink} />
             </Pressable>
           )}
-          <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={close} style={styles.roundBtn} hitSlop={8}>
+          <Pressable testID="viewer-close" accessibilityRole="button" accessibilityLabel="Close" onPress={close} style={styles.roundBtn} hitSlop={8}>
             <Icon name="close" size={26} color={theme.ink} />
           </Pressable>
         </View>

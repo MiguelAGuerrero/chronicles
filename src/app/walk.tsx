@@ -470,6 +470,7 @@ export default function WalkScreen() {
     const off = onRecallOpen((found) => {
       setAutoPlay(true);
       setViewing(found);
+      return true;
     });
     takeRecallOpen()
       .then((found) => {
