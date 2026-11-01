@@ -13,6 +13,8 @@ import { focusOn } from '../../lib/focus';
 import { boundsOf, type Bounds } from '../../lib/geo';
 import { schedule, timedRuns, traceUntil, walkerAt, walkTimeAt, type Schedule, type TimedRun } from '../../lib/replay';
 import { loadReplay } from '../../lib/summary';
+import { useVisible } from '../../lib/deletion/useDeletions';
+import { UndoToast } from '../../components/UndoToast';
 import type { Capture, LngLat } from '../../lib/types';
 
 const FRAME_MS = 33;
@@ -251,7 +253,7 @@ export default function DayReplay() {
   const walker = pathWalk ? walkerAt(pathWalk.runs, walkT) : null;
 
   // Pins appear as their moments are reached; on the card every pin opens its moments.
-  const pinned = useMemo(() => {
+  const pinnedAll = useMemo(() => {
     if (!data) return [];
     if (onCard) return dayCaptures(data.day);
     const shown: Capture[] = [];
@@ -261,6 +263,8 @@ export default function DayReplay() {
     }
     return shown;
   }, [data, plan, phase.i, phase.item, onCard]);
+  // A moment deleted from its viewer leaves its pin (D3).
+  const pinned = useVisible(pinnedAll);
 
   // A fly step is a fit to its frame; the path follows the walker at that zoom.
   const follow = reduceMotion ? null : walker;
@@ -392,6 +396,7 @@ export default function DayReplay() {
           </View>
         </View>
       )}
+      <UndoToast style={{ top: insets.top + 12 }} />
     </View>
   );
 }

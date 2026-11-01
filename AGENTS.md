@@ -600,7 +600,7 @@ Read this before changing recording, streets, the replay or storage.
     (`looseRestMs`) so a walk started on the spot doesn't fire it at once.
 - **Deferred:** quick capture outside the app (widget, lock screen, share
   sheet); Remind me here firing outside a walk (needs background location);
-  moments in a place's stars; deleting a moment; the home reading every
+  moments in a place's stars; the home reading every
   capture row on focus (rows are small; per-day counts would need storing);
   moment pins filtered to the viewport; "Today" refreshing past midnight
   without a focus; a day of only placeless moments replays over the world map.
@@ -790,6 +790,44 @@ Read this before changing recording, streets, the replay or storage.
   (`rides audit N` in `rides.test.ts`); old walks gain their rides' places only when
   their replay opens, as with every rule change.
 
+## Clearing walks and moments (the spec is the concept doc's "Clearing walks and moments" tab, D1-D11)
+
+- **Three deletes, to free storage** (the owner's calls, Nov 1): a whole walk,
+  a walk's photos, videos and memos (the walk stays), or one moment. A walk's
+  actions are its More (⋯) button on its home-sheet row (walks list and a
+  day's timeline) and on its replay card (`WalkActions`). A moment's is the
+  capture viewer's Delete, wherever the viewer opens. No Storage screen.
+- **As if it never happened:** a deleted walk takes its trace, pauses,
+  captures and files, summary, visited and area rows (areas no walk uses go),
+  finds, reminders, marks and `explored:<walk>`; later walks' new streets are
+  recounted (`recountNewStreets`). A deleted moment takes its reminder and its
+  find. Removing a walk's media keeps its finds (`keepFinds`). Offered places,
+  checklists and busy areas never move.
+- **Storage:** `db.deleteWalk` and `db.deleteCaptures`, one transaction each
+  (web: any error aborts it, `atomically`). Rows go first, then files
+  (`removeMedia`: each ref, plus a whole walk's `walks/<id>/` folder; never
+  `walks/moments/`). A file that fails to delete is left behind, never a row
+  without its file. `filesOf` skips `THUMB.none` and `data:` refs.
+- **Undo is memory, not storage** (`deletion/pending.ts`, pure; `deletion/index.ts`
+  wires it). A delete hides its ids at once and runs after 5 s, or at once when
+  the app goes to the background or another delete is confirmed. A killed app
+  drops a waiting delete. Ids stay hidden after they went, so a screen's stale
+  list never shows them. A failure unhides them and says "Couldn't delete."
+  - Every screen that lists walks or captures filters by `useHidden` /
+    `useVisible`: the home (walks, rows, summaries, capture rows), the walk
+    screen (its captures, which also feed Explore, and memory pins), the
+    replay (captures and the card's counts via `summaryLess`), the day screen
+    (pins) and the viewer itself.
+  - `UndoToast` renders in each screen and in the viewer; only the newest
+    mounted one shows (a phone's Modal hides what the screen draws).
+  - The home reads again when a delete reached storage (`useOnDeleted`).
+- **Deferred:** a phone's leftover files after a failed delete (no sweep yet);
+  a day replay's "Watch again" still stops at a moment deleted during it; the
+  replay card keeps a deleted moment's find in its line until reopened; a
+  notification already shown for a deleted moment opens nothing.
+- **Native** (unverified on a device): the SQLite deletes, file and folder
+  removal, `Directory.size`, and the Undo pill over the viewer's Modal.
+
 ## Working with the owner
 
 - **Ask before architectural decisions:** libraries, data model, platform strategy,
@@ -818,7 +856,7 @@ Read this before changing recording, streets, the replay or storage.
 
 ## Architecture in one breath
 
-- **Truth vs. cache.** Walk, TracePoint and Capture are truth, append-only apart from
+- **Truth vs. cache.** Walk, TracePoint and Capture are truth, append-only (deletes aside: see Clearing walks and moments) apart from
   the walk's own fields and a capture's placement at stop. StreetSegment,
   VisitedSegment and WalkSummary are a cache, tagged with the tile build, and can be
   dropped and rebuilt. Recompute from the trace; never patch derived data.

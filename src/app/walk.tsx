@@ -38,6 +38,8 @@ import { useCaptures } from '../lib/useCaptures';
 import { useLiveTrace } from '../lib/useLiveTrace';
 import { routeAhead } from '../lib/nav/navigator';
 import { useNavigation } from '../lib/nav/useNavigation';
+import { useVisible } from '../lib/deletion/useDeletions';
+import { UndoToast } from '../components/UndoToast';
 
 /** Streets around the walker: read from the map and shown as fog this far out. */
 const NEAR_RADIUS_M = 1000;
@@ -185,6 +187,8 @@ export default function WalkScreen() {
   }, []);
   const live = useLiveTrace(walk?.id ?? null, walk?.started_at ?? null, pauses, onGap);
   const cap = useCaptures(walk?.id ?? null, live.here, live.lastFixAt, onCaptureError);
+  // A deleted moment leaves the pins, Explore and the viewer at once (D3, D5).
+  const captures = useVisible(cap.captures);
 
   useEffect(() => {
     if (!notice || notice.sticky) return;
@@ -278,7 +282,7 @@ export default function WalkScreen() {
     setMemory(null);
     feedback('tap');
     const tap = ++hereTaps.current;
-    const r = await capturesHere(at, cap.captures, radiusM).catch(() => null);
+    const r = await capturesHere(at, captures, radiusM).catch(() => null);
     if (tap !== hereTaps.current) return; // a newer press won
     setSpot({ at, here: r && r.captures.length ? r : null, from: live.here });
   }
@@ -356,7 +360,7 @@ export default function WalkScreen() {
     here: live.here,
     riding: live.riding,
     fixes,
-    captures: cap.captures,
+    captures: captures,
     route: routeLine,
     routePath: navigation.nav?.route.path ?? null,
     previewRangeM: preview,
@@ -396,7 +400,9 @@ export default function WalkScreen() {
   const [reminder, setReminder] = useState<{ captures: Capture[]; at: LngLat | null; shownAt: number } | null>(null);
   // Memories on revisit: earlier walks' captures within 100 m, as faint pins, on every walk (the
   // owner's call), never a buzz or a notification (MR1, MR6). The area is read once per 50 m (MR8).
-  const [memoryPool, setMemoryPool] = useState<Capture[]>([]);
+  const [memoryStore, setMemoryPool] = useState<Capture[]>([]);
+  // A memory deleted from its viewer leaves its pin (D3).
+  const memoryPool = useVisible(memoryStore);
   // One reader per walk: a slow read lands even as fixes come in, a failed one is tried again, and
   // it sends only a changed set (audit 1, 10).
   const [memoryReads] = useState(() => memoryReader((at) => db.capturesIn(boundsOf([at], MEMORY_RULES.readBoxM)!), setMemoryPool));
@@ -733,7 +739,7 @@ export default function WalkScreen() {
         rides={live.rides}
         walked={walked}
         fog={fog}
-        captures={cap.captures}
+        captures={captures}
         // Opening a capture would hide a memo that is still recording.
         onPinPress={recordingVoice || stopping || settingsOpen ? undefined : setViewing}
         walker={live.here}
@@ -891,7 +897,7 @@ export default function WalkScreen() {
               testID="add-caption"
               accessibilityRole="button"
               onPress={() => {
-                setCaptioning(cap.captures.find((c) => c.id === justTook) ?? null);
+                setCaptioning(captures.find((c) => c.id === justTook) ?? null);
                 setJustTook(null);
               }}
               hitSlop={10}
@@ -1144,7 +1150,7 @@ export default function WalkScreen() {
 
       <CaptureViewer
         key={viewing?.[0]?.id ?? 'none'}
-        captures={viewing && viewing.map((v) => cap.captures.find((c) => c.id === v.id) ?? v)}
+        captures={viewing && viewing.map((v) => captures.find((c) => c.id === v.id) ?? v)}
         onClose={() => {
           setViewing(null);
           setAutoPlay(false);
@@ -1237,6 +1243,9 @@ export default function WalkScreen() {
         context={here?.context}
         onClose={() => setHere(null)}
       />
+
+      {/* Where the walk's other pills sit, above the capture row, so the row never moves (D5). */}
+      <UndoToast style={{ bottom: insets.bottom + 92 + 68 + 12 }} />
 
       <Modal visible={noteOpen} transparent animationType="fade" onRequestClose={() => setNoteOpen(false)}>
         {/* Every way out keeps the draft; only Save clears it. */}

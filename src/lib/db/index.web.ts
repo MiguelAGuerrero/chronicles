@@ -1,6 +1,7 @@
 import { staleAreas } from '../areas/assign';
 import type { Area, WalkArea } from '../areas/types';
-import type { ChecklistArea, ChecklistItem, ExploreRead, Find } from '../explore/explore';
+import { exploredKey, type ChecklistArea, type ChecklistItem, type ExploreRead, type Find } from '../explore/explore';
+import { recountNewStreets, summaryLess } from '../deletion/core';
 import type { LandingRow } from '../landing/view';
 import type { Mark, Offered, Place, Recall } from '../discovery/types';
 import { DERIVED_STORES } from './stores';
@@ -140,6 +141,31 @@ async function byWalk<T>(name: string, walkId: string): Promise<T[]> {
   return done((await store(name)).index('walk_id').getAll(walkId)) as Promise<T[]>;
 }
 
+/**
+ * Runs a transaction's body; any error aborts it, so a delete that fails
+ * halfway leaves storage as it was (D6), then rethrows.
+ */
+async function atomically(tx: IDBTransaction, body: () => Promise<void>): Promise<void> {
+  const finished = committed(tx);
+  try {
+    await body();
+  } catch (e) {
+    finished.catch(() => {});
+    try {
+      tx.abort();
+    } catch {
+      // already finished
+    }
+    throw e;
+  }
+  return finished;
+}
+
+/** Deletes every row of a store whose index holds the key, inside the caller's transaction. */
+async function dropBy(st: IDBObjectStore, index: string, key: IDBValidKey) {
+  for (const k of (await done(st.index(index).getAllKeys(key))) as IDBValidKey[]) st.delete(k);
+}
+
 async function patch<T extends { id: string }>(name: string, id: string, p: Partial<T>) {
   const tx = (await conn()).transaction(name, 'readwrite');
   const s = tx.objectStore(name);
@@ -202,6 +228,68 @@ export const db: Db = {
     return band
       .filter((c) => c.lon != null && c.lon >= w && c.lon <= e)
       .sort((a, b) => a.t - b.t);
+  },
+
+  async deleteWalk(walkId) {
+    const names = ['walk', 'trace_point', 'capture', 'pause', 'visited_segment', 'walk_summary', 'walk_area', 'area', 'find', 'recall', 'mark', 'meta'];
+    const tx = (await conn()).transaction(names, 'readwrite');
+    const os = (n: string) => tx.objectStore(n);
+    return atomically(tx, async () => {
+      const caps = (await done(os('capture').index('walk_id').getAll(walkId))) as Capture[];
+      for (const c of caps) {
+        os('capture').delete(c.id);
+        os('recall').delete(c.id);
+      }
+      await dropBy(os('trace_point'), 'walk_id', walkId);
+      await dropBy(os('pause'), 'walk_id', walkId);
+      await dropBy(os('visited_segment'), 'walk_id', walkId);
+      await dropBy(os('walk_area'), 'walk_id', walkId);
+      await dropBy(os('find'), 'walk_id', walkId);
+      await dropBy(os('mark'), 'walk_id', walkId);
+      os('walk_summary').delete(walkId);
+      os('meta').delete(exploredKey(walkId));
+      os('walk').delete(walkId);
+      // Places only this walk was in go (D8).
+      const rows = (await done(os('walk_area').getAll())) as WalkArea[];
+      for (const key of staleAreas((await done(os('area').getAllKeys())) as string[], rows)) os('area').delete(key);
+      // Later walks are counted again without it (D7).
+      const walks = (await done(os('walk').getAll())) as Walk[];
+      const visited = (await done(os('visited_segment').getAll())) as VisitedSegment[];
+      const sums = (await done(os('walk_summary').getAll())) as WalkSummary[];
+      const byId = new Map(sums.map((x) => [x.walk_id, x]));
+      for (const ch of recountNewStreets(walks, visited, new Map(sums.map((x) => [x.walk_id, x.new_streets])))) {
+        os('walk_summary').put({ ...byId.get(ch.walk_id)!, new_streets: ch.new_streets });
+      }
+    });
+  },
+  async deleteCaptures(ids, opts = {}) {
+    if (!ids.length) return;
+    const tx = (await conn()).transaction(['capture', 'recall', 'find', 'walk_summary'], 'readwrite');
+    return atomically(tx, async () => {
+      const capStore = tx.objectStore('capture');
+      const got = (await Promise.all(ids.map((id) => done(capStore.get(id)) as Promise<Capture | undefined>))).filter((c): c is Capture => !!c);
+      for (const c of got) {
+        capStore.delete(c.id);
+        tx.objectStore('recall').delete(c.id);
+      }
+      if (!opts.keepFinds && got.length) {
+        // The find store is indexed by walk only, and an index skips a loose moment's null walk.
+        const gone = new Set(got.map((c) => c.id));
+        const finds = tx.objectStore('find');
+        const walkIds = [...new Set(got.map((c) => c.walk_id))];
+        const rows = walkIds.includes(null)
+          ? ((await done(finds.getAll())) as Find[])
+          : (await Promise.all(walkIds.map((w) => done(finds.index('walk_id').getAll(w!)) as Promise<Find[]>))).flat();
+        for (const f of rows) if (gone.has(f.capture_id)) finds.delete(f.key);
+      }
+      // The walks' counts follow (D9).
+      const sums = tx.objectStore('walk_summary');
+      for (const w of new Set(got.map((c) => c.walk_id))) {
+        if (w == null) continue;
+        const s = (await done(sums.get(w))) as WalkSummary | undefined;
+        if (s) sums.put(summaryLess(s, got.filter((c) => c.walk_id === w)));
+      }
+    });
   },
 
   async startPause(walkId, at) {
@@ -421,5 +509,31 @@ export const mediaStore = {
   async get(key: string): Promise<Blob | null> {
     const r = (await done((await store('media')).get(key))) as { blob: Blob } | undefined;
     return r?.blob ?? null;
+  },
+  /** Removes media by key, and every key under each folder prefix (`walks/<id>/`), in one transaction. */
+  async remove(keys: string[], folders: string[] = []) {
+    if (!keys.length && !folders.length) return;
+    const tx = (await conn()).transaction('media', 'readwrite');
+    const st = tx.objectStore('media');
+    for (const k of keys) st.delete(k);
+    for (const f of folders) st.delete(IDBKeyRange.bound(f, `${f}\uffff`));
+    await committed(tx);
+  },
+  /** Bytes held by the keys, and by every key under each folder prefix, each counted once. */
+  async bytes(keys: string[], folders: string[] = []): Promise<number> {
+    const st = await store('media');
+    const sizes = new Map<string, number>();
+    for (const f of folders) {
+      const rows = (await done(st.getAll(IDBKeyRange.bound(f, `${f}\uffff`)))) as { key: string; blob: Blob }[];
+      for (const r of rows) sizes.set(r.key, r.blob.size);
+    }
+    for (const k of keys) {
+      if (sizes.has(k)) continue;
+      const r = (await done(st.get(k))) as { blob: Blob } | undefined;
+      if (r) sizes.set(k, r.blob.size);
+    }
+    let n = 0;
+    for (const v of sizes.values()) n += v;
+    return n;
   },
 };

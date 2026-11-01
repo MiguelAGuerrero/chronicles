@@ -37,3 +37,56 @@ export function dropTemp(tempUri: string | null) {
     // already gone
   }
 }
+
+const fileOf = (ref: string) => (ref.startsWith('file://') ? new File(ref) : new File(Paths.document, ref));
+/** A walk's own folder (`walks/<id>`), never the loose moments' shared one. */
+const folderOf = (walkId: string) => (walkId && walkId !== 'moments' ? new Directory(Paths.document, 'walks', walkId) : null);
+
+/**
+ * Deletes stored media (D1-D3): each ref, then each walk's whole folder, so a
+ * file no row pointed to goes too. Rows are deleted first; a file that won't
+ * delete is left behind, never a row without its file. Resolves how many failed.
+ */
+export async function removeMedia(refs: string[], walkFolders: string[] = []): Promise<number> {
+  let failed = 0;
+  for (const ref of refs) {
+    try {
+      const f = fileOf(ref);
+      if (f.exists) f.delete();
+    } catch {
+      failed++;
+    }
+  }
+  for (const id of walkFolders) {
+    try {
+      const d = folderOf(id);
+      if (d?.exists) d.delete();
+    } catch {
+      failed++;
+    }
+  }
+  return failed;
+}
+
+/** Bytes the refs and walk folders hold, for "Frees about N MB" (D11); a file inside a listed folder counts once. */
+export async function mediaBytes(refs: string[], walkFolders: string[] = []): Promise<number> {
+  let n = 0;
+  const inFolder = (ref: string) => walkFolders.some((id) => ref.startsWith(`walks/${id}/`));
+  for (const id of walkFolders) {
+    try {
+      n += folderOf(id)?.size ?? 0;
+    } catch {
+      // unreadable: not counted
+    }
+  }
+  for (const ref of refs) {
+    if (inFolder(ref)) continue;
+    try {
+      const f = fileOf(ref);
+      if (f.exists) n += f.size;
+    } catch {
+      // unreadable: not counted
+    }
+  }
+  return n;
+}

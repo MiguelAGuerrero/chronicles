@@ -4,6 +4,8 @@ import { placeFromRow, placeToRow, type PlaceRow } from './placeRow';
 import type { Area, WalkArea } from '../areas/types';
 import type { LandingRow } from '../landing/view';
 import type { Mark, MarkOrigin, MarkState, Offered, Recall } from '../discovery/types';
+import { recountNewStreets, summaryLess } from '../deletion/core';
+import { exploredKey } from '../explore/explore';
 import { DERIVED_STORES } from './stores';
 import type { Capture, Pause, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 import { segmentBbox } from './segmentBounds';
@@ -290,6 +292,47 @@ export const db: Db = {
     return (await conn()).getAllAsync<Capture>(
       'SELECT * FROM capture WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ? ORDER BY t', s, n, w, e,
     );
+  },
+
+  deleteWalk(walkId) {
+    return write(async (t) => {
+      await t.runAsync('DELETE FROM recall WHERE capture_id IN (SELECT id FROM capture WHERE walk_id = ?)', walkId);
+      for (const table of ['capture', 'trace_point', 'pause', 'visited_segment', 'walk_area', 'find', 'mark', 'walk_summary']) {
+        await t.runAsync(`DELETE FROM ${table} WHERE walk_id = ?`, walkId);
+      }
+      await t.runAsync('DELETE FROM meta WHERE key = ?', exploredKey(walkId));
+      await t.runAsync('DELETE FROM walk WHERE id = ?', walkId);
+      // Places only this walk was in go (D8).
+      await t.runAsync('DELETE FROM area WHERE key NOT IN (SELECT DISTINCT area_key FROM walk_area)');
+      // Later walks are counted again without it (D7).
+      const walks = await t.getAllAsync<{ id: string; started_at: number }>('SELECT id, started_at FROM walk');
+      const visited = await t.getAllAsync<{ walk_id: string; street_key: string }>('SELECT walk_id, street_key FROM visited_segment');
+      const stored = await t.getAllAsync<{ walk_id: string; new_streets: number }>('SELECT walk_id, new_streets FROM walk_summary');
+      for (const ch of recountNewStreets(walks, visited, new Map(stored.map((r) => [r.walk_id, r.new_streets])))) {
+        await t.runAsync('UPDATE walk_summary SET new_streets = ? WHERE walk_id = ?', ch.new_streets, ch.walk_id);
+      }
+    });
+  },
+  deleteCaptures(ids, opts = {}) {
+    if (!ids.length) return Promise.resolve();
+    const marks = ids.map(() => '?').join(',');
+    return write(async (t) => {
+      const got = await t.getAllAsync<Capture>(`SELECT * FROM capture WHERE id IN (${marks})`, ...ids);
+      await t.runAsync(`DELETE FROM capture WHERE id IN (${marks})`, ...ids);
+      await t.runAsync(`DELETE FROM recall WHERE capture_id IN (${marks})`, ...ids);
+      if (!opts.keepFinds) await t.runAsync(`DELETE FROM find WHERE capture_id IN (${marks})`, ...ids);
+      // The walks' counts follow (D9).
+      for (const w of new Set(got.map((c) => c.walk_id))) {
+        if (w == null) continue;
+        const r = await t.getFirstAsync<Omit<WalkSummary, 'streets_read'> & { streets_read: number }>('SELECT * FROM walk_summary WHERE walk_id = ?', w);
+        if (!r) continue;
+        const s = summaryLess({ ...r, streets_read: r.streets_read === 1 }, got.filter((c) => c.walk_id === w));
+        await t.runAsync(
+          'UPDATE walk_summary SET photos = ?, videos = ?, voices = ?, notes = ? WHERE walk_id = ?',
+          s.photos, s.videos ?? 0, s.voices, s.notes, w,
+        );
+      }
+    });
   },
 
   startPause(walkId, at) {

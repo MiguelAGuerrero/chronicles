@@ -55,3 +55,21 @@ export function releaseMedia(uri: string) {
 export function dropTemp(tempUri: string | null) {
   if (tempUri?.startsWith('blob:')) URL.revokeObjectURL(tempUri);
 }
+
+/** A walk's own folder prefix, never the loose moments' shared one. */
+const folderKeys = (walkFolders: string[]) => walkFolders.filter((id) => id && id !== 'moments').map((id) => `walks/${id}/`);
+
+/** Deletes stored media (D1-D3): each key, and every key under each walk's folder. Resolves how many failed. */
+export async function removeMedia(refs: string[], walkFolders: string[] = []): Promise<number> {
+  try {
+    await mediaStore.remove(refs.filter((r) => !r.startsWith('data:')), folderKeys(walkFolders));
+    return 0;
+  } catch {
+    return refs.length + walkFolders.length;
+  }
+}
+
+/** Bytes the keys and walk folders hold, for "Frees about N MB" (D11). */
+export async function mediaBytes(refs: string[], walkFolders: string[] = []): Promise<number> {
+  return mediaStore.bytes(refs, folderKeys(walkFolders)).catch(() => 0);
+}

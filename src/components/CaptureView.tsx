@@ -17,6 +17,11 @@ import { useMediaUri } from '../lib/useMediaUri';
 import { useBaker } from './Baker';
 import { CaptionBar, CaptionEditor, usePhotoRect } from './Caption';
 import { RemindEditor } from './RemindEditor';
+import { ConfirmCard } from './ConfirmCard';
+import { UndoToast } from './UndoToast';
+import { deleteMoment, planMoment } from '../lib/deletion';
+import { momentDeleteText, type ConfirmText } from '../lib/deletion/core';
+import { useVisible } from '../lib/deletion/useDeletions';
 import { Icon, KIND_LABEL } from './icons';
 import { theme } from './ui';
 
@@ -298,7 +303,9 @@ export function CaptureViewer(props: {
   const insets = useSafeAreaInsets();
   const [index, setIndex] = useState(0);
   const [captioning, setCaptioning] = useState<Capture | null>(null);
-  const list = props.captures ?? [];
+  // What was deleted (D3, D5) leaves the viewer at once.
+  const list = useVisible(props.captures);
+  const [deleting, setDeleting] = useState<{ capture: Capture; text: ConfirmText } | null>(null);
   // Remind me here: the flags of the captures shown, read when the viewer opens.
   const [recalls, setRecalls] = useState<Map<string, Recall>>(() => new Map());
   const [reminding, setReminding] = useState<Capture | null>(null);
@@ -345,14 +352,29 @@ export function CaptureViewer(props: {
     setIndex(0);
     setCaptioning(null);
     setReminding(null);
+    setDeleting(null);
     props.onClose();
+  };
+  const askDelete = (c: Capture) => {
+    planMoment(c).then(
+      (text) => setDeleting({ capture: c, text }),
+      () => setDeleting({ capture: c, text: momentDeleteText(c.kind, 0) }),
+    );
+  };
+  const confirmDelete = () => {
+    if (!deleting) return;
+    const last = list.length <= 1;
+    deleteMoment(deleting.capture);
+    setDeleting(null);
+    // Nothing left to show: the host hears the viewer closed.
+    if (last) close();
   };
   const busy = !!saveState?.busy;
   return (
     <Modal
       visible={list.length > 0}
       animationType="fade"
-      onRequestClose={captioning ? () => setCaptioning(null) : reminding ? () => setReminding(null) : close}
+      onRequestClose={deleting ? () => setDeleting(null) : captioning ? () => setCaptioning(null) : reminding ? () => setReminding(null) : close}
     >
       <View style={styles.viewer}>
         {/* The baker draws behind everything; the cover hides it. */}
@@ -445,6 +467,18 @@ export function CaptureViewer(props: {
               <Icon name="navigate" size={22} color={theme.ink} />
             </Pressable>
           )}
+          {current && (
+            <Pressable
+              testID="viewer-delete"
+              accessibilityRole="button"
+              accessibilityLabel={`Delete this ${KIND_LABEL[current.kind].toLowerCase()}`}
+              onPress={() => askDelete(current)}
+              style={styles.roundBtn}
+              hitSlop={4}
+            >
+              <Icon name="trash-outline" size={22} color={theme.danger} />
+            </Pressable>
+          )}
           <Pressable testID="viewer-close" accessibilityRole="button" accessibilityLabel="Close" onPress={close} style={styles.roundBtn} hitSlop={8}>
             <Icon name="close" size={26} color={theme.ink} />
           </Pressable>
@@ -502,6 +536,8 @@ export function CaptureViewer(props: {
             }}
           />
         )}
+        {deleting && <ConfirmCard testID="confirm" text={deleting.text} onCancel={() => setDeleting(null)} onConfirm={confirmDelete} />}
+        <UndoToast style={{ top: insets.top + 64 }} />
       </View>
     </Modal>
   );
@@ -544,7 +580,7 @@ const styles = StyleSheet.create({
   trackFill: { height: 6, backgroundColor: '#6b21a8' },
   voiceTime: { fontSize: 14, color: theme.ink, fontVariant: ['tabular-nums'] },
   viewer: { flex: 1, backgroundColor: '#14181f' },
-  viewerTop: { position: 'absolute', left: 16, right: 12, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  viewerTop: { position: 'absolute', left: 16, right: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
   viewerTitleSlot: { flex: 1, alignItems: 'flex-start' },
   savedAction: { textDecorationLine: 'underline', fontWeight: '700' },
   aa: { fontSize: 18, fontWeight: '800', color: theme.ink },
