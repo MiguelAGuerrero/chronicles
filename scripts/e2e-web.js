@@ -192,7 +192,7 @@ function check(ok, what) {
   let tileDelayMs = 0;
   // A stalled TileJSON request on demand, as on a phone with a weak signal (bug: a blank replay after Stop).
   let tilejsonStall = null;
-  await ctx.route('https://tiles.openfreemap.org/**', async (r) => {
+  const tileRoute = async (r) => {
     const tile = /\/(\d+)\/(\d+)\/(\d+)\.pbf$/.exec(r.request().url());
     if (tile && tileDelayMs) await new Promise((res) => setTimeout(res, tileDelayMs));
     if (tile) {
@@ -208,7 +208,8 @@ function check(ok, what) {
           : style,
       ),
     });
-  });
+  };
+  await ctx.route('https://tiles.openfreemap.org/**', tileRoute);
 
   try {
     await page.goto(url);
@@ -1209,6 +1210,216 @@ function check(ok, what) {
     const viewers = await page.locator('[data-testid=viewer-close]').count();
     check(viewers === 1, `it opens once, on the walk: the home beneath doesn't open it too (${viewers} viewers)`);
     await page.click('[data-testid=viewer-close]');
+
+    // Rides (R5, R6, R11): a bus leg at 12 m/s, one fix a second, is drawn dashed and reads "On a ride",
+    // never "Weak GPS" (the bug, Nov 1: a bus kept its first fix and showed Weak GPS); the card shows
+    // walked and ridden distance apart.
+    const busFrom = pts[25];
+    for (let j = 0; j < 4; j++) {
+      await ctx.setGeolocation({ longitude: busFrom[0], latitude: busFrom[1] + j * 0.00001, accuracy: 6 });
+      await page.waitForTimeout(1000);
+    }
+    const busStep = 12 / (111320 * Math.cos((busFrom[1] * Math.PI) / 180));
+    let rideChip = false;
+    let weakSeen = false;
+    for (let j = 1; j <= 45; j++) {
+      await ctx.setGeolocation({ longitude: busFrom[0] + j * busStep, latitude: busFrom[1] + 0.00003, accuracy: 6 });
+      await page.waitForTimeout(1000);
+      if (await page.getByText('Weak GPS').count()) weakSeen = true;
+      if (j >= 30 && !rideChip) rideChip = (await page.getByText('On a ride').count()) > 0;
+    }
+    await page.waitForTimeout(2200);
+    await shot(page, '14-ride');
+    check(rideChip, 'a bus leg reads "On a ride" (R11)');
+    check(!weakSeen, 'a bus leg never reads "Weak GPS" (R11)');
+    const rides = await page.locator('[data-rides]').last().getAttribute('data-rides');
+    check(Number(rides?.split(':')[0]) === 1 && Number(rides?.split(':')[1]) > 30, `the ride is drawn as its own dashed line (R5: ${rides})`);
+    const stats = await page.locator('[data-testid=walk-stats]').innerText();
+    check(/^\d+:\d\d · \d+ m\n\+ \d+ m ride$/.test(stats), `the walk's distance shows the ride apart, on its own line (R6: "${stats}")`);
+    const holdBox = await page.locator('[data-testid=stop]').boundingBox();
+    await page.mouse.move(holdBox.x + holdBox.width / 2, holdBox.y + holdBox.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(1100);
+    await page.mouse.up();
+    await page.waitForURL(/replay/, { timeout: 30000 });
+    await page.waitForSelector('[data-testid=skip]', { timeout: 60000 });
+    await page.click('[data-testid=skip]');
+    await page.waitForSelector('[data-testid=card-ride]', { timeout: 60000 });
+    const cardDistance = await page.locator('[data-testid=card-distance]').innerText();
+    const cardRide = await page.locator('[data-testid=card-ride]').innerText();
+    await shot(page, '14b-ride-card');
+    // The bus leg is 45 s at 12 m/s: about 540 m, with no jog from the stop (the audit's run-up, Nov 1).
+    const rideMetres = Number(/\+ (\d+) m by ride/.exec(cardRide)?.[1]);
+    check(/^\d+ m$/.test(cardDistance) && rideMetres > 480 && rideMetres < 600, `the card shows walked, and the ride on its own line (R6: "${cardDistance}", "${cardRide}")`);
+    // Moments and days (the concept doc's "Moments and days" tab, M1-M17), in a fresh browser: nothing kept yet.
+    {
+      const ctx2 = await browser.newContext({
+        viewport: { width: 390, height: 844 },
+        permissions: ['geolocation', 'microphone'],
+        geolocation: { longitude: start[0], latitude: start[1], accuracy: 6 },
+      });
+      await ctx2.route('https://tiles.openfreemap.org/**', tileRoute);
+      ctx2.on('request', (r) => { const u = new URL(r.url()); if (/^(https?|wss?):$/.test(u.protocol)) hosts.add(u.host); });
+      // Location watches started and cleared, so a moment is seen to leave none running (M5).
+      await ctx2.addInitScript(() => {
+        const g = navigator.geolocation;
+        const watch = g.watchPosition.bind(g);
+        const clear = g.clearWatch.bind(g);
+        window.__watches = new Set();
+        g.watchPosition = (...a) => { const id = watch(...a); window.__watches.add(id); return id; };
+        g.clearWatch = (id) => { window.__watches.delete(id); clear(id); };
+      });
+      const p2 = await ctx2.newPage();
+      p2.on('pageerror', (e) => errors.push(`moments: ${e}`));
+      p2.on('console', (m) => m.type() === 'error' && errors.push(`moments: ${m.text()}`));
+      const captureRows = () => p2.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const g = req.result.transaction('capture', 'readonly').objectStore('capture').getAll();
+          g.onsuccess = () => resolve(g.result.sort((a, b) => a.t - b.t));
+        };
+      }));
+      const note = async (open, input, save, text) => {
+        await p2.click(open);
+        await p2.fill(input, text);
+        await p2.click(save);
+      };
+      await p2.goto(url);
+      await p2.waitForSelector('[data-testid=moment-note]');
+      check((await p2.locator('[data-testid=moment-photo]').count()) === 1 && (await p2.locator('[data-testid=moment-voice]').count()) === 1
+        && (await p2.locator('[data-testid=start]').count()) === 1, 'the home offers camera, mic and pencil beside Start, with no walk open (M1)');
+
+      // A note from the home is kept at once and placed by one fix (M1, M2), with no watch left running (M5).
+      await note('[data-testid=moment-note]', '[data-testid=moment-note-input]', '[data-testid=moment-note-save]', 'A green dress in the window.');
+      check(await p2.waitForSelector('text=Note kept here', { timeout: 15000 }).then(() => true, () => false), 'a note from the home is kept, and says it was placed (M2)');
+      let rows = await captureRows();
+      check(rows.length === 1 && rows[0].walk_id == null && rows[0].lat != null && Math.abs(rows[0].lon - start[0]) < 1e-5,
+        `the moment belongs to no walk and sits where it was made (M1, M2)`);
+      check((await p2.evaluate(() => window.__watches.size)) === 0, 'no location watch keeps running after a moment (M5)');
+      await shot(p2, '20-moment-home');
+
+      // Today is listed in the sheet with its moment (M7, M9).
+      await p2.click('[data-testid=sheet-days]');
+      await p2.waitForSelector('[data-testid=day-row]');
+      const dayRow = await p2.locator('[data-testid=day-row]').first().innerText();
+      check(/^Today/.test(dayRow) && /1 moment\b/.test(dayRow), `the days list starts with today and its moment (${dayRow.replace(/\n/g, ' · ')})`);
+      await p2.click('[data-testid=sheet-map]');
+
+      // A walk with a note of its own, in the same day (M3).
+      await p2.click('[data-testid=start]');
+      await p2.waitForURL(/\/walk/, { timeout: 15000 });
+      const route2 = [];
+      for (let k = 1; k <= 30; k++) route2.push([start[0] + (k / 30) * 1.5 * dLon, start[1]]);
+      for (let k = 0; k < route2.length; k++) {
+        await ctx2.setGeolocation({ longitude: route2[k][0], latitude: route2[k][1], accuracy: 6 });
+        await p2.waitForTimeout(1000);
+        if (k === 25) {
+          await note('[data-testid=cap-note]', '[data-testid=note-input]', '[data-testid=note-save]', 'The tailor on the corner.');
+          await p2.waitForSelector('text=Note saved here');
+        }
+      }
+      const stopBox = await p2.locator('[data-testid=stop]').boundingBox();
+      await p2.mouse.move(stopBox.x + stopBox.width / 2, stopBox.y + stopBox.height / 2);
+      await p2.mouse.down();
+      await p2.waitForTimeout(1100);
+      await p2.mouse.up();
+      await p2.waitForURL(/replay/, { timeout: 30000 });
+      await p2.waitForSelector('[data-testid=skip]', { timeout: 30000 });
+      await p2.click('[data-testid=skip]');
+      await p2.click('[data-testid=to-name]');
+      await p2.click('[data-testid=save]');
+      await p2.waitForSelector('[data-testid=moment-note]');
+      rows = await captureRows();
+      check(rows.length === 2 && rows[1].walk_id != null, 'a note made on a walk belongs to that walk (M3)');
+
+      // Mid-memo, the sheet stays down and the memo keeps recording (audit 1).
+      await p2.click('[data-testid=moment-voice]');
+      await p2.waitForSelector('[data-testid=moment-voice-save]');
+      await p2.waitForTimeout(1500);
+      await p2.click('[data-testid=sheet-days]').catch(() => {});
+      await p2.waitForTimeout(400);
+      check((await p2.locator('[data-testid=day-row]').count()) === 0 && (await p2.locator('[data-testid=moment-voice-save]').isVisible()),
+        'opening the sheet mid-memo does nothing, and the memo keeps recording (audit 1)');
+      await p2.click('[data-testid=moment-voice-discard]');
+      await p2.waitForSelector('[data-testid=moment-voice-undo]');
+      check(true, 'a memo discarded on the home can be undone (audit 14)');
+
+      // With no fix coming, a moment is shown at once (audit 2), then said to have no place (M2).
+      await p2.evaluate(() => {
+        navigator.geolocation.watchPosition = () => 999;
+      });
+      await note('[data-testid=moment-note]', '[data-testid=moment-note-input]', '[data-testid=moment-note-save]', 'Sale on linen, ends Friday.');
+      await p2.waitForTimeout(500);
+      await p2.click('[data-testid=sheet-days]');
+      const early = await p2.locator('[data-testid=day-row]').first().innerText();
+      check(/3 moments\b/.test(early), `a moment shows in its day at once, before its fix is settled (audit 2: ${early.replace(/\n/g, ' · ')})`);
+      await p2.click('[data-testid=sheet-map]');
+      check(await p2.waitForSelector('text=/No location/', { timeout: 20000 }).then(() => true, () => false), 'a moment with no fix is kept and says "No location" (M2)');
+      rows = await captureRows();
+      check(rows.length === 3 && rows[2].walk_id == null && rows[2].lat == null, 'the moment with no fix is stored without a place');
+
+      // The day's timeline: moment, walk, moment, in time order; the walk is one row (M8).
+      await p2.click('[data-testid=sheet-days]');
+      await p2.click('[data-testid=day-row]');
+      await p2.waitForSelector('[data-testid=day-title]');
+      const order = await p2.locator('[data-testid=timeline-moment], [data-testid=timeline-walk]').evaluateAll((els) => els.map((e) => e.getAttribute('data-testid')));
+      check(order.join(',') === 'timeline-moment,timeline-walk,timeline-moment', `the day lists its moments and walk in time order (${order.join(', ')})`);
+      check(/1 moment\b/.test(await p2.locator('[data-testid=timeline-walk]').innerText()), 'the walk is one row with its moment count (M8)');
+      await p2.click('[data-testid=sheet-days-back]');
+      await p2.waitForSelector('[data-testid=day-row]');
+      check((await p2.locator('[data-testid=day-title]').count()) === 0, 'a day\u2019s timeline goes back to the days list (audit 11)');
+      await p2.click('[data-testid=day-row]');
+      await p2.waitForSelector('[data-testid=day-title]');
+      await shot(p2, '21-day-timeline');
+      // A moment opens in the viewer (M8).
+      await p2.locator('[data-testid=timeline-moment]').first().click();
+      check(await p2.waitForSelector('text=A green dress in the window.', { timeout: 5000 }).then(() => true, () => false), 'a moment in the timeline opens in the viewer');
+      await p2.click('[aria-label="Close"]');
+
+      // The day's replay: the dress, then the walk's path and its note, then the moment with no place (M10, M11, M14).
+      await p2.click('[data-testid=day-replay]');
+      await p2.waitForURL(/\/day\//, { timeout: 15000 });
+      const seen = [];
+      for (let i = 0; i < 3; i++) {
+        await p2.waitForSelector('[data-testid=day-moment]', { timeout: 60000 });
+        await p2.waitForTimeout(700);
+        const body = await p2.locator('body').innerText();
+        seen.push(/green dress/.test(body) ? 'dress' : /tailor/.test(body) ? 'tailor' : /linen/.test(body) ? `linen${/No location/.test(body) ? ':nowhere' : ''}` : '?');
+        if (i === 1) await shot(p2, '22-day-replay-walk');
+        await p2.click('[data-testid=day-moment]');
+        await p2.waitForSelector('[data-testid=day-moment]', { state: 'detached', timeout: 5000 }).catch(() => {});
+      }
+      check(seen.join(',') === 'dress,tailor,linen:nowhere', `the day replays its moments in order, the walk's inside it, the placeless one said so (${seen.join(', ')})`);
+      await p2.waitForSelector('[data-testid=day-card]', { timeout: 30000 });
+      const line = await p2.locator('[data-testid=day-card-line]').innerText();
+      const cardText = await p2.locator('[data-testid=day-card]').innerText();
+      check(/^3 moments · 2 places$/.test(line) && /walked/.test(cardText) && !/streak|badge/i.test(cardText), `the day ends on a quiet card (${line})`);
+      await shot(p2, '23-day-card');
+      // Watching again moves on by itself (M12).
+      await p2.click('[data-testid=day-again]');
+      check(await p2.waitForSelector('[data-testid=day-card]', { timeout: 90000 }).then(() => true, () => false), 'watching the day again reaches the card with no taps (M12)');
+      const watchedMeta = await p2.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const g = req.result.transaction('meta', 'readonly').objectStore('meta').getAll();
+          g.onsuccess = () => resolve(g.result.some((m) => /^day_watched:/.test(m.key ?? m.k ?? '')));
+        };
+      }));
+      check(watchedMeta, 'the day is remembered as watched (M12)');
+      await p2.click('[data-testid=day-done]');
+
+      // Back home: the placed moment shows as a pin (M16), and the walk still opens its own replay (M17).
+      await p2.waitForSelector('[data-testid=day-title]');
+      await p2.click('[data-testid=sheet-map]');
+      await p2.waitForSelector('[data-testid=moment-note]');
+      check(await p2.waitForSelector('[aria-label="Note. Open"]', { timeout: 15000 }).then(() => true, () => false), 'a placed moment shows as a pin on the home map (M16)');
+      await p2.click('[data-testid=sheet-days]');
+      await p2.click('[data-testid=day-row]');
+      await p2.click('[data-testid=timeline-walk]');
+      await p2.waitForURL(/\/replay\//, { timeout: 15000 });
+      check(await p2.waitForSelector('[data-testid=done]', { timeout: 90000 }).then(() => true, () => false), 'a walk in the timeline opens its own replay, as before (M8, M17)');
+      await ctx2.close();
+    }
 
     const away = [...hosts].filter((h) => !h.startsWith('localhost') && h !== 'tiles.openfreemap.org');
     check(away.length === 0, `nothing is sent anywhere but the map tiles (${away.join(', ')})`);

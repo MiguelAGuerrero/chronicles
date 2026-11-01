@@ -34,7 +34,8 @@ export type CaptureKind = 'photo' | 'video' | 'voice' | 'text';
 
 export interface Capture {
   id: string;
-  walk_id: string;
+  /** The walk it was made on; null for a moment made outside any walk. */
+  walk_id: string | null;
   t: number;
   lat: number | null;
   lon: number | null;
@@ -84,7 +85,10 @@ export interface VisitedSegment {
 export interface WalkSummary {
   walk_id: string;
   build: string;
+  /** Walked distance: rides are not walking (R6). */
   distance_m: number;
+  /** Ridden distance; absent on summaries written before rides existed. */
+  ride_m?: number;
   duration_ms: number;
   new_streets: number;
   streets_walked: number;

@@ -555,6 +555,58 @@ Read this before changing recording, streets, the replay or storage.
 - **Native** (unverified on a device): layer order (no `beforeId` yet), markers,
   migration 7.
 
+## Moments and days (in progress; the spec is the concept doc's "Moments and days" tab, M1-M17)
+
+- **A capture is a moment that may belong to no walk** (the owner's call, Nov 1:
+  "jot it down" in a store, not only on walks). `Capture.walk_id` and
+  `Find.walk_id` are nullable: SQLite migration 11 rebuilds both tables
+  (SQLite can't drop NOT NULL in place) and adds `capture_t`; IndexedDB v10 adds
+  the capture `t` index. `db.capturesBetween(from, to)` reads by time.
+- **Days are never stored** (`lib/days.ts`, pure): local midnight to midnight,
+  a walk in the day it started with all its captures, open walks and captures
+  of unknown walks left out. Days use the phone's current time zone (accepted).
+- **Capture from the home** (`MomentBar`, `useCaptures(null, …, { loose: true })`):
+  a moment is stored at once and placed when its one fix arrives
+  (`placeMoment`), so a save never waits on GPS. `lib/locate` watches until a
+  fix ≤ 50 m or 10 s, then clears the watch: nothing tracks between moments
+  (the owner's rule: no all-day tracking). Media of loose moments go under
+  `walks/moments/`. A loose moment finds a place like a walk's capture
+  (`explore/momentFind.ts`).
+- **The home** reads every capture row (never media) for the days list, which
+  widens the old "walks, summaries, Area, WalkArea only" rule. The sheet has
+  Days beside Walks, a day's timeline (a walk is one row), and Replay this
+  day. Placed loose moments are pins from z11 (`MOMENT_PIN_ZOOM`).
+- **The day's replay** (`app/day/[key].tsx`, `dayPlan`): fly to each loose
+  group's pin (`FLY_MS`), stop; a walk plays its own `schedule` path with its
+  captures as stops, no fog beat; a placeless moment stops without moving the
+  map; a quiet card ("N moments · P places", places are spots 100 m apart).
+  The first watch waits for Continue; meta `day_watched:<key>` makes later
+  watches advance by themselves. No notification ever suggests watching.
+- **After the audit:**
+  - The home's capture row stays mounted while the sheet or a spot card is
+    up (hidden, never unmounted), and mid-memo the sheet, stars, pins and
+    long press do nothing, so a memo is never cut short.
+  - A moment is reported twice (`MomentState`): 'kept' at once, so the days
+    list shows it, then 'placed' or why not. The home merges only lat/lon.
+  - Location is asked only after the camera permission resolves (two prompts
+    at once fail on Android). The web's 10 s starts once the permission prompt
+    is answered (capped at 60 s). Native refuses a cached fix older than 15 s.
+  - The day replay reads only its day (`dayStart` to `nextDayStart`, so DST
+    days are right) plus its walks' captures, frames each fly step
+    (`stepFrames`: a walk by its trace, a pin at 150 m), and is not marked
+    watched when Skip reached the card.
+  - A group begun by a placeless capture takes the first placed member's spot
+    (`groupCaptures`, walk replays too). A loose moment's reminder rests 2 h
+    (`looseRestMs`) so a walk started on the spot doesn't fire it at once.
+- **Deferred:** quick capture outside the app (widget, lock screen, share
+  sheet); Remind me here firing outside a walk (needs background location);
+  moments in a place's stars; deleting a moment; the home reading every
+  capture row on focus (rows are small; per-day counts would need storing);
+  moment pins filtered to the viewport; "Today" refreshing past midnight
+  without a focus; a day of only placeless moments replays over the world map.
+- **Native** (unverified on a device): migration 11, `locate/index.native.ts`,
+  the home's capture row.
+
 ## Memories on revisit (the spec is the concept doc's "Memories on revisit" tab)
 
 - **Earlier walks' captures nearby show as faint pins** (`lib/memories.ts`, pure),
@@ -563,6 +615,7 @@ Read this before changing recording, streets, the replay or storage.
   - The pins hold captures within 100 m of the latest accepted fix, at most 6,
     nearest first, never this walk's own.
   - A capture whose reminder card is up has no pin meanwhile.
+  - Moments made outside any walk (`walk_id` null) count as earlier memories too.
 - **Cheap:** `memoryReader` reads the area with `db.capturesIn` in a 150 m box,
   once per 50 m walked, one read at a time.
   - A slow read is never dropped when a fix comes in, a failed one is tried
@@ -650,6 +703,72 @@ Read this before changing recording, streets, the replay or storage.
 - The e2e's mouse drag on the home map doesn't pan it, so H5's "kept its view
   across the replay" check compares an unmoved view.
 
+## Rides (the spec is the concept doc's "Rides" tab, R1-R14)
+
+- **A bus, trolley or train inside a walk is a ride** (the owner's call, Nov 1, after a
+  bus ride showed only "Weak GPS" and no trace: every fix over 7 m/s was dropped as a
+  jump). Rides are part of exploring: drawn dashed, holding captures, counted for
+  places, never for streets or walked distance.
+- **Reading** (`readTrace`, pure): fixes are gated, split at pauses and gaps over 60 s,
+  and each stretch is searched for rides (`RIDE_RULES`): a 20 s window in which more
+  than half the speeds are over 7 m/s and the net movement is 4.5 m/s or more,
+  counted as the window slides (linear: a 3 h walk reads in about 8 ms on a desktop).
+  - **Speed:** the phone's own where it gives one over 0 (Android reports 0 for "no
+    reading"), else the movement over 5 s, or since the fix before when fixes are
+    further apart.
+  - **Edges:** a ride runs from its first fix over 7 m/s back to the last stop and
+    on to the next, judged by the slower of the speed behind and ahead, so a GPS jump
+    or a run-up at the stop is never drawn into it. `joins` keeps a jump between the
+    walk and a ride as a gap.
+  - **Joins:** rides join across traffic still at 3 m/s (however long) or a stop
+    (3 min, 150 m). A ride under 20 s, or that never gets 200 m from where it began
+    (drift), is dropped as before. Inside a ride, 100 m/s is a jump.
+- **Two traces, two kinds of consumer.**
+  - Walked only (snapping, walk me back, Explore's "passed", the solid line): use
+    `tr.walked` with `tr.breaks` (pauses and rides), so a ride breaks the walk
+    however short.
+  - Walked and ridden (places, placing captures, the replay's dot, `here`): use
+    `smoothKept(tr)` (or `keptFixes` unsmoothed) with the pauses only. Never pass
+    `tr.breaks` there: every ride fix lies inside its own break. Never
+    `smoothDwells(keptFixes(tr))`: a stop inside a ride would become a gap in it.
+  - The title still comes from walked metres (`assignAreas`), unless the walk has
+    none.
+- **Drawn dashed** (`rides` prop, `RIDE_DASH`, the trace's green on its white edge,
+  hidden with the trace while navigating). `rideRuns` joins a ride to the walk
+  either side unless the step is a jump (`joins`). The web map carries
+  `data-rides="<rides>:<points>"` for the e2e.
+- **Distance:** `traceDistances` gives walked (as before) and ridden. The summary's
+  `ride_m` (SQLite migration 10, nullable; absent on older IndexedDB rows) falls
+  back to the trace's in the replay. The strip puts "+ 539 m ride" on a second line;
+  the card adds "+ 539 m by ride" under its line (`card-ride`), so "walked" isn't
+  said twice.
+- **Streets are read only where you walked** (`snapWalk`: walked bounds); places from
+  the whole trace, and a walk that is all ride is still placed. `SNAP_RULES` 3
+  re-reads every walk.
+- **Replay** (`schedule(..., rides)`): a ride keeps its real share of the path up to
+  4 s, all rides together at most half, squeezed evenly (a `Warp`), so the dot
+  glides along it and stops at captures on it. Gap warps inside a ride are dropped:
+  warps must never overlap, or `toActive` runs backward.
+- **On a ride** (`ridingAt`, through stops of up to 3 min, ending after 20 s walking
+  30 m from where it stopped): a quiet "On a ride" chip, the one status chip shown
+  when nothing is wrong; Explore names nothing, gives no pocket alert and starts no
+  read; the fog reads no streets; the dead-zone nudge doesn't count it; navigation
+  neither re-routes nor says "off your route"; reminders and memories go on.
+  "Weak GPS" is judged by `lastGoodAt`, the newest fix inside the accuracy gate, kept
+  or not.
+- **Live** (`useLiveTrace`): raw fixes are kept and read again whole at each 2 s
+  publish that has a new fix, since a ride is only known once it lasted a while, and
+  then from where it began. Between fixes, only `ridingAt` runs, on the last read.
+  Ride lines are re-sent to the map only when they change (`sameRuns`).
+  Deferred: caching the settled part of a long walk.
+- **The phone's task** reads each batch with the two minutes before it (`tail`), so
+  reminders fire from a ride. After a relaunch, the first 20 s of a ride are missed
+  (deferred). Native (unverified on a device): the task's tail, the dashed layer,
+  migration 10.
+- **Audited (Nov 1):** 14 findings, 11 fixed with a regression test each
+  (`rides audit N` in `rides.test.ts`); old walks gain their rides' places only when
+  their replay opens, as with every rule change.
+
 ## Working with the owner
 
 - **Ask before architectural decisions:** libraries, data model, platform strategy,
@@ -682,10 +801,11 @@ Read this before changing recording, streets, the replay or storage.
   the walk's own fields and a capture's placement at stop. StreetSegment,
   VisitedSegment and WalkSummary are a cache, tagged with the tile build, and can be
   dropped and rebuilt. Recompute from the trace; never patch derived data.
-- **Raw fixes are stored unfiltered.** `FixFilter` / `filterFixes` in `src/lib/geo.ts`
-  apply the gates at read time: accuracy over 50 m, staleness before the walk began,
-  speed over 7 m/s, and re-anchoring when the first accepted fix was the outlier.
-  Always pass the walk's `started_at`.
+- **Raw fixes are stored unfiltered.** `readTrace` (`src/lib/rides.ts`) applies the
+  gates at read time: accuracy over 50 m, staleness before the walk began, then rides
+  (see Rides), then `FixFilter` per walked stretch (speed over 7 m/s, and re-anchoring
+  when the first accepted fix was the outlier). Always pass the walk's `started_at`
+  and pauses. `filterFixes` is the walking filter alone, kept for its tests.
 - **Platform splits.** `x.native.ts` / `x.web.ts` sit beside a plain `x.ts` that only
   re-exports the native one for TypeScript. Metro picks per platform; the plain file
   is never bundled. Keep the shared interface in a `types.ts`.

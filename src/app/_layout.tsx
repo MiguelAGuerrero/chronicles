@@ -42,6 +42,8 @@ export default function RootLayout() {
             Stop, either: leaving would strand the walk open. */}
         <Stack.Screen name="walk" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="replay/[id]" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
+        {/* The day's replay (M10): moments and walks in time order. */}
+        <Stack.Screen name="day/[key]" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
       </Stack>
     </SafeAreaProvider>
   );

@@ -30,6 +30,11 @@ export async function capturesHere(
   const context = new Map<string, string>();
   const walks = new Map<string, { title: string; startedAt: number; pauses: Awaited<ReturnType<typeof db.getPauses>> }>();
   for (const c of near) {
+    // A moment made outside any walk (M4): its own line already has its date.
+    if (c.walk_id == null) {
+      context.set(c.id, 'Not on a walk');
+      continue;
+    }
     let w = walks.get(c.walk_id);
     if (!w) {
       const walk = await db.getWalk(c.walk_id);

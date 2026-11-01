@@ -7,6 +7,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { db } from './db';
 import { newId } from './id';
+import { locateOnce } from './locate';
+import type { LocateResult } from './locate/types';
 import { dropTemp, keepFile } from './media';
 import type { Capture, CaptureKind, LngLat } from './types';
 
@@ -29,9 +31,28 @@ type Busy = CaptureKind | null;
 
 export type VoiceResult = 'saved' | 'dropped' | 'discarded' | 'failed' | 'none';
 
+/** When a capture was begun and where; a moment outside a walk also has its fix on the way. */
+interface Stamp {
+  t: number;
+  at: LngLat | null;
+  locating?: Promise<LocateResult>;
+}
+
+/**
+ * A loose moment is reported twice: 'kept' as soon as it is stored (so lists
+ * show it at once), then 'placed' or why it has no place.
+ */
+export type MomentState = 'kept' | 'placed' | NonNullable<LocateResult['reason']>;
+
+/** The time a capture is begun; only ever called from a tap, never during render. */
+const clockNow = () => Date.now();
+
+/** Folder for the media of moments made outside any walk. */
+const LOOSE_FOLDER = 'moments';
+
 interface StoppedMemo {
   uri: string | null;
-  stamp: { t: number; at: LngLat | null };
+  stamp: Stamp;
   ms: number;
   /** Shorter than MIN_VOICE_MS while the recorder was running: an accidental tap. */
   short: boolean;
@@ -42,13 +63,23 @@ interface StoppedMemo {
  * stamped when it is begun (the shutter tap, the start of a memo), and pinned
  * to the current position only when a recent fix exists; otherwise the
  * position is filled from the trace by time when the walk stops.
+ *
+ * With `loose` and no walk, captures are moments of their own (M1, M2): each
+ * asks for one fix when it is begun, and is stored without a place if none
+ * good enough comes. Nothing is tracked between moments (M5).
  */
 export function useCaptures(
   walkId: string | null,
   here: LngLat | null,
   lastFixAt: number | null,
   onError?: (e: { message: string; openSettings?: boolean }) => void,
+  opts: { loose?: boolean; onMoment?: (c: Capture, state: MomentState) => void } = {},
 ) {
+  const enabled = walkId != null || !!opts.loose;
+  const onMoment = useRef(opts.onMoment);
+  useEffect(() => {
+    onMoment.current = opts.onMoment;
+  }, [opts.onMoment]);
   const [captures, setCaptures] = useState<Capture[]>([]);
   const [busy, setBusy] = useState<Busy>(null);
   const [voiceStartedAt, setVoiceStartedAt] = useState<number | null>(null);
@@ -61,7 +92,7 @@ export function useCaptures(
   };
   const lock = useRef(false); // taps arrive faster than state updates
   const alive = useRef(true); // the screen is still mounted
-  const voiceStamp = useRef<{ t: number; at: LngLat | null } | null>(null);
+  const voiceStamp = useRef<Stamp | null>(null);
   const voice = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const pos = useRef({ here, lastFixAt });
   useEffect(() => {
@@ -72,14 +103,26 @@ export function useCaptures(
     if (walkId) db.getCaptures(walkId).then(setCaptures);
   }, [walkId]);
 
-  const stampNow = (): { t: number; at: LngLat | null } => {
-    const t = Date.now();
+  const stampNow = (locate = true): Stamp => {
+    const t = clockNow();
     const { here: h, lastFixAt: f } = pos.current;
-    return { t, at: h && f != null && t - f <= FRESH_FIX_MS ? h : null };
+    const at = h && f != null && t - f <= FRESH_FIX_MS ? h : null;
+    const s: Stamp = { t, at };
+    if (locate) startLocating(s);
+    return s;
   };
+  /**
+   * Outside a walk there is no trace to place it at stop: ask for one fix (M2).
+   * Called after the camera or mic permission is settled, so two system
+   * prompts never stack (audit: Android takes one request at a time).
+   */
+  const startLocating = (s: Stamp) => {
+    if (!walkId && !s.at && !s.locating) s.locating = locateOnce().catch(() => ({ at: null, reason: 'unavailable' as const }));
+  };
+  const folder = () => walkId ?? LOOSE_FOLDER;
 
-  async function add(kind: CaptureKind, stamp: { t: number; at: LngLat | null }, file_path: string | null, body: string | null): Promise<string | null> {
-    if (!walkId) return null;
+  async function add(kind: CaptureKind, stamp: Stamp, file_path: string | null, body: string | null): Promise<string | null> {
+    if (!enabled) return null;
     const c: Capture = {
       id: newId(), walk_id: walkId, t: stamp.t, kind, file_path, body, segment_id: null,
       lat: stamp.at?.[1] ?? null, lon: stamp.at?.[0] ?? null,
@@ -90,11 +133,38 @@ export function useCaptures(
     const last = pos.current.here;
     const shown = c.lat == null && last ? { ...c, lat: last[1], lon: last[0] } : c;
     if (alive.current) setCaptures((prev) => [...prev, shown]);
+    if (!walkId) {
+      onMoment.current?.(c, 'kept');
+      placeMoment(c, stamp);
+    }
     return c.id;
   }
 
+  /**
+   * A moment outside a walk is kept at once and placed when its one fix
+   * arrives (M2), so a save never waits on GPS. No fix: it stays unplaced.
+   */
+  function placeMoment(c: Capture, stamp: Stamp) {
+    if (c.lat != null || !stamp.locating) {
+      onMoment.current?.(c, c.lat != null ? 'placed' : 'unavailable');
+      return;
+    }
+    stamp.locating
+      .then(async (r) => {
+        if (!r.at) {
+          onMoment.current?.(c, r.reason ?? 'timeout');
+          return;
+        }
+        const placed = { ...c, lon: r.at[0], lat: r.at[1] };
+        await db.updateCapture(c.id, { lon: placed.lon, lat: placed.lat });
+        if (alive.current) setCaptures((prev) => prev.map((x) => (x.id === c.id ? placed : x)));
+        onMoment.current?.(placed, 'placed');
+      })
+      .catch(() => onMoment.current?.(c, 'unavailable'));
+  }
+
   async function guarded(kind: CaptureKind, fn: () => Promise<void>) {
-    if (lock.current || !walkId) return false;
+    if (lock.current || !enabled) return false;
     lock.current = true;
     setBusy(kind);
     setError(null);
@@ -114,12 +184,13 @@ export function useCaptures(
   const takePhoto = async (): Promise<{ kind: 'photo' | 'video'; id: string } | null> => {
     let kept: { kind: 'photo' | 'video'; id: string } | null = null;
     await guarded('photo', async () => {
-      const stamp = stampNow();
+      const stamp = stampNow(false);
       const perm = await ImagePicker.requestCameraPermissionsAsync();
       if (!perm.granted) {
         setError({ message: 'Camera access is off for Chronicles.', openSettings: !perm.canAskAgain });
         return;
       }
+      startLocating(stamp);
       const res = await ImagePicker.launchCameraAsync({
         mediaTypes: ['images', 'videos'],
         quality: 0.8,
@@ -138,12 +209,12 @@ export function useCaptures(
           return;
         }
         const ext = asset.mimeType?.split('/')[1]?.replace('quicktime', 'mov') ?? 'mp4';
-        const id = await add('video', stamp, await keepFile(asset.uri, walkId!, `${newId()}.${ext}`), String(Math.round(ms)));
+        const id = await add('video', stamp, await keepFile(asset.uri, folder(), `${newId()}.${ext}`), String(Math.round(ms)));
         if (id) kept = { kind: 'video', id };
         return;
       }
       const ext = asset.mimeType?.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
-      const id = await add('photo', stamp, await keepFile(asset.uri, walkId!, `${newId()}.${ext}`), null);
+      const id = await add('photo', stamp, await keepFile(asset.uri, folder(), `${newId()}.${ext}`), null);
       if (id) kept = { kind: 'photo', id };
     });
     return kept;
@@ -179,7 +250,7 @@ export function useCaptures(
   const startVoice = (): Promise<boolean> =>
     enqueue(() =>
       withBusy(async () => {
-        if (!walkId || voiceOn.current) return false;
+        if (!enabled || voiceOn.current) return false;
         try {
           const perm = await requestRecordingPermissionsAsync();
           if (!perm.granted) {
@@ -232,7 +303,7 @@ export function useCaptures(
     if (!m.uri) throw new Error('The voice memo could not be saved.');
     // Native records AAC in .m4a; on web the extension is only part of the key.
     const ext = /\.(\w{2,4})$/.exec(m.uri.split('?')[0])?.[1] ?? (m.uri.startsWith('blob:') ? 'webm' : 'm4a');
-    await add('voice', m.stamp, await keepFile(m.uri, walkId!, `${newId()}.${ext}`), String(Math.round(m.ms)));
+    await add('voice', m.stamp, await keepFile(m.uri, folder(), `${newId()}.${ext}`), String(Math.round(m.ms)));
   }
 
   /**

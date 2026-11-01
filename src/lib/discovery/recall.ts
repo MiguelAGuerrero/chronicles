@@ -10,6 +10,8 @@ export const RECALL_RULES = {
   monthMs: 30 * 86_400_000,
   /** A note's reminder shows this much of its text. */
   noteChars: 120,
+  /** A moment made outside a walk rests this long before it can come back, as a walk's own captures never do in it (audit). */
+  looseRestMs: 2 * 3_600_000,
 } as const;
 
 /** Past its until-date the flag ends silently; the capture stays an ordinary memory (R6). */
@@ -45,6 +47,7 @@ export function dueRecalls(o: {
     const c = byId.get(r.capture_id);
     if (!c || c.lat == null || c.lon == null || c.walk_id === o.walkId || r.last_walk_id === o.walkId) continue;
     if (isExpired(r, o.now) || !rested(r, o.now)) continue;
+    if (c.walk_id == null && o.now - c.t < RECALL_RULES.looseRestMs) continue;
     const at: LngLat = [c.lon, c.lat];
     if (path.some((p) => distanceM(p, at) <= RECALL_RULES.reachM)) out.push({ recall: r, capture: c });
   }

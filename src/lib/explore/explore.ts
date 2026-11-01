@@ -89,7 +89,7 @@ export interface ChecklistItem {
 export interface Find {
   key: string;
   area_key: string | null;
-  walk_id: string;
+  walk_id: string | null;
   capture_id: string;
   found_at: number;
   name: string;

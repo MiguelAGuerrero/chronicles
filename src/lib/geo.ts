@@ -108,10 +108,10 @@ export function boundsOf(points: LngLat[], padM = 0): Bounds | null {
 
 // Read-time fix gates from the concept doc: raw fixes are stored forever and
 // filtered only when read, so the trace stays recomputable.
-const MAX_ACCURACY_M = 50;
-const MAX_WALK_SPEED_MS = 7; // anything faster is a GPS jump on foot
+export const MAX_ACCURACY_M = 50;
+export const MAX_WALK_SPEED_MS = 7; // anything faster is a GPS jump on foot
 /** A cached fix from before the walk began (a last-known location) is not part of it. */
-const MAX_STALE_MS = 5000;
+export const MAX_STALE_MS = 5000;
 /** Consecutive rejected fixes that agree with each other mean the anchor was the outlier. */
 const REANCHOR_AFTER = 3;
 
@@ -133,7 +133,11 @@ export class FixFilter {
   /** Length of the run the newest accepted fix belongs to. */
   private runLength = 0;
 
-  constructor(private readonly startedAt: number | null = null) {}
+  constructor(
+    private readonly startedAt: number | null = null,
+    /** Faster than this from the last accepted fix is a jump: walking pace by default, a ride's top speed inside one. */
+    private readonly maxSpeed = MAX_WALK_SPEED_MS,
+  ) {}
 
   /** Returns how many fixes were dropped from the end of `accepted` (0 or 1), for incremental callers. */
   push(p: TracePoint): { added: TracePoint[]; removed: number } {
@@ -141,14 +145,14 @@ export class FixFilter {
     if (this.startedAt != null && p.t < this.startedAt - MAX_STALE_MS) return { added: [], removed: 0 };
     const prev = this.accepted[this.accepted.length - 1];
     if (prev && p.t <= prev.t) return { added: [], removed: 0 };
-    if (!prev || speedMs(prev, p) <= MAX_WALK_SPEED_MS) {
+    if (!prev || speedMs(prev, p) <= this.maxSpeed) {
       this.accepted.push(p);
       this.rejected = [];
       this.runLength++;
       return { added: [p], removed: 0 };
     }
     const last = this.rejected[this.rejected.length - 1];
-    this.rejected = last && speedMs(last, p) <= MAX_WALK_SPEED_MS ? [...this.rejected, p] : [p];
+    this.rejected = last && speedMs(last, p) <= this.maxSpeed ? [...this.rejected, p] : [p];
     if (this.rejected.length < REANCHOR_AFTER) return { added: [], removed: 0 };
     let removed = 0;
     if (this.runLength === 1) {
@@ -163,6 +167,7 @@ export class FixFilter {
   }
 }
 
+/** The walking filter alone, as before rides: the app reads traces through `readTrace` (rides.ts). */
 export function filterFixes(points: TracePoint[], startedAt: number | null = null): TracePoint[] {
   const f = new FixFilter(startedAt);
   for (const p of points) f.push(p);

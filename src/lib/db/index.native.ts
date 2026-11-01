@@ -130,6 +130,33 @@ const MIGRATIONS = [
     key TEXT PRIMARY KEY, lon REAL NOT NULL, lat REAL NOT NULL, build TEXT NOT NULL, read_at INTEGER NOT NULL, candidates TEXT NOT NULL
   );
   `,
+  // 10: ridden distance (rides, R6). Null on summaries written before it, so the replay falls back to the trace's.
+  `
+  ALTER TABLE walk_summary ADD COLUMN ride_m REAL;
+  `,
+  // 11: moments (M3, M6): a capture, and a find, may belong to no walk. SQLite
+  // can't drop NOT NULL in place, so both tables are rebuilt; read by time for days.
+  `
+  CREATE TABLE capture_new (
+    id TEXT PRIMARY KEY, walk_id TEXT, t INTEGER NOT NULL, lat REAL, lon REAL,
+    kind TEXT NOT NULL, file_path TEXT, body TEXT, segment_id TEXT, caption TEXT, caption_y REAL
+  );
+  INSERT INTO capture_new (id, walk_id, t, lat, lon, kind, file_path, body, segment_id, caption, caption_y)
+    SELECT id, walk_id, t, lat, lon, kind, file_path, body, segment_id, caption, caption_y FROM capture;
+  DROP TABLE capture;
+  ALTER TABLE capture_new RENAME TO capture;
+  CREATE INDEX capture_walk ON capture (walk_id, t);
+  CREATE INDEX capture_place ON capture (lat, lon);
+  CREATE INDEX capture_t ON capture (t);
+  CREATE TABLE find_new (
+    key TEXT PRIMARY KEY, area_key TEXT, walk_id TEXT, capture_id TEXT NOT NULL, found_at INTEGER NOT NULL,
+    name TEXT NOT NULL, category TEXT NOT NULL, kind TEXT NOT NULL, lon REAL NOT NULL, lat REAL NOT NULL, generic INTEGER NOT NULL
+  );
+  INSERT INTO find_new SELECT key, area_key, walk_id, capture_id, found_at, name, category, kind, lon, lat, generic FROM find;
+  DROP TABLE find;
+  ALTER TABLE find_new RENAME TO find;
+  CREATE INDEX find_walk ON find (walk_id);
+  `,
 ];
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
@@ -248,6 +275,9 @@ export const db: Db = {
     return (await conn()).getAllAsync<Capture>('SELECT * FROM capture WHERE walk_id = ? ORDER BY t', walkId);
   },
 
+  async capturesBetween(from, to) {
+    return (await conn()).getAllAsync<Capture>('SELECT * FROM capture WHERE t >= ? AND t < ? ORDER BY t', from, to);
+  },
   async getCapturesByIds(ids) {
     if (!ids.length) return [];
     return (await conn()).getAllAsync<Capture>(`SELECT * FROM capture WHERE id IN (${ids.map(() => '?').join(',')}) ORDER BY t`, ...ids);
@@ -309,9 +339,9 @@ export const db: Db = {
         );
       }
       await t.runAsync(
-        `INSERT OR REPLACE INTO walk_summary (walk_id, build, distance_m, duration_ms, new_streets, streets_walked, photos, videos, voices, notes, streets_read)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        s.walk_id, s.build, s.distance_m, s.duration_ms, s.new_streets, s.streets_walked, s.photos, s.videos ?? 0, s.voices, s.notes, s.streets_read ? 1 : 0,
+        `INSERT OR REPLACE INTO walk_summary (walk_id, build, distance_m, duration_ms, new_streets, streets_walked, photos, videos, voices, notes, streets_read, ride_m)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        s.walk_id, s.build, s.distance_m, s.duration_ms, s.new_streets, s.streets_walked, s.photos, s.videos ?? 0, s.voices, s.notes, s.streets_read ? 1 : 0, s.ride_m ?? 0,
       );
       await t.runAsync('UPDATE walk SET snapped_build = ? WHERE id = ?', complete ? s.build : null, walkId);
       if (placed) {
@@ -363,7 +393,7 @@ export const db: Db = {
     const rows = await (await conn()).getAllAsync<Omit<WalkSummary, 'streets_read'> & { streets_read: number }>(
       'SELECT * FROM walk_summary',
     );
-    return rows.map((r) => ({ ...r, streets_read: r.streets_read === 1 }));
+    return rows.map((r) => ({ ...r, ride_m: r.ride_m ?? undefined, streets_read: r.streets_read === 1 }));
   },
 
   saveChecklists({ areas, items, read }) {
