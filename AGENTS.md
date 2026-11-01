@@ -133,7 +133,7 @@ Read this before changing recording, streets, the replay or storage.
   not kept" toast. A memo that fails to save offers Retry. Leaving the screen
   mid-memo saves it.
 - A quick tap on Stop shows "Hold to stop the walk".
-- Walk options (Quiet walk; on a phone, hints) sit in the bottom strip, left of Pause
+- Walk options (the Explore switch, and a link to Settings) sit in the bottom strip, left of Pause
   (the owner's call, v1): walk-level settings stay with the walk's controls.
 - Pills (the caption offer, voice Undo, Retry) sit above the capture row, so the
   row never moves under the thumb. The small edge buttons (unwalked streets, and
@@ -330,7 +330,7 @@ Read this before changing recording, streets, the replay or storage.
   `PlaceSource`.
 - **Keys:** category + name (NFC, trimmed, `toLowerCase`, never the locale's) +
   position to 4 decimals. One POI can straddle a rounding line and get two keys,
-  so a scan runs its pool through `isOffered` against itself.
+  so a checklist build runs its pool through `isOffered` against itself.
   - **Unnamed:** only subclass `artwork` ("Public art") and `viewpoint` ("A viewpoint")
     are kept. Two unnamed artworks in one ~10 m cell are one place (accepted).
 - **A mark is for an attraction** (the owner's call, Nov 2: scans kept offering
@@ -344,28 +344,14 @@ Read this before changing recording, streets, the replay or storage.
     libraries are marks only when the name holds a word from `notable.json`
     (whole words after `normalizeBrand`).
   - Chains (`chains.json`, per category, whole leading words) are never marks.
-  - `isMarkable` gates scan candidates and ambient hints. A row without
+  - `isMarkable` gates what goes on a checklist. A row without
     `markable` (cached before it) is not a mark until read again. SQLite
     migration 8 adds the column (`db/placeRow.ts` maps it); IndexedDB stores
     the whole object.
-  - `scanInputs`: whether a read failed is judged by every place read, the
-    candidates by attractions alone, so ordinary areas aren't "couldn't read".
-  - The preferences list only the five attraction categories. Food courts are
-    dropped in `tilePois`.
-- **A scan also sweeps** (`sweepArea` in `landing/read.ts`): once the scan has
-  ended (so it never holds the cover, Stop, or a loop's next leg), it reads the
-  1.5 km around with the tile decoder (no camera, outside `mapReads`), analyzes
-  it, and remembers it as a landing row. One sweep at a time.
-  - A current area centred within 1 km (`sweepCovered`) is shown instead, so a
-    sweep never replaces a "What's good here" area or refetches its tiles.
-  - The note is `scanMessage`: the marks first, then "· 1 busy street" when
-    the sweep lands. A failed sweep keeps the marks.
-  - The walk map draws areas within 3 km (`nearAreas`, keyed so fixes don't
-    rebuild the labels), without Start here pins.
-  - Chains have no culture list: cinemas are never marks, and the list only
-    hid theatres.
-- **Truth vs cache:** `DERIVED_STORES` (`db/stores.ts`: street segments, places)
-  are cleared by `purgeDerived`; `KEPT_STORES` (offered, mark, recall) never are.
+  - Food courts are dropped in `tilePois`.
+- **Truth vs cache:** `DERIVED_STORES` (`db/stores.ts`: street segments, places,
+  explore reads) are cleared by `purgeDerived`; `KEPT_STORES` (offered, mark,
+  recall, checklist areas and items, finds) never are.
   SQLite migration 6, IndexedDB v5. Cached places are used only for the current
   build (`candidatesFrom`), since a purge can race a live read.
 - **Parent tiles:** maplibre-gl's `querySourceFeatures` returns parent tiles still
@@ -374,27 +360,51 @@ Read this before changing recording, streets, the replay or storage.
 - **Native:** the invisible `q-pois` layer makes the poi source layer load; whether
   it's needed (or costs layout) is unverified on a device.
 - **Deferred:** an index for Offered (it's read whole; fine for thousands).
-- **Scan** (`discovery/scan.ts` pure, `runScan.ts`, `useScan.ts`):
-  - The Scan edge button sits at +112; walk me back moved to +168, and stays the top one.
-  - Marks are rounded squares ("?" until revealed), distinct from round capture
-    pins and stars.
-  - The first scan asks preferences (meta `discovery_prefs`); the home's top-left
-    button edits them.
-  - **One map read at a time** (`lib/mapReads.ts`): a scan and a route's street
-    read both step the camera. Navigation's entry points, pins and Stop are
-    disabled while scanning. A navigation read during a scan gets the cache only.
-  - A timeout stops `collect` too (`shouldStop`), or its last `jumpTo` would move
-    the camera after the cover lifts.
-  - A read that didn't finish fails ("Couldn't read the map here", nothing
-    changes) unless the known places can fill all six (`readFailed`).
-  - Only a capture with its own place, made after the scan, finds a mark; each
-    capture and mark is handled once.
-  - Reveal grows fix by fix, with one pass over the walk's fixes after a reload.
-  - A walk stopped mid-scan gets no marks. A home re-scan replaces only home
-    marks within 1 km. A route to a mark ends when it is found or replaced.
-  - **Deferred:** the "Passed on" street is looked up from the cache at replay
-    (storing it needs a migration); Undo for Dismiss; grouping home marks by
-    screen distance.
+- **Explore** (slice 5, replaces scan and ambient; the spec is E1-E23 in the
+  v1 tab; `explore/explore.ts` pure, `exploreRun.ts`, `useExplore.ts`,
+  `settings.ts`). The owner wanted discoveries in the moment, not a planned list
+  (Nov 1).
+  - **A walk starts quiet** (meta `explore_walk` holds the exploring walk's id).
+    Quiet is navigation plus captures: no "?" marks, magenta, strip chip,
+    dead-zone pill or reminders (`recallCheck` treats any walk but the
+    exploring one as quiet). The Explore switch is in the walk's options card;
+    turning it on also sets `explored:<walk>` so the replay counts its passes.
+  - **Checklists build on every walk, quiet too** (so a capture can find a place):
+    `readCentre` decides when (a fix 1 km from every read of this build, or in
+    an area with no checklist of this build). One decoder read of 1.5 km around
+    the area's point (else the fix), plus a z11 read for towns, builds the
+    checklists of the areas it saw whole (`buildChecklists`: an area's reach,
+    capped at 1.5 km, inside the read) and the busy streets (`rememberArea`,
+    unless `sweepCovered`). One read at a time; a failure waits 2 min and
+    100 m (`retryAllowed`).
+  - **Membership:** nearest neighborhood point within 1 km, else the town or city
+    within reach (closer for its size), else an orphan (`area_key` null: shown,
+    never counted). Checklist keys are level + name + point to 4 decimals
+    (`checklistKey`), which the home's Area rows match (`placeCount`).
+  - **Storage:** `checklist_area`, `checklist_item`, `find` (kept), `explore_read`
+    (derived: a build change clears it, so areas are read again and rebuilt,
+    E4). SQLite migration 9, IndexedDB v8. Items snapshot the place; `kind` is
+    set only on fresh reads (`tilePois` `kindFor`), never cached in `place`.
+  - **What shows** (`visibleMarks`): found places at any distance; unfound ones of
+    shown kinds within the range (60-300 m, 100 by default), nearest 8, named
+    within 60 m or once revealed this walk. On a route, `routeMarks` adds up to
+    20 faint ones within range of the route ahead; the route's areas are read
+    first (`routeProbes`, every 500 m).
+  - **Finding:** a capture within 60 m of an unfound place, any kind, any walk
+    (`findFor`); the first find of a place stands. Walking past only names it.
+  - **Settings** (`ExploreSettings`, a panel, not a modal): what I'm into (8
+    kinds, meta `explore_hidden`), the range (`explore_range`), the pocket alert
+    (`explore_haptic`, phone only, a light tap once per place per walk). The
+    range preview is a ring (`ring` prop, `ringGeoJSON`) on the map already on
+    screen, never a second map: the walk's around you, the home's around your
+    last walk's most-walked area.
+  - **Home:** no "?" and no count on the overview; a place view shows
+    "N of M · list from <date>" and its finds. **Replay:** finds by name
+    (`foundList`) and "Passed N places you didn't stop for" (`passedLine`).
+    Marks found before explore stay in their replays; old open marks are not
+    read.
+  - **Native** (unverified on a device): the background read on a quiet walk,
+    the ring layers, migration 9, the pocket alert.
 
 - **Remind me here** (`discovery/recall.ts` pure, `recallCheck.ts`):
   - Every write goes through `saveRecall`/`stopRecall`, which keep the
@@ -415,43 +425,16 @@ Read this before changing recording, streets, the replay or storage.
     app killed a background action reaches no listener.
   - The card goes after 30 s or 100 m. Repeat fires merge into it.
   - **Deferred:** clearing flags whose capture is gone (there is no delete
-    yet). The quiet-walk toggle arrives with ambient.
+    yet). Reminders fire only on an exploring walk (E9).
   - **Native** (unverified on a device): the task's check, notifications,
     actions and cold-start taps.
 
-- **Ambient hints** (phone only; `discovery/ambient.ts` pure, `ambientRun.ts`, `tileDecode.ts`, `tileFetch.ts`):
-  - Opt-in per walk (meta `ambient_walk`) from the walk's options card, beside
-    Quiet walk (meta `quiet_walk`, both platforms).
-  - The location task runs reminders first, then `runAmbient`, on each batch.
-    A reminder holds hints back for a minute (`recall_last`). A reminder check
-    still in flight counts as one.
-  - Cheap checks come first (`ambientBlocked`: off, quiet, a silent walk, the
-    budget).
-  - **Draws are stable hashes:** a quarter of walks draw silent, and each
-    place's coin is drawn once per walk (`coinFor`). A coin tossed every
-    second would always land.
-  - An ambient mark holds the next hint back only until you reach it
-    (`isPursuing`). It is named, and found by a capture, within 30 m.
-  - "Walked this walk" uses the point halfway along a piece, not its middle
-    vertex, which is often the junction you crossed.
-  - The heading is the device course only when the trace agrees, or when
-    there is no trace and the course isn't Android's 0 ("no bearing").
-  - **Tiles are decoded in code:** pbf 5 (`PbfReader`/`PbfWriter`, there is no
-    default export) and @mapbox/vector-tile 3.
-    - It fetches the 3x3 tiles around you in parallel, 10 s timeout each, and
-      caches only once all nine are in. A failure waits 2 min.
-    - `tile_url` is stored beside `tile_build` in `ensureTileBuild`, and the
-      session's read set resets on a build change.
-    - Decoded tiles give the same street ids as the map read (a test with
-      `mvtFixture.ts`, a test-only encoder, since the tile host is blocked
-      from cloud sessions).
-  - Hints in front are a pill, else a notification. A tap stores `mark_open`.
-    The walk re-reads marks on returning to the front. Stop dismisses the
-    walk's notifications.
-  - Auto-scan (meta `auto_scan`, in the preferences) waits for a route to be
-    found, and counts as done only once it ran.
-  - **Native** (unverified on a device): the whole ambient path, background
-    fetch while iOS keeps location running, notifications.
+- **Tiles decoded in code** (`tileDecode.ts`, `tileFetch.ts`; ambient hints, which
+  brought them, were retired by explore): pbf 5 (`PbfReader`/`PbfWriter`, no
+  default export) and @mapbox/vector-tile 3. Reads are all or nothing, 10 s per
+  tile. `tile_url` is stored beside `tile_build` in `ensureTileBuild`. Decoded
+  tiles give the same street ids as the map read (`mvtFixture.ts`, a test-only
+  encoder, since the tile host is blocked from cloud sessions).
 
 ## v1.5: landing (in progress; the spec is the concept doc's "v1.5: landing" tab)
 
@@ -484,20 +467,15 @@ Read this before changing recording, streets, the replay or storage.
   builds and drawn dimmed when stale (`LANDING_CODE`, bumped by hand). An area
   centred within 1 km of a remembered one replaces it. Markers are rebuilt only
   when areas change, never per zoom. A strip's name keeps 80 m from the pin.
-- **On the walk** (slice 3, `landing/walk.ts` pure):
-  - **The loop** is one waypoint whose `legs` carry the rest (`loopWaypoint`,
-    `nextLeg`). Pockets are taken nearest first while the loop's straight
-    lines × 1.3 stay within 10 km.
-  - **Arrival:** the next leg is saved to meta `nav` before it is routed, and
-    routed by the fix effect once nothing is busy (`pending`), after
-    `afterArrive` (the landing's scan) settles. So a reload between legs
-    resumes, and a scan never fights the route read.
-  - **Skips:** a leg too far or unroutable is skipped with a notice.
+- **Busy areas are information only** (the owner's call, Nov 1): no Start here
+  pin, no card, no Walk the loop (L10, L13, L16 retired by explore).
+  `analysis.landing` is still computed and stored; nothing draws it.
+- **On the walk** (slice 3, `landing/walk.ts` pure), only while exploring:
   - **Chip:** "On <strip>" goes on at 30 m and off past 45 m (`stripAt` with
     the current strip).
   - **Dead-zone pill:** nothing is read from storage until it could fire
     (`deadZoneDue`). It doesn't count paused time, shows only when no card,
-    hint, route or scan is up, and is spent only once seen.
+    route or settings panel is up, never on a quiet walk, and is spent only once seen.
   - Remembered areas of the current rules are read again on returning to the
     front.
 - **The trace hides while navigating** (the owner's call, Nov 2: an indoor
