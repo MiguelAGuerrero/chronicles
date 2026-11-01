@@ -582,6 +582,8 @@ Read this before changing recording, streets, the replay or storage.
 - **Under this walk's pins:** memory markers get z-index 0 on web and are drawn
   first on native. A faint pin shrinks toward its stem's foot. Its label is "N
   memories here".
+- **A clock badge** (MR10, after the audit: a faded pin read as "my pin, faded")
+  marks a memory pin as from the past.
 - **Native** (unverified on a device): the memory Markers.
 
 ## Polish: motion (the spec is the concept doc's "Polish: motion" tab)
@@ -615,8 +617,19 @@ Read this before changing recording, streets, the replay or storage.
 - **Testing motion on the web:** `emulateMedia({ reducedMotion: 'reduce' })`.
   A mouse drag on a moving element is cancelled by the browser and reads as a
   tap, so drag a moving sheet with CDP touch events, as on a phone.
-- **Deferred** (after Explore): a star bounce, a pin drop on capture, the ?
-  flipping to its name, a pulse on finding a place.
+- **The deferred four** (M9-M12; `lib/enter.ts` pure, `components/Enter.tsx`).
+  Each plays once, when its change happens in front of you, never when a
+  screen opens or reloads.
+  - A selected star settles from 85%.
+  - A new capture's pin drops 12 px.
+  - A revealed "?" turns in a quarter turn.
+  - A find grows a ring that fades; the pin stays still and lets taps through.
+  - On web, a map rebuilds a marker on every change, so the map decides
+    (`markEnter`, `starEnter`, `pinDrops` against what it showed before).
+  - On native, the map keeps what was shown in state. A star's view stays
+    mounted and notices its own selection (`useOwnEnter`).
+  - A view latches its entrance at mount, so a later render can't cut it short.
+  - The e2e finds them by `data-testid=enter-<kind>`.
 - **Native** (unverified on a device): the native-driver press and lift, the
   sheet spring.
 - The e2e's mouse drag on the home map doesn't pan it, so H5's "kept its view

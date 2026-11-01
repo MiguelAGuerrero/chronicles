@@ -236,6 +236,9 @@ function check(ok, what) {
       await page.waitForTimeout(60);
       return (await hintLoc.count()) === 0;
     }, () => null);
+    // A "?" revealed in front of you turns into its place (M11): the memorial, approached before it is found.
+    const flipped = page.locator('.maplibregl-map').last().locator('[data-testid=mark-pin] [data-testid=enter-flip]').first()
+      .waitFor({ timeout: 240000 }).then(() => true, () => false);
     await page.waitForTimeout(2500);
     await shot(page, '01-walk-start');
 
@@ -374,6 +377,8 @@ function check(ok, what) {
         // The video is taken about 40 m from the memorial: it finds it (E8). (The memo at step 10, 62 m off, does not.)
         await page.waitForTimeout(500);
         check((await page.locator('[aria-label="Found: Hessian Memorial, History & landmarks"]').count()) === 1, 'a capture within 60 m finds the place, which stays drawn as found');
+        check((await page.locator('[aria-label="Found: Hessian Memorial, History & landmarks"] [data-testid=enter-pulse]').count()) === 1, 'a find pulses once from its pin (M12)');
+        check(await flipped, 'a revealed "?" turns into its place, on its way to being found (M11)');
       }
       if (k === 25) {
         await page.click('[data-testid=cap-note]');
@@ -426,6 +431,9 @@ function check(ok, what) {
         // A photo, then the opt-in caption.
         const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('[data-testid=cap-photo]')]);
         await chooser.setFiles(path.join(__dirname, 'fixtures', 'photo.jpg'));
+        // Its pin drops in (M10); the pins already there when the screen opened never did.
+        const dropped = await walkMap().locator('[data-testid=enter-drop]').first().waitFor({ timeout: 5000 }).then(() => true, () => false);
+        check(dropped, 'a new capture’s pin drops in (M10)');
         await page.click('[data-testid=add-caption]');
         await page.fill('[data-testid=caption-input]', 'Mural on Wickenden');
         await page.waitForTimeout(400);
@@ -491,6 +499,9 @@ function check(ok, what) {
         await page.reload();
         await page.waitForSelector('[data-testid=stop]');
         check(page.url().endsWith(`${BASE}/walk`), 'a reload mid-walk resumes the walk');
+        await page.waitForTimeout(2500);
+        const replayed = await page.locator('[data-testid^=enter-]').count();
+        check(replayed === 0, `nothing animates when a screen reloads: pins and finds are just there (M10, M12: ${replayed})`);
       }
       if (k === 44) {
         const bar = await page.waitForSelector('[data-testid=nav-left]', { timeout: 30000 }).then((e) => e.innerText(), () => '');
@@ -740,9 +751,11 @@ function check(ok, what) {
     await page.waitForSelector('[aria-label^="Fox Point,"]', { timeout: 15000 });
     await shot(page, '08-home-star');
     check(true, 'the walk is a star on the home map');
+    check((await page.locator('[data-testid=enter-bounce]').count()) === 0, 'no star settles before one is selected');
     // A star lists its place's walks in the sheet, with the place's parents (H6).
     await page.click('[aria-label^="Fox Point,"]');
     await page.waitForSelector('[data-testid=place-title]');
+    check((await page.locator('[aria-label^="Fox Point,"] [data-testid=enter-bounce]').count()) === 1, 'a selected star settles into its ring (M9)');
     const sheet = (await page.locator('[data-testid=home-sheet]').innerText()).replace(/\s+/g, ' ');
     check(/Fox Point/.test(sheet) && /Providence, Rhode Island/.test(sheet) && /Cardamom and the river\./.test(sheet), `a star lists its place's walks (${sheet.slice(0, 120)})`);
     await shot(page, '09-home-place');
@@ -852,6 +865,12 @@ function check(ok, what) {
       await still.goto(page.url());
       await still.waitForSelector('[data-testid=home-sheet]');
       await still.waitForTimeout(800);
+      await still.click('[aria-label^="Fox Point,"]');
+      await still.waitForTimeout(30);
+      const starT = await still.locator('[aria-label^="Fox Point,"] [data-testid=enter-bounce]').evaluate((el) => getComputedStyle(el).transform).catch(() => 'missing');
+      check(starT === 'none' || starT === 'matrix(1, 0, 0, 1, 0, 0)', `with reduce motion on, a selected star doesn't move (M2, M9: ${starT})`);
+      await still.keyboard.press('Escape');
+      await still.waitForTimeout(400);
       const flat = await pressedScale(still, '[data-testid=start]');
       const peek = (await still.locator('[data-testid=home-sheet]').boundingBox()).height;
       await still.click('[data-testid=sheet-walks]');
@@ -1076,6 +1095,8 @@ function check(ok, what) {
     await page.waitForSelector('[data-testid=memory-pin]', { timeout: 15000 });
     const look = await memoryPins().first().evaluate((el) => ({ opacity: Number(getComputedStyle(el.firstElementChild).opacity), label: el.getAttribute('aria-label') }));
     check(look.opacity < 0.7 && /memor/i.test(look.label), `memory pins are faint and named as memories (MR3: opacity ${look.opacity}, "${look.label}")`);
+    check((await memoryPins().first().locator('[data-testid=memory-badge]').count()) === 1 && (await walkMap().locator('[data-testid=mark-pin] [data-testid=memory-badge]').count()) === 0,
+      'a memory pin carries a clock badge, and nothing else does (MR10)');
     // Under this walk's own pins, never over them (audit 6).
     const z = await memoryPins().first().evaluate((el) => getComputedStyle(el).zIndex);
     check(z === '0', `memory pins sit under capture pins (audit 6: z-index ${z})`);

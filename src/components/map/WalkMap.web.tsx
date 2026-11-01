@@ -14,6 +14,7 @@ import type { CapturePin } from '../../lib/pins';
 import type { RoadFeature } from '../../lib/streets';
 import type { Capture, LngLat } from '../../lib/types';
 import { useGlideFrames, type GlideFrame } from '../../lib/useGlidingWalker';
+import { markEnter, pinDrops, starEnter } from '../../lib/enter';
 import { useReducedMotion } from '../../lib/motion';
 import { MOTION } from '../../lib/motionTokens';
 import {
@@ -359,7 +360,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   useEffect(() => {
     starLatest.current = { stars: new Map((props.stars ?? []).map((st) => [st.id, st])), onStarPress: props.onStarPress };
   });
-  const starMarkers = useRef(new Map<string, { marker: Marker; root: Root; key: string }>());
+  const starMarkers = useRef(new Map<string, { marker: Marker; root: Root; key: string; selected: boolean }>());
   const names = useMemo(() => namedStars(props.stars ?? []), [props.stars]);
   useEffect(() => {
     const map = mapRef.current;
@@ -377,6 +378,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       const existing = starMarkers.current.get(star.id);
       if (existing?.key === key) continue;
       if (existing) drop(existing);
+      // Settles only when it becomes selected in front of you (M9).
+      const enter = starEnter(existing ? existing.selected : undefined, selected);
       // A 48 px target around the 36 px star.
       const el = document.createElement('button');
       el.type = 'button';
@@ -389,9 +392,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         if (st) starLatest.current.onStarPress?.(st);
       });
       const root = createRoot(el);
-      root.render(<StarView star={star} selected={selected} named={named} />);
+      root.render(<StarView star={star} selected={selected} named={named} enter={enter} />);
       const marker = new Marker({ element: el, anchor: 'center' }).setLngLat(star.at).addTo(map);
-      starMarkers.current.set(star.id, { marker, root, key });
+      starMarkers.current.set(star.id, { marker, root, key, selected });
     }
     for (const [id, m] of starMarkers.current) {
       if (live.has(id)) continue;
@@ -411,7 +414,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   useEffect(() => {
     markLatest.current = props.onDiscoveryPress;
   });
-  const markMarkers = useRef(new Map<string, { marker: Marker; root: Root; key: string }>());
+  const markMarkers = useRef(new Map<string, { marker: Marker; root: Root; key: string; state: { revealed: boolean; found?: boolean; faint?: boolean } }>());
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
@@ -426,6 +429,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       const existing = markMarkers.current.get(pin.id);
       if (existing?.key === key) continue;
       if (existing) drop(existing);
+      // Revealed in front of you it turns in (M11); found, it pulses once (M12).
+      const enter = markEnter(existing?.state, pin);
       const el = document.createElement('button');
       el.type = 'button';
       el.dataset.testid = 'mark-pin';
@@ -440,9 +445,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           markLatest.current?.(id);
         });
       const root = createRoot(el);
-      root.render(<MarkPinView pin={pin as MarkPin} />);
+      root.render(<MarkPinView pin={pin as MarkPin} enter={enter} />);
       const marker = new Marker({ element: el, anchor: 'bottom', offset: [0, 6] }).setLngLat(pin.at).addTo(map);
-      markMarkers.current.set(pin.id, { marker, root, key });
+      markMarkers.current.set(pin.id, { marker, root, key, state: { revealed: pin.revealed, found: pin.found, faint: pin.faint } });
     }
     for (const [id, m] of markMarkers.current) {
       if (live.has(id)) continue;
@@ -644,6 +649,9 @@ function usePinMarkers(
   });
   const markers = useRef(new Map<string, { marker: Marker; root: Root; key: string }>());
   const interactive = !!onPress;
+  // A capture taken since the screen opened drops in (M10); one already shown, or a reload, never.
+  const [openedAt] = useState(() => Date.now());
+  const seen = useRef(new Set<string>());
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
@@ -680,7 +688,9 @@ function usePinMarkers(
         el.style.cssText = 'padding:6px;pointer-events:none';
       }
       const root = createRoot(el);
-      root.render(<CapturePinView pin={pin} faint={memory} />);
+      const drops = !memory && pinDrops(pin.captures, seen.current, openedAt);
+      for (const c of pin.captures) seen.current.add(c.id);
+      root.render(<CapturePinView pin={pin} faint={memory} drop={drops} />);
       // Anchored at the stem's foot, so the marked point stays visible.
       const marker = new Marker({ element: el, anchor: 'bottom', offset: [0, 6] }).setLngLat(pin.lngLat).addTo(map);
       // Memories sit under this walk's pins, so a new capture over an old one opens the new one (audit 6).
@@ -692,7 +702,7 @@ function usePinMarkers(
       drop(m);
       markers.current.delete(id);
     }
-  }, [mapRef, ready, pins, interactive, memory]);
+  }, [mapRef, ready, pins, interactive, memory, openedAt]);
   useEffect(() => () => {
     for (const m of markers.current.values()) {
       m.marker.remove();

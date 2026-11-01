@@ -11,6 +11,7 @@ import type { RoadFeature } from '../../lib/streets';
 import type { Capture } from '../../lib/types';
 import { TILEJSON_URL } from '../../lib/tiles';
 import { useGlidingWalker } from '../../lib/useGlidingWalker';
+import { markEnter, pinDrops } from '../../lib/enter';
 import { useReducedMotion } from '../../lib/motion';
 import { MOTION } from '../../lib/motionTokens';
 import {
@@ -37,6 +38,18 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   // Pins grouped for the current zoom, so nearby ones merge instead of piling up.
   const pins = useZoomPins(props.captures, view?.zoom ?? props.initialZoom ?? null, view?.lat ?? null);
   const memoryPins = useZoomPins(props.memories ?? NO_CAPTURES, view?.zoom ?? props.initialZoom ?? null, view?.lat ?? null);
+  // What was on screen before this change, for the deferred four (M10-M12): a remounted pin's view
+  // gets its entrance from here. Nothing animates on first render, nor for captures older than the screen.
+  const [openedAt] = useState(() => Date.now());
+  const [seenMarks, setSeenMarks] = useState<ReadonlyMap<string, { revealed: boolean; found?: boolean; faint?: boolean }>>(() => new globalThis.Map());
+  const [seenCaptures, setSeenCaptures] = useState<ReadonlySet<string>>(() => new Set());
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSeenMarks(new globalThis.Map((props.discoveries ?? []).map((p) => [p.id, { revealed: p.revealed, found: p.found, faint: p.faint }] as const)));
+      setSeenCaptures(new Set(props.captures.map((c) => c.id)));
+    }, 0);
+    return () => clearTimeout(t);
+  }, [props.discoveries, props.captures]);
   // Camera moves take the app's camera timing, and jump with reduce motion on (M2).
   const reduced = useReducedMotion();
   const duration = props.animate === false || reduced ? 0 : MOTION.camera;
@@ -308,7 +321,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
               accessibilityLabel={pinLabel(pin, !!props.onPinPress)}
               style={styles.pinHit}
             >
-              <CapturePinView pin={pin} />
+              <CapturePinView pin={pin} drop={pinDrops(pin.captures, seenCaptures, openedAt)} />
             </View>
           </Marker>
         ))}
@@ -321,7 +334,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             onPress={props.onDiscoveryPress && !pin.found ? () => props.onDiscoveryPress?.(pin.id) : undefined}
           >
             <View accessible accessibilityRole={pin.found ? 'image' : 'button'} accessibilityLabel={markLabel(pin)} style={pin.found ? undefined : styles.pinHit}>
-              <MarkPinView pin={pin} />
+              <MarkPinView pin={pin} enter={seenMarks.size ? markEnter(seenMarks.get(pin.id), pin) : null} />
             </View>
           </Marker>
         ))}

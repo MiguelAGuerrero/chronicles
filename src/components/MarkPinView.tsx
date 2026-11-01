@@ -1,4 +1,7 @@
+import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { markEnter, type EnterKind } from '../lib/enter';
+import { Enter, useOwnEnter } from './Enter';
 import type { IconName } from './icons';
 import { Icon } from './icons';
 
@@ -27,7 +30,30 @@ const NAME_WIDTH = 140;
  * a "?" until it is revealed, then the category's icon and the name below.
  * Anchored at its bottom, like a capture pin.
  */
-export function MarkPinView({ pin }: { pin: MarkPin }) {
+const stateOf = (pin: MarkPin) => `${pin.revealed ? 'r' : ''}${pin.found ? 'f' : ''}`;
+const ownEnter = (prev: string, next: string) =>
+  markEnter({ revealed: prev.includes('r'), found: prev.includes('f') }, { revealed: next.includes('r'), found: next.includes('f') });
+
+/**
+ * `enter` is the map's call when it rebuilds the pin on a change (web); without it, the view
+ * notices its own change (native, where the pin stays mounted). M11 turns, M12 pulses.
+ */
+export function MarkPinView({ pin, enter }: { pin: MarkPin; enter?: EnterKind | null }) {
+  const own = useOwnEnter(stateOf(pin), ownEnter);
+  // The map's call is kept from mount, so a later render can't cut the entrance short.
+  const [given] = useState(enter);
+  const kind = enter === undefined ? own : given;
+  const body = <MarkBody pin={pin} />;
+  if (kind === 'flip' || kind === 'pulse')
+    return (
+      <Enter kind={kind} ring={[styles.ringAt, pin.found && styles.ringFound]}>
+        {body}
+      </Enter>
+    );
+  return body;
+}
+
+function MarkBody({ pin }: { pin: MarkPin }) {
   const shown = pin.revealed || pin.found;
   return (
     <View style={[styles.wrap, pin.faint && styles.faint, pin.found && styles.wrapFound]} pointerEvents="none">
@@ -84,6 +110,9 @@ const styles = StyleSheet.create({
   wrapFound: { width: 26, height: 32 },
   headFound: { backgroundColor: FOUND_COLOR, width: 24, height: 24, borderRadius: 7 },
   stemFound: { backgroundColor: FOUND_COLOR },
+  // A find's ring grows from the head (M12).
+  ringAt: { top: 0, left: 1, width: 34, height: 34, borderRadius: 9 },
+  ringFound: { left: 1, width: 24, height: 24, borderRadius: 7 },
   check: {
     position: 'absolute', right: -6, top: -6, width: 16, height: 16, borderRadius: 8, backgroundColor: '#ffffff',
     alignItems: 'center', justifyContent: 'center',
