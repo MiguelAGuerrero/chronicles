@@ -34,7 +34,8 @@ export type CaptureKind = 'photo' | 'video' | 'voice' | 'text';
 
 export interface Capture {
   id: string;
-  walk_id: string;
+  /** The walk it was made on; null for a moment made outside any walk. */
+  walk_id: string | null;
   t: number;
   lat: number | null;
   lon: number | null;

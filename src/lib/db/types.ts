@@ -22,6 +22,8 @@ export interface Db {
   addCapture(capture: Capture): Promise<void>;
   updateCapture(id: string, patch: Partial<Omit<Capture, 'id'>>): Promise<void>;
   getCaptures(walkId: string): Promise<Capture[]>;
+  /** Every capture, loose or in a walk, with from <= t < to, in time order (days, M6). */
+  capturesBetween(from: number, to: number): Promise<Capture[]>;
   /** Captures by id, from any walk (a reminder notification's). */
   getCapturesByIds(ids: string[]): Promise<Capture[]>;
   /** Captures of every walk whose position lies inside the bounds. */

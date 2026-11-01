@@ -52,8 +52,11 @@ export function groupCaptures(captures: Capture[]): PauseGroup[] {
     const pos: LngLat | null = c.lat != null && c.lon != null ? [c.lon, c.lat] : null;
     const g = groups[groups.length - 1];
     const near = g && c.t - g.t <= GROUP_GAP_MS && (!g.at || !pos || distanceM(g.at, pos) <= GROUP_M);
-    if (near) g.captures.push(c);
-    else groups.push({ t: c.t, at: pos, captures: [c] });
+    if (near) {
+      g.captures.push(c);
+      // A group begun by a placeless capture takes its place from the first placed one, so a far one can't join it (audit).
+      if (!g.at && pos) g.at = pos;
+    } else groups.push({ t: c.t, at: pos, captures: [c] });
   }
   return groups;
 }

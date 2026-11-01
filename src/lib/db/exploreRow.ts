@@ -5,7 +5,7 @@ import type { ChecklistArea, ChecklistItem, ExploreRead, Find } from '../explore
 /** Explore's rows as SQLite stores them (E13); pure, so a test can round-trip them. */
 export type AreaRow = Omit<ChecklistArea, 'at'> & { lon: number; lat: number };
 export type ItemRow = { key: string; area_key: string | null; name: string; category: CategoryId; kind: Kind; lon: number; lat: number; generic: number };
-export type FindRow = Omit<ItemRow, 'area_key'> & { area_key: string | null; walk_id: string; capture_id: string; found_at: number };
+export type FindRow = Omit<ItemRow, 'area_key'> & { area_key: string | null; walk_id: string | null; capture_id: string; found_at: number };
 export type ReadRow = { key: string; lon: number; lat: number; build: string; read_at: number; candidates: string };
 
 export const areaToRow = ({ at, ...a }: ChecklistArea): AreaRow => ({ ...a, lon: at[0], lat: at[1] });

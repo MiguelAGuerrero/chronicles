@@ -9,12 +9,18 @@ import { MOTION } from '../lib/motionTokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { placeWalks, type PlacesIndex } from '../lib/places';
 import { formatCaptures, formatDistance, formatDuration, suggestTitle } from '../lib/summary';
-import type { Walk, WalkSummary } from '../lib/types';
-import { Icon } from './icons';
+import { dayCounts, dayLabel, type Day, type DayEntry } from '../lib/days';
+import type { Capture, Walk, WalkSummary } from '../lib/types';
+import { Icon, KIND_ICON, KIND_LABEL } from './icons';
 import { theme } from './ui';
 
-/** What the sheet shows: the summary, every walk, or one place's walks. */
-export type SheetMode = { kind: 'summary' } | { kind: 'walks' } | { kind: 'place'; key: string };
+/** What the sheet shows: the summary, every walk, one place's walks, every day, or one day's timeline. */
+export type SheetMode =
+  | { kind: 'summary' }
+  | { kind: 'walks' }
+  | { kind: 'place'; key: string }
+  | { kind: 'days' }
+  | { kind: 'day'; key: string };
 
 /** The sheet's height when it peeks over the map, above the safe area. */
 export const SHEET_PEEK = 76;
@@ -43,6 +49,12 @@ export function HomeSheet(props: {
   onGoToPlace?: () => void;
   /** The place's checklist count and found places (E10), in the place view only. */
   placeExtra?: { count: string; found: string[] } | null;
+  /** Days with something in them, newest first (M7). */
+  days?: Day[];
+  /** Opens moments in the viewer (M8). */
+  onOpenMoments?: (captures: Capture[]) => void;
+  /** The home's clock, for naming today and yesterday. */
+  now: number;
 }) {
   const insets = useSafeAreaInsets();
   const { height: screenH } = useWindowDimensions();
@@ -80,7 +92,7 @@ export function HomeSheet(props: {
     if (next === 'peek') props.onMode({ kind: 'summary' });
     else {
       setOpenSize(next);
-      if (!expanded) props.onMode({ kind: 'walks' });
+      if (!expanded) props.onMode(props.index.walkCount || !(props.days ?? []).length ? { kind: 'walks' } : { kind: 'days' });
     }
   };
   // Back on Android, and Escape on the web, lower an open sheet before anything else.
@@ -138,9 +150,17 @@ export function HomeSheet(props: {
   const all = [...index.walks.values()].sort((x, y) => y.started_at - x.started_at);
   const place = props.mode.kind === 'place' ? placeWalks(index, props.mode.key) : null;
   const unplacedIds = new Set(props.unplaced.map((w) => w.id));
+  const days = props.days ?? [];
+  const day = props.mode.kind === 'day' ? (() => {
+    const key = props.mode.key;
+    return days.find((d) => d.key === key) ?? null;
+  })() : null;
+  const looseCount = days.reduce((n, d) => n + d.entries.filter((e) => e.kind === 'moment').length, 0);
   const summary = index.walkCount
     ? `${index.walkCount} ${index.walkCount === 1 ? 'walk' : 'walks'} · ${index.placeCount} ${index.placeCount === 1 ? 'place' : 'places'}`
-    : '';
+    : looseCount ? `${looseCount} ${looseCount === 1 ? 'moment' : 'moments'}` : '';
+  const listTitle = props.mode.kind === 'days' ? 'Your days' : 'Walks';
+  const nowT = props.now;
 
   return (
     <Animated.View testID="home-sheet" style={[styles.sheet, { height: h, paddingBottom: insets.bottom }]}>
@@ -149,7 +169,12 @@ export function HomeSheet(props: {
           <View style={styles.handle} />
         </View>
         <View style={styles.header}>
-          {place ? (
+          {day ? (
+            <View style={styles.headerText}>
+              <Text testID="day-title" style={styles.title} accessibilityRole="header" numberOfLines={1}>{dayLabel(day.key, nowT)}</Text>
+              <Text style={styles.meta} numberOfLines={1}>{dayCounts(day)}</Text>
+            </View>
+          ) : place ? (
             <View style={styles.headerText}>
               <Text testID="place-title" style={styles.title} accessibilityRole="header" numberOfLines={1}>{place.title}</Text>
               <Text style={styles.meta} numberOfLines={2}>
@@ -161,8 +186,22 @@ export function HomeSheet(props: {
             </View>
           ) : (
             <Text style={[styles.title, styles.headerText]} accessibilityRole="header" numberOfLines={1}>
-              {expanded ? 'Walks' : summary}
+              {expanded ? listTitle : summary}
             </Text>
+          )}
+          {props.mode.kind === 'day' && (
+            // Back to the days list, as Map goes back to the map (audit).
+            <Pressable
+              testID="sheet-days-back"
+              accessibilityRole="button"
+              accessibilityLabel="Back to your days"
+              onPress={() => props.onMode({ kind: 'days' })}
+              style={styles.pill}
+              hitSlop={8}
+            >
+              <Icon name="chevron-back" size={18} color={theme.ink} />
+              <Text style={styles.pillText}>Days</Text>
+            </Pressable>
           )}
           {expanded ? (
             <Pressable
@@ -178,20 +217,36 @@ export function HomeSheet(props: {
               <Text style={styles.pillText}>Map</Text>
             </Pressable>
           ) : (
-            index.walkCount > 0 && (
-              <Pressable
-                testID="sheet-walks"
-                accessibilityRole="button"
-                accessibilityLabel="Show your walks"
-                accessibilityState={{ expanded: false }}
-                onPress={() => props.onMode({ kind: 'walks' })}
-                style={styles.pill}
-                hitSlop={8}
-              >
-                <Icon name="list" size={18} color={theme.ink} />
-                <Text style={styles.pillText}>Walks</Text>
-              </Pressable>
-            )
+            <View style={styles.pills}>
+              {days.length > 0 && (
+                <Pressable
+                  testID="sheet-days"
+                  accessibilityRole="button"
+                  accessibilityLabel="Show your days"
+                  accessibilityState={{ expanded: false }}
+                  onPress={() => props.onMode({ kind: 'days' })}
+                  style={styles.pill}
+                  hitSlop={8}
+                >
+                  <Icon name="calendar-outline" size={18} color={theme.ink} />
+                  <Text style={styles.pillText}>Days</Text>
+                </Pressable>
+              )}
+              {index.walkCount > 0 && (
+                <Pressable
+                  testID="sheet-walks"
+                  accessibilityRole="button"
+                  accessibilityLabel="Show your walks"
+                  accessibilityState={{ expanded: false }}
+                  onPress={() => props.onMode({ kind: 'walks' })}
+                  style={styles.pill}
+                  hitSlop={8}
+                >
+                  <Icon name="list" size={18} color={theme.ink} />
+                  <Text style={styles.pillText}>Walks</Text>
+                </Pressable>
+              )}
+            </View>
           )}
         </View>
       </View>
@@ -203,7 +258,51 @@ export function HomeSheet(props: {
           </Pressable>
         </View>
       )}
-      {expanded && (
+      {day && (
+        <View style={styles.goRow}>
+          <Pressable
+            testID="day-replay"
+            accessibilityRole="button"
+            accessibilityLabel={`Replay ${dayLabel(day.key, nowT)}`}
+            onPress={() => router.push(`/day/${day.key}`)}
+            disabled={props.busy}
+            style={({ pressed }) => [styles.go, (pressed || props.busy) && { opacity: 0.7 }]}
+          >
+            <Icon name="play" size={18} color="#ffffff" />
+            <Text style={styles.goText}>Replay this day</Text>
+          </Pressable>
+        </View>
+      )}
+      {(props.mode.kind === 'days' || props.mode.kind === 'day') && (
+        <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
+          {props.mode.kind === 'days'
+            ? days.map((d) => (
+                <Pressable
+                  key={d.key}
+                  testID="day-row"
+                  accessibilityRole="button"
+                  accessibilityLabel={`${dayLabel(d.key, nowT)}, ${dayCounts(d)}`}
+                  onPress={() => props.onMode({ kind: 'day', key: d.key })}
+                  style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}
+                >
+                  <Text style={styles.rowTitle}>{dayLabel(d.key, nowT)}</Text>
+                  <Text style={styles.rowMeta}>{dayCounts(d)}</Text>
+                </Pressable>
+              ))
+            : day
+              ? day.entries.map((e) => (
+                  <EntryRow
+                    key={e.kind === 'walk' ? e.walk.id : e.capture.id}
+                    entry={e}
+                    summary={e.kind === 'walk' ? props.summaries.get(e.walk.id) ?? null : null}
+                    disabled={props.busy}
+                    onOpen={(c) => props.onOpenMoments?.(c)}
+                  />
+                ))
+              : <Text style={styles.note}>Nothing kept on this day.</Text>}
+        </ScrollView>
+      )}
+      {expanded && props.mode.kind !== 'days' && props.mode.kind !== 'day' && (
         <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
           {place && props.placeExtra && props.placeExtra.found.length > 0 && (
             <Text testID="place-found" style={styles.note}>Found here: {props.placeExtra.found.join(' · ')}</Text>
@@ -223,6 +322,51 @@ export function HomeSheet(props: {
         </ScrollView>
       )}
     </Animated.View>
+  );
+}
+
+const clock = (t: number) => new Date(t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+
+/** A line of a day's timeline (M8): a moment opens in the viewer; a walk is one row that opens its replay. */
+function EntryRow({ entry: e, summary: s, disabled, onOpen }: { entry: DayEntry; summary: WalkSummary | null; disabled?: boolean; onOpen: (c: Capture[]) => void }) {
+  if (e.kind === 'walk') {
+    const n = e.captures.length;
+    const line = ['Walk', s ? formatDistance(s.distance_m) : null, `${n} ${n === 1 ? 'moment' : 'moments'}`].filter(Boolean).join(' · ');
+    return (
+      <Pressable
+        testID="timeline-walk"
+        accessibilityRole="button"
+        accessibilityLabel={`${clock(e.t)}, ${line}. Replay it`}
+        disabled={disabled}
+        onPress={() => router.push(`/replay/${e.walk.id}?ceremony=0`)}
+        style={({ pressed }) => [styles.entry, (pressed || disabled) && { opacity: 0.6 }]}
+      >
+        <Text style={styles.time}>{clock(e.t)}</Text>
+        <Icon name="walk" size={20} color={theme.accent} />
+        <View style={styles.entryText}>
+          <Text style={styles.rowTitle} numberOfLines={1}>{e.walk.title ?? suggestTitle(e.walk)}</Text>
+          <Text style={styles.rowMeta}>{line}</Text>
+        </View>
+      </Pressable>
+    );
+  }
+  const c = e.capture;
+  const what = c.kind === 'text' ? (c.body ?? '') : KIND_LABEL[c.kind];
+  return (
+    <Pressable
+      testID="timeline-moment"
+      accessibilityRole="button"
+      accessibilityLabel={`${clock(e.t)}, ${what}${c.lat == null ? ', no location' : ''}`}
+      onPress={() => onOpen([c])}
+      style={({ pressed }) => [styles.entry, pressed && { opacity: 0.6 }]}
+    >
+      <Text style={styles.time}>{clock(e.t)}</Text>
+      <Icon name={KIND_ICON[c.kind]} size={20} color={theme.ink} />
+      <View style={styles.entryText}>
+        <Text style={styles.rowTitle} numberOfLines={2}>{what}</Text>
+        {c.lat == null ? <Text style={styles.rowMeta}>No location</Text> : null}
+      </View>
+    </Pressable>
   );
 }
 
@@ -273,6 +417,13 @@ const styles = StyleSheet.create({
     backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.edge,
   },
   pillText: { fontSize: 15, fontWeight: '600', color: theme.ink },
+  pills: { flexDirection: 'row', gap: 8 },
+  entry: {
+    flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: theme.surface, borderRadius: theme.radius,
+    paddingVertical: 12, paddingHorizontal: 14, borderWidth: 1, borderColor: theme.line, minHeight: 56,
+  },
+  time: { width: 64, fontSize: 14, color: theme.muted, fontVariant: ['tabular-nums'] },
+  entryText: { flex: 1, gap: 2 },
   list: { flex: 1 },
   listContent: { padding: 16, gap: 10, maxWidth: 640, width: '100%', alignSelf: 'center' },
   note: { fontSize: 14, color: theme.muted, marginTop: -4 },

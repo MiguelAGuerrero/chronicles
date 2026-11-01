@@ -101,3 +101,11 @@ test('recall: two memories name their kinds (UI review)', () => {
   assert.deepEqual(t, { title: '2 memories here', body: 'A photo and a note' });
   assert.equal(reminderText([capture('a', { kind: 'voice', body: null }), capture('b', { kind: 'voice', body: null }), capture('c')]).body, '2 voice memos and a note');
 });
+
+test('audit (moments 15): a moment made outside a walk does not come back on a walk started right after, at the spot', () => {
+  const loose = [capture('m', { walk_id: null, t: NOW - 10 * 60_000 })];
+  assert.deepEqual(due({ recalls: [recall('m')], captures: loose }), []);
+  // Once it has rested, it comes back as any flagged capture does.
+  const old = [capture('m', { walk_id: null, t: NOW - RECALL_RULES.looseRestMs - 1 })];
+  assert.deepEqual(due({ recalls: [recall('m')], captures: old }), ['m']);
+});

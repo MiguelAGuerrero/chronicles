@@ -5,6 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CaptureViewer } from '../components/CaptureView';
 import { ExploreSettings } from '../components/ExploreSettings';
 import { HomeSheet, SHEET_PEEK, type SheetMode } from '../components/HomeSheet';
+import { MomentBar } from '../components/MomentBar';
+import type { MomentState } from '../lib/useCaptures';
 import type { MarkPin } from '../components/MarkPinView';
 import { WalkMap } from '../components/map/WalkMap';
 import type { WalkMapHandle } from '../components/map/types';
@@ -14,6 +16,8 @@ import type { Area, WalkArea } from '../lib/areas/types';
 import { db } from '../lib/db';
 import { perfCount } from '../lib/perfCount';
 import { categoryOf } from '../lib/discovery/categories';
+import { buildDays } from '../lib/days';
+import { findForMoment } from '../lib/explore/momentFind';
 import { countLine, EXPLORE_KEY, exploredKey, placeCount, type ChecklistArea, type ChecklistItem, type Find } from '../lib/explore/explore';
 import { onRecallOpen, recallWaiting, takeRecallOpen } from '../lib/discovery/recallCheck';
 import { readArea, rememberArea } from '../lib/landing/read';
@@ -37,6 +41,10 @@ const WORLD = { center: [-40, 30] as [number, number], zoom: 1.2 };
 /** Walks a pass began this session; one that failed waits for the next launch (criterion 25). */
 const tried = new Set<string>();
 const boundsKey = (b: Bounds | null) => (b ? b.map((v) => v.toFixed(5)).join(',') : '');
+/** Moments outside walks show as pins from neighborhood zoom (M16); stars stand for places below it. */
+const MOMENT_PIN_ZOOM = 11;
+/** Every capture, loose or in a walk, for the days (M7): rows only, never media. */
+const allCaptures = () => db.capturesBetween(0, Number.MAX_SAFE_INTEGER);
 
 /**
  * Home is the places map (the owner's call, after AllTrails and Strava): stars
@@ -92,6 +100,10 @@ export default function Home() {
   const [previewItems, setPreviewItems] = useState<ChecklistItem[]>([]);
   const [panelH, setPanelH] = useState(0);
   const [recalled, setRecalled] = useState<Capture[] | null>(null);
+  // Moments (M1-M9, M16): every capture's row, the viewer for a timeline row or a pin, and a memo in progress.
+  const [captures, setCaptures] = useState<Capture[]>([]);
+  const [viewing, setViewing] = useState<Capture[] | null>(null);
+  const [memoOn, setMemoOn] = useState(false);
   // A reminder tapped while the home is in front (no walk open) opens here at once (audit 1).
   useEffect(() => onRecallOpen((found) => setRecalled(found)), []);
   const [scanNotice, setScanNotice] = useState<{ message: string; tone?: 'info' | 'error' } | null>(null);
@@ -121,6 +133,7 @@ export default function Home() {
         if (!live) return null;
         setChecklists(await db.listChecklistAreas().catch(() => [] as ChecklistArea[]));
         setFinds(await db.listFinds().catch(() => [] as Find[]));
+        setCaptures(await allCaptures().catch(() => [] as Capture[]));
         setLandings(await db.listLandings().catch(() => [] as LandingRow[]));
         // The served build, once it's known (the launch's own check may still be running), for marking stale areas.
         setBuild(await ensureTileBuild().then((b) => (b === 'unknown' ? null : b), () => null));
@@ -167,6 +180,28 @@ export default function Home() {
     return () => clearInterval(t);
   }, [open]);
 
+  const days = useMemo(() => buildDays(data?.walks ?? [], captures), [data, captures]);
+  // Recomputed when crossing the pin zoom, not on every camera step (audit).
+  const pinZoom = (view?.zoom ?? 0) >= MOMENT_PIN_ZOOM;
+  const momentPins = useMemo(
+    () => (pinZoom ? captures.filter((c) => c.walk_id == null && c.lat != null && c.lon != null) : NONE),
+    [captures, pinZoom],
+  );
+  const onMoment = useCallback((c: Capture, state: MomentState) => {
+    // Shown at once when kept; when placed, only its place is merged in, so a caption saved
+    // meanwhile, or a fresher row from a reload, is never undone (audit).
+    setCaptures((prev) => {
+      const had = prev.find((x) => x.id === c.id);
+      const next = had ? { ...had, lat: c.lat ?? had.lat, lon: c.lon ?? had.lon } : c;
+      return [...prev.filter((x) => x.id !== c.id), next].sort((a, b) => a.t - b.t);
+    });
+    // A moment finds a place as a walk's capture does (M4).
+    if (state === 'placed')
+      findForMoment(c)
+        .then((f) => f && setFinds((prev) => [...prev, f]))
+        .catch(() => {});
+  }, []);
+  const onMomentError = useCallback((e: { message: string; openSettings?: boolean }) => setError(e), []);
   const index = useMemo(() => placesIndex(data?.areas ?? [], data?.rows ?? [], data?.walks ?? []), [data]);
   const summaries = useMemo(() => new Map((data?.summaries ?? []).map((s) => [s.walk_id, s])), [data]);
   const unplaced = useMemo(() => unplacedWalks(data?.walks ?? [], data?.rows ?? []), [data]);
@@ -176,6 +211,7 @@ export default function Home() {
   }, [index, view]);
 
   const pressStar = (s: Star) => {
+    if (memoOn) return;
     if (s.count > 1) {
       // A merged star zooms in to the places it stands for, as map clusters do.
       const xs = s.points.map((p) => p[0]);
@@ -298,15 +334,21 @@ export default function Home() {
       .map((i) => ({ id: i.key, at: i.at, revealed: false, icon: categoryOf(i.category).icon as MarkPin['icon'], name: i.name, category: categoryOf(i.category).label }));
   }, [preview, previewItems]);
 
-  const empty = data != null && index.walkCount === 0 && !open;
+  const empty = data != null && index.walkCount === 0 && !open && captures.length === 0;
+  const barShown = (mode.kind === 'summary' && !spot) || memoOn;
   const paused = pauses.some((p) => p.ended_at == null);
   const elapsed = open ? formatDuration(now - open.started_at - pausedMs(pauses, open.started_at, now)) : '';
 
   return (
     <View style={styles.screen}>
       {/* Start and the sheet come first, for a screen reader or a keyboard; the map draws beneath them. */}
-      {(mode.kind === 'summary' || open) && !spot && (
-        <View style={[styles.startRow, styles.over, { bottom: sheetH + 16 }]} pointerEvents="box-none">
+      {/* With no walk open the row stays mounted while the sheet or a spot card is up, only hidden,
+          so a voice memo in progress is never cut short (audit). */}
+      {(open ? !spot : true) && (
+        <View
+          style={[styles.startRow, styles.over, { bottom: sheetH + 16 }, !open && !barShown && styles.hidden]}
+          pointerEvents="box-none"
+        >
           {open ? (
             <Button
               testID="resume"
@@ -323,16 +365,19 @@ export default function Home() {
               </View>
             </Button>
           ) : (
-            // Two ways in (the owner's call, after the audit): a quiet walk, or one that explores from the first step.
+            <View style={styles.startStack} pointerEvents="box-none">
+            {/* A moment in one tap, no walk needed (M1). */}
+            <MomentBar disabled={placing != null || looking || starting} onMoment={onMoment} onError={onMomentError} onRecording={setMemoOn} />
+            {/* Two ways in (the owner's call, after the audit): a quiet walk, or one that explores from the first step. */}
             <View style={styles.startPair}>
-              <Button testID="start" label="Start walk" onPress={() => start()} busy={starting} busyLabel="Starting…" disabled={placing != null || looking} tall style={styles.startBtn} />
+              <Button testID="start" label="Start walk" onPress={() => start()} busy={starting} busyLabel="Starting…" disabled={placing != null || looking || memoOn} tall style={styles.startBtn} />
               <Button
                 testID="start-explore"
                 variant="secondary"
                 // The label is what a screen reader says; the button shows "Explore".
                 label="Explore: start a walk that shows places to find as you get close"
                 onPress={() => start(undefined, true)}
-                disabled={placing != null || looking || starting}
+                disabled={placing != null || looking || starting || memoOn}
                 tall
                 style={styles.exploreBtn}
               >
@@ -341,6 +386,7 @@ export default function Home() {
                   <Text style={styles.exploreText}>Explore</Text>
                 </View>
               </Button>
+            </View>
             </View>
           )}
         </View>
@@ -353,6 +399,8 @@ export default function Home() {
           unplaced={unplaced}
           mode={mode}
           onMode={(m) => {
+            // Mid-memo, the sheet stays down: opening it would hide the memo's controls (audit).
+            if (memoOn) return;
             if (m.kind !== 'place') setSelected(null);
             // Opening the walks list zooms out to every place walked (M6), at once, framed above the
             // half-height sheet it opens to; only when they aren't all in view already, and never
@@ -368,6 +416,9 @@ export default function Home() {
           busy={placing != null || starting}
           onGoToPlace={selected && !open ? () => start({ at: selected.at, label: selected.label, kind: 'place' }) : undefined}
           placeExtra={placeExtra}
+          days={days}
+          onOpenMoments={setViewing}
+          now={now}
         />
       </View>
 
@@ -463,6 +514,16 @@ export default function Home() {
         </Pressable>
       )}
       <CaptureViewer key={recalled?.[0]?.id ?? 'none'} captures={recalled} onClose={() => setRecalled(null)} autoPlay remind />
+      <CaptureViewer
+        key={`moment:${viewing?.[0]?.id ?? 'none'}`}
+        captures={viewing && viewing.map((v) => captures.find((c) => c.id === v.id) ?? v)}
+        onClose={() => setViewing(null)}
+        remind
+        onSaveCaption={async (c, caption, y) => {
+          await db.updateCapture(c.id, { caption, caption_y: caption ? y : null });
+          setCaptures((prev) => prev.map((x) => (x.id === c.id ? { ...x, caption, caption_y: caption ? y : null } : x)));
+        }}
+      />
       <View style={[StyleSheet.absoluteFill, styles.over]} pointerEvents="box-none">
         <ExploreSettings
           visible={settingsOpen}
@@ -505,7 +566,8 @@ export default function Home() {
           trace={NONE}
           walked={NONE}
           fog={NONE}
-          captures={NONE}
+          captures={momentPins}
+          onPinPress={memoOn ? undefined : setViewing}
           stars={stars}
           // The home shows no "?" marks (E10), except inside the range preview (E21).
           discoveries={previewPins}
@@ -514,6 +576,7 @@ export default function Home() {
           // Only zoomed in to streets: a press on a zoomed-out map lands kilometres from anywhere walkable.
           // Only from z10: a press on a zoomed-out map lands kilometres from anywhere walkable.
           onLongPress={(at) => {
+            if (memoOn) return;
             const zoom = view?.zoom ?? 0;
             if (open || placing != null || looking || settingsOpen || zoom < 10) return;
             setSpot({ at, zoom });
@@ -582,6 +645,8 @@ const styles = StyleSheet.create({
   scanCancelText: { fontSize: 15, fontWeight: '600', color: theme.accent },
   startBtn: { minWidth: 180, borderRadius: 999, paddingHorizontal: 24 },
   startPair: { flexDirection: 'row', gap: 10, alignItems: 'center' },
+  startStack: { alignItems: 'center', gap: 14 },
+  hidden: { display: 'none' },
   exploreBtn: { borderRadius: 999, paddingHorizontal: 18 },
   exploreText: { color: theme.ink, fontSize: 16, fontWeight: '600' },
   recordingRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
