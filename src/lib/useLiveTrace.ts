@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { db } from './db';
 import { isBreak, type PauseSpan } from './geo';
+import { DotStore, type DotSource } from './liveDot';
 import { headingOf } from './nav/navigator';
 import { recorder } from './recorder';
 import { keptFixes, liveRuns, readTrace, rideRuns, ridingAt, traceDistances, type ReadTrace } from './rides';
@@ -28,6 +29,8 @@ export interface LiveTrace {
   riding: boolean;
   /** The way the walker is going, in degrees from north; null when standing still. */
   heading: number | null;
+  /** The live dot, fed fix by fix (the walk map's dot and the trace's end read it; nothing else). */
+  dot: DotSource | null;
 }
 
 /** The same ride lines as last time, kept as they were, so the map isn't sent them again (rides audit 4). */
@@ -41,7 +44,7 @@ function sameRuns(a: LngLat[][], b: LngLat[][]): boolean {
   return true;
 }
 
-const EMPTY: LiveTrace = { runs: [], rides: [], here: null, distanceM: 0, rideM: 0, lastFixAt: null, lastGoodAt: null, riding: false, heading: null };
+const EMPTY: LiveTrace = { runs: [], rides: [], here: null, distanceM: 0, rideM: 0, lastFixAt: null, lastGoodAt: null, riding: false, heading: null, dot: null };
 
 /** The newest gap in the kept trace that isn't a pause: the app was closed or the page hidden. */
 function newestGap(kept: TracePoint[], pauses: PauseSpan[]): { ms: number; at: number } | null {
@@ -86,6 +89,8 @@ export function useLiveTrace(
   useEffect(() => {
     if (!walkId) return;
     const raw: TracePoint[] = [];
+    // The live dot gets every fix as it arrives, between the trace's 2 s publishes (the live dot, Nov 1).
+    const dot = new DotStore(startedAt);
     const seen = new Set<number>();
     const add = (p: TracePoint) => {
       if (seen.has(p.t)) return; // a fix can arrive both live and from the initial load
@@ -101,9 +106,19 @@ export function useLiveTrace(
     // Subscribe before loading so nothing emitted during the load is lost.
     const buffered: TracePoint[] = [];
     let loaded = false;
-    const unsub = recorder.subscribe((p) => (loaded ? add(p) : buffered.push(p)));
+    const unsub = recorder.subscribe((p) => {
+      if (!loaded) buffered.push(p);
+      else {
+        add(p);
+        dot.push(p);
+      }
+    });
     db.getPoints(walkId).then((stored) => {
-      for (const p of [...stored, ...buffered].sort((x, y) => x.t - y.t)) add(p);
+      const all = [...stored, ...buffered].sort((x, y) => x.t - y.t);
+      for (const p of all) add(p);
+      // A reload: the dot picks up from the last minute of fixes.
+      const lastT = all.length ? all[all.length - 1].t : 0;
+      for (const p of all) if (p.t >= lastT - 60_000) dot.push(p);
       loaded = true;
       publish();
     });
@@ -137,6 +152,7 @@ export function useLiveTrace(
         lastGoodAt: tr.lastGoodAt,
         riding: riding.current,
         heading: headingOf(kept.slice(-30)),
+        dot,
       }));
     }
     refreshRef.current = () => {

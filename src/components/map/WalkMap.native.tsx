@@ -11,6 +11,7 @@ import type { RoadFeature } from '../../lib/streets';
 import type { Capture } from '../../lib/types';
 import { TILEJSON_URL } from '../../lib/tiles';
 import { useGlidingWalker } from '../../lib/useGlidingWalker';
+import { distanceM } from '../../lib/geo';
 import { markEnter, pinDrops, sameSeen } from '../../lib/enter';
 import { useReducedMotion } from '../../lib/motion';
 import { MOTION } from '../../lib/motionTokens';
@@ -71,7 +72,14 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const marks = useMemo(() => marksGeoJSON(props.marks), [props.marks]);
   const ring = useMemo(() => ringGeoJSON(props.ring), [props.ring]);
   // The dot, cone and camera glide between fixes instead of jumping.
-  const glide = useGlidingWalker(props.walker, props.walkerHeading, props.glideWalker === true);
+  const glide = useGlidingWalker(props.walker, props.walkerHeading, props.glideWalker === true, props.walkerSource);
+  // The trace's end joins the live dot, so the line always reaches it (the live dot, Nov 1); never across a pause or gap.
+  const openRun = split.tail[split.tail.length - 1];
+  const traceEnd = props.walkerSource && openRun?.length ? openRun[openRun.length - 1] : null;
+  const traceLink = useMemo(
+    () => traceGeoJSON(traceEnd && glide.walker && distanceM(traceEnd, glide.walker) <= LINK_MAX_M ? [[traceEnd, glide.walker]] : []),
+    [traceEnd, glide.walker],
+  );
   const cone = useMemo(() => coneGeoJSON(glide.walker, glide.heading, view?.zoom ?? 16), [glide.walker, glide.heading, view]);
   const points = useMemo(() => walkerGeoJSON(glide.walker), [glide.walker]);
 
@@ -271,6 +279,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         <TraceSource id="rides" data={rides} opacity={props.traceOpacity ?? 1} dashed />
         <TraceSource id="trace-history" data={traceHistory} opacity={props.traceOpacity ?? 1} />
         <TraceSource id="trace" data={traceTail} opacity={props.traceOpacity ?? 1} />
+        <TraceSource id="trace-link" data={traceLink} opacity={props.traceOpacity ?? 1} />
         <GeoJSONSource id="cone" data={cone}>
           <Layer id="cone" type="fill" paint={{ 'fill-color': COLORS.walker, 'fill-opacity': 0.25 }} />
         </GeoJSONSource>
@@ -389,6 +398,9 @@ const TraceSource = memo(function TraceSource(props: { id: string; data: GeoJSON
     </GeoJSONSource>
   );
 });
+
+/** The trace's end joins the live dot only this close; farther, it's a pause or gap, not lag. */
+const LINK_MAX_M = 60;
 
 const NO_CAPTURES: Capture[] = [];
 

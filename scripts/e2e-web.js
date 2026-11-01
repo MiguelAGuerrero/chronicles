@@ -334,6 +334,8 @@ function check(ok, what) {
     for (let k = 1; k < route.length; k++)
       for (let s = 1; s <= 20; s++)
         pts.push([route[k - 1][0] + ((route[k][0] - route[k - 1][0]) * s) / 20, route[k - 1][1] + ((route[k][1] - route[k - 1][1]) * s) / 20]);
+    const dotMoves = [];
+    let dotLast = null;
     for (let k = 0; k < pts.length; k++) {
       await ctx.setGeolocation({ longitude: pts[k][0], latitude: pts[k][1], accuracy: 6 });
       await page.waitForTimeout(1000);
@@ -385,6 +387,13 @@ function check(ok, what) {
       if (k === 8) {
         // 75 m from the memorial: inside the 100 m range, a "?" that doesn't say what it is (E6).
         check((await walkMarks().count()) === 1 && (await page.locator('[aria-label="A place to find. Open"]').count()) === 1, 'a "?" shows for a place within range, and only that one');
+      }
+      if (k >= 16 && k <= 20) {
+        // The dot moves on every fix, not every 2 s with the trace (the live dot, Nov 1).
+        const at = await page.locator('[data-testid=walker-puck]').getAttribute('data-at');
+        if (k > 16) dotMoves.push(at !== dotLast);
+        dotLast = at;
+        if (k === 20) check(dotMoves.length === 4 && dotMoves.every(Boolean), `the dot moves on every fix, as it comes (${dotMoves.join(',')})`);
       }
       if (k === 13) {
         // The live walk's dot is one gliding marker; the layers stay empty for it.
