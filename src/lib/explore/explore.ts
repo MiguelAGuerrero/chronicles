@@ -184,6 +184,35 @@ export function readCentre(o: {
   return o.areas.some((a) => a.key === key && a.build === o.build) ? null : ref.at;
 }
 
+/** After a failed read, the next waits 2 min and 100 m walked (E5). */
+export function retryAllowed(fail: { at: LngLat; t: number } | null, fix: LngLat, now: number): boolean {
+  if (!fail) return true;
+  return now - fail.t >= EXPLORE_RULES.retryMs && distanceM(fail.at, fix) >= EXPLORE_RULES.retryM;
+}
+
+/** Points every 500 m along a route, each checked with `readCentre`, so each area on the way is read once (E23). */
+export function routeProbes(route: LngLat[], stepM = EXPLORE_RULES.readM / 3): LngLat[] {
+  if (!route.length) return [];
+  const out: LngLat[] = [route[0]];
+  let carried = 0;
+  for (let i = 1; i < route.length; i++) {
+    const a = route[i - 1];
+    const b = route[i];
+    const len = distanceM(a, b);
+    let along = stepM - carried;
+    while (along <= len) {
+      const f = along / len;
+      out.push([a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f]);
+      along += stepM;
+    }
+    carried = len - (along - stepM);
+  }
+  // The destination too: its own area matters most.
+  const end = route[route.length - 1];
+  if (distanceM(out[out.length - 1], end) > stepM / 5) out.push(end);
+  return out;
+}
+
 /** The range setting, clamped to 60-300 m in 20 m steps (E20). */
 export function clampRange(m: number): number {
   const r = EXPLORE_RULES;

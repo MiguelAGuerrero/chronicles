@@ -18,7 +18,9 @@ import {
   homeCount,
   passedLine,
   readCentre,
+  retryAllowed,
   revealedKeys,
+  routeProbes,
   routeMarks,
   visibleMarks,
   type ChecklistArea,
@@ -304,4 +306,21 @@ test('E11: the low counts places revealed on the walk but not captured', () => {
   assert.equal(passedLine(3), 'Passed 3 places you didn’t stop for');
   assert.equal(passedLine(1), 'Passed 1 place you didn’t stop for');
   assert.equal(passedLine(0), null);
+});
+
+// ——— Retry (E5) ———
+
+
+test('E5: after a failed read, wait 2 min and 100 m walked', () => {
+  const fail = { at: O, t: 0 };
+  assert.equal(retryAllowed(null, O, 0), true);
+  assert.equal(retryAllowed(fail, m(150, 0), 60_000), false);
+  assert.equal(retryAllowed(fail, m(50, 0), 200_000), false);
+  assert.equal(retryAllowed(fail, m(150, 0), 200_000), true);
+});
+
+test('E23: a route is probed every 500 m, so each area along it is read once', () => {
+  const probes = routeProbes([O, m(2000, 0)]);
+  assert.equal(probes.length, 5);
+  assert.deepEqual(probes[0], O);
 });

@@ -17,7 +17,7 @@ class Cancelled extends Error {}
 
 export type AreaRead = { ok: true; centre: LngLat; analysis: AreaAnalysis } | { ok: false; reason: 'failed' | 'cancelled' };
 
-async function readAround(url: string, build: string, at: LngLat, shouldStop: () => boolean) {
+export async function readAround(url: string, build: string, at: LngLat, shouldStop: () => boolean) {
   const features = await fetchTiles(url, tilesIn(boundsOf([at], LANDING_RULES.radiusM)!), undefined, shouldStop);
   if (shouldStop()) throw new Cancelled();
   const segments = deriveSegments(features.roads, features.names, build);
