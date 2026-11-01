@@ -71,9 +71,11 @@ Read this before changing recording, streets, the replay or storage.
 - **Out of scope:** trails and nature navigation, offline maps and routing, automatic
   3D or video replays, completion and leaderboards, fitness tracking. Open data
   (OpenStreetMap via OpenFreeMap) with signal assumed.
+- **Defaults taken (Nov 1):** Walk here fills the drawer like Walk this way (NV12,
+  NV15), and the Explore tab shows places to find and finds with no counts (NV14).
 - **Open (in the doc):** two things are named Explore (the tab and the walk's mode);
-  whether to drop counts like "N of M" (NV14) and "Passed N places"; what the Explore
-  tab lists in a city where AllTrails lists trails.
+  whether the replay keeps "Passed N places"; what the Explore tab lists in a city
+  where AllTrails lists trails.
 
 ## Product and where the spec lives
 
