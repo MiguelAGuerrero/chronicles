@@ -16,9 +16,9 @@ const LOOP_MIN_M = 100;
  * is cut across rather than walked again (N1, N2). Pauses and gaps are not
  * joined: nothing was walked across them.
  */
-export function traceRouteSource(points: TracePoint[], pauses: PauseSpan[], startedAt: number | null = null): RouteSource {
+export function traceRouteSource(points: TracePoint[], pauses: PauseSpan[], startedAt: number | null = null, stills: PauseSpan[] = []): RouteSource {
   // Walked ground only: walk me back never follows a ride (R13), and a ride breaks the trace.
-  const { walked, breaks } = readTrace(points, startedAt, pauses);
+  const { walked, breaks } = readTrace(points, startedAt, pauses, stills);
   const fixes = smoothDwells(walked);
   const g = new WalkGraph(fixes.length ? [fixes[0].lon, fixes[0].lat] : [0, 0]);
   // How far along the walk each point was, so a shortcut only skips a loop.

@@ -55,8 +55,9 @@ export interface Collector {
 export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSummary> {
   const build = await ensureTileBuild();
   const pauses = await db.getPauses(walk.id);
+  const stills = await db.getStills(walk.id).catch(() => []);
   const points = withoutPauses(await db.getPoints(walk.id), pauses);
-  const tr = readTrace(points, walk.started_at, pauses);
+  const tr = readTrace(points, walk.started_at, pauses, stills);
   // Streets are read where you walked (a ride credits none, R7); places and captures take the rides too (R8, R9).
   const fixes = tr.walked;
   const kept = keptFixes(tr);
@@ -87,7 +88,7 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
     const center: LngLat = [(keptBounds[0] + keptBounds[2]) / 2, (keptBounds[1] + keptBounds[3]) / 2];
     const wide = await collector.collectPlaces(center).catch(() => null);
     if (wide) {
-      const placement = assignAreas(walk.id, points, pauses, placesFromTiles([...(features?.places ?? []), ...wide]), appBoundaries(), walk.started_at);
+      const placement = assignAreas(walk.id, points, pauses, placesFromTiles([...(features?.places ?? []), ...wide]), appBoundaries(), walk.started_at, stills);
       placed = { areas: [...placement.areas.values()], rows: placement.rows };
       // No neighborhood or town: the nearest named place (pickArea above) stays the title.
       area = placement.title ?? area;
@@ -99,7 +100,7 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
   for (const s of derived) byId.set(s.id, s);
   const segments = [...byId.values()];
 
-  const visited = snap(walk.id, points, segments, walk.started_at, pauses);
+  const visited = snap(walk.id, points, segments, walk.started_at, pauses, stills);
   const earlier = await db.streetKeysBefore(walk.started_at);
   // Streets are counted by name (the owner's call); unnamed paths clear fog but are not streets.
   const keys = new Set(visited.map((v) => v.street_key).filter(isNamedStreet));

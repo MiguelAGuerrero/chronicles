@@ -14,6 +14,7 @@ import { Icon } from '../components/icons';
 import { Banner, Button, theme } from '../components/ui';
 import type { Area, WalkArea } from '../lib/areas/types';
 import { db } from '../lib/db';
+import { askMotion } from '../lib/walkMotion';
 import { perfCount } from '../lib/perfCount';
 import { categoryOf } from '../lib/discovery/categories';
 import { buildDays } from '../lib/days';
@@ -273,6 +274,8 @@ export default function Home() {
   /** Starts a walk; with a destination, the walk screen navigates there as it opens. */
   /** Starts a walk; with a destination, the walk screen navigates there as it opens; `explore` starts it exploring (E1). */
   const start = async (dest?: Waypoint, explore = false) => {
+    // Motion first, straight from the tap: an iPhone's browser asks only then (Motion, MO1).
+    void askMotion();
     setError(null);
     setStarting(true);
     try {

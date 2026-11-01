@@ -49,9 +49,11 @@ export function snap(
   segments: StreetSegment[],
   startedAt: number | null = null,
   pauses: PauseSpan[] = [],
+  /** Still spells (Motion, MO8): drift while standing credits no street. */
+  stills: PauseSpan[] = [],
 ): VisitedSegment[] {
   // Walked fixes only: a ride credits no street, and breaks the trace however short (R7).
-  const { walked: fixes, breaks } = readTrace(points, startedAt, pauses);
+  const { walked: fixes, breaks } = readTrace(points, startedAt, pauses, stills);
   if (fixes.length < 2 || segments.length === 0) return [];
   const runs = splitAtGaps(fixes, 60_000, breaks);
   const proj = projector([fixes[0].lon, fixes[0].lat]);

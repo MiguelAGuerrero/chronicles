@@ -1,4 +1,5 @@
 import { bearingDeg, distanceM, MAX_ACCURACY_M, MAX_STALE_MS, projector } from './geo';
+import type { MotionState } from './steps';
 import type { LngLat, TracePoint } from './types';
 
 /**
@@ -29,6 +30,14 @@ export const LIVE_DOT = {
   leadMaxMs: 1500,
   /** Used for a fix with no reported accuracy. */
   defaultAccuracyM: 10,
+  /** Told walking (Motion, MO6, MO7): the speed may change faster, so the dot keeps up from the first steps... */
+  qWalking: 1,
+  /** ...and a fix that would mean going faster than this from the dot (m/s) is a jump. */
+  walkMaxMs: 4,
+  /** Told still (MO5): a fix this many accuracies away, three times in a row and agreeing, means the stay began on a bad fix. */
+  stillFarShare: 3,
+  /** Three fixes in a row this fast (m/s) are a ride: the GPS wins over the sensors, which read a bus as still (MO9). */
+  rideMs: 4.5,
 } as const;
 
 export interface DotState {
@@ -50,6 +59,12 @@ class Axis {
   private p01 = 0;
   private p10 = 0;
   private p11 = 0;
+
+  /** The walker just started: their speed is no longer known to be near 0. */
+  loosen(r: number) {
+    this.p00 += r;
+    this.p11 = Math.max(this.p11, 4);
+  }
 
   reset(z: number, r: number) {
     this.x = z;
@@ -93,6 +108,25 @@ export class LiveDot {
   private shownXY: [number, number] = [0, 0];
   private moving = false;
   private state: DotState | null = null;
+  /** What the motion sensors say (Motion); 'unknown' leaves the dot to the GPS alone. */
+  private motion: MotionState = 'unknown';
+  private lastXY: [number, number] | null = null;
+  /** Fixes in a row moving at ride speed. */
+  private fastRun = 0;
+  /** Still: fixes in a row far from the dot. Walking: fixes in a row turned away as jumps. */
+  private odd: [number, number][] = [];
+
+  /** The sensors' latest word: walking, still, or unknown. */
+  setMotion(m: MotionState) {
+    if (m === this.motion) return;
+    if (m === 'walking') {
+      const r = (LIVE_DOT.defaultAccuracyM / 1.5) ** 2;
+      this.ex.loosen(r);
+      this.ny.loosen(r);
+    }
+    this.motion = m;
+    this.odd = [];
+  }
 
   constructor(private readonly startedAt: number | null = null) {}
 
@@ -119,15 +153,60 @@ export class LiveDot {
       this.shownXY = [0, 0];
       this.moving = false;
       this.lastT = p.t;
+      this.lastXY = [0, 0];
+      this.fastRun = 0;
+      this.odd = [];
       this.state = { at: fix, lead: fix, heading: null, t: p.t };
       return this.state;
     }
 
+    const [zx, zy] = this.toXY!(fix);
+    const raw = this.lastXY ? Math.hypot(zx - this.lastXY[0], zy - this.lastXY[1]) / dt : 0;
+    this.fastRun = raw >= LIVE_DOT.rideMs ? this.fastRun + 1 : 0;
+    this.lastXY = [zx, zy];
+    // On a ride the sensors read still; the GPS decides (MO9).
+    const mode: MotionState = this.fastRun >= 3 ? 'unknown' : this.motion;
+
+    if (mode === 'walking') {
+      // A fix faster than a walk from where the dot is heading is a jump (MO7), unless three in a row agree.
+      const px = this.ex.x + this.ex.v * dt;
+      const py = this.ny.x + this.ny.v * dt;
+      const off = Math.hypot(zx - px, zy - py);
+      if (off > acc && off / dt > LIVE_DOT.walkMaxMs) {
+        this.odd.push([zx, zy]);
+        if (!this.agree(this.odd, acc)) {
+          this.lastT = p.t;
+          return this.state;
+        }
+        this.restart(this.mean(this.odd), r);
+        this.lastT = p.t;
+        return this.publish(p.t, false);
+      }
+      this.odd = [];
+    }
+
     this.interval = 0.7 * this.interval + 0.3 * Math.min(p.t - this.lastT!, 5000);
     this.lastT = p.t;
-    const [zx, zy] = this.toXY!(fix);
-    this.ex.step(zx, dt, r, LIVE_DOT.q);
-    this.ny.step(zy, dt, r, LIVE_DOT.q);
+    const q = mode === 'walking' ? LIVE_DOT.qWalking : LIVE_DOT.q;
+    this.ex.step(zx, dt, r, q);
+    this.ny.step(zy, dt, r, q);
+
+    if (mode === 'still') {
+      // Held where it stands (MO5), unless the stay began on a bad fix: three far fixes in a row that agree.
+      const far = Math.hypot(zx - this.shownXY[0], zy - this.shownXY[1]) > LIVE_DOT.stillFarShare * acc;
+      this.odd = far ? [...this.odd, [zx, zy]] : [];
+      if (this.agree(this.odd, acc)) this.restart(this.mean(this.odd), r);
+      this.dirs = [];
+      this.moving = false;
+      return this.publish(p.t, false);
+    }
+    if (mode === 'walking') {
+      // The sensors say walking: follow the filter at once (MO6), pointing the way once it has a speed.
+      this.shownXY = [this.ex.x, this.ny.x];
+      this.dirs = [];
+      this.moving = true;
+      return this.publish(p.t, Math.hypot(this.ex.v, this.ny.v) >= 0.5);
+    }
 
     const speed = Math.hypot(this.ex.v, this.ny.v);
     const dir = (Math.atan2(this.ex.v, this.ny.v) * 180) / Math.PI;
@@ -145,14 +224,39 @@ export class LiveDot {
     this.moving = steady && (this.moving || Math.min(away, fixAway) >= LIVE_DOT.startShare * acc);
     const moving = this.moving;
     if (moving || away > LIVE_DOT.breakoutShare * acc) this.shownXY = est;
+    return this.publish(p.t, moving);
+  }
+
+  /** The dot where it stands; leading by one fix's travel, and pointing, only when going somewhere. */
+  private publish(t: number, going: boolean): DotState {
     const at = this.toLngLat(this.shownXY);
     let lead = at;
-    if (moving) {
+    if (going) {
       const ahead = Math.min(this.interval, LIVE_DOT.leadMaxMs) / 1000;
       lead = this.toLngLat([this.shownXY[0] + this.ex.v * ahead, this.shownXY[1] + this.ny.v * ahead]);
     }
-    this.state = { at, lead, heading: moving ? (bearingDeg(at, lead) + 360) % 360 : null, t: p.t };
+    this.state = { at, lead, heading: going && distanceM(at, lead) > 0.05 ? (bearingDeg(at, lead) + 360) % 360 : null, t };
     return this.state;
+  }
+
+  /** Three or more points in a row, each close to the next for its accuracy: they agree. */
+  private agree(pts: [number, number][], acc: number): boolean {
+    if (pts.length < 3) return false;
+    return pts.slice(1).every((q, i) => Math.hypot(q[0] - pts[i][0], q[1] - pts[i][1]) <= 2 * acc + LIVE_DOT.walkMaxMs);
+  }
+
+  private mean(pts: [number, number][]): [number, number] {
+    return [pts.reduce((a, q) => a + q[0], 0) / pts.length, pts.reduce((a, q) => a + q[1], 0) / pts.length];
+  }
+
+  /** Starts the filter and the dot afresh at a spot, keeping the projection. */
+  private restart([x, y]: [number, number], r: number) {
+    this.ex.reset(x, r);
+    this.ny.reset(y, r);
+    this.shownXY = [x, y];
+    this.dirs = [];
+    this.moving = false;
+    this.odd = [];
   }
 
   private estimate(): LngLat {
@@ -185,6 +289,11 @@ export class DotStore implements DotSource {
 
   get(): DotState | null {
     return this.dot.current();
+  }
+
+  /** The motion sensors' latest word (Motion); the next fix reads it. */
+  setMotion(m: MotionState) {
+    this.dot.setMotion(m);
   }
 
   push(p: TracePoint) {

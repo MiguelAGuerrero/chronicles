@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { db } from './db';
 import { isBreak, type PauseSpan } from './geo';
-import { DotStore, type DotSource } from './liveDot';
+import { DotStore } from './liveDot';
 import { headingOf } from './nav/navigator';
 import { recorder } from './recorder';
 import { keptFixes, liveRuns, readTrace, rideRuns, ridingAt, traceDistances, type ReadTrace } from './rides';
@@ -30,7 +30,7 @@ export interface LiveTrace {
   /** The way the walker is going, in degrees from north; null when standing still. */
   heading: number | null;
   /** The live dot, fed fix by fix (the walk map's dot and the trace's end read it; nothing else). */
-  dot: DotSource | null;
+  dot: DotStore | null;
 }
 
 /** The same ride lines as last time, kept as they were, so the map isn't sent them again (rides audit 4). */
@@ -67,16 +67,20 @@ export function useLiveTrace(
   startedAt: number | null,
   /** The walk's pauses: nothing inside one is drawn, and the trace breaks across each. */
   pauses: PauseSpan[],
+  /** Still spells told by the motion sensors: the line holds still through each (Motion, MO8). */
+  stills: PauseSpan[],
   /** Called once per gap in the trace (not a pause), when it is first published. */
   onGap?: (ms: number) => void,
 ): LiveTrace {
   const [state, setState] = useState<LiveTrace>(EMPTY);
   const pausesRef = useRef(pauses);
+  const stillsRef = useRef(stills);
   const refreshRef = useRef<(() => void) | null>(null);
   useEffect(() => {
     pausesRef.current = pauses;
+    stillsRef.current = stills;
     refreshRef.current?.();
-  }, [pauses]);
+  }, [pauses, stills]);
   const gapCb = useRef(onGap);
   useEffect(() => {
     gapCb.current = onGap;
@@ -127,7 +131,7 @@ export function useLiveTrace(
       if (!dirty.current || AppState.currentState !== 'active') return;
       dirty.current = false;
       const ps = pausesRef.current;
-      const tr = readTrace(raw, startedAt, ps);
+      const tr = readTrace(raw, startedAt, ps, stillsRef.current);
       const kept = keptFixes(tr);
       const last = kept[kept.length - 1];
       const here: LngLat | null = last ? [last.lon, last.lat] : null;

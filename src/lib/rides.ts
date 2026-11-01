@@ -199,7 +199,13 @@ function filtered(points: TracePoint[], maxSpeed?: number): TracePoint[] {
  * a pause are dropped; a pause or a gap over a minute ends a ride. The order
  * of the stored rows does not matter.
  */
-export function readTrace(points: TracePoint[], startedAt: number | null, pauses: PauseSpan[] = []): ReadTrace {
+export function readTrace(
+  points: TracePoint[],
+  startedAt: number | null,
+  pauses: PauseSpan[] = [],
+  /** Still spells told by the motion sensors (Motion, MO8): walked fixes inside one are held at one spot. */
+  stills: PauseSpan[] = [],
+): ReadTrace {
   const sorted = withoutPauses(points, pauses).slice().sort((a, b) => a.t - b.t);
   const gated: TracePoint[] = [];
   for (const p of sorted) {
@@ -225,7 +231,7 @@ export function readTrace(points: TracePoint[], startedAt: number | null, pauses
     walked.push(...settleJitter(filtered(seg.slice(at))));
   }
   return {
-    walked,
+    walked: stills.length ? holdStill(walked, stills) : walked,
     rides,
     breaks: [...pauses, ...rides.map((r) => ({ started_at: r.t0, ended_at: r.t1 }))],
     pauses,
@@ -239,6 +245,38 @@ export function readTrace(points: TracePoint[], startedAt: number | null, pauses
  */
 export function liveRuns(tr: ReadTrace): LngLat[][] {
   return splitAtGaps(smoothDwells(tr.walked), RIDE_RULES.gapMs, tr.breaks);
+}
+
+/**
+ * Walked fixes inside each still spell held at one spot (where the walk stopped, or their centre), from the first
+ * fix in it to the last, however short the spell: the sensors said the walker
+ * stood there, so the GPS's wander is no movement (Motion, MO8). Ride fixes
+ * are not walked, so a ride is never cut by a spell (MO9).
+ */
+/** A still spell is held at the last walked fix before it, if that came this soon before the spell's first. */
+const STILL_ANCHOR_MS = 10_000;
+
+function holdStill(walked: TracePoint[], stills: PauseSpan[]): TracePoint[] {
+  const spells = [...stills].sort((a, b) => a.started_at - b.started_at);
+  const out: TracePoint[] = [];
+  let i = 0;
+  for (const sp of spells) {
+    const end = sp.ended_at ?? Infinity;
+    while (i < walked.length && walked[i].t < sp.started_at) out.push(walked[i++]);
+    const inside: TracePoint[] = [];
+    while (i < walked.length && walked[i].t <= end) inside.push(walked[i++]);
+    if (!inside.length) continue;
+    // Held where the walk stopped, when it stopped just before: drift (indoors, say) often
+    // starts once the walker stands, so the wander's centre can sit away from the spot.
+    const before = out[out.length - 1];
+    const fresh = before && inside[0].t - before.t <= STILL_ANCHOR_MS;
+    const lon = fresh ? before.lon : inside.reduce((a, p) => a + p.lon, 0) / inside.length;
+    const lat = fresh ? before.lat : inside.reduce((a, p) => a + p.lat, 0) / inside.length;
+    out.push({ ...inside[0], lon, lat, speed: 0 });
+    if (inside.length > 1) out.push({ ...inside[inside.length - 1], lon, lat, speed: 0 });
+  }
+  while (i < walked.length) out.push(walked[i++]);
+  return out;
 }
 
 /** Walked and ridden fixes together, in time order: for places, placing captures and the replay's dot. */

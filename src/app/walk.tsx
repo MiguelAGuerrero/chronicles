@@ -33,9 +33,10 @@ import { ensureTileBuild } from '../lib/tiles';
 import type { RecorderStatus } from '../lib/recorder/types';
 import { pauseWalk, resumeWalk, stopWalk } from '../lib/session';
 import { formatDistance, formatDuration, formatElapsed } from '../lib/summary';
-import type { Capture, LngLat, Pause, StreetSegment, Walk } from '../lib/types';
+import type { Capture, LngLat, Pause, Still, StreetSegment, Walk } from '../lib/types';
 import { useCaptures } from '../lib/useCaptures';
 import { useLiveTrace } from '../lib/useLiveTrace';
+import { askMotion, useMotionAccess, useWalkMotion } from '../lib/walkMotion';
 import { gpsLog } from '../lib/gpsLog';
 import { routeAhead } from '../lib/nav/navigator';
 import { useNavigation } from '../lib/nav/useNavigation';
@@ -190,7 +191,11 @@ export default function WalkScreen() {
   const onCaptureError = useCallback((e: { message: string; openSettings?: boolean }) => {
     setNotice({ message: e.message, tone: 'error', openSettings: e.openSettings });
   }, []);
-  const live = useLiveTrace(walk?.id ?? null, walk?.started_at ?? null, pauses, onGap);
+  // Still spells told by the motion sensors: the line holds still through each (Motion, MO8).
+  const [stills, setStills] = useState<Still[]>([]);
+  const live = useLiveTrace(walk?.id ?? null, walk?.started_at ?? null, pauses, stills, onGap);
+  const motionAccess = useMotionAccess();
+  useWalkMotion(walk?.id ?? null, !!walk && !stopping && !pauses.some((p) => p.ended_at == null), live.dot, setStills);
   const cap = useCaptures(walk?.id ?? null, live.here, live.lastFixAt, onCaptureError);
   // A deleted moment leaves the pins, Explore and the viewer at once (D3, D5).
   const captures = useVisible(cap.captures);
@@ -662,6 +667,7 @@ export default function WalkScreen() {
     setPausing(true);
     try {
       if (paused) {
+        void askMotion();
         await resumeWalk(walk.id);
         AccessibilityInfo.announceForAccessibility('Walk resumed');
       } else {
@@ -1140,6 +1146,20 @@ export default function WalkScreen() {
               <Text style={[styles.optionLabel, { flex: 1 }]}>What I’m into, and the “?” range</Text>
               <Icon name="chevron-forward" size={18} color={theme.muted} />
             </Pressable>
+            {motionAccess !== 'on' && (
+              // Without motion the walk goes on, on the GPS filters alone (Motion, MO2).
+              <View testID="motion-off" style={styles.optionRow}>
+                <Icon name="walk-outline" size={20} color={theme.ink} />
+                <Text style={[styles.markSub, { flex: 1 }]}>
+                  {motionAccess === 'unavailable' ? 'Motion isn’t available here: standing still may drift.' : 'Motion off: standing still may drift.'}
+                </Text>
+                {motionAccess === 'off' && (
+                  <Pressable testID="motion-on" accessibilityRole="button" accessibilityLabel="Turn on motion" onPress={() => void askMotion()} hitSlop={8}>
+                    <Text style={styles.optionLabel}>Turn on</Text>
+                  </Pressable>
+                )}
+              </View>
+            )}
             <Pressable
               testID="share-gps-log"
               accessibilityRole="button"

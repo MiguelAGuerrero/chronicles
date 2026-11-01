@@ -147,3 +147,55 @@ test('live dot 9: it leads to where the walker is now, so the glide ends on time
   const end = rows.at(-1)!;
   assert.ok(Math.abs(xy(end.shown!.lead)[0] - 84) < 4, `settled at ${xy(end.shown!.lead)[0].toFixed(1)} m`);
 });
+
+// Motion (MO5-MO7, MO9): the sensors say whether the walker is walking.
+
+test('motion 1: told still, the dot doesn\'t move however the GPS wanders', () => {
+  const dot = new LiveDot();
+  dot.setMotion('still');
+  // Wide indoor wander: 10 m, carried from fix to fix.
+  const rows = run(dot, feed(still, 180, { sigma: 10, rho: 0.95, accuracy: 20 }));
+  let moved = 0;
+  for (let i = 1; i < rows.length; i++) moved += distanceM(rows[i - 1].shown!.at, rows[i].shown!.at);
+  assert.ok(moved < 1, `moved ${moved.toFixed(1)} m`);
+  assert.ok(rows.every((r) => r.shown!.heading == null));
+});
+
+test('motion 2: told still, a stay that began on a bad fix moves to where three fixes in a row agree', () => {
+  const dot = new LiveDot();
+  dot.setMotion('still');
+  const bad = at(80, 0);
+  dot.push({ walk_id: 'w', t: 0, lon: bad[0], lat: bad[1], accuracy_m: 10, speed: null, course: null });
+  const rows = run(dot, feed(still, 10, { sigma: 1, t0: 1000 }));
+  assert.ok(distanceM(rows.at(-1)!.shown!.at, O) < 5, 'settled where the fixes are');
+});
+
+test('motion 3: told walking, the dot moves within 2 s of starting', () => {
+  const dot = new LiveDot();
+  dot.setMotion('still');
+  run(dot, feed(still, 30, { sigma: 0.5 }));
+  const start = dot.current()!.at;
+  dot.setMotion('walking');
+  const rows = run(dot, feed((s) => [1.4 * s, 0], 4, { sigma: 0.5, t0: 31_000 }));
+  const twoS = rows.find((r) => r.t === 33_000)!;
+  assert.ok(distanceM(start, twoS.shown!.at) > 1, 'moved within 2 s');
+});
+
+test('motion 4: told walking, a fix faster than 4 m/s from the dot is a jump', () => {
+  const dot = new LiveDot();
+  dot.setMotion('walking');
+  run(dot, feed(east, 30, { sigma: 0.5 }));
+  const before = dot.current()!.at;
+  const jump = at(42 + 60, 30);
+  dot.push({ walk_id: 'w', t: 31_000, lon: jump[0], lat: jump[1], accuracy_m: 10, speed: null, course: null });
+  assert.ok(distanceM(before, dot.current()!.at) < 5, 'the jump is not followed');
+});
+
+test('motion 5: on a ride the sensors read still, but the dot follows the bus', () => {
+  const dot = new LiveDot();
+  dot.setMotion('still');
+  const busRide: Truth = (s) => [12 * s, 0];
+  const rows = run(dot, feed(busRide, 60, { sigma: 2 }));
+  const end = rows.at(-1)!;
+  assert.ok(distanceM(end.shown!.at, end.truth) < 40, `${distanceM(end.shown!.at, end.truth).toFixed(0)} m behind the bus`);
+});
