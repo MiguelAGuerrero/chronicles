@@ -58,6 +58,11 @@ Read this before changing recording, streets, the replay or storage.
   before (busy areas, places to find, later the interesting ways through an area),
   Navigate during (the way, quick capture, the walk), Chronicle after (moments,
   walks, replays, revisits).
+- **All walk set-up lives in Navigate's pre-start drawer** (as in AllTrails): mode,
+  kinds and range, destination and route, reminders and alerts. Other tabs hand a
+  choice to the drawer and never set up a walk themselves: Explore previews a route
+  and its Walk this way fills the drawer (NV29-NV31). Navigate opened with no
+  destination is the wandering start.
 - **Principles:** the interesting way, not only the fastest (a scenic route through
   busy strips and things worth seeing; Walk me back stays shortest). Follow the wind
   (a route is a suggestion; drifting isn't nagged). Nothing is a score: no
