@@ -99,7 +99,12 @@ export default function Home() {
   useEffect(() => {
     openRef.current = open;
   });
-  useEffect(() => onRecallOpen((found) => !openRef.current && setRecalled(found)), []);
+  // With a walk open, the home declines, so the tap goes on to the walk (or waits for it).
+  useEffect(() => onRecallOpen((found) => {
+    if (openRef.current) return false;
+    setRecalled(found);
+    return true;
+  }), []);
   const [scanNotice, setScanNotice] = useState<{ message: string; tone?: 'info' | 'error' } | null>(null);
   useEffect(() => {
     if (!scanNotice) return;

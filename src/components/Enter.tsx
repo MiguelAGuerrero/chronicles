@@ -12,6 +12,8 @@ import { MOTION } from '../lib/motionTokens';
 export function Enter(props: { kind: EnterKind; children: ReactNode; ring?: StyleProp<ViewStyle>; style?: StyleProp<ViewStyle> }) {
   const reduced = useReducedMotion();
   const [t] = useState(() => new Animated.Value(reduced ? 1 : 0));
+  // Once played it renders the plain child again: no transform or layer left on the pin (audit 4).
+  const [done, setDone] = useState(false);
   useEffect(() => {
     if (reduced) return;
     const anim =
@@ -23,10 +25,11 @@ export function Enter(props: { kind: EnterKind; children: ReactNode; ring?: Styl
             easing: Easing.out(Easing.cubic),
             useNativeDriver: nativeDriver,
           });
-    anim.start();
+    anim.start(({ finished }) => finished && setDone(true));
     return () => anim.stop();
   }, [t, reduced, props.kind]);
   const testID = `enter-${props.kind}`;
+  if (done) return <View style={props.style}>{props.children}</View>;
   if (reduced) return <View testID={testID} style={props.style}>{props.children}</View>;
   if (props.kind === 'pulse') {
     const ring = {
@@ -55,22 +58,22 @@ export function Enter(props: { kind: EnterKind; children: ReactNode; ring?: Styl
 
 /**
  * The kind a view's own change calls for, for maps that keep a pin's view
- * mounted across changes (native): set one render after the change. The
- * entrance has already played by the next change, so it never replays.
+ * mounted across changes (native), with a count that grows on every one, so
+ * each change plays afresh (key `Enter` by it). Set one render after the change.
  */
-export function useOwnEnter<T>(value: T, decide: (prev: T, next: T) => EnterKind | null): EnterKind | null {
+export function useOwnEnter<T>(value: T, decide: (prev: T, next: T) => EnterKind | null): { kind: EnterKind | null; n: number } {
   const [prev, setPrev] = useState(value);
-  const [kind, setKind] = useState<EnterKind | null>(null);
+  const [state, setState] = useState<{ kind: EnterKind | null; n: number }>({ kind: null, n: 0 });
   useEffect(() => {
     if (Object.is(prev, value)) return;
     const k = decide(prev, value);
     const id = setTimeout(() => {
       setPrev(value);
-      if (k) setKind(k);
+      setState((s) => ({ kind: k, n: s.n + 1 }));
     }, 0);
     return () => clearTimeout(id);
   }, [prev, value, decide]);
-  return kind;
+  return state;
 }
 
 const styles = StyleSheet.create({

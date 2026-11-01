@@ -670,10 +670,8 @@ function usePinMarkers(
       // A 48 px target around the 36 px pin: the touch minimum on phones.
       const el = document.createElement(interactive ? 'button' : 'div');
       el.setAttribute('aria-label', pinLabel(pin, interactive, memory));
-      if (memory) {
-        el.dataset.testid = 'memory-pin';
-        el.dataset.ids = ids;
-      }
+      el.dataset.ids = ids;
+      if (memory) el.dataset.testid = 'memory-pin';
       if (interactive) {
         (el as HTMLButtonElement).type = 'button';
         el.style.cssText = 'background:none;border:0;padding:6px;cursor:pointer';

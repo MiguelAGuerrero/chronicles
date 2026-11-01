@@ -134,6 +134,32 @@ function check(ok, what) {
         }
     }).observe(document, { childList: true, subtree: true });
   });
+  // The deferred four (M9-M12): each entrance as it appears, whether it was moving a frame later, and
+  // what it marks; a stuck or vacuous wrapper fails (audit 3).
+  await ctx.addInitScript(() => {
+    const enters = [];
+    window.__enters = enters;
+    const moving = (el) => {
+      const cs = getComputedStyle(el);
+      const t = cs.transform;
+      const m = t && t !== 'none' ? new DOMMatrix(t) : null;
+      const still = !m || (Math.abs(m.a - 1) < 0.001 && Math.abs(m.d - 1) < 0.001 && Math.abs(m.f) < 0.1 && Math.abs(m.b) < 0.001);
+      const ring = el.firstElementChild && el.dataset.testid === 'enter-pulse' ? Number(getComputedStyle(el.firstElementChild).opacity) > 0.05 : false;
+      return Number(cs.opacity) < 0.99 || !still || ring;
+    };
+    new MutationObserver((records) => {
+      for (const r of records)
+        for (const n of r.addedNodes) {
+          if (!(n instanceof HTMLElement)) continue;
+          const els = n.matches('[data-testid^=enter-]') ? [n] : [...n.querySelectorAll('[data-testid^=enter-]')];
+          for (const el of els)
+            requestAnimationFrame(() => {
+              const marker = el.closest('button, [role=img]');
+              enters.push({ kind: el.dataset.testid.slice(6), animated: moving(el), label: marker?.getAttribute('aria-label') ?? '', ids: marker?.dataset.ids ?? '', el });
+            });
+        }
+    }).observe(document, { childList: true, subtree: true });
+  });
   // How far a button is pressed down (M4): its own scale and opacity while held, and its scale after.
   const pressedScale = async (pg, selector) => {
     const loc = pg.locator(selector).first();
@@ -236,9 +262,6 @@ function check(ok, what) {
       await page.waitForTimeout(60);
       return (await hintLoc.count()) === 0;
     }, () => null);
-    // A "?" revealed in front of you turns into its place (M11): the memorial, approached before it is found.
-    const flipped = page.locator('.maplibregl-map').last().locator('[data-testid=mark-pin] [data-testid=enter-flip]').first()
-      .waitFor({ timeout: 240000 }).then(() => true, () => false);
     await page.waitForTimeout(2500);
     await shot(page, '01-walk-start');
 
@@ -377,8 +400,9 @@ function check(ok, what) {
         // The video is taken about 40 m from the memorial: it finds it (E8). (The memo at step 10, 62 m off, does not.)
         await page.waitForTimeout(500);
         check((await page.locator('[aria-label="Found: Hessian Memorial, History & landmarks"]').count()) === 1, 'a capture within 60 m finds the place, which stays drawn as found');
-        check((await page.locator('[aria-label="Found: Hessian Memorial, History & landmarks"] [data-testid=enter-pulse]').count()) === 1, 'a find pulses once from its pin (M12)');
-        check(await flipped, 'a revealed "?" turns into its place, on its way to being found (M11)');
+        const seenEnters = await page.evaluate(() => window.__enters.map((e) => ({ kind: e.kind, animated: e.animated, label: e.label })));
+        check(seenEnters.some((e) => e.kind === 'pulse' && e.animated && /^Found: Hessian/.test(e.label)), 'a find pulses once from its pin (M12)');
+        check(seenEnters.some((e) => e.kind === 'flip' && e.animated), 'a revealed "?" turns into its place, on its way to being found (M11)');
       }
       if (k === 25) {
         await page.click('[data-testid=cap-note]');
@@ -431,9 +455,21 @@ function check(ok, what) {
         // A photo, then the opt-in caption.
         const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('[data-testid=cap-photo]')]);
         await chooser.setFiles(path.join(__dirname, 'fixtures', 'photo.jpg'));
-        // Its pin drops in (M10); the pins already there when the screen opened never did.
-        const dropped = await walkMap().locator('[data-testid=enter-drop]').first().waitFor({ timeout: 5000 }).then(() => true, () => false);
-        check(dropped, 'a new capture’s pin drops in (M10)');
+        // Its pin drops in (M10): the photo's own pin, moving as it appears, and gone back to a plain pin after.
+        const before = await page.evaluate(() => window.__enters.length);
+        await page.waitForFunction((n) => window.__enters.slice(n).some((e) => e.kind === 'drop'), before, { timeout: 5000 }).catch(() => {});
+        const photoId = (await page.evaluate(() => new Promise((resolve) => {
+          const req = indexedDB.open('chronicles');
+          req.onsuccess = () => {
+            const g = req.result.transaction('capture', 'readonly').objectStore('capture').getAll();
+            g.onsuccess = () => resolve(g.result.filter((c) => c.kind === 'photo').sort((a, b) => b.t - a.t)[0]?.id ?? null);
+          };
+        })));
+        const drops = await page.evaluate((n) => window.__enters.slice(n).filter((e) => e.kind === 'drop').map((e) => ({ animated: e.animated, ids: e.ids })), before);
+        await page.waitForTimeout(600);
+        const lingering = await walkMap().locator('[data-testid=enter-drop]').count();
+        check(drops.some((d) => d.animated && d.ids.split(',').includes(photoId)) && lingering === 0,
+          `the new photo's own pin drops in, then is a plain pin again (M10, audit 3, 4: ${JSON.stringify(drops)}, ${lingering} left)`);
         await page.click('[data-testid=add-caption]');
         await page.fill('[data-testid=caption-input]', 'Mural on Wickenden');
         await page.waitForTimeout(400);
@@ -500,7 +536,7 @@ function check(ok, what) {
         await page.waitForSelector('[data-testid=stop]');
         check(page.url().endsWith(`${BASE}/walk`), 'a reload mid-walk resumes the walk');
         await page.waitForTimeout(2500);
-        const replayed = await page.locator('[data-testid^=enter-]').count();
+        const replayed = await page.evaluate(() => window.__enters.length);
         check(replayed === 0, `nothing animates when a screen reloads: pins and finds are just there (M10, M12: ${replayed})`);
       }
       if (k === 44) {
@@ -755,7 +791,7 @@ function check(ok, what) {
     // A star lists its place's walks in the sheet, with the place's parents (H6).
     await page.click('[aria-label^="Fox Point,"]');
     await page.waitForSelector('[data-testid=place-title]');
-    check((await page.locator('[aria-label^="Fox Point,"] [data-testid=enter-bounce]').count()) === 1, 'a selected star settles into its ring (M9)');
+    check(await page.evaluate(() => window.__enters.some((e) => e.kind === 'bounce' && e.animated && /^Fox Point,/.test(e.label))), 'a selected star settles into its ring (M9)');
     const sheet = (await page.locator('[data-testid=home-sheet]').innerText()).replace(/\s+/g, ' ');
     check(/Fox Point/.test(sheet) && /Providence, Rhode Island/.test(sheet) && /Cardamom and the river\./.test(sheet), `a star lists its place's walks (${sheet.slice(0, 120)})`);
     await shot(page, '09-home-place');
@@ -866,9 +902,9 @@ function check(ok, what) {
       await still.waitForSelector('[data-testid=home-sheet]');
       await still.waitForTimeout(800);
       await still.click('[aria-label^="Fox Point,"]');
-      await still.waitForTimeout(30);
-      const starT = await still.locator('[aria-label^="Fox Point,"] [data-testid=enter-bounce]').evaluate((el) => getComputedStyle(el).transform).catch(() => 'missing');
-      check(starT === 'none' || starT === 'matrix(1, 0, 0, 1, 0, 0)', `with reduce motion on, a selected star doesn't move (M2, M9: ${starT})`);
+      await still.waitForTimeout(100);
+      const stillEnters = await still.evaluate(() => window.__enters.map((e) => ({ kind: e.kind, animated: e.animated })));
+      check(!stillEnters.some((e) => e.animated), `with reduce motion on, a selected star doesn't move (M2, M9: ${JSON.stringify(stillEnters)})`);
       await still.keyboard.press('Escape');
       await still.waitForTimeout(400);
       const flat = await pressedScale(still, '[data-testid=start]');
@@ -903,6 +939,23 @@ function check(ok, what) {
       const startBox = await springy.locator('[data-testid=start]').boundingBox({ timeout: 3000 }).catch(() => null);
       check(!!startBox && startBox.y > vh * 0.7, `after a drag cuts a spring short, Start sits on the peeking sheet (audit 2: Start at ${startBox ? Math.round(startBox.y) : 'none'} of ${vh})`);
       await springy.close();
+    }
+
+    // A reminder tapped with the home in front, after a walk: the home opens it at once (audit: one
+    // listener slot meant the walk screen, gone, had taken the home's).
+    {
+      const anyId = await page.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const g = req.result.transaction('capture', 'readonly').objectStore('capture').getAll();
+          g.onsuccess = () => resolve(g.result.find((c) => c.kind === 'text')?.id ?? null);
+        };
+      }));
+      const homeTap = { type: 'notice-response', id: 'recall-home', data: { captureIds: [anyId] }, action: null };
+      await page.evaluate((m) => navigator.serviceWorker.dispatchEvent(new MessageEvent('message', { data: m })), homeTap);
+      const opened = await page.waitForSelector('[data-testid=viewer-close]', { timeout: 8000 }).then(() => true, () => false);
+      check(opened && (await page.locator('[data-testid=viewer-close]').count()) === 1, 'a reminder tapped with the home in front after a walk opens there, once');
+      if (opened) await page.click('[data-testid=viewer-close]');
     }
 
     // Bulk placement (H8): a walk with no places is placed at the next opening,
@@ -1093,8 +1146,13 @@ function check(ok, what) {
     // A memory pin: faded and smaller than a capture pin (MR3); a tap previews it (MR4), and the preview
     // opens the viewer with every memory from that spot (MR5).
     await page.waitForSelector('[data-testid=memory-pin]', { timeout: 15000 });
-    const look = await memoryPins().first().evaluate((el) => ({ opacity: Number(getComputedStyle(el.firstElementChild).opacity), label: el.getAttribute('aria-label') }));
-    check(look.opacity < 0.7 && /memor/i.test(look.label), `memory pins are faint and named as memories (MR3: opacity ${look.opacity}, "${look.label}")`);
+    // The faded pin itself; its clock badge stays solid (MR3, MR10).
+    const look = await memoryPins().first().evaluate((el) => ({
+      opacity: Math.min(...[...el.querySelectorAll('*')].map((e) => Number(getComputedStyle(e).opacity))),
+      badge: Number(getComputedStyle(el.querySelector('[data-testid=memory-badge]')).opacity),
+      label: el.getAttribute('aria-label'),
+    }));
+    check(look.opacity < 0.7 && look.badge === 1 && /memor/i.test(look.label), `memory pins are faint, their clock solid, and named as memories (MR3, MR10: opacity ${look.opacity}, badge ${look.badge}, "${look.label}")`);
     check((await memoryPins().first().locator('[data-testid=memory-badge]').count()) === 1 && (await walkMap().locator('[data-testid=mark-pin] [data-testid=memory-badge]').count()) === 0,
       'a memory pin carries a clock badge, and nothing else does (MR10)');
     // Under this walk's own pins, never over them (audit 6).

@@ -9,7 +9,8 @@ export const ENTER = {
   /** A new capture's pin falls into place (M10). */
   drop: { fromY: -12, ms: 180 },
   /** A revealed "?" turns in about the vertical (M11). */
-  flip: { fromDeg: 90, ms: 220 },
+  /** From 60°, not edge-on, so the "?" itself is seen turning (audit, UX). */
+  flip: { fromDeg: 60, ms: 220 },
   /** A find's ring grows out of its pin and fades (M12). */
   pulse: { toScale: 1.8, fromOpacity: 0.5, ms: 600 },
   /** A selected star's ring settles from smaller (M9). */
@@ -22,7 +23,8 @@ type MarkState = { revealed: boolean; found?: boolean; faint?: boolean };
 export function markEnter(prev: MarkState | undefined, next: MarkState): 'flip' | 'pulse' | null {
   if (!prev) return null;
   if (next.found && !prev.found) return 'pulse';
-  if (next.revealed && !prev.revealed && !next.found) return 'flip';
+  // A place back from a faint route pin was revealed before: it doesn't turn again (audit 6).
+  if (next.revealed && !prev.revealed && !next.found && !prev.faint) return 'flip';
   return null;
 }
 
@@ -33,3 +35,10 @@ export const starEnter = (wasSelected: boolean | undefined, selected: boolean): 
 /** A pin drops in when it holds a capture not shown before and taken since the screen opened (M10). */
 export const pinDrops = (captures: { id: string; t: number }[], seen: ReadonlySet<string>, openedAt: number): boolean =>
   captures.some((c) => !seen.has(c.id) && c.t >= openedAt);
+
+/** Whether a map's record of what it showed still matches (audit 2): set new state only on a real change. */
+export function sameSeen(seen: ReadonlyMap<string, string>, now: readonly (readonly [string, string])[]): boolean {
+  if (seen.size !== now.length) return false;
+  for (const [id, v] of now) if (seen.get(id) !== v) return false;
+  return true;
+}

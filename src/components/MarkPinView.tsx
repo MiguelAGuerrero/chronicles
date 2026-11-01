@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { markEnter, type EnterKind } from '../lib/enter';
-import { Enter, useOwnEnter } from './Enter';
+import type { EnterKind } from '../lib/enter';
+import { Enter } from './Enter';
 import type { IconName } from './icons';
 import { Icon } from './icons';
 
@@ -30,19 +30,12 @@ const NAME_WIDTH = 140;
  * a "?" until it is revealed, then the category's icon and the name below.
  * Anchored at its bottom, like a capture pin.
  */
-const stateOf = (pin: MarkPin) => `${pin.revealed ? 'r' : ''}${pin.found ? 'f' : ''}`;
-const ownEnter = (prev: string, next: string) =>
-  markEnter({ revealed: prev.includes('r'), found: prev.includes('f') }, { revealed: next.includes('r'), found: next.includes('f') });
-
 /**
- * `enter` is the map's call when it rebuilds the pin on a change (web); without it, the view
- * notices its own change (native, where the pin stays mounted). M11 turns, M12 pulses.
+ * `enter` is the map's call: both maps rebuild a mark's view on each change, and know what it
+ * showed before (M11 turns, M12 pulses). Kept from mount, so a later render can't cut it short.
  */
 export function MarkPinView({ pin, enter }: { pin: MarkPin; enter?: EnterKind | null }) {
-  const own = useOwnEnter(stateOf(pin), ownEnter);
-  // The map's call is kept from mount, so a later render can't cut the entrance short.
-  const [given] = useState(enter);
-  const kind = enter === undefined ? own : given;
+  const [kind] = useState(enter ?? null);
   const body = <MarkBody pin={pin} />;
   if (kind === 'flip' || kind === 'pulse')
     return (

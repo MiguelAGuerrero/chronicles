@@ -30,17 +30,20 @@ export function CapturePinView({ pin, faint = false, drop: dropNow = false }: { 
   const n = pin.captures.length;
   const color = n > 1 ? (pin.kind === 'mixed' ? MIXED : PIN_COLOR[pin.kind]) : PIN_COLOR[pin.kind];
   const view = (
-    // A memory from an earlier walk: the same round pin, smaller and faded (MR3), with a clock (MR10).
-    <View style={[styles.wrap, faint && styles.faint]} pointerEvents="none">
-      <View style={[styles.head, { backgroundColor: color }]}>
-        {n > 1 ? <Text style={styles.count}>{n}</Text> : <Icon name={KIND_ICON[pin.kind]} size={18} color="#ffffff" />}
-        {faint && (
-          <View testID="memory-badge" style={styles.badge}>
-            <Icon name="time" size={12} color="#1d2430" />
-          </View>
-        )}
+    <View style={styles.wrap} pointerEvents="none">
+      {/* A memory from an earlier walk: the same round pin, smaller and faded (MR3). */}
+      <View style={[styles.pin, faint && styles.faint]}>
+        <View style={[styles.head, { backgroundColor: color }]}>
+          {n > 1 ? <Text style={styles.count}>{n}</Text> : <Icon name={KIND_ICON[pin.kind]} size={18} color="#ffffff" />}
+        </View>
+        <View style={[styles.stem, { backgroundColor: color }]} />
       </View>
-      <View style={[styles.stem, { backgroundColor: color }]} />
+      {/* Its clock stays solid and full size, so it reads as from the past at a glance (MR10, audit UX). */}
+      {faint && (
+        <View testID="memory-badge" style={styles.badge}>
+          <Icon name="time" size={12} color="#ffffff" />
+        </View>
+      )}
     </View>
   );
   // A capture just taken drops into place (M10).
@@ -57,11 +60,13 @@ export function pinLabel(pin: CapturePin, interactive = true, memory = false): s
 
 const styles = StyleSheet.create({
   wrap: { width: 36, height: PIN_HEIGHT, alignItems: 'center' },
+  pin: { width: 36, height: PIN_HEIGHT, alignItems: 'center' },
   // Shrunk toward the stem's foot, so it still marks its point (audit 7).
   faint: { opacity: 0.55, transform: [{ scale: 0.75 }], transformOrigin: 'bottom' },
+  // Over the faded head's top right corner (it shrinks toward its foot, to 75%).
   badge: {
-    position: 'absolute', right: -7, top: -7, width: 18, height: 18, borderRadius: 9, backgroundColor: '#ffffff',
-    alignItems: 'center', justifyContent: 'center',
+    position: 'absolute', right: -2, top: 4, width: 18, height: 18, borderRadius: 9, backgroundColor: '#1d2430',
+    borderWidth: 1.5, borderColor: '#ffffff', alignItems: 'center', justifyContent: 'center',
   },
   head: {
     width: 36,
