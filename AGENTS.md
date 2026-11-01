@@ -302,8 +302,11 @@ Read this before changing recording, streets, the replay or storage.
     edge) is drawn only ahead of you, under the trace.
   - A ring marks the destination, and a long press's spot.
   - A soft 60° cone on the walker shows the way they're going (`headingOf`:
-    the device's course, else the last 8 m or more, once moving at 0.5 m/s or
-    faster). The map stays north-up (the owner's call).
+    the last 8 m or more of the trace, once moving at 0.5 m/s or faster; the
+    device's course only when it agrees with the trace within 45°, or when
+    there is no trace yet and it isn't Android's 0). A phone's course once
+    pointed east-north-east while the owner walked south (Nov 1). The map
+    stays north-up (the owner's call).
   - Errors are 6 s banners. "Finding a route" is a spinner pill with Cancel.
     Walk me back (`arrow-undo`) shows once you are more than 50 m from the
     start.

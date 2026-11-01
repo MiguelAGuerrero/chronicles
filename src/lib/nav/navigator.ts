@@ -91,26 +91,37 @@ export function announceStep(prevM: number, leftM: number): boolean {
 /** Moving slower than this, there is no heading to show. */
 const HEADING_MIN_SPEED = 0.5;
 
+/** A device course further than this from the trace's own direction is not believed. */
+const COURSE_AGREE_DEG = 45;
+
 /**
- * The way you are walking, in degrees clockwise from north: the device's own
- * course when it reports one while moving, else the direction of the last
- * few metres. Null while standing still.
+ * The way you are walking, in degrees clockwise from north. The direction of
+ * the last 8 m or more of the trace, or the device's course while moving when
+ * it agrees with the trace within 45° (it turns sooner). A course that
+ * disagrees loses: a phone reported east-north-east while the owner walked
+ * south (Nov 1). With no trace yet, a course is used, but never Android's 0
+ * for "no bearing". Null while standing still.
  */
 export function headingOf(fixes: { t: number; lon: number; lat: number; speed: number | null; course: number | null }[]): number | null {
   const last = fixes[fixes.length - 1];
   if (!last) return null;
-  if (last.course != null && last.course >= 0 && (last.speed ?? 0) >= HEADING_MIN_SPEED) return last.course;
+  let trace: number | null = null;
+  let still = false;
   for (let i = fixes.length - 2; i >= 0; i--) {
     const f = fixes[i];
     const d = distanceM([f.lon, f.lat], [last.lon, last.lat]);
     if (d >= 8) {
       const dt = (last.t - f.t) / 1000;
-      if (dt <= 0 || d / dt < HEADING_MIN_SPEED) return null;
-      return bearingDeg([f.lon, f.lat], [last.lon, last.lat]);
+      if (dt <= 0 || d / dt < HEADING_MIN_SPEED) still = true;
+      else trace = bearingDeg([f.lon, f.lat], [last.lon, last.lat]);
+      break;
     }
     if (last.t - f.t > 30_000) break;
   }
-  return null;
+  const course = last.course != null && Number.isFinite(last.course) && last.course >= 0 && (last.speed ?? 0) >= HEADING_MIN_SPEED ? last.course : null;
+  if (trace != null) return course != null && Math.abs(((course - trace + 540) % 360) - 180) <= COURSE_AGREE_DEG ? course : trace;
+  if (still) return null;
+  return course != null && course !== 0 ? course : null;
 }
 
 export interface NavState {

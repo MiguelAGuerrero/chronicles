@@ -227,3 +227,15 @@ test('nav: the shortest route wins, so walk me back never retraces a detour the 
   // The default is still first that answers.
   assert.equal(routeTo([mk('trace', 513), mk('streets', 300)], a, b).route?.source, 'trace');
 });
+
+test('heading: the trace wins over a device course that disagrees with it (owner, Nov 1: south, the cone said east-north-east)', () => {
+  const south = walk([at(0, 0.5), at(0, 0)]);
+  const lying = south.map((p) => ({ ...p, speed: 1.2, course: 68 }));
+  assert.ok(Math.abs(headingOf(lying)! - 180) < 5, `${headingOf(lying)}`);
+  const agreeing = south.map((p) => ({ ...p, speed: 1.2, course: 170 }));
+  assert.equal(headingOf(agreeing), 170, 'a course near the trace is kept: it turns sooner');
+  // No trace yet to check it against: a course is used, but not Android's 0 for "no bearing".
+  const first = [{ ...south[0], speed: 1.2, course: 0 }];
+  assert.equal(headingOf(first), null);
+  assert.equal(headingOf([{ ...south[0], speed: 1.2, course: 200 }]), 200);
+});
