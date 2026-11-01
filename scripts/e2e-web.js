@@ -164,6 +164,8 @@ function check(ok, what) {
   const { encodeTile } = await import('./mvt-encode.mjs');
   // Slow tiles on demand, so Cancel can land while a read is still out.
   let tileDelayMs = 0;
+  // A stalled TileJSON request on demand, as on a phone with a weak signal (bug: a blank replay after Stop).
+  let tilejsonStall = null;
   await ctx.route('https://tiles.openfreemap.org/**', async (r) => {
     const tile = /\/(\d+)\/(\d+)\/(\d+)\.pbf$/.exec(r.request().url());
     if (tile && tileDelayMs) await new Promise((res) => setTimeout(res, tileDelayMs));
@@ -171,6 +173,7 @@ function check(ok, what) {
       const [z, x, y] = tile.slice(1).map(Number);
       return r.fulfill({ contentType: 'application/x-protobuf', body: Buffer.from(encodeTile(features, z, x, y)) });
     }
+    if (tilejsonStall && r.request().url().endsWith('/planet')) await tilejsonStall;
     return r.fulfill({
       contentType: 'application/json',
       body: JSON.stringify(
@@ -586,11 +589,22 @@ function check(ok, what) {
 
     const box = await page.locator('[data-testid=stop]').boundingBox();
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    let releaseTilejson;
+    tilejsonStall = new Promise((res) => { releaseTilejson = res; });
     await page.mouse.down();
     await page.waitForTimeout(1100);
     await page.mouse.up();
     await page.waitForURL(/replay/, { timeout: 30000 });
     check(true, 'holding Stop opens the replay');
+    // The walk opens from the device, whatever the network does (bug, Nov 1: blank until a reload).
+    let opened = false;
+    for (let k = 0; k < 40 && !opened; k++) {
+      opened = (await page.getByText('Opening your walk').count()) === 0 && (await page.locator('canvas.maplibregl-canvas').count()) === 1;
+      if (!opened) await page.waitForTimeout(50);
+    }
+    check(opened, 'the replay opens within 2 s while the tile host stalls');
+    tilejsonStall = null;
+    releaseTilejson();
 
     let reading = false;
     for (let k = 0; k < 200 && !reading; k++) {

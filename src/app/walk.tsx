@@ -96,6 +96,9 @@ const CAPTION_OFFER_MS = 6000;
 
 type Notice = { message: string; tone?: 'info' | 'error'; openSettings?: boolean; sticky?: boolean };
 
+// A screen that throws shows what broke, with Try again, never a blank page (bug, Nov 1).
+export { ScreenError as ErrorBoundary } from '../components/ScreenError';
+
 export default function WalkScreen() {
   perfCount('render:walk');
   const insets = useSafeAreaInsets();

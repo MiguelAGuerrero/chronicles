@@ -1,6 +1,7 @@
 import { AREA_RULES } from './areas/rules';
 import { BOUNDARY_PACKS_ID } from './areas/boundaries';
 import { db } from './db';
+import { fetchTileBuild, TILEJSON_MS } from './tileBuild';
 
 export { TILE_ZOOM, tileAt, tileRect, onTileEdge, type TileRect } from './tileMath';
 
@@ -16,16 +17,11 @@ export const TILEJSON_URL = 'https://tiles.openfreemap.org/planet';
 let pendingUrl: string | null = null;
 
 export async function currentTileBuild(): Promise<string> {
-  try {
-    const res = await fetch(TILEJSON_URL);
-    const json = (await res.json()) as { tiles?: string[] };
-    const url = json.tiles?.[0] ?? '';
-    if (url) pendingUrl = url;
-    const m = /\/([0-9]{8}_[0-9A-Za-z_]+)\/\{z\}/.exec(url);
-    if (m) return m[1];
-    if (url) return url;
-  } catch {
-    // offline: keep using what we have
+  // Within a time limit: offline, slow or stalled, keep using what we have.
+  const read = await fetchTileBuild((u, init) => fetch(u, init), TILEJSON_MS, TILEJSON_URL);
+  if (read) {
+    pendingUrl = read.url;
+    return read.build;
   }
   return (await db.getMeta('tile_build')) ?? 'unknown';
 }
@@ -42,6 +38,12 @@ export async function ensureTileBuild(): Promise<string> {
     if (stored != null) await db.purgeDerived();
     await db.setMeta('tile_build', build);
   }
+  // Streets derived by older code were wrong (STREET_CODE): dropped once, and every walk re-snaps.
+  const code = await db.getMeta('street_code');
+  if (code !== STREET_CODE) {
+    if (code != null || stored != null) await db.purgeDerived();
+    await db.setMeta('street_code', STREET_CODE);
+  }
   // With its build, never apart: the location task reads tiles itself, tagged with that build (A11).
   if (pendingUrl && build !== 'unknown') await db.setMeta('tile_url', pendingUrl).catch(() => {});
   // The rules for crediting streets changed: walks re-snap when their replay
@@ -53,6 +55,14 @@ export async function ensureTileBuild(): Promise<string> {
   }
   return build;
 }
+
+/**
+ * The version of the code that derives street pieces (streets.ts). Bump it
+ * when a fix changes the pieces derived from the same tiles: the street cache
+ * is dropped once and every walk re-snaps, as on a new tile build.
+ * 2: junction points no longer collapse onto one spot (the fog streaks, Nov 1).
+ */
+const STREET_CODE = '2';
 
 /**
  * The version of the snapping rules (snapper.ts). Bump it when they change
