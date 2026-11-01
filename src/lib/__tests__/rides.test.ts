@@ -332,3 +332,11 @@ test('rides: a GPS jump just before boarding stays out of the ride (R2, the e2e 
   const { rideM } = traceDistances(tr);
   assert.ok(Math.abs(rideM - 120 * BUS) < 30, `no jog across the jump (${rideM})`);
 });
+
+test('rides: hurrying to the stop, then standing, is not part of the ride (R3, the e2e card, Nov 1)', () => {
+  // No speed from the phone: a 25 s jog at 5 m/s to the stop, 4 s standing, then the bus.
+  const tr = readTrace(trip([{ v: WALK, s: 60 }, { v: 5, s: 25 }, { v: 0, s: 4 }, { v: BUS, s: 120 }]), 0);
+  assert.equal(tr.rides.length, 1);
+  assert.ok(tr.rides[0].t0 >= 85_000, `the ride starts at the stop, not on the way to it (${tr.rides[0].t0})`);
+  assert.ok(Math.abs(traceDistances(tr).rideM - 120 * BUS) < 30);
+});

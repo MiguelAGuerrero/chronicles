@@ -622,6 +622,52 @@ Read this before changing recording, streets, the replay or storage.
 - The e2e's mouse drag on the home map doesn't pan it, so H5's "kept its view
   across the replay" check compares an unmoved view.
 
+## Rides (the spec is the concept doc's "Rides" tab, R1-R14)
+
+- **A bus, trolley or train inside a walk is a ride** (the owner's call, Nov 1, after a
+  bus ride showed only "Weak GPS" and no trace: every fix over 7 m/s was dropped as a
+  jump). Rides are part of exploring: drawn dashed, holding captures, counted for
+  places, never for streets or walked distance.
+- **Reading** (`readTrace`, pure): fixes are gated, split at pauses and gaps over 60 s,
+  and each stretch is searched for rides (`RIDE_RULES`): a 20 s window whose median
+  speed is over 7 m/s and whose net movement is 4.5 m/s or more. The phone's speed
+  is used where it reports one, else the movement over 5 s. A ride's edges use the
+  slower of the speed behind and ahead, so a GPS jump at a bus stop never looks like
+  moving. Two rides under 3 min apart join across a stop (150 m) or traffic (3 m/s).
+  A ride under 20 s is a burst, dropped as before. Inside a ride, 70 m/s is a jump.
+- **Two traces, two kinds of consumer.**
+  - Walked only (snapping, walk me back, Explore's "passed", the solid line): use
+    `tr.walked` with `tr.breaks` (pauses and rides), so a ride breaks the walk
+    however short.
+  - Walked and ridden (places, placing captures, the replay's dot, `here`): use
+    `keptFixes(tr)` with the pauses only. Never pass `tr.breaks` there: every ride
+    fix lies inside its own break.
+- **Drawn dashed** (`rides` prop, `RIDE_DASH`, the trace's green on its white edge,
+  hidden with the trace while navigating). `rideRuns` joins a ride to the walk
+  either side unless the step is a jump (`joins`). The web map carries
+  `data-rides="<rides>:<points>"` for the e2e.
+- **Distance:** `traceDistances` gives walked (as before) and ridden. The summary's
+  `ride_m` (SQLite migration 10; absent on older IndexedDB rows) falls back to the
+  trace's in the replay. The strip reads "1:16 · 24 m + 664 m ride", the card
+  "24 m walked · 664 m by ride".
+- **Streets are read only where you walked** (`snapWalk`: walked bounds); places from
+  the whole trace, and a walk that is all ride is still placed. `SNAP_RULES` 3
+  re-reads every walk.
+- **Replay** (`schedule(..., rides)`): a ride keeps its real share of the path up to
+  4 s, all rides together at most half, squeezed evenly (a `Warp`), so the dot
+  glides along it and stops at captures on it.
+- **On a ride** (`ridingAt`, through stops of up to 3 min): a quiet "On a ride" chip;
+  Explore names nothing, gives no pocket alert and starts no read; navigation
+  neither re-routes nor says "off your route"; reminders and memories go on.
+  "Weak GPS" is judged by `lastGoodAt`, the newest fix inside the accuracy gate, kept
+  or not.
+- **Live** (`useLiveTrace`): raw fixes are kept and read again whole at each 2 s
+  publish, since a ride is only known once it lasted a while, and then from where it
+  began.
+- **The phone's task** reads each batch with the two minutes before it (`tail`), so
+  reminders fire from a ride. Native (unverified on a device): the task's tail, the
+  dashed layer, migration 10.
+
 ## Working with the owner
 
 - **Ask before architectural decisions:** libraries, data model, platform strategy,
@@ -654,10 +700,11 @@ Read this before changing recording, streets, the replay or storage.
   the walk's own fields and a capture's placement at stop. StreetSegment,
   VisitedSegment and WalkSummary are a cache, tagged with the tile build, and can be
   dropped and rebuilt. Recompute from the trace; never patch derived data.
-- **Raw fixes are stored unfiltered.** `FixFilter` / `filterFixes` in `src/lib/geo.ts`
-  apply the gates at read time: accuracy over 50 m, staleness before the walk began,
-  speed over 7 m/s, and re-anchoring when the first accepted fix was the outlier.
-  Always pass the walk's `started_at`.
+- **Raw fixes are stored unfiltered.** `readTrace` (`src/lib/rides.ts`) applies the
+  gates at read time: accuracy over 50 m, staleness before the walk began, then rides
+  (see Rides), then `FixFilter` per walked stretch (speed over 7 m/s, and re-anchoring
+  when the first accepted fix was the outlier). Always pass the walk's `started_at`
+  and pauses. `filterFixes` is the walking filter alone, kept for its tests.
 - **Platform splits.** `x.native.ts` / `x.web.ts` sit beside a plain `x.ts` that only
   re-exports the native one for TypeScript. Metro picks per platform; the plain file
   is never bundled. Keep the shared interface in a `types.ts`.
