@@ -1752,6 +1752,7 @@ function check(ok, what) {
     {
       // Minimizing a walk (NV7-NV10): the walk goes on under the tabs, with a recording bar above the tab bar.
       const { c, pg } = await freshPage('minimize');
+      await c.addInitScript(() => { window.__perf = {}; });
       await pg.goto(url);
       await pg.waitForSelector('[data-testid=start]');
       await pg.waitForTimeout(1500);
@@ -1831,6 +1832,7 @@ function check(ok, what) {
       const d0 = m(await barText());
       // Minimized, it keeps recording across the tabs, each with one live map and the bar (NV4, NV8, NV9).
       const onTabs = [];
+      let perfA = null;
       await north(-0.15, 1.25, async (k) => {
         if (k === 6 || k === 14 || k === 22) {
           const id = { 6: 'chronicle', 14: 'explore', 22: 'navigate' }[k];
@@ -1838,8 +1840,17 @@ function check(ok, what) {
           await pg.waitForTimeout(400);
           onTabs.push(`${id}:${await shownCount(pg, '[data-testid=recording-bar]')}:${await pg.locator('canvas.maplibregl-canvas').count()}`);
         }
+        if (k === 23) perfA = { at: Date.now(), ...(await pg.evaluate(() => ({ ...window.__perf }))) };
       });
       await pg.waitForTimeout(2200);
+      {
+        // The bar ticks and follows the trace by itself: the tab beneath it isn't re-rendered (perf).
+        const b = await pg.evaluate(() => ({ ...window.__perf }));
+        const secs = (Date.now() - perfA.at) / 1000;
+        const rate = (k) => ((b[k] ?? 0) - (perfA[k] ?? 0)) / secs;
+        check(rate('render:navigate') <= 0.2 && rate('render:bar') <= 1.2 && rate('render:walk') === 0,
+          `minimized, only the bar follows the walk (navigate ${rate('render:navigate').toFixed(2)}/s, bar ${rate('render:bar').toFixed(2)}/s over ${secs.toFixed(0)} s)`);
+      }
       const d1 = m(await barText());
       check(onTabs.join(',') === 'chronicle:1:1,explore:1:1,navigate:1:1', `the bar is on every tab, with one live map (NV4, NV9: ${onTabs.join(', ')})`);
       check(d1 > d0 + 100 && /^\d+:\d\d · \d+ m$/.test(await barText()), `minimized, the walk keeps recording: the bar's distance grows (NV8: ${d0} → ${d1} m)`);

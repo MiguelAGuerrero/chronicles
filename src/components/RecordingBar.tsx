@@ -5,6 +5,7 @@ import { db } from '../lib/db';
 import { reminderText } from '../lib/discovery/recall';
 import { onRecallFired, RECALL_OPEN_KEY } from '../lib/discovery/recallCheck';
 import { feedback } from '../lib/motion';
+import { perfCount } from '../lib/perfCount';
 import { recordingLine } from '../lib/recordingBar';
 import type { Capture, Pause, Walk } from '../lib/types';
 import type { LiveTrace } from '../lib/useLiveTrace';
@@ -36,6 +37,7 @@ export function RecordingBar() {
 }
 
 function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTrace }) {
+  perfCount('render:bar');
   const [said, setSaid] = useState<{ text: string; error?: boolean } | null>(null);
   const onError = useCallback((e: { message: string }) => setSaid({ text: e.message, error: true }), []);
   const cap = useCaptures(walk.id, live.here, live.lastFixAt, onError);
