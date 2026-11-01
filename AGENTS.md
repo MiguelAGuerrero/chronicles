@@ -518,8 +518,9 @@ Read this before changing recording, streets, the replay or storage.
   1. Write the slice's spec as numbered, testable acceptance criteria (in the
      concept doc's version tab).
   2. Turn each criterion into a failing test before writing the code: a unit
-     test in `npm test` for pure logic, or an e2e check in `scripts/e2e-web.js`
-     for screens.
+     test in `npm test` for pure logic, a shell test (`fakePorts()`, also in
+     `npm test`) for orchestration, or an e2e check in `scripts/e2e-web.js` for
+     what is seen on screen. See "Code style" below.
   3. The slice is done when those pass, along with typecheck, lint and the
      whole existing suite.
 - **Audit every slice adversarially once it's built.**
@@ -533,6 +534,81 @@ Read this before changing recording, streets, the replay or storage.
   - The v0 slices were: recording, capture and media, streets/fog/snapping,
     replay, storage and log. In v0, tests were mostly written alongside the
     code rather than strictly first; from v0.5 they come first.
+
+## Code style: functional core, imperative shell (the owner's call, Nov 1)
+
+The assessment behind this is the owner's "Chronicles: functional core
+assessment" doc in Claude Docs (https://claude.ai/artifact/NvVJu2kspKdmY2DFgXTvz1).
+**New code follows these rules now.** Existing modules move over gradually, one
+per change, and only once the app is stable: the device milestone has passed and
+no slice is mid-audit. Never rewrite them in one go, and never as a side task of
+a feature.
+
+- **Three layers per feature.**
+  - **Core:** rules, models, planners. No React, no I/O, no awaits. Time, ids
+    and randomness are arguments, never `Date.now()` or `Math.random()` inside.
+  - **Shell:** one plain-TS module per feature, outside `src/app/`, taking
+    `Ports` as an argument. It is the only code that writes the feature's data
+    or runs its side effects, and it holds the feature's state in a `Store`
+    (`lib/store.ts`).
+  - **View:** screens and components render and forward intents. A thin hook
+    builds the shell with the real `ports` and reads slices of its state with
+    `useStore(store, select)` (`lib/useStore.ts`).
+- **Ports** (`lib/ports/types.ts`): `db`, `recorder`, `notifier`,
+  `clock.now()`, `newId()`. The real instance is `ports` in `lib/ports/index.ts`,
+  built at module load, so the background task shares it. A new kind of side
+  effect (timers, `AppState`, map reads) gets a new port, not a direct import.
+- **Shell tests come first** for anything about orchestration: write order,
+  failures, re-entry guards, reload recovery. They run in `npm test` with
+  `fakePorts()` from `src/lib/__tests__/fakes`:
+  - `memoryDb()` behaves like the IndexedDB store. `db.contract.test.ts` runs
+    the same cases against both, over fake-indexeddb. When a `Db` method is
+    added or changed, add a contract case.
+  - `log.effects()` lists the calls that changed something, in order, across
+    all ports. `failNext(method, error)` fails the next call to one method.
+    `clock.advance(ms)` moves time.
+  - The e2e checks only what is seen.
+- **Effects as data only where it pays.** A state machine with many branches
+  (a voice memo, navigation) is a reducer, `(state, event) => { state, effects }`,
+  and its shell runs the effects. Straight-line flows call ports directly.
+- **Meta goes through `metaStore(db)`** (`lib/meta.ts`), typed by `META`. Add a
+  key to `META` before using it; `meta.test.ts` fails on a key in use that isn't
+  listed. Old call sites keep their string keys until they move over (the
+  codecs match what they store).
+- **No module-level mutable state** in new code. Guards and caches live in the
+  shell instance.
+- **Keep the render budget.** A screen subscribes to the slice it draws. The
+  e2e's 2.5 renders a second still holds.
+- **Platform glue stays imperative** behind its adapter: map, audio, recorder,
+  notifications. The 34 effects in `WalkMap.web` are fine where they are.
+- **Lint enforces the boundaries** (`eslint.config.js`). Screens, components and
+  hooks don't import the real db, recorder or notifier. Core and shells don't
+  import `ports`, React, React Native, Expo or the map either. Type-only imports
+  are fine. The `LEGACY_*` lists name the files written before the rule. They
+  only shrink: take a file off when it moves over, and never add one.
+
+A shell and its test, in outline:
+
+```ts
+// lib/<feature>/shell.ts: built once per screen by its hook, with the real `ports`
+export function createFeature(p: Ports) {
+  const store = createStore<FeatureState>(initial);
+  return {
+    store,
+    async act(input: Input) {
+      const plan = decide(store.get(), input, p.clock.now()); // core: pure
+      await p.db.saveThing(plan.row); // the shell's only writes
+      store.set(plan.state);
+    },
+  };
+}
+
+// __tests__/feature.shell.test.ts
+const p = fakePorts();
+p.db.failNext('saveThing');
+await assert.rejects(createFeature(p).act(input));
+assert.deepEqual(p.log.effects(), ['db.saveThing']);
+```
 
 ## Architecture in one breath
 
@@ -820,6 +896,12 @@ Read this before changing recording, streets, the replay or storage.
 - `npm test` runs unit tests for derivation, snapping, fix filtering and replay
   timing. Keep fixtures well inside one z14 tile unless you are testing tile edges.
   At lon -71.4, lat 41.82 a tile edge is 50 m away; the tests use lat 41.812.
+- `npm test` also runs shell tests against `fakePorts()`, and the `Db` contract
+  against both `memoryDb()` and the IndexedDB store. Files in
+  `src/lib/__tests__/fakes/` are helpers, not tests (the glob is `*.test.ts`).
+  `src/lib/db/index.web.ts` runs under fake-indexeddb only through a fresh
+  module per case (`import('../db/index.web.ts?case=N')`), because it caches its
+  connection at module level.
 - e2e notes: a pin's tap area is 48 px, so the "what happened here" press goes
   30 px beside it. Captions are checked through their aria-label after the photo's
   size has loaded. Each capture adds a replay stop, so the test loops on Continue.
