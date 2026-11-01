@@ -1,4 +1,4 @@
-import { distanceM, FixFilter, isBreak, lineLengthM, MAX_ACCURACY_M, MAX_STALE_MS, smoothDwells, traceDistanceM, withoutPauses, type PauseSpan } from './geo';
+import { distanceM, FixFilter, isBreak, lineLengthM, MAX_ACCURACY_M, MAX_STALE_MS, settleJitter, smoothDwells, splitAtGaps, traceDistanceM, withoutPauses, type PauseSpan } from './geo';
 import type { LngLat, TracePoint } from './types';
 
 /**
@@ -217,12 +217,12 @@ export function readTrace(points: TracePoint[], startedAt: number | null, pauses
     from = i;
     let at = 0;
     for (const [a, b] of ridesIn(seg)) {
-      walked.push(...filtered(seg.slice(at, a)));
+      walked.push(...settleJitter(filtered(seg.slice(at, a))));
       const fixes = filtered(seg.slice(a, b + 1), RIDE_RULES.maxSpeed);
       rides.push({ t0: fixes[0].t, t1: fixes[fixes.length - 1].t, fixes });
       at = b + 1;
     }
-    walked.push(...filtered(seg.slice(at)));
+    walked.push(...settleJitter(filtered(seg.slice(at))));
   }
   return {
     walked,
@@ -231,6 +231,14 @@ export function readTrace(points: TracePoint[], startedAt: number | null, pauses
     pauses,
     lastGoodAt: gated.length ? gated[gated.length - 1].t : null,
   };
+}
+
+/**
+ * The walked trace as the live map draws it: standstills held still, as the
+ * replay draws them, and split at gaps, pauses and rides.
+ */
+export function liveRuns(tr: ReadTrace): LngLat[][] {
+  return splitAtGaps(smoothDwells(tr.walked), RIDE_RULES.gapMs, tr.breaks);
 }
 
 /** Walked and ridden fixes together, in time order: for places, placing captures and the replay's dot. */

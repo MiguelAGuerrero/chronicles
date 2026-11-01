@@ -77,8 +77,9 @@ test('rides: a bus between two walks is one ride; both walks stay walked (R1)', 
   assert.ok(Math.abs(r.t0 - 121_000) <= 3000, `ride starts at ${r.t0}`);
   assert.ok(Math.abs(r.t1 - 420_000) <= 3000, `ride ends at ${r.t1}`);
   assert.ok(r.fixes.length >= 290);
-  // Walked: both walks, nothing from the bus.
-  assert.ok(tr.walked.length >= 230, `walked ${tr.walked.length}`);
+  // Walked: both walks, end to end, nothing from the bus. (Fixes inside the GPS's own
+  // accuracy are read as one spot since the scribble fix, so count ground, not fixes.)
+  assert.ok(tr.walked[0].t <= 5000 && tr.walked.at(-1)!.t >= 535_000, 'both walks, end to end');
   assert.ok(tr.walked.every((p) => p.t < r.t0 || p.t > r.t1));
   const d = traceDistances(tr);
   assert.ok(Math.abs(d.walkedM - 2 * 120 * WALK) < 20, `walked ${d.walkedM}`);
@@ -103,8 +104,11 @@ test('rides: walking, even briskly with a wobbly GPS, is never a ride (R1)', () 
   const pts = trip([{ v: 2, s: 600 }], { jitterM: 6 });
   const tr = readTrace(pts, 0);
   assert.equal(tr.rides.length, 0);
-  // Exactly what the walking filter kept before rides existed.
-  assert.deepEqual(tr.walked, filterFixes(pts, 0));
+  // All of it walked, end to end (as the walking filter keeps it), about as far as before rides existed.
+  const kept = filterFixes(pts, 0);
+  assert.ok(tr.walked[0].t === kept[0].t && tr.walked.at(-1)!.t === kept.at(-1)!.t, `walked ${tr.walked[0].t} to ${tr.walked.at(-1)!.t}`);
+  const before = traceDistances({ ...tr, walked: kept }).walkedM;
+  assert.ok(Math.abs(traceDistances(tr).walkedM - 1200) <= Math.abs(before - 1200) + 30, `walked ${traceDistances(tr).walkedM}`);
 });
 
 test('rides: a single jump is dropped as before, and makes no ride (R2)', () => {
@@ -115,7 +119,9 @@ test('rides: a single jump is dropped as before, and makes no ride (R2)', () => 
   const tr = readTrace(pts, 0);
   assert.equal(tr.rides.length, 0);
   assert.ok(!tr.walked.some((p) => p.t === j.t));
-  assert.equal(tr.walked.length, pts.length - 1);
+  // Nothing is drawn out toward it, and the rest of the walk is all there.
+  assert.ok(tr.walked.every((p) => distanceM([p.lon, p.lat], off) > 100));
+  assert.ok(Math.abs(traceDistances(tr).walkedM - 200 * WALK) < 20);
 });
 
 test('rides: a fast burst shorter than 20 s downtown is no ride (R2)', () => {
@@ -157,7 +163,8 @@ test('rides: two buses with a walk of 4 minutes between are two rides (R3)', () 
   const tr = readTrace(trip([{ v: WALK, s: 60 }, { v: BUS, s: 120 }, { v: WALK, s: 240 }, { v: BUS, s: 120 }, { v: WALK, s: 60 }], { reported: true }), 0);
   assert.equal(tr.rides.length, 2);
   // The walk between them is walked.
-  assert.ok(tr.walked.filter((p) => p.t > 190_000 && p.t < 410_000).length > 200);
+  const between = tr.walked.filter((p) => p.t > 190_000 && p.t < 410_000);
+  assert.ok(traceDistances({ ...tr, walked: between }).walkedM > 200 * WALK, 'most of the walk between is walked');
 });
 
 test('rides: a pause ends a ride, and nothing inside the pause is kept (R3)', () => {
