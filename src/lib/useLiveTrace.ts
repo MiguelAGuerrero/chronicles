@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { db } from './db';
-import { isBreak, splitAtGaps, type PauseSpan } from './geo';
+import { isBreak, type PauseSpan } from './geo';
 import { headingOf } from './nav/navigator';
 import { recorder } from './recorder';
-import { keptFixes, readTrace, rideRuns, ridingAt, traceDistances, type ReadTrace } from './rides';
+import { keptFixes, liveRuns, readTrace, rideRuns, ridingAt, traceDistances, type ReadTrace } from './rides';
 import type { LngLat, TracePoint } from './types';
 
 /** How often the screen (and the map) is refreshed from the live trace. */
@@ -127,7 +127,8 @@ export function useLiveTrace(
       lastRead.current = { tr, here };
       const rides = rideRuns(tr);
       setState((prev) => ({
-        runs: splitAtGaps(tr.walked, 60_000, tr.breaks),
+        // Standstills held still, as the replay draws them (the scribble, Nov 1).
+        runs: liveRuns(tr),
         rides: sameRuns(prev.rides, rides) ? prev.rides : rides,
         here,
         distanceM: walkedM,

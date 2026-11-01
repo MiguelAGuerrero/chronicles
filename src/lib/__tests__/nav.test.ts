@@ -158,7 +158,9 @@ test('nav: walk me back never cuts a corner the walk turned, only a loop it came
   // An L: 300 m east, 200 m north. Points either side of the corner are within 30 m of each other.
   const trace = walk([at(0, 0), at(3, 0), at(3, 2)]);
   const r = traceRouteSource(trace, []).route(at(3, 2), at(0, 0))!;
-  assert.ok(r.lengthM >= 495, `the corner is walked round, not cut: ${Math.round(r.lengthM)} m`);
+  // Cutting it would be about 360 m. The reading rounds a corner by a few metres (fixes inside
+  // the GPS's accuracy are one spot, since the scribble fix), so allow for that.
+  assert.ok(r.lengthM >= 485, `the corner is walked round, not cut: ${Math.round(r.lengthM)} m`);
 });
 
 // Regression tests from the slice's audit and UI review, written before the fixes.

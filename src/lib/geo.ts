@@ -238,6 +238,122 @@ export function pausedMs(pauses: PauseSpan[], from: number, to: number): number 
   return ms;
 }
 
+/**
+ * A fix this close to where the walker already is (as a share of the fixes'
+ * own reported accuracy) is not a step: GPS wandering while you stand, not
+ * movement (the scribble, Nov 1).
+ */
+export const JITTER_SHARE = 1;
+/**
+ * A spot held longer than a walker takes to cross it starts to widen, up to
+ * twice its reach a minute later: someone who has stood that long is standing,
+ * so slow drift doesn't move them.
+ */
+export const JITTER_SETTLE_FROM_MS = 15_000;
+export const JITTER_SETTLE_MS = 60_000;
+
+/**
+ * The walked fixes with GPS wander settled, for every reading of a trace.
+ *
+ * Fixes gather into one spot while each lands within its reported accuracy
+ * of the spot's running centre; the spot is drawn as its centre, held from its
+ * first fix to its last, and a new spot begins only when a fix lands outside.
+ * A lone fix outside, followed by one back inside, was a jump and is dropped;
+ * the newest fix outside is drawn at once while walking, and waits for the next
+ * one after a standstill. Fixes
+ * with no reported accuracy can't be told from steps and pass as they are.
+ * Unlike a standstill (`dwellsOf`), this needs no two minutes to settle.
+ */
+export function settleJitter(fixes: TracePoint[]): TracePoint[] {
+  const out: TracePoint[] = [];
+  let members: TracePoint[] = [];
+  let lon = 0;
+  let lat = 0;
+  let reach = 0;
+  let pending: TracePoint | null = null;
+  const start = (p: TracePoint) => {
+    members = [p];
+    lon = p.lon;
+    lat = p.lat;
+    reach = p.accuracy_m ?? 0;
+  };
+  const add = (p: TracePoint) => {
+    members.push(p);
+    lon += p.lon;
+    lat += p.lat;
+    reach = Math.max(reach, p.accuracy_m ?? 0);
+  };
+  const centre = (): LngLat => [lon / members.length, lat / members.length];
+  const inside = (p: TracePoint) => {
+    const held = Math.min(1, Math.max(0, p.t - members[0].t - JITTER_SETTLE_FROM_MS) / JITTER_SETTLE_MS);
+    return distanceM(centre(), [p.lon, p.lat]) <= JITTER_SHARE * (1 + held) * Math.max(reach, p.accuracy_m ?? 0);
+  };
+  const flush = () => {
+    if (!members.length) return;
+    const halves = movedHalves(members, reach);
+    if (halves) {
+      // Walked through, not stood in: drawn from where it began to where it ended (each half's
+      // centre), so the way through and the corners stay and the wander is still averaged out.
+      out.push({ ...members[0], lon: halves[0][0], lat: halves[0][1] }, { ...members[members.length - 1], lon: halves[1][0], lat: halves[1][1] });
+      members = [];
+      return;
+    }
+    const [x, y] = centre();
+    out.push(members.length === 1 ? members[0] : { ...members[0], lon: x, lat: y });
+    if (members.length > 1) out.push({ ...members[members.length - 1], lon: x, lat: y });
+    members = [];
+  };
+  for (const p of fixes) {
+    if (p.accuracy_m == null) {
+      flush();
+      if (pending) out.push(pending);
+      pending = null;
+      out.push(p);
+      continue;
+    }
+    if (!members.length) {
+      start(p);
+      continue;
+    }
+    if (pending) {
+      if (inside(p)) {
+        // Away and straight back: the lone fix was a jump.
+        pending = null;
+        add(p);
+        continue;
+      }
+      // Two fixes away in a row: the walker moved. The spot ends; a new one begins.
+      // A spot of one fix that the next two agree to leave was a jump at the start.
+      const lone = members.length === 1 && distanceM([pending.lon, pending.lat], [p.lon, p.lat]) <= JITTER_SHARE * Math.max(pending.accuracy_m ?? 0, p.accuracy_m ?? 0);
+      if (lone && out.length === 0) members = [];
+      else flush();
+      start(pending);
+      pending = null;
+    }
+    if (inside(p)) add(p);
+    else pending = p;
+  }
+  // The newest fix outside the spot, with nothing after it yet: kept when the walker was on the
+  // move (the trace reaches where they are); dropped after a standstill, where it is likelier a jump.
+  const moving = !!pending && (pending.t - members[0].t < JITTER_SETTLE_FROM_MS || movedHalves(members, reach) != null);
+  flush();
+  if (pending && moving) out.push(pending);
+  return out;
+}
+
+/** A spot whose later fixes sit this far (a share of its reach) from its earlier ones was walked through. */
+const JITTER_MOVED_SHARE = 0.5;
+
+/** The centres of a spot's earlier and later halves, when they sit far enough apart that it was walked through. */
+function movedHalves(members: TracePoint[], reach: number): [LngLat, LngLat] | null {
+  if (members.length < 2) return null;
+  const half = members.length >> 1;
+  const mean = (xs: TracePoint[]): LngLat => [xs.reduce((s, p) => s + p.lon, 0) / xs.length, xs.reduce((s, p) => s + p.lat, 0) / xs.length];
+  const a = mean(members.slice(0, half));
+  const b = mean(members.slice(half));
+  return distanceM(a, b) > JITTER_MOVED_SHARE * reach ? [a, b] : null;
+}
+
 /** A stay this long inside DWELL_RADIUS_M counts as standing still (a shop, a café). */
 export const DWELL_MIN_MS = 2 * 60_000;
 export const DWELL_RADIUS_M = 25;
