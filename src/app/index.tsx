@@ -111,13 +111,16 @@ export default function Home() {
   // A reminder tapped while the home is in front (no walk open) opens here at once (audit 1).
   // With a walk open, the walk screen opens a tapped reminder; the home beneath it doesn't too (it
   // opened twice, one viewer over the other).
-  const openRef = useRef(open);
+  // Until its load knows whether a walk is open, the home declines too: on a cold open the tap
+  // came before that, opened here, and was then sent on to the walk as well (2 viewers).
+  const [openKnown, setOpenKnown] = useState(false);
+  const openRef = useRef<{ known: boolean; open: Walk | null }>({ known: false, open: null });
   useEffect(() => {
-    openRef.current = open;
+    openRef.current = { known: openKnown, open };
   });
-  // With a walk open, the home declines, so the tap goes on to the walk (or waits for it).
+  // With a walk open, or not yet known, the home declines, so the tap goes on to the walk (or waits).
   useEffect(() => onRecallOpen((found) => {
-    if (openRef.current) return false;
+    if (!openRef.current.known || openRef.current.open) return false;
     setRecalled(found);
     return true;
   }), []);
@@ -155,6 +158,7 @@ export default function Home() {
         if (recalled.length) setRecalled(recalled);
         setData({ walks, summaries, areas, rows });
         setOpen(openWalk);
+        setOpenKnown(true);
         setPauses(openPauses);
         setNow(Date.now());
         const bounds = placesIndex(areas, rows, walks).bounds;
