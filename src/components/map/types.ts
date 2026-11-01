@@ -110,6 +110,8 @@ export interface WalkMapProps {
   /** Fits the camera to these bounds whenever `fitKey` changes. */
   fitBounds?: Bounds | null;
   fitKey?: number;
+  /** Called with a fit's key once its camera move has ended, so a map taken down mid-move can redo it. */
+  onFitSettled?: (fitKey: number) => void;
   /** Space kept clear of the fitted bounds, e.g. for a sheet over the map. */
   fitPadding?: Padding;
   /** The closest a fit may zoom (web; MapLibre RN's fitBounds has no maxZoom). Default 17. */
