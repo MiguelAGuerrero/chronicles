@@ -748,6 +748,7 @@ export default function WalkScreen() {
         // Opening a capture would hide a memo that is still recording.
         onPinPress={recordingVoice || stopping || settingsOpen ? undefined : setViewing}
         walker={live.here}
+        walkerSource={live.dot}
         glideWalker
         walkerHeading={live.heading}
         // Not while a route is found: the street read moves the camera itself.

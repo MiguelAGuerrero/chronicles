@@ -13,6 +13,7 @@ import type { Star } from '../../lib/places';
 import type { CapturePin } from '../../lib/pins';
 import type { RoadFeature } from '../../lib/streets';
 import type { Capture, LngLat } from '../../lib/types';
+import { distanceM } from '../../lib/geo';
 import { useGlideFrames, type GlideFrame } from '../../lib/useGlidingWalker';
 import { markEnter, pinDrops, starEnter } from '../../lib/enter';
 import { useReducedMotion } from '../../lib/motion';
@@ -30,6 +31,9 @@ const VIEW_TIMEOUT_MS = 4000;
 // under the site's base path (set by experiments.baseUrl) when it has one.
 setWorkerUrl(`${process.env.EXPO_BASE_URL ?? ''}/maplibre-gl-worker.mjs`);
 
+/** The trace's end joins the live dot only this close; farther, it's a pause or gap, not lag. */
+const LINK_MAX_M = 60;
+
 function addOverlay(map: MapLibreMap) {
   const empty: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
   // The veil goes under the first label layer, so names stay readable.
@@ -39,7 +43,7 @@ function addOverlay(map: MapLibreMap) {
   // Lines are simplified a little more than the default and keep a smaller tile buffer: less to
   // re-tile on each update (perf, Nov 1; tolerance 0.375 and buffer 128 are maplibre's defaults).
   const lineSource = { type: 'geojson' as const, data: empty, tolerance: 1, buffer: 64 };
-  for (const id of ['fog', 'walked', 'route', 'rides', 'trace-history', 'trace']) map.addSource(id, lineSource);
+  for (const id of ['fog', 'walked', 'route', 'rides', 'trace-history', 'trace', 'trace-link']) map.addSource(id, lineSource);
   for (const id of ['pockets', 'strips', 'cone', 'marks', 'points', 'ring']) map.addSource(id, { type: 'geojson', data: empty });
   const lineLayout = { 'line-cap': 'round', 'line-join': 'round' } as const;
   // Hotspots under the streets: pockets shaded, strips bold, in the one green no other layer uses (L9).
@@ -61,9 +65,10 @@ function addOverlay(map: MapLibreMap) {
     paint: { 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth, 'line-dasharray': RIDE_DASH } });
   // The trace on a white edge, so it reads over fog, walked streets and the base map alike.
   // Two sources, one look: the history (re-sent once per chunk) and the live tail (each publish).
-  for (const [id, source] of [['trace-history-edge', 'trace-history'], ['trace-edge', 'trace']])
+  // The link: from the trace's end to the dot, so the line always reaches it (the live dot, Nov 1).
+  for (const [id, source] of [['trace-history-edge', 'trace-history'], ['trace-edge', 'trace'], ['trace-link-edge', 'trace-link']])
     map.addLayer({ id, type: 'line', source, layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': 0.9 } });
-  for (const [id, source] of [['trace-history-line', 'trace-history'], ['trace', 'trace']])
+  for (const [id, source] of [['trace-history-line', 'trace-history'], ['trace', 'trace'], ['trace-link-line', 'trace-link']])
     map.addLayer({ id, type: 'line', source, layout: lineLayout, paint: { 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth } });
   // The way the walker is going, under the dot; and marked spots (a destination, a pressed spot).
   // The range preview (E21): a soft disc with a firm edge, under the walker.
@@ -143,6 +148,19 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const puck = useRef<{ marker: Marker; el: HTMLElement; cone: HTMLElement } | null>(null);
   const lastFrame = useRef<GlideFrame>({ walker: null, heading: null });
   const followRef = useRef(props.follow);
+  // The trace's newest point, and when the link to the dot was last drawn (at most 10 times a second).
+  const traceEnd = useRef<LngLat | null>(null);
+  const linked = useRef(!!props.walkerSource);
+  const linkAt = useRef(0);
+  const drawLink = (walker: LngLat | null, force = false) => {
+    const t = Date.now();
+    if (!force && t - linkAt.current < 100) return;
+    linkAt.current = t;
+    const end = traceEnd.current;
+    const src = mapRef.current?.getSource('trace-link') as { setData(d: GeoJSON.FeatureCollection): void } | undefined;
+    // Never across a pause or a gap: a link that long isn't the line catching up.
+    src?.setData(traceGeoJSON(end && walker && distanceM(end, walker) <= LINK_MAX_M ? [[end, walker]] : []));
+  };
   const applyFrame = (f: GlideFrame) => {
     lastFrame.current = f;
     const p = puck.current;
@@ -150,14 +168,18 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     p.el.style.display = f.walker ? '' : 'none';
     if (!f.walker) return;
     p.marker.setLngLat(f.walker);
+    if (linked.current) drawLink(f.walker);
+    // The e2e reads where the dot is (only when it is measuring: window.__perf).
+    if ((window as { __perf?: unknown }).__perf) p.el.dataset.at = `${f.walker[0]},${f.walker[1]}`;
     p.cone.style.display = f.heading == null ? 'none' : '';
     if (f.heading != null) p.cone.style.transform = `rotate(${f.heading}deg)`;
     // The camera follows the dot, so they move together; never while a hand is on the map.
     if (followRef.current && !pointerDown.current) mapRef.current?.jumpTo({ center: f.walker });
   };
-  useGlideFrames(props.walker, props.walkerHeading, glideOn, applyFrame);
+  useGlideFrames(props.walker, props.walkerHeading, glideOn, applyFrame, 0, props.walkerSource);
   useEffect(() => {
     followRef.current = props.follow;
+    linked.current = !!props.walkerSource;
   });
   // Camera moves take the app's camera timing, and jump with reduce motion on (M2).
   const reduced = useReducedMotion();
@@ -299,7 +321,14 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     history.current = split.history;
   });
   useEffect(() => { if (ready) setData('trace-history', traceGeoJSON(history.current)); }, [ready, split.historyKey]);
-  useEffect(() => { if (ready) setData('trace', traceGeoJSON(split.tail)); }, [ready, split.tail]);
+  useEffect(() => {
+    if (!ready) return;
+    setData('trace', traceGeoJSON(split.tail));
+    const open = split.tail[split.tail.length - 1];
+    traceEnd.current = props.walkerSource && open?.length ? open[open.length - 1] : null;
+    drawLink(lastFrame.current.walker, true);
+    // drawLink only reads refs.
+  }, [ready, split.tail, props.walkerSource]);
   useEffect(() => { if (ready) setData('rides', traceGeoJSON(props.rides ?? [])); }, [ready, props.rides]);
   useEffect(() => { if (ready) setData('route', routeGeoJSON(props.route)); }, [ready, props.route]);
   useEffect(() => {
@@ -314,8 +343,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   }, [ready, glideOn, props.walker, props.walkerHeading, view]);
   useEffect(() => {
     if (!ready) return;
-    for (const id of ['trace', 'trace-history-line', 'rides']) mapRef.current?.setPaintProperty(id, 'line-opacity', props.traceOpacity ?? 1);
-    for (const id of ['trace-edge', 'trace-history-edge', 'rides-edge']) mapRef.current?.setPaintProperty(id, 'line-opacity', 0.9 * (props.traceOpacity ?? 1));
+    for (const id of ['trace', 'trace-history-line', 'trace-link-line', 'rides']) mapRef.current?.setPaintProperty(id, 'line-opacity', props.traceOpacity ?? 1);
+    for (const id of ['trace-edge', 'trace-history-edge', 'trace-link-edge', 'rides-edge']) mapRef.current?.setPaintProperty(id, 'line-opacity', 0.9 * (props.traceOpacity ?? 1));
   }, [ready, props.traceOpacity]);
   useEffect(() => {
     if (ready) setData('points', walkerGeoJSON(glideOn ? null : props.walker));
@@ -341,7 +370,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       marker.remove();
       puck.current = null;
     };
-    // applyFrame only reads refs.
+    // applyFrame (and drawLink, which it calls) only reads refs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, glideOn]);
 
   // Capture pins are DOM markers rendered with the same view as on native,
