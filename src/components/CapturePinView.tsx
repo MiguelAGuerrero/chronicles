@@ -22,11 +22,12 @@ export const PIN_HEIGHT = 44;
  * captures, their count) on a short stem, so the point it marks, and the
  * walker's dot there, stay visible beneath it.
  */
-export function CapturePinView({ pin }: { pin: CapturePin }) {
+export function CapturePinView({ pin, faint = false }: { pin: CapturePin; faint?: boolean }) {
   const n = pin.captures.length;
   const color = n > 1 ? (pin.kind === 'mixed' ? MIXED : PIN_COLOR[pin.kind]) : PIN_COLOR[pin.kind];
   return (
-    <View style={styles.wrap} pointerEvents="none">
+    // A memory from an earlier walk: the same round pin, smaller and faded (MR3).
+    <View style={[styles.wrap, faint && styles.faint]} pointerEvents="none">
       <View style={[styles.head, { backgroundColor: color }]}>
         {n > 1 ? <Text style={styles.count}>{n}</Text> : <Icon name={KIND_ICON[pin.kind]} size={18} color="#ffffff" />}
       </View>
@@ -35,14 +36,17 @@ export function CapturePinView({ pin }: { pin: CapturePin }) {
   );
 }
 
-export function pinLabel(pin: CapturePin, interactive = true): string {
+export function pinLabel(pin: CapturePin, interactive = true, memory = false): string {
   const n = pin.captures.length;
-  const what = n > 1 ? `${n} captures here` : KIND_LABEL[pin.captures[0].kind];
+  const what = memory
+    ? n > 1 ? `Memories here, ${n}` : `Memory: ${KIND_LABEL[pin.captures[0].kind]}`
+    : n > 1 ? `${n} captures here` : KIND_LABEL[pin.captures[0].kind];
   return interactive ? `${what}. Open` : what;
 }
 
 const styles = StyleSheet.create({
   wrap: { width: 36, height: PIN_HEIGHT, alignItems: 'center' },
+  faint: { opacity: 0.55, transform: [{ scale: 0.75 }] },
   head: {
     width: 36,
     height: 36,

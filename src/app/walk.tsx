@@ -23,6 +23,8 @@ import { db } from '../lib/db';
 import { focusOn } from '../lib/focus';
 import { boundsOf, distanceM, distanceToLinesM, nearPoints, pausedMs } from '../lib/geo';
 import { capturesHere, type HereResult } from '../lib/here';
+import { MEMORY_RULES, memoriesNear, needsRead } from '../lib/memories';
+import { MemoryPreview } from '../components/MemoryPreview';
 import { deriveSegments, streetKey } from '../lib/streets';
 import { feedback, MOTION } from '../lib/motion';
 import { recorder } from '../lib/recorder';
@@ -252,6 +254,8 @@ export default function WalkScreen() {
   // A long press on the map opens a small sheet for that spot: Go here, and
   // what happened here (every capture near it, on any walk) when there is any.
   const [here, setHere] = useState<HereResult | null>(null);
+  // A memory pin's preview (MR4).
+  const [memory, setMemory] = useState<{ result: HereResult; from: LngLat | null } | null>(null);
   const [spot, setSpot] = useState<{ at: LngLat; here: HereResult | null; from: LngLat | null } | null>(null);
   const hereTaps = useRef(0);
   const [hereKey, setHereKey] = useState(0);
@@ -271,9 +275,10 @@ export default function WalkScreen() {
   }
   // The spot card (and the options card) goes once you walk on, or with Back (Android) and Escape (web).
   useEffect(() => {
-    if (!spot && !options && !settingsOpen) return;
+    if (!spot && !options && !settingsOpen && !memory) return;
     const close = () => {
       setSpot(null);
+      setMemory(null);
       setOptions(false);
       // Settings close as Cancel does (audit, UI).
       setSettingsOpen(false);
@@ -290,7 +295,7 @@ export default function WalkScreen() {
       back.remove();
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
-  }, [spot, options, settingsOpen]);
+  }, [spot, options, settingsOpen, memory]);
   useEffect(() => {
     if (!spot?.from || !live.here || distanceM(spot.from, live.here) < 30) return;
     const t = setTimeout(() => setSpot(null), 0);
@@ -378,6 +383,48 @@ export default function WalkScreen() {
   // the location task checks every batch, and fires reach this card while the
   // screen is in front. A second fire joins the open card (R7).
   const [reminder, setReminder] = useState<{ captures: Capture[]; at: LngLat | null; shownAt: number } | null>(null);
+  // Memories on revisit: earlier walks' captures within 100 m, as faint pins, on every walk (the
+  // owner's call), never a buzz or a notification (MR1, MR6). The area is read once per 50 m (MR8).
+  const [memoryPool, setMemoryPool] = useState<Capture[]>([]);
+  const memoryReadAt = useRef<LngLat | null>(null);
+  useEffect(() => {
+    const at = live.here;
+    if (!at || !needsRead(memoryReadAt.current, at)) return;
+    memoryReadAt.current = at;
+    let alive = true;
+    db.capturesIn(boundsOf([at], MEMORY_RULES.readBoxM)!).then((c) => alive && setMemoryPool(c), () => {});
+    return () => {
+      alive = false;
+    };
+  }, [live.here]);
+  // A capture whose reminder card is up has no pin meanwhile (MR7); the pins change only with the set (MR8).
+  const memoryIds = memoriesNear({ pool: memoryPool, here: live.here, walkId: walk?.id ?? null, hidden: new Set(reminder?.captures.map((c) => c.id) ?? []) })
+    .map((c) => c.id)
+    .join(',');
+  const memories = useMemo(() => {
+    const ids = new Set(memoryIds.split(','));
+    return memoryPool.filter((c) => ids.has(c.id));
+  }, [memoryIds, memoryPool]);
+  const [memoryView, setMemoryView] = useState<HereResult | null>(null);
+  const memoryTaps = useRef(0);
+  const openMemory = async (group: Capture[], at: LngLat) => {
+    const tap = ++memoryTaps.current;
+    // Every memory from that spot, oldest first, with its walk (MR5); this walk's own captures aren't memories.
+    const r = await capturesHere(at, [], 50).catch(() => null);
+    if (tap !== memoryTaps.current) return;
+    const mine = new Set(cap.captures.map((c) => c.id));
+    const captures = (r?.captures ?? group).filter((c) => !mine.has(c.id));
+    if (!captures.length) return;
+    setSpot(null);
+    setMarkOpen(null);
+    setMemory({ result: { captures, context: r?.context ?? new Map() }, from: live.here });
+  };
+  // The preview goes once you walk 30 m on (MR4).
+  useEffect(() => {
+    if (!memory?.from || !live.here || distanceM(memory.from, live.here) < MEMORY_RULES.closeM) return;
+    const t = setTimeout(() => setMemory(null), 0);
+    return () => clearTimeout(t);
+  }, [memory, live.here]);
   const hereRef = useRef(live.here);
   useEffect(() => {
     hereRef.current = live.here;
@@ -683,7 +730,10 @@ export default function WalkScreen() {
         onPress={() => {
           setSpot(null);
           setMarkOpen(null);
+          setMemory(null);
         }}
+        memories={memories}
+        onMemoryPress={recordingVoice || stopping || settingsOpen ? undefined : (group, at) => void openMemory(group, at)}
         discoveries={explore.pins}
         onDiscoveryPress={recordingVoice || stopping || settingsOpen ? undefined : (id) => {
           // A found place is shown, not a card to open: its capture's pin is the thing to tap (audit, UI).
@@ -1101,6 +1151,20 @@ export default function WalkScreen() {
           setCaptioning(null);
         }}
       />
+      {memory && !spot && (
+        <View style={[styles.spotRow, { bottom: insets.bottom + 92 + 68 + 12 }]} pointerEvents="box-none">
+          <MemoryPreview
+            captures={memory.result.captures}
+            walkLine={memory.result.context.get(memory.result.captures[0].id) ?? null}
+            onOpen={() => {
+              const r = memory.result;
+              setMemory(null);
+              setMemoryView(r);
+            }}
+            onClose={() => setMemory(null)}
+          />
+        </View>
+      )}
       {spot && (
         // Above the capture row (bottom 92, 68 tall), in the pills' place, so the row never moves or hides.
         <View style={[styles.spotRow, { bottom: insets.bottom + 92 + 68 + 12 }]} pointerEvents="box-none">
@@ -1138,6 +1202,14 @@ export default function WalkScreen() {
         </View>
       )}
 
+      <CaptureViewer
+        title="Memories here"
+        remind
+        walkId={walk?.id ?? null}
+        captures={memoryView?.captures ?? null}
+        context={memoryView?.context}
+        onClose={() => setMemoryView(null)}
+      />
       <CaptureViewer
         key={`here:${hereKey}`}
         title="What happened here"

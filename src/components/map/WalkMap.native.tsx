@@ -8,6 +8,7 @@ import { MarkPinView, markKey, markLabel } from '../MarkPinView';
 import { StripLabel } from '../LandingMarks';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { RoadFeature } from '../../lib/streets';
+import type { Capture } from '../../lib/types';
 import { TILEJSON_URL } from '../../lib/tiles';
 import { useGlidingWalker } from '../../lib/useGlidingWalker';
 import { useReducedMotion } from '../../lib/motion';
@@ -35,6 +36,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const names = useMemo(() => namedStars(props.stars ?? []), [props.stars]);
   // Pins grouped for the current zoom, so nearby ones merge instead of piling up.
   const pins = useZoomPins(props.captures, view?.zoom ?? props.initialZoom ?? null, view?.lat ?? null);
+  const memoryPins = useZoomPins(props.memories ?? NO_CAPTURES, view?.zoom ?? props.initialZoom ?? null, view?.lat ?? null);
   // Camera moves take the app's camera timing, and jump with reduce motion on (M2).
   const reduced = useReducedMotion();
   const duration = props.animate === false || reduced ? 0 : MOTION.camera;
@@ -290,6 +292,25 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             </View>
           </Marker>
         ))}
+        {/* Memories from earlier walks: the same pins, faint, with their own tap (MR1-MR4). */}
+        {memoryPins.map((pin) => (
+          <Marker
+            key={`memory:${pin.id}:${pin.captures.length}`}
+            id={`memory:${pin.id}:${pin.captures.length}`}
+            lngLat={pin.lngLat}
+            anchor="bottom"
+            onPress={props.onMemoryPress ? () => props.onMemoryPress?.(pin.captures, pin.lngLat) : undefined}
+          >
+            <View
+              accessible
+              accessibilityRole={props.onMemoryPress ? 'button' : 'image'}
+              accessibilityLabel={pinLabel(pin, !!props.onMemoryPress, true)}
+              style={styles.pinHit}
+            >
+              <CapturePinView pin={pin} faint />
+            </View>
+          </Marker>
+        ))}
         {(props.discoveries ?? []).map((pin) => (
           <Marker
             key={`mark:${pin.id}:${markKey(pin)}`}
@@ -348,3 +369,5 @@ const TraceSource = memo(function TraceSource(props: { id: string; data: GeoJSON
     </GeoJSONSource>
   );
 });
+
+const NO_CAPTURES: Capture[] = [];

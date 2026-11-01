@@ -991,6 +991,21 @@ function check(ok, what) {
     const reminded = await page.waitForSelector('[data-testid=reminder]', { timeout: 15000 }).then(() => true, () => false);
     check(reminded && /memor|note/i.test(await page.locator('[data-testid=reminder]').innerText()), 'a later walk passing a flagged capture brings it back');
     await shot(page, '13-reminder');
+    // Memories on revisit: the first walk's captures nearby show as faint pins on this quiet walk
+    // (MR1, MR6), but not the one whose reminder card is up (MR7).
+    const captureRows = () => page.evaluate(() => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const g = req.result.transaction('capture', 'readonly').objectStore('capture').getAll();
+        g.onsuccess = () => resolve(g.result);
+      };
+    }));
+    const memoryPins = () => walkMap().locator('[data-testid=memory-pin]');
+    await page.waitForSelector('[data-testid=memory-pin]', { timeout: 15000 }).catch(() => null);
+    const flaggedNote = (await captureRows()).find((c) => /cardamom/.test(c.body ?? ''));
+    const shownIds = (await memoryPins().evaluateAll((els) => els.map((e) => e.dataset.ids))).join(',');
+    check((await memoryPins().count()) >= 1 && !shownIds.includes(flaggedNote.id),
+      `a later walk shows the earlier walk's captures nearby as memory pins, minus the one being reminded (MR1, MR6, MR7: ${await memoryPins().count()} pins)`);
     const recallRows = () => page.evaluate(() => new Promise((resolve) => {
       const req = indexedDB.open('chronicles');
       req.onsuccess = () => {
@@ -1018,6 +1033,20 @@ function check(ok, what) {
     const again = await recallRows();
     check((await page.locator('[data-testid=reminder]').count()) === 0 && again.length === 1 && again[0].fired_count === 0,
       'a capture flagged mid-walk doesn’t come back in that walk');
+    // A memory pin: faded and smaller than a capture pin (MR3); a tap previews it (MR4), and the preview
+    // opens the viewer with every memory from that spot (MR5).
+    await page.waitForSelector('[data-testid=memory-pin]', { timeout: 15000 });
+    const look = await memoryPins().first().evaluate((el) => ({ opacity: Number(getComputedStyle(el.firstElementChild).opacity), label: el.getAttribute('aria-label') }));
+    check(look.opacity < 0.7 && /^Memor/.test(look.label), `memory pins are faint and named as memories (MR3: opacity ${look.opacity}, "${look.label}")`);
+    await memoryPins().first().click();
+    await page.waitForSelector('[data-testid=memory-preview]');
+    const preview = await page.locator('[data-testid=memory-preview]').innerText();
+    check(/20\d\d|Nov|Oct/.test(preview) && /Fox Point|Cardamom/.test(preview), `a tap previews the memory with its date and walk (MR4: ${preview.replace(/\s+/g, ' ').slice(0, 80)})`);
+    check((await page.locator('[data-testid=reminder]').count()) === 0, 'opening a memory never brings a card or a buzz of its own');
+    await page.click('[data-testid=memory-open]');
+    await page.waitForSelector('text=Memories here');
+    check((await page.locator('[data-testid=memory-preview]').count()) === 0, 'the preview opens the viewer with the memories from that spot (MR5)');
+    await page.click('[aria-label="Close"]');
     // A tapped reminder notification opens its capture, playing (NT8). First with the walk screen in front:
     // the service worker's message reaches the page's listener, and the capture opens at once (audit 1).
     const noteId = await page.evaluate(() => new Promise((resolve) => {

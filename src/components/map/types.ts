@@ -72,6 +72,10 @@ export interface WalkMapProps {
   onUserMove?: () => void;
   /** Opens a pin's captures; without it, pins are shown but not pressable. */
   onPinPress?: (captures: Capture[]) => void;
+  /** Captures from earlier walks nearby, drawn as faint pins (Memories on revisit, MR1-MR3). */
+  memories?: Capture[];
+  /** A memory pin was tapped, with its group's captures and where it sits. */
+  onMemoryPress?: (captures: Capture[], at: LngLat) => void;
   /** Places walked, drawn as stars (the home map); the caller picks them for the zoom. */
   stars?: Star[];
   onStarPress?: (star: Star) => void;
