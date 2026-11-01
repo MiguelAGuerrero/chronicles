@@ -1750,6 +1750,151 @@ function check(ok, what) {
       await c.close();
     }
     {
+      // Minimizing a walk (NV7-NV10): the walk goes on under the tabs, with a recording bar above the tab bar.
+      const { c, pg } = await freshPage('minimize');
+      await pg.goto(url);
+      await pg.waitForSelector('[data-testid=start]');
+      await pg.waitForTimeout(1500);
+      // An earlier walk's note, flagged every visit, 150 m north of the start: passed while minimized (NV8).
+      const memAt = at(-0.5, 1.0);
+      await pg.evaluate(({ lon, lat }) => new Promise((resolve, reject) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const tx = req.result.transaction(['capture', 'recall'], 'readwrite');
+          tx.objectStore('capture').put({ id: 'old-note', walk_id: 'old-walk', t: Date.now() - 86_400_000, kind: 'text', file_path: null, body: 'The old bench by the steps', segment_id: null, lat, lon });
+          tx.objectStore('recall').put({ capture_id: 'old-note', frequency: 'visit', until: null, last_fired_at: null, fired_count: 0, last_walk_id: null });
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        };
+      }), { lon: memAt[0], lat: memAt[1] });
+      await pg.click('[data-testid=start]');
+      await pg.waitForSelector('[data-testid=stop]');
+      const w = await openWalk(pg);
+      const north = async (y0, y1, each) => {
+        for (let k = 0, y = y0; y <= y1 + 1e-9; k++, y += 0.05) {
+          const p = at(-0.5, y);
+          await c.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+          await pg.waitForTimeout(1000);
+          if (each) await each(k, y);
+        }
+      };
+      await north(-0.5, -0.3);
+      // NV7: Minimize at the walk screen's top-left edge, away from the capture row and Stop.
+      const minBox = await pg.locator('[data-testid=walk-minimize]').boundingBox();
+      const capBox = await pg.locator('[data-testid=cap-photo]').boundingBox();
+      check(minBox && minBox.x < 60 && minBox.y < 120 && minBox.y + minBox.height < capBox.y - 200 && (await pg.locator('[data-testid=walk-minimize]').getAttribute('aria-label')) === 'Minimize the walk',
+        `the walk screen has Minimize at its top-left edge (NV7: ${minBox && `${Math.round(minBox.x)},${Math.round(minBox.y)}`})`);
+      // Paused, then minimized: the bar says Paused (NV9).
+      await pg.click('[data-testid=pause-walk]');
+      await pg.waitForSelector('[data-testid=resume-walk]');
+      await pg.click('[data-testid=walk-minimize]');
+      await pg.waitForSelector('[data-testid=recording-bar]', { timeout: 10000 });
+      await pg.waitForTimeout(600);
+      const barText = () => pg.locator('[data-testid=recording-stats]').innerText();
+      const barBox = await pg.locator('[data-testid=recording-bar]').boundingBox();
+      const tabBox = await pg.locator('[data-testid=tab-navigate]').boundingBox();
+      check(!/\/walk/.test(new URL(pg.url()).pathname) && (await tabBarShown(pg)) && /^Paused · \d+:\d\d · \d+ m$/.test(await barText())
+        && Math.abs(barBox.y + barBox.height - tabBox.y) < 6 && (await pg.locator('[data-testid=recording-bar] [data-testid=stop]').count()) === 0,
+        `minimized, a recording bar sits just above the tab bar: time, distance, Paused, and no Stop (NV9: "${await barText()}")`);
+      check((await pg.locator('canvas.maplibregl-canvas').count()) === 1, 'one live map with the walk minimized (NV4)');
+      // The bar's camera, while paused: the photo is kept for the open walk, and the walk screen stays down (NV9).
+      const photosOf = () => pg.evaluate((id) => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const g = req.result.transaction('capture', 'readonly').objectStore('capture').getAll();
+          g.onsuccess = () => resolve(g.result.filter((x) => x.walk_id === id && x.kind === 'photo'));
+        };
+      }), w.id);
+      const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=bar-photo]')]);
+      await chooser.setFiles(path.join(__dirname, 'fixtures', 'photo.jpg'));
+      const saidPhoto = await pg.waitForSelector('[data-testid=recording-said]', { timeout: 10000 }).then((e) => e.innerText(), () => '');
+      const kept = await photosOf();
+      check(saidPhoto === 'Photo saved to your walk' && kept.length === 1 && !/\/walk/.test(new URL(pg.url()).pathname),
+        `a photo from the bar's camera lands in the open walk, paused too, without opening the walk screen (NV9: "${saidPhoto}", ${kept.length})`);
+      // A tap on the bar returns to the walk, where the photo is pinned (NV9).
+      await pg.click('[data-testid=recording-return]');
+      await pg.waitForSelector('[data-testid=stop]');
+      await pg.waitForTimeout(1500);
+      check(/\/walk/.test(new URL(pg.url()).pathname) && (await pg.locator('[aria-label="Photo. Open"], [aria-label$="captures here. Open"]').count()) >= 1 && !(await tabBarShown(pg)),
+        'a tap on the bar returns to the walk, the tab bar hidden, with the bar’s photo on its map (NV6, NV9)');
+      await pg.click('[data-testid=resume-walk]');
+      await pg.waitForSelector('[data-testid=pause-walk]');
+      await north(-0.25, -0.2);
+      await pg.waitForTimeout(2200);
+      await pg.click('[data-testid=walk-minimize]');
+      await pg.waitForSelector('[data-testid=recording-stats]', { timeout: 10000 });
+      await pg.waitForTimeout(2200);
+      const m = (t) => {
+        const r = /([\d.]+) (km|m)$/.exec(t);
+        return r ? parseFloat(r[1]) * (r[2] === 'km' ? 1000 : 1) : NaN;
+      };
+      const d0 = m(await barText());
+      // Minimized, it keeps recording across the tabs, each with one live map and the bar (NV4, NV8, NV9).
+      const onTabs = [];
+      await north(-0.15, 1.25, async (k) => {
+        if (k === 6 || k === 14 || k === 22) {
+          const id = { 6: 'chronicle', 14: 'explore', 22: 'navigate' }[k];
+          await pg.click(`[data-testid=tab-${id}]`);
+          await pg.waitForTimeout(400);
+          onTabs.push(`${id}:${await shownCount(pg, '[data-testid=recording-bar]')}:${await pg.locator('canvas.maplibregl-canvas').count()}`);
+        }
+      });
+      await pg.waitForTimeout(2200);
+      const d1 = m(await barText());
+      check(onTabs.join(',') === 'chronicle:1:1,explore:1:1,navigate:1:1', `the bar is on every tab, with one live map (NV4, NV9: ${onTabs.join(', ')})`);
+      check(d1 > d0 + 100 && /^\d+:\d\d · \d+ m$/.test(await barText()), `minimized, the walk keeps recording: the bar's distance grows (NV8: ${d0} → ${d1} m)`);
+      // Remind me here keeps firing while minimized (NV8): checked outside the walk screen, shown on the bar.
+      const fired = await pg.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const g = req.result.transaction('recall', 'readonly').objectStore('recall').get('old-note');
+          g.onsuccess = () => resolve(g.result);
+        };
+      }));
+      const reminderOnBar = await pg.waitForSelector('[data-testid=recording-reminder]', { timeout: 5000 }).then((e) => e.innerText(), () => '');
+      check(fired?.fired_count === 1 && fired.last_walk_id === w.id && /A note from here/.test(reminderOnBar),
+        `Remind me here fires with the walk minimized, and the bar says so (NV8: ${JSON.stringify(fired && { n: fired.fired_count, walk: fired.last_walk_id === w.id })}, "${reminderOnBar}")`);
+      // NV10: Navigate's peek has Return to walk in Start's place.
+      check((await shownCount(pg, '[data-testid=resume]')) === 1 && (await shownCount(pg, '[data-testid=start]')) === 0 && /Return to walk/.test(await pg.locator('[data-testid=resume]').innerText()),
+        'with a walk open, Navigate’s peek shows Return to walk in place of Start (NV10)');
+      // NV10: Walk here on Explore routes the open walk there and returns to it; no second walk.
+      await pg.click('[data-testid=tab-explore]');
+      await pg.waitForTimeout(1500);
+      {
+        const box = await pg.locator('canvas.maplibregl-canvas').boundingBox();
+        await pg.mouse.move(box.x + box.width / 2 + 50, box.y + box.height / 2 - 80);
+        await pg.mouse.down();
+        await pg.waitForTimeout(700);
+        await pg.mouse.up();
+      }
+      await pg.click('[data-testid=walk-here]');
+      await pg.waitForURL(/\/walk/, { timeout: 15000 });
+      const nav = JSON.parse((await metaOf(pg, 'nav')) || 'null');
+      const still = await openWalk(pg);
+      const walks = await pg.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const g = req.result.transaction('walk', 'readonly').objectStore('walk').getAll();
+          g.onsuccess = () => resolve(g.result.length);
+        };
+      }));
+      const routed = await pg.waitForSelector('[data-testid=nav-bar]', { timeout: 40000 }).then(() => true, () => false);
+      check(still?.id === w.id && walks === 1 && nav?.walk_id === w.id && nav.dest.label === 'Your spot' && routed,
+        `with a walk open, Walk here routes that walk there and returns to it (NV10: ${walks} walk, routed ${routed})`);
+      // NV7: under the navigation bar when one shows.
+      const navBox = await pg.locator('[data-testid=nav-bar]').boundingBox();
+      const minNav = await pg.locator('[data-testid=walk-minimize]').boundingBox();
+      check(minNav.y >= navBox.y + navBox.height && minNav.x < 60, 'Minimize sits under the navigation bar while one shows (NV7)');
+      // Back on the walk screen, the trace covers the stretch walked while minimized, and memories are pinned again (NV8).
+      const last = at(-0.5, 1.25);
+      const end = ((await pg.locator('[data-trace-end]').last().getAttribute('data-trace-end')) || '0,0').split(',').map(Number);
+      const off = Math.hypot((end[0] - last[0]) / dLon, (end[1] - last[1]) / dLat) * 100;
+      // The trace hides while navigating, but is still drawn underneath: its end is where the walk is.
+      check(off < 20, `the trace kept growing while minimized: it ends where the walk is (NV8: ${off.toFixed(0)} m off)`);
+      check(await pg.waitForSelector('[data-testid=memory-pin]', { timeout: 15000 }).then(() => true, () => false), 'memory pins show again when the walk screen returns (NV8)');
+      await c.close();
+    }
+    {
       // Start with Explore and a destination: the walk opens exploring, heading there (NV25).
       const { c, pg } = await freshPage('start-explore');
       await pg.goto(url);

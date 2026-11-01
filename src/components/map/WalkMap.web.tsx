@@ -629,7 +629,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
 
   return (
     <View style={[styles.wrap, props.style]}>
-      <div ref={container} style={{ position: 'absolute', inset: 0 }} data-trace-opacity={String(props.traceOpacity ?? 1)} data-rides={`${props.rides?.length ?? 0}:${props.rides?.reduce((n, r) => n + r.length, 0) ?? 0}`} data-ring={props.ring ? String(props.ring.radiusM) : ''} />
+      <div ref={container} style={{ position: 'absolute', inset: 0 }} data-trace-opacity={String(props.traceOpacity ?? 1)} data-rides={`${props.rides?.length ?? 0}:${props.rides?.reduce((n, r) => n + r.length, 0) ?? 0}`} data-ring={props.ring ? String(props.ring.radiusM) : ''} data-trace-end={traceEnd(props.trace)} />
       {props.covered && <View style={styles.cover} pointerEvents="none" />}
     </View>
   );
@@ -719,4 +719,11 @@ function usePinMarkers(
     }
     markers.current.clear();
   }, []);
+}
+
+/** Where the drawn trace ends, for the e2e: ground covered, never a count of fixes. */
+function traceEnd(trace: LngLat[][] | undefined): string {
+  const run = trace?.filter((r) => r.length).at(-1);
+  const p = run?.[run.length - 1];
+  return p ? `${p[0].toFixed(6)},${p[1].toFixed(6)}` : '';
 }
