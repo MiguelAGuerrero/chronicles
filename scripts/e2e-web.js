@@ -1581,7 +1581,8 @@ function check(ok, what) {
       const keysNow = new Set(await mediaKeys());
       const capsNow = await capsOf();
       const s2 = await sumOf();
-      check(capsNow.length > 0 && capsNow.every((c) => c.kind === 'text'), `only the notes are left (D2: ${capsNow.map((c) => c.kind).join(', ')})`);
+      // Its one note went in the D3 check above, so nothing may be left but notes, if any.
+      check(capsNow.every((c) => c.kind === 'text'), `only notes are left (D2: ${capsNow.length} left, ${capsNow.map((c) => c.kind).join(', ') || 'none'})`);
       check(mediaRefs.every((r) => !keysNow.has(r)), 'their files and thumbnails are gone from storage (D2)');
       check((await all('find')).filter((f) => f.walk_id === first.id).length === findsBefore, 'places they found stay found (D2)');
       check(s2.photos === 0 && (s2.videos ?? 0) === 0 && s2.voices === 0 && s2.distance_m > 0, 'the counts drop to the notes, the walk stays (D9)');
