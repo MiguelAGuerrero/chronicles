@@ -55,6 +55,7 @@ export const META = {
   tile_build: { owner: 'tiles', codec: text },
   tile_url: { owner: 'tiles', codec: text },
   snap_rules: { owner: 'tiles', codec: text },
+  street_code: { owner: 'tiles', codec: text },
   // Navigation (lib/nav/store): where the open walk is heading, so a reload resumes.
   nav: { owner: 'nav', codec: json<{ walk_id: string; dest: Waypoint }>() },
   // Walk options (walk screen)

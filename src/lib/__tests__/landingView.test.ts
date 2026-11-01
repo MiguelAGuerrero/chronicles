@@ -74,3 +74,16 @@ test('landing: a strip’s name sits clear of the Start here pin; a pocket with 
 test('landing: the rules version is bumped by hand when the analysis changes (audit 11)', () => {
   assert.ok(LANDING_VERSION.startsWith(`${LANDING_CODE}:`));
 });
+
+test('landing: areas analyzed before the street fix are left off the map (fog streaks, Nov 1)', () => {
+  // Their strips were drawn from streets whose junctions had collapsed onto one spot.
+  const broken = row(m(0, 0), analysis('Thayer Street', m(0, 100)), 'b1', 'l2:{}');
+  const older = row(m(5000, 0), analysis('Hope Street', m(5000, 100)), 'b1', 'old');
+  const fresh = row(m(9000, 0), analysis('Wickenden Street', m(9000, 100)));
+  const v = landingView([broken, older, fresh], 'b1');
+  assert.deepEqual(v.strips.map((s) => s.name), ['Wickenden Street']);
+  assert.deepEqual(v.pockets.map((p) => p.name), ['Wickenden Street']);
+  assert.equal(v.pins.length, 1);
+  // A stale row from after the fix (another build) still shows, dimmed.
+  assert.equal(landingView([row(O, analysis('Thayer Street', O), 'b0')], 'b1').strips[0].stale, true);
+});

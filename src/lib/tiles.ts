@@ -42,6 +42,12 @@ export async function ensureTileBuild(): Promise<string> {
     if (stored != null) await db.purgeDerived();
     await db.setMeta('tile_build', build);
   }
+  // Streets derived by older code were wrong (STREET_CODE): dropped once, and every walk re-snaps.
+  const code = await db.getMeta('street_code');
+  if (code !== STREET_CODE) {
+    if (code != null || stored != null) await db.purgeDerived();
+    await db.setMeta('street_code', STREET_CODE);
+  }
   // With its build, never apart: the location task reads tiles itself, tagged with that build (A11).
   if (pendingUrl && build !== 'unknown') await db.setMeta('tile_url', pendingUrl).catch(() => {});
   // The rules for crediting streets changed: walks re-snap when their replay
@@ -53,6 +59,14 @@ export async function ensureTileBuild(): Promise<string> {
   }
   return build;
 }
+
+/**
+ * The version of the code that derives street pieces (streets.ts). Bump it
+ * when a fix changes the pieces derived from the same tiles: the street cache
+ * is dropped once and every walk re-snaps, as on a new tile build.
+ * 2: junction points no longer collapse onto one spot (the fog streaks, Nov 1).
+ */
+const STREET_CODE = '2';
 
 /**
  * The version of the snapping rules (snapper.ts). Bump it when they change

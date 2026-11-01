@@ -453,11 +453,14 @@ function withJunctions(input: LngLat[][], proj: (p: LngLat) => XY): { lines: Lng
       }
   }
 
-  // Inverse of the local projection, which is linear: measured once.
+  // Inverse of the local projection, which is linear: measured once. `proj` is
+  // centred on the first line read, not on `o` (the first line kept, after the
+  // crosswalks go and copies stitch), so the scale is measured from `p0`: measured
+  // from 0, every junction point collapsed onto `o` (fog streaks, Nov 1).
   const o = input[0][0];
-  const kx = proj([o[0] + 1e-5, o[1]])[0] / 1e-5;
-  const ky = proj([o[0], o[1] + 1e-5])[1] / 1e-5;
   const p0 = proj(o);
+  const kx = (proj([o[0] + 1e-5, o[1]])[0] - p0[0]) / 1e-5;
+  const ky = (proj([o[0], o[1] + 1e-5])[1] - p0[1]) / 1e-5;
   const unproj = (q: XY): LngLat => [o[0] + (q[0] - p0[0]) / kx, o[1] + (q[1] - p0[1]) / ky];
 
   const EPS = 1e-6;
