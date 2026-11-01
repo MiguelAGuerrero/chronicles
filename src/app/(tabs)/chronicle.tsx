@@ -241,7 +241,7 @@ export default function Chronicle() {
           areaHeight={areaH}
           busy={busy}
           // A one-tap start to the place (NV12): the saved choices, never the drawer.
-          onGoToPlace={selected && !open ? () => walkStart.start({ at: selected.at, label: selected.label, kind: 'place' }) : undefined}
+          onGoToPlace={selected ? () => walkStart.start({ at: selected.at, label: selected.label, kind: 'place' }) : undefined}
           placeExtra={placeExtra}
           days={days}
           onOpenMoments={setViewing}
@@ -340,7 +340,7 @@ export default function Chronicle() {
             // Walk here only at street zoom (NV12): a press on a zoomed-out map lands far from anywhere walkable.
             onLongPress={(at) => {
               const zoom = view?.zoom ?? 0;
-              if (open || placing != null || zoom < 12) return;
+              if (placing != null || zoom < 12) return;
               setSelected(null);
               setMode({ kind: 'summary' });
               setSpot(at);

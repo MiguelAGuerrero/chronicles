@@ -162,17 +162,17 @@ export default function Navigate() {
           header={
             <View style={styles.peek}>
               {open ? (
-                // A walk is open (it is usually in front): the way back to it.
+                // A walk is open (minimized): Return to walk in Start's place (NV10).
                 <Button
                   testID="resume"
-                  label={`Return to your walk, ${paused ? 'paused' : 'recording'}`}
+                  label={`Return to walk, ${paused ? 'paused' : 'recording'}`}
                   onPress={() => router.push('/walk')}
                   tall
                   style={styles.startBtn}
                 >
                   <View style={styles.recordingRow}>
                     <View style={styles.dot} />
-                    <Text style={styles.resumeText}>{paused ? 'Paused' : 'Recording'} · Return</Text>
+                    <Text style={styles.resumeText}>Return to walk · {paused ? 'Paused' : 'Recording'}</Text>
                   </View>
                 </Button>
               ) : (
