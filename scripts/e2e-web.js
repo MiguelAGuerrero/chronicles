@@ -868,6 +868,33 @@ function check(ok, what) {
       check(!!startBox && startBox.y > vh * 0.7, `after a drag cuts a spring short, Start sits on the peeking sheet (audit 2: Start at ${startBox ? Math.round(startBox.y) : 'none'} of ${vh})`);
       await springy.close();
     }
+    // Start rides on the sheet's own animated height, never a height reported when a move ends: let go
+    // of the open sheet partway down and, while the spring's tail is still settling, Start already sits
+    // on the peeking sheet (the owner's screenshot, Nov 1: Start floated mid-screen over a closed sheet).
+    {
+      const rides = await ctx.newPage();
+      rides.on('pageerror', (e) => errors.push(String(e)));
+      await rides.goto(page.url());
+      await rides.waitForSelector('[data-testid=home-sheet]');
+      await rides.waitForTimeout(800);
+      await rides.click('[data-testid=sheet-walks]');
+      await rides.waitForTimeout(900);
+      const hd = await rides.locator('[data-testid=sheet-drag]').boundingBox();
+      const touch = await rides.context().newCDPSession(rides);
+      const x = hd.x + hd.width / 2;
+      await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y: hd.y + 10 }] });
+      for (let i = 1; i <= 4; i++) {
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: hd.y + 10 + i * 45 }] });
+        await rides.waitForTimeout(10);
+      }
+      await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await rides.waitForTimeout(450);
+      const sheetTop = (await rides.locator('[data-testid=home-sheet]').boundingBox()).y;
+      const startBox = await rides.locator('[data-testid=start]').boundingBox({ timeout: 3000 }).catch(() => null);
+      const gap = startBox ? sheetTop - (startBox.y + startBox.height) : null;
+      check(gap != null && Math.abs(gap - 16) <= 4, `let go partway down, Start sits on the sheet as it settles, not where it was open (gap ${gap == null ? 'none' : Math.round(gap)} px, want 16)`);
+      await rides.close();
+    }
 
     // Bulk placement (H8): a walk with no places is placed at the next opening,
     // behind a cover that can be skipped.

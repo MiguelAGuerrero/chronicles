@@ -41,8 +41,11 @@ export function HomeSheet(props: {
   unplaced: Walk[];
   mode: SheetMode;
   onMode: (m: SheetMode) => void;
-  /** Called with the sheet's height whenever it settles, so the map and Start sit clear of it. */
+  /** Called with the sheet's height whenever it settles, so the map's fits sit clear of it. */
   onHeight?: (h: number) => void;
+  /** The sheet's live height, owned by the screen so what floats above it (Start) moves with it
+   *  frame by frame, never from a height reported when a move ends. Read once, at mount. */
+  height?: Animated.Value;
   /** While old walks are being placed, rows can't open a replay. */
   busy?: boolean;
   /** Starts a walk navigating to the place shown (N11). */
@@ -70,7 +73,7 @@ export function HomeSheet(props: {
   const target = heights[size];
   // The sheet settles at its height with the app's one spring (M5), or snaps with reduce motion on
   // (M2). Height can't use the native driver, so it runs in JavaScript, as it did.
-  const [h] = useState(() => new Animated.Value(heights.peek));
+  const [h] = useState(() => props.height ?? new Animated.Value(heights.peek));
   const reduced = useReducedMotion();
   const onHeight = useRef(props.onHeight);
   useEffect(() => {
