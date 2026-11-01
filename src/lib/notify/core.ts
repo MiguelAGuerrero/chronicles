@@ -71,7 +71,8 @@ export interface NoticeTransport {
   permission(): Promise<Permission>;
   /** Asks the walker. Only from a tap in front: a browser refuses otherwise, and a background task can't show a prompt. */
   request(): Promise<Permission>;
-  show(n: Notice): Promise<void>;
+  /** Resolves whether it was shown (audit 4): a web page without its service worker shows nothing. */
+  show(n: Notice): Promise<boolean>;
   /** Shows it after a delay. On the web this lasts only while the page lives (NT10). */
   schedule(n: Notice, afterMs: number): Promise<void>;
   /** Cancels a scheduled notice and clears a shown one with this id. */
@@ -89,6 +90,8 @@ export function routeResponse(r: Pick<NoticeResponse, 'data' | 'action'>): { kin
 
 export const recallId = (walkId: string) => `recall-${walkId}`;
 export const pauseId = (walkId: string) => `pause-${walkId}`;
+/** Hints left by a build before explore (ambient); cleared at stop for one more release (audit 7). */
+const legacyIds = (walkId: string) => [`ambient-${walkId}`];
 
 /** The app's notifier: the same calls on every platform. */
 export interface Notifier {
@@ -100,12 +103,14 @@ export interface Notifier {
   recall(text: { title: string; body: string }, captureIds: string[], walkId: string): Promise<void>;
   /** The walk ended: its notifications go (NT11). */
   walkEnded(walkId: string): Promise<void>;
-  /** Asks for permission from a tap in front (a reminder set, a switch turned on). */
-  ask(): Promise<Permission>;
+  /** Asks for permission from a tap in front (a reminder set, a switch turned on); never for a kind switched off (audit 6). */
+  ask(kind?: keyof NoticePrefs): Promise<Permission>;
+  /** The switches changed: a pending pause reminder goes when its switch goes off (audit 6). */
+  prefsChanged(prefs: NoticePrefs, openWalkId: string | null): Promise<void>;
   /** Where permission stands, for Settings (NT5). */
   permission(): Promise<Permission>;
-  /** A real reminder-style notification, now, whatever is in front (NT6). */
-  test(): Promise<Permission>;
+  /** A real reminder-style notification, now, whatever is in front (NT6), and whether it was shown. */
+  test(): Promise<{ permission: Permission; shown: boolean }>;
 }
 
 export function createNotifier(o: {
@@ -153,24 +158,28 @@ export function createNotifier(o: {
       });
     },
     async walkEnded(walkId) {
-      for (const id of [recallId(walkId), pauseId(walkId)]) await t.cancel(id).catch(() => {});
+      for (const id of [recallId(walkId), pauseId(walkId), ...legacyIds(walkId)]) await t.cancel(id).catch(() => {});
     },
-    async ask() {
-      await allowed(true);
+    async ask(kind) {
+      if (!kind || (await on(kind))) await allowed(true);
       return t.permission().catch((): Permission => 'unsupported');
+    },
+    async prefsChanged(prefs, openWalkId) {
+      if (!prefs.pause && openWalkId) await t.cancel(pauseId(openWalkId)).catch(() => {});
     },
     permission: () => t.permission().catch((): Permission => 'unsupported'),
     async test() {
+      let shown = false;
       if (await allowed(true)) {
-        await t.show({
+        shown = await t.show({
           kind: 'test',
           id: 'test',
           title: 'A memory from here',
           body: 'This is how a reminder looks when you pass a flagged capture.',
           inFront: true,
-        });
+        }).catch(() => false);
       }
-      return t.permission().catch((): Permission => 'unsupported');
+      return { permission: await t.permission().catch((): Permission => 'unsupported'), shown };
     },
   };
 }

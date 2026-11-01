@@ -25,10 +25,14 @@ export const notifier = createNotifier({
   transport,
   prefs: loadNoticePrefs,
   onOpen: (ids) => {
-    db.setMeta('recall_open', JSON.stringify(ids))
-      .then(() => import('expo-router'))
-      .then(({ router }) => router.navigate('/walk'))
-      .catch(() => {});
+    // The screen in front opens it at once (audit 1); else it waits in meta for the next screen.
+    (async () => {
+      const { openRecall } = await import('../discovery/recallCheck');
+      if (await openRecall(ids)) return;
+      const open = await db.getOpenWalk().catch(() => null);
+      const { router } = await import('expo-router');
+      router.navigate(open ? '/walk' : '/');
+    })().catch(() => {});
   },
   onStop: (ids) => {
     import('../discovery/recallCheck').then(({ stopRecall }) => Promise.all(ids.map(stopRecall))).catch(() => {});

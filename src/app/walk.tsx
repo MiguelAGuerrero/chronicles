@@ -12,7 +12,7 @@ import { Icon, KIND_LABEL, type IconName } from '../components/icons';
 import { Banner, Button, HoldButton, theme } from '../components/ui';
 import { ExploreSettings } from '../components/ExploreSettings';
 import { ReminderCard } from '../components/ReminderCard';
-import { checkRecalls, onRecallFired, takeRecallOpen } from '../lib/discovery/recallCheck';
+import { checkRecalls, onRecallFired, onRecallOpen, takeRecallOpen } from '../lib/discovery/recallCheck';
 import { categoryOf } from '../lib/discovery/categories';
 import { deadZoneDue, deadZoneNudge, inDeadZone, stripAt } from '../lib/landing/walk';
 import { landingView, LANDING_VERSION, nearAreas, type LandingRow } from '../lib/landing/view';
@@ -410,6 +410,11 @@ export default function WalkScreen() {
   useEffect(() => {
     if (!walk) return;
     let alive = true;
+    // A reminder tapped while this screen is in front opens here at once (audit 1).
+    const off = onRecallOpen((found) => {
+      setAutoPlay(true);
+      setViewing(found);
+    });
     takeRecallOpen()
       .then((found) => {
         if (!alive || !found.length) return;
@@ -419,6 +424,7 @@ export default function WalkScreen() {
       .catch(() => {});
     return () => {
       alive = false;
+      off();
     };
   }, [walk, params.recall, resumed]);
   // This walk explores only once switched on (E1); otherwise it is quiet: navigation and captures (E9).

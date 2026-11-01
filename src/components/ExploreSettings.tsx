@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View, type LayoutChangeEvent } from 'react-native';
 import { clampRange, EXPLORE_RULES, KINDS, type Kind } from '../lib/explore/explore';
 import { loadSettings, saveSettings, type ExploreSettings as Settings } from '../lib/explore/settings';
-import { loadNoticePrefs, saveNoticePrefs, type NoticePrefs } from '../lib/notify';
 import { Icon, type IconName } from './icons';
 import { NotificationSettings } from './NotificationSettings';
 import { Button, theme } from './ui';
@@ -31,7 +30,6 @@ export function ExploreSettings(props: {
   onHeight?: (h: number) => void;
 }) {
   const [s, setS] = useState<Settings | null>(null);
-  const [np, setNp] = useState<NoticePrefs | null>(null);
   const { visible, onPreview } = props;
   useEffect(() => {
     if (!visible) return;
@@ -44,7 +42,6 @@ export function ExploreSettings(props: {
       },
       () => {},
     );
-    loadNoticePrefs().then((p) => alive && setNp(p), () => {});
     return () => {
       alive = false;
     };
@@ -102,8 +99,7 @@ export function ExploreSettings(props: {
               </View>
             ))}
           </View>
-          {np && <NotificationSettings value={np} onChange={setNp} />}
-          {/* The pocket alert is a tap you feel; a browser has none to give (E19). */}
+          {/* The pocket alert is a tap you feel; a browser has none to give (E19). Kept with the explore settings. */}
           {Platform.OS !== 'web' && (
             <View style={styles.row}>
               <View style={{ flex: 1 }}>
@@ -113,6 +109,7 @@ export function ExploreSettings(props: {
               <Switch testID="pocket-alert" accessibilityLabel="Pocket alert" value={s.haptic} onValueChange={(haptic) => setS({ ...s, haptic })} />
             </View>
           )}
+          <NotificationSettings />
         </ScrollView>
       )}
       <View style={styles.actions}>
@@ -123,7 +120,6 @@ export function ExploreSettings(props: {
           disabled={!s}
           onPress={() => {
             if (s) saveSettings(s).catch(() => {});
-            if (np) saveNoticePrefs(np).catch(() => {});
             close();
           }}
         />

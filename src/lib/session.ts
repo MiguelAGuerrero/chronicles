@@ -72,6 +72,8 @@ export function stopWalk(walkId: string): Promise<void> {
  * permission at the first pause, without holding the pause up).
  */
 export async function pauseWalk(walkId: string): Promise<void> {
+  // Asked first, still inside the tap: a browser refuses a prompt that comes too late (audit 5).
+  notifier.ask('pause').catch(() => {});
   await db.startPause(walkId, Date.now());
   await recorder.stop();
   notifier.pauseStarted(walkId).catch(() => {});

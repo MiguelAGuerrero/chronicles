@@ -467,8 +467,26 @@ Read this before changing recording, streets, the replay or storage.
   - **In front:** reminders and pauses are for the background; the test sets
     `inFront`. The phone lists background notices quietly in front; the web
     skips them while the page is visible.
+  - **A tap opens at once** where a screen listens (`onRecallOpen`, the walk or
+    the home); meta `recall_open` waits only for a cold start. A phone also
+    reads `getLastNotificationResponse()` at load, so a tap that launched the
+    app is kept.
   - **Web cold open:** with no window, `sw.js` opens the scope with the tap in
-    `?notice=`, read once (`noticeFromUrl`) and removed from the URL.
+    `?notice=`, read once (`noticeFromUrl`) and removed from the URL. With a walk
+    open, the home sends a waiting tap on to the walk.
+  - **After the audit:** permission is asked first in the tap, before any
+    storage (a browser refuses a late prompt); a kind switched off never
+    prompts; turning Pause reminder off cancels a pending one; `show` resolves
+    whether it showed, so the test never says "Sent." for nothing; a failed
+    service-worker registration is retried; old `ambient-` notices are cleared
+    at stop for one more release. The switches save as they change.
+  - **Shared origin:** GitHub Pages serves every project of the account from one
+    origin, so they share notification permission (and IndexedDB). A crafted
+    `?notice=` link can only name capture ids, which can't be guessed.
+  - **Deferred:** the "in front" rule stays per transport (a phone lists
+    background notices quietly; a browser has no list); the Android channel's
+    importance (DEFAULT, so the test may not pop up as a banner); unit tests of
+    the web transport (the e2e drives the real service worker).
   - **Native** (unverified on a device): the transport behind the contract,
     including the early-tap queue for a cold start and the test banner.
 

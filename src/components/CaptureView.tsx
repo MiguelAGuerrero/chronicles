@@ -472,12 +472,13 @@ export function CaptureViewer(props: {
               const id = reminding.id;
               setReminding(null);
               try {
+                // Asked first, still inside the tap: a browser refuses a prompt that comes too late (audit 5);
+                // a phone's location task can't show one at all.
+                notifier.ask('recall').catch(() => {});
                 // Read fresh: a fire while the viewer was open must not be undone (R9).
                 const fresh = await storedRecall(id);
                 const r = fresh ? editedRecall(fresh, frequency, until) : newRecall(id, frequency, until, props.walkId ?? null);
                 await saveRecall(r);
-                // Asked here, in front: the location task can't show a prompt (audit).
-                notifier.ask().catch(() => {});
                 setRecalls((m) => new Map(m).set(r.capture_id, r));
                 setSaveState({ id: r.capture_id, text: 'It will come back when you pass here' });
               } catch {

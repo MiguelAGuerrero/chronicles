@@ -924,6 +924,27 @@ function check(ok, what) {
     const again = await recallRows();
     check((await page.locator('[data-testid=reminder]').count()) === 0 && again.length === 1 && again[0].fired_count === 0,
       'a capture flagged mid-walk doesn’t come back in that walk');
+    // A tapped reminder notification opens its capture, playing (NT8). First with the walk screen in front:
+    // the service worker's message reaches the page's listener, and the capture opens at once (audit 1).
+    const noteId = await page.evaluate(() => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const g = req.result.transaction('capture', 'readonly').objectStore('capture').getAll();
+        g.onsuccess = () => resolve(g.result.find((c) => /cardamom/.test(c.body ?? ''))?.id ?? null);
+      };
+    }));
+    const tap = { type: 'notice-response', id: 'recall-x', data: { captureIds: [noteId] }, action: null };
+    await page.evaluate((m) => navigator.serviceWorker.dispatchEvent(new MessageEvent('message', { data: m })), tap);
+    check(await page.waitForSelector('text=The bakery smelled of cardamom.', { timeout: 10000 }).then(() => true, () => false),
+      'a reminder tapped with the walk in front opens its capture at once');
+    await page.click('[aria-label="Close"]');
+    // Then a cold open: no window was open, so the service worker opened one carrying the tap. With the
+    // walk still open, the home sends it on to the walk, which opens the capture (audit 2).
+    await page.goto(`${url}?notice=${encodeURIComponent(JSON.stringify(tap))}`);
+    check(await page.waitForSelector('text=The bakery smelled of cardamom.', { timeout: 20000 }).then(() => true, () => false)
+      && !page.url().includes('notice='), 'a tap that opened the app opens its capture on the walk, and leaves the URL clean');
+    await page.click('[aria-label="Close"]');
+
     const away = [...hosts].filter((h) => !h.startsWith('localhost') && h !== 'tiles.openfreemap.org');
     check(away.length === 0, `nothing is sent anywhere but the map tiles (${away.join(', ')})`);
     check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);

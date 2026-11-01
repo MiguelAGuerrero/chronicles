@@ -35,6 +35,7 @@ function fakeTransport(start: Permission = 'granted') {
     },
     async show(n) {
       shown.push(n);
+      return true;
     },
     async schedule(n, afterMs) {
       scheduled.push({ n, afterMs });
@@ -169,4 +170,32 @@ test('NT9: web options carry the tag (one per id), the data, the icon under the 
   assert.equal(o.icon, '/chronicles/icon-192.png');
   assert.deepEqual(o.actions, [{ action: 'stop', title: 'Stop reminding me' }]);
   assert.equal(swOptions({ kind: 'test', id: 'test', title: 't', body: 'b' }, '').icon, '/icon-192.png');
+});
+
+// ——— Audit regressions (slice 6) ———
+
+test('audit 4: the test reports whether it was shown, not just the permission', async () => {
+  const f = fakeTransport();
+  f.t.show = async () => false;
+  assert.equal((await make(f).test()).shown, false);
+  const g = fakeTransport();
+  assert.equal((await make(g).test()).shown, true);
+});
+
+test('audit 6: no prompt for a kind that is off; turning the pause reminder off cancels a pending one', async () => {
+  const f = fakeTransport('default');
+  const n = make(f, { recall: false, pause: true });
+  await n.ask('recall');
+  assert.ok(!f.log.includes('request'));
+  await n.ask('pause');
+  assert.ok(f.log.includes('request'));
+  const g = fakeTransport();
+  await make(g).prefsChanged({ recall: true, pause: false }, 'w1');
+  assert.ok(g.log.includes('cancel:pause-w1'));
+});
+
+test('audit 7: stopping clears old hint notifications from before explore too', async () => {
+  const f = fakeTransport();
+  await make(f).walkEnded('w1');
+  assert.ok(f.log.includes('cancel:ambient-w1'));
 });

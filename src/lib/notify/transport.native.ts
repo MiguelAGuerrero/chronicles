@@ -37,6 +37,17 @@ Notifications.addNotificationResponseReceivedListener((res) => {
   if (listener) listener(r);
   else early.push(r);
 });
+/** A tap that launched the app may come before any listener (audit 3): read it once, then clear it. */
+function launchTap(): NoticeResponse | null {
+  const res = Notifications.getLastNotificationResponse();
+  if (!res) return null;
+  Notifications.clearLastNotificationResponse();
+  return {
+    id: res.notification.request.identifier,
+    data: res.notification.request.content.data as NoticeResponse['data'],
+    action: res.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER ? null : res.actionIdentifier,
+  };
+}
 
 let channel: Promise<unknown> | null = null;
 const ensureChannel = () =>
@@ -58,7 +69,7 @@ export const transport: NoticeTransport = {
   },
   async show(n) {
     await ensureChannel();
-    await Notifications.scheduleNotificationAsync({
+    const id = await Notifications.scheduleNotificationAsync({
       identifier: n.id,
       content: {
         title: n.title,
@@ -68,6 +79,7 @@ export const transport: NoticeTransport = {
       },
       trigger: Platform.OS === 'android' ? { channelId: CHANNEL } : null,
     });
+    return !!id;
   },
   async schedule(n, afterMs) {
     await ensureChannel();
@@ -83,6 +95,9 @@ export const transport: NoticeTransport = {
   },
   onResponse(fn) {
     listener = fn;
+    const launched = launchTap();
+    // The listener may also have delivered it: one tap is handled once.
+    if (launched && !early.some((r) => r.id === launched.id)) early.push(launched);
     for (const r of early.splice(0)) fn(r);
   },
 };

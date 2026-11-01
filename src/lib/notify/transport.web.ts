@@ -18,7 +18,11 @@ function registration(): Promise<ServiceWorkerRegistration | null> {
   reg ??= navigator.serviceWorker
     .register(`${base}/sw.js`, { scope: `${base}/` })
     .then(() => navigator.serviceWorker.ready)
-    .catch(() => null);
+    .catch(() => {
+      // Not kept: the next notice tries again (audit 4).
+      reg = null;
+      return null;
+    });
   return reg;
 }
 // Registered on load (NT2); a browser without service workers loses notifications only.
@@ -29,12 +33,13 @@ const hidden = () => typeof document !== 'undefined' && document.visibilityState
 
 const mapPermission = (p: NotificationPermission): Permission => (p === 'granted' ? 'granted' : p === 'denied' ? 'denied' : 'default');
 
-async function show(n: Parameters<NoticeTransport['show']>[0]) {
+async function show(n: Parameters<NoticeTransport['show']>[0]): Promise<boolean> {
   // In front, the screen shows its own card; only the test asks to show anyway (NT6, NT7).
-  if (!n.inFront && !hidden()) return;
+  if (!n.inFront && !hidden()) return false;
   const r = await registration();
-  if (!r || Notification.permission !== 'granted') return;
+  if (!r || Notification.permission !== 'granted') return false;
   await r.showNotification(n.title, swOptions(n, base) as NotificationOptions);
+  return true;
 }
 
 export const transport: NoticeTransport = {
