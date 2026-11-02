@@ -78,7 +78,7 @@ Read this before changing recording, streets, the replay or storage.
   (OpenStreetMap via OpenFreeMap) with signal assumed.
 - **No counts on the Explore tab** (NV14): places to find and finds, never "N of M".
 - **Open (in the doc):** two things are named Explore (the tab and the walk's mode);
-  whether the replay keeps "Passed N places"; what the Explore tab lists in a city
+  whether the replay keeps its "Passed …" low (now in words, U13); what the Explore tab lists in a city
   where AllTrails lists trails.
 
 ## Product and where the spec lives
@@ -541,7 +541,8 @@ Read this before changing recording, streets, the replay or storage.
     last walk's most-walked area.
   - **Home:** no "?" and no count on the overview; a place view shows
     "N of M · list from <date>" and its finds. **Replay:** finds by name
-    (`foundList`) and "Passed N places you didn't stop for" (`passedLine`).
+    (`foundList`) and "Passed Hessian Memorial without stopping", or "a few places"
+    (`passedLine`, never a count since tabs audit U13).
     Marks found before explore stay in their replays; old open marks are not
     read.
   - **Native** (unverified on a device): the background read on a quiet walk,
@@ -810,7 +811,8 @@ Read this before changing recording, streets, the replay or storage.
 - **The walks list zooms out** only when the view doesn't already hold every
   place, and never closer than the current zoom (`lib/zoomOut.ts`, pure). It is
   framed above the half sheet it opens to, with the fit's own padding.
-  `fitMaxZoom` is web only (MapLibre RN's fitBounds has none). `perfCount('fit')`
+  `fitMaxZoom` goes to fitBounds on web; MapLibre RN's fitBounds has none, so
+  the native map widens the bounds to fit no closer (`capFitBounds`, U15). `perfCount('fit')`
   lets the e2e count fits.
 - **Testing motion on the web:** `emulateMedia({ reducedMotion: 'reduce' })`.
   A mouse drag on a moving element is cancelled by the browser and reads as a
@@ -1024,6 +1026,40 @@ Read this before changing recording, streets, the replay or storage.
 - **Native** (unverified on a device): the docked drawer, `LiveWalk`'s
   Markers and dot, `dangerouslySingular` on the native stack, the memo saved
   on blur.
+- **The second batch (U5-U15, audit 6; the owner's calls, Nov 2):**
+  - Explore's hint sits in its drawer's header, so the peek says it at rest
+    (U5). On its long-press card What's good here? is the filled button and
+    Walk here secondary, still a one-tap start (U6).
+  - Chronicle's peek: with no walk finished (a walk minimized or not), the
+    empty line, Days and a Navigate button (U7); otherwise a Walks | Days
+    switch in the header at every height (U8). No "N walks · M places" (U13).
+  - The recording bar shows a pause glyph when paused and a forward chevron,
+    not chevron-up, as its way back (U10). The walk options button is always
+    `options-outline` (U11): a compass read as the Explore tab.
+  - **Counts are words** (U13, `lib/quietLines`): the card's new streets are a
+    clause in its line ("your first time down Elm Street", "3 streets new to
+    you"), from `ReplayData.newStreets` (visited named keys not walked
+    before); the fog beat says the same, or "Familiar ground". The low names
+    one or two places, else "a few places" (`passedPlaces`, `passedLine`).
+    The walks list row is date, distance, time and captures (`walkRowMeta`).
+    No accent colour or large number on the card; the e2e scans for both.
+  - The first replay's card has a quiet "Not now" (U14): unnamed, to
+    Chronicle. Re-watches keep Done.
+  - **Every way out of the first replay ends on Chronicle** (audit 6). Android
+    back is a `BackHandler`. The browser's back can't be stopped cheaply: it
+    restores the stack saved with the earlier history entry (expo-router 58's
+    `restoreNavigationFromBrowser`), so the replay, on unmount, moves to
+    Chronicle unless its own buttons (`toChronicle`) already did.
+    `usePreventRemove` would block it, but it also adds a `beforeunload`
+    prompt on web, so a reload mid-replay would ask "Leave site?".
+  - Chronicle's fits are capped at z15 (U15, `FIT_MAX_ZOOM`). Native widens
+    the bounds instead (`capFitBounds`), for every fit (default z17, as web).
+  - **Traps:** Ionicons draw a private-use glyph, so the e2e compares glyphs
+    from the font's glyph map (`glyph('pause')`, `iconOf` for messages); the
+    text looks empty when printed. The web map writes `data-zoom` straight to
+    the DOM on camera moves, for the e2e (never a render).
+  - **Native** (unverified on a device): the replay's `BackHandler`,
+    `capFitBounds` on MapLibre RN's fitBounds.
 
 ## Working with the owner
 
@@ -1081,7 +1117,8 @@ Read this before changing recording, streets, the replay or storage.
   (`levelForZoom`: neighborhoods from z11, towns from z6, states below, and
   countries below z3 once two countries are walked). Stars merge within 44 px,
   and all are one size. A bottom sheet (`HomeSheet`, built on Animated and
-  responders, no library) peeks with "N walks · M places" and opens to the
+  responders, no library) peeks with a Walks | Days switch (no counts, U8,
+  U13) and opens to the
   walks list or a place's walks. Start floats above it.
   - Walks with no places are placed in one pass behind a cover
     (`placeAll`); a failure waits for the next launch.
