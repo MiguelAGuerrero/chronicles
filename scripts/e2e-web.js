@@ -540,6 +540,16 @@ function check(ok, what) {
         await pg.waitForTimeout(800);
         const dragged = Math.round((await pg.locator('[data-testid=navigate-drawer]').boundingBox()).height);
         check(dragged === peek, `tabs audit U2: with a walk open a dragged drawer settles back at its peek (${peek} → ${dragged} px)`);
+        // And the walk comes back from the bar after it ("stuck and not interactive", Nov 2), then minimizes again.
+        await pg.click('[data-testid=recording-return]');
+        const back = await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 5000 }).then(() => true, () => false);
+        check(back, `tabs audit U2: after a drag on the drawer, the recording bar still brings the walk back (${pg.url()})`);
+        if (back) {
+          await pg.waitForSelector('[data-testid=walk-minimize]', { timeout: 10000 });
+          await pg.click('[data-testid=walk-minimize]');
+          await pg.waitForSelector('[data-testid=recording-bar]', { timeout: 10000 });
+          await pg.waitForTimeout(800);
+        }
       }
     });
     await step('tabs audit U7: Chronicle while minimized', async () => {
