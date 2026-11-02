@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   AccessibilityInfo, BackHandler, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View,
 } from 'react-native';
@@ -12,9 +12,11 @@ import { Icon, type IconName } from './icons';
 import { Modal } from './Modal';
 import { Button, LiftIn, theme } from './ui';
 
+const KIND_NAME = { photo: 'Photo', video: 'Video', voice: 'Voice memo', text: 'Note' } as const;
+
 /** What a moment's toast says once it is placed, or once no place came (M2). */
 function momentToast(kind: Capture['kind'], reason?: LocateResult['reason']): string {
-  const what = { photo: 'Photo', video: 'Video', voice: 'Voice memo', text: 'Note' }[kind];
+  const what = KIND_NAME[kind];
   if (!reason) return `${what} kept here`;
   return reason === 'denied' ? `${what} kept · No location (location is off)` : `${what} kept · No location`;
 }
@@ -31,19 +33,44 @@ export function MomentBar(props: {
   onError: (e: { message: string; openSettings?: boolean }) => void;
   /** Reports whether a memo is recording, so the home can hide what would cut it short. */
   onRecording?: (on: boolean) => void;
+  /** Whether the tab is in front: leaving it mid-memo saves the memo (tabs audit 3). */
+  focused?: boolean;
 }) {
-  const insets = useSafeAreaInsets();
   const [toast, setToast] = useState<string | null>(null);
-  const [noteOpen, setNoteOpen] = useState(false);
-  const [note, setNote] = useState('');
+  const { onMoment } = props;
   const cap = useCaptures(null, null, null, props.onError, {
     loose: true,
     onMoment: (c, state) => {
       // The toast waits for the place; the lists hear of the moment at once (audit).
       if (state !== 'kept') setToast(momentToast(c.kind, state === 'placed' ? undefined : state));
-      props.onMoment(c, state);
+      onMoment(c, state);
     },
   });
+  return <CaptureRow cap={cap} toast={toast} setToast={setToast} disabled={props.disabled} onRecording={props.onRecording} focused={props.focused} />;
+}
+
+/** What useCaptures gives a capture row. */
+export type CaptureControls = ReturnType<typeof useCaptures>;
+
+/**
+ * The capture row itself (camera, mic, pencil, the memo's controls and its
+ * toasts), for a loose moment (MomentBar) or the open walk minimized under
+ * Navigate (U2), whose captures are told to the walk screen through the
+ * capture bus. With `walk`, a kept capture says it went to the walk.
+ */
+export function CaptureRow(props: {
+  cap: CaptureControls;
+  toast: string | null;
+  setToast: (t: string | null) => void;
+  disabled?: boolean;
+  onRecording?: (on: boolean) => void;
+  focused?: boolean;
+  walk?: boolean;
+}) {
+  const insets = useSafeAreaInsets();
+  const { cap, toast, setToast } = props;
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [note, setNote] = useState('');
   const recording = cap.voiceStartedAt != null;
   const { onRecording } = props;
   useEffect(() => {
@@ -54,7 +81,7 @@ export function MomentBar(props: {
     AccessibilityInfo.announceForAccessibility(toast);
     const t = setTimeout(() => setToast(null), 4000);
     return () => clearTimeout(t);
-  }, [toast]);
+  }, [toast, setToast]);
   // Android's back does nothing mid-memo, and the web warns before closing: leaving would cut it short.
   useEffect(() => {
     if (!recording) return;
@@ -67,18 +94,32 @@ export function MomentBar(props: {
     };
   }, [recording]);
 
+  const saved = (kind: Capture['kind']) => {
+    feedback('tap');
+    if (props.walk) setToast(`${KIND_NAME[kind]} saved to your walk`);
+  };
   const saveNote = async () => {
     if (await cap.saveNote(note)) {
       setNote('');
       setNoteOpen(false);
-      feedback('tap');
+      saved('text');
     }
   };
   const saveVoice = async () => {
     const r = await cap.finishVoice();
-    if (r === 'saved') feedback('tap');
+    if (r === 'saved') saved('voice');
     else if (r === 'dropped') setToast('Too short, not kept');
   };
+  // Another tab, the walk or a replay came to the front mid-memo: it is saved, as leaving the walk
+  // screen saves one, never left recording under another screen (tabs audit 3).
+  const saveRef = useRef(saveVoice);
+  useEffect(() => {
+    saveRef.current = saveVoice;
+  });
+  const { focused } = props;
+  useEffect(() => {
+    if (focused === false && recording) void saveRef.current();
+  }, [focused, recording]);
 
   return (
     <View style={styles.wrap} pointerEvents="box-none">
@@ -121,7 +162,7 @@ export function MomentBar(props: {
               testID="moment-photo"
               icon="camera"
               label="Keep a moment: take a photo or video"
-              onPress={() => cap.takePhoto().then((k) => k && feedback('tap'))}
+              onPress={() => cap.takePhoto().then((k) => k && saved(k.kind))}
               busy={cap.busy === 'photo'}
               disabled={props.disabled || cap.busy === 'voice'}
             />
