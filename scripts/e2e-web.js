@@ -371,6 +371,8 @@ function check(ok, what) {
     check((await page.locator('[data-testid=peek-choices]').innerText()) === 'Explore', 'after a reload the drawer opens on the last mode picked (NV22)');
     // A long press on Navigate's map sets the destination, with its ring (NV23); Clear takes it away.
     {
+      // After the reload, the map frames itself around the first fix: press once it has.
+      await page.waitForTimeout(1500);
       const box = await page.locator('canvas.maplibregl-canvas').boundingBox();
       await page.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 3);
       await page.mouse.down();
