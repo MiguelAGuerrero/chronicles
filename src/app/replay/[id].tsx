@@ -2,7 +2,7 @@ import { foundLine, foundList, passedLine } from '../../lib/explore/explore';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import {
-  AccessibilityInfo, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
+  AccessibilityInfo, BackHandler, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WalkMap } from '../../components/map/WalkMap';
@@ -105,6 +105,27 @@ export default function Replay() {
     if (b === 'fog' || b === 'path') shown.current = 0;
     if (b === 'fog' || b === 'card') setFitKey((k) => k + 1);
   }, []);
+
+  // The first replay after a walk always ends on Chronicle (NV27), however it is left: Keep it, Not now
+  // (tabs audit U14), Android's back, or the browser's (tabs audit 6), never the tab the walk began on.
+  // A browser's back restores the stack from before the replay, so the way out is taken when the
+  // replay goes, unless one of its own buttons already took it.
+  const leftForChronicle = useRef(false);
+  const toChronicle = useCallback(() => {
+    leftForChronicle.current = true;
+    router.dismissTo('/chronicle');
+  }, []);
+  useEffect(() => {
+    if (rewatch) return;
+    const back = BackHandler.addEventListener('hardwareBackPress', () => {
+      toChronicle();
+      return true;
+    });
+    return () => {
+      back.remove();
+      if (!leftForChronicle.current) setTimeout(() => router.navigate('/chronicle'), 0);
+    };
+  }, [rewatch, toChronicle]);
 
   // Memos and videos play with the ringer switch off, as the voice is the point.
   useEffect(() => {
@@ -333,7 +354,7 @@ export default function Replay() {
     setSaveError(null);
     try {
       await db.updateWalk(data.walk.id, { title: title.trim() || suggestTitle(data.walk), epilogue: epilogue.trim() || null });
-      router.dismissTo('/chronicle');
+      toChronicle();
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : String(e));
       setSaving(false);
@@ -498,6 +519,18 @@ export default function Replay() {
                     <Button testID="to-name" style={styles.flex} label="Name it" onPress={() => go('name')} />
                   )}
                 </View>
+                {!rewatch && (
+                  // A quiet way out (tabs audit U14): the walk stays unnamed, and Chronicle comes up.
+                  <Pressable
+                    testID="not-now"
+                    accessibilityRole="button"
+                    accessibilityHint="Keeps the walk without a name and goes to Chronicle"
+                    onPress={toChronicle}
+                    style={({ pressed }) => [styles.notNow, pressed && { opacity: 0.6 }]}
+                  >
+                    <Text style={styles.notNowText}>Not now</Text>
+                  </Pressable>
+                )}
               </>
             ) : (
               <>
@@ -537,7 +570,7 @@ export default function Replay() {
         walkId={actionsOpen ? data.walk.id : null}
         onClose={() => setActionsOpen(false)}
         // A deleted walk has nothing left to replay; Undo shows on the home (D5).
-        onDone={(kind) => kind === 'walk' && router.dismissTo('/chronicle')}
+        onDone={(kind) => kind === 'walk' && toChronicle()}
       />
       <UndoToast style={{ top: insets.top + 12 }} />
     </View>
@@ -589,6 +622,8 @@ const styles = StyleSheet.create({
   cardMuted: { fontSize: 15, color: theme.muted },
   epilogue: { fontSize: 15, fontStyle: 'italic', color: theme.ink },
   row: { flexDirection: 'row', gap: 10, marginTop: 6 },
+  notNow: { minHeight: 44, alignSelf: 'center', justifyContent: 'center', paddingHorizontal: 16 },
+  notNowText: { fontSize: 15, fontWeight: '600', color: theme.muted },
   flex: { flex: 1 },
   label: { fontSize: 14, fontWeight: '600', color: theme.muted },
   input: { borderWidth: 1.5, borderColor: theme.edge, borderRadius: 10, padding: 12, fontSize: 16, color: theme.ink },
