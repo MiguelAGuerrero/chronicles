@@ -818,7 +818,62 @@ function check(ok, what) {
     await c.close();
   };
 
+  // A reload with a walk minimized (the owner, Nov 2): after it, nothing responded, and a reload
+  // didn't clear it. E2E_ONLY=reload runs it alone.
+  const reloadMinimized = async () => {
+    const { c, pg } = await freshPage('reload');
+    const state = async (label) => {
+      const s = await pg.evaluate(() => {
+        const at = (q) => { const e = document.querySelector(q); if (!e) return null; const b = e.getBoundingClientRect(); if (!b.width) return 'hidden'; const top = document.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2); return top?.closest(q) ? 'top' : `under:${top?.closest('[data-testid]')?.getAttribute('data-testid') ?? top?.tagName}`; };
+        return { path: location.pathname, bar: at('[data-testid=recording-return]'), stop: at('[data-testid=stop]'), minimize: at('[data-testid=walk-minimize]'), tabNav: at('[data-testid=tab-navigate]'), drawer: document.querySelector('[data-testid=navigate-drawer]')?.getBoundingClientRect().height ?? null };
+      });
+      console.log(`# ${label}: ${JSON.stringify(s)}`);
+      return s;
+    };
+    await pg.goto(url);
+    await pg.waitForSelector('[data-testid=start]');
+    await pg.click('[data-testid=start]');
+    await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+    for (let k = 0; k < 12; k++) {
+      const p = at(-0.5 + k * 0.05, -0.5);
+      await c.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+      await pg.waitForTimeout(1000);
+    }
+    await state('walking');
+    await pg.click('[data-testid=walk-minimize]');
+    await pg.waitForSelector('[data-testid=recording-return]', { timeout: 10000 });
+    await pg.waitForTimeout(800);
+    await state('minimized');
+    for (let r = 1; r <= 2; r++) {
+      await pg.reload();
+      await pg.waitForTimeout(5000);
+      const s = await state(`reload ${r}`);
+      const ok = (s.path === `${BASE}/walk` && s.stop === 'top') || s.bar === 'top';
+      check(ok, `reload: with a walk minimized, reload ${r} leaves the walk or its bar in front and tappable (${JSON.stringify(s)})`);
+      if (s.path === `${BASE}/walk` && s.minimize === 'top') {
+        await pg.click('[data-testid=walk-minimize]');
+        await pg.waitForTimeout(1500);
+        const m = await state(`reload ${r}, minimized`);
+        check(m.bar === 'top', `reload: minimizing after reload ${r} shows the bar in front (${JSON.stringify(m)})`);
+        if (m.bar === 'top') {
+          await pg.click('[data-testid=recording-return]');
+          await pg.waitForTimeout(1500);
+          const b = await state(`reload ${r}, back`);
+          check(b.path === `${BASE}/walk` && b.stop === 'top', `reload: the bar brings the walk back after reload ${r} (${JSON.stringify(b)})`);
+          await pg.click('[data-testid=walk-minimize]').catch(() => {});
+          await pg.waitForTimeout(1500);
+        }
+      }
+    }
+    await c.close();
+  };
+
   try {
+    if (process.env.E2E_ONLY === 'reload') {
+      await reloadMinimized();
+      check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
+      return;
+    }
     if (process.env.E2E_ONLY === 'marks') {
       await marksRepro();
       check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
