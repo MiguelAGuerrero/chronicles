@@ -17,3 +17,13 @@ export function formatDuration(ms: number): string {
   if (min < 60) return `${min} min`;
   return `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')} min`;
 }
+
+/** "2 photos · 1 video · 1 note", leaving out kinds with none. */
+export function formatCaptures(c: { photos: number; videos?: number; voices: number; notes: number }): string {
+  const parts: string[] = [];
+  if (c.photos) parts.push(`${c.photos} ${c.photos === 1 ? 'photo' : 'photos'}`);
+  if (c.videos) parts.push(`${c.videos} ${c.videos === 1 ? 'video' : 'videos'}`);
+  if (c.voices) parts.push(`${c.voices} ${c.voices === 1 ? 'voice memo' : 'voice memos'}`);
+  if (c.notes) parts.push(`${c.notes} ${c.notes === 1 ? 'note' : 'notes'}`);
+  return parts.join(' · ');
+}

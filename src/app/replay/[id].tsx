@@ -23,6 +23,7 @@ import { useHidden } from '../../lib/deletion/useDeletions';
 import { UndoToast } from '../../components/UndoToast';
 import { WalkActions } from '../../components/WalkActions';
 import { pausedMs } from '../../lib/geo';
+import { newStreetsLine } from '../../lib/quietLines';
 import { capturesHere, type HereResult } from '../../lib/here';
 
 type Beat = 'reading' | 'fog' | 'path' | 'card' | 'name';
@@ -324,6 +325,7 @@ export default function Replay() {
   const head = headline(s, data);
   const finds = foundList(data.found.map((f) => f.name));
   const passed = passedLine(data.passed);
+  const freshLine = s?.streets_read ? newStreetsLine(data.newStreets) : null;
 
   const save = async () => {
     if (saving) return;
@@ -373,8 +375,7 @@ export default function Replay() {
 
       {beat === 'fog' && (
         <View style={[styles.headline, { top: insets.top + 24 }]} pointerEvents="none">
-          <Text style={styles.headlineNumber}>{head.big}</Text>
-          <Text style={styles.headlineLabel}>{head.small}</Text>
+          <Text style={styles.headlineLabel}>{head.line}</Text>
           {head.note ? <Text style={styles.headlineNote}>{head.note}</Text> : null}
         </View>
       )}
@@ -467,13 +468,11 @@ export default function Replay() {
                     </Pressable>
                   )}
                 </View>
-                <View style={styles.hero} accessible accessibilityLabel={head.spoken}>
-                  <Text style={styles.heroNumber}>{head.big}</Text>
-                  <Text style={styles.heroLabel}>{head.small}</Text>
-                </View>
-                <Text style={styles.cardLine}>
+                {/* New streets are a clause in the line, never a big orange number (tabs audit U13). */}
+                <Text testID="card-line" style={styles.cardLine}>
                   <Text testID="card-distance">{formatDistance(s?.distance_m ?? 0)}</Text> · {formatDuration(s?.duration_ms ?? Math.max(0, (data.walk.ended_at ?? data.walk.started_at) - data.walk.started_at - pausedMs(data.pauses, data.walk.started_at, data.walk.ended_at ?? data.walk.started_at)))}
                   {s && s.streets_walked > 0 ? ` · ${s.streets_walked} ${s.streets_walked === 1 ? 'street' : 'streets'} walked` : ''}
+                  {freshLine ? `, ${freshLine}` : ''}
                 </Text>
                 {/* A ride on its own line, so the card's line doesn't say "walked" twice (rides audit, UI). */}
                 {rideM >= 1 ? <Text testID="card-ride" style={styles.cardMuted}>+ {formatDistance(rideM)} by ride</Text> : null}
@@ -545,22 +544,23 @@ export default function Replay() {
   );
 }
 
-/** The fog beat's headline, honest about walks whose streets could not be read. */
+/**
+ * The fog beat's headline, honest about walks whose streets could not be read.
+ * Words, not a big number (tabs audit U13): the streets new to you, or familiar ground.
+ */
 function headline(s: ReplayData['summary'], d: ReplayData) {
   const distance = formatDistance(s?.distance_m ?? 0);
   if (!s || !s.streets_read) {
     return {
-      big: distance,
-      small: 'walked',
+      line: `${distance} walked`,
       note: 'Streets fill in when the map can load. Open this walk again when you are online.',
       spoken: `${distance} walked. The streets could not be read yet.`,
     };
   }
-  if (s.new_streets === 0) {
-    return { big: '0', small: 'new streets', note: d.walked.length ? 'Familiar ground.' : null, spoken: 'No new streets. Familiar ground.' };
-  }
-  const label = s.new_streets === 1 ? 'new street' : 'new streets';
-  return { big: String(s.new_streets), small: label, note: null, spoken: `${s.new_streets} ${label}` };
+  const fresh = newStreetsLine(d.newStreets);
+  if (!fresh) return { line: 'Familiar ground', note: null, spoken: 'Familiar ground.' };
+  const line = fresh.charAt(0).toUpperCase() + fresh.slice(1);
+  return { line, note: null, spoken: line };
 }
 
 const timeOf = (c: Capture) => new Date(c.t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
@@ -575,8 +575,7 @@ const styles = StyleSheet.create({
     position: 'absolute', alignSelf: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.95)',
     borderRadius: 20, paddingVertical: 12, paddingHorizontal: 24, maxWidth: 340,
   },
-  headlineNumber: { fontSize: 56, fontWeight: '800', color: theme.accent, fontVariant: ['tabular-nums'] },
-  headlineLabel: { fontSize: 17, color: theme.ink, fontWeight: '600' },
+  headlineLabel: { fontSize: 17, color: theme.ink, fontWeight: '600', textAlign: 'center' },
   headlineNote: { fontSize: 14, color: theme.muted, textAlign: 'center', marginTop: 6 },
   skip: { position: 'absolute', right: 12 },
   moment: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(20,24,32,0.85)' },
@@ -586,9 +585,6 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 22, fontWeight: '700', color: theme.ink },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   more: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginRight: -8 },
-  hero: { flexDirection: 'row', alignItems: 'baseline', gap: 10 },
-  heroNumber: { fontSize: 40, fontWeight: '800', color: theme.accent, fontVariant: ['tabular-nums'] },
-  heroLabel: { fontSize: 18, fontWeight: '600', color: theme.ink },
   cardLine: { fontSize: 16, color: theme.ink, fontVariant: ['tabular-nums'] },
   cardMuted: { fontSize: 15, color: theme.muted },
   epilogue: { fontSize: 15, fontStyle: 'italic', color: theme.ink },

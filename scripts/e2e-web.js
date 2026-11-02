@@ -1411,7 +1411,10 @@ function check(ok, what) {
     await page.waitForSelector('[data-testid=to-name]', { timeout: 45000 });
     const card = (await page.locator('body').innerText()).replace(/\s+/g, ' ');
     // A block each of Transit and Arnold; the unnamed block between them clears fog but is not a street.
-    check(/\b2 new streets\b/.test(card), `the card counts the 2 named streets walked (${card.slice(0, 80)})`);
+    // Said as a clause in the card's line, not a big number (tabs audit U13).
+    const cardLine = await page.locator('[data-testid=card-line]').innerText();
+    check(/your first time down (Transit Street and Arnold Street|Arnold Street and Transit Street)$/.test(cardLine) && !/\bnew streets?\b/.test(card),
+      `the card names the 2 named streets new to you, in its line (${cardLine})`);
     // The walk is placed, down to its neighborhood, with the town found by the wide read
     // and the state from the bundled outlines.
     const placed = await page.evaluate(() => new Promise((resolve) => {
@@ -1446,7 +1449,8 @@ function check(ok, what) {
     // The card lists the walk's finds, and keeps what it passed without stopping as a low (E11).
     check((await page.locator('[data-testid=card-finds]').innerText()) === 'Found Hessian Memorial', 'the card lists the places found');
     const low = await page.locator('[data-testid=card-low]').allInnerTexts();
-    check(low.length === 1 && low[0] === 'Passed 1 place you didn’t stop for', `the card keeps the place passed as a low (${low.join(' | ')})`);
+    // Named, never counted (tabs audit U13).
+    check(low.length === 1 && /^Passed .+ without stopping$/.test(low[0]) && !/\d/.test(low[0]), `the card keeps the place passed as a low, by name (${low.join(' | ')})`);
     await page.waitForTimeout(800);
     await shot(page, '05-card');
     // The card's zoom groups nearby captures; open the pin holding the note

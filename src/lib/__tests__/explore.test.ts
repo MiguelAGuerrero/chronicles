@@ -307,10 +307,11 @@ test('E10: the place view reads "12 of 87 · list from Nov 1"; an empty checklis
   assert.equal(homeCount({ ...a, count: 0 }, 0), null);
 });
 
-test('E11: the low counts places revealed on the walk but not captured', () => {
-  assert.equal(passedLine(3), 'Passed 3 places you didn’t stop for');
-  assert.equal(passedLine(1), 'Passed 1 place you didn’t stop for');
-  assert.equal(passedLine(0), null);
+test('E11: the low names places revealed on the walk but not captured (in words since tabs audit U13)', () => {
+  const p = (name: string) => ({ name, generic: false });
+  assert.equal(passedLine([p('A'), p('B'), p('C')]), 'Passed a few places without stopping');
+  assert.equal(passedLine([p('Museum')]), 'Passed Museum without stopping');
+  assert.equal(passedLine([]), null);
 });
 
 // ——— Retry (E5) ———

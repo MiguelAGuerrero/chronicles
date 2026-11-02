@@ -419,14 +419,25 @@ export function foundList(names: string[]): string | null {
  * What a walk passed without stopping (E11, audit 9): places of shown kinds
  * named by a fix after exploring began, not found on this walk.
  */
-export function passedCount(o: { items: ChecklistItem[]; fixes: { at: LngLat; t: number }[]; since: number; hidden: Set<Kind>; foundHere: Set<string> }): number {
-  const named = revealedKeys(o.items.filter((i) => !o.hidden.has(i.kind)), o.fixes.filter((f) => f.t >= o.since).map((f) => f.at));
-  return [...named].filter((k) => !o.foundHere.has(k)).length;
+export function passedPlaces(o: { items: ChecklistItem[]; fixes: { at: LngLat; t: number }[]; since: number; hidden: Set<Kind>; foundHere: Set<string> }): ChecklistItem[] {
+  const shown = o.items.filter((i) => !o.hidden.has(i.kind));
+  const named = revealedKeys(shown, o.fixes.filter((f) => f.t >= o.since).map((f) => f.at));
+  const seen = new Set<string>();
+  return shown.filter((i) => named.has(i.key) && !o.foundHere.has(i.key) && !seen.has(i.key) && !!seen.add(i.key));
 }
+export const passedCount = (o: Parameters<typeof passedPlaces>[0]): number => passedPlaces(o).length;
 
-/** The card's low (E11): places revealed on the walk but not captured. */
-export const passedLine = (n: number): string | null =>
-  n > 0 ? `Passed ${n} ${n === 1 ? 'place' : 'places'} you didn’t stop for` : null;
+/**
+ * The card's low (E11), said in words (tabs audit U13): one or two places by
+ * name, else "a few places", never a count. A generic name ("A viewpoint")
+ * reads in the sentence's case.
+ */
+export function passedLine(places: { name: string; generic: boolean }[]): string | null {
+  if (!places.length) return null;
+  if (places.length > 2) return 'Passed a few places without stopping';
+  const names = places.map((p) => (p.generic ? p.name.charAt(0).toLowerCase() + p.name.slice(1) : p.name));
+  return `Passed ${names.join(' and ')} without stopping`;
+}
 
 /** The "What I'm into" filter as stored (meta `explore_hidden`): the kinds switched off. */
 export function parseHidden(raw: string | null): Set<Kind> {

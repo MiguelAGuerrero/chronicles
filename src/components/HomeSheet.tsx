@@ -8,7 +8,8 @@ import { useReducedMotion } from '../lib/motion';
 import { MOTION } from '../lib/motionTokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { placeWalks, type PlacesIndex } from '../lib/places';
-import { formatCaptures, formatDistance, formatDuration, suggestTitle } from '../lib/summary';
+import { formatDistance, suggestTitle } from '../lib/summary';
+import { walkRowMeta } from '../lib/quietLines';
 import { dayCounts, dayLabel, type Day, type DayEntry } from '../lib/days';
 import type { Capture, Walk, WalkSummary } from '../lib/types';
 import { Icon, KIND_ICON, KIND_LABEL } from './icons';
@@ -488,12 +489,8 @@ function EntryRow({ entry: e, summary: s, disabled, onOpen, onMore }: { entry: D
 function WalkRow({ walk, summary: s, disabled, onMore }: { walk: Walk; summary: WalkSummary | null; disabled?: boolean; onMore?: (walkId: string) => void }) {
   const title = walk.title ?? suggestTitle(walk);
   const date = new Date(walk.started_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-  const meta = s
-    ? [date, formatDistance(s.distance_m), formatDuration(s.duration_ms), s.new_streets ? `${s.new_streets} new ${s.new_streets === 1 ? 'street' : 'streets'}` : '']
-        .concat(formatCaptures(s) || [])
-        .filter(Boolean)
-        .join(' · ')
-    : `${date} · Open to finish reading its streets`;
+  // Distance and time stay; new streets aren't counted here (tabs audit U13).
+  const meta = s ? walkRowMeta(date, s) : `${date} · Open to finish reading its streets`;
   return (
     <View style={styles.withMore}>
       <Pressable

@@ -1,6 +1,7 @@
 import type { CategoryId, Mark } from './discovery/types';
 import { db } from './db';
-import { exploredKey, passedCount, type Kind } from './explore/explore';
+import { exploredKey, passedPlaces, type Kind } from './explore/explore';
+import { isNamedStreet } from './deletion/core';
 import { loadSettings } from './explore/settings';
 import { splitAtGaps, type Bounds, smoothDwells, type PauseSpan } from './geo';
 import { readTrace, rideRuns, smoothKept, timedRideRuns, traceDistances } from './rides';
@@ -33,8 +34,10 @@ export interface ReplayData {
   summary: WalkSummary | null;
   /** Places this walk found, each with its capture (E11): explore's finds, and marks found before explore. */
   found: { capture_id: string; name: string; category: CategoryId; generic: boolean; kind?: Kind }[];
-  /** Places named on this walk (within 60 m) but not captured, for the card's low (E11); 0 on a quiet walk. */
-  passed: number;
+  /** Places named on this walk (within 60 m) but not captured, for the card's low (E11); none on a quiet walk. */
+  passed: { name: string; generic: boolean }[];
+  /** Named streets this walk was the first down, in the order walked, for the card's clause (tabs audit U13). */
+  newStreets: string[];
 }
 
 /** Everything the replay draws. `summary` is null until the walk has been snapped. */
@@ -71,23 +74,30 @@ export async function loadReplay(walkId: string): Promise<ReplayData | null> {
     ...finds.map((f) => ({ capture_id: f.capture_id, name: f.name, category: f.category, generic: f.generic, kind: f.kind })),
   ];
   // What it passed without stopping (E11, audit 9): only once it was exploring, only kinds shown, minus its own finds.
-  let passed = 0;
+  let passed: { name: string; generic: boolean }[] = [];
   const explored = await db.getMeta(exploredKey(walkId)).catch(() => null);
   if (streetBounds && explored) {
     // '1' from before the audit: count from the start.
     const since = Number(explored) > 1 ? Number(explored) : 0;
     const hidden = (await loadSettings().catch(() => null))?.hidden ?? new Set<Kind>();
     const items = await db.checklistItemsIn(streetBounds).catch(() => []);
-    passed = passedCount({
+    passed = passedPlaces({
       items, since, hidden,
       // Riding past names nothing (R12).
       fixes: walkedFixes.map((p) => ({ at: [p.lon, p.lat] as LngLat, t: p.t })),
       foundHere: new Set(finds.map((f) => f.key)),
     });
   }
+  // The streets first walked here, as the summary counts them (named, none walked on an earlier walk).
+  const earlier = await db.streetKeysBefore(walk.started_at).catch(() => null);
+  const newStreets = earlier
+    ? [...new Set(visited.filter((v) => isNamedStreet(v.street_key) && !earlier.has(v.street_key)).sort((a, b) => a.first_t - b.first_t).map((v) => v.street_key))]
+        .map((k) => k.slice('name:'.length))
+    : [];
   return {
     found,
     passed,
+    newStreets,
     walk,
     fixes,
     walkedFixes,
@@ -116,14 +126,4 @@ export function suggestTitle(walk: Walk): string {
   return walk.area ? `${day} ${part} in ${walk.area}` : `${day} ${part} walk`;
 }
 
-export { formatDistance, formatDuration, formatElapsed } from './format';
-
-/** "2 photos · 1 video · 1 note", leaving out kinds with none. */
-export function formatCaptures(c: { photos: number; videos?: number; voices: number; notes: number }): string {
-  const parts: string[] = [];
-  if (c.photos) parts.push(`${c.photos} ${c.photos === 1 ? 'photo' : 'photos'}`);
-  if (c.videos) parts.push(`${c.videos} ${c.videos === 1 ? 'video' : 'videos'}`);
-  if (c.voices) parts.push(`${c.voices} ${c.voices === 1 ? 'voice memo' : 'voice memos'}`);
-  if (c.notes) parts.push(`${c.notes} ${c.notes === 1 ? 'note' : 'notes'}`);
-  return parts.join(' · ');
-}
+export { formatCaptures, formatDistance, formatDuration, formatElapsed } from './format';
