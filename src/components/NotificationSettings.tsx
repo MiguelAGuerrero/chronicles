@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { AccessibilityInfo, Platform, StyleSheet, Switch, Text, View } from 'react-native';
+import { AccessibilityInfo, Platform, StyleSheet, Text, View } from 'react-native';
 import { db } from '../lib/db';
 import { loadNoticePrefs, NOTICE_KINDS, notifier, saveNoticePrefs, type NoticePrefs, type Permission } from '../lib/notify';
+import { SwitchRow } from './SwitchRow';
 import { Button, theme } from './ui';
 
 /** What the section says about permission (NT5), per platform; nothing when it is granted. */
@@ -32,7 +33,7 @@ function permissionNote(p: Permission | null, dismissed: boolean): string | null
  * the tap, so it isn't left for Cancel to undo), and a pending pause reminder
  * goes when its switch goes off.
  */
-export function NotificationSettings() {
+export function NotificationSettings(props: { heading?: boolean } = {}) {
   const [prefs, setPrefs] = useState<NoticePrefs | null>(null);
   const [perm, setPerm] = useState<Permission | null>(null);
   const [sent, setSent] = useState<'sent' | 'failed' | null>(null);
@@ -62,27 +63,24 @@ export function NotificationSettings() {
   const blocked = perm === 'unsupported' || perm === 'denied';
   return (
     <View testID="notify-settings" style={{ gap: 2 }}>
-      <Text style={styles.section} accessibilityRole="header">Notifications</Text>
+      {/* Under Navigate's "Reminders and alerts" its own heading would say it twice (U12). */}
+      {props.heading !== false && <Text style={styles.section} accessibilityRole="header">Notifications</Text>}
       {NOTICE_KINDS.map((k) => {
         const hint = `${k.note}${k.id === 'pause' && Platform.OS === 'web' ? ' In a browser it can only arrive while the page is still open.' : ''}`;
         return (
-          <View key={k.id} style={styles.row}>
-            <View style={{ flex: 1 }} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-              <Text style={styles.label}>{k.label}</Text>
-              <Text style={styles.sub}>{hint}</Text>
-            </View>
-            <Switch
-              testID={`notify-${k.id}`}
-              accessibilityLabel={k.label}
-              accessibilityHint={hint}
-              value={prefs[k.id]}
-              onValueChange={(on) => {
-                const next = { ...prefs, [k.id]: on };
-                set(next);
-                if (on) notifier.ask(k.id).then(asked, () => {});
-              }}
-            />
-          </View>
+          // The whole row flips it (U4); turning one on still asks from that tap (NV24).
+          <SwitchRow
+            key={k.id}
+            testID={`notify-${k.id}`}
+            label={k.label}
+            note={hint}
+            value={prefs[k.id]}
+            onChange={(on) => {
+              const next = { ...prefs, [k.id]: on };
+              set(next);
+              if (on) notifier.ask(k.id).then(asked, () => {});
+            }}
+          />
         );
       })}
       {note ? <Text testID="notify-permission" style={styles.sub}>{note}</Text> : null}
@@ -116,7 +114,5 @@ export function NotificationSettings() {
 const styles = StyleSheet.create({
   section: { fontSize: 15, fontWeight: '700', color: theme.ink },
   sub: { fontSize: 13, color: theme.muted },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48 },
-  label: { fontSize: 15, color: theme.ink },
   testRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 6, flexWrap: 'wrap' },
 });

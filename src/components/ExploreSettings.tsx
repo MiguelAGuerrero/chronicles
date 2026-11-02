@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View, type LayoutChangeEvent } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import { clampRange, EXPLORE_RULES, KINDS, type Kind } from '../lib/explore/explore';
 import { loadSettings, saveSettings, type ExploreSettings as Settings } from '../lib/explore/settings';
 import { Icon, type IconName } from './icons';
 import { NotificationSettings } from './NotificationSettings';
+import { SwitchRow } from './SwitchRow';
 import { Button, theme } from './ui';
 
 /** About how long the range takes to walk, at 1.3 m/s. */
@@ -97,13 +98,13 @@ export function ExploreSettings(props: {
           </View>
           {/* The pocket alert is a tap you feel; a browser has none to give (E19). Kept with the explore settings. */}
           {Platform.OS !== 'web' && (
-            <View style={styles.row}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.label}>Pocket alert</Text>
-                <Text style={styles.sub}>A soft tap when a “?” comes into range. Never on a quiet walk.</Text>
-              </View>
-              <Switch testID="pocket-alert" accessibilityLabel="Pocket alert" value={s.haptic} onValueChange={(haptic) => setS({ ...s, haptic })} />
-            </View>
+            <SwitchRow
+              testID="pocket-alert"
+              label="Pocket alert"
+              note="A soft tap when a “?” comes into range. Never on a quiet walk."
+              value={s.haptic}
+              onChange={(haptic) => setS({ ...s, haptic })}
+            />
           )}
           <NotificationSettings />
         </ScrollView>
@@ -129,11 +130,7 @@ export function KindSwitches({ hidden, onToggle }: { hidden: Set<Kind>; onToggle
   return (
     <>
       {KINDS.map((k) => (
-        <View key={k.id} style={styles.row}>
-          <Icon name={k.icon as IconName} size={20} color={theme.ink} />
-          <Text style={styles.label} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>{k.label}</Text>
-          <Switch testID={`kind-${k.id}`} accessibilityLabel={k.label} value={!hidden.has(k.id)} onValueChange={(v) => onToggle(k.id, v)} />
-        </View>
+        <SwitchRow key={k.id} testID={`kind-${k.id}`} icon={k.icon as IconName} label={k.label} value={!hidden.has(k.id)} onChange={(v) => onToggle(k.id, v)} />
       ))}
     </>
   );
@@ -206,7 +203,8 @@ const styles = StyleSheet.create({
   label: { flex: 1, fontSize: 15, color: theme.ink },
   actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
   sliderRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  stepBtn: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: theme.edge, alignItems: 'center', justifyContent: 'center' },
+  // 44 pt, not hit slop: react-native-web has none (U4).
+  stepBtn: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: theme.edge, alignItems: 'center', justifyContent: 'center' },
   track: { flex: 1, height: 44, justifyContent: 'center' },
   rail: { height: 4, borderRadius: 2, backgroundColor: theme.edge },
   fill: { position: 'absolute', left: 0, height: 4, borderRadius: 2, backgroundColor: '#1a73e8' },

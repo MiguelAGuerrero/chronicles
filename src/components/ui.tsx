@@ -205,7 +205,7 @@ export function Banner(props: {
         </Pressable>
       )}
       {props.onDismiss && (
-        <Pressable accessibilityRole="button" accessibilityLabel="Dismiss" onPress={props.onDismiss} hitSlop={12} style={styles.bannerClose}>
+        <Pressable testID="banner-dismiss" accessibilityRole="button" accessibilityLabel="Dismiss" onPress={props.onDismiss} style={styles.bannerClose}>
           <Text style={styles.bannerCloseText}>✕</Text>
         </Pressable>
       )}
@@ -249,6 +249,7 @@ const styles = StyleSheet.create({
   bannerText: { flex: 1, color: '#6b4500', fontSize: 14, lineHeight: 19 },
   bannerAction: { paddingVertical: 4, paddingHorizontal: 6 },
   bannerActionText: { color: theme.ink, fontWeight: '700', fontSize: 14, textDecorationLine: 'underline' },
-  bannerClose: { padding: 4 },
+  // 44 pt itself, not by hit slop (react-native-web has none), without making the banner taller (U4).
+  bannerClose: { width: 44, height: 44, marginVertical: -10, marginRight: -10, alignItems: 'center', justifyContent: 'center' },
   bannerCloseText: { color: theme.muted, fontSize: 16 },
 });
