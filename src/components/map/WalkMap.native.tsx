@@ -12,6 +12,7 @@ import type { Capture, LngLat } from '../../lib/types';
 import { TILEJSON_URL } from '../../lib/tiles';
 import { useGlidingWalker } from '../../lib/useGlidingWalker';
 import { distanceM } from '../../lib/geo';
+import { capFitBounds } from '../../lib/zoomOut';
 import type { DotSource } from '../../lib/liveDot';
 import { markEnter, pinDrops, sameSeen } from '../../lib/enter';
 import { useReducedMotion } from '../../lib/motion';
@@ -101,7 +102,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     if (!ready || !props.fitBounds || props.fitKey === fitAtMount.current) return;
     fitAtMount.current = undefined;
     const pad = props.fitPadding ?? { top: 48, right: 48, bottom: 48, left: 48 };
-    cameraRef.current?.fitBounds(props.fitBounds, { padding: pad, duration });
+    // MapLibre RN's fitBounds has no maxZoom: the bounds are widened to fit no closer (tabs audit U15).
+    const bounds = size.current.width ? capFitBounds(props.fitBounds, props.fitMaxZoom ?? 17, size.current, pad) : props.fitBounds;
+    cameraRef.current?.fitBounds(bounds, { padding: pad, duration });
     // MapLibre RN reports no end to a fit: it is taken as settled once its animation has run.
     const key = props.fitKey ?? 0;
     const t = setTimeout(() => onFitSettled.current?.(key), (duration ?? 0) + 100);

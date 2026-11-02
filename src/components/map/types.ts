@@ -117,7 +117,7 @@ export interface WalkMapProps {
   onFitSettled?: (fitKey: number) => void;
   /** Space kept clear of the fitted bounds, e.g. for a sheet over the map. */
   fitPadding?: Padding;
-  /** The closest a fit may zoom (web; MapLibre RN's fitBounds has no maxZoom). Default 17. */
+  /** The closest a fit may zoom. Default 17. Web passes it to fitBounds; native widens the bounds (capFitBounds). */
   fitMaxZoom?: number;
   /** False for reduced motion: camera changes jump instead of animating. */
   animate?: boolean;

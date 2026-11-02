@@ -33,6 +33,8 @@ const WORLD = { center: [-40, 30] as [number, number], zoom: 1.2 };
 /** Walks a pass began this session; one that failed waits for the next launch (criterion 25). */
 const tried = new Set<string>();
 const boundsKey = (b: Bounds | null) => (b ? b.map((v) => v.toFixed(5)).join(',') : '');
+/** The closest any of Chronicle's fits may zoom (tabs audit U15). */
+const FIT_MAX_ZOOM = 15;
 /** Moments outside walks show as pins from neighborhood zoom (M16); stars stand for places below it. */
 const MOMENT_PIN_ZOOM = 11;
 /** Every capture, loose or in a walk, for the days (M7): rows only, never media. */
@@ -351,7 +353,8 @@ export default function Chronicle() {
             fitKey={fit.key}
             onFitSettled={onFitSettled}
             fitPadding={fit.padding ?? { top: insets.top + 60, right: 48, bottom: sheetH + 96, left: 48 }}
-            fitMaxZoom={fit.maxZoom}
+            // A fit to one short walk stops around z15, not at street-sign zoom (tabs audit U15).
+            fitMaxZoom={Math.min(fit.maxZoom ?? FIT_MAX_ZOOM, FIT_MAX_ZOOM)}
             initialCenter={savedCamera?.center ?? WORLD.center}
             initialZoom={savedCamera?.zoom ?? WORLD.zoom}
             onCameraChange={onCameraChange}
