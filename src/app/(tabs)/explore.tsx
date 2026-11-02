@@ -22,7 +22,8 @@ import { useTabMap } from '../../lib/useTabMap';
 
 const NONE: never[] = [];
 const WORLD = { center: [-40, 30] as [number, number], zoom: 1.2 };
-const PEEK = 76;
+/** Room for the area's name and the hint under it (tabs audit U5). */
+const PEEK = 88;
 /** Places to find and finds are read for the view from this zoom, and again once the middle moves this far. */
 const MARKS_ZOOM = 12;
 const REREAD_M = 500;
@@ -156,6 +157,8 @@ export default function Explore() {
               <Text testID="explore-area" style={styles.title} accessibilityRole="header" numberOfLines={1}>
                 {here?.name ?? 'Look around'}
               </Text>
+              {/* At rest too, not only opened (tabs audit U5): the peek says how Explore is used. */}
+              <Text testID="explore-hint" style={styles.hint} numberOfLines={1}>Press and hold the map to see what’s good there.</Text>
             </View>
           }
         >
@@ -179,7 +182,6 @@ export default function Explore() {
                   <Text testID="explore-found" style={styles.line}>{here.found.join(' · ')}</Text>
                 </>
               ) : null}
-              <Text style={styles.sub}>Press and hold the map to see what’s good there.</Text>
             </ScrollView>
           )}
         </SheetFrame>
@@ -297,13 +299,13 @@ const styles = StyleSheet.create({
   under: { zIndex: 0 },
   over: { zIndex: 1 },
   top: { position: 'absolute', left: 16, right: 16, gap: 8, maxWidth: 640, alignSelf: 'center' },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, minHeight: 48, maxWidth: 640, width: '100%', alignSelf: 'center' },
-  title: { flex: 1, fontSize: 17, fontWeight: '700', color: theme.ink },
+  header: { justifyContent: 'center', gap: 2, paddingHorizontal: 16, paddingBottom: 8, minHeight: 56, maxWidth: 640, width: '100%', alignSelf: 'center' },
+  title: { fontSize: 17, fontWeight: '700', color: theme.ink },
+  hint: { fontSize: 13, color: theme.muted },
   body: { flex: 1 },
   bodyContent: { padding: 16, gap: 8, maxWidth: 640, width: '100%', alignSelf: 'center' },
   section: { fontSize: 15, fontWeight: '700', color: theme.ink, marginTop: 6 },
   line: { fontSize: 15, color: theme.ink, lineHeight: 21 },
-  sub: { fontSize: 13, color: theme.muted, marginTop: 6 },
   scanning: {
     flexDirection: 'row', alignItems: 'center', gap: 10, alignSelf: 'center', backgroundColor: theme.surface, borderRadius: 999,
     paddingVertical: 6, paddingLeft: 14, paddingRight: 6,
