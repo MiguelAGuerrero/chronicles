@@ -11,6 +11,11 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { chromium } = require('playwright');
+// Ionicons' glyphs, to tell which icon a button draws (tabs audit U10, U11).
+const IONS = require('@expo/vector-icons/build/vendor/react-native-vector-icons/glyphmaps/Ionicons.json');
+const glyph = (name) => String.fromCodePoint(IONS[name]);
+// A glyph's icon name, for messages: the characters themselves don't print.
+const iconOf = (text) => Object.keys(IONS).find((k) => glyph(k) === text) ?? JSON.stringify(text);
 
 const DIST = path.join(__dirname, '..', 'dist');
 // The sub-path the build was exported for (GitHub Pages serves it at /chronicles).
@@ -391,13 +396,24 @@ function check(ok, what) {
       check((await pg.locator('[data-testid=peek-choices]').innerText()) === 'Quiet', 'tabs audit U12: at the peek, the line still says the mode');
 
     });
+    // Chronicle with no walks (tabs audit U7): the peek holds the empty line and a way to Navigate.
+    const emptyPeek = async (when) => {
+      const sheet = await pg.locator('[data-testid=home-sheet]').boundingBox();
+      const nav = await pg.locator('[data-testid=sheet-navigate]').boundingBox().catch(() => null);
+      const said = (await pg.locator('[data-testid=home-sheet]').innerText()).includes('Walk somewhere and it is starred here');
+      check(said && nav && sheet && nav.y >= sheet.y && nav.y + nav.height <= sheet.y + sheet.height + 1 && (await shownCount(pg, '[data-testid=sheet-navigate]')) === 1,
+        `tabs audit U7: ${when}, Chronicle's peek says how walks get here and offers Navigate (${said}, ${nav && Math.round(nav.y)})`);
+      if (await pg.locator('[data-testid=sheet-navigate]').count()) await pg.click('[data-testid=sheet-navigate]');
+      else await pg.click('[data-testid=tab-navigate]');
+      await pg.waitForTimeout(1000);
+      check((await pg.locator('[data-testid=tab-navigate][aria-selected=true]').count()) === 1, `tabs audit U7: ${when}, the peek's Navigate opens Navigate`);
+    };
     await step('tabs audit Chronicle read before the walk', async () => {
       // Chronicle is opened once before any walk: its last read says no walk is open (tabs audit 2).
       await pg.click('[data-testid=tab-chronicle]');
       await pg.waitForSelector('[data-testid=home-sheet]');
       await pg.waitForTimeout(800);
-      await pg.click('[data-testid=tab-navigate]');
-      await pg.waitForTimeout(800);
+      await emptyPeek('with nothing walked');
 
     });
     await step('tabs audit 3: a memo, then Walk here', async () => {
@@ -410,11 +426,27 @@ function check(ok, what) {
       await pg.waitForSelector('[data-testid=explore-drawer]');
       await pg.waitForTimeout(1500);
       {
+        // tabs audit U5: at rest, Explore's peek says how to use it.
+        const drawer = await pg.locator('[data-testid=explore-drawer]').boundingBox();
+        const hint = await pg.locator('[data-testid=explore-hint]').boundingBox().catch(() => null);
+        const words = hint ? await pg.locator('[data-testid=explore-hint]').innerText() : '';
+        check(hint && /Press and hold the map/.test(words) && hint.y >= drawer.y && hint.y + hint.height <= drawer.y + drawer.height + 1,
+          `tabs audit U5: Explore's peek shows the hint at rest (${hint && Math.round(hint.y)} in ${Math.round(drawer.y)}+${Math.round(drawer.height)})`);
+      }
+      {
         const box = await pg.locator('canvas.maplibregl-canvas').boundingBox();
         await pg.mouse.move(box.x + box.width / 2 + 50, box.y + box.height / 2 - 80);
         await pg.mouse.down();
         await pg.waitForTimeout(700);
         await pg.mouse.up();
+      }
+      {
+        // tabs audit U6: What's good here? is the filled button; Walk here the secondary one.
+        await pg.waitForSelector('[data-testid=look-here]');
+        const bg = (sel) => pg.locator(sel).evaluate((e) => getComputedStyle(e).backgroundColor);
+        const look = await bg('[data-testid=look-here]');
+        const walkHere = await bg('[data-testid=walk-here]');
+        check(look === 'rgb(194, 65, 12)' && walkHere !== look, `tabs audit U6: on Explore's card, What's good here? is primary and Walk here secondary (${look}, ${walkHere})`);
       }
       await pg.click('[data-testid=walk-here]');
       await pg.waitForURL(/\/walk/, { timeout: 15000 });
@@ -504,6 +536,12 @@ function check(ok, what) {
         check(after === peek, `tabs audit U2: with a walk open the drawer stays at its peek (${peek} → ${after} px)`);
       }
     });
+    await step('tabs audit U7: Chronicle while minimized', async () => {
+      await pg.click('[data-testid=tab-chronicle]');
+      await pg.waitForSelector('[data-testid=home-sheet]');
+      await pg.waitForTimeout(1000);
+      await emptyPeek('with a walk minimized and none finished');
+    });
     await step('tabs audit U2: following the walk', async () => {
       // The walk goes on; Navigate follows it: the trace, the walker, the capture row for the walk.
       const perfA = { at: Date.now(), ...(await pg.evaluate(() => ({ ...window.__perf }))) };
@@ -539,6 +577,147 @@ function check(ok, what) {
       await pg.waitForSelector('[data-testid=stop]');
       await pg.waitForTimeout(1500);
       check((await pg.locator('[aria-label="Note. Open"]').count()) === 1, 'tabs audit U2: back on the walk, the note from Navigate is pinned once, not lost or doubled');
+    });
+    await step('tabs audit U11: the options icon', async () => {
+      // tabs audit U11: the walk options button draws one icon, quiet or exploring.
+      const icon = () => pg.locator('[data-testid=walk-options]').innerText();
+      const quiet = await icon();
+      await pg.click('[data-testid=walk-options]');
+      await pg.waitForSelector('[data-testid=options-card]');
+      await pg.click('[data-testid=explore-walk]');
+      await pg.waitForTimeout(600);
+      const exploring = await icon();
+      const on = await pg.locator('[data-testid=explore-walk] input').isChecked().catch(() => null);
+      await pg.click('[data-testid=explore-walk]');
+      await pg.waitForTimeout(400);
+      await pg.click('[data-testid=walk-options]');
+      await pg.waitForTimeout(400);
+      check(on === true && quiet === exploring && quiet === glyph('options-outline'),
+        `tabs audit U11: the walk options button keeps one icon whatever the mode (${iconOf(quiet)}, ${iconOf(exploring)})`);
+    });
+    await step('tabs audit U10: the bar when paused', async () => {
+      // tabs audit U10: paused, the bar shows a pause glyph; its way back doesn't read as "expand".
+      await pg.click('[data-testid=pause-walk]');
+      await pg.waitForSelector('[data-testid=resume-walk]', { timeout: 10000 });
+      await pg.click('[data-testid=walk-minimize]');
+      await pg.waitForSelector('[data-testid=recording-bar]', { timeout: 10000 });
+      await pg.waitForTimeout(600);
+      const pausedGlyph = await pg.locator('[data-testid=recording-bar] [data-testid=recording-paused]').innerText().catch(() => '');
+      const go = await pg.locator('[data-testid=recording-bar] [data-testid=recording-go]').innerText().catch(() => '');
+      const all = await pg.locator('[data-testid=recording-return]').innerText();
+      check(pausedGlyph === glyph('pause'), `tabs audit U10: paused, the recording bar shows a pause glyph, not only a grey dot (${iconOf(pausedGlyph)})`);
+      check(go && go !== glyph('chevron-up') && !all.includes(glyph('chevron-up')) && (await pg.locator('[data-testid=recording-return]').count()) === 1,
+        `tabs audit U10: the bar's way back to the walk isn't an expand chevron (${iconOf(go)})`);
+      await pg.click('[data-testid=recording-return]');
+      await pg.waitForSelector('[data-testid=resume-walk]', { timeout: 10000 });
+      await pg.click('[data-testid=resume-walk]');
+      await pg.waitForSelector('[data-testid=pause-walk]', { timeout: 10000 });
+      await pg.waitForTimeout(600);
+    });
+    const holdStop = async () => {
+      const b = await pg.locator('[data-testid=stop]').boundingBox();
+      await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+      await pg.mouse.down();
+      await pg.waitForTimeout(1100);
+      await pg.mouse.up();
+      await pg.waitForURL(/replay/, { timeout: 30000 });
+      await pg.waitForSelector('[data-testid=skip]', { timeout: 30000 });
+      await pg.click('[data-testid=skip]');
+      await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
+      await pg.waitForTimeout(800);
+    };
+    const walkRow = (id) => pg.evaluate((wid) => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const g = req.result.transaction('walk', 'readonly').objectStore('walk').get(wid);
+        g.onsuccess = () => resolve(g.result ?? null);
+      };
+    }), id);
+    await step('tabs audit U13, U14, audit 6: the first replay', async () => {
+      await north(0.3, 0.5);
+      await holdStop();
+      // tabs audit U13: no big orange count on the card; new streets are a clause in its line.
+      const loud = await pg.evaluate(() => [...document.querySelectorAll('div, span')]
+        .filter((e) => [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()))
+        .filter((e) => {
+          const r = e.getBoundingClientRect();
+          const hit = r.width && document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+          return hit && (hit === e || e.contains(hit));
+        })
+        .filter((e) => { const cs = getComputedStyle(e); return parseFloat(cs.fontSize) >= 28 || cs.color === 'rgb(194, 65, 12)'; })
+        .map((e) => e.textContent.trim()));
+      const cardText = (await pg.locator('body').innerText()).replace(/\s+/g, ' ');
+      check(loud.length === 0 && !/\b\d+ new streets?\b/.test(cardText), `tabs audit U13: the card has no large accent number (${JSON.stringify(loud)})`);
+      // tabs audit U14: a quiet Not now beside naming.
+      const notNow = await pg.locator('[data-testid=not-now]').count();
+      const notNowBg = notNow ? await pg.locator('[data-testid=not-now]').evaluate((e) => getComputedStyle(e).backgroundColor) : '';
+      check(notNow === 1 && (await pg.locator('[data-testid=not-now]').innerText()) === 'Not now' && notNowBg !== 'rgb(194, 65, 12)' && (await pg.locator('[data-testid=to-name]').count()) === 1,
+        `tabs audit U14: the first replay's card has a quiet Not now, and Name it stays (${notNow}, ${notNowBg})`);
+      // tabs audit audit 6: Back from the first replay goes to Chronicle, like Keep it (NV27).
+      await pg.goBack();
+      await pg.waitForURL((u) => u.pathname === `${BASE}/chronicle`, { timeout: 5000 }).catch(() => {});
+      await pg.waitForTimeout(1500);
+      const path = new URL(pg.url()).pathname;
+      check(path === `${BASE}/chronicle` && (await pg.locator('[data-testid=to-name]').count()) === 0 && (await pg.locator('[data-testid=tab-chronicle][aria-selected=true]').count()) === 1,
+        `tabs audit audit 6: Back from the first replay goes to Chronicle, not the tab the walk began on (${path})`);
+      const row = await walkRow(w.id);
+      check(row && !row.open && row.title == null, 'tabs audit audit 6: the walk is kept, unnamed');
+      if (path !== `${BASE}/chronicle`) {
+        await pg.goto(`${url}chronicle`);
+        await pg.waitForSelector('[data-testid=home-sheet]');
+      }
+    });
+    await step('tabs audit U8, U13, U15: Chronicle after a walk', async () => {
+      await pg.waitForSelector('[data-testid=home-sheet]');
+      await pg.waitForTimeout(2500);
+      // tabs audit U15: a fit to one short walk stops around z15, not at street-sign zoom.
+      const zoom = await pg.evaluate(() => Number(document.querySelector('[data-zoom]')?.getAttribute('data-zoom') ?? NaN));
+      check(zoom > 10 && zoom <= 15.05, `tabs audit U15: Chronicle's fit to a single walk caps its zoom at z15 (z${zoom})`);
+      // tabs audit U13: the peek has no "N walks · M places".
+      const peekText = await pg.locator('[data-testid=sheet-drag]').innerText();
+      check(!/\b\d+ (walk|walks|place|places)\b/.test(peekText), `tabs audit U13: Chronicle's peek carries no counts (${JSON.stringify(peekText)})`);
+      // tabs audit U8: a Walks | Days switch in the header at every height.
+      const both = async (size) => {
+        const head = await pg.locator('[data-testid=sheet-drag]').boundingBox();
+        const out = [];
+        for (const id of ['sheet-walks', 'sheet-days']) {
+          const b = await pg.locator(`[data-testid=${id}]`).boundingBox().catch(() => null);
+          out.push(b && b.y >= head.y && b.y + b.height <= head.y + head.height + 1 ? 'ok' : `${id}:${b && Math.round(b.y)}`);
+        }
+        check(out.every((x) => x === 'ok'), `tabs audit U8: at ${size}, the sheet's header has the Walks | Days switch (${out.join(', ')})`);
+      };
+      await both('peek');
+      await drawerTo(pg, 'half', 'sheet-drag');
+      await both('half');
+      const rowsText = (await pg.locator('[data-testid=walk-row]').allInnerTexts()).join(' | ');
+      check(rowsText && !/new streets?/.test(rowsText), `tabs audit U13: the walks list doesn't count new streets (${rowsText.replace(/\s+/g, ' ')})`);
+      await drawerTo(pg, 'full', 'sheet-drag');
+      await both('full');
+      if (await pg.locator('[data-testid=sheet-days]').count()) {
+        await pg.click('[data-testid=sheet-days]');
+        await pg.waitForTimeout(500);
+        check((await pg.locator('[data-testid=day-row]').count()) >= 1 && (await pg.locator('[data-testid=sheet-walks]').count()) === 1,
+          'tabs audit U8: the switch flips the open sheet between walks and days');
+      }
+      await drawerTo(pg, 'peek');
+    });
+    await step('tabs audit U14: Not now', async () => {
+      // tabs audit U14: Not now keeps the walk unnamed and goes to Chronicle.
+      await pg.click('[data-testid=tab-navigate]');
+      await pg.waitForSelector('[data-testid=start]');
+      await pg.waitForTimeout(800);
+      await pg.click('[data-testid=start]');
+      await pg.waitForURL(/\/walk/, { timeout: 15000 });
+      await pg.waitForSelector('[data-testid=stop]');
+      const second = await openWalk(pg);
+      await north(0.5, 0.6);
+      await holdStop();
+      await pg.click('[data-testid=not-now]');
+      await pg.waitForURL((u) => u.pathname === `${BASE}/chronicle`, { timeout: 5000 }).catch(() => {});
+      await pg.waitForTimeout(1000);
+      const row = second && await walkRow(second.id);
+      check(new URL(pg.url()).pathname === `${BASE}/chronicle` && (await pg.locator('[data-testid=home-sheet]').count()) === 1 && row && row.title == null && !row.open,
+        `tabs audit U14: Not now goes to Chronicle and leaves the walk unnamed (${pg.url()}, ${row && row.title})`);
     });
     await c.close();
   };

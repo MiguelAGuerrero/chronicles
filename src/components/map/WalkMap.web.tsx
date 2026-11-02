@@ -271,6 +271,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       const canvas = map.getCanvas();
       const c = map.unproject([canvas.clientWidth / 2, canvas.clientHeight / 2]);
       onCameraChange.current?.({ center: [c.lng, c.lat], zoom });
+      // For the e2e (tabs audit U15): the zoom, written straight to the DOM, never a render.
+      container.current?.setAttribute('data-zoom', zoom.toFixed(2));
       setView((v) => (v && Math.abs(v.zoom - zoom) < 0.05 && Math.abs(v.lat - lat) < 0.01 ? v : { zoom, lat }));
     };
     // Only gestures carry an originalEvent; camera moves made in code do not.
