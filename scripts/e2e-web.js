@@ -534,6 +534,12 @@ function check(ok, what) {
         await drawerTo(pg, 'half');
         const after = Math.round((await pg.locator('[data-testid=navigate-drawer]').boundingBox()).height);
         check(after === peek, `tabs audit U2: with a walk open the drawer stays at its peek (${peek} → ${after} px)`);
+        // Dragged up and let go, it settles back to the peek: it was left where the finger let go,
+        // tall and empty over the map (the owner's screenshot, Nov 2).
+        await drawerTo(pg, 'full');
+        await pg.waitForTimeout(800);
+        const dragged = Math.round((await pg.locator('[data-testid=navigate-drawer]').boundingBox()).height);
+        check(dragged === peek, `tabs audit U2: with a walk open a dragged drawer settles back at its peek (${peek} → ${dragged} px)`);
       }
     });
     await step('tabs audit U7: Chronicle while minimized', async () => {

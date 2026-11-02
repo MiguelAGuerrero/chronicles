@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Animated, BackHandler, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions,
   type GestureResponderEvent,
@@ -98,6 +98,11 @@ export function SheetFrame(props: {
   useEffect(() => {
     moveTo(target, reduced);
   }, [moveTo, target, reduced]);
+  const latest = useRef({ size, target, reduced });
+  // Updated straight after each commit, so the settle check below reads the screen's answer.
+  useLayoutEffect(() => {
+    latest.current = { size, target, reduced };
+  });
 
   // Back on Android, and Escape on the web, lower an open sheet before anything else.
   const onSizeRef = useRef(props.onSize);
@@ -130,7 +135,14 @@ export function SheetFrame(props: {
     const at = drag.current.from + moved;
     const nearest = (Object.keys(heights) as SheetSize[]).sort((x, y) => Math.abs(heights[x] - at) - Math.abs(heights[y] - at))[0];
     if (nearest === size) moveTo(target, reduced);
-    else props.onSize(nearest);
+    else {
+      props.onSize(nearest);
+      // A screen may refuse the new height (Navigate with a walk open holds the peek, U2). Its size
+      // then never changes, so nothing would move the sheet: it settles back where the screen holds it.
+      setTimeout(() => {
+        if (latest.current.size === size) moveTo(latest.current.target, latest.current.reduced);
+      }, 0);
+    }
   };
   const dragProps = {
     onStartShouldSetResponder: () => true,

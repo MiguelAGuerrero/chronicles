@@ -1158,6 +1158,9 @@ Read this before changing recording, streets, the replay or storage.
       `onResponderTerminationRequest: false` and a settle on terminate, so a
       mouse drag never leaves it stuck halfway.
     - Back (Android) and Escape (web) lower it.
+    - A screen may refuse a height (`onSize`; Navigate holds the peek with a
+      walk open). A drag let go then settles back where the screen holds it;
+      it was once left tall and empty where the finger let go (Nov 2).
 - react-native-web gives a one-line `Text` (`numberOfLines={1}`) `maxWidth:
   100%` of its parent. A label wider than its parent (a star's name) needs an
   explicit `maxWidth`, or it truncates to the parent's width.
