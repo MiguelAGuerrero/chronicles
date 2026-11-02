@@ -979,6 +979,52 @@ Read this before changing recording, streets, the replay or storage.
   background commit, and `router.dismissTo` right after the actions Modal
   closes (iOS can drop a navigation during a Modal's dismissal).
 
+## Navigation & tabs: after the audit (the owner's calls, Nov 2)
+
+- **Navigate's drawer docks Start and the capture row low at every height**
+  (U1, AllTrails' sticky Start): Start is the drawer's foot; the row sits
+  above the peek, over the drawer, whose settings scroll above both (a band
+  under the row when opened). The grip is the handle plus a strip (44 px).
+- **Navigate with a walk minimized is a live view of it** (U2, `LiveWalk` in
+  `(tabs)/index.tsx`): trace, dot (`walkerSource={live.dot}`), captures,
+  destination, and the capture row (`CaptureRow`, split from `MomentBar`)
+  keeping captures for the walk. No Start or Return button (the recording
+  bar is the way back), the drawer held at its peek, no `locateOnce`. Only
+  `LiveWalk` reads `useOpenWalk()`, and only while Navigate is focused;
+  screens that only need to know whether a walk is open use
+  `useOpenWalkInfo()`, which never changes per fix. The e2e bounds
+  `render:navigate-walk`.
+- **Going to the walk screen is `showWalk()`** (`lib/walkNav`, gate in
+  `lib/walkGate`), never `router.push('/walk')`: a second ask while one is on
+  its way or the screen is up does nothing, and the root stack's `walk` is
+  `dangerouslySingular` (tabs audit 1).
+- **A notification opener decides at tap time** from the keeper
+  (`useOpenWalkInfo` in a ref), never from what its tab read on focus: a JS
+  tab stays mounted, stale, under the others (tabs audit 2).
+- **Leaving Navigate mid-memo saves the memo**; `memoGate` makes Start and
+  Walk here wait for a memo being saved and refuse one still recording
+  (tabs audit 3).
+- **Later changes to a capture go out on the bus** (`captureBus.patch`, after
+  the row is stored), so a thumbnail made after the bar's camera went reaches
+  the walk screen (tabs audit 5).
+- **The open walk's keeper reads latest-wins** (`createLatestLoader`): a
+  failed read retries after 1 s and never settles as "no walk" (tabs audit 9).
+- **Switch rows** (`components/SwitchRow`) flip from anywhere on the row; the
+  Switch inside only shows the state (pointer events off), so a tap never
+  flips twice. Its `testID` is on the row: `[data-testid=x] input` still
+  reads the state. Small buttons are 44 pt themselves: react-native-web has
+  no `hitSlop`.
+- **Traps:** a pin on a map with no `onPinPress` is labelled without
+  ". Open". The walker puck is `aria-hidden` (count it directly, not with
+  `shownCount`). A Playwright double click on the bar never reached it twice
+  (the bar is gone after the first push), so tabs audit 1's regression is the
+  unit test. `E2E_ONLY=tabs` runs the tabs audit alone; `E2E_SOFT=1` reports
+  failed checks and steps and goes on, for a run against code from before a
+  fix.
+- **Native** (unverified on a device): the docked drawer, `LiveWalk`'s
+  Markers and dot, `dangerouslySingular` on the native stack, the memo saved
+  on blur.
+
 ## Working with the owner
 
 - **Ask before architectural decisions:** libraries, data model, platform strategy,
