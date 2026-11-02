@@ -43,7 +43,8 @@ export async function loadReplay(walkId: string): Promise<ReplayData | null> {
   if (!walk) return null;
   // Standstills are drawn and replayed as a still dot, not GPS jitter.
   const pauses = await db.getPauses(walkId);
-  const tr = readTrace(await db.getPoints(walkId), walk.started_at, pauses);
+  const stills = await db.getStills(walkId).catch(() => []);
+  const tr = readTrace(await db.getPoints(walkId), walk.started_at, pauses, stills);
   const fixes = smoothKept(tr);
   const walkedFixes = smoothDwells(tr.walked);
   const captures = await db.getCaptures(walkId);

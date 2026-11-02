@@ -1,3 +1,4 @@
+import type { DotSource } from '../../lib/liveDot';
 import type { MarkPin } from '../MarkPinView';
 import type { LandingView } from '../../lib/landing/view';
 import type { StyleProp, ViewStyle } from 'react-native';
@@ -103,6 +104,8 @@ export interface WalkMapProps {
   /** The way the walker is going (degrees from north), drawn as a soft cone; null hides it. */
   walkerHeading?: number | null;
   walker?: LngLat | null;
+  /** The live dot, fix by fix (the live walk): the glide follows it, and the trace's end joins it. */
+  walkerSource?: DotSource | null;
   /** Glide the dot, cone and camera between fixes (the live walk). Off, the dot is placed as given (the replay's clock). */
   glideWalker?: boolean;
   /** Keeps the camera centered here while set. */

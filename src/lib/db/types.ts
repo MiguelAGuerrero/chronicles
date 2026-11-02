@@ -2,7 +2,7 @@ import type { Area, WalkArea } from '../areas/types';
 import type { Mark, Offered, Place, Recall } from '../discovery/types';
 import type { ChecklistArea, ChecklistItem, ExploreRead, Find } from '../explore/explore';
 import type { LandingRow } from '../landing/view';
-import type { Capture, Pause, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
+import type { Capture, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 
 /**
  * Local-only storage, mirroring the concept doc's tables. Native uses
@@ -48,6 +48,12 @@ export interface Db {
   /** Ends the walk's open pause, if any. */
   endPause(walkId: string, at: number): Promise<void>;
   getPauses(walkId: string): Promise<Pause[]>;
+
+  /** Starts a still spell (Motion, MO8); at most one is open per walk. */
+  startStill(walkId: string, at: number): Promise<void>;
+  /** Ends the walk's open still spell, if any. */
+  endStill(walkId: string, at: number): Promise<void>;
+  getStills(walkId: string): Promise<Still[]>;
 
   /** Caches street segments derived outside a snap (streets around the walker). */
   putSegments(segments: StreetSegment[]): Promise<void>;

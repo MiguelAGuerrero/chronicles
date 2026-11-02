@@ -418,6 +418,7 @@ function LiveWalk(props: {
           fog={NONE}
           captures={captures}
           walker={live.here}
+          walkerSource={live.dot}
           walkerHeading={live.heading}
           glideWalker
           marks={props.dest ? [props.dest.at] : undefined}

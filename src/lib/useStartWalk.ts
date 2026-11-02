@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { db } from './db';
 import { memoGate } from './memoGate';
+import { askMotion } from './walkMotion';
 import type { Waypoint } from './nav/types';
 import { RecorderError } from './recorder/types';
 import { startWalk } from './session';
@@ -23,6 +24,8 @@ export function useStartWalk() {
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<StartError | null>(null);
   const start = async (dest: Waypoint | null, mode?: StartMode) => {
+    // Motion first, straight from the tap: an iPhone's browser asks only then (Motion, MO1).
+    void askMotion();
     setError(null);
     setStarting(true);
     try {

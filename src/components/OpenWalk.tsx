@@ -2,10 +2,11 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { Platform } from 'react-native';
 import { db } from '../lib/db';
 import { checkRecalls } from '../lib/discovery/recallCheck';
-import type { Pause, Walk } from '../lib/types';
+import type { Pause, Still, Walk } from '../lib/types';
 import { useLiveTrace, type LiveTrace } from '../lib/useLiveTrace';
 import { createLatestLoader } from '../lib/openWalkLoad';
 import { onWalkChange } from '../lib/walkEvents';
+import { useWalkMotion } from '../lib/walkMotion';
 
 /**
  * The open walk, kept above the tabs and the walk screen (NV8): a minimized
@@ -65,7 +66,11 @@ export function OpenWalkProvider(props: { children: ReactNode }) {
     };
   }, []);
 
-  const live = useLiveTrace(open.walk?.id ?? null, open.walk?.started_at ?? null, open.pauses, onGap);
+  // Still spells told by the motion sensors: the line holds still through each (Motion, MO8). Motion
+  // is read here, so it goes on while the walk is minimized, and stops while it is paused.
+  const [stills, setStills] = useState<Still[]>([]);
+  const live = useLiveTrace(open.walk?.id ?? null, open.walk?.started_at ?? null, open.pauses, stills, onGap);
+  useWalkMotion(open.walk?.id ?? null, !!open.walk && !open.pauses.some((p) => p.ended_at == null), live.dot, setStills);
 
   // Remind me here on the web, on each accepted fix, wherever the walk is shown or minimized (NV8, R3).
   const walkId = open.walk?.id ?? null;

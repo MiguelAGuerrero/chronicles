@@ -359,6 +359,11 @@ export const DWELL_MIN_MS = 2 * 60_000;
 export const DWELL_RADIUS_M = 25;
 /** Fixes are averaged over this long before looking for a stay, which damps indoor jitter. */
 const DWELL_BIN_MS = 30_000;
+/**
+ * An averaged position this far from a stay is travel, never a jump it rides out: a walk out and
+ * straight back along one street passed the same spot twice and read as a two-minute stay (Nov 2).
+ */
+const DWELL_JUMP_M = 3 * 25;
 /** A stay survives this many averaged positions outside its radius in a row (a GPS jump). */
 const DWELL_MISSES = 2;
 /** Standing still reports a speed near 0 even while the position wanders; circling a fountain does not. */
@@ -439,6 +444,9 @@ export function dwellsOf(fixes: TracePoint[]): Dwell[] {
         center = centroid(members);
         misses = 0;
         last = j;
+      } else if (distanceM(center, binAt(bins[j])) > DWELL_JUMP_M) {
+        // That far is travel, not a GPS jump: the walker left (out and back, Nov 2).
+        break;
       } else {
         misses++;
       }

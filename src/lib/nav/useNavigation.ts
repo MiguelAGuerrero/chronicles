@@ -104,6 +104,7 @@ export function useNavigation(opts: {
     };
     try {
       const pauses = await db.getPauses(walk.id);
+      const stills = await db.getStills(walk.id).catch(() => []);
       const points = await db.getPoints(walk.id);
       const last = points[points.length - 1];
       const from: LngLat | null = here ?? (last ? [last.lon, last.lat] : null);
@@ -120,7 +121,7 @@ export function useNavigation(opts: {
       // already cached around you; the shorter wins, so it never retraces a detour (owner, Nov 1).
       const list: RouteSource[] = [];
       if (dest.kind === 'start' || dest.kind === 'capture') {
-        list.push(traceRouteSource(points, pauses, walk.started_at));
+        list.push(traceRouteSource(points, pauses, walk.started_at, stills));
         list.push(await cachedStreets(boundsOf([from, dest.at], AREA_PAD_M)!));
       }
       let found = routeTo(list, from, dest.at, 'shortest');

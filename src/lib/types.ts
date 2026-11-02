@@ -56,6 +56,18 @@ export interface Capture {
   thumb_path?: string | null;
 }
 
+/**
+ * A stretch of a walk the motion sensors said the walker stood still (Motion,
+ * MO8): truth, kept with the walk like its pauses. The trace's fixes inside
+ * one are read as one spot.
+ */
+export interface Still {
+  walk_id: string;
+  started_at: number;
+  /** Null while the walker is still standing. */
+  ended_at: number | null;
+}
+
 /** A stretch of a walk the walker paused: nothing is recorded, and it does not count as walking. */
 export interface Pause {
   walk_id: string;

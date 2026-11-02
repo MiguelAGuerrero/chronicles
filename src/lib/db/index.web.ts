@@ -5,13 +5,13 @@ import { countsOf, recountNewStreets } from '../deletion/core';
 import type { LandingRow } from '../landing/view';
 import type { Mark, Offered, Place, Recall } from '../discovery/types';
 import { DERIVED_STORES } from './stores';
-import type { Capture, Pause, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
+import type { Capture, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 import { intersects, segmentBbox, segmentTile, tileKeysFor } from './segmentBounds';
 import type { Db } from './types';
 
 // Same tables as the native SQLite store, as IndexedDB object stores.
 const DB_NAME = 'chronicles';
-const VERSION = 10;
+const VERSION = 11;
 
 /** Raised when another open tab holds an older version of the database. */
 export class BlockedByOtherTabError extends Error {
@@ -87,6 +87,10 @@ function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number) {
   if (oldVersion < 10) {
     // Moments (M6): captures read by time for days, never the whole store.
     tx.objectStore('capture').createIndex('t', 't');
+  }
+  if (oldVersion < 11) {
+    // Still spells told by the motion sensors (Motion, MO8), kept with the walk like pauses.
+    d.createObjectStore('still', { keyPath: ['walk_id', 'started_at'] }).createIndex('walk_id', 'walk_id');
   }
 }
 
@@ -231,7 +235,7 @@ export const db: Db = {
   },
 
   async deleteWalk(walkId) {
-    const names = ['walk', 'trace_point', 'capture', 'pause', 'visited_segment', 'walk_summary', 'walk_area', 'area', 'find', 'recall', 'mark', 'meta'];
+    const names = ['walk', 'trace_point', 'capture', 'pause', 'still', 'visited_segment', 'walk_summary', 'walk_area', 'area', 'find', 'recall', 'mark', 'meta'];
     const tx = (await conn()).transaction(names, 'readwrite');
     const os = (n: string) => tx.objectStore(n);
     return atomically(tx, async () => {
@@ -242,6 +246,7 @@ export const db: Db = {
       }
       await dropBy(os('trace_point'), 'walk_id', walkId);
       await dropBy(os('pause'), 'walk_id', walkId);
+      await dropBy(os('still'), 'walk_id', walkId);
       await dropBy(os('visited_segment'), 'walk_id', walkId);
       await dropBy(os('walk_area'), 'walk_id', walkId);
       await dropBy(os('find'), 'walk_id', walkId);
@@ -310,6 +315,24 @@ export const db: Db = {
   },
   async getPauses(walkId) {
     return (await byWalk<Pause>('pause', walkId)).sort((a, b) => a.started_at - b.started_at);
+  },
+  async startStill(walkId, at) {
+    const tx = (await conn()).transaction('still', 'readwrite');
+    const st = tx.objectStore('still');
+    const mine = (await done(st.index('walk_id').getAll(walkId))) as Still[];
+    if (!mine.some((p) => p.ended_at == null)) st.put({ walk_id: walkId, started_at: at, ended_at: null });
+    await committed(tx);
+  },
+  async endStill(walkId, at) {
+    const tx = (await conn()).transaction('still', 'readwrite');
+    const st = tx.objectStore('still');
+    for (const p of (await done(st.index('walk_id').getAll(walkId))) as Still[]) {
+      if (p.ended_at == null) st.put({ ...p, ended_at: at });
+    }
+    await committed(tx);
+  },
+  async getStills(walkId) {
+    return (await byWalk<Still>('still', walkId)).sort((a, b) => a.started_at - b.started_at);
   },
 
   async putSegments(segments) {

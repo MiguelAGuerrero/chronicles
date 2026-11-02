@@ -50,9 +50,10 @@ export function assignAreas(
   candidates: PlaceCandidate[],
   boundaries: BoundarySource,
   startedAt: number | null = null,
+  stills: PauseSpan[] = [],
 ): Placement {
   // Ridden metres count too: riding through a neighborhood is being there (R8).
-  const tr = readTrace(points, startedAt, pauses);
+  const tr = readTrace(points, startedAt, pauses, stills);
   const fixes = smoothKept(tr);
   const ridden = (t: number) => tr.rides.some((r) => t >= r.t0 && t <= r.t1);
   const rules = `${AREA_RULES}/${boundaries.id}`;

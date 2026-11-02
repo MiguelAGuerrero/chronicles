@@ -7,7 +7,7 @@ import type { Mark, MarkOrigin, MarkState, Offered, Recall } from '../discovery/
 import { countsOf, recountNewStreets } from '../deletion/core';
 import { exploredKey } from '../explore/explore';
 import { DERIVED_STORES } from './stores';
-import type { Capture, Pause, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
+import type { Capture, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 import { segmentBbox } from './segmentBounds';
 import type { Db } from './types';
 
@@ -163,6 +163,10 @@ const MIGRATIONS = [
   `
   ALTER TABLE capture ADD COLUMN thumb_path TEXT;
   `,
+  // 13: still spells told by the motion sensors (Motion, MO8), kept with the walk like pauses.
+  `
+  CREATE TABLE still (walk_id TEXT NOT NULL, started_at INTEGER NOT NULL, ended_at INTEGER, PRIMARY KEY (walk_id, started_at));
+  `,
 ];
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
@@ -297,7 +301,7 @@ export const db: Db = {
   deleteWalk(walkId) {
     return write(async (t) => {
       await t.runAsync('DELETE FROM recall WHERE capture_id IN (SELECT id FROM capture WHERE walk_id = ?)', walkId);
-      for (const table of ['capture', 'trace_point', 'pause', 'visited_segment', 'walk_area', 'find', 'mark', 'walk_summary']) {
+      for (const table of ['capture', 'trace_point', 'pause', 'still', 'visited_segment', 'walk_area', 'find', 'mark', 'walk_summary']) {
         await t.runAsync(`DELETE FROM ${table} WHERE walk_id = ?`, walkId);
       }
       await t.runAsync('DELETE FROM meta WHERE key = ?', exploredKey(walkId));
@@ -345,6 +349,18 @@ export const db: Db = {
   },
   async getPauses(walkId) {
     return (await conn()).getAllAsync<Pause>('SELECT * FROM pause WHERE walk_id = ? ORDER BY started_at', walkId);
+  },
+  startStill(walkId, at) {
+    return write(async (t) => {
+      const open = await t.getFirstAsync('SELECT 1 FROM still WHERE walk_id = ? AND ended_at IS NULL', walkId);
+      if (!open) await t.runAsync('INSERT OR IGNORE INTO still (walk_id, started_at, ended_at) VALUES (?, ?, NULL)', walkId, at);
+    });
+  },
+  endStill(walkId, at) {
+    return write((t) => t.runAsync('UPDATE still SET ended_at = ? WHERE walk_id = ? AND ended_at IS NULL', at, walkId).then(() => {}));
+  },
+  async getStills(walkId) {
+    return (await conn()).getAllAsync<Still>('SELECT * FROM still WHERE walk_id = ? ORDER BY started_at', walkId);
   },
 
   putSegments(segments) {

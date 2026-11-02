@@ -672,6 +672,8 @@ function check(ok, what) {
     check((await page.locator('[data-testid=peek-choices]').innerText()) === 'Explore', 'after a reload the drawer opens on the last mode picked (NV22)');
     // A long press on Navigate's map sets the destination, with its ring (NV23); Clear takes it away.
     {
+      // After the reload, the map frames itself around the first fix: press once it has.
+      await page.waitForTimeout(1500);
       const box = await page.locator('canvas.maplibregl-canvas').boundingBox();
       await page.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 3);
       await page.mouse.down();
@@ -784,6 +786,8 @@ function check(ok, what) {
     for (let k = 1; k < route.length; k++)
       for (let s = 1; s <= 20; s++)
         pts.push([route[k - 1][0] + ((route[k][0] - route[k - 1][0]) * s) / 20, route[k - 1][1] + ((route[k][1] - route[k - 1][1]) * s) / 20]);
+    const dotMoves = [];
+    let dotLast = null;
     for (let k = 0; k < pts.length; k++) {
       await ctx.setGeolocation({ longitude: pts[k][0], latitude: pts[k][1], accuracy: 6 });
       await page.waitForTimeout(1000);
@@ -820,6 +824,8 @@ function check(ok, what) {
         await page.waitForSelector('[data-testid=options-card]');
         await page.click('[data-testid=explore-walk]');
         await shot(page, '01c-options');
+        // Without motion (headless Chromium sends no samples), the walk goes on and says so (MO2).
+        check((await page.locator('[data-testid=motion-off]').count()) === 1, 'without motion, the walk\u2019s options say standing still may drift (MO2)');
         // The GPS log goes to the share sheet with every raw reading (the GPS log, Nov 1).
         await page.evaluate(() => { navigator.share = (d) => { window.__shared = d; return Promise.resolve(); }; });
         await page.waitForTimeout(500);
@@ -835,6 +841,13 @@ function check(ok, what) {
       if (k === 8) {
         // 75 m from the memorial: inside the 100 m range, a "?" that doesn't say what it is (E6).
         check((await walkMarks().count()) === 1 && (await page.locator('[aria-label="A place to find. Open"]').count()) === 1, 'a "?" shows for a place within range, and only that one');
+      }
+      if (k >= 16 && k <= 20) {
+        // The dot moves on every fix, not every 2 s with the trace (the live dot, Nov 1).
+        const at = await page.locator('[data-testid=walker-puck]').getAttribute('data-at');
+        if (k > 16) dotMoves.push(at !== dotLast);
+        dotLast = at;
+        if (k === 20) check(dotMoves.length === 4 && dotMoves.every(Boolean), `the dot moves on every fix, as it comes (${dotMoves.join(',')})`);
       }
       if (k === 13) {
         // The live walk's dot is one gliding marker; the layers stay empty for it.
@@ -1524,8 +1537,9 @@ function check(ok, what) {
       };
     }));
     await page.reload();
-    await page.waitForSelector('text=/Placing your walks/', { timeout: 20000 });
-    check((await page.locator('[data-testid=skip-placing]').count()) === 1, 'placing old walks shows a cover that can be skipped');
+    // Waited for as one: a single walk can be placed between seeing the text and counting the button.
+    const placingCover = await page.waitForSelector('[data-testid=skip-placing]', { timeout: 20000 }).then(() => true, () => false);
+    check(placingCover, 'placing old walks shows a cover that can be skipped');
     await shot(page, '11-home-placing');
     await page.waitForSelector('[aria-label^="Fox Point,"]', { timeout: 60000 });
     await page.waitForTimeout(500);
@@ -2011,6 +2025,61 @@ function check(ok, what) {
       await p2.waitForURL(/\/replay\//, { timeout: 15000 });
       check(await p2.waitForSelector('[data-testid=done]', { timeout: 90000 }).then(() => true, () => false), 'a walk in the timeline opens its own replay, as before (M8, M17)');
       await ctx2.close();
+    }
+
+    // Motion (MO1, MO5, MO8): the phone's sensors say standing still while the GPS wanders indoors.
+    {
+      const ctx3 = await browser.newContext({
+        viewport: { width: 390, height: 844 },
+        permissions: ['geolocation'],
+        geolocation: { longitude: start[0], latitude: start[1], accuracy: 10 },
+      });
+      await ctx3.route('https://tiles.openfreemap.org/**', tileRoute);
+      await ctx3.addInitScript(() => {
+        window.__perf = {};
+        // As on an iPhone: motion is asked for from a tap, then samples arrive; here, a phone held still.
+        window.__motionAsked = 0;
+        DeviceMotionEvent.requestPermission = () => { window.__motionAsked++; return Promise.resolve('granted'); };
+        setInterval(() => {
+          const e = new Event('devicemotion');
+          Object.assign(e, { accelerationIncludingGravity: { x: 0.02 * (Math.random() - 0.5), y: 0.02 * (Math.random() - 0.5), z: 9.81 }, acceleration: null, rotationRate: null, interval: 50 });
+          window.dispatchEvent(e);
+        }, 50);
+      });
+      const p3 = await ctx3.newPage();
+      p3.on('pageerror', (e) => errors.push(`motion: ${e}`));
+      p3.on('console', (m) => m.type() === 'error' && errors.push(`motion: ${m.text()}`));
+      await p3.goto(url);
+      await p3.waitForSelector('[data-testid=start]');
+      await p3.click('[data-testid=start]');
+      await p3.waitForSelector('[data-testid=stop]');
+      check((await p3.evaluate(() => window.__motionAsked)) === 1, 'Start asks for motion, from its own tap (MO1)');
+      // A few calm fixes, then the sensors have had time to say still.
+      for (let k = 0; k < 6; k++) {
+        await ctx3.setGeolocation({ longitude: start[0], latitude: start[1] + k * 1e-6, accuracy: 10 });
+        await p3.waitForTimeout(1000);
+      }
+      const puckAt = async () => (await p3.locator('[data-testid=walker-puck]').getAttribute('data-at'))?.split(',').map(Number) ?? null;
+      const before = await puckAt();
+      // Indoor drift: 15-25 m off, moving slowly enough to pass the speed gate.
+      for (let k = 0; k < 20; k++) {
+        const a = k * 0.35;
+        await ctx3.setGeolocation({ longitude: start[0] + Math.sin(a) * 20 * dLon / 100, latitude: start[1] + (1 - Math.cos(a)) * 20 * dLat / 100, accuracy: 10 });
+        await p3.waitForTimeout(1000);
+      }
+      const after = await puckAt();
+      const movedM = before && after ? Math.hypot((after[0] - before[0]) / dLon * 100, (after[1] - before[1]) / dLat * 100) : Infinity;
+      check(movedM < 3, `told still, the dot holds while the GPS drifts (MO5: moved ${movedM.toFixed(1)} m)`);
+      const stills = await p3.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const g = req.result.transaction('still', 'readonly').objectStore('still').getAll();
+          g.onsuccess = () => resolve(g.result);
+          g.onerror = () => resolve([]);
+        };
+      }));
+      check(stills.length >= 1 && stills[0].ended_at == null, `standing is kept with the walk as a still spell (MO8: ${stills.length})`);
+      await ctx3.close();
     }
 
     // Starting from the tabs, in fresh browsers (NV12, NV15, NV25).

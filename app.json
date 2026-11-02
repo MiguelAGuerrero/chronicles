@@ -67,6 +67,12 @@
           "enableBackgroundRecording": true
         }
       ],
+      [
+        "expo-sensors",
+        {
+          "motionPermission": "Chronicles uses your phone's motion to tell when you're standing still during a walk, so GPS drift doesn't move your trace."
+        }
+      ],
       "@maplibre/maplibre-react-native",
       "expo-video",
       [
