@@ -217,10 +217,6 @@ export function HomeSheet(props: {
     const key = props.mode.key;
     return days.find((d) => d.key === key) ?? null;
   })() : null;
-  const looseCount = days.reduce((n, d) => n + d.entries.filter((e) => e.kind === 'moment').length, 0);
-  const summary = index.walkCount
-    ? `${index.walkCount} ${index.walkCount === 1 ? 'walk' : 'walks'} · ${index.placeCount} ${index.placeCount === 1 ? 'place' : 'places'}`
-    : looseCount ? `${looseCount} ${looseCount === 1 ? 'moment' : 'moments'}` : '';
   const noWalks = index.walkCount === 0;
   const listTitle = props.mode.kind === 'days' ? 'Your days' : 'Walks';
   const nowT = props.now;
@@ -257,10 +253,32 @@ export function HomeSheet(props: {
             <Text testID="sheet-empty" style={[styles.empty, styles.headerText]} numberOfLines={2}>
               Walk somewhere and it is starred here
             </Text>
+          ) : noWalks ? (
+            <Text style={[styles.title, styles.headerText]} accessibilityRole="header" numberOfLines={1}>{listTitle}</Text>
           ) : (
-            <Text style={[styles.title, styles.headerText]} accessibilityRole="header" numberOfLines={1}>
-              {expanded ? listTitle : summary}
-            </Text>
+            // Walks | Days at every height (tabs audit U8), with no counts beside it (U13): the peek's
+            // "N walks · M places" is gone, as nothing here is a score.
+            <View style={[styles.headerText, styles.switchRow]}>
+              <View style={styles.switch}>
+                {(['walks', 'days'] as const).map((k) => {
+                  const on = props.mode.kind === k;
+                  return (
+                    <Pressable
+                      key={k}
+                      testID={`sheet-${k}`}
+                      accessibilityRole="button"
+                      accessibilityLabel={k === 'walks' ? 'Show your walks' : 'Show your days'}
+                      accessibilityState={{ selected: on }}
+                      onPress={() => props.onMode({ kind: k })}
+                      style={({ pressed }) => [styles.seg, on && styles.segOn, pressed && { opacity: 0.7 }]}
+                    >
+                      <Icon name={k === 'walks' ? 'list' : 'calendar-outline'} size={18} color={on ? '#ffffff' : theme.ink} />
+                      <Text style={[styles.pillText, on && styles.segOnText]}>{k === 'walks' ? 'Walks' : 'Days'}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
           )}
           {props.mode.kind === 'day' && (
             // Back to the days list, as Map goes back to the map (audit).
@@ -289,7 +307,7 @@ export function HomeSheet(props: {
               <Icon name="map-outline" size={18} color={theme.ink} />
               <Text style={styles.pillText}>Map</Text>
             </Pressable>
-          ) : (
+          ) : noWalks ? (
             <View style={styles.pills}>
               {days.length > 0 && (
                 <Pressable
@@ -305,21 +323,7 @@ export function HomeSheet(props: {
                   <Text style={styles.pillText}>Days</Text>
                 </Pressable>
               )}
-              {index.walkCount > 0 && (
-                <Pressable
-                  testID="sheet-walks"
-                  accessibilityRole="button"
-                  accessibilityLabel="Show your walks"
-                  accessibilityState={{ expanded: false }}
-                  onPress={() => props.onMode({ kind: 'walks' })}
-                  style={styles.pill}
-                  hitSlop={8}
-                >
-                  <Icon name="list" size={18} color={theme.ink} />
-                  <Text style={styles.pillText}>Walks</Text>
-                </Pressable>
-              )}
-              {noWalks && props.onNavigate && (
+              {props.onNavigate && (
                 <Pressable
                   testID="sheet-navigate"
                   accessibilityRole="button"
@@ -332,7 +336,7 @@ export function HomeSheet(props: {
                 </Pressable>
               )}
             </View>
-          )}
+          ) : null}
         </View>
       }
     >
@@ -533,6 +537,11 @@ const styles = StyleSheet.create({
   },
   pillText: { fontSize: 15, fontWeight: '600', color: theme.ink },
   pills: { flexDirection: 'row', gap: 8 },
+  switchRow: { flexDirection: 'row' },
+  switch: { flexDirection: 'row', borderRadius: 22, borderWidth: 1, borderColor: theme.edge, backgroundColor: theme.surface, padding: 2 },
+  seg: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, paddingHorizontal: 14, borderRadius: 20 },
+  segOn: { backgroundColor: theme.ink },
+  segOnText: { color: '#ffffff' },
   entry: {
     flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: theme.surface, borderRadius: theme.radius,
     paddingVertical: 12, paddingHorizontal: 14, borderWidth: 1, borderColor: theme.line, minHeight: 56,
