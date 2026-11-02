@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import { applyPatch, captureBus } from '../captureBus';
 import { createMemoGate } from '../memoGate';
 import { createLatestLoader } from '../openWalkLoad';
+import { createWalkGate } from '../walkGate';
 import type { Capture } from '../types';
 
 const cap = (id: string, extra: Partial<Capture> = {}): Capture => ({
@@ -126,4 +127,21 @@ test('tabs audit 9: once stopped, nothing more is applied or retried', async () 
   await p;
   assert.deepEqual(applied, []);
   assert.equal(scheduled, 0);
+});
+
+test('tabs audit 1: a double tap shows the walk screen once; a later ask, after it went down, shows it again', () => {
+  const gate = createWalkGate(2000);
+  assert.equal(gate.ask(0), true, 'the first tap goes');
+  assert.equal(gate.ask(120), false, 'the second, while the first is on its way, does nothing');
+  const down = gate.shown();
+  assert.equal(gate.ask(5000), false, 'nor while the walk screen is up');
+  down();
+  assert.equal(gate.ask(5100), true, 'minimized again, the bar shows it again');
+});
+
+test('tabs audit 1: an ask that never reached the walk screen stops holding the next after a while', () => {
+  const gate = createWalkGate(2000);
+  assert.equal(gate.ask(0), true);
+  assert.equal(gate.ask(1999), false);
+  assert.equal(gate.ask(2000), true);
 });
