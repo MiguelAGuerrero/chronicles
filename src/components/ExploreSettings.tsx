@@ -7,7 +7,7 @@ import { NotificationSettings } from './NotificationSettings';
 import { Button, theme } from './ui';
 
 /** About how long the range takes to walk, at 1.3 m/s. */
-const walkNote = (m: number) => {
+export const walkNote = (m: number) => {
   const min = Math.max(1, Math.round(m / 1.3 / 60));
   return `about ${min} min walk`;
 };
@@ -24,6 +24,8 @@ export function ExploreSettings(props: {
   /** The range to preview on the host's map while the panel is open; null when it closes. */
   onPreview: (rangeM: number | null) => void;
   bottomInset: number;
+  /** Where the panel's foot sits: above the walk's capture row there, which is always one tap away (rev 34). */
+  bottom?: number;
   /** Whether there is a position to draw the ring around. */
   hasRing?: boolean;
   /** The panel's height, for the host to fit the ring above it. */
@@ -68,7 +70,7 @@ export function ExploreSettings(props: {
   return (
     <View
       testID="settings"
-      style={[styles.panel, { paddingBottom: props.bottomInset + 12 }]}
+      style={[styles.panel, { paddingBottom: props.bottomInset + 12 }, props.bottom != null && { bottom: props.bottom, borderBottomLeftRadius: 16, borderBottomRightRadius: 16 }]}
       accessibilityViewIsModal
       onLayout={(e) => props.onHeight?.(e.nativeEvent.layout.height)}
     >
@@ -91,13 +93,7 @@ export function ExploreSettings(props: {
           <View style={{ gap: 2 }}>
             <Text style={styles.section}>What I’m into</Text>
             <Text style={styles.sub}>Switch a kind off to hide its “?” marks for a while. It stays on your lists, and your counts don’t change.</Text>
-            {KINDS.map((k) => (
-              <View key={k.id} style={styles.row}>
-                <Icon name={k.icon as IconName} size={20} color={theme.ink} />
-                <Text style={styles.label} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>{k.label}</Text>
-                <Switch testID={`kind-${k.id}`} accessibilityLabel={k.label} value={!s.hidden.has(k.id)} onValueChange={(v) => toggle(k.id, v)} />
-              </View>
-            ))}
+            <KindSwitches hidden={s.hidden} onToggle={toggle} />
           </View>
           {/* The pocket alert is a tap you feel; a browser has none to give (E19). Kept with the explore settings. */}
           {Platform.OS !== 'web' && (
@@ -128,10 +124,25 @@ export function ExploreSettings(props: {
   );
 }
 
+/** What I'm into (E16): a switch per kind, on unless hidden. Shared with Navigate's drawer (NV21). */
+export function KindSwitches({ hidden, onToggle }: { hidden: Set<Kind>; onToggle: (k: Kind, on: boolean) => void }) {
+  return (
+    <>
+      {KINDS.map((k) => (
+        <View key={k.id} style={styles.row}>
+          <Icon name={k.icon as IconName} size={20} color={theme.ink} />
+          <Text style={styles.label} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>{k.label}</Text>
+          <Switch testID={`kind-${k.id}`} accessibilityLabel={k.label} value={!hidden.has(k.id)} onValueChange={(v) => onToggle(k.id, v)} />
+        </View>
+      ))}
+    </>
+  );
+}
+
 const STEPS = (EXPLORE_RULES.rangeMax - EXPLORE_RULES.rangeMin) / EXPLORE_RULES.rangeStep;
 
 /** A stepped slider for the range (E20): drag, tap the track, or use − and +; adjustable for screen readers. */
-function RangeSlider({ value, onChange }: { value: number; onChange: (m: number) => void }) {
+export function RangeSlider({ value, onChange }: { value: number; onChange: (m: number) => void }) {
   const [width, setWidth] = useState(0);
   const latest = useRef({ width, onChange });
   useEffect(() => {

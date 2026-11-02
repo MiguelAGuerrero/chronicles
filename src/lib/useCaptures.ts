@@ -5,6 +5,7 @@ import { setAudioMode } from './audioMode';
 import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
+import { captureBus, mergeCaptures } from './captureBus';
 import { db } from './db';
 import { newId } from './id';
 import { locateOnce } from './locate';
@@ -100,9 +101,20 @@ export function useCaptures(
     pos.current = { here, lastFixAt };
   }, [here, lastFixAt]);
 
+  // This path's own token: news of its own captures isn't sent back to it.
+  const [self] = useState(() => ({}));
   useEffect(() => {
-    if (walkId) db.getCaptures(walkId).then(setCaptures);
-  }, [walkId]);
+    if (!walkId) return;
+    // Another path of this walk (the recording bar's camera, NV9) kept one: shown here too, once,
+    // whether it lands before or after the read below.
+    const off = captureBus.subscribe(walkId, self, (c) => {
+      if (alive.current) setCaptures((prev) => mergeCaptures(prev, [c]));
+    });
+    db.getCaptures(walkId).then((stored) => {
+      if (alive.current) setCaptures((prev) => mergeCaptures(stored, prev));
+    });
+    return off;
+  }, [walkId, self]);
 
   const stampNow = (locate = true): Stamp => {
     const t = clockNow();
@@ -134,6 +146,8 @@ export function useCaptures(
     const last = pos.current.here;
     const shown = c.lat == null && last ? { ...c, lat: last[1], lon: last[0] } : c;
     if (alive.current) setCaptures((prev) => [...prev, shown]);
+    // Told even once this path is gone: the walk screen may have come back meanwhile (NV9).
+    captureBus.emit(shown, self);
     if (!walkId) {
       onMoment.current?.(c, 'kept');
       placeMoment(c, stamp);

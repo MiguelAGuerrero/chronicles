@@ -31,7 +31,7 @@ export const notifier = createNotifier({
       if (await openRecall(ids)) return;
       const open = await db.getOpenWalk().catch(() => null);
       const { router } = await import('expo-router');
-      router.navigate(open ? '/walk' : '/');
+      router.navigate(open ? '/walk' : '/chronicle');
     })().catch(() => {});
   },
   onStop: (ids) => {

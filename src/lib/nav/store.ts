@@ -1,4 +1,5 @@
 import { db } from '../db';
+import { NAV_KEY, navValue, pendingDest } from '../startPlan';
 import type { Waypoint } from './types';
 
 /**
@@ -7,7 +8,7 @@ import type { Waypoint } from './types';
  * End or stop.
  */
 export async function saveNav(walkId: string, dest: Waypoint): Promise<void> {
-  await db.setMeta('nav', JSON.stringify({ walk_id: walkId, dest }));
+  await db.setMeta(NAV_KEY, navValue(walkId, dest));
 }
 
 export async function loadNav(walkId: string): Promise<Waypoint | null> {
@@ -20,5 +21,13 @@ export async function loadNav(walkId: string): Promise<Waypoint | null> {
 }
 
 export async function clearNav(): Promise<void> {
-  await db.setMeta('nav', '');
+  await db.setMeta(NAV_KEY, '');
+}
+
+/** The drawer's destination, before a walk (NV23); null clears it. */
+export async function loadPendingDest(): Promise<Waypoint | null> {
+  return pendingDest(await db.getMeta(NAV_KEY).catch(() => null));
+}
+export async function savePendingDest(dest: Waypoint | null): Promise<void> {
+  await db.setMeta(NAV_KEY, dest ? navValue(null, dest) : '');
 }
