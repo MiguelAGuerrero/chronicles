@@ -178,3 +178,95 @@ test('audit (moments 7): each fly step is framed: a walk by its trace, a pin clo
   assert.ok(walkFrame[0] <= -71.4 && walkFrame[2] >= -71.39, 'a walk is framed by its trace');
   assert.equal(frames[1], null);
 });
+
+// The screenshot (Nov 2): replaying a day drew a straight line from the dot
+// back into the walk. The dot was timed over walked and ridden fixes while the
+// trace was cut from the walked runs at that list's index.
+test('day replay: the drawn trace ends at the dot, before and after a ride', async () => {
+  const { readTrace, rideRuns: ridesOf, smoothKept, timedRideRuns } = await import('../rides');
+  const { smoothDwells, splitAtGaps } = await import('../geo');
+  const { walkPlay, walkDrawnAt } = await import('../days');
+  const O: [number, number] = [-71.4, 41.812];
+  const mLat = 1 / 111320;
+  const mLon = 1 / (111320 * Math.cos((O[1] * Math.PI) / 180));
+  const fixes: TracePoint[] = [];
+  let x = 0;
+  let y = 0;
+  const legs = [{ v: 1.4, s: 120 }, { v: 12, s: 300 }, { v: 1.4, s: 120, north: true }];
+  let t = 0;
+  const push = (v: number) => fixes.push({ walk_id: 'w', t, lon: O[0] + x * mLon, lat: O[1] + y * mLat, accuracy_m: 8, speed: v, course: null });
+  push(1.4);
+  for (const l of legs) {
+    for (let k = 0; k < l.s; k++) {
+      if (l.north) y += l.v;
+      else x += l.v;
+      t += 1000;
+      push(l.v);
+    }
+  }
+  const tr = readTrace(fixes, 0, [], []);
+  assert.equal(tr.rides.length, 1);
+  const walkedFixes = smoothDwells(tr.walked);
+  const play = walkPlay({
+    walk: { started_at: 0 } as Walk,
+    fixes: smoothKept(tr),
+    walkedFixes,
+    breaks: tr.breaks,
+    pauses: [],
+    runs: splitAtGaps(walkedFixes, 60_000, tr.breaks),
+    rideRuns: ridesOf(tr),
+    rideTimed: timedRideRuns(tr),
+    rides: tr.rides.map((r) => ({ t0: r.t0, t1: r.t1 })),
+    captures: [],
+  });
+  const near = (a: [number, number], b: [number, number]) => Math.hypot((a[0] - b[0]) / mLon, (a[1] - b[1]) / mLat);
+  for (const at of [60_000, 470_000, 520_000]) {
+    const d = walkDrawnAt(play, at);
+    const end = d.trace[d.trace.length - 1];
+    const last = end[end.length - 1];
+    assert.ok(d.walker && near(last, d.walker) < 3, `at ${at}: the trace ends ${near(last, d.walker!).toFixed(0)} m from the dot`);
+    // No straight line into the dot: every step drawn is a settled fix's step.
+    for (const run of d.trace) {
+      for (let i = 1; i < run.length; i++) assert.ok(near(run[i - 1], run[i]) < 25, `at ${at}: a ${near(run[i - 1], run[i]).toFixed(0)} m line`);
+    }
+  }
+  // Mid-ride, the dashed line is what reaches the dot.
+  const mid = walkDrawnAt(play, 270_000);
+  const ride = mid.rides[mid.rides.length - 1];
+  assert.ok(mid.walker && near(ride[ride.length - 1], mid.walker) < 3);
+});
+
+// A phone (Nov 2): "undefined is not an object (evaluating 'n[a].slice')".
+// The day replay timed more runs than it drew; a walk that was all ride has
+// no walked run at all.
+test('day replay: a walk that is all ride replays without a walked run', async () => {
+  const { readTrace, rideRuns: ridesOf, smoothKept, timedRideRuns } = await import('../rides');
+  const { smoothDwells, splitAtGaps } = await import('../geo');
+  const { walkPlay, walkDrawnAt } = await import('../days');
+  const O: [number, number] = [-71.4, 41.812];
+  const mLon = 1 / (111320 * Math.cos((O[1] * Math.PI) / 180));
+  const fixes: TracePoint[] = Array.from({ length: 300 }, (_, i) => ({ walk_id: 'w', t: i * 1000, lon: O[0] + i * 12 * mLon, lat: O[1], accuracy_m: 8, speed: 12, course: null }));
+  const tr = readTrace(fixes, 0, [], []);
+  const walkedFixes = smoothDwells(tr.walked);
+  const play = walkPlay({
+    walk: { started_at: 0 } as Walk,
+    fixes: smoothKept(tr),
+    walkedFixes,
+    breaks: tr.breaks,
+    pauses: [],
+    runs: splitAtGaps(walkedFixes, 60_000, tr.breaks),
+    rideRuns: ridesOf(tr),
+    rideTimed: timedRideRuns(tr),
+    rides: tr.rides.map((r) => ({ t0: r.t0, t1: r.t1 })),
+    captures: [],
+  });
+  for (const at of [0, 150_000, 299_000]) assert.doesNotThrow(() => walkDrawnAt(play, at));
+  assert.ok(walkDrawnAt(play, 150_000).rides.length > 0);
+});
+
+test('traceUntil: runs drawn shorter than timed stop the line, never throw', async () => {
+  const { traceUntil } = await import('../replay');
+  const timed = [[{ t: 0, p: [0, 0] as [number, number] }, { t: 10, p: [1, 0] as [number, number] }], [{ t: 20, p: [2, 0] as [number, number] }, { t: 30, p: [3, 0] as [number, number] }]];
+  assert.doesNotThrow(() => traceUntil(timed, [], 25));
+  assert.doesNotThrow(() => traceUntil(timed, [[[0, 0]]], 25));
+});

@@ -195,16 +195,19 @@ export function traceUntil(runs: TimedRun[], fullRuns: LngLat[][], t: number): L
   const out: LngLat[][] = [];
   for (let r = 0; r < runs.length; r++) {
     const run = runs[r];
-    if (run.length === 0 || run[0].t > t) break;
+    const full = fullRuns[r];
+    // The two lists must come from the same fixes; a mismatch draws nothing more, never throws.
+    if (!full || run.length === 0 || run[0].t > t) break;
     if (run[run.length - 1].t <= t) {
-      out.push(fullRuns[r]);
+      out.push(full);
       continue;
     }
     const i = lastAtOrBefore(run, t);
+    if (i + 1 >= run.length || i >= full.length) break;
     const a = run[i];
     const b = run[i + 1];
     const f = (t - a.t) / (b.t - a.t || 1);
-    out.push([...fullRuns[r].slice(0, i + 1), [a.p[0] + (b.p[0] - a.p[0]) * f, a.p[1] + (b.p[1] - a.p[1]) * f]]);
+    out.push([...full.slice(0, i + 1), [a.p[0] + (b.p[0] - a.p[0]) * f, a.p[1] + (b.p[1] - a.p[1]) * f]]);
     break;
   }
   return out;

@@ -8,10 +8,10 @@ import { WalkMap } from '../../components/map/WalkMap';
 import { Button, theme } from '../../components/ui';
 import { setAudioMode } from '../../lib/audioMode';
 import { db } from '../../lib/db';
-import { buildDays, dayCaptures, dayCard, dayPlan, dayStart, nextDayStart, stepFrames, watchedKey, type Day, type DayStep } from '../../lib/days';
+import { buildDays, dayCaptures, dayCard, dayPlan, dayStart, nextDayStart, stepFrames, walkDrawnAt, walkPlay, watchedKey, type Day, type DayStep, type WalkPlay } from '../../lib/days';
 import { focusOn } from '../../lib/focus';
 import { boundsOf, type Bounds } from '../../lib/geo';
-import { schedule, timedRuns, traceUntil, walkerAt, walkTimeAt, type Schedule, type TimedRun } from '../../lib/replay';
+import { walkerAt, walkTimeAt } from '../../lib/replay';
 import { loadReplay } from '../../lib/summary';
 import { useVisible } from '../../lib/deletion/useDeletions';
 import { UndoToast } from '../../components/UndoToast';
@@ -25,13 +25,6 @@ const AUTO_MS = 4000;
 const TRACE_STEP_MS = 100;
 
 export { ScreenError as ErrorBoundary } from '../../components/ScreenError';
-
-interface WalkPlay {
-  sched: Schedule;
-  runs: TimedRun[];
-  full: LngLat[][];
-  start: LngLat | null;
-}
 
 interface Loaded {
   day: Day;
@@ -99,12 +92,7 @@ export default function DayReplay() {
         if (e.kind !== 'walk') continue;
         const r = await loadReplay(e.walk.id).catch(() => null);
         if (!r) continue;
-        plays.set(e.walk.id, {
-          sched: schedule(r.fixes, r.captures, r.walk.started_at, r.pauses),
-          runs: timedRuns(r.fixes, r.pauses),
-          full: r.runs,
-          start: r.fixes[0] ? [r.fixes[0].lon, r.fixes[0].lat] : null,
-        });
+        plays.set(e.walk.id, walkPlay(r));
       }
       const points: LngLat[] = [
         ...dayCaptures(day).filter((c) => c.lat != null && c.lon != null).map((c) => [c.lon!, c.lat!] as LngLat),
@@ -233,24 +221,34 @@ export default function DayReplay() {
     }
     return done;
   }, [plan, phase.i, onCard, step]);
-  const trace = useMemo(() => {
-    if (!data) return [];
-    const out: LngLat[][] = [];
+  // The solid trace is what was walked; rides are dashed (R5), as in the walk's own replay.
+  const drawn = useMemo(() => {
+    const trace: LngLat[][] = [];
+    const rides: LngLat[][] = [];
+    if (!data) return { trace, rides };
     for (const [id, w] of data.walks) {
-      if (onCard || played.has(id)) out.push(...w.full);
+      if (onCard || played.has(id)) {
+        trace.push(...w.full);
+        rides.push(...w.rideRuns);
+      }
     }
-    if (pathWalk) out.push(...traceUntil(pathWalk.runs, pathWalk.full, walkT));
-    else if (step?.kind === 'stop' && step.walkId && !played.has(step.walkId)) {
+    let now: { w: WalkPlay; t: number } | null = pathWalk ? { w: pathWalk, t: walkT } : null;
+    if (!now && step?.kind === 'stop' && step.walkId && !played.has(step.walkId)) {
       // Stopped mid-walk: the path so far stays drawn.
       const w = data.walks.get(step.walkId);
       const before = plan.slice(0, phase.i).reverse().find((s) => s.kind === 'path' && s.walkId === step.walkId);
-      if (w && before?.kind === 'path') out.push(...traceUntil(w.runs, w.full, walkTimeAt(w.sched, before.toMs)));
+      if (w && before?.kind === 'path') now = { w, t: walkTimeAt(w.sched, before.toMs) };
     }
-    return out;
+    if (now) {
+      const d = walkDrawnAt(now.w, now.t);
+      trace.push(...d.trace);
+      rides.push(...d.rides);
+    }
+    return { trace, rides };
     // Rebuilt on TRACE_STEP_MS buckets, not every frame.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, played, onCard, phase.i, bucket, step]);
-  const walker = pathWalk ? walkerAt(pathWalk.runs, walkT) : null;
+  const walker = pathWalk ? walkerAt(pathWalk.dot, walkT) : null;
 
   // Pins appear as their moments are reached; on the card every pin opens its moments.
   const pinnedAll = useMemo(() => {
@@ -300,7 +298,8 @@ export default function DayReplay() {
   return (
     <View style={styles.screen}>
       <WalkMap
-        trace={trace}
+        trace={drawn.trace}
+        rides={drawn.rides}
         walked={[]}
         fog={[]}
         captures={pinned}

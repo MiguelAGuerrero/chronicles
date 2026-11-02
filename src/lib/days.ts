@@ -1,5 +1,6 @@
 import { boundsOf, distanceM, type Bounds } from './geo';
-import { groupCaptures, type Schedule } from './replay';
+import { groupCaptures, schedule, timedRuns, traceUntil, walkerAt, type Schedule, type TimedRun } from './replay';
+import type { ReplayData } from './summary';
 import type { Capture, LngLat, Walk } from './types';
 
 /**
@@ -214,4 +215,44 @@ export function stepFrames(plan: DayStep[], walkPoints: Map<string, LngLat[]>): 
     const pts = after?.kind === 'path' ? walkPoints.get(after.walkId) : null;
     return pts?.length ? boundsOf(pts, 60) : boundsOf([s.to], PIN_FRAME_M);
   });
+}
+
+/**
+ * A walk inside a day's replay, timed as the walk's own replay times it: the
+ * dot follows walked and ridden fixes, the solid trace only the walked ones,
+ * and rides are drawn dashed (R5, R10). Each timed list is paired with the
+ * runs drawn from the same fixes: `traceUntil` cuts the drawn run at the timed
+ * run's index, so a mismatched pair draws a straight line to the dot.
+ */
+export interface WalkPlay {
+  sched: Schedule;
+  /** The dot: walked and ridden fixes. */
+  dot: TimedRun[];
+  /** The solid trace, timed and drawn. */
+  walkedTimed: TimedRun[];
+  full: LngLat[][];
+  rideTimed: TimedRun[];
+  rideRuns: LngLat[][];
+  start: LngLat | null;
+}
+
+export function walkPlay(r: Pick<ReplayData, 'fixes' | 'walkedFixes' | 'breaks' | 'pauses' | 'runs' | 'rideRuns' | 'rideTimed' | 'rides' | 'captures' | 'walk'>): WalkPlay {
+  return {
+    sched: schedule(r.fixes, r.captures, r.walk.started_at, r.pauses, r.rides),
+    dot: timedRuns(r.fixes, r.pauses),
+    walkedTimed: timedRuns(r.walkedFixes, r.breaks),
+    full: r.runs,
+    rideTimed: r.rideTimed,
+    rideRuns: r.rideRuns,
+    start: r.fixes[0] ? [r.fixes[0].lon, r.fixes[0].lat] : null,
+  };
+}
+
+/** What a walk shows at walk time t: the trace and rides so far, and the dot. */
+export function walkDrawnAt(w: WalkPlay, t: number): { trace: LngLat[][]; rides: LngLat[][]; walker: LngLat | null } {
+  return {
+    trace: traceUntil(w.walkedTimed, w.full, t),
+    rides: traceUntil(w.rideTimed, w.rideRuns, t),
+    walker: walkerAt(w.dot, t),
+  };
 }
