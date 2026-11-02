@@ -227,10 +227,23 @@ export default function Explore() {
       {spot && (
         <Animated.View style={[styles.spotRow, styles.over, aboveSheet]} pointerEvents="box-none">
           <View style={styles.spotStack}>
-            {/* Walk here only at street zoom, a one-tap start (NV15, NV12); what's good here from z10 (L1). */}
+            {/* Explore's own question is the filled button (tabs audit U6). Walk here, still a one-tap start
+                that never fills the drawer (NV15, NV12), is secondary and only at street zoom; what's good
+                here from z10 (L1). */}
+            <Button
+              testID="look-here"
+              label="What's good here?"
+              disabled={looking}
+              onPress={() => {
+                const at = spot.at;
+                setSpot(null);
+                lookHere(at);
+              }}
+            />
             {spot.zoom >= 12 && (
               <Button
                 testID="walk-here"
+                variant="secondary"
                 label="Walk here"
                 disabled={looking}
                 busy={walkStart.starting}
@@ -242,17 +255,6 @@ export default function Explore() {
                 }}
               />
             )}
-            <Button
-              testID="look-here"
-              variant="secondary"
-              label="What's good here?"
-              disabled={looking}
-              onPress={() => {
-                const at = spot.at;
-                setSpot(null);
-                lookHere(at);
-              }}
-            />
             <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={() => setSpot(null)} style={styles.spotClose} hitSlop={8}>
               <Icon name="close" size={22} color={theme.ink} />
             </Pressable>
