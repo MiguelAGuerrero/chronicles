@@ -73,5 +73,6 @@ const STREET_CODE = '2';
  * 3: rides credit no street, and walks gain their ridden distance and places (rides, R14).
  * 4: GPS wander is settled when a trace is read (`settleJitter`, the scribble, Nov 1).
  * 5: still spells from the motion sensors hold the trace at one spot (Motion, MO8).
+ * 6: a walk out and straight back is no longer read as a standstill (`DWELL_JUMP_M`, Nov 2).
  */
-const SNAP_RULES = '5';
+const SNAP_RULES = '6';

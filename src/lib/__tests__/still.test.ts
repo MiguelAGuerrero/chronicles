@@ -104,3 +104,38 @@ test('motion audit 3b: inside a spell, one fix far off is still held, not drawn 
   const tr = readTrace(pts, 0, [], [{ started_at: 31_000, ended_at: 60_000 }]);
   assert.ok(tr.walked.every((p) => distanceM([p.lon, p.lat], at(102, 0)) > 30), 'the lone far fix is not drawn');
 });
+
+// Out and back (Nov 2): the tabs e2e walked 200 m out and straight back along the same street, and
+// the standstill reading took bins 100 m and more away as "GPS jumps" it could ride out, so the
+// two passes past one spot read as a two-minute stay and the middle of the walk vanished.
+test('out and back: walking away along a street and straight back is never a standstill', async () => {
+  const { dwellsOf, smoothDwells } = await import('../geo');
+  const pts: TracePoint[] = [];
+  let s = 0;
+  const legs: [number, number][] = [[100, 0], [100, 100], [200, 100], [100, 100], [100, 0], [0, 0]];
+  let [x, y] = [0, 0];
+  pts.push(fix(s, x, y, 6));
+  for (const [tx, ty] of legs) {
+    while (Math.hypot(tx - x, ty - y) > 0.1) {
+      const d = Math.min(5, Math.hypot(tx - x, ty - y));
+      const k = d / Math.hypot(tx - x, ty - y);
+      x += (tx - x) * k;
+      y += (ty - y) * k;
+      s += 1;
+      pts.push(fix(s, x, y, 6));
+    }
+  }
+  assert.equal(dwellsOf(pts).length, 0, 'no stay');
+  assert.ok(lineLengthM(smoothDwells(pts).map((p) => [p.lon, p.lat] as LngLat)) > 550, 'the whole walk is drawn');
+});
+
+test('out and back: the tabs e2e walk itself (a pause, a few waits) keeps its middle', async () => {
+  const { dwellsOf } = await import('../geo');
+  const { readFileSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const fx = JSON.parse(readFileSync(join(__dirname, 'outAndBack.json'), 'utf8')) as { points: Omit<TracePoint, 'walk_id'>[]; pauses: { started_at: number; ended_at: number | null }[] };
+  const pts = fx.points.map((p) => ({ ...p, walk_id: 'w' }) as TracePoint);
+  const tr = readTrace(pts, 0, fx.pauses);
+  assert.equal(dwellsOf(tr.walked).length, 0, `no stay: ${JSON.stringify(dwellsOf(tr.walked).map((d) => [d.t0 / 1000, d.t1 / 1000]))}`);
+  assert.ok(traceDistances(tr).walkedM > 500, `walked ${traceDistances(tr).walkedM.toFixed(0)} m`);
+});

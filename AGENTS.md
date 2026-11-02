@@ -214,6 +214,11 @@ Read this before changing recording, streets, the replay or storage.
   reported speed, slow circling inside 25 m can still read as a stay. The live
   distance uses the same smoothing as the card. Walks summarized before this
   keep their old distance until they re-snap.
+  - **An averaged position more than 75 m away is travel, not a jump**
+    (`DWELL_JUMP_M`, Nov 2): it ends the stay. The tabs e2e walked 200 m out
+    and straight back along one street; the two passes of one spot, two
+    minutes apart, read as a stay, and the walk lost its middle (and its
+    "passed" place). `outAndBack.json` is that walk. `SNAP_RULES` 6.
 - **GPS wander is settled when a trace is read** (`settleJitter` in `geo.ts`,
   the owner's go-ahead, Nov 1, after a phone's screenshot of a scribble while
   standing still: the live map drew every gated fix, and wander of 20-40 m
