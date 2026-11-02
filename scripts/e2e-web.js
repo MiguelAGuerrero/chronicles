@@ -86,6 +86,11 @@ async function shot(page, name) {
 }
 
 function check(ok, what) {
+  // E2E_SOFT=1 reports a failed check and goes on, to see every check fail on code from before a fix.
+  if (!ok && process.env.E2E_SOFT) {
+    console.log(`not ok - ${what}`);
+    return;
+  }
   if (!ok) throw new Error(`FAILED: ${what}`);
   console.log(`ok - ${what}`);
 }
@@ -246,7 +251,267 @@ function check(ok, what) {
   };
   await ctx.route('https://tiles.openfreemap.org/**', tileRoute);
 
+// A fresh browser, for a flow of its own (NV12, NV15, NV25, the tabs audit).
+  const freshPage = async (label) => {
+    const c = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      permissions: ['geolocation'],
+      geolocation: { longitude: start[0], latitude: start[1], accuracy: 6 },
+    });
+    await c.route('https://tiles.openfreemap.org/**', tileRoute);
+    c.on('request', (r) => { const u = new URL(r.url()); if (/^(https?|wss?):$/.test(u.protocol)) hosts.add(u.host); });
+    const pg = await c.newPage();
+    pg.on('pageerror', (e) => errors.push(`${label}: ${e}`));
+    pg.on('console', (m) => m.type() === 'error' && errors.push(`${label}: ${m.text()}`));
+    return { c, pg };
+  };
+  const openWalk = (pg) => pg.evaluate(() => new Promise((resolve) => {
+    const req = indexedDB.open('chronicles');
+    req.onsuccess = () => {
+      const g = req.result.transaction('walk', 'readonly').objectStore('walk').getAll();
+      g.onsuccess = () => resolve(g.result.find((w) => w.open) ?? null);
+    };
+  }));
+  // The tabs audit (Navigation & tabs): each accepted finding's regression check, `tabs audit N`, in a
+  // fresh browser. E2E_ONLY=tabs runs it alone.
+  const tabsAudit = async () => {
+    const { c, pg } = await freshPage('tabs-audit');
+    await c.addInitScript(() => {
+      window.__perf = {};
+      // Location watches begun, so Navigate is seen to start none of its own while a walk is open (U2).
+      const g = navigator.geolocation;
+      const watch = g.watchPosition.bind(g);
+      window.__watchCalls = 0;
+      g.watchPosition = (...a) => { window.__watchCalls++; return watch(...a); };
+    });
+    const rows = (pg2, kind) => pg2.evaluate((k) => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const g = req.result.transaction('capture', 'readonly').objectStore('capture').getAll();
+        g.onsuccess = () => resolve(g.result.filter((x) => !k || x.kind === k));
+      };
+    }), kind);
+    const vh = 844;
+    await pg.goto(url);
+    await pg.waitForSelector('[data-testid=start]');
+    await pg.waitForTimeout(1500);
+
+    // tabs audit U9: the web's note can be dismissed, and stays dismissed after a reload.
+    const noteText = 'text=On the web, a walk is traced while this page is open and on screen.';
+    const noteShown = (await pg.locator(noteText).count()) === 1;
+    const closeBox = noteShown ? await pg.locator('[data-testid=banner-dismiss]').boundingBox() : null;
+    // tabs audit U4: the banner's ✕ is 44 pt itself (react-native-web has no hit slop).
+    check(closeBox && closeBox.width >= 44 && closeBox.height >= 44, `tabs audit U4: the banner's ✕ is at least 44 pt (${closeBox && `${closeBox.width}×${closeBox.height}`})`);
+    await pg.click('[data-testid=banner-dismiss]');
+    await pg.waitForTimeout(400);
+    await pg.reload();
+    await pg.waitForSelector('[data-testid=start]');
+    await pg.waitForTimeout(1500);
+    check(noteShown && (await pg.locator(noteText).count()) === 0, 'tabs audit U9: Navigate’s web note can be dismissed, and stays dismissed after a reload');
+
+    // tabs audit U1: Start and the capture row stay docked low and tappable at peek, half and full.
+    const docked = async (size) => {
+      if (size !== 'peek') await drawerTo(pg, size);
+      const out = [];
+      for (const id of ['moment-photo', 'moment-voice', 'moment-note', 'start']) {
+        const b = await pg.locator(`[data-testid=${id}]`).boundingBox();
+        const hit = b && await pg.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-testid]')?.getAttribute('data-testid'), { x: b.x + b.width / 2, y: b.y + b.height / 2 });
+        out.push(b && hit === id && b.y > vh * 0.6 ? 'ok' : `${id}:${b && Math.round(b.y)}:${hit}`);
+      }
+      return out;
+    };
+    const heights = {};
+    for (const size of ['peek', 'half', 'full']) {
+      const r = await docked(size);
+      heights[size] = Math.round((await pg.locator('[data-testid=navigate-drawer]').boundingBox()).height);
+      check(r.every((x) => x === 'ok'), `tabs audit U1: at ${size}, Start and the camera, mic and pencil sit low on the screen and can be tapped (${r.join(', ')})`);
+    }
+    check(heights.peek < heights.half && heights.half < heights.full, `tabs audit U1: the drawer still opens to its three heights (${JSON.stringify(heights)})`);
+    // At full the settings scroll above the row and Start: the last setting can be brought above the row.
+    {
+      await pg.locator('[data-testid=notify-test]').scrollIntoViewIfNeeded();
+      await pg.waitForTimeout(300);
+      const btn = await pg.locator('[data-testid=notify-test]').boundingBox();
+      const row = await pg.locator('[data-testid=moment-photo]').boundingBox();
+      check(btn && btn.y + btn.height <= row.y, `tabs audit U1: the drawer's settings scroll above the capture row, never under it (${btn && Math.round(btn.y + btn.height)} ≤ ${Math.round(row.y)})`);
+    }
+    // tabs audit U12: no second "Notifications" heading under "Reminders and alerts".
+    const heads = await pg.locator('[data-testid=navigate-drawer] [role=heading]').allInnerTexts();
+    check(heads.includes('Reminders and alerts') && !heads.includes('Notifications'), `tabs audit U12: Reminders and alerts, with no Notifications heading under it (${heads.join(', ')})`);
+    // tabs audit U4: a whole switch row flips its switch, tapped on its words.
+    {
+      const isOn = () => pg.locator('[data-testid=notify-pause] input').isChecked();
+      const before = await isOn();
+      await pg.locator('[data-testid=notify-pause]').getByText('Pause reminder', { exact: true }).click();
+      await pg.waitForTimeout(300);
+      const after = await isOn();
+      await pg.locator('[data-testid=notify-pause]').getByText('Pause reminder', { exact: true }).click();
+      await pg.waitForTimeout(300);
+      check(before === true && after === false && (await isOn()) === true && (await metaOf(pg, 'notify_off')) !== null,
+        `tabs audit U4: tapping a switch row's words flips its switch (${before} → ${after})`);
+    }
+    // tabs audit U4: the range's − and + are 44 pt.
+    await pg.locator('[data-testid=mode-explore]').scrollIntoViewIfNeeded();
+    await pg.click('[data-testid=mode-explore]');
+    await pg.waitForTimeout(400);
+    {
+      const m = await pg.locator('[data-testid=range-minus]').boundingBox();
+      const p = await pg.locator('[data-testid=range-plus]').boundingBox();
+      check(m.width >= 44 && m.height >= 44 && p.width >= 44 && p.height >= 44, `tabs audit U4: the range's − and + are at least 44 pt (${m.width}×${m.height}, ${p.width}×${p.height})`);
+      const kindRow = pg.locator('[data-testid=kind-public_art]');
+      const was = await kindRow.locator('input').isChecked();
+      await kindRow.getByText('Public art', { exact: true }).click();
+      await pg.waitForTimeout(300);
+      const now = await kindRow.locator('input').isChecked();
+      await kindRow.getByText('Public art', { exact: true }).click();
+      await pg.waitForTimeout(300);
+      check(was !== now, 'tabs audit U4: a kind’s row flips its switch, tapped on its name');
+    }
+    await pg.locator('[data-testid=mode-quiet]').scrollIntoViewIfNeeded();
+    await pg.click('[data-testid=mode-quiet]');
+    await drawerTo(pg, 'peek');
+    await drawerTo(pg, 'half');
+    // tabs audit U12: opened, the line under Start doesn't repeat the mode shown above it.
+    const halfLine = await pg.locator('[data-testid=peek-choices]').allInnerTexts();
+    check(!halfLine.some((t) => /Quiet|Explore/.test(t)), `tabs audit U12: at half, the line under Start doesn't repeat the mode (${JSON.stringify(halfLine)})`);
+    await drawerTo(pg, 'peek');
+    check((await pg.locator('[data-testid=peek-choices]').innerText()) === 'Quiet', 'tabs audit U12: at the peek, the line still says the mode');
+
+    // Chronicle is opened once before any walk: its last read says no walk is open (tabs audit 2).
+    await pg.click('[data-testid=tab-chronicle]');
+    await pg.waitForSelector('[data-testid=home-sheet]');
+    await pg.waitForTimeout(800);
+    await pg.click('[data-testid=tab-navigate]');
+    await pg.waitForTimeout(800);
+
+    // tabs audit 3: a memo recording on Navigate is saved when another tab comes to the front, and
+    // Walk here started meanwhile waits for it: never a walk under a recording memo.
+    await pg.click('[data-testid=moment-voice]');
+    await pg.waitForSelector('[data-testid=moment-voice-save]', { timeout: 10000 });
+    await pg.waitForTimeout(1600);
+    await pg.click('[data-testid=tab-explore]');
+    await pg.waitForSelector('[data-testid=explore-drawer]');
+    await pg.waitForTimeout(1500);
+    {
+      const box = await pg.locator('canvas.maplibregl-canvas').boundingBox();
+      await pg.mouse.move(box.x + box.width / 2 + 50, box.y + box.height / 2 - 80);
+      await pg.mouse.down();
+      await pg.waitForTimeout(700);
+      await pg.mouse.up();
+    }
+    await pg.click('[data-testid=walk-here]');
+    await pg.waitForURL(/\/walk/, { timeout: 15000 });
+    await pg.waitForSelector('[data-testid=stop]');
+    const w = await openWalk(pg);
+    const memos = await rows(pg, 'voice');
+    check(memos.length === 1 && memos[0].walk_id == null && memos[0].file_path && w,
+      `tabs audit 3: leaving Navigate mid-memo saves the memo, and Walk here starts the walk only after (${memos.length} memo)`);
+
+    const north = async (y0, y1) => {
+      for (let y = y0; y <= y1 + 1e-9; y += 0.05) {
+        const p = at(-0.5, y);
+        await c.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+        await pg.waitForTimeout(1000);
+      }
+    };
+    await north(-0.5, -0.3);
+
+    // tabs audit 1: a double tap on the recording bar opens one walk screen, not two.
+    await pg.click('[data-testid=walk-minimize]');
+    await pg.waitForSelector('[data-testid=recording-return]', { timeout: 10000 });
+    await pg.waitForTimeout(600);
+    await pg.dblclick('[data-testid=recording-return]');
+    await pg.waitForSelector('[data-testid=stop]');
+    await pg.waitForTimeout(1500);
+    const canvases = await pg.locator('canvas.maplibregl-canvas').count();
+    await pg.click('[data-testid=walk-minimize]');
+    await pg.waitForSelector('[data-testid=recording-bar]', { timeout: 10000 });
+    await pg.waitForTimeout(800);
+    check(canvases === 1 && !/\/walk/.test(new URL(pg.url()).pathname) && (await tabBarShown(pg)),
+      `tabs audit 1: a double tap on the recording bar opens one walk screen, and one Minimize goes back to the tabs (${canvases} maps)`);
+
+    // tabs audit 2: a reminder tapped while the walk is minimized opens on the walk, though Chronicle,
+    // read before the walk began, is still mounted under the tabs.
+    const memAt = at(-0.5, -0.2);
+    await pg.evaluate(({ lon, lat }) => new Promise((resolve, reject) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const tx = req.result.transaction(['capture'], 'readwrite');
+        tx.objectStore('capture').put({ id: 'audit-old-note', walk_id: 'old-walk', t: Date.now() - 86_400_000, kind: 'text', file_path: null, body: 'Under the arch', segment_id: null, lat, lon });
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      };
+    }), { lon: memAt[0], lat: memAt[1] });
+    const tap = { type: 'notice-response', id: 'recall-audit', data: { captureIds: ['audit-old-note'] }, action: null };
+    await pg.evaluate((m) => navigator.serviceWorker.dispatchEvent(new MessageEvent('message', { data: m })), tap);
+    const onWalk = await pg.waitForURL(/\/walk/, { timeout: 10000 }).then(() => true, () => false);
+    const viewers = onWalk ? await pg.waitForSelector('[data-testid=viewer-close]', { timeout: 10000 }).then(() => pg.locator('[data-testid=viewer-close]').count(), () => 0) : 0;
+    check(onWalk && viewers === 1, `tabs audit 2: a reminder tapped with the walk minimized opens on the walk, once (${pg.url()}, ${viewers} viewer)`);
+    await pg.click('[data-testid=viewer-close]');
+    await pg.waitForTimeout(400);
+
+    // tabs audit U2: Navigate with a walk minimized is a live view of the walk.
+    await pg.click('[data-testid=walk-minimize]');
+    await pg.waitForSelector('[data-testid=recording-bar]', { timeout: 10000 });
+    await pg.click('[data-testid=tab-navigate]');
+    await pg.waitForTimeout(1200);
+    const watches0 = await pg.evaluate(() => window.__watchCalls);
+    await pg.click('[data-testid=tab-chronicle]');
+    await pg.waitForTimeout(500);
+    await pg.click('[data-testid=tab-navigate]');
+    await pg.waitForTimeout(1500);
+    check((await pg.evaluate(() => window.__watchCalls)) === watches0, 'tabs audit U2: Navigate reads no fix of its own while a walk is open (the recorder already watches)');
+    check((await shownCount(pg, '[data-testid=start]')) === 0 && (await shownCount(pg, '[data-testid=resume]')) === 0 && (await shownCount(pg, '[data-testid=recording-bar]')) === 1,
+      'tabs audit U2: with a walk open, Navigate has no Start and no second Return button: the recording bar is the way back');
+    check(/^Your walk · to Your spot$/.test(await pg.locator('[data-testid=peek-choices]').innerText()) && (await shownCount(pg, '[data-testid=mark-pin]')) >= 0,
+      `tabs audit U2: the peek names the walk's destination ("${await pg.locator('[data-testid=peek-choices]').innerText()}")`);
+    {
+      const peek = Math.round((await pg.locator('[data-testid=navigate-drawer]').boundingBox()).height);
+      await drawerTo(pg, 'half');
+      const after = Math.round((await pg.locator('[data-testid=navigate-drawer]').boundingBox()).height);
+      check(after === peek, `tabs audit U2: with a walk open the drawer stays at its peek (${peek} → ${after} px)`);
+    }
+    // The walk goes on; Navigate follows it: the trace, the walker, the capture row for the walk.
+    const perfA = { at: Date.now(), ...(await pg.evaluate(() => ({ ...window.__perf }))) };
+    await north(-0.25, 0.25);
+    await pg.waitForTimeout(2200);
+    {
+      const b = await pg.evaluate(() => ({ ...window.__perf }));
+      const secs = (Date.now() - perfA.at) / 1000;
+      const rate = (k) => ((b[k] ?? 0) - (perfA[k] ?? 0)) / secs;
+      check(rate('render:navigate') <= 0.2 && rate('render:navigate-walk') <= 1.0 && rate('render:map') <= 1.5 && rate('render:walk') === 0,
+        `tabs audit U2: on Navigate, only the live view follows the walk (navigate ${rate('render:navigate').toFixed(2)}/s, live view ${rate('render:navigate-walk').toFixed(2)}/s, map ${rate('render:map').toFixed(2)}/s over ${secs.toFixed(0)} s)`);
+    }
+    {
+      const last = at(-0.5, 0.25);
+      const end = ((await pg.locator('[data-trace-end]').last().getAttribute('data-trace-end')) || '0,0').split(',').map(Number);
+      const off = Math.hypot((end[0] - last[0]) / dLon, (end[1] - last[1]) / dLat) * 100;
+      check(off < 20 && (await pg.locator('[data-testid=walker-puck]').evaluateAll((els) => els.filter((e) => e.style.display !== 'none').length)) === 1 && (await pg.locator('canvas.maplibregl-canvas').count()) === 1,
+        `tabs audit U2: Navigate shows the walk's growing trace and the walker, on one live map (${off.toFixed(0)} m off)`);
+    }
+    // The capture row keeps a note for the open walk, shown on Navigate's map, and once on Return.
+    await pg.click('[data-testid=moment-note]');
+    await pg.fill('[data-testid=moment-note-input]', 'A blue door');
+    await pg.click('[data-testid=moment-note-save]');
+    const said = await pg.waitForSelector('[data-testid=moment-toast]', { timeout: 10000 }).then((e) => e.innerText(), () => '');
+    await pg.waitForTimeout(800);
+    const notes = (await rows(pg, 'text')).filter((x) => x.walk_id === w.id);
+    const pinned = await shownCount(pg, '[aria-label="Note"]');
+    check(said === 'Note saved to your walk' && notes.length === 1 && pinned === 1,
+      `tabs audit U2: Navigate's capture row keeps a note for the open walk, pinned on its map ("${said}", ${notes.length} kept, ${pinned} pinned)`);
+    await pg.click('[data-testid=recording-return]');
+    await pg.waitForSelector('[data-testid=stop]');
+    await pg.waitForTimeout(1500);
+    check((await pg.locator('[aria-label="Note. Open"]').count()) === 1, 'tabs audit U2: back on the walk, the note from Navigate is pinned once, not lost or doubled');
+    await c.close();
+  };
+
   try {
+    if (process.env.E2E_ONLY === 'tabs') {
+      await tabsAudit();
+      check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
+      return;
+    }
     await page.goto(url);
     // Navigation & tabs (NV1-NV6): the app opens on Navigate, at /, with Start at the drawer's peek.
     await page.waitForSelector('[data-testid=start]');
@@ -317,20 +582,19 @@ function check(ok, what) {
     const fullH = await drawerH();
     check(peekH < halfH && halfH < fullH && (await page.locator('[data-testid=kind-churches]').count()) === 0 && (await page.locator('[data-testid=notify-settings]').count()) === 1,
       `at full, with Quiet: reminders and alerts, no kinds or range (NV21: ${peekH} < ${halfH} < ${fullH})`);
-    // The capture row stays one tap away with the drawer at full (rev 34): above the drawer, and tappable.
+    // The capture row stays one tap away with the drawer at full (rev 34, U1): docked low, over the drawer, and tappable.
     {
-      const drawerTop = (await page.locator('[data-testid=navigate-drawer]').boundingBox()).y;
       const hits = [];
       for (const id of ['moment-photo', 'moment-voice', 'moment-note']) {
         const b = await page.locator(`[data-testid=${id}]`).boundingBox();
         const at = await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-testid]')?.getAttribute('data-testid'), { x: b.x + b.width / 2, y: b.y + b.height / 2 });
-        hits.push(at === id && b.y + b.height <= drawerTop && b.y > 0);
+        hits.push(at === id && b.y > 844 * 0.6);
       }
       await page.click('[data-testid=moment-note]');
       const noteOpens = await page.waitForSelector('[data-testid=moment-note-input]', { timeout: 3000 }).then(() => true, () => false);
       if (noteOpens) await page.click('[aria-label="Close note"]', { position: { x: 10, y: 10 } });
       await page.waitForTimeout(300);
-      check(hits.every(Boolean) && noteOpens, `with the drawer at full, the camera, mic and pencil sit above it and can be tapped (rev 34: ${hits.join(', ')})`);
+      check(hits.every(Boolean) && noteOpens, `with the drawer at full, the camera, mic and pencil stay low and can be tapped (rev 34, U1: ${hits.join(', ')})`);
     }
     // Settings: a switch per kind, both on; the test notification is a real one (NT4, NT6).
     const isOn = (id) => page.locator(`[data-testid=${id}] input`).isChecked();
@@ -1713,26 +1977,6 @@ function check(ok, what) {
     }
 
     // Starting from the tabs, in fresh browsers (NV12, NV15, NV25).
-    const freshPage = async (label) => {
-      const c = await browser.newContext({
-        viewport: { width: 390, height: 844 },
-        permissions: ['geolocation'],
-        geolocation: { longitude: start[0], latitude: start[1], accuracy: 6 },
-      });
-      await c.route('https://tiles.openfreemap.org/**', tileRoute);
-      c.on('request', (r) => { const u = new URL(r.url()); if (/^(https?|wss?):$/.test(u.protocol)) hosts.add(u.host); });
-      const pg = await c.newPage();
-      pg.on('pageerror', (e) => errors.push(`${label}: ${e}`));
-      pg.on('console', (m) => m.type() === 'error' && errors.push(`${label}: ${m.text()}`));
-      return { c, pg };
-    };
-    const openWalk = (pg) => pg.evaluate(() => new Promise((resolve) => {
-      const req = indexedDB.open('chronicles');
-      req.onsuccess = () => {
-        const g = req.result.transaction('walk', 'readonly').objectStore('walk').getAll();
-        g.onsuccess = () => resolve(g.result.find((w) => w.open) ?? null);
-      };
-    }));
     {
       // Walk here on Explore is a one-tap start to that spot, with the saved choices; it never fills the drawer (NV12, NV15).
       const { c, pg } = await freshPage('walk-here');
@@ -1872,9 +2116,9 @@ function check(ok, what) {
       const reminderOnBar = await pg.waitForSelector('[data-testid=recording-reminder]', { timeout: 5000 }).then((e) => e.innerText(), () => '');
       check(fired?.fired_count === 1 && fired.last_walk_id === w.id && /A note from here/.test(reminderOnBar),
         `Remind me here fires with the walk minimized, and the bar says so (NV8: ${JSON.stringify(fired && { n: fired.fired_count, walk: fired.last_walk_id === w.id })}, "${reminderOnBar}")`);
-      // NV10: Navigate's peek has Return to walk in Start's place.
-      check((await shownCount(pg, '[data-testid=resume]')) === 1 && (await shownCount(pg, '[data-testid=start]')) === 0 && /Return to walk/.test(await pg.locator('[data-testid=resume]').innerText()),
-        'with a walk open, Navigate’s peek shows Return to walk in place of Start (NV10)');
+      // NV10, as changed by the tabs audit (U2): no Start with a walk open, and the recording bar is the one way back.
+      check((await shownCount(pg, '[data-testid=resume]')) === 0 && (await shownCount(pg, '[data-testid=start]')) === 0 && (await shownCount(pg, '[data-testid=recording-return]')) === 1,
+        'with a walk open, Navigate has no Start, and the recording bar is the way back (NV10, U2)');
       // NV10: Walk here on Explore routes the open walk there and returns to it; no second walk.
       await pg.click('[data-testid=tab-explore]');
       await pg.waitForTimeout(1500);
@@ -1912,6 +2156,7 @@ function check(ok, what) {
       check(await pg.waitForSelector('[data-testid=memory-pin]', { timeout: 15000 }).then(() => true, () => false), 'memory pins show again when the walk screen returns (NV8)');
       await c.close();
     }
+    await tabsAudit();
     {
       // Start with Explore and a destination: the walk opens exploring, heading there (NV25).
       const { c, pg } = await freshPage('start-explore');
