@@ -120,7 +120,14 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
           onPress={() => back(null)}
           style={({ pressed }) => [styles.main, pressed && styles.pressed]}
         >
-          <View style={[styles.dot, paused && styles.dotPaused]} />
+          {/* Paused is a glyph, not only a grey dot (tabs audit U10). */}
+          {paused ? (
+            <View testID="recording-paused" style={styles.glyph}>
+              <Icon name="pause" size={16} color="#ffffff" />
+            </View>
+          ) : (
+            <View style={styles.dot} />
+          )}
           {said ? (
             <Text testID="recording-said" style={[styles.text, said.error && styles.error]} numberOfLines={2} accessibilityLiveRegion="polite">
               {said.text}
@@ -128,7 +135,10 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
           ) : (
             <Ticking testID="recording-stats" style={styles.text} numberOfLines={1} text={(now) => line(now).text} label={(now) => line(now).label} />
           )}
-          <Icon name="chevron-up" size={20} color="#ffffff" />
+          {/* Back into the walk, not "expand" (tabs audit U10): the label stays "Return to the walk". */}
+          <View testID="recording-go" style={styles.glyph}>
+            <Icon name="chevron-forward" size={20} color="#ffffff" />
+          </View>
         </Pressable>
         <Pressable
           testID="bar-photo"
@@ -158,7 +168,7 @@ const styles = StyleSheet.create({
   reminderSee: { color: theme.ink, fontSize: 15, fontWeight: '700', textDecorationLine: 'underline' },
   main: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingHorizontal: 10, borderRadius: 12 },
   dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: theme.danger, borderWidth: 1.5, borderColor: '#ffffff' },
-  dotPaused: { backgroundColor: theme.muted },
+  glyph: { alignItems: 'center', justifyContent: 'center' },
   text: { flex: 1, color: '#ffffff', fontSize: 16, fontWeight: '600', fontVariant: ['tabular-nums'] },
   error: { fontSize: 14 },
   camera: { width: 44, height: 44, borderRadius: 22, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' },
