@@ -1,10 +1,11 @@
-import { router } from 'expo-router';
 import { useState } from 'react';
 import { db } from './db';
+import { memoGate } from './memoGate';
 import type { Waypoint } from './nav/types';
 import { RecorderError } from './recorder/types';
 import { startWalk } from './session';
 import { parseStartMode, START_MODE_KEY, startPlan, walkHerePlan, type StartMode } from './startPlan';
+import { showWalk } from './walkNav';
 
 export type StartError = { message: string; openSettings?: boolean };
 
@@ -25,18 +26,23 @@ export function useStartWalk() {
     setError(null);
     setStarting(true);
     try {
+      // Never under a memo (tabs audit 3): one being saved (Navigate left mid-memo) is waited for.
+      if (!(await memoGate.readyToStart())) {
+        setError({ message: 'A voice memo is recording. Save it first.' });
+        return;
+      }
       const open = await db.getOpenWalk().catch(() => null);
       const here = walkHerePlan(open?.id ?? null, dest);
       if (here.kind !== 'start') {
         if (here.kind === 'route') for (const [k, v] of here.meta) await db.setMeta(k, v);
-        router.push('/walk');
+        showWalk();
         return;
       }
       const chosen = mode ?? parseStartMode(await db.getMeta(START_MODE_KEY).catch(() => null));
       const { walk, warning } = await startWalk();
       const plan = startPlan({ walkId: walk.id, now: Date.now(), mode: chosen, dest, warning });
       for (const [k, v] of plan.meta) await db.setMeta(k, v);
-      router.push(plan.params ? { pathname: '/walk', params: plan.params } : '/walk');
+      showWalk(plan.params);
     } catch (e) {
       setError({ message: e instanceof Error ? e.message : String(e), openSettings: e instanceof RecorderError && e.openSettings });
     } finally {

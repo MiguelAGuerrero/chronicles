@@ -21,9 +21,11 @@ import { levelForZoom, placesIndex, starsFor, unplacedWalks, type Star } from '.
 import type { Capture, LngLat, Walk, WalkSummary } from '../../lib/types';
 import { useHidden, useOnDeleted } from '../../lib/deletion/useDeletions';
 import { useStartWalk } from '../../lib/useStartWalk';
+import { showWalk } from '../../lib/walkNav';
 import { useTabMap } from '../../lib/useTabMap';
 import { UndoToast } from '../../components/UndoToast';
 import { WalkActions } from '../../components/WalkActions';
+import { useOpenWalkInfo } from '../../components/OpenWalk';
 
 const NONE: never[] = [];
 /** With nothing walked yet: the world, and one line. */
@@ -98,15 +100,17 @@ export default function Chronicle() {
   );
   const [viewing, setViewing] = useState<Capture[] | null>(null);
   // A reminder tapped with no walk open opens here at once (audit 1, NV13); with a walk open, the walk
-  // screen opens it, and Chronicle declines. Until its load knows whether a walk is open, it declines
-  // too: on a cold open the tap came before that, and was then sent on to the walk as well (2 viewers).
-  const [openKnown, setOpenKnown] = useState(false);
-  const openRef = useRef<{ known: boolean; open: Walk | null }>({ known: false, open: null });
+  // screen opens it, and Chronicle declines. Whether a walk is open is decided when the tap comes, from
+  // the open walk's keeper, never from what this tab read when it last came to the front: a walk started
+  // or minimized since then once had the tap open here instead (tabs audit 2). Until the keeper knows,
+  // it declines too: on a cold open the tap came before that (2 viewers).
+  const openInfo = useOpenWalkInfo();
+  const openRef = useRef(openInfo);
   useEffect(() => {
-    openRef.current = { known: openKnown, open };
+    openRef.current = openInfo;
   });
   useEffect(() => onRecallOpen((found) => {
-    if (!openRef.current.known || openRef.current.open) return false;
+    if (!openRef.current.known || openRef.current.walk) return false;
     setRecalled(found);
     // Taken while another tab is in front: Chronicle comes forward to show it (NV13).
     router.navigate('/chronicle');
@@ -125,7 +129,7 @@ export default function Chronicle() {
         // A reminder notification tapped with no walk open lands here (R4, NV13).
         // With a walk open, a tapped reminder waiting from a cold start opens on the walk (audit 2).
         if (openWalk && (await recallWaiting().catch(() => false))) {
-          router.push('/walk');
+          showWalk();
           return null;
         }
         const recalled = openWalk ? [] : await takeRecallOpen().catch(() => [] as Capture[]);
@@ -136,7 +140,6 @@ export default function Chronicle() {
         if (recalled.length) setRecalled(recalled);
         setData({ walks, summaries, areas, rows });
         setOpen(openWalk);
-        setOpenKnown(true);
         setNow(Date.now());
         const bounds = placesIndex(areas, rows, walks).bounds;
         if (boundsKey(bounds) !== fittedTo.current) {

@@ -48,7 +48,8 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Chronicles' }} />
           {/* No header: the growing trace says a walk is on. Its way out is Minimize, to the bar above the
               tabs (NV7), or Stop; a swipe would only minimize it unasked. */}
-          <Stack.Screen name="walk" options={{ headerShown: false, gestureEnabled: false }} />
+          {/* One walk screen at most, however it is reached (tabs audit 1). */}
+          <Stack.Screen name="walk" dangerouslySingular options={{ headerShown: false, gestureEnabled: false }} />
           <Stack.Screen name="replay/[id]" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
           {/* The day's replay (M10): moments and walks in time order. */}
           <Stack.Screen name="day/[key]" options={{ headerShown: false, presentation: 'fullScreenModal' }} />

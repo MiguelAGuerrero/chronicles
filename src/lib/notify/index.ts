@@ -30,8 +30,14 @@ export const notifier = createNotifier({
       const { openRecall } = await import('../discovery/recallCheck');
       if (await openRecall(ids)) return;
       const open = await db.getOpenWalk().catch(() => null);
+      if (open) {
+        // One walk screen, however many taps (tabs audit 1).
+        const { showWalk } = await import('../walkNav');
+        showWalk();
+        return;
+      }
       const { router } = await import('expo-router');
-      router.navigate(open ? '/walk' : '/chronicle');
+      router.navigate('/chronicle');
     })().catch(() => {});
   },
   onStop: (ids) => {

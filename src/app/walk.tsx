@@ -37,6 +37,7 @@ import { pauseWalk, resumeWalk, stopWalk } from '../lib/session';
 import { formatDistance, formatDuration, formatElapsed } from '../lib/summary';
 import type { Capture, LngLat, Pause, StreetSegment, Walk } from '../lib/types';
 import { useCaptures } from '../lib/useCaptures';
+import { walkScreenShown } from '../lib/walkNav';
 import { gpsLog } from '../lib/gpsLog';
 import { notifyWalkChanged } from '../lib/walkEvents';
 import { routeAhead } from '../lib/nav/navigator';
@@ -149,6 +150,8 @@ export default function WalkScreen() {
     return () => sub.remove();
   }, []);
 
+  // Up: another ask to show the walk does nothing (tabs audit 1).
+  useEffect(() => walkScreenShown(), []);
   useEffect(() => {
     db.getOpenWalk().then(async (w) => {
       if (!w) {

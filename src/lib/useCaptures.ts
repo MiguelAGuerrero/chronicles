@@ -5,10 +5,11 @@ import { setAudioMode } from './audioMode';
 import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
-import { captureBus, mergeCaptures } from './captureBus';
+import { applyPatch, captureBus, mergeCaptures } from './captureBus';
 import { db } from './db';
 import { newId } from './id';
 import { locateOnce } from './locate';
+import { memoGate } from './memoGate';
 import type { LocateResult } from './locate/types';
 import { dropTemp, keepFile } from './media';
 import { makeThumb } from './media/thumb';
@@ -107,9 +108,17 @@ export function useCaptures(
     if (!walkId) return;
     // Another path of this walk (the recording bar's camera, NV9) kept one: shown here too, once,
     // whether it lands before or after the read below.
-    const off = captureBus.subscribe(walkId, self, (c) => {
-      if (alive.current) setCaptures((prev) => mergeCaptures(prev, [c]));
-    });
+    const off = captureBus.subscribe(
+      walkId,
+      self,
+      (c) => {
+        if (alive.current) setCaptures((prev) => mergeCaptures(prev, [c]));
+      },
+      // A later change from that path (its thumbnail), sent even once that path is gone (tabs audit 5).
+      (id, patch) => {
+        if (alive.current) setCaptures((prev) => applyPatch(prev, id, patch));
+      },
+    );
     db.getCaptures(walkId).then((stored) => {
       if (alive.current) setCaptures((prev) => mergeCaptures(stored, prev));
     });
@@ -236,8 +245,12 @@ export function useCaptures(
         // Its small copy for previews (TH1), after the capture is kept: never holds it up or fails it (TH2).
         void makeThumb({ id, walk_id: folder(), t: Date.now(), lat: null, lon: null, kind: 'photo', file_path: path, body: null, segment_id: null }).then((thumb) => {
           if (!thumb) return;
-          void db.updateCapture(id, { thumb_path: thumb }).catch(() => {});
           if (alive.current) setCaptures((prev) => prev.map((x) => (x.id === id ? { ...x, thumb_path: thumb } : x)));
+          // Stored first, then told: a walk screen mounting meanwhile either reads it or hears it (tabs audit 5).
+          void db.updateCapture(id, { thumb_path: thumb }).then(
+            () => captureBus.patch(walkId, id, { thumb_path: thumb }, self),
+            () => {},
+          );
         });
       }
     });
@@ -252,6 +265,11 @@ export function useCaptures(
     const run = queue.current.then(fn, fn);
     queue.current = run.catch(() => {});
     return run;
+  };
+  /** A walk never starts while this memo is stopping and saving (tabs audit 3). */
+  const trackMemo = <T,>(p: Promise<T>): Promise<T> => {
+    memoGate.track(p);
+    return p;
   };
   const withBusy = async <T,>(fn: () => Promise<T>): Promise<T> => {
     setBusy('voice');
@@ -292,6 +310,7 @@ export function useCaptures(
           voiceStamp.current = stampNow();
           voice.record();
           voiceOn.current = true;
+          memoGate.recording(self, true);
           setVoiceStartedAt(voiceStamp.current.t);
           return true;
         } catch (e) {
@@ -316,6 +335,7 @@ export function useCaptures(
       await Promise.race([voice.stop(), new Promise((r) => setTimeout(r, STOP_TIMEOUT_MS))]).catch(() => {});
     }
     voiceOn.current = false;
+    memoGate.recording(self, false);
     if (alive.current) setVoiceStartedAt(null);
     await resetAudioMode();
     // The recorder's own duration is 0 once it has stopped; the wall clock is not.
@@ -336,7 +356,7 @@ export function useCaptures(
    * dropped. A memo that fails to save is kept for retrySave.
    */
   const finishVoice = (): Promise<VoiceResult> =>
-    enqueue(() =>
+    trackMemo(enqueue(() =>
       withBusy(async () => {
         if (!voiceOn.current) return 'none';
         const m = await stopRecorder();
@@ -353,7 +373,7 @@ export function useCaptures(
           return 'failed';
         }
       }),
-    );
+    ));
 
   /** Retries a memo whose save failed. */
   const retrySave = (): Promise<VoiceResult> =>
@@ -379,7 +399,7 @@ export function useCaptures(
 
   /** Stops the memo in progress and sets it aside; it is deleted after UNDO_MS unless undone. */
   const discardVoice = (): Promise<VoiceResult> =>
-    enqueue(() =>
+    trackMemo(enqueue(() =>
       withBusy(async () => {
         if (!voiceOn.current) return 'none';
         const m = await stopRecorder();
@@ -396,7 +416,7 @@ export function useCaptures(
         }, UNDO_MS);
         return 'discarded';
       }),
-    );
+    ));
 
   /** Brings back the memo just discarded, and saves it. */
   const undoDiscard = (): Promise<VoiceResult> =>

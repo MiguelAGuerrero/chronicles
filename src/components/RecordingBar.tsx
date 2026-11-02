@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { db } from '../lib/db';
@@ -10,6 +9,7 @@ import { recordingLine } from '../lib/recordingBar';
 import type { Capture, Pause, Walk } from '../lib/types';
 import type { LiveTrace } from '../lib/useLiveTrace';
 import { useCaptures } from '../lib/useCaptures';
+import { showWalk } from '../lib/walkNav';
 import { Icon } from './icons';
 import { useOpenWalk } from './OpenWalk';
 import { Ticking } from './Ticking';
@@ -79,7 +79,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
       // The walk screen opens what a tapped reminder asks for as it mounts (R4).
       if (open) await db.setMeta(RECALL_OPEN_KEY, JSON.stringify(open.map((c) => c.id))).catch(() => {});
       feedback('tap');
-      router.push('/walk');
+      showWalk();
     } finally {
       returning.current = false;
     }
