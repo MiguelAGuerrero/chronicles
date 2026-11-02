@@ -1,5 +1,5 @@
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, ActivityIndicator, Animated, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SheetFrame, type SheetSize } from '../../components/HomeSheet';
@@ -9,7 +9,8 @@ import { Icon } from '../../components/icons';
 import { Banner, Button, theme } from '../../components/ui';
 import { db } from '../../lib/db';
 import { areaInView, tabMarks, VIEW_REACH_M } from '../../lib/explore/exploreTab';
-import type { ChecklistArea, ChecklistItem, Find } from '../../lib/explore/explore';
+import type { ChecklistArea, ChecklistItem, Find, Kind } from '../../lib/explore/explore';
+import { loadSettings, onSettings } from '../../lib/explore/settings';
 import { boundsOf, distanceM, type Bounds } from '../../lib/geo';
 import { readArea, rememberArea } from '../../lib/landing/read';
 import { landingView, type LandingRow } from '../../lib/landing/view';
@@ -43,6 +44,17 @@ export default function Explore() {
   const [areas, setAreas] = useState<ChecklistArea[]>([]);
   const [finds, setFinds] = useState<Find[]>([]);
   const [items, setItems] = useState<ChecklistItem[]>([]);
+  // "What I'm into", as the walk shows it: a "?" here is one an exploring walk can show (E16).
+  const [hidden, setHidden] = useState<Set<Kind>>(() => new Set());
+  useEffect(() => {
+    let alive = true;
+    loadSettings().then((s) => alive && setHidden(s.hidden), () => {});
+    const off = onSettings((s) => setHidden(s.hidden));
+    return () => {
+      alive = false;
+      off();
+    };
+  }, []);
   const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
   const [center, setCenter] = useState<LngLat | null>(() => getLastFix()?.at ?? null);
   const readAt = useRef<LngLat | null>(null);
@@ -105,8 +117,8 @@ export default function Explore() {
 
   const streetZoom = (view?.zoom ?? 0) >= MARKS_ZOOM;
   const landingAll = useMemo(() => landingView(landings, build), [landings, build]);
-  const marks = useMemo<MarkPin[]>(() => (streetZoom ? (tabMarks(items, finds) as MarkPin[]) : NONE), [items, finds, streetZoom]);
-  const here = useMemo(() => (center ? areaInView(center, areas, landings, items, finds) : null), [center, areas, landings, items, finds]);
+  const marks = useMemo<MarkPin[]>(() => (streetZoom ? (tabMarks(items, finds, hidden) as MarkPin[]) : NONE), [items, finds, hidden, streetZoom]);
+  const here = useMemo(() => (center ? areaInView(center, areas, landings, items, finds, hidden) : null), [center, areas, landings, items, finds, hidden]);
 
   const lookHere = async (at: LngLat) => {
     if (looking) return;

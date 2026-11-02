@@ -38,3 +38,17 @@ test('NV14: marks on the map: unfound places as "?", finds as found pins', () =>
   const m = tabMarks(items.slice(0, 2), finds);
   assert.deepEqual(m.map((x) => [x.id, x.revealed, !!x.found]), [['a', true, true], ['b', false, false]]);
 });
+
+// The owner, Nov 2: the Explore tab showed many "?" that never appeared on an
+// exploring walk. The walk hid the kinds switched off in "What I'm into"; the
+// tab showed them all. The tab honours the switches too; a find still shows.
+test('tabs align: the Explore tab leaves out unfound places of kinds switched off', () => {
+  const park = { ...item('p', 'Gano Park', 'parks', east(400)), kind: 'parks' as ChecklistItem['kind'] };
+  const art = { ...item('s', 'A mural', 'art', east(300)), kind: 'public_art' as ChecklistItem['kind'] };
+  const foundPark = { ...items[0], kind: 'parks' as ChecklistItem['kind'] };
+  const hidden = new Set<ChecklistItem['kind']>(['parks']);
+  const m = tabMarks([park, art, foundPark], finds, hidden);
+  assert.deepEqual(m.map((x) => x.id).sort(), ['a', 's'], 'the hidden park goes; the art stays; a found park still shows');
+  const v = areaInView(O, [area], [landing], [park, art], [], hidden);
+  assert.deepEqual(v.toFind, ['Art'], 'the drawer names only kinds shown');
+});
