@@ -1049,7 +1049,8 @@ export default function WalkScreen() {
             }}
             style={({ pressed }) => [styles.pauseBtn, options && styles.optionsOn, pressed && styles.pressed]}
           >
-            <Icon name={exploring ? 'compass-outline' : 'options-outline'} size={20} color={options ? '#ffffff' : theme.ink} />
+            {/* One icon whatever the mode (tabs audit U11): a compass read as the Explore tab. */}
+            <Icon name="options-outline" size={20} color={options ? '#ffffff' : theme.ink} />
           </Pressable>
           <Pressable
             testID={paused ? 'resume-walk' : 'pause-walk'}
