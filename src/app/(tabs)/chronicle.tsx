@@ -66,7 +66,6 @@ export default function Chronicle() {
   const reload = useRef<(() => void) | null>(null);
   useOnDeleted(() => reload.current?.());
   const [actionsFor, setActionsFor] = useState<string | null>(null);
-  const [open, setOpen] = useState<Walk | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const walkStart = useStartWalk();
   const [loadError, setLoadError] = useState<{ message: string; openSettings?: boolean } | null>(null);
@@ -139,7 +138,6 @@ export default function Chronicle() {
         setCaptures(await allCaptures().catch(() => [] as Capture[]));
         if (recalled.length) setRecalled(recalled);
         setData({ walks, summaries, areas, rows });
-        setOpen(openWalk);
         setNow(Date.now());
         const bounds = placesIndex(areas, rows, walks).bounds;
         if (boundsKey(bounds) !== fittedTo.current) {
@@ -214,7 +212,6 @@ export default function Chronicle() {
     return got ? { count: countLine(got.count), found: got.found.map((f) => f.name) } : null;
   }, [mode, index, checklists, finds]);
 
-  const empty = data != null && index.walkCount === 0 && !open && captures.length === 0;
   const busy = placing != null || walkStart.starting;
 
   return (
@@ -250,6 +247,7 @@ export default function Chronicle() {
           onOpenMoments={setViewing}
           onWalkActions={setActionsFor}
           now={now}
+          onNavigate={() => router.navigate('/')}
         />
       </View>
 
@@ -303,26 +301,24 @@ export default function Chronicle() {
       <WalkActions walkId={actionsFor} onClose={() => setActionsFor(null)} />
       <UndoToast style={{ top: insets.top + 64 }} />
 
-      {(empty || placing) && (
+      {placing && (
         <View style={[styles.center, styles.over]} pointerEvents="box-none" accessibilityLiveRegion="polite">
           <Text style={styles.centerText}>
-            {placing ? `Placing your walks (${Math.min(placing.done + 1, placing.of)} of ${placing.of})` : 'Walk somewhere and it is starred here'}
+            {`Placing your walks (${Math.min(placing.done + 1, placing.of)} of ${placing.of})`}
           </Text>
-          {placing && (
-            <Pressable
-              testID="skip-placing"
-              accessibilityRole="button"
-              accessibilityLabel="Skip placing your walks for now"
-              onPress={() => {
-                skip.current = true;
-                setPlacing(null);
-              }}
-              style={styles.skip}
-              hitSlop={8}
-            >
-              <Text style={styles.skipText}>Skip</Text>
-            </Pressable>
-          )}
+          <Pressable
+            testID="skip-placing"
+            accessibilityRole="button"
+            accessibilityLabel="Skip placing your walks for now"
+            onPress={() => {
+              skip.current = true;
+              setPlacing(null);
+            }}
+            style={styles.skip}
+            hitSlop={8}
+          >
+            <Text style={styles.skipText}>Skip</Text>
+          </Pressable>
         </View>
       )}
 

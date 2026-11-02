@@ -193,6 +193,8 @@ export function HomeSheet(props: {
   onWalkActions?: (walkId: string) => void;
   /** The home's clock, for naming today and yesterday. */
   now: number;
+  /** With no walk finished yet, the peek's way to Navigate (tabs audit U7). */
+  onNavigate?: () => void;
 }) {
   const expanded = props.mode.kind !== 'summary';
   // Opening a list starts at half height; the drag can take it to full.
@@ -219,6 +221,7 @@ export function HomeSheet(props: {
   const summary = index.walkCount
     ? `${index.walkCount} ${index.walkCount === 1 ? 'walk' : 'walks'} · ${index.placeCount} ${index.placeCount === 1 ? 'place' : 'places'}`
     : looseCount ? `${looseCount} ${looseCount === 1 ? 'moment' : 'moments'}` : '';
+  const noWalks = index.walkCount === 0;
   const listTitle = props.mode.kind === 'days' ? 'Your days' : 'Walks';
   const nowT = props.now;
 
@@ -249,6 +252,11 @@ export function HomeSheet(props: {
                 <Text testID="place-count" style={styles.meta} numberOfLines={1}>{props.placeExtra.count}</Text>
               ) : null}
             </View>
+          ) : noWalks && !expanded ? (
+            // Nothing walked yet, a walk minimized or not (tabs audit U7): how walks get here, and the way there.
+            <Text testID="sheet-empty" style={[styles.empty, styles.headerText]} numberOfLines={2}>
+              Walk somewhere and it is starred here
+            </Text>
           ) : (
             <Text style={[styles.title, styles.headerText]} accessibilityRole="header" numberOfLines={1}>
               {expanded ? listTitle : summary}
@@ -309,6 +317,18 @@ export function HomeSheet(props: {
                 >
                   <Icon name="list" size={18} color={theme.ink} />
                   <Text style={styles.pillText}>Walks</Text>
+                </Pressable>
+              )}
+              {noWalks && props.onNavigate && (
+                <Pressable
+                  testID="sheet-navigate"
+                  accessibilityRole="button"
+                  accessibilityLabel="Go to Navigate to start a walk"
+                  onPress={props.onNavigate}
+                  style={styles.pill}
+                >
+                  <Icon name="navigate-outline" size={18} color={theme.ink} />
+                  <Text style={styles.pillText}>Navigate</Text>
                 </Pressable>
               )}
             </View>
@@ -505,6 +525,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, minHeight: 48, maxWidth: 640, width: '100%', alignSelf: 'center' },
   headerText: { flex: 1 },
   title: { fontSize: 17, fontWeight: '700', color: theme.ink },
+  empty: { fontSize: 15, color: theme.ink, lineHeight: 20 },
   meta: { fontSize: 14, color: theme.muted, marginTop: 2 },
   pill: {
     flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44, paddingHorizontal: 14, borderRadius: 22,
