@@ -98,10 +98,13 @@ export default function Explore() {
         setAreas(a);
         setFinds(f);
         setBuild(await ensureTileBuild().then((b) => (b === 'unknown' ? null : b), () => null));
-        // With no fix to open on and no view of its own yet, it opens on the area last remembered (NV16).
+        // With no view of its own yet (the world it opened on), it frames Navigate's last fix, else the
+        // area last remembered (NV16). Explore opens first (NV2), before Navigate has read a fix, so
+        // this is asked on every focus, not only when the map first opens.
         const newest = [...l].sort((x, y) => y.analyzed_at - x.analyzed_at)[0];
-        if (!getLastFix() && (cameraNow.current?.zoom ?? 0) < 3 && newest) {
-          const box = boundsOf([newest.centre], 800);
+        if ((cameraNow.current?.zoom ?? 0) < 3) {
+          const fix = getLastFix()?.at;
+          const box = fix ? boundsOf([fix], LOCATE_FIT_M) : newest ? boundsOf([newest.centre], 800) : null;
           if (box) setFit((v) => ({ bounds: box, key: v.key + 1 }));
         }
         const at = cameraNow.current?.center ?? getLastFix()?.at;
