@@ -3426,7 +3426,7 @@ function check(ok, what) {
       await page.waitForSelector('[data-testid=action-gps-log]', { timeout: 5000 }).catch(() => {});
       await page.click('[data-testid=action-gps-log]').catch(() => {});
       const sharedEnded = await page.waitForFunction(() => window.__shared, null, { timeout: 5000 }).then((h) => h.jsonValue()).catch(() => null);
-      const endedRows = (sharedEnded?.message ?? '').split('\n');
+      const endedRows = (sharedEnded?.text ?? '').split('\n');
       check(endedRows[0]?.startsWith('# Chronicles GPS log') && endedRows.filter((r) => /^\d+\.\d,/.test(r)).length >= 20,
         `a finished walk's More shares its GPS log (${endedRows.length} lines)`);
       await page.keyboard.press('Escape');
