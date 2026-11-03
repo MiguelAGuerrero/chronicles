@@ -1363,6 +1363,15 @@ function check(ok, what) {
     check(new URL(page.url()).pathname === `${BASE}/` && (await page.locator('[data-testid=tab-explore][aria-selected=true]').count()) === 1
       && (await page.locator('canvas.maplibregl-canvas').count()) === 1,
       `the app opens on Explore, at its own path, one live map (NV2, NV4, NV5: ${page.url()})`);
+    // Explore reads one fix as the app opens and frames it (NV16, the owner's call, Nov 3).
+    const framed = async () => page.evaluate(() => {
+      const el = [...document.querySelectorAll('[data-zoom]')].find((e) => !e.closest('[aria-hidden=true]'));
+      return el ? { zoom: Number(el.getAttribute('data-zoom')), center: (el.getAttribute('data-center') ?? '').split(',').map(Number) } : null;
+    });
+    await page.waitForFunction(() => [...document.querySelectorAll('[data-zoom]')].some((e) => !e.closest('[aria-hidden=true]') && Number(e.getAttribute('data-zoom')) >= 14), null, { timeout: 15000 }).catch(() => {});
+    const launchView = await framed();
+    const offM = launchView ? Math.hypot((launchView.center[0] - start[0]) / dLon, (launchView.center[1] - start[1]) / dLat) * 100 : Infinity;
+    check(launchView && launchView.zoom >= 14 && offM < 150, `Explore frames where you are as the app opens, from one fix of its own (NV16: ${JSON.stringify(launchView)}, ${Math.round(offM)} m off)`);
     const tabs = await page.locator('[data-testid^=tab-]').evaluateAll((els) => els.map((e) => `${e.dataset.testid}:${e.innerText.replace(/[^A-Za-z]/g, "")}:${e.querySelectorAll('svg, [aria-hidden], div').length > 1}`));
     check(tabs.join(',') === 'tab-explore:Explore:true,tab-navigate:Navigate:true,tab-chronicle:Chronicle:true', `a bottom bar with Explore, Navigate and Chronicle, in that order, each with an icon and a label (NV1: ${tabs.join(', ')})`);
     // Each tab at its own path, with one live map (NV4, NV5); Chronicle is review only (NV11).

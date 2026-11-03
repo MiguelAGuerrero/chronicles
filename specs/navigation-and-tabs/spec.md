@@ -50,7 +50,7 @@ Explore
 
 14. **NV14** Explore shows the remembered busy areas (magenta) and each area's places to find and its finds, with no counts (nothing is a score).
 15. **NV15** A long press from z10 runs **What's good here?**, as the home does today; at z12 or closer the sheet offers Walk here too, a one-tap start (NV12).
-16. **NV16** Explore's drawer peeks with the area in view and opens to its busy streets and places to find. Explore never tracks you: it uses your last fix or the area in view.
+16. **NV16** Explore's drawer peeks with the area in view and opens to its busy streets and places to find. Explore never tracks you: it reads one fix when the app opens and frames it, once per launch (the owner's call, Nov 3, now that Explore opens first), then uses your last fix or the area in view.
 
 Navigate: capture and the pre-start drawer
 

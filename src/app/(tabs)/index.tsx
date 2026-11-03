@@ -15,7 +15,8 @@ import { loadSettings, onSettings } from '../../lib/explore/settings';
 import { boundsOf, distanceM, type Bounds } from '../../lib/geo';
 import { readArea, rememberArea } from '../../lib/landing/read';
 import { landingView, type LandingRow } from '../../lib/landing/view';
-import { getLastFix } from '../../lib/lastFix';
+import { getLastFix, launchFix, setLastFix } from '../../lib/lastFix';
+import { locateOnce } from '../../lib/locate';
 import { perfCount } from '../../lib/perfCount';
 import { ensureTileBuild } from '../../lib/tiles';
 import type { LngLat } from '../../lib/types';
@@ -34,8 +35,8 @@ const REREAD_M = 500;
 /**
  * Explore (NV14-NV16): remembered busy areas (magenta), each area's places to
  * find and its finds, with no counts (nothing is a score); a long press from
- * z10 runs What's good here. It never tracks you: the map opens on your last
- * fix (Navigate's) or where you left it.
+ * z10 runs What's good here. It never tracks you: it reads one fix as the app
+ * opens (it is the first tab), then opens on your last fix or where you left it.
  */
 export default function Explore() {
   perfCount('render:explore');
@@ -72,7 +73,7 @@ export default function Explore() {
   const [sheetAnim] = useState(() => new Animated.Value(PEEK));
   const [aboveSheet] = useState(() => ({ bottom: Animated.add(sheetAnim, 16) }));
   const [sheetH, setSheetH] = useState(PEEK);
-  // The map opens where you were last seen, never by asking for a position (NV16).
+  // The map opens where you were last seen; with no fix yet, the launch's one fix frames it below (NV16).
   const [initial] = useState(() => {
     const fix = getLastFix()?.at;
     return fix ? { center: fix, zoom: 15 } : null;
@@ -115,6 +116,19 @@ export default function Explore() {
       };
     }, [cameraNow, readItems]),
   );
+
+  // One fix as the app opens, framed (NV16, the owner's call, Nov 3): Explore is the first tab (NV2),
+  // so it can't wait for Navigate's. Once per launch; nothing tracks after.
+  useEffect(() => {
+    if (!focused || !launchFix.take(!!getLastFix())) return;
+    locateOnce().then((r) => {
+      if (!r.at) return;
+      setLastFix(r.at);
+      setLocFix(r.at);
+      const box = boundsOf([r.at], LOCATE_FIT_M);
+      if (box) setFit((f) => ({ bounds: box, key: f.key + 1 }));
+    }, () => {});
+  }, [focused]);
 
   const onCamera = (c: { center: LngLat; zoom: number }) => {
     onCameraChange(c);

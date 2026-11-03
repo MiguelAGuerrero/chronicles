@@ -11,6 +11,7 @@ The owner's call, Nov 3: the app opens on Explore.
 - An open walk still opens the walk screen at launch.
 - A launch on a walk's or a day's replay that finds nothing goes straight to Explore. Reached from inside the app, the replay keeps its message and its way back.
 - A replay that fails to load shows the screen's error, with Try again, never "could not be found".
+- Explore reads one fix as the app opens and frames it, once per launch (NV16), since it can no longer wait for Navigate's. Nothing tracks after; Locate stays the way to read another.
 
 ## Consequences
 - Supersedes the opening-tab default in the Navigation & tabs spec (NV2, decided item 6) and changes NV5's paths.

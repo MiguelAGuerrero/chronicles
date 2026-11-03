@@ -18,6 +18,10 @@ The three tabs (Explore, Navigate, Chronicle), the home sheet, the recording bar
   `start_url: "./"` and Back on the other tabs (`backBehavior:
   'initialRoute'`) all land on Explore. A way back to Navigate names
   `/navigate` (Minimize with nothing beneath, Chronicle's Navigate button).
+- **Explore reads one fix per launch** (NV16): `launchFix` in `lib/lastFix`
+  lets its first focus ask `locateOnce()` when no fix is known, then frames it
+  (`LOCATE_FIT_M`) and keeps it as the last fix. On each focus while still on
+  the world view, it frames the last fix, else the area last remembered.
 - **`/explore` still works**: `src/app/explore.tsx` calls `router.dismissTo('/')`
   on focus. Not `<Redirect href="/">`: a replace from a screen over the tabs
   stacks a second set of tabs (two tab bars; the e2e counts one).

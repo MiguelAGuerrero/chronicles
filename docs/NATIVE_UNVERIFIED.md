@@ -79,6 +79,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] `StartDialog`, the Modal over the tab map (Navigate's settings are a dialog)
 - [ ] The app opening on Explore at `/` on the native stack and tabs, and Android back on Navigate or Chronicle returning to Explore (NV2, NV5, 0064)
 - [ ] A deep link to a missing replay or day at launch, `router.dismissTo('/')` reaching Explore on the native stack (NV2, 0064)
+- [ ] Explore's one fix at launch, and the location prompt it raises before any tap (NV16, 0064)
 - [ ] An iPhone Home Screen app reopening on its last page (the `/explore` redirect, a stale replay link) (NV2, 0064)
 
 ## Quality of life
