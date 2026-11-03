@@ -1830,6 +1830,11 @@ function check(ok, what) {
       const denied = (await pg2.locator('[data-testid=lift-in]').allInnerTexts()).join(' | ');
       check(/Location permission was denied|location/i.test(denied) && (await pg2.locator('[data-testid=ready-bar]').count()) === 1,
         `ready NR13: a denied location says so on the ready screen (${denied})`);
+      // M2 on the ready screen: a moment with no fix is kept and says so.
+      await pg2.click('[data-testid=moment-note]');
+      await pg2.fill('[data-testid=moment-note-input]', 'No fix here');
+      await pg2.click('[data-testid=moment-note-save]');
+      check(await pg2.waitForSelector('text=/No location/', { timeout: 20000 }).then(() => true, () => false), 'ready M2: a moment with no fix is kept and says "No location"');
       await c2.close();
     }
   };
@@ -3536,10 +3541,13 @@ function check(ok, what) {
       const early = await p2.locator('[data-testid=day-row]').first().innerText();
       check(/3 moments\b/.test(early), `a moment shows in its day at once, before its fix is settled (audit 2: ${early.replace(/\n/g, ' · ')})`);
       await p2.click('[data-testid=sheet-map]');
-      await tabTo(p2, 'navigate');
-      check(await p2.waitForSelector('text=/No location/', { timeout: 20000 }).then(() => true, () => false), 'a moment with no fix is kept and says "No location" (M2)');
-      await tabTo(p2, 'chronicle');
-      rows = await captureRows();
+      // Leaving Navigate closes its screen, so the moment's "No location" toast is checked in the ready
+      // scenario (NR13), where the screen stays up; here the stored row settles without a place.
+      for (let i = 0; i < 30; i++) {
+        rows = await captureRows();
+        if (rows.length === 3 && rows[2].lat == null && Date.now() - rows[2].t > 11000) break;
+        await p2.waitForTimeout(500);
+      }
       check(rows.length === 3 && rows[2].walk_id == null && rows[2].lat == null, 'the moment with no fix is stored without a place');
 
       // The day's timeline: moment, walk, moment, in time order; the walk is one row (M8).
@@ -3771,7 +3779,8 @@ function check(ok, what) {
       let perfA = null;
       await north(-0.15, 1.25, async (k) => {
         if (k === 6 || k === 14 || k === 22) {
-          const id = { 6: 'chronicle', 14: 'explore', 22: 'navigate' }[k];
+          // Navigate isn't a tab under the bar any more: it opens the walk (NR2), so the tour ends on Chronicle.
+          const id = { 6: 'chronicle', 14: 'explore', 22: 'chronicle' }[k];
           await pg.click(`[data-testid=tab-${id}]`);
           await pg.waitForTimeout(400);
           onTabs.push(`${id}:${await shownCount(pg, '[data-testid=recording-bar]')}:${await pg.locator('canvas.maplibregl-canvas').count()}`);
@@ -3788,7 +3797,7 @@ function check(ok, what) {
           `minimized, only the bar follows the walk (navigate ${rate('render:navigate').toFixed(2)}/s, bar ${rate('render:bar').toFixed(2)}/s over ${secs.toFixed(0)} s)`);
       }
       const d1 = m(await barText());
-      check(onTabs.join(',') === 'chronicle:1:1,explore:1:1,navigate:1:1', `the bar is on every tab, with one live map (NV4, NV9: ${onTabs.join(', ')})`);
+      check(onTabs.join(',') === 'chronicle:1:1,explore:1:1,chronicle:1:1', `the bar is on every tab, with one live map (NV4, NV9: ${onTabs.join(', ')})`);
       check(d1 > d0 + 100 && /^\d+:\d\d · \d+ m$/.test(await barText()), `minimized, the walk keeps recording: the bar's distance grows (NV8: ${d0} → ${d1} m)`);
       // Remind me here keeps firing while minimized (NV8): checked outside the walk screen, shown on the bar.
       const fired = await pg.evaluate(() => new Promise((resolve) => {
@@ -3803,7 +3812,7 @@ function check(ok, what) {
         `Remind me here fires with the walk minimized, and the bar says so (NV8: ${JSON.stringify(fired && { n: fired.fired_count, walk: fired.last_walk_id === w.id })}, "${reminderOnBar}")`);
       // NV10, as changed by the tabs audit (U2): no Start with a walk open, and the recording bar is the one way back.
       check((await shownCount(pg, '[data-testid=resume]')) === 0 && (await shownCount(pg, '[data-testid=start]')) === 0 && (await shownCount(pg, '[data-testid=recording-return]')) === 1,
-        'with a walk open, Navigate has no Start, and the recording bar is the way back (NV10, U2)');
+        'with a walk open, no tab has a Start, and the recording bar is the way back (NV10, NR2)');
       // NV10: Walk here on Explore routes the open walk there and returns to it; no second walk.
       await tabTo(pg, 'explore');
       await pg.waitForTimeout(1500);
