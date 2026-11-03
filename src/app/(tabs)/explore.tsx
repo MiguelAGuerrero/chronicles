@@ -50,7 +50,11 @@ export default function Explore() {
   useEffect(() => {
     if (from) return;
     let live = true;
-    nearReads('neighborhood').then((n) => live && n[0] && setFrom((f) => f ?? n[0].at), () => {});
+    // Only a read of the page near you counts: a town's page reads around the town, not around you.
+    nearReads('neighborhood').then((n) => {
+      const mine = n.find((r) => (r.radiusM ?? ATLAS_RULES.nearNeighborhoodM) === ATLAS_RULES.nearNeighborhoodM);
+      if (live && mine) setFrom((f) => f ?? mine.at);
+    }, () => {});
     return () => {
       live = false;
     };

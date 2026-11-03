@@ -53,11 +53,11 @@ export const AtlasTile = memo(function AtlasTile(props: {
           <Text style={[styles.name, props.wide && styles.nameWide]} numberOfLines={1}>{a.name}</Text>
           {props.drill ? <Icon name="chevron-forward" size={16} color={theme.muted} /> : null}
         </View>
+        {/* How far and your familiarity each get a line: side by side they were cut off at phone width. */}
+        <Text style={[styles.metaText, listed.here && styles.here]} numberOfLines={1}>
+          {distanceWords(listed.distanceM, listed.here, fmt)}
+        </Text>
         <View style={styles.meta}>
-          <Text style={[styles.metaText, listed.here && styles.here]} numberOfLines={1}>
-            {distanceWords(listed.distanceM, listed.here, fmt)}
-          </Text>
-          <Text style={styles.metaText}>·</Text>
           {fam.walks ? <Icon name="footsteps-outline" size={12} color={COLORS.trace} /> : null}
           <Text style={[styles.metaText, styles.shrink, fam.walks ? styles.known : null]} numberOfLines={1}>{familiarityWords(fam)}</Text>
         </View>
