@@ -31,6 +31,16 @@ export const GAP_RULES = {
   meetsM: 25,
   /** A tap this close to either end of a stretch is the trace there, not the stretch (audit 8). */
   tapEndM: 30,
+  /** The walk's own pace counts fixes at this speed or more (GT1)... */
+  movingSpeed: 0.5,
+  /** ...else this pace is used. */
+  defaultPace: 1.3,
+  /** The guess looks at up to this many of the shortest ways (GT2)... */
+  fitWays: 8,
+  /** ...and takes another than the shortest only when it is this much closer to the expected distance. */
+  fitCloser: 0.75,
+  /** ...and turns at junctions at most this many times more than the shortest: a loop off the way, never a zig-zag round blocks. */
+  fitTurns: 2,
   /** Points along a filled stretch: one every this far, and at least one every this long (G11). */
   stepM: 10,
   stepMs: 20_000,

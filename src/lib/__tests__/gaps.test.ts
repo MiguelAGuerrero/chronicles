@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { boundsOf, distanceM, splitAtGaps, stepToward, traceDistanceM, smoothDwells, type Bounds } from '../geo';
-import { fillsOf, GAP_RULES, gapsOf, inferGap, readBounds, stretchAt, stretchesFor, stretchLines } from '../gaps/infer';
+import { fillsOf, GAP_RULES, gapsOf, inferGap, movingPace, readBounds, stretchAt, stretchesFor, stretchLines } from '../gaps/infer';
 import { readTrace, traceDistances, withFilled } from '../rides';
 import { tilesNear } from '../tileMath';
 import { snap } from '../snapper';
@@ -165,9 +165,10 @@ test('gaps audit park: a path with a parallel way close by is offered, not left 
     road([at(0, 0), at(0, 0.5)], { class: 'path', subclass: 'footway' }),
     road([at(3, 0), at(3, 0.5)], { class: 'path', subclass: 'footway' }),
   ]);
-  const inf = only(withGap([at(-0.3, 0), at(0.1, 0)], [at(2.9, 0), at(3.3, 0)], 480), park)!;
+  // A time that fits the path (GT2 would rightly take the drive if the time fitted it better).
+  const inf = only(withGap([at(-0.3, 0), at(0.1, 0)], [at(2.9, 0), at(3.3, 0)], 220), park)!;
   assert.ok(inf, 'offered');
-  assert.equal(inf.level, 'offer');
+  assert.ok(inf.level === 'offer' || inf.level === 'auto', inf.level);
   // Along the path (y = 0), the shorter way, never round by the drive 50 m north.
   assert.ok(inf.path.every((p) => Math.abs(p[1] - O[1]) * 111320 < 15), 'along the path');
 });
@@ -331,4 +332,54 @@ test('gaps audit 6: a snap read in code takes the tiles along the walk, at most 
   const near = tilesNear(trace, 150, 36);
   assert.ok(near.length <= 8, `${near.length} tiles`);
   assert.ok(tilesNear(walk([at(0, 0), at(400, 0)]).map((p) => [p.lon, p.lat] as LngLat), 150, 36).length <= 36, 'capped');
+});
+
+// A guess that fits the time (the concept doc's Filling gaps tab, "Drawing a gap's way", GT1-GT3).
+
+// A creek path from (0, 0) to (3, 0), and a loop of path from its west end up and round to its east end.
+const loop = deriveSegments([
+  road([at(0, 0), at(3, 0)], { class: 'path', subclass: 'footway' }),
+  road([at(0, 0), at(0, 1), at(3, 1), at(3, 0)], { class: 'path', subclass: 'footway' }),
+  road([at(-0.6, 0), at(0, 0)], { class: 'path', subclass: 'footway' }),
+  road([at(3, 0), at(3.6, 0)], { class: 'path', subclass: 'footway' }),
+]);
+const onLoop = (p: LngLat) => p[1] > O[1] + 0.5 * dLat;
+
+test('GT1: the walk\'s own pace is the median of its moving fixes, else 1.3 m/s', () => {
+  const tr = readTrace(walk([at(0, 0), at(3, 0)]), 0);
+  assert.ok(Math.abs(movingPace(tr) - 1.4) < 0.05, `${movingPace(tr)}`);
+  const unreported = readTrace(walk([at(0, 0), at(3, 0)]).map((p) => ({ ...p, speed: null })), 0);
+  assert.ok(Math.abs(movingPace(unreported) - 1.4) < 0.15, `worked out from movement: ${movingPace(unreported)}`);
+  const standing = readTrace([0, 5000, 10000, 15000].map((t) => ({ walk_id: 'w', t, lon: O[0], lat: O[1], accuracy_m: 8, speed: 0, course: null })), 0);
+  assert.equal(movingPace(standing), 1.3);
+});
+
+test('GT2: a loop is offered over the shortcut when the time fits the loop', () => {
+  // 8 min at 1.4 m/s is about 670 m: the loop (about 500 m) fits it better than the 280 m shortcut.
+  const inf = only(withGap([at(-0.5, 0), at(0.1, 0)], [at(2.9, 0), at(3.5, 0)], 480), loop)!;
+  assert.ok(inf, 'offered');
+  assert.ok(inf.path.some(onLoop), 'round the loop');
+  assert.ok(inf.lengthM > 450, `${Math.round(inf.lengthM)} m`);
+});
+
+test('GT2: the shortcut stays when the time is short', () => {
+  // 4 min at 1.4 m/s is about 340 m: the 280 m shortcut fits.
+  const inf = only(withGap([at(-0.5, 0), at(0.1, 0)], [at(2.9, 0), at(3.5, 0)], 240), loop)!;
+  assert.ok(inf && !inf.path.some(onLoop), 'along the creek');
+});
+
+test('GT3: a way chosen for its fit is offered, never filled; a certain gap keeps its shortest way', () => {
+  const inf = only(withGap([at(-0.5, 0), at(0.1, 0)], [at(2.9, 0), at(3.5, 0)], 480), loop)!;
+  assert.equal(inf.level, 'offer');
+  // Main Street with nowhere else to go, slowly: still filled by itself, along the street.
+  const slow = only(withGap([at(0.5, 0), at(2, 0)], [at(6, 0), at(7, 0)], 900), corridor)!;
+  assert.equal(slow.level, 'auto');
+  assert.ok(Math.abs(slow.lengthM - 400) < 15, `${Math.round(slow.lengthM)} m`);
+});
+
+test('GT2: in a grid, spare time is not read as a zig-zag round the blocks', () => {
+  // 10 min for 400 m along Street 2: the time would fit two blocks round, but a way that turns
+  // corner after corner is a poor guess; time to spare in town is mostly time stopped.
+  const inf = only(withGap([at(0.5, 2), at(1.5, 2)], [at(5.5, 2), at(6.5, 2)], 600), grid)!;
+  assert.ok(inf.path.every((p) => Math.abs(p[1] - at(0, 2)[1]) * 111320 < 15), 'along Street 2');
 });

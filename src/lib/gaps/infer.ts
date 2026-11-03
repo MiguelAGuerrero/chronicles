@@ -1,4 +1,4 @@
-import { boundsOf, distanceM, distanceToLinesM, isBreak, pointSegmentDist, projector, type Bounds } from '../geo';
+import { bearingDeg, boundsOf, distanceM, distanceToLinesM, isBreak, pointSegmentDist, projector, type Bounds } from '../geo';
 import type { ReadTrace } from '../rides';
 import type { Fill, GapDecision, LngLat, StreetSegment } from '../types';
 import { GAP_RULES } from './rules';
@@ -20,6 +20,8 @@ export interface Gap {
   t1: number;
   from: LngLat;
   to: LngLat;
+  /** The walk's own moving pace (GT1), for a guess that fits the time; absent, the shortest way is offered. */
+  pace?: number;
 }
 
 export interface Inference {
@@ -57,6 +59,7 @@ const pos = (p: { lon: number; lat: number }): LngLat => [p.lon, p.lat];
 export function gapsOf(tr: ReadTrace): Gap[] {
   const out: Gap[] = [];
   const w = tr.walked;
+  let pace: number | undefined;
   for (let i = 1; i < w.length; i++) {
     const a = w[i - 1];
     const b = w[i];
@@ -64,9 +67,33 @@ export function gapsOf(tr: ReadTrace): Gap[] {
     if (dt <= GAP_RULES.gapMs || dt > GAP_RULES.maxMs) continue;
     if (isBreak(a, b, tr.breaks, Infinity)) continue;
     if (distanceM(pos(a), pos(b)) < GAP_RULES.minM) continue;
-    out.push({ t0: a.t, t1: b.t, from: pos(a), to: pos(b) });
+    pace ??= movingPace(tr);
+    out.push({ t0: a.t, t1: b.t, from: pos(a), to: pos(b), pace });
   }
   return out;
+}
+
+/**
+ * The walk's own pace (GT1): the median speed of its walked fixes moving at
+ * GAP_RULES.movingSpeed or more, the phone's reading where it gives one over 0,
+ * else the movement since the fix before (up to 30 s back). Else
+ * GAP_RULES.defaultPace.
+ */
+export function movingPace(tr: ReadTrace): number {
+  const w = tr.walked;
+  const speeds: number[] = [];
+  for (let i = 0; i < w.length; i++) {
+    const p = w[i];
+    let v = p.speed != null && p.speed > 0 ? p.speed : null;
+    if (v == null && i > 0) {
+      const dt = (p.t - w[i - 1].t) / 1000;
+      if (dt > 0 && dt <= 30) v = distanceM(pos(w[i - 1]), pos(p)) / dt;
+    }
+    if (v != null && v >= GAP_RULES.movingSpeed && v <= GAP_RULES.maxPace * 2) speeds.push(v);
+  }
+  if (!speeds.length) return GAP_RULES.defaultPace;
+  speeds.sort((a, b) => a - b);
+  return speeds[speeds.length >> 1];
 }
 
 /** The box around a gap that every way within `budgetM` stays inside: a circle on the middle, half the budget across. */
@@ -93,6 +120,8 @@ export function readBounds(g: Gap): Bounds {
 const MERGE_M = 3;
 
 type Edge = { to: number; m: number; seg: number; id: number };
+/** A way through the graph: its length, nodes, and each step's piece and edge. */
+type Way = { m: number; nodes: number[]; segs: number[]; edges: number[] };
 type Line = { a: number; b: number; seg: number; id: number };
 
 /** A walking graph over street pieces, each edge tagged with its piece, so a piece can be left out of a search. */
@@ -160,7 +189,7 @@ class PieceGraph {
    * The shortest way from `from` to `to`, leaving out the edges in `skip`,
    * or null when there is none within `limit` metres (A*, pruned).
    */
-  shortest(from: number, to: number, limit: number, skip?: Set<number>): { m: number; nodes: number[]; segs: number[]; edges: number[] } | null {
+  shortest(from: number, to: number, limit: number, skip?: Set<number>, skipNodes?: Set<number>): Way | null {
     const goal = this.pts[to];
     const best = new Float64Array(this.pts.length).fill(Infinity);
     const prev = new Int32Array(this.pts.length).fill(-1);
@@ -204,7 +233,7 @@ class PieceGraph {
       done[i] = 1;
       if (i === to) break;
       for (const e of this.adj[i]) {
-        if (skip?.has(e.id)) continue;
+        if (skip?.has(e.id) || skipNodes?.has(e.to)) continue;
         const g = best[i] + e.m;
         if (g >= best[e.to]) continue;
         const f = g + distanceM(this.pts[e.to], goal);
@@ -227,6 +256,59 @@ class PieceGraph {
     }
     return { m: best[to], nodes, segs, edges };
   }
+}
+
+/**
+ * Up to `k` shortest loopless ways from `a` to `b` within `limit` metres,
+ * shortest first (Yen's algorithm, GT2). A way only branches at a junction
+ * (a node with more than two edges), so a long street costs one search, not
+ * one per vertex.
+ */
+function shortestWays(graph: PieceGraph, a: number, b: number, limit: number, first: Way, k: number): Way[] {
+  const found: Way[] = [first];
+  const pending: Way[] = [];
+  const key = (w: Way) => w.edges.join(',');
+  const seen = new Set([key(first)]);
+  for (let n = 1; n < k; n++) {
+    const prev = found[n - 1];
+    let rootM = 0;
+    for (let i = 0; i < prev.nodes.length - 1; i++) {
+      const spur = prev.nodes[i];
+      if (i > 0) rootM += distanceM(graph.pts[prev.nodes[i - 1]], graph.pts[spur]);
+      if (i > 0 && graph.adj[spur].length <= 2) continue;
+      const rootEdges = prev.edges.slice(0, i);
+      const skip = new Set<number>();
+      for (const w of found) if (w.edges.length > i && w.edges.slice(0, i).join(',') === rootEdges.join(',')) skip.add(w.edges[i]);
+      const skipNodes = new Set(prev.nodes.slice(0, i));
+      const tail = graph.shortest(spur, b, limit - rootM, skip, skipNodes);
+      if (!tail) continue;
+      const way: Way = {
+        m: rootM + tail.m,
+        nodes: [...prev.nodes.slice(0, i), ...tail.nodes],
+        segs: [...prev.segs.slice(0, i), ...tail.segs],
+        edges: [...rootEdges, ...tail.edges],
+      };
+      if (seen.has(key(way))) continue;
+      seen.add(key(way));
+      pending.push(way);
+    }
+    if (!pending.length) break;
+    pending.sort((x, y) => x.m - y.m);
+    found.push(pending.shift()!);
+  }
+  return found;
+}
+
+/** Where a way turns: at a junction (more than two edges), by more than 45°. */
+function turnsOf(graph: PieceGraph, w: Way): number {
+  let n = 0;
+  for (let i = 1; i < w.nodes.length - 1; i++) {
+    if (graph.adj[w.nodes[i]].length <= 2) continue;
+    const [p, q, r] = [graph.pts[w.nodes[i - 1]], graph.pts[w.nodes[i]], graph.pts[w.nodes[i + 1]]];
+    const turn = Math.abs(((bearingDeg(q, r) - bearingDeg(p, q) + 540) % 360) - 180);
+    if (turn > 45) n++;
+  }
+  return n;
 }
 
 /** A join from a fix to a street, not a street itself. */
@@ -331,18 +413,32 @@ export function inferGap(g: Gap, segments: StreetSegment[], coverage: Bounds | n
   // path with a drive beside it showed nothing).
   const level: Inference['level'] = shareTime != null && shareTime >= GAP_RULES.auto ? 'auto' : 'offer';
 
+  // A way that fits the time (GT2): among the shortest ways the time allows, the one closest to the
+  // walk's own pace over the gap, when it is clearly closer than the shortest. Only for an offer:
+  // a gap certain enough to fill by itself keeps its shortest way (GT3).
+  let way: Way = likely;
+  if (level === 'offer' && g.pace) {
+    const expect = g.pace * dt;
+    const off = (w: Way) => Math.abs(w.m - expect);
+    // A way that turns corner after corner round blocks is a poor guess: time to spare in town is mostly stopped.
+    const turnsAllowed = turnsOf(graph, likely) + GAP_RULES.fitTurns;
+    const ways = shortestWays(graph, a, b, timeRead ? time : direct, likely, GAP_RULES.fitWays).filter((w) => turnsOf(graph, w) <= turnsAllowed);
+    const best = ways.reduce((x, y) => (off(y) < off(x) ? y : x));
+    if (best !== likely && off(best) <= GAP_RULES.fitCloser * off(likely)) way = best;
+  }
+
   // The street most of it runs along, by name.
   const byName = new Map<string, number>();
-  for (const [seg, m] of along) {
-    const name = segments[seg].name;
-    if (name) byName.set(name, (byName.get(name) ?? 0) + m);
+  for (let i = 0; i < way.segs.length; i++) {
+    const name = way.segs[i] === JOIN ? null : segments[way.segs[i]].name;
+    if (name) byName.set(name, (byName.get(name) ?? 0) + distanceM(graph.pts[way.nodes[i]], graph.pts[way.nodes[i + 1]]));
   }
   const street = [...byName.entries()].sort((x, y) => y[1] - x[1])[0]?.[0] ?? null;
   return {
     t0: g.t0,
     t1: g.t1,
-    path: likely.nodes.map((i) => graph.pts[i]),
-    lengthM: L,
+    path: way.nodes.map((i) => graph.pts[i]),
+    lengthM: way.m,
     certainDirect: shareDirect,
     certainTime: shareTime,
     street,
