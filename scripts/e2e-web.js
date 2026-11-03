@@ -529,41 +529,22 @@ function check(ok, what) {
       check((await pg.evaluate(() => window.__watchCalls)) === watches0, 'tabs audit U2: Navigate reads no fix of its own while a walk is open (the recorder already watches)');
       check((await shownCount(pg, '[data-testid=start]')) === 0 && (await shownCount(pg, '[data-testid=resume]')) === 0 && (await shownCount(pg, '[data-testid=recording-bar]')) === 1,
         'tabs audit U2: with a walk open, Navigate has no Start and no second Return button: the recording bar is the way back');
-      check(/^Your walk · to Your spot$/.test(await pg.locator('[data-testid=peek-choices]').innerText()) && (await shownCount(pg, '[data-testid=mark-pin]')) >= 0,
-        `tabs audit U2: the peek names the walk's destination ("${await pg.locator('[data-testid=peek-choices]').innerText()}")`);
+      // No drawer with a walk minimized (the owner, Nov 3): no "Your walk is recording" line, no settings,
+      // and the capture row sits low on the map. The bar is the walk's strip.
       {
-        const peek = Math.round((await pg.locator('[data-testid=navigate-drawer]').boundingBox()).height);
-        await drawerTo(pg, 'half');
-        const after = Math.round((await pg.locator('[data-testid=navigate-drawer]').boundingBox()).height);
-        check(after === peek, `tabs audit U2: with a walk open the drawer stays at its peek (${peek} → ${after} px)`);
-        // Dragged up and let go, it settles back to the peek: it was left where the finger let go,
-        // tall and empty over the map (the owner's screenshot, Nov 2).
-        await drawerTo(pg, 'full');
-        await pg.waitForTimeout(800);
-        const dragged = Math.round((await pg.locator('[data-testid=navigate-drawer]').boundingBox()).height);
-        check(dragged === peek, `tabs audit U2: with a walk open a dragged drawer settles back at its peek (${peek} → ${dragged} px)`);
-        // By touch, as on a phone: a drag let go, and one the browser cancels (iOS takes a gesture
-        // near the screen's edge for itself). The sheet settles back, and nothing stays held.
-        const touch = await c.newCDPSession(pg);
-        const touchDrag = async (end) => {
-          const hd = await pg.locator('[data-testid=drawer-drag]').boundingBox();
-          const x = hd.x + hd.width / 2;
-          await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y: hd.y + 8 }] });
-          for (let y = hd.y - 40; y > 40; y -= 80) await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y }] });
-          await touch.send('Input.dispatchTouchEvent', { type: end, touchPoints: [] });
-          await pg.waitForTimeout(900);
-          return Math.round((await pg.locator('[data-testid=navigate-drawer]').boundingBox()).height);
-        };
-        const afterEnd = await touchDrag('touchEnd');
-        const afterCancel = await touchDrag('touchCancel');
-        check(afterEnd === peek && afterCancel === peek, `tabs audit U2: dragged by touch, let go or cancelled, the drawer settles back at its peek (${peek} → ${afterEnd}, ${afterCancel} px)`);
-        // And the walk comes back from the bar after it ("stuck and not interactive", Nov 2), then minimizes again.
-        const rb = await pg.locator('[data-testid=recording-return]').boundingBox();
-        const tap = [{ x: rb.x + rb.width / 2, y: rb.y + rb.height / 2 }];
-        await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: tap });
-        await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        const drawers = await shownCount(pg, '[data-testid=navigate-drawer]');
+        const line = await shownCount(pg, '[data-testid=peek-choices]');
+        const recording = await pg.evaluate(() => [...document.querySelectorAll('div')].filter((e) => !e.closest('[aria-hidden=true]') && e.childElementCount === 0 && /Your walk is recording/.test(e.textContent ?? '')).length);
+        const row = await pg.locator('[data-testid=moment-photo]').filter({ visible: true }).first().boundingBox();
+        const bar = await pg.locator('[data-testid=recording-bar]').boundingBox();
+        check(drawers === 0 && line === 0 && recording === 0 && row && bar && bar.y - (row.y + row.height) < 40,
+          `tabs audit U2: with a walk minimized, Navigate has no drawer and no "Your walk is recording"; the capture row sits just above the bar (drawer ${drawers}, line ${line}, text ${recording}, gap ${row && bar ? Math.round(bar.y - (row.y + row.height)) : '?'} px)`);
+      }
+      // And the walk comes back from the bar, then minimizes again.
+      {
+        await pg.click('[data-testid=recording-return]');
         const back = await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 5000 }).then(() => true, () => false);
-        check(back, `tabs audit U2: after a drag on the drawer, the recording bar still brings the walk back (${pg.url()})`);
+        check(back, `tabs audit U2: the recording bar brings the walk back (${pg.url()})`);
         if (back) {
           await pg.waitForSelector('[data-testid=walk-minimize]', { timeout: 10000 });
           await pg.click('[data-testid=walk-minimize]');

@@ -183,9 +183,7 @@ export default function Navigate() {
   const ringShown = size === 'full' && mode === 'explore' && fix && !open;
   // At the peek, the mode and the destination; opened, the mode is on show above, so only the destination (U12).
   const peekLine = open
-    ? walkDest
-      ? `Your walk · to ${walkDest.label}`
-      : 'Your walk is recording'
+    ? null
     : [size === 'peek' ? (mode === 'explore' ? 'Explore' : 'Quiet') : null, dest ? destLine(dest, fix) : null].filter(Boolean).join(' · ');
 
   const mapBase: MapBase = {
@@ -197,12 +195,13 @@ export default function Navigate() {
     fitBounds: fit.bounds,
     fitKey: fit.key,
     onFitSettled,
-    fitPadding: { top: insets.top + 60, right: 48, bottom: sheetH + ROW_GAP + ROW_H + 60, left: 48 },
+    fitPadding: { top: insets.top + 60, right: 48, bottom: (open ? 0 : sheetH) + ROW_GAP + ROW_H + 60, left: 48 },
     initialZoom: savedCamera?.zoom ?? (fix || open ? 15 : WORLD.zoom),
     onCameraChange,
     attributionTop: true,
   };
-  const rowStyle = [styles.floatRow, styles.row, { bottom: DRAWER_PEEK + ROW_GAP }];
+  // With a walk minimized there is no drawer (the owner, Nov 3): the row sits low on the map.
+  const rowStyle = [styles.floatRow, styles.row, { bottom: (open ? 0 : DRAWER_PEEK) + ROW_GAP }];
 
   return (
     <View style={styles.screen}>
@@ -244,6 +243,9 @@ export default function Navigate() {
         </>
       )}
 
+      {/* No drawer with a walk minimized (the owner, Nov 3): its settings are for starting one, and the
+          recording bar below is the walk's own strip. */}
+      {!open && (
       <View style={[StyleSheet.absoluteFill, styles.over]} pointerEvents="box-none">
         <SheetFrame
           testID="navigate-drawer"
@@ -348,6 +350,7 @@ export default function Navigate() {
           </View>
         </SheetFrame>
       </View>
+      )}
 
       <View style={[styles.top, styles.over, { top: insets.top + 8 }]} pointerEvents="box-none">
         {error && (

@@ -995,7 +995,8 @@ Read this before changing recording, streets, the replay or storage.
   `(tabs)/index.tsx`): trace, dot (`walkerSource={live.dot}`), captures,
   destination, and the capture row (`CaptureRow`, split from `MomentBar`)
   keeping captures for the walk. No Start or Return button (the recording
-  bar is the way back), the drawer held at its peek, no `locateOnce`. Only
+  bar is the way back), no drawer at all (the owner's call, Nov 3: no "Your
+  walk is recording" line; the row sits just above the bar), no `locateOnce`. Only
   `LiveWalk` reads `useOpenWalk()`, and only while Navigate is focused;
   screens that only need to know whether a walk is open use
   `useOpenWalkInfo()`, which never changes per fix. The e2e bounds
