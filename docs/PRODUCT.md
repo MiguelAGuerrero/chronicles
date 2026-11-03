@@ -201,7 +201,7 @@ recording bar brings a minimized walk back.
 | v0.5: places (stars by area), navigate (walk me back, go here) | Shipped, audited |
 | v1: discovery (Explore mode, "?" marks, finds, Remind me here, notifications) | Shipped, audited |
 | v1.5: landing (busy areas on the Explore tab, strip chip, dead-zone nudge) | Shipped |
-| Explore atlas (the tab as a grid of area tiles, presence bars, familiarity) | Built on branch `explore-atlas` (web verified by the e2e; native unverified) |
+| Explore atlas (the tab as a grid of area tiles, presence bars, familiarity) | Shipped, audited (web verified by the e2e; native unverified) |
 | Moments and days, memories on revisit, thumbnails | Shipped, audited |
 | Rides, clearing walks and moments, motion polish | Shipped, audited |
 | Navigation and tabs (three-tab layout, docked drawer, recording bar) | Shipped, two audit batches done |

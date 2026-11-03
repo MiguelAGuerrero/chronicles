@@ -34,6 +34,7 @@ what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md
 | Quality of life | shipped in rounds: QL1-QL12 (markers, scale bar, Locate), QL13-QL21 (km or miles, time left, the denied-location chip and retry), QL22-QL28 (rename later, edit a note, photos on pins, months in the walks list); round 4 waits on the owner's calls (decisions 0063-0065) | round 1 `dc8f249`..`7a34666`; round 2 `1910a2d`, `c7539b1`; round 3 `48adb36`, `3a721ed`, `cdf2961`, `2799fa9`; all 2026-11-03 (branch `docs/product-synopsis`) | `specs/quality-of-life/spec.md` | no (the owner chose checkpoints per feature over an audit pass; an audit is still owed) |
 | Filling gaps (streets walked across a gap in the trace, G1-G14) | shipped | `2a0501e`, `3a08a53`, merged as `28c7417` 2026-11-03 | `specs/filling-gaps/spec.md` | yes (17 findings, 12 fixed, `3a08a53`) |
 | Bridges and Open in Maps (NB1-NB7, NH1-NH8; NH4 retired) | shipped | `82186db`, `67b7c9d`, `d16c7c4`; `1ead218` retired NH4, all 2026-11-03 | `specs/bridges-and-open-in-maps/spec.md` | yes (bridges: 11 findings, 7 fixed, `67b7c9d`) |
+| Explore atlas (the Explore tab as a grid of area tiles, AT1-AT14) | shipped (web verified by the e2e; native unverified) | `d1080e7`, `d3158aa` 2026-11-03 (branch `explore-atlas`) | `specs/explore-atlas/spec.md` (repo first; to be copied into the concept doc as a tab) | yes (14 findings: 11 fixed, 1 partly, 1 deferred, 1 rejected; `d3158aa`) |
 
 Not a tab, but tracked: **suggested routes** (interesting ways, route preview,
 "Walk this way") are deferred as their own later slice (`749811d` 2026-11-01).
@@ -74,6 +75,7 @@ first.
 | `web-prototype` | 2026-11-02 | 0 | yes | the long-running web branch: tabs, the recording bar, the tabs audits | merged |
 
 | `claude/agent-friendly-bootstrap` | 2026-11-03 | 0 | yes | AGENTS.md as an index; `.claude/` rules, skills, hooks and the auditor; the docs split out of AGENTS.md; the specs mirror | merged |
+| `explore-atlas` | 2026-11-03 | 0 | yes | Explore atlas (AT1-AT14) and its audit fixes | merged |
 
 ## Needs the owner
 
@@ -115,7 +117,6 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 | Session | Branch | Doing |
 |---|---|---|
 | Bug fixes (open since Oct 31) | unknown | unknown |
-| Explore atlas (2026-11-03) | `explore-atlas` | Explore as a grid of area tiles (`specs/explore-atlas/`, AT1-AT14) |
 
 ## Updating this file
 
