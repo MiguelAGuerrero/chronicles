@@ -61,8 +61,10 @@ export async function ensureTileBuild(): Promise<string> {
  * when a fix changes the pieces derived from the same tiles: the street cache
  * is dropped once and every walk re-snaps, as on a new tile build.
  * 2: junction points no longer collapse onto one spot (the fog streaks, Nov 1).
+ * 3: bridges and tunnels meet only their own level, or at their ends (NB1-NB6,
+ *    a route off a bridge onto the path under it, Nov 3).
  */
-const STREET_CODE = '2';
+const STREET_CODE = '3';
 
 /**
  * The version of the snapping rules (snapper.ts). Bump it when they change

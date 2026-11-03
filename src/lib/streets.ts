@@ -68,6 +68,19 @@ function isWalkable(props: Record<string, unknown>): boolean {
   return true;
 }
 
+/**
+ * How far above or below the ground a line runs (NB1): the tile's `layer`
+ * when it has one, else 1 for a bridge and -1 for a tunnel, else 0 (a ford
+ * is on the ground). Lines on different levels cross without meeting.
+ */
+export function levelOf(props: Record<string, unknown>): number {
+  const layer = Number(props.layer);
+  if (props.layer != null && props.layer !== '' && Number.isFinite(layer)) return Math.round(layer);
+  if (props.brunnel === 'bridge') return 1;
+  if (props.brunnel === 'tunnel') return -1;
+  return 0;
+}
+
 const isFootway = (cls: string, sub: string) => cls === 'path' && (sub === 'footway' || sub === 'pedestrian' || sub === '');
 
 function midpointAlong(line: LngLat[]): LngLat {
@@ -182,6 +195,8 @@ interface Chain {
   sub: string;
   /** Name carried on the road feature itself, when the source has one. */
   name: string | null;
+  /** Above or below the ground (levelOf): a bridge 1, a tunnel -1. */
+  level: number;
   pts: LngLat[];
   /** Ends that stop at a tile edge with no neighbour loaded: the street goes on beyond. */
   partialStart: boolean;
@@ -201,13 +216,14 @@ export function deriveSegments(roads: RoadFeature[], names: RoadFeature[] = [], 
     const cls = String(props.class ?? 'road');
     const sub = String(props.subclass ?? '');
     const name = typeof props.name === 'string' && props.name ? props.name : null;
+    const level = levelOf(props);
     for (const line of lines(f.geometry)) {
       if (line.length < 2) continue;
       for (const part of perTile(line)) {
-        const k = `${cls}|${sub}|${name}|${part.map(keyOf).join(';')}`;
+        const k = `${cls}|${sub}|${name}|${level}|${part.map(keyOf).join(';')}`;
         if (seen.has(k)) continue;
         seen.add(k);
-        raw.push({ cls, sub, name, pts: part, partialStart: false, partialEnd: false });
+        raw.push({ cls, sub, name, level, pts: part, partialStart: false, partialEnd: false });
       }
     }
   }
@@ -217,8 +233,8 @@ export function deriveSegments(roads: RoadFeature[], names: RoadFeature[] = [], 
   // 2. Stitch copies that meet on a tile edge back into one line.
   const chains = stitch(raw, proj);
 
-  // 3. Crosswalks: short footways crossing a street. They are not streets,
-  //    and must not cut the street they cross.
+  // 3. Crosswalks: short footways crossing a street on their own level. They
+  //    are not streets, and must not cut the street they cross (NB4).
   const streetGrid = new EdgeGrid<number>();
   chains.forEach((c, i) => {
     if (isFootway(c.cls, c.sub)) return;
@@ -226,33 +242,41 @@ export function deriveSegments(roads: RoadFeature[], names: RoadFeature[] = [], 
     for (let e = 1; e < pl.length; e++) streetGrid.add(pl[e - 1], pl[e], i, TOUCH_M);
   });
   const kept = chains.filter(
-    (c) => !(isFootway(c.cls, c.sub) && lineLengthM(c.pts) <= CROSSWALK_MAX_M && crossesStreet(c.pts.map(proj), streetGrid)),
+    (c) =>
+      !(
+        isFootway(c.cls, c.sub) &&
+        lineLengthM(c.pts) <= CROSSWALK_MAX_M &&
+        crossesStreet(c.pts.map(proj), streetGrid, (i) => chains[i].level === c.level)
+      ),
   );
 
   // 4. Junctions, then the pieces between them. A piece at a partial end of
-  //    its chain is incomplete and left out.
-  const { lines: withCuts, at } = withJunctions(kept.map((c) => c.pts), proj);
-  const pieces: { cls: string; sub: string; name: string | null; pts: LngLat[] }[] = [];
+  //    its chain is incomplete and left out. Bridges and tunnels meet only
+  //    what they meet on their own level, or at their ends (NB2, NB3).
+  const { lines: withCuts, at } = withJunctions(kept.map((c) => c.pts), proj, kept.map((c) => c.level));
+  const pieces: { cls: string; sub: string; name: string | null; level: number; pts: LngLat[] }[] = [];
   kept.forEach((c, i) => {
-    const parts = cutAt(withCuts[i], at);
+    const parts = cutAt(withCuts[i], at[i]);
     parts.forEach((pts, j) => {
       if ((j === 0 && c.partialStart) || (j === parts.length - 1 && c.partialEnd)) return;
-      for (const chunk of chunkCanonical(pts)) pieces.push({ cls: c.cls, sub: c.sub, name: c.name, pts: chunk });
+      for (const chunk of chunkCanonical(pts)) pieces.push({ cls: c.cls, sub: c.sub, name: c.name, level: c.level, pts: chunk });
     });
   });
 
-  // 5. Sidewalks running alongside a street merge into it: walking either
-  //    credits the street through the snapper's buffer.
+  // 5. Sidewalks running alongside a street on their level merge into it:
+  //    walking either credits the street through the snapper's buffer. A path
+  //    under a bridge is not the bridge's sidewalk.
   const streetEdges = new EdgeGrid<number>();
   pieces.forEach((p, i) => {
     if (isFootway(p.cls, p.sub)) return;
     const pl = p.pts.map(proj);
     for (let e = 1; e < pl.length; e++) streetEdges.add(pl[e - 1], pl[e], i, SIDEWALK_MERGE_M);
   });
-  const nearStreet = (q: XY) => streetEdges.at(q).some((x) => pointSegmentDist(q, x.a, x.b) <= SIDEWALK_MERGE_M);
+  const nearStreet = (q: XY, level: number) =>
+    streetEdges.at(q).some((x) => pieces[x.v].level === level && pointSegmentDist(q, x.a, x.b) <= SIDEWALK_MERGE_M);
   const finalPieces = pieces.filter((p) => {
     if (!isFootway(p.cls, p.sub)) return true;
-    for (const [q] of samples(p.pts.map(proj), 5)) if (!nearStreet(q)) return true;
+    for (const [q] of samples(p.pts.map(proj), 5)) if (!nearStreet(q, p.level)) return true;
     return false;
   });
 
@@ -310,6 +334,7 @@ function stitch(raw: Chain[], proj: (p: LngLat) => XY): Chain[] {
         for (const o of bucket.get(`${cell(e.xy[0]) + dx},${cell(e.xy[1]) + dy}`) ?? []) {
           if (o.i === e.i || partner.has(o)) continue;
           if (raw[o.i].cls !== raw[e.i].cls || raw[o.i].sub !== raw[e.i].sub || raw[o.i].name !== raw[e.i].name) continue;
+          if (raw[o.i].level !== raw[e.i].level) continue;
           const d = Math.hypot(o.xy[0] - e.xy[0], o.xy[1] - e.xy[1]);
           if (d <= bestD) { best = o; bestD = d; }
         }
@@ -361,15 +386,15 @@ function stitch(raw: Chain[], proj: (p: LngLat) => XY): Chain[] {
       cur = nx.i;
       enterStart = nx.start;
     }
-    out.push({ cls: c.cls, sub: c.sub, name: c.name, pts, partialStart, partialEnd });
+    out.push({ cls: c.cls, sub: c.sub, name: c.name, level: c.level, pts, partialStart, partialEnd });
   });
   return out;
 }
 
-function crossesStreet(pl: XY[], grid: EdgeGrid<number>): boolean {
+function crossesStreet(pl: XY[], grid: EdgeGrid<number>, sameLevel: (chain: number) => boolean): boolean {
   for (let i = 1; i < pl.length; i++)
     for (const q of [pl[i - 1], pl[i]])
-      for (const x of grid.at(q)) if (segmentsCross(pl[i - 1], pl[i], x.a, x.b)) return true;
+      for (const x of grid.at(q)) if (sameLevel(x.v) && segmentsCross(pl[i - 1], pl[i], x.a, x.b)) return true;
   return false;
 }
 
@@ -386,12 +411,34 @@ function segmentsCross(p0: XY, p1: XY, q0: XY, q1: XY): boolean {
 /**
  * Finds where lines cross or meet, including different lines of one
  * MultiLineString and a line crossing itself, and inserts a vertex there.
- * Returns the lines with those vertices added and the set of junction keys.
+ * Returns the lines with those vertices added and, per line, the keys of its
+ * own junctions: a line passing through another pair's junction point on
+ * another level is not cut there.
+ *
+ * Lines on different levels (a bridge and the path under it) meet only at an
+ * end of the line further from the ground, or at an end of both when they
+ * are as far (NB2, NB3): a bridge joins its approach, a footbridge lands on
+ * a street, and a path ending under a bridge stays on the ground.
  */
-function withJunctions(input: LngLat[][], proj: (p: LngLat) => XY): { lines: LngLat[][]; at: Set<string> } {
-  const at = new Set<string>();
+function withJunctions(input: LngLat[][], proj: (p: LngLat) => XY, levels: number[]): { lines: LngLat[][]; at: Set<string>[] } {
+  const at = input.map(() => new Set<string>());
   if (input.length === 0) return { lines: [], at };
   const projected = input.map((line) => line.map(proj));
+  const atEnd = (l: number, q: XY) => {
+    const line = projected[l];
+    const a = line[0];
+    const z = line[line.length - 1];
+    return Math.hypot(q[0] - a[0], q[1] - a[1]) <= TOUCH_M || Math.hypot(q[0] - z[0], q[1] - z[1]) <= TOUCH_M;
+  };
+  /** Whether lines l and m meet at q: always on one level, else only at the upper line's end. */
+  const meets = (l: number, m: number, q: XY) => {
+    const a = Math.abs(levels[l]);
+    const b = Math.abs(levels[m]);
+    if (levels[l] === levels[m]) return true;
+    if (a > b) return atEnd(l, q);
+    if (b > a) return atEnd(m, q);
+    return atEnd(l, q) && atEnd(m, q);
+  };
   type Edge = { l: number; e: number; a: XY; b: XY };
   const grid = new EdgeGrid<Edge>();
   projected.forEach((line, l) => {
@@ -434,8 +481,10 @@ function withJunctions(input: LngLat[][], proj: (p: LngLat) => XY): { lines: Lng
           const t = ((q.a[0] - p.a[0]) * sy - (q.a[1] - p.a[1]) * sx) / den;
           const u = ((q.a[0] - p.a[0]) * ry - (q.a[1] - p.a[1]) * rx) / den;
           if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
-            addSplit(p, t);
-            addSplit(q, u);
+            if (meets(p.l, q.l, [p.a[0] + rx * t, p.a[1] + ry * t])) {
+              addSplit(p, t);
+              addSplit(q, u);
+            }
             continue;
           }
         }
@@ -444,7 +493,7 @@ function withJunctions(input: LngLat[][], proj: (p: LngLat) => XY): { lines: Lng
           for (const which of ['a', 'b'] as const) {
             if (!isLineEnd(end, which)) continue;
             const hit = projectOnto(end[which], other);
-            if (hit.d <= TOUCH_M) {
+            if (hit.d <= TOUCH_M && meets(end.l, other.l, end[which])) {
               addSplit(other, hit.t);
               addSplit(end, which === 'a' ? 0 : 1);
             }
@@ -471,13 +520,13 @@ function withJunctions(input: LngLat[][], proj: (p: LngLat) => XY): { lines: Lng
       const ts = (splits.get(`${l}/${e}`) ?? []).sort((x, y) => x - y);
       let last = -1;
       for (const t of ts) {
-        if (t <= EPS) at.add(keyOf(line[e]));
-        else if (t >= 1 - EPS) at.add(keyOf(line[e + 1]));
+        if (t <= EPS) at[l].add(keyOf(line[e]));
+        else if (t >= 1 - EPS) at[l].add(keyOf(line[e + 1]));
         else if (t - last > 1e-4) {
           const a = pl[e], b = pl[e + 1];
           const v = unproj([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]);
           out.push(v);
-          at.add(keyOf(v));
+          at[l].add(keyOf(v));
           last = t;
         }
       }

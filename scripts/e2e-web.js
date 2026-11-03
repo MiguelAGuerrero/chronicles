@@ -130,6 +130,14 @@ function check(ok, what) {
   });
   // Opt-in render and map-update counters (src/lib/perfCount.ts).
   await ctx.addInitScript(() => { window.__perf = {}; });
+  // Open in Maps (NH1-NH7): links the app opens are recorded, never followed.
+  await ctx.addInitScript(() => {
+    window.__opened = [];
+    window.open = (u) => {
+      window.__opened.push(String(u));
+      return null;
+    };
+  });
   // Motion (M7): whether each pill or banner that lifts in was animating a frame after it appeared.
   await ctx.addInitScript(() => {
     const lifts = [];
@@ -1734,6 +1742,71 @@ function check(ok, what) {
       await page.click('[data-testid=nav-end]');
       await page.waitForSelector('[data-testid=nav-bar]', { state: 'detached', timeout: 5000 });
       check(true, 'End clears the route');
+    }
+
+    // Open in Maps (Bridges and Open in Maps, NH1-NH7): the destination goes to the phone's maps app.
+    {
+      const opened = () => page.evaluate(() => window.__opened.slice());
+      /** The destination of a Google walking-directions link (this browser is a desktop: NH2). */
+      const destOf = (u) => {
+        const m = /^https:\/\/www\.google\.com\/maps\/dir\/\?api=1&destination=(-?\d+\.\d{6}),(-?\d+\.\d{6})&travelmode=walking$/.exec(u ?? '');
+        return m ? [Number(m[2]), Number(m[1])] : null;
+      };
+      const metersApart = (a, b) => Math.hypot((a[0] - b[0]) / dLon, (a[1] - b[1]) / dLat) * 100;
+      const box = await page.locator('canvas.maplibregl-canvas').last().boundingBox();
+      const press = async (x, y) => {
+        await page.mouse.move(x, y);
+        await page.mouse.down();
+        await page.waitForTimeout(700);
+        await page.mouse.up();
+      };
+      const spot = { x: box.x + box.width / 2 + 90, y: box.y + box.height / 2 - 120 };
+      await press(spot.x, spot.y);
+      await page.waitForSelector('[data-testid=spot-handoff]');
+      const card = await page.locator('[data-testid=spot-handoff]').boundingBox();
+      check(card.x >= 0 && card.x + card.width <= 390, 'the long-press card’s Open in Maps fits the screen (NH6)');
+      await page.click('[data-testid=spot-handoff]');
+      const fromCard = destOf((await opened()).at(-1));
+      check(!!fromCard && (await page.locator('[data-testid=spot-handoff]').count()) === 0, `the long-press card opens walking directions to its spot (NH1, NH6: ${(await opened()).at(-1)})`);
+      await page.waitForTimeout(1100);
+      await press(spot.x, spot.y);
+      await page.click('[data-testid=go-here]');
+      await page.waitForSelector('[data-testid=nav-bar]', { timeout: 30000 });
+      const left = await navLeft();
+      await page.click('[data-testid=nav-handoff]');
+      const fromBar = destOf((await opened()).at(-1));
+      check(!!fromBar && !!fromCard && metersApart(fromBar, fromCard) < 5, `the bar's Open in Maps sends the destination (NH3${fromBar && fromCard ? `: ${metersApart(fromBar, fromCard).toFixed(1)} m from the card's` : ''})`);
+      await page.waitForTimeout(1500);
+      check((await page.locator('[data-testid=nav-bar]').count()) === 1 && Math.abs((await navLeft()) - left) < 30, 'navigation goes on after the hand-off (NH7)');
+      await page.click('[data-testid=nav-end]');
+      await page.waitForSelector('[data-testid=nav-bar]', { state: 'detached', timeout: 5000 });
+      // A route that can't be found offers the maps app (NH5): zoomed far out, a spot many km away.
+      const zoomNow = () => page.evaluate(() => Number([...document.querySelectorAll('[data-zoom]')].at(-1)?.getAttribute('data-zoom') ?? NaN));
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      for (let k = 0; k < 20 && !((await zoomNow()) <= 9.5); k++) {
+        await page.mouse.wheel(0, 400);
+        await page.waitForTimeout(250);
+      }
+      await page.waitForTimeout(800);
+      await press(box.x + 50, box.y + box.height * 0.3);
+      await page.waitForSelector('[data-testid=go-here]');
+      await page.click('[data-testid=go-here]');
+      const failed = await page.waitForSelector('text=/Too far to walk from here|No walking route found nearby/', { timeout: 90000 }).then(() => true, () => false);
+      const action = page.locator('[role=button]:has-text("Open in Maps")');
+      check(failed && (await action.count()) === 1, `a route that can't be found offers Open in Maps (NH5, at z${(await zoomNow()).toFixed(1)})`);
+      if (failed && (await action.count())) {
+        await action.click();
+        const far = destOf((await opened()).at(-1));
+        // The walker stands where walk me back ended: the route's start.
+        const walker = route[0];
+        check(!!far && !!walker && metersApart(far, walker) > 2000, `its Open in Maps goes to the spot asked for (NH5${far && walker ? `: ${(metersApart(far, walker) / 1000).toFixed(1)} km away` : ''})`);
+      }
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      for (let k = 0; k < 20 && !((await zoomNow()) >= 15.8); k++) {
+        await page.mouse.wheel(0, -400);
+        await page.waitForTimeout(250);
+      }
+      await page.waitForTimeout(800);
     }
 
     // The walk back passed the flagged capture again: never in the walk that recorded it (R2).
