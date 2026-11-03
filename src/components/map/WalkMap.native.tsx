@@ -10,6 +10,10 @@ import { namedStars, StarView, starLabel } from '../StarView';
 import type { RoadFeature } from '../../lib/streets';
 import type { Capture, LngLat } from '../../lib/types';
 import { TILEJSON_URL } from '../../lib/tiles';
+import { metersPerPixel } from '../../lib/pins';
+import { scaleBar } from '../../lib/scaleBar';
+import { traceEnds } from '../../lib/traceEnds';
+import { ScaleBar, SCALE_MAX_PX } from './ScaleBar';
 import { useGlidingWalker } from '../../lib/useGlidingWalker';
 import { distanceM } from '../../lib/geo';
 import { capFitBounds } from '../../lib/zoomOut';
@@ -18,7 +22,7 @@ import { markEnter, pinDrops, sameSeen } from '../../lib/enter';
 import { useReducedMotion } from '../../lib/motion';
 import { MOTION } from '../../lib/motionTokens';
 import {
-  COLORS, coneGeoJSON, DERIVE_ZOOM, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, useZoomPins, walkerGeoJSON,
+  COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -73,7 +77,15 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const pockets = useMemo(() => pocketsGeoJSON(props.landing), [props.landing]);
   const strips = useMemo(() => stripsGeoJSON(props.landing), [props.landing]);
   const marks = useMemo(() => marksGeoJSON(props.marks), [props.marks]);
+  // The start and end markers (QL1, QL2): a new source only when they move, not with every publish
+  // of the trace (MapLibre RN serializes a source's data on each change).
+  const endPoints = traceEnds(props.trace, !!props.ended);
+  const endsKey = `${endPoints.start?.join(',') ?? ''}|${endPoints.end?.join(',') ?? ''}`;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const ends = useMemo(() => endsGeoJSON(endPoints.start, endPoints.end), [endsKey]);
   const ring = useMemo(() => ringGeoJSON(props.ring), [props.ring]);
+  // The scale bar follows the view (QL7): the longest round length that fits at this zoom and latitude.
+  const scale = useMemo(() => (view ? scaleBar(metersPerPixel(view.zoom, view.lat), SCALE_MAX_PX) : null), [view]);
   // The dot, cone and camera glide between fixes instead of jumping.
   const glide = useGlidingWalker(props.walker, props.walkerHeading, props.glideWalker === true, props.walkerSource);
   // The trace's end joins the live dot, so the line always reaches it (the live dot, Nov 1); never across a pause or gap.
@@ -298,6 +310,18 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         <TraceSource id="trace-history" data={traceHistory} opacity={props.traceOpacity ?? 1} />
         <TraceSource id="trace" data={traceTail} opacity={props.traceOpacity ?? 1} />
         <TraceSource id="trace-link" data={traceLink} opacity={props.traceOpacity ?? 1} />
+        {/* Where the walk began and ended (QL1-QL3): above the trace, under the walker and the pins,
+            going with the trace's opacity. A white disc ringed in the trace's green, or the walked orange. */}
+        <GeoJSONSource id="ends" data={ends}>
+          <Layer id="ends" type="circle" paint={{
+            'circle-color': '#ffffff',
+            'circle-radius': 7,
+            'circle-stroke-width': 4,
+            'circle-stroke-color': ['match', ['get', 'kind'], 'start', COLORS.trace, COLORS.walked],
+            'circle-opacity': props.traceOpacity ?? 1,
+            'circle-stroke-opacity': props.traceOpacity ?? 1,
+          }} />
+        </GeoJSONSource>
         <GeoJSONSource id="cone" data={cone}>
           <Layer id="cone" type="fill" paint={{ 'fill-color': COLORS.walker, 'fill-opacity': 0.25 }} />
         </GeoJSONSource>
@@ -389,6 +413,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           </Marker>
         ))}
       </Map>
+      {scale && <ScaleBar bar={scale} inset={props.scaleInset} />}
       {props.covered && <View style={styles.cover} pointerEvents="none" />}
     </View>
   );

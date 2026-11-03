@@ -313,6 +313,10 @@ export default function DayReplay() {
         initialCenter={data.bounds ? [(data.bounds[0] + data.bounds[2]) / 2, (data.bounds[1] + data.bounds[3]) / 2] : undefined}
         initialZoom={data.bounds ? undefined : 2}
         veil
+        // The day's walks have ended: each trace's last point is marked (QL2).
+        ended
+        // Above the card once it is up; before that nothing sits at the bottom (Skip is at the top) (QL8).
+        scaleInset={onCard ? { bottom: sheetH + 12, left: 12 } : { bottom: insets.bottom + 12, left: 12 }}
       />
 
       {stopCapture && step?.kind === 'stop' && (

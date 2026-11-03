@@ -360,6 +360,8 @@ export default function Chronicle() {
             onCameraChange={onCameraChange}
             covered={placing != null}
             attributionTop
+            // The scale bar above the sheet at its resting height (QL8).
+            scaleInset={{ bottom: sheetH + 12, left: 12 }}
           />
         )}
       </View>

@@ -1,12 +1,12 @@
 import * as Location from 'expo-location';
-import { LOCATE_MAX_ACCURACY_M, LOCATE_MAX_AGE_MS, LOCATE_TIMEOUT_MS, type LocateResult } from './types';
+import { LOCATE_MAX_ACCURACY_M, LOCATE_MAX_AGE_MS, LOCATE_TIMEOUT_MS, type LocateOptions, type LocateResult } from './types';
 
 /**
  * Watches location until a fix within LOCATE_MAX_ACCURACY_M arrives, or
  * LOCATE_TIMEOUT_MS passes, then stops watching. Asks for foreground
  * permission only now, when a moment is being made (M5).
  */
-export async function locateOnce(timeoutMs = LOCATE_TIMEOUT_MS): Promise<LocateResult> {
+export async function locateOnce(timeoutMs = LOCATE_TIMEOUT_MS, opts: LocateOptions = {}): Promise<LocateResult> {
   try {
     const perm = await Location.requestForegroundPermissionsAsync();
     if (!perm.granted) return { at: null, reason: 'denied' };
@@ -28,7 +28,8 @@ export async function locateOnce(timeoutMs = LOCATE_TIMEOUT_MS): Promise<LocateR
     Location.watchPositionAsync({ accuracy: Location.Accuracy.High, timeInterval: 1000, distanceInterval: 0 }, (p) => {
       const acc = p.coords.accuracy;
       // A cached fix can be accurate but minutes old (from before a drive): only fresh ones (audit).
-      if (p.timestamp < asked - LOCATE_MAX_AGE_MS) return;
+      // A Locate tap takes only a fix read after it asked (QL10).
+      if (p.timestamp < asked - (opts.fresh ? 0 : LOCATE_MAX_AGE_MS)) return;
       if (acc != null && acc <= LOCATE_MAX_ACCURACY_M) finish({ at: [p.coords.longitude, p.coords.latitude] });
     })
       .then((s) => {

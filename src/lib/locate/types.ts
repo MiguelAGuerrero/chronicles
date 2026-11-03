@@ -10,6 +10,11 @@ export interface LocateResult {
   reason?: 'denied' | 'timeout' | 'unavailable';
 }
 
+/** `fresh`: refuse a cached position, however recent (a Locate tap asks where you are now). */
+export interface LocateOptions {
+  fresh?: boolean;
+}
+
 /** How long a moment waits for its fix. */
 export const LOCATE_TIMEOUT_MS = 10_000;
 /** The worst accuracy a moment's fix may have. */

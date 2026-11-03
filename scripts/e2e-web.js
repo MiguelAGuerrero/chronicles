@@ -1050,9 +1050,235 @@ function check(ok, what) {
     await c.close();
   };
 
+  // Quality of life: map staples (QL1-QL12, the owner's spec, Nov 3): Locate, the scale bar and the
+  // trace's end markers, read through the map's data attributes. E2E_ONLY=qol runs it alone.
+  const qolScenario = async () => {
+    const { c, pg } = await freshPage('qol');
+    await c.addInitScript(() => {
+      window.__perf = {};
+      // Location watches begun and cleared, and the ids still open: Locate's fix is a one-off (QL12).
+      const g = navigator.geolocation;
+      const watch = g.watchPosition.bind(g);
+      const clear = g.clearWatch.bind(g);
+      window.__watchCalls = 0;
+      window.__clearCalls = 0;
+      window.__openWatches = new Set();
+      g.watchPosition = (...a) => { window.__watchCalls++; const id = watch(...a); window.__openWatches.add(id); return id; };
+      g.clearWatch = (id) => { window.__clearCalls++; window.__openWatches.delete(id); return clear(id); };
+    });
+    const fix = (p) => c.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+    const lonLat = (s) => (s ? s.split(',').map(Number) : null);
+    const fmt = (p) => (p ? p.map((v) => v.toFixed(5)).join(',') : String(p));
+    const mAway = (a, b) => Math.hypot((a[0] - b[0]) * 111320 * Math.cos((b[1] * Math.PI) / 180), (a[1] - b[1]) * 111320);
+    const mpp = (zoom, lat) => (40075016.686 * Math.cos((lat * Math.PI) / 180)) / (512 * 2 ** zoom);
+    // The next round length up (1, 2, 5 × a power of ten).
+    const nextRound = (m) => { const d = Number(String(m)[0]); return d === 1 ? m * 2 : d === 2 ? m * 2.5 : m * 2; };
+    // Elements on the screen in front: JS tabs keep the others mounted beneath it, aria-hidden (the bar is aria-hidden itself).
+    const shown = (testid) => pg.locator(`xpath=//*[@data-testid="${testid}"][not(ancestor::*[@aria-hidden="true"])]`);
+    // The bar's line sits inside the bar, which is aria-hidden itself (QL8): only other hidden ancestors count.
+    const scaleLine = () => pg.locator('xpath=//*[@data-testid="scale-line"][not(ancestor::*[@aria-hidden="true" and not(@data-testid="scale-bar")])]');
+    // The live map's container attributes (data-zoom, data-center, data-walker, data-ends).
+    const attr = (name) => pg.evaluate((n) => {
+      const els = [...document.querySelectorAll('[data-zoom]')].filter((e) => !e.closest('[aria-hidden=true]'));
+      const el = els[els.length - 1];
+      return el ? el.getAttribute(n) : null;
+    }, name);
+    // The scale bar as drawn (QL5-QL7): its metres, label, the line's measured width and the width those
+    // metres take at the map's zoom and the view's latitude.
+    const scaleBar = async () => {
+      const bar = shown('scale-bar').last();
+      if (!(await bar.count())) return null;
+      const m = Number(await bar.getAttribute('data-m'));
+      const hidden = await bar.getAttribute('aria-hidden');
+      const label = (await bar.innerText()).trim();
+      const line = await scaleLine().last().boundingBox();
+      const box = await bar.boundingBox();
+      const zoom = Number(await attr('data-zoom'));
+      const center = lonLat(await attr('data-center'));
+      const px = center ? mpp(zoom, center[1]) : NaN;
+      return { m, hidden, label, width: line ? line.width : 0, want: m / px, next: nextRound(m) / px, box, zoom };
+    };
+    const describe = (s) => (s ? `${s.m} m "${s.label}", ${s.width.toFixed(1)} px for ${s.want.toFixed(1)} at z${s.zoom.toFixed(2)}` : 'no scale bar');
+    const fits = (s) => !!s && s.width > 0 && s.width <= 100.5 && Math.abs(s.width - s.want) <= s.want * 0.05;
+    const round = (s) => !!s && /^(1|2|5)0*$/.test(String(s.m)) && s.label === (s.m >= 1000 ? `${s.m / 1000} km` : `${s.m} m`);
+    // Two zoom levels out: the map's keyboard handler, then the wheel if it didn't take.
+    const zoomOutBy = async (levels) => {
+      const z0 = Number(await attr('data-zoom'));
+      const canvas = pg.locator('canvas.maplibregl-canvas').last();
+      await canvas.focus();
+      for (let i = 0; i < levels; i++) {
+        await pg.keyboard.press('-');
+        await pg.waitForTimeout(500);
+      }
+      const box = await canvas.boundingBox();
+      await pg.mouse.move(box.x + box.width / 2, box.y + box.height / 3);
+      for (let i = 0; i < 12 && Number(await attr('data-zoom')) > z0 - levels; i++) {
+        await pg.mouse.wheel(0, 400);
+        await pg.waitForTimeout(400);
+      }
+      await pg.waitForTimeout(700);
+      return [z0, Number(await attr('data-zoom'))];
+    };
+    const holdStop = async () => {
+      const b = await pg.locator('[data-testid=stop]').boundingBox();
+      await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+      await pg.mouse.down();
+      await pg.waitForTimeout(1100);
+      await pg.mouse.up();
+      await pg.waitForURL(/replay/, { timeout: 30000 });
+      await pg.waitForSelector('[data-testid=skip]', { timeout: 30000 });
+      await pg.click('[data-testid=skip]');
+      await pg.waitForSelector('[data-testid=to-name]', { timeout: 30000 });
+      await pg.waitForTimeout(800);
+    };
+
+    // Navigate: Locate from 1 km away.
+    await pg.goto(url);
+    await pg.waitForSelector('[data-testid=start]');
+    await pg.waitForTimeout(1500);
+    const far = at(10, 0);
+    await fix(far);
+    const locate = shown('locate');
+    const lb = (await locate.count()) ? await locate.first().boundingBox() : null;
+    const locateLabel = (await locate.count()) ? await locate.first().getAttribute('aria-label') : null;
+    check((await locate.count()) === 1 && lb && lb.width >= 44 && lb.height >= 44 && locateLabel === 'Center on your position',
+      `qol QL9: Navigate shows one 44 pt Locate button labelled "Center on your position" (${await locate.count()}, ${lb && `${lb.width}×${lb.height}`}, ${JSON.stringify(locateLabel)})`);
+    // The busy state can be over in a frame with a mocked fix, so every change to the button is recorded as it happens.
+    await pg.evaluate(() => {
+      window.__locateBusy = [];
+      new MutationObserver((records) => {
+        for (const r of records) {
+          const node = r.target.nodeType === 1 ? r.target : r.target.parentElement;
+          const el = node && node.closest('[data-testid=locate]');
+          if (!el) continue;
+          if (r.type === 'childList') window.__locateBusy.push('content');
+          else if (el.matches(':disabled, [aria-disabled=true], [aria-busy=true]')) window.__locateBusy.push(`${r.attributeName}=${el.getAttribute(r.attributeName)}`);
+        }
+      }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['disabled', 'aria-disabled', 'aria-busy'] });
+    });
+    const watches0 = await pg.evaluate(() => window.__watchCalls);
+    await locate.first().click();
+    const busyNow = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=locate]')].some((el) => !el.closest('[aria-hidden=true]') && el.matches(':disabled, [aria-disabled=true], [aria-busy=true]')));
+    await pg.waitForTimeout(200);
+    const busySeen = await pg.evaluate(() => window.__locateBusy);
+    check(busyNow || busySeen.length > 0, `qol QL11: Locate shows busy while the fix is read (now: ${busyNow}, seen: ${JSON.stringify(busySeen.slice(0, 4))})`);
+    await pg.waitForTimeout(2000);
+    {
+      const center = lonLat(await attr('data-center'));
+      const walker = lonLat(await attr('data-walker'));
+      const zoom = Number(await attr('data-zoom'));
+      const off = center ? mAway(center, far) : NaN;
+      // The fit centres the fix in the view above the drawer, so the canvas's own middle sits a little
+      // south of it: inside the 250 m the fit frames is the test, not the exact middle.
+      check(center && off < 250, `qol QL10: Navigate's Locate frames the map around the fix 1 km away (canvas middle ${off.toFixed(1)} m off at ${fmt(center)}, z${zoom})`);
+      check(zoom >= 13 && zoom <= 17.5, `qol QL10: Locate fits about 250 m around the fix (z${zoom})`);
+      check(walker && mAway(walker, far) < 5, `qol QL10: the dot is drawn at the fix (data-walker ${fmt(walker)}, ${walker ? mAway(walker, far).toFixed(1) : '-'} m off)`);
+      const w = await pg.evaluate(() => ({ watches: window.__watchCalls, clears: window.__clearCalls, open: [...window.__openWatches] }));
+      check(w.watches > watches0 && w.open.length === 0 && w.clears >= w.watches,
+        `qol QL12: every watch the tap began is cleared once the fix is read (${w.watches} watches, ${w.clears} clears, open: ${JSON.stringify(w.open)})`);
+    }
+    await shot(pg, 'qol-01-navigate-located');
+
+    // The scale bar on Navigate, and after zooming out.
+    const s1 = await scaleBar();
+    check(s1 && s1.hidden === 'true' && round(s1), `qol QL5, QL8: Navigate shows a scale bar for a round length, hidden from screen readers (${describe(s1)}, aria-hidden=${s1 && s1.hidden})`);
+    check(fits(s1) && s1.next > 100, `qol QL5, QL7: the bar is the longest round length within 100 px, within 5% of its metres (${describe(s1)}; next ${s1 && s1.next.toFixed(1)} px)`);
+    const [z0, z1] = await zoomOutBy(2);
+    const s2 = await scaleBar();
+    check(z1 <= z0 - 1.5 && s2 && s2.m > s1.m && round(s2) && fits(s2),
+      `qol QL7: zoomed out two levels, the bar grows to a longer round length and still fits (z${z0.toFixed(2)} → z${z1.toFixed(2)}, ${describe(s2)})`);
+
+    // Explore has Locate and the bar; Chronicle has the bar and no trace ends.
+    await pg.click('[data-testid=tab-explore]');
+    await pg.waitForTimeout(1200);
+    const near = at(0.2, 0.3);
+    await fix(near);
+    const locate2 = shown('locate');
+    check((await locate2.count()) === 1 && (await locate2.first().getAttribute('aria-label')) === 'Center on your position', `qol QL9: Explore shows a Locate button (${await locate2.count()})`);
+    await locate2.first().click();
+    await pg.waitForTimeout(2000);
+    {
+      const center = lonLat(await attr('data-center'));
+      const walker = lonLat(await attr('data-walker'));
+      const off = center ? mAway(center, near) : NaN;
+      check(center && off < 250 && walker && mAway(walker, near) < 5,
+        `qol QL10: Explore's Locate frames the map around the fix and draws the dot (canvas middle ${off.toFixed(1)} m off, data-walker ${fmt(walker)})`);
+      const s3 = await scaleBar();
+      check(round(s3) && fits(s3), `qol QL5: Explore shows the scale bar (${describe(s3)})`);
+    }
+    await pg.click('[data-testid=tab-chronicle]');
+    await pg.waitForTimeout(1200);
+    {
+      const s4 = await scaleBar();
+      const ends = await attr('data-ends');
+      check(round(s4) && fits(s4), `qol QL5: Chronicle shows the scale bar (${describe(s4)})`);
+      check(ends == null || ends === '' || ends === '|', `qol QL1: Chronicle draws no trace, so it marks no start (data-ends ${JSON.stringify(ends)})`);
+    }
+    await pg.click('[data-testid=tab-navigate]');
+    await pg.waitForTimeout(800);
+
+    // A walk: the start marker goes with the trace; no end marker while it is live.
+    const s0 = at(-0.5, -0.5);
+    await fix(s0);
+    await pg.click('[data-testid=start]');
+    await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+    await fix([s0[0], s0[1] + 0.000002]);
+    await pg.waitForTimeout(2500);
+    const last = at(-0.5 + 8 * 0.05, -0.5);
+    for (let k = 1; k <= 8; k++) {
+      await fix(at(-0.5 + k * 0.05, -0.5));
+      await pg.waitForTimeout(1000);
+    }
+    await pg.waitForTimeout(2500);
+    {
+      const ends = await attr('data-ends');
+      const [a, b] = (ends ?? '').split('|');
+      const startAt = lonLat(a);
+      check(ends != null && startAt && mAway(startAt, s0) < 15 && !b,
+        `qol QL2, QL4: a live walk marks where it began and has no end marker (data-ends ${JSON.stringify(ends)}, start ${startAt ? mAway(startAt, s0).toFixed(1) : '-'} m from the first fix)`);
+      const s5 = await scaleBar();
+      const stop = await pg.locator('[data-testid=stop]').boundingBox();
+      check(round(s5) && fits(s5) && s5.box && stop && s5.box.y + s5.box.height <= stop.y + 0.5,
+        `qol QL8: the walk screen's scale bar sits clear of its bottom strip (bar bottom ${s5 && s5.box && Math.round(s5.box.y + s5.box.height)}, strip from ${stop && Math.round(stop.y)}; ${describe(s5)})`);
+    }
+    await shot(pg, 'qol-02-walk');
+
+    // Stopped: both ends, and the bar above the card.
+    await holdStop();
+    {
+      const ends = await attr('data-ends');
+      const [a, b] = (ends ?? '').split('|');
+      const startAt = lonLat(a);
+      const endAt = lonLat(b);
+      check(startAt && endAt && mAway(startAt, s0) < 15 && mAway(endAt, last) < 15,
+        `qol QL2: the replay marks the start and the end of the trace (data-ends ${JSON.stringify(ends)}: start ${startAt ? mAway(startAt, s0).toFixed(1) : '-'} m, end ${endAt ? mAway(endAt, last).toFixed(1) : '-'} m off)`);
+      const s6 = await scaleBar();
+      // The card: the outermost painted box around Name it.
+      const cardTop = await pg.evaluate(() => {
+        let el = document.querySelector('[data-testid=to-name]');
+        let top = el ? el.getBoundingClientRect().y : NaN;
+        for (; el; el = el.parentElement) {
+          const bg = getComputedStyle(el).backgroundColor;
+          const r = el.getBoundingClientRect();
+          if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent' && r.height > 0 && r.y > innerHeight * 0.2) top = Math.min(top, r.y);
+        }
+        return top;
+      });
+      check(round(s6) && fits(s6) && s6.box && s6.box.y + s6.box.height <= cardTop + 0.5,
+        `qol QL8: the replay's scale bar sits above the card (bar bottom ${s6 && s6.box && Math.round(s6.box.y + s6.box.height)}, card from ${Math.round(cardTop)}; ${describe(s6)})`);
+    }
+    await shot(pg, 'qol-03-replay-card');
+    await c.close();
+  };
+
   try {
     if (process.env.E2E_ONLY === 'reload') {
       await reloadMinimized();
+      check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
+      return;
+    }
+    if (process.env.E2E_ONLY === 'qol') {
+      await qolScenario();
       check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
       return;
     }
