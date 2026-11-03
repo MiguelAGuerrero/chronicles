@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KindSwitches, RangeSlider, walkNote } from '../../components/ExploreSettings';
 import { SwitchRow } from '../../components/SwitchRow';
 import { SheetFrame, type SheetSize } from '../../components/HomeSheet';
+import { LocateButton } from '../../components/LocateButton';
 import { CaptureRow, MomentBar } from '../../components/MomentBar';
 import { NotificationSettings } from '../../components/NotificationSettings';
 import { useOpenWalk, useOpenWalkInfo } from '../../components/OpenWalk';
@@ -26,6 +27,7 @@ import { recorder } from '../../lib/recorder';
 import { destLine, parseStartMode, START_MODE_KEY, type StartMode } from '../../lib/startPlan';
 import type { Capture, LngLat, Walk } from '../../lib/types';
 import { useCaptures, type MomentState } from '../../lib/useCaptures';
+import { LOCATE_FIT_M, useLocate } from '../../lib/useLocate';
 import { useStartWalk } from '../../lib/useStartWalk';
 import { useTabMap } from '../../lib/useTabMap';
 
@@ -174,6 +176,17 @@ export default function Navigate() {
     if (state === 'placed') findForMoment(c).catch(() => {});
   }, []);
   const onMomentError = useCallback((e: { message: string; openSettings?: boolean }) => setMomentError(e), []);
+  // Locate me (QL9-QL12): one fix on a tap, the dot there, and the map framed 250 m around it whatever
+  // the distance from the last fix (unlike the fix on focus); nothing tracks after. No fix: the banner.
+  const { busy: locating, locate } = useLocate({
+    onFix: (at) => {
+      setFix(at);
+      centredOn.current = at;
+      const box = boundsOf([at], LOCATE_FIT_M);
+      if (box) setFit((f) => ({ bounds: box, key: f.key + 1 }));
+    },
+    onError: setMomentError,
+  });
 
   // Mid-memo, or with a walk open, the drawer stays down (audit, U2).
   const resize = (s: SheetSize) => {
@@ -349,6 +362,8 @@ export default function Navigate() {
             {peekLine ? <Text testID="peek-choices" style={styles.peekLine} numberOfLines={1}>{peekLine}</Text> : null}
           </View>
         </SheetFrame>
+        {/* Locate me (QL9): above the drawer and the capture row at every height; gone with a walk open. */}
+        <LocateButton busy={locating} onPress={locate} bottom={sheetH + ROW_GAP + ROW_H + 12} />
       </View>
       )}
 

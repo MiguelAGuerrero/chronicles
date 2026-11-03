@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, ActivityIndicator, Animated, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SheetFrame, type SheetSize } from '../../components/HomeSheet';
+import { LocateButton } from '../../components/LocateButton';
 import type { MarkPin } from '../../components/MarkPinView';
 import { WalkMap } from '../../components/map/WalkMap';
 import { Icon } from '../../components/icons';
@@ -18,6 +19,7 @@ import { getLastFix } from '../../lib/lastFix';
 import { perfCount } from '../../lib/perfCount';
 import { ensureTileBuild } from '../../lib/tiles';
 import type { LngLat } from '../../lib/types';
+import { LOCATE_FIT_M, useLocate, type LocateError } from '../../lib/useLocate';
 import { useStartWalk } from '../../lib/useStartWalk';
 import { useTabMap } from '../../lib/useTabMap';
 
@@ -57,6 +59,8 @@ export default function Explore() {
   }, []);
   const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
   const [center, setCenter] = useState<LngLat | null>(() => getLastFix()?.at ?? null);
+  // The dot: the last fix as the tab opened, then wherever a Locate tap found you (QL10).
+  const [locFix, setLocFix] = useState<LngLat | null>(() => getLastFix()?.at ?? null);
   const readAt = useRef<LngLat | null>(null);
   const [fit, setFit] = useState<{ bounds: Bounds | null; key: number }>({ bounds: null, key: 0 });
   const { focused, cameraNow, savedCamera, onCameraChange, areaH, onFitSettled } = useTabMap({ key: fit.key, refit: () => setFit((f) => ({ ...f, key: f.key + 1 })) });
@@ -150,7 +154,18 @@ export default function Explore() {
     }
   };
 
-  const error = walkStart.error;
+  // Locate me (QL9-QL12): one fix on a tap, the dot there, and the map framed 250 m around it; nothing
+  // tracks after, and the map keeps later pans. No fix: the banner, with Open Settings where it helps.
+  const [locError, setLocError] = useState<LocateError | null>(null);
+  const { busy: locating, locate } = useLocate({
+    onFix: (at) => {
+      setLocFix(at);
+      const box = boundsOf([at], LOCATE_FIT_M);
+      if (box) setFit((f) => ({ bounds: box, key: f.key + 1 }));
+    },
+    onError: setLocError,
+  });
+  const error = walkStart.error ?? locError;
   return (
     <View style={styles.screen}>
       <View style={[StyleSheet.absoluteFill, styles.over]} pointerEvents="box-none">
@@ -197,13 +212,18 @@ export default function Explore() {
             </ScrollView>
           )}
         </SheetFrame>
+        {/* Locate me (QL9): above the sheet at every height. The long press's card takes its place. */}
+        {!spot && <LocateButton busy={locating} onPress={locate} bottom={sheetH + 12} />}
       </View>
 
       <View style={[styles.top, styles.over, { top: insets.top + 8 }]} pointerEvents="box-none">
         {error && (
           <Banner
             tone="error"
-            onDismiss={() => walkStart.setError(null)}
+            onDismiss={() => {
+              walkStart.setError(null);
+              setLocError(null);
+            }}
             action={error.openSettings ? { label: 'Open Settings', onPress: () => Linking.openSettings() } : undefined}
           >
             {error.message}
@@ -282,6 +302,7 @@ export default function Explore() {
             walked={NONE}
             fog={NONE}
             captures={NONE}
+            walker={locFix}
             discoveries={marks}
             landing={streetZoom ? landingAll : null}
             marks={spot ? [spot.at] : undefined}
