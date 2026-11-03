@@ -17,7 +17,8 @@ const glyph = (name) => String.fromCodePoint(IONS[name]);
 // A glyph's icon name, for messages: the characters themselves don't print.
 const iconOf = (text) => Object.keys(IONS).find((k) => glyph(k) === text) ?? JSON.stringify(text);
 
-const DIST = path.join(__dirname, '..', 'dist');
+// E2E_DIST=<dir> serves another export (a second build while one run is still going).
+const DIST = process.env.E2E_DIST ?? path.join(__dirname, '..', 'dist');
 // The sub-path the build was exported for (GitHub Pages serves it at /chronicles).
 const BASE = process.env.E2E_BASE ?? '';
 const TYPES = { '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json', '.ttf': 'font/ttf', '.webmanifest': 'application/manifest+json' };
@@ -1714,6 +1715,8 @@ function check(ok, what) {
 
     // NR5, NR6: Start records in place.
     const before = { cam: await boxOf(pg, 'moment-photo'), mic: await boxOf(pg, 'moment-voice'), pen: await boxOf(pg, 'moment-note'), chev: await boxOf(pg, 'ready-close'), start: await boxOf(pg, 'start'), bar: await boxOf(pg, 'ready-bar'), loc: await boxOf(pg, 'locate') };
+    // One screen and one map across Start (the owner, Nov 3): the canvas is marked, and must be the same one after.
+    await pg.evaluate(() => { document.querySelector('canvas.maplibregl-canvas').__readyMark = 1; });
     await pg.evaluate(() => { window.__navs = 0; window.addEventListener('popstate', () => window.__navs++); const p = history.pushState; history.pushState = function (...a) { window.__navs++; return p.apply(this, a); }; });
     await pg.click('[data-testid=start]');
     await pg.waitForSelector('[data-testid=stop]', { timeout: 15000 });
@@ -1725,6 +1728,10 @@ function check(ok, what) {
     check(Math.abs(before.start.x + before.start.w - (after.stop.x + after.stop.w)) <= 2 && Math.abs(before.start.y + before.start.h / 2 - (after.stop.y + after.stop.h / 2)) <= 2,
       `ready NR5: Start sits in the strip where Stop sits (${JSON.stringify({ start: before.start, stop: after.stop })})`);
     check(/Walk started · recording/.test(notice), `ready NR6: the notice says the walk is recording (${notice})`);
+    {
+      const sameMap = await pg.evaluate(() => { const cs = [...document.querySelectorAll('canvas.maplibregl-canvas')]; return cs.length === 1 && cs[0].__readyMark === 1; });
+      check(sameMap, 'ready NR6: one screen, one map: the map shown before Start is the same one recording after it, never rebuilt');
+    }
     await pg.waitForTimeout(2200);
     check(!/^0:00/.test(await stats(pg)), `ready NR6: the time ticks (${await stats(pg)})`);
     // NR9: a note now belongs to the walk; the one before it is a moment.

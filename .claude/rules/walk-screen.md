@@ -10,13 +10,19 @@ paths:
 
 The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout, capture stack, pills, edge buttons, the ready bar and voice-memo controls. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
 
-- **Navigate is this screen** (NR1-NR13, decision 0070): `WalkRoute` in `walk.tsx` shows
-  `ReadyScreen` (`components/walk/ReadyScreen.tsx`) with no walk open, and the walk with one
-  (`screenState` in `lib/readyNav.ts`). Start records in place: `useStartWalk().start(..., { inPlace:
-  true })` writes the plan's meta, and only then does the route swap to the walk (it holds the ready
-  screen meanwhile, since the walk reads `explore_walk` as it mounts). No route change, so nothing
-  animates. The chevron, Minimize and Back go through `exitPlan` (back to the tab beneath, Explore when
-  there is none). `walkScreenShown()` is the route's, so the gate holds in both states.
+- **Navigate is this screen, and it is one screen** (NR1-NR13, decision 0070; the owner, Nov 3: "one
+  in the same", not a separate context from the walk's). `WalkRoute` in `walk.tsx` renders `WalkScreen`
+  once the keeper knows; the walk is the keeper's open walk (`useOpenWalkInfo`), kept by id in state.
+  With none, the screen is ready: `useReady` (`components/walk/useReady.tsx`) gives the one `WalkMap`
+  its props and draws the ready overlay (chevron, banners, Locate, the moment stack, the ready bar). The
+  map sits at one place in the tree in both states, so Start never remounts it (the e2e marks the canvas
+  and finds the same one after Start). Start records in place: `useStartWalk().start(..., { inPlace:
+  true })` writes the plan's meta while the screen holds the ready state (`holding`; the walk reads
+  `explore_walk` as it shows), then the walk's overlay takes over and the notice says it is recording.
+  Stopped, the walk stays on screen (`ended`) until the replay replaces it. The chevron, Minimize and
+  Back go through `exitPlan` (back to the tab beneath, Explore when there is none). `walkScreenShown()`
+  is the route's, so the gate holds in both states. `useReady` reads its choices and one fix only while
+  no walk is open (`active`).
 - **One geometry for both states** (`components/walk/layout.ts`, `useStackLayout`): the strip is
   `BAR_H` (69) above the safe area; the captures are a column of 56 pt buttons at the right edge
   (camera nearest the strip, then mic, then note), inside the 640 column; the 44 pt edge buttons sit

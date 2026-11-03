@@ -55,7 +55,7 @@ import { exitPlan, screenState } from '../lib/readyNav';
 import { getLastFix } from '../lib/lastFix';
 import { CaptureStack } from '../components/walk/CaptureStack';
 import { EDGE, useStackLayout } from '../components/walk/layout';
-import { ReadyScreen } from '../components/walk/ReadyScreen';
+import { useReady } from '../components/walk/useReady';
 import { aboutTimeLeft, formatTimeLeft, paceMps, timeLeftMs } from '../lib/nav/eta';
 import { useVisible } from '../lib/deletion/useDeletions';
 import { deletions } from '../lib/deletion';
@@ -131,33 +131,17 @@ export default function WalkRoute() {
   // while mounted: a walk screen left mounted behind the tabs once left the bar's › dead (Nov 2).
   useFocusEffect(useCallback(() => walkScreenShown(), []));
   const info = useOpenWalkInfo();
-  const state = screenState({ known: info.known, walkId: info.walk?.id ?? null });
-  // While Start writes the walk's plan, the ready screen stays (the walk reads the mode as it opens).
-  const [holding, setHolding] = useState(false);
-  const [startParams, setStartParams] = useState<Record<string, string> | null>(null);
   const close = useCallback(() => {
     feedback('tap');
     const to = exitPlan(router.canGoBack());
     if (to.kind === 'back') router.back();
     else router.replace(to.to);
   }, []);
-  if (state === 'loading') return <View style={styles.screen} />;
-  if (state === 'ready' || holding) {
-    return (
-      <ReadyScreen
-        onClose={close}
-        onStarting={() => setHolding(true)}
-        onStarted={(p) => {
-          setStartParams(p);
-          setHolding(false);
-        }}
-      />
-    );
-  }
-  return <WalkScreen startParams={startParams} onMinimize={close} />;
+  if (screenState({ known: info.known, walkId: info.walk?.id ?? null }) === 'loading') return <View style={styles.screen} />;
+  return <WalkScreen onMinimize={close} />;
 }
 
-function WalkScreen(props: { startParams: Record<string, string> | null; onMinimize: () => void }) {
+function WalkScreen(props: { onMinimize: () => void }) {
   perfCount('render:walk');
   // Every distance on this screen follows the units setting (QL16).
   useUnits();
@@ -165,11 +149,18 @@ function WalkScreen(props: { startParams: Record<string, string> | null; onMinim
   const { width } = useWindowDimensions();
   /** The top column's side margin: centered in 640 on wide screens, like the rest. */
   const sideInset = Math.max(12, (width - 640) / 2);
-  const urlParams = useLocalSearchParams<{ warning?: string; started?: string; recall?: string }>();
-  // Started in place (NR6), the notice comes from the ready screen, not the URL.
-  const params: { warning?: string; started?: string; recall?: string } = { ...urlParams, ...(props.startParams ?? {}) };
+  const params = useLocalSearchParams<{ warning?: string; started?: string; recall?: string }>();
   const at = useStackLayout();
-  const [walk, setWalk] = useState<Walk | null>(null);
+  // One screen, ready or walking (NR1, NR6): the walk is the keeper's open walk. While Start writes the
+  // walk's plan the screen stays ready (the walk reads its mode as it shows); once stopped, the walk stays
+  // on screen until the replay replaces it, never flashing the ready state.
+  const info = useOpenWalkInfo();
+  const [holding, setHolding] = useState(false);
+  const [ended, setEnded] = useState<Walk | null>(null);
+  const shownWalk = holding ? null : info.walk ?? ended;
+  // Kept by id: the keeper's row is re-read with each pause, and the walk's effects key on it.
+  const [walk, setWalkShown] = useState<Walk | null>(shownWalk);
+  if ((walk?.id ?? null) !== (shownWalk?.id ?? null)) setWalkShown(shownWalk);
   // The open walk's pauses and live trace are kept above this screen, so they go on while it is
   // minimized (NV8); this screen shows them.
   const openWalk = useOpenWalk();
@@ -201,7 +192,9 @@ function WalkScreen(props: { startParams: Record<string, string> | null; onMinim
   const [now, setNow] = useState(() => Date.now());
   // One-off notices: a start warning, or the web's visibility rule.
   const [notice, setNotice] = useState<Notice | null>(() =>
-    params.warning
+    !shownWalk
+      ? null
+      : params.warning
       ? { message: params.warning }
       : params.started
         ? { message: 'Walk started · recording' }
@@ -232,10 +225,17 @@ function WalkScreen(props: { startParams: Record<string, string> | null; onMinim
     return () => sub.remove();
   }, []);
 
-  useEffect(() => {
-    // No walk after all (stopped from the bar meanwhile): the route shows the ready screen instead.
-    db.getOpenWalk().then((w) => w && setWalk(w), () => {});
-  }, []);
+  // The ready state (NR1, NR5-NR13): with no walk open, the map and the overlay are its.
+  const ready = useReady({
+    active: !walk,
+    onClose: props.onMinimize,
+    onStarting: () => setHolding(true),
+    onStarted: (p) => {
+      setHolding(false);
+      // Recording in place (NR6): it says so, or the recorder's warning.
+      if (p) setNotice(p.warning ? { message: p.warning } : { message: 'Walk started · recording' });
+    },
+  });
   // The error notice is raised once per error: when the status first turns to error, or for a new
   // message. A retry's own pass through "waiting" doesn't count as leaving it, so a failed retry
   // keeps the chip and says nothing again (QL20); the chip's tap brings the notice back (QL19).
@@ -752,10 +752,13 @@ function WalkScreen(props: { startParams: Record<string, string> | null; onMinim
         setNotice({ message: 'The voice memo could not be saved. Retry, or hold Stop again to end the walk without it.', tone: 'error', sticky: true });
         return;
       }
+      // The walk stays on screen until the replay replaces it (the keeper hears it ended first).
+      setEnded(walk);
       await stopWalk(walk.id);
       feedback('success');
       router.replace(`/replay/${walk.id}`);
     } catch (e) {
+      setEnded(null);
       setNotice({ message: `The walk could not be stopped: ${e instanceof Error ? e.message : e}`, tone: 'error', sticky: true });
     } finally {
       setStopping(false);
@@ -917,6 +920,10 @@ function WalkScreen(props: { startParams: Record<string, string> | null; onMinim
 
   return (
     <View style={styles.screen}>
+      {/* One map for both states, at one place in the tree, so Start never remounts it (NR6). */}
+      {!walk ? (
+        <WalkMap {...ready.mapProps} ref={mapRef} scaleInset={{ bottom: 68, left: sideInset + 12 }} />
+      ) : (
       <WalkMap
         landing={hotView}
         trace={live.runs}
@@ -995,6 +1002,10 @@ function WalkScreen(props: { startParams: Record<string, string> | null; onMinim
         // inside the 640 column (QL8).
         scaleInset={{ bottom: 68, left: sideInset + 12 }}
       />
+      )}
+
+      {!walk ? ready.overlay : (
+      <>
 
       <View style={[styles.top, { top: insets.top + 12, left: sideInset, right: sideInset }]} pointerEvents="box-none">
         {navigation.nav && (
@@ -1576,6 +1587,8 @@ function WalkScreen(props: { startParams: Record<string, string> | null; onMinim
           </KeyboardAvoidingView>
         </Pressable>
       </Modal>
+      </>
+      )}
     </View>
   );
 }

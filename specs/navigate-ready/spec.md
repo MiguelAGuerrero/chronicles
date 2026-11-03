@@ -25,6 +25,8 @@ for its layout only. Chronicles keeps its own palette, Start button and map styl
 - **The bar is a quick start; pull it up for the settings** (the owner, 2026-11-03,
   "You pull up the drawer. The bar should be a quick start"). This reverses 0056,
   which put the settings in a dialog. Start stays at the bar's foot at every height.
+- **One and the same screen** (the owner, 2026-11-03, mid-build): the ready state is not a separate
+  view from the walk's; it is the walk screen with one map that stays mounted across Start.
 - **Layout only** (the owner, 2026-11-03): AllTrails' structure, Chronicles' light
   theme, the rust Start and the current map style.
 
@@ -53,7 +55,8 @@ for its layout only. Chronicles keeps its own palette, Start button and map styl
    of zero in your units (QL16) and **Start**, in the same strip and at the same
    height as the walk's time, distance and Stop. One tap starts the walk with the
    saved choices and the destination (NV19, NV25), and never waits for a fix (NV28).
-6. **NR6 · Start records in place.** The screen doesn't change or animate. The time
+6. **NR6 · Start records in place.** The screen doesn't change or animate, and its map is the same
+   one, never rebuilt. The time
    starts ticking, the map stays put and then follows you, Start's place in the
    strip becomes the walk's controls (options, Pause, hold-to-stop), and the notice
    says "Walk started · recording". The captures, Locate and the chevron don't move.

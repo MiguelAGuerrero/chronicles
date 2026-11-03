@@ -20,6 +20,10 @@ The owner's answers, Nov 3:
   should be a quick start"). Start stays at its foot at every height.
 - **Layout only** from AllTrails: Chronicles keeps its light theme, rust Start and map style.
 
+- **One and the same screen** (the owner, Nov 3, mid-build: "confirm that this is not a separate
+  context dialogue from the one that shows currently when you start a walk"): the ready state and the
+  walk are one walk screen with one map, kept mounted across Start; only its state changes.
+
 Taken as defaults in the plan, and confirmed by the owner's go-ahead ("Build it, then deploy"): the
 app opens on the ready screen with Explore beneath; the walking strip is unchanged; a destination
 set by a long press shows as one line on the resting bar.

@@ -5,7 +5,6 @@ import { CaptureViewer } from '../CaptureView';
 import { LocateButton } from '../LocateButton';
 import { MomentBar } from '../MomentBar';
 import { StartSettings } from '../StartSettings';
-import { WalkMap } from '../map/WalkMap';
 import { Icon } from '../icons';
 import { Banner, theme } from '../ui';
 import { useUnits } from '../../lib/useUnits';
@@ -21,7 +20,6 @@ import { getLastFix, setLastFix } from '../../lib/lastFix';
 import { locateOnce } from '../../lib/locate';
 import { loadPendingDest, savePendingDest } from '../../lib/nav/store';
 import type { Waypoint } from '../../lib/nav/types';
-import { perfCount } from '../../lib/perfCount';
 import { recorder } from '../../lib/recorder';
 import { parseStartMode, START_MODE_KEY, type StartMode } from '../../lib/startPlan';
 import type { Capture, LngLat, Walk } from '../../lib/types';
@@ -39,14 +37,17 @@ const WEB_NOTE_KEY = 'web_note_dismissed';
 const OPEN_FIT_M = 250;
 
 /**
- * The walk screen, ready (NR1, NR5-NR13): what Navigate opens with no walk
- * open. A map around you from one fix read as it opens (nothing tracks after,
- * NV17), your moments' pins, the destination you long-pressed, the capture
- * stack keeping moments, and the ready bar: Start, or pulled up, the walk's
- * settings. It is laid out from the walk's own geometry (`layout.ts`), so when
- * Start records the walk takes its place and nothing moves (NR6).
+ * The walk screen's ready state (NR1, NR5-NR13): what Navigate shows with no
+ * walk open. The walk screen calls this at every render and, while no walk is
+ * open, gives its one map `mapProps` and draws `overlay`: a map around you from
+ * one fix read as it opens (nothing tracks after, NV17), your moments' pins,
+ * the destination you long-pressed, the capture stack keeping moments, Locate
+ * and the ready bar (Start, or pulled up, the walk's settings). The map is the
+ * walk's own, so when Start records it stays mounted and nothing moves (NR6).
  */
-export function ReadyScreen(props: {
+export function useReady(props: {
+  /** No walk is open: read the choices and one fix as the screen comes to the front. */
+  active: boolean;
   /** The tab beneath, or Explore (NR4). */
   onClose: () => void;
   /** Start was pressed: hold the walk back until its plan is written. */
@@ -54,7 +55,6 @@ export function ReadyScreen(props: {
   /** The walk is recording, with its notice params; `null` if it didn't start. */
   onStarted: (params: Record<string, string> | null) => void;
 }) {
-  perfCount('render:ready');
   // The destination line and the zero distance follow the units setting (QL16).
   useUnits();
   const at = useStackLayout();
@@ -82,8 +82,11 @@ export function ReadyScreen(props: {
   const momentPins = useMemo(() => (pinZoom ? moments : NONE), [moments, pinZoom]);
 
   // Each time the screen comes to the front: the choices, the moments, the first-walk note; and one fix.
+  const { active } = props;
   useFocusEffect(
     useCallback(() => {
+      // With a walk open its recorder watches; nothing of this is read (U2's rule, kept).
+      if (!active) return;
       let live = true;
       (async () => {
         const [m, d, s, walks, note, caps] = await Promise.all([
@@ -116,7 +119,7 @@ export function ReadyScreen(props: {
       return () => {
         live = false;
       };
-    }, []),
+    }, [active]),
   );
 
   const pickMode = (m: StartMode) => {
@@ -170,44 +173,43 @@ export function ReadyScreen(props: {
   const { onClose } = props;
   const close = useCallback(() => onClose(), [onClose]);
   useEffect(() => {
-    if (up || memoOn) return;
+    if (!active || up || memoOn) return;
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
       close();
       return true;
     });
     return () => back.remove();
-  }, [up, memoOn, close]);
+  }, [active, up, memoOn, close]);
 
   const ring = up && mode === 'explore' && fix ? { center: fix, radiusM: settings.rangeM } : null;
 
-  return (
-    <View style={styles.screen}>
-      <View style={styles.mapArea}>
-        <WalkMap
-          trace={NONE}
-          walked={NONE}
-          fog={NONE}
-          captures={momentPins}
-          // Mid-memo, pins do nothing, so a memo is never cut short (moments audit).
-          onPinPress={(cs) => !memoOn && setViewing(cs)}
-          onViewChange={(v) => setPinZoom(v.zoom >= MOMENT_PIN_ZOOM)}
-          walker={fix}
-          marks={dest ? [dest.at] : undefined}
-          ring={ring}
-          // The destination is a long press on the ready map (NV23), never mid-memo or with the bar up.
-          onLongPress={(p) => {
-            if (memoOn || up) return;
-            chooseDest({ at: p, label: 'Your spot', kind: 'point' });
-          }}
-          fitBounds={fit.bounds}
-          fitKey={fit.key}
-          fitPadding={{ top: at.insets.top + 72, right: 24 + CAP, bottom: 24, left: 24 }}
-          initialCenter={fix ?? WORLD.center}
-          initialZoom={fix ? 16 : WORLD.zoom}
-          // As the walk's: clear of the strip and a pill, inside the 640 column (QL8).
-          scaleInset={{ bottom: 68, left: at.sideInset + 12 }}
-        />
-      </View>
+  /** The walk screen's one map, while no walk is open. */
+  const mapProps = {
+    trace: NONE,
+    walked: NONE,
+    fog: NONE,
+    captures: momentPins,
+    // Mid-memo, pins do nothing, so a memo is never cut short (moments audit).
+    onPinPress: (cs: Capture[]) => !memoOn && setViewing(cs),
+    onViewChange: (v: { zoom: number }) => setPinZoom(v.zoom >= MOMENT_PIN_ZOOM),
+    walker: fix,
+    marks: dest ? [dest.at] : undefined,
+    ring,
+    // The destination is a long press on the ready map (NV23), never mid-memo or with the bar up.
+    onLongPress: (p: LngLat) => {
+      if (memoOn || up) return;
+      chooseDest({ at: p, label: 'Your spot', kind: 'point' });
+    },
+    fitBounds: fit.bounds,
+    fitKey: fit.key,
+    fitPadding: { top: at.insets.top + 72, right: 24 + CAP, bottom: 24, left: 24 },
+    // Read once, as the map mounts: around the last fix, or the world.
+    initialCenter: fix ?? WORLD.center,
+    initialZoom: fix ? 16 : WORLD.zoom,
+  };
+
+  const overlay = (
+    <>
       {/* The strip's place in the column: the map ends where the walk's does. */}
       <View style={{ height: BAR_H + at.insets.bottom }} />
 
@@ -286,13 +288,12 @@ export function ReadyScreen(props: {
           captureBus.patch(c.walk_id, c.id, { body }, null);
         }}
       />
-    </View>
+    </>
   );
+  return { mapProps, overlay };
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: theme.bg },
-  mapArea: { flex: 1 },
   top: { position: 'absolute', gap: 8, alignItems: 'center', maxWidth: 640, alignSelf: 'center', zIndex: 2 },
   closeRow: { alignSelf: 'stretch', flexDirection: 'row' },
   edgeBtn: {

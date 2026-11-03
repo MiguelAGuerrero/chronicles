@@ -34,7 +34,7 @@ src/app/(tabs)/_layout.tsx   the three tabs, Explore · Navigate · Chronicle; N
 src/app/(tabs)/index.tsx     Navigate's entry route (`/`): Explore beneath, then the walk screen, ready (NR3)
 src/app/(tabs)/explore.tsx   Explore: remembered busy areas (magenta), each area's places to find and finds, no counts; long press = What's good here / Walk here
 src/app/(tabs)/chronicle.tsx Chronicle, the home: stars by area at the level for the zoom, moment pins from z11, the HomeSheet (Walks | Days), old-walk placement
-src/app/walk.tsx             the walk screen, and Navigate: ready with no walk open (ReadyScreen), else live trace and dot, fog, captures, navigation bar, Explore marks, memories, reminders, options, hold-to-stop
+src/app/walk.tsx             the walk screen, and Navigate: one screen and one map, ready with no walk open (`useReady`), else live trace and dot, fog, captures, navigation bar, Explore marks, memories, reminders, options, hold-to-stop
 src/app/replay/[id].tsx      a walk's replay: the five beats, stops at captures, the card, naming; first watch waits, re-watches advance
 src/app/day/[key].tsx        a day's replay: flies pin to pin through loose moments, plays each walk's own path, a quiet card
 ```
@@ -59,7 +59,7 @@ Home / tabs
   MomentBar.tsx              MomentBar (loose moments from Navigate) and CaptureRow (captures for the open walk)
   LocateButton.tsx           Locate me, an edge button
   StartSettings.tsx          the walk settings, shown in the ready bar pulled up (NR7)
-  walk/                      the walk screen's shared geometry (layout.ts), CaptureStack, ReadyBar, ReadyScreen (Navigate, ready)
+  walk/                      the walk screen's shared geometry (layout.ts), CaptureStack, ReadyBar, useReady (the walk screen's ready state)
   GapCard.tsx                a filled or offered stretch: Keep, Not this way
   LandingMarks.tsx           a strip's name beside it on the map
   ExploreSettings.tsx        what I'm into, the "?" range (ring preview), the pocket alert: a panel, not a modal
