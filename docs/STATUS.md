@@ -117,6 +117,7 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 | Session | Branch | Doing |
 |---|---|---|
 | Bug fixes (open since Oct 31) | unknown | unknown |
+| Functional core, slice 1 (FC1-FC10) | `claude/functional-core-slice1` | the layer tags and checks, the Nov 1 foundations cherry-picked and brought up to main; `specs/functional-core/` |
 
 ## Updating this file
 

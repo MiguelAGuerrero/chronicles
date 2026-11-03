@@ -1,3 +1,4 @@
+// @layer shell
 /**
  * Reads the open walk again whenever it changes (tabs audit 9). The latest
  * call wins: an older read that answers after a newer one began is dropped,

@@ -1,3 +1,4 @@
+// @layer shell
 import type { CategoryId, Mark } from './discovery/types';
 import { db } from './db';
 import { exploredKey, passedPlaces, type Kind } from './explore/explore';

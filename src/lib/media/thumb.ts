@@ -1,3 +1,4 @@
+// @layer adapter
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import type { Capture } from '../types';
 import { THUMB, thumbJob } from '../thumbPlan';

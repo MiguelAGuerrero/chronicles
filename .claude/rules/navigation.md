@@ -60,7 +60,7 @@ Routing inside a walk (`lib/nav`): walk me back, Go here, the route sources, rul
 - **Open in Maps** (NH1-NH8, the owner's calls, Nov 3): the destination
   goes to the phone's maps app for walking directions, a fallback when the
   open data is wrong.
-  - `nav/handoff.ts` (pure) picks the app and the links: Apple Maps on iOS and
+  - `nav/handoff.ts` (core) picks the app and the links: Apple Maps on iOS and
     iPhone or iPad browsers (an iPad asking for the desktop site reports a Mac
     with touch), Android's `geo:` chooser with Google's link after it, Google
     Maps in any other browser. `nav/openInMaps.ts` opens them with

@@ -78,7 +78,7 @@ Recording a walk and reading its trace: pauses, standstills, GPS jitter, the liv
 - **Motion** (the concept doc's "Motion" tab, MO1-MO10; the owner's calls,
   Nov 1, after research: GPS can't tell 10 m of drift from a walk; steps can).
   - `expo-sensors` DeviceMotion on every platform; Expo's Pedometer has no web
-    build, so `steps.ts` (pure) finds steps in the acceleration's size
+    build, so `steps.ts` (core) finds steps in the acceleration's size
     (gravity removed): peaks of 0.6 m/s² or more, 0.3-1.3 s apart, with a dip
     below rest between (a tap only spikes up). Walking: 3 evenly spaced steps
     in 3 s; still: none for 3 s; unknown before the first firm answer.

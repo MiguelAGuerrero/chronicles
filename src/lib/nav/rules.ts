@@ -1,3 +1,4 @@
+// @layer core
 /** The navigation rules from the v0.5 spec (criteria N2-N9). */
 export const NAV = {
   /** Where the trace passed within this of itself, walk me back cuts across (N2). */

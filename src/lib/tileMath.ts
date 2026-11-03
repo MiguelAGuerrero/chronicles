@@ -1,3 +1,4 @@
+// @layer core
 import { boundsOf } from './geo';
 import type { LngLat } from './types';
 

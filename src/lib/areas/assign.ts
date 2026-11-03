@@ -1,3 +1,4 @@
+// @layer core
 import { distanceM, isBreak, type PauseSpan } from '../geo';
 import { readTrace, smoothKept } from '../rides';
 import type { Fill, LngLat, TracePoint } from '../types';

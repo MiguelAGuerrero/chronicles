@@ -17,11 +17,28 @@ npx tsx --test --test-name-pattern "rides audit" src/lib/__tests__/rides.test.ts
 - One file: `rides.test.ts` is 34 tests in about 1 s. `--test-name-pattern`
   is a regex over test names: the line above runs that file's 9
   `rides audit N` tests only.
-- **Tests import only pure modules.** Node can't load React Native (Flow
-  source, native modules), so nothing a test imports, even indirectly, may
-  import `react-native`, Expo modules or the db. That is why `tileMath.ts`
-  (pure) is split from `tiles.ts` (imports `db`): move logic to test into a
-  pure file beside its screen or hook.
+- **Tests import only core modules, fakes and types.** Node can't load React
+  Native (Flow source, native modules), so nothing a test imports, even
+  indirectly, may import `react-native`, Expo modules or the db. That is why
+  `tileMath.ts` (core) is split from `tiles.ts` (a shell; imports `db`): move
+  logic to test into a core module beside its screen or hook.
+- **Layers** (`layers.test.ts`, `.claude/rules/functional-core.md`): every
+  `src/lib` module starts with `// @layer core|shell|adapter|view`, and a core
+  module imports only core. A failure names the file, the import, what it
+  reaches and the fix. Known violations are in `layers.baseline.json`, which
+  only shrinks: fixing one fails the test until its line is deleted.
+- **Shell tests** run a shell against `fakePorts()` (`__tests__/fakes`):
+  `memoryDb()`, a fake recorder and notifier, a clock that moves only when
+  told (`clock.advance(ms)`) and counting ids, sharing one call log.
+  `failNext(method, error)` fails the next call to one method. Assert the end
+  state (what `memoryDb` and the store hold); `log.effects()` lists the calls
+  that changed something, in order, for when order is the requirement.
+  Files in `__tests__/fakes/` are helpers, not tests.
+- **The Db contract** (`dbContract.ts`, run by `db.contract.test.ts`) holds
+  `memoryDb()` and the IndexedDB store (`db/index.web.ts` over
+  fake-indexeddb, a fresh module per case, since it caches its connection)
+  to the same cases. Every `Db` method needs a case (`FC7 every Db method has
+  a contract case`). The SQLite adapter can't run in Node.
 - **Fixtures** live in `src/lib/__tests__/`:
   - `mvtFixture.ts`: a test-only vector-tile encoder, since the tile host is
     blocked from cloud sessions. No test imports it now (its user went with
@@ -59,6 +76,12 @@ npm run lint        # expo lint (ESLint, eslint-config-expo): about 6 s
   - anything from `expo-haptics`: use `feedback(kind)` from `lib/motion`.
   The wrappers themselves (`components/Modal.tsx`, `lib/audioMode.native.ts`,
   `lib/haptics.ts`) are exempt.
+- Lint holds the layers too: in core modules, the clock, randomness, timers
+  and module-level `let`/`var`; in views (`src/app`, `src/components`, view
+  hooks), imports of the `db`, `recorder` or `notifier`. Known violations are
+  counted per file and rule in `eslint-suppressions.json` (ESLint's bulk
+  suppressions). After fixing some, `npx eslint src index.js
+  --prune-suppressions`; a stale count fails lint. Never `--suppress-all`.
 
 ## 3. The e2e: a headless walk of the web build
 

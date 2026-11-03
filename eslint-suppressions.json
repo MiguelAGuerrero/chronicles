@@ -1,0 +1,110 @@
+{
+  "src/app/(tabs)/chronicle.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/app/(tabs)/explore.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/app/(tabs)/index.tsx": {
+    "no-restricted-imports": {
+      "count": 2
+    }
+  },
+  "src/app/day/[key].tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/app/replay/[id].tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/app/walk.tsx": {
+    "no-restricted-imports": {
+      "count": 3
+    }
+  },
+  "src/components/CaptureView.tsx": {
+    "no-restricted-imports": {
+      "count": 2
+    }
+  },
+  "src/components/MemoryPreview.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/components/NotificationSettings.tsx": {
+    "no-restricted-imports": {
+      "count": 2
+    }
+  },
+  "src/components/OpenWalk.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/components/RecordingBar.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/components/WalkActions.tsx": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/lib/atlas/useAtlas.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/lib/explore/useExplore.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/lib/gaps/useLiveStretches.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/lib/nav/useNavigation.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/lib/places.ts": {
+    "no-restricted-globals": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/lib/useCaptures.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/lib/useLiveTrace.ts": {
+    "no-restricted-imports": {
+      "count": 2
+    }
+  },
+  "src/lib/useStartWalk.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  },
+  "src/lib/walkMotion.ts": {
+    "no-restricted-imports": {
+      "count": 1
+    }
+  }
+}

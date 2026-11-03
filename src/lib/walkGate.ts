@@ -1,3 +1,4 @@
+// @layer core
 /**
  * Whether an ask to show the walk screen goes ahead (tabs audit 1): not while
  * the walk screen is up, nor while an earlier ask is still on its way (for

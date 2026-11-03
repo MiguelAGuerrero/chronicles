@@ -1,3 +1,4 @@
+// @layer shell
 import type { LngLat } from './types';
 
 /**

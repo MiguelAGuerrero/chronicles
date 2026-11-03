@@ -1,3 +1,4 @@
+// @layer shell
 import type { WalkMapHandle } from '../components/map/types';
 import { planViews } from '../components/map/types';
 import { snapWalk } from './finish';

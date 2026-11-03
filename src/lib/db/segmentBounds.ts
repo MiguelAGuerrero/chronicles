@@ -1,3 +1,4 @@
+// @layer adapter
 import type { StreetSegment } from '../types';
 import { tileAt, tilesIn } from '../tileMath';
 

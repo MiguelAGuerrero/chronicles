@@ -1,3 +1,4 @@
+// @layer core
 import type { Area, AreaLevel, WalkArea } from './areas/types';
 import type { Bounds } from './geo';
 import { metersPerPixel, PIN_GROUP_PX } from './pins';

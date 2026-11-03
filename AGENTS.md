@@ -39,7 +39,7 @@ The app is a companion for wandering towns on foot: Explore before (busy areas, 
 | What is deferred; what has never run on a phone | `docs/DEFERRED.md`, `docs/NATIVE_UNVERIFIED.md` |
 | Rules and traps of one area | `.claude/rules/<area>.md`: they load by themselves when you read or edit that area's files. Read one directly when planning work in an area you haven't opened yet |
 
-Rule areas: captures-and-media, deletion, explore-and-discovery, gaps, landing, map, memories, moments-and-days, motion-polish, navigation, notifications, places-and-areas, react-native-web, recording-and-traces, replay, rides, storage, streets-fog-snapping, tabs-and-home, walk-screen.
+Rule areas: captures-and-media, deletion, explore-and-discovery, functional-core, gaps, landing, map, memories, moments-and-days, motion-polish, navigation, notifications, places-and-areas, react-native-web, recording-and-traces, replay, rides, storage, streets-fog-snapping, tabs-and-home, walk-screen.
 
 Procedures are skills: `/slice` (spec-first, test-first), `/audit` (the adversarial pass, with the `auditor` subagent), `/e2e`, `/deploy`, `/docs-gc` (end-of-slice drift check).
 
@@ -54,7 +54,8 @@ Procedures are skills: `/slice` (spec-first, test-first), `/audit` (the adversar
 - **Raw fixes are stored unfiltered** and gated at read time by `readTrace` (`lib/rides.ts`). Always pass the walk's `started_at`, pauses, stills and gap fills; a pause is a break in the trace however short.
 - **No dataset is hard-coded.** Map data reaches the app through adapters (`areas/types.ts`, `discovery/tilePois.ts`, `landing/read.ts`); tests run against in-memory sources.
 - **Storage.** Schema changes are new entries in `MIGRATIONS` (SQLite, `PRAGMA user_version`) and a `VERSION` bump with an `oldVersion < N` step (IndexedDB). Never edit an existing migration. All native writes go through the single queue in `db/index.native.ts`.
-- **Pure logic is importable by `npm test`:** nothing a test imports may import React Native (that is why `tileMath.ts` is split from `tiles.ts`). Put new rules in pure modules with a test first.
+- **Functional core, imperative shell.** Every `src/lib` module starts with `// @layer core|shell|adapter|view`. Decisions go in core (no clock, randomness, timers or module state; imports only core) with a test first; effects go in a shell that takes `ports`; views never import the `db`, `recorder` or `notifier`. `npm test` and lint check it, with baselines that only shrink. Read `.claude/rules/functional-core.md` before adding a module.
+- **Pure logic is importable by `npm test`:** nothing a test imports may import React Native (that is why `tileMath.ts` is split from `tiles.ts`).
 - **Import boundaries** are lint errors with the fix in the message: `Modal` only from `components/Modal`, no Reanimated, `setAudioMode` from `lib/audioMode`, haptics only through `feedback()` in `lib/motion`. Timings come from `lib/motionTokens`; never hard-code a duration.
 - **The background location task is registered in `index.js`** before the router loads. Never move it into a route.
 

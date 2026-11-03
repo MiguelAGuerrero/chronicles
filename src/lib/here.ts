@@ -1,3 +1,4 @@
+// @layer shell
 import { db } from './db';
 import { boundsOf, distanceM, pausedMs } from './geo';
 import { suggestTitle } from './summary';

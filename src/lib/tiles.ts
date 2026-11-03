@@ -1,3 +1,4 @@
+// @layer shell
 import { AREA_RULES } from './areas/rules';
 import { BOUNDARY_PACKS_ID } from './areas/boundaries';
 import { db } from './db';

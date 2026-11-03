@@ -1,3 +1,4 @@
+// @layer core
 /**
  * Filling gaps (the concept doc's "Filling gaps" tab, G1-G14). The paces and
  * the two confidence lines are first guesses, to tune on real walks.

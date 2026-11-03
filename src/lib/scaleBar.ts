@@ -1,3 +1,4 @@
+// @layer core
 import { getUnits, type Units } from './units';
 
 export interface ScaleBarSize {

@@ -20,10 +20,15 @@ backend, no simulation.
 
 ## Codemap
 
-`(pure)` marks a module `npm test` can import: no React, React Native, Expo or
-map import, directly or through what it imports (type-only imports don't
-count). Everything else is a platform module. `x.native.ts` / `x.web.ts`
-beside a plain `x.ts` is a platform split (see Invariants).
+Every module in `src/lib` names its layer on its first line (`// @layer
+core|shell|adapter|view`); the file is the one source, so the codemap doesn't
+repeat it. `core` is what `npm test` can import with no fakes: decisions and
+data, importing only core (type-only imports don't count), with no clock,
+randomness, timers or module state. `shell` carries out a feature's effects,
+`adapter` is a platform implementation behind an interface, `view` is a React
+hook. `npm test` and lint check the layers; `.claude/rules/functional-core.md`
+has the rules. `x.native.ts` / `x.web.ts` beside a plain `x.ts` is a platform
+split (see Invariants).
 
 ### `index.js` and `src/app/` (routes; Expo Router)
 
@@ -87,120 +92,126 @@ Map
 
 ```
 Recording and traces
-  recorder/                  Recorder contract (types.ts); index.native.ts: expo-location background task; index.web.ts: navigator.geolocation + wake lock; emitter.ts: status (pure)
+  recorder/                  Recorder contract (types.ts); index.native.ts: expo-location background task; index.web.ts: navigator.geolocation + wake lock; emitter.ts: status
   session.ts                 the walk lifecycle: startWalk, stopWalk, pauseWalk, resumeWalk, reconcileOpenWalk; one open walk, re-entry guards
-  geo.ts            (pure)   distances, projector, FixFilter and filterFixes (accuracy, staleness, speed), isBreak, splitAtGaps, settleJitter, dwellsOf / smoothDwells
-  rides.ts          (pure)   readTrace: gates, rides, walked vs kept fixes; liveRuns, rideRuns, traceDistances, ridingAt
-  liveDot.ts        (pure)   the dot's Kalman filter (LiveDot), DotStore, motion hints
-  glide.ts          (pure)   the dot's glide between fixes, on a given clock
-  steps.ts          (pure)   StepDetector: walking vs still from acceleration
+  geo.ts                     distances, projector, FixFilter and filterFixes (accuracy, staleness, speed), isBreak, splitAtGaps, settleJitter, dwellsOf / smoothDwells
+  rides.ts                   readTrace: gates, rides, walked vs kept fixes; liveRuns, rideRuns, traceDistances, ridingAt
+  liveDot.ts                 the dot's Kalman filter (LiveDot), DotStore, motion hints
+  glide.ts                   the dot's glide between fixes, on a given clock
+  steps.ts                   StepDetector: walking vs still from acceleration
   walkMotion.ts              askMotion, restoreMotion, useWalkMotion (expo-sensors permission; samples through motionSource/)
   motionSource/              motion samples: DeviceMotion on native, the devicemotion event on web
   useLiveTrace.ts            the walk screen's live trace: reads raw fixes every 2 s, feeds the DotStore, reports gaps and rides
   useGlidingWalker.ts        runs the glide as a render loop outside React
-  traceEnds.ts      (pure)   where a walk began and ended
-  gpsLog.ts         (pure)   the raw readings as text for Share GPS log
-  lastFix.ts        (pure)   the last fix Navigate read, in memory
+  traceEnds.ts               where a walk began and ended
+  gpsLog.ts                  the raw readings as text for Share GPS log
+  lastFix.ts                 the last fix Navigate read, in memory
 Streets, snapping, fog
-  streets.ts        (pure)   OpenMapTiles road features to street pieces (deriveSegments, streetKey); the only file that knows the road schema
-  snapper.ts        (pure)   trace to visited pieces: BUFFER_M, WALKED_THRESHOLD, STREET_MIN_M, along-not-across
+  streets.ts                 OpenMapTiles road features to street pieces (deriveSegments, streetKey); the only file that knows the road schema
+  snapper.ts                 trace to visited pieces: BUFFER_M, WALKED_THRESHOLD, STREET_MIN_M, along-not-across
   finish.ts                  snapWalk: derive, snap, place and summarize a walk behind the replay's first beat; pickArea, walkBounds
   tiles.ts                   ensureTileBuild (TileJSON build detection, purge on change), STREET_CODE, SNAP_RULES
-  tileBuild.ts      (pure)   reads the build from a TileJSON within a time limit
-  tileMath.ts       (pure)   z14 tile rectangles and edges
-  db/segmentBounds.ts (pure) a piece's bbox and the z14 tile it is filed under
+  tileBuild.ts               reads the build from a TileJSON within a time limit
+  tileMath.ts                z14 tile rectangles and edges
+  db/segmentBounds.ts a piece's bbox and the z14 tile it is filed under
   summary.ts                 loadReplay (ReplayData for the replay) and suggestTitle
   backlog.ts                 placeBacklog: places old walks in one pass through the home map
-  mapReads.ts       (pure)   one camera read at a time (mapReadLock)
+  mapReads.ts                one camera read at a time (mapReadLock)
 Places and areas (v0.5)
-  areas/types.ts    (pure)   PlaceCandidate, BoundarySource, Area, WalkArea: the whole contract
-  areas/assign.ts   (pure)   places a trace by its 50 m pieces; the title place
-  areas/rules.ts    (pure)   AREA_RULES and the reaches
-  areas/tilePlaces.ts (pure) the OpenMapTiles place classes (the only file that knows them)
-  areas/boundaryPack.ts, boundaries.ts (pure)  the boundary-pack format and the packs shipped (US)
-  places.ts         (pure)   the home map's stars from walks, Area and WalkArea only
-  zoomOut.ts        (pure)   when the walks list zooms out
+  areas/types.ts             PlaceCandidate, BoundarySource, Area, WalkArea: the whole contract
+  areas/assign.ts            places a trace by its 50 m pieces; the title place
+  areas/rules.ts             AREA_RULES and the reaches
+  areas/tilePlaces.ts the OpenMapTiles place classes (the only file that knows them)
+  areas/boundaryPack.ts, boundaries.ts         the boundary-pack format and the packs shipped (US)
+  places.ts                  the home map's stars from walks, Area and WalkArea only
+  zoomOut.ts                 when the walks list zooms out
 Navigation (inside a walk)
-  nav/types.ts      (pure)   Waypoint, Route, RouteSource
-  nav/rules.ts      (pure)   NAV: reach to a street, too far, off route, arrival
-  nav/graph.ts      (pure)   a small walking graph with A*
-  nav/traceRoute.ts, streetRoute.ts (pure)  the two RouteSources: along this trace; over derived streets
-  nav/navigator.ts  (pure)   routeTo: first source that can, or why none
+  nav/types.ts               Waypoint, Route, RouteSource
+  nav/rules.ts               NAV: reach to a street, too far, off route, arrival
+  nav/graph.ts               a small walking graph with A*
+  nav/traceRoute.ts, streetRoute.ts         the two RouteSources: along this trace; over derived streets
+  nav/navigator.ts           routeTo: first source that can, or why none
   nav/store.ts               the destination in meta `nav`
   nav/useNavigation.ts       routing, re-routing, arrival and the street read on the walk screen
-  nav/handoff.ts    (pure)   Open in Maps: picks the maps app and its links per platform and browser
+  nav/handoff.ts             Open in Maps: picks the maps app and its links per platform and browser
   nav/openInMaps.ts          opens them with Linking.openURL straight from the tap
 Filling gaps
-  gaps/rules.ts     (pure)   GAP_RULES: what counts as a gap, the paces, the budgets
-  gaps/infer.ts     (pure)   gapsOf, the likely way over street pieces (A*), certain / offered / nothing
+  gaps/rules.ts              GAP_RULES: what counts as a gap, the paces, the budgets
+  gaps/infer.ts              gapsOf, the likely way over street pieces (A*), certain / offered / nothing
   gaps/index.ts              reads a gap's tiles in code, memoized per build, walk and gap
   gaps/useLiveStretches.ts   the open walk's inferred and decided stretches (lives in OpenWalkProvider)
   tileCollector.ts           reads the tiles near a walk in code, no camera moves (re-snap after a decision)
 Discovery and Explore (v1)
-  discovery/types.ts (pure)  Place, Offered, Mark, Recall, PlaceSource, Kind, CategoryId
-  discovery/tilePois.ts (pure) the OpenMapTiles poi classes, markable, kindFor (the only file that knows them)
-  discovery/places.ts (pure) placeKey, normalization, same-place rules
-  discovery/noise.ts (pure)  MARK_CATEGORIES, chains.json and notable.json rules
-  discovery/categories.ts (pure) the eight categories: labels, icons
-  discovery/tileDecode.ts (pure)  one vector tile decoded in code (pbf + vector-tile)
+  discovery/types.ts         Place, Offered, Mark, Recall, PlaceSource, Kind, CategoryId
+  discovery/tilePois.ts the OpenMapTiles poi classes, markable, kindFor (the only file that knows them)
+  discovery/places.ts placeKey, normalization, same-place rules
+  discovery/noise.ts         MARK_CATEGORIES, chains.json and notable.json rules
+  discovery/categories.ts the eight categories: labels, icons
+  discovery/tileDecode.ts         one vector tile decoded in code (pbf + vector-tile)
   discovery/tileFetch.ts     fetches and caches decoded tiles per build
-  discovery/recall.ts (pure) Remind me here's rules; recallCheck.ts: the check per fix, saveRecall / stopRecall, meta `recall_open`
-  explore/explore.ts (pure)  checklists, membership, visibleMarks, routeMarks, findFor, foundList, passedLine
+  discovery/recall.ts Remind me here's rules; recallCheck.ts: the check per fix, saveRecall / stopRecall, meta `recall_open`
+  explore/explore.ts         checklists, membership, visibleMarks, routeMarks, findFor, foundList, passedLine
   explore/exploreRun.ts      one explore read (decoder, z14 + z11) and the build check
   explore/useExplore.ts      Explore on the walk screen
-  explore/exploreTab.ts (pure) the drawer's area-in-view (superseded on the tab by the atlas)
-  atlas/atlas.ts    (pure)   the Explore atlas: near list, presence steps, sketch, familiarity, labels
+  explore/exploreTab.ts the drawer's area-in-view (superseded on the tab by the atlas)
+  atlas/atlas.ts             the Explore atlas: near list, presence steps, sketch, familiarity, labels
   atlas/read.ts              the atlas's reads: areas near you, one ring at a time (decoder)
   atlas/useAtlas.ts          the atlas's data and its read loop, while Explore is in front
   explore/settings.ts        what I'm into, range, pocket alert (meta)
   explore/momentFind.ts      a loose moment finds a place
 Landing (v1.5)
-  landing/analyze.ts (pure)  strips, pockets, the landing point, by density
+  landing/analyze.ts         strips, pockets, the landing point, by density
   landing/read.ts            What's good here: decoder reads, remembered areas
-  landing/view.ts   (pure)   LANDING_CODE, LandingRow / LandingView, staleness
-  landing/walk.ts   (pure)   the strip chip and the dead-zone nudge
+  landing/view.ts            LANDING_CODE, LandingRow / LandingView, staleness
+  landing/walk.ts            the strip chip and the dead-zone nudge
 Memories, moments, days
-  memories.ts       (pure)   faint pins from earlier walks: memoryReader, groupFirst
+  memories.ts                faint pins from earlier walks: memoryReader, groupFirst
   here.ts                    capturesHere: What happened here, across walks
-  days.ts           (pure)   days from capture and walk times, never stored; dayPlan
+  days.ts                    days from capture and walk times, never stored; dayPlan
   locate/                    one fix for a loose moment: expo-location on native, navigator.geolocation on web
   useLocate.ts               the Locate tap
 Captures and media
   useCaptures.ts             photo, video, memo and note capture; the voice queue; placing; UNDO_MS
-  captureBus.ts     (pure)   news of a capture kept or patched, between the bar, the row and the walk screen
+  captureBus.ts              news of a capture kept or patched, between the bar, the row and the walk screen
   media/                     where files are kept: Documents (relative paths) on native, Blobs in IndexedDB on web; resolveMedia
-  media/thumb.ts             the 240 px copy with expo-image-manipulator; thumbPlan.ts (pure) decides when
+  media/thumb.ts             the 240 px copy with expo-image-manipulator; thumbPlan.ts decides when
   useMediaUri.ts             a capture's media as a playable URI
-  pins.ts           (pure)   pinsFor: grouping captures by screen distance
+  pins.ts                    pinsFor: grouping captures by screen distance
   export/bundle.ts           writeWalkBundle (deferred; nothing in the UI reaches it); export/ per-platform keepers
 Deletion
-  deletion/core.ts  (pure)   what each delete takes; pending.ts (pure): the Undo window on a given clock
+  deletion/core.ts           what each delete takes; pending.ts: the Undo window on a given clock
   deletion/index.ts          the one Undo window wired to timers and storage; useDeletions.ts: useHidden / useVisible
 Notifications
-  notify/core.ts    (pure)   Notice, NoticeTransport, routeResponse: the contract
+  notify/core.ts             Notice, NoticeTransport, routeResponse: the contract
   notify/index.ts            notifier, the kind switches (meta `notify_off`)
-  notify/transport.native.ts expo-notifications; transport.web.ts: the service worker (public/sw.js); webNotice.ts (pure): its message and URL
-  openers.ts        (pure)   stacked listeners for a tapped notification, newest first
+  notify/transport.native.ts expo-notifications; transport.web.ts: the service worker (public/sw.js); webNotice.ts: its message and URL
+  openers.ts                 stacked listeners for a tapped notification, newest first
 Motion (animation)
-  motionTokens.ts   (pure)   MOTION timings, PRESS_SCALE, durationFor
+  motionTokens.ts            MOTION timings, PRESS_SCALE, durationFor
   motion.ts                  useReducedMotion, nativeDriver, feedback(kind): every haptic goes through here
-  enter.ts          (pure)   which change gets which of the four entrances
+  enter.ts                   which change gets which of the four entrances
   haptics.ts                 expo-haptics behind feedback()
 Session, screens and small helpers
-  walkNav.ts, walkGate.ts (pure)  showWalk(): the one way to the walk screen, gated
-  walkEvents.ts     (pure)   the open walk changed (started, paused, resumed, stopped)
-  openWalkLoad.ts   (pure)   latest-wins loader for the open walk
-  useStartWalk.ts, startPlan.ts (pure)  Start and Walk here: the plan's meta, then the walk screen
+  walkNav.ts, walkGate.ts         showWalk(): the one way to the walk screen, gated
+  walkEvents.ts              the open walk changed (started, paused, resumed, stopped)
+  openWalkLoad.ts            latest-wins loader for the open walk
+  useStartWalk.ts, startPlan.ts         Start and Walk here: the plan's meta, then the walk screen
   useTabMap.ts               a tab's map taken down while the tab isn't in front
-  memoGate.ts       (pure)   a memo recording anywhere blocks a start
-  settleWithin.ts   (pure)   await a promise, but never longer than ms
-  recordingBar.ts, quietLines.ts, format.ts, scaleBar.ts (pure)  the bar's line, counts as words, distances and times, the scale bar's length
+  memoGate.ts                a memo recording anywhere blocks a start
+  settleWithin.ts            await a promise, but never longer than ms
+  recordingBar.ts, quietLines.ts, format.ts, scaleBar.ts         the bar's line, counts as words, distances and times, the scale bar's length
   audioMode(.native|.web).ts setAudioMode: expo-audio on native, navigator.audioSession on web
   focus.ts                   focusOn(ref) (findNodeHandle doesn't exist on web)
-  perfCount.ts      (pure)   opt-in counters when window.__perf is set
-  id.ts             (pure)   newId
-  types.ts          (pure)   the data model (below)
+  perfCount.ts               opt-in counters when window.__perf is set
+  id.ts                      newId
+  types.ts                   the data model (below)
   db/                        the Db contract (types.ts), SQLite (index.native.ts), IndexedDB (index.web.ts), row mappers (placeRow, exploreRow), DERIVED_STORES / KEPT_STORES (stores.ts)
+Layers (functional core, imperative shell)
+  ports/                     Ports (types.ts: db, recorder, notifier, clock, newId) and the real instance (index.ts), the composition root a view hands a shell
+  store.ts, useStore.ts      a shell's state (createStore) and a view's slice of it (useSyncExternalStore)
+  meta.ts                    every meta key and key family with its codec; metaStore(db)
+  __tests__/fakes/           fakePorts(): memoryDb, the fake recorder, notifier and clock, one call log, failNext; held to db/index.web.ts by dbContract.ts
+  (scripts/layers.js)        reads the layer tags and core's imports for layers.test.ts and eslint.config.js
 ```
 
 ## Invariants and boundaries

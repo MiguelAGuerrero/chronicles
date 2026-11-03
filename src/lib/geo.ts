@@ -1,3 +1,4 @@
+// @layer core
 import type { LngLat, TracePoint } from './types';
 
 const R = 6371008.8;

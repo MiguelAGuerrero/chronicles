@@ -1,3 +1,4 @@
+// @layer core
 import { bearingDeg, distanceM, distanceToLinesM } from '../geo';
 import type { LngLat } from '../types';
 

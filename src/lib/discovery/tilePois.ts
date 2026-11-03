@@ -1,3 +1,4 @@
+// @layer core
 import type { TileFeature } from '../areas/tilePlaces';
 import type { LngLat } from '../types';
 import { MARK_CATEGORIES, notableName } from './noise';

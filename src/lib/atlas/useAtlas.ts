@@ -1,3 +1,4 @@
+// @layer view
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Area, WalkArea } from '../areas/types';
 import { db } from '../db';

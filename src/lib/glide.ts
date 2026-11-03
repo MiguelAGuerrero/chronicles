@@ -1,3 +1,4 @@
+// @layer core
 import { distanceM } from './geo';
 import type { LngLat } from './types';
 

@@ -72,3 +72,4 @@ An owner's call made during a slice gets its record in the same commit as the sl
 | [0064](0064-quality-of-life-walk-basics.md) | 2026-11-03 | Quality of life round 2: the walk basics, with a checkpoint per feature | quality of life, walk screen, navigation, tabs |
 | [0065](0065-quality-of-life-chronicle-basics.md) | 2026-11-03 | Quality of life round 3: the Chronicle basics | quality of life, Chronicle, captures, map |
 | [0066](0066-explore-is-an-atlas.md) | 2026-11-03 | Explore is an atlas of the areas near you: same-scale tiles, presence bars, familiarity only | explore, tabs |
+| [0067](0067-functional-core-checked.md) | 2026-11-03 | A functional core, imperative shell: four layers tagged per module, checked by tests and lint, baselines that only shrink | architecture, process |

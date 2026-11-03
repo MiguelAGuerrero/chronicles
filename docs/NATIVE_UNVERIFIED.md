@@ -97,3 +97,8 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] react-native-svg mini-maps on iOS and Android (12 tiles, an even-odd veil, dashed strokes)
 - [ ] The atlas card's Back (BackHandler) and its layout over the tab bar
 - [ ] The small map's long press and the ring layer at its height
+
+## Functional core (slice 1, FC1-FC10)
+
+- [ ] `lib/ports/index.ts` builds the real ports from the native db, recorder and notifier at module load; nothing imports it yet, so its first user (the fog-refresh shell) is its first run
+- [ ] The SQLite adapter (`db/index.native.ts`) against the Db contract (`src/lib/__tests__/dbContract.ts`): the suite runs only over the fake and IndexedDB in Node, so SQLite's match to it is by reading

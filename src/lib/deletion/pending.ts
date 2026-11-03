@@ -1,3 +1,4 @@
+// @layer core
 import type { CaptureKind } from '../types';
 import type { DeleteKind } from './core';
 

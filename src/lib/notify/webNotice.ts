@@ -1,3 +1,4 @@
+// @layer core
 import type { Notice, NoticeResponse } from './core';
 
 /*

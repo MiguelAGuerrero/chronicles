@@ -1,3 +1,4 @@
+// @layer view
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { db } from '../db';
 import type { Fill, GapDecision, LngLat } from '../types';

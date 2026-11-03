@@ -1,3 +1,4 @@
+// @layer shell
 import { db } from '../db';
 import { clampRange, EXPLORE_RULES, parseHidden, type Kind } from './explore';
 

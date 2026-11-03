@@ -1,3 +1,4 @@
+// @layer adapter
 import type { NoticeResponse, NoticeTransport, Permission } from './core';
 import { noticeFromUrl, SW_MESSAGE, swOptions } from './webNotice';
 

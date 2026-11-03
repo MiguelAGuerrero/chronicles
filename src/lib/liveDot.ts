@@ -1,3 +1,4 @@
+// @layer core
 import { bearingDeg, distanceM, MAX_ACCURACY_M, MAX_STALE_MS, projector } from './geo';
 import type { MotionState } from './steps';
 import type { LngLat, TracePoint } from './types';

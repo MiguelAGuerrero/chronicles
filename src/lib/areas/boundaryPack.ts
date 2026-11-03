@@ -1,3 +1,4 @@
+// @layer core
 import type { LngLat } from '../types';
 import type { BoundarySource, Region } from './types';
 

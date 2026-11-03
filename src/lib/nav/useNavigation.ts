@@ -1,3 +1,4 @@
+// @layer view
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo } from 'react-native';
 import { planViews, type WalkMapHandle } from '../../components/map/types';

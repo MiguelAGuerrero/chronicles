@@ -1,3 +1,4 @@
+// @layer view
 import { useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { db } from './db';

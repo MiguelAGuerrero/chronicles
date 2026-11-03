@@ -1,3 +1,4 @@
+// @layer core
 import { bearingDeg, distanceM, pointSegmentDist, projector } from '../geo';
 import type { LngLat } from '../types';
 import { NAV } from './rules';

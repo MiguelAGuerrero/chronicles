@@ -1,3 +1,4 @@
+// @layer core
 /**
  * Thumbnails (TH1-TH5, the owner's call, Nov 1): a small copy beside each
  * photo, so a 56 px preview never decodes the full photo. The job is pure with

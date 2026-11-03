@@ -1,3 +1,4 @@
+// @layer shell
 /**
  * The map's camera serves one read at a time: a scan and a route's street
  * read each step it through views (`collect`), and two interleaved would each

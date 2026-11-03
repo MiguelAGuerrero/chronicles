@@ -1,3 +1,4 @@
+// @layer adapter
 import * as Location from 'expo-location';
 import { LOCATE_MAX_ACCURACY_M, LOCATE_MAX_AGE_MS, LOCATE_TIMEOUT_MS, type LocateOptions, type LocateResult } from './types';
 

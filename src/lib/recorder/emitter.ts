@@ -1,3 +1,4 @@
+// @layer adapter
 import type { TracePoint } from '../types';
 import type { RecorderStatus } from './types';
 

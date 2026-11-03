@@ -1,3 +1,4 @@
+// @layer adapter
 import type { Area, WalkArea } from '../areas/types';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Mark, Offered, Place, Recall } from '../discovery/types';

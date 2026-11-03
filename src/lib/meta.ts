@@ -1,0 +1,135 @@
+// @layer shell
+import type { NearRead } from './atlas/atlas';
+import type { Db } from './db/types';
+import type { Waypoint } from './nav/types';
+import type { StartMode } from './startPlan';
+import type { Units } from './units';
+
+/**
+ * Every key in the meta store, with its owner and how its value is encoded.
+ * New code reads and writes meta only through `metaStore(db)`, never with a
+ * string key.
+ *
+ * The codecs match what each key already holds on disk, so moving an old
+ * call site over here later changes nothing stored. An empty string has
+ * always meant "cleared": every codec reads it as null, and `clear` writes it.
+ *
+ * Takes the db as an argument, so `npm test` can use it with a fake.
+ */
+
+interface Codec<T> {
+  encode(v: T): string;
+  /** Called only on a non-empty string; returns null for an unreadable value. */
+  decode(raw: string): T | null;
+}
+
+const text: Codec<string> = { encode: (v) => v, decode: (raw) => raw };
+
+/** A walk id: "on for this walk" (quiet walk, ambient hints, done-once flags). */
+const walkId = text;
+
+/** On is '1'; off is cleared. */
+const flag: Codec<true> = { encode: () => '1', decode: (raw) => (raw === '1' ? true : null) };
+
+const number: Codec<number> = {
+  encode: (v) => String(v),
+  decode: (raw) => {
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
+  },
+};
+
+function json<T>(): Codec<T> {
+  return {
+    encode: (v) => JSON.stringify(v),
+    decode: (raw) => {
+      try {
+        return JSON.parse(raw) as T;
+      } catch {
+        return null;
+      }
+    },
+  };
+}
+
+/** '1' is on, '0' is off (the Explore haptic). */
+const onOff: Codec<boolean> = { encode: (v) => (v ? '1' : '0'), decode: (raw) => (raw === '1' ? true : raw === '0' ? false : null) };
+
+/**
+ * The meta schema. Add a key here before using it; `owner` names the feature
+ * that writes it. `meta.test.ts` fails on a key in use that isn't listed, and
+ * on a listed key nothing uses any more (FC8).
+ */
+export const META = {
+  // Tiles and snapping (lib/tiles): what the cached streets were derived with.
+  tile_build: { owner: 'tiles', codec: text },
+  tile_url: { owner: 'tiles', codec: text },
+  snap_rules: { owner: 'tiles', codec: text },
+  street_code: { owner: 'tiles', codec: text },
+  // Navigation (lib/nav/store, lib/startPlan): where the open walk, or the drawer, is heading.
+  nav: { owner: 'nav', codec: json<{ walk_id: string | null; dest: Waypoint }>() },
+  // Navigate tab (lib/startPlan, the Start dialog)
+  start_mode: { owner: 'navigate', codec: text as Codec<StartMode> },
+  web_note_dismissed: { owner: 'navigate', codec: flag },
+  // Walk screen, once per walk or once ever
+  deadzone_walk: { owner: 'walk', codec: walkId },
+  hint_go: { owner: 'walk', codec: flag },
+  // Explore (lib/explore): the walk exploring, and what I'm into
+  explore_walk: { owner: 'explore', codec: walkId },
+  explore_hidden: { owner: 'explore', codec: json<string[]>() },
+  explore_range: { owner: 'explore', codec: number },
+  explore_haptic: { owner: 'explore', codec: onOff },
+  // Recall (lib/discovery/recallCheck): captures a notification opened
+  recall_open: { owner: 'discovery', codec: json<string[]>() },
+  // Settings
+  units: { owner: 'settings', codec: text as Codec<Units> },
+  notify_off: { owner: 'notifications', codec: json<string[]>() },
+} as const;
+
+/**
+ * Keys made of a prefix and an id (`explored:<walk id>`). The id is free; the
+ * prefix and the value's encoding are fixed here.
+ */
+export const META_FAMILIES = {
+  // When Explore was first switched on for a walk (ms): its replay counts finds from then.
+  explored: { owner: 'explore', codec: number },
+  // A day's replay was watched (ms), so it advances by itself next time.
+  day_watched: { owner: 'days', codec: number },
+  // The last read of areas near you, per level (lib/atlas/read).
+  atlas_near: { owner: 'atlas', codec: json<NearRead>() },
+} as const;
+
+export type MetaKey = keyof typeof META;
+export type MetaFamily = keyof typeof META_FAMILIES;
+type AnyKey = MetaKey | `${MetaFamily}:${string}`;
+type FamilyOf<K> = K extends `${infer F}:${string}` ? (F extends MetaFamily ? F : never) : never;
+type CodecOf<K> = K extends MetaKey ? (typeof META)[K]['codec'] : (typeof META_FAMILIES)[FamilyOf<K>]['codec'];
+export type MetaValue<K extends AnyKey> = CodecOf<K> extends Codec<infer T> ? T : never;
+
+function codecFor(key: string): Codec<unknown> {
+  if (key in META) return META[key as MetaKey].codec as Codec<unknown>;
+  const family = key.slice(0, key.indexOf(':'));
+  if (key.includes(':') && family in META_FAMILIES) return META_FAMILIES[family as MetaFamily].codec as Codec<unknown>;
+  throw new Error(`meta key "${key}" is not in META or META_FAMILIES (src/lib/meta.ts)`);
+}
+
+/** Typed access to the meta store over any `Db` (the real one, or a fake in tests). */
+export function metaStore(db: Pick<Db, 'getMeta' | 'setMeta'>) {
+  return {
+    async get<K extends AnyKey>(key: K): Promise<MetaValue<K> | null> {
+      const codec = codecFor(key);
+      const raw = await db.getMeta(key);
+      if (!raw) return null;
+      return codec.decode(raw) as MetaValue<K> | null;
+    },
+    async set<K extends AnyKey>(key: K, value: MetaValue<K>): Promise<void> {
+      await db.setMeta(key, codecFor(key).encode(value));
+    },
+    async clear(key: AnyKey): Promise<void> {
+      codecFor(key);
+      await db.setMeta(key, '');
+    },
+  };
+}
+
+export type MetaStore = ReturnType<typeof metaStore>;

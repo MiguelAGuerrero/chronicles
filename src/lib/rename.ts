@@ -1,3 +1,4 @@
+// @layer core
 import type { Walk } from './types';
 import { suggestTitle } from './walkTitle';
 
