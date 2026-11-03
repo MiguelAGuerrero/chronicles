@@ -8,6 +8,7 @@ import { StyleSheet, View } from 'react-native';
 import { CapturePinView, pinLabel } from '../CapturePinView';
 import { MarkPinView, markKey, markLabel, type MarkPin } from '../MarkPinView';
 import { StripLabel } from '../LandingMarks';
+import { AreaPointView } from '../AreaPoint';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { Star } from '../../lib/places';
 import { metersPerPixel, pinThumb, type CapturePin } from '../../lib/pins';
@@ -578,6 +579,42 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       queueMicrotask(() => r.unmount());
     }
     landingMarkers.current = [];
+  }, []);
+  // Explore's area points (atlas round 3), as DOM markers like the strip names, rebuilt only when they change.
+  const areaMarkers = useRef<{ marker: Marker; root: Root }[]>([]);
+  const areaKey = (props.areaPoints ?? []).map((p) => `${p.id}:${p.name ?? ''}:${p.selected ? 1 : 0}`).join('|');
+  const areaPointsRef = useRef(props.areaPoints);
+  useEffect(() => {
+    areaPointsRef.current = props.areaPoints;
+  }, [props.areaPoints]);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    for (const m of areaMarkers.current) {
+      m.marker.remove();
+      const r = m.root;
+      queueMicrotask(() => r.unmount());
+    }
+    areaMarkers.current = [];
+    for (const p of areaPointsRef.current ?? []) {
+      const el = document.createElement('div');
+      el.style.pointerEvents = 'none';
+      el.setAttribute('aria-hidden', 'true');
+      el.dataset.testid = 'area-point';
+      if (p.name) el.dataset.name = p.name;
+      const root = createRoot(el);
+      root.render(<AreaPointView pin={p} />);
+      // Anchored at the top so the dot, not the label, sits on the point.
+      areaMarkers.current.push({ marker: new Marker({ element: el, anchor: 'top', offset: [0, -6] }).setLngLat(p.at).addTo(map), root });
+    }
+  }, [ready, areaKey]);
+  useEffect(() => () => {
+    for (const m of areaMarkers.current) {
+      m.marker.remove();
+      const r = m.root;
+      queueMicrotask(() => r.unmount());
+    }
+    areaMarkers.current = [];
   }, []);
   useEffect(() => {
     if (ready) mapRef.current?.setPaintProperty('veil', 'fill-opacity', props.veil ? 0.45 : 0);

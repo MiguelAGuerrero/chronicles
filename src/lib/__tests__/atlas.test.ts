@@ -131,9 +131,9 @@ test('AT8: next door is the nearest areas to this one, with the distance from it
   const a = row('A', O);
   const rows = [a, row('B', east(600)), row('C', east(1500)), row('A', east(200), { key: 'dup' }), row('T', east(300), { level: 'town' })];
   assert.deepEqual(nextDoor(a, rows, 'b1').map((r) => [r.area.name, Math.round(r.distanceM / 10) * 10]), [['B', 600], ['C', 1500]]);
-  assert.deepEqual(walkTarget(a), { at: O, label: 'A' });
+  assert.deepEqual(walkTarget(a), { at: O, label: 'A', via: null });
   const p = { strips: ['Thayer Street'], stripAt: east(50) } as AtlasProfile;
-  assert.deepEqual(walkTarget(row('A', O, { profile: p })), { at: east(50), label: 'Thayer Street' });
+  assert.deepEqual(walkTarget(row('A', O, { profile: p })), { at: east(50), label: 'A', via: 'Thayer Street' });
 });
 
 test('AT11, AT13: a tile says each kind present in words, and no number but how far and the walked count', () => {
@@ -280,6 +280,27 @@ test('AT16: an area’s character in words, never a count', async () => {
   assert.equal(characterLine({ ...z, history: 3, food: 3, art: 1 }), 'Lots of history and food');
   assert.equal(characterLine({ ...z, parks: 2, food: 1 }), 'Plenty of green space');
   assert.equal(characterLine({ ...z, history: 1, art: 1, culture: 1, parks: 1, food: 1 }), 'A little of everything');
-  assert.equal(characterLine({ ...z, parks: 1 }), 'Quiet, with some green space');
-  assert.equal(characterLine(z), 'Quiet');
+  assert.equal(characterLine({ ...z, parks: 1 }), 'A little green space');
+  assert.equal(characterLine(z), 'Not much on the map here', 'never "Quiet", which is the walk mode on Navigate');
+});
+
+test('atlas round 3: your own town is the title, never listed again among the other towns', async () => {
+  const { otherTowns } = await import('../atlas/atlas');
+  const rows = [row('Providence', east(500), { level: 'town', reachM: 10_000 }), row('Cranston', east(6000), { level: 'town', reachM: 3000 })];
+  const l = nearList(rows, O, 'town', 'b1');
+  assert.deepEqual(otherTowns(l).map((x) => x.area.name), ['Cranston']);
+  assert.deepEqual(otherTowns(nearList([rows[1]], O, 'town', 'b1')).map((x) => x.area.name), ['Cranston'], 'no home town: all listed');
+});
+
+test('atlas round 3: How the marks work says it in words, with no counts of places', async () => {
+  const { MARKS_EXPLAINED } = await import('../atlas/atlas');
+  assert.ok(MARKS_EXPLAINED.length >= 3);
+  assert.equal(MARKS_EXPLAINED.join(' ').match(/\d/), null, `no numbers (${MARKS_EXPLAINED.join(' ')})`);
+});
+
+test('atlas round 3: Walk to names the area, and says which street it starts at', async () => {
+  const { walkTarget } = await import('../atlas/atlas');
+  const p = { strips: ['Thayer Street'], stripAt: east(50) } as AtlasProfile;
+  assert.deepEqual(walkTarget(row('College Hill', O, { profile: p })), { at: east(50), label: 'College Hill', via: 'Thayer Street' });
+  assert.deepEqual(walkTarget(row('Smith Hill', O)), { at: O, label: 'Smith Hill', via: null });
 });

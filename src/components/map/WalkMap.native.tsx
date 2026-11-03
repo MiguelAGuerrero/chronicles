@@ -6,6 +6,7 @@ import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { CapturePinView, pinLabel } from '../CapturePinView';
 import { MarkPinView, markKey, markLabel } from '../MarkPinView';
 import { StripLabel } from '../LandingMarks';
+import { AreaPointView } from '../AreaPoint';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { RoadFeature } from '../../lib/streets';
 import type { Capture, LngLat } from '../../lib/types';
@@ -395,6 +396,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             <View accessible accessibilityRole={pin.found ? 'image' : 'button'} accessibilityLabel={markLabel(pin)} style={pin.found ? undefined : styles.pinHit}>
               <MarkPinView pin={pin} enter={seenMarks.size ? markEnter(markFrom(seenMarks.get(pin.id)), pin) : null} />
             </View>
+          </Marker>
+        ))}
+        {(props.areaPoints ?? []).map((p) => (
+          <Marker key={`area:${p.id}:${p.name ?? ''}:${p.selected ? 1 : 0}`} id={`area:${p.id}`} lngLat={p.at} anchor="top" offset={[0, -6]}>
+            <AreaPointView pin={p} />
           </Marker>
         ))}
         {[...(props.landing?.strips ?? []), ...(props.landing?.labels ?? [])].map((s) => (

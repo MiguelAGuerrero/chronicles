@@ -1,5 +1,6 @@
 import type { DotSource } from '../../lib/liveDot';
 import type { MarkPin } from '../MarkPinView';
+import type { AreaPointPin } from '../AreaPoint';
 import type { LandingView } from '../../lib/landing/view';
 import type { StyleProp, ViewStyle } from 'react-native';
 import type { Bounds } from '../../lib/geo';
@@ -105,6 +106,8 @@ export interface WalkMapProps {
   landing?: LandingView | null;
   /** Spots to mark: where a route goes, or where a long press landed. */
   marks?: LngLat[];
+  /** Explore's areas: quiet dots, the nearest few and the selected one named (atlas round 3). */
+  areaPoints?: AreaPointPin[];
   /** The "?" range preview (E21): a ring around a point, drawn only while the setting is open. */
   ring?: { center: LngLat; radiusM: number } | null;
   /** The way the walker is going (degrees from north), drawn as a soft cone; null hides it. */

@@ -258,9 +258,10 @@ const NOUN: Record<CategoryId, string> = {
  */
 export function characterLine(steps: Steps): string {
   const top = Math.max(...ATLAS_ORDER.map((c) => steps[c]));
-  if (top === 0) return 'Quiet';
+  // Never "Quiet": that is the walk mode's name on Navigate (atlas round 3).
+  if (top === 0) return 'Not much on the map here';
   const kinds = ATLAS_ORDER.filter((c) => steps[c] === top);
-  if (top === 1) return kinds.length >= 5 ? 'A little of everything' : `Quiet, with some ${NOUN[kinds[0]]}`;
+  if (top === 1) return kinds.length >= 5 ? 'A little of everything' : `A little ${NOUN[kinds[0]]}`;
   const named = kinds.slice(0, 2).map((c) => NOUN[c]);
   return `${top === 3 ? 'Lots' : 'Plenty'} of ${named.join(' and ')}`;
 }
@@ -386,11 +387,27 @@ export function nextDoor(area: AtlasArea, rows: AtlasArea[], build: string | nul
     .slice(0, ATLAS_RULES.nextDoor);
 }
 
-/** AT8: Walk to the busiest street, else the area's own point. */
-export function walkTarget(area: AtlasArea): { at: LngLat; label: string } {
+/**
+ * AT8: Walk to an area: it is named for the area, and starts you at its busiest
+ * street (`via`) when it has one, else at its point (atlas round 3).
+ */
+export function walkTarget(area: AtlasArea): { at: LngLat; label: string; via: string | null } {
   const p = area.profile;
-  return p?.stripAt && p.strips[0] ? { at: p.stripAt, label: p.strips[0] } : { at: area.at, label: area.name };
+  return p?.stripAt && p.strips[0] ? { at: p.stripAt, label: area.name, via: p.strips[0] } : { at: area.at, label: area.name, via: null };
 }
+
+/** Atlas round 3: the town you're in is the page's title, so it isn't listed again among the other towns. */
+export const otherTowns = (towns: Listed[]): Listed[] => towns.filter((l) => !l.here);
+
+/**
+ * How the marks work, in words (atlas round 3): presence, never a count of
+ * places, the same everywhere.
+ */
+export const MARKS_EXPLAINED: readonly string[] = [
+  'Marks say how much of each kind is around an area, never how good it is.',
+  'One mark: a place or two of the kind. Two: a handful. Three: a street’s worth.',
+  'Every area is judged the same way, within about a ten-minute walk of its point, so the same marks mean the same anywhere.',
+];
 
 /** AT13: one sentence a screen reader says for a tile; how far and the walked count are its only numbers (AT11). */
 export function tileLabel(l: Listed, fam: Familiarity, fmt: (m: number) => string): string {
