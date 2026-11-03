@@ -13,8 +13,8 @@ How it decides: the likely way is the shortest walk over the streets between the
 3. **G3 · A walking pace.** If that way needs more than 2.5 m/s, it wasn't walked (a ride, or a taxi with the app closed): nothing is filled.
 4. **G4 · Confidence.** A piece is certain when every way between the ends within the budget uses it; confidence is the certain share of the way's street length. Two budgets: walking fairly directly (1.25 × the way), and the time allowed (the gap's time at 1.8 m/s, a brisk walker's pace, when that is longer). Only the stretch of a piece the way uses is left out when testing it, so a way out of the same piece the other way round counts. At least half the way must be street, not the joins to it.
 5. **G5 · Filled by itself.** With 90% or more certain under the time budget, the stretch is drawn and counted as walked trace with no question asked.
-6. **G6 · Offered.** Otherwise, with 50% or more certain under the direct budget, it is drawn faint (the trace's green, see-through) and counts for nothing until kept.
-7. **G7 · Nothing.** Below that, the gap stays a break, whatever its time.
+6. **G6 · Offered.** Otherwise it is drawn faint (the trace's green, see-through) and counts for nothing until kept, however uncertain (the owner's call, Nov 3: decision 0068).
+7. **G7 · Nothing to offer.** A gap stays a break only when there is no way to offer: no street near an end, no way between, too fast (G3), mostly joins to a street, or its streets unread (G8).
 8. **G8 · Read whole.** The streets read for a gap cover every way within its time budget (z14 tiles around it, read in code). If they can't be read, nothing fills by itself; kept stretches still show, and the walk is snapped again later.
 9. **G9 · The card.** Tapping a faint or filled stretch opens a small card: "Probably along Elm Street" (offered) or "Filled in along Elm Street" (by itself), with its length and how long nothing was recorded. A tap within 30 m of either end is the recorded trace there. Offered: Keep, or Not this way. Filled or kept: Not this way. A map tap, ✕, Back or Escape closes it.
 10. **G10 · Your call stands.** Keep stores the stretch's line with the walk (kept data, never cleared by a map update) and draws it solid. Not this way is stored too, and the gap goes back to a break. Later inference never overrides either.
@@ -25,7 +25,7 @@ How it decides: the likely way is the shortest walk over the streets between the
 
 ## Tests
 
-- Unit tests: gaps found and skipped (G1), the way and its joins (G2), too fast (G3), a long street filled by itself, a grid diagonal left alone, a street with a parallel one offered when slow (G4-G7), coverage not read (G8), decisions overriding inference (G10), the trace, distance, snapping and places with a stretch filled (G11), the snap rules bump (G13).
+- Unit tests: gaps found and skipped (G1), the way and its joins (G2), too fast (G3), a long street filled by itself, a grid diagonal offered, a street with a parallel one offered when slow, a park path with a drive beside it offered (G4-G7), coverage not read (G8), decisions overriding inference (G10), the trace, distance, snapping and places with a stretch filled (G11), the snap rules bump (G13).
 - E2E: a walk with the GPS out along a straight street draws one solid line; a slower gap draws a faint stretch; its card keeps it, and the distance grows (G5, G6, G9, G10, G12).
 - Native (migration 14, the card over the native map) has not run on a device.
 

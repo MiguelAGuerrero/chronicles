@@ -36,8 +36,10 @@ Gaps in the trace filled with the streets most likely walked (the concept doc's 
     The first version kept the original beside its halves. It also banned
     whole pieces, so a mid-block end was always "certain" and a 30-min gap
     on one block filled by itself (gaps audit 1).
-  - 90%+ of the way certain under the time budget fills by itself; else 50%+
-    under the direct budget is offered; else nothing.
+  - 90%+ of the way certain under the time budget fills by itself; any other
+    walkable way is offered, however uncertain (decision 0068, Nov 3: a park
+    path with a drive beside it showed nothing, though the owner had followed
+    the path). A gap shows nothing only when there is no way to offer.
   - A budget whose prism (a circle on the gap's middle, half the budget
     across) leaves the read box is never judged, so unread ground never
     looks certain.

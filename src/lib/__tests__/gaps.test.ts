@@ -146,11 +146,30 @@ test('gaps: a street in a grid fills by itself only when the time leaves no room
   // The same in 10 min: there was time to go round a block, so it is only offered.
   const slow = only(withGap([at(0.5, 2), at(1.5, 2)], [at(5.5, 2), at(6.5, 2)], 600), grid)!;
   assert.equal(slow.level, 'offer', `slow: time ${slow.certainTime}, direct ${slow.certainDirect}`);
-  assert.ok(slow.certainDirect >= GAP_RULES.offer);
 });
 
-test('gaps: across a grid, where many ways are as short, nothing is filled (G7)', () => {
-  assert.equal(only(withGap([at(0.5, 1), at(1.5, 1)], [at(5, 4.5), at(5, 5.5)], 400), grid), null);
+test('gaps: across a grid, where many ways are as short, the likeliest is still offered, never filled (G7)', () => {
+  // The owner's call (Nov 3): an uncertain gap is offered faint to keep or dismiss, never left blank.
+  const inf = only(withGap([at(0.5, 1), at(1.5, 1)], [at(5, 4.5), at(5, 5.5)], 400), grid)!;
+  assert.ok(inf, 'offered');
+  assert.equal(inf.level, 'offer');
+  assert.ok(inf.certainDirect < GAP_RULES.auto, `uncertain: ${inf.certainDirect}`);
+});
+
+test('gaps audit park: a path with a parallel way close by is offered, not left blank (G6, G7)', () => {
+  // Lehigh Parkway (Nov 3): 8 min out, 300 m apart along a creek path, a drive running beside it
+  // 50 m away and joined at both ends. Nothing showed; the owner followed the path.
+  const park = deriveSegments([
+    road([at(0, 0), at(3, 0)], { class: 'path', subclass: 'footway' }),
+    road([at(0, 0.5), at(3, 0.5)], { class: 'minor', name: 'Park Drive' }),
+    road([at(0, 0), at(0, 0.5)], { class: 'path', subclass: 'footway' }),
+    road([at(3, 0), at(3, 0.5)], { class: 'path', subclass: 'footway' }),
+  ]);
+  const inf = only(withGap([at(-0.3, 0), at(0.1, 0)], [at(2.9, 0), at(3.3, 0)], 480), park)!;
+  assert.ok(inf, 'offered');
+  assert.equal(inf.level, 'offer');
+  // Along the path (y = 0), the shorter way, never round by the drive 50 m north.
+  assert.ok(inf.path.every((p) => Math.abs(p[1] - O[1]) * 111320 < 15), 'along the path');
 });
 
 test('gaps: streets not read around the gap fill nothing by themselves (G8)', () => {

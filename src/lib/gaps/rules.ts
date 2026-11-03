@@ -19,10 +19,8 @@ export const GAP_RULES = {
   fastPace: 1.8,
   /** Walking fairly directly: up to this much longer than the likely way (G4). */
   direct: 1.25,
-  /** Filled by itself with this share certain under the time budget (G5)... */
+  /** Filled by itself with this share certain under the time budget (G5); any other walkable way is offered (G6, G7). */
   auto: 0.9,
-  /** ...else offered with this share certain under the direct budget (G6). */
-  offer: 0.5,
   /** What to read: the time budget, or at least this many times the straight distance, around the gap (G8, audit 12)... */
   readStraight: 2.5,
   /** ...but never more than this across, so a long gap reads a few tiles, not a city. */

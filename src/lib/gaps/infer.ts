@@ -233,7 +233,7 @@ class PieceGraph {
 const JOIN = -1;
 
 /**
- * Reads one gap (G2-G7). `segments` are the streets around it and
+ * Reads one gap (G2-G7): filled by itself, offered, or null when there is no walkable way to offer. `segments` are the streets around it and
  * `coverage` the box they were read whole over (G8; null when not read):
  * a budget whose prism leaves the box can't be judged, so nothing is
  * claimed under it.
@@ -326,8 +326,10 @@ export function inferGap(g: Gap, segments: StreetSegment[], coverage: Bounds | n
   }
   const shareDirect = certainDirect / streetM;
   const shareTime = timeRead ? certainTime / streetM : null;
-  const level = shareTime != null && shareTime >= GAP_RULES.auto ? 'auto' : shareDirect >= GAP_RULES.offer ? 'offer' : null;
-  if (!level) return null;
+  // Filled by itself only when nearly all of it is certain in the time allowed (G5); any other
+  // walkable way is offered faint, to keep or dismiss (G6, G7: the owner's call, Nov 3, after a park
+  // path with a drive beside it showed nothing).
+  const level: Inference['level'] = shareTime != null && shareTime >= GAP_RULES.auto ? 'auto' : 'offer';
 
   // The street most of it runs along, by name.
   const byName = new Map<string, number>();
