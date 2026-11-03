@@ -13,12 +13,12 @@ npm run typecheck                           # tsc --noEmit, incremental: ~22 s c
 npm run lint                                # expo lint, ~40 s; includes the import boundaries below
 npm test                                    # every unit test, ~11 s; npm run test:affected for those a change reaches
 npx tsx --test src/lib/__tests__/<one>.test.ts
-npm run export:web && npm run e2e:web       # headless walk; E2E_ONLY=<scenario> for one
+npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # one e2e journey; the full flow (no E2E_ONLY) only when the owner asks
 npm run check:docs                          # this file's budget, rule globs, paths the docs name; CI runs it too
 npx expo-doctor                             # dependency and config issues; npx expo install --fix for versions
 ```
 
-While working, run `npm run check:affected`; run typecheck, lint, `npm test` and the e2e before declaring any task done. A Stop hook (`.claude/hooks/check-done.sh`) refuses to end a turn that changed the repo while `npm run check:docs` fails or, with TypeScript changed, while the typecheck, the layer check or the affected unit tests fail; CI blocks the deploy on the docs check, the typecheck, `npm test` or lint.
+While working, run `npm run check:affected`; before declaring a task done, typecheck, lint, `npm test` and the e2e journeys `check:affected` names (decision 0073). A Stop hook (`.claude/hooks/check-done.sh`) refuses to end a turn that changed the repo while `npm run check:docs` fails or, with TypeScript changed, while the typecheck, the layer check or the affected unit tests fail; CI blocks the deploy on the docs check, the typecheck, `npm test` or lint.
 
 Routing is Expo Router: routes live in `src/app/`, `_layout.tsx` files are navigators, non-route code stays outside `src/app/`. Import `Link`, `router` and `useLocalSearchParams` from `expo-router`; open the walk screen with `showWalk()` (`lib/walkNav`), never `router.push('/walk')`. `ios/` and `android/` are generated (never edit them; a hook blocks it); native behaviour is configured in `app.json` and config plugins. Native code needs a development build (`npx expo run:ios`, or `npx eas-cli@latest build --profile development`), never Expo Go. EAS builds, submits and ships over-the-air updates in the cloud (`npx eas-cli@latest build | submit | update`); there is no `eas.json` yet, so it is not set up for this app. Prefer the recommended Expo modules over third-party libraries, and check the available skills before adding a dependency.
 
@@ -43,7 +43,7 @@ The app is a companion for wandering towns on foot: Explore before (busy areas, 
 
 Rule areas: captures-and-media, deletion, explore-and-discovery, functional-core, gaps, landing, map, memories, moments-and-days, motion-polish, navigation, notifications, places-and-areas, react-native-web, recording-and-traces, replay, rides, storage, streets-fog-snapping, tabs-and-home, walk-screen.
 
-Procedures are skills: `/slice` (spec-first, test-first), `/audit` (the adversarial pass, with the `auditor` subagent), `/e2e`, `/deploy`, `/docs-gc` (end-of-slice drift check).
+Procedures are skills: `/slice` (spec-first, test-first), `/audit` (the adversarial pass, with the `auditor` subagent, when the owner asks), `/e2e`, `/deploy`, `/docs-gc` (end-of-slice drift check).
 
 ## Rules that hold everywhere
 
@@ -64,8 +64,8 @@ Procedures are skills: `/slice` (spec-first, test-first), `/audit` (the adversar
 ## Working with the owner
 
 - **Ask before architectural decisions:** libraries, data model, platform strategy, navigation flow. Use AskUserQuestion with a recommended option. Local fixes don't need asking.
-- **Spec first, test first.** A slice starts from numbered, testable criteria in its spec, then a plan the owner can read, then one failing test per criterion before its code (`/slice`). It is done when those pass with typecheck, lint, the whole suite and the e2e.
-- **Audit every slice adversarially once built** (`/audit`): a report-only pass that tries to break it, triage (accept, defer, reject, with reasons; architectural findings go to the owner), a regression test named `<slice> audit N` before each fix. Deploy to main only after the fixes pass the full suite.
+- **Spec first, test first.** A slice starts from numbered, testable criteria in its spec, then a plan the owner can read, then one failing test per criterion before its code (`/slice`). It is done when those pass with typecheck, lint, `npm test` and the e2e journeys covering its files; a slice that changes a screen adds a journey for it. The full e2e runs only when the owner asks.
+- **Audit when the owner asks** (`/audit`, decision 0073): a report-only pass that tries to break the slice, triage (accept, defer, reject, with reasons; architectural findings go to the owner), a regression test named `<slice> audit N` before each fix.
 - **Deferred is a decision, not a gap.** Record it in `docs/DEFERRED.md`; if the owner chose it, in `docs/decisions/` too.
 
 ## Gotchas that cost real time

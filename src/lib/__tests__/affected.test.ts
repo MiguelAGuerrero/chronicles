@@ -210,14 +210,15 @@ test('AC9 a changed file names the scenarios that cover it; an uncovered screen 
     { name: 'tabs', files: ['src/app/(tabs)/navigate.tsx'] },
   ]);
   assert.deepEqual(r.uncovered, ['src/components/Ticking.tsx']);
-  // The repo's own table: every scenario the e2e runs alone is listed, and the main flow covers every screen.
-  const own = affected.e2eFor(['src/app/walk.tsx', 'src/components/GapCard.tsx']);
-  assert.ok(own.scenarios.some((s) => s.name === 'main'));
-  assert.deepEqual(own.uncovered, []);
+  // The repo's table lists journeys only: the full flow runs only when the owner asks (decision 0073),
+  // so a screen no journey covers is named, for the slice to add one.
+  const own = affected.e2eFor(['src/components/GapCard.tsx', 'src/components/Ticking.tsx']);
+  assert.deepEqual(own.scenarios.map((s) => s.name), ['gaps']);
+  assert.deepEqual(own.uncovered, ['src/components/Ticking.tsx']);
   const e2e = readFileSync(join(ROOT, 'scripts', 'e2e-web.js'), 'utf8');
   const only = [...e2e.matchAll(/E2E_ONLY === '([a-z]+)'/g)].map((m) => m[1]).sort();
-  const names = (load(join(ROOT, 'scripts', 'e2e-scenarios.js')) as { SCENARIOS: Scenario[] }).SCENARIOS.map((s) => s.name).filter((n) => n !== 'main').sort();
-  assert.deepEqual(names, only);
+  const names = (load(join(ROOT, 'scripts', 'e2e-scenarios.js')) as { SCENARIOS: Scenario[] }).SCENARIOS.map((s) => s.name).sort();
+  assert.deepEqual(names, only, 'every journey the e2e runs alone has a row in scripts/e2e-scenarios.js, and nothing else');
 });
 
 test('AC10 CI runs lint before the export', () => {

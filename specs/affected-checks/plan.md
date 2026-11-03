@@ -43,7 +43,7 @@ None.
 
 ## Deferred, and why
 
-- Splitting the e2e's main flow (about 2,000 sequential lines) into scenarios that run alone: its own slice, next, filling the AC9 table scenario by scenario.
+- Splitting the e2e's main flow up front: dropped by decision 0073; journeys grow with the slices that change screens.
 - Coverage-based selection: the import graph is exact for core; coarse only where a test reaches a shell through fakes, which the harness rule (AC4) covers.
 - Running the e2e in CI: it needs a browser in the runner and takes 15 minutes; revisit once the e2e is split.
 
@@ -53,4 +53,4 @@ None: scripts, config and docs only. Nothing here runs on a phone.
 
 ## Done when
 
-The slice's tests pass with typecheck, lint, the full `npm test` and the e2e; `/audit affected-checks` has run and its accepted findings are fixed; `/docs-gc` is clean.
+The slice's tests pass with typecheck, lint and the full `npm test`; it changes no screen, so no e2e journey (decision 0073); no audit unless the owner asks; `/docs-gc` is clean.

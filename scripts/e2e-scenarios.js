@@ -1,14 +1,14 @@
-// The e2e's scenarios and the source files each one covers (affected checks, AC9).
-// `node scripts/affected.js check` names the scenarios that cover a changed
-// file, to run with `E2E_ONLY=<name> npm run e2e:web` (`main` is the default
-// run, with no E2E_ONLY).
+// The e2e's journeys and the source files each one covers (affected checks,
+// AC9). `npm run check:affected` names the journeys that cover a changed
+// file, to run with `E2E_ONLY=<name> npm run e2e:web` after `npm run
+// export:web`. Each journey runs alone in a fresh browser, a fraction of the full flow.
 //
-// The named scenarios run alone in a fresh browser (scripts/e2e-web.js). The
-// main flow is one long sequential walk through every screen, so until it is
-// split (the next slice), it covers everything: any change to src names it.
-// When a scenario is added or split out, add its row here; `affected.test.ts`
-// fails while a scenario the e2e can run alone is missing from this table.
-// Globs: `**` any depth, `*` within one folder.
+// The owner's rule (decision 0073): a slice that changes a screen adds or
+// extends a journey for its change, gives it a row here, and runs only the
+// journeys check:affected names. The full flow (`npm run e2e:web` with no
+// E2E_ONLY, about 15 minutes) runs only when the owner asks; it has no row.
+// `affected.test.ts` fails while a journey the e2e runs alone has no row.
+// Globs: `**` any depth, `*` within one folder, `{a,b}` either.
 
 const SCENARIOS = [
   {
@@ -43,10 +43,6 @@ const SCENARIOS = [
       'src/lib/{scaleBar,units,unitsStore,useUnits,useLocate,rename,noteEdit,months,pins,thumbPlan,thumbJob,walkTitle}.ts',
       'src/lib/nav/eta.ts',
     ],
-  },
-  {
-    name: 'main',
-    covers: ['src/**', 'index.js', 'public/**', 'app.json', 'app.config.js'],
   },
 ];
 

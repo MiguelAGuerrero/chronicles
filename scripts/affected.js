@@ -292,14 +292,17 @@ function typecheckStep() {
 }
 
 function e2eHint(changed, all) {
-  if (all) return 'E2E: no main branch to compare with; run the whole e2e (npm run export:web && npm run e2e:web).';
   const r = e2eFor(changed);
-  if (!r.scenarios.length) return 'E2E: no scenario covers what changed.';
-  const named = r.scenarios.filter((s) => s.name !== 'main').map((s) => `E2E_ONLY=${s.name}`);
-  const lines = [`E2E scenarios that cover what changed (npm run export:web, then each):`];
-  if (named.length) lines.push(`  ${named.join(', ')}  npm run e2e:web`);
-  if (r.scenarios.some((s) => s.name === 'main')) lines.push('  the main flow: npm run e2e:web (it covers every screen until it is split)');
-  if (r.uncovered.length) lines.push(`  covered by no scenario: ${r.uncovered.join(', ')}`);
+  const lines = [];
+  if (r.scenarios.length) {
+    lines.push('E2E journeys that cover what changed (npm run export:web, then):');
+    for (const s of r.scenarios) lines.push(`  E2E_ONLY=${s.name} npm run e2e:web    (${s.files.join(', ')})`);
+  } else lines.push('E2E: no journey covers what changed.');
+  if (r.uncovered.length) {
+    lines.push(`  No journey covers ${r.uncovered.join(', ')}: if this slice changes what a screen shows, add a journey for it (/e2e, scripts/e2e-scenarios.js).`);
+  }
+  lines.push('  The full flow (npm run e2e:web with no E2E_ONLY) runs only when the owner asks (decision 0073).');
+  if (all) lines.unshift('No main branch to compare with: every file counts as changed.');
   return lines.join('\n');
 }
 

@@ -1,6 +1,6 @@
 ---
 name: slice
-description: Build a vertical slice the owner's way, spec-first and test-first - numbered acceptance criteria in specs/<slug>/spec.md, a plan the owner reviews before code, one failing test per criterion, the code, the audit, the docs, the full suite. Use for any new feature or a continued slice ("build X", "next slice", "start on the spec's Y tab").
+description: Build a vertical slice the owner's way, spec-first and test-first - numbered acceptance criteria in specs/<slug>/spec.md, a plan the owner reviews before code, one failing test per criterion, the code, the docs, the full suite. Use for any new feature or a continued slice ("build X", "next slice", "start on the spec's Y tab").
 when_to_use: Starting or resuming a feature slice; the owner names a tab of the concept doc or a feature to build; any change bigger than a local fix.
 argument-hint: <slice-name>
 ---
@@ -61,8 +61,12 @@ For each criterion, write one failing test before its code:
 - pure logic: a unit test in `src/lib/__tests__/<area>.test.ts`, run by
   `npm test` (`tsx --test`). Nothing a test imports may import React Native:
   split pure modules from ones that touch the db or the map.
-- screens: a step and its checks in `scripts/e2e-web.js` (see `/e2e` for the
-  `step()`/`check()` pattern and the traps).
+- orchestration (write order, failures, guards, reload): a shell test with
+  `fakePorts()` (`.claude/rules/functional-core.md`).
+- screens: only for what a screen shows, a check in the slice's own e2e
+  journey (an `E2E_ONLY` scenario in `scripts/e2e-web.js`, with its files in
+  `scripts/e2e-scenarios.js`; see `/e2e`). A slice that changes no screen has
+  no e2e step.
 - Name every test by its criterion id: `test('QL3: ...')`, `check(ok, 'QL3: ...')`.
 
 Run the new tests (`npm run test:affected` picks them up) and confirm each
@@ -96,27 +100,28 @@ fails for the right reason.
 - A feature shipped or changed: `docs/PRODUCT.md`.
 - The spec's record section: what passed, what was deferred.
 
-## 8. Audit
+## 8. Audit, when the owner asks
 
-Once the slice is built and its tests pass, run `/audit <slug>`. Fix the
+`/audit <slug>` runs only when the owner asks (decision 0073). Then fix the
 accepted findings, each behind a regression test named `<slug> audit N`.
 
 ## 9. Before done
 
 ```bash
 npm run typecheck && npm run lint && npm test
-npm run export:web && npm run e2e:web
+npm run check:affected                                  # names the e2e journeys for the slice's files
+npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # each journey it names, the slice's own included
 ```
 
-All four green, plus the e2e scenario the slice added (`E2E_ONLY=<scenario>`
-if it has one). Then:
+All green. No e2e when no journey covers the slice's files and it changes no
+screen; the full flow (no `E2E_ONLY`) only when the owner asks. Then:
 
 1. Update `docs/STATUS.md`: move the row to "Shipped" (or leave it in flight
-   with its state), with the audit's counts.
+   with its state), with the audit's counts if there was one.
 2. Run `/docs-gc`.
 3. Commit, criterion ids in the message as the repo does:
    `Navigate: a Locate button (QL9-QL12)`. Do not push to `main`; that is
-   `/deploy`, after the audit fixes pass.
+   `/deploy`.
 
 ## Report
 

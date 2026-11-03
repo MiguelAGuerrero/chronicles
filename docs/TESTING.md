@@ -26,12 +26,13 @@ npm run lint:affected    # only the changed files
   `tsconfig.json`, `eslint.config.js`, `eslint-suppressions.json`,
   `scripts/layers.js`, or any non-test file in `src/lib/__tests__/` (fakes,
   fixtures, the contract suite).
-- **E2E:** `scripts/e2e-scenarios.js` lists the files each scenario covers;
-  `check:affected` names the ones to run. The main flow covers every screen
-  until it is split. A new scenario gets its row there (`affected.test.ts`
-  fails otherwise).
-- This is the inner loop, not the finish line: the end of a slice, `/audit`,
-  `/deploy` and CI run everything (section 6).
+- **E2E:** `scripts/e2e-scenarios.js` lists the files each journey covers;
+  `check:affected` names the ones to run, and the changed screens no journey
+  covers (add one if the slice changes what they show). The full flow runs
+  only when the owner asks. A new journey gets its row there
+  (`affected.test.ts` fails otherwise).
+- The end of a slice adds the whole unit suite, lint and the typecheck
+  (section 6); CI runs them on every push to `main`.
 
 ## 1. The fast loop: unit tests
 
@@ -245,13 +246,18 @@ minutes): it is the agent's job before merging.
 
 ```bash
 npm run typecheck && npm run lint && npm test
-npm run export:web && npm run e2e:web    # plus E2E_ONLY=<scenario> for marks, reload, qol when touched
+npm run check:affected                                  # names the e2e journeys for what changed
+npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # each journey it names
 ```
+
+A slice that changes a screen adds or extends its own journey (`/e2e`); one
+that changes no screen runs no e2e. The full flow (no `E2E_ONLY`, about 15
+minutes) and `/audit` run only when the owner asks (decision 0073).
 
 The Stop hook (`.claude/hooks/check-done.sh`) runs `check:docs` on any
 change, and with `.ts`/`.tsx` changed, the typecheck, the layer check and the
 affected unit tests (`node scripts/affected.js hook`): it blocks the end of a
-turn on any of them. The whole suite, lint and the e2e stay the agent's job.
+turn on any of them.
 
 ## 7. What this proves, and what it doesn't
 
