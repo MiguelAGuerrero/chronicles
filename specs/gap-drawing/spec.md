@@ -27,7 +27,7 @@ A follow-up to Filling gaps (G1-G14). On a walk through Lehigh Parkway (Nov 3), 
 ### A guess that fits the time (GT)
 
 9. **GT1 · The walk's own pace.** Your pace is the median speed of this walk's walked fixes at 0.5 m/s or more, else 1.3 m/s.
-10. **GT2 · A way that fits.** The expected distance across a gap is your pace times its time. Among the shortest ways (up to 8) that fit the time allowed, the guess takes the one closest to the expected distance. It keeps the shortest unless another is at least 25% closer. A way that turns at junctions more than twice as often as the shortest is never taken: a loop off the way, not a zig-zag round blocks (spare time in town is mostly time stopped).
+10. **GT2 · A way that fits.** The expected distance across a gap is your pace times its time. Among the shortest ways (up to 8) that fit the time allowed, the guess takes the one closest to the expected distance. It keeps the shortest unless another is at least 25% closer. A way that turns at junctions more than two times more than the shortest is never taken: a loop off the way, not a zig-zag round blocks (spare time in town is mostly time stopped).
 11. **GT3 · Offered, never filled.** A way chosen for its fit is offered faint, never filled by itself. A gap certain enough to fill by itself (G5) keeps its shortest way.
 
 ## Tests

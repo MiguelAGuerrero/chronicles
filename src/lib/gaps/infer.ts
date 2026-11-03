@@ -125,7 +125,7 @@ type Way = { m: number; nodes: number[]; segs: number[]; edges: number[] };
 type Line = { a: number; b: number; seg: number; id: number };
 
 /** A walking graph over street pieces, each edge tagged with its piece, so a piece can be left out of a search. */
-class PieceGraph {
+export class PieceGraph {
   readonly pts: LngLat[] = [];
   readonly adj: Edge[][] = [];
   /** Each street edge once: its ends and piece, for joining a fix to the nearest streets. */
@@ -183,6 +183,60 @@ class PieceGraph {
     this.lines.delete(e);
     this.street(e.a, k, e.seg);
     this.street(k, e.b, e.seg);
+  }
+
+  /** A graph of these street pieces, each edge tagged with its piece's index. */
+  static of(segments: StreetSegment[], origin: LngLat): PieceGraph {
+    const graph = new PieceGraph(origin);
+    for (let s = 0; s < segments.length; s++) {
+      for (const line of segments[s].geometry) {
+        let prev = -1;
+        line.forEach((p, k) => {
+          const i = graph.node(p, k === 0 || k === line.length - 1);
+          if (prev >= 0 && prev !== i) graph.street(prev, i, s);
+          prev = i;
+        });
+      }
+    }
+    return graph;
+  }
+
+  /**
+   * A fix (or a tapped point) joined to every street within GAP_RULES.joinM,
+   * where it is nearest on each: the street edge is split there (an end of it
+   * is used as it is), so a second point on the same edge splits the half it
+   * lies on and a way runs straight along it. Null with no street that near.
+   */
+  joinFix(p: LngLat): number | null {
+    const xy = this.proj(p);
+    const near: { e: Line; t: number }[] = [];
+    for (const e of this.lines) {
+      const a = this.proj(this.pts[e.a]);
+      const b = this.proj(this.pts[e.b]);
+      if (pointSegmentDist(xy, a, b) > GAP_RULES.joinM) continue;
+      const len2 = (b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2;
+      const t = len2 ? Math.max(0, Math.min(1, ((xy[0] - a[0]) * (b[0] - a[0]) + (xy[1] - a[1]) * (b[1] - a[1])) / len2)) : 0;
+      near.push({ e, t });
+    }
+    if (!near.length) return null;
+    const end = this.node(p, false);
+    const joined = new Set<number>();
+    for (const { e, t } of near) {
+      const a = this.pts[e.a];
+      const b = this.pts[e.b];
+      const len = distanceM(a, b);
+      let k: number;
+      if (t * len < 0.5) k = e.a;
+      else if ((1 - t) * len < 0.5) k = e.b;
+      else {
+        k = this.node([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t], false);
+        this.split(e, k);
+      }
+      if (joined.has(k)) continue;
+      joined.add(k);
+      this.link(end, k, JOIN);
+    }
+    return end;
   }
 
   /**
@@ -312,7 +366,7 @@ function turnsOf(graph: PieceGraph, w: Way): number {
 }
 
 /** A join from a fix to a street, not a street itself. */
-const JOIN = -1;
+export const JOIN = -1;
 
 /**
  * Reads one gap (G2-G7): filled by itself, offered, or null when there is no walkable way to offer. `segments` are the streets around it and
@@ -322,51 +376,8 @@ const JOIN = -1;
  */
 export function inferGap(g: Gap, segments: StreetSegment[], coverage: Bounds | null): Inference | null {
   if (!coverage || !segments.length) return null;
-  const graph = new PieceGraph(g.from);
-  for (let s = 0; s < segments.length; s++) {
-    for (const line of segments[s].geometry) {
-      let prev = -1;
-      line.forEach((p, k) => {
-        const i = graph.node(p, k === 0 || k === line.length - 1);
-        if (prev >= 0 && prev !== i) graph.street(prev, i, s);
-        prev = i;
-      });
-    }
-  }
-  // Each end joins every street within GAP_RULES.joinM of its fix, where it is nearest on that
-  // street: the street edge is split there (an end of it is used as it is). Both ends on one
-  // edge: the second splits the half it lies on, so the way runs straight along it.
-  const join = (p: LngLat): number | null => {
-    const xy = graph.proj(p);
-    const near: { e: Line; t: number }[] = [];
-    for (const e of graph.lines) {
-      const a = graph.proj(graph.pts[e.a]);
-      const b = graph.proj(graph.pts[e.b]);
-      if (pointSegmentDist(xy, a, b) > GAP_RULES.joinM) continue;
-      const len2 = (b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2;
-      const t = len2 ? Math.max(0, Math.min(1, ((xy[0] - a[0]) * (b[0] - a[0]) + (xy[1] - a[1]) * (b[1] - a[1])) / len2)) : 0;
-      near.push({ e, t });
-    }
-    if (!near.length) return null;
-    const end = graph.node(p, false);
-    const joined = new Set<number>();
-    for (const { e, t } of near) {
-      const a = graph.pts[e.a];
-      const b = graph.pts[e.b];
-      const len = distanceM(a, b);
-      let k: number;
-      if (t * len < 0.5) k = e.a;
-      else if ((1 - t) * len < 0.5) k = e.b;
-      else {
-        k = graph.node([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t], false);
-        graph.split(e, k);
-      }
-      if (joined.has(k)) continue;
-      joined.add(k);
-      graph.link(end, k, JOIN);
-    }
-    return end;
-  };
+  const graph = PieceGraph.of(segments, g.from);
+  const join = (p: LngLat) => graph.joinFix(p);
   const a = join(g.from);
   const b = join(g.to);
   if (a == null || b == null) return null;
