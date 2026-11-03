@@ -11,6 +11,7 @@ On Nov 3 the owner restated the goal: rigour, and a clear separation of behaviou
 - Four layers, declared by each `src/lib` module on its first line: `core`, `shell`, `adapter`, `view`. Core has no hidden inputs and imports only core.
 - The rules are checked, not written down only: `npm test` checks the tags and core's imports; lint checks core's hidden inputs and views' imports of the db, recorder and notifier. Existing violations sit in baselines that can only shrink (a JSON baseline, and ESLint's bulk suppressions), replacing the branch's hand-kept `LEGACY_*` lists.
 - The Nov 1 foundations come to main by cherry-pick (`561b439`), brought up to date; the branch's 84-line AGENTS.md section is replaced by `.claude/rules/functional-core.md`.
+- Views never import `ports` or the singletons (the audit's finding 5; the owner took the default, Nov 3): a shell module exports a factory taking ports, which tests call with fakes, and the app's instance built from `ports`, which views import.
 - Shell tests assert the end state by default; the call log only where order is the requirement.
 - Reducers (effects as data) only for tangled flows, by the rule file's two-of-five test.
 - Screens move over one effect cluster per slice, starting with `walk.tsx`'s fog refresh; never in one rewrite.
