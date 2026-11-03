@@ -124,6 +124,7 @@ Places and areas (v0.5)
   areas/tilePlaces.ts the OpenMapTiles place classes (the only file that knows them)
   areas/boundaryPack.ts, boundaries.ts         the boundary-pack format and the packs shipped (US)
   places.ts                  the home map's stars from walks, Area and WalkArea only
+  placeAll.ts                placing walks one pass at a time, withTimeout (the shell beside places.ts)
   zoomOut.ts                 when the walks list zooms out
 Navigation (inside a walk)
   nav/types.ts               Waypoint, Route, RouteSource
@@ -174,7 +175,7 @@ Captures and media
   useCaptures.ts             photo, video, memo and note capture; the voice queue; placing; UNDO_MS
   captureBus.ts              news of a capture kept or patched, between the bar, the row and the walk screen
   media/                     where files are kept: Documents (relative paths) on native, Blobs in IndexedDB on web; resolveMedia
-  media/thumb.ts             the 240 px copy with expo-image-manipulator; thumbPlan.ts decides when
+  media/thumb.ts             the 240 px copy with expo-image-manipulator; thumbPlan.ts decides when; thumbJob.ts runs one job per photo at a time
   useMediaUri.ts             a capture's media as a playable URI
   pins.ts                    pinsFor: grouping captures by screen distance
   export/bundle.ts           writeWalkBundle (deferred; nothing in the UI reaches it); export/ per-platform keepers
@@ -260,11 +261,11 @@ Layers (functional core, imperative shell)
 - **Screens read rows, never traces or media.** Chronicle reads walks,
   summaries, Area, WalkArea and capture rows; `backlog.ts` is its one read of
   traces. Media is reached only through `resolveMedia`.
-- **The `npm test` rule.** Tests import only pure modules, because `tsx --test`
+- **The `npm test` rule.** Tests import only core modules, fakes and types, because `tsx --test`
   cannot load React Native. That is why `tileMath.ts` is split from
   `tiles.ts` (which imports the db), `thumbPlan.ts` from `media/thumb.ts`,
   `deletion/pending.ts` from `deletion/index.ts`, and so on: keep the rule in
-  a pure file and wire it in a platform one.
+  a core file and wire it in a shell or adapter.
 - **Always-rules that are boundaries:**
   - Never import `Modal` from react-native; use `components/Modal`.
   - Never import Reanimated (it is in node_modules through expo-router);

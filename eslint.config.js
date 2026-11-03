@@ -48,11 +48,9 @@ module.exports = defineConfig([
   },
   // Core has no hidden inputs: no clock, randomness, timers or module state (FC3).
   { files: CORE, rules: layers.coreLintRules },
-  // Views don't reach the db, recorder or notifier (FC5); the four paths above still hold.
-  {
-    files: VIEWS,
-    rules: { 'no-restricted-imports': ['error', { paths: restrictedPaths, patterns: [layers.viewSingletonPattern] }] },
-  },
+  // Views don't import the db, recorder, notifier or ports (FC5). Its own rule
+  // id, apart from the paths above, so a suppressed count can't hide one of them.
+  { files: VIEWS, rules: { [layers.FC5_RULE]: layers.viewSingletonRule } },
   // The wrappers the rules point at are the one place each import is allowed.
   { files: ['src/components/Modal.tsx'], rules: { 'no-restricted-imports': 'off' } },
   { files: ['src/lib/audioMode.native.ts'], rules: { 'no-restricted-imports': 'off' } },

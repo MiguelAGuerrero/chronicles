@@ -13,7 +13,7 @@ npx tsx --test --test-name-pattern "rides audit" src/lib/__tests__/rides.test.ts
 ```
 
 - `npm test` is `tsx --test src/lib/__tests__/*.test.ts` (Node's test runner,
-  TAP output, summary at the end): 43 files, 457 tests, about 5 s.
+  TAP output, summary at the end): 57 files, 660 tests, about 10 s.
 - One file: `rides.test.ts` is 34 tests in about 1 s. `--test-name-pattern`
   is a regex over test names: the line above runs that file's 9
   `rides audit N` tests only.
@@ -78,7 +78,8 @@ npm run lint        # expo lint (ESLint, eslint-config-expo): about 6 s
   `lib/haptics.ts`) are exempt.
 - Lint holds the layers too: in core modules, the clock, randomness, timers
   and module-level `let`/`var`; in views (`src/app`, `src/components`, view
-  hooks), imports of the `db`, `recorder` or `notifier`. Known violations are
+  hooks), imports of the `db`, `recorder`, `notifier` or `ports` (under
+  `no-restricted-syntax`, its own rule). Known violations are
   counted per file and rule in `eslint-suppressions.json` (ESLint's bulk
   suppressions). After fixing some, `npx eslint src index.js
   --prune-suppressions`; a stale count fails lint. Never `--suppress-all`.

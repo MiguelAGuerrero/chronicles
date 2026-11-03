@@ -57,9 +57,9 @@ test('FC6 the recorder records the walk it is started for, reports status, and d
   p.recorder.startResult = { warning: 'Approximate location only' };
   assert.deepEqual(await p.recorder.start('w1'), { warning: 'Approximate location only' });
   assert.equal(p.recorder.walkId, 'w1');
-  p.recorder.emit({ walk_id: 'w1', t: 1, lat: 0, lon: 0, accuracy_m: 5, speed: 1, course: null });
+  await p.recorder.emit({ walk_id: 'w1', t: 1, lat: 0, lon: 0, accuracy_m: 5, speed: 1, course: null });
   off();
-  p.recorder.emit({ walk_id: 'w1', t: 2, lat: 0, lon: 0, accuracy_m: 5, speed: 1, course: null });
+  await p.recorder.emit({ walk_id: 'w1', t: 2, lat: 0, lon: 0, accuracy_m: 5, speed: 1, course: null });
   await p.recorder.stop();
   assert.deepEqual(fixes, [1]);
   assert.deepEqual(statuses, ['waiting', 'recording', 'recording', 'idle']);

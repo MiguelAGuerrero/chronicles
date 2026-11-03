@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import { test } from 'node:test';
 import { META, META_FAMILIES, metaStore } from '../meta';
 import { memoryDb } from './fakes';
+import { metaKeysIn } from './metaKeys';
 
 test('FC8 values round-trip through their codecs, keys and families alike', async () => {
   const m = metaStore(memoryDb());
@@ -69,33 +70,31 @@ test('FC8 a key outside the schema is refused, naming the file to add it to', as
   await assert.rejects(m.get('nope:1' as never), /not in META/);
 });
 
-/** Meta keys the app uses: literals passed to getMeta/setMeta, `*_KEY = '...'` constants, and `` `family:${id}` `` key builders. */
-function keysInUse(): { keys: Set<string>; families: Set<string> } {
+/** Every source file of the app but the schema itself. */
+function appSources(): { file: string; source: string }[] {
   const root = join(__dirname, '..', '..');
-  const files: string[] = [];
+  const out: { file: string; source: string }[] = [];
   const walk = (dir: string) => {
     for (const f of readdirSync(dir)) {
       const p = join(dir, f);
       if (statSync(p).isDirectory()) {
         if (f !== '__tests__') walk(p);
-      } else if (/\.tsx?$/.test(f) && !p.endsWith(join('lib', 'meta.ts'))) files.push(p);
+      } else if (/\.tsx?$/.test(f) && !p.endsWith(join('lib', 'meta.ts'))) out.push({ file: relative(root, p), source: readFileSync(p, 'utf8') });
     }
   };
   walk(root);
-  const keys = new Set<string>();
-  const families = new Set<string>();
-  for (const f of files) {
-    const src = readFileSync(f, 'utf8');
-    for (const m of src.matchAll(/[gs]etMeta\('([a-z_]+)'/g)) keys.add(m[1]);
-    for (const m of src.matchAll(/_KEY = '([a-z_]+)'/g)) keys.add(m[1]);
-    for (const m of src.matchAll(/[kK]ey = \([^)]*\)(?:: string)? => `([a-z_]+):\$\{/g)) families.add(m[1]);
-  }
-  return { keys, families };
+  return out;
 }
 
+// Calls whose key can't be read from the code, and where their keys come from instead.
+const UNREADABLE: Record<string, string> = {
+  'lib/useStartWalk.ts: setMeta(k, …)': "startPlan's meta list: NAV_KEY, EXPLORE_KEY and exploredKey, each also used directly",
+};
+
 test('FC8 every meta key in use is declared, and every declared key is in use', () => {
-  const { keys, families } = keysInUse();
+  const { keys, families, unreadable } = metaKeysIn(appSources());
   assert.ok(keys.size >= 15, `found only ${keys.size} keys: the scan is broken`);
+  assert.deepEqual(unreadable.filter((u) => !(u in UNREADABLE)), [], 'a meta key the scan cannot read: use a constant or a key builder, or list the call in UNREADABLE with where its keys come from');
   assert.deepEqual([...keys].filter((k) => !(k in META)).sort(), [], 'add these keys to META in src/lib/meta.ts');
   assert.deepEqual([...families].filter((k) => !(k in META_FAMILIES)).sort(), [], 'add these key families to META_FAMILIES in src/lib/meta.ts');
   assert.deepEqual(Object.keys(META).filter((k) => !keys.has(k)).sort(), [], 'nothing uses these keys any more: remove them from META');

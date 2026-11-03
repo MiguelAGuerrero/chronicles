@@ -39,18 +39,41 @@ const number: Codec<number> = {
   },
 };
 
-function json<T>(): Codec<T> {
+/**
+ * JSON, kept only when it has the shape the key holds: a value written by an
+ * older build, or by hand, reads as null rather than crashing the reader
+ * (functional-core audit 12).
+ */
+function json<T>(valid: (v: unknown) => boolean): Codec<T> {
   return {
     encode: (v) => JSON.stringify(v),
     decode: (raw) => {
       try {
-        return JSON.parse(raw) as T;
+        const v: unknown = JSON.parse(raw);
+        return valid(v) ? (v as T) : null;
       } catch {
         return null;
       }
     },
   };
 }
+
+/** Text that must be one of a few words. */
+function oneOf<T extends string>(...words: T[]): Codec<T> {
+  return { encode: (v) => v, decode: (raw) => ((words as string[]).includes(raw) ? (raw as T) : null) };
+}
+
+const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+const isLngLat = (v: unknown) => Array.isArray(v) && v.length === 2 && v.every((n) => typeof n === 'number' && Number.isFinite(n));
+const isStrings = (v: unknown) => Array.isArray(v) && v.every((x) => typeof x === 'string');
+const isNav = (v: unknown) =>
+  isObject(v) &&
+  (v.walk_id === null || typeof v.walk_id === 'string') &&
+  isObject(v.dest) &&
+  isLngLat(v.dest.at) &&
+  typeof v.dest.label === 'string' &&
+  typeof v.dest.kind === 'string';
+const isNearRead = (v: unknown) => isObject(v) && isLngLat(v.at) && typeof v.build === 'string' && typeof v.code === 'string';
 
 /** '1' is on, '0' is off (the Explore haptic). */
 const onOff: Codec<boolean> = { encode: (v) => (v ? '1' : '0'), decode: (raw) => (raw === '1' ? true : raw === '0' ? false : null) };
@@ -67,23 +90,23 @@ export const META = {
   snap_rules: { owner: 'tiles', codec: text },
   street_code: { owner: 'tiles', codec: text },
   // Navigation (lib/nav/store, lib/startPlan): where the open walk, or the drawer, is heading.
-  nav: { owner: 'nav', codec: json<{ walk_id: string | null; dest: Waypoint }>() },
+  nav: { owner: 'nav', codec: json<{ walk_id: string | null; dest: Waypoint }>(isNav) },
   // Navigate tab (lib/startPlan, the Start dialog)
-  start_mode: { owner: 'navigate', codec: text as Codec<StartMode> },
+  start_mode: { owner: 'navigate', codec: oneOf<StartMode>('quiet', 'explore') },
   web_note_dismissed: { owner: 'navigate', codec: flag },
   // Walk screen, once per walk or once ever
   deadzone_walk: { owner: 'walk', codec: walkId },
   hint_go: { owner: 'walk', codec: flag },
   // Explore (lib/explore): the walk exploring, and what I'm into
   explore_walk: { owner: 'explore', codec: walkId },
-  explore_hidden: { owner: 'explore', codec: json<string[]>() },
+  explore_hidden: { owner: 'explore', codec: json<string[]>(isStrings) },
   explore_range: { owner: 'explore', codec: number },
   explore_haptic: { owner: 'explore', codec: onOff },
   // Recall (lib/discovery/recallCheck): captures a notification opened
-  recall_open: { owner: 'discovery', codec: json<string[]>() },
+  recall_open: { owner: 'discovery', codec: json<string[]>(isStrings) },
   // Settings
-  units: { owner: 'settings', codec: text as Codec<Units> },
-  notify_off: { owner: 'notifications', codec: json<string[]>() },
+  units: { owner: 'settings', codec: oneOf<Units>('km', 'mi') },
+  notify_off: { owner: 'notifications', codec: json<string[]>(isStrings) },
 } as const;
 
 /**
@@ -96,7 +119,7 @@ export const META_FAMILIES = {
   // A day's replay was watched (ms), so it advances by itself next time.
   day_watched: { owner: 'days', codec: number },
   // The last read of areas near you, per level (lib/atlas/read).
-  atlas_near: { owner: 'atlas', codec: json<NearRead>() },
+  atlas_near: { owner: 'atlas', codec: json<NearRead>(isNearRead) },
 } as const;
 
 export type MetaKey = keyof typeof META;

@@ -5,7 +5,7 @@ import { planViews, type WalkMapHandle } from '../../components/map/types';
 import { db } from '../db';
 import { boundsOf, type Bounds } from '../geo';
 import { mapReads } from '../mapReads';
-import { withTimeout } from '../places';
+import { withTimeout } from '../placeAll';
 import { deriveSegments } from '../streets';
 import { formatDistance } from '../summary';
 import type { LngLat, StreetSegment, Walk } from '../types';

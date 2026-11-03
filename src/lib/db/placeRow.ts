@@ -1,4 +1,4 @@
-// @layer adapter
+// @layer core
 import type { CategoryId, Place } from '../discovery/types';
 
 /** A place as SQLite stores it; pure, so a test can round-trip it (audit: `markable` was lost on native). */

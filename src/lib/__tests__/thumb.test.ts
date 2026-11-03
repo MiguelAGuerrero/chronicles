@@ -1,7 +1,8 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { THUMB, thumbJob, thumbName, thumbShown, wantsThumb, type ThumbDeps } from '../thumbPlan';
+import { thumbJob, type ThumbDeps } from '../thumbJob';
+import { THUMB, thumbName, thumbShown, wantsThumb } from '../thumbPlan';
 
 const photo = (o: Partial<{ id: string; walk_id: string | null; kind: string; file_path: string | null; thumb_path: string | null }> = {}) =>
   ({ id: 'abc', walk_id: 'w1', kind: 'photo', file_path: 'walks/w1/abc.jpg', thumb_path: null, ...o });

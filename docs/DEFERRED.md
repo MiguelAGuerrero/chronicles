@@ -116,7 +116,8 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 - Rules for shells (take `Ports`, never import the singletons): with the first shell, the fog-refresh slice (functional-core spec, Open)
 - The two core violations in `layers.baseline.json`: `format.ts` and `scaleBar.ts` read the global units as a default argument; pass the units in
-- `places.ts` keeps a timer (`withTimeout`) and a run guard in core (suppressed in `eslint-suppressions.json`); move `placeAll` and `withTimeout` to a shell
+- The device's timezone and locale are read in core (`getHours`, `toLocaleDateString` in `days.ts`, `walkTitle.ts`, `months.ts`, `explore.ts`): pass them in (functional-core audit 10)
+- `components/map/types.ts` mixes pure helpers that tests import (`splitTrace`, `planViews`, `pressRadiusM`) with a hook, outside any layer check: move the helpers to a core module in `src/lib` (functional-core audit 13)
 - The Db contract found the web and native stores disagreeing; the fake follows the web store and the first two are pinned as "(web store as it is)" in `dbContract.ts`. Each needs the owner's call on which side is right:
   - `deleteCaptures` deletes finds through the captures' walks on web, by capture id on native: a find filed under another walk survives on web
   - `getSegmentsIn` on web reads tiles around each piece's centre (bounds widened 250 m), so a piece much longer than 200 m that only grazes the bounds is missed; native compares bounding boxes

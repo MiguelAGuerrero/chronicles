@@ -14,7 +14,8 @@ type Layers = {
   check(root: string, baseline: string[]): { untagged: string[]; added: string[]; stale: string[] };
   filesOfLayer(root: string, layer: string): string[];
   coreLintRules: Record<string, unknown>;
-  viewSingletonPattern: Record<string, unknown>;
+  FC5_RULE: string;
+  viewSingletonRule: unknown[];
 };
 type Message = { ruleId: string | null; message: string; line: number };
 type ESLintClass = new (o: object) => { lintText(code: string, o: { filePath: string }): Promise<{ messages: Message[] }[]> };
@@ -23,7 +24,8 @@ const ROOT = join(__dirname, '..', '..', '..');
 const load = createRequire(__filename);
 const layers = load(join(ROOT, 'scripts', 'layers.js')) as Layers;
 const { ESLint } = load('eslint') as { ESLint: ESLintClass };
-const tsParser = load('@typescript-eslint/parser') as object;
+// The TypeScript parser, as eslint-config-expo (a declared dependency) resolves it.
+const tsParser = createRequire(load.resolve('eslint-config-expo/flat'))('@typescript-eslint/parser') as object;
 const BASELINE = join(__dirname, 'layers.baseline.json');
 
 const tmp = mkdtempSync(join(tmpdir(), 'layers-'));
@@ -169,35 +171,23 @@ test('FC3 core may still use a given time, local state and pure helpers', async 
   assert.deepEqual(await lint(layers.coreLintRules, code), []);
 });
 
-test('FC3 FC5 eslint.config.js holds core files to the core rules, and views to the singleton rule', () => {
-  const config = load(join(ROOT, 'eslint.config.js')) as { files?: string[]; rules?: Record<string, unknown> }[];
-  const core = layers.filesOfLayer(ROOT, 'core');
-  assert.ok(core.length > 50, `only ${core.length} core files`);
-  const coreBlock = config.find((c) => c.rules && 'no-restricted-properties' in c.rules);
-  assert.deepEqual(coreBlock?.files, core);
-  const holdsViews = (c: { rules?: Record<string, unknown> }) => {
-    const rule = c.rules?.['no-restricted-imports'] as [string, { patterns?: { regex?: string }[] }] | undefined;
-    return rule?.[1]?.patterns?.some((p) => p.regex === layers.viewSingletonPattern.regex) ?? false;
-  };
-  const viewBlock = config.find(holdsViews);
-  assert.ok(viewBlock, 'no lint block holds views to the singleton rule');
-  for (const f of ['src/app/**/*.{ts,tsx}', 'src/components/**/*.{ts,tsx}', ...layers.filesOfLayer(ROOT, 'view')]) {
-    assert.ok(viewBlock.files?.includes(f), `${f} is not held to the singleton rule`);
-  }
-});
+// That every core file and every view gets these rules from eslint.config.js, after all its
+// overrides, is `functional-core audit 9` (functionalCoreAudit.test.ts).
 
-test('FC5 a view importing the db, recorder or notifier is flagged with the fix; a type import is not', async () => {
-  const rules = { 'no-restricted-imports': ['error', { patterns: [layers.viewSingletonPattern] }] };
+test('FC5 a view importing the db, recorder, notifier or ports is flagged with the fix; a type import is not', async () => {
+  const rules = { [layers.FC5_RULE]: layers.viewSingletonRule };
   const code = [
     "import { db } from '../lib/db';",
     "import { recorder } from '../../lib/recorder';",
     "import { notifier } from '../lib/notify';",
     "import { db as d2 } from './db/index.web';",
+    "import { ports } from '../lib/ports';",
+    "import * as dbm from '../lib/db';",
     "import type { Db } from '../lib/db';",
-    "import type { Recorder } from '../lib/recorder/types';",
+    "import { type Recorder } from '../lib/recorder/types';",
     "import { feedback } from '../lib/motion';",
   ].join('\n');
   const m = await lint(rules, code);
-  assert.deepEqual(m.map((x) => x.line), [1, 2, 3, 4]);
-  for (const x of m) assert.match(x.message, /feature shell .* takes `ports`/);
+  assert.deepEqual(m.map((x) => x.line), [1, 2, 3, 4, 5, 6]);
+  for (const x of m) assert.match(x.message, /Call a feature shell instead/);
 });

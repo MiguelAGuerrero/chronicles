@@ -33,4 +33,26 @@ Decisions are data and pure functions; effects live in a thin shell. Today that 
 ## Open
 
 - Rules for shells (take `Ports`, never import the singletons) land with the first shell, in the fog-refresh slice.
+- The Db contract found the web and native stores disagreeing in five places (`docs/DEFERRED.md`, Functional core): which side is right is the owner's call.
 - Which flows become reducers: the rule's "two of five" test names the walk lifecycle and the voice memo as candidates.
+
+## Audited (Nov 3)
+
+One report-only pass found 14 issues (1 high, 6 medium, 7 low): 12 fixed, each behind a regression test in `functionalCoreAudit.test.ts`; 1 deferred; 1 fixed in part (the rest deferred).
+
+1. One shared suppression count let a view swap a singleton import for a `Modal` import, and `places.ts` swap module state for `new Date()`: accept. FC5 has its own rule (`no-restricted-syntax`), and core keeps no suppressions (`placeAll`, `withTimeout` moved to `placeAll.ts`). `functional-core audit 1`.
+2. `thumbPlan.ts` was core with a module-level `Map` it mutates: accept. `npm test` now finds mutated module-level containers in core; `thumbJob` moved to `thumbJob.ts` (shell). `functional-core audit 2`.
+3. The import check missed `require()`, `import()` and all but one platform file of a split: accept. `functional-core audit 3`.
+4. The fake recorder's `emit` didn't write the fix, unlike the real ones: accept. `functional-core audit 4`.
+5. Views could reach all three singletons through `ports`: accept. FC5 covers `ports`; a shell exports its app instance, so views never import `ports`. `functional-core audit 5`.
+6. The meta key scan missed double quotes, other constant names, function builders and templates: accept. Read from the syntax tree; an unreadable key must be accounted for. `functional-core audit 6`.
+7. Nothing stopped a baseline from growing: accept. A ceiling per baseline in the test, to lower and never raise (it passes from the start: it is a guard, not a reproduction). `functional-core audit 7`.
+8. FC5 matched the module path, flagging constants and shell functions: accept. It matches the imported names. `functional-core audit 8`.
+9. `Modal.tsx` was exempt from FC5, and the config test compared the tags with themselves: accept. The test now reads the real config of every view and core file. `functional-core audit 9`.
+10. FC3 missed `Date()`, `globalThis`/`window`, `crypto`, `queueMicrotask`, `requestIdleCallback`; `declare let` was flagged: accept in part. Those are flagged and `declare let` passes (`functional-core audit 10`); the timezone and locale read in core are deferred, and the limits are in the rule file.
+11. Type-only modules and pure row codecs were tagged adapter, and the "which layer" test contradicted injected effects: accept. Retagged core; the rule says what is given stays core. `functional-core audit 11`.
+12. The meta codecs didn't check the shape the call sites check: accept. JSON codecs take a shape check; words take a list. `functional-core audit 12`.
+13. Pure helpers in `components/map/types.ts` have no layer check: defer (moving them is outside this slice; `docs/DEFERRED.md`).
+14. The tests loaded `@typescript-eslint/parser`, not a declared dependency: accept. Resolved through `eslint-config-expo`. `functional-core audit 14`.
+
+Native: no native path changes behaviour. The tag line on every `*.native.ts` displaced no directive. `lib/ports/index.ts` and the SQLite adapter's match to the contract have not run on a device (`docs/NATIVE_UNVERIFIED.md`).

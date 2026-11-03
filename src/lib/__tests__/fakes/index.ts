@@ -13,12 +13,15 @@ export interface FakeRecorder extends Recorder {
   startResult: StartResult;
   /** The walk it is recording, or null. */
   walkId: string | null;
-  /** Delivers a fix to subscribers, as the real recorder does after writing it. */
-  emit(p: TracePoint): void;
+  /**
+   * Records a fix as the real recorders do: writes it to the db it was given,
+   * then tells subscribers (functional-core audit 4).
+   */
+  emit(p: TracePoint): Promise<void>;
   emitStatus(s: RecorderStatus): void;
 }
 
-export function fakeRecorder(opts: { background?: boolean } = {}): FakeRecorder {
+export function fakeRecorder(opts: { background?: boolean } = {}, db?: Pick<Ports['db'], 'appendPoints'>): FakeRecorder {
   const points = new Set<(p: TracePoint) => void>();
   const statuses = new Set<(s: RecorderStatus) => void>();
   const r: FakeRecorder = {
@@ -47,7 +50,8 @@ export function fakeRecorder(opts: { background?: boolean } = {}): FakeRecorder 
       statuses.add(cb);
       return () => statuses.delete(cb);
     },
-    emit(p) {
+    async emit(p) {
+      await db?.appendPoints([p]);
       for (const cb of points) cb(p);
       r.emitStatus({ kind: 'recording' });
     },
@@ -113,9 +117,10 @@ export interface FakePorts extends Ports {
 export function fakePorts(opts: { background?: boolean; now?: number } = {}): FakePorts {
   const log = new CallLog();
   let n = 0;
+  const db = failable(memoryDb(), 'db', log, DB_READS);
   return {
-    db: failable(memoryDb(), 'db', log, DB_READS),
-    recorder: failable(fakeRecorder(opts), 'recorder', log, ['isRecording', 'subscribe', 'subscribeStatus', 'emit', 'emitStatus']),
+    db,
+    recorder: failable(fakeRecorder(opts, db), 'recorder', log, ['isRecording', 'subscribe', 'subscribeStatus', 'emit', 'emitStatus']),
     notifier: failable(fakeNotifier(), 'notifier', log),
     clock: fakeClock(opts.now),
     newId: () => `id-${++n}`,

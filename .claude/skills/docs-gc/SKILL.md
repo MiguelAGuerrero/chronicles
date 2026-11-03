@@ -37,7 +37,7 @@ expected hits; rename any other reference or restore the file.
 ```bash
 shopt -s globstar nullglob
 for r in .claude/rules/*.md; do
-  sed -n '/^paths:/,/^[a-z]*:/p' "$r" | grep -oE '"[^"]+"|- +[^ ]+' | sed 's/^- *//; s/"//g' | while read -r g; do
+  sed -n '2,/^---/p' "$r" | grep -oE '"[^"]+"|- +[^ ]+' | sed 's/^- *//; s/"//g' | while read -r g; do
     set -- $g; [ -e "$1" ] || echo "$r: no file matches $g"; done; done
 ```
 
