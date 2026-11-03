@@ -5,7 +5,7 @@ import type { Find, Kind } from '../explore/explore';
 import { exploreBuild } from '../explore/exploreRun';
 import { loadSettings, onSettings } from '../explore/settings';
 import type { LngLat } from '../types';
-import { ATLAS_RULES, nearList, needsNear, readQueue, type AtlasArea, type AtlasLevel, type Listed } from './atlas';
+import { ATLAS_RULES, atlasStep, nearList, type AtlasArea, type AtlasLevel, type Listed } from './atlas';
 import { lastNear, readNear, readRing } from './read';
 
 /** Another read is running (the walk's, or the other level's): look again shortly. */
@@ -70,27 +70,42 @@ export function useAtlas(focused: boolean, level: AtlasLevel, from: LngLat | nul
       rowsRef.current = r;
       setRows(r);
       setExtra({ areas, walkAreas, finds, walked });
-      setBuild(b === 'unknown' ? null : b);
-      if (b === 'unknown') setStatus('offline');
+      // An unknown build (offline) leaves the last known one; the loop checks again (audit 4).
+      if (b !== 'unknown') setBuild(b);
+      else setStatus('offline');
     })().catch(() => {});
     return () => {
       live = false;
     };
   }, [focused]);
 
-  // One step of reading per run; each step that read something asks for the next.
+  // One step of reading per run (`atlasStep`); each step that did something asks for the next.
   useEffect(() => {
-    if (!focused || !from || !build) return;
+    if (!focused || !from) return;
     let stop = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
     const again = (ms: number) => {
       timer = setTimeout(() => !stop && setTick((t) => t + 1), ms);
     };
     (async () => {
-      if (needsNear(await lastNear(level), from, build)) {
-        if (stop) return;
+      const latest = await exploreBuild().catch(() => 'unknown');
+      const last = await lastNear(level);
+      if (stop) return;
+      const step = atlasStep({ build, latest, last, from, list: nearList(rowsRef.current, from, level, build), now: Date.now() });
+      if (step.kind === 'adopt') {
+        // A new map build (or the first known one): its rows are listed afresh, never chased (audit 2, 4).
+        setBuild(step.build);
+        setStatus('idle');
+        return;
+      }
+      if (step.kind === 'wait') {
+        if (!build) setStatus('offline');
+        return again(step.ms);
+      }
+      if (step.kind === 'idle') return setStatus('idle');
+      if (step.kind === 'near') {
         setStatus('listing');
-        const ok = await readNear(from, level, () => stop);
+        const ok = await readNear(from, level, build!, () => stop);
         if (stop) return;
         if (ok === null) return again(BUSY_MS);
         if (!ok) {
@@ -103,17 +118,8 @@ export function useAtlas(focused: boolean, level: AtlasLevel, from: LngLat | nul
         setRows(r);
         return again(0);
       }
-      const list = nearList(rowsRef.current, from, level, build);
-      const next = readQueue(list, Date.now());
-      if (!next) {
-        setStatus('idle');
-        // A ring that failed is tried again once its wait is over (AT5).
-        const waits = list.filter((l) => !l.area.profile && l.area.failed_at != null).map((l) => l.area.failed_at! + ATLAS_RULES.retryMs - Date.now());
-        if (waits.length) again(Math.max(0, Math.min(...waits)));
-        return;
-      }
       setStatus('reading');
-      const row = await readRing(next, () => stop);
+      const row = await readRing(step.area, () => stop);
       if (stop) return;
       if (!row) return again(BUSY_MS);
       const r = [...rowsRef.current.filter((x) => x.key !== row.key), row];

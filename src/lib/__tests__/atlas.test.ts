@@ -184,3 +184,52 @@ test('AT6, AT7: one "?" per waiting kind on the picture, at its place nearest th
   assert.deepEqual(w.map((m) => m.key), ['b'], 'one history mark, the nearest; the found art is gone');
   assert.equal(Object.keys(w[0]).includes('name'), false, 'marks carry no names');
 });
+
+// The audit (2026-11-03): one regression test per accepted finding that pure logic can carry.
+test('explore-atlas audit 2: a build newer than the hook’s is adopted, never read near again and again', async () => {
+  const { atlasStep } = await import('../atlas/atlas');
+  const step = atlasStep({ build: 'b1', latest: 'b2', last: { at: O, build: 'b2', code: ATLAS_CODE }, from: O, list: [], now: 0 });
+  assert.deepEqual(step, { kind: 'adopt', build: 'b2' });
+  const again = atlasStep({ build: 'b2', latest: 'b2', last: { at: O, build: 'b2', code: ATLAS_CODE }, from: O, list: [], now: 0 });
+  assert.equal(again.kind, 'idle', 'after adopting, nothing more to read');
+});
+
+test('explore-atlas audit 4: with no known build, the step waits and checks again', async () => {
+  const { atlasStep } = await import('../atlas/atlas');
+  assert.deepEqual(atlasStep({ build: null, latest: 'unknown', last: null, from: O, list: [], now: 0 }), { kind: 'wait', ms: ATLAS_RULES.retryMs });
+  assert.deepEqual(atlasStep({ build: null, latest: 'b1', last: null, from: O, list: [], now: 0 }), { kind: 'adopt', build: 'b1' });
+});
+
+test('explore-atlas audit 3: a failed ring waits its retry, and the step says how long', async () => {
+  const { atlasStep } = await import('../atlas/atlas');
+  const list = nearList([row('A', O, { failed_at: 1000 })], O, 'neighborhood', 'b1');
+  assert.deepEqual(atlasStep({ build: 'b1', latest: 'b1', last: { at: O, build: 'b1', code: ATLAS_CODE }, from: O, list, now: 1000 }), { kind: 'wait', ms: ATLAS_RULES.retryMs });
+  const step = atlasStep({ build: 'b1', latest: 'b1', last: { at: O, build: 'b1', code: ATLAS_CODE }, from: O, list, now: 1000 + ATLAS_RULES.retryMs });
+  assert.equal(step.kind, 'ring');
+});
+
+test('explore-atlas audit 5: past the cap, the streets nearest the point are kept', () => {
+  const segments = Array.from({ length: 1200 }, (_, i) => ({ id: `s${i}`, geometry: [[east(-1100 + i * 0.9), east(-1090 + i * 0.9)]] }));
+  const s = sketchOf({ centre: O, segments, strips: [], parks: [] });
+  assert.ok(s.streets.length <= 900);
+  const ids = new Set(s.streets.map((l) => l.id));
+  assert.ok(ids.has('s1199'), 'the line at the point, last in the input, is kept');
+  assert.ok(!ids.has('s0'), 'the farthest line goes first');
+});
+
+test('explore-atlas audit 11: Walk to is offered only within navigation’s reach', async () => {
+  const { canWalkTo } = await import('../atlas/atlas');
+  const { NAV } = await import('../nav/rules');
+  assert.equal(canWalkTo(NAV.maxM - 1), true);
+  assert.equal(canWalkTo(NAV.maxM + 1), false);
+});
+
+test('AT7: what a ring read keeps of its marks has no names, and only markable places', async () => {
+  const { marksOf } = await import('../atlas/atlas');
+  const kept = marksOf(
+    [{ key: 'a', name: 'Hessian Memorial', category: 'history' as const, at: O }, { key: 'b', name: 'Domino’s', category: 'food' as const, at: O }],
+    (p) => p.category !== 'food',
+  );
+  assert.deepEqual(kept.map((m) => m.key), ['a']);
+  assert.ok(!JSON.stringify(kept).includes('Hessian'), 'the name is not kept');
+});

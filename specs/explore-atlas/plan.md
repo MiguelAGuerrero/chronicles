@@ -21,9 +21,8 @@ The owner gave the go-ahead to build from the mock with reasonable defaults
 
 ## Data
 
-`AtlasArea` (cache): key (level + normalized name + point to 2 decimals), level,
-name, at, build, code (`ATLAS_CODE`), near_at (the read that listed it),
-read_at, and, once its ring is read: `steps` per category, `strips` (names),
+`AtlasArea` (cache): key (level + normalized name + point to 3 decimals), level,
+name, at, reachM, build, code (`ATLAS_CODE`), listed_at, read_at, failed_at, and, once its ring is read: `steps` per category, `strips` (names),
 `marks` (markable places in the ring: key, category, kind, at; never names), and a
 `sketch` (projected, quantized lines with their segment ids, strips, parks).
 

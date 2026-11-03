@@ -2683,6 +2683,15 @@ function check(ok, what) {
       await page.keyboard.press('Escape');
       await page.waitForTimeout(300);
       check((await page.locator('[data-testid=atlas-card]').count()) === 0, 'AT8: Escape closes the card');
+      // explore-atlas audit 8: a card left open closes when another tab comes to the front, so it never keeps
+      // Back and Escape from that tab.
+      await tileOf('Fox Point').click();
+      await page.waitForSelector('[data-testid=atlas-card]');
+      await page.click('[data-testid=tab-chronicle]');
+      await page.waitForTimeout(600);
+      await page.click('[data-testid=tab-explore]');
+      await page.waitForSelector('[data-testid=atlas-grid]');
+      check((await page.locator('[data-testid=atlas-card]').count()) === 0, 'explore-atlas audit 8: leaving the tab closes its card');
       // AT2, AT14: the towns level.
       await page.click('[data-testid=atlas-level-town]');
       await page.waitForSelector('[data-testid=atlas-tile], [data-testid=atlas-empty]', { timeout: 30000 });
@@ -2738,8 +2747,10 @@ function check(ok, what) {
       check((await rows()).length === first.length, 'looking again replaces the area');
       // Reloaded on the tab, the atlas comes back from storage at once (AT12), offline of the map's reads (NV5).
       await page.reload();
-      await page.waitForSelector('[data-testid=atlas-tile][data-name="Fox Point"][data-read="1"]', { timeout: 30000 }).catch(() => {});
-      check(new URL(page.url()).pathname === `${BASE}/explore` && (await tileOf('Fox Point').count()) === 1, 'after a reload, the atlas is back on the same tab (NV5, AT12)');
+      const back = await page.waitForSelector('[data-testid=atlas-tile][data-name="Fox Point"][data-read="1"]', { timeout: 30000 }).then(() => true, () => false);
+      const label = back ? (await tileOf('Fox Point').getAttribute('aria-label')) ?? '' : '';
+      check(back && new URL(page.url()).pathname === `${BASE}/explore` && !/You’re here/.test(label),
+        `AT1, AT12: after a reload, the atlas is back on the same tab from where it last listed, never saying "You're here" (${label})`);
       await page.click('[data-testid=tab-chronicle]');
       await page.reload();
       await page.waitForSelector('[aria-label^="Fox Point,"]', { timeout: 30000 });

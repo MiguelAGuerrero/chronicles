@@ -75,9 +75,30 @@ place like?" before a walk. Planning (keeping areas for later) is a later slice.
 13. **AT13 · Screen readers.** Each tile is one button whose label says the area,
     how far, your familiarity, each kind present with its word, and the busy
     street. The card's sections are headers.
-14. **AT14 · Towns.** The Towns level lists towns and cities within 12 km, nearest
-    first; their card says the bars are "around its centre".
+14. **AT14 · Towns.** The Towns level lists towns, villages and cities within
+    12 km, nearest first (a village is a town in a rural place); their card says
+    the bars are "around its centre".
 
 ## Record
 
-(Filled in when the slice ships.)
+Built 2026-11-03 on branch `explore-atlas`: AT1-AT14 pass in `atlas.test.ts` and
+the e2e's Explore section. Native has not run on a device.
+
+### Audit (2026-11-03): 14 findings, 11 fixed, 1 partly fixed, 1 deferred, 1 rejected
+
+1. The atlas never follows you after the tab mounts: accept. A newer last fix on focus moves it; covered by the e2e flow and typecheck.
+2. A build change while focused loops near reads: accept. `atlasStep` adopts the new build (`explore-atlas audit 2`).
+3. A ring read that throws retries every 1.5 s: accept. It is marked failed and waits (`explore-atlas audit 3`).
+4. Offline at focus never tries again: accept. The step waits and re-checks the build (`explore-atlas audit 4`).
+5. The sketch cap keeps arbitrary streets: accept. The nearest are kept (`explore-atlas audit 5`).
+6. Ring reads are heavy and compete: partly accept. Rings no longer rewrite the shared street and place caches, and they wait while the walk's explore read runs. Tile-level de-duplication across rings is deferred.
+7. Next-door areas outside the list: accept. Next door and cards come only from the listed areas; covered by typecheck and the e2e.
+8. A card left open takes Back and Escape on other tabs: accept. Leaving the tab closes it (`explore-atlas audit 8`, e2e).
+9. Tile memo defeated: accept. The list, ring data and callbacks are kept stable; covered by review (no perf check added).
+10. The card's picture crops on wide screens: accept. It is capped at its 4:3 width; covered by review.
+11. Walk to a town navigation refuses: accept. Only within `NAV.maxM` (`explore-atlas audit 11`).
+12. Villages appear as towns: reject. In a rural place the village is the town (Foster); AT14 now says so.
+13. Old-build rows read whole on every focus: defer (`docs/DEFERRED.md`).
+14. The plan and the code disagree on keys: accept. The plan is corrected.
+
+UI notes taken: each level is framed once its areas are listed; the scrim is no longer a second Close for screen readers. Left as is: focus trapping on web and Android (as the other cards), and the title until towns are read.

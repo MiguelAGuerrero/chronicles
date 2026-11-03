@@ -4,14 +4,14 @@ import { db } from '../db';
 import { isMarkable } from '../discovery/noise';
 import { fetchTiles } from '../discovery/tileFetch';
 import { placesFromTilePois, transitFromTilePois } from '../discovery/tilePois';
-import { exploreBuild } from '../explore/exploreRun';
+import { exploreBusy } from '../explore/exploreRun';
 import { boundsOf, distanceM } from '../geo';
 import { analyzeArea } from '../landing/analyze';
 import { deriveSegments } from '../streets';
 import { tilesIn } from '../tileMath';
 import type { LngLat } from '../types';
 import {
-  ATLAS_CODE, ATLAS_RULES, newRows, presenceSteps, sketchOf, SKETCH,
+  ATLAS_CODE, ATLAS_RULES, marksOf, newRows, presenceSteps, sketchOf, SKETCH,
   type AtlasArea, type AtlasLevel, type AtlasProfile, type NearRead,
 } from './atlas';
 
@@ -37,7 +37,8 @@ export async function lastNear(level: AtlasLevel): Promise<NearRead | null> {
 let running: Promise<unknown> | null = null;
 /** One read at a time, whoever asks. */
 function one<T>(task: () => Promise<T>): Promise<T | null> {
-  if (running) return Promise.resolve(null);
+  // Never beside the walk's own explore read either (explore-atlas audit 6): the caller tries again shortly.
+  if (running || exploreBusy()) return Promise.resolve(null);
   const p = task().finally(() => {
     running = null;
   });
@@ -46,9 +47,8 @@ function one<T>(task: () => Promise<T>): Promise<T | null> {
 }
 
 /** AT1, AT14: lists the areas of a level around you. Resolves whether it read. */
-export function readNear(at: LngLat, level: AtlasLevel, shouldStop: () => boolean): Promise<boolean | null> {
+export function readNear(at: LngLat, level: AtlasLevel, build: string, shouldStop: () => boolean): Promise<boolean | null> {
   return one(async () => {
-    const build = await exploreBuild();
     const url = await db.getMeta('tile_url');
     if (!url || build === 'unknown' || shouldStop()) return false;
     const reach = level === 'neighborhood' ? ATLAS_RULES.nearNeighborhoodM : ATLAS_RULES.nearTownM;
@@ -76,7 +76,7 @@ export function profileFrom(at: LngLat, feats: CollectedFeatures, build: string)
     steps: presenceSteps(ring, at),
     strips: [...new Set(strips.map((s) => s.name))],
     stripAt: strips[0]?.peak ?? null,
-    marks: ring.filter(isMarkable).map((p) => ({ key: p.key, category: p.category, kind: p.kind, at: p.at })),
+    marks: marksOf(ring, isMarkable),
     sketch: sketchOf({
       centre: at,
       segments: segments.filter((s) => s.geometry.some((l) => l.some((p) => distanceM(p, at) <= frameM))),
@@ -102,12 +102,17 @@ export function readRing(area: AtlasArea, shouldStop: () => boolean): Promise<At
     const f = await fetchTiles(url, tilesIn(boundsOf([area.at], frameM)!), undefined, shouldStop).catch(() => null);
     if (shouldStop()) return null;
     if (!f) return failed();
-    const { profile, cache } = profileFrom(area.at, f, area.build);
-    await db.putSegments(cache.segments).catch(() => {});
-    await db.putPlaces(cache.places).catch(() => {});
-    const row: AtlasArea = { ...area, profile, read_at: Date.now(), failed_at: null };
-    await db.putAtlasAreas([row]);
-    return row;
+    try {
+      // Only the atlas's own row is written (explore-atlas audit 6): a ring's streets and places are not
+      // rewritten into the shared caches, so the write queue stays free for the walk.
+      const { profile } = profileFrom(area.at, f, area.build);
+      const row: AtlasArea = { ...area, profile, read_at: Date.now(), failed_at: null };
+      await db.putAtlasAreas([row]);
+      return row;
+    } catch {
+      // A profile that throws or a write that fails is a failed read: it waits retryMs (explore-atlas audit 3).
+      return failed();
+    }
   });
 }
 

@@ -109,3 +109,5 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - A walked area's tile showing one of your photos (decision 0066)
 - Water on the mini-maps: no water layer is decoded
 - The "?" marks and finds on the tab's own map, which the drawer had (finds moved to the cards)
+- Rows of old builds stay until a purge, and every row (with its sketch) is read whole on each focus (explore-atlas audit 13)
+- Ring reads fetch overlapping tiles again for neighbouring areas: no tile-level de-duplication (explore-atlas audit 6)

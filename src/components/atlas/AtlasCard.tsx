@@ -63,7 +63,8 @@ export function AtlasCard(props: {
   const last = lastWords(fam.last);
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-      <Pressable style={styles.scrim} onPress={props.onClose} accessibilityLabel="Close" accessibilityRole="button" testID="atlas-scrim" />
+      {/* A tap outside closes; screen readers use ✕, so the scrim isn't a second Close button. */}
+      <Pressable style={styles.scrim} onPress={props.onClose} accessible={false} importantForAccessibility="no" testID="atlas-scrim" />
       <View style={styles.card} testID="atlas-card" accessibilityViewIsModal>
         <View style={styles.head}>
           <View style={styles.headText}>
@@ -214,7 +215,7 @@ const styles = StyleSheet.create({
   close: { width: 44, height: 44, borderRadius: 22, backgroundColor: theme.bg, alignItems: 'center', justifyContent: 'center' },
   scroll: { flex: 1 },
   body: { padding: 18, gap: 20, paddingBottom: 32 },
-  bigMap: { width: '100%', aspectRatio: 4 / 3, maxHeight: 260, borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: theme.line },
+  bigMap: { width: '100%', maxWidth: 346, alignSelf: 'center', aspectRatio: 4 / 3, borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: theme.line },
   sec: { gap: 6 },
   secHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
   secTitle: { fontSize: 12, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', color: theme.muted },

@@ -2,6 +2,7 @@ import { AREA_REACH_M } from '../areas/rules';
 import type { Area, WalkArea } from '../areas/types';
 import type { CategoryId, Kind } from '../discovery/types';
 import { distanceM, projector } from '../geo';
+import { NAV } from '../nav/rules';
 import type { LngLat } from '../types';
 
 /*
@@ -265,13 +266,19 @@ const SKETCH_LINES = 900;
 /** AT6: the ring's picture from what one read found: streets with their ids (to show the walked ones), busy streets, parks. */
 export function sketchOf(o: { centre: LngLat; segments: { id: string; geometry: LngLat[][] }[]; strips: LngLat[][][]; parks: LngLat[] }): Sketch {
   const to = toSketch(o.centre);
-  const streets: Sketch['streets'] = [];
+  const all: { id: string; pts: number[]; d: number }[] = [];
   for (const s of o.segments) {
     for (const line of s.geometry) {
       const pts = flat(line, to);
-      if (pts && streets.length < SKETCH_LINES) streets.push({ id: s.id, pts });
+      if (!pts) continue;
+      let d = Infinity;
+      for (let i = 0; i < pts.length; i += 2) d = Math.min(d, Math.hypot(pts[i] - SKETCH.w / 2, pts[i + 1] - SKETCH.h / 2));
+      all.push({ id: s.id, pts, d });
     }
   }
+  // Past the cap, the lines nearest the point are kept (explore-atlas audit 5): a dense downtown's middle never drops out.
+  const kept = all.length > SKETCH_LINES ? [...all].sort((a, b) => a.d - b.d).slice(0, SKETCH_LINES) : all;
+  const streets: Sketch['streets'] = kept.map(({ id, pts }) => ({ id, pts }));
   const strips = o.strips.flatMap((lines) => lines.map((l) => flat(l, to)).filter((p): p is number[] => !!p));
   const parks = o.parks.flatMap((p) => {
     const [x, y] = to(p);
@@ -333,4 +340,47 @@ export function waitingMarks(marks: AtlasMark[], found: Set<string>, centre: Lng
     if (!b || d < b.d) best.set(m.category, { m, d });
   }
   return ATLAS_ORDER.filter((c) => best.has(c)).map((c) => best.get(c)!.m);
+}
+
+/** explore-atlas audit 11: Walk to only where navigation will route (its straight-line limit). */
+export const canWalkTo = (m: number) => m <= NAV.maxM;
+
+/** What the read loop does next (AT5, AT12; explore-atlas audit 2, 3, 4). Pure, so the loop's choices are tested. */
+export type AtlasStep =
+  | { kind: 'adopt'; build: string }
+  | { kind: 'near' }
+  | { kind: 'ring'; area: AtlasArea }
+  | { kind: 'wait'; ms: number }
+  | { kind: 'idle' };
+
+interface StepInput {
+  /** The build the hook lists rows under; null before one is known. */
+  build: string | null;
+  /** The map's build as just checked ('unknown' offline). */
+  latest: string;
+  last: NearRead | null;
+  from: LngLat;
+  list: Listed[];
+  now: number;
+}
+
+export function atlasStep(o: StepInput): AtlasStep {
+  // Checked before every step: a newer build is adopted, never chased by reading near again and again (audit 2).
+  if (o.latest === 'unknown') return o.build ? afterBuild(o, o.build) : { kind: 'wait', ms: ATLAS_RULES.retryMs };
+  if (o.latest !== o.build) return { kind: 'adopt', build: o.latest };
+  return afterBuild(o, o.build);
+}
+
+function afterBuild(o: StepInput, build: string): AtlasStep {
+  if (needsNear(o.last, o.from, build)) return { kind: 'near' };
+  const next = readQueue(o.list, o.now);
+  if (next) return { kind: 'ring', area: next };
+  // A ring that failed is tried again once its wait is over (AT5, audit 3).
+  const waits = o.list.filter((l) => !l.area.profile && l.area.failed_at != null).map((l) => l.area.failed_at! + ATLAS_RULES.retryMs - o.now);
+  return waits.length ? { kind: 'wait', ms: Math.max(0, Math.min(...waits)) } : { kind: 'idle' };
+}
+
+/** AT7: a ring's marks as the atlas keeps them: its markable places by key, kind and spot, with their names dropped. */
+export function marksOf<T extends AtlasMark & { name?: string }>(places: T[], markable: (p: T) => boolean): AtlasMark[] {
+  return places.filter(markable).map((p) => ({ key: p.key, category: p.category, kind: p.kind, at: p.at }));
 }

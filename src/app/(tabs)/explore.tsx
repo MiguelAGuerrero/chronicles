@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AtlasCard } from '../../components/atlas/AtlasCard';
 import { AtlasTile } from '../../components/atlas/AtlasTile';
@@ -8,11 +9,12 @@ import { WalkMap } from '../../components/map/WalkMap';
 import { Icon } from '../../components/icons';
 import { Banner, Button, theme } from '../../components/ui';
 import {
-  ATLAS_RULES, familiarity, findsIn, nearList, nextDoor, waitingMarks, walkTarget,
+  ATLAS_RULES, canWalkTo, familiarity, findsIn, nearList, nextDoor, waitingMarks, walkTarget,
   type AtlasLevel, type Familiarity,
 } from '../../lib/atlas/atlas';
 import { lastNear } from '../../lib/atlas/read';
 import { useAtlas } from '../../lib/atlas/useAtlas';
+import type { Find } from '../../lib/explore/explore';
 import { db } from '../../lib/db';
 import { boundsOf, type Bounds } from '../../lib/geo';
 import { readArea, rememberArea } from '../../lib/landing/read';
@@ -24,6 +26,7 @@ import { useStartWalk } from '../../lib/useStartWalk';
 import { useTabMap } from '../../lib/useTabMap';
 
 const NONE: never[] = [];
+const NEW_FAM: Familiarity = { walks: 0, last: null };
 const WORLD = { center: [-40, 30] as [number, number], zoom: 1.2 };
 const LEVELS: { id: AtlasLevel; label: string }[] = [
   { id: 'neighborhood', label: 'Neighborhoods' },
@@ -57,10 +60,26 @@ export default function Explore() {
   }, [from]);
   const [fit, setFit] = useState<{ bounds: Bounds | null; key: number }>({ bounds: null, key: 0 });
   const { focused, savedCamera, onCameraChange, onFitSettled } = useTabMap({ key: fit.key, refit: () => setFit((f) => ({ ...f, key: f.key + 1 })) });
-  const fresh = useAtlas(focused, level, from);
-  const atlas = useMemo(() => (stale ? { ...fresh, list: fresh.list.map((l) => ({ ...l, here: false })) } : fresh), [fresh, stale]);
   const [selected, setSelected] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
+  const fresh = useAtlas(focused, level, from);
+  // Kept stable unless the list itself changes, so the tiles' memo holds (explore-atlas audit 9).
+  const list = useMemo(() => (stale ? fresh.list.map((l) => ({ ...l, here: false })) : fresh.list), [fresh.list, stale]);
+  const atlas = useMemo(() => ({ ...fresh, list }), [fresh, list]);
+  // Back on the tab, a newer fix from Navigate moves the atlas with you (explore-atlas audit 1).
+  const fixSeen = useRef(getLastFix()?.t ?? 0);
+  useFocusEffect(
+    useCallback(() => {
+      const fix = getLastFix();
+      if (fix && fix.t > fixSeen.current) {
+        fixSeen.current = fix.t;
+        setFrom(fix.at);
+        setStale(false);
+      }
+      // A card left open never keeps Back and Escape from the other tabs (explore-atlas audit 8).
+      return () => setOpen(null);
+    }, []),
+  );
   const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
   const [spot, setSpot] = useState<{ at: LngLat; zoom: number } | null>(null);
   const [looking, setLooking] = useState(false);
@@ -77,6 +96,7 @@ export default function Explore() {
     onFix: (at) => {
       setFrom(at);
       setStale(false);
+      fixSeen.current = Date.now();
       frame([at], ATLAS_RULES.ringM);
     },
     onError: setLocError,
@@ -89,7 +109,7 @@ export default function Explore() {
   }, [atlas.list, atlas.areas, atlas.walkAreas]);
   const found = useMemo(() => new Set(atlas.finds.map((f) => f.key)), [atlas.finds]);
   const ringOf = useMemo(() => {
-    const m = new Map<string, { waiting: ReturnType<typeof waitingMarks>; finds: ReturnType<typeof findsIn<(typeof atlas.finds)[number]>> }>();
+    const m = new Map<string, { waiting: ReturnType<typeof waitingMarks>; finds: Find[] }>();
     for (const l of atlas.list) {
       const a = l.area;
       m.set(a.key, {
@@ -98,20 +118,33 @@ export default function Explore() {
       });
     }
     return m;
-  }, [atlas, found]);
+  }, [atlas.list, atlas.finds, atlas.hidden, found]);
 
   // The town you're in names the page, when the towns have been read.
   const town = useMemo(() => (from && !stale ? nearList(atlas.rows, from, 'town', atlas.build).find((l) => l.here)?.area.name ?? null : null), [atlas.rows, from, atlas.build, stale]);
   const points = useMemo(() => atlas.list.map((l) => l.area.at), [atlas.list]);
   const sel = atlas.list.find((l) => l.area.key === selected) ?? null;
-  const card = atlas.list.find((l) => l.area.key === open) ?? atlas.rows.map((a) => ({ area: a, distanceM: 0, here: false })).find((l) => l.area.key === open) ?? null;
-
-  const pick = (key: string) => {
-    const l = atlas.list.find((x) => x.area.key === key);
+  // A card is only ever one of the listed areas, with its real distance (explore-atlas audit 7).
+  const card = focused ? atlas.list.find((l) => l.area.key === open) ?? null : null;
+  const listRef = useRef(atlas.list);
+  useEffect(() => {
+    listRef.current = atlas.list;
+  }, [atlas.list]);
+  const pick = useCallback((key: string) => {
+    const l = listRef.current.find((x) => x.area.key === key);
+    if (!l) return;
     setSelected(key);
     setOpen(key);
-    if (l) frame([l.area.at], ATLAS_RULES.ringM);
-  };
+    frame([l.area.at], ATLAS_RULES.ringM);
+  }, [frame, setOpen, setSelected]);
+  // Each level is framed once its areas are first listed (AT9): the map shows them all.
+  const framed = useRef<string | null>(null);
+  useEffect(() => {
+    const key = `${level}:${atlas.build}`;
+    if (!points.length || framed.current === key) return;
+    framed.current = key;
+    frame(from ? [from, ...points] : points, 150);
+  }, [points, level, atlas.build, from, frame]);
 
   const lookHere = async (at: LngLat) => {
     if (looking) return;
@@ -184,7 +217,7 @@ export default function Explore() {
             }}
             onPress={() => spot && setSpot(null)}
             onViewChange={setView}
-            fitBounds={fit.bounds ?? (points.length ? boundsOf(from ? [from, ...points] : points, 200) : null)}
+            fitBounds={fit.bounds}
             fitKey={fit.key}
             onFitSettled={onFitSettled}
             fitPadding={{ top: 24, right: 24, bottom: 24, left: 24 }}
@@ -303,7 +336,7 @@ export default function Explore() {
                   <AtlasTile
                     key={l.area.key}
                     listed={l}
-                    fam={famOf.get(l.area.key) ?? { walks: 0, last: null }}
+                    fam={famOf.get(l.area.key) ?? NEW_FAM}
                     walked={atlas.walked}
                     waiting={r?.waiting ?? NONE}
                     finds={r?.finds ?? NONE}
@@ -330,8 +363,8 @@ export default function Explore() {
           waiting={ringOf.get(card.area.key)?.waiting ?? NONE}
           finds={ringOf.get(card.area.key)?.finds ?? NONE}
           you={from}
-          nextDoor={nextDoor(card.area, atlas.rows, atlas.build)}
-          walkTo={card.area.profile || !card.here ? walkTarget(card.area) : null}
+          nextDoor={nextDoor(card.area, atlas.list.map((l) => l.area), atlas.build)}
+          walkTo={!card.here && canWalkTo(card.distanceM) ? walkTarget(card.area) : null}
           starting={walkStart.starting}
           onWalk={() => {
             const t = walkTarget(card.area);
