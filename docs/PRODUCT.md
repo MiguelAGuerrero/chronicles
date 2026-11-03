@@ -82,8 +82,9 @@ recording bar brings a minimized walk back.
   train) dashed. A green ring marks where the walk began; the replay adds an
   orange ring where it ended. Every map has a scale bar in its bottom-left
   corner. Pins mark captures, grouped by screen distance when zoomed
-  out. Faint pins with a clock badge show earlier walks' captures nearby
-  (memories on revisit); a tap previews them.
+  out. A pin of one photo shows the photo itself, small and round. Faint
+  pins with a clock badge show earlier walks' captures nearby (memories on
+  revisit); a tap previews them.
 - Capture buttons (camera, mic, pencil) float in the lower middle. Photos and
   videos come from the system camera (video capped at 30 s), memos from the
   mic, notes from the pencil. Captions can be added to photos later.
@@ -127,8 +128,9 @@ recording bar brings a minimized walk back.
   star is selected and its walks listed. Placed loose moments are pins from
   z11.
 - A bottom sheet with three heights peeks with **Walks | Days**:
-  - **Walks**: a list of walks (date, distance, time, captures), or a place's
-    walks. A row's More menu deletes the walk or just its media.
+  - **Walks**: a list of walks (date, distance, time, captures) under a
+    header per month, or a place's walks. A row's More menu renames the walk
+    (its title and one line), or deletes it or just its media.
   - **Days**: local midnight to midnight, each with its walks and loose
     moments as a timeline, and **Replay this day**.
 - A star's sheet offers **Walk here**. With no walk finished, the peek shows
@@ -140,13 +142,13 @@ recording bar brings a minimized walk back.
   The card says distance, time, captures, new streets in words ("your first
   time down Elm Street"), finds by name, and the low ("Passed ... without
   stopping"). **Name it** sets the title and an epilogue; **Not now** leaves
-  it unnamed. Every way out of the first replay ends on Chronicle.
+  it unnamed, and the card's More menu can rename it later. Every way out of the first replay ends on Chronicle.
 - **The day's replay** flies pin to pin through a day's loose moments and
   plays each walk's own path.
 - **The capture viewer** opens from any pin: full-screen photos and videos
   over a thin strip of details, cards for notes and memos. Its More menu
-  saves a keeper to the photo library (captions baked in) or deletes the
-  moment. A caption editor and Remind me here live here too.
+  saves a keeper to the photo library (captions baked in), edits a note's
+  words, or deletes the moment. A caption editor and Remind me here live here too.
 - **Deletes** (a walk, a walk's media, one moment) hide at once with a 5 s
   Undo, then run as if it never happened.
 
@@ -192,6 +194,7 @@ recording bar brings a minimized walk back.
 | Navigation and tabs (three-tab layout, docked drawer, recording bar) | Shipped, two audit batches done |
 | Quality of life: start and end markers, scale bar, Locate on Navigate and Explore | Shipped (web verified by the qol e2e; native unverified) |
 | Quality of life round 2: km or miles, time left while navigating, the "Not recording" chip with Open Settings and a retry on return | Shipped (web verified by the qol e2e; native unverified) |
+| Quality of life round 3: rename a walk later, edit a note, photos on their pins, months in the walks list | Shipped (web verified by the qol e2e; native unverified) |
 | Bridges and Open in Maps | Shipped on web, audited (native unverified) |
 | Suggested routes (interesting ways, route preview, "Walk this way") | Deferred, next slice |
 | Backup and export of a walk | Code exists, no UI, deferred |

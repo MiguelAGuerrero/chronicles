@@ -108,3 +108,12 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
   units)`; imperial picks feet in 1, 2, 5 × 10^n up to 2,000 ft, then miles. `meters`
   stays in metres, so the e2e's `data-m` is always metres. Both maps call `useUnits()`
   and pass it, so the bar redraws on a change.
+- **A photo's pin shows its small copy** (QL26, QL27): `pinThumb(pin)` (`lib/pins.ts`,
+  pure) gives the copy's ref only for a pin of one photo with a `thumb_path` other than
+  `THUMB.none`, never `file_path`: a map never decodes full photos. `CapturePinView`
+  resolves it with `useMediaUri` and draws a round `Image` (`pin-thumb`) inside a ring
+  of the photo colour; the icon shows until it loads and comes back on error. The web
+  markers' key and the native Marker keys include the ref, so a copy made after the
+  pin was drawn replaces the icon (the rebuilt marker shows the icon for a moment).
+  Memory pins pick up a copy made mid-walk only when their capture set changes
+  (`memories.ts` sends only changed ids; deferred).

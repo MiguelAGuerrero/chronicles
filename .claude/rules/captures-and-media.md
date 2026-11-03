@@ -105,3 +105,12 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
   iOS's rule into a fresh page by overriding `HTMLMediaElement.prototype.play`.
 - expo-video on web ignores `play()` before the source has loaded. Start it on
   `statusChange` → `readyToPlay`.
+- **Edit a note** (QL24, QL25): the viewer's More menu offers Edit note for a note
+  when the screen passes `onSaveNote`; `NoteEditor` opens inside the viewer's Modal (as
+  the caption and reminder editors do). `noteText` (`lib/noteEdit.ts`, pure) trims,
+  cuts to 500 and refuses blank. The viewer keeps edited bodies and merges them into
+  what it shows, so the text changes at once and rolls back on a failed save. Screens
+  store the body, patch their own list, and send `captureBus.patch(walkId, id, { body },
+  null)`: a null sender reaches every listener, for screens without `useCaptures`.
+  The walk screen goes through `useCaptures.setNote`. Navigate's live walk has no
+  viewer; "Memories here" has no Edit note. Captions are still not sent on the bus.

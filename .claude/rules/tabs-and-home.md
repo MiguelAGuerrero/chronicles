@@ -156,3 +156,16 @@ The three tabs (Explore, Navigate, Chronicle), the home sheet, the recording bar
   (round 2's deploy failed on that: Node and the CI runner report en-US). The e2e gives
   every context a metric region (`metricRegion`: `resolvedOptions().locale` reads
   en-CA, formatting untouched); `E2E_MILES=1` keeps en-US.
+- **Months in the walks list** (QL28): all walks and a place's walks render
+  `byMonth(walks, now)` (`lib/months.ts`, pure, local time) under `month-header`
+  headers, newest first; the month alone this year, with its year otherwise. The
+  section style sets capitals on screen, so the e2e reads `textContent`. `now` is read
+  once when the sheet mounts (a sheet kept across New Year keeps last year's labels
+  until it remounts; accepted).
+- **Rename later** (QL22, QL23): a walk's More menu (`WalkActions`, on its row and its
+  replay card) starts with Rename, which turns the sheet into an editor in the same
+  Modal (`rename-title` 60, `rename-epilogue` 200, Save, Cancel); Escape, Back and the
+  backdrop step out of the editor before the sheet. `renamePatch` (`lib/rename.ts`,
+  pure) writes only the title and the line. Chronicle and the replay patch the walk in
+  place through `onRenamed`, so the row and the card show it at once. `suggestTitle`
+  lives in the pure `lib/walkTitle.ts` (`summary.ts` re-exports it).

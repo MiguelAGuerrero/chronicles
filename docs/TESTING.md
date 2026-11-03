@@ -93,7 +93,7 @@ npm run export:web && npm run e2e:web
 | `gaps` | a walk with two GPS gaps written into storage, then a reload: one gap fills by itself, one is offered faint (G5, G6, G9, G10, G12; `window.__project`, `data-runs`, `data-faint`) |
 | `marks` | an exploring walk through an area read before draws the marks it passes (Nov 2 repro) |
 | `reload` | a reload with a walk minimized keeps it reachable: the bar's ›, its Stop, the tabs |
-| `qol` | quality of life QL1-QL21: Locate, the scale bar, the trace's end markers, the units segment, time left while navigating, the denied-location chip (a second context without the permission) |
+| `qol` | quality of life QL1-QL28: Locate, the scale bar, the trace's end markers, the units segment, time left while navigating, the denied-location chip (a second context without the permission), a photo's pin thumbnail, editing a note from the replay, month headers, rename from a Chronicle row (29 checks, about a minute) |
 
 `marks`, `reload` and `qol` run **only** through `E2E_ONLY`: run the ones your
 change touches as well as the full flow. Each ends with a no-console-errors check.

@@ -87,3 +87,6 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] The recorder retried on a return to the front through expo-location's permission request and the background task, `session.restartRecording` beside the recorder's own AppState listener (Quality of life, QL20)
 - [ ] The pressable "Not recording" chip over the native map, and its Open Settings action (Quality of life, QL19)
 - [ ] The Distances segment inside the native Start dialog Modal, and `Intl` on Hermes for the locale default (Quality of life, QL13, QL16)
+- [ ] The rename editor and its keyboard inside the native actions Modal, and Android Back stepping out of it, `components/WalkActions.tsx` (Quality of life, QL22)
+- [ ] The note editor inside the native viewer Modal, `components/NoteEditor.tsx` (Quality of life, QL24)
+- [ ] The round picture inside a MapLibre RN Marker, its `onLoad`/`onError`, and the Marker remounting when the copy arrives, `components/CapturePinView.tsx` (Quality of life, QL26, QL27)
