@@ -905,6 +905,23 @@ function check(ok, what) {
         }
       }
     }
+    {
+      // A way out from the bar itself (the owner, Nov 2: stuck minimized, with no way to stop).
+      // A tap explains; a hold stops the walk and opens its replay.
+      await pg.waitForSelector('[data-testid=bar-stop]', { timeout: 10000 });
+      await pg.click('[data-testid=bar-stop]');
+      await pg.waitForTimeout(400);
+      const said = await pg.locator('[data-testid=recording-said]').innerText().catch(() => '');
+      check(said === 'Hold to stop the walk' && new URL(pg.url()).pathname === `${BASE}/`, `bar stop: a tap only says to hold ("${said}")`);
+      const b = await pg.locator('[data-testid=bar-stop]').boundingBox();
+      await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+      await pg.mouse.down();
+      await pg.waitForTimeout(1100);
+      await pg.mouse.up();
+      const toReplay = await pg.waitForURL(/replay/, { timeout: 30000 }).then(() => true, () => false);
+      const w = await openWalk(pg);
+      check(toReplay && w == null, `bar stop: a hold on the bar's Stop ends the walk and opens its replay (${pg.url()}, open: ${w && w.id})`);
+    }
     await c.close();
   };
 

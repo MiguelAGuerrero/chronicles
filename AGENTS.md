@@ -1011,6 +1011,11 @@ Read this before changing recording, streets, the replay or storage.
     Never reproduced (desktop, phone emulation, `/chronicles`, reloads,
     browser Back: `E2E_ONLY=reload`, `E2E_MOBILE=1`); these are the only two
     ways the › can do nothing.
+  - **The bar has its own Stop** (`bar-stop`, held as on the walk screen; a
+    tap says to hold), beside its camera: a way out even when the walk screen
+    can't be reached (the owner's quick fix, Nov 2). It refuses under a memo
+    (`memoGate`), waits at most 5 s for the bar's photo, then `stopWalk` and
+    the replay.
 - **A notification opener decides at tap time** from the keeper
   (`useOpenWalkInfo` in a ref), never from what its tab read on focus: a JS
   tab stays mounted, stale, under the others (tabs audit 2).

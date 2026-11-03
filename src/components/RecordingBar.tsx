@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { router } from 'expo-router';
 import { db } from '../lib/db';
+import { memoGate } from '../lib/memoGate';
+import { stopWalk } from '../lib/session';
 import { reminderText } from '../lib/discovery/recall';
 import { onRecallFired, RECALL_OPEN_KEY } from '../lib/discovery/recallCheck';
 import { feedback } from '../lib/motion';
@@ -14,7 +17,7 @@ import { showWalk } from '../lib/walkNav';
 import { Icon } from './icons';
 import { useOpenWalk } from './OpenWalk';
 import { Ticking } from './Ticking';
-import { theme } from './ui';
+import { HoldButton, theme } from './ui';
 
 /** The bar's return waits this long at most for its photo to be kept. */
 const RETURN_WAIT_MS = 5000;
@@ -100,6 +103,28 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
     setSaid({ text: kept.kind === 'photo' ? 'Photo saved to your walk' : 'Video saved to your walk' });
   };
 
+  const [stopping, setStopping] = useState(false);
+  const stop = async () => {
+    if (stopping) return;
+    setStopping(true);
+    try {
+      // Never under a memo, as Start (tabs audit 3); the bar's photo is kept first, as on its return.
+      const ready = await Promise.race([memoGate.readyToStart(), new Promise<boolean>((r) => setTimeout(() => r(false), RETURN_WAIT_MS))]);
+      if (!ready) {
+        setSaid({ text: 'A voice memo is recording. Save it first.', error: true });
+        return;
+      }
+      await settleWithin(keeping.current, RETURN_WAIT_MS);
+      await stopWalk(walk.id);
+      feedback('success');
+      router.push(`/replay/${walk.id}`);
+    } catch (e) {
+      setSaid({ text: `The walk could not be stopped: ${e instanceof Error ? e.message : e}`, error: true });
+    } finally {
+      setStopping(false);
+    }
+  };
+
   const line = (now: number) => recordingLine({ startedAt, pauses, now, distanceM });
   return (
     <View testID="recording-bar" style={styles.bar}>
@@ -157,6 +182,20 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
         >
           {cap.busy === 'photo' ? <ActivityIndicator color={theme.ink} /> : <Icon name="camera" size={22} color={theme.ink} />}
         </Pressable>
+        {/* Stop from the bar itself, held as on the walk screen: a way out even when the walk screen
+            can't be reached (the owner, Nov 2). */}
+        <HoldButton
+          testID="bar-stop"
+          label="Hold to stop the walk"
+          busyLabel="Stopping…"
+          onHold={stop}
+          onTap={() => setSaid({ text: 'Hold to stop the walk' })}
+          busy={stopping}
+          disabled={stopping}
+          style={styles.stop}
+        >
+          <Icon name="stop" size={18} color={theme.ink} />
+        </HoldButton>
       </View>
     </View>
   );
@@ -176,6 +215,7 @@ const styles = StyleSheet.create({
   glyph: { alignItems: 'center', justifyContent: 'center' },
   text: { flex: 1, color: '#ffffff', fontSize: 16, fontWeight: '600', fontVariant: ['tabular-nums'] },
   error: { fontSize: 14 },
+  stop: { width: 44, height: 44, minHeight: 44, paddingHorizontal: 0, borderRadius: 22, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' },
   camera: { width: 44, height: 44, borderRadius: 22, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' },
   pressed: { opacity: 0.8 },
 });
