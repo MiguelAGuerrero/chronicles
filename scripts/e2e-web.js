@@ -523,8 +523,9 @@ function check(ok, what) {
       if (viewers) {
         await pg.click('[data-testid=viewer-more]');
         check((await pg.locator('[data-testid=viewer-handoff]').count()) === 1, 'the walk’s viewer has Open in Maps in its More menu (NH6)');
-        await pg.click('[data-testid=viewer-more]');
-        await pg.waitForTimeout(200);
+        // The menu's backdrop covers the screen: a tap beside the menu closes it.
+        await pg.mouse.click(20, 420);
+        await pg.waitForSelector('[data-testid=viewer-menu]', { state: 'detached', timeout: 5000 });
       }
       await pg.click('[data-testid=viewer-close]');
       await pg.waitForTimeout(400);
