@@ -7,7 +7,7 @@ paths:
 ---
 # Functional core, imperative shell
 
-Decisions are data and plain functions; effects live in a thin shell. Draw the line at decisions, not at purity: a function may mutate its own locals, and React already requires most of this (derive in render, events in handlers, Effects only to sync with something outside). The owner's calls: `docs/decisions/0067-functional-core-checked.md`. The spec: `specs/functional-core/spec.md` (FC1-FC10).
+Decisions are data and plain functions; effects live in a thin shell. Draw the line at decisions, not at purity: a function may mutate its own locals, and React already requires most of this (derive in render, events in handlers, Effects only to sync with something outside). The owner's calls: `docs/decisions/0072-functional-core-checked.md`. The spec: `specs/functional-core/spec.md` (FC1-FC10).
 
 ## Layers
 

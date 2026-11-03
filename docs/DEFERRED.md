@@ -35,7 +35,15 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - A long fill's share of the replay isn't capped (Filling gaps)
 - No way to reach a filled stretch without a map tap, for screen readers, `GapCard` (Filling gaps)
 - Gap inference on a very dense grid can take about 0.5 s of JS on a desktop, `gaps/infer.ts` (Filling gaps)
-- A dismissed stretch can't be brought back, `gap_fill` (Filling gaps)
+- Editing a kept or drawn line point by point: drawing again replaces it (Gap drawing)
+- Drawing past a gap's two ends, or over a ride or a pause (Gap drawing)
+- Showing that a kept line was drawn rather than guessed: it would need a column, a migration (Gap drawing)
+- Freehand finger drawing: the owner chose taps snapped to paths (Gap drawing)
+- Drawing re-derives every tile read so far on each read, and re-routes every pair on each tap: per-tile derivation and cached pairs (gap-drawing audit 9)
+- Tiles read for a drawing aren't kept for the next one, and offline drawing doesn't use the street cache (gap-drawing audit 11)
+- The offer for a gap depends on the walk's pace when it was read: live, the replay and a later session can differ (gap-drawing audit 13)
+- A gap whose end fix moves more than 25 m while it is drawn keeps a line that meets no gap (gap-drawing audit 14)
+- Drawing needs map taps: no way for a screen reader (Gap drawing)
 
 ## Explore and discovery
 
@@ -111,6 +119,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - The "?" marks and finds on the tab's own map, which the drawer had (finds moved to the cards)
 - Rows of old builds stay until a purge, and every row (with its sketch) is read whole on each focus (explore-atlas audit 13)
 - Ring reads fetch overlapping tiles again for neighbouring areas: no tile-level de-duplication (explore-atlas audit 6)
+- Highlighting an area's dot on the small map as its tile scrolls to the top of the grid (atlas round 3, from the design review)
 
 ## Functional core (slice 1)
 

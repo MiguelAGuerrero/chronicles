@@ -29,6 +29,9 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] The dashed ride layer, `RIDE_DASH` (Rides)
 - [ ] The live link line from the trace's end to the dot, `setData:trace-link` (Motion)
 - [ ] The faint gap layer, `FAINT_OPACITY`, and `GapCard` over the native map (Filling gaps)
+- [ ] The dotted gap joins (`GAP_LINK_DASH`), the dashed drawing line (`DRAWING_DASH`), map taps while drawing, and the `GapDraw` bar over the native map (Gap drawing, GW2-GW8)
+- [ ] While drawing: whether a Marker tap also fires the map's onPress, `display: 'none'` on the capture row, `GapDraw`'s BackHandler against the screen's own, and `accessibilityViewIsModal` on the bar (Gap drawing)
+- [ ] Reading tiles in code for drawing on Hermes (`useGapDraw`, `readDrawTiles`), and the k-shortest search's cost on a phone (Gap drawing, GW7, GT2)
 - [ ] `LiveWalk`'s Markers and dot on Navigate (Navigation & tabs)
 - [ ] `capFitBounds` widening MapLibre RN's fitBounds (Navigation & tabs, U15)
 
@@ -58,6 +61,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] Native caption baking: the view sized in points (`px / PixelRatio`), pixel `width`/`height` to `captureRef`, `useRenderInContext` on iOS, behind the viewer's cover, one bake at a time (Round 3, captions)
 - [ ] The thumbnail copy through expo-image-manipulator, `media/thumb.ts`, and whether EXIF orientation survives it (Memories on revisit, thumbnails)
 - [ ] The home's capture row, `MomentBar` and `CaptureRow` (Moments and days)
+- [ ] Navigate's moment pins as MapLibre RN Markers, and their `CaptureViewer` over the tab map (moment pins 1-2)
 - [ ] The backup zip written to a file handle, `writeWalkBundle`, to be tested on a phone before it reaches the UI (Product, backing up)
 
 ## Deletion (`db.deleteWalk`, `db.deleteCaptures`, `removeMedia`)
@@ -78,6 +82,10 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] The memo saved when Navigate blurs mid-memo (Navigation & tabs)
 - [ ] The replay's `BackHandler`, ending on Chronicle (Navigation & tabs, audit 6)
 - [ ] `StartDialog`, the Modal over the tab map (Navigate's settings are a dialog)
+- [ ] The app opening on Explore at `/` on the native stack and tabs, and Android back on Navigate or Chronicle returning to Explore (NV2, NV5, 0070)
+- [ ] A deep link to a missing replay or day at launch, `router.dismissTo('/')` reaching Explore on the native stack (NV2, 0070)
+- [ ] Explore's one fix at launch, and the location prompt it raises before any tap (NV16, 0070)
+- [ ] An iPhone Home Screen app reopening on its last page (the `/explore` redirect, a stale replay link) (NV2, 0070)
 
 ## Quality of life
 
@@ -97,6 +105,8 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] react-native-svg mini-maps on iOS and Android (12 tiles, an even-odd veil, dashed strokes)
 - [ ] The atlas card's Back (BackHandler) and its layout over the tab bar
 - [ ] The small map's long press and the ring layer at its height
+- [ ] The atlas card's drag (responder props on the handle) and its two heights; the side panel on a tablet
+- [ ] Area points as MapLibre RN Markers (anchor top, offset) on the small map
 
 ## Functional core (slice 1, FC1-FC10)
 

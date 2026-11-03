@@ -3,7 +3,7 @@ paths:
   - "src/lib/discovery/**"
   - "src/lib/explore/**"
   - "src/lib/db/{exploreRow,placeRow,stores}.ts"
-  - "src/app/(tabs)/explore.tsx"
+  - "src/app/(tabs)/index.tsx"
   - "src/lib/atlas/**"
   - "src/components/atlas/**"
   - "src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx"
@@ -161,6 +161,15 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
   - A failed ring stores `failed_at` and waits `retryMs`.
 - **The loop** (`useAtlas`) runs only while the tab is focused and a position is known. It does one step per effect run and asks for the next with a timer. Moving 1 km, a new build or a new `ATLAS_CODE` lists again.
 - **Storage:** `atlas_area` is in `DERIVED_STORES` (SQLite migration 15, IndexedDB v13), so `purgeDerived` clears it.
-- **Position:** the last fix, or a Locate tap. After a reload (no fix in memory), the tab opens where it last listed areas, from `atlas_near:neighborhood`. It then never says "You're here", and the title says "Near you".
+- **The hierarchy is the grid** (round 2, the owner, Nov 3; AT2): no level switch. The page near you lists the neighborhoods around you, then "Towns nearby". A town's tile opens its page (`useAtlas(..., town)`): its wide tile, then `townNeighborhoods`, which are within its reach (capped at 5 km) and belong to it (`townOf`: the nearest town, closer for its size). Near reads are kept per level as a list (`atlas_near:<level>`, `withNear`, newest 12, each with its radius), so going into a town and back reads nothing twice.
+- **The title floats over the map** (AT15): the map starts under the status bar; the title card has a shadow. Tiles carry `characterLine` (AT16) and the busiest strip.
+- **The area card is sized in pixels** from the screen's measured height: sized by percent and insets, it showed only its header on an iPhone's Safari (Nov 3).
+- **Round 3 (decision 0067, the design review):**
+  - Presence is dots (`KindStrip`'s `Dots`). A tile shows only the kinds present; the card's `KindRow` shows all eight, with "none" at full ink. `MARKS_EXPLAINED` has no numbers, and the e2e checks it.
+  - Walk to is the card's footer (`walkTarget` → `label`, `via`). The card is a sheet (58% / 90%, drag or tap the handle), or a side panel from 1000 px.
+  - The long press's choices (`atlas-spot`) sit over the map, and `spot` clears on `pick`, `enterArea`, `leave` and blur. Below z10 a toast shows. Meta `atlas_press_seen` ends the hint.
+  - `otherTowns` drops your town; the title (`atlas-title`) opens it.
+  - Area points are the map's `areaPoints` prop (`components/AreaPoint.tsx`, DOM markers on web, Markers on native), with names for the nearest three and the selected one. Never `marks`, which stay for the pressed spot.
+- **Position:** one fix read as the app opens (NV16, `launchFix`; the owner's call, Nov 3, since Explore is the opening tab), then the last fix, or a Locate tap. Until that fix comes, or if it fails, the tab opens where it last listed areas, from `atlas_near:neighborhood`, never saying "You're here", and the title says "Near you".
 - **Kept from the old tab:** the long press on the small map (What's good here, Walk here). The drawer's "?" and find pins on the map are gone; finds are on the cards.
 - **E2E:** tiles carry `data-name` and `data-read`; kind slots carry `data-kind` and `data-step`. The long press goes near the small map's middle, since a pixel there is more ground than on the old full-screen map.

@@ -1,418 +1,582 @@
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useRef, useState, type ComponentProps } from 'react';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AccessibilityInfo, ActivityIndicator, BackHandler, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { StartDialog } from '../../components/StartDialog';
-import { SheetFrame, type SheetSize } from '../../components/HomeSheet';
+import type { AreaPointPin } from '../../components/AreaPoint';
+import { AtlasCard, type CardLayout } from '../../components/atlas/AtlasCard';
+import { AtlasTile } from '../../components/atlas/AtlasTile';
 import { LocateButton } from '../../components/LocateButton';
-import { CaptureRow, MomentBar } from '../../components/MomentBar';
-import { useOpenWalk, useOpenWalkInfo } from '../../components/OpenWalk';
 import { WalkMap } from '../../components/map/WalkMap';
 import { Icon } from '../../components/icons';
 import { Banner, Button, theme } from '../../components/ui';
-import { useUnits } from '../../lib/useUnits';
+import {
+  ATLAS_RULES, canWalkTo, distanceWords, familiarity, findsIn, nextDoor, otherTowns, townReachM, waitingMarks, walkTarget,
+  type AtlasArea, type Familiarity, type Listed,
+} from '../../lib/atlas/atlas';
+import { nearReads } from '../../lib/atlas/read';
+import { useAtlas } from '../../lib/atlas/useAtlas';
 import { db } from '../../lib/db';
-import { useVisible } from '../../lib/deletion/useDeletions';
-import { type Kind } from '../../lib/explore/explore';
-import { findForMoment } from '../../lib/explore/momentFind';
-import { DEFAULT_SETTINGS, loadSettings, saveSettings, type ExploreSettings } from '../../lib/explore/settings';
-import { boundsOf, distanceM, type Bounds } from '../../lib/geo';
-import { getLastFix, setLastFix } from '../../lib/lastFix';
+import type { Find } from '../../lib/explore/explore';
+import { formatDistance } from '../../lib/format';
+import { boundsOf, type Bounds } from '../../lib/geo';
+import { readArea, rememberArea } from '../../lib/landing/read';
+import { getLastFix, launchFix, setLastFix } from '../../lib/lastFix';
 import { locateOnce } from '../../lib/locate';
-import { loadNav, loadPendingDest, savePendingDest } from '../../lib/nav/store';
-import type { Waypoint } from '../../lib/nav/types';
 import { perfCount } from '../../lib/perfCount';
-import { recorder } from '../../lib/recorder';
-import { destLine, parseStartMode, START_MODE_KEY, type StartMode } from '../../lib/startPlan';
-import type { Capture, LngLat, Walk } from '../../lib/types';
-import { useCaptures, type MomentState } from '../../lib/useCaptures';
-import { LOCATE_FIT_M, useLocate } from '../../lib/useLocate';
+import type { LngLat } from '../../lib/types';
+import { useLocate, type LocateError } from '../../lib/useLocate';
 import { useStartWalk } from '../../lib/useStartWalk';
 import { useTabMap } from '../../lib/useTabMap';
 
 const NONE: never[] = [];
+const NEW_FAM: Familiarity = { walks: 0, last: null };
 const WORLD = { center: [-40, 30] as [number, number], zoom: 1.2 };
-/** The drawer's grip: the handle and a strip under it, one thumb tall. */
-const GRIP_H = 44;
-/** The drawer's foot: Start and the line under it, which opens the settings dialog (Nov 3). */
-const FOOT_H = 92;
-/** The drawer's peek: its grip and its foot (NV19). */
-const DRAWER_PEEK = GRIP_H + FOOT_H;
-/** The capture row's gap above the peeking drawer. It stays there at every height (U1). */
-const ROW_GAP = 12;
-/** The capture row's own height. */
-const ROW_H = 52;
-/** A new fix this far from the last recentres the map; a nearer one only moves the dot (NV3, NV17). */
-const RECENTER_M = 100;
-/** Meta: the web's "keep this page open" note was dismissed (U9). */
-const WEB_NOTE_KEY = 'web_note_dismissed';
+/** Meta: the long press was used once, so its hint stops showing (atlas round 3). */
+const PRESS_HINT_KEY = 'atlas_press_seen';
+/** The nearest few areas are named on the map; the rest are dots. */
+const NAMED_POINTS = 3;
+/** Widths where the grid takes three columns, and where the map and grid sit side by side. */
+const THREE_COLS = 700;
+const TWO_PANES = 1000;
+const fmt = (m: number) => formatDistance(m);
 
 /**
- * Navigate (NV17-NV28): a map around where you are, from one fix read each
- * time the tab comes to the front (nothing tracks in between), quick capture,
- * and the pre-start drawer. Start sits at the drawer's foot and starts at once
- * with the saved choices; a summary line under it opens the settings dialog
- * (Nov 3), each choice saved as it changes to the meta the walk reads. Start
- * and the capture row stay docked low (U1).
- *
- * With a walk open and minimized, it is a live view of that walk (U2): its
- * growing trace, the walker, its captures and its destination, and the
- * capture row keeps captures for it. The recording bar is the way back; the
- * drawer stays at its peek. Only the live layers follow the walk: this screen
- * re-renders when the walk starts, pauses, resumes or stops (perf).
+ * Explore as an atlas (AT1-AT16, round 3): the map with the page's title over
+ * it; below (or beside, on a wide screen), the neighborhoods near you, then
+ * the other towns. The title opens your own town; a town's tile opens its page.
+ * A neighborhood opens its card, a sheet that keeps the map in sight. Rings are
+ * read by themselves while the tab is open. A long press on the map offers
+ * What's good here and Walk here, over the map. It never tracks you: it reads
+ * one fix as the app opens (it is the first tab, NV2), then moves with your last
+ * fix, or a Locate tap.
  */
-export default function Navigate() {
-  perfCount('render:navigate');
-  // The peek's destination line follows the units setting (QL16).
-  useUnits();
+export default function Explore() {
+  perfCount('render:explore');
   const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
   const walkStart = useStartWalk();
-  const [momentError, setMomentError] = useState<{ message: string; openSettings?: boolean } | null>(null);
-  const error = walkStart.error ?? momentError;
-  const [fix, setFix] = useState<LngLat | null>(() => getLastFix()?.at ?? null);
-  const [fit, setFit] = useState<{ bounds: Bounds | null; key: number }>({ bounds: null, key: 0 });
-  const { focused, savedCamera, onCameraChange, areaH, onFitSettled } = useTabMap({ key: fit.key, refit: () => setFit((f) => ({ ...f, key: f.key + 1 })) });
-  const centredOn = useRef<LngLat | null>(null);
-  // The open walk, from its keeper above the tabs: no fix-by-fix renders here (U2).
-  const openInfo = useOpenWalkInfo();
-  const open = openInfo.walk;
-  const [firstWalk, setFirstWalk] = useState(false);
-  const [webNoteOff, setWebNoteOff] = useState(true);
-  // The drawer's choices (NV20-NV22), read from meta and saved as they change.
-  const [mode, setModeState] = useState<StartMode>('quiet');
-  const [dest, setDest] = useState<Waypoint | null>(null);
-  // The open walk's own destination, shown on its live view (U2).
-  const [walkDest, setWalkDest] = useState<Waypoint | null>(null);
-  const [settings, setSettings] = useState<ExploreSettings>(DEFAULT_SETTINGS);
-  // The settings dialog (Nov 3): the drawer no longer pulls up; its settings are one dialog, opened
-  // from the peek's summary line or a pull on its grip.
-  const [dialog, setDialog] = useState(false);
-  const [sheetH, setSheetH] = useState(DRAWER_PEEK);
-  const [memoOn, setMemoOn] = useState(false);
-
-  // Each time the tab comes to the front: the choices (the walk's options card may have changed them).
-  useFocusEffect(
-    useCallback(() => {
-      let live = true;
-      (async () => {
-        const [m, d, s, walks, note] = await Promise.all([
-          db.getMeta(START_MODE_KEY).catch(() => null),
-          loadPendingDest(),
-          loadSettings().catch(() => DEFAULT_SETTINGS),
-          db.listWalks().catch(() => [] as Walk[]),
-          db.getMeta(WEB_NOTE_KEY).catch(() => null),
-        ]);
-        if (!live) return;
-        setModeState(parseStartMode(m));
-        setDest(d);
-        setSettings(s);
-        setFirstWalk(walks.length === 0);
-        setWebNoteOff(!!note);
-      })().catch(() => {});
-      return () => {
-        live = false;
-      };
-    }, []),
-  );
-  // One fix each time the tab comes to the front (NV17), which ends its own watch. Never while a walk
-  // is open: its recorder already watches, and the live view shows where it is (U2).
-  const openId = open?.id ?? null;
-  const known = openInfo.known;
+  const [from, setFrom] = useState<LngLat | null>(() => getLastFix()?.at ?? null);
+  // With no fix since launch (a reload), the atlas opens where it last listed areas, never saying "You're here" (AT1).
+  const [stale, setStale] = useState(() => !getLastFix());
   useEffect(() => {
-    if (!focused || !known || openId) return;
+    if (from) return;
     let live = true;
-    locateOnce().then((r) => {
-      if (!live || !r.at) return;
-      setLastFix(r.at);
-      setFix(r.at);
-      // The first fix, or one somewhere else, frames the map around you; a nearby one only moves the dot,
-      // so the view you left is kept (NV3).
-      if (!centredOn.current || distanceM(centredOn.current, r.at) > RECENTER_M) {
-        centredOn.current = r.at;
-        const box = boundsOf([r.at], 250);
-        if (box) setFit((f) => ({ bounds: box, key: f.key + 1 }));
-      }
+    // Only a read of the page near you counts: a town's page reads around the town, not around you.
+    nearReads('neighborhood').then((n) => {
+      const mine = n.find((r) => (r.radiusM ?? ATLAS_RULES.nearNeighborhoodM) === ATLAS_RULES.nearNeighborhoodM);
+      if (live && mine) setFrom((f) => f ?? mine.at);
     }, () => {});
     return () => {
       live = false;
     };
-  }, [focused, known, openId]);
-  // The open walk's destination, read as the tab comes to the front (Walk here may have set it).
+  }, [from]);
+  const [fit, setFit] = useState<{ bounds: Bounds | null; key: number }>({ bounds: null, key: 0 });
+  const { focused, savedCamera, onCameraChange, onFitSettled } = useTabMap({ key: fit.key, refit: () => setFit((f) => ({ ...f, key: f.key + 1 })) });
+  const [selected, setSelected] = useState<string | null>(null);
+  const [open, setOpen] = useState<string | null>(null);
+  // The town whose page is open (AT2); null is the page of the areas near you.
+  const [townSeen, setTownSeen] = useState<AtlasArea | null>(null);
+  const fresh = useAtlas(focused, from, townSeen);
+  const town = useMemo(() => (townSeen ? fresh.rows.find((r) => r.key === townSeen.key) ?? townSeen : null), [fresh.rows, townSeen]);
+  const neighborhoods = useMemo(() => (stale ? fresh.neighborhoods.map((x) => ({ ...x, here: false })) : fresh.neighborhoods), [fresh.neighborhoods, stale]);
+  const allTowns = useMemo(() => (stale ? fresh.towns.map((x) => ({ ...x, here: false })) : fresh.towns), [fresh.towns, stale]);
+  // Your own town is the title, never listed again (atlas round 3).
+  const towns = useMemo(() => otherTowns(allTowns), [allTowns]);
+  const home = stale ? null : fresh.home;
+  const [spot, setSpot] = useState<{ at: LngLat; zoom: number } | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const [pressSeen, setPressSeen] = useState(true);
   useEffect(() => {
-    if (!focused || !openId) return;
     let live = true;
-    loadNav(openId).then((d) => live && setWalkDest(d), () => {});
+    db.getMeta(PRESS_HINT_KEY).then((v) => live && setPressSeen(v === '1'), () => {});
     return () => {
       live = false;
     };
-  }, [focused, openId]);
-
-  const pickMode = (m: StartMode) => {
-    setModeState(m);
-    db.setMeta(START_MODE_KEY, m).catch(() => {});
-  };
-  const changeSettings = (next: ExploreSettings) => {
-    setSettings(next);
-    saveSettings(next).catch(() => {});
-  };
-  const toggleKind = (k: Kind, on: boolean) => {
-    const hidden = new Set(settings.hidden);
-    if (on) hidden.delete(k);
-    else hidden.add(k);
-    changeSettings({ ...settings, hidden });
-  };
-  const chooseDest = (d: Waypoint | null) => {
-    setDest(d);
-    savePendingDest(d).catch(() => {});
-  };
-  const dismissWebNote = () => {
-    setWebNoteOff(true);
-    db.setMeta(WEB_NOTE_KEY, '1').catch(() => {});
-  };
-
-  const onMoment = useCallback((c: Capture, state: MomentState) => {
-    // A moment finds a place as a walk's capture does (M4); Chronicle reads it when it comes to the front.
-    if (state === 'placed') findForMoment(c).catch(() => {});
   }, []);
-  const onMomentError = useCallback((e: { message: string; openSettings?: boolean }) => setMomentError(e), []);
-  // Locate me (QL9-QL12): one fix on a tap, the dot there, and the map framed 250 m around it whatever
-  // the distance from the last fix (unlike the fix on focus); nothing tracks after. No fix: the banner.
+  // Back on the tab, a newer fix from Navigate moves the atlas with you (explore-atlas audit 1).
+  const fixSeen = useRef(getLastFix()?.t ?? 0);
+  useFocusEffect(
+    useCallback(() => {
+      const fix = getLastFix();
+      if (fix && fix.t > fixSeen.current) {
+        fixSeen.current = fix.t;
+        setFrom(fix.at);
+        setStale(false);
+      }
+      // A card or the long press's choices never outlive the tab's turn in front (audit 8, round 3).
+      return () => {
+        setOpen(null);
+        setSpot(null);
+      };
+    }, []),
+  );
+  const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
+  const [looking, setLooking] = useState(false);
+  const [notice, setNotice] = useState<{ message: string; tone?: 'info' | 'error' } | null>(null);
+  const [locError, setLocError] = useState<LocateError | null>(null);
+  const cancelled = useRef(false);
+  const [screen, setScreen] = useState({ w: width, h: height });
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  const frame = useCallback((points: LngLat[], padM: number) => {
+    const box = boundsOf(points, padM);
+    if (box) setFit((f) => ({ bounds: box, key: f.key + 1 }));
+  }, []);
+
   const { busy: locating, locate } = useLocate({
     onFix: (at) => {
-      setFix(at);
-      centredOn.current = at;
-      const box = boundsOf([at], LOCATE_FIT_M);
-      if (box) setFit((f) => ({ bounds: box, key: f.key + 1 }));
+      setFrom(at);
+      setStale(false);
+      fixSeen.current = Date.now();
+      frame([at], ATLAS_RULES.ringM);
     },
-    onError: setMomentError,
+    onError: setLocError,
   });
+  // One fix as the app opens, framed (NV16, the owner's call, Nov 3): Explore is the first tab (NV2),
+  // so it can't wait for Navigate's. Once per launch; nothing tracks after.
+  useEffect(() => {
+    if (!focused || !launchFix.take(!!getLastFix())) return;
+    locateOnce().then((r) => {
+      if (!r.at) return;
+      setLastFix(r.at);
+      fixSeen.current = getLastFix()?.t ?? Date.now();
+      setFrom(r.at);
+      setStale(false);
+      frame([r.at], ATLAS_RULES.ringM);
+    }, () => {});
+  }, [focused, frame]);
 
-  // A pull on the grip opens the dialog instead; the drawer itself stays at its peek. Mid-memo, or with a
-  // walk open, nothing opens (audit, U2).
-  const resize = (s: SheetSize) => {
-    if (s !== 'peek' && !memoOn && !open) setDialog(true);
+  const ownTown: Listed | null = useMemo(() => {
+    if (!town) return null;
+    return allTowns.find((x) => x.area.key === town.key) ?? { area: town, distanceM: 0, here: false };
+  }, [town, allTowns]);
+  const shown = useMemo(() => [...(ownTown ? [ownTown] : []), ...neighborhoods, ...(town ? [] : towns)], [ownTown, neighborhoods, towns, town]);
+  const famOf = useMemo(() => {
+    const m = new Map<string, Familiarity>();
+    for (const l of shown) m.set(l.area.key, familiarity(l.area, fresh.areas, fresh.walkAreas));
+    return m;
+  }, [shown, fresh.areas, fresh.walkAreas]);
+  const found = useMemo(() => new Set(fresh.finds.map((f) => f.key)), [fresh.finds]);
+  const ringOf = useMemo(() => {
+    const m = new Map<string, { waiting: ReturnType<typeof waitingMarks>; finds: Find[] }>();
+    for (const l of shown) {
+      const a = l.area;
+      m.set(a.key, {
+        waiting: a.profile ? waitingMarks(a.profile.marks, found, a.at, fresh.hidden) : [],
+        finds: findsIn(fresh.finds, a.at),
+      });
+    }
+    return m;
+  }, [shown, fresh.finds, fresh.hidden, found]);
+
+  // The map's areas: the page's neighborhoods (and the town), the nearest few named, the selected one in the accent (round 3).
+  const pointsOf = useMemo(() => (town ? [{ area: town, distanceM: 0, here: false }, ...neighborhoods] : neighborhoods), [town, neighborhoods]);
+  const points = useMemo(() => pointsOf.map((l) => l.area.at), [pointsOf]);
+  const areaPoints = useMemo<AreaPointPin[]>(() => {
+    const near = new Set(pointsOf.slice(0, NAMED_POINTS).map((l) => l.area.key));
+    return pointsOf.map((l) => ({ id: l.area.key, at: l.area.at, name: near.has(l.area.key) || l.area.key === selected ? l.area.name : null, selected: l.area.key === selected }));
+  }, [pointsOf, selected]);
+  const sel = shown.find((l) => l.area.key === selected) ?? null;
+  // A card is only ever one of the areas shown, with its real distance (explore-atlas audit 7).
+  const card = focused ? shown.find((l) => l.area.key === open) ?? null : null;
+  const shownRef = useRef(shown);
+  useEffect(() => {
+    shownRef.current = shown;
+  }, [shown]);
+  const pick = useCallback((key: string) => {
+    const l = shownRef.current.find((x) => x.area.key === key);
+    if (!l) return;
+    setSpot(null);
+    setSelected(key);
+    setOpen(key);
+    frame([l.area.at], ATLAS_RULES.ringM);
+  }, [frame, setOpen, setSelected, setSpot]);
+  // AT2: a town opens its page; Back, Escape, the title's arrow and the back pill return.
+  const enterArea = useCallback((area: AtlasArea) => {
+    setSpot(null);
+    setTownSeen(area);
+    setSelected(null);
+    frame([area.at], townReachM(area) * 0.6);
+  }, [frame]);
+  const enter = useCallback((key: string) => {
+    const l = shownRef.current.find((x) => x.area.key === key);
+    if (l) enterArea(l.area);
+  }, [enterArea]);
+  const leave = useCallback(() => {
+    setSpot(null);
+    setTownSeen(null);
+    setSelected(null);
+  }, []);
+  useEffect(() => {
+    if (!townSeen || open || !focused) return;
+    const back = BackHandler.addEventListener('hardwareBackPress', () => {
+      leave();
+      return true;
+    });
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && leave();
+    if (Platform.OS === 'web' && typeof window !== 'undefined') window.addEventListener('keydown', onKey);
+    return () => {
+      back.remove();
+      if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
+    };
+  }, [townSeen, open, focused, leave]);
+  // Each page is framed once its areas are first listed (AT9): the map shows them all.
+  const framed = useRef<string | null>(null);
+  useEffect(() => {
+    const key = `${townSeen?.key ?? 'near'}:${fresh.build}`;
+    if (!points.length || framed.current === key) return;
+    framed.current = key;
+    frame(from && !townSeen ? [from, ...points] : points, 150);
+  }, [points, townSeen, fresh.build, from, frame]);
+
+  const lookHere = async (at: LngLat) => {
+    if (looking) return;
+    cancelled.current = false;
+    setLooking(true);
+    try {
+      const r = await readArea(at, () => cancelled.current);
+      if (cancelled.current) return;
+      if (!r.ok) {
+        if (r.reason === 'failed') setNotice({ message: 'Couldn’t read the map here', tone: 'error' });
+        return;
+      }
+      const tile = await db.getMeta('tile_build').catch(() => null);
+      await rememberArea(r.centre, r.analysis, tile ?? 'unknown');
+      const top = r.analysis.pockets[0]?.name ?? r.analysis.landing?.street;
+      const message = `${r.analysis.reason}${r.analysis.basis === 'density' && top ? `: ${top}` : ''}. A best guess from the map.`;
+      setNotice({ message });
+      AccessibilityInfo.announceForAccessibility(message);
+    } finally {
+      if (!cancelled.current) setLooking(false);
+    }
   };
-  const dialogOn = dialog && !open && !memoOn;
-  const ringShown = dialogOn && mode === 'explore' && fix;
-  // The peek's summary: the mode, and the destination if one is set.
-  const peekLine = open ? null : [mode === 'explore' ? 'Explore' : 'Quiet', dest ? destLine(dest, fix) : null].filter(Boolean).join(' · ');
 
-  const mapBase: MapBase = {
-    // The destination is set only here, and only before a walk (NV23): a long press, with its ring.
-    onLongPress: (at) => {
-      if (open || memoOn) return;
-      chooseDest({ at, label: 'Your spot', kind: 'point' });
-    },
-    fitBounds: fit.bounds,
-    fitKey: fit.key,
-    onFitSettled,
-    fitPadding: { top: insets.top + 60, right: 48, bottom: (open ? 0 : sheetH) + ROW_GAP + ROW_H + 60, left: 48 },
-    initialZoom: savedCamera?.zoom ?? (fix || open ? 15 : WORLD.zoom),
-    onCameraChange,
-    attributionTop: true,
-    // The scale bar above the drawer and the capture row at their resting height (QL8).
-    scaleInset: { bottom: (open ? 0 : sheetH) + ROW_GAP + ROW_H + 12, left: 12 },
-  };
-  // With a walk minimized there is no drawer (the owner, Nov 3): the row sits low on the map.
-  const rowStyle = [styles.floatRow, styles.row, { bottom: (open ? 0 : DRAWER_PEEK) + ROW_GAP }];
+  const wide = screen.w >= TWO_PANES;
+  const cols = screen.w >= THREE_COLS ? 3 : 2;
+  const gridMax = wide ? 960 : cols === 3 ? 960 : 640;
+  // The map runs under the status bar to the top of the screen, so no band of it is left empty.
+  const mapH = wide ? screen.h : insets.top + Math.round(Math.min(260, Math.max(170, screen.h * 0.26)));
+  const mapW = wide ? Math.round(screen.w * 0.4) : screen.w;
+  // The title lines up with the grid's column on a wide single pane (round 3).
+  const titleLeft = wide ? 12 : Math.max(12, (screen.w - gridMax) / 2 + 12);
+  const error = walkStart.error ?? locError;
+  const title = town?.name ?? home?.area.name ?? 'Near you';
+  const subtitle = town
+    ? (ownTown?.here || (home && home.area.key === town.key) ? 'You’re here' : distanceWords(ownTown?.distanceM ?? 0, false, fmt))
+    : home ? 'Your town' : 'Areas around you';
+  const listing = fresh.status === 'listing' || (fresh.status === 'idle' && !fresh.build);
+  const cardLayout: CardLayout = wide
+    ? { kind: 'side', width: 400, height: screen.h }
+    : { kind: 'sheet', screenH: screen.h };
 
-  return (
-    <View style={styles.screen}>
-      {open ? (
-        // A live view of the open walk while Navigate is in front (U2); under another tab nothing of it is drawn here.
-        focused && (
-          <LiveWalk
-            walk={open}
-            mapBase={mapBase}
-            initialCenter={savedCamera?.center ?? null}
-            dest={walkDest}
-            rowStyle={rowStyle}
-            onError={onMomentError}
-            onRecording={setMemoOn}
-          />
-        )
-      ) : (
-        <>
-          {/* The capture row, docked above the drawer's peek at every height (NV18, NV19, U1). */}
-          <View style={rowStyle} pointerEvents="box-none">
-            <MomentBar disabled={walkStart.starting} onMoment={onMoment} onError={onMomentError} onRecording={setMemoOn} focused={focused} />
-          </View>
-          <View style={[StyleSheet.absoluteFill, styles.under]}>
-            {/* Only while Navigate is in front (NV4): one map is live at a time. */}
-            {focused && (
-              <WalkMap
-                {...mapBase}
-                trace={NONE}
-                walked={NONE}
-                fog={NONE}
-                captures={NONE}
-                walker={fix}
-                marks={dest ? [dest.at] : undefined}
-                ring={ringShown ? { center: fix, radiusM: settings.rangeM } : null}
-                initialCenter={savedCamera?.center ?? fix ?? WORLD.center}
-              />
-            )}
-          </View>
-        </>
-      )}
-
-      {/* No drawer with a walk minimized (the owner, Nov 3): its settings are for starting one, and the
-          recording bar below is the walk's own strip. */}
-      {!open && (
-      <View style={[StyleSheet.absoluteFill, styles.over]} pointerEvents="box-none">
-        <SheetFrame
-          testID="navigate-drawer"
-          dragTestID="drawer-drag"
-          size="peek"
-          onSize={resize}
-          peek={DRAWER_PEEK}
-          bottomInset={0}
-          areaHeight={areaH}
-          onHeight={setSheetH}
-          // The grip: the handle and a strip under it, so the drawer is easy to take hold of.
-          header={<View style={styles.grip} />}
-        >
-          {/* The foot: Start, docked at the drawer's bottom (NV19, U1). */}
-          <View testID="drawer-foot" style={styles.foot}>
-            {/* Start just starts, where you are, with the saved choices (NV19, NV25); never waits on a fix (NV28). */}
-            <Button
-              testID="start"
-              label="Start walk"
-              onPress={() => walkStart.start(dest, mode)}
-              busy={walkStart.starting}
-              busyLabel="Starting…"
-              disabled={memoOn}
-              tall
-              style={styles.startBtn}
+  const grid = (list: Listed[], drill: boolean) => {
+    const rows: Listed[][] = [];
+    for (let i = 0; i < list.length; i += cols) rows.push(list.slice(i, i + cols));
+    return rows.map((row) => (
+      <View key={row[0].area.key} style={styles.row}>
+        {row.map((l) => {
+          const r = ringOf.get(l.area.key);
+          return (
+            <AtlasTile
+              key={l.area.key}
+              listed={l}
+              fam={famOf.get(l.area.key) ?? NEW_FAM}
+              walked={fresh.walked}
+              waiting={r?.waiting ?? NONE}
+              finds={r?.finds ?? NONE}
+              here={from}
+              selected={selected === l.area.key}
+              drill={drill}
+              onPress={drill ? enter : pick}
             />
-            {/* What Start will use; a tap opens all of it in the dialog. */}
-            <Pressable
-              testID="start-options"
-              accessibilityRole="button"
-              accessibilityLabel={`Walk settings: ${peekLine}`}
-              onPress={() => !memoOn && setDialog(true)}
-              style={styles.summary}
-            >
-              <Text testID="peek-choices" style={styles.peekLine} numberOfLines={1}>{peekLine}</Text>
-              <Icon name="chevron-up" size={16} color={theme.muted} />
-            </Pressable>
-          </View>
-        </SheetFrame>
-        {/* Locate me (QL9): above the drawer and the capture row at every height; gone with a walk open. */}
-        <LocateButton busy={locating} onPress={locate} bottom={sheetH + ROW_GAP + ROW_H + 12} />
+          );
+        })}
+        {Array.from({ length: cols - row.length }, (_, i) => <View key={`gap${i}`} style={styles.spacer} />)}
       </View>
-      )}
+    ));
+  };
 
-      <StartDialog
-        visible={dialogOn}
-        mode={mode}
-        dest={dest}
-        fix={fix}
-        settings={settings}
-        starting={walkStart.starting}
-        startDisabled={memoOn}
-        onMode={pickMode}
-        onClearDest={() => chooseDest(null)}
-        onSettings={changeSettings}
-        onToggleKind={toggleKind}
-        onStart={() => {
-          setDialog(false);
-          walkStart.start(dest, mode);
-        }}
-        onClose={() => setDialog(false)}
-      />
-
-      <View style={[styles.top, styles.over, { top: insets.top + 8 }]} pointerEvents="box-none">
-        {error && (
-          <Banner
-            tone="error"
-            onDismiss={() => {
-              walkStart.setError(null);
-              setMomentError(null);
-            }}
-            action={error.openSettings ? { label: 'Open Settings', onPress: () => Linking.openSettings() } : undefined}
-          >
-            {error.message}
-          </Banner>
-        )}
-        {firstWalk && !open && !webNoteOff && !recorder.capabilities.background && (
-          // Said once, and gone for good once dismissed (U9).
-          <Banner onDismiss={dismissWebNote}>On the web, a walk is traced while this page is open and on screen.</Banner>
-        )}
-      </View>
-    </View>
-  );
-}
-
-type MapBase = Pick<
-  ComponentProps<typeof WalkMap>,
-  'onLongPress' | 'fitBounds' | 'fitKey' | 'onFitSettled' | 'fitPadding' | 'initialZoom' | 'onCameraChange' | 'attributionTop' | 'scaleInset'
->;
-
-/**
- * The open walk, minimized, seen from Navigate (U2): its growing trace, the
- * walker's dot, its captures and its destination, and the capture row,
- * keeping captures for the walk. Its captures reach the walk screen through
- * the capture bus, as the recording bar's camera's do, so none is lost or
- * shown twice on Return. Only this follows the walk fix by fix; it is mounted
- * only while Navigate is in front, and leaving mid-memo saves the memo
- * (useCaptures saves one on unmount).
- */
-function LiveWalk(props: {
-  walk: Walk;
-  mapBase: MapBase;
-  initialCenter: LngLat | null;
-  dest: Waypoint | null;
-  rowStyle: ComponentProps<typeof View>['style'];
-  onError: (e: { message: string; openSettings?: boolean }) => void;
-  onRecording: (on: boolean) => void;
-}) {
-  perfCount('render:navigate-walk');
-  const { live } = useOpenWalk();
-  const cap = useCaptures(props.walk.id, live.here, live.lastFixAt, props.onError);
-  const captures = useVisible(cap.captures);
-  const [toast, setToast] = useState<string | null>(null);
-  // Where the map opens: where it was left, else the walker (read once, at mount).
-  const [center] = useState<LngLat>(() => props.initialCenter ?? live.here ?? WORLD.center);
-  const { onRecording } = props;
-  // Gone with a memo on (another tab, the walk): the memo is saved, and the drawer is free again.
-  useEffect(() => () => onRecording(false), [onRecording]);
-  return (
-    <>
-      <View style={props.rowStyle} pointerEvents="box-none">
-        <CaptureRow cap={cap} toast={toast} setToast={setToast} walk onRecording={onRecording} />
-      </View>
-      <View style={[StyleSheet.absoluteFill, styles.under]}>
+  const mapPane = (
+    <View style={[styles.map, { height: mapH, width: mapW }, wide && styles.mapWide]}>
+      {/* Only while Explore is in front (NV4): one map is live at a time. */}
+      {focused && (
         <WalkMap
-          {...props.mapBase}
-          trace={live.runs}
-          rides={live.rides}
+          trace={NONE}
           walked={NONE}
           fog={NONE}
-          captures={captures}
-          walker={live.here}
-          walkerSource={live.dot}
-          walkerHeading={live.heading}
-          glideWalker
-          marks={props.dest ? [props.dest.at] : undefined}
-          initialCenter={center}
+          captures={NONE}
+          walker={from}
+          marks={spot ? [spot.at] : NONE}
+          areaPoints={areaPoints}
+          ring={sel ? { center: sel.area.at, radiusM: ATLAS_RULES.ringM } : null}
+          onLongPress={(at) => {
+            if (looking) return;
+            if ((view?.zoom ?? 0) < 10) {
+              setToast('Zoom in to look closer');
+              return;
+            }
+            setSpot({ at, zoom: view?.zoom ?? 0 });
+            if (!pressSeen) {
+              setPressSeen(true);
+              db.setMeta(PRESS_HINT_KEY, '1').catch(() => {});
+            }
+          }}
+          onPress={() => spot && setSpot(null)}
+          onViewChange={setView}
+          fitBounds={fit.bounds}
+          fitKey={fit.key}
+          onFitSettled={onFitSettled}
+          fitPadding={{ top: insets.top + 84, right: 24, bottom: spot ? 80 : 24, left: 24 }}
+          initialCenter={savedCamera?.center ?? from ?? WORLD.center}
+          initialZoom={savedCamera?.zoom ?? (from ? 13 : WORLD.zoom)}
+          onCameraChange={onCameraChange}
+          scaleInset={{ bottom: 6, left: 8 }}
         />
+      )}
+      {/* The page's title floats over the map, lifted by a shadow; near you, it is the way into your own town. */}
+      <View style={[styles.titleWrap, { top: insets.top + 8, left: titleLeft }]} pointerEvents="box-none">
+        <View style={styles.titleCard}>
+          {town ? (
+            <Pressable testID="atlas-back" accessibilityRole="button" accessibilityLabel={`Back to ${home?.area.name ?? 'near you'}`} onPress={leave} style={styles.back}>
+              <Icon name="chevron-back" size={22} color={theme.ink} />
+            </Pressable>
+          ) : null}
+          <Pressable
+            disabled={!!town || !home}
+            onPress={() => home && enterArea(home.area)}
+            accessibilityRole={!town && home ? 'button' : 'header'}
+            accessibilityLabel={!town && home ? `${home.area.name}, your town. See all its neighborhoods` : undefined}
+            style={styles.titleText}
+            testID="atlas-title"
+          >
+            <View style={styles.titleRow}>
+              <Text testID="explore-area" style={styles.title} numberOfLines={1}>{title}</Text>
+              {!town && home ? <Icon name="chevron-forward" size={18} color={theme.muted} /> : null}
+            </View>
+            <Text testID="explore-subtitle" style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>
+          </Pressable>
+        </View>
       </View>
-    </>
+      {/* The long press's choices sit over the map where it was pressed, never inside the scrolled list (round 3). */}
+      {spot ? (
+        <View style={styles.spot} testID="atlas-spot">
+          <Button
+            testID="look-here"
+            label="What's good here?"
+            disabled={looking}
+            style={styles.spotBtn}
+            onPress={() => {
+              const at = spot.at;
+              setSpot(null);
+              lookHere(at);
+            }}
+          />
+          {spot.zoom >= 12 && (
+            <Button
+              testID="walk-here"
+              variant="secondary"
+              label="Walk here"
+              disabled={looking}
+              busy={walkStart.starting}
+              busyLabel="Starting…"
+              style={styles.spotBtn}
+              onPress={() => {
+                const at = spot.at;
+                setSpot(null);
+                walkStart.start({ at, label: 'Your spot', kind: 'point' });
+              }}
+            />
+          )}
+          <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={() => setSpot(null)} style={styles.spotClose}>
+            <Icon name="close" size={22} color={theme.ink} />
+          </Pressable>
+        </View>
+      ) : (
+        <LocateButton busy={locating} onPress={locate} bottom={8} />
+      )}
+      {toast ? <View style={styles.toast} accessibilityLiveRegion="polite"><Text style={styles.toastText}>{toast}</Text></View> : null}
+    </View>
+  );
+
+  return (
+    <View style={[styles.screen, wide && styles.screenWide]} onLayout={(e) => setScreen({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
+      {mapPane}
+      <View style={styles.listPane}>
+        <ScrollView style={styles.grid} contentContainerStyle={[styles.gridContent, { maxWidth: gridMax }, town && styles.gridWithBack]} testID="atlas-grid">
+          {!pressSeen && !spot && from ? (
+            <Text style={styles.hint} testID="atlas-press-hint">Press and hold the map to look anywhere.</Text>
+          ) : null}
+          {error && (
+            <Banner
+              tone="error"
+              onDismiss={() => {
+                walkStart.setError(null);
+                setLocError(null);
+              }}
+              action={error.openSettings ? { label: 'Open Settings', onPress: () => Linking.openSettings() } : undefined}
+            >
+              {error.message}
+            </Banner>
+          )}
+          {looking && (
+            <View style={styles.scanning} accessibilityLiveRegion="polite">
+              <ActivityIndicator color={theme.ink} />
+              <Text style={styles.scanningText}>Looking around…</Text>
+              <Pressable
+                testID="look-cancel"
+                accessibilityRole="button"
+                accessibilityLabel="Stop looking around"
+                onPress={() => {
+                  cancelled.current = true;
+                  setLooking(false);
+                }}
+                style={styles.scanCancel}
+              >
+                <Text style={styles.scanCancelText}>Cancel</Text>
+              </Pressable>
+            </View>
+          )}
+          {notice && (
+            <Banner tone={notice.tone} onDismiss={() => setNotice(null)}>
+              {notice.message}
+            </Banner>
+          )}
+
+          {!from ? (
+            <View style={styles.empty} testID="atlas-empty">
+              <Icon name="locate-outline" size={22} color={theme.muted} />
+              <Text style={styles.emptyText}>Find where you are to see the areas around you.</Text>
+              <Button testID="atlas-locate" label="Find me" variant="secondary" onPress={locate} busy={locating} busyLabel="Finding you…" />
+            </View>
+          ) : town && ownTown ? (
+            <>
+              {/* AT2: a town's own page: its picture and marks around its centre, then its own neighborhoods. */}
+              <AtlasTile
+                listed={ownTown}
+                fam={famOf.get(ownTown.area.key) ?? NEW_FAM}
+                walked={fresh.walked}
+                waiting={ringOf.get(ownTown.area.key)?.waiting ?? NONE}
+                finds={ringOf.get(ownTown.area.key)?.finds ?? NONE}
+                here={from}
+                selected={selected === ownTown.area.key}
+                wide
+                onPress={pick}
+              />
+              <Text style={styles.section} accessibilityRole="header">Neighborhoods of {town.name}</Text>
+              {neighborhoods.length ? grid(neighborhoods, false) : (
+                <View style={styles.empty} testID="atlas-empty">
+                  {listing ? <ActivityIndicator color={theme.muted} /> : null}
+                  <Text style={styles.emptyText}>{listing ? `Reading ${town.name}…` : `No neighborhoods are named on the map in ${town.name}. It is one area.`}</Text>
+                </View>
+              )}
+            </>
+          ) : (
+            <>
+              <Text style={styles.section} accessibilityRole="header">Neighborhoods near you</Text>
+              {neighborhoods.length ? grid(neighborhoods, false) : (
+                <View style={styles.empty} testID="atlas-empty">
+                  {listing ? <ActivityIndicator color={theme.muted} /> : null}
+                  <Text style={styles.emptyText}>
+                    {listing ? 'Reading the map around you…'
+                      : fresh.status === 'offline' ? 'Couldn’t read the map. It will try again in a moment.'
+                        : 'No neighborhoods are named on the map here.'}
+                  </Text>
+                </View>
+              )}
+              {towns.length > 0 && (
+                <>
+                  <Text style={styles.section} accessibilityRole="header">Other towns</Text>
+                  {grid(towns, true)}
+                </>
+              )}
+            </>
+          )}
+        </ScrollView>
+        {/* On a town's page, the way back also sits low, where a thumb reaches (round 3). */}
+        {town ? (
+          <Pressable testID="atlas-back-pill" accessibilityRole="button" accessibilityLabel={`Back to ${home?.area.name ?? 'near you'}`} onPress={leave} style={styles.backPill}>
+            <Icon name="chevron-back" size={18} color={theme.ink} />
+            <Text style={styles.backPillText} numberOfLines={1}>{home?.area.name ?? 'Near you'}</Text>
+          </Pressable>
+        ) : null}
+      </View>
+
+      {card && (
+        <AtlasCard
+          key={card.area.key}
+          area={card.area}
+          parent={card.area.level === 'neighborhood' ? town?.name ?? home?.area.name ?? null : null}
+          distanceM={card.distanceM}
+          here={card.here}
+          fam={famOf.get(card.area.key) ?? NEW_FAM}
+          walked={fresh.walked}
+          waiting={ringOf.get(card.area.key)?.waiting ?? NONE}
+          finds={ringOf.get(card.area.key)?.finds ?? NONE}
+          you={from}
+          nextDoor={nextDoor(card.area, shown.map((l) => l.area), fresh.build)}
+          walkTo={!card.here && canWalkTo(card.distanceM) ? walkTarget(card.area) : null}
+          starting={walkStart.starting}
+          onWalk={() => {
+            const t = walkTarget(card.area);
+            setOpen(null);
+            walkStart.start({ at: t.at, label: t.label, kind: 'point' });
+          }}
+          onPick={pick}
+          onClose={() => setOpen(null)}
+          layout={cardLayout}
+        />
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
-  under: { zIndex: 0 },
-  over: { zIndex: 1 },
-  top: { position: 'absolute', left: 16, right: 16, gap: 8, maxWidth: 640, alignSelf: 'center' },
-  floatRow: { position: 'absolute', left: 16, right: 16, alignItems: 'center' },
-  // Over the drawer: the row is never hidden by it (U1).
-  row: { zIndex: 2 },
-  grip: { height: GRIP_H - 25 },
-  foot: { height: FOOT_H, paddingHorizontal: 16, paddingBottom: 8, alignItems: 'center', gap: 6, maxWidth: 640, width: '100%', alignSelf: 'center' },
-  summary: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: 44, maxWidth: '100%' },
-  peekLine: { fontSize: 14, color: theme.muted, flexShrink: 1 },
-  startBtn: { minWidth: 220, borderRadius: 999, paddingHorizontal: 24 },
+  screenWide: { flexDirection: 'row' },
+  map: { borderBottomWidth: 1, borderColor: theme.line, overflow: 'hidden' },
+  mapWide: { borderBottomWidth: 0, borderRightWidth: 1 },
+  listPane: { flex: 1, minWidth: 0 },
+  titleWrap: { position: 'absolute', right: 12, alignItems: 'flex-start' },
+  titleCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: theme.surface, borderRadius: 14, paddingVertical: 8, paddingLeft: 14, paddingRight: 14,
+    maxWidth: 616, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 5,
+  },
+  back: { width: 44, height: 44, marginLeft: -10, alignItems: 'center', justifyContent: 'center' },
+  titleText: { flexShrink: 1, minWidth: 0, minHeight: 44, justifyContent: 'center' },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  title: { fontSize: 22, fontWeight: '800', color: theme.ink, flexShrink: 1 },
+  subtitle: { fontSize: 13, color: theme.muted, marginTop: 1 },
+  grid: { flex: 1 },
+  gridContent: { padding: 12, gap: 10, paddingBottom: 24, width: '100%', alignSelf: 'center' },
+  gridWithBack: { paddingBottom: 80 },
+  hint: { fontSize: 13, color: theme.muted, paddingHorizontal: 4 },
+  section: { fontSize: 12, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', color: theme.muted, paddingHorizontal: 4, paddingTop: 6 },
+  row: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
+  spacer: { flex: 1 },
+  empty: { backgroundColor: theme.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.line, padding: 16, gap: 10, alignItems: 'center' },
+  emptyText: { fontSize: 15, color: theme.muted, textAlign: 'center' },
+  spot: {
+    position: 'absolute', left: 12, right: 12, bottom: 10, maxWidth: 420, alignSelf: 'center', flexDirection: 'row', alignItems: 'center',
+    backgroundColor: theme.surface, borderRadius: theme.radius, padding: 8, gap: 8,
+    shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, shadowOffset: { width: 0, height: 2 }, elevation: 6,
+  },
+  spotBtn: { flex: 1 },
+  spotClose: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  toast: { position: 'absolute', alignSelf: 'center', bottom: 16, backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 14 },
+  toastText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
+  scanning: { flexDirection: 'row', alignItems: 'center', gap: 10, alignSelf: 'center', backgroundColor: theme.surface, borderRadius: 999, paddingVertical: 6, paddingLeft: 14, paddingRight: 6 },
+  scanningText: { fontSize: 15, fontWeight: '600', color: theme.ink },
+  scanCancel: { minHeight: 44, paddingHorizontal: 12, justifyContent: 'center' },
+  scanCancelText: { fontSize: 15, fontWeight: '600', color: theme.accent },
+  backPill: {
+    position: 'absolute', left: 12, bottom: 12, flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44, maxWidth: 240,
+    paddingLeft: 10, paddingRight: 16, borderRadius: 999, backgroundColor: theme.surface,
+    shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 5,
+  },
+  backPillText: { fontSize: 15, fontWeight: '600', color: theme.ink, flexShrink: 1 },
 });

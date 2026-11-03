@@ -4,6 +4,7 @@ import { db } from '../lib/db';
 import { deleteWalk, planWalk, removeWalkMedia, type WalkPlan } from '../lib/deletion';
 import type { DeleteKind } from '../lib/deletion/core';
 import { EPILOGUE_MAX, renamePatch, TITLE_MAX } from '../lib/rename';
+import { shareLogText, walkLogText } from '../lib/shareLog';
 import { suggestTitle } from '../lib/summary';
 import { ConfirmCard } from './ConfirmCard';
 import { Icon } from './icons';
@@ -14,8 +15,8 @@ export type RenamePatch = { title: string; epilogue: string | null };
 
 /**
  * A finished walk's actions: rename it (QL22, in the same sheet: never a
- * second Modal), remove its photos, videos and memos, or delete it (D1, D2).
- * Each delete asks first (D4); the Undo pill follows (D5).
+ * second Modal), share its GPS log, remove its photos, videos and memos, or
+ * delete it (D1, D2). Each delete asks first (D4); the Undo pill follows (D5).
  */
 export function WalkActions(props: {
   walkId: string | null;
@@ -32,6 +33,9 @@ export function WalkActions(props: {
   const [epilogue, setEpilogue] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(false);
+  // The GPS log, read when the sheet opens: a browser opens the share sheet only straight from a tap.
+  const logText = useRef<string | null>(null);
+  const [logNote, setLogNote] = useState<string | null>(null);
   const { walkId } = props;
 
   useEffect(() => {
@@ -42,6 +46,9 @@ export function WalkActions(props: {
         if (!live) return;
         setPlan(p);
         setFailed(!p);
+        if (p) void walkLogText(walkId, p.walk.started_at).then((text) => {
+          if (live) logText.current = text;
+        }, () => {});
       })
       .catch(() => live && setFailed(true));
     return () => {
@@ -52,8 +59,22 @@ export function WalkActions(props: {
       setRenaming(false);
       setSaving(false);
       setSaveError(false);
+      setLogNote(null);
+      logText.current = null;
     };
   }, [walkId]);
+  // Every raw reading, to look into a problem once the walk has ended (the owner, Nov 3).
+  const shareLog = () => {
+    const text = logText.current;
+    if (!text) {
+      setLogNote('Still reading it. Try again in a moment.');
+      return;
+    }
+    void shareLogText(text).then((how) => {
+      if (how === 'copied') setLogNote('Copied. Paste it in a message.');
+      else if (how === 'failed' && Platform.OS === 'web') setLogNote('Couldn’t share or copy it.');
+    });
+  };
 
   // Escape and Back step out of the confirm or the editor first, then the sheet (QL22).
   const close = () => {
@@ -129,6 +150,19 @@ export function WalkActions(props: {
                   <View style={styles.itemText}>
                     <Text style={styles.itemLabel}>Rename</Text>
                     <Text style={styles.itemHint}>The title and its one line</Text>
+                  </View>
+                </Pressable>
+                <Pressable
+                  testID="action-gps-log"
+                  accessibilityRole="button"
+                  accessibilityLabel="Share this walk’s GPS log, to help fix location problems"
+                  onPress={shareLog}
+                  style={({ pressed }) => [styles.item, pressed && styles.pressed]}
+                >
+                  <Icon name="share-outline" size={22} color={theme.ink} />
+                  <View style={styles.itemText}>
+                    <Text style={styles.itemLabel}>Share GPS log</Text>
+                    <Text style={styles.itemHint} accessibilityLiveRegion="polite">{logNote ?? 'Every location reading, to look into a problem'}</Text>
                   </View>
                 </Pressable>
                 {plan.mediaText && (

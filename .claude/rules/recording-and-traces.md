@@ -44,6 +44,12 @@ Recording a walk and reading its trace: pauses, standstills, GPS jitter, the liv
     and straight back along one street; the two passes of one spot, two
     minutes apart, read as a stay, and the walk lost its middle (and its
     "passed" place). `outAndBack.json` is that walk. `SNAP_RULES` 6.
+- **A settled spot keeps a point every 30 s** (`JITTER_STEP_MS`, jitter 8,
+  Nov 3): a slow stroll in Easton settled into spots of 75-148 s drawn as two
+  points each, and the 60 s break rule cut the line where the GPS never
+  stopped. A spot now keeps its members' times at least every 30 s, the last
+  member before each step, so a hole in the fixes never widens it.
+  `eastonSlow.json` is that walk.
 - **GPS wander is settled when a trace is read** (`settleJitter` in `geo.ts`,
   the owner's go-ahead, Nov 1, after a phone's screenshot of a scribble while
   standing still: the live map drew every gated fix, and wander of 20-40 m
@@ -117,6 +123,12 @@ Recording a walk and reading its trace: pauses, standstills, GPS jitter, the liv
   web), or the clipboard on a desktop. The text is read when the card opens: a
   browser opens the share sheet only straight from a tap. Nothing is sent
   anywhere by the app.
+  - **A finished walk shares its log too** (the owner, Nov 3, after a gap
+    that wasn't filled couldn't be looked into once the walk had ended): its
+    More (⋯) menu (`WalkActions`, on the replay card and the Chronicle row)
+    has Share GPS log. Both places go through `lib/shareLog.ts`
+    (`walkLogText`, `shareLogText`), and both read the text when their card
+    opens. The sheet's hint line says "Copied" or why it failed.
 
 ## Raw fixes
 

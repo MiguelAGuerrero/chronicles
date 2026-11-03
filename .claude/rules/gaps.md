@@ -20,8 +20,13 @@ Gaps in the trace filled with the streets most likely walked (the concept doc's 
     sensors (weak GPS with the app open) is a later slice.
 - **The decision** (`gaps/infer.ts`, pure; rules in `gaps/rules.ts`):
   - A gap is two walked fixes more than 60 s apart, no pause or ride between,
-    40 m or more apart and at most 30 min (`gapsOf`, on the trace read
-    *without* fills).
+    and at most 30 min, however close (`gapsOf`, on the trace read *without*
+    fills; decision 0071). Ends within `straightM` (10 m) are joined straight
+    and filled by itself, with nothing read, even offline or from memory
+    (`walkStretches`).
+  - A join from a fix to a street costs twice its length in the search, so a
+    short gap runs along its street, never straight through a fix's join to a
+    corner; lengths are measured on the ground (`lineLengthM`).
   - The likely way is the shortest walk over street pieces. Each end joins
     every street edge within 40 m, split where it is nearest, and the split
     edges keep their piece. It needs at most 2.5 m/s.
@@ -36,8 +41,10 @@ Gaps in the trace filled with the streets most likely walked (the concept doc's 
     The first version kept the original beside its halves. It also banned
     whole pieces, so a mid-block end was always "certain" and a 30-min gap
     on one block filled by itself (gaps audit 1).
-  - 90%+ of the way certain under the time budget fills by itself; else 50%+
-    under the direct budget is offered; else nothing.
+  - 90%+ of the way certain under the time budget fills by itself; any other
+    walkable way is offered, however uncertain (decision 0068, Nov 3: a park
+    path with a drive beside it showed nothing, though the owner had followed
+    the path). A gap shows nothing only when there is no way to offer.
   - A budget whose prism (a circle on the gap's middle, half the budget
     across) leaves the read box is never judged, so unread ground never
     looks certain.
@@ -92,7 +99,8 @@ Gaps in the trace filled with the streets most likely walked (the concept doc's 
     instead of reading twice (gaps audit 9).
 - **E2E** (`E2E_ONLY=gaps`): a walk is started, backdated and given stored
   fixes with two gaps, then reloaded (a real gap would take minutes). The
-  live fixes at "now" form their own short run, so "no fill" is five lines.
+  live fixes at "now" form their own short run, so "no fill" is five lines;
+  the 15 min standing before "now" is a gap too, joined straight.
   `window.__project` (set only with `window.__perf`) turns a point into page
   coordinates for taps. The web map writes `data-runs` and `data-faint`.
 - **Audited (Nov 3):** 17 findings, 12 fixed with a regression test each
@@ -106,6 +114,24 @@ Gaps in the trace filled with the streets most likely walked (the concept doc's 
   - Inference on a very dense grid can take about 0.5 s of JS on a desktop.
   - Walk me back ignores stretches.
   - The backup bundle leaves decisions out.
-  - A dismissed stretch can't be brought back.
+- **A guess that fits the time** (GT1-GT3, decision 0069): an offer takes,
+  among up to 8 shortest ways the time allows (`shortestWays`, Yen's,
+  branching only at junctions), the one closest to the walk's own moving pace
+  (`movingPace`, carried on each `Gap` as `pace`) times the gap, when it is at
+  least 25% closer than the shortest and turns at junctions at most two times
+  more (`turnsOf`): a park loop yes, a zig-zag round town blocks no. A gap
+  filled by itself keeps its shortest way.
+- **Drawing a gap's way** (GW1-GW8, `gaps/draw.ts` pure, `useGapDraw`,
+  `GapDraw`): every card has Draw my way; a gap with no line
+  (`emptyGaps`) gets grey dots (`gapLinks`, `GAP_LINK_DASH`) and a "Not
+  recorded" card (`emptyGapAt`, `gapLines`). Taps join along the paths
+  (`PieceGraph.of`, `joinFix`; never through another tap's join), straight
+  beyond 40 m or unread. Tiles are read in code around each tap, each once per
+  drawing, and the streets derived over all read so far, so a piece across
+  two tiles is whole. Done stores a kept decision with the line (street null).
+  On the walk screen drawing stops following and hides the capture row
+  (`display: none`: Playwright counts `opacity: 0` as visible); on the replay
+  the card's sheet steps aside. The web map writes `data-gaplinks` and
+  `data-drawing`.
 - **Native** (unverified on a device): migration 14, the faint layer, the
   card over the native map.

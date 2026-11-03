@@ -15,7 +15,10 @@ import { db } from '../../lib/db';
 import { applyPatch, captureBus } from '../../lib/captureBus';
 import { snapWalk } from '../../lib/finish';
 import { decide } from '../../lib/gaps';
-import { gapKey, stretchAt } from '../../lib/gaps/infer';
+import { emptyGapAt, emptyGaps, gapKey, stretchAt, type Gap } from '../../lib/gaps/infer';
+import type { DrawnLine } from '../../lib/gaps/draw';
+import { useGapDraw } from '../../lib/gaps/useGapDraw';
+import { GapDraw } from '../../components/GapDraw';
 import { tileCollector } from '../../lib/tileCollector';
 import { GapCard } from '../../components/GapCard';
 import { ensureTileBuild } from '../../lib/tiles';
@@ -31,6 +34,7 @@ import { WalkActions } from '../../components/WalkActions';
 import { pausedMs } from '../../lib/geo';
 import { newStreetsLine } from '../../lib/quietLines';
 import { capturesHere, type HereResult } from '../../lib/here';
+import { launchRoute } from '../../lib/launchRoute';
 
 type Beat = 'reading' | 'fog' | 'path' | 'card' | 'name';
 const FRAME_MS = 33; // ~30 fps: the dot reads as a slider, not as steps (was 66; unverified on a phone)
@@ -63,6 +67,8 @@ export default function Replay() {
   }, [stored, hidden]);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [status, setStatus] = useState<'loading' | 'missing' | 'ready'>('loading');
+  // A load that threw is shown by the screen's error boundary, with Try again, never as a missing walk (NV2).
+  const [failure, setFailure] = useState<unknown>(null);
   // The beat and its start time change together, so no render ever sees one
   // beat with another beat's clock.
   const [phase, setPhase] = useState<{ beat: Beat; t0: number }>(() => ({ beat: 'reading', t0: Date.now() }));
@@ -86,10 +92,33 @@ export default function Replay() {
   const [gapOpen, setGapOpen] = useState<string | null>(null);
   const [gapBusy, setGapBusy] = useState(false);
   const [gapError, setGapError] = useState<string | null>(null);
-  /** A tap on the card's map: a stretch across a gap opens its card (G9), anywhere else what happened here. */
+  // Drawing a gap's way (GW3-GW7): kept like Keep, as the line drawn, then the walk is snapped again.
+  const drawing = useGapDraw(
+    useCallback(
+      async (gap: Gap, line: DrawnLine) => {
+        if (!data) return;
+        await decide(data.walk.id, { t0: gap.t0, t1: gap.t1, path: line.path, lengthM: line.lengthM, street: null, how: 'kept' }, 'kept');
+        await snapWalk(data.walk, tileCollector()).catch(() => db.updateWalk(data.walk.id, { snapped_build: null }).catch(() => {}));
+        const d = await loadReplay(id).catch(() => null);
+        if (d) setData(d);
+      },
+      [data, id],
+    ),
+  );
+  const isDrawing = drawing.gap != null;
+  /**
+   * A tap on the card's map: while drawing, a point along the way (GW3); else a
+   * stretch, or a gap's dotted join, opens its card (G9, GW2); anywhere else,
+   * what happened here.
+   */
   const pressCard = (at: LngLat, radiusM?: number) => {
+    if (isDrawing) {
+      drawing.tap(at);
+      return;
+    }
     // A line's reach is about 20 px, narrower than a pin's 44: taps beside the trace stay what happened here (audit 8).
-    const hit = data && !here && !viewing ? stretchAt(data.stretches, at, Math.max(10, (radiusM ?? 30) * 0.45)) : null;
+    const reach = Math.max(10, (radiusM ?? 30) * 0.45);
+    const hit = data && !here && !viewing ? stretchAt(data.stretches, at, reach) ?? emptyGapAt(emptyGaps(data.gaps, data.stretches), at, reach) : null;
     setGapOpen(hit ? gapKey(hit) : null);
     setGapError(null);
     if (!hit) showHere(at, radiusM);
@@ -190,9 +219,22 @@ export default function Replay() {
       // The walk opens from the device first: the network is only asked
       // after, behind "Reading the streets" (bug, Nov 1: an iPhone sat on a
       // blank screen after Stop while the TileJSON fetch stalled).
-      let d = await loadReplay(id).catch(() => null);
+      let d: ReplayData | null;
+      try {
+        d = await loadReplay(id);
+      } catch (e) {
+        if (alive) setFailure(e ?? new Error('This walk could not be opened.'));
+        return;
+      }
       if (!alive) return;
       if (!d) {
+        // Opened on a walk that is no longer kept (a Home Screen app reopening on a stale link):
+        // straight to Explore, with no detour to Chronicle on the way out (NV2).
+        if (launchRoute.isLaunch(`/replay/${id}`)) {
+          leftForChronicle.current = true;
+          router.dismissTo('/');
+          return;
+        }
         setStatus('missing');
         return;
       }
@@ -376,7 +418,14 @@ export default function Replay() {
   // Stretches across gaps (Filling gaps, G6, G9): offered ones faint on the card, a tapped one's card.
   const faint = useMemo(() => (data && (beat === 'card' || beat === 'name') ? data.stretches.filter((x) => x.how === 'offer').map((x) => x.path) : []), [data, beat]);
   const openGap = gapOpen && data ? data.stretches.find((x) => gapKey(x) === gapOpen) ?? null : null;
+  const openGapOf = gapOpen && data ? data.gaps.find((x) => gapKey(x) === gapOpen) ?? null : null;
+  // Gaps with no line across them, joined by grey dots on the card beats (GW2).
+  const links = useMemo(
+    () => (data && (beat === 'card' || beat === 'name') ? emptyGaps(data.gaps, data.stretches).map((g) => [g.from, g.to]) : []),
+    [data, beat],
+  );
 
+  if (failure) throw failure;
   if (status !== 'ready' || !data || !sched) {
     return (
       <View style={[styles.screen, styles.center, { paddingHorizontal: 24 }]}>
@@ -425,9 +474,12 @@ export default function Replay() {
         walked={shownWalked}
         fog={fog}
         captures={pinned}
-        onPinPress={beat === 'card' || beat === 'name' ? setViewing : undefined}
+        // While drawing, a tap on a pin is a point along the way like any other (gap-drawing audit 8).
+        onPinPress={(beat === 'card' || beat === 'name') && !isDrawing ? setViewing : undefined}
         onPress={beat === 'card' || beat === 'name' ? pressCard : undefined}
         faint={faint}
+        gapLinks={isDrawing ? undefined : links}
+        drawing={drawing.line}
         walker={walker}
         follow={beat === 'path' && !reduceMotion ? walker : null}
         fitBounds={data.bounds}
@@ -517,9 +569,14 @@ export default function Replay() {
         }}
       />
 
-      {openGap && (beat === 'card' || beat === 'name') && !here && !viewing && (
+      {openGapOf && !isDrawing && (beat === 'card' || beat === 'name') && !here && !viewing && (
         <GapCard
           stretch={openGap}
+          gap={openGapOf}
+          onDraw={() => {
+            setGapOpen(null);
+            drawing.start(openGapOf);
+          }}
           busy={gapBusy}
           error={gapError}
           // Above the card's sheet, clear of the Undo pill at the top (audit, UI).
@@ -536,7 +593,11 @@ export default function Replay() {
         </View>
       )}
 
-      {(beat === 'card' || beat === 'name') && (
+      {/* Low, where the card's sheet was, clear of the Undo pill at the top (audit, UI). */}
+      {isDrawing && <GapDraw drawing={drawing} style={{ bottom: insets.bottom + 24, zIndex: 6 }} />}
+
+      {/* The card steps aside while a gap's way is drawn, so the map is free to tap (GW3). */}
+      {(beat === 'card' || beat === 'name') && !isDrawing && (
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.sheetWrap}

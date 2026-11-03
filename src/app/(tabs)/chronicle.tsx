@@ -20,7 +20,9 @@ import { placeBacklog } from '../../lib/backlog';
 import type { Bounds } from '../../lib/geo';
 import { levelForZoom, placesIndex, starsFor, unplacedWalks, type Star } from '../../lib/places';
 import type { Capture, LngLat, Walk, WalkSummary } from '../../lib/types';
+import { deletions } from '../../lib/deletion';
 import { useHidden, useOnDeleted } from '../../lib/deletion/useDeletions';
+import { fitWithMoments, MOMENT_PIN_ZOOM, placedMoments } from '../../lib/momentPins';
 import { useStartWalk } from '../../lib/useStartWalk';
 import { showWalk } from '../../lib/walkNav';
 import { useTabMap } from '../../lib/useTabMap';
@@ -36,8 +38,6 @@ const tried = new Set<string>();
 const boundsKey = (b: Bounds | null) => (b ? b.map((v) => v.toFixed(5)).join(',') : '');
 /** The closest any of Chronicle's fits may zoom (tabs audit U15). */
 const FIT_MAX_ZOOM = 15;
-/** Moments outside walks show as pins from neighborhood zoom (M16); stars stand for places below it. */
-const MOMENT_PIN_ZOOM = 11;
 /** Every capture, loose or in a walk, for the days (M7): rows only, never media. */
 const allCaptures = () => db.capturesBetween(0, Number.MAX_SAFE_INTEGER);
 
@@ -138,11 +138,15 @@ export default function Chronicle() {
         if (!live) return null;
         setChecklists(await db.listChecklistAreas().catch(() => [] as ChecklistArea[]));
         setFinds(await db.listFinds().catch(() => [] as Find[]));
-        setCaptures(await allCaptures().catch(() => [] as Capture[]));
+        const caps = await allCaptures().catch(() => [] as Capture[]);
+        setCaptures(caps);
         if (recalled.length) setRecalled(recalled);
         setData({ walks, summaries, areas, rows });
         setNow(Date.now());
-        const bounds = placesIndex(areas, rows, walks).bounds;
+        // The places walked and the placed moments (M16, moment pins 3): a moment far from any walk, or
+        // one made before any walk, is framed too, so its pin is in view. A moment being deleted isn't.
+        const gone = deletions.hidden();
+        const bounds = fitWithMoments(placesIndex(areas, rows, walks).bounds, caps.filter((c) => !gone.has(c.id)));
         if (boundsKey(bounds) !== fittedTo.current) {
           fittedTo.current = boundsKey(bounds);
           setFit((f) => ({ bounds, key: f.key + 1 }));
@@ -181,7 +185,7 @@ export default function Chronicle() {
   // Recomputed when crossing the pin zoom, not on every camera step (audit).
   const pinZoom = (view?.zoom ?? 0) >= MOMENT_PIN_ZOOM;
   const momentPins = useMemo(
-    () => (pinZoom ? captures.filter((c) => c.walk_id == null && c.lat != null && c.lon != null) : NONE),
+    () => (pinZoom ? placedMoments(captures) : NONE),
     [captures, pinZoom],
   );
   const index = useMemo(() => placesIndex(data?.areas ?? [], data?.rows ?? [], data?.walks ?? []), [data]);
@@ -250,7 +254,7 @@ export default function Chronicle() {
           onOpenMoments={setViewing}
           onWalkActions={setActionsFor}
           now={now}
-          onNavigate={() => router.navigate('/')}
+          onNavigate={() => router.navigate('/navigate')}
         />
       </View>
 

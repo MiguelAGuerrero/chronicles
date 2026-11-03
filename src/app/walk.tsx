@@ -1,6 +1,6 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
-import { AccessibilityInfo, ActivityIndicator, Animated, AppState, BackHandler, Share, Switch, Easing, KeyboardAvoidingView, Linking, Platform, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Animated, AppState, BackHandler, Switch, Easing, KeyboardAvoidingView, Linking, Platform, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { Modal } from '../components/Modal';
 import { onWalkGap, useOpenWalk } from '../components/OpenWalk';
 import { Ticking } from '../components/Ticking';
@@ -13,7 +13,10 @@ import { CaptureViewer } from '../components/CaptureView';
 import { Icon, KIND_LABEL, type IconName } from '../components/icons';
 import { Banner, Button, HoldButton, LiftIn, theme } from '../components/ui';
 import { GapCard } from '../components/GapCard';
-import { gapKey, stretchAt } from '../lib/gaps/infer';
+import { emptyGapAt, gapKey, stretchAt, type Gap } from '../lib/gaps/infer';
+import type { DrawnLine } from '../lib/gaps/draw';
+import { useGapDraw } from '../lib/gaps/useGapDraw';
+import { GapDraw } from '../components/GapDraw';
 import { ExploreSettings } from '../components/ExploreSettings';
 import { ReminderCard } from '../components/ReminderCard';
 import { onRecallFired, onRecallOpen, takeRecallOpen } from '../lib/discovery/recallCheck';
@@ -43,7 +46,7 @@ import type { Capture, LngLat, Pause, StreetSegment, Walk } from '../lib/types';
 import { useCaptures } from '../lib/useCaptures';
 import { walkScreenShown } from '../lib/walkNav';
 import { askMotion, useMotionAccess } from '../lib/walkMotion';
-import { gpsLog } from '../lib/gpsLog';
+import { shareLogText, walkLogText } from '../lib/shareLog';
 import { notifyWalkChanged } from '../lib/walkEvents';
 import { routeAhead } from '../lib/nav/navigator';
 import { HANDOFF_HINT, openInMaps } from '../lib/nav/openInMaps';
@@ -137,10 +140,21 @@ export default function WalkScreen() {
   const gapOpen = gapOpenAt?.key ?? null;
   const setGapOpen = useCallback((key: string | null) => setGapOpenAt(key ? { key, from: liveHereRef.current } : null), []);
   const [gapBusy, setGapBusy] = useState(false);
+  // The tapped gap and its stretch, if it has one (a gap with no line has none: GW2).
+  const openGapOf = gapOpen ? gapView.gaps.find((g) => gapKey(g) === gapOpen) ?? null : null;
   const openGap = gapOpen ? gapView.stretches.find((s) => gapKey(s) === gapOpen) ?? null : null;
-  const [pausing, setPausing] = useState(false);
   // The map follows the walker until they pan or zoom it themselves.
   const [following, setFollowing] = useState(true);
+  // Drawing a gap's way (GW3-GW8): kept like Keep, as the line drawn. Following comes back after (audit, UI).
+  const drawing = useGapDraw(
+    useCallback(
+      (gap: Gap, line: DrawnLine) => gapView.decide({ t0: gap.t0, t1: gap.t1, path: line.path, lengthM: line.lengthM, street: null, how: 'kept' }, 'kept'),
+      [gapView],
+    ),
+    useCallback(() => setFollowing(true), []),
+  );
+  const isDrawing = drawing.gap != null;
+  const [pausing, setPausing] = useState(false);
   const [status, setStatus] = useState<RecorderStatus>({ kind: 'idle' });
   const [now, setNow] = useState(() => Date.now());
   // One-off notices: a start warning, or the web's visibility rule.
@@ -333,10 +347,8 @@ export default function WalkScreen() {
     logText.current = null;
     if (!options || !walk) return;
     let live = true;
-    void Promise.all([db.getPoints(walk.id), db.getCaptures(walk.id)]).then(([points, captures]) => {
-      if (!live) return;
-      const device = Platform.OS === 'web' ? navigator.userAgent : `${Platform.OS} ${Platform.Version}`;
-      logText.current = gpsLog({ startedAt: walk.started_at, points, captures, userAgent: device });
+    void walkLogText(walk.id, walk.started_at).then((text) => {
+      if (live) logText.current = text;
     });
     return () => {
       live = false;
@@ -348,15 +360,10 @@ export default function WalkScreen() {
       setNotice({ message: 'The GPS log is still being read. Try again in a moment.' });
       return;
     }
-    Share.share({ message: text, title: 'Chronicles GPS log' }).catch(async () => {
-      // A browser without a share sheet (a desktop): copy it instead.
-      const clip = Platform.OS === 'web' ? navigator.clipboard : undefined;
-      if (clip) {
-        await clip.writeText(text).then(
-          () => setNotice({ message: 'GPS log copied. Paste it in a message.' }),
-          () => setNotice({ message: 'Couldn’t share or copy the GPS log.', tone: 'error' }),
-        );
-      }
+    void shareLogText(text).then((how) => {
+      // A browser without a share sheet (a desktop) copies it instead.
+      if (how === 'copied') setNotice({ message: 'GPS log copied. Paste it in a message.' });
+      else if (how === 'failed' && Platform.OS === 'web') setNotice({ message: 'Couldn’t share or copy the GPS log.', tone: 'error' });
     });
   }, []);
   // The spot card (and the options card) goes once you walk on, or with Back (Android) and Escape (web).
@@ -728,7 +735,7 @@ export default function WalkScreen() {
     feedback('tap');
     AccessibilityInfo.announceForAccessibility('Walk minimized. Still recording.');
     if (router.canGoBack()) router.back();
-    else router.replace('/');
+    else router.replace('/navigate');
   }
 
   async function togglePause() {
@@ -885,30 +892,40 @@ export default function WalkScreen() {
         fog={fog}
         captures={captures}
         // Opening a capture would hide a memo that is still recording.
-        onPinPress={recordingVoice || stopping || settingsOpen ? undefined : setViewing}
+        // While drawing, a tap on a pin is a point along the way like any other (gap-drawing audit 8).
+        onPinPress={recordingVoice || stopping || settingsOpen || isDrawing ? undefined : setViewing}
         walker={live.here}
         walkerSource={live.dot}
         glideWalker
         walkerHeading={live.heading}
         // Not while a route is found: the street read moves the camera itself.
-        follow={following && !navigation.finding && !ring ? live.here : null}
+        // Drawing holds the map where it is: a new fix never moves it under a tap (GW8).
+        follow={following && !navigation.finding && !ring && !isDrawing ? live.here : null}
         faint={gapView.faint}
+        gapLinks={isDrawing ? undefined : gapView.links}
+        drawing={drawing.line}
         onPress={(at, radiusM) => {
+          // While drawing, every tap is a point along the way (GW3).
+          if (isDrawing) {
+            drawing.tap(at);
+            return;
+          }
           setSpot(null);
           setMarkOpen(null);
           setMemory(null);
           // A tap on a stretch across a gap opens its card (G9); anywhere else closes it.
           // A line's reach is about 20 px, narrower than a pin's 44, so taps beside the trace still do what they did (audit 8).
-          const hit = navigation.nav || recordingVoice || stopping ? null : stretchAt(gapView.stretches, at, Math.max(10, radiusM * 0.45));
+          const reach = Math.max(10, radiusM * 0.45);
+          const hit = navigation.nav || recordingVoice || stopping ? null : stretchAt(gapView.stretches, at, reach) ?? emptyGapAt(gapView.empty, at, reach);
           setGapOpen(hit ? gapKey(hit) : null);
         }}
         memories={memories}
-        onMemoryPress={recordingVoice || stopping || settingsOpen ? undefined : (group, at) => {
+        onMemoryPress={recordingVoice || stopping || settingsOpen || isDrawing ? undefined : (group, at) => {
           setGapOpen(null);
           void openMemory(group, at);
         }}
         discoveries={explore.pins}
-        onDiscoveryPress={recordingVoice || stopping || settingsOpen ? undefined : (id) => {
+        onDiscoveryPress={recordingVoice || stopping || settingsOpen || isDrawing ? undefined : (id) => {
           // A found place is shown, not a card to open: its capture's pin is the thing to tap (audit, UI).
           if (explore.found.has(id)) return;
           setSpot(null);
@@ -924,6 +941,7 @@ export default function WalkScreen() {
         onUserMove={() => setFollowing(false)}
         // A long press, so a stray tap while walking does nothing.
         onLongPress={(at, radiusM) => {
+          if (isDrawing) return;
           // Another card takes the slot: the stretch's card goes, rather than hiding and coming back (audit 7).
           setGapOpen(null);
           pressMap(at, radiusM);
@@ -1140,7 +1158,9 @@ export default function WalkScreen() {
         )}
         {/* While recording, Save takes the mic's own place, so tapping the mic
             again saves; Discard is smaller and set apart from it. */}
-        <View style={styles.captureRow}>
+        {/* The row hides while a gap's way is drawn, so taps belong to the map (GW8); the pills above
+            stay, so a memo's Undo isn't lost under the drawing (gap-drawing audit 7). */}
+        <View style={[styles.captureRow, isDrawing && styles.hidden]} pointerEvents={isDrawing ? 'none' : 'auto'}>
           <View style={styles.slot}>
             {recordingVoice ? (
               <RoundButton
@@ -1386,16 +1406,24 @@ export default function WalkScreen() {
           </View>
         </View>
       )}
-      {openGap && !spot && !openMark && !memory && !recordingVoice && !options && !viewing && (
+      {openGapOf && !isDrawing && !spot && !openMark && !memory && !recordingVoice && !options && !viewing && (
         <GapCard
           stretch={openGap}
+          gap={openGapOf}
           busy={gapBusy}
           style={{ bottom: insets.bottom + 92 + 68 + 12 }}
           onClose={() => setGapOpen(null)}
           onKeep={() => void decideGap('kept')}
           onDismiss={() => void decideGap('dismissed')}
+          onDraw={() => {
+            setGapOpen(null);
+            setFollowing(false);
+            drawing.start(openGapOf);
+          }}
         />
       )}
+      {/* Low, where the capture row was: big controls stay in thumb's reach (audit, UI). */}
+      {isDrawing && <GapDraw drawing={drawing} style={{ bottom: insets.bottom + 92, zIndex: 6 }} />}
       <ExploreSettings
         visible={settingsOpen}
         hasRing={!!live.here}
@@ -1658,6 +1686,7 @@ const styles = StyleSheet.create({
   toast: { backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 14, alignSelf: 'center' },
   toastText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
   captures: { position: 'absolute', left: 0, right: 0, alignItems: 'center', gap: 12 },
+  hidden: { display: 'none' },
   captureRow: { flexDirection: 'row', alignItems: 'center', gap: 20 },
   slot: { width: 68, height: 68, alignItems: 'center', justifyContent: 'center' },
   round: {

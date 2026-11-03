@@ -235,3 +235,22 @@ the background task or MapLibre RN. Say so in any report touching native code.
 gate (it always exits 0): retired ids and unbuilt rounds show up too. Run it
 at the end of a slice; a criterion of the slice that shows up is missing its
 test.
+
+## The docs check
+
+`npm run check:docs` (`scripts/check-docs.js`, about 0.1 s) fails when:
+
+- `AGENTS.md` passes 200 lines or 12,000 bytes. It loads into every session;
+  bytes are the real cost, since long lines dodge a line count.
+- A rule file passes 40,000 characters (Claude sees only its start), or a
+  skill passes 500 lines.
+- A `paths:` glob in `.claude/rules/*.md` matches no file, so that rule never
+  loads.
+- A path named in backticks in `AGENTS.md`, `README.md`, the rule files,
+  skills, agents, or `docs/` (except `STATUS.md`, `decisions/` and research
+  notes) doesn't exist. Short module names count: `lib/quietLines` resolves
+  against `src/`, `src/lib/`, `src/components/` and `src/app/`.
+
+It runs in CI before the export, so a failure blocks the Pages deploy, and in
+the Stop hook, so an agent fixes it in the same turn. Each failure says what
+to do.

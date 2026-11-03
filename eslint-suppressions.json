@@ -4,12 +4,12 @@
       "count": 1
     }
   },
-  "src/app/(tabs)/explore.tsx": {
+  "src/app/(tabs)/index.tsx": {
     "no-restricted-syntax": {
       "count": 1
     }
   },
-  "src/app/(tabs)/index.tsx": {
+  "src/app/(tabs)/navigate.tsx": {
     "no-restricted-syntax": {
       "count": 2
     }

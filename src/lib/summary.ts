@@ -9,6 +9,7 @@ import { readTrace, rideRuns, smoothKept, timedRideRuns, traceDistances, withFil
 import type { TimedRun } from './replay';
 import { walkBounds } from './finish';
 import { fillsOf, walkStretches, type Stretch } from './gaps';
+import type { Gap } from './gaps/infer';
 import type { Capture, LngLat, Pause, StreetSegment, TracePoint, Walk, WalkSummary } from './types';
 
 export interface ReplayData {
@@ -42,6 +43,8 @@ export interface ReplayData {
   newStreets: string[];
   /** Stretches across gaps (Filling gaps): filled and kept ones are already in the trace; offered ones are drawn faint. */
   stretches: Stretch[];
+  /** Every gap worth reading, with a stretch or not (GW1, GW2). */
+  gaps: Gap[];
 }
 
 /**
@@ -59,7 +62,7 @@ export async function loadReplay(walkId: string, opts: { readGaps?: boolean } = 
   const points = await db.getPoints(walkId);
   const plain = readTrace(points, walk.started_at, pauses, stills);
   // Filled and kept stretches are walked trace; offered ones are drawn apart, faint (G6, G11).
-  const { stretches } = await walkStretches(walkId, plain, { read: !!opts.readGaps }).catch(() => ({ stretches: [] as Stretch[] }));
+  const { stretches, gaps } = await walkStretches(walkId, plain, { read: !!opts.readGaps }).catch(() => ({ stretches: [] as Stretch[], gaps: [] as Gap[] }));
   const fills = fillsOf(stretches);
   const tr = withFilled(plain, fills);
   const fixes = smoothKept(tr);
@@ -113,6 +116,7 @@ export async function loadReplay(walkId: string, opts: { readGaps?: boolean } = 
     passed,
     newStreets,
     stretches,
+    gaps,
     walk,
     fixes,
     walkedFixes,

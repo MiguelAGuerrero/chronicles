@@ -42,7 +42,7 @@ Not hikers (no trails), not runners (no fitness tracking), not completionists
 ## The three tabs
 
 The app is three tabs in one loop: Explore before, Navigate during,
-Chronicle after. A walk screen opens over them while recording, and a
+Chronicle after. The app opens on Explore. A walk screen opens over them while recording, and a
 recording bar brings a minimized walk back.
 
 ### Explore (before)
@@ -130,6 +130,14 @@ recording bar brings a minimized walk back.
   spot, from any walk.
 - Walk options: the Explore switch, settings, motion permission, and
   **Share GPS log** (the raw readings, for diagnosing location problems).
+  A finished walk's More (⋯) menu shares its log too.
+- **Gaps in the trace** (the app closed, or the GPS lost for a minute or more)
+  are read against the map: an obvious way fills in by itself as walked; any
+  other walkable way is offered faint, the one whose length best fits the
+  time at the walk's own pace, to keep or dismiss. A gap with nothing to offer
+  is joined by grey dots. Every gap's card has **Draw my way**: tap along where
+  you went and the line follows the paths between taps, on the walk screen or
+  the replay.
 - Standstills, GPS wander, rides and motion (step detection) are all read
   from the raw fixes at read time; nothing derived is stored as truth.
 

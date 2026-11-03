@@ -8,8 +8,12 @@ export const GAP_RULES = {
   gapMs: 60_000,
   /** ...and no longer than this: past it, anything could have happened (G1). */
   maxMs: 30 * 60_000,
-  /** The fixes either side are at least this far apart in a straight line: closer, you were around here (G1). */
-  minM: 40,
+  /**
+   * Every break is a gap, however short (the owner's rule, Nov 3): the line is made continuous.
+   * A break whose ends are within this is joined straight and filled by itself: within GPS error,
+   * with no streets to read.
+   */
+  straightM: 10,
   /** Each end joins every street within this of its fix (G2). */
   joinM: 40,
   /** A way needing more than this was not walked (G3). */
@@ -20,10 +24,8 @@ export const GAP_RULES = {
   fastPace: 1.8,
   /** Walking fairly directly: up to this much longer than the likely way (G4). */
   direct: 1.25,
-  /** Filled by itself with this share certain under the time budget (G5)... */
+  /** Filled by itself with this share certain under the time budget (G5); any other walkable way is offered (G6, G7). */
   auto: 0.9,
-  /** ...else offered with this share certain under the direct budget (G6). */
-  offer: 0.5,
   /** What to read: the time budget, or at least this many times the straight distance, around the gap (G8, audit 12)... */
   readStraight: 2.5,
   /** ...but never more than this across, so a long gap reads a few tiles, not a city. */
@@ -34,6 +36,18 @@ export const GAP_RULES = {
   meetsM: 25,
   /** A tap this close to either end of a stretch is the trace there, not the stretch (audit 8). */
   tapEndM: 30,
+  /** The walk's own pace counts fixes at this speed or more (GT1)... */
+  movingSpeed: 0.5,
+  /** ...else this pace is used. */
+  defaultPace: 1.3,
+  /** The guess looks at up to this many of the shortest ways (GT2)... */
+  fitWays: 8,
+  /** ...and takes another than the shortest only when it is this much closer to the expected distance. */
+  fitCloser: 0.75,
+  /** ...and turns at junctions at most this many times more than the shortest: a loop off the way, never a zig-zag round blocks. */
+  fitTurns: 2,
+  /** ...and runs at most this share of its length on other kinds of way than the shortest (path or road): never a footpath walk guessed onto a drive. */
+  fitOtherKinds: 0.25,
   /** Points along a filled stretch: one every this far, and at least one every this long (G11). */
   stepM: 10,
   stepMs: 20_000,

@@ -24,6 +24,9 @@ export const ATLAS_RULES = {
   nearTownM: 12_000,
   /** At most this many tiles per level. */
   cap: 12,
+  /** A town's own neighborhoods are looked for within its reach, capped here (AT2), at most townCap of them. */
+  townNeighborhoodsM: 5000,
+  townCap: 24,
   /** A new near read once you are this far from the last one, under the same build. */
   renearM: 1000,
   /** A failed read waits this long before it is tried again (AT5). */
@@ -182,16 +185,86 @@ export function readQueue(list: Listed[], now: number): AtlasArea | null {
   return null;
 }
 
-/** Where the last near read of a level happened. */
+/** Where a near read of a level happened, and how far around it reached. */
 export interface NearRead {
   at: LngLat;
   build: string;
   code: string;
+  /** Missing on reads made before the hierarchy: the level's own reach. */
+  radiusM?: number;
 }
 
-/** Whether to list the areas around you again (AT1, AT12): never read here, under this build and these rules. */
-export function needsNear(last: NearRead | null, from: LngLat, build: string): boolean {
-  return !last || last.build !== build || last.code !== ATLAS_CODE || distanceM(last.at, from) > ATLAS_RULES.renearM;
+/** Near reads kept per level, newest first, so going into a town and back reads nothing twice. */
+export const NEAR_KEPT = 12;
+
+/**
+ * Whether to list a level's areas around a spot again (AT1, AT12, AT2): no read of this
+ * build and these rules within 1 km of it reached as far.
+ */
+export function needsNear(reads: NearRead[] | NearRead | null, at: LngLat, build: string, radiusM?: number): boolean {
+  const list = !reads ? [] : Array.isArray(reads) ? reads : [reads];
+  return !list.some((r) => r.build === build && r.code === ATLAS_CODE && distanceM(r.at, at) <= ATLAS_RULES.renearM && (radiusM == null || (r.radiusM ?? radiusM) >= radiusM));
+}
+
+/** The kept near reads after a new one: newest first, at most NEAR_KEPT. */
+export const withNear = (reads: NearRead[], read: NearRead): NearRead[] => [read, ...reads].slice(0, NEAR_KEPT);
+
+/**
+ * AT2: the town or city an area belongs to: the nearest, closer for its size,
+ * within its reach. Null when none reaches it.
+ */
+export function townOf(area: { at: LngLat }, towns: AtlasArea[]): AtlasArea | null {
+  let best: AtlasArea | null = null;
+  let score = Infinity;
+  for (const t of towns) {
+    const d = distanceM(area.at, t.at);
+    if (d > t.reachM) continue;
+    const s = d / t.reachM;
+    if (s < score) [best, score] = [t, s];
+  }
+  return best;
+}
+
+/** How far around a town's point its neighborhoods are looked for. */
+export const townReachM = (town: AtlasArea) => Math.min(town.reachM, ATLAS_RULES.townNeighborhoodsM);
+
+/**
+ * AT2: a town's own neighborhoods, nearest you first: within its reach (capped),
+ * and belonging to it rather than to a town beside it.
+ */
+export function townNeighborhoods(rows: AtlasArea[], town: AtlasArea, towns: AtlasArea[], from: LngLat, build: string | null): Listed[] {
+  const reach = townReachM(town);
+  const list: Listed[] = [];
+  for (const area of rows) {
+    if (area.level !== 'neighborhood' || !rowCurrent(area, build)) continue;
+    if (distanceM(area.at, town.at) > reach || list.some((l) => sameArea(l.area, area))) continue;
+    const owner = townOf(area, towns);
+    if (owner && !sameArea(owner, town)) continue;
+    list.push({ area, distanceM: distanceM(area.at, from), here: false });
+  }
+  list.sort((a, b) => a.distanceM - b.distanceM);
+  const out = list.slice(0, ATLAS_RULES.townCap);
+  if (out[0] && out[0].distanceM <= AREA_REACH_M.neighborhood) out[0].here = true;
+  return out;
+}
+
+const NOUN: Record<CategoryId, string> = {
+  history: 'history', art: 'art', culture: 'culture', parks: 'green space', viewpoints: 'views', food: 'food', shops: 'shops', nightlife: 'nightlife',
+};
+
+/**
+ * AT16: an area's character in a few words, from its bars: what it has most of.
+ * Never a count or a rank: "Lots of history and food", "Plenty of green space",
+ * "A little of everything", "Quiet".
+ */
+export function characterLine(steps: Steps): string {
+  const top = Math.max(...ATLAS_ORDER.map((c) => steps[c]));
+  // Never "Quiet": that is the walk mode's name on Navigate (atlas round 3).
+  if (top === 0) return 'Not much on the map here';
+  const kinds = ATLAS_ORDER.filter((c) => steps[c] === top);
+  if (top === 1) return kinds.length >= 5 ? 'A little of everything' : `A little ${NOUN[kinds[0]]}`;
+  const named = kinds.slice(0, 2).map((c) => NOUN[c]);
+  return `${top === 3 ? 'Lots' : 'Plenty'} of ${named.join(' and ')}`;
 }
 
 /** AT3: how far, as a walking time, or a distance once it is over an hour. */
@@ -315,11 +388,27 @@ export function nextDoor(area: AtlasArea, rows: AtlasArea[], build: string | nul
     .slice(0, ATLAS_RULES.nextDoor);
 }
 
-/** AT8: Walk to the busiest street, else the area's own point. */
-export function walkTarget(area: AtlasArea): { at: LngLat; label: string } {
+/**
+ * AT8: Walk to an area: it is named for the area, and starts you at its busiest
+ * street (`via`) when it has one, else at its point (atlas round 3).
+ */
+export function walkTarget(area: AtlasArea): { at: LngLat; label: string; via: string | null } {
   const p = area.profile;
-  return p?.stripAt && p.strips[0] ? { at: p.stripAt, label: p.strips[0] } : { at: area.at, label: area.name };
+  return p?.stripAt && p.strips[0] ? { at: p.stripAt, label: area.name, via: p.strips[0] } : { at: area.at, label: area.name, via: null };
 }
+
+/** Atlas round 3: the town you're in is the page's title, so it isn't listed again among the other towns. */
+export const otherTowns = (towns: Listed[]): Listed[] => towns.filter((l) => !l.here);
+
+/**
+ * How the marks work, in words (atlas round 3): presence, never a count of
+ * places, the same everywhere.
+ */
+export const MARKS_EXPLAINED: readonly string[] = [
+  'Marks say how much of each kind is around an area, never how good it is.',
+  'One mark: a place or two of the kind. Two: a handful. Three: a street’s worth.',
+  'Every area is judged the same way, within about a ten-minute walk of its point, so the same marks mean the same anywhere.',
+];
 
 /** AT13: one sentence a screen reader says for a tile; how far and the walked count are its only numbers (AT11). */
 export function tileLabel(l: Listed, fam: Familiarity, fmt: (m: number) => string): string {
@@ -349,21 +438,32 @@ export const canWalkTo = (m: number) => m <= NAV.maxM;
 /** What the read loop does next (AT5, AT12; explore-atlas audit 2, 3, 4). Pure, so the loop's choices are tested. */
 export type AtlasStep =
   | { kind: 'adopt'; build: string }
-  | { kind: 'near' }
+  | AtlasStepNear
   | { kind: 'ring'; area: AtlasArea }
   | { kind: 'wait'; ms: number }
   | { kind: 'idle' };
+
+/** A level to list around a spot, with the reads already made of it. */
+export interface NearTarget {
+  level: AtlasLevel;
+  at: LngLat;
+  radiusM: number;
+  reads: NearRead[];
+}
 
 interface StepInput {
   /** The build the hook lists rows under; null before one is known. */
   build: string | null;
   /** The map's build as just checked ('unknown' offline). */
   latest: string;
-  last: NearRead | null;
-  from: LngLat;
+  /** What should be listed, in order (the view's neighborhoods first, then the towns around you). */
+  nears: NearTarget[];
+  /** The tiles on screen, in reading order. */
   list: Listed[];
   now: number;
 }
+
+export type AtlasStepNear = { kind: 'near'; level: AtlasLevel; at: LngLat; radiusM: number };
 
 export function atlasStep(o: StepInput): AtlasStep {
   // Checked before every step: a newer build is adopted, never chased by reading near again and again (audit 2).
@@ -373,7 +473,8 @@ export function atlasStep(o: StepInput): AtlasStep {
 }
 
 function afterBuild(o: StepInput, build: string): AtlasStep {
-  if (needsNear(o.last, o.from, build)) return { kind: 'near' };
+  const near = o.nears.find((n) => needsNear(n.reads, n.at, build, n.radiusM));
+  if (near) return { kind: 'near', level: near.level, at: near.at, radiusM: near.radiusM };
   const next = readQueue(o.list, o.now);
   if (next) return { kind: 'ring', area: next };
   // A ring that failed is tried again once its wait is over (AT5, audit 3).

@@ -102,6 +102,8 @@ export const META = {
   explore_hidden: { owner: 'explore', codec: json<string[]>(isStrings) },
   explore_range: { owner: 'explore', codec: number },
   explore_haptic: { owner: 'explore', codec: onOff },
+  // Explore tab: the long-press hint was seen once (AT, atlas round 2)
+  atlas_press_seen: { owner: 'explore', codec: flag },
   // Recall (lib/discovery/recallCheck): captures a notification opened
   recall_open: { owner: 'discovery', codec: json<string[]>(isStrings) },
   // Settings

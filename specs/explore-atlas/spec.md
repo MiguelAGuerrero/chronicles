@@ -31,12 +31,18 @@ place like?" before a walk. Planning (keeping areas for later) is a later slice.
 
 1. **AT1 · Near you, nearest first.** Explore lists the neighborhoods near your
    last known position, nearest first. The one you are in (or nearest within its
-   reach) leads and says "You're here". With no fix since the app opened, it shows
-   the areas around where it last listed them, without "You're here"; with none at
-   all, it says how to get a position (Find me) instead of an empty grid.
-2. **AT2 · Two levels, explicit.** A Neighborhoods / Towns switch moves between
-   levels. Where no neighborhood is near, the Neighborhoods level says so in words
-   and offers Towns.
+   reach) leads and says "You're here". Explore reads one fix as the app opens
+   (NV16, the owner's call, Nov 3: Explore is now the opening tab). Until it comes,
+   or when it fails, it shows the areas around where it last listed them, without
+   "You're here"; with none at all, it says how to get a position (Find me) instead
+   of an empty grid.
+2. **AT2 · The hierarchy is the grid** (the owner, Nov 3: a switch between
+   levels didn't work, because they nest). Explore opens on the town you are in:
+   its name is the title, the neighborhoods near you are the grid, and "Towns
+   nearby" follow. A town's tile opens its page: its own picture and bars, then its
+   own neighborhoods (those within its reach that belong to it, not to the town
+   beside it). The title's back arrow, Back and Escape return. A town with no
+   neighborhoods on the map says it is one area.
 3. **AT3 · A tile.** Each tile shows the area's name, how far it is (a walking
    time, or a distance once it is over an hour), "New to you" or "Walked N times",
    and the eight kinds in one fixed order (history, art, culture, green, views,
@@ -79,10 +85,42 @@ place like?" before a walk. Planning (keeping areas for later) is a later slice.
     12 km, nearest first (a village is a town in a rural place); their card says
     the bars are "around its centre".
 
+15. **AT15 · The title floats over the map.** The map runs to the top of the
+    screen, under the status bar, and the page's title and subtitle sit over it on
+    a card lifted by a shadow: no empty band above the title.
+16. **AT16 · A tile says what the area is like.** Besides its picture and bars, a
+    tile has a line in words about what the area has most of ("Lots of history and
+    food", "Plenty of green space", "A little of everything", "Quiet"), and its
+    busiest street, in magenta, when it has one.
+
 ## Record
 
 Built 2026-11-03 on branch `explore-atlas`: AT1-AT14 pass in `atlas.test.ts` and
 the e2e's Explore section. Native has not run on a device.
+
+### Round 3 (2026-11-03, the design review's fixes, the owner: "proceed with all of it")
+
+- **Walk to:** a footer always in sight, "Walk to <area>", with "Starts you at <street>, its busiest street".
+- **The card:** a sheet that opens at 58% of the screen and rises to 90% by its handle. On wide screens it is a side panel. Focus moves to its name. Next door says "11 min from <area>".
+- **The long press:** its choices sit over the map in one row. They clear on any page change or when the tab is left. Below z10 it shows "Zoom in to look closer". A one-time hint says the long press exists.
+- **Your town:** it is the title and the way into its page, never listed again; the others are "Other towns". Town tiles have a "See its neighborhoods" footer. A back pill sits low on a town's page.
+- **Presence (decision 0067):**
+  - presence as dots;
+  - tiles show only the kinds present;
+  - "none" at full ink;
+  - "How the marks work" in words;
+  - "Not much on the map here" in place of "Quiet".
+- **Layout:**
+  - tiles read name, character, one meta line, busy street, kinds;
+  - areas are named on the small map (the nearest three, and the selected one);
+  - three columns from 700 px, and map and list side by side from 1000 px;
+  - the title is aligned with the grid.
+- **Not done:** highlighting an area's dot as its tile scrolls to the top (`docs/DEFERRED.md`).
+
+### Round 2 (2026-11-03, after the owner's look on an iPhone)
+
+- The title over the map (AT15), the hierarchy in the grid in place of the switch (AT2), the character line and busiest street on tiles (AT16).
+- The area card showed only its header on an iPhone's Safari: it is now sized in pixels measured by the screen, and the e2e checks its body sits inside it.
 
 ### Audit (2026-11-03): 14 findings, 11 fixed, 1 partly fixed, 1 deferred, 1 rejected
 

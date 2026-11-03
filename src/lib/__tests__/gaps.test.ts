@@ -2,8 +2,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { boundsOf, distanceM, splitAtGaps, stepToward, traceDistanceM, smoothDwells, type Bounds } from '../geo';
-import { fillsOf, GAP_RULES, gapsOf, inferGap, readBounds, stretchAt, stretchesFor, stretchLines } from '../gaps/infer';
-import { readTrace, traceDistances, withFilled } from '../rides';
+import { fillsOf, GAP_RULES, gapsOf, inferGap, movingPace, readBounds, stretchAt, stretchesFor, stretchLines } from '../gaps/infer';
+import { liveRuns, readTrace, traceDistances, withFilled } from '../rides';
 import { tilesNear } from '../tileMath';
 import { snap } from '../snapper';
 import { deriveSegments, type RoadFeature } from '../streets';
@@ -75,8 +75,6 @@ test('gaps: a minute without fixes, 40 m or more apart and at most 30 min, is a 
 test('gaps: short, close, long, paused or ridden breaks are not gaps (G1)', () => {
   // Fixes 50 s apart: no break at all.
   assert.equal(gapsOf(readTrace(withGap([at(0, 0), at(1, 0)], [at(1.2, 0), at(2, 0)], 50), 0)).length, 0, 'under a minute');
-  // Back within 30 m of where it stopped.
-  assert.equal(gapsOf(readTrace(withGap([at(0, 0), at(1, 0)], [at(1.3, 0), at(2, 0)], 300), 0)).length, 0, 'under 40 m apart');
   // 31 minutes out.
   assert.equal(gapsOf(readTrace(withGap([at(0, 0), at(1, 0)], [at(5, 0), at(6, 0)], 31 * 60), 0)).length, 0, 'over 30 min');
   // A pause across it: you said you stopped.
@@ -146,11 +144,30 @@ test('gaps: a street in a grid fills by itself only when the time leaves no room
   // The same in 10 min: there was time to go round a block, so it is only offered.
   const slow = only(withGap([at(0.5, 2), at(1.5, 2)], [at(5.5, 2), at(6.5, 2)], 600), grid)!;
   assert.equal(slow.level, 'offer', `slow: time ${slow.certainTime}, direct ${slow.certainDirect}`);
-  assert.ok(slow.certainDirect >= GAP_RULES.offer);
 });
 
-test('gaps: across a grid, where many ways are as short, nothing is filled (G7)', () => {
-  assert.equal(only(withGap([at(0.5, 1), at(1.5, 1)], [at(5, 4.5), at(5, 5.5)], 400), grid), null);
+test('gaps: across a grid, where many ways are as short, the likeliest is still offered, never filled (G7)', () => {
+  // The owner's call (Nov 3): an uncertain gap is offered faint to keep or dismiss, never left blank.
+  const inf = only(withGap([at(0.5, 1), at(1.5, 1)], [at(5, 4.5), at(5, 5.5)], 400), grid)!;
+  assert.ok(inf, 'offered');
+  assert.equal(inf.level, 'offer');
+  assert.ok(inf.certainDirect < GAP_RULES.auto, `uncertain: ${inf.certainDirect}`);
+});
+
+test('gaps audit park: a path with a parallel way close by is offered, not left blank (G6, G7)', () => {
+  // Lehigh Parkway (Nov 3): 8 min out, 300 m apart along a creek path, a drive running beside it
+  // 50 m away and joined at both ends. Nothing showed; the owner followed the path.
+  const park = deriveSegments([
+    road([at(0, 0), at(3, 0)], { class: 'path', subclass: 'footway' }),
+    road([at(0, 0.5), at(3, 0.5)], { class: 'minor', name: 'Park Drive' }),
+    road([at(0, 0), at(0, 0.5)], { class: 'path', subclass: 'footway' }),
+    road([at(3, 0), at(3, 0.5)], { class: 'path', subclass: 'footway' }),
+  ]);
+  const inf = only(withGap([at(-0.3, 0), at(0.1, 0)], [at(2.9, 0), at(3.3, 0)], 480), park)!;
+  assert.ok(inf, 'offered');
+  assert.equal(inf.level, 'offer');
+  // Along the path (y = 0), the shorter way, never round by the drive 50 m north.
+  assert.ok(inf.path.every((p) => Math.abs(p[1] - O[1]) * 111320 < 15), 'along the path');
 });
 
 test('gaps: streets not read around the gap fill nothing by themselves (G8)', () => {
@@ -312,4 +329,120 @@ test('gaps audit 6: a snap read in code takes the tiles along the walk, at most 
   const near = tilesNear(trace, 150, 36);
   assert.ok(near.length <= 8, `${near.length} tiles`);
   assert.ok(tilesNear(walk([at(0, 0), at(400, 0)]).map((p) => [p.lon, p.lat] as LngLat), 150, 36).length <= 36, 'capped');
+});
+
+// A guess that fits the time (the concept doc's Filling gaps tab, "Drawing a gap's way", GT1-GT3).
+
+// A creek path from (0, 0) to (3, 0), and a loop of path from its west end up and round to its east end.
+const loop = deriveSegments([
+  road([at(0, 0), at(3, 0)], { class: 'path', subclass: 'footway' }),
+  road([at(0, 0), at(0, 1), at(3, 1), at(3, 0)], { class: 'path', subclass: 'footway' }),
+  road([at(-0.6, 0), at(0, 0)], { class: 'path', subclass: 'footway' }),
+  road([at(3, 0), at(3.6, 0)], { class: 'path', subclass: 'footway' }),
+]);
+const onLoop = (p: LngLat) => p[1] > O[1] + 0.5 * dLat;
+
+test('GT1: the walk\'s own pace is the median of its moving fixes, else 1.3 m/s', () => {
+  const tr = readTrace(walk([at(0, 0), at(3, 0)]), 0);
+  assert.ok(Math.abs(movingPace(tr) - 1.4) < 0.05, `${movingPace(tr)}`);
+  const unreported = readTrace(walk([at(0, 0), at(3, 0)]).map((p) => ({ ...p, speed: null })), 0);
+  assert.ok(Math.abs(movingPace(unreported) - 1.4) < 0.15, `worked out from movement: ${movingPace(unreported)}`);
+  const standing = readTrace([0, 5000, 10000, 15000].map((t) => ({ walk_id: 'w', t, lon: O[0], lat: O[1], accuracy_m: 8, speed: 0, course: null })), 0);
+  assert.equal(movingPace(standing), 1.3);
+});
+
+test('GT2: a loop is offered over the shortcut when the time fits the loop', () => {
+  // 8 min at 1.4 m/s is about 670 m: the loop (about 500 m) fits it better than the 280 m shortcut.
+  const inf = only(withGap([at(-0.5, 0), at(0.1, 0)], [at(2.9, 0), at(3.5, 0)], 480), loop)!;
+  assert.ok(inf, 'offered');
+  assert.ok(inf.path.some(onLoop), 'round the loop');
+  assert.ok(inf.lengthM > 450, `${Math.round(inf.lengthM)} m`);
+});
+
+test('GT2: the shortcut stays when the time is short', () => {
+  // 4 min at 1.4 m/s is about 340 m: the 280 m shortcut fits.
+  const inf = only(withGap([at(-0.5, 0), at(0.1, 0)], [at(2.9, 0), at(3.5, 0)], 240), loop)!;
+  assert.ok(inf && !inf.path.some(onLoop), 'along the creek');
+});
+
+test('GT3: a way chosen for its fit is offered, never filled; a certain gap keeps its shortest way', () => {
+  const inf = only(withGap([at(-0.5, 0), at(0.1, 0)], [at(2.9, 0), at(3.5, 0)], 480), loop)!;
+  assert.equal(inf.level, 'offer');
+  // Main Street with nowhere else to go, slowly: still filled by itself, along the street.
+  const slow = only(withGap([at(0.5, 0), at(2, 0)], [at(6, 0), at(7, 0)], 900), corridor)!;
+  assert.equal(slow.level, 'auto');
+  assert.ok(Math.abs(slow.lengthM - 400) < 15, `${Math.round(slow.lengthM)} m`);
+});
+
+test('GT2: in a grid, spare time is not read as a zig-zag round the blocks', () => {
+  // 10 min for 400 m along Street 2: the time would fit two blocks round, but a way that turns
+  // corner after corner is a poor guess; time to spare in town is mostly time stopped.
+  const inf = only(withGap([at(0.5, 2), at(1.5, 2)], [at(5.5, 2), at(6.5, 2)], 600), grid)!;
+  assert.ok(inf.path.every((p) => Math.abs(p[1] - at(0, 2)[1]) * 111320 < 15), 'along Street 2');
+});
+
+// After the audit (Nov 3): each accepted finding's regression, `gap-drawing audit N`.
+
+test('gap-drawing audit 1: the park path stays the offer at 8 min, never the drive beside it', () => {
+  // A way that fits the time keeps to the kinds of way the shortest uses: a footpath walk isn't
+  // guessed onto a park drive because the drive is longer.
+  const park = deriveSegments([
+    road([at(0, 0), at(3, 0)], { class: 'path', subclass: 'footway' }),
+    road([at(0, 0.5), at(3, 0.5)], { class: 'minor', name: 'Park Drive' }),
+    road([at(0, 0), at(0, 0.5)], { class: 'path', subclass: 'footway' }),
+    road([at(3, 0), at(3, 0.5)], { class: 'path', subclass: 'footway' }),
+  ]);
+  for (const seconds of [300, 480, 600]) {
+    const inf = only(withGap([at(-0.3, 0), at(0.1, 0)], [at(2.9, 0), at(3.3, 0)], seconds), park)!;
+    assert.notEqual(inf.street, 'Park Drive', `${seconds} s`);
+  }
+});
+
+test('gap-drawing audit 3: a loop is still found with a second path beside the ends', () => {
+  // A path 30 m beside the creek, joined at both ends: every end joins two paths, and the
+  // variants through those joins must not use up the ways looked at.
+  const twin = deriveSegments([
+    road([at(0, 0), at(3, 0)], { class: 'path', subclass: 'footway' }),
+    road([at(0, 0), at(0, 1), at(3, 1), at(3, 0)], { class: 'path', subclass: 'footway' }),
+    road([at(-0.6, 0), at(0, 0)], { class: 'path', subclass: 'footway' }),
+    road([at(3, 0), at(3.6, 0)], { class: 'path', subclass: 'footway' }),
+    road([at(-0.6, 0.3), at(3.6, 0.3)], { class: 'path', subclass: 'footway' }),
+    road([at(-0.6, 0), at(-0.6, 0.3)], { class: 'path', subclass: 'footway' }),
+    road([at(3.6, 0), at(3.6, 0.3)], { class: 'path', subclass: 'footway' }),
+  ]);
+  const inf = only(withGap([at(-0.5, 0), at(0.1, 0)], [at(2.9, 0), at(3.5, 0)], 480), twin)!;
+  assert.ok(inf.path.some((p) => p[1] > O[1] + 0.8 * dLat), 'round the loop');
+});
+
+test('gap-drawing audit 6: the pace from 1 Hz fixes without a speed', () => {
+  // The web reports no speed; fixes a second apart at 1.3 m/s.
+  const pts: TracePoint[] = [];
+  for (let k = 0; k <= 300; k++) {
+    const p = stepToward(at(0, 0), at(10, 0), 1.3 * k);
+    pts.push({ walk_id: 'w', t: k * 1000, lon: p[0], lat: p[1], accuracy_m: 8, speed: null, course: null });
+  }
+  const pace = movingPace(readTrace(pts, 0));
+  assert.ok(Math.abs(pace - 1.3) < 0.2, `${pace.toFixed(2)} m/s`);
+});
+
+// Every break is a gap (the owner's rule, Nov 3, after breaks of 30-35 m across Ferry Street,
+// Easton, were left as breaks): the line is made continuous however short the break.
+
+test('G1 (Nov 3): a break of 30 m is a gap, read like any other', () => {
+  const tr = readTrace(withGap([at(0, 0), at(1, 0)], [at(1.3, 0), at(2, 0)], 300), 0);
+  const gaps = gapsOf(tr);
+  assert.equal(gaps.length, 1);
+  const inf = inferGap(gaps[0], corridor, everywhere(corridor))!;
+  assert.ok(inf && Math.abs(inf.lengthM - 30) < 10, `along Main Street, ${inf && Math.round(inf.lengthM)} m`);
+});
+
+test('G1 (Nov 3): a break within 10 m is joined straight and filled by itself, with no streets read', () => {
+  const tr = readTrace(withGap([at(0, 0), at(1, 0)], [at(1.06, 0), at(2, 0)], 300), 0);
+  const gaps = gapsOf(tr);
+  assert.equal(gaps.length, 1);
+  const inf = inferGap(gaps[0], [], null)!;
+  assert.equal(inf.level, 'auto');
+  assert.equal(inf.path.length, 2);
+  const filled = readTrace(withGap([at(0, 0), at(1, 0)], [at(1.06, 0), at(2, 0)], 300), 0, [], [], fillsOf(stretchesFor(gaps, [inf], [])));
+  assert.equal(liveRuns(filled).length, 1, 'one line');
 });

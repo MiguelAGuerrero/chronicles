@@ -103,6 +103,8 @@ function check(ok, what) {
 (async () => {
   const server = await serve();
   const url = `http://localhost:${server.address().port}${BASE}/`;
+  // Explore is the root (NV2); scenarios that begin on Navigate open its own path.
+  const navUrl = `${url}navigate`;
   // A fake microphone, so voice memos can be recorded headless.
   // Sound only after a tap, as on iOS: the replay reaches its stops on its own clock.
   // The full Chromium in headless mode ('chromium' channel): the old headless shell always denies
@@ -341,7 +343,7 @@ function check(ok, what) {
         console.log(`not ok - ${name}: ${String(e.message).split('\n')[0]}`);
       }
     };
-    await pg.goto(url);
+    await pg.goto(navUrl);
     await pg.waitForSelector('[data-testid=start]');
     await pg.waitForTimeout(1500);
 
@@ -828,7 +830,7 @@ function check(ok, what) {
       await c.setGeolocation({ longitude: s0[0], latitude: s0[1] + 0.000002, accuracy: 6 });
       await pg.waitForTimeout(2500);
     };
-    await pg.goto(url);
+    await pg.goto(navUrl);
     await pg.waitForSelector('[data-testid=start]');
     // First walk, explore from the start: it reads and builds Fox Point's checklist as it goes.
     await setMeta('start_mode', 'explore');
@@ -837,7 +839,7 @@ function check(ok, what) {
     const first = await walkPast('first walk (area unread)');
     check(first.some((l) => /Hessian Memorial/.test(l)), `marks: a first exploring walk draws the memorial it passes (${JSON.stringify(first)})`);
     await holdStop();
-    await pg.goto(url);
+    await pg.goto(navUrl);
     // Second walk through the same area, read before: the tab's "?" must show on the walk too.
     await startWalk();
     const second = await walkPast('second walk (area read before)');
@@ -857,7 +859,7 @@ function check(ok, what) {
       console.log(`# ${label}: ${JSON.stringify(s)}`);
       return s;
     };
-    await pg.goto(url);
+    await pg.goto(navUrl);
     await pg.waitForSelector('[data-testid=start]');
     await pg.click('[data-testid=start]');
     await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
@@ -937,7 +939,7 @@ function check(ok, what) {
       await pg.click('[data-testid=bar-stop]');
       await pg.waitForTimeout(400);
       const said = await pg.locator('[data-testid=recording-said]').innerText().catch(() => '');
-      check(said === 'Hold to stop the walk' && new URL(pg.url()).pathname === `${BASE}/`, `bar stop: a tap only says to hold ("${said}")`);
+      check(said === 'Hold to stop the walk' && new URL(pg.url()).pathname === `${BASE}/navigate`, `bar stop: a tap only says to hold ("${said}")`);
       const b = await pg.locator('[data-testid=bar-stop]').boundingBox();
       await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
       await pg.mouse.down();
@@ -958,7 +960,7 @@ function check(ok, what) {
     const { c, pg } = await freshPage('gaps');
     await c.addInitScript(() => { window.__perf = {}; });
     const here = at(3.0, -0.5);
-    await pg.goto(url);
+    await pg.goto(navUrl);
     await pg.waitForSelector('[data-testid=start]');
     await pg.click('[data-testid=start]');
     await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
@@ -1002,14 +1004,16 @@ function check(ok, what) {
     await pg.reload();
     await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
     await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
-    const mapState = () => pg.locator('[data-faint]').last().evaluate((e) => ({ runs: Number(e.dataset.runs), faint: Number(e.dataset.faint) }));
+    const mapState = () => pg.locator('[data-faint]').last().evaluate((e) => ({ runs: Number(e.dataset.runs), faint: Number(e.dataset.faint), links: Number(e.dataset.gaplinks ?? -1), drawing: Number(e.dataset.drawing ?? -1), center: e.dataset.center ?? '' }));
     let st = await mapState();
-    for (let k = 0; k < 20 && !(st.faint === 1 && st.runs === 4); k++) {
+    for (let k = 0; k < 20 && !(st.faint === 1 && st.runs === 3); k++) {
       await pg.waitForTimeout(1000);
       st = await mapState();
     }
-    // Without filling there would be four lines; Thayer's gap joins its line, Transit's is faint.
-    check(st.runs === 4, `gaps: a gap along a street with nowhere else to go fills by itself, one line (G5: ${JSON.stringify(st)})`);
+    // Without filling there would be five lines (Thayer's two halves, Transit's two, and the fixes
+    // here now, 15 min after the last). Thayer's gap joins its line, the 15 min standing here is
+    // joined straight (every break is a gap, Nov 3), and Transit's is faint.
+    check(st.runs === 3, `gaps: a gap along a street with nowhere else to go fills by itself, one line (G5: ${JSON.stringify(st)})`);
     check(st.faint === 1, `gaps: a gap with time to go round a block is offered faint (G6: ${JSON.stringify(st)})`);
     const km = (t) => { const m = /([\d.]+) (k?m)\b/.exec(t); return m ? Number(m[1]) * (m[2] === 'km' ? 1000 : 1) : NaN; };
     const before = km(await pg.locator('[data-testid=walk-stats]').innerText());
@@ -1036,12 +1040,30 @@ function check(ok, what) {
     await pg.click('[data-testid=walk-options]');
     await pg.waitForTimeout(400);
     check(underOptions === 0 && (await pg.locator('[data-testid=gap-card]').count()) === 0, `gaps audit 7: the walk's options close the stretch's card, and it doesn't come back (${underOptions})`);
+    // Drawing on the walk screen (GW1, GW8): the card offers Draw my way; drawing hides the capture
+    // row and stops following, so a new fix doesn't move the map; Cancel leaves the gap as it was.
+    await tap(at(1.6, -0.5));
+    check((await pg.locator('[data-testid=gap-draw]').count()) === 1, 'GW1: an offered stretch\'s card has Draw my way');
+    await pg.click('[data-testid=gap-draw]').catch(() => {});
+    await pg.waitForSelector('[data-testid=gap-draw-bar]', { timeout: 5000 }).catch(() => {});
+    const centerBefore = (await mapState()).center;
+    await c.setGeolocation({ longitude: here[0] + 0.0004, latitude: here[1], accuracy: 6 });
+    await pg.waitForTimeout(2500);
+    const drawingNow = await mapState();
+    check((await pg.locator('[data-testid=gap-draw-bar]').count()) === 1 && !(await pg.locator('[data-testid=cap-photo]').isVisible().catch(() => false)) && drawingNow.center === centerBefore,
+      `GW8: drawing on the walk screen hides the capture row and a new fix doesn't move the map (${centerBefore} → ${drawingNow.center})`);
+    await pg.click('[data-testid=gap-draw-cancel]').catch(() => {});
+    await pg.waitForTimeout(600);
+    const afterCancel = await mapState();
+    check((await pg.locator('[data-testid=gap-draw-bar]').count()) === 0 && afterCancel.faint === 1 && afterCancel.drawing === 0, `GW4: Cancel leaves the gap as it was (${JSON.stringify(afterCancel)})`);
+    await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
+    await pg.waitForTimeout(1500);
     await tap(at(1.6, -0.5));
     await pg.click('[data-testid=gap-keep]');
-    for (let k = 0; k < 10 && (st = await mapState()).runs !== 3; k++) await pg.waitForTimeout(500);
+    for (let k = 0; k < 10 && (st = await mapState()).runs !== 2; k++) await pg.waitForTimeout(500);
     await pg.waitForTimeout(2500);
     const after = km(await pg.locator('[data-testid=walk-stats]').innerText());
-    check(st.runs === 3 && st.faint === 0, `gaps: Keep draws it solid, joined to the trace (G10: ${JSON.stringify(st)})`);
+    check(st.runs === 2 && st.faint === 0, `gaps: Keep draws it solid, joined to the trace (G10: ${JSON.stringify(st)})`);
     check(after - before > 250 && after - before < 450, `gaps: a kept stretch counts as walked distance (G11: ${before} m → ${after} m)`);
     const rows = () => pg.evaluate(() => new Promise((resolve) => {
       const req = indexedDB.open('chronicles');
@@ -1090,6 +1112,48 @@ function check(ok, what) {
       check(r.runs === onCard.runs + 1, `gaps: Not this way breaks the line again on the replay (G10, G12: ${onCard.runs} → ${r.runs})`);
       const stored = await rows();
       check(stored.includes('dismissed:Thayer Street'), `gaps: Not this way is stored too (G10: ${JSON.stringify(stored)})`);
+      // A dismissed gap is joined by a dotted line; tapping it opens its card, and its way can be drawn (GW1-GW5, GW7).
+      let dotted = await mapState();
+      for (let k = 0; k < 10 && dotted.links !== 1; k++) {
+        await pg.waitForTimeout(500);
+        dotted = await mapState();
+      }
+      check(dotted.links === 1, `GW2: a dismissed gap is joined by a dotted line (${JSON.stringify(dotted)})`);
+      await tap(at(11, 0.6));
+      const empty = await pg.locator('[data-testid=gap-title]').innerText().catch(() => '');
+      check(/^Not recorded for \d+ min$/.test(empty) && (await pg.locator('[data-testid=gap-draw]').count()) === 1 && (await pg.locator('[data-testid=gap-keep]').count()) === 0,
+        `GW1, GW2: tapping the dotted line opens its card, with Draw my way ("${empty}")`);
+      // Paths slow to come: Done waits for them, and says so (gap-drawing audit 4).
+      tileDelayMs = 4000;
+      await pg.click('[data-testid=gap-draw]').catch(() => {});
+      await pg.waitForSelector('[data-testid=gap-draw-bar]', { timeout: 5000 }).catch(() => {});
+      const waiting = await pg.locator('[data-testid=gap-draw-bar]').innerText().catch(() => '');
+      const doneOff = await pg.locator('[data-testid=gap-draw-done]').evaluate((e) => e.getAttribute('aria-disabled') === 'true' || e.hasAttribute('disabled')).catch(() => false);
+      check(/Reading the paths/.test(waiting) && doneOff, `gap-drawing audit 4: Done waits for the paths ("${waiting.replace(/\n/g, ' · ')}", disabled ${doneOff})`);
+      tileDelayMs = 0;
+      await pg.waitForFunction(() => !/Reading the paths/.test(document.querySelector('[data-testid=gap-draw-bar]')?.innerText ?? ''), null, { timeout: 15000 }).catch(() => {});
+      await pg.waitForTimeout(500);
+      const startPts = (await mapState()).drawing;
+      // Two taps along Thayer Street; Undo takes the second away; tap it again.
+      await tap(at(11, -0.8));
+      await tap(at(11, 1.2));
+      const two = (await mapState()).drawing;
+      await pg.click('[data-testid=gap-draw-undo]').catch(() => {});
+      await pg.waitForTimeout(500);
+      const undone = (await mapState()).drawing;
+      check(startPts >= 1 && two > undone && undone > startPts, `GW3, GW4: taps grow the line along the street, and Undo takes the last away (${startPts} → ${two} → ${undone} points)`);
+      await tap(at(11, 1.2));
+      const barText = await pg.locator('[data-testid=gap-draw-bar]').innerText().catch(() => '');
+      check(!/couldn.t be read/i.test(barText), `GW7: the paths around the taps were read ("${barText.replace(/\n/g, ' · ')}")`);
+      await pg.click('[data-testid=gap-draw-done]').catch(() => {});
+      let drawn = await mapState();
+      for (let k = 0; k < 30 && drawn.runs !== onCard.runs; k++) {
+        await pg.waitForTimeout(500);
+        drawn = await mapState();
+      }
+      const keptNow = await rows();
+      check(drawn.runs === onCard.runs && drawn.links === 0 && drawn.drawing === 0 && keptNow.filter((x) => x.startsWith('kept')).length === 2,
+        `GW5: Done keeps the drawn way: one line again, no dotted join (${JSON.stringify(drawn)}, ${JSON.stringify(keptNow)})`);
     }
     await c.close();
   };
@@ -1177,7 +1241,7 @@ function check(ok, what) {
     };
 
     // Navigate: Locate from 1 km away.
-    await pg.goto(url);
+    await pg.goto(navUrl);
     await pg.waitForSelector('[data-testid=start]');
     await pg.waitForTimeout(1500);
     const far = at(10, 0);
@@ -1508,7 +1572,7 @@ function check(ok, what) {
     // button that brings the recorder's notice back after it was dismissed.
     {
       const { c: c2, pg: pg2 } = await freshPage('qol-denied', { permissions: [] });
-      await pg2.goto(url);
+      await pg2.goto(navUrl);
       await pg2.waitForSelector('[data-testid=start]');
       await pg2.waitForTimeout(800);
       await pg2.click('[data-testid=start]');
@@ -1561,30 +1625,55 @@ function check(ok, what) {
       check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
       return;
     }
+    // The old /explore path still opens Explore, with one tab bar (NV2).
+    await page.goto(`${url}explore`);
+    await page.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 15000 }).catch(() => {});
+    await page.waitForSelector('[data-testid=tab-explore][aria-selected=true]', { timeout: 30000 }).catch(() => {});
+    check(new URL(page.url()).pathname === `${BASE}/` && (await page.locator('[data-testid=tab-explore][aria-selected=true]').count()) === 1,
+      `the old /explore path opens Explore at / (NV2: ${page.url()})`);
+    // A launch on a replay or a day that is no longer kept goes straight to Explore (NV2: the owner's
+    // Home Screen app reopened on "This walk could not be found", Nov 3).
+    for (const stale of ['replay/no-such-walk', 'day/1999-01-01']) {
+      await page.goto(`${url}${stale}`);
+      await page.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 15000 }).catch(() => {});
+      await page.waitForSelector('[data-testid=tab-explore][aria-selected=true]', { timeout: 15000 }).catch(() => {});
+      check(new URL(page.url()).pathname === `${BASE}/` && (await page.locator('[data-testid=tab-explore][aria-selected=true]').count()) === 1
+        && (await page.locator('text=This walk could not be found.').count()) === 0 && (await page.locator('text=Nothing was kept on this day.').count()) === 0,
+        `a launch on a stale ${stale.split('/')[0]} link opens Explore (NV2: ${page.url()})`);
+    }
     await page.goto(url);
-    // Navigation & tabs (NV1-NV6): the app opens on Navigate, at /, with Start at the drawer's peek.
-    await page.waitForSelector('[data-testid=start]');
+    // Navigation & tabs (NV1-NV6): the app opens on Explore, at / (NV2, the owner's call, Nov 3).
+    await page.waitForSelector('[data-testid=tab-explore][aria-selected=true]');
     // Memos and videos play with the ringer switch off, on the web too (bug: silent playback on iPhone).
     check(await page.evaluate(() => navigator.audioSession.type) === 'playback', 'the page asks to play sound even in silent mode');
-    check(new URL(page.url()).pathname === `${BASE}/` && (await page.locator('[data-testid=tab-navigate][aria-selected=true]').count()) === 1,
-      `the app opens on Navigate, at its own path (NV2, NV5: ${page.url()})`);
+    check(new URL(page.url()).pathname === `${BASE}/` && (await page.locator('[data-testid=tab-explore][aria-selected=true]').count()) === 1
+      && (await page.locator('canvas.maplibregl-canvas').count()) === 1,
+      `the app opens on Explore, at its own path, one live map (NV2, NV4, NV5: ${page.url()})`);
+    // Explore reads one fix as the app opens and frames it (NV16, the owner's call, Nov 3).
+    await page.waitForFunction((s) => [...document.querySelectorAll('[data-center]')].some((e) => {
+      if (e.closest('[aria-hidden=true]')) return false;
+      const [lon, lat] = (e.getAttribute('data-center') ?? '').split(',').map(Number);
+      return Math.abs(lon - s[0]) < 0.004 && Math.abs(lat - s[1]) < 0.004;
+    }), start, { timeout: 15000 }).then(() => true, () => false).then((ok) =>
+      check(ok, 'Explore frames where you are as the app opens, from one fix of its own (NV16)'));
     const tabs = await page.locator('[data-testid^=tab-]').evaluateAll((els) => els.map((e) => `${e.dataset.testid}:${e.innerText.replace(/[^A-Za-z]/g, "")}:${e.querySelectorAll('svg, [aria-hidden], div').length > 1}`));
     check(tabs.join(',') === 'tab-explore:Explore:true,tab-navigate:Navigate:true,tab-chronicle:Chronicle:true', `a bottom bar with Explore, Navigate and Chronicle, in that order, each with an icon and a label (NV1: ${tabs.join(', ')})`);
-    check((await page.locator('canvas.maplibregl-canvas').count()) === 1 && (await page.locator('[data-testid=start]').count()) === 1, 'Navigate opens on the map with Start');
-    check((await page.locator('[data-testid=start-explore]').count()) === 0 && (await page.locator('[data-testid=peek-choices]').innerText()) === 'Quiet',
-      'Start alone at the peek, with the mode: Quiet the first time (NV19, NV22)');
-    check((await page.locator('[data-testid=moment-photo]').count()) === 1 && (await page.locator('[data-testid=moment-note]').isVisible()), 'Navigate has the quick-capture row, outside the drawer (NV18, NV19)');
-    // Navigate's one fix has come and its watch is gone (NV17): Explore will open there.
-    await page.waitForTimeout(1500);
     // Each tab at its own path, with one live map (NV4, NV5); Chronicle is review only (NV11).
     const onTab = async (id) => {
       await page.click(`[data-testid=tab-${id}]`);
       await page.waitForTimeout(800);
       return { path: new URL(page.url()).pathname.slice(BASE.length), canvases: await page.locator('canvas.maplibregl-canvas').count() };
     };
+    const nv = await onTab('navigate');
+    await page.waitForSelector('[data-testid=start]');
+    check(nv.path === '/navigate' && (await page.locator('canvas.maplibregl-canvas').count()) === 1 && (await page.locator('[data-testid=start]').count()) === 1,
+      `Navigate at /navigate, on the map with Start (NV4, NV5: ${JSON.stringify(nv)})`);
+    check((await page.locator('[data-testid=start-explore]').count()) === 0 && (await page.locator('[data-testid=peek-choices]').innerText()) === 'Quiet',
+      'Start alone at the peek, with the mode: Quiet the first time (NV19, NV22)');
+    check((await page.locator('[data-testid=moment-photo]').count()) === 1 && (await page.locator('[data-testid=moment-note]').isVisible()), 'Navigate has the quick-capture row, outside the drawer (NV18, NV19)');
+    await page.waitForTimeout(1500);
     const ex = await onTab('explore');
-    check(ex.path === '/explore' && ex.canvases === 1 && (await page.locator('[data-testid=explore-area]').innerText()) === 'Near you',
-      `Explore at /explore, one live map, no town named yet (NV4, NV5, AT1: ${JSON.stringify(ex)})`);
+    check(ex.path === '/' && ex.canvases === 1, `Explore at /, one live map (NV4, NV5: ${JSON.stringify(ex)})`);
     const ch = await onTab('chronicle');
     await page.waitForSelector('text=Walk somewhere and it is starred here');
     check(ch.path === '/chronicle' && ch.canvases === 1, `Chronicle at /chronicle, one live map (NV4, NV5: ${JSON.stringify(ch)})`);
@@ -1596,16 +1685,16 @@ function check(ok, what) {
     await page.goBack();
     await page.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 5000 }).catch(() => {});
     await page.waitForTimeout(800);
-    check(new URL(page.url()).pathname === `${BASE}/` && (await page.locator('canvas.maplibregl-canvas').count()) === 1 && (await shownCount(page, '[data-testid=start]')) === 1, 'the browser’s back on Chronicle goes to Navigate (NV5)');
-    await onTab('explore');
+    check(new URL(page.url()).pathname === `${BASE}/` && (await page.locator('canvas.maplibregl-canvas').count()) === 1 && (await page.locator('[data-testid=tab-explore][aria-selected=true]').count()) === 1, 'the browser’s back on Chronicle goes to Explore (NV5)');
+    await onTab('navigate');
     await page.goBack();
     await page.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 5000 }).catch(() => {});
-    check(new URL(page.url()).pathname === `${BASE}/`, 'and on Explore too (NV5)');
+    check(new URL(page.url()).pathname === `${BASE}/`, 'and on Navigate too (NV5)');
 
     // Notifications on the web (v1 slice 6). Installable: the manifest is linked under the base path and served (NT1).
     const manifestHref = await page.evaluate(() => document.querySelector('link[rel=manifest]')?.getAttribute('href'));
     const manifest = manifestHref ? await page.evaluate(async (h) => (await fetch(h)).json(), manifestHref) : null;
-    check(manifestHref === `${BASE}/manifest.webmanifest` && manifest?.display === 'standalone' && manifest.icons.some((i) => i.sizes === '512x512')
+    check(manifestHref === `${BASE}/manifest.webmanifest` && manifest?.display === 'standalone' && manifest.start_url === './' && manifest.icons.some((i) => i.sizes === '512x512')
       && (await page.evaluate(() => !!document.querySelector('link[rel=apple-touch-icon]'))),
       'the web app can be installed: a manifest with icons, and Apple home-screen tags (NT1)');
     // The service worker is registered at the base path and active (NT2).
@@ -1616,6 +1705,8 @@ function check(ok, what) {
     check(sw && sw.active && sw.scope.endsWith(`${BASE}/`), `the service worker is active at the base path (${JSON.stringify(sw)})`);
 
     // The pre-start drawer and its dialog (NV19-NV24, Nov 3): the choices, each saved as it changes.
+    await onTab('navigate');
+    await page.waitForSelector('[data-testid=start]');
     const drawerH = async () => Math.round((await page.locator('[data-testid=navigate-drawer]').boundingBox()).height);
     const peekH = await drawerH();
     await drawerTo(page, 'half');
@@ -2532,7 +2623,7 @@ function check(ok, what) {
     {
       const springy = await ctx.newPage();
       springy.on('pageerror', (e) => errors.push(String(e)));
-      await springy.goto(url);
+      await springy.goto(navUrl);
       await springy.waitForSelector('[data-testid=start]');
       await springy.waitForTimeout(800);
       const rest = await rowGap(springy);
@@ -2557,7 +2648,7 @@ function check(ok, what) {
     {
       const rides = await ctx.newPage();
       rides.on('pageerror', (e) => errors.push(String(e)));
-      await rides.goto(url);
+      await rides.goto(navUrl);
       await rides.waitForSelector('[data-testid=start]');
       await rides.waitForTimeout(800);
       const rest = await rowGap(rides);
@@ -2652,8 +2743,8 @@ function check(ok, what) {
       const label = (await fox.getAttribute('aria-label')) ?? '';
       check((await page.locator('canvas.maplibregl-canvas').count()) === 1 && names[0] === 'Fox Point' && /^Fox Point\. You’re here\./.test(label),
         `AT1: the atlas lists the neighborhoods near you, the one you're in first (${names.join(', ')}: ${label})`);
-      check((await fox.getAttribute('data-read')) === '1' && (await fox.locator('svg').count()) >= 1 && (await fox.locator('[data-kind]').count()) === 8,
-        'AT3, AT5, AT6: its ring was read by itself; the tile has its picture and the eight kinds');
+      check((await fox.getAttribute('data-read')) === '1' && (await fox.locator('svg').count()) >= 1 && (await fox.locator('[data-kind]').count()) >= 1,
+        'AT3, AT5, AT6: its ring was read by itself; the tile has its picture and the kinds it has (round 3: only those present)');
       check(/Walked (once|\d+ times)/.test(label) && /History: (some|plenty|lots)/.test(label),
         `AT3, AT13: the tile says how often you walked there and each kind present in words (${label})`);
       const atlasRows = await page.evaluate(() => new Promise((resolve) => {
@@ -2677,8 +2768,25 @@ function check(ok, what) {
         `AT8: the card names what you found here (${card.replace(/\s+/g, ' ').slice(0, 160)})`);
       check((await page.locator('[data-testid=atlas-walk]').count()) === 0 && /You’re in Fox Point/.test(card), 'AT8: the area you are in has no Walk to');
       check((await page.locator('[data-testid=atlas-kind-history]').count()) === 1 && !/\d+\s*of\s*\d+/.test(card), 'AT8: the eight kinds in words, no counts');
+      {
+        // The card's body shows, not only its header (an iPhone left it at the header's height, Nov 3). Round 3:
+        // it opens low, so the map above stays in sight; a tap on its handle raises it.
+        const vh = page.viewportSize().height;
+        const box = await page.locator('[data-testid=atlas-card]').boundingBox();
+        check(box && box.height > vh * 0.5 && box.height < vh * 0.7 && box.y > vh * 0.3,
+          `atlas round 3: the card opens as a sheet that leaves the map in sight (${box && Math.round(box.y)}+${box && Math.round(box.height)} of ${vh})`);
+        await page.click('[data-testid=atlas-card-grip]');
+        await page.waitForTimeout(700);
+        const up = await page.locator('[data-testid=atlas-card]').boundingBox();
+        check(up && up.height > vh * 0.8, `atlas round 3: its handle raises it (${up && Math.round(up.height)})`);
+        const kind = await page.locator('[data-testid=atlas-kind-history]').boundingBox();
+        check(kind && up && kind.y + kind.height <= up.y + up.height + 1, 'AT8: its body is inside it');
+      }
       await page.click('[data-testid=atlas-how]');
-      check(/same bars mean the same amount anywhere/.test(await page.locator('[data-testid=atlas-how-panel]').innerText()), 'AT4, AT8: How bars count explains the fixed steps');
+      {
+        const how = await page.locator('[data-testid=atlas-how-panel]').innerText();
+        check(/same marks mean the same anywhere/.test(how) && !/\d/.test(how), `atlas round 3: How the marks work says it in words, with no counts (${how.replace(/\s+/g, ' ').slice(0, 80)})`);
+      }
       await shot(page, '11c-atlas-card');
       await page.keyboard.press('Escape');
       await page.waitForTimeout(300);
@@ -2692,15 +2800,17 @@ function check(ok, what) {
       await page.click('[data-testid=tab-explore]');
       await page.waitForSelector('[data-testid=atlas-grid]');
       check((await page.locator('[data-testid=atlas-card]').count()) === 0, 'explore-atlas audit 8: leaving the tab closes its card');
-      // AT2, AT14: the towns level.
-      await page.click('[data-testid=atlas-level-town]');
-      await page.waitForSelector('[data-testid=atlas-tile], [data-testid=atlas-empty]', { timeout: 30000 });
-      await page.waitForTimeout(1500);
-      const towns = await page.locator('[data-testid=atlas-tile]').evaluateAll((els) => els.map((e) => e.getAttribute('data-name')));
-      const empty = await page.locator('[data-testid=atlas-empty]').innerText().catch(() => '');
-      check(towns.length >= 1 || /towns/i.test(empty), `AT2, AT14: the Towns level lists towns near you (${towns.join(', ') || empty})`);
-      await page.click('[data-testid=atlas-level-neighborhood]');
-      await page.waitForSelector('[data-testid=atlas-tile]', { timeout: 10000 });
+      // AT2 (round 3): your own town is the title, never listed again among the other towns; the title opens its page.
+      const towns = await page.locator('[data-testid=atlas-tile][data-level="town"]').evaluateAll((els) => els.map((e) => e.getAttribute('data-name')));
+      const homeName = await page.locator('[data-testid=explore-area]').innerText();
+      check(!towns.includes(homeName), `atlas round 3: your town (${homeName}) isn't listed again among the other towns (${towns.join(', ') || 'none'})`);
+      await page.click('[data-testid=atlas-title]');
+      const head = await page.waitForSelector('[data-testid=atlas-town-head]', { timeout: 10000 }).then(() => true, () => false);
+      check(head && (await page.locator('[data-testid=explore-area]').innerText()) === homeName && (await page.locator('[data-testid=atlas-back-pill]').count()) === 1,
+        `AT2: the title opens your town's own page, headed by its picture, with a way back low on the screen (${homeName})`);
+      await page.click('[data-testid=atlas-back-pill]');
+      await page.waitForSelector('[data-testid=atlas-tile][data-name="Fox Point"]', { timeout: 10000 });
+      check((await page.locator('[data-testid=atlas-town-head]').count()) === 0, 'AT2: back returns to the areas near you');
     }
     // What's good here (v1.5): a long press on the small map, then a read of the area around the city
     // nearby, finds Thayer Street's strip, as information (L1, L2, L5, L7, L9, NV15).
@@ -2727,6 +2837,13 @@ function check(ok, what) {
       tileDelayMs = 4000;
       await press();
       check((await page.locator('[data-testid=walk-here]').count()) === 1, 'at street zoom, Explore’s long press offers Walk here too (NV15)');
+      {
+        // atlas round 3: the choices sit over the map, never inside the scrolled list; the hint goes once used.
+        const map = await page.locator('canvas.maplibregl-canvas').boundingBox();
+        const sp = await page.locator('[data-testid=atlas-spot]').boundingBox();
+        check(sp && map && sp.y >= map.y - 1 && sp.y + sp.height <= map.y + map.height + 1, 'atlas round 3: the long press’s choices sit over the map');
+        check((await page.locator('[data-testid=atlas-press-hint]').count()) === 0, 'atlas round 3: the press hint goes once the long press is used');
+      }
       await page.click('[data-testid=look-here]');
       await page.click('[data-testid=look-cancel]');
       const gone = (await page.locator('[data-testid=look-cancel]').count()) === 0;
@@ -2749,8 +2866,8 @@ function check(ok, what) {
       await page.reload();
       const back = await page.waitForSelector('[data-testid=atlas-tile][data-name="Fox Point"][data-read="1"]', { timeout: 30000 }).then(() => true, () => false);
       const label = back ? (await tileOf('Fox Point').getAttribute('aria-label')) ?? '' : '';
-      check(back && new URL(page.url()).pathname === `${BASE}/explore` && !/You’re here/.test(label),
-        `AT1, AT12: after a reload, the atlas is back on the same tab from where it last listed, never saying "You're here" (${label})`);
+      check(back && new URL(page.url()).pathname === `${BASE}/`,
+        `AT1, AT12: after a reload, the atlas is back on the same tab from where it last listed (${label}; the launch's one fix may already say "You're here", NV16)`);
       await page.click('[data-testid=tab-chronicle]');
       await page.reload();
       await page.waitForSelector('[aria-label^="Fox Point,"]', { timeout: 30000 });
@@ -2979,7 +3096,7 @@ function check(ok, what) {
         await p2.fill(input, text);
         await p2.click(save);
       };
-      await p2.goto(url);
+      await p2.goto(navUrl);
       await p2.waitForSelector('[data-testid=moment-note]');
       check((await p2.locator('[data-testid=moment-photo]').count()) === 1 && (await p2.locator('[data-testid=moment-voice]').count()) === 1
         && (await p2.locator('[data-testid=start]').count()) === 1, 'Navigate offers camera, mic and pencil beside Start, with no walk open (M1, NV18)');
@@ -2999,10 +3116,20 @@ function check(ok, what) {
       check(rows.length === 1 && rows[0].walk_id == null && rows[0].lat != null && Math.abs(rows[0].lon - start[0]) < 1e-5,
         `the moment belongs to no walk and sits where it was made (M1, M2)`);
       check((await p2.evaluate(() => window.__watches.size)) === 0, 'no location watch keeps running after a moment (M5)');
+      // The moment is a pin where it was made, on Navigate, and the pin opens it (M16, moment pins 1-2).
+      check(await p2.waitForSelector('[aria-label="Note. Open"]', { timeout: 15000 }).then(() => true, () => false), 'a placed moment shows as a pin on Navigate (M16, moment pins 1)');
       await shot(p2, '20-moment-home');
+      await p2.click('[aria-label="Note. Open"]');
+      check(await p2.waitForSelector('[data-testid=viewer-close]', { timeout: 10000 }).then(() => true, () => false)
+        && (await p2.getByText('A green dress in the window.').count()) > 0, 'the moment\'s pin on Navigate opens it in the viewer (M16, moment pins 2)');
+      await p2.click('[data-testid=viewer-close]');
+      await p2.waitForSelector('[data-testid=viewer-close]', { state: 'detached', timeout: 10000 }).catch(() => {});
+
+      // With nothing walked yet, Chronicle frames the moment, so its pin is in view, not the world (moment pins 3).
+      await p2.click('[data-testid=tab-chronicle]');
+      check(await p2.waitForSelector('[aria-label="Note. Open"]', { timeout: 15000 }).then(() => true, () => false), 'Chronicle frames a moment made before any walk, and shows its pin (M16, moment pins 3)');
 
       // Today is listed in Chronicle's sheet with its moment (M7, M9, NV18).
-      await p2.click('[data-testid=tab-chronicle]');
       await p2.click('[data-testid=sheet-days]');
       await p2.waitForSelector('[data-testid=day-row]');
       const dayRow = await p2.locator('[data-testid=day-row]').first().innerText();
@@ -3155,7 +3282,7 @@ function check(ok, what) {
       const p3 = await ctx3.newPage();
       p3.on('pageerror', (e) => errors.push(`motion: ${e}`));
       p3.on('console', (m) => m.type() === 'error' && errors.push(`motion: ${m.text()}`));
-      await p3.goto(url);
+      await p3.goto(navUrl);
       await p3.waitForSelector('[data-testid=start]');
       await p3.click('[data-testid=start]');
       await p3.waitForSelector('[data-testid=stop]');
@@ -3192,7 +3319,7 @@ function check(ok, what) {
     {
       // Walk here on Explore is a one-tap start to that spot, with the saved choices; it never fills the drawer (NV12, NV15).
       const { c, pg } = await freshPage('walk-here');
-      await pg.goto(url);
+      await pg.goto(navUrl);
       await pg.waitForSelector('[data-testid=start]');
       await pg.waitForTimeout(1500);
       await pg.click('[data-testid=tab-explore]');
@@ -3216,7 +3343,7 @@ function check(ok, what) {
       // Minimizing a walk (NV7-NV10): the walk goes on under the tabs, with a recording bar above the tab bar.
       const { c, pg } = await freshPage('minimize');
       await c.addInitScript(() => { window.__perf = {}; });
-      await pg.goto(url);
+      await pg.goto(navUrl);
       await pg.waitForSelector('[data-testid=start]');
       await pg.waitForTimeout(1500);
       // An earlier walk's note, flagged every visit, 150 m north of the start: passed while minimized (NV8).
@@ -3373,7 +3500,7 @@ function check(ok, what) {
     {
       // Start with Explore and a destination: the walk opens exploring, heading there (NV25).
       const { c, pg } = await freshPage('start-explore');
-      await pg.goto(url);
+      await pg.goto(navUrl);
       await pg.waitForSelector('[data-testid=start]');
       await pg.waitForTimeout(1500);
       await drawerTo(pg, 'half');
@@ -3420,6 +3547,15 @@ function check(ok, what) {
       await page.click('[data-testid=card-more]');
       await page.waitForSelector('[data-testid=action-delete]');
       await shot(page, '24-walk-actions');
+      // A finished walk shares its GPS log from More, every raw reading, the ride's too (the owner, Nov 3:
+      // a gap that wasn't filled could not be looked into once the walk had ended).
+      await page.evaluate(() => { window.__shared = null; navigator.share = (d) => { window.__shared = d; return Promise.resolve(); }; });
+      await page.waitForSelector('[data-testid=action-gps-log]', { timeout: 5000 }).catch(() => {});
+      await page.click('[data-testid=action-gps-log]').catch(() => {});
+      const sharedEnded = await page.waitForFunction(() => window.__shared, null, { timeout: 5000 }).then((h) => h.jsonValue()).catch(() => null);
+      const endedRows = (sharedEnded?.text ?? '').split('\n');
+      check(endedRows[0]?.startsWith('# Chronicles GPS log') && endedRows.filter((r) => /^\d+\.\d,/.test(r)).length >= 20,
+        `a finished walk's More shares its GPS log (${endedRows.length} lines)`);
       await page.keyboard.press('Escape');
       await page.waitForSelector('[data-testid=walk-actions]', { state: 'detached', timeout: 5000 });
       check(true, 'the replay card offers the walk’s actions, and Escape closes them (D1)');

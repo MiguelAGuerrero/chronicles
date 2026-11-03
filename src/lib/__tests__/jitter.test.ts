@@ -1,6 +1,8 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { distanceM, filterFixes, lineLengthM } from '../geo';
 import { liveRuns, readTrace, traceDistances } from '../rides';
 import type { LngLat, TracePoint } from '../types';
@@ -81,7 +83,9 @@ test('jitter 1: five minutes standing indoors draws no scribble', () => {
 test('jitter 2: the first minute and a half of a stop, before it counts as a standstill, stays calm', () => {
   // Wandering that drifts (each fix carries most of the last one's error), as a phone's does.
   const tr = readTrace(fixes({ seconds: 90, everyMs: 1000, sigma: 20, rho: 0.95, accuracy: 30 }), T0);
-  assert.ok(runsLength(liveRuns(tr)) < 60, `live runs are ${runsLength(liveRuns(tr)).toFixed(0)} m`);
+  // 65, not 60, since jitter 8 (Nov 3): a settled spot no longer breaks the line, and about 16 m
+  // the break used to hide is drawn (46 m to 62 m here). Still the settled line, never the raw wander.
+  assert.ok(runsLength(liveRuns(tr)) < 65, `live runs are ${runsLength(liveRuns(tr)).toFixed(0)} m`);
 });
 
 test('jitter 3: one fix that jumps away and back is not drawn as a spike', () => {
@@ -125,4 +129,16 @@ test('jitter 7: the live trace holds a standstill still even when accuracy is un
   const tr = readTrace(fixes({ seconds: 300, everyMs: 1000, sigma: 8, accuracy: null }), T0);
   assert.ok(line(tr.walked) > 200, 'the walked trace still holds the jitter');
   assert.ok(runsLength(liveRuns(tr)) < 20, `live runs are ${runsLength(liveRuns(tr)).toFixed(0)} m`);
+});
+
+test('jitter 8: a slow walk settled into spots leaves no break in the line (Easton, Nov 3)', () => {
+  // The owner's walk down South 3rd Street, Easton: a fix every second, never more than 35 s
+  // apart, strolling with stops. Settling drew spots of 75-148 s as two points each, and the
+  // 60 s break rule cut the line between them, where the GPS never stopped.
+  const pts = JSON.parse(readFileSync(join(__dirname, 'eastonSlow.json'), 'utf8')) as TracePoint[];
+  const tr = readTrace(pts, 0);
+  assert.equal(liveRuns(tr).length, 1, 'one line');
+  for (let i = 1; i < tr.walked.length; i++) assert.ok(tr.walked[i].t - tr.walked[i - 1].t <= 60_000, `no break at ${tr.walked[i - 1].t / 1000} s`);
+  // The settled line still covers the walk, about 330 m south-east.
+  assert.ok(traceDistances(tr).walkedM > 250, `${Math.round(traceDistances(tr).walkedM)} m`);
 });

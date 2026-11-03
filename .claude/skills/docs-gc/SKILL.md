@@ -19,35 +19,19 @@ for d in src/lib/*/; do n=$(basename "$d"); [ "$n" = __tests__ ] && continue
   grep -qE "lib/$n\b" docs/ARCHITECTURE.md || echo "lib dir not in codemap: $n"; done
 ```
 
-## 2. Every file a doc names exists
+## 2. Budgets, rule globs and named paths
 
 ```bash
-shopt -s globstar
-found() { for g in "$1" "src/**/$1" "scripts/$1" "public/$1" "assets/**/$1"; do compgen -G "$g" >/dev/null && return 0; done; return 1; }
-grep -ohE '`[A-Za-z0-9_./()[-]+\.(ts|tsx|js|mjs|json|md|yml)`' AGENTS.md docs/ARCHITECTURE.md docs/TESTING.md .claude/rules/*.md \
-  | tr -d '`' | sort -u | while read -r p; do found "$p" || echo "named but missing: $p"; done
+npm run check:docs
 ```
 
-A bare name (`geo.ts`) is looked up under `src/`, `scripts/`, `public/` and
-`assets/`; a path is taken as written. Placeholders (`x.native.ts`) are
-expected hits; rename any other reference or restore the file.
+`scripts/check-docs.js` checks AGENTS.md's budget (200 lines, 12 KB), rule
+and skill sizes, that every rule's `paths:` glob matches a file, and that every
+path the docs name exists (short names like `lib/quietLines` included). CI and
+the Stop hook run it too; each failure says how to fix it. Fix the reference,
+not the check.
 
-## 3. Every rule's `paths:` glob matches a file
-
-```bash
-shopt -s globstar nullglob
-for r in .claude/rules/*.md; do
-  sed -n '2,/^---/p' "$r" | grep -oE '"[^"]+"|- +[^ ]+' | sed 's/^- *//; s/"//g' | while read -r g; do
-    set -- $g; [ -e "$1" ] || echo "$r: no file matches $g"; done; done
-```
-
-## 4. AGENTS.md stays short
-
-```bash
-wc -l AGENTS.md    # under 200; move anything longer into a rule, a doc or a skill
-```
-
-## 5. PRODUCT.md mentions every shipped slice
+## 3. PRODUCT.md mentions every shipped slice
 
 ```bash
 sed -n '/^## Shipped/,/^## /p' docs/STATUS.md | grep -oE '^\| *[^|]+' | sed 's/^| *//' | while read -r s; do
@@ -56,7 +40,7 @@ sed -n '/^## Shipped/,/^## /p' docs/STATUS.md | grep -oE '^\| *[^|]+' | sed 's/^
 
 Adjust the sed range to STATUS.md's actual heading and column if they differ.
 
-## 6. Specs match the concept doc
+## 4. Specs match the concept doc
 
 ```bash
 grep -H "Last exported" specs/*/spec.md
@@ -67,7 +51,7 @@ Claude Docs tools (never WebFetch) and compare each tab's last change with
 its spec's date. Re-export a changed tab into its `specs/<slug>/spec.md` and
 set "Last exported" to today; the doc wins over the spec.
 
-## 7. Deferred items that have since shipped
+## 5. Deferred items that have since shipped
 
 ```bash
 grep -oE '`[A-Za-z_][A-Za-z0-9_]*`' docs/DEFERRED.md | tr -d '`' | sort -u | while read -r c; do
@@ -77,7 +61,7 @@ grep -oE '`[A-Za-z_][A-Za-z0-9_]*`' docs/DEFERRED.md | tr -d '`' | sort -u | whi
 Read each hit: a constant named in both is not proof. Move a shipped item to
 the spec's record and PRODUCT.md, and drop it from DEFERRED.md.
 
-## 8. Native is still unverified
+## 6. Native is still unverified
 
 ```bash
 grep -n "never run on a device\|not run on a device" docs/NATIVE_UNVERIFIED.md AGENTS.md
@@ -86,7 +70,7 @@ grep -n "never run on a device\|not run on a device" docs/NATIVE_UNVERIFIED.md A
 Both must say so unless the owner reports a device run; then update both and
 `docs/STATUS.md`.
 
-## 9. README commands match package.json
+## 7. README commands match package.json
 
 ```bash
 diff <(grep -oE 'npm (run [a-z0-9:-]+|test)' README.md | sed 's/npm run //; s/npm //' | sort -u) \
@@ -97,7 +81,7 @@ Lines only on the left are README commands that don't exist; only on the
 right are scripts the README doesn't show (fine for `start`, `android`, `ios`
 if the README says so elsewhere).
 
-## 10. The slice's criteria have tests
+## 8. The slice's criteria have tests
 
 ```bash
 npm run -s check:specs
@@ -106,7 +90,7 @@ npm run -s check:specs
 Any id of the slice just built that it lists is missing its unit test or e2e
 step. Retired ids and unbuilt rounds are expected in the list.
 
-## 11. Output
+## 9. Output
 
 A short table, one row per check:
 

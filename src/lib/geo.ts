@@ -252,6 +252,8 @@ export const JITTER_SHARE = 1;
  */
 export const JITTER_SETTLE_FROM_MS = 15_000;
 export const JITTER_SETTLE_MS = 60_000;
+/** A settled spot keeps a point at least this often, so it never reads as a gap. */
+export const JITTER_STEP_MS = 30_000;
 
 /**
  * The walked fixes with GPS wander settled, for every reading of a trace.
@@ -289,19 +291,45 @@ export function settleJitter(fixes: TracePoint[]): TracePoint[] {
     const held = Math.min(1, Math.max(0, p.t - members[0].t - JITTER_SETTLE_FROM_MS) / JITTER_SETTLE_MS);
     return distanceM(centre(), [p.lon, p.lat]) <= JITTER_SHARE * (1 + held) * Math.max(reach, p.accuracy_m ?? 0);
   };
+  /**
+   * A spot drawn from `a` to `b`, with a point at least every JITTER_STEP_MS between, at the
+   * members' own times: a spot is no gap, so a long one never leaves 60 s between two points
+   * for the break rule to cut (jitter 8: a slow walk in Easton, Nov 3, broke where the GPS never
+   * stopped).
+   */
+  const drawSpot = (a: LngLat, b: LngLat) => {
+    const first = members[0];
+    const last = members[members.length - 1];
+    out.push({ ...first, lon: a[0], lat: a[1] });
+    const span = last.t - first.t;
+    const along = (m: TracePoint): TracePoint => {
+      const f = span > 0 ? (m.t - first.t) / span : 0;
+      return { ...m, lon: a[0] + (b[0] - a[0]) * f, lat: a[1] + (b[1] - a[1]) * f };
+    };
+    // The last member before each step, so a hole in the fixes never widens the step past it.
+    let at = first.t;
+    let prev: TracePoint | null = null;
+    for (const m of members) {
+      if (m.t - at > JITTER_STEP_MS && prev && prev.t > at) {
+        out.push(along(prev));
+        at = prev.t;
+      }
+      prev = m;
+    }
+    if (members.length > 1) out.push({ ...last, lon: b[0], lat: b[1] });
+  };
   const flush = () => {
     if (!members.length) return;
     const halves = movedHalves(members, reach);
     if (halves) {
       // Walked through, not stood in: drawn from where it began to where it ended (each half's
       // centre), so the way through and the corners stay and the wander is still averaged out.
-      out.push({ ...members[0], lon: halves[0][0], lat: halves[0][1] }, { ...members[members.length - 1], lon: halves[1][0], lat: halves[1][1] });
+      drawSpot(halves[0], halves[1]);
       members = [];
       return;
     }
-    const [x, y] = centre();
-    out.push(members.length === 1 ? members[0] : { ...members[0], lon: x, lat: y });
-    if (members.length > 1) out.push({ ...members[members.length - 1], lon: x, lat: y });
+    if (members.length === 1) out.push(members[0]);
+    else drawSpot(centre(), centre());
     members = [];
   };
   for (const p of fixes) {

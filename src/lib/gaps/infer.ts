@@ -1,5 +1,5 @@
 // @layer core
-import { boundsOf, distanceM, distanceToLinesM, isBreak, pointSegmentDist, projector, type Bounds } from '../geo';
+import { bearingDeg, boundsOf, distanceM, lineLengthM, distanceToLinesM, isBreak, pointSegmentDist, projector, type Bounds } from '../geo';
 import type { ReadTrace } from '../rides';
 import type { Fill, GapDecision, LngLat, StreetSegment } from '../types';
 import { GAP_RULES } from './rules';
@@ -21,6 +21,8 @@ export interface Gap {
   t1: number;
   from: LngLat;
   to: LngLat;
+  /** The walk's own moving pace (GT1), for a guess that fits the time; absent, the shortest way is offered. */
+  pace?: number;
 }
 
 export interface Inference {
@@ -52,23 +54,55 @@ const pos = (p: { lon: number; lat: number }): LngLat => [p.lon, p.lat];
 
 /**
  * The gaps worth reading (G1): walked fixes more than a minute apart, at most
- * GAP_RULES.maxMs, at least GAP_RULES.minM apart, with no pause or ride
+ * GAP_RULES.maxMs, however short (the owner's rule, Nov 3), with no pause or ride
  * between. Pass the trace as read without fills.
  */
 export function gapsOf(tr: ReadTrace): Gap[] {
   const out: Gap[] = [];
   const w = tr.walked;
+  let pace: number | undefined;
   for (let i = 1; i < w.length; i++) {
     const a = w[i - 1];
     const b = w[i];
     const dt = b.t - a.t;
     if (dt <= GAP_RULES.gapMs || dt > GAP_RULES.maxMs) continue;
     if (isBreak(a, b, tr.breaks, Infinity)) continue;
-    if (distanceM(pos(a), pos(b)) < GAP_RULES.minM) continue;
-    out.push({ t0: a.t, t1: b.t, from: pos(a), to: pos(b) });
+    pace ??= movingPace(tr);
+    out.push({ t0: a.t, t1: b.t, from: pos(a), to: pos(b), pace });
   }
   return out;
 }
+
+/**
+ * The walk's own pace (GT1): the median speed of its walked fixes moving at
+ * GAP_RULES.movingSpeed or more, the phone's reading where it gives one over 0,
+ * else the movement since the fix before (up to 30 s back). Else
+ * GAP_RULES.defaultPace.
+ */
+export function movingPace(tr: ReadTrace): number {
+  const w = tr.walked;
+  const speeds: number[] = [];
+  // Without the phone's speed, over a minute of walked fixes with no break between: the jitter
+  // settling thins fixes a second apart, and shorter spans read low (gap-drawing audit 6).
+  let j = 0;
+  for (let i = 1; i < w.length; i++) {
+    const p = w[i];
+    if (isBreak(w[i - 1], p, tr.breaks)) j = i;
+    let v = p.speed != null && p.speed > 0 ? p.speed : null;
+    if (v == null) {
+      while (j < i - 1 && p.t - w[j + 1].t >= PACE_SPAN_MS) j++;
+      const dt = (p.t - w[j].t) / 1000;
+      if (dt * 1000 >= PACE_SPAN_MS) v = distanceM(pos(w[j]), pos(p)) / dt;
+    }
+    if (v != null && v >= GAP_RULES.movingSpeed && v <= GAP_RULES.maxPace * 2) speeds.push(v);
+  }
+  if (!speeds.length) return GAP_RULES.defaultPace;
+  speeds.sort((a, b) => a - b);
+  return speeds[speeds.length >> 1];
+}
+
+/** The span a pace is measured over without the phone's own speed. */
+const PACE_SPAN_MS = 60_000;
 
 /** The box around a gap that every way within `budgetM` stays inside: a circle on the middle, half the budget across. */
 function prismBounds(g: Gap, budgetM: number): Bounds {
@@ -94,10 +128,12 @@ export function readBounds(g: Gap): Bounds {
 const MERGE_M = 3;
 
 type Edge = { to: number; m: number; seg: number; id: number };
+/** A way through the graph: its length, nodes, and each step's piece and edge. */
+type Way = { m: number; nodes: number[]; segs: number[]; edges: number[] };
 type Line = { a: number; b: number; seg: number; id: number };
 
 /** A walking graph over street pieces, each edge tagged with its piece, so a piece can be left out of a search. */
-class PieceGraph {
+export class PieceGraph {
   readonly pts: LngLat[] = [];
   readonly adj: Edge[][] = [];
   /** Each street edge once: its ends and piece, for joining a fix to the nearest streets. */
@@ -157,11 +193,67 @@ class PieceGraph {
     this.street(k, e.b, e.seg);
   }
 
+  /** A graph of these street pieces, each edge tagged with its piece's index. */
+  static of(segments: StreetSegment[], origin: LngLat): PieceGraph {
+    const graph = new PieceGraph(origin);
+    for (let s = 0; s < segments.length; s++) {
+      for (const line of segments[s].geometry) {
+        let prev = -1;
+        line.forEach((p, k) => {
+          const i = graph.node(p, k === 0 || k === line.length - 1);
+          if (prev >= 0 && prev !== i) graph.street(prev, i, s);
+          prev = i;
+        });
+      }
+    }
+    return graph;
+  }
+
+  /**
+   * A fix (or a tapped point) joined to every street within GAP_RULES.joinM,
+   * where it is nearest on each: the street edge is split there (an end of it
+   * is used as it is), so a second point on the same edge splits the half it
+   * lies on and a way runs straight along it. Null with no street that near.
+   */
+  joinFix(p: LngLat): number | null {
+    const xy = this.proj(p);
+    const near: { e: Line; t: number }[] = [];
+    for (const e of this.lines) {
+      const a = this.proj(this.pts[e.a]);
+      const b = this.proj(this.pts[e.b]);
+      if (pointSegmentDist(xy, a, b) > GAP_RULES.joinM) continue;
+      const len2 = (b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2;
+      const t = len2 ? Math.max(0, Math.min(1, ((xy[0] - a[0]) * (b[0] - a[0]) + (xy[1] - a[1]) * (b[1] - a[1])) / len2)) : 0;
+      near.push({ e, t });
+    }
+    if (!near.length) return null;
+    const end = this.node(p, false);
+    const joined = new Set<number>();
+    for (const { e, t } of near) {
+      const a = this.pts[e.a];
+      const b = this.pts[e.b];
+      const len = distanceM(a, b);
+      let k: number;
+      if (t * len < 0.5) k = e.a;
+      else if ((1 - t) * len < 0.5) k = e.b;
+      else {
+        k = this.node([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t], false);
+        this.split(e, k);
+      }
+      if (joined.has(k)) continue;
+      joined.add(k);
+      // A join costs twice its length, so a way runs along the street where it can, never
+      // straight across from a fix to a corner it could reach along it (a short gap, Nov 3).
+      this.link(end, k, JOIN, 2 * distanceM(p, this.pts[k]));
+    }
+    return end;
+  }
+
   /**
    * The shortest way from `from` to `to`, leaving out the edges in `skip`,
    * or null when there is none within `limit` metres (A*, pruned).
    */
-  shortest(from: number, to: number, limit: number, skip?: Set<number>): { m: number; nodes: number[]; segs: number[]; edges: number[] } | null {
+  shortest(from: number, to: number, limit: number, skip?: Set<number>, skipNodes?: Set<number>): Way | null {
     const goal = this.pts[to];
     const best = new Float64Array(this.pts.length).fill(Infinity);
     const prev = new Int32Array(this.pts.length).fill(-1);
@@ -205,7 +297,7 @@ class PieceGraph {
       done[i] = 1;
       if (i === to) break;
       for (const e of this.adj[i]) {
-        if (skip?.has(e.id)) continue;
+        if (skip?.has(e.id) || skipNodes?.has(e.to)) continue;
         const g = best[i] + e.m;
         if (g >= best[e.to]) continue;
         const f = g + distanceM(this.pts[e.to], goal);
@@ -230,62 +322,82 @@ class PieceGraph {
   }
 }
 
+/**
+ * Up to `k` shortest loopless ways from `a` to `b` within `limit` metres,
+ * shortest first (Yen's algorithm, GT2). A way only branches at a junction
+ * (a node with more than two edges), so a long street costs one search, not
+ * one per vertex.
+ */
+function shortestWays(graph: PieceGraph, a: number, b: number, limit: number, first: Way, k: number, avoid: Set<number> = new Set()): Way[] {
+  const found: Way[] = [first];
+  const pending: Way[] = [];
+  // Ways are told apart by the pieces they run along, not their edges: the same way through
+  // another join at an end is the same way (gap-drawing audit 3).
+  const key = (w: Way) => w.segs.filter((x, i) => x !== JOIN && x !== w.segs[i - 1]).join(',');
+  const seen = new Set([key(first)]);
+  for (let n = 1; n < k; n++) {
+    const prev = found[n - 1];
+    let rootM = 0;
+    for (let i = 0; i < prev.nodes.length - 1; i++) {
+      const spur = prev.nodes[i];
+      if (i > 0) rootM += distanceM(graph.pts[prev.nodes[i - 1]], graph.pts[spur]);
+      if (i > 0 && graph.adj[spur].length <= 2) continue;
+      const rootEdges = prev.edges.slice(0, i);
+      const skip = new Set<number>();
+      for (const w of found) if (w.edges.length > i && w.edges.slice(0, i).join(',') === rootEdges.join(',')) skip.add(w.edges[i]);
+      const skipNodes = new Set([...avoid, ...prev.nodes.slice(0, i)]);
+      const tail = graph.shortest(spur, b, limit - rootM, skip, skipNodes);
+      if (!tail) continue;
+      const way: Way = {
+        m: rootM + tail.m,
+        nodes: [...prev.nodes.slice(0, i), ...tail.nodes],
+        segs: [...prev.segs.slice(0, i), ...tail.segs],
+        edges: [...rootEdges, ...tail.edges],
+      };
+      if (seen.has(key(way))) continue;
+      seen.add(key(way));
+      pending.push(way);
+    }
+    if (!pending.length) break;
+    pending.sort((x, y) => x.m - y.m);
+    found.push(pending.shift()!);
+  }
+  return found;
+}
+
+/** A piece's kind of way for the fit: its class, so a footway and a path are one kind, a road another. */
+const kindOf = (s: StreetSegment) => (s.kind_detail.split('/')[0] === 'path' ? 'path' : 'road');
+
+/** Where a way turns: at a junction (more than two edges), by more than 45°. */
+function turnsOf(graph: PieceGraph, w: Way): number {
+  let n = 0;
+  for (let i = 1; i < w.nodes.length - 1; i++) {
+    if (graph.adj[w.nodes[i]].length <= 2 || w.segs[i - 1] === JOIN || w.segs[i] === JOIN) continue;
+    const [p, q, r] = [graph.pts[w.nodes[i - 1]], graph.pts[w.nodes[i]], graph.pts[w.nodes[i + 1]]];
+    const turn = Math.abs(((bearingDeg(q, r) - bearingDeg(p, q) + 540) % 360) - 180);
+    if (turn > 45) n++;
+  }
+  return n;
+}
+
 /** A join from a fix to a street, not a street itself. */
-const JOIN = -1;
+export const JOIN = -1;
 
 /**
- * Reads one gap (G2-G7). `segments` are the streets around it and
+ * Reads one gap (G2-G7): filled by itself, offered, or null when there is no walkable way to offer. `segments` are the streets around it and
  * `coverage` the box they were read whole over (G8; null when not read):
  * a budget whose prism leaves the box can't be judged, so nothing is
  * claimed under it.
  */
 export function inferGap(g: Gap, segments: StreetSegment[], coverage: Bounds | null): Inference | null {
-  if (!coverage || !segments.length) return null;
-  const graph = new PieceGraph(g.from);
-  for (let s = 0; s < segments.length; s++) {
-    for (const line of segments[s].geometry) {
-      let prev = -1;
-      line.forEach((p, k) => {
-        const i = graph.node(p, k === 0 || k === line.length - 1);
-        if (prev >= 0 && prev !== i) graph.street(prev, i, s);
-        prev = i;
-      });
-    }
+  // Within GPS error: joined straight and filled by itself, no streets needed (the owner's rule, Nov 3).
+  const straight = distanceM(g.from, g.to);
+  if (straight < GAP_RULES.straightM) {
+    return { t0: g.t0, t1: g.t1, path: [g.from, g.to], lengthM: straight, certainDirect: 1, certainTime: 1, street: null, level: 'auto' };
   }
-  // Each end joins every street within GAP_RULES.joinM of its fix, where it is nearest on that
-  // street: the street edge is split there (an end of it is used as it is). Both ends on one
-  // edge: the second splits the half it lies on, so the way runs straight along it.
-  const join = (p: LngLat): number | null => {
-    const xy = graph.proj(p);
-    const near: { e: Line; t: number }[] = [];
-    for (const e of graph.lines) {
-      const a = graph.proj(graph.pts[e.a]);
-      const b = graph.proj(graph.pts[e.b]);
-      if (pointSegmentDist(xy, a, b) > GAP_RULES.joinM) continue;
-      const len2 = (b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2;
-      const t = len2 ? Math.max(0, Math.min(1, ((xy[0] - a[0]) * (b[0] - a[0]) + (xy[1] - a[1]) * (b[1] - a[1])) / len2)) : 0;
-      near.push({ e, t });
-    }
-    if (!near.length) return null;
-    const end = graph.node(p, false);
-    const joined = new Set<number>();
-    for (const { e, t } of near) {
-      const a = graph.pts[e.a];
-      const b = graph.pts[e.b];
-      const len = distanceM(a, b);
-      let k: number;
-      if (t * len < 0.5) k = e.a;
-      else if ((1 - t) * len < 0.5) k = e.b;
-      else {
-        k = graph.node([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t], false);
-        graph.split(e, k);
-      }
-      if (joined.has(k)) continue;
-      joined.add(k);
-      graph.link(end, k, JOIN);
-    }
-    return end;
-  };
+  if (!coverage || !segments.length) return null;
+  const graph = PieceGraph.of(segments, g.from);
+  const join = (p: LngLat) => graph.joinFix(p);
   const a = join(g.from);
   const b = join(g.to);
   if (a == null || b == null) return null;
@@ -327,21 +439,65 @@ export function inferGap(g: Gap, segments: StreetSegment[], coverage: Bounds | n
   }
   const shareDirect = certainDirect / streetM;
   const shareTime = timeRead ? certainTime / streetM : null;
-  const level = shareTime != null && shareTime >= GAP_RULES.auto ? 'auto' : shareDirect >= GAP_RULES.offer ? 'offer' : null;
-  if (!level) return null;
+  // Filled by itself only when nearly all of it is certain in the time allowed (G5); any other
+  // walkable way is offered faint, to keep or dismiss (G6, G7: the owner's call, Nov 3, after a park
+  // path with a drive beside it showed nothing).
+  const level: Inference['level'] = shareTime != null && shareTime >= GAP_RULES.auto ? 'auto' : 'offer';
+
+  // A way that fits the time (GT2): among the shortest ways the time allows, the one closest to the
+  // walk's own pace over the gap, when it is clearly closer than the shortest. Only for an offer:
+  // a gap certain enough to fill by itself keeps its shortest way (GT3).
+  let way: Way = likely;
+  if (level === 'offer' && g.pace) {
+    const expect = g.pace * dt;
+    const off = (w: Way) => Math.abs(w.m - expect);
+    // A way that turns corner after corner round blocks is a poor guess: time to spare in town is mostly stopped.
+    const turnsAllowed = turnsOf(graph, likely) + GAP_RULES.fitTurns;
+    // And it keeps to the kinds of way the shortest uses: a footpath walk isn't guessed onto a park
+    // drive because the drive is longer (gap-drawing audit 1).
+    const kinds = new Set(likely.segs.filter((x) => x !== JOIN).map((x) => kindOf(segments[x])));
+    const offKind = (w: Way) => {
+      let off = 0;
+      let all = 0;
+      for (let i = 0; i < w.segs.length; i++) {
+        if (w.segs[i] === JOIN) continue;
+        const m = distanceM(graph.pts[w.nodes[i]], graph.pts[w.nodes[i + 1]]);
+        all += m;
+        if (!kinds.has(kindOf(segments[w.segs[i]]))) off += m;
+      }
+      return all ? off / all : 0;
+    };
+    // Searched between the likely way's first and last street points, never out through the
+    // other joins at either end: those are the same way, a few metres apart (gap-drawing audit 3).
+    const n = likely.nodes.length;
+    // The joins' cost as the search counts it (twice their length).
+    const joinM = 2 * (distanceM(graph.pts[likely.nodes[0]], graph.pts[likely.nodes[1]]) + distanceM(graph.pts[likely.nodes[n - 2]], graph.pts[likely.nodes[n - 1]]));
+    const inner: Way = { m: likely.m - joinM, nodes: likely.nodes.slice(1, -1), segs: likely.segs.slice(1, -1), edges: likely.edges.slice(1, -1) };
+    const whole = (w: Way): Way => ({
+      m: w.m + joinM,
+      nodes: [likely.nodes[0], ...w.nodes, likely.nodes[n - 1]],
+      segs: [likely.segs[0], ...w.segs, likely.segs[n - 2]],
+      edges: [likely.edges[0], ...w.edges, likely.edges[n - 2]],
+    });
+    const ways = (n > 3 ? shortestWays(graph, inner.nodes[0], inner.nodes[inner.nodes.length - 1], (timeRead ? time : direct) - joinM, inner, GAP_RULES.fitWays, new Set([a, b])).map(whole) : [likely])
+      .filter((w) => turnsOf(graph, w) <= turnsAllowed && offKind(w) <= GAP_RULES.fitOtherKinds);
+    const best = ways.length ? ways.reduce((x, y) => (off(y) < off(x) ? y : x)) : likely;
+    if (best.m !== likely.m && off(best) <= GAP_RULES.fitCloser * off(likely)) way = best;
+  }
 
   // The street most of it runs along, by name.
   const byName = new Map<string, number>();
-  for (const [seg, m] of along) {
-    const name = segments[seg].name;
-    if (name) byName.set(name, (byName.get(name) ?? 0) + m);
+  for (let i = 0; i < way.segs.length; i++) {
+    const name = way.segs[i] === JOIN ? null : segments[way.segs[i]].name;
+    if (name) byName.set(name, (byName.get(name) ?? 0) + distanceM(graph.pts[way.nodes[i]], graph.pts[way.nodes[i + 1]]));
   }
   const street = [...byName.entries()].sort((x, y) => y[1] - x[1])[0]?.[0] ?? null;
   return {
     t0: g.t0,
     t1: g.t1,
-    path: likely.nodes.map((i) => graph.pts[i]),
-    lengthM: L,
+    path: way.nodes.map((i) => graph.pts[i]),
+    // Measured on the ground: a join's cost is doubled in the search, not its length.
+    lengthM: lineLengthM(way.nodes.map((i) => graph.pts[i])),
     certainDirect: shareDirect,
     certainTime: shareTime,
     street,
@@ -422,4 +578,31 @@ export function stretchLines(s: Stretch): { title: string; sub: string } {
   if (s.how === 'offer') return { title: `Probably ${along}`, sub: `${facts} Keep it to count it as walked.` };
   if (s.how === 'auto') return { title: `Filled in ${along}`, sub: `${facts} The only likely way in that time.` };
   return { title: `${along[0].toUpperCase()}${along.slice(1)}, kept`, sub: facts };
+}
+
+/** Gaps with nothing drawn across them (GW2): nothing to offer, or dismissed. */
+export function emptyGaps(gaps: Gap[], stretches: Stretch[]): Gap[] {
+  return gaps.filter((g) => !stretches.some((s) => gapKey(s) === gapKey(g)));
+}
+
+/**
+ * The gap with no line a tap at `p` reaches (GW2): its dotted join within
+ * `radiusM`, away from its two ends, which are the recorded trace's.
+ */
+export function emptyGapAt(gaps: Gap[], p: LngLat, radiusM: number): Gap | null {
+  let best: { g: Gap; d: number } | null = null;
+  for (const g of gaps) {
+    // Short joins keep their middle tappable (gap-drawing audit 5).
+    const endM = Math.min(GAP_RULES.tapEndM, distanceM(g.from, g.to) / 4);
+    if (distanceM(p, g.from) <= endM || distanceM(p, g.to) <= endM) continue;
+    const d = distanceToLinesM(p, [[g.from, g.to]]);
+    if (d <= radiusM && (!best || d < best.d)) best = { g, d };
+  }
+  return best?.g ?? null;
+}
+
+/** The card's words for a gap with no line (GW2). */
+export function gapLines(g: { t0: number; t1: number }): { title: string; sub: string } {
+  const min = Math.max(1, Math.round((g.t1 - g.t0) / 60_000));
+  return { title: `Not recorded for ${min} min`, sub: 'Draw the way you walked, or leave it as a break.' };
 }

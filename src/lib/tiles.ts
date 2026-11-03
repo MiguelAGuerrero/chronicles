@@ -78,5 +78,6 @@ const STREET_CODE = '3';
  * 5: still spells from the motion sensors hold the trace at one spot (Motion, MO8).
  * 6: a walk out and straight back is no longer read as a standstill (`DWELL_JUMP_M`, Nov 2).
  * 7: gaps are filled with the streets most likely walked (Filling gaps, G13).
+ * 8: a settled spot never breaks the line (jitter 8), and every break is a gap however short (Nov 3).
  */
-const SNAP_RULES = '7';
+const SNAP_RULES = '8';
