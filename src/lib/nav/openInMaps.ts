@@ -3,6 +3,15 @@ import type { LngLat } from '../types';
 import { mapsTarget, mapsUrls } from './handoff';
 
 /**
+ * What a screen reader hears on every Open in Maps button. A browser takes no
+ * fixes while Chronicles is hidden (bridges audit 4), so the web says so.
+ */
+export const HANDOFF_HINT =
+  Platform.OS === 'web'
+    ? 'Opens your maps app with walking directions. Recording pauses while Chronicles is hidden.'
+    : 'Opens your maps app with walking directions. Chronicles keeps recording.';
+
+/**
  * Open in Maps (NH1-NH8): hands the destination to the phone's maps app for
  * walking directions. Call it straight from the tap: a browser opens a new
  * window only from one (NH7). Navigation and the walk go on as they were.

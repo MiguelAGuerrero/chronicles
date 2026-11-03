@@ -441,7 +441,12 @@ update it when a slice ships or a feature changes.
   - Called straight from the tap: a browser opens a window only from one.
     Navigation and the walk go on (on the web, tracing pauses while the page
     is hidden, as always). Only the destination leaves the device, on a tap.
-  - The e2e replaces `window.open` and reads `window.__opened`.
+  - The hint (`HANDOFF_HINT`) says recording pauses on the web: a hidden
+    page takes no fixes. A failed route's banner stays until dismissed or a
+    new Go here (`goTo` in `walk.tsx`), its action 44 pt.
+  - The e2e replaces `window.open` and reads `window.__opened`. The
+    off-route chip's button (NH4) is untested: the first re-route clears
+    the chip at once.
   - **Deferred:** the Explore mark card, the dead-zone nudge, the home's
     Walk here.
   - **Native** (unverified on a device): Apple Maps from the app, the Android
@@ -1328,23 +1333,35 @@ update it when a slice ships or a feature changes.
   `LANDING_CODE` l3 are left off the map. Real OpenMapTiles tiles for tests: tileserver-gl's
   `test_data.zip` release on GitHub has a planetiler Zurich mbtiles, reachable from cloud
   sessions.
-- **Bridges and tunnels** (NB1-NB7, Nov 3). A line's level is its `layer`,
-  else 1 for `brunnel=bridge`, -1 for `tunnel`, else 0 (`levelOf`). Lines on
-  different levels meet only at an end of the one further from the ground
-  (both ends when as far): a bridge joins its approach, a footbridge lands on
-  a street mid-block, and a path under a bridge (or ending under it) stays on
-  the ground. Crosswalk removal, stitching and the sidewalk merge compare
-  levels too. Junction keys are per line (`withJunctions` returns one set per
-  line), so a line passing through another pair's junction point isn't cut.
-  `STREET_CODE` 3 purges the cache once. Real Zurich tiles (9 z14 tiles):
-  about 380 fewer pieces of 22,300.
+- **Bridges and tunnels** (NB1-NB7, Nov 3). Only a bridge or tunnel leaves
+  the ground (`levelOf`): a bridge at its `layer`, else 1; a tunnel at its
+  `layer`, else 0 (mostly building passages). A `layer` on anything else is
+  ignored: embankment roads carry one, and side streets end on them.
+  - Lines on different levels meet only where one lands on the other: an end
+    of it touches the other line, and that end touches nothing else on its
+    own level. So a bridge joins its approach, a footbridge lands mid-street,
+    stairs land mid-span. A path passing under, even split into two ways
+    there, or a ground junction under a bridge, does not.
+  - Crosswalk removal and stitching compare levels. Across levels, the
+    sidewalk merge takes a footway only where it runs the street's way (35°),
+    so an untagged bridge sidewalk goes and a path crossing under stays; a
+    footway that landed on another level (`landings`) is never merged.
+  - Junction keys are per line (`withJunctions` returns one set per line),
+    so a line passing through another pair's junction point isn't cut.
+  - The route graph merges a piece end only with another piece's end
+    (`streetRoute.ts` `addEnd`), never an inner vertex.
+  - `STREET_CODE` 3 purges the cache once. Real Zurich tiles (9 z14 tiles):
+    about 180 fewer pieces of 22,300, the main network unchanged, and
+    identical ids with the tags stripped.
   - **A route starts on the street you walk along** (`streetRouteSource`
     `join` with `RouteHint.heading`, from `live.heading`): within
     `NAV.headingJoinM` (12 m) of the nearest street, one within 35° of the
     heading wins. On a bridge, the path below can be the nearer line.
-  - **Deferred:** a bridge piece cut at 200 m (`chunkCanonical`) whose cut
-    lands within 3 m of a junction under it still merges with it in the
-    routing graph (`MERGE_M`); indoor `level` is not read.
+  - **After the audit (Nov 3):** 11 findings, 7 fixed (`bridges audit N` in
+    `bridges.test.ts`). Deferred: a 200 m chunk end on a bridge within 3 m
+    of a junction below still merges with it (`MERGE_M`); the 12 m heading
+    window can pick a parallel street at an alley mouth (first leg only);
+    indoor `level` is not read.
 - Avoid anything O(n²) over features. Index with `EdgeGrid`. A 3.6 km downtown, about
   16k features, should derive in under a second.
 - Snapping ignores the 20 m at each end of a piece, where the junctions are, and

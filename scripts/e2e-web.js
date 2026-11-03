@@ -519,6 +519,13 @@ function check(ok, what) {
       const onWalk = await pg.waitForURL(/\/walk/, { timeout: 10000 }).then(() => true, () => false);
       const viewers = onWalk ? await pg.waitForSelector('[data-testid=viewer-close]', { timeout: 10000 }).then(() => pg.locator('[data-testid=viewer-close]').count(), () => 0) : 0;
       check(onWalk && viewers === 1, `tabs audit 2: a reminder tapped with the walk minimized opens on the walk, once (${pg.url()}, ${viewers} viewer)`);
+      // The walk's viewer offers Open in Maps for a capture with a place (NH6).
+      if (viewers) {
+        await pg.click('[data-testid=viewer-more]');
+        check((await pg.locator('[data-testid=viewer-handoff]').count()) === 1, 'the walk’s viewer has Open in Maps in its More menu (NH6)');
+        await pg.click('[data-testid=viewer-more]');
+        await pg.waitForTimeout(200);
+      }
       await pg.click('[data-testid=viewer-close]');
       await pg.waitForTimeout(400);
 
@@ -1537,8 +1544,20 @@ function check(ok, what) {
       const spot = { x: box.x + box.width / 2 + 90, y: box.y + box.height / 2 - 120 };
       await press(spot.x, spot.y);
       await page.waitForSelector('[data-testid=spot-handoff]');
-      const card = await page.locator('[data-testid=spot-handoff]').boundingBox();
-      check(card.x >= 0 && card.x + card.width <= 390, 'the long-press card’s Open in Maps fits the screen (NH6)');
+      // At a 320 px phone's width, every button on the card stays on screen (NH6).
+      await page.setViewportSize({ width: 320, height: 700 });
+      await page.waitForTimeout(500);
+      const inside = await page.evaluate(() =>
+        ['go-here', 'spot-handoff', 'spot-close', 'here-open'].every((id) => {
+          const el = document.querySelector(`[data-testid=${id}]`);
+          if (!el) return true;
+          const b = el.getBoundingClientRect();
+          return b.left >= 0 && b.right <= 320 && b.width >= 44 && b.height >= 44;
+        }),
+      );
+      check(inside, 'the long-press card’s buttons, Open in Maps among them, fit 320 px at 44 pt (NH6)');
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.waitForTimeout(500);
       await page.click('[data-testid=spot-handoff]');
       const fromCard = destOf((await opened()).at(-1));
       check(!!fromCard && (await page.locator('[data-testid=spot-handoff]').count()) === 0, `the long-press card opens walking directions to its spot (NH1, NH6: ${(await opened()).at(-1)})`);
@@ -1569,6 +1588,11 @@ function check(ok, what) {
       const action = page.locator('[role=button]:has-text("Open in Maps")');
       check(failed && (await action.count()) === 1, `a route that can't be found offers Open in Maps (NH5, at z${(await zoomNow()).toFixed(1)})`);
       if (failed && (await action.count())) {
+        // It stays until dismissed: the destination is already forgotten (audit 6).
+        await page.waitForTimeout(7000);
+        check((await action.count()) === 1, 'the failed route’s Open in Maps is still there after 7 s (audit 6)');
+        const actionBox = await action.boundingBox();
+        check(actionBox && actionBox.height >= 44, `its button is 44 pt tall (audit 6: ${actionBox && Math.round(actionBox.height)})`);
         await action.click();
         const far = destOf((await opened()).at(-1));
         // The walker stands where walk me back ended: the route's start.

@@ -70,16 +70,16 @@ test('bridges: the level is the layer, else 1 for a bridge and -1 for a tunnel, 
     road([at(1, -1), at(1, 1)], { class: 'minor', name: 'High Bridge', brunnel: 'bridge', layer: 2 }),
   ]);
   assert.ok(!cutAt(stacked, at(1, 0)), 'layers 1 and 2 do not meet');
-  // A bridge with no layer is at 1: it meets an untagged line at layer 1 (an elevated deck).
+  // A bridge with no layer is at 1: it meets a bridge at layer 1 (an elevated deck).
   const deck = deriveSegments([
     road([at(0, 0), at(2, 0)], { class: 'minor', name: 'Viaduct', brunnel: 'bridge' }),
-    road([at(1, -1), at(1, 1)], { class: 'minor', name: 'Deck Street', layer: 1 }),
+    road([at(1, -1), at(1, 1)], { class: 'minor', name: 'Deck Street', brunnel: 'bridge', layer: 1 }),
   ]);
   assert.ok(cutAt(deck, at(1, 0), 'Viaduct') && cutAt(deck, at(1, 0), 'Deck Street'), 'one level: a junction');
   // A tunnel passes under a street.
   const tunnel = deriveSegments([
     road([at(0, 0), at(2, 0)], { class: 'minor', name: 'Surface Street' }),
-    road([at(1, -1), at(1, 1)], { class: 'path', subclass: 'footway', name: 'Underpass', brunnel: 'tunnel' }),
+    road([at(1, -1), at(1, 1)], { class: 'path', subclass: 'footway', name: 'Underpass', brunnel: 'tunnel', layer: -1 }),
   ]);
   assert.ok(!cutAt(tunnel, at(1, 0)), 'a tunnel does not meet the street above');
   // A ford is at the ground: it meets what it crosses.
@@ -96,7 +96,7 @@ test('bridges: the level is the layer, else 1 for a bridge and -1 for a tunnel, 
   assert.ok(cutAt(plain, at(1, 0), 'First Street') && cutAt(plain, at(1, 0), 'Cross Street'));
 });
 
-test('bridges: a footbridge lands on a street mid-block; a path ending under a bridge does not climb onto it (NB3)', () => {
+test('bridges: a footbridge lands on a street mid-block; a ground junction under a bridge does not climb onto it (NB3)', () => {
   const landing = deriveSegments([
     road([at(0, 0), at(2, 0)], { class: 'minor', name: 'Water Street' }),
     road([at(1, -1), at(1, 0)], { class: 'path', subclass: 'footway', name: 'Footbridge', brunnel: 'bridge', layer: 1 }),
@@ -106,22 +106,115 @@ test('bridges: a footbridge lands on a street mid-block; a path ending under a b
     road([at(0, 0), at(0.8, 0)], broad),
     road([at(0.8, 0), at(1.2, 0)], { ...broad, brunnel: 'bridge', layer: 1 }),
     road([at(1.2, 0), at(2, 0)], broad),
-    road([at(1, -1), at(1, 0)], { class: 'path', subclass: 'footway', name: 'Bank Path' }),
+    // Bank Path ends on the creek path right under the bridge: a ground junction, not stairs.
+    road([at(1, -1), at(1, 1)], { class: 'path', subclass: 'footway', name: 'Creek Path' }),
+    road([at(0.5, -0.5), at(1, 0)], { class: 'path', subclass: 'footway', name: 'Bank Path' }),
   ]);
-  assert.ok(!cutAt(stub, at(1, 0), 'Broad Street'), 'a ground path ending under the bridge is not a junction');
+  assert.ok(!cutAt(stub, at(1, 0), 'Broad Street'), 'a ground junction under the bridge is not a junction with it');
   const src = streetRouteSource(stub);
-  const r = src.route(at(1, -0.9), at(1.9, 0));
+  const r = src.route(at(0.55, -0.45), at(1.9, 0));
   assert.ok(!r || r.lengthM > 300, 'no way up from the bank onto the bridge');
 });
 
-test('bridges: a short footway under a bridge is not its crosswalk, and does not cut it (NB4)', () => {
+test('bridges: a short footway under a bridge is not its crosswalk: the paths either side stay joined (NB4)', () => {
+  // Two ground paths meet a 24 m footway that passes under the bridge: a crosswalk by length, but on
+  // another level. It must stay, and must not cut the bridge.
   const segs = deriveSegments([
     road([at(0, 0), at(0.8, 0)], broad),
     road([at(0.8, 0), at(1.2, 0)], { ...broad, brunnel: 'bridge', layer: 1 }),
     road([at(1.2, 0), at(2, 0)], broad),
-    road([at(1, -0.1), at(1, 0.1)], { class: 'path', subclass: 'footway' }),
+    road([at(1, -1), at(1, -0.12)], { class: 'path', subclass: 'footway', name: 'South Bank' }),
+    road([at(1, -0.12), at(1, 0.12)], { class: 'path', subclass: 'footway' }),
+    road([at(1, 0.12), at(1, 1)], { class: 'path', subclass: 'footway', name: 'North Bank' }),
   ]);
-  assert.ok(!cutAt(segs, at(1, 0), 'Broad Street'));
+  assert.ok(!cutAt(segs, at(1, 0), 'Broad Street'), 'the bridge is not cut');
+  const r = streetRouteSource(segs).route(at(1, -0.9), at(1, 0.9));
+  assert.ok(r && r.lengthM < 200, `along the bank under the bridge: ${r && Math.round(r.lengthM)} m`);
+});
+
+// The audit (Nov 3), each a regression test before its fix.
+
+test('bridges audit 1: a layer without a bridge or tunnel is the ground (an embankment)', () => {
+  // A road tagged layer=1 with no bridge, and side streets ending on it mid-block.
+  const segs = deriveSegments([
+    road([at(0, 0), at(2, 0)], { class: 'secondary', name: 'Embankment Road', layer: 1 }),
+    road([at(1, -1), at(1, 0)], { class: 'minor', name: 'Side Street' }),
+  ]);
+  assert.ok(cutAt(segs, at(1, 0), 'Embankment Road'), 'the side street meets it');
+  const r = streetRouteSource(segs).route(at(1, -0.9), at(1.9, 0));
+  assert.ok(r && r.lengthM < 220, `straight up and along: ${r && Math.round(r.lengthM)} m`);
+  // A string layer on a bridge is read as a number.
+  const str = deriveSegments([
+    road([at(0, 0), at(2, 0)], { class: 'minor', name: 'Low Bridge', brunnel: 'bridge', layer: '1' }),
+    road([at(1, -1), at(1, 1)], { class: 'minor', name: 'High Bridge', brunnel: 'bridge', layer: '2' }),
+  ]);
+  assert.ok(!cutAt(str, at(1, 0)), 'layers "1" and "2" do not meet');
+});
+
+test('bridges audit 2: stairs landing mid-span on a footbridge, or into an underpass, connect', () => {
+  const stairs = deriveSegments([
+    road([at(0, 0), at(2, 0)], { class: 'path', subclass: 'footway', name: 'Skyway', brunnel: 'bridge', layer: 3 }),
+    road([at(1.03, -1), at(1.03, 0)], { class: 'path', subclass: 'steps', name: 'Stairs' }),
+  ]);
+  assert.ok(cutAt(stairs, at(1.03, 0), 'Skyway'), 'the stairs land on the footbridge');
+  const underpass = deriveSegments([
+    road([at(0, 0), at(2, 0)], { class: 'path', subclass: 'footway', name: 'Underpass', brunnel: 'tunnel', layer: -1 }),
+    road([at(1, 0), at(1, 1)], { class: 'path', subclass: 'footway', name: 'Ramp' }),
+  ]);
+  assert.ok(cutAt(underpass, at(1, 0), 'Underpass'), 'the ramp leads into the underpass');
+  // A path split into two ways right under a bridge still only passes under it.
+  const split = deriveSegments([
+    road([at(0, 0), at(0.8, 0)], broad),
+    road([at(0.8, 0), at(1.2, 0)], { ...broad, brunnel: 'bridge', layer: 1 }),
+    road([at(1.2, 0), at(2, 0)], broad),
+    road([at(1, -1), at(1, 0)], { class: 'path', subclass: 'footway', name: 'Creek Path' }),
+    road([at(1, 0), at(1, 1)], { class: 'path', subclass: 'footway', name: 'Creek Path', surface: 'gravel' }),
+  ]);
+  assert.ok(!cutAt(split, at(1, 0), 'Broad Street'), 'a path passing under, split there, does not climb on');
+});
+
+test('bridges audit 2: a short footbridge joining stairs to a bridge is not merged away as its sidewalk', () => {
+  const segs = deriveSegments([
+    road([at(0, 0), at(2, 0)], { class: 'minor', name: 'High Street', brunnel: 'bridge', layer: 1 }),
+    road([at(1, 0), at(1, -0.05)], { class: 'path', subclass: 'footway', brunnel: 'bridge', layer: 1 }),
+    road([at(1, -0.05), at(1, -1)], { class: 'path', subclass: 'steps', name: 'Stairs' }),
+  ]);
+  const r = streetRouteSource(segs).route(at(1, -0.95), at(1.9, 0));
+  assert.ok(r && r.lengthM < 220, `up the stairs and along the bridge: ${r && Math.round(r.lengthM)} m`);
+});
+
+test('bridges audit 3: the route graph never merges a ground junction into a bridge vertex 2 m away', () => {
+  // Two ground paths meet 2 m south of a vertex on the bridge's line.
+  const segs = deriveSegments([
+    road([at(0, 0), at(0.8, 0)], broad),
+    road([at(0.8, 0), at(1, 0), at(1.2, 0)], { ...broad, brunnel: 'bridge', layer: 1 }),
+    road([at(1.2, 0), at(2, 0)], broad),
+    road([at(1, -1), at(1, -0.02)], { class: 'path', subclass: 'footway', name: 'Creek Path' }),
+    road([at(1, -0.02), at(1, 1)], { class: 'path', subclass: 'footway', name: 'Creek Path' }),
+    road([at(1, -0.02), at(0.5, -0.5)], { class: 'path', subclass: 'footway', name: 'Spur' }),
+    road([at(2, 0), at(2, 1)], { class: 'minor', name: 'Main Street' }),
+    road([at(1, 1), at(2, 1)], { class: 'minor', name: 'North Street' }),
+  ]);
+  const r = streetRouteSource(segs).route(at(1.1, 0), at(1, 1), { heading: 90 })!;
+  assert.ok(r && r.lengthM > 250, `round by Main Street, not down onto the path: ${r && Math.round(r.lengthM)} m`);
+});
+
+test('bridges audit 7: a tunnel with no layer is a passage at the ground', () => {
+  const segs = deriveSegments([
+    road([at(0, 0), at(2, 0)], { class: 'minor', name: 'Court Street' }),
+    road([at(1, -1), at(1, 1)], { class: 'path', subclass: 'footway', name: 'Passage', brunnel: 'tunnel' }),
+  ]);
+  assert.ok(cutAt(segs, at(1, 0), 'Court Street'), 'a building passage meets the street it crosses');
+});
+
+test('bridges audit 8: a bridge’s sidewalk mapped without bridge tags never leads down to the path under it', () => {
+  const segs = deriveSegments([
+    ...town,
+    // The north sidewalk, 6 m off the bridge's line, tagged as plain ground, joining the approaches.
+    road([at(0.8, 0), at(0.82, 0.06), at(1.18, 0.06), at(1.2, 0)], { class: 'path', subclass: 'footway' }),
+  ]);
+  const r = streetRouteSource(segs).route(at(1.1, 0), at(1, 1), { heading: 90 })!;
+  assert.ok(r && r.lengthM > 250, `round by Main Street: ${r && Math.round(r.lengthM)} m`);
 });
 
 test('bridges: a route starts on the street you are walking along, not the one under you (NB7)', () => {

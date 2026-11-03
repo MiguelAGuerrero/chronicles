@@ -42,6 +42,8 @@ const TOUCH_M = 1.5;
 /** Copies of a line from neighbouring tiles meet within this distance on the edge. */
 const STITCH_M = 2;
 const CELL_M = 50;
+/** A footway runs a street's way within 35° (cos 35°): only then is it that street's sidewalk across levels. */
+const ALONG_COS = Math.cos((35 * Math.PI) / 180);
 /**
  * Vector tiles carry each feature clipped to the tile plus a small buffer.
  * A line overhanging its home tile by no more than this is such a copy; one
@@ -69,16 +71,18 @@ function isWalkable(props: Record<string, unknown>): boolean {
 }
 
 /**
- * How far above or below the ground a line runs (NB1): the tile's `layer`
- * when it has one, else 1 for a bridge and -1 for a tunnel, else 0 (a ford
- * is on the ground). Lines on different levels cross without meeting.
+ * How far above or below the ground a line runs (NB1). Only a bridge or a
+ * tunnel leaves the ground: a bridge at its `layer`, else 1; a tunnel at its
+ * `layer`, else 0. A `layer` on anything else is ignored: roads on an
+ * embankment carry one, and side streets end on them (bridges audit 1). A
+ * tunnel without one is mostly a building passage at street level (audit 7).
+ * Lines on different levels cross without meeting.
  */
 export function levelOf(props: Record<string, unknown>): number {
+  if (props.brunnel !== 'bridge' && props.brunnel !== 'tunnel') return 0;
   const layer = Number(props.layer);
   if (props.layer != null && props.layer !== '' && Number.isFinite(layer)) return Math.round(layer);
-  if (props.brunnel === 'bridge') return 1;
-  if (props.brunnel === 'tunnel') return -1;
-  return 0;
+  return props.brunnel === 'bridge' ? 1 : 0;
 }
 
 const isFootway = (cls: string, sub: string) => cls === 'path' && (sub === 'footway' || sub === 'pedestrian' || sub === '');
@@ -253,30 +257,49 @@ export function deriveSegments(roads: RoadFeature[], names: RoadFeature[] = [], 
   // 4. Junctions, then the pieces between them. A piece at a partial end of
   //    its chain is incomplete and left out. Bridges and tunnels meet only
   //    what they meet on their own level, or at their ends (NB2, NB3).
-  const { lines: withCuts, at } = withJunctions(kept.map((c) => c.pts), proj, kept.map((c) => c.level));
-  const pieces: { cls: string; sub: string; name: string | null; level: number; pts: LngLat[] }[] = [];
+  const { lines: withCuts, at, landings } = withJunctions(kept.map((c) => c.pts), proj, kept.map((c) => c.level));
+  const pieces: { cls: string; sub: string; name: string | null; level: number; chain: number; pts: LngLat[] }[] = [];
   kept.forEach((c, i) => {
     const parts = cutAt(withCuts[i], at[i]);
     parts.forEach((pts, j) => {
       if ((j === 0 && c.partialStart) || (j === parts.length - 1 && c.partialEnd)) return;
-      for (const chunk of chunkCanonical(pts)) pieces.push({ cls: c.cls, sub: c.sub, name: c.name, level: c.level, pts: chunk });
+      for (const chunk of chunkCanonical(pts)) pieces.push({ cls: c.cls, sub: c.sub, name: c.name, level: c.level, chain: i, pts: chunk });
     });
   });
 
-  // 5. Sidewalks running alongside a street on their level merge into it:
-  //    walking either credits the street through the snapper's buffer. A path
-  //    under a bridge is not the bridge's sidewalk.
+  // 5. Sidewalks running alongside a street merge into it: walking either
+  //    credits the street through the snapper's buffer. On another level, a
+  //    footway merges only where it runs the street's way, so a bridge's
+  //    sidewalk mapped without bridge tags goes (audit 8) and a path crossing
+  //    under it stays. A footway that lands on another level (a short
+  //    footbridge from stairs) is a link, never a sidewalk (audit 2).
   const streetEdges = new EdgeGrid<number>();
   pieces.forEach((p, i) => {
     if (isFootway(p.cls, p.sub)) return;
     const pl = p.pts.map(proj);
     for (let e = 1; e < pl.length; e++) streetEdges.add(pl[e - 1], pl[e], i, SIDEWALK_MERGE_M);
   });
-  const nearStreet = (q: XY, level: number) =>
-    streetEdges.at(q).some((x) => pieces[x.v].level === level && pointSegmentDist(q, x.a, x.b) <= SIDEWALK_MERGE_M);
+  const nearStreet = (q: XY, level: number, dir: XY) =>
+    streetEdges.at(q).some((x) => {
+      if (pointSegmentDist(q, x.a, x.b) > SIDEWALK_MERGE_M) return false;
+      if (pieces[x.v].level === level) return true;
+      const ex = x.b[0] - x.a[0];
+      const ey = x.b[1] - x.a[1];
+      const cos = Math.abs(dir[0] * ex + dir[1] * ey) / ((Math.hypot(dir[0], dir[1]) || 1) * (Math.hypot(ex, ey) || 1));
+      return cos >= ALONG_COS;
+    });
+  const landsAt = (chain: number, p: LngLat) => {
+    const q = proj(p);
+    return landings.some((l) => l.line === chain && Math.hypot(l.q[0] - q[0], l.q[1] - q[1]) <= TOUCH_M);
+  };
   const finalPieces = pieces.filter((p) => {
     if (!isFootway(p.cls, p.sub)) return true;
-    for (const [q] of samples(p.pts.map(proj), 5)) if (!nearStreet(q, p.level)) return true;
+    if (landings.length && (landsAt(p.chain, p.pts[0]) || landsAt(p.chain, p.pts[p.pts.length - 1]))) return true;
+    const pl = p.pts.map(proj);
+    for (let e = 1; e < pl.length; e++) {
+      const dir: XY = [pl[e][0] - pl[e - 1][0], pl[e][1] - pl[e - 1][1]];
+      for (const [q] of samples([pl[e - 1], pl[e]], 5)) if (!nearStreet(q, p.level, dir)) return true;
+    }
     return false;
   });
 
@@ -415,29 +438,48 @@ function segmentsCross(p0: XY, p1: XY, q0: XY, q1: XY): boolean {
  * own junctions: a line passing through another pair's junction point on
  * another level is not cut there.
  *
- * Lines on different levels (a bridge and the path under it) meet only at an
- * end of the line further from the ground, or at an end of both when they
- * are as far (NB2, NB3): a bridge joins its approach, a footbridge lands on
- * a street, and a path ending under a bridge stays on the ground.
+ * Lines on different levels (a bridge and the path under it) meet only where
+ * one of them lands on the other (NB2, NB3): an end of it touches the other
+ * line, and that end meets nothing else on its own level. A bridge joins its
+ * approach, a footbridge lands on a street, stairs land on a footbridge
+ * mid-span. A path passing under, even split into two ways there, or a
+ * ground junction under a bridge, stays on the ground. `landings` are the
+ * line ends that landed on another level, for the sidewalk merge.
  */
-function withJunctions(input: LngLat[][], proj: (p: LngLat) => XY, levels: number[]): { lines: LngLat[][]; at: Set<string>[] } {
+function withJunctions(
+  input: LngLat[][],
+  proj: (p: LngLat) => XY,
+  levels: number[],
+): { lines: LngLat[][]; at: Set<string>[]; landings: { line: number; q: XY }[] } {
   const at = input.map(() => new Set<string>());
-  if (input.length === 0) return { lines: [], at };
+  const landings: { line: number; q: XY }[] = [];
+  if (input.length === 0) return { lines: [], at, landings };
   const projected = input.map((line) => line.map(proj));
-  const atEnd = (l: number, q: XY) => {
+  /** Whether an end of line l lies at q and touches no other line on its level (cached per end). */
+  const alone = new Map<string, boolean>();
+  const landsAt = (l: number, q: XY) => {
     const line = projected[l];
-    const a = line[0];
-    const z = line[line.length - 1];
-    return Math.hypot(q[0] - a[0], q[1] - a[1]) <= TOUCH_M || Math.hypot(q[0] - z[0], q[1] - z[1]) <= TOUCH_M;
+    for (const k of [0, line.length - 1]) {
+      const end = line[k];
+      if (Math.hypot(q[0] - end[0], q[1] - end[1]) > TOUCH_M) continue;
+      const key = `${l}:${k}`;
+      let free = alone.get(key);
+      if (free == null) {
+        free = !grid.at(end).some((x) => x.v.l !== l && levels[x.v.l] === levels[l] && projectOnto(end, x.v).d <= TOUCH_M);
+        alone.set(key, free);
+      }
+      if (free) return true;
+    }
+    return false;
   };
-  /** Whether lines l and m meet at q: always on one level, else only at the upper line's end. */
+  /** Whether lines l and m meet at q: always on one level, else only where one lands on the other. */
   const meets = (l: number, m: number, q: XY) => {
-    const a = Math.abs(levels[l]);
-    const b = Math.abs(levels[m]);
     if (levels[l] === levels[m]) return true;
-    if (a > b) return atEnd(l, q);
-    if (b > a) return atEnd(m, q);
-    return atEnd(l, q) && atEnd(m, q);
+    const byL = landsAt(l, q);
+    const byM = landsAt(m, q);
+    if (byL) landings.push({ line: l, q });
+    if (byM) landings.push({ line: m, q });
+    return byL || byM;
   };
   type Edge = { l: number; e: number; a: XY; b: XY };
   const grid = new EdgeGrid<Edge>();
@@ -534,7 +576,7 @@ function withJunctions(input: LngLat[][], proj: (p: LngLat) => XY, levels: numbe
     }
     return out;
   });
-  return { lines, at };
+  return { lines, at, landings };
 }
 
 function cutAt(line: LngLat[], at: Set<string>): LngLat[][] {
