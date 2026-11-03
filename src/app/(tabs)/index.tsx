@@ -1,20 +1,18 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState, type ComponentProps } from 'react';
-import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { KindSwitches, RangeSlider, walkNote } from '../../components/ExploreSettings';
-import { SwitchRow } from '../../components/SwitchRow';
+import { StartDialog } from '../../components/StartDialog';
 import { SheetFrame, type SheetSize } from '../../components/HomeSheet';
 import { LocateButton } from '../../components/LocateButton';
 import { CaptureRow, MomentBar } from '../../components/MomentBar';
-import { NotificationSettings } from '../../components/NotificationSettings';
 import { useOpenWalk, useOpenWalkInfo } from '../../components/OpenWalk';
 import { WalkMap } from '../../components/map/WalkMap';
 import { Icon } from '../../components/icons';
 import { Banner, Button, theme } from '../../components/ui';
 import { db } from '../../lib/db';
 import { useVisible } from '../../lib/deletion/useDeletions';
-import { clampRange, type Kind } from '../../lib/explore/explore';
+import { type Kind } from '../../lib/explore/explore';
 import { findForMoment } from '../../lib/explore/momentFind';
 import { DEFAULT_SETTINGS, loadSettings, saveSettings, type ExploreSettings } from '../../lib/explore/settings';
 import { boundsOf, distanceM, type Bounds } from '../../lib/geo';
@@ -35,7 +33,7 @@ const NONE: never[] = [];
 const WORLD = { center: [-40, 30] as [number, number], zoom: 1.2 };
 /** The drawer's grip: the handle and a strip under it, one thumb tall. */
 const GRIP_H = 44;
-/** The drawer's foot, docked at its bottom at every height: Start and the line under it (U1, AllTrails' sticky Start). */
+/** The drawer's foot: Start and the line under it, which opens the settings dialog (Nov 3). */
 const FOOT_H = 92;
 /** The drawer's peek: its grip and its foot (NV19). */
 const DRAWER_PEEK = GRIP_H + FOOT_H;
@@ -43,8 +41,6 @@ const DRAWER_PEEK = GRIP_H + FOOT_H;
 const ROW_GAP = 12;
 /** The capture row's own height. */
 const ROW_H = 52;
-/** Opened, the drawer keeps a band under the row, so its settings scroll above the row and Start, never under them (U1). */
-const ROW_BAND = GRIP_H + ROW_GAP + ROW_H + 10;
 /** A new fix this far from the last recentres the map; a nearer one only moves the dot (NV3, NV17). */
 const RECENTER_M = 100;
 /** Meta: the web's "keep this page open" note was dismissed (U9). */
@@ -54,9 +50,9 @@ const WEB_NOTE_KEY = 'web_note_dismissed';
  * Navigate (NV17-NV28): a map around where you are, from one fix read each
  * time the tab comes to the front (nothing tracks in between), quick capture,
  * and the pre-start drawer. Start sits at the drawer's foot and starts at once
- * with the saved choices; the drawer holds the extras, each saved as it changes
- * to the meta the walk reads. Start and the capture row stay docked low at
- * every height; the settings scroll above them (U1).
+ * with the saved choices; a summary line under it opens the settings dialog
+ * (Nov 3), each choice saved as it changes to the meta the walk reads. Start
+ * and the capture row stay docked low (U1).
  *
  * With a walk open and minimized, it is a live view of that walk (U2): its
  * growing trace, the walker, its captures and its destination, and the
@@ -85,9 +81,9 @@ export default function Navigate() {
   // The open walk's own destination, shown on its live view (U2).
   const [walkDest, setWalkDest] = useState<Waypoint | null>(null);
   const [settings, setSettings] = useState<ExploreSettings>(DEFAULT_SETTINGS);
-  const [chosenSize, setSize] = useState<SheetSize>('peek');
-  // With a walk open the drawer stays at its peek: its choices are for the next walk (U2).
-  const size: SheetSize = open ? 'peek' : chosenSize;
+  // The settings dialog (Nov 3): the drawer no longer pulls up; its settings are one dialog, opened
+  // from the peek's summary line or a pull on its grip.
+  const [dialog, setDialog] = useState(false);
   const [sheetH, setSheetH] = useState(DRAWER_PEEK);
   const [memoOn, setMemoOn] = useState(false);
 
@@ -188,16 +184,15 @@ export default function Navigate() {
     onError: setMomentError,
   });
 
-  // Mid-memo, or with a walk open, the drawer stays down (audit, U2).
+  // A pull on the grip opens the dialog instead; the drawer itself stays at its peek. Mid-memo, or with a
+  // walk open, nothing opens (audit, U2).
   const resize = (s: SheetSize) => {
-    if ((memoOn || open) && s !== 'peek') return;
-    setSize(s);
+    if (s !== 'peek' && !memoOn && !open) setDialog(true);
   };
-  const ringShown = size === 'full' && mode === 'explore' && fix && !open;
-  // At the peek, the mode and the destination; opened, the mode is on show above, so only the destination (U12).
-  const peekLine = open
-    ? null
-    : [size === 'peek' ? (mode === 'explore' ? 'Explore' : 'Quiet') : null, dest ? destLine(dest, fix) : null].filter(Boolean).join(' · ');
+  const dialogOn = dialog && !open && !memoOn;
+  const ringShown = dialogOn && mode === 'explore' && fix;
+  // The peek's summary: the mode, and the destination if one is set.
+  const peekLine = open ? null : [mode === 'explore' ? 'Explore' : 'Quiet', dest ? destLine(dest, fix) : null].filter(Boolean).join(' · ');
 
   const mapBase: MapBase = {
     // The destination is set only here, and only before a walk (NV23): a long press, with its ring.
@@ -265,7 +260,7 @@ export default function Navigate() {
         <SheetFrame
           testID="navigate-drawer"
           dragTestID="drawer-drag"
-          size={size}
+          size="peek"
           onSize={resize}
           peek={DRAWER_PEEK}
           bottomInset={0}
@@ -274,100 +269,55 @@ export default function Navigate() {
           // The grip: the handle and a strip under it, so the drawer is easy to take hold of.
           header={<View style={styles.grip} />}
         >
-          <View style={styles.body}>
-            {size !== 'peek' && (
-              <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
-                {/* At half: the mode and the destination (NV20). */}
-                <Text style={styles.section} accessibilityRole="header">Mode</Text>
-                <View style={styles.segment} accessibilityRole="radiogroup">
-                  {(['quiet', 'explore'] as const).map((m) => (
-                    <Pressable
-                      key={m}
-                      testID={`mode-${m}`}
-                      accessibilityRole="radio"
-                      accessibilityState={{ checked: mode === m }}
-                      aria-checked={mode === m}
-                      accessibilityLabel={m === 'quiet' ? 'Quiet: the way and your captures' : 'Explore: shows places to find as you get close'}
-                      onPress={() => pickMode(m)}
-                      style={[styles.segmentBtn, mode === m && styles.segmentOn]}
-                    >
-                      <Icon name={m === 'quiet' ? 'walk-outline' : 'compass-outline'} size={18} color={mode === m ? '#ffffff' : theme.ink} />
-                      <Text style={[styles.segmentText, mode === m && styles.segmentTextOn]}>{m === 'quiet' ? 'Quiet' : 'Explore'}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-                <Text style={styles.section} accessibilityRole="header">Destination</Text>
-                {dest ? (
-                  <View style={styles.destRow}>
-                    <Icon name="flag-outline" size={20} color={theme.ink} />
-                    <Text testID="drawer-dest" style={styles.destText} numberOfLines={2}>{destLine(dest, fix)}</Text>
-                    <Pressable testID="dest-clear" accessibilityRole="button" accessibilityLabel="Clear the destination" onPress={() => chooseDest(null)} style={styles.clear} hitSlop={6}>
-                      <Text style={styles.clearText}>Clear</Text>
-                    </Pressable>
-                  </View>
-                ) : (
-                  <Text style={styles.sub}>None: Start wanders from where you are.</Text>
-                )}
-                <Text style={styles.sub}>Long-press the map to pick a spot.</Text>
-
-                {/* At full: what I'm into and the range, only for Explore (NV21); then reminders and alerts. */}
-                {size === 'full' && (
-                  <>
-                    {mode === 'explore' && (
-                      <>
-                        <Text style={styles.section} accessibilityRole="header">“?” range</Text>
-                        <Text style={styles.sub}>
-                          A “?” shows for places within {settings.rangeM} m of you, {walkNote(settings.rangeM)}.
-                          {fix ? ' The ring on the map shows how far that is.' : ' The ring shows on the map once there’s a position.'}
-                        </Text>
-                        <RangeSlider value={settings.rangeM} onChange={(m) => changeSettings({ ...settings, rangeM: clampRange(m) })} />
-                        <Text style={styles.section} accessibilityRole="header">What I’m into</Text>
-                        <KindSwitches hidden={settings.hidden} onToggle={toggleKind} />
-                      </>
-                    )}
-                    <Text style={styles.section} accessibilityRole="header">Reminders and alerts</Text>
-                    {/* The pocket alert is a tap you feel; a browser has none to give (E19). */}
-                    {Platform.OS !== 'web' && (
-                      <SwitchRow
-                        testID="pocket-alert"
-                        label="Pocket alert"
-                        note="A soft tap when a “?” comes into range. Never on a quiet walk."
-                        value={settings.haptic}
-                        onChange={(haptic) => changeSettings({ ...settings, haptic })}
-                      />
-                    )}
-                    {/* Each switch saves as it changes, and turning one on asks permission from that tap (NV24). Its
-                        own heading would repeat this one (U12). */}
-                    <NotificationSettings heading={false} />
-                  </>
-                )}
-              </ScrollView>
-            )}
-          </View>
-          {/* Opened, a band under the capture row, so nothing scrolls under it (U1). */}
-          {size !== 'peek' && <View style={styles.band} />}
-          {/* The foot: Start, docked at the drawer's bottom at every height (NV19, U1). */}
+          {/* The foot: Start, docked at the drawer's bottom (NV19, U1). */}
           <View testID="drawer-foot" style={styles.foot}>
-            {open ? null : (
-              // Start just starts, where you are, with the saved choices (NV19, NV25); never waits on a fix (NV28).
-              <Button
-                testID="start"
-                label="Start walk"
-                onPress={() => walkStart.start(dest, mode)}
-                busy={walkStart.starting}
-                busyLabel="Starting…"
-                disabled={memoOn}
-                tall
-                style={styles.startBtn}
-              />
-            )}
-            {peekLine ? <Text testID="peek-choices" style={styles.peekLine} numberOfLines={1}>{peekLine}</Text> : null}
+            {/* Start just starts, where you are, with the saved choices (NV19, NV25); never waits on a fix (NV28). */}
+            <Button
+              testID="start"
+              label="Start walk"
+              onPress={() => walkStart.start(dest, mode)}
+              busy={walkStart.starting}
+              busyLabel="Starting…"
+              disabled={memoOn}
+              tall
+              style={styles.startBtn}
+            />
+            {/* What Start will use; a tap opens all of it in the dialog. */}
+            <Pressable
+              testID="start-options"
+              accessibilityRole="button"
+              accessibilityLabel={`Walk settings: ${peekLine}`}
+              onPress={() => !memoOn && setDialog(true)}
+              style={styles.summary}
+            >
+              <Text testID="peek-choices" style={styles.peekLine} numberOfLines={1}>{peekLine}</Text>
+              <Icon name="chevron-up" size={16} color={theme.muted} />
+            </Pressable>
           </View>
         </SheetFrame>
         {/* Locate me (QL9): above the drawer and the capture row at every height; gone with a walk open. */}
         <LocateButton busy={locating} onPress={locate} bottom={sheetH + ROW_GAP + ROW_H + 12} />
       </View>
       )}
+
+      <StartDialog
+        visible={dialogOn}
+        mode={mode}
+        dest={dest}
+        fix={fix}
+        settings={settings}
+        starting={walkStart.starting}
+        startDisabled={memoOn}
+        onMode={pickMode}
+        onClearDest={() => chooseDest(null)}
+        onSettings={changeSettings}
+        onToggleKind={toggleKind}
+        onStart={() => {
+          setDialog(false);
+          walkStart.start(dest, mode);
+        }}
+        onClose={() => setDialog(false)}
+      />
 
       <View style={[styles.top, styles.over, { top: insets.top + 8 }]} pointerEvents="box-none">
         {error && (
@@ -458,22 +408,8 @@ const styles = StyleSheet.create({
   // Over the drawer: the row is never hidden by it (U1).
   row: { zIndex: 2 },
   grip: { height: GRIP_H - 25 },
-  band: { height: ROW_BAND },
   foot: { height: FOOT_H, paddingHorizontal: 16, paddingBottom: 8, alignItems: 'center', gap: 6, maxWidth: 640, width: '100%', alignSelf: 'center' },
-  peekLine: { fontSize: 14, color: theme.muted, maxWidth: '100%' },
+  summary: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: 44, maxWidth: '100%' },
+  peekLine: { fontSize: 14, color: theme.muted, flexShrink: 1 },
   startBtn: { minWidth: 220, borderRadius: 999, paddingHorizontal: 24 },
-  body: { flex: 1 },
-  bodyContent: { padding: 16, gap: 10, maxWidth: 640, width: '100%', alignSelf: 'center' },
-  section: { fontSize: 15, fontWeight: '700', color: theme.ink, marginTop: 6 },
-  sub: { fontSize: 13, color: theme.muted },
-  label: { fontSize: 15, color: theme.ink },
-  segment: { flexDirection: 'row', borderRadius: 22, borderWidth: 1, borderColor: theme.edge, overflow: 'hidden', alignSelf: 'flex-start' },
-  segmentBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44, paddingHorizontal: 18, backgroundColor: theme.surface },
-  segmentOn: { backgroundColor: theme.ink },
-  segmentText: { fontSize: 15, fontWeight: '600', color: theme.ink },
-  segmentTextOn: { color: '#ffffff' },
-  destRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
-  destText: { flex: 1, fontSize: 15, color: theme.ink },
-  clear: { minHeight: 44, paddingHorizontal: 14, justifyContent: 'center', borderRadius: 22, borderWidth: 1, borderColor: theme.edge },
-  clearText: { fontSize: 15, fontWeight: '600', color: theme.ink },
 });
