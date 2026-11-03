@@ -1340,6 +1340,40 @@ function check(ok, what) {
       await fix(at(-0.5 + k * 0.05, -0.5));
       await pg.waitForTimeout(1000);
     }
+    // A step that throws is reported as a failed check, and the scenario goes on (round 3's checks).
+    const qstep = async (name, fn) => {
+      try {
+        await fn();
+      } catch (e) {
+        check(false, `${name}: ${String(e.message).split('\n')[0]}`);
+      }
+    };
+    const capRow = (kind) => pg.evaluate((k) => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const g = req.result.transaction('capture', 'readonly').objectStore('capture').getAll();
+        g.onsuccess = () => resolve(g.result.filter((c) => c.kind === k).sort((a, b) => b.t - a.t)[0] ?? null);
+      };
+    }), kind);
+    // A photo's pin shows its small copy, made after the pin was drawn (QL26, QL27); then a note beside it.
+    await qstep('qol QL26, QL27', async () => {
+      const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=cap-photo]')]);
+      await chooser.setFiles(path.join(__dirname, 'fixtures', 'photo.jpg'));
+      await pg.waitForSelector('text=Photo saved here', { timeout: 15000 }).catch(() => {});
+      // Inside the photo's own pin on the walk map (a pin's content may be hidden from screen readers under its label).
+      const thumb = pg.locator('.maplibregl-map [aria-label="Photo. Open"] [data-testid=pin-thumb]');
+      await thumb.first().waitFor({ timeout: 20000 }).catch(() => {});
+      const row = await capRow('photo');
+      const inPin = (await thumb.count()) > 0;
+      check((await thumb.count()) === 1 && inPin && row && row.thumb_path && row.thumb_path !== 'none',
+        `qol QL26, QL27: the photo's pin shows its small copy once it is made, without a reload (${await thumb.count()} pictures, in its pin ${inPin}, thumb ${row && row.thumb_path})`);
+    });
+    await qstep('qol note', async () => {
+      await pg.click('[data-testid=cap-note]');
+      await pg.fill('[data-testid=note-input]', 'First words on the corner.');
+      await pg.click('[data-testid=note-save]');
+      await pg.waitForTimeout(1500);
+    });
     await pg.waitForTimeout(2500);
     // Time left beside the distance (QL17, QL18), then End so the trace and its ends show as before.
     {
@@ -1390,6 +1424,89 @@ function check(ok, what) {
         `qol QL8: the replay's scale bar sits above the card (bar bottom ${s6 && s6.box && Math.round(s6.box.y + s6.box.height)}, card from ${Math.round(cardTop)}; ${describe(s6)})`);
     }
     await shot(pg, 'qol-03-replay-card');
+
+    // A note edited from the replay's viewer reads the new words when opened again (QL24, QL25).
+    const openNote = async () => {
+      await pg.locator('[aria-label$="captures here. Open"], [aria-label="Note. Open"]').last().click();
+      await pg.waitForSelector('[data-testid=viewer-close]', { timeout: 10000 });
+      for (let i = 0; i < 4; i++) {
+        if (await pg.locator('[data-testid=viewer-more]').count()) {
+          const onNote = await pg.evaluate(() => !!document.querySelector('[data-testid=viewer-close]') && /First words on the corner\.|Edited on the replay\./.test(document.body.innerText));
+          if (onNote) {
+            const shownNote = await pg.locator('text=/^(First words on the corner|Edited on the replay)\.$/').first().isVisible().catch(() => false);
+            if (shownNote) return;
+          }
+        }
+        const next = pg.locator('[aria-label="Next capture"]');
+        if (!(await next.count())) return;
+        await next.first().click();
+        await pg.waitForTimeout(400);
+      }
+    };
+    await qstep('qol QL24, QL25', async () => {
+      await openNote();
+      await pg.click('[data-testid=viewer-more]');
+      const item = pg.locator('[data-testid=viewer-edit-note]');
+      await item.waitFor({ timeout: 5000 });
+      await item.click();
+      const input = pg.locator('[data-testid=note-edit-input]');
+      await input.waitFor({ timeout: 5000 });
+      const prefilled = await input.inputValue();
+      await input.fill('   ');
+      const blankRefused = (await pg.locator('[data-testid=note-edit-save]').getAttribute('aria-disabled')) === 'true';
+      await input.fill('Edited on the replay.');
+      await pg.click('[data-testid=note-edit-save]');
+      await pg.waitForTimeout(800);
+      const seenNow = await pg.locator('text=Edited on the replay.').first().isVisible().catch(() => false);
+      await pg.click('[data-testid=viewer-close]');
+      await pg.waitForTimeout(600);
+      await openNote();
+      const seenAgain = await pg.locator('text=Edited on the replay.').first().isVisible().catch(() => false);
+      const row = await capRow('text');
+      check(prefilled === 'First words on the corner.' && blankRefused && seenNow && seenAgain && row && row.body === 'Edited on the replay.',
+        `qol QL24, QL25: Edit note opens prefilled, refuses blank, and the new words show at once and when opened again (prefilled ${JSON.stringify(prefilled)}, blank refused ${blankRefused}, now ${seenNow}, again ${seenAgain}, stored ${JSON.stringify(row && row.body)})`);
+      await pg.click('[data-testid=viewer-close]');
+      await pg.waitForTimeout(400);
+    });
+
+    // Chronicle: the walks list under this month's header (QL28); the walk renamed from its row (QL22, QL23).
+    await qstep('qol QL22, QL23, QL28', async () => {
+      await pg.click('[data-testid=not-now]');
+      await pg.waitForSelector('[data-testid=home-sheet]', { timeout: 15000 });
+      await pg.waitForTimeout(800);
+      await drawerTo(pg, 'half', 'sheet-drag');
+      await pg.waitForSelector('[data-testid=walk-row]', { timeout: 10000 });
+      const month = await pg.evaluate(() => new Date().toLocaleDateString(undefined, { month: 'long' }));
+      const headers = await shown('month-header').allInnerTexts();
+      const role = (await shown('month-header').count()) ? await shown('month-header').first().getAttribute('role') : null;
+      check(headers.length === 1 && headers[0] === month && role === 'heading',
+        `qol QL28: the walks list sits under this month's header (${JSON.stringify(headers)}, role ${role})`);
+      await pg.locator('[data-testid=walk-more]').first().click();
+      await pg.waitForSelector('[data-testid=action-rename]', { timeout: 10000 });
+      const first = pg.locator('[data-testid=walk-actions] [role=button]').first();
+      const firstIsRename = (await first.getAttribute('data-testid')) === 'action-rename';
+      await pg.click('[data-testid=action-rename]');
+      const title = pg.locator('[data-testid=rename-title]');
+      await title.waitFor({ timeout: 5000 });
+      const prefilled = await title.inputValue();
+      await title.fill('Fox Point at dusk');
+      await pg.fill('[data-testid=rename-epilogue]', 'The harbour went pink.');
+      await pg.click('[data-testid=rename-save]');
+      await pg.waitForSelector('[data-testid=walk-actions]', { state: 'detached', timeout: 5000 }).catch(() => {});
+      await pg.waitForTimeout(600);
+      const rows = (await pg.locator('[data-testid=walk-row]').allInnerTexts()).join(' | ');
+      const stored = await pg.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const g = req.result.transaction('walk', 'readonly').objectStore('walk').getAll();
+          g.onsuccess = () => resolve(g.result.map((w) => ({ title: w.title, epilogue: w.epilogue })));
+        };
+      }));
+      check(firstIsRename && prefilled.length > 0 && /Fox Point at dusk/.test(rows) && /The harbour went pink\./.test(rows)
+        && stored.some((w) => w.title === 'Fox Point at dusk' && w.epilogue === 'The harbour went pink.'),
+        `qol QL22, QL23: Rename is first in the walk's More, prefilled, and the row shows the new name at once (first ${firstIsRename}, prefilled ${JSON.stringify(prefilled)}, rows ${JSON.stringify(rows)})`);
+      await shot(pg, 'qol-04-chronicle-renamed');
+    });
     await c.close();
 
     // Location denied (QL19): a browser that refuses position requests. The "Not recording" chip is a

@@ -12,6 +12,7 @@ Three things every walking map has and ours didn't: a mark where the walk began 
 - Nothing is a score: the markers say where, never how far or how well.
 - The map stays north-up; no compass.
 - Round 2 (Nov 3): the walk basics. A units setting in the drawer, time left in the navigation bar, and a way to Settings from the "Not recording" chip. Rename later, note editing, pin thumbnails and month headers are round 3.
+- Round 3 (Nov 3): the Chronicle basics. Rename a walk later, edit a note, photos on their pins, months in the walks list. Keep awake, GPX, the street chip and dark mode are round 4.
 
 ## Criteria
 
@@ -55,6 +56,27 @@ Location denied on the walk
 21. **QL21** Navigate's own fix on focus stays quiet when denied (Locate is the loud path), unchanged.
 
 Round 2 tests: `units.test.ts` (QL13–QL15), `eta.test.ts` (QL17); the `qol` e2e grows: the drawer's Distances segment switches the scale bar and the destination line to feet or miles and back (QL14–QL16), a destination set by a long press before Start gives a bar with minutes (QL17, QL18), and a fresh context with no geolocation permission gets the tappable chip and its notice (QL19). QL20 is covered by typecheck and the unit of its guard only; on native it is unverified.
+
+Round 3: Chronicle basics (the owner's call, Nov 3). Rename a walk later
+
+22. **QL22** A walk's More (⋯) menu, on its Chronicle row and on its replay card, offers **Rename** first (`action-rename`). It turns the menu into an editor in the same sheet: the title (`rename-title`, prefilled with the title or the suggested one, 60 characters at most, as the first replay's Name it) and the one line (`rename-epilogue`, prefilled, 200 at most), with Save (`rename-save`) and Cancel. Escape and Back cancel.
+23. **QL23** Save writes only the title and the epilogue (`renamePatch(walk, title, epilogue)` in `lib/rename.ts`, pure: trimmed; an empty title becomes the suggested one; an empty line becomes none). The Chronicle row and the replay card show the new name at once, with no reload of the screen. Unit-tested.
+
+Edit a note
+
+24. **QL24** In the capture viewer, a note's More menu offers **Edit note** (`viewer-edit-note`) wherever the viewer opens on the walk screen, Navigate's live walk, the replay, Chronicle and a day. It opens an editor inside the viewer (never a second Modal: iOS can't stack them) with the text prefilled (`note-edit-input`, 500 characters at most, as the composer), Save (`note-edit-save`, disabled while the text is blank: deleting is the menu's Delete) and Cancel.
+25. **QL25** Save stores the new text (`noteText(body)` in `lib/noteEdit.ts`, pure: trimmed, null when blank) and sends the change on the capture bus, so the viewer, the pins, the open walk and the replay show it without a reload. A find or reminder tied to the note is kept. Unit-tested.
+
+Photos on their pins
+
+26. **QL26** A pin holding one photo shows the photo's small copy as a round picture filling the pin's head, inside a ring of the photo colour, in place of the camera icon (`pin-thumb` on web); faint memory pins too, still faint. A pin of several captures keeps its count. Pins only ever show the small copy: while it is being made, or for a photo without one (an old photo never previewed, or one that won't decode), the icon shows, so a map never decodes full photos. `pinThumb(pin)` in `lib/pins.ts` is pure. Unit-tested.
+27. **QL27** A small copy that arrives after the pin was drawn (made just after the capture) replaces the icon without a reload: the web markers' key includes it.
+
+Months in the walks list
+
+28. **QL28** The walks list, for all walks and for a place's walks, sits under a header per month of each walk's start (`month-header`, role header), newest first: "November" in the current year, "November 2025" in another. A month with no walk has no header. "Not placed yet" keeps its own section, unchanged. `byMonth(walks, now)` in `lib/months.ts` is pure, in local time. Unit-tested.
+
+Round 3 tests: `rename.test.ts` (QL23), `noteEdit.test.ts` (QL25), `pins.test.ts` grows (QL26), `months.test.ts` (QL28); the `qol` e2e: a note made on the walk is edited from the replay's viewer and reads the new text when opened again (QL24, QL25); the walk is renamed from its Chronicle row and the row shows it (QL22, QL23); the walks list has a header for this month (QL28); a photo's pin shows its small copy (QL26, QL27). Native (unverified on a device): the editor inside the native viewer Modal and the actions Modal, the round picture inside a MapLibre RN Marker.
 
 ## Routes and data
 

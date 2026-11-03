@@ -114,6 +114,7 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 
 | Session | Branch | Doing |
 |---|---|---|
+| Quality of life navigation features | `docs/product-synopsis` | QL round 3 (Chronicle basics, QL22-QL28): spec in the doc and `specs/quality-of-life/`, plan in `plan.md` |
 | Bug fixes (open since Oct 31) | unknown | unknown |
 
 ## Updating this file
