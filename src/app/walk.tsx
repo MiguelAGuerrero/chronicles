@@ -42,7 +42,7 @@ import { askMotion, useMotionAccess } from '../lib/walkMotion';
 import { gpsLog } from '../lib/gpsLog';
 import { notifyWalkChanged } from '../lib/walkEvents';
 import { routeAhead } from '../lib/nav/navigator';
-import { openInMaps } from '../lib/nav/openInMaps';
+import { HANDOFF_HINT, openInMaps } from '../lib/nav/openInMaps';
 import { useNavigation } from '../lib/nav/useNavigation';
 import { useVisible } from '../lib/deletion/useDeletions';
 import { deletions } from '../lib/deletion';
@@ -102,8 +102,6 @@ type Notice = {
   maps?: { at: LngLat; label: string };
 };
 
-/** Open in Maps (NH3-NH8): its hint, wherever it is offered. */
-const HANDOFF_HINT = 'Opens your maps app with walking directions. Chronicles keeps recording.';
 
 // A screen that throws shows what broke, with Try again, never a blank page (bug, Nov 1).
 export { ScreenError as ErrorBoundary } from '../components/ScreenError';
@@ -386,9 +384,15 @@ export default function WalkScreen() {
     },
     // Errors stay up long enough to read at a glance, and can be dismissed. A route that
     // can't be found offers the phone's maps app (NH5).
-    onError: (m, dest) => setNotice({ message: m, tone: 'error', maps: dest && { at: dest.at, label: dest.label } }),
+    // It stays until dismissed: the destination is already forgotten, so it is the way back (audit 6).
+    onError: (m, dest) => setNotice({ message: m, tone: 'error', maps: dest && { at: dest.at, label: dest.label }, sticky: !!dest }),
     onNotice: (m) => setArrived(m),
   });
+  /** Going somewhere new: a failed route's banner (sticky, with Open in Maps) has had its say. */
+  const goTo = (dest: Parameters<typeof navigation.goTo>[0]) => {
+    setNotice((n) => (n?.maps ? null : n));
+    void navigation.goTo(dest);
+  };
   /**
    * Open in Maps (NH3-NH8): the destination to the phone's maps app, straight from the tap (a
    * browser opens a window only from one). Navigation and the walk go on as they were (NH7).
@@ -962,7 +966,7 @@ export default function WalkScreen() {
               onPress={() => {
                 const n = nudge;
                 setNudge(null);
-                navigation.goTo({ at: n.at, label: n.name, kind: 'place' });
+                goTo({ at: n.at, label: n.name, kind: 'place' });
               }}
               hitSlop={10}
               style={styles.undoBtn}
@@ -1177,7 +1181,7 @@ export default function WalkScreen() {
           accessibilityRole="button"
           accessibilityLabel="Walk me back to the start"
           disabled={navigation.finding}
-          onPress={() => navigation.goTo({ at: walkStart, label: 'Start', kind: 'start' })}
+          onPress={() => goTo({ at: walkStart, label: 'Start', kind: 'start' })}
           style={({ pressed }) => [styles.edgeBtn, { right: edgeRight, bottom: insets.bottom + EDGE_BOTTOM + 168 }, pressed && styles.pressed]}
         >
           <Icon name="arrow-undo" size={22} color={theme.ink} />
@@ -1286,7 +1290,7 @@ export default function WalkScreen() {
                 onPress={() => {
                   const m = openMark;
                   setMarkOpen(null);
-                  navigation.goTo({ at: m.at, label: openMarkNamed ? m.name : 'A place to find', kind: 'find', placeKey: m.key });
+                  goTo({ at: m.at, label: openMarkNamed ? m.name : 'A place to find', kind: 'find', placeKey: m.key });
                 }}
                 disabled={navigation.finding}
               />
@@ -1321,7 +1325,7 @@ export default function WalkScreen() {
         onSaveCaption={(c, caption, y) => cap.setCaption(c.id, caption, y)}
         onGoHere={navigation.finding ? undefined : (c) => {
           setViewing(null);
-          if (c.lat != null && c.lon != null) navigation.goTo({ at: [c.lon, c.lat], label: KIND_LABEL[c.kind], kind: 'capture' });
+          if (c.lat != null && c.lon != null) goTo({ at: [c.lon, c.lat], label: KIND_LABEL[c.kind], kind: 'capture' });
         }}
         onOpenInMaps={(c) => {
           if (c.lat != null && c.lon != null) handOff([c.lon, c.lat], KIND_LABEL[c.kind]);
@@ -1364,7 +1368,7 @@ export default function WalkScreen() {
                 onPress={() => {
                   const at = spot.at;
                   setSpot(null);
-                  navigation.goTo({ at, label: 'Your spot', kind: 'point' });
+                  goTo({ at, label: 'Your spot', kind: 'point' });
                 }}
                 disabled={navigation.finding}
               />

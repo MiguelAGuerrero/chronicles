@@ -2,6 +2,7 @@ import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useEventListener } from 'expo';
 import { useVideoPlayer, VideoView, type VideoPlayer as VideoPlayerType } from 'expo-video';
 import { forwardRef, useEffect, useRef, useState, type ComponentRef } from 'react';
+import { HANDOFF_HINT } from '../lib/nav/openInMaps';
 import { Image, Linking, Platform, Pressable, StyleSheet, Text, View, type LayoutRectangle } from 'react-native';
 import { Modal } from './Modal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -552,7 +553,7 @@ export function CaptureViewer(props: {
                 <Pressable
                   testID="viewer-handoff"
                   accessibilityRole="button"
-                  accessibilityHint="Opens your maps app with walking directions. Chronicles keeps recording."
+                  accessibilityHint={HANDOFF_HINT}
                   onPress={() => {
                     setMenu(false);
                     props.onOpenInMaps?.(current);

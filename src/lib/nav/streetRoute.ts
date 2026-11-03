@@ -17,13 +17,23 @@ export function streetRouteSource(segments: StreetSegment[]): RouteSource {
   const first = segments[0]?.geometry[0]?.[0] ?? ([0, 0] as LngLat);
   const g = new WalkGraph(first);
   const lines: { a: number; b: number }[] = [];
+  // Piece ends: the only vertices another piece's end may merge with. An inner vertex
+  // (a bridge's, over a path's junction) never takes one (bridges audit 3).
+  const ends = new Set<number>();
+  const addEnd = (p: LngLat) => {
+    const near = g.within(p, MERGE_M).find((i) => ends.has(i));
+    if (near != null) return near;
+    const i = g.add(p);
+    ends.add(i);
+    return i;
+  };
   for (const s of segments) {
     for (const line of s.geometry) {
       let prev: number | null = null;
       line.forEach((p, k) => {
         // Ends merge with other pieces' ends; inner vertices are the piece's own.
         const end = k === 0 || k === line.length - 1;
-        const i = g.add(p, end ? MERGE_M : 0);
+        const i = end ? addEnd(p) : g.add(p);
         if (prev != null) {
           g.link(prev, i);
           lines.push({ a: prev, b: i });
