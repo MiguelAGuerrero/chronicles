@@ -1,7 +1,8 @@
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useRef, useState, type ComponentProps } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CaptureViewer } from '../../components/CaptureView';
 import { StartDialog } from '../../components/StartDialog';
 import { SheetFrame, type SheetSize } from '../../components/HomeSheet';
 import { LocateButton } from '../../components/LocateButton';
@@ -12,6 +13,8 @@ import { Icon } from '../../components/icons';
 import { Banner, Button, theme } from '../../components/ui';
 import { useUnits } from '../../lib/useUnits';
 import { db } from '../../lib/db';
+import { applyPatch, captureBus } from '../../lib/captureBus';
+import { MOMENT_PIN_ZOOM, placedMoments, upsertMoment } from '../../lib/momentPins';
 import { useVisible } from '../../lib/deletion/useDeletions';
 import { type Kind } from '../../lib/explore/explore';
 import { findForMoment } from '../../lib/explore/momentFind';
@@ -89,20 +92,31 @@ export default function Navigate() {
   const [dialog, setDialog] = useState(false);
   const [sheetH, setSheetH] = useState(DRAWER_PEEK);
   const [memoOn, setMemoOn] = useState(false);
+  // Moments outside walks, as pins where they were made (M16, moment pins 1-2): read as the tab comes to
+  // the front, and a new one added once its fix places it. Gone from view while their delete waits (D5).
+  const [storedMoments, setMoments] = useState<Capture[]>([]);
+  const moments = useVisible(storedMoments);
+  const [viewing, setViewing] = useState<Capture[] | null>(null);
+  // Pins from neighbourhood zoom, as on Chronicle; re-rendered only when the zoom crosses it.
+  const [pinZoom, setPinZoom] = useState(() => (savedCamera?.zoom ?? (fix ? 15 : WORLD.zoom)) >= MOMENT_PIN_ZOOM);
+  const momentPins = useMemo(() => (pinZoom ? moments : NONE), [moments, pinZoom]);
 
   // Each time the tab comes to the front: the choices (the walk's options card may have changed them).
   useFocusEffect(
     useCallback(() => {
       let live = true;
       (async () => {
-        const [m, d, s, walks, note] = await Promise.all([
+        const [m, d, s, walks, note, caps] = await Promise.all([
           db.getMeta(START_MODE_KEY).catch(() => null),
           loadPendingDest(),
           loadSettings().catch(() => DEFAULT_SETTINGS),
           db.listWalks().catch(() => [] as Walk[]),
           db.getMeta(WEB_NOTE_KEY).catch(() => null),
+          // Rows only, never media (as Chronicle reads them for its days).
+          db.capturesBetween(0, Number.MAX_SAFE_INTEGER).catch(() => null),
         ]);
         if (!live) return;
+        if (caps) setMoments(placedMoments(caps));
         setModeState(parseStartMode(m));
         setDest(d);
         setSettings(s);
@@ -172,7 +186,10 @@ export default function Navigate() {
 
   const onMoment = useCallback((c: Capture, state: MomentState) => {
     // A moment finds a place as a walk's capture does (M4); Chronicle reads it when it comes to the front.
-    if (state === 'placed') findForMoment(c).catch(() => {});
+    if (state !== 'placed') return;
+    findForMoment(c).catch(() => {});
+    // Its pin, where it was made (M16, moment pins 2).
+    if (placedMoments([c]).length) setMoments((prev) => upsertMoment(prev, c));
   }, []);
   const onMomentError = useCallback((e: { message: string; openSettings?: boolean }) => setMomentError(e), []);
   // Locate me (QL9-QL12): one fix on a tap, the dot there, and the map framed 250 m around it whatever
@@ -245,7 +262,10 @@ export default function Navigate() {
                 trace={NONE}
                 walked={NONE}
                 fog={NONE}
-                captures={NONE}
+                captures={momentPins}
+                // Mid-memo, pins do nothing, so a memo is never cut short (moments audit).
+                onPinPress={(cs) => !memoOn && setViewing(cs)}
+                onViewChange={(v) => setPinZoom(v.zoom >= MOMENT_PIN_ZOOM)}
                 walker={fix}
                 marks={dest ? [dest.at] : undefined}
                 ring={ringShown ? { center: fix, radiusM: settings.rangeM } : null}
@@ -302,6 +322,24 @@ export default function Navigate() {
         <LocateButton busy={locating} onPress={locate} bottom={sheetH + ROW_GAP + ROW_H + 12} />
       </View>
       )}
+
+      {/* A moment's pin opens it here, as Chronicle's pins do (M16): view, caption, edit the note, delete. */}
+      <CaptureViewer
+        key={`moment:${viewing?.[0]?.id ?? 'none'}`}
+        captures={viewing && viewing.map((v) => moments.find((c) => c.id === v.id) ?? v)}
+        onClose={() => setViewing(null)}
+        remind
+        onSaveCaption={async (c, caption, y) => {
+          await db.updateCapture(c.id, { caption, caption_y: caption ? y : null });
+          setMoments((prev) => applyPatch(prev, c.id, { caption, caption_y: caption ? y : null }));
+        }}
+        onSaveNote={async (c, body) => {
+          // Stored first; the pin and any other view of it then show it (QL25).
+          await db.updateCapture(c.id, { body });
+          setMoments((prev) => applyPatch(prev, c.id, { body }));
+          captureBus.patch(c.walk_id, c.id, { body }, null);
+        }}
+      />
 
       <StartDialog
         visible={dialogOn}

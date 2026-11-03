@@ -1,11 +1,11 @@
 ---
 paths:
-  - "src/lib/{days,useLocate}.ts"
+  - "src/lib/{days,useLocate,momentPins}.ts"
   - "src/lib/locate/**"
   - "src/app/day/**"
   - "src/components/MomentBar.tsx"
   - "src/lib/explore/momentFind.ts"
-  - "src/lib/__tests__/days.test.ts"
+  - "src/lib/__tests__/{days,momentPins}.test.ts"
 ---
 # Moments and days
 
@@ -30,6 +30,17 @@ Captures outside a walk (moments), locating one fix for them, the days list and 
   widens the old "walks, summaries, Area, WalkArea only" rule. The sheet has
   Days beside Walks, a day's timeline (a walk is one row), and Replay this
   day. Placed loose moments are pins from z11 (`MOMENT_PIN_ZOOM`).
+- **Moment pins on both tabs** (M16 after the tabs split; moment pins 1-3, Nov 3):
+  `lib/momentPins.ts` (pure). Navigate (where moments are made) reads every
+  capture row on focus, keeps `placedMoments`, adds one as its fix places it
+  (`upsertMoment`, from `onMoment` 'placed'), and draws them from z11; a pin
+  opens `CaptureViewer` (caption, edit note, remind, delete), and does nothing
+  mid-memo. Its `onViewChange` sets only a boolean, so it re-renders only when
+  the zoom crosses 11. Chronicle's fit is `fitWithMoments(places, captures)`:
+  a moment made before any walk, or far from them, is framed (150 m around),
+  where it once sat at world zoom with its pin hidden. A minimized walk's
+  live view still shows only that walk's captures. Moments spread wider than
+  z11 still show no pin and no star (moments in stars stay deferred).
 - **The day's replay** (`app/day/[key].tsx`, `dayPlan`): fly to each loose
   group's pin (`FLY_MS`), stop; a walk plays its own `schedule` path with its
   captures as stops, no fog beat; a placeless moment stops without moving the

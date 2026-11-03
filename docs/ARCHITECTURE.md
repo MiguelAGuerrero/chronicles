@@ -172,6 +172,7 @@ Captures and media
   media/thumb.ts             the 240 px copy with expo-image-manipulator; thumbPlan.ts (pure) decides when
   useMediaUri.ts             a capture's media as a playable URI
   pins.ts           (pure)   pinsFor: grouping captures by screen distance
+  momentPins.ts     (pure)   moments outside walks as pins (Navigate, Chronicle) and Chronicle's fit around them
   export/bundle.ts           writeWalkBundle (deferred; nothing in the UI reaches it); export/ per-platform keepers
 Deletion
   deletion/core.ts  (pure)   what each delete takes; pending.ts (pure): the Undo window on a given clock
