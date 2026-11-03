@@ -57,13 +57,12 @@ export function StartDialog(props: {
       <View style={styles.back}>
         <Pressable testID="start-dialog-back" style={StyleSheet.absoluteFill} onPress={props.onClose} accessible={false} />
         <View testID="start-dialog" style={styles.sheet} accessibilityViewIsModal>
-          <View style={styles.head}>
-            <Text style={styles.title} accessibilityRole="header">Walk settings</Text>
-            <Pressable testID="start-dialog-done" accessibilityRole="button" accessibilityLabel="Done" onPress={props.onClose} style={styles.done}>
-              <Text style={styles.doneText}>Done</Text>
-            </Pressable>
-          </View>
+          {/* The grip, as on the peek below: a tap on it closes, as Done does. */}
+          <Pressable testID="start-dialog-done" accessibilityRole="button" accessibilityLabel="Done" onPress={props.onClose} style={styles.gripHit}>
+            <View style={styles.grip} />
+          </Pressable>
           <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+            <Text style={styles.title} accessibilityRole="header">Walk settings</Text>
             <Text style={styles.section} accessibilityRole="header">Mode</Text>
             <View style={styles.segment} accessibilityRole="radiogroup">
               {(['quiet', 'explore'] as const).map((m) => (
@@ -110,7 +109,8 @@ export function StartDialog(props: {
               </>
             )}
 
-            <Text style={styles.section} accessibilityRole="header">Reminders and alerts</Text>
+            <View style={styles.rule} />
+            <Text style={styles.title} accessibilityRole="header">Reminders and alerts</Text>
             {/* The pocket alert is a tap you feel; a browser has none to give (E19). */}
             {Platform.OS !== 'web' && (
               <SwitchRow
@@ -144,18 +144,19 @@ export function StartDialog(props: {
 
 const styles = StyleSheet.create({
   back: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end', alignItems: 'center' },
+  // Nearly the full height, as AllTrails' Start sheet (Nov 3): the settings read as one list above a wide Start.
   sheet: {
-    width: '100%', maxWidth: 640, maxHeight: '80%', backgroundColor: theme.bg,
-    borderTopLeftRadius: 18, borderTopRightRadius: 18, overflow: 'hidden',
+    width: '100%', maxWidth: 640, height: '92%', backgroundColor: theme.bg,
+    borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden',
   },
-  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 16, paddingRight: 8, minHeight: 56 },
-  title: { fontSize: 18, fontWeight: '700', color: theme.ink },
-  done: { minHeight: 44, minWidth: 64, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
-  doneText: { fontSize: 16, fontWeight: '600', color: theme.ink },
-  scroll: { flexGrow: 0 },
-  content: { paddingHorizontal: 16, paddingBottom: 16, gap: 10 },
-  foot: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24, alignItems: 'center', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.edge },
-  startBtn: { minWidth: 220, borderRadius: 999, paddingHorizontal: 24 },
+  gripHit: { height: 44, alignItems: 'center', justifyContent: 'center' },
+  grip: { width: 40, height: 5, borderRadius: 3, backgroundColor: theme.muted, opacity: 0.6 },
+  title: { fontSize: 22, fontWeight: '700', color: theme.ink, marginTop: 4 },
+  scroll: { flex: 1 },
+  content: { paddingHorizontal: 16, paddingBottom: 16, gap: 12 },
+  rule: { height: StyleSheet.hairlineWidth, backgroundColor: theme.edge, marginTop: 8 },
+  foot: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24 },
+  startBtn: { alignSelf: 'stretch', borderRadius: 999 },
   section: { fontSize: 15, fontWeight: '700', color: theme.ink, marginTop: 6 },
   sub: { fontSize: 13, color: theme.muted },
   segment: { flexDirection: 'row', borderRadius: 22, borderWidth: 1, borderColor: theme.edge, overflow: 'hidden', alignSelf: 'flex-start' },
