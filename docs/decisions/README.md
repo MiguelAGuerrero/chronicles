@@ -69,3 +69,4 @@ An owner's call made during a slice gets its record in the same commit as the sl
 | [0061](0061-filled-stretches-styled-as-trace.md) | 2026-11-03 | Filled stretches stay styled as trace | trace, gaps, map |
 | [0062](0062-no-drawer-with-walk-minimized.md) | 2026-11-03 | No drawer at all with a walk minimized | tabs, navigate |
 | [0063](0063-quality-of-life-map-staples.md) | 2026-11-03 | Quality of life: this round takes the map staples only; the rest waits in the owner's order | quality of life, map |
+| [0064](0064-app-opens-on-explore.md) | 2026-11-03 | The app opens on Explore, at `/`; a stale replay link at launch goes there too (supersedes NV2's Navigate default) | tabs, navigation |

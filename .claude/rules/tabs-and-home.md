@@ -4,12 +4,28 @@ paths:
   - "src/components/StartDialog.tsx"
   - "src/app/_layout.tsx"
   - "src/components/{HomeSheet,RecordingBar,SwitchRow,OpenWalk}.tsx"
-  - "src/lib/{recordingBar,walkNav,walkGate,openWalkLoad,startPlan,useStartWalk,useTabMap,memoGate,quietLines,summary,walkEvents,settleWithin}.ts"
-  - "src/lib/__tests__/{tabsAudit,tabsAuditQuiet,minimize,startPlan}.test.ts"
+  - "src/lib/{launchRoute,recordingBar,walkNav,walkGate,openWalkLoad,startPlan,useStartWalk,useTabMap,memoGate,quietLines,summary,walkEvents,settleWithin}.ts"
+  - "src/lib/__tests__/{tabsAudit,tabsAuditQuiet,minimize,startPlan,launchRoute}.test.ts"
 ---
 # Tabs and home
 
 The three tabs (Explore, Navigate, Chronicle), the home sheet, the recording bar, the way to the walk screen, and the home map's lifecycle. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
+
+## The opening tab (the owner's call, Nov 3: 0064)
+
+- **Explore is the root route** (`(tabs)/index.tsx`, `/`) and Navigate is
+  `(tabs)/navigate.tsx` at `/navigate`, so the app, the Home Screen web app's
+  `start_url: "./"` and Back on the other tabs (`backBehavior:
+  'initialRoute'`) all land on Explore. A way back to Navigate names
+  `/navigate` (Minimize with nothing beneath, Chronicle's Navigate button).
+- **A stale replay link at launch goes to Explore** (NV2): the root layout notes
+  every path in `lib/launchRoute`; a replay or day that finds nothing on the
+  path the app opened on calls `router.dismissTo('/')` (the replay first sets
+  `leftForChronicle`, or its unmount would move to Chronicle). Reached from
+  inside the app, the message and its button stay. A load that throws goes to
+  the screen's `ScreenError` boundary, never "could not be found".
+- **e2e:** `navUrl` (`${url}navigate`) opens the scenarios that begin on
+  Navigate; `url` opens Explore.
 
 ## After the audit
 
@@ -18,7 +34,7 @@ The three tabs (Explore, Navigate, Chronicle), the home sheet, the recording bar
   above the peek, over the drawer, whose settings scroll above both (a band
   under the row when opened). The grip is the handle plus a strip (44 px).
 - **Navigate with a walk minimized is a live view of it** (U2, `LiveWalk` in
-  `(tabs)/index.tsx`): trace, dot (`walkerSource={live.dot}`), captures,
+  `(tabs)/navigate.tsx`): trace, dot (`walkerSource={live.dot}`), captures,
   destination, and the capture row (`CaptureRow`, split from `MomentBar`)
   keeping captures for the walk. No Start or Return button (the recording
   bar is the way back), no drawer at all (the owner's call, Nov 3: no "Your

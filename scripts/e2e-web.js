@@ -103,6 +103,8 @@ function check(ok, what) {
 (async () => {
   const server = await serve();
   const url = `http://localhost:${server.address().port}${BASE}/`;
+  // Explore is the root (NV2); scenarios that begin on Navigate open its own path.
+  const navUrl = `${url}navigate`;
   // A fake microphone, so voice memos can be recorded headless.
   // Sound only after a tap, as on iOS: the replay reaches its stops on its own clock.
   // The full Chromium in headless mode ('chromium' channel): the old headless shell always denies
@@ -332,7 +334,7 @@ function check(ok, what) {
         console.log(`not ok - ${name}: ${String(e.message).split('\n')[0]}`);
       }
     };
-    await pg.goto(url);
+    await pg.goto(navUrl);
     await pg.waitForSelector('[data-testid=start]');
     await pg.waitForTimeout(1500);
 
@@ -825,7 +827,7 @@ function check(ok, what) {
       await c.setGeolocation({ longitude: s0[0], latitude: s0[1] + 0.000002, accuracy: 6 });
       await pg.waitForTimeout(2500);
     };
-    await pg.goto(url);
+    await pg.goto(navUrl);
     await pg.waitForSelector('[data-testid=start]');
     // First walk, explore from the start: it reads and builds Fox Point's checklist as it goes.
     await setMeta('start_mode', 'explore');
@@ -834,7 +836,7 @@ function check(ok, what) {
     const first = await walkPast('first walk (area unread)');
     check(first.some((l) => /Hessian Memorial/.test(l)), `marks: a first exploring walk draws the memorial it passes (${JSON.stringify(first)})`);
     await holdStop();
-    await pg.goto(url);
+    await pg.goto(navUrl);
     // Second walk through the same area, read before: the tab's "?" must show on the walk too.
     await startWalk();
     const second = await walkPast('second walk (area read before)');
@@ -854,7 +856,7 @@ function check(ok, what) {
       console.log(`# ${label}: ${JSON.stringify(s)}`);
       return s;
     };
-    await pg.goto(url);
+    await pg.goto(navUrl);
     await pg.waitForSelector('[data-testid=start]');
     await pg.click('[data-testid=start]');
     await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
@@ -934,7 +936,7 @@ function check(ok, what) {
       await pg.click('[data-testid=bar-stop]');
       await pg.waitForTimeout(400);
       const said = await pg.locator('[data-testid=recording-said]').innerText().catch(() => '');
-      check(said === 'Hold to stop the walk' && new URL(pg.url()).pathname === `${BASE}/`, `bar stop: a tap only says to hold ("${said}")`);
+      check(said === 'Hold to stop the walk' && new URL(pg.url()).pathname === `${BASE}/navigate`, `bar stop: a tap only says to hold ("${said}")`);
       const b = await pg.locator('[data-testid=bar-stop]').boundingBox();
       await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
       await pg.mouse.down();
@@ -955,7 +957,7 @@ function check(ok, what) {
     const { c, pg } = await freshPage('gaps');
     await c.addInitScript(() => { window.__perf = {}; });
     const here = at(3.0, -0.5);
-    await pg.goto(url);
+    await pg.goto(navUrl);
     await pg.waitForSelector('[data-testid=start]');
     await pg.click('[data-testid=start]');
     await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
@@ -1174,7 +1176,7 @@ function check(ok, what) {
     };
 
     // Navigate: Locate from 1 km away.
-    await pg.goto(url);
+    await pg.goto(navUrl);
     await pg.waitForSelector('[data-testid=start]');
     await pg.waitForTimeout(1500);
     const far = at(10, 0);
@@ -1338,30 +1340,48 @@ function check(ok, what) {
       check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
       return;
     }
+    // A launch on a replay or a day that is no longer kept goes straight to Explore (NV2: the owner's
+    // Home Screen app reopened on "This walk could not be found", Nov 3).
+    await page.goto(`${url}explore`);
+    await page.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 15000 }).catch(() => {});
+    check(new URL(page.url()).pathname === `${BASE}/` && (await page.waitForSelector('[data-testid=explore-drawer]', { timeout: 15000 }).then(() => true, () => false)),
+      `the old /explore path opens Explore at / (NV2: ${page.url()})`);
+    for (const stale of ['replay/no-such-walk', 'day/1999-01-01']) {
+      await page.goto(`${url}${stale}`);
+      await page.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 15000 }).catch(() => {});
+      await page.waitForSelector('[data-testid=explore-drawer]', { timeout: 15000 }).catch(() => {});
+      check(new URL(page.url()).pathname === `${BASE}/` && (await page.locator('[data-testid=tab-explore][aria-selected=true]').count()) === 1
+        && (await page.locator('text=This walk could not be found.').count()) === 0 && (await page.locator('text=Nothing was kept on this day.').count()) === 0,
+        `a launch on a stale ${stale.split('/')[0]} link opens Explore (NV2: ${page.url()})`);
+    }
     await page.goto(url);
-    // Navigation & tabs (NV1-NV6): the app opens on Navigate, at /, with Start at the drawer's peek.
-    await page.waitForSelector('[data-testid=start]');
+    // Navigation & tabs (NV1-NV6): the app opens on Explore, at / (NV2, the owner's call, Nov 3).
+    await page.waitForSelector('[data-testid=explore-drawer]');
     // Memos and videos play with the ringer switch off, on the web too (bug: silent playback on iPhone).
     check(await page.evaluate(() => navigator.audioSession.type) === 'playback', 'the page asks to play sound even in silent mode');
-    check(new URL(page.url()).pathname === `${BASE}/` && (await page.locator('[data-testid=tab-navigate][aria-selected=true]').count()) === 1,
-      `the app opens on Navigate, at its own path (NV2, NV5: ${page.url()})`);
+    check(new URL(page.url()).pathname === `${BASE}/` && (await page.locator('[data-testid=tab-explore][aria-selected=true]').count()) === 1
+      && (await page.locator('canvas.maplibregl-canvas').count()) === 1,
+      `the app opens on Explore, at its own path, one live map (NV2, NV4, NV5: ${page.url()})`);
     const tabs = await page.locator('[data-testid^=tab-]').evaluateAll((els) => els.map((e) => `${e.dataset.testid}:${e.innerText.replace(/[^A-Za-z]/g, "")}:${e.querySelectorAll('svg, [aria-hidden], div').length > 1}`));
     check(tabs.join(',') === 'tab-explore:Explore:true,tab-navigate:Navigate:true,tab-chronicle:Chronicle:true', `a bottom bar with Explore, Navigate and Chronicle, in that order, each with an icon and a label (NV1: ${tabs.join(', ')})`);
-    check((await page.locator('canvas.maplibregl-canvas').count()) === 1 && (await page.locator('[data-testid=start]').count()) === 1, 'Navigate opens on the map with Start');
-    check((await page.locator('[data-testid=start-explore]').count()) === 0 && (await page.locator('[data-testid=peek-choices]').innerText()) === 'Quiet',
-      'Start alone at the peek, with the mode: Quiet the first time (NV19, NV22)');
-    check((await page.locator('[data-testid=moment-photo]').count()) === 1 && (await page.locator('[data-testid=moment-note]').isVisible()), 'Navigate has the quick-capture row, outside the drawer (NV18, NV19)');
-    // Navigate's one fix has come and its watch is gone (NV17): Explore will open there.
-    await page.waitForTimeout(1500);
     // Each tab at its own path, with one live map (NV4, NV5); Chronicle is review only (NV11).
     const onTab = async (id) => {
       await page.click(`[data-testid=tab-${id}]`);
       await page.waitForTimeout(800);
       return { path: new URL(page.url()).pathname.slice(BASE.length), canvases: await page.locator('canvas.maplibregl-canvas').count() };
     };
+    const nv = await onTab('navigate');
+    await page.waitForSelector('[data-testid=start]');
+    check(nv.path === '/navigate' && (await page.locator('canvas.maplibregl-canvas').count()) === 1 && (await page.locator('[data-testid=start]').count()) === 1,
+      `Navigate at /navigate, on the map with Start (NV4, NV5: ${JSON.stringify(nv)})`);
+    check((await page.locator('[data-testid=start-explore]').count()) === 0 && (await page.locator('[data-testid=peek-choices]').innerText()) === 'Quiet',
+      'Start alone at the peek, with the mode: Quiet the first time (NV19, NV22)');
+    check((await page.locator('[data-testid=moment-photo]').count()) === 1 && (await page.locator('[data-testid=moment-note]').isVisible()), 'Navigate has the quick-capture row, outside the drawer (NV18, NV19)');
+    // Navigate's one fix has come and its watch is gone (NV17): Explore will open there.
+    await page.waitForTimeout(1500);
     const ex = await onTab('explore');
-    check(ex.path === '/explore' && ex.canvases === 1 && (await page.locator('[data-testid=explore-area]').innerText()) === 'Look around',
-      `Explore at /explore, one live map, nothing remembered yet (NV4, NV5, NV16: ${JSON.stringify(ex)})`);
+    check(ex.path === '/' && ex.canvases === 1 && (await page.locator('[data-testid=explore-area]').innerText()) === 'Look around',
+      `Explore at /, one live map, nothing remembered yet (NV4, NV5, NV16: ${JSON.stringify(ex)})`);
     const ch = await onTab('chronicle');
     await page.waitForSelector('text=Walk somewhere and it is starred here');
     check(ch.path === '/chronicle' && ch.canvases === 1, `Chronicle at /chronicle, one live map (NV4, NV5: ${JSON.stringify(ch)})`);
@@ -1373,16 +1393,16 @@ function check(ok, what) {
     await page.goBack();
     await page.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 5000 }).catch(() => {});
     await page.waitForTimeout(800);
-    check(new URL(page.url()).pathname === `${BASE}/` && (await page.locator('canvas.maplibregl-canvas').count()) === 1 && (await shownCount(page, '[data-testid=start]')) === 1, 'the browser’s back on Chronicle goes to Navigate (NV5)');
-    await onTab('explore');
+    check(new URL(page.url()).pathname === `${BASE}/` && (await page.locator('canvas.maplibregl-canvas').count()) === 1 && (await shownCount(page, '[data-testid=explore-drawer]')) === 1, 'the browser’s back on Chronicle goes to Explore (NV5)');
+    await onTab('navigate');
     await page.goBack();
     await page.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 5000 }).catch(() => {});
-    check(new URL(page.url()).pathname === `${BASE}/`, 'and on Explore too (NV5)');
+    check(new URL(page.url()).pathname === `${BASE}/`, 'and on Navigate too (NV5)');
 
     // Notifications on the web (v1 slice 6). Installable: the manifest is linked under the base path and served (NT1).
     const manifestHref = await page.evaluate(() => document.querySelector('link[rel=manifest]')?.getAttribute('href'));
     const manifest = manifestHref ? await page.evaluate(async (h) => (await fetch(h)).json(), manifestHref) : null;
-    check(manifestHref === `${BASE}/manifest.webmanifest` && manifest?.display === 'standalone' && manifest.icons.some((i) => i.sizes === '512x512')
+    check(manifestHref === `${BASE}/manifest.webmanifest` && manifest?.display === 'standalone' && manifest.start_url === './' && manifest.icons.some((i) => i.sizes === '512x512')
       && (await page.evaluate(() => !!document.querySelector('link[rel=apple-touch-icon]'))),
       'the web app can be installed: a manifest with icons, and Apple home-screen tags (NT1)');
     // The service worker is registered at the base path and active (NT2).
@@ -1393,6 +1413,8 @@ function check(ok, what) {
     check(sw && sw.active && sw.scope.endsWith(`${BASE}/`), `the service worker is active at the base path (${JSON.stringify(sw)})`);
 
     // The pre-start drawer and its dialog (NV19-NV24, Nov 3): the choices, each saved as it changes.
+    await onTab('navigate');
+    await page.waitForSelector('[data-testid=start]');
     const drawerH = async () => Math.round((await page.locator('[data-testid=navigate-drawer]').boundingBox()).height);
     const peekH = await drawerH();
     await drawerTo(page, 'half');
@@ -2309,7 +2331,7 @@ function check(ok, what) {
     {
       const springy = await ctx.newPage();
       springy.on('pageerror', (e) => errors.push(String(e)));
-      await springy.goto(url);
+      await springy.goto(navUrl);
       await springy.waitForSelector('[data-testid=start]');
       await springy.waitForTimeout(800);
       const rest = await rowGap(springy);
@@ -2334,7 +2356,7 @@ function check(ok, what) {
     {
       const rides = await ctx.newPage();
       rides.on('pageerror', (e) => errors.push(String(e)));
-      await rides.goto(url);
+      await rides.goto(navUrl);
       await rides.waitForSelector('[data-testid=start]');
       await rides.waitForTimeout(800);
       const rest = await rowGap(rides);
@@ -2492,7 +2514,7 @@ function check(ok, what) {
       await page.reload();
       await page.waitForSelector('[data-testid=explore-drawer]', { timeout: 30000 });
       await page.waitForTimeout(2500);
-      check(new URL(page.url()).pathname === `${BASE}/explore` && (await exploreMap().getByText('Thayer Street', { exact: true }).count()) >= 1,
+      check(new URL(page.url()).pathname === `${BASE}/` && (await exploreMap().getByText('Thayer Street', { exact: true }).count()) >= 1,
         'the analyzed area is still on the map after a reload, with no fix: Explore opens on the area remembered (NV16, L11)');
       // Again: the same area is replaced, not added (L12). Pressed beside the memorial's found pin, in Fox Point.
       {
@@ -2734,7 +2756,7 @@ function check(ok, what) {
         await p2.fill(input, text);
         await p2.click(save);
       };
-      await p2.goto(url);
+      await p2.goto(navUrl);
       await p2.waitForSelector('[data-testid=moment-note]');
       check((await p2.locator('[data-testid=moment-photo]').count()) === 1 && (await p2.locator('[data-testid=moment-voice]').count()) === 1
         && (await p2.locator('[data-testid=start]').count()) === 1, 'Navigate offers camera, mic and pencil beside Start, with no walk open (M1, NV18)');
@@ -2909,7 +2931,7 @@ function check(ok, what) {
       const p3 = await ctx3.newPage();
       p3.on('pageerror', (e) => errors.push(`motion: ${e}`));
       p3.on('console', (m) => m.type() === 'error' && errors.push(`motion: ${m.text()}`));
-      await p3.goto(url);
+      await p3.goto(navUrl);
       await p3.waitForSelector('[data-testid=start]');
       await p3.click('[data-testid=start]');
       await p3.waitForSelector('[data-testid=stop]');
@@ -2946,7 +2968,7 @@ function check(ok, what) {
     {
       // Walk here on Explore is a one-tap start to that spot, with the saved choices; it never fills the drawer (NV12, NV15).
       const { c, pg } = await freshPage('walk-here');
-      await pg.goto(url);
+      await pg.goto(navUrl);
       await pg.waitForSelector('[data-testid=start]');
       await pg.waitForTimeout(1500);
       await pg.click('[data-testid=tab-explore]');
@@ -2970,7 +2992,7 @@ function check(ok, what) {
       // Minimizing a walk (NV7-NV10): the walk goes on under the tabs, with a recording bar above the tab bar.
       const { c, pg } = await freshPage('minimize');
       await c.addInitScript(() => { window.__perf = {}; });
-      await pg.goto(url);
+      await pg.goto(navUrl);
       await pg.waitForSelector('[data-testid=start]');
       await pg.waitForTimeout(1500);
       // An earlier walk's note, flagged every visit, 150 m north of the start: passed while minimized (NV8).
@@ -3127,7 +3149,7 @@ function check(ok, what) {
     {
       // Start with Explore and a destination: the walk opens exploring, heading there (NV25).
       const { c, pg } = await freshPage('start-explore');
-      await pg.goto(url);
+      await pg.goto(navUrl);
       await pg.waitForSelector('[data-testid=start]');
       await pg.waitForTimeout(1500);
       await drawerTo(pg, 'half');

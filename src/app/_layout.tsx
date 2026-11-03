@@ -1,4 +1,4 @@
-import { router, Stack } from 'expo-router';
+import { router, Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -7,6 +7,7 @@ import { theme } from '../components/ui';
 import '../components/webStyles';
 import '../components/pwa';
 import { setAudioMode } from '../lib/audioMode';
+import { launchRoute } from '../lib/launchRoute';
 import { reconcileOpenWalk } from '../lib/session';
 import { ensureTileBuild } from '../lib/tiles';
 
@@ -14,6 +15,11 @@ import { ensureTileBuild } from '../lib/tiles';
 export const unstable_settings = { initialRouteName: '(tabs)' };
 
 export default function RootLayout() {
+  // The path the app opened on, so a stale replay link at launch goes to Explore (NV2).
+  const pathname = usePathname();
+  useEffect(() => {
+    launchRoute.note(pathname);
+  }, [pathname]);
   // An open walk is picked back up at launch or reload, wherever the app
   // opened: recording re-attaches and the walk screen comes back.
   useEffect(() => {
@@ -53,6 +59,8 @@ export default function RootLayout() {
           <Stack.Screen name="replay/[id]" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
           {/* The day's replay (M10): moments and walks in time order. */}
           <Stack.Screen name="day/[key]" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
+          {/* The old Explore path, sent on to / (NV2). */}
+          <Stack.Screen name="explore" options={{ headerShown: false }} />
         </Stack>
       </OpenWalkProvider>
     </SafeAreaProvider>
