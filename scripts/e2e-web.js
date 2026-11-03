@@ -3446,6 +3446,15 @@ function check(ok, what) {
       await page.click('[data-testid=card-more]');
       await page.waitForSelector('[data-testid=action-delete]');
       await shot(page, '24-walk-actions');
+      // A finished walk shares its GPS log from More, every raw reading, the ride's too (the owner, Nov 3:
+      // a gap that wasn't filled could not be looked into once the walk had ended).
+      await page.evaluate(() => { window.__shared = null; navigator.share = (d) => { window.__shared = d; return Promise.resolve(); }; });
+      await page.waitForSelector('[data-testid=action-gps-log]', { timeout: 5000 }).catch(() => {});
+      await page.click('[data-testid=action-gps-log]').catch(() => {});
+      const sharedEnded = await page.waitForFunction(() => window.__shared, null, { timeout: 5000 }).then((h) => h.jsonValue()).catch(() => null);
+      const endedRows = (sharedEnded?.text ?? '').split('\n');
+      check(endedRows[0]?.startsWith('# Chronicles GPS log') && endedRows.filter((r) => /^\d+\.\d,/.test(r)).length >= 20,
+        `a finished walk's More shares its GPS log (${endedRows.length} lines)`);
       await page.keyboard.press('Escape');
       await page.waitForSelector('[data-testid=walk-actions]', { state: 'detached', timeout: 5000 });
       check(true, 'the replay card offers the walk’s actions, and Escape closes them (D1)');

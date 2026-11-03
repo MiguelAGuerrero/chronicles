@@ -1,6 +1,6 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
-import { AccessibilityInfo, ActivityIndicator, Animated, AppState, BackHandler, Share, Switch, Easing, KeyboardAvoidingView, Linking, Platform, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Animated, AppState, BackHandler, Switch, Easing, KeyboardAvoidingView, Linking, Platform, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { Modal } from '../components/Modal';
 import { onWalkGap, useOpenWalk } from '../components/OpenWalk';
 import { Ticking } from '../components/Ticking';
@@ -43,7 +43,7 @@ import type { Capture, LngLat, Pause, StreetSegment, Walk } from '../lib/types';
 import { useCaptures } from '../lib/useCaptures';
 import { walkScreenShown } from '../lib/walkNav';
 import { askMotion, useMotionAccess } from '../lib/walkMotion';
-import { gpsLog } from '../lib/gpsLog';
+import { shareLogText, walkLogText } from '../lib/shareLog';
 import { notifyWalkChanged } from '../lib/walkEvents';
 import { routeAhead } from '../lib/nav/navigator';
 import { HANDOFF_HINT, openInMaps } from '../lib/nav/openInMaps';
@@ -333,10 +333,8 @@ export default function WalkScreen() {
     logText.current = null;
     if (!options || !walk) return;
     let live = true;
-    void Promise.all([db.getPoints(walk.id), db.getCaptures(walk.id)]).then(([points, captures]) => {
-      if (!live) return;
-      const device = Platform.OS === 'web' ? navigator.userAgent : `${Platform.OS} ${Platform.Version}`;
-      logText.current = gpsLog({ startedAt: walk.started_at, points, captures, userAgent: device });
+    void walkLogText(walk.id, walk.started_at).then((text) => {
+      if (live) logText.current = text;
     });
     return () => {
       live = false;
@@ -348,15 +346,10 @@ export default function WalkScreen() {
       setNotice({ message: 'The GPS log is still being read. Try again in a moment.' });
       return;
     }
-    Share.share({ message: text, title: 'Chronicles GPS log' }).catch(async () => {
-      // A browser without a share sheet (a desktop): copy it instead.
-      const clip = Platform.OS === 'web' ? navigator.clipboard : undefined;
-      if (clip) {
-        await clip.writeText(text).then(
-          () => setNotice({ message: 'GPS log copied. Paste it in a message.' }),
-          () => setNotice({ message: 'Couldn’t share or copy the GPS log.', tone: 'error' }),
-        );
-      }
+    void shareLogText(text).then((how) => {
+      // A browser without a share sheet (a desktop) copies it instead.
+      if (how === 'copied') setNotice({ message: 'GPS log copied. Paste it in a message.' });
+      else if (how === 'failed' && Platform.OS === 'web') setNotice({ message: 'Couldn’t share or copy the GPS log.', tone: 'error' });
     });
   }, []);
   // The spot card (and the options card) goes once you walk on, or with Back (Android) and Escape (web).

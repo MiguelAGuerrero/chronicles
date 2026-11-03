@@ -13,10 +13,11 @@ npm run lint                                # expo lint, ~40 s; includes the imp
 npm test                                    # tsx --test src/lib/__tests__/*.test.ts, ~6 s
 npx tsx --test src/lib/__tests__/<one>.test.ts
 npm run export:web && npm run e2e:web       # headless walk; E2E_ONLY=<scenario> for one
+npm run check:docs                          # this file's budget, rule globs, paths the docs name; CI runs it too
 npx expo-doctor                             # dependency and config issues; npx expo install --fix for versions
 ```
 
-Run typecheck, lint, `npm test` and the e2e before declaring any task done. A Stop hook (`.claude/hooks/check-done.sh`) refuses to end a turn while changed TypeScript fails the typecheck.
+Run typecheck, lint, `npm test` and the e2e before declaring any task done. A Stop hook (`.claude/hooks/check-done.sh`) refuses to end a turn that changed the repo while `npm run check:docs` fails or changed TypeScript fails the typecheck, and CI blocks the deploy on either.
 
 Routing is Expo Router: routes live in `src/app/`, `_layout.tsx` files are navigators, non-route code stays outside `src/app/`. Import `Link`, `router` and `useLocalSearchParams` from `expo-router`; open the walk screen with `showWalk()` (`lib/walkNav`), never `router.push('/walk')`. `ios/` and `android/` are generated (never edit them; a hook blocks it); native behaviour is configured in `app.json` and config plugins. Native code needs a development build (`npx expo run:ios`, or `npx eas-cli@latest build --profile development`), never Expo Go. EAS builds, submits and ships over-the-air updates in the cloud (`npx eas-cli@latest build | submit | update`); there is no `eas.json` yet, so it is not set up for this app. Prefer the recommended Expo modules over third-party libraries, and check the available skills before adding a dependency.
 
@@ -81,7 +82,7 @@ The area rule files hold the rest; these recur across areas.
 
 ## Keeping these notes honest
 
-- New knowledge goes where it loads on demand: an area's rule or trap in `.claude/rules/<area>.md`; an owner's call in `docs/decisions/`; something left undone in `docs/DEFERRED.md`; untested native code in `docs/NATIVE_UNVERIFIED.md`; a shipped or started slice in `docs/STATUS.md` and `docs/PRODUCT.md`. This file stays under 200 lines: it holds only what every session needs and what the code can't say.
+- New knowledge goes where it loads on demand: an area's rule or trap in `.claude/rules/<area>.md`; an owner's call in `docs/decisions/`; something left undone in `docs/DEFERRED.md`; untested native code in `docs/NATIVE_UNVERIFIED.md`; a shipped or started slice in `docs/STATUS.md` and `docs/PRODUCT.md`. This file has a budget of 200 lines and 12 KB (`scripts/check-docs.js`): it holds only what every session needs and what the code can't say.
 - Commit messages name the criteria they satisfy (`QL1-QL8`, `rides audit 3`), as the log already does.
 - Run `/docs-gc` at the end of a slice.
 - The 1,600-line AGENTS.md this index replaced is in git at `553d10b` (`git show 553d10b:AGENTS.md`); everything in it moved to the files above.
