@@ -434,8 +434,7 @@ update it when a slice ships or a feature changes.
     Maps in any other browser. `nav/openInMaps.ts` opens them with
     `Linking.openURL`, never `canOpenURL` first (Android 11+ says no for
     schemes not in `<queries>`).
-  - Offered in the blue bar (`nav-handoff`), on "Off your route"
-    (`offroute-handoff`), as the banner action of a route that can't be found
+  - Offered in the blue bar (`nav-handoff`), as the banner action of a route that can't be found
     (`onError(message, dest)`), on the long-press card (`spot-handoff`) and in
     the walk's viewer's More menu (`viewer-handoff`).
   - Called straight from the tap: a browser opens a window only from one.
@@ -444,9 +443,12 @@ update it when a slice ships or a feature changes.
   - The hint (`HANDOFF_HINT`) says recording pauses on the web: a hidden
     page takes no fixes. A failed route's banner stays until dismissed or a
     new Go here (`goTo` in `walk.tsx`), its action 44 pt.
-  - The e2e replaces `window.open` and reads `window.__opened`. The
-    off-route chip's button (NH4) is untested: the first re-route clears
-    the chip at once.
+  - The e2e replaces `window.open` and reads `window.__opened`.
+  - **Not on "Off your route"** (the owner's call, Nov 3, retiring NH4): the
+    first re-route clears the chip at once, so its button was rarely there;
+    the bar's button covers it.
+  - **Android is not a priority** (the owner, Nov 3): its `geo:` chooser
+    opens a pin, not walking directions, and stays as it is.
   - **Deferred:** the Explore mark card, the dead-zone nudge, the home's
     Walk here.
   - **Native** (unverified on a device): Apple Maps from the app, the Android

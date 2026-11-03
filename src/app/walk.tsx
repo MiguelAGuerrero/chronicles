@@ -957,20 +957,6 @@ export default function WalkScreen() {
           <LiftIn style={styles.chip} accessibilityLiveRegion="polite">
             <View style={[styles.statusDot, { backgroundColor: theme.warn }]} />
             <Text style={styles.chipText}>Off your route</Text>
-            {/* When the way here is wrong (a bridge, a closed path), the phone's maps app (NH4). */}
-            <Pressable
-              testID="offroute-handoff"
-              accessibilityRole="button"
-              accessibilityHint={HANDOFF_HINT}
-              onPress={() => {
-                const d = navigation.nav?.dest;
-                if (d) handOff(d.at, d.label);
-              }}
-              style={styles.findingCancel}
-              hitSlop={4}
-            >
-              <Text style={styles.findingCancelText}>Open in Maps</Text>
-            </Pressable>
           </LiftIn>
         )}
         {navigation.finding && (
