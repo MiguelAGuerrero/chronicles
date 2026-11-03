@@ -117,6 +117,9 @@ Built 2026-11-03 on `claude/navigate-ready`, web verified (native has never run 
 - **Tests first:** the unit tests for NR2-NR4 were written before `readyNav.ts`; the e2e scenario was
   written after the screens, then each audit check before its fix.
 - **Deferred:** see `docs/DEFERRED.md` ("Navigate, ready").
+- **Failing before this slice:** `E2E_ONLY=qol`'s "QL10: Explore's Locate frames the map around the
+  fix" fails on `main` too, identically (505.3 m off): Explore's Locate frames 800 m since the atlas,
+  and the check expects 250 m. Left for the atlas's owner.
 
 ### Audit (2026-11-03)
 
