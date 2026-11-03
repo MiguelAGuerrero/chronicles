@@ -6,6 +6,7 @@ import { DotStore } from './liveDot';
 import { headingOf } from './nav/navigator';
 import { recorder } from './recorder';
 import { gapKey, gapsOf, type Gap } from './gaps/infer';
+import { HiddenLog } from './hiddenLog';
 import { keptFixes, liveRuns, readTrace, rideRuns, ridingAt, traceDistances, withFilled, type ReadTrace } from './rides';
 import type { Fill, LngLat, TracePoint } from './types';
 
@@ -47,6 +48,15 @@ function sameRuns(a: LngLat[][], b: LngLat[][]): boolean {
 
 const NO_FILLS: Fill[] = [];
 
+/**
+ * When this page was out of front. A gap is reported only if it overlaps a spell of it: with
+ * the page on screen, a gap is weak GPS, which the status chip already says (Nov 3, after
+ * "paused while this page was hidden" popped up with the page open).
+ */
+const hiddenLog = new HiddenLog(Date.now());
+if (AppState.currentState !== 'active') hiddenLog.hide(Date.now());
+AppState.addEventListener('change', (st) => (st === 'active' ? hiddenLog.show(Date.now()) : hiddenLog.hide(Date.now())));
+
 const EMPTY: LiveTrace = { runs: [], rides: [], here: null, distanceM: 0, rideM: 0, lastFixAt: null, lastGoodAt: null, riding: false, heading: null, dot: null };
 
 /** The newest gap in the kept trace that isn't a pause: the app was closed or the page hidden. */
@@ -72,7 +82,7 @@ export function useLiveTrace(
   pauses: PauseSpan[],
   /** Still spells told by the motion sensors: the line holds still through each (Motion, MO8). */
   stills: PauseSpan[],
-  /** Called once per gap in the trace (not a pause), when it is first published. */
+  /** Called once per gap in the trace (not a pause) that the page spent out of front, when it is first published. */
   onGap?: (ms: number) => void,
   /** Stretches filled across gaps (Filling gaps, G11): walked, so the line, distance and dot take them. */
   fills: Fill[] = NO_FILLS,
@@ -159,7 +169,7 @@ export function useLiveTrace(
       const gap = newestGap(keptFixes(plain), ps);
       if (gap && gap.at !== reportedGap.current && Date.now() - gap.at < 60_000) {
         reportedGap.current = gap.at;
-        gapCb.current?.(gap.ms);
+        if (hiddenLog.hiddenDuring(gap.at - gap.ms, gap.at)) gapCb.current?.(gap.ms);
       }
       // The same measure as the walk's card: no jitter while standing still, nothing across a pause or ride.
       const { walkedM, rideM } = traceDistances(tr);
