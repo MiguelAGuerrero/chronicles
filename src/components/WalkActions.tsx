@@ -1,21 +1,37 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { db } from '../lib/db';
 import { deleteWalk, planWalk, removeWalkMedia, type WalkPlan } from '../lib/deletion';
 import type { DeleteKind } from '../lib/deletion/core';
+import { EPILOGUE_MAX, renamePatch, TITLE_MAX } from '../lib/rename';
 import { suggestTitle } from '../lib/summary';
 import { ConfirmCard } from './ConfirmCard';
 import { Icon } from './icons';
 import { Modal } from './Modal';
-import { theme } from './ui';
+import { Button, theme } from './ui';
+
+export type RenamePatch = { title: string; epilogue: string | null };
 
 /**
- * A finished walk's actions (D1, D2): remove its photos, videos and memos, or
- * delete it. Each asks first (D4); the Undo pill follows (D5).
+ * A finished walk's actions: rename it (QL22, in the same sheet: never a
+ * second Modal), remove its photos, videos and memos, or delete it (D1, D2).
+ * Each delete asks first (D4); the Undo pill follows (D5).
  */
-export function WalkActions(props: { walkId: string | null; onClose: () => void; onDone?: (kind: Extract<DeleteKind, 'walk' | 'media'>) => void }) {
+export function WalkActions(props: {
+  walkId: string | null;
+  onClose: () => void;
+  onDone?: (kind: Extract<DeleteKind, 'walk' | 'media'>) => void;
+  /** After a rename reached storage, so the screen shows it at once (QL23). */
+  onRenamed?: (walkId: string, patch: RenamePatch) => void;
+}) {
   const [plan, setPlan] = useState<WalkPlan | null>(null);
   const [failed, setFailed] = useState(false);
   const [asking, setAsking] = useState<'walk' | 'media' | null>(null);
+  const [renaming, setRenaming] = useState(false);
+  const [title, setTitle] = useState('');
+  const [epilogue, setEpilogue] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
   const { walkId } = props;
 
   useEffect(() => {
@@ -33,10 +49,41 @@ export function WalkActions(props: { walkId: string | null; onClose: () => void;
       setPlan(null);
       setFailed(false);
       setAsking(null);
+      setRenaming(false);
+      setSaving(false);
+      setSaveError(false);
     };
   }, [walkId]);
 
-  const close = () => (asking ? setAsking(null) : props.onClose());
+  // Escape and Back step out of the confirm or the editor first, then the sheet (QL22).
+  const close = () => {
+    if (asking) setAsking(null);
+    else if (renaming) {
+      if (!saving) setRenaming(false);
+    } else props.onClose();
+  };
+  const startRename = () => {
+    if (!plan) return;
+    setTitle(plan.walk.title ?? suggestTitle(plan.walk));
+    setEpilogue(plan.walk.epilogue ?? '');
+    setSaveError(false);
+    setRenaming(true);
+  };
+  const saveRename = async () => {
+    if (!plan || !walkId || saving) return;
+    const patch = renamePatch(plan.walk, title, epilogue);
+    setSaving(true);
+    setSaveError(false);
+    try {
+      await db.updateWalk(walkId, patch);
+    } catch {
+      setSaving(false);
+      setSaveError(true);
+      return;
+    }
+    props.onRenamed?.(walkId, patch);
+    props.onClose();
+  };
   // Escape on the web: react-native-web's Modal doesn't send it to onRequestClose (e2e, Nov 1).
   const closeRef = useRef(close);
   useEffect(() => {
@@ -64,13 +111,26 @@ export function WalkActions(props: { walkId: string | null; onClose: () => void;
 
   return (
     <Modal visible={!!walkId} transparent animationType="fade" onRequestClose={close}>
-      <View style={styles.back}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={props.onClose} accessible={false} />
-        {!asking && (
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.back}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={renaming ? close : props.onClose} accessible={false} />
+        {!asking && !renaming && (
           <View style={styles.sheet} testID="walk-actions" accessibilityViewIsModal>
             {plan ? (
               <>
                 <Text style={styles.title} accessibilityRole="header" numberOfLines={2}>{plan.walk.title ?? suggestTitle(plan.walk)}</Text>
+                <Pressable
+                  testID="action-rename"
+                  accessibilityRole="button"
+                  accessibilityHint="The title and its one line"
+                  onPress={startRename}
+                  style={({ pressed }) => [styles.item, pressed && styles.pressed]}
+                >
+                  <Icon name="pencil-outline" size={22} color={theme.ink} />
+                  <View style={styles.itemText}>
+                    <Text style={styles.itemLabel}>Rename</Text>
+                    <Text style={styles.itemHint}>The title and its one line</Text>
+                  </View>
+                </Pressable>
                 {plan.mediaText && (
                   <Pressable testID="action-media" accessibilityRole="button" onPress={() => setAsking('media')} style={({ pressed }) => [styles.item, pressed && styles.pressed]}>
                     <Icon name="images-outline" size={22} color={theme.ink} />
@@ -99,6 +159,49 @@ export function WalkActions(props: { walkId: string | null; onClose: () => void;
             </Pressable>
           </View>
         )}
+        {renaming && plan && !asking && (
+          <View style={styles.sheet} testID="rename-editor" accessibilityViewIsModal>
+            <Text style={styles.title} accessibilityRole="header">Rename this walk</Text>
+            <Text style={styles.label} nativeID="rename-title-label">Name this walk</Text>
+            <TextInput
+              testID="rename-title"
+              value={title}
+              onChangeText={setTitle}
+              accessibilityLabel="Name this walk"
+              accessibilityLabelledBy="rename-title-label"
+              returnKeyType="next"
+              maxLength={TITLE_MAX}
+              autoFocus
+              selectTextOnFocus
+              style={styles.input}
+            />
+            <Text style={styles.label} nativeID="rename-epilogue-label">One line, while the feeling is fresh</Text>
+            <TextInput
+              testID="rename-epilogue"
+              value={epilogue}
+              onChangeText={setEpilogue}
+              accessibilityLabel="One line, while the feeling is fresh"
+              accessibilityLabelledBy="rename-epilogue-label"
+              placeholder="e.g. The bakery was closed, the river was not."
+              placeholderTextColor={theme.muted}
+              returnKeyType="done"
+              onSubmitEditing={saveRename}
+              maxLength={EPILOGUE_MAX}
+              style={styles.input}
+            />
+            {saveError ? <Text style={styles.error} accessibilityRole="alert">Couldn’t save. Try again.</Text> : null}
+            <Button testID="rename-save" label="Save" onPress={saveRename} busy={saving} busyLabel="Saving…" style={styles.save} />
+            <Pressable
+              testID="rename-cancel"
+              accessibilityRole="button"
+              disabled={saving}
+              onPress={close}
+              style={({ pressed }) => [styles.cancel, pressed && styles.pressed]}
+            >
+              <Text style={styles.cancelText}>Cancel</Text>
+            </Pressable>
+          </View>
+        )}
         {asking && plan && (
           <ConfirmCard
             testID="confirm"
@@ -107,7 +210,7 @@ export function WalkActions(props: { walkId: string | null; onClose: () => void;
             onConfirm={confirm}
           />
         )}
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -126,4 +229,9 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.6 },
   cancel: { minHeight: 48, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
   cancelText: { fontSize: 16, fontWeight: '600', color: theme.ink },
+  // As the first replay's Name it fields.
+  label: { fontSize: 14, fontWeight: '600', color: theme.muted, marginTop: 4 },
+  input: { borderWidth: 1.5, borderColor: theme.edge, borderRadius: 10, padding: 12, fontSize: 16, color: theme.ink },
+  error: { fontSize: 14, color: theme.danger },
+  save: { marginTop: 8 },
 });
