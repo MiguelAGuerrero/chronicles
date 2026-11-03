@@ -76,6 +76,32 @@ export interface Pause {
   ended_at: number | null;
 }
 
+/**
+ * A stretch filled across a gap in the trace (Filling gaps, G10), as the
+ * walker decided it: kept (walked trace, drawn solid) or dismissed (the gap
+ * stays a break). Truth, kept with the walk: never cleared by a map update.
+ * `t0` and `t1` are the gap's last fix before and first fix after.
+ */
+export interface GapDecision {
+  walk_id: string;
+  t0: number;
+  t1: number;
+  state: 'kept' | 'dismissed';
+  /** The line that was kept (or dismissed), from the fix before to the fix after. */
+  path: LngLat[];
+  length_m: number;
+  /** The street most of it ran along, for the card; null when unnamed. */
+  street: string | null;
+  decided_at: number;
+}
+
+/** A stretch read as walked across a gap (filled by itself or kept, G11): what `readTrace` fills in. */
+export interface Fill {
+  t0: number;
+  t1: number;
+  path: LngLat[];
+}
+
 export interface StreetSegment {
   id: string;
   name: string | null;

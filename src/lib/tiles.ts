@@ -74,5 +74,6 @@ const STREET_CODE = '2';
  * 4: GPS wander is settled when a trace is read (`settleJitter`, the scribble, Nov 1).
  * 5: still spells from the motion sensors hold the trace at one spot (Motion, MO8).
  * 6: a walk out and straight back is no longer read as a standstill (`DWELL_JUMP_M`, Nov 2).
+ * 7: gaps are filled with the streets most likely walked (Filling gaps, G13).
  */
-const SNAP_RULES = '6';
+const SNAP_RULES = '7';

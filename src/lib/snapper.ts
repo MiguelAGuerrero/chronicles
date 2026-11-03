@@ -1,7 +1,7 @@
 import { pointSegmentDist, projector, splitAtGaps, type PauseSpan } from './geo';
 import { readTrace } from './rides';
 import { samples, streetKey } from './streets';
-import type { StreetSegment, TracePoint, VisitedSegment } from './types';
+import type { Fill, StreetSegment, TracePoint, VisitedSegment } from './types';
 
 /** A segment sample counts as covered when the trace passed within this distance. */
 export const BUFFER_M = 20;
@@ -51,9 +51,11 @@ export function snap(
   pauses: PauseSpan[] = [],
   /** Still spells (Motion, MO8): drift while standing credits no street. */
   stills: PauseSpan[] = [],
+  /** Stretches filled across gaps (Filling gaps, G11): walked, so their streets count. */
+  fills: Fill[] = [],
 ): VisitedSegment[] {
   // Walked fixes only: a ride credits no street, and breaks the trace however short (R7).
-  const { walked: fixes, breaks } = readTrace(points, startedAt, pauses, stills);
+  const { walked: fixes, breaks } = readTrace(points, startedAt, pauses, stills, fills);
   if (fixes.length < 2 || segments.length === 0) return [];
   const runs = splitAtGaps(fixes, 60_000, breaks);
   const proj = projector([fixes[0].lon, fixes[0].lat]);

@@ -985,6 +985,75 @@ Read this before changing recording, streets, the replay or storage.
   background commit, and `router.dismissTo` right after the actions Modal
   closes (iOS can drop a navigation during a Modal's dismissal).
 
+## Filling gaps (in progress; the spec is the concept doc's "Filling gaps" tab, G1-G14)
+
+- **A gap in the trace is filled with the streets most likely walked** (the
+  owner's calls, Nov 3). This is map matching across a gap, with the time as
+  the limit. It is opt-in unless the answer is obvious.
+  - An uncertain stretch is drawn faint (`FAINT_OPACITY`, the trace's green
+    and edge, see-through). It counts for nothing until kept.
+  - A kept or self-filled stretch is walked trace in every way.
+  - The app-closed / GPS-lost case only. Dead reckoning from the phone's
+    sensors (weak GPS with the app open) is a later slice.
+- **The decision** (`gaps/infer.ts`, pure; rules in `gaps/rules.ts`):
+  - A gap is two walked fixes more than 60 s apart, no pause or ride between,
+    40 m or more apart and at most 30 min (`gapsOf`, on the trace read
+    *without* fills).
+  - The likely way is the shortest walk over street pieces. Each end joins
+    every street edge within 40 m, split where it is nearest, and the split
+    edges keep their piece. It needs at most 2.5 m/s.
+  - A piece is certain when the shortest way avoiding it (A* with that
+    piece's edges banned, pruned at the budget) is longer than the budget.
+    There are two budgets: direct (1.25 × the way) and time (the gap at
+    1.4 m/s, if longer).
+  - 90%+ of the way certain under the time budget fills by itself; else 50%+
+    under the direct budget is offered; else nothing.
+  - A budget whose prism (a circle on the gap's middle, half the budget
+    across) leaves the read box is never judged, so unread ground never
+    looks certain.
+- **Reads** (`gaps/index.ts`): `readBounds` is the time budget (or 2x the
+  straight line, capped at 4 km across). The z14 tiles over it plus 250 m are
+  fetched and decoded in code (`fetchTiles`), so the walk screen, a snap and
+  the replay all see the same pieces.
+  - Results are memoized per session by build, walk and gap.
+  - Unread (offline, no `tile_url`) is `undefined`, never `null`: the snap is
+    left not done (`snapDone`), and the live hook retries after 2 min.
+  - `loadReplay` reads the network only with `{ readGaps: true }` (the
+    replay's second load, after `ensureTileBuild`), so a walk still opens
+    from the device first.
+- **Fills** (`readTrace(..., stills, fills)`, after `holdStill`) add points
+  along the line, spread evenly over the gap (every 10 m, and at least every
+  20 s, so no break is left).
+  - Their speed is `GAP_RULES.pace`, so a slow stretch is never smoothed into
+    a standstill.
+  - A fill with walked fixes inside it, or a break across it, is skipped.
+  - `snap` and `assignAreas` take `fills` too; `snapWalk` and `loadReplay`
+    read the stretches first, then the trace with them.
+- **Truth:** `gap_fill` (SQLite migration 14, IndexedDB v12, in
+  `KEPT_STORES`) holds kept and dismissed stretches with their line, so a map
+  update never moves a kept one.
+  - A decision matches a gap when their times overlap by more than half the
+    shorter (`sameGap`), and the newest wins.
+  - A decided gap is never read. `deleteWalk` removes its rows.
+- **UI:**
+  - The live trace (`useLiveTrace`) reports gaps (`onGaps`) and takes fills.
+    `useLiveStretches` lives in `OpenWalkProvider`, so a minimized walk keeps
+    its stretches.
+  - A map tap within reach of a stretch opens `GapCard` (`stretchAt`): Keep
+    and Not this way for an offer, Not this way only for a filled or kept one.
+  - On the replay, faint stretches show on the card beats only.
+  - Deciding on the replay re-snaps with `tileCollector()` (tile reads in
+    code, no camera moves) and reads the replay again.
+- **E2E** (`E2E_ONLY=gaps`): a walk is started, backdated and given stored
+  fixes with two gaps, then reloaded (a real gap would take minutes). The
+  live fixes at "now" form their own short run, so "no fill" is five lines.
+  `window.__project` (set only with `window.__perf`) turns a point into page
+  coordinates for taps. The web map writes `data-runs` and `data-faint`.
+- **Deferred:** walk me back ignores stretches; the backup bundle leaves
+  decisions out; a dismissed stretch can't be brought back.
+- **Native** (unverified on a device): migration 14, the faint layer, the
+  card over the native map.
+
 ## Navigation & tabs: after the audit (the owner's calls, Nov 2)
 
 - **Navigate's drawer docks Start and the capture row low at every height**

@@ -7,7 +7,7 @@ import type { Mark, MarkOrigin, MarkState, Offered, Recall } from '../discovery/
 import { countsOf, recountNewStreets } from '../deletion/core';
 import { exploredKey } from '../explore/explore';
 import { DERIVED_STORES } from './stores';
-import type { Capture, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
+import type { Capture, GapDecision, LngLat, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 import { segmentBbox } from './segmentBounds';
 import type { Db } from './types';
 
@@ -167,6 +167,14 @@ const MIGRATIONS = [
   `
   CREATE TABLE still (walk_id TEXT NOT NULL, started_at INTEGER NOT NULL, ended_at INTEGER, PRIMARY KEY (walk_id, started_at));
   `,
+  // 14: stretches kept or dismissed across gaps in the trace (Filling gaps, G10): truth, kept with the walk.
+  `
+  CREATE TABLE gap_fill (
+    walk_id TEXT NOT NULL, t0 INTEGER NOT NULL, t1 INTEGER NOT NULL, state TEXT NOT NULL,
+    path TEXT NOT NULL, length_m REAL NOT NULL, street TEXT, decided_at INTEGER NOT NULL,
+    PRIMARY KEY (walk_id, t0)
+  );
+  `,
 ];
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
@@ -301,7 +309,7 @@ export const db: Db = {
   deleteWalk(walkId) {
     return write(async (t) => {
       await t.runAsync('DELETE FROM recall WHERE capture_id IN (SELECT id FROM capture WHERE walk_id = ?)', walkId);
-      for (const table of ['capture', 'trace_point', 'pause', 'still', 'visited_segment', 'walk_area', 'find', 'mark', 'walk_summary']) {
+      for (const table of ['capture', 'trace_point', 'pause', 'still', 'gap_fill', 'visited_segment', 'walk_area', 'find', 'mark', 'walk_summary']) {
         await t.runAsync(`DELETE FROM ${table} WHERE walk_id = ?`, walkId);
       }
       await t.runAsync('DELETE FROM meta WHERE key = ?', exploredKey(walkId));
@@ -361,6 +369,21 @@ export const db: Db = {
   },
   async getStills(walkId) {
     return (await conn()).getAllAsync<Still>('SELECT * FROM still WHERE walk_id = ? ORDER BY started_at', walkId);
+  },
+
+  async getGapDecisions(walkId) {
+    const rows = await (await conn()).getAllAsync<Omit<GapDecision, 'path' | 'state'> & { path: string; state: string }>(
+      'SELECT * FROM gap_fill WHERE walk_id = ? ORDER BY t0', walkId,
+    );
+    return rows.map((r) => ({ ...r, state: r.state === 'kept' ? 'kept' : 'dismissed', path: JSON.parse(r.path) as LngLat[] }));
+  },
+  putGapDecision(d) {
+    return write((t) =>
+      t.runAsync(
+        'INSERT OR REPLACE INTO gap_fill (walk_id, t0, t1, state, path, length_m, street, decided_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        d.walk_id, d.t0, d.t1, d.state, JSON.stringify(d.path), d.length_m, d.street, d.decided_at,
+      ).then(() => {}),
+    );
   },
 
   putSegments(segments) {

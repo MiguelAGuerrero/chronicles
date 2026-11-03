@@ -906,6 +906,129 @@ function check(ok, what) {
     await c.close();
   };
 
+  // Filling gaps (G5, G6, G9, G10, G12): a walk whose GPS was out twice, written into storage
+  // with past times (a real gap would take minutes), then reloaded. Along Thayer Street, with
+  // nowhere else to have been, the gap fills by itself; along Transit Street in a grid, slowly,
+  // it is offered faint until kept. E2E_ONLY=gaps runs it alone.
+  const gapsScenario = async () => {
+    const { c, pg } = await freshPage('gaps');
+    await c.addInitScript(() => { window.__perf = {}; });
+    const here = at(3.0, -0.5);
+    await pg.goto(url);
+    await pg.waitForSelector('[data-testid=start]');
+    await pg.click('[data-testid=start]');
+    await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+    for (let k = 0; k < 3; k++) {
+      await c.setGeolocation({ longitude: here[0], latitude: here[1] + k * 0.000001, accuracy: 6 });
+      await pg.waitForTimeout(1000);
+    }
+    for (let k = 0; k < 15 && !(await metaOf(pg, 'tile_url')); k++) await pg.waitForTimeout(1000);
+    const walk = await openWalk(pg);
+    const now = Date.now();
+    const min = 60_000;
+    // Fixes along a line at 1.4 m/s, one every 5 s, from t0.
+    const along = (from, to, t0) => {
+      const pts = [];
+      const d = Math.hypot((to[0] - from[0]) * 100, (to[1] - from[1]) * 100);
+      const n = Math.max(1, Math.round(d / 7));
+      for (let k = 0; k <= n; k++) {
+        const p = at(from[0] + ((to[0] - from[0]) * k) / n, from[1] + ((to[1] - from[1]) * k) / n);
+        pts.push({ walk_id: walk.id, t: t0 + k * 5000, lon: p[0], lat: p[1], accuracy_m: 6, speed: 1.4, course: null });
+      }
+      return pts;
+    };
+    const points = [
+      // Thayer Street north, then 5 min out over 400 m, then on: nowhere else to have been (G5).
+      ...along([11, -2.9], [11, -1.9], now - 70 * min),
+      ...along([11, 2.1], [11, 2.9], now - 63 * min),
+      // 35 min later: Transit Street east, then 10 min out over 340 m, time to go round a block (G6).
+      ...along([-1.9, -0.5], [-1.2, -0.5], now - 27 * min),
+      ...along([2.2, -0.5], [3.0, -0.5], now - 16 * min),
+    ];
+    await pg.evaluate(([id, startedAt, pts]) => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const tx = req.result.transaction(['walk', 'trace_point'], 'readwrite');
+        const w = tx.objectStore('walk').get(id);
+        w.onsuccess = () => tx.objectStore('walk').put({ ...w.result, started_at: startedAt });
+        for (const p of pts) tx.objectStore('trace_point').add(p);
+        tx.oncomplete = () => resolve(true);
+      };
+    }), [walk.id, now - 70 * min - 1000, points]);
+    await pg.reload();
+    await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+    await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
+    const mapState = () => pg.locator('[data-faint]').last().evaluate((e) => ({ runs: Number(e.dataset.runs), faint: Number(e.dataset.faint) }));
+    let st = await mapState();
+    for (let k = 0; k < 20 && !(st.faint === 1 && st.runs === 4); k++) {
+      await pg.waitForTimeout(1000);
+      st = await mapState();
+    }
+    // Without filling there would be four lines; Thayer's gap joins its line, Transit's is faint.
+    check(st.runs === 4, `gaps: a gap along a street with nowhere else to go fills by itself, one line (G5: ${JSON.stringify(st)})`);
+    check(st.faint === 1, `gaps: a gap with time to go round a block is offered faint (G6: ${JSON.stringify(st)})`);
+    const km = (t) => { const m = /([\d.]+) (k?m)\b/.exec(t); return m ? Number(m[1]) * (m[2] === 'km' ? 1000 : 1) : NaN; };
+    const before = km(await pg.locator('[data-testid=walk-stats]').innerText());
+    // A tap on the faint stretch opens its card (G9).
+    await pg.waitForFunction(() => typeof window.__project === 'function');
+    const tap = async (p) => {
+      const [x, y] = await pg.evaluate((q) => window.__project(q), p);
+      await pg.mouse.click(x, y);
+      await pg.waitForTimeout(900);
+    };
+    await tap(at(2.0, -0.5));
+    const title = await pg.locator('[data-testid=gap-title]').innerText().catch(() => '');
+    check(title === 'Probably along Transit Street' && (await pg.locator('[data-testid=gap-keep]').count()) === 1,
+      `gaps: tapping the faint stretch opens its card, with Keep (G9: "${title}")`);
+    await pg.keyboard.press('Escape');
+    await pg.waitForTimeout(400);
+    check((await pg.locator('[data-testid=gap-card]').count()) === 0, 'gaps: Escape closes the card (G9)');
+    await tap(at(2.0, -0.5));
+    await pg.click('[data-testid=gap-keep]');
+    for (let k = 0; k < 10 && (st = await mapState()).runs !== 3; k++) await pg.waitForTimeout(500);
+    await pg.waitForTimeout(2500);
+    const after = km(await pg.locator('[data-testid=walk-stats]').innerText());
+    check(st.runs === 3 && st.faint === 0, `gaps: Keep draws it solid, joined to the trace (G10: ${JSON.stringify(st)})`);
+    check(after - before > 250 && after - before < 450, `gaps: a kept stretch counts as walked distance (G11: ${before} m → ${after} m)`);
+    const rows = () => pg.evaluate(() => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const g = req.result.transaction('gap_fill', 'readonly').objectStore('gap_fill').getAll();
+        g.onsuccess = () => resolve(g.result.map((r) => `${r.state}:${r.street}`));
+      };
+    }));
+    check(JSON.stringify(await rows()) === '["kept:Transit Street"]', `gaps: Keep is stored with the walk (G10: ${JSON.stringify(await rows())})`);
+    // On the replay, the filled stretch along Thayer has its own card; Not this way breaks the line again (G9, G10, G12).
+    const b = await pg.locator('[data-testid=stop]').boundingBox();
+    await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+    await pg.mouse.down();
+    await pg.waitForTimeout(1100);
+    await pg.mouse.up();
+    await pg.waitForURL(/replay/, { timeout: 30000 });
+    await pg.waitForSelector('[data-testid=skip]', { timeout: 60000 });
+    await pg.click('[data-testid=skip]');
+    await pg.waitForSelector('[data-testid=to-name], [data-testid=done]', { timeout: 30000 });
+    await pg.waitForTimeout(1500);
+    const onCard = await mapState();
+    check(onCard.faint === 0, `gaps: the replay draws no faint stretch once kept (${JSON.stringify(onCard)})`);
+    await tap(at(11, 0.6));
+    const filled = await pg.locator('[data-testid=gap-title]').innerText().catch(() => '');
+    check(filled === 'Filled in along Thayer Street' && (await pg.locator('[data-testid=gap-keep]').count()) === 0,
+      `gaps: on the replay, a stretch filled by itself has a card with Not this way only (G9, G12: "${filled}")`);
+    if (filled) {
+      await pg.click('[data-testid=gap-dismiss]');
+      let r = await mapState();
+      for (let k = 0; k < 30 && r.runs <= onCard.runs; k++) {
+        await pg.waitForTimeout(500);
+        r = await mapState();
+      }
+      check(r.runs === onCard.runs + 1, `gaps: Not this way breaks the line again on the replay (G10, G12: ${onCard.runs} → ${r.runs})`);
+      const stored = await rows();
+      check(stored.includes('dismissed:Thayer Street'), `gaps: Not this way is stored too (G10: ${JSON.stringify(stored)})`);
+    }
+    await c.close();
+  };
+
   try {
     if (process.env.E2E_ONLY === 'reload') {
       await reloadMinimized();
@@ -914,6 +1037,11 @@ function check(ok, what) {
     }
     if (process.env.E2E_ONLY === 'marks') {
       await marksRepro();
+      check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
+      return;
+    }
+    if (process.env.E2E_ONLY === 'gaps') {
+      await gapsScenario();
       check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
       return;
     }
@@ -2640,6 +2768,7 @@ function check(ok, what) {
       await c.close();
     }
     await tabsAudit();
+    await gapsScenario();
     {
       // Start with Explore and a destination: the walk opens exploring, heading there (NV25).
       const { c, pg } = await freshPage('start-explore');

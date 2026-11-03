@@ -18,7 +18,7 @@ import { markEnter, pinDrops, sameSeen } from '../../lib/enter';
 import { useReducedMotion } from '../../lib/motion';
 import { MOTION } from '../../lib/motionTokens';
 import {
-  COLORS, coneGeoJSON, DERIVE_ZOOM, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, useZoomPins, walkerGeoJSON,
+  COLORS, coneGeoJSON, DERIVE_ZOOM, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -66,6 +66,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const split = useMemo(() => splitTrace(props.trace), [props.trace]);
   const traceTail = useMemo(() => traceGeoJSON(split.tail), [split.tail]);
   const rides = useMemo(() => traceGeoJSON(props.rides ?? []), [props.rides]);
+  const faint = useMemo(() => traceGeoJSON(props.faint ?? []), [props.faint]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const traceHistory = useMemo(() => traceGeoJSON(split.history), [split.historyKey]);
   const route = useMemo(() => routeGeoJSON(props.route), [props.route]);
@@ -291,6 +292,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         </GeoJSONSource>
         {/* The trace on a white edge, so it reads over fog, walked streets and the base map alike:
             the history (memoized, so it isn't serialized again each render) and the live tail. */}
+        {/* Offered stretches across gaps: the trace, see-through (Filling gaps, G6). */}
+        <TraceSource id="faint" data={faint} opacity={FAINT_OPACITY * (props.traceOpacity ?? 1)} />
         <TraceSource id="rides" data={rides} opacity={props.traceOpacity ?? 1} dashed />
         <TraceSource id="trace-history" data={traceHistory} opacity={props.traceOpacity ?? 1} />
         <TraceSource id="trace" data={traceTail} opacity={props.traceOpacity ?? 1} />

@@ -2,7 +2,7 @@ import type { Area, WalkArea } from '../areas/types';
 import type { Mark, Offered, Place, Recall } from '../discovery/types';
 import type { ChecklistArea, ChecklistItem, ExploreRead, Find } from '../explore/explore';
 import type { LandingRow } from '../landing/view';
-import type { Capture, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
+import type { Capture, GapDecision, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 
 /**
  * Local-only storage, mirroring the concept doc's tables. Native uses
@@ -32,7 +32,7 @@ export interface Db {
   /**
    * Deletes a walk and everything tied to it, in one transaction (D1): its
    * trace, pauses, captures, summary, visited and area rows (areas no walk
-   * uses go too), finds, reminders, marks and meta; later walks' new streets
+   * uses go too), finds, reminders, marks, gap decisions (G14) and meta; later walks' new streets
    * are counted again without it (D7). Media files are the caller's.
    */
   deleteWalk(walkId: string): Promise<void>;
@@ -54,6 +54,11 @@ export interface Db {
   /** Ends the walk's open still spell, if any. */
   endStill(walkId: string, at: number): Promise<void>;
   getStills(walkId: string): Promise<Still[]>;
+
+  /** A walk's kept and dismissed stretches across gaps (Filling gaps, G10): truth, kept with the walk. */
+  getGapDecisions(walkId: string): Promise<GapDecision[]>;
+  /** Keeps or dismisses a stretch; the same walk and t0 replaces it. */
+  putGapDecision(d: GapDecision): Promise<void>;
 
   /** Caches street segments derived outside a snap (streets around the walker). */
   putSegments(segments: StreetSegment[]): Promise<void>;

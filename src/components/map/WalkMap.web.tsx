@@ -19,7 +19,7 @@ import { markEnter, pinDrops, starEnter } from '../../lib/enter';
 import { useReducedMotion } from '../../lib/motion';
 import { MOTION } from '../../lib/motionTokens';
 import {
-  COLORS, coneGeoJSON, DERIVE_ZOOM, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, useZoomPins, walkerGeoJSON,
+  COLORS, coneGeoJSON, DERIVE_ZOOM, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -43,7 +43,7 @@ function addOverlay(map: MapLibreMap) {
   // Lines are simplified a little more than the default and keep a smaller tile buffer: less to
   // re-tile on each update (perf, Nov 1; tolerance 0.375 and buffer 128 are maplibre's defaults).
   const lineSource = { type: 'geojson' as const, data: empty, tolerance: 1, buffer: 64 };
-  for (const id of ['fog', 'walked', 'route', 'rides', 'trace-history', 'trace', 'trace-link']) map.addSource(id, lineSource);
+  for (const id of ['fog', 'walked', 'route', 'faint', 'rides', 'trace-history', 'trace', 'trace-link']) map.addSource(id, lineSource);
   for (const id of ['pockets', 'strips', 'cone', 'marks', 'points', 'ring']) map.addSource(id, { type: 'geojson', data: empty });
   const lineLayout = { 'line-cap': 'round', 'line-join': 'round' } as const;
   // Hotspots under the streets: pockets shaded, strips bold, in the one green no other layer uses (L9).
@@ -59,6 +59,9 @@ function addOverlay(map: MapLibreMap) {
   // The route under the trace and walker, so where you walked stays on top (N6).
   map.addLayer({ id: 'route-edge', type: 'line', source: 'route', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': 12 } });
   map.addLayer({ id: 'route', type: 'line', source: 'route', layout: lineLayout, paint: { 'line-color': COLORS.route, 'line-width': 8 } });
+  // Offered stretches across gaps: the trace, see-through, under it where they meet (Filling gaps, G6).
+  map.addLayer({ id: 'faint-edge', type: 'line', source: 'faint', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': 0.9 * FAINT_OPACITY } });
+  map.addLayer({ id: 'faint', type: 'line', source: 'faint', layout: lineLayout, paint: { 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth, 'line-opacity': FAINT_OPACITY } });
   // Rides dashed on the same white edge, under the walked trace where they meet (R5).
   map.addLayer({ id: 'rides-edge', type: 'line', source: 'rides', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': 0.9 } });
   map.addLayer({ id: 'rides', type: 'line', source: 'rides', layout: { 'line-cap': 'butt', 'line-join': 'round' },
@@ -206,6 +209,14 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       addOverlay(map);
       setReady(true);
       readyPromise.current!.resolve();
+      // The e2e taps a spot on the newest map (a stretch across a gap), only when it is measuring.
+      if ((window as { __perf?: unknown }).__perf) {
+        (window as { __project?: (p: LngLat) => [number, number] }).__project = (p) => {
+          const r = map.getContainer().getBoundingClientRect();
+          const pt = map.project(p);
+          return [r.left + pt.x, r.top + pt.y];
+        };
+      }
     });
     // maplibre fires click for each tap of a double-tap zoom: wait to see
     // whether a second tap follows before treating it as a press.
@@ -335,6 +346,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     // drawLink only reads refs.
   }, [ready, props.walkerSource]);
   useEffect(() => { if (ready) setData('rides', traceGeoJSON(props.rides ?? [])); }, [ready, props.rides]);
+  useEffect(() => { if (ready) setData('faint', traceGeoJSON(props.faint ?? [])); }, [ready, props.faint]);
   useEffect(() => { if (ready) setData('route', routeGeoJSON(props.route)); }, [ready, props.route]);
   useEffect(() => {
     if (!ready) return;
@@ -350,6 +362,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     if (!ready) return;
     for (const id of ['trace', 'trace-history-line', 'trace-link-line', 'rides']) mapRef.current?.setPaintProperty(id, 'line-opacity', props.traceOpacity ?? 1);
     for (const id of ['trace-edge', 'trace-history-edge', 'trace-link-edge', 'rides-edge']) mapRef.current?.setPaintProperty(id, 'line-opacity', 0.9 * (props.traceOpacity ?? 1));
+    mapRef.current?.setPaintProperty('faint', 'line-opacity', FAINT_OPACITY * (props.traceOpacity ?? 1));
+    mapRef.current?.setPaintProperty('faint-edge', 'line-opacity', 0.9 * FAINT_OPACITY * (props.traceOpacity ?? 1));
   }, [ready, props.traceOpacity]);
   useEffect(() => {
     if (ready) setData('points', walkerGeoJSON(glideOn ? null : props.walker));
@@ -661,7 +675,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
 
   return (
     <View style={[styles.wrap, props.style]}>
-      <div ref={container} style={{ position: 'absolute', inset: 0 }} data-trace-opacity={String(props.traceOpacity ?? 1)} data-rides={`${props.rides?.length ?? 0}:${props.rides?.reduce((n, r) => n + r.length, 0) ?? 0}`} data-ring={props.ring ? String(props.ring.radiusM) : ''} data-trace-end={traceEnd(props.trace)} />
+      <div ref={container} style={{ position: 'absolute', inset: 0 }} data-trace-opacity={String(props.traceOpacity ?? 1)} data-rides={`${props.rides?.length ?? 0}:${props.rides?.reduce((n, r) => n + r.length, 0) ?? 0}`} data-faint={String(props.faint?.length ?? 0)} data-runs={String(props.trace.filter((r) => r.length > 1).length)} data-ring={props.ring ? String(props.ring.radiusM) : ''} data-trace-end={traceEnd(props.trace)} />
       {props.covered && <View style={styles.cover} pointerEvents="none" />}
     </View>
   );

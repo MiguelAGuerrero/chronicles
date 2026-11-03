@@ -4,6 +4,8 @@ import { db } from '../lib/db';
 import { checkRecalls } from '../lib/discovery/recallCheck';
 import type { Pause, Still, Walk } from '../lib/types';
 import { useLiveTrace, type LiveTrace } from '../lib/useLiveTrace';
+import type { Gap } from '../lib/gaps/infer';
+import { useLiveStretches, type LiveStretches } from '../lib/gaps/useLiveStretches';
 import { createLatestLoader } from '../lib/openWalkLoad';
 import { onWalkChange } from '../lib/walkEvents';
 import { useWalkMotion } from '../lib/walkMotion';
@@ -27,6 +29,8 @@ export interface OpenWalkInfo {
 }
 export interface OpenWalkState extends OpenWalkInfo {
   live: LiveTrace;
+  /** Stretches across gaps in the open walk (Filling gaps, G12). */
+  gaps: LiveStretches;
 }
 
 const OpenWalkContext = createContext<OpenWalkState | null>(null);
@@ -42,6 +46,7 @@ export function onWalkGap(fn: (ms: number) => void): () => void {
   };
 }
 const onGap = (ms: number) => gapListener?.(ms);
+const NO_GAPS: Gap[] = [];
 
 /** How long a failed read of the open walk waits before it is tried again (tabs audit 9). */
 const RETRY_MS = 1000;
@@ -69,7 +74,11 @@ export function OpenWalkProvider(props: { children: ReactNode }) {
   // Still spells told by the motion sensors: the line holds still through each (Motion, MO8). Motion
   // is read here, so it goes on while the walk is minimized, and stops while it is paused.
   const [stills, setStills] = useState<Still[]>([]);
-  const live = useLiveTrace(open.walk?.id ?? null, open.walk?.started_at ?? null, open.pauses, stills, onGap);
+  // Gaps closed by a new fix are read and filled (Filling gaps, G12); filled ones join the live trace.
+  const [gapList, setGapList] = useState<{ walkId: string | null; gaps: Gap[] }>({ walkId: null, gaps: [] });
+  const openId = open.walk?.id ?? null;
+  const gaps = useLiveStretches(openId, gapList.walkId === openId ? gapList.gaps : NO_GAPS);
+  const live = useLiveTrace(openId, open.walk?.started_at ?? null, open.pauses, stills, onGap, gaps.fills, (g) => setGapList({ walkId: openId, gaps: g }));
   useWalkMotion(open.walk?.id ?? null, !!open.walk && !open.pauses.some((p) => p.ended_at == null), live.dot, setStills);
 
   // Remind me here on the web, on each accepted fix, wherever the walk is shown or minimized (NV8, R3).
@@ -80,7 +89,7 @@ export function OpenWalkProvider(props: { children: ReactNode }) {
     checkRecalls(walkId, [at]).catch(() => {});
   }, [walkId, live.here]);
 
-  const value = useMemo<OpenWalkState>(() => ({ ...open, live }), [open, live]);
+  const value = useMemo<OpenWalkState>(() => ({ ...open, live, gaps }), [open, live, gaps]);
   return (
     <OpenWalkInfoContext.Provider value={open}>
       <OpenWalkContext.Provider value={value}>{props.children}</OpenWalkContext.Provider>

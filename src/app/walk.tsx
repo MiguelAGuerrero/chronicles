@@ -12,6 +12,8 @@ import { CaptionEditor } from '../components/Caption';
 import { CaptureViewer } from '../components/CaptureView';
 import { Icon, KIND_LABEL, type IconName } from '../components/icons';
 import { Banner, Button, HoldButton, LiftIn, theme } from '../components/ui';
+import { GapCard } from '../components/GapCard';
+import { gapKey, stretchAt } from '../lib/gaps/infer';
 import { ExploreSettings } from '../components/ExploreSettings';
 import { ReminderCard } from '../components/ReminderCard';
 import { onRecallFired, onRecallOpen, takeRecallOpen } from '../lib/discovery/recallCheck';
@@ -113,6 +115,11 @@ export default function WalkScreen() {
   // minimized (NV8); this screen shows them.
   const openWalk = useOpenWalk();
   const pauses = openWalk.pauses;
+  // Stretches across gaps (Filling gaps, G9, G12): a tapped one's card, by gap.
+  const gapView = openWalk.gaps;
+  const [gapOpen, setGapOpen] = useState<string | null>(null);
+  const [gapBusy, setGapBusy] = useState(false);
+  const openGap = gapOpen ? gapView.stretches.find((s) => gapKey(s) === gapOpen) ?? null : null;
   const [pausing, setPausing] = useState(false);
   // The map follows the walker until they pan or zoom it themselves.
   const [following, setFollowing] = useState(true);
@@ -776,6 +783,19 @@ export default function WalkScreen() {
     setNotice({ message: `Paused for ${formatDuration(now - openPause.started_at)}. Nothing is recorded until you resume.`, sticky: true });
   }, [openPause, now]);
   const recordingVoice = cap.voiceStartedAt != null;
+  // Keep or Not this way (G10): stored with the walk, and the line follows at once.
+  const decideGap = async (state: 'kept' | 'dismissed') => {
+    if (!openGap) return;
+    setGapBusy(true);
+    try {
+      await gapView.decide(openGap, state);
+      setGapOpen(null);
+    } catch {
+      setNotice({ message: 'Couldn’t save that. Try again.', tone: 'error' });
+    } finally {
+      setGapBusy(false);
+    }
+  };
 
   return (
     <View style={styles.screen}>
@@ -794,10 +814,14 @@ export default function WalkScreen() {
         walkerHeading={live.heading}
         // Not while a route is found: the street read moves the camera itself.
         follow={following && !navigation.finding && !ring ? live.here : null}
-        onPress={() => {
+        faint={gapView.faint}
+        onPress={(at, radiusM) => {
           setSpot(null);
           setMarkOpen(null);
           setMemory(null);
+          // A tap on a stretch across a gap opens its card (G9); anywhere else closes it.
+          const hit = navigation.nav || recordingVoice || stopping ? null : stretchAt(gapView.stretches, at, radiusM);
+          setGapOpen(hit ? gapKey(hit) : null);
         }}
         memories={memories}
         onMemoryPress={recordingVoice || stopping || settingsOpen ? undefined : (group, at) => void openMemory(group, at)}
@@ -1232,6 +1256,16 @@ export default function WalkScreen() {
             </View>
           </View>
         </View>
+      )}
+      {openGap && !spot && !openMark && !memory && !recordingVoice && (
+        <GapCard
+          stretch={openGap}
+          busy={gapBusy}
+          style={{ bottom: insets.bottom + 92 + 68 + 12 }}
+          onClose={() => setGapOpen(null)}
+          onKeep={() => void decideGap('kept')}
+          onDismiss={() => void decideGap('dismissed')}
+        />
       )}
       <ExploreSettings
         visible={settingsOpen}
