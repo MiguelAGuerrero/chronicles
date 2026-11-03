@@ -17,10 +17,12 @@ export default function NavigateEntry() {
   useFocusEffect(
     useCallback(() => {
       const plan = entryPlan();
-      router.navigate(plan.tabs);
+      // Replaced, not pushed: `/` leaves the history, so the browser's back from Explore never lands here
+      // again and reopens Navigate (audit 7).
+      router.replace(plan.tabs);
       // After the tabs have moved, so the walk screen opens over Explore, not over this route. Never
       // cancelled: moving the tabs blurs this route at once, which would clear it.
-      setTimeout(() => plan.thenShowWalk && showWalk(), 0);
+      setTimeout(() => plan.thenShowWalk && showWalk(undefined, { launch: true }), 0);
     }, []),
   );
   return <View style={styles.screen} />;

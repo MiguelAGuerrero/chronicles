@@ -54,7 +54,10 @@ export function useStartWalk() {
       showWalk(plan.params);
       return plan.params ?? {};
     } catch (e) {
-      setError({ message: e instanceof Error ? e.message : String(e), openSettings: e instanceof RecorderError && e.openSettings });
+      const message = e instanceof Error ? e.message : String(e);
+      setError({ message, openSettings: e instanceof RecorderError && e.openSettings });
+      // In place, a walk that opened before its plan failed shows the error on the walk (audit 10).
+      if (opts?.inPlace && (await db.getOpenWalk().catch(() => null))) return { error: message };
       return null;
     } finally {
       setStarting(false);

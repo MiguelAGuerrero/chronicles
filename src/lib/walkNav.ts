@@ -10,8 +10,8 @@ import { createWalkGate } from './walkGate';
  */
 const gate = createWalkGate(2000);
 
-export function showWalk(params?: Record<string, string>): boolean {
-  if (!gate.ask(Date.now())) return false;
+export function showWalk(params?: Record<string, string>, opts?: { launch?: boolean }): boolean {
+  if (!gate.ask(Date.now(), opts)) return false;
   router.push(params ? { pathname: '/walk', params } : '/walk');
   return true;
 }

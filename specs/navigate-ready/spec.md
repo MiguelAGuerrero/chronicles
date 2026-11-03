@@ -68,7 +68,7 @@ for its layout only. Chronicles keeps its own palette, Start button and map styl
    changes (NV22). A drag down, Back or Escape lowers the bar. While it is up in
    Explore, the range ring shows on the map. The Start dialog is gone.
 8. **NR8 · A destination shows at rest.** When a destination is set (a long press
-   on the map, NV23), the resting bar says where in one line (`To Your spot · 1.2 km`).
+   on the map, NV23), the resting bar says where in one line (`To Your spot · 120 m away`).
    With no destination, the line isn't there.
 
 ### The stack
@@ -107,4 +107,38 @@ for its layout only. Chronicles keeps its own palette, Start button and map styl
 
 ## Record
 
-(Filled in as the slice lands: what passed, what was deferred.)
+Built 2026-11-03 on `claude/navigate-ready`, web verified (native has never run on a device).
+
+- **Passed:** NR1-NR13 in `E2E_ONLY=ready` (`readyScenario`), NR2-NR4 and audit 9 in
+  `src/lib/__tests__/navigateReady.test.ts`. The full flow, the tabs audit and the other scenarios
+  moved off the drawer (`drawerTo` raises the ready bar; `tabTo` closes the ready screen first).
+- **Mid-build (the owner, Nov 3):** the ready state and the walk are one screen with one map kept
+  across Start (`useReady`; the e2e marks the canvas).
+- **Tests first:** the unit tests for NR2-NR4 were written before `readyNav.ts`; the e2e scenario was
+  written after the screens, then each audit check before its fix.
+- **Deferred:** see `docs/DEFERRED.md` ("Navigate, ready").
+
+### Audit (2026-11-03)
+
+13 findings: 12 accepted and fixed, 1 deferred, 0 rejected. No finding was architectural.
+
+1. The range ring was under the raised bar: accept. The bar rises to 60% and the map fits the ring above it. `navigate-ready audit 1`.
+2. Start remounted the map: accept. Fixed by the one-screen change. `ready NR6, navigate-ready audit 2`.
+3. A failed Stop could switch to the ready state and hide its error: accept. The walk stays on screen with the error. Typecheck and the flow only (a failing stop isn't injectable in the e2e).
+4. A drag mid-memo left the bar part-way over Save: accept. The bar is locked mid-memo. `navigate-ready audit 4`.
+5. The walk's cards covered the stack: accept. Cards sit above the strip, left of the stack's column. `navigate-ready audit 5`. The walk's settings panel (`ExploreSettings`) is a sheet with its own Cancel and still covers the lower screen while open (accepted as a sheet).
+6. Keyboard and screen readers couldn't raise the bar or hear its numbers: accept. The summary is one focusable button (Enter, Space, activate) named with the numbers and the destination. `navigate-ready audit 6`. VoiceOver and TalkBack are unverified.
+7. On web, Back after a launch reopened Navigate: accept. The entry route replaces `/`. `navigate-ready audit 7`.
+8. A keeper that never settles left a blank screen: accept. The loading state shows the chevron. Typecheck only (a storage that never answers isn't injectable without breaking the page).
+9. An in-place start dropped the web's "keep this page open": accept. `startNotice`. `navigate-ready audit 9` (unit).
+10. The chevron during "Starting…" started the walk minimized, unsaid: accept. The chevron is disabled while starting, and a plan that failed after the walk opened says so on the walk. The flow and typecheck only (the start is too quick to catch).
+11. A pill overlapped the scale bar at 375: accept for one pill (the scale bar sits at 80) and the long pill text now wraps. `navigate-ready audit 11`. Two pills at once still meet it: deferred.
+12. One Escape closed the viewer and the bar: accept. Moment pins do nothing while the bar is up. The flow only.
+13. A walk stopped from a second browser tab leaves the next walk on the same screen with the old walk's streets: defer (two tabs on one origin).
+
+Found by the full e2e, not the audit: a reminder tapped with the app closed and a walk open landed on
+Explore with no walk screen. Two causes: the notifier asked for the walk before the router was ready,
+and that lost push held the gate for 2 s against the launch's own ask; and the walk screen, mounting
+sooner, read the waiting tap before it was kept. A launch's ask now passes a pending one, once (`ask(now,
+{ launch: true })`, test "navigate-ready cold open"), and `onRecallWaiting` tells the walk screen when the
+tap lands. The e2e's "a tap that opened the app opens its capture on the walk" covers both.

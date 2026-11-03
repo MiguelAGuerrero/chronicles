@@ -17,11 +17,14 @@ The three tabs (Explore, Navigate, Chronicle), the home sheet, the recording bar
   live view): the Navigate tab's `tabPress` is prevented and calls `showWalk()` (`(tabs)/_layout.tsx`,
   `navigatePress` in `lib/readyNav`), so the walk screen opens over the tab in front, ready or with the
   open walk. `(tabs)/index.tsx` (`/`) is only an entry: focused (a launch, a reload of `/`, a link), it
-  moves the tabs to Explore and then opens the walk screen. Its `showWalk` runs in a timeout that is
-  never cleared, because moving the tabs blurs the route at once. The tabs' initial route is Explore
+  replaces itself with Explore (so the browser's back never lands on `/` and reopens Navigate, audit 7)
+  and then opens the walk screen. Its `showWalk` runs in a timeout that is never cleared, because
+  moving the tabs blurs the route at once. The tabs' initial route is Explore
   (`unstable_settings`), so Back on Chronicle returns to Explore. Chronicle's empty-peek Navigate calls
-  `showWalk()` too. At launch with an open walk, the root layout asks `showWalk()`; the gate drops the
-  entry route's second ask. The Navigate tab is never the focused tab, so its icon is never tinted.
+  `showWalk()` too. At launch with an open walk, the root layout and the entry route ask
+  `showWalk(undefined, { launch: true })`: a launch's ask passes one still pending (a tapped
+  notification can ask before the router is ready, and that push is lost), but only once, and never
+  past a walk screen up (`walkGate`). The Navigate tab is never the focused tab, so its icon is never tinted.
 - **Explore sits beneath the ready screen from launch** (NR3): it focuses for a tick before the walk
   screen opens, so it may have read and named its town by the first time you see it. The e2e accepts
   "Near you" or the town there.

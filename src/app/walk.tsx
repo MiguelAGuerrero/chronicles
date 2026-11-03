@@ -19,7 +19,7 @@ import { useGapDraw } from '../lib/gaps/useGapDraw';
 import { GapDraw } from '../components/GapDraw';
 import { ExploreSettings } from '../components/ExploreSettings';
 import { ReminderCard } from '../components/ReminderCard';
-import { onRecallFired, onRecallOpen, takeRecallOpen } from '../lib/discovery/recallCheck';
+import { onRecallFired, onRecallOpen, onRecallWaiting, takeRecallOpen } from '../lib/discovery/recallCheck';
 import { categoryOf } from '../lib/discovery/categories';
 import { deadZoneDue, deadZoneNudge, inDeadZone, stripAt } from '../lib/landing/walk';
 import { landingView, LANDING_VERSION, nearAreas, type LandingRow } from '../lib/landing/view';
@@ -51,10 +51,10 @@ import { notifyWalkChanged } from '../lib/walkEvents';
 import { routeAhead } from '../lib/nav/navigator';
 import { HANDOFF_HINT, openInMaps } from '../lib/nav/openInMaps';
 import { useNavigation } from '../lib/nav/useNavigation';
-import { exitPlan, screenState } from '../lib/readyNav';
+import { exitPlan, screenState, startNotice } from '../lib/readyNav';
 import { getLastFix } from '../lib/lastFix';
 import { CaptureStack } from '../components/walk/CaptureStack';
-import { EDGE, useStackLayout } from '../components/walk/layout';
+import { CAP, EDGE, SCALE_BOTTOM, STACK_GAP, useStackLayout } from '../components/walk/layout';
 import { useReady } from '../components/walk/useReady';
 import { aboutTimeLeft, formatTimeLeft, paceMps, timeLeftMs } from '../lib/nav/eta';
 import { useVisible } from '../lib/deletion/useDeletions';
@@ -137,8 +137,30 @@ export default function WalkRoute() {
     if (to.kind === 'back') router.back();
     else router.replace(to.to);
   }, []);
-  if (screenState({ known: info.known, walkId: info.walk?.id ?? null }) === 'loading') return <View style={styles.screen} />;
+  // Storage not read yet (or never, if it keeps failing): still a way back to the tabs (audit 8).
+  if (screenState({ known: info.known, walkId: info.walk?.id ?? null }) === 'loading') return <WalkLoading onClose={close} />;
   return <WalkScreen onMinimize={close} />;
+}
+
+function WalkLoading(props: { onClose: () => void }) {
+  const at = useStackLayout();
+  return (
+    <View style={styles.screen}>
+      <View style={[styles.top, { top: at.insets.top + 12, left: at.sideInset, right: at.sideInset }]} pointerEvents="box-none">
+        <View style={styles.minRow} pointerEvents="box-none">
+          <Pressable
+            testID="ready-close"
+            accessibilityRole="button"
+            accessibilityLabel="Close Navigate"
+            onPress={props.onClose}
+            style={({ pressed }) => [styles.edgeBtn, styles.minBtn, pressed && styles.pressed]}
+          >
+            <Icon name="chevron-down" size={24} color={theme.ink} />
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  );
 }
 
 function WalkScreen(props: { onMinimize: () => void }) {
@@ -151,6 +173,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const sideInset = Math.max(12, (width - 640) / 2);
   const params = useLocalSearchParams<{ warning?: string; started?: string; recall?: string }>();
   const at = useStackLayout();
+  // The walk's cards sit above the strip, left of the stack's column, so they never cover it (audit 5).
+  const cardAt = { bottom: at.barTop + 12, right: at.right + CAP + STACK_GAP };
   // One screen, ready or walking (NR1, NR6): the walk is the keeper's open walk. While Start writes the
   // walk's plan the screen stays ready (the walk reads its mode as it shows); once stopped, the walk stays
   // on screen until the replay replaces it, never flashing the ready state.
@@ -232,8 +256,9 @@ function WalkScreen(props: { onMinimize: () => void }) {
     onStarting: () => setHolding(true),
     onStarted: (p) => {
       setHolding(false);
-      // Recording in place (NR6): it says so, or the recorder's warning.
-      if (p) setNotice(p.warning ? { message: p.warning } : { message: 'Walk started · recording' });
+      // Recording in place (NR6): it says so, or the recorder's warning, or why its plan failed (audit 9, 10).
+      if (p?.error) setNotice({ message: p.error, tone: 'error', sticky: true });
+      else if (p) setNotice({ message: startNotice(p, recorder.capabilities.background) });
     },
   });
   // The error notice is raised once per error: when the status first turns to error, or for a new
@@ -622,16 +647,21 @@ function WalkScreen(props: { onMinimize: () => void }) {
       setViewing(found);
       return true;
     });
-    takeRecallOpen()
-      .then((found) => {
-        if (!alive || !found.length) return;
-        setAutoPlay(true);
-        setViewing(found);
-      })
-      .catch(() => {});
+    const take = () =>
+      takeRecallOpen()
+        .then((found) => {
+          if (!alive || !found.length) return;
+          setAutoPlay(true);
+          setViewing(found);
+        })
+        .catch(() => {});
+    void take();
+    // Kept while this screen was mounting (a cold open now shows the walk sooner, NR3): taken as it lands.
+    const offWaiting = onRecallWaiting(() => void take());
     return () => {
       alive = false;
       off();
+      offWaiting();
     };
   }, [walk, params.recall, resumed]);
   // This walk explores only once switched on (E1); otherwise it is quiet: navigation and captures (E9).
@@ -758,7 +788,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       feedback('success');
       router.replace(`/replay/${walk.id}`);
     } catch (e) {
-      setEnded(null);
+      // The walk stays on screen with the error, even if storage already closed it (audit 3).
       setNotice({ message: `The walk could not be stopped: ${e instanceof Error ? e.message : e}`, tone: 'error', sticky: true });
     } finally {
       setStopping(false);
@@ -922,7 +952,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     <View style={styles.screen}>
       {/* One map for both states, at one place in the tree, so Start never remounts it (NR6). */}
       {!walk ? (
-        <WalkMap {...ready.mapProps} ref={mapRef} scaleInset={{ bottom: 68, left: sideInset + 12 }} />
+        <WalkMap {...ready.mapProps} ref={mapRef} scaleInset={{ bottom: SCALE_BOTTOM, left: sideInset + 12 }} />
       ) : (
       <WalkMap
         landing={hotView}
@@ -1000,7 +1030,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         // scale bar is measured from there: above the capture row (its foot is 92 + insets.bottom
         // from the screen bottom, less the strip's 69 + insets.bottom; its buttons are 68 tall),
         // inside the 640 column (QL8).
-        scaleInset={{ bottom: 68, left: sideInset + 12 }}
+        scaleInset={{ bottom: SCALE_BOTTOM, left: sideInset + 12 }}
       />
       )}
 
@@ -1315,7 +1345,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       )}
 
       {options && (
-        <View style={[styles.spotRow, { bottom: insets.bottom + 92 + 68 + 12 }]} pointerEvents="box-none">
+        <View style={[styles.spotRow, cardAt]} pointerEvents="box-none">
           <View testID="options-card" style={styles.spot} accessibilityViewIsModal>
             <Text style={styles.spotTitle} accessibilityRole="header">This walk</Text>
             <View style={styles.optionRow}>
@@ -1383,7 +1413,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       )}
       {openMark && !spot && !quiet && (
         // A place's card, in the spot card's place (E7, E8, E12).
-        <View style={[styles.spotRow, { bottom: insets.bottom + 92 + 68 + 12 }]} pointerEvents="box-none">
+        <View style={[styles.spotRow, cardAt]} pointerEvents="box-none">
           <View testID="mark-card" style={styles.spot} accessibilityViewIsModal>
             <Text style={styles.spotTitle} accessibilityRole="header">
               {openMarkNamed ? `${openMark.name} · ${kindOf(openMark.kind).label}` : 'A place to find'}
@@ -1419,7 +1449,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
           stretch={openGap}
           gap={openGapOf}
           busy={gapBusy}
-          style={{ bottom: insets.bottom + 92 + 68 + 12 }}
+          style={cardAt}
           onClose={() => setGapOpen(null)}
           onKeep={() => void decideGap('kept')}
           onDismiss={() => void decideGap('dismissed')}
@@ -1473,7 +1503,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         }}
       />
       {memory && memoryShown.length > 0 && !spot && !recordingVoice && (
-        <View style={[styles.spotRow, { bottom: insets.bottom + 92 + 68 + 12 }]} pointerEvents="box-none">
+        <View style={[styles.spotRow, cardAt]} pointerEvents="box-none">
           <MemoryPreview
             // A new pin's preview starts fresh: never the last pin's photo (audit 1).
             key={memoryShown[0].id}
@@ -1490,7 +1520,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       )}
       {spot && (
         // Above the capture row (bottom 92, 68 tall), in the pills' place, so the row never moves or hides.
-        <View style={[styles.spotRow, { bottom: insets.bottom + 92 + 68 + 12 }]} pointerEvents="box-none">
+        <View style={[styles.spotRow, cardAt]} pointerEvents="box-none">
           <View style={styles.spot} accessibilityViewIsModal>
             <Text style={styles.spotTitle} accessibilityRole="header">This spot</Text>
             <View style={styles.spotActions}>
@@ -1642,10 +1672,10 @@ const styles = StyleSheet.create({
   hidden: { display: 'none' },
   pills: { position: 'absolute', alignItems: 'flex-end', gap: 8 },
   undo: {
-    flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: theme.ink, borderRadius: 999,
+    flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: theme.ink, borderRadius: 999, maxWidth: '100%',
     paddingVertical: 8, paddingLeft: 16, paddingRight: 8,
   },
-  undoText: { color: '#ffffff', fontSize: 15, fontWeight: '600' },
+  undoText: { color: '#ffffff', fontSize: 15, fontWeight: '600', flexShrink: 1 },
   undoBtn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)' },
   undoBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
   disabled: { opacity: 0.5 },

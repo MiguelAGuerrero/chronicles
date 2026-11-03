@@ -29,7 +29,7 @@ export default function RootLayout() {
       .then((open) => {
         // Over the tabs, so Minimize has a tab to go back to; a second ask (the Navigate route's own,
         // at `/`) does nothing (NR3).
-        if (open) showWalk();
+        if (open) showWalk(undefined, { launch: true });
       })
       .catch(() => {});
   }, []);

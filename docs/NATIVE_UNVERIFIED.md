@@ -111,3 +111,10 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] Starting in place: the background location task and the pocket alert taking over a walk screen already mounted (`useStartWalk` with `inPlace`, NR6)
 - [ ] Moment pins and the one-fix dot on the walk screen's MapLibre RN map; the long press for a destination there (`components/walk/useReady.tsx`, NR1, NR8); the one MapLibre RN map kept across Start (NR6)
 - [ ] The chevron mid-memo: the memo finished as `useCaptures` unmounts, on expo-audio (NR10)
+- [ ] Android Back with `backBehavior="initialRoute"` and Explore as the tabs' initial route (NR4)
+- [ ] A cold start's order: the entry route's `showWalk`, the root layout's, and a tapped notification's (`onRecallWaiting`), with `/walk` on top (NR3)
+- [ ] VoiceOver and TalkBack on the ready bar's summary button, its `activate` action and its name (navigate-ready audit 6)
+- [ ] One MapLibre RN `MapView` kept across Start while its props swap (static dot to the glide, `follow`, marks, moment pins) (NR6)
+- [ ] `locateOnce` each time the ready screen comes to the front, on expo-location (NV17)
+- [ ] `Linking.openSettings` from the ready screen's banner (NR13)
+

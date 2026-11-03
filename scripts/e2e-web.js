@@ -1730,7 +1730,7 @@ function check(ok, what) {
     check(/Walk started · recording/.test(notice), `ready NR6: the notice says the walk is recording (${notice})`);
     {
       const sameMap = await pg.evaluate(() => { const cs = [...document.querySelectorAll('canvas.maplibregl-canvas')]; return cs.length === 1 && cs[0].__readyMark === 1; });
-      check(sameMap, 'ready NR6: one screen, one map: the map shown before Start is the same one recording after it, never rebuilt');
+      check(sameMap, 'ready NR6, navigate-ready audit 2: one screen, one map: the map shown before Start is the same one recording after it, never rebuilt');
     }
     await pg.waitForTimeout(2200);
     check(!/^0:00/.test(await stats(pg)), `ready NR6: the time ticks (${await stats(pg)})`);
@@ -1834,9 +1834,132 @@ function check(ok, what) {
     }
   };
 
+  // The Navigate, ready audit (2026-11-03): each accepted finding's regression check, `navigate-ready audit N`.
+  const readyAudit = async () => {
+    const box = async (pg, id) => {
+      const b = await pg.locator(`[data-testid=${id}]`).filter({ visible: true }).first().boundingBox({ timeout: 3000 }).catch(() => null);
+      return b && { x: b.x, y: b.y, w: b.width, h: b.height };
+    };
+    const meets = (a, b) => !!a && !!b && a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+    const settled = (pg) => pg.waitForFunction(() => !document.querySelector('[data-testid=start-settings]'), null, { timeout: 4000 }).catch(() => {});
+    const raise = async (pg) => {
+      const g = await pg.locator('[data-testid=ready-grip]').boundingBox();
+      await pg.mouse.move(g.x + g.width / 2, g.y + g.height / 2);
+      await pg.mouse.down();
+      await pg.mouse.move(g.x + g.width / 2, 120, { steps: 8 });
+      await pg.mouse.up();
+      await pg.waitForTimeout(1200);
+    };
+    const { c, pg } = await freshPage('ready-audit', { permissions: ['geolocation', 'microphone'] });
+    await c.addInitScript(() => { window.__perf = {}; });
+    await pg.goto(url);
+    await pg.waitForSelector('[data-testid=start]');
+    await pg.waitForTimeout(1500);
+
+    // audit 1: with the bar up in Explore, the ring is on the map left above the bar, not under it.
+    await raise(pg);
+    await pg.click('[data-testid=mode-explore]');
+    await pg.waitForTimeout(1500);
+    {
+      const walker = ((await pg.locator('[data-walker]').last().getAttribute('data-walker')) || '').split(',').map(Number);
+      const [x, y] = walker.length === 2 ? await pg.evaluate((p) => window.__project(p), walker) : [NaN, NaN];
+      const bar = await box(pg, 'ready-bar');
+      check(Number.isFinite(y) && bar && y < bar.y && y > 0, `navigate-ready audit 1: with the bar up in Explore, the ring's centre is on the map above the bar (centre y ${Math.round(y)}, bar top ${bar && Math.round(bar.y)})`);
+      void x;
+    }
+    await pg.click('[data-testid=mode-quiet]');
+    await pg.keyboard.press('Escape');
+    await settled(pg);
+
+    // audit 6: the bar is a button a keyboard reaches; its name carries the numbers and the destination.
+    {
+      const m = await pg.locator('canvas.maplibregl-canvas').boundingBox();
+      await pg.mouse.move(m.x + m.width / 2 - 60, m.y + m.height / 3);
+      await pg.mouse.down();
+      await pg.waitForTimeout(700);
+      await pg.mouse.up();
+      await pg.waitForSelector('[data-testid=ready-dest]', { timeout: 5000 }).catch(() => {});
+      const summary = pg.locator('[data-testid=ready-summary]');
+      const name = (await summary.getAttribute('aria-label', { timeout: 3000 }).catch(() => '')) ?? '';
+      await summary.focus({ timeout: 3000 }).catch(() => {});
+      await pg.keyboard.press('Enter');
+      await pg.waitForTimeout(1200);
+      const raised = await pg.locator('[data-testid=start-settings]').isVisible().catch(() => false);
+      check(raised && /0:00/.test(name) && /To Your spot/.test(name), `navigate-ready audit 6: Enter on the bar raises the settings, and its name says the numbers and where to (${raised}, "${name}")`);
+      if (raised) {
+        await pg.click('[data-testid=dest-clear]');
+        await pg.keyboard.press('Escape');
+        await settled(pg);
+      }
+    }
+
+    // audit 4: a drag up mid-memo is refused, and the bar is back at rest, never left part-way over Save.
+    {
+      const rest = await box(pg, 'ready-bar');
+      await pg.click('[data-testid=moment-voice]');
+      await pg.waitForSelector('[data-testid=moment-voice-save]', { timeout: 10000 });
+      await pg.waitForTimeout(1200);
+      await raise(pg);
+      const after = await box(pg, 'ready-bar');
+      check(rest && after && Math.abs(after.h - rest.h) <= 1 && (await pg.locator('[data-testid=moment-voice-save]').isVisible()),
+        `navigate-ready audit 4: a drag up mid-memo leaves the bar at rest, Save uncovered (${rest && Math.round(rest.h)} → ${after && Math.round(after.h)})`);
+      await pg.click('[data-testid=moment-voice-save]');
+      await pg.waitForTimeout(800);
+    }
+
+    // audit 5: the walk's options card leaves the stack's column free.
+    await pg.click('[data-testid=start]');
+    await pg.waitForSelector('[data-testid=stop]', { timeout: 15000 });
+    await pg.waitForTimeout(800);
+    await pg.click('[data-testid=walk-options]');
+    await pg.waitForSelector('[data-testid=options-card]');
+    {
+      const card = await box(pg, 'options-card');
+      const hit = [];
+      for (const id of ['cap-photo', 'cap-voice', 'cap-note', 'unwalked']) if (meets(card, await box(pg, id))) hit.push(id);
+      check(hit.length === 0, `navigate-ready audit 5: the options card covers none of the stack or the edge buttons (${hit.join(', ')})`);
+    }
+    await pg.click('[data-testid=walk-options]');
+    await pg.waitForTimeout(400);
+
+    // audit 11: a pill (a memo discarded, with Undo) clears the scale bar at 375 wide.
+    {
+      await pg.setViewportSize({ width: 375, height: 667 });
+      await pg.waitForTimeout(800);
+      await pg.click('[data-testid=cap-voice]');
+      await pg.waitForSelector('[data-testid=voice-save]', { timeout: 10000 });
+      await pg.waitForTimeout(1200);
+      await pg.click('[data-testid=voice-discard]');
+      await pg.waitForSelector('[data-testid=voice-undo]', { timeout: 5000 });
+      const scale = await pg.locator('[data-testid=scale-bar]').last().boundingBox().catch(() => null);
+      const pill = await pg.locator('[data-testid=voice-undo]').evaluate((e) => { const r = e.parentElement.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; });
+      check(scale && !meets(pill, { x: scale.x, y: scale.y, w: scale.width, h: scale.height }) && pill.x >= 0,
+        `navigate-ready audit 11: at 375 wide a pill clears the scale bar and the screen's edge (${JSON.stringify({ pill, scale })})`);
+      await pg.click('[data-testid=voice-undo]').catch(() => {});
+      await pg.setViewportSize({ width: 390, height: 844 });
+    }
+    await c.close();
+
+    // audit 7: from a launch at /, the chevron then the browser's back never reopens Navigate.
+    {
+      const { c: c2, pg: pg2 } = await freshPage('ready-audit-back');
+      await pg2.goto(url);
+      await pg2.waitForSelector('[data-testid=ready-bar]');
+      await pg2.waitForTimeout(1200);
+      await pg2.click('[data-testid=ready-close]');
+      await pg2.waitForTimeout(800);
+      await pg2.goBack().catch(() => {});
+      await pg2.waitForTimeout(1500);
+      const reopened = await pg2.locator('[data-testid=ready-bar]').count();
+      check(reopened === 0, `navigate-ready audit 7: from a launch, the chevron then Back doesn't reopen Navigate (${new URL(pg2.url()).pathname}, ${reopened})`);
+      await c2.close();
+    }
+  };
+
   try {
     if (process.env.E2E_ONLY === 'ready') {
       await readyScenario();
+      await readyAudit();
       check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
       return;
     }
@@ -3721,6 +3844,7 @@ function check(ok, what) {
     await tabsAudit();
     await gapsScenario();
     await readyScenario();
+    await readyAudit();
     {
       // Start with Explore and a destination: the walk opens exploring, heading there (NV25).
       const { c, pg } = await freshPage('start-explore');

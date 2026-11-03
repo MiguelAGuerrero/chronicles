@@ -57,8 +57,14 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
   strip (`at.pills`), right-aligned, so the stack never moves under the thumb. Zooming keeps following;
   only a pan or a turn stops it (web; native can't tell zoom from pan yet).
 - **The ready bar pulls up** (`components/walk/ReadyBar.tsx`, NR7): a drag on its grip or its numbers,
-  or a tap on them, raises it to about 88% of the screen with `StartSettings` in a scroll above Start;
-  a drag down, Back or Escape lowers it. Its own spring is the app's (M5) with a 0.5 px rest, and the
+  or a tap on them, raises it to 60% of the screen (`raisedHeight`) with `StartSettings` in a scroll
+  above Start; a drag down, Back or Escape lowers it. At 88% the range ring sat under it (audit 1), so
+  the map fits the ring into the part left above the bar. Mid-memo the bar takes no hold at all
+  (`locked`; audit 4: a refused raise once left it part-way over Save). The summary (`ready-summary`)
+  is the one button for a keyboard or screen reader: Enter, Space or `activate`, named with the numbers
+  and the destination (audit 6); the grip is hidden from assistive tech. The walk's cards sit above the
+  strip and left of the stack's column (`cardAt`, audit 5); the scale bar sits at `SCALE_BOTTOM` (80),
+  clear of one pill (audit 11). Its own spring is the app's (M5) with a 0.5 px rest, and the
   settings stay mounted until the lowering spring finishes, so the foot never jumps. The range ring
   shows on the map only while it is up in Explore. A long press on the ready map sets the destination
   (not while the bar is up or mid-memo); the resting bar then says `To <place> · <distance> away`.

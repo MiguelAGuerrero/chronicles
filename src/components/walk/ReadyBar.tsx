@@ -7,7 +7,7 @@ import { destLine } from '../../lib/startPlan';
 import type { Waypoint } from '../../lib/nav/types';
 import type { LngLat } from '../../lib/types';
 import { Button, theme } from '../ui';
-import { BAR_H, useStackLayout } from './layout';
+import { BAR_H, raisedHeight, useStackLayout } from './layout';
 
 /** The bar's spring: the app's one (M5), settled within a pixel, so the settings unmount soon after. */
 const SPRING = { ...MOTION.spring, restDisplacementThreshold: 0.5, restSpeedThreshold: 0.5, useNativeDriver: false };
@@ -30,12 +30,14 @@ export function ReadyBar(props: {
   fix: LngLat | null;
   starting: boolean;
   startDisabled: boolean;
+  /** Mid-memo nothing raises the bar: a drag or a tap is refused before it moves it (audit 4). */
+  locked: boolean;
   onStart: () => void;
   children: ReactNode;
 }) {
   const at = useStackLayout();
   const rest = BAR_H + at.insets.bottom;
-  const full = Math.max(rest, Math.round(Math.min(props.areaHeight * 0.88, props.areaHeight - at.insets.top - 56)));
+  const full = raisedHeight(props.areaHeight, rest);
   const { up } = props;
   const target = up ? full : rest;
   const [h] = useState(() => new Animated.Value(rest));
@@ -80,15 +82,19 @@ export function ReadyBar(props: {
       return;
     }
     const to = drag.current.from + moved > (rest + full) / 2;
-    if (to === up) Animated.spring(h, { toValue: target, ...SPRING }).start();
+    if (to === up) Animated.spring(h, { toValue: target, ...SPRING }).start(({ finished }) => finished && setShown(up));
     else props.onUp(to);
   };
+  const { locked } = props;
   const dragProps = {
-    onStartShouldSetResponder: () => true,
-    onMoveShouldSetResponder: () => true,
+    // Locked (a memo recording), the bar takes no hold at all, so it is never left part-way up (audit 4).
+    onStartShouldSetResponder: () => !locked,
+    onMoveShouldSetResponder: () => !locked,
     onResponderTerminationRequest: () => false,
     onResponderGrant: (e: GestureResponderEvent) => {
       drag.current = { y: e.nativeEvent.pageY, from: target, moved: false };
+      // The settings show as the bar is taken hold of, so a drag up never reveals an empty panel.
+      setShown(true);
       h.stopAnimation((v) => (drag.current.from = v));
     },
     onResponderMove: (e: GestureResponderEvent) => {
@@ -99,7 +105,19 @@ export function ReadyBar(props: {
     onResponderRelease: (e: GestureResponderEvent) => settle(e.nativeEvent.pageY),
     onResponderTerminate: (e: GestureResponderEvent) => settle(e.nativeEvent.pageY),
   };
-  const gripLabel = up ? 'Lower the walk settings' : 'Walk settings';
+  // One button for keyboards and screen readers (audit 6): Enter or Space on the web, activate on a phone;
+  // its name says the numbers and the destination, which its children would otherwise hide.
+  const toggle = () => !locked && props.onUp(!up);
+  const destText = props.dest ? `To ${destLine(props.dest, props.fix)}` : null;
+  const stats = `0:00 · ${formatDistance(0)}`;
+  const summaryLabel = [stats, destText, up ? 'Lower the walk settings' : 'Walk settings'].filter(Boolean).join('. ');
+  const keys = Platform.OS === 'web'
+    ? ({ onKeyDown: (e: { key: string; preventDefault: () => void }) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        toggle();
+      } } as object)
+    : {};
 
   return (
     <Animated.View testID="ready-bar" style={[styles.bar, { height: h }]}>
@@ -113,10 +131,9 @@ export function ReadyBar(props: {
       <View
         testID="ready-grip"
         {...dragProps}
-        accessible
-        accessibilityRole="button"
-        accessibilityLabel={gripLabel}
-        accessibilityState={{ expanded: up }}
+        // The summary below is the button for assistive tech; the grip is for the thumb.
+        accessible={false}
+        importantForAccessibility="no-hide-descendants"
         style={[styles.grip, { height: up ? GRIP_UP : 10 }]}
       >
         <View style={styles.handle} />
@@ -124,10 +141,22 @@ export function ReadyBar(props: {
       <View style={[styles.foot, { paddingBottom: 10 + at.insets.bottom }]}>
         <View style={styles.footInner}>
           {/* The numbers take hold of the bar too: a bigger target than the handle. */}
-          <View {...dragProps} style={styles.summary} accessible accessibilityRole="button" accessibilityLabel={gripLabel} accessibilityState={{ expanded: up }}>
-            <Text testID="walk-stats" style={styles.stats} numberOfLines={1}>{`0:00 · ${formatDistance(0)}`}</Text>
-            {props.dest && (
-              <Text testID="ready-dest" style={styles.dest} numberOfLines={1}>{`To ${destLine(props.dest, props.fix)}`}</Text>
+          <View
+            testID="ready-summary"
+            {...dragProps}
+            {...keys}
+            focusable
+            style={styles.summary}
+            accessible
+            accessibilityRole="button"
+            accessibilityLabel={summaryLabel}
+            accessibilityState={{ expanded: up, disabled: locked }}
+            accessibilityActions={[{ name: 'activate' }]}
+            onAccessibilityAction={(e) => e.nativeEvent.actionName === 'activate' && toggle()}
+          >
+            <Text testID="walk-stats" style={styles.stats} numberOfLines={1}>{stats}</Text>
+            {destText && (
+              <Text testID="ready-dest" style={styles.dest} numberOfLines={1}>{destText}</Text>
             )}
           </View>
           {/* Start just starts, where you are, with the saved choices (NV19, NV25); never waits on a fix (NV28). */}

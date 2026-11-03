@@ -26,7 +26,7 @@ import type { Capture, LngLat, Walk } from '../../lib/types';
 import type { MomentState } from '../../lib/useCaptures';
 import { LOCATE_FIT_M, useLocate } from '../../lib/useLocate';
 import { useStartWalk } from '../../lib/useStartWalk';
-import { BAR_H, CAP, useStackLayout } from './layout';
+import { BAR_H, CAP, raisedHeight, useStackLayout } from './layout';
 import { ReadyBar } from './ReadyBar';
 
 const NONE: never[] = [];
@@ -52,7 +52,7 @@ export function useReady(props: {
   onClose: () => void;
   /** Start was pressed: hold the walk back until its plan is written. */
   onStarting: () => void;
-  /** The walk is recording, with its notice params; `null` if it didn't start. */
+  /** The walk is recording, with its notice params (`error` when its plan failed); `null` if it didn't start. */
   onStarted: (params: Record<string, string> | null) => void;
 }) {
   // The destination line and the zero distance follow the units setting (QL16).
@@ -182,6 +182,10 @@ export function useReady(props: {
   }, [active, up, memoOn, close]);
 
   const ring = up && mode === 'explore' && fix ? { center: fix, radiusM: settings.rangeM } : null;
+  // The ring is framed in the map left above the raised bar (audit 1), refit as it appears or changes.
+  const raisedH = raisedHeight(screenH, BAR_H + at.insets.bottom);
+  const ringBox = ring ? boundsOf([ring.center], ring.radiusM * 1.15) : null;
+  const ringKey = ring ? 100000 + ring.radiusM : 0;
 
   /** The walk screen's one map, while no walk is open. */
   const mapProps = {
@@ -190,7 +194,8 @@ export function useReady(props: {
     fog: NONE,
     captures: momentPins,
     // Mid-memo, pins do nothing, so a memo is never cut short (moments audit).
-    onPinPress: (cs: Capture[]) => !memoOn && setViewing(cs),
+    // Nor with the bar up: one Escape would close the viewer and the bar (audit 12).
+    onPinPress: (cs: Capture[]) => !memoOn && !up && setViewing(cs),
     onViewChange: (v: { zoom: number }) => setPinZoom(v.zoom >= MOMENT_PIN_ZOOM),
     walker: fix,
     marks: dest ? [dest.at] : undefined,
@@ -200,9 +205,11 @@ export function useReady(props: {
       if (memoOn || up) return;
       chooseDest({ at: p, label: 'Your spot', kind: 'point' });
     },
-    fitBounds: fit.bounds,
-    fitKey: fit.key,
-    fitPadding: { top: at.insets.top + 72, right: 24 + CAP, bottom: 24, left: 24 },
+    fitBounds: ringBox ?? fit.bounds,
+    fitKey: ringBox ? ringKey : fit.key,
+    fitPadding: ringBox
+      ? { top: at.insets.top + 64, right: 24, bottom: raisedH - BAR_H - at.insets.bottom + 16, left: 24 }
+      : { top: at.insets.top + 72, right: 24 + CAP, bottom: 24, left: 24 },
     // Read once, as the map mounts: around the last fix, or the world.
     initialCenter: fix ?? WORLD.center,
     initialZoom: fix ? 16 : WORLD.zoom,
@@ -222,7 +229,10 @@ export function useReady(props: {
             accessibilityLabel="Close Navigate"
             accessibilityHint="Back to the tab you came from."
             onPress={close}
-            style={({ pressed }) => [styles.edgeBtn, pressed && styles.pressed]}
+            // Not while Start is on its way: the walk would open minimized, with nothing said (audit 10).
+            disabled={walkStart.starting}
+            accessibilityState={{ disabled: walkStart.starting }}
+            style={({ pressed }) => [styles.edgeBtn, walkStart.starting && styles.dim, pressed && styles.pressed]}
           >
             <Icon name="chevron-down" size={24} color={theme.ink} />
           </Pressable>
@@ -258,6 +268,7 @@ export function useReady(props: {
         fix={fix}
         starting={walkStart.starting}
         startDisabled={memoOn}
+        locked={memoOn}
         onStart={() => void start()}
       >
         <StartSettings
@@ -302,4 +313,5 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 3,
   },
   pressed: { opacity: 0.8 },
+  dim: { opacity: 0.5 },
 });

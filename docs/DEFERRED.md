@@ -120,3 +120,15 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - Rows of old builds stay until a purge, and every row (with its sketch) is read whole on each focus (explore-atlas audit 13)
 - Ring reads fetch overlapping tiles again for neighbouring areas: no tile-level de-duplication (explore-atlas audit 6)
 - Highlighting an area's dot on the small map as its tile scrolls to the top of the grid (atlas round 3, from the design review)
+
+## Navigate, ready
+
+- **A walk stopped from a second browser tab** while this tab's walk screen is up: the screen turns
+  ready in place, and a walk started there keeps the stopped walk's per-screen reads (credited streets,
+  the dead-zone nudge, the first-walk hint), so streets just credited show as fog (audit 13). Two tabs
+  on one origin are rare; a remount on a new walk id would fix it.
+- **Two pills at once overlap the scale bar at 375 wide** (the caption offer, then a memo discarded
+  within 6 s): one pill clears it (audit 11).
+- **The walk's settings panel** (`ExploreSettings`, from the walk options) still covers the stack while
+  open; it is a sheet with its own Cancel (audit 5).
+

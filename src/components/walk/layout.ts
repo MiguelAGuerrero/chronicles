@@ -21,6 +21,17 @@ export const EDGE = 44;
 /** Between the captures and the first edge button above them. */
 const EDGE_LIFT = 16;
 
+/** The map's scale bar above the strip: clear of a pill (60 tall) at the strip (audit 11). */
+export const SCALE_BOTTOM = 80;
+
+/**
+ * The ready bar pulled up (NR7): 60% of the screen, so the map above it still shows the range
+ * ring around you (audit 1: at 88% the ring was under the bar).
+ */
+export function raisedHeight(areaH: number, rest: number): number {
+  return Math.max(rest, Math.round(areaH * 0.6));
+}
+
 /** Capture slots, from the strip up: the camera nearest the thumb. */
 export type CapSlot = 'photo' | 'voice' | 'note';
 const CAP_INDEX: Record<CapSlot, number> = { photo: 0, voice: 1, note: 2 };
