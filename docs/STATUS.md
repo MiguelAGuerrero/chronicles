@@ -1,0 +1,142 @@
+# Chronicles: where the work stands
+
+The state of the work: which slices are shipped, in progress or queued, what
+every branch holds and what is waiting on the owner. Update it at the start and
+end of every slice, and whenever a branch is opened, merged or abandoned. For
+what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md`.
+
+- **As of:** 2026-11-03
+- **`origin/main` head:** `7a34666` (2026-11-03, "docs: the quality-of-life slice
+  in AGENTS.md and the product synopsis"). The commit before it, `679d8cb`, is
+  the last code change (QL1-QL8, QL10).
+- **Spec:** the owner's "Explorer App Concept" doc in Claude Docs, mirrored tab by
+  tab under `specs/<slug>/spec.md`. The status words in the doc's tab names
+  ("queued", "in progress", "spec draft") lag the code; this table is judged from
+  the git log and `AGENTS.md`, with the evidence commit beside each status.
+
+## Slices
+
+| Slice (spec tab) | Status | Evidence (last related commit on main) | Spec | Audited |
+|---|---|---|---|---|
+| Explorer App Concept (v0: record, capture, replay, storage; round 3) | shipped | `7cf5ab1` 2026-10-31 round 3; `565b244` 2026-10-31 | `specs/concept/spec.md` | yes (two audit rounds `7936f48`, `ce6dd26`; round-3 audit `712fdf8`) |
+| v0.5: memory and places (areas, the home map, navigate) | shipped (AGENTS.md's "in progress" is stale) | `9abcea3` 2026-10-31 navigate audit fixes; `f522c2d` 2026-10-31 walk me back | `specs/v0.5-places/spec.md` | yes (`5581fa7`, `2c98466`, `9abcea3`) |
+| v1: discovery (places, Explore, Remind me here, notifications) | shipped (AGENTS.md's "in progress" is stale) | `ddf9cf9` 2026-11-01 Explore audit fixes; `df7ffa7` 2026-11-01 notifications; `bf310ea` 2026-11-02 | `specs/v1-discovery/spec.md` | yes (`ddf9cf9`, `6cca86f`, `b9ba5c0`) |
+| v1.5: landing (What's good here, on the walk) | shipped; L10, L13, L16 retired by Explore | `2372244` 2026-10-31 slice 3 audit fixes; `fe365ab` 2026-10-31 | `specs/v1.5-landing/spec.md` | yes (`819d02f`, `2372244`) |
+| Polish: motion (timings, press, sheet spring, the deferred four) | shipped | `e59460d` 2026-11-01 deferred four; `2ef7257` 2026-11-01 audit fixes | `specs/polish-motion/spec.md` | yes (`40bf9ea`, `2ef7257`) |
+| Memories on revisit (faint pins, previews, thumbnails) | shipped | `0db86c7` 2026-11-01 audit fixes; `61dc468` 2026-11-01 thumbnails audit | `specs/memories-on-revisit/spec.md` | yes (`0db86c7`, `61dc468`) |
+| Rides | shipped | `8e49c9c` 2026-11-01 rides audit fixes | `specs/rides/spec.md` | yes (14 findings, 11 fixed, `8e49c9c`) |
+| Moments and days | shipped | `03e801d` 2026-11-01; `1b4853e` 2026-11-02 day replay fix | `specs/moments-and-days/spec.md` | yes ("After the audit" in AGENTS.md; `9187b3c`) |
+| Navigation & tabs (three tabs, drawer, minimize, recording bar) | shipped | `6fe5a2a` 2026-11-01 phase 1; `2cc38d7` 2026-11-02 audit; `d3b9770` 2026-11-03 | `specs/navigation-and-tabs/spec.md` | yes, two batches (`2cc38d7`, `a3bdc45`..`0a79e05`) |
+| Clearing walks and moments | shipped | `b2bfcf7` 2026-11-01 audit fixes; `e59d65f` 2026-11-01 | `specs/clearing-walks-and-moments/spec.md` | yes (13 findings, 8 fixed, `b2bfcf7`) |
+| Places worth the stop | queued (no commit on main mentions it) | none | `specs/places-worth-the-stop/spec.md` | no |
+| Motion (steps from the phone's sensors, MO1-MO10) | shipped | `09f504a` 2026-11-01; `8edc09b` 2026-11-01 audit fixes; `93ef082` 2026-11-01 | `specs/motion/spec.md` | yes (11 findings, 9 fixed, `8edc09b`) |
+| Quality of life | partly shipped: QL1-QL12 (markers, scale bar, Locate); the rest deferred in the owner's order (see AGENTS.md "Quality of life") | `dc8f249`, `83ccfcf`, `679d8cb`, `7a34666` all 2026-11-03 | `specs/quality-of-life/spec.md` | no (no audit commit on main; a round 2 session was starting on Nov 3) |
+| Filling gaps (streets walked across a gap in the trace) | in progress on `origin/claude/filling-gaps`, not merged | branch: `2a0501e`, `3a08a53` 2026-11-03 | `specs/filling-gaps/spec.md` | on the branch (`3a08a53` "fixes after the audit"); not on main |
+| Bridges and Open in Maps (NB1-NB7, NH1-NH8) | in progress on `origin/claude/bridges-open-in-maps`, not merged | branch: `8232ed1`, `457e727`, `68dc43c` 2026-11-03 | `specs/bridges-and-open-in-maps/spec.md` | on the branch (`457e727` "bridges audit 1-4, 6-8, 11"); not on main |
+
+Not a tab, but tracked: **suggested routes** (interesting ways, route preview,
+"Walk this way") are deferred as their own later slice (`749811d` 2026-11-01).
+**Backup and export** has code (`lib/export`) and no UI (deferred, `565b244`).
+
+**Native has never run on a device.** Every slice above is verified on the web
+build only; each AGENTS.md section lists its unverified native parts.
+
+## Branches
+
+Every `origin/*` branch as of 2026-11-03 (dates are the last commit's).
+"Ahead" is `git log origin/main..<branch>`; "merged" is `git branch -r --merged
+origin/main`. A clone of this repo may be shallow (history before Nov 1 missing),
+which reports "no merge base" and inflated counts; run `git fetch --unshallow`
+first.
+
+| Branch | Last commit | Ahead | Merged | Holds | Disposition |
+|---|---|---|---|---|---|
+| `claude/bridges-open-in-maps` | 2026-11-03 | 3 | no | bridges cross without a turn, Open in Maps, its audit fixes and an e2e fix (17 files, +809) | pending decision (merge or PR) |
+| `claude/bridges-open-in-maps-rebased` | 2026-11-03 | 3 | no | the same three commits replayed onto main; its tree differs from the first copy, so they are not identical | pending decision: keep one of the two, delete the other |
+| `claude/clear-storage` | 2026-11-01 | 0 | yes | Clearing walks and moments (D1-D11) with its audit fixes | merged |
+| `claude/filling-gaps` | 2026-11-03 | 2 | no | Filling gaps: inferred streets across a trace gap, spec G1-G14, 12 audit fixes (28 files, +1710) | pending decision (its session asked: PR, or merge, which deploys the web build) |
+| `claude/functional-core-foundations` | 2026-11-01 | 3 | no | `Ports` type and real instance, in-memory fakes with one call log, a `Db` contract suite, typed `meta.ts`, `Store`/`useStore`, ESLint boundary rules, an AGENTS.md style section; plus its own copy of the fog-streak fix (`98faa36`), which main has as `2b0cdfe` | pending decision (see Needs the owner) |
+| `claude/rides` | 2026-11-01 | 0 | yes | Rides (R1-R14) and its audit fixes | merged |
+| `docs/product-synopsis` | 2026-11-03 | 0 | yes | `docs/PRODUCT.md` and the QL section of AGENTS.md; fast-forwarded, it is main's head | merged |
+| `explore` | 2026-11-01 | 0 | yes | Explore (v1 slice 5) and its audit fixes | merged |
+| `fix-standstill-jitter` | 2026-11-01 | 0 | yes | GPS wander settled when a trace is read | merged |
+| `foundation` | 2026-10-29 | 2 | no | the first prototype: a Swift walk-recorder Expo module, an unsigned-IPA workflow, `docs/concept.md` and implementation research (27 files, +7920); main restarted from a new Expo app the next day (`a14483e`) and holds none of it | unknown (looks abandoned; nothing on main records why, and `docs/concept.md` never reached main) |
+| `gps-log` | 2026-11-01 | 0 | yes | Share GPS log in the walk options | merged |
+| `live-dot` | 2026-11-01 | 1 | no | the live dot (Kalman per axis, glide) | superseded: its one commit is patch-identical to main's `7263546` (merged through `motion`/`web-prototype`) |
+| `moments-and-days` | 2026-11-01 | 0 | yes | Moments and days (M1-M17), thumbnails, audit fixes | merged |
+| `motion` | 2026-11-03 | 0 | yes | Motion (MO1-MO10), the live dot, then the tabs audit and "no drawer with a walk minimized" | merged |
+| `navigate-start-dialog` | 2026-11-03 | 2 | no | Navigate's drawer settings as one dialog opened from a summary line under Start; a tall sheet with a grip (5 files, +315 -178) | pending decision (merge or PR) |
+| `notifications` | 2026-11-01 | 1 | no | "Replay opens at once after Stop, even when the tile host stalls" | superseded: patch-identical to main's `2195bb5`; the notifications slice itself is on main (`df7ffa7`) |
+| `smooth-walker-dot` | 2026-10-31 | 1 | no | the first smoothed walker dot (glide, replay dot at ~30 fps) | superseded by main's `8e77db9` (same title, reworked on `web-prototype`), then by the live dot `7263546` |
+| `web-prototype` | 2026-11-02 | 0 | yes | the long-running web branch: tabs, the recording bar, the tabs audits | merged |
+
+Local only, not on origin: `claude/agent-friendly-bootstrap` (this file, the
+specs mirror and the agent set-up).
+
+## Needs the owner
+
+- **`claude/functional-core-foundations`:** merge it, cherry-pick only the ESLint
+  boundary rules (`eslint.config.js`), or close it. It is additive (1,136 lines,
+  no existing module changes behaviour) and is the first step of the roadmap in
+  the "Chronicles: functional core assessment" doc
+  (https://claude.ai/artifact/NvVJu2kspKdmY2DFgXTvz1, 2026-11-01), which assumed it
+  would merge. It never did, nothing on main says why, and every slice since
+  (Nov 1-3) was written without ports or fakes, so a merge now needs the
+  allow-lists in its lint rules refreshed and its `meta.ts` schema brought up to
+  the keys added since (`explore_*`, `notify_off`, `day_watched:*`, `nav`, ...).
+- **`WALKED_THRESHOLD` (0.5)** in snapping is "still an open product decision"
+  (AGENTS.md, Streets, fog and snapping).
+- **Two things are named Explore:** the tab and the walk's mode (AGENTS.md,
+  Positioning, "Open (in the doc)").
+- **The replay's "Passed ... without stopping" low:** whether it stays (now in
+  words, U13).
+- **What the Explore tab lists in a city** where AllTrails lists trails.
+- **The device milestone:** native has never run on a phone. The concept doc's
+  first milestone, a pocketed walk whose trace survives the screen being off, is
+  open; every "Native (unverified on a device)" list in AGENTS.md waits on it.
+- **`foundation`:** keep as history or delete; its `docs/concept.md` is the
+  only copy of the concept in the repo.
+- **The two `bridges-open-in-maps` branches:** which one is the keeper.
+- **Merging Nov 3 branches deploys** (Pages publishes from main): `filling-gaps`,
+  `bridges-open-in-maps`, `navigate-start-dialog` each wait for a merge or a PR.
+- **Suggested routes** (deferred Nov 1) and the rest of Quality of life
+  (QL13+, in the owner's order: units, time left, a Settings link when location is
+  denied, renaming a walk, editing a note, thumbnails on pins, month headers,
+  keep awake, GPX export, the current street chip, dark mode): when, and which next.
+
+## In flight
+
+Other sessions edit this table. Add a row when you start a slice (session title,
+branch, what you are doing); remove it when the branch is merged or abandoned,
+and move its row to Branches with a disposition. Pre-filled from the branches
+active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
+
+| Session | Branch | Doing |
+|---|---|---|
+| Agent-friendly repo structure | `claude/agent-friendly-bootstrap` (local) | this file, `specs/` mirror of the concept doc, skills and an auditor agent |
+| GPS inference feature planning | `claude/filling-gaps` | Filling gaps (G1-G14) built and audited; waiting on merge-or-PR |
+| Navigation bridge routing issue | `claude/bridges-open-in-maps` (+ `-rebased`) | Bridges and Open in Maps (NB1-NB7, NH1-NH8) built and audited; waiting on merge-or-PR |
+| Navigation settings drawer redesign | `navigate-start-dialog` | Navigate's settings as one dialog under Start |
+| Quality of life navigation features | (no branch on origin yet) | QL round 2: reading the code each remaining feature touches for its spec |
+| Bug fixes (open since Oct 31) | unknown | unknown |
+
+## Updating this file
+
+- Head and dates: `git fetch origin --prune` (and `git fetch --unshallow` in a
+  shallow clone), then `git log -1 --format='%h %ad %s' --date=short origin/main`.
+- The branch table, one line per branch:
+  ```
+  for b in $(git branch -r | grep -v 'origin/main$' | grep -v HEAD); do
+    echo "$b | ahead=$(git log --oneline origin/main..$b | wc -l) \
+    | last=$(git log -1 --format='%ad %s' --date=short $b) \
+    | merged=$(git branch -r --merged origin/main | grep -qx "  $b" && echo yes || echo no) \
+    | $(git diff --stat origin/main...$b | tail -1)"; done
+  ```
+  `git cherry origin/main <branch>` tells a superseded branch (every commit
+  `-`, already on main by patch) from one with real work (`+`).
+- Slice status: the spec tabs' numbered criteria against `git log --grep` for
+  their prefixes (QL, NB, G, M, R, D, U, NV, MO), and AGENTS.md's "After the
+  audit" / "Audited" lines for the audited column.
+- Needs the owner: AGENTS.md's "Open (in the doc)", "open product decision",
+  "Deferred" and "the owner's call" lines, plus any branch whose session ended on
+  a question.

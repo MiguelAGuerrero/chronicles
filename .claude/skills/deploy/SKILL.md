@@ -1,0 +1,77 @@
+---
+name: deploy
+description: Deploy the web build to GitHub Pages by pushing main (the only branch Pages accepts), after the full suite including the e2e against the sub-path build is green, STATUS.md is updated and the slice is audited; then check the Pages run with the GitHub MCP tools. Use only when the owner asks to deploy, ship or release.
+when_to_use: The owner says deploy, ship, release, publish, or merge to main.
+disable-model-invocation: true
+allowed-tools: Bash, Read, Grep, Glob, mcp__github__actions_list, mcp__github__actions_get, mcp__github__get_job_logs
+---
+
+# Deploy
+
+A push to `main` runs `.github/workflows/pages.yml`: `npm ci`, typecheck,
+`npm test`, `expo export --platform web` with `CHRONICLES_BASE_URL=/chronicles`
+(which `app.config.js` turns into `experiments.baseUrl`), `dist/index.html`
+copied to `404.html` (Pages has no app-route fallback; a reload on
+`/chronicles/walk` must resume the walk), then GitHub Pages at
+https://miguelaguerrero.github.io/chronicles/.
+
+## The owner's rules
+
+- `main` is the only branch the Pages environment accepts.
+- Merge to `main` only after the slice's audit fixes pass the full suite.
+- Never add a server, an account, or anything that leaves the device.
+
+## 1. Preconditions (all of them)
+
+```bash
+git status --short                       # clean, on the branch to ship
+npm run typecheck && npm run lint && npm test
+CHRONICLES_BASE_URL=/chronicles npm run export:web && E2E_BASE=/chronicles npm run e2e:web
+```
+
+- The e2e runs against the sub-path build, as Pages serves it.
+- `docs/STATUS.md` is updated: the slice's row shows its audit counts.
+- The slice was audited (`/audit`) and its accepted findings are fixed.
+- `docs/PRODUCT.md` says what shipped. Run `/docs-gc` if it was not run.
+
+Stop if any precondition fails; say which.
+
+## 2. Push main
+
+```bash
+git fetch origin main
+git log --oneline origin/main..HEAD      # what ships
+git checkout main && git merge --ff-only <branch>   # or the owner's merge
+git push origin main
+```
+
+Push only what the owner agreed to ship. If a fast-forward is not possible,
+show the owner the divergence before merging.
+
+## 3. Check the run
+
+`gh` is not available in cloud sessions; use the GitHub MCP tools:
+
+1. `actions_list` for `miguelaguerrero/chronicles`, workflow
+   `pages.yml`, newest first.
+2. `actions_get` on the run until it is `completed`; `get_job_logs` on a
+   failed job.
+3. Open https://miguelaguerrero.github.io/chronicles/ and confirm the build
+   is the new one (a changed screen, or the commit's visible change).
+
+## 4. If the export fails
+
+1. Read the job log: the failing step is typecheck, test or export.
+2. Reproduce it locally with the same command and
+   `CHRONICLES_BASE_URL=/chronicles`.
+3. A worker-asset error: `scripts/copy-maplibre-worker.js` (postinstall) must
+   have put `maplibre-gl-worker.mjs` in `public/`; `setWorkerUrl` prefixes
+   `process.env.EXPO_BASE_URL`.
+4. A route 404 after deploy: the `404.html` copy step, or a path not under
+   the base URL.
+5. Fix on a branch, rerun the preconditions, push `main` again. Never fix on
+   the Pages artifact or by hand.
+
+## Report
+
+The commit deployed, the run's URL and result, and the page checked.
