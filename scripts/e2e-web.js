@@ -112,6 +112,12 @@ function check(ok, what) {
     args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--autoplay-policy=user-gesture-required'],
   });
   const start = at(-0.5, -0.5);
+  // Headless Chromium reports en-US, whose default is miles (QL13). The checks read metres, so every
+  // context tells the app's units default it is in Canada; formatting is untouched. E2E_MILES=1 keeps en-US.
+  const metricRegion = (c) => (process.env.E2E_MILES ? Promise.resolve() : c.addInitScript(() => {
+    const ro = Intl.DateTimeFormat.prototype.resolvedOptions;
+    Intl.DateTimeFormat.prototype.resolvedOptions = function () { return { ...ro.call(this), locale: 'en-CA' }; };
+  }));
   const ctx = await browser.newContext({
     viewport: { width: 390, height: 844 },
     permissions: ['geolocation', 'microphone', 'notifications'],
@@ -128,6 +134,7 @@ function check(ok, what) {
       value: { get type() { return type; }, set type(v) { type = v; seen.push(v); } },
     });
   });
+  await metricRegion(ctx);
   // Opt-in render and map-update counters (src/lib/perfCount.ts).
   await ctx.addInitScript(() => { window.__perf = {}; });
   // Open in Maps (NH1-NH7): links the app opens are recorded, never followed.
@@ -289,6 +296,7 @@ function check(ok, what) {
       permissions: opts.permissions ?? ['geolocation'],
       geolocation: { longitude: start[0], latitude: start[1], accuracy: 6 },
     });
+    await metricRegion(c);
     await c.route('https://tiles.openfreemap.org/**', tileRoute);
     c.on('request', (r) => { const u = new URL(r.url()); if (/^(https?|wss?):$/.test(u.protocol)) hosts.add(u.host); });
     const pg = await c.newPage();
@@ -1224,8 +1232,9 @@ function check(ok, what) {
     // Units (QL13-QL16): the dialog's Distances segment, defaulting from the locale, switches the scale
     // bar to feet or miles and back. The dialog is closed before each read, so the bar is the one in front.
     {
-      const lang = await pg.evaluate(() => navigator.language);
-      const wantMi = /^(en-US|en-GB|en-LR|my-MM)$/i.test(lang);
+      // The region the app's default reads (the harness reports en-CA unless E2E_MILES=1).
+      const lang = await pg.evaluate(() => Intl.DateTimeFormat().resolvedOptions().locale);
+      const wantMi = /-(US|GB|LR|MM)$/i.test(lang);
       await drawerTo(pg, 'full');
       const km = pg.locator('[data-testid=units-km]');
       const mi = pg.locator('[data-testid=units-mi]');
@@ -2810,6 +2819,7 @@ function check(ok, what) {
         permissions: ['geolocation', 'microphone'],
         geolocation: { longitude: start[0], latitude: start[1], accuracy: 6 },
       });
+      await metricRegion(ctx2);
       await ctx2.route('https://tiles.openfreemap.org/**', tileRoute);
       ctx2.on('request', (r) => { const u = new URL(r.url()); if (/^(https?|wss?):$/.test(u.protocol)) hosts.add(u.host); });
       // Location watches started and cleared, so a moment is seen to leave none running (M5).
@@ -2996,6 +3006,7 @@ function check(ok, what) {
         permissions: ['geolocation'],
         geolocation: { longitude: start[0], latitude: start[1], accuracy: 10 },
       });
+      await metricRegion(ctx3);
       await ctx3.route('https://tiles.openfreemap.org/**', tileRoute);
       await ctx3.addInitScript(() => {
         window.__perf = {};

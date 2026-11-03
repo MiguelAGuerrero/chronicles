@@ -14,6 +14,12 @@ import { getUnits, onUnits, setUnits, unitsForLocale } from '../units';
 const FT = 0.3048;
 const MI = 1609.344;
 
+test('QL13 regression: a fresh store starts at km, whatever the machine\'s locale (round 2 broke the deploy on en-US)', async () => {
+  // A fresh module instance, untouched by the other tests here: the region default is applied only at launch.
+  const fresh = (await import(`../units.ts?fresh=${Date.now()}`)) as typeof import('../units');
+  assert.equal(fresh.getUnits(), 'km');
+});
+
 test('QL13: the default follows the locale region: US, GB, LR and MM get miles', () => {
   for (const l of ['en-US', 'en-GB', 'en-LR', 'my-MM']) assert.equal(unitsForLocale(l), 'mi', l);
 });

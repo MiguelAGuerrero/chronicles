@@ -101,6 +101,7 @@ change touches as well as the full flow. Each ends with a no-console-errors chec
 | variable | effect |
 |---|---|
 | `E2E_ONLY=<scenario>` | run one scenario alone, in a fresh browser context |
+| `E2E_MILES=1` | keep the browser's en-US region, so distances default to miles; by default every context reports en-CA to the units default (QL13) |
 | `E2E_SOFT=1` | a failed check prints `not ok - ...` and the run goes on; a throwing `step()` too. For seeing every failure on code from before a fix |
 | `E2E_MOBILE=1` | fresh contexts get a touch screen (`isMobile`, `hasTouch`, 3x), so taps come as touches |
 | `E2E_SHOTS=<dir>` | a screenshot of each screen along the way (`shot(pg, name)`) |

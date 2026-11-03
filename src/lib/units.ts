@@ -26,7 +26,9 @@ export function deviceLocale(): string | undefined {
   }
 }
 
-let units: Units = unitsForLocale(deviceLocale());
+// km until the app's launch reads the saved setting or the device's region (`unitsStore.loadUnits`),
+// so pure code and its tests never depend on the machine's locale (round 2's deploy broke on that).
+let units: Units = 'km';
 const listeners = new Set<() => void>();
 
 export function getUnits(): Units {

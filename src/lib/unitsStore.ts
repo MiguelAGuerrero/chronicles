@@ -1,13 +1,13 @@
 import { db } from './db';
-import { isUnits, setUnits, type Units } from './units';
+import { deviceLocale, isUnits, setUnits, unitsForLocale, type Units } from './units';
 
 /** Meta: the units setting, 'km' or 'mi' (QL13). Unset, the locale's default shows. */
 export const UNITS_KEY = 'units';
 
-/** Reads the saved setting into the store at launch; nothing saved leaves the locale's default. */
+/** At launch: the saved setting, else the device region's default (QL13). The store starts at km. */
 export async function loadUnits(): Promise<void> {
-  const v = await db.getMeta(UNITS_KEY);
-  if (isUnits(v)) setUnits(v);
+  const v = await db.getMeta(UNITS_KEY).catch(() => null);
+  setUnits(isUnits(v) ? v : unitsForLocale(deviceLocale()));
 }
 
 /** Sets the store first, so every screen redraws at once, then keeps it (QL16). */

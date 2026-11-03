@@ -151,4 +151,8 @@ The three tabs (Explore, Navigate, Chronicle), the home sheet, the recording bar
   change (the recording bar, a walks list row, the maps' scale bar) calls `useUnits()`
   so it redraws. The setting is the Start dialog's "Distances" segment (`units-km`,
   `units-mi`). The e2e's headless Chromium reports en-US, so the default there is
-  miles: the `qol` scenario reads the locale and forces km before its metre checks.
+  miles. The store starts at km and only `loadUnits` at launch applies the device
+  region's default, so pure code and `npm test` never depend on the machine's locale
+  (round 2's deploy failed on that: Node and the CI runner report en-US). The e2e gives
+  every context a metric region (`metricRegion`: `resolvedOptions().locale` reads
+  en-CA, formatting untouched); `E2E_MILES=1` keeps en-US.
