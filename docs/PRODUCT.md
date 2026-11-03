@@ -62,9 +62,12 @@ recording bar brings a minimized walk back.
 ### Navigate (during)
 
 - A drawer whose foot is **Start walk**: one tap starts recording where you
-  are, with the saved settings and the destination if one is set. Pulled up,
-  the drawer holds the extras: quiet or Explore mode, "What I'm into" and the
-  "?" range, the destination (a long press on the map), reminders and alerts.
+  are, with the saved settings and the destination if one is set. Under Start,
+  a summary line ("Quiet", "Explore · Your spot · 120 m away") opens a **walk
+  settings dialog** (as does a pull on the grip): quiet or Explore mode, the
+  destination (a long press on the map, set with the dialog closed), "What I'm
+  into" and the "?" range (Explore only), reminders and alerts, all in one
+  scroll with its own Start walk.
 - A capture row (camera, mic, pencil) sits above the drawer, so a moment can
   be kept with no walk open ("jot it down"). Such a loose moment is stored at
   once and placed when its one fix arrives; nothing tracks between moments.

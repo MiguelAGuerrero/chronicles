@@ -60,10 +60,10 @@ update it when a slice ships or a feature changes.
   before (busy areas, places to find, later the interesting ways through an area),
   Navigate during (the way, quick capture, the walk), Chronicle after (moments,
   walks, replays, revisits).
-- **Start just starts; the drawer holds the extras** (the owner's call, Nov 1,
-  after AllTrails' Navigate page; spec rev 31). Start sits at the drawer's peek and
+- **Start just starts; a dialog holds the extras** (the owner's call, Nov 1, after
+  AllTrails' Navigate page; spec rev 31; the extras became a dialog on Nov 3). Start sits at the drawer's peek and
   starts at once where you are, with the saved choices and the destination if one is
-  set. Pulling the drawer up shows the additional settings: quiet or Explore, what
+  set. The peek's summary line opens the additional settings: quiet or Explore, what
   I'm into and the range, the destination (a long press on Navigate's map),
   reminders and alerts. Walk here stays a one-tap start from Chronicle and Explore
   and never fills the drawer.
@@ -986,6 +986,23 @@ update it when a slice ships or a feature changes.
   removal, `Directory.size`, the Undo pill over the viewer's Modal, the
   background commit, and `router.dismissTo` right after the actions Modal
   closes (iOS can drop a navigation during a Modal's dismissal).
+
+## Navigate's settings are a dialog (the owner's call, Nov 3)
+
+- The drawer no longer pulls up through half and full heights (the settings were
+  split from Start, which was unintuitive). It stays at its peek: Start, and a
+  summary line under it (`start-options`, text `peek-choices`: the mode, then
+  the destination). A tap on the line, or a pull on the grip, opens
+  `StartDialog` (`components/StartDialog.tsx`, `components/Modal`): mode,
+  destination, "?" range and what I'm into (Explore only), pocket alert,
+  reminders and alerts, in one scroll, with its own Start walk. Every choice
+  saves as it changes; Done and Escape only close it. Start still just starts.
+  Nothing opens mid-memo or with a walk open.
+- The range ring shows on the map only while the dialog is open in Explore.
+  A destination is still a long press on the map, so the dialog says to close it
+  first. Native (unverified on a device): the Modal over the tab map.
+- `drawerTo(pg, 'half' | 'full')` in the e2e opens the dialog; `'peek'`
+  closes it with Escape.
 
 ## Navigation & tabs: after the audit (the owner's calls, Nov 2)
 

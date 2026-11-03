@@ -197,8 +197,23 @@ function check(ok, what) {
       g.onsuccess = () => resolve(g.result?.value ?? null);
     };
   }), key);
-  // Navigate's drawer to a height: a tap on the handle opens it to half, a drag takes it to the top, Escape lowers it.
+  // Navigate's drawer has one height now: 'half' and 'full' open its settings dialog (the summary line under
+  // Start), 'peek' closes it with Escape. Other sheets (home, Explore) still go by their own handles.
   const drawerTo = async (pg, size, testid = 'drawer-drag') => {
+    if (testid === 'drawer-drag') {
+      const open = (await pg.locator('[data-testid=start-dialog]').count()) > 0;
+      if (size === 'peek') {
+        if (open) {
+          await pg.keyboard.press('Escape');
+          await pg.waitForTimeout(400);
+        }
+      } else if (!open) {
+        await pg.click('[data-testid=start-options]');
+        await pg.waitForSelector('[data-testid=start-dialog]');
+        await pg.waitForTimeout(400);
+      }
+      return;
+    }
     if (size === 'peek') {
       await pg.keyboard.press('Escape');
       await pg.waitForTimeout(600);
@@ -329,9 +344,9 @@ function check(ok, what) {
 
     });
     await step('tabs audit U1, U4, U12 in the drawer', async () => {
-      // tabs audit U1: Start and the capture row stay docked low and tappable at peek, half and full.
-      const docked = async (size) => {
-        if (size !== 'peek') await drawerTo(pg, size);
+      // tabs audit U1: Start and the capture row stay docked low and tappable at the peek.
+      const r = await (async () => {
+        const vh = pg.viewportSize().height;
         const out = [];
         for (const id of ['moment-photo', 'moment-voice', 'moment-note', 'start']) {
           const b = await pg.locator(`[data-testid=${id}]`).boundingBox();
@@ -339,24 +354,39 @@ function check(ok, what) {
           out.push(b && hit === id && b.y > vh * 0.6 ? 'ok' : `${id}:${b && Math.round(b.y)}:${hit}`);
         }
         return out;
-      };
-      const heights = {};
-      for (const size of ['peek', 'half', 'full']) {
-        const r = await docked(size);
-        heights[size] = Math.round((await pg.locator('[data-testid=navigate-drawer]').boundingBox()).height);
-        check(r.every((x) => x === 'ok'), `tabs audit U1: at ${size}, Start and the camera, mic and pencil sit low on the screen and can be tapped (${r.join(', ')})`);
+      })();
+      check(r.every((x) => x === 'ok'), `tabs audit U1: Start and the camera, mic and pencil sit low on the screen and can be tapped (${r.join(', ')})`);
+      // Nov 3: the drawer doesn't pull up; its summary line opens one dialog with every setting in one scroll.
+      const peekBox = await pg.locator('[data-testid=navigate-drawer]').boundingBox();
+      await drawerTo(pg, 'half');
+      check((await pg.locator('[data-testid=start-dialog]').count()) === 1 && (await pg.locator('[data-testid=mode-quiet]').isVisible())
+        && (await pg.locator('[data-testid=notify-settings]').count()) === 1 && (await pg.locator('[data-testid=kind-churches]').count()) === 0,
+        'Nov 3: the summary line opens one dialog: the mode, the destination, reminders and alerts (no kinds with Quiet)');
+      await drawerTo(pg, 'peek');
+      check((await pg.locator('[data-testid=start-dialog]').count()) === 0 && Math.round((await pg.locator('[data-testid=navigate-drawer]').boundingBox()).height) === Math.round(peekBox.height),
+        'Nov 3: Escape closes the dialog, and the drawer is as it was');
+      // A pull on the grip opens the dialog too, and the drawer itself doesn't move.
+      {
+        const hb = await pg.locator('[data-testid=drawer-drag]').boundingBox();
+        await pg.mouse.move(hb.x + hb.width / 2, hb.y + 8);
+        await pg.mouse.down();
+        await pg.mouse.move(hb.x + hb.width / 2, 120, { steps: 8 });
+        await pg.mouse.up();
+        await pg.waitForTimeout(600);
+        check((await pg.locator('[data-testid=start-dialog]').count()) === 1, 'Nov 3: a pull on the grip opens the dialog');
+        await drawerTo(pg, 'peek');
       }
-      check(heights.peek < heights.half && heights.half < heights.full, `tabs audit U1: the drawer still opens to its three heights (${JSON.stringify(heights)})`);
-      // At full the settings scroll above the row and Start: the last setting can be brought above the row.
+      await drawerTo(pg, 'half');
+      // The settings scroll above the dialog's own Start: the last setting can be brought into view inside it.
       {
         await pg.locator('[data-testid=notify-test]').scrollIntoViewIfNeeded();
         await pg.waitForTimeout(300);
         const btn = await pg.locator('[data-testid=notify-test]').boundingBox();
-        const row = await pg.locator('[data-testid=moment-photo]').boundingBox();
-        check(btn && btn.y + btn.height <= row.y, `tabs audit U1: the drawer's settings scroll above the capture row, never under it (${btn && Math.round(btn.y + btn.height)} ≤ ${Math.round(row.y)})`);
+        const foot = await pg.locator('[data-testid=start-dialog-start]').boundingBox();
+        check(btn && btn.y + btn.height <= foot.y, `Nov 3: the dialog's settings scroll above its Start walk, never under it (${btn && Math.round(btn.y + btn.height)} ≤ ${Math.round(foot.y)})`);
       }
       // tabs audit U12: no second "Notifications" heading under "Reminders and alerts".
-      const heads = await pg.locator('[data-testid=navigate-drawer] [role=heading]').allInnerTexts();
+      const heads = await pg.locator('[data-testid=start-dialog] [role=heading]').allInnerTexts();
       check(heads.includes('Reminders and alerts') && !heads.includes('Notifications'), `tabs audit U12: Reminders and alerts, with no Notifications heading under it (${heads.join(', ')})`);
       // tabs audit U4: a whole switch row flips its switch, tapped on its words.
       {
@@ -390,12 +420,7 @@ function check(ok, what) {
       await pg.locator('[data-testid=mode-quiet]').scrollIntoViewIfNeeded();
       await pg.click('[data-testid=mode-quiet]');
       await drawerTo(pg, 'peek');
-      await drawerTo(pg, 'half');
-      // tabs audit U12: opened, the line under Start doesn't repeat the mode shown above it.
-      const halfLine = await pg.locator('[data-testid=peek-choices]').allInnerTexts();
-      check(!halfLine.some((t) => /Quiet|Explore/.test(t)), `tabs audit U12: at half, the line under Start doesn't repeat the mode (${JSON.stringify(halfLine)})`);
-      await drawerTo(pg, 'peek');
-      check((await pg.locator('[data-testid=peek-choices]').innerText()) === 'Quiet', 'tabs audit U12: at the peek, the line still says the mode');
+      check((await pg.locator('[data-testid=peek-choices]').innerText()) === 'Quiet', 'tabs audit U12: the line under Start says the mode');
 
     });
     // Chronicle with no walks (tabs audit U7): the peek holds the empty line and a way to Navigate.
@@ -1202,37 +1227,21 @@ function check(ok, what) {
     });
     check(sw && sw.active && sw.scope.endsWith(`${BASE}/`), `the service worker is active at the base path (${JSON.stringify(sw)})`);
 
-    // The pre-start drawer (NV19-NV24): its three heights and their choices, each saved as it changes.
+    // The pre-start drawer and its dialog (NV19-NV24, Nov 3): the choices, each saved as it changes.
     const drawerH = async () => Math.round((await page.locator('[data-testid=navigate-drawer]').boundingBox()).height);
     const peekH = await drawerH();
     await drawerTo(page, 'half');
     check((await page.locator('[data-testid=mode-quiet][aria-checked=true]').count()) === 1 && (await page.locator('[data-testid=mode-explore]').count()) === 1
-      && /Long-press the map/.test(await page.locator('[data-testid=navigate-drawer]').innerText()) && (await page.locator('[data-testid=kind-churches]').count()) === 0,
-      'at half: the mode, Quiet | Explore, and the destination with its hint; nothing more (NV20)');
-    const halfH = await drawerH();
+      && /Long-press the map/.test(await page.locator('[data-testid=start-dialog]').innerText()) && (await page.locator('[data-testid=kind-churches]').count()) === 0
+      && (await page.locator('[data-testid=notify-settings]').count()) === 1,
+      'in the dialog: the mode, Quiet | Explore, the destination with its hint, reminders and alerts; no kinds with Quiet (NV20, NV21)');
     // The drawer keeps its height while another tab is in front (NV3).
+    await drawerTo(page, 'peek');
     await onTab('chronicle');
     await onTab('navigate');
-    check((await drawerH()) === halfH && (await page.locator('[data-testid=mode-quiet]').isVisible()), `the drawer keeps its height across tabs (NV3: ${halfH} px)`);
-    await drawerTo(page, 'full');
-    const fullH = await drawerH();
-    check(peekH < halfH && halfH < fullH && (await page.locator('[data-testid=kind-churches]').count()) === 0 && (await page.locator('[data-testid=notify-settings]').count()) === 1,
-      `at full, with Quiet: reminders and alerts, no kinds or range (NV21: ${peekH} < ${halfH} < ${fullH})`);
-    // The capture row stays one tap away with the drawer at full (rev 34, U1): docked low, over the drawer, and tappable.
-    {
-      const hits = [];
-      for (const id of ['moment-photo', 'moment-voice', 'moment-note']) {
-        const b = await page.locator(`[data-testid=${id}]`).boundingBox();
-        const at = await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-testid]')?.getAttribute('data-testid'), { x: b.x + b.width / 2, y: b.y + b.height / 2 });
-        hits.push(at === id && b.y > 844 * 0.6);
-      }
-      await page.click('[data-testid=moment-note]');
-      const noteOpens = await page.waitForSelector('[data-testid=moment-note-input]', { timeout: 3000 }).then(() => true, () => false);
-      if (noteOpens) await page.click('[aria-label="Close note"]', { position: { x: 10, y: 10 } });
-      await page.waitForTimeout(300);
-      check(hits.every(Boolean) && noteOpens, `with the drawer at full, the camera, mic and pencil stay low and can be tapped (rev 34, U1: ${hits.join(', ')})`);
-    }
+    check((await drawerH()) === peekH, `the drawer keeps its height across tabs (NV3: ${peekH} px)`);
     // Settings: a switch per kind, both on; the test notification is a real one (NT4, NT6).
+    await drawerTo(page, 'half');
     const isOn = (id) => page.locator(`[data-testid=${id}] input`).isChecked();
     check((await isOn('notify-recall')) && (await isOn('notify-pause')), 'notifications: Remind me here and the pause reminder, both on by default (NT4)');
     check((await page.locator('[data-testid=pocket-alert]').count()) === 0, 'the web has no pocket alert (NV21)');
@@ -2541,8 +2550,9 @@ function check(ok, what) {
       await p2.click('[data-testid=moment-voice]');
       await p2.waitForSelector('[data-testid=moment-voice-save]');
       await p2.waitForTimeout(1500);
-      await drawerTo(p2, 'half');
-      check((await p2.locator('[data-testid=mode-quiet]').count()) === 0 && (await p2.locator('[data-testid=moment-voice-save]').isVisible())
+      await p2.click('[data-testid=start-options]');
+      await p2.waitForTimeout(500);
+      check((await p2.locator('[data-testid=start-dialog]').count()) === 0 && (await p2.locator('[data-testid=mode-quiet]').count()) === 0 && (await p2.locator('[data-testid=moment-voice-save]').isVisible())
         && (await p2.locator('[data-testid=start][aria-disabled=true]').count()) === 1,
         'opening the drawer mid-memo does nothing, Start is disabled, and the memo keeps recording (audit 1, NV28)');
       await p2.click('[data-testid=moment-voice-discard]');
