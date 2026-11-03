@@ -1006,12 +1006,14 @@ function check(ok, what) {
     await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
     const mapState = () => pg.locator('[data-faint]').last().evaluate((e) => ({ runs: Number(e.dataset.runs), faint: Number(e.dataset.faint), links: Number(e.dataset.gaplinks ?? -1), drawing: Number(e.dataset.drawing ?? -1), center: e.dataset.center ?? '' }));
     let st = await mapState();
-    for (let k = 0; k < 20 && !(st.faint === 1 && st.runs === 4); k++) {
+    for (let k = 0; k < 20 && !(st.faint === 1 && st.runs === 3); k++) {
       await pg.waitForTimeout(1000);
       st = await mapState();
     }
-    // Without filling there would be four lines; Thayer's gap joins its line, Transit's is faint.
-    check(st.runs === 4, `gaps: a gap along a street with nowhere else to go fills by itself, one line (G5: ${JSON.stringify(st)})`);
+    // Without filling there would be five lines (Thayer's two halves, Transit's two, and the fixes
+    // here now, 15 min after the last). Thayer's gap joins its line, the 15 min standing here is
+    // joined straight (every break is a gap, Nov 3), and Transit's is faint.
+    check(st.runs === 3, `gaps: a gap along a street with nowhere else to go fills by itself, one line (G5: ${JSON.stringify(st)})`);
     check(st.faint === 1, `gaps: a gap with time to go round a block is offered faint (G6: ${JSON.stringify(st)})`);
     const km = (t) => { const m = /([\d.]+) (k?m)\b/.exec(t); return m ? Number(m[1]) * (m[2] === 'km' ? 1000 : 1) : NaN; };
     const before = km(await pg.locator('[data-testid=walk-stats]').innerText());
@@ -1058,10 +1060,10 @@ function check(ok, what) {
     await pg.waitForTimeout(1500);
     await tap(at(1.6, -0.5));
     await pg.click('[data-testid=gap-keep]');
-    for (let k = 0; k < 10 && (st = await mapState()).runs !== 3; k++) await pg.waitForTimeout(500);
+    for (let k = 0; k < 10 && (st = await mapState()).runs !== 2; k++) await pg.waitForTimeout(500);
     await pg.waitForTimeout(2500);
     const after = km(await pg.locator('[data-testid=walk-stats]').innerText());
-    check(st.runs === 3 && st.faint === 0, `gaps: Keep draws it solid, joined to the trace (G10: ${JSON.stringify(st)})`);
+    check(st.runs === 2 && st.faint === 0, `gaps: Keep draws it solid, joined to the trace (G10: ${JSON.stringify(st)})`);
     check(after - before > 250 && after - before < 450, `gaps: a kept stretch counts as walked distance (G11: ${before} m → ${after} m)`);
     const rows = () => pg.evaluate(() => new Promise((resolve) => {
       const req = indexedDB.open('chronicles');

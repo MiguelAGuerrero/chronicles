@@ -20,8 +20,13 @@ Gaps in the trace filled with the streets most likely walked (the concept doc's 
     sensors (weak GPS with the app open) is a later slice.
 - **The decision** (`gaps/infer.ts`, pure; rules in `gaps/rules.ts`):
   - A gap is two walked fixes more than 60 s apart, no pause or ride between,
-    40 m or more apart and at most 30 min (`gapsOf`, on the trace read
-    *without* fills).
+    and at most 30 min, however close (`gapsOf`, on the trace read *without*
+    fills; decision 0071). Ends within `straightM` (10 m) are joined straight
+    and filled by itself, with nothing read, even offline or from memory
+    (`walkStretches`).
+  - A join from a fix to a street costs twice its length in the search, so a
+    short gap runs along its street, never straight through a fix's join to a
+    corner; lengths are measured on the ground (`lineLengthM`).
   - The likely way is the shortest walk over street pieces. Each end joins
     every street edge within 40 m, split where it is nearest, and the split
     edges keep their piece. It needs at most 2.5 m/s.
@@ -94,7 +99,8 @@ Gaps in the trace filled with the streets most likely walked (the concept doc's 
     instead of reading twice (gaps audit 9).
 - **E2E** (`E2E_ONLY=gaps`): a walk is started, backdated and given stored
   fixes with two gaps, then reloaded (a real gap would take minutes). The
-  live fixes at "now" form their own short run, so "no fill" is five lines.
+  live fixes at "now" form their own short run, so "no fill" is five lines;
+  the 15 min standing before "now" is a gap too, joined straight.
   `window.__project` (set only with `window.__perf`) turns a point into page
   coordinates for taps. The web map writes `data-runs` and `data-faint`.
 - **Audited (Nov 3):** 17 findings, 12 fixed with a regression test each

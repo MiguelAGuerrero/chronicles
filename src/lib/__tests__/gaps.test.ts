@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { boundsOf, distanceM, splitAtGaps, stepToward, traceDistanceM, smoothDwells, type Bounds } from '../geo';
 import { fillsOf, GAP_RULES, gapsOf, inferGap, movingPace, readBounds, stretchAt, stretchesFor, stretchLines } from '../gaps/infer';
-import { readTrace, traceDistances, withFilled } from '../rides';
+import { liveRuns, readTrace, traceDistances, withFilled } from '../rides';
 import { tilesNear } from '../tileMath';
 import { snap } from '../snapper';
 import { deriveSegments, type RoadFeature } from '../streets';
@@ -75,8 +75,6 @@ test('gaps: a minute without fixes, 40 m or more apart and at most 30 min, is a 
 test('gaps: short, close, long, paused or ridden breaks are not gaps (G1)', () => {
   // Fixes 50 s apart: no break at all.
   assert.equal(gapsOf(readTrace(withGap([at(0, 0), at(1, 0)], [at(1.2, 0), at(2, 0)], 50), 0)).length, 0, 'under a minute');
-  // Back within 30 m of where it stopped.
-  assert.equal(gapsOf(readTrace(withGap([at(0, 0), at(1, 0)], [at(1.3, 0), at(2, 0)], 300), 0)).length, 0, 'under 40 m apart');
   // 31 minutes out.
   assert.equal(gapsOf(readTrace(withGap([at(0, 0), at(1, 0)], [at(5, 0), at(6, 0)], 31 * 60), 0)).length, 0, 'over 30 min');
   // A pause across it: you said you stopped.
@@ -425,4 +423,26 @@ test('gap-drawing audit 6: the pace from 1 Hz fixes without a speed', () => {
   }
   const pace = movingPace(readTrace(pts, 0));
   assert.ok(Math.abs(pace - 1.3) < 0.2, `${pace.toFixed(2)} m/s`);
+});
+
+// Every break is a gap (the owner's rule, Nov 3, after breaks of 30-35 m across Ferry Street,
+// Easton, were left as breaks): the line is made continuous however short the break.
+
+test('G1 (Nov 3): a break of 30 m is a gap, read like any other', () => {
+  const tr = readTrace(withGap([at(0, 0), at(1, 0)], [at(1.3, 0), at(2, 0)], 300), 0);
+  const gaps = gapsOf(tr);
+  assert.equal(gaps.length, 1);
+  const inf = inferGap(gaps[0], corridor, everywhere(corridor))!;
+  assert.ok(inf && Math.abs(inf.lengthM - 30) < 10, `along Main Street, ${inf && Math.round(inf.lengthM)} m`);
+});
+
+test('G1 (Nov 3): a break within 10 m is joined straight and filled by itself, with no streets read', () => {
+  const tr = readTrace(withGap([at(0, 0), at(1, 0)], [at(1.06, 0), at(2, 0)], 300), 0);
+  const gaps = gapsOf(tr);
+  assert.equal(gaps.length, 1);
+  const inf = inferGap(gaps[0], [], null)!;
+  assert.equal(inf.level, 'auto');
+  assert.equal(inf.path.length, 2);
+  const filled = readTrace(withGap([at(0, 0), at(1, 0)], [at(1.06, 0), at(2, 0)], 300), 0, [], [], fillsOf(stretchesFor(gaps, [inf], [])));
+  assert.equal(liveRuns(filled).length, 1, 'one line');
 });

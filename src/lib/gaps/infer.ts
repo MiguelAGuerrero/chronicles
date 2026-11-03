@@ -1,4 +1,4 @@
-import { bearingDeg, boundsOf, distanceM, distanceToLinesM, isBreak, pointSegmentDist, projector, type Bounds } from '../geo';
+import { bearingDeg, boundsOf, distanceM, lineLengthM, distanceToLinesM, isBreak, pointSegmentDist, projector, type Bounds } from '../geo';
 import type { ReadTrace } from '../rides';
 import type { Fill, GapDecision, LngLat, StreetSegment } from '../types';
 import { GAP_RULES } from './rules';
@@ -53,7 +53,7 @@ const pos = (p: { lon: number; lat: number }): LngLat => [p.lon, p.lat];
 
 /**
  * The gaps worth reading (G1): walked fixes more than a minute apart, at most
- * GAP_RULES.maxMs, at least GAP_RULES.minM apart, with no pause or ride
+ * GAP_RULES.maxMs, however short (the owner's rule, Nov 3), with no pause or ride
  * between. Pass the trace as read without fills.
  */
 export function gapsOf(tr: ReadTrace): Gap[] {
@@ -66,7 +66,6 @@ export function gapsOf(tr: ReadTrace): Gap[] {
     const dt = b.t - a.t;
     if (dt <= GAP_RULES.gapMs || dt > GAP_RULES.maxMs) continue;
     if (isBreak(a, b, tr.breaks, Infinity)) continue;
-    if (distanceM(pos(a), pos(b)) < GAP_RULES.minM) continue;
     pace ??= movingPace(tr);
     out.push({ t0: a.t, t1: b.t, from: pos(a), to: pos(b), pace });
   }
@@ -242,7 +241,9 @@ export class PieceGraph {
       }
       if (joined.has(k)) continue;
       joined.add(k);
-      this.link(end, k, JOIN);
+      // A join costs twice its length, so a way runs along the street where it can, never
+      // straight across from a fix to a corner it could reach along it (a short gap, Nov 3).
+      this.link(end, k, JOIN, 2 * distanceM(p, this.pts[k]));
     }
     return end;
   }
@@ -388,6 +389,11 @@ export const JOIN = -1;
  * claimed under it.
  */
 export function inferGap(g: Gap, segments: StreetSegment[], coverage: Bounds | null): Inference | null {
+  // Within GPS error: joined straight and filled by itself, no streets needed (the owner's rule, Nov 3).
+  const straight = distanceM(g.from, g.to);
+  if (straight < GAP_RULES.straightM) {
+    return { t0: g.t0, t1: g.t1, path: [g.from, g.to], lengthM: straight, certainDirect: 1, certainTime: 1, street: null, level: 'auto' };
+  }
   if (!coverage || !segments.length) return null;
   const graph = PieceGraph.of(segments, g.from);
   const join = (p: LngLat) => graph.joinFix(p);
@@ -463,7 +469,8 @@ export function inferGap(g: Gap, segments: StreetSegment[], coverage: Bounds | n
     // Searched between the likely way's first and last street points, never out through the
     // other joins at either end: those are the same way, a few metres apart (gap-drawing audit 3).
     const n = likely.nodes.length;
-    const joinM = distanceM(graph.pts[likely.nodes[0]], graph.pts[likely.nodes[1]]) + distanceM(graph.pts[likely.nodes[n - 2]], graph.pts[likely.nodes[n - 1]]);
+    // The joins' cost as the search counts it (twice their length).
+    const joinM = 2 * (distanceM(graph.pts[likely.nodes[0]], graph.pts[likely.nodes[1]]) + distanceM(graph.pts[likely.nodes[n - 2]], graph.pts[likely.nodes[n - 1]]));
     const inner: Way = { m: likely.m - joinM, nodes: likely.nodes.slice(1, -1), segs: likely.segs.slice(1, -1), edges: likely.edges.slice(1, -1) };
     const whole = (w: Way): Way => ({
       m: w.m + joinM,
@@ -488,7 +495,8 @@ export function inferGap(g: Gap, segments: StreetSegment[], coverage: Bounds | n
     t0: g.t0,
     t1: g.t1,
     path: way.nodes.map((i) => graph.pts[i]),
-    lengthM: way.m,
+    // Measured on the ground: a join's cost is doubled in the search, not its length.
+    lengthM: lineLengthM(way.nodes.map((i) => graph.pts[i])),
     certainDirect: shareDirect,
     certainTime: shareTime,
     street,
