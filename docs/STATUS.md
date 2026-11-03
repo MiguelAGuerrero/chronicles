@@ -33,6 +33,7 @@ what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md
 | Motion (steps from the phone's sensors, MO1-MO10) | shipped | `09f504a` 2026-11-01; `8edc09b` 2026-11-01 audit fixes; `93ef082` 2026-11-01 | `specs/motion/spec.md` | yes (11 findings, 9 fixed, `8edc09b`) |
 | Quality of life | shipped in rounds: QL1-QL12 (markers, scale bar, Locate), QL13-QL21 (km or miles, time left, the denied-location chip and retry), QL22-QL28 (rename later, edit a note, photos on pins, months in the walks list); round 4 waits on the owner's calls (decisions 0063-0065) | round 1 `dc8f249`..`7a34666`; round 2 `1910a2d`, `c7539b1`; round 3 `48adb36`, `3a721ed`, `cdf2961`, `2799fa9`; all 2026-11-03 (branch `docs/product-synopsis`) | `specs/quality-of-life/spec.md` | no (the owner chose checkpoints per feature over an audit pass; an audit is still owed) |
 | Filling gaps (streets walked across a gap in the trace, G1-G14) | shipped | `2a0501e`, `3a08a53`, merged as `28c7417` 2026-11-03 | `specs/filling-gaps/spec.md` | yes (17 findings, 12 fixed, `3a08a53`) |
+| Gap drawing (draw a gap's way; a guess that fits the time, GW1-GW8, GT1-GT3) | shipped | branch `claude/gap-drawing`, merged 2026-11-03 | `specs/gap-drawing/spec.md` | yes (14 findings, 11 fixed, 3 deferred) |
 | Bridges and Open in Maps (NB1-NB7, NH1-NH8; NH4 retired) | shipped | `82186db`, `67b7c9d`, `d16c7c4`; `1ead218` retired NH4, all 2026-11-03 | `specs/bridges-and-open-in-maps/spec.md` | yes (bridges: 11 findings, 7 fixed, `67b7c9d`) |
 | Explore atlas (the Explore tab as a grid of area tiles, AT1-AT16) | shipped (web verified by the e2e; native unverified); round 2 after the owner's iPhone look: the hierarchy in the grid, the title over the map, tiles in words; round 3, the design review's fixes (decision 0067) | `d1080e7`, `d3158aa`, `18c0feb`, `06726be` 2026-11-03 (branches `explore-atlas`, `explore-atlas-2`) | `specs/explore-atlas/spec.md` (repo first; to be copied into the concept doc as a tab) | yes (14 findings: 11 fixed, 1 partly, 1 deferred, 1 rejected; `d3158aa`) |
 
@@ -57,6 +58,7 @@ first.
 | `claude/bridges-open-in-maps-rebased` | 2026-11-03 | 0 | yes | Bridges and Open in Maps as merged | merged |
 | `claude/clear-storage` | 2026-11-01 | 0 | yes | Clearing walks and moments (D1-D11) with its audit fixes | merged |
 | `claude/filling-gaps` | 2026-11-03 | 0 | yes | Filling gaps (G1-G14) and its audit fixes | merged (`28c7417`) |
+| `claude/gap-drawing` | 2026-11-03 | 0 | yes | Gap drawing (GW1-GW8, GT1-GT3) and its audit fixes | merged |
 | `claude/functional-core-foundations` | 2026-11-01 | 3 | no | `Ports` type and real instance, in-memory fakes with one call log, a `Db` contract suite, typed `meta.ts`, `Store`/`useStore`, ESLint boundary rules, an AGENTS.md style section; plus its own copy of the fog-streak fix (`98faa36`), which main has as `2b0cdfe` | pending decision (see Needs the owner) |
 | `claude/rides` | 2026-11-01 | 0 | yes | Rides (R1-R14) and its audit fixes | merged |
 | `docs/product-synopsis` | 2026-11-03 | 0 | yes | `docs/PRODUCT.md` and the QL section of AGENTS.md; fast-forwarded, it is main's head | merged |
@@ -117,7 +119,6 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 | Session | Branch | Doing |
 |---|---|---|
 | Bug fixes (open since Oct 31) | unknown | unknown |
-| Gap inference (filling gaps follow-up) | `claude/gap-drawing` | Drawing a gap's way and a time-fitting guess (`specs/gap-drawing/`, GW1-GW8, GT1-GT3), started 2026-11-03; built, audited (14 findings: 11 fixed, 3 deferred), full suite next |
 
 ## Updating this file
 
