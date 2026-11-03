@@ -82,6 +82,10 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] The memo saved when Navigate blurs mid-memo (Navigation & tabs)
 - [ ] The replay's `BackHandler`, ending on Chronicle (Navigation & tabs, audit 6)
 - [ ] `StartDialog`, the Modal over the tab map (Navigate's settings are a dialog)
+- [ ] The app opening on Explore at `/` on the native stack and tabs, and Android back on Navigate or Chronicle returning to Explore (NV2, NV5, 0070)
+- [ ] A deep link to a missing replay or day at launch, `router.dismissTo('/')` reaching Explore on the native stack (NV2, 0070)
+- [ ] Explore's one fix at launch, and the location prompt it raises before any tap (NV16, 0070)
+- [ ] An iPhone Home Screen app reopening on its last page (the `/explore` redirect, a stale replay link) (NV2, 0070)
 
 ## Quality of life
 

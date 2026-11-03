@@ -12,8 +12,8 @@ import { TABS } from '../../lib/startPlan';
  * The three tabs (Navigation & tabs, NV1): Explore · Navigate · Chronicle, in
  * that order, with an icon and a label, the same on web and phone. Every tab
  * option lives here, so the iOS build can move to native tabs by changing only
- * this file. Navigate opens first (NV2), and Back on another tab returns to it
- * (NV5). Each tab keeps its state while another is in front (NV3); each takes
+ * this file. Explore opens first, at `/` (NV2, the owner's call, Nov 3), and
+ * Back on another tab returns to it (NV5). Each tab keeps its state while another is in front (NV3); each takes
  * its own map down while unfocused, so one map is live at a time (NV4).
  */
 export const unstable_settings = { initialRouteName: 'index' };

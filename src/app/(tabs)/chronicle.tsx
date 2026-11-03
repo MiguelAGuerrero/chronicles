@@ -254,7 +254,7 @@ export default function Chronicle() {
           onOpenMoments={setViewing}
           onWalkActions={setActionsFor}
           now={now}
-          onNavigate={() => router.navigate('/')}
+          onNavigate={() => router.navigate('/navigate')}
         />
       </View>
 

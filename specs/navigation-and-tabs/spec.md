@@ -27,10 +27,10 @@ Navigate's Start starts a walk where you are; Walk here on Explore or Chronicle 
 The tab bar
 
 1. **NV1** Expo Router's `Tabs` draws a bottom bar with Explore, Navigate and Chronicle, in that order, each with an icon and a label, the same on web and phone. All tab options live in `(tabs)/_layout.tsx`, so moving the iOS build to native tabs later touches only that file.
-2. **NV2** The app opens on Navigate, the tab you capture and walk from. An open walk still opens the walk screen at launch, as today.
+2. **NV2** The app opens on Explore (the owner's call, Nov 3, over the Nov 1 default of Navigate). An open walk still opens the walk screen at launch, as today. A launch on a walk's or a day's replay that is no longer kept (a Home Screen app reopening on a stale link) goes straight to Explore; reached from inside the app, the replay keeps its message and its way back. A replay that fails to load says so, with Try again, and is never taken for a missing one.
 3. **NV3** Each tab keeps its drawer height and map view when you leave it and come back.
 4. **NV4** One live map at a time: a tab's map is taken down while another tab, the walk or a replay is in front, and comes back where it was. The e2e counts one canvas on every tab, during a walk, and with a walk minimized.
-5. **NV5** Back (Android) or the browser's back on Explore or Chronicle goes to Navigate; on Navigate it leaves the app. On web each tab has its own path (`/` Navigate, `/explore`, `/chronicle`), so a reload keeps the tab.
+5. **NV5** Back (Android) or the browser's back on Navigate or Chronicle goes to Explore; on Explore it leaves the app. On web each tab has its own path (`/` Explore, `/navigate`, `/chronicle`), so a reload keeps the tab.
 6. **NV6** The tab bar hides while the walk screen or a replay is up.
 
 Minimizing a walk
@@ -50,7 +50,7 @@ Explore
 
 14. **NV14** Explore shows the remembered busy areas (magenta) and each area's places to find and its finds, with no counts (nothing is a score).
 15. **NV15** A long press from z10 runs **What's good here?**, as the home does today; at z12 or closer the sheet offers Walk here too, a one-tap start (NV12).
-16. **NV16** Explore's drawer peeks with the area in view and opens to its busy streets and places to find. Explore never tracks you: it uses your last fix or the area in view.
+16. **NV16** Explore's drawer peeks with the area in view and opens to its busy streets and places to find. Explore never tracks you: it reads one fix when the app opens and frames it, once per launch (the owner's call, Nov 3, now that Explore opens first), then uses your last fix or the area in view.
 
 Navigate: capture and the pre-start drawer
 
@@ -77,8 +77,8 @@ No new stores or migrations. The choices already live in meta; one key is new.
 | Path | Holds | Change |
 | --- | --- | --- |
 | `src/app/(tabs)/_layout.tsx` | the tab bar (Expo Router `Tabs`) and the recording bar | new |
-| `src/app/(tabs)/index.tsx` | Navigate: quick capture and the drawer | new, takes Start and `MomentBar` from the home |
-| `src/app/(tabs)/explore.tsx` | Explore | new, from the home's landing and checklist code |
+| `src/app/(tabs)/navigate.tsx` | Navigate (`/navigate`; `index.tsx` until Nov 3): quick capture and the drawer | new, takes Start and `MomentBar` from the home |
+| `src/app/(tabs)/index.tsx` | Explore (`/`; `explore.tsx` until Nov 3) | new, from the home's landing and checklist code |
 | `src/app/(tabs)/chronicle.tsx` | Chronicle | today's `index.tsx`, minus Start, Explore, What's good here, quick capture |
 | `src/app/walk.tsx`, `replay/[id].tsx`, `day/[key].tsx` | full screen, over the tabs | stay on the root stack; the walk gains Minimize |
 
@@ -94,7 +94,7 @@ No new stores or migrations. The choices already live in meta; one key is new.
 3. **The mode:** the drawer opens on the last one picked.
 4. **Minimize:** in this slice (NV7–NV10).
 5. **Quick capture:** on Navigate and the walk; Chronicle is for review only.
-6. **Opening tab:** Navigate (NV2), since capture and Start live there. Taken as the default (Nov 1).
+6. **Opening tab:** Explore (NV2), the owner's call, Nov 3, after the Home Screen app opened on "This walk could not be found". Navigate had been taken as the default (Nov 1), since capture and Start live there.
 
 Open (Nov 1):
 

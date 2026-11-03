@@ -735,7 +735,7 @@ export default function WalkScreen() {
     feedback('tap');
     AccessibilityInfo.announceForAccessibility('Walk minimized. Still recording.');
     if (router.canGoBack()) router.back();
-    else router.replace('/');
+    else router.replace('/navigate');
   }
 
   async function togglePause() {

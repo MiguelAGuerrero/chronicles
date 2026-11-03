@@ -54,7 +54,8 @@ test('NV20: the destination shows its name and straight-line distance', () => {
   assert.equal(destLine(spot, null), 'Your spot');
 });
 
-test('NV1, NV5: three tabs in order, each with its own web path', () => {
-  assert.deepEqual(['explore', 'navigate', 'chronicle'].map((t) => tabFor(t as 'explore').path), ['/explore', '/', '/chronicle']);
+test('NV1, NV2, NV5: three tabs in order, each with its own web path, Explore at the root', () => {
+  assert.deepEqual(['explore', 'navigate', 'chronicle'].map((t) => tabFor(t as 'explore').path), ['/', '/navigate', '/chronicle']);
+  assert.deepEqual(['explore', 'navigate', 'chronicle'].map((t) => tabFor(t as 'explore').route), ['index', 'navigate', 'chronicle']);
   assert.deepEqual(['explore', 'navigate', 'chronicle'].map((t) => tabFor(t as 'explore').label), ['Explore', 'Navigate', 'Chronicle']);
 });

@@ -31,9 +31,11 @@ place like?" before a walk. Planning (keeping areas for later) is a later slice.
 
 1. **AT1 · Near you, nearest first.** Explore lists the neighborhoods near your
    last known position, nearest first. The one you are in (or nearest within its
-   reach) leads and says "You're here". With no fix since the app opened, it shows
-   the areas around where it last listed them, without "You're here"; with none at
-   all, it says how to get a position (Find me) instead of an empty grid.
+   reach) leads and says "You're here". Explore reads one fix as the app opens
+   (NV16, the owner's call, Nov 3: Explore is now the opening tab). Until it comes,
+   or when it fails, it shows the areas around where it last listed them, without
+   "You're here"; with none at all, it says how to get a position (Find me) instead
+   of an empty grid.
 2. **AT2 · The hierarchy is the grid** (the owner, Nov 3: a switch between
    levels didn't work, because they nest). Explore opens on the town you are in:
    its name is the title, the neighborhoods near you are the grid, and "Towns

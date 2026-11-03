@@ -29,11 +29,12 @@ beside a plain `x.ts` is a platform split (see Invariants).
 
 ```
 index.js                     entry: imports lib/recorder (defines the background location task) before expo-router/entry
-src/app/_layout.tsx          root stack: the tabs first, then walk and replay over them; reconciles the open walk at launch; sets the audio mode
-src/app/(tabs)/_layout.tsx   the three tabs, Explore · Navigate · Chronicle; Navigate opens first
-src/app/(tabs)/index.tsx     Navigate: the drawer (Start at its foot, settings above), the capture row, LiveWalk (a live view of a minimized walk)
-src/app/(tabs)/explore.tsx   Explore: remembered busy areas (magenta), each area's places to find and finds, no counts; long press = What's good here / Walk here
+src/app/_layout.tsx          root stack: the tabs first, then walk and replay over them; reconciles the open walk at launch; sets the audio mode; notes the launch path (lib/launchRoute)
+src/app/(tabs)/_layout.tsx   the three tabs, Explore · Navigate · Chronicle; Explore opens first, at / (NV2)
+src/app/(tabs)/navigate.tsx  Navigate (/navigate): the drawer (Start at its foot, settings above), the capture row, LiveWalk (a live view of a minimized walk)
+src/app/(tabs)/index.tsx     Explore (/): the atlas of the areas near you (tiles, the area card; 0066, 0067); long press = What's good here / Walk here
 src/app/(tabs)/chronicle.tsx Chronicle, the home: stars by area at the level for the zoom, moment pins from z11, the HomeSheet (Walks | Days), old-walk placement
+src/app/explore.tsx          the old /explore path: dismissTo("/") down to Explore (NV2, 0070)
 src/app/walk.tsx             the walk screen: live trace and dot, fog, captures, navigation bar, Explore marks, memories, reminders, options, hold-to-stop
 src/app/replay/[id].tsx      a walk's replay: the five beats, stops at captures, the card, naming; first watch waits, re-watches advance
 src/app/day/[key].tsx        a day's replay: flies pin to pin through loose moments, plays each walk's own path, a quiet card
@@ -189,6 +190,7 @@ Motion (animation)
   haptics.ts                 expo-haptics behind feedback()
 Session, screens and small helpers
   walkNav.ts, walkGate.ts (pure)  showWalk(): the one way to the walk screen, gated
+  launchRoute.ts (pure)     the path the app opened on: a stale replay or day link at launch goes to Explore (NV2)
   walkEvents.ts     (pure)   the open walk changed (started, paused, resumed, stopped)
   openWalkLoad.ts   (pure)   latest-wins loader for the open walk
   useStartWalk.ts, startPlan.ts (pure)  Start and Walk here: the plan's meta, then the walk screen
