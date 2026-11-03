@@ -37,7 +37,7 @@ const OpenWalkContext = createContext<OpenWalkState | null>(null);
 /** The walk and its pauses alone: changes only when the walk starts, pauses, resumes or stops, never per fix. */
 const OpenWalkInfoContext = createContext<OpenWalkInfo | null>(null);
 
-/** Gaps in the trace (the page hidden), for the walk screen's notice while it is up. */
+/** Gaps in the trace the page spent hidden, for the walk screen's notice while it is up. */
 let gapListener: ((ms: number) => void) | null = null;
 export function onWalkGap(fn: (ms: number) => void): () => void {
   gapListener = fn;
