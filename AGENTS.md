@@ -1080,6 +1080,53 @@ update it when a slice ships or a feature changes.
   - **Native** (unverified on a device): the replay's `BackHandler`,
     `capFitBounds` on MapLibre RN's fitBounds.
 
+## Quality of life: map staples (the owner's calls, Nov 3; the concept doc's "Quality of life" tab, QL1-QL12)
+
+- **Scope:** from the quality-of-life list, this round took the map staples only.
+  Deferred, in the owner's order: a km or miles setting, time left beside distance
+  left, a Settings link when location is denied, renaming a walk later, editing a
+  note's text, photo thumbnails on pins, month headers in the walks list, keep
+  awake on a phone (adds expo-keep-awake), GPX export, the current street as a
+  chip, dark mode.
+- **Start and end markers** (`lib/traceEnds.ts`, pure): every map that draws a
+  trace marks the first point of the first run (a white disc, a ring in the
+  trace's green) and, once the walk has ended (`ended` prop: the replay and the
+  day replay), the last point of the last run (a ring in `COLORS.walked`). A live
+  walk has no end marker; the dot is its end. One `ends` circle layer above the
+  trace and under the walker and pins, with the trace's opacity (hidden while
+  navigating). Its data is re-sent only when the ends string changes, never per
+  publish. Chronicle draws no trace, so no markers. A walk begun on a ride is
+  marked where the walking began (accepted).
+- **Scale bar** (`lib/scaleBar.ts`, pure; `components/map/ScaleBar.tsx`): the
+  longest 1, 2 or 5 × 10^n metres within 100 px at the map's own `view` (zoom and
+  latitude), in the bottom-left corner, as a sibling of the map inside the
+  wrap View (never inside maplibre's own DOM). Decorative: pointer events off,
+  hidden from screen readers (`aria-hidden`, so an e2e locator that skips hidden
+  ancestors must allow the bar itself when reaching its line). Each screen keeps
+  it clear of its bottom UI with `scaleInset`: the walk screen above the capture
+  row (the map's bottom edge is the strip's top, so `insets.bottom` doesn't
+  apply inside it), the tabs above the sheet at its current height, the replay
+  above the card. Native's `view` updates every 0.25 zoom (the existing
+  threshold), so the bar is coarser there.
+- **Locate** (`lib/useLocate.ts`, `components/LocateButton.tsx`): a 44 pt edge
+  button on Navigate (gone with a walk open) and Explore (gone under the long
+  press's card), at the walk screen's Recenter look. A tap reads one **fresh**
+  fix (`locateOnce(..., { fresh: true })`: `maximumAge` 0 on web, no fix
+  stamped before the ask on native). Without `fresh`, a tap within 15 s of
+  Navigate's focus fix got the browser's cached position (`LOCATE_MAX_AGE_MS`),
+  and the e2e's 1 km move went unseen. The fix is kept as the last fix, the dot
+  moves there, and the map fits 250 m around it; nothing tracks after. A second
+  tap while busy does nothing. Denied says what the recorder's start says, with
+  Open Settings on a phone; a timeout says "Couldn't find your position".
+- **E2E:** `E2E_ONLY=qol` runs the slice's scenario alone (~30 s). The web map
+  writes `data-ends`, `data-center` and `data-walker` on its container for it.
+  The fit centres the fix in the view above the drawer, so the canvas's own
+  middle (`data-center`) sits off the fix by the padding: the check is "inside
+  the 250 m framed", never "at the middle".
+- **Native** (unverified on a device): the `ends` layer's `match` stroke colour
+  on MapLibre RN, the scale bar over the native map, `locateOnce` fresh on
+  expo-location, the edge button over the native sheet.
+
 ## Working with the owner
 
 - **Ask before architectural decisions:** libraries, data model, platform strategy,

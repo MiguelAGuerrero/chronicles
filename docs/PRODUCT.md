@@ -70,11 +70,15 @@ recording bar brings a minimized walk back.
   once and placed when its one fix arrives; nothing tracks between moments.
 - With a walk minimized, Navigate is a live view of it: trace, dot, captures,
   destination and the capture row, with the recording bar as the way back.
+- A Locate button at the map's right edge (also on Explore) reads one fresh
+  fix, shows the dot there and frames 250 m around you. Nothing tracks after.
 
 ### The walk screen (during)
 
 - The map follows a live dot, with the walked trace in green and rides (bus,
-  train) dashed. Pins mark captures, grouped by screen distance when zoomed
+  train) dashed. A green ring marks where the walk began; the replay adds an
+  orange ring where it ended. Every map has a scale bar in its bottom-left
+  corner. Pins mark captures, grouped by screen distance when zoomed
   out. Faint pins with a clock badge show earlier walks' captures nearby
   (memories on revisit); a tap previews them.
 - Capture buttons (camera, mic, pencil) float in the lower middle. Photos and
@@ -172,6 +176,7 @@ recording bar brings a minimized walk back.
 | Moments and days, memories on revisit, thumbnails | Shipped, audited |
 | Rides, clearing walks and moments, motion polish | Shipped, audited |
 | Navigation and tabs (three-tab layout, docked drawer, recording bar) | Shipped, two audit batches done |
+| Quality of life: start and end markers, scale bar, Locate on Navigate and Explore | Shipped (web verified by the qol e2e; native unverified) |
 | Suggested routes (interesting ways, route preview, "Walk this way") | Deferred, next slice |
 | Backup and export of a walk | Code exists, no UI, deferred |
 | Quick capture outside the app (widget, lock screen, share sheet) | Deferred |
