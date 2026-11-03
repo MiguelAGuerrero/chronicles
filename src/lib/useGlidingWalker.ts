@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { glideAngle, glideAngleTo, glideDone, glidePos, glideTo, type AngleGlide, type PosGlide } from './glide';
 import type { DotSource } from './liveDot';
+import { coneHeading } from './nav/navigator';
 import type { LngLat } from './types';
 
 export type GlideFrame = { walker: LngLat | null; heading: number | null };
@@ -12,8 +13,10 @@ export type GlideFrame = { walker: LngLat | null; heading: number | null };
  * rate (0 = every display frame).
  *
  * With a `source` (the live dot, Nov 1), the glide follows it fix by fix,
- * toward where the walker will be by the next fix (`lead`), and the
- * `walker`/`heading` props only stand in until it has a fix.
+ * toward where the walker will be by the next fix (`lead`), and the `walker`
+ * prop only stands in until it has a fix. The cone is never the dot's alone:
+ * `heading` (the trace's, headingOf) checks it through `coneHeading` (the
+ * owner walked north and the dot's cone said east, Nov 3).
  */
 export function useGlideFrames(
   walker: LngLat | null | undefined,
@@ -29,16 +32,20 @@ export function useGlideFrames(
   const last = useRef(0);
   const cb = useRef(onFrame);
   const frameMsRef = useRef(frameMs);
+  const traceHeading = useRef(heading ?? null);
   useEffect(() => {
     cb.current = onFrame;
     frameMsRef.current = frameMs;
   });
 
   // Retargets the glide and makes sure the loop runs; the loop stops itself once still.
-  const retarget = useRef((to: LngLat | null, toHeading: number | null) => {
-    const now = Date.now();
-    pos.current = to ? glideTo(pos.current, to, now) : null;
+  const turn = useRef((toHeading: number | null, now: number) => {
     ang.current = toHeading == null ? null : glideAngleTo(ang.current, toHeading, now, pos.current?.avg ?? 1000);
+  });
+  const retarget = useRef((to: LngLat | null, toHeading: number | null, moved = true) => {
+    const now = Date.now();
+    if (moved) pos.current = to ? glideTo(pos.current, to, now) : null;
+    turn.current(toHeading, now);
     if (raf.current != null) return;
     const frame = () => {
       const t = Date.now();
@@ -68,16 +75,19 @@ export function useGlideFrames(
       ang.current = null;
       return;
     }
-    if (source?.get()) return;
-    retarget.current(walker ?? null, heading ?? null);
+    traceHeading.current = heading ?? null;
+    const dot = source?.get();
+    // A new trace heading with the dot running turns the cone only; the dot keeps its glide.
+    if (dot) retarget.current(dot.lead, coneHeading(dot.heading, traceHeading.current), false);
+    else retarget.current(walker ?? null, heading ?? null);
   }, [walker, heading, enabled, source]);
 
   // The live dot: every fix, as it comes.
   useEffect(() => {
     if (!enabled || !source) return;
     const now = source.get();
-    if (now) retarget.current(now.lead, now.heading);
-    return source.subscribe((s) => retarget.current(s.lead, s.heading));
+    if (now) retarget.current(now.lead, coneHeading(now.heading, traceHeading.current));
+    return source.subscribe((s) => retarget.current(s.lead, coneHeading(s.heading, traceHeading.current)));
   }, [enabled, source]);
 
   useEffect(() => {
@@ -93,6 +103,7 @@ export function useGlidingWalker(walker: LngLat | null | undefined, heading: num
   const [shown, setShown] = useState<GlideFrame>({ walker: walker ?? null, heading: heading ?? null });
   useGlideFrames(walker, heading, enabled, setShown, NATIVE_FRAME_MS, source);
   if (!enabled) return { walker: walker ?? null, heading: heading ?? null };
-  // Before the first frame after a change, show the new fix rather than a stale spot.
-  return { walker: walker ? (shown.walker ?? walker) : null, heading: heading == null && !source ? null : (shown.heading ?? heading ?? null) };
+  // Before the first frame after a change, show the new fix rather than a stale spot. With the dot
+  // running, the frames' heading is the cone (coneHeading): never the trace's standing in for it.
+  return { walker: walker ? (shown.walker ?? walker) : null, heading: source?.get() ? shown.heading : heading == null ? null : (shown.heading ?? heading) };
 }

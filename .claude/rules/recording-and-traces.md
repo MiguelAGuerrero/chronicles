@@ -74,6 +74,8 @@ Recording a walk and reading its trace: pauses, standstills, GPS jitter, the liv
     re-rendering the walk screen (`useGlideFrames(..., source)`), toward
     `lead`: one fix interval ahead while moving, so the glide ends where the
     walker is.
+  - Its heading is never the cone on its own: `coneHeading` checks it against
+    the trace's (decision 0072; see the cone in `.claude/rules/navigation.md`).
   - Without motion: held still unless the speed is steady in one direction
     for 3 fixes and, from a standstill, the fix left by its accuracy. A gap
     over 60 s or a jump over 150 m restarts it at the fix.
