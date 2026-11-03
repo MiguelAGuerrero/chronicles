@@ -44,8 +44,10 @@ Docs: https://docs.expo.dev/eas/index.md
 
 # Chronicles: project notes for agents
 
-What the app is, the decisions already made, and the traps found while building it.
-Read this before changing recording, streets, the replay or storage.
+The decisions already made, and the traps found while building it. Read this
+before changing recording, streets, the replay or storage. For a synopsis of
+what the app is and every feature it has, read `docs/PRODUCT.md` first, and
+update it when a slice ships or a feature changes.
 
 ## Positioning (the owner's call, Nov 1; the concept doc's "Positioning" section)
 
