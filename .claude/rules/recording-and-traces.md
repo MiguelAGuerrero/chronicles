@@ -64,7 +64,9 @@ Recording a walk and reading its trace: pauses, standstills, GPS jitter, the liv
     doesn't move someone standing.
   - A spot walked through (its halves' centres more than half its reach apart)
     is drawn from one half's centre to the other's. A spot stood in is drawn as
-    its centre.
+    its centre. The share widens with the reach, up to 2x once held a minute
+    (jitter 2, Nov 3): 17 m of drift over 71 s at ±30 m read as walked once
+    no break hid it. `SNAP_RULES` 9.
   - A lone fix away and straight back is dropped. A lone first fix that the
     next two leave is dropped.
   - Fixes without accuracy pass as before.

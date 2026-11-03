@@ -78,5 +78,6 @@ const STREET_CODE = '3';
  * 6: a walk out and straight back is no longer read as a standstill (`DWELL_JUMP_M`, Nov 2).
  * 7: gaps are filled with the streets most likely walked (Filling gaps, G13).
  * 8: a settled spot never breaks the line (jitter 8), and every break is a gap however short (Nov 3).
+ * 9: a spot held over a minute needs twice the move to read as walked through, so drift stays standing (jitter 2).
  */
-const SNAP_RULES = '8';
+const SNAP_RULES = '9';
