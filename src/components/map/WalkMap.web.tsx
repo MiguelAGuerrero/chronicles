@@ -10,8 +10,11 @@ import { MarkPinView, markKey, markLabel, type MarkPin } from '../MarkPinView';
 import { StripLabel } from '../LandingMarks';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { Star } from '../../lib/places';
-import type { CapturePin } from '../../lib/pins';
+import { metersPerPixel, type CapturePin } from '../../lib/pins';
+import { scaleBar } from '../../lib/scaleBar';
+import { traceEnds } from '../../lib/traceEnds';
 import type { RoadFeature } from '../../lib/streets';
+import { ScaleBar, SCALE_MAX_PX } from './ScaleBar';
 import type { Capture, LngLat } from '../../lib/types';
 import { distanceM } from '../../lib/geo';
 import { useGlideFrames, type GlideFrame } from '../../lib/useGlidingWalker';
@@ -19,7 +22,7 @@ import { markEnter, pinDrops, starEnter } from '../../lib/enter';
 import { useReducedMotion } from '../../lib/motion';
 import { MOTION } from '../../lib/motionTokens';
 import {
-  COLORS, coneGeoJSON, DERIVE_ZOOM, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, useZoomPins, walkerGeoJSON,
+  COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -44,7 +47,7 @@ function addOverlay(map: MapLibreMap) {
   // re-tile on each update (perf, Nov 1; tolerance 0.375 and buffer 128 are maplibre's defaults).
   const lineSource = { type: 'geojson' as const, data: empty, tolerance: 1, buffer: 64 };
   for (const id of ['fog', 'walked', 'route', 'rides', 'trace-history', 'trace', 'trace-link']) map.addSource(id, lineSource);
-  for (const id of ['pockets', 'strips', 'cone', 'marks', 'points', 'ring']) map.addSource(id, { type: 'geojson', data: empty });
+  for (const id of ['pockets', 'strips', 'cone', 'marks', 'points', 'ring', 'ends']) map.addSource(id, { type: 'geojson', data: empty });
   const lineLayout = { 'line-cap': 'round', 'line-join': 'round' } as const;
   // Hotspots under the streets: pockets shaded, strips bold, in the one green no other layer uses (L9).
   // Stale areas (an older map or rules) are dimmed until looked at again (L11).
@@ -70,6 +73,11 @@ function addOverlay(map: MapLibreMap) {
     map.addLayer({ id, type: 'line', source, layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': 0.9 } });
   for (const [id, source] of [['trace-history-line', 'trace-history'], ['trace', 'trace'], ['trace-link-line', 'trace-link']])
     map.addLayer({ id, type: 'line', source, layout: lineLayout, paint: { 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth } });
+  // Where the walk began and ended (QL1-QL3): above the trace, under the walker; the capture pins
+  // are DOM markers, so they sit above every layer. A white disc with a thick ring: the trace's
+  // green at the start, the walked orange at the end.
+  map.addLayer({ id: 'ends', type: 'circle', source: 'ends',
+    paint: { 'circle-color': '#ffffff', 'circle-radius': 7, 'circle-stroke-width': 4, 'circle-stroke-color': ['match', ['get', 'kind'], 'start', COLORS.trace, COLORS.walked] } });
   // The way the walker is going, under the dot; and marked spots (a destination, a pressed spot).
   // The range preview (E21): a soft disc with a firm edge, under the walker.
   map.addLayer({ id: 'ring-fill', type: 'fill', source: 'ring', paint: { 'fill-color': RING_COLOR, 'fill-opacity': 0.12 } });
@@ -273,6 +281,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       onCameraChange.current?.({ center: [c.lng, c.lat], zoom });
       // For the e2e (tabs audit U15): the zoom, written straight to the DOM, never a render.
       container.current?.setAttribute('data-zoom', zoom.toFixed(2));
+      // And the centre (QL12), on the same path.
+      container.current?.setAttribute('data-center', `${c.lng.toFixed(6)},${c.lat.toFixed(6)}`);
       setView((v) => (v && Math.abs(v.zoom - zoom) < 0.05 && Math.abs(v.lat - lat) < 0.01 ? v : { zoom, lat }));
     };
     // Only gestures carry an originalEvent; camera moves made in code do not.
@@ -342,6 +352,14 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     setData('strips', stripsGeoJSON(props.landing));
   }, [ready, props.landing]);
   useEffect(() => { if (ready) setData('marks', marksGeoJSON(props.marks)); }, [ready, props.marks]);
+  // The start and end markers (QL1, QL2): sent only when they move, not with every publish of the trace.
+  const ends = traceEnds(props.trace, !!props.ended);
+  const endsKey = `${fmt(ends.start)}|${fmt(ends.end)}`;
+  useEffect(() => {
+    if (ready) setData('ends', endsGeoJSON(ends.start, ends.end));
+    // ends is derived from endsKey.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, endsKey]);
   useEffect(() => { if (ready) setData('ring', ringGeoJSON(props.ring)); }, [ready, props.ring]);
   useEffect(() => {
     if (ready) setData('cone', coneGeoJSON(glideOn ? null : props.walker, props.walkerHeading, view?.zoom ?? 16));
@@ -350,10 +368,18 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     if (!ready) return;
     for (const id of ['trace', 'trace-history-line', 'trace-link-line', 'rides']) mapRef.current?.setPaintProperty(id, 'line-opacity', props.traceOpacity ?? 1);
     for (const id of ['trace-edge', 'trace-history-edge', 'trace-link-edge', 'rides-edge']) mapRef.current?.setPaintProperty(id, 'line-opacity', 0.9 * (props.traceOpacity ?? 1));
+    // The markers go with the trace (QL3): hidden while navigating, faint in the replay's first beats.
+    mapRef.current?.setPaintProperty('ends', 'circle-opacity', props.traceOpacity ?? 1);
+    mapRef.current?.setPaintProperty('ends', 'circle-stroke-opacity', props.traceOpacity ?? 1);
   }, [ready, props.traceOpacity]);
   useEffect(() => {
-    if (ready) setData('points', walkerGeoJSON(glideOn ? null : props.walker));
+    if (!ready) return;
+    setData('points', walkerGeoJSON(glideOn ? null : props.walker));
+    // Where the dot is drawn (QL12), for the e2e; empty with none.
+    container.current?.setAttribute('data-walker', fmt(props.walker));
   }, [ready, glideOn, props.walker]);
+  // The scale bar follows the view (QL7): the longest round length that fits at this zoom and latitude.
+  const scale = useMemo(() => (view ? scaleBar(metersPerPixel(view.zoom, view.lat), SCALE_MAX_PX) : null), [view]);
   // The live walk's dot and cone: one marker, drawn at the same size as the layers.
   useEffect(() => {
     const map = mapRef.current;
@@ -661,7 +687,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
 
   return (
     <View style={[styles.wrap, props.style]}>
-      <div ref={container} style={{ position: 'absolute', inset: 0 }} data-trace-opacity={String(props.traceOpacity ?? 1)} data-rides={`${props.rides?.length ?? 0}:${props.rides?.reduce((n, r) => n + r.length, 0) ?? 0}`} data-ring={props.ring ? String(props.ring.radiusM) : ''} data-trace-end={traceEnd(props.trace)} />
+      <div ref={container} style={{ position: 'absolute', inset: 0 }} data-trace-opacity={String(props.traceOpacity ?? 1)} data-rides={`${props.rides?.length ?? 0}:${props.rides?.reduce((n, r) => n + r.length, 0) ?? 0}`} data-ring={props.ring ? String(props.ring.radiusM) : ''} data-trace-end={traceEnd(props.trace)} data-ends={endsKey} />
+      {/* Beside the map's own DOM, not inside it, so React owns it. */}
+      {scale && <ScaleBar bar={scale} inset={props.scaleInset} />}
       {props.covered && <View style={styles.cover} pointerEvents="none" />}
     </View>
   );
@@ -756,6 +784,8 @@ function usePinMarkers(
 /** Where the drawn trace ends, for the e2e: ground covered, never a count of fixes. */
 function traceEnd(trace: LngLat[][] | undefined): string {
   const run = trace?.filter((r) => r.length).at(-1);
-  const p = run?.[run.length - 1];
-  return p ? `${p[0].toFixed(6)},${p[1].toFixed(6)}` : '';
+  return fmt(run?.[run.length - 1]);
 }
+
+/** A point as "lon,lat" to 6 decimals, for the e2e's data attributes; empty for none. */
+const fmt = (p: LngLat | null | undefined) => (p ? `${p[0].toFixed(6)},${p[1].toFixed(6)}` : '');

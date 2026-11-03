@@ -826,6 +826,11 @@ export default function WalkScreen() {
         ref={mapRef}
         initialCenter={live.here ?? undefined}
         initialZoom={16}
+        // The map ends at the bottom strip's top (it is the strip's sibling in the column), so the
+        // scale bar is measured from there: above the capture row (its foot is 92 + insets.bottom
+        // from the screen bottom, less the strip's 69 + insets.bottom; its buttons are 68 tall),
+        // inside the 640 column (QL8).
+        scaleInset={{ bottom: 92 - 69 + 68 + 12, left: sideInset + 12 }}
       />
 
       <View style={[styles.top, { top: insets.top + 12, left: sideInset, right: sideInset }]} pointerEvents="box-none">

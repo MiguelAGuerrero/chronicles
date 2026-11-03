@@ -51,7 +51,7 @@ export function useLocate(handlers: { onFix: (at: LngLat) => void; onError: (e: 
     if (running.current) return;
     running.current = true;
     setBusy(true);
-    locateOnce()
+    locateOnce(undefined, { fresh: true })
       .catch(() => ({ at: null, reason: 'unavailable' as const }))
       .then((r) => {
         running.current = false;

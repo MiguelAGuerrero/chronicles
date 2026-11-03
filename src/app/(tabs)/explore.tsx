@@ -322,6 +322,8 @@ export default function Explore() {
             initialZoom={savedCamera?.zoom ?? initial?.zoom ?? WORLD.zoom}
             onCameraChange={onCamera}
             attributionTop
+            // The scale bar above the sheet at its resting height (QL8).
+            scaleInset={{ bottom: sheetH + 12, left: 12 }}
           />
         )}
       </View>

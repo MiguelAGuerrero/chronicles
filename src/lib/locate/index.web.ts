@@ -1,4 +1,4 @@
-import { LOCATE_MAX_ACCURACY_M, LOCATE_MAX_AGE_MS, LOCATE_PROMPT_CAP_MS, LOCATE_TIMEOUT_MS, type LocateResult } from './types';
+import { LOCATE_MAX_ACCURACY_M, LOCATE_MAX_AGE_MS, LOCATE_PROMPT_CAP_MS, LOCATE_TIMEOUT_MS, type LocateOptions, type LocateResult } from './types';
 
 /**
  * The web's one fix, through `navigator.geolocation` for the same reasons as
@@ -8,7 +8,7 @@ import { LOCATE_MAX_ACCURACY_M, LOCATE_MAX_AGE_MS, LOCATE_PROMPT_CAP_MS, LOCATE_
  * for permission, the timeout waits for the answer (audit: a slow "Allow"
  * read as no location), up to LOCATE_PROMPT_CAP_MS.
  */
-export function locateOnce(timeoutMs = LOCATE_TIMEOUT_MS): Promise<LocateResult> {
+export function locateOnce(timeoutMs = LOCATE_TIMEOUT_MS, opts: LocateOptions = {}): Promise<LocateResult> {
   if (typeof navigator === 'undefined' || !navigator.geolocation) return Promise.resolve({ at: null, reason: 'unavailable' });
   return new Promise<LocateResult>((resolve) => {
     let settled = false;
@@ -36,7 +36,8 @@ export function locateOnce(timeoutMs = LOCATE_TIMEOUT_MS): Promise<LocateResult>
         // Other errors (no signal yet) wait for a later fix or the timeout.
         else startClock();
       },
-      { enableHighAccuracy: true, maximumAge: LOCATE_MAX_AGE_MS },
+      // A Locate tap asks where you are now, never a cached position (QL10).
+      { enableHighAccuracy: true, maximumAge: opts.fresh ? 0 : LOCATE_MAX_AGE_MS },
     );
     if (settled && id != null) navigator.geolocation.clearWatch(id);
     // Already allowed (or no way to tell): the clock starts now. Still asking: it starts on the answer.

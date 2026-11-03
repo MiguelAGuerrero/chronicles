@@ -384,6 +384,10 @@ export default function Replay() {
         initialCenter={data.fixes[0] ? [data.fixes[0].lon, data.fixes[0].lat] : undefined}
         covered={beat === 'reading'}
         veil
+        // The walk has ended: its last point is marked (QL2).
+        ended
+        // Above the card once it is up; before that nothing sits at the bottom (Skip is at the top) (QL8).
+        scaleInset={beat === 'card' || beat === 'name' ? { bottom: sheetH + 12, left: 12 } : { bottom: insets.bottom + 12, left: 12 }}
       />
 
       {beat === 'reading' && (

@@ -64,6 +64,10 @@ export interface WalkMapProps {
   rides?: LngLat[][];
   /** 0 to 1; the replay's first beat shows the trace faintly. */
   traceOpacity?: number;
+  /** The walk has ended: its last point gets an end marker (QL2). A live walk's end is its dot. */
+  ended?: boolean;
+  /** Where the scale bar sits, from the map's bottom-left corner, clear of the screen's own bottom UI (QL8). */
+  scaleInset?: { bottom: number; left?: number };
   walked: StreetSegment[];
   fog: StreetSegment[];
   /**
@@ -332,6 +336,17 @@ export function marksGeoJSON(marks: LngLat[] | undefined): GeoJSON.FeatureCollec
     type: 'FeatureCollection',
     features: (marks ?? []).map((p) => ({ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: p } })),
   };
+}
+
+/**
+ * Where the walk began and ended, as points with a `kind` (QL1, QL2): the
+ * start ring is the trace's green, the end ring the walked orange.
+ */
+export function endsGeoJSON(start: LngLat | null, end: LngLat | null): GeoJSON.FeatureCollection {
+  const features: GeoJSON.Feature[] = [];
+  if (start) features.push({ type: 'Feature', properties: { kind: 'start' }, geometry: { type: 'Point', coordinates: start } });
+  if (end) features.push({ type: 'Feature', properties: { kind: 'end' }, geometry: { type: 'Point', coordinates: end } });
+  return { type: 'FeatureCollection', features };
 }
 
 /** The heading cone's size on screen, and its spread. */

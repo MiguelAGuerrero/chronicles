@@ -212,6 +212,8 @@ export default function Navigate() {
     initialZoom: savedCamera?.zoom ?? (fix || open ? 15 : WORLD.zoom),
     onCameraChange,
     attributionTop: true,
+    // The scale bar above the drawer and the capture row at their resting height (QL8).
+    scaleInset: { bottom: (open ? 0 : sheetH) + ROW_GAP + ROW_H + 12, left: 12 },
   };
   // With a walk minimized there is no drawer (the owner, Nov 3): the row sits low on the map.
   const rowStyle = [styles.floatRow, styles.row, { bottom: (open ? 0 : DRAWER_PEEK) + ROW_GAP }];
@@ -391,7 +393,7 @@ export default function Navigate() {
 
 type MapBase = Pick<
   ComponentProps<typeof WalkMap>,
-  'onLongPress' | 'fitBounds' | 'fitKey' | 'onFitSettled' | 'fitPadding' | 'initialZoom' | 'onCameraChange' | 'attributionTop'
+  'onLongPress' | 'fitBounds' | 'fitKey' | 'onFitSettled' | 'fitPadding' | 'initialZoom' | 'onCameraChange' | 'attributionTop' | 'scaleInset'
 >;
 
 /**
