@@ -146,6 +146,10 @@ update it when a slice ships or a feature changes.
     subscribing through it threw and took the walk screen down; the e2e's
     fresh motion context caught it. Its web permission and availability calls
     work and are still used (`askMotion`).
+  - **Which maps app** (Open in Maps): on web, `nav/openInMaps.ts` reads
+    `navigator.userAgent` and `maxTouchPoints`, since `Platform.OS` is just
+    `web` and no Expo module says which phone a browser runs on. The link
+    itself goes through React Native's `Linking`, as on a phone.
   - **Browser fixes** with no native counterpart: `webStyles.web.ts` (pinned
     viewport, long-press guards) and the muted-autoplay fallback.
   Before adding web-only code, check `node_modules/<module>/build/*.web.*` for
@@ -418,12 +422,33 @@ update it when a slice ships or a feature changes.
     found at a time.
   - **Screen readers:** the bar is not a live region. The distance is
     announced at 100 m steps (50 m under 200 m), at start and on a new route.
-  - **Deferred:** bridges and tunnels still join the streets they cross. The
-    fix changes how pieces are cut, and so their ids. It needs its own change,
-    with a street-cache purge and a `SNAP_RULES` bump.
+  - **Bridges and tunnels** (the concept doc's "Bridges and Open in Maps"
+    tab, NB1-NB7; Nov 3, after a route turned the owner off a bridge onto
+    the path under it): see "Bridges and tunnels" under Streets below.
+- **Open in Maps** (NH1-NH8, the owner's calls, Nov 3): the destination
+  goes to the phone's maps app for walking directions, a fallback when the
+  open data is wrong.
+  - `nav/handoff.ts` (pure) picks the app and the links: Apple Maps on iOS and
+    iPhone or iPad browsers (an iPad asking for the desktop site reports a Mac
+    with touch), Android's `geo:` chooser with Google's link after it, Google
+    Maps in any other browser. `nav/openInMaps.ts` opens them with
+    `Linking.openURL`, never `canOpenURL` first (Android 11+ says no for
+    schemes not in `<queries>`).
+  - Offered in the blue bar (`nav-handoff`), on "Off your route"
+    (`offroute-handoff`), as the banner action of a route that can't be found
+    (`onError(message, dest)`), on the long-press card (`spot-handoff`) and in
+    the walk's viewer's More menu (`viewer-handoff`).
+  - Called straight from the tap: a browser opens a window only from one.
+    Navigation and the walk go on (on the web, tracing pauses while the page
+    is hidden, as always). Only the destination leaves the device, on a tap.
+  - The e2e replaces `window.open` and reads `window.__opened`.
+  - **Deferred:** the Explore mark card, the dead-zone nudge, the home's
+    Walk here.
+  - **Native** (unverified on a device): Apple Maps from the app, the Android
+    chooser, and an iPhone Home Screen app's `window.open` reaching Apple Maps.
 - **UI.**
-  - A blue top bar shows the distance left and where to, with a white End
-    pill. It is centered in the 640 column. The route (8 px, a 12 px white
+  - A blue top bar shows the distance left and where to, an Open in Maps
+    button, and a white End pill. It is centered in the 640 column. The route (8 px, a 12 px white
     edge) is drawn only ahead of you, under the trace.
   - A ring marks the destination, and a long press's spot.
   - A soft 60° cone on the walker shows the way they're going (`headingOf`:
@@ -1303,6 +1328,23 @@ update it when a slice ships or a feature changes.
   `LANDING_CODE` l3 are left off the map. Real OpenMapTiles tiles for tests: tileserver-gl's
   `test_data.zip` release on GitHub has a planetiler Zurich mbtiles, reachable from cloud
   sessions.
+- **Bridges and tunnels** (NB1-NB7, Nov 3). A line's level is its `layer`,
+  else 1 for `brunnel=bridge`, -1 for `tunnel`, else 0 (`levelOf`). Lines on
+  different levels meet only at an end of the one further from the ground
+  (both ends when as far): a bridge joins its approach, a footbridge lands on
+  a street mid-block, and a path under a bridge (or ending under it) stays on
+  the ground. Crosswalk removal, stitching and the sidewalk merge compare
+  levels too. Junction keys are per line (`withJunctions` returns one set per
+  line), so a line passing through another pair's junction point isn't cut.
+  `STREET_CODE` 3 purges the cache once. Real Zurich tiles (9 z14 tiles):
+  about 380 fewer pieces of 22,300.
+  - **A route starts on the street you walk along** (`streetRouteSource`
+    `join` with `RouteHint.heading`, from `live.heading`): within
+    `NAV.headingJoinM` (12 m) of the nearest street, one within 35° of the
+    heading wins. On a bridge, the path below can be the nearer line.
+  - **Deferred:** a bridge piece cut at 200 m (`chunkCanonical`) whose cut
+    lands within 3 m of a junction under it still merges with it in the
+    routing graph (`MERGE_M`); indoor `level` is not read.
 - Avoid anything O(n²) over features. Index with `EdgeGrid`. A 3.6 km downtown, about
   16k features, should derive in under a second.
 - Snapping ignores the 20 m at each end of a piece, where the junctions are, and

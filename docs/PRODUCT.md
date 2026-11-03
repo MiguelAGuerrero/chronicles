@@ -90,6 +90,13 @@ recording bar brings a minimized walk back.
   takes the shorter of the trace and the streets. A blue bar shows the
   distance left, the route is drawn ahead of you, and the trace hides while
   navigating. Off-route re-routes quietly; arrival says "You're here".
+  Bridges and tunnels cross what lies under them without a turn onto it, and a
+  route starts on the street you are walking along.
+- **Open in Maps** hands the destination to the phone's maps app (Apple Maps
+  on iPhone, the Android chooser, Google Maps elsewhere) for walking
+  directions, when Chronicles' route is wrong: in the blue bar, on "Off your
+  route", on a route that can't be found, beside Go here on the long-press
+  card and in a pin's viewer. Navigation and the walk go on.
 - **Explore mode** (off by default, the walk starts quiet): "?" marks within
   range (60-300 m), a chip when on a busy strip, an optional pocket alert
   (a light haptic once per place), and a nudge when an area is a dead zone.
@@ -172,6 +179,7 @@ recording bar brings a minimized walk back.
 | Moments and days, memories on revisit, thumbnails | Shipped, audited |
 | Rides, clearing walks and moments, motion polish | Shipped, audited |
 | Navigation and tabs (three-tab layout, docked drawer, recording bar) | Shipped, two audit batches done |
+| Bridges and Open in Maps | Built, audit pending |
 | Suggested routes (interesting ways, route preview, "Walk this way") | Deferred, next slice |
 | Backup and export of a walk | Code exists, no UI, deferred |
 | Quick capture outside the app (widget, lock screen, share sheet) | Deferred |
