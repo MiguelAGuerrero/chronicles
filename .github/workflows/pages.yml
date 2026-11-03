@@ -24,6 +24,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # The agent docs: AGENTS.md's budget, rule globs, named paths (scripts/check-docs.js).
+      - run: npm run check:docs
       - run: npm run typecheck
       - run: npm test
       - name: Export for /chronicles
