@@ -73,7 +73,7 @@ first.
 | `smooth-walker-dot` | 2026-10-31 | 1 | no | the first smoothed walker dot (glide, replay dot at ~30 fps) | superseded by main's `8e77db9` (same title, reworked on `web-prototype`), then by the live dot `7263546` |
 | `web-prototype` | 2026-11-02 | 0 | yes | the long-running web branch: tabs, the recording bar, the tabs audits | merged |
 
-| `claude/agent-friendly-bootstrap` | 2026-11-03 | open | no | this file, the specs mirror, `.claude/` rules, skills, hooks and the auditor, the docs split out of AGENTS.md | in flight |
+| `claude/agent-friendly-bootstrap` | 2026-11-03 | 0 | yes | AGENTS.md as an index; `.claude/` rules, skills, hooks and the auditor; the docs split out of AGENTS.md; the specs mirror | merged |
 
 ## Needs the owner
 
@@ -114,7 +114,6 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 
 | Session | Branch | Doing |
 |---|---|---|
-| Agent-friendly repo structure | `claude/agent-friendly-bootstrap` | the agent set-up: AGENTS.md as an index, `.claude/` rules and skills, docs, the specs mirror |
 | Quality of life navigation features | (no branch on origin yet) | QL round 2: reading the code each remaining feature touches for its spec |
 | Bug fixes (open since Oct 31) | unknown | unknown |
 
