@@ -115,6 +115,7 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 | Session | Branch | Doing |
 |---|---|---|
 | Bug fixes (open since Oct 31) | unknown | unknown |
+| Explore atlas (2026-11-03) | `explore-atlas` | Explore as a grid of area tiles (`specs/explore-atlas/`, AT1-AT14) |
 
 ## Updating this file
 

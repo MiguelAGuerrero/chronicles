@@ -17,6 +17,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] Migration 12: `capture.thumb_path` (no IndexedDB bump)
 - [ ] Migration 13: the `still` table of still spells (IndexedDB v11)
 - [ ] Migration 14: the `gap_fill` table of kept and dismissed stretches (IndexedDB v12)
+- [ ] Migration 15: the `atlas_area` cache of the Explore atlas (IndexedDB v13)
 
 ## Map layers and markers (MapLibre RN v11)
 
@@ -90,3 +91,9 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] The rename editor and its keyboard inside the native actions Modal, and Android Back stepping out of it, `components/WalkActions.tsx` (Quality of life, QL22)
 - [ ] The note editor inside the native viewer Modal, `components/NoteEditor.tsx` (Quality of life, QL24)
 - [ ] The round picture inside a MapLibre RN Marker, its `onLoad`/`onError`, and the Marker remounting when the copy arrives, `components/CapturePinView.tsx` (Quality of life, QL26, QL27)
+
+## Explore atlas
+
+- [ ] react-native-svg mini-maps on iOS and Android (12 tiles, an even-odd veil, dashed strokes)
+- [ ] The atlas card's Back (BackHandler) and its layout over the tab bar
+- [ ] The small map's long press and the ring layer at its height

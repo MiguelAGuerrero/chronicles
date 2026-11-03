@@ -47,15 +47,27 @@ recording bar brings a minimized walk back.
 
 ### Explore (before)
 
-- A map of busy areas. A long press from z10 reads the area and shows its
-  hotspots in magenta: strips (a street with dense frontage) and pockets
-  (clusters of places), named after their street or neighbourhood. Busy areas
-  are information only: no card, no start pin.
-- The long-press card offers **What's good here?** (the read) and
-  **Walk here** (a one-tap walk with that spot as the destination).
-- "?" marks: attractions (art, history, parks, culture, viewpoints) from the map's
-  own data, filtered by "What I'm into". Found places show as finds. There are
-  no counts on this tab.
+- **An atlas of the areas near you** (decision 0066): neighborhoods, or towns
+  through a Neighborhoods | Towns switch, as a grid of tiles nearest first,
+  under a small map. The one you're in says "You're here".
+- Each tile is the same picture at the same scale: an 800 m ring around the
+  area's point, with its streets, busy streets (magenta), parks, the streets
+  you walked, a "?" for each kind still waiting and a check for each find. It
+  also shows how far the area is, "New to you" or how often you walked there,
+  and eight kinds (history, art, culture, green, views, food, shops,
+  nightlife), each with 0 to 3 bars.
+- The bars are presence, not quality. They are fixed steps per kind over the
+  same ring everywhere, explained under "How bars count".
+- Rings are read by themselves while the tab is open, nearest first.
+- A tile opens the area's card:
+  - the eight kinds in words;
+  - its busy streets;
+  - what's waiting (kinds only, never names);
+  - what you found;
+  - the areas next door;
+  - Walk to its busiest street.
+- A long press on the small map still offers **What's good here?** and
+  **Walk here**. There are no counts of places on this tab.
 - Suggested routes (a route with detours shaped by preferences, a route
   preview, "Walk this way") are deferred to their own slice.
 
@@ -189,6 +201,7 @@ recording bar brings a minimized walk back.
 | v0.5: places (stars by area), navigate (walk me back, go here) | Shipped, audited |
 | v1: discovery (Explore mode, "?" marks, finds, Remind me here, notifications) | Shipped, audited |
 | v1.5: landing (busy areas on the Explore tab, strip chip, dead-zone nudge) | Shipped |
+| Explore atlas (the tab as a grid of area tiles, presence bars, familiarity) | Built on branch `explore-atlas` (web verified by the e2e; native unverified) |
 | Moments and days, memories on revisit, thumbnails | Shipped, audited |
 | Rides, clearing walks and moments, motion polish | Shipped, audited |
 | Navigation and tabs (three-tab layout, docked drawer, recording bar) | Shipped, two audit batches done |
@@ -211,7 +224,7 @@ address search (needs a geocoding server).
 
 - Two things are named Explore: the tab and the walk's mode.
 - Whether the replay keeps its "Passed ..." low (now in words).
-- What the Explore tab lists in a city, where a trails app lists trails.
+- What the Explore tab lists in a city, where a trails app lists trails (answered by the atlas, decision 0066).
 
 ## Where things live
 

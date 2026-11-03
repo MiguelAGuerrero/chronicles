@@ -3,6 +3,7 @@ import type { Area, WalkArea } from '../areas/types';
 import { exploredKey, type ChecklistArea, type ChecklistItem, type ExploreRead, type Find } from '../explore/explore';
 import { countsOf, recountNewStreets } from '../deletion/core';
 import type { LandingRow } from '../landing/view';
+import type { AtlasArea } from '../atlas/atlas';
 import type { Mark, Offered, Place, Recall } from '../discovery/types';
 import { DERIVED_STORES } from './stores';
 import type { Capture, GapDecision, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
@@ -11,7 +12,7 @@ import type { Db } from './types';
 
 // Same tables as the native SQLite store, as IndexedDB object stores.
 const DB_NAME = 'chronicles';
-const VERSION = 12;
+const VERSION = 13;
 
 /** Raised when another open tab holds an older version of the database. */
 export class BlockedByOtherTabError extends Error {
@@ -95,6 +96,10 @@ function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number) {
   if (oldVersion < 12) {
     // Stretches kept or dismissed across gaps in the trace (Filling gaps, G10): truth, kept with the walk.
     d.createObjectStore('gap_fill', { keyPath: ['walk_id', 't0'] }).createIndex('walk_id', 'walk_id');
+  }
+  if (oldVersion < 13) {
+    // Explore atlas (AT12): areas near you and what their rings hold, a cache cleared with the derived stores.
+    d.createObjectStore('atlas_area', { keyPath: 'key' });
   }
 }
 
@@ -465,6 +470,15 @@ export const db: Db = {
   },
   async listLandings() {
     return (await done((await store('landing')).getAll())) as LandingRow[];
+  },
+  async putAtlasAreas(rows) {
+    if (!rows.length) return;
+    const tx = (await conn()).transaction('atlas_area', 'readwrite');
+    for (const r of rows) tx.objectStore('atlas_area').put(r);
+    await committed(tx);
+  },
+  async listAtlasAreas() {
+    return (await done((await store('atlas_area')).getAll())) as AtlasArea[];
   },
   async getMeta(key) {
     const r = (await done((await store('meta')).get(key))) as { value: string } | undefined;

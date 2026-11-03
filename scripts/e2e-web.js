@@ -467,19 +467,13 @@ function check(ok, what) {
       await pg.waitForSelector('[data-testid=moment-voice-save]', { timeout: 10000 });
       await pg.waitForTimeout(1600);
       await pg.click('[data-testid=tab-explore]');
-      await pg.waitForSelector('[data-testid=explore-drawer]');
+      await pg.waitForSelector('[data-testid=atlas-grid]');
       await pg.waitForTimeout(1500);
-      {
-        // tabs audit U5: at rest, Explore's peek says how to use it.
-        const drawer = await pg.locator('[data-testid=explore-drawer]').boundingBox();
-        const hint = await pg.locator('[data-testid=explore-hint]').boundingBox().catch(() => null);
-        const words = hint ? await pg.locator('[data-testid=explore-hint]').innerText() : '';
-        check(hint && /Press and hold the map/.test(words) && hint.y >= drawer.y && hint.y + hint.height <= drawer.y + drawer.height + 1,
-          `tabs audit U5: Explore's peek shows the hint at rest (${hint && Math.round(hint.y)} in ${Math.round(drawer.y)}+${Math.round(drawer.height)})`);
-      }
+      // Explore is the atlas now (AT1): the grid of areas near you, under a small map.
+      check((await pg.locator('[data-testid=atlas-grid]').count()) === 1, 'Explore opens on the atlas of areas near you (AT1)');
       {
         const box = await pg.locator('canvas.maplibregl-canvas').boundingBox();
-        await pg.mouse.move(box.x + box.width / 2 + 50, box.y + box.height / 2 - 80);
+        await pg.mouse.move(box.x + box.width / 2 + 50, box.y + box.height / 2 - 40);
         await pg.mouse.down();
         await pg.waitForTimeout(700);
         await pg.mouse.up();
@@ -1589,8 +1583,8 @@ function check(ok, what) {
       return { path: new URL(page.url()).pathname.slice(BASE.length), canvases: await page.locator('canvas.maplibregl-canvas').count() };
     };
     const ex = await onTab('explore');
-    check(ex.path === '/explore' && ex.canvases === 1 && (await page.locator('[data-testid=explore-area]').innerText()) === 'Look around',
-      `Explore at /explore, one live map, nothing remembered yet (NV4, NV5, NV16: ${JSON.stringify(ex)})`);
+    check(ex.path === '/explore' && ex.canvases === 1 && (await page.locator('[data-testid=explore-area]').innerText()) === 'Near you',
+      `Explore at /explore, one live map, no town named yet (NV4, NV5, AT1: ${JSON.stringify(ex)})`);
     const ch = await onTab('chronicle');
     await page.waitForSelector('text=Walk somewhere and it is starred here');
     check(ch.path === '/chronicle' && ch.canvases === 1, `Chronicle at /chronicle, one live map (NV4, NV5: ${JSON.stringify(ch)})`);
@@ -2640,54 +2634,87 @@ function check(ok, what) {
     check(/^1 of 4 · list from /.test(await page.locator('[data-testid=place-count]').innerText()), `Fox Point's place view says how many of its places were found (${await page.locator('[data-testid=place-count]').innerText()})`);
     check(/Hessian Memorial/.test(await page.locator('[data-testid=place-found]').innerText()), 'and which');
     await page.click('[data-testid=sheet-map]');
-    // Explore (NV14-NV16): it opens on Navigate's last fix, never asking for one of its own, and shows the
-    // area's places to find and its finds, with no counts.
-    const exploreMap = () => page.locator('.maplibregl-map').last();
+    // Explore is an atlas (AT1-AT14): the areas near Navigate's last fix as a grid of same-scale tiles,
+    // read by themselves, nearest first; never asking for a position of its own.
+    const tileOf = (name) => page.locator(`[data-testid=atlas-tile][data-name="${name}"]`);
     const toExplore = async () => {
       await page.click('[data-testid=tab-navigate]');
       await page.waitForSelector('[data-testid=start]');
       await page.waitForTimeout(1500);
       await page.click('[data-testid=tab-explore]');
-      await page.waitForSelector('[data-testid=explore-drawer]');
-      await page.waitForTimeout(1500);
+      await page.waitForSelector('[data-testid=atlas-grid]');
     };
     await toExplore();
-    check((await page.locator('canvas.maplibregl-canvas').count()) === 1 && (await page.locator('[data-testid=explore-area]').innerText()) === 'Fox Point',
-      `Explore's drawer peeks with the area in view, from Navigate's last fix (NV4, NV16: ${await page.locator('[data-testid=explore-area]').innerText()})`);
-    await page.waitForSelector('[aria-label^="Found: Hessian Memorial"]', { timeout: 10000 }).catch(() => {});
-    check((await exploreMap().locator('[aria-label^="Found: Hessian Memorial"]').count()) === 1 && (await exploreMap().locator('[aria-label="A place to find. Open"]').count()) >= 1,
-      'Explore shows the area’s places to find and its finds on the map (NV14)');
+    await page.waitForSelector('[data-testid=atlas-tile][data-name="Fox Point"][data-read="1"]', { timeout: 60000 }).catch(() => {});
     {
-      await drawerTo(page, 'half', 'explore-drag');
-      const body = await page.locator('[data-testid=explore-drawer]').innerText();
-      check(/Hessian Memorial/.test(await page.locator('[data-testid=explore-found]').innerText()) && /Art/.test(await page.locator('[data-testid=explore-to-find]').innerText())
-        && !/\d+\s*of\s*\d+/.test(body) && !/\d/.test(await page.locator('[data-testid=explore-to-find]').innerText()),
-        `the drawer opens to its places to find and finds, with no counts (NV14, NV16: ${body.replace(/\s+/g, ' ').slice(0, 140)})`);
-      check(!/\d+\s*of\s*\d+/.test(await page.locator('body').innerText()), 'no "N of M" anywhere on Explore (NV14)');
+      const names = await page.locator('[data-testid=atlas-tile]').evaluateAll((els) => els.map((e) => e.getAttribute('data-name')));
+      const fox = tileOf('Fox Point');
+      const label = (await fox.getAttribute('aria-label')) ?? '';
+      check((await page.locator('canvas.maplibregl-canvas').count()) === 1 && names[0] === 'Fox Point' && /^Fox Point\. You’re here\./.test(label),
+        `AT1: the atlas lists the neighborhoods near you, the one you're in first (${names.join(', ')}: ${label})`);
+      check((await fox.getAttribute('data-read')) === '1' && (await fox.locator('svg').count()) >= 1 && (await fox.locator('[data-kind]').count()) === 8,
+        'AT3, AT5, AT6: its ring was read by itself; the tile has its picture and the eight kinds');
+      check(/Walked (once|\d+ times)/.test(label) && /History: (some|plenty|lots)/.test(label),
+        `AT3, AT13: the tile says how often you walked there and each kind present in words (${label})`);
+      const atlasRows = await page.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const g = req.result.transaction('atlas_area', 'readonly').objectStore('atlas_area').getAll();
+          g.onsuccess = () => resolve(g.result);
+        };
+      }));
+      const foxRow = atlasRows.find((r) => r.name === 'Fox Point');
+      check(foxRow && foxRow.profile && foxRow.build && foxRow.code, 'AT12: the ring read is kept as a cache tagged with the build and the atlas rules');
+      check(!/\d+\s*of\s*\d+/.test(await page.locator('body').innerText()), 'AT11: no "N of M" anywhere on Explore');
       await shot(page, '11b-explore');
-      await drawerTo(page, 'peek');
     }
-    // What's good here (v1.5): a long press, then a read of the area around the city
-    // nearby, finds Thayer Street's strip, as information: no Start here pin (L1, L2, L5, L7, L9, explore, NV15).
+    {
+      // AT8: a tile opens its card; unfound places are never named (AT7), finds are.
+      await tileOf('Fox Point').click();
+      await page.waitForSelector('[data-testid=atlas-card]');
+      const card = await page.locator('[data-testid=atlas-card]').innerText();
+      check(/Hessian Memorial/.test(await page.locator('[data-testid=atlas-found]').innerText().catch(() => '')),
+        `AT8: the card names what you found here (${card.replace(/\s+/g, ' ').slice(0, 160)})`);
+      check((await page.locator('[data-testid=atlas-walk]').count()) === 0 && /You’re in Fox Point/.test(card), 'AT8: the area you are in has no Walk to');
+      check((await page.locator('[data-testid=atlas-kind-history]').count()) === 1 && !/\d+\s*of\s*\d+/.test(card), 'AT8: the eight kinds in words, no counts');
+      await page.click('[data-testid=atlas-how]');
+      check(/same bars mean the same amount anywhere/.test(await page.locator('[data-testid=atlas-how-panel]').innerText()), 'AT4, AT8: How bars count explains the fixed steps');
+      await shot(page, '11c-atlas-card');
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(300);
+      check((await page.locator('[data-testid=atlas-card]').count()) === 0, 'AT8: Escape closes the card');
+      // AT2, AT14: the towns level.
+      await page.click('[data-testid=atlas-level-town]');
+      await page.waitForSelector('[data-testid=atlas-tile], [data-testid=atlas-empty]', { timeout: 30000 });
+      await page.waitForTimeout(1500);
+      const towns = await page.locator('[data-testid=atlas-tile]').evaluateAll((els) => els.map((e) => e.getAttribute('data-name')));
+      const empty = await page.locator('[data-testid=atlas-empty]').innerText().catch(() => '');
+      check(towns.length >= 1 || /towns/i.test(empty), `AT2, AT14: the Towns level lists towns near you (${towns.join(', ') || empty})`);
+      await page.click('[data-testid=atlas-level-neighborhood]');
+      await page.waitForSelector('[data-testid=atlas-tile]', { timeout: 10000 });
+    }
+    // What's good here (v1.5): a long press on the small map, then a read of the area around the city
+    // nearby, finds Thayer Street's strip, as information (L1, L2, L5, L7, L9, NV15).
     {
       const press = async () => {
         await page.waitForTimeout(1100);
         const box = await page.locator('canvas.maplibregl-canvas').boundingBox();
-        await page.mouse.move(box.x + box.width / 2 - 60, box.y + box.height / 2 - 40);
+        // The small map shows more ground per pixel than the old full-screen one: pressed near its middle.
+        await page.mouse.move(box.x + box.width / 2 - 15, box.y + box.height / 2 - 10);
         await page.mouse.down();
         await page.waitForTimeout(700);
         await page.mouse.up();
         await page.waitForSelector('[data-testid=look-here]', { timeout: 5000 });
       };
       // Cancel goes at once and keeps nothing (audit).
-      const rowCount = async () => (await page.evaluate(() => new Promise((resolve) => {
+      const rows = () => page.evaluate(() => new Promise((resolve) => {
         const req = indexedDB.open('chronicles');
         req.onsuccess = () => {
           const g = req.result.transaction('landing', 'readonly').objectStore('landing').getAll();
-          g.onsuccess = () => resolve(g.result.length);
+          g.onsuccess = () => resolve(g.result);
         };
-      })));
-      const rowsBefore = await rowCount();
+      }));
+      const rowsBefore = (await rows()).length;
       tileDelayMs = 4000;
       await press();
       check((await page.locator('[data-testid=walk-here]').count()) === 1, 'at street zoom, Explore’s long press offers Walk here too (NV15)');
@@ -2696,46 +2723,23 @@ function check(ok, what) {
       const gone = (await page.locator('[data-testid=look-cancel]').count()) === 0;
       await page.waitForTimeout(6000);
       tileDelayMs = 0;
-      check(gone && (await rowCount()) === rowsBefore, 'cancelling a look stops it at once, with nothing kept');
+      check(gone && (await rows()).length === rowsBefore, 'cancelling a look stops it at once, with nothing kept');
       await press();
       await page.click('[data-testid=look-here]');
-      await page.waitForSelector('text=/Busiest area: Thayer Street. A best guess from the map./', { timeout: 30000 });
-      await page.waitForTimeout(1500);
+      const said = await page.waitForSelector('text=/A best guess from the map|Couldn’t read the map here/', { timeout: 30000 }).then((e) => e.innerText(), () => 'nothing');
       await shot(page, '11c-landing');
-      check((await exploreMap().getByText('Thayer Street', { exact: true }).count()) >= 1 && (await page.locator('[data-testid=start-here]').count()) === 0,
-        'what’s good here finds the strip, named, with no Start here pin');
-      const rows = () => page.evaluate(() => new Promise((resolve) => {
-        const req = indexedDB.open('chronicles');
-        req.onsuccess = () => {
-          const g = req.result.transaction('landing', 'readonly').objectStore('landing').getAll();
-          g.onsuccess = () => resolve(g.result);
-        };
-      }));
+      check(/Busiest area: Thayer Street/.test(said) && (await page.locator('[data-testid=start-here]').count()) === 0, `what’s good here finds the strip, named, with no Start here pin (${said})`);
       const first = await rows();
-      // The walk's own explore read remembered the area around its start; the look adds the city's.
       check(first.some((r) => r.analysis.strips.some((x) => x.name === 'Thayer Street')), 'the area is remembered, Thayer Street among its strips');
-      await drawerTo(page, 'half', 'explore-drag');
-      check(/Thayer Street/.test(await page.locator('[data-testid=explore-streets]').innerText()), 'Explore’s drawer lists the area’s busy streets (NV16)');
-      await drawerTo(page, 'peek');
-      // Remembered: after a reload, it is still on the map, offline (L11), on the same tab (NV5).
-      await page.reload();
-      await page.waitForSelector('[data-testid=explore-drawer]', { timeout: 30000 });
-      await page.waitForTimeout(2500);
-      check(new URL(page.url()).pathname === `${BASE}/explore` && (await exploreMap().getByText('Thayer Street', { exact: true }).count()) >= 1,
-        'the analyzed area is still on the map after a reload, with no fix: Explore opens on the area remembered (NV16, L11)');
-      // Again: the same area is replaced, not added (L12). Pressed beside the memorial's found pin, in Fox Point.
-      {
-        const pin = await exploreMap().locator('[aria-label^="Found: Hessian Memorial"]').boundingBox();
-        await page.waitForTimeout(1100);
-        await page.mouse.move(pin.x + pin.width / 2 - 60, pin.y + pin.height / 2);
-        await page.mouse.down();
-        await page.waitForTimeout(700);
-        await page.mouse.up();
-        await page.waitForSelector('[data-testid=look-here]', { timeout: 5000 });
-      }
+      // Again: the same area is replaced, not added (L12).
+      await press();
       await page.click('[data-testid=look-here]');
       await page.waitForSelector('text=/Busiest area/', { timeout: 30000 });
       check((await rows()).length === first.length, 'looking again replaces the area');
+      // Reloaded on the tab, the atlas comes back from storage at once (AT12), offline of the map's reads (NV5).
+      await page.reload();
+      await page.waitForSelector('[data-testid=atlas-tile][data-name="Fox Point"][data-read="1"]', { timeout: 30000 }).catch(() => {});
+      check(new URL(page.url()).pathname === `${BASE}/explore` && (await tileOf('Fox Point').count()) === 1, 'after a reload, the atlas is back on the same tab (NV5, AT12)');
       await page.click('[data-testid=tab-chronicle]');
       await page.reload();
       await page.waitForSelector('[aria-label^="Fox Point,"]', { timeout: 30000 });
@@ -3181,10 +3185,10 @@ function check(ok, what) {
       await pg.waitForSelector('[data-testid=start]');
       await pg.waitForTimeout(1500);
       await pg.click('[data-testid=tab-explore]');
-      await pg.waitForSelector('[data-testid=explore-drawer]');
+      await pg.waitForSelector('[data-testid=atlas-grid]');
       await pg.waitForTimeout(1500);
       const box = await pg.locator('canvas.maplibregl-canvas').boundingBox();
-      await pg.mouse.move(box.x + box.width / 2 + 50, box.y + box.height / 2 - 80);
+      await pg.mouse.move(box.x + box.width / 2 + 50, box.y + box.height / 2 - 40);
       await pg.mouse.down();
       await pg.waitForTimeout(700);
       await pg.mouse.up();
@@ -3321,7 +3325,7 @@ function check(ok, what) {
       await pg.waitForTimeout(1500);
       {
         const box = await pg.locator('canvas.maplibregl-canvas').boundingBox();
-        await pg.mouse.move(box.x + box.width / 2 + 50, box.y + box.height / 2 - 80);
+        await pg.mouse.move(box.x + box.width / 2 + 50, box.y + box.height / 2 - 40);
         await pg.mouse.down();
         await pg.waitForTimeout(700);
         await pg.mouse.up();

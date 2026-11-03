@@ -148,7 +148,10 @@ Discovery and Explore (v1)
   explore/explore.ts (pure)  checklists, membership, visibleMarks, routeMarks, findFor, foundList, passedLine
   explore/exploreRun.ts      one explore read (decoder, z14 + z11) and the build check
   explore/useExplore.ts      Explore on the walk screen
-  explore/exploreTab.ts (pure) what the Explore tab shows for the view
+  explore/exploreTab.ts (pure) the drawer's area-in-view (superseded on the tab by the atlas)
+  atlas/atlas.ts    (pure)   the Explore atlas: near list, presence steps, sketch, familiarity, labels
+  atlas/read.ts              the atlas's reads: areas near you, one ring at a time (decoder)
+  atlas/useAtlas.ts          the atlas's data and its read loop, while Explore is in front
   explore/settings.ts        what I'm into, range, pocket alert (meta)
   explore/momentFind.ts      a loose moment finds a place
 Landing (v1.5)

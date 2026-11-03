@@ -4,8 +4,10 @@ paths:
   - "src/lib/explore/**"
   - "src/lib/db/{exploreRow,placeRow,stores}.ts"
   - "src/app/(tabs)/explore.tsx"
+  - "src/lib/atlas/**"
+  - "src/components/atlas/**"
   - "src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx"
-  - "src/lib/__tests__/{discovery,explore,exploreStore,exploreTab,noise,scanAudit,recall}.test.ts"
+  - "src/lib/__tests__/{atlas,discovery,explore,exploreStore,exploreTab,noise,scanAudit,recall}.test.ts"
 ---
 # Explore and discovery
 
@@ -139,3 +141,26 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
     yet). Reminders fire on every walk, quiet or exploring.
   - **Native** (unverified on a device): the task's check, notifications,
     actions and cold-start taps.
+
+## The Explore tab is an atlas (AT1-AT14, decision 0066)
+
+- **`atlas/atlas.ts` is pure:**
+  - `ATLAS_RULES`: the 800 m ring, neighborhoods within 2.5 km, towns within 12 km, 12 tiles at most.
+  - `STEPS` per category, and `presenceSteps`.
+  - `nearList`, `newRows`, `readQueue` and `needsNear`.
+  - `familiarity`, from the home's `Area` and `WalkArea`.
+  - `waitingKinds` and `waitingMarks`: kinds and positions, never names.
+  - `sketchOf` and `sketchPaths`: a 200 x 150 frame, with the ring 64 units across its radius on every tile.
+  - `tileLabel`.
+  - Change what a read keeps, or how it is judged, and bump `ATLAS_CODE`.
+- **Presence, not quality.** Bars come only from places inside the ring, against fixed steps. They are never relative to the neighbors, and every level uses the same ring (a town's is around its point). Green counts park places, not park area (deferred).
+- **Reads** (`atlas/read.ts`) decode tiles in code, like every read:
+  - the near read: z14 place points for neighborhoods, z11 for towns, recorded in meta `atlas_near:<level>`;
+  - the ring read: the z14 tiles of the picture's frame. It caches streets and places like any read, and takes strips from `analyzeArea`, keeping those whose peak is inside the ring.
+  - `one()` keeps it to one read at a time; a second ask resolves `null` and is retried 1.5 s later.
+  - A failed ring stores `failed_at` and waits `retryMs`.
+- **The loop** (`useAtlas`) runs only while the tab is focused and a position is known. It does one step per effect run and asks for the next with a timer. Moving 1 km, a new build or a new `ATLAS_CODE` lists again.
+- **Storage:** `atlas_area` is in `DERIVED_STORES` (SQLite migration 15, IndexedDB v13), so `purgeDerived` clears it.
+- **Position:** the last fix, or a Locate tap. After a reload (no fix in memory), the tab opens where it last listed areas, from `atlas_near:neighborhood`. It then never says "You're here", and the title says "Near you".
+- **Kept from the old tab:** the long press on the small map (What's good here, Walk here). The drawer's "?" and find pins on the map are gone; finds are on the cards.
+- **E2E:** tiles carry `data-name` and `data-read`; kind slots carry `data-kind` and `data-step`. The long press goes near the small map's middle, since a pixel there is more ground than on the old full-screen map.

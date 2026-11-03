@@ -1,267 +1,206 @@
-import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, Animated, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SheetFrame, type SheetSize } from '../../components/HomeSheet';
+import { AtlasCard } from '../../components/atlas/AtlasCard';
+import { AtlasTile } from '../../components/atlas/AtlasTile';
 import { LocateButton } from '../../components/LocateButton';
-import type { MarkPin } from '../../components/MarkPinView';
 import { WalkMap } from '../../components/map/WalkMap';
 import { Icon } from '../../components/icons';
 import { Banner, Button, theme } from '../../components/ui';
+import {
+  ATLAS_RULES, familiarity, findsIn, nearList, nextDoor, waitingMarks, walkTarget,
+  type AtlasLevel, type Familiarity,
+} from '../../lib/atlas/atlas';
+import { lastNear } from '../../lib/atlas/read';
+import { useAtlas } from '../../lib/atlas/useAtlas';
 import { db } from '../../lib/db';
-import { areaInView, tabMarks, VIEW_REACH_M } from '../../lib/explore/exploreTab';
-import type { ChecklistArea, ChecklistItem, Find, Kind } from '../../lib/explore/explore';
-import { loadSettings, onSettings } from '../../lib/explore/settings';
-import { boundsOf, distanceM, type Bounds } from '../../lib/geo';
+import { boundsOf, type Bounds } from '../../lib/geo';
 import { readArea, rememberArea } from '../../lib/landing/read';
-import { landingView, type LandingRow } from '../../lib/landing/view';
 import { getLastFix } from '../../lib/lastFix';
 import { perfCount } from '../../lib/perfCount';
-import { ensureTileBuild } from '../../lib/tiles';
 import type { LngLat } from '../../lib/types';
-import { LOCATE_FIT_M, useLocate, type LocateError } from '../../lib/useLocate';
+import { useLocate, type LocateError } from '../../lib/useLocate';
 import { useStartWalk } from '../../lib/useStartWalk';
 import { useTabMap } from '../../lib/useTabMap';
 
 const NONE: never[] = [];
 const WORLD = { center: [-40, 30] as [number, number], zoom: 1.2 };
-/** Room for the area's name and the hint under it (tabs audit U5). */
-const PEEK = 88;
-/** Places to find and finds are read for the view from this zoom, and again once the middle moves this far. */
-const MARKS_ZOOM = 12;
-const REREAD_M = 500;
+const LEVELS: { id: AtlasLevel; label: string }[] = [
+  { id: 'neighborhood', label: 'Neighborhoods' },
+  { id: 'town', label: 'Towns' },
+];
 
 /**
- * Explore (NV14-NV16): remembered busy areas (magenta), each area's places to
- * find and its finds, with no counts (nothing is a score); a long press from
- * z10 runs What's good here. It never tracks you: the map opens on your last
- * fix (Navigate's) or where you left it.
+ * Explore as an atlas (AT1-AT14): the areas near you as a grid of same-scale
+ * tiles, each a picture of its ring and its eight kinds, under a small map.
+ * Rings are read by themselves while the tab is open, nearest first. A tile
+ * opens the area's card. The long press on the map keeps What's good here and
+ * Walk here. It never tracks you: it starts from your last fix, or a Locate tap.
  */
 export default function Explore() {
   perfCount('render:explore');
   const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
   const walkStart = useStartWalk();
-  const [landings, setLandings] = useState<LandingRow[]>([]);
-  const [build, setBuild] = useState<string | null>(null);
-  const [areas, setAreas] = useState<ChecklistArea[]>([]);
-  const [finds, setFinds] = useState<Find[]>([]);
-  const [items, setItems] = useState<ChecklistItem[]>([]);
-  // "What I'm into", as the walk shows it: a "?" here is one an exploring walk can show (E16).
-  const [hidden, setHidden] = useState<Set<Kind>>(() => new Set());
+  const [level, setLevel] = useState<AtlasLevel>('neighborhood');
+  // Where the atlas measures from: the last fix as the tab opened, then wherever a Locate tap found you.
+  const [from, setFrom] = useState<LngLat | null>(() => getLastFix()?.at ?? null);
+  // With no fix since launch (a reload), the atlas opens where it last listed areas, never saying "You're here" (AT1).
+  const [stale, setStale] = useState(() => !getLastFix());
   useEffect(() => {
-    let alive = true;
-    loadSettings().then((s) => alive && setHidden(s.hidden), () => {});
-    const off = onSettings((s) => setHidden(s.hidden));
+    if (from) return;
+    let live = true;
+    lastNear('neighborhood').then((n) => live && n && setFrom((f) => f ?? n.at), () => {});
     return () => {
-      alive = false;
-      off();
+      live = false;
     };
-  }, []);
-  const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
-  const [center, setCenter] = useState<LngLat | null>(() => getLastFix()?.at ?? null);
-  // The dot: the last fix as the tab opened, then wherever a Locate tap found you (QL10).
-  const [locFix, setLocFix] = useState<LngLat | null>(() => getLastFix()?.at ?? null);
-  const readAt = useRef<LngLat | null>(null);
+  }, [from]);
   const [fit, setFit] = useState<{ bounds: Bounds | null; key: number }>({ bounds: null, key: 0 });
-  const { focused, cameraNow, savedCamera, onCameraChange, areaH, onFitSettled } = useTabMap({ key: fit.key, refit: () => setFit((f) => ({ ...f, key: f.key + 1 })) });
+  const { focused, savedCamera, onCameraChange, onFitSettled } = useTabMap({ key: fit.key, refit: () => setFit((f) => ({ ...f, key: f.key + 1 })) });
+  const fresh = useAtlas(focused, level, from);
+  const atlas = useMemo(() => (stale ? { ...fresh, list: fresh.list.map((l) => ({ ...l, here: false })) } : fresh), [fresh, stale]);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [open, setOpen] = useState<string | null>(null);
+  const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
   const [spot, setSpot] = useState<{ at: LngLat; zoom: number } | null>(null);
   const [looking, setLooking] = useState(false);
-  const lookCancelled = useRef(false);
   const [notice, setNotice] = useState<{ message: string; tone?: 'info' | 'error' } | null>(null);
-  const [size, setSize] = useState<SheetSize>('peek');
-  const [sheetAnim] = useState(() => new Animated.Value(PEEK));
-  const [aboveSheet] = useState(() => ({ bottom: Animated.add(sheetAnim, 16) }));
-  const [sheetH, setSheetH] = useState(PEEK);
-  // The map opens where you were last seen, never by asking for a position (NV16).
-  const [initial] = useState(() => {
-    const fix = getLastFix()?.at;
-    return fix ? { center: fix, zoom: 15 } : null;
-  });
+  const [locError, setLocError] = useState<LocateError | null>(null);
+  const cancelled = useRef(false);
 
-  const readItems = useCallback((at: LngLat) => {
-    readAt.current = at;
-    const box = boundsOf([at], VIEW_REACH_M);
-    if (box) db.checklistItemsIn(box).then(setItems, () => {});
+  const frame = useCallback((points: LngLat[], padM: number) => {
+    const box = boundsOf(points, padM);
+    if (box) setFit((f) => ({ bounds: box, key: f.key + 1 }));
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      let live = true;
-      (async () => {
-        const [l, a, f] = await Promise.all([
-          db.listLandings().catch(() => [] as LandingRow[]),
-          db.listChecklistAreas().catch(() => [] as ChecklistArea[]),
-          db.listFinds().catch(() => [] as Find[]),
-        ]);
-        if (!live) return;
-        setLandings(l);
-        setAreas(a);
-        setFinds(f);
-        setBuild(await ensureTileBuild().then((b) => (b === 'unknown' ? null : b), () => null));
-        // With no fix to open on and no view of its own yet, it opens on the area last remembered (NV16).
-        const newest = [...l].sort((x, y) => y.analyzed_at - x.analyzed_at)[0];
-        if (!getLastFix() && (cameraNow.current?.zoom ?? 0) < 3 && newest) {
-          const box = boundsOf([newest.centre], 800);
-          if (box) setFit((v) => ({ bounds: box, key: v.key + 1 }));
-        }
-        const at = cameraNow.current?.center ?? getLastFix()?.at;
-        if (at && (cameraNow.current?.zoom ?? 15) >= MARKS_ZOOM) readItems(at);
-      })().catch(() => {});
-      return () => {
-        live = false;
-      };
-    }, [cameraNow, readItems]),
-  );
+  const { busy: locating, locate } = useLocate({
+    onFix: (at) => {
+      setFrom(at);
+      setStale(false);
+      frame([at], ATLAS_RULES.ringM);
+    },
+    onError: setLocError,
+  });
 
-  const onCamera = (c: { center: LngLat; zoom: number }) => {
-    onCameraChange(c);
-    setCenter(c.center);
-    if (c.zoom >= MARKS_ZOOM && (!readAt.current || distanceM(readAt.current, c.center) > REREAD_M)) readItems(c.center);
+  const famOf = useMemo(() => {
+    const m = new Map<string, Familiarity>();
+    for (const l of atlas.list) m.set(l.area.key, familiarity(l.area, atlas.areas, atlas.walkAreas));
+    return m;
+  }, [atlas.list, atlas.areas, atlas.walkAreas]);
+  const found = useMemo(() => new Set(atlas.finds.map((f) => f.key)), [atlas.finds]);
+  const ringOf = useMemo(() => {
+    const m = new Map<string, { waiting: ReturnType<typeof waitingMarks>; finds: ReturnType<typeof findsIn<(typeof atlas.finds)[number]>> }>();
+    for (const l of atlas.list) {
+      const a = l.area;
+      m.set(a.key, {
+        waiting: a.profile ? waitingMarks(a.profile.marks, found, a.at, atlas.hidden) : [],
+        finds: findsIn(atlas.finds, a.at),
+      });
+    }
+    return m;
+  }, [atlas, found]);
+
+  // The town you're in names the page, when the towns have been read.
+  const town = useMemo(() => (from && !stale ? nearList(atlas.rows, from, 'town', atlas.build).find((l) => l.here)?.area.name ?? null : null), [atlas.rows, from, atlas.build, stale]);
+  const points = useMemo(() => atlas.list.map((l) => l.area.at), [atlas.list]);
+  const sel = atlas.list.find((l) => l.area.key === selected) ?? null;
+  const card = atlas.list.find((l) => l.area.key === open) ?? atlas.rows.map((a) => ({ area: a, distanceM: 0, here: false })).find((l) => l.area.key === open) ?? null;
+
+  const pick = (key: string) => {
+    const l = atlas.list.find((x) => x.area.key === key);
+    setSelected(key);
+    setOpen(key);
+    if (l) frame([l.area.at], ATLAS_RULES.ringM);
   };
-
-  const streetZoom = (view?.zoom ?? 0) >= MARKS_ZOOM;
-  const landingAll = useMemo(() => landingView(landings, build), [landings, build]);
-  const marks = useMemo<MarkPin[]>(() => (streetZoom ? (tabMarks(items, finds, hidden) as MarkPin[]) : NONE), [items, finds, hidden, streetZoom]);
-  const here = useMemo(() => (center ? areaInView(center, areas, landings, items, finds, hidden) : null), [center, areas, landings, items, finds, hidden]);
 
   const lookHere = async (at: LngLat) => {
     if (looking) return;
-    lookCancelled.current = false;
+    cancelled.current = false;
     setLooking(true);
     try {
-      const r = await readArea(at, () => lookCancelled.current);
-      if (lookCancelled.current) return;
+      const r = await readArea(at, () => cancelled.current);
+      if (cancelled.current) return;
       if (!r.ok) {
         if (r.reason === 'failed') setNotice({ message: 'Couldn’t read the map here', tone: 'error' });
         return;
       }
       const tile = await db.getMeta('tile_build').catch(() => null);
-      const row = await rememberArea(r.centre, r.analysis, tile ?? 'unknown');
-      setLandings((rows) => [...rows.filter((x) => x.key !== row.key), row]);
-      setBuild(tile);
-      const pts = [...r.analysis.pockets.flatMap((p) => p.hull), ...(r.analysis.landing ? [r.analysis.landing.at] : [])];
-      // Fitted with room around it, so the pockets sit in their streets rather than fill the screen.
-      const box = boundsOf(pts.length ? pts : [r.centre], pts.length ? 250 : 600);
-      if (box) setFit((f) => ({ bounds: box, key: f.key + 1 }));
+      await rememberArea(r.centre, r.analysis, tile ?? 'unknown');
       const top = r.analysis.pockets[0]?.name ?? r.analysis.landing?.street;
       const message = `${r.analysis.reason}${r.analysis.basis === 'density' && top ? `: ${top}` : ''}. A best guess from the map.`;
       setNotice({ message });
-      AccessibilityInfo.announceForAccessibility(
-        r.analysis.strips.length ? `${message} Strips: ${r.analysis.strips.map((x) => x.name).join(', ')}.` : message,
-      );
+      AccessibilityInfo.announceForAccessibility(message);
     } finally {
-      if (!lookCancelled.current) setLooking(false);
+      if (!cancelled.current) setLooking(false);
     }
   };
 
-  // Locate me (QL9-QL12): one fix on a tap, the dot there, and the map framed 250 m around it; nothing
-  // tracks after, and the map keeps later pans. No fix: the banner, with Open Settings where it helps.
-  const [locError, setLocError] = useState<LocateError | null>(null);
-  const { busy: locating, locate } = useLocate({
-    onFix: (at) => {
-      setLocFix(at);
-      const box = boundsOf([at], LOCATE_FIT_M);
-      if (box) setFit((f) => ({ bounds: box, key: f.key + 1 }));
-    },
-    onError: setLocError,
-  });
+  const mapH = Math.round(Math.min(240, Math.max(150, height * 0.24)));
   const error = walkStart.error ?? locError;
+  const heading = level === 'neighborhood' ? 'Neighborhoods near you' : 'Towns near you';
+  const rows: (typeof atlas.list)[] = [];
+  for (let i = 0; i < atlas.list.length; i += 2) rows.push(atlas.list.slice(i, i + 2));
+
   return (
     <View style={styles.screen}>
-      <View style={[StyleSheet.absoluteFill, styles.over]} pointerEvents="box-none">
-        <SheetFrame
-          testID="explore-drawer"
-          dragTestID="explore-drag"
-          size={size}
-          onSize={setSize}
-          peek={PEEK}
-          bottomInset={0}
-          areaHeight={areaH}
-          height={sheetAnim}
-          onHeight={setSheetH}
-          header={
-            <View style={styles.header}>
-              <Text testID="explore-area" style={styles.title} accessibilityRole="header" numberOfLines={1}>
-                {here?.name ?? 'Look around'}
-              </Text>
-              {/* At rest too, not only opened (tabs audit U5): the peek says how Explore is used. */}
-              <Text testID="explore-hint" style={styles.hint} numberOfLines={1}>Press and hold the map to see what’s good there.</Text>
-            </View>
-          }
-        >
-          {size !== 'peek' && (
-            <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
-              {here?.streets.length ? (
-                <>
-                  <Text style={styles.section} accessibilityRole="header">Busy streets</Text>
-                  <Text testID="explore-streets" style={styles.line}>{here.streets.join(' · ')}</Text>
-                </>
-              ) : null}
-              {here?.toFind.length ? (
-                <>
-                  <Text style={styles.section} accessibilityRole="header">Places to find</Text>
-                  <Text testID="explore-to-find" style={styles.line}>{here.toFind.join(' · ')}</Text>
-                </>
-              ) : null}
-              {here?.found.length ? (
-                <>
-                  <Text style={styles.section} accessibilityRole="header">Found here</Text>
-                  <Text testID="explore-found" style={styles.line}>{here.found.join(' · ')}</Text>
-                </>
-              ) : null}
-            </ScrollView>
-          )}
-        </SheetFrame>
-        {/* Locate me (QL9): above the sheet at every height. The long press's card takes its place. */}
-        {!spot && <LocateButton busy={locating} onPress={locate} bottom={sheetH + 12} />}
-      </View>
-
-      <View style={[styles.top, styles.over, { top: insets.top + 8 }]} pointerEvents="box-none">
-        {error && (
-          <Banner
-            tone="error"
-            onDismiss={() => {
-              walkStart.setError(null);
-              setLocError(null);
-            }}
-            action={error.openSettings ? { label: 'Open Settings', onPress: () => Linking.openSettings() } : undefined}
-          >
-            {error.message}
-          </Banner>
-        )}
-        {looking && (
-          <View style={styles.scanning} accessibilityLiveRegion="polite">
-            <ActivityIndicator color={theme.ink} />
-            <Text style={styles.scanningText}>Looking around…</Text>
+      <View style={[styles.top, { paddingTop: insets.top + 10 }]}>
+        <View style={styles.titleRow}>
+          <Text testID="explore-area" style={styles.title} accessibilityRole="header" numberOfLines={1}>{town ?? 'Near you'}</Text>
+        </View>
+        <View style={styles.seg} accessibilityRole="tablist">
+          {LEVELS.map((l) => (
             <Pressable
-              testID="look-cancel"
-              accessibilityRole="button"
-              accessibilityLabel="Stop looking around"
+              key={l.id}
+              testID={`atlas-level-${l.id}`}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: level === l.id }}
               onPress={() => {
-                // Gone at once; the read stops its fetches and writes nothing (audit).
-                lookCancelled.current = true;
-                setLooking(false);
+                setLevel(l.id);
+                setSelected(null);
+                setOpen(null);
               }}
-              style={styles.scanCancel}
-              hitSlop={8}
+              style={[styles.segBtn, level === l.id && styles.segOn]}
             >
-              <Text style={styles.scanCancelText}>Cancel</Text>
+              <Text style={[styles.segText, level === l.id && styles.segTextOn]}>{l.label}</Text>
             </Pressable>
-          </View>
-        )}
-        {notice && (
-          <Banner tone={notice.tone} onDismiss={() => setNotice(null)}>
-            {notice.message}
-          </Banner>
-        )}
+          ))}
+        </View>
       </View>
 
-      {spot && (
-        <Animated.View style={[styles.spotRow, styles.over, aboveSheet]} pointerEvents="box-none">
-          <View style={styles.spotStack}>
-            {/* Explore's own question is the filled button (tabs audit U6). Walk here, still a one-tap start
-                that never fills the drawer (NV15, NV12), is secondary and only at street zoom; what's good
-                here from z10 (L1). */}
+      <View style={[styles.map, { height: mapH }]}>
+        {/* Only while Explore is in front (NV4): one map is live at a time. */}
+        {focused && (
+          <WalkMap
+            trace={NONE}
+            walked={NONE}
+            fog={NONE}
+            captures={NONE}
+            walker={from}
+            marks={spot ? [spot.at] : points}
+            ring={sel ? { center: sel.area.at, radiusM: ATLAS_RULES.ringM } : null}
+            onLongPress={(at) => {
+              if (looking || (view?.zoom ?? 0) < 10) return;
+              setSpot({ at, zoom: view?.zoom ?? 0 });
+            }}
+            onPress={() => spot && setSpot(null)}
+            onViewChange={setView}
+            fitBounds={fit.bounds ?? (points.length ? boundsOf(from ? [from, ...points] : points, 200) : null)}
+            fitKey={fit.key}
+            onFitSettled={onFitSettled}
+            fitPadding={{ top: 24, right: 24, bottom: 24, left: 24 }}
+            initialCenter={savedCamera?.center ?? from ?? WORLD.center}
+            initialZoom={savedCamera?.zoom ?? (from ? 13 : WORLD.zoom)}
+            onCameraChange={onCameraChange}
+            scaleInset={{ bottom: 6, left: 8 }}
+          />
+        )}
+        {!spot && <LocateButton busy={locating} onPress={locate} bottom={8} />}
+      </View>
+
+      <ScrollView style={styles.grid} contentContainerStyle={styles.gridContent} testID="atlas-grid">
+        {spot ? (
+          <View style={styles.spot}>
+            {/* Explore's long press keeps What's good here and Walk here (the owner's default for the atlas). */}
             <Button
               testID="look-here"
               label="What's good here?"
@@ -287,73 +226,149 @@ export default function Explore() {
                 }}
               />
             )}
-            <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={() => setSpot(null)} style={styles.spotClose} hitSlop={8}>
-              <Icon name="close" size={22} color={theme.ink} />
+            <Button variant="ghost" label="Close" onPress={() => setSpot(null)} />
+          </View>
+        ) : null}
+        {error && (
+          <Banner
+            tone="error"
+            onDismiss={() => {
+              walkStart.setError(null);
+              setLocError(null);
+            }}
+            action={error.openSettings ? { label: 'Open Settings', onPress: () => Linking.openSettings() } : undefined}
+          >
+            {error.message}
+          </Banner>
+        )}
+        {looking && (
+          <View style={styles.scanning} accessibilityLiveRegion="polite">
+            <ActivityIndicator color={theme.ink} />
+            <Text style={styles.scanningText}>Looking around…</Text>
+            <Pressable
+              testID="look-cancel"
+              accessibilityRole="button"
+              accessibilityLabel="Stop looking around"
+              onPress={() => {
+                cancelled.current = true;
+                setLooking(false);
+              }}
+              style={styles.scanCancel}
+            >
+              <Text style={styles.scanCancelText}>Cancel</Text>
             </Pressable>
           </View>
-        </Animated.View>
-      )}
-
-      <View style={[StyleSheet.absoluteFill, styles.under]}>
-        {/* Only while Explore is in front (NV4): one map is live at a time. */}
-        {focused && (
-          <WalkMap
-            trace={NONE}
-            walked={NONE}
-            fog={NONE}
-            captures={NONE}
-            walker={locFix}
-            discoveries={marks}
-            landing={streetZoom ? landingAll : null}
-            marks={spot ? [spot.at] : undefined}
-            onLongPress={(at) => {
-              const zoom = view?.zoom ?? 0;
-              if (looking || zoom < 10) return;
-              setSize('peek');
-              setSpot({ at, zoom });
-            }}
-            onPress={() => spot && setSpot(null)}
-            onViewChange={setView}
-            fitBounds={fit.bounds}
-            fitKey={fit.key}
-            onFitSettled={onFitSettled}
-            fitPadding={{ top: insets.top + 60, right: 48, bottom: sheetH + 96, left: 48 }}
-            initialCenter={savedCamera?.center ?? initial?.center ?? WORLD.center}
-            initialZoom={savedCamera?.zoom ?? initial?.zoom ?? WORLD.zoom}
-            onCameraChange={onCamera}
-            attributionTop
-            // The scale bar above the sheet at its resting height (QL8).
-            scaleInset={{ bottom: sheetH + 12, left: 12 }}
-          />
         )}
-      </View>
+        {notice && (
+          <Banner tone={notice.tone} onDismiss={() => setNotice(null)}>
+            {notice.message}
+          </Banner>
+        )}
+
+        <View style={styles.gridHead}>
+          <Text style={styles.gridTitle} accessibilityRole="header">{heading}</Text>
+          {atlas.list.length > 1 && <Text style={styles.gridNote}>nearest first</Text>}
+        </View>
+
+        {!from ? (
+          <View style={styles.empty} testID="atlas-empty">
+            <Icon name="locate-outline" size={22} color={theme.muted} />
+            <Text style={styles.emptyText}>Find where you are to see the areas around you.</Text>
+            <Button testID="atlas-locate" label="Find me" variant="secondary" onPress={locate} busy={locating} busyLabel="Finding you…" />
+          </View>
+        ) : atlas.list.length === 0 ? (
+          <View style={styles.empty} testID="atlas-empty">
+            {atlas.status === 'listing' || (atlas.status === 'idle' && !atlas.build) ? (
+              <>
+                <ActivityIndicator color={theme.muted} />
+                <Text style={styles.emptyText}>Reading the map around you…</Text>
+              </>
+            ) : atlas.status === 'offline' ? (
+              <Text style={styles.emptyText}>Couldn’t read the map. It will try again in a moment.</Text>
+            ) : level === 'neighborhood' ? (
+              <>
+                <Text style={styles.emptyText}>No neighborhoods are named on the map here. The town is one area.</Text>
+                <Button testID="atlas-to-towns" label="See towns" variant="secondary" onPress={() => setLevel('town')} />
+              </>
+            ) : (
+              <Text style={styles.emptyText}>No towns are named on the map near here.</Text>
+            )}
+          </View>
+        ) : (
+          rows.map((pair) => (
+            <View key={pair[0].area.key} style={styles.pair}>
+              {pair.map((l) => {
+                const r = ringOf.get(l.area.key);
+                return (
+                  <AtlasTile
+                    key={l.area.key}
+                    listed={l}
+                    fam={famOf.get(l.area.key) ?? { walks: 0, last: null }}
+                    walked={atlas.walked}
+                    waiting={r?.waiting ?? NONE}
+                    finds={r?.finds ?? NONE}
+                    here={from}
+                    selected={selected === l.area.key}
+                    onPress={pick}
+                  />
+                );
+              })}
+              {pair.length === 1 && <View style={styles.spacer} />}
+            </View>
+          ))
+        )}
+      </ScrollView>
+
+      {card && (
+        <AtlasCard
+          area={card.area}
+          parent={card.area.level === 'neighborhood' ? town : null}
+          distanceM={card.distanceM}
+          here={card.here}
+          fam={famOf.get(card.area.key) ?? familiarity(card.area, atlas.areas, atlas.walkAreas)}
+          walked={atlas.walked}
+          waiting={ringOf.get(card.area.key)?.waiting ?? NONE}
+          finds={ringOf.get(card.area.key)?.finds ?? NONE}
+          you={from}
+          nextDoor={nextDoor(card.area, atlas.rows, atlas.build)}
+          walkTo={card.area.profile || !card.here ? walkTarget(card.area) : null}
+          starting={walkStart.starting}
+          onWalk={() => {
+            const t = walkTarget(card.area);
+            setOpen(null);
+            walkStart.start({ at: t.at, label: t.label, kind: 'point' });
+          }}
+          onPick={pick}
+          onClose={() => setOpen(null)}
+        />
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
-  under: { zIndex: 0 },
-  over: { zIndex: 1 },
-  top: { position: 'absolute', left: 16, right: 16, gap: 8, maxWidth: 640, alignSelf: 'center' },
-  header: { justifyContent: 'center', gap: 2, paddingHorizontal: 16, paddingBottom: 8, minHeight: 56, maxWidth: 640, width: '100%', alignSelf: 'center' },
-  title: { fontSize: 17, fontWeight: '700', color: theme.ink },
-  hint: { fontSize: 13, color: theme.muted },
-  body: { flex: 1 },
-  bodyContent: { padding: 16, gap: 8, maxWidth: 640, width: '100%', alignSelf: 'center' },
-  section: { fontSize: 15, fontWeight: '700', color: theme.ink, marginTop: 6 },
-  line: { fontSize: 15, color: theme.ink, lineHeight: 21 },
-  scanning: {
-    flexDirection: 'row', alignItems: 'center', gap: 10, alignSelf: 'center', backgroundColor: theme.surface, borderRadius: 999,
-    paddingVertical: 6, paddingLeft: 14, paddingRight: 6,
-  },
+  top: { paddingHorizontal: 16, paddingBottom: 10, gap: 10, width: '100%', maxWidth: 640, alignSelf: 'center' },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  title: { flex: 1, fontSize: 28, fontWeight: '800', color: theme.ink },
+  seg: { flexDirection: 'row', backgroundColor: '#e2ded6', borderRadius: 11, padding: 3 },
+  segBtn: { flex: 1, minHeight: 38, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  segOn: { backgroundColor: theme.surface, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+  segText: { fontSize: 14, fontWeight: '600', color: theme.muted },
+  segTextOn: { color: theme.ink },
+  map: { width: '100%', borderTopWidth: 1, borderBottomWidth: 1, borderColor: theme.line, overflow: 'hidden' },
+  grid: { flex: 1 },
+  gridContent: { padding: 12, gap: 10, paddingBottom: 24, width: '100%', maxWidth: 640, alignSelf: 'center' },
+  gridHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', paddingHorizontal: 4, paddingTop: 2 },
+  gridTitle: { fontSize: 12, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', color: theme.muted },
+  gridNote: { fontSize: 12, color: theme.muted },
+  pair: { flexDirection: 'row', gap: 10 },
+  spacer: { flex: 1 },
+  empty: { backgroundColor: theme.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.line, padding: 16, gap: 10, alignItems: 'center' },
+  emptyText: { fontSize: 15, color: theme.muted, textAlign: 'center' },
+  spot: { backgroundColor: theme.surface, borderRadius: theme.radius, padding: 10, gap: 8, borderWidth: 1, borderColor: theme.line },
+  scanning: { flexDirection: 'row', alignItems: 'center', gap: 10, alignSelf: 'center', backgroundColor: theme.surface, borderRadius: 999, paddingVertical: 6, paddingLeft: 14, paddingRight: 6 },
   scanningText: { fontSize: 15, fontWeight: '600', color: theme.ink },
-  scanCancel: { minHeight: 36, paddingHorizontal: 12, justifyContent: 'center' },
+  scanCancel: { minHeight: 44, paddingHorizontal: 12, justifyContent: 'center' },
   scanCancelText: { fontSize: 15, fontWeight: '600', color: theme.accent },
-  spotRow: { position: 'absolute', left: 16, right: 16, alignItems: 'center' },
-  spotClose: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', alignSelf: 'center' },
-  spotStack: {
-    backgroundColor: theme.surface, borderRadius: theme.radius, padding: 10, gap: 8, width: '100%', maxWidth: 360,
-    shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
-  },
 });

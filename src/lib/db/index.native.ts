@@ -3,6 +3,7 @@ import { areaFromRow, areaToRow, findFromRow, findToRow, itemFromRow, itemToRow,
 import { placeFromRow, placeToRow, type PlaceRow } from './placeRow';
 import type { Area, WalkArea } from '../areas/types';
 import type { LandingRow } from '../landing/view';
+import type { AtlasArea } from '../atlas/atlas';
 import type { Mark, MarkOrigin, MarkState, Offered, Recall } from '../discovery/types';
 import { countsOf, recountNewStreets } from '../deletion/core';
 import { exploredKey } from '../explore/explore';
@@ -173,6 +174,13 @@ const MIGRATIONS = [
     walk_id TEXT NOT NULL, t0 INTEGER NOT NULL, t1 INTEGER NOT NULL, state TEXT NOT NULL,
     path TEXT NOT NULL, length_m REAL NOT NULL, street TEXT, decided_at INTEGER NOT NULL,
     PRIMARY KEY (walk_id, t0)
+  );
+  `,
+  // 15: Explore atlas (AT12): areas near you and what their rings hold, a cache cleared with the derived stores.
+  `
+  CREATE TABLE atlas_area (
+    key TEXT PRIMARY KEY, level TEXT NOT NULL, name TEXT NOT NULL, lon REAL NOT NULL, lat REAL NOT NULL, reach_m REAL NOT NULL,
+    build TEXT NOT NULL, code TEXT NOT NULL, listed_at INTEGER NOT NULL, read_at INTEGER, failed_at INTEGER, profile TEXT
   );
   `,
 ];
@@ -552,6 +560,25 @@ export const db: Db = {
         r.key, r.centre[0], r.centre[1], JSON.stringify(r.analysis), r.build, r.rules, r.analyzed_at,
       ).then(() => {}),
     );
+  },
+  putAtlasAreas(rows) {
+    if (!rows.length) return Promise.resolve();
+    return write(async (t) => {
+      for (const r of rows) {
+        await t.runAsync(
+          'INSERT OR REPLACE INTO atlas_area (key, level, name, lon, lat, reach_m, build, code, listed_at, read_at, failed_at, profile) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          r.key, r.level, r.name, r.at[0], r.at[1], r.reachM, r.build, r.code, r.listed_at, r.read_at, r.failed_at, r.profile ? JSON.stringify(r.profile) : null,
+        );
+      }
+    });
+  },
+  async listAtlasAreas() {
+    type Row = { key: string; level: AtlasArea['level']; name: string; lon: number; lat: number; reach_m: number; build: string; code: string; listed_at: number; read_at: number | null; failed_at: number | null; profile: string | null };
+    const rows = await (await conn()).getAllAsync<Row>('SELECT * FROM atlas_area');
+    return rows.map((r) => ({
+      key: r.key, level: r.level, name: r.name, at: [r.lon, r.lat] as [number, number], reachM: r.reach_m, build: r.build, code: r.code,
+      listed_at: r.listed_at, read_at: r.read_at, failed_at: r.failed_at, profile: r.profile ? JSON.parse(r.profile) : null,
+    }));
   },
   async listLandings() {
     const rows = await (await conn()).getAllAsync<Omit<LandingRow, 'centre' | 'analysis'> & { lon: number; lat: number; analysis: string }>('SELECT * FROM landing');

@@ -101,3 +101,11 @@ An item leaves only when it ships, or when it is rejected with a decision record
 9. Captions are not sent on the capture bus, so another open view of the walk shows a new caption only after a reload (QL25)
 10. The day replay repeats its "Summary of the day" announcement after a note is edited there (QL25)
 11. Month headers keep last year's labels if the sheet stays mounted across New Year (QL28)
+
+## Explore atlas
+
+- Green by park area (the share of the ring that is park): the decoder reads no park outlines yet, so green counts park places (decision 0066)
+- Keep for later (planning) on an area's card, and whether planning gets its own tab (decision 0066)
+- A walked area's tile showing one of your photos (decision 0066)
+- Water on the mini-maps: no water layer is decoded
+- The "?" marks and finds on the tab's own map, which the drawer had (finds moved to the cards)

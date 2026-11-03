@@ -1,0 +1,115 @@
+import type { CollectedFeatures } from '../../components/map/types';
+import { placesFromTiles } from '../areas/tilePlaces';
+import { db } from '../db';
+import { isMarkable } from '../discovery/noise';
+import { fetchTiles } from '../discovery/tileFetch';
+import { placesFromTilePois, transitFromTilePois } from '../discovery/tilePois';
+import { exploreBuild } from '../explore/exploreRun';
+import { boundsOf, distanceM } from '../geo';
+import { analyzeArea } from '../landing/analyze';
+import { deriveSegments } from '../streets';
+import { tilesIn } from '../tileMath';
+import type { LngLat } from '../types';
+import {
+  ATLAS_CODE, ATLAS_RULES, newRows, presenceSteps, sketchOf, SKETCH,
+  type AtlasArea, type AtlasLevel, type AtlasProfile, type NearRead,
+} from './atlas';
+
+/*
+ * The atlas's reads (AT1, AT5, AT14): the tiles are fetched and decoded in
+ * code, with no camera moves, on both platforms, like every other read.
+ * All or nothing: a failed read stores nothing but when it failed.
+ */
+
+/** Neighborhood points are in the z14 place layer; towns and cities in z11's. */
+const ZOOM: Record<AtlasLevel, number> = { neighborhood: 14, town: 11 };
+const nearKey = (level: AtlasLevel) => `atlas_near:${level}`;
+
+export async function lastNear(level: AtlasLevel): Promise<NearRead | null> {
+  const v = await db.getMeta(nearKey(level)).catch(() => null);
+  try {
+    return v ? (JSON.parse(v) as NearRead) : null;
+  } catch {
+    return null;
+  }
+}
+
+let running: Promise<unknown> | null = null;
+/** One read at a time, whoever asks. */
+function one<T>(task: () => Promise<T>): Promise<T | null> {
+  if (running) return Promise.resolve(null);
+  const p = task().finally(() => {
+    running = null;
+  });
+  running = p;
+  return p;
+}
+
+/** AT1, AT14: lists the areas of a level around you. Resolves whether it read. */
+export function readNear(at: LngLat, level: AtlasLevel, shouldStop: () => boolean): Promise<boolean | null> {
+  return one(async () => {
+    const build = await exploreBuild();
+    const url = await db.getMeta('tile_url');
+    if (!url || build === 'unknown' || shouldStop()) return false;
+    const reach = level === 'neighborhood' ? ATLAS_RULES.nearNeighborhoodM : ATLAS_RULES.nearTownM;
+    const f = await fetchTiles(url, tilesIn(boundsOf([at], reach)!, ZOOM[level]), ZOOM[level], shouldStop).catch(() => null);
+    if (!f || shouldStop()) return false;
+    const candidates = placesFromTiles(f.places).filter((c) => c.level === level && distanceM(c.at, at) <= reach);
+    const rows = newRows(await db.listAtlasAreas().catch(() => []), candidates, build, Date.now());
+    await db.putAtlasAreas(rows);
+    const near: NearRead = { at, build, code: ATLAS_CODE };
+    await db.setMeta(nearKey(level), JSON.stringify(near));
+    return true;
+  });
+}
+
+/** What one ring read keeps (AT4, AT6, AT7), from decoded tiles. Pure apart from its inputs. */
+export function profileFrom(at: LngLat, feats: CollectedFeatures, build: string) {
+  const segments = deriveSegments(feats.roads, feats.names, build);
+  const places = placesFromTilePois(feats.pois, build);
+  const ring = places.filter((p) => distanceM(p.at, at) <= ATLAS_RULES.ringM);
+  const analysis = analyzeArea({ centre: at, places, segments, towns: placesFromTiles(feats.places), transit: transitFromTilePois(feats.pois) });
+  const strips = analysis.strips.filter((s) => distanceM(s.peak, at) <= ATLAS_RULES.ringM);
+  // What the frame can show: a little past the ring's corners.
+  const frameM = (Math.hypot(SKETCH.w, SKETCH.h) / 2 / SKETCH.ringR) * ATLAS_RULES.ringM;
+  const profile: AtlasProfile = {
+    steps: presenceSteps(ring, at),
+    strips: [...new Set(strips.map((s) => s.name))],
+    stripAt: strips[0]?.peak ?? null,
+    marks: ring.filter(isMarkable).map((p) => ({ key: p.key, category: p.category, kind: p.kind, at: p.at })),
+    sketch: sketchOf({
+      centre: at,
+      segments: segments.filter((s) => s.geometry.some((l) => l.some((p) => distanceM(p, at) <= frameM))),
+      strips: strips.map((s) => s.lines),
+      parks: places.filter((p) => p.category === 'parks').map((p) => p.at),
+    }),
+  };
+  return { profile, cache: { segments, places } };
+}
+
+/** AT5: reads one area's ring, keeps its profile, and caches its streets and places like any read. */
+export function readRing(area: AtlasArea, shouldStop: () => boolean): Promise<AtlasArea | null> {
+  return one(async () => {
+    const url = await db.getMeta('tile_url');
+    const failed = async () => {
+      const row = { ...area, failed_at: Date.now() };
+      await db.putAtlasAreas([row]).catch(() => {});
+      return row;
+    };
+    if (!url) return failed();
+    // The whole frame, so the picture's corners are drawn too.
+    const frameM = (Math.hypot(SKETCH.w, SKETCH.h) / 2 / SKETCH.ringR) * ATLAS_RULES.ringM;
+    const f = await fetchTiles(url, tilesIn(boundsOf([area.at], frameM)!), undefined, shouldStop).catch(() => null);
+    if (shouldStop()) return null;
+    if (!f) return failed();
+    const { profile, cache } = profileFrom(area.at, f, area.build);
+    await db.putSegments(cache.segments).catch(() => {});
+    await db.putPlaces(cache.places).catch(() => {});
+    const row: AtlasArea = { ...area, profile, read_at: Date.now(), failed_at: null };
+    await db.putAtlasAreas([row]);
+    return row;
+  });
+}
+
+/** Whether a read is running now. */
+export const atlasBusy = () => running != null;

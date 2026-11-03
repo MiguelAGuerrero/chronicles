@@ -1,4 +1,5 @@
 import type { Area, WalkArea } from '../areas/types';
+import type { AtlasArea } from '../atlas/atlas';
 import type { Mark, Offered, Place, Recall } from '../discovery/types';
 import type { ChecklistArea, ChecklistItem, ExploreRead, Find } from '../explore/explore';
 import type { LandingRow } from '../landing/view';
@@ -116,6 +117,10 @@ export interface Db {
   /** Remembers an analyzed area (L11); the same key replaces it (L12). */
   putLanding(row: LandingRow): Promise<void>;
   listLandings(): Promise<LandingRow[]>;
+
+  /** Explore atlas (AT12): areas listed near you and their ring reads, a cache; the same key replaces a row. */
+  putAtlasAreas(rows: AtlasArea[]): Promise<void>;
+  listAtlasAreas(): Promise<AtlasArea[]>;
 
   /**
    * One explore read in one transaction (E2, E4): each built area's items are
