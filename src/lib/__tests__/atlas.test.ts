@@ -188,23 +188,23 @@ test('AT6, AT7: one "?" per waiting kind on the picture, at its place nearest th
 // The audit (2026-11-03): one regression test per accepted finding that pure logic can carry.
 test('explore-atlas audit 2: a build newer than the hook’s is adopted, never read near again and again', async () => {
   const { atlasStep } = await import('../atlas/atlas');
-  const step = atlasStep({ build: 'b1', latest: 'b2', last: { at: O, build: 'b2', code: ATLAS_CODE }, from: O, list: [], now: 0 });
+  const step = atlasStep({ build: 'b1', latest: 'b2', nears: [{ level: 'neighborhood', at: O, radiusM: ATLAS_RULES.nearNeighborhoodM, reads: [{ at: O, build: 'b2', code: ATLAS_CODE }] }], list: [], now: 0 });
   assert.deepEqual(step, { kind: 'adopt', build: 'b2' });
-  const again = atlasStep({ build: 'b2', latest: 'b2', last: { at: O, build: 'b2', code: ATLAS_CODE }, from: O, list: [], now: 0 });
+  const again = atlasStep({ build: 'b2', latest: 'b2', nears: [{ level: 'neighborhood', at: O, radiusM: ATLAS_RULES.nearNeighborhoodM, reads: [{ at: O, build: 'b2', code: ATLAS_CODE }] }], list: [], now: 0 });
   assert.equal(again.kind, 'idle', 'after adopting, nothing more to read');
 });
 
 test('explore-atlas audit 4: with no known build, the step waits and checks again', async () => {
   const { atlasStep } = await import('../atlas/atlas');
-  assert.deepEqual(atlasStep({ build: null, latest: 'unknown', last: null, from: O, list: [], now: 0 }), { kind: 'wait', ms: ATLAS_RULES.retryMs });
-  assert.deepEqual(atlasStep({ build: null, latest: 'b1', last: null, from: O, list: [], now: 0 }), { kind: 'adopt', build: 'b1' });
+  assert.deepEqual(atlasStep({ build: null, latest: 'unknown', nears: [{ level: 'neighborhood', at: O, radiusM: ATLAS_RULES.nearNeighborhoodM, reads: [] }], list: [], now: 0 }), { kind: 'wait', ms: ATLAS_RULES.retryMs });
+  assert.deepEqual(atlasStep({ build: null, latest: 'b1', nears: [{ level: 'neighborhood', at: O, radiusM: ATLAS_RULES.nearNeighborhoodM, reads: [] }], list: [], now: 0 }), { kind: 'adopt', build: 'b1' });
 });
 
 test('explore-atlas audit 3: a failed ring waits its retry, and the step says how long', async () => {
   const { atlasStep } = await import('../atlas/atlas');
   const list = nearList([row('A', O, { failed_at: 1000 })], O, 'neighborhood', 'b1');
-  assert.deepEqual(atlasStep({ build: 'b1', latest: 'b1', last: { at: O, build: 'b1', code: ATLAS_CODE }, from: O, list, now: 1000 }), { kind: 'wait', ms: ATLAS_RULES.retryMs });
-  const step = atlasStep({ build: 'b1', latest: 'b1', last: { at: O, build: 'b1', code: ATLAS_CODE }, from: O, list, now: 1000 + ATLAS_RULES.retryMs });
+  assert.deepEqual(atlasStep({ build: 'b1', latest: 'b1', nears: [{ level: 'neighborhood', at: O, radiusM: ATLAS_RULES.nearNeighborhoodM, reads: [{ at: O, build: 'b1', code: ATLAS_CODE }] }], list, now: 1000 }), { kind: 'wait', ms: ATLAS_RULES.retryMs });
+  const step = atlasStep({ build: 'b1', latest: 'b1', nears: [{ level: 'neighborhood', at: O, radiusM: ATLAS_RULES.nearNeighborhoodM, reads: [{ at: O, build: 'b1', code: ATLAS_CODE }] }], list, now: 1000 + ATLAS_RULES.retryMs });
   assert.equal(step.kind, 'ring');
 });
 
@@ -232,4 +232,54 @@ test('AT7: what a ring read keeps of its marks has no names, and only markable p
   );
   assert.deepEqual(kept.map((m) => m.key), ['a']);
   assert.ok(!JSON.stringify(kept).includes('Hessian'), 'the name is not kept');
+});
+
+test('AT2: a town’s own neighborhoods: within its reach, and not those of the town beside it', async () => {
+  const { townOf, townNeighborhoods } = await import('../atlas/atlas');
+  const big = row('Allentown', O, { level: 'town', reachM: 10_000 });
+  const small = row('Catasauqua', east(4000), { level: 'town', reachM: 3000 });
+  const towns = [big, small];
+  assert.equal(townOf({ at: east(3800) }, towns)?.name, 'Catasauqua', 'closer for its size wins');
+  assert.equal(townOf({ at: east(-2000) }, towns)?.name, 'Allentown');
+  assert.equal(townOf({ at: east(20_000) }, towns), null);
+  const rows = [row('Old Town', east(-1000)), row('Riverside', east(3900)), row('Far', east(-6000)), ...towns];
+  const l = townNeighborhoods(rows, big, towns, O, 'b1');
+  assert.deepEqual(l.map((x) => x.area.name), ['Old Town'], 'Riverside is Catasauqua’s; Far is past the cap');
+  assert.equal(townNeighborhoods(rows, small, towns, O, 'b1')[0].area.name, 'Riverside');
+});
+
+test('AT2: near reads are kept per spot, so going into a town and back reads nothing twice', async () => {
+  const { withNear, NEAR_KEPT } = await import('../atlas/atlas');
+  const home = { at: O, build: 'b1', code: ATLAS_CODE, radiusM: 2500 };
+  const town = { at: east(8000), build: 'b1', code: ATLAS_CODE, radiusM: 5000 };
+  const reads = withNear([home], town);
+  assert.equal(needsNear(reads, O, 'b1', 2500), false, 'back home: already read');
+  assert.equal(needsNear(reads, east(8000), 'b1', 5000), false);
+  assert.equal(needsNear(reads, east(8000), 'b1', 6000), true, 'a wider ask reads again');
+  let many = reads;
+  for (let i = 0; i < 20; i++) many = withNear(many, { ...town, at: east(i * 5000) });
+  assert.equal(many.length, NEAR_KEPT);
+});
+
+test('AT2: the step lists the view’s neighborhoods first, then the towns around you', async () => {
+  const { atlasStep } = await import('../atlas/atlas');
+  const done = { at: O, build: 'b1', code: ATLAS_CODE, radiusM: 2500 };
+  const step = atlasStep({
+    build: 'b1', latest: 'b1', list: [], now: 0,
+    nears: [
+      { level: 'neighborhood', at: O, radiusM: 2500, reads: [done] },
+      { level: 'town', at: O, radiusM: ATLAS_RULES.nearTownM, reads: [] },
+    ],
+  });
+  assert.deepEqual(step, { kind: 'near', level: 'town', at: O, radiusM: ATLAS_RULES.nearTownM });
+});
+
+test('AT16: an area’s character in words, never a count', async () => {
+  const { characterLine } = await import('../atlas/atlas');
+  const z = { history: 0, art: 0, culture: 0, parks: 0, viewpoints: 0, food: 0, shops: 0, nightlife: 0 } as const;
+  assert.equal(characterLine({ ...z, history: 3, food: 3, art: 1 }), 'Lots of history and food');
+  assert.equal(characterLine({ ...z, parks: 2, food: 1 }), 'Plenty of green space');
+  assert.equal(characterLine({ ...z, history: 1, art: 1, culture: 1, parks: 1, food: 1 }), 'A little of everything');
+  assert.equal(characterLine({ ...z, parks: 1 }), 'Quiet, with some green space');
+  assert.equal(characterLine(z), 'Quiet');
 });

@@ -11,7 +11,7 @@ import { deriveSegments } from '../streets';
 import { tilesIn } from '../tileMath';
 import type { LngLat } from '../types';
 import {
-  ATLAS_CODE, ATLAS_RULES, marksOf, newRows, presenceSteps, sketchOf, SKETCH,
+  ATLAS_CODE, ATLAS_RULES, marksOf, newRows, withNear, presenceSteps, sketchOf, SKETCH,
   type AtlasArea, type AtlasLevel, type AtlasProfile, type NearRead,
 } from './atlas';
 
@@ -25,12 +25,14 @@ import {
 const ZOOM: Record<AtlasLevel, number> = { neighborhood: 14, town: 11 };
 const nearKey = (level: AtlasLevel) => `atlas_near:${level}`;
 
-export async function lastNear(level: AtlasLevel): Promise<NearRead | null> {
+/** The near reads kept for a level, newest first (a single object from before the hierarchy reads as one). */
+export async function nearReads(level: AtlasLevel): Promise<NearRead[]> {
   const v = await db.getMeta(nearKey(level)).catch(() => null);
   try {
-    return v ? (JSON.parse(v) as NearRead) : null;
+    const r = v ? (JSON.parse(v) as NearRead[] | NearRead) : [];
+    return Array.isArray(r) ? r : [r];
   } catch {
-    return null;
+    return [];
   }
 }
 
@@ -47,18 +49,17 @@ function one<T>(task: () => Promise<T>): Promise<T | null> {
 }
 
 /** AT1, AT14: lists the areas of a level around you. Resolves whether it read. */
-export function readNear(at: LngLat, level: AtlasLevel, build: string, shouldStop: () => boolean): Promise<boolean | null> {
+export function readNear(at: LngLat, level: AtlasLevel, build: string, reach: number, shouldStop: () => boolean): Promise<boolean | null> {
   return one(async () => {
     const url = await db.getMeta('tile_url');
     if (!url || build === 'unknown' || shouldStop()) return false;
-    const reach = level === 'neighborhood' ? ATLAS_RULES.nearNeighborhoodM : ATLAS_RULES.nearTownM;
     const f = await fetchTiles(url, tilesIn(boundsOf([at], reach)!, ZOOM[level]), ZOOM[level], shouldStop).catch(() => null);
     if (!f || shouldStop()) return false;
     const candidates = placesFromTiles(f.places).filter((c) => c.level === level && distanceM(c.at, at) <= reach);
     const rows = newRows(await db.listAtlasAreas().catch(() => []), candidates, build, Date.now());
     await db.putAtlasAreas(rows);
-    const near: NearRead = { at, build, code: ATLAS_CODE };
-    await db.setMeta(nearKey(level), JSON.stringify(near));
+    const near: NearRead = { at, build, code: ATLAS_CODE, radiusM: reach };
+    await db.setMeta(nearKey(level), JSON.stringify(withNear(await nearReads(level), near)));
     return true;
   });
 }

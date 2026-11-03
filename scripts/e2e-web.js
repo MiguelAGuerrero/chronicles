@@ -2677,6 +2677,12 @@ function check(ok, what) {
         `AT8: the card names what you found here (${card.replace(/\s+/g, ' ').slice(0, 160)})`);
       check((await page.locator('[data-testid=atlas-walk]').count()) === 0 && /You’re in Fox Point/.test(card), 'AT8: the area you are in has no Walk to');
       check((await page.locator('[data-testid=atlas-kind-history]').count()) === 1 && !/\d+\s*of\s*\d+/.test(card), 'AT8: the eight kinds in words, no counts');
+      {
+        // The card's body shows, not only its header (an iPhone left it at the header's height, Nov 3).
+        const box = await page.locator('[data-testid=atlas-card]').boundingBox();
+        const kind = await page.locator('[data-testid=atlas-kind-history]').boundingBox();
+        check(box && box.height > 400 && kind && kind.y + kind.height <= box.y + box.height + 1, `AT8: the card is tall and its body is inside it (${box && Math.round(box.height)})`);
+      }
       await page.click('[data-testid=atlas-how]');
       check(/same bars mean the same amount anywhere/.test(await page.locator('[data-testid=atlas-how-panel]').innerText()), 'AT4, AT8: How bars count explains the fixed steps');
       await shot(page, '11c-atlas-card');
@@ -2692,15 +2698,20 @@ function check(ok, what) {
       await page.click('[data-testid=tab-explore]');
       await page.waitForSelector('[data-testid=atlas-grid]');
       check((await page.locator('[data-testid=atlas-card]').count()) === 0, 'explore-atlas audit 8: leaving the tab closes its card');
-      // AT2, AT14: the towns level.
-      await page.click('[data-testid=atlas-level-town]');
-      await page.waitForSelector('[data-testid=atlas-tile], [data-testid=atlas-empty]', { timeout: 30000 });
-      await page.waitForTimeout(1500);
-      const towns = await page.locator('[data-testid=atlas-tile]').evaluateAll((els) => els.map((e) => e.getAttribute('data-name')));
-      const empty = await page.locator('[data-testid=atlas-empty]').innerText().catch(() => '');
-      check(towns.length >= 1 || /towns/i.test(empty), `AT2, AT14: the Towns level lists towns near you (${towns.join(', ') || empty})`);
-      await page.click('[data-testid=atlas-level-neighborhood]');
-      await page.waitForSelector('[data-testid=atlas-tile]', { timeout: 10000 });
+      // AT2, AT14: the hierarchy is in the grid: towns nearby under the neighborhoods; a town opens its own page.
+      await page.waitForSelector('[data-testid=atlas-tile][data-level="town"]', { timeout: 60000 }).catch(() => {});
+      const towns = await page.locator('[data-testid=atlas-tile][data-level="town"]').evaluateAll((els) => els.map((e) => e.getAttribute('data-name')));
+      check(towns.length >= 1, `AT2, AT14: towns nearby are listed under the neighborhoods (${towns.join(', ')})`);
+      if (towns.length) {
+        await page.locator('[data-testid=atlas-tile][data-level="town"]').first().click();
+        const head = await page.waitForSelector('[data-testid=atlas-town-head]', { timeout: 10000 }).then(() => true, () => false);
+        const title = await page.locator('[data-testid=explore-area]').innerText();
+        check(head && title === towns[0] && (await page.locator('[data-testid=atlas-back]').count()) === 1,
+          `AT2: a town opens its own page, headed by its picture, with a way back (${title})`);
+        await page.click('[data-testid=atlas-back]');
+        await page.waitForSelector('[data-testid=atlas-tile][data-name="Fox Point"]', { timeout: 10000 });
+        check((await page.locator('[data-testid=atlas-town-head]').count()) === 0, 'AT2: back returns to the areas near you');
+      }
     }
     // What's good here (v1.5): a long press on the small map, then a read of the area around the city
     // nearby, finds Thayer Street's strip, as information (L1, L2, L5, L7, L9, NV15).

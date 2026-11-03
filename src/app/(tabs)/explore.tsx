@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AccessibilityInfo, ActivityIndicator, BackHandler, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AtlasCard } from '../../components/atlas/AtlasCard';
 import { AtlasTile } from '../../components/atlas/AtlasTile';
@@ -9,13 +9,13 @@ import { WalkMap } from '../../components/map/WalkMap';
 import { Icon } from '../../components/icons';
 import { Banner, Button, theme } from '../../components/ui';
 import {
-  ATLAS_RULES, canWalkTo, familiarity, findsIn, nearList, nextDoor, waitingMarks, walkTarget,
-  type AtlasLevel, type Familiarity,
+  ATLAS_RULES, canWalkTo, familiarity, findsIn, nextDoor, townReachM, waitingMarks, walkTarget,
+  type AtlasArea, type Familiarity, type Listed,
 } from '../../lib/atlas/atlas';
-import { lastNear } from '../../lib/atlas/read';
+import { nearReads } from '../../lib/atlas/read';
 import { useAtlas } from '../../lib/atlas/useAtlas';
-import type { Find } from '../../lib/explore/explore';
 import { db } from '../../lib/db';
+import type { Find } from '../../lib/explore/explore';
 import { boundsOf, type Bounds } from '../../lib/geo';
 import { readArea, rememberArea } from '../../lib/landing/read';
 import { getLastFix } from '../../lib/lastFix';
@@ -28,24 +28,21 @@ import { useTabMap } from '../../lib/useTabMap';
 const NONE: never[] = [];
 const NEW_FAM: Familiarity = { walks: 0, last: null };
 const WORLD = { center: [-40, 30] as [number, number], zoom: 1.2 };
-const LEVELS: { id: AtlasLevel; label: string }[] = [
-  { id: 'neighborhood', label: 'Neighborhoods' },
-  { id: 'town', label: 'Towns' },
-];
 
 /**
- * Explore as an atlas (AT1-AT14): the areas near you as a grid of same-scale
- * tiles, each a picture of its ring and its eight kinds, under a small map.
- * Rings are read by themselves while the tab is open, nearest first. A tile
- * opens the area's card. The long press on the map keeps What's good here and
- * Walk here. It never tracks you: it starts from your last fix, or a Locate tap.
+ * Explore as an atlas (AT1-AT16): the map runs to the top of the screen with
+ * the page's title floating over it; below, the neighborhoods near you, then
+ * the towns nearby. A town opens its own page (its picture and its own
+ * neighborhoods) with a way back (AT2). A neighborhood opens its card. Rings
+ * are read by themselves while the tab is open. The long press on the map
+ * keeps What's good here and Walk here. It never tracks you: it starts from
+ * your last fix, or a Locate tap.
  */
 export default function Explore() {
   perfCount('render:explore');
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const walkStart = useStartWalk();
-  const [level, setLevel] = useState<AtlasLevel>('neighborhood');
   // Where the atlas measures from: the last fix as the tab opened, then wherever a Locate tap found you.
   const [from, setFrom] = useState<LngLat | null>(() => getLastFix()?.at ?? null);
   // With no fix since launch (a reload), the atlas opens where it last listed areas, never saying "You're here" (AT1).
@@ -53,7 +50,7 @@ export default function Explore() {
   useEffect(() => {
     if (from) return;
     let live = true;
-    lastNear('neighborhood').then((n) => live && n && setFrom((f) => f ?? n.at), () => {});
+    nearReads('neighborhood').then((n) => live && n[0] && setFrom((f) => f ?? n[0].at), () => {});
     return () => {
       live = false;
     };
@@ -62,10 +59,14 @@ export default function Explore() {
   const { focused, savedCamera, onCameraChange, onFitSettled } = useTabMap({ key: fit.key, refit: () => setFit((f) => ({ ...f, key: f.key + 1 })) });
   const [selected, setSelected] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
-  const fresh = useAtlas(focused, level, from);
-  // Kept stable unless the list itself changes, so the tiles' memo holds (explore-atlas audit 9).
-  const list = useMemo(() => (stale ? fresh.list.map((l) => ({ ...l, here: false })) : fresh.list), [fresh.list, stale]);
-  const atlas = useMemo(() => ({ ...fresh, list }), [fresh, list]);
+  // The town whose page is open (AT2); null is the page of the areas near you.
+  const [townSeen, setTownSeen] = useState<AtlasArea | null>(null);
+  const fresh = useAtlas(focused, from, townSeen);
+  const town = useMemo(() => (townSeen ? fresh.rows.find((r) => r.key === townSeen.key) ?? townSeen : null), [fresh.rows, townSeen]);
+  // Kept stable unless the lists themselves change, so the tiles' memo holds (explore-atlas audit 9).
+  const neighborhoods = useMemo(() => (stale ? fresh.neighborhoods.map((x) => ({ ...x, here: false })) : fresh.neighborhoods), [fresh.neighborhoods, stale]);
+  const towns = useMemo(() => (stale ? fresh.towns.map((x) => ({ ...x, here: false })) : fresh.towns), [fresh.towns, stale]);
+  const home = stale ? null : fresh.home;
   // Back on the tab, a newer fix from Navigate moves the atlas with you (explore-atlas audit 1).
   const fixSeen = useRef(getLastFix()?.t ?? 0);
   useFocusEffect(
@@ -86,6 +87,7 @@ export default function Explore() {
   const [notice, setNotice] = useState<{ message: string; tone?: 'info' | 'error' } | null>(null);
   const [locError, setLocError] = useState<LocateError | null>(null);
   const cancelled = useRef(false);
+  const [screenH, setScreenH] = useState(height);
 
   const frame = useCallback((points: LngLat[], padM: number) => {
     const box = boundsOf(points, padM);
@@ -102,49 +104,77 @@ export default function Explore() {
     onError: setLocError,
   });
 
+  const ownTown: Listed | null = useMemo(() => {
+    if (!town) return null;
+    return towns.find((x) => x.area.key === town.key) ?? { area: town, distanceM: 0, here: false };
+  }, [town, towns]);
+  const shown = useMemo(() => [...(ownTown ? [ownTown] : []), ...neighborhoods, ...(town ? [] : towns)], [ownTown, neighborhoods, towns, town]);
   const famOf = useMemo(() => {
     const m = new Map<string, Familiarity>();
-    for (const l of atlas.list) m.set(l.area.key, familiarity(l.area, atlas.areas, atlas.walkAreas));
+    for (const l of shown) m.set(l.area.key, familiarity(l.area, fresh.areas, fresh.walkAreas));
     return m;
-  }, [atlas.list, atlas.areas, atlas.walkAreas]);
-  const found = useMemo(() => new Set(atlas.finds.map((f) => f.key)), [atlas.finds]);
+  }, [shown, fresh.areas, fresh.walkAreas]);
+  const found = useMemo(() => new Set(fresh.finds.map((f) => f.key)), [fresh.finds]);
   const ringOf = useMemo(() => {
     const m = new Map<string, { waiting: ReturnType<typeof waitingMarks>; finds: Find[] }>();
-    for (const l of atlas.list) {
+    for (const l of shown) {
       const a = l.area;
       m.set(a.key, {
-        waiting: a.profile ? waitingMarks(a.profile.marks, found, a.at, atlas.hidden) : [],
-        finds: findsIn(atlas.finds, a.at),
+        waiting: a.profile ? waitingMarks(a.profile.marks, found, a.at, fresh.hidden) : [],
+        finds: findsIn(fresh.finds, a.at),
       });
     }
     return m;
-  }, [atlas.list, atlas.finds, atlas.hidden, found]);
+  }, [shown, fresh.finds, fresh.hidden, found]);
 
-  // The town you're in names the page, when the towns have been read.
-  const town = useMemo(() => (from && !stale ? nearList(atlas.rows, from, 'town', atlas.build).find((l) => l.here)?.area.name ?? null : null), [atlas.rows, from, atlas.build, stale]);
-  const points = useMemo(() => atlas.list.map((l) => l.area.at), [atlas.list]);
-  const sel = atlas.list.find((l) => l.area.key === selected) ?? null;
-  // A card is only ever one of the listed areas, with its real distance (explore-atlas audit 7).
-  const card = focused ? atlas.list.find((l) => l.area.key === open) ?? null : null;
-  const listRef = useRef(atlas.list);
+  const points = useMemo(() => (town ? [town.at, ...neighborhoods.map((l) => l.area.at)] : neighborhoods.map((l) => l.area.at)), [town, neighborhoods]);
+  const sel = shown.find((l) => l.area.key === selected) ?? null;
+  // A card is only ever one of the areas shown, with its real distance (explore-atlas audit 7).
+  const card = focused ? shown.find((l) => l.area.key === open) ?? null : null;
+  const shownRef = useRef(shown);
   useEffect(() => {
-    listRef.current = atlas.list;
-  }, [atlas.list]);
+    shownRef.current = shown;
+  }, [shown]);
   const pick = useCallback((key: string) => {
-    const l = listRef.current.find((x) => x.area.key === key);
+    const l = shownRef.current.find((x) => x.area.key === key);
     if (!l) return;
     setSelected(key);
     setOpen(key);
     frame([l.area.at], ATLAS_RULES.ringM);
   }, [frame, setOpen, setSelected]);
-  // Each level is framed once its areas are first listed (AT9): the map shows them all.
+  // AT2: a town's tile opens its page; Back, Escape and the title's arrow return.
+  const enter = useCallback((key: string) => {
+    const l = shownRef.current.find((x) => x.area.key === key);
+    if (!l) return;
+    setTownSeen(l.area);
+    setSelected(null);
+    frame([l.area.at], townReachM(l.area) * 0.6);
+  }, [frame, setSelected]);
+  const leave = useCallback(() => {
+    setTownSeen(null);
+    setSelected(null);
+  }, []);
+  useEffect(() => {
+    if (!townSeen || open || !focused) return;
+    const back = BackHandler.addEventListener('hardwareBackPress', () => {
+      leave();
+      return true;
+    });
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && leave();
+    if (Platform.OS === 'web' && typeof window !== 'undefined') window.addEventListener('keydown', onKey);
+    return () => {
+      back.remove();
+      if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
+    };
+  }, [townSeen, open, focused, leave]);
+  // Each page is framed once its areas are first listed (AT9): the map shows them all.
   const framed = useRef<string | null>(null);
   useEffect(() => {
-    const key = `${level}:${atlas.build}`;
+    const key = `${townSeen?.key ?? 'near'}:${fresh.build}`;
     if (!points.length || framed.current === key) return;
     framed.current = key;
-    frame(from ? [from, ...points] : points, 150);
-  }, [points, level, atlas.build, from, frame]);
+    frame(from && !townSeen ? [from, ...points] : points, 150);
+  }, [points, townSeen, fresh.build, from, frame]);
 
   const lookHere = async (at: LngLat) => {
     if (looking) return;
@@ -168,38 +198,42 @@ export default function Explore() {
     }
   };
 
-  const mapH = Math.round(Math.min(240, Math.max(150, height * 0.24)));
+  // The map runs under the status bar to the top of the screen, so no band of it is left empty.
+  const mapH = insets.top + Math.round(Math.min(260, Math.max(170, height * 0.26)));
   const error = walkStart.error ?? locError;
-  const heading = level === 'neighborhood' ? 'Neighborhoods near you' : 'Towns near you';
-  const rows: (typeof atlas.list)[] = [];
-  for (let i = 0; i < atlas.list.length; i += 2) rows.push(atlas.list.slice(i, i + 2));
+  const title = town?.name ?? home?.area.name ?? 'Near you';
+  const subtitle = town ? `Its neighborhoods` : home ? 'Neighborhoods near you' : 'Neighborhoods and towns near you';
+
+  const grid = (list: Listed[], drill: boolean) => {
+    const rows: Listed[][] = [];
+    for (let i = 0; i < list.length; i += 2) rows.push(list.slice(i, i + 2));
+    return rows.map((pair) => (
+      <View key={pair[0].area.key} style={styles.pair}>
+        {pair.map((l) => {
+          const r = ringOf.get(l.area.key);
+          return (
+            <AtlasTile
+              key={l.area.key}
+              listed={l}
+              fam={famOf.get(l.area.key) ?? NEW_FAM}
+              walked={fresh.walked}
+              waiting={r?.waiting ?? NONE}
+              finds={r?.finds ?? NONE}
+              here={from}
+              selected={selected === l.area.key}
+              drill={drill}
+              onPress={drill ? enter : pick}
+            />
+          );
+        })}
+        {pair.length === 1 && <View style={styles.spacer} />}
+      </View>
+    ));
+  };
+  const listing = fresh.status === 'listing' || (fresh.status === 'idle' && !fresh.build);
 
   return (
-    <View style={styles.screen}>
-      <View style={[styles.top, { paddingTop: insets.top + 10 }]}>
-        <View style={styles.titleRow}>
-          <Text testID="explore-area" style={styles.title} accessibilityRole="header" numberOfLines={1}>{town ?? 'Near you'}</Text>
-        </View>
-        <View style={styles.seg} accessibilityRole="tablist">
-          {LEVELS.map((l) => (
-            <Pressable
-              key={l.id}
-              testID={`atlas-level-${l.id}`}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: level === l.id }}
-              onPress={() => {
-                setLevel(l.id);
-                setSelected(null);
-                setOpen(null);
-              }}
-              style={[styles.segBtn, level === l.id && styles.segOn]}
-            >
-              <Text style={[styles.segText, level === l.id && styles.segTextOn]}>{l.label}</Text>
-            </Pressable>
-          ))}
-        </View>
-      </View>
-
+    <View style={styles.screen} onLayout={(e) => setScreenH(e.nativeEvent.layout.height)}>
       <View style={[styles.map, { height: mapH }]}>
         {/* Only while Explore is in front (NV4): one map is live at a time. */}
         {focused && (
@@ -220,13 +254,27 @@ export default function Explore() {
             fitBounds={fit.bounds}
             fitKey={fit.key}
             onFitSettled={onFitSettled}
-            fitPadding={{ top: 24, right: 24, bottom: 24, left: 24 }}
+            fitPadding={{ top: insets.top + 84, right: 24, bottom: 24, left: 24 }}
             initialCenter={savedCamera?.center ?? from ?? WORLD.center}
             initialZoom={savedCamera?.zoom ?? (from ? 13 : WORLD.zoom)}
             onCameraChange={onCameraChange}
             scaleInset={{ bottom: 6, left: 8 }}
           />
         )}
+        {/* The page's title floats over the map, lifted by a shadow (the owner's call, Nov 3). */}
+        <View style={[styles.titleWrap, { top: insets.top + 8 }]} pointerEvents="box-none">
+          <View style={styles.titleCard}>
+            {town ? (
+              <Pressable testID="atlas-back" accessibilityRole="button" accessibilityLabel="Back to near you" onPress={leave} style={styles.back}>
+                <Icon name="chevron-back" size={22} color={theme.ink} />
+              </Pressable>
+            ) : null}
+            <View style={styles.titleText}>
+              <Text testID="explore-area" style={styles.title} accessibilityRole="header" numberOfLines={1}>{title}</Text>
+              <Text testID="explore-subtitle" style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>
+            </View>
+          </View>
+        </View>
         {!spot && <LocateButton busy={locating} onPress={locate} bottom={8} />}
       </View>
 
@@ -298,72 +346,69 @@ export default function Explore() {
           </Banner>
         )}
 
-        <View style={styles.gridHead}>
-          <Text style={styles.gridTitle} accessibilityRole="header">{heading}</Text>
-          {atlas.list.length > 1 && <Text style={styles.gridNote}>nearest first</Text>}
-        </View>
-
         {!from ? (
           <View style={styles.empty} testID="atlas-empty">
             <Icon name="locate-outline" size={22} color={theme.muted} />
             <Text style={styles.emptyText}>Find where you are to see the areas around you.</Text>
             <Button testID="atlas-locate" label="Find me" variant="secondary" onPress={locate} busy={locating} busyLabel="Finding you…" />
           </View>
-        ) : atlas.list.length === 0 ? (
-          <View style={styles.empty} testID="atlas-empty">
-            {atlas.status === 'listing' || (atlas.status === 'idle' && !atlas.build) ? (
-              <>
-                <ActivityIndicator color={theme.muted} />
-                <Text style={styles.emptyText}>Reading the map around you…</Text>
-              </>
-            ) : atlas.status === 'offline' ? (
-              <Text style={styles.emptyText}>Couldn’t read the map. It will try again in a moment.</Text>
-            ) : level === 'neighborhood' ? (
-              <>
-                <Text style={styles.emptyText}>No neighborhoods are named on the map here. The town is one area.</Text>
-                <Button testID="atlas-to-towns" label="See towns" variant="secondary" onPress={() => setLevel('town')} />
-              </>
-            ) : (
-              <Text style={styles.emptyText}>No towns are named on the map near here.</Text>
+        ) : town && ownTown ? (
+          <>
+            {/* AT2: a town's own page: its picture and bars around its centre, then its own neighborhoods. */}
+            <AtlasTile
+              listed={ownTown}
+              fam={famOf.get(ownTown.area.key) ?? NEW_FAM}
+              walked={fresh.walked}
+              waiting={ringOf.get(ownTown.area.key)?.waiting ?? NONE}
+              finds={ringOf.get(ownTown.area.key)?.finds ?? NONE}
+              here={from}
+              selected={selected === ownTown.area.key}
+              wide
+              onPress={pick}
+            />
+            <Text style={styles.section} accessibilityRole="header">Neighborhoods of {town.name}</Text>
+            {neighborhoods.length ? grid(neighborhoods, false) : (
+              <View style={styles.empty} testID="atlas-empty">
+                {listing ? <ActivityIndicator color={theme.muted} /> : null}
+                <Text style={styles.emptyText}>{listing ? `Reading ${town.name}…` : `No neighborhoods are named on the map in ${town.name}. It is one area.`}</Text>
+              </View>
             )}
-          </View>
+          </>
         ) : (
-          rows.map((pair) => (
-            <View key={pair[0].area.key} style={styles.pair}>
-              {pair.map((l) => {
-                const r = ringOf.get(l.area.key);
-                return (
-                  <AtlasTile
-                    key={l.area.key}
-                    listed={l}
-                    fam={famOf.get(l.area.key) ?? NEW_FAM}
-                    walked={atlas.walked}
-                    waiting={r?.waiting ?? NONE}
-                    finds={r?.finds ?? NONE}
-                    here={from}
-                    selected={selected === l.area.key}
-                    onPress={pick}
-                  />
-                );
-              })}
-              {pair.length === 1 && <View style={styles.spacer} />}
-            </View>
-          ))
+          <>
+            <Text style={styles.section} accessibilityRole="header">Neighborhoods near you</Text>
+            {neighborhoods.length ? grid(neighborhoods, false) : (
+              <View style={styles.empty} testID="atlas-empty">
+                {listing ? <ActivityIndicator color={theme.muted} /> : null}
+                <Text style={styles.emptyText}>
+                  {listing ? 'Reading the map around you…'
+                    : fresh.status === 'offline' ? 'Couldn’t read the map. It will try again in a moment.'
+                      : 'No neighborhoods are named on the map here.'}
+                </Text>
+              </View>
+            )}
+            {towns.length > 0 && (
+              <>
+                <Text style={styles.section} accessibilityRole="header">Towns nearby</Text>
+                {grid(towns, true)}
+              </>
+            )}
+          </>
         )}
       </ScrollView>
 
       {card && (
         <AtlasCard
           area={card.area}
-          parent={card.area.level === 'neighborhood' ? town : null}
+          parent={card.area.level === 'neighborhood' ? town?.name ?? home?.area.name ?? null : null}
           distanceM={card.distanceM}
           here={card.here}
-          fam={famOf.get(card.area.key) ?? familiarity(card.area, atlas.areas, atlas.walkAreas)}
-          walked={atlas.walked}
+          fam={famOf.get(card.area.key) ?? NEW_FAM}
+          walked={fresh.walked}
           waiting={ringOf.get(card.area.key)?.waiting ?? NONE}
           finds={ringOf.get(card.area.key)?.finds ?? NONE}
           you={from}
-          nextDoor={nextDoor(card.area, atlas.list.map((l) => l.area), atlas.build)}
+          nextDoor={nextDoor(card.area, shown.map((l) => l.area), fresh.build)}
           walkTo={!card.here && canWalkTo(card.distanceM) ? walkTarget(card.area) : null}
           starting={walkStart.starting}
           onWalk={() => {
@@ -373,6 +418,7 @@ export default function Explore() {
           }}
           onPick={pick}
           onClose={() => setOpen(null)}
+          frame={{ top: Math.round(screenH * 0.12), height: screenH - Math.round(screenH * 0.12) }}
         />
       )}
     </View>
@@ -381,20 +427,19 @@ export default function Explore() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
-  top: { paddingHorizontal: 16, paddingBottom: 10, gap: 10, width: '100%', maxWidth: 640, alignSelf: 'center' },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  title: { flex: 1, fontSize: 28, fontWeight: '800', color: theme.ink },
-  seg: { flexDirection: 'row', backgroundColor: '#e2ded6', borderRadius: 11, padding: 3 },
-  segBtn: { flex: 1, minHeight: 38, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  segOn: { backgroundColor: theme.surface, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
-  segText: { fontSize: 14, fontWeight: '600', color: theme.muted },
-  segTextOn: { color: theme.ink },
-  map: { width: '100%', borderTopWidth: 1, borderBottomWidth: 1, borderColor: theme.line, overflow: 'hidden' },
+  map: { width: '100%', borderBottomWidth: 1, borderColor: theme.line, overflow: 'hidden' },
+  titleWrap: { position: 'absolute', left: 12, right: 12, alignItems: 'flex-start' },
+  titleCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: theme.surface, borderRadius: 14, paddingVertical: 8, paddingLeft: 14, paddingRight: 16,
+    maxWidth: 616, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 5,
+  },
+  back: { width: 44, height: 44, marginLeft: -10, alignItems: 'center', justifyContent: 'center' },
+  titleText: { flexShrink: 1, minWidth: 0 },
+  title: { fontSize: 22, fontWeight: '800', color: theme.ink },
+  subtitle: { fontSize: 13, color: theme.muted, marginTop: 1 },
   grid: { flex: 1 },
   gridContent: { padding: 12, gap: 10, paddingBottom: 24, width: '100%', maxWidth: 640, alignSelf: 'center' },
-  gridHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', paddingHorizontal: 4, paddingTop: 2 },
-  gridTitle: { fontSize: 12, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', color: theme.muted },
-  gridNote: { fontSize: 12, color: theme.muted },
+  section: { fontSize: 12, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', color: theme.muted, paddingHorizontal: 4, paddingTop: 6 },
   pair: { flexDirection: 'row', gap: 10 },
   spacer: { flex: 1 },
   empty: { backgroundColor: theme.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.line, padding: 16, gap: 10, alignItems: 'center' },
