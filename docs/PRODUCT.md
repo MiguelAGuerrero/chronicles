@@ -101,8 +101,8 @@ recording bar brings a minimized walk back.
   route starts on the street you are walking along.
 - **Open in Maps** hands the destination to the phone's maps app (Apple Maps
   on iPhone, the Android chooser, Google Maps elsewhere) for walking
-  directions, when Chronicles' route is wrong: in the blue bar, on "Off your
-  route", on a route that can't be found, beside Go here on the long-press
+  directions, when Chronicles' route is wrong: in the blue bar, on a route
+  that can't be found, beside Go here on the long-press
   card and in a pin's viewer. Navigation and the walk go on.
 - **Explore mode** (off by default, the walk starts quiet): "?" marks within
   range (60-300 m), a chip when on a busy strip, an optional pocket alert
