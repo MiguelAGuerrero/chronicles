@@ -74,3 +74,4 @@ An owner's call made during a slice gets its record in the same commit as the sl
 | [0066](0066-explore-is-an-atlas.md) | 2026-11-03 | Explore is an atlas of the areas near you: same-scale tiles, presence bars, familiarity only | explore, tabs |
 | [0067](0067-atlas-presence-as-dots.md) | 2026-11-03 | Atlas round 3: presence as dots, explained in words; "Quiet" stays the walk mode's | explore |
 | [0068](0068-uncertain-gaps-are-offered.md) | 2026-11-03 | An uncertain gap is offered faint, never left blank | trace, gaps |
+| [0069](0069-draw-a-gaps-way.md) | 2026-11-03 | A gap's way can be drawn (taps snapped to paths), and the guess fits the time | trace, gaps, map |

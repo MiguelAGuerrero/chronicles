@@ -108,6 +108,24 @@ Gaps in the trace filled with the streets most likely walked (the concept doc's 
   - Inference on a very dense grid can take about 0.5 s of JS on a desktop.
   - Walk me back ignores stretches.
   - The backup bundle leaves decisions out.
-  - A dismissed stretch can't be brought back.
+- **A guess that fits the time** (GT1-GT3, decision 0069): an offer takes,
+  among up to 8 shortest ways the time allows (`shortestWays`, Yen's,
+  branching only at junctions), the one closest to the walk's own moving pace
+  (`movingPace`, carried on each `Gap` as `pace`) times the gap, when it is at
+  least 25% closer than the shortest and turns at junctions at most two times
+  more (`turnsOf`): a park loop yes, a zig-zag round town blocks no. A gap
+  filled by itself keeps its shortest way.
+- **Drawing a gap's way** (GW1-GW8, `gaps/draw.ts` pure, `useGapDraw`,
+  `GapDraw`): every card has Draw my way; a gap with no line
+  (`emptyGaps`) gets grey dots (`gapLinks`, `GAP_LINK_DASH`) and a "Not
+  recorded" card (`emptyGapAt`, `gapLines`). Taps join along the paths
+  (`PieceGraph.of`, `joinFix`; never through another tap's join), straight
+  beyond 40 m or unread. Tiles are read in code around each tap, each once per
+  drawing, and the streets derived over all read so far, so a piece across
+  two tiles is whole. Done stores a kept decision with the line (street null).
+  On the walk screen drawing stops following and hides the capture row
+  (`display: none`: Playwright counts `opacity: 0` as visible); on the replay
+  the card's sheet steps aside. The web map writes `data-gaplinks` and
+  `data-drawing`.
 - **Native** (unverified on a device): migration 14, the faint layer, the
   card over the native map.

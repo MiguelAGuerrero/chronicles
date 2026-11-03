@@ -35,7 +35,10 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - A long fill's share of the replay isn't capped (Filling gaps)
 - No way to reach a filled stretch without a map tap, for screen readers, `GapCard` (Filling gaps)
 - Gap inference on a very dense grid can take about 0.5 s of JS on a desktop, `gaps/infer.ts` (Filling gaps)
-- A dismissed stretch can't be brought back, `gap_fill` (Filling gaps)
+- Editing a kept or drawn line point by point: drawing again replaces it (Gap drawing)
+- Drawing past a gap's two ends, or over a ride or a pause (Gap drawing)
+- Showing that a kept line was drawn rather than guessed: it would need a column, a migration (Gap drawing)
+- Freehand finger drawing: the owner chose taps snapped to paths (Gap drawing)
 
 ## Explore and discovery
 

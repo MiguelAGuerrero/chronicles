@@ -131,6 +131,13 @@ recording bar brings a minimized walk back.
 - Walk options: the Explore switch, settings, motion permission, and
   **Share GPS log** (the raw readings, for diagnosing location problems).
   A finished walk's More (⋯) menu shares its log too.
+- **Gaps in the trace** (the app closed, or the GPS lost for a minute or more)
+  are read against the map: an obvious way fills in by itself as walked; any
+  other walkable way is offered faint, the one whose length best fits the
+  time at the walk's own pace, to keep or dismiss. A gap with nothing to offer
+  is joined by grey dots. Every gap's card has **Draw my way**: tap along where
+  you went and the line follows the paths between taps, on the walk screen or
+  the replay.
 - Standstills, GPS wander, rides and motion (step detection) are all read
   from the raw fixes at read time; nothing derived is stored as truth.
 
