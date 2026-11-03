@@ -313,7 +313,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         {/* A gap with no line: grey dots between its ends (GW2). */}
         <GeoJSONSource id="gap-links" data={gapLinks}>
           <Layer id="gap-links" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-            paint={{ 'line-color': COLORS.fog, 'line-width': 3, 'line-opacity': 0.9, 'line-dasharray': GAP_LINK_DASH }} />
+            paint={{ 'line-color': FOG_BOLD, 'line-width': 3, 'line-opacity': 0.8 * (props.traceOpacity ?? 1), 'line-dasharray': GAP_LINK_DASH }} />
         </GeoJSONSource>
         <TraceSource id="faint" data={faint} opacity={FAINT_OPACITY * (props.traceOpacity ?? 1)} />
         <TraceSource id="rides" data={rides} opacity={props.traceOpacity ?? 1} dashed />

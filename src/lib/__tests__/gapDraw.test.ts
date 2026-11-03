@@ -30,9 +30,10 @@ test('GW3: each tap joins the one before along the paths', () => {
   const d = addPoint(startDraw(gap(600)), at(4.1, 0.1));
   const line = drawnLine(d, paths, { done: false });
   assert.ok(distanceM(line.path[0], at(0, 0)) < 1, 'starts at the fix before the gap');
-  assert.ok(distanceM(line.path[line.path.length - 1], at(4.1, 0.1)) < 1, 'ends at the tap');
-  // Along y = 0, not the diagonal: every point but the tap itself lies on the L.
-  assert.ok(line.path.slice(0, -1).every((p) => distanceToLinesM(p, L) < 3), 'along the path');
+  // Ends at the tap's point on the path, never out at the tap itself (gap-drawing audit 2).
+  assert.ok(distanceM(line.path[line.path.length - 1], at(4.1, 0.1)) < 16, 'ends by the tap');
+  // Along y = 0, not the diagonal: every point lies on the L.
+  assert.ok(line.path.every((p) => distanceToLinesM(p, L) < 3), 'along the path');
   assert.ok(Math.abs(line.lengthM - 400) < 30, `${Math.round(line.lengthM)} m`);
   assert.equal(line.straight, 0);
 });
@@ -86,4 +87,27 @@ test('GW2: a gap with no line is found by a tap on its dotted join, away from it
   assert.equal(emptyGapAt([g], at(2, 0.1), 20), g);
   assert.equal(emptyGapAt([g], at(0.1, 0), 20), null, 'beside its start: the trace');
   assert.equal(gapLines(g).title, 'Not recorded for 6 min');
+});
+
+// After the audit (Nov 3): `gap-drawing audit N`.
+
+test('gap-drawing audit 2: a tap beside a path adds no spike out to it', () => {
+  const straight = deriveSegments([road([at(-1, 0), at(5, 0)], { class: 'path', subclass: 'footway' })]);
+  const g: Gap = { t0: 0, t1: 600_000, from: at(0, 0), to: at(4, 0) };
+  let d = startDraw(g);
+  for (const x of [1, 2, 3]) d = addPoint(d, at(x, 0.35));
+  const line = drawnLine(d, straight, { done: true });
+  assert.ok(line.lengthM < 430, `${Math.round(line.lengthM)} m`);
+  assert.ok(line.path.every((p) => Math.abs(p[1] - O[1]) * 111320 < 5), 'on the path');
+});
+
+test('gap-drawing audit 5: a short gap\'s dots open its card from their middle', () => {
+  const g = { t0: 0, t1: 120_000, from: at(0, 0), to: at(0.5, 0) };
+  assert.equal(emptyGapAt([g], at(0.25, 0), 15), g);
+});
+
+test('gap-drawing audit 9: one pass gives the line so far and the line done', () => {
+  const d = addPoint(startDraw(gap(600)), at(4, 0));
+  const both = drawnLine(d, paths, { done: true });
+  assert.deepEqual(both.sofar, drawnLine(d, paths, { done: false }).path);
 });

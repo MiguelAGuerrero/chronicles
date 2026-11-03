@@ -41,6 +41,8 @@ export const GAP_RULES = {
   fitCloser: 0.75,
   /** ...and turns at junctions at most this many times more than the shortest: a loop off the way, never a zig-zag round blocks. */
   fitTurns: 2,
+  /** ...and runs at most this share of its length on other kinds of way than the shortest (path or road): never a footpath walk guessed onto a drive. */
+  fitOtherKinds: 0.25,
   /** Points along a filled stretch: one every this far, and at least one every this long (G11). */
   stepM: 10,
   stepMs: 20_000,

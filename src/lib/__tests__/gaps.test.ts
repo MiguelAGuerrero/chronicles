@@ -165,10 +165,9 @@ test('gaps audit park: a path with a parallel way close by is offered, not left 
     road([at(0, 0), at(0, 0.5)], { class: 'path', subclass: 'footway' }),
     road([at(3, 0), at(3, 0.5)], { class: 'path', subclass: 'footway' }),
   ]);
-  // A time that fits the path (GT2 would rightly take the drive if the time fitted it better).
-  const inf = only(withGap([at(-0.3, 0), at(0.1, 0)], [at(2.9, 0), at(3.3, 0)], 220), park)!;
+  const inf = only(withGap([at(-0.3, 0), at(0.1, 0)], [at(2.9, 0), at(3.3, 0)], 480), park)!;
   assert.ok(inf, 'offered');
-  assert.ok(inf.level === 'offer' || inf.level === 'auto', inf.level);
+  assert.equal(inf.level, 'offer');
   // Along the path (y = 0), the shorter way, never round by the drive 50 m north.
   assert.ok(inf.path.every((p) => Math.abs(p[1] - O[1]) * 111320 < 15), 'along the path');
 });
@@ -382,4 +381,48 @@ test('GT2: in a grid, spare time is not read as a zig-zag round the blocks', () 
   // corner after corner is a poor guess; time to spare in town is mostly time stopped.
   const inf = only(withGap([at(0.5, 2), at(1.5, 2)], [at(5.5, 2), at(6.5, 2)], 600), grid)!;
   assert.ok(inf.path.every((p) => Math.abs(p[1] - at(0, 2)[1]) * 111320 < 15), 'along Street 2');
+});
+
+// After the audit (Nov 3): each accepted finding's regression, `gap-drawing audit N`.
+
+test('gap-drawing audit 1: the park path stays the offer at 8 min, never the drive beside it', () => {
+  // A way that fits the time keeps to the kinds of way the shortest uses: a footpath walk isn't
+  // guessed onto a park drive because the drive is longer.
+  const park = deriveSegments([
+    road([at(0, 0), at(3, 0)], { class: 'path', subclass: 'footway' }),
+    road([at(0, 0.5), at(3, 0.5)], { class: 'minor', name: 'Park Drive' }),
+    road([at(0, 0), at(0, 0.5)], { class: 'path', subclass: 'footway' }),
+    road([at(3, 0), at(3, 0.5)], { class: 'path', subclass: 'footway' }),
+  ]);
+  for (const seconds of [300, 480, 600]) {
+    const inf = only(withGap([at(-0.3, 0), at(0.1, 0)], [at(2.9, 0), at(3.3, 0)], seconds), park)!;
+    assert.notEqual(inf.street, 'Park Drive', `${seconds} s`);
+  }
+});
+
+test('gap-drawing audit 3: a loop is still found with a second path beside the ends', () => {
+  // A path 30 m beside the creek, joined at both ends: every end joins two paths, and the
+  // variants through those joins must not use up the ways looked at.
+  const twin = deriveSegments([
+    road([at(0, 0), at(3, 0)], { class: 'path', subclass: 'footway' }),
+    road([at(0, 0), at(0, 1), at(3, 1), at(3, 0)], { class: 'path', subclass: 'footway' }),
+    road([at(-0.6, 0), at(0, 0)], { class: 'path', subclass: 'footway' }),
+    road([at(3, 0), at(3.6, 0)], { class: 'path', subclass: 'footway' }),
+    road([at(-0.6, 0.3), at(3.6, 0.3)], { class: 'path', subclass: 'footway' }),
+    road([at(-0.6, 0), at(-0.6, 0.3)], { class: 'path', subclass: 'footway' }),
+    road([at(3.6, 0), at(3.6, 0.3)], { class: 'path', subclass: 'footway' }),
+  ]);
+  const inf = only(withGap([at(-0.5, 0), at(0.1, 0)], [at(2.9, 0), at(3.5, 0)], 480), twin)!;
+  assert.ok(inf.path.some((p) => p[1] > O[1] + 0.8 * dLat), 'round the loop');
+});
+
+test('gap-drawing audit 6: the pace from 1 Hz fixes without a speed', () => {
+  // The web reports no speed; fixes a second apart at 1.3 m/s.
+  const pts: TracePoint[] = [];
+  for (let k = 0; k <= 300; k++) {
+    const p = stepToward(at(0, 0), at(10, 0), 1.3 * k);
+    pts.push({ walk_id: 'w', t: k * 1000, lon: p[0], lat: p[1], accuracy_m: 8, speed: null, course: null });
+  }
+  const pace = movingPace(readTrace(pts, 0));
+  assert.ok(Math.abs(pace - 1.3) < 0.2, `${pace.toFixed(2)} m/s`);
 });

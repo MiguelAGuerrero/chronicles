@@ -67,7 +67,7 @@ function addOverlay(map: MapLibreMap) {
   // Offered stretches across gaps: the trace, see-through, under it where they meet (Filling gaps, G6).
   // A gap with no line: grey dots between its ends, under the faint stretches (GW2).
   map.addLayer({ id: 'gap-links', type: 'line', source: 'gap-links', layout: lineLayout,
-    paint: { 'line-color': COLORS.fog, 'line-width': 3, 'line-opacity': 0.9, 'line-dasharray': GAP_LINK_DASH } });
+    paint: { 'line-color': FOG_BOLD, 'line-width': 3, 'line-opacity': 0.8, 'line-dasharray': GAP_LINK_DASH } });
   map.addLayer({ id: 'faint-edge', type: 'line', source: 'faint', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': 0.9 * FAINT_OPACITY } });
   map.addLayer({ id: 'faint', type: 'line', source: 'faint', layout: lineLayout, paint: { 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth, 'line-opacity': FAINT_OPACITY } });
   // Rides dashed on the same white edge, under the walked trace where they meet (R5).
@@ -392,6 +392,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     for (const id of ['trace', 'trace-history-line', 'trace-link-line', 'rides']) mapRef.current?.setPaintProperty(id, 'line-opacity', props.traceOpacity ?? 1);
     for (const id of ['trace-edge', 'trace-history-edge', 'trace-link-edge', 'rides-edge']) mapRef.current?.setPaintProperty(id, 'line-opacity', 0.9 * (props.traceOpacity ?? 1));
     mapRef.current?.setPaintProperty('faint', 'line-opacity', FAINT_OPACITY * (props.traceOpacity ?? 1));
+    // The dots go with the trace: hidden while navigating (gap-drawing audit 12).
+    mapRef.current?.setPaintProperty('gap-links', 'line-opacity', 0.8 * (props.traceOpacity ?? 1));
     mapRef.current?.setPaintProperty('faint-edge', 'line-opacity', 0.9 * FAINT_OPACITY * (props.traceOpacity ?? 1));
     // The markers go with the trace (QL3): hidden while navigating, faint in the replay's first beats.
     mapRef.current?.setPaintProperty('ends', 'circle-opacity', props.traceOpacity ?? 1);

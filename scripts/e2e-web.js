@@ -1119,9 +1119,16 @@ function check(ok, what) {
       const empty = await pg.locator('[data-testid=gap-title]').innerText().catch(() => '');
       check(/^Not recorded for \d+ min$/.test(empty) && (await pg.locator('[data-testid=gap-draw]').count()) === 1 && (await pg.locator('[data-testid=gap-keep]').count()) === 0,
         `GW1, GW2: tapping the dotted line opens its card, with Draw my way ("${empty}")`);
+      // Paths slow to come: Done waits for them, and says so (gap-drawing audit 4).
+      tileDelayMs = 4000;
       await pg.click('[data-testid=gap-draw]').catch(() => {});
       await pg.waitForSelector('[data-testid=gap-draw-bar]', { timeout: 5000 }).catch(() => {});
-      await pg.waitForTimeout(800);
+      const waiting = await pg.locator('[data-testid=gap-draw-bar]').innerText().catch(() => '');
+      const doneOff = await pg.locator('[data-testid=gap-draw-done]').evaluate((e) => e.getAttribute('aria-disabled') === 'true' || e.hasAttribute('disabled')).catch(() => false);
+      check(/Reading the paths/.test(waiting) && doneOff, `gap-drawing audit 4: Done waits for the paths ("${waiting.replace(/\n/g, ' · ')}", disabled ${doneOff})`);
+      tileDelayMs = 0;
+      await pg.waitForFunction(() => !/Reading the paths/.test(document.querySelector('[data-testid=gap-draw-bar]')?.innerText ?? ''), null, { timeout: 15000 }).catch(() => {});
+      await pg.waitForTimeout(500);
       const startPts = (await mapState()).drawing;
       // Two taps along Thayer Street; Undo takes the second away; tap it again.
       await tap(at(11, -0.8));

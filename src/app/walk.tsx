@@ -143,17 +143,18 @@ export default function WalkScreen() {
   // The tapped gap and its stretch, if it has one (a gap with no line has none: GW2).
   const openGapOf = gapOpen ? gapView.gaps.find((g) => gapKey(g) === gapOpen) ?? null : null;
   const openGap = gapOpen ? gapView.stretches.find((s) => gapKey(s) === gapOpen) ?? null : null;
-  // Drawing a gap's way (GW3-GW8): kept like Keep, as the line drawn.
+  // The map follows the walker until they pan or zoom it themselves.
+  const [following, setFollowing] = useState(true);
+  // Drawing a gap's way (GW3-GW8): kept like Keep, as the line drawn. Following comes back after (audit, UI).
   const drawing = useGapDraw(
     useCallback(
       (gap: Gap, line: DrawnLine) => gapView.decide({ t0: gap.t0, t1: gap.t1, path: line.path, lengthM: line.lengthM, street: null, how: 'kept' }, 'kept'),
       [gapView],
     ),
+    useCallback(() => setFollowing(true), []),
   );
   const isDrawing = drawing.gap != null;
   const [pausing, setPausing] = useState(false);
-  // The map follows the walker until they pan or zoom it themselves.
-  const [following, setFollowing] = useState(true);
   const [status, setStatus] = useState<RecorderStatus>({ kind: 'idle' });
   const [now, setNow] = useState(() => Date.now());
   // One-off notices: a start warning, or the web's visibility rule.
@@ -891,7 +892,8 @@ export default function WalkScreen() {
         fog={fog}
         captures={captures}
         // Opening a capture would hide a memo that is still recording.
-        onPinPress={recordingVoice || stopping || settingsOpen ? undefined : setViewing}
+        // While drawing, a tap on a pin is a point along the way like any other (gap-drawing audit 8).
+        onPinPress={recordingVoice || stopping || settingsOpen || isDrawing ? undefined : setViewing}
         walker={live.here}
         walkerSource={live.dot}
         glideWalker
@@ -918,12 +920,12 @@ export default function WalkScreen() {
           setGapOpen(hit ? gapKey(hit) : null);
         }}
         memories={memories}
-        onMemoryPress={recordingVoice || stopping || settingsOpen ? undefined : (group, at) => {
+        onMemoryPress={recordingVoice || stopping || settingsOpen || isDrawing ? undefined : (group, at) => {
           setGapOpen(null);
           void openMemory(group, at);
         }}
         discoveries={explore.pins}
-        onDiscoveryPress={recordingVoice || stopping || settingsOpen ? undefined : (id) => {
+        onDiscoveryPress={recordingVoice || stopping || settingsOpen || isDrawing ? undefined : (id) => {
           // A found place is shown, not a card to open: its capture's pin is the thing to tap (audit, UI).
           if (explore.found.has(id)) return;
           setSpot(null);
@@ -1114,8 +1116,7 @@ export default function WalkScreen() {
       {/* Captures float in the lower-middle of the screen, where either thumb
           reaches; the bottom edge is the least accurate place to tap. Pills
           (caption, undo, retry) sit above the row, so the row never moves. */}
-      {/* Hidden while a gap's way is drawn: every tap then belongs to the map (GW8). */}
-      <View style={[styles.captures, { bottom: insets.bottom + 92 }, isDrawing && styles.hidden]} pointerEvents={isDrawing ? 'none' : 'box-none'}>
+      <View style={[styles.captures, { bottom: insets.bottom + 92 }]} pointerEvents="box-none">
         {recordingVoice && (
           <View style={styles.voiceLive} accessible accessibilityLabel="Recording voice memo">
             <PulseDot />
@@ -1157,7 +1158,9 @@ export default function WalkScreen() {
         )}
         {/* While recording, Save takes the mic's own place, so tapping the mic
             again saves; Discard is smaller and set apart from it. */}
-        <View style={styles.captureRow}>
+        {/* The row hides while a gap's way is drawn, so taps belong to the map (GW8); the pills above
+            stay, so a memo's Undo isn't lost under the drawing (gap-drawing audit 7). */}
+        <View style={[styles.captureRow, isDrawing && styles.hidden]} pointerEvents={isDrawing ? 'none' : 'auto'}>
           <View style={styles.slot}>
             {recordingVoice ? (
               <RoundButton
@@ -1419,7 +1422,8 @@ export default function WalkScreen() {
           }}
         />
       )}
-      {isDrawing && <GapDraw drawing={drawing} style={{ top: insets.top + 12, zIndex: 6 }} />}
+      {/* Low, where the capture row was: big controls stay in thumb's reach (audit, UI). */}
+      {isDrawing && <GapDraw drawing={drawing} style={{ bottom: insets.bottom + 92, zIndex: 6 }} />}
       <ExploreSettings
         visible={settingsOpen}
         hasRing={!!live.here}

@@ -20,6 +20,8 @@ export interface GapDrawing {
   points: number;
   /** The paths around a tap couldn't be read: joins are straight (GW7). */
   unread: boolean;
+  /** Paths still being read: Done waits for them (gap-drawing audit 4). */
+  reading: boolean;
   saving: boolean;
   error: string | null;
   start: (g: Gap) => void;
@@ -35,12 +37,13 @@ export interface GapDrawing {
  * piece crossing two tiles is whole), and Done, which hands the line to
  * `onKeep`, the screen's own way of keeping a stretch.
  */
-export function useGapDraw(onKeep: (gap: Gap, line: DrawnLine) => Promise<void>): GapDrawing {
+export function useGapDraw(onKeep: (gap: Gap, line: DrawnLine) => Promise<void>, onEnd?: () => void): GapDrawing {
   const [draw, setDraw] = useState<Draw | null>(null);
   const [features, setFeatures] = useState<{ roads: RoadFeature[]; names: RoadFeature[]; build: string } | null>(null);
   const [unread, setUnread] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reading, setReading] = useState(0);
   const asked = useRef(new Set<string>());
   const session = useRef(0);
 
@@ -55,21 +58,27 @@ export function useGapDraw(onKeep: (gap: Gap, line: DrawnLine) => Promise<void>)
       }
     if (!want.length) return;
     const mine = session.current;
-    void readDrawTiles(want).then((f) => {
-      if (mine !== session.current) return;
-      if (!f) {
-        // Asked again on the next tap near them.
-        for (const [x, y] of want) asked.current.delete(`${x},${y}`);
-        setUnread(true);
-        return;
-      }
-      setFeatures((prev) => ({ roads: [...(prev?.roads ?? []), ...f.roads], names: [...(prev?.names ?? []), ...f.names], build: f.build }));
-    });
+    setReading((n) => n + 1);
+    void readDrawTiles(want)
+      .catch(() => null)
+      .then((f) => {
+        if (mine !== session.current) return;
+        setReading((n) => Math.max(0, n - 1));
+        if (!f) {
+          // Asked again on the next tap near them (gap-drawing audit 11).
+          for (const [x, y] of want) asked.current.delete(`${x},${y}`);
+          setUnread(true);
+          return;
+        }
+        setUnread(false);
+        setFeatures((prev) => ({ roads: [...(prev?.roads ?? []), ...f.roads], names: [...(prev?.names ?? []), ...f.names], build: f.build }));
+      });
   }, []);
 
   const segments = useMemo(() => (features ? deriveSegments(features.roads, features.names, features.build) : []), [features]);
-  const line = useMemo(() => (draw ? drawnLine(draw, segments, { done: false }).path : null), [draw, segments]);
+  // One routing pass gives both the line so far and the line done (gap-drawing audit 9).
   const done = useMemo(() => (draw ? drawnLine(draw, segments, { done: true }) : null), [draw, segments]);
+  const line = done?.sofar ?? null;
 
   const reset = useCallback(() => {
     session.current++;
@@ -79,6 +88,7 @@ export function useGapDraw(onKeep: (gap: Gap, line: DrawnLine) => Promise<void>)
     setUnread(false);
     setSaving(false);
     setError(null);
+    setReading(0);
   }, []);
   const start = useCallback((g: Gap) => {
     reset();
@@ -90,18 +100,28 @@ export function useGapDraw(onKeep: (gap: Gap, line: DrawnLine) => Promise<void>)
     read([p]);
   }, [read]);
   const undo = useCallback(() => setDraw((d) => (d ? undoPoint(d) : d)), []);
+  const cancel = useCallback(() => {
+    // Not while a save runs: its end would reset a drawing begun meanwhile (gap-drawing audit 10).
+    if (saving) return;
+    reset();
+    onEnd?.();
+  }, [saving, reset, onEnd]);
   const finish = useCallback(async () => {
-    if (!draw || !done || saving) return;
+    if (!draw || !done || saving || reading) return;
+    const mine = session.current;
     setSaving(true);
     setError(null);
     try {
       await onKeep(draw.gap, done);
+      if (mine !== session.current) return;
       reset();
+      onEnd?.();
     } catch {
+      if (mine !== session.current) return;
       setSaving(false);
       setError('Couldn’t save that. Try again.');
     }
-  }, [draw, done, saving, onKeep, reset]);
+  }, [draw, done, saving, reading, onKeep, reset, onEnd]);
 
-  return { gap: draw?.gap ?? null, line, done, points: draw?.points.length ?? 0, unread, saving, error, start, tap, undo, cancel: reset, finish };
+  return { gap: draw?.gap ?? null, line, done, points: draw?.points.length ?? 0, unread, reading: reading > 0, saving, error, start, tap, undo, cancel, finish };
 }

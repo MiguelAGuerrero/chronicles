@@ -18,6 +18,8 @@ export interface Draw {
 export interface DrawnLine {
   /** From the fix before the gap, through every tap, and to the fix after once done. */
   path: LngLat[];
+  /** The line up to the last tap, whatever `done` (the line shown while drawing). */
+  sofar: LngLat[];
   lengthM: number;
   /** How many joins were straight: no path near a point, or none between two. */
   straight: number;
@@ -33,36 +35,62 @@ export const undoPoint = (d: Draw): Draw => ({ ...d, points: d.points.slice(0, -
 /**
  * The line drawn so far (GW3), or done (GW5): the fix before the gap, each
  * tap, then the fix after. Each pair is joined by the shortest way over the
- * paths between them, never through another point's join, else straight.
+ * paths between them, never through another tap's join. A tap near a path
+ * is taken onto it, so the line never spikes out to where the finger landed
+ * (gap-drawing audit 2); a tap with no path near is joined straight. One graph,
+ * one pass, for both the line so far and the line done (gap-drawing audit 9).
  */
 export function drawnLine(d: Draw, segments: StreetSegment[], opts: { done: boolean }): DrawnLine {
-  const stops = [d.gap.from, ...d.points, ...(opts.done ? [d.gap.to] : [])];
+  const stops = [d.gap.from, ...d.points, d.gap.to];
+  const graph = segments.length ? PieceGraph.of(segments, d.gap.from) : null;
+  const ends = stops.map((p) => graph?.joinFix(p) ?? null);
+  const joined = ends.filter((e): e is number => e != null);
   const path: LngLat[] = [stops[0]];
+  let sofar: LngLat[] = [stops[0]];
   let straight = 0;
-  if (stops.length > 1) {
-    const graph = segments.length ? PieceGraph.of(segments, d.gap.from) : null;
-    const ends = stops.map((p) => graph?.joinFix(p) ?? null);
-    const joined = new Set(ends.filter((e): e is number => e != null));
-    for (let i = 1; i < stops.length; i++) {
-      const a = ends[i - 1];
-      const b = ends[i];
-      let way: LngLat[] | null = null;
-      if (graph && a != null && b != null && a !== b) {
-        // Never through another tap's join: that would cut across off the paths.
-        const others = new Set([...joined].filter((e) => e !== a && e !== b));
-        const w = graph.shortest(a, b, Infinity, undefined, others);
-        if (w) way = w.nodes.slice(1).map((n) => graph.pts[n]);
+  let straightSofar = 0;
+  // Where the line now is in the graph: a node on a path, or null after a straight join from nowhere.
+  let cur: number | null = ends[0];
+  for (let i = 1; i < stops.length; i++) {
+    const last = i === stops.length - 1;
+    const target = ends[i];
+    let leg: LngLat[] | null = null;
+    let next: number | null = null;
+    if (graph && cur != null && target != null && cur !== target) {
+      const others = new Set(joined.filter((e) => e !== target && e !== cur));
+      const w = graph.shortest(cur, target, Infinity, undefined, others);
+      if (w && w.nodes.length > 1) {
+        if (last) {
+          leg = w.nodes.slice(1).map((n) => graph.pts[n]);
+          leg[leg.length - 1] = stops[i];
+        } else {
+          // Up to the tap's own point on the path, never out to the tap itself.
+          const body = w.nodes.slice(1, -1);
+          leg = body.map((n) => graph.pts[n]);
+          next = body.length ? body[body.length - 1] : cur;
+        }
       }
-      if (!way) {
-        straight++;
-        way = [stops[i]];
-      }
-      // The join's own end is the tapped point itself, so the line passes through every tap.
-      way[way.length - 1] = stops[i];
-      path.push(...way);
+    }
+    if (!leg) {
+      straight++;
+      leg = [stops[i]];
+      next = target;
+    }
+    path.push(...leg);
+    cur = next;
+    if (i === stops.length - 2) {
+      sofar = path.slice();
+      straightSofar = straight;
     }
   }
-  const lengthM = lineLengthM(path);
+  const full = opts.done ? path : sofar;
+  const lengthM = lineLengthM(full);
   const seconds = (d.gap.t1 - d.gap.t0) / 1000;
-  return { path, lengthM, straight, fast: opts.done && seconds > 0 && lengthM / seconds > GAP_RULES.maxPace };
+  return {
+    path: full,
+    sofar,
+    lengthM,
+    straight: opts.done ? straight : straightSofar,
+    fast: opts.done && seconds > 0 && lengthM / seconds > GAP_RULES.maxPace,
+  };
 }

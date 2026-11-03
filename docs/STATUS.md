@@ -117,7 +117,7 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 | Session | Branch | Doing |
 |---|---|---|
 | Bug fixes (open since Oct 31) | unknown | unknown |
-| Gap inference (filling gaps follow-up) | `claude/gap-drawing` | Drawing a gap's way and a time-fitting guess (`specs/gap-drawing/`, GW1-GW8, GT1-GT3), started 2026-11-03 |
+| Gap inference (filling gaps follow-up) | `claude/gap-drawing` | Drawing a gap's way and a time-fitting guess (`specs/gap-drawing/`, GW1-GW8, GT1-GT3), started 2026-11-03; built, audited (14 findings: 11 fixed, 3 deferred), full suite next |
 
 ## Updating this file
 

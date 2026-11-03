@@ -457,7 +457,8 @@ export default function Replay() {
         walked={shownWalked}
         fog={fog}
         captures={pinned}
-        onPinPress={beat === 'card' || beat === 'name' ? setViewing : undefined}
+        // While drawing, a tap on a pin is a point along the way like any other (gap-drawing audit 8).
+        onPinPress={(beat === 'card' || beat === 'name') && !isDrawing ? setViewing : undefined}
         onPress={beat === 'card' || beat === 'name' ? pressCard : undefined}
         faint={faint}
         gapLinks={isDrawing ? undefined : links}
@@ -575,7 +576,8 @@ export default function Replay() {
         </View>
       )}
 
-      {isDrawing && <GapDraw drawing={drawing} style={{ top: insets.top + 12, zIndex: 6 }} />}
+      {/* Low, where the card's sheet was, clear of the Undo pill at the top (audit, UI). */}
+      {isDrawing && <GapDraw drawing={drawing} style={{ bottom: insets.bottom + 24, zIndex: 6 }} />}
 
       {/* The card steps aside while a gap's way is drawn, so the map is free to tap (GW3). */}
       {(beat === 'card' || beat === 'name') && !isDrawing && (

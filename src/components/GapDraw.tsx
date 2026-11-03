@@ -28,24 +28,27 @@ export function GapDraw(props: { drawing: GapDrawing; style?: StyleProp<ViewStyl
   }, []);
   if (!d.gap) return null;
   const min = Math.max(1, Math.round((d.gap.t1 - d.gap.t0) / 60_000));
+  // Counts are words: the length, never a tally of points (audit, UI).
   const note = d.error
     ? d.error
-    : d.unread
-      ? 'Paths couldn’t be read here: taps join in straight lines.'
-      : d.done?.fast
-        ? `${formatDistance(d.done.lengthM)} is faster than walking in ${min} min.`
-        : d.points
-          ? `${d.points === 1 ? '1 point' : `${d.points} points`} · ${formatDistance(d.done?.lengthM ?? 0)} with the way to the end`
-          : 'From where the trace stops. The line follows the paths between taps.';
+    : d.reading
+      ? 'Reading the paths…'
+      : d.unread
+        ? 'Paths couldn’t be read here: taps join in straight lines.'
+        : d.done?.fast
+          ? `${formatDistance(d.done.lengthM)} is faster than walking in ${min} min. Done keeps it anyway.`
+          : d.points
+            ? `${formatDistance(d.done?.lengthM ?? 0)}, with the way on to where the trace starts again.`
+            : 'From where the trace stops. The line follows the paths between your taps.';
   return (
     <View style={[styles.row, props.style]} pointerEvents="box-none">
       <View testID="gap-draw-bar" style={styles.bar} accessibilityViewIsModal>
         <Text style={styles.title} accessibilityRole="header">Tap along the way you walked</Text>
-        <Text style={[styles.sub, (d.error || d.done?.fast) && styles.warn]} accessibilityLiveRegion="polite">{note}</Text>
+        <Text style={[styles.sub, d.error ? styles.error : d.done?.fast ? styles.warn : null]} accessibilityLiveRegion="polite">{note}</Text>
         <View style={styles.actions}>
           <Button testID="gap-draw-undo" variant="secondary" label="Undo" onPress={d.undo} disabled={!d.points || d.saving} />
           <Button testID="gap-draw-cancel" variant="ghost" label="Cancel" onPress={d.cancel} disabled={d.saving} />
-          <Button testID="gap-draw-done" label="Done" onPress={() => void d.finish()} busy={d.saving} busyLabel="Saving…" style={styles.done} />
+          <Button testID="gap-draw-done" label="Done" onPress={() => void d.finish()} busy={d.saving} busyLabel="Saving…" disabled={d.reading} style={styles.done} />
         </View>
       </View>
     </View>
@@ -60,7 +63,9 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 16, fontWeight: '700', color: theme.ink },
   sub: { fontSize: 14, color: theme.muted },
-  warn: { color: theme.danger },
+  // A note, not an alarm: the line is kept anyway (audit, UI).
+  warn: { color: theme.warn },
+  error: { color: theme.danger },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
   done: { marginLeft: 'auto' },
 });

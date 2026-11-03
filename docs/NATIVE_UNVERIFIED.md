@@ -30,6 +30,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] The live link line from the trace's end to the dot, `setData:trace-link` (Motion)
 - [ ] The faint gap layer, `FAINT_OPACITY`, and `GapCard` over the native map (Filling gaps)
 - [ ] The dotted gap joins (`GAP_LINK_DASH`), the dashed drawing line (`DRAWING_DASH`), map taps while drawing, and the `GapDraw` bar over the native map (Gap drawing, GW2-GW8)
+- [ ] While drawing: whether a Marker tap also fires the map's onPress, `display: 'none'` on the capture row, `GapDraw`'s BackHandler against the screen's own, and `accessibilityViewIsModal` on the bar (Gap drawing)
 - [ ] Reading tiles in code for drawing on Hermes (`useGapDraw`, `readDrawTiles`), and the k-shortest search's cost on a phone (Gap drawing, GW7, GT2)
 - [ ] `LiveWalk`'s Markers and dot on Navigate (Navigation & tabs)
 - [ ] `capFitBounds` widening MapLibre RN's fitBounds (Navigation & tabs, U15)

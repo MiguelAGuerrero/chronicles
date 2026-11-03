@@ -35,3 +35,23 @@ A follow-up to Filling gaps (G1-G14). On a walk through Lehigh Parkway (Nov 3), 
 - Unit: snapping taps along paths, straight joins off the paths, Undo, the join to the fix after (GW3-GW5); the faster-than-walking check (GW6); the pace (GT1); a loop chosen over a shortcut when there is time, the shortcut when there isn't, and never filled by itself (GT2, GT3).
 - E2E: the dotted line across a dismissed gap opens its card; Draw my way, two taps, Done: the line is kept and joins the trace; Cancel changes nothing (GW1-GW5).
 - Native (the drawing bar and taps on MapLibre RN, the dotted layer) has not run on a device.
+
+## Audit (2026-11-03)
+
+14 findings: 11 fixed, 3 deferred, 0 rejected (one, the k-shortest cost, fixed in part).
+
+1. GT2 offered the park drive in the owner's own case: accept. A way that fits keeps to the kinds of way the shortest uses (path or road, at most 25% else). `gap-drawing audit 1`; the park test is back at 8 min and `offer`.
+2. Taps spiked out to the raw tap point: accept. A tap near a path is taken onto it. `gap-drawing audit 2`.
+3. Join variants used up the 8 ways, and turns counted joins: accept. Searched between the likely way's first and last street points, deduped by the pieces walked, joins left out of turns. `gap-drawing audit 3`.
+4. Done before the paths were read kept a straight line: accept. Done waits, "Reading the paths…". `gap-drawing audit 4` (e2e, tiles delayed).
+5. A short gap's dots couldn't be tapped: accept. The end zone is at most a quarter of the gap. `gap-drawing audit 5`.
+6. The pace read ~45% low from 1 Hz fixes without speed: accept. Measured over a minute with no break. `gap-drawing audit 6`.
+7. Drawing hid a memo's Undo pill: accept. Only the capture row hides. Covered by review and typecheck (the gaps e2e has no microphone).
+8. Pins took taps while drawing: accept. Pin, memory and mark taps are off while drawing. Covered by review and typecheck.
+9. Each tap re-derived and re-routed twice: accept in part. One routing pass gives both lines (`gap-drawing audit 9`); deriving per tile and caching each pair's way: defer.
+10. A save's end could reset a new drawing: accept. Cancel is off while saving, and a save's end checks its session. Covered by review.
+11. Tile reads: accept in part. A failed read is caught and retried, and "unread" clears on a later success. Reusing tiles across drawings, and the cache offline: defer.
+12. The dots ignored the trace's opacity (navigating): accept. Covered by review.
+13. The offer depends on when and where it was read (the pace): defer.
+14. A gap that changes under a drawing keeps a line that meets no gap: defer.
+- UI: the bar sits low (where the capture row or the card's sheet was); its note says the length in words, never a count of points; the "faster than walking" note is amber, not red; following comes back after Done or Cancel; the dots are the bold fog grey. Screen readers can't draw (map taps): defer, with the parent slice's screen-reader item.
