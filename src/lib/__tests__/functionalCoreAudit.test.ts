@@ -1,3 +1,4 @@
+// @tree-wide: every module's layer and lint config, the baselines, the declared dependencies
 import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { builtinModules, createRequire } from 'node:module';

@@ -8,16 +8,17 @@ Expo ships breaking changes every SDK release. Before writing any code that touc
 
 ```bash
 EXPO_OFFLINE=1 npx expo install <package>   # never npm/yarn add; offline resolves from the installed expo
-npm run typecheck                           # tsc --noEmit, ~11 s
+npm run check:affected                      # the inner loop: layers, the tests that import what changed, typecheck, lint; names the e2e scenarios
+npm run typecheck                           # tsc --noEmit, incremental: ~22 s cold, ~5 s after
 npm run lint                                # expo lint, ~40 s; includes the import boundaries below
-npm test                                    # tsx --test src/lib/__tests__/*.test.ts, ~6 s
+npm test                                    # every unit test, ~11 s; npm run test:affected for those a change reaches
 npx tsx --test src/lib/__tests__/<one>.test.ts
 npm run export:web && npm run e2e:web       # headless walk; E2E_ONLY=<scenario> for one
 npm run check:docs                          # this file's budget, rule globs, paths the docs name; CI runs it too
 npx expo-doctor                             # dependency and config issues; npx expo install --fix for versions
 ```
 
-Run typecheck, lint, `npm test` and the e2e before declaring any task done. A Stop hook (`.claude/hooks/check-done.sh`) refuses to end a turn that changed the repo while `npm run check:docs` fails or changed TypeScript fails the typecheck, and CI blocks the deploy on either.
+While working, run `npm run check:affected`; run typecheck, lint, `npm test` and the e2e before declaring any task done. A Stop hook (`.claude/hooks/check-done.sh`) refuses to end a turn that changed the repo while `npm run check:docs` fails or, with TypeScript changed, while the typecheck, the layer check or the affected unit tests fail; CI blocks the deploy on the docs check, the typecheck, `npm test` or lint.
 
 Routing is Expo Router: routes live in `src/app/`, `_layout.tsx` files are navigators, non-route code stays outside `src/app/`. Import `Link`, `router` and `useLocalSearchParams` from `expo-router`; open the walk screen with `showWalk()` (`lib/walkNav`), never `router.push('/walk')`. `ios/` and `android/` are generated (never edit them; a hook blocks it); native behaviour is configured in `app.json` and config plugins. Native code needs a development build (`npx expo run:ios`, or `npx eas-cli@latest build --profile development`), never Expo Go. EAS builds, submits and ships over-the-air updates in the cloud (`npx eas-cli@latest build | submit | update`); there is no `eas.json` yet, so it is not set up for this app. Prefer the recommended Expo modules over third-party libraries, and check the available skills before adding a dependency.
 

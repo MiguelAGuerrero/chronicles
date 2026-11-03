@@ -53,25 +53,29 @@ function readLayer(source) {
   return { layer: m[1] };
 }
 
-/** Value imports and re-exports of a source (type-only ones left out), with their lines. */
-function valueImports(file, source) {
+/**
+ * Value imports and re-exports of a source, with their lines; type-only ones
+ * are left out unless `types` is set (the affected-checks graph wants them: a
+ * changed type can break what imports it).
+ */
+function valueImports(file, source, { types = false } = {}) {
   const sf = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, false, file.endsWith('x') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
   const out = [];
   const add = (node, spec) => out.push({ spec, line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1 });
   for (const st of sf.statements) {
     if (ts.isImportDeclaration(st) && ts.isStringLiteral(st.moduleSpecifier)) {
       const c = st.importClause;
-      if (c && c.isTypeOnly) continue;
+      if (!types && c && c.isTypeOnly) continue;
       // `import { type A, type B } from` imports nothing at run time.
       const named = c && c.namedBindings && ts.isNamedImports(c.namedBindings) ? c.namedBindings.elements : null;
-      if (c && !c.name && named && named.length > 0 && named.every((e) => e.isTypeOnly)) continue;
+      if (!types && c && !c.name && named && named.length > 0 && named.every((e) => e.isTypeOnly)) continue;
       add(st, st.moduleSpecifier.text);
     } else if (ts.isExportDeclaration(st) && st.moduleSpecifier && ts.isStringLiteral(st.moduleSpecifier)) {
-      if (st.isTypeOnly) continue;
+      if (!types && st.isTypeOnly) continue;
       const named = st.exportClause && ts.isNamedExports(st.exportClause) ? st.exportClause.elements : null;
-      if (named && named.length > 0 && named.every((e) => e.isTypeOnly)) continue;
+      if (!types && named && named.length > 0 && named.every((e) => e.isTypeOnly)) continue;
       add(st, st.moduleSpecifier.text);
-    } else if (ts.isImportEqualsDeclaration(st) && !st.isTypeOnly && ts.isExternalModuleReference(st.moduleReference)) {
+    } else if (ts.isImportEqualsDeclaration(st) && (types || !st.isTypeOnly) && ts.isExternalModuleReference(st.moduleReference)) {
       add(st, st.moduleReference.expression.text);
     }
   }
@@ -308,6 +312,7 @@ module.exports = {
   libFiles,
   readLayer,
   valueImports,
+  resolveAll,
   readLayers,
   moduleState,
   coreViolations,

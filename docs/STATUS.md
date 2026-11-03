@@ -119,6 +119,7 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 |---|---|---|
 | Bug fixes (open since Oct 31) | unknown | unknown |
 | Functional core, slice 1 (FC1-FC10) | `claude/functional-core-slice1` | built and audited (12 of 14 findings fixed); waits on the owner's go-ahead to deploy; `specs/functional-core/` |
+| Affected checks (AC1-AC11) | `claude/affected-checks` | run what a change can break: affected tests, lint and typecheck, the Stop hook, lint in CI; `specs/affected-checks/` |
 
 ## Updating this file
 

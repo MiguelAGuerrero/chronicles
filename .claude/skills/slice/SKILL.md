@@ -65,11 +65,15 @@ For each criterion, write one failing test before its code:
   `step()`/`check()` pattern and the traps).
 - Name every test by its criterion id: `test('QL3: ...')`, `check(ok, 'QL3: ...')`.
 
-Run the suite and confirm each new test fails for the right reason.
+Run the new tests (`npm run test:affected` picks them up) and confirm each
+fails for the right reason.
 
 ## 6. Implement
 
-1. Make each test pass, criterion by criterion.
+1. Make each test pass, criterion by criterion. Between criteria, run
+   `npm run check:affected`: the layer check, the tests that import what
+   changed, the typecheck and lint of the changed files, and the e2e
+   scenarios that cover them. The whole suite is for step 9.
 2. Keep truth vs cache: never patch derived data, recompute from the trace.
 3. Pass the walk's pauses (and stills) everywhere a trace is read, drawn or
    measured; `tr.walked` for walked-only consumers, `smoothKept(tr)` for the

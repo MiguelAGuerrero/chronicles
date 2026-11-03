@@ -4,6 +4,35 @@ How to check a change, from the seconds-long loop to the headless walk. Times
 were measured in a cloud container on Nov 3, 2026. The e2e skill
 (`.claude/skills/e2e/SKILL.md`) is the short how-to; this is the reference.
 
+## 0. The inner loop: what a change can break
+
+```bash
+npm run check:affected   # layers, affected unit tests, typecheck, affected lint; then the e2e scenarios to run
+npm run test:affected    # only the unit tests that import a changed file, directly or not
+npm run lint:affected    # only the changed files
+```
+
+- **Changed** is everything that differs from the merge base with
+  `origin/main` (or `main`): the branch's commits, edits, new files, renames
+  and deletes (`scripts/affected.js`). With no main to compare with,
+  everything runs.
+- **Which tests:** each test file that imports a changed file through any
+  import (type-only, `import()`, a platform split, JSON included), shortest
+  chain printed. A test that reads the whole tree instead of importing it
+  (the layer check, the meta-key scan) starts with `// @tree-wide: <what it
+  reads>` and runs on any change under `src/` or `scripts/`. Mark a new one
+  so, or it will be skipped.
+- **Everything runs** when the harness changes: `package.json`, the lockfile,
+  `tsconfig.json`, `eslint.config.js`, `eslint-suppressions.json`,
+  `scripts/layers.js`, or any non-test file in `src/lib/__tests__/` (fakes,
+  fixtures, the contract suite).
+- **E2E:** `scripts/e2e-scenarios.js` lists the files each scenario covers;
+  `check:affected` names the ones to run. The main flow covers every screen
+  until it is split. A new scenario gets its row there (`affected.test.ts`
+  fails otherwise).
+- This is the inner loop, not the finish line: the end of a slice, `/audit`,
+  `/deploy` and CI run everything (section 6).
+
 ## 1. The fast loop: unit tests
 
 ```bash
@@ -207,9 +236,10 @@ layout and style time, `perfCount` rates. Look for a column that only grows.
 
 ## 5. CI
 
-`.github/workflows/pages.yml` runs on pushes to `main`: `npm ci`, typecheck,
-`npm test`, the `/chronicles` export and the deploy. **Lint and the e2e are
-not in CI**: they are the agent's job before merging.
+`.github/workflows/pages.yml` runs on pushes to `main`: `npm ci`,
+`check:docs`, typecheck, `npm test`, lint, the `/chronicles` export and the
+deploy. **The e2e is not in CI** (it needs a browser and takes about 15
+minutes): it is the agent's job before merging.
 
 ## 6. Before calling work done
 
@@ -218,9 +248,10 @@ npm run typecheck && npm run lint && npm test
 npm run export:web && npm run e2e:web    # plus E2E_ONLY=<scenario> for marks, reload, qol when touched
 ```
 
-The Stop hook (`.claude/hooks/check-done.sh`) runs only the typecheck, and
-only when `.ts`/`.tsx` files changed since `HEAD`: it blocks the end of a turn
-on a type error. Lint, the unit tests and the e2e stay the agent's job.
+The Stop hook (`.claude/hooks/check-done.sh`) runs `check:docs` on any
+change, and with `.ts`/`.tsx` changed, the typecheck, the layer check and the
+affected unit tests (`node scripts/affected.js hook`): it blocks the end of a
+turn on any of them. The whole suite, lint and the e2e stay the agent's job.
 
 ## 7. What this proves, and what it doesn't
 

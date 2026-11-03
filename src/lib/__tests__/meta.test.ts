@@ -1,3 +1,4 @@
+// @tree-wide: every meta key the app's sources use
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
