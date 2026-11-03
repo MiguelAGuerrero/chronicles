@@ -111,3 +111,4 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - The "?" marks and finds on the tab's own map, which the drawer had (finds moved to the cards)
 - Rows of old builds stay until a purge, and every row (with its sketch) is read whole on each focus (explore-atlas audit 13)
 - Ring reads fetch overlapping tiles again for neighbouring areas: no tile-level de-duplication (explore-atlas audit 6)
+- Highlighting an area's dot on the small map as its tile scrolls to the top of the grid (atlas round 3, from the design review)

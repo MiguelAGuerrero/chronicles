@@ -96,6 +96,25 @@ place like?" before a walk. Planning (keeping areas for later) is a later slice.
 Built 2026-11-03 on branch `explore-atlas`: AT1-AT14 pass in `atlas.test.ts` and
 the e2e's Explore section. Native has not run on a device.
 
+### Round 3 (2026-11-03, the design review's fixes, the owner: "proceed with all of it")
+
+- **Walk to:** a footer always in sight, "Walk to <area>", with "Starts you at <street>, its busiest street".
+- **The card:** a sheet that opens at 58% of the screen and rises to 90% by its handle. On wide screens it is a side panel. Focus moves to its name. Next door says "11 min from <area>".
+- **The long press:** its choices sit over the map in one row. They clear on any page change or when the tab is left. Below z10 it shows "Zoom in to look closer". A one-time hint says the long press exists.
+- **Your town:** it is the title and the way into its page, never listed again; the others are "Other towns". Town tiles have a "See its neighborhoods" footer. A back pill sits low on a town's page.
+- **Presence (decision 0067):**
+  - presence as dots;
+  - tiles show only the kinds present;
+  - "none" at full ink;
+  - "How the marks work" in words;
+  - "Not much on the map here" in place of "Quiet".
+- **Layout:**
+  - tiles read name, character, one meta line, busy street, kinds;
+  - areas are named on the small map (the nearest three, and the selected one);
+  - three columns from 700 px, and map and list side by side from 1000 px;
+  - the title is aligned with the grid.
+- **Not done:** highlighting an area's dot as its tile scrolls to the top (`docs/DEFERRED.md`).
+
 ### Round 2 (2026-11-03, after the owner's look on an iPhone)
 
 - The title over the map (AT15), the hierarchy in the grid in place of the switch (AT2), the character line and busiest street on tiles (AT16).

@@ -97,3 +97,5 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] react-native-svg mini-maps on iOS and Android (12 tiles, an even-odd veil, dashed strokes)
 - [ ] The atlas card's Back (BackHandler) and its layout over the tab bar
 - [ ] The small map's long press and the ring layer at its height
+- [ ] The atlas card's drag (responder props on the handle) and its two heights; the side panel on a tablet
+- [ ] Area points as MapLibre RN Markers (anchor top, offset) on the small map
