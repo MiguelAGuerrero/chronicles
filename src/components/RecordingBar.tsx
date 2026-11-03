@@ -9,11 +9,15 @@ import { recordingLine } from '../lib/recordingBar';
 import type { Capture, Pause, Walk } from '../lib/types';
 import type { LiveTrace } from '../lib/useLiveTrace';
 import { useCaptures } from '../lib/useCaptures';
+import { settleWithin } from '../lib/settleWithin';
 import { showWalk } from '../lib/walkNav';
 import { Icon } from './icons';
 import { useOpenWalk } from './OpenWalk';
 import { Ticking } from './Ticking';
 import { theme } from './ui';
+
+/** The bar's return waits this long at most for its photo to be kept. */
+const RETURN_WAIT_MS = 5000;
 
 /** How long a word from the bar (a photo kept, a refusal) stands in for its line. */
 const SAID_MS = 3000;
@@ -75,7 +79,8 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
     if (returning.current) return;
     returning.current = true;
     try {
-      await keeping.current?.catch(() => {});
+      // The photo is kept first, so the walk screen shows it; never held for ever by a save that hangs.
+      await settleWithin(keeping.current, RETURN_WAIT_MS);
       // The walk screen opens what a tapped reminder asks for as it mounts (R4).
       if (open) await db.setMeta(RECALL_OPEN_KEY, JSON.stringify(open.map((c) => c.id))).catch(() => {});
       feedback('tap');

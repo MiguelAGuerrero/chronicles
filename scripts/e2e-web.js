@@ -865,6 +865,25 @@ function check(ok, what) {
       for (const a of added) by[a] = (by[a] || 0) + 1;
       console.log(`# added in 10 s minimized: ${added.length} ${JSON.stringify(Object.entries(by).sort((a, b) => b[1] - a[1]).slice(0, 8))}`);
     }
+    {
+      // The browser's own Back while the walk screen is up (a swipe, or history), then the bar.
+      await pg.click('[data-testid=recording-return]');
+      await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 10000 });
+      await pg.waitForTimeout(1500);
+      await pg.goBack().catch(() => {});
+      await pg.waitForTimeout(1500);
+      const s1 = await state('after the browser back');
+      if (s1.bar === 'top') {
+        await pg.click('[data-testid=recording-return]');
+        await pg.waitForTimeout(2500);
+      }
+      const s2 = await state('after the browser back, tapped the bar');
+      check(s2.path === `${BASE}/walk` && s2.stop === 'top', `reload: after the browser's Back, the walk is in front or one tap away (${JSON.stringify(s1)} → ${JSON.stringify(s2)})`);
+      if (s2.minimize === 'top') {
+        await pg.click('[data-testid=walk-minimize]');
+        await pg.waitForTimeout(1500);
+      }
+    }
     for (let r = 1; r <= 2; r++) {
       await pg.reload();
       await pg.waitForTimeout(5000);

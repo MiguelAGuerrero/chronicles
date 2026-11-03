@@ -145,3 +145,26 @@ test('tabs audit 1: an ask that never reached the walk screen stops holding the 
   assert.equal(gate.ask(1999), false);
   assert.equal(gate.ask(2000), true);
 });
+
+// The owner's iPhone, Nov 2: minimized, the bar's › did nothing, even after the app was closed
+// and reopened, while the tabs worked. The › is dead only when the gate says the walk screen is
+// up, or while its return waits on the bar's photo. The walk screen now holds the gate only while
+// it is in front (walk.tsx, useFocusEffect), and the wait is capped.
+test('the bar\'s return: a photo save that never settles stops holding it after a while', async () => {
+  const { settleWithin } = await import('../settleWithin');
+  const never = new Promise<void>(() => {});
+  const t0 = Date.now();
+  assert.equal(await settleWithin(never, 50), 'timeout');
+  assert.ok(Date.now() - t0 < 1000);
+  assert.equal(await settleWithin(Promise.resolve(), 50), 'settled');
+  assert.equal(await settleWithin(Promise.reject(new Error('x')), 50), 'settled', 'a failed save lets it go too');
+  assert.equal(await settleWithin(null, 50), 'settled');
+});
+
+test('the gate follows the walk screen being in front: hidden behind the tabs, the bar shows it again', () => {
+  const gate = createWalkGate(2000);
+  const blur = gate.shown();
+  assert.equal(gate.ask(5000), false, 'in front: the bar does nothing');
+  blur();
+  assert.equal(gate.ask(5100), true, 'out of sight (still mounted or not): the bar brings it forward');
+});

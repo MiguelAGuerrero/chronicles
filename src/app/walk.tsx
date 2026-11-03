@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { AccessibilityInfo, ActivityIndicator, Animated, AppState, BackHandler, Share, Switch, Easing, KeyboardAvoidingView, Linking, Platform, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { Modal } from '../components/Modal';
@@ -151,8 +151,9 @@ export default function WalkScreen() {
     return () => sub.remove();
   }, []);
 
-  // Up: another ask to show the walk does nothing (tabs audit 1).
-  useEffect(() => walkScreenShown(), []);
+  // In front: another ask to show the walk does nothing (tabs audit 1). Only while in front, not
+  // while mounted: a walk screen left mounted behind the tabs once left the bar's › dead (Nov 2).
+  useFocusEffect(useCallback(() => walkScreenShown(), []));
   useEffect(() => {
     db.getOpenWalk().then(async (w) => {
       if (!w) {

@@ -1004,6 +1004,13 @@ Read this before changing recording, streets, the replay or storage.
   `lib/walkGate`), never `router.push('/walk')`: a second ask while one is on
   its way or the screen is up does nothing, and the root stack's `walk` is
   `dangerouslySingular` (tabs audit 1).
+  - The gate holds only while the walk screen is in front (`useFocusEffect`),
+    never merely mounted, and the bar's return waits at most 5 s for its
+    photo (`settleWithin`). Nov 2: minimized on the owner's iPhone, the bar's
+    › did nothing, even after closing and reopening, while the tabs worked.
+    Never reproduced (desktop, phone emulation, `/chronicles`, reloads,
+    browser Back: `E2E_ONLY=reload`, `E2E_MOBILE=1`); these are the only two
+    ways the › can do nothing.
 - **A notification opener decides at tap time** from the keeper
   (`useOpenWalkInfo` in a ref), never from what its tab read on focus: a JS
   tab stays mounted, stale, under the others (tabs audit 2).
