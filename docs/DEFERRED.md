@@ -111,3 +111,16 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - The "?" marks and finds on the tab's own map, which the drawer had (finds moved to the cards)
 - Rows of old builds stay until a purge, and every row (with its sketch) is read whole on each focus (explore-atlas audit 13)
 - Ring reads fetch overlapping tiles again for neighbouring areas: no tile-level de-duplication (explore-atlas audit 6)
+
+## Functional core (slice 1)
+
+- Rules for shells (take `Ports`, never import the singletons): with the first shell, the fog-refresh slice (functional-core spec, Open)
+- The two core violations in `layers.baseline.json`: `format.ts` and `scaleBar.ts` read the global units as a default argument; pass the units in
+- `places.ts` keeps a timer (`withTimeout`) and a run guard in core (suppressed in `eslint-suppressions.json`); move `placeAll` and `withTimeout` to a shell
+- The Db contract found the web and native stores disagreeing; the fake follows the web store and the first two are pinned as "(web store as it is)" in `dbContract.ts`. Each needs the owner's call on which side is right:
+  - `deleteCaptures` deletes finds through the captures' walks on web, by capture id on native: a find filed under another walk survives on web
+  - `getSegmentsIn` on web reads tiles around each piece's centre (bounds widened 250 m), so a piece much longer than 200 m that only grazes the bounds is missed; native compares bounding boxes
+  - `startPause` / `startStill` at an earlier pause's start time replaces and reopens it on web; native's `INSERT` would fail on the primary key
+  - `deleteCaptures` with ids that don't exist: web clears reminders only for captures found, native for every id passed
+  - `addFind` on web swallows every transaction error, not just the duplicate key
+- `deleteWalk` / `deleteCaptures` all-or-nothing (D6) has no contract case: nothing shared can make IndexedDB fail halfway

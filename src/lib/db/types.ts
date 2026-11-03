@@ -142,7 +142,7 @@ export interface Db {
   getMeta(key: string): Promise<string | null>;
   setMeta(key: string, value: string): Promise<void>;
   /**
-   * Drops the derived stores (`DERIVED_STORES`: street segments, places) and marks every walk for re-snapping. Run
+   * Drops the derived stores (`DERIVED_STORES`: street segments, places, explore reads, atlas areas) and marks every walk for re-snapping. Run
    * when the tile build changes: history is recomputed from the trace, never
    * patched. Each walk's visited rows and summary stay until its re-snap
    * replaces them, so the log and new-street counts keep working meanwhile.
