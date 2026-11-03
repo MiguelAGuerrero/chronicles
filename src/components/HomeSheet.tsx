@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { placeWalks, type PlacesIndex } from '../lib/places';
 import { formatDistance, suggestTitle } from '../lib/summary';
 import { walkRowMeta } from '../lib/quietLines';
+import { useUnits } from '../lib/useUnits';
 import { dayCounts, dayLabel, type Day, type DayEntry } from '../lib/days';
 import type { Capture, Walk, WalkSummary } from '../lib/types';
 import { Icon, KIND_ICON, KIND_LABEL } from './icons';
@@ -499,6 +500,7 @@ function EntryRow({ entry: e, summary: s, disabled, onOpen, onMore }: { entry: D
 }
 
 function WalkRow({ walk, summary: s, disabled, onMore }: { walk: Walk; summary: WalkSummary | null; disabled?: boolean; onMore?: (walkId: string) => void }) {
+  useUnits();
   const title = walk.title ?? suggestTitle(walk);
   const date = new Date(walk.started_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   // Distance and time stay; new streets aren't counted here (tabs audit U13).

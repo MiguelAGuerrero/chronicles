@@ -104,3 +104,7 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
 - **Native** (unverified on a device): the `ends` layer's `match` stroke colour
   on MapLibre RN, the scale bar over the native map, `locateOnce` fresh on
   expo-location, the edge button over the native sheet.
+- **The scale bar follows the units setting** (QL15, round 2): `scaleBar(mpp, maxPx,
+  units)`; imperial picks feet in 1, 2, 5 × 10^n up to 2,000 ft, then miles. `meters`
+  stays in metres, so the e2e's `data-m` is always metres. Both maps call `useUnits()`
+  and pass it, so the bar redraws on a change.

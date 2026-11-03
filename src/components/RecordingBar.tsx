@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
+import { useUnits } from '../lib/useUnits';
 import { db } from '../lib/db';
 import { memoGate } from '../lib/memoGate';
 import { stopWalk } from '../lib/session';
@@ -45,6 +46,8 @@ export function RecordingBar() {
 
 function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTrace }) {
   perfCount('render:bar');
+  // The bar stays mounted across a change of units under a minimized walk (QL16).
+  useUnits();
   const [said, setSaid] = useState<{ text: string; error?: boolean } | null>(null);
   const onError = useCallback((e: { message: string }) => setSaid({ text: e.message, error: true }), []);
   const cap = useCaptures(walk.id, live.here, live.lastFixAt, onError);

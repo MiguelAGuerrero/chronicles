@@ -4,6 +4,8 @@ import { clampRange, type Kind } from '../lib/explore/explore';
 import type { ExploreSettings as Settings } from '../lib/explore/settings';
 import type { Waypoint } from '../lib/nav/types';
 import { destLine, type StartMode } from '../lib/startPlan';
+import { saveUnits } from '../lib/unitsStore';
+import { useUnits } from '../lib/useUnits';
 import type { LngLat } from '../lib/types';
 import { KindSwitches, RangeSlider, walkNote } from './ExploreSettings';
 import { Icon } from './icons';
@@ -36,6 +38,8 @@ export function StartDialog(props: {
   onClose: () => void;
 }) {
   const { mode, dest, fix, settings, visible } = props;
+  // Distances in km or miles (QL16): saved as it changes, every screen redraws at once.
+  const units = useUnits();
   // Escape on the web: react-native-web's Modal doesn't send it to onRequestClose.
   const closeRef = useRef(props.onClose);
   useEffect(() => {
@@ -123,6 +127,25 @@ export function StartDialog(props: {
             )}
             {/* Each switch saves as it changes, and turning one on asks permission from that tap (NV24). */}
             <NotificationSettings heading={false} />
+
+            <View style={styles.rule} />
+            <Text style={styles.title} accessibilityRole="header">Distances</Text>
+            <View style={styles.segment} accessibilityRole="radiogroup">
+              {(['km', 'mi'] as const).map((u) => (
+                <Pressable
+                  key={u}
+                  testID={`units-${u}`}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: units === u }}
+                  aria-checked={units === u}
+                  accessibilityLabel={u === 'km' ? 'Kilometres and metres' : 'Miles and feet'}
+                  onPress={() => void saveUnits(u)}
+                  style={[styles.segmentBtn, units === u && styles.segmentOn]}
+                >
+                  <Text style={[styles.segmentText, units === u && styles.segmentTextOn]}>{u === 'km' ? 'km' : 'miles'}</Text>
+                </Pressable>
+              ))}
+            </View>
           </ScrollView>
           <View style={styles.foot}>
             <Button

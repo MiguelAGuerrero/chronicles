@@ -8,6 +8,7 @@ import { withTimeout } from '../places';
 import { deriveSegments } from '../streets';
 import { formatDistance } from '../summary';
 import type { LngLat, StreetSegment, Walk } from '../types';
+import { aboutTimeLeft, DEFAULT_PACE_MPS, timeAtPaceMs } from './eta';
 import { announceStep, navStep, routeTo, startNav, tooFar, type NavState } from './navigator';
 import { clearNav, loadNav, saveNav } from './store';
 import { streetRouteSource } from './streetRoute';
@@ -44,6 +45,8 @@ export function useNavigation(opts: {
   /** A route that couldn't be found names where it was asked for, so the screen can offer Open in Maps (NH5). */
   onError: (message: string, dest?: Waypoint) => void;
   onNotice: (message: string) => void;
+  /** This walk's pace in m/s, read when a time left is announced (QL18); 1.3 m/s without one. */
+  pace?: () => number;
 }) {
   const [nav, setNav] = useState<NavState | null>(null);
   const [finding, setFinding] = useState(false);
@@ -62,6 +65,8 @@ export function useNavigation(opts: {
     navRef.current = s;
     setNav(s);
   };
+  /** "about 6 minutes" at this walk's pace, for the start and stepped announcements (QL18). */
+  const timeLeftSaid = (leftM: number) => aboutTimeLeft(timeAtPaceMs(leftM, latest.current.pace?.() ?? DEFAULT_PACE_MPS));
 
   const end = useCallback(() => {
     apply(null);
@@ -140,7 +145,7 @@ export function useNavigation(opts: {
       sources.current = list;
       rereadAt.current = Date.now();
       apply(startNav(dest, found.route, Date.now()));
-      AccessibilityInfo.announceForAccessibility(`Navigating to ${dest.label}, ${formatDistance(found.route.lengthM)}`);
+      AccessibilityInfo.announceForAccessibility(`Navigating to ${dest.label}, ${formatDistance(found.route.lengthM)}, ${timeLeftSaid(found.route.lengthM)}`);
       await saveNav(walk.id, dest);
     } finally {
       busy.current = false;
@@ -193,7 +198,7 @@ export function useNavigation(opts: {
       // A bus or trolley follows its own line: leaving the route on one is not getting lost (R12).
       const riding = !!latest.current.riding;
       if (riding) next = { ...next, offCount: 0, offRoute: false };
-      if (announceStep(s.leftM, next.leftM)) AccessibilityInfo.announceForAccessibility(`${formatDistance(next.leftM)} left to ${s.dest.label}`);
+      if (announceStep(s.leftM, next.leftM)) AccessibilityInfo.announceForAccessibility(`${formatDistance(next.leftM)}, ${timeLeftSaid(next.leftM)} left to ${s.dest.label}`);
       if (step.reroute && !riding) {
         const again = routeTo(sources.current, here, s.dest.at, 'shortest', { heading: latest.current.heading }).route;
         if (again) {

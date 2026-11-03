@@ -84,3 +84,6 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] The scale bar over the native map, `components/map/ScaleBar.tsx` (Quality of life)
 - [ ] `locateOnce` fresh on expo-location, `lib/useLocate.ts` (Quality of life)
 - [ ] The Locate edge button over the native sheet, `components/LocateButton.tsx` (Quality of life)
+- [ ] The recorder retried on a return to the front through expo-location's permission request and the background task, `session.restartRecording` beside the recorder's own AppState listener (Quality of life, QL20)
+- [ ] The pressable "Not recording" chip over the native map, and its Open Settings action (Quality of life, QL19)
+- [ ] The Distances segment inside the native Start dialog Modal, and `Intl` on Hermes for the locale default (Quality of life, QL13, QL16)

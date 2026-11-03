@@ -1,6 +1,21 @@
 /** Distances and times as the screens show them. Pure, so tests and the recording bar can use them. */
+import { getUnits, type Units } from './units';
 
-export function formatDistance(m: number): string {
+const FT_M = 0.3048;
+const MI_M = 1609.344;
+/** Whole feet up to here; a tenth of a mile. */
+const MI_FROM_FT = 528;
+
+/**
+ * "450 m" and "1.2 km", or in miles (QL14) whole feet under 0.1 mi ("450 ft")
+ * and miles with one decimal from there ("0.1 mi", "1.2 mi"). Reads the
+ * units setting unless given.
+ */
+export function formatDistance(m: number, units: Units = getUnits()): string {
+  if (units === 'mi') {
+    const ft = Math.round(m / FT_M);
+    return ft < MI_FROM_FT ? `${ft} ft` : `${(m / MI_M).toFixed(1)} mi`;
+  }
   return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`;
 }
 

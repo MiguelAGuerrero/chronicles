@@ -113,3 +113,8 @@ Routing inside a walk (`lib/nav`): walk me back, Go here, the route sources, rul
     happened here (N)" when captures are near.
   - Walk me back is the top edge button.
   - A pin's viewer has Go here.
+- **Time left** (QL17, QL18; `lib/nav/eta.ts`, pure): the walk's own pace (walked
+  metres over moving time) once 100 m and 60 s are walked, clamped to 0.7–2.0 m/s,
+  else 1.3 m/s. The bar says "450 m · 6 min · Your spot"; its label and the stepped
+  announcements say "about 6 minutes left to"; the arrival line is unchanged.
+  `useNavigation` takes a `pace` getter from the walk screen for the announcements.

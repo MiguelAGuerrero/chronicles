@@ -38,3 +38,19 @@ The walk screen (`src/app/walk.tsx`): its layout, capture row, pills, edge butto
   Recenter while not following) stack at the right edge above the row and one pill
   (`EDGE_BOTTOM`), inside the 640 column on wide screens. Zooming keeps following;
   only a pan or a turn stops it (web; native can't tell zoom from pan yet).
+- **"Not recording" is a button** (QL19, Nov 3): while the recorder's status is an
+  error, the chip (`status-chip`, "Not recording. Why?") re-raises the recorder's
+  sticky notice (Open Settings on a phone; the web's message says where to allow
+  it). The other chip states stay plain text.
+- **A return to the front retries the recorder** (QL20): once per `resumed` change,
+  with the status in error and the walk not paused (`retryRecorder`, pure), the screen
+  calls `restartRecording(walkId)` (session.ts, the same `recorder.start` Resume uses,
+  so location is asked again). The status listener raises the error notice only when
+  the message differs from the last one raised (`raisedError`), so a failed retry's
+  error → waiting → error keeps the chip quietly; the chip's tap bypasses the guard.
+  Native's own AppState listener in the recorder may run on the same return;
+  `startUpdates` is idempotent. Unverified on a device.
+- **Time left in the navigation bar** (QL17, QL18): `timeLeftMs` from `lib/nav/eta.ts`
+  with `live.distanceM` over the walk's moving time (as `WalkStats` counts it),
+  refreshed by the screen's 5 s `now`; "< 1 min" under a minute. Every distance on the
+  screen follows the units setting (`useUnits()` at the top, QL16).

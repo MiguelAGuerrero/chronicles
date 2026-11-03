@@ -96,6 +96,15 @@ export async function resumeWalk(walkId: string): Promise<void> {
   void notifier.pauseEnded(walkId);
 }
 
+/**
+ * Starts recording again for an open walk whose recorder stopped against the walker's
+ * intent (location denied, then allowed in Settings). Location is asked for again, as
+ * `resumeWalk` asks; the recorder's own status says whether it worked. Throws RecorderError.
+ */
+export async function restartRecording(walkId: string): Promise<void> {
+  await recorder.start(walkId);
+}
+
 /** Whether a walk is paused right now. */
 export async function isPaused(walkId: string): Promise<boolean> {
   return (await db.getPauses(walkId)).some((p) => p.ended_at == null);

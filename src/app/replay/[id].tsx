@@ -1,3 +1,4 @@
+import { useUnits } from '../../lib/useUnits';
 import { foundLine, foundList, passedLine } from '../../lib/explore/explore';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
@@ -43,6 +44,7 @@ const TRACE_STEP_MS = 100;
 export { ScreenError as ErrorBoundary } from '../../components/ScreenError';
 
 export default function Replay() {
+  useUnits();
   const { id, ceremony } = useLocalSearchParams<{ id: string; ceremony?: string }>();
   const insets = useSafeAreaInsets();
   const mapRef = useRef<WalkMapHandle>(null);

@@ -35,7 +35,9 @@ import { recorder } from '../lib/recorder';
 import { PAUSE_REMIND_MS } from '../lib/notify';
 import { ensureTileBuild } from '../lib/tiles';
 import type { RecorderStatus } from '../lib/recorder/types';
-import { pauseWalk, resumeWalk, stopWalk } from '../lib/session';
+import { retryRecorder } from '../lib/recorderRetry';
+import { useUnits } from '../lib/useUnits';
+import { pauseWalk, restartRecording, resumeWalk, stopWalk } from '../lib/session';
 import { formatDistance, formatDuration, formatElapsed } from '../lib/summary';
 import type { Capture, LngLat, Pause, StreetSegment, Walk } from '../lib/types';
 import { useCaptures } from '../lib/useCaptures';
@@ -46,6 +48,7 @@ import { notifyWalkChanged } from '../lib/walkEvents';
 import { routeAhead } from '../lib/nav/navigator';
 import { HANDOFF_HINT, openInMaps } from '../lib/nav/openInMaps';
 import { useNavigation } from '../lib/nav/useNavigation';
+import { aboutTimeLeft, formatTimeLeft, paceMps, timeLeftMs } from '../lib/nav/eta';
 import { useVisible } from '../lib/deletion/useDeletions';
 import { deletions } from '../lib/deletion';
 import { UndoToast } from '../components/UndoToast';
@@ -113,6 +116,8 @@ const SETTINGS_FOOT = 92 + 68 + 12;
 
 export default function WalkScreen() {
   perfCount('render:walk');
+  // Every distance on this screen follows the units setting (QL16).
+  useUnits();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const edgeRight = Math.max(12, (width - 640) / 2 + 12);
@@ -183,12 +188,23 @@ export default function WalkScreen() {
       setWalk(w);
     });
   }, []);
+  // The error notice is raised once per error: when the status first turns to error, or for a new
+  // message. A retry's own pass through "waiting" doesn't count as leaving it, so a failed retry
+  // keeps the chip and says nothing again (QL20); the chip's tap brings the notice back (QL19).
+  const raisedError = useRef<string | null>(null);
+  const retrying = useRef(false);
   useEffect(
     () =>
       recorder.subscribeStatus((s) => {
         // The recorder reports "recording" with every fix: only a change re-renders the screen (perf).
         setStatus((prev) => (prev.kind === s.kind && JSON.stringify(prev) === JSON.stringify(s) ? prev : s));
-        if (s.kind === 'error') setNotice({ message: s.message, tone: 'error', openSettings: s.openSettings, sticky: true });
+        if (s.kind !== 'error') {
+          if (!retrying.current) raisedError.current = null;
+          return;
+        }
+        if (raisedError.current === s.message) return;
+        raisedError.current = s.message;
+        setNotice({ message: s.message, tone: 'error', openSettings: s.openSettings, sticky: true });
       }),
     [],
   );
@@ -404,6 +420,11 @@ export default function WalkScreen() {
     // It stays until dismissed: the destination is already forgotten, so it is the way back (audit 6).
     onError: (m, dest) => setNotice({ message: m, tone: 'error', maps: dest && { at: dest.at, label: dest.label }, sticky: !!dest }),
     onNotice: (m) => setArrived(m),
+    // This walk's pace for the spoken time left (QL18), over its moving time as WalkStats counts it.
+    pace: () => {
+      const t = Date.now();
+      return paceMps(live.distanceM, walk ? t - walk.started_at - pausedMs(pauses, walk.started_at, t) : 0);
+    },
   });
   /** Going somewhere new: a failed route's banner (sticky, with Open in Maps) has had its say. */
   const goTo = (dest: Parameters<typeof navigation.goTo>[0]) => {
@@ -803,9 +824,26 @@ export default function WalkScreen() {
   }, [recordingNow]);
 
   const paused = pauses.some((p) => p.ended_at == null);
+  // Back in front with the recorder in error (location denied, then perhaps allowed in Settings):
+  // start it again once per return, the way Resume does, so the walk goes on without a restart
+  // (QL20). The recorder's own status clears the chip if it worked; a failure keeps it quietly.
+  const retriedFor = useRef(0);
+  useEffect(() => {
+    if (resumed === retriedFor.current) return;
+    retriedFor.current = resumed;
+    if (!walk || !retryRecorder(status, paused, true)) return;
+    retrying.current = true;
+    restartRecording(walk.id)
+      .catch(() => {})
+      .finally(() => {
+        retrying.current = false;
+      });
+  }, [resumed, status, paused, walk]);
   // Paused time does not count as walking.
   // Weak GPS is no usable fix for a while, judged before the speed gate: a bus's fixes are good ones (R11).
   const weak = status.kind === 'recording' && live.lastGoodAt != null && now - live.lastGoodAt > WEAK_GPS_MS;
+  // Time left while navigating (QL17): this walk's pace over its moving time, refreshed by the 5 s clock.
+  const navTimeLeft = navigation.nav ? timeLeftMs(navigation.nav.leftM, live.distanceM, walk ? now - walk.started_at - pausedMs(pauses, walk.started_at, now) : 0) : 0;
   // The growing trace says it is recording; the status only shows when it is not.
   const problem =
     paused ? { label: 'Paused', color: theme.muted }
@@ -915,9 +953,9 @@ export default function WalkScreen() {
               testID="nav-left"
               style={styles.navText}
               numberOfLines={1}
-              accessibilityLabel={`${formatDistance(navigation.nav.leftM)} left to ${navigation.nav.dest.label}`}
+              accessibilityLabel={`${formatDistance(navigation.nav.leftM)}, ${aboutTimeLeft(navTimeLeft)} left to ${navigation.nav.dest.label}`}
             >
-              {formatDistance(navigation.nav.leftM)} · {navigation.nav.dest.label}
+              {formatDistance(navigation.nav.leftM)} · {formatTimeLeft(navTimeLeft)} · {navigation.nav.dest.label}
             </Text>
             <Pressable
               testID="nav-handoff"
@@ -980,12 +1018,29 @@ export default function WalkScreen() {
             <Text style={styles.chipText}>On {onStrip}</Text>
           </LiftIn>
         )}
-        {problem && (
+        {problem && status.kind === 'error' && !paused ? (
+          // Not recording is a button: its tap brings the recorder's notice back (why, and on a
+          // phone Open Settings) after it was dismissed (QL19).
+          <Pressable
+            testID="status-chip"
+            accessibilityRole="button"
+            accessibilityLabel="Not recording. Why?"
+            onPress={() => {
+              if (status.kind !== 'error') return;
+              raisedError.current = status.message;
+              setNotice({ message: status.message, tone: 'error', openSettings: status.openSettings, sticky: true });
+            }}
+            style={({ pressed }) => [styles.chip, pressed && styles.chipPressed]}
+          >
+            <View style={[styles.statusDot, { backgroundColor: problem.color }]} />
+            <Text style={styles.chipText}>{problem.label}</Text>
+          </Pressable>
+        ) : problem ? (
           <View style={styles.chip} accessible accessibilityLabel={problem.label} accessibilityLiveRegion="polite">
             <View style={[styles.statusDot, { backgroundColor: problem.color }]} />
             <Text style={styles.chipText}>{problem.label}</Text>
           </View>
-        )}
+        ) : null}
         {nudgeShown && nudge && (
           <View testID="dead-zone" style={styles.undo}>
             <Text style={[styles.undoText, { flexShrink: 1 }]} numberOfLines={2}>{nudge.text}</Text>
@@ -1564,6 +1619,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.surface, borderRadius: 999,
     paddingVertical: 6, paddingHorizontal: 12, borderWidth: 1, borderColor: theme.line,
   },
+  chipPressed: { opacity: 0.8 },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
   chipText: { color: theme.ink, fontWeight: '600', fontSize: 14 },
   // Navigating: what is left and where to, as on a maps app's top bar, with End.

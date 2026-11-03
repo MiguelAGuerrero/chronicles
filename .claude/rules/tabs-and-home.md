@@ -143,3 +143,12 @@ The three tabs (Explore, Navigate, Chronicle), the home sheet, the recording bar
   first. Native (unverified on a device): the Modal over the tab map.
 - `drawerTo(pg, 'half' | 'full')` in the e2e opens the dialog; `'peek'`
   closes it with Escape.
+- **Distances in km or miles** (QL13–QL16, Nov 3): `lib/units.ts` is a pure module
+  store (`getUnits`, `setUnits`, `onUnits`; the default from the device locale, miles
+  for US, GB, LR, MM); `lib/unitsStore.ts` loads it from meta `units` at launch
+  (`_layout.tsx`) and saves it; `useUnits()` subscribes a component. `formatDistance`
+  reads the store, so every formatter follows; a component that stays mounted across a
+  change (the recording bar, a walks list row, the maps' scale bar) calls `useUnits()`
+  so it redraws. The setting is the Start dialog's "Distances" segment (`units-km`,
+  `units-mi`). The e2e's headless Chromium reports en-US, so the default there is
+  miles: the `qol` scenario reads the locale and forces km before its metre checks.

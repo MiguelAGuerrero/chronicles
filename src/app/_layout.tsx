@@ -9,6 +9,7 @@ import '../components/pwa';
 import { setAudioMode } from '../lib/audioMode';
 import { reconcileOpenWalk } from '../lib/session';
 import { ensureTileBuild } from '../lib/tiles';
+import { loadUnits } from '../lib/unitsStore';
 
 /** The tabs are the stack's first screen, so a walk or a replay always has them beneath. */
 export const unstable_settings = { initialRouteName: '(tabs)' };
@@ -21,6 +22,8 @@ export default function RootLayout() {
     setAudioMode({ playsInSilentMode: true, allowsRecording: false }).catch(() => {});
     // Notices a new map build early, so the fog on the walk screen is never stale.
     ensureTileBuild().catch(() => {});
+    // The km or miles setting (QL13); until it loads, the locale's default shows.
+    loadUnits().catch(() => {});
     reconcileOpenWalk()
       .then((open) => {
         if (open) router.replace('/walk');

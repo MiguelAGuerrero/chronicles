@@ -280,12 +280,13 @@ function check(ok, what) {
   await ctx.route('https://tiles.openfreemap.org/**', tileRoute);
 
 // A fresh browser, for a flow of its own (NV12, NV15, NV25, the tabs audit).
-  const freshPage = async (label) => {
+  // `permissions: []` makes a browser that denies location (QL19).
+  const freshPage = async (label, opts = {}) => {
     const c = await browser.newContext({
       viewport: { width: 390, height: 844 },
       // E2E_MOBILE=1: a phone's touch screen, so taps come as touches and the browser makes the clicks.
       ...(process.env.E2E_MOBILE ? { isMobile: true, hasTouch: true, deviceScaleFactor: 3 } : {}),
-      permissions: ['geolocation'],
+      permissions: opts.permissions ?? ['geolocation'],
       geolocation: { longitude: start[0], latitude: start[1], accuracy: 6 },
     });
     await c.route('https://tiles.openfreemap.org/**', tileRoute);
@@ -1220,6 +1221,43 @@ function check(ok, what) {
     }
     await shot(pg, 'qol-01-navigate-located');
 
+    // Units (QL13-QL16): the dialog's Distances segment, defaulting from the locale, switches the scale
+    // bar to feet or miles and back. The dialog is closed before each read, so the bar is the one in front.
+    {
+      const lang = await pg.evaluate(() => navigator.language);
+      const wantMi = /^(en-US|en-GB|en-LR|my-MM)$/i.test(lang);
+      await drawerTo(pg, 'full');
+      const km = pg.locator('[data-testid=units-km]');
+      const mi = pg.locator('[data-testid=units-mi]');
+      const kmOn = (await km.getAttribute('aria-checked')) === 'true';
+      const miOn = (await mi.getAttribute('aria-checked')) === 'true';
+      check((await km.count()) === 1 && (await mi.count()) === 1 && (await km.getAttribute('role')) === 'radio' && (wantMi ? miOn && !kmOn : kmOn && !miOn),
+        `qol QL13, QL16: the dialog has a Distances segment, defaulting from the locale (${lang}: km ${kmOn}, mi ${miOn})`);
+      const other = wantMi ? km : mi;
+      const back = wantMi ? mi : km;
+      await other.click();
+      await pg.waitForTimeout(300);
+      await drawerTo(pg, 'peek');
+      const sw = await scaleBar();
+      const unitOf = (label) => (label.match(/ (m|km|ft|mi)$/) || [])[1];
+      const swUnit = sw && unitOf(sw.label);
+      check(sw && sw.m > 0 && (wantMi ? /^(m|km)$/ : /^(ft|mi)$/).test(swUnit || '') && fits(sw),
+        `qol QL14, QL15: switched, the scale bar reads in ${wantMi ? 'metres' : 'feet or miles'} and still fits (${describe(sw)})`);
+      await drawerTo(pg, 'full');
+      await back.click();
+      await pg.waitForTimeout(300);
+      await drawerTo(pg, 'peek');
+      const sb = await scaleBar();
+      check(sb && (wantMi ? /^(ft|mi)$/ : /^(m|km)$/).test(unitOf(sb.label) || ''), `qol QL16: switched back, the bar follows at once (${describe(sb)})`);
+      // The rest of the scenario reads round metres: km from here.
+      if (wantMi) {
+        await drawerTo(pg, 'full');
+        await km.click();
+        await pg.waitForTimeout(300);
+        await drawerTo(pg, 'peek');
+      }
+    }
+
     // The scale bar on Navigate, and after zooming out.
     const s1 = await scaleBar();
     check(s1 && s1.hidden === 'true' && round(s1), `qol QL5, QL8: Navigate shows a scale bar for a round length, hidden from screen readers (${describe(s1)}, aria-hidden=${s1 && s1.hidden})`);
@@ -1228,6 +1266,30 @@ function check(ok, what) {
     const s2 = await scaleBar();
     check(z1 <= z0 - 1.5 && s2 && s2.m > s1.m && round(s2) && fits(s2),
       `qol QL7: zoomed out two levels, the bar grows to a longer round length and still fits (z${z0.toFixed(2)} → z${z1.toFixed(2)}, ${describe(s2)})`);
+
+    // A destination before Start (QL17): a long press 300 m east along the street, so the walk navigates.
+    const s0 = at(-0.5, -0.5);
+    const destAt = at(2.5, -0.5);
+    await fix(s0);
+    await shown('locate').first().click();
+    await pg.waitForTimeout(2000);
+    {
+      const center = lonLat(await attr('data-center'));
+      const zoom = Number(await attr('data-zoom'));
+      const canvas = await pg.locator('canvas.maplibregl-canvas').last().boundingBox();
+      const k = mpp(zoom, center[1]);
+      const x = canvas.x + canvas.width / 2 + ((destAt[0] - center[0]) * 111320 * Math.cos((center[1] * Math.PI) / 180)) / k;
+      const y = canvas.y + canvas.height / 2 - ((destAt[1] - center[1]) * 111320) / k;
+      await pg.mouse.move(x, y);
+      await pg.mouse.down();
+      await pg.waitForTimeout(700);
+      await pg.mouse.up();
+      await pg.waitForTimeout(1100);
+      await drawerTo(pg, 'full');
+      const destText = await pg.locator('[data-testid=drawer-dest]').innerText().catch(() => '');
+      check(/\d+(\.\d+)? (m|km|ft|mi)\b/.test(destText), `qol QL14: the destination line carries a distance (${JSON.stringify(destText)})`);
+      await drawerTo(pg, 'peek');
+    }
 
     // Explore has Locate and the bar; Chronicle has the bar and no trace ends.
     await pg.click('[data-testid=tab-explore]');
@@ -1259,7 +1321,6 @@ function check(ok, what) {
     await pg.waitForTimeout(800);
 
     // A walk: the start marker goes with the trace; no end marker while it is live.
-    const s0 = at(-0.5, -0.5);
     await fix(s0);
     await pg.click('[data-testid=start]');
     await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
@@ -1271,6 +1332,17 @@ function check(ok, what) {
       await pg.waitForTimeout(1000);
     }
     await pg.waitForTimeout(2500);
+    // Time left beside the distance (QL17, QL18), then End so the trace and its ends show as before.
+    {
+      const navLeft = pg.locator('[data-testid=nav-left]');
+      await navLeft.waitFor({ timeout: 20000 }).catch(() => {});
+      const text = (await navLeft.count()) ? await navLeft.innerText() : '';
+      const label = (await navLeft.count()) ? await navLeft.getAttribute('aria-label') : '';
+      check(/·\s*(<\s*1|\d+(\s*h\s*\d+)?)\s*min\s*·/.test(text) && /about .* left to /.test(label || ''),
+        `qol QL17, QL18: the navigation bar says the time left and its label speaks it (${JSON.stringify(text)}, ${JSON.stringify(label)})`);
+      if (await pg.locator('[data-testid=nav-end]').count()) await pg.click('[data-testid=nav-end]');
+      await pg.waitForTimeout(800);
+    }
     {
       const ends = await attr('data-ends');
       const [a, b] = (ends ?? '').split('|');
@@ -1310,6 +1382,36 @@ function check(ok, what) {
     }
     await shot(pg, 'qol-03-replay-card');
     await c.close();
+
+    // Location denied (QL19): a browser that refuses position requests. The "Not recording" chip is a
+    // button that brings the recorder's notice back after it was dismissed.
+    {
+      const { c: c2, pg: pg2 } = await freshPage('qol-denied', { permissions: [] });
+      await pg2.goto(url);
+      await pg2.waitForSelector('[data-testid=start]');
+      await pg2.waitForTimeout(800);
+      await pg2.click('[data-testid=start]');
+      const chip = pg2.locator('[data-testid=status-chip]');
+      await chip.waitFor({ timeout: 20000 }).catch(() => {});
+      const onWalk = /\/walk$/.test(new URL(pg2.url()).pathname);
+      if (onWalk && (await chip.count())) {
+        const noticeText = 'Location permission was denied';
+        const notice = () => pg2.locator('[data-testid=lift-in]', { hasText: noticeText });
+        const first = (await notice().count()) > 0;
+        const dismiss = pg2.locator('[data-testid=banner-dismiss]');
+        if (await dismiss.count()) await dismiss.first().click();
+        await pg2.waitForTimeout(400);
+        const gone = (await notice().count()) === 0;
+        await chip.first().click();
+        await pg2.waitForTimeout(600);
+        check((await chip.first().getAttribute('role')) === 'button' && (await chip.first().getAttribute('aria-label')) === 'Not recording. Why?' && first && gone && (await notice().count()) === 1,
+          `qol QL19: denied, the Not recording chip is a button whose tap brings the notice back (first ${first}, dismissed ${gone}, back ${await notice().count()})`);
+      } else {
+        const banner = await pg2.locator('[data-testid=lift-in]').allInnerTexts();
+        check(banner.some((t) => /Location permission was denied/.test(t)), `qol QL19: denied, Start explains where to allow location (walk opened: ${onWalk}; ${JSON.stringify(banner)})`);
+      }
+      await c2.close();
+    }
   };
 
   try {

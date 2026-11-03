@@ -20,6 +20,7 @@ import { distanceM } from '../../lib/geo';
 import { useGlideFrames, type GlideFrame } from '../../lib/useGlidingWalker';
 import { markEnter, pinDrops, starEnter } from '../../lib/enter';
 import { useReducedMotion } from '../../lib/motion';
+import { useUnits } from '../../lib/useUnits';
 import { MOTION } from '../../lib/motionTokens';
 import {
   COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, useZoomPins, walkerGeoJSON,
@@ -393,7 +394,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     container.current?.setAttribute('data-walker', fmt(props.walker));
   }, [ready, glideOn, props.walker]);
   // The scale bar follows the view (QL7): the longest round length that fits at this zoom and latitude.
-  const scale = useMemo(() => (view ? scaleBar(metersPerPixel(view.zoom, view.lat), SCALE_MAX_PX) : null), [view]);
+  const units = useUnits();
+  const scale = useMemo(() => (view ? scaleBar(metersPerPixel(view.zoom, view.lat), SCALE_MAX_PX, units) : null), [view, units]);
   // The live walk's dot and cone: one marker, drawn at the same size as the layers.
   useEffect(() => {
     const map = mapRef.current;

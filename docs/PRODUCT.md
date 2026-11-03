@@ -89,13 +89,15 @@ recording bar brings a minimized walk back.
   mic, notes from the pencil. Captions can be added to photos later.
 - The bottom strip has time, distance, Pause, walk options and hold-to-stop.
   A status chip shows only when something is wrong (waiting for GPS, weak GPS,
-  not recording) or on a ride.
+  not recording) or on a ride. "Not recording" is a button: it says why, with
+  Open Settings on a phone, and the walk picks recording back up when you
+  return with location allowed.
 - **Pause** stops recording; captures still work while paused. A reminder
   shows after 10 min paused, as a notification on a phone.
 - **Navigation inside a walk**: a long press picks a spot (Go here); a pin's
   viewer has Go here; **Walk me back** appears once 50 m from the start and
   takes the shorter of the trace and the streets. A blue bar shows the
-  distance left, the route is drawn ahead of you, and the trace hides while
+  distance and time left, the route is drawn ahead of you, and the trace hides while
   navigating. Off-route re-routes quietly; arrival says "You're here".
   Bridges and tunnels cross what lies under them without a turn onto it, and a
   route starts on the street you are walking along.
@@ -156,8 +158,10 @@ recording bar brings a minimized walk back.
   test. Permission is asked only from a tap (first pause, a reminder saved, a
   switch turned on), never at launch. On the web, notifications come from a
   service worker and only work while the page is alive.
-- There is no Settings screen, no units setting (metric only), no dark mode
-  (light forced), and no account.
+- Distances show in km or miles: a "Distances" choice in the Start dialog,
+  defaulting from the device's region. It reaches every distance the app shows,
+  the scale bar included.
+- There is no Settings screen, no dark mode (light forced), and no account.
 
 ## Platforms
 
@@ -187,6 +191,7 @@ recording bar brings a minimized walk back.
 | Rides, clearing walks and moments, motion polish | Shipped, audited |
 | Navigation and tabs (three-tab layout, docked drawer, recording bar) | Shipped, two audit batches done |
 | Quality of life: start and end markers, scale bar, Locate on Navigate and Explore | Shipped (web verified by the qol e2e; native unverified) |
+| Quality of life round 2: km or miles, time left while navigating, the "Not recording" chip with Open Settings and a retry on return | Shipped (web verified by the qol e2e; native unverified) |
 | Bridges and Open in Maps | Shipped on web, audited (native unverified) |
 | Suggested routes (interesting ways, route preview, "Walk this way") | Deferred, next slice |
 | Backup and export of a walk | Code exists, no UI, deferred |

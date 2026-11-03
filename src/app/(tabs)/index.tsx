@@ -10,6 +10,7 @@ import { useOpenWalk, useOpenWalkInfo } from '../../components/OpenWalk';
 import { WalkMap } from '../../components/map/WalkMap';
 import { Icon } from '../../components/icons';
 import { Banner, Button, theme } from '../../components/ui';
+import { useUnits } from '../../lib/useUnits';
 import { db } from '../../lib/db';
 import { useVisible } from '../../lib/deletion/useDeletions';
 import { type Kind } from '../../lib/explore/explore';
@@ -62,6 +63,8 @@ const WEB_NOTE_KEY = 'web_note_dismissed';
  */
 export default function Navigate() {
   perfCount('render:navigate');
+  // The peek's destination line follows the units setting (QL16).
+  useUnits();
   const insets = useSafeAreaInsets();
   const walkStart = useStartWalk();
   const [momentError, setMomentError] = useState<{ message: string; openSettings?: boolean } | null>(null);
