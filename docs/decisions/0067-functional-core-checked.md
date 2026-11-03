@@ -5,7 +5,7 @@ Date: 2026-11-03 · Status: accepted · Area: architecture, process
 ## Context
 On Nov 1 the owner chose "functional core, imperative shell for new code", from the "Chronicles: functional core assessment" doc (https://claude.ai/artifact/NvVJu2kspKdmY2DFgXTvz1). Its foundations (ports, fakes, a Db contract, typed meta, a store, lint lists) sat on `claude/functional-core-foundations` and never merged; every slice since was written without them. "Pure" was a label in `docs/ARCHITECTURE.md` that nothing checked, and screens such as `walk.tsx` (1,714 lines, 35 effects) read and write the db, decide and render at once, so their rules can only be tested by the e2e.
 
-On Nov 3 the owner restated the goal: rigour, and a clear separation of behaviour and state, so that testing is straightforward and agents get modules with a clear purpose and no side effects leaking elsewhere. Not 100% purity. A research pass ("Functional style in stateful UI apps", Nov 3) graded the practices by evidence.
+On Nov 3 the owner restated the goal: rigour, and a clear separation of behaviour and state, so that testing is straightforward and agents get modules with a clear purpose and no side effects leaking elsewhere. Not 100% purity. A research pass ("Functional style in stateful UI apps", Nov 3, `docs/research/functional-style-in-stateful-ui-apps.md`) graded the practices by evidence.
 
 ## Decision
 - Four layers, declared by each `src/lib` module on its first line: `core`, `shell`, `adapter`, `view`. Core has no hidden inputs and imports only core.
