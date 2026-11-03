@@ -130,6 +130,7 @@ recording bar brings a minimized walk back.
   spot, from any walk.
 - Walk options: the Explore switch, settings, motion permission, and
   **Share GPS log** (the raw readings, for diagnosing location problems).
+  A finished walk's More (⋯) menu shares its log too.
 - Standstills, GPS wander, rides and motion (step detection) are all read
   from the raw fixes at read time; nothing derived is stored as truth.
 
