@@ -12,6 +12,7 @@ import { formatDistance, suggestTitle } from '../lib/summary';
 import { walkRowMeta } from '../lib/quietLines';
 import { useUnits } from '../lib/useUnits';
 import { dayCounts, dayLabel, type Day, type DayEntry } from '../lib/days';
+import { byMonth } from '../lib/months';
 import type { Capture, Walk, WalkSummary } from '../lib/types';
 import { Icon, KIND_ICON, KIND_LABEL } from './icons';
 import { theme } from './ui';
@@ -213,6 +214,8 @@ export function HomeSheet(props: {
   const expanded = props.mode.kind !== 'summary';
   // Opening a list starts at half height; the drag can take it to full.
   const [openSize, setOpenSize] = useState<Exclude<SheetSize, 'peek'>>('half');
+  // For the month headers' year (QL28): read once, never in render.
+  const [now] = useState(() => Date.now());
   const size: SheetSize = expanded ? openSize : 'peek';
   const setSize = (next: SheetSize) => {
     if (next === 'peek') props.onMode({ kind: 'summary' });
@@ -412,8 +415,14 @@ export function HomeSheet(props: {
           {place && props.placeExtra && props.placeExtra.found.length > 0 && (
             <Text testID="place-found" style={styles.note}>Found here: {props.placeExtra.found.join(' · ')}</Text>
           )}
-          {(place ? place.walks : all.filter((w) => !unplacedIds.has(w.id))).map((w) => (
-            <WalkRow key={w.id} walk={w} summary={props.summaries.get(w.id) ?? null} disabled={props.busy} onMore={props.onWalkActions} />
+          {/* A header per month of each walk's start, newest first (QL28). */}
+          {byMonth(place ? place.walks : all.filter((w) => !unplacedIds.has(w.id)), now).map((m) => (
+            <View key={m.key} style={styles.month}>
+              <Text testID="month-header" accessibilityRole="header" style={styles.section}>{m.label}</Text>
+              {m.walks.map((w) => (
+                <WalkRow key={w.id} walk={w} summary={props.summaries.get(w.id) ?? null} disabled={props.busy} onMore={props.onWalkActions} />
+              ))}
+            </View>
           ))}
           {!place && props.unplaced.length > 0 && (
             <>
@@ -560,6 +569,8 @@ const styles = StyleSheet.create({
   time: { width: 64, fontSize: 14, color: theme.muted, fontVariant: ['tabular-nums'] },
   entryText: { flex: 1, gap: 2 },
   list: { flex: 1 },
+  // A month's walks keep the list's own spacing (QL28).
+  month: { gap: 10 },
   listContent: { padding: 16, gap: 10, maxWidth: 640, width: '100%', alignSelf: 'center' },
   note: { fontSize: 14, color: theme.muted, marginTop: -4 },
   goRow: { paddingHorizontal: 16, paddingTop: 4, maxWidth: 640, width: '100%', alignSelf: 'center' },
