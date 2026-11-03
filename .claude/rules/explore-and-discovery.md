@@ -161,6 +161,9 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
   - A failed ring stores `failed_at` and waits `retryMs`.
 - **The loop** (`useAtlas`) runs only while the tab is focused and a position is known. It does one step per effect run and asks for the next with a timer. Moving 1 km, a new build or a new `ATLAS_CODE` lists again.
 - **Storage:** `atlas_area` is in `DERIVED_STORES` (SQLite migration 15, IndexedDB v13), so `purgeDerived` clears it.
+- **The hierarchy is the grid** (round 2, the owner, Nov 3; AT2): no level switch. The page near you lists the neighborhoods around you, then "Towns nearby". A town's tile opens its page (`useAtlas(..., town)`): its wide tile, then `townNeighborhoods`, which are within its reach (capped at 5 km) and belong to it (`townOf`: the nearest town, closer for its size). Near reads are kept per level as a list (`atlas_near:<level>`, `withNear`, newest 12, each with its radius), so going into a town and back reads nothing twice.
+- **The title floats over the map** (AT15): the map starts under the status bar; the title card has a shadow. Tiles carry `characterLine` (AT16) and the busiest strip.
+- **The area card is sized in pixels** from the screen's measured height: sized by percent and insets, it showed only its header on an iPhone's Safari (Nov 3).
 - **Position:** the last fix, or a Locate tap. After a reload (no fix in memory), the tab opens where it last listed areas, from `atlas_near:neighborhood`. It then never says "You're here", and the title says "Near you".
 - **Kept from the old tab:** the long press on the small map (What's good here, Walk here). The drawer's "?" and find pins on the map are gone; finds are on the cards.
 - **E2E:** tiles carry `data-name` and `data-read`; kind slots carry `data-kind` and `data-step`. The long press goes near the small map's middle, since a pixel there is more ground than on the old full-screen map.

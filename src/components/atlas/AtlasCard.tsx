@@ -39,6 +39,12 @@ export function AtlasCard(props: {
   onWalk: () => void;
   onPick: (key: string) => void;
   onClose: () => void;
+  /**
+   * Where the card sits, in pixels from the screen's top, measured by the
+   * screen: Safari on iPhone left a card sized by percent and insets at its
+   * header's height, its body gone (Nov 3).
+   */
+  frame: { top: number; height: number };
 }) {
   const { area, fam } = props;
   const p = area.profile;
@@ -65,7 +71,7 @@ export function AtlasCard(props: {
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
       {/* A tap outside closes; screen readers use ✕, so the scrim isn't a second Close button. */}
       <Pressable style={styles.scrim} onPress={props.onClose} accessible={false} importantForAccessibility="no" testID="atlas-scrim" />
-      <View style={styles.card} testID="atlas-card" accessibilityViewIsModal>
+      <View style={[styles.card, { top: props.frame.top, height: props.frame.height }]} testID="atlas-card" accessibilityViewIsModal>
         <View style={styles.head}>
           <View style={styles.headText}>
             <Text style={styles.eyebrow}>{props.parent ? `${level} · ${props.parent}` : level}</Text>
@@ -201,7 +207,7 @@ export function AtlasCard(props: {
 const styles = StyleSheet.create({
   scrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.28)' },
   card: {
-    position: 'absolute', left: 0, right: 0, bottom: 0, top: '14%', backgroundColor: theme.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22,
+    position: 'absolute', left: 0, right: 0, backgroundColor: theme.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22,
     maxWidth: 640, width: '100%', alignSelf: 'center', overflow: 'hidden',
   },
   head: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingHorizontal: 18, paddingTop: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: theme.line },
@@ -213,7 +219,7 @@ const styles = StyleSheet.create({
   known: { color: COLORS.trace, fontWeight: '600' },
   muted: { fontSize: 13, color: theme.muted },
   close: { width: 44, height: 44, borderRadius: 22, backgroundColor: theme.bg, alignItems: 'center', justifyContent: 'center' },
-  scroll: { flex: 1 },
+  scroll: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minHeight: 0 },
   body: { padding: 18, gap: 20, paddingBottom: 32 },
   bigMap: { width: '100%', maxWidth: 346, alignSelf: 'center', aspectRatio: 4 / 3, borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: theme.line },
   sec: { gap: 6 },
