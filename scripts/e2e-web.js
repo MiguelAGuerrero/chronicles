@@ -1477,7 +1477,8 @@ function check(ok, what) {
       await drawerTo(pg, 'half', 'sheet-drag');
       await pg.waitForSelector('[data-testid=walk-row]', { timeout: 10000 });
       const month = await pg.evaluate(() => new Date().toLocaleDateString(undefined, { month: 'long' }));
-      const headers = await shown('month-header').allInnerTexts();
+      // The text itself (a style may set it in capitals on screen).
+      const headers = await shown('month-header').allTextContents();
       const role = (await shown('month-header').count()) ? await shown('month-header').first().getAttribute('role') : null;
       check(headers.length === 1 && headers[0] === month && role === 'heading',
         `qol QL28: the walks list sits under this month's header (${JSON.stringify(headers)}, role ${role})`);

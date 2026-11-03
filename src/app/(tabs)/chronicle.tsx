@@ -10,6 +10,7 @@ import { Icon } from '../../components/icons';
 import { Banner, Button, theme } from '../../components/ui';
 import type { Area, WalkArea } from '../../lib/areas/types';
 import { db } from '../../lib/db';
+import { applyPatch, captureBus } from '../../lib/captureBus';
 import { perfCount } from '../../lib/perfCount';
 import { buildDays } from '../../lib/days';
 import { countLine, placeCount, type ChecklistArea, type Find } from '../../lib/explore/explore';
@@ -289,7 +290,19 @@ export default function Chronicle() {
         </Animated.View>
       )}
 
-      <CaptureViewer key={recalled?.[0]?.id ?? 'none'} captures={recalled} onClose={() => setRecalled(null)} autoPlay remind />
+      <CaptureViewer
+        key={recalled?.[0]?.id ?? 'none'}
+        captures={recalled}
+        onClose={() => setRecalled(null)}
+        autoPlay
+        remind
+        onSaveNote={async (c, body) => {
+          // Stored first; Chronicle's pins and any open view of the walk then show it (QL25).
+          await db.updateCapture(c.id, { body });
+          setCaptures((prev) => applyPatch(prev, c.id, { body }));
+          captureBus.patch(c.walk_id, c.id, { body }, null);
+        }}
+      />
       <CaptureViewer
         key={`moment:${viewing?.[0]?.id ?? 'none'}`}
         captures={viewing && viewing.map((v) => captures.find((c) => c.id === v.id) ?? v)}
@@ -299,8 +312,21 @@ export default function Chronicle() {
           await db.updateCapture(c.id, { caption, caption_y: caption ? y : null });
           setCaptures((prev) => prev.map((x) => (x.id === c.id ? { ...x, caption, caption_y: caption ? y : null } : x)));
         }}
+        onSaveNote={async (c, body) => {
+          // Stored first; Chronicle's pins and any open view of the walk then show it (QL25).
+          await db.updateCapture(c.id, { body });
+          setCaptures((prev) => applyPatch(prev, c.id, { body }));
+          captureBus.patch(c.walk_id, c.id, { body }, null);
+        }}
       />
-      <WalkActions walkId={actionsFor} onClose={() => setActionsFor(null)} />
+      <WalkActions
+        walkId={actionsFor}
+        onClose={() => setActionsFor(null)}
+        // The row, a place's walks and a day's timeline show the new name at once (QL23).
+        onRenamed={(walkId, patch) =>
+          setData((d) => d && { ...d, walks: d.walks.map((w) => (w.id === walkId ? { ...w, ...patch } : w)) })
+        }
+      />
       <UndoToast style={{ top: insets.top + 64 }} />
 
       {placing && (

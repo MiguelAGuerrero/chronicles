@@ -12,6 +12,7 @@ import { CaptureContent, CaptureViewer } from '../../components/CaptureView';
 import { planViews, type WalkMapHandle } from '../../components/map/types';
 import { Button, theme } from '../../components/ui';
 import { db } from '../../lib/db';
+import { applyPatch, captureBus } from '../../lib/captureBus';
 import { snapWalk } from '../../lib/finish';
 import { decide } from '../../lib/gaps';
 import { gapKey, stretchAt } from '../../lib/gaps/infer';
@@ -494,6 +495,12 @@ export default function Replay() {
           await db.updateCapture(c.id, { caption, caption_y: caption ? y : null });
           setData((d) => d && { ...d, captures: d.captures.map((x) => (x.id === c.id ? { ...x, caption, caption_y: caption ? y : null } : x)) });
         }}
+        onSaveNote={async (c, body) => {
+          // Stored first; the replay's own list and any open view of the walk then show it (QL25).
+          await db.updateCapture(c.id, { body });
+          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, { body }) });
+          captureBus.patch(c.walk_id, c.id, { body }, null);
+        }}
       />
       <CaptureViewer
         key={`here:${hereKey}`}
@@ -502,6 +509,12 @@ export default function Replay() {
         captures={here?.captures ?? null}
         context={here?.context}
         onClose={() => setHere(null)}
+        onSaveNote={async (c, body) => {
+          // Stored first; the replay's own list and any open view of the walk then show it (QL25).
+          await db.updateCapture(c.id, { body });
+          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, { body }) });
+          captureBus.patch(c.walk_id, c.id, { body }, null);
+        }}
       />
 
       {openGap && (beat === 'card' || beat === 'name') && !here && !viewing && (
@@ -640,6 +653,12 @@ export default function Replay() {
         onClose={() => setActionsOpen(false)}
         // A deleted walk has nothing left to replay; Undo shows on the home (D5).
         onDone={(kind) => kind === 'walk' && toChronicle()}
+        // The card shows the new name at once, and the name beat's fields with it (QL23).
+        onRenamed={(walkId, patch) => {
+          setData((d) => (d && d.walk.id === walkId ? { ...d, walk: { ...d.walk, ...patch } } : d));
+          setTitle(patch.title);
+          setEpilogue(patch.epilogue ?? '');
+        }}
       />
       <UndoToast style={{ top: insets.top + 12 }} />
     </View>

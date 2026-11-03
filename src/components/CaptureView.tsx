@@ -18,6 +18,7 @@ import { useMediaUri } from '../lib/useMediaUri';
 import { useBaker } from './Baker';
 import { CaptionBar, CaptionEditor, usePhotoRect } from './Caption';
 import { RemindEditor } from './RemindEditor';
+import { NoteEditor } from './NoteEditor';
 import { ConfirmCard } from './ConfirmCard';
 import { UndoToast } from './UndoToast';
 import { deleteMoment, planMoment } from '../lib/deletion';
@@ -292,6 +293,8 @@ export function CaptureViewer(props: {
   title?: string;
   /** Offers a caption edit on photos; the editor opens inside the viewer. */
   onSaveCaption?: (c: Capture, caption: string | null, y: number) => Promise<void>;
+  /** Offers "Edit note" on notes (QL24); the editor opens inside the viewer. */
+  onSaveNote?: (c: Capture, body: string) => Promise<void>;
   /** Offers navigating to where the capture was taken (during a walk). */
   onGoHere?: (c: Capture) => void;
   /** Open in Maps (NH6): hands the capture's place to the phone's maps app, from the More menu. */
@@ -306,6 +309,10 @@ export function CaptureViewer(props: {
   const insets = useSafeAreaInsets();
   const [index, setIndex] = useState(0);
   const [captioning, setCaptioning] = useState<Capture | null>(null);
+  const [noting, setNoting] = useState<Capture | null>(null);
+  // Notes edited here show their new text at once, whether or not the
+  // caller's list hears of it (QL25).
+  const [edited, setEdited] = useState<Map<string, string>>(() => new Map());
   // What was deleted (D3, D5) leaves the viewer at once.
   const list = useVisible(props.captures);
   const [deleting, setDeleting] = useState<{ capture: Capture; text: ConfirmText } | null>(null);
@@ -351,10 +358,13 @@ export function CaptureViewer(props: {
     }
   };
   const i = Math.min(index, Math.max(0, list.length - 1));
-  const current = list[i];
+  const listed = list[i];
+  const editedBody = listed ? edited.get(listed.id) : undefined;
+  const current = listed && editedBody != null && listed.body !== editedBody ? { ...listed, body: editedBody } : listed;
   const close = () => {
     setIndex(0);
     setCaptioning(null);
+    setNoting(null);
     setReminding(null);
     setDeleting(null);
     setMenu(false);
@@ -379,7 +389,7 @@ export function CaptureViewer(props: {
     <Modal
       visible={list.length > 0}
       animationType="fade"
-      onRequestClose={menu ? () => setMenu(false) : deleting ? () => setDeleting(null) : captioning ? () => setCaptioning(null) : reminding ? () => setReminding(null) : close}
+      onRequestClose={menu ? () => setMenu(false) : deleting ? () => setDeleting(null) : captioning ? () => setCaptioning(null) : noting ? () => setNoting(null) : reminding ? () => setReminding(null) : close}
     >
       <View style={styles.viewer}>
         {/* The baker draws behind everything; the cover hides it. */}
@@ -490,6 +500,31 @@ export function CaptureViewer(props: {
             }}
           />
         )}
+        {noting && (
+          // Inside this Modal too (QL24).
+          <NoteEditor
+            key={noting.id}
+            body={noting.body ?? ''}
+            onClose={() => setNoting(null)}
+            onSave={async (body) => {
+              const c = noting;
+              setNoting(null);
+              const before = edited.get(c.id);
+              setEdited((m) => new Map(m).set(c.id, body));
+              try {
+                await props.onSaveNote?.(c, body);
+              } catch {
+                setEdited((m) => {
+                  const n = new Map(m);
+                  if (before == null) n.delete(c.id);
+                  else n.set(c.id, before);
+                  return n;
+                });
+                setSaveState({ id: c.id, text: 'The note could not be saved' });
+              }
+            }}
+          />
+        )}
         {reminding && (
           <RemindEditor
             key={reminding.id}
@@ -562,6 +597,20 @@ export function CaptureViewer(props: {
                 >
                   <Icon name="open-outline" size={22} color={theme.ink} />
                   <Text style={styles.menuText}>Open in Maps</Text>
+                </Pressable>
+              )}
+              {current.kind === 'text' && props.onSaveNote && (
+                <Pressable
+                  testID="viewer-edit-note"
+                  accessibilityRole="button"
+                  onPress={() => {
+                    setMenu(false);
+                    setNoting(current);
+                  }}
+                  style={({ pressed }) => [styles.menuItem, pressed && styles.dim]}
+                >
+                  <Icon name="create-outline" size={22} color={theme.ink} />
+                  <Text style={styles.menuText}>Edit note</Text>
                 </Pressable>
               )}
               <Pressable

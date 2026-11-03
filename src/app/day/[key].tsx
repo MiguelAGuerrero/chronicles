@@ -8,6 +8,7 @@ import { WalkMap } from '../../components/map/WalkMap';
 import { Button, theme } from '../../components/ui';
 import { setAudioMode } from '../../lib/audioMode';
 import { db } from '../../lib/db';
+import { applyPatch, captureBus } from '../../lib/captureBus';
 import { buildDays, dayCaptures, dayCard, dayPlan, dayStart, nextDayStart, stepFrames, walkDrawnAt, walkPlay, watchedKey, type Day, type DayStep, type WalkPlay } from '../../lib/days';
 import { focusOn } from '../../lib/focus';
 import { boundsOf, type Bounds } from '../../lib/geo';
@@ -359,6 +360,12 @@ export default function DayReplay() {
         captures={viewing}
         onClose={() => setViewing(null)}
         remind
+        onSaveNote={async (c, body) => {
+          // Stored first; the day's stops (Watch again) and any open view of the walk then show it (QL25).
+          await db.updateCapture(c.id, { body });
+          setData((d) => d && withNote(d, c.id, body));
+          captureBus.patch(c.walk_id, c.id, { body }, null);
+        }}
       />
 
       {onCard && card && (
@@ -402,6 +409,22 @@ export default function DayReplay() {
       <UndoToast style={{ top: insets.top + 12 }} />
     </View>
   );
+}
+
+/** The day with one note's new text, in its loose moments, its walks' captures and their stops (QL25). */
+function withNote(d: Loaded, id: string, body: string): Loaded {
+  const entries = d.day.entries.map((e) =>
+    e.kind === 'walk'
+      ? { ...e, captures: applyPatch(e.captures, id, { body }) }
+      : e.capture.id === id ? { ...e, capture: { ...e.capture, body } } : e,
+  );
+  const walks = new Map(
+    [...d.walks].map(([wid, w]) => [
+      wid,
+      { ...w, sched: { ...w.sched, groups: w.sched.groups.map((g) => ({ ...g, captures: applyPatch(g.captures, id, { body }) })) } },
+    ]),
+  );
+  return { ...d, day: { ...d.day, entries }, walks };
 }
 
 const styles = StyleSheet.create({

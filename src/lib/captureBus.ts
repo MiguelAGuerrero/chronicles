@@ -10,7 +10,7 @@ import type { Capture } from './types';
  * gone (tabs audit 5). Storage stays the truth; this only keeps the screens'
  * lists in step.
  */
-export type CapturePatch = Partial<Pick<Capture, 'thumb_path' | 'lat' | 'lon' | 'caption' | 'caption_y'>>;
+export type CapturePatch = Partial<Pick<Capture, 'thumb_path' | 'lat' | 'lon' | 'caption' | 'caption_y' | 'body'>>;
 type Listener = { walkId: string; owner: object; fn: (c: Capture) => void; onPatch?: (id: string, patch: CapturePatch) => void };
 const listeners = new Set<Listener>();
 
@@ -27,8 +27,12 @@ export const captureBus = {
     if (!c.walk_id) return;
     for (const l of [...listeners]) if (l.walkId === c.walk_id && l.owner !== from) l.fn(c);
   },
-  /** A capture already sent changed after (tabs audit 5). */
-  patch(walkId: string | null, id: string, patch: CapturePatch, from: object) {
+  /**
+   * A capture already sent changed after (tabs audit 5), or was edited (a
+   * note's text, QL25). `from` null: a screen with no path of its own (the
+   * replay, a day), so every listener hears it.
+   */
+  patch(walkId: string | null, id: string, patch: CapturePatch, from: object | null) {
     if (!walkId) return;
     for (const l of [...listeners]) if (l.walkId === walkId && l.owner !== from) l.onPatch?.(id, patch);
   },

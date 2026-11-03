@@ -457,6 +457,17 @@ export function useCaptures(
     setCaptures((prev) => prev.map((c) => (c.id === id ? { ...c, caption, caption_y: caption ? y : null } : c)));
   }
 
+  /**
+   * A note's new text (QL25): stored, shown here, then sent on the bus so the
+   * walk's other views (the walk screen, Navigate's live walk) show it too.
+   * Its find and reminder hang on its id, so they stay.
+   */
+  async function setNote(id: string, body: string) {
+    await db.updateCapture(id, { body });
+    if (alive.current) setCaptures((prev) => applyPatch(prev, id, { body }));
+    captureBus.patch(walkId, id, { body }, self);
+  }
+
   const saveNote = (text: string) =>
     guarded('text', async () => {
       if (text.trim()) await add('text', stampNow(), null, text.trim());
@@ -476,5 +487,6 @@ export function useCaptures(
     unsaved: unsaved != null,
     saveNote,
     setCaption,
+    setNote,
   };
 }

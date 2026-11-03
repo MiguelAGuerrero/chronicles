@@ -1418,6 +1418,7 @@ export default function WalkScreen() {
         remind
         walkId={walk?.id ?? null}
         onSaveCaption={(c, caption, y) => cap.setCaption(c.id, caption, y)}
+        onSaveNote={(c, body) => cap.setNote(c.id, body)}
         onGoHere={navigation.finding ? undefined : (c) => {
           setViewing(null);
           if (c.lat != null && c.lon != null) goTo({ at: [c.lon, c.lat], label: KIND_LABEL[c.kind], kind: 'capture' });
@@ -1515,6 +1516,7 @@ export default function WalkScreen() {
         captures={here?.captures ?? null}
         context={here?.context}
         onClose={() => setHere(null)}
+        onSaveNote={(c, body) => cap.setNote(c.id, body)}
       />
 
       {/* At the top, clear of the voice memo's own Undo and the caption pill above the capture row (UI review). */}
