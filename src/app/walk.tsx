@@ -44,6 +44,7 @@ import { askMotion, useMotionAccess } from '../lib/walkMotion';
 import { gpsLog } from '../lib/gpsLog';
 import { notifyWalkChanged } from '../lib/walkEvents';
 import { routeAhead } from '../lib/nav/navigator';
+import { HANDOFF_HINT, openInMaps } from '../lib/nav/openInMaps';
 import { useNavigation } from '../lib/nav/useNavigation';
 import { useVisible } from '../lib/deletion/useDeletions';
 import { deletions } from '../lib/deletion';
@@ -94,7 +95,15 @@ const REMINDER_AWAY_M = 100;
 /** How long "Aa Caption" stays offered after a photo. */
 const CAPTION_OFFER_MS = 6000;
 
-type Notice = { message: string; tone?: 'info' | 'error'; openSettings?: boolean; sticky?: boolean };
+type Notice = {
+  message: string;
+  tone?: 'info' | 'error';
+  openSettings?: boolean;
+  sticky?: boolean;
+  /** A route that couldn't be found offers the destination to the phone's maps app (NH5). */
+  maps?: { at: LngLat; label: string };
+};
+
 
 // A screen that throws shows what broke, with Try again, never a blank page (bug, Nov 1).
 export { ScreenError as ErrorBoundary } from '../components/ScreenError';
@@ -381,6 +390,7 @@ export default function WalkScreen() {
     here: live.here,
     lastFixAt: live.lastFixAt,
     paused: pauses.some((p) => p.ended_at == null),
+    heading: live.heading,
     riding: live.riding,
     map: () => mapRef.current,
     onArrive: (dest) => {
@@ -389,10 +399,30 @@ export default function WalkScreen() {
       setArrived(`You’re here: ${dest.label}`);
       AccessibilityInfo.announceForAccessibility(`You're here: ${dest.label}`);
     },
-    // Errors stay up long enough to read at a glance, and can be dismissed.
-    onError: (m) => setNotice({ message: m, tone: 'error' }),
+    // Errors stay up long enough to read at a glance, and can be dismissed. A route that
+    // can't be found offers the phone's maps app (NH5).
+    // It stays until dismissed: the destination is already forgotten, so it is the way back (audit 6).
+    onError: (m, dest) => setNotice({ message: m, tone: 'error', maps: dest && { at: dest.at, label: dest.label }, sticky: !!dest }),
     onNotice: (m) => setArrived(m),
   });
+  /** Going somewhere new: a failed route's banner (sticky, with Open in Maps) has had its say. */
+  const goTo = (dest: Parameters<typeof navigation.goTo>[0]) => {
+    setNotice((n) => (n?.maps ? null : n));
+    void navigation.goTo(dest);
+  };
+  /**
+   * Open in Maps (NH3-NH8): the destination to the phone's maps app, straight from the tap (a
+   * browser opens a window only from one). Navigation and the walk go on as they were (NH7).
+   */
+  const handOff = (at: LngLat, label: string) => {
+    feedback('tap');
+    openInMaps(at, label).then(
+      (ok) => {
+        if (!ok) setNotice({ message: 'Couldn’t open a maps app.', tone: 'error' });
+      },
+      () => setNotice({ message: 'Couldn’t open a maps app.', tone: 'error' }),
+    );
+  };
   // The route ahead of you only; what is behind is walked.
   const routeLine = useMemo(
     () => (navigation.nav ? (live.here ? routeAhead(navigation.nav.route.path, live.here) : navigation.nav.route.path) : null),
@@ -889,6 +919,19 @@ export default function WalkScreen() {
             >
               {formatDistance(navigation.nav.leftM)} · {navigation.nav.dest.label}
             </Text>
+            <Pressable
+              testID="nav-handoff"
+              accessibilityRole="button"
+              accessibilityLabel="Open in Maps"
+              accessibilityHint={HANDOFF_HINT}
+              onPress={() => {
+                const d = navigation.nav?.dest;
+                if (d) handOff(d.at, d.label);
+              }}
+              style={({ pressed }) => [styles.navHandoff, pressed && styles.pressed]}
+            >
+              <Icon name="open-outline" size={22} color="#ffffff" />
+            </Pressable>
             <Pressable testID="nav-end" accessibilityRole="button" accessibilityLabel="End navigation" onPress={navigation.end} style={styles.navEnd} hitSlop={8}>
               <Text style={styles.navEndText}>End</Text>
             </Pressable>
@@ -914,6 +957,20 @@ export default function WalkScreen() {
           <LiftIn style={styles.chip} accessibilityLiveRegion="polite">
             <View style={[styles.statusDot, { backgroundColor: theme.warn }]} />
             <Text style={styles.chipText}>Off your route</Text>
+            {/* When the way here is wrong (a bridge, a closed path), the phone's maps app (NH4). */}
+            <Pressable
+              testID="offroute-handoff"
+              accessibilityRole="button"
+              accessibilityHint={HANDOFF_HINT}
+              onPress={() => {
+                const d = navigation.nav?.dest;
+                if (d) handOff(d.at, d.label);
+              }}
+              style={styles.findingCancel}
+              hitSlop={4}
+            >
+              <Text style={styles.findingCancelText}>Open in Maps</Text>
+            </Pressable>
           </LiftIn>
         )}
         {navigation.finding && (
@@ -952,7 +1009,7 @@ export default function WalkScreen() {
               onPress={() => {
                 const n = nudge;
                 setNudge(null);
-                navigation.goTo({ at: n.at, label: n.name, kind: 'place' });
+                goTo({ at: n.at, label: n.name, kind: 'place' });
               }}
               hitSlop={10}
               style={styles.undoBtn}
@@ -979,7 +1036,13 @@ export default function WalkScreen() {
           <Banner
             tone={notice.tone}
             onDismiss={() => setNotice(null)}
-            action={notice.openSettings && Platform.OS !== 'web' ? { label: 'Open Settings', onPress: () => Linking.openSettings() } : undefined}
+            action={
+              notice.openSettings && Platform.OS !== 'web'
+                ? { label: 'Open Settings', onPress: () => Linking.openSettings() }
+                : notice.maps
+                  ? { label: 'Open in Maps', onPress: () => notice.maps && handOff(notice.maps.at, notice.maps.label) }
+                  : undefined
+            }
           >
             {notice.message}
           </Banner>
@@ -1162,7 +1225,7 @@ export default function WalkScreen() {
           accessibilityRole="button"
           accessibilityLabel="Walk me back to the start"
           disabled={navigation.finding}
-          onPress={() => navigation.goTo({ at: walkStart, label: 'Start', kind: 'start' })}
+          onPress={() => goTo({ at: walkStart, label: 'Start', kind: 'start' })}
           style={({ pressed }) => [styles.edgeBtn, { right: edgeRight, bottom: insets.bottom + EDGE_BOTTOM + 168 }, pressed && styles.pressed]}
         >
           <Icon name="arrow-undo" size={22} color={theme.ink} />
@@ -1271,7 +1334,7 @@ export default function WalkScreen() {
                 onPress={() => {
                   const m = openMark;
                   setMarkOpen(null);
-                  navigation.goTo({ at: m.at, label: openMarkNamed ? m.name : 'A place to find', kind: 'find', placeKey: m.key });
+                  goTo({ at: m.at, label: openMarkNamed ? m.name : 'A place to find', kind: 'find', placeKey: m.key });
                 }}
                 disabled={navigation.finding}
               />
@@ -1316,7 +1379,10 @@ export default function WalkScreen() {
         onSaveCaption={(c, caption, y) => cap.setCaption(c.id, caption, y)}
         onGoHere={navigation.finding ? undefined : (c) => {
           setViewing(null);
-          if (c.lat != null && c.lon != null) navigation.goTo({ at: [c.lon, c.lat], label: KIND_LABEL[c.kind], kind: 'capture' });
+          if (c.lat != null && c.lon != null) goTo({ at: [c.lon, c.lat], label: KIND_LABEL[c.kind], kind: 'capture' });
+        }}
+        onOpenInMaps={(c) => {
+          if (c.lat != null && c.lon != null) handOff([c.lon, c.lat], KIND_LABEL[c.kind]);
         }}
       />
       <CaptionEditor
@@ -1356,9 +1422,20 @@ export default function WalkScreen() {
                 onPress={() => {
                   const at = spot.at;
                   setSpot(null);
-                  navigation.goTo({ at, label: 'Your spot', kind: 'point' });
+                  goTo({ at, label: 'Your spot', kind: 'point' });
                 }}
                 disabled={navigation.finding}
+              />
+              <Button
+                testID="spot-handoff"
+                variant="secondary"
+                label="Open in Maps"
+                accessibilityHint={HANDOFF_HINT}
+                onPress={() => {
+                  const at = spot.at;
+                  setSpot(null);
+                  handOff(at, 'Your spot');
+                }}
               />
               {spot.here && (
                 <Button
@@ -1512,6 +1589,7 @@ const styles = StyleSheet.create({
   // A white pill: 5.2:1 for its blue text.
   navEnd: { minHeight: 44, minWidth: 64, paddingHorizontal: 14, borderRadius: 22, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
   navEndText: { color: COLORS.route, fontSize: 16, fontWeight: '700' },
+  navHandoff: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   finding: {
     flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: theme.surface, borderRadius: 999, paddingLeft: 14, paddingRight: 4,
     minHeight: 52, borderWidth: 1, borderColor: theme.line,

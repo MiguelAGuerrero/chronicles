@@ -1,7 +1,7 @@
 import { bearingDeg, distanceM, pointSegmentDist, projector } from '../geo';
 import type { LngLat } from '../types';
 import { NAV } from './rules';
-import type { Route, RouteSource, Waypoint } from './types';
+import type { Route, RouteHint, RouteSource, Waypoint } from './types';
 
 export { NAV };
 
@@ -21,11 +21,17 @@ const SHORTER_BY = 0.9;
  * shorter. Walk me back uses 'shortest' with the trace first, so it never
  * retraces a detour the streets can skip (the owner's call, Nov 1).
  */
-export function routeTo(sources: RouteSource[], from: LngLat, to: LngLat, pick: 'first' | 'shortest' = 'first'): { route: Route | null; reason?: string } {
+export function routeTo(
+  sources: RouteSource[],
+  from: LngLat,
+  to: LngLat,
+  pick: 'first' | 'shortest' = 'first',
+  hint?: RouteHint,
+): { route: Route | null; reason?: string } {
   if (tooFar(from, to)) return { route: null, reason: 'Too far to walk from here' };
   let best: Route | null = null;
   for (const s of sources) {
-    const route = s.route(from, to);
+    const route = s.route(from, to, hint);
     if (!route) continue;
     if (pick === 'first') return { route };
     if (!best || route.lengthM < best.lengthM * SHORTER_BY) best = route;

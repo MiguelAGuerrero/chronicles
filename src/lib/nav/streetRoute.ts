@@ -17,13 +17,23 @@ export function streetRouteSource(segments: StreetSegment[]): RouteSource {
   const first = segments[0]?.geometry[0]?.[0] ?? ([0, 0] as LngLat);
   const g = new WalkGraph(first);
   const lines: { a: number; b: number }[] = [];
+  // Piece ends: the only vertices another piece's end may merge with. An inner vertex
+  // (a bridge's, over a path's junction) never takes one (bridges audit 3).
+  const ends = new Set<number>();
+  const addEnd = (p: LngLat) => {
+    const near = g.within(p, MERGE_M).find((i) => ends.has(i));
+    if (near != null) return near;
+    const i = g.add(p);
+    ends.add(i);
+    return i;
+  };
   for (const s of segments) {
     for (const line of s.geometry) {
       let prev: number | null = null;
       line.forEach((p, k) => {
         // Ends merge with other pieces' ends; inner vertices are the piece's own.
         const end = k === 0 || k === line.length - 1;
-        const i = g.add(p, end ? MERGE_M : 0);
+        const i = end ? addEnd(p) : g.add(p);
         if (prev != null) {
           g.link(prev, i);
           lines.push({ a: prev, b: i });
@@ -33,15 +43,36 @@ export function streetRouteSource(segments: StreetSegment[]): RouteSource {
     }
   }
   const proj = projector(first);
-  /** The nearest point on any street within NAV.joinM: which line, where on it, and how far off. */
-  const join = (p: LngLat): { e: { a: number; b: number }; on: LngLat; t: number; m: number } | null => {
+  /**
+   * Where a point joins the streets: the nearest within NAV.joinM, which line,
+   * where on it and how far off. With a heading, a street running your way
+   * within NAV.headingJoinM of the nearest wins (NB7): on a bridge over a
+   * path, the path below can be the nearer line.
+   */
+  const join = (p: LngLat, heading?: number | null): { e: { a: number; b: number }; on: LngLat; t: number; m: number } | null => {
     const xy = proj(p);
-    let best: { e: { a: number; b: number }; d: number } | null = null;
+    const near: { e: { a: number; b: number }; d: number }[] = [];
     for (const e of lines) {
       const d = pointSegmentDist(xy, proj(g.points[e.a]), proj(g.points[e.b]));
-      if (d <= NAV.joinM && (!best || d < best.d)) best = { e, d };
+      if (d <= NAV.joinM) near.push({ e, d });
     }
-    if (!best) return null;
+    if (!near.length) return null;
+    let best = near.reduce((x, y) => (y.d < x.d ? y : x));
+    if (heading != null && Number.isFinite(heading)) {
+      const limit = best.d + NAV.headingJoinM;
+      let along: { e: { a: number; b: number }; d: number } | null = null;
+      for (const c of near) {
+        if (c.d > limit || (along && c.d >= along.d)) continue;
+        const [ax, ay] = proj(g.points[c.e.a]);
+        const [bx, by] = proj(g.points[c.e.b]);
+        if (ax === bx && ay === by) continue;
+        const bearing = (Math.atan2(bx - ax, by - ay) * 180) / Math.PI;
+        // Either way along the street: the difference folded into 0-90°.
+        const diff = Math.abs(((bearing - heading) % 180) + 180) % 180;
+        if (Math.min(diff, 180 - diff) <= NAV.headingDeg) along = c;
+      }
+      if (along) best = along;
+    }
     const a = g.points[best.e.a];
     const b = g.points[best.e.b];
     const [ax, ay] = proj(a);
@@ -54,8 +85,8 @@ export function streetRouteSource(segments: StreetSegment[]): RouteSource {
   const id = 'streets';
   return {
     id,
-    route(from, to) {
-      const a = join(from);
+    route(from, to, hint) {
+      const a = join(from, hint?.heading);
       const b = join(to);
       if (!a || !b) return null;
       // Each end joins its line for this query only (-1 and -2 are the two ends).

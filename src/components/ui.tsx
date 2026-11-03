@@ -247,7 +247,8 @@ const styles = StyleSheet.create({
   },
   bannerError: { backgroundColor: '#fdecea', borderColor: '#e8a39a' },
   bannerText: { flex: 1, color: '#6b4500', fontSize: 14, lineHeight: 19 },
-  bannerAction: { paddingVertical: 4, paddingHorizontal: 6 },
+  // 44 pt: react-native-web ignores hitSlop (bridges audit 6).
+  bannerAction: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 6 },
   bannerActionText: { color: theme.ink, fontWeight: '700', fontSize: 14, textDecorationLine: 'underline' },
   // 44 pt itself, not by hit slop (react-native-web has none), without making the banner taller (U4).
   bannerClose: { width: 44, height: 44, marginVertical: -10, marginRight: -10, alignItems: 'center', justifyContent: 'center' },
