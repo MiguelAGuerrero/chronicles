@@ -34,7 +34,7 @@ src/app/(tabs)/_layout.tsx   the three tabs, Explore · Navigate · Chronicle; E
 src/app/(tabs)/navigate.tsx  Navigate (/navigate): the drawer (Start at its foot, settings above), the capture row, LiveWalk (a live view of a minimized walk)
 src/app/(tabs)/index.tsx     Explore (/): remembered busy areas (magenta), each area's places to find and finds, no counts; long press = What's good here / Walk here
 src/app/(tabs)/chronicle.tsx Chronicle, the home: stars by area at the level for the zoom, moment pins from z11, the HomeSheet (Walks | Days), old-walk placement
-src/app/explore.tsx          the old /explore path: a Redirect to / (NV2, 0064)
+src/app/explore.tsx          the old /explore path: dismissTo("/") down to Explore (NV2, 0064)
 src/app/walk.tsx             the walk screen: live trace and dot, fog, captures, navigation bar, Explore marks, memories, reminders, options, hold-to-stop
 src/app/replay/[id].tsx      a walk's replay: the five beats, stops at captures, the card, naming; first watch waits, re-watches advance
 src/app/day/[key].tsx        a day's replay: flies pin to pin through loose moments, plays each walk's own path, a quiet card

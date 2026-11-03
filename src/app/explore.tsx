@@ -1,9 +1,17 @@
-import { Redirect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 
 /**
  * Explore was `/explore` until Nov 3; it is `/` now (NV2, decision 0064). A
- * bookmark, or a Home Screen app reopening on its last page, still lands there.
+ * bookmark, or a Home Screen app reopening on its last page, still lands here.
+ * It goes back down to the tabs beneath: a `<Redirect>` (a replace) would stack
+ * a second set of tabs over them.
  */
 export default function OldExplore() {
-  return <Redirect href="/" />;
+  useFocusEffect(
+    useCallback(() => {
+      router.dismissTo('/');
+    }, []),
+  );
+  return null;
 }

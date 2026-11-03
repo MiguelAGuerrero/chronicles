@@ -1344,7 +1344,8 @@ function check(ok, what) {
     // Home Screen app reopened on "This walk could not be found", Nov 3).
     await page.goto(`${url}explore`);
     await page.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 15000 }).catch(() => {});
-    check(new URL(page.url()).pathname === `${BASE}/` && (await page.waitForSelector('[data-testid=explore-drawer]', { timeout: 15000 }).then(() => true, () => false)),
+    await page.waitForSelector('[data-testid=tab-explore][aria-selected=true]', { timeout: 30000 }).catch(() => {});
+    check(new URL(page.url()).pathname === `${BASE}/` && (await page.locator('[data-testid=tab-explore][aria-selected=true]').count()) === 1,
       `the old /explore path opens Explore at / (NV2: ${page.url()})`);
     for (const stale of ['replay/no-such-walk', 'day/1999-01-01']) {
       await page.goto(`${url}${stale}`);

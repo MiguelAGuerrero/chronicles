@@ -18,6 +18,9 @@ The three tabs (Explore, Navigate, Chronicle), the home sheet, the recording bar
   `start_url: "./"` and Back on the other tabs (`backBehavior:
   'initialRoute'`) all land on Explore. A way back to Navigate names
   `/navigate` (Minimize with nothing beneath, Chronicle's Navigate button).
+- **`/explore` still works**: `src/app/explore.tsx` calls `router.dismissTo('/')`
+  on focus. Not `<Redirect href="/">`: a replace from a screen over the tabs
+  stacks a second set of tabs (two tab bars; the e2e counts one).
 - **A stale replay link at launch goes to Explore** (NV2): the root layout notes
   every path in `lib/launchRoute`; a replay or day that finds nothing on the
   path the app opened on calls `router.dismissTo('/')` (the replay first sets
