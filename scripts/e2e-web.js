@@ -976,14 +976,23 @@ function check(ok, what) {
       await pg.mouse.click(x, y);
       await pg.waitForTimeout(900);
     };
-    await tap(at(2.0, -0.5));
+    // Away from the line's ends, which are the recorded trace's (audit 8).
+    await tap(at(1.6, -0.5));
     const title = await pg.locator('[data-testid=gap-title]').innerText().catch(() => '');
     check(title === 'Probably along Transit Street' && (await pg.locator('[data-testid=gap-keep]').count()) === 1,
       `gaps: tapping the faint stretch opens its card, with Keep (G9: "${title}")`);
     await pg.keyboard.press('Escape');
     await pg.waitForTimeout(400);
     check((await pg.locator('[data-testid=gap-card]').count()) === 0, 'gaps: Escape closes the card (G9)');
-    await tap(at(2.0, -0.5));
+    // Another card in the slot closes it for good, rather than hiding it to come back (gaps audit 7).
+    await tap(at(1.6, -0.5));
+    await pg.click('[data-testid=walk-options]');
+    await pg.waitForTimeout(400);
+    const underOptions = await pg.locator('[data-testid=gap-card]').count();
+    await pg.click('[data-testid=walk-options]');
+    await pg.waitForTimeout(400);
+    check(underOptions === 0 && (await pg.locator('[data-testid=gap-card]').count()) === 0, `gaps audit 7: the walk's options close the stretch's card, and it doesn't come back (${underOptions})`);
+    await tap(at(1.6, -0.5));
     await pg.click('[data-testid=gap-keep]');
     for (let k = 0; k < 10 && (st = await mapState()).runs !== 3; k++) await pg.waitForTimeout(500);
     await pg.waitForTimeout(2500);
@@ -1009,7 +1018,19 @@ function check(ok, what) {
     await pg.click('[data-testid=skip]');
     await pg.waitForSelector('[data-testid=to-name], [data-testid=done]', { timeout: 30000 });
     await pg.waitForTimeout(1500);
-    const onCard = await mapState();
+    const firstCard = await mapState();
+    // A later session: nothing inferred is remembered, and the filled stretch must still be there (gaps audit 2).
+    await pg.reload();
+    await pg.waitForSelector('[data-testid=skip], [data-testid=to-name], [data-testid=done]', { timeout: 60000 });
+    if (await pg.locator('[data-testid=skip]').count()) await pg.click('[data-testid=skip]');
+    await pg.waitForSelector('[data-testid=to-name], [data-testid=done]', { timeout: 30000 });
+    let onCard = await mapState();
+    for (let k = 0; k < 20 && onCard.runs !== firstCard.runs; k++) {
+      await pg.waitForTimeout(500);
+      onCard = await mapState();
+    }
+    check(onCard.runs === firstCard.runs, `gaps audit 2: after a reload, the replay still fills its gaps (${firstCard.runs} → ${onCard.runs})`);
+    await pg.waitForFunction(() => typeof window.__project === 'function');
     check(onCard.faint === 0, `gaps: the replay draws no faint stretch once kept (${JSON.stringify(onCard)})`);
     await tap(at(11, 0.6));
     const filled = await pg.locator('[data-testid=gap-title]').innerText().catch(() => '');

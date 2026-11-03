@@ -4,7 +4,7 @@ import { exploredKey, passedPlaces, type Kind } from './explore/explore';
 import { isNamedStreet } from './deletion/core';
 import { loadSettings } from './explore/settings';
 import { splitAtGaps, type Bounds, smoothDwells, type PauseSpan } from './geo';
-import { readTrace, rideRuns, smoothKept, timedRideRuns, traceDistances } from './rides';
+import { readTrace, rideRuns, smoothKept, timedRideRuns, traceDistances, withFilled } from './rides';
 import type { TimedRun } from './replay';
 import { walkBounds } from './finish';
 import { fillsOf, walkStretches, type Stretch } from './gaps';
@@ -60,7 +60,7 @@ export async function loadReplay(walkId: string, opts: { readGaps?: boolean } = 
   // Filled and kept stretches are walked trace; offered ones are drawn apart, faint (G6, G11).
   const { stretches } = await walkStretches(walkId, plain, { read: !!opts.readGaps }).catch(() => ({ stretches: [] as Stretch[] }));
   const fills = fillsOf(stretches);
-  const tr = fills.length ? readTrace(points, walk.started_at, pauses, stills, fills) : plain;
+  const tr = withFilled(plain, fills);
   const fixes = smoothKept(tr);
   const walkedFixes = smoothDwells(tr.walked);
   const captures = await db.getCaptures(walkId);

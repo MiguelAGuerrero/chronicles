@@ -1,13 +1,15 @@
-import { PLACES_ZOOM } from '../components/map/types';
+import { MAX_DERIVE_VIEWS, PLACES_ZOOM } from '../components/map/types';
 import { db } from './db';
 import { fetchTiles } from './discovery/tileFetch';
 import type { Collector } from './finish';
 import { boundsOf } from './geo';
-import { tileAt, tileRect, tilesIn } from './tileMath';
+import { tileAt, tileRect, tilesIn, tilesNear } from './tileMath';
 import type { LngLat } from './types';
 
 /** Place points are read this far around the walk's middle, as the map's own wide read covers about a z10 view. */
 const PLACES_M = 10_000;
+/** Streets are read this far around the walk, as `walkBounds` pads it. */
+const NEAR_M = 150;
 
 /**
  * A snap's reads done in code from the tiles, with no camera moves (Filling
@@ -22,8 +24,9 @@ export function tileCollector(): Collector {
     return u;
   });
   return {
-    plan: (bounds) =>
-      tilesIn(bounds).map(([x, y]) => {
+    // The tiles along the walk, at most as many as the map's own read takes (audit 6).
+    plan: (_bounds, trace) =>
+      tilesNear(trace, NEAR_M, MAX_DERIVE_VIEWS).map(([x, y]) => {
         const r = tileRect(x, y);
         return [(r.w + r.e) / 2, (r.s + r.n) / 2] as LngLat;
       }),

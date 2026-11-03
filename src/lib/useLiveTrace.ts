@@ -6,7 +6,7 @@ import { DotStore } from './liveDot';
 import { headingOf } from './nav/navigator';
 import { recorder } from './recorder';
 import { gapKey, gapsOf, type Gap } from './gaps/infer';
-import { keptFixes, liveRuns, readTrace, rideRuns, ridingAt, traceDistances, type ReadTrace } from './rides';
+import { keptFixes, liveRuns, readTrace, rideRuns, ridingAt, traceDistances, withFilled, type ReadTrace } from './rides';
 import type { Fill, LngLat, TracePoint } from './types';
 
 /** How often the screen (and the map) is refreshed from the live trace. */
@@ -152,8 +152,7 @@ export function useLiveTrace(
         gapsKey.current = key;
         gapsCb.current?.(gaps);
       }
-      const fl = fillsRef.current;
-      const tr = fl.length ? readTrace(raw, startedAt, ps, stillsRef.current, fl) : plain;
+      const tr = withFilled(plain, fillsRef.current);
       const kept = keptFixes(tr);
       const last = kept[kept.length - 1];
       const here: LngLat | null = last ? [last.lon, last.lat] : null;

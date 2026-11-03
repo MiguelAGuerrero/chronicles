@@ -32,18 +32,25 @@ export function useLiveStretches(walkId: string | null, gaps: Gap[]): LiveStretc
   const [tick, setTick] = useState(0);
   const tried = useRef(new Map<string, number>());
   const reading = useRef(false);
+  const current = useRef(walkId);
+  const retry = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    current.current = walkId;
     tried.current = new Map();
     if (!walkId) return;
     let alive = true;
+    // A failed read is no decisions, so gaps are still read (audit 11).
     db.getGapDecisions(walkId)
-      .then((rows) => alive && setDecisions({ walkId, rows }))
-      .catch(() => {});
+      .catch(() => [] as GapDecision[])
+      .then((rows) => alive && setDecisions({ walkId, rows }));
     return () => {
       alive = false;
     };
   }, [walkId]);
+  useEffect(() => () => {
+    if (retry.current) clearTimeout(retry.current);
+  }, []);
 
   const mine = useMemo(() => (decisions.walkId === walkId ? decisions.rows : []), [decisions, walkId]);
   const found = useMemo(() => (inferred.walkId === walkId ? inferred.rows : []), [inferred, walkId]);
@@ -61,15 +68,22 @@ export function useLiveStretches(walkId: string | null, gaps: Gap[]): LiveStretc
     let unread = false;
     (async () => {
       for (const g of todo) {
+        if (current.current !== walkId) return;
         tried.current.set(gapKey(g), Date.now());
         const inf = await readGap(walkId, g).catch(() => undefined);
         if (inf === undefined) unread = true;
-        else if (inf) setInferred((prev) => ({ walkId, rows: [...(prev.walkId === walkId ? prev.rows : []), inf] }));
+        // This walk's only, one row per gap: a gap whose end moved replaces nothing it shouldn't (audit 10, 11).
+        else if (inf && current.current === walkId)
+          setInferred((prev) => ({ walkId, rows: [...(prev.walkId === walkId ? prev.rows : []).filter((r) => gapKey(r) !== gapKey(inf)), inf] }));
       }
     })().finally(() => {
       reading.current = false;
-      // Unread gaps are tried again later, without waiting for a new gap.
-      if (unread) setTimeout(() => setTick((t) => t + 1), RETRY_MS);
+      // Gaps that closed while this read ran are looked at now (audit 11); unread ones later.
+      setTick((t) => t + 1);
+      if (unread) {
+        if (retry.current) clearTimeout(retry.current);
+        retry.current = setTimeout(() => setTick((t) => t + 1), RETRY_MS);
+      }
     });
   }, [walkId, gaps, mine, found, decisions.walkId, tick]);
 

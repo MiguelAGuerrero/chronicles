@@ -82,10 +82,13 @@ export default function Replay() {
   const [hereKey, setHereKey] = useState(0);
   const [gapOpen, setGapOpen] = useState<string | null>(null);
   const [gapBusy, setGapBusy] = useState(false);
+  const [gapError, setGapError] = useState<string | null>(null);
   /** A tap on the card's map: a stretch across a gap opens its card (G9), anywhere else what happened here. */
   const pressCard = (at: LngLat, radiusM?: number) => {
-    const hit = data && !here && !viewing ? stretchAt(data.stretches, at, radiusM ?? 30) : null;
+    // A line's reach is about 20 px, narrower than a pin's 44: taps beside the trace stay what happened here (audit 8).
+    const hit = data && !here && !viewing ? stretchAt(data.stretches, at, Math.max(10, (radiusM ?? 30) * 0.45)) : null;
     setGapOpen(hit ? gapKey(hit) : null);
+    setGapError(null);
     if (!hit) showHere(at, radiusM);
   };
   /**
@@ -97,17 +100,21 @@ export default function Replay() {
     const s = gapOpen && data ? data.stretches.find((x) => gapKey(x) === gapOpen) : null;
     if (!s || !data) return;
     setGapBusy(true);
+    setGapError(null);
     try {
       await decide(data.walk.id, s, state);
-      setGapOpen(null);
-      await snapWalk(data.walk, tileCollector()).catch(() => db.updateWalk(data.walk.id, { snapped_build: null }).catch(() => {}));
-      const d = await loadReplay(id).catch(() => null);
-      if (d) setData(d);
     } catch {
-      // Nothing was stored: the card stays, to try again.
-    } finally {
+      // Nothing was stored: the card stays, to try again (audit 14).
+      setGapError('Couldn’t save that. Try again.');
       setGapBusy(false);
+      return;
     }
+    // The card stays, busy, until the card's numbers have followed (audit 14).
+    await snapWalk(data.walk, tileCollector()).catch(() => db.updateWalk(data.walk.id, { snapped_build: null }).catch(() => {}));
+    const d = await loadReplay(id).catch(() => null);
+    if (d) setData(d);
+    setGapOpen(null);
+    setGapBusy(false);
   };
   const showHere = (at: LngLat, radiusM?: number) => {
     if (here || viewing) return;
@@ -193,7 +200,12 @@ export default function Replay() {
       // A new tile build drops the street cache and marks walks for re-snapping.
       const build = await ensureTileBuild().catch(() => 'unknown');
       if (!alive) return;
-      if (build !== 'unknown') d = (await loadReplay(id, { readGaps: true }).catch(() => null)) ?? d;
+      if (build !== 'unknown') {
+        d = (await loadReplay(id, { readGaps: true }).catch(() => null)) ?? d;
+        if (!alive) return;
+        // Shown even when no snap follows: in a new session, gaps are only filled once read (audit 2).
+        setData(d);
+      }
       const stale = build !== 'unknown' && d.walk.snapped_build !== build;
       if (!d.summary || !d.walk.snapped_build || stale) {
         await snapWalk(d.walk, {
@@ -490,7 +502,9 @@ export default function Replay() {
         <GapCard
           stretch={openGap}
           busy={gapBusy}
-          style={{ top: insets.top + 12, zIndex: 5 }}
+          error={gapError}
+          // Above the card's sheet, clear of the Undo pill at the top (audit, UI).
+          style={{ bottom: sheetH + 12, zIndex: 5 }}
           onClose={() => setGapOpen(null)}
           onKeep={() => void decideGap('kept')}
           onDismiss={() => void decideGap('dismissed')}

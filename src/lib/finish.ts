@@ -2,7 +2,7 @@ import type { CollectedFeatures } from '../components/map/types';
 import { db } from './db';
 import { isNamedStreet } from './deletion/core';
 import { boundsOf, distanceM, pausedMs, positionAt, withoutPauses, type Bounds, type PauseSpan } from './geo';
-import { keptFixes, readTrace, smoothKept, traceDistances } from './rides';
+import { keptFixes, readTrace, smoothKept, traceDistances, withFilled } from './rides';
 import { snap } from './snapper';
 import { deriveSegments, type RoadFeature } from './streets';
 import { assignAreas, snapDone } from './areas/assign';
@@ -62,7 +62,7 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
   const plain = readTrace(points, walk.started_at, pauses, stills);
   const gaps = await walkStretches(walk.id, plain, { read: true }).catch(() => ({ stretches: [], unread: true }));
   const fills = fillsOf(gaps.stretches);
-  const tr = fills.length ? readTrace(points, walk.started_at, pauses, stills, fills) : plain;
+  const tr = withFilled(plain, fills);
   // Streets are read where you walked (a ride credits none, R7); places and captures take the rides too (R8, R9).
   const fixes = tr.walked;
   const kept = keptFixes(tr);

@@ -16,6 +16,8 @@ export function GapCard(props: {
   onDismiss: () => void;
   onClose: () => void;
   busy?: boolean;
+  /** Why the last Keep or Not this way didn't save, if it didn't. */
+  error?: string | null;
   style?: StyleProp<ViewStyle>;
 }) {
   const { title, sub } = stretchLines(props.stretch);
@@ -41,8 +43,9 @@ export function GapCard(props: {
       <View testID="gap-card" style={styles.card} accessibilityViewIsModal>
         <Text testID="gap-title" style={styles.title} accessibilityRole="header">{title}</Text>
         <Text style={styles.sub}>{sub}</Text>
+        {props.error ? <Text testID="gap-error" style={styles.error} accessibilityLiveRegion="polite">{props.error}</Text> : null}
         <View style={styles.actions}>
-          {offered && <Button testID="gap-keep" label="Keep" onPress={props.onKeep} disabled={props.busy} />}
+          {offered && <Button testID="gap-keep" label="Keep" onPress={props.onKeep} busy={props.busy} busyLabel="Saving…" />}
           <Button testID="gap-dismiss" variant="secondary" label="Not this way" onPress={props.onDismiss} disabled={props.busy} />
           <Pressable testID="gap-close" accessibilityRole="button" accessibilityLabel="Close" onPress={props.onClose} style={styles.close} hitSlop={8}>
             <Icon name="close" size={22} color={theme.ink} />
@@ -61,6 +64,7 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 16, fontWeight: '700', color: theme.ink },
   sub: { fontSize: 14, color: theme.muted },
+  error: { fontSize: 14, color: theme.danger },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
   close: { marginLeft: 'auto', width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
 });

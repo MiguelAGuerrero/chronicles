@@ -117,7 +117,11 @@ export default function WalkScreen() {
   const pauses = openWalk.pauses;
   // Stretches across gaps (Filling gaps, G9, G12): a tapped one's card, by gap.
   const gapView = openWalk.gaps;
-  const [gapOpen, setGapOpen] = useState<string | null>(null);
+  const liveHereRef = useRef<LngLat | null>(null);
+  // Which gap, and where the walker was when it opened: walking 30 m on closes it, as the spot card (audit 7).
+  const [gapOpenAt, setGapOpenAt] = useState<{ key: string; from: LngLat | null } | null>(null);
+  const gapOpen = gapOpenAt?.key ?? null;
+  const setGapOpen = useCallback((key: string | null) => setGapOpenAt(key ? { key, from: liveHereRef.current } : null), []);
   const [gapBusy, setGapBusy] = useState(false);
   const openGap = gapOpen ? gapView.stretches.find((s) => gapKey(s) === gapOpen) ?? null : null;
   const [pausing, setPausing] = useState(false);
@@ -358,6 +362,12 @@ export default function WalkScreen() {
     const t = setTimeout(() => setSpot(null), 0);
     return () => clearTimeout(t);
   }, [spot, live.here]);
+  useEffect(() => {
+    liveHereRef.current = live.here;
+    if (!gapOpenAt?.from || !live.here || distanceM(gapOpenAt.from, live.here) < 30) return;
+    const t = setTimeout(() => setGapOpenAt(null), 0);
+    return () => clearTimeout(t);
+  }, [gapOpenAt, live.here]);
 
   // Navigating (slice 4): inside the walk, which keeps recording.
   const [arrived, setArrived] = useState<string | null>(null);
@@ -820,17 +830,22 @@ export default function WalkScreen() {
           setMarkOpen(null);
           setMemory(null);
           // A tap on a stretch across a gap opens its card (G9); anywhere else closes it.
-          const hit = navigation.nav || recordingVoice || stopping ? null : stretchAt(gapView.stretches, at, radiusM);
+          // A line's reach is about 20 px, narrower than a pin's 44, so taps beside the trace still do what they did (audit 8).
+          const hit = navigation.nav || recordingVoice || stopping ? null : stretchAt(gapView.stretches, at, Math.max(10, radiusM * 0.45));
           setGapOpen(hit ? gapKey(hit) : null);
         }}
         memories={memories}
-        onMemoryPress={recordingVoice || stopping || settingsOpen ? undefined : (group, at) => void openMemory(group, at)}
+        onMemoryPress={recordingVoice || stopping || settingsOpen ? undefined : (group, at) => {
+          setGapOpen(null);
+          void openMemory(group, at);
+        }}
         discoveries={explore.pins}
         onDiscoveryPress={recordingVoice || stopping || settingsOpen ? undefined : (id) => {
           // A found place is shown, not a card to open: its capture's pin is the thing to tap (audit, UI).
           if (explore.found.has(id)) return;
           setSpot(null);
           setMemory(null);
+          setGapOpen(null);
           setMarkOpen(id);
         }}
         marks={marks}
@@ -840,7 +855,11 @@ export default function WalkScreen() {
         fitPadding={{ top: insets.top + 24, bottom: panelH + 24, left: 24, right: 24 }}
         onUserMove={() => setFollowing(false)}
         // A long press, so a stray tap while walking does nothing.
-        onLongPress={pressMap}
+        onLongPress={(at, radiusM) => {
+          // Another card takes the slot: the stretch's card goes, rather than hiding and coming back (audit 7).
+          setGapOpen(null);
+          pressMap(at, radiusM);
+        }}
         route={routeLine}
         // While navigating the trace steps aside, so the route reads; it is still recorded (the owner's call, Nov 2).
         traceOpacity={navigation.nav ? 0 : 1}
@@ -1070,6 +1089,7 @@ export default function WalkScreen() {
               setSpot(null);
               setMarkOpen(null);
               setMemory(null);
+              setGapOpen(null);
               setOptions((v) => !v);
             }}
             style={({ pressed }) => [styles.pauseBtn, options && styles.optionsOn, pressed && styles.pressed]}
@@ -1257,7 +1277,7 @@ export default function WalkScreen() {
           </View>
         </View>
       )}
-      {openGap && !spot && !openMark && !memory && !recordingVoice && (
+      {openGap && !spot && !openMark && !memory && !recordingVoice && !options && !viewing && (
         <GapCard
           stretch={openGap}
           busy={gapBusy}

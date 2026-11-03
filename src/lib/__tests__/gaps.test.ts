@@ -2,8 +2,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { boundsOf, distanceM, splitAtGaps, stepToward, traceDistanceM, smoothDwells, type Bounds } from '../geo';
-import { fillsOf, GAP_RULES, gapsOf, inferGap, readBounds, stretchesFor, stretchLines } from '../gaps/infer';
-import { readTrace, traceDistances } from '../rides';
+import { fillsOf, GAP_RULES, gapsOf, inferGap, readBounds, stretchAt, stretchesFor, stretchLines } from '../gaps/infer';
+import { readTrace, traceDistances, withFilled } from '../rides';
+import { tilesNear } from '../tileMath';
 import { snap } from '../snapper';
 import { deriveSegments, type RoadFeature } from '../streets';
 import type { GapDecision, LngLat, StreetSegment, TracePoint } from '../types';
@@ -234,8 +235,81 @@ test('gaps: a kept line that no longer meets a gap is left out (G10, G11)', () =
 
 test('gaps: the card says what a stretch is, its length and how long the GPS was out (G9)', () => {
   const base = { t0: 0, t1: 6 * 60_000, path: [at(0, 0), at(4, 0)], lengthM: 400, street: 'Elm Street' };
-  assert.deepEqual(stretchLines({ ...base, how: 'offer' }), { title: 'Probably along Elm Street', sub: '400 m · no GPS for 6 min. Keep it to count it as walked.' });
+  assert.deepEqual(stretchLines({ ...base, how: 'offer' }), { title: 'Probably along Elm Street', sub: '400 m · not recorded for 6 min. Keep it to count it as walked.' });
   assert.equal(stretchLines({ ...base, how: 'auto' }).title, 'Filled in along Elm Street');
-  assert.equal(stretchLines({ ...base, how: 'kept', street: null, lengthM: 1250 }).title, 'Kept this way');
-  assert.equal(stretchLines({ ...base, how: 'kept', lengthM: 1250 }).sub, '1.3 km · no GPS for 6 min.');
+  assert.equal(stretchLines({ ...base, how: 'kept', street: null, lengthM: 1250 }).title, 'This way, kept');
+  assert.equal(stretchLines({ ...base, how: 'kept', lengthM: 1250 }).sub, '1.3 km · not recorded for 6 min.');
+});
+
+// After the audit (Nov 3): each accepted finding's regression, `gaps audit N`.
+
+// A 300 m block: Main Street, Back Street 100 m north, joined at both ends.
+const block = deriveSegments([
+  road([at(0, 0), at(3, 0)], { class: 'minor', name: 'Main Street' }),
+  road([at(0, 1), at(3, 1)], { class: 'minor', name: 'Back Street' }),
+  road([at(0, 0), at(0, 1)], { class: 'minor', name: 'West Lane' }),
+  road([at(3, 0), at(3, 1)], { class: 'minor', name: 'East Lane' }),
+]);
+
+test('gaps audit 1: an end piece is certain only if no way leaves it the other way round', () => {
+  // 200 m along Main Street in 25 min: round the block the other way is 600 m, well within the time.
+  const inf = only(withGap([at(0.2, 0), at(0.5, 0)], [at(2.5, 0), at(2.8, 0)], 25 * 60), block)!;
+  assert.ok(inf, 'offered');
+  assert.notEqual(inf.level, 'auto', `certain ${inf.certainTime}`);
+  // Quickly, there is no time to go round: it fills by itself.
+  assert.equal(only(withGap([at(0.2, 0), at(0.5, 0)], [at(2.5, 0), at(2.8, 0)], 150), block)!.level, 'auto');
+});
+
+test('gaps audit 3: the time budget allows a brisk walker, not only an average one', () => {
+  // 300 m along Street 2 in 5 min; round a block is 500 m, which a brisk 1.7 m/s covers.
+  const inf = only(withGap([at(0.5, 2), at(1.5, 2)], [at(4.5, 2), at(5.5, 2)], 300), grid)!;
+  assert.equal(inf.level, 'offer', `certain ${inf.certainTime}`);
+});
+
+test('gaps audit 4: a decision is about one gap, and only where its line meets the gap', () => {
+  const A: LngLat = at(0, 0);
+  const M: LngLat = at(2, 0);
+  const B: LngLat = at(4, 0);
+  const kept: GapDecision = { walk_id: 'w', t0: 0, t1: 600_000, state: 'kept', path: [A, B], length_m: 400, street: null, decided_at: 1 };
+  // A rule change accepted a fix M inside the decided gap: two gaps now.
+  const split = [{ t0: 0, t1: 450_000, from: A, to: M }, { t0: 450_000, t1: 600_000, from: M, to: B }];
+  assert.equal(stretchesFor(split, [], [kept]).length, 0, 'its line meets neither gap');
+  // Its own gap, a few seconds off: kept.
+  assert.equal(stretchesFor([{ t0: 2000, t1: 598_000, from: A, to: B }], [], [kept]).length, 1);
+});
+
+test('gaps audit 8: a tap near either end of a stretch is the trace there, not the stretch', () => {
+  const s = { t0: 0, t1: 1, path: [at(0, 0), at(4, 0)], lengthM: 400, street: null, how: 'auto' as const };
+  assert.ok(stretchAt([s], at(2, 0.1), 20), 'its middle');
+  assert.equal(stretchAt([s], at(0.1, 0), 20), null, 'beside its start');
+  assert.equal(stretchAt([s], at(3.9, 0), 20), null, 'beside its end');
+});
+
+test('gaps audit 10: an inference for this exact gap wins, and one whose line misses the gap is not used', () => {
+  const g = { t0: 0, t1: 300_000, from: at(0, 0), to: at(4, 0) };
+  const old = { t0: 0, t1: 290_000, path: [at(0, 0), at(3.5, 0.5)], lengthM: 360, certainDirect: 1, certainTime: 1, street: 'Old', level: 'auto' as const };
+  const exact = { ...old, t1: 300_000, path: [at(0, 0), at(4, 0)], lengthM: 400, street: 'New' };
+  assert.equal(stretchesFor([g], [old, exact], [])[0].street, 'New');
+  assert.equal(stretchesFor([g], [old], []).length, 0, 'the old line ends 50 m off');
+});
+
+test('gaps audit 13: a crossing that is mostly the joins to a street is not a street stretch', () => {
+  const short = deriveSegments([road([at(0, 0), at(0.6, 0)], { class: 'minor', name: 'Plaza Walk' })]);
+  // 35 m off the street at each end, 60 m along it.
+  assert.equal(only(withGap([at(0, 0.8), at(0, 0.35)], [at(0.6, 0.35), at(0.6, 0.8)], 120), short), null);
+});
+
+test('gaps audit 9: filling a read trace gives what reading it with the fills does', () => {
+  const pts = withGap([at(0.5, 2), at(1.5, 2)], [at(5.5, 2), at(6.5, 2)], 300);
+  const plain = readTrace(pts, 0);
+  const fills = fillsOf(stretchesFor(gapsOf(plain), [inferGap(gapsOf(plain)[0], grid, everywhere(grid))!], []));
+  assert.deepEqual(withFilled(plain, fills).walked, readTrace(pts, 0, [], [], fills).walked);
+});
+
+test('gaps audit 6: a snap read in code takes the tiles along the walk, at most a capped number', () => {
+  // Walked bits at both ends of a 15 km ride: not every tile in the box.
+  const trace = [...walk([at(0, 0), at(2, 0)]), ...walk([at(150, 0), at(152, 0)])].map((p) => [p.lon, p.lat] as LngLat);
+  const near = tilesNear(trace, 150, 36);
+  assert.ok(near.length <= 8, `${near.length} tiles`);
+  assert.ok(tilesNear(walk([at(0, 0), at(400, 0)]).map((p) => [p.lon, p.lat] as LngLat), 150, 36).length <= 36, 'capped');
 });

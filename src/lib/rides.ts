@@ -353,6 +353,15 @@ function withFills(walked: TracePoint[], fills: Fill[], breaks: PauseSpan[], wal
   return [...walked, ...added].sort((a, b) => a.t - b.t);
 }
 
+/**
+ * A trace read without fills, with them added (Filling gaps, G11): the same as
+ * reading it with them, without reading it twice (audit 9).
+ */
+export function withFilled(tr: ReadTrace, fills: Fill[]): ReadTrace {
+  if (!fills.length) return tr;
+  return { ...tr, walked: withFills(tr.walked, fills, tr.breaks, tr.walked[0]?.walk_id ?? '') };
+}
+
 /** Walked and ridden fixes together, in time order: for places, placing captures and the replay's dot. */
 export function keptFixes(tr: ReadTrace): TracePoint[] {
   if (!tr.rides.length) return tr.walked;
