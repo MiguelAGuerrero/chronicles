@@ -260,6 +260,8 @@ function check(ok, what) {
   const freshPage = async (label) => {
     const c = await browser.newContext({
       viewport: { width: 390, height: 844 },
+      // E2E_MOBILE=1: a phone's touch screen, so taps come as touches and the browser makes the clicks.
+      ...(process.env.E2E_MOBILE ? { isMobile: true, hasTouch: true, deviceScaleFactor: 3 } : {}),
       permissions: ['geolocation'],
       geolocation: { longitude: start[0], latitude: start[1], accuracy: 6 },
     });
@@ -844,6 +846,25 @@ function check(ok, what) {
     await pg.waitForSelector('[data-testid=recording-return]', { timeout: 10000 });
     await pg.waitForTimeout(800);
     await state('minimized');
+    {
+      // iOS cancels a tap's click when an element appears just after it (its content-change check):
+      // a view that keeps inserting elements loses every tap. Count what the minimized view adds.
+      await pg.evaluate(() => {
+        window.__added = [];
+        new MutationObserver((ms) => {
+          for (const m of ms) for (const n of m.addedNodes) if (n.nodeType === 1) window.__added.push(`${n.tagName}.${(n.getAttribute('data-testid') || n.className || '').toString().slice(0, 40)}`);
+        }).observe(document.body, { childList: true, subtree: true });
+      });
+      for (let k = 12; k < 22; k++) {
+        const p = at(-0.5 + k * 0.05, -0.5);
+        await c.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+        await pg.waitForTimeout(1000);
+      }
+      const added = await pg.evaluate(() => window.__added);
+      const by = {};
+      for (const a of added) by[a] = (by[a] || 0) + 1;
+      console.log(`# added in 10 s minimized: ${added.length} ${JSON.stringify(Object.entries(by).sort((a, b) => b[1] - a[1]).slice(0, 8))}`);
+    }
     for (let r = 1; r <= 2; r++) {
       await pg.reload();
       await pg.waitForTimeout(5000);
