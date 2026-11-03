@@ -21,8 +21,14 @@ export interface Route {
   source: string;
 }
 
+/** What is known about the walker at `from`, beyond the point. */
+export interface RouteHint {
+  /** The way you are walking, degrees clockwise from north (headingOf); null standing still. */
+  heading?: number | null;
+}
+
 export interface RouteSource {
   id: string;
   /** A walking route from `from` to `to`, or null when this source has none. */
-  route(from: LngLat, to: LngLat): Route | null;
+  route(from: LngLat, to: LngLat, hint?: RouteHint): Route | null;
 }

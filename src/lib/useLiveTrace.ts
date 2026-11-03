@@ -5,8 +5,9 @@ import { isBreak, type PauseSpan } from './geo';
 import { DotStore } from './liveDot';
 import { headingOf } from './nav/navigator';
 import { recorder } from './recorder';
-import { keptFixes, liveRuns, readTrace, rideRuns, ridingAt, traceDistances, type ReadTrace } from './rides';
-import type { LngLat, TracePoint } from './types';
+import { gapKey, gapsOf, type Gap } from './gaps/infer';
+import { keptFixes, liveRuns, readTrace, rideRuns, ridingAt, traceDistances, withFilled, type ReadTrace } from './rides';
+import type { Fill, LngLat, TracePoint } from './types';
 
 /** How often the screen (and the map) is refreshed from the live trace. */
 const PUBLISH_MS = 2000;
@@ -44,6 +45,8 @@ function sameRuns(a: LngLat[][], b: LngLat[][]): boolean {
   return true;
 }
 
+const NO_FILLS: Fill[] = [];
+
 const EMPTY: LiveTrace = { runs: [], rides: [], here: null, distanceM: 0, rideM: 0, lastFixAt: null, lastGoodAt: null, riding: false, heading: null, dot: null };
 
 /** The newest gap in the kept trace that isn't a pause: the app was closed or the page hidden. */
@@ -71,26 +74,36 @@ export function useLiveTrace(
   stills: PauseSpan[],
   /** Called once per gap in the trace (not a pause), when it is first published. */
   onGap?: (ms: number) => void,
+  /** Stretches filled across gaps (Filling gaps, G11): walked, so the line, distance and dot take them. */
+  fills: Fill[] = NO_FILLS,
+  /** Called with the gaps worth reading (G1) whenever they change, from the trace read without fills. */
+  onGaps?: (gaps: Gap[]) => void,
 ): LiveTrace {
   const [state, setState] = useState<LiveTrace>(EMPTY);
   const pausesRef = useRef(pauses);
   const stillsRef = useRef(stills);
+  const fillsRef = useRef(fills);
   const refreshRef = useRef<(() => void) | null>(null);
   useEffect(() => {
     pausesRef.current = pauses;
     stillsRef.current = stills;
+    fillsRef.current = fills;
     refreshRef.current?.();
-  }, [pauses, stills]);
+  }, [pauses, stills, fills]);
   const gapCb = useRef(onGap);
+  const gapsCb = useRef(onGaps);
   useEffect(() => {
     gapCb.current = onGap;
-  }, [onGap]);
+    gapsCb.current = onGaps;
+  }, [onGap, onGaps]);
+  const gapsKey = useRef('');
   const reportedGap = useRef<number | null>(null);
   const dirty = useRef(false);
   const riding = useRef(false);
   const lastRead = useRef<{ tr: ReadTrace; here: LngLat | null } | null>(null);
 
   useEffect(() => {
+    gapsKey.current = '';
     if (!walkId) return;
     const raw: TracePoint[] = [];
     // The live dot gets every fix as it arrives, between the trace's 2 s publishes (the live dot, Nov 1).
@@ -131,11 +144,19 @@ export function useLiveTrace(
       if (!dirty.current || AppState.currentState !== 'active') return;
       dirty.current = false;
       const ps = pausesRef.current;
-      const tr = readTrace(raw, startedAt, ps, stillsRef.current);
+      const plain = readTrace(raw, startedAt, ps, stillsRef.current);
+      // Gaps are read from the trace as recorded; filled ones then join it (Filling gaps, G1, G11).
+      const gaps = gapsOf(plain);
+      const key = gaps.map(gapKey).join(',');
+      if (key !== gapsKey.current) {
+        gapsKey.current = key;
+        gapsCb.current?.(gaps);
+      }
+      const tr = withFilled(plain, fillsRef.current);
       const kept = keptFixes(tr);
       const last = kept[kept.length - 1];
       const here: LngLat | null = last ? [last.lon, last.lat] : null;
-      const gap = newestGap(kept, ps);
+      const gap = newestGap(keptFixes(plain), ps);
       if (gap && gap.at !== reportedGap.current && Date.now() - gap.at < 60_000) {
         reportedGap.current = gap.at;
         gapCb.current?.(gap.ms);

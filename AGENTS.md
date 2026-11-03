@@ -60,10 +60,10 @@ update it when a slice ships or a feature changes.
   before (busy areas, places to find, later the interesting ways through an area),
   Navigate during (the way, quick capture, the walk), Chronicle after (moments,
   walks, replays, revisits).
-- **Start just starts; the drawer holds the extras** (the owner's call, Nov 1,
-  after AllTrails' Navigate page; spec rev 31). Start sits at the drawer's peek and
+- **Start just starts; a dialog holds the extras** (the owner's call, Nov 1, after
+  AllTrails' Navigate page; spec rev 31; the extras became a dialog on Nov 3). Start sits at the drawer's peek and
   starts at once where you are, with the saved choices and the destination if one is
-  set. Pulling the drawer up shows the additional settings: quiet or Explore, what
+  set. The peek's summary line opens the additional settings: quiet or Explore, what
   I'm into and the range, the destination (a long press on Navigate's map),
   reminders and alerts. Walk here stays a one-tap start from Chronicle and Explore
   and never fills the drawer.
@@ -146,6 +146,10 @@ update it when a slice ships or a feature changes.
     subscribing through it threw and took the walk screen down; the e2e's
     fresh motion context caught it. Its web permission and availability calls
     work and are still used (`askMotion`).
+  - **Which maps app** (Open in Maps): on web, `nav/openInMaps.ts` reads
+    `navigator.userAgent` and `maxTouchPoints`, since `Platform.OS` is just
+    `web` and no Expo module says which phone a browser runs on. The link
+    itself goes through React Native's `Linking`, as on a phone.
   - **Browser fixes** with no native counterpart: `webStyles.web.ts` (pinned
     viewport, long-press guards) and the muted-autoplay fallback.
   Before adding web-only code, check `node_modules/<module>/build/*.web.*` for
@@ -418,12 +422,40 @@ update it when a slice ships or a feature changes.
     found at a time.
   - **Screen readers:** the bar is not a live region. The distance is
     announced at 100 m steps (50 m under 200 m), at start and on a new route.
-  - **Deferred:** bridges and tunnels still join the streets they cross. The
-    fix changes how pieces are cut, and so their ids. It needs its own change,
-    with a street-cache purge and a `SNAP_RULES` bump.
+  - **Bridges and tunnels** (the concept doc's "Bridges and Open in Maps"
+    tab, NB1-NB7; Nov 3, after a route turned the owner off a bridge onto
+    the path under it): see "Bridges and tunnels" under Streets below.
+- **Open in Maps** (NH1-NH8, the owner's calls, Nov 3): the destination
+  goes to the phone's maps app for walking directions, a fallback when the
+  open data is wrong.
+  - `nav/handoff.ts` (pure) picks the app and the links: Apple Maps on iOS and
+    iPhone or iPad browsers (an iPad asking for the desktop site reports a Mac
+    with touch), Android's `geo:` chooser with Google's link after it, Google
+    Maps in any other browser. `nav/openInMaps.ts` opens them with
+    `Linking.openURL`, never `canOpenURL` first (Android 11+ says no for
+    schemes not in `<queries>`).
+  - Offered in the blue bar (`nav-handoff`), as the banner action of a route that can't be found
+    (`onError(message, dest)`), on the long-press card (`spot-handoff`) and in
+    the walk's viewer's More menu (`viewer-handoff`).
+  - Called straight from the tap: a browser opens a window only from one.
+    Navigation and the walk go on (on the web, tracing pauses while the page
+    is hidden, as always). Only the destination leaves the device, on a tap.
+  - The hint (`HANDOFF_HINT`) says recording pauses on the web: a hidden
+    page takes no fixes. A failed route's banner stays until dismissed or a
+    new Go here (`goTo` in `walk.tsx`), its action 44 pt.
+  - The e2e replaces `window.open` and reads `window.__opened`.
+  - **Not on "Off your route"** (the owner's call, Nov 3, retiring NH4): the
+    first re-route clears the chip at once, so its button was rarely there;
+    the bar's button covers it.
+  - **Android is not a priority** (the owner, Nov 3): its `geo:` chooser
+    opens a pin, not walking directions, and stays as it is.
+  - **Deferred:** the Explore mark card, the dead-zone nudge, the home's
+    Walk here.
+  - **Native** (unverified on a device): Apple Maps from the app, the Android
+    chooser, and an iPhone Home Screen app's `window.open` reaching Apple Maps.
 - **UI.**
-  - A blue top bar shows the distance left and where to, with a white End
-    pill. It is centered in the 640 column. The route (8 px, a 12 px white
+  - A blue top bar shows the distance left and where to, an Open in Maps
+    button, and a white End pill. It is centered in the 640 column. The route (8 px, a 12 px white
     edge) is drawn only ahead of you, under the trace.
   - A ring marks the destination, and a long press's spot.
   - A soft 60° cone on the walker shows the way they're going (`headingOf`:
@@ -987,6 +1019,125 @@ update it when a slice ships or a feature changes.
   background commit, and `router.dismissTo` right after the actions Modal
   closes (iOS can drop a navigation during a Modal's dismissal).
 
+## Filling gaps (in progress; the spec is the concept doc's "Filling gaps" tab, G1-G14)
+
+- **A gap in the trace is filled with the streets most likely walked** (the
+  owner's calls, Nov 3). This is map matching across a gap, with the time as
+  the limit. It is opt-in unless the answer is obvious.
+  - An uncertain stretch is drawn faint (`FAINT_OPACITY`, the trace's green
+    and edge, see-through). It counts for nothing until kept.
+  - A kept or self-filled stretch is walked trace in every way.
+  - The app-closed / GPS-lost case only. Dead reckoning from the phone's
+    sensors (weak GPS with the app open) is a later slice.
+- **The decision** (`gaps/infer.ts`, pure; rules in `gaps/rules.ts`):
+  - A gap is two walked fixes more than 60 s apart, no pause or ride between,
+    40 m or more apart and at most 30 min (`gapsOf`, on the trace read
+    *without* fills).
+  - The likely way is the shortest walk over street pieces. Each end joins
+    every street edge within 40 m, split where it is nearest, and the split
+    edges keep their piece. It needs at most 2.5 m/s.
+  - A piece is certain when the shortest way avoiding it is longer than the
+    budget. The search is A* with only the edges of that piece the way uses
+    banned, pruned at the budget. There are two budgets: direct (1.25 × the
+    way) and time (the gap at 1.8 m/s, a brisk walker, if longer).
+  - At least half the way must be street, not joins (a plaza isn't a street
+    stretch).
+  - **Splitting replaces the edge** (`PieceGraph.split`). Each join splits
+    the street edge it lands on into two halves and removes the original.
+    The first version kept the original beside its halves. It also banned
+    whole pieces, so a mid-block end was always "certain" and a 30-min gap
+    on one block filled by itself (gaps audit 1).
+  - 90%+ of the way certain under the time budget fills by itself; else 50%+
+    under the direct budget is offered; else nothing.
+  - A budget whose prism (a circle on the gap's middle, half the budget
+    across) leaves the read box is never judged, so unread ground never
+    looks certain.
+- **Reads** (`gaps/index.ts`): `readBounds` is the time budget (or 2x the
+  straight line, capped at 4 km across). The z14 tiles over it plus 250 m are
+  fetched and decoded in code (`fetchTiles`), so the walk screen, a snap and
+  the replay all see the same pieces.
+  - Results are memoized per session by build, walk and gap.
+  - Unread (offline, no `tile_url`) is `undefined`, never `null`: the snap is
+    left not done (`snapDone`), and the live hook retries after 2 min.
+  - `loadReplay` reads the network only with `{ readGaps: true }` (the
+    replay's second load, after `ensureTileBuild`), so a walk still opens
+    from the device first.
+- **Fills** (`readTrace(..., stills, fills)`, after `holdStill`) add points
+  along the line, spread evenly over the gap (every 10 m, and at least every
+  20 s, so no break is left).
+  - Their speed is `GAP_RULES.pace`, so a slow stretch is never smoothed into
+    a standstill.
+  - A fill with walked fixes inside it, or a break across it, is skipped.
+  - `snap` and `assignAreas` take `fills` too; `snapWalk` and `loadReplay`
+    read the stretches first, then the trace with them.
+- **Truth:** `gap_fill` (SQLite migration 14, IndexedDB v12, in
+  `KEPT_STORES`) holds kept and dismissed stretches with their line, so a map
+  update never moves a kept one.
+  - A decision matches a gap when their times overlap by more than half the
+    *longer* (`sameGap`) and its line runs from within 25 m of the gap's fix
+    before to within 25 m of the fix after (`meets`). So one decision never
+    lands on two gaps (gaps audit 4). The newest wins. Inferences match the
+    same way, this exact gap's key first.
+  - A decided gap is never read. `deleteWalk` removes its rows.
+- **UI:**
+  - The live trace (`useLiveTrace`) reports gaps (`onGaps`) and takes fills.
+    `useLiveStretches` lives in `OpenWalkProvider`, so a minimized walk keeps
+    its stretches.
+  - A map tap within about 20 px of a stretch opens `GapCard` (`stretchAt`).
+    That is 0.45 of the press reach, and taps within 30 m of either end don't
+    count, since the recorded trace and captures are there (gaps audit 8).
+    An offer gets Keep and Not this way; a filled or kept stretch gets Not
+    this way only.
+  - On the walk screen the card closes when another card takes its slot
+    (long press, mark, memory, options) and after walking 30 m. It isn't
+    shown under the capture viewer (gaps audit 7).
+  - On the replay, faint stretches show on the card beats only.
+  - Deciding on the replay re-snaps with `tileCollector()` and reads the
+    replay again, with the card busy until it's done. `tileCollector()` reads
+    tiles in code, with no camera moves: the tiles within 150 m of the walk,
+    at most `MAX_DERIVE_VIEWS` (`tilesNear`, gaps audit 6).
+  - The replay's second load (`readGaps: true`) is always shown, not only
+    when a snap follows. In a new session, nothing is inferred until it is
+    read (gaps audit 2).
+  - `withFilled(tr, fills)` adds fills to a trace already read. Use it
+    instead of reading twice (gaps audit 9).
+- **E2E** (`E2E_ONLY=gaps`): a walk is started, backdated and given stored
+  fixes with two gaps, then reloaded (a real gap would take minutes). The
+  live fixes at "now" form their own short run, so "no fill" is five lines.
+  `window.__project` (set only with `window.__perf`) turns a point into page
+  coordinates for taps. The web map writes `data-runs` and `data-faint`.
+- **Audited (Nov 3):** 17 findings, 12 fixed with a regression test each
+  (`gaps audit N` in `gaps.test.ts`; 2 and 7 in the e2e). Filled stretches
+  stay styled as trace (the owner's call).
+- **Deferred:**
+  - Inferences aren't stored. A new session reads each gap's tiles again;
+    the day replay never reads them; unreadable tiles keep a walk re-snapping.
+  - A long fill's share of the replay isn't capped.
+  - There is no way to reach a stretch without a map tap (screen readers).
+  - Inference on a very dense grid can take about 0.5 s of JS on a desktop.
+  - Walk me back ignores stretches.
+  - The backup bundle leaves decisions out.
+  - A dismissed stretch can't be brought back.
+- **Native** (unverified on a device): migration 14, the faint layer, the
+  card over the native map.
+
+## Navigate's settings are a dialog (the owner's call, Nov 3)
+
+- The drawer no longer pulls up through half and full heights (the settings were
+  split from Start, which was unintuitive). It stays at its peek: Start, and a
+  summary line under it (`start-options`, text `peek-choices`: the mode, then
+  the destination). A tap on the line, or a pull on the grip, opens
+  `StartDialog` (`components/StartDialog.tsx`, `components/Modal`): mode,
+  destination, "?" range and what I'm into (Explore only), pocket alert,
+  reminders and alerts, in one scroll, with its own Start walk. Every choice
+  saves as it changes; Done and Escape only close it. Start still just starts.
+  Nothing opens mid-memo or with a walk open.
+- The range ring shows on the map only while the dialog is open in Explore.
+  A destination is still a long press on the map, so the dialog says to close it
+  first. Native (unverified on a device): the Modal over the tab map.
+- `drawerTo(pg, 'half' | 'full')` in the e2e opens the dialog; `'peek'`
+  closes it with Escape.
+
 ## Navigation & tabs: after the audit (the owner's calls, Nov 2)
 
 - **Navigate's drawer docks Start and the capture row low at every height**
@@ -1350,6 +1501,35 @@ update it when a slice ships or a feature changes.
   `LANDING_CODE` l3 are left off the map. Real OpenMapTiles tiles for tests: tileserver-gl's
   `test_data.zip` release on GitHub has a planetiler Zurich mbtiles, reachable from cloud
   sessions.
+- **Bridges and tunnels** (NB1-NB7, Nov 3). Only a bridge or tunnel leaves
+  the ground (`levelOf`): a bridge at its `layer`, else 1; a tunnel at its
+  `layer`, else 0 (mostly building passages). A `layer` on anything else is
+  ignored: embankment roads carry one, and side streets end on them.
+  - Lines on different levels meet only where one lands on the other: an end
+    of it touches the other line, and that end touches nothing else on its
+    own level. So a bridge joins its approach, a footbridge lands mid-street,
+    stairs land mid-span. A path passing under, even split into two ways
+    there, or a ground junction under a bridge, does not.
+  - Crosswalk removal and stitching compare levels. Across levels, the
+    sidewalk merge takes a footway only where it runs the street's way (35°),
+    so an untagged bridge sidewalk goes and a path crossing under stays; a
+    footway that landed on another level (`landings`) is never merged.
+  - Junction keys are per line (`withJunctions` returns one set per line),
+    so a line passing through another pair's junction point isn't cut.
+  - The route graph merges a piece end only with another piece's end
+    (`streetRoute.ts` `addEnd`), never an inner vertex.
+  - `STREET_CODE` 3 purges the cache once. Real Zurich tiles (9 z14 tiles):
+    about 180 fewer pieces of 22,300, the main network unchanged, and
+    identical ids with the tags stripped.
+  - **A route starts on the street you walk along** (`streetRouteSource`
+    `join` with `RouteHint.heading`, from `live.heading`): within
+    `NAV.headingJoinM` (12 m) of the nearest street, one within 35° of the
+    heading wins. On a bridge, the path below can be the nearer line.
+  - **After the audit (Nov 3):** 11 findings, 7 fixed (`bridges audit N` in
+    `bridges.test.ts`). Deferred: a 200 m chunk end on a bridge within 3 m
+    of a junction below still merges with it (`MERGE_M`); the 12 m heading
+    window can pick a parallel street at an alley mouth (first leg only);
+    indoor `level` is not read.
 - Avoid anything O(n²) over features. Index with `EdgeGrid`. A 3.6 km downtown, about
   16k features, should derive in under a second.
 - Snapping ignores the 20 m at each end of a piece, where the junctions are, and

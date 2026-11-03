@@ -1,5 +1,6 @@
-import { distanceM, FixFilter, isBreak, lineLengthM, MAX_ACCURACY_M, MAX_STALE_MS, settleJitter, smoothDwells, splitAtGaps, traceDistanceM, withoutPauses, type PauseSpan } from './geo';
-import type { LngLat, TracePoint } from './types';
+import { distanceM, FixFilter, isBreak, lineLengthM, MAX_ACCURACY_M, MAX_STALE_MS, settleJitter, smoothDwells, splitAtGaps, stepToward, traceDistanceM, withoutPauses, type PauseSpan } from './geo';
+import { GAP_RULES } from './gaps/rules';
+import type { Fill, LngLat, TracePoint } from './types';
 
 /**
  * Rides (the concept doc's "Rides" tab): a stretch on a trolley, bus or train
@@ -205,6 +206,8 @@ export function readTrace(
   pauses: PauseSpan[] = [],
   /** Still spells told by the motion sensors (Motion, MO8): walked fixes inside one are held at one spot. */
   stills: PauseSpan[] = [],
+  /** Stretches filled across gaps (Filling gaps, G11): walked as if the GPS had been on. */
+  fills: Fill[] = [],
 ): ReadTrace {
   const sorted = withoutPauses(points, pauses).slice().sort((a, b) => a.t - b.t);
   const gated: TracePoint[] = [];
@@ -230,10 +233,12 @@ export function readTrace(
     }
     walked.push(...settleJitter(filtered(seg.slice(at))));
   }
+  const breaks = [...pauses, ...rides.map((r) => ({ started_at: r.t0, ended_at: r.t1 }))];
+  const held = stills.length ? holdStill(walked, stills, breaks) : walked;
   return {
-    walked: stills.length ? holdStill(walked, stills, [...pauses, ...rides.map((r) => ({ started_at: r.t0, ended_at: r.t1 }))]) : walked,
+    walked: fills.length ? withFills(held, fills, breaks, points[0]?.walk_id ?? '') : held,
     rides,
-    breaks: [...pauses, ...rides.map((r) => ({ started_at: r.t0, ended_at: r.t1 }))],
+    breaks,
     pauses,
     lastGoodAt: gated.length ? gated[gated.length - 1].t : null,
   };
@@ -314,6 +319,47 @@ function holdPart(part: TracePoint[], out: TracePoint[], breaks: PauseSpan[]) {
   if (last && last !== first) out.push({ ...last, lon: spot[0], lat: spot[1], speed: 0 });
   // Left: the rest of the part is walked as it came.
   for (; k < part.length; k++) out.push(part[k]);
+}
+
+/**
+ * Walked fixes with each filled stretch's points added (Filling gaps, G11):
+ * along its line, spread evenly over the gap, one every GAP_RULES.stepM and
+ * at least every GAP_RULES.stepMs, so no break is left inside it. Their speed
+ * is a walking pace: the walker walked it at some point in the gap, so a slow
+ * stretch is never read as a standstill. A fill with walked fixes inside it,
+ * or a pause or ride across it, no longer meets a gap and is left out.
+ */
+function withFills(walked: TracePoint[], fills: Fill[], breaks: PauseSpan[], walkId: string): TracePoint[] {
+  const added: TracePoint[] = [];
+  for (const f of fills) {
+    if (f.t1 <= f.t0 || f.path.length < 2) continue;
+    if (walked.some((p) => p.t > f.t0 && p.t < f.t1)) continue;
+    if (isBreak({ t: f.t0 }, { t: f.t1 }, breaks, Infinity)) continue;
+    const total = lineLengthM(f.path);
+    const n = Math.max(2, Math.ceil(total / GAP_RULES.stepM), Math.ceil((f.t1 - f.t0) / GAP_RULES.stepMs));
+    let seg = 1;
+    let acc = 0;
+    for (let k = 1; k < n; k++) {
+      const want = (total * k) / n;
+      while (seg < f.path.length - 1 && acc + distanceM(f.path[seg - 1], f.path[seg]) < want) {
+        acc += distanceM(f.path[seg - 1], f.path[seg]);
+        seg++;
+      }
+      const p = stepToward(f.path[seg - 1], f.path[seg], want - acc);
+      added.push({ walk_id: walkId, t: Math.round(f.t0 + ((f.t1 - f.t0) * k) / n), lon: p[0], lat: p[1], accuracy_m: null, speed: GAP_RULES.pace, course: null });
+    }
+  }
+  if (!added.length) return walked;
+  return [...walked, ...added].sort((a, b) => a.t - b.t);
+}
+
+/**
+ * A trace read without fills, with them added (Filling gaps, G11): the same as
+ * reading it with them, without reading it twice (audit 9).
+ */
+export function withFilled(tr: ReadTrace, fills: Fill[]): ReadTrace {
+  if (!fills.length) return tr;
+  return { ...tr, walked: withFills(tr.walked, fills, tr.breaks, tr.walked[0]?.walk_id ?? '') };
 }
 
 /** Walked and ridden fixes together, in time order: for places, placing captures and the replay's dot. */

@@ -1,3 +1,4 @@
+import { boundsOf } from './geo';
 import type { LngLat } from './types';
 
 /** OpenMapTiles' top zoom; road detail is only complete there. */
@@ -50,4 +51,23 @@ export function tilesIn([w, s, e, n]: [number, number, number, number], zoom = T
       out.set(`${wx},${y}`, [wx, y]);
     }
   return [...out.values()];
+}
+
+/**
+ * The z14 tiles within `m` of a walk's points, those the walk spent most of
+ * its points in first, at most `cap` (a snap read in code: Filling gaps,
+ * audit 6). Never every tile in the box: a walk at both ends of a long ride
+ * reads two small areas, not the country between.
+ */
+export function tilesNear(trace: LngLat[], m: number, cap: number): [number, number][] {
+  const count = new Map<string, { t: [number, number]; n: number }>();
+  for (const p of trace) {
+    for (const t of tilesIn(boundsOf([p], m)!)) {
+      const k = `${t[0]},${t[1]}`;
+      const c = count.get(k);
+      if (c) c.n++;
+      else count.set(k, { t, n: 1 });
+    }
+  }
+  return [...count.values()].sort((a, b) => b.n - a.n).slice(0, cap).map((c) => c.t);
 }

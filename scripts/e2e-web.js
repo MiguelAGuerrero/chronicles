@@ -130,6 +130,14 @@ function check(ok, what) {
   });
   // Opt-in render and map-update counters (src/lib/perfCount.ts).
   await ctx.addInitScript(() => { window.__perf = {}; });
+  // Open in Maps (NH1-NH7): links the app opens are recorded, never followed.
+  await ctx.addInitScript(() => {
+    window.__opened = [];
+    window.open = (u) => {
+      window.__opened.push(String(u));
+      return null;
+    };
+  });
   // Motion (M7): whether each pill or banner that lifts in was animating a frame after it appeared.
   await ctx.addInitScript(() => {
     const lifts = [];
@@ -197,8 +205,23 @@ function check(ok, what) {
       g.onsuccess = () => resolve(g.result?.value ?? null);
     };
   }), key);
-  // Navigate's drawer to a height: a tap on the handle opens it to half, a drag takes it to the top, Escape lowers it.
+  // Navigate's drawer has one height now: 'half' and 'full' open its settings dialog (the summary line under
+  // Start), 'peek' closes it with Escape. Other sheets (home, Explore) still go by their own handles.
   const drawerTo = async (pg, size, testid = 'drawer-drag') => {
+    if (testid === 'drawer-drag') {
+      const open = (await pg.locator('[data-testid=start-dialog]').count()) > 0;
+      if (size === 'peek') {
+        if (open) {
+          await pg.keyboard.press('Escape');
+          await pg.waitForTimeout(400);
+        }
+      } else if (!open) {
+        await pg.click('[data-testid=start-options]');
+        await pg.waitForSelector('[data-testid=start-dialog]');
+        await pg.waitForTimeout(400);
+      }
+      return;
+    }
     if (size === 'peek') {
       await pg.keyboard.press('Escape');
       await pg.waitForTimeout(600);
@@ -329,9 +352,9 @@ function check(ok, what) {
 
     });
     await step('tabs audit U1, U4, U12 in the drawer', async () => {
-      // tabs audit U1: Start and the capture row stay docked low and tappable at peek, half and full.
-      const docked = async (size) => {
-        if (size !== 'peek') await drawerTo(pg, size);
+      // tabs audit U1: Start and the capture row stay docked low and tappable at the peek.
+      const r = await (async () => {
+        const vh = pg.viewportSize().height;
         const out = [];
         for (const id of ['moment-photo', 'moment-voice', 'moment-note', 'start']) {
           const b = await pg.locator(`[data-testid=${id}]`).boundingBox();
@@ -339,24 +362,39 @@ function check(ok, what) {
           out.push(b && hit === id && b.y > vh * 0.6 ? 'ok' : `${id}:${b && Math.round(b.y)}:${hit}`);
         }
         return out;
-      };
-      const heights = {};
-      for (const size of ['peek', 'half', 'full']) {
-        const r = await docked(size);
-        heights[size] = Math.round((await pg.locator('[data-testid=navigate-drawer]').boundingBox()).height);
-        check(r.every((x) => x === 'ok'), `tabs audit U1: at ${size}, Start and the camera, mic and pencil sit low on the screen and can be tapped (${r.join(', ')})`);
+      })();
+      check(r.every((x) => x === 'ok'), `tabs audit U1: Start and the camera, mic and pencil sit low on the screen and can be tapped (${r.join(', ')})`);
+      // Nov 3: the drawer doesn't pull up; its summary line opens one dialog with every setting in one scroll.
+      const peekBox = await pg.locator('[data-testid=navigate-drawer]').boundingBox();
+      await drawerTo(pg, 'half');
+      check((await pg.locator('[data-testid=start-dialog]').count()) === 1 && (await pg.locator('[data-testid=mode-quiet]').isVisible())
+        && (await pg.locator('[data-testid=notify-settings]').count()) === 1 && (await pg.locator('[data-testid=kind-churches]').count()) === 0,
+        'Nov 3: the summary line opens one dialog: the mode, the destination, reminders and alerts (no kinds with Quiet)');
+      await drawerTo(pg, 'peek');
+      check((await pg.locator('[data-testid=start-dialog]').count()) === 0 && Math.round((await pg.locator('[data-testid=navigate-drawer]').boundingBox()).height) === Math.round(peekBox.height),
+        'Nov 3: Escape closes the dialog, and the drawer is as it was');
+      // A pull on the grip opens the dialog too, and the drawer itself doesn't move.
+      {
+        const hb = await pg.locator('[data-testid=drawer-drag]').boundingBox();
+        await pg.mouse.move(hb.x + hb.width / 2, hb.y + 8);
+        await pg.mouse.down();
+        await pg.mouse.move(hb.x + hb.width / 2, 120, { steps: 8 });
+        await pg.mouse.up();
+        await pg.waitForTimeout(600);
+        check((await pg.locator('[data-testid=start-dialog]').count()) === 1, 'Nov 3: a pull on the grip opens the dialog');
+        await drawerTo(pg, 'peek');
       }
-      check(heights.peek < heights.half && heights.half < heights.full, `tabs audit U1: the drawer still opens to its three heights (${JSON.stringify(heights)})`);
-      // At full the settings scroll above the row and Start: the last setting can be brought above the row.
+      await drawerTo(pg, 'half');
+      // The settings scroll above the dialog's own Start: the last setting can be brought into view inside it.
       {
         await pg.locator('[data-testid=notify-test]').scrollIntoViewIfNeeded();
         await pg.waitForTimeout(300);
         const btn = await pg.locator('[data-testid=notify-test]').boundingBox();
-        const row = await pg.locator('[data-testid=moment-photo]').boundingBox();
-        check(btn && btn.y + btn.height <= row.y, `tabs audit U1: the drawer's settings scroll above the capture row, never under it (${btn && Math.round(btn.y + btn.height)} ≤ ${Math.round(row.y)})`);
+        const foot = await pg.locator('[data-testid=start-dialog-start]').boundingBox();
+        check(btn && btn.y + btn.height <= foot.y, `Nov 3: the dialog's settings scroll above its Start walk, never under it (${btn && Math.round(btn.y + btn.height)} ≤ ${Math.round(foot.y)})`);
       }
       // tabs audit U12: no second "Notifications" heading under "Reminders and alerts".
-      const heads = await pg.locator('[data-testid=navigate-drawer] [role=heading]').allInnerTexts();
+      const heads = await pg.locator('[data-testid=start-dialog] [role=heading]').allInnerTexts();
       check(heads.includes('Reminders and alerts') && !heads.includes('Notifications'), `tabs audit U12: Reminders and alerts, with no Notifications heading under it (${heads.join(', ')})`);
       // tabs audit U4: a whole switch row flips its switch, tapped on its words.
       {
@@ -390,12 +428,7 @@ function check(ok, what) {
       await pg.locator('[data-testid=mode-quiet]').scrollIntoViewIfNeeded();
       await pg.click('[data-testid=mode-quiet]');
       await drawerTo(pg, 'peek');
-      await drawerTo(pg, 'half');
-      // tabs audit U12: opened, the line under Start doesn't repeat the mode shown above it.
-      const halfLine = await pg.locator('[data-testid=peek-choices]').allInnerTexts();
-      check(!halfLine.some((t) => /Quiet|Explore/.test(t)), `tabs audit U12: at half, the line under Start doesn't repeat the mode (${JSON.stringify(halfLine)})`);
-      await drawerTo(pg, 'peek');
-      check((await pg.locator('[data-testid=peek-choices]').innerText()) === 'Quiet', 'tabs audit U12: at the peek, the line still says the mode');
+      check((await pg.locator('[data-testid=peek-choices]').innerText()) === 'Quiet', 'tabs audit U12: the line under Start says the mode');
 
     });
     // Chronicle with no walks (tabs audit U7): the peek holds the empty line and a way to Navigate.
@@ -511,6 +544,14 @@ function check(ok, what) {
       const onWalk = await pg.waitForURL(/\/walk/, { timeout: 10000 }).then(() => true, () => false);
       const viewers = onWalk ? await pg.waitForSelector('[data-testid=viewer-close]', { timeout: 10000 }).then(() => pg.locator('[data-testid=viewer-close]').count(), () => 0) : 0;
       check(onWalk && viewers === 1, `tabs audit 2: a reminder tapped with the walk minimized opens on the walk, once (${pg.url()}, ${viewers} viewer)`);
+      // The walk's viewer offers Open in Maps for a capture with a place (NH6).
+      if (viewers) {
+        await pg.click('[data-testid=viewer-more]');
+        check((await pg.locator('[data-testid=viewer-handoff]').count()) === 1, 'the walk’s viewer has Open in Maps in its More menu (NH6)');
+        // The menu's backdrop covers the screen: a tap beside the menu closes it.
+        await pg.mouse.click(20, 420);
+        await pg.waitForSelector('[data-testid=viewer-menu]', { state: 'detached', timeout: 5000 });
+      }
       await pg.click('[data-testid=viewer-close]');
       await pg.waitForTimeout(400);
 
@@ -906,6 +947,150 @@ function check(ok, what) {
     await c.close();
   };
 
+  // Filling gaps (G5, G6, G9, G10, G12): a walk whose GPS was out twice, written into storage
+  // with past times (a real gap would take minutes), then reloaded. Along Thayer Street, with
+  // nowhere else to have been, the gap fills by itself; along Transit Street in a grid, slowly,
+  // it is offered faint until kept. E2E_ONLY=gaps runs it alone.
+  const gapsScenario = async () => {
+    const { c, pg } = await freshPage('gaps');
+    await c.addInitScript(() => { window.__perf = {}; });
+    const here = at(3.0, -0.5);
+    await pg.goto(url);
+    await pg.waitForSelector('[data-testid=start]');
+    await pg.click('[data-testid=start]');
+    await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+    for (let k = 0; k < 3; k++) {
+      await c.setGeolocation({ longitude: here[0], latitude: here[1] + k * 0.000001, accuracy: 6 });
+      await pg.waitForTimeout(1000);
+    }
+    for (let k = 0; k < 15 && !(await metaOf(pg, 'tile_url')); k++) await pg.waitForTimeout(1000);
+    const walk = await openWalk(pg);
+    const now = Date.now();
+    const min = 60_000;
+    // Fixes along a line at 1.4 m/s, one every 5 s, from t0.
+    const along = (from, to, t0) => {
+      const pts = [];
+      const d = Math.hypot((to[0] - from[0]) * 100, (to[1] - from[1]) * 100);
+      const n = Math.max(1, Math.round(d / 7));
+      for (let k = 0; k <= n; k++) {
+        const p = at(from[0] + ((to[0] - from[0]) * k) / n, from[1] + ((to[1] - from[1]) * k) / n);
+        pts.push({ walk_id: walk.id, t: t0 + k * 5000, lon: p[0], lat: p[1], accuracy_m: 6, speed: 1.4, course: null });
+      }
+      return pts;
+    };
+    const points = [
+      // Thayer Street north, then 5 min out over 400 m, then on: nowhere else to have been (G5).
+      ...along([11, -2.9], [11, -1.9], now - 70 * min),
+      ...along([11, 2.1], [11, 2.9], now - 63 * min),
+      // 35 min later: Transit Street east, then 10 min out over 340 m, time to go round a block (G6).
+      ...along([-1.9, -0.5], [-1.2, -0.5], now - 27 * min),
+      ...along([2.2, -0.5], [3.0, -0.5], now - 16 * min),
+    ];
+    await pg.evaluate(([id, startedAt, pts]) => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const tx = req.result.transaction(['walk', 'trace_point'], 'readwrite');
+        const w = tx.objectStore('walk').get(id);
+        w.onsuccess = () => tx.objectStore('walk').put({ ...w.result, started_at: startedAt });
+        for (const p of pts) tx.objectStore('trace_point').add(p);
+        tx.oncomplete = () => resolve(true);
+      };
+    }), [walk.id, now - 70 * min - 1000, points]);
+    await pg.reload();
+    await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+    await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
+    const mapState = () => pg.locator('[data-faint]').last().evaluate((e) => ({ runs: Number(e.dataset.runs), faint: Number(e.dataset.faint) }));
+    let st = await mapState();
+    for (let k = 0; k < 20 && !(st.faint === 1 && st.runs === 4); k++) {
+      await pg.waitForTimeout(1000);
+      st = await mapState();
+    }
+    // Without filling there would be four lines; Thayer's gap joins its line, Transit's is faint.
+    check(st.runs === 4, `gaps: a gap along a street with nowhere else to go fills by itself, one line (G5: ${JSON.stringify(st)})`);
+    check(st.faint === 1, `gaps: a gap with time to go round a block is offered faint (G6: ${JSON.stringify(st)})`);
+    const km = (t) => { const m = /([\d.]+) (k?m)\b/.exec(t); return m ? Number(m[1]) * (m[2] === 'km' ? 1000 : 1) : NaN; };
+    const before = km(await pg.locator('[data-testid=walk-stats]').innerText());
+    // A tap on the faint stretch opens its card (G9).
+    await pg.waitForFunction(() => typeof window.__project === 'function');
+    const tap = async (p) => {
+      const [x, y] = await pg.evaluate((q) => window.__project(q), p);
+      await pg.mouse.click(x, y);
+      await pg.waitForTimeout(900);
+    };
+    // Away from the line's ends, which are the recorded trace's (audit 8).
+    await tap(at(1.6, -0.5));
+    const title = await pg.locator('[data-testid=gap-title]').innerText().catch(() => '');
+    check(title === 'Probably along Transit Street' && (await pg.locator('[data-testid=gap-keep]').count()) === 1,
+      `gaps: tapping the faint stretch opens its card, with Keep (G9: "${title}")`);
+    await pg.keyboard.press('Escape');
+    await pg.waitForTimeout(400);
+    check((await pg.locator('[data-testid=gap-card]').count()) === 0, 'gaps: Escape closes the card (G9)');
+    // Another card in the slot closes it for good, rather than hiding it to come back (gaps audit 7).
+    await tap(at(1.6, -0.5));
+    await pg.click('[data-testid=walk-options]');
+    await pg.waitForTimeout(400);
+    const underOptions = await pg.locator('[data-testid=gap-card]').count();
+    await pg.click('[data-testid=walk-options]');
+    await pg.waitForTimeout(400);
+    check(underOptions === 0 && (await pg.locator('[data-testid=gap-card]').count()) === 0, `gaps audit 7: the walk's options close the stretch's card, and it doesn't come back (${underOptions})`);
+    await tap(at(1.6, -0.5));
+    await pg.click('[data-testid=gap-keep]');
+    for (let k = 0; k < 10 && (st = await mapState()).runs !== 3; k++) await pg.waitForTimeout(500);
+    await pg.waitForTimeout(2500);
+    const after = km(await pg.locator('[data-testid=walk-stats]').innerText());
+    check(st.runs === 3 && st.faint === 0, `gaps: Keep draws it solid, joined to the trace (G10: ${JSON.stringify(st)})`);
+    check(after - before > 250 && after - before < 450, `gaps: a kept stretch counts as walked distance (G11: ${before} m → ${after} m)`);
+    const rows = () => pg.evaluate(() => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const g = req.result.transaction('gap_fill', 'readonly').objectStore('gap_fill').getAll();
+        g.onsuccess = () => resolve(g.result.map((r) => `${r.state}:${r.street}`));
+      };
+    }));
+    check(JSON.stringify(await rows()) === '["kept:Transit Street"]', `gaps: Keep is stored with the walk (G10: ${JSON.stringify(await rows())})`);
+    // On the replay, the filled stretch along Thayer has its own card; Not this way breaks the line again (G9, G10, G12).
+    const b = await pg.locator('[data-testid=stop]').boundingBox();
+    await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+    await pg.mouse.down();
+    await pg.waitForTimeout(1100);
+    await pg.mouse.up();
+    await pg.waitForURL(/replay/, { timeout: 30000 });
+    await pg.waitForSelector('[data-testid=skip]', { timeout: 60000 });
+    await pg.click('[data-testid=skip]');
+    await pg.waitForSelector('[data-testid=to-name], [data-testid=done]', { timeout: 30000 });
+    await pg.waitForTimeout(1500);
+    const firstCard = await mapState();
+    // A later session: nothing inferred is remembered, and the filled stretch must still be there (gaps audit 2).
+    await pg.reload();
+    await pg.waitForSelector('[data-testid=skip], [data-testid=to-name], [data-testid=done]', { timeout: 60000 });
+    if (await pg.locator('[data-testid=skip]').count()) await pg.click('[data-testid=skip]');
+    await pg.waitForSelector('[data-testid=to-name], [data-testid=done]', { timeout: 30000 });
+    let onCard = await mapState();
+    for (let k = 0; k < 20 && onCard.runs !== firstCard.runs; k++) {
+      await pg.waitForTimeout(500);
+      onCard = await mapState();
+    }
+    check(onCard.runs === firstCard.runs, `gaps audit 2: after a reload, the replay still fills its gaps (${firstCard.runs} → ${onCard.runs})`);
+    await pg.waitForFunction(() => typeof window.__project === 'function');
+    check(onCard.faint === 0, `gaps: the replay draws no faint stretch once kept (${JSON.stringify(onCard)})`);
+    await tap(at(11, 0.6));
+    const filled = await pg.locator('[data-testid=gap-title]').innerText().catch(() => '');
+    check(filled === 'Filled in along Thayer Street' && (await pg.locator('[data-testid=gap-keep]').count()) === 0,
+      `gaps: on the replay, a stretch filled by itself has a card with Not this way only (G9, G12: "${filled}")`);
+    if (filled) {
+      await pg.click('[data-testid=gap-dismiss]');
+      let r = await mapState();
+      for (let k = 0; k < 30 && r.runs <= onCard.runs; k++) {
+        await pg.waitForTimeout(500);
+        r = await mapState();
+      }
+      check(r.runs === onCard.runs + 1, `gaps: Not this way breaks the line again on the replay (G10, G12: ${onCard.runs} → ${r.runs})`);
+      const stored = await rows();
+      check(stored.includes('dismissed:Thayer Street'), `gaps: Not this way is stored too (G10: ${JSON.stringify(stored)})`);
+    }
+    await c.close();
+  };
+
   // Quality of life: map staples (QL1-QL12, the owner's spec, Nov 3): Locate, the scale bar and the
   // trace's end markers, read through the map's data attributes. E2E_ONLY=qol runs it alone.
   const qolScenario = async () => {
@@ -1143,6 +1328,11 @@ function check(ok, what) {
       check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
       return;
     }
+    if (process.env.E2E_ONLY === 'gaps') {
+      await gapsScenario();
+      check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
+      return;
+    }
     if (process.env.E2E_ONLY === 'tabs') {
       await tabsAudit();
       check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
@@ -1202,37 +1392,21 @@ function check(ok, what) {
     });
     check(sw && sw.active && sw.scope.endsWith(`${BASE}/`), `the service worker is active at the base path (${JSON.stringify(sw)})`);
 
-    // The pre-start drawer (NV19-NV24): its three heights and their choices, each saved as it changes.
+    // The pre-start drawer and its dialog (NV19-NV24, Nov 3): the choices, each saved as it changes.
     const drawerH = async () => Math.round((await page.locator('[data-testid=navigate-drawer]').boundingBox()).height);
     const peekH = await drawerH();
     await drawerTo(page, 'half');
     check((await page.locator('[data-testid=mode-quiet][aria-checked=true]').count()) === 1 && (await page.locator('[data-testid=mode-explore]').count()) === 1
-      && /Long-press the map/.test(await page.locator('[data-testid=navigate-drawer]').innerText()) && (await page.locator('[data-testid=kind-churches]').count()) === 0,
-      'at half: the mode, Quiet | Explore, and the destination with its hint; nothing more (NV20)');
-    const halfH = await drawerH();
+      && /Long-press the map/.test(await page.locator('[data-testid=start-dialog]').innerText()) && (await page.locator('[data-testid=kind-churches]').count()) === 0
+      && (await page.locator('[data-testid=notify-settings]').count()) === 1,
+      'in the dialog: the mode, Quiet | Explore, the destination with its hint, reminders and alerts; no kinds with Quiet (NV20, NV21)');
     // The drawer keeps its height while another tab is in front (NV3).
+    await drawerTo(page, 'peek');
     await onTab('chronicle');
     await onTab('navigate');
-    check((await drawerH()) === halfH && (await page.locator('[data-testid=mode-quiet]').isVisible()), `the drawer keeps its height across tabs (NV3: ${halfH} px)`);
-    await drawerTo(page, 'full');
-    const fullH = await drawerH();
-    check(peekH < halfH && halfH < fullH && (await page.locator('[data-testid=kind-churches]').count()) === 0 && (await page.locator('[data-testid=notify-settings]').count()) === 1,
-      `at full, with Quiet: reminders and alerts, no kinds or range (NV21: ${peekH} < ${halfH} < ${fullH})`);
-    // The capture row stays one tap away with the drawer at full (rev 34, U1): docked low, over the drawer, and tappable.
-    {
-      const hits = [];
-      for (const id of ['moment-photo', 'moment-voice', 'moment-note']) {
-        const b = await page.locator(`[data-testid=${id}]`).boundingBox();
-        const at = await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-testid]')?.getAttribute('data-testid'), { x: b.x + b.width / 2, y: b.y + b.height / 2 });
-        hits.push(at === id && b.y > 844 * 0.6);
-      }
-      await page.click('[data-testid=moment-note]');
-      const noteOpens = await page.waitForSelector('[data-testid=moment-note-input]', { timeout: 3000 }).then(() => true, () => false);
-      if (noteOpens) await page.click('[aria-label="Close note"]', { position: { x: 10, y: 10 } });
-      await page.waitForTimeout(300);
-      check(hits.every(Boolean) && noteOpens, `with the drawer at full, the camera, mic and pencil stay low and can be tapped (rev 34, U1: ${hits.join(', ')})`);
-    }
+    check((await drawerH()) === peekH, `the drawer keeps its height across tabs (NV3: ${peekH} px)`);
     // Settings: a switch per kind, both on; the test notification is a real one (NT4, NT6).
+    await drawerTo(page, 'half');
     const isOn = (id) => page.locator(`[data-testid=${id}] input`).isChecked();
     check((await isOn('notify-recall')) && (await isOn('notify-pause')), 'notifications: Remind me here and the pause reminder, both on by default (NT4)');
     check((await page.locator('[data-testid=pocket-alert]').count()) === 0, 'the web has no pocket alert (NV21)');
@@ -1734,6 +1908,88 @@ function check(ok, what) {
       await page.click('[data-testid=nav-end]');
       await page.waitForSelector('[data-testid=nav-bar]', { state: 'detached', timeout: 5000 });
       check(true, 'End clears the route');
+    }
+
+    // Open in Maps (Bridges and Open in Maps, NH1-NH7): the destination goes to the phone's maps app.
+    {
+      const opened = () => page.evaluate(() => window.__opened.slice());
+      /** The destination of a Google walking-directions link (this browser is a desktop: NH2). */
+      const destOf = (u) => {
+        const m = /^https:\/\/www\.google\.com\/maps\/dir\/\?api=1&destination=(-?\d+\.\d{6}),(-?\d+\.\d{6})&travelmode=walking$/.exec(u ?? '');
+        return m ? [Number(m[2]), Number(m[1])] : null;
+      };
+      const metersApart = (a, b) => Math.hypot((a[0] - b[0]) / dLon, (a[1] - b[1]) / dLat) * 100;
+      const box = await page.locator('canvas.maplibregl-canvas').last().boundingBox();
+      const press = async (x, y) => {
+        await page.mouse.move(x, y);
+        await page.mouse.down();
+        await page.waitForTimeout(700);
+        await page.mouse.up();
+      };
+      const spot = { x: box.x + box.width / 2 + 90, y: box.y + box.height / 2 - 120 };
+      await press(spot.x, spot.y);
+      await page.waitForSelector('[data-testid=spot-handoff]');
+      // At a 320 px phone's width, every button on the card stays on screen (NH6).
+      await page.setViewportSize({ width: 320, height: 700 });
+      await page.waitForTimeout(500);
+      const inside = await page.evaluate(() =>
+        ['go-here', 'spot-handoff', 'spot-close', 'here-open'].every((id) => {
+          const el = document.querySelector(`[data-testid=${id}]`);
+          if (!el) return true;
+          const b = el.getBoundingClientRect();
+          return b.left >= 0 && b.right <= 320 && b.width >= 44 && b.height >= 44;
+        }),
+      );
+      check(inside, 'the long-press card’s buttons, Open in Maps among them, fit 320 px at 44 pt (NH6)');
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.waitForTimeout(500);
+      await page.click('[data-testid=spot-handoff]');
+      const fromCard = destOf((await opened()).at(-1));
+      check(!!fromCard && (await page.locator('[data-testid=spot-handoff]').count()) === 0, `the long-press card opens walking directions to its spot (NH1, NH6: ${(await opened()).at(-1)})`);
+      await page.waitForTimeout(1100);
+      await press(spot.x, spot.y);
+      await page.click('[data-testid=go-here]');
+      await page.waitForSelector('[data-testid=nav-bar]', { timeout: 30000 });
+      const left = await navLeft();
+      await page.click('[data-testid=nav-handoff]');
+      const fromBar = destOf((await opened()).at(-1));
+      check(!!fromBar && !!fromCard && metersApart(fromBar, fromCard) < 5, `the bar's Open in Maps sends the destination (NH3${fromBar && fromCard ? `: ${metersApart(fromBar, fromCard).toFixed(1)} m from the card's` : ''})`);
+      await page.waitForTimeout(1500);
+      check((await page.locator('[data-testid=nav-bar]').count()) === 1 && Math.abs((await navLeft()) - left) < 30, 'navigation goes on after the hand-off (NH7)');
+      await page.click('[data-testid=nav-end]');
+      await page.waitForSelector('[data-testid=nav-bar]', { state: 'detached', timeout: 5000 });
+      // A route that can't be found offers the maps app (NH5): zoomed far out, a spot many km away.
+      const zoomNow = () => page.evaluate(() => Number([...document.querySelectorAll('[data-zoom]')].at(-1)?.getAttribute('data-zoom') ?? NaN));
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      for (let k = 0; k < 20 && !((await zoomNow()) <= 9.5); k++) {
+        await page.mouse.wheel(0, 400);
+        await page.waitForTimeout(250);
+      }
+      await page.waitForTimeout(800);
+      await press(box.x + 50, box.y + box.height * 0.3);
+      await page.waitForSelector('[data-testid=go-here]');
+      await page.click('[data-testid=go-here]');
+      const failed = await page.waitForSelector('text=/Too far to walk from here|No walking route found nearby/', { timeout: 90000 }).then(() => true, () => false);
+      const action = page.locator('[role=button]:has-text("Open in Maps")');
+      check(failed && (await action.count()) === 1, `a route that can't be found offers Open in Maps (NH5, at z${(await zoomNow()).toFixed(1)})`);
+      if (failed && (await action.count())) {
+        // It stays until dismissed: the destination is already forgotten (audit 6).
+        await page.waitForTimeout(7000);
+        check((await action.count()) === 1, 'the failed route’s Open in Maps is still there after 7 s (audit 6)');
+        const actionBox = await action.boundingBox();
+        check(actionBox && actionBox.height >= 44, `its button is 44 pt tall (audit 6: ${actionBox && Math.round(actionBox.height)})`);
+        await action.click();
+        const far = destOf((await opened()).at(-1));
+        // The walker stands where walk me back ended: the route's start.
+        const walker = route[0];
+        check(!!far && !!walker && metersApart(far, walker) > 2000, `its Open in Maps goes to the spot asked for (NH5${far && walker ? `: ${(metersApart(far, walker) / 1000).toFixed(1)} km away` : ''})`);
+      }
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      for (let k = 0; k < 20 && !((await zoomNow()) >= 15.8); k++) {
+        await page.mouse.wheel(0, -400);
+        await page.waitForTimeout(250);
+      }
+      await page.waitForTimeout(800);
     }
 
     // The walk back passed the flagged capture again: never in the walk that recorded it (R2).
@@ -2541,8 +2797,9 @@ function check(ok, what) {
       await p2.click('[data-testid=moment-voice]');
       await p2.waitForSelector('[data-testid=moment-voice-save]');
       await p2.waitForTimeout(1500);
-      await drawerTo(p2, 'half');
-      check((await p2.locator('[data-testid=mode-quiet]').count()) === 0 && (await p2.locator('[data-testid=moment-voice-save]').isVisible())
+      await p2.click('[data-testid=start-options]');
+      await p2.waitForTimeout(500);
+      check((await p2.locator('[data-testid=start-dialog]').count()) === 0 && (await p2.locator('[data-testid=mode-quiet]').count()) === 0 && (await p2.locator('[data-testid=moment-voice-save]').isVisible())
         && (await p2.locator('[data-testid=start][aria-disabled=true]').count()) === 1,
         'opening the drawer mid-memo does nothing, Start is disabled, and the memo keeps recording (audit 1, NV28)');
       await p2.click('[data-testid=moment-voice-discard]');
@@ -2866,6 +3123,7 @@ function check(ok, what) {
       await c.close();
     }
     await tabsAudit();
+    await gapsScenario();
     {
       // Start with Explore and a destination: the walk opens exploring, heading there (NV25).
       const { c, pg } = await freshPage('start-explore');

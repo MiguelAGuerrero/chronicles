@@ -12,6 +12,8 @@ import { CaptionEditor } from '../components/Caption';
 import { CaptureViewer } from '../components/CaptureView';
 import { Icon, KIND_LABEL, type IconName } from '../components/icons';
 import { Banner, Button, HoldButton, LiftIn, theme } from '../components/ui';
+import { GapCard } from '../components/GapCard';
+import { gapKey, stretchAt } from '../lib/gaps/infer';
 import { ExploreSettings } from '../components/ExploreSettings';
 import { ReminderCard } from '../components/ReminderCard';
 import { onRecallFired, onRecallOpen, takeRecallOpen } from '../lib/discovery/recallCheck';
@@ -42,6 +44,7 @@ import { askMotion, useMotionAccess } from '../lib/walkMotion';
 import { gpsLog } from '../lib/gpsLog';
 import { notifyWalkChanged } from '../lib/walkEvents';
 import { routeAhead } from '../lib/nav/navigator';
+import { HANDOFF_HINT, openInMaps } from '../lib/nav/openInMaps';
 import { useNavigation } from '../lib/nav/useNavigation';
 import { useVisible } from '../lib/deletion/useDeletions';
 import { deletions } from '../lib/deletion';
@@ -92,7 +95,15 @@ const REMINDER_AWAY_M = 100;
 /** How long "Aa Caption" stays offered after a photo. */
 const CAPTION_OFFER_MS = 6000;
 
-type Notice = { message: string; tone?: 'info' | 'error'; openSettings?: boolean; sticky?: boolean };
+type Notice = {
+  message: string;
+  tone?: 'info' | 'error';
+  openSettings?: boolean;
+  sticky?: boolean;
+  /** A route that couldn't be found offers the destination to the phone's maps app (NH5). */
+  maps?: { at: LngLat; label: string };
+};
+
 
 // A screen that throws shows what broke, with Try again, never a blank page (bug, Nov 1).
 export { ScreenError as ErrorBoundary } from '../components/ScreenError';
@@ -113,6 +124,15 @@ export default function WalkScreen() {
   // minimized (NV8); this screen shows them.
   const openWalk = useOpenWalk();
   const pauses = openWalk.pauses;
+  // Stretches across gaps (Filling gaps, G9, G12): a tapped one's card, by gap.
+  const gapView = openWalk.gaps;
+  const liveHereRef = useRef<LngLat | null>(null);
+  // Which gap, and where the walker was when it opened: walking 30 m on closes it, as the spot card (audit 7).
+  const [gapOpenAt, setGapOpenAt] = useState<{ key: string; from: LngLat | null } | null>(null);
+  const gapOpen = gapOpenAt?.key ?? null;
+  const setGapOpen = useCallback((key: string | null) => setGapOpenAt(key ? { key, from: liveHereRef.current } : null), []);
+  const [gapBusy, setGapBusy] = useState(false);
+  const openGap = gapOpen ? gapView.stretches.find((s) => gapKey(s) === gapOpen) ?? null : null;
   const [pausing, setPausing] = useState(false);
   // The map follows the walker until they pan or zoom it themselves.
   const [following, setFollowing] = useState(true);
@@ -351,6 +371,12 @@ export default function WalkScreen() {
     const t = setTimeout(() => setSpot(null), 0);
     return () => clearTimeout(t);
   }, [spot, live.here]);
+  useEffect(() => {
+    liveHereRef.current = live.here;
+    if (!gapOpenAt?.from || !live.here || distanceM(gapOpenAt.from, live.here) < 30) return;
+    const t = setTimeout(() => setGapOpenAt(null), 0);
+    return () => clearTimeout(t);
+  }, [gapOpenAt, live.here]);
 
   // Navigating (slice 4): inside the walk, which keeps recording.
   const [arrived, setArrived] = useState<string | null>(null);
@@ -364,6 +390,7 @@ export default function WalkScreen() {
     here: live.here,
     lastFixAt: live.lastFixAt,
     paused: pauses.some((p) => p.ended_at == null),
+    heading: live.heading,
     riding: live.riding,
     map: () => mapRef.current,
     onArrive: (dest) => {
@@ -372,10 +399,30 @@ export default function WalkScreen() {
       setArrived(`You’re here: ${dest.label}`);
       AccessibilityInfo.announceForAccessibility(`You're here: ${dest.label}`);
     },
-    // Errors stay up long enough to read at a glance, and can be dismissed.
-    onError: (m) => setNotice({ message: m, tone: 'error' }),
+    // Errors stay up long enough to read at a glance, and can be dismissed. A route that
+    // can't be found offers the phone's maps app (NH5).
+    // It stays until dismissed: the destination is already forgotten, so it is the way back (audit 6).
+    onError: (m, dest) => setNotice({ message: m, tone: 'error', maps: dest && { at: dest.at, label: dest.label }, sticky: !!dest }),
     onNotice: (m) => setArrived(m),
   });
+  /** Going somewhere new: a failed route's banner (sticky, with Open in Maps) has had its say. */
+  const goTo = (dest: Parameters<typeof navigation.goTo>[0]) => {
+    setNotice((n) => (n?.maps ? null : n));
+    void navigation.goTo(dest);
+  };
+  /**
+   * Open in Maps (NH3-NH8): the destination to the phone's maps app, straight from the tap (a
+   * browser opens a window only from one). Navigation and the walk go on as they were (NH7).
+   */
+  const handOff = (at: LngLat, label: string) => {
+    feedback('tap');
+    openInMaps(at, label).then(
+      (ok) => {
+        if (!ok) setNotice({ message: 'Couldn’t open a maps app.', tone: 'error' });
+      },
+      () => setNotice({ message: 'Couldn’t open a maps app.', tone: 'error' }),
+    );
+  };
   // The route ahead of you only; what is behind is walked.
   const routeLine = useMemo(
     () => (navigation.nav ? (live.here ? routeAhead(navigation.nav.route.path, live.here) : navigation.nav.route.path) : null),
@@ -776,6 +823,19 @@ export default function WalkScreen() {
     setNotice({ message: `Paused for ${formatDuration(now - openPause.started_at)}. Nothing is recorded until you resume.`, sticky: true });
   }, [openPause, now]);
   const recordingVoice = cap.voiceStartedAt != null;
+  // Keep or Not this way (G10): stored with the walk, and the line follows at once.
+  const decideGap = async (state: 'kept' | 'dismissed') => {
+    if (!openGap) return;
+    setGapBusy(true);
+    try {
+      await gapView.decide(openGap, state);
+      setGapOpen(null);
+    } catch {
+      setNotice({ message: 'Couldn’t save that. Try again.', tone: 'error' });
+    } finally {
+      setGapBusy(false);
+    }
+  };
 
   return (
     <View style={styles.screen}>
@@ -794,19 +854,28 @@ export default function WalkScreen() {
         walkerHeading={live.heading}
         // Not while a route is found: the street read moves the camera itself.
         follow={following && !navigation.finding && !ring ? live.here : null}
-        onPress={() => {
+        faint={gapView.faint}
+        onPress={(at, radiusM) => {
           setSpot(null);
           setMarkOpen(null);
           setMemory(null);
+          // A tap on a stretch across a gap opens its card (G9); anywhere else closes it.
+          // A line's reach is about 20 px, narrower than a pin's 44, so taps beside the trace still do what they did (audit 8).
+          const hit = navigation.nav || recordingVoice || stopping ? null : stretchAt(gapView.stretches, at, Math.max(10, radiusM * 0.45));
+          setGapOpen(hit ? gapKey(hit) : null);
         }}
         memories={memories}
-        onMemoryPress={recordingVoice || stopping || settingsOpen ? undefined : (group, at) => void openMemory(group, at)}
+        onMemoryPress={recordingVoice || stopping || settingsOpen ? undefined : (group, at) => {
+          setGapOpen(null);
+          void openMemory(group, at);
+        }}
         discoveries={explore.pins}
         onDiscoveryPress={recordingVoice || stopping || settingsOpen ? undefined : (id) => {
           // A found place is shown, not a card to open: its capture's pin is the thing to tap (audit, UI).
           if (explore.found.has(id)) return;
           setSpot(null);
           setMemory(null);
+          setGapOpen(null);
           setMarkOpen(id);
         }}
         marks={marks}
@@ -816,7 +885,11 @@ export default function WalkScreen() {
         fitPadding={{ top: insets.top + 24, bottom: panelH + 24, left: 24, right: 24 }}
         onUserMove={() => setFollowing(false)}
         // A long press, so a stray tap while walking does nothing.
-        onLongPress={pressMap}
+        onLongPress={(at, radiusM) => {
+          // Another card takes the slot: the stretch's card goes, rather than hiding and coming back (audit 7).
+          setGapOpen(null);
+          pressMap(at, radiusM);
+        }}
         route={routeLine}
         // While navigating the trace steps aside, so the route reads; it is still recorded (the owner's call, Nov 2).
         traceOpacity={navigation.nav ? 0 : 1}
@@ -846,6 +919,19 @@ export default function WalkScreen() {
             >
               {formatDistance(navigation.nav.leftM)} · {navigation.nav.dest.label}
             </Text>
+            <Pressable
+              testID="nav-handoff"
+              accessibilityRole="button"
+              accessibilityLabel="Open in Maps"
+              accessibilityHint={HANDOFF_HINT}
+              onPress={() => {
+                const d = navigation.nav?.dest;
+                if (d) handOff(d.at, d.label);
+              }}
+              style={({ pressed }) => [styles.navHandoff, pressed && styles.pressed]}
+            >
+              <Icon name="open-outline" size={22} color="#ffffff" />
+            </Pressable>
             <Pressable testID="nav-end" accessibilityRole="button" accessibilityLabel="End navigation" onPress={navigation.end} style={styles.navEnd} hitSlop={8}>
               <Text style={styles.navEndText}>End</Text>
             </Pressable>
@@ -909,7 +995,7 @@ export default function WalkScreen() {
               onPress={() => {
                 const n = nudge;
                 setNudge(null);
-                navigation.goTo({ at: n.at, label: n.name, kind: 'place' });
+                goTo({ at: n.at, label: n.name, kind: 'place' });
               }}
               hitSlop={10}
               style={styles.undoBtn}
@@ -936,7 +1022,13 @@ export default function WalkScreen() {
           <Banner
             tone={notice.tone}
             onDismiss={() => setNotice(null)}
-            action={notice.openSettings && Platform.OS !== 'web' ? { label: 'Open Settings', onPress: () => Linking.openSettings() } : undefined}
+            action={
+              notice.openSettings && Platform.OS !== 'web'
+                ? { label: 'Open Settings', onPress: () => Linking.openSettings() }
+                : notice.maps
+                  ? { label: 'Open in Maps', onPress: () => notice.maps && handOff(notice.maps.at, notice.maps.label) }
+                  : undefined
+            }
           >
             {notice.message}
           </Banner>
@@ -1051,6 +1143,7 @@ export default function WalkScreen() {
               setSpot(null);
               setMarkOpen(null);
               setMemory(null);
+              setGapOpen(null);
               setOptions((v) => !v);
             }}
             style={({ pressed }) => [styles.pauseBtn, options && styles.optionsOn, pressed && styles.pressed]}
@@ -1118,7 +1211,7 @@ export default function WalkScreen() {
           accessibilityRole="button"
           accessibilityLabel="Walk me back to the start"
           disabled={navigation.finding}
-          onPress={() => navigation.goTo({ at: walkStart, label: 'Start', kind: 'start' })}
+          onPress={() => goTo({ at: walkStart, label: 'Start', kind: 'start' })}
           style={({ pressed }) => [styles.edgeBtn, { right: edgeRight, bottom: insets.bottom + EDGE_BOTTOM + 168 }, pressed && styles.pressed]}
         >
           <Icon name="arrow-undo" size={22} color={theme.ink} />
@@ -1227,7 +1320,7 @@ export default function WalkScreen() {
                 onPress={() => {
                   const m = openMark;
                   setMarkOpen(null);
-                  navigation.goTo({ at: m.at, label: openMarkNamed ? m.name : 'A place to find', kind: 'find', placeKey: m.key });
+                  goTo({ at: m.at, label: openMarkNamed ? m.name : 'A place to find', kind: 'find', placeKey: m.key });
                 }}
                 disabled={navigation.finding}
               />
@@ -1237,6 +1330,16 @@ export default function WalkScreen() {
             </View>
           </View>
         </View>
+      )}
+      {openGap && !spot && !openMark && !memory && !recordingVoice && !options && !viewing && (
+        <GapCard
+          stretch={openGap}
+          busy={gapBusy}
+          style={{ bottom: insets.bottom + 92 + 68 + 12 }}
+          onClose={() => setGapOpen(null)}
+          onKeep={() => void decideGap('kept')}
+          onDismiss={() => void decideGap('dismissed')}
+        />
       )}
       <ExploreSettings
         visible={settingsOpen}
@@ -1262,7 +1365,10 @@ export default function WalkScreen() {
         onSaveCaption={(c, caption, y) => cap.setCaption(c.id, caption, y)}
         onGoHere={navigation.finding ? undefined : (c) => {
           setViewing(null);
-          if (c.lat != null && c.lon != null) navigation.goTo({ at: [c.lon, c.lat], label: KIND_LABEL[c.kind], kind: 'capture' });
+          if (c.lat != null && c.lon != null) goTo({ at: [c.lon, c.lat], label: KIND_LABEL[c.kind], kind: 'capture' });
+        }}
+        onOpenInMaps={(c) => {
+          if (c.lat != null && c.lon != null) handOff([c.lon, c.lat], KIND_LABEL[c.kind]);
         }}
       />
       <CaptionEditor
@@ -1302,9 +1408,20 @@ export default function WalkScreen() {
                 onPress={() => {
                   const at = spot.at;
                   setSpot(null);
-                  navigation.goTo({ at, label: 'Your spot', kind: 'point' });
+                  goTo({ at, label: 'Your spot', kind: 'point' });
                 }}
                 disabled={navigation.finding}
+              />
+              <Button
+                testID="spot-handoff"
+                variant="secondary"
+                label="Open in Maps"
+                accessibilityHint={HANDOFF_HINT}
+                onPress={() => {
+                  const at = spot.at;
+                  setSpot(null);
+                  handOff(at, 'Your spot');
+                }}
               />
               {spot.here && (
                 <Button
@@ -1458,6 +1575,7 @@ const styles = StyleSheet.create({
   // A white pill: 5.2:1 for its blue text.
   navEnd: { minHeight: 44, minWidth: 64, paddingHorizontal: 14, borderRadius: 22, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
   navEndText: { color: COLORS.route, fontSize: 16, fontWeight: '700' },
+  navHandoff: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   finding: {
     flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: theme.surface, borderRadius: 999, paddingLeft: 14, paddingRight: 4,
     minHeight: 52, borderWidth: 1, borderColor: theme.line,

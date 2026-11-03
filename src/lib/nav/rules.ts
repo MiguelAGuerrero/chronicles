@@ -4,6 +4,12 @@ export const NAV = {
   loopM: 30,
   /** A street route joins the nearest street within this of each end (N3, N4). */
   joinM: 150,
+  /**
+   * A route starts on the street you are walking along (NB7): one within
+   * this of the nearest street, running within headingDeg of your heading.
+   */
+  headingJoinM: 12,
+  headingDeg: 35,
   /** Further than this in a straight line is too far to walk (N5). */
   maxM: 10_000,
   /** Off your route: further than this, for offFixes accepted fixes in a row (N8). */

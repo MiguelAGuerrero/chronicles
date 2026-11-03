@@ -2,6 +2,7 @@ import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useEventListener } from 'expo';
 import { useVideoPlayer, VideoView, type VideoPlayer as VideoPlayerType } from 'expo-video';
 import { forwardRef, useEffect, useRef, useState, type ComponentRef } from 'react';
+import { HANDOFF_HINT } from '../lib/nav/openInMaps';
 import { Image, Linking, Platform, Pressable, StyleSheet, Text, View, type LayoutRectangle } from 'react-native';
 import { Modal } from './Modal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -293,6 +294,8 @@ export function CaptureViewer(props: {
   onSaveCaption?: (c: Capture, caption: string | null, y: number) => Promise<void>;
   /** Offers navigating to where the capture was taken (during a walk). */
   onGoHere?: (c: Capture) => void;
+  /** Open in Maps (NH6): hands the capture's place to the phone's maps app, from the More menu. */
+  onOpenInMaps?: (c: Capture) => void;
   /** Offers "Remind me here" (v1, R1); the viewer reads and writes the flags itself. */
   remind?: boolean;
   /** The open walk, if any: a flag set during it waits for the next walk (audit). */
@@ -544,6 +547,21 @@ export function CaptureViewer(props: {
                 >
                   <Icon name="download-outline" size={22} color={theme.ink} />
                   <Text style={styles.menuText}>{Platform.OS === 'web' ? 'Download' : 'Save to Photos'}</Text>
+                </Pressable>
+              )}
+              {current.lat != null && current.lon != null && props.onOpenInMaps && (
+                <Pressable
+                  testID="viewer-handoff"
+                  accessibilityRole="button"
+                  accessibilityHint={HANDOFF_HINT}
+                  onPress={() => {
+                    setMenu(false);
+                    props.onOpenInMaps?.(current);
+                  }}
+                  style={({ pressed }) => [styles.menuItem, pressed && styles.dim]}
+                >
+                  <Icon name="open-outline" size={22} color={theme.ink} />
+                  <Text style={styles.menuText}>Open in Maps</Text>
                 </Pressable>
               )}
               <Pressable

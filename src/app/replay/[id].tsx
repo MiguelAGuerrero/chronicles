@@ -12,6 +12,10 @@ import { planViews, type WalkMapHandle } from '../../components/map/types';
 import { Button, theme } from '../../components/ui';
 import { db } from '../../lib/db';
 import { snapWalk } from '../../lib/finish';
+import { decide } from '../../lib/gaps';
+import { gapKey, stretchAt } from '../../lib/gaps/infer';
+import { tileCollector } from '../../lib/tileCollector';
+import { GapCard } from '../../components/GapCard';
 import { ensureTileBuild } from '../../lib/tiles';
 import { focusOn } from '../../lib/focus';
 import { setAudioMode } from '../../lib/audioMode';
@@ -76,6 +80,42 @@ export default function Replay() {
   const [here, setHere] = useState<HereResult | null>(null);
   const hereTaps = useRef(0);
   const [hereKey, setHereKey] = useState(0);
+  const [gapOpen, setGapOpen] = useState<string | null>(null);
+  const [gapBusy, setGapBusy] = useState(false);
+  const [gapError, setGapError] = useState<string | null>(null);
+  /** A tap on the card's map: a stretch across a gap opens its card (G9), anywhere else what happened here. */
+  const pressCard = (at: LngLat, radiusM?: number) => {
+    // A line's reach is about 20 px, narrower than a pin's 44: taps beside the trace stay what happened here (audit 8).
+    const hit = data && !here && !viewing ? stretchAt(data.stretches, at, Math.max(10, (radiusM ?? 30) * 0.45)) : null;
+    setGapOpen(hit ? gapKey(hit) : null);
+    setGapError(null);
+    if (!hit) showHere(at, radiusM);
+  };
+  /**
+   * Keep or Not this way (G10, G12): stored with the walk, then the walk is
+   * snapped again from the tiles in code (the map stays put) so the card,
+   * streets and places follow, and read again.
+   */
+  const decideGap = async (state: 'kept' | 'dismissed') => {
+    const s = gapOpen && data ? data.stretches.find((x) => gapKey(x) === gapOpen) : null;
+    if (!s || !data) return;
+    setGapBusy(true);
+    setGapError(null);
+    try {
+      await decide(data.walk.id, s, state);
+    } catch {
+      // Nothing was stored: the card stays, to try again (audit 14).
+      setGapError('Couldn’t save that. Try again.');
+      setGapBusy(false);
+      return;
+    }
+    // The card stays, busy, until the card's numbers have followed (audit 14).
+    await snapWalk(data.walk, tileCollector()).catch(() => db.updateWalk(data.walk.id, { snapped_build: null }).catch(() => {}));
+    const d = await loadReplay(id).catch(() => null);
+    if (d) setData(d);
+    setGapOpen(null);
+    setGapBusy(false);
+  };
   const showHere = (at: LngLat, radiusM?: number) => {
     if (here || viewing) return;
     const tap = ++hereTaps.current;
@@ -160,7 +200,12 @@ export default function Replay() {
       // A new tile build drops the street cache and marks walks for re-snapping.
       const build = await ensureTileBuild().catch(() => 'unknown');
       if (!alive) return;
-      if (build !== 'unknown') d = (await loadReplay(id).catch(() => null)) ?? d;
+      if (build !== 'unknown') {
+        d = (await loadReplay(id, { readGaps: true }).catch(() => null)) ?? d;
+        if (!alive) return;
+        // Shown even when no snap follows: in a new session, gaps are only filled once read (audit 2).
+        setData(d);
+      }
       const stale = build !== 'unknown' && d.walk.snapped_build !== build;
       if (!d.summary || !d.walk.snapped_build || stale) {
         await snapWalk(d.walk, {
@@ -325,6 +370,10 @@ export default function Replay() {
     [data, passedCount],
   );
 
+  // Stretches across gaps (Filling gaps, G6, G9): offered ones faint on the card, a tapped one's card.
+  const faint = useMemo(() => (data && (beat === 'card' || beat === 'name') ? data.stretches.filter((x) => x.how === 'offer').map((x) => x.path) : []), [data, beat]);
+  const openGap = gapOpen && data ? data.stretches.find((x) => gapKey(x) === gapOpen) ?? null : null;
+
   if (status !== 'ready' || !data || !sched) {
     return (
       <View style={[styles.screen, styles.center, { paddingHorizontal: 24 }]}>
@@ -374,7 +423,8 @@ export default function Replay() {
         fog={fog}
         captures={pinned}
         onPinPress={beat === 'card' || beat === 'name' ? setViewing : undefined}
-        onPress={beat === 'card' || beat === 'name' ? showHere : undefined}
+        onPress={beat === 'card' || beat === 'name' ? pressCard : undefined}
+        faint={faint}
         walker={walker}
         follow={beat === 'path' && !reduceMotion ? walker : null}
         fitBounds={data.bounds}
@@ -451,6 +501,19 @@ export default function Replay() {
         context={here?.context}
         onClose={() => setHere(null)}
       />
+
+      {openGap && (beat === 'card' || beat === 'name') && !here && !viewing && (
+        <GapCard
+          stretch={openGap}
+          busy={gapBusy}
+          error={gapError}
+          // Above the card's sheet, clear of the Undo pill at the top (audit, UI).
+          style={{ bottom: sheetH + 12, zIndex: 5 }}
+          onClose={() => setGapOpen(null)}
+          onKeep={() => void decideGap('kept')}
+          onDismiss={() => void decideGap('dismissed')}
+        />
+      )}
 
       {(beat === 'fog' || beat === 'path') && (
         <View style={[styles.skip, { top: insets.top + 12 }]}>

@@ -1,6 +1,6 @@
 import { distanceM, isBreak, type PauseSpan } from '../geo';
 import { readTrace, smoothKept } from '../rides';
-import type { LngLat, TracePoint } from '../types';
+import type { Fill, LngLat, TracePoint } from '../types';
 import { AREA_RULES, AREA_SAMPLE_M } from './rules';
 import type { Area, AreaLevel, BoundarySource, PlaceCandidate, Region, WalkArea } from './types';
 
@@ -51,9 +51,11 @@ export function assignAreas(
   boundaries: BoundarySource,
   startedAt: number | null = null,
   stills: PauseSpan[] = [],
+  /** Stretches filled across gaps (Filling gaps, G11): walked, so their places count. */
+  fills: Fill[] = [],
 ): Placement {
   // Ridden metres count too: riding through a neighborhood is being there (R8).
-  const tr = readTrace(points, startedAt, pauses, stills);
+  const tr = readTrace(points, startedAt, pauses, stills, fills);
   const fixes = smoothKept(tr);
   const ridden = (t: number) => tr.rides.some((r) => t >= r.t0 && t <= r.t1);
   const rules = `${AREA_RULES}/${boundaries.id}`;

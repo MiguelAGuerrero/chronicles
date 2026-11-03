@@ -5,5 +5,5 @@
  */
 export const DERIVED_STORES: readonly string[] = ['street_segment', 'place', 'explore_read'];
 
-/** Discovery's truth: places offered, marks set, reminders shown; explore's checklists and finds (E13). */
-export const KEPT_STORES: readonly string[] = ['offered', 'mark', 'recall', 'checklist_area', 'checklist_item', 'find'];
+/** Discovery's truth: places offered, marks set, reminders shown; explore's checklists and finds (E13); stretches kept or dismissed across gaps (G10). */
+export const KEPT_STORES: readonly string[] = ['offered', 'mark', 'recall', 'checklist_area', 'checklist_item', 'find', 'gap_fill'];

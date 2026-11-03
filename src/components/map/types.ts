@@ -62,6 +62,8 @@ export interface WalkMapProps {
   trace: LngLat[][];
   /** Rides (a trolley, a bus), drawn dashed in the trace's green, under it (rides, R5). */
   rides?: LngLat[][];
+  /** Stretches offered across gaps, drawn faint in the trace's green until kept (Filling gaps, G6). */
+  faint?: LngLat[][];
   /** 0 to 1; the replay's first beat shows the trace faintly. */
   traceOpacity?: number;
   /** The walk has ended: its last point gets an end marker (QL2). A live walk's end is its dot. */
@@ -221,6 +223,13 @@ export function segmentsGeoJSON(segments: StreetSegment[]): GeoJSON.FeatureColle
     })),
   };
 }
+
+/**
+ * An offered stretch's opacity (Filling gaps, G6): the trace's green and edge,
+ * see-through, so it reads as the trace but not yet walked (the owner's call,
+ * Nov 3: "transparent to indicate inferred"). Kept, it is the trace itself.
+ */
+export const FAINT_OPACITY = 0.4;
 
 /** A ride's dash, in line widths: long enough to read as a line, gapped enough to read as not walked. */
 export const RIDE_DASH = [1.6, 1.4];

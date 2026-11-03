@@ -62,9 +62,12 @@ recording bar brings a minimized walk back.
 ### Navigate (during)
 
 - A drawer whose foot is **Start walk**: one tap starts recording where you
-  are, with the saved settings and the destination if one is set. Pulled up,
-  the drawer holds the extras: quiet or Explore mode, "What I'm into" and the
-  "?" range, the destination (a long press on the map), reminders and alerts.
+  are, with the saved settings and the destination if one is set. Under Start,
+  a summary line ("Quiet", "Explore · Your spot · 120 m away") opens a **walk
+  settings dialog** (as does a pull on the grip): quiet or Explore mode, the
+  destination (a long press on the map, set with the dialog closed), "What I'm
+  into" and the "?" range (Explore only), reminders and alerts, all in one
+  scroll with its own Start walk.
 - A capture row (camera, mic, pencil) sits above the drawer, so a moment can
   be kept with no walk open ("jot it down"). Such a loose moment is stored at
   once and placed when its one fix arrives; nothing tracks between moments.
@@ -94,6 +97,13 @@ recording bar brings a minimized walk back.
   takes the shorter of the trace and the streets. A blue bar shows the
   distance left, the route is drawn ahead of you, and the trace hides while
   navigating. Off-route re-routes quietly; arrival says "You're here".
+  Bridges and tunnels cross what lies under them without a turn onto it, and a
+  route starts on the street you are walking along.
+- **Open in Maps** hands the destination to the phone's maps app (Apple Maps
+  on iPhone, the Android chooser, Google Maps elsewhere) for walking
+  directions, when Chronicles' route is wrong: in the blue bar, on a route
+  that can't be found, beside Go here on the long-press
+  card and in a pin's viewer. Navigation and the walk go on.
 - **Explore mode** (off by default, the walk starts quiet): "?" marks within
   range (60-300 m), a chip when on a busy strip, an optional pocket alert
   (a light haptic once per place), and a nudge when an area is a dead zone.
@@ -177,6 +187,7 @@ recording bar brings a minimized walk back.
 | Rides, clearing walks and moments, motion polish | Shipped, audited |
 | Navigation and tabs (three-tab layout, docked drawer, recording bar) | Shipped, two audit batches done |
 | Quality of life: start and end markers, scale bar, Locate on Navigate and Explore | Shipped (web verified by the qol e2e; native unverified) |
+| Bridges and Open in Maps | Shipped on web, audited (native unverified) |
 | Suggested routes (interesting ways, route preview, "Walk this way") | Deferred, next slice |
 | Backup and export of a walk | Code exists, no UI, deferred |
 | Quick capture outside the app (widget, lock screen, share sheet) | Deferred |

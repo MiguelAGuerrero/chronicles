@@ -4,9 +4,10 @@ import { exploredKey, passedPlaces, type Kind } from './explore/explore';
 import { isNamedStreet } from './deletion/core';
 import { loadSettings } from './explore/settings';
 import { splitAtGaps, type Bounds, smoothDwells, type PauseSpan } from './geo';
-import { readTrace, rideRuns, smoothKept, timedRideRuns, traceDistances } from './rides';
+import { readTrace, rideRuns, smoothKept, timedRideRuns, traceDistances, withFilled } from './rides';
 import type { TimedRun } from './replay';
 import { walkBounds } from './finish';
+import { fillsOf, walkStretches, type Stretch } from './gaps';
 import type { Capture, LngLat, Pause, StreetSegment, TracePoint, Walk, WalkSummary } from './types';
 
 export interface ReplayData {
@@ -38,16 +39,28 @@ export interface ReplayData {
   passed: { name: string; generic: boolean }[];
   /** Named streets this walk was the first down, in the order walked, for the card's clause (tabs audit U13). */
   newStreets: string[];
+  /** Stretches across gaps (Filling gaps): filled and kept ones are already in the trace; offered ones are drawn faint. */
+  stretches: Stretch[];
 }
 
-/** Everything the replay draws. `summary` is null until the walk has been snapped. */
-export async function loadReplay(walkId: string): Promise<ReplayData | null> {
+/**
+ * Everything the replay draws. `summary` is null until the walk has been snapped.
+ * With `readGaps`, a gap's streets are read from the network (Filling gaps, G8);
+ * without, only what this session already inferred, so the walk opens from the
+ * device first.
+ */
+export async function loadReplay(walkId: string, opts: { readGaps?: boolean } = {}): Promise<ReplayData | null> {
   const walk = await db.getWalk(walkId);
   if (!walk) return null;
   // Standstills are drawn and replayed as a still dot, not GPS jitter.
   const pauses = await db.getPauses(walkId);
   const stills = await db.getStills(walkId).catch(() => []);
-  const tr = readTrace(await db.getPoints(walkId), walk.started_at, pauses, stills);
+  const points = await db.getPoints(walkId);
+  const plain = readTrace(points, walk.started_at, pauses, stills);
+  // Filled and kept stretches are walked trace; offered ones are drawn apart, faint (G6, G11).
+  const { stretches } = await walkStretches(walkId, plain, { read: !!opts.readGaps }).catch(() => ({ stretches: [] as Stretch[] }));
+  const fills = fillsOf(stretches);
+  const tr = withFilled(plain, fills);
   const fixes = smoothKept(tr);
   const walkedFixes = smoothDwells(tr.walked);
   const captures = await db.getCaptures(walkId);
@@ -98,6 +111,7 @@ export async function loadReplay(walkId: string): Promise<ReplayData | null> {
     found,
     passed,
     newStreets,
+    stretches,
     walk,
     fixes,
     walkedFixes,

@@ -35,11 +35,14 @@ export function useNavigation(opts: {
   here: LngLat | null;
   lastFixAt: number | null;
   paused: boolean;
+  /** The way you are walking (headingOf): a route starts on the street you are on (NB7). */
+  heading?: number | null;
   /** On a ride (rides, R12): no re-route and no "off your route"; arriving still counts. */
   riding?: boolean;
   map: () => WalkMapHandle | null;
   onArrive: (dest: Waypoint) => void;
-  onError: (message: string) => void;
+  /** A route that couldn't be found names where it was asked for, so the screen can offer Open in Maps (NH5). */
+  onError: (message: string, dest?: Waypoint) => void;
   onNotice: (message: string) => void;
 }) {
   const [nav, setNav] = useState<NavState | null>(null);
@@ -100,7 +103,7 @@ export function useNavigation(opts: {
     const fail = async (message: string) => {
       // A destination that can't be reached is forgotten, so a reload doesn't try it again.
       clearNav().catch(() => {});
-      latest.current.onError(message);
+      latest.current.onError(message, dest);
     };
     try {
       const pauses = await db.getPauses(walk.id);
@@ -124,11 +127,12 @@ export function useNavigation(opts: {
         list.push(traceRouteSource(points, pauses, walk.started_at, stills));
         list.push(await cachedStreets(boundsOf([from, dest.at], AREA_PAD_M)!));
       }
-      let found = routeTo(list, from, dest.at, 'shortest');
+      const hint = { heading: here ? latest.current.heading : null };
+      let found = routeTo(list, from, dest.at, 'shortest', hint);
       if (!found.route) {
         list.push(await readStreets(boundsOf([from, dest.at], AREA_PAD_M)!, [from, dest.at]));
         if (cancelled.current) return;
-        found = routeTo(list, from, dest.at, 'shortest');
+        found = routeTo(list, from, dest.at, 'shortest', hint);
       }
       if (!found.route) return await fail(found.reason ?? 'No walking route found nearby');
       // Stopped while the route was being found: nothing to navigate.
@@ -191,7 +195,7 @@ export function useNavigation(opts: {
       if (riding) next = { ...next, offCount: 0, offRoute: false };
       if (announceStep(s.leftM, next.leftM)) AccessibilityInfo.announceForAccessibility(`${formatDistance(next.leftM)} left to ${s.dest.label}`);
       if (step.reroute && !riding) {
-        const again = routeTo(sources.current, here, s.dest.at, 'shortest').route;
+        const again = routeTo(sources.current, here, s.dest.at, 'shortest', { heading: latest.current.heading }).route;
         if (again) {
           next = { ...next, route: again, leftM: again.lengthM, offCount: 0, offRoute: false };
           latest.current.onNotice('New route');
