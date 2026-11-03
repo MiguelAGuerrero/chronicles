@@ -1,6 +1,6 @@
 # 0062. No drawer at all with a walk minimized
 
-Date: 2026-11-03 · Status: accepted · Area: tabs, navigate
+Date: 2026-11-03 · Status: superseded by 0070 (Navigate opens the open walk) · Area: tabs, navigate
 
 ## Context
 Navigate with a walk minimized is a live view of it (0047), and it still showed a drawer with a "Your walk is recording" line.

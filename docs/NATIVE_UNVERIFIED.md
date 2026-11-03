@@ -32,7 +32,6 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] The dotted gap joins (`GAP_LINK_DASH`), the dashed drawing line (`DRAWING_DASH`), map taps while drawing, and the `GapDraw` bar over the native map (Gap drawing, GW2-GW8)
 - [ ] While drawing: whether a Marker tap also fires the map's onPress, `display: 'none'` on the capture row, `GapDraw`'s BackHandler against the screen's own, and `accessibilityViewIsModal` on the bar (Gap drawing)
 - [ ] Reading tiles in code for drawing on Hermes (`useGapDraw`, `readDrawTiles`), and the k-shortest search's cost on a phone (Gap drawing, GW7, GT2)
-- [ ] `LiveWalk`'s Markers and dot on Navigate (Navigation & tabs)
 - [ ] `capFitBounds` widening MapLibre RN's fitBounds (Navigation & tabs, U15)
 
 ## Notifications (`notify/transport.native.ts`, expo-notifications)
@@ -81,7 +80,6 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] `dangerouslySingular` on the native stack's `walk`, `showWalk()` (Navigation & tabs)
 - [ ] The memo saved when Navigate blurs mid-memo (Navigation & tabs)
 - [ ] The replay's `BackHandler`, ending on Chronicle (Navigation & tabs, audit 6)
-- [ ] `StartDialog`, the Modal over the tab map (Navigate's settings are a dialog)
 
 ## Quality of life
 
@@ -91,7 +89,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] The Locate edge button over the native sheet, `components/LocateButton.tsx` (Quality of life)
 - [ ] The recorder retried on a return to the front through expo-location's permission request and the background task, `session.restartRecording` beside the recorder's own AppState listener (Quality of life, QL20)
 - [ ] The pressable "Not recording" chip over the native map, and its Open Settings action (Quality of life, QL19)
-- [ ] The Distances segment inside the native Start dialog Modal, and `Intl` on Hermes for the locale default (Quality of life, QL13, QL16)
+- [ ] The Distances segment inside the native ready bar pulled up, and `Intl` on Hermes for the locale default (Quality of life, QL13, QL16)
 - [ ] The rename editor and its keyboard inside the native actions Modal, and Android Back stepping out of it, `components/WalkActions.tsx` (Quality of life, QL22)
 - [ ] The note editor inside the native viewer Modal, `components/NoteEditor.tsx` (Quality of life, QL24)
 - [ ] The round picture inside a MapLibre RN Marker, its `onLoad`/`onError`, and the Marker remounting when the copy arrives, `components/CapturePinView.tsx` (Quality of life, QL26, QL27)
@@ -103,3 +101,13 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] The small map's long press and the ring layer at its height
 - [ ] The atlas card's drag (responder props on the handle) and its two heights; the side panel on a tablet
 - [ ] Area points as MapLibre RN Markers (anchor top, offset) on the small map
+
+## Navigate, ready
+
+- [ ] The Navigate tab's `tabPress` `preventDefault` and `showWalk()` on the JS tabs, iOS and Android (`(tabs)/_layout.tsx`, NR1)
+- [ ] The entry route's launch sequence on the native stack: Explore beneath, then the walk screen (`(tabs)/index.tsx`, NR3)
+- [ ] The ready bar's drag and spring over MapLibre RN, and Android Back lowering it (`components/walk/ReadyBar.tsx`, NR7)
+- [ ] The capture stack and edge buttons against the home indicator's safe area (`components/walk/layout.ts`, NR9, NR11)
+- [ ] Starting in place: the background location task and the pocket alert taking over a walk screen already mounted (`useStartWalk` with `inPlace`, NR6)
+- [ ] Moment pins and the one-fix dot on the walk screen's MapLibre RN map; the long press for a destination there (`components/walk/ReadyScreen.tsx`, NR1, NR8)
+- [ ] The chevron mid-memo: the memo finished as `useCaptures` unmounts, on expo-audio (NR10)

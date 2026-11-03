@@ -88,9 +88,10 @@ npm run export:web && npm run e2e:web
 
 | `E2E_ONLY` | runs |
 |---|---|
-| (unset) | the full flow: the tabs, notifications, a walk with notes, photo, memo, hold-to-stop, replay, Chronicle, memories, rides, motion, deletes, the perf window, plus the `tabs` and `gaps` scenarios |
+| (unset) | the full flow: the ready screen and the tabs, notifications, a walk with notes, photo, memo, hold-to-stop, replay, Chronicle, memories, rides, motion, deletes, the perf window, plus the `tabs`, `gaps` and `ready` scenarios |
 | `tabs` | the Navigation & tabs audit's regression checks (`tabs audit N`, U1-U15) |
 | `gaps` | a walk with two GPS gaps written into storage, then a reload: one gap fills by itself, one is offered faint (G5, G6, G9, G10, G12; `window.__project`, `data-runs`, `data-faint`) |
+| `ready` | Navigate, ready (NR1-NR13): the ready walk screen at launch, the chevron back to the tab beneath, the bar pulled up, a destination line, a memo in the stack, Start in place (boxes unchanged), a moment before and a capture after, NR11's overlaps at 375×667 with every edge button up, the web note and a denied location (29 checks, about three minutes) |
 | `marks` | an exploring walk through an area read before draws the marks it passes (Nov 2 repro) |
 | `reload` | a reload with a walk minimized keeps it reachable: the bar's ›, its Stop, the tabs |
 | `qol` | quality of life QL1-QL28: Locate, the scale bar, the trace's end markers, the units segment, time left while navigating, the denied-location chip (a second context without the permission), a photo's pin thumbnail, editing a note from the replay, month headers, rename from a Chronicle row (29 checks, about a minute) |

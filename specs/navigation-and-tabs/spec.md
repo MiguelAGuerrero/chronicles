@@ -16,6 +16,14 @@ The one crowded home becomes three tabs, AllTrails-style: Explore finds new plac
 - **The walk takes over the screen, and can be minimized** to a recording bar above the tabs. Stop stays on the walk screen.
 - **Spec first.** This tab is reviewed before any code; each criterion becomes a failing test first.
 
+## Changed by Navigate, ready (2026-11-03)
+
+`specs/navigate-ready/spec.md` (NR1-NR13, decision 0070) makes Navigate the walk screen in a
+ready state. It **retires** NV10 (Return to walk on Navigate's peek), NV19-NV21 (the drawer's peek,
+half and full; the settings are the ready bar pulled up) and U1, U2 (the docked drawer, Navigate's
+live view of a minimized walk). It **changes** NV2 (the app opens on the ready screen over Explore)
+and NV5 (Navigate has no tab of its own; Back on Chronicle returns to Explore). The rest stand.
+
 ## At a glance
 
 &#91;embedded content: three tabs, the pre-start drawer, and the walk over them\]

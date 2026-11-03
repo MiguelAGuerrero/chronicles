@@ -1,22 +1,35 @@
 ---
 paths:
   - "src/app/walk.tsx"
+  - "src/components/walk/**"
+  - "src/lib/readyNav.ts"
   - "src/components/{Ticking,MomentBar,MemoryPreview,ExploreSettings,OpenWalk,ConfirmCard,ReminderCard,RemindEditor,ui}.tsx"
   - "src/lib/{useCaptures,walkNav,walkGate,memoGate,useLiveTrace,walkEvents,recordingBar,walkMotion}.ts"
 ---
 # Walk screen
 
-The walk screen (`src/app/walk.tsx`): its layout, capture row, pills, edge buttons and voice-memo controls. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
+The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout, capture stack, pills, edge buttons, the ready bar and voice-memo controls. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
 
-- Capture controls are large icon buttons (camera, mic, pencil) in a centered row,
-  floating in the lower-middle of the screen. Time, distance and hold-to-stop sit in
-  a thin strip at the very bottom, with Stop at the right end, away from the captures.
-- Why: Hoober's touch research shows taps are most accurate near the center and
-  least accurate at the top and bottom edges and in corners. About half of phone use
-  is one-handed, mostly with the right thumb, and grips change with the task. Strava,
-  AllTrails and Komoot keep record and capture controls low on the screen, and Google
-  Maps floats its controls at the bottom right. A centered row needs no handedness
-  setting.
+- **Navigate is this screen** (NR1-NR13, decision 0070): `WalkRoute` in `walk.tsx` shows
+  `ReadyScreen` (`components/walk/ReadyScreen.tsx`) with no walk open, and the walk with one
+  (`screenState` in `lib/readyNav.ts`). Start records in place: `useStartWalk().start(..., { inPlace:
+  true })` writes the plan's meta, and only then does the route swap to the walk (it holds the ready
+  screen meanwhile, since the walk reads `explore_walk` as it mounts). No route change, so nothing
+  animates. The chevron, Minimize and Back go through `exitPlan` (back to the tab beneath, Explore when
+  there is none). `walkScreenShown()` is the route's, so the gate holds in both states.
+- **One geometry for both states** (`components/walk/layout.ts`, `useStackLayout`): the strip is
+  `BAR_H` (69) above the safe area; the captures are a column of 56 pt buttons at the right edge
+  (camera nearest the strip, then mic, then note), inside the 640 column; the 44 pt edge buttons sit
+  above them in the same column (Locate on the ready screen where Recenter sits on the walk, then
+  unwalked streets, then walk me back). The ready bar at rest is the strip, at its height, with Start
+  where Stop sits. The e2e checks the boxes match across Start.
+- Capture controls are one component, `CaptureStack` (`components/walk/CaptureStack.tsx`), given ids
+  and handlers: `moment-*` on the ready screen (moments, `MomentBar`), `cap-*` on the walk. Time,
+  distance and hold-to-stop stay in the thin strip at the very bottom, with Stop at the right end.
+- Why low and at the right edge: Hoober's touch research puts the most accurate taps near the centre
+  and the least at the edges and corners, which is why the row was centred (0008). The owner chose
+  AllTrails' look instead (Nov 3, 0070): AllTrails floats its map controls at the right edge, as Google
+  Maps does at the bottom right. The stack keeps them low, above the strip, out of the corners.
 - Text is kept to a minimum. There is no header or "Recording" label, because the
   growing trace shows a walk is on. A status chip appears only when something is
   wrong: waiting for GPS, weak GPS, or not recording.
@@ -26,18 +39,23 @@ The walk screen (`src/app/walk.tsx`): its layout, capture row, pills, edge butto
   Pins are anchored at their stem's foot, so the walker's dot stays visible. Tapping
   a pin opens its captures in `CaptureViewer`.
 - While a voice memo records, Stop & save takes the mic's own slot. Discard is
-  smaller and in the camera's slot, and it is undoable for 5 s. A pulsing timer sits
-  above the row. A memo under 1 s of wall-clock time is dropped with a "Too short,
-  not kept" toast. A memo that fails to save offers Retry. Leaving the screen
-  mid-memo saves it.
+  smaller (48) and in the camera's slot, and it is undoable for 5 s. The pulsing timer sits beside the
+  mic's slot, left of the stack (`voice-timer`). A memo under 1 s of wall-clock time is dropped with a
+  "Too short, not kept" toast. A memo that fails to save offers Retry. Leaving the screen mid-memo
+  saves it: the walk's Minimize is disabled mid-memo, the ready screen's chevron closes and the memo is
+  finished as `useCaptures` unmounts.
 - A quick tap on Stop shows "Hold to stop the walk".
 - Walk options (the Explore switch, and a link to Settings) sit in the bottom strip, left of Pause
   (the owner's call, v1): walk-level settings stay with the walk's controls.
-- Pills (the caption offer, voice Undo, Retry) sit above the capture row, so the
-  row never moves under the thumb. The small edge buttons (unwalked streets, and
-  Recenter while not following) stack at the right edge above the row and one pill
-  (`EDGE_BOTTOM`), inside the 640 column on wide screens. Zooming keeps following;
+- Pills (the caption offer, voice Undo, Retry, a moment's toast) sit left of the stack, just above the
+  strip (`at.pills`), right-aligned, so the stack never moves under the thumb. Zooming keeps following;
   only a pan or a turn stops it (web; native can't tell zoom from pan yet).
+- **The ready bar pulls up** (`components/walk/ReadyBar.tsx`, NR7): a drag on its grip or its numbers,
+  or a tap on them, raises it to about 88% of the screen with `StartSettings` in a scroll above Start;
+  a drag down, Back or Escape lowers it. Its own spring is the app's (M5) with a 0.5 px rest, and the
+  settings stay mounted until the lowering spring finishes, so the foot never jumps. The range ring
+  shows on the map only while it is up in Explore. A long press on the ready map sets the destination
+  (not while the bar is up or mid-memo); the resting bar then says `To <place> · <distance> away`.
 - **"Not recording" is a button** (QL19, Nov 3): while the recorder's status is an
   error, the chip (`status-chip`, "Not recording. Why?") re-raises the recorder's
   sticky notice (Open Settings on a phone; the web's message says where to allow

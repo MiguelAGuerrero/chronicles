@@ -30,11 +30,11 @@ beside a plain `x.ts` is a platform split (see Invariants).
 ```
 index.js                     entry: imports lib/recorder (defines the background location task) before expo-router/entry
 src/app/_layout.tsx          root stack: the tabs first, then walk and replay over them; reconciles the open walk at launch; sets the audio mode
-src/app/(tabs)/_layout.tsx   the three tabs, Explore · Navigate · Chronicle; Navigate opens first
-src/app/(tabs)/index.tsx     Navigate: the drawer (Start at its foot, settings above), the capture row, LiveWalk (a live view of a minimized walk)
+src/app/(tabs)/_layout.tsx   the three tabs, Explore · Navigate · Chronicle; Navigate's press opens the walk screen (NR1); Explore is the tab beneath at launch
+src/app/(tabs)/index.tsx     Navigate's entry route (`/`): Explore beneath, then the walk screen, ready (NR3)
 src/app/(tabs)/explore.tsx   Explore: remembered busy areas (magenta), each area's places to find and finds, no counts; long press = What's good here / Walk here
 src/app/(tabs)/chronicle.tsx Chronicle, the home: stars by area at the level for the zoom, moment pins from z11, the HomeSheet (Walks | Days), old-walk placement
-src/app/walk.tsx             the walk screen: live trace and dot, fog, captures, navigation bar, Explore marks, memories, reminders, options, hold-to-stop
+src/app/walk.tsx             the walk screen, and Navigate: ready with no walk open (ReadyScreen), else live trace and dot, fog, captures, navigation bar, Explore marks, memories, reminders, options, hold-to-stop
 src/app/replay/[id].tsx      a walk's replay: the five beats, stops at captures, the card, naming; first watch waits, re-watches advance
 src/app/day/[key].tsx        a day's replay: flies pin to pin through loose moments, plays each walk's own path, a quiet card
 ```
@@ -58,7 +58,8 @@ Home / tabs
   RecordingBar.tsx           the bar above the tabs while a walk is minimized: time, distance, camera, Stop, › back to the walk
   MomentBar.tsx              MomentBar (loose moments from Navigate) and CaptureRow (captures for the open walk)
   LocateButton.tsx           Locate me, an edge button
-  StartDialog.tsx            Navigate's settings in one dialog opened from the summary line under Start
+  StartSettings.tsx          the walk settings, shown in the ready bar pulled up (NR7)
+  walk/                      the walk screen's shared geometry (layout.ts), CaptureStack, ReadyBar, ReadyScreen (Navigate, ready)
   GapCard.tsx                a filled or offered stretch: Keep, Not this way
   LandingMarks.tsx           a strip's name beside it on the map
   ExploreSettings.tsx        what I'm into, the "?" range (ring preview), the pocket alert: a panel, not a modal

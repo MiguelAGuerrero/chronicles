@@ -1,4 +1,4 @@
-import { router, Stack } from 'expo-router';
+import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -10,6 +10,7 @@ import { setAudioMode } from '../lib/audioMode';
 import { reconcileOpenWalk } from '../lib/session';
 import { ensureTileBuild } from '../lib/tiles';
 import { loadUnits } from '../lib/unitsStore';
+import { showWalk } from '../lib/walkNav';
 
 /** The tabs are the stack's first screen, so a walk or a replay always has them beneath. */
 export const unstable_settings = { initialRouteName: '(tabs)' };
@@ -26,7 +27,9 @@ export default function RootLayout() {
     loadUnits().catch(() => {});
     reconcileOpenWalk()
       .then((open) => {
-        if (open) router.replace('/walk');
+        // Over the tabs, so Minimize has a tab to go back to; a second ask (the Navigate route's own,
+        // at `/`) does nothing (NR3).
+        if (open) showWalk();
       })
       .catch(() => {});
   }, []);

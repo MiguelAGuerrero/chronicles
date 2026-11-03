@@ -80,7 +80,8 @@ for its layout only. Chronicles keeps its own palette, Start button and map styl
     mic's slot, Discard takes the camera's, and the pulsing timer sits beside the
     stack. The pills (the caption offer, voice Undo, Retry) sit left of the stack,
     above the bar, and never move it. Start can't be pressed while a memo records
-    (NV28), and the chevron saves the memo, as leaving mid-memo does today.
+    (NV28). On the ready screen the chevron still closes, and the memo is saved as it goes, as leaving
+    mid-memo does today; the walk's Minimize stays disabled mid-memo, as before.
 11. **NR11 · Nothing overlaps on a small phone.** At 375×667, and with the
     walk's edge buttons showing (unwalked streets, walk me back, Recenter), every
     button of the stack, the bar, the chevron and the scale bar is on screen, at

@@ -1,7 +1,7 @@
 ---
 paths:
   - "src/app/(tabs)/**"
-  - "src/components/StartDialog.tsx"
+  - "src/components/StartSettings.tsx"
   - "src/app/_layout.tsx"
   - "src/components/{HomeSheet,RecordingBar,SwitchRow,OpenWalk}.tsx"
   - "src/lib/{recordingBar,walkNav,walkGate,openWalkLoad,startPlan,useStartWalk,useTabMap,memoGate,quietLines,summary,walkEvents,settleWithin}.ts"
@@ -13,20 +13,18 @@ The three tabs (Explore, Navigate, Chronicle), the home sheet, the recording bar
 
 ## After the audit
 
-- **Navigate's drawer docks Start and the capture row low at every height**
-  (U1, AllTrails' sticky Start): Start is the drawer's foot; the row sits
-  above the peek, over the drawer, whose settings scroll above both (a band
-  under the row when opened). The grip is the handle plus a strip (44 px).
-- **Navigate with a walk minimized is a live view of it** (U2, `LiveWalk` in
-  `(tabs)/index.tsx`): trace, dot (`walkerSource={live.dot}`), captures,
-  destination, and the capture row (`CaptureRow`, split from `MomentBar`)
-  keeping captures for the walk. No Start or Return button (the recording
-  bar is the way back), no drawer at all (the owner's call, Nov 3: no "Your
-  walk is recording" line; the row sits just above the bar), no `locateOnce`. Only
-  `LiveWalk` reads `useOpenWalk()`, and only while Navigate is focused;
-  screens that only need to know whether a walk is open use
-  `useOpenWalkInfo()`, which never changes per fix. The e2e bounds
-  `render:navigate-walk`.
+- **Navigate is the walk screen** (NR1-NR13, decision 0070; it retires U1's docked drawer and U2's
+  live view): the Navigate tab's `tabPress` is prevented and calls `showWalk()` (`(tabs)/_layout.tsx`,
+  `navigatePress` in `lib/readyNav`), so the walk screen opens over the tab in front, ready or with the
+  open walk. `(tabs)/index.tsx` (`/`) is only an entry: focused (a launch, a reload of `/`, a link), it
+  moves the tabs to Explore and then opens the walk screen. Its `showWalk` runs in a timeout that is
+  never cleared, because moving the tabs blurs the route at once. The tabs' initial route is Explore
+  (`unstable_settings`), so Back on Chronicle returns to Explore. Chronicle's empty-peek Navigate calls
+  `showWalk()` too. At launch with an open walk, the root layout asks `showWalk()`; the gate drops the
+  entry route's second ask. The Navigate tab is never the focused tab, so its icon is never tinted.
+- **Explore sits beneath the ready screen from launch** (NR3): it focuses for a tick before the walk
+  screen opens, so it may have read and named its town by the first time you see it. The e2e accepts
+  "Near you" or the town there.
 - **Going to the walk screen is `showWalk()`** (`lib/walkNav`, gate in
   `lib/walkGate`), never `router.push('/walk')`: a second ask while one is on
   its way or the screen is up does nothing, and the root stack's `walk` is
@@ -66,9 +64,8 @@ The three tabs (Explore, Navigate, Chronicle), the home sheet, the recording bar
   unit test. `E2E_ONLY=tabs` runs the tabs audit alone; `E2E_SOFT=1` reports
   failed checks and steps and goes on, for a run against code from before a
   fix.
-- **Native** (unverified on a device): the docked drawer, `LiveWalk`'s
-  Markers and dot, `dangerouslySingular` on the native stack, the memo saved
-  on blur.
+- **Native** (unverified on a device): the Navigate tab's `tabPress` interception,
+  `dangerouslySingular` on the native stack, the memo saved on unmount.
 - **The second batch (U5-U15, audit 6; the owner's calls, Nov 2):**
   - Explore's hint sits in its drawer's header, so the peek says it at rest
     (U5). On its long-press card What's good here? is the filled button and
@@ -123,33 +120,25 @@ The three tabs (Explore, Navigate, Chronicle), the home sheet, the recording bar
     `onResponderTerminationRequest: false` and a settle on terminate, so a
     mouse drag never leaves it stuck halfway.
   - Back (Android) and Escape (web) lower it.
-  - A screen may refuse a height (`onSize`; Navigate holds the peek with a
-    walk open). A drag let go then settles back where the screen holds it;
+  - A screen may refuse a height (`onSize`). A drag let go then settles back where the screen holds it;
     it was once left tall and empty where the finger let go (Nov 2).
 
-## Navigate's settings are a dialog (the owner's call, Nov 3)
+## Navigate's settings are in the ready bar (the owner's call, Nov 3, 0070)
 
-- The drawer no longer pulls up through half and full heights (the settings were
-  split from Start, which was unintuitive). It stays at its peek: Start, and a
-  summary line under it (`start-options`, text `peek-choices`: the mode, then
-  the destination). A tap on the line, or a pull on the grip, opens
-  `StartDialog` (`components/StartDialog.tsx`, `components/Modal`): mode,
-  destination, "?" range and what I'm into (Explore only), pocket alert,
-  reminders and alerts, in one scroll, with its own Start walk. Every choice
-  saves as it changes; Done and Escape only close it. Start still just starts.
-  Nothing opens mid-memo or with a walk open.
-- The range ring shows on the map only while the dialog is open in Explore.
-  A destination is still a long press on the map, so the dialog says to close it
-  first. Native (unverified on a device): the Modal over the tab map.
-- `drawerTo(pg, 'half' | 'full')` in the e2e opens the dialog; `'peek'`
-  closes it with Escape.
+- The Start dialog (0056) is gone: its body is `StartSettings` (`components/StartSettings.tsx`),
+  shown in the ready bar pulled up (see `.claude/rules/walk-screen.md`): mode, destination, "?"
+  range and what I'm into (Explore only), pocket alert, reminders and alerts, distances. Every choice
+  saves as it changes. Start just starts. Nothing raises the bar mid-memo.
+- `drawerTo(pg, 'half' | 'full')` in the e2e pulls the ready bar up by its grip; `'peek'` lowers it
+  with Escape and waits for the settings to unmount. `tabTo(pg, id)` reaches a tab from wherever the
+  test is (the ready screen's chevron first).
 - **Distances in km or miles** (QL13–QL16, Nov 3): `lib/units.ts` is a pure module
   store (`getUnits`, `setUnits`, `onUnits`; the default from the device locale, miles
   for US, GB, LR, MM); `lib/unitsStore.ts` loads it from meta `units` at launch
   (`_layout.tsx`) and saves it; `useUnits()` subscribes a component. `formatDistance`
   reads the store, so every formatter follows; a component that stays mounted across a
   change (the recording bar, a walks list row, the maps' scale bar) calls `useUnits()`
-  so it redraws. The setting is the Start dialog's "Distances" segment (`units-km`,
+  so it redraws. The setting is the ready bar's "Distances" segment (`units-km`,
   `units-mi`). The e2e's headless Chromium reports en-US, so the default there is
   miles. The store starts at km and only `loadUnits` at launch applies the device
   region's default, so pure code and `npm test` never depend on the machine's locale
