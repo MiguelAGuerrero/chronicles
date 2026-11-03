@@ -229,7 +229,8 @@ Session, screens and small helpers
 - **Versioned cache** (`tiles.ts`). `ensureTileBuild()` reads the dated build
   from OpenFreeMap's TileJSON; on a change it purges `DERIVED_STORES` and
   nulls each walk's `snapped_build`, so the walk re-snaps when its replay next
-  opens. `STREET_CODE` (bump when `streets.ts` derives different pieces from
+  opens. Visited rows and summaries are kept until then, so the walks list and
+  new-street counts keep working. `STREET_CODE` (bump when `streets.ts` derives different pieces from
   the same tiles) drops the street cache once and re-snaps every walk.
   `SNAP_RULES` (bump when `snapper.ts`, `AREA_RULES` or a boundary pack's
   edition changes what counts) re-snaps and re-places every walk through the
@@ -283,7 +284,11 @@ own code only where no Expo module covers the feature on web:
   `notify/transport.web.ts`). expo-notifications has no web build. Local
   only; scheduled notices are page timers.
 - **Audio mode:** `navigator.audioSession` (`audioMode.web.ts`). expo-audio's
-  web `setAudioModeAsync` is an empty function.
+  web `setAudioModeAsync` is an empty function, so `playsInSilentMode` never
+  reached the web, and iPhone browsers played memos and videos silently. The
+  Audio Session API (Safari 16.4+) is the web's equivalent: `playback` plays
+  with the ringer off, and `play-and-record` is used while a memo records.
+  Always go through `setAudioMode` in `lib/audioMode` (a lint rule enforces it).
 - **Motion samples:** the browser's `devicemotion` event
   (`motionSource/index.web.ts`). expo-sensors 58's web DeviceMotion has no
   `addListener`; its permission and availability calls are still used.

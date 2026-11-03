@@ -1,6 +1,6 @@
 # 0017. Navigation runs inside a walk, which keeps recording, with routes computed on the device
 
-Date: 2026-10 (v0.5) · Status: accepted · Area: navigation
+Date: 2026-10 (v0.5) · Status: accepted; bridges and tunnels, deferred here, shipped in 0057 · Area: navigation
 
 ## Context
 v0.5 navigate (walk me back is one use; the owner's calls).

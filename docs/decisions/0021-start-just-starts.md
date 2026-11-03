@@ -1,6 +1,6 @@
 # 0021. Start just starts; the drawer holds the extras
 
-Date: 2026-11-01 · Status: accepted · Area: navigation tab
+Date: 2026-11-01 · Status: superseded in part by 0056 (the extras are a dialog, not the drawer) · Area: navigation tab
 
 ## Context
 The owner's call, Nov 1, after AllTrails' Navigate page; spec rev 31.

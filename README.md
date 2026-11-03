@@ -78,28 +78,36 @@ concept doc specifies for v0.
     contact sheets. Voice memos play during their own moment.
   - With reduced motion the camera holds still. Screen readers hear each beat, and
     on phones they start on the card.
-- **Log.** Reads walks and a per-walk summary written when the walk is snapped,
-  never the traces or the media.
+- **Chronicle.** The log screen is gone: the Chronicle tab is the places map, with
+  stars where walks were and a sheet that lists walks and days. It reads walks,
+  per-walk summaries and areas (and capture rows for the days), never the traces
+  or the media.
 
 ## Layout
 
 ```
-index.js                  entry: registers the background task before the router loads
-src/app/                  screens (Expo Router): log, walk, replay/[id]
-src/components/map/       WalkMap.native.tsx and WalkMap.web.tsx, shared props
-src/lib/db/               index.native.ts (SQLite) and index.web.ts (IndexedDB), versioned migrations
-src/lib/recorder/         index.native.ts (background task) and index.web.ts (live browser geolocation)
-src/lib/media/            where captured files are kept, per platform
-src/lib/session.ts        start, stop and launch-time reconcile of the open walk
-src/lib/streets.ts        tile features to street segments
-src/lib/snapper.ts        trace to visited segments
-src/lib/finish.ts         derive, snap and summarize a walk
-src/lib/tiles.ts          tile build detection and cache invalidation
-src/lib/replay.ts         ceremony timing
+index.js                  entry: registers the background location task before the router loads
+src/app/                  routes (Expo Router); every file is a screen
+  (tabs)/index.tsx          Navigate (/)
+  (tabs)/explore.tsx        Explore
+  (tabs)/chronicle.tsx      Chronicle
+  walk.tsx                  the open walk
+  replay/[id].tsx           a walk's replay
+  day/[key].tsx             a day's replay
+src/components/           shared components; map/ holds WalkMap.native.tsx and WalkMap.web.tsx
+src/lib/                  logic, per-platform modules (.native/.web) and the unit tests (__tests__/)
+scripts/                  the e2e and perf harnesses, the boundary-pack builder, postinstall
+assets/  public/          app icons, boundary packs; the web manifest, service worker, map worker
+docs/                     product synopsis, architecture, testing, status, decisions
 ```
 
 Files with `.native` and `.web` suffixes are picked by Metro per platform; the
-plain `index.ts` next to them exists only so TypeScript has one module to check.
+plain file next to them exists only so TypeScript has one module to check. The
+full codemap is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+Docs for agents: [AGENTS.md](AGENTS.md), [docs/PRODUCT.md](docs/PRODUCT.md),
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/TESTING.md](docs/TESTING.md),
+[docs/STATUS.md](docs/STATUS.md), `specs/`, [docs/decisions/](docs/decisions/).
 
 ## Known gaps
 
