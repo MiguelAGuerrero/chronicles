@@ -54,7 +54,8 @@
     "test": "tsx --test src/lib/__tests__/*.test.ts",
     "postinstall": "node scripts/copy-maplibre-worker.js",
     "lint": "expo lint",
-    "e2e:web": "node scripts/e2e-web.js"
+    "e2e:web": "node scripts/e2e-web.js",
+    "check:specs": "node scripts/check-specs.js"
   },
   "private": true
 }

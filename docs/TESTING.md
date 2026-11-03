@@ -202,3 +202,11 @@ on a type error. Lint, the unit tests and the e2e stay the agent's job.
 Native has never run on a device. The unit tests prove pure logic and the e2e
 the web build in Chromium; neither runs `*.native.ts(x)`, SQLite migrations,
 the background task or MapLibre RN. Say so in any report touching native code.
+
+## Spec traceability
+
+`npm run check:specs` (`scripts/check-specs.js`) lists the criterion ids in
+`specs/*/spec.md` that no unit test or e2e step names. It is a report, not a
+gate (it always exits 0): retired ids and unbuilt rounds show up too. Run it
+at the end of a slice; a criterion of the slice that shows up is missing its
+test.

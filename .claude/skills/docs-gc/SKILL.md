@@ -97,7 +97,16 @@ Lines only on the left are README commands that don't exist; only on the
 right are scripts the README doesn't show (fine for `start`, `android`, `ios`
 if the README says so elsewhere).
 
-## 10. Output
+## 10. The slice's criteria have tests
+
+```bash
+npm run -s check:specs
+```
+
+Any id of the slice just built that it lists is missing its unit test or e2e
+step. Retired ids and unbuilt rounds are expected in the list.
+
+## 11. Output
 
 A short table, one row per check:
 
