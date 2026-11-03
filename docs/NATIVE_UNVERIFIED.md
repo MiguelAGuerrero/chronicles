@@ -57,6 +57,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] Native caption baking: the view sized in points (`px / PixelRatio`), pixel `width`/`height` to `captureRef`, `useRenderInContext` on iOS, behind the viewer's cover, one bake at a time (Round 3, captions)
 - [ ] The thumbnail copy through expo-image-manipulator, `media/thumb.ts`, and whether EXIF orientation survives it (Memories on revisit, thumbnails)
 - [ ] The home's capture row, `MomentBar` and `CaptureRow` (Moments and days)
+- [ ] Navigate's moment pins as MapLibre RN Markers, and their `CaptureViewer` over the tab map (moment pins 1-2)
 - [ ] The backup zip written to a file handle, `writeWalkBundle`, to be tested on a phone before it reaches the UI (Product, backing up)
 
 ## Deletion (`db.deleteWalk`, `db.deleteCaptures`, `removeMedia`)

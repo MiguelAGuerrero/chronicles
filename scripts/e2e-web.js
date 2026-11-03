@@ -2984,10 +2984,20 @@ function check(ok, what) {
       check(rows.length === 1 && rows[0].walk_id == null && rows[0].lat != null && Math.abs(rows[0].lon - start[0]) < 1e-5,
         `the moment belongs to no walk and sits where it was made (M1, M2)`);
       check((await p2.evaluate(() => window.__watches.size)) === 0, 'no location watch keeps running after a moment (M5)');
+      // The moment is a pin where it was made, on Navigate, and the pin opens it (M16, moment pins 1-2).
+      check(await p2.waitForSelector('[aria-label="Note. Open"]', { timeout: 15000 }).then(() => true, () => false), 'a placed moment shows as a pin on Navigate (M16, moment pins 1)');
       await shot(p2, '20-moment-home');
+      await p2.click('[aria-label="Note. Open"]');
+      check(await p2.waitForSelector('[data-testid=viewer-close]', { timeout: 10000 }).then(() => true, () => false)
+        && (await p2.getByText('A green dress in the window.').count()) > 0, 'the moment\'s pin on Navigate opens it in the viewer (M16, moment pins 2)');
+      await p2.click('[data-testid=viewer-close]');
+      await p2.waitForSelector('[data-testid=viewer-close]', { state: 'detached', timeout: 10000 }).catch(() => {});
+
+      // With nothing walked yet, Chronicle frames the moment, so its pin is in view, not the world (moment pins 3).
+      await p2.click('[data-testid=tab-chronicle]');
+      check(await p2.waitForSelector('[aria-label="Note. Open"]', { timeout: 15000 }).then(() => true, () => false), 'Chronicle frames a moment made before any walk, and shows its pin (M16, moment pins 3)');
 
       // Today is listed in Chronicle's sheet with its moment (M7, M9, NV18).
-      await p2.click('[data-testid=tab-chronicle]');
       await p2.click('[data-testid=sheet-days]');
       await p2.waitForSelector('[data-testid=day-row]');
       const dayRow = await p2.locator('[data-testid=day-row]').first().innerText();
