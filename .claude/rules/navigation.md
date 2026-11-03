@@ -1,6 +1,7 @@
 ---
 paths:
   - "src/lib/nav/**"
+  - "src/lib/__tests__/{handoff,bridges}.test.ts"
   - "src/lib/here.ts"
   - "src/lib/__tests__/nav.test.ts"
 ---
@@ -53,12 +54,41 @@ Routing inside a walk (`lib/nav`): walk me back, Go here, the route sources, rul
     found at a time.
   - **Screen readers:** the bar is not a live region. The distance is
     announced at 100 m steps (50 m under 200 m), at start and on a new route.
-  - **Deferred:** bridges and tunnels still join the streets they cross. The
-    fix changes how pieces are cut, and so their ids. It needs its own change,
-    with a street-cache purge and a `SNAP_RULES` bump.
+  - **Bridges and tunnels** (the concept doc's "Bridges and Open in Maps"
+    tab, NB1-NB7; Nov 3, after a route turned the owner off a bridge onto
+    the path under it): see "Bridges and tunnels" in `.claude/rules/streets-fog-snapping.md`.
+- **Open in Maps** (NH1-NH8, the owner's calls, Nov 3): the destination
+  goes to the phone's maps app for walking directions, a fallback when the
+  open data is wrong.
+  - `nav/handoff.ts` (pure) picks the app and the links: Apple Maps on iOS and
+    iPhone or iPad browsers (an iPad asking for the desktop site reports a Mac
+    with touch), Android's `geo:` chooser with Google's link after it, Google
+    Maps in any other browser. `nav/openInMaps.ts` opens them with
+    `Linking.openURL`, never `canOpenURL` first (Android 11+ says no for
+    schemes not in `<queries>`).
+  - Offered in the blue bar (`nav-handoff`), as the banner action of a route that can't be found
+    (`onError(message, dest)`), on the long-press card (`spot-handoff`) and in
+    the walk's viewer's More menu (`viewer-handoff`).
+  - Called straight from the tap: a browser opens a window only from one.
+    Navigation and the walk go on (on the web, tracing pauses while the page
+    is hidden, as always). Only the destination leaves the device, on a tap.
+  - The hint (`HANDOFF_HINT`) says recording pauses on the web: a hidden
+    page takes no fixes. A failed route's banner stays until dismissed or a
+    new Go here (`goTo` in `walk.tsx`), its action 44 pt.
+  - The e2e replaces `window.open` and reads `window.__opened`.
+  - **Not on "Off your route"** (the owner's call, Nov 3, retiring NH4): the
+    first re-route clears the chip at once, so its button was rarely there;
+    the bar's button covers it.
+  - **Android is not a priority** (the owner, Nov 3): its `geo:` chooser
+    opens a pin, not walking directions, and stays as it is.
+  - **Deferred:** the Explore mark card, the dead-zone nudge, the home's
+    Walk here.
+  - **Native** (unverified on a device): Apple Maps from the app, the Android
+    chooser, and an iPhone Home Screen app's `window.open` reaching Apple Maps.
 - **UI.**
-  - A blue top bar shows the distance left and where to, with a white End
-    pill. It is centered in the 640 column. The route (8 px, a 12 px white
+  - A blue top bar shows the distance left and where to, an Open in Maps
+    button, and a white End pill. It is centered in the 640 column. The route (8 px, a 12 px white
+    edge) is drawn only ahead of you, under the trace.
     edge) is drawn only ahead of you, under the trace.
   - A ring marks the destination, and a long press's spot.
   - A soft 60° cone on the walker shows the way they're going (`headingOf`:

@@ -58,6 +58,8 @@ Home / tabs
   RecordingBar.tsx           the bar above the tabs while a walk is minimized: time, distance, camera, Stop, › back to the walk
   MomentBar.tsx              MomentBar (loose moments from Navigate) and CaptureRow (captures for the open walk)
   LocateButton.tsx           Locate me, an edge button
+  StartDialog.tsx            Navigate's settings in one dialog opened from the summary line under Start
+  GapCard.tsx                a filled or offered stretch: Keep, Not this way
   LandingMarks.tsx           a strip's name beside it on the map
   ExploreSettings.tsx        what I'm into, the "?" range (ring preview), the pocket alert: a panel, not a modal
   NotificationSettings.tsx   the kind switches, permission state, the test notification
@@ -126,6 +128,14 @@ Navigation (inside a walk)
   nav/navigator.ts  (pure)   routeTo: first source that can, or why none
   nav/store.ts               the destination in meta `nav`
   nav/useNavigation.ts       routing, re-routing, arrival and the street read on the walk screen
+  nav/handoff.ts    (pure)   Open in Maps: picks the maps app and its links per platform and browser
+  nav/openInMaps.ts          opens them with Linking.openURL straight from the tap
+Filling gaps
+  gaps/rules.ts     (pure)   GAP_RULES: what counts as a gap, the paces, the budgets
+  gaps/infer.ts     (pure)   gapsOf, the likely way over street pieces (A*), certain / offered / nothing
+  gaps/index.ts              reads a gap's tiles in code, memoized per build, walk and gap
+  gaps/useLiveStretches.ts   the open walk's inferred and decided stretches (lives in OpenWalkProvider)
+  tileCollector.ts           reads the tiles near a walk in code, no camera moves (re-snap after a decision)
 Discovery and Explore (v1)
   discovery/types.ts (pure)  Place, Offered, Mark, Recall, PlaceSource, Kind, CategoryId
   discovery/tilePois.ts (pure) the OpenMapTiles poi classes, markable, kindFor (the only file that knows them)
@@ -277,6 +287,10 @@ own code only where no Expo module covers the feature on web:
 - **Motion samples:** the browser's `devicemotion` event
   (`motionSource/index.web.ts`). expo-sensors 58's web DeviceMotion has no
   `addListener`; its permission and availability calls are still used.
+- **Which maps app** (Open in Maps): on web, `nav/openInMaps.ts` reads
+  `navigator.userAgent` and `maxTouchPoints`, since `Platform.OS` is just
+  `web` and no Expo module says which phone a browser runs on. The link
+  itself goes through React Native's `Linking`, as on a phone.
 - **Browser fixes** with no native counterpart: `webStyles.web.ts` (pinned
   viewport, long-press guards) and the muted-autoplay fallback.
 
@@ -294,6 +308,7 @@ Truth (`lib/types.ts`):
   placed), kind (photo | video | voice | text), file_path, body, segment_id,
   caption, caption_y, thumb_path.
 - `Pause`, `Still`: walk_id, started_at, ended_at.
+- `GapDecision` (`gap_fill`, kept): a stretch kept or dismissed, with its line, so a map update never moves it.
 
 Cache (`lib/types.ts`, `areas/types.ts`): `StreetSegment` (id, name,
 kind_detail, length_m, geometry, build), `VisitedSegment` (segment_id,
@@ -314,8 +329,8 @@ Meta is a key/value table (`getMeta` / `setMeta`): `tile_build`, `tile_url`,
 `explore_hidden`, `explore_range`, `explore_haptic`, `notify_off`,
 `recall_open`, `day_watched:<key>`.
 
-Migrations: SQLite has 13 (`PRAGMA user_version`), IndexedDB is at `VERSION`
-11. The most recent: SQLite 10 `ride_m` on summaries; 11 nullable
+Migrations: SQLite has 14 (`PRAGMA user_version`), IndexedDB is at `VERSION`
+12. SQLite 14 and IndexedDB 12 add `gap_fill`. The most recent: SQLite 10 `ride_m` on summaries; 11 nullable
 `Capture.walk_id` and `Find.walk_id` (tables rebuilt) plus `capture_t`; 12
 `thumb_path`; 13 the `still` table. IndexedDB 9 the capture `lat` index; 10
 the capture `t` index; 11 stills. `thumb_path` needed no IndexedDB bump: it

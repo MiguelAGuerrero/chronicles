@@ -75,8 +75,9 @@ Run the suite and confirm each new test fails for the right reason.
    measured; `tr.walked` for walked-only consumers, `smoothKept(tr)` for the
    ridden too.
 4. Web-only code only where no Expo module covers the feature on web; list
-   each exception, with its reason, in `.claude/rules/platform.md` (or the
-   matching rule file).
+   each exception, with its reason, in `docs/ARCHITECTURE.md` ("Web
+   exceptions to native first"). Check `node_modules/<module>/build/*.web.*`
+   first.
 5. Changing a snapping, placing or reading rule: bump `SNAP_RULES`
    (`src/lib/tiles.ts`); a street-derivation change bumps `STREET_CODE`.
 6. New schema: append to `MIGRATIONS` (SQLite, never edit an old one) and bump

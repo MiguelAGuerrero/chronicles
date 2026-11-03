@@ -1,6 +1,7 @@
 ---
 paths:
   - "src/app/(tabs)/**"
+  - "src/components/StartDialog.tsx"
   - "src/app/_layout.tsx"
   - "src/components/{HomeSheet,RecordingBar,SwitchRow,OpenWalk}.tsx"
   - "src/lib/{recordingBar,walkNav,walkGate,openWalkLoad,startPlan,useStartWalk,useTabMap,memoGate,quietLines,summary,walkEvents,settleWithin}.ts"
@@ -125,3 +126,20 @@ The three tabs (Explore, Navigate, Chronicle), the home sheet, the recording bar
   - A screen may refuse a height (`onSize`; Navigate holds the peek with a
     walk open). A drag let go then settles back where the screen holds it;
     it was once left tall and empty where the finger let go (Nov 2).
+
+## Navigate's settings are a dialog (the owner's call, Nov 3)
+
+- The drawer no longer pulls up through half and full heights (the settings were
+  split from Start, which was unintuitive). It stays at its peek: Start, and a
+  summary line under it (`start-options`, text `peek-choices`: the mode, then
+  the destination). A tap on the line, or a pull on the grip, opens
+  `StartDialog` (`components/StartDialog.tsx`, `components/Modal`): mode,
+  destination, "?" range and what I'm into (Explore only), pocket alert,
+  reminders and alerts, in one scroll, with its own Start walk. Every choice
+  saves as it changes; Done and Escape only close it. Start still just starts.
+  Nothing opens mid-memo or with a walk open.
+- The range ring shows on the map only while the dialog is open in Explore.
+  A destination is still a long press on the map, so the dialog says to close it
+  first. Native (unverified on a device): the Modal over the tab map.
+- `drawerTo(pg, 'half' | 'full')` in the e2e opens the dialog; `'peek'`
+  closes it with Escape.

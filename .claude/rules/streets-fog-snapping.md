@@ -3,7 +3,7 @@ paths:
   - "src/lib/{streets,snapper,finish,tiles,tileMath,tileBuild,mapReads}.ts"
   - "src/lib/discovery/{tileDecode,tileFetch}.ts"
   - "src/lib/db/segmentBounds.ts"
-  - "src/lib/__tests__/{core,segmentTiles,tileBuild,colors}.test.ts"
+  - "src/lib/__tests__/{bridges,core,segmentTiles,tileBuild,colors}.test.ts"
   - "src/lib/__tests__/mvtFixture.ts"
   - "scripts/mvt-encode.mjs"
 ---
@@ -65,6 +65,35 @@ Deriving streets from tiles, the fog, snapping a walk to streets, tile builds an
   `LANDING_CODE` l3 are left off the map. Real OpenMapTiles tiles for tests: tileserver-gl's
   `test_data.zip` release on GitHub has a planetiler Zurich mbtiles, reachable from cloud
   sessions.
+- **Bridges and tunnels** (NB1-NB7, Nov 3). Only a bridge or tunnel leaves
+  the ground (`levelOf`): a bridge at its `layer`, else 1; a tunnel at its
+  `layer`, else 0 (mostly building passages). A `layer` on anything else is
+  ignored: embankment roads carry one, and side streets end on them.
+  - Lines on different levels meet only where one lands on the other: an end
+    of it touches the other line, and that end touches nothing else on its
+    own level. So a bridge joins its approach, a footbridge lands mid-street,
+    stairs land mid-span. A path passing under, even split into two ways
+    there, or a ground junction under a bridge, does not.
+  - Crosswalk removal and stitching compare levels. Across levels, the
+    sidewalk merge takes a footway only where it runs the street's way (35°),
+    so an untagged bridge sidewalk goes and a path crossing under stays; a
+    footway that landed on another level (`landings`) is never merged.
+  - Junction keys are per line (`withJunctions` returns one set per line),
+    so a line passing through another pair's junction point isn't cut.
+  - The route graph merges a piece end only with another piece's end
+    (`streetRoute.ts` `addEnd`), never an inner vertex.
+  - `STREET_CODE` 3 purges the cache once. Real Zurich tiles (9 z14 tiles):
+    about 180 fewer pieces of 22,300, the main network unchanged, and
+    identical ids with the tags stripped.
+  - **A route starts on the street you walk along** (`streetRouteSource`
+    `join` with `RouteHint.heading`, from `live.heading`): within
+    `NAV.headingJoinM` (12 m) of the nearest street, one within 35° of the
+    heading wins. On a bridge, the path below can be the nearer line.
+  - **After the audit (Nov 3):** 11 findings, 7 fixed (`bridges audit N` in
+    `bridges.test.ts`). Deferred: a 200 m chunk end on a bridge within 3 m
+    of a junction below still merges with it (`MERGE_M`); the 12 m heading
+    window can pick a parallel street at an alley mouth (first leg only);
+    indoor `level` is not read.
 - Avoid anything O(n²) over features. Index with `EdgeGrid`. A 3.6 km downtown, about
   16k features, should derive in under a second.
 - Snapping ignores the 20 m at each end of a piece, where the junctions are, and

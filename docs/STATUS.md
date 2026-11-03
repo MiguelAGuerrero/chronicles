@@ -6,9 +6,10 @@ end of every slice, and whenever a branch is opened, merged or abandoned. For
 what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md`.
 
 - **As of:** 2026-11-03
-- **`origin/main` head:** `7a34666` (2026-11-03, "docs: the quality-of-life slice
-  in AGENTS.md and the product synopsis"). The commit before it, `679d8cb`, is
-  the last code change (QL1-QL8, QL10).
+- **`origin/main` head:** `28c7417` (2026-11-03, the filling-gaps merge). Since
+  `7a34666` main gained Bridges and Open in Maps (`82186db`, `67b7c9d`), the
+  Start dialog (`6fb2572`, `9f547bd`), no Open in Maps on "Off your route"
+  (`1ead218`) and Filling gaps (`2a0501e`, `3a08a53`).
 - **Spec:** the owner's "Explorer App Concept" doc in Claude Docs, mirrored tab by
   tab under `specs/<slug>/spec.md`. The status words in the doc's tab names
   ("queued", "in progress", "spec draft") lag the code; this table is judged from
@@ -26,13 +27,13 @@ what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md
 | Memories on revisit (faint pins, previews, thumbnails) | shipped | `0db86c7` 2026-11-01 audit fixes; `61dc468` 2026-11-01 thumbnails audit | `specs/memories-on-revisit/spec.md` | yes (`0db86c7`, `61dc468`) |
 | Rides | shipped | `8e49c9c` 2026-11-01 rides audit fixes | `specs/rides/spec.md` | yes (14 findings, 11 fixed, `8e49c9c`) |
 | Moments and days | shipped | `03e801d` 2026-11-01; `1b4853e` 2026-11-02 day replay fix | `specs/moments-and-days/spec.md` | yes ("After the audit" in AGENTS.md; `9187b3c`) |
-| Navigation & tabs (three tabs, drawer, minimize, recording bar) | shipped | `6fe5a2a` 2026-11-01 phase 1; `2cc38d7` 2026-11-02 audit; `d3b9770` 2026-11-03 | `specs/navigation-and-tabs/spec.md` | yes, two batches (`2cc38d7`, `a3bdc45`..`0a79e05`) |
+| Navigation & tabs (three tabs, drawer, minimize, recording bar; the Start dialog) | shipped | `6fe5a2a` 2026-11-01 phase 1; `2cc38d7` 2026-11-02 audit; `d3b9770` 2026-11-03; the settings dialog `6fb2572`, `9f547bd` 2026-11-03 | `specs/navigation-and-tabs/spec.md` | yes, two batches (`2cc38d7`, `a3bdc45`..`0a79e05`) |
 | Clearing walks and moments | shipped | `b2bfcf7` 2026-11-01 audit fixes; `e59d65f` 2026-11-01 | `specs/clearing-walks-and-moments/spec.md` | yes (13 findings, 8 fixed, `b2bfcf7`) |
 | Places worth the stop | queued (no commit on main mentions it) | none | `specs/places-worth-the-stop/spec.md` | no |
 | Motion (steps from the phone's sensors, MO1-MO10) | shipped | `09f504a` 2026-11-01; `8edc09b` 2026-11-01 audit fixes; `93ef082` 2026-11-01 | `specs/motion/spec.md` | yes (11 findings, 9 fixed, `8edc09b`) |
 | Quality of life | partly shipped: QL1-QL12 (markers, scale bar, Locate); the rest deferred in the owner's order (see AGENTS.md "Quality of life") | `dc8f249`, `83ccfcf`, `679d8cb`, `7a34666` all 2026-11-03 | `specs/quality-of-life/spec.md` | no (no audit commit on main; a round 2 session was starting on Nov 3) |
-| Filling gaps (streets walked across a gap in the trace) | in progress on `origin/claude/filling-gaps`, not merged | branch: `2a0501e`, `3a08a53` 2026-11-03 | `specs/filling-gaps/spec.md` | on the branch (`3a08a53` "fixes after the audit"); not on main |
-| Bridges and Open in Maps (NB1-NB7, NH1-NH8) | in progress on `origin/claude/bridges-open-in-maps`, not merged | branch: `8232ed1`, `457e727`, `68dc43c` 2026-11-03 | `specs/bridges-and-open-in-maps/spec.md` | on the branch (`457e727` "bridges audit 1-4, 6-8, 11"); not on main |
+| Filling gaps (streets walked across a gap in the trace, G1-G14) | shipped | `2a0501e`, `3a08a53`, merged as `28c7417` 2026-11-03 | `specs/filling-gaps/spec.md` | yes (17 findings, 12 fixed, `3a08a53`) |
+| Bridges and Open in Maps (NB1-NB7, NH1-NH8; NH4 retired) | shipped | `82186db`, `67b7c9d`, `d16c7c4`; `1ead218` retired NH4, all 2026-11-03 | `specs/bridges-and-open-in-maps/spec.md` | yes (bridges: 11 findings, 7 fixed, `67b7c9d`) |
 
 Not a tab, but tracked: **suggested routes** (interesting ways, route preview,
 "Walk this way") are deferred as their own later slice (`749811d` 2026-11-01).
@@ -51,10 +52,10 @@ first.
 
 | Branch | Last commit | Ahead | Merged | Holds | Disposition |
 |---|---|---|---|---|---|
-| `claude/bridges-open-in-maps` | 2026-11-03 | 3 | no | bridges cross without a turn, Open in Maps, its audit fixes and an e2e fix (17 files, +809) | pending decision (merge or PR) |
-| `claude/bridges-open-in-maps-rebased` | 2026-11-03 | 3 | no | the same three commits replayed onto main; its tree differs from the first copy, so they are not identical | pending decision: keep one of the two, delete the other |
+| `claude/bridges-open-in-maps` | 2026-11-03 | 3 | no | the first copy of Bridges and Open in Maps; main took the `-rebased` copy | superseded by `-rebased` (one commit not patch-identical; its content reached main reworked) |
+| `claude/bridges-open-in-maps-rebased` | 2026-11-03 | 0 | yes | Bridges and Open in Maps as merged | merged |
 | `claude/clear-storage` | 2026-11-01 | 0 | yes | Clearing walks and moments (D1-D11) with its audit fixes | merged |
-| `claude/filling-gaps` | 2026-11-03 | 2 | no | Filling gaps: inferred streets across a trace gap, spec G1-G14, 12 audit fixes (28 files, +1710) | pending decision (its session asked: PR, or merge, which deploys the web build) |
+| `claude/filling-gaps` | 2026-11-03 | 0 | yes | Filling gaps (G1-G14) and its audit fixes | merged (`28c7417`) |
 | `claude/functional-core-foundations` | 2026-11-01 | 3 | no | `Ports` type and real instance, in-memory fakes with one call log, a `Db` contract suite, typed `meta.ts`, `Store`/`useStore`, ESLint boundary rules, an AGENTS.md style section; plus its own copy of the fog-streak fix (`98faa36`), which main has as `2b0cdfe` | pending decision (see Needs the owner) |
 | `claude/rides` | 2026-11-01 | 0 | yes | Rides (R1-R14) and its audit fixes | merged |
 | `docs/product-synopsis` | 2026-11-03 | 0 | yes | `docs/PRODUCT.md` and the QL section of AGENTS.md; fast-forwarded, it is main's head | merged |
@@ -65,13 +66,14 @@ first.
 | `live-dot` | 2026-11-01 | 1 | no | the live dot (Kalman per axis, glide) | superseded: its one commit is patch-identical to main's `7263546` (merged through `motion`/`web-prototype`) |
 | `moments-and-days` | 2026-11-01 | 0 | yes | Moments and days (M1-M17), thumbnails, audit fixes | merged |
 | `motion` | 2026-11-03 | 0 | yes | Motion (MO1-MO10), the live dot, then the tabs audit and "no drawer with a walk minimized" | merged |
-| `navigate-start-dialog` | 2026-11-03 | 2 | no | Navigate's drawer settings as one dialog opened from a summary line under Start; a tall sheet with a grip (5 files, +315 -178) | pending decision (merge or PR) |
+| `navigate-start-dialog` | 2026-11-03 | 2 | no | Navigate's settings as one dialog; its commits reached main by patch | superseded (`git cherry` shows none left) |
+| `claude/offroute-no-handoff` | 2026-11-03 | 1 | no | no Open in Maps on "Off your route" | superseded by `-rebased` |
+| `claude/offroute-no-handoff-rebased` | 2026-11-03 | 0 | yes | the same change as merged (`1ead218`) | merged |
 | `notifications` | 2026-11-01 | 1 | no | "Replay opens at once after Stop, even when the tile host stalls" | superseded: patch-identical to main's `2195bb5`; the notifications slice itself is on main (`df7ffa7`) |
 | `smooth-walker-dot` | 2026-10-31 | 1 | no | the first smoothed walker dot (glide, replay dot at ~30 fps) | superseded by main's `8e77db9` (same title, reworked on `web-prototype`), then by the live dot `7263546` |
 | `web-prototype` | 2026-11-02 | 0 | yes | the long-running web branch: tabs, the recording bar, the tabs audits | merged |
 
-Local only, not on origin: `claude/agent-friendly-bootstrap` (this file, the
-specs mirror and the agent set-up).
+| `claude/agent-friendly-bootstrap` | 2026-11-03 | open | no | this file, the specs mirror, `.claude/` rules, skills, hooks and the auditor, the docs split out of AGENTS.md | in flight |
 
 ## Needs the owner
 
@@ -96,9 +98,8 @@ specs mirror and the agent set-up).
   open; every "Native (unverified on a device)" list in AGENTS.md waits on it.
 - **`foundation`:** keep as history or delete; its `docs/concept.md` is the
   only copy of the concept in the repo.
-- **The two `bridges-open-in-maps` branches:** which one is the keeper.
-- **Merging Nov 3 branches deploys** (Pages publishes from main): `filling-gaps`,
-  `bridges-open-in-maps`, `navigate-start-dialog` each wait for a merge or a PR.
+- **Branch clean-up:** nine branches are merged and five superseded (see the
+  table); deleting them is the owner's call.
 - **Suggested routes** (deferred Nov 1) and the rest of Quality of life
   (QL13+, in the owner's order: units, time left, a Settings link when location is
   denied, renaming a walk, editing a note, thumbnails on pins, month headers,
@@ -113,10 +114,7 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 
 | Session | Branch | Doing |
 |---|---|---|
-| Agent-friendly repo structure | `claude/agent-friendly-bootstrap` (local) | this file, `specs/` mirror of the concept doc, skills and an auditor agent |
-| GPS inference feature planning | `claude/filling-gaps` | Filling gaps (G1-G14) built and audited; waiting on merge-or-PR |
-| Navigation bridge routing issue | `claude/bridges-open-in-maps` (+ `-rebased`) | Bridges and Open in Maps (NB1-NB7, NH1-NH8) built and audited; waiting on merge-or-PR |
-| Navigation settings drawer redesign | `navigate-start-dialog` | Navigate's settings as one dialog under Start |
+| Agent-friendly repo structure | `claude/agent-friendly-bootstrap` | the agent set-up: AGENTS.md as an index, `.claude/` rules and skills, docs, the specs mirror |
 | Quality of life navigation features | (no branch on origin yet) | QL round 2: reading the code each remaining feature touches for its spec |
 | Bug fixes (open since Oct 31) | unknown | unknown |
 
