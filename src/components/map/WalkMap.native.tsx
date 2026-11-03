@@ -24,7 +24,7 @@ import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
 import { MOTION } from '../../lib/motionTokens';
 import {
-  COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, useZoomPins, walkerGeoJSON,
+  COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -73,6 +73,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const traceTail = useMemo(() => traceGeoJSON(split.tail), [split.tail]);
   const rides = useMemo(() => traceGeoJSON(props.rides ?? []), [props.rides]);
   const faint = useMemo(() => traceGeoJSON(props.faint ?? []), [props.faint]);
+  const gapLinks = useMemo(() => traceGeoJSON(props.gapLinks ?? []), [props.gapLinks]);
+  const drawing = useMemo(() => traceGeoJSON(props.drawing ? [props.drawing] : []), [props.drawing]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const traceHistory = useMemo(() => traceGeoJSON(split.history), [split.historyKey]);
   const route = useMemo(() => routeGeoJSON(props.route), [props.route]);
@@ -308,11 +310,22 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         {/* The trace on a white edge, so it reads over fog, walked streets and the base map alike:
             the history (memoized, so it isn't serialized again each render) and the live tail. */}
         {/* Offered stretches across gaps: the trace, see-through (Filling gaps, G6). */}
+        {/* A gap with no line: grey dots between its ends (GW2). */}
+        <GeoJSONSource id="gap-links" data={gapLinks}>
+          <Layer id="gap-links" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+            paint={{ 'line-color': COLORS.fog, 'line-width': 3, 'line-opacity': 0.9, 'line-dasharray': GAP_LINK_DASH }} />
+        </GeoJSONSource>
         <TraceSource id="faint" data={faint} opacity={FAINT_OPACITY * (props.traceOpacity ?? 1)} />
         <TraceSource id="rides" data={rides} opacity={props.traceOpacity ?? 1} dashed />
         <TraceSource id="trace-history" data={traceHistory} opacity={props.traceOpacity ?? 1} />
         <TraceSource id="trace" data={traceTail} opacity={props.traceOpacity ?? 1} />
         <TraceSource id="trace-link" data={traceLink} opacity={props.traceOpacity ?? 1} />
+        {/* A gap's way being drawn, dashed over the trace (GW3). */}
+        <GeoJSONSource id="drawing" data={drawing}>
+          <Layer id="drawing-edge" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': '#ffffff', 'line-width': FOG_STYLE.edgeWidth, 'line-opacity': 0.9 }} />
+          <Layer id="drawing" type="line" layout={{ 'line-cap': 'butt', 'line-join': 'round' }}
+            paint={{ 'line-color': COLORS.trace, 'line-width': FOG_STYLE.traceWidth, 'line-dasharray': DRAWING_DASH }} />
+        </GeoJSONSource>
         {/* Where the walk began and ended (QL1-QL3): above the trace, under the walker and the pins,
             going with the trace's opacity. A white disc ringed in the trace's green, or the walked orange. */}
         <GeoJSONSource id="ends" data={ends}>

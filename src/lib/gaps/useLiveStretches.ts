@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { db } from '../db';
 import type { Fill, GapDecision, LngLat } from '../types';
 import { decide, readGap } from './index';
-import { decisionFor, fillsOf, gapKey, stretchesFor, type Gap, type Inference, type Stretch } from './infer';
+import { decisionFor, emptyGaps, fillsOf, gapKey, stretchesFor, type Gap, type Inference, type Stretch } from './infer';
 
 /** A gap whose streets couldn't be read is tried again after this long (G8; offline, a failed fetch). */
 const RETRY_MS = 2 * 60_000;
@@ -14,6 +14,11 @@ export interface LiveStretches {
   fills: Fill[];
   /** Offered: drawn faint (G6). */
   faint: LngLat[][];
+  /** Every gap worth reading, with a stretch or not (GW1). */
+  gaps: Gap[];
+  /** Gaps with no line across them (GW2), and their dotted joins. */
+  empty: Gap[];
+  links: LngLat[][];
   /** Keeps or dismisses a stretch, and shows it at once (G10). */
   decide: (s: Stretch, state: GapDecision['state']) => Promise<void>;
 }
@@ -90,6 +95,8 @@ export function useLiveStretches(walkId: string | null, gaps: Gap[]): LiveStretc
   const stretches = useMemo(() => (gaps.length ? stretchesFor(gaps, found, mine) : NONE), [gaps, found, mine]);
   const fills = useMemo(() => fillsOf(stretches), [stretches]);
   const faint = useMemo(() => stretches.filter((s) => s.how === 'offer').map((s) => s.path), [stretches]);
+  const empty = useMemo(() => emptyGaps(gaps, stretches), [gaps, stretches]);
+  const links = useMemo(() => empty.map((g) => [g.from, g.to]), [empty]);
   const decideNow = useCallback(
     async (s: Stretch, state: GapDecision['state']) => {
       if (!walkId) return;
@@ -100,5 +107,5 @@ export function useLiveStretches(walkId: string | null, gaps: Gap[]): LiveStretc
     [walkId],
   );
   // One object while nothing changed: the open walk's context is memoized on it (perf).
-  return useMemo(() => ({ stretches, fills, faint, decide: decideNow }), [stretches, fills, faint, decideNow]);
+  return useMemo(() => ({ stretches, fills, faint, gaps, empty, links, decide: decideNow }), [stretches, fills, faint, gaps, empty, links, decideNow]);
 }

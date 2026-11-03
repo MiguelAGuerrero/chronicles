@@ -65,6 +65,10 @@ export interface WalkMapProps {
   rides?: LngLat[][];
   /** Stretches offered across gaps, drawn faint in the trace's green until kept (Filling gaps, G6). */
   faint?: LngLat[][];
+  /** Gaps with no line across them, each joined by a dotted grey line between its ends (GW2). */
+  gapLinks?: LngLat[][];
+  /** A gap's way being drawn, dashed in the trace's green over everything (GW3). */
+  drawing?: LngLat[] | null;
   /** 0 to 1; the replay's first beat shows the trace faintly. */
   traceOpacity?: number;
   /** The walk has ended: its last point gets an end marker (QL2). A live walk's end is its dot. */
@@ -233,6 +237,11 @@ export function segmentsGeoJSON(segments: StreetSegment[]): GeoJSON.FeatureColle
  * Nov 3: "transparent to indicate inferred"). Kept, it is the trace itself.
  */
 export const FAINT_OPACITY = 0.4;
+
+/** A gap with no line: grey dots, quiet like the fog (GW2). */
+export const GAP_LINK_DASH = [0.1, 2.2];
+/** A way being drawn: short dashes, so it reads as not kept yet (GW3). */
+export const DRAWING_DASH = [1, 1];
 
 /** A ride's dash, in line widths: long enough to read as a line, gapped enough to read as not walked. */
 export const RIDE_DASH = [1.6, 1.4];

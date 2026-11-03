@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { distanceM, distanceToLinesM } from '../geo';
 import { addPoint, drawnLine, startDraw, undoPoint } from '../gaps/draw';
-import type { Gap } from '../gaps/infer';
+import { emptyGapAt, emptyGaps, gapLines, type Gap } from '../gaps/infer';
 import { deriveSegments, type RoadFeature } from '../streets';
 import type { LngLat } from '../types';
 
@@ -77,4 +77,13 @@ test('GW7: with no paths read, every join is straight', () => {
   const line = drawnLine(d, [], { done: true });
   assert.equal(line.straight, 2);
   assert.equal(line.path.length, 3);
+});
+
+test('GW2: a gap with no line is found by a tap on its dotted join, away from its ends', () => {
+  const g = { t0: 0, t1: 6 * 60_000, from: at(0, 0), to: at(4, 0) };
+  const s = { t0: 0, t1: 1, path: [at(0, 1), at(4, 1)], lengthM: 400, street: null, how: 'offer' as const };
+  assert.deepEqual(emptyGaps([g, { ...g, t0: 0, t1: 1 }], [s]), [g], 'the one with a stretch has a line');
+  assert.equal(emptyGapAt([g], at(2, 0.1), 20), g);
+  assert.equal(emptyGapAt([g], at(0.1, 0), 20), null, 'beside its start: the trace');
+  assert.equal(gapLines(g).title, 'Not recorded for 6 min');
 });

@@ -531,3 +531,28 @@ export function stretchLines(s: Stretch): { title: string; sub: string } {
   if (s.how === 'auto') return { title: `Filled in ${along}`, sub: `${facts} The only likely way in that time.` };
   return { title: `${along[0].toUpperCase()}${along.slice(1)}, kept`, sub: facts };
 }
+
+/** Gaps with nothing drawn across them (GW2): nothing to offer, or dismissed. */
+export function emptyGaps(gaps: Gap[], stretches: Stretch[]): Gap[] {
+  return gaps.filter((g) => !stretches.some((s) => gapKey(s) === gapKey(g)));
+}
+
+/**
+ * The gap with no line a tap at `p` reaches (GW2): its dotted join within
+ * `radiusM`, away from its two ends, which are the recorded trace's.
+ */
+export function emptyGapAt(gaps: Gap[], p: LngLat, radiusM: number): Gap | null {
+  let best: { g: Gap; d: number } | null = null;
+  for (const g of gaps) {
+    if (distanceM(p, g.from) <= GAP_RULES.tapEndM || distanceM(p, g.to) <= GAP_RULES.tapEndM) continue;
+    const d = distanceToLinesM(p, [[g.from, g.to]]);
+    if (d <= radiusM && (!best || d < best.d)) best = { g, d };
+  }
+  return best?.g ?? null;
+}
+
+/** The card's words for a gap with no line (GW2). */
+export function gapLines(g: { t0: number; t1: number }): { title: string; sub: string } {
+  const min = Math.max(1, Math.round((g.t1 - g.t0) / 60_000));
+  return { title: `Not recorded for ${min} min`, sub: 'Draw the way you walked, or leave it as a break.' };
+}

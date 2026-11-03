@@ -13,7 +13,10 @@ import { CaptureViewer } from '../components/CaptureView';
 import { Icon, KIND_LABEL, type IconName } from '../components/icons';
 import { Banner, Button, HoldButton, LiftIn, theme } from '../components/ui';
 import { GapCard } from '../components/GapCard';
-import { gapKey, stretchAt } from '../lib/gaps/infer';
+import { emptyGapAt, gapKey, stretchAt, type Gap } from '../lib/gaps/infer';
+import type { DrawnLine } from '../lib/gaps/draw';
+import { useGapDraw } from '../lib/gaps/useGapDraw';
+import { GapDraw } from '../components/GapDraw';
 import { ExploreSettings } from '../components/ExploreSettings';
 import { ReminderCard } from '../components/ReminderCard';
 import { onRecallFired, onRecallOpen, takeRecallOpen } from '../lib/discovery/recallCheck';
@@ -137,7 +140,17 @@ export default function WalkScreen() {
   const gapOpen = gapOpenAt?.key ?? null;
   const setGapOpen = useCallback((key: string | null) => setGapOpenAt(key ? { key, from: liveHereRef.current } : null), []);
   const [gapBusy, setGapBusy] = useState(false);
+  // The tapped gap and its stretch, if it has one (a gap with no line has none: GW2).
+  const openGapOf = gapOpen ? gapView.gaps.find((g) => gapKey(g) === gapOpen) ?? null : null;
   const openGap = gapOpen ? gapView.stretches.find((s) => gapKey(s) === gapOpen) ?? null : null;
+  // Drawing a gap's way (GW3-GW8): kept like Keep, as the line drawn.
+  const drawing = useGapDraw(
+    useCallback(
+      (gap: Gap, line: DrawnLine) => gapView.decide({ t0: gap.t0, t1: gap.t1, path: line.path, lengthM: line.lengthM, street: null, how: 'kept' }, 'kept'),
+      [gapView],
+    ),
+  );
+  const isDrawing = drawing.gap != null;
   const [pausing, setPausing] = useState(false);
   // The map follows the walker until they pan or zoom it themselves.
   const [following, setFollowing] = useState(true);
@@ -884,15 +897,24 @@ export default function WalkScreen() {
         glideWalker
         walkerHeading={live.heading}
         // Not while a route is found: the street read moves the camera itself.
-        follow={following && !navigation.finding && !ring ? live.here : null}
+        // Drawing holds the map where it is: a new fix never moves it under a tap (GW8).
+        follow={following && !navigation.finding && !ring && !isDrawing ? live.here : null}
         faint={gapView.faint}
+        gapLinks={isDrawing ? undefined : gapView.links}
+        drawing={drawing.line}
         onPress={(at, radiusM) => {
+          // While drawing, every tap is a point along the way (GW3).
+          if (isDrawing) {
+            drawing.tap(at);
+            return;
+          }
           setSpot(null);
           setMarkOpen(null);
           setMemory(null);
           // A tap on a stretch across a gap opens its card (G9); anywhere else closes it.
           // A line's reach is about 20 px, narrower than a pin's 44, so taps beside the trace still do what they did (audit 8).
-          const hit = navigation.nav || recordingVoice || stopping ? null : stretchAt(gapView.stretches, at, Math.max(10, radiusM * 0.45));
+          const reach = Math.max(10, radiusM * 0.45);
+          const hit = navigation.nav || recordingVoice || stopping ? null : stretchAt(gapView.stretches, at, reach) ?? emptyGapAt(gapView.empty, at, reach);
           setGapOpen(hit ? gapKey(hit) : null);
         }}
         memories={memories}
@@ -917,6 +939,7 @@ export default function WalkScreen() {
         onUserMove={() => setFollowing(false)}
         // A long press, so a stray tap while walking does nothing.
         onLongPress={(at, radiusM) => {
+          if (isDrawing) return;
           // Another card takes the slot: the stretch's card goes, rather than hiding and coming back (audit 7).
           setGapOpen(null);
           pressMap(at, radiusM);
@@ -1091,7 +1114,8 @@ export default function WalkScreen() {
       {/* Captures float in the lower-middle of the screen, where either thumb
           reaches; the bottom edge is the least accurate place to tap. Pills
           (caption, undo, retry) sit above the row, so the row never moves. */}
-      <View style={[styles.captures, { bottom: insets.bottom + 92 }]} pointerEvents="box-none">
+      {/* Hidden while a gap's way is drawn: every tap then belongs to the map (GW8). */}
+      <View style={[styles.captures, { bottom: insets.bottom + 92 }, isDrawing && styles.hidden]} pointerEvents={isDrawing ? 'none' : 'box-none'}>
         {recordingVoice && (
           <View style={styles.voiceLive} accessible accessibilityLabel="Recording voice memo">
             <PulseDot />
@@ -1379,16 +1403,23 @@ export default function WalkScreen() {
           </View>
         </View>
       )}
-      {openGap && !spot && !openMark && !memory && !recordingVoice && !options && !viewing && (
+      {openGapOf && !isDrawing && !spot && !openMark && !memory && !recordingVoice && !options && !viewing && (
         <GapCard
           stretch={openGap}
+          gap={openGapOf}
           busy={gapBusy}
           style={{ bottom: insets.bottom + 92 + 68 + 12 }}
           onClose={() => setGapOpen(null)}
           onKeep={() => void decideGap('kept')}
           onDismiss={() => void decideGap('dismissed')}
+          onDraw={() => {
+            setGapOpen(null);
+            setFollowing(false);
+            drawing.start(openGapOf);
+          }}
         />
       )}
+      {isDrawing && <GapDraw drawing={drawing} style={{ top: insets.top + 12, zIndex: 6 }} />}
       <ExploreSettings
         visible={settingsOpen}
         hasRing={!!live.here}
@@ -1651,6 +1682,7 @@ const styles = StyleSheet.create({
   toast: { backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 14, alignSelf: 'center' },
   toastText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
   captures: { position: 'absolute', left: 0, right: 0, alignItems: 'center', gap: 12 },
+  hidden: { display: 'none' },
   captureRow: { flexDirection: 'row', alignItems: 'center', gap: 20 },
   slot: { width: 68, height: 68, alignItems: 'center', justifyContent: 'center' },
   round: {

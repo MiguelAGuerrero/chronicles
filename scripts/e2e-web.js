@@ -1002,7 +1002,7 @@ function check(ok, what) {
     await pg.reload();
     await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
     await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
-    const mapState = () => pg.locator('[data-faint]').last().evaluate((e) => ({ runs: Number(e.dataset.runs), faint: Number(e.dataset.faint) }));
+    const mapState = () => pg.locator('[data-faint]').last().evaluate((e) => ({ runs: Number(e.dataset.runs), faint: Number(e.dataset.faint), links: Number(e.dataset.gaplinks ?? -1), drawing: Number(e.dataset.drawing ?? -1), center: e.dataset.center ?? '' }));
     let st = await mapState();
     for (let k = 0; k < 20 && !(st.faint === 1 && st.runs === 4); k++) {
       await pg.waitForTimeout(1000);
@@ -1036,6 +1036,24 @@ function check(ok, what) {
     await pg.click('[data-testid=walk-options]');
     await pg.waitForTimeout(400);
     check(underOptions === 0 && (await pg.locator('[data-testid=gap-card]').count()) === 0, `gaps audit 7: the walk's options close the stretch's card, and it doesn't come back (${underOptions})`);
+    // Drawing on the walk screen (GW1, GW8): the card offers Draw my way; drawing hides the capture
+    // row and stops following, so a new fix doesn't move the map; Cancel leaves the gap as it was.
+    await tap(at(1.6, -0.5));
+    check((await pg.locator('[data-testid=gap-draw]').count()) === 1, 'GW1: an offered stretch\'s card has Draw my way');
+    await pg.click('[data-testid=gap-draw]').catch(() => {});
+    await pg.waitForSelector('[data-testid=gap-draw-bar]', { timeout: 5000 }).catch(() => {});
+    const centerBefore = (await mapState()).center;
+    await c.setGeolocation({ longitude: here[0] + 0.0004, latitude: here[1], accuracy: 6 });
+    await pg.waitForTimeout(2500);
+    const drawingNow = await mapState();
+    check((await pg.locator('[data-testid=gap-draw-bar]').count()) === 1 && !(await pg.locator('[data-testid=cap-photo]').isVisible().catch(() => false)) && drawingNow.center === centerBefore,
+      `GW8: drawing on the walk screen hides the capture row and a new fix doesn't move the map (${centerBefore} → ${drawingNow.center})`);
+    await pg.click('[data-testid=gap-draw-cancel]').catch(() => {});
+    await pg.waitForTimeout(600);
+    const afterCancel = await mapState();
+    check((await pg.locator('[data-testid=gap-draw-bar]').count()) === 0 && afterCancel.faint === 1 && afterCancel.drawing === 0, `GW4: Cancel leaves the gap as it was (${JSON.stringify(afterCancel)})`);
+    await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
+    await pg.waitForTimeout(1500);
     await tap(at(1.6, -0.5));
     await pg.click('[data-testid=gap-keep]');
     for (let k = 0; k < 10 && (st = await mapState()).runs !== 3; k++) await pg.waitForTimeout(500);
@@ -1090,6 +1108,41 @@ function check(ok, what) {
       check(r.runs === onCard.runs + 1, `gaps: Not this way breaks the line again on the replay (G10, G12: ${onCard.runs} → ${r.runs})`);
       const stored = await rows();
       check(stored.includes('dismissed:Thayer Street'), `gaps: Not this way is stored too (G10: ${JSON.stringify(stored)})`);
+      // A dismissed gap is joined by a dotted line; tapping it opens its card, and its way can be drawn (GW1-GW5, GW7).
+      let dotted = await mapState();
+      for (let k = 0; k < 10 && dotted.links !== 1; k++) {
+        await pg.waitForTimeout(500);
+        dotted = await mapState();
+      }
+      check(dotted.links === 1, `GW2: a dismissed gap is joined by a dotted line (${JSON.stringify(dotted)})`);
+      await tap(at(11, 0.6));
+      const empty = await pg.locator('[data-testid=gap-title]').innerText().catch(() => '');
+      check(/^Not recorded for \d+ min$/.test(empty) && (await pg.locator('[data-testid=gap-draw]').count()) === 1 && (await pg.locator('[data-testid=gap-keep]').count()) === 0,
+        `GW1, GW2: tapping the dotted line opens its card, with Draw my way ("${empty}")`);
+      await pg.click('[data-testid=gap-draw]').catch(() => {});
+      await pg.waitForSelector('[data-testid=gap-draw-bar]', { timeout: 5000 }).catch(() => {});
+      await pg.waitForTimeout(800);
+      const startPts = (await mapState()).drawing;
+      // Two taps along Thayer Street; Undo takes the second away; tap it again.
+      await tap(at(11, -0.8));
+      await tap(at(11, 1.2));
+      const two = (await mapState()).drawing;
+      await pg.click('[data-testid=gap-draw-undo]').catch(() => {});
+      await pg.waitForTimeout(500);
+      const undone = (await mapState()).drawing;
+      check(startPts >= 1 && two > undone && undone > startPts, `GW3, GW4: taps grow the line along the street, and Undo takes the last away (${startPts} → ${two} → ${undone} points)`);
+      await tap(at(11, 1.2));
+      const barText = await pg.locator('[data-testid=gap-draw-bar]').innerText().catch(() => '');
+      check(!/couldn.t be read/i.test(barText), `GW7: the paths around the taps were read ("${barText.replace(/\n/g, ' · ')}")`);
+      await pg.click('[data-testid=gap-draw-done]').catch(() => {});
+      let drawn = await mapState();
+      for (let k = 0; k < 30 && drawn.runs !== onCard.runs; k++) {
+        await pg.waitForTimeout(500);
+        drawn = await mapState();
+      }
+      const keptNow = await rows();
+      check(drawn.runs === onCard.runs && drawn.links === 0 && drawn.drawing === 0 && keptNow.filter((x) => x.startsWith('kept')).length === 2,
+        `GW5: Done keeps the drawn way: one line again, no dotted join (${JSON.stringify(drawn)}, ${JSON.stringify(keptNow)})`);
     }
     await c.close();
   };

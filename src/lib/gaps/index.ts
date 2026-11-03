@@ -2,7 +2,7 @@ import { db } from '../db';
 import { fetchTiles } from '../discovery/tileFetch';
 import { boundsOf } from '../geo';
 import type { ReadTrace } from '../rides';
-import { deriveSegments } from '../streets';
+import { deriveSegments, type RoadFeature } from '../streets';
 import { tilesIn } from '../tileMath';
 import type { GapDecision } from '../types';
 import { decisionFor, gapKey, gapsOf, inferGap, readBounds, stretchesFor, type Gap, type Inference, type Stretch } from './infer';
@@ -56,6 +56,8 @@ async function knownFor(walkId: string, g: Gap): Promise<Inference | null | unde
 
 export interface WalkStretches {
   stretches: Stretch[];
+  /** Every gap worth reading, with a stretch or not (GW2). */
+  gaps: Gap[];
   /** A gap with no decision whose streets couldn't be read: snap again later (G8). */
   unread: boolean;
 }
@@ -67,7 +69,7 @@ export interface WalkStretches {
  */
 export async function walkStretches(walkId: string, tr: ReadTrace, opts: { read: boolean }): Promise<WalkStretches> {
   const gaps = gapsOf(tr);
-  if (!gaps.length) return { stretches: [], unread: false };
+  if (!gaps.length) return { stretches: [], gaps, unread: false };
   const decisions = await db.getGapDecisions(walkId).catch(() => [] as GapDecision[]);
   const undecided = gaps.filter((g) => !decisionFor(g, decisions));
   const inferred: Inference[] = [];
@@ -78,7 +80,15 @@ export async function walkStretches(walkId: string, tr: ReadTrace, opts: { read:
     if (inf === undefined) unread = true;
     else if (inf) inferred.push(inf);
   }
-  return { stretches: stretchesFor(gaps, inferred, decisions), unread };
+  return { stretches: stretchesFor(gaps, inferred, decisions), gaps, unread };
+}
+
+/** The road features of some z14 tiles, read in code, for drawing a gap's way (GW7); null when they can't be read. */
+export async function readDrawTiles(tiles: [number, number][]): Promise<{ roads: RoadFeature[]; names: RoadFeature[]; build: string } | null> {
+  const [build, url] = await Promise.all([db.getMeta('tile_build'), db.getMeta('tile_url')]);
+  if (!build || !url || !tiles.length) return null;
+  const f = await fetchTiles(url, tiles).catch(() => null);
+  return f ? { roads: f.roads, names: f.names, build } : null;
 }
 
 /** Keeps or dismisses a stretch (G10). */
