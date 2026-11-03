@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import type { CapturePin } from '../lib/pins';
+import { Image, StyleSheet, Text, View } from 'react-native';
+import { pinThumb, type CapturePin } from '../lib/pins';
+import { useMediaUri } from '../lib/useMediaUri';
 import { COLORS } from './map/types';
 import { Enter } from './Enter';
 import { Icon, KIND_ICON, KIND_LABEL } from './icons';
@@ -18,6 +19,9 @@ const PIN_COLOR: Record<CapturePin['kind'], string> = {
 
 /** Height of the pin view; it is anchored at its bottom, the point it marks. */
 export const PIN_HEIGHT = 44;
+/** The ring of the photo colour around a pin's picture (QL26), inside the head's white edge. */
+const THUMB_RING = 2.5;
+const THUMB_SIZE = 36 - 2 * 2 - 2 * THUMB_RING;
 
 /**
  * A capture's marker on the map: a head with its kind's icon (or, for several
@@ -29,12 +33,32 @@ export function CapturePinView({ pin, faint = false, drop: dropNow = false }: { 
   const [drop] = useState(dropNow);
   const n = pin.captures.length;
   const color = n > 1 ? (pin.kind === 'mixed' ? MIXED : PIN_COLOR[pin.kind]) : PIN_COLOR[pin.kind];
+  // One photo's small copy, never the full photo (QL26). The ref is resolved once per
+  // change of it (useMediaUri's effect keys on it), never per render.
+  const thumb = pinThumb(pin);
+  const uri = useMediaUri(thumb ? { ...pin.captures[0], file_path: thumb } : null);
+  // The icon shows until the picture has painted, and again if it won't load.
+  const [loaded, setLoaded] = useState<string | null>(null);
+  const [failed, setFailed] = useState<string | null>(null);
+  const picture = uri && uri !== failed ? uri : null;
+  const painted = !!picture && picture === loaded;
   const view = (
     <View style={styles.wrap} pointerEvents="none">
       {/* A memory from an earlier walk: the same round pin, smaller and faded (MR3). */}
       <View style={[styles.pin, faint && styles.faint]}>
         <View style={[styles.head, { backgroundColor: color }]}>
-          {n > 1 ? <Text style={styles.count}>{n}</Text> : <Icon name={KIND_ICON[pin.kind]} size={18} color="#ffffff" />}
+          {n > 1 ? <Text style={styles.count}>{n}</Text> : !painted && <Icon name={KIND_ICON[pin.kind]} size={18} color="#ffffff" />}
+          {picture && (
+            <Image
+              testID="pin-thumb"
+              source={{ uri: picture }}
+              style={styles.thumb}
+              resizeMode="cover"
+              accessibilityIgnoresInvertColors
+              onLoad={() => setLoaded(picture)}
+              onError={() => setFailed(picture)}
+            />
+          )}
         </View>
         <View style={[styles.stem, { backgroundColor: color }]} />
       </View>
@@ -81,6 +105,10 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     shadowOffset: { width: 0, height: 1 },
     elevation: 3,
+  },
+  // Over the icon until it paints, leaving a ring of the head's photo colour (QL26).
+  thumb: {
+    position: 'absolute', left: THUMB_RING, top: THUMB_RING, width: THUMB_SIZE, height: THUMB_SIZE, borderRadius: THUMB_SIZE / 2,
   },
   stem: { width: 3, height: 8, borderBottomLeftRadius: 2, borderBottomRightRadius: 2 },
   count: { color: '#ffffff', fontSize: 15, fontWeight: '800', fontVariant: ['tabular-nums'] },

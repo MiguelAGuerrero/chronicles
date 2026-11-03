@@ -10,7 +10,7 @@ import { MarkPinView, markKey, markLabel, type MarkPin } from '../MarkPinView';
 import { StripLabel } from '../LandingMarks';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { Star } from '../../lib/places';
-import { metersPerPixel, type CapturePin } from '../../lib/pins';
+import { metersPerPixel, pinThumb, type CapturePin } from '../../lib/pins';
 import { scaleBar } from '../../lib/scaleBar';
 import { traceEnds } from '../../lib/traceEnds';
 import type { RoadFeature } from '../../lib/streets';
@@ -750,7 +750,8 @@ function usePinMarkers(
     for (const pin of pins) {
       live.add(pin.id);
       const ids = pin.captures.map((c) => c.id).join(',');
-      const key = `${pin.lngLat.join(',')}|${pin.kind}|${ids}|${interactive}`;
+      // With the photo's small copy, so a copy made after the pin was drawn shows without a reload (QL27).
+      const key = `${pin.lngLat.join(',')}|${pin.kind}|${ids}|${interactive}|${pinThumb(pin) ?? ''}`;
       const existing = markers.current.get(pin.id);
       if (existing?.key === key) continue;
       if (existing) drop(existing);

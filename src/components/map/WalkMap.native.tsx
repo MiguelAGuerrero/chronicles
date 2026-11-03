@@ -10,7 +10,7 @@ import { namedStars, StarView, starLabel } from '../StarView';
 import type { RoadFeature } from '../../lib/streets';
 import type { Capture, LngLat } from '../../lib/types';
 import { TILEJSON_URL } from '../../lib/tiles';
-import { metersPerPixel } from '../../lib/pins';
+import { metersPerPixel, pinThumb } from '../../lib/pins';
 import { scaleBar } from '../../lib/scaleBar';
 import { traceEnds } from '../../lib/traceEnds';
 import { ScaleBar, SCALE_MAX_PX } from './ScaleBar';
@@ -347,7 +347,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             before this walk's pins so those stay on top (audit 6). */}
         {memoryPins.map((pin) => (
           <Marker
-            key={`memory:${pin.id}:${pin.captures.map((c) => c.id).join(',')}`}
+            key={`memory:${pin.id}:${pin.captures.map((c) => c.id).join(',')}:${pinThumb(pin) ?? ''}`}
             id={`memory:${pin.id}`}
             lngLat={pin.lngLat}
             anchor="bottom"
@@ -365,10 +365,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         ))}
         {/* The Marker's own onPress: on iOS the annotation's tap recognizer
             swallows touches meant for a Pressable inside it. */}
+        {/* The photo's small copy is in the key, so one made after the pin was drawn shows (QL27). */}
         {pins.map((pin) => (
           <Marker
-            key={`${pin.id}:${pin.captures.length}`}
-            id={`${pin.id}:${pin.captures.length}`}
+            key={`${pin.id}:${pin.captures.length}:${pinThumb(pin) ?? ''}`}
+            id={`${pin.id}:${pin.captures.length}:${pinThumb(pin) ?? ''}`}
             lngLat={pin.lngLat}
             anchor="bottom"
             onPress={props.onPinPress ? () => props.onPinPress?.(pin.captures) : undefined}

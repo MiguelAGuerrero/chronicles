@@ -1,4 +1,5 @@
 import { distanceM } from './geo';
+import { THUMB } from './thumbPlan';
 import type { Capture, CaptureKind, LngLat } from './types';
 
 /** Pins closer than this on screen merge into one, with a count. */
@@ -50,4 +51,17 @@ export function pinsFor(captures: Capture[], radiusM: number): CapturePin[] {
     }
   }
   return pins;
+}
+
+/**
+ * The stored ref of the small copy a pin's head shows (QL26): only for a pin of
+ * one photo whose copy is made. Never the full photo: while the copy is being
+ * made, or for a photo that won't decode, the pin keeps its icon, so a map never
+ * decodes full photos. A pin of several keeps its count.
+ */
+export function pinThumb(pin: CapturePin): string | null {
+  if (pin.captures.length !== 1) return null;
+  const c = pin.captures[0];
+  if (c.kind !== 'photo' || !c.thumb_path || c.thumb_path === THUMB.none) return null;
+  return c.thumb_path;
 }
