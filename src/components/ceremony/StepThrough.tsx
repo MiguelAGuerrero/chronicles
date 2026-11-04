@@ -5,6 +5,7 @@ import type { Capture } from '../../lib/types';
 import { focusOn } from '../../lib/focus';
 import { CaptureContent } from '../CaptureView';
 import { KIND_LABEL } from '../icons';
+import { theme } from '../ui';
 import { timeOf } from './layout';
 
 /** Taps this soon after a moment appears are ignored, so a double tap skips nothing. */
@@ -94,5 +95,5 @@ export function StepThrough(props: {
 }
 
 const styles = StyleSheet.create({
-  moment: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(20,24,32,0.85)' },
+  moment: { ...StyleSheet.absoluteFill, backgroundColor: theme.scrim },
 });

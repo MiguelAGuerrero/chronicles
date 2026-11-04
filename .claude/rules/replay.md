@@ -60,9 +60,21 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
   the story was rebuilt (a moment deleted from the viewer).
 - A trace's standstill is kept as its two end fixes (`smoothDwells`), minutes apart:
   `ReplayData.stays` says which holes are stands, so the story joins them rather than
-  playing a cut (`joinStills`). A pause is a break however short.
-- A memo's bubble stays until the memo has played; a memo the viewer started by hand
-  (sound refused) plays past its slot. A card's video starts when the player is ready.
+  playing a cut (`joinStills`). A pause is a break however short, and a stop's arriving
+  and leaving never cross a run's edge (audit 21). Through a stretch the clock rolls
+  with the stretch's time, eased, so a stand inside it never leaps (audit 24).
+- **Media lead, the clock waits** (audits 20, 23): a memo or video asks the stage to
+  wait (`useMediaWait`, deciding with `mediaWait`) while it is behind its slot, or not
+  done when the slot ends; the clock stands still while the medium plays on. One that
+  never starts is waited for 2 s; one stuck where it is (a file that won't play) for
+  2 s more; one that plays, up to its length (30 s at least). Hold and the viewer
+  pause the medium itself (`ctx.held`, `ctx.paused`); a wait never does, or it would
+  never catch up. A memo started by hand plays to its end and resumes after Hold.
+- **A rebuilt telling keeps its place** (audit 22): deleting a moment from the pile,
+  Undo, or editing a note rebuilds the story; `useCeremonyClock` re-anchors to the same
+  time of day (`msAtClock`), so nothing ahead is skipped.
+- **Picking a ceremony**: the route parameter `style` (`ceremonyFor(style)`); the walk
+  replay's `ceremony=0` means a re-watch, not a ceremony (audit 25).
 - The trace is rebuilt from the frame at 66 ms buckets, not every frame, so on a zip
   the line trails the walker (deferred).
 - `CaptureContent` plays a voice memo or video itself and is keyed by capture id, so

@@ -11,13 +11,15 @@ export interface StageCtx {
   insets: { top: number; bottom: number; left: number; right: number };
   /** Where the map is centred and its zoom, while it follows the walker; null when it doesn't (reduce motion). */
   center: LngLat | null;
-  zoom: number;
+  zoom: number | null;
   held: boolean;
   /** A viewer is open over the stage: the clock stands still and so does any sound (audit 4). */
   paused: boolean;
   reduceMotion: boolean;
   /** Opens captures in the viewer (the replay holds while it is open). */
   open(captures: Capture[]): void;
+  /** A memo or video asks the stage's clock to wait for it, or lets it go (audit 20). Stable across renders. */
+  wait(key: string, on: boolean): void;
 }
 
 export const PILE = { w: 64, h: 80, thumb: 56 } as const;
@@ -42,9 +44,9 @@ export function restCenter(c: StageCtx): [number, number] {
 /** The bubbles' corner: as tall as the room under the top row. */
 export const cornerHeight = (c: StageCtx) => Math.max(0, c.height - c.insets.top - STAGE_TOP - c.insets.bottom - STAGE_BOTTOM);
 
-/** A place on screen, from its offset to the map's centre at the map's zoom; null when the map isn't following. */
+/** A place on screen, from its offset to the map's centre at the map's zoom; null when the map isn't held (no centre or no zoom, audit 25). */
 export function project(c: StageCtx, at: LngLat): [number, number] | null {
-  if (!c.center) return null;
+  if (!c.center || c.zoom == null) return null;
   const mpp = metersPerPixel(c.zoom, c.center[1]);
   const east = (at[0] - c.center[0]) * 111_320 * Math.cos((c.center[1] * Math.PI) / 180);
   const north = (at[1] - c.center[1]) * 111_320;

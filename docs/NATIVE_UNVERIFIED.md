@@ -156,4 +156,11 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] A memo pausing and resuming with Hold (expo-audio), and a video in its card (expo-video `VideoView`, `nativeControls={false}`)
 - [ ] The screen reader's steps (RR17), unchanged in behaviour but moved into `StepThrough`
 - [ ] The whisper's place on screen, projected from the map's centre and zoom (`layout.project`), against the native map's own tile size
+- [ ] `useMediaWait` on native: expo-video's `playingChange`, `playToEnd` and `currentTime`, expo-audio's status, holding the stage until a medium catches up
+- [ ] A memo started by hand resuming after Hold, and pausing under the native viewer Modal
+- [ ] MapLibre RN's camera going where `follow` says when it isn't gliding (`WalkMap.native`, audit 25)
+- [ ] `VideoView` inside a `pointerEvents="none"` wrapper on iOS, with Tap for sound above it
+- [ ] The bubbles' column (`maxHeight`, `overflow: hidden`) clipping Android elevation shadows; the card and corner with side safe-area insets in landscape
+- [ ] `tickClock`'s 250 ms cap when iOS suspends JS timers with the app in the background
+- [ ] `toLocaleTimeString` under Hermes against iOS's 24-Hour Time switch (RR8, "the device's own clock format")
 

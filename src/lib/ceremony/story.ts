@@ -131,7 +131,12 @@ function stillSpan(p: StoryPath, tFirst: number, tLast: number, lo: number, hi: 
   const a0 = positionAt(p, tFirst);
   const a1 = positionAt(p, tLast);
   let i = lastAtOrBefore(p.ts, tFirst);
-  if (a0) {
+  // Never across a run's edge (audit 21): a capture in a gap or a pause, or at a run's last fix, leaves the break a break.
+  const inRun = (t: number) => {
+    const k = lastAtOrBefore(p.ts, t);
+    return k >= 0 && (p.ts[k] === t || (k + 1 < p.ts.length && p.runOf[k + 1] === p.runOf[k]));
+  };
+  if (a0 && inRun(tFirst)) {
     for (; i >= 0 && p.ts[i] >= lo; i--) {
       if (distanceM(p.ps[i], a0) > STILL_M) break;
       arrive = Math.min(arrive, p.ts[i]);
@@ -139,7 +144,7 @@ function stillSpan(p: StoryPath, tFirst: number, tLast: number, lo: number, hi: 
     }
   }
   let j = lastAtOrBefore(p.ts, tLast) + 1;
-  if (a1) {
+  if (a1 && inRun(tLast) && j < p.ts.length && j > 0 && p.runOf[j] === p.runOf[j - 1]) {
     for (; j < p.ts.length && p.ts[j] <= hi; j++) {
       if (distanceM(p.ps[j], a1) > STILL_M) break;
       leave = Math.max(leave, p.ts[j]);

@@ -9,7 +9,7 @@ import { traceRouteSource } from '../nav/traceRoute';
 import { timedRuns } from '../replay';
 import { walkStory } from '../ceremony/story';
 import { rhythmFrame, rhythmPlan, type RhythmPlan } from '../ceremony/rhythm';
-import { keptFixes, readTrace, rideRuns, ridingAt, RIDE_RULES, smoothKept, traceDistances } from '../rides';
+import { keptFixes, readTrace, rideRuns, ridingAt, RIDE_RULES, smoothKept, timedRideRuns, traceDistances } from '../rides';
 import { snap } from '../snapper';
 import type { Capture, LngLat, StreetSegment, TracePoint } from '../types';
 
@@ -307,7 +307,7 @@ const capture = (t: number): Capture => ({ id: `c${t}`, walk_id: 'w', t, lat: nu
 test('rides: the replay gives a long ride at most 4 s of the path, and stops at a capture on it (R10, RR1)', () => {
   const pts = trip([{ v: WALK, s: 300 }, { v: BUS, s: 1200 }, { v: WALK, s: 300 }], { reported: true });
   const tr = readTrace(pts, 0);
-  const p = rhythmOf(keptFixes(tr), [capture(900_000)]);
+  const p = rhythmOf(keptFixes(tr), [capture(900_000)], tr);
   const r = tr.rides[0];
   for (const s of p.segs) if (s.k === 'leg' && s.move && s.move.t1 > r.t0 && s.move.t0 < r.t1) assert.ok(s.t1 - s.t0 <= RIDE_RULES.replayMs, `a stretch on the ride takes ${s.t1 - s.t0} ms`);
   const stop = p.segs.find((s) => s.k === 'stop')!;
@@ -317,7 +317,7 @@ test('rides: the replay gives a long ride at most 4 s of the path, and stops at 
 test('rides: a ride is a stretch like any other, never longer than a glide and a zip (R10, RR1)', () => {
   const pts = trip([{ v: WALK, s: 600 }, { v: BUS, s: 40 }, { v: WALK, s: 600 }], { reported: true });
   const tr = readTrace(pts, 0);
-  const p = rhythmOf(keptFixes(tr));
+  const p = rhythmOf(keptFixes(tr), [], tr);
   const r = tr.rides[0];
   assert.ok(legMsOver(p, r.t0, r.t1) <= RIDE_RULES.replayMs);
 });
@@ -422,10 +422,12 @@ test('rides audit 7: a walk is titled by where you walked, not where you rode th
 });
 
 /** The rhythm's plan for a trace read with its rides, and its captures. */
-function rhythmOf(fixes: TracePoint[], captures: Capture[] = []): RhythmPlan {
+function rhythmOf(fixes: TracePoint[], captures: Capture[] = [], tr?: ReturnType<typeof readTrace>): RhythmPlan {
   return rhythmPlan(walkStory({
     walk: { id: 'w', started_at: fixes[0].t, ended_at: fixes.at(-1)!.t, title: null, epilogue: null, open: false, area: null, snapped_build: null },
-    fixes, walkedFixes: fixes, breaks: [], pauses: [], runs: timedRuns(fixes).map((r) => r.map((x) => x.p)), rideRuns: [], rideTimed: [], captures, passed: [],
+    fixes, walkedFixes: fixes, breaks: [], pauses: [], runs: timedRuns(fixes).map((r) => r.map((x) => x.p)),
+    // The trace's own rides, drawn dashed (R5), when the test read one.
+    rideRuns: tr ? rideRuns(tr) : [], rideTimed: tr ? timedRideRuns(tr) : [], captures, passed: [],
   }), { reduceMotion: false });
 }
 /** Replay time spent on stretches that overlap walk times t0 to t1. */

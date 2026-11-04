@@ -98,6 +98,27 @@ Regression tests: the unit ones (`replay-rhythm audit 1, 2, 5, 6, 9, 10, 11, 12,
 
 Rejected from its UI notes: the screen reader's steps saying "1 of 3" (RR17 keeps that path as it was, the owner's call). Noted: the Undo toast can sit over the clock for its 5 s after a deletion during the path (accepted as is).
 
+## Audit, round 2 (2026-11-04)
+
+A second `auditor` pass, independent, on `0307c75`. 10 findings (8 plus two from its UI notes): 9 accepted, 1 accepted in part, 0 rejected.
+
+20. A video or memo loses its end: the slot follows the replay's clock, not the player (an iPhone video refused sound starts muted 0.8 s late, a memo starts after it loads, a video of unknown length gets the 1 s floor): accept. While a playing medium is behind its slot, or not finished when its slot ends, the stage waits for it (`mediaWait`), up to 2 s for one that never starts and its own length for one that does. `replay-rhythm audit 20` (unit on `mediaWait`; e2e: the card's video reaches its end before it tucks).
+21. A capture at a run's end, or inside a gap or a pause, stretches its stop across the break, so no cut: accept. A stop's arriving and leaving never cross a run's edge. `replay-rhythm audit 21`.
+22. Rebuilding the story mid-path (a moment deleted from the pile, Undo, a note's words edited) keeps the time into the ceremony, so the replay jumps and moments ahead are skipped: accept. The time is re-anchored to the same time of day in the new telling (`msAtClock`). `replay-rhythm audit 22`.
+23. A memo started by hand is cut when its bubble leaves, and doesn't resume after Hold: accept. A memo started by hand holds the stage until it ends (with 20) and plays again after Hold. Covered with 20's `mediaWait` test and the e2e's memo check.
+24. A stand with no moment makes the clock leap minutes in one frame: accept. Through a stretch the clock rolls with the stretch's time, eased as the walker is; the walker still goes by the metres. `replay-rhythm audit 24` (through `readTrace` and `smoothKept`).
+25. The modularity still leaks: nothing can pick a ceremony (the screens call `ceremonyFor()` with no id, and the walk replay's `ceremony` parameter already means a re-watch); a frame with a centre and no zoom puts every projected overlay mid-screen; native centres on the walker, not the frame's camera: accept. A `style` route parameter names the ceremony; a stage with no zoom projects nothing; native follows `follow` when it isn't gliding. `replay-rhythm audit 25` (a unit test on `project`, a source scan that both screens pass a ceremony id).
+26. The day's card still counts a moment deleted during its replay: accept. The card and the story read the same day, less what was deleted (`dayWithout`). `replay-rhythm audit 26`.
+27. The memo's play button is 26 px on a moving bubble (hitSlop does nothing on the web): accept. 44 px. `replay-rhythm audit 27` (e2e).
+28. From its UI notes: the video card's progress bar is a progress bar (RR19): accept, gone. Covered by the e2e's flow.
+29. From its UI notes: rgba colours the hex scan misses (the Held pill, Tap for sound, the whisper's halo, the steps' backdrop): accept. From the theme. `replay-rhythm audit 19` now scans rgba too.
+
+In part: a video stored with a length of 0 (its metadata unreadable) still gets the 1 s floor in the plan; `mediaWait` then lets it play on up to the 30 s camera cap.
+
+Tests the auditor called weak, rewritten: `audit 10`'s second half asserted its own object (now `audit 25`'s `project` test); `audit 5` and the new `audit 24` run through `readTrace`, `smoothKept` and `dwellsOf` as `loadReplay` does; the rides helper passes the trace's own ride runs.
+
+Round 2's regression tests were written before their fixes (unit) or alongside them (e2e: `audit 20`, `27`, plus RR10's first e2e check). Writing them found one more: a memo whose file won't play still reports "playing", which held the stage for 30 s; a medium stuck where it is now counts as not playing after 2 s (`mediaWait`'s `stalledMs`).
+
 ## Record
 
-Not started: the code waits on the owner's go-ahead on `plan.md`.
+2026-11-04, branch `claude/replay-rhythm`. RR1-RR22 built test-first (decisions 0081, 0082) and passing: `npm test` (the `ceremony`, `core`, `days`, `rides` and `explore` suites), typecheck, lint, and the e2e journeys `check:affected` names (`replay`, new; `tabs`, `gaps`, `qol`, `marks`, `nudge`). Two audits: round 1, 19 findings (16 fixed, 1 deferred, 2 rejected); round 2, 10 findings (9 fixed, 1 fixed in part). Deferred: the trace trailing the walker mid-zip, keeping the screen awake (a new library), the Undo toast over the clock. RR17 (the screen reader's steps) has never run: it is native only. The full e2e flow (its replay and day blocks rewritten) runs when the owner asks.

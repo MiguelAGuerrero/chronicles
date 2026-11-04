@@ -84,7 +84,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - The home reads every capture row on focus; per-day counts would need storing (Moments and days)
 - Moment pins filtered to the viewport, `MOMENT_PIN_ZOOM` (Moments and days)
 - "Today" refreshing past midnight without a focus, `lib/days.ts` (Moments and days)
-- A day of only placeless moments replays over the world map, `dayPlan` (Moments and days)
+- A day of only placeless moments replays over the world map, `dayStory` (Moments and days)
 
 ## Captures, media and export
 

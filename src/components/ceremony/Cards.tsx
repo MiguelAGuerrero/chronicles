@@ -8,6 +8,7 @@ import { useMediaUri } from '../../lib/useMediaUri';
 import { Icon, KIND_LABEL } from '../icons';
 import { theme } from '../ui';
 import { cardWidth, PILE, pileCenter, project, restCenter, tiltOf, timeOf, type StageCtx } from './layout';
+import { useMediaWait } from './useMediaWait';
 
 const lerp = (a: number, b: number, u: number) => a + (b - a) * u;
 /** How long a video may take to start before it is treated as refused sound (as the viewer's player). */
@@ -26,16 +27,26 @@ function CardVideo({ o, ctx, uri, height }: { o: CardOverlay; ctx: StageCtx; uri
   });
   const [muted, setMuted] = useState(false);
   const [ready, setReady] = useState(() => player.status === 'readyToPlay');
+  const [started, setStarted] = useState(false);
+  const [ended, setEnded] = useState(false);
   const playing = useRef(false);
   const tried = useRef(false);
   useEventListener(player, 'playingChange', ({ isPlaying }) => {
     playing.current = isPlaying;
+    if (isPlaying) setStarted(true);
+  });
+  useEventListener(player, 'playToEnd', () => setEnded(true));
+  const stopped = ctx.held || ctx.paused;
+  const lenMs = Math.max(1000, Number(o.capture.body) || 0);
+  // The stage waits while the video is behind its slot or not done at its end (audit 20); it plays on meanwhile.
+  const waited = useMediaWait(o.key, ctx, {
+    inSlot: o.playing, slotOver: o.progress >= 1 && !ended, started, ended, positionMs: () => player.currentTime * 1000, planMs: o.progress * lenMs, lenMs, stopped,
   });
   // A player told to play before it has loaded ignores it on web: it starts once ready (audit 8).
   useEventListener(player, 'statusChange', ({ status }) => {
     if (status === 'readyToPlay') setReady(true);
   });
-  const want = o.playing && !ctx.held && !ctx.paused;
+  const want = (o.playing || waited) && !ended && !stopped;
   useEffect(() => {
     if (!want || !ready) {
       player.pause();
@@ -56,7 +67,6 @@ function CardVideo({ o, ctx, uri, height }: { o: CardOverlay; ctx: StageCtx; uri
       <View style={styles.fill} pointerEvents="none">
         <VideoView player={player} style={styles.fill} contentFit="cover" nativeControls={false} playsInline accessibilityLabel="Video" />
       </View>
-      <View pointerEvents="none" style={[styles.progress, { width: `${o.progress * 100}%` }]} />
       {muted && (
         <Pressable
           testID="video-sound"
@@ -148,10 +158,9 @@ const styles = StyleSheet.create({
   cap: { flexDirection: 'row', justifyContent: 'space-between', gap: 8, paddingVertical: 8, paddingHorizontal: 2 },
   capText: { flex: 1, fontSize: 13, color: theme.ink },
   capTime: { fontSize: 13, color: theme.muted, fontVariant: ['tabular-nums'] },
-  progress: { position: 'absolute', left: 0, bottom: 0, height: 3, backgroundColor: theme.surface },
   sound: {
     position: 'absolute', right: 6, top: 6, flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3,
+    backgroundColor: theme.chip, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3,
   },
   soundText: { color: theme.surface, fontSize: 11, fontWeight: '600' },
 });

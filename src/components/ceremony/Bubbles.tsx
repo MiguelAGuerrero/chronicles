@@ -1,5 +1,5 @@
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { BubbleOverlay } from '../../lib/ceremony/types';
 import { useMediaUri } from '../../lib/useMediaUri';
@@ -7,6 +7,7 @@ import { COLORS } from '../map/types';
 import { Icon } from '../icons';
 import { theme } from '../ui';
 import { cornerHeight, STAGE_BOTTOM, timeOf, type StageCtx } from './layout';
+import { useMediaWait } from './useMediaWait';
 
 const BARS = 22;
 /** A waveform's bar heights, fixed per memo: a picture of a voice, not a measurement. */
@@ -24,31 +25,39 @@ function MemoBubble({ o, ctx }: { o: BubbleOverlay; ctx: StageCtx }) {
   const uri = useMediaUri(o.capture);
   const player = useAudioPlayer(uri);
   const status = useAudioPlayerStatus(player);
-  // A memo the viewer started themselves (sound refused, then a tap) plays on past its slot (audit 8).
-  const byHand = useRef(false);
+  // A memo the viewer started themselves (sound refused, then a tap) plays to its end, and the stage waits for it (audits 8, 23).
+  const [byHand, setByHand] = useState(false);
   const stopped = ctx.held || ctx.paused;
-  const want = o.playing && !stopped;
+  const len = Number(o.capture.body) || 0;
+  const ended = status.didJustFinish || (status.duration > 0 && status.currentTime >= status.duration - 0.05);
+  // Started once it has moved: a file that won't play can still say it is playing.
+  const started = status.currentTime > 0;
+  const waited = useMediaWait(o.key, ctx, {
+    inSlot: o.playing, slotOver: (o.progress >= 1 || byHand) && !ended, started, ended,
+    positionMs: () => status.currentTime * 1000, planMs: o.progress * Math.max(1000, len), lenMs: Math.max(1000, len), stopped,
+  });
+  // Plays in its slot, while the stage waits for it, and after Hold if it was started by hand.
+  const want = (o.playing || waited || byHand) && !ended && !stopped;
   useEffect(() => {
     if (!status.isLoaded) return;
     if (want) player.play();
-    else if (stopped || !byHand.current) player.pause();
-  }, [want, stopped, status.isLoaded, player]);
-  const len = Number(o.capture.body) || 0;
+    else player.pause();
+  }, [want, status.isLoaded, player]);
   const lit = Math.round(o.progress * BARS);
   return (
     <View style={styles.memo}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={status.playing ? 'Pause voice memo' : 'Play voice memo'}
+        testID="memo-play"
         onPress={() => {
-          byHand.current = !status.playing;
+          setByHand(!status.playing);
           if (status.playing) player.pause();
           else player.play();
         }}
         style={styles.play}
-        hitSlop={8}
       >
-        <Icon name={status.playing ? 'pause' : 'play'} size={14} color={theme.surface} />
+        <Icon name={status.playing ? 'pause' : 'play'} size={18} color={theme.surface} />
       </Pressable>
       <View style={styles.memoBody}>
         <View style={styles.wave}>
@@ -120,7 +129,8 @@ const styles = StyleSheet.create({
   when: { fontSize: 12, color: theme.muted, marginTop: 2, fontVariant: ['tabular-nums'] },
   memo: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   memoBody: { gap: 2 },
-  play: { width: 26, height: 26, borderRadius: 13, backgroundColor: COLORS.voice, alignItems: 'center', justifyContent: 'center' },
+  // 44 pt: on an iPhone it is the only way to hear a memo, and hitSlop does nothing on the web (audit 27).
+  play: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.voice, alignItems: 'center', justifyContent: 'center' },
   wave: { flexDirection: 'row', alignItems: 'center', gap: 2, height: 24 },
   bar: { width: 3, borderRadius: 2 },
 });

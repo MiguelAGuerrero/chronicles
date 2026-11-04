@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AccessibilityInfo, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CaptureViewer } from '../../components/CaptureView';
@@ -15,7 +15,7 @@ import { db } from '../../lib/db';
 import { applyPatch, captureBus } from '../../lib/captureBus';
 import { ceremonyFor } from '../../lib/ceremony/registry';
 import { dayStory, pathDrawnAt, storySteps } from '../../lib/ceremony/story';
-import { buildDays, dayCaptures, dayCard, dayStart, nextDayStart, watchedKey, type Day } from '../../lib/days';
+import { buildDays, dayCaptures, dayCard, dayStart, dayWithout, nextDayStart, watchedKey, type Day } from '../../lib/days';
 import { launchRoute } from '../../lib/launchRoute';
 import { boundsOf, type Bounds } from '../../lib/geo';
 import { loadReplay, type ReplayData } from '../../lib/summary';
@@ -43,7 +43,8 @@ interface Loaded {
  * quiet card (M13). With a screen reader, its moments one at a time (RR17).
  */
 export default function DayReplay() {
-  const { key } = useLocalSearchParams<{ key: string }>();
+  // `style` names the ceremony that tells it (RR21, audit 25).
+  const { key, style } = useLocalSearchParams<{ key: string; style?: string }>();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const [data, setData] = useState<Loaded | null>(null);
@@ -127,19 +128,14 @@ export default function DayReplay() {
   }, [key]);
 
   // What happened that day, less any moment just deleted (D3), read once; the ceremony tells it (RR20, RR21).
+  // The story and the card read the same day, less what was deleted (audit 26).
+  const day = useMemo(() => (data ? dayWithout(data.day, hidden) : null), [data, hidden]);
   const story = useMemo(() => {
-    if (!data) return null;
-    const keep = (c: Capture) => !hidden.has(c.id);
-    const day: Day = {
-      ...data.day,
-      entries: data.day.entries.flatMap((e): Day['entries'] =>
-        e.kind === 'moment' ? (keep(e.capture) ? [e] : []) : [{ ...e, captures: e.captures.filter(keep) }],
-      ),
-    };
-    const walks = new Map([...data.walks].map(([id, r]) => [id, { ...r, captures: r.captures.filter(keep) }]));
+    if (!data || !day) return null;
+    const walks = new Map([...data.walks].map(([id, r]) => [id, { ...r, captures: r.captures.filter((c) => !hidden.has(c.id)) }]));
     return dayStory(day, walks);
-  }, [data, hidden]);
-  const showing = useMemo(() => (story ? ceremonyFor().show(story, { reduceMotion }) : null), [story, reduceMotion]);
+  }, [data, day, hidden]);
+  const showing = useMemo(() => (story ? ceremonyFor(style).show(story, { reduceMotion }) : null), [story, reduceMotion, style]);
   const onCard = phase.beat === 'card';
   const toCard = () => {
     setPhase({ beat: 'card', t0: Date.now() });
@@ -147,7 +143,18 @@ export default function DayReplay() {
     setFitKey((k) => k + 1);
   };
   const telling = phase.beat === 'path' && !srMode && showing != null;
-  const play = useCeremonyClock({ epoch: phase.t0, running: telling, paused: viewing != null, total: showing?.total ?? 0, onEnd: toCard });
+  // A memo or video catching up holds the clock (not the medium itself, audit 20).
+  const [waits, setWaits] = useState<ReadonlySet<string>>(() => new Set());
+  const wait = useCallback((k: string, on: boolean) => {
+    setWaits((w) => {
+      if (w.has(k) === on) return w;
+      const next = new Set(w);
+      if (on) next.add(k);
+      else next.delete(k);
+      return next;
+    });
+  }, []);
+  const play = useCeremonyClock({ epoch: phase.t0, running: telling, paused: viewing != null || waits.size > 0, showing, onEnd: toCard });
   const frame = telling ? showing.frame(play.ms) : null;
 
   // The card: the day marked watched, unless Skip reached it (M12, audit).
@@ -188,11 +195,11 @@ export default function DayReplay() {
   const followZoom = follow ? frame?.camera.zoom ?? null : null;
   const ctx: StageCtx = {
     width, height, insets, center: follow, zoom: followZoom ?? 0,
-    held: play.held, paused: viewing != null, reduceMotion, open: setViewing,
+    held: play.held, paused: viewing != null, reduceMotion, open: setViewing, wait,
   };
   // The card is computed once it is reached, not every frame (audit).
   const cardAt = onCard ? phase.t0 : 0;
-  const card = useMemo(() => (data && cardAt ? dayCard(data.day, cardAt, data.distance) : null), [data, cardAt]);
+  const card = useMemo(() => (data && day && cardAt ? dayCard(day, cardAt, data.distance) : null), [data, day, cardAt]);
 
   if (failure) throw failure;
   if (status !== 'ready' || !data || !story) {

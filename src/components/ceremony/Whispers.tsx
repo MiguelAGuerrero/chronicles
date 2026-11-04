@@ -32,6 +32,6 @@ export function Whispers({ items, ctx }: { items: WhisperOverlay[]; ctx: StageCt
 const styles = StyleSheet.create({
   whisper: {
     position: 'absolute', width: WIDTH, fontSize: 13, lineHeight: 17, fontStyle: 'italic', color: theme.ink,
-    textShadowColor: 'rgba(255,255,255,0.95)', textShadowRadius: 4, textShadowOffset: { width: 0, height: 0 },
+    textShadowColor: theme.surface, textShadowRadius: 4, textShadowOffset: { width: 0, height: 0 },
   },
 });

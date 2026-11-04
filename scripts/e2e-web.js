@@ -2297,13 +2297,17 @@ function check(ok, what) {
       const pause = P.pause;
       P.play = function () {
         window.__media.push([this.tagName, 'play', this.muted]);
-        if (this.tagName === 'VIDEO' && !this.muted && Date.now() - window.__tap > 1000) return Promise.reject(new DOMException('refused', 'NotAllowedError'));
+        // Once a tap has let an element's sound through, it plays with sound from then on (iOS keeps it per element).
+        if (this.tagName === 'VIDEO' && !this.muted && Date.now() - window.__tap <= 1000) this.__soundOk = true;
+        if (this.tagName === 'VIDEO' && !this.muted && !this.__soundOk) return Promise.reject(new DOMException('refused', 'NotAllowedError'));
         return play.call(this);
       };
       P.pause = function () {
         window.__media.push([this.tagName, 'pause']);
         return pause.call(this);
       };
+      // Media events don't bubble; the capture phase still sees them.
+      document.addEventListener('ended', (e) => window.__media.push([e.target.tagName, 'ended']), true);
     });
     const here = at(3.0, -0.5);
     await pg.goto(navUrl);
@@ -2385,12 +2389,20 @@ function check(ok, what) {
     await pg.waitForSelector('[data-testid=replay-clock]', { timeout: 60000 });
     // What the stage shows, recorded in the page every 50 ms: a card is up for about 2 s, quicker than a poll.
     await pg.evaluate(() => {
-      window.__rrSeen = { cards: [], later: [], notes: [], counted: [] };
+      window.__rrSeen = { cards: [], later: [], notes: [], counted: [], memoPlay: null, videoEndedInCard: false };
       const add = (list, v) => v && !list.includes(v) && list.push(v);
       window.__rrTimer = setInterval(() => {
         document.querySelectorAll('[data-testid=replay-card]').forEach((e) => add(window.__rrSeen.cards, e.getAttribute('aria-label')));
         document.querySelectorAll('[data-testid=replay-later]').forEach((e) => add(window.__rrSeen.later, e.textContent));
         document.querySelectorAll('[data-testid=replay-note]').forEach((e) => add(window.__rrSeen.notes, e.textContent));
+        const mp = document.querySelector('[data-testid=memo-play]');
+        if (mp) {
+          const b = mp.getBoundingClientRect();
+          window.__rrSeen.memoPlay = [Math.round(b.width), Math.round(b.height)];
+        }
+        // The video reached its end while its card was still up (audit 20).
+        const v = document.querySelector('[data-testid=replay-card] video');
+        if (v && v.ended) window.__rrSeen.videoEndedInCard = true;
         // The viewer (the pile opened) has its own "1 of 2"; the path itself counts nothing.
         const m = document.querySelector('[data-testid=viewer-close]') ? null : /\b\d+ of \d+\b/.exec(document.body.innerText);
         if (m) add(window.__rrSeen.counted, m[0]);
@@ -2492,6 +2504,8 @@ function check(ok, what) {
     check(/^20 min later$/.test(seen.later), `RR4: the gap is a cut, "20 min later" ("${seen.later}")`);
     check(!seen.counted, `RR19: nothing during the path counts ("${seen.counted}")`);
     check(soundChecked, 'replay-rhythm audit 3: the video came up muted with Tap for sound');
+    check(rec.videoEndedInCard, 'replay-rhythm audit 20: the card\u2019s video plays to its end before it tucks away');
+    check(rec.memoPlay && rec.memoPlay[0] >= 44 && rec.memoPlay[1] >= 44, `RR10, replay-rhythm audit 27: the memo's bubble shows, its play button 44 px (${JSON.stringify(rec.memoPlay)})`);
 
     // A landscape phone: the card stands between the top row and the corner, clear of the buttons (replay-rhythm audit 13).
     await pg.setViewportSize({ width: 844, height: 390 });

@@ -52,7 +52,8 @@ export { ScreenError as ErrorBoundary } from '../../components/ScreenError';
 
 export default function Replay() {
   useUnits();
-  const { id, ceremony } = useLocalSearchParams<{ id: string; ceremony?: string }>();
+  // `ceremony=0` is a re-watch (from the log, or Watch again); `style` names the ceremony that tells it (RR21, audit 25).
+  const { id, ceremony, style } = useLocalSearchParams<{ id: string; ceremony?: string; style?: string }>();
   const insets = useSafeAreaInsets();
   const mapRef = useRef<WalkMapHandle>(null);
   const [stored, setData] = useState<ReplayData | null>(null);
@@ -278,9 +279,20 @@ export default function Replay() {
 
   // What happened, read once; the ceremony tells it (RR20, RR21, decision 0082).
   const story = useMemo(() => (data ? walkStory(data) : null), [data]);
-  const showing = useMemo(() => (story ? ceremonyFor().show(story, { reduceMotion }) : null), [story, reduceMotion]);
+  const showing = useMemo(() => (story ? ceremonyFor(style).show(story, { reduceMotion }) : null), [story, reduceMotion, style]);
   const telling = beat === 'path' && !srMode && showing != null;
-  const play = useCeremonyClock({ epoch: phase.t0, running: telling, paused: viewing != null, total: showing?.total ?? 0, onEnd: () => go('card') });
+  // A memo or video catching up holds the clock (not the medium itself, audit 20).
+  const [waits, setWaits] = useState<ReadonlySet<string>>(() => new Set());
+  const wait = useCallback((k: string, on: boolean) => {
+    setWaits((w) => {
+      if (w.has(k) === on) return w;
+      const next = new Set(w);
+      if (on) next.add(k);
+      else next.delete(k);
+      return next;
+    });
+  }, []);
+  const play = useCeremonyClock({ epoch: phase.t0, running: telling, paused: viewing != null || waits.size > 0, showing, onEnd: () => go('card') });
   const frame = telling ? showing.frame(play.ms) : null;
 
   // The fog beat lights the streets, then the path begins.
@@ -329,7 +341,7 @@ export default function Replay() {
   const followZoom = follow ? frame?.camera.zoom ?? null : null;
   const ctx: StageCtx = {
     width, height, insets, center: follow, zoom: followZoom ?? 0,
-    held: play.held, paused: viewing != null, reduceMotion, open: setViewing,
+    held: play.held, paused: viewing != null, reduceMotion, open: setViewing, wait,
   };
 
   // Beat one: the walked streets light up out of the grey, in the order walked.

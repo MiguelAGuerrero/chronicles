@@ -38,5 +38,5 @@ const styles = StyleSheet.create({
   dim: { backgroundColor: theme.ink },
   top: { position: 'absolute', left: 0, right: 0, alignItems: 'center', gap: 8 },
   line: { backgroundColor: theme.ink, color: theme.surface, fontSize: 12, fontWeight: '600', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, overflow: 'hidden' },
-  held: { backgroundColor: 'rgba(255,255,255,0.95)', color: theme.ink, fontSize: 12, fontWeight: '600', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, overflow: 'hidden' },
+  held: { backgroundColor: theme.glass, color: theme.ink, fontSize: 12, fontWeight: '600', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, overflow: 'hidden' },
 });

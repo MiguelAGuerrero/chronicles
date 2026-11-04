@@ -141,3 +141,13 @@ export function dayCard(day: Day, now: number, distanceByWalk: Map<string, numbe
     walked: metres > 0 ? `${formatKm(metres)} walked` : null,
   };
 }
+
+/** The day less the moments just deleted (D3, audit 26): its story and its card read the same. The same day when nothing was. */
+export function dayWithout(day: Day, hidden: ReadonlySet<string>): Day {
+  if (!day.entries.some((e) => (e.kind === 'moment' ? hidden.has(e.capture.id) : e.captures.some((c) => hidden.has(c.id))))) return day;
+  const entries = day.entries.flatMap((e): Day['entries'] =>
+    e.kind === 'moment' ? (hidden.has(e.capture.id) ? [] : [e]) : [{ ...e, captures: e.captures.filter((c) => !hidden.has(c.id)) }],
+  );
+  const moments = entries.reduce((n, e) => n + (e.kind === 'moment' ? 1 : e.captures.length), 0);
+  return { ...day, entries, moments };
+}

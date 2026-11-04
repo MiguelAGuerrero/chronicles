@@ -106,6 +106,10 @@ export const REPLAY_RHYTHM = {
   mediaTail: 400,
   /** Shortest a memo or video slot is, whatever its stored length. */
   mediaMin: 1000,
+  /** Waiting for a medium (audit 20): one that never starts, how far behind counts as late, and the most for one that plays (the camera's cap). */
+  mediaStartWait: 2000,
+  mediaLag: 400,
+  mediaMaxWait: 30_000,
   /** Bubbles: how long one stays, how many at once, coming in and going. */
   bubbleLife: 9000,
   bubbles: 3,

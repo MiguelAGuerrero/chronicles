@@ -290,7 +290,8 @@ export function rhythmFrame(plan: RhythmPlan, ms: number): Frame {
       if (s.move) {
         here = legWalkTime(plan, s, u);
         walker = positionAt(story.paths[s.move.pathId], here) ?? s.from;
-        clock = here;
+        // The clock rolls with the stretch's time, eased as the walker is: a stand inside it rolls by, never leaps (audit 24).
+        clock = lerp(s.move.t0, s.move.t1, e);
       } else {
         walker = lerpAt(s.from, s.to, e);
         clock = lerp(s.travel!.t0, s.travel!.t1, e);
