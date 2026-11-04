@@ -946,6 +946,41 @@ function check(ok, what) {
   // with past times (a real gap would take minutes), then reloaded. Along Thayer Street, with
   // nowhere else to have been, the gap fills by itself; along Transit Street in a grid, slowly,
   // it is offered faint until kept. E2E_ONLY=gaps runs it alone.
+  // The fog (FR9, the fog-refresh slice, Nov 4): the walk screen's fog shell reads the streets
+  // around the walker on the first fix, then once per 100 m. Read through the map's data-fog and
+  // the shell's perf counter (fog:read). E2E_ONLY=fog runs it alone.
+  const fogScenario = async () => {
+    const { c, pg } = await freshPage('fog');
+    await c.addInitScript(() => { window.__perf = {}; });
+    const start = at(0, -0.5);
+    const fixAt = async (p) => {
+      await c.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+      await pg.waitForTimeout(1000);
+    };
+    await c.setGeolocation({ longitude: start[0], latitude: start[1], accuracy: 6 });
+    await pg.goto(navUrl);
+    await pg.waitForSelector('[data-testid=start]');
+    await pg.click('[data-testid=start]');
+    await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+    for (let k = 0; k < 3; k++) await fixAt([start[0], start[1] + k * 0.000001]);
+    const fogCount = () => pg.locator('[data-fog]').last().evaluate((e) => Number(e.dataset.fog));
+    const reads = () => pg.evaluate(() => window.__perf['fog:read'] ?? 0);
+    let drawn = 0;
+    for (let k = 0; k < 20 && !(drawn = await fogCount()); k++) await pg.waitForTimeout(1000);
+    check(drawn > 0, `FR9: the fog is drawn after the first read (${drawn} pieces, ${await reads()} reads)`);
+    const r0 = await reads();
+    for (const x of [0.1, 0.2, 0.3, 0.4, 0.5]) await fixAt(at(x, -0.5));
+    await pg.waitForTimeout(1500);
+    const r1 = await reads();
+    check(r1 === r0, `FR9: a move under 100 m reads nothing (${r0} reads, then ${r1} after 50 m)`);
+    for (const x of [0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5]) await fixAt(at(x, -0.5));
+    await pg.waitForTimeout(3000);
+    const r2 = await reads();
+    check(r2 === r0 + 1, `FR9: a move past 100 m reads once (${r0} reads, then ${r2} after 150 m)`);
+    check((await fogCount()) > 0, `FR9: the fog is still drawn after the second read (${await fogCount()} pieces)`);
+    await c.close();
+  };
+
   const gapsScenario = async () => {
     const { c, pg } = await freshPage('gaps');
     await c.addInitScript(() => { window.__perf = {}; });
@@ -2077,6 +2112,11 @@ function check(ok, what) {
     }
     if (process.env.E2E_ONLY === 'marks') {
       await marksRepro();
+      check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
+      return;
+    }
+    if (process.env.E2E_ONLY === 'fog') {
+      await fogScenario();
       check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
       return;
     }

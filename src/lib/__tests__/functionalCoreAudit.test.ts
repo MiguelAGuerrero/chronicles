@@ -148,10 +148,17 @@ test('functional-core audit 7: the baselines never grow past slice 1', () => {
   // 26: the rule landed on main (Nov 4) after main's launch commit (NV2 launch) added _layout.tsx's db import.
   // 24: Navigate, ready (Nov 4): navigate.tsx is an entry route, and the ready screen's effects are lib/ready.
   const SUPPRESSED_CEILING = 24;
+  // 23: shells importing the db, recorder or notifier when FR8 landed (the fog slice, Nov 4).
+  const SHELL_CEILING = 23;
   const baseline = JSON.parse(readFileSync(join(__dirname, 'layers.baseline.json'), 'utf8')) as string[];
   for (const id of baseline) assert.ok(LAYERS_CEILING.includes(id), `${id} is new in layers.baseline.json: fix it instead`);
-  const total = Object.values(suppressions()).reduce((n, rules) => n + Object.values(rules).reduce((k, r) => k + r.count, 0), 0);
-  assert.ok(total <= SUPPRESSED_CEILING, `${total} suppressed violations, over slice 1's ${SUPPRESSED_CEILING}: fix the new ones instead`);
+  const shells = new Set(layers.filesOfLayer(ROOT, 'shell'));
+  const count = (pick: (file: string) => boolean) =>
+    Object.entries(suppressions()).filter(([f]) => pick(f)).reduce((n, [, rules]) => n + Object.values(rules).reduce((k, r) => k + r.count, 0), 0);
+  const inShells = count((f) => shells.has(f));
+  const inViews = count((f) => !shells.has(f));
+  assert.ok(inViews <= SUPPRESSED_CEILING, `${inViews} suppressed view imports, over the ceiling of ${SUPPRESSED_CEILING}: fix the new ones instead`);
+  assert.ok(inShells <= SHELL_CEILING, `${inShells} suppressed shell imports, over the ceiling of ${SHELL_CEILING}: fix the new ones instead`);
 });
 
 test('functional-core audit 8: FC5 flags only the db, recorder, notifier and ports bindings, not other values from their modules', async () => {

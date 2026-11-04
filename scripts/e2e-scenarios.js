@@ -47,6 +47,10 @@ const SCENARIOS = [
     covers: ['src/lib/gaps/**', 'src/components/GapCard.tsx', 'src/app/replay/**', 'src/app/walk.tsx'],
   },
   {
+    name: 'fog',
+    covers: ['src/lib/fog/**', 'src/app/walk.tsx', 'src/lib/streets.ts', 'src/lib/discovery/tilePois.ts', 'src/components/map/**'],
+  },
+  {
     name: 'hidden',
     covers: ['src/lib/{hiddenLog,useLiveTrace}.ts', 'src/components/OpenWalk.tsx', 'src/app/walk.tsx'],
   },

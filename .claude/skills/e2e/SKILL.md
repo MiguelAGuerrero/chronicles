@@ -33,6 +33,7 @@ A run exits non-zero on the first failed check and prints `ok - ...` lines.
 | `marks` | an exploring walk through an area read before draws the marks it passes (Nov 2 repro) |
 | `reload` | a reload with a walk minimized keeps the walk reachable: the bar's ›, its Stop, the tabs |
 | `qol` | map staples QL1-QL12: Locate, the scale bar, the trace's end markers |
+| `fog` | the walk screen's fog: drawn after the first read, no read under 100 m, one read past it (FR9; `data-fog`, `window.__perf['fog:read']`) |
 | `gaps` | a walk with two GPS gaps written into storage, then a reload: one gap fills by itself, one is offered faint (G5, G6, G9, G10, G12; `window.__project`, `data-runs`, `data-faint`) |
 
 Add a scenario as a function in the script plus an `if (process.env.E2E_ONLY

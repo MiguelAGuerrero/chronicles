@@ -12,7 +12,7 @@ walk.tsx (view)                          lib/fog/shell.ts (shell)               
     collect: () => map.collectView() })       putSegments/putPlaces → getSegmentsIn →     → { fog, walked }
   useStore(fog.store, s => s.fog)             visitedSegmentIds (once) → fogOf → store
   on unmount: fog.close()                   close(): later results are dropped
-                                            newFog = () => createFog(ports)  (the app's constructor)
+  lib/fog/index.ts: newFog = () => createFog(ports)  (the app's constructor; apart, so tests never load the real db)
 ```
 
 One instance per walk screen (credited ids are read once per screen, and the last read's place is the screen's), so the shell exports a constructor rather than one shared instance.
@@ -21,7 +21,8 @@ One instance per walk screen (credited ids are read once per screen, and the las
 
 **New**
 - `src/lib/fog/rules.ts` (core): `FOG_RULES`, `fogDue`, `fogOf`, `midpointOf` (moved from `walk.tsx`, unchanged).
-- `src/lib/fog/shell.ts` (shell): `createFog`, `newFog`. Counts each read with `perfCount('fog:read')` for the journey.
+- `src/lib/fog/shell.ts` (shell): `createFog`. Counts each read with `perfCount('fog:read')` for the journey.
+- `src/lib/fog/index.ts` (shell): `newFog = () => createFog(ports)`, the app's constructor. Apart from `shell.ts` so a test of the shell never loads the real db.
 - `src/lib/__tests__/fog.test.ts`: the tests below.
 
 **Changed**

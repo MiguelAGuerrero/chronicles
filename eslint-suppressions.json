@@ -59,7 +59,42 @@
       "count": 1
     }
   },
+  "src/lib/atlas/read.ts": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
   "src/lib/atlas/useAtlas.ts": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/lib/deletion/index.ts": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/lib/discovery/recallCheck.ts": {
+    "no-restricted-syntax": {
+      "count": 2
+    }
+  },
+  "src/lib/discovery/tileFetch.ts": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/lib/explore/exploreRun.ts": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/lib/explore/momentFind.ts": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/lib/explore/settings.ts": {
     "no-restricted-syntax": {
       "count": 1
     }
@@ -69,12 +104,77 @@
       "count": 1
     }
   },
+  "src/lib/export/bundle.ts": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/lib/finish.ts": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/lib/gaps/index.ts": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
   "src/lib/gaps/useLiveStretches.ts": {
     "no-restricted-syntax": {
       "count": 1
     }
   },
+  "src/lib/here.ts": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/lib/landing/read.ts": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/lib/nav/store.ts": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
   "src/lib/nav/useNavigation.ts": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/lib/notify/index.ts": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/lib/session.ts": {
+    "no-restricted-syntax": {
+      "count": 3
+    }
+  },
+  "src/lib/shareLog.ts": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/lib/summary.ts": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/lib/tileCollector.ts": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/lib/tiles.ts": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/lib/unitsStore.ts": {
     "no-restricted-syntax": {
       "count": 1
     }

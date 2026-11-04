@@ -23,16 +23,17 @@ import { onRecallFired, onRecallOpen, onRecallWaiting, takeRecallOpen } from '..
 import { categoryOf } from '../lib/discovery/categories';
 import { deadZoneDue, deadZoneNudge, inDeadZone, stripAt } from '../lib/landing/walk';
 import { landingView, LANDING_VERSION, nearAreas, type LandingRow } from '../lib/landing/view';
-import { placesFromTilePois } from '../lib/discovery/tilePois';
 import { EXPLORE_KEY, exploredKey, kindOf } from '../lib/explore/explore';
 import { useExplore } from '../lib/explore/useExplore';
 import { db } from '../lib/db';
 import { focusOn } from '../lib/focus';
-import { boundsOf, distanceM, distanceToLinesM, nearPoints, pausedMs } from '../lib/geo';
+import { boundsOf, distanceM, pausedMs } from '../lib/geo';
+import { newFog, type FogState } from '../lib/fog';
+import { useStore } from '../lib/useStore';
 import { capturesHere, type HereResult } from '../lib/here';
 import { groupFirst, groupRadiusM, MEMORY_RULES, memoriesNear, memoryReader } from '../lib/memories';
 import { MemoryPreview } from '../components/MemoryPreview';
-import { deriveSegments, streetKey } from '../lib/streets';
+import { streetKey } from '../lib/streets';
 import { feedback } from '../lib/motion';
 import { recorder } from '../lib/recorder';
 import { PAUSE_REMIND_MS } from '../lib/notify';
@@ -42,7 +43,7 @@ import { retryRecorder } from '../lib/recorderRetry';
 import { useUnits } from '../lib/useUnits';
 import { pauseWalk, restartRecording, resumeWalk, stopWalk } from '../lib/session';
 import { formatDistance, formatDuration, formatElapsed } from '../lib/summary';
-import type { Capture, LngLat, Pause, StreetSegment, Walk } from '../lib/types';
+import type { Capture, LngLat, Pause, Walk } from '../lib/types';
 import { useCaptures } from '../lib/useCaptures';
 import { walkScreenShown } from '../lib/walkNav';
 import { askMotion, useMotionAccess } from '../lib/walkMotion';
@@ -61,17 +62,9 @@ import { useVisible } from '../lib/deletion/useDeletions';
 import { deletions } from '../lib/deletion';
 import { UndoToast } from '../components/UndoToast';
 
-/** Streets around the walker: read from the map and shown as fog this far out. */
-const NEAR_RADIUS_M = 1000;
-/** The streets around the walker are read again after this far. */
-const FOG_STEP_M = 100;
-/** A street piece whose middle the live trace passed this close to counts as walked for now. */
-const ON_TRACE_M = 20;
+const selectFog = (s: FogState) => s.fog;
+const selectWalked = (s: FogState) => s.walked;
 
-function midpointOf(s: StreetSegment): LngLat {
-  const line = s.geometry[0] ?? [];
-  return line[Math.floor(line.length / 2)] ?? [0, 0];
-}
 /** No accepted fix for this long while recording reads as weak GPS. */
 const WEAK_GPS_MS = 20_000;
 const NOTICE_MS = 6000;
@@ -230,8 +223,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const [note, setNote] = useState('');
   const [toast, setToast] = useState<string | null>(null);
   const [stopping, setStopping] = useState(false);
-  const [fog, setFog] = useState<StreetSegment[]>([]);
-  const [walked, setWalked] = useState<StreetSegment[]>([]);
   // The memo whose save failed at Stop; holding Stop again ends the walk without it.
   const giveUpMemo = useRef(false);
   const saveRef = useRef<PressableRef>(null);
@@ -323,55 +314,25 @@ function WalkScreen(props: { onMinimize: () => void }) {
   useEffect(() => {
     ensureTileBuild().then(setBuild, () => setBuild('unknown'));
   }, []);
-  const fogRun = useRef<{ busy: boolean; at: LngLat | null }>({ busy: false, at: null });
-  const visitedRef = useRef<Set<string> | null>(null);
-  const mountedRef = useRef(true);
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
+  // The fog (lib/fog, FR1-FR7): each fix goes to this screen's fog, which reads the streets
+  // when one is due and decides the fog; the screen only draws it.
+  const [fogShell] = useState(newFog);
+  useEffect(() => () => fogShell.close(), [fogShell]);
+  const fog = useStore(fogShell.store, selectFog);
+  const walked = useStore(fogShell.store, selectWalked);
   const liveRuns = useRef(live.runs);
   useEffect(() => {
     liveRuns.current = live.runs;
   }, [live.runs]);
   useEffect(() => {
-    const now = live.here;
-    const run = fogRun.current;
-    // Not on a ride: its streets aren't walked, and a bus would read the map every few seconds (rides audit 13).
-    if (!now || build == null || live.riding || run.busy || (run.at && distanceM(run.at, now) < FOG_STEP_M)) return;
-    run.busy = true;
-    run.at = now;
-    (async () => {
-      const features = await mapRef.current?.collectView().catch(() => null);
-      if (features?.complete && features.roads.length && build !== 'unknown') {
-        await db.putSegments(deriveSegments(features.roads, features.names, build)).catch(() => {});
-        // Not awaited: the fog shouldn't wait on the place cache.
-        db.putPlaces(placesFromTilePois(features.pois, build, { complete: features.complete })).catch(() => {});
-      } else if (!features?.complete) {
-        run.at = null; // zoomed out or not loaded yet: read the streets again on the next fix
-      }
-      const segs = (await db.getSegmentsIn(boundsOf([now], NEAR_RADIUS_M)!)).filter(
-        (x) => distanceToLinesM(now, x.geometry) <= NEAR_RADIUS_M,
-      );
-      // Credited streets change only at a stop: read once per walk screen.
-      visitedRef.current ??= await db.visitedSegmentIds();
-      const visited = visitedRef.current;
-      // The screen may have gone; a newer fix never cancels a run already under way (perf: a slow
-      // read on a phone was always thrown away by the next fix, 2 s later).
-      if (!mountedRef.current) return;
-      // Streets this walk has already gone down are only credited at stop;
-      // until then, those along the trace are left out of the fog.
-      const walkedNow = nearPoints(liveRuns.current.flat(), ON_TRACE_M);
-      setFog(segs.filter((x) => !visited.has(x.id) && !walkedNow(midpointOf(x))));
-      setWalked(segs.filter((x) => visited.has(x.id)));
-    })()
-      .catch(() => {})
-      .finally(() => {
-        run.busy = false;
-      });
-  }, [live.here, live.riding, build]);
+    void fogShell.refresh({
+      here: live.here,
+      riding: live.riding,
+      build,
+      runs: () => liveRuns.current,
+      collect: () => mapRef.current?.collectView() ?? Promise.resolve(null),
+    });
+  }, [live.here, live.riding, build, fogShell]);
   // Unwalked streets near me: a count, and the fog drawn boldly over a veiled map.
   const [showUnwalked, setShowUnwalked] = useState(false);
   // Named streets only (the owner's call): unnamed paths are fog, not a count.

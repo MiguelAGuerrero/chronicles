@@ -35,6 +35,7 @@ const restricted = { 'no-restricted-imports': ['error', { paths: restrictedPaths
 // the same reader `npm test` uses.
 const layers = require('./scripts/layers');
 const CORE = layers.filesOfLayer(__dirname, 'core');
+const SHELLS = layers.filesOfLayer(__dirname, 'shell').filter((f) => !layers.COMPOSITION_ROOTS.includes(f));
 const VIEWS = ['src/app/**/*.{ts,tsx}', 'src/components/**/*.{ts,tsx}', ...layers.filesOfLayer(__dirname, 'view')];
 
 module.exports = defineConfig([
@@ -51,6 +52,9 @@ module.exports = defineConfig([
   // Views don't import the db, recorder, notifier or ports (FC5). Its own rule
   // id, apart from the paths above, so a suppressed count can't hide one of them.
   { files: VIEWS, rules: { [layers.FC5_RULE]: layers.viewSingletonRule } },
+  // Shells take ports as an argument rather than importing the singletons (FR8); the
+  // composition root that builds the ports is the exception.
+  { files: SHELLS, rules: { [layers.FC5_RULE]: layers.shellSingletonRule } },
   // The wrappers the rules point at are the one place each import is allowed.
   { files: ['src/components/Modal.tsx'], rules: { 'no-restricted-imports': 'off' } },
   { files: ['src/lib/audioMode.native.ts'], rules: { 'no-restricted-imports': 'off' } },

@@ -134,7 +134,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 ## Functional core (slice 1)
 
-- Rules for shells (take `Ports`, never import the singletons): with the first shell, the fog-refresh slice (functional-core spec, Open)
+- The 20 shells that import the db, recorder or notifier (23 imports, recorded when FR8 landed): each takes `ports` when next touched
 - The two core violations in `layers.baseline.json`: `format.ts` and `scaleBar.ts` read the global units as a default argument; pass the units in
 - The device's timezone and locale are read in core (`getHours`, `toLocaleDateString` in `days.ts`, `walkTitle.ts`, `months.ts`, `explore.ts`): pass them in (functional-core audit 10)
 - `components/map/types.ts` mixes pure helpers that tests import (`splitTrace`, `planViews`, `pressRadiusM`) with a hook, outside any layer check: move the helpers to a core module in `src/lib` (functional-core audit 13)

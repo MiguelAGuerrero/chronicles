@@ -306,6 +306,26 @@ const viewSingletonRule = [
   },
 ];
 
+// A shell doesn't import the singletons either (FR8): it takes `ports`, or the
+// part it uses, as an argument, so a test can hand it fakes. Importing `ports`
+// itself is how a shell's app instance is built (`lib/fog/index.ts`); the
+// composition root (`lib/ports/index.ts`) is the one file that builds them.
+const SHELL_MESSAGE =
+  'A shell takes `ports` (or the part it uses, `Pick<Ports, ...>`) as an argument instead of importing the db, recorder or notifier, ' +
+  'so a test can hand it fakes; build its app instance from `ports` in the module beside it (as lib/fog/index.ts does). See .claude/rules/functional-core.md.';
+const shellSingletonRule = [
+  'error',
+  {
+    selector: "ImportDeclaration[importKind!='type'] > ImportSpecifier[importKind!='type'][imported.name=/^(db|recorder|notifier)$/]",
+    message: SHELL_MESSAGE,
+  },
+  {
+    selector: "ImportDeclaration[importKind!='type'][source.value=/(^|\\/)(db|recorder|notify)(\\/index(\\.native|\\.web)?)?$/] > ImportNamespaceSpecifier",
+    message: SHELL_MESSAGE,
+  },
+];
+const COMPOSITION_ROOTS = ['src/lib/ports/index.ts'];
+
 module.exports = {
   LAYERS,
   PURE_PACKAGES,
@@ -321,4 +341,6 @@ module.exports = {
   coreLintRules,
   FC5_RULE,
   viewSingletonRule,
+  shellSingletonRule,
+  COMPOSITION_ROOTS,
 };
