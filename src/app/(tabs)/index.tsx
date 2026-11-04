@@ -250,7 +250,10 @@ export default function Explore() {
   // Each visit to a page is framed (AT9, TB11): its areas until its town's border is known, then the whole
   // town, and nothing undoes that within the visit (`nextFrame`, fix explore-fit-area).
   useEffect(() => {
-    const next = nextFrame(framed.current, { page: townSeen ? `town:${townSeen.key}` : 'near', build: fresh.build, town: townBox, points, from });
+    const page = townSeen ? `town:${townSeen.key}` : 'near';
+    // A town's page waits for its areas with its reach in view, as `enterArea` frames it (audit 9).
+    const padM = townSeen ? townReachM(townSeen) * 0.6 : 150;
+    const next = nextFrame(framed.current, { page, build: fresh.build, town: townBox, points, from, padM });
     if (!next) return;
     framed.current = next.framed;
     setFit((f) => ({ bounds: next.bounds, key: f.key + 1 }));

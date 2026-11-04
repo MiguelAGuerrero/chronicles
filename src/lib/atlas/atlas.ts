@@ -281,29 +281,31 @@ export function townOf(area: { at: LngLat }, towns: AtlasArea[], outlines: Outli
   return i >= 0 && i < towns.length ? towns[i] : null;
 }
 
-/** What the map last framed for a visit to a page (AT9, TB11): its page, build, and town's border, or null for its areas. */
-export type PageFramed = { page: string; build: string | null; town: string | null };
+/** What a visit to a page has framed (AT9, TB11): its page and build, and the towns whose whole border it framed. */
+export type PageFramed = { page: string; build: string | null; towns: string[] };
 
 /**
  * What a visit to a page of the atlas frames next (AT9, TB11; fix explore-fit-area, Nov 4): its
- * areas (and you, near you) padded 150 m while its town's border is unknown, then the whole town
+ * areas (and you, near you) padded by `padM` while its town's border is unknown (150 m near you, a
+ * town's reach on its page, where its own point may be all that is listed), then the whole town
  * once the border is known (yours near you, or the open town's). Within a visit nothing else
- * refits: areas listed after the border, a border briefly unknown (the tab blurred), you moving,
- * a Locate or a pan. A new page, a new build or another town frames again. `last` is null at the
- * start of a visit. Two separate frames once raced, and the areas' won.
+ * refits: areas listed after the border, a border briefly unknown (the tab blurred), you moving, a
+ * Locate or a pan, or coming back into a town it already framed. A new page, a new build or
+ * another town frames again. `last` is null at the start of a visit. Two separate frames once
+ * raced, and the areas' won.
  */
 export function nextFrame(
   last: PageFramed | null,
-  p: { page: string; build: string | null; town: { id: string; bounds: Bounds } | null; points: LngLat[]; from: LngLat | null },
+  p: { page: string; build: string | null; town: { id: string; bounds: Bounds } | null; points: LngLat[]; from: LngLat | null; padM: number },
 ): { framed: PageFramed; bounds: Bounds } | null {
   const same = !!last && last.page === p.page && last.build === p.build;
   if (p.town) {
-    if (same && last.town === p.town.id) return null;
-    return { framed: { page: p.page, build: p.build, town: p.town.id }, bounds: p.town.bounds };
+    if (same && last.towns.includes(p.town.id)) return null;
+    return { framed: { page: p.page, build: p.build, towns: [...(same ? last.towns : []), p.town.id] }, bounds: p.town.bounds };
   }
   if (same || !p.points.length) return null;
-  const box = boundsOf(p.page === 'near' && p.from ? [p.from, ...p.points] : p.points, 150);
-  return box ? { framed: { page: p.page, build: p.build, town: null }, bounds: box } : null;
+  const box = boundsOf(p.page === 'near' && p.from ? [p.from, ...p.points] : p.points, p.padM);
+  return box ? { framed: { page: p.page, build: p.build, towns: [] }, bounds: box } : null;
 }
 
 /** How far around a town's point its neighborhoods are looked for. */
