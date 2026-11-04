@@ -2308,6 +2308,9 @@ function check(ok, what) {
       check(Number.isFinite(y) && bar && y < bar.y && y > 0, `navigate-ready audit 1: with the bar up in Explore, the ring's centre is on the map above the bar (centre y ${Math.round(y)}, bar top ${bar && Math.round(bar.y)})`);
       void x;
     }
+    // A range set here is the one the walk's drawer shows after Start, with no reload between (fix walk-drawer-settings audit 1).
+    await pg.click('[data-testid=range-plus]');
+    await pg.waitForTimeout(300);
     await pg.click('[data-testid=mode-quiet]');
     await pg.keyboard.press('Escape');
     await settled(pg);
@@ -2356,6 +2359,16 @@ function check(ok, what) {
     await pg.click('[data-testid=walk-summary]');
     await pg.waitForSelector('[data-testid=options-card]');
     check((await pg.locator('[data-testid=walk-options]').count()) === 0, 'the walk has no options button: its settings are in the strip\u2019s drawer');
+    {
+      // fix walk-drawer-settings audit 1: the range set on the ready bar shows in the walk's drawer, no reload between.
+      await pg.click('[data-testid=explore-walk]');
+      await pg.waitForSelector('[data-testid=range-slider]');
+      const shown = await pg.locator('[data-testid=range-value]').innerText();
+      check(shown === '120 m', `fix walk-drawer-settings audit 1: the range set on the ready bar (120 m) is the walk drawer's (${shown})`);
+      await pg.click('[data-testid=range-minus]');
+      await pg.waitForTimeout(300);
+      await pg.click('[data-testid=explore-walk]');
+    }
     await pg.click('[data-testid=walk-summary]');
     await pg.waitForTimeout(600);
 
@@ -3378,15 +3391,12 @@ function check(ok, what) {
     await page.click('[data-testid=walk-summary]');
     await page.waitForSelector('[data-testid=options-card]');
     check((await page.locator('[data-testid=explore-walk][aria-checked=false], [data-testid=explore-walk]:not([aria-checked=true])').count()) === 1, 'Explore starts off on a new walk (E1)');
-    await page.click('[data-testid=open-settings]');
-    await page.waitForSelector('[data-testid=settings]');
+    // Explore is off on this walk, so its range and kinds are not in the drawer; turn it on to find them there, in no panel of their own.
+    check((await page.locator('[data-testid=open-settings], [data-testid=settings], [data-testid=range-slider]').count()) === 0, 'an explore-off walk\'s drawer has no range and no separate settings panel');
+    await page.click('[data-testid=explore-walk]');
+    await page.waitForSelector('[data-testid=range-slider]');
     await page.waitForTimeout(500);
-    {
-      // Capture stays one tap away while the walk's settings are open (rev 34).
-      const cam = await page.locator('[data-testid=cap-photo]').boundingBox();
-      const atCam = await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-testid]')?.getAttribute('data-testid'), { x: cam.x + cam.width / 2, y: cam.y + cam.height / 2 });
-      check(atCam === 'cap-photo', `the walk's settings panel leaves the capture row free (rev 34: ${atCam})`);
-    }
+    check((await page.locator('[data-testid=options-card] [data-testid=range-slider]').count()) === 1 && (await page.locator('[data-testid=settings]').count()) === 0, 'the range and what I’m into are in the walk\'s drawer, not a separate panel');
     check((await page.locator('[data-testid=range-value]').innerText()) === '100 m' && (await ringNow()) === '100', 'the range is 100 m by default, drawn as a ring on the walk map while settings are open');
     await page.click('[data-testid=range-plus]');
     await page.waitForTimeout(300);
@@ -3397,9 +3407,10 @@ function check(ok, what) {
     for (let i = 0; i < 2; i++) await page.click('[data-testid=range-plus]');
     check((await page.locator('[data-testid=kind-churches]').count()) === 1 && (await page.locator('[data-testid=pocket-alert]').count()) === (process.env.E2E_MOBILE ? 1 : 0), 'what I’m into lists the kinds; the pocket alert only on a touch screen (PA6, pocket-alert-nudge audit 4)');
     await shot(page, '01a-settings');
-    await page.click('[data-testid=settings-done]');
-    await page.waitForTimeout(300);
-    check((await ringNow()) === '', 'the ring is never on the walk map outside settings');
+    await page.click('[data-testid=explore-walk]');
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(600);
+    check((await ringNow()) === '', 'the ring is never on the walk map outside the drawer');
     // Motion (M7): banners lift in rather than pop, and a dismissed one leaves no copy behind (audit 5).
     const lifts = await page.evaluate(() => window.__lifts.map((l) => ({ animated: l.animated, text: l.el.innerText.slice(0, 40) })));
     check(lifts.some((l) => /On the web/.test(l.text) && l.animated), `a banner lifts in rather than popping (M7: ${JSON.stringify(lifts.slice(0, 3))})`);
@@ -3737,15 +3748,13 @@ function check(ok, what) {
         // What I'm into (E17): public art switched off hides its "?" at once; back on, it shows again.
         check((await page.locator('[aria-label="Public art, Art. Open"]').count()) === 1, 'the artwork shows, named, beside you');
         await page.click('[data-testid=walk-summary]');
-        await page.click('[data-testid=open-settings]');
         await page.click('[data-testid=kind-public_art]');
-        await page.click('[data-testid=settings-done]');
+        await page.keyboard.press('Escape');
         await page.waitForTimeout(500);
         check((await page.locator('[aria-label="Public art, Art. Open"]').count()) === 0, 'a kind switched off loses its "?" marks');
         await page.click('[data-testid=walk-summary]');
-        await page.click('[data-testid=open-settings]');
         await page.click('[data-testid=kind-public_art]');
-        await page.click('[data-testid=settings-done]');
+        await page.keyboard.press('Escape');
         await page.waitForTimeout(500);
         check((await page.locator('[aria-label="Public art, Art. Open"]').count()) === 1, 'switched back on, it shows at once');
       }

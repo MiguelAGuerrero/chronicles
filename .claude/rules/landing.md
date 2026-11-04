@@ -99,7 +99,7 @@ What's good here (`lib/landing`): reading an area, finding busy strips and pocke
     the current strip).
   - **Dead-zone pill:** nothing is read from storage until it could fire
     (`deadZoneDue`). It doesn't count paused time, shows only when no card,
-    route or settings panel is up, never on a quiet walk, and is spent only once seen.
+    route or the drawer is up, never on a quiet walk, and is spent only once seen.
   - Remembered areas of the current rules are read again on returning to the
     front.
 - **The trace hides while navigating** (the owner's call, Nov 2: an indoor

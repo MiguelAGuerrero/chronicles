@@ -1,130 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
-import { clampRange, EXPLORE_RULES, KINDS, POCKET_ALERT_NOTE, type Kind } from '../lib/explore/explore';
-import { canBuzz } from '../lib/canBuzz';
-import { loadSettings, saveSettings, type ExploreSettings as Settings } from '../lib/explore/settings';
+import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import { EXPLORE_RULES, KINDS, type Kind } from '../lib/explore/explore';
 import { Icon, type IconName } from './icons';
-import { NotificationSettings } from './NotificationSettings';
 import { SwitchRow } from './SwitchRow';
-import { Button, theme } from './ui';
+import { theme } from './ui';
 
 /** About how long the range takes to walk, at 1.3 m/s. */
 export const walkNote = (m: number) => {
   const min = Math.max(1, Math.round(m / 1.3 / 60));
   return `about ${min} min walk`;
 };
-
-/**
- * Settings (E16, E19-E21, NT4-NT6): what I'm into, the "?" range with a live
- * preview, the pocket alert, and notifications. A panel over the lower part of the screen, not a
- * modal: the map above it shows the range as a ring around you (the host
- * draws it from `onPreview`), so no second map is ever made.
- */
-export function ExploreSettings(props: {
-  visible: boolean;
-  onClose: () => void;
-  /** The range to preview on the host's map while the panel is open; null when it closes. */
-  onPreview: (rangeM: number | null) => void;
-  bottomInset: number;
-  /** Where the panel's foot sits: above the walk's capture row there, which is always one tap away (rev 34). */
-  bottom?: number;
-  /** Whether there is a position to draw the ring around. */
-  hasRing?: boolean;
-  /** The panel's height, for the host to fit the ring above it. */
-  onHeight?: (h: number) => void;
-}) {
-  const [s, setS] = useState<Settings | null>(null);
-  const { visible, onPreview } = props;
-  useEffect(() => {
-    if (!visible) return;
-    let alive = true;
-    loadSettings().then(
-      (v) => {
-        if (!alive) return;
-        setS(v);
-        onPreview(v.rangeM);
-      },
-      () => {},
-    );
-    return () => {
-      alive = false;
-    };
-  }, [visible, onPreview]);
-  if (!visible) return null;
-  const close = () => {
-    props.onPreview(null);
-    props.onClose();
-  };
-  const setRange = (m: number) => {
-    if (!s) return;
-    const rangeM = clampRange(m);
-    if (rangeM === s.rangeM) return;
-    setS({ ...s, rangeM });
-    props.onPreview(rangeM);
-  };
-  const toggle = (k: Kind, on: boolean) => {
-    if (!s) return;
-    const hidden = new Set(s.hidden);
-    if (on) hidden.delete(k);
-    else hidden.add(k);
-    setS({ ...s, hidden });
-  };
-  return (
-    <View
-      testID="settings"
-      style={[styles.panel, { paddingBottom: props.bottomInset + 12 }, props.bottom != null && { bottom: props.bottom, borderBottomLeftRadius: 16, borderBottomRightRadius: 16 }]}
-      accessibilityViewIsModal
-      onLayout={(e) => props.onHeight?.(e.nativeEvent.layout.height)}
-    >
-      <View style={styles.head}>
-        <Text style={styles.title} accessibilityRole="header">Settings</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="Close settings" onPress={close} hitSlop={8} style={styles.close}>
-          <Icon name="close" size={22} color={theme.ink} />
-        </Pressable>
-      </View>
-      {!s ? null : (
-        <ScrollView style={styles.body} contentContainerStyle={{ gap: 14 }}>
-          <View style={{ gap: 6 }}>
-            <Text style={styles.section}>“?” range</Text>
-            <Text style={styles.sub}>
-              A “?” shows for places within {s.rangeM} m of you, {walkNote(s.rangeM)}.
-              {props.hasRing === false ? ' The ring shows on the map once there’s a position.' : ' The ring on the map shows how far that is.'}
-            </Text>
-            <RangeSlider value={s.rangeM} onChange={setRange} />
-          </View>
-          <View style={{ gap: 2 }}>
-            <Text style={styles.section}>What I’m into</Text>
-            <Text style={styles.sub}>Switch a kind off to hide its “?” marks for a while. It stays on your lists, and your counts don’t change.</Text>
-            <KindSwitches hidden={s.hidden} onToggle={toggle} />
-          </View>
-          {/* The pocket alert is a nudge you feel: on every phone, and on a browser that can buzz (E19, PA6). */}
-          {canBuzz() && (
-            <SwitchRow
-              testID="pocket-alert"
-              label="Pocket alert"
-              note={POCKET_ALERT_NOTE}
-              value={s.haptic}
-              onChange={(haptic) => setS({ ...s, haptic })}
-            />
-          )}
-          <NotificationSettings />
-        </ScrollView>
-      )}
-      <View style={styles.actions}>
-        <Button variant="ghost" label="Cancel" onPress={close} />
-        <Button
-          testID="settings-done"
-          label="Done"
-          disabled={!s}
-          onPress={() => {
-            if (s) saveSettings(s).catch(() => {});
-            close();
-          }}
-        />
-      </View>
-    </View>
-  );
-}
 
 /** What I'm into (E16): a switch per kind, on unless hidden. Shared with Navigate's drawer (NV21). */
 export function KindSwitches({ hidden, onToggle }: { hidden: Set<Kind>; onToggle: (k: Kind, on: boolean) => void }) {
@@ -188,21 +73,6 @@ export function RangeSlider({ value, onChange }: { value: number; onChange: (m: 
 }
 
 const styles = StyleSheet.create({
-  panel: {
-    position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '58%', backgroundColor: theme.surface,
-    borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingHorizontal: 16, paddingTop: 12, gap: 10,
-    maxWidth: 640, width: '100%', alignSelf: 'center',
-    shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: -2 }, elevation: 8,
-  },
-  head: { flexDirection: 'row', alignItems: 'center' },
-  title: { flex: 1, fontSize: 18, fontWeight: '700', color: theme.ink },
-  close: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  body: { flexGrow: 0 },
-  section: { fontSize: 15, fontWeight: '700', color: theme.ink },
-  sub: { fontSize: 13, color: theme.muted },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48 },
-  label: { flex: 1, fontSize: 15, color: theme.ink },
-  actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
   sliderRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   // 44 pt, not hit slop: react-native-web has none (U4).
   stepBtn: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: theme.edge, alignItems: 'center', justifyContent: 'center' },
