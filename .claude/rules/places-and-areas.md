@@ -5,7 +5,7 @@ paths:
   - "src/components/StarView.tsx"
   - "scripts/build-boundaries.js"
   - "assets/boundaries/**"
-  - "src/lib/__tests__/{areas,places}.test.ts"
+  - "src/lib/__tests__/places/**"
 ---
 # Places and areas
 

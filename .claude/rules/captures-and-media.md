@@ -6,7 +6,7 @@ paths:
   - "src/lib/{useCaptures,thumbPlan,useMediaUri,captureBus,here}.ts"
   - "src/lib/audioMode*.ts"
   - "src/lib/export/**"
-  - "src/lib/__tests__/thumb.test.ts"
+  - "src/lib/__tests__/captures/**"
 ---
 # Captures and media
 

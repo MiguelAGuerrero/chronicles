@@ -6,7 +6,7 @@ paths:
   - "src/components/{LocateButton,CompassButton}.tsx"
   - "src/lib/compass.ts"
   - "scripts/{copy-maplibre-worker,perf-walk}.js"
-  - "src/lib/__tests__/{scaleBar,traceEnds}.test.ts"
+  - "src/lib/__tests__/map/**"
 ---
 # Map
 

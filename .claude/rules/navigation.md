@@ -1,9 +1,8 @@
 ---
 paths:
   - "src/lib/nav/**"
-  - "src/lib/__tests__/{handoff,bridges,heading}.test.ts"
+  - "src/lib/__tests__/navigation/**"
   - "src/lib/here.ts"
-  - "src/lib/__tests__/nav.test.ts"
 ---
 # Navigation
 

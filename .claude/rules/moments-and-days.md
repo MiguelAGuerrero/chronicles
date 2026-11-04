@@ -5,7 +5,7 @@ paths:
   - "src/app/day/**"
   - "src/components/MomentBar.tsx"
   - "src/lib/explore/momentFind.ts"
-  - "src/lib/__tests__/{days,momentPins}.test.ts"
+  - "src/lib/__tests__/moments/**"
 ---
 # Moments and days
 

@@ -5,7 +5,7 @@ paths:
   - "src/app/_layout.tsx"
   - "src/components/{HomeSheet,RecordingBar,SwitchRow,OpenWalk}.tsx"
   - "src/lib/{launchRoute,launchWalk,recordingBar,walkNav,walkGate,openWalkLoad,startPlan,useStartWalk,useTabMap,memoGate,quietLines,summary,walkEvents,settleWithin}.ts"
-  - "src/lib/__tests__/{tabsAudit,tabsAuditQuiet,minimize,startPlan,launchRoute,launchWalk}.test.ts"
+  - "src/lib/__tests__/tabs/**"
 ---
 # Tabs and home
 

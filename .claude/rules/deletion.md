@@ -2,7 +2,7 @@
 paths:
   - "src/lib/deletion/**"
   - "src/components/{WalkActions,UndoToast}.tsx"
-  - "src/lib/__tests__/deletion.test.ts"
+  - "src/lib/__tests__/deletion/**"
 ---
 # Clearing walks and moments
 

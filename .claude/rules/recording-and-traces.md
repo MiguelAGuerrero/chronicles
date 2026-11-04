@@ -3,8 +3,7 @@ paths:
   - "src/lib/{geo,liveDot,glide,useLiveTrace,useGlidingWalker,steps,walkMotion,gpsLog,session,lastFix,traceEnds,rides}.ts"
   - "src/lib/motionSource/**"
   - "src/lib/recorder/**"
-  - "src/lib/__tests__/{still,steps,liveDot,jitter,glide,traceSplit,traceEnds,gpsLog}.test.ts"
-  - "src/lib/__tests__/outAndBack.json"
+  - "src/lib/__tests__/recording/**"
   - "index.js"
 ---
 # Recording and traces

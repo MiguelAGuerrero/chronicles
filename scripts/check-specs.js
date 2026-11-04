@@ -88,7 +88,8 @@ function testWords() {
   const files = [];
   const testDir = path.join(root, 'src', 'lib', '__tests__');
   if (fs.existsSync(testDir)) {
-    for (const f of fs.readdirSync(testDir)) if (f.endsWith('.test.ts')) files.push(path.join(testDir, f));
+    const walk = (d) => { for (const f of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, f.name); if (f.isDirectory()) walk(p); else if (f.name.endsWith('.test.ts')) files.push(p); } };
+    walk(testDir);
   }
   const e2e = path.join(root, 'scripts', 'e2e-web.js');
   if (fs.existsSync(e2e)) files.push(e2e);

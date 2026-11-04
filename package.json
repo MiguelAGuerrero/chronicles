@@ -54,7 +54,7 @@
     "web": "expo start --web",
     "export:web": "expo export --platform web",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test src/lib/__tests__/*.test.ts",
+    "test": "tsx --test 'src/lib/__tests__/**/*.test.ts'",
     "test:affected": "node scripts/affected.js test",
     "lint:affected": "node scripts/affected.js lint",
     "check:affected": "node scripts/affected.js check",

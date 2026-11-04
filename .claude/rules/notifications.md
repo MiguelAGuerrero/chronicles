@@ -5,7 +5,7 @@ paths:
   - "src/components/pwa*.ts"
   - "src/components/NotificationSettings.tsx"
   - "src/lib/openers.ts"
-  - "src/lib/__tests__/{notify,openers}.test.ts"
+  - "src/lib/__tests__/notify/**"
 ---
 # Notifications
 

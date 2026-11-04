@@ -137,8 +137,28 @@ function treeWide(root, rel) {
 }
 
 const isTest = (rel) => rel.startsWith(`${TESTS_DIR}/`) && rel.endsWith('.test.ts');
+/**
+ * Shared test infrastructure: the HARNESS list, and every non-test file directly under
+ * `__tests__/` (fakes, the contract suite, helpers). A fixture inside a feature folder
+ * (`__tests__/<feature>/x.json`) is not: the graph selects the tests that import it.
+ */
 const isHarness = (rel) =>
-  HARNESS.some((h) => (h.endsWith('/') ? rel.startsWith(h) : rel === h)) || (rel.startsWith(`${TESTS_DIR}/`) && !rel.endsWith('.test.ts'));
+  HARNESS.some((h) => (h.endsWith('/') ? rel.startsWith(h) : rel === h)) ||
+  (rel.startsWith(`${TESTS_DIR}/`) && !rel.endsWith('.test.ts') && !rel.slice(TESTS_DIR.length + 1).includes('/'));
+
+/** Every unit test file, in every feature folder (repo-relative, posix). */
+function allTests(root = ROOT) {
+  const out = [];
+  const walk = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (e.name.endsWith('.test.ts')) out.push(toPosix(path.relative(root, p)));
+    }
+  };
+  walk(path.join(root, TESTS_DIR));
+  return out.sort();
+}
 
 /**
  * The unit tests a change can break (AC2-AC4): each test file that imports a
@@ -277,7 +297,7 @@ function testsStep(changed, all) {
   const r = all ? { all: true, why: 'no main branch to compare with', tests: [], skipped: 0 } : affectedTests(ROOT, changed);
   console.log(describeTests(r));
   if (!r.all && !r.tests.length) return { ok: true, output: '' };
-  const files = r.all ? fs.readdirSync(path.join(ROOT, TESTS_DIR)).filter((f) => f.endsWith('.test.ts')).map((f) => `${TESTS_DIR}/${f}`) : r.tests.map((t) => t.file);
+  const files = r.all ? allTests() : r.tests.map((t) => t.file);
   const res = spawnSync('npx', ['tsx', '--test', '--test-reporter=dot', ...files], { cwd: ROOT, stdio: 'inherit' });
   return { ok: res.status === 0, output: res.status === 0 ? '' : 'Affected unit tests failed (above).' };
 }

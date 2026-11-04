@@ -1,5 +1,6 @@
 ---
 paths:
+  - "src/lib/__tests__/walk-screen/**"
   - "src/app/walk.tsx"
   - "src/components/walk/**"
   - "src/lib/readyNav.ts"

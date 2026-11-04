@@ -7,7 +7,7 @@ paths:
   - "src/lib/atlas/**"
   - "src/components/atlas/**"
   - "src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx"
-  - "src/lib/__tests__/{atlas,discovery,explore,exploreStore,exploreTab,noise,scanAudit,recall}.test.ts"
+  - "src/lib/__tests__/explore/**"
 ---
 # Explore and discovery
 

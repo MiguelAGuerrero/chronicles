@@ -42,3 +42,4 @@ yarn-error.*
 
 # copied from node_modules on install
 /public/maplibre-gl-worker.mjs
+.claude/worktrees/

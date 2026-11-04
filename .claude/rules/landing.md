@@ -3,7 +3,7 @@ paths:
   - "src/lib/landing/**"
   - "src/lib/activity/**"
   - "src/components/LandingMarks.tsx"
-  - "src/lib/__tests__/{landing,landingView,landingWalk,activityDensity}.test.ts"
+  - "src/lib/__tests__/landing/**"
 ---
 # Landing
 
