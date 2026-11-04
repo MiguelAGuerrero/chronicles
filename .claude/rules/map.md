@@ -51,6 +51,14 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
   of throwing. Check `map.getSource()` first.
 - `fitBounds` is driven by a `fitKey` counter, not by the bounds array identity. On
   native, wait for `onDidFinishLoadingMap` before moving the camera.
+- **The web map's credits start closed** (owner, Nov 4). maplibre's compact
+  `AttributionControl` opens itself when its credits first fill in and closes
+  only on a drag, which put a banner across the bottom of a phone's map.
+  `ClosedAttribution` (`WalkMap.web.tsx`) closes it once, the first time it
+  turns compact; the (i) button still opens it. Always add it yourself
+  (`attributionControl: false`). The e2e's fake source carries an OSM credit
+  so the control is drawn (`map attribution` checks in `qol`). Native's
+  MapLibre RN `attribution` prop is its own (i) button, untouched.
 
 ## Icons and pins
 
