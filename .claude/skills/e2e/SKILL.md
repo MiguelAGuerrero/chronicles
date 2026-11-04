@@ -52,7 +52,8 @@ it), and `async run(h)` with `const { check, freshPage, ... } = h;` at the top,
 taking what it needs from the harness (`scripts/e2e/harness.js`: the GPS
 `start`, `at`, `navUrl`, `drawerTo`, `tabTo`, `metaOf`, `openWalk`, the tile
 switches `tiles.delayMs` and `tiles.stall`). The file is the registration;
-the entry adds the no-console-errors check itself. Add a row here too. A
+the entry ends it with the nothing-leaves check (nothing sent beyond localhost,
+the tile host and Overture) and the no-console-errors check itself. Add a row here too. A
 slice that changes a screen adds or extends a journey this way for its own
 change: keep it to what the screen shows; write order, retries and guards
 belong in shell tests. The full flow is `scripts/e2e/journeys/full.js`.

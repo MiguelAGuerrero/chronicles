@@ -44,7 +44,7 @@ and lint before Pages deploys.
 |---|---|---|
 | `none` | nothing beyond the hook's gates; the owner verifies by hand | none |
 | `lean` | `npm run typecheck`, `npm run lint:affected` | only if the bug is in a core module (cheap, pure) |
-| `scoped` | `npm run check:affected` (layers, affected tests, typecheck, lint) | a failing-first regression test |
+| `scoped` | `npm run check:affected` (layers, affected tests, typecheck, lint) | a failing-first regression test, in the feature's folder (`src/lib/__tests__/<feature>/`) |
 | `e2e` | `scoped`, then `npm test`, then each journey `check:affected` names, against the sub-path build as in `/deploy` | regression test, plus a journey step if a screen changed |
 | `full` | `e2e`, then the full e2e flow (no `E2E_ONLY`) | as `e2e` |
 

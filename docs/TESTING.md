@@ -343,9 +343,17 @@ that changes no screen runs no e2e. The full flow (no `E2E_ONLY`, about 15
 minutes) and `/audit` run only when the owner asks (decision 0074).
 
 The Stop hook (`.claude/hooks/check-done.sh`) runs `check:docs` on any
-change, and with `.ts`/`.tsx` changed, the typecheck, the layer check and the
-affected unit tests (`node scripts/affected.js hook`): it blocks the end of a
-turn on any of them.
+change; with `.ts`/`.tsx` changed, the typecheck; and with TypeScript or a
+script under `scripts/` changed, the layer check and the affected unit tests,
+the tree-wide ones included (`node scripts/affected.js hook`, TG13): it blocks
+the end of a turn on any of them. `check:docs` also fails when a new spec
+shares a criterion prefix with another, or two decision records share a
+number (`scripts/collisions.js`, TG14, TG15).
+
+**A test from an old branch** (made before the feature folders) lands at the
+root of `src/lib/__tests__/`, and `arch/features.test.ts` names it. Move it
+with `npm run move-test <file> <feature>`: each relative path is resolved from
+the old folder and written again from the new one (TG16).
 
 ## 7. What this proves, and what it doesn't
 

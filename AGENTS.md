@@ -52,7 +52,7 @@ Procedures are skills: `/slice` (spec-first, test-first), `/audit` (the adversar
 - **No simulation.** Web traces the real browser location. Mock GPS only in test harnesses.
 - **Native first; web is a fallback.** Build on the Expo modules the phone uses. Web-only code is allowed only where no Expo module covers the feature on web, and each exception is listed in `docs/ARCHITECTURE.md` with its reason. Check `node_modules/<module>/build/*.web.*` before adding one. A mobile feature with no web workaround stays off on web.
 - **Native has never run on a device.** Say so in any report that touches native code, and add what you wrote to `docs/NATIVE_UNVERIFIED.md`.
-- **Nothing is a score.** No completion, streaks, coverage or leaderboards; counts are said in words (`lib/quietLines`); no counts on the Explore tab; a find is a memory.
+- **Nothing is a score** in the app. No completion, streaks, coverage or leaderboards; counts are said in words (`lib/quietLines`); no counts on the Explore tab; a find is a memory.
 - **Truth vs cache.** Walk, TracePoint and Capture are append-only truth (deletes aside). Streets, visited rows, summaries and areas are cache tagged with the tile build; recompute from the trace, never patch derived data. Changing a derivation rule bumps `SNAP_RULES`, `STREET_CODE` or `LANDING_CODE` (`lib/tiles.ts`).
 - **Raw fixes are stored unfiltered** and gated at read time by `readTrace` (`lib/rides.ts`). Always pass the walk's `started_at`, pauses, stills and gap fills; a pause is a break in the trace however short.
 - **No dataset is hard-coded.** Map data reaches the app through adapters (`areas/types.ts`, `discovery/tilePois.ts`, `landing/read.ts`); tests run against in-memory sources.

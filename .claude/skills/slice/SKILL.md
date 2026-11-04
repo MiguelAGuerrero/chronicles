@@ -44,7 +44,9 @@ Write `specs/<slug>/plan.md`:
 
 - files to touch (routes in `src/app/`, modules in `src/lib/`, components);
 - data: new truth or cache, SQLite migration number and IndexedDB version;
-- tests per criterion: the test file and name for each id;
+- tests per criterion: the test file in its feature folder
+  (`src/lib/__tests__/<feature>/`) and the name for each id; a new feature (a
+  folder and a row in `scripts/features.js`) or a new journey, if the slice needs one;
 - what is deferred, and why;
 - native paths that will not run on a device.
 
@@ -71,7 +73,9 @@ For each criterion, write one failing test before its code:
 - Name every test by its criterion id: `test('QL3: ...')`, `check(ok, 'QL3: ...')`.
 
 Run the new tests (`npm run test:affected` picks them up) and confirm each
-fails for the right reason.
+fails for the right reason. A test from a branch made before the feature
+folders goes in with `npm run move-test <file> <feature>`, which keeps its
+paths right.
 
 ## 6. Implement
 
@@ -111,10 +115,14 @@ accepted findings, each behind a regression test named `<slug> audit N`.
 ```bash
 npm run typecheck && npm run lint && npm test
 npm run check:affected                                  # names the e2e journeys for the slice's files
+npm run test:feature <feature>                          # the slice's feature, whole
 npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # each journey it names, the slice's own included
 ```
 
-All green. No e2e when no journey covers the slice's files and it changes no
+All green. A "Covered by nothing" line from `check:affected` for a file the
+slice wrote is a gap: give it a test (a shell over `fakePorts()`, a core unit
+test, a check in the feature's journey) or record it in `docs/DEFERRED.md`.
+No e2e when no journey covers the slice's files and it changes no
 screen; the full flow (no `E2E_ONLY`) only when the owner asks. Then:
 
 1. Update `docs/STATUS.md`: move the row to "Shipped" (or leave it in flight

@@ -367,7 +367,8 @@ async function runSteps(steps) {
 
 /** What the Stop hook runs besides the docs check and the typecheck (AC8): with TypeScript changed, the layers and the affected tests. */
 function hookPlan(changed) {
-  return changed.some((c) => /\.(ts|tsx)$/.test(c)) ? ['layers', 'tests'] : [];
+  // A script change too (TG13): the feature map, a journey's files and the checks are read by the tree-wide tests.
+  return changed.some((c) => /\.(ts|tsx)$/.test(c) || /^scripts\//.test(c)) ? ['layers', 'tests'] : [];
 }
 
 // ---- The commands -------------------------------------------------------

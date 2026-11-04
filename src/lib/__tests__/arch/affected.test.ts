@@ -204,7 +204,8 @@ test('AC7 check:affected runs its steps in order and stops at the first failure'
 test('AC8 the Stop hook runs the layer check and affected tests when TypeScript changed, and nothing for docs', () => {
   assert.deepEqual(affected.hookPlan(['src/lib/geo.ts', 'docs/STATUS.md']), ['layers', 'tests']);
   assert.deepEqual(affected.hookPlan(['src/app/walk.tsx']), ['layers', 'tests']);
-  assert.deepEqual(affected.hookPlan(['docs/STATUS.md', 'scripts/e2e-web.js']), []);
+  assert.deepEqual(affected.hookPlan(['docs/STATUS.md']), [], 'docs alone run no tests');
+  assert.deepEqual(affected.hookPlan(['docs/STATUS.md', 'scripts/e2e-web.js']), ['layers', 'tests'], 'a script change runs them too (TG13)');
   const hook = readFileSync(join(ROOT, '.claude', 'hooks', 'check-done.sh'), 'utf8');
   assert.match(hook, /node scripts\/affected\.js hook/);
 });

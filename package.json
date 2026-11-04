@@ -58,6 +58,7 @@
     "test:affected": "node scripts/affected.js test",
     "test:feature": "node scripts/affected.js feature",
     "test:coverage": "node scripts/affected.js coverage",
+    "move-test": "node scripts/move-test.js",
     "lint:affected": "node scripts/affected.js lint",
     "check:affected": "node scripts/affected.js check",
     "postinstall": "node scripts/copy-maplibre-worker.js",

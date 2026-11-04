@@ -47,7 +47,9 @@ commands, or anything that changes the tree.
    (`*.native.ts`, migrations, expo modules, MapLibre RN markers, tasks),
    with what a device run must confirm.
 4. **Tests reviewed**: which existing tests cover the slice, and any test
-   that cannot fail (asserts nothing, mocks what it checks).
+   that cannot fail (asserts nothing, mocks what it checks). Run
+   `npm run test:coverage <feature>` for the slice's feature and list the
+   lines of the slice's own files that no test runs; a report, never a score.
 
 ## What not to do
 

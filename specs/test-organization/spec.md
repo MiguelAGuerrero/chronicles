@@ -20,6 +20,19 @@ The affected checks select the unit tests a change can break from the import gra
 11. **TG11 · The docs say so.** `AGENTS.md`'s commands, `docs/TESTING.md`, `/slice`, `/e2e`, `/audit` and the auditor name the layout and the commands; `check:docs` holds every path.
 12. **TG12 · Type-only edges stay.** The selection keeps following `import type` (AC2, the owner's call, Nov 4): a renamed field fails a named test rather than only `tsc`. `docs/TESTING.md` says so and what it costs.
 
+13. **TG13 · The Stop hook checks script changes.** A change under `scripts/` with no TypeScript change still runs the layer check and the tests that read the whole tree before a turn ends, so another session's edit to the feature map, a journey's files or a check is held before it is pushed.
+14. **TG14 · A prefix is one spec's.** A criterion prefix that a new spec shares with another fails the docs check, naming both specs; D, M and R, shared before this check, are allowed.
+15. **TG15 · A decision number is one decision's.** Two decision records with one number fail the docs check, naming both files.
+16. **TG16 · Moving a test.** `npm run move-test <file> <feature>` moves a test file into its feature's folder and rewrites every relative path it holds (imports, dynamic imports, requires and `__dirname` joins) so each resolves to the same file as before; an unknown feature is refused, with the list.
+17. **TG17 · The typecheck reads the app.** Build output (`dist/`) and agent worktrees (`.claude/worktrees/`) are outside the typecheck, so an export running beside it never fails it.
+18. **TG18 · Procedures name the feature.** `/slice`'s plan gives each criterion's feature folder and any new feature or journey, and its done step runs `test:feature` and treats "Covered by nothing" for its files as a gap to close or defer; `/fix` writes its regression test in the feature's folder; the auditor reports the coverage of the slice's files, as a report.
+19. **TG19 · No misleading lines.** The `/e2e` skill says each journey run by name ends with the nothing-leaves and the console-errors checks; AGENTS.md's "nothing is a score" rule says it is about the app.
+
 ## Out of scope
 
 Coverage measurement (`--experimental-test-coverage`), splitting the walk screen's own journey, and tests for the 22 shells no test reaches (they are the functional-core migration's work, listed in `docs/DEFERRED.md`).
+
+## Decisions
+
+- 2026-11-04: the owner chose all three phases (decision 0087) and kept type-only edges (TG12).
+- 2026-11-04: the owner asked for the procedures to hold other agents to the feature-based testing (TG13-TG19), after a review of the skills, the hooks and CI.
