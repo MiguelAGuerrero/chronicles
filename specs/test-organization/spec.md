@@ -1,9 +1,9 @@
-<!-- Test organization. Written in the repo first (2026-11-04) from the owner's call in session (decision 0089); an
+<!-- Test organization. Written in the repo first (2026-11-04) from the owner's call in session (decision 0091); an
      engineering slice, not a product tab of the concept doc. Follows "Affected checks" (specs/affected-checks/). -->
 
 # Test organization: tests by feature, and what a change maps to (TG)
 
-The affected checks select the unit tests a change can break from the import graph and name the e2e journeys that cover a changed file. What was missing above them was one map from a feature (a slice, a journey, a rule area) to its tests, so a feature's tests could be run by name, the three partial maps (rule `paths:`, journey `covers`, spec prefixes in test names) stopped disagreeing, and `check:affected` could tell "nothing can break" from "nothing covers this". The audit behind this is summarized in `docs/TESTING.md`'s first section and decision 0089.
+The affected checks select the unit tests a change can break from the import graph and name the e2e journeys that cover a changed file. What was missing above them was one map from a feature (a slice, a journey, a rule area) to its tests, so a feature's tests could be run by name, the three partial maps (rule `paths:`, journey `covers`, spec prefixes in test names) stopped disagreeing, and `check:affected` could tell "nothing can break" from "nothing covers this". The audit behind this is summarized in `docs/TESTING.md`'s first section and decision 0091.
 
 ## Criteria
 
@@ -34,5 +34,5 @@ Coverage measurement (`--experimental-test-coverage`), splitting the walk screen
 
 ## Decisions
 
-- 2026-11-04: the owner chose all three phases (decision 0089) and kept type-only edges (TG12).
+- 2026-11-04: the owner chose all three phases (decision 0091) and kept type-only edges (TG12).
 - 2026-11-04: the owner asked for the procedures to hold other agents to the feature-based testing (TG13-TG19), after a review of the skills, the hooks and CI.
