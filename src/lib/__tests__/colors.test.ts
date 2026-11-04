@@ -56,17 +56,19 @@ const over = (top: string, under: string, a: number) => {
 /** Positron's place labels, the darkest text a border's fill sits under. */
 const LABEL = '#666666';
 
-test('TB8: the border fill keeps streets and labels readable; the lines show on the base map', () => {
+test('TB8, TB10: the town reads as a highlighted region, its labels stay readable, and its edges show on a phone', () => {
   const tinted = over(BORDER.color, BASE, BORDER.fillOpacity);
-  // Faint: the town reads as a region, never a block of colour.
-  assert.ok(contrast(tinted, BASE) < 1.15, `fill vs land ${contrast(tinted, BASE).toFixed(2)}`);
-  // The labels drawn over it keep their contrast with the land, near enough.
-  assert.ok(contrast(LABEL, tinted) >= 0.9 * contrast(LABEL, BASE), `label ${contrast(LABEL, tinted).toFixed(2)} vs ${contrast(LABEL, BASE).toFixed(2)}`);
-  // The firm edge and the thin lines are seen on the land, the firm one more.
+  // A highlight you can see (TB10: 7% read as nothing on the owner's phone), never a block of colour.
+  assert.ok(contrast(tinted, BASE) >= 1.15 && contrast(tinted, BASE) < 1.35, `fill vs land ${contrast(tinted, BASE).toFixed(2)}`);
+  // The labels drawn over it stay readable (4:1 at least).
+  assert.ok(contrast(LABEL, tinted) >= 4, `label ${contrast(LABEL, tinted).toFixed(2)}`);
+  // The firm edge and the lines are seen on the land and on a white street, the firm one more.
   const firm = contrast(over(BORDER.color, BASE, BORDER.firmOpacity), BASE);
   const lined = contrast(over(BORDER.lined, BASE, BORDER.linedOpacity), BASE);
-  assert.ok(firm >= 2.5, `firm ${firm.toFixed(2)}`);
-  assert.ok(lined >= 1.5 && lined < firm, `lined ${lined.toFixed(2)}`);
+  assert.ok(firm >= 3.5, `firm ${firm.toFixed(2)}`);
+  assert.ok(lined >= 2.5 && lined < firm, `lined ${lined.toFixed(2)}`);
+  assert.ok(contrast(over(BORDER.lined, '#ffffff', BORDER.linedOpacity), '#ffffff') >= 2.5, 'lined on a street');
+  assert.ok(BORDER.firmWidth >= 3 && BORDER.linedWidth >= 1.5);
   // Never the hotspots' magenta or the trace's green.
   assert.ok(Math.abs(hue(BORDER.color) - hue(HOTSPOT)) > 20 && Math.abs(hue(BORDER.color) - hue(COLORS.trace)) > 25);
 });

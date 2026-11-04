@@ -15,8 +15,8 @@ import type { TileFeature } from './tilePlaces';
  * (decision 0080). The release is the one the places reader follows.
  */
 
-/** One tile's read gives up after this. */
-const TILE_MS = 15_000;
+/** One tile's read gives up after this: a z10 tile is 200-500 KB, slow on a phone's weak signal (TB12). */
+const TILE_MS: Record<number, number> = { 10: 45_000, 12: 15_000 };
 
 let archive: { release: string; file: PMTiles } | null = null;
 const fileFor = (release: string) => {
@@ -51,7 +51,7 @@ export const overtureOutlines: OutlineSource = {
           timer = setTimeout(() => {
             ctl.abort();
             reject(new Error('timeout'));
-          }, TILE_MS);
+          }, TILE_MS[z] ?? 15_000);
         }),
       ]);
       // No tile: open sea, or past the archive's reach. Nothing there is a town.

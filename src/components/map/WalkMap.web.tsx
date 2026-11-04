@@ -52,10 +52,11 @@ function addOverlay(map: MapLibreMap) {
   map.addSource('borders', { type: 'geojson', data: empty, tolerance: 1 });
   map.addLayer({ id: 'border-fill', type: 'fill', source: 'borders', minzoom: BORDER.minZoom, filter: ['==', ['get', 'role'], 'tinted'],
     paint: { 'fill-color': BORDER.color, 'fill-opacity': BORDER.fillOpacity } }, firstRoad);
+  // The lines over the streets, under the labels (TB10): a border often runs along a road.
   map.addLayer({ id: 'border-lined', type: 'line', source: 'borders', minzoom: BORDER.minZoom, filter: ['==', ['get', 'role'], 'lined'],
-    layout: { 'line-join': 'round' }, paint: { 'line-color': BORDER.lined, 'line-width': BORDER.linedWidth, 'line-opacity': BORDER.linedOpacity } }, firstRoad);
+    layout: { 'line-join': 'round' }, paint: { 'line-color': BORDER.lined, 'line-width': BORDER.linedWidth, 'line-opacity': BORDER.linedOpacity } }, firstSymbol);
   map.addLayer({ id: 'border-firm', type: 'line', source: 'borders', minzoom: BORDER.minZoom, filter: ['!=', ['get', 'role'], 'lined'],
-    layout: { 'line-join': 'round' }, paint: { 'line-color': BORDER.color, 'line-width': BORDER.firmWidth, 'line-opacity': BORDER.firmOpacity } }, firstRoad);
+    layout: { 'line-join': 'round' }, paint: { 'line-color': BORDER.color, 'line-width': BORDER.firmWidth, 'line-opacity': BORDER.firmOpacity } }, firstSymbol);
   map.addSource('veil', { type: 'geojson', data: WORLD_VEIL });
   map.addLayer({ id: 'veil', type: 'fill', source: 'veil', paint: { 'fill-color': COLORS.veil, 'fill-opacity': 0 } }, firstSymbol);
   // Lines are simplified a little more than the default and keep a smaller tile buffer: less to
@@ -468,6 +469,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       container.current?.setAttribute('data-zoom', zoom.toFixed(2));
       // And the centre (QL12), on the same path.
       container.current?.setAttribute('data-center', `${c.lng.toFixed(6)},${c.lat.toFixed(6)}`);
+      // And what is in view, west,south,east,north (fix explore-fit-area: the whole town is framed).
+      const b = map.getBounds();
+      container.current?.setAttribute('data-bounds', [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()].map((x) => x.toFixed(5)).join(','));
       setView((v) => (v && Math.abs(v.zoom - zoom) < 0.05 && Math.abs(v.lat - lat) < 0.01 ? v : { zoom, lat }));
     };
     // Only gestures carry an originalEvent; camera moves made in code do not.

@@ -89,6 +89,15 @@ export function townPlaces(areas: Iterable<{ level: string; name: string; lon: n
   return out;
 }
 
+/**
+ * TB11: the box to frame a town in: its whole drawn border (the z10 outline),
+ * or null while it isn't known. The map fits it once per town.
+ */
+export function townFrame(set: OutlineSet | null | undefined, id: string | null | undefined): { id: string; bounds: [number, number, number, number] } | null {
+  const t = id && set ? set.towns.find((x) => x.id === id) : null;
+  return t ? { id: t.id, bounds: t.bbox } : null;
+}
+
 /** Douglas-Peucker on a closed ring, in metres (TB9); the ring stays closed with at least four points. */
 export function simplifyRing(ring: LngLat[], toleranceM: number): LngLat[] {
   if (ring.length <= 4) return ring;

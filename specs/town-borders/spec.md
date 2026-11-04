@@ -24,6 +24,14 @@ Town outlines (TO1-TO12, decision 0083) made the town you're in the one whose bo
 8. **TB8** Borders sit under everything else: streets, labels, the trace, fog, busy streets, pins, stars and the walker. The fill stays faint enough that the map's streets and labels read through it, in the colors test.
 9. **TB9** Drawing costs little. Border shapes are built once per change of towns, never per frame, zoom or render. Shapes are simplified for drawing (vertices about 10 m apart at most), and a screen draws at most 40 towns.
 
+### After the deploy (the owner, Nov 4)
+
+On the owner's phone at Whitehall, nothing showed: the 7% tint and the thin lines under the streets were invisible, and the map stayed framed on the 800 m ring. "I expected a highlighted area over Whitehall, zoomed out to scope."
+
+10. **TB10** The town reads as a highlighted region on a phone: a 12% tint and a 3 px edge (the colors test holds both, and the labels stay 4:1). The lines sit over the streets and under the labels, since a border often runs along a road.
+11. **TB11** Explore frames the whole of the tinted town once its border is known: your town, or the open town's page. This happens once per town, so Locate or a pan afterwards is never undone.
+12. **TB12** A slow read of the wide tile doesn't lose the borders: it has 45 s, and a failed read is tried again every 30 s while the screen is open.
+
 ## Routes and data
 
 - No new routes or dependencies.
@@ -48,4 +56,5 @@ Built on branch `claude/town-borders`; the owner's go-ahead on the plan, Nov 4.
 
 - **Test-first, honestly:** TB1-TB6 and TB9 were written and seen failing (no module) before `areas/borders.ts`; the reader's z10 read was written just before TB7's tests, which passed on their first run.
 - **Changed from the plan:** TB3 and TB4 have no e2e check (a journey would need a placed walk seeded into storage), and the web layer order is not checked by the e2e; both are in `docs/DEFERRED.md`. The replay and the day read their towns through `outlines.townsOf` (views read no db).
+- **After the deploy (TB10-TB12):** TB10 `colors.test.ts` "TB8, TB10: the town reads as a highlighted region ..."; TB11 `townBorders.test.ts` "TB11: Explore frames the whole of your town ..." and e2e `outlines` "TB11: Explore zooms out to frame the whole town"; TB12 has no test (a retry timer in the view hook `useOutlineSet`, and the z10 timeout in `overtureOutlines.ts`). Why nothing showed on the phone was not reproduced: with Overture's real tiles in a desktop browser the borders loaded and drew. The likeliest causes were the faint style and a slow read that timed out.
 - **Not audited** (decision 0074: only when the owner asks). **Native, never run on a device:** `docs/NATIVE_UNVERIFIED.md` "Town borders".

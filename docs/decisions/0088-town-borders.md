@@ -15,4 +15,5 @@ The owner's calls, Nov 4:
 - The spec is `specs/town-borders/spec.md` (TB1-TB9); the plan is `specs/town-borders/plan.md`.
 - `outline_tile` is keyed `z/x/y`: SQLite migration 18 and IndexedDB v15, both clearing the old rows.
 - A walked town's region is one tint whatever was walked there: nothing is a score.
+- After the deploy (Nov 4) the owner saw nothing on a phone: the tint went from 7% to 12%, the edges to 3 px and over the streets, and Explore frames the whole town (TB10-TB12).
 - On native the border layers sit over the base map's streets (MapLibre RN has no base road layer id to go below); unverified on a device.
