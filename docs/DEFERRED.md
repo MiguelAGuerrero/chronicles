@@ -219,3 +219,5 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 - The media editor's caption field types at 16 px on web so iOS doesn't zoom, so on a photo under about 356 px wide the bar is larger and may wrap differently while typing than in the saved file (fix editor-zoom audit 1)
 - No test scans `src` for a `TextInput` under 16 px, and the e2e's photo is wide enough that the caption field is not enlarged in it (fix editor-zoom audit 4, 5)
+
+- **Street name twice on a long street** (fix street-label-double, Nov 4): two areas whose peaks on one street are over 300 m apart still draw its name twice, apart rather than stacked. Deduping by the street's lines would need the strip's reach, not its peak.
