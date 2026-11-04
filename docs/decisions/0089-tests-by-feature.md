@@ -1,4 +1,4 @@
-# 0087. Tests are organized by feature; a change maps to its feature's suites, and a coverage hole is named
+# 0089. Tests are organized by feature; a change maps to its feature's suites, and a coverage hole is named
 
 Date: 2026-11-04 · Status: accepted · Area: process, testing · Relates to: 0074 (scoped checks), the affected-checks slice (AC1-AC11)
 

@@ -15,7 +15,7 @@ npm run lint:affected    # only the changed files that npm run lint covers (src,
 ```
 
 - **Features.** `scripts/features.js` is the one map from a feature to what it
-  owns: source globs, e2e journeys, specs, its rule file (decision 0087,
+  owns: source globs, e2e journeys, specs, its rule file (decision 0089,
   `specs/test-organization/spec.md`). A feature's unit tests are the folder of
   the same name under `src/lib/__tests__/`; `arch/` holds the tree-wide checks
   and `storage/` the Db contract. `arch/features.test.ts` holds the map to the

@@ -1,6 +1,6 @@
 <!-- Saved-settings shells. Written in the repo first (2026-11-04) from the owner's call in session; an engineering
      slice (functional core: shells as factories over ports, decision 0073), the first cluster after the test
-     organization (decision 0087) named 22 shells no unit test reaches. -->
+     organization (decision 0089) named 22 shells no unit test reaches. -->
 
 # Saved settings: the first shells over fakePorts (SH)
 
