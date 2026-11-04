@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, TextInput, View, type GestureResponderEvent, type LayoutRectangle } from 'react-native';
+import { typingFontSize } from '../lib/captionInput';
 
 export const CAPTION_MAX = 80;
 /**
@@ -142,7 +143,7 @@ export function CaptionField(props: {
           placeholder="Add a caption"
           placeholderTextColor="rgba(255,255,255,0.7)"
           accessibilityLabel="Caption"
-          style={[styles.barText, styles.input, { fontSize: m.fontSize, lineHeight: m.lineHeight }]}
+          style={[styles.barText, styles.input, { fontSize: typingFontSize(m.fontSize), lineHeight: Math.max(m.lineHeight, typingFontSize(m.fontSize) * (m.lineHeight / m.fontSize)) }]}
         />
       ) : (
         <Pressable accessibilityRole="button" accessibilityLabel={`Caption: ${text}. Edit`} onPress={() => props.onEditing(true)}>
