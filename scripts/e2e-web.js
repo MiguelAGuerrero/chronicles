@@ -2487,6 +2487,9 @@ function check(ok, what) {
       if (!moment) await page.waitForTimeout(500);
     }
     check(moment, 'the note gets its moment in the replay');
+    // The replay is another map: its pin for the reminded note wears the bell too (RB6).
+    const replayBell = await page.waitForSelector('[data-ids] [data-testid=pin-reminder]', { timeout: 5000 }).then(() => true, () => false);
+    check(replayBell, 'the replay\u2019s pin for the reminded note wears the bell too (RB6)');
     await page.waitForTimeout(3000);
     await shot(page, '04-replay-moment');
     check((await page.getByText('cardamom').count()) > 0, 'the replay waits at the note until a tap');

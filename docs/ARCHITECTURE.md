@@ -172,7 +172,8 @@ Captures and media
   media/                     where files are kept: Documents (relative paths) on native, Blobs in IndexedDB on web; resolveMedia
   media/thumb.ts             the 240 px copy with expo-image-manipulator; thumbPlan.ts (pure) decides when
   useMediaUri.ts             a capture's media as a playable URI
-  pins.ts           (pure)   pinsFor: grouping captures by screen distance
+  pins.ts           (pure)   pinsFor: grouping captures by screen distance; pinReminded, the bell
+  useReminded.ts             the captures with a live reminder, per map; re-read on recallCheck's onRecallsChanged and at nextExpiry
   momentPins.ts     (pure)   moments outside walks as pins (Navigate, Chronicle) and Chronicle's fit around them
   export/bundle.ts           writeWalkBundle (deferred; nothing in the UI reaches it); export/ per-platform keepers
 Deletion
