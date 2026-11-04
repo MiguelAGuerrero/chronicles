@@ -1,7 +1,7 @@
 // @layer shell
 import type { CategoryId, Mark } from './discovery/types';
 import { db } from './db';
-import { exploredKey, passedPlaces, type Kind } from './explore/explore';
+import { exploredKey, passedAlong, type Kind } from './explore/explore';
 import { isNamedStreet } from './deletion/core';
 import { loadSettings } from './explore/settings';
 import { splitAtGaps, type Bounds, smoothDwells, type PauseSpan } from './geo';
@@ -37,8 +37,8 @@ export interface ReplayData {
   summary: WalkSummary | null;
   /** Places this walk found, each with its capture (E11): explore's finds, and marks found before explore. */
   found: { capture_id: string; name: string; category: CategoryId; generic: boolean; kind?: Kind }[];
-  /** Places named on this walk (within 60 m) but not captured, for the card's low (E11); none on a quiet walk. */
-  passed: { name: string; generic: boolean }[];
+  /** Places named on this walk (within 60 m) but not captured, for the card's low (E11), with where and when (RR15); none on a quiet walk. */
+  passed: { name: string; generic: boolean; at: LngLat; t: number }[];
   /** Named streets this walk was the first down, in the order walked, for the card's clause (tabs audit U13). */
   newStreets: string[];
   /** Stretches across gaps (Filling gaps): filled and kept ones are already in the trace; offered ones are drawn faint. */
@@ -91,14 +91,14 @@ export async function loadReplay(walkId: string, opts: { readGaps?: boolean } = 
     ...finds.map((f) => ({ capture_id: f.capture_id, name: f.name, category: f.category, generic: f.generic, kind: f.kind })),
   ];
   // What it passed without stopping (E11, audit 9): only once it was exploring, only kinds shown, minus its own finds.
-  let passed: { name: string; generic: boolean }[] = [];
+  let passed: ReplayData['passed'] = [];
   const explored = await db.getMeta(exploredKey(walkId)).catch(() => null);
   if (streetBounds && explored) {
     // '1' from before the audit: count from the start.
     const since = Number(explored) > 1 ? Number(explored) : 0;
     const hidden = (await loadSettings().catch(() => null))?.hidden ?? new Set<Kind>();
     const items = await db.checklistItemsIn(streetBounds).catch(() => []);
-    passed = passedPlaces({
+    passed = passedAlong({
       items, since, hidden,
       // Riding past names nothing (R12).
       fixes: walkedFixes.map((p) => ({ at: [p.lon, p.lat] as LngLat, t: p.t })),

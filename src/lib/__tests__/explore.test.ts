@@ -24,6 +24,7 @@ import {
   foundLine,
   homeCount,
   placeCount,
+  passedAlong,
   passedCount,
   passedLine,
   readCentre,
@@ -462,4 +463,15 @@ test('audit 9: what a walk passed counts shown kinds, after exploring began, min
   const fixes = [{ at: m(500, 0), t: 1 }, { at: O, t: 10 }];
   assert.equal(passedCount({ items: [a, c, b], fixes, since: 5, hidden: new Set<Kind>(['churches']), foundHere: new Set() }), 1);
   assert.equal(passedCount({ items: [a, c, b], fixes, since: 5, hidden: new Set(), foundHere: new Set([a.key]) }), 1);
+});
+
+test('RR15: passedAlong gives where and when each passed place came within reach', () => {
+  const a = item('Museum', m(300, 0));
+  const b = item('Far', m(5000, 0));
+  const fixes = [0, 100, 200, 250, 290, 400].map((x, i) => ({ at: m(x, 0), t: 10 + i }));
+  const got = passedAlong({ items: [a, b], fixes, since: 0, hidden: new Set(), foundHere: new Set() });
+  assert.deepEqual(got.map((g) => [g.name, g.t]), [['Museum', 13]], 'the first fix within 60 m');
+  assert.deepEqual(got[0].at, a.at);
+  // Only once exploring began, as the card counts it.
+  assert.equal(passedAlong({ items: [a], fixes, since: 15, hidden: new Set(), foundHere: new Set() }).length, 0);
 });

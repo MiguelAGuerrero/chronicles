@@ -2282,6 +2282,173 @@ function check(ok, what) {
     await c.close();
   };
 
+  // Replay rhythm (RR6-RR16, RR19): a walk seeded with a captioned photo, a note, a memo, a 20-minute
+  // gap and a long stretch, watched with no taps but the ones it checks; then its day. E2E_ONLY=replay runs it alone.
+  const replayScenario = async () => {
+    const { c, pg } = await freshPage('replay');
+    const here = at(3.0, -0.5);
+    await pg.goto(navUrl);
+    await pg.waitForSelector('[data-testid=start]');
+    await pg.click('[data-testid=start]');
+    await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+    for (let k = 0; k < 3; k++) {
+      await c.setGeolocation({ longitude: here[0], latitude: here[1] + k * 0.000001, accuracy: 6 });
+      await pg.waitForTimeout(1000);
+    }
+    for (let k = 0; k < 15 && !(await metaOf(pg, 'tile_url')); k++) await pg.waitForTimeout(1000);
+    const walk = await openWalk(pg);
+    const now = Date.now();
+    const min = 60_000;
+    const along = (from, to, t0) => {
+      const pts = [];
+      const d = Math.hypot((to[0] - from[0]) * 100, (to[1] - from[1]) * 100);
+      const n = Math.max(1, Math.round(d / 7));
+      for (let k = 0; k <= n; k++) {
+        const p = at(from[0] + ((to[0] - from[0]) * k) / n, from[1] + ((to[1] - from[1]) * k) / n);
+        pts.push({ walk_id: walk.id, t: t0 + k * 5000, lon: p[0], lat: p[1], accuracy_m: 6, speed: 1.4, course: null });
+      }
+      return pts;
+    };
+    // 600 m east along Transit Street, a photo early on and a note at the end; 20 min with no fixes; 80 m more and a memo.
+    const first = along([-6, -0.5], [-1.2, -0.5], now - 50 * min);
+    const second = along([2.2, -0.5], [3.0, -0.5], first.at(-1).t + 20 * min);
+    const capAt = (p, o) => ({ walk_id: walk.id, t: p.t, lat: p.lat, lon: p.lon, segment_id: null, caption: null, caption_y: null, ...o });
+    const captures = [
+      capAt(first[12], { id: 'rr-photo', kind: 'photo', file_path: 'rr-photo', body: null, caption: 'Blue door', caption_y: 0.8 }),
+      capAt(first.at(-1), { id: 'rr-note', kind: 'text', file_path: null, body: 'Bought two plums. Ate one before I paid.' }),
+      capAt(second[6], { id: 'rr-memo', kind: 'voice', file_path: 'rr-memo', body: '3000' }),
+    ];
+    await pg.evaluate(([id, startedAt, pts, caps]) => new Promise((resolve) => {
+      const cv = document.createElement('canvas');
+      cv.width = 160;
+      cv.height = 200;
+      const g = cv.getContext('2d');
+      g.fillStyle = '#2f5f8f';
+      g.fillRect(0, 0, 160, 200);
+      cv.toBlob((blob) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const tx = req.result.transaction(['walk', 'trace_point', 'capture', 'media'], 'readwrite');
+          const w = tx.objectStore('walk').get(id);
+          w.onsuccess = () => tx.objectStore('walk').put({ ...w.result, started_at: startedAt });
+          for (const p of pts) tx.objectStore('trace_point').add(p);
+          for (const cap of caps) tx.objectStore('capture').put(cap);
+          tx.objectStore('media').put({ key: 'rr-photo', blob });
+          tx.oncomplete = () => resolve(true);
+        };
+      }, 'image/png');
+    }), [walk.id, first[0].t - 1000, [...first, ...second], captures]);
+    await pg.reload();
+    await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+    await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
+    await pg.waitForTimeout(2000);
+    const b = await pg.locator('[data-testid=stop]').boundingBox();
+    await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+    await pg.mouse.down();
+    await pg.waitForTimeout(1100);
+    await pg.mouse.up();
+    await pg.waitForURL(/replay/, { timeout: 30000 });
+    await pg.waitForSelector('[data-testid=replay-clock]', { timeout: 60000 });
+    // What the stage shows, recorded in the page every 50 ms: a card is up for about 2 s, quicker than a poll.
+    await pg.evaluate(() => {
+      window.__rrSeen = { cards: [], later: [], notes: [], counted: [] };
+      const add = (list, v) => v && !list.includes(v) && list.push(v);
+      window.__rrTimer = setInterval(() => {
+        document.querySelectorAll('[data-testid=replay-card]').forEach((e) => add(window.__rrSeen.cards, e.getAttribute('aria-label')));
+        document.querySelectorAll('[data-testid=replay-later]').forEach((e) => add(window.__rrSeen.later, e.textContent));
+        document.querySelectorAll('[data-testid=replay-note]').forEach((e) => add(window.__rrSeen.notes, e.textContent));
+        const m = /\b\d+ of \d+\b/.exec(document.body.innerText);
+        if (m) add(window.__rrSeen.counted, m[0]);
+      }, 50);
+    });
+
+    const clockNow = () => pg.locator('[data-testid=replay-clock]').getAttribute('aria-label').catch(() => null);
+    const clocks = new Set();
+    const seen = { cont: false, note: false, card: false, later: '', counted: '' };
+    let holdChecked = false;
+    let tapChecked = false;
+    let pileChecked = false;
+    for (let k = 0; k < 400 && !(await pg.locator('[data-testid=to-name]').count()); k++) {
+      if (await pg.locator('[data-testid=moment]').count()) seen.cont = true;
+      if ([2, 5, 9, 14, 20].includes(k)) await shot(pg, `rr-path-${k}`);
+      const ck = await clockNow();
+      if (ck) clocks.add(ck);
+      if (!holdChecked && ck) {
+        // Hold holds everything, and reads Play while held (RR7).
+        await pg.click('[data-testid=hold]');
+        const a = await clockNow();
+        await pg.waitForTimeout(1200);
+        const bb = await clockNow();
+        const label = await pg.locator('[data-testid=hold]').innerText();
+        const pill = await pg.locator('[data-testid=replay-held]').count();
+        check(a === bb && label.trim() === 'Play' && pill === 1, `RR7: Hold holds the replay and reads Play (${a} → ${bb}, "${label.trim()}", pill ${pill})`);
+        await pg.click('[data-testid=hold]');
+        holdChecked = true;
+        continue;
+      }
+      if (holdChecked && !tapChecked) {
+        // A tap on the map holds it too, and another goes on (RR7).
+        await pg.mouse.click(195, 330);
+        await pg.waitForTimeout(300);
+        const held = await pg.locator('[data-testid=replay-held]').count();
+        await pg.mouse.click(195, 330);
+        await pg.waitForTimeout(300);
+        const after = await pg.locator('[data-testid=replay-held]').count();
+        check(held === 1 && after === 0, `RR7: a tap on the map holds the replay, another goes on (${held}, ${after})`);
+        tapChecked = true;
+      }
+      if (!pileChecked && (await pg.locator('[data-testid=replay-pile]').count())) {
+        const pileText = await pg.locator('[data-testid=replay-pile]').innerText();
+        check(!/\d/.test(pileText), `RR19: the pile shows no count ("${pileText}")`);
+        await shot(pg, 'rr-pile');
+        // The pile opens the viewer, and the replay holds until it closes (RR13).
+        await pg.click('[data-testid=replay-pile]');
+        const open = await pg.waitForSelector('[data-testid=viewer-close]', { timeout: 5000 }).then(() => true, () => false);
+        const a = await clockNow();
+        await pg.waitForTimeout(1200);
+        const bb = await clockNow();
+        check(open && a === bb, `RR13: the pile opens the viewer and the replay holds (${open}, ${a} → ${bb})`);
+        await pg.click('[data-testid=viewer-close]').catch(() => {});
+        pileChecked = true;
+      }
+      await pg.waitForTimeout(150);
+    }
+    const rec = await pg.evaluate(() => {
+      clearInterval(window.__rrTimer);
+      return window.__rrSeen;
+    });
+    seen.note = rec.notes.some((n) => /Bought two plums/.test(n));
+    seen.card = rec.cards.some((l) => /^Blue door/.test(l));
+    seen.later = rec.later.join(' | ');
+    seen.counted = rec.counted.join(' | ');
+    const onCard = (await pg.locator('[data-testid=to-name]').count()) === 1;
+    check(onCard && !seen.cont, `RR6: the replay reaches its card with no Continue (${onCard}, ${seen.cont})`);
+    check(clocks.size >= 3, `RR8: the clock rolls through the walk (${[...clocks].join(', ')})`);
+    check((await pg.locator('[data-testid=replay-clock]').count()) === 0, 'RR8: the clock goes when the card comes');
+    check(seen.note, 'RR9: the note shows in a bubble');
+    check(seen.card, `RR11: the photo grows into a card with its caption (${rec.cards.join(' | ')})`);
+    check(pileChecked, 'RR11: the photo tucks into the pile');
+    check(/^20 min later$/.test(seen.later), `RR4: the gap is a cut, "20 min later" ("${seen.later}")`);
+    check(!seen.counted, `RR19: nothing during the path counts ("${seen.counted}")`);
+
+    // The day (RR16): its replay reaches the day's card with no taps, the note on the way.
+    await pg.click('[data-testid=not-now]');
+    await pg.waitForURL((u) => u.pathname === `${BASE}/chronicle`, { timeout: 15000 });
+    await pg.click('[data-testid=sheet-days]');
+    await pg.click('[data-testid=day-row]');
+    await pg.click('[data-testid=day-replay]');
+    await pg.waitForURL(/\/day\//, { timeout: 15000 });
+    let dayNote = false;
+    let dayCont = false;
+    for (let k = 0; k < 400 && !(await pg.locator('[data-testid=day-card]').count()); k++) {
+      if (await pg.locator('[data-testid=day-moment]').count()) dayCont = true;
+      if (await pg.getByText('Bought two plums').count()) dayNote = true;
+      await pg.waitForTimeout(150);
+    }
+    check((await pg.locator('[data-testid=day-card]').count()) === 1 && !dayCont && dayNote, `RR16: the day's replay reaches its card with no taps, its note on the way (${dayNote}, ${dayCont})`);
+    await c.close();
+  };
+
   try {
     if (process.env.E2E_ONLY === 'ready') {
       await readyScenario();
@@ -2312,6 +2479,11 @@ function check(ok, what) {
     }
     if (process.env.E2E_ONLY === 'gaps') {
       await gapsScenario();
+      check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
+      return;
+    }
+    if (process.env.E2E_ONLY === 'replay') {
+      await replayScenario();
       check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
       return;
     }
@@ -3091,67 +3263,54 @@ function check(ok, what) {
     }
     check(reading, 'the first beat reads the streets');
 
-    // The memo and the video share the first stop. Step past the memo with
-    // Continue; the video then plays, and waits for Continue too.
-    for (let k = 0; k < 4 && !(await page.locator('video').count()); k++) {
-      await page.waitForSelector('[data-testid=moment]', { timeout: 60000 });
-      await page.waitForTimeout(900);
-      if (!(await page.locator('video').count())) await page.click('[data-testid=moment]');
-      await page.waitForTimeout(400);
-    }
-    await page.waitForSelector('video', { timeout: 30000 });
-    await page.waitForTimeout(1500);
-    await shot(page, '04a-replay-video');
-    const playing = await page.evaluate(() => {
-      const v = document.querySelector('video');
-      return !!v && v.currentTime > 0 && !v.paused;
-    });
-    check(playing, 'the video plays at its stop in the replay');
-    if (await page.locator('[data-testid=video-sound]').count()) {
-      // Sound was refused without a tap: it plays muted, and one tap brings the sound.
-      await page.click('[data-testid=video-sound]');
-      await page.waitForTimeout(500);
-      const sound = await page.evaluate(() => {
-        const v = document.querySelector('video');
-        return !!v && !v.muted && !v.paused;
-      });
-      check(sound, 'a video that could not start with sound plays muted, and a tap turns the sound on');
-    }
-    // The player fills the screen's width, above the strip with Continue.
-    const vbox = await page.locator('video').boundingBox();
-    const cbox = await page.locator('[data-testid=moment]').boundingBox();
-    check(vbox && cbox && vbox.width >= 389 && vbox.y + vbox.height <= cbox.y, `the video fills the width above the strip (${vbox && Math.round(vbox.width)} wide)`);
-    await page.click('[data-testid=moment]');
-
-    let moment = false;
-    for (let k = 0; k < 120 && !moment; k++) {
-      moment = (await page.getByText('cardamom').count()) > 0;
-      if (!moment) await page.waitForTimeout(500);
-    }
-    check(moment, 'the note gets its moment in the replay');
-    // The replay is another map: its pin for the reminded note wears the bell too (RB6).
-    const replayBell = await page.waitForSelector('[data-ids] [data-testid=pin-reminder]', { timeout: 5000 }).then(() => true, () => false);
-    check(replayBell, 'the replay\u2019s pin for the reminded note wears the bell too (RB6)');
-    await page.waitForTimeout(3000);
-    await shot(page, '04-replay-moment');
-    check((await page.getByText('cardamom').count()) > 0, 'the replay waits at the note until a tap');
-    await page.click('[data-testid=moment]');
-
-    // Continue through any stops left (the captioned photo), checking its caption shows.
+    // The replay flows (RR6): nothing asks for Continue. The memo plays in its bubble, the video in its
+    // card, the note joins the corner, the captioned photo grows from its pin and tucks into the pile.
+    let continueSeen = false;
+    let videoChecked = false;
+    let noteSeen = false;
     let captionShown = false;
-    for (let k = 0; k < 90 && !(await page.locator('[data-testid=to-name]').count()); k++) {
-      if (await page.locator('[data-testid=moment]').count()) {
-        // Give the photo time to load and its caption bar to be placed.
+    for (let k = 0; k < 240 && !(await page.locator('[data-testid=to-name]').count()); k++) {
+      if (await page.locator('[data-testid=moment]').count()) continueSeen = true;
+      if (!videoChecked && (await page.locator('[data-testid=replay-card] video').count())) {
         await page.waitForTimeout(1200);
-        if (await page.locator('[aria-label="Caption: Mural on Wickenden"]').count()) {
-          if (!captionShown) await shot(page, '04b-replay-caption');
-          captionShown = true;
+        await shot(page, '04a-replay-video');
+        const playing = await page.evaluate(() => {
+          const v = document.querySelector('[data-testid=replay-card] video');
+          return !!v && v.currentTime > 0 && !v.paused;
+        });
+        check(playing, 'the video plays in its card in the replay (RR12)');
+        if (await page.locator('[data-testid=video-sound]').count()) {
+          // Sound was refused without a tap: it plays muted, and one tap brings the sound.
+          await page.click('[data-testid=video-sound]');
+          await page.waitForTimeout(300);
+          const sound = await page.evaluate(() => {
+            const v = document.querySelector('[data-testid=replay-card] video');
+            return !!v && !v.muted;
+          });
+          check(sound, 'a video that could not start with sound plays muted, and a tap turns the sound on');
         }
-        await page.click('[data-testid=moment]').catch(() => {});
+        const vbox = await page.locator('[data-testid=replay-card]').boundingBox();
+        check(vbox && vbox.width < 300, `the video plays in a card, not full screen (${vbox && Math.round(vbox.width)} wide, RR12)`);
+        videoChecked = true;
       }
-      await page.waitForTimeout(500);
+      if (!noteSeen && (await page.getByText('cardamom').count()) > 0) {
+        noteSeen = true;
+        // The replay is another map: its pin for the reminded note wears the bell too (RB6).
+        const replayBell = await page.waitForSelector('[data-ids] [data-testid=pin-reminder]', { timeout: 5000 }).then(() => true, () => false);
+        check(replayBell, 'the replay’s pin for the reminded note wears the bell too (RB6)');
+        await shot(page, '04-replay-moment');
+      }
+      if (!captionShown && (await page.locator('[data-testid=replay-card][aria-label^="Mural on Wickenden"]').count())) {
+        captionShown = true;
+        await page.waitForTimeout(400);
+        await shot(page, '04b-replay-caption');
+      }
+      await page.waitForTimeout(250);
     }
-    check(captionShown, 'the photo shows its caption in the replay');
+    check(!continueSeen, 'the replay never waits for Continue (RR6)');
+    check(videoChecked, 'the replay plays the video in a card (RR12)');
+    check(noteSeen, 'the note gets its moment in the replay, in a bubble (RR9)');
+    check(captionShown, 'the photo shows its caption in the replay (RR11)');
     await page.waitForSelector('[data-testid=to-name]', { timeout: 45000 });
     const card = (await page.locator('body').innerText()).replace(/\s+/g, ' ');
     // A block each of Transit and Arnold; the unnamed block between them clears fog but is not a street.
@@ -4028,20 +4187,23 @@ function check(ok, what) {
       check(await p2.waitForSelector('text=A green dress in the window.', { timeout: 5000 }).then(() => true, () => false), 'a moment in the timeline opens in the viewer');
       await p2.click('[aria-label="Close"]');
 
-      // The day's replay: the dress, then the walk's path and its note, then the moment with no place (M10, M11, M14).
+      // The day's replay: the dress, then the walk's path and its note, then the moment with no place,
+      // in order and with no taps (M10, M11, M14, RR16).
       await p2.click('[data-testid=day-replay]');
       await p2.waitForURL(/\/day\//, { timeout: 15000 });
       const seen = [];
-      for (let i = 0; i < 3; i++) {
-        await p2.waitForSelector('[data-testid=day-moment]', { timeout: 60000 });
-        await p2.waitForTimeout(700);
+      let dayContinue = false;
+      for (let k = 0; k < 240 && !(await p2.locator('[data-testid=day-card]').count()); k++) {
+        if (await p2.locator('[data-testid=day-moment]').count()) dayContinue = true;
         const body = await p2.locator('body').innerText();
-        seen.push(/green dress/.test(body) ? 'dress' : /tailor/.test(body) ? 'tailor' : /linen/.test(body) ? `linen${/No location/.test(body) ? ':nowhere' : ''}` : '?');
-        if (i === 1) await shot(p2, '22-day-replay-walk');
-        await p2.click('[data-testid=day-moment]');
-        await p2.waitForSelector('[data-testid=day-moment]', { state: 'detached', timeout: 5000 }).catch(() => {});
+        for (const [name, re] of [['dress', /green dress/], ['tailor', /tailor/], ['linen', /linen/]]) if (re.test(body) && !seen.includes(name)) seen.push(name);
+        if (seen.length === 2 && !seen.shot) {
+          await shot(p2, '22-day-replay-walk');
+          seen.shot = true;
+        }
+        await p2.waitForTimeout(250);
       }
-      check(seen.join(',') === 'dress,tailor,linen:nowhere', `the day replays its moments in order, the walk's inside it, the placeless one said so (${seen.join(', ')})`);
+      check(seen.join(',') === 'dress,tailor,linen' && !dayContinue, `the day replays its moments in order, the walk's inside it, with no taps (${seen.join(', ')})`);
       await p2.waitForSelector('[data-testid=day-card]', { timeout: 30000 });
       const line = await p2.locator('[data-testid=day-card-line]').innerText();
       const cardText = await p2.locator('[data-testid=day-card]').innerText();

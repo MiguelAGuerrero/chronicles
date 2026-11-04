@@ -1,67 +1,67 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
-import { AccessibilityInfo, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { AccessibilityInfo, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CaptureContent, CaptureViewer } from '../../components/CaptureView';
-import { KIND_LABEL } from '../../components/icons';
+import { CaptureViewer } from '../../components/CaptureView';
+import { Stage } from '../../components/ceremony/Stage';
+import { StepThrough } from '../../components/ceremony/StepThrough';
+import { useCeremonyClock } from '../../components/ceremony/useCeremonyClock';
+import { useRevealed } from '../../components/ceremony/useRevealed';
+import type { StageCtx } from '../../components/ceremony/layout';
 import { WalkMap } from '../../components/map/WalkMap';
 import { Button, theme } from '../../components/ui';
 import { setAudioMode } from '../../lib/audioMode';
 import { db } from '../../lib/db';
 import { applyPatch, captureBus } from '../../lib/captureBus';
-import { buildDays, dayCaptures, dayCard, dayPlan, dayStart, nextDayStart, stepFrames, walkDrawnAt, walkPlay, watchedKey, type Day, type DayStep, type WalkPlay } from '../../lib/days';
-import { focusOn } from '../../lib/focus';
+import { ceremonyFor } from '../../lib/ceremony/registry';
+import { dayStory, pathDrawnAt, storySteps } from '../../lib/ceremony/story';
+import { buildDays, dayCaptures, dayCard, dayStart, nextDayStart, watchedKey, type Day } from '../../lib/days';
 import { launchRoute } from '../../lib/launchRoute';
 import { boundsOf, type Bounds } from '../../lib/geo';
-import { walkerAt, walkTimeAt } from '../../lib/replay';
-import { loadReplay } from '../../lib/summary';
-import { useVisible } from '../../lib/deletion/useDeletions';
+import { REPLAY_RHYTHM } from '../../lib/motionTokens';
+import { loadReplay, type ReplayData } from '../../lib/summary';
+import { useHidden } from '../../lib/deletion/useDeletions';
 import { UndoToast } from '../../components/UndoToast';
 import type { Capture, LngLat } from '../../lib/types';
 
-const FRAME_MS = 33;
-/** Taps this soon after a moment appears are ignored, so a double tap skips nothing. */
-const TAP_GUARD_MS = 600;
-/** On a re-watch, how long a photo or note stays up before moving on (M12). */
-const AUTO_MS = 4000;
-const TRACE_STEP_MS = 100;
+/** The drawn trace is rebuilt at most this often; the walker moves every frame. */
+const TRACE_STEP_MS = 66;
 
 export { ScreenError as ErrorBoundary } from '../../components/ScreenError';
 
 interface Loaded {
   day: Day;
-  walks: Map<string, WalkPlay>;
+  walks: Map<string, ReplayData>;
   distance: Map<string, number>;
   bounds: Bounds | null;
-  /** Watched to the end before: the stops move on by themselves (M12). */
+  /** Watched to the end before: the screen reader's steps move on by themselves (RR17). */
   watched: boolean;
 }
 
 /**
- * The day's replay (M10-M15): the map moves from moment to moment in time
- * order, and a walk inside the day plays its path and its moments, without
- * its fog beat, before the day carries on. It ends on a quiet card. The first
- * watch waits at each moment; a later one moves on by itself.
+ * The day's replay (RR16): the day's story, its loose moments and its walks
+ * in time order, told by the same ceremony as a walk's replay, ending on a
+ * quiet card (M13). With a screen reader, its moments one at a time (RR17).
  */
 export default function DayReplay() {
   const { key } = useLocalSearchParams<{ key: string }>();
   const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
   const [data, setData] = useState<Loaded | null>(null);
   const [status, setStatus] = useState<'loading' | 'missing' | 'ready'>('loading');
   // A load that threw is shown by the screen's error boundary, never as an empty day (NV2).
   const [failure, setFailure] = useState<unknown>(null);
   const [reduceMotion, setReduceMotion] = useState(false);
   const [srMode, setSrMode] = useState(false);
-  // The step and its start time change together, as the walk replay's beat does.
-  const [phase, setPhase] = useState<{ i: number; t0: number; item: number }>(() => ({ i: -1, t0: Date.now(), item: 0 }));
-  const [now, setNow] = useState(() => Date.now());
+  // The beat and its start time change together, as the walk replay's do.
+  const [phase, setPhase] = useState<{ beat: 'loading' | 'path' | 'card'; t0: number }>(() => ({ beat: 'loading', t0: Date.now() }));
   const [fitKey, setFitKey] = useState(0);
   const [sheetH, setSheetH] = useState(0);
   const [rewatched, setRewatched] = useState(false);
   // Reached by Skip: the day was not seen, so it isn't marked watched (audit).
   const [skipped, setSkipped] = useState(false);
   const [viewing, setViewing] = useState<Capture[] | null>(null);
-  const continueRef = useRef<ComponentRef<typeof Pressable>>(null);
+  const hidden = useHidden();
 
   useEffect(() => {
     setAudioMode({ playsInSilentMode: true, allowsRecording: false }).catch(() => {});
@@ -96,16 +96,16 @@ export default function DayReplay() {
         setStatus('missing');
         return;
       }
-      const plays = new Map<string, WalkPlay>();
+      const plays = new Map<string, ReplayData>();
       for (const e of day.entries) {
         if (e.kind !== 'walk') continue;
         const r = await loadReplay(e.walk.id).catch(() => null);
         if (!r) continue;
-        plays.set(e.walk.id, walkPlay(r));
+        plays.set(e.walk.id, r);
       }
       const points: LngLat[] = [
         ...dayCaptures(day).filter((c) => c.lat != null && c.lon != null).map((c) => [c.lon!, c.lat!] as LngLat),
-        ...[...plays.values()].flatMap((p) => p.full.flat()),
+        ...[...plays.values()].flatMap((p) => p.runs.flat()),
       ];
       const watched = (await db.getMeta(watchedKey(day.key)).catch(() => null)) != null;
       if (!alive) return;
@@ -120,175 +120,83 @@ export default function DayReplay() {
       const sr = Platform.OS !== 'web' && (await AccessibilityInfo.isScreenReaderEnabled().catch(() => false));
       setSrMode(sr);
       setFitKey((k) => k + 1);
-      const t = Date.now();
-      setPhase({ i: 0, t0: t, item: 0 });
-      setNow(t);
+      setPhase({ beat: 'path', t0: Date.now() });
     })().catch((e) => alive && setFailure(e ?? new Error('This day could not be opened.')));
     return () => {
       alive = false;
     };
   }, [key]);
 
-  // With a screen reader, the moments one after another, then the card: no flying, no path.
-  const plan = useMemo<DayStep[]>(() => {
-    if (!data) return [];
-    const p = dayPlan(data.day, new Map([...data.walks].map(([id, w]) => [id, { sched: w.sched, start: w.start }])));
-    return srMode ? p.filter((s) => s.kind === 'stop') : p;
-  }, [data, srMode]);
-  const frames = useMemo(
-    () => (data ? stepFrames(plan, new Map([...data.walks].map(([id, w]) => [id, w.full.flat()]))) : []),
-    [data, plan],
-  );
-  const onCard = data != null && phase.i >= plan.length;
-  const step = !onCard && phase.i >= 0 ? plan[phase.i] : null;
-  const auto = !!data?.watched || rewatched;
-
-  const planLen = useRef(0);
-  useEffect(() => {
-    planLen.current = plan.length;
-  }, [plan]);
-  const next = useCallback((from: number) => {
-    const t = Date.now();
-    setPhase({ i: from + 1, t0: t, item: 0 });
-    setNow(t);
+  // What happened that day, less any moment just deleted (D3), read once; the ceremony tells it (RR20, RR21).
+  const story = useMemo(() => {
+    if (!data) return null;
+    const keep = (c: Capture) => !hidden.has(c.id);
+    const day: Day = {
+      ...data.day,
+      entries: data.day.entries.flatMap((e): Day['entries'] =>
+        e.kind === 'moment' ? (keep(e.capture) ? [e] : []) : [{ ...e, captures: e.captures.filter(keep) }],
+      ),
+    };
+    const walks = new Map([...data.walks].map(([id, r]) => [id, { ...r, captures: r.captures.filter(keep) }]));
+    return dayStory(day, walks);
+  }, [data, hidden]);
+  const showing = useMemo(() => (story ? ceremonyFor().show(story, { reduceMotion }) : null), [story, reduceMotion]);
+  const onCard = phase.beat === 'card';
+  const toCard = () => {
+    setPhase({ beat: 'card', t0: Date.now() });
     // Reaching the card frames the whole day above it.
-    if (from + 1 >= planLen.current) setFitKey((k) => k + 1);
-  }, []);
+    setFitKey((k) => k + 1);
+  };
+  const telling = phase.beat === 'path' && !srMode && showing != null;
+  const play = useCeremonyClock({ epoch: phase.t0, running: telling, paused: viewing != null, total: showing?.total ?? 0, onEnd: toCard });
+  const frame = telling ? showing.frame(play.ms) : null;
 
-  // Fly and path steps run on the clock; a stop stands still until Continue.
-  useEffect(() => {
-    if (!step || step.kind === 'stop') return;
-    const timer = setInterval(() => {
-      const t = Date.now();
-      const elapsed = t - phase.t0;
-      const len = step.kind === 'fly' ? (reduceMotion ? 0 : step.ms) : step.toMs - step.fromMs;
-      if (elapsed >= len) next(phase.i);
-      else setNow(t);
-    }, FRAME_MS);
-    return () => clearInterval(timer);
-  }, [step, phase.t0, phase.i, next, reduceMotion]);
-
-  // The card: framed above the sheet, and the day marked watched (M12).
+  // The card: the day marked watched, unless Skip reached it (M12, audit).
   useEffect(() => {
     if (!onCard || !data || skipped) return;
     db.setMeta(watchedKey(data.day.key), String(Date.now())).catch(() => {});
     AccessibilityInfo.announceForAccessibility('Summary of the day');
   }, [onCard, data, skipped]);
 
-  const stopCapture = step?.kind === 'stop' ? step.captures[phase.item] ?? null : null;
-  const advance = (fromAuto = false) => {
-    if (!step || step.kind !== 'stop') return;
-    const t = Date.now();
-    if (!fromAuto && t - phase.t0 < TAP_GUARD_MS) return;
-    if (phase.item < step.captures.length - 1) {
-      setPhase({ i: phase.i, t0: t, item: phase.item + 1 });
-      return;
-    }
-    next(phase.i);
-  };
-  const advanceRef = useRef(advance);
-  useEffect(() => {
-    advanceRef.current = advance;
-  });
-  const stopKey = stopCapture ? `${phase.i}:${phase.item}` : null;
-  // A re-watch moves on by itself: a photo or note after AUTO_MS, a memo or video when it ends (M12).
-  useEffect(() => {
-    if (!auto || !stopCapture) return;
-    const media = stopCapture.kind === 'voice' || stopCapture.kind === 'video';
-    const ms = media ? (Number(stopCapture.body) || 0) + 2500 : AUTO_MS;
-    const timer = setTimeout(() => advanceRef.current(true), ms);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auto, stopKey]);
-  useEffect(() => {
-    if (!stopKey) return;
-    const t = setTimeout(() => focusOn(continueRef), 250);
-    return () => clearTimeout(t);
-  }, [stopKey]);
-  useEffect(() => {
-    if (!stopCapture) return;
-    const c = stopCapture;
-    const what = c.kind === 'text' ? `Note: ${c.body ?? ''}` : KIND_LABEL[c.kind];
-    AccessibilityInfo.announceForAccessibility(`${what}. ${auto ? '' : 'Continue when ready.'}`);
-  }, [stopCapture, auto]);
-
-  // Which walk is playing, and how far along its path.
-  const clock = now - phase.t0;
-  const pathWalk = step?.kind === 'path' ? data?.walks.get(step.walkId) ?? null : null;
-  const pathMs = step?.kind === 'path' ? Math.min(step.toMs, step.fromMs + clock) : 0;
-  const walkT = pathWalk ? walkTimeAt(pathWalk.sched, pathMs) : 0;
-  const bucket = step?.kind === 'path' ? Math.floor(pathMs / TRACE_STEP_MS) : -1;
-
-  // Walks already played are drawn whole; the playing one up to now; later ones not yet.
-  const played = useMemo(() => {
-    const done = new Set<string>();
-    const current = step?.kind === 'path' || step?.kind === 'stop' ? (step as { walkId: string | null }).walkId : null;
-    const until = onCard ? plan.length : Math.max(0, phase.i);
-    for (let i = 0; i < until; i++) {
-      const s = plan[i];
-      if (s.kind === 'path' && s.walkId !== current) done.add(s.walkId);
-    }
-    return done;
-  }, [plan, phase.i, onCard, step]);
-  // The solid trace is what was walked; rides are dashed (R5), as in the walk's own replay.
-  const drawn = useMemo(() => {
-    const trace: LngLat[][] = [];
-    const rides: LngLat[][] = [];
-    if (!data) return { trace, rides };
-    for (const [id, w] of data.walks) {
-      if (onCard || played.has(id)) {
-        trace.push(...w.full);
-        rides.push(...w.rideRuns);
+  // Each walk's trace as far as the ceremony has drawn it; every walk whole on the card.
+  const bucket = telling ? Math.floor(play.ms / TRACE_STEP_MS) : -1;
+  // The trace is rebuilt on TRACE_STEP_MS buckets, not every frame: from the frame at the bucket's time.
+  const traceFrame = useMemo(() => (telling && bucket >= 0 ? showing.frame(bucket * TRACE_STEP_MS) : null), [telling, showing, bucket]);
+  const drawn = useMemo(
+    () => {
+      const trace: LngLat[][] = [];
+      const rides: LngLat[][] = [];
+      if (!story) return { trace, rides };
+      const upTo: Record<string, number> = traceFrame ? traceFrame.drawn : onCard || srMode ? Object.fromEntries(Object.keys(story.paths).map((id) => [id, Infinity])) : {};
+      for (const [id, t] of Object.entries(upTo)) {
+        const p = story.paths[id];
+        if (!p) continue;
+        const d = pathDrawnAt(p, t);
+        trace.push(...d.trace);
+        rides.push(...d.rides);
       }
-    }
-    let now: { w: WalkPlay; t: number } | null = pathWalk ? { w: pathWalk, t: walkT } : null;
-    if (!now && step?.kind === 'stop' && step.walkId && !played.has(step.walkId)) {
-      // Stopped mid-walk: the path so far stays drawn.
-      const w = data.walks.get(step.walkId);
-      const before = plan.slice(0, phase.i).reverse().find((s) => s.kind === 'path' && s.walkId === step.walkId);
-      if (w && before?.kind === 'path') now = { w, t: walkTimeAt(w.sched, before.toMs) };
-    }
-    if (now) {
-      const d = walkDrawnAt(now.w, now.t);
-      trace.push(...d.trace);
-      rides.push(...d.rides);
-    }
-    return { trace, rides };
-    // Rebuilt on TRACE_STEP_MS buckets, not every frame.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, played, onCard, phase.i, bucket, step]);
-  const walker = pathWalk ? walkerAt(pathWalk.dot, walkT) : null;
+      return { trace, rides };
+    },
+    [story, traceFrame, onCard, srMode],
+  );
 
   // Pins appear as their moments are reached; on the card every pin opens its moments.
-  const pinnedAll = useMemo(() => {
-    if (!data) return [];
-    if (onCard) return dayCaptures(data.day);
-    const shown: Capture[] = [];
-    for (let i = 0; i <= phase.i && i < plan.length; i++) {
-      const s = plan[i];
-      if (s.kind === 'stop') shown.push(...(i < phase.i ? s.captures : s.captures.slice(0, phase.item + 1)));
-    }
-    return shown;
-  }, [data, plan, phase.i, phase.item, onCard]);
-  // A moment deleted from its viewer leaves its pin (D3).
-  const pinned = useVisible(pinnedAll);
+  const revealed = frame ? frame.revealed : onCard || srMode ? Infinity : 0;
+  // The story already leaves out a moment deleted from its viewer (D3).
+  const pinned = useRevealed(story, revealed);
 
-  // A fly step is a fit to its frame; the path follows the walker at that zoom.
-  const follow = reduceMotion ? null : walker;
-  let flyIdx = -1;
-  for (let i = Math.min(phase.i, plan.length - 1); i >= 0; i--) {
-    if (plan[i].kind === 'fly') {
-      flyIdx = i;
-      break;
-    }
-  }
-  const frame = onCard || flyIdx < 0 ? data?.bounds ?? null : frames[flyIdx] ?? data?.bounds ?? null;
+  const follow = frame && !reduceMotion ? frame.walker : null;
+  const followZoom = follow && frame ? REPLAY_RHYTHM.baseZoom - Math.log2(frame.zoomOut) : null;
+  const ctx: StageCtx = {
+    width, height, insets: { top: insets.top, bottom: insets.bottom }, center: follow, zoom: followZoom ?? 0,
+    held: play.held, reduceMotion, open: setViewing,
+  };
   // The card is computed once it is reached, not every frame (audit).
   const cardAt = onCard ? phase.t0 : 0;
   const card = useMemo(() => (data && cardAt ? dayCard(data.day, cardAt, data.distance) : null), [data, cardAt]);
 
   if (failure) throw failure;
-  if (status !== 'ready' || !data) {
+  if (status !== 'ready' || !data || !story) {
     return (
       <View style={[styles.screen, styles.center, { paddingHorizontal: 24 }]}>
         {status === 'missing' ? (
@@ -314,10 +222,11 @@ export default function DayReplay() {
         fog={[]}
         captures={pinned}
         onPinPress={onCard ? setViewing : undefined}
-        walker={walker}
+        walker={frame?.walker ?? null}
         follow={follow}
-        fitBounds={frame}
-        fitKey={fitKey * 1000 + flyIdx + 1}
+        followZoom={followZoom}
+        fitBounds={data.bounds}
+        fitKey={fitKey}
         fitPadding={onCard ? { top: 48 + insets.top, right: 32, bottom: sheetH + 24, left: 32 } : undefined}
         animate={!reduceMotion}
         initialCenter={data.bounds ? [(data.bounds[0] + data.bounds[2]) / 2, (data.bounds[1] + data.bounds[3]) / 2] : undefined}
@@ -329,28 +238,27 @@ export default function DayReplay() {
         scaleInset={onCard ? { bottom: sheetH + 12, left: 12 } : { bottom: insets.bottom + 12, left: 12 }}
       />
 
-      {stopCapture && step?.kind === 'stop' && (
-        <View style={styles.moment}>
-          {stopCapture.kind !== 'voice' && stopCapture.kind !== 'video' && (
-            <Pressable style={StyleSheet.absoluteFill} onPress={() => advance()} accessible={false} />
-          )}
-          <CaptureContent
-            key={stopCapture.id}
-            ref={continueRef}
-            capture={stopCapture}
-            autoPlay
-            topInset={insets.top}
-            onVoiceFinished={auto ? () => advance(true) : undefined}
-            footer={[
-              stopCapture.lat == null ? 'No location' : null,
-              step.captures.length > 1 ? `${phase.item + 1} of ${step.captures.length}` : null,
-            ].filter(Boolean).join(' · ') || undefined}
-            action={{ label: 'Continue', hint: 'Shows the next moment of the day', onPress: () => advance(), testID: 'day-moment' }}
-          />
-        </View>
+      {frame && (
+        <>
+          {/* A tap anywhere holds the replay, and another goes on (RR7). */}
+          <Pressable testID="replay-stage" style={StyleSheet.absoluteFill} onPress={play.toggleHold} accessible={false} />
+          <Stage frame={frame} ctx={ctx} />
+        </>
+      )}
+      {phase.beat === 'path' && srMode && (
+        <StepThrough
+          key={phase.t0}
+          steps={storySteps(story)}
+          auto={data.watched || rewatched}
+          onDone={toCard}
+          footer={(c) => (c.lat == null ? 'No location' : null)}
+          hint="Shows the next moment of the day"
+          testID="day-moment"
+          topInset={insets.top}
+        />
       )}
 
-      {!onCard && (
+      {phase.beat === 'path' && (
         <View style={[styles.skip, { top: insets.top + 12 }]}>
           <Button
             testID="day-skip"
@@ -358,8 +266,19 @@ export default function DayReplay() {
             label="Skip"
             onPress={() => {
               setSkipped(true);
-              next(plan.length - 1);
+              toCard();
             }}
+          />
+        </View>
+      )}
+      {frame && (
+        <View style={[styles.hold, { top: insets.top + 12 }]}>
+          <Button
+            testID="hold"
+            variant="secondary"
+            label={play.held ? 'Play' : 'Hold'}
+            accessibilityHint={play.held ? 'Goes on with the replay' : 'Holds the replay where it is'}
+            onPress={play.toggleHold}
           />
         </View>
       )}
@@ -370,7 +289,7 @@ export default function DayReplay() {
         onClose={() => setViewing(null)}
         remind
         onSaveNote={async (c, body) => {
-          // Stored first; the day's stops (Watch again) and any open view of the walk then show it (QL25).
+          // Stored first; the day's moments (Watch again) and any open view of the walk then show it (QL25).
           await db.updateCapture(c.id, { body });
           setData((d) => d && withNote(d, c.id, body));
           captureBus.patch(c.walk_id, c.id, { body }, null);
@@ -404,10 +323,7 @@ export default function DayReplay() {
                 onPress={() => {
                   setRewatched(true);
                   setSkipped(false);
-                  setFitKey((k) => k + 1);
-                  const t = Date.now();
-                  setPhase({ i: 0, t0: t, item: 0 });
-                  setNow(t);
+                  setPhase({ beat: 'path', t0: Date.now() });
                 }}
               />
               <Button testID="day-done" style={styles.flex} label="Done" onPress={close} />
@@ -420,19 +336,14 @@ export default function DayReplay() {
   );
 }
 
-/** The day with one note's new text, in its loose moments, its walks' captures and their stops (QL25). */
+/** The day with one note's new text, in its loose moments and its walks' captures (QL25). */
 function withNote(d: Loaded, id: string, body: string): Loaded {
   const entries = d.day.entries.map((e) =>
     e.kind === 'walk'
       ? { ...e, captures: applyPatch(e.captures, id, { body }) }
       : e.capture.id === id ? { ...e, capture: { ...e.capture, body } } : e,
   );
-  const walks = new Map(
-    [...d.walks].map(([wid, w]) => [
-      wid,
-      { ...w, sched: { ...w.sched, groups: w.sched.groups.map((g) => ({ ...g, captures: applyPatch(g.captures, id, { body }) })) } },
-    ]),
-  );
+  const walks = new Map([...d.walks].map(([wid, r]) => [wid, { ...r, captures: applyPatch(r.captures, id, { body }) }]));
   return { ...d, day: { ...d.day, entries }, walks };
 }
 
@@ -442,7 +353,7 @@ const styles = StyleSheet.create({
   muted: { color: theme.muted, fontSize: 16 },
   missing: { color: theme.ink, fontSize: 18, fontWeight: '600', textAlign: 'center' },
   skip: { position: 'absolute', right: 12 },
-  moment: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(20,24,32,0.85)' },
+  hold: { position: 'absolute', left: 12 },
   sheet: {
     position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: theme.surface,
     borderTopLeftRadius: 20, borderTopRightRadius: 20,

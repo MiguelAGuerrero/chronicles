@@ -47,6 +47,11 @@ const SCENARIOS = [
     covers: ['src/lib/gaps/**', 'src/components/GapCard.tsx', 'src/app/replay/**', 'src/app/walk.tsx'],
   },
   {
+    // Replay rhythm (RR6-RR16, RR19): a seeded walk and its day, watched with no taps.
+    name: 'replay',
+    covers: ['src/app/replay/**', 'src/app/day/**', 'src/components/ceremony/**', 'src/lib/ceremony/**', 'src/lib/{replay,days,summary}.ts', 'src/components/map/WalkMap.web.tsx'],
+  },
+  {
     name: 'hidden',
     covers: ['src/lib/{hiddenLog,useLiveTrace}.ts', 'src/components/OpenWalk.tsx', 'src/app/walk.tsx'],
   },

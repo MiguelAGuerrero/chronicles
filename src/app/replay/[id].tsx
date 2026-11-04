@@ -1,14 +1,22 @@
 import { useUnits } from '../../lib/useUnits';
 import { foundLine, foundList, passedLine } from '../../lib/explore/explore';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  AccessibilityInfo, BackHandler, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
+  AccessibilityInfo, BackHandler, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WalkMap } from '../../components/map/WalkMap';
-import { Icon, KIND_LABEL } from '../../components/icons';
-import { CaptureContent, CaptureViewer } from '../../components/CaptureView';
+import { Icon } from '../../components/icons';
+import { CaptureViewer } from '../../components/CaptureView';
+import { Stage } from '../../components/ceremony/Stage';
+import { StepThrough } from '../../components/ceremony/StepThrough';
+import { useCeremonyClock } from '../../components/ceremony/useCeremonyClock';
+import { useRevealed } from '../../components/ceremony/useRevealed';
+import type { StageCtx } from '../../components/ceremony/layout';
+import { ceremonyFor } from '../../lib/ceremony/registry';
+import { pathDrawnAt, storySteps, walkStory } from '../../lib/ceremony/story';
+import { REPLAY_RHYTHM } from '../../lib/motionTokens';
 import { planViews, type WalkMapHandle } from '../../components/map/types';
 import { Button, theme } from '../../components/ui';
 import { db } from '../../lib/db';
@@ -22,9 +30,8 @@ import { GapDraw } from '../../components/GapDraw';
 import { tileCollector } from '../../lib/tileCollector';
 import { GapCard } from '../../components/GapCard';
 import { ensureTileBuild } from '../../lib/tiles';
-import { focusOn } from '../../lib/focus';
 import { setAudioMode } from '../../lib/audioMode';
-import { FOG_MS, nextStop, PATH_MS, schedule, timedRuns, traceUntil, walkerAt, walkTimeAt } from '../../lib/replay';
+import { FOG_MS } from '../../lib/replay';
 import { formatCaptures, formatDistance, formatDuration, loadReplay, suggestTitle, type ReplayData } from '../../lib/summary';
 import type { Capture, LngLat } from '../../lib/types';
 import { summaryLess } from '../../lib/deletion/core';
@@ -37,13 +44,9 @@ import { capturesHere, type HereResult } from '../../lib/here';
 import { launchRoute } from '../../lib/launchRoute';
 
 type Beat = 'reading' | 'fog' | 'path' | 'card' | 'name';
-const FRAME_MS = 33; // ~30 fps: the dot reads as a slider, not as steps (was 66; unverified on a phone)
-/** Taps this soon after a capture appears are ignored, so a double tap skips nothing. */
-const TAP_GUARD_MS = 600;
-/** On a re-watch, how long a photo or note stays up before moving on. */
-const AUTO_MS = 4000;
+const FRAME_MS = 33; // ~30 fps for the fog's streets lighting up
 /** The drawn trace is rebuilt at most this often; the walker dot moves every frame. */
-const TRACE_STEP_MS = 100;
+const TRACE_STEP_MS = 66;
 
 // A screen that throws shows what broke, with Try again, never a blank page (bug, Nov 1).
 export { ScreenError as ErrorBoundary } from '../../components/ScreenError';
@@ -80,10 +83,7 @@ export default function Replay() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [reduceMotion, setReduceMotion] = useState(false);
-  // At a capture the path waits for a tap: which group, which capture in it,
-  // and the path time it stopped at. `shown` counts groups already visited.
-  const [stop, setStop] = useState<{ group: number; item: number; atMs: number; shownAt: number } | null>(null);
-  const shown = useRef(0);
+  const { width, height } = useWindowDimensions();
   const [viewing, setViewing] = useState<Capture[] | null>(null);
   // What happened here: a tap on the card's map shows every capture near that spot, on any walk.
   const [here, setHere] = useState<HereResult | null>(null);
@@ -159,13 +159,11 @@ export default function Replay() {
       })
       .catch(() => {});
   };
-  // Opened from the log, or watched again: the stops move on by themselves.
+  // Opened from the log, or watched again. Only the screen reader's steps move on by themselves (RR17).
   const rewatch = ceremony === '0';
   const [watched, setWatched] = useState(false);
-  const auto = rewatch || watched;
   // A screen reader hears the captures, not the animation: no fog, no path.
   const [srMode, setSrMode] = useState(false);
-  const continueRef = useRef<ComponentRef<typeof Pressable>>(null);
   const beat = phase.beat;
   const clock = now - phase.t0;
 
@@ -173,8 +171,6 @@ export default function Replay() {
     const t = Date.now();
     setPhase({ beat: b, t0: t - skipPathMs });
     setNow(t);
-    setStop(null);
-    if (b === 'fog' || b === 'path') shown.current = 0;
     if (b === 'fog' || b === 'card') setFitKey((k) => k + 1);
   }, []);
 
@@ -272,7 +268,7 @@ export default function Replay() {
       const sr = Platform.OS !== 'web' && (await AccessibilityInfo.isScreenReaderEnabled().catch(() => false));
       if (sr) {
         setSrMode(true);
-        go('path', PATH_MS);
+        go('path');
       } else go('fog');
     })();
     return () => {
@@ -281,81 +277,25 @@ export default function Replay() {
   }, [id, go]);
 
 
-  const sched = useMemo(() => (data ? schedule(data.fixes, data.captures, data.walk.started_at, data.pauses, data.rides) : null), [data]);
-  // The dot follows walked and ridden fixes alike; the solid trace is only what was walked (R5, R10).
-  const runs = useMemo(() => (data ? timedRuns(data.fixes, data.pauses) : []), [data]);
-  const walkedRuns = useMemo(() => (data ? timedRuns(data.walkedFixes, data.breaks) : []), [data]);
-  // One clock drives beats one to three. It stands still while a capture is
-  // up, and moves on when a beat is over.
+  // What happened, read once; the ceremony tells it (RR20, RR21, decision 0082).
+  const story = useMemo(() => (data ? walkStory(data) : null), [data]);
+  const showing = useMemo(() => (story ? ceremonyFor().show(story, { reduceMotion }) : null), [story, reduceMotion]);
+  const telling = beat === 'path' && !srMode && showing != null;
+  const play = useCeremonyClock({ epoch: phase.t0, running: telling, paused: viewing != null, total: showing?.total ?? 0, onEnd: () => go('card') });
+  const frame = telling ? showing.frame(play.ms) : null;
+
+  // The fog beat lights the streets, then the path begins.
   useEffect(() => {
-    if ((beat !== 'fog' && beat !== 'path') || stop) return;
+    if (beat !== 'fog') return;
     const timer = setInterval(() => {
       const t = Date.now();
-      const elapsed = t - phase.t0;
-      if (beat === 'fog') {
-        if (elapsed >= FOG_MS) go('path');
-        else setNow(t);
-        return;
-      }
-      if (!sched) return;
-      const g = nextStop(sched, elapsed, shown.current);
-      if (g != null) {
-        shown.current = g + 1;
-        setStop({ group: g, item: 0, atMs: sched.groups[g].atMs, shownAt: t });
-      } else if (elapsed >= sched.movingMs && shown.current >= sched.groups.length) go('card');
+      if (t - phase.t0 >= FOG_MS) go('path');
       else setNow(t);
     }, FRAME_MS);
     return () => clearInterval(timer);
-  }, [beat, phase.t0, sched, go, stop]);
+  }, [beat, phase.t0, go]);
 
-  const stopGroup = stop && sched ? sched.groups[stop.group] : null;
-  const stopCapture = stopGroup ? stopGroup.captures[stop!.item] : null;
-  /**
-   * Next capture in this stop, or back to the path where it stopped. Taps in
-   * the first TAP_GUARD_MS after a capture appears are ignored, so a double
-   * tap (a reflex on photos) never skips one unseen.
-   */
-  const advance = (fromAuto = false) => {
-    if (!stop || !stopGroup) return;
-    const t = Date.now();
-    if (!fromAuto && t - stop.shownAt < TAP_GUARD_MS) return;
-    if (stop.item < stopGroup.captures.length - 1) {
-      setStop({ ...stop, item: stop.item + 1, shownAt: t });
-      return;
-    }
-    setPhase({ beat: 'path', t0: t - stop.atMs });
-    setNow(t);
-    setStop(null);
-  };
-
-  // On a re-watch, a photo or note moves on after AUTO_MS, and a memo or
-  // video when it ends (or a little after its length, if no end comes).
-  const stopKey = stop ? `${stop.group}:${stop.item}` : null;
-  const advanceRef = useRef(advance);
-  useEffect(() => {
-    advanceRef.current = advance;
-  });
-  useEffect(() => {
-    if (!auto || !stopCapture) return;
-    const media = stopCapture.kind === 'voice' || stopCapture.kind === 'video';
-    const ms = media ? (Number(stopCapture.body) || 0) + 2500 : AUTO_MS;
-    const timer = setTimeout(() => advanceRef.current(true), ms);
-    return () => clearTimeout(timer);
-    // Once per capture shown; stopCapture changes with stopKey.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auto, stopKey]);
-
-  // Focus moves to Continue when a capture comes up, so keyboard and screen
-  // reader users land on the way forward.
-  useEffect(() => {
-    if (!stopKey) return;
-    const t = setTimeout(() => {
-      focusOn(continueRef);
-    }, 250);
-    return () => clearTimeout(t);
-  }, [stopKey]);
-
-  // Words for screen readers at each beat and each capture.
+  // Words for screen readers at each beat.
   useEffect(() => {
     if (!data) return;
     const s = data.summary;
@@ -363,40 +303,34 @@ export default function Replay() {
     if (beat === 'fog') AccessibilityInfo.announceForAccessibility(headline(s, data).spoken);
     if (beat === 'card') AccessibilityInfo.announceForAccessibility('Summary');
   }, [beat, data]);
-  useEffect(() => {
-    if (!stopCapture) return;
-    const c = stopCapture;
-    const what = c.kind === 'text' ? `Note: ${c.body ?? ''}` : `${KIND_LABEL[c.kind]}, ${timeOf(c)}`;
-    AccessibilityInfo.announceForAccessibility(`${what}. ${auto ? '' : 'Continue when ready.'}`);
-  }, [stopCapture, auto]);
 
-  const pathMs = stop ? stop.atMs : clock;
-  const walkT = !sched ? 0
-    : beat === 'path' ? walkTimeAt(sched, pathMs)
-    : beat === 'card' || beat === 'name' ? sched.toWalk(sched.end)
-    : sched.toWalk(sched.start);
-  const traceBucket = beat === 'path' ? Math.floor(pathMs / TRACE_STEP_MS) : -1;
-  const trace = useMemo(
+  // The trace as far as the ceremony has drawn each path; whole outside the path beat.
+  const traceBucket = telling ? Math.floor(play.ms / TRACE_STEP_MS) : -1;
+  // The trace is rebuilt on TRACE_STEP_MS buckets, not every frame: from the frame at the bucket's time.
+  const traceFrame = useMemo(() => (telling && traceBucket >= 0 ? showing.frame(traceBucket * TRACE_STEP_MS) : null), [telling, showing, traceBucket]);
+  const drawn = useMemo(
     () => {
-      if (!data) return [];
-      if (beat === 'reading' || beat === 'fog') return data.runs; // shown faintly
-      if (beat === 'card' || beat === 'name') return data.runs;
-      return traceUntil(walkedRuns, data.runs, walkT);
+      if (!data) return { trace: [], rides: [] };
+      if (!traceFrame || !story) return { trace: data.runs, rides: data.rideRuns };
+      const trace: LngLat[][] = [];
+      const rides: LngLat[][] = [];
+      for (const [pid, t] of Object.entries(traceFrame.drawn)) {
+        const p = story.paths[pid];
+        if (!p) continue;
+        const d = pathDrawnAt(p, t);
+        trace.push(...d.trace);
+        rides.push(...d.rides);
+      }
+      return { trace, rides };
     },
-    // Rebuilt on TRACE_STEP_MS buckets, not every frame.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data, beat, walkedRuns, traceBucket],
+    [data, story, traceFrame],
   );
-  const rides = useMemo(
-    () => {
-      if (!data) return [];
-      if (beat !== 'path') return data.rideRuns;
-      return traceUntil(data.rideTimed, data.rideRuns, walkT);
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data, beat, traceBucket],
-  );
-  const walker = beat === 'path' ? walkerAt(runs, walkT) : null;
+  const follow = frame && !reduceMotion ? frame.walker : null;
+  const followZoom = follow && frame ? REPLAY_RHYTHM.baseZoom - Math.log2(frame.zoomOut) : null;
+  const ctx: StageCtx = {
+    width, height, insets: { top: insets.top, bottom: insets.bottom }, center: follow, zoom: followZoom ?? 0,
+    held: play.held, reduceMotion, open: setViewing,
+  };
 
   // Beat one: the walked streets light up out of the grey, in the order walked.
   const lit = !data ? 0 : beat !== 'fog' || reduceMotion ? data.walked.length : Math.ceil(data.walked.length * Math.min(1, clock / (FOG_MS * 0.8)));
@@ -407,13 +341,9 @@ export default function Replay() {
     return [...data.fog, ...data.walked.slice(lit)];
   }, [data, beat, lit]);
 
-  // Captures are pinned where they were taken as the path reaches them; on
-  // the card every pin opens its captures.
-  const passedCount = data ? data.captures.filter((c) => beat === 'card' || beat === 'name' || (beat === 'path' && c.t <= walkT)).length : 0;
-  const pinned = useMemo(
-    () => (data?.captures ?? []).slice().sort((a, b) => a.t - b.t).slice(0, passedCount),
-    [data, passedCount],
-  );
+  // Captures are pinned as the ceremony reaches them; on the card every pin opens its captures.
+  const revealed = frame ? frame.revealed : beat === 'card' || beat === 'name' || srMode ? Infinity : 0;
+  const pinned = useRevealed(story, revealed);
 
   // Stretches across gaps (Filling gaps, G6, G9): offered ones faint on the card, a tapped one's card.
   const faint = useMemo(() => (data && (beat === 'card' || beat === 'name') ? data.stretches.filter((x) => x.how === 'offer').map((x) => x.path) : []), [data, beat]);
@@ -426,7 +356,7 @@ export default function Replay() {
   );
 
   if (failure) throw failure;
-  if (status !== 'ready' || !data || !sched) {
+  if (status !== 'ready' || !data || !story) {
     return (
       <View style={[styles.screen, styles.center, { paddingHorizontal: 24 }]}>
         {status === 'missing' ? (
@@ -468,8 +398,8 @@ export default function Replay() {
     <View style={styles.screen}>
       <WalkMap
         ref={mapRef}
-        trace={trace}
-        rides={rides}
+        trace={drawn.trace}
+        rides={drawn.rides}
         traceOpacity={beat === 'fog' || beat === 'reading' ? 0.3 : 1}
         walked={shownWalked}
         fog={fog}
@@ -480,8 +410,9 @@ export default function Replay() {
         faint={faint}
         gapLinks={isDrawing ? undefined : links}
         drawing={drawing.line}
-        walker={walker}
-        follow={beat === 'path' && !reduceMotion ? walker : null}
+        walker={frame?.walker ?? null}
+        follow={follow}
+        followZoom={followZoom}
         fitBounds={data.bounds}
         fitKey={fitKey}
         fitPadding={beat === 'card' || beat === 'name' ? sheetPad : undefined}
@@ -510,31 +441,27 @@ export default function Replay() {
         </View>
       )}
 
-      {stopCapture && stopGroup && (
-        // A capture stays up, and a memo or video plays to its end, until
-        // Continue (or, on a re-watch, until it moves on by itself). A photo
-        // or note also moves on with a tap anywhere on it.
-        <View style={styles.moment}>
-          {stopCapture.kind !== 'voice' && stopCapture.kind !== 'video' && (
-            <Pressable style={StyleSheet.absoluteFill} onPress={() => advance()} accessible={false} />
-          )}
-          <CaptureContent
-            key={stopCapture.id}
-            ref={continueRef}
-            capture={stopCapture}
-            autoPlay
-            topInset={insets.top}
-            onVoiceFinished={auto ? () => advance(true) : undefined}
-            footer={[
-              (() => {
-                const f = data.found.find((x) => x.capture_id === stopCapture.id);
-                return f ? foundLine(f) : null;
-              })(),
-              stopGroup.captures.length > 1 ? `${stop!.item + 1} of ${stopGroup.captures.length}` : null,
-            ].filter(Boolean).join(' · ') || undefined}
-            action={{ label: 'Continue', hint: 'Shows the next capture, or carries on along the walk', onPress: () => advance(), testID: 'moment' }}
-          />
-        </View>
+      {frame && (
+        <>
+          {/* A tap anywhere holds the replay, and another goes on (RR7). */}
+          <Pressable testID="replay-stage" style={StyleSheet.absoluteFill} onPress={play.toggleHold} accessible={false} />
+          <Stage frame={frame} ctx={ctx} />
+        </>
+      )}
+      {beat === 'path' && srMode && (
+        <StepThrough
+          key={phase.t0}
+          steps={storySteps(story)}
+          auto={rewatch || watched}
+          onDone={() => go('card')}
+          footer={(c) => {
+            const f = data.found.find((x) => x.capture_id === c.id);
+            return f ? foundLine(f) : null;
+          }}
+          hint="Shows the next capture, or carries on along the walk"
+          testID="moment"
+          topInset={insets.top}
+        />
       )}
 
       <CaptureViewer
@@ -590,6 +517,17 @@ export default function Replay() {
       {(beat === 'fog' || beat === 'path') && (
         <View style={[styles.skip, { top: insets.top + 12 }]}>
           <Button testID="skip" variant="secondary" label="Skip" onPress={() => go('card')} />
+        </View>
+      )}
+      {frame && (
+        <View style={[styles.hold, { top: insets.top + 12 }]}>
+          <Button
+            testID="hold"
+            variant="secondary"
+            label={play.held ? 'Play' : 'Hold'}
+            accessibilityHint={play.held ? 'Goes on with the replay' : 'Holds the replay where it is'}
+            onPress={play.toggleHold}
+          />
         </View>
       )}
 
@@ -652,8 +590,7 @@ export default function Replay() {
                     label="Watch again"
                     onPress={() => {
                       setWatched(true);
-                      if (srMode) go('path', PATH_MS);
-                      else go('fog');
+                      go(srMode ? 'path' : 'fog');
                     }}
                   />
                   {rewatch ? (
@@ -745,7 +682,6 @@ function headline(s: ReplayData['summary'], d: ReplayData) {
   return { line, note: null, spoken: line };
 }
 
-const timeOf = (c: Capture) => new Date(c.t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
@@ -760,7 +696,7 @@ const styles = StyleSheet.create({
   headlineLabel: { fontSize: 17, color: theme.ink, fontWeight: '600', textAlign: 'center' },
   headlineNote: { fontSize: 14, color: theme.muted, textAlign: 'center', marginTop: 6 },
   skip: { position: 'absolute', right: 12 },
-  moment: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(20,24,32,0.85)' },
+  hold: { position: 'absolute', left: 12 },
   sheetWrap: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '70%' },
   sheet: { backgroundColor: theme.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
   sheetContent: { padding: 16, gap: 10, maxWidth: 640, width: '100%', alignSelf: 'center' },

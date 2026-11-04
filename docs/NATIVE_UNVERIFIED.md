@@ -148,3 +148,12 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 
 - [ ] `lib/ports/index.ts` builds the real ports from the native db, recorder and notifier at module load; its first user is the ready walk screen's shell (`lib/ready`, Navigate, ready), so a phone's first run of it is the ready screen opening
 - [ ] The SQLite adapter (`db/index.native.ts`) against the Db contract (`src/lib/__tests__/dbContract.ts`): the suite runs only over the fake and IndexedDB in Node, so SQLite's match to it is by reading
+
+## Replay rhythm (RR1-RR22)
+
+- [ ] `followZoom` on MapLibre RN's Camera: `jumpTo` with a zoom every frame while the walker moves; whether it keeps up and doesn't fight the follow
+- [ ] The overlays' motion with `Animated` and per-frame styles (the rolling clock's reels, the card's flight, the bubbles)
+- [ ] A memo pausing and resuming with Hold (expo-audio), and a video in its card (expo-video `VideoView`, `nativeControls={false}`)
+- [ ] The screen reader's steps (RR17), unchanged in behaviour but moved into `StepThrough`
+- [ ] The whisper's place on screen, projected from the map's centre and zoom (`layout.project`), against the native map's own tile size
+

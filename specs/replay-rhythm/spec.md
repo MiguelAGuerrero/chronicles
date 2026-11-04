@@ -23,6 +23,7 @@ The prototype the owner tuned this from: https://claude.ai/artifact/XouW4WPy8e2y
 - **The screen reader path stays as it is**: it skips the fog and the path, goes through the moments one at a time, then the card.
 - **A soft cap of about 60 s** on the path: past it, glides and holds shorten. Memos and videos are never cut short.
 - **Memos and videos play in full**; the replay holds while they play.
+- **A ceremony is a view of the data, never the data itself** (the owner, Nov 4, with the go-ahead): what happened is read once into a story, and the rhythm is one ceremony that shows it. A later ceremony (one for a day full of greenery, say) is a new view swapped in, with no change to how the story is read or to the screens. Decision 0082.
 
 ## Criteria
 
@@ -43,7 +44,7 @@ The prototype the owner tuned this from: https://claude.ai/artifact/XouW4WPy8e2y
 ### The moments
 
 9. **RR9** A note appears as a speech bubble in the bottom-left corner when the walker reaches it, with its time. The walker pauses 0.8 s for a note of up to 12 words, plus 0.2 s for every 5 words more, up to 3 s. At most three bubbles show at once; each leaves after 9 s, or sooner when a fourth pushes it out, drifting up and fading. A bubble shows up to six lines; tapping one holds the replay and opens the note in the capture viewer.
-10. **RR10** A voice memo appears as a bubble with its name and a waveform that fills as it plays. The replay holds where the memo was made until it ends. Where the browser refuses sound, the bubble shows its play button and the replay moves on after 4 s, as today.
+10. **RR10** A voice memo appears as a bubble with its name and a waveform that fills as it plays. The replay holds where the memo was made for the memo's length. Where the browser refuses sound, the bubble shows its play button (a tap plays it) and the replay moves on when the memo's length is up.
 11. **RR11** A photo grows from its pin into a card in the middle of the screen, with its caption and time, stays 2.4 s, then shrinks into a pile in the bottom-right corner. The pile shows the last three, each at a slight angle, and no count.
 12. **RR12** A video comes as the same card and plays in it to the end (muted with "Tap for sound" where the browser refuses sound, as today), then tucks into the pile.
 13. **RR13** Tapping the pile holds the replay and opens the photos and videos so far in the capture viewer, full screen with ‹ ›, at the latest. Closing it goes on from where it held.
@@ -55,13 +56,19 @@ The prototype the owner tuned this from: https://claude.ai/artifact/XouW4WPy8e2y
 
 ### The day's replay
 
-16. **RR16** The day's replay plays with the same rhythm: the map glides (or zips) from one loose moment to the next; a walk inside the day plays its path with the rhythm and no fog beat (M11); the time between one entry and the next is a cut with "N h later". One clock, one corner of bubbles and one pile run through the whole day. It runs to its card without a tap, every time; tap to hold and Skip work as in a walk's replay.
+16. **RR16** The day's replay plays with the same rhythm: the map glides (or zips) in a straight line from one moment or walk to the next, with "N h later" under the clock when more than 15 minutes pass between them; a walk inside the day plays its path with the rhythm and no fog beat (M11); a break inside a walk is a cut, as in RR4. A moment with no place is shown where the map is. One clock, one corner of bubbles and one pile run through the whole day. It runs to its card without a tap, every time; tap to hold and Skip work as in a walk's replay.
 
 ### What stays
 
 17. **RR17** With a screen reader on (native only, as today), both replays skip the fog and the path and go through the moments one at a time with Continue, then the card, exactly as before this slice.
 18. **RR18** With reduce motion on, the camera never pulls back, cards fade in at the middle and fade out instead of flying, bubbles appear and leave without moving, and the clock's digits change without rolling. The rhythm's timing is the same.
 19. **RR19** Restraint: nothing during the path counts anything (no number on the pile, no "3 of 9", no progress bar), and nothing celebrates. Colours come from the theme and the kinds' own colours (photo, note, voice, video).
+
+### Ceremonies are views
+
+20. **RR20** What happened is read once into a story, with no timing or look of its own: each path walked (its timed runs and distance), the moments in order with when you arrived and when you left, the breaks in a trace, the travel between a day's entries, and the places passed. A walk and a day give the same kind of story. Nothing in the story depends on how it will be shown.
+21. **RR21** A ceremony turns a story into frames (where the walker is, the camera, the clock, and what is drawn over the map). The rhythm is one ceremony. Both replays pick theirs by id from one registry and draw whatever its frames say, through one set of overlay views. A new ceremony is a new registry entry, plus a view for any overlay kind it adds, with no change to the story, the screens or the rhythm.
+22. **RR22** The screen reader's path (RR17) is the same story shown another way: its moments, one at a time.
 
 ## Record
 

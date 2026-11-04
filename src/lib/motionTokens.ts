@@ -68,3 +68,61 @@ export const PRESS_SCALE = 0.97;
 
 /** With reduce motion on, every effect is instant (M2). */
 export const durationFor = (token: MotionToken, reduced: boolean): number => (reduced ? 0 : MOTION[token]);
+
+/**
+ * The replay's rhythm (RR1-RR16, decision 0081): the prototype's numbers
+ * (https://claude.ai/artifact/XouW4WPy8e2yPQWYsYDUNc), in milliseconds unless
+ * named in metres. The owner's tuned settings change only this object.
+ */
+export const REPLAY_RHYTHM = {
+  /** A stretch between nearby moments. */
+  glide: 1800,
+  /** Added to a glide for a long, empty stretch, however long. */
+  zip: 900,
+  /** A stretch is long from here (metres), and gets its full zip at zipAtM + zipFullM. */
+  zipAtM: 450,
+  zipFullM: 1200,
+  /** The camera's pull-back at the middle of a long stretch (1 is the walking zoom). */
+  zoomOut: 1.7,
+  /** Travel between a day's entries pulls back to show this many metres per unit of zoom-out, at least `zoomOut`. */
+  travelZoomM: 1500,
+  /** The walking zoom, where the camera follows the walker. */
+  baseZoom: 16,
+  /** Stretches shorter than this (metres) are not played: the walker steps across them. */
+  minLegM: 10,
+  /** A cut across a break in the trace. */
+  cut: 1400,
+  /** A note's pause: this for up to noteWords words, plus notePerFive per five more, at most noteMax. */
+  note: 800,
+  noteWords: 12,
+  notePerFive: 200,
+  noteMax: 3000,
+  /** A photo's card on screen, from growing to tucked away. */
+  photo: 2400,
+  /** A card growing from its pin, and tucking into the pile. */
+  grow: 380,
+  tuck: 480,
+  /** After a memo, before the walker moves on. */
+  mediaTail: 400,
+  /** Shortest a memo or video slot is, whatever its stored length. */
+  mediaMin: 1000,
+  /** Bubbles: how long one stays, how many at once, coming in and going. */
+  bubbleLife: 9000,
+  bubbles: 3,
+  bubbleIn: 280,
+  bubbleOut: 420,
+  /** A passed place's line beside it. */
+  whisper: 2600,
+  /** Travel this much later says so under the clock. */
+  laterAfterMs: 15 * 60_000,
+  /** How long "N min later" stays after its cut or travel. */
+  lineAfter: 1500,
+  /** Zooming in to the walker at the start, and standing at the end before the card. */
+  intro: 900,
+  /** How far out the camera starts before zooming in to the walker. */
+  introZoomOut: 2.2,
+  rest: 800,
+  /** The soft cap on the path (RR5), and the floors nothing shrinks below. */
+  cap: 60_000,
+  floors: { leg: 600, photo: 1200, note: 300 },
+} as const;

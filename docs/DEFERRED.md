@@ -160,3 +160,12 @@ An item leaves only when it ships, or when it is rejected with a decision record
   - `deleteCaptures` with ids that don't exist: web clears reminders only for captures found, native for every id passed
   - `addFind` on web swallows every transaction error, not just the duplicate key
 - `deleteWalk` / `deleteCaptures` all-or-nothing (D6) has no contract case: nothing shared can make IndexedDB fail halfway
+
+## Replay rhythm (RR1-RR22, decisions 0081, 0082)
+
+- The rhythm's numbers are the prototype's defaults until the owner sends tuned ones; only `REPLAY_RHYTHM` changes
+- Nothing picks a ceremony per walk or day yet: the registry holds the rhythm, the default
+- The meta `day_watched:<key>` is still written but changes nothing in the ceremony (only the screen reader's steps read it)
+- Highlights (starring a moment during the replay), as in the concept doc
+- The trace is redrawn every 66 ms, so on a zip the line trails the walker by a short stretch
+

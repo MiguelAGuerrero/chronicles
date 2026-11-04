@@ -168,15 +168,23 @@ recording bar brings a minimized walk back.
 - A star's sheet offers **Walk here**. With no walk finished, the peek shows
   an empty line and a Navigate button.
 - **The replay** (the make-or-break): reading the streets, the fog clearing,
-  the path running in a fixed 30 s with a stop at every capture, the card,
-  then naming. Photos stay up, memos and videos play to the end. The first
-  replay waits for Continue at each stop; re-watches advance by themselves.
-  The card says distance, time, captures, new streets in words ("your first
-  time down Elm Street"), finds by name, and the low ("Passed ... without
-  stopping"). **Name it** sets the title and an epilogue; **Not now** leaves
-  it unnamed, and the card's More menu can rename it later. Every way out of the first replay ends on Chronicle.
-- **The day's replay** flies pin to pin through a day's loose moments and
-  plays each walk's own path.
+  the path, the card, then naming. The path has a rhythm (decision 0081): it
+  glides into each moment and away, zips through long empty stretches with
+  the camera pulled back, and cuts across a gap with "20 min later". A clock
+  rolls through the time of day. Notes and memos stack as speech bubbles in a
+  corner; photos and videos grow from their pin into a card and tuck into a
+  pile, which opens them full screen; places passed without stopping whisper
+  by. Nothing waits for a tap: a tap (or Hold) holds it, Skip goes to the card;
+  about a minute at most, memos and videos always in full. With a screen
+  reader, the moments one at a time instead. The card says distance, time,
+  captures, new streets in words ("your first time down Elm Street"), finds by
+  name, and the low ("Passed ... without stopping"). **Name it** sets the
+  title and an epilogue; **Not now** leaves it unnamed, and the card's More
+  menu can rename it later. Every way out of the first replay ends on Chronicle.
+  The replay is one ceremony, a view of the walk's story (decision 0082):
+  another could be swapped in.
+- **The day's replay** tells the day the same way: from moment to moment and
+  walk to walk, each walk's own path, "3 h later" between them.
 - **The capture viewer** opens from any pin: full-screen photos and videos
   over a thin strip of details, cards for notes and memos. Its More menu
   saves a keeper to the photo library (captions baked in), edits a note's
