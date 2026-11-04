@@ -1394,11 +1394,18 @@ function check(ok, what) {
     await locate2.first().click();
     await pg.waitForTimeout(2000);
     {
+      // Explore frames inside its fit padding (atlas round 2: the title sits over the map): 84 px at
+      // the top, 24 px at the bottom, so the fix is in the middle of the map below the title, 30 px
+      // under the canvas's middle (QL10; this check measured from the canvas middle until Nov 4).
       const center = lonLat(await attr('data-center'));
       const walker = lonLat(await attr('data-walker'));
-      const off = center ? mAway(center, near) : NaN;
-      check(center && off < 250 && walker && mAway(walker, near) < 5,
-        `qol QL10: Explore's Locate frames the map around the fix and draws the dot (canvas middle ${off.toFixed(1)} m off, data-walker ${fmt(walker)})`);
+      const z = Number(await attr('data-zoom'));
+      const k = center ? mpp(z, center[1]) : NaN;
+      const dx = center ? ((near[0] - center[0]) * 111320 * Math.cos((center[1] * Math.PI) / 180)) / k : NaN;
+      const dy = center ? -((near[1] - center[1]) * 111320) / k : NaN;
+      const EXPLORE_PAD_SHIFT_PX = (84 - 24) / 2;
+      check(center && Math.abs(dx) <= 3 && Math.abs(dy - EXPLORE_PAD_SHIFT_PX) <= 3 && walker && mAway(walker, near) < 5,
+        `qol QL10: Explore's Locate frames the map around the fix, in the middle of the map below the title, and draws the dot (fix at canvas middle + (${dx.toFixed(1)}, ${dy.toFixed(1)}) px, ${EXPLORE_PAD_SHIFT_PX} px expected below; data-walker ${fmt(walker)})`);
       const s3 = await scaleBar();
       check(round(s3) && fits(s3), `qol QL5: Explore shows the scale bar (${describe(s3)})`);
     }

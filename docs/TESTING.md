@@ -164,6 +164,11 @@ Re-export without the variable afterwards for the plain e2e.
 - Each capture adds a replay stop: loop on Continue. Captions are checked
   through their aria-label after the photo's size loaded.
 
+- `data-center` is the canvas's middle, not the middle of what you see: a
+  screen that fits with uneven padding (Explore: 84 px under its title, 24 px
+  at the bottom) frames the fix (top - bottom) / 2 px below it. Measure a
+  framing in pixels against the padding (`qol QL10`), not in metres from
+  `data-center`.
 ## 4. The long walk: `scripts/perf-walk.js`
 
 ```bash
