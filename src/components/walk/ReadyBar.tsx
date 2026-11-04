@@ -11,7 +11,12 @@ import { BAR_H, raisedHeight, useStackLayout } from './layout';
 
 /** The bar's spring: the app's one (M5), settled within a pixel, so the settings unmount soon after. */
 const SPRING = { ...MOTION.spring, restDisplacementThreshold: 0.5, restSpeedThreshold: 0.5, useNativeDriver: false };
-/** The grip's strip at the top of the bar pulled up: the handle, one thumb tall. */
+/**
+ * The grip's strip at the top of the bar, at rest and pulled up: the handle, one thumb tall. At rest it lies
+ * over the top of the foot (which lets touches through but for the numbers and Start), so a thumb that
+ * reaches for the handle, or just above the numbers, takes hold. It was a 10 px strip, and a touch there went
+ * to the map (the owner, Nov 4: Explore's 24 px grip lifted, this one did not).
+ */
 const GRIP_UP = 28;
 
 /**
@@ -137,12 +142,13 @@ export function ReadyBar(props: {
         // beneath, and a finger could not lift the bar (the owner, Nov 4; mouse drags always worked).
         tabIndex={-1}
         importantForAccessibility="no-hide-descendants"
-        style={[styles.grip, { height: up ? GRIP_UP : 10 }]}
+        style={[styles.grip, { height: GRIP_UP, paddingTop: up ? 12 : 3 }]}
       >
         <View style={styles.handle} />
       </View>
-      <View style={[styles.foot, { paddingBottom: 10 + at.insets.bottom }]}>
-        <View style={styles.footInner}>
+      {/* Above the grip, but only its numbers and Start take a touch: the rest falls through to the grip. */}
+      <View pointerEvents="box-none" style={[styles.foot, { paddingBottom: 10 + at.insets.bottom }]}>
+        <View pointerEvents="box-none" style={styles.footInner}>
           {/* The numbers take hold of the bar too: a bigger target than the handle. */}
           <View
             testID="ready-summary"
@@ -185,11 +191,12 @@ const styles = StyleSheet.create({
   },
   scroll: { flex: 1 },
   grip: {
-    position: 'absolute', top: 0, left: 0, right: 0, alignItems: 'center', justifyContent: 'center', zIndex: 2,
+    position: 'absolute', top: 0, left: 0, right: 0, alignItems: 'center', justifyContent: 'flex-start', zIndex: 2,
     ...(Platform.OS === 'web' ? ({ userSelect: 'none', cursor: 'grab' } as object) : {}),
   },
   handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: theme.edge },
-  foot: { paddingHorizontal: 16, paddingTop: 10, backgroundColor: theme.bg },
+  // No fill of its own: the bar's, so the handle in the grip beneath shows through.
+  foot: { paddingHorizontal: 16, paddingTop: 10, position: 'relative', zIndex: 3 },
   footInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, maxWidth: 640, width: '100%', alignSelf: 'center', minHeight: 48 },
   summary: { flexShrink: 1, minHeight: 48, justifyContent: 'center', ...(Platform.OS === 'web' ? ({ userSelect: 'none', cursor: 'grab' } as object) : {}) },
   stats: { color: theme.ink, fontSize: 17, fontWeight: '600', fontVariant: ['tabular-nums'] },

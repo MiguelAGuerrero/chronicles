@@ -2081,17 +2081,33 @@ function check(ok, what) {
     await pg.waitForSelector('[data-testid=ready-bar]', { timeout: 20000 });
     await pg.waitForTimeout(1200);
     const cdp = await c.newCDPSession(pg);
-    const g = await pg.locator('[data-testid=ready-grip]').boundingBox();
-    const x = g.x + g.width / 2;
-    const y = g.y + g.height / 2;
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
-    for (let i = 1; i <= 12; i++) {
-      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: y - i * 22 }] });
-      await pg.waitForTimeout(16);
-    }
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-    const lifted = await pg.waitForSelector('[data-testid=start-settings]', { timeout: 4000 }).then(() => true, () => false);
-    check(lifted, `navigate-ready touch 1: a finger's drag on the handle lifts the bar to the walk settings (${lifted})`);
+    // A finger's drag from `dy` below the bar's top edge, x at `fx` of its width; true if the settings came up.
+    const fingerLift = async (dy, fx) => {
+      const b = await pg.locator('[data-testid=ready-bar]').boundingBox();
+      const x = b.x + b.width * fx;
+      const y = b.y + dy;
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+      for (let i = 1; i <= 12; i++) {
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: y - i * 22 }] });
+        await pg.waitForTimeout(16);
+      }
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      const up = await pg.waitForSelector('[data-testid=start-settings]', { timeout: 4000 }).then(() => true, () => false);
+      await pg.keyboard.press('Escape');
+      await pg.waitForFunction(() => !document.querySelector('[data-testid=start-settings]'), null, { timeout: 4000 }).catch(() => {});
+      await pg.waitForTimeout(500);
+      return up;
+    };
+    // The handle sits 5 px below the edge; a thumb lands anywhere in the 28 px band above the numbers (the old
+    // strip was 10 px, and a touch there went to the map).
+    const hits = [];
+    for (const [dy, fx] of [[5, 0.5], [14, 0.5], [22, 0.5], [5, 0.9], [14, 0.2]]) hits.push(await fingerLift(dy, fx));
+    check(hits.every(Boolean), `navigate-ready touch 1: a finger's drag from the handle or the band under it lifts the bar to the walk settings (${hits.join(',')})`);
+    // Start, under the band's right end, still starts (a tap, as a thumb makes it).
+    const sb = await pg.locator('[data-testid=start]').boundingBox();
+    await pg.touchscreen.tap(sb.x + sb.width / 2, sb.y + 6);
+    const started = await pg.waitForSelector('[data-testid=stop]', { timeout: 15000 }).then(() => true, () => false);
+    check(started, `navigate-ready touch 2: a tap on the top edge of Start still starts the walk (${started})`);
     await c.close();
   };
 

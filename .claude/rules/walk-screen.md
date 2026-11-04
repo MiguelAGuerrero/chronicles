@@ -73,11 +73,14 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
 - **The walk's notice sits in the minimize button's row** (the owner, Nov 4), level with it at the top
   edge, so the button doesn't move when one appears (NR6). The web's "keep this page open" is said once, on
   the ready screen's first launch (NR13), never as a walk's notice or by `startNotice`.
-- **The grip is `tabIndex={-1}`** (Nov 4, the owner: "I cannot lift the drawer", on the web): a touch on
-  the handle's 10 px strip went to the map canvas beneath, not the bar, so a finger's drag on the handle did
-  nothing while a mouse drag, and a drag on the numbers (a `role=button`), worked. Focusable, the grip gets
-  the touch. `navigate-ready touch 1` drags it with real touch events (CDP), never the mouse; a test of this
-  bar must too. Found in headless Chromium: iOS WebKit has not been run.
+- **The grip is a 28 px band, focusable (`tabIndex={-1}`)** (Nov 4, the owner: "I cannot lift the drawer",
+  on the web; Explore's 24 px grip lifted). It was a 10 px transparent strip, and a touch on it went to the
+  map canvas beneath, not the bar, so a finger's drag on the handle did nothing while a mouse drag, and a
+  drag on the numbers (a `role=button`), worked. The first fix, `tabIndex`, lifted it in Chromium only on the
+  handle itself; the band now lies over the top of the foot at rest (the foot, `pointerEvents="box-none"` and
+  above it, takes touches only on the numbers and Start), so a thumb anywhere in it takes hold. The foot has no
+  fill of its own, or it would hide the handle. `navigate-ready touch 1` and `touch 2` use real touch events
+  (CDP), never the mouse; a test of this bar must too. Found in headless Chromium: iOS WebKit has not been run.
 - **"Not recording" is a button** (QL19, Nov 3): while the recorder's status is an
   error, the chip (`status-chip`, "Not recording. Why?") re-raises the recorder's
   sticky notice (Open Settings on a phone; the web's message says where to allow
