@@ -38,6 +38,7 @@ the doc is one `specs/<slug>/spec.md`, copied verbatim under a one-line header c
 | [motion](motion/spec.md) | Motion (spec draft) | spec draft | MO |
 | [quality-of-life](quality-of-life/spec.md) | Quality of life (spec draft) | spec draft | QL |
 | [filling-gaps](filling-gaps/spec.md) | Filling gaps (spec draft) | spec draft | G |
+| [activity-density](activity-density/spec.md) | (repo first; not yet a tab) | | AD |
 | [bridges-and-open-in-maps](bridges-and-open-in-maps/spec.md) | Bridges and Open in Maps (shipped on web) | shipped on web | NB, NH |
 
 Tab ids, for re-exports: concept `29164ed0-1f2e`, v0.5-places `be8253bf-d74a`,
