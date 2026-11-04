@@ -1,0 +1,291 @@
+// After the walk: placing (areas, places of interest, D1), the card's finds and low (E11, U13), naming it,
+// Chronicle with its star (H1, H6, H7, NV27), the sheet, the map view across a replay and the tabs (H5,
+// NV3, NV4), the walks list (M6), muted playback without a tap, reduce motion (M2), and the ready bar's
+// spring (NR7, NR9). Starts on the first walk's card, where the walk journey ends.
+
+async function checks(h) {
+  const { navUrl, BASE, browser, ctx, page, errors, start, at, check, shot, pressedScale, drawerTo, tabTo, tabBarShown } = h;
+    // The walk is placed, down to its neighborhood, with the town found by the wide read
+    // and the state from the bundled outlines.
+    const placed = await page.evaluate(() => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const tx = req.result.transaction(['area', 'walk_area'], 'readonly');
+        const a = tx.objectStore('area').getAll();
+        const w = tx.objectStore('walk_area').getAll();
+        tx.oncomplete = () => resolve({ areas: a.result, rows: w.result });
+      };
+    }));
+    const levels = Object.fromEntries(placed.areas.map((x) => [x.level, x.name]));
+    check(
+      levels.neighborhood === 'Fox Point' && levels.town === 'Providence' && levels.state === 'Rhode Island' && levels.country === 'United States of America'
+        && placed.rows.length === 4 && placed.rows.every((r) => r.metres > 0),
+      `the walk is placed in Fox Point, Providence, Rhode Island (${JSON.stringify(levels)})`,
+    );
+    // Places of interest are read with the streets and cached, tagged with the build (D1).
+    const pois = await page.evaluate(() => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const r = req.result.transaction('place', 'readonly').objectStore('place').getAll();
+        r.onsuccess = () => resolve(r.result);
+      };
+    }));
+    const poiNames = pois.map((p) => `${p.category}:${p.name}`).sort();
+    check(
+      poiNames.includes('art:Public art') && poiNames.includes('history:Hessian Memorial') && poiNames.includes('food:Coffee Exchange') && !poiNames.some((n) => /Wickenden at Hope/.test(n))
+        && pois.every((p) => p.build === '20261028_001001_pt'),
+      `the walk's reads cache its places of interest, and no bus stop (${poiNames.join(', ')})`,
+    );
+    // The card lists the walk's finds, and keeps what it passed without stopping as a low (E11).
+    check((await page.locator('[data-testid=card-finds]').innerText()) === 'Found Hessian Memorial', 'the card lists the places found');
+    const low = await page.locator('[data-testid=card-low]').allInnerTexts();
+    // Named, never counted (tabs audit U13).
+    check(low.length === 1 && /^Passed .+ without stopping$/.test(low[0]) && !/\d/.test(low[0]), `the card keeps the place passed as a low, by name (${low.join(' | ')})`);
+    await page.waitForTimeout(800);
+    await shot(page, '05-card');
+    // The card's zoom groups nearby captures; open the pin holding the note
+    // (the last one taken) and step to it.
+    const pinsOnCard = page.locator('[aria-label$=". Open"]');
+    await pinsOnCard.nth((await pinsOnCard.count()) - 1).click();
+    for (let k = 0; k < 6 && !(await page.getByText('The bakery smelled of cardamom.').count()); k++) {
+      await page.click('[aria-label="Next capture"]');
+      await page.waitForTimeout(300);
+    }
+    await page.waitForSelector('text=The bakery smelled of cardamom.');
+    await page.waitForTimeout(1200);
+    await shot(page, '06-pin-opened');
+    check(true, 'a pin on the card opens its capture');
+    await page.click('[aria-label="Close"]');
+
+    await page.click('[data-testid=to-name]');
+    await page.fill('[data-testid=epilogue-input]', 'Cardamom and the river.');
+    await page.click('[data-testid=save]');
+    // Back on Chronicle: the walk is a star where it was walked (H1, H7, NV27).
+    await page.waitForSelector('[data-testid=home-sheet]');
+    check(new URL(page.url()).pathname === `${BASE}/chronicle` && (await page.locator('[data-testid=home-sheet]').count()) === 1 && (await tabBarShown(page)),
+      `closing the replay after Stop returns to Chronicle, once, with the tab bar (NV27: ${page.url()})`);
+    await page.waitForSelector('[aria-label^="Fox Point,"]', { timeout: 15000 });
+    await shot(page, '08-home-star');
+    check(true, 'the walk is a star on the home map');
+    check((await page.locator('[data-testid=enter-bounce]').count()) === 0, 'no star settles before one is selected');
+    // A star lists its place's walks in the sheet, with the place's parents (H6).
+    await page.click('[aria-label^="Fox Point,"]');
+    await page.waitForSelector('[data-testid=place-title]');
+    check(await page.evaluate(() => window.__enters.some((e) => e.kind === 'bounce' && e.animated && /^Fox Point,/.test(e.label))), 'a selected star settles into its ring (M9)');
+    const sheet = (await page.locator('[data-testid=home-sheet]').innerText()).replace(/\s+/g, ' ');
+    check(/Fox Point/.test(sheet) && /Providence, Rhode Island/.test(sheet) && /Cardamom and the river\./.test(sheet), `a star lists its place's walks (${sheet.slice(0, 120)})`);
+    await shot(page, '09-home-place');
+    // Back to the map. A mouse drag on the sheet's header settles at a step, never halfway (audit).
+    await page.click('[data-testid=sheet-map]');
+    await page.waitForTimeout(400);
+    const head = await page.locator('[data-testid=sheet-drag]').boundingBox();
+    await page.mouse.move(head.x + head.width / 2, head.y + head.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(head.x + head.width / 2, head.y - 260, { steps: 8 });
+    await page.mouse.up();
+    await page.waitForTimeout(500);
+    // The sheet grows into the screen above the tab bar.
+    const vh = (await page.locator('[data-testid=tab-navigate]').boundingBox()).y;
+    const sheetH = (await page.locator('[data-testid=home-sheet]').boundingBox()).height;
+    check([Math.round(vh * 0.5), vh - 56].some((h) => Math.abs(sheetH - h) < 30), `a dragged sheet settles at a step (${Math.round(sheetH)} px)`);
+    await page.click('[data-testid=sheet-map]');
+    await page.waitForTimeout(400);
+    // The map view survives a replay (H5): pan, note the star, replay, come back.
+    const home = await page.locator('canvas.maplibregl-canvas').first().boundingBox();
+    // Grabbed where the map itself is under the pointer: not the star, nor Start or the sheet floating
+    // over it (the old grab pressed Start, so this check compared a view that never moved).
+    const grab = await page.evaluate(({ w, h }) => {
+      for (let y = 140; y < h - 220; y += 40)
+        for (let x = 40; x < w - 40; x += 40) {
+          const e = document.elementFromPoint(x, y);
+          if (e?.tagName === 'CANVAS') return { x, y };
+        }
+      return null;
+    }, { w: home.width, h: home.height });
+    const starPanned = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
+    await page.mouse.move(home.x + grab.x, home.y + grab.y);
+    await page.mouse.down();
+    await page.mouse.move(home.x + grab.x + 40, home.y + grab.y + 30, { steps: 6 });
+    await page.mouse.up();
+    await page.waitForTimeout(600);
+    const starMoved = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
+    check(Math.abs(starMoved.x - starPanned.x - 40) < 6 && Math.abs(starMoved.y - starPanned.y - 30) < 6,
+      `a drag on the home map pans it, so the next check compares a moved view (${Math.round(starPanned.x)},${Math.round(starPanned.y)} → ${Math.round(starMoved.x)},${Math.round(starMoved.y)})`);
+    const fitsBefore = await page.evaluate(() => window.__perf.fit ?? 0);
+    // The Walks list: every stopped walk; one opens its replay as a re-watch (H4, H5).
+    // Opening it zooms out to every place walked (M6), framing the star above the sheet.
+    await page.click('[data-testid=sheet-walks]');
+    await page.waitForSelector('[data-testid=walk-row]');
+    await page.waitForTimeout(1200);
+    const starBefore = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
+    const sheetTop = (await page.locator('[data-testid=home-sheet]').boundingBox()).y;
+    const fitsAfter = await page.evaluate(() => window.__perf.fit ?? 0);
+    check(fitsAfter === fitsBefore && starBefore.y + starBefore.height < sheetTop && starBefore.y > 0,
+      `opening the walks list leaves a view that already shows every place alone (M6, audit 7: ${fitsAfter - fitsBefore} fits, star at ${Math.round(starBefore.y)}, sheet at ${Math.round(sheetTop)})`);
+    check((await page.locator('[data-testid=walk-row]').count()) === 1, 'the walks list has the one stopped walk');
+    await shot(page, '10-home-walks');
+    await page.locator('[data-testid=walk-row]').first().click();
+    await page.waitForSelector('[data-testid=done]', { timeout: 90000 });
+    check(true, 're-watching from the walks list reaches the card with no taps');
+
+    // A replay opened with no tap at all (a fresh page, as after a reload)
+    // may not start a video with sound: it plays muted and offers the sound.
+    const fresh = await ctx.newPage();
+    fresh.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+    // iOS's rule, which headless Chromium does not enforce: sound needs a tap first.
+    await fresh.addInitScript(() => {
+      let tapped = false;
+      document.addEventListener('pointerdown', () => (tapped = true), true);
+      const play = HTMLMediaElement.prototype.play;
+      HTMLMediaElement.prototype.play = function () {
+        if (!this.muted && !tapped) return Promise.reject(new DOMException('play() needs a tap', 'NotAllowedError'));
+        return play.call(this);
+      };
+    });
+    await fresh.goto(page.url());
+    // The memo comes first and is refused too: it waits a moment, as a photo does, and moves on.
+    await fresh.waitForSelector('[aria-label="Play voice memo"]', { timeout: 90000 });
+    const memoAt = Date.now();
+    await fresh.waitForSelector('video', { timeout: 15000 });
+    const memoMs = Date.now() - memoAt;
+    check(memoMs > 3000 && memoMs < 9000, `a refused memo moves on after a few seconds (${(memoMs / 1000).toFixed(1)} s)`);
+    // Muted playback with the button, within a second or two (the clip is short and moves on by itself).
+    const muted = await fresh
+      .waitForFunction(() => {
+        const v = document.querySelector('video');
+        return !!v && v.muted && !v.paused && !!document.querySelector('[data-testid=video-sound]');
+      }, null, { timeout: 3000 })
+      .then(() => true, () => false);
+    await shot(fresh, '07-video-sound');
+    check(muted, 'with no tap yet, the video plays muted with a sound button');
+    await fresh.click('[data-testid=video-sound]');
+    await fresh.waitForTimeout(500);
+    const sound = await fresh.evaluate(() => {
+      const v = document.querySelector('video');
+      return !!v && !v.muted && !v.paused;
+    });
+    check(sound, 'a tap on it turns the sound on');
+    await fresh.close();
+    await page.click('[data-testid=done]');
+    await page.waitForSelector('[data-testid=home-sheet]');
+    // The sheet kept its walks list (H5), so it is counted rather than Start.
+    check((await page.locator('[data-testid=home-sheet]').count()) === 1 && (await page.locator('[data-testid=walk-row]').count()) === 1, 'done returns to the one home, its walks list as it was');
+    await page.waitForTimeout(800);
+    const starAfter = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
+    check(Math.abs(starAfter.x - starBefore.x) < 3 && Math.abs(starAfter.y - starBefore.y) < 3, `the map kept its view across the replay (${Math.round(starBefore.x)},${Math.round(starBefore.y)} → ${Math.round(starAfter.x)},${Math.round(starAfter.y)})`);
+    // And across the tabs: Chronicle's map is taken down while Navigate is in front, and comes back where it was (NV3, NV4).
+    await tabTo(page, 'navigate');
+    await page.waitForSelector('[data-testid=start]');
+    await page.waitForTimeout(800);
+    check((await page.locator('canvas.maplibregl-canvas').count()) === 1, 'one live map on Navigate after a walk (NV4)');
+    await tabTo(page, 'chronicle');
+    await page.waitForTimeout(1200);
+    const starTabs = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
+    check((await page.locator('canvas.maplibregl-canvas').count()) === 1 && Math.abs(starTabs.x - starBefore.x) < 3 && Math.abs(starTabs.y - starBefore.y) < 3 && (await page.locator('[data-testid=walk-row]').count()) === 1,
+      `Chronicle keeps its sheet and its map view across tabs (NV3: ${Math.round(starTabs.x)},${Math.round(starTabs.y)})`);
+
+    // Reduce motion (M2): the same home with the system setting on. Nothing presses down, the sheet snaps.
+    {
+      const still = await ctx.newPage();
+      still.on('pageerror', (e) => errors.push(String(e)));
+      await still.emulateMedia({ reducedMotion: 'reduce' });
+      await still.goto(page.url());
+      await still.waitForSelector('[data-testid=home-sheet]');
+      await still.waitForTimeout(800);
+      await still.click('[aria-label^="Fox Point,"]');
+      await still.waitForTimeout(100);
+      const stillEnters = await still.evaluate(() => window.__enters.map((e) => ({ kind: e.kind, animated: e.animated })));
+      check(!stillEnters.some((e) => e.animated), `with reduce motion on, a selected star doesn't move (M2, M9: ${JSON.stringify(stillEnters)})`);
+      await still.keyboard.press('Escape');
+      await still.waitForTimeout(400);
+      await tabTo(still, 'navigate');
+      await still.waitForSelector('[data-testid=start]');
+      await still.waitForTimeout(800);
+      const flat = await pressedScale(still, '[data-testid=start]');
+      await tabTo(still, 'chronicle');
+      await still.waitForTimeout(400);
+      const peek = (await still.locator('[data-testid=home-sheet]').boundingBox()).height;
+      await still.click('[data-testid=sheet-walks]');
+      await still.waitForTimeout(60);
+      const open = (await still.locator('[data-testid=home-sheet]').boundingBox()).height;
+      check(flat.scale === 1 && flat.opacity < 1 && open - peek > 200,
+        `with reduce motion on, nothing moves, the press still shows, and the sheet snaps open (M2, audit 4: scale ${flat.scale}, opacity ${flat.opacity}, ${Math.round(peek)} → ${Math.round(open)} px in 60 ms)`);
+      await still.close();
+    }
+    // A spring cut short by a drag still settles (audit 2), now on the ready bar (NR7): it ends at rest, the
+    // settings unmount, and the capture stack never moves with it. Touch, as on a phone: in a browser a mouse
+    // drag on a moving element is cancelled.
+    const barState = async (pg) => ({
+      h: Math.round((await pg.locator('[data-testid=ready-bar]').boundingBox()).height),
+      settings: await pg.locator('[data-testid=start-settings]').count(),
+      cam: await pg.locator('[data-testid=moment-photo]').filter({ visible: true }).first().boundingBox({ timeout: 3000 }).then((b) => b && Math.round(b.y), () => null),
+    });
+    {
+      const springy = await ctx.newPage();
+      springy.on('pageerror', (e) => errors.push(String(e)));
+      await springy.goto(navUrl);
+      await springy.waitForSelector('[data-testid=start]');
+      await springy.waitForTimeout(800);
+      const rest = await barState(springy);
+      await drawerTo(springy, 'half');
+      await springy.keyboard.press('Escape');
+      await springy.waitForTimeout(60);
+      const hd = await springy.locator('[data-testid=ready-grip]').boundingBox();
+      const touch = await springy.context().newCDPSession(springy);
+      const x = hd.x + hd.width / 2;
+      const vh = springy.viewportSize().height;
+      await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y: hd.y + hd.height / 2 }] });
+      for (let y = hd.y + 30; y < vh - 10; y += 60) await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y }] });
+      await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await springy.waitForFunction(() => !document.querySelector('[data-testid=start-settings]'), null, { timeout: 4000 }).catch(() => {});
+      const after = await barState(springy);
+      check(after.h === rest.h && after.settings === 0 && after.cam === rest.cam,
+        `after a drag cuts the bar's spring short, it settles at rest and the stack never moved (audit 2, NR7: ${JSON.stringify({ rest, after })})`);
+      await springy.close();
+    }
+    // Let go partway down, past the middle: the bar settles at rest, and the stack stays put as it settles.
+    {
+      const rides = await ctx.newPage();
+      rides.on('pageerror', (e) => errors.push(String(e)));
+      await rides.goto(navUrl);
+      await rides.waitForSelector('[data-testid=start]');
+      await rides.waitForTimeout(800);
+      const rest = await barState(rides);
+      await drawerTo(rides, 'half');
+      const hd = await rides.locator('[data-testid=ready-grip]').boundingBox();
+      const touch = await rides.context().newCDPSession(rides);
+      const x = hd.x + hd.width / 2;
+      await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y: hd.y + hd.height / 2 }] });
+      for (let i = 1; i <= 4; i++) {
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: hd.y + hd.height / 2 + i * 120 }] });
+        await rides.waitForTimeout(10);
+      }
+      await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await rides.waitForTimeout(200);
+      const settling = await barState(rides);
+      await rides.waitForFunction(() => !document.querySelector('[data-testid=start-settings]'), null, { timeout: 4000 }).catch(() => {});
+      const after = await barState(rides);
+      check(settling.cam === rest.cam && after.h === rest.h && after.settings === 0,
+        `let go partway down, the bar settles at rest and the stack stays put as it settles (NR7, NR9: ${JSON.stringify({ rest, settling, after })})`);
+      await rides.close();
+    }
+}
+
+// Alone: the walk journey first (the first walk, with its captures), then this.
+async function run(h) {
+  await require('./walk').run(h);
+  await checks(h);
+}
+
+module.exports = {
+  name: 'chronicle',
+  covers: [
+    'src/app/(tabs)/chronicle.tsx',
+    'src/components/{HomeSheet,StarView,AreaPoint,NoteEditor,SwitchRow,UndoToast}.tsx',
+    'src/lib/{rename,noteEdit,months,walkTitle,rides}.ts',
+    'src/lib/areas/**',
+    'src/lib/{places,placeAll,backlog}.ts',
+  ],
+  run,
+  checks,
+};
