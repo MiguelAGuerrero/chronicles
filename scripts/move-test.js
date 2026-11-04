@@ -34,7 +34,12 @@ function rebase(spec, fromDir, toDir) {
 function rewrite(src, fromDir, toDir) {
   const changed = [];
   // An import, a dynamic import, a require, or the call createRequire returns: a quote, then a path.
-  let out = src.replace(/(\bfrom\s+|\bimport\(\s*|\brequire\(\s*|\)\(\s*)(['"`])(\.\.?\/[^'"`?$]*)/g, (m, lead, q, spec) => {
+  let out = src.replace(/(\bfrom\s+|\bimport\(\s*|\brequire\(\s*|\)\(\s*)(['"`])(\.\.?\/[^'"`?$]*)(\$\{)?/g, (m, lead, q, spec, built) => {
+    // A path built from a name (`./${name}.json`) can't be resolved here: left as it is, and said.
+    if (built) {
+      changed.push(`${spec}\${...} left as it is: a built-up path; check that what it names is beside the test`);
+      return m;
+    }
     const next = rebase(spec, fromDir, toDir);
     if (next !== spec) changed.push(`${spec} -> ${next}`);
     return `${lead}${q}${next}`;

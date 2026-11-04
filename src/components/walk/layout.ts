@@ -21,6 +21,9 @@ export const EDGE = 44;
 /** Between the captures and the first edge button above them. */
 const EDGE_LIFT = 16;
 
+/** The floating UI's gap to the screen's edge (4-point grid): banners, toasts, pills, cards and the capture stack. */
+export const GUTTER = 16;
+
 /** The map's scale bar sits in the bottom-left corner, just above the strip (Nov 4, the owner). */
 export const SCALE_BOTTOM = 12;
 /** The scale bar's height (4 + 14 + 2 + 8 + 4): pills stack above it, so one never covers it (audit 11). */
@@ -45,8 +48,8 @@ const EDGE_INDEX: Record<EdgeSlot, number> = { locate: 0, unwalked: 1, back: 2, 
 export function useStackLayout() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const right = Math.max(12, (width - 640) / 2 + 12);
-  const sideInset = Math.max(12, (width - 640) / 2);
+  const right = Math.max(GUTTER, (width - 640) / 2 + GUTTER);
+  const sideInset = Math.max(GUTTER, (width - 640) / 2);
   /** The strip's top, from the screen's bottom. */
   const barTop = insets.bottom + BAR_H;
   const capBottom = (s: CapSlot) => barTop + STACK_GAP + CAP_INDEX[s] * (CAP + STACK_GAP);

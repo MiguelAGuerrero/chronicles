@@ -75,6 +75,7 @@ test('TG16 move-test moves a test into its feature folder and every relative pat
     "const a = createRequire(import.meta.url)('../../../assets/x.json');",
     "const f = join(__dirname, 'outAndBack.json');",
     "const e = require('./eastonSlow.json');",
+    "const b = (n) => require(`./${n}Points.json`);",
     "const root = join(__dirname, '..', '..');",
     "const s = 'from \\'../geo\\' in a string is left alone';",
   ].join('\n');
@@ -85,7 +86,7 @@ test('TG16 move-test moves a test into its feature folder and every relative pat
   assert.ok(!existsSync(join(root, 'src/lib/__tests__/still.test.ts')));
   for (const want of [
     "from '../../geo'", "from '../../../components/map/types'", "from '../fakes'", "import('../../geo')",
-    "require('../../../../scripts/affected.js')", "('../../../../assets/x.json')", "join(__dirname, '..', 'outAndBack.json')", "join(__dirname, '..', '..', '..')", "require('./eastonSlow.json')",
+    "require('../../../../scripts/affected.js')", "('../../../../assets/x.json')", "join(__dirname, '..', 'outAndBack.json')", "join(__dirname, '..', '..', '..')", "require('./eastonSlow.json')", "require(`./${n}Points.json`)",
   ]) assert.ok(moved.includes(want), `${want}\n${moved}`);
   assert.ok(moved.includes("'from \\'../geo\\' in a string is left alone'"), 'a string that is not a path call is untouched');
   assert.throws(() => run('src/lib/__tests__/recording/still.test.ts', 'nope'), /No feature named "nope"/);

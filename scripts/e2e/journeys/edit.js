@@ -180,6 +180,10 @@ async function run(h) {
       // ME13: Text goes straight to typing.
       await pg.click('[data-testid=edit-tool-text]');
       await pg.fill('[data-testid=caption-input]', 'Corner shop');
+      {
+        const ta = await pg.evaluate(() => ({ root: getComputedStyle(document.getElementById('root')).touchAction, input: parseFloat(getComputedStyle(document.querySelector('[data-testid=caption-input]')).fontSize) }));
+        check(ta.root === 'manipulation' && ta.input >= 16, `fix editor-zoom audit 3: double-tap zoom is off and the caption field types at ${ta.input} px (>= 16)`);
+      }
       await pg.locator('[data-testid=caption-input]').blur();
       await shot(pg, 'edit-photo');
       // ME22: every control has a name.

@@ -164,3 +164,18 @@ test('AG5: every markable class is in a findable kind and off the never list', a
   assert.equal(church('St. Mary Church').markable, false);
   assert.equal(church('Old Stone Church').markable, true);
 });
+
+// Town presence (TP11), written from specs/town-presence/spec.md before the code.
+test('TP11: a shopping mall and a department store are Shops, one place each, and never marks; supermarkets stay out', async () => {
+  const { categoryOfPoi, MARKABLE_CLASSES } = await import('../../discovery/tilePois');
+  assert.equal(categoryOfPoi('shop', 'mall'), 'shops');
+  assert.equal(categoryOfPoi('shop', 'department_store'), 'shops');
+  assert.equal(categoryOfPoi('department_store', 'department_store'), 'shops');
+  assert.equal(categoryOfPoi('grocery', 'supermarket'), null, 'supermarkets are left out by the v1 choice');
+  assert.equal(categoryOfPoi('grocery', 'deli'), 'food', 'a deli is still food');
+  assert.equal(categoryOfPoi('shop', 'gift'), 'shops', 'the boutique shops still count');
+  for (const m of MARKABLE_CLASSES) assert.notEqual(m.category, 'shops', 'a shop is never a mark');
+  const feat = (cls: string, subclass: string, name: string, at: LngLat) => ({ geometry: { type: 'Point' as const, coordinates: at }, properties: { class: cls, subclass, name } });
+  const places = placesFromTilePois([feat('shop', 'mall', 'Lehigh Valley Mall', [-75.48, 40.6308]), feat('department_store', 'department_store', 'Macy’s', [-75.49, 40.64])], 'b1');
+  assert.deepEqual(places.map((p) => [p.category, p.markable]).sort(), [['shops', false], ['shops', false]]);
+});

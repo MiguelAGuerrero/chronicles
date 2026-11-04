@@ -58,7 +58,7 @@ import { exitPlan, screenState, startNotice } from '../lib/readyNav';
 import { getLastFix } from '../lib/lastFix';
 import { CaptureStack } from '../components/walk/CaptureStack';
 import { ReadyBar } from '../components/walk/ReadyBar';
-import { CAP, EDGE, SCALE_BOTTOM, STACK_GAP, useStackLayout } from '../components/walk/layout';
+import { CAP, EDGE, GUTTER, SCALE_BOTTOM, STACK_GAP, useStackLayout } from '../components/walk/layout';
 import { useReady } from '../components/walk/useReady';
 import { aboutTimeLeft, formatTimeLeft, paceMps, timeLeftMs } from '../lib/nav/eta';
 import { useVisible } from '../lib/deletion/useDeletions';
@@ -151,7 +151,7 @@ function WalkLoading(props: { onClose: () => void }) {
   const at = useStackLayout();
   return (
     <View style={styles.screen}>
-      <View style={[styles.top, { top: at.insets.top + 12, left: at.sideInset, right: at.sideInset }]} pointerEvents="box-none">
+      <View style={[styles.top, { top: at.insets.top + 4, left: at.sideInset, right: at.sideInset }]} pointerEvents="box-none">
         <View style={styles.minRow} pointerEvents="box-none">
           <Pressable
             testID="ready-close"
@@ -175,7 +175,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const insets = useSafeAreaInsets();
   const { width, height: screenH } = useWindowDimensions();
   /** The top column's side margin: centered in 640 on wide screens, like the rest. */
-  const sideInset = Math.max(12, (width - 640) / 2);
+  const sideInset = Math.max(GUTTER, (width - 640) / 2);
   const params = useLocalSearchParams<{ warning?: string; started?: string; recall?: string }>();
   const at = useStackLayout();
   // The walk's cards sit above the strip, left of the stack's column, so they never cover it (audit 5).
@@ -1057,7 +1057,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       ) : (
       <>
 
-      <View style={[styles.top, { top: insets.top + 12, left: sideInset, right: sideInset }]} pointerEvents="box-none">
+      <View style={[styles.top, { top: insets.top + 4, left: sideInset, right: sideInset }]} pointerEvents="box-none">
         {navigation.nav && (
           // Not a live region: it changes with every fix. The distance is announced in steps instead.
           <View testID="nav-bar" style={styles.navBar}>
@@ -1642,35 +1642,35 @@ type PressableRef = ComponentRef<typeof Pressable>;
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
-  top: { position: 'absolute', left: 12, right: 12, gap: 8, alignItems: 'center', maxWidth: 640, alignSelf: 'center' },
+  top: { position: 'absolute', left: GUTTER, right: GUTTER, gap: 8, alignItems: 'center', maxWidth: 640, alignSelf: 'center' },
   chip: {
     flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.surface, borderRadius: 999,
-    paddingVertical: 6, paddingHorizontal: 12, borderWidth: 1, borderColor: theme.line,
+    paddingVertical: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: theme.line,
   },
   chipPressed: { opacity: 0.8 },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
   chipText: { color: theme.ink, fontWeight: '600', fontSize: 14 },
   // Navigating: what is left and where to, as on a maps app's top bar, with End.
   navBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 10, alignSelf: 'stretch', backgroundColor: COLORS.route, borderRadius: 14,
-    paddingLeft: 14, paddingRight: 6, minHeight: 56,
+    flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'stretch', backgroundColor: COLORS.route, borderRadius: 16,
+    paddingLeft: 16, paddingRight: 8, minHeight: 56,
   },
   navText: { flex: 1, color: '#ffffff', fontSize: 18, fontWeight: '700' },
   // A white pill: 5.2:1 for its blue text.
-  navEnd: { minHeight: 44, minWidth: 64, paddingHorizontal: 14, borderRadius: 22, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
+  navEnd: { minHeight: 44, minWidth: 64, paddingHorizontal: 16, borderRadius: 22, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
   navEndText: { color: COLORS.route, fontSize: 16, fontWeight: '700' },
   navHandoff: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   finding: {
-    flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: theme.surface, borderRadius: 999, paddingLeft: 14, paddingRight: 4,
+    flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.surface, borderRadius: 999, paddingLeft: 16, paddingRight: 4,
     minHeight: 52, borderWidth: 1, borderColor: theme.line,
   },
   findingText: { color: theme.ink, fontSize: 16, fontWeight: '600' },
-  findingCancel: { minHeight: 44, paddingHorizontal: 14, justifyContent: 'center', borderRadius: 22 },
+  findingCancel: { minHeight: 44, paddingHorizontal: 16, justifyContent: 'center', borderRadius: 22 },
   findingCancelText: { color: theme.ink, fontSize: 16, fontWeight: '700', textDecorationLine: 'underline' },
   flashText: { fontSize: 16 },
-  spotRow: { position: 'absolute', left: 12, right: 12, alignItems: 'center' },
+  spotRow: { position: 'absolute', left: GUTTER, right: GUTTER, alignItems: 'center' },
   spot: {
-    backgroundColor: theme.surface, borderRadius: theme.radius, padding: 14, gap: 10, width: '100%', maxWidth: 520,
+    backgroundColor: theme.surface, borderRadius: theme.radius, padding: 16, gap: 12, width: '100%', maxWidth: 520,
     shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
   },
   spotTitle: { fontSize: 16, fontWeight: '700', color: theme.ink },
@@ -1679,23 +1679,23 @@ const styles = StyleSheet.create({
   optionLabel: { fontSize: 15, fontWeight: '600', color: theme.ink },
   drawer: { paddingHorizontal: 16, paddingBottom: 8, gap: 4, maxWidth: 640, width: '100%', alignSelf: 'center' },
   edgeBtnOff: { opacity: 0.5 },
-  spotActions: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
+  spotActions: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   spotClose: { marginLeft: 'auto', width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  toast: { backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 14, alignSelf: 'center' },
+  toast: { backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 16, alignSelf: 'center' },
   toastText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
   hidden: { display: 'none' },
   pills: { position: 'absolute', alignItems: 'flex-end', gap: 8 },
   undo: {
-    flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: theme.ink, borderRadius: 999, maxWidth: '100%',
+    flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: theme.ink, borderRadius: 999, maxWidth: '100%',
     paddingVertical: 8, paddingLeft: 16, paddingRight: 8,
   },
   undoText: { color: '#ffffff', fontSize: 15, fontWeight: '600', flexShrink: 1 },
-  undoBtn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)' },
+  undoBtn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 16, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)' },
   undoBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.8 },
   stats: { color: theme.ink, fontSize: 17, fontWeight: '600', fontVariant: ['tabular-nums'], flexShrink: 1 },
-  stopInner: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  stopInner: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   barActions: { flexDirection: 'row', alignItems: 'center', gap: 20 },
   pauseBtn: {
     width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center',
@@ -1707,7 +1707,7 @@ const styles = StyleSheet.create({
   minRow: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   noticeCell: { flex: 1, minWidth: 0 },
   minBtn: { position: 'relative' },
-  unwalked: { position: 'absolute', backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12 },
+  unwalked: { position: 'absolute', backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 12 },
   unwalkedText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
   // Small round controls at the map's edges, as in AllTrails.
   edgeBtn: {
@@ -1720,6 +1720,6 @@ const styles = StyleSheet.create({
   modalWrap: { flex: 1, justifyContent: 'flex-start', paddingHorizontal: 16 },
   modal: { backgroundColor: theme.surface, borderRadius: theme.radius, padding: 16, gap: 12, maxWidth: 520, width: '100%', alignSelf: 'center' },
   modalTitle: { fontSize: 17, fontWeight: '600', color: theme.ink },
-  input: { minHeight: 90, borderWidth: 1.5, borderColor: theme.edge, borderRadius: 10, padding: 10, fontSize: 16, color: theme.ink, textAlignVertical: 'top' },
+  input: { minHeight: 90, borderWidth: 1.5, borderColor: theme.edge, borderRadius: 12, padding: 12, fontSize: 16, color: theme.ink, textAlignVertical: 'top' },
   modalRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
 });

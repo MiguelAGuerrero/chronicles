@@ -137,7 +137,7 @@ const FEATURES = [
       'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx',
     ],
     journeys: ['marks', 'atlas', 'grading'],
-    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading'],
+    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence'],
   },
   {
     name: 'landing',
@@ -153,7 +153,7 @@ const FEATURES = [
     rule: 'places-and-areas',
     source: ['src/lib/areas/**', 'src/lib/{places,placeAll,backlog}.ts', 'src/components/{StarView,AreaPoint}.tsx'],
     journeys: ['outlines'],
-    specs: ['v0.5-places', 'places-worth-the-stop', 'town-outlines', 'town-borders'],
+    specs: ['v0.5-places', 'places-worth-the-stop', 'town-outlines', 'town-borders', 'town-presence'],
   },
   {
     name: 'map',
@@ -183,7 +183,7 @@ const FEATURES = [
       // Media editing (ME1-ME23): the editor, edited photos and videos, the Edit offer.
       'src/components/edit/**',
       'src/components/Baker*.ts',
-      'src/lib/{mediaEdit,editSession,editOffer}.ts',
+      'src/lib/{mediaEdit,editSession,editOffer,captionInput}.ts',
       'src/lib/{captureEdits,videoEdit}/**',
     ],
     journeys: ['edit'],

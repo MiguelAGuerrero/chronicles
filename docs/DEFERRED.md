@@ -207,6 +207,26 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - The trace is redrawn every 66 ms, so on a zip the line trails the walker by a short stretch (replay-rhythm audit 14)
 - The Undo toast can sit over the clock for its 5 s after a moment is deleted mid-path (replay-rhythm audit, UI notes)
 
+## Town presence (TP, decision 0089)
+
+- A neighborhood's share of its town (the rest of "Whole areas"): neighborhoods keep the 800 m ring
+- Finds and "Waiting to be found" on a graded town's card are drawn around its busiest pocket, not across the whole outline
+- A mall's tenants still count as shops (needs footprints); a whole township reaches the top step of Shops and Food easily, so `STEPS` may want retuning for towns
+- No e2e step shows "Busy areas": the fake grid has too little activity for a pocket, so the pockets are tested on real Overture fixtures (`pockets.test.ts`)
+- Marks across a whole outline are stored in the profile as keys and spots; a very large city's list is uncapped
+- The Undo toast (`insets.top + 64`) can cover the walk screen's Minimize row while a navigation bar shows (fix minimize-top-align audit 1; it overlapped before the top offset went from 12 to 4)
+- The walk screen's top edge `sideInset` ignores `insets.left`/`insets.right`, so a narrow landscape device could put Minimize under a cutout; the e2e has no way to inject a safe-area inset (fix minimize-top-align audit 2, 4)
+
+- The media editor's caption field types at 16 px on web so iOS doesn't zoom, so on a photo under about 356 px wide the bar is larger and may wrap differently while typing than in the saved file (fix editor-zoom audit 1)
+- No test scans `src` for a `TextInput` under 16 px, and the e2e's photo is wide enough that the caption field is not enlarged in it (fix editor-zoom audit 4, 5)
+## Spacing grid (fix banner-spacing)
+
+- The floating UI (walk screen's banners, toasts, pills, cards; `ui.tsx` Banner and Button; Undo, Reminder and Confirm cards) is on the 4-point grid with a 16 pt screen-edge gutter (`GUTTER` in `components/walk/layout.ts`); `spacingGrid.test.ts` holds those six files
+- The rest is not: 154 padding, margin and gap values off the grid across about 40 files (HomeSheet, AtlasCard, `(tabs)/index`, MediaEditor, CaptureView, RecordingBar, ceremony/*, MomentBar, ExploreSettings, WalkActions, StartSettings, KindStrip, AtlasTile, replay, chronicle, day, ...). Chosen by the owner: a `/slice` with spacing tokens and a spec, then widen `spacingGrid.test.ts` to every file
+- `ReadyBar`'s 10 pt strip padding stays until then: `BAR_H` (69) is derived from it and the stack's geometry from `BAR_H`
+- The owner's phone screenshot showed the walk overlay cropped at both edges in Safari; at 390 px the layout was already 12 pt from the edge, so a viewport wider than the screen is suspected and not reproduced (unverified on a device)
+- Audit findings deferred (fix banner-spacing): the pills and scale bar sit at `sideInset + 12`, 4 pt further in than the 16 pt gutter, left as a step; horizontal safe-area insets (landscape notch) are not added to the gutter, as before; no e2e at 320 pt wide or for the nudge, spot card and Undo pill gutters; Button's and Banner's padding change reaches screens with no journey (settings, delete confirm); computed offsets (`edgeBottom + 7`) and radii are outside the grid test
+
 ## Test organization (decision 0091)
 
 - Shells no unit test reaches (9 after test gaps round 1, Nov 4): `session` (the walk lifecycle; the rules call for a reducer), `explore/exploreRun`, `landing/read`, `atlas/read` and `activity/overture` (the explore reads; testing them needs a network-fetch port in `Ports`), `discovery/recallCheck` (reminders), `deletion/index` (its pending core is tested), `backlog` (it takes the map, the snap and the tile build) and `walkNav` (glue over `expo-router`). Each waits on the owner's call for its cluster.

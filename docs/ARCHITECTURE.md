@@ -186,7 +186,9 @@ Discovery and Explore (v1)
   explore/useExplore.ts      Explore on the walk screen
   explore/exploreTab.ts the drawer's area-in-view (superseded on the tab by the atlas)
   atlas/atlas.ts             the Explore atlas: near list, presence steps (findable kinds count markable places, AG1), thin rings (AG3), sketch, familiarity, labels
-  atlas/read.ts              the atlas's reads: areas near you, one ring at a time (decoder)
+  atlas/extent.ts            a town's whole-outline extent and the z14 tiles a read takes, capped (TP1-TP3)
+  atlas/pockets.ts           a town's pockets of activity: peak picking on a smoothed 400 m grid (TP4)
+  atlas/read.ts              the atlas's reads: areas near you, one ring or one whole town at a time (decoder)
   atlas/useAtlas.ts          the atlas's data and its read loop, while Explore is in front
   explore/settings.ts        what I'm into, range, pocket alert (meta)
   explore/momentFind/        a loose moment finds a place (shell.ts, index.ts)

@@ -11,6 +11,9 @@ if (typeof document !== 'undefined' && !document.getElementById('chronicles-focu
        rubber-bands: on iOS the keyboard or the system camera could otherwise
        leave it shifted, with the screen's bottom bar halfway up. */
     html, body { overscroll-behavior: none; }
+    /* A double tap between strokes or crop taps must not zoom the page: with
+       #root fixed there is no scrolling back out of it. */
+    html, body, #root { touch-action: manipulation; }
     #root { position: fixed; inset: 0; height: auto; }
   `;
   document.head.appendChild(style);

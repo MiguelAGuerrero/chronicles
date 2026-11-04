@@ -203,3 +203,9 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] expo-keep-awake through a replay (RR24): the screen held from reading the streets to the card, let go on the card and on leaving, taken again on AppState `active`
 - [ ] The loading skeleton's pulse with the native driver (RR23)
 
+## Town presence (TP, decision 0089)
+
+- [ ] A town read takes up to 60 z14 tiles (Whitehall's outline touches 21), decoded on the phone: the time it takes and its memory on a phone, never run on a device
+- [ ] TP11: the OpenMapTiles class names for a mall and a department store (`shop` › `mall`, `department_store`) are from memory, since the tile host is blocked from cloud sessions; confirm on a phone that Lehigh Valley Mall counts as a shop
+
+- [ ] The walk screen's top overlay (Minimize, the navigation bar, the notice) and the ready chevron at `insets.top + 4`: clear of the notch and Dynamic Island, the Android status bar and landscape (inset 0); the ready-to-walk handover keeps the same box

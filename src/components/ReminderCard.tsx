@@ -45,10 +45,10 @@ export function ReminderCard(props: { captures: Capture[]; onOpen: () => void; o
 
 const styles = StyleSheet.create({
   card: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: theme.surface, borderRadius: theme.radius, paddingLeft: 10,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: theme.surface, borderRadius: theme.radius, paddingLeft: 12,
     shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
   },
-  main: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, minHeight: 56 },
+  main: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, minHeight: 56 },
   thumb: { width: 48, height: 48, borderRadius: 8, backgroundColor: theme.line },
   icon: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center' },
   title: { fontSize: 15, fontWeight: '700', color: theme.ink },

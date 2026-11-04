@@ -50,7 +50,7 @@ async function run(h) {
     const loc = await boxOf(pg, 'locate');
     const cx = (b) => b.x + b.w / 2;
     check(cam && mic && pen && loc && Math.abs(cx(cam) - cx(mic)) <= 1 && Math.abs(cx(mic) - cx(pen)) <= 1 && Math.abs(cx(loc) - cx(cam)) <= 1
-      && pen.y < mic.y && mic.y < cam.y && loc.y + loc.h <= pen.y && cam.x + cam.w >= 390 - 14 && cam.x + cam.w <= 390 - 10,
+      && pen.y < mic.y && mic.y < cam.y && loc.y + loc.h <= pen.y && cam.x + cam.w >= 390 - 18 && cam.x + cam.w <= 390 - 14,
       `ready NR9: camera, mic and note stacked at the right edge, Locate above (${JSON.stringify({ cam, mic, pen, loc })})`);
 
     // CP2: turned, the compass takes the slot above Locate in the same column; at north-up it is not drawn.
@@ -190,9 +190,21 @@ async function run(h) {
     const notice = (await pg.locator('[data-testid=lift-in]').allInnerTexts()).join(' | ');
     check(pathOf(pg) === `${BASE}/walk` && (await pg.evaluate(() => window.__navs)) === 0 && same(before.cam, after.cam) && same(before.mic, after.mic) && same(before.pen, after.pen) && same(before.chev, after.chev),
       `ready NR6: Start records in place; the stack and the chevron don't move (${JSON.stringify({ before, after })})`);
+    // fix minimize-top-align: 4 pt under the safe area top edge (0 in the headless browser), not the old 12.
+    check(Math.abs(before.chev.y - 4) <= 1 && Math.abs(after.chev.y - 4) <= 1, `ready fix minimize-top-align: the chevron and Minimize sit 4 pt below the top (${before.chev.y}, ${after.chev.y})`);
     check(Math.abs(before.start.x + before.start.w - (after.stop.x + after.stop.w)) <= 2 && Math.abs(before.start.y + before.start.h / 2 - (after.stop.y + after.stop.h / 2)) <= 2,
       `ready NR5: Start sits in the strip where Stop sits (${JSON.stringify({ start: before.start, stop: after.stop })})`);
     check(/Walk started · recording/.test(notice), `ready NR6: the notice says the walk is recording (${notice})`);
+    {
+      // banner-spacing: the notice banner, the chevron and the capture stack keep a 16 pt gutter from the screen's edge.
+      const vw = pg.viewportSize().width;
+      const banner = await boxOf(pg, 'lift-in');
+      const gutters = [after.chev.x, vw - (banner.x + banner.w), vw - (after.cam.x + after.cam.w)];
+      check(gutters.every((g) => g >= 15.5), `banner-spacing: chevron, banner and capture stack sit 16 pt from the edge (${JSON.stringify(gutters)})`);
+      // fix banner-spacing audit 1: nothing is wider than the screen, so nothing is cropped at its edges.
+      const over = await pg.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      check(over <= 0, `banner-spacing audit 1: the walk screen has no horizontal overflow (${over} px)`);
+    }
     {
       const sameMap = await pg.evaluate(() => { const cs = [...document.querySelectorAll('canvas.maplibregl-canvas')]; return cs.length === 1 && cs[0].__readyMark === 1; });
       check(sameMap, 'ready NR6, navigate-ready audit 2: one screen, one map: the map shown before Start is the same one recording after it, never rebuilt');
