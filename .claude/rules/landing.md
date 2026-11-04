@@ -91,6 +91,10 @@ What's good here (`lib/landing`): reading an area, finding busy strips and pocke
   without one while a release is known, is stale too (`isStale`). An area
   centred within 1 km of a remembered one replaces it. Markers are rebuilt only
   when areas change, never per zoom. A strip's name keeps 80 m from the pin.
+- **A street's name is drawn once** (fix street-label-double, Nov 4): two remembered
+  areas up to 3 km apart can both find one street, each with its own peak.
+  `landingView` keeps one label per name within 300 m (strips and pocket labels
+  alike); the same name further away is another street.
 - **Busy areas are information only** (the owner's call, Nov 1): no Start here
   pin, no card, no Walk the loop (L10, L13, L16 retired by explore).
   `analysis.landing` is still computed and stored; nothing draws it.
