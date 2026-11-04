@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { LngLat } from '../types';
-import { aheadStep, carStretches, warningLine, type AheadState } from '../walk/ahead';
+import { aheadStep, alongRoute, carStretches, warningLine, type AheadState } from '../walk/ahead';
 import type { Band } from '../walk/types';
 
 // Walkability (WK15, WK16), written from specs/walkability/spec.md before the code.
@@ -55,4 +55,20 @@ test('WK16: the warning only says; it carries nothing that changes the route', (
   const r = aheadStep({ said: [], shown: null }, [s], 150, 0);
   assert.deepEqual(Object.keys(r).sort(), ['show', 'state']);
   assert.deepEqual(Object.keys(r.show!).sort(), ['fromM', 'key', 'street', 'toM']);
+});
+
+test('WK15: how far along the route you are is the nearest point on it', () => {
+  assert.ok(Math.abs(alongRoute(path, at(250, 5)) - 250) < 2);
+  assert.ok(Math.abs(alongRoute(path, at(-40, 0))) < 2, 'before the start is the start');
+  assert.ok(Math.abs(alongRoute(path, at(1200, 0)) - 1000) < 2, 'past the end is the end');
+  const bent = [at(0), at(100), at(100, 100)];
+  assert.ok(Math.abs(alongRoute(bent, at(100, 60)) - 160) < 3);
+});
+
+test('WK15: a stretch\'s key is its street and where it starts, so a new route over the same stretch is not said twice', () => {
+  const [s] = carStretches(path, segs, bands('car'));
+  const shorter = [at(100), at(1000)];
+  const [again] = carStretches(shorter, segs, bands('car'));
+  assert.equal(s.key, again.key, `${s.key} vs ${again.key}`);
+  assert.match(s.key, /^Route 22@-?\d+\.\d{4},-?\d+\.\d{4}$/);
 });

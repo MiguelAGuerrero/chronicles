@@ -38,13 +38,14 @@ export function carStretches(path: readonly LngLat[], segments: readonly Seg[], 
   const pts = path.map(project);
   const lines = segments.map((s) => ({ s, ls: s.geometry.map((g) => g.map(project)) }));
   const out: Stretch[] = [];
-  let run: { from: number; to: number; names: Map<string | null, number> } | null = null;
+  let run: { from: number; to: number; at: LngLat; names: Map<string | null, number> } | null = null;
   const close = () => {
     if (run && run.to - run.from >= STRETCH_MIN_M) {
       let street: string | null = null;
       let most = 0;
       for (const [n, c] of run.names) if (c > most) [street, most] = [n, c];
-      out.push({ key: `${Math.round(run.from / 10) * 10}:${street ?? ''}`, street, fromM: run.from, toM: run.to });
+      // Its street and where it starts: a new route over the same stretch is the same stretch.
+      out.push({ key: `${street ?? ''}@${run.at[0].toFixed(4)},${run.at[1].toFixed(4)}`, street, fromM: run.from, toM: run.to });
     }
     run = null;
   };
@@ -66,7 +67,10 @@ export function carStretches(path: readonly LngLat[], segments: readonly Seg[], 
       const from = along + (L * k) / n;
       const to = along + (L * (k + 1)) / n;
       if (best && bands.get(best.s.id) === 'car') {
-        if (!run) run = { from, to, names: new Map() };
+        if (!run) {
+          const [a0, b0] = [path[i - 1], path[i]];
+          run = { from, to, at: [a0[0] + (b0[0] - a0[0]) * (k / n), a0[1] + (b0[1] - a0[1]) * (k / n)], names: new Map() };
+        }
         run.to = to;
         run.names.set(best.s.name, (run.names.get(best.s.name) ?? 0) + 1);
       } else close();
@@ -75,6 +79,25 @@ export function carStretches(path: readonly LngLat[], segments: readonly Seg[], 
   }
   close();
   return out;
+}
+
+/** How far along the route you are, in metres: the nearest point on it, before the start the start, past the end the end. */
+export function alongRoute(path: readonly LngLat[], here: LngLat): number {
+  if (path.length < 2) return 0;
+  const project = projector(path[0]);
+  const p = project(here);
+  const pts = path.map(project);
+  let best = { d: Infinity, along: 0 };
+  let acc = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const [a, b] = [pts[i - 1], pts[i]];
+    const L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    const t = L === 0 ? 0 : Math.max(0, Math.min(1, ((p[0] - a[0]) * (b[0] - a[0]) + (p[1] - a[1]) * (b[1] - a[1])) / (L * L)));
+    const d = Math.hypot(p[0] - (a[0] + (b[0] - a[0]) * t), p[1] - (a[1] + (b[1] - a[1]) * t));
+    if (d < best.d) best = { d, along: acc + L * t };
+    acc += L;
+  }
+  return best.along;
 }
 
 export interface AheadState {

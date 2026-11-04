@@ -3,6 +3,7 @@ import { PMTiles } from 'pmtiles';
 import { ensureOvertureRelease } from '../activity/overture';
 import { transportationUrl } from '../activity/release';
 import { ports } from '../ports';
+import { createAheadWatch } from './aheadWatch';
 import { chain } from './chain';
 import { createOverpassSource } from './overpassSource';
 import { createOvertureSource } from './overtureSource';
@@ -21,3 +22,6 @@ export { ensureOvertureRelease as walkBuild };
 
 /** The layer's switch (WK13, WK20), loaded at launch by the first map that needs it. */
 export const walkSwitch = createWalkSwitch(ports);
+
+/** The heads-up ahead (WK15): what has been said on this route, and what shows now. */
+export const aheadWatch = createAheadWatch(ports);

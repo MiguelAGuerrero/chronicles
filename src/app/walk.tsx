@@ -9,6 +9,8 @@ import { perfCount } from '../lib/perfCount';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WalkMap } from '../components/map/WalkMap';
 import { CompassButton } from '../components/CompassButton';
+import { WalkBandIcon } from '../components/WalkBandIcon';
+import { WalkLayerControl } from '../components/WalkLayerControl';
 import { COLORS, HOTSPOT, type WalkMapHandle } from '../components/map/types';
 import { EditOfferPill, useEditOffer } from '../components/edit/EditOffer';
 import { MediaEditor } from '../components/edit/MediaEditor';
@@ -54,6 +56,8 @@ import { notifyWalkChanged } from '../lib/walkEvents';
 import { routeAhead } from '../lib/nav/navigator';
 import { HANDOFF_HINT, openInMaps } from '../lib/nav/openInMaps';
 import { useNavigation } from '../lib/nav/useNavigation';
+import { useRouteWarning } from '../lib/walk/useRouteWarning';
+import { useWalkability } from '../lib/walk/useWalkability';
 import { exitPlan, screenState, startNotice } from '../lib/readyNav';
 import { getLastFix } from '../lib/lastFix';
 import { CaptureStack } from '../components/walk/CaptureStack';
@@ -532,6 +536,9 @@ function WalkScreen(props: { onMinimize: () => void }) {
     () => (navigation.nav ? (live.here ? routeAhead(navigation.nav.route.path, live.here) : navigation.nav.route.path) : null),
     [navigation.nav, live.here],
   );
+  // Walkability (WK13, WK15): the layer around you, and a quiet line before a stretch built around cars on the route.
+  const wk = useWalkability(live.here);
+  const aheadLine = useRouteWarning(navigation.nav?.route.path ?? null, live.here);
   // Explore (v1 slice 5): checklists are built quietly on every walk (E2); the layers show only
   // on an exploring walk (E1, E9), and a capture finds a place on any walk.
   const fixes = useMemo(() => live.runs.flat(), [live.runs]);
@@ -979,6 +986,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         onPinPress={recordingVoice || stopping || settingsOpen || isDrawing ? undefined : setViewing}
         walker={live.here}
         borders={borders}
+        walkability={wk.draw}
         walkerSource={live.dot}
         glideWalker
         walkerHeading={live.heading}
@@ -1215,6 +1223,13 @@ function WalkScreen(props: { onMinimize: () => void }) {
       {/* The pills (caption, undo, retry): left of the stack, above the strip, so the stack never
           moves (NR10). */}
       <View style={[styles.pills, at.pills]} pointerEvents="box-none">
+        {aheadLine && navigation.nav && !recordingVoice && (
+          // Quiet (WK15): no sound, no haptic, nothing to press, and it never touches the route (WK16).
+          <View testID="walk-ahead" pointerEvents="none" style={styles.ahead} accessibilityLiveRegion="polite">
+            <WalkBandIcon band="car" size={20} />
+            <Text style={styles.aheadText}>{aheadLine}</Text>
+          </View>
+        )}
         {editOffer.offer && !recordingVoice && !spot && !openMark && !options && !memory && (
           <EditOfferPill
             offer={editOffer.offer}
@@ -1403,6 +1418,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
         bottom={at.edgeBottom(awayFromStart && walkStart && !navigation.nav ? 'compass' : 'back')}
         right={at.edgeRight}
       />
+      {/* Walkability (WK13): the column's top, so nothing else moves. */}
+      <WalkLayerControl wk={wk} bottom={at.edgeBottom('walkability')} right={at.edgeRight} />
 
       {awayFromStart && walkStart && !navigation.nav && (
         // Walk me back: the way back to where this walk began (N1, N11).
@@ -1707,6 +1724,8 @@ const styles = StyleSheet.create({
   minRow: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   noticeCell: { flex: 1, minWidth: 0 },
   minBtn: { position: 'relative' },
+  ahead: { flexDirection: 'row', alignItems: 'center', gap: 8, maxWidth: 360, backgroundColor: theme.glass, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12, borderWidth: 1, borderColor: theme.line },
+  aheadText: { color: theme.ink, fontSize: 14, flexShrink: 1 },
   unwalked: { position: 'absolute', backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12 },
   unwalkedText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
   // Small round controls at the map's edges, as in AllTrails.

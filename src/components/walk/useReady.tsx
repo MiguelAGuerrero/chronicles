@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BackHandler, Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { CaptureViewer } from '../CaptureView';
 import { LocateButton } from '../LocateButton';
+import { WalkLayerControl } from '../WalkLayerControl';
 import { MomentBar } from '../MomentBar';
 import { StartSettings } from '../StartSettings';
 import { Icon } from '../icons';
@@ -27,6 +28,7 @@ import type { Capture, LngLat } from '../../lib/types';
 import type { MomentState } from '../../lib/useCaptures';
 import { LOCATE_FIT_M, useLocate } from '../../lib/useLocate';
 import { useStartWalk } from '../../lib/useStartWalk';
+import { useWalkability } from '../../lib/walk/useWalkability';
 import { BAR_H, CAP, raisedHeight, useStackLayout } from './layout';
 import { ReadyBar } from './ReadyBar';
 
@@ -184,8 +186,11 @@ export function useReady(props: {
   const ringBox = ring ? boundsOf([ring.center], ring.radiusM * 1.15) : null;
   const ringKey = ring ? 100000 + ring.radiusM : 0;
 
+  // Walkability (WK13): around you, one switch for every map.
+  const wk = useWalkability(fix);
   /** The walk screen's one map, while no walk is open. */
   const mapProps = {
+    walkability: wk.draw,
     trace: NONE,
     walked: NONE,
     fog: NONE,
@@ -254,6 +259,7 @@ export function useReady(props: {
 
       {/* Locate (QL9), in the stack's column where Recenter sits on the walk (NR9). */}
       <LocateButton busy={locating} onPress={locate} bottom={at.edgeBottom('locate')} right={at.edgeRight} />
+      <WalkLayerControl wk={wk} bottom={at.edgeBottom('walkability')} right={at.edgeRight} />
       {/* The capture stack keeping moments (NR9), and its pills. */}
       <MomentBar disabled={walkStart.starting} onMoment={onMoment} onError={onMomentError} onRecording={setMemoOn} focused={focused} />
 

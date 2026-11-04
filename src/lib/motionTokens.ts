@@ -19,6 +19,8 @@ export const MOTION = {
   pulse: 500,
   /** Between the pocket alert's two taps: one nudge, felt as two (PA1). */
   nudgeGap: 120,
+  /** A tooltip stays open this long when nothing closes it (WK22). */
+  tip: 4000,
   /** The one spring: settles without a visible bounce. */
   spring: { damping: 28, stiffness: 240, mass: 1 },
 } as const;

@@ -7,6 +7,8 @@ import { AtlasCard, type CardLayout } from '../../components/atlas/AtlasCard';
 import { AtlasTile } from '../../components/atlas/AtlasTile';
 import { LocateButton } from '../../components/LocateButton';
 import { CompassButton } from '../../components/CompassButton';
+import { WalkLayerControl } from '../../components/WalkLayerControl';
+import { useWalkability } from '../../lib/walk/useWalkability';
 import { WalkMap } from '../../components/map/WalkMap';
 import type { WalkMapHandle } from '../../components/map/types';
 import { Icon } from '../../components/icons';
@@ -206,6 +208,8 @@ export default function Explore() {
     return pointsOf.map((l) => ({ id: l.area.key, at: l.area.at, name: near.has(l.area.key) || l.area.key === selected ? l.area.name : null, selected: l.area.key === selected }));
   }, [pointsOf, selected]);
   const sel = shown.find((l) => l.area.key === selected) ?? null;
+  // Walkability (WK13): around the selected area, else around you; one switch for every map.
+  const wk = useWalkability(sel?.area.at ?? from ?? null);
   // A card is only ever one of the areas shown, with its real distance (explore-atlas audit 7).
   const card = focused ? shown.find((l) => l.area.key === open) ?? null : null;
   const shownRef = useRef(shown);
@@ -341,6 +345,7 @@ export default function Explore() {
           areaPoints={areaPoints}
           ring={sel ? { center: sel.area.at, radiusM: ATLAS_RULES.ringM } : null}
           borders={borders}
+          walkability={wk.draw}
           onLongPress={(at) => {
             if (looking) return;
             if ((view?.zoom ?? 0) < 10) {
@@ -423,6 +428,7 @@ export default function Explore() {
         <LocateButton busy={locating} onPress={locate} bottom={8} />
       )}
       {/* The compass (CP2): above Locate, only while the map is turned and on screen. */}
+      {focused && !spot && <WalkLayerControl wk={wk} bottom={8 + (44 + 12) * 2} />}
       {focused && !spot && <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={8 + 44 + 12} />}
       {toast ? <View style={styles.toast} accessibilityLiveRegion="polite"><Text style={styles.toastText}>{toast}</Text></View> : null}
     </View>
