@@ -1,4 +1,4 @@
-# 0083. Tests are organized by feature; a change maps to its feature's suites, and a coverage hole is named
+# 0087. Tests are organized by feature; a change maps to its feature's suites, and a coverage hole is named
 
 Date: 2026-11-04 · Status: accepted · Area: process, testing · Relates to: 0074 (scoped checks), the affected-checks slice (AC1-AC11)
 
@@ -19,4 +19,4 @@ The checks that matter for a change are the ones that can fail because of it (00
 - `npm run test:feature <name>`; `check:affected` reports by feature and names files covered by nothing; `check:specs` resolves shared prefixes and separates retired from missing.
 - A new test goes in its feature's folder; a new feature is a folder and a row in the map (the feature test fails otherwise). A new journey is a file under `scripts/e2e/journeys/`.
 - The 22 shells and the screens still covered by nothing are listed in `docs/DEFERRED.md`; the functional-core migration closes the shells one cluster at a time.
-- Spec: `specs/test-organization/spec.md` (TO1-TO12).
+- Spec: `specs/test-organization/spec.md` (TG1-TG12).

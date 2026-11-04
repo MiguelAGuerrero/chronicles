@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Report which acceptance-criterion ids in specs/*/spec.md no test mentions
-// (test-organization TO7). A report by default (exit 0); `--strict` exits 1
+// (test-organization TG7). A report by default (exit 0); `--strict` exits 1
 // when a live id has no test; `--feature <name>` reports one feature's specs.
 //
 // A spec's ids are the literal ones its criteria open with: "**QL1**",

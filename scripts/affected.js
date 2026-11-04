@@ -211,13 +211,13 @@ function affectedTests(root, changed) {
   return { all: false, tests: picked, skipped: tests.length - picked.length };
 }
 
-/** The feature a test file belongs to: its folder under __tests__ (TO2), or null at the root. */
+/** The feature a test file belongs to: its folder under __tests__ (TG2), or null at the root. */
 function featureOfTest(file) {
   const m = /^src\/lib\/__tests__\/([^/]+)\/[^/]+$/.exec(file);
   return m ? m[1] : null;
 }
 
-/** What `test:affected` prints before running (AC3), the files under their feature (TO5). */
+/** What `test:affected` prints before running (AC3), the files under their feature (TG5). */
 function describeTests(r) {
   if (r.all) return `Running every test: ${r.why}.`;
   if (!r.tests.length) return `No unit test imports what changed (${r.skipped} test files skipped).`;
@@ -248,7 +248,7 @@ function layerOf(root, rel) {
 }
 
 /**
- * What covers each changed source file (TO6): a hole is a file that no unit
+ * What covers each changed source file (TG6): a hole is a file that no unit
  * test reaches through the import graph and no e2e journey row covers. A file
  * in no feature is named too. Tests, docs and deleted files are not judged.
  */
@@ -297,7 +297,7 @@ function instanceOf(root, rel) {
   }
 }
 
-/** The coverage report, in words distinct from "nothing to run" (TO6); empty when there is nothing to say. */
+/** The coverage report, in words distinct from "nothing to run" (TG6); empty when there is nothing to say. */
 function describeCoverage(cov) {
   const lines = [];
   for (const h of cov.holes) {
@@ -318,7 +318,7 @@ function describeCoverage(cov) {
   return lines.join('\n');
 }
 
-/** The test folders of the named features (TO4), or the unknown names and the list to pick from. */
+/** The test folders of the named features (TG4), or the unknown names and the list to pick from. */
 function featureFolders(names) {
   const all = features.FEATURES.map((f) => f.name);
   const unknown = names.filter((n) => !features.byName.has(n));
@@ -397,7 +397,7 @@ function testsStep(changed, all) {
   return { ok: res.status === 0, output: res.status === 0 ? '' : 'Affected unit tests failed (above).' };
 }
 
-/** `npm run test:feature <name...>` (TO4): the named features' folders, whole. */
+/** `npm run test:feature <name...>` (TG4): the named features' folders, whole. */
 function featureStep(names) {
   const r = featureFolders(names);
   if (!r.ok) {

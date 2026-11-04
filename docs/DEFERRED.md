@@ -161,7 +161,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
   - `addFind` on web swallows every transaction error, not just the duplicate key
 - `deleteWalk` / `deleteCaptures` all-or-nothing (D6) has no contract case: nothing shared can make IndexedDB fail halfway
 
-## Test organization (decision 0083)
+## Test organization (decision 0087)
 
 - Shells no unit test reaches (13 after the saved-settings cluster, Nov 4): `session`, `walkNav`, `tileCollector`, `explore/exploreRun`, `landing/read`, `atlas/read`, `discovery/recallCheck`, `deletion/index`, `here`, `backlog`, `shareLog`, `export/bundle`, `activity/overture`. Each gets a factory and a test over `fakePorts()` as the functional-core migration reaches its cluster (one cluster per slice; the walk lifecycle, the explore reads and reminders were offered next). Of these, `tileCollector`, `shareLog` and `export/bundle` are also covered by no journey, so `check:affected` says "Covered by nothing" when they change.
 - Every `src/app` and `src/components` file is covered by a journey row as of Nov 4 (`arch/features.test.ts` does not hold that; `check:affected` names a new screen no row covers when it changes). Shared primitives (`icons`, `ui`, `webStyles*`) ride on the `launch` row, a proxy: no journey checks them for themselves.

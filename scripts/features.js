@@ -1,8 +1,8 @@
-// The feature map (specs/test-organization/spec.md, TO1): one list of the
+// The feature map (specs/test-organization/spec.md, TG1): one list of the
 // app's features, each with the source files it owns, the e2e journeys that
 // walk it, the specs whose criteria it answers and the rule file that holds
 // its traps. Its unit tests are the folder of the same name under
-// src/lib/__tests__/ (TO2); nothing lists them twice.
+// src/lib/__tests__/ (TG2); nothing lists them twice.
 //
 // Who reads it: `npm run test:feature <name>` (the folder), `check:affected`
 // (which feature a change touched, and what covers each changed file),
@@ -233,7 +233,7 @@ const FEATURES = [
 ];
 
 /**
- * Criterion ids a spec still lists that the app no longer has (TO7): retired by a
+ * Criterion ids a spec still lists that the app no longer has (TG7): retired by a
  * later call, not missing a test. `check:specs` reports them apart from live ids.
  * Keyed by the spec's slug; each entry says who retired it.
  */

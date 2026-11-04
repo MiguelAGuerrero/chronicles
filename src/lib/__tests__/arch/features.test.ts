@@ -54,7 +54,7 @@ const sources = () =>
   filesUnder(join(ROOT, 'src'), (p) => /\.(ts|tsx|js)$/.test(p) && !p.endsWith('.d.ts') && !p.includes(`${join('lib', '__tests__')}`)).map((p) => posix(relative(ROOT, p)));
 const names = features.FEATURES.map((f) => f.name);
 
-test('TO1 every feature has a name, a purpose, a rule file that exists, and sources that match something', () => {
+test('TG1 every feature has a name, a purpose, a rule file that exists, and sources that match something', () => {
   assert.equal(new Set(names).size, names.length, 'feature names are unique');
   const all = sources();
   for (const f of features.FEATURES) {
@@ -68,12 +68,12 @@ test('TO1 every feature has a name, a purpose, a rule file that exists, and sour
   }
 });
 
-test('TO1 every source file under src belongs to at least one feature', () => {
+test('TG1 every source file under src belongs to at least one feature', () => {
   const orphans = sources().filter((s) => features.featuresOf(s).length === 0);
   assert.deepEqual(orphans, [], `in no feature: add each to a feature's source in scripts/features.js:\n  ${orphans.join('\n  ')}`);
 });
 
-test('TO1 every e2e journey belongs to exactly one feature, and every journey a feature names exists', () => {
+test('TG1 every e2e journey belongs to exactly one feature, and every journey a feature names exists', () => {
   const journeys = SCENARIOS.map((s) => s.name);
   for (const j of journeys) {
     const owners = features.FEATURES.filter((f) => f.journeys.includes(j)).map((f) => f.name);
@@ -82,7 +82,7 @@ test('TO1 every e2e journey belongs to exactly one feature, and every journey a 
   for (const f of features.FEATURES) for (const j of f.journeys) assert.ok(journeys.includes(j), `${f.name} names the journey "${j}", which scripts/e2e-scenarios.js does not list`);
 });
 
-test('TO1 every spec with criterion ids is listed by a feature, every listed spec exists, and RETIRED ids are the spec\'s own', () => {
+test('TG1 every spec with criterion ids is listed by a feature, every listed spec exists, and RETIRED ids are the spec\'s own', () => {
   const all = specs.readSpecs();
   const slugs = new Set(all.map((s) => s.slug));
   for (const s of all) {
@@ -99,7 +99,7 @@ test('TO1 every spec with criterion ids is listed by a feature, every listed spe
   }
 });
 
-test('TO2 every test folder is a feature, every test file is in a folder, and shared helpers stay at the root', () => {
+test('TG2 every test folder is a feature, every test file is in a folder, and shared helpers stay at the root', () => {
   const entries = readdirSync(TESTS, { withFileTypes: true });
   const folders = entries.filter((e) => e.isDirectory() && e.name !== 'fakes').map((e) => e.name);
   for (const d of folders) assert.ok(features.byName.has(d), `src/lib/__tests__/${d}/ is not a feature in scripts/features.js: add the feature, or move the tests`);
@@ -111,14 +111,14 @@ test('TO2 every test folder is a feature, every test file is in a folder, and sh
   }
 });
 
-test('TO3 the tree-wide tests live in arch, and the contract in storage', () => {
+test('TG3 the tree-wide tests live in arch, and the contract in storage', () => {
   const wide = filesUnder(TESTS, (p) => p.endsWith('.test.ts')).filter((p) => /^\/\/ @tree-wide: /.test(readFileSync(p, 'utf8').split('\n', 1)[0]));
   assert.ok(wide.length >= 4);
   for (const w of wide) assert.equal(specs.folderOf(w), 'arch', `${relative(TESTS, w)} reads the whole tree: it belongs in arch/`);
   assert.ok(existsSync(join(TESTS, 'storage', 'db.contract.test.ts')));
 });
 
-test('TO4 test:feature resolves names to folders and refuses an unknown one, naming the features', () => {
+test('TG4 test:feature resolves names to folders and refuses an unknown one, naming the features', () => {
   const ok = affected.featureFolders(['rides', 'map']);
   assert.deepEqual(ok, { ok: true, folders: ['src/lib/__tests__/rides', 'src/lib/__tests__/map'], unknown: [], names });
   const bad = affected.featureFolders(['rides', 'nope']);
@@ -129,7 +129,7 @@ test('TO4 test:feature resolves names to folders and refuses an unknown one, nam
   assert.equal(pkg.scripts['test:feature'], 'node scripts/affected.js feature');
 });
 
-test('TO5 the selected tests are listed under their feature', () => {
+test('TG5 the selected tests are listed under their feature', () => {
   const r = affected.affectedTests(ROOT, ['src/lib/rides.ts']);
   const text = affected.describeTests(r);
   assert.match(text, /^  rides:$/m, 'a feature header');
@@ -139,7 +139,7 @@ test('TO5 the selected tests are listed under their feature', () => {
   assert.ok(first >= 0 && first < idx);
 });
 
-test('TO6 a changed file no unit test reaches and no journey covers is named, with its layer and features; one in no feature too', () => {
+test('TG6 a changed file no unit test reaches and no journey covers is named, with its layer and features; one in no feature too', () => {
   const c = affected.coverage(ROOT, ['src/lib/shareLog.ts', 'src/lib/rides.ts', 'src/app/walk.tsx', 'docs/STATUS.md']);
   assert.deepEqual(c.holes.map((h) => h.file), ['src/lib/shareLog.ts'], 'rides has tests, walk.tsx has journeys');
   assert.equal(c.holes[0].layer, 'shell');
@@ -150,13 +150,13 @@ test('TO6 a changed file no unit test reaches and no journey covers is named, wi
   assert.doesNotMatch(text, /No unit test imports/);
 });
 
-test('TO6 the words tell a hole from nothing to run', () => {
+test('TG6 the words tell a hole from nothing to run', () => {
   const none = affected.coverage(ROOT, ['docs/STATUS.md']);
   assert.deepEqual(none, { holes: [], unmapped: [] });
   assert.equal(affected.describeCoverage(none), '');
 });
 
-test('TO7 a prefix two specs share is looked for only in the folders of the features that list the spec', () => {
+test('TG7 a prefix two specs share is looked for only in the folders of the features that list the spec', () => {
   const files = ['src/lib/__tests__/rides/rides.test.ts', 'src/lib/__tests__/explore/recall.test.ts', 'scripts/e2e/journeys/qol.js'].map((f) => join(ROOT, f));
   assert.deepEqual(specs.testFilesFor('rides', true, files).map((f) => posix(relative(ROOT, f))), ['src/lib/__tests__/rides/rides.test.ts', 'scripts/e2e/journeys/qol.js']);
   assert.deepEqual(specs.testFilesFor('v1-discovery', true, files).map((f) => posix(relative(ROOT, f))), ['src/lib/__tests__/explore/recall.test.ts', 'scripts/e2e/journeys/qol.js']);
@@ -171,7 +171,7 @@ test('TO7 a prefix two specs share is looked for only in the folders of the feat
   assert.deepEqual(one.rows.map((x) => x.slug), ['rides']);
 });
 
-test('TO8 each feature\'s rule loads for its test folder', () => {
+test('TG8 each feature\'s rule loads for its test folder', () => {
   for (const f of features.FEATURES) {
     const folder = join(TESTS, f.name);
     if (!existsSync(folder) || !statSync(folder).isDirectory()) continue;
@@ -182,7 +182,7 @@ test('TO8 each feature\'s rule loads for its test folder', () => {
   }
 });
 
-test('TO10 every screen and component is covered by a journey row', () => {
+test('TG10 every screen and component is covered by a journey row', () => {
   const ui = filesUnder(join(ROOT, 'src'), (p) => /\.(ts|tsx|js)$/.test(p) && !p.endsWith('.d.ts'))
     .map((p) => posix(relative(ROOT, p)))
     .filter((f) => /^src\/(app|components)\//.test(f));
@@ -191,7 +191,7 @@ test('TO10 every screen and component is covered by a journey row', () => {
   assert.deepEqual(uncovered, [], `no journey row covers:\n  ${uncovered.join('\n  ')}\nAdd each to the covers of its feature's journey (scripts/e2e/journeys/), or list it in docs/DEFERRED.md and here.`);
 });
 
-test('TO11 the docs name the layout and the commands', () => {
+test('TG11 the docs name the layout and the commands', () => {
   const agents = readFileSync(join(ROOT, 'AGENTS.md'), 'utf8');
   assert.match(agents, /npm run test:feature/);
   assert.match(agents, /scripts\/features\.js/);
@@ -202,7 +202,7 @@ test('TO11 the docs name the layout and the commands', () => {
   assert.match(slice, /scripts\/e2e\/journeys\//);
 });
 
-test('TO12 the selection still follows type-only imports, and the docs say it is on purpose', () => {
+test('TG12 the selection still follows type-only imports, and the docs say it is on purpose', () => {
   const r = affected.affectedTests(ROOT, ['src/lib/areas/types.ts']);
   assert.ok(r.tests.length > 5, `${r.tests.length} tests reach a types-only module through import type`);
   const testing = readFileSync(join(ROOT, 'docs', 'TESTING.md'), 'utf8');

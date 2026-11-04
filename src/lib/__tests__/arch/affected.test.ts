@@ -224,7 +224,7 @@ test('AC9 a changed file names the scenarios that cover it; an uncovered screen 
   const own = affected.e2eFor(['src/components/GapCard.tsx', 'src/components/Nowhere.tsx']);
   assert.ok(own.scenarios.some((s) => s.name === 'gaps'), own.scenarios.map((s) => s.name).join(', '));
   assert.deepEqual(own.uncovered, ['src/components/Nowhere.tsx']);
-  // One file per journey (TO9): the file is the registration, its name is its file's, and it says what it covers.
+  // One file per journey (TG9): the file is the registration, its name is its file's, and it says what it covers.
   const dir = join(ROOT, 'scripts', 'e2e', 'journeys');
   const files = readdirSync(dir).filter((f) => f.endsWith('.js')).map((f) => f.slice(0, -3)).sort();
   assert.ok(files.includes('full'), 'the full flow is scripts/e2e/journeys/full.js');
