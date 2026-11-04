@@ -51,7 +51,7 @@ recording bar brings a minimized walk back.
   through a Neighborhoods | Towns switch, as a grid of tiles nearest first,
   under a small map. The one you're in says "You're here": the town whose
   real border you are inside (town outlines: Overture's borders, decision
-  0081), by its label point only where no border is known.
+  0082), by its label point only where no border is known.
 - Each tile is the same picture at the same scale: an 800 m ring around the
   area's point, with its streets, busy streets (magenta, graded faint to
   strong), parks, the streets

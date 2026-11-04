@@ -125,7 +125,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 10. The day replay repeats its "Summary of the day" announcement after a note is edited there (QL25)
 11. Month headers keep last year's labels if the sheet stays mounted across New Year (QL28)
 
-## Town outlines (TO1-TO12, decision 0081)
+## Town outlines (TO1-TO12, decision 0082)
 
 - Neighborhood outlines: Overture's are mostly districts ("Manhattan Community Board 5"); neighborhoods stay points, kept inside their town (TO6)
 - Counties, states and countries from Overture: the Natural Earth pack does states, offline

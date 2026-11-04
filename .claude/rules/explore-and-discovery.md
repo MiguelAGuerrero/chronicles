@@ -77,7 +77,7 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
     and 100 m (`retryAllowed`), route reads too. The build is checked at most
     every 10 min (`exploreBuild`), never per fix.
   - **Membership:** nearest neighborhood point within 1 km inside the place's
-    town, else the town whose outline holds it (TO11, decision 0081), else the
+    town, else the town whose outline holds it (TO11, decision 0082), else the
     town or city within its reach capped at 1.5 km (closer for its size). A
     place inside an outline but past 1.5 km from its town's point is an
     orphan, never the neighbor's; else an orphan
@@ -176,12 +176,12 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
 - **The area card is sized in pixels** from the screen's measured height: sized by percent and insets, it showed only its header on an iPhone's Safari (Nov 3).
 - **Round 3 (decision 0067, the design review):**
   - Presence is dots (`KindStrip`'s `Dots`). A tile shows only the kinds present; the card's `KindRow` shows all eight, with "none" at full ink. `MARKS_EXPLAINED` has no numbers, and the e2e checks it.
-  - Walk to is the card's footer (`walkTarget` → `label`, `via`). The card is a sheet (58% / 90%, drag or tap the handle), or a side panel from 1000 px.
+  - Walk to is the card's footer (`walkTarget` → `label`, `via`). The card is a side panel from 1000 px; on a phone it is a full-screen drawer (the owner, Nov 4, replacing the 58% / 90% sheet): it covers the tabs, which fold away while it is open (`lib/tabsHidden`, read by the tab layout; the card clears it on unmount, so a card that closes any way brings them back). A pull down closes it progressively: from the handle or header at any time, from the content only when scrolled to the top and the move is clearly downward (`createPull` in `AtlasCard`). It follows the finger, never above full screen (pulling back up stops at the top and never closes); let go past 30% of the screen or in a downward fling it finishes closing, else it springs back. Tap-outside is gone (nothing is outside).
   - The long press's choices (`atlas-spot`) sit over the map, and `spot` clears on `pick`, `enterArea`, `leave` and blur. Below z10 a toast shows. Meta `atlas_press_seen` ends the hint.
   - `otherTowns` drops your town; the title (`atlas-title`) opens it.
   - A town's page has one way back, the pill low on the screen (`atlas-back-pill`), with Back and Escape; the title card has no arrow (decision 0077, Nov 4).
   - Area points are the map's `areaPoints` prop (`components/AreaPoint.tsx`, DOM markers on web, Markers on native), with names for the nearest three and the selected one. Never `marks`, which stay for the pressed spot.
-- **Your town is the outline you are in** (TO10, decision 0081): `useAtlas` reads the kept outlines under you (`outlines.known`, no network) on each new z12 tile, reads the tile once when missing (backing off `retryMs` after a failure), and `nearList(..., outlines)` marks the town whose outline holds you, or none while its row isn't listed: never the nearest point instead. The town near read adds outline-only towns (`listable`). `ATLAS_CODE` a3.
+- **Your town is the outline you are in** (TO10, decision 0082): `useAtlas` reads the kept outlines under you (`outlines.known`, no network) on each new z12 tile, reads the tile once when missing (backing off `retryMs` after a failure), and `nearList(..., outlines)` marks the town whose outline holds you, or none while its row isn't listed: never the nearest point instead. The town near read adds outline-only towns (`listable`). `ATLAS_CODE` a3.
 - **Position:** one fix read as the app opens (NV16, `launchFix`; the owner's call, Nov 3, since Explore is the opening tab), then the last fix, or a Locate tap. Until that fix comes, or if it fails, the tab opens where it last listed areas, from `atlas_near:neighborhood`, never saying "You're here", and the title says "Near you".
 - **Kept from the old tab:** the long press on the small map (What's good here, Walk here). The drawer's "?" and find pins on the map are gone; finds are on the cards.
 - **E2E:** tiles carry `data-name` and `data-read`; kind slots carry `data-kind` and `data-step`. The long press goes near the small map's middle, since a pixel there is more ground than on the old full-screen map.

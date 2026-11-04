@@ -53,8 +53,11 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
   saves it: the walk's Minimize is disabled mid-memo, the ready screen's chevron closes and the memo is
   finished as `useCaptures` unmounts.
 - A quick tap on Stop shows "Hold to stop the walk".
-- Walk options (the Explore switch, and a link to Settings) sit in the bottom strip, left of Pause
-  (the owner's call, v1): walk-level settings stay with the walk's controls.
+- Walk options (the Explore switch, the link to Settings, motion, Share GPS log) are the strip's
+  drawer, not a button (the owner, Nov 4): the walk's strip is the same `ReadyBar` as the ready
+  screen's (`idPrefix="walk"`: `walk-bar`, `walk-grip`, `walk-summary`), pulled up by a drag or a tap on
+  the numbers, with Pause and Stop at its foot. Mid-memo it is locked. `options-card` is its content;
+  raising it closes any card, and Back or Escape lowers it (ReadyBar's own handler).
 - Pills (the caption offer, voice Undo, Retry, a moment's toast) sit left of the stack, just above the
   strip (`at.pills`), right-aligned, so the stack never moves under the thumb. Zooming keeps following;
   only a pan or a turn stops it (web; native can't tell zoom from pan yet).

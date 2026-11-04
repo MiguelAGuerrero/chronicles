@@ -41,7 +41,7 @@ Placing walks in neighborhoods, towns, cities and states (`lib/areas`), the boun
     `collectPlaces` reads the place layer at z10 (`PLACES_ZOOM`) around the walk.
   - Changing `AREA_RULES` or a pack's edition re-places every walk through the
     `snap_rules` meta.
-- **Town outlines decide first** (TO1-TO12, decision 0081; `AREA_RULES` 2).
+- **Town outlines decide first** (TO1-TO12, decision 0082; `AREA_RULES` 2).
   A piece's town is the smallest Overture locality outline holding it
   (`townAt` in `areas/outlines.ts`); only where no outline read covers the
   point does the nearest point win. Where the tile under a point was read, a

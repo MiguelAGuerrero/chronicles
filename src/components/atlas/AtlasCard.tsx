@@ -1,6 +1,10 @@
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, BackHandler, Platform, type GestureResponderEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Animated, BackHandler, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View,
+  type NativeScrollEvent, type NativeSyntheticEvent, type PanResponderGestureState,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ATLAS_ORDER, MARKS_EXPLAINED, distanceWords, familiarityWords,
   type AtlasArea, type Familiarity,
@@ -10,6 +14,7 @@ import { focusOn } from '../../lib/focus';
 import { formatDistance } from '../../lib/format';
 import { useReducedMotion } from '../../lib/motion';
 import { MOTION } from '../../lib/motionTokens';
+import { tabsHidden } from '../../lib/tabsHidden';
 import type { LngLat } from '../../lib/types';
 import { COLORS, HOTSPOT, HOTSPOT_INK } from '../map/types';
 import { Icon } from '../icons';
@@ -26,17 +31,24 @@ const minutesFrom = (m: number) => distanceWords(m, false, fmt).replace(/ walk$/
 /** Where the card sits: a sheet over a phone's screen, or a panel beside the map on a wide one. */
 export type CardLayout = { kind: 'sheet'; screenH: number } | { kind: 'side'; width: number; height: number };
 
-/** A sheet's two heights (atlas round 3): low keeps the map and its ring in sight; high reads the rest. */
-const LOW = 0.58;
-const HIGH = 0.9;
+/** Pulled this far down (a share of the screen), or flung down, a let-go closes the drawer; short of it, it snaps back. */
+const CLOSE_AT = 0.3;
+const FLING_VY = 1;
+/** A pull from the content starts only once it is clearly downward, not a tap or a sideways wobble. */
+const PULL_START = 8;
+
+type Pan = ReturnType<typeof PanResponder.create>;
 
 /**
  * An area's card (AT8, atlas round 3): the larger picture, the eight kinds in
  * words and dots, how the marks work, busy streets, what is waiting (kinds
  * only, AT7), what you found, the areas next door, and Walk to, always in
- * sight in a footer. On a phone it is a sheet with two heights and a handle;
- * on a wide screen a panel beside the map. ✕, Back, Escape, a tap outside and
- * a drag down close it. Never a Modal, so nothing stacks on iOS.
+ * sight in a footer. On a phone it is a full-screen drawer over the tabs, which
+ * fold away while it is open; on a wide screen a panel beside the map. ✕, Back
+ * and Escape close it, and so does a pull down: from the handle or header at any
+ * time, from the content only when it is scrolled to the top. The drawer follows
+ * the finger, and a let-go past a third of the screen (or a fling) completes the
+ * close, else it springs back. Never a Modal, so nothing stacks on iOS.
  */
 export function AtlasCard(props: {
   area: AtlasArea;
@@ -87,66 +99,57 @@ export function AtlasCard(props: {
     return () => clearTimeout(t);
   }, []);
 
-  // The sheet's height follows a drag on its handle and settles at the nearer height; far enough down closes it.
-  const screenH = layout.kind === 'sheet' ? layout.screenH : 0;
-  const low = Math.round(screenH * LOW);
-  const high = Math.round(screenH * HIGH);
-  const [height] = useState(() => new Animated.Value(low));
-  // Which height it rests at; the sheet starts low, so the map and the area's ring stay in sight.
-  const [tall, setTall] = useState(false);
-  const target = tall ? high : low;
+  const insets = useSafeAreaInsets();
+  const sheet = layout.kind === 'sheet';
+  const screenH = sheet ? layout.screenH : 0;
+  // The tabs fold away while the drawer is up, and come back when it goes (however it goes).
   useEffect(() => {
-    if (reduced) height.setValue(target);
-    else Animated.spring(height, { toValue: target, ...MOTION.spring, useNativeDriver: false }).start();
-  }, [target, reduced, height]);
-  // The handle drags it, as the home sheet's does: a tap flips the height, a drag settles at the
-  // nearer one, and a drag well below the low height closes the card.
-  const drag = useRef({ y: 0, from: 0, moved: false });
-  const settle = (pageY: number) => {
-    const moved = drag.current.y - pageY;
-    if (!drag.current.moved && Math.abs(moved) < 6) return setTall((t) => !t);
-    const now = drag.current.from + moved;
-    if (now < low - 80) return props.onClose();
-    const toTall = Math.abs(now - high) < Math.abs(now - low);
-    if (toTall === tall) {
-      if (reduced) height.setValue(target);
-      else Animated.spring(height, { toValue: target, ...MOTION.spring, useNativeDriver: false }).start();
-    } else setTall(toTall);
-  };
-  const dragProps = {
-    onStartShouldSetResponder: () => true,
-    onMoveShouldSetResponder: () => true,
-    onResponderTerminationRequest: () => false,
-    onResponderGrant: (e: GestureResponderEvent) => {
-      drag.current = { y: e.nativeEvent.pageY, from: target, moved: false };
-      height.stopAnimation((v) => (drag.current.from = v));
-    },
-    onResponderMove: (e: GestureResponderEvent) => {
-      const dy = e.nativeEvent.pageY - drag.current.y;
-      if (Math.abs(dy) >= 6) drag.current.moved = true;
-      height.setValue(Math.max(0, Math.min(high, drag.current.from - dy)));
-    },
-    onResponderRelease: (e: GestureResponderEvent) => settle(e.nativeEvent.pageY),
-    onResponderTerminate: (e: GestureResponderEvent) => settle(e.nativeEvent.pageY),
-  };
+    if (!sheet) return;
+    tabsHidden.set(true);
+    return () => tabsHidden.set(false);
+  }, [sheet]);
+
+  // How far down the drawer is: 0 is full screen. It slides up as it opens and follows a pull down.
+  const [offset] = useState(() => new Animated.Value(screenH));
+  const [pull] = useState(() => createPull(offset));
+  useEffect(() => {
+    pull.sync({ screenH, reduced, onClose: props.onClose });
+  }, [pull, screenH, reduced, props.onClose]);
+  useEffect(() => {
+    const detach = pull.attach();
+    if (sheet) pull.snapBack();
+    return detach;
+  }, [sheet, pull]);
+  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => pull.setScroll(e.nativeEvent.contentOffset.y);
+  const pullProps = sheet ? pull.handle.panHandlers : {};
 
   const level = area.level === 'neighborhood' ? 'Neighborhood' : 'Town';
   const last = lastWords(fam.last);
   const frameStyle = layout.kind === 'sheet'
-    ? [styles.sheet, { height }]
+    ? [styles.sheet, {
+        transform: [{ translateY: offset }],
+        // Square at rest; the corners round as it is pulled away.
+        borderTopLeftRadius: offset.interpolate({ inputRange: [0, 40], outputRange: [0, 22], extrapolate: 'clamp' }),
+        borderTopRightRadius: offset.interpolate({ inputRange: [0, 40], outputRange: [0, 22], extrapolate: 'clamp' }),
+      }]
     : [styles.side, { width: layout.width, height: layout.height }];
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-      {/* A tap outside closes; screen readers use ✕, so the scrim isn't a second Close button. A side panel leaves the map usable. */}
+      {/* Behind the drawer: dims the tab beneath as the drawer is pulled away, so the close reads as progress. */}
       {layout.kind === 'sheet' && (
-        <Pressable style={styles.scrim} onPress={props.onClose} accessible={false} importantForAccessibility="no" testID="atlas-scrim" />
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.scrim, { opacity: offset.interpolate({ inputRange: [0, Math.max(1, screenH)], outputRange: [1, 0], extrapolate: 'clamp' }) }]}
+          testID="atlas-scrim"
+        />
       )}
       <Animated.View style={frameStyle} testID="atlas-card" accessibilityViewIsModal>
-        {layout.kind === 'sheet' && (
-          <View {...dragProps} style={styles.grip} accessibilityRole="adjustable" accessibilityLabel="Card height" testID="atlas-card-grip">
-            <View style={styles.handle} />
-          </View>
-        )}
+        <View {...pullProps} testID="atlas-card-pull">
+          {layout.kind === 'sheet' && (
+            <View style={[styles.grip, { paddingTop: insets.top }]} accessibilityLabel="Pull down to close" testID="atlas-card-grip">
+              <View style={styles.handle} />
+            </View>
+          )}
         <View style={styles.head}>
           <View style={styles.headText}>
             <Text style={styles.eyebrow}>{props.parent ? `${level} · ${props.parent}` : level}</Text>
@@ -163,7 +166,9 @@ export function AtlasCard(props: {
             <Icon name="close" size={20} color={theme.ink} />
           </Pressable>
         </View>
-        <ScrollView style={styles.scroll} contentContainerStyle={styles.body}>
+        </View>
+        <View style={styles.scroll} {...(sheet ? pull.body.panHandlers : {})}>
+        <ScrollView style={styles.scrollInner} contentContainerStyle={styles.body} onScroll={onScroll} scrollEventThrottle={16}>
           <View style={styles.bigMap}>
             <MiniMap area={area} walked={props.walked} waiting={props.waiting} finds={props.finds} here={props.here ? props.you : null} />
           </View>
@@ -251,9 +256,10 @@ export function AtlasCard(props: {
             </View>
           )}
         </ScrollView>
+        </View>
 
         {/* The card's main step stays in sight (atlas round 3): never at the end of a scroll. */}
-        <View style={styles.footer}>
+        <View style={[styles.footer, sheet && { paddingBottom: 16 + insets.bottom }]}>
           {props.here ? (
             <Text style={[styles.you, styles.hereLine]}>You’re in {area.name}</Text>
           ) : props.walkTo ? (
@@ -270,18 +276,77 @@ export function AtlasCard(props: {
   );
 }
 
+/**
+ * The pull-down gesture, kept in one object so its state (the scroll offset, where the drawer is, the
+ * latest props) lives outside render. The handle and header's pan takes every touch; the content's takes
+ * the touch from the ScrollView only when the content is at the top and the move is clearly downward (so a
+ * swipe up, or any scroll mid-list, is left alone).
+ */
+function createPull(offset: Animated.Value) {
+  let scrollY = 0;
+  let at = 0;
+  let ctx = { screenH: 0, reduced: false, onClose: () => {} };
+  const snapBack = () => {
+    if (ctx.reduced) offset.setValue(0);
+    else Animated.spring(offset, { toValue: 0, ...MOTION.spring, useNativeDriver: false }).start();
+  };
+  const pan = (fromBody: boolean): Pan => {
+    let start = 0;
+    const finish = (g: PanResponderGestureState) => {
+      const far = at > ctx.screenH * CLOSE_AT;
+      // Only a pull still going down closes: one that turned back up snaps back, however far it went.
+      const fling = g.vy > FLING_VY && at > 24;
+      if (!(far && g.vy >= 0) && !fling) return snapBack();
+      if (ctx.reduced) return ctx.onClose();
+      Animated.timing(offset, { toValue: ctx.screenH, duration: MOTION.base, useNativeDriver: false }).start(ctx.onClose);
+    };
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => !fromBody,
+      onMoveShouldSetPanResponder: () => !fromBody,
+      onMoveShouldSetPanResponderCapture: (_, g) => fromBody && scrollY <= 0 && g.dy > PULL_START && g.dy > Math.abs(g.dx) * 1.5,
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderGrant: (_, g) => {
+        offset.stopAnimation();
+        start = g.dy;
+      },
+      // Never above full screen: pulling back up past where the pull began holds at the top, it doesn't close.
+      onPanResponderMove: (_, g) => offset.setValue(Math.max(0, g.dy - start)),
+      onPanResponderRelease: (_, g) => finish(g),
+      onPanResponderTerminate: (_, g) => finish(g),
+    });
+  };
+  return {
+    handle: pan(false),
+    body: pan(true),
+    snapBack,
+    setScroll: (y: number) => {
+      scrollY = y;
+    },
+    sync: (next: typeof ctx) => {
+      ctx = next;
+    },
+    /** Starts following the drawer's position; returns the stop (an effect's cleanup, so a re-run restarts it). */
+    attach: () => {
+      const id = offset.addListener(({ value }) => {
+        at = value;
+      });
+      return () => offset.removeListener(id);
+    },
+  };
+}
+
 const styles = StyleSheet.create({
-  scrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.22)' },
+  scrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.35)' },
+  // Full screen, over the tabs (which fold away while it is open); `maxWidth` keeps a wide phone-width window readable.
   sheet: {
-    position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: theme.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22,
-    maxWidth: 640, width: '100%', alignSelf: 'center', overflow: 'hidden',
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: theme.surface, overflow: 'hidden',
     shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: -2 }, elevation: 8,
   },
   side: {
     position: 'absolute', right: 0, top: 0, backgroundColor: theme.surface, borderLeftWidth: 1, borderLeftColor: theme.line, overflow: 'hidden',
     shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: -2, height: 0 }, elevation: 8,
   },
-  grip: { height: 24, alignItems: 'center', justifyContent: 'center' },
+  grip: { minHeight: 24, alignItems: 'center', justifyContent: 'center' },
   handle: { width: 36, height: 5, borderRadius: 3, backgroundColor: '#cfcac1' },
   head: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingHorizontal: 18, paddingTop: 4, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: theme.line },
   headText: { flex: 1, minWidth: 0, gap: 2 },
@@ -293,6 +358,7 @@ const styles = StyleSheet.create({
   muted: { fontSize: 13, color: theme.muted },
   close: { width: 44, height: 44, borderRadius: 22, backgroundColor: theme.bg, alignItems: 'center', justifyContent: 'center' },
   scroll: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minHeight: 0 },
+  scrollInner: { flex: 1 },
   body: { padding: 18, gap: 20, paddingBottom: 24 },
   bigMap: { width: '100%', maxWidth: 240, alignSelf: 'center', aspectRatio: 4 / 3, borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: theme.line },
   sec: { gap: 4 },
