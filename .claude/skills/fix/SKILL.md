@@ -19,7 +19,7 @@ or any "Hard stops" below.
 | Flag | Values | Default |
 |---|---|---|
 | `--tests` | `none`, `lean`, `scoped`, `e2e`, `full` | `scoped` |
-| `--review` | `none`, `self`, `adversarial` | `self` |
+| `--review` | `none`, `self`, `adversarial` | `adversarial` |
 | `--loops` | 0-4: review-and-fix rounds after the first pass | `2` |
 | `--deploy` | `main` (push and check Pages), `none` (stop with the commit ready) | `main` |
 
@@ -42,7 +42,7 @@ and lint before Pages deploys.
 
 If the owner gave no `--tests` and the fix touches storage, the recorder,
 the walk screen or the replay, say that `scoped` is a thin bar there and
-use `e2e`.
+raise the level to `e2e`. An explicit `--tests` always wins.
 
 ## 1. Understand and reproduce
 
@@ -125,9 +125,16 @@ cap is reached with accepted findings still open, do not deploy; report them.
 - Green run: load https://miguelaguerrero.github.io/chronicles/ (Playwright is
   installed) and check the fix's visible effect. If the page cannot be reached
   from the session, say the live check was not done.
-- Red run: one fix-forward attempt following `/deploy` section 4. If that run
-  is also red, or the live site is broken, `git revert` the commit, push `main`,
-  and report both. Never leave `main` red.
+- Red run: one fix-forward attempt following `/deploy` section 4, only when
+  the log names a cause the fix plainly owns. Otherwise, or if that run is also
+  red, or the live site is broken: `git revert` the fix commit, push `main`
+  (the revert is covered by the grant), and confirm the Pages run for the
+  revert is green. Never leave `main` red, and never revert past the commit
+  before yours.
+- After a revert, diagnose: reproduce the failure locally with the same
+  command as the job, name the cause, and put a corrected fix on a new branch
+  with the failing check passing. Do not push it to `main`; the grant is spent.
+  Report the cause, the branch, and what you would change.
 
 ## Report
 
