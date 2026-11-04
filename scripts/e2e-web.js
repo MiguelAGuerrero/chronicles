@@ -3525,18 +3525,43 @@ function check(ok, what) {
       check((await page.locator('[data-testid=atlas-walk]').count()) === 0 && /You’re in Fox Point/.test(card), 'AT8: the area you are in has no Walk to');
       check((await page.locator('[data-testid=atlas-kind-history]').count()) === 1 && !/\d+\s*of\s*\d+/.test(card), 'AT8: the eight kinds in words, no counts');
       {
-        // The card's body shows, not only its header (an iPhone left it at the header's height, Nov 3). Round 3:
-        // it opens low, so the map above stays in sight; a tap on its handle raises it.
-        const vh = page.viewportSize().height;
-        const box = await page.locator('[data-testid=atlas-card]').boundingBox();
-        check(box && box.height > vh * 0.5 && box.height < vh * 0.7 && box.y > vh * 0.3,
-          `atlas round 3: the card opens as a sheet that leaves the map in sight (${box && Math.round(box.y)}+${box && Math.round(box.height)} of ${vh})`);
-        await page.click('[data-testid=atlas-card-grip]');
+        // The card is a full-screen drawer over the tabs, which fold away while it is open (the owner, Nov 4).
         await page.waitForTimeout(700);
-        const up = await page.locator('[data-testid=atlas-card]').boundingBox();
-        check(up && up.height > vh * 0.8, `atlas round 3: its handle raises it (${up && Math.round(up.height)})`);
+        const vp = page.viewportSize();
+        const box = await page.locator('[data-testid=atlas-card]').boundingBox();
+        check(box && box.y <= 1 && box.height >= vp.height - 2,
+          `drawer: the card covers the whole screen (${box && Math.round(box.y)}+${box && Math.round(box.height)} of ${vp.height})`);
+        check(await page.locator('[data-testid=tab-explore]').isVisible().then((v) => v, () => false) === false
+          || (await page.locator('[data-testid=tab-explore]').boundingBox())?.height === 0,
+          'drawer: the tab bar is folded away while the card is open');
         const kind = await page.locator('[data-testid=atlas-kind-history]').boundingBox();
-        check(kind && up && kind.y + kind.height <= up.y + up.height + 1, 'AT8: its body is inside it');
+        check(kind && box && kind.y + kind.height <= box.y + box.height + 1, 'AT8: its body is inside it');
+        // A pull on the handle follows the finger: half-way is not enough to close, so it springs back on let-go.
+        const grip = await page.locator('[data-testid=atlas-card-grip]').boundingBox();
+        const gx = grip.x + grip.width / 2;
+        const gy = grip.y + grip.height / 2;
+        await page.mouse.move(gx, gy);
+        await page.mouse.down();
+        await page.mouse.move(gx, gy + vp.height * 0.15, { steps: 6 });
+        await page.waitForTimeout(150);
+        const mid = await page.locator('[data-testid=atlas-card]').boundingBox();
+        check(mid && mid.y > vp.height * 0.1 && mid.y < vp.height * 0.2, `drawer: it follows the pull (${mid && Math.round(mid.y)})`);
+        await page.mouse.move(gx, gy + vp.height * 0.02, { steps: 4 });
+        await page.mouse.up();
+        await page.waitForTimeout(700);
+        const back = await page.locator('[data-testid=atlas-card]').boundingBox();
+        check(back && back.y <= 1, 'drawer: let go short of a third of the screen, it springs back');
+        // A pull the length of the screen, let go, finishes the close.
+        await page.mouse.move(gx, gy);
+        await page.mouse.down();
+        await page.mouse.move(gx, gy + vp.height * 0.6, { steps: 8 });
+        await page.mouse.up();
+        await page.waitForTimeout(700);
+        check((await page.locator('[data-testid=atlas-card]').count()) === 0, 'drawer: a long pull down closes it');
+        check(await page.locator('[data-testid=tab-explore]').isVisible(), 'drawer: the tabs come back as it closes');
+        await tileOf('Fox Point').click();
+        await page.waitForSelector('[data-testid=atlas-card]');
+        await page.waitForTimeout(700);
       }
       await page.click('[data-testid=atlas-how]');
       {
@@ -3551,8 +3576,10 @@ function check(ok, what) {
       // Back and Escape from that tab.
       await tileOf('Fox Point').click();
       await page.waitForSelector('[data-testid=atlas-card]');
-      await tabTo(page, 'chronicle');
-      await page.waitForTimeout(600);
+      await page.waitForTimeout(700);
+      // The tab bar is folded away under the drawer, so leave the way a notification would: by the router.
+      await page.evaluate(() => { window.history.pushState({}, '', window.location.pathname.replace(/\/$/, '') + '/chronicle'); window.dispatchEvent(new PopStateEvent('popstate')); });
+      await page.waitForTimeout(800);
       await tabTo(page, 'explore');
       await page.waitForSelector('[data-testid=atlas-grid]');
       check((await page.locator('[data-testid=atlas-card]').count()) === 0, 'explore-atlas audit 8: leaving the tab closes its card');
