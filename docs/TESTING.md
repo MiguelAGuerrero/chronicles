@@ -7,10 +7,22 @@ were measured in a cloud container on Nov 3, 2026. The e2e skill
 ## 0. The inner loop: what a change can break
 
 ```bash
-npm run check:affected   # layers, affected unit tests, typecheck, affected lint; then the e2e scenarios to run
+npm run check:affected   # layers, affected unit tests, typecheck, affected lint; then the e2e journeys to run
 npm run test:affected    # only the unit tests that import a changed file, directly or not
+npm run test:feature <name> [<name> ...]   # one feature's tests, whole (src/lib/__tests__/<name>/)
+npm run test:coverage [<name> ...]         # those tests, with line, branch and function coverage of the features' own sources
 npm run lint:affected    # only the changed files that npm run lint covers (src, index.js)
 ```
+
+- **Features.** `scripts/features.js` is the one map from a feature to what it
+  owns: source globs, e2e journeys, specs, its rule file (decision 0091,
+  `specs/test-organization/spec.md`). A feature's unit tests are the folder of
+  the same name under `src/lib/__tests__/`; `arch/` holds the tree-wide checks
+  and `storage/` the Db contract. `arch/features.test.ts` holds the map to the
+  tree: every source file in a feature, every test folder a feature, every
+  journey and spec claimed, each rule loading for its folder. A new feature is
+  a folder and a row; a file in no feature fails that test and is named by
+  `check:affected`.
 
 - **Changed** is everything that differs from the merge base with
   `origin/main` (or `main`): the branch's commits, edits, new files, renames
@@ -18,19 +30,36 @@ npm run lint:affected    # only the changed files that npm run lint covers (src,
   everything runs.
 - **Which tests:** each test file that imports a changed file through any
   import (type-only, `import()`, a platform split, JSON included), shortest
-  chain printed. A test that reads the whole tree instead of importing it
+  chain printed, listed under its feature. Type-only edges are followed on
+  purpose (AC2; the owner, Nov 4): a renamed field fails a named test, not
+  only `tsc`. The cost is selection breadth (`types.ts` reaches most files;
+  `days.test.ts` reaches storage through `import type`), small while the
+  whole suite runs in about 13 s.
+- **Coverage** (`test:coverage`, TD2): Node's built-in coverage under tsx,
+  limited to the named features' source globs from `scripts/features.js`
+  (every file under `src/lib` with no name). A report, never a gate: no
+  threshold is set, and CI and the hook don't run it. Node lists only files
+  a test loads, so a module no test reaches is absent rather than at 0%.
+- **Covered by nothing:** a changed source file that no unit test reaches and
+  no journey row covers is named, with its layer and features, in words apart
+  from "nothing to run". A shell gets a test over `fakePorts()`, a core module
+  a unit test, a screen a check in its feature's journey. A file that only
+  builds a shell's app instance says `// @instance: <what>` on its second line
+  and counts as covered when the shell it builds from is tested. A test that reads the whole tree instead of importing it
   (the layer check, the meta-key scan) starts with `// @tree-wide: <what it
   reads>` and runs on any change under `src/` or `scripts/`. Mark a new one
   so, or it will be skipped.
 - **Everything runs** when the harness changes: `package.json`, the lockfile,
   `tsconfig.json`, `eslint.config.js`, `eslint-suppressions.json`,
-  `scripts/layers.js`, or any non-test file in `src/lib/__tests__/` (fakes,
-  fixtures, the contract suite).
-- **E2E:** `scripts/e2e-scenarios.js` lists the files each journey covers;
-  `check:affected` names the ones to run, and the changed screens no journey
-  covers (add one if the slice changes what they show). The full flow runs
-  only when the owner asks. A new journey gets its row there
-  (`affected.test.ts` fails otherwise).
+  `scripts/layers.js`, `fakes/`, or any non-test file at the root of
+  `src/lib/__tests__/` (the contract suite, `foxPoint.ts`, `metaKeys.ts`). A
+  fixture inside a feature folder selects only the tests that import it.
+- **E2E:** each journey is a file under `scripts/e2e/journeys/` that exports
+  its name, the files it covers and its run; `scripts/e2e-scenarios.js` reads
+  the folder. `check:affected` names the journeys to run, with the feature
+  that owns each, and the changed screens no journey covers (add a check to
+  the feature's journey if the slice changes what they show). The full flow
+  (`journeys/full.js`) runs only when the owner asks and has no row.
 - The end of a slice adds the whole unit suite, lint and the typecheck
   (section 6); CI runs them on every push to `main`.
 
@@ -38,13 +67,26 @@ npm run lint:affected    # only the changed files that npm run lint covers (src,
 
 ```bash
 npm test                                                      # every unit test
-npx tsx --test src/lib/__tests__/rides.test.ts                # one file
-npx tsx --test --test-name-pattern "rides audit" src/lib/__tests__/rides.test.ts   # tests by name
+npm run test:feature rides                                    # one feature's folder
+npx tsx --test src/lib/__tests__/rides/rides.test.ts          # one file
+npx tsx --test --test-name-pattern "rides audit" src/lib/__tests__/rides/rides.test.ts   # tests by name
 ```
 
-- `npm test` is `tsx --test src/lib/__tests__/*.test.ts` (Node's test runner,
-  TAP output, summary at the end): 57 files, 660 tests, about 10 s.
-- One file: `rides.test.ts` is 34 tests in about 1 s. `--test-name-pattern`
+- `npm test` is `tsx --test 'src/lib/__tests__/**/*.test.ts'` (Node's test
+  runner, TAP output, summary at the end): 21 folders, 74 files, about 790
+  tests, about 13 s.
+- **Layout:** one folder per feature of `scripts/features.js` (`recording`,
+  `rides`, `streets`, `gaps`, `navigation`, `replay`, `moments`,
+  `walk-screen`, `tabs`, `explore`, `landing`, `places`, `map`, `captures`,
+  `chronicle`, `motion`, `notify`, `deletion`, `memories`), plus `arch/` (the
+  layers, the meta keys, the functional-core audit, the affected checks, the
+  feature map, the fakes' and the store's own tests) and `storage/` (the Db
+  contract). Shared helpers stay at the root: `fakes/`, `dbContract.ts`,
+  `metaKeys.ts`, `mvtFixture.ts`, `foxPoint.ts` (a street grid and
+  `walkAlong`, used by four features), `layers.baseline.json`. A test goes in
+  the folder of the feature it proves; a file that proves two belongs to the
+  one whose module it imports most, and names both specs' ids.
+- One file: `rides/rides.test.ts` is 34 tests in about 1 s. `--test-name-pattern`
   is a regex over test names: the line above runs that file's 9
   `rides audit N` tests only.
 - **Tests import only core modules, fakes and types.** Node can't load React
@@ -73,8 +115,10 @@ npx tsx --test --test-name-pattern "rides audit" src/lib/__tests__/rides.test.ts
   - `mvtFixture.ts`: a test-only vector-tile encoder, since the tile host is
     blocked from cloud sessions. No test imports it now (its user went with
     the ambient hints); use it when a test needs decoded tiles.
-  - `outAndBack.json`: the tabs e2e walk of Nov 2, 200 m out and straight
-    back with a pause, as recorded (`still.test.ts`, `SNAP_RULES` 6).
+  - `recording/outAndBack.json`: the tabs e2e walk of Nov 2, 200 m out and
+    straight back with a pause, as recorded (`still.test.ts`, `SNAP_RULES` 6);
+    `recording/eastonSlow.json` and `landing/phillipsburg.json` are real
+    traces and places beside the tests that read them.
   - Keep made-up traces well inside one z14 tile unless the test is about
     tile edges: at lon -71.4, lat 41.82 a tile edge is 50 m away, so the
     tests sit at lat 41.812.
@@ -122,10 +166,20 @@ npm run export:web && npm run e2e:web
 
 - `npm run export:web` builds `dist/`: about 34 s cold, 8 s with Metro's cache
   warm. The e2e serves `dist/` as it is, so **re-export after every change**.
-- `scripts/e2e-web.js` serves `dist/` locally (unknown paths get `index.html`,
-  like Pages' `404.html`) and drives Playwright's full Chromium headless
-  (`channel: 'chromium'`: the old headless shell denies notifications).
-  Playwright is not in `package.json`; it comes from the environment.
+- `scripts/e2e-web.js` is the entry: it builds the harness and runs one
+  journey (`E2E_ONLY=<name>`, the file `scripts/e2e/journeys/<name>.js`) or
+  the full flow (`scripts/e2e/journeys/full.js`). The harness
+  (`scripts/e2e/harness.js`) serves `dist/` locally (unknown paths get
+  `index.html`, like Pages' `404.html`), drives Playwright's full Chromium
+  headless (`channel: 'chromium'`: the old headless shell denies
+  notifications) and holds the helpers every journey shares (`freshPage`,
+  `check`, `drawerTo`, `tabTo`, the GPS start, the tile routes); a journey
+  destructures what it uses from the one object `run(h)` receives. Playwright
+  is not in `package.json`; it comes from the environment.
+- A journey file exports `{ name, covers, run }`: `name` equals its file name,
+  `covers` the source globs it checks (what `check:affected` reads), `run(h)`
+  the checks. The file is its registration: `scripts/e2e-scenarios.js` reads
+  the folder. `full.js` exports `full: true` and no `covers`.
 - What it fakes, in the harness only (the app has no simulation):
   - **GPS**: Playwright's `setGeolocation`, moved at 5 m/s with one fix a
     second; faster is dropped as a GPS jump.
@@ -142,7 +196,16 @@ npm run export:web && npm run e2e:web
 
 | `E2E_ONLY` | runs |
 |---|---|
-| (unset) | the full flow: the ready screen and the tabs, notifications, a walk with notes, photo, memo, hold-to-stop, replay, Chronicle, memories, rides, motion, deletes, the perf window, plus the `tabs`, `gaps`, `ready`, `hidden` and `nudge` scenarios |
+| (unset) | the full flow (`scripts/e2e/journeys/full.js`): every journey's `checks` once, in the order of the one story: `launch`, `walk`, `chronicle`, `notifications`, `atlas`, `memories`, `days`, `sensors`, the fresh-browser flows, then `tabs`, `gaps`, `ready`, `hidden`, `nudge`, then `deletion`; about 15 minutes |
+| `launch` | the launch (NV1-NV6, NV11, NV16, NT1, NT2): the old `/explore` path, stale replay and day links, each tab at its path with one live map, the manifest and the service worker; then in fresh browsers Walk here from Explore (NV12, NV15), a reload with a walk minimized (NV8) and Start with Explore and a destination (NV25) |
+| `walk` | the first walk: the ready bar's settings (NR7, NV20-NV24, NT4, NV23), the hint and M7 banners, 300 m at 5 m/s with a note, a reminder, a captioned photo, a voice memo, a video, arrival, hold-to-stop, the leak and render budgets, and the replay with its stops and captions. Ends on the walk's card; the next four start there |
+| `chronicle` | after the walk (runs `walk` first when alone): placing and places of interest (D1), the card's finds and low (E11, U13), naming, Chronicle's star and sheet (H1, H5, H6, H7, NV27), the map view across a replay and the tabs (NV3, NV4), the walks list (M6), muted playback, reduce motion (M2), the ready bar's spring (NR7, NR9) |
+| `notifications` | after the walk: a reminder tapped with Chronicle in front, and from another tab (NV13); bulk placement behind a cover (H8) |
+| `atlas` | after the walk: the place view's checklist (E10), the atlas grid and tiles (AT1-AT14), the area card drawer, a town page, landing's busy streets (AD) |
+| `memories` | after the walk: Walk here from a star (N11), the walk back along the first route, the reminder firing once (R6, R9), memory pins and previews (MR3, MR4), a cold-open notice, a bus ride (R6). Ends on the ride walk's card |
+| `deletion` | after `walk` and `memories`: clearing walks and moments (D1-D11), the GPS log from More, undo, what is left, later walks' new streets (D7) |
+| `days` | Moments and days (M1-M17) in a browser of its own, nothing kept yet |
+| `sensors` | motion from the phone's sensors (MO1, MO5, MO8) in a browser of its own |
 | `tabs` | the Navigation & tabs audit's regression checks (`tabs audit N`, U1-U15) |
 | `gaps` | a walk with two GPS gaps written into storage, then a reload: one gap fills by itself, one is offered faint (G5, G6, G9, G10, G12; `window.__project`, `data-runs`, `data-faint`) |
 | `hidden` | the hidden-page notice: a 70 s gap with the page on screen raises none, one spent hidden does (decision 0072; fixes and `Date.now` jump by `__shift`, visibility faked by `__vis`) |
@@ -150,11 +213,24 @@ npm run export:web && npm run e2e:web
 | `nudge` | the pocket alert (PA2, PA3, PA5, PA6), in a touch context (`freshPage(..., { touch: true })`, so the switch is offered): `navigator.vibrate` recorded by an init script; an exploring walk gives one double-tap as the first "?" comes into range, Start gives none, a quiet walk none. The exploring walk goes first: a walk that starts where the last ended, by the memorial, finds it already named |
 | `marks` | an exploring walk through an area read before draws the marks it passes (Nov 2 repro) |
 | `outlines` | town outlines and borders (TO3, TO10, TO12, TB1, TB2): a fake divisions archive (z12 and z10) with Pawtucket's outline around the start and Central Falls beside it; the Explore title names Pawtucket, and Providence (the nearest point) when no outline holds you; the map's `data-borders` says Pawtucket tinted and Central Falls lined, on Explore and the town page. Elsewhere the archive holds no towns, so a 404 never counts as a console error |
+| `grading` | atlas grading (AG3): a thin ring 6 km west (Quiet Hollow, one café) shows no kinds and no character line on its tile, and no kind rows on its card |
+| `replay` | replay rhythm (RR6-RR16, RR19): a seeded walk with a captioned photo, a note, a memo, a 20-minute gap and a long stretch, watched with no taps but the ones it checks; then its day. Video sound is refused as iOS does, so the journey drops that one expected console error |
+| `edit` | media editing (ME1-ME23): the Edit offer on all three capture places, every tool on a photo and a video, what is stored, what the viewer shows, and what Download saves |
+| `snap` | discrete navigation (DN1-DN13): four more neighborhoods around Fox Point and Cranston west of Providence (`serveSnap`); swipes by mouse drag select the area that way (`data-selected` on the area points), centre it under the title card (`window.__project`), scroll its tile into view, return on the opposite swipe; arrow keys and `+`; the wheel and the long press still work; a tap clears; a town's page swipes to Cranston and back; Navigate's map still pans; then the audit's checks (`discrete-navigation audit 1, 4-7, 10, 11`), audit 1 at 1200 px wide. `window.__unproject` (with `__perf`) gives the centre areas are framed at |
 | `reload` | a reload with a walk minimized keeps it reachable: the bar's ›, its Stop, the tabs |
 | `qol` | quality of life QL1-QL28: Locate, the scale bar, the trace's end markers, the units segment, time left while navigating, the denied-location chip (a second context without the permission), a photo's pin thumbnail, editing a note from the replay, month headers, rename from a Chronicle row (29 checks, about a minute) |
 
-`marks`, `outlines`, `reload` and `qol` run **only** through `E2E_ONLY`: run the ones your
-change touches as well as the full flow. Each ends with a no-console-errors check.
+`marks`, `outlines`, `grading`, `replay`, `edit`, `reload` and `qol` are not
+part of the full flow: they run only by name.
+
+Every journey has a `covers` list, so `check:affected` names the ones a change
+touches. A journey that continues the story (`chronicle`, `notifications`,
+`atlas`, `memories`, `deletion`) exports `checks(h)`, the block as the full
+flow runs it, and `run(h)`, which runs its prerequisites first (`walk`, and
+for `deletion` the `memories` checks) and, where the walk's card is not where
+it begins, a short `arrive` to Chronicle that does nothing in the full flow.
+The entry ends each named journey with the nothing-leaves-the-device and
+no-console-errors checks (`h.nothingLeaves()`, `h.noConsoleErrors()`).
 
 | variable | effect |
 |---|---|
@@ -192,6 +268,9 @@ Re-export without the variable afterwards for the plain e2e.
 
 ### Traps
 
+- Run journeys one at a time. Two at once on one machine failed timing checks
+  that pass alone (the first walk's video pin label, a walk started from the
+  home saying it is recording; Nov 4 deploy).
 - A pin's tap area is 48 px: a "what happened here" press goes 30 px beside
   it. A pin on a map with no `onPinPress` is labelled without ". Open".
 - Web long presses wait 300 ms so a double-tap zoom isn't also a press. A
@@ -205,6 +284,10 @@ Re-export without the variable afterwards for the plain e2e.
 - Reduced motion: `emulateMedia({ reducedMotion: 'reduce' })`. A mouse drag
   on a moving element reads as a tap: drag a moving sheet with CDP touch
   events (`Input.dispatchTouchEvent`). A mouse drag doesn't pan the home map.
+- The area card's grip: a short mouse pull springs back fine, but a second
+  mouse pull on it never returns (`page.mouse.move` waits forever on its
+  first step; the page stops answering, Nov 4). The `atlas` journey pulls it
+  the length of the screen with CDP touch events instead.
 - `window.__perf = {}` (in `addInitScript`) turns on `perfCount`: renders,
   `setData`, camera moves, `fit`, and the puck's `data-at`. The busy window
   fails above 2.5 walk-screen renders a second. `window.__enters` and
@@ -255,7 +338,8 @@ minutes): it is the agent's job before merging.
 
 ```bash
 npm run typecheck && npm run lint && npm test
-npm run check:affected                                  # names the e2e journeys for what changed
+npm run check:affected                                  # names the e2e journeys for what changed, and what nothing covers
+npm run test:feature <feature>                          # the slice's feature, whole
 npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # each journey it names
 ```
 
@@ -264,9 +348,17 @@ that changes no screen runs no e2e. The full flow (no `E2E_ONLY`, about 15
 minutes) and `/audit` run only when the owner asks (decision 0074).
 
 The Stop hook (`.claude/hooks/check-done.sh`) runs `check:docs` on any
-change, and with `.ts`/`.tsx` changed, the typecheck, the layer check and the
-affected unit tests (`node scripts/affected.js hook`): it blocks the end of a
-turn on any of them.
+change; with `.ts`/`.tsx` changed, the typecheck; and with TypeScript or a
+script under `scripts/` changed, the layer check and the affected unit tests,
+the tree-wide ones included (`node scripts/affected.js hook`, TG13): it blocks
+the end of a turn on any of them. `check:docs` also fails when a new spec
+shares a criterion prefix with another, or two decision records share a
+number (`scripts/collisions.js`, TG14, TG15).
+
+**A test from an old branch** (made before the feature folders) lands at the
+root of `src/lib/__tests__/`, and `arch/features.test.ts` names it. Move it
+with `npm run move-test <file> <feature>`: each relative path is resolved from
+the old folder and written again from the new one (TG16).
 
 ## 7. What this proves, and what it doesn't
 
@@ -277,10 +369,17 @@ the background task or MapLibre RN. Say so in any report touching native code.
 ## Spec traceability
 
 `npm run check:specs` (`scripts/check-specs.js`) lists the criterion ids in
-`specs/*/spec.md` that no unit test or e2e step names. It is a report, not a
-gate (it always exits 0): retired ids and unbuilt rounds show up too. Run it
-at the end of a slice; a criterion of the slice that shows up is missing its
-test.
+`specs/*/spec.md` that no unit test or e2e file names. A prefix two specs
+share (M, R, D) is looked for only in the folders of the features that list
+each spec (`scripts/features.js`), so `R1` in `src/lib/__tests__/explore/recall.test.ts` counts
+for v1-discovery and not for rides. Ids the app retired are declared in
+`RETIRED` there, with who retired them, and listed apart from live ids. It is
+a report by default (exit 0); `--feature <name>` reports one feature's specs,
+`--strict` exits 1 on a live id with no test. A retired id counts as still
+tested only where a test's name or an e2e check or step names it (TD1), never
+a comment or an assertion message (not in CI or the hook: the
+owner's call when the live list is empty). Run it at the end of a slice; a
+criterion of the slice that shows up is missing its test.
 
 ## The docs check
 

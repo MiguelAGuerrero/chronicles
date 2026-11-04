@@ -34,13 +34,31 @@ A run exits non-zero on the first failed check and prints `ok - ...` lines.
 | `reload` | a reload with a walk minimized keeps the walk reachable: the bar's ›, its Stop, the tabs |
 | `qol` | map staples QL1-QL12: Locate, the scale bar, the trace's end markers |
 | `gaps` | a walk with two GPS gaps written into storage, then a reload: one gap fills by itself, one is offered faint (G5, G6, G9, G10, G12; `window.__project`, `data-runs`, `data-faint`) |
+| `launch` | the launch: `/explore` and stale links, the tabs at their paths (NV1-NV6, NV11, NV16), manifest and service worker (NT1, NT2); then Walk here, a reload minimized, Start with Explore in fresh browsers (NV8, NV12, NV15, NV25) |
+| `walk` | the first walk: the ready bar's settings, 300 m with a note, reminder, photo, memo and video, hold-to-stop, the budgets, the replay. Ends on its card |
+| `chronicle` | after `walk`: placing, the card, naming, Chronicle's star, sheet and map view, the walks list, playback, reduce motion, the bar's spring |
+| `notifications` | after `walk`: a reminder tapped on Chronicle and from another tab (NV13), bulk placement (H8) |
+| `atlas` | after `walk`: the place view (E10), the atlas grid, tiles and card drawer (AT1-AT14), a town page, busy streets |
+| `memories` | after `walk`: Walk here from a star, the reminder firing, memory pins and previews (MR3, MR4), a bus ride. Ends on the ride walk's card |
+| `deletion` | after `walk` and `memories`: clearing walks and moments (D1-D11) |
+| `days` | Moments and days (M1-M17), a browser of its own |
+| `sensors` | motion from the sensors (MO1, MO5, MO8), a browser of its own |
+| `outlines`, `grading`, `replay`, `edit` | town outlines and borders (TO3, TO10, TO12, TB1, TB2, TB11), atlas grading (AG3), replay rhythm (RR6-RR16, RR19, RR24), media editing (ME1-ME23); by name only, not in the full flow |
 
-Add a scenario as a function in the script plus an `if (process.env.E2E_ONLY
-=== '<name>')` branch at the top of the `try`, ending with the no-console-errors
-check, a row here, and a row in `scripts/e2e-scenarios.js` naming the files it
-covers (`affected.test.ts` fails without it). A slice that changes a screen
-adds or extends a journey this way for its own change: keep it to what the
-screen shows; write order, retries and guards belong in shell tests.
+Add a scenario as one file, `scripts/e2e/journeys/<name>.js`, exporting
+`{ name, covers, run }`: `name` equal to the file name, `covers` the source
+globs it checks (what `check:affected` reads; `affected.test.ts` fails without
+it), and `async run(h)` with `const { check, freshPage, ... } = h;` at the top,
+taking what it needs from the harness (`scripts/e2e/harness.js`: the GPS
+`start`, `at`, `navUrl`, `drawerTo`, `tabTo`, `metaOf`, `openWalk`, the tile
+switches `tiles.delayMs` and `tiles.stall`). Require at the file's top any Node
+module the journey uses itself (`fs`, `path`): the harness passes only its own
+helpers, and a missing one fails only in the step that reaches it. The file is the registration;
+the entry ends it with the nothing-leaves check (nothing sent beyond localhost,
+the tile host and Overture) and the no-console-errors check itself. Add a row here too. A
+slice that changes a screen adds or extends a journey this way for its own
+change: keep it to what the screen shows; write order, retries and guards
+belong in shell tests. The full flow is `scripts/e2e/journeys/full.js`.
 
 ### Switches
 

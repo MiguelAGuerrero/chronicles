@@ -62,6 +62,8 @@ filling-gaps `48043770-c82b`, bridges-and-open-in-maps `dbc372d8-4f0f`.
   but in no tab; they are audit finding ids, not criteria.
 
 `node scripts/check-specs.js` lists, per spec, the ids no unit test
-(`src/lib/__tests__/*.test.ts`) or e2e step (`scripts/e2e-web.js`) mentions. It is a
+(`src/lib/__tests__/<feature>/*.test.ts`) or e2e step (`scripts/e2e/`) mentions; a prefix two
+specs share is looked for in the folders of the features that list the spec, and retired ids
+(`RETIRED` in `scripts/features.js`) are listed apart. It is a
 report and always exits 0. Retired criteria (v1-discovery's scan and ambient ids, for
 example) show up there by design.

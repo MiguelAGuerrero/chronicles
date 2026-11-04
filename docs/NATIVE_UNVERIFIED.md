@@ -80,7 +80,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] Navigate's moment pins as MapLibre RN Markers, and their `CaptureViewer` over the tab map (moment pins 1-2)
 - [ ] The backup zip written to a file handle, `writeWalkBundle`, to be tested on a phone before it reaches the UI (Product, backing up)
 
-## Media editing (ME1-ME23, decision 0084)
+## Media editing (ME1-ME23, decision 0090)
 
 - [ ] `FeColorMatrix` on an SVG `Image` (react-native-svg) on iOS and Android, its speed on a full-size photo, and whether the colours match the web's sRGB matrix (CoreImage may filter in linear light)
 - [ ] The native baker over `EditedPicture`: view-shot capturing the SVG, the 15 s load timeout, the clear PNG overlay for a video
@@ -148,6 +148,19 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] The `borders` GeoJSONSource with fill and line layers (`filter`, `minzoom`) on MapLibre RN, the first overlay over the base map
 - [ ] SQLite migration 18 (`outline_tile` cleared, `z` column) and z10 tiles read on a phone
 
+## Discrete navigation (DN1-DN13)
+
+- [ ] `dragPan={false}` on MapLibre RN's `Map`: one finger no longer pans Explore's map
+- [ ] `createSwiper` (`WalkMap.native.tsx`): the `PanResponder` takes a one-finger move from the map, while MapLibre's own pinch, two-finger turn, double tap and long press still work beside it
+- [ ] The camera centre a swipe starts from (`onRegionDidChange`'s centre), with nothing selected
+- [ ] `AccessibilityInfo.announceForAccessibility` saying the area's name (VoiceOver, TalkBack)
+- [ ] The grid scrolling the selected tile into view (`measureInWindow` on the row and the ScrollView, then `scrollTo`), clear of the back pill
+- [ ] `createSwiper` against MapLibre's own gestures: a slid long press (`swiper.held()` from `onLongPress`) and a pinch begun with one finger are never swipes (audit 3); whether a granted JS responder cancels MapLibre's native recognizers on iOS or Android
+- [ ] The swipe's centre before the first `onRegionDidChange` (it defaults to `[-71.4, 41.82]`), and whether native's centre is the padded one, as the web's `getCenter()` is (audit 5)
+- [ ] `swiper.sync` runs in an effect: a release between a render and its effect uses the previous `onSwipe`
+- [ ] `showPoint` (`Camera.easeTo` with padding) keeping the zoom, and jumping with reduced motion
+- [ ] The selected Marker's ring and accent
+
 ## Explore atlas
 
 - [ ] react-native-svg mini-maps on iOS and Android (12 tiles, an even-odd veil, dashed strokes)
@@ -204,7 +217,14 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] expo-keep-awake through a replay (RR24): the screen held from reading the streets to the card, let go on the card and on leaving, taken again on AppState `active`
 - [ ] The loading skeleton's pulse with the native driver (RR23)
 
-## Walkability (WK1-WK23, decision 0089)
+## Town presence (TP, decision 0089)
+
+- [ ] A town read takes up to 60 z14 tiles (Whitehall's outline touches 21), decoded on the phone: the time it takes and its memory on a phone, never run on a device
+- [ ] TP11: the OpenMapTiles class names for a mall and a department store (`shop` › `mall`, `department_store`) are from memory, since the tile host is blocked from cloud sessions; confirm on a phone that Lehigh Valley Mall counts as a shop
+
+- [ ] The walk screen's top overlay (Minimize, the navigation bar, the notice) and the ready chevron at `insets.top + 4`: clear of the notch and Dynamic Island, the Android status bar and landscape (inset 0); the ready-to-walk handover keeps the same box
+
+## Walkability (WK1-WK23, decision 0093)
 
 - [ ] The layer on MapLibre RN: two `Layer`s over a `GeoJSONSource` (`walk-mixed`, `walk-car`), under the hotspots, fog and trace; their zoom-interpolated widths
 - [ ] Overture's `transportation.pmtiles` read by byte range through `pmtiles` in the native runtime, and the Overpass POST (`fetch` with a form body)

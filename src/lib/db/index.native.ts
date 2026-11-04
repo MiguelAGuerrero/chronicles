@@ -194,7 +194,7 @@ const MIGRATIONS = [
     pieces TEXT NOT NULL, points TEXT NOT NULL
   );
   `,
-  // 17: a photo's or video's edits (ME21, decision 0084): truth, JSON, null for none.
+  // 17: a photo's or video's edits (ME21, decision 0090): truth, JSON, null for none.
   `
   ALTER TABLE capture ADD COLUMN edit TEXT;
   `,

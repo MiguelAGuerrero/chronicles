@@ -2,8 +2,8 @@
 paths:
   - "src/lib/gaps/**"
   - "src/components/GapCard.tsx"
-  - "src/lib/tileCollector.ts"
-  - "src/lib/__tests__/gaps.test.ts"
+  - "src/lib/tileCollector/**"
+  - "src/lib/__tests__/gaps/**"
 ---
 # Filling gaps
 

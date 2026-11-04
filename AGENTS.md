@@ -11,8 +11,8 @@ EXPO_OFFLINE=1 npx expo install <package>   # never npm/yarn add; offline resolv
 npm run check:affected                      # the inner loop: layers, the tests that import what changed, typecheck, lint; names the e2e scenarios
 npm run typecheck                           # tsc --noEmit, incremental: ~22 s cold, ~5 s after
 npm run lint                                # expo lint, ~40 s; includes the import boundaries below
-npm test                                    # every unit test, ~11 s; npm run test:affected for those a change reaches
-npx tsx --test src/lib/__tests__/<one>.test.ts
+npm test                                    # every unit test, ~13 s; npm run test:affected for those a change reaches
+npm run test:feature <feature>              # one feature's folder (src/lib/__tests__/<feature>/); scripts/features.js is the map; test:coverage adds coverage
 npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # one e2e journey; the full flow (no E2E_ONLY) only when the owner asks
 npm run check:docs                          # this file's budget, rule globs, paths the docs name; CI runs it too
 npx expo-doctor                             # dependency and config issues; npx expo install --fix for versions
@@ -39,6 +39,7 @@ The app is a companion for wandering towns on foot: Explore before (busy areas, 
 | The spec (acceptance criteria per slice) | `specs/<slug>/spec.md`, a mirror of the owner's Claude Docs doc; the doc wins |
 | Why a rule exists | `docs/decisions/` (one record per owner's call) |
 | What is deferred; what has never run on a phone | `docs/DEFERRED.md`, `docs/NATIVE_UNVERIFIED.md` |
+| Which feature owns a file, its tests, journeys and specs | `scripts/features.js`; tests in `src/lib/__tests__/<feature>/` |
 | Rules and traps of one area | `.claude/rules/<area>.md`: they load by themselves when you read or edit that area's files. Read one directly when planning work in an area you haven't opened yet |
 
 Rule areas: captures-and-media, deletion, explore-and-discovery, functional-core, gaps, landing, map, memories, moments-and-days, motion-polish, navigation, notifications, places-and-areas, react-native-web, recording-and-traces, replay, rides, storage, streets-fog-snapping, tabs-and-home, walk-screen, walkability.
@@ -51,7 +52,7 @@ Procedures are skills: `/slice` (spec-first, test-first), `/audit` (the adversar
 - **No simulation.** Web traces the real browser location. Mock GPS only in test harnesses.
 - **Native first; web is a fallback.** Build on the Expo modules the phone uses. Web-only code is allowed only where no Expo module covers the feature on web, and each exception is listed in `docs/ARCHITECTURE.md` with its reason. Check `node_modules/<module>/build/*.web.*` before adding one. A mobile feature with no web workaround stays off on web.
 - **Native has never run on a device.** Say so in any report that touches native code, and add what you wrote to `docs/NATIVE_UNVERIFIED.md`.
-- **Nothing is a score.** No completion, streaks, coverage or leaderboards; counts are said in words (`lib/quietLines`); no counts on the Explore tab; a find is a memory.
+- **Nothing is a score** in the app. No completion, streaks, coverage or leaderboards; counts are said in words (`lib/quietLines`); no counts on the Explore tab; a find is a memory.
 - **Truth vs cache.** Walk, TracePoint and Capture are append-only truth (deletes aside). Streets, visited rows, summaries and areas are cache tagged with the tile build; recompute from the trace, never patch derived data. Changing a derivation rule bumps `SNAP_RULES`, `STREET_CODE` or `LANDING_CODE` (`lib/tiles.ts`).
 - **Raw fixes are stored unfiltered** and gated at read time by `readTrace` (`lib/rides.ts`). Always pass the walk's `started_at`, pauses, stills and gap fills; a pause is a break in the trace however short.
 - **No dataset is hard-coded.** Map data reaches the app through adapters (`areas/types.ts`, `discovery/tilePois.ts`, `landing/read.ts`); tests run against in-memory sources.

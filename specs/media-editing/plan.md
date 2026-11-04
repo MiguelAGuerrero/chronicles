@@ -67,7 +67,7 @@ One order everywhere: on screen, in the native baker, in the web canvas and in t
 
 ### Docs
 
-- `docs/decisions/0084-media-edits-are-data.md`: the calls above.
+- `docs/decisions/0090-media-edits-are-data.md`: the calls above.
 - `docs/ARCHITECTURE.md`:
   - codemap entries;
   - the data model;

@@ -85,7 +85,7 @@ cache write path. All go in `docs/NATIVE_UNVERIFIED.md`.
 - **Overture's bucket is a third-party host the app already uses** (places, divisions); no new host for the
   primary path. Overpass is a new host and the first network call that isn't a tile or an archive.
 - **Decision record.** The owner's calls (words only, the OSM source, the two surfaces) go to
-  `docs/decisions/0089-walkability.md` once approved.
+  `docs/decisions/0093-walkability.md` once approved.
 
 ## Order
 

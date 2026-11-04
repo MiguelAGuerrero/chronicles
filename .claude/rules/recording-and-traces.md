@@ -3,8 +3,7 @@ paths:
   - "src/lib/{geo,liveDot,glide,useLiveTrace,useGlidingWalker,steps,walkMotion,gpsLog,session,lastFix,traceEnds,rides}.ts"
   - "src/lib/motionSource/**"
   - "src/lib/recorder/**"
-  - "src/lib/__tests__/{still,steps,liveDot,jitter,glide,traceSplit,traceEnds,gpsLog}.test.ts"
-  - "src/lib/__tests__/outAndBack.json"
+  - "src/lib/__tests__/recording/**"
   - "index.js"
 ---
 # Recording and traces
@@ -135,7 +134,7 @@ Recording a walk and reading its trace: pauses, standstills, GPS jitter, the liv
   - **A finished walk shares its log too** (the owner, Nov 3, after a gap
     that wasn't filled couldn't be looked into once the walk had ended): its
     More (⋯) menu (`WalkActions`, on the replay card and the Chronicle row)
-    has Share GPS log. Both places go through `lib/shareLog.ts`
+    has Share GPS log. Both places go through `lib/shareLog` (`shell.ts` reads the log, tested over fakes; `share.ts` hands it to the share sheet)
     (`walkLogText`, `shareLogText`), and both read the text when their card
     opens. The sheet's hint line says "Copied" or why it failed.
 

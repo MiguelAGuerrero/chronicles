@@ -3,10 +3,11 @@ paths:
   - "src/components/Capture*.tsx"
   - "src/components/{Caption,Baker}*.tsx"
   - "src/lib/media/**"
-  - "src/lib/{useCaptures,thumbPlan,useMediaUri,captureBus,here}.ts"
+  - "src/lib/{useCaptures,thumbPlan,useMediaUri,captureBus}.ts"
+  - "src/lib/here/**"
   - "src/lib/audioMode*.ts"
   - "src/lib/export/**"
-  - "src/lib/__tests__/thumb.test.ts"
+  - "src/lib/__tests__/captures/**"
   - "src/components/edit/**"
   - "src/lib/{mediaEdit,editSession,editOffer}.ts"
   - "src/lib/{captureEdits,videoEdit}/**"
@@ -53,7 +54,7 @@ Captures (photo, video, voice memo, note), their viewer, captions and baking, th
   Blob parts on web). Missing media is counted, marked in walk.json and reported.
   There is no import yet.
 
-## Media editing (ME1-ME23, decision 0084)
+## Media editing (ME1-ME23, decision 0090)
 
 - **Edits are data** on the untouched file (`Capture.edit`, `lib/mediaEdit`):
   rotate, crop (against the original, so a later turn keeps the same part),

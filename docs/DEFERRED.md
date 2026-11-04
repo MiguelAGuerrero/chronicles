@@ -92,7 +92,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - There is no import of the backup bundle yet (Round 3, the backup zip)
 - The backup bundle leaves still spells out, `Still` (Round 3, motion audit)
 - The backup bundle leaves gap decisions out, `gap_fill` (Filling gaps)
-- Filters on video: no consistent way on iOS without Skia or an experimental flag (the owner's call, Media editing, decision 0084)
+- Filters on video: no consistent way on iOS without Skia or an experimental flag (the owner's call, Media editing, decision 0090)
 - A small copy remade later, because its file was gone, keeps the crop and rotation but not the filter or lines: those need the mounted baker (ME20)
 - No screen-reader way to draw a line or drag the crop frame; Rotate, the filters, pens, colours, Undo, Redo, Revert and aspects are reachable (ME22)
 - From Markup, left out: pencil texture, an opacity slider, a colour wheel, lasso, ruler, shapes; also text styles, free-placed text, stickers and flip (the owner's scope, ME10)
@@ -159,6 +159,17 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - A dark map style for the borders: the app has one map style
 - Chronicle's walked-town regions (TB3) and the walk screen's lines (TB4) have unit tests but no e2e check: a journey would need a placed walk seeded into storage
 - On native the border layers can't go under the base map's streets (no road layer id): they sit over them, faint
+- A town that crosses a z10 tile edge is framed only by the piece in the tiles read (`outlineTilesFor` takes the tile under each point; outlines are cut at tile edges), and a piece arriving later doesn't refit: the whole of a large city may not be framed. Fixing it means reading the tiles a town spans, the owner's call (fix explore-fit-area audit 4, Nov 4)
+- The launch fix frames your 800 m ring even when a town's page was opened before it came (a town tapped while the location prompt is open), so that page loses its town frame (fix explore-fit-area audit 5, Nov 4)
+
+## Discrete navigation (DN1-DN13, decision 0092)
+
+- A bounce at the edge: with nothing that way the map stays still, with no rubber band (DN4)
+- A fling's speed choosing how far to go: one swipe is always one step
+- Towns on the page near you stay tiles: swipes there move between neighborhoods only (the owner's call)
+- No touch-screen e2e for the swipe: the journey drags with the mouse; a finger's swipe on iOS Safari has not been tried
+- A spoken cue when a swipe finds nothing that way: a screen reader hears nothing (discrete-navigation audit 12), as the eye sees no bounce
+- E2e for the turned map, pinch, double tap and a touch-screen swipe on screen (the audit's test review): unit tests cover the direction and the zoom-gesture rules
 
 ## Explore atlas
 
@@ -179,8 +190,6 @@ An item leaves only when it ships, or when it is rejected with a decision record
   on one origin are rare; a remount on a new walk id would fix it.
 - **Two pills at once overlap the scale bar at 375 wide** (the caption offer, then a memo discarded
   within 6 s): one pill clears it (audit 11).
-- **The walk's settings panel** (`ExploreSettings`, from the walk options) still covers the stack while
-  open; it is a sheet with its own Cancel (audit 5).
 
 ## Functional core (slice 1)
 
@@ -205,7 +214,41 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - The trace is redrawn every 66 ms, so on a zip the line trails the walker by a short stretch (replay-rhythm audit 14)
 - The Undo toast can sit over the clock for its 5 s after a moment is deleted mid-path (replay-rhythm audit, UI notes)
 
-## Walkability (specs/walkability, decision 0089)
+## Town presence (TP, decision 0089)
+
+- A neighborhood's share of its town (the rest of "Whole areas"): neighborhoods keep the 800 m ring
+- Finds and "Waiting to be found" on a graded town's card are drawn around its busiest pocket, not across the whole outline
+- A mall's tenants still count as shops (needs footprints); a whole township reaches the top step of Shops and Food easily, so `STEPS` may want retuning for towns
+- No e2e step shows "Busy areas": the fake grid has too little activity for a pocket, so the pockets are tested on real Overture fixtures (`pockets.test.ts`)
+- Marks across a whole outline are stored in the profile as keys and spots; a very large city's list is uncapped
+- The Undo toast (`insets.top + 64`) can cover the walk screen's Minimize row while a navigation bar shows (fix minimize-top-align audit 1; it overlapped before the top offset went from 12 to 4)
+- The walk screen's top edge `sideInset` ignores `insets.left`/`insets.right`, so a narrow landscape device could put Minimize under a cutout; the e2e has no way to inject a safe-area inset (fix minimize-top-align audit 2, 4)
+
+- The media editor's caption field types at 16 px on web so iOS doesn't zoom, so on a photo under about 356 px wide the bar is larger and may wrap differently while typing than in the saved file (fix editor-zoom audit 1)
+- No test scans `src` for a `TextInput` under 16 px, and the e2e's photo is wide enough that the caption field is not enlarged in it (fix editor-zoom audit 4, 5)
+## Spacing grid (fix banner-spacing)
+
+- The floating UI (walk screen's banners, toasts, pills, cards; `ui.tsx` Banner and Button; Undo, Reminder and Confirm cards) is on the 4-point grid with a 16 pt screen-edge gutter (`GUTTER` in `components/walk/layout.ts`); `spacingGrid.test.ts` holds those six files
+- The rest is not: 154 padding, margin and gap values off the grid across about 40 files (HomeSheet, AtlasCard, `(tabs)/index`, MediaEditor, CaptureView, RecordingBar, ceremony/*, MomentBar, ExploreSettings, WalkActions, StartSettings, KindStrip, AtlasTile, replay, chronicle, day, ...). Chosen by the owner: a `/slice` with spacing tokens and a spec, then widen `spacingGrid.test.ts` to every file
+- `ReadyBar`'s 10 pt strip padding stays until then: `BAR_H` (69) is derived from it and the stack's geometry from `BAR_H`
+- The owner's phone screenshot showed the walk overlay cropped at both edges in Safari; at 390 px the layout was already 12 pt from the edge, so a viewport wider than the screen is suspected and not reproduced (unverified on a device)
+- Audit findings deferred (fix banner-spacing): the pills and scale bar sit at `sideInset + 12`, 4 pt further in than the 16 pt gutter, left as a step; horizontal safe-area insets (landscape notch) are not added to the gutter, as before; no e2e at 320 pt wide or for the nudge, spot card and Undo pill gutters; Button's and Banner's padding change reaches screens with no journey (settings, delete confirm); computed offsets (`edgeBottom + 7`) and radii are outside the grid test
+- Web overlays still pad by the unfiltered safe-area `insets.top` that iOS Safari reports on web: the Atlas card grip (`AtlasCard.tsx`), CaptureView, MediaEditor, NoteEditor, MomentBar; the Explore map no longer does (`lib/mapTopInset`, fix title-chip-corner audit 1)
+
+## Street labels (fix street-label-double)
+
+- **Street name twice on a long street** (fix street-label-double, Nov 4): two areas whose peaks on one street are over 300 m apart still draw its name twice, apart rather than stacked. Deduping by the street's lines would need the strip's reach, not its peak.
+
+## Test organization (decision 0091)
+
+- Shells no unit test reaches (9 after test gaps round 1, Nov 4): `session` (the walk lifecycle; the rules call for a reducer), `explore/exploreRun`, `landing/read`, `atlas/read` and `activity/overture` (the explore reads; testing them needs a network-fetch port in `Ports`), `discovery/recallCheck` (reminders), `deletion/index` (its pending core is tested), `backlog` (it takes the map, the snap and the tile build) and `walkNav` (glue over `expo-router`). Each waits on the owner's call for its cluster.
+- Every `src/app` and `src/components` file is covered by a journey row as of Nov 4 (`arch/features.test.ts` does not hold that; `check:affected` names a new screen no row covers when it changes). Shared primitives (`icons`, `ui`, `webStyles*`) ride on the `launch` row, a proxy: no journey checks them for themselves.
+- A second mouse pan on the area card's grip never returned in the e2e (the `atlas` journey drags it with touch events instead; `docs/TESTING.md`, traps): whether a mouse pan after the spring-back blocks the page on the web is worth a look in the app (Explore atlas).
+- Live criterion ids no test names (`npm run check:specs`, 25 of 478 after main's media editing and town borders, Nov 4): triaged in `specs/test-gaps/triage.md`. Four look retired (H2, H3, E14, L17) and two may never have shipped (NH8, MR2): the owner's calls. Eighteen are owed tests (TB12 added), mostly e2e checks in journeys that exist. RR17 can only be checked on a device. `--strict` stays out of CI and the hook until the list is empty.
+- Coverage is a report (`npm run test:coverage [<feature>]`, TD2) with no threshold, in neither CI nor the hook; Node lists only the files a test loads, so a file no test reaches is missing from it, not at 0% (`check:affected` names those).
+- `walk.tsx` triggers six journeys (`tabs`, `ready`, `marks`, `reload`, `gaps`, `hidden`): a split of the walk screen's own journey (ready, recording, capture) when it grows again.
+
+## Walkability (specs/walkability, decision 0093)
 
 - **The grid's tiles say nothing about walkability** (WK11, the owner's call, 2026-11-04: the card only). Showing a line on every tile would read walkability for every ring listed.
 - **The heads-up** (specs/walkability-headsup): no haptic or sound, and nothing for a walk with no route (both declined, 2026-11-04); not shown while a voice memo is recording is checked in code only, and WH12 (no data) is unit tested only.

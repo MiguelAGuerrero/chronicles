@@ -3,7 +3,7 @@ paths:
   - "src/lib/{streets,snapper,finish,tiles,tileMath,tileBuild,mapReads}.ts"
   - "src/lib/discovery/{tileDecode,tileFetch}.ts"
   - "src/lib/db/segmentBounds.ts"
-  - "src/lib/__tests__/{bridges,core,segmentTiles,tileBuild,colors}.test.ts"
+  - "src/lib/__tests__/streets/**"
   - "src/lib/__tests__/mvtFixture.ts"
   - "scripts/mvt-encode.mjs"
 ---

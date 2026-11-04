@@ -49,8 +49,8 @@ For each finding, write one line in the spec's "Audit" record:
 For each accepted finding, in order:
 
 1. Write the regression test, named `<slice> audit N` (`test('rides audit 3:
-   ...')` in `src/lib/__tests__/`, or a `step('tabs audit 5 ...')` check in
-   `scripts/e2e-web.js`). Run it; it fails.
+   ...')` in the slice's folder under `src/lib/__tests__/`, or a `step('tabs audit 5 ...')`
+   check in its journey under `scripts/e2e/journeys/`). Run it; it fails.
 2. Fix it. Run it; it passes.
 
 Findings covered only by the e2e's flow and typecheck are said so in the record.

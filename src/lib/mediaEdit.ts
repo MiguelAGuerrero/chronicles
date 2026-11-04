@@ -1,6 +1,6 @@
 // @layer core
 /**
- * Media editing (ME1-ME23, decision 0084): a photo's or video's edits as
+ * Media editing (ME1-ME23, decision 0090): a photo's or video's edits as
  * data on the untouched original. One order everywhere (screen, bakers,
  * the video module): rotate the original, crop, filter (photos), the
  * drawing, then the caption bar.
@@ -324,7 +324,7 @@ export const FILTER_IDS: readonly FilterId[] = ['original', 'vivid', 'warm', 'co
 
 /**
  * The presets (ME8, ME9): the set a phone's photo app offers, each one colour
- * matrix, under plain names (decision 0084).
+ * matrix, under plain names (decision 0090).
  */
 export const FILTERS: Readonly<Record<FilterId, { label: string; matrix: ColorMatrix }>> = {
   original: { label: 'Original', matrix: IDENTITY },

@@ -4,8 +4,8 @@ paths:
   - "src/lib/locate/**"
   - "src/app/day/**"
   - "src/components/MomentBar.tsx"
-  - "src/lib/explore/momentFind.ts"
-  - "src/lib/__tests__/{days,momentPins}.test.ts"
+  - "src/lib/explore/momentFind/**"
+  - "src/lib/__tests__/moments/**"
 ---
 # Moments and days
 
@@ -25,7 +25,7 @@ Captures outside a walk (moments), locating one fix for them, the days list and 
   fix ≤ 50 m or 10 s, then clears the watch: nothing tracks between moments
   (the owner's rule: no all-day tracking). Media of loose moments go under
   `walks/moments/`. A loose moment finds a place like a walk's capture
-  (`explore/momentFind.ts`).
+  (`explore/momentFind/shell.ts`, tested over `fakePorts()`; `index.ts` passes the Undo window's ids).
 - **The home** reads every capture row (never media) for the days list, which
   widens the old "walks, summaries, Area, WalkArea only" rule. The sheet has
   Days beside Walks, a day's timeline (a walk is one row), and Replay this

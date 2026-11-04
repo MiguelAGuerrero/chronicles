@@ -11,6 +11,8 @@
  *   2. Every `paths:` glob of a rule file matches at least one file, or the
  *      rule never loads.
  *   3. Every repo path the docs name in backticks exists.
+ *   4. A criterion prefix belongs to one spec, a decision number to one record
+ *      (scripts/collisions.js).
  *
  * Exit 1 with a list of problems, each saying how to fix it; exit 0 when clean.
  */
@@ -48,11 +50,11 @@ const PATH_PREFIX = /^(src|scripts|docs|specs|public|assets|\.claude|\.github)\/
 // Docs usually name modules short: `lib/quietLines`, `nav/types.ts`,
 // `components/Modal`, `(tabs)/index.tsx`. Those count when they look like a
 // source path (a known extension, or a lib/ components/ app/ start) and are
-// resolved against src/, src/lib/, src/components/ and src/app/.
+// resolved against src/, src/lib/, src/components/, src/app/, src/lib/__tests__/ and scripts/e2e/.
 const SHORT = /^[\w.()[\]-]+(\/[\w.()[\]-]+)+\/?$/;
 const SOURCE_EXT = /\.(tsx?|m?js|json)$/;
 const SHORT_START = /^(lib|components|app)\//;
-const BASES = ['', 'src/', 'src/lib/', 'src/components/', 'src/app/'];
+const BASES = ['', 'src/', 'src/lib/', 'src/components/', 'src/app/', 'src/lib/__tests__/', 'scripts/e2e/'];
 const EXTS = ['', '.ts', '.tsx', '.native.ts', '.web.ts', '.native.tsx', '.web.tsx', '/index.ts', '/index.tsx'];
 function resolves(p) {
   for (const base of BASES) for (const ext of EXTS) if (fs.existsSync(base + p.replace(/\/$/, '') + ext)) return true;
@@ -184,6 +186,18 @@ for (const doc of PATH_CHECKED) {
     } else if (!fs.existsSync(p)) {
       fail(`${doc} names \`${p}\`, which doesn't exist. Update the reference (moved or renamed?) or remove it.`);
     }
+  }
+}
+
+// 4. One owner per criterion prefix and per decision number (TG14, TG15)
+{
+  const { sharedPrefixes, duplicateDecisions } = require('./collisions');
+  const { readSpecs, idsOf } = require('./check-specs');
+  for (const c of sharedPrefixes(readSpecs().map((s) => ({ slug: s.slug, prefixes: idsOf(s.text).prefixes })))) {
+    fail(`The criterion prefix ${c.prefix} is used by ${c.slugs.join(' and ')}: give the newer spec a prefix no spec uses (npm run check:specs lists them), and rename its ids in its tests.`);
+  }
+  for (const d of duplicateDecisions(fs.readdirSync('docs/decisions'))) {
+    fail(`Decision number ${d.number} is held by ${d.files.join(' and ')}: renumber the newer one to the next free number, in its file name, its title, docs/decisions/README.md and what cites it.`);
   }
 }
 

@@ -57,7 +57,7 @@ export interface Capture {
   /** A small copy of a photo for previews (TH1), beside it; null until made, or when the photo is already small. */
   thumb_path?: string | null;
   /**
-   * A photo's or video's edits (ME21, decision 0084): rotate, crop, filter,
+   * A photo's or video's edits (ME21, decision 0090): rotate, crop, filter,
    * drawing, trim, as data on the untouched file. Null or absent: none.
    */
   edit?: MediaEdit | null;

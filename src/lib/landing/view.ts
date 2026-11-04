@@ -99,7 +99,8 @@ export const predatesStreetFix = (r: LandingRow) => Number(/^l(\d+):/.exec(r.rul
  */
 export function landingView(rows: LandingRow[], build: string | null, release: string | null = null): LandingView {
   const v: LandingView = { pockets: [], strips: [], graded: [], labels: [] };
-  for (const r of rows) {
+  const drawn: Drawn[] = [];
+  for (const [i, r] of rows.entries()) {
     if (predatesStreetFix(r)) continue;
     const stale = build != null && isStale(r, build, release);
     // Areas analyzed before grades draw their busy streets as medium, until analyzed again.
@@ -108,11 +109,30 @@ export function landingView(rows: LandingRow[], build: string | null, release: s
     const pin = r.analysis.landing?.at ?? null;
     for (const p of r.analysis.pockets) {
       v.pockets.push({ hull: p.hull, name: p.name, stale });
-      if (!p.strips.length) v.labels.push({ name: p.name, at: p.centre });
+      if (!p.strips.length) place(v.labels, drawn, { name: p.name, at: p.centre }, i, stale);
     }
-    for (const s of r.analysis.strips) v.strips.push({ lines: s.lines, name: s.name, at: labelAt(s.lines, s.peak, pin), stale });
+    for (const s of r.analysis.strips) {
+      place(v.strips, drawn, { lines: s.lines, name: s.name, at: labelAt(s.lines, s.peak, pin), stale }, i, stale);
+    }
   }
   return v;
+}
+
+/** Two remembered areas may cover the same street; its name is drawn once, not once per area (fix street-label-double). */
+const SAME_LABEL_M = 300;
+interface Named { name: string; at: LngLat }
+interface Drawn extends Named { row: number; stale: boolean; list: Named[]; item: Named }
+
+/** Adds a label unless another row already names it nearby (strip or pocket); a current row's label replaces a stale row's. */
+function place<T extends Named>(list: T[], drawn: Drawn[], item: T, row: number, stale: boolean) {
+  const dup = drawn.find((d) => d.row !== row && d.name === item.name && distanceM(d.at, item.at) < SAME_LABEL_M);
+  if (dup) {
+    if (!dup.stale || stale) return;
+    dup.list.splice(dup.list.indexOf(dup.item), 1);
+    drawn.splice(drawn.indexOf(dup), 1);
+  }
+  list.push(item);
+  drawn.push({ name: item.name, at: item.at, row, stale, list, item });
 }
 
 /**

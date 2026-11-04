@@ -159,6 +159,12 @@ export interface WalkMapProps {
   onPress?: (lngLat: LngLat, radiusM: number) => void;
   /** A long press on the map (about half a second), with the same reach as onPress. */
   onLongPress?: (lngLat: LngLat, radiusM: number) => void;
+  /**
+   * Explore's discrete navigation (DN1-DN13): when set, one finger (or the mouse) never pans the
+   * map; a finished drag is reported as a swipe instead, in screen pixels, with the map's middle.
+   * On web the arrow keys report swipes too. Pinch, wheel, double tap, the turn and the long press stay.
+   */
+  onSwipe?: (swipe: { dx: number; dy: number; center: LngLat }) => void;
   style?: StyleProp<ViewStyle>;
 }
 

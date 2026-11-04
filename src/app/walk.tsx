@@ -22,14 +22,18 @@ import { emptyGapAt, gapKey, stretchAt, type Gap } from '../lib/gaps/infer';
 import type { DrawnLine } from '../lib/gaps/draw';
 import { useGapDraw } from '../lib/gaps/useGapDraw';
 import { GapDraw } from '../components/GapDraw';
-import { ExploreSettings } from '../components/ExploreSettings';
+import { KindSwitches, RangeSlider, walkNote } from '../components/ExploreSettings';
+import { NotificationSettings } from '../components/NotificationSettings';
+import { SwitchRow } from '../components/SwitchRow';
 import { ReminderCard } from '../components/ReminderCard';
 import { onRecallFired, onRecallOpen, onRecallWaiting, takeRecallOpen } from '../lib/discovery/recallCheck';
 import { categoryOf } from '../lib/discovery/categories';
 import { deadZoneDue, deadZoneNudge, inDeadZone, stripAt } from '../lib/landing/walk';
 import { landingView, LANDING_VERSION, nearAreas, type LandingRow } from '../lib/landing/view';
 import { placesFromTilePois } from '../lib/discovery/tilePois';
-import { EXPLORE_KEY, exploredKey, kindOf } from '../lib/explore/explore';
+import { canBuzz } from '../lib/canBuzz';
+import { clampRange, EXPLORE_KEY, exploredKey, kindOf, POCKET_ALERT_NOTE, type Kind } from '../lib/explore/explore';
+import { DEFAULT_SETTINGS, loadSettings, onSettings, saveSettings, type ExploreSettings } from '../lib/explore/settings';
 import { useExplore } from '../lib/explore/useExplore';
 import { db } from '../lib/db';
 import { focusOn } from '../lib/focus';
@@ -62,7 +66,7 @@ import { exitPlan, screenState, startNotice } from '../lib/readyNav';
 import { getLastFix } from '../lib/lastFix';
 import { CaptureStack } from '../components/walk/CaptureStack';
 import { ReadyBar } from '../components/walk/ReadyBar';
-import { CAP, EDGE, SCALE_BOTTOM, STACK_GAP, useStackLayout } from '../components/walk/layout';
+import { BAR_H, CAP, EDGE, GUTTER, raisedHeight, SCALE_BOTTOM, STACK_GAP, useStackLayout } from '../components/walk/layout';
 import { useReady } from '../components/walk/useReady';
 import { aboutTimeLeft, formatTimeLeft, paceMps, timeLeftMs } from '../lib/nav/eta';
 import { useVisible } from '../lib/deletion/useDeletions';
@@ -126,9 +130,6 @@ type Notice = {
 // A screen that throws shows what broke, with Try again, never a blank page (bug, Nov 1).
 export { ScreenError as ErrorBoundary } from '../components/ScreenError';
 
-/** The walk's settings panel sits this far up, clear of the capture row (bottom + 92, 68 tall) and its gap. */
-const SETTINGS_FOOT = 92 + 68 + 12;
-
 /**
  * The walk screen, and Navigate itself (NR1-NR6): ready with no walk open,
  * the walk with one. Start on the ready screen records in place: the walk
@@ -155,7 +156,7 @@ function WalkLoading(props: { onClose: () => void }) {
   const at = useStackLayout();
   return (
     <View style={styles.screen}>
-      <View style={[styles.top, { top: at.insets.top + 12, left: at.sideInset, right: at.sideInset }]} pointerEvents="box-none">
+      <View style={[styles.top, { top: at.insets.top + 4, left: at.sideInset, right: at.sideInset }]} pointerEvents="box-none">
         <View style={styles.minRow} pointerEvents="box-none">
           <Pressable
             testID="ready-close"
@@ -179,7 +180,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const insets = useSafeAreaInsets();
   const { width, height: screenH } = useWindowDimensions();
   /** The top column's side margin: centered in 640 on wide screens, like the rest. */
-  const sideInset = Math.max(12, (width - 640) / 2);
+  const sideInset = Math.max(GUTTER, (width - 640) / 2);
   const params = useLocalSearchParams<{ warning?: string; started?: string; recall?: string }>();
   const at = useStackLayout();
   // The walk's cards sit above the strip, left of the stack's column, so they never cover it (audit 5).
@@ -406,12 +407,33 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const [spot, setSpot] = useState<{ at: LngLat; here: HereResult | null; from: LngLat | null } | null>(null);
   const hereTaps = useRef(0);
   const [hereKey, setHereKey] = useState(0);
-  // Settings (E16-E21), opened from the walk's options; the range is previewed as a ring on this map.
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [preview, setPreview] = useState<number | null>(null);
-  const [panelH, setPanelH] = useState(0);
+  // Explore's settings (E16-E21) live in the walk's drawer, saved as they change; the range is a ring on this map while it is up.
+  // Nothing is saved before they have loaded (fix walk-drawer-settings audit 2), and a save from the ready
+  // screen's bar reaches this copy at once (audit 1): both screens are one instance.
+  const [loaded, setLoaded] = useState<ExploreSettings | null>(null);
+  const settings = loaded ?? DEFAULT_SETTINGS;
+  useEffect(() => {
+    let alive = true;
+    loadSettings().then((v) => alive && setLoaded((cur) => cur ?? v), () => {});
+    const off = onSettings((v) => setLoaded(v));
+    return () => {
+      alive = false;
+      off();
+    };
+  }, []);
+  const changeSettings = (next: ExploreSettings) => {
+    if (!loaded) return;
+    setLoaded(next);
+    saveSettings(next).catch(() => {});
+  };
+  const toggleKind = (k: Kind, on: boolean) => {
+    const hidden = new Set(settings.hidden);
+    if (on) hidden.delete(k);
+    else hidden.add(k);
+    changeSettings({ ...settings, hidden });
+  };
   async function pressMap(at: LngLat, radiusM?: number) {
-    if (cap.voiceStartedAt != null || stopping || viewing || here || settingsOpen) return;
+    if (cap.voiceStartedAt != null || stopping || viewing || here) return;
     setMarkOpen(null);
     setOptions(false);
     setMemory(null);
@@ -448,14 +470,11 @@ function WalkScreen(props: { onMinimize: () => void }) {
   }, []);
   // The spot card (and the options card) goes once you walk on, or with Back (Android) and Escape (web).
   useEffect(() => {
-    if (!spot && !settingsOpen && !memory) return;
+    if (!spot && !memory) return;
     const close = () => {
       setSpot(null);
       setMemory(null);
       setOptions(false);
-      // Settings close as Cancel does (audit, UI).
-      setSettingsOpen(false);
-      setPreview(null);
       setFollowing(true);
     };
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -468,7 +487,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       back.remove();
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
-  }, [spot, settingsOpen, memory]);
+  }, [spot, memory]);
   useEffect(() => {
     if (!spot?.from || !live.here || distanceM(spot.from, live.here) < 30) return;
     const t = setTimeout(() => setSpot(null), 0);
@@ -549,6 +568,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const reloadLandings = useCallback(() => {
     db.listLandings().then((r) => setLandings(r.filter((x) => x.rules === LANDING_VERSION)), () => {});
   }, []);
+  // The range preview (E21): a ring around you while the drawer is up on an exploring walk, as on the ready screen.
+  const preview = options && exploring && loaded ? loaded.rangeM : null;
   const explore = useExplore({
     walkId: walk?.id ?? null,
     exploring,
@@ -577,17 +598,11 @@ function WalkScreen(props: { onMinimize: () => void }) {
   useEffect(() => {
     if (navItem && (explore.revealed.has(navItem.key) || explore.found.has(navItem.key))) relabel(navItem.name);
   }, [navItem, explore.revealed, explore.found, relabel]);
-  // The range preview (E21): the ring is drawn on this map, around you, only while settings are open.
   const ring = useMemo(() => (preview != null && live.here ? { center: live.here, radiusM: preview } : null), [preview, live.here]);
   const ringFit = useMemo(() => (ring ? boundsOf([ring.center], ring.radiusM * 1.15) : null), [ring]);
-  const [ringKey, setRingKey] = useState(0);
-  // Each new range refits the map to the ring, above the panel.
-  const onPreview = useCallback((m: number | null) => {
-    setPreview(m);
-    if (m != null) setRingKey((k) => k + 1);
-    // Closed: back to following you, out of the ring's zoom (audit, UI).
-    else setFollowing(true);
-  }, []);
+  // Each new range refits the map to the ring, in the part left above the raised drawer.
+  const ringKey = ring ? 100000 + ring.radiusM : 0;
+  const drawerH = raisedHeight(screenH, BAR_H + insets.bottom);
   // Remind me here (v1 slice 4): a flagged capture comes back when this walk
   // passes it (R2, R3). The web checks on each accepted fix in the open walk's
   // keeper, minimized or not (NV8); on a phone the location task checks every
@@ -764,7 +779,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     };
   }, [walk, live.here, live.riding, hotPockets, quiet, pausedNow]);
   // Spent only once it has been seen: not under a card, a route or settings, never on a quiet walk (audit).
-  const nudgeShown = !!nudge && !quiet && !spot && !openMark && !options && !memory && !settingsOpen && !navigation.nav && !navigation.finding;
+  const nudgeShown = !!nudge && !quiet && !spot && !openMark && !options && !memory && !navigation.nav && !navigation.finding;
   useEffect(() => {
     if (!nudgeShown || !walk) return;
     if (!nudgedRef.current) {
@@ -983,7 +998,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         captures={captures}
         // Opening a capture would hide a memo that is still recording.
         // While drawing, a tap on a pin is a point along the way like any other (gap-drawing audit 8).
-        onPinPress={recordingVoice || stopping || settingsOpen || isDrawing ? undefined : setViewing}
+        onPinPress={recordingVoice || stopping || isDrawing ? undefined : setViewing}
         walker={live.here}
         borders={borders}
         walkability={wk.draw}
@@ -1012,12 +1027,12 @@ function WalkScreen(props: { onMinimize: () => void }) {
           setGapOpen(hit ? gapKey(hit) : null);
         }}
         memories={memories}
-        onMemoryPress={recordingVoice || stopping || settingsOpen || isDrawing ? undefined : (group, at) => {
+        onMemoryPress={recordingVoice || stopping || isDrawing ? undefined : (group, at) => {
           setGapOpen(null);
           void openMemory(group, at);
         }}
         discoveries={explore.pins}
-        onDiscoveryPress={recordingVoice || stopping || settingsOpen || isDrawing ? undefined : (id) => {
+        onDiscoveryPress={recordingVoice || stopping || isDrawing ? undefined : (id) => {
           // A found place is shown, not a card to open: its capture's pin is the thing to tap (audit, UI).
           if (explore.found.has(id)) return;
           setSpot(null);
@@ -1029,7 +1044,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         ring={ring}
         fitBounds={ringFit}
         fitKey={ringKey}
-        fitPadding={{ top: insets.top + 24, bottom: panelH + 24, left: 24, right: 24 }}
+        fitPadding={{ top: insets.top + 24, bottom: drawerH - BAR_H - insets.bottom + 16, left: 24, right: 24 }}
         onUserMove={() => setFollowing(false)}
         onBearingChange={setBearing}
         // A long press, so a stray tap while walking does nothing.
@@ -1065,7 +1080,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       ) : (
       <>
 
-      <View style={[styles.top, { top: insets.top + 12, left: sideInset, right: sideInset }]} pointerEvents="box-none">
+      <View style={[styles.top, { top: insets.top + 4, left: sideInset, right: sideInset }]} pointerEvents="box-none">
         {navigation.nav && (
           // Not a live region: it changes with every fix. The distance is announced in steps instead.
           <View testID="nav-bar" style={styles.navBar}>
@@ -1290,6 +1305,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
             setGapOpen(null);
           }
           setOptions(u && !recordingVoice);
+          // Lowered with the ring up: back to following you, out of the ring's zoom (audit, UI); a pan stays otherwise.
+          if (!u && preview != null) setFollowing(true);
         }}
         areaHeight={screenH}
         locked={recordingVoice}
@@ -1338,22 +1355,29 @@ function WalkScreen(props: { onMinimize: () => void }) {
               </View>
               <Switch testID="explore-walk" accessibilityLabel="Explore" value={exploring} onValueChange={setExplore} />
             </View>
-            <Pressable
-              testID="open-settings"
-              accessibilityRole="button"
-              accessibilityLabel="Settings: what I’m into and the question mark range"
-              onPress={() => {
-                setOptions(false);
-                setMarkOpen(null);
-                setSpot(null);
-                setSettingsOpen(true);
-              }}
-              style={({ pressed }) => [styles.optionRow, pressed && styles.pressed]}
-            >
-              <Icon name="settings-outline" size={20} color={theme.ink} />
-              <Text style={[styles.optionLabel, { flex: 1 }]}>What I’m into, and the “?” range</Text>
-              <Icon name="chevron-forward" size={18} color={theme.muted} />
-            </Pressable>
+            {exploring && loaded && (
+              <>
+                <Text style={styles.optionSection} accessibilityRole="header">“?” range</Text>
+                <Text style={styles.markSub}>
+                  A “?” shows for places within {settings.rangeM} m of you, {walkNote(settings.rangeM)}.
+                  {live.here ? ' The ring on the map shows how far that is.' : ' The ring shows on the map once there’s a position.'}
+                </Text>
+                <RangeSlider value={settings.rangeM} onChange={(m) => changeSettings({ ...settings, rangeM: clampRange(m) })} />
+                <Text style={styles.optionSection} accessibilityRole="header">What I’m into</Text>
+                <KindSwitches hidden={settings.hidden} onToggle={toggleKind} />
+              </>
+            )}
+            {/* The pocket alert is a nudge you feel: on every phone, and on a touch-screen browser (E19, PA6). */}
+            {canBuzz() && loaded && (
+              <SwitchRow
+                testID="pocket-alert"
+                label="Pocket alert"
+                note={POCKET_ALERT_NOTE}
+                value={settings.haptic}
+                onChange={(haptic) => changeSettings({ ...settings, haptic })}
+              />
+            )}
+            <NotificationSettings heading={false} />
             {motionAccess !== 'on' && (
               // Without motion the walk goes on, on the GPS filters alone (Motion, MO2).
               <View testID="motion-off" style={styles.optionRow}>
@@ -1499,17 +1523,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
       )}
       {/* Low, where the capture row was: big controls stay in thumb's reach (audit, UI). */}
       {isDrawing && <GapDraw drawing={drawing} style={{ bottom: insets.bottom + 92, zIndex: 6 }} />}
-      <ExploreSettings
-        visible={settingsOpen}
-        hasRing={!!live.here}
-        // Above the capture row and the strip: capture stays one tap away while settings are open (rev 34).
-        bottomInset={0}
-        bottom={insets.bottom + SETTINGS_FOOT}
-        onHeight={setPanelH}
-        onClose={() => setSettingsOpen(false)}
-        onPreview={onPreview}
-      />
-
       <CaptureViewer
         key={viewing?.[0]?.id ?? 'none'}
         captures={viewing && viewing.map((v) => captures.find((c) => c.id === v.id) ?? v)}
@@ -1659,60 +1672,61 @@ type PressableRef = ComponentRef<typeof Pressable>;
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
-  top: { position: 'absolute', left: 12, right: 12, gap: 8, alignItems: 'center', maxWidth: 640, alignSelf: 'center' },
+  top: { position: 'absolute', left: GUTTER, right: GUTTER, gap: 8, alignItems: 'center', maxWidth: 640, alignSelf: 'center' },
   chip: {
     flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.surface, borderRadius: 999,
-    paddingVertical: 6, paddingHorizontal: 12, borderWidth: 1, borderColor: theme.line,
+    paddingVertical: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: theme.line,
   },
   chipPressed: { opacity: 0.8 },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
   chipText: { color: theme.ink, fontWeight: '600', fontSize: 14 },
   // Navigating: what is left and where to, as on a maps app's top bar, with End.
   navBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 10, alignSelf: 'stretch', backgroundColor: COLORS.route, borderRadius: 14,
-    paddingLeft: 14, paddingRight: 6, minHeight: 56,
+    flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'stretch', backgroundColor: COLORS.route, borderRadius: 16,
+    paddingLeft: 16, paddingRight: 8, minHeight: 56,
   },
   navText: { flex: 1, color: '#ffffff', fontSize: 18, fontWeight: '700' },
   // A white pill: 5.2:1 for its blue text.
-  navEnd: { minHeight: 44, minWidth: 64, paddingHorizontal: 14, borderRadius: 22, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
+  navEnd: { minHeight: 44, minWidth: 64, paddingHorizontal: 16, borderRadius: 22, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
   navEndText: { color: COLORS.route, fontSize: 16, fontWeight: '700' },
   navHandoff: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   finding: {
-    flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: theme.surface, borderRadius: 999, paddingLeft: 14, paddingRight: 4,
+    flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.surface, borderRadius: 999, paddingLeft: 16, paddingRight: 4,
     minHeight: 52, borderWidth: 1, borderColor: theme.line,
   },
   findingText: { color: theme.ink, fontSize: 16, fontWeight: '600' },
-  findingCancel: { minHeight: 44, paddingHorizontal: 14, justifyContent: 'center', borderRadius: 22 },
+  findingCancel: { minHeight: 44, paddingHorizontal: 16, justifyContent: 'center', borderRadius: 22 },
   findingCancelText: { color: theme.ink, fontSize: 16, fontWeight: '700', textDecorationLine: 'underline' },
   flashText: { fontSize: 16 },
-  spotRow: { position: 'absolute', left: 12, right: 12, alignItems: 'center' },
+  spotRow: { position: 'absolute', left: GUTTER, right: GUTTER, alignItems: 'center' },
   spot: {
-    backgroundColor: theme.surface, borderRadius: theme.radius, padding: 14, gap: 10, width: '100%', maxWidth: 520,
+    backgroundColor: theme.surface, borderRadius: theme.radius, padding: 16, gap: 12, width: '100%', maxWidth: 520,
     shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
   },
   spotTitle: { fontSize: 16, fontWeight: '700', color: theme.ink },
   markSub: { fontSize: 14, color: theme.muted },
   optionRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48 },
   optionLabel: { fontSize: 15, fontWeight: '600', color: theme.ink },
+  optionSection: { fontSize: 15, fontWeight: '700', color: theme.ink, marginTop: 8 },
   drawer: { paddingHorizontal: 16, paddingBottom: 8, gap: 4, maxWidth: 640, width: '100%', alignSelf: 'center' },
   edgeBtnOff: { opacity: 0.5 },
-  spotActions: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
+  spotActions: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   spotClose: { marginLeft: 'auto', width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  toast: { backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 14, alignSelf: 'center' },
+  toast: { backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 16, alignSelf: 'center' },
   toastText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
   hidden: { display: 'none' },
   pills: { position: 'absolute', alignItems: 'flex-end', gap: 8 },
   undo: {
-    flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: theme.ink, borderRadius: 999, maxWidth: '100%',
+    flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: theme.ink, borderRadius: 999, maxWidth: '100%',
     paddingVertical: 8, paddingLeft: 16, paddingRight: 8,
   },
   undoText: { color: '#ffffff', fontSize: 15, fontWeight: '600', flexShrink: 1 },
-  undoBtn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)' },
+  undoBtn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 16, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)' },
   undoBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.8 },
   stats: { color: theme.ink, fontSize: 17, fontWeight: '600', fontVariant: ['tabular-nums'], flexShrink: 1 },
-  stopInner: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  stopInner: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   barActions: { flexDirection: 'row', alignItems: 'center', gap: 20 },
   pauseBtn: {
     width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center',
@@ -1724,9 +1738,9 @@ const styles = StyleSheet.create({
   minRow: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   noticeCell: { flex: 1, minWidth: 0 },
   minBtn: { position: 'relative' },
-  ahead: { flexDirection: 'row', alignItems: 'center', gap: 8, maxWidth: 360, backgroundColor: theme.glass, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12, borderWidth: 1, borderColor: theme.line },
+  ahead: { flexDirection: 'row', alignItems: 'center', gap: 8, maxWidth: 360, backgroundColor: theme.glass, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: theme.line },
   aheadText: { color: theme.ink, fontSize: 14, flexShrink: 1 },
-  unwalked: { position: 'absolute', backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12 },
+  unwalked: { position: 'absolute', backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 12 },
   unwalkedText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
   // Small round controls at the map's edges, as in AllTrails.
   edgeBtn: {
@@ -1739,6 +1753,6 @@ const styles = StyleSheet.create({
   modalWrap: { flex: 1, justifyContent: 'flex-start', paddingHorizontal: 16 },
   modal: { backgroundColor: theme.surface, borderRadius: theme.radius, padding: 16, gap: 12, maxWidth: 520, width: '100%', alignSelf: 'center' },
   modalTitle: { fontSize: 17, fontWeight: '600', color: theme.ink },
-  input: { minHeight: 90, borderWidth: 1.5, borderColor: theme.edge, borderRadius: 10, padding: 10, fontSize: 16, color: theme.ink, textAlignVertical: 'top' },
+  input: { minHeight: 90, borderWidth: 1.5, borderColor: theme.edge, borderRadius: 12, padding: 12, fontSize: 16, color: theme.ink, textAlignVertical: 'top' },
   modalRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
 });

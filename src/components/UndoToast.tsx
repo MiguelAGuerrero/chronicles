@@ -60,11 +60,11 @@ export function UndoToast(props: { style?: StyleProp<ViewStyle> }) {
 const styles = StyleSheet.create({
   wrap: { position: 'absolute', left: 16, right: 16, alignItems: 'center', zIndex: 30 },
   pill: {
-    flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48, paddingLeft: 18, paddingRight: 8, borderRadius: 24,
+    flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48, paddingLeft: 16, paddingRight: 8, borderRadius: 24,
     backgroundColor: theme.ink, maxWidth: 608,
     shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
   },
-  text: { color: '#ffffff', fontSize: 15, fontWeight: '600', flexShrink: 1, paddingVertical: 12, paddingRight: 10 },
-  undo: { minHeight: 40, minWidth: 64, paddingHorizontal: 14, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.14)' },
+  text: { color: '#ffffff', fontSize: 15, fontWeight: '600', flexShrink: 1, paddingVertical: 12, paddingRight: 8 },
+  undo: { minHeight: 40, minWidth: 64, paddingHorizontal: 16, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.14)' },
   undoText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
 });

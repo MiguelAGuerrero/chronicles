@@ -80,7 +80,7 @@ Home / tabs
   walk/                      the walk screen's shared geometry (layout.ts), CaptureStack, ReadyBar, useReady (the walk screen's ready state)
   GapCard.tsx                a filled or offered stretch: Keep, Not this way
   LandingMarks.tsx           a strip's name beside it on the map
-  ExploreSettings.tsx        what I'm into, the "?" range (ring preview), the pocket alert: a panel, not a modal
+  ExploreSettings.tsx        the shared pieces of the drawers' settings: `KindSwitches`, `RangeSlider`, `walkNote`
   NotificationSettings.tsx   the kind switches, permission state, the test notification
 Captures
   CaptureView.tsx            CaptureViewer (full-screen photos and videos over a strip; cards for notes and memos; More menu) and CaptureContent (plays memos and videos)
@@ -162,7 +162,7 @@ Navigation (inside a walk)
   nav/graph.ts               a small walking graph with A*
   nav/traceRoute.ts, streetRoute.ts         the two RouteSources: along this trace; over derived streets
   nav/navigator.ts           routeTo: first source that can, or why none
-  nav/store.ts               the destination in meta `nav`
+  nav/store/                 the destination in meta `nav` (shell.ts the factory, index.ts the app's instance)
   nav/useNavigation.ts       routing, re-routing, arrival and the street read on the walk screen
   nav/handoff.ts             Open in Maps: picks the maps app and its links per platform and browser
   nav/openInMaps.ts          opens them with Linking.openURL straight from the tap
@@ -171,7 +171,7 @@ Filling gaps
   gaps/infer.ts              gapsOf, the likely way over street pieces (A*), certain / offered / nothing
   gaps/index.ts              reads a gap's tiles in code, memoized per build, walk and gap
   gaps/useLiveStretches.ts   the open walk's inferred and decided stretches (lives in OpenWalkProvider)
-  tileCollector.ts           reads the tiles near a walk in code, no camera moves (re-snap after a decision)
+  tileCollector/             reads the tiles near a walk in code, no camera moves (re-snap after a decision); shell.ts takes the tile reader
 Discovery and Explore (v1)
   discovery/types.ts         Place, Offered, Mark, Recall, PlaceSource, Kind, CategoryId
   discovery/tilePois.ts the OpenMapTiles poi classes, markable, kindFor (the only file that knows them)
@@ -186,10 +186,13 @@ Discovery and Explore (v1)
   explore/useExplore.ts      Explore on the walk screen
   explore/exploreTab.ts the drawer's area-in-view (superseded on the tab by the atlas)
   atlas/atlas.ts             the Explore atlas: near list, presence steps (findable kinds count markable places, AG1), thin rings (AG3), sketch, familiarity, labels
-  atlas/read.ts              the atlas's reads: areas near you, one ring at a time (decoder)
+  atlas/extent.ts            a town's whole-outline extent and the z14 tiles a read takes, capped (TP1-TP3)
+  atlas/pockets.ts           a town's pockets of activity: peak picking on a smoothed 400 m grid (TP4)
+  atlas/read.ts              the atlas's reads: areas near you, one ring or one whole town at a time (decoder)
   atlas/useAtlas.ts          the atlas's data and its read loop, while Explore is in front
+  atlas/snap.ts              discrete navigation (DN1-DN13): what a drag or an arrow key means, which way it points, which area lies that way
   explore/settings.ts        what I'm into, range, pocket alert (meta)
-  explore/momentFind.ts      a loose moment finds a place
+  explore/momentFind/        a loose moment finds a place (shell.ts, index.ts)
 Activity density (AD1-AD16)
   activity/weights.ts        what counts toward density and how much, for OSM and Overture
   activity/points.ts         places as weighted points from both sources; one place once across them
@@ -222,7 +225,7 @@ Landing (v1.5)
   landing/walk.ts            the strip chip and the dead-zone nudge
 Memories, moments, days
   memories.ts                faint pins from earlier walks: memoryReader, groupFirst
-  here.ts                    capturesHere: What happened here, across walks
+  here/                      capturesHere: What happened here, across walks (shell.ts, index.ts)
   days.ts                    days from capture and walk times, never stored; the day's card
   locate/                    one fix for a loose moment: expo-location on native, navigator.geolocation on web
   useLocate.ts               the Locate tap
@@ -241,13 +244,13 @@ Captures and media
   pins.ts                    pinsFor: grouping captures by screen distance; pinReminded, the bell
   useReminded.ts             the captures with a live reminder, per map; re-read on recallCheck's onRecallsChanged and at nextExpiry
   momentPins.ts              moments outside walks as pins (Navigate, Chronicle) and Chronicle's fit around them
-  export/bundle.ts           writeWalkBundle (deferred; nothing in the UI reaches it); export/ per-platform keepers
+  export/bundle/             writeWalkBundle (shell.ts over db and clock) (deferred; nothing in the UI reaches it); export/ per-platform keepers
 Deletion
   deletion/core.ts           what each delete takes; pending.ts: the Undo window on a given clock
   deletion/index.ts          the one Undo window wired to timers and storage; useDeletions.ts: useHidden / useVisible
 Notifications
   notify/core.ts             Notice, NoticeTransport, routeResponse: the contract
-  notify/index.ts            notifier, the kind switches (meta `notify_off`)
+  notify/index.ts            notifier, the kind switches (meta `notify_off`, from notify/prefs.ts); builds from `db`, since `ports` imports it
   notify/transport.native.ts expo-notifications; transport.web.ts: the service worker (public/sw.js); webNotice.ts: its message and URL
   openers.ts                 stacked listeners for a tapped notification, newest first
 Motion (animation)
@@ -277,9 +280,11 @@ Layers (functional core, imperative shell)
   ports/                     Ports (types.ts: db, recorder, notifier, clock, newId) and the real instance (index.ts), the composition root a view hands a shell
   store.ts, useStore.ts      a shell's state (createStore) and a view's slice of it (useSyncExternalStore)
   meta.ts                    every meta key and key family with its codec; metaStore(db)
+  __tests__/<feature>/       the unit tests, one folder per feature of scripts/features.js (arch/ holds the tree-wide checks, storage/ the Db contract)
   __tests__/fakes/           fakePorts(): memoryDb, the fake recorder, notifier and clock, one call log, failNext; held to db/index.web.ts by dbContract.ts
   (scripts/layers.js)        reads the layer tags and core's imports for layers.test.ts and eslint.config.js
-  (scripts/affected.js)      what a change can break: changed files, the import graph, the tests and e2e scenarios to run (e2e-scenarios.js)
+  (scripts/affected.js)      what a change can break: changed files, the import graph, the tests (by feature) and e2e journeys to run, what nothing covers
+  (scripts/features.js)      the feature map: each feature's sources, journeys, specs and rule; test:feature, check:specs and the rules read it
 ```
 
 ## Invariants and boundaries
@@ -362,6 +367,9 @@ Every feature is built on the Expo modules the phone app uses. Web gets its
 own code only where no Expo module covers the feature on web:
 
 - **Map:** maplibre-gl (`map/WalkMap.web.tsx`). MapLibre RN has no web build.
+- **Announcing a swipe's area** (DN12): a visually hidden `accessibilityLiveRegion` Text on Explore (`atlas-snap-said`, web only).
+  react-native-web's `AccessibilityInfo.announceForAccessibility` is an empty function; phones announce through
+  that call alone, since a live region as well would say it twice on Android.
 - **Storage:** IndexedDB (`db/index.web.ts`, `media/index.web.ts`).
   expo-sqlite's web build needs `SharedArrayBuffer`, which needs cross-origin
   isolation headers GitHub Pages can't send; expo-file-system has no web build.
@@ -416,7 +424,7 @@ Truth (`lib/types.ts`):
   placed), kind (photo | video | voice | text), file_path, body, segment_id,
   caption, caption_y, thumb_path, edit (a photo's or video's edits as data:
   rotate, crop, filter, lines, trim; SQLite migration 17 stores it as JSON,
-  IndexedDB keeps the object; `parseEdit` reads both, decision 0084).
+  IndexedDB keeps the object; `parseEdit` reads both, decision 0090).
 - `Pause`, `Still`: walk_id, started_at, ended_at.
 - `GapDecision` (`gap_fill`, kept): a stretch kept or dismissed, with its line, so a map update never moves it.
 

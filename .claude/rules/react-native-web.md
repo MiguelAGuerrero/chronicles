@@ -58,3 +58,9 @@ UI code on both platforms: React Compiler lint rules, react-native-web differenc
   next item draws over it (the town page's wide tile on the owner's iPhone,
   Nov 3; Chromium does it too). To undo a shared `flex: 1`, leave that style
   out, or set `flexGrow: 0, flexShrink: 0`.
+
+- **A focused field under 16 px zooms the page on iOS Safari**, and the pinned
+  `#root` leaves no easy way back out (the media editor's caption, Nov 4). The
+  caption is sized from the photo's width, so a narrow photo or video types
+  below 16 px. Every `TextInput` a web user can focus must be at least 16 px
+  while focused; `typingFontSize` (`lib/captionInput`) does it for the caption.

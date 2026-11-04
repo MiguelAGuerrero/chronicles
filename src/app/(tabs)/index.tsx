@@ -1,6 +1,6 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, BackHandler, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, BackHandler, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type ScrollViewInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { AreaPointPin } from '../../components/AreaPoint';
 import { AtlasCard, type CardLayout } from '../../components/atlas/AtlasCard';
@@ -14,10 +14,12 @@ import type { WalkMapHandle } from '../../components/map/types';
 import { Icon } from '../../components/icons';
 import { Banner, Button, theme } from '../../components/ui';
 import {
-  ATLAS_RULES, canWalkTo, distanceWords, familiarity, findsIn, nextDoor, otherTowns, townReachM, waitingMarks, walkTarget,
-  type AtlasArea, type Familiarity, type Listed,
+  ATLAS_RULES, busyAreas, canWalkTo, distanceWords, familiarity, findsIn, nextDoor, otherTowns, nextFrame, townReachM, waitingMarks, walkTarget,
+  type AtlasArea, type Familiarity, type Listed, type PageFramed,
 } from '../../lib/atlas/atlas';
+import { mapTopInset } from '../../lib/mapTopInset';
 import { nearReads } from '../../lib/atlas/read';
+import { nextArea, revealTo, snapScope, swipeHeading, tapClears, type SnapStep } from '../../lib/atlas/snap';
 import { useAtlas } from '../../lib/atlas/useAtlas';
 import { bordersFor, outlineIdHere, outlineOf, townFrame } from '../../lib/areas/borders';
 import { BORDER_ZOOM } from '../../lib/areas/outlines';
@@ -25,10 +27,11 @@ import { useOutlineSet } from '../../lib/areas/useOutlineSet';
 import { db } from '../../lib/db';
 import type { Find } from '../../lib/explore/explore';
 import { formatDistance } from '../../lib/format';
-import { boundsOf, type Bounds } from '../../lib/geo';
+import { boundsOf, distanceM as metresBetween, type Bounds } from '../../lib/geo';
 import { readArea, rememberArea } from '../../lib/landing/read';
 import { getLastFix, launchFix, setLastFix } from '../../lib/lastFix';
 import { locateOnce } from '../../lib/locate';
+import { useReducedMotion } from '../../lib/motion';
 import { perfCount } from '../../lib/perfCount';
 import type { LngLat } from '../../lib/types';
 import { useLocate, type LocateError } from '../../lib/useLocate';
@@ -46,6 +49,53 @@ const NAMED_POINTS = 3;
 const THREE_COLS = 700;
 const TWO_PANES = 1000;
 const fmt = (m: number) => formatDistance(m);
+
+type Measured = { measureInWindow: (cb: (x: number, y: number, w: number, h: number) => void) => void };
+
+/**
+ * The grid's rows by the areas in them, and its scroll, made once per screen: a swipe brings the
+ * selected tile into view only when it is out of it (DN6). The row and the grid are measured when it
+ * is asked, never from a remembered layout: on web a row moved by a banner above it never reports
+ * again (discrete-navigation audit 4).
+ */
+function createGridRows() {
+  const rows = new Map<string, Measured>();
+  const refs = new Map<string, (v: Measured | null) => void>();
+  let scrollY = 0;
+  return {
+    /** One stable ref per row, holding it under each of its areas. */
+    rowRef: (keys: string[]) => {
+      const id = keys.join('|');
+      let ref = refs.get(id);
+      if (!ref) {
+        let mine: Measured | null = null;
+        ref = (v) => {
+          for (const k of keys) {
+            if (v) rows.set(k, v);
+            else if (rows.get(k) === mine) rows.delete(k);
+          }
+          mine = v;
+        };
+        refs.set(id, ref);
+      }
+      return ref;
+    },
+    scrolled: (y: number) => {
+      scrollY = y;
+    },
+    /** `insetBottom`: what covers the grid's bottom, a town's back pill (discrete-navigation audit 8). */
+    reveal: (key: string, scroller: ScrollViewInstance | null, animated: boolean, insetBottom: number) => {
+      const row = rows.get(key);
+      if (!row || !scroller) return;
+      scroller.measureInWindow((_gx, gy, _gw, gh) => {
+        row.measureInWindow((_x, y, _w, h) => {
+          const to = revealTo({ top: y - gy, h, viewH: gh, scrollY, insetBottom });
+          if (to != null) scroller.scrollTo({ y: to, animated });
+        });
+      });
+    },
+  };
+}
 
 /**
  * Explore as an atlas (AT1-AT16, round 3): the map with the page's title over
@@ -80,6 +130,13 @@ export default function Explore() {
   const [fit, setFit] = useState<{ bounds: Bounds | null; key: number }>({ bounds: null, key: 0 });
   const { focused, savedCamera, onCameraChange, onFitSettled } = useTabMap({ key: fit.key, refit: () => setFit((f) => ({ ...f, key: f.key + 1 })) });
   const [selected, setSelected] = useState<string | null>(null);
+  // The step a swipe just took, so the opposite swipe comes back (DN5); cleared by anything else that moves the selection.
+  const lastStep = useRef<SnapStep | null>(null);
+  // What a swipe landed on, for the screen reader (DN12): web's live region, since react-native-web's announce does nothing.
+  // A count beside it, so the same name twice in a row still changes the region and is said again (audit 7).
+  const [said, setSaid] = useState({ text: '', n: 0 });
+  const [gridRows] = useState(createGridRows);
+  const gridRef = useRef<ScrollViewInstance>(null);
   const [open, setOpen] = useState<string | null>(null);
   // The town whose page is open (AT2); null is the page of the areas near you.
   const [townSeen, setTownSeen] = useState<AtlasArea | null>(null);
@@ -97,14 +154,10 @@ export default function Explore() {
     [drawn, town, home, from, fresh.outlines],
   );
   const borders = useMemo(() => bordersFor(drawn, { tinted: tintedId ? [tintedId] : [], near: town?.at ?? from }), [drawn, tintedId, town, from]);
-  // TB11: the map frames the whole of the tinted town once its border is known, once per town (yours, or a page's).
-  const framedTown = useRef<string | null>(null);
+  // TB11: the whole of the tinted town (yours, or a page's) once its border is known; the page frames it below.
   const townBox = useMemo(() => townFrame(drawn, tintedId), [drawn, tintedId]);
-  useEffect(() => {
-    if (!townBox || framedTown.current === townBox.id) return;
-    framedTown.current = townBox.id;
-    setFit((f) => ({ bounds: townBox.bounds, key: f.key + 1 }));
-  }, [townBox]);
+  // What this visit to the page has framed; opening a page or going back starts a new visit.
+  const framed = useRef<PageFramed | null>(null);
   const [spot, setSpot] = useState<{ at: LngLat; zoom: number } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [pressSeen, setPressSeen] = useState(true);
@@ -133,6 +186,8 @@ export default function Explore() {
       return () => {
         setOpen(null);
         setSpot(null);
+        // The trail is for the swipe straight after; a turn away from the tab ends it (audit 9).
+        lastStep.current = null;
       };
     }, []),
   );
@@ -193,8 +248,8 @@ export default function Explore() {
     for (const l of shown) {
       const a = l.area;
       m.set(a.key, {
-        waiting: a.profile ? waitingMarks(a.profile.marks, found, a.at, fresh.hidden) : [],
-        finds: findsIn(fresh.finds, a.at),
+        waiting: a.profile ? waitingMarks(a.profile.marks, found, a.profile.sketchAt ?? a.at, fresh.hidden) : [],
+        finds: findsIn(fresh.finds, a.profile?.sketchAt ?? a.at),
       });
     }
     return m;
@@ -220,6 +275,7 @@ export default function Explore() {
     const l = shownRef.current.find((x) => x.area.key === key);
     if (!l) return;
     setSpot(null);
+    lastStep.current = null;
     setSelected(key);
     setOpen(key);
     frame([l.area.at], ATLAS_RULES.ringM);
@@ -227,6 +283,8 @@ export default function Explore() {
   // AT2: a town opens its page; Back, Escape and the back pill return (the title has no arrow: decision 0077).
   const enterArea = useCallback((area: AtlasArea) => {
     setSpot(null);
+    lastStep.current = null;
+    framed.current = null;
     setTownSeen(area);
     setSelected(null);
     frame([area.at], townReachM(area) * 0.6);
@@ -237,6 +295,8 @@ export default function Explore() {
   }, [enterArea]);
   const leave = useCallback(() => {
     setSpot(null);
+    lastStep.current = null;
+    framed.current = null;
     setTownSeen(null);
     setSelected(null);
   }, []);
@@ -253,14 +313,17 @@ export default function Explore() {
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
   }, [townSeen, open, focused, leave]);
-  // Each page is framed once its areas are first listed (AT9): the map shows them all.
-  const framed = useRef<string | null>(null);
+  // Each visit to a page is framed (AT9, TB11): its areas until its town's border is known, then the whole
+  // town, and nothing undoes that within the visit (`nextFrame`, fix explore-fit-area).
   useEffect(() => {
-    const key = `${townSeen?.key ?? 'near'}:${fresh.build}`;
-    if (!points.length || framed.current === key) return;
-    framed.current = key;
-    frame(from && !townSeen ? [from, ...points] : points, 150);
-  }, [points, townSeen, fresh.build, from, frame]);
+    const page = townSeen ? `town:${townSeen.key}` : 'near';
+    // A town's page waits for its areas with its reach in view, as `enterArea` frames it (audit 9).
+    const padM = townSeen ? townReachM(townSeen) * 0.6 : 150;
+    const next = nextFrame(framed.current, { page, build: fresh.build, town: townBox, points, from, padM });
+    if (!next) return;
+    framed.current = next.framed;
+    setFit((f) => ({ bounds: next.bounds, key: f.key + 1 }));
+  }, [townSeen, fresh.build, townBox, points, from]);
 
   const lookHere = async (at: LngLat) => {
     if (looking) return;
@@ -284,11 +347,47 @@ export default function Explore() {
     }
   };
 
+  const topInset = mapTopInset(insets.top, Platform.OS === 'web');
+  // The fit's padding, so a swipe centres an area where a tap's frame would (DN2).
+  const mapPad = useMemo(() => ({ top: topInset + 84, right: 24, bottom: spot ? 80 : 24, left: 24 }), [topInset, spot]);
+  const reduced = useReducedMotion();
+  // Discrete navigation (DN2-DN8, DN12): a swipe selects the next area that way and never opens its card;
+  // on a town's page with none of its neighborhoods selected, it opens the next town's page.
+  const onSwipe = useCallback(({ dx, dy, center }: { dx: number; dy: number; center: LngLat }) => {
+    const heading = swipeHeading(dx, dy, bearing);
+    const say = (name: string) => {
+      setSaid((s) => ({ text: name, n: s.n + 1 }));
+      AccessibilityInfo.announceForAccessibility(name);
+    };
+    if (town && snapScope({ townPage: town.key, selected }) === 'towns') {
+      const next = nextArea(town.at, town.key, allTowns.map((l) => ({ key: l.area.key, at: l.area.at })), heading, lastStep.current);
+      const to = next ? allTowns.find((l) => l.area.key === next.key) : null;
+      if (!to) return;
+      // A swipe only selects: a card left open (a side panel on a wide screen) never outlives it (audit 1).
+      setOpen(null);
+      enterArea(to.area);
+      lastStep.current = { from: town.key, to: to.area.key, heading };
+      say(to.area.name);
+      return;
+    }
+    const next = nextArea(sel?.area.at ?? center, sel?.area.key ?? null, neighborhoods.map((l) => ({ key: l.area.key, at: l.area.at })), heading, lastStep.current);
+    const to = next ? neighborhoods.find((l) => l.area.key === next.key) : null;
+    if (!to) return;
+    setSpot(null);
+    setOpen(null);
+    lastStep.current = { from: sel?.area.key ?? null, to: to.area.key, heading };
+    setSelected(to.area.key);
+    mapRef.current?.showPoint(to.area.at, mapPad);
+    // On a town's page the back pill (44 pt, 12 from the bottom) covers the grid's bottom (audit 8).
+    gridRows.reveal(to.area.key, gridRef.current, !reduced, town ? 44 + 12 + 8 : 0);
+    say(to.area.name);
+  }, [bearing, town, selected, sel, allTowns, neighborhoods, enterArea, mapPad, gridRows, reduced]);
+
   const wide = screen.w >= TWO_PANES;
   const cols = screen.w >= THREE_COLS ? 3 : 2;
   const gridMax = wide ? 960 : cols === 3 ? 960 : 640;
   // The map runs under the status bar to the top of the screen, so no band of it is left empty.
-  const mapH = wide ? screen.h : insets.top + Math.round(Math.min(260, Math.max(170, screen.h * 0.26)));
+  const mapH = wide ? screen.h : topInset + Math.round(Math.min(260, Math.max(170, screen.h * 0.26)));
   const mapW = wide ? Math.round(screen.w * 0.4) : screen.w;
   // The title lines up with the grid's column on a wide single pane (round 3).
   const titleLeft = wide ? 12 : Math.max(12, (screen.w - gridMax) / 2 + 12);
@@ -306,7 +405,7 @@ export default function Explore() {
     const rows: Listed[][] = [];
     for (let i = 0; i < list.length; i += cols) rows.push(list.slice(i, i + cols));
     return rows.map((row) => (
-      <View key={row[0].area.key} style={styles.row}>
+      <View key={row[0].area.key} style={styles.row} ref={gridRows.rowRef(row.map((l) => l.area.key))}>
         {row.map((l) => {
           const r = ringOf.get(l.area.key);
           return (
@@ -358,12 +457,21 @@ export default function Explore() {
               db.setMeta(PRESS_HINT_KEY, '1').catch(() => {});
             }
           }}
-          onPress={() => spot && setSpot(null)}
+          onPress={(at, radiusM) => {
+            // A tap closes the long press's choices; with none open, it clears the selection (DN9),
+            // only away from every area's point: a tap on the selected dot keeps it (audit 6).
+            if (spot) setSpot(null);
+            else if (tapClears(at, radiusM, points)) {
+              lastStep.current = null;
+              setSelected(null);
+            }
+          }}
+          onSwipe={onSwipe}
           onViewChange={setView}
           fitBounds={fit.bounds}
           fitKey={fit.key}
           onFitSettled={onFitSettled}
-          fitPadding={{ top: insets.top + 84, right: 24, bottom: spot ? 80 : 24, left: 24 }}
+          fitPadding={mapPad}
           initialCenter={savedCamera?.center ?? from ?? WORLD.center}
           initialZoom={savedCamera?.zoom ?? (from ? 13 : WORLD.zoom)}
           onCameraChange={onCameraChange}
@@ -372,7 +480,7 @@ export default function Explore() {
       )}
       {/* The page's title floats over the map, lifted by a shadow; near you, it is the way into your own town.
           On a town's page it has no back arrow: the pill low on the screen is the one way back (decision 0077). */}
-      <View style={[styles.titleWrap, { top: insets.top + 8, left: titleLeft }]} pointerEvents="box-none">
+      <View style={[styles.titleWrap, { top: topInset + 8, left: titleLeft }]} pointerEvents="box-none">
         <View style={styles.titleCard}>
           <Pressable
             disabled={!!town || !home}
@@ -431,6 +539,9 @@ export default function Explore() {
       {focused && !spot && <WalkLayerControl wk={wk} top={insets.top + 8} />}
       {focused && !spot && <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={8 + 44 + 12} />}
       {toast ? <View style={styles.toast} accessibilityLiveRegion="polite"><Text style={styles.toastText}>{toast}</Text></View> : null}
+      {/* DN12 on web: react-native-web's announceForAccessibility does nothing, so a hidden live region says it.
+          Phones announce through the call alone (a live region too would say it twice on Android). */}
+      {Platform.OS === 'web' ? <Text testID="atlas-snap-said" accessibilityLiveRegion="polite" style={styles.said}>{said.n % 2 ? `${said.text}\u200B` : said.text}</Text> : null}
     </View>
   );
 
@@ -438,7 +549,14 @@ export default function Explore() {
     <View style={[styles.screen, wide && styles.screenWide]} onLayout={(e) => setScreen({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
       {mapPane}
       <View style={styles.listPane}>
-        <ScrollView style={styles.grid} contentContainerStyle={[styles.gridContent, { maxWidth: gridMax }, town && styles.gridWithBack]} testID="atlas-grid">
+        <ScrollView
+          ref={gridRef}
+          style={styles.grid}
+          contentContainerStyle={[styles.gridContent, { maxWidth: gridMax }, town && styles.gridWithBack]}
+          testID="atlas-grid"
+          scrollEventThrottle={64}
+          onScroll={(e) => gridRows.scrolled(e.nativeEvent.contentOffset.y)}
+        >
           {!pressSeen && !spot && from ? (
             <Text style={styles.hint} testID="atlas-press-hint">Press and hold the map to look anywhere.</Text>
           ) : null}
@@ -551,7 +669,12 @@ export default function Explore() {
           you={from}
           nextDoor={nextDoor(card.area, shown.map((l) => l.area), fresh.build)}
           walkTo={!card.here && canWalkTo(card.distanceM) ? walkTarget(card.area) : null}
+          busyAreas={busyAreas(card.area).map((b) => ({ ...b, walkable: !!from && canWalkTo(metresBetween(from, b.at)) }))}
           starting={walkStart.starting}
+          onWalkAt={(at, label) => {
+            setOpen(null);
+            walkStart.start({ at, label, kind: 'point' });
+          }}
           onWalk={() => {
             const t = walkTarget(card.area);
             setOpen(null);
@@ -568,6 +691,7 @@ export default function Explore() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
+  said: { position: 'absolute', width: 1, height: 1, overflow: 'hidden', opacity: 0 },
   screenWide: { flexDirection: 'row' },
   map: { borderBottomWidth: 1, borderColor: theme.line, overflow: 'hidden' },
   mapWide: { borderBottomWidth: 0, borderRightWidth: 1 },

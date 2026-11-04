@@ -1,5 +1,6 @@
 ---
 paths:
+  - "src/lib/__tests__/replay/**"
   - "src/app/replay/**"
   - "src/app/day/**"
   - "src/lib/ceremony/**"

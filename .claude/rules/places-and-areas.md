@@ -5,7 +5,7 @@ paths:
   - "src/components/StarView.tsx"
   - "scripts/build-boundaries.js"
   - "assets/boundaries/**"
-  - "src/lib/__tests__/{areas,places}.test.ts"
+  - "src/lib/__tests__/places/**"
 ---
 # Places and areas
 
@@ -70,7 +70,7 @@ Placing walks in neighborhoods, towns, cities and states (`lib/areas`), the boun
   - **Traps:** outlines are clipped at tile edges, so "not inside" means
     something only where the point's own tile was read (`coveredBy`).
     Of nested outlines the smaller wins by area of the pieces read (Midtown
-    is Manhattan, not New York). Real fixtures: `__tests__/townOutlines.json`
+    is Manhattan, not New York). Real fixtures: `__tests__/places/townOutlines.json`
     (`scripts/fixture-outlines.mjs`). Overture's bucket is reachable from
     cloud sessions.
 - **Natural Earth's 50m admin-1 is too coarse.** It leaves Manhattan, Hoboken

@@ -1,5 +1,6 @@
 ---
 paths:
+  - "src/lib/__tests__/storage/**"
   - "src/lib/db/**"
   - "src/lib/media/**"
 ---

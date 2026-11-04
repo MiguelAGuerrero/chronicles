@@ -2,11 +2,11 @@
 paths:
   - "src/lib/walk/**"
   - "src/components/{Tooltip,WalkBandIcon,WalkLayerControl}.tsx"
-  - "src/lib/__tests__/{walkBands,walkSummary,walkBandWords,walkAhead,walkAheadWatch,walkOverture,walkSourceChain,walkNetwork,walkReader,walkLayer,walkSwitch,walkHeadsUp}.test.ts"
+  - "src/lib/__tests__/walkability/**"
 ---
 # Walkability
 
-How a street treats someone on foot, as a band shown by an icon and a tooltip, never a number (WK1-WK23, decision 0089). The spec is `specs/walkability/spec.md`.
+How a street treats someone on foot, as a band shown by an icon and a tooltip, never a number (WK1-WK23, decision 0093). The spec is `specs/walkability/spec.md`.
 
 ## What it is
 

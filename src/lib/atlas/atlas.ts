@@ -4,9 +4,10 @@ import { AREA_REACH_M } from '../areas/rules';
 import type { Area, PlaceCandidate, WalkArea } from '../areas/types';
 import { MARK_CATEGORIES } from '../discovery/noise';
 import type { CategoryId, Kind } from '../discovery/types';
-import { distanceM, projector } from '../geo';
+import { boundsOf, distanceM, projector, type Bounds } from '../geo';
 import { NAV } from '../nav/rules';
 import type { LngLat } from '../types';
+import type { Pocket } from './pockets';
 
 /*
  * Explore atlas (AT1-AT14), the pure part: which areas are near, how much of
@@ -19,7 +20,11 @@ import type { LngLat } from '../types';
 /** a2: activity density (AD14): graded streets in the sketch, from OSM and Overture. */
 /** a3: town outlines (TO10): the tab lists again, so a town known only by its outline gets a tile. */
 /** a4: atlas grading (AG1, AG3): the findable kinds count only what could be found; thin rings are marked. */
-export const ATLAS_CODE = 'a4';
+/** a5: towns graded across their whole outline, with pockets of activity (TP1-TP11); neighborhoods read as under a4. */
+export const ATLAS_CODE = 'a5';
+
+/** TP10: the older rules a level's rows still stand under, because the change did not touch that level. */
+const CARRIED: Partial<Record<AtlasLevel, readonly string[]>> = { neighborhood: ['a4'] };
 
 export const ATLAS_RULES = {
   /** Every area is measured inside this ring around its point, whatever its level (AT4). */
@@ -109,6 +114,16 @@ export interface AtlasProfile {
   overture: string | null;
   /** The map knows almost nothing here: the kinds say nothing (AG3). */
   thin?: boolean;
+  /** TP1: what the bars were counted across: the town's whole outline, or the 800 m ring around its point (absent: the ring). */
+  extent?: 'outline' | 'ring';
+  /** TP3: the outline needed more tiles than a read takes, so this covers part of the town. */
+  partial?: boolean;
+  /** TP4: the town's pockets of activity, busiest first. */
+  pockets?: Pocket[];
+  /** TP12: the town's outline could not be read, so this is the ring for now: read again after the retry wait. */
+  outlineRetry?: boolean;
+  /** TP2: where the picture is drawn around: the busiest pocket for a graded town (absent: the area's point). */
+  sketchAt?: LngLat;
 }
 
 /** Cache (AT12): one area the atlas listed, and once its ring is read, its profile. */
@@ -131,16 +146,21 @@ export const atlasKey = (a: { level: string; name: string; at: LngLat }) =>
   JSON.stringify([a.level, a.name.normalize('NFC').trim().toLowerCase(), a.at[0].toFixed(3), a.at[1].toFixed(3)]);
 
 /** Whether a row was made under this build and these rules (AT12). */
-export const rowCurrent = (r: { build: string; code: string }, build: string | null) => !!build && r.build === build && r.code === ATLAS_CODE;
+export const rowCurrent = (r: { build: string; code: string; level?: AtlasLevel }, build: string | null) =>
+  !!build && r.build === build && (r.code === ATLAS_CODE || (r.level != null && !!CARRIED[r.level]?.includes(r.code)));
 
 const SAME_M = { neighborhood: 1000, town: 3000 } as const;
 const sameArea = (a: { level: AtlasLevel; name: string; at: LngLat }, b: { level: AtlasLevel; name: string; at: LngLat }) =>
   a.level === b.level && a.name === b.name && distanceM(a.at, b.at) <= SAME_M[a.level];
 
-/** The places inside the ring, once each. */
-function inRing<T extends AtlasPlace>(places: T[], centre: LngLat): T[] {
+/** Whether a spot is inside what an area is counted across: the 800 m ring around its point, or (TP1) a given extent. */
+export type Within = (at: LngLat) => boolean;
+const ringWithin = (centre: LngLat): Within => (at) => distanceM(at, centre) <= ATLAS_RULES.ringM;
+
+/** The places inside the ring (or the extent), once each. */
+function inRing<T extends AtlasPlace>(places: T[], centre: LngLat, within: Within = ringWithin(centre)): T[] {
   const seen = new Set<string>();
-  return places.filter((p) => !seen.has(p.key) && distanceM(p.at, centre) <= ATLAS_RULES.ringM && !!seen.add(p.key));
+  return places.filter((p) => !seen.has(p.key) && within(p.at) && !!seen.add(p.key));
 }
 
 /**
@@ -148,12 +168,12 @@ function inRing<T extends AtlasPlace>(places: T[], centre: LngLat): T[] {
  * AG1: the five findable kinds count only places that could be found (a plain parish
  * church counts toward nothing); food, shops and nightlife count every place.
  */
-export function presenceSteps(places: AtlasPlace[], centre: LngLat): Steps {
+export function presenceSteps(places: AtlasPlace[], centre: LngLat, within: Within = ringWithin(centre)): Steps {
   const seen = new Set<string>();
   const counts = Object.fromEntries(ATLAS_ORDER.map((c) => [c, 0])) as Record<CategoryId, number>;
   for (const p of places) {
     if (p.markable === false && MARK_CATEGORIES.includes(p.category)) continue;
-    if (seen.has(p.key) || distanceM(p.at, centre) > ATLAS_RULES.ringM) continue;
+    if (seen.has(p.key) || !within(p.at)) continue;
     seen.add(p.key);
     counts[p.category] += 1;
   }
@@ -161,7 +181,8 @@ export function presenceSteps(places: AtlasPlace[], centre: LngLat): Steps {
 }
 
 /** AG3: the map knows almost nothing about this ring: fewer than `thinPlaces` places of the eight kinds, ordinary ones included. */
-export const thinRing = (places: AtlasPlace[], centre: LngLat): boolean => inRing(places, centre).length < ATLAS_RULES.thinPlaces;
+export const thinRing = (places: AtlasPlace[], centre: LngLat, within: Within = ringWithin(centre)): boolean =>
+  inRing(places, centre, within).length < ATLAS_RULES.thinPlaces;
 
 /** New rows for the candidates no current row already stands for. */
 export function newRows(
@@ -218,9 +239,13 @@ export function nearList(rows: AtlasArea[], from: LngLat, level: AtlasLevel, bui
 /** AT5: the next ring to read, nearest first, skipping one that failed less than the retry wait ago. */
 /** When a ring read with another Overture release, or without one, is due to be read again (AD6, AD7); null when it isn't stale. */
 export function rereadAt(a: AtlasArea, release: string | null): number | null {
-  if (!a.profile || !profileStale(a.profile, release)) return null;
+  if (!a.profile) return null;
+  // TP12: a town's ring read for want of its outline is asked again once the retry wait is over.
+  const outline = a.profile.outlineRetry ? (a.read_at ?? 0) + ATLAS_RULES.retryMs : null;
+  if (!profileStale(a.profile, release)) return outline;
   const wait = a.profile.overture == null ? ATLAS_RULES.overtureRetryMs : ATLAS_RULES.retryMs;
-  return (a.read_at ?? 0) + wait;
+  const overture = (a.read_at ?? 0) + wait;
+  return outline == null ? overture : Math.min(outline, overture);
 }
 
 /** AD6, activity-density audit 13: a ring measured with another release, or without Overture while one is known. */
@@ -279,6 +304,33 @@ export function townOf(area: { at: LngLat }, towns: AtlasArea[], outlines: Outli
   const pick = townAt(area.at, merged, outlines);
   const i = pick ? merged.indexOf(pick.c) : -1;
   return i >= 0 && i < towns.length ? towns[i] : null;
+}
+
+/** What a visit to a page has framed (AT9, TB11): its page and build, and the towns whose whole border it framed. */
+export type PageFramed = { page: string; build: string | null; towns: string[] };
+
+/**
+ * What a visit to a page of the atlas frames next (AT9, TB11; fix explore-fit-area, Nov 4): its
+ * areas (and you, near you) padded by `padM` while its town's border is unknown (150 m near you, a
+ * town's reach on its page, where its own point may be all that is listed), then the whole town
+ * once the border is known (yours near you, or the open town's). Within a visit nothing else
+ * refits: areas listed after the border, a border briefly unknown (the tab blurred), you moving, a
+ * Locate or a pan, or coming back into a town it already framed. A new page, a new build or
+ * another town frames again. `last` is null at the start of a visit. Two separate frames once
+ * raced, and the areas' won.
+ */
+export function nextFrame(
+  last: PageFramed | null,
+  p: { page: string; build: string | null; town: { id: string; bounds: Bounds } | null; points: LngLat[]; from: LngLat | null; padM: number },
+): { framed: PageFramed; bounds: Bounds } | null {
+  const same = !!last && last.page === p.page && last.build === p.build;
+  if (p.town) {
+    if (same && last.towns.includes(p.town.id)) return null;
+    return { framed: { page: p.page, build: p.build, towns: [...(same ? last.towns : []), p.town.id] }, bounds: p.town.bounds };
+  }
+  if (same || !p.points.length) return null;
+  const box = boundsOf(p.page === 'near' && p.from ? [p.from, ...p.points] : p.points, p.padM);
+  return box ? { framed: { page: p.page, build: p.build, towns: [] }, bounds: box } : null;
 }
 
 /** How far around a town's point its neighborhoods are looked for. */
@@ -474,14 +526,33 @@ export const MARKS_EXPLAINED: readonly string[] = [
   'Every area is judged the same way, within about a ten-minute walk of its point, so the same marks mean the same anywhere.',
 ];
 
+/** The line a town counted across its whole outline says in place of the ring's (TP8). */
+const WHOLE_TOWN_LINE = 'A town is counted across its whole outline, and a neighborhood within about a ten-minute walk of its point, so the same marks mean the same anywhere. Where a town is busiest is listed apart.';
+
+/** TP8: how the marks work for an area: a graded town says it is counted across its outline (no digits, AT11). */
+export const marksExplained = (p: Pick<AtlasProfile, 'extent'> | null | undefined): readonly string[] =>
+  p?.extent === 'outline' ? [...MARKS_EXPLAINED.slice(0, -1), WHOLE_TOWN_LINE] : MARKS_EXPLAINED;
+
+/** TP8: the card's heading over the kinds: a town counted across its outline is no longer "around its centre". */
+export const kindsHeading = (level: AtlasLevel, p: Pick<AtlasProfile, 'extent'> | null | undefined): string =>
+  level === 'town' && p?.extent !== 'outline' ? 'What’s here · around its centre' : 'What’s here';
+
+/** TP7: a pocket's name on the card: the busiest street through it, else a plain word. */
+export const pocketLabel = (p: Pocket): string => p.name ?? 'A busy area';
+
+/** TP7: the busy areas of a town, busiest first, each with where Walk to goes; none for a neighborhood or a ring-graded town. */
+export const busyAreas = (a: AtlasArea): { label: string; at: LngLat }[] =>
+  a.level === 'town' && a.profile?.extent === 'outline' ? (a.profile.pockets ?? []).map((p) => ({ label: pocketLabel(p), at: p.at })) : [];
+
 /** AT13: one sentence a screen reader says for a tile; how far and the walked count are its only numbers (AT11). */
 export function tileLabel(l: Listed, fam: Familiarity, fmt: (m: number) => string): string {
   const a = l.area;
   const head = `${a.name}. ${distanceWords(l.distanceM, l.here, fmt)}. ${familiarityWords(fam)}.`;
   if (!a.profile) return `${head} Being read.`;
   if (a.profile.thin) return head;
+  const part = a.profile.partial ? ' Covers part of the town.' : '';
   const kinds = ATLAS_ORDER.filter((c) => a.profile!.steps[c]).map((c) => `${ATLAS_LABEL[c]}: ${STEP_WORDS[a.profile!.steps[c]]}`);
-  return [head, kinds.length ? `${kinds.join(', ')}.` : 'Quiet: little of any kind.', a.profile.strips[0] ? `Busy along ${a.profile.strips[0]}.` : '']
+  return [head, kinds.length ? `${kinds.join(', ')}.` : 'Quiet: little of any kind.', a.profile.strips[0] ? `Busy along ${a.profile.strips[0]}.` : '', part.trim()]
     .filter(Boolean).join(' ');
 }
 

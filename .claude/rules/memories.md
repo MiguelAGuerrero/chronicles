@@ -2,7 +2,7 @@
 paths:
   - "src/lib/memories.ts"
   - "src/components/MemoryPreview.tsx"
-  - "src/lib/__tests__/memories.test.ts"
+  - "src/lib/__tests__/memories/**"
 ---
 # Memories on revisit
 

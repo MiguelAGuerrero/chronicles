@@ -1,7 +1,7 @@
 ---
 paths:
   - "src/lib/rides.ts"
-  - "src/lib/__tests__/rides.test.ts"
+  - "src/lib/__tests__/rides/**"
 ---
 # Rides
 

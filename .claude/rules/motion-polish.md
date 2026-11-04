@@ -2,7 +2,7 @@
 paths:
   - "src/lib/{motionTokens,motion,enter,zoomOut,haptics}.ts"
   - "src/components/{Enter,HomeSheet,ui}.tsx"
-  - "src/lib/__tests__/{enter,enterAudit,motion}.test.ts"
+  - "src/lib/__tests__/motion/**"
 ---
 # Polish: motion
 

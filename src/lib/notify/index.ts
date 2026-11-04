@@ -1,19 +1,14 @@
 // @layer shell
+// @instance: the app's notifier and its switches; its own composition root (`ports` imports the notifier, so this builds from `db`)
 import { db } from '../db';
-import { createNotifier, parseNoticePrefs, serializePrefs, type NoticePrefs } from './core';
+import { createNotifier } from './core';
+import { createNoticePrefs } from './prefs';
 import { transport } from './transport';
 
 export { NOTICE_KINDS, PAUSE_REMIND_MS, type Notifier, type NoticePrefs, type Permission } from './core';
+export { NOTIFY_OFF_KEY } from './prefs';
 
-/** Meta: the notification kinds switched off in Settings (NT4). */
-export const NOTIFY_OFF_KEY = 'notify_off';
-
-export async function loadNoticePrefs(): Promise<NoticePrefs> {
-  return parseNoticePrefs(await db.getMeta(NOTIFY_OFF_KEY));
-}
-export async function saveNoticePrefs(p: NoticePrefs): Promise<void> {
-  await db.setMeta(NOTIFY_OFF_KEY, serializePrefs(p));
-}
+export const { loadNoticePrefs, saveNoticePrefs } = createNoticePrefs({ db });
 
 /**
  * The app's notifier (NT3): the platform transport, the walker's switches, and
