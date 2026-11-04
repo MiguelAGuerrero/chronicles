@@ -65,8 +65,8 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
   (`locked`; audit 4: a refused raise once left it part-way over Save). The summary (`ready-summary`)
   is the one button for a keyboard or screen reader: Enter, Space or `activate`, named with the numbers
   and the destination (audit 6); the grip is hidden from assistive tech. The walk's cards sit above the
-  strip and left of the stack's column (`cardAt`, audit 5); the scale bar sits at `SCALE_BOTTOM` (80),
-  clear of one pill (audit 11). Its own spring is the app's (M5) with a 0.5 px rest, and the
+  strip and left of the stack's column (`cardAt`, audit 5); the scale bar sits in the bottom-left
+  corner at `SCALE_BOTTOM` (12, the owner, Nov 4), and the pills sit above it (audit 11). Its own spring is the app's (M5) with a 0.5 px rest, and the
   settings stay mounted until the lowering spring finishes, so the foot never jumps. The range ring
   shows on the map only while it is up in Explore. A long press on the ready map sets the destination
   (not while the bar is up or mid-memo); the resting bar then says `To <place> · <distance> away`.
