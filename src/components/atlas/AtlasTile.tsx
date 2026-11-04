@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { characterLine, distanceWords, familiarityWords, tileLabel, type Familiarity, type Listed } from '../../lib/atlas/atlas';
+import { ATLAS_ORDER, characterLine, distanceWords, familiarityWords, tileLabel, type Familiarity, type Listed, type Steps } from '../../lib/atlas/atlas';
 import type { CategoryId } from '../../lib/discovery/types';
 import { formatDistance } from '../../lib/format';
 import type { LngLat } from '../../lib/types';
@@ -9,6 +9,9 @@ import { Icon } from '../icons';
 import { theme } from '../ui';
 import { KindStrip } from './KindStrip';
 import { MiniMap } from './MiniMap';
+
+/** A thin ring's tile shows no kinds (AG3). */
+const NO_KINDS = Object.fromEntries(ATLAS_ORDER.map((c) => [c, 0])) as Steps;
 
 const fmt = (m: number) => formatDistance(m);
 
@@ -60,7 +63,8 @@ export const AtlasTile = memo(function AtlasTile(props: {
                 <ActivityIndicator size="small" color={theme.muted} />
                 <Text style={styles.metaText} numberOfLines={1}>Reading this area…</Text>
               </View>
-            ) : (
+            ) : a.profile!.thin ? null : (
+              // AG3: a ring the map knows almost nothing about says nothing about its kinds.
               <Text style={styles.character} numberOfLines={2} testID="atlas-character">{characterLine(a.profile!.steps)}</Text>
             )}
             <Text style={styles.metaText} numberOfLines={2}>
@@ -74,7 +78,7 @@ export const AtlasTile = memo(function AtlasTile(props: {
                 <Text style={styles.busy} numberOfLines={1}>{a.profile.strips[0]}</Text>
               </View>
             ) : null}
-            <KindStrip steps={a.profile?.steps ?? null} />
+            <KindStrip steps={a.profile?.thin ? NO_KINDS : a.profile?.steps ?? null} />
           </View>
         </View>
         {footer ? (

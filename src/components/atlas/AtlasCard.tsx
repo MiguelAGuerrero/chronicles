@@ -173,27 +173,30 @@ export function AtlasCard(props: {
             <MiniMap area={area} walked={props.walked} waiting={props.waiting} finds={props.finds} here={props.here ? props.you : null} />
           </View>
 
-          <View style={styles.sec}>
-            <View style={styles.secHead}>
-              <Text style={styles.secTitle} accessibilityRole="header">
-                {area.level === 'town' ? 'What’s here · around its centre' : 'What’s here'}
-              </Text>
-              <Pressable testID="atlas-how" accessibilityRole="button" accessibilityState={{ expanded: how }} onPress={() => setHow((v) => !v)} style={styles.howBtn}>
-                <Icon name="information-circle-outline" size={16} color={theme.accent} />
-                <Text style={styles.howText}>How the marks work</Text>
-              </Pressable>
-            </View>
-            {how && (
-              <View style={styles.explain} testID="atlas-how-panel">
-                {MARKS_EXPLAINED.map((line) => <Text key={line} style={styles.explainText}>{line}</Text>)}
+          {/* AG3: a ring the map knows almost nothing about says nothing about its kinds. */}
+          {!p?.thin && (
+            <View style={styles.sec}>
+              <View style={styles.secHead}>
+                <Text style={styles.secTitle} accessibilityRole="header">
+                  {area.level === 'town' ? 'What’s here · around its centre' : 'What’s here'}
+                </Text>
+                <Pressable testID="atlas-how" accessibilityRole="button" accessibilityState={{ expanded: how }} onPress={() => setHow((v) => !v)} style={styles.howBtn}>
+                  <Icon name="information-circle-outline" size={16} color={theme.accent} />
+                  <Text style={styles.howText}>How the marks work</Text>
+                </Pressable>
               </View>
-            )}
-            {p ? (
-              ATLAS_ORDER.map((c) => <KindRow key={c} kind={c} step={p.steps[c]} testID={`atlas-kind-${c}`} />)
-            ) : (
-              <Text style={styles.muted}>Reading this area…</Text>
-            )}
-          </View>
+              {how && (
+                <View style={styles.explain} testID="atlas-how-panel">
+                  {MARKS_EXPLAINED.map((line) => <Text key={line} style={styles.explainText}>{line}</Text>)}
+                </View>
+              )}
+              {p ? (
+                ATLAS_ORDER.map((c) => <KindRow key={c} kind={c} step={p.steps[c]} testID={`atlas-kind-${c}`} />)
+              ) : (
+                <Text style={styles.muted}>Reading this area…</Text>
+              )}
+            </View>
+          )}
 
           {p && p.strips.length > 0 && (
             <View style={styles.sec}>

@@ -477,6 +477,18 @@ export function passedPlaces(o: { items: ChecklistItem[]; fixes: { at: LngLat; t
 export const passedCount = (o: Parameters<typeof passedPlaces>[0]): number => passedPlaces(o).length;
 
 /**
+ * The places `passedPlaces` names, each with when the walk first came within
+ * reach of it (RR15): the replay whispers each one as the walker gets there.
+ */
+export function passedAlong(o: Parameters<typeof passedPlaces>[0]): (ChecklistItem & { t: number })[] {
+  const fixes = o.fixes.filter((f) => f.t >= o.since);
+  return passedPlaces(o).flatMap((i) => {
+    const f = fixes.find((x) => distanceM(x.at, i.at) <= EXPLORE_RULES.revealM);
+    return f ? [{ ...i, t: f.t }] : [];
+  });
+}
+
+/**
  * The card's low (E11), said in words (tabs audit U13): one or two places by
  * name, else "a few places", never a count. A generic name ("A viewpoint")
  * reads in the sentence's case.

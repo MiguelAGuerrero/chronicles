@@ -41,8 +41,8 @@ src/app/(tabs)/index.tsx     Explore (/): the atlas of the areas near you (tiles
 src/app/(tabs)/chronicle.tsx Chronicle, the home: stars by area at the level for the zoom, moment pins from z11, the HomeSheet (Walks | Days), old-walk placement
 src/app/explore.tsx          the old /explore path: dismissTo("/") down to Explore (NV2, 0070)
 src/app/walk.tsx             the walk screen, and Navigate: one screen and one map, ready with no walk open (`useReady`), else live trace and dot, fog, captures, navigation bar, Explore marks, memories, reminders, options, hold-to-stop
-src/app/replay/[id].tsx      a walk's replay: the five beats, stops at captures, the card, naming; first watch waits, re-watches advance
-src/app/day/[key].tsx        a day's replay: flies pin to pin through loose moments, plays each walk's own path, a quiet card
+src/app/replay/[id].tsx      a walk's replay: the five beats; the path beat is a ceremony told over the map (lib/ceremony, components/ceremony), or the screen reader's steps; the card, naming
+src/app/day/[key].tsx        a day's replay: the day's story told by the same ceremony (or the screen reader's steps), a quiet card
 ```
 
 ### `src/components/`
@@ -57,6 +57,18 @@ Screens' building blocks
   ScreenError.tsx            what a screen that threw shows instead of a blank page
   webStyles(.web).ts         web-only page fixes: pinned viewport, long-press guards (nothing on native)
   pwa(.web).ts               web manifest and Apple home-screen tags, under the base path
+Replay ceremonies (decisions 0085, 0086)
+  ceremony/Stage.tsx         draws any ceremony's frame over the map: the cut's dim, the clock and the line under it, Held, the overlays by kind
+  ceremony/overlays.tsx      OVERLAYS: one view per overlay kind (the type fails the build until every kind has one); OVERLAY_ORDER
+  ceremony/Bubbles.tsx       notes and memos stacking in the bottom-left corner; a memo plays while its bubble says, pauses when held
+  ceremony/Cards.tsx         a photo or video card that grows from the pin and tucks into the pile; the video plays in it
+  ceremony/Pile.tsx          the photos and videos so far, the last three, no count; opens them in the viewer
+  ceremony/Whispers.tsx      a passed place said beside it (projected from the map's centre and zoom)
+  ceremony/RollingClock.tsx  the time of day, its digits on reels
+  ceremony/StepThrough.tsx   the screen reader's way: the story's moments one at a time with Continue
+  ceremony/useCeremonyClock.ts  the time into a ceremony: an epoch, hold, a pause while a viewer is open, onEnd once
+  ceremony/useRevealed.ts    the captures whose pins are up, one list per count
+  ceremony/layout.ts         where the stage puts things (pile, card, bottom margin), project(), tiltOf
 Home / tabs
   HomeSheet.tsx              the three-height bottom sheet (Animated + responders), Walks | Days, a place's walks, a day's timeline
   StarView.tsx               a star for a place; all one size; the 8 busiest carry names
@@ -121,7 +133,12 @@ Streets, snapping, fog
   tileBuild.ts               reads the build from a TileJSON within a time limit
   tileMath.ts                z14 tile rectangles and edges
   db/segmentBounds.ts a piece's bbox and the z14 tile it is filed under
-  summary.ts                 loadReplay (ReplayData for the replay) and suggestTitle
+  summary.ts                 loadReplay (ReplayData for the replay, with where and when each passed place was passed) and suggestTitle
+  replay.ts                  FOG_MS, groupCaptures, timedRuns, traceUntil, walkerAt: the replay's shared pieces
+  ceremony/types.ts          Story (paths, moves, moments, breaks, travel, passes), Frame, Overlay kinds, Ceremony (decision 0086)
+  ceremony/story.ts          walkStory, dayStory, storySteps; metresAt, timeAtMetres, pathDrawnAt: what happened, no timing or look
+  ceremony/rhythm.ts         the rhythm ceremony (RR1-RR19): rhythmPlan (legs, stops, cuts, the soft cap), rhythmFrame, laterLine, notePause
+  ceremony/registry.ts       CEREMONIES, DEFAULT_CEREMONY, ceremonyFor: a new ceremony is an entry here
   backlog.ts                 placeBacklog: places old walks in one pass through the home map
   mapReads.ts                one camera read at a time (mapReadLock)
 Places and areas (v0.5)
@@ -166,7 +183,7 @@ Discovery and Explore (v1)
   explore/exploreRun.ts      one explore read (decoder, z14 + z11) and the build check
   explore/useExplore.ts      Explore on the walk screen
   explore/exploreTab.ts the drawer's area-in-view (superseded on the tab by the atlas)
-  atlas/atlas.ts             the Explore atlas: near list, presence steps, sketch, familiarity, labels
+  atlas/atlas.ts             the Explore atlas: near list, presence steps (findable kinds count markable places, AG1), thin rings (AG3), sketch, familiarity, labels
   atlas/read.ts              the atlas's reads: areas near you, one ring at a time (decoder)
   atlas/useAtlas.ts          the atlas's data and its read loop, while Explore is in front
   explore/settings.ts        what I'm into, range, pocket alert (meta)
@@ -188,7 +205,7 @@ Landing (v1.5)
 Memories, moments, days
   memories.ts                faint pins from earlier walks: memoryReader, groupFirst
   here.ts                    capturesHere: What happened here, across walks
-  days.ts                    days from capture and walk times, never stored; dayPlan
+  days.ts                    days from capture and walk times, never stored; the day's card
   locate/                    one fix for a loose moment: expo-location on native, navigator.geolocation on web
   useLocate.ts               the Locate tap
 Captures and media
@@ -216,7 +233,7 @@ Notifications
   notify/transport.native.ts expo-notifications; transport.web.ts: the service worker (public/sw.js); webNotice.ts: its message and URL
   openers.ts                 stacked listeners for a tapped notification, newest first
 Motion (animation)
-  motionTokens.ts            MOTION timings, PRESS_SCALE, durationFor, HAPTIC_PATTERNS (each feedback kind's taps), nudgeAllowed, buzzOffered
+  motionTokens.ts            MOTION timings, PRESS_SCALE, durationFor, HAPTIC_PATTERNS (each feedback kind's taps), nudgeAllowed, buzzOffered; REPLAY_RHYTHM (every number of the rhythm)
   motion.ts                  useReducedMotion, nativeDriver, feedback(kind): every haptic goes through here
   enter.ts                   which change gets which of the four entrances
   haptics.ts                 expo-haptics behind feedback(); on web only the pocket alert's nudge plays

@@ -128,6 +128,8 @@ export interface WalkMapProps {
   glideWalker?: boolean;
   /** Keeps the camera centered here while set. */
   follow?: LngLat | null;
+  /** While following, holds the camera at this zoom: the replay's walking zoom and its pull-back (RR3). Rounded to 0.01. */
+  followZoom?: number | null;
   /** Fits the camera to these bounds whenever `fitKey` changes. */
   fitBounds?: Bounds | null;
   fitKey?: number;

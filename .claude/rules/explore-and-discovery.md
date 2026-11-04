@@ -162,6 +162,7 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
   - `sketchOf` and `sketchPaths`: a 200 x 150 frame, with the ring 64 units across its radius on every tile.
   - `tileLabel`.
   - Change what a read keeps, or how it is judged, and bump `ATLAS_CODE`.
+- **Atlas grading (AG1-AG6, decision 0084):** the five findable kinds (`MARK_CATEGORIES`) count only places with `markable` true (`read.ts` sets it from `isMarkable`, chains included), so the dots and the "?" agree. Food, shops and nightlife count all. `profile.thin` (fewer than `ATLAS_RULES.thinPlaces` places in the ring): the tile shows no kinds or character line, the card no kind rows. `MARKABLE_CLASSES` (`tilePois.ts`) is pinned by AG5's test: a new markable class is a change to the spec's definition of a mark. Next: whole areas (DEFERRED).
 - **Presence, not quality.** Bars come only from places inside the ring, against fixed steps. They are never relative to the neighbors, and every level uses the same ring (a town's is around its point). Green counts park places, not park area (deferred).
 - **Reads** (`atlas/read.ts`) decode tiles in code, like every read:
   - the near read: z14 place points for neighborhoods, z11 for towns, recorded in meta `atlas_near:<level>`;

@@ -50,6 +50,10 @@ const SCENARIOS = [
     covers: ['src/lib/areas/**', 'src/lib/atlas/**', 'src/lib/finish.ts', 'scripts/mvt-encode.mjs'],
   },
   {
+    name: 'grading',
+    covers: ['src/lib/atlas/atlas.ts', 'src/components/atlas/{AtlasCard,AtlasTile}.tsx'],
+  },
+  {
     name: 'marks',
     covers: ['src/lib/explore/**', 'src/lib/discovery/**', 'src/lib/atlas/**', 'src/components/MarkPinView.tsx', 'src/components/atlas/**', 'src/app/walk.tsx'],
   },
@@ -60,6 +64,11 @@ const SCENARIOS = [
   {
     name: 'gaps',
     covers: ['src/lib/gaps/**', 'src/components/GapCard.tsx', 'src/app/replay/**', 'src/app/walk.tsx'],
+  },
+  {
+    // Replay rhythm (RR6-RR16, RR19): a seeded walk and its day, watched with no taps.
+    name: 'replay',
+    covers: ['src/app/replay/**', 'src/app/day/**', 'src/components/ceremony/**', 'src/lib/ceremony/**', 'src/lib/{replay,days,summary,motionTokens}.ts', 'src/lib/explore/explore.ts', 'src/components/ui.tsx', 'src/components/map/WalkMap.web.tsx'],
   },
   {
     name: 'hidden',

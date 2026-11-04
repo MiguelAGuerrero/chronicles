@@ -2,7 +2,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { distanceM, distanceToLinesM, dwellsOf, filterFixes, lineLengthM, pausedMs, positionAt, smoothDwells, splitAtGaps, stepToward, traceDistanceM, withoutPauses } from '../geo';
-import { groupCaptures, nextStop, PATH_MS, schedule, walkTimeAt } from '../replay';
+import { groupCaptures, timedRuns } from '../replay';
+import { walkStory, type WalkInput } from '../ceremony/story';
+import { rhythmFrame, rhythmPlan } from '../ceremony/rhythm';
 import { metersPerPixel, PIN_GROUP_PX, pinsFor } from '../pins';
 import { tileAt } from '../tileMath';
 import { snap } from '../snapper';
@@ -130,8 +132,7 @@ test('filterFixes drops inaccurate fixes and impossible jumps', () => {
   assert.deepEqual(positionAt(filterFixes(pts), 7500)!.map((n) => n.toFixed(7)), [O[0].toFixed(7), (O[1] + dLat * 0.05).toFixed(7)]);
 });
 
-test('replay: the path runs in fixed time and stops at each group of captures', () => {
-  const trace = walkAlong([at(0, 0), at(3, 0)]);
+test('replay: nearby captures share one stop, in order', () => {
   const cap = (id: string, t: number, x: number, kind: Capture['kind'] = 'text'): Capture => ({
     id, walk_id: 'w1', t, lat: at(x, 0)[1], lon: at(x, 0)[0], kind, file_path: null, body: kind === 'voice' ? '6000' : 'hi', segment_id: null,
   });
@@ -139,20 +140,6 @@ test('replay: the path runs in fixed time and stops at each group of captures', 
   const groups = groupCaptures(caps);
   assert.equal(groups.length, 2);
   assert.deepEqual(groups[0].captures.map((c) => c.id), ['a', 'b'], 'nearby captures share one stop, in order');
-
-  const s = schedule(trace, caps, 0);
-  assert.equal(s.movingMs, PATH_MS);
-  assert.ok(s.groups[0].atMs < s.groups[1].atMs);
-  // The stop comes when the path reaches the group's time, and not before.
-  assert.equal(nextStop(s, s.groups[0].atMs - 1, 0), null);
-  assert.equal(nextStop(s, s.groups[0].atMs, 0), 0);
-  assert.equal(nextStop(s, s.groups[1].atMs + 5, 1), 1);
-  assert.equal(nextStop(s, PATH_MS, 2), null, 'nothing left once every group was shown');
-  assert.ok(Math.abs(walkTimeAt(s, s.groups[0].atMs) - 20_000) < 1);
-
-  // A two-hour walk's path runs in the same time as a ten-minute one.
-  const long = walkAlong([at(0, 0), at(3, 0), at(0, 0), at(3, 0), at(0, 0)]);
-  assert.equal(schedule(long, [], 0).movingMs, PATH_MS);
 });
 
 test('derive: copies of a street from two tiles stitch into the same pieces as the whole street', () => {
@@ -250,26 +237,24 @@ test('filterFixes: a bad first fix does not lock out the good ones after it', ()
   assert.deepEqual(filterFixes([{ ...base, t: 0, lat: O[1], lon: O[0] }, ...good], 6000).map((p) => p.t), [5000, 10000, 15000, 20000]);
 });
 
-test('replay: gaps collapse, so a resumed walk does not crawl across the night', () => {
+test('replay: gaps collapse, so a resumed walk does not crawl across the night (RR4)', () => {
   const morning = walkAlong([at(0, 0), at(1, 0)]);
   const evening = walkAlong([at(1, 0), at(2, 0)], 'w1', morning.at(-1)!.t + 12 * 3600_000);
-  const s = schedule([...morning, ...evening], [], 0);
-  let crossed = -1;
-  for (let ms = 0; ms <= s.movingMs; ms += 50) {
-    if (walkTimeAt(s, ms) >= evening[0].t) { crossed = ms; break; }
-  }
-  const activeShare = (morning.at(-1)!.t - morning[0].t) / ((morning.at(-1)!.t - morning[0].t) + (evening.at(-1)!.t - evening[0].t));
-  assert.ok(Math.abs(crossed / s.movingMs - activeShare) < 0.1, `crossed at ${crossed} ms of ${s.movingMs}`);
+  const p = rhythmPlan(walkStory(storyOf([...morning, ...evening], [])), { reduceMotion: false });
+  const cut = p.segs.find((s) => s.k === 'cut');
+  assert.ok(cut, 'the night is a cut');
+  assert.equal(rhythmFrame(p, (cut.t0 + cut.t1) / 2).line, '12 h later');
+  assert.ok(p.total < 10_000, `plays in ${p.total} ms`);
 });
 
-test('replay: every capture keeps its stop, and an empty walk has no path to run', () => {
+test('replay: every capture keeps its stop, and an empty walk has nothing to play', () => {
   const trace = walkAlong([at(0, 0), at(3, 0)]);
   const many: Capture[] = Array.from({ length: 300 }, (_, i) => ({
     id: String(i), walk_id: 'w1', t: i * 150, lat: null, lon: null, kind: 'photo', file_path: 'x', body: null, segment_id: null,
   }));
-  const s = schedule(trace, many, 0);
-  assert.equal(s.groups.reduce((n, g) => n + g.captures.length, 0), 300, 'nothing dropped');
-  assert.equal(schedule([], [], 0).movingMs, 0);
+  const p = rhythmPlan(walkStory(storyOf(trace, many)), { reduceMotion: false });
+  assert.equal(p.segs.reduce((n, s) => n + (s.k === 'stop' ? s.slots.length : 0), 0), 300, 'nothing dropped');
+  assert.equal(rhythmPlan(walkStory(storyOf([], [])), { reduceMotion: false }).total, 0);
 });
 
 test('pins: grouped by screen distance at the zoom, joining the nearest pin', () => {
@@ -302,9 +287,13 @@ test('replay: a capture after the trace ends stops the path at its end, not afte
   const late: Capture = {
     id: 'late', walk_id: 'w1', t: last + 40 * 60_000, lat: null, lon: null, kind: 'photo', file_path: 'x', body: null, segment_id: null,
   };
-  const s = schedule(trace, [late], 0);
-  assert.equal(s.groups[0].atMs, PATH_MS, 'its stop comes as the path ends');
-  assert.ok(Math.abs(walkTimeAt(s, PATH_MS / 2) - (trace[0].t + last) / 2) < 6000, 'the walker moves through the trace all the way');
+  const p = rhythmPlan(walkStory(storyOf(trace, [late])), { reduceMotion: false });
+  const stop = p.segs.find((s) => s.k === 'stop')!;
+  const end: LngLat = [trace.at(-1)!.lon, trace.at(-1)!.lat];
+  const f = rhythmFrame(p, stop.t0 + 10);
+  assert.ok(f.walker && distanceM(f.walker, end) <= 25, 'its stop comes as the path ends (within the standstill radius, where it came to a stand)');
+  const leg = p.segs.find((s) => s.k === 'leg')!;
+  assert.ok(leg.k === 'leg' && leg.move && leg.move.m1 - leg.move.m0 > 250, 'the walker moves through the trace all the way');
 });
 
 test('standstills: a long stay in a small radius becomes one still point, with no jitter distance', () => {
@@ -367,3 +356,11 @@ test('pauses: fixes inside a pause are dropped, and paused time does not count',
   // An open pause runs to the end of the window.
   assert.equal(pausedMs([{ started_at: 1000, ended_at: null }], 0, 5000), 4000);
 });
+
+/** A walk's story input from bare fixes and captures. */
+function storyOf(fixes: TracePoint[], captures: Capture[]): WalkInput {
+  return {
+    walk: { id: 'w1', started_at: fixes[0]?.t ?? 0, ended_at: fixes.at(-1)?.t ?? 0, title: null, epilogue: null, open: false, area: null, snapped_build: null },
+    fixes, walkedFixes: fixes, breaks: [], pauses: [], runs: timedRuns(fixes).map((r) => r.map((x) => x.p)), rideRuns: [], rideTimed: [], captures, passed: [],
+  };
+}
