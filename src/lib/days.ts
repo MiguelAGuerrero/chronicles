@@ -1,7 +1,5 @@
 // @layer core
-import { boundsOf, distanceM, type Bounds } from './geo';
-import { groupCaptures, schedule, timedRuns, traceUntil, walkerAt, type Schedule, type TimedRun } from './replay';
-import type { ReplayData } from './summary';
+import { distanceM } from './geo';
 import type { Capture, LngLat, Walk } from './types';
 
 /**
@@ -11,8 +9,6 @@ import type { Capture, LngLat, Walk } from './types';
  * out from times when read. Pure: nothing here touches storage or the map.
  */
 
-/** How long the day's replay takes to ease the map to the next pin. */
-export const FLY_MS = 1500;
 /** Moments closer than this are one place on the day's card. */
 const SPOT_M = 100;
 
@@ -146,114 +142,12 @@ export function dayCard(day: Day, now: number, distanceByWalk: Map<string, numbe
   };
 }
 
-export type DayStep =
-  /** The map eases to a pin before its stop. */
-  | { kind: 'fly'; to: LngLat; ms: number }
-  /** Moments shown one after another, each until the viewer moves on. */
-  | { kind: 'stop'; captures: Capture[]; walkId: string | null }
-  /** A stretch of a walk's path, in that walk's replay time (`Schedule`). */
-  | { kind: 'path'; walkId: string; fromMs: number; toMs: number };
-
-const posOf = (c: Capture): LngLat | null => (c.lat != null && c.lon != null ? [c.lon, c.lat] : null);
-
-/**
- * The day's replay as steps (M10-M14). Loose moments ease the map to their
- * pin and stop; a moment with no place stops where the map is. A walk plays
- * its path from its own schedule, stopping at its moments, then the day
- * carries on. A walk whose replay could not be loaded shows its moments as
- * loose ones.
- */
-export function dayPlan(day: Day, walks: Map<string, { sched: Schedule; start: LngLat | null }>): DayStep[] {
-  const steps: DayStep[] = [];
-  const looseGroup = (captures: Capture[]) => {
-    for (const g of groupCaptures(captures)) {
-      const to = g.at ?? g.captures.map(posOf).find((p) => p != null) ?? null;
-      if (to) steps.push({ kind: 'fly', to, ms: FLY_MS });
-      steps.push({ kind: 'stop', captures: g.captures, walkId: null });
-    }
-  };
-  let pending: Capture[] = [];
-  const flush = () => {
-    if (pending.length) looseGroup(pending);
-    pending = [];
-  };
-  for (const e of day.entries) {
-    if (e.kind === 'moment') {
-      pending.push(e.capture);
-      continue;
-    }
-    flush();
-    const w = walks.get(e.walk.id);
-    if (!w || w.sched.movingMs <= 0) {
-      looseGroup(e.captures);
-      continue;
-    }
-    if (w.start) steps.push({ kind: 'fly', to: w.start, ms: FLY_MS });
-    let from = 0;
-    for (const g of w.sched.groups) {
-      if (g.atMs > from) steps.push({ kind: 'path', walkId: e.walk.id, fromMs: from, toMs: g.atMs });
-      from = Math.max(from, g.atMs);
-      steps.push({ kind: 'stop', captures: g.captures, walkId: e.walk.id });
-    }
-    if (w.sched.movingMs > from) steps.push({ kind: 'path', walkId: e.walk.id, fromMs: from, toMs: w.sched.movingMs });
-  }
-  flush();
-  return steps;
-}
-
-/** How closely a pin is framed when the day's replay flies to it. */
-const PIN_FRAME_M = 150;
-
-/**
- * Where the camera frames each fly step (audit: a day across a city left
- * every walk a few pixels wide): a walk by its whole trace, a pin close up.
- * Other steps keep the frame they are in (null).
- */
-export function stepFrames(plan: DayStep[], walkPoints: Map<string, LngLat[]>): (Bounds | null)[] {
-  return plan.map((s, i) => {
-    if (s.kind !== 'fly') return null;
-    const after = plan[i + 1];
-    const pts = after?.kind === 'path' ? walkPoints.get(after.walkId) : null;
-    return pts?.length ? boundsOf(pts, 60) : boundsOf([s.to], PIN_FRAME_M);
-  });
-}
-
-/**
- * A walk inside a day's replay, timed as the walk's own replay times it: the
- * dot follows walked and ridden fixes, the solid trace only the walked ones,
- * and rides are drawn dashed (R5, R10). Each timed list is paired with the
- * runs drawn from the same fixes: `traceUntil` cuts the drawn run at the timed
- * run's index, so a mismatched pair draws a straight line to the dot.
- */
-export interface WalkPlay {
-  sched: Schedule;
-  /** The dot: walked and ridden fixes. */
-  dot: TimedRun[];
-  /** The solid trace, timed and drawn. */
-  walkedTimed: TimedRun[];
-  full: LngLat[][];
-  rideTimed: TimedRun[];
-  rideRuns: LngLat[][];
-  start: LngLat | null;
-}
-
-export function walkPlay(r: Pick<ReplayData, 'fixes' | 'walkedFixes' | 'breaks' | 'pauses' | 'runs' | 'rideRuns' | 'rideTimed' | 'rides' | 'captures' | 'walk'>): WalkPlay {
-  return {
-    sched: schedule(r.fixes, r.captures, r.walk.started_at, r.pauses, r.rides),
-    dot: timedRuns(r.fixes, r.pauses),
-    walkedTimed: timedRuns(r.walkedFixes, r.breaks),
-    full: r.runs,
-    rideTimed: r.rideTimed,
-    rideRuns: r.rideRuns,
-    start: r.fixes[0] ? [r.fixes[0].lon, r.fixes[0].lat] : null,
-  };
-}
-
-/** What a walk shows at walk time t: the trace and rides so far, and the dot. */
-export function walkDrawnAt(w: WalkPlay, t: number): { trace: LngLat[][]; rides: LngLat[][]; walker: LngLat | null } {
-  return {
-    trace: traceUntil(w.walkedTimed, w.full, t),
-    rides: traceUntil(w.rideTimed, w.rideRuns, t),
-    walker: walkerAt(w.dot, t),
-  };
+/** The day less the moments just deleted (D3, audit 26): its story and its card read the same. The same day when nothing was. */
+export function dayWithout(day: Day, hidden: ReadonlySet<string>): Day {
+  if (!day.entries.some((e) => (e.kind === 'moment' ? hidden.has(e.capture.id) : e.captures.some((c) => hidden.has(c.id))))) return day;
+  const entries = day.entries.flatMap((e): Day['entries'] =>
+    e.kind === 'moment' ? (hidden.has(e.capture.id) ? [] : [e]) : [{ ...e, captures: e.captures.filter((c) => !hidden.has(c.id)) }],
+  );
+  const moments = entries.reduce((n, e) => n + (e.kind === 'moment' ? 1 : e.captures.length), 0);
+  return { ...day, entries, moments };
 }

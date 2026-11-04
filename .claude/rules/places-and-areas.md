@@ -41,6 +41,34 @@ Placing walks in neighborhoods, towns, cities and states (`lib/areas`), the boun
     `collectPlaces` reads the place layer at z10 (`PLACES_ZOOM`) around the walk.
   - Changing `AREA_RULES` or a pack's edition re-places every walk through the
     `snap_rules` meta.
+- **Town outlines decide first** (TO1-TO12, decision 0083; `AREA_RULES` 2).
+  A piece's town is the smallest Overture locality outline holding it
+  (`townAt` in `areas/outlines.ts`); only where no outline read covers the
+  point does the nearest point win. Where the tile under a point was read, a
+  town whose outline misses it is never taken by its point (that was the
+  Whitehall/Catasauqua bug). A neighborhood point counts only inside the
+  piece's town outline (`hoodAllowed`).
+  - **Sources:** `areas/divisionTiles.ts` is the only file that knows
+    Overture's schema (`division_area` subtype `locality`, class not
+    `maritime`; `division` points joined by `division_id`). `withOutlines`
+    joins a label point to its outline when the point is inside it (or
+    beyond the tiles read, within 3 km), keeping the label point, so stars and
+    keys stay put; an outline-only town gets Overture's point, else the
+    middle of what was read.
+  - **Reads:** z12 tiles under the points, at most 12 (`outlineTilesFor`),
+    through `outlines` (`outlineReader.ts`). Each tile is kept in
+    `outline_tile` (derived, migration 16, IndexedDB v14) and never read
+    again; the release is not in the rules tag, so a new edition alone
+    re-places nothing.
+  - **Retry:** a walk whose tiles failed is saved by points with
+    `placesRead` false (`placesRead()` in `assign.ts`), so it is placed again;
+    one wider than 12 tiles (`tooMany`) is placed by points for good.
+  - **Traps:** outlines are clipped at tile edges, so "not inside" means
+    something only where the point's own tile was read (`coveredBy`).
+    Of nested outlines the smaller wins by area of the pieces read (Midtown
+    is Manhattan, not New York). Real fixtures: `__tests__/places/townOutlines.json`
+    (`scripts/fixture-outlines.mjs`). Overture's bucket is reachable from
+    cloud sessions.
 - **Natural Earth's 50m admin-1 is too coarse.** It leaves Manhattan, Hoboken
   and Miami Beach outside every state. The shipped US pack is built from the
   10m edition (577 KB). Rebuild it with

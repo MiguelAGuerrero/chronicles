@@ -24,7 +24,7 @@ Recording a walk and reading its trace: pauses, standstills, GPS jitter, the liv
   suppressed, because the screen's own reminder shows.
 - **A pause is a break in the trace however short.** `isBreak(a, b, pauses)` in
   `geo.ts` is used by `splitAtGaps`, `traceDistanceM`, the snapper, `timedRuns`
-  and the replay's `activeClock`. Pass the walk's pauses everywhere a trace is
+  and the replay's story (`lib/ceremony/story.ts`). Pass the walk's pauses everywhere a trace is
   drawn, measured or replayed. `useLiveTrace` takes the pauses too, drops fixes
   inside them, and doesn't report a pause as a hidden-page gap.
 - **The hidden-page notice needs a hidden page** (decision 0077, Nov 3): a gap is

@@ -112,8 +112,13 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
 
   useEffect(() => {
     // Follows the gliding dot, so the camera and the dot move together.
-    if (ready && props.follow) cameraRef.current?.jumpTo({ center: glide.walker ?? props.follow });
-  }, [ready, props.follow, glide.walker]);
+    if (!ready || !props.follow) return;
+    // The replay holds a zoom while it follows (RR3; unverified on a device).
+    const zoom = props.followZoom == null ? undefined : Math.round(props.followZoom * 100) / 100;
+    // Gliding (the live walk), the camera rides the dot; otherwise it goes where `follow` says (a ceremony's camera, audit 25).
+    const center = props.glideWalker ? (glide.walker ?? props.follow) : props.follow;
+    cameraRef.current?.jumpTo(zoom == null ? { center } : { center, zoom });
+  }, [ready, props.follow, props.followZoom, props.glideWalker, glide.walker]);
   // A fit is a request made while mounted: a map brought back (the home, after a walk) keeps its view.
   const onFitSettled = useRef(props.onFitSettled);
   useEffect(() => {

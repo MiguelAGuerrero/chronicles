@@ -683,67 +683,54 @@ async function checks(h) {
     }
     check(reading, 'the first beat reads the streets');
 
-    // The memo and the video share the first stop. Step past the memo with
-    // Continue; the video then plays, and waits for Continue too.
-    for (let k = 0; k < 4 && !(await page.locator('video').count()); k++) {
-      await page.waitForSelector('[data-testid=moment]', { timeout: 60000 });
-      await page.waitForTimeout(900);
-      if (!(await page.locator('video').count())) await page.click('[data-testid=moment]');
-      await page.waitForTimeout(400);
-    }
-    await page.waitForSelector('video', { timeout: 30000 });
-    await page.waitForTimeout(1500);
-    await shot(page, '04a-replay-video');
-    const playing = await page.evaluate(() => {
-      const v = document.querySelector('video');
-      return !!v && v.currentTime > 0 && !v.paused;
-    });
-    check(playing, 'the video plays at its stop in the replay');
-    if (await page.locator('[data-testid=video-sound]').count()) {
-      // Sound was refused without a tap: it plays muted, and one tap brings the sound.
-      await page.click('[data-testid=video-sound]');
-      await page.waitForTimeout(500);
-      const sound = await page.evaluate(() => {
-        const v = document.querySelector('video');
-        return !!v && !v.muted && !v.paused;
-      });
-      check(sound, 'a video that could not start with sound plays muted, and a tap turns the sound on');
-    }
-    // The player fills the screen's width, above the strip with Continue.
-    const vbox = await page.locator('video').boundingBox();
-    const cbox = await page.locator('[data-testid=moment]').boundingBox();
-    check(vbox && cbox && vbox.width >= 389 && vbox.y + vbox.height <= cbox.y, `the video fills the width above the strip (${vbox && Math.round(vbox.width)} wide)`);
-    await page.click('[data-testid=moment]');
-
-    let moment = false;
-    for (let k = 0; k < 120 && !moment; k++) {
-      moment = (await page.getByText('cardamom').count()) > 0;
-      if (!moment) await page.waitForTimeout(500);
-    }
-    check(moment, 'the note gets its moment in the replay');
-    // The replay is another map: its pin for the reminded note wears the bell too (RB6).
-    const replayBell = await page.waitForSelector('[data-ids] [data-testid=pin-reminder]', { timeout: 5000 }).then(() => true, () => false);
-    check(replayBell, 'the replay\u2019s pin for the reminded note wears the bell too (RB6)');
-    await page.waitForTimeout(3000);
-    await shot(page, '04-replay-moment');
-    check((await page.getByText('cardamom').count()) > 0, 'the replay waits at the note until a tap');
-    await page.click('[data-testid=moment]');
-
-    // Continue through any stops left (the captioned photo), checking its caption shows.
+    // The replay flows (RR6): nothing asks for Continue. The memo plays in its bubble, the video in its
+    // card, the note joins the corner, the captioned photo grows from its pin and tucks into the pile.
+    let continueSeen = false;
+    let videoChecked = false;
+    let noteSeen = false;
     let captionShown = false;
-    for (let k = 0; k < 90 && !(await page.locator('[data-testid=to-name]').count()); k++) {
-      if (await page.locator('[data-testid=moment]').count()) {
-        // Give the photo time to load and its caption bar to be placed.
+    for (let k = 0; k < 240 && !(await page.locator('[data-testid=to-name]').count()); k++) {
+      if (await page.locator('[data-testid=moment]').count()) continueSeen = true;
+      if (!videoChecked && (await page.locator('[data-testid=replay-card] video').count())) {
         await page.waitForTimeout(1200);
-        if (await page.locator('[aria-label="Caption: Mural on Wickenden"]').count()) {
-          if (!captionShown) await shot(page, '04b-replay-caption');
-          captionShown = true;
+        await shot(page, '04a-replay-video');
+        const playing = await page.evaluate(() => {
+          const v = document.querySelector('[data-testid=replay-card] video');
+          return !!v && v.currentTime > 0 && !v.paused;
+        });
+        check(playing, 'the video plays in its card in the replay (RR12)');
+        if (await page.locator('[data-testid=video-sound]').count()) {
+          // Sound was refused without a tap: it plays muted, and one tap brings the sound.
+          await page.click('[data-testid=video-sound]');
+          await page.waitForTimeout(300);
+          const sound = await page.evaluate(() => {
+            const v = document.querySelector('[data-testid=replay-card] video');
+            return !!v && !v.muted;
+          });
+          check(sound, 'a video that could not start with sound plays muted, and a tap turns the sound on');
         }
-        await page.click('[data-testid=moment]').catch(() => {});
+        const vbox = await page.locator('[data-testid=replay-card]').boundingBox();
+        check(vbox && vbox.width < 300, `the video plays in a card, not full screen (${vbox && Math.round(vbox.width)} wide, RR12)`);
+        videoChecked = true;
       }
-      await page.waitForTimeout(500);
+      if (!noteSeen && (await page.getByText('cardamom').count()) > 0) {
+        noteSeen = true;
+        // The replay is another map: its pin for the reminded note wears the bell too (RB6).
+        const replayBell = await page.waitForSelector('[data-ids] [data-testid=pin-reminder]', { timeout: 5000 }).then(() => true, () => false);
+        check(replayBell, 'the replay’s pin for the reminded note wears the bell too (RB6)');
+        await shot(page, '04-replay-moment');
+      }
+      if (!captionShown && (await page.locator('[data-testid=replay-card][aria-label^="Mural on Wickenden"]').count())) {
+        captionShown = true;
+        await page.waitForTimeout(400);
+        await shot(page, '04b-replay-caption');
+      }
+      await page.waitForTimeout(250);
     }
-    check(captionShown, 'the photo shows its caption in the replay');
+    check(!continueSeen, 'the replay never waits for Continue (RR6)');
+    check(videoChecked, 'the replay plays the video in a card (RR12)');
+    check(noteSeen, 'the note gets its moment in the replay, in a bubble (RR9)');
+    check(captionShown, 'the photo shows its caption in the replay (RR11)');
     await page.waitForSelector('[data-testid=to-name]', { timeout: 45000 });
     const card = (await page.locator('body').innerText()).replace(/\s+/g, ' ');
     // A block each of Transit and Arnold; the unnamed block between them clears fog but is not a street.

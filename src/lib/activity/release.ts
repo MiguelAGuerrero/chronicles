@@ -12,6 +12,9 @@ export const OVERTURE_BUCKET = 'https://overturemaps-extras-us-west-2.s3.amazona
 /** AD3: one release's places, a single PMTiles file read by byte range. */
 export const overtureUrl = (release: string) => `${OVERTURE_BUCKET}/tiles/${release}/places.pmtiles`;
 
+/** Town outlines (TO1): the same release's divisions, read by byte range like its places. */
+export const overtureDivisionsUrl = (release: string) => `${OVERTURE_BUCKET}/tiles/${release}/divisions.pmtiles`;
+
 /** The bucket's listing of releases. */
 export const releasesListUrl = () => `${OVERTURE_BUCKET}/?list-type=2&prefix=tiles/&delimiter=/`;
 

@@ -159,20 +159,23 @@ async function checks(h) {
       check(await p2.waitForSelector('text=A green dress in the window.', { timeout: 5000 }).then(() => true, () => false), 'a moment in the timeline opens in the viewer');
       await p2.click('[aria-label="Close"]');
 
-      // The day's replay: the dress, then the walk's path and its note, then the moment with no place (M10, M11, M14).
+      // The day's replay: the dress, then the walk's path and its note, then the moment with no place,
+      // in order and with no taps (M10, M11, M14, RR16).
       await p2.click('[data-testid=day-replay]');
       await p2.waitForURL(/\/day\//, { timeout: 15000 });
       const seen = [];
-      for (let i = 0; i < 3; i++) {
-        await p2.waitForSelector('[data-testid=day-moment]', { timeout: 60000 });
-        await p2.waitForTimeout(700);
+      let dayContinue = false;
+      for (let k = 0; k < 240 && !(await p2.locator('[data-testid=day-card]').count()); k++) {
+        if (await p2.locator('[data-testid=day-moment]').count()) dayContinue = true;
         const body = await p2.locator('body').innerText();
-        seen.push(/green dress/.test(body) ? 'dress' : /tailor/.test(body) ? 'tailor' : /linen/.test(body) ? `linen${/No location/.test(body) ? ':nowhere' : ''}` : '?');
-        if (i === 1) await shot(p2, '22-day-replay-walk');
-        await p2.click('[data-testid=day-moment]');
-        await p2.waitForSelector('[data-testid=day-moment]', { state: 'detached', timeout: 5000 }).catch(() => {});
+        for (const [name, re] of [['dress', /green dress/], ['tailor', /tailor/], ['linen', /linen/]]) if (re.test(body) && !seen.includes(name)) seen.push(name);
+        if (seen.length === 2 && !seen.shot) {
+          await shot(p2, '22-day-replay-walk');
+          seen.shot = true;
+        }
+        await p2.waitForTimeout(250);
       }
-      check(seen.join(',') === 'dress,tailor,linen:nowhere', `the day replays its moments in order, the walk's inside it, the placeless one said so (${seen.join(', ')})`);
+      check(seen.join(',') === 'dress,tailor,linen' && !dayContinue, `the day replays its moments in order, the walk's inside it, with no taps (${seen.join(', ')})`);
       await p2.waitForSelector('[data-testid=day-card]', { timeout: 30000 });
       const line = await p2.locator('[data-testid=day-card-line]').innerText();
       const cardText = await p2.locator('[data-testid=day-card]').innerText();

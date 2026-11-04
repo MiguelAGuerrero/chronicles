@@ -333,3 +333,70 @@ test('atlas round 3: Walk to names the area, and says which street it starts at'
   assert.deepEqual(walkTarget(row('College Hill', O, { profile: p })), { at: east(50), label: 'College Hill', via: 'Thayer Street' });
   assert.deepEqual(walkTarget(row('Smith Hill', O)), { at: O, label: 'Smith Hill', via: null });
 });
+
+// Atlas grading (AG1-AG6), written from specs/atlas-grading/spec.md before the code.
+
+const marked = (category: CategoryId, n: number, at: LngLat, markable: boolean, tag = ''): AtlasPlace[] =>
+  places(category, n, at, tag).map((p) => ({ ...p, markable }));
+
+test('AG1: the findable kinds count only markable places; food, shops, nightlife count all', () => {
+  const ring = [
+    ...marked('history', 12, O, false, 'plain'), // twelve parish churches
+    ...marked('parks', 6, O, false, 'dog'), // six dog parks
+    ...marked('art', 1, O, true),
+    ...marked('food', 15, O, false), // ordinary cafés are never marks, and count
+    ...marked('nightlife', 2, O, false),
+  ];
+  const s = presenceSteps(ring, O);
+  assert.equal(s.history, 0, 'plain churches count toward nothing');
+  assert.equal(s.parks, 0, 'dog parks count toward nothing');
+  assert.equal(s.art, 1);
+  assert.equal(s.food, 2, 'food counts every place');
+  assert.equal(s.nightlife, 1);
+  assert.equal(presenceSteps([...marked('history', 4, O, true), ...marked('history', 8, O, false, 'p')], O).history, 2, 'only the four notable ones count');
+});
+
+test('AG2: a findable kind with a place waiting has a dot; one with no dot has nothing waiting', async () => {
+  const { marksOf, waitingMarks } = await import('../../atlas/atlas');
+  const ring = [
+    ...marked('history', 1, east(780), true), // one notable place at the ring's edge
+    ...marked('history', 9, O, false, 'plain'),
+    ...marked('culture', 5, O, false), // ordinary libraries, cinemas
+    ...marked('viewpoints', 1, north(600), true),
+  ];
+  const steps = presenceSteps(ring, O);
+  const waiting = waitingMarks(marksOf(ring, (p) => p.markable === true), new Set(), O);
+  for (const c of ['history', 'art', 'culture', 'parks', 'viewpoints'] as CategoryId[]) {
+    const w = waiting.some((m) => m.category === c);
+    assert.equal(steps[c] > 0, w, `${c}: dots ${steps[c]}, waiting ${w}`);
+  }
+});
+
+test('AG3: fewer than 3 places in the ring is thin, and the tile’s words say nothing about kinds', async () => {
+  const { thinRing, characterLine } = await import('../../atlas/atlas');
+  assert.equal(thinRing([], O), true);
+  assert.equal(thinRing([...marked('food', 1, O, false), ...marked('history', 1, O, false)], O), true, 'two places, ordinary ones included');
+  assert.equal(thinRing([...marked('food', 2, O, false), ...marked('history', 1, O, false)], O), false, 'three places');
+  assert.equal(thinRing([...marked('food', 2, O, false), ...marked('food', 5, east(1500), false, 'far')], O), true, 'places outside the ring are not counted');
+  assert.equal(thinRing([...marked('food', 2, O, false), ...marked('food', 2, O, false)], O), true, 'a place counts once');
+  const steps = presenceSteps(marked('food', 2, O, false), O);
+  assert.equal(characterLine(steps, true), '', 'a thin ring has no character line');
+  const label = tileLabel({ area: row('Fields', O, { profile: { steps, strips: [], thin: true } as unknown as AtlasProfile }), distanceM: 900, here: false }, { walks: 0, last: null }, fmt);
+  assert.doesNotMatch(label, /Quiet|Not much|none|little/i, label);
+  assert.match(label, /^Fields\./);
+});
+
+test('AG4: how the marks work names what counts, with no digits', async () => {
+  const { MARKS_EXPLAINED } = await import('../../atlas/atlas');
+  const all = MARKS_EXPLAINED.join(' ');
+  assert.equal(all.match(/\d/), null, all);
+  assert.match(all, /worth finding/i, 'the findable kinds count places worth finding');
+  assert.match(all, /food, shops and nightlife/i, 'the others are named');
+  assert.match(all, /every/i, 'and count everything');
+});
+
+test('AG6: a profile from older rules is not current', () => {
+  assert.notEqual(ATLAS_CODE, 'a3', 'the grading rules moved on');
+  assert.equal(rowCurrent(row('A', O, { code: 'a3' }), 'b1'), false);
+  assert.equal(rowCurrent(row('A', O), 'b1'), true);
+});

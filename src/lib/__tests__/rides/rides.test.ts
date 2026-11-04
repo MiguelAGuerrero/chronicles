@@ -6,8 +6,10 @@ import { AREA_REACH_M } from '../../areas/rules';
 import type { BoundarySource, PlaceCandidate } from '../../areas/types';
 import { distanceM, filterFixes, isBreak, positionAt } from '../../geo';
 import { traceRouteSource } from '../../nav/traceRoute';
-import { PATH_MS, schedule, walkTimeAt } from '../../replay';
-import { keptFixes, readTrace, rideRuns, ridingAt, RIDE_RULES, smoothKept, traceDistances } from '../../rides';
+import { timedRuns } from '../../replay';
+import { walkStory } from '../../ceremony/story';
+import { rhythmFrame, rhythmPlan, type RhythmPlan } from '../../ceremony/rhythm';
+import { keptFixes, readTrace, rideRuns, ridingAt, RIDE_RULES, smoothKept, timedRideRuns, traceDistances } from '../../rides';
 import { snap } from '../../snapper';
 import type { Capture, LngLat, StreetSegment, TracePoint } from '../../types';
 
@@ -302,31 +304,22 @@ test('rides: a capture on a ride is placed on the ride line (R9)', () => {
 
 const capture = (t: number): Capture => ({ id: `c${t}`, walk_id: 'w', t, lat: null, lon: null, kind: 'text', file_path: null, body: 'x', segment_id: null });
 
-test('rides: the replay gives a long ride at most 4 s of the path, and stops at a capture on it (R10)', () => {
+test('rides: the replay gives a long ride at most 4 s of the path, and stops at a capture on it (R10, RR1)', () => {
   const pts = trip([{ v: WALK, s: 300 }, { v: BUS, s: 1200 }, { v: WALK, s: 300 }], { reported: true });
   const tr = readTrace(pts, 0);
-  const fixes = keptFixes(tr);
-  const s = schedule(fixes, [capture(900_000)], 0, [], tr.rides);
+  const p = rhythmOf(keptFixes(tr), [capture(900_000)], tr);
   const r = tr.rides[0];
-  // Path time at the ride's start and end.
-  const msAt = (t: number) => ((s.toActive(t) - s.start) / (s.end - s.start)) * PATH_MS;
-  const rideMs = msAt(r.t1) - msAt(r.t0);
-  assert.ok(rideMs <= RIDE_RULES.replayMs + 1 && rideMs > 1000, `ride takes ${rideMs} ms`);
-  // The capture mid-ride stops the path inside the ride's few seconds.
-  const stop = s.groups[0].atMs;
-  assert.ok(stop > msAt(r.t0) && stop < msAt(r.t1));
-  // The dot is on the ride at that moment, near the capture's time.
-  assert.ok(Math.abs(walkTimeAt(s, stop) - 900_000) < 2000);
+  for (const s of p.segs) if (s.k === 'leg' && s.move && s.move.t1 > r.t0 && s.move.t0 < r.t1) assert.ok(s.t1 - s.t0 <= RIDE_RULES.replayMs, `a stretch on the ride takes ${s.t1 - s.t0} ms`);
+  const stop = p.segs.find((s) => s.k === 'stop')!;
+  assert.ok(stop.k === 'stop' && stop.moment.arrive <= 900_000 && stop.moment.leave >= 900_000, 'the stop is the capture on the ride');
 });
 
-test('rides: a short ride keeps its real share of the replay (R10)', () => {
+test('rides: a ride is a stretch like any other, never longer than a glide and a zip (R10, RR1)', () => {
   const pts = trip([{ v: WALK, s: 600 }, { v: BUS, s: 40 }, { v: WALK, s: 600 }], { reported: true });
   const tr = readTrace(pts, 0);
-  const s = schedule(keptFixes(tr), [], 0, [], tr.rides);
+  const p = rhythmOf(keptFixes(tr), [], tr);
   const r = tr.rides[0];
-  const share = ((s.toActive(r.t1) - s.toActive(r.t0)) / (s.end - s.start)) * PATH_MS;
-  const real = ((r.t1 - r.t0) / (pts.at(-1)!.t - pts[0].t)) * PATH_MS;
-  assert.ok(Math.abs(share - real) < 50, `${share} vs ${real}`);
+  assert.ok(legMsOver(p, r.t0, r.t1) <= RIDE_RULES.replayMs);
 });
 
 test('rides: a GPS jump just before boarding stays out of the ride (R2, the e2e card, Nov 1)', () => {
@@ -362,28 +355,23 @@ test('rides audit 2: a phone reporting speed 0 for "no reading" (Android) still 
 });
 
 test('rides audit 3: a long stop inside a ride keeps the replay clock moving forward, the ride within 4 s', () => {
-  const pts = trip([{ v: WALK, s: 900 }, { v: BUS, s: 300 }, { v: 0, s: 150 }, { v: BUS, s: 300 }, { v: WALK, s: 900 }], { reported: true });
-  const tr = readTrace(pts, 0);
-  assert.equal(tr.rides.length, 1);
-  const fixes = smoothKept(tr);
-  const s = schedule(fixes, [], 0, [], tr.rides);
-  let prev = -Infinity;
-  for (let t = 0; t <= pts.at(-1)!.t; t += 1000) {
-    const a = s.toActive(t);
-    assert.ok(a >= prev, `toActive goes back at ${t}: ${prev} → ${a}`);
-    prev = a;
-    assert.ok(Math.abs(s.toWalk(a) - t) < 2 || s.toActive(s.toWalk(a)) - a < 2);
+  for (const legs of [
+    [{ v: WALK, s: 900 }, { v: BUS, s: 300 }, { v: 0, s: 150 }, { v: BUS, s: 300 }, { v: WALK, s: 900 }],
+    [{ v: WALK, s: 60 }, { v: BUS, s: 300 }, { v: 0, s: 150 }, { v: BUS, s: 300 }, { v: WALK, s: 60 }],
+  ]) {
+    const pts = trip(legs, { reported: true });
+    const tr = readTrace(pts, 0);
+    assert.equal(tr.rides.length, 1);
+    const p = rhythmOf(smoothKept(tr));
+    let prev = -Infinity;
+    for (let ms = 0; ms < p.total; ms += 25) {
+      const c = rhythmFrame(p, ms).clock!;
+      assert.ok(c >= prev - 1, `the clock goes back at ${ms}: ${prev} → ${c}`);
+      prev = c;
+    }
+    const r = tr.rides[0];
+    assert.ok(legMsOver(p, r.t0, r.t1) <= RIDE_RULES.replayMs, 'the ride within 4 s');
   }
-  const r = tr.rides[0];
-  const ms = ((s.toActive(r.t1) - s.toActive(r.t0)) / (s.end - s.start)) * PATH_MS;
-  assert.ok(ms <= RIDE_RULES.replayMs + 1, `ride takes ${ms} ms`);
-  // A short walk around the same ride: still 4 s at most.
-  const short = trip([{ v: WALK, s: 60 }, { v: BUS, s: 300 }, { v: 0, s: 150 }, { v: BUS, s: 300 }, { v: WALK, s: 60 }], { reported: true });
-  const tr2 = readTrace(short, 0);
-  const s2 = schedule(smoothKept(tr2), [], 0, [], tr2.rides);
-  const r2 = tr2.rides[0];
-  const ms2 = ((s2.toActive(r2.t1) - s2.toActive(r2.t0)) / (s2.end - s2.start)) * PATH_MS;
-  assert.ok(ms2 <= RIDE_RULES.replayMs + 1, `short walk: ride takes ${ms2} ms`);
 });
 
 test('rides audit 5: "On a ride" ends within about 30 s of walking off', () => {
@@ -416,15 +404,13 @@ test('rides audit 9: GPS drifting 160 m off and back while walking is no ride', 
   assert.equal(readTrace(pts, 0).rides.length, 0);
 });
 
-test('rides audit 10: many rides together take at most half the replay', () => {
+test('rides audit 10: many rides together never stretch the replay: the walk is one stretch (RR1)', () => {
   const legs: Leg[] = [{ v: WALK, s: 600 }];
-  // Each ride under its own 4 s, together over half: 3000 s ridden, 1800 s walked.
   for (let k = 0; k < 10; k++) legs.push({ v: BUS, s: 300 }, { v: WALK, s: 120 });
   const tr = readTrace(trip(legs, { reported: true }), 0);
   assert.equal(tr.rides.length, 10);
-  const s = schedule(keptFixes(tr), [], 0, [], tr.rides);
-  const total = tr.rides.reduce((d, r) => d + (s.toActive(r.t1) - s.toActive(r.t0)), 0) / (s.end - s.start);
-  assert.ok(total <= RIDE_RULES.ridesShare + 0.01, `rides take ${Math.round(total * 100)}%`);
+  const p = rhythmOf(keptFixes(tr));
+  assert.ok(legMsOver(p, 0, Infinity) <= RIDE_RULES.replayMs, `the stretches take ${legMsOver(p, 0, Infinity)} ms`);
 });
 
 test('rides audit 7: a walk is titled by where you walked, not where you rode through', () => {
@@ -434,3 +420,16 @@ test('rides audit 7: a walk is titled by where you walked, not where you rode th
   assert.equal(r.title, 'Fox Point');
   assert.ok(r.rows.some((w) => r.areas.get(w.area_key)!.name === 'Downcity'), 'the ride still counts for places');
 });
+
+/** The rhythm's plan for a trace read with its rides, and its captures. */
+function rhythmOf(fixes: TracePoint[], captures: Capture[] = [], tr?: ReturnType<typeof readTrace>): RhythmPlan {
+  return rhythmPlan(walkStory({
+    walk: { id: 'w', started_at: fixes[0].t, ended_at: fixes.at(-1)!.t, title: null, epilogue: null, open: false, area: null, snapped_build: null },
+    fixes, walkedFixes: fixes, breaks: [], pauses: [], runs: timedRuns(fixes).map((r) => r.map((x) => x.p)),
+    // The trace's own rides, drawn dashed (R5), when the test read one.
+    rideRuns: tr ? rideRuns(tr) : [], rideTimed: tr ? timedRideRuns(tr) : [], captures, passed: [],
+  }), { reduceMotion: false });
+}
+/** Replay time spent on stretches that overlap walk times t0 to t1. */
+const legMsOver = (p: RhythmPlan, t0: number, t1: number) =>
+  p.segs.reduce((n, s) => n + (s.k === 'leg' && s.move && s.move.t1 > t0 && s.move.t0 < t1 ? s.t1 - s.t0 : 0), 0);

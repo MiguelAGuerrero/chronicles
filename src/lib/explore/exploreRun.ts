@@ -1,5 +1,7 @@
 // @layer shell
 import { knownRelease } from '../activity/overture';
+import { outlines } from '../areas/outlineReader';
+import { withOutlines, withoutOutlines } from '../areas/outlines';
 import { placesFromTiles } from '../areas/tilePlaces';
 import { db } from '../db';
 import { fetchTiles } from '../discovery/tileFetch';
@@ -49,12 +51,18 @@ export function exploreRead(centre: LngLat, opts: { remember: boolean }, shouldS
       const read = await readAround(url, build, centre, shouldStop, opts.remember);
       if (shouldStop()) return { ok: false };
       // Neighborhoods come from the z14 place points, towns from the z11 read.
-      const candidates = [...read.towns, ...(wide ? placesFromTiles(wide.places).filter((c) => c.level === 'town') : [])];
+      const points = [...read.towns, ...(wide ? placesFromTiles(wide.places).filter((c) => c.level === 'town') : [])];
+      // Town borders over the read (TO11): a place inside one is its town's, never the neighbor's.
+      const [w, s, e, n] = boundsOf([centre], EXPLORE_RULES.readM)!;
+      const borders = await outlines.read([centre, [w, s], [w, n], [e, s], [e, n]], shouldStop).catch(() => null);
+      if (shouldStop()) return { ok: false };
+      // Kept with the read without their outlines (the outline cache keeps those), outline-only towns as points.
+      const candidates = withoutOutlines(withOutlines(points, borders?.set));
       const now = Date.now();
       // Areas built for this build stay as they are; earlier reads' candidates keep places with their areas (audit 3).
       const [done, reads] = await Promise.all([db.listChecklistAreas(), db.listExploreReads()]);
       const built = buildChecklists({
-        places: read.places, candidates, centre, build, now,
+        places: read.places, candidates: points, centre, build, now, outlines: borders?.set ?? null,
         built: done.filter((a) => a.build === build),
         known: reads.filter((r) => r.build === build).flatMap((r) => r.candidates),
       });

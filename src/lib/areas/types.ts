@@ -20,6 +20,24 @@ export interface PlaceCandidate {
   reachM: number;
   /** The source's own word for it (city, town, village...), where it has one. */
   kind?: string;
+  /** A town's real border, where one was read (town outlines, TO1): inside it decides, before any point. */
+  outline?: TownOutline;
+}
+
+/**
+ * A town's border as read so far (TO1-TO5): the pieces of it in the tiles read,
+ * merged. Polygons are [lon, lat] rings, outer ring first, then holes.
+ */
+export interface TownOutline {
+  /** The source's id for it: used only to merge its pieces, never as an area key. */
+  id: string;
+  name: string;
+  /** The source's own point for the town, when the tiles read hold it. */
+  at: LngLat | null;
+  polygons: LngLat[][][];
+  bbox: [number, number, number, number];
+  /** Square metres of the pieces read: of two nested outlines, the smaller is the town (TO2). */
+  areaM2: number;
 }
 
 /** A named region a boundary source found a point inside. */

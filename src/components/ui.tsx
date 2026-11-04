@@ -21,6 +21,10 @@ export const theme = {
   danger: '#b42318',
   ok: '#15803d',
   warn: '#b45309',
+  /** Over the map: a pill that must read on any tiles, a chip on a picture, the screen behind a moment. */
+  glass: 'rgba(255,255,255,0.95)',
+  chip: 'rgba(29,36,48,0.6)',
+  scrim: 'rgba(20,24,32,0.85)',
   radius: 14,
 };
 

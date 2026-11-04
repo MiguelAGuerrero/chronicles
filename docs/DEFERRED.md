@@ -84,7 +84,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - The home reads every capture row on focus; per-day counts would need storing (Moments and days)
 - Moment pins filtered to the viewport, `MOMENT_PIN_ZOOM` (Moments and days)
 - "Today" refreshing past midnight without a focus, `lib/days.ts` (Moments and days)
-- A day of only placeless moments replays over the world map, `dayPlan` (Moments and days)
+- A day of only placeless moments replays over the world map, `dayStory` (Moments and days)
 
 ## Captures, media and export
 
@@ -125,6 +125,23 @@ An item leaves only when it ships, or when it is rejected with a decision record
 10. The day replay repeats its "Summary of the day" announcement after a note is edited there (QL25)
 11. Month headers keep last year's labels if the sheet stays mounted across New Year (QL28)
 
+## Town outlines (TO1-TO12, decision 0083)
+
+- Neighborhood outlines: Overture's are mostly districts ("Manhattan Community Board 5"); neighborhoods stay points, kept inside their town (TO6)
+- Counties, states and countries from Overture: the Natural Earth pack does states, offline
+- Drawing a town's border on a map: outlines only decide, nothing draws them
+- Outlines bundled for a first launch offline: until a tile is read once, its towns go by points (TO3)
+- Where to read next on an exploring walk (`readCentre` in `useExplore`) still goes by points: the reads' candidates are stored without outlines
+- A neighborhood inside an outline town that isn't listed on the Explore tab still shows on the open town's page (`townOf` answers none)
+
+## Atlas grading (AG1-AG6, decision 0084)
+
+- **Whole areas** (the owner's next slice): a town graded across its outline, a neighborhood across its share of the town (closer to its point than to any other); dots say how much the area holds; density as shading on the area's picture, per kind
+- Distance weighting inside the ring (full credit to 400 m, nothing at 800 m): dropped by the owner in favour of whole areas
+- A significance file per tile (Wikidata, QRank page views, heritage tags, Wikivoyage "see" listings): needs a host the app has never had; the tiles' `rank` is a label order, not fame, so S23's idea of using it would not work
+- Retuning `STEPS` against real towns
+- A street-network catchment in place of the ring
+
 ## Explore atlas
 
 - Green by park area (the share of the ring that is park): the decoder reads no park outlines yet, so green counts park places (decision 0066)
@@ -160,6 +177,17 @@ An item leaves only when it ships, or when it is rejected with a decision record
   - `deleteCaptures` with ids that don't exist: web clears reminders only for captures found, native for every id passed
   - `addFind` on web swallows every transaction error, not just the duplicate key
 - `deleteWalk` / `deleteCaptures` all-or-nothing (D6) has no contract case: nothing shared can make IndexedDB fail halfway
+
+## Replay rhythm (RR1-RR22, decisions 0085, 0086)
+
+- The rhythm's numbers are the prototype's defaults until the owner sends tuned ones; only `REPLAY_RHYTHM` changes
+- Nothing picks a ceremony per walk or day yet: the registry holds the rhythm, the default
+- The meta `day_watched:<key>` is still written but changes nothing in the ceremony (only the screen reader's steps read it)
+- Highlights (starring a moment during the replay), as in the concept doc
+- The trace is redrawn every 66 ms, so on a zip the line trails the walker by a short stretch (replay-rhythm audit 14)
+- Keeping the screen awake through the replay (a minute with no touch can meet the phone's auto-lock): needs expo-keep-awake, a new library, so it waits on the owner; a lock now holds the replay rather than skipping it (replay-rhythm audit 6)
+- The Undo toast can sit over the clock for its 5 s after a moment is deleted mid-path (replay-rhythm audit, UI notes)
+- No sign while the stage waits for a medium (an iPhone memo refused sound stands 2 s, a video's muted retry about 1 s): a new thing on screen, the owner's call (replay-rhythm audit 38)
 
 ## Test organization (decision 0087)
 

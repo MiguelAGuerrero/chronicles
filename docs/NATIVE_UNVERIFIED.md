@@ -119,6 +119,11 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] The bell following a fire or expiry from the background location task, after a cold background launch, and the notification's Stop action, once the app is back in front (Reminder bell, RB5)
 - [ ] expo-sqlite ordering: `listRecalls` reads outside the write queue (`db/index.native.ts`); a read started before a queued `setRecall`/`clearRecall` must not finish with the older rows (`recallCheck`'s cache, `useReminded`) (Reminder bell audit 11)
 
+## Town outlines (TO1-TO12)
+
+- [ ] SQLite migration 16 (`outline_tile`) and `putOutlineTiles` / `getOutlineTiles` (`IN (...)` with up to 64 keys)
+- [ ] Overture's divisions.pmtiles read by byte range on a phone (`areas/overtureOutlines.ts`, the same `pmtiles` path as the places reader), inside the replay's snap and the backlog's pass
+
 ## Explore atlas
 
 - [ ] react-native-svg mini-maps on iOS and Android (12 tiles, an even-odd veil, dashed strokes)
@@ -148,6 +153,22 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 
 - [ ] `lib/ports/index.ts` builds the real ports from the native db, recorder and notifier at module load; its first user is the ready walk screen's shell (`lib/ready`, Navigate, ready), so a phone's first run of it is the ready screen opening
 - [ ] The SQLite adapter (`db/index.native.ts`) against the Db contract (`src/lib/__tests__/dbContract.ts`): the suite runs only over the fake and IndexedDB in Node, so SQLite's match to it is by reading
+
+## Replay rhythm (RR1-RR22)
+
+- [ ] `followZoom` on MapLibre RN's Camera: `jumpTo` with a zoom every frame while the walker moves; whether it keeps up and doesn't fight the follow
+- [ ] The overlays' motion with `Animated` and per-frame styles (the rolling clock's reels, the card's flight, the bubbles)
+- [ ] A memo pausing and resuming with Hold (expo-audio), and a video in its card (expo-video `VideoView`, `nativeControls={false}`)
+- [ ] The screen reader's steps (RR17), unchanged in behaviour but moved into `StepThrough`
+- [ ] The whisper's place on screen, projected from the map's centre and zoom (`layout.project`), against the native map's own tile size
+- [ ] `useMediaWait` on native: expo-video's `playingChange`, `playToEnd` and `currentTime`, expo-audio's status, holding the stage until a medium catches up
+- [ ] A memo started by hand resuming after Hold, and pausing under the native viewer Modal
+- [ ] MapLibre RN's camera going where `follow` says when it isn't gliding (`WalkMap.native`, audit 25)
+- [ ] `VideoView` inside a `pointerEvents="none"` wrapper on iOS, with Tap for sound above it
+- [ ] The bubbles' column (`maxHeight`, `overflow: hidden`) clipping Android elevation shadows; the card and corner with side safe-area insets in landscape
+- [ ] `tickClock`'s 250 ms cap when iOS suspends JS timers with the app in the background
+- [ ] `toLocaleTimeString` under Hermes against iOS's 24-Hour Time switch (RR8, "the device's own clock format")
+
 
 - **The area card's full-screen drawer** (Nov 4): `AtlasCard`'s `PanResponder` taking the touch from its `ScrollView` when the content is at the top (`onMoveShouldSetPanResponderCapture`), the JS-driven transform, and the tab bar folding away (`lib/tabsHidden`). On a touch browser the page's own scroll may take the touch before the capture does. Never run on a device; the e2e's drawer checks (full flow) use a mouse and did not run in the cloud session (no tiles).
 

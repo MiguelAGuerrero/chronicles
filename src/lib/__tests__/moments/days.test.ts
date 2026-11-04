@@ -1,10 +1,10 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import {
-  buildDays, dayCard, dayKey, dayLabel, dayPlan, FLY_MS, nextDayStart, spotCount, stepFrames, watchedKey,
-} from '../../days';
-import { schedule } from '../../replay';
+import { buildDays, dayCard, dayKey, dayLabel, nextDayStart, spotCount, watchedKey } from '../../days';
+import { timedRuns } from '../../replay';
+import { dayStory, pathDrawnAt, positionAt, walkStory, type WalkInput } from '../../ceremony/story';
+import { rhythmFrame, rhythmPlan } from '../../ceremony/rhythm';
 import type { Capture, TracePoint, Walk } from '../../types';
 
 // Moments and days (the concept doc's "Moments and days" tab), written from
@@ -76,57 +76,66 @@ test('M9: today and yesterday are named; older days by weekday and date', () => 
 // The day's replay -------------------------------------------------------
 
 const fix = (t: number, lon: number): TracePoint => ({ walk_id: 'w', t, lat: 41.812, lon, accuracy_m: 5, speed: 1, course: null });
+/** A fix every 30 s from lon a to lon b between two times. */
+function fixesAlong(t0: number, t1: number, a: number, b: number): TracePoint[] {
+  const n = Math.round((t1 - t0) / 30_000);
+  return Array.from({ length: n + 1 }, (_, i) => fix(t0 + i * 30_000, a + ((b - a) * i) / n));
+}
+const input = (w: Walk, fixes: TracePoint[], captures: Capture[]): WalkInput => ({
+  walk: w, fixes, walkedFixes: fixes, breaks: [], pauses: [], runs: timedRuns(fixes).map((r) => r.map((x) => x.p)), rideRuns: [], rideTimed: [], captures, passed: [],
+});
+const kinds = (d: ReturnType<typeof dayStory>) => d.events.map((e) => e.kind);
 
-test('M10: loose moments fly to their pin, then stop, in time order', () => {
+test('M10 (RR16): loose moments come in time order, with the way from one pin to the next', () => {
   const [day] = buildDays([], [cap('b', at(2, 12), null, -71.41), cap('a', at(2, 9), null, -71.4)]);
-  const plan = dayPlan(day, new Map());
-  assert.deepEqual(plan.map((s) => s.kind), ['fly', 'stop', 'fly', 'stop']);
-  assert.equal(plan[0].kind === 'fly' && plan[0].ms, FLY_MS);
-  assert.deepEqual(plan[1].kind === 'stop' && plan[1].captures.map((c) => c.id), ['a']);
-  assert.deepEqual(plan[0].kind === 'fly' && plan[0].to, [-71.4, 41.812]);
+  const s = dayStory(day, new Map());
+  assert.deepEqual(kinds(s), ['moment', 'travel', 'moment']);
+  assert.deepEqual(s.captures.map((c) => c.id), ['a', 'b']);
+  const tr = s.events[1];
+  assert.ok(tr.kind === 'travel' && tr.from && tr.to && tr.from[0] === -71.4 && tr.to[0] === -71.41);
 });
 
 test('M10: moments close in time and place share one stop', () => {
   const [day] = buildDays([], [cap('a', at(2, 9, 0), null), cap('b', at(2, 9, 1), null)]);
-  const plan = dayPlan(day, new Map());
-  assert.deepEqual(plan.map((s) => s.kind), ['fly', 'stop']);
-  assert.deepEqual(plan[1].kind === 'stop' && plan[1].captures.map((c) => c.id), ['a', 'b']);
+  const s = dayStory(day, new Map());
+  assert.deepEqual(kinds(s), ['moment']);
+  assert.deepEqual(s.captures.map((c) => c.id), ['a', 'b']);
 });
 
-test('M11: a walk plays its path with its moments as stops, then the day carries on', () => {
+test('M11 (RR16): a walk plays its path with its moments, then the day carries on', () => {
   const w = walk('w', at(2, 10), at(2, 10, 10));
-  const fixes = [fix(at(2, 10, 0), -71.4), fix(at(2, 10, 5), -71.399), fix(at(2, 10, 10), -71.398)];
+  const fixes = fixesAlong(at(2, 10, 0), at(2, 10, 10), -71.4, -71.398);
   const inWalk = cap('in', at(2, 10, 5), 'w', -71.399);
   const [day] = buildDays([w], [cap('before', at(2, 9), null), inWalk, cap('after', at(2, 12), null, -71.39)]);
-  const sched = schedule(fixes, [inWalk], w.started_at);
-  const plan = dayPlan(day, new Map([['w', { sched, start: [-71.4, 41.812] }]]));
-  assert.deepEqual(plan.map((s) => s.kind), ['fly', 'stop', 'fly', 'path', 'stop', 'path', 'fly', 'stop']);
-  const p1 = plan[3], p2 = plan[5];
-  assert.ok(p1.kind === 'path' && p1.walkId === 'w' && p1.fromMs === 0 && p1.toMs === sched.groups[0].atMs);
-  assert.ok(p2.kind === 'path' && p2.fromMs === sched.groups[0].atMs && p2.toMs === sched.movingMs);
-  assert.ok(plan[4].kind === 'stop' && plan[4].walkId === 'w');
+  const s = dayStory(day, new Map([['w', input(w, fixes, [inWalk])]]));
+  assert.deepEqual(kinds(s), ['moment', 'travel', 'move', 'moment', 'move', 'travel', 'moment']);
+  const m = s.events[3];
+  assert.ok(m.kind === 'moment' && m.pathId === 'w' && m.captures[0].id === 'in');
+  const p = rhythmPlan(s, { reduceMotion: false });
+  assert.ok(p.segs.some((x) => x.k === 'leg' && x.move?.pathId === 'w'), 'its own path, followed');
 });
 
-test('M11: a zero-length stretch of path is left out', () => {
+test('M11: a moment at the walk\'s very start comes first, with no empty stretch before it', () => {
   const w = walk('w', at(2, 10), at(2, 10, 10));
-  const fixes = [fix(at(2, 10, 0), -71.4), fix(at(2, 10, 10), -71.398)];
+  const fixes = fixesAlong(at(2, 10, 0), at(2, 10, 10), -71.4, -71.398);
   const first = cap('first', at(2, 10, 0), 'w');
   const [day] = buildDays([w], [first]);
-  const sched = schedule(fixes, [first], w.started_at);
-  const plan = dayPlan(day, new Map([['w', { sched, start: [-71.4, 41.812] }]]));
-  assert.deepEqual(plan.map((s) => s.kind), ['fly', 'stop', 'path']);
+  const s = dayStory(day, new Map([['w', input(w, fixes, [first])]]));
+  assert.deepEqual(kinds(s), ['moment', 'move']);
+  assert.ok(s.events.every((e) => e.kind !== 'move' || e.t1 > e.t0));
 });
 
 test('M11: a walk whose replay could not load still shows its moments', () => {
   const w = walk('w', at(2, 10), at(2, 11));
   const [day] = buildDays([w], [cap('in', at(2, 10, 30), 'w')]);
-  const plan = dayPlan(day, new Map());
-  assert.deepEqual(plan.map((s) => s.kind), ['fly', 'stop']);
+  assert.deepEqual(kinds(dayStory(day, new Map())), ['moment']);
 });
 
-test('M14: a moment with no place stops without moving the map', () => {
+test('M14: a moment with no place is shown where the map is', () => {
   const [day] = buildDays([], [cap('nowhere', at(2, 9), null, null, null)]);
-  assert.deepEqual(dayPlan(day, new Map()).map((s) => s.kind), ['stop']);
+  const s = dayStory(day, new Map());
+  assert.deepEqual(kinds(s), ['moment']);
+  assert.ok(s.events[0].kind === 'moment' && s.events[0].at === null);
 });
 
 test('M12: whether a day was watched is kept per day', () => {
@@ -155,8 +164,8 @@ test('audit (moments 13): a placeless moment first in a group does not pull in a
   const here = cap('here', at(2, 9, 1), null, -71.4, 41.812);
   const far = cap('far', at(2, 9, 1, ), null, -71.38, 41.812);
   const [day] = buildDays([], [near, here, { ...far, t: far.t + 1000 }]);
-  const stops = dayPlan(day, new Map()).filter((s) => s.kind === 'stop');
-  assert.deepEqual(stops.map((s) => s.kind === 'stop' && s.captures.map((c) => c.id)), [['nowhere', 'here'], ['far']]);
+  const stops = dayStory(day, new Map()).events.filter((e) => e.kind === 'moment');
+  assert.deepEqual(stops.map((e) => e.kind === 'moment' && e.captures.map((c) => c.id)), [['nowhere', 'here'], ['far']]);
 });
 
 test('audit (moments 5): a day is read from its midnight to the next, whatever the day length', () => {
@@ -164,28 +173,17 @@ test('audit (moments 5): a day is read from its midnight to the next, whatever t
   assert.equal(nextDayStart('2026-12-31'), new Date(2027, 0, 1).getTime());
 });
 
-test('audit (moments 7): each fly step is framed: a walk by its trace, a pin close up', () => {
-  const w = walk('w', at(2, 10), at(2, 10, 10));
-  const fixes = [fix(at(2, 10, 0), -71.4), fix(at(2, 10, 10), -71.39)];
-  const [day] = buildDays([w], [cap('a', at(2, 9), null, -71.41)]);
-  const sched = schedule(fixes, [], w.started_at);
-  const plan = dayPlan(day, new Map([['w', { sched, start: [-71.4, 41.812] }]]));
-  const frames = stepFrames(plan, new Map([['w', [[-71.4, 41.812], [-71.39, 41.812]]]]));
-  assert.equal(plan[0].kind, 'fly');
-  const pin = frames[0]!;
-  assert.ok(pin[0] < -71.41 && pin[2] > -71.41 && pin[2] - pin[0] < 0.01, 'a pin is framed close up');
-  const walkFrame = frames[2]!;
-  assert.ok(walkFrame[0] <= -71.4 && walkFrame[2] >= -71.39, 'a walk is framed by its trace');
-  assert.equal(frames[1], null);
+test('audit (moments 7, RR16): a long way between entries pulls the camera back to show it', () => {
+  const [day] = buildDays([], [cap('a', at(2, 9), null, -71.4), cap('b', at(2, 11), null, -71.34)]);
+  const p = rhythmPlan(dayStory(day, new Map()), { reduceMotion: false });
+  const leg = p.segs.find((s) => s.k === 'leg')!;
+  const z = rhythmFrame(p, (leg.t0 + leg.t1) / 2).camera.zoom!;
+  assert.ok(z < 16 - Math.log2(2.5), `about 5 km: pulled well back (zoom ${z.toFixed(2)})`);
 });
 
-// The screenshot (Nov 2): replaying a day drew a straight line from the dot
-// back into the walk. The dot was timed over walked and ridden fixes while the
-// trace was cut from the walked runs at that list's index.
 test('day replay: the drawn trace ends at the dot, before and after a ride', async () => {
   const { readTrace, rideRuns: ridesOf, smoothKept, timedRideRuns } = await import('../../rides');
   const { smoothDwells, splitAtGaps } = await import('../../geo');
-  const { walkPlay, walkDrawnAt } = await import('../../days');
   const O: [number, number] = [-71.4, 41.812];
   const mLat = 1 / 111320;
   const mLon = 1 / (111320 * Math.cos((O[1] * Math.PI) / 180));
@@ -207,8 +205,8 @@ test('day replay: the drawn trace ends at the dot, before and after a ride', asy
   const tr = readTrace(fixes, 0, [], []);
   assert.equal(tr.rides.length, 1);
   const walkedFixes = smoothDwells(tr.walked);
-  const play = walkPlay({
-    walk: { started_at: 0 } as Walk,
+  const story = walkStory({
+    walk: { id: 'w', started_at: 0 } as Walk,
     fixes: smoothKept(tr),
     walkedFixes,
     breaks: tr.breaks,
@@ -216,9 +214,12 @@ test('day replay: the drawn trace ends at the dot, before and after a ride', asy
     runs: splitAtGaps(walkedFixes, 60_000, tr.breaks),
     rideRuns: ridesOf(tr),
     rideTimed: timedRideRuns(tr),
-    rides: tr.rides.map((r) => ({ t0: r.t0, t1: r.t1 })),
     captures: [],
+    passed: [],
   });
+  const path = story.paths.w;
+  const walkDrawnAt = (_: unknown, t: number) => ({ ...pathDrawnAt(path, t), walker: positionAt(path, t) });
+  const play = null;
   const near = (a: [number, number], b: [number, number]) => Math.hypot((a[0] - b[0]) / mLon, (a[1] - b[1]) / mLat);
   for (const at of [60_000, 470_000, 520_000]) {
     const d = walkDrawnAt(play, at);
@@ -242,14 +243,13 @@ test('day replay: the drawn trace ends at the dot, before and after a ride', asy
 test('day replay: a walk that is all ride replays without a walked run', async () => {
   const { readTrace, rideRuns: ridesOf, smoothKept, timedRideRuns } = await import('../../rides');
   const { smoothDwells, splitAtGaps } = await import('../../geo');
-  const { walkPlay, walkDrawnAt } = await import('../../days');
   const O: [number, number] = [-71.4, 41.812];
   const mLon = 1 / (111320 * Math.cos((O[1] * Math.PI) / 180));
   const fixes: TracePoint[] = Array.from({ length: 300 }, (_, i) => ({ walk_id: 'w', t: i * 1000, lon: O[0] + i * 12 * mLon, lat: O[1], accuracy_m: 8, speed: 12, course: null }));
   const tr = readTrace(fixes, 0, [], []);
   const walkedFixes = smoothDwells(tr.walked);
-  const play = walkPlay({
-    walk: { started_at: 0 } as Walk,
+  const story = walkStory({
+    walk: { id: 'w', started_at: 0 } as Walk,
     fixes: smoothKept(tr),
     walkedFixes,
     breaks: tr.breaks,
@@ -257,9 +257,12 @@ test('day replay: a walk that is all ride replays without a walked run', async (
     runs: splitAtGaps(walkedFixes, 60_000, tr.breaks),
     rideRuns: ridesOf(tr),
     rideTimed: timedRideRuns(tr),
-    rides: tr.rides.map((r) => ({ t0: r.t0, t1: r.t1 })),
     captures: [],
+    passed: [],
   });
+  const path = story.paths.w;
+  const walkDrawnAt = (_: unknown, t: number) => ({ ...pathDrawnAt(path, t), walker: positionAt(path, t) });
+  const play = null;
   for (const at of [0, 150_000, 299_000]) assert.doesNotThrow(() => walkDrawnAt(play, at));
   assert.ok(walkDrawnAt(play, 150_000).rides.length > 0);
 });

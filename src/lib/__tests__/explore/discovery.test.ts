@@ -138,3 +138,29 @@ test('places: a MultiPoint POI is kept at its first point (audit 6)', () => {
   const [p] = placesFromTilePois([f], 'b1');
   assert.deepEqual(p.at, at(0, 0));
 });
+
+test('AG5: every markable class is in a findable kind and off the never list', async () => {
+  const { MARKABLE_CLASSES } = await import('../../discovery/tilePois');
+  const { MARK_CATEGORIES } = await import('../../discovery/noise');
+  const never = new Set(['cinema', 'dog_park', 'picnic_site']);
+  for (const m of MARKABLE_CLASSES) {
+    assert.ok(MARK_CATEGORIES.includes(m.category), `${m.cls}/${m.sub}: ${m.category} is not findable`);
+    assert.ok(!never.has(m.cls), `${m.cls} is never a mark`);
+  }
+  const byName = MARKABLE_CLASSES.filter((m) => m.byName).map((m) => m.cls);
+  for (const c of ['place_of_worship', 'town_hall', 'cemetery']) assert.ok(byName.includes(c), `${c} is a mark only by a notable name`);
+  // A new markable class is a deliberate change to the definition (specs/atlas-grading, "What a mark is").
+  assert.deepEqual(
+    [...new Set(MARKABLE_CLASSES.map((m) => `${m.cls}:${m.category}${m.byName ? ' (by name)' : ''}`))].sort(),
+    [
+      'aquarium:viewpoints', 'art_gallery:art', 'art_gallery:culture', 'attraction:viewpoints', 'castle:history',
+      'cemetery:history (by name)', 'garden:parks', 'library:culture (by name)', 'monument:history', 'museum:culture',
+      'park:parks', 'place_of_worship:history (by name)', 'theatre:culture', 'theme_park:viewpoints', 'town_hall:history (by name)',
+      'zoo:viewpoints',
+    ],
+  );
+  // The list says what the adapter does: a plain church is no mark, a named old one is.
+  const church = (name: string) => placesFromTilePois([poi('place_of_worship', 'christian', name, O) as never], 'b')[0];
+  assert.equal(church('St. Mary Church').markable, false);
+  assert.equal(church('Old Stone Church').markable, true);
+});

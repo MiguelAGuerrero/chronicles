@@ -41,12 +41,13 @@ Captures outside a walk (moments), locating one fix for them, the days list and 
   where it once sat at world zoom with its pin hidden. A minimized walk's
   live view still shows only that walk's captures. Moments spread wider than
   z11 still show no pin and no star (moments in stars stay deferred).
-- **The day's replay** (`app/day/[key].tsx`, `dayPlan`): fly to each loose
-  group's pin (`FLY_MS`), stop; a walk plays its own `schedule` path with its
-  captures as stops, no fog beat; a placeless moment stops without moving the
-  map; a quiet card ("N moments · P places", places are spots 100 m apart).
-  The first watch waits for Continue; meta `day_watched:<key>` makes later
-  watches advance by themselves. No notification ever suggests watching.
+- **The day's replay** (`app/day/[key].tsx`, `dayStory`, RR16): the day's story
+  told by the same ceremony as a walk's: from one moment or walk to the next in a
+  straight line ("N h later" when more than 15 min pass), each walk's own path and
+  breaks, a placeless moment where the map is; a quiet card ("N moments · P
+  places", places are spots 100 m apart). Nothing waits for a tap; meta
+  `day_watched:<key>` now only makes the screen reader's steps move on by
+  themselves. No notification ever suggests watching.
 - **After the audit:**
   - The home's capture row stays mounted while the sheet or a spot card is
     up (hidden, never unmounted), and mid-memo the sheet, stars, pins and
@@ -57,9 +58,9 @@ Captures outside a walk (moments), locating one fix for them, the days list and 
     at once fail on Android). The web's 10 s starts once the permission prompt
     is answered (capped at 60 s). Native refuses a cached fix older than 15 s.
   - The day replay reads only its day (`dayStart` to `nextDayStart`, so DST
-    days are right) plus its walks' captures, frames each fly step
-    (`stepFrames`: a walk by its trace, a pin at 150 m), and is not marked
-    watched when Skip reached the card.
+    days are right) plus its walks' captures; a long way between entries pulls
+    the camera back to show it (audit 7, now the rhythm's travel), and the day
+    is not marked watched when Skip reached the card.
   - A group begun by a placeless capture takes the first placed member's spot
     (`groupCaptures`, walk replays too). A loose moment's reminder rests 2 h
     (`looseRestMs`) so a walk started on the spot doesn't fire it at once.

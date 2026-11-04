@@ -43,6 +43,7 @@ A run exits non-zero on the first failed check and prints `ok - ...` lines.
 | `deletion` | after `walk` and `memories`: clearing walks and moments (D1-D11) |
 | `days` | Moments and days (M1-M17), a browser of its own |
 | `sensors` | motion from the sensors (MO1, MO5, MO8), a browser of its own |
+| `outlines`, `grading`, `replay` | town outlines (TO3, TO10, TO12), atlas grading (AG3), replay rhythm (RR6-RR16, RR19); by name only, not in the full flow |
 
 Add a scenario as one file, `scripts/e2e/journeys/<name>.js`, exporting
 `{ name, covers, run }`: `name` equal to the file name, `covers` the source

@@ -705,13 +705,15 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     // On the live walk the render loop moves the camera; this recenters at once
     // (Recenter, a read ending) on the dot as it is showing.
     const to = glideOn ? (lastFrame.current.walker ?? props.follow) : props.follow;
+    const zoom = props.followZoom == null ? null : Math.round(props.followZoom * 100) / 100;
+    const rezoom = zoom != null && Math.abs(map.getZoom() - zoom) >= 0.005;
     // Under 2 px is no move worth a frame (perf).
     const p = map.project(to);
     const c = map.getCanvas();
-    if (Math.hypot(p.x - c.clientWidth / 2, p.y - c.clientHeight / 2) < 2) return;
+    if (!rezoom && Math.hypot(p.x - c.clientWidth / 2, p.y - c.clientHeight / 2) < 2) return;
     perfCount('camera');
-    map.jumpTo({ center: to });
-  }, [ready, props.follow, glideOn]);
+    map.jumpTo(rezoom ? { center: to, zoom: zoom! } : { center: to });
+  }, [ready, props.follow, props.followZoom, glideOn]);
   // A fit is a request made while mounted: a map brought back (the home, after a walk) keeps its view.
   const fitAtMount = useRef(props.fitKey);
   useEffect(() => {

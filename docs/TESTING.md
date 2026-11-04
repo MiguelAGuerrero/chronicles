@@ -206,8 +206,14 @@ npm run export:web && npm run e2e:web
 | `ready` | Navigate, ready (NR1-NR13): the ready walk screen at launch, the chevron back to the tab beneath, the bar pulled up, a destination line, a memo in the stack, Start in place (boxes unchanged), a moment before and a capture after, NR11's overlaps at 375×667 with every edge button up, the web note and a denied location (29 checks, about three minutes) |
 | `nudge` | the pocket alert (PA2, PA3, PA5, PA6), in a touch context (`freshPage(..., { touch: true })`, so the switch is offered): `navigator.vibrate` recorded by an init script; an exploring walk gives one double-tap as the first "?" comes into range, Start gives none, a quiet walk none. The exploring walk goes first: a walk that starts where the last ended, by the memorial, finds it already named |
 | `marks` | an exploring walk through an area read before draws the marks it passes (Nov 2 repro) |
+| `outlines` | town outlines (TO3, TO10, TO12): a fake divisions archive with Pawtucket's outline around the start; the Explore title names Pawtucket, and Providence (the nearest point) when no outline holds you. Elsewhere the archive holds no towns, so a 404 never counts as a console error |
+| `grading` | atlas grading (AG3): a thin ring 6 km west (Quiet Hollow, one café) shows no kinds and no character line on its tile, and no kind rows on its card |
+| `replay` | replay rhythm (RR6-RR16, RR19): a seeded walk with a captioned photo, a note, a memo, a 20-minute gap and a long stretch, watched with no taps but the ones it checks; then its day. Video sound is refused as iOS does, so the journey drops that one expected console error |
 | `reload` | a reload with a walk minimized keeps it reachable: the bar's ›, its Stop, the tabs |
 | `qol` | quality of life QL1-QL28: Locate, the scale bar, the trace's end markers, the units segment, time left while navigating, the denied-location chip (a second context without the permission), a photo's pin thumbnail, editing a note from the replay, month headers, rename from a Chronicle row (29 checks, about a minute) |
+
+`marks`, `outlines`, `grading`, `replay`, `reload` and `qol` are not part of
+the full flow: they run only by name.
 
 Every journey has a `covers` list, so `check:affected` names the ones a change
 touches. A journey that continues the story (`chronicle`, `notifications`,

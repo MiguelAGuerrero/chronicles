@@ -76,8 +76,11 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
     where a quiet read skipped them. One read at a time; a failure waits 2 min
     and 100 m (`retryAllowed`), route reads too. The build is checked at most
     every 10 min (`exploreBuild`), never per fix.
-  - **Membership:** nearest neighborhood point within 1 km, else the town or city
-    within its reach capped at 1.5 km (closer for its size), else an orphan
+  - **Membership:** nearest neighborhood point within 1 km inside the place's
+    town, else the town whose outline holds it (TO11, decision 0083), else the
+    town or city within its reach capped at 1.5 km (closer for its size). A
+    place inside an outline but past 1.5 km from its town's point is an
+    orphan, never the neighbor's; else an orphan
     (`area_key` null: shown, never counted). One area is one level and name
     within 1 km (`sameArea`): a town's point moves with the zoom it was read at,
     so the home matches by that, not by the key (`placeCount`).
@@ -159,6 +162,7 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
   - `sketchOf` and `sketchPaths`: a 200 x 150 frame, with the ring 64 units across its radius on every tile.
   - `tileLabel`.
   - Change what a read keeps, or how it is judged, and bump `ATLAS_CODE`.
+- **Atlas grading (AG1-AG6, decision 0084):** the five findable kinds (`MARK_CATEGORIES`) count only places with `markable` true (`read.ts` sets it from `isMarkable`, chains included), so the dots and the "?" agree. Food, shops and nightlife count all. `profile.thin` (fewer than `ATLAS_RULES.thinPlaces` places in the ring): the tile shows no kinds or character line, the card no kind rows. `MARKABLE_CLASSES` (`tilePois.ts`) is pinned by AG5's test: a new markable class is a change to the spec's definition of a mark. Next: whole areas (DEFERRED).
 - **Presence, not quality.** Bars come only from places inside the ring, against fixed steps. They are never relative to the neighbors, and every level uses the same ring (a town's is around its point). Green counts park places, not park area (deferred).
 - **Reads** (`atlas/read.ts`) decode tiles in code, like every read:
   - the near read: z14 place points for neighborhoods, z11 for towns, recorded in meta `atlas_near:<level>`;
@@ -178,6 +182,7 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
   - `otherTowns` drops your town; the title (`atlas-title`) opens it.
   - A town's page has one way back, the pill low on the screen (`atlas-back-pill`), with Back and Escape; the title card has no arrow (decision 0077, Nov 4).
   - Area points are the map's `areaPoints` prop (`components/AreaPoint.tsx`, DOM markers on web, Markers on native), with names for the nearest three and the selected one. Never `marks`, which stay for the pressed spot.
+- **Your town is the outline you are in** (TO10, decision 0083): `useAtlas` reads the kept outlines under you (`outlines.known`, no network) on each new z12 tile, reads the tile once when missing (backing off `retryMs` after a failure), and `nearList(..., outlines)` marks the town whose outline holds you, or none while its row isn't listed: never the nearest point instead. The town near read adds outline-only towns (`listable`). `ATLAS_CODE` a3.
 - **Position:** one fix read as the app opens (NV16, `launchFix`; the owner's call, Nov 3, since Explore is the opening tab), then the last fix, or a Locate tap. Until that fix comes, or if it fails, the tab opens where it last listed areas, from `atlas_near:neighborhood`, never saying "You're here", and the title says "Near you".
 - **Kept from the old tab:** the long press on the small map (What's good here, Walk here). The drawer's "?" and find pins on the map are gone; finds are on the cards.
 - **E2E:** tiles carry `data-name` and `data-read`; kind slots carry `data-kind` and `data-step`. The long press goes near the small map's middle, since a pixel there is more ground than on the old full-screen map.
