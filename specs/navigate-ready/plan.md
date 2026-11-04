@@ -1,6 +1,6 @@
 # Navigate, ready: plan
 
-For the owner's review before any code. The spec is `specs/navigate-ready/spec.md`.
+For the owner's review before any code. (NR3 changed after the build: the app opens on Explore with no walk open, the owner, Nov 4; see the spec.) The spec is `specs/navigate-ready/spec.md`.
 
 ## Shape
 

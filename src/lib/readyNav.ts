@@ -4,8 +4,8 @@
  * them; the tabs layout, the Navigate route and the walk screen follow them.
  */
 
-/** The tab beneath the walk screen when nothing else is (a launch, `/`, a bare reload of `/walk`). */
-export const BENEATH_TAB = '/explore' as const;
+/** The tab beneath the walk screen when nothing else is (Explore, at `/` since NV2's change; a bare reload of `/walk`). */
+export const BENEATH_TAB = '/' as const;
 
 export type ScreenState = 'loading' | 'ready' | 'walking';
 
@@ -20,7 +20,7 @@ export function navigatePress(): { preventTab: true; showWalk: true } {
   return { preventTab: true, showWalk: true };
 }
 
-/** The Navigate route itself focused (a launch, `/`, a link, NR3): Explore beneath, the walk screen over it. */
+/** The Navigate route itself focused (a reload of `/navigate`, a link): Explore beneath, the walk screen over it. */
 export function entryPlan(): { tabs: typeof BENEATH_TAB; thenShowWalk: true } {
   return { tabs: BENEATH_TAB, thenShowWalk: true };
 }

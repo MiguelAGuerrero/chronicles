@@ -75,4 +75,6 @@ An owner's call made during a slice gets its record in the same commit as the sl
 | [0067](0067-atlas-presence-as-dots.md) | 2026-11-03 | Atlas round 3: presence as dots, explained in words; "Quiet" stays the walk mode's | explore |
 | [0068](0068-uncertain-gaps-are-offered.md) | 2026-11-03 | An uncertain gap is offered faint, never left blank | trace, gaps |
 | [0069](0069-draw-a-gaps-way.md) | 2026-11-03 | A gap's way can be drawn (taps snapped to paths), and the guess fits the time | trace, gaps, map |
-| [0070](0070-navigate-opens-the-walk-screen-ready.md) | 2026-11-03 | Navigate opens the walk screen, ready; captures stack at the right edge; the bar pulls up | tabs, navigate, walk screen |
+| [0070](0070-app-opens-on-explore.md) | 2026-11-03 | The app opens on Explore, at `/`; a stale replay link at launch goes there too, and Explore reads one fix per launch (supersedes NV2's Navigate default) | tabs, navigation |
+| [0071](0071-every-break-is-a-gap.md) | 2026-11-03 | Every break in the trace is a gap, and settling never breaks the line | trace, gaps |
+| [0072](0072-navigate-opens-the-walk-screen-ready.md) | 2026-11-03 | Navigate opens the walk screen, ready; captures stack at the right edge; the bar pulls up | tabs, navigate, walk screen |

@@ -11,6 +11,7 @@ import { db } from '../../lib/db';
 import { applyPatch, captureBus } from '../../lib/captureBus';
 import { buildDays, dayCaptures, dayCard, dayPlan, dayStart, nextDayStart, stepFrames, walkDrawnAt, walkPlay, watchedKey, type Day, type DayStep, type WalkPlay } from '../../lib/days';
 import { focusOn } from '../../lib/focus';
+import { launchRoute } from '../../lib/launchRoute';
 import { boundsOf, type Bounds } from '../../lib/geo';
 import { walkerAt, walkTimeAt } from '../../lib/replay';
 import { loadReplay } from '../../lib/summary';
@@ -47,6 +48,8 @@ export default function DayReplay() {
   const insets = useSafeAreaInsets();
   const [data, setData] = useState<Loaded | null>(null);
   const [status, setStatus] = useState<'loading' | 'missing' | 'ready'>('loading');
+  // A load that threw is shown by the screen's error boundary, never as an empty day (NV2).
+  const [failure, setFailure] = useState<unknown>(null);
   const [reduceMotion, setReduceMotion] = useState(false);
   const [srMode, setSrMode] = useState(false);
   // The step and its start time change together, as the walk replay's beat does.
@@ -85,6 +88,11 @@ export default function DayReplay() {
       const day = buildDays(started.concat(walks.filter((w) => !started.includes(w))), captures).find((d) => d.key === key) ?? null;
       if (!alive) return;
       if (!day) {
+        // Opened on a day with nothing kept (a Home Screen app reopening on a stale link): to Explore (NV2).
+        if (launchRoute.isLaunch(`/day/${key}`)) {
+          router.dismissTo('/');
+          return;
+        }
         setStatus('missing');
         return;
       }
@@ -115,7 +123,7 @@ export default function DayReplay() {
       const t = Date.now();
       setPhase({ i: 0, t0: t, item: 0 });
       setNow(t);
-    })().catch(() => alive && setStatus('missing'));
+    })().catch((e) => alive && setFailure(e ?? new Error('This day could not be opened.')));
     return () => {
       alive = false;
     };
@@ -279,6 +287,7 @@ export default function DayReplay() {
   const cardAt = onCard ? phase.t0 : 0;
   const card = useMemo(() => (data && cardAt ? dayCard(data.day, cardAt, data.distance) : null), [data, cardAt]);
 
+  if (failure) throw failure;
   if (status !== 'ready' || !data) {
     return (
       <View style={[styles.screen, styles.center, { paddingHorizontal: 24 }]}>

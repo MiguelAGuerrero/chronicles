@@ -1,4 +1,4 @@
-# 0070. Navigate opens the walk screen, ready; captures stack at the right edge; the bar pulls up
+# 0072. Navigate opens the walk screen, ready; captures stack at the right edge; the bar pulls up
 
 Date: 2026-11-03 · Status: accepted · Area: tabs, navigate, walk screen
 
@@ -25,12 +25,14 @@ The owner's answers, Nov 3:
   walk are one walk screen with one map, kept mounted across Start; only its state changes.
 
 Taken as defaults in the plan, and confirmed by the owner's go-ahead ("Build it, then deploy"): the
-app opens on the ready screen with Explore beneath; the walking strip is unchanged; a destination
-set by a long press shows as one line on the resting bar.
+walking strip is unchanged; a destination set by a long press shows as one line on the resting bar.
+The plan's third default, opening the app on the ready screen, gave way to 0070 (the app opens on
+Explore): the owner, Nov 4, "if there's an active walk going on, it should reopen to the navigate
+tab; if there's no active walk, it should go to the Explore page".
 
 ## Consequences
-- Spec `specs/navigate-ready/spec.md` (NR1-NR13). `(tabs)/index.tsx` is only an entry route; the
-  Navigate tab's press calls `showWalk()`. The tabs open on Explore, and Back on Chronicle returns to it.
+- Spec `specs/navigate-ready/spec.md` (NR1-NR13). `(tabs)/navigate.tsx` is only an entry route; the
+  Navigate tab's press calls `showWalk()`. Explore stays the root (`/`, 0070).
 - Supersedes 0046 (the docked drawer), 0047 and 0062 (Navigate's live view of a minimized walk), 0056
   (the settings dialog), and 0008's centered capture row (its reasons for keeping controls low still
   hold: the stack sits low, at the right edge, above the strip).

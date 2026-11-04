@@ -34,6 +34,7 @@ import { WalkActions } from '../../components/WalkActions';
 import { pausedMs } from '../../lib/geo';
 import { newStreetsLine } from '../../lib/quietLines';
 import { capturesHere, type HereResult } from '../../lib/here';
+import { launchRoute } from '../../lib/launchRoute';
 
 type Beat = 'reading' | 'fog' | 'path' | 'card' | 'name';
 const FRAME_MS = 33; // ~30 fps: the dot reads as a slider, not as steps (was 66; unverified on a phone)
@@ -66,6 +67,8 @@ export default function Replay() {
   }, [stored, hidden]);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [status, setStatus] = useState<'loading' | 'missing' | 'ready'>('loading');
+  // A load that threw is shown by the screen's error boundary, with Try again, never as a missing walk (NV2).
+  const [failure, setFailure] = useState<unknown>(null);
   // The beat and its start time change together, so no render ever sees one
   // beat with another beat's clock.
   const [phase, setPhase] = useState<{ beat: Beat; t0: number }>(() => ({ beat: 'reading', t0: Date.now() }));
@@ -216,9 +219,22 @@ export default function Replay() {
       // The walk opens from the device first: the network is only asked
       // after, behind "Reading the streets" (bug, Nov 1: an iPhone sat on a
       // blank screen after Stop while the TileJSON fetch stalled).
-      let d = await loadReplay(id).catch(() => null);
+      let d: ReplayData | null;
+      try {
+        d = await loadReplay(id);
+      } catch (e) {
+        if (alive) setFailure(e ?? new Error('This walk could not be opened.'));
+        return;
+      }
       if (!alive) return;
       if (!d) {
+        // Opened on a walk that is no longer kept (a Home Screen app reopening on a stale link):
+        // straight to Explore, with no detour to Chronicle on the way out (NV2).
+        if (launchRoute.isLaunch(`/replay/${id}`)) {
+          leftForChronicle.current = true;
+          router.dismissTo('/');
+          return;
+        }
         setStatus('missing');
         return;
       }
@@ -409,6 +425,7 @@ export default function Replay() {
     [data, beat],
   );
 
+  if (failure) throw failure;
   if (status !== 'ready' || !data || !sched) {
     return (
       <View style={[styles.screen, styles.center, { paddingHorizontal: 24 }]}>

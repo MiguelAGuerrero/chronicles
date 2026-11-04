@@ -8,7 +8,7 @@ How it decides: the likely way is the shortest walk over the streets between the
 
 ## Criteria
 
-1. **G1 · What is a gap.** Two walked fixes more than 60 s apart, with no pause or ride between them, at least 40 m apart in a straight line, and at most 30 min apart. Anything else stays as today: a break in the trace.
+1. **G1 · What is a gap.** Two walked fixes more than 60 s apart, with no pause or ride between them, and at most 30 min apart, however close (the owner's rule, Nov 3: every break is made continuous; decision 0071). Ends within 10 m are joined straight and filled by itself. Settling GPS wander never makes a break of its own.
 2. **G2 · The likely way.** The shortest walk over the walkable streets (the ones fog and navigation use), each end joining any street within 40 m of its fix. No street within 40 m of an end, or no way between them: nothing is filled.
 3. **G3 · A walking pace.** If that way needs more than 2.5 m/s, it wasn't walked (a ride, or a taxi with the app closed): nothing is filled.
 4. **G4 · Confidence.** A piece is certain when every way between the ends within the budget uses it; confidence is the certain share of the way's street length. Two budgets: walking fairly directly (1.25 × the way), and the time allowed (the gap's time at 1.8 m/s, a brisk walker's pace, when that is longer). Only the stretch of a piece the way uses is left out when testing it, so a way out of the same piece the other way round counts. At least half the way must be street, not the joins to it.

@@ -1,23 +1,45 @@
-import { Stack } from 'expo-router';
+import { router, Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { OpenWalkProvider } from '../components/OpenWalk';
 import { theme } from '../components/ui';
 import '../components/webStyles';
 import '../components/pwa';
 import { setAudioMode } from '../lib/audioMode';
+import { db } from '../lib/db';
+import { launchRoute } from '../lib/launchRoute';
+import { openWalkAtLaunch } from '../lib/launchWalk';
 import { reconcileOpenWalk } from '../lib/session';
 import { ensureTileBuild } from '../lib/tiles';
 import { loadUnits } from '../lib/unitsStore';
-import { showWalk } from '../lib/walkNav';
 
 /** The tabs are the stack's first screen, so a walk or a replay always has them beneath. */
 export const unstable_settings = { initialRouteName: '(tabs)' };
 
+/** The longest the launch cover waits on the open walk's read; the device's own store answers in a few ms. */
+const LAUNCH_COVER_MAX_MS = 3000;
+
 export default function RootLayout() {
+  // The path the app opened on, so a stale replay link at launch goes to Explore (NV2).
+  const pathname = usePathname();
+  // The launch's way to the walk settles once the router is on it (NV2 launch 5).
+  const at = useRef(pathname);
+  const walkInFront = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    launchRoute.note(pathname);
+    at.current = pathname;
+    if (pathname === '/walk') {
+      walkInFront.current?.();
+      walkInFront.current = null;
+    }
+  }, [pathname]);
+  // Until the launch knows whether a walk is open, the app is covered, so a walk
+  // comes straight back without Explore showing first (NV2 launch 1).
+  const [covered, setCovered] = useState(true);
   // An open walk is picked back up at launch or reload, wherever the app
-  // opened: recording re-attaches and the walk screen comes back.
+  // opened: the walk screen comes back, then recording re-attaches.
   useEffect(() => {
     // Memos and videos play with the ringer switch off, wherever they are opened.
     setAudioMode({ playsInSilentMode: true, allowsRecording: false }).catch(() => {});
@@ -25,13 +47,18 @@ export default function RootLayout() {
     ensureTileBuild().catch(() => {});
     // The km or miles setting (QL13); until it loads, the locale's default shows.
     loadUnits().catch(() => {});
-    reconcileOpenWalk()
-      .then((open) => {
-        // Over the tabs, so Minimize has a tab to go back to; a second ask (the Navigate route's own,
-        // at `/`) does nothing (NR3).
-        if (open) showWalk(undefined, { launch: true });
-      })
-      .catch(() => {});
+    openWalkAtLaunch({
+      findOpen: () => db.getOpenWalk(),
+      showWalk: () =>
+        new Promise<void>((inFront) => {
+          if (at.current === '/walk') inFront();
+          else walkInFront.current = inFront;
+          router.replace('/walk');
+        }),
+      lift: () => setCovered(false),
+      resume: reconcileOpenWalk,
+      capMs: LAUNCH_COVER_MAX_MS,
+    });
   }, []);
 
   return (
@@ -59,7 +86,10 @@ export default function RootLayout() {
           <Stack.Screen name="replay/[id]" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
           {/* The day's replay (M10): moments and walks in time order. */}
           <Stack.Screen name="day/[key]" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
+          {/* The old Explore path, sent on to / (NV2). */}
+          <Stack.Screen name="explore" options={{ headerShown: false }} />
         </Stack>
+        {covered && <View testID="launch-cover" style={[StyleSheet.absoluteFill, { backgroundColor: theme.bg }]} />}
       </OpenWalkProvider>
     </SafeAreaProvider>
   );

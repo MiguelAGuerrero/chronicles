@@ -1,11 +1,11 @@
 import { db } from '../db';
 import { fetchTiles } from '../discovery/tileFetch';
-import { boundsOf } from '../geo';
+import { boundsOf, distanceM } from '../geo';
 import type { ReadTrace } from '../rides';
 import { deriveSegments, type RoadFeature } from '../streets';
 import { tilesIn } from '../tileMath';
 import type { GapDecision } from '../types';
-import { decisionFor, gapKey, gapsOf, inferGap, readBounds, stretchesFor, type Gap, type Inference, type Stretch } from './infer';
+import { decisionFor, GAP_RULES, gapKey, gapsOf, inferGap, readBounds, stretchesFor, type Gap, type Inference, type Stretch } from './infer';
 
 /**
  * Filling gaps' reads (G8, G10, G12). A gap's streets are read in code from
@@ -26,6 +26,8 @@ const inFlight = new Map<string, Promise<Inference | null | undefined>>();
  * be read (offline, no tile build yet), so it is tried again later (G8).
  */
 export async function readGap(walkId: string, g: Gap): Promise<Inference | null | undefined> {
+  // A break within GPS error is joined straight, with nothing to read (offline too).
+  if (distanceM(g.from, g.to) < GAP_RULES.straightM) return inferGap(g, [], null);
   const [build, url] = await Promise.all([db.getMeta('tile_build'), db.getMeta('tile_url')]);
   if (!build || !url) return undefined;
   const key = `${build}|${walkId}|${gapKey(g)}`;
@@ -76,7 +78,8 @@ export async function walkStretches(walkId: string, tr: ReadTrace, opts: { read:
   let unread = false;
   // One gap at a time: a long walk with many gaps reads a few tiles each, never all at once.
   for (const g of undecided) {
-    const inf = opts.read ? await readGap(walkId, g) : await knownFor(walkId, g);
+    // A break within GPS error is joined straight whether or not anything may be read.
+    const inf = distanceM(g.from, g.to) < GAP_RULES.straightM ? inferGap(g, [], null) : opts.read ? await readGap(walkId, g) : await knownFor(walkId, g);
     if (inf === undefined) unread = true;
     else if (inf) inferred.push(inf);
   }

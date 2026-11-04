@@ -7,8 +7,12 @@ export const GAP_RULES = {
   gapMs: 60_000,
   /** ...and no longer than this: past it, anything could have happened (G1). */
   maxMs: 30 * 60_000,
-  /** The fixes either side are at least this far apart in a straight line: closer, you were around here (G1). */
-  minM: 40,
+  /**
+   * Every break is a gap, however short (the owner's rule, Nov 3): the line is made continuous.
+   * A break whose ends are within this is joined straight and filled by itself: within GPS error,
+   * with no streets to read.
+   */
+  straightM: 10,
   /** Each end joins every street within this of its fix (G2). */
   joinM: 40,
   /** A way needing more than this was not walked (G3). */

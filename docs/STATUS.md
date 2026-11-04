@@ -27,7 +27,7 @@ what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md
 | Memories on revisit (faint pins, previews, thumbnails) | shipped | `0db86c7` 2026-11-01 audit fixes; `61dc468` 2026-11-01 thumbnails audit | `specs/memories-on-revisit/spec.md` | yes (`0db86c7`, `61dc468`) |
 | Rides | shipped | `8e49c9c` 2026-11-01 rides audit fixes | `specs/rides/spec.md` | yes (14 findings, 11 fixed, `8e49c9c`) |
 | Moments and days | shipped | `03e801d` 2026-11-01; `1b4853e` 2026-11-02 day replay fix | `specs/moments-and-days/spec.md` | yes ("After the audit" in AGENTS.md; `9187b3c`) |
-| Navigation & tabs (three tabs, drawer, minimize, recording bar; the Start dialog) | shipped | `6fe5a2a` 2026-11-01 phase 1; `2cc38d7` 2026-11-02 audit; `d3b9770` 2026-11-03; the settings dialog `6fb2572`, `9f547bd` 2026-11-03 | `specs/navigation-and-tabs/spec.md` | yes, two batches (`2cc38d7`, `a3bdc45`..`0a79e05`) |
+| Navigation & tabs (three tabs, drawer, minimize, recording bar; the Start dialog) | shipped | `6fe5a2a` 2026-11-01 phase 1; `2cc38d7` 2026-11-02 audit; `d3b9770` 2026-11-03; the settings dialog `6fb2572`, `9f547bd` 2026-11-03; opens on Explore (NV2, 0070) 2026-11-03; an open walk at launch comes straight up, no Explore first (NV2 launch 1-5) 2026-11-03 | `specs/navigation-and-tabs/spec.md` | yes, two batches (`2cc38d7`, `a3bdc45`..`0a79e05`) |
 | Clearing walks and moments | shipped | `b2bfcf7` 2026-11-01 audit fixes; `e59d65f` 2026-11-01 | `specs/clearing-walks-and-moments/spec.md` | yes (13 findings, 8 fixed, `b2bfcf7`) |
 | Places worth the stop | queued (no commit on main mentions it) | none | `specs/places-worth-the-stop/spec.md` | no |
 | Motion (steps from the phone's sensors, MO1-MO10) | shipped | `09f504a` 2026-11-01; `8edc09b` 2026-11-01 audit fixes; `93ef082` 2026-11-01 | `specs/motion/spec.md` | yes (11 findings, 9 fixed, `8edc09b`) |
@@ -109,6 +109,11 @@ first.
   (QL13+, in the owner's order: units, time left, a Settings link when location is
   denied, renaming a walk, editing a note, thumbnails on pins, month headers,
   keep awake, GPX export, the current street chip, dark mode): when, and which next.
+
+- **The Navigation & tabs doc** (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7)
+  still says NV2 opens on Navigate and NV5's paths are `/` Navigate and
+  `/explore`. The mirror (`specs/navigation-and-tabs/spec.md`) has the owner's
+  Nov 3 call (0070); the doc needs the same edit.
 
 ## In flight
 

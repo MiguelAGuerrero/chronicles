@@ -1,6 +1,6 @@
 # 0047. Navigate with a walk minimized is a live view of it
 
-Date: 2026-11-02 · Status: superseded by 0070 (Navigate opens the open walk) · Area: tabs, navigate
+Date: 2026-11-02 · Status: superseded by 0072 (Navigate opens the open walk) · Area: tabs, navigate
 
 ## Context
 Navigation & tabs, after the audit (the owner's calls, Nov 2). U2: with a walk minimized, Navigate showed the start state, as if no walk were on.

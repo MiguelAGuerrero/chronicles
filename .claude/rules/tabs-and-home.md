@@ -4,30 +4,60 @@ paths:
   - "src/components/StartSettings.tsx"
   - "src/app/_layout.tsx"
   - "src/components/{HomeSheet,RecordingBar,SwitchRow,OpenWalk}.tsx"
-  - "src/lib/{recordingBar,walkNav,walkGate,openWalkLoad,startPlan,useStartWalk,useTabMap,memoGate,quietLines,summary,walkEvents,settleWithin}.ts"
-  - "src/lib/__tests__/{tabsAudit,tabsAuditQuiet,minimize,startPlan}.test.ts"
+  - "src/lib/{launchRoute,launchWalk,recordingBar,walkNav,walkGate,openWalkLoad,startPlan,useStartWalk,useTabMap,memoGate,quietLines,summary,walkEvents,settleWithin}.ts"
+  - "src/lib/__tests__/{tabsAudit,tabsAuditQuiet,minimize,startPlan,launchRoute,launchWalk}.test.ts"
 ---
 # Tabs and home
 
 The three tabs (Explore, Navigate, Chronicle), the home sheet, the recording bar, the way to the walk screen, and the home map's lifecycle. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
 
+## The opening tab (the owner's call, Nov 3: 0070)
+
+- **Explore is the root route** (`(tabs)/index.tsx`, `/`) and Navigate is
+  `(tabs)/navigate.tsx` at `/navigate`, so the app, the Home Screen web app's
+  `start_url: "./"` and Back on the other tabs (`backBehavior:
+  'initialRoute'`) all land on Explore. Since Navigate became the walk screen (0072), Minimize or
+  the chevron with nothing beneath goes to Explore (`exitPlan`), and Chronicle's Navigate button
+  calls `showWalk()`.
+- **Explore reads one fix per launch** (NV16): `launchFix` in `lib/lastFix`
+  lets its first focus ask `locateOnce()` when no fix is known, then keeps it as
+  the last fix, moves the atlas there and frames the ring (as Locate does).
+- **`/explore` still works**: `src/app/explore.tsx` calls `router.dismissTo('/')`
+  on focus. Not `<Redirect href="/">`: a replace from a screen over the tabs
+  stacks a second set of tabs (two tab bars; the e2e counts one).
+- **A stale replay link at launch goes to Explore** (NV2): the root layout notes
+  every path in `lib/launchRoute`; a replay or day that finds nothing on the
+  path the app opened on calls `router.dismissTo('/')` (the replay first sets
+  `leftForChronicle`, or its unmount would move to Chronicle). Reached from
+  inside the app, the message and its button stay. A load that throws goes to
+  the screen's `ScreenError` boundary, never "could not be found".
+- **An open walk at launch comes straight up** (`lib/launchWalk`, the owner,
+  Nov 3: the Home Screen app showed Explore, then jumped to the walk). The root
+  layout covers the app (`launch-cover`) until `db.getOpenWalk()` answers, then
+  `router.replace('/walk')`, lifts the cover once `usePathname()` is `/walk`
+  (a replace commits a frame later: lifting at once showed one frame of tabs),
+  and only then `reconcileOpenWalk()`: on web the recorder's resume waits for
+  the browser's first fix, up to 10 s, which is how long Explore used to show.
+  Each wait is capped at 3 s, so a stuck read never leaves the app covered.
+  The reload e2e opens `/` with a walk open and samples every frame.
+- **e2e:** `navUrl` (`${url}navigate`) opens the scenarios that begin on
+  Navigate; `url` opens Explore.
+
 ## After the audit
 
-- **Navigate is the walk screen** (NR1-NR13, decision 0070; it retires U1's docked drawer and U2's
+- **Navigate is the walk screen** (NR1-NR13, decision 0072; it retires U1's docked drawer and U2's
   live view): the Navigate tab's `tabPress` is prevented and calls `showWalk()` (`(tabs)/_layout.tsx`,
   `navigatePress` in `lib/readyNav`), so the walk screen opens over the tab in front, ready or with the
-  open walk. `(tabs)/index.tsx` (`/`) is only an entry: focused (a launch, a reload of `/`, a link), it
-  replaces itself with Explore (so the browser's back never lands on `/` and reopens Navigate, audit 7)
-  and then opens the walk screen. Its `showWalk` runs in a timeout that is never cleared, because
-  moving the tabs blurs the route at once. The tabs' initial route is Explore
-  (`unstable_settings`), so Back on Chronicle returns to Explore. Chronicle's empty-peek Navigate calls
-  `showWalk()` too. At launch with an open walk, the root layout and the entry route ask
-  `showWalk(undefined, { launch: true })`: a launch's ask passes one still pending (a tapped
+  open walk. `(tabs)/navigate.tsx` (`/navigate`) is only an entry: focused (a reload of `/navigate`, a
+  link), it replaces itself with Explore at `/` (so the browser's back never lands on it and reopens
+  Navigate, audit 7) and then opens the walk screen. Its `showWalk` runs in a timeout that is never
+  cleared, because moving the tabs blurs the route at once, and asks as a launch
+  (`showWalk(undefined, { launch: true })`): a launch's ask passes one still pending (a tapped
   notification can ask before the router is ready, and that push is lost), but only once, and never
-  past a walk screen up (`walkGate`). The Navigate tab is never the focused tab, so its icon is never tinted.
-- **Explore sits beneath the ready screen from launch** (NR3): it focuses for a tick before the walk
-  screen opens, so it may have read and named its town by the first time you see it. The e2e accepts
-  "Near you" or the town there.
+  past a walk screen up (`walkGate`). Chronicle's empty-peek Navigate calls `showWalk()` too. The
+  Navigate tab is never the focused tab, so its icon is never tinted.
+- **The launch** (the owner, Nov 4, keeping 0070): with no walk open the app opens on Explore at `/`;
+  with one, the root layout's launch cover brings the walk screen straight up (NV2 launch 1-5).
 - **Going to the walk screen is `showWalk()`** (`lib/walkNav`, gate in
   `lib/walkGate`), never `router.push('/walk')`: a second ask while one is on
   its way or the screen is up does nothing, and the root stack's `walk` is
@@ -126,7 +156,7 @@ The three tabs (Explore, Navigate, Chronicle), the home sheet, the recording bar
   - A screen may refuse a height (`onSize`). A drag let go then settles back where the screen holds it;
     it was once left tall and empty where the finger let go (Nov 2).
 
-## Navigate's settings are in the ready bar (the owner's call, Nov 3, 0070)
+## Navigate's settings are in the ready bar (the owner's call, Nov 3, 0072)
 
 - The Start dialog (0056) is gone: its body is `StartSettings` (`components/StartSettings.tsx`),
   shown in the ready bar pulled up (see `.claude/rules/walk-screen.md`): mode, destination, "?"

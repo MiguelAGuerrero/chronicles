@@ -42,7 +42,7 @@ Not hikers (no trails), not runners (no fitness tracking), not completionists
 ## The three tabs
 
 The app is three tabs in one loop: Explore before, Navigate during,
-Chronicle after. A walk screen opens over them while recording, and a
+Chronicle after. The app opens on Explore. A walk screen opens over them while recording, and a
 recording bar brings a minimized walk back.
 
 ### Explore (before)

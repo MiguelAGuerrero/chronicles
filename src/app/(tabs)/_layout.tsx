@@ -14,13 +14,14 @@ import { showWalk } from '../../lib/walkNav';
  * The three tabs (Navigation & tabs, NV1): Explore · Navigate · Chronicle, in
  * that order, with an icon and a label, the same on web and phone. Every tab
  * option lives here, so the iOS build can move to native tabs by changing only
- * this file. Navigate is the walk screen, ready or walking (NR1, NR2): its
- * press opens it over the tab in front, and never shows a tab of its own.
- * Explore is the tab beneath at launch (NR3), and Back on Chronicle returns to
- * it. Each tab keeps its state while another is in front (NV3); each takes its
- * own map down while unfocused, so one map is live at a time (NV4).
+ * this file. Explore opens first, at `/` (NV2, the owner's call, Nov 3), and
+ * Back on another tab returns to it (NV5). Navigate is the walk screen, ready
+ * or walking (NR1, NR2): its press opens it over the tab in front, and never
+ * shows a tab of its own. Each tab keeps its state while another is in front
+ * (NV3); each takes its own map down while unfocused, so one map is live at a
+ * time (NV4).
  */
-export const unstable_settings = { initialRouteName: 'explore' };
+export const unstable_settings = { initialRouteName: 'index' };
 
 /** The tab bar's height above the safe area. */
 const TAB_BAR_H = 58;

@@ -13,17 +13,17 @@ test('NR2: a Navigate press opens the walk screen, ready or with the walk open, 
   assert.deepEqual(navigatePress(), { preventTab: true, showWalk: true });
 });
 
-test('NR3: launch with no open walk opens the ready screen over Explore', () => {
-  // `/` (the Navigate route) moves the tabs beneath to Explore, then opens the walk screen over them.
-  assert.equal(BENEATH_TAB, '/explore');
-  assert.deepEqual(entryPlan(), { tabs: '/explore', thenShowWalk: true });
+test('NR3: a link to /navigate puts Explore beneath, then opens the walk screen over it', () => {
+  // The app itself opens on Explore at `/` with no walk open, and on the walk with one (the owner, Nov 4).
+  assert.equal(BENEATH_TAB, '/');
+  assert.deepEqual(entryPlan(), { tabs: '/', thenShowWalk: true });
 });
 
-test('NR4: the chevron and Back return to the last tab, Explore after a launch', () => {
+test('NR4: the chevron and Back return to the tab beneath, Explore when there is none', () => {
   // A tab beneath: back to it (the tab you came from).
   assert.deepEqual(exitPlan(true), { kind: 'back' });
-  // Nothing beneath (a reload of /walk on a bare stack): Explore.
-  assert.deepEqual(exitPlan(false), { kind: 'replace', to: '/explore' });
+  // Nothing beneath (a reload of /walk on a bare stack): Explore, at `/`.
+  assert.deepEqual(exitPlan(false), { kind: 'replace', to: '/' });
 });
 
 test('navigate-ready audit 9: an in-place start says it is recording, and on the web without background to keep the page open', () => {

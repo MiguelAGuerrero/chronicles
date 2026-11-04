@@ -1,6 +1,6 @@
 # 0046. Navigate's drawer docks Start and the capture row low at every height
 
-Date: 2026-11-02 · Status: superseded by 0070 (Navigate is the ready walk screen) · Area: tabs, navigate
+Date: 2026-11-02 · Status: superseded by 0072 (Navigate is the ready walk screen) · Area: tabs, navigate
 
 ## Context
 Navigation & tabs, after the audit (the owner's calls, Nov 2). U1, after AllTrails' sticky Start: Start moved as the drawer was pulled up (0021).

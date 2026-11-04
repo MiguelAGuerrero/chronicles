@@ -27,6 +27,10 @@ for its layout only. Chronicles keeps its own palette, Start button and map styl
   which put the settings in a dialog. Start stays at the bar's foot at every height.
 - **One and the same screen** (the owner, 2026-11-03, mid-build): the ready state is not a separate
   view from the walk's; it is the walk screen with one map that stays mounted across Start.
+- **The launch** (the owner, 2026-11-04, after main had taken "the app opens on Explore", 0070):
+  "If there's an active walk going on, it should reopen to the navigate tab; if there's no active
+  walk, it should go to the Explore page." NR3 follows it; the plan's default (open on the ready
+  screen) is dropped.
 - **Layout only** (the owner, 2026-11-03): AllTrails' structure, Chronicles' light
   theme, the rust Start and the current map style.
 
@@ -41,11 +45,12 @@ for its layout only. Chronicles keeps its own palette, Start button and map styl
    is set, no trace, and nothing ticking.
 2. **NR2 · With a walk open, Navigate opens that walk,** recording, as the recording
    bar's › does. Navigate has no view of its own any more.
-3. **NR3 · The app opens on the ready screen** (NV2 kept), with Explore beneath it.
-   An open walk still opens its walk screen at launch. On web, `/` and `/walk` both
-   open the ready screen when no walk is open, so a reload keeps it.
+3. **NR3 · The launch** (the owner, Nov 4, keeping 0070): with no walk open the app
+   opens on Explore, at `/`; with a walk open it reopens straight onto that walk (the
+   walk screen, which Navigate is). On web, a reload of `/walk` or a link to `/navigate`
+   opens the ready screen over Explore.
 4. **NR4 · The chevron goes back.** The chevron-down at the top-left (NV7's place)
-   goes back to the tab you came from, Explore after a launch. In the ready state it
+   goes back to the tab you came from, Explore when there is none. In the ready state it
    just leaves. During a walk it minimizes to the recording bar, as today. Android
    Back and the browser's back do the same.
 
