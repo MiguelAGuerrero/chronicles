@@ -87,7 +87,8 @@ async function checks(h) {
       check(stills.length >= 1 && stills[0].ended_at == null, `standing is kept with the walk as a still spell (MO8: ${stills.length})`);
 
       // MO6: steps start, and the dot moves within 2 s. Back where the dot is held first, still; then a walk
-      // east at 1.4 m/s with a fix every half second, timed from the first step.
+      // east at 1.4 m/s with a fix every quarter second (the detector needs three steps, about 1.1 s, and
+      // looks every 0.5 s; a 1 Hz GPS adds up to a second more), timed from the first step.
       const held = await puckAt();
       for (let k = 0; k < 3; k++) {
         await ctx3.setGeolocation({ longitude: held[0], latitude: held[1], accuracy: 10 });
@@ -105,9 +106,9 @@ async function checks(h) {
         };
         requestAnimationFrame(look);
       }, { from, mLon: dLon / 100, mLat: dLat / 100 });
-      for (let k = 1; k <= 12 && (await p3.evaluate(() => window.__moved)) == null; k++) {
-        await ctx3.setGeolocation({ longitude: from[0] + k * 0.7 * dLon / 100, latitude: from[1], accuracy: 10 });
-        await p3.waitForTimeout(500);
+      for (let k = 1; k <= 24 && (await p3.evaluate(() => window.__moved)) == null; k++) {
+        await ctx3.setGeolocation({ longitude: from[0] + k * 0.35 * dLon / 100, latitude: from[1], accuracy: 10 });
+        await p3.waitForTimeout(250);
       }
       const movedAt = await p3.evaluate(() => window.__moved && Math.round(window.__moved));
       check(movedAt != null && movedAt <= 2000, `when steps start, the dot moves within 2 s (MO6: ${movedAt == null ? 'never in 6 s' : `${movedAt} ms after the first step`})`);
