@@ -20,7 +20,7 @@ Explore's map is small and pans freely, so a drag mostly loses you between the a
 3. **DN3** With an area selected, a swipe starts from it. With none selected, a swipe starts from the middle of the map.
 4. **DN4** With no area that way, nothing changes: the selection and the camera stay where they were.
 5. **DN5** Straight after a swipe, the opposite swipe returns to the area it came from, even when another area is nearer that way.
-6. **DN6** A swipe only selects. The map draws the area's ring and its name in the accent colour, and its tile in the grid is marked and scrolled into view. The card does not open. A tap on a tile or a point opens the card, as before.
+6. **DN6** A swipe only selects. The map draws the area's ring and its name in the accent colour, and its tile in the grid is marked and scrolled into view. The card does not open. A tap on a tile opens the card, as before.
 7. **DN7** On the page near you, swipes move between that page's neighborhoods: the points on the map.
 8. **DN8** On a town's page with one of its neighborhoods selected, swipes move between that town's neighborhoods. With none selected, a swipe opens the page of the nearest listed town in that direction, the same as a tap on its tile, and the opposite swipe brings back the town before.
 9. **DN9** A tap on the map away from any area clears the selection, so on a town's page the next swipe moves between towns.
@@ -32,3 +32,27 @@ Explore's map is small and pans freely, so a drag mostly loses you between the a
 ## Routes and data
 
 - No new routes, dependencies or storage. The selection, and the trail that lets the opposite swipe return (DN5), live in the Explore screen's state.
+
+## Record (Nov 4)
+
+Built on branch `claude/discrete-navigation`; the owner's go-ahead on the plan, Nov 4.
+
+| Id | Passed by |
+|---|---|
+| DN1 | e2e `snap` "DN1: a drag that points at no area leaves the map's centre where it was" |
+| DN2 | `snap.test.ts` (three DN2 cases); e2e `snap` "DN2: a swipe centres the area it selects and keeps the zoom", "a drag up goes south", "a drag left goes east", "a drag under 24 px is not a swipe" |
+| DN3 | `snap.test.ts` "DN3: ..."; e2e `snap` "DN3: with nothing selected, a swipe starts from the map's middle" |
+| DN4 | `snap.test.ts` "DN4: nothing that way returns null"; e2e `snap` "DN4: with nothing that way, the selection stays" |
+| DN5 | `snap.test.ts` "DN5: ..."; e2e `snap` "DN5: the opposite swipe returns where it came from" |
+| DN6 | e2e `snap` "DN6: a swipe selects, the card stays closed, the tile is marked and in view", "DN6: the tile was out of view before the swipe, so the grid scrolled to it" |
+| DN7 | `snap.test.ts` "DN7, DN8: ..." |
+| DN8 | `snap.test.ts` "DN7, DN8: ..."; e2e `snap` "DN8: on a town's page a swipe west opens the next town's page", "DN8: the opposite swipe brings the first town back" |
+| DN9 | e2e `snap` "DN9: a tap on the map clears the selection", "DN9: closing the long press's choices keeps the selection" |
+| DN10 | e2e `snap` "DN10: the mouse wheel still zooms", "DN10: the long press still offers What's good here"; the compass by `qol` |
+| DN11 | `snap.test.ts` "DN11: ..."; e2e `snap` "DN11: ArrowRight on the focused map selects the area to the east", "DN11: + on the focused map still zooms in" |
+| DN12 | e2e `snap` "DN12: a swipe announces the area's name" (the web's hidden live region) |
+| DN13 | e2e `snap` "DN13: Navigate's map still pans by a drag" |
+
+- **Test-first, honestly:** `snap.test.ts` was seen failing (no module) before `atlas/snap.ts`; the `snap` journey was seen failing at DN3 before the screen code. The first run after the code found a real bug: the browser's `click` at the end of every drag cleared the selection (DN9), since maplibre suppresses it only when its own drag-pan is on. A drag over 8 px is now never a tap.
+- **Changed from the plan:** DN6's tile is checked by its accent border, not `aria-selected` (react-native-web drops it on a button). Area points aren't tappable on the map (they never were), so DN6 says a tap on a tile opens the card. The swipe centres the area where a tap's frame does, below the title card, not at the canvas's middle.
+- **Not audited** (decision 0074: only when the owner asks). **Native, never run on a device:** `docs/NATIVE_UNVERIFIED.md` "Discrete navigation".

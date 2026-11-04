@@ -103,6 +103,16 @@ const divisionFeatures = [
     properties: { subtype: 'locality', class: 'land', '@name': 'Central Falls', division_id: 'central-falls', id: 'central-falls-area' } },
 ];
 let serveDivisions = false;
+// Discrete navigation (DN1-DN13): four neighborhoods around Fox Point, one each way, and a second town
+// west of Providence, only in the snap journey (serveSnap), so other journeys' areas don't change.
+const snapFeatures = [
+  { type: 'Feature', properties: { class: 'neighbourhood', name: 'Wickenden' }, geometry: { type: 'Point', coordinates: at(10, 0) } },
+  { type: 'Feature', properties: { class: 'neighbourhood', name: 'Point Street' }, geometry: { type: 'Point', coordinates: at(-9, 0) } },
+  { type: 'Feature', properties: { class: 'neighbourhood', name: 'Hope Village' }, geometry: { type: 'Point', coordinates: at(1, 12) } },
+  { type: 'Feature', properties: { class: 'neighbourhood', name: 'Ship Street' }, geometry: { type: 'Point', coordinates: at(1, -11) } },
+  { type: 'Feature', properties: { class: 'town', name: 'Cranston' }, geometry: { type: 'Point', coordinates: at(-40, 2) } },
+];
+let serveSnap = false;
 const OVERTURE_HOST = 'overturemaps-extras-us-west-2.s3.amazonaws.com';
 const OVERTURE_RELEASE = '2026-10-21.0';
 
@@ -323,7 +333,7 @@ function check(ok, what) {
     if (tile && tileDelayMs) await new Promise((res) => setTimeout(res, tileDelayMs));
     if (tile) {
       const [z, x, y] = tile.slice(1).map(Number);
-      return r.fulfill({ contentType: 'application/x-protobuf', body: Buffer.from(encodeTile(features, z, x, y)) });
+      return r.fulfill({ contentType: 'application/x-protobuf', body: Buffer.from(encodeTile(serveSnap ? [...features, ...snapFeatures] : features, z, x, y)) });
     }
     if (tilejsonStall && r.request().url().endsWith('/planet')) await tilejsonStall;
     return r.fulfill({
@@ -879,6 +889,165 @@ function check(ok, what) {
       && (await card.locator('[data-testid=atlas-how]').count()) === 0 && !/\bnone\b/.test(await card.innerText().catch(() => '')),
       'AG3: a thin ring\'s card shows no kind rows, no "none", no "How the marks work"');
     await c.close();
+  };
+
+  // Discrete navigation (DN1-DN13): Explore's map steps from area to area instead of panning.
+  // E2E_ONLY=snap runs it alone.
+  const snapScenario = async () => {
+    serveSnap = true;
+    const { c, pg } = await freshPage('snap');
+    // window.__project, to find where an area sits on the map's screen.
+    await c.addInitScript(() => { window.__perf = {}; });
+    try {
+      const hoods = { 'Fox Point': at(1, 0), Wickenden: at(10, 0), 'Point Street': at(-9, 0), 'Hope Village': at(1, 12), 'Ship Street': at(1, -11) };
+      const headingOf = (a, b) => ((Math.atan2((b[0] - a[0]) / dLon, (b[1] - a[1]) / dLat) * 180) / Math.PI + 360) % 360;
+      const apart = (a, b) => Math.abs(((((a - b) % 360) + 540) % 360) - 180);
+      // What the spec says a swipe from here that way lands on (DN2, DN3): the nearest within 45°,
+      // past 100 m of the map's middle when nothing is selected.
+      const expectFrom = (from, heading, skip = null) => {
+        let best = null;
+        let bestM = Infinity;
+        for (const [name, p] of Object.entries(hoods)) {
+          const m = distanceM(from, p);
+          if (name === skip || m < (skip ? 1 : 100) || apart(headingOf(from, p), heading) > 45) continue;
+          if (m < bestM) [best, bestM] = [name, m];
+        }
+        return best;
+      };
+      await pg.goto(url);
+      await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 5, null, { timeout: 60000 }).catch(() => {});
+      await pg.waitForFunction(() => document.querySelectorAll('[data-testid=area-point]').length >= 5, null, { timeout: 30000 }).catch(() => {});
+      await pg.waitForTimeout(2500);
+      const map = pg.locator('.maplibregl-map').first();
+      const centre = async () => ((await map.getAttribute('data-center')) || '0,0').split(',').map(Number);
+      const zoom = async () => Number(await map.getAttribute('data-zoom'));
+      const selected = () => pg.evaluate(() => [...document.querySelectorAll('[data-testid=area-point][data-selected="1"]')].map((e) => e.dataset.name));
+      const said = () => pg.locator('[data-testid=atlas-snap-said]').textContent().catch(() => '');
+      const drag = async (dx, dy) => {
+        const b = await map.boundingBox();
+        const x = b.x + b.width / 2;
+        const y = b.y + b.height * 0.6;
+        await pg.mouse.move(x, y);
+        await pg.mouse.down();
+        await pg.mouse.move(x + dx, y + dy, { steps: 6 });
+        await pg.mouse.up();
+        await pg.waitForTimeout(1500);
+      };
+      const tilesShown = (await pg.locator('[data-testid=atlas-tile]').evaluateAll((els) => els.map((e) => e.dataset.name))).join(', ');
+      check(Object.keys(hoods).every((n) => tilesShown.includes(n)), `snap: the page near you lists the five neighborhoods (${tilesShown})`);
+
+      // DN3, DN2: nothing selected, a drag down goes north from the map's middle.
+      const c0 = await centre();
+      const z0 = await zoom();
+      const grid = await pg.locator('[data-testid=atlas-grid]').boundingBox();
+      const inGrid = (r) => !!r && r.y >= grid.y - 1 && r.y + r.height <= grid.y + grid.height + 1;
+      const hopeBefore = await pg.locator('[data-testid=atlas-tile][data-name="Hope Village"]').boundingBox().catch(() => null);
+      await drag(0, 60);
+      const first = expectFrom(c0, 0);
+      const sel1 = await selected();
+      check(first && sel1.length === 1 && sel1[0] === first, `DN3: with nothing selected, a swipe starts from the map's middle (${JSON.stringify(sel1)}, expected ${first})`);
+      const c1 = await centre();
+      // Centred where a tap's frame puts an area: the middle of the map below the title card (padding 84 top, 24 elsewhere).
+      const mb0 = await map.boundingBox();
+      const [px, py] = first ? await pg.evaluate((p) => window.__project(p), hoods[first]) : [0, 0];
+      const offX = px - (mb0.x + mb0.width / 2);
+      const offY = py - (mb0.y + (84 + mb0.height - 24) / 2);
+      check(Math.hypot(offX, offY) < 6 && Math.abs((await zoom()) - z0) < 0.05,
+        `DN2: a swipe centres the area it selects and keeps the zoom (${offX.toFixed(0)}, ${offY.toFixed(0)} px off; z${z0.toFixed(2)} → z${(await zoom()).toFixed(2)})`);
+      // DN6: it only selects. No card; the tile is marked (the accent border) and scrolled into the grid's view.
+      const tile = pg.locator(`[data-testid=atlas-tile][data-name="${first}"]`);
+      const tb = await tile.boundingBox().catch(() => null);
+      const edge = await tile.evaluate((e) => getComputedStyle(e).borderTopColor).catch(() => '');
+      check((await pg.locator('[data-testid=atlas-card]').count()) === 0 && edge === 'rgb(194, 65, 12)' && inGrid(tb),
+        `DN6: a swipe selects, the card stays closed, the tile is marked and in view (${edge}, ${tb && Math.round(tb.y)}..${tb && Math.round(tb.y + tb.height)} in ${Math.round(grid.y)}..${Math.round(grid.y + grid.height)})`);
+      check(first !== 'Hope Village' || !inGrid(hopeBefore), `DN6: the tile was out of view before the swipe, so the grid scrolled to it (${hopeBefore && Math.round(hopeBefore.y)})`);
+      check(((await said()) || '').includes(first), `DN12: a swipe announces the area's name (${await said()})`);
+      // DN2: a drag under 24 px is not a swipe.
+      await drag(12, 6);
+      check(JSON.stringify(await selected()) === JSON.stringify(sel1) && distanceM(await centre(), c1) < 5, 'DN2: a drag under 24 px is not a swipe');
+      await shot(pg, 'snap-north');
+
+      // From there, south, then east: Fox Point, then Wickenden.
+      await drag(0, -60);
+      const second = expectFrom(hoods[first], 180, first);
+      check(JSON.stringify(await selected()) === JSON.stringify([second]), `DN2: a drag up goes south (${JSON.stringify(await selected())}, expected ${second})`);
+      await drag(-60, 0);
+      const third = expectFrom(hoods[second], 90, second);
+      check(third === 'Wickenden' && JSON.stringify(await selected()) === JSON.stringify([third]), `DN2: a drag left goes east (${JSON.stringify(await selected())}, expected ${third})`);
+      // DN4, DN1: nothing further east. The drag pans nothing and changes nothing.
+      const cE = await centre();
+      await drag(-60, 0);
+      check(JSON.stringify(await selected()) === JSON.stringify([third]), `DN4: with nothing that way, the selection stays (${JSON.stringify(await selected())})`);
+      check(distanceM(await centre(), cE) < 5, `DN1: a drag that points at no area leaves the map's centre where it was (${distanceM(await centre(), cE).toFixed(0)} m)`);
+      // DN5: the opposite swipe returns.
+      await drag(60, 0);
+      check(JSON.stringify(await selected()) === JSON.stringify([second]), `DN5: the opposite swipe returns where it came from (${JSON.stringify(await selected())})`);
+
+      // DN11: the arrow keys on the focused map; + still zooms.
+      await pg.locator('.maplibregl-canvas').first().focus();
+      await pg.keyboard.press('ArrowRight');
+      await pg.waitForTimeout(1500);
+      check(JSON.stringify(await selected()) === JSON.stringify([third]), `DN11: ArrowRight on the focused map selects the area to the east (${JSON.stringify(await selected())})`);
+      const zk = await zoom();
+      await pg.keyboard.press('+');
+      await pg.waitForTimeout(1200);
+      check((await zoom()) > zk + 0.5, `DN11: + on the focused map still zooms in (z${zk.toFixed(2)} → z${(await zoom()).toFixed(2)})`);
+
+      // DN10: the wheel still zooms; the long press still offers its choices.
+      const zw = await zoom();
+      const b = await map.boundingBox();
+      await pg.mouse.move(b.x + b.width / 2, b.y + b.height * 0.6);
+      await pg.mouse.wheel(0, 500);
+      await pg.waitForTimeout(1200);
+      check((await zoom()) < zw - 0.3, `DN10: the mouse wheel still zooms (z${zw.toFixed(2)} → z${(await zoom()).toFixed(2)})`);
+      await pg.mouse.move(b.x + b.width / 2, b.y + b.height * 0.6);
+      await pg.mouse.down();
+      await pg.waitForTimeout(800);
+      await pg.mouse.up();
+      await pg.waitForTimeout(600);
+      check((await pg.locator('[data-testid=atlas-spot]').count()) === 1, 'DN10: the long press still offers What\'s good here');
+      await pg.locator('[data-testid=atlas-spot] [aria-label=Close]').click().catch(() => {});
+      await pg.waitForTimeout(500);
+      check(JSON.stringify(await selected()) === JSON.stringify([third]), `DN9: closing the long press's choices keeps the selection (${JSON.stringify(await selected())})`);
+
+      // DN9: a tap on the map clears the selection.
+      await pg.mouse.click(b.x + 40, b.y + b.height * 0.6);
+      await pg.waitForTimeout(900);
+      check((await selected()).length === 0, `DN9: a tap on the map clears the selection (${JSON.stringify(await selected())})`);
+
+      // DN8: a town's page with nothing selected steps between towns, and back.
+      const title = () => pg.locator('[data-testid=explore-area]').innerText().catch(() => '');
+      const home = await title();
+      await pg.click('[data-testid=atlas-title]').catch(() => {});
+      await pg.waitForSelector('[data-testid=atlas-town-head]', { timeout: 10000 }).catch(() => {});
+      await pg.waitForTimeout(1500);
+      await drag(60, 0);
+      await pg.waitForFunction(() => document.querySelector('[data-testid=explore-area]')?.textContent === 'Cranston', null, { timeout: 5000 }).catch(() => {});
+      const west = await title();
+      check(home === 'Providence' && west === 'Cranston', `DN8: on a town's page a swipe west opens the next town's page (${home} → ${west})`);
+      await shot(pg, 'snap-town');
+      await drag(-60, 0);
+      await pg.waitForFunction(() => document.querySelector('[data-testid=explore-area]')?.textContent === 'Providence', null, { timeout: 5000 }).catch(() => {});
+      check((await title()) === 'Providence', `DN8: the opposite swipe brings the first town back (${await title()})`);
+
+      // DN13: Navigate's map still pans by a drag.
+      await tabTo(pg, 'navigate');
+      await pg.waitForSelector('[data-testid=ready-bar]', { timeout: 15000 }).catch(() => {});
+      await pg.waitForTimeout(2000);
+      const nav = pg.locator('.maplibregl-map').last();
+      const nb = await nav.boundingBox();
+      const before = ((await nav.getAttribute('data-center')) || '0,0').split(',').map(Number);
+      await pg.mouse.move(nb.x + nb.width / 2, nb.y + nb.height * 0.4);
+      await pg.mouse.down();
+      await pg.mouse.move(nb.x + nb.width / 2 - 120, nb.y + nb.height * 0.4, { steps: 8 });
+      await pg.mouse.up();
+      await pg.waitForTimeout(1200);
+      const after = ((await nav.getAttribute('data-center')) || '0,0').split(',').map(Number);
+      check(distanceM(before, after) > 20, `DN13: Navigate's map still pans by a drag (${distanceM(before, after).toFixed(0)} m)`);
+    } finally {
+      serveSnap = false;
+      await c.close();
+    }
   };
 
   // Marks on a walk through an area read before (the owner, Nov 2): the Explore tab showed "?"
@@ -3090,6 +3259,11 @@ function check(ok, what) {
       check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
       return;
     }
+    if (process.env.E2E_ONLY === 'snap') {
+      await snapScenario();
+      check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
+      return;
+    }
     if (process.env.E2E_ONLY === 'grading') {
       await gradingScenario();
       check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
@@ -5139,6 +5313,7 @@ function check(ok, what) {
     await readyTouch();
     await hiddenScenario();
     await nudgeScenario();
+    await snapScenario();
     {
       // Start with Explore and a destination: the walk opens exploring, heading there (NV25).
       const { c, pg } = await freshPage('start-explore');

@@ -160,6 +160,14 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - Chronicle's walked-town regions (TB3) and the walk screen's lines (TB4) have unit tests but no e2e check: a journey would need a placed walk seeded into storage
 - On native the border layers can't go under the base map's streets (no road layer id): they sit over them, faint
 
+## Discrete navigation (DN1-DN13, decision 0089)
+
+- A bounce at the edge: with nothing that way the map stays still, with no rubber band (DN4)
+- A fling's speed choosing how far to go: one swipe is always one step
+- Towns on the page near you stay tiles: swipes there move between neighborhoods only (the owner's call)
+- No touch-screen e2e for the swipe: the journey drags with the mouse; a finger's swipe on iOS Safari has not been tried
+- A row's place in the grid is its last `onLayout`; on web that fires only on a resize, so a banner or the press hint coming or going above the rows leaves it off by that height, and the tile scrolls near, not exactly into, view (DN6)
+
 ## Explore atlas
 
 - Green by park area (the share of the ring that is park): the decoder reads no park outlines yet, so green counts park places (decision 0066)

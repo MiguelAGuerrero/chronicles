@@ -188,6 +188,7 @@ Discovery and Explore (v1)
   atlas/atlas.ts             the Explore atlas: near list, presence steps (findable kinds count markable places, AG1), thin rings (AG3), sketch, familiarity, labels
   atlas/read.ts              the atlas's reads: areas near you, one ring at a time (decoder)
   atlas/useAtlas.ts          the atlas's data and its read loop, while Explore is in front
+  atlas/snap.ts              discrete navigation (DN1-DN13): what a drag or an arrow key means, which way it points, which area lies that way
   explore/settings.ts        what I'm into, range, pocket alert (meta)
   explore/momentFind.ts      a loose moment finds a place
 Activity density (AD1-AD16)
@@ -346,6 +347,9 @@ Every feature is built on the Expo modules the phone app uses. Web gets its
 own code only where no Expo module covers the feature on web:
 
 - **Map:** maplibre-gl (`map/WalkMap.web.tsx`). MapLibre RN has no web build.
+- **Announcing a swipe's area** (DN12): a visually hidden `accessibilityLiveRegion` Text on Explore (`atlas-snap-said`, web only).
+  react-native-web's `AccessibilityInfo.announceForAccessibility` is an empty function; phones announce through
+  that call alone, since a live region as well would say it twice on Android.
 - **Storage:** IndexedDB (`db/index.web.ts`, `media/index.web.ts`).
   expo-sqlite's web build needs `SharedArrayBuffer`, which needs cross-origin
   isolation headers GitHub Pages can't send; expo-file-system has no web build.

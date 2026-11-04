@@ -2,7 +2,7 @@ import {
   Camera, GeoJSONSource, Layer, Map, Marker, VectorSource, type CameraRef, type MapRef, type VectorSourceRef,
 } from '@maplibre/maplibre-react-native';
 import { forwardRef, memo, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { PanResponder, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { CapturePinView, pinLabel } from '../CapturePinView';
 import { MarkPinView, markKey, markLabel } from '../MarkPinView';
 import { StripLabel } from '../LandingMarks';
@@ -18,6 +18,7 @@ import { traceEnds } from '../../lib/traceEnds';
 import { ScaleBar, SCALE_MAX_PX } from './ScaleBar';
 import { useGlidingWalker } from '../../lib/useGlidingWalker';
 import { distanceM } from '../../lib/geo';
+import { SNAP, swipeOf } from '../../lib/atlas/snap';
 import { capFitBounds } from '../../lib/zoomOut';
 import type { DotSource } from '../../lib/liveDot';
 import { markEnter, pinDrops, sameSeen } from '../../lib/enter';
@@ -30,6 +31,33 @@ import {
 } from './types';
 
 const VIEW_TIMEOUT_MS = 4000;
+
+/**
+ * Explore's swipes (DN1, DN2), made once per map: a one-finger move past half the swipe's length
+ * is taken from the map, and reported when the finger lifts, with the camera's last centre.
+ * MapLibre's pinch, turn and long press keep their own recognizers (unverified on a device).
+ */
+function createSwiper() {
+  let onSwipe: WalkMapProps['onSwipe'];
+  let centre: LngLat = [-71.4, 41.82];
+  const responder = PanResponder.create({
+    onMoveShouldSetPanResponderCapture: (_e, g) => !!onSwipe && g.numberActiveTouches === 1 && Math.hypot(g.dx, g.dy) >= SNAP.minSwipePx / 2,
+    onPanResponderTerminationRequest: () => false,
+    onPanResponderRelease: (_e, g) => {
+      const swipe = swipeOf({ x: 0, y: 0 }, { x: g.dx, y: g.dy });
+      if (swipe) onSwipe?.({ ...swipe, center: centre });
+    },
+  });
+  return {
+    handlers: responder.panHandlers,
+    sync: (f: WalkMapProps['onSwipe']) => {
+      onSwipe = f;
+    },
+    at: (c: LngLat) => {
+      centre = c;
+    },
+  };
+}
 /** Invisible layers that make the query source load its tiles. */
 const HIDDEN = { 'line-opacity': 0 } as const;
 
@@ -45,6 +73,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const size = useRef({ width: 0, height: 0 });
   const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
   const lastView = useRef<{ zoom: number; lat: number } | null>(null);
+  // Discrete navigation (DN1, DN2): with onSwipe, a one-finger drag is a swipe, never a pan.
+  const [swiper] = useState(createSwiper);
+  useEffect(() => {
+    swiper.sync(props.onSwipe);
+  });
   const names = useMemo(() => namedStars(props.stars ?? []), [props.stars]);
   // Pins grouped for the current zoom, so nearby ones merge instead of piling up.
   const pins = useZoomPins(props.captures, view?.zoom ?? props.initialZoom ?? null, view?.lat ?? null);
@@ -241,6 +274,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   return (
     <View
       style={[styles.wrap, props.style]}
+      {...(props.onSwipe ? swiper.handlers : null)}
       onLayout={(e: LayoutChangeEvent) => {
         size.current = { width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height };
       }}
@@ -270,9 +304,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         // Two fingers turn the map (CP1); a tilt never does.
         touchRotate
         touchPitch={false}
+        dragPan={!props.onSwipe}
         onRegionDidChange={(e) => {
           regionChanged.current?.();
           const { zoom, center, bearing } = e.nativeEvent;
+          swiper.at([center[0], center[1]]);
           if (typeof bearing === 'number' && Math.abs(bearing - lastBearing.current) >= 0.5) {
             lastBearing.current = bearing;
             props.onBearingChange?.(bearing);

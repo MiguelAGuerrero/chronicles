@@ -1,6 +1,6 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, BackHandler, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, BackHandler, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type ScrollViewInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { AreaPointPin } from '../../components/AreaPoint';
 import { AtlasCard, type CardLayout } from '../../components/atlas/AtlasCard';
@@ -16,6 +16,7 @@ import {
   type AtlasArea, type Familiarity, type Listed,
 } from '../../lib/atlas/atlas';
 import { nearReads } from '../../lib/atlas/read';
+import { nextArea, snapScope, swipeHeading, type SnapStep } from '../../lib/atlas/snap';
 import { useAtlas } from '../../lib/atlas/useAtlas';
 import { bordersFor, outlineIdHere, outlineOf } from '../../lib/areas/borders';
 import { BORDER_ZOOM } from '../../lib/areas/outlines';
@@ -27,6 +28,7 @@ import { boundsOf, type Bounds } from '../../lib/geo';
 import { readArea, rememberArea } from '../../lib/landing/read';
 import { getLastFix, launchFix, setLastFix } from '../../lib/lastFix';
 import { locateOnce } from '../../lib/locate';
+import { useReducedMotion } from '../../lib/motion';
 import { perfCount } from '../../lib/perfCount';
 import type { LngLat } from '../../lib/types';
 import { useLocate, type LocateError } from '../../lib/useLocate';
@@ -44,6 +46,33 @@ const NAMED_POINTS = 3;
 const THREE_COLS = 700;
 const TWO_PANES = 1000;
 const fmt = (m: number) => formatDistance(m);
+
+/**
+ * The grid's rows by the areas in them, and its scroll, made once per screen: a swipe brings the
+ * selected tile into view only when it is out of it (DN6). Rows are the scroll content's own children,
+ * so a row's layout is its place in the content.
+ */
+function createGridRows() {
+  const at = new Map<string, { y: number; h: number }>();
+  let view = { y: 0, h: 0 };
+  return {
+    row: (keys: string[], y: number, h: number) => {
+      for (const k of keys) at.set(k, { y, h });
+    },
+    scrolled: (y: number) => {
+      view = { ...view, y };
+    },
+    sized: (h: number) => {
+      view = { ...view, h };
+    },
+    reveal: (key: string, scroller: ScrollViewInstance | null, animated: boolean) => {
+      const r = at.get(key);
+      if (!r || !scroller) return;
+      if (r.y < view.y) scroller.scrollTo({ y: Math.max(0, r.y - 8), animated });
+      else if (r.y + r.h > view.y + view.h) scroller.scrollTo({ y: r.y + r.h - view.h + 8, animated });
+    },
+  };
+}
 
 /**
  * Explore as an atlas (AT1-AT16, round 3): the map with the page's title over
@@ -78,6 +107,12 @@ export default function Explore() {
   const [fit, setFit] = useState<{ bounds: Bounds | null; key: number }>({ bounds: null, key: 0 });
   const { focused, savedCamera, onCameraChange, onFitSettled } = useTabMap({ key: fit.key, refit: () => setFit((f) => ({ ...f, key: f.key + 1 })) });
   const [selected, setSelected] = useState<string | null>(null);
+  // The step a swipe just took, so the opposite swipe comes back (DN5); cleared by anything else that moves the selection.
+  const lastStep = useRef<SnapStep | null>(null);
+  // What a swipe landed on, for the screen reader (DN12): web's live region, since react-native-web's announce does nothing.
+  const [said, setSaid] = useState('');
+  const [gridRows] = useState(createGridRows);
+  const gridRef = useRef<ScrollViewInstance>(null);
   const [open, setOpen] = useState<string | null>(null);
   // The town whose page is open (AT2); null is the page of the areas near you.
   const [townSeen, setTownSeen] = useState<AtlasArea | null>(null);
@@ -209,6 +244,7 @@ export default function Explore() {
     const l = shownRef.current.find((x) => x.area.key === key);
     if (!l) return;
     setSpot(null);
+    lastStep.current = null;
     setSelected(key);
     setOpen(key);
     frame([l.area.at], ATLAS_RULES.ringM);
@@ -216,6 +252,7 @@ export default function Explore() {
   // AT2: a town opens its page; Back, Escape and the back pill return (the title has no arrow: decision 0077).
   const enterArea = useCallback((area: AtlasArea) => {
     setSpot(null);
+    lastStep.current = null;
     setTownSeen(area);
     setSelected(null);
     frame([area.at], townReachM(area) * 0.6);
@@ -226,6 +263,7 @@ export default function Explore() {
   }, [enterArea]);
   const leave = useCallback(() => {
     setSpot(null);
+    lastStep.current = null;
     setTownSeen(null);
     setSelected(null);
   }, []);
@@ -273,6 +311,37 @@ export default function Explore() {
     }
   };
 
+  // The fit's padding, so a swipe centres an area where a tap's frame would (DN2).
+  const mapPad = useMemo(() => ({ top: insets.top + 84, right: 24, bottom: spot ? 80 : 24, left: 24 }), [insets.top, spot]);
+  const reduced = useReducedMotion();
+  // Discrete navigation (DN2-DN8, DN12): a swipe selects the next area that way and never opens its card;
+  // on a town's page with none of its neighborhoods selected, it opens the next town's page.
+  const onSwipe = useCallback(({ dx, dy, center }: { dx: number; dy: number; center: LngLat }) => {
+    const heading = swipeHeading(dx, dy, bearing);
+    const say = (name: string) => {
+      setSaid(name);
+      AccessibilityInfo.announceForAccessibility(name);
+    };
+    if (town && snapScope({ townPage: town.key, selected }) === 'towns') {
+      const next = nextArea(town.at, town.key, allTowns.map((l) => ({ key: l.area.key, at: l.area.at })), heading, lastStep.current);
+      const to = next ? allTowns.find((l) => l.area.key === next.key) : null;
+      if (!to) return;
+      enterArea(to.area);
+      lastStep.current = { from: town.key, to: to.area.key, heading };
+      say(to.area.name);
+      return;
+    }
+    const next = nextArea(sel?.area.at ?? center, sel?.area.key ?? null, neighborhoods.map((l) => ({ key: l.area.key, at: l.area.at })), heading, lastStep.current);
+    const to = next ? neighborhoods.find((l) => l.area.key === next.key) : null;
+    if (!to) return;
+    setSpot(null);
+    lastStep.current = { from: sel?.area.key ?? null, to: to.area.key, heading };
+    setSelected(to.area.key);
+    mapRef.current?.showPoint(to.area.at, mapPad);
+    gridRows.reveal(to.area.key, gridRef.current, !reduced);
+    say(to.area.name);
+  }, [bearing, town, selected, sel, allTowns, neighborhoods, enterArea, mapPad, gridRows, reduced]);
+
   const wide = screen.w >= TWO_PANES;
   const cols = screen.w >= THREE_COLS ? 3 : 2;
   const gridMax = wide ? 960 : cols === 3 ? 960 : 640;
@@ -295,7 +364,14 @@ export default function Explore() {
     const rows: Listed[][] = [];
     for (let i = 0; i < list.length; i += cols) rows.push(list.slice(i, i + cols));
     return rows.map((row) => (
-      <View key={row[0].area.key} style={styles.row}>
+      <View
+        key={row[0].area.key}
+        style={styles.row}
+        onLayout={(e) => {
+          const { y, height } = e.nativeEvent.layout;
+          gridRows.row(row.map((l) => l.area.key), y, height);
+        }}
+      >
         {row.map((l) => {
           const r = ringOf.get(l.area.key);
           return (
@@ -346,12 +422,20 @@ export default function Explore() {
               db.setMeta(PRESS_HINT_KEY, '1').catch(() => {});
             }
           }}
-          onPress={() => spot && setSpot(null)}
+          onPress={() => {
+            // A tap closes the long press's choices; with none open, it clears the selection (DN9).
+            if (spot) setSpot(null);
+            else {
+              lastStep.current = null;
+              setSelected(null);
+            }
+          }}
+          onSwipe={onSwipe}
           onViewChange={setView}
           fitBounds={fit.bounds}
           fitKey={fit.key}
           onFitSettled={onFitSettled}
-          fitPadding={{ top: insets.top + 84, right: 24, bottom: spot ? 80 : 24, left: 24 }}
+          fitPadding={mapPad}
           initialCenter={savedCamera?.center ?? from ?? WORLD.center}
           initialZoom={savedCamera?.zoom ?? (from ? 13 : WORLD.zoom)}
           onCameraChange={onCameraChange}
@@ -418,6 +502,9 @@ export default function Explore() {
       {/* The compass (CP2): above Locate, only while the map is turned and on screen. */}
       {focused && !spot && <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={8 + 44 + 12} />}
       {toast ? <View style={styles.toast} accessibilityLiveRegion="polite"><Text style={styles.toastText}>{toast}</Text></View> : null}
+      {/* DN12 on web: react-native-web's announceForAccessibility does nothing, so a hidden live region says it.
+          Phones announce through the call alone (a live region too would say it twice on Android). */}
+      {Platform.OS === 'web' ? <Text testID="atlas-snap-said" accessibilityLiveRegion="polite" style={styles.said}>{said}</Text> : null}
     </View>
   );
 
@@ -425,7 +512,15 @@ export default function Explore() {
     <View style={[styles.screen, wide && styles.screenWide]} onLayout={(e) => setScreen({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
       {mapPane}
       <View style={styles.listPane}>
-        <ScrollView style={styles.grid} contentContainerStyle={[styles.gridContent, { maxWidth: gridMax }, town && styles.gridWithBack]} testID="atlas-grid">
+        <ScrollView
+          ref={gridRef}
+          style={styles.grid}
+          contentContainerStyle={[styles.gridContent, { maxWidth: gridMax }, town && styles.gridWithBack]}
+          testID="atlas-grid"
+          scrollEventThrottle={64}
+          onScroll={(e) => gridRows.scrolled(e.nativeEvent.contentOffset.y)}
+          onLayout={(e) => gridRows.sized(e.nativeEvent.layout.height)}
+        >
           {!pressSeen && !spot && from ? (
             <Text style={styles.hint} testID="atlas-press-hint">Press and hold the map to look anywhere.</Text>
           ) : null}
@@ -555,6 +650,7 @@ export default function Explore() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
+  said: { position: 'absolute', width: 1, height: 1, overflow: 'hidden', opacity: 0 },
   screenWide: { flexDirection: 'row' },
   map: { borderBottomWidth: 1, borderColor: theme.line, overflow: 'hidden' },
   mapWide: { borderBottomWidth: 0, borderRightWidth: 1 },

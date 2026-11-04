@@ -68,6 +68,12 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
 - `fitBounds` keeps the current bearing in maplibre; never pass a bearing to a follow or a fit.
 - The e2e turns the newest web map through `window.__turn(deg)`, defined only when `window.__perf` is (a two-finger gesture can't be made headless). The `ready` scenario sets `__perf` itself.
 
+## Swipes instead of pans (DN1-DN13, decision 0089)
+
+- `onSwipe` turns one-finger panning off for that map only (web `dragPan: false`, `keyboard: false`; native `dragPan={false}`); every other screen passes none.
+- Web: the canvas and its container get `touch-action: none` inline, or a phone's finger would scroll the page (maplibre's class leaves `pan-x pan-y` with drag-pan off). A mouse drag is followed on `window` past the map's edge. **Trap:** with drag-pan off, nothing in maplibre swallows the `click` a drag ends with, so a drag over 8 px marks `draggedAt` and the click handler skips it; without that, every swipe also fired `onPress`. Arrow keys on the canvas (still `tabindex=0`) are swipes; `+`/`-` zoom.
+- Native: `createSwiper()`, a `PanResponder` on the wrapping View that captures a one-finger move past 12 px and reports it on release with the last camera centre (unverified on a device).
+
 ## Town borders (TB1-TB9, decision 0088)
 
 - `WalkMap`'s `borders` prop (`BorderView` from `areas/borders.ts`): one `borders` source, three layers (`border-fill` for tinted, `border-firm` for tinted and firm, `border-lined`), from `BORDER.minZoom` (8). On web they go under the first base road layer (`source-layer` transportation, else the first line, else the first label); on native they are the first overlay (no road id to go below; unverified on a device).

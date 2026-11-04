@@ -95,3 +95,4 @@ An owner's call made during a slice gets its record in the same commit as the sl
 | [0086](0086-ceremonies-are-views.md) | 2026-11-04 | A ceremony is a view of the story, swapped without changing the code around it | replay, architecture |
 | [0087](0087-loading-skeleton-and-keep-awake.md) | 2026-11-04 | A skeleton while a replay's memo or video loads; the screen stays awake through a replay | replay |
 | [0088](0088-town-borders.md) | 2026-11-04 | Town borders are drawn on every map that shows a town: yours (or a walk's) tinted, the others lined; drawn from Overture's z10 tile, decided on z12 | map, places-and-areas |
+| [0089](0089-discrete-navigation.md) | 2026-11-04 | Explore's map steps from area to area: a swipe selects the next neighborhood (or town) that way, never panning; an experiment, to revert if it doesn't feel right | explore, map |

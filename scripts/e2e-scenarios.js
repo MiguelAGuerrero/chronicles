@@ -50,6 +50,11 @@ const SCENARIOS = [
     covers: ['src/lib/areas/**', 'src/lib/atlas/**', 'src/lib/finish.ts', 'scripts/mvt-encode.mjs'],
   },
   {
+    // Discrete navigation (DN1-DN13): Explore's map steps from area to area.
+    name: 'snap',
+    covers: ['src/app/(tabs)/index.tsx', 'src/lib/atlas/snap.ts', 'src/components/map/WalkMap.web.tsx', 'src/components/map/types.ts', 'src/components/AreaPoint.tsx'],
+  },
+  {
     name: 'grading',
     covers: ['src/lib/atlas/atlas.ts', 'src/components/atlas/{AtlasCard,AtlasTile}.tsx'],
   },
