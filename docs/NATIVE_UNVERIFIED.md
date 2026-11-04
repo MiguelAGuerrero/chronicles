@@ -153,7 +153,12 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] `createSwiper` (`WalkMap.native.tsx`): the `PanResponder` takes a one-finger move from the map, while MapLibre's own pinch, two-finger turn, double tap and long press still work beside it
 - [ ] The camera centre a swipe starts from (`onRegionDidChange`'s centre), with nothing selected
 - [ ] `AccessibilityInfo.announceForAccessibility` saying the area's name (VoiceOver, TalkBack)
-- [ ] The grid scrolling the selected tile into view (`ScrollView.scrollTo`)
+- [ ] The grid scrolling the selected tile into view (`measureInWindow` on the row and the ScrollView, then `scrollTo`), clear of the back pill
+- [ ] `createSwiper` against MapLibre's own gestures: a slid long press (`swiper.held()` from `onLongPress`) and a pinch begun with one finger are never swipes (audit 3); whether a granted JS responder cancels MapLibre's native recognizers on iOS or Android
+- [ ] The swipe's centre before the first `onRegionDidChange` (it defaults to `[-71.4, 41.82]`), and whether native's centre is the padded one, as the web's `getCenter()` is (audit 5)
+- [ ] `swiper.sync` runs in an effect: a release between a render and its effect uses the previous `onSwipe`
+- [ ] `showPoint` (`Camera.easeTo` with padding) keeping the zoom, and jumping with reduced motion
+- [ ] The selected Marker's ring and accent
 
 ## Explore atlas
 

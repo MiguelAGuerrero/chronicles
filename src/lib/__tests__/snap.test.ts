@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { arrowSwipe, nextArea, SNAP, snapScope, swipeHeading, swipeOf, type SnapPoint } from '../atlas/snap';
+import { arrowSwipe, nextArea, releaseSwipe, revealTo, SNAP, snapScope, swipeHeading, swipeOf, tapClears, zoomStart, type SnapPoint } from '../atlas/snap';
 import type { LngLat } from '../types';
 
 const O: LngLat = [-71.4, 41.82];
@@ -76,8 +76,9 @@ test('DN5: the opposite swipe returns where it came from, though another is near
   assert.equal(nextArea(b.at, 'b', areas, 250, last)?.key, 'a');
   // Not opposite: the trail plays no part.
   assert.equal(nextArea(b.at, 'b', areas, 0, last), null);
-  // The trail is only for the area it ended on.
-  assert.equal(nextArea(c.at, 'c', areas, 270, last)?.key, 'a');
+  // The trail is only for the area it ended on: from c, west goes to the nearest (d), never back to a.
+  const d = pt('d', 200, 120);
+  assert.equal(nextArea(c.at, 'c', [...areas, d], 270, last)?.key, 'd');
   // An origin no longer listed is not brought back.
   assert.equal(nextArea(b.at, 'b', [b, c], 270, last)?.key, 'c');
 });
@@ -103,4 +104,40 @@ test('DN11: arrow keys are swipes that way; other keys are not', () => {
   assert.ok(down && near(swipeHeading(down.dx, down.dy, 0), 180));
   assert.equal(arrowSwipe('+'), null);
   assert.equal(arrowSwipe('a'), null);
+});
+
+test('discrete-navigation audit 2: a tap-drag zoom and a shift box-zoom never start a swipe', () => {
+  // maplibre's tap-drag zoom: a second touch within its tap window; the box zoom: shift held.
+  assert.equal(zoomStart({ shift: false, sinceTapMs: Infinity }), false);
+  assert.equal(zoomStart({ shift: false, sinceTapMs: 200 }), true);
+  assert.equal(zoomStart({ shift: false, sinceTapMs: SNAP.tapDragMs + 1 }), false);
+  assert.equal(zoomStart({ shift: true, sinceTapMs: Infinity }), true);
+});
+
+test('discrete-navigation audit 3: a native release is a swipe only for one finger that never long-pressed', () => {
+  assert.deepEqual(releaseSwipe({ dx: -40, dy: 0, maxTouches: 1, held: false }), { dx: -40, dy: 0 });
+  assert.equal(releaseSwipe({ dx: -40, dy: 0, maxTouches: 2, held: false }), null);
+  assert.equal(releaseSwipe({ dx: -40, dy: 0, maxTouches: 1, held: true }), null);
+  assert.equal(releaseSwipe({ dx: -10, dy: 5, maxTouches: 1, held: false }), null);
+});
+
+test('discrete-navigation audit 6: a tap on an area\'s point never clears the selection; one away from every point does', () => {
+  const points = [at(0, 0), at(800, 0)];
+  assert.equal(tapClears(at(10, 5), 30, points), false);
+  assert.equal(tapClears(at(805, 0), 30, points), false);
+  assert.equal(tapClears(at(400, 0), 30, points), true);
+  assert.equal(tapClears(at(400, 0), 30, []), true);
+});
+
+test('discrete-navigation audit 8: a revealed row clears what covers the grid\'s bottom, and scrolls only when out of view', () => {
+  // In view: nothing to do.
+  assert.equal(revealTo({ top: 100, h: 200, viewH: 580, scrollY: 50, insetBottom: 0 }), null);
+  // Below the view: scrolled up just enough, plus a margin.
+  assert.equal(revealTo({ top: 500, h: 200, viewH: 580, scrollY: 50, insetBottom: 0 }), 50 + 120 + 8);
+  // In view but under a 68 px back pill: scrolled clear of it.
+  assert.equal(revealTo({ top: 350, h: 200, viewH: 580, scrollY: 0, insetBottom: 68 }), 38 + 8);
+  // Above the view: scrolled down to it.
+  assert.equal(revealTo({ top: -120, h: 200, viewH: 580, scrollY: 300, insetBottom: 0 }), 300 - 120 - 8);
+  // Never above the content's top.
+  assert.equal(revealTo({ top: -20, h: 200, viewH: 580, scrollY: 10, insetBottom: 0 }), 0);
 });

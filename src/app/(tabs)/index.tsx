@@ -16,7 +16,7 @@ import {
   type AtlasArea, type Familiarity, type Listed,
 } from '../../lib/atlas/atlas';
 import { nearReads } from '../../lib/atlas/read';
-import { nextArea, snapScope, swipeHeading, type SnapStep } from '../../lib/atlas/snap';
+import { nextArea, revealTo, snapScope, swipeHeading, tapClears, type SnapStep } from '../../lib/atlas/snap';
 import { useAtlas } from '../../lib/atlas/useAtlas';
 import { bordersFor, outlineIdHere, outlineOf } from '../../lib/areas/borders';
 import { BORDER_ZOOM } from '../../lib/areas/outlines';
@@ -47,29 +47,49 @@ const THREE_COLS = 700;
 const TWO_PANES = 1000;
 const fmt = (m: number) => formatDistance(m);
 
+type Measured = { measureInWindow: (cb: (x: number, y: number, w: number, h: number) => void) => void };
+
 /**
  * The grid's rows by the areas in them, and its scroll, made once per screen: a swipe brings the
- * selected tile into view only when it is out of it (DN6). Rows are the scroll content's own children,
- * so a row's layout is its place in the content.
+ * selected tile into view only when it is out of it (DN6). The row and the grid are measured when it
+ * is asked, never from a remembered layout: on web a row moved by a banner above it never reports
+ * again (discrete-navigation audit 4).
  */
 function createGridRows() {
-  const at = new Map<string, { y: number; h: number }>();
-  let view = { y: 0, h: 0 };
+  const rows = new Map<string, Measured>();
+  const refs = new Map<string, (v: Measured | null) => void>();
+  let scrollY = 0;
   return {
-    row: (keys: string[], y: number, h: number) => {
-      for (const k of keys) at.set(k, { y, h });
+    /** One stable ref per row, holding it under each of its areas. */
+    rowRef: (keys: string[]) => {
+      const id = keys.join('|');
+      let ref = refs.get(id);
+      if (!ref) {
+        let mine: Measured | null = null;
+        ref = (v) => {
+          for (const k of keys) {
+            if (v) rows.set(k, v);
+            else if (rows.get(k) === mine) rows.delete(k);
+          }
+          mine = v;
+        };
+        refs.set(id, ref);
+      }
+      return ref;
     },
     scrolled: (y: number) => {
-      view = { ...view, y };
+      scrollY = y;
     },
-    sized: (h: number) => {
-      view = { ...view, h };
-    },
-    reveal: (key: string, scroller: ScrollViewInstance | null, animated: boolean) => {
-      const r = at.get(key);
-      if (!r || !scroller) return;
-      if (r.y < view.y) scroller.scrollTo({ y: Math.max(0, r.y - 8), animated });
-      else if (r.y + r.h > view.y + view.h) scroller.scrollTo({ y: r.y + r.h - view.h + 8, animated });
+    /** `insetBottom`: what covers the grid's bottom, a town's back pill (discrete-navigation audit 8). */
+    reveal: (key: string, scroller: ScrollViewInstance | null, animated: boolean, insetBottom: number) => {
+      const row = rows.get(key);
+      if (!row || !scroller) return;
+      scroller.measureInWindow((_gx, gy, _gw, gh) => {
+        row.measureInWindow((_x, y, _w, h) => {
+          const to = revealTo({ top: y - gy, h, viewH: gh, scrollY, insetBottom });
+          if (to != null) scroller.scrollTo({ y: to, animated });
+        });
+      });
     },
   };
 }
@@ -110,7 +130,8 @@ export default function Explore() {
   // The step a swipe just took, so the opposite swipe comes back (DN5); cleared by anything else that moves the selection.
   const lastStep = useRef<SnapStep | null>(null);
   // What a swipe landed on, for the screen reader (DN12): web's live region, since react-native-web's announce does nothing.
-  const [said, setSaid] = useState('');
+  // A count beside it, so the same name twice in a row still changes the region and is said again (audit 7).
+  const [said, setSaid] = useState({ text: '', n: 0 });
   const [gridRows] = useState(createGridRows);
   const gridRef = useRef<ScrollViewInstance>(null);
   const [open, setOpen] = useState<string | null>(null);
@@ -159,6 +180,8 @@ export default function Explore() {
       return () => {
         setOpen(null);
         setSpot(null);
+        // The trail is for the swipe straight after; a turn away from the tab ends it (audit 9).
+        lastStep.current = null;
       };
     }, []),
   );
@@ -319,13 +342,15 @@ export default function Explore() {
   const onSwipe = useCallback(({ dx, dy, center }: { dx: number; dy: number; center: LngLat }) => {
     const heading = swipeHeading(dx, dy, bearing);
     const say = (name: string) => {
-      setSaid(name);
+      setSaid((s) => ({ text: name, n: s.n + 1 }));
       AccessibilityInfo.announceForAccessibility(name);
     };
     if (town && snapScope({ townPage: town.key, selected }) === 'towns') {
       const next = nextArea(town.at, town.key, allTowns.map((l) => ({ key: l.area.key, at: l.area.at })), heading, lastStep.current);
       const to = next ? allTowns.find((l) => l.area.key === next.key) : null;
       if (!to) return;
+      // A swipe only selects: a card left open (a side panel on a wide screen) never outlives it (audit 1).
+      setOpen(null);
       enterArea(to.area);
       lastStep.current = { from: town.key, to: to.area.key, heading };
       say(to.area.name);
@@ -335,10 +360,12 @@ export default function Explore() {
     const to = next ? neighborhoods.find((l) => l.area.key === next.key) : null;
     if (!to) return;
     setSpot(null);
+    setOpen(null);
     lastStep.current = { from: sel?.area.key ?? null, to: to.area.key, heading };
     setSelected(to.area.key);
     mapRef.current?.showPoint(to.area.at, mapPad);
-    gridRows.reveal(to.area.key, gridRef.current, !reduced);
+    // On a town's page the back pill (44 pt, 12 from the bottom) covers the grid's bottom (audit 8).
+    gridRows.reveal(to.area.key, gridRef.current, !reduced, town ? 44 + 12 + 8 : 0);
     say(to.area.name);
   }, [bearing, town, selected, sel, allTowns, neighborhoods, enterArea, mapPad, gridRows, reduced]);
 
@@ -364,14 +391,7 @@ export default function Explore() {
     const rows: Listed[][] = [];
     for (let i = 0; i < list.length; i += cols) rows.push(list.slice(i, i + cols));
     return rows.map((row) => (
-      <View
-        key={row[0].area.key}
-        style={styles.row}
-        onLayout={(e) => {
-          const { y, height } = e.nativeEvent.layout;
-          gridRows.row(row.map((l) => l.area.key), y, height);
-        }}
-      >
+      <View key={row[0].area.key} style={styles.row} ref={gridRows.rowRef(row.map((l) => l.area.key))}>
         {row.map((l) => {
           const r = ringOf.get(l.area.key);
           return (
@@ -422,10 +442,11 @@ export default function Explore() {
               db.setMeta(PRESS_HINT_KEY, '1').catch(() => {});
             }
           }}
-          onPress={() => {
-            // A tap closes the long press's choices; with none open, it clears the selection (DN9).
+          onPress={(at, radiusM) => {
+            // A tap closes the long press's choices; with none open, it clears the selection (DN9),
+            // only away from every area's point: a tap on the selected dot keeps it (audit 6).
             if (spot) setSpot(null);
-            else {
+            else if (tapClears(at, radiusM, points)) {
               lastStep.current = null;
               setSelected(null);
             }
@@ -504,7 +525,7 @@ export default function Explore() {
       {toast ? <View style={styles.toast} accessibilityLiveRegion="polite"><Text style={styles.toastText}>{toast}</Text></View> : null}
       {/* DN12 on web: react-native-web's announceForAccessibility does nothing, so a hidden live region says it.
           Phones announce through the call alone (a live region too would say it twice on Android). */}
-      {Platform.OS === 'web' ? <Text testID="atlas-snap-said" accessibilityLiveRegion="polite" style={styles.said}>{said}</Text> : null}
+      {Platform.OS === 'web' ? <Text testID="atlas-snap-said" accessibilityLiveRegion="polite" style={styles.said}>{said.n % 2 ? `${said.text}\u200B` : said.text}</Text> : null}
     </View>
   );
 
@@ -519,7 +540,6 @@ export default function Explore() {
           testID="atlas-grid"
           scrollEventThrottle={64}
           onScroll={(e) => gridRows.scrolled(e.nativeEvent.contentOffset.y)}
-          onLayout={(e) => gridRows.sized(e.nativeEvent.layout.height)}
         >
           {!pressSeen && !spot && from ? (
             <Text style={styles.hint} testID="atlas-press-hint">Press and hold the map to look anywhere.</Text>

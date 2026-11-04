@@ -166,7 +166,8 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - A fling's speed choosing how far to go: one swipe is always one step
 - Towns on the page near you stay tiles: swipes there move between neighborhoods only (the owner's call)
 - No touch-screen e2e for the swipe: the journey drags with the mouse; a finger's swipe on iOS Safari has not been tried
-- A row's place in the grid is its last `onLayout`; on web that fires only on a resize, so a banner or the press hint coming or going above the rows leaves it off by that height, and the tile scrolls near, not exactly into, view (DN6)
+- A spoken cue when a swipe finds nothing that way: a screen reader hears nothing (discrete-navigation audit 12), as the eye sees no bounce
+- E2e for the turned map, pinch, double tap and a touch-screen swipe on screen (the audit's test review): unit tests cover the direction and the zoom-gesture rules
 
 ## Explore atlas
 

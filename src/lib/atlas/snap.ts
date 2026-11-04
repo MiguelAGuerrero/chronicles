@@ -15,6 +15,8 @@ export const SNAP = {
   coneDeg: 45,
   /** With nothing selected, an area this close to the map's middle is where you are looking: a swipe goes past it (DN3). */
   hereM: 100,
+  /** A second touch this soon after a tap is maplibre's tap-drag zoom, never a swipe (discrete-navigation audit 2). */
+  tapDragMs: 500,
 } as const;
 
 export interface SnapPoint {
@@ -42,6 +44,34 @@ export function swipeOf(
   const dx = to.x - from.x;
   const dy = to.y - from.y;
   return Math.hypot(dx, dy) >= SNAP.minSwipePx ? { dx, dy } : null;
+}
+
+/** A gesture that starts as a zoom (a shift box-zoom, or a tap-drag zoom's second touch) is never a swipe (audit 2). */
+export function zoomStart(o: { shift: boolean; sinceTapMs: number }): boolean {
+  return o.shift || o.sinceTapMs < SNAP.tapDragMs;
+}
+
+/** A native release as a swipe: one finger all the way, and no long press during it (discrete-navigation audit 3). */
+export function releaseSwipe(g: { dx: number; dy: number; maxTouches: number; held: boolean }): { dx: number; dy: number } | null {
+  return swipeOf({ x: 0, y: 0 }, { x: g.dx, y: g.dy }, { multi: g.maxTouches > 1, held: g.held });
+}
+
+/** A tap clears the selection only away from every area's point (DN9, discrete-navigation audit 6). */
+export function tapClears(at: LngLat, radiusM: number, points: LngLat[]): boolean {
+  return !points.some((p) => distanceM(at, p) <= radiusM);
+}
+
+/**
+ * Where to scroll so a row is in view (DN6, discrete-navigation audits 4 and 8): `top` is the row's
+ * top measured from the scroll view's visible top, `insetBottom` what covers the view's bottom (a
+ * town's back pill). Null when it is already in view.
+ */
+export function revealTo(o: { top: number; h: number; viewH: number; scrollY: number; insetBottom: number }): number | null {
+  const margin = 8;
+  const visible = o.viewH - o.insetBottom;
+  if (o.top < 0 || o.h > visible) return Math.max(0, o.scrollY + o.top - margin);
+  if (o.top + o.h > visible) return o.scrollY + (o.top + o.h - visible) + margin;
+  return null;
 }
 
 /**

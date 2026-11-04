@@ -55,4 +55,23 @@ Built on branch `claude/discrete-navigation`; the owner's go-ahead on the plan, 
 
 - **Test-first, honestly:** `snap.test.ts` was seen failing (no module) before `atlas/snap.ts`; the `snap` journey was seen failing at DN3 before the screen code. The first run after the code found a real bug: the browser's `click` at the end of every drag cleared the selection (DN9), since maplibre suppresses it only when its own drag-pan is on. A drag over 8 px is now never a tap.
 - **Changed from the plan:** DN6's tile is checked by its accent border, not `aria-selected` (react-native-web drops it on a button). Area points aren't tappable on the map (they never were), so DN6 says a tap on a tile opens the card. The swipe centres the area where a tap's frame does, below the title card, not at the canvas's middle.
-- **Not audited** (decision 0074: only when the owner asks). **Native, never run on a device:** `docs/NATIVE_UNVERIFIED.md` "Discrete navigation".
+- **Native, never run on a device:** `docs/NATIVE_UNVERIFIED.md` "Discrete navigation".
+
+## Audit (Nov 4, at the owner's request)
+
+12 findings: 11 fixed (one in part), 1 deferred, and finding 10's guard windows rejected. Each fix is behind a test named `discrete-navigation audit N`, seen failing first. The exceptions: audit 3's native wiring and audit 9 are reviewed, not run.
+
+1. On a wide screen a swipe left the side card on the area it left; on a town's page it blocked Escape after a swipe to the next town: accept. A swipe closes any open card (it only selects). E2e `snap` "discrete-navigation audit 1" (two checks, 1200 px wide).
+2. A tap-drag zoom and a shift box zoom also stepped: accept. `zoomStart` (`snap.ts`) refuses both. Unit "discrete-navigation audit 2"; the web wiring (`tappedAt`, `shiftKey`) is covered by code review, since a second touch can't be made headless.
+3. Native: a long press slid after it fired, or a pinch begun with one finger, stepped: accept. `releaseSwipe` with the most fingers seen and the last long press (`createSwiper`). Unit "discrete-navigation audit 3"; native unverified.
+4. The tile was revealed from stale row positions (web's `onLayout` misses a move): accept. The row and the grid are measured when asked (`measureInWindow`). E2e "discrete-navigation audit 4" (a What's good here banner above the grid).
+5. With nothing selected, a swipe started from the canvas's middle, 30 px above where areas are framed: accept. The swipe starts from the map's padded centre (`getCenter()`). E2e "discrete-navigation audit 5".
+6. A tap on the selected area's own dot cleared it: accept. `tapClears` keeps the selection within the tap's reach of any point. Unit and e2e "discrete-navigation audit 6".
+7. The same area twice in a row was not announced again: accept. The live region's text changes with each announcement. E2e "discrete-navigation audit 7".
+8. On a town's page the revealed tile ended under the back pill: accept. `revealTo` keeps clear of it. Unit "discrete-navigation audit 8".
+9. The step trail outlived a turn away from the tab, against the plan: accept. Blur clears it. Code review only: no layout in the e2e world makes the trail and the nearest area differ without moving the other checks.
+10. Guard windows and a lost mouseup: in part. A drag whose mouseup is lost (the window loses focus, or the button comes up outside it) is dropped, and is never a tap either. E2e "discrete-navigation audit 10". The 500 ms after a drag and 1 s after a long press are rejected: they are what keeps a drag's click and a long press from being a tap or a swipe (DN9, DN10).
+11. The arrow keys could not be found (the canvas said "Map"): accept. The canvas's label says the arrow keys move between areas. E2e "discrete-navigation audit 11".
+12. A swipe toward nothing is silent for a screen reader: defer, with the visual bounce (`docs/DEFERRED.md`).
+
+Test review: the DN5 unit line that could not fail now places a nearer area; DN6's "out of view before" and DN3's expected area no longer pass vacuously. Still not covered: a touch-screen swipe, the turned map on screen, pinch and double tap on screen.

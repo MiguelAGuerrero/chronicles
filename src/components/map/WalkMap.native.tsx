@@ -18,7 +18,7 @@ import { traceEnds } from '../../lib/traceEnds';
 import { ScaleBar, SCALE_MAX_PX } from './ScaleBar';
 import { useGlidingWalker } from '../../lib/useGlidingWalker';
 import { distanceM } from '../../lib/geo';
-import { SNAP, swipeOf } from '../../lib/atlas/snap';
+import { releaseSwipe, SNAP } from '../../lib/atlas/snap';
 import { capFitBounds } from '../../lib/zoomOut';
 import type { DotSource } from '../../lib/liveDot';
 import { markEnter, pinDrops, sameSeen } from '../../lib/enter';
@@ -40,11 +40,31 @@ const VIEW_TIMEOUT_MS = 4000;
 function createSwiper() {
   let onSwipe: WalkMapProps['onSwipe'];
   let centre: LngLat = [-71.4, 41.82];
+  // This gesture's start, the most fingers seen in it, and the last long press: a pinch begun with one
+  // finger, or a long press slid after it fired, is never a swipe (discrete-navigation audit 3).
+  let downAt = 0;
+  let fingers = 0;
+  let heldAt = -Infinity;
+  const seen = (n: number) => {
+    fingers = Math.max(fingers, n);
+  };
   const responder = PanResponder.create({
-    onMoveShouldSetPanResponderCapture: (_e, g) => !!onSwipe && g.numberActiveTouches === 1 && Math.hypot(g.dx, g.dy) >= SNAP.minSwipePx / 2,
+    onStartShouldSetPanResponderCapture: (e) => {
+      if (e.nativeEvent.touches.length <= 1) {
+        downAt = Date.now();
+        fingers = 0;
+      }
+      seen(e.nativeEvent.touches.length);
+      return false;
+    },
+    onMoveShouldSetPanResponderCapture: (_e, g) => {
+      seen(g.numberActiveTouches);
+      return !!onSwipe && fingers === 1 && heldAt < downAt && Math.hypot(g.dx, g.dy) >= SNAP.minSwipePx / 2;
+    },
+    onPanResponderMove: (_e, g) => seen(g.numberActiveTouches),
     onPanResponderTerminationRequest: () => false,
     onPanResponderRelease: (_e, g) => {
-      const swipe = swipeOf({ x: 0, y: 0 }, { x: g.dx, y: g.dy });
+      const swipe = releaseSwipe({ dx: g.dx, dy: g.dy, maxTouches: fingers, held: heldAt >= downAt });
       if (swipe) onSwipe?.({ ...swipe, center: centre });
     },
   });
@@ -55,6 +75,9 @@ function createSwiper() {
     },
     at: (c: LngLat) => {
       centre = c;
+    },
+    held: () => {
+      heldAt = Date.now();
     },
   };
 }
@@ -291,6 +314,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           props.onPress?.(at, pressRadiusM(view?.zoom ?? 16, at[1]));
         }}
         onLongPress={(e) => {
+          swiper.held();
           const at = e.nativeEvent.lngLat;
           props.onLongPress?.(at, pressRadiusM(view?.zoom ?? 16, at[1]));
         }}
