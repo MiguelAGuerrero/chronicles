@@ -969,11 +969,15 @@ function check(ok, what) {
     for (let k = 0; k < 20 && !(drawn = await fogCount()); k++) await pg.waitForTimeout(1000);
     check(drawn > 0, `FR9: the fog is drawn after the first read (${drawn} pieces, ${await reads()} reads)`);
     const r0 = await reads();
-    for (const x of [0.1, 0.2, 0.3, 0.4, 0.5]) await fixAt(at(x, -0.5));
+    // At 5 m/s, one fix a second: faster is dropped as a GPS jump (the fix filter's 7 m/s).
+    const walkTo = async (fromX, toX) => {
+      for (let x = fromX + 0.05; x <= toX + 1e-9; x += 0.05) await fixAt(at(x, -0.5));
+    };
+    await walkTo(0, 0.5);
     await pg.waitForTimeout(1500);
     const r1 = await reads();
     check(r1 === r0, `FR9: a move under 100 m reads nothing (${r0} reads, then ${r1} after 50 m)`);
-    for (const x of [0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5]) await fixAt(at(x, -0.5));
+    await walkTo(0.5, 1.5);
     await pg.waitForTimeout(3000);
     const r2 = await reads();
     check(r2 === r0 + 1, `FR9: a move past 100 m reads once (${r0} reads, then ${r2} after 150 m)`);
