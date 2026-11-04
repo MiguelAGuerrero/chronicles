@@ -20,9 +20,9 @@ better:
 | Label point | 40.6574, -75.5075 |
 | Places within 800 m of it (what the card measured) | 44, of which 7 shopping |
 | Densest 800 m disc inside the outline | 488 places, 237 shopping, 3.3 km from the point |
-| Outline | 7.4 x 10 km, 35 z14 tiles, 1544 places |
+| Outline | 7.4 x 10 km box; its outline touches 21 z14 tiles (35 in the box), 1544 places |
 
-Allentown (42 tiles, 5339 places) and Bethlehem (42 tiles, 3927 places) are as wide. Connected-cell clustering
+Allentown (5339 places) and Bethlehem (3927 places) are as wide, about 42 z14 tiles in their boxes. Connected-cell clustering
 merged all of Allentown's built-up fabric into one blob; peak picking on a smoothed grid separated 12 peaks
 (downtown, the hospital district, outer strips).
 
@@ -44,7 +44,7 @@ merged all of Allentown's built-up fabric into one blob; peak picking on a smoot
 2. **TP2 · The outline is the whole town.** The extent comes from the whole-town outline (the z10 read the
    borders use, `outlines.borders`), never from the z12 pieces that are clipped at tile edges.
 3. **TP3 · A wide town costs a bounded read.** A town's read takes at most a fixed number of z14 tiles,
-   nearest its busiest part first. A town wider than that says so: its card says it covers part of the town,
+   nearest its point first. A town wider than that says so: its card says it covers part of the town,
    and the tile's label does too. Nothing says how many tiles or places.
 4. **TP4 · Pockets are found, not merged.** A town's busy places (the same weighted points as busy streets, OSM
    and Overture merged, AD1-AD2) are binned into 400 m cells, smoothed over their neighbours, and peaks are taken
@@ -52,7 +52,7 @@ merged all of Allentown's built-up fabric into one blob; peak picking on a smoot
    one continuous mass still gives more than one pocket when it has more than one peak; a town with no
    activity above the floor gives none.
 5. **TP5 · Whitehall finds MacArthur Road.** On the real Whitehall fixture the busiest pocket is within 500 m
-   of 40.6342, -75.4841 (the corridor to the mall) and the town's Shops and Food bars are not "none".
+   of 40.6342, -75.4841 (the corridor to the mall), and kilometres from the town's label point.
 6. **TP6 · A big town has several.** On the Allentown and Bethlehem fixtures, the pockets number at least two,
    are at least 1.5 km apart, and the busiest holds each town's downtown.
 7. **TP7 · The card lists the busy areas.** A town's card shows a "Busy areas" section, busiest first, each
@@ -65,10 +65,21 @@ merged all of Allentown's built-up fabric into one blob; peak picking on a smoot
    thin (AG3's rule over the extent).
 10. **TP10 · New rules, new reads.** The rules version moves on; every town read under older rules is read again
     and never patched (AG6, AT12). Neighborhood rows are not re-read for it.
-11. **TP11 · Shopping centres count as shops.** A shopping mall, department store and supermarket count toward
-    Shops, one place each, so a town's retail corridor reads (OSM classes to be confirmed, see the plan).
-    Tenants count as they do now.
+11. **TP11 · Shopping centres count as shops.** A shopping mall and a department store count toward Shops, one
+    place each, and are never marks (OSM class names to be confirmed on a device, see the plan). Tenants count
+    as they do now. Supermarkets and errand shops stay out, as the v1 spec chose (`specs/v1-discovery`).
+12. **TP12 · No outline yet is not no outline.** When a town's outline can't be read (offline, Overture
+    unreachable), the town is graded by the ring for now and read again after the retry wait; the ring is never
+    kept as the answer under the new rules. A town with no outline at all (the read was complete) keeps the ring.
 
 ## Record
 
-(filled in as the slice lands)
+Built 2026-11-04 on branch `claude/town-presence-spec`:
+
+- TP1, TP3 (label), TP7 (the names), TP8, TP9, TP10, TP12 pass in `atlas.test.ts`; TP2, TP3 (tiles) in `townPresence.test.ts`; TP4-TP6 in `pockets.test.ts` on real Overture fixtures (`whitehallPoints.json`, `allentownPoints.json`, `bethlehemPoints.json`); TP11 in `discovery.test.ts`.
+- The e2e `outlines` checks TP8 end to end (Pawtucket's outline is fetched and its card is graded across it). No e2e step shows "Busy areas": the fake grid is too thin for a pocket (deferred).
+- Whitehall's outline touches 21 z14 tiles (35 was its bounding box); the floor of 40 was chosen on the three fixtures (Whitehall 2 pockets, Allentown 7, Bethlehem 8 at cap 8).
+- TP11 is narrower than first planned: a mall and a department store only, since the v1 spec leaves supermarkets and errand shops out by choice. The class names are from memory (the tile host is blocked).
+- TP12 was added while building: a town whose outline can't be read must not keep a ring profile under the new rules.
+- The tests were written alongside the code, not seen failing first, except TP11 (seen failing).
+- Native has not run on a device.

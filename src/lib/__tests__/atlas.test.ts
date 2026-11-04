@@ -3,10 +3,11 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { Area, WalkArea } from '../areas/types';
 import {
-  ATLAS_CODE, ATLAS_RULES, SKETCH, distanceWords, familiarity, familiarityWords, findsIn, nearList, needsNear, newRows, nextDoor,
-  presenceSteps, readQueue, rowCurrent, sketchOf, sketchPaths, tileLabel, toSketch, waitingKinds, walkTarget,
+  ATLAS_CODE, ATLAS_RULES, MARKS_EXPLAINED, SKETCH, busyAreas, distanceWords, kindsHeading, marksExplained, thinRing, familiarity, familiarityWords, findsIn, nearList, needsNear, newRows, nextDoor,
+  presenceSteps, readQueue, rereadAt, rowCurrent, sketchOf, sketchPaths, tileLabel, toSketch, waitingKinds, walkTarget,
   type AtlasArea, type AtlasPlace, type AtlasProfile,
 } from '../atlas/atlas';
+import { inExtent } from '../atlas/extent';
 import type { CategoryId } from '../discovery/types';
 import type { LngLat } from '../types';
 
@@ -399,4 +400,85 @@ test('AG6: a profile from older rules is not current', () => {
   assert.notEqual(ATLAS_CODE, 'a3', 'the grading rules moved on');
   assert.equal(rowCurrent(row('A', O, { code: 'a3' }), 'b1'), false);
   assert.equal(rowCurrent(row('A', O), 'b1'), true);
+});
+
+// Town presence (TP1-TP10), written from specs/town-presence/spec.md before the code.
+
+/** A square town 6 km on a side, its label point in one corner (like Whitehall's quiet spot). */
+const TOWN = { bbox: [O[0], O[1], east(6000)[0], north(6000)[1]] as [number, number, number, number], polygons: [[[O, east(6000), [east(6000)[0], north(6000)[1]], north(6000), O]]] as LngLat[][][] };
+const inTown = (at: LngLat) => inExtent(at, TOWN);
+const far = east(4000, north(4000)); // 4 km from the corner, inside the town
+
+test('TP1: a town counts the places inside its outline; the ring stays for a neighborhood or a town with no outline', () => {
+  const corridor = [...marked('shops', 20, far, false, 'strip'), ...marked('food', 16, far, false, 'eat')];
+  const ring = presenceSteps(corridor, O);
+  assert.equal(ring.shops, 0, 'the 800 m ring around the label point sees nothing of a strip 4 km away');
+  const whole = presenceSteps(corridor, O, inTown);
+  assert.equal(whole.shops, 2, '20 shops in the town is "plenty"');
+  assert.equal(whole.food, 2);
+  // Outside the outline counts for nothing; a place counts once.
+  const outside = marked('shops', 30, east(9000), false, 'out');
+  assert.equal(presenceSteps(outside, O, inTown).shops, 0);
+  assert.equal(presenceSteps([...marked('shops', 5, far, false), ...marked('shops', 5, far, false)], O, inTown).shops, 1, 'once each');
+  // The findable kinds still count only places that could be marks (AG1).
+  assert.equal(presenceSteps(marked('history', 12, far, false), O, inTown).history, 0);
+  assert.equal(presenceSteps(marked('history', 12, far, true), O, inTown).history, 3);
+});
+
+test('TP3: the tile\'s label says part of the town when the outline needed more tiles, with no digits', () => {
+  const steps = presenceSteps(marked('shops', 20, far, false), O, inTown);
+  const l = (partial?: boolean) => tileLabel({ area: row('Bigtown', O, { level: 'town', profile: { steps, strips: [], extent: 'outline', partial } as unknown as AtlasProfile }), distanceM: 900, here: false }, { walks: 0, last: null }, fmt);
+  assert.match(l(true), /Covers part of the town\./);
+  assert.doesNotMatch(l(false), /part of the town/);
+  assert.doesNotMatch(l(true).replace(/\d+ min walk|\d+(\.\d+)? km away/g, ''), /\d/, 'no digits beyond the distance (AT11)');
+});
+
+test('TP7: the busy areas of a graded town are its pockets, named for the street through them, else "A busy area"', () => {
+  const pockets = [{ at: far, name: 'MacArthur Road' }, { at: east(100), name: null }];
+  const town = row('Whitehall', O, { level: 'town', profile: { steps: {}, strips: [], extent: 'outline', pockets } as unknown as AtlasProfile });
+  assert.deepEqual(busyAreas(town), [{ label: 'MacArthur Road', at: far }, { label: 'A busy area', at: east(100) }]);
+  assert.deepEqual(busyAreas({ ...town, level: 'neighborhood' }), [], 'a neighborhood has none');
+  assert.deepEqual(busyAreas({ ...town, profile: { ...town.profile!, extent: 'ring' } }), [], 'a ring-graded town has none');
+  assert.deepEqual(busyAreas({ ...town, profile: null }), []);
+});
+
+test('TP8: a graded town\'s heading and explanation say it is counted across its outline; a ring keeps "around its centre"', () => {
+  assert.equal(kindsHeading('town', { extent: 'outline' }), 'What’s here');
+  assert.equal(kindsHeading('town', { extent: 'ring' }), 'What’s here · around its centre');
+  assert.equal(kindsHeading('town', undefined), 'What’s here · around its centre');
+  assert.equal(kindsHeading('neighborhood', undefined), 'What’s here');
+  const whole = marksExplained({ extent: 'outline' }).join(' ');
+  assert.match(whole, /whole outline/);
+  assert.doesNotMatch(whole, /\d/, 'no digits (AT11)');
+  assert.deepEqual(marksExplained({ extent: 'ring' }), MARKS_EXPLAINED);
+  assert.deepEqual(marksExplained(null), MARKS_EXPLAINED);
+});
+
+test('TP9: fewer than 3 mapped places in the whole outline is thin', () => {
+  assert.equal(thinRing(marked('food', 2, far, false), O, inTown), true);
+  assert.equal(thinRing(marked('food', 3, far, false), O, inTown), false, 'three places 4 km from the point, inside the town');
+  assert.equal(thinRing(marked('food', 3, east(9000), false), O, inTown), true, 'outside the outline');
+});
+
+test('TP10: a town row from the older rules is stale; a neighborhood row from them is current', () => {
+  assert.equal(ATLAS_CODE, 'a5');
+  assert.equal(rowCurrent(row('Whitehall', O, { level: 'town', code: 'a4' }), 'b1'), false, 'towns are read again');
+  assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a4' }), 'b1'), true, 'neighborhoods are not');
+  assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a3' }), 'b1'), false);
+  assert.equal(rowCurrent(row('Whitehall', O, { level: 'town' }), 'b1'), true);
+  assert.equal(rowCurrent(row('Whitehall', O, { level: 'town' }), null), false);
+  // A stale town is listed again, a carried neighborhood is not duplicated.
+  const rows = [row('Whitehall', O, { level: 'town', code: 'a4' }), row('Fox Point', east(500), { code: 'a4' })];
+  const fresh = newRows(rows, [{ level: 'town', name: 'Whitehall', at: O, reachM: 3000 }, { level: 'neighborhood', name: 'Fox Point', at: east(500), reachM: 1000 }], 'b1', 2);
+  assert.deepEqual(fresh.map((r) => r.name), ['Whitehall']);
+});
+
+test('TP12: a town whose outline could not be read is graded by the ring for now and read again after the retry wait', () => {
+  const prof = (o: object) => ({ steps: {}, strips: [], extent: 'ring', ...o }) as unknown as AtlasProfile;
+  const t = (profile: AtlasProfile, read_at = 1000) => row('Whitehall', O, { level: 'town', profile, read_at });
+  assert.equal(rereadAt(t(prof({ outlineRetry: true })), null), 1000 + ATLAS_RULES.retryMs, 'due after the retry wait');
+  assert.equal(rereadAt(t(prof({})), null), null, 'a town with no outline at all (a complete read) is not asked again');
+  assert.equal(rereadAt(t(prof({ extent: 'outline' })), null), null, 'a graded town is not');
+  assert.ok(readQueue([{ area: t(prof({ outlineRetry: true })), distanceM: 1, here: false }], 1000 + ATLAS_RULES.retryMs + 1), 'the queue offers it again');
+  assert.equal(readQueue([{ area: t(prof({ outlineRetry: true })), distanceM: 1, here: false }], 1000 + 10), null, 'not before');
 });

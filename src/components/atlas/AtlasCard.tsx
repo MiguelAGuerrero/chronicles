@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  ATLAS_ORDER, MARKS_EXPLAINED, distanceWords, familiarityWords,
+  ATLAS_ORDER, distanceWords, familiarityWords, kindsHeading, marksExplained,
   type AtlasArea, type Familiarity,
 } from '../../lib/atlas/atlas';
 import type { CategoryId } from '../../lib/discovery/types';
@@ -62,8 +62,11 @@ export function AtlasCard(props: {
   you: LngLat | null;
   nextDoor: { area: AtlasArea; distanceM: number }[];
   walkTo: { at: LngLat; label: string; via: string | null } | null;
+  /** TP7: a graded town's busy areas, busiest first; `walkable` is whether navigation will route from where you are. */
+  busyAreas: { label: string; at: LngLat; walkable: boolean }[];
   starting: boolean;
   onWalk: () => void;
+  onWalkAt: (at: LngLat, label: string) => void;
   onPick: (key: string) => void;
   onClose: () => void;
   /**
@@ -178,7 +181,7 @@ export function AtlasCard(props: {
             <View style={styles.sec}>
               <View style={styles.secHead}>
                 <Text style={styles.secTitle} accessibilityRole="header">
-                  {area.level === 'town' ? 'What’s here · around its centre' : 'What’s here'}
+                  {kindsHeading(area.level, p)}
                 </Text>
                 <Pressable testID="atlas-how" accessibilityRole="button" accessibilityState={{ expanded: how }} onPress={() => setHow((v) => !v)} style={styles.howBtn}>
                   <Icon name="information-circle-outline" size={16} color={theme.accent} />
@@ -187,7 +190,7 @@ export function AtlasCard(props: {
               </View>
               {how && (
                 <View style={styles.explain} testID="atlas-how-panel">
-                  {MARKS_EXPLAINED.map((line) => <Text key={line} style={styles.explainText}>{line}</Text>)}
+                  {marksExplained(p).map((line) => <Text key={line} style={styles.explainText}>{line}</Text>)}
                 </View>
               )}
               {p ? (
@@ -195,6 +198,28 @@ export function AtlasCard(props: {
               ) : (
                 <Text style={styles.muted}>Reading this area…</Text>
               )}
+            </View>
+          )}
+
+          {/* TP3: a town wider than one read takes says it covers part of it. */}
+          {p?.partial && <Text style={styles.muted} testID="atlas-partial">Covers part of the town: the middle of it, around its point.</Text>}
+
+          {/* TP7: where a town is busy, apart from its kinds: each pocket, busiest first, with Walk to. */}
+          {props.busyAreas.length > 0 && (
+            <View style={styles.sec}>
+              <Text style={styles.secTitle} accessibilityRole="header">Busy areas</Text>
+              <View testID="atlas-busy-areas">
+                {props.busyAreas.map((b, i) => (
+                  <View key={`${b.label}-${i}`} style={styles.pocket} testID="atlas-busy-area">
+                    <Text style={styles.pocketName}>{b.label}</Text>
+                    {b.walkable ? (
+                      <Pressable testID="atlas-busy-walk" accessibilityRole="button" accessibilityLabel={`Walk to ${b.label}`} onPress={() => props.onWalkAt(b.at, b.label)} style={styles.pocketWalk}>
+                        <Text style={styles.howText}>Walk to</Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                ))}
+              </View>
             </View>
           )}
 
@@ -372,6 +397,9 @@ const styles = StyleSheet.create({
   explain: { backgroundColor: theme.bg, borderRadius: 12, padding: 12, gap: 6, marginBottom: 4 },
   explainText: { fontSize: 14, color: theme.ink, lineHeight: 19 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  pocket: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 44, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.line },
+  pocketName: { flexShrink: 1, fontSize: 15, fontWeight: '600', color: theme.ink },
+  pocketWalk: { minHeight: 44, minWidth: 44, justifyContent: 'center', paddingHorizontal: 8 },
   busy: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(214,38,140,0.12)', borderRadius: 999, paddingVertical: 5, paddingHorizontal: 11 },
   busyLine: { width: 10, height: 3, borderRadius: 2, backgroundColor: HOTSPOT },
   busyText: { fontSize: 13, fontWeight: '600', color: HOTSPOT_INK },

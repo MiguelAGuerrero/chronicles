@@ -27,7 +27,9 @@ export const MiniMap = memo(function MiniMap(props: {
   const release = useOvertureRelease();
   const dim = area.profile && profileStale(area.profile, release) ? HOTSPOT_GRADES.staleOpacity : 1;
   const paths = useMemo(() => (sketch ? sketchPaths(sketch, walked) : null), [sketch, walked]);
-  const to = useMemo(() => toSketch(area.at), [area.at]);
+  // TP2: a graded town is drawn around its busiest pocket, never the quiet ring around its point.
+  const drawnAt = area.profile?.sketchAt ?? area.at;
+  const to = useMemo(() => toSketch(drawnAt), [drawnAt]);
   const { w, h, ringR } = SKETCH;
   const cx = w / 2;
   const cy = h / 2;

@@ -202,4 +202,5 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] The compass button over the native map, above Locate and in the walk's column
 - [ ] expo-keep-awake through a replay (RR24): the screen held from reading the streets to the card, let go on the card and on leaving, taken again on AppState `active`
 - [ ] The loading skeleton's pulse with the native driver (RR23)
-
+- [ ] Town presence (TP): a town read takes up to 60 z14 tiles (Whitehall's outline touches 21), decoded on the phone: the time it takes and its memory on a phone, never run on a device
+- [ ] Town presence (TP11): the OpenMapTiles class names for a mall and a department store (`shop` › `mall`, `department_store`) are from memory, since the tile host is blocked from cloud sessions; confirm on a phone that Lehigh Valley Mall counts as a shop

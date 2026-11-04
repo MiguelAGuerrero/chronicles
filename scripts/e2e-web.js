@@ -836,15 +836,27 @@ function check(ok, what) {
       await shot(pg, `${label}-explore`);
       // TB2: the town's own page (the title opens it) draws its border tinted.
       let page = null;
+      let card = '';
+      let how = '';
       if (title && title !== 'Near you') {
         await pg.click('[data-testid=atlas-title]').catch(() => {});
         await pg.waitForSelector('[data-testid=atlas-town-head]', { timeout: 10000 }).catch(() => {});
         await pg.waitForTimeout(800);
         page = await drawn();
         await shot(pg, `${label}-town`);
+        // TP1, TP8: the town's card, counted across its whole outline (Pawtucket is known only by one).
+        await pg.click('[data-testid=atlas-town-head]').catch(() => {});
+        await pg.waitForSelector('[data-testid=atlas-card]', { timeout: 10000 }).catch(() => {});
+        await pg.waitForSelector('[data-testid=atlas-kind-food]', { timeout: 30000 }).catch(() => {});
+        card = await pg.locator('[data-testid=atlas-card]').innerText().catch(() => '');
+        if (await pg.locator('[data-testid=atlas-how]').count()) {
+          await pg.click('[data-testid=atlas-how]');
+          how = await pg.locator('[data-testid=atlas-how-panel]').innerText().catch(() => '');
+        }
+        await shot(pg, `${label}-town-card`);
       }
       await c.close();
-      return { title, subtitle, borders, page, zoom };
+      return { title, subtitle, borders, page, zoom, card, how };
     };
     serveDivisions = false;
     const before = await titleOf('outlines-off');
@@ -860,6 +872,9 @@ function check(ok, what) {
     check(after.page === 'lined:Central Falls|tinted:Pawtucket', `TB2: the town's page draws its border tinted (${after.page})`);
     // Pawtucket is 2 km across: framed whole, the map is zoomed out from the 800 m ring it opens on.
     check(after.zoom < before.zoom - 0.5, `TB11: Explore zooms out to frame the whole town (z${after.zoom.toFixed(2)}, the ring alone z${before.zoom.toFixed(2)})`);
+    // TP1, TP8: a town known by its outline is counted across it: its card no longer says "around its centre", and says so.
+    check(/what’s here/i.test(after.card) && !/around its centre/i.test(after.card) && /whole outline/.test(after.how),
+      `TP8: a town counted across its outline says "What's here" with no "around its centre", and how it counts (${after.card.replace(/\s+/g, ' ').slice(0, 120)} | ${after.how.replace(/\s+/g, ' ')})`);
     const asked = overtureAsked.filter((q) => /divisions\.pmtiles/.test(q.url));
     check(asked.length > 0 && asked.every((q) => q.range), `TO12: outlines are read from Overture's divisions by byte range (${asked.length} requests)`);
   };

@@ -12,7 +12,7 @@ import type { WalkMapHandle } from '../../components/map/types';
 import { Icon } from '../../components/icons';
 import { Banner, Button, theme } from '../../components/ui';
 import {
-  ATLAS_RULES, canWalkTo, distanceWords, familiarity, findsIn, nextDoor, otherTowns, townReachM, waitingMarks, walkTarget,
+  ATLAS_RULES, busyAreas, canWalkTo, distanceWords, familiarity, findsIn, nextDoor, otherTowns, townReachM, waitingMarks, walkTarget,
   type AtlasArea, type Familiarity, type Listed,
 } from '../../lib/atlas/atlas';
 import { nearReads } from '../../lib/atlas/read';
@@ -23,7 +23,7 @@ import { useOutlineSet } from '../../lib/areas/useOutlineSet';
 import { db } from '../../lib/db';
 import type { Find } from '../../lib/explore/explore';
 import { formatDistance } from '../../lib/format';
-import { boundsOf, type Bounds } from '../../lib/geo';
+import { boundsOf, distanceM as metresBetween, type Bounds } from '../../lib/geo';
 import { readArea, rememberArea } from '../../lib/landing/read';
 import { getLastFix, launchFix, setLastFix } from '../../lib/lastFix';
 import { locateOnce } from '../../lib/locate';
@@ -191,8 +191,8 @@ export default function Explore() {
     for (const l of shown) {
       const a = l.area;
       m.set(a.key, {
-        waiting: a.profile ? waitingMarks(a.profile.marks, found, a.at, fresh.hidden) : [],
-        finds: findsIn(fresh.finds, a.at),
+        waiting: a.profile ? waitingMarks(a.profile.marks, found, a.profile.sketchAt ?? a.at, fresh.hidden) : [],
+        finds: findsIn(fresh.finds, a.profile?.sketchAt ?? a.at),
       });
     }
     return m;
@@ -545,7 +545,12 @@ export default function Explore() {
           you={from}
           nextDoor={nextDoor(card.area, shown.map((l) => l.area), fresh.build)}
           walkTo={!card.here && canWalkTo(card.distanceM) ? walkTarget(card.area) : null}
+          busyAreas={busyAreas(card.area).map((b) => ({ ...b, walkable: !!from && canWalkTo(metresBetween(from, b.at)) }))}
           starting={walkStart.starting}
+          onWalkAt={(at, label) => {
+            setOpen(null);
+            walkStart.start({ at, label, kind: 'point' });
+          }}
           onWalk={() => {
             const t = walkTarget(card.area);
             setOpen(null);
