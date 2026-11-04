@@ -50,6 +50,15 @@ test('landing: the view draws pockets and named strips, as information: no Start
   assert.ok(!/weight|score|rank/.test(text), 'nothing in the view carries a score');
 });
 
+test('landing: a street two overlapping areas both found is named once (fix street-label-double)', () => {
+  const v = landingView([row(m(0, 0), analysis('North 17th Street', m(0, 100))), row(m(1500, 0), analysis('North 17th Street', m(20, 130)))], 'b1');
+  assert.deepEqual(v.strips.map((s) => s.name), ['North 17th Street']);
+  const far = landingView([row(m(0, 0), analysis('Main Street', m(0, 100))), row(m(5000, 0), analysis('Main Street', m(5000, 100)))], 'b1');
+  assert.equal(far.strips.length, 2, 'the same name in another part of town is a different street');
+  const hood = (at: LngLat) => ({ ...analysis('Fox Point', at), pockets: [{ name: 'Fox Point', weight: 5, spanM: 250, centre: at, hull: [at, at, at] as LngLat[], strips: [] }], strips: [] });
+  assert.equal(landingView([row(m(0, 0), hood(m(0, 0))), row(m(1500, 0), hood(m(50, 40)))], 'b1').labels.length, 1);
+});
+
 test('landing: stale areas are drawn dimmed and say why (audit 5)', () => {
   const fresh = row(m(0, 0), analysis('Thayer Street', m(0, 100)));
   const old = row(m(5000, 0), analysis('Wickenden Street', m(5000, 100)), 'b0');
@@ -108,4 +117,16 @@ test('AD12: graded stretches draw wider and stronger as the grade rises; stale o
   const { graded: _g, ...before } = a;
   const old = landingView([{ ...row, analysis: before as typeof a }], 'b1');
   assert.deepEqual(old.graded.map((g) => g.grade), [2]);
+});
+
+test('fix street-label-double audit 2, 3, 4: the current row\'s name wins, strips and pockets dedupe together, one area keeps its own pockets', () => {
+  const stale = row(m(0, 0), analysis('North 17th Street', m(0, 100)), 'b0');
+  const fresh = row(m(1500, 0), analysis('North 17th Street', m(20, 130)));
+  assert.equal(landingView([stale, fresh], 'b1').strips[0].stale, false, 'stale first');
+  assert.equal(landingView([fresh, stale], 'b1').strips[0].stale, false, 'fresh first');
+  const hood = { ...analysis('x', m(0, 0)), strips: [], pockets: [{ name: 'Fox Point', weight: 5, spanM: 250, centre: m(0, 0), hull: [m(0, 0), m(0, 0), m(0, 0)] as LngLat[], strips: [] }] };
+  const v = landingView([row(m(0, 0), hood), row(m(1500, 0), analysis('Fox Point', m(30, 30)))], 'b1');
+  assert.equal(v.labels.length + v.strips.length, 1, 'a neighbourhood and a strip of one name');
+  const two = { ...hood, pockets: [0, 100].map((x) => ({ ...hood.pockets[0], name: 'A busy pocket', centre: m(x, 0) })) };
+  assert.equal(landingView([row(m(0, 0), two)], 'b1').labels.length, 2);
 });
