@@ -2010,14 +2010,15 @@ function check(ok, what) {
         // 75 m from the memorial: inside the 100 m range, a "?" that doesn't say what it is (E6).
         check((await walkMarks().count()) === 1 && (await page.locator('[aria-label="A place to find. Open"]').count()) === 1, 'a "?" shows for a place within range, and only that one');
       }
-      if (k === 14 || k === 36) {
+      if (k === 18 || k === 32) {
         // The cone as drawn points the way the walk goes: east on the first leg, north on the second
-        // (heading 5; the owner walked north and the cone said east, Nov 3).
+        // (heading 5; the owner walked north and the cone said east, Nov 3). Read a few fixes after the
+        // steps that stop for a capture: the dot holds while fixes come late, and the cone hides with it.
         const cone = await page.locator('[data-testid=walker-puck] [data-cone]').evaluate((el) => ({ shown: el.style.display !== 'none', t: el.style.transform }));
         const deg = Number(/rotate\(([-\d.]+)deg\)/.exec(cone.t)?.[1]);
-        const want = k === 14 ? 90 : 0;
+        const want = k === 18 ? 90 : 0;
         const off = Math.abs((((deg - want) % 360) + 540) % 360 - 180);
-        check(cone.shown && off <= 20, `heading 5: the cone points ${k === 14 ? 'east' : 'north'} as the walk goes (${cone.shown ? cone.t : 'hidden'})`);
+        check(cone.shown && off <= 20, `heading 5: the cone points ${k === 18 ? 'east' : 'north'} as the walk goes (${cone.shown ? cone.t : 'hidden'})`);
       }
       if (k >= 16 && k <= 20) {
         // The dot moves on every fix, not every 2 s with the trace (the live dot, Nov 1).
