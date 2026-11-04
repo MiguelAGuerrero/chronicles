@@ -212,7 +212,9 @@ export function useCaptures(
       const stamp = stampNow(false);
       const perm = await ImagePicker.requestCameraPermissionsAsync();
       if (!perm.granted) {
-        setError({ message: 'Camera access is off for Chronicles.', openSettings: !perm.canAskAgain });
+        // The request above already showed the system prompt if it could; a refusal now is only fixable in Settings.
+        // (`canAskAgain` is not trusted: iOS can report true after a denial, which left no way to recover.)
+        setError({ message: 'Camera access is off for Chronicles.', openSettings: true });
         return;
       }
       startLocating(stamp);
@@ -297,7 +299,9 @@ export function useCaptures(
         try {
           const perm = await requestRecordingPermissionsAsync();
           if (!perm.granted) {
-            setError({ message: 'Microphone access is off for Chronicles.', openSettings: !perm.canAskAgain });
+            // The request above already showed the system prompt if it could; a refusal now is only fixable in Settings.
+            // (`canAskAgain` is not trusted: iOS can report true after a denial, which left no way to recover.)
+            setError({ message: 'Microphone access is off for Chronicles.', openSettings: true });
             return false;
           }
           // Keeps recording with the phone locked and in a pocket.

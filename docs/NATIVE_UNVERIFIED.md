@@ -142,6 +142,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] One MapLibre RN `MapView` kept across Start while its props swap (static dot to the glide, `follow`, marks, moment pins) (NR6)
 - [ ] `locateOnce` each time the ready screen comes to the front, on expo-location (NV17)
 - [ ] `Linking.openSettings` from the ready screen's banner (NR13)
+- [ ] After a denied microphone or camera request on iOS, the banner offers Open Settings (`canAskAgain` is no longer trusted), and Settings lets the permission back on
 
 ## Functional core (slice 1, FC1-FC10)
 

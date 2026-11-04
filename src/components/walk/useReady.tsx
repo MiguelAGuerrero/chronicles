@@ -1,6 +1,6 @@
 import { useFocusEffect, useIsFocused } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BackHandler, Linking, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { BackHandler, Linking, Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { CaptureViewer } from '../CaptureView';
 import { LocateButton } from '../LocateButton';
 import { MomentBar } from '../MomentBar';
@@ -233,7 +233,7 @@ export function useReady(props: {
               walkStart.setError(null);
               setMomentError(null);
             }}
-            action={error.openSettings ? { label: 'Open Settings', onPress: () => Linking.openSettings() } : undefined}
+            action={error.openSettings && Platform.OS !== 'web' ? { label: 'Open Settings', onPress: () => Linking.openSettings() } : undefined}
           >
             {error.message}
           </Banner>
