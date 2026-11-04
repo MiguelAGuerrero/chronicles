@@ -70,6 +70,9 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
   settings stay mounted until the lowering spring finishes, so the foot never jumps. The range ring
   shows on the map only while it is up in Explore. A long press on the ready map sets the destination
   (not while the bar is up or mid-memo); the resting bar then says `To <place> · <distance> away`.
+- **The walk's notice sits in the minimize button's row** (the owner, Nov 4), level with it at the top
+  edge, so the button doesn't move when one appears (NR6). The web's "keep this page open" is said once, on
+  the ready screen's first launch (NR13), never as a walk's notice or by `startNotice`.
 - **"Not recording" is a button** (QL19, Nov 3): while the recorder's status is an
   error, the chip (`status-chip`, "Not recording. Why?") re-raises the recorder's
   sticky notice (Open Settings on a phone; the web's message says where to allow

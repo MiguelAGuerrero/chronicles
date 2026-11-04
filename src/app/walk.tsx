@@ -258,7 +258,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       setHolding(false);
       // Recording in place (NR6): it says so, or the recorder's warning, or why its plan failed (audit 9, 10).
       if (p?.error) setNotice({ message: p.error, tone: 'error', sticky: true });
-      else if (p) setNotice({ message: startNotice(p, recorder.capabilities.background) });
+      else if (p) setNotice({ message: startNotice(p) });
     },
   });
   // The error notice is raised once per error: when the status first turns to error, or for a new
@@ -1040,23 +1040,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
       <>
 
       <View style={[styles.top, { top: insets.top + 12, left: sideInset, right: sideInset }]} pointerEvents="box-none">
-        {/* The notice is first, so it sits flush at the top of the stack, above the navigation bar
-            and the minimize button (the owner's call, Nov 4). */}
-        {notice && (
-          <Banner
-            tone={notice.tone}
-            onDismiss={() => setNotice(null)}
-            action={
-              notice.openSettings && Platform.OS !== 'web'
-                ? { label: 'Open Settings', onPress: () => Linking.openSettings() }
-                : notice.maps
-                  ? { label: 'Open in Maps', onPress: () => notice.maps && handOff(notice.maps.at, notice.maps.label) }
-                  : undefined
-            }
-          >
-            {notice.message}
-          </Banner>
-        )}
         {navigation.nav && (
           // Not a live region: it changes with every fix. The distance is announced in steps instead.
           <View testID="nav-bar" style={styles.navBar}>
@@ -1102,6 +1085,25 @@ function WalkScreen(props: { onMinimize: () => void }) {
           >
             <Icon name="chevron-down" size={24} color={theme.ink} />
           </Pressable>
+          {/* The notice shares the minimize button's row, level with it at the top edge (the owner's call,
+              Nov 4), so the button doesn't move when one appears (NR6). */}
+        {notice && (
+          <View style={styles.noticeCell}>
+            <Banner
+              tone={notice.tone}
+              onDismiss={() => setNotice(null)}
+              action={
+                notice.openSettings && Platform.OS !== 'web'
+                  ? { label: 'Open Settings', onPress: () => Linking.openSettings() }
+                  : notice.maps
+                    ? { label: 'Open in Maps', onPress: () => notice.maps && handOff(notice.maps.at, notice.maps.label) }
+                    : undefined
+              }
+            >
+              {notice.message}
+            </Banner>
+          </View>
+        )}
         </View>
         {navigation.nav?.offRoute && (
           <LiftIn style={styles.chip} accessibilityLiveRegion="polite">
@@ -1696,7 +1698,8 @@ const styles = StyleSheet.create({
   // Resume is the one thing to do while paused.
   pauseBtnOn: { backgroundColor: theme.accent, borderColor: theme.accent },
   edgeBtnOn: { backgroundColor: theme.ink, borderColor: theme.ink },
-  minRow: { alignSelf: 'stretch', flexDirection: 'row' },
+  minRow: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  noticeCell: { flex: 1, minWidth: 0 },
   minBtn: { position: 'relative' },
   unwalked: { position: 'absolute', backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12 },
   unwalkedText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },

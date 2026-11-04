@@ -27,13 +27,12 @@ export function entryPlan(): { tabs: typeof BENEATH_TAB; thenShowWalk: true } {
 }
 
 /**
- * What the walk says as Start records in place (NR6, audit 9): that it is recording, and on a web page
- * that can't record in the background, to keep the page open (as a walk opened by Walk here says). A
- * recorder warning wins, as it does on every start (NV25).
+ * What the walk says as Start records in place (NR6, audit 9): that it is recording. A recorder warning
+ * wins, as it does on every start (NV25). The web's "keep this page open" is no longer said per walk:
+ * the ready screen says it once, on first launch (the owner, Nov 4).
  */
-export function startNotice(params: Record<string, string>, background: boolean): string {
-  if (params.warning) return params.warning;
-  return background ? 'Walk started · recording' : 'Walk started · recording. Keep this page open and on screen while you walk.';
+export function startNotice(params: Record<string, string>): string {
+  return params.warning ? params.warning : 'Walk started · recording';
 }
 
 /** The chevron, Android Back and the browser's back (NR4): to the tab beneath, Explore when there is none. */

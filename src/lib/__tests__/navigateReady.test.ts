@@ -26,13 +26,11 @@ test('NR4: the chevron and Back return to the tab beneath, Explore when there is
   assert.deepEqual(exitPlan(false), { kind: 'replace', to: '/' });
 });
 
-test('navigate-ready audit 9: an in-place start says it is recording, and on the web without background to keep the page open', () => {
-  const keep = 'Walk started · recording. Keep this page open and on screen while you walk.';
-  assert.equal(startNotice({ started: '1' }, false), keep);
-  assert.equal(startNotice({}, false), keep);
-  assert.equal(startNotice({ started: '1' }, true), 'Walk started · recording');
+test('navigate-ready audit 9: an in-place start says it is recording; the web page note is said once on first launch, not per walk', () => {
+  assert.equal(startNotice({ started: '1' }), 'Walk started · recording');
+  assert.equal(startNotice({}), 'Walk started · recording');
   // A recorder warning still wins (NV25).
-  assert.equal(startNotice({ warning: 'Location is approximate.' }, false), 'Location is approximate.');
+  assert.equal(startNotice({ warning: 'Location is approximate.' }), 'Location is approximate.');
 });
 
 test('navigate-ready cold open: a launch’s own ask goes ahead past an earlier one still pending, never past a walk screen up', () => {
