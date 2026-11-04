@@ -133,6 +133,7 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 | Session | Branch | Doing |
 |---|---|---|
 | Bug fixes (open since Oct 31) | unknown | unknown |
+| Media editing (ME1-ME23, `specs/media-editing/spec.md`), started 2026-11-04 | `claude/media-editing-spec` | building: core, photo editor, video, export; then the audit and deploy (the owner's go-ahead, Nov 4) |
 
 ## Updating this file
 

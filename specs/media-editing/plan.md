@@ -18,7 +18,7 @@ One order everywhere: on screen, in the native baker, in the web canvas and in t
 
 - `src/lib/mediaEdit.ts`:
   - the `MediaEdit` type: `{ v: 1, rotate, crop, filter, strokes, trim }`;
-  - `FILTERS` (nine 4×5 matrices: Original, Vivid, Warm, Cool, Dramatic, Fade, Mono, Noir, Sepia), `applyMatrix`, `PEN_COLORS`, `PEN_WIDTH_FRAC`, `MAX_STROKES`;
+  - `FILTERS` (nine 4×5 matrices: Original, Vivid, Warm, Cool, Dramatic, Fade, Mono, Noir, Sepia), `applyMatrix`, `PEN_COLORS`, `PEN_SIZES` (pen and marker, three each), `strokeHit` (the eraser), `MAX_STROKES`;
   - `parseEdit` / `serializeEdit` / `isEmptyEdit`;
   - `clampCrop`, `aspectCrop`, `editedSize`, `toFrame` (original to edited coordinates, for strokes);
   - `simplifyStroke` (Ramer-Douglas-Peucker, tolerance a fraction of the width);
@@ -97,7 +97,7 @@ One order everywhere: on screen, in the native baker, in the web canvas and in t
 | ME7 | `mediaEdit.test.ts`: `ME7: rotating after cropping keeps the same part of the picture` |
 | ME8 | e2e `edit`: the row holds the nine presets; Mono, then the saved bake's sampled pixels have r = g = b |
 | ME9 | `mediaEdit.test.ts`: `ME9: …` one per preset, plus clamping |
-| ME10 | `editSession.test.ts`: `ME10: undo removes the last line, clear removes all`; e2e: a mouse drag adds a stroke in the chosen colour |
+| ME10 | `editSession.test.ts`: `ME10: undo and redo step through lines drawn and erased`, `ME10: the eraser removes a whole line it touches`; e2e: a mouse drag adds a stroke in the chosen colour and thickness, the marker is see-through |
 | ME11 | `mediaEdit.test.ts`: `ME11: a line stays on its spot through a later crop and rotation`, `ME11: simplify keeps the ends and drops collinear points`, `ME11: no more than 50 lines` |
 | ME12 | e2e `edit`: the video's overlay layer has `pointer-events: none` and holds the stroke |
 | ME13 | e2e `edit`: text on a video; the walk's `add-caption` opens the editor on Text (the existing caption steps move to it) |
@@ -119,7 +119,7 @@ There's one e2e journey, `edit` (`E2E_ONLY=edit`). It uses the existing `clip-4s
 - **Filters on video** (the owner's call: no consistent way on iOS without Skia or an experimental flag).
 - **A copy remade later only has the crop and rotation**, not the filter or drawing: those need the mounted baker, which only the viewer has. This is rare: it happens only when the copy's file is gone.
 - **Screen-reader ways to draw and to drag the crop frame** (ME22).
-- **More than one undo step**, redo, other pen widths, text styles and colours, free-placed text, stickers and flip: out of scope by the owner's call.
+- **Pencil texture, an opacity slider, a colour wheel, lasso, ruler and shapes** from Markup; text styles and colours, free-placed text, stickers and flip: out of scope by the owner's call.
 - **Frames along the trim bar**: the handles show the frame they're on instead.
 
 ## Native paths that won't run on a device

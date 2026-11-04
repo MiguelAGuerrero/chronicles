@@ -21,7 +21,7 @@ A photo can carry a caption today; nothing else can be changed, and a video can'
 - Fixed filter presets, no sliders. The set is the one people expect from their phone's photo app, so editing after the fact feels familiar: Original, Vivid, Warm, Cool, Dramatic, Fade, Mono, Noir, Sepia, under plain names (no app's own names). Each has to be a single colour matrix, so the set has no vignette, grain or tone curves. (The owner's first examples were black and white, high contrast and vivid; they asked for a better default set, Nov 4.)
 - Edits are data on top of the untouched original, and saving out renders them in one file (confirmed Nov 4).
 - Previews (the small copy on pins and the memory preview) show the edits but not the caption (confirmed Nov 4).
-- Scope: text, filters, crop, rotate, video trim, and a pen with a few basic colours (for circling something). No stickers, text styles or flip.
+- Scope: text, filters, crop, rotate, video trim, and drawing modelled on the iPhone's Markup: Pen, Marker and Eraser, three thicknesses, Markup's basic swatches, Undo and Redo (the owner, Nov 4: "mimic iPhone pen"). No pencil texture, opacity slider, colour wheel, lasso, ruler or shapes. No stickers, text styles or flip.
 - Videos get everything but filters, so a video looks the same on iPhone, Android and the web.
 - Editing happens from the viewer, and from an Edit pill shown right after every photo or video on the three places that take them (the walk screen, Navigate's ready screen, the minimized walk's recording bar). Taking a photo stays one tap: the pill is offered, the editor never opens by itself. (First call "viewer only", changed the same day.)
 - One Edit screen with a row of tools replaces the caption button.
@@ -55,8 +55,13 @@ Filters (photos)
 
 Drawing
 
-10. **ME10** Draw makes a freehand line wherever a finger (or the mouse) drags over the picture, in one of White, Black, Red, Yellow and Blue (Red first), at one width that is a fixed share of the picture's width. Undo removes the last line; Clear removes every line. Both are in the editor, before Done.
-11. **ME11** A line stays on what it marked. Its points are kept in the original picture's coordinates and simplified as it is drawn, so cropping or rotating afterwards leaves it on the same spot; a part outside the crop isn't shown. The mapping and simplification are pure and unit-tested. A moment holds at most 50 lines; Draw says so and stops taking more at 50.
+10. **ME10** Draw works like the iPhone's Markup. Its tools are Pen, Marker and Eraser:
+    - **Pen**: an opaque line with round ends;
+    - **Marker**: a wide, see-through highlighter line with flat ends;
+    - **Eraser**: removes a whole line it touches, as Markup's object eraser does.
+    
+    Tapping the selected Pen or Marker again offers three thicknesses (thin, medium, thick). The colour swatches are Black, White, Blue, Green, Yellow and Red, Black first as on the iPhone. A line is drawn wherever a finger (or the mouse) drags over the picture. Undo and Redo step back and forward through lines drawn and erased. All of it happens in the editor, before Done.
+11. **ME11** A line stays on what it marked. Its points and thickness are kept against the original picture (points as fractions of its size, thickness as a fraction of its shorter side) and simplified as it is drawn. Cropping or rotating afterwards leaves it on the same spot at the same size on the picture, and a part outside the crop isn't shown. The mapping, the thickness and the simplification are pure and unit-tested. A moment holds at most 50 lines; Draw says so and stops taking more at 50.
 12. **ME12** On a video the drawing shows for the whole clip and never takes a tap from the player.
 
 Text
@@ -79,7 +84,7 @@ Previews, storage and accessibility
 
 20. **ME20** After Done on a photo, its small copy is remade from the edited photo (crop, rotation, filter and drawing; no caption, as today), so pins and the memory preview show it. A copy remade later, because its file was gone, has the crop and rotation.
 21. **ME21** Edits are one `edit` field on the capture. A missing, unreadable or newer-format value reads as no edits (the original shows) and never fails a screen. `parseEdit` and `serializeEdit` are pure and unit-tested, including a round trip. A saved edit and caption reach every open view of the walk through the capture bus.
-22. **ME22** Every editor control has a label and a role. Rotate, the filters, the colours, Undo, Clear, Revert and the aspect choices work with a screen reader. Freehand drawing and dragging the crop frame have no screen-reader way (accepted, `docs/DEFERRED.md`).
+22. **ME22** Every editor control has a label and a role. Rotate, the filters, the pen tools and thicknesses, the colours, Undo, Redo, Revert and the aspect choices work with a screen reader. Freehand drawing and dragging the crop frame have no screen-reader way (accepted, `docs/DEFERRED.md`).
 
 After capture
 
