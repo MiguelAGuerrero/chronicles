@@ -6,7 +6,7 @@ import { setAudioMode } from './audioMode';
 import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
-import { applyPatch, captureBus, mergeCaptures } from './captureBus';
+import { applyPatch, captureBus, mergeCaptures, type CapturePatch } from './captureBus';
 import { db } from './db';
 import { newId } from './id';
 import { locateOnce } from './locate';
@@ -456,10 +456,14 @@ export function useCaptures(
     };
   }, []);
 
-  /** Sets or clears a photo's caption, and where its bar sits. */
-  async function setCaption(id: string, caption: string | null, y: number) {
-    await db.updateCapture(id, { caption, caption_y: caption ? y : null });
-    setCaptures((prev) => prev.map((c) => (c.id === id ? { ...c, caption, caption_y: caption ? y : null } : c)));
+  /**
+   * A photo's or video's edits and caption, or its new small copy (ME21):
+   * stored, shown here, then sent on the bus so the walk's other views show it.
+   */
+  async function setEdit(id: string, patch: CapturePatch) {
+    await db.updateCapture(id, patch);
+    if (alive.current) setCaptures((prev) => applyPatch(prev, id, patch));
+    captureBus.patch(walkId, id, patch, self);
   }
 
   /**
@@ -491,7 +495,7 @@ export function useCaptures(
     retrySave,
     unsaved: unsaved != null,
     saveNote,
-    setCaption,
+    setEdit,
     setNote,
   };
 }

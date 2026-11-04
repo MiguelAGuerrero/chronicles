@@ -10,7 +10,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WalkMap } from '../components/map/WalkMap';
 import { CompassButton } from '../components/CompassButton';
 import { COLORS, HOTSPOT, type WalkMapHandle } from '../components/map/types';
-import { CaptionEditor } from '../components/Caption';
+import { EditOfferPill, useEditOffer } from '../components/edit/EditOffer';
+import { MediaEditor } from '../components/edit/MediaEditor';
 import { CaptureViewer } from '../components/CaptureView';
 import { Icon, KIND_LABEL } from '../components/icons';
 import { Banner, Button, HoldButton, LiftIn, theme } from '../components/ui';
@@ -104,8 +105,6 @@ const NUDGED_KEY = 'deadzone_walk';
 /** A reminder's card goes after this long, or this far walked on. */
 const REMINDER_MS = 30_000;
 const REMINDER_AWAY_M = 100;
-/** How long "Aa Caption" stays offered after a photo. */
-const CAPTION_OFFER_MS = 6000;
 
 type Notice = {
   message: string;
@@ -844,21 +843,15 @@ function WalkScreen(props: { onMinimize: () => void }) {
     }
   }
 
-  // After a photo, a caption is offered for a few seconds; it is opt-in.
-  const [justTook, setJustTook] = useState<string | null>(null);
-  const [captioning, setCaptioning] = useState<Capture | null>(null);
-  useEffect(() => {
-    if (!justTook) return;
-    const t = setTimeout(() => setJustTook(null), CAPTION_OFFER_MS);
-    return () => clearTimeout(t);
-  }, [justTook]);
+  // After a photo or video, Edit is offered for a few seconds (ME23); it is opt-in.
+  const editOffer = useEditOffer();
+  const [editingKept, setEditingKept] = useState<Capture | null>(null);
 
   async function photo() {
     const kept = await cap.takePhoto();
     if (!kept) return;
     feedback('tap');
-    if (kept.kind === 'photo') setJustTook(kept.id);
-    else setToast('Video saved here');
+    editOffer.show(kept);
   }
 
   async function startVoice() {
@@ -1207,22 +1200,16 @@ function WalkScreen(props: { onMinimize: () => void }) {
       {/* The pills (caption, undo, retry): left of the stack, above the strip, so the stack never
           moves (NR10). */}
       <View style={[styles.pills, at.pills]} pointerEvents="box-none">
-        {justTook && !recordingVoice && !spot && !openMark && !options && !memory && (
-          <View style={styles.undo} accessibilityLiveRegion="polite">
-            <Text style={styles.undoText}>Photo saved here</Text>
-            <Pressable
-              testID="add-caption"
-              accessibilityRole="button"
-              onPress={() => {
-                setCaptioning(captures.find((c) => c.id === justTook) ?? null);
-                setJustTook(null);
-              }}
-              hitSlop={10}
-              style={styles.undoBtn}
-            >
-              <Text style={styles.undoBtnText}>Aa Caption</Text>
-            </Pressable>
-          </View>
+        {editOffer.offer && !recordingVoice && !spot && !openMark && !options && !memory && (
+          <EditOfferPill
+            offer={editOffer.offer}
+            where="here"
+            onEdit={() => {
+              const id = editOffer.offer?.id;
+              setEditingKept(captures.find((c) => c.id === id) ?? null);
+              editOffer.clear();
+            }}
+          />
         )}
         {cap.discarded && !recordingVoice && !spot && !openMark && !options && !memory && (
           <View style={styles.undo} accessibilityLiveRegion="polite">
@@ -1501,7 +1488,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         autoPlay={autoPlay}
         remind
         walkId={walk?.id ?? null}
-        onSaveCaption={(c, caption, y) => cap.setCaption(c.id, caption, y)}
+        onSaveEdit={(c, patch) => cap.setEdit(c.id, patch)}
         onSaveNote={(c, body) => cap.setNote(c.id, body)}
         onGoHere={navigation.finding ? undefined : (c) => {
           setViewing(null);
@@ -1511,15 +1498,9 @@ function WalkScreen(props: { onMinimize: () => void }) {
           if (c.lat != null && c.lon != null) handOff([c.lon, c.lat], KIND_LABEL[c.kind]);
         }}
       />
-      <CaptionEditor
-        key={captioning?.id ?? 'none'}
-        capture={captioning}
-        onClose={() => setCaptioning(null)}
-        onSave={async (caption, y) => {
-          if (captioning) await cap.setCaption(captioning.id, caption, y).catch(() => setToast('The caption could not be saved'));
-          setCaptioning(null);
-        }}
-      />
+      {editingKept && (
+        <MediaEditor key={editingKept.id} capture={editingKept} initialTool="crop" onClose={() => setEditingKept(null)} onSave={(patch) => cap.setEdit(editingKept.id, patch)} />
+      )}
       {memory && memoryShown.length > 0 && !spot && !recordingVoice && (
         <View style={[styles.spotRow, cardAt]} pointerEvents="box-none">
           <MemoryPreview

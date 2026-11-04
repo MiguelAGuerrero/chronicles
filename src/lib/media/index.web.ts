@@ -74,3 +74,23 @@ export async function removeMedia(refs: string[], walkFolders: string[] = []): P
 export async function mediaBytes(refs: string[], walkFolders: string[] = []): Promise<number> {
   return mediaStore.bytes(refs, folderKeys(walkFolders)).catch(() => 0);
 }
+
+/**
+ * A video's picture size, as the browser shows it (ME4): expo-video's web
+ * player has no video track, so a detached <video> reads the metadata.
+ */
+export function probeVideoSize(uri: string): Promise<{ w: number; h: number } | null> {
+  return new Promise((resolve) => {
+    const v = document.createElement('video');
+    const done = (s: { w: number; h: number } | null) => {
+      v.removeAttribute('src');
+      v.load();
+      resolve(s);
+    };
+    v.preload = 'metadata';
+    v.muted = true;
+    v.onloadedmetadata = () => done(v.videoWidth && v.videoHeight ? { w: v.videoWidth, h: v.videoHeight } : null);
+    v.onerror = () => done(null);
+    v.src = uri;
+  });
+}

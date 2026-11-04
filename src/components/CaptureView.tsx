@@ -1,9 +1,7 @@
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import { useEventListener } from 'expo';
-import { useVideoPlayer, VideoView, type VideoPlayer as VideoPlayerType } from 'expo-video';
 import { forwardRef, useEffect, useRef, useState, type ComponentRef } from 'react';
 import { HANDOFF_HINT } from '../lib/nav/openInMaps';
-import { Image, Linking, Platform, Pressable, StyleSheet, Text, View, type LayoutRectangle } from 'react-native';
+import { Linking, Platform, Pressable, StyleSheet, Text, View, type LayoutRectangle } from 'react-native';
 import { Modal } from './Modal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { db } from '../lib/db';
@@ -12,11 +10,16 @@ import { saveRecall, stopRecall, storedRecall } from '../lib/discovery/recallChe
 import { notifier } from '../lib/notify';
 import type { Recall } from '../lib/discovery/types';
 import { dropBaked, KeeperError, saveKeeper } from '../lib/export';
-import { releaseMedia, resolveMedia } from '../lib/media';
+import { probeVideoSize, releaseMedia, resolveMedia } from '../lib/media';
 import type { Capture } from '../lib/types';
 import { useMediaUri } from '../lib/useMediaUri';
 import { useBaker } from './Baker';
-import { CaptionBar, CaptionEditor, usePhotoRect } from './Caption';
+import { EditedPhoto } from './edit/EditedPhoto';
+import { AUTOPLAY_CHECK_MS, EditedVideo } from './edit/EditedVideo';
+import { MediaEditor } from './edit/MediaEditor';
+import type { CapturePatch } from '../lib/captureBus';
+import { exportPlan, isEmptyEdit } from '../lib/mediaEdit';
+import { exportVideo } from '../lib/videoEdit';
 import { RemindEditor } from './RemindEditor';
 import { NoteEditor } from './NoteEditor';
 import { ConfirmCard } from './ConfirmCard';
@@ -31,8 +34,6 @@ export { useMediaUri };
 
 const timeOf = (c: Capture) => new Date(c.t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
-/** How long a memo or video may take to start playing before it is treated as refused. */
-const AUTOPLAY_CHECK_MS = 800;
 /** A refused memo in a replay that moves on by itself waits this long, as a photo does. */
 const REFUSED_MOVE_ON_MS = 4000;
 
@@ -99,79 +100,6 @@ function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () =
 }
 
 
-/** Mutes or unmutes a player and plays it (the player is a mutable native object, not React state). */
-function playWithSound(player: VideoPlayerType, sound: boolean) {
-  player.muted = !sound;
-  player.play();
-}
-
-/**
- * A video, fitted to the screen with the platform's own controls; `autoPlay`
- * starts it with sound. Browsers (iOS always) refuse sound unless a tap
- * started it, and the replay reaches a video on its own clock: then it
- * plays muted, as social feeds do, with a button to turn the sound on.
- */
-function VideoPlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () => void }) {
-  const player = useVideoPlayer(props.uri, (p) => {
-    p.loop = false;
-  });
-  const [mutedForAutoplay, setMutedForAutoplay] = useState(false);
-  // A player told to play before it has loaded ignores it on web, so it
-  // starts once it is ready (and at once if it already is).
-  const started = useRef(false);
-  const playing = useRef(false);
-  const check = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const start = () => {
-    if (!props.autoPlay || started.current) return;
-    started.current = true;
-    player.play();
-    if (Platform.OS !== 'web') return;
-    check.current = setTimeout(() => {
-      if (playing.current) return;
-      playWithSound(player, false);
-      setMutedForAutoplay(true);
-    }, AUTOPLAY_CHECK_MS);
-  };
-  useEventListener(player, 'playingChange', ({ isPlaying }) => {
-    playing.current = isPlaying;
-  });
-  useEventListener(player, 'statusChange', ({ status }) => {
-    if (status === 'readyToPlay') start();
-  });
-  useEffect(() => {
-    if (player.status === 'readyToPlay') start();
-    return () => {
-      if (check.current) clearTimeout(check.current);
-    };
-    // Checked once, on mount; later readiness comes through statusChange.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [player]);
-  useEventListener(player, 'playToEnd', () => props.onFinished?.());
-  return (
-    <>
-      {/* Sized with width and height, not left/right/top/bottom: on web this
-          style lands on the <video> tag itself, which keeps its own size otherwise. */}
-      <VideoView player={player} style={styles.fill} contentFit="contain" nativeControls playsInline accessibilityLabel="Video" />
-      {mutedForAutoplay && (
-        <Pressable
-          testID="video-sound"
-          accessibilityRole="button"
-          accessibilityLabel="Turn the sound on"
-          onPress={() => {
-            // A tap may unmute: browsers allow sound from here on.
-            playWithSound(player, true);
-            setMutedForAutoplay(false);
-          }}
-          style={styles.soundBtn}
-        >
-          <Icon name="volume-mute" size={20} color="#ffffff" />
-          <Text style={styles.soundText}>Tap for sound</Text>
-        </Pressable>
-      )}
-    </>
-  );
-}
-
 /**
  * One capture, full screen. A photo or video fills everything above a thin
  * strip holding its details and the actions (previous and next, or the
@@ -194,7 +122,6 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
   const uri = useMediaUri(capture);
   const media = (capture.kind === 'photo' || capture.kind === 'video') && !!uri;
   const [box, setBox] = useState<LayoutRectangle | null>(null);
-  const rect = usePhotoRect(capture.kind === 'photo' ? uri : null, box);
   const meta = `${KIND_LABEL[capture.kind]} · ${timeOf(capture)}${props.footer ? ` · ${props.footer}` : ''}`;
   const actions = (onDark: boolean) => (
     <>
@@ -245,11 +172,10 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
           // with pointerEvents "none" never reports its layout.
           pointerEvents="box-none"
         >
-          {capture.kind === 'photo' && (
-            <Image source={{ uri: uri! }} style={StyleSheet.absoluteFill} resizeMode="contain" accessibilityLabel="Photo" pointerEvents="none" />
+          {capture.kind === 'photo' && <EditedPhoto uri={uri!} edit={capture.edit ?? null} caption={capture.caption} captionY={capture.caption_y} box={box} />}
+          {capture.kind === 'video' && (
+            <EditedVideo uri={uri!} edit={capture.edit ?? null} caption={capture.caption} captionY={capture.caption_y} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} />
           )}
-          {capture.kind === 'photo' && capture.caption && rect && <CaptionBar text={capture.caption} y={capture.caption_y ?? 0.6} rect={rect} />}
-          {capture.kind === 'video' && <VideoPlayer uri={uri!} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} />}
         </View>
         <View style={[styles.strip, { paddingBottom: insets.bottom + 10 }]}>
           <View style={styles.stripInner}>
@@ -291,8 +217,12 @@ export function CaptureViewer(props: {
   context?: Map<string, string>;
   /** A heading over the captures, e.g. "What happened here". */
   title?: string;
-  /** Offers a caption edit on photos; the editor opens inside the viewer. */
-  onSaveCaption?: (c: Capture, caption: string | null, y: number) => Promise<void>;
+  /**
+   * Offers Edit on photos and videos (ME1); the editor opens inside the
+   * viewer. Stores a change to the capture: its edits and caption, then its
+   * new small copy.
+   */
+  onSaveEdit?: (c: Capture, patch: CapturePatch) => Promise<void>;
   /** Offers "Edit note" on notes (QL24); the editor opens inside the viewer. */
   onSaveNote?: (c: Capture, body: string) => Promise<void>;
   /** Offers navigating to where the capture was taken (during a walk). */
@@ -308,7 +238,9 @@ export function CaptureViewer(props: {
 }) {
   const insets = useSafeAreaInsets();
   const [index, setIndex] = useState(0);
-  const [captioning, setCaptioning] = useState<Capture | null>(null);
+  const [editing, setEditing] = useState<Capture | null>(null);
+  // Edits saved here show at once, whether or not the caller's list hears of it (ME21).
+  const [patched, setPatched] = useState<Map<string, CapturePatch>>(() => new Map());
   const [noting, setNoting] = useState<Capture | null>(null);
   // Notes edited here show their new text at once, whether or not the
   // caller's list hears of it (QL25).
@@ -332,7 +264,7 @@ export function CaptureViewer(props: {
   }, [props.remind, listKey]);
   // Keepers leave the app on request: to Photos on a phone, as a download on
   // the web. A captioned photo is saved with its caption baked in.
-  const [baker, bake] = useBaker();
+  const [baker, bakers] = useBaker();
   const [saveState, setSaveState] = useState<{ id: string; text: string; busy?: boolean; openSettings?: boolean } | null>(null);
   useEffect(() => {
     if (!saveState || saveState.busy || saveState.openSettings) return;
@@ -344,10 +276,25 @@ export function CaptureViewer(props: {
     setSaveState({ id: c.id, text: 'Saving…', busy: true });
     let source: string | null = null;
     let baked: string | undefined;
+    let overlay: string | null = null;
+    const edited = !isEmptyEdit(c.edit) || !!c.caption;
+    const job = { edit: c.edit ?? null, caption: c.caption ?? null, captionY: c.caption_y ?? null };
     try {
-      if (c.kind === 'photo' && c.caption && c.file_path) {
+      // Everything shown on the moment is in what is saved (ME16, ME17); an unedited one saves as it is.
+      if (edited && c.file_path && (c.kind === 'photo' || c.kind === 'video')) {
         source = await resolveMedia(c.file_path);
-        if (source) baked = await bake(source, c.caption, c.caption_y ?? 0.6);
+        if (source && c.kind === 'photo') baked = await bakers.bake(source, job);
+        if (source && c.kind === 'video') {
+          try {
+            const size = await probeVideoSize(source);
+            if (!size) throw new Error('size');
+            const plan = exportPlan(size, job.edit ?? { rotate: 0, crop: null }, { maxLong: 1920, even: true });
+            overlay = await bakers.bakeOverlay(size, job, plan);
+            baked = await exportVideo(source, plan, job.edit ?? { v: 1, rotate: 0, crop: null, filter: 'original', strokes: [], trim: null }, overlay);
+          } catch {
+            throw new Error('The video could not be saved');
+          }
+        }
       }
       await saveKeeper(c, baked);
       setSaveState({ id: c.id, text: Platform.OS === 'web' ? 'Downloaded' : 'Saved to Photos' });
@@ -356,15 +303,18 @@ export function CaptureViewer(props: {
     } finally {
       if (source) releaseMedia(source);
       if (baked) dropBaked(baked);
+      if (overlay) dropBaked(overlay);
     }
   };
   const i = Math.min(index, Math.max(0, list.length - 1));
   const listed = list[i];
   const editedBody = listed ? edited.get(listed.id) : undefined;
-  const current = listed && editedBody != null && listed.body !== editedBody ? { ...listed, body: editedBody } : listed;
+  const withBody = listed && editedBody != null && listed.body !== editedBody ? { ...listed, body: editedBody } : listed;
+  const patch = withBody ? patched.get(withBody.id) : undefined;
+  const current = withBody && patch ? { ...withBody, ...patch } : withBody;
   const close = () => {
     setIndex(0);
-    setCaptioning(null);
+    setEditing(null);
     setNoting(null);
     setReminding(null);
     setDeleting(null);
@@ -390,13 +340,14 @@ export function CaptureViewer(props: {
     <Modal
       visible={list.length > 0}
       animationType="fade"
-      onRequestClose={menu ? () => setMenu(false) : deleting ? () => setDeleting(null) : captioning ? () => setCaptioning(null) : noting ? () => setNoting(null) : reminding ? () => setReminding(null) : close}
+      onRequestClose={menu ? () => setMenu(false) : deleting ? () => setDeleting(null) : editing ? () => setEditing(null) : noting ? () => setNoting(null) : reminding ? () => setReminding(null) : close}
     >
       <View style={styles.viewer}>
         {/* The baker draws behind everything; the cover hides it. */}
         {baker}
         <View style={[StyleSheet.absoluteFill, styles.viewer]} />
-        {current && (
+        {/* Down while the editor is up: a video never plays on beneath it, and the edited one mounts fresh. */}
+        {current && !editing && (
           <CaptureContent
             key={current.id}
             capture={current}
@@ -429,16 +380,16 @@ export function CaptureViewer(props: {
               </View>
             ) : null}
           </View>
-          {current?.kind === 'photo' && props.onSaveCaption && (
+          {(current?.kind === 'photo' || current?.kind === 'video') && props.onSaveEdit && (
             <Pressable
-              testID="viewer-caption"
+              testID="viewer-edit"
               accessibilityRole="button"
-              accessibilityLabel={current.caption ? 'Edit caption' : 'Add caption'}
-              onPress={() => setCaptioning(current)}
+              accessibilityLabel="Edit"
+              onPress={() => setEditing(current)}
               style={styles.roundBtn}
               hitSlop={8}
             >
-              <Text style={styles.aa}>Aa</Text>
+              <Icon name="options" size={22} color={theme.ink} />
             </Pressable>
           )}
           {current && current.lat != null && props.remind && (
@@ -487,17 +438,17 @@ export function CaptureViewer(props: {
             <Icon name="close" size={26} color={theme.ink} />
           </Pressable>
         </View>
-        {captioning && (
+        {editing && (
           // Inside this Modal, not a second one: iOS will not present a Modal over a Modal.
-          <CaptionEditor
+          <MediaEditor
             overlay
-            key={captioning.id}
-            capture={captioning}
-            onClose={() => setCaptioning(null)}
-            onSave={async (caption, y) => {
-              const c = captioning;
-              setCaptioning(null);
-              await props.onSaveCaption?.(c, caption, y).catch(() => setSaveState({ id: c.id, text: 'The caption could not be saved' }));
+            key={editing.id}
+            capture={editing}
+            onClose={() => setEditing(null)}
+            onSave={async (p) => {
+              const c = editing;
+              await props.onSaveEdit?.(c, p);
+              setPatched((m) => new Map(m).set(c.id, { ...m.get(c.id), ...p }));
             }}
           />
         )}

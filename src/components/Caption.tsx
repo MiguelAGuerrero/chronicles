@@ -1,14 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Image, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View, type GestureResponderEvent, type LayoutRectangle } from 'react-native';
-import { Modal } from './Modal';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { Capture } from '../lib/types';
-import { useMediaUri } from '../lib/useMediaUri';
-import { Icon } from './icons';
-import { Button, theme } from './ui';
+import { Image, Pressable, StyleSheet, Text, TextInput, View, type GestureResponderEvent, type LayoutRectangle } from 'react-native';
 
 export const CAPTION_MAX = 80;
-const DEFAULT_Y = 0.6;
 /**
  * Caption type and padding as fractions of the photo's width, with no pixel
  * minimums, so the bar covers the same share of the photo on any screen and
@@ -76,154 +69,94 @@ export function CaptionBar(props: { text: string; y: number; rect: LayoutRectang
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
 /**
- * The opt-in caption editor: the photo with an "Aa" bar to type into and drag
- * up or down. Saving with an empty caption removes it. As a `overlay` it
- * draws inside the screen it is on instead of opening a Modal: iOS cannot
- * present a second Modal over the capture viewer.
+ * The Text tool's bar (ME13): the caption over the edited picture shown in
+ * `rect`, typed into in place and dragged up or down. While typing it never
+ * moves, so placing the cursor never drags it.
  */
-export function CaptionEditor(props: {
-  capture: Capture | null;
-  onSave: (caption: string | null, y: number) => void;
-  onClose: () => void;
-  overlay?: boolean;
+export function CaptionField(props: {
+  rect: LayoutRectangle;
+  text: string;
+  y: number;
+  editing: boolean;
+  onEditing: (on: boolean) => void;
+  onChange: (text: string, y: number) => void;
 }) {
-  const insets = useSafeAreaInsets();
-  const c = props.capture;
-  const uri = useMediaUri(c);
-  const [box, setBox] = useState<LayoutRectangle | null>(null);
-  const rect = usePhotoRect(uri, box);
-  const [text, setText] = useState(c?.caption ?? '');
-  const [y, setY] = useState(c?.caption_y ?? DEFAULT_Y);
-  const [editing, setEditing] = useState(!c?.caption);
+  const { rect, text, y, editing } = props;
+  const m = captionMetrics(rect.width);
   const [barH, setBarH] = useState(0);
-  const [confirming, setConfirming] = useState(false);
-  const changed = text.trim() !== (c?.caption ?? '') || (!!text.trim() && y !== (c?.caption_y ?? DEFAULT_Y));
-  // Every way out with changes asks first; nothing typed is lost by accident.
-  const close = () => (changed ? setConfirming(true) : props.onClose());
-  const step = (d: number) => setY((v) => clamp(v + d, 0.06, 0.94));
-  // Dragging the bar moves it up and down the photo; not while typing, so
-  // placing the cursor never moves it.
   const drag = useRef({ pageY: 0, y: 0 });
+  const latest = useRef({ text, y, rectH: rect.height, onChange: props.onChange });
+  useEffect(() => {
+    latest.current = { text, y, rectH: rect.height, onChange: props.onChange };
+  });
+  const step = (d: number) => props.onChange(text, clamp(y + d, 0.06, 0.94));
   const dragProps = {
     onStartShouldSetResponder: () => !editing,
     onMoveShouldSetResponder: () => !editing,
     onResponderGrant: (e: GestureResponderEvent) => {
-      drag.current = { pageY: e.nativeEvent.pageY, y };
+      drag.current = { pageY: e.nativeEvent.pageY, y: latest.current.y };
     },
     onResponderMove: (e: GestureResponderEvent) => {
-      if (rect) setY(clamp(drag.current.y + (e.nativeEvent.pageY - drag.current.pageY) / rect.height, 0.06, 0.94));
+      const l = latest.current;
+      l.onChange(l.text, clamp(drag.current.y + (e.nativeEvent.pageY - drag.current.pageY) / l.rectH, 0.06, 0.94));
     },
   };
-  if (!c) return null;
-  const m = rect ? captionMetrics(rect.width) : null;
-  const body = (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.screen, props.overlay && StyleSheet.absoluteFill]}>
-      <View style={styles.stage} onLayout={(e) => setBox(e.nativeEvent.layout)}>
-        {uri && <Image source={{ uri }} style={StyleSheet.absoluteFill} resizeMode="contain" accessibilityLabel="Photo" />}
-        {rect && m && (text || editing) && (
-          <View
-            {...dragProps}
-            onLayout={(e) => setBarH(e.nativeEvent.layout.height)}
-            accessible={!editing}
-            accessibilityRole="adjustable"
-            accessibilityLabel={`Caption: ${text}`}
-            accessibilityHint="Swipe up or down to move it. Double tap to edit."
-            accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }, { name: 'activate' }]}
-            onAccessibilityAction={(e) => {
-              if (e.nativeEvent.actionName === 'increment') step(-0.1);
-              else if (e.nativeEvent.actionName === 'decrement') step(0.1);
-              else setEditing(true);
-            }}
-            style={[
-              styles.bar,
-              {
-                left: rect.x,
-                width: rect.width,
-                top: rect.y + captionTop(rect.height, y, barH || m.lineHeight + 2 * m.padY),
-                paddingVertical: m.padY,
-                paddingHorizontal: m.padX,
-              },
-            ]}
-          >
-            {editing ? (
-              <TextInput
-                testID="caption-input"
-                autoFocus
-                multiline
-                submitBehavior="blurAndSubmit"
-                value={text}
-                onChangeText={(t) => setText(t.replace(/\n/g, ' '))}
-                onBlur={() => setEditing(false)}
-                onSubmitEditing={() => setEditing(false)}
-                returnKeyType="done"
-                maxLength={CAPTION_MAX}
-                placeholder="Add a caption"
-                placeholderTextColor="rgba(255,255,255,0.7)"
-                accessibilityLabel="Caption"
-                style={[styles.barText, styles.input, { fontSize: m.fontSize, lineHeight: m.lineHeight }]}
-              />
-            ) : (
-              <Pressable accessibilityRole="button" accessibilityLabel={`Caption: ${text}. Edit`} onPress={() => setEditing(true)}>
-                <Text style={[styles.barText, { fontSize: m.fontSize, lineHeight: m.lineHeight }]}>{text}</Text>
-              </Pressable>
-            )}
-          </View>
-        )}
-      </View>
-      <View style={[styles.top, { top: insets.top + 8 }]}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={close} style={styles.roundBtn} hitSlop={8}>
-          <Icon name="close" size={24} color={theme.ink} />
-        </Pressable>
-        <Pressable
-          testID="caption-toggle"
-          accessibilityRole="button"
-          accessibilityLabel={text ? 'Edit caption' : 'Add caption'}
-          onPress={() => setEditing(true)}
-          style={styles.roundBtn}
-          hitSlop={8}
-        >
-          <Text style={styles.aa}>Aa</Text>
-        </Pressable>
-      </View>
-      <View style={[styles.bottom, { paddingBottom: insets.bottom + 16 }]}>
-        {confirming ? (
-          <View style={styles.confirm} accessibilityLiveRegion="polite">
-            <Text style={styles.hint}>Discard this caption change?</Text>
-            <View style={styles.confirmRow}>
-              <Button testID="caption-keep" label="Keep editing" variant="secondary" onPress={() => setConfirming(false)} />
-              <Button testID="caption-discard" label="Discard" variant="danger" onPress={props.onClose} />
-            </View>
-          </View>
-        ) : (
-          <>
-            {!editing && <Text style={styles.hint}>{text ? 'Drag the caption to move it' : 'Tap Aa to add a caption'}</Text>}
-            <Button testID="caption-save" label="Done" onPress={() => props.onSave(text.trim() || null, y)} />
-          </>
-        )}
-      </View>
-    </KeyboardAvoidingView>
-  );
-  if (props.overlay) return body;
+  if (!text && !editing) return null;
   return (
-    <Modal visible animationType="fade" onRequestClose={close}>
-      {body}
-    </Modal>
+    <View
+      {...dragProps}
+      onLayout={(e) => setBarH(e.nativeEvent.layout.height)}
+      accessible={!editing}
+      accessibilityRole="adjustable"
+      accessibilityLabel={`Caption: ${text}`}
+      accessibilityHint="Swipe up or down to move it. Double tap to edit."
+      accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }, { name: 'activate' }]}
+      onAccessibilityAction={(e) => {
+        if (e.nativeEvent.actionName === 'increment') step(-0.1);
+        else if (e.nativeEvent.actionName === 'decrement') step(0.1);
+        else props.onEditing(true);
+      }}
+      style={[
+        styles.bar,
+        {
+          left: rect.x,
+          width: rect.width,
+          top: rect.y + captionTop(rect.height, y, barH || m.lineHeight + 2 * m.padY),
+          paddingVertical: m.padY,
+          paddingHorizontal: m.padX,
+        },
+      ]}
+    >
+      {editing ? (
+        <TextInput
+          testID="caption-input"
+          autoFocus
+          multiline
+          submitBehavior="blurAndSubmit"
+          value={text}
+          onChangeText={(t) => props.onChange(t.replace(/\n/g, ' '), y)}
+          onBlur={() => props.onEditing(false)}
+          onSubmitEditing={() => props.onEditing(false)}
+          returnKeyType="done"
+          maxLength={CAPTION_MAX}
+          placeholder="Add a caption"
+          placeholderTextColor="rgba(255,255,255,0.7)"
+          accessibilityLabel="Caption"
+          style={[styles.barText, styles.input, { fontSize: m.fontSize, lineHeight: m.lineHeight }]}
+        />
+      ) : (
+        <Pressable accessibilityRole="button" accessibilityLabel={`Caption: ${text}. Edit`} onPress={() => props.onEditing(true)}>
+          <Text style={[styles.barText, { fontSize: m.fontSize, lineHeight: m.lineHeight }]}>{text}</Text>
+        </Pressable>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#14181f' },
-  stage: { flex: 1 },
   bar: {
     position: 'absolute', backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center',
   },
   barText: { color: '#ffffff', fontWeight: '600', textAlign: 'center' },
   input: { padding: 0, margin: 0 },
-  top: { position: 'absolute', left: 12, right: 12, flexDirection: 'row', justifyContent: 'space-between' },
-  roundBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center' },
-  aa: { fontSize: 18, fontWeight: '800', color: theme.ink },
-  bottom: { paddingHorizontal: 16, paddingTop: 12, gap: 10, alignItems: 'center' },
-  hint: { color: 'rgba(255,255,255,0.8)', fontSize: 14 },
-  confirm: { gap: 10, alignItems: 'center' },
-  confirmRow: { flexDirection: 'row', gap: 10 },
 });

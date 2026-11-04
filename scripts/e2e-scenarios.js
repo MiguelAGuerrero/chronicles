@@ -35,6 +35,17 @@ const SCENARIOS = [
     ],
   },
   {
+    // Media editing (ME1-ME23): the Edit offer, the editor's tools, the viewer, Download.
+    name: 'edit',
+    covers: [
+      'src/components/edit/**',
+      'src/components/{Baker,Baker.native,Baker.web,Baker.types,Caption,CaptureView,MomentBar,RecordingBar}.{ts,tsx}',
+      'src/lib/{mediaEdit,editSession,editOffer,captureBus,useCaptures,thumbPlan,thumbJob}.ts',
+      'src/lib/{captureEdits,videoEdit,media,export}/**',
+      'src/app/walk.tsx',
+    ],
+  },
+  {
     name: 'outlines',
     covers: ['src/lib/areas/**', 'src/lib/atlas/**', 'src/lib/finish.ts', 'scripts/mvt-encode.mjs'],
   },
