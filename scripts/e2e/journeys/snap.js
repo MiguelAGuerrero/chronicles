@@ -2,7 +2,7 @@
 // E2E_ONLY=snap runs it alone.
 
 async function run(h) {
-  const { url, at, distanceM, dLat, dLon, check, shot, tabTo, freshPage, snapWorld } = h;
+  const { url, at, distanceM, dLat, dLon, check, shot, tabTo, freshPage, snapWorld, divisions } = h;
     snapWorld.serve = true;
     const { c, pg } = await freshPage('snap');
     // window.__project, to find where an area sits on the map's screen.
@@ -248,6 +248,58 @@ async function run(h) {
       snapWorld.serve = false;
       await c.close();
     }
+    await townSwipe(h);
+    await townSwipe(h, true);
+}
+
+// discrete-navigation fix 1 (the owner, Nov 4): a swipe from a big town's page to a small town's frames the small
+// town's whole border, as its page does when opened from its tile; it never keeps the big town's zoom.
+async function townSwipe(h, touch = false) {
+  const { url, at, check, shot, freshPage, snapWorld, divisions } = h;
+  snapWorld.serve = true;
+  divisions.serve = true;
+  const { c, pg } = await freshPage(touch ? 'snap-towns-touch' : 'snap-towns', touch ? { touch: true } : {});
+  // A finger's swipe, as a phone's browser sends it (Chrome's touch events).
+  const cdp = touch ? await c.newCDPSession(pg) : null;
+  const swipe = async (x, y, dx, dy) => {
+    if (!cdp) {
+      await pg.mouse.move(x, y);
+      await pg.mouse.down();
+      await pg.mouse.move(x + dx, y + dy, { steps: 6 });
+      await pg.mouse.up();
+      return;
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+    for (let i = 1; i <= 6; i++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x + (dx * i) / 6, y: y + (dy * i) / 6 }] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  };
+  try {
+    await pg.goto(url);
+    await pg.waitForFunction(() => document.querySelector('[data-testid=explore-area]')?.textContent === 'Allentown', null, { timeout: 60000 }).catch(() => {});
+    await pg.click('[data-testid=atlas-title]').catch(() => {});
+    await pg.waitForSelector('[data-testid=atlas-town-head]', { timeout: 10000 }).catch(() => {});
+    await pg.waitForTimeout(3000);
+    const map = pg.locator('.maplibregl-map').first();
+    const view = async () => ((await map.getAttribute('data-bounds')) || '0,0,0,0').split(',').map(Number);
+    const big = await view();
+    const b = await map.boundingBox();
+    await swipe(b.x + b.width / 2, b.y + b.height * 0.6, -60, 0);
+    await pg.waitForFunction(() => document.querySelector('[data-testid=explore-area]')?.textContent === 'Catasauqua', null, { timeout: 5000 }).catch(() => {});
+    await pg.waitForTimeout(3000);
+    const small = await view();
+    const [w0, s0] = at(18, 4);
+    const [e0, n0] = at(24, 10);
+    const holds = small[0] <= w0 && small[1] <= s0 && small[2] >= e0 && small[3] >= n0;
+    const width = (v) => v[2] - v[0];
+    await shot(pg, 'snap-town-frame');
+    const tinted = (await map.getAttribute('data-borders')) ?? '';
+    check((await pg.locator('[data-testid=explore-area]').innerText().catch(() => '')) === 'Catasauqua' && /tinted:Catasauqua/.test(tinted) && holds && width(small) < width(big) * 0.5,
+      `discrete-navigation fix 1${touch ? ' (touch)' : ''}: a swipe to a smaller town frames its whole border, not the town it left (${tinted}; view ${small.map((x) => x.toFixed(4)).join(',')}, ${(width(small) / Math.max(width(big), 1e-9)).toFixed(2)} of the big town's width)`);
+  } finally {
+    divisions.serve = false;
+    snapWorld.serve = false;
+    await c.close();
+  }
 }
 
 module.exports = {

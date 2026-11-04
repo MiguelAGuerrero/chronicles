@@ -110,6 +110,18 @@ const snapFeatures = [
   { type: 'Feature', properties: { class: 'town', name: 'Cranston' }, geometry: { type: 'Point', coordinates: at(-40, 2) } },
 ];
 const snapWorld = { serve: false };
+// Discrete navigation's town swipe (the owner, Nov 4: Allentown to Catasauqua kept Allentown's zoom): a 4 km town
+// around the start and a 600 m one north-east of it, served in place of the others while both flags are on.
+// Catasauqua is a town on the map too (a place point inside its border), as the real one is.
+const snapTownFeatures = [
+  { type: 'Feature', properties: { class: 'town', name: 'Catasauqua' }, geometry: { type: 'Point', coordinates: at(20.5, 6.5) } },
+];
+const snapDivisionFeatures = [
+  { type: 'Feature', geometry: { type: 'Polygon', coordinates: [[at(-25, -20), at(15, -20), at(15, 20), at(-25, 20), at(-25, -20)]] },
+    properties: { subtype: 'locality', class: 'land', '@name': 'Allentown', division_id: 'allentown', id: 'allentown-area' } },
+  { type: 'Feature', geometry: { type: 'Polygon', coordinates: [[at(18, 4), at(24, 4), at(24, 10), at(18, 10), at(18, 4)]] },
+    properties: { subtype: 'locality', class: 'land', '@name': 'Catasauqua', division_id: 'catasauqua', id: 'catasauqua-area' } },
+];
 const OVERTURE_HOST = 'overturemaps-extras-us-west-2.s3.amazonaws.com';
 const OVERTURE_RELEASE = '2026-10-21.0';
 
@@ -330,7 +342,7 @@ async function createHarness() {
     if (tile && tiles.delayMs) await new Promise((res) => setTimeout(res, tiles.delayMs));
     if (tile) {
       const [z, x, y] = tile.slice(1).map(Number);
-      return r.fulfill({ contentType: 'application/x-protobuf', body: Buffer.from(encodeTile(snapWorld.serve ? [...features, ...snapFeatures] : features, z, x, y)) });
+      return r.fulfill({ contentType: 'application/x-protobuf', body: Buffer.from(encodeTile(snapWorld.serve ? [...features, ...snapFeatures, ...(divisions.serve ? snapTownFeatures : [])] : features, z, x, y)) });
     }
     if (tiles.stall && r.request().url().endsWith('/planet')) await tiles.stall;
     return r.fulfill({
@@ -365,6 +377,12 @@ async function createHarness() {
     const y = Math.floor(((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2) * 2 ** z);
     return { z, x, y, data: encodeTile(divisionFeatures, z, x, y, (f) => [f.geometry.type === 'Polygon' ? 'division_area' : 'division']) };
   }));
+  const snapDivisionsArchive = encodeArchive([10, 12].map((z) => {
+    const [lon, lat] = O;
+    const x = Math.floor(((lon + 180) / 360) * 2 ** z);
+    const y = Math.floor(((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2) * 2 ** z);
+    return { z, x, y, data: encodeTile(snapDivisionFeatures, z, x, y, () => ['division_area']) };
+  }));
   // Every other journey: an archive with no towns in it (a 404 would be a console error), so towns go by points.
   const noDivisions = encodeArchive([{ z: 12, x: 0, y: 0, data: encodeTile([], 12, 0, 0) }]);
   const overtureAsked = [];
@@ -379,7 +397,7 @@ async function createHarness() {
     }
     const archive = url.pathname === `/tiles/${OVERTURE_RELEASE}/places.pmtiles`
       ? overtureArchive
-      : url.pathname === `/tiles/${OVERTURE_RELEASE}/divisions.pmtiles` ? (divisions.serve ? divisionsArchive : noDivisions) : null;
+      : url.pathname === `/tiles/${OVERTURE_RELEASE}/divisions.pmtiles` ? (divisions.serve ? (snapWorld.serve ? snapDivisionsArchive : divisionsArchive) : noDivisions) : null;
     if (archive) {
       const m = /bytes=(\d+)-(\d+)/.exec(req.headers().range ?? '');
       const from = m ? Number(m[1]) : 0;
