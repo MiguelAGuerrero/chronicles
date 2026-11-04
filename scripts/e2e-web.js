@@ -830,6 +830,9 @@ function check(ok, what) {
       const drawn = async () => pg.locator('[data-borders]').first().getAttribute('data-borders').catch(() => null);
       await pg.waitForFunction(() => (document.querySelector('[data-borders]')?.getAttribute('data-borders') ?? '') !== '', null, { timeout: 15000 }).catch(() => {});
       const borders = await drawn();
+      // TB11: the map frames the town once its border is known (data-zoom is written on camera moves).
+      await pg.waitForTimeout(1500);
+      const zoom = Number(await pg.locator('[data-zoom]').first().getAttribute('data-zoom').catch(() => 'NaN'));
       await shot(pg, `${label}-explore`);
       // TB2: the town's own page (the title opens it) draws its border tinted.
       let page = null;
@@ -841,7 +844,7 @@ function check(ok, what) {
         await shot(pg, `${label}-town`);
       }
       await c.close();
-      return { title, subtitle, borders, page };
+      return { title, subtitle, borders, page, zoom };
     };
     serveDivisions = false;
     const before = await titleOf('outlines-off');
@@ -855,6 +858,8 @@ function check(ok, what) {
     check(after.borders === 'lined:Central Falls|tinted:Pawtucket',
       `TB1: Explore's map draws the town you're in tinted and its neighbor lined (${after.borders})`);
     check(after.page === 'lined:Central Falls|tinted:Pawtucket', `TB2: the town's page draws its border tinted (${after.page})`);
+    // Pawtucket is 2 km across: framed whole, the map is zoomed out from the 800 m ring it opens on.
+    check(after.zoom < before.zoom - 0.5, `TB11: Explore zooms out to frame the whole town (z${after.zoom.toFixed(2)}, the ring alone z${before.zoom.toFixed(2)})`);
     const asked = overtureAsked.filter((q) => /divisions\.pmtiles/.test(q.url));
     check(asked.length > 0 && asked.every((q) => q.range), `TO12: outlines are read from Overture's divisions by byte range (${asked.length} requests)`);
   };

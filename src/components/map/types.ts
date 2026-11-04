@@ -382,17 +382,19 @@ export function ringGeoJSON(ring: { center: LngLat; radiusM: number } | null | u
 export const RING_COLOR = '#1a73e8';
 
 /**
- * Town borders (TB1-TB8): the town you're in (or a walk's towns) tinted with a firm edge, the
- * others in a thin grey line. Under the streets and labels, so the map reads through the fill.
+ * Town borders (TB1-TB10): the town you're in (or a walk's towns) tinted with a firm edge, the
+ * others in a grey line. The fill is under the streets, so the map reads through it; the lines are
+ * over the streets, under the labels, since a border often runs along a road (TB10, Nov 4: at 7%
+ * under the streets, the owner saw nothing on a phone).
  */
 export const BORDER = {
   color: '#c2410c',
-  fillOpacity: 0.07,
-  firmWidth: 2,
-  firmOpacity: 0.75,
+  fillOpacity: 0.12,
+  firmWidth: 3,
+  firmOpacity: 0.9,
   lined: '#6b7280',
-  linedWidth: 1,
-  linedOpacity: 0.55,
+  linedWidth: 1.5,
+  linedOpacity: 0.75,
   /** Borders show from this zoom: below it a town is too small to read as a region (TB3). */
   minZoom: 8,
 } as const;

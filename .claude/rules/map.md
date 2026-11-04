@@ -70,7 +70,8 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
 
 ## Town borders (TB1-TB9, decision 0088)
 
-- `WalkMap`'s `borders` prop (`BorderView` from `areas/borders.ts`): one `borders` source, three layers (`border-fill` for tinted, `border-firm` for tinted and firm, `border-lined`), from `BORDER.minZoom` (8). On web they go under the first base road layer (`source-layer` transportation, else the first line, else the first label); on native they are the first overlay (no road id to go below; unverified on a device).
+- `WalkMap`'s `borders` prop (`BorderView` from `areas/borders.ts`): one `borders` source, three layers (`border-fill` for tinted, `border-firm` for tinted and firm, `border-lined`), from `BORDER.minZoom` (8). On web the fill goes under the first base road layer (`source-layer` transportation, else the first line, else the first label) and the lines under the first label, over the streets, since a border often runs along a road (TB10: at 7% and under the streets the owner saw nothing on a phone); on native they are the first overlay (no road id to go below; unverified on a device).
+- Explore frames the tinted town's whole border once per town (`townFrame`, TB11); `useOutlineSet` retries a failed read every 30 s while mounted, and a z10 tile has 45 s (TB12).
 - Data is sent again only when `borders.key` changes (the towns and their roles), never per fix or zoom; the web writes `data-borders` (`role:name|...`) for the e2e.
 - Screens: Explore (`index.tsx`, yours tinted by `outlineIdHere`, the open town's by `outlineOf`), Chronicle (walked towns, `lined: false`), the walk screen (`firm` by `outlineIdAt`, no fill), the replay and a day (`useWalkBorders`). `BORDER` colours are held by `colors.test.ts` (TB8).
 

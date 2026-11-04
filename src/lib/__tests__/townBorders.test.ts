@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { test } from 'node:test';
 import { bordersGeoJSON } from '../../components/map/types';
-import { BORDER_RULES, bordersFor, outlineIdHere, outlineIdsOf, outlineOf, simplifyRing, townPlaces } from '../areas/borders';
+import { BORDER_RULES, bordersFor, outlineIdHere, outlineIdsOf, outlineOf, simplifyRing, townFrame, townPlaces } from '../areas/borders';
 import { outlineTileFrom } from '../areas/divisionTiles';
 import { BORDER_ZOOM, outlineSet, outlineTileKey, outlineTileOf, type OutlineTile } from '../areas/outlines';
 import type { TileFeature } from '../areas/tilePlaces';
@@ -131,4 +131,16 @@ test('TB9: shapes are simplified to about 10 m and capped at 40 towns, yours kep
   assert.equal(bordersFor(outlineSet(tiles), { tinted: ['t49'], near: [0, 0] })!.key, v!.key);
   assert.notEqual(bordersFor(outlineSet(tiles), { tinted: ['t48'], near: [0, 0] })!.key, v!.key);
   void distanceM;
+});
+
+test('TB11: Explore frames the whole of your town: its drawn border\'s box, holding you and its own point', () => {
+  const here = outlineIdHere(GYM, 'Whitehall', z12)!;
+  const f = townFrame(z10, here);
+  assert.equal(f?.id, here);
+  const [w, s, e, n] = f!.bounds;
+  for (const p of [GYM, [-75.507445, 40.657413] as LngLat]) assert.ok(p[0] > w && p[0] < e && p[1] > s && p[1] < n, `${p} inside`);
+  // Whitehall is a few miles across: wider than the 800 m ring Explore frames by default.
+  assert.ok(distanceM([w, s], [e, s]) > 4000, `${distanceM([w, s], [e, s]).toFixed(0)} m across`);
+  assert.equal(townFrame(z10, null), null);
+  assert.equal(townFrame(null, here), null);
 });

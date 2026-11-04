@@ -5,8 +5,8 @@ import { bordersFor, outlineIdsOf, type BorderView } from './borders';
 import { outlines } from './outlineReader';
 import { BORDER_ZOOM, OUTLINE_ZOOM, outlineTileKey, outlineTilesFor, type OutlineSet } from './outlines';
 
-/** A failed read waits this long before the same tiles are asked for again. */
-const RETRY_MS = 120_000;
+/** A failed read is tried again this long after, while the screen is open (TB12). */
+const RETRY_MS = 30_000;
 
 /**
  * Town outlines around some points, for a screen (TB1-TB7): the phone's copy
@@ -21,27 +21,30 @@ export function useOutlineSet(points: readonly (LngLat | null | undefined)[], z:
   useEffect(() => {
     pointsRef.current = pts;
   });
-  const failed = useRef<{ key: string; t: number } | null>(null);
   const [set, setSet] = useState<OutlineSet | null>(null);
+  // A failed read asks again after RETRY_MS, for as long as the screen holds these tiles (TB12).
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     if (!key) return;
     let live = true;
+    let timer: ReturnType<typeof setTimeout> | null = null;
     const at = pointsRef.current;
     (async () => {
       const known = await outlines.known(at, z);
       if (!live) return;
       setSet(known);
-      const f = failed.current;
-      if (f?.key === key && Date.now() - f.t < RETRY_MS) return;
       const read = z === OUTLINE_ZOOM ? await outlines.read(at, () => !live) : await outlines.borders(at, () => !live);
       if (!live) return;
-      if (read.complete) setSet(read.set);
-      else failed.current = { key, t: Date.now() };
-    })().catch(() => {});
+      if (read.complete || read.tooMany) setSet(read.set);
+      else timer = setTimeout(() => live && setAttempt((n) => n + 1), RETRY_MS);
+    })().catch(() => {
+      if (live) timer = setTimeout(() => setAttempt((n) => n + 1), RETRY_MS);
+    });
     return () => {
       live = false;
+      if (timer) clearTimeout(timer);
     };
-  }, [key, z]);
+  }, [key, z, attempt]);
   return key ? set : null;
 }
 

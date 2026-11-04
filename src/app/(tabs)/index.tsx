@@ -17,7 +17,7 @@ import {
 } from '../../lib/atlas/atlas';
 import { nearReads } from '../../lib/atlas/read';
 import { useAtlas } from '../../lib/atlas/useAtlas';
-import { bordersFor, outlineIdHere, outlineOf } from '../../lib/areas/borders';
+import { bordersFor, outlineIdHere, outlineOf, townFrame } from '../../lib/areas/borders';
 import { BORDER_ZOOM } from '../../lib/areas/outlines';
 import { useOutlineSet } from '../../lib/areas/useOutlineSet';
 import { db } from '../../lib/db';
@@ -90,12 +90,19 @@ export default function Explore() {
   const home = stale ? null : fresh.home;
   // Town borders (TB1, TB2): whole, from the z10 tile around you (or the open town); yours tinted, the rest lined.
   const drawn = useOutlineSet([from, town?.at], BORDER_ZOOM, focused);
-  const borders = useMemo(() => {
-    const tinted = town
-      ? outlineOf({ name: town.name, at: town.at }, drawn)?.id
-      : home && from ? outlineIdHere(from, home.area.name, fresh.outlines) : null;
-    return bordersFor(drawn, { tinted: tinted ? [tinted] : [], near: town?.at ?? from });
-  }, [drawn, town, home, from, fresh.outlines]);
+  const tintedId = useMemo(
+    () => (town ? outlineOf({ name: town.name, at: town.at }, drawn)?.id : home && from ? outlineIdHere(from, home.area.name, fresh.outlines) : null) ?? null,
+    [drawn, town, home, from, fresh.outlines],
+  );
+  const borders = useMemo(() => bordersFor(drawn, { tinted: tintedId ? [tintedId] : [], near: town?.at ?? from }), [drawn, tintedId, town, from]);
+  // TB11: the map frames the whole of the tinted town once its border is known, once per town (yours, or a page's).
+  const framedTown = useRef<string | null>(null);
+  const townBox = useMemo(() => townFrame(drawn, tintedId), [drawn, tintedId]);
+  useEffect(() => {
+    if (!townBox || framedTown.current === townBox.id) return;
+    framedTown.current = townBox.id;
+    setFit((f) => ({ bounds: townBox.bounds, key: f.key + 1 }));
+  }, [townBox]);
   const [spot, setSpot] = useState<{ at: LngLat; zoom: number } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [pressSeen, setPressSeen] = useState(true);
