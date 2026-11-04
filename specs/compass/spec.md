@@ -44,3 +44,7 @@ No new storage, routes or dependencies. The bearing is view state, read from the
 
 - Tilt (pitch) stays off; the compass shows rotation only.
 - Heading-up mode (map follows your heading): not wanted, per 0030.
+
+## Record (Nov 4)
+
+Shipped CP1-CP8. Unit: `compass.test.ts` (CP3, CP6). E2E: `qol` (Explore: CP1-CP5, CP8) and `ready` (the ready screen's compass above Locate, CP2, CP4). The web map is turned in code (`window.__turn`), not by a two-finger gesture. Placement on the walk's column was decided by default: the top of it. Not covered by an e2e step: the live walk's compass slot, CP7's follow stop on a turn, CP8 across a reload. Native never run on a device (`docs/NATIVE_UNVERIFIED.md`).

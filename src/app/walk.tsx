@@ -8,6 +8,7 @@ import { Ticking } from '../components/Ticking';
 import { perfCount } from '../lib/perfCount';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WalkMap } from '../components/map/WalkMap';
+import { CompassButton } from '../components/CompassButton';
 import { COLORS, HOTSPOT, type WalkMapHandle } from '../components/map/types';
 import { CaptionEditor } from '../components/Caption';
 import { CaptureViewer } from '../components/CaptureView';
@@ -236,6 +237,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const giveUpMemo = useRef(false);
   const saveRef = useRef<PressableRef>(null);
   const mapRef = useRef<WalkMapHandle>(null);
+  // The map's turn, for the compass (CP2): the map opens north-up and keeps no bearing (CP8).
+  const [bearing, setBearing] = useState(0);
   const [viewing, setViewing] = useState<Capture[] | null>(null);
   // The walk's options card (A2).
   const [options, setOptions] = useState(false);
@@ -954,7 +957,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     <View style={styles.screen}>
       {/* One map for both states, at one place in the tree, so Start never remounts it (NR6). */}
       {!walk ? (
-        <WalkMap {...ready.mapProps} ref={mapRef} scaleInset={{ bottom: SCALE_BOTTOM, left: sideInset + 12 }} />
+        <WalkMap {...ready.mapProps} ref={mapRef} onBearingChange={setBearing} scaleInset={{ bottom: SCALE_BOTTOM, left: sideInset + 12 }} />
       ) : (
       <WalkMap
         landing={hotView}
@@ -1011,6 +1014,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         fitKey={ringKey}
         fitPadding={{ top: insets.top + 24, bottom: panelH + 24, left: 24, right: 24 }}
         onUserMove={() => setFollowing(false)}
+        onBearingChange={setBearing}
         // A long press, so a stray tap while walking does nothing.
         onLongPress={(at, radiusM) => {
           if (isDrawing) return;
@@ -1035,7 +1039,13 @@ function WalkScreen(props: { onMinimize: () => void }) {
       />
       )}
 
-      {!walk ? ready.overlay : (
+      {!walk ? (
+        <>
+          {ready.overlay}
+          {/* The compass over Locate while the map is turned (CP2); the live walk has its own, below. */}
+          <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={at.edgeBottom('unwalked')} right={at.edgeRight} />
+        </>
+      ) : (
       <>
 
       <View style={[styles.top, { top: insets.top + 12, left: sideInset, right: sideInset }]} pointerEvents="box-none">
@@ -1321,6 +1331,15 @@ function WalkScreen(props: { onMinimize: () => void }) {
           <Text style={styles.unwalkedText}>{unwalkedCount} unwalked nearby</Text>
         </View>
       )}
+
+      {/* The compass (CP2): the column's top, so no other button moves; it takes Walk me back's
+          place while that is away, and sits above Locate on the ready screen. */}
+      <CompassButton
+        bearing={bearing}
+        onPress={() => mapRef.current?.resetNorth()}
+        bottom={at.edgeBottom(awayFromStart && walkStart && !navigation.nav ? 'compass' : 'back')}
+        right={at.edgeRight}
+      />
 
       {awayFromStart && walkStart && !navigation.nav && (
         // Walk me back: the way back to where this walk began (N1, N11).

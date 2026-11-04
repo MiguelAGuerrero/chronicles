@@ -101,7 +101,8 @@ recording bar brings a minimized walk back.
 ### The walk screen (during)
 
 - The map follows a live dot, with the walked trace in green and rides (bus,
-  train) dashed. The map stays north-up; a soft cone on the dot shows the way
+  train) dashed. The map stays north-up unless you turn it with two fingers (a compass then
+  shows above the edge buttons and sets north again, decision 0081); a soft cone on the dot shows the way
   you are walking, read from the last 20 m of the trace (decision 0075). A green ring marks where the walk began; the replay adds an
   orange ring where it ended. Every map has a scale bar in its bottom-left
   corner. Pins mark captures, grouped by screen distance when zoomed

@@ -38,8 +38,8 @@ export function raisedHeight(areaH: number, rest: number): number {
 export type CapSlot = 'photo' | 'voice' | 'note';
 const CAP_INDEX: Record<CapSlot, number> = { photo: 0, voice: 1, note: 2 };
 /** Edge slots above the captures, from the bottom up. */
-export type EdgeSlot = 'locate' | 'unwalked' | 'back';
-const EDGE_INDEX: Record<EdgeSlot, number> = { locate: 0, unwalked: 1, back: 2 };
+export type EdgeSlot = 'locate' | 'unwalked' | 'back' | 'compass';
+const EDGE_INDEX: Record<EdgeSlot, number> = { locate: 0, unwalked: 1, back: 2, compass: 3 };
 
 /** The stack's column: its right edge inside the 640 column on wide screens, and every slot's bottom. */
 export function useStackLayout() {

@@ -36,6 +36,7 @@ const HIDDEN = { 'line-opacity': 0 } as const;
 export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(props, ref) {
   const mapRef = useRef<MapRef>(null);
   const cameraRef = useRef<CameraRef>(null);
+  const lastBearing = useRef(0);
   const queryRef = useRef<VectorSourceRef>(null);
   const [ready, setReady] = useState(false);
   const readyWaiters = useRef<(() => void)[]>([]);
@@ -175,6 +176,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       out.pois = (await source.querySourceFeatures({ sourceLayer: 'poi' })).map(toRoad);
       return out;
     },
+    resetNorth() {
+      void cameraRef.current?.setStop({ bearing: 0, duration: props.animate === false || reduced ? 0 : MOTION.camera });
+    },
     showPoint(at, padding) {
       cameraRef.current?.easeTo({ center: at, padding, duration: props.animate === false || reduced ? 0 : MOTION.ease });
     },
@@ -254,9 +258,16 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         onRegionWillChange={(e) => {
           if (e.nativeEvent.userInteraction) props.onUserMove?.();
         }}
+        // Two fingers turn the map (CP1); a tilt never does.
+        touchRotate
+        touchPitch={false}
         onRegionDidChange={(e) => {
           regionChanged.current?.();
-          const { zoom, center } = e.nativeEvent;
+          const { zoom, center, bearing } = e.nativeEvent;
+          if (typeof bearing === 'number' && Math.abs(bearing - lastBearing.current) >= 0.5) {
+            lastBearing.current = bearing;
+            props.onBearingChange?.(bearing);
+          }
           props.onCameraChange?.({ center: [center[0], center[1]], zoom });
           setView((v) => (v && Math.abs(v.zoom - zoom) < 0.25 ? v : { zoom, lat: center[1] }));
           // Only a real change of view: not every settle, which would redraw every star.
