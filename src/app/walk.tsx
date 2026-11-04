@@ -1,8 +1,8 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { forwardRef, useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
-import { AccessibilityInfo, ActivityIndicator, Animated, AppState, BackHandler, Switch, Easing, KeyboardAvoidingView, Linking, Platform, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
+import { AccessibilityInfo, ActivityIndicator, AppState, BackHandler, Switch, KeyboardAvoidingView, Linking, Platform, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { Modal } from '../components/Modal';
-import { onWalkGap, useOpenWalk } from '../components/OpenWalk';
+import { onWalkGap, useOpenWalk, useOpenWalkInfo } from '../components/OpenWalk';
 import { Ticking } from '../components/Ticking';
 import { perfCount } from '../lib/perfCount';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,7 +10,7 @@ import { WalkMap } from '../components/map/WalkMap';
 import { COLORS, HOTSPOT, type WalkMapHandle } from '../components/map/types';
 import { CaptionEditor } from '../components/Caption';
 import { CaptureViewer } from '../components/CaptureView';
-import { Icon, KIND_LABEL, type IconName } from '../components/icons';
+import { Icon, KIND_LABEL } from '../components/icons';
 import { Banner, Button, HoldButton, LiftIn, theme } from '../components/ui';
 import { GapCard } from '../components/GapCard';
 import { emptyGapAt, gapKey, stretchAt, type Gap } from '../lib/gaps/infer';
@@ -19,7 +19,7 @@ import { useGapDraw } from '../lib/gaps/useGapDraw';
 import { GapDraw } from '../components/GapDraw';
 import { ExploreSettings } from '../components/ExploreSettings';
 import { ReminderCard } from '../components/ReminderCard';
-import { onRecallFired, onRecallOpen, takeRecallOpen } from '../lib/discovery/recallCheck';
+import { onRecallFired, onRecallOpen, onRecallWaiting, takeRecallOpen } from '../lib/discovery/recallCheck';
 import { categoryOf } from '../lib/discovery/categories';
 import { deadZoneDue, deadZoneNudge, inDeadZone, stripAt } from '../lib/landing/walk';
 import { landingView, LANDING_VERSION, nearAreas, type LandingRow } from '../lib/landing/view';
@@ -33,7 +33,7 @@ import { capturesHere, type HereResult } from '../lib/here';
 import { groupFirst, groupRadiusM, MEMORY_RULES, memoriesNear, memoryReader } from '../lib/memories';
 import { MemoryPreview } from '../components/MemoryPreview';
 import { deriveSegments, streetKey } from '../lib/streets';
-import { feedback, MOTION } from '../lib/motion';
+import { feedback } from '../lib/motion';
 import { recorder } from '../lib/recorder';
 import { PAUSE_REMIND_MS } from '../lib/notify';
 import { ensureTileBuild } from '../lib/tiles';
@@ -51,6 +51,11 @@ import { notifyWalkChanged } from '../lib/walkEvents';
 import { routeAhead } from '../lib/nav/navigator';
 import { HANDOFF_HINT, openInMaps } from '../lib/nav/openInMaps';
 import { useNavigation } from '../lib/nav/useNavigation';
+import { exitPlan, screenState, startNotice } from '../lib/readyNav';
+import { getLastFix } from '../lib/lastFix';
+import { CaptureStack } from '../components/walk/CaptureStack';
+import { CAP, EDGE, SCALE_BOTTOM, STACK_GAP, useStackLayout } from '../components/walk/layout';
+import { useReady } from '../components/walk/useReady';
 import { aboutTimeLeft, formatTimeLeft, paceMps, timeLeftMs } from '../lib/nav/eta';
 import { useVisible } from '../lib/deletion/useDeletions';
 import { deletions } from '../lib/deletion';
@@ -67,8 +72,6 @@ function midpointOf(s: StreetSegment): LngLat {
   const line = s.geometry[0] ?? [];
   return line[Math.floor(line.length / 2)] ?? [0, 0];
 }
-/** The edge buttons start above the capture row (bottom 92, 68 tall) and one pill. */
-const EDGE_BOTTOM = 236;
 /** No accepted fix for this long while recording reads as weak GPS. */
 const WEAK_GPS_MS = 20_000;
 const NOTICE_MS = 6000;
@@ -117,17 +120,71 @@ export { ScreenError as ErrorBoundary } from '../components/ScreenError';
 /** The walk's settings panel sits this far up, clear of the capture row (bottom + 92, 68 tall) and its gap. */
 const SETTINGS_FOOT = 92 + 68 + 12;
 
-export default function WalkScreen() {
+/**
+ * The walk screen, and Navigate itself (NR1-NR6): ready with no walk open,
+ * the walk with one. Start on the ready screen records in place: the walk
+ * takes the screen once its plan is written, with no route change, so nothing
+ * animates and every button stays where it was.
+ */
+export default function WalkRoute() {
+  // In front: another ask to show the walk does nothing (tabs audit 1). Only while in front, not
+  // while mounted: a walk screen left mounted behind the tabs once left the bar's › dead (Nov 2).
+  useFocusEffect(useCallback(() => walkScreenShown(), []));
+  const info = useOpenWalkInfo();
+  const close = useCallback(() => {
+    feedback('tap');
+    const to = exitPlan(router.canGoBack());
+    if (to.kind === 'back') router.back();
+    else router.replace(to.to);
+  }, []);
+  // Storage not read yet (or never, if it keeps failing): still a way back to the tabs (audit 8).
+  if (screenState({ known: info.known, walkId: info.walk?.id ?? null }) === 'loading') return <WalkLoading onClose={close} />;
+  return <WalkScreen onMinimize={close} />;
+}
+
+function WalkLoading(props: { onClose: () => void }) {
+  const at = useStackLayout();
+  return (
+    <View style={styles.screen}>
+      <View style={[styles.top, { top: at.insets.top + 12, left: at.sideInset, right: at.sideInset }]} pointerEvents="box-none">
+        <View style={styles.minRow} pointerEvents="box-none">
+          <Pressable
+            testID="ready-close"
+            accessibilityRole="button"
+            accessibilityLabel="Close Navigate"
+            onPress={props.onClose}
+            style={({ pressed }) => [styles.edgeBtn, styles.minBtn, pressed && styles.pressed]}
+          >
+            <Icon name="chevron-down" size={24} color={theme.ink} />
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function WalkScreen(props: { onMinimize: () => void }) {
   perfCount('render:walk');
   // Every distance on this screen follows the units setting (QL16).
   useUnits();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const edgeRight = Math.max(12, (width - 640) / 2 + 12);
   /** The top column's side margin: centered in 640 on wide screens, like the rest. */
   const sideInset = Math.max(12, (width - 640) / 2);
   const params = useLocalSearchParams<{ warning?: string; started?: string; recall?: string }>();
-  const [walk, setWalk] = useState<Walk | null>(null);
+  const at = useStackLayout();
+  // The walk's cards sit above the strip, left of the stack's column, so they never cover it (audit 5).
+  const cardAt = { bottom: at.barTop + 12, right: at.right + CAP + STACK_GAP };
+  // One screen, ready or walking (NR1, NR6): the walk is the keeper's open walk. While Start writes the
+  // walk's plan the screen stays ready (the walk reads its mode as it shows); once stopped, the walk stays
+  // on screen until the replay replaces it, never flashing the ready state.
+  const info = useOpenWalkInfo();
+  const [holding, setHolding] = useState(false);
+  const [ended, setEnded] = useState<Walk | null>(null);
+  const shownWalk = holding ? null : info.walk ?? ended;
+  // Kept by id: the keeper's row is re-read with each pause, and the walk's effects key on it.
+  const [walk, setWalkShown] = useState<Walk | null>(shownWalk);
+  if ((walk?.id ?? null) !== (shownWalk?.id ?? null)) setWalkShown(shownWalk);
   // The open walk's pauses and live trace are kept above this screen, so they go on while it is
   // minimized (NV8); this screen shows them.
   const openWalk = useOpenWalk();
@@ -159,7 +216,9 @@ export default function WalkScreen() {
   const [now, setNow] = useState(() => Date.now());
   // One-off notices: a start warning, or the web's visibility rule.
   const [notice, setNotice] = useState<Notice | null>(() =>
-    params.warning
+    !shownWalk
+      ? null
+      : params.warning
       ? { message: params.warning }
       : params.started
         ? { message: 'Walk started · recording' }
@@ -190,18 +249,18 @@ export default function WalkScreen() {
     return () => sub.remove();
   }, []);
 
-  // In front: another ask to show the walk does nothing (tabs audit 1). Only while in front, not
-  // while mounted: a walk screen left mounted behind the tabs once left the bar's › dead (Nov 2).
-  useFocusEffect(useCallback(() => walkScreenShown(), []));
-  useEffect(() => {
-    db.getOpenWalk().then(async (w) => {
-      if (!w) {
-        router.replace('/');
-        return;
-      }
-      setWalk(w);
-    });
-  }, []);
+  // The ready state (NR1, NR5-NR13): with no walk open, the map and the overlay are its.
+  const ready = useReady({
+    active: !walk,
+    onClose: props.onMinimize,
+    onStarting: () => setHolding(true),
+    onStarted: (p) => {
+      setHolding(false);
+      // Recording in place (NR6): it says so, or the recorder's warning, or why its plan failed (audit 9, 10).
+      if (p?.error) setNotice({ message: p.error, tone: 'error', sticky: true });
+      else if (p) setNotice({ message: startNotice(p, recorder.capabilities.background) });
+    },
+  });
   // The error notice is raised once per error: when the status first turns to error, or for a new
   // message. A retry's own pass through "waiting" doesn't count as leaving it, so a failed retry
   // keeps the chip and says nothing again (QL20); the chip's tap brings the notice back (QL19).
@@ -588,16 +647,21 @@ export default function WalkScreen() {
       setViewing(found);
       return true;
     });
-    takeRecallOpen()
-      .then((found) => {
-        if (!alive || !found.length) return;
-        setAutoPlay(true);
-        setViewing(found);
-      })
-      .catch(() => {});
+    const take = () =>
+      takeRecallOpen()
+        .then((found) => {
+          if (!alive || !found.length) return;
+          setAutoPlay(true);
+          setViewing(found);
+        })
+        .catch(() => {});
+    void take();
+    // Kept while this screen was mounting (a cold open now shows the walk sooner, NR3): taken as it lands.
+    const offWaiting = onRecallWaiting(() => void take());
     return () => {
       alive = false;
       off();
+      offWaiting();
     };
   }, [walk, params.recall, resumed]);
   // This walk explores only once switched on (E1); otherwise it is quiet: navigation and captures (E9).
@@ -718,10 +782,13 @@ export default function WalkScreen() {
         setNotice({ message: 'The voice memo could not be saved. Retry, or hold Stop again to end the walk without it.', tone: 'error', sticky: true });
         return;
       }
+      // The walk stays on screen until the replay replaces it (the keeper hears it ended first).
+      setEnded(walk);
       await stopWalk(walk.id);
       feedback('success');
       router.replace(`/replay/${walk.id}`);
     } catch (e) {
+      // The walk stays on screen with the error, even if storage already closed it (audit 3).
       setNotice({ message: `The walk could not be stopped: ${e instanceof Error ? e.message : e}`, tone: 'error', sticky: true });
     } finally {
       setStopping(false);
@@ -732,10 +799,9 @@ export default function WalkScreen() {
   // this screen (NV8). Never mid-memo: leaving would cut it short.
   function minimize() {
     if (recordingVoice || stopping) return;
-    feedback('tap');
     AccessibilityInfo.announceForAccessibility('Walk minimized. Still recording.');
-    if (router.canGoBack()) router.back();
-    else router.replace('/navigate');
+    // To the tab beneath, Explore when there is none (NR4).
+    props.onMinimize();
   }
 
   async function togglePause() {
@@ -884,6 +950,10 @@ export default function WalkScreen() {
 
   return (
     <View style={styles.screen}>
+      {/* One map for both states, at one place in the tree, so Start never remounts it (NR6). */}
+      {!walk ? (
+        <WalkMap {...ready.mapProps} ref={mapRef} scaleInset={{ bottom: SCALE_BOTTOM, left: sideInset + 12 }} />
+      ) : (
       <WalkMap
         landing={hotView}
         trace={live.runs}
@@ -953,14 +1023,19 @@ export default function WalkScreen() {
         veil={showUnwalked}
         fogEmphasis={showUnwalked}
         ref={mapRef}
-        initialCenter={live.here ?? undefined}
+        // Started in place, the walk opens where the ready map was: around the last fix (NR6).
+        initialCenter={live.here ?? getLastFix()?.at ?? undefined}
         initialZoom={16}
         // The map ends at the bottom strip's top (it is the strip's sibling in the column), so the
         // scale bar is measured from there: above the capture row (its foot is 92 + insets.bottom
         // from the screen bottom, less the strip's 69 + insets.bottom; its buttons are 68 tall),
         // inside the 640 column (QL8).
-        scaleInset={{ bottom: 92 - 69 + 68 + 12, left: sideInset + 12 }}
+        scaleInset={{ bottom: SCALE_BOTTOM, left: sideInset + 12 }}
       />
+      )}
+
+      {!walk ? ready.overlay : (
+      <>
 
       <View style={[styles.top, { top: insets.top + 12, left: sideInset, right: sideInset }]} pointerEvents="box-none">
         {navigation.nav && (
@@ -1113,16 +1188,9 @@ export default function WalkScreen() {
         )}
       </View>
 
-      {/* Captures float in the lower-middle of the screen, where either thumb
-          reaches; the bottom edge is the least accurate place to tap. Pills
-          (caption, undo, retry) sit above the row, so the row never moves. */}
-      <View style={[styles.captures, { bottom: insets.bottom + 92 }]} pointerEvents="box-none">
-        {recordingVoice && (
-          <View style={styles.voiceLive} accessible accessibilityLabel="Recording voice memo">
-            <PulseDot />
-            <Ticking style={styles.voiceLiveText} text={(t) => formatElapsed(t - cap.voiceStartedAt!)} />
-          </View>
-        )}
+      {/* The pills (caption, undo, retry): left of the stack, above the strip, so the stack never
+          moves (NR10). */}
+      <View style={[styles.pills, at.pills]} pointerEvents="box-none">
         {justTook && !recordingVoice && !spot && !openMark && !options && !memory && (
           <View style={styles.undo} accessibilityLiveRegion="polite">
             <Text style={styles.undoText}>Photo saved here</Text>
@@ -1156,54 +1224,25 @@ export default function WalkScreen() {
             </Pressable>
           </View>
         )}
-        {/* While recording, Save takes the mic's own place, so tapping the mic
-            again saves; Discard is smaller and set apart from it. */}
-        {/* The row hides while a gap's way is drawn, so taps belong to the map (GW8); the pills above
-            stay, so a memo's Undo isn't lost under the drawing (gap-drawing audit 7). */}
-        <View style={[styles.captureRow, isDrawing && styles.hidden]} pointerEvents={isDrawing ? 'none' : 'auto'}>
-          <View style={styles.slot}>
-            {recordingVoice ? (
-              <RoundButton
-                testID="voice-discard"
-                icon="trash-outline"
-                label="Discard voice memo"
-                hint="Throws this recording away. You can undo for a few seconds."
-                onPress={discardVoice}
-                small
-              />
-            ) : (
-              <RoundButton testID="cap-photo" icon="camera" label="Take a photo or video" onPress={photo} busy={cap.busy === 'photo'} disabled={stopping || cap.busy === 'voice'} />
-            )}
-          </View>
-          <View style={styles.slot}>
-            {recordingVoice ? (
-              <RoundButton
-                ref={saveRef}
-                testID="voice-save"
-                icon="stop"
-                label="Stop and save voice memo"
-                onPress={saveVoice}
-                tone="voice"
-                busy={cap.busy === 'voice'}
-              />
-            ) : (
-              <RoundButton
-                testID="cap-voice"
-                icon="mic"
-                label="Record a voice memo"
-                onPress={startVoice}
-                busy={cap.busy === 'voice'}
-                disabled={stopping}
-              />
-            )}
-          </View>
-          <View style={styles.slot}>
-            {!recordingVoice && (
-              <RoundButton testID="cap-note" icon="document-text" label="Write a note" onPress={() => setNoteOpen(true)} disabled={stopping} />
-            )}
-          </View>
-        </View>
       </View>
+      {/* The capture stack at the right edge (NR9): where it was on the ready screen. While recording,
+          Save takes the mic's own place, so tapping the mic again saves; Discard is smaller, in the
+          camera's. It hides while a gap's way is drawn, so taps belong to the map (GW8); the pills stay,
+          so a memo's Undo isn't lost under the drawing (gap-drawing audit 7). */}
+      <CaptureStack
+        ref={saveRef}
+        ids={{ photo: 'cap-photo', voice: 'cap-voice', note: 'cap-note', save: 'voice-save', discard: 'voice-discard' }}
+        labels={{ photo: 'Take a photo or video', voice: 'Record a voice memo', note: 'Write a note' }}
+        voiceStartedAt={cap.voiceStartedAt}
+        busy={cap.busy}
+        disabled={stopping}
+        hidden={isDrawing}
+        onPhoto={photo}
+        onVoice={startVoice}
+        onSave={saveVoice}
+        onDiscard={discardVoice}
+        onNote={() => setNoteOpen(true)}
+      />
 
       <View style={[styles.bar, { paddingBottom: 10 + insets.bottom }]}>
         <View style={styles.barInner}>
@@ -1255,9 +1294,8 @@ export default function WalkScreen() {
         </View>
       </View>
 
-      {/* Small round controls stacked at the right edge, above the capture
-          row and its pills (as in AllTrails), and inside the 640 column on
-          wide screens. */}
+      {/* Small round controls in the stack's column, above the captures (as in AllTrails), inside the
+          640 column on wide screens: Recenter where Locate sits on the ready screen (NR9). */}
       <Pressable
         testID="unwalked"
         accessibilityRole="switch"
@@ -1265,13 +1303,13 @@ export default function WalkScreen() {
         aria-checked={showUnwalked}
         accessibilityLabel="Show unwalked streets near me"
         onPress={() => setShowUnwalked((v) => !v)}
-        style={({ pressed }) => [styles.edgeBtn, { right: edgeRight, bottom: insets.bottom + EDGE_BOTTOM + 56 }, showUnwalked && styles.edgeBtnOn, pressed && styles.pressed]}
+        style={({ pressed }) => [styles.edgeBtn, { right: at.edgeRight, bottom: at.edgeBottom('unwalked') }, showUnwalked && styles.edgeBtnOn, pressed && styles.pressed]}
       >
         <Icon name="footsteps-outline" size={22} color={showUnwalked ? '#ffffff' : theme.ink} />
       </Pressable>
       {showUnwalked && (
         <View
-          style={[styles.unwalked, { right: edgeRight + 52, bottom: insets.bottom + EDGE_BOTTOM + 56 + 7 }]}
+          style={[styles.unwalked, { right: at.edgeRight + EDGE + 8, bottom: at.edgeBottom('unwalked') + 7 }]}
           accessibilityLiveRegion="polite"
           pointerEvents="none"
         >
@@ -1287,7 +1325,7 @@ export default function WalkScreen() {
           accessibilityLabel="Walk me back to the start"
           disabled={navigation.finding}
           onPress={() => goTo({ at: walkStart, label: 'Start', kind: 'start' })}
-          style={({ pressed }) => [styles.edgeBtn, { right: edgeRight, bottom: insets.bottom + EDGE_BOTTOM + 168 }, pressed && styles.pressed]}
+          style={({ pressed }) => [styles.edgeBtn, { right: at.edgeRight, bottom: at.edgeBottom('back') }, pressed && styles.pressed]}
         >
           <Icon name="arrow-undo" size={22} color={theme.ink} />
         </Pressable>
@@ -1300,14 +1338,14 @@ export default function WalkScreen() {
           accessibilityRole="button"
           accessibilityLabel="Recenter on your position"
           onPress={() => setFollowing(true)}
-          style={({ pressed }) => [styles.edgeBtn, { right: edgeRight, bottom: insets.bottom + EDGE_BOTTOM }, pressed && styles.pressed]}
+          style={({ pressed }) => [styles.edgeBtn, { right: at.edgeRight, bottom: at.edgeBottom('locate') }, pressed && styles.pressed]}
         >
           <Icon name="locate" size={22} color={theme.ink} />
         </Pressable>
       )}
 
       {options && (
-        <View style={[styles.spotRow, { bottom: insets.bottom + 92 + 68 + 12 }]} pointerEvents="box-none">
+        <View style={[styles.spotRow, cardAt]} pointerEvents="box-none">
           <View testID="options-card" style={styles.spot} accessibilityViewIsModal>
             <Text style={styles.spotTitle} accessibilityRole="header">This walk</Text>
             <View style={styles.optionRow}>
@@ -1375,7 +1413,7 @@ export default function WalkScreen() {
       )}
       {openMark && !spot && !quiet && (
         // A place's card, in the spot card's place (E7, E8, E12).
-        <View style={[styles.spotRow, { bottom: insets.bottom + 92 + 68 + 12 }]} pointerEvents="box-none">
+        <View style={[styles.spotRow, cardAt]} pointerEvents="box-none">
           <View testID="mark-card" style={styles.spot} accessibilityViewIsModal>
             <Text style={styles.spotTitle} accessibilityRole="header">
               {openMarkNamed ? `${openMark.name} · ${kindOf(openMark.kind).label}` : 'A place to find'}
@@ -1411,7 +1449,7 @@ export default function WalkScreen() {
           stretch={openGap}
           gap={openGapOf}
           busy={gapBusy}
-          style={{ bottom: insets.bottom + 92 + 68 + 12 }}
+          style={cardAt}
           onClose={() => setGapOpen(null)}
           onKeep={() => void decideGap('kept')}
           onDismiss={() => void decideGap('dismissed')}
@@ -1465,7 +1503,7 @@ export default function WalkScreen() {
         }}
       />
       {memory && memoryShown.length > 0 && !spot && !recordingVoice && (
-        <View style={[styles.spotRow, { bottom: insets.bottom + 92 + 68 + 12 }]} pointerEvents="box-none">
+        <View style={[styles.spotRow, cardAt]} pointerEvents="box-none">
           <MemoryPreview
             // A new pin's preview starts fresh: never the last pin's photo (audit 1).
             key={memoryShown[0].id}
@@ -1482,7 +1520,7 @@ export default function WalkScreen() {
       )}
       {spot && (
         // Above the capture row (bottom 92, 68 tall), in the pills' place, so the row never moves or hides.
-        <View style={[styles.spotRow, { bottom: insets.bottom + 92 + 68 + 12 }]} pointerEvents="box-none">
+        <View style={[styles.spotRow, cardAt]} pointerEvents="box-none">
           <View style={styles.spot} accessibilityViewIsModal>
             <Text style={styles.spotTitle} accessibilityRole="header">This spot</Text>
             <View style={styles.spotActions}>
@@ -1579,68 +1617,14 @@ export default function WalkScreen() {
           </KeyboardAvoidingView>
         </Pressable>
       </Modal>
+      </>
+      )}
     </View>
   );
 }
 
 /** A large round icon button; the label is what screen readers say. */
 type PressableRef = ComponentRef<typeof Pressable>;
-
-const RoundButton = forwardRef<PressableRef, {
-  icon: IconName;
-  label: string;
-  hint?: string;
-  onPress: () => void;
-  tone?: 'light' | 'voice';
-  small?: boolean;
-  busy?: boolean;
-  disabled?: boolean;
-  testID?: string;
-}>(function RoundButton(props, ref) {
-  const voice = props.tone === 'voice';
-  const inactive = props.disabled || props.busy;
-  return (
-    <Pressable
-      ref={ref}
-      testID={props.testID}
-      accessibilityRole="button"
-      accessibilityLabel={props.label}
-      accessibilityHint={props.hint}
-      accessibilityState={{ disabled: !!inactive, busy: !!props.busy }}
-      disabled={inactive}
-      onPress={props.onPress}
-      style={({ pressed }) => [
-        styles.round,
-        props.small && styles.roundSmall,
-        voice && styles.roundVoice,
-        inactive && styles.disabled,
-        pressed && styles.pressed,
-      ]}
-    >
-      <Icon name={props.icon} size={props.small ? 24 : 30} color={voice ? '#ffffff' : theme.ink} />
-    </Pressable>
-  );
-});
-
-/** The recording light: pulses, unless reduced motion is on. */
-function PulseDot() {
-  const [o] = useState(() => new Animated.Value(1));
-  useEffect(() => {
-    let loop: Animated.CompositeAnimation | null = null;
-    AccessibilityInfo.isReduceMotionEnabled().then((reduce) => {
-      if (reduce) return;
-      loop = Animated.loop(
-        Animated.sequence([
-          Animated.timing(o, { toValue: 0.3, duration: MOTION.pulse, easing: Easing.inOut(Easing.quad), useNativeDriver: Platform.OS !== 'web' }),
-          Animated.timing(o, { toValue: 1, duration: MOTION.pulse, easing: Easing.inOut(Easing.quad), useNativeDriver: Platform.OS !== 'web' }),
-        ]),
-      );
-      loop.start();
-    }).catch(() => {});
-    return () => loop?.stop();
-  }, [o]);
-  return <Animated.View style={[styles.recDot, { opacity: o }]} />;
-}
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
@@ -1685,32 +1669,17 @@ const styles = StyleSheet.create({
   spotClose: { marginLeft: 'auto', width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   toast: { backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 14, alignSelf: 'center' },
   toastText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
-  captures: { position: 'absolute', left: 0, right: 0, alignItems: 'center', gap: 12 },
   hidden: { display: 'none' },
-  captureRow: { flexDirection: 'row', alignItems: 'center', gap: 20 },
-  slot: { width: 68, height: 68, alignItems: 'center', justifyContent: 'center' },
-  round: {
-    width: 68, height: 68, borderRadius: 34, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, borderColor: theme.edge,
-    shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 4,
-  },
-  roundSmall: { width: 52, height: 52, borderRadius: 26 },
-  roundVoice: { backgroundColor: '#6b21a8', borderColor: '#6b21a8' },
+  pills: { position: 'absolute', alignItems: 'flex-end', gap: 8 },
   undo: {
-    flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: theme.ink, borderRadius: 999,
+    flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: theme.ink, borderRadius: 999, maxWidth: '100%',
     paddingVertical: 8, paddingLeft: 16, paddingRight: 8,
   },
-  undoText: { color: '#ffffff', fontSize: 15, fontWeight: '600' },
+  undoText: { color: '#ffffff', fontSize: 15, fontWeight: '600', flexShrink: 1 },
   undoBtn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)' },
   undoBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.8 },
-  voiceLive: {
-    flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.surface, borderRadius: 999,
-    paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: theme.line,
-  },
-  recDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: theme.danger },
-  voiceLiveText: { color: theme.ink, fontSize: 18, fontWeight: '700', fontVariant: ['tabular-nums'] },
   bar: { backgroundColor: theme.bg, paddingHorizontal: 16, paddingTop: 10, borderTopWidth: 1, borderColor: theme.line },
   barInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', maxWidth: 640, width: '100%', alignSelf: 'center' },
   stats: { color: theme.ink, fontSize: 17, fontWeight: '600', fontVariant: ['tabular-nums'], flexShrink: 1 },

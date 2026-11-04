@@ -1,3 +1,4 @@
+// @layer core
 /**
  * The rules for placing walks. Bump AREA_RULES when any of these change, so
  * every walk is placed again (the owner tunes the reaches after ten walks).

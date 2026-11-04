@@ -1,3 +1,4 @@
+// @layer shell
 /**
  * Distances in km or miles (QL13): one setting, read synchronously by every
  * formatter. Pure: no React, no React Native, no db. `unitsStore.ts` loads

@@ -4,6 +4,36 @@ How to check a change, from the seconds-long loop to the headless walk. Times
 were measured in a cloud container on Nov 3, 2026. The e2e skill
 (`.claude/skills/e2e/SKILL.md`) is the short how-to; this is the reference.
 
+## 0. The inner loop: what a change can break
+
+```bash
+npm run check:affected   # layers, affected unit tests, typecheck, affected lint; then the e2e scenarios to run
+npm run test:affected    # only the unit tests that import a changed file, directly or not
+npm run lint:affected    # only the changed files
+```
+
+- **Changed** is everything that differs from the merge base with
+  `origin/main` (or `main`): the branch's commits, edits, new files, renames
+  and deletes (`scripts/affected.js`). With no main to compare with,
+  everything runs.
+- **Which tests:** each test file that imports a changed file through any
+  import (type-only, `import()`, a platform split, JSON included), shortest
+  chain printed. A test that reads the whole tree instead of importing it
+  (the layer check, the meta-key scan) starts with `// @tree-wide: <what it
+  reads>` and runs on any change under `src/` or `scripts/`. Mark a new one
+  so, or it will be skipped.
+- **Everything runs** when the harness changes: `package.json`, the lockfile,
+  `tsconfig.json`, `eslint.config.js`, `eslint-suppressions.json`,
+  `scripts/layers.js`, or any non-test file in `src/lib/__tests__/` (fakes,
+  fixtures, the contract suite).
+- **E2E:** `scripts/e2e-scenarios.js` lists the files each journey covers;
+  `check:affected` names the ones to run, and the changed screens no journey
+  covers (add one if the slice changes what they show). The full flow runs
+  only when the owner asks. A new journey gets its row there
+  (`affected.test.ts` fails otherwise).
+- The end of a slice adds the whole unit suite, lint and the typecheck
+  (section 6); CI runs them on every push to `main`.
+
 ## 1. The fast loop: unit tests
 
 ```bash
@@ -13,15 +43,32 @@ npx tsx --test --test-name-pattern "rides audit" src/lib/__tests__/rides.test.ts
 ```
 
 - `npm test` is `tsx --test src/lib/__tests__/*.test.ts` (Node's test runner,
-  TAP output, summary at the end): 43 files, 457 tests, about 5 s.
+  TAP output, summary at the end): 57 files, 660 tests, about 10 s.
 - One file: `rides.test.ts` is 34 tests in about 1 s. `--test-name-pattern`
   is a regex over test names: the line above runs that file's 9
   `rides audit N` tests only.
-- **Tests import only pure modules.** Node can't load React Native (Flow
-  source, native modules), so nothing a test imports, even indirectly, may
-  import `react-native`, Expo modules or the db. That is why `tileMath.ts`
-  (pure) is split from `tiles.ts` (imports `db`): move logic to test into a
-  pure file beside its screen or hook.
+- **Tests import only core modules, fakes and types.** Node can't load React
+  Native (Flow source, native modules), so nothing a test imports, even
+  indirectly, may import `react-native`, Expo modules or the db. That is why
+  `tileMath.ts` (core) is split from `tiles.ts` (a shell; imports `db`): move
+  logic to test into a core module beside its screen or hook.
+- **Layers** (`layers.test.ts`, `.claude/rules/functional-core.md`): every
+  `src/lib` module starts with `// @layer core|shell|adapter|view`, and a core
+  module imports only core. A failure names the file, the import, what it
+  reaches and the fix. Known violations are in `layers.baseline.json`, which
+  only shrinks: fixing one fails the test until its line is deleted.
+- **Shell tests** run a shell against `fakePorts()` (`__tests__/fakes`):
+  `memoryDb()`, a fake recorder and notifier, a clock that moves only when
+  told (`clock.advance(ms)`) and counting ids, sharing one call log.
+  `failNext(method, error)` fails the next call to one method. Assert the end
+  state (what `memoryDb` and the store hold); `log.effects()` lists the calls
+  that changed something, in order, for when order is the requirement.
+  Files in `__tests__/fakes/` are helpers, not tests.
+- **The Db contract** (`dbContract.ts`, run by `db.contract.test.ts`) holds
+  `memoryDb()` and the IndexedDB store (`db/index.web.ts` over
+  fake-indexeddb, a fresh module per case, since it caches its connection)
+  to the same cases. Every `Db` method needs a case (`FC7 every Db method has
+  a contract case`). The SQLite adapter can't run in Node.
 - **Fixtures** live in `src/lib/__tests__/`:
   - `mvtFixture.ts`: a test-only vector-tile encoder, since the tile host is
     blocked from cloud sessions. No test imports it now (its user went with
@@ -59,6 +106,13 @@ npm run lint        # expo lint (ESLint, eslint-config-expo): about 6 s
   - anything from `expo-haptics`: use `feedback(kind)` from `lib/motion`.
   The wrappers themselves (`components/Modal.tsx`, `lib/audioMode.native.ts`,
   `lib/haptics.ts`) are exempt.
+- Lint holds the layers too: in core modules, the clock, randomness, timers
+  and module-level `let`/`var`; in views (`src/app`, `src/components`, view
+  hooks), imports of the `db`, `recorder`, `notifier` or `ports` (under
+  `no-restricted-syntax`, its own rule). Known violations are
+  counted per file and rule in `eslint-suppressions.json` (ESLint's bulk
+  suppressions). After fixing some, `npx eslint src index.js
+  --prune-suppressions`; a stale count fails lint. Never `--suppress-all`.
 
 ## 3. The e2e: a headless walk of the web build
 
@@ -88,10 +142,11 @@ npm run export:web && npm run e2e:web
 
 | `E2E_ONLY` | runs |
 |---|---|
-| (unset) | the full flow: the tabs, notifications, a walk with notes, photo, memo, hold-to-stop, replay, Chronicle, memories, rides, motion, deletes, the perf window, plus the `tabs`, `gaps` and `hidden` scenarios |
+| (unset) | the full flow: the ready screen and the tabs, notifications, a walk with notes, photo, memo, hold-to-stop, replay, Chronicle, memories, rides, motion, deletes, the perf window, plus the `tabs`, `gaps`, `ready` and `hidden` scenarios |
 | `tabs` | the Navigation & tabs audit's regression checks (`tabs audit N`, U1-U15) |
 | `gaps` | a walk with two GPS gaps written into storage, then a reload: one gap fills by itself, one is offered faint (G5, G6, G9, G10, G12; `window.__project`, `data-runs`, `data-faint`) |
 | `hidden` | the hidden-page notice: a 70 s gap with the page on screen raises none, one spent hidden does (decision 0072; fixes and `Date.now` jump by `__shift`, visibility faked by `__vis`) |
+| `ready` | Navigate, ready (NR1-NR13): the ready walk screen at launch, the chevron back to the tab beneath, the bar pulled up, a destination line, a memo in the stack, Start in place (boxes unchanged), a moment before and a capture after, NR11's overlaps at 375×667 with every edge button up, the web note and a denied location (29 checks, about three minutes) |
 | `marks` | an exploring walk through an area read before draws the marks it passes (Nov 2 repro) |
 | `reload` | a reload with a walk minimized keeps it reachable: the bar's ›, its Stop, the tabs |
 | `qol` | quality of life QL1-QL28: Locate, the scale bar, the trace's end markers, the units segment, time left while navigating, the denied-location chip (a second context without the permission), a photo's pin thumbnail, editing a note from the replay, month headers, rename from a Chronicle row (29 checks, about a minute) |
@@ -164,6 +219,11 @@ Re-export without the variable afterwards for the plain e2e.
 - Each capture adds a replay stop: loop on Continue. Captions are checked
   through their aria-label after the photo's size loaded.
 
+- `data-center` is the canvas's middle, not the middle of what you see: a
+  screen that fits with uneven padding (Explore: 84 px under its title, 24 px
+  at the bottom) frames the fix (top - bottom) / 2 px below it. Measure a
+  framing in pixels against the padding (`qol QL10`), not in metres from
+  `data-center`.
 ## 4. The long walk: `scripts/perf-walk.js`
 
 ```bash
@@ -184,20 +244,27 @@ layout and style time, `perfCount` rates. Look for a column that only grows.
 
 ## 5. CI
 
-`.github/workflows/pages.yml` runs on pushes to `main`: `npm ci`, typecheck,
-`npm test`, the `/chronicles` export and the deploy. **Lint and the e2e are
-not in CI**: they are the agent's job before merging.
+`.github/workflows/pages.yml` runs on pushes to `main`: `npm ci`,
+`check:docs`, typecheck, `npm test`, lint, the `/chronicles` export and the
+deploy. **The e2e is not in CI** (it needs a browser and takes about 15
+minutes): it is the agent's job before merging.
 
 ## 6. Before calling work done
 
 ```bash
 npm run typecheck && npm run lint && npm test
-npm run export:web && npm run e2e:web    # plus E2E_ONLY=<scenario> for marks, reload, qol when touched
+npm run check:affected                                  # names the e2e journeys for what changed
+npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # each journey it names
 ```
 
-The Stop hook (`.claude/hooks/check-done.sh`) runs only the typecheck, and
-only when `.ts`/`.tsx` files changed since `HEAD`: it blocks the end of a turn
-on a type error. Lint, the unit tests and the e2e stay the agent's job.
+A slice that changes a screen adds or extends its own journey (`/e2e`); one
+that changes no screen runs no e2e. The full flow (no `E2E_ONLY`, about 15
+minutes) and `/audit` run only when the owner asks (decision 0074).
+
+The Stop hook (`.claude/hooks/check-done.sh`) runs `check:docs` on any
+change, and with `.ts`/`.tsx` changed, the typecheck, the layer check and the
+affected unit tests (`node scripts/affected.js hook`): it blocks the end of a
+turn on any of them.
 
 ## 7. What this proves, and what it doesn't
 

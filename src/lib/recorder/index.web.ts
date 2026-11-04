@@ -1,3 +1,4 @@
+// @layer adapter
 import { db } from '../db';
 import type { TracePoint } from '../types';
 import { emit, setStatus, subscribe, subscribeStatus } from './emitter';

@@ -1,3 +1,4 @@
+// @layer core
 import type { CategoryId } from './types';
 
 export interface Category {

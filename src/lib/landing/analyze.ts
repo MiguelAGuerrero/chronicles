@@ -1,3 +1,4 @@
+// @layer core
 import type { PlaceCandidate } from '../areas/types';
 import type { CategoryId, Place } from '../discovery/types';
 import { distanceM, projector } from '../geo';

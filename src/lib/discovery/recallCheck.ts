@@ -1,3 +1,4 @@
+// @layer shell
 import { AppState } from 'react-native';
 import { createOpeners } from '../openers';
 import { db } from '../db';
@@ -27,6 +28,12 @@ export function onRecallsChanged(fn: () => void): () => void {
     changed.delete(fn);
   };
 }
+/**
+ * The flags as stored now, for the pins' bells (RB1). Read from storage, never
+ * through the cache above: filling that early would hide a flag written after a
+ * map opened from the next check.
+ */
+export const readRecalls = () => db.listRecalls();
 export async function saveRecall(r: Recall) {
   await db.setRecall(r);
   cache = null;
@@ -111,6 +118,17 @@ const openers = createOpeners<Capture[]>();
 export function onRecallOpen(fn: (captures: Capture[]) => boolean): () => void {
   return openers.add(fn);
 }
+/**
+ * Told when a tapped reminder has been kept for the next screen. A screen that mounted while it was being
+ * kept read nothing (the walk screen, on a cold open with a walk open, NR3): it takes it now.
+ */
+const waiting = new Set<() => void>();
+export function onRecallWaiting(fn: () => void): () => void {
+  waiting.add(fn);
+  return () => {
+    waiting.delete(fn);
+  };
+}
 /** Opens a tapped reminder's captures where a screen takes them; else keeps them for the next screen (R4). Resolves whether one opened. */
 export async function openRecall(ids: string[]): Promise<boolean> {
   if (openers.size()) {
@@ -118,6 +136,7 @@ export async function openRecall(ids: string[]): Promise<boolean> {
     if (found.length && openers.offer(found)) return true;
   }
   await db.setMeta(RECALL_OPEN_KEY, JSON.stringify(ids));
+  for (const fn of [...waiting]) fn();
   return false;
 }
 /** Whether a tapped reminder is waiting for the next screen. */

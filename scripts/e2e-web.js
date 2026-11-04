@@ -17,7 +17,8 @@ const glyph = (name) => String.fromCodePoint(IONS[name]);
 // A glyph's icon name, for messages: the characters themselves don't print.
 const iconOf = (text) => Object.keys(IONS).find((k) => glyph(k) === text) ?? JSON.stringify(text);
 
-const DIST = path.join(__dirname, '..', 'dist');
+// E2E_DIST=<dir> serves another export (a second build while one run is still going).
+const DIST = process.env.E2E_DIST ?? path.join(__dirname, '..', 'dist');
 // The sub-path the build was exported for (GitHub Pages serves it at /chronicles).
 const BASE = process.env.E2E_BASE ?? '';
 const TYPES = { '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json', '.ttf': 'font/ttf', '.webmanifest': 'application/manifest+json' };
@@ -214,20 +215,24 @@ function check(ok, what) {
       g.onsuccess = () => resolve(g.result?.value ?? null);
     };
   }), key);
-  // Navigate's drawer has one height now: 'half' and 'full' open its settings dialog (the summary line under
-  // Start), 'peek' closes it with Escape. Other sheets (home, Explore) still go by their own handles.
+  // Navigate is the ready walk screen (NR7): 'half' and 'full' raise its bar to the walk settings (a pull on
+  // its grip), 'peek' lowers it with Escape. Other sheets (home, Explore) still go by their own handles.
   const drawerTo = async (pg, size, testid = 'drawer-drag') => {
     if (testid === 'drawer-drag') {
-      const open = (await pg.locator('[data-testid=start-dialog]').count()) > 0;
+      const up = (await pg.locator('[data-testid=start-settings]').count()) > 0;
       if (size === 'peek') {
-        if (open) {
+        if (up) {
           await pg.keyboard.press('Escape');
-          await pg.waitForTimeout(400);
+          await pg.waitForFunction(() => !document.querySelector('[data-testid=start-settings]'), null, { timeout: 4000 }).catch(() => {});
         }
-      } else if (!open) {
-        await pg.click('[data-testid=start-options]');
-        await pg.waitForSelector('[data-testid=start-dialog]');
-        await pg.waitForTimeout(400);
+      } else if (!up) {
+        const g = await pg.locator('[data-testid=ready-grip]').boundingBox();
+        await pg.mouse.move(g.x + g.width / 2, g.y + g.height / 2);
+        await pg.mouse.down();
+        await pg.mouse.move(g.x + g.width / 2, 120, { steps: 8 });
+        await pg.mouse.up();
+        await pg.waitForSelector('[data-testid=start-settings]');
+        await pg.waitForTimeout(700);
       }
       return;
     }
@@ -245,6 +250,18 @@ function check(ok, what) {
       await pg.mouse.up();
     }
     await pg.waitForTimeout(700);
+  };
+  // A tab, from wherever the test is (NR1-NR4): the ready screen covers the tabs, so its chevron goes back
+  // to them first; Navigate opens the walk screen (ready or walking) and is left alone if it is up.
+  const tabTo = async (pg, id) => {
+    const shown = async (sel) => (await pg.locator(sel).filter({ visible: true }).count()) > 0;
+    if (id === 'navigate') {
+      if ((await shown('[data-testid=ready-bar]')) || (await shown('[data-testid=stop]'))) return;
+    } else if (await shown('[data-testid=ready-close]')) {
+      await pg.click('[data-testid=ready-close]');
+      await pg.waitForTimeout(600);
+    }
+    await pg.click(`[data-testid=tab-${id}]`);
   };
   // Elements on the tab in front: JS tabs keep the others mounted beneath it, aria-hidden.
   const shownCount = (pg, sel) => pg.evaluate((q) => [...document.querySelectorAll(q)].filter((e) => !e.closest('[aria-hidden=true]')).length, sel);
@@ -362,8 +379,8 @@ function check(ok, what) {
       check(noteShown && (await pg.locator(noteText).count()) === 0, 'tabs audit U9: Navigate’s web note can be dismissed, and stays dismissed after a reload');
 
     });
-    await step('tabs audit U1, U4, U12 in the drawer', async () => {
-      // tabs audit U1: Start and the capture row stay docked low and tappable at the peek.
+    await step('tabs audit U1, U4, U12 in the ready bar', async () => {
+      // tabs audit U1, NR9: Start and the capture stack sit low on the screen and can be tapped.
       const r = await (async () => {
         const vh = pg.viewportSize().height;
         const out = [];
@@ -375,37 +392,26 @@ function check(ok, what) {
         return out;
       })();
       check(r.every((x) => x === 'ok'), `tabs audit U1: Start and the camera, mic and pencil sit low on the screen and can be tapped (${r.join(', ')})`);
-      // Nov 3: the drawer doesn't pull up; its summary line opens one dialog with every setting in one scroll.
-      const peekBox = await pg.locator('[data-testid=navigate-drawer]').boundingBox();
+      // NR7: the bar pulls up to every setting in one scroll, and Escape lowers it as it was.
+      const restBox = await pg.locator('[data-testid=ready-bar]').boundingBox();
       await drawerTo(pg, 'half');
-      check((await pg.locator('[data-testid=start-dialog]').count()) === 1 && (await pg.locator('[data-testid=mode-quiet]').isVisible())
+      check((await pg.locator('[data-testid=start-settings]').count()) === 1 && (await pg.locator('[data-testid=mode-quiet]').isVisible())
         && (await pg.locator('[data-testid=notify-settings]').count()) === 1 && (await pg.locator('[data-testid=kind-churches]').count()) === 0,
-        'Nov 3: the summary line opens one dialog: the mode, the destination, reminders and alerts (no kinds with Quiet)');
+        'NR7: the bar pulled up: the mode, the destination, reminders and alerts (no kinds with Quiet)');
       await drawerTo(pg, 'peek');
-      check((await pg.locator('[data-testid=start-dialog]').count()) === 0 && Math.round((await pg.locator('[data-testid=navigate-drawer]').boundingBox()).height) === Math.round(peekBox.height),
-        'Nov 3: Escape closes the dialog, and the drawer is as it was');
-      // A pull on the grip opens the dialog too, and the drawer itself doesn't move.
-      {
-        const hb = await pg.locator('[data-testid=drawer-drag]').boundingBox();
-        await pg.mouse.move(hb.x + hb.width / 2, hb.y + 8);
-        await pg.mouse.down();
-        await pg.mouse.move(hb.x + hb.width / 2, 120, { steps: 8 });
-        await pg.mouse.up();
-        await pg.waitForTimeout(600);
-        check((await pg.locator('[data-testid=start-dialog]').count()) === 1, 'Nov 3: a pull on the grip opens the dialog');
-        await drawerTo(pg, 'peek');
-      }
+      check((await pg.locator('[data-testid=start-settings]').count()) === 0 && Math.round((await pg.locator('[data-testid=ready-bar]').boundingBox()).height) === Math.round(restBox.height),
+        'NR7: Escape lowers the bar, as it was');
       await drawerTo(pg, 'half');
-      // The settings scroll above the dialog's own Start: the last setting can be brought into view inside it.
+      // The settings scroll above the bar's Start: the last setting can be brought into view above it.
       {
         await pg.locator('[data-testid=notify-test]').scrollIntoViewIfNeeded();
         await pg.waitForTimeout(300);
         const btn = await pg.locator('[data-testid=notify-test]').boundingBox();
-        const foot = await pg.locator('[data-testid=start-dialog-start]').boundingBox();
-        check(btn && btn.y + btn.height <= foot.y, `Nov 3: the dialog's settings scroll above its Start walk, never under it (${btn && Math.round(btn.y + btn.height)} ≤ ${Math.round(foot.y)})`);
+        const foot = await pg.locator('[data-testid=start]').boundingBox();
+        check(btn && btn.y + btn.height <= foot.y, `NR7: the settings scroll above Start, never under it (${btn && Math.round(btn.y + btn.height)} ≤ ${Math.round(foot.y)})`);
       }
       // tabs audit U12: no second "Notifications" heading under "Reminders and alerts".
-      const heads = await pg.locator('[data-testid=start-dialog] [role=heading]').allInnerTexts();
+      const heads = await pg.locator('[data-testid=start-settings] [role=heading]').allInnerTexts();
       check(heads.includes('Reminders and alerts') && !heads.includes('Notifications'), `tabs audit U12: Reminders and alerts, with no Notifications heading under it (${heads.join(', ')})`);
       // tabs audit U4: a whole switch row flips its switch, tapped on its words.
       {
@@ -439,7 +445,7 @@ function check(ok, what) {
       await pg.locator('[data-testid=mode-quiet]').scrollIntoViewIfNeeded();
       await pg.click('[data-testid=mode-quiet]');
       await drawerTo(pg, 'peek');
-      check((await pg.locator('[data-testid=peek-choices]').innerText()) === 'Quiet', 'tabs audit U12: the line under Start says the mode');
+      check((await metaOf(pg, 'start_mode')) === 'quiet', 'NV22: back to Quiet, saved as it changed');
 
     });
     // Chronicle with no walks (tabs audit U7): the peek holds the empty line and a way to Navigate.
@@ -450,13 +456,17 @@ function check(ok, what) {
       check(said && nav && sheet && nav.y >= sheet.y && nav.y + nav.height <= sheet.y + sheet.height + 1 && (await shownCount(pg, '[data-testid=sheet-navigate]')) === 1,
         `tabs audit U7: ${when}, Chronicle's peek says how walks get here and offers Navigate (${said}, ${nav && Math.round(nav.y)})`);
       if (await pg.locator('[data-testid=sheet-navigate]').count()) await pg.click('[data-testid=sheet-navigate]');
-      else await pg.click('[data-testid=tab-navigate]');
+      else await tabTo(pg, 'navigate');
       await pg.waitForTimeout(1000);
-      check((await pg.locator('[data-testid=tab-navigate][aria-selected=true]').count()) === 1, `tabs audit U7: ${when}, the peek's Navigate opens Navigate`);
+      // Navigate is the walk screen (NR1, NR2): ready with no walk open, the walk with one.
+      check(new URL(pg.url()).pathname === `${BASE}/walk` && (await pg.locator('[data-testid=ready-bar], [data-testid=stop]').count()) === 1,
+        `tabs audit U7: ${when}, the peek's Navigate opens Navigate, the walk screen (${new URL(pg.url()).pathname})`);
     };
     await step('tabs audit Chronicle read before the walk', async () => {
       // Chronicle is opened once before any walk: its last read says no walk is open (tabs audit 2).
-      await pg.click('[data-testid=tab-chronicle]');
+      await pg.click('[data-testid=ready-close]');
+      await pg.waitForTimeout(600);
+      await tabTo(pg, 'chronicle');
       await pg.waitForSelector('[data-testid=home-sheet]');
       await pg.waitForTimeout(800);
       await emptyPeek('with nothing walked');
@@ -468,7 +478,10 @@ function check(ok, what) {
       await pg.click('[data-testid=moment-voice]');
       await pg.waitForSelector('[data-testid=moment-voice-save]', { timeout: 10000 });
       await pg.waitForTimeout(1600);
-      await pg.click('[data-testid=tab-explore]');
+      // Leaving mid-memo is the chevron now (NR10), back to Chronicle beneath; then Explore.
+      await pg.click('[data-testid=ready-close]');
+      await pg.waitForTimeout(600);
+      await tabTo(pg, 'explore');
       await pg.waitForSelector('[data-testid=atlas-grid]');
       await pg.waitForTimeout(1500);
       // Explore is the atlas now (AT1): the grid of areas near you, under a small map.
@@ -561,85 +574,36 @@ function check(ok, what) {
       await pg.waitForTimeout(400);
 
     });
-    await step('tabs audit U2: the live view', async () => {
-      // tabs audit U2: Navigate with a walk minimized is a live view of the walk.
+    await step('NR2: Navigate opens the open walk', async () => {
+      // NR2 (it retires U2's live view): with a walk minimized, Navigate opens that walk, recording.
       await pg.click('[data-testid=walk-minimize]');
       await pg.waitForSelector('[data-testid=recording-bar]', { timeout: 10000 });
-      await pg.click('[data-testid=tab-navigate]');
-      await pg.waitForTimeout(1200);
       const watches0 = await pg.evaluate(() => window.__watchCalls);
-      await pg.click('[data-testid=tab-chronicle]');
-      await pg.waitForTimeout(500);
-      await pg.click('[data-testid=tab-navigate]');
-      await pg.waitForTimeout(1500);
-      check((await pg.evaluate(() => window.__watchCalls)) === watches0, 'tabs audit U2: Navigate reads no fix of its own while a walk is open (the recorder already watches)');
-      check((await shownCount(pg, '[data-testid=start]')) === 0 && (await shownCount(pg, '[data-testid=resume]')) === 0 && (await shownCount(pg, '[data-testid=recording-bar]')) === 1,
-        'tabs audit U2: with a walk open, Navigate has no Start and no second Return button: the recording bar is the way back');
-      // No drawer with a walk minimized (the owner, Nov 3): no "Your walk is recording" line, no settings,
-      // and the capture row sits low on the map. The bar is the walk's strip.
-      {
-        const drawers = await shownCount(pg, '[data-testid=navigate-drawer]');
-        const line = await shownCount(pg, '[data-testid=peek-choices]');
-        const recording = await pg.evaluate(() => [...document.querySelectorAll('div')].filter((e) => !e.closest('[aria-hidden=true]') && e.childElementCount === 0 && /Your walk is recording/.test(e.textContent ?? '')).length);
-        const row = await pg.locator('[data-testid=moment-photo]').filter({ visible: true }).first().boundingBox();
-        const bar = await pg.locator('[data-testid=recording-bar]').boundingBox();
-        check(drawers === 0 && line === 0 && recording === 0 && row && bar && bar.y - (row.y + row.height) < 40,
-          `tabs audit U2: with a walk minimized, Navigate has no drawer and no "Your walk is recording"; the capture row sits just above the bar (drawer ${drawers}, line ${line}, text ${recording}, gap ${row && bar ? Math.round(bar.y - (row.y + row.height)) : '?'} px)`);
-      }
-      // And the walk comes back from the bar, then minimizes again.
-      {
-        await pg.click('[data-testid=recording-return]');
-        const back = await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 5000 }).then(() => true, () => false);
-        check(back, `tabs audit U2: the recording bar brings the walk back (${pg.url()})`);
-        if (back) {
-          await pg.waitForSelector('[data-testid=walk-minimize]', { timeout: 10000 });
-          await pg.click('[data-testid=walk-minimize]');
-          await pg.waitForSelector('[data-testid=recording-bar]', { timeout: 10000 });
-          await pg.waitForTimeout(800);
-        }
-      }
+      await tabTo(pg, 'navigate');
+      await pg.waitForSelector('[data-testid=stop]', { timeout: 10000 });
+      await pg.waitForTimeout(1200);
+      check((await pg.evaluate(() => window.__watchCalls)) === watches0 && new URL(pg.url()).pathname === `${BASE}/walk` && (await pg.locator('[data-testid=ready-bar]').count()) === 0
+        && (await pg.locator('canvas.maplibregl-canvas').count()) === 1,
+        'NR2: with a walk open, Navigate opens it on one map, and reads no fix of its own (the recorder already watches)');
+      await pg.click('[data-testid=walk-minimize]');
+      await pg.waitForSelector('[data-testid=recording-bar]', { timeout: 10000 });
+      await pg.waitForTimeout(800);
     });
     await step('tabs audit U7: Chronicle while minimized', async () => {
-      await pg.click('[data-testid=tab-chronicle]');
+      await tabTo(pg, 'chronicle');
       await pg.waitForSelector('[data-testid=home-sheet]');
       await pg.waitForTimeout(1000);
       await emptyPeek('with a walk minimized and none finished');
     });
-    await step('tabs audit U2: following the walk', async () => {
-      // The walk goes on; Navigate follows it: the trace, the walker, the capture row for the walk.
-      const perfA = { at: Date.now(), ...(await pg.evaluate(() => ({ ...window.__perf }))) };
+    await step('NR2: following the walk', async () => {
+      // Chronicle's Navigate opened the walk (U7 above): it goes on there, the trace growing to the walker.
       await north(-0.25, 0.25);
       await pg.waitForTimeout(2200);
-      {
-        const b = await pg.evaluate(() => ({ ...window.__perf }));
-        const secs = (Date.now() - perfA.at) / 1000;
-        const rate = (k) => ((b[k] ?? 0) - (perfA[k] ?? 0)) / secs;
-        check(rate('render:navigate') <= 0.2 && rate('render:navigate-walk') <= 1.0 && rate('render:map') <= 1.5 && rate('render:walk') === 0,
-          `tabs audit U2: on Navigate, only the live view follows the walk (navigate ${rate('render:navigate').toFixed(2)}/s, live view ${rate('render:navigate-walk').toFixed(2)}/s, map ${rate('render:map').toFixed(2)}/s over ${secs.toFixed(0)} s)`);
-      }
-      {
-        const last = at(-0.5, 0.25);
-        const end = ((await pg.locator('[data-trace-end]').last().getAttribute('data-trace-end')) || '0,0').split(',').map(Number);
-        const off = Math.hypot((end[0] - last[0]) / dLon, (end[1] - last[1]) / dLat) * 100;
-        check(off < 20 && (await pg.locator('[data-testid=walker-puck]').evaluateAll((els) => els.filter((e) => e.style.display !== 'none').length)) === 1 && (await pg.locator('canvas.maplibregl-canvas').count()) === 1,
-          `tabs audit U2: Navigate shows the walk's growing trace and the walker, on one live map (${off.toFixed(0)} m off)`);
-      }
-    });
-    await step('tabs audit U2: the capture row for the walk', async () => {
-      // The capture row keeps a note for the open walk, shown on Navigate's map, and once on Return.
-      await pg.click('[data-testid=moment-note]');
-      await pg.fill('[data-testid=moment-note-input]', 'A blue door');
-      await pg.click('[data-testid=moment-note-save]');
-      const said = await pg.waitForSelector('[data-testid=moment-toast]', { timeout: 10000 }).then((e) => e.innerText(), () => '');
-      await pg.waitForTimeout(800);
-      const notes = (await rows(pg, 'text')).filter((x) => x.walk_id === w.id);
-      const pinned = await shownCount(pg, '[aria-label="Note"]');
-      check(said === 'Note saved to your walk' && notes.length === 1 && pinned === 1,
-        `tabs audit U2: Navigate's capture row keeps a note for the open walk, pinned on its map ("${said}", ${notes.length} kept, ${pinned} pinned)`);
-      await pg.click('[data-testid=recording-return]');
-      await pg.waitForSelector('[data-testid=stop]');
-      await pg.waitForTimeout(1500);
-      check((await pg.locator('[aria-label="Note. Open"]').count()) === 1, 'tabs audit U2: back on the walk, the note from Navigate is pinned once, not lost or doubled');
+      const last = at(-0.5, 0.25);
+      const end = ((await pg.locator('[data-trace-end]').last().getAttribute('data-trace-end')) || '0,0').split(',').map(Number);
+      const off = Math.hypot((end[0] - last[0]) / dLon, (end[1] - last[1]) / dLat) * 100;
+      check(off < 20 && (await pg.locator('[data-testid=stop]').count()) === 1 && (await pg.locator('canvas.maplibregl-canvas').count()) === 1,
+        `NR2: Navigate's walk shows its growing trace to the walker, on one live map (${off.toFixed(0)} m off)`);
     });
     await step('tabs audit U11: the options icon', async () => {
       // tabs audit U11: the walk options button draws one icon, quiet or exploring.
@@ -766,7 +730,7 @@ function check(ok, what) {
     });
     await step('tabs audit U14: Not now', async () => {
       // tabs audit U14: Not now keeps the walk unnamed and goes to Chronicle.
-      await pg.click('[data-testid=tab-navigate]');
+      await tabTo(pg, 'navigate');
       await pg.waitForSelector('[data-testid=start]');
       await pg.waitForTimeout(800);
       await pg.click('[data-testid=start]');
@@ -854,7 +818,7 @@ function check(ok, what) {
     const state = async (label) => {
       const s = await pg.evaluate(() => {
         const at = (q) => { const e = document.querySelector(q); if (!e) return null; const b = e.getBoundingClientRect(); if (!b.width) return 'hidden'; const top = document.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2); return top?.closest(q) ? 'top' : `under:${top?.closest('[data-testid]')?.getAttribute('data-testid') ?? top?.tagName}`; };
-        return { path: location.pathname, bar: at('[data-testid=recording-return]'), stop: at('[data-testid=stop]'), minimize: at('[data-testid=walk-minimize]'), tabNav: at('[data-testid=tab-navigate]'), drawer: document.querySelector('[data-testid=navigate-drawer]')?.getBoundingClientRect().height ?? null };
+        return { path: location.pathname, bar: at('[data-testid=recording-return]'), stop: at('[data-testid=stop]'), minimize: at('[data-testid=walk-minimize]'), tabNav: at('[data-testid=tab-navigate]'), drawer: document.querySelector('[data-testid=ready-bar]')?.getBoundingClientRect().height ?? null };
       });
       console.log(`# ${label}: ${JSON.stringify(s)}`);
       return s;
@@ -965,7 +929,7 @@ function check(ok, what) {
       await pg.click('[data-testid=bar-stop]');
       await pg.waitForTimeout(400);
       const said = await pg.locator('[data-testid=recording-said]').innerText().catch(() => '');
-      check(said === 'Hold to stop the walk' && new URL(pg.url()).pathname === `${BASE}/navigate`, `bar stop: a tap only says to hold ("${said}")`);
+      check(said === 'Hold to stop the walk' && !/\/walk$/.test(new URL(pg.url()).pathname), `bar stop: a tap only says to hold ("${said}")`);
       const b = await pg.locator('[data-testid=bar-stop]').boundingBox();
       await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
       await pg.mouse.down();
@@ -1385,7 +1349,7 @@ function check(ok, what) {
     }
 
     // Explore has Locate and the bar; Chronicle has the bar and no trace ends.
-    await pg.click('[data-testid=tab-explore]');
+    await tabTo(pg, 'explore');
     await pg.waitForTimeout(1200);
     const near = at(0.2, 0.3);
     await fix(near);
@@ -1394,15 +1358,22 @@ function check(ok, what) {
     await locate2.first().click();
     await pg.waitForTimeout(2000);
     {
+      // Explore frames inside its fit padding (atlas round 2: the title sits over the map): 84 px at
+      // the top, 24 px at the bottom, so the fix is in the middle of the map below the title, 30 px
+      // under the canvas's middle (QL10; this check measured from the canvas middle until Nov 4).
       const center = lonLat(await attr('data-center'));
       const walker = lonLat(await attr('data-walker'));
-      const off = center ? mAway(center, near) : NaN;
-      check(center && off < 250 && walker && mAway(walker, near) < 5,
-        `qol QL10: Explore's Locate frames the map around the fix and draws the dot (canvas middle ${off.toFixed(1)} m off, data-walker ${fmt(walker)})`);
+      const z = Number(await attr('data-zoom'));
+      const k = center ? mpp(z, center[1]) : NaN;
+      const dx = center ? ((near[0] - center[0]) * 111320 * Math.cos((center[1] * Math.PI) / 180)) / k : NaN;
+      const dy = center ? -((near[1] - center[1]) * 111320) / k : NaN;
+      const EXPLORE_PAD_SHIFT_PX = (84 - 24) / 2;
+      check(center && Math.abs(dx) <= 3 && Math.abs(dy - EXPLORE_PAD_SHIFT_PX) <= 3 && walker && mAway(walker, near) < 5,
+        `qol QL10: Explore's Locate frames the map around the fix, in the middle of the map below the title, and draws the dot (fix at canvas middle + (${dx.toFixed(1)}, ${dy.toFixed(1)}) px, ${EXPLORE_PAD_SHIFT_PX} px expected below; data-walker ${fmt(walker)})`);
       const s3 = await scaleBar();
       check(round(s3) && fits(s3), `qol QL5: Explore shows the scale bar (${describe(s3)})`);
     }
-    await pg.click('[data-testid=tab-chronicle]');
+    await tabTo(pg, 'chronicle');
     await pg.waitForTimeout(1200);
     {
       const s4 = await scaleBar();
@@ -1410,7 +1381,7 @@ function check(ok, what) {
       check(round(s4) && fits(s4), `qol QL5: Chronicle shows the scale bar (${describe(s4)})`);
       check(ends == null || ends === '' || ends === '|', `qol QL1: Chronicle draws no trace, so it marks no start (data-ends ${JSON.stringify(ends)})`);
     }
-    await pg.click('[data-testid=tab-navigate]');
+    await tabTo(pg, 'navigate');
     await pg.waitForTimeout(800);
 
     // A walk: the start marker goes with the trace; no end marker while it is live.
@@ -1625,6 +1596,413 @@ function check(ok, what) {
     }
   };
 
+  // Navigate, ready (NR1-NR13): Navigate is the walk screen, ready with no walk open, and Start records
+  // in place. In fresh browsers, at 390×844 and at 375×667. E2E_ONLY=ready runs it alone.
+  const readyScenario = async () => {
+    const boxOf = async (pg, id) => {
+      const b = await pg.locator(`[data-testid=${id}]`).filter({ visible: true }).first().boundingBox({ timeout: 3000 }).catch(() => null);
+      return b && { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) };
+    };
+    const same = (a, b, tol = 2) => !!a && !!b && Math.abs(a.x - b.x) <= tol && Math.abs(a.y - b.y) <= tol && Math.abs(a.w - b.w) <= tol && Math.abs(a.h - b.h) <= tol;
+    const pathOf = (pg) => new URL(pg.url()).pathname;
+    const selected = (pg, id) => pg.locator(`[data-testid=tab-${id}][aria-selected=true]`).count().then((n) => n === 1);
+    const stats = (pg) => pg.locator('[data-testid=walk-stats]').filter({ visible: true }).first().innerText();
+    const rows = (pg) => pg.evaluate(() => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const g = req.result.transaction('capture', 'readonly').objectStore('capture').getAll();
+        g.onsuccess = () => resolve(g.result);
+      };
+    }));
+    const { c, pg } = await freshPage('ready');
+    await pg.goto(url);
+    await pg.waitForSelector('[data-testid=tab-explore][aria-selected=true]');
+    await pg.waitForTimeout(1200);
+    // NR3 (the owner, Nov 4): with no walk open the app opens on Explore, at `/`.
+    check(pathOf(pg) === `${BASE}/` && (await pg.locator('[data-testid=ready-bar]').count()) === 0 && (await tabBarShown(pg)),
+      `ready NR3: with no walk open, the app opens on Explore (${pathOf(pg)})`);
+    // NR1: Navigate opens the ready walk screen over it, with no tab bar.
+    await pg.click('[data-testid=tab-navigate]');
+    await pg.waitForSelector('[data-testid=start]');
+    await pg.waitForTimeout(1200);
+    check(pathOf(pg) === `${BASE}/walk` && (await pg.locator('[data-testid=ready-bar]').isVisible()) && !(await tabBarShown(pg)),
+      `ready NR1: Navigate opens the ready walk screen, with no tab bar (${pathOf(pg)})`);
+    const s0 = await stats(pg);
+    await pg.waitForTimeout(2500);
+    check(/^0:00 · 0(\.0+)? ?(m|km|mi|ft)$/.test(s0) && (await stats(pg)) === s0 && (await pg.locator('[data-testid=stop]').count()) === 0,
+      `ready NR1, NR5: at rest the bar reads 0:00 and no distance, and nothing ticks (${s0})`);
+    check((await pg.locator('canvas.maplibregl-canvas').count()) === 1 && (await boxOf(pg, 'locate')) !== null && (await pg.locator('[data-testid=start-dialog]').count()) === 0,
+      'ready NR1, NR12: one map, Locate, and no Start dialog any more');
+
+    // NR9: camera, mic and note stacked at the right edge, Locate above them.
+    const cam = await boxOf(pg, 'moment-photo');
+    const mic = await boxOf(pg, 'moment-voice');
+    const pen = await boxOf(pg, 'moment-note');
+    const loc = await boxOf(pg, 'locate');
+    const cx = (b) => b.x + b.w / 2;
+    check(cam && mic && pen && loc && Math.abs(cx(cam) - cx(mic)) <= 1 && Math.abs(cx(mic) - cx(pen)) <= 1 && Math.abs(cx(loc) - cx(cam)) <= 1
+      && pen.y < mic.y && mic.y < cam.y && loc.y + loc.h <= pen.y && cam.x + cam.w >= 390 - 14 && cam.x + cam.w <= 390 - 10,
+      `ready NR9: camera, mic and note stacked at the right edge, Locate above (${JSON.stringify({ cam, mic, pen, loc })})`);
+
+    // NR4: the chevron goes back to the tab beneath, Explore after a launch.
+    await pg.click('[data-testid=ready-close]');
+    await pg.waitForTimeout(800);
+    check(pathOf(pg) === `${BASE}/` && (await selected(pg, 'explore')) && (await tabBarShown(pg)), `ready NR4: from Explore the chevron goes back to Explore (${pathOf(pg)})`);
+    // NR1 from Chronicle, then NR4 back to it, by the chevron and by the browser's back.
+    await tabTo(pg, 'chronicle');
+    await pg.waitForTimeout(600);
+    await tabTo(pg, 'navigate');
+    await pg.waitForSelector('[data-testid=ready-bar]');
+    await pg.waitForTimeout(600);
+    check(pathOf(pg) === `${BASE}/walk` && !(await tabBarShown(pg)), `ready NR1: from Chronicle, Navigate opens the ready screen (${pathOf(pg)})`);
+    await pg.click('[data-testid=ready-close]');
+    await pg.waitForTimeout(800);
+    const viaChevron = pathOf(pg);
+    await tabTo(pg, 'navigate');
+    await pg.waitForSelector('[data-testid=ready-bar]');
+    await pg.waitForTimeout(600);
+    await pg.goBack();
+    await pg.waitForTimeout(800);
+    check(viaChevron === `${BASE}/chronicle` && pathOf(pg) === `${BASE}/chronicle` && (await selected(pg, 'chronicle')),
+      `ready NR4: the chevron and the browser's back return to Chronicle (${viaChevron}, ${pathOf(pg)})`);
+
+    // NR3: a reload of /walk, or a link to /navigate, opens the ready screen (over Explore).
+    await pg.goto(`${url}walk`);
+    await pg.waitForSelector('[data-testid=ready-bar]');
+    const onWalk = pathOf(pg);
+    await pg.goto(`${url}navigate`);
+    await pg.waitForSelector('[data-testid=ready-bar]');
+    await pg.waitForTimeout(1500);
+    check(onWalk === `${BASE}/walk` && pathOf(pg) === `${BASE}/walk` && (await pg.locator('[data-testid=ready-bar]').isVisible()),
+      `ready NR3: a reload of /walk and a link to /navigate open the ready screen (${onWalk}, ${pathOf(pg)})`);
+
+    // NR8: a long press sets the destination, said in one line at rest.
+    check((await pg.locator('[data-testid=ready-dest]').count()) === 0, 'ready NR8: with no destination, no line');
+    {
+      const box = await pg.locator('canvas.maplibregl-canvas').boundingBox();
+      await pg.mouse.move(box.x + box.width / 2 - 60, box.y + box.height / 3);
+      await pg.mouse.down();
+      await pg.waitForTimeout(700);
+      await pg.mouse.up();
+      await pg.waitForSelector('[data-testid=ready-dest]', { timeout: 5000 }).catch(() => {});
+    }
+    const destText = await pg.locator('[data-testid=ready-dest]').innerText().catch(() => '');
+    check(/^To Your spot · \d+ m away$/.test(destText), `ready NR8: a long press puts the destination on the resting bar (${destText})`);
+
+    // NR7: pull the bar up for the settings; Start stays at its foot.
+    const startRest = await boxOf(pg, 'start');
+    const barRest = await boxOf(pg, 'ready-bar');
+    {
+      const g = await pg.locator('[data-testid=ready-grip]').boundingBox();
+      await pg.mouse.move(g.x + g.width / 2, g.y + g.height / 2);
+      await pg.mouse.down();
+      await pg.mouse.move(g.x + g.width / 2, 120, { steps: 8 });
+      await pg.mouse.up();
+      await pg.waitForTimeout(900);
+    }
+    const startUp = await boxOf(pg, 'start');
+    const barUp = await boxOf(pg, 'ready-bar');
+    check((await pg.locator('[data-testid=start-settings]').isVisible()) && (await pg.locator('[data-testid=mode-quiet]').isVisible()) && same(startRest, startUp) && barUp.h > barRest.h + 300,
+      `ready NR7: a pull on the grip raises the settings, Start where it was (${JSON.stringify({ startRest, startUp, barRest: barRest.h, barUp: barUp.h })})`);
+    await pg.click('[data-testid=mode-explore]');
+    await pg.waitForTimeout(600);
+    const ring = await pg.locator('[data-ring]').last().getAttribute('data-ring').catch(() => null);
+    check(!!ring && ring !== '', `ready NR7: in Explore, the range ring shows while the settings are up (${ring})`);
+    await pg.click('[data-testid=dest-clear]');
+    await pg.waitForTimeout(300);
+    await pg.keyboard.press('Escape');
+    await pg.waitForFunction(() => !document.querySelector('[data-testid=start-settings]'), null, { timeout: 4000 }).catch(() => {});
+    {
+      const left = { settings: await pg.locator('[data-testid=start-settings]').count(), dest: await pg.locator('[data-testid=ready-dest]').count(), bar: await boxOf(pg, 'ready-bar') };
+      check(left.settings === 0 && left.dest === 0 && same(left.bar, barRest),
+        `ready NR7, NR8: Escape lowers the bar; Clear took the destination line with it (${JSON.stringify(left)})`);
+    }
+    check((await metaOf(pg, 'start_mode')) === 'explore', 'ready NR7: the mode saved as it changed (NV22)');
+    // A tap on the numbers raises it too; back to Quiet for the walk below.
+    await pg.click('[data-testid=walk-stats]');
+    await pg.waitForTimeout(1200);
+    const tapped = await pg.locator('[data-testid=start-settings]').isVisible();
+    await pg.click('[data-testid=mode-quiet]');
+    await pg.click('[data-testid=ready-grip]');
+    await pg.waitForFunction(() => !document.querySelector('[data-testid=start-settings]'), null, { timeout: 4000 }).catch(() => {});
+    {
+      const left = await pg.locator('[data-testid=start-settings]').count();
+      check(tapped && left === 0, `ready NR7: a tap on the bar raises the settings, a tap on the grip lowers them (raised ${tapped}, left ${left})`);
+    }
+
+    // NR10: a memo in the stack; Start waits; the chevron saves it.
+    await pg.click('[data-testid=moment-voice]');
+    await pg.waitForSelector('[data-testid=moment-voice-save]', { timeout: 10000 });
+    await pg.waitForTimeout(1400);
+    const save = await boxOf(pg, 'moment-voice-save');
+    const discard = await boxOf(pg, 'moment-voice-discard');
+    const timer = await boxOf(pg, 'voice-timer');
+    check(same(save, mic) && discard && Math.abs(cx(discard) - cx(cam)) <= 1 && Math.abs(discard.y + discard.h / 2 - (cam.y + cam.h / 2)) <= 1
+      && timer && timer.x + timer.w <= save.x && (await pg.locator('[data-testid=start][aria-disabled=true]').count()) === 1,
+      `ready NR10: Save in the mic's slot, Discard in the camera's, the timer beside, Start disabled (${JSON.stringify({ save, mic, discard, timer })})`);
+    const voicesBefore = (await rows(pg)).filter((r) => r.kind === 'voice').length;
+    await pg.click('[data-testid=ready-close]');
+    await pg.waitForTimeout(1500);
+    const voicesAfter = (await rows(pg)).filter((r) => r.kind === 'voice').length;
+    check(voicesAfter === voicesBefore + 1 && pathOf(pg) === `${BASE}/`, `ready NR10: the chevron mid-memo closes and keeps the memo (${voicesBefore} → ${voicesAfter})`);
+    await tabTo(pg, 'navigate');
+    await pg.waitForSelector('[data-testid=ready-bar]');
+    await pg.waitForTimeout(1200);
+
+    // A moment before Start (NR9).
+    await pg.click('[data-testid=moment-note]');
+    await pg.fill('[data-testid=moment-note-input]', 'Before the walk');
+    await pg.click('[data-testid=moment-note-save]');
+    await pg.waitForTimeout(800);
+
+    // NR5, NR6: Start records in place.
+    const before = { cam: await boxOf(pg, 'moment-photo'), mic: await boxOf(pg, 'moment-voice'), pen: await boxOf(pg, 'moment-note'), chev: await boxOf(pg, 'ready-close'), start: await boxOf(pg, 'start'), bar: await boxOf(pg, 'ready-bar'), loc: await boxOf(pg, 'locate') };
+    // One screen and one map across Start (the owner, Nov 3): the canvas is marked, and must be the same one after.
+    await pg.evaluate(() => { document.querySelector('canvas.maplibregl-canvas').__readyMark = 1; });
+    await pg.evaluate(() => { window.__navs = 0; window.addEventListener('popstate', () => window.__navs++); const p = history.pushState; history.pushState = function (...a) { window.__navs++; return p.apply(this, a); }; });
+    await pg.click('[data-testid=start]');
+    await pg.waitForSelector('[data-testid=stop]', { timeout: 15000 });
+    await pg.waitForTimeout(600);
+    const after = { cam: await boxOf(pg, 'cap-photo'), mic: await boxOf(pg, 'cap-voice'), pen: await boxOf(pg, 'cap-note'), chev: await boxOf(pg, 'walk-minimize'), stop: await boxOf(pg, 'stop') };
+    const notice = (await pg.locator('[data-testid=lift-in]').allInnerTexts()).join(' | ');
+    check(pathOf(pg) === `${BASE}/walk` && (await pg.evaluate(() => window.__navs)) === 0 && same(before.cam, after.cam) && same(before.mic, after.mic) && same(before.pen, after.pen) && same(before.chev, after.chev),
+      `ready NR6: Start records in place; the stack and the chevron don't move (${JSON.stringify({ before, after })})`);
+    check(Math.abs(before.start.x + before.start.w - (after.stop.x + after.stop.w)) <= 2 && Math.abs(before.start.y + before.start.h / 2 - (after.stop.y + after.stop.h / 2)) <= 2,
+      `ready NR5: Start sits in the strip where Stop sits (${JSON.stringify({ start: before.start, stop: after.stop })})`);
+    check(/Walk started · recording/.test(notice), `ready NR6: the notice says the walk is recording (${notice})`);
+    {
+      const sameMap = await pg.evaluate(() => { const cs = [...document.querySelectorAll('canvas.maplibregl-canvas')]; return cs.length === 1 && cs[0].__readyMark === 1; });
+      check(sameMap, 'ready NR6, navigate-ready audit 2: one screen, one map: the map shown before Start is the same one recording after it, never rebuilt');
+    }
+    await pg.waitForTimeout(2200);
+    check(!/^0:00/.test(await stats(pg)), `ready NR6: the time ticks (${await stats(pg)})`);
+    // NR9: a note now belongs to the walk; the one before it is a moment.
+    await pg.click('[data-testid=cap-note]');
+    await pg.fill('[data-testid=note-input]', 'On the walk');
+    await pg.click('[data-testid=note-save]');
+    await pg.waitForTimeout(800);
+    {
+      const w = await openWalk(pg);
+      const all = await rows(pg);
+      const pre = all.find((r) => r.body === 'Before the walk');
+      const on = all.find((r) => r.body === 'On the walk');
+      check(!!w && pre && pre.walk_id == null && on && on.walk_id === w.id, `ready NR9: before Start a moment, after it the walk's (${pre?.walk_id}, ${on?.walk_id})`);
+    }
+
+    // NR2, NR4: minimize to the tab beneath; Navigate opens that walk again.
+    await pg.click('[data-testid=walk-minimize]');
+    await pg.waitForTimeout(800);
+    const minimizedTo = pathOf(pg);
+    const bar = await pg.locator('[data-testid=recording-bar]').count();
+    await tabTo(pg, 'navigate');
+    await pg.waitForSelector('[data-testid=stop]', { timeout: 10000 });
+    await pg.waitForTimeout(600);
+    check(minimizedTo === `${BASE}/` && bar === 1 && (await pg.locator('[data-testid=ready-bar]').count()) === 0 && !/^0:00/.test(await stats(pg)),
+      `ready NR2, NR4: minimized to Explore with the recording bar; Navigate opens that walk (${minimizedTo}, bar ${bar})`);
+    check((await pg.locator('canvas.maplibregl-canvas').count()) === 1, 'ready NR12: one map during the walk');
+    await c.close();
+
+    // NR11: nothing overlaps on a small phone, ready and walking with every edge button up.
+    {
+      const small = await browser.newContext({ viewport: { width: 375, height: 667 }, permissions: ['geolocation'], geolocation: { longitude: start[0], latitude: start[1], accuracy: 6 } });
+      await metricRegion(small);
+      await small.route('https://tiles.openfreemap.org/**', tileRoute);
+      const sp = await small.newPage();
+      sp.on('pageerror', (e) => errors.push(`ready-small: ${e}`));
+      const layout = async (ids) => {
+        const boxes = {};
+        for (const id of ids) boxes[id] = await boxOf(sp, id);
+        const scale = await sp.locator('[data-testid=scale-bar]').first().boundingBox().catch(() => null);
+        if (scale) boxes['scale-bar'] = { x: Math.round(scale.x), y: Math.round(scale.y), w: Math.round(scale.width), h: Math.round(scale.height) };
+        const bad = [];
+        const list = Object.entries(boxes);
+        for (const [id, b] of list) {
+          if (!b) { bad.push(`${id} missing`); continue; }
+          if (b.x < 0 || b.y < 0 || b.x + b.w > 375 || b.y + b.h > 667) bad.push(`${id} off screen`);
+          if (id !== 'scale-bar' && (b.w < 44 || b.h < 44)) bad.push(`${id} under 44`);
+        }
+        for (let i = 0; i < list.length; i++)
+          for (let j = i + 1; j < list.length; j++) {
+            const [ia, a] = list[i];
+            const [ib, b] = list[j];
+            if (a && b && a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h) bad.push(`${ia} × ${ib}`);
+          }
+        return bad;
+      };
+      await sp.goto(`${url}navigate`);
+      await sp.waitForSelector('[data-testid=start]');
+      await sp.waitForTimeout(1500);
+      const readyBad = await layout(['ready-close', 'locate', 'moment-photo', 'moment-voice', 'moment-note', 'start']);
+      check(readyBad.length === 0, `ready NR11: at 375×667 the ready screen's buttons are on screen, 44 or more, apart (${readyBad.join(', ')})`);
+      await sp.click('[data-testid=start]');
+      await sp.waitForSelector('[data-testid=stop]', { timeout: 15000 });
+      // A first fix for the walk, as the main flow gives it; then 70 m east at a walker's pace so Walk me
+      // back shows, then a pan so Recenter does.
+      await small.setGeolocation({ longitude: start[0], latitude: start[1] + 0.000002, accuracy: 6 });
+      await sp.waitForTimeout(2500);
+      for (let i = 1; i <= 14; i++) {
+        await small.setGeolocation({ longitude: start[0] + i * 0.05 * dLon, latitude: start[1], accuracy: 6 });
+        await sp.waitForTimeout(1000);
+      }
+      await sp.waitForSelector('[data-testid=walk-back]', { timeout: 10000 }).catch(() => {});
+      {
+        const box = await sp.locator('canvas.maplibregl-canvas').boundingBox();
+        await sp.mouse.move(box.x + 80, box.y + 200);
+        await sp.mouse.down();
+        await sp.mouse.move(box.x + 160, box.y + 260, { steps: 6 });
+        await sp.mouse.up();
+        await sp.waitForTimeout(600);
+      }
+      await shot(sp, 'ready-nr11-walk');
+      const walkBad = await layout(['walk-minimize', 'unwalked', 'walk-back', 'recenter', 'cap-photo', 'cap-voice', 'cap-note', 'walk-options', 'pause-walk', 'stop']);
+      check(walkBad.length === 0, `ready NR11: at 375×667 the walk's buttons, with every edge button up, are on screen, 44 or more, apart (${walkBad.join(', ')}; ${await stats(sp)})`);
+      await small.close();
+    }
+
+    // NR13: the notices on the ready screen: the web's one-time note, and a denied location's.
+    {
+      const { c: c2, pg: pg2 } = await freshPage('ready-notes', { permissions: [] });
+      await pg2.goto(`${url}navigate`);
+      await pg2.waitForSelector('[data-testid=ready-bar]');
+      await pg2.waitForTimeout(1200);
+      const texts = (await pg2.locator('[data-testid=lift-in]').allInnerTexts()).join(' | ');
+      check(/a walk is traced while this page is open/.test(texts), `ready NR13: the web's note shows on the first ready screen (${texts})`);
+      await pg2.locator('[data-testid=locate]').filter({ visible: true }).first().click();
+      await pg2.waitForTimeout(1500);
+      const denied = (await pg2.locator('[data-testid=lift-in]').allInnerTexts()).join(' | ');
+      check(/Location permission was denied|location/i.test(denied) && (await pg2.locator('[data-testid=ready-bar]').count()) === 1,
+        `ready NR13: a denied location says so on the ready screen (${denied})`);
+      // M2 on the ready screen: a moment with no fix is kept and says so.
+      await pg2.click('[data-testid=moment-note]');
+      await pg2.fill('[data-testid=moment-note-input]', 'No fix here');
+      await pg2.click('[data-testid=moment-note-save]');
+      check(await pg2.waitForSelector('text=/No location/', { timeout: 20000 }).then(() => true, () => false), 'ready M2: a moment with no fix is kept and says "No location"');
+      await c2.close();
+    }
+  };
+
+  // The Navigate, ready audit (2026-11-03): each accepted finding's regression check, `navigate-ready audit N`.
+  const readyAudit = async () => {
+    const box = async (pg, id) => {
+      const b = await pg.locator(`[data-testid=${id}]`).filter({ visible: true }).first().boundingBox({ timeout: 3000 }).catch(() => null);
+      return b && { x: b.x, y: b.y, w: b.width, h: b.height };
+    };
+    const meets = (a, b) => !!a && !!b && a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+    const settled = (pg) => pg.waitForFunction(() => !document.querySelector('[data-testid=start-settings]'), null, { timeout: 4000 }).catch(() => {});
+    const raise = async (pg) => {
+      const g = await pg.locator('[data-testid=ready-grip]').boundingBox();
+      await pg.mouse.move(g.x + g.width / 2, g.y + g.height / 2);
+      await pg.mouse.down();
+      await pg.mouse.move(g.x + g.width / 2, 120, { steps: 8 });
+      await pg.mouse.up();
+      await pg.waitForTimeout(1200);
+    };
+    const { c, pg } = await freshPage('ready-audit', { permissions: ['geolocation', 'microphone'] });
+    await c.addInitScript(() => { window.__perf = {}; });
+    await pg.goto(`${url}navigate`);
+    await pg.waitForSelector('[data-testid=start]');
+    await pg.waitForTimeout(1500);
+
+    // audit 1: with the bar up in Explore, the ring is on the map left above the bar, not under it.
+    await raise(pg);
+    await pg.click('[data-testid=mode-explore]');
+    await pg.waitForTimeout(1500);
+    {
+      const walker = ((await pg.locator('[data-walker]').last().getAttribute('data-walker')) || '').split(',').map(Number);
+      const [x, y] = walker.length === 2 ? await pg.evaluate((p) => window.__project(p), walker) : [NaN, NaN];
+      const bar = await box(pg, 'ready-bar');
+      check(Number.isFinite(y) && bar && y < bar.y && y > 0, `navigate-ready audit 1: with the bar up in Explore, the ring's centre is on the map above the bar (centre y ${Math.round(y)}, bar top ${bar && Math.round(bar.y)})`);
+      void x;
+    }
+    await pg.click('[data-testid=mode-quiet]');
+    await pg.keyboard.press('Escape');
+    await settled(pg);
+
+    // audit 6: the bar is a button a keyboard reaches; its name carries the numbers and the destination.
+    {
+      const m = await pg.locator('canvas.maplibregl-canvas').boundingBox();
+      await pg.mouse.move(m.x + m.width / 2 - 60, m.y + m.height / 3);
+      await pg.mouse.down();
+      await pg.waitForTimeout(700);
+      await pg.mouse.up();
+      await pg.waitForSelector('[data-testid=ready-dest]', { timeout: 5000 }).catch(() => {});
+      const summary = pg.locator('[data-testid=ready-summary]');
+      const name = (await summary.getAttribute('aria-label', { timeout: 3000 }).catch(() => '')) ?? '';
+      await summary.focus({ timeout: 3000 }).catch(() => {});
+      await pg.keyboard.press('Enter');
+      await pg.waitForTimeout(1200);
+      const raised = await pg.locator('[data-testid=start-settings]').isVisible().catch(() => false);
+      check(raised && /0:00/.test(name) && /To Your spot/.test(name), `navigate-ready audit 6: Enter on the bar raises the settings, and its name says the numbers and where to (${raised}, "${name}")`);
+      if (raised) {
+        await pg.click('[data-testid=dest-clear]');
+        await pg.keyboard.press('Escape');
+        await settled(pg);
+      }
+    }
+
+    // audit 4: a drag up mid-memo is refused, and the bar is back at rest, never left part-way over Save.
+    {
+      const rest = await box(pg, 'ready-bar');
+      await pg.click('[data-testid=moment-voice]');
+      await pg.waitForSelector('[data-testid=moment-voice-save]', { timeout: 10000 });
+      await pg.waitForTimeout(1200);
+      await raise(pg);
+      const after = await box(pg, 'ready-bar');
+      check(rest && after && Math.abs(after.h - rest.h) <= 1 && (await pg.locator('[data-testid=moment-voice-save]').isVisible()),
+        `navigate-ready audit 4: a drag up mid-memo leaves the bar at rest, Save uncovered (${rest && Math.round(rest.h)} → ${after && Math.round(after.h)})`);
+      await pg.click('[data-testid=moment-voice-save]');
+      await pg.waitForTimeout(800);
+    }
+
+    // audit 5: the walk's options card leaves the stack's column free.
+    await pg.click('[data-testid=start]');
+    await pg.waitForSelector('[data-testid=stop]', { timeout: 15000 });
+    await pg.waitForTimeout(800);
+    await pg.click('[data-testid=walk-options]');
+    await pg.waitForSelector('[data-testid=options-card]');
+    {
+      const card = await box(pg, 'options-card');
+      const hit = [];
+      for (const id of ['cap-photo', 'cap-voice', 'cap-note', 'unwalked']) if (meets(card, await box(pg, id))) hit.push(id);
+      check(hit.length === 0, `navigate-ready audit 5: the options card covers none of the stack or the edge buttons (${hit.join(', ')})`);
+    }
+    await pg.click('[data-testid=walk-options]');
+    await pg.waitForTimeout(400);
+
+    // audit 11: a pill (a memo discarded, with Undo) clears the scale bar at 375 wide.
+    {
+      await pg.setViewportSize({ width: 375, height: 667 });
+      await pg.waitForTimeout(800);
+      await pg.click('[data-testid=cap-voice]');
+      await pg.waitForSelector('[data-testid=voice-save]', { timeout: 10000 });
+      await pg.waitForTimeout(1200);
+      await pg.click('[data-testid=voice-discard]');
+      await pg.waitForSelector('[data-testid=voice-undo]', { timeout: 5000 });
+      const scale = await pg.locator('[data-testid=scale-bar]').last().boundingBox().catch(() => null);
+      const pill = await pg.locator('[data-testid=voice-undo]').evaluate((e) => { const r = e.parentElement.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; });
+      check(scale && !meets(pill, { x: scale.x, y: scale.y, w: scale.width, h: scale.height }) && pill.x >= 0,
+        `navigate-ready audit 11: at 375 wide a pill clears the scale bar and the screen's edge (${JSON.stringify({ pill, scale })})`);
+      await pg.click('[data-testid=voice-undo]').catch(() => {});
+      await pg.setViewportSize({ width: 390, height: 844 });
+    }
+    await c.close();
+
+    // audit 7: from a link to /navigate, the chevron then the browser's back never reopens Navigate.
+    {
+      const { c: c2, pg: pg2 } = await freshPage('ready-audit-back');
+      await pg2.goto(`${url}navigate`);
+      await pg2.waitForSelector('[data-testid=ready-bar]');
+      await pg2.waitForTimeout(1200);
+      await pg2.click('[data-testid=ready-close]');
+      await pg2.waitForTimeout(800);
+      await pg2.goBack().catch(() => {});
+      await pg2.waitForTimeout(1500);
+      const reopened = await pg2.locator('[data-testid=ready-bar]').count();
+      check(reopened === 0, `navigate-ready audit 7: from a link to /navigate, the chevron then Back doesn't reopen Navigate (${new URL(pg2.url()).pathname}, ${reopened})`);
+      await c2.close();
+    }
+  };
+
   // The hidden-page notice (Nov 3, after it popped up with the page on screen): a gap over a
   // minute between fixes says "paused while this page was hidden" only if the page really was.
   // Fixes and the page's clock jump ahead (`__shift`) to make a 70 s gap in a few seconds, and the
@@ -1676,6 +2054,12 @@ function check(ok, what) {
   };
 
   try {
+    if (process.env.E2E_ONLY === 'ready') {
+      await readyScenario();
+      await readyAudit();
+      check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
+      return;
+    }
     if (process.env.E2E_ONLY === 'hidden') {
       await hiddenScenario();
       check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
@@ -1741,17 +2125,23 @@ function check(ok, what) {
     check(tabs.join(',') === 'tab-explore:Explore:true,tab-navigate:Navigate:true,tab-chronicle:Chronicle:true', `a bottom bar with Explore, Navigate and Chronicle, in that order, each with an icon and a label (NV1: ${tabs.join(', ')})`);
     // Each tab at its own path, with one live map (NV4, NV5); Chronicle is review only (NV11).
     const onTab = async (id) => {
+      // The ready screen covers the tabs: its chevron goes back to them first (NR4).
+      if (id !== 'navigate' && (await page.locator('[data-testid=ready-close]').count())) {
+        await page.click('[data-testid=ready-close]');
+        await page.waitForTimeout(600);
+      }
       await page.click(`[data-testid=tab-${id}]`);
       await page.waitForTimeout(800);
       return { path: new URL(page.url()).pathname.slice(BASE.length), canvases: await page.locator('canvas.maplibregl-canvas').count() };
     };
     const nv = await onTab('navigate');
     await page.waitForSelector('[data-testid=start]');
-    check(nv.path === '/navigate' && (await page.locator('canvas.maplibregl-canvas').count()) === 1 && (await page.locator('[data-testid=start]').count()) === 1,
-      `Navigate at /navigate, on the map with Start (NV4, NV5: ${JSON.stringify(nv)})`);
-    check((await page.locator('[data-testid=start-explore]').count()) === 0 && (await page.locator('[data-testid=peek-choices]').innerText()) === 'Quiet',
-      'Start alone at the peek, with the mode: Quiet the first time (NV19, NV22)');
-    check((await page.locator('[data-testid=moment-photo]').count()) === 1 && (await page.locator('[data-testid=moment-note]').isVisible()), 'Navigate has the quick-capture row, outside the drawer (NV18, NV19)');
+    check(nv.path === '/walk' && (await page.locator('[data-testid=ready-bar]').count()) === 1 && !(await tabBarShown(page))
+      && (await page.locator('canvas.maplibregl-canvas').count()) === 1 && (await page.locator('[data-testid=start]').count()) === 1,
+      `Navigate opens the ready walk screen, no tab bar, one map with Start (NR1, NV4: ${JSON.stringify(nv)})`);
+    check((await page.locator('[data-testid=start-explore]').count()) === 0 && (await page.locator('[data-testid=ready-dest]').count()) === 0,
+      'Start alone in the bar, with no destination line (NV19, NR5, NR8)');
+    check((await page.locator('[data-testid=moment-photo]').count()) === 1 && (await page.locator('[data-testid=moment-note]').isVisible()), 'Navigate has quick capture, outside the bar (NV18, NR9)');
     await page.waitForTimeout(1500);
     const ex = await onTab('explore');
     check(ex.path === '/' && ex.canvases === 1, `Explore at /, one live map (NV4, NV5: ${JSON.stringify(ex)})`);
@@ -1785,21 +2175,21 @@ function check(ok, what) {
     });
     check(sw && sw.active && sw.scope.endsWith(`${BASE}/`), `the service worker is active at the base path (${JSON.stringify(sw)})`);
 
-    // The pre-start drawer and its dialog (NV19-NV24, Nov 3): the choices, each saved as it changes.
+    // The ready bar pulled up (NR7, NV20-NV24): the choices, each saved as it changes.
     await onTab('navigate');
-    await page.waitForSelector('[data-testid=start]');
-    const drawerH = async () => Math.round((await page.locator('[data-testid=navigate-drawer]').boundingBox()).height);
-    const peekH = await drawerH();
+    await page.waitForSelector('[data-testid=ready-bar]');
+    const barH = async () => Math.round((await page.locator('[data-testid=ready-bar]').boundingBox()).height);
+    const peekH = await barH();
     await drawerTo(page, 'half');
     check((await page.locator('[data-testid=mode-quiet][aria-checked=true]').count()) === 1 && (await page.locator('[data-testid=mode-explore]').count()) === 1
-      && /Long-press the map/.test(await page.locator('[data-testid=start-dialog]').innerText()) && (await page.locator('[data-testid=kind-churches]').count()) === 0
+      && /Long-press the map/.test(await page.locator('[data-testid=start-settings]').innerText()) && (await page.locator('[data-testid=kind-churches]').count()) === 0
       && (await page.locator('[data-testid=notify-settings]').count()) === 1,
-      'in the dialog: the mode, Quiet | Explore, the destination with its hint, reminders and alerts; no kinds with Quiet (NV20, NV21)');
-    // The drawer keeps its height while another tab is in front (NV3).
-    await drawerTo(page, 'peek');
+      'pulled up: the mode, Quiet | Explore (Quiet the first time), the destination with its hint, reminders and alerts; no kinds with Quiet (NV20-NV22, NR7)');
+    // The bar opens at rest each time Navigate opens (NR5).
     await onTab('chronicle');
     await onTab('navigate');
-    check((await drawerH()) === peekH, `the drawer keeps its height across tabs (NV3: ${peekH} px)`);
+    await page.waitForSelector('[data-testid=ready-bar]');
+    check((await barH()) === peekH && (await page.locator('[data-testid=start-settings]').count()) === 0, `the bar opens at rest each time (NR5: ${peekH} px)`);
     // Settings: a switch per kind, both on; the test notification is a real one (NT4, NT6).
     await drawerTo(page, 'half');
     const isOn = (id) => page.locator(`[data-testid=${id}] input`).isChecked();
@@ -1813,7 +2203,6 @@ function check(ok, what) {
     // A kind switched off stays off: saved as it changes, with no Done (NT4, NV22).
     await page.click('[data-testid=notify-pause]');
     await drawerTo(page, 'peek');
-    await drawerTo(page, 'half');
     await drawerTo(page, 'full');
     check((await isOn('notify-recall')) && !(await isOn('notify-pause')), 'a notification kind switched off stays off');
     await page.click('[data-testid=notify-pause]');
@@ -1832,28 +2221,30 @@ function check(ok, what) {
     check((await metaOf(page, 'start_mode')) === 'explore' && (await metaOf(page, 'explore_range')) === '100', 'the mode and the range are saved as they change (NV22)');
     await drawerTo(page, 'peek');
     await page.waitForTimeout(300);
-    check((await ringNow()) === '' && (await page.locator('[data-testid=peek-choices]').innerText()) === 'Explore', 'the ring goes with the drawer down; the peek shows the mode');
+    check((await ringNow()) === '', 'the ring goes with the bar down (NR7)');
     // The mode opens on the last one picked (NV22).
     await page.reload();
-    await page.waitForSelector('[data-testid=peek-choices]');
-    await page.waitForFunction(() => document.querySelector('[data-testid=peek-choices]')?.textContent === 'Explore', null, { timeout: 5000 }).catch(() => {});
-    check((await page.locator('[data-testid=peek-choices]').innerText()) === 'Explore', 'after a reload the drawer opens on the last mode picked (NV22)');
+    await page.waitForSelector('[data-testid=ready-bar]');
+    await page.waitForTimeout(800);
+    await drawerTo(page, 'half');
+    check((await page.locator('[data-testid=mode-explore][aria-checked=true]').count()) === 1, 'after a reload the settings open on the last mode picked (NV22)');
+    await drawerTo(page, 'peek');
     // A long press on Navigate's map sets the destination, with its ring (NV23); Clear takes it away.
     {
       // After the reload, the map frames itself around the first fix: press once it has.
       await page.waitForTimeout(1500);
       const box = await page.locator('canvas.maplibregl-canvas').boundingBox();
-      await page.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 3);
+      await page.mouse.move(box.x + box.width / 2 - 60, box.y + box.height / 3);
       await page.mouse.down();
       await page.waitForTimeout(700);
       await page.mouse.up();
-      await page.waitForFunction(() => /Your spot/.test(document.querySelector('[data-testid=peek-choices]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
-      const line = await page.locator('[data-testid=peek-choices]').innerText();
-      check(/^Explore · Your spot · \d+ m away$/.test(line), `a long press on Navigate's map sets the destination, shown at the peek with its distance (NV19, NV23: ${line})`);
+      await page.waitForSelector('[data-testid=ready-dest]', { timeout: 5000 }).catch(() => {});
+      const line = await page.locator('[data-testid=ready-dest]').innerText().catch(() => '');
+      check(/^To Your spot · \d+ m away$/.test(line), `a long press on Navigate's map sets the destination, said on the bar with its distance (NV23, NR8: ${line})`);
       check(JSON.parse(await metaOf(page, 'nav')).walk_id === null, 'the destination is kept in meta nav, for no walk yet (NV22)');
       await shot(page, '00b-drawer-dest');
       await drawerTo(page, 'half');
-      check(/Your spot · \d+ m away/.test(await page.locator('[data-testid=drawer-dest]').innerText()), 'at half, the destination with its straight-line distance and Clear (NV20)');
+      check(/Your spot · \d+ m away/.test(await page.locator('[data-testid=drawer-dest]').innerText()), 'pulled up, the destination with its straight-line distance and Clear (NV20)');
       await page.click('[data-testid=dest-clear]');
       await page.click('[data-testid=mode-quiet]');
       await page.waitForTimeout(300);
@@ -1863,10 +2254,10 @@ function check(ok, what) {
     await shot(page, '00-home-empty');
     const held = await pressedScale(page, '[data-testid=start]');
     check(held.scale > 0.95 && held.scale < 0.99 && held.after === 1, `a large button presses down while held, and springs back (M4: ${held.scale.toFixed(3)} → ${held.after})`);
-    // Start at the peek starts at once, with no drawer opened (NV19, NV25).
+    // Start starts at once, in place (NV19, NV25, NR6).
     await page.click('[data-testid=start]');
     await page.waitForSelector('[data-testid=stop]');
-    check(new URL(page.url()).pathname === `${BASE}/walk` && !(await tabBarShown(page)), 'Start opens the walk over the tabs, the tab bar hidden (NV6, NV25)');
+    check(new URL(page.url()).pathname === `${BASE}/walk` && !(await tabBarShown(page)), 'Start records on the walk screen over the tabs, the tab bar hidden (NV6, NV25, NR6)');
     // A fresh fix, as a phone's GPS gives one: the emulated position is otherwise re-sent with the time it was
     // read on Navigate, and a fix from before the walk began is dropped as stale (MAX_STALE_MS).
     await ctx.setGeolocation({ longitude: start[0], latitude: start[1] + 0.000002, accuracy: 6 });
@@ -2009,6 +2400,16 @@ function check(ok, what) {
       if (k === 8) {
         // 75 m from the memorial: inside the 100 m range, a "?" that doesn't say what it is (E6).
         check((await walkMarks().count()) === 1 && (await page.locator('[aria-label="A place to find. Open"]').count()) === 1, 'a "?" shows for a place within range, and only that one');
+      }
+      if (k === 18 || k === 32) {
+        // The cone as drawn points the way the walk goes: east on the first leg, north on the second
+        // (heading 5; the owner walked north and the cone said east, Nov 3). Read a few fixes after the
+        // steps that stop for a capture: the dot holds while fixes come late, and the cone hides with it.
+        const cone = await page.locator('[data-testid=walker-puck] [data-cone]').evaluate((el) => ({ shown: el.style.display !== 'none', t: el.style.transform }));
+        const deg = Number(/rotate\(([-\d.]+)deg\)/.exec(cone.t)?.[1]);
+        const want = k === 18 ? 90 : 0;
+        const off = Math.abs((((deg - want) % 360) + 540) % 360 - 180);
+        check(cone.shown && off <= 20, `heading 5: the cone points ${k === 18 ? 'east' : 'north'} as the walk goes (${cone.shown ? cone.t : 'hidden'})`);
       }
       if (k >= 16 && k <= 20) {
         // The dot moves on every fix, not every 2 s with the trace (the live dot, Nov 1).
@@ -2228,7 +2629,7 @@ function check(ok, what) {
         // This window is busy with taps (memos, a video, a note, a long press); steady walking is about
         // 1.4 renders a second (scripts/perf-walk.js). Before the fixes it was 3.7 here.
         check(rate('render:walk') <= 2.5 && rate('setData:cone') <= 1.05 && rate('setData:trace') <= 0.6,
-          `walking stays within its render budget (walk ${rate('render:walk').toFixed(2)}/s, cone ${rate('setData:cone').toFixed(2)}/s, trace ${rate('setData:trace').toFixed(2)}/s)`);
+          `walking stays within its render budget, FC10 (walk ${rate('render:walk').toFixed(2)}/s, cone ${rate('setData:cone').toFixed(2)}/s, trace ${rate('setData:trace').toFixed(2)}/s)`);
         check(leak1.bodyDivs - leak0.bodyDivs <= 3 && leak1.listeners - leak0.listeners < 2000,
           `walking leaks no portals or listeners (body ${leak0.bodyDivs} → ${leak1.bodyDivs}, listeners ${leak0.listeners} → ${leak1.listeners}, nodes ${leak0.nodes} → ${leak1.nodes})`);
       }
@@ -2686,11 +3087,11 @@ function check(ok, what) {
     const starAfter = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
     check(Math.abs(starAfter.x - starBefore.x) < 3 && Math.abs(starAfter.y - starBefore.y) < 3, `the map kept its view across the replay (${Math.round(starBefore.x)},${Math.round(starBefore.y)} → ${Math.round(starAfter.x)},${Math.round(starAfter.y)})`);
     // And across the tabs: Chronicle's map is taken down while Navigate is in front, and comes back where it was (NV3, NV4).
-    await page.click('[data-testid=tab-navigate]');
+    await tabTo(page, 'navigate');
     await page.waitForSelector('[data-testid=start]');
     await page.waitForTimeout(800);
     check((await page.locator('canvas.maplibregl-canvas').count()) === 1, 'one live map on Navigate after a walk (NV4)');
-    await page.click('[data-testid=tab-chronicle]');
+    await tabTo(page, 'chronicle');
     await page.waitForTimeout(1200);
     const starTabs = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
     check((await page.locator('canvas.maplibregl-canvas').count()) === 1 && Math.abs(starTabs.x - starBefore.x) < 3 && Math.abs(starTabs.y - starBefore.y) < 3 && (await page.locator('[data-testid=walk-row]').count()) === 1,
@@ -2710,11 +3111,11 @@ function check(ok, what) {
       check(!stillEnters.some((e) => e.animated), `with reduce motion on, a selected star doesn't move (M2, M9: ${JSON.stringify(stillEnters)})`);
       await still.keyboard.press('Escape');
       await still.waitForTimeout(400);
-      await still.click('[data-testid=tab-navigate]');
+      await tabTo(still, 'navigate');
       await still.waitForSelector('[data-testid=start]');
       await still.waitForTimeout(800);
       const flat = await pressedScale(still, '[data-testid=start]');
-      await still.click('[data-testid=tab-chronicle]');
+      await tabTo(still, 'chronicle');
       await still.waitForTimeout(400);
       const peek = (await still.locator('[data-testid=home-sheet]').boundingBox()).height;
       await still.click('[data-testid=sheet-walks]');
@@ -2724,59 +3125,61 @@ function check(ok, what) {
         `with reduce motion on, nothing moves, the press still shows, and the sheet snaps open (M2, audit 4: scale ${flat.scale}, opacity ${flat.opacity}, ${Math.round(peek)} → ${Math.round(open)} px in 60 ms)`);
       await still.close();
     }
-    // A spring cut short by a drag still reports where the sheet ended (audit 2): the capture row sits on
-    // Navigate's peeking drawer, as Start did on the home's sheet. Touch, as on a phone: in a browser a mouse
+    // A spring cut short by a drag still settles (audit 2), now on the ready bar (NR7): it ends at rest, the
+    // settings unmount, and the capture stack never moves with it. Touch, as on a phone: in a browser a mouse
     // drag on a moving element is cancelled.
-    const rowGap = async (pg) => {
-      const top = (await pg.locator('[data-testid=navigate-drawer]').boundingBox()).y;
-      const cam = await pg.locator('[data-testid=moment-photo]').boundingBox({ timeout: 3000 }).catch(() => null);
-      return cam ? Math.round(top - (cam.y + cam.height)) : null;
-    };
+    const barState = async (pg) => ({
+      h: Math.round((await pg.locator('[data-testid=ready-bar]').boundingBox()).height),
+      settings: await pg.locator('[data-testid=start-settings]').count(),
+      cam: await pg.locator('[data-testid=moment-photo]').filter({ visible: true }).first().boundingBox({ timeout: 3000 }).then((b) => b && Math.round(b.y), () => null),
+    });
     {
       const springy = await ctx.newPage();
       springy.on('pageerror', (e) => errors.push(String(e)));
       await springy.goto(navUrl);
       await springy.waitForSelector('[data-testid=start]');
       await springy.waitForTimeout(800);
-      const rest = await rowGap(springy);
+      const rest = await barState(springy);
       await drawerTo(springy, 'half');
       await springy.keyboard.press('Escape');
       await springy.waitForTimeout(60);
-      const hd = await springy.locator('[data-testid=drawer-drag]').boundingBox();
+      const hd = await springy.locator('[data-testid=ready-grip]').boundingBox();
       const touch = await springy.context().newCDPSession(springy);
       const x = hd.x + hd.width / 2;
       const vh = springy.viewportSize().height;
-      await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y: hd.y + 6 }] });
+      await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y: hd.y + hd.height / 2 }] });
       for (let y = hd.y + 30; y < vh - 10; y += 60) await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y }] });
       await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-      await springy.waitForTimeout(900);
-      const gap = await rowGap(springy);
-      check(rest != null && gap != null && Math.abs(gap - rest) <= 4, `after a drag cuts a spring short, the capture row sits on the peeking drawer (audit 2: gap ${gap}, at rest ${rest})`);
+      await springy.waitForFunction(() => !document.querySelector('[data-testid=start-settings]'), null, { timeout: 4000 }).catch(() => {});
+      const after = await barState(springy);
+      check(after.h === rest.h && after.settings === 0 && after.cam === rest.cam,
+        `after a drag cuts the bar's spring short, it settles at rest and the stack never moved (audit 2, NR7: ${JSON.stringify({ rest, after })})`);
       await springy.close();
     }
-    // The row rides on the drawer's own animated height, never a height reported when a move ends: let go
-    // of the open drawer partway down and, while the spring's tail is still settling, the row already sits
-    // on the peeking drawer (the owner's screenshot, Nov 1: Start floated mid-screen over a closed sheet).
+    // Let go partway down, past the middle: the bar settles at rest, and the stack stays put as it settles.
     {
       const rides = await ctx.newPage();
       rides.on('pageerror', (e) => errors.push(String(e)));
       await rides.goto(navUrl);
       await rides.waitForSelector('[data-testid=start]');
       await rides.waitForTimeout(800);
-      const rest = await rowGap(rides);
+      const rest = await barState(rides);
       await drawerTo(rides, 'half');
-      const hd = await rides.locator('[data-testid=drawer-drag]').boundingBox();
+      const hd = await rides.locator('[data-testid=ready-grip]').boundingBox();
       const touch = await rides.context().newCDPSession(rides);
       const x = hd.x + hd.width / 2;
-      await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y: hd.y + 6 }] });
+      await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y: hd.y + hd.height / 2 }] });
       for (let i = 1; i <= 4; i++) {
-        await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: hd.y + 6 + i * 45 }] });
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: hd.y + hd.height / 2 + i * 120 }] });
         await rides.waitForTimeout(10);
       }
       await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-      await rides.waitForTimeout(450);
-      const gap = await rowGap(rides);
-      check(rest != null && gap != null && Math.abs(gap - rest) <= 4, `let go partway down, the capture row sits on the drawer as it settles, not where it was open (gap ${gap}, at rest ${rest})`);
+      await rides.waitForTimeout(200);
+      const settling = await barState(rides);
+      await rides.waitForFunction(() => !document.querySelector('[data-testid=start-settings]'), null, { timeout: 4000 }).catch(() => {});
+      const after = await barState(rides);
+      check(settling.cam === rest.cam && after.h === rest.h && after.settings === 0,
+        `let go partway down, the bar settles at rest and the stack stays put as it settles (NR7, NR9: ${JSON.stringify({ rest, settling, after })})`);
       await rides.close();
     }
 
@@ -2796,7 +3199,7 @@ function check(ok, what) {
       check(opened && (await page.locator('[data-testid=viewer-close]').count()) === 1, 'a reminder tapped with Chronicle in front after a walk opens there, once');
       if (opened) await page.click('[data-testid=viewer-close]');
       // With Navigate in front and no walk open, a tap opens the captures on Chronicle (NV13).
-      await page.click('[data-testid=tab-navigate]');
+      await tabTo(page, 'navigate');
       await page.waitForSelector('[data-testid=start]');
       await page.waitForTimeout(800);
       await page.evaluate((m) => navigator.serviceWorker.dispatchEvent(new MessageEvent('message', { data: m })), homeTap);
@@ -2841,10 +3244,10 @@ function check(ok, what) {
     // read by themselves, nearest first; never asking for a position of its own.
     const tileOf = (name) => page.locator(`[data-testid=atlas-tile][data-name="${name}"]`);
     const toExplore = async () => {
-      await page.click('[data-testid=tab-navigate]');
+      await tabTo(page, 'navigate');
       await page.waitForSelector('[data-testid=start]');
       await page.waitForTimeout(1500);
-      await page.click('[data-testid=tab-explore]');
+      await tabTo(page, 'explore');
       await page.waitForSelector('[data-testid=atlas-grid]');
     };
     await toExplore();
@@ -2907,9 +3310,9 @@ function check(ok, what) {
       // Back and Escape from that tab.
       await tileOf('Fox Point').click();
       await page.waitForSelector('[data-testid=atlas-card]');
-      await page.click('[data-testid=tab-chronicle]');
+      await tabTo(page, 'chronicle');
       await page.waitForTimeout(600);
-      await page.click('[data-testid=tab-explore]');
+      await tabTo(page, 'explore');
       await page.waitForSelector('[data-testid=atlas-grid]');
       check((await page.locator('[data-testid=atlas-card]').count()) === 0, 'explore-atlas audit 8: leaving the tab closes its card');
       // AT2 (round 3): your own town is the title, never listed again among the other towns; the title opens its page.
@@ -2980,7 +3383,7 @@ function check(ok, what) {
       const label = back ? (await tileOf('Fox Point').getAttribute('aria-label')) ?? '' : '';
       check(back && new URL(page.url()).pathname === `${BASE}/`,
         `AT1, AT12: after a reload, the atlas is back on the same tab from where it last listed (${label}; the launch's one fix may already say "You're here", NV16)`);
-      await page.click('[data-testid=tab-chronicle]');
+      await tabTo(page, 'chronicle');
       await page.reload();
       await page.waitForSelector('[aria-label^="Fox Point,"]', { timeout: 30000 });
       await page.waitForTimeout(1000);
@@ -3231,9 +3634,9 @@ function check(ok, what) {
       // Navigate's map is around one fix, read as the tab comes to the front; nothing keeps watching (NV17).
       await p2.waitForTimeout(2500);
       const reads0 = await p2.evaluate(() => ({ live: window.__watches.size }));
-      await p2.click('[data-testid=tab-chronicle]');
+      await tabTo(p2, 'chronicle');
       await p2.waitForTimeout(500);
-      await p2.click('[data-testid=tab-navigate]');
+      await tabTo(p2, 'navigate');
       await p2.waitForTimeout(2500);
       check(reads0.live === 0 && (await p2.evaluate(() => window.__watches.size)) === 0, 'Navigate reads one fix each time it comes to the front, and leaves no watch running (NV17)');
 
@@ -3254,7 +3657,7 @@ function check(ok, what) {
       await p2.waitForSelector('[data-testid=viewer-close]', { state: 'detached', timeout: 10000 }).catch(() => {});
 
       // With nothing walked yet, Chronicle frames the moment, so its pin is in view, not the world (moment pins 3).
-      await p2.click('[data-testid=tab-chronicle]');
+      await tabTo(p2, 'chronicle');
       check(await p2.waitForSelector('[aria-label="Note. Open"]', { timeout: 15000 }).then(() => true, () => false), 'Chronicle frames a moment made before any walk, and shows its pin (M16, moment pins 3)');
 
       // Today is listed in Chronicle's sheet with its moment (M7, M9, NV18).
@@ -3265,7 +3668,7 @@ function check(ok, what) {
       await p2.click('[data-testid=sheet-map]');
 
       // A walk with a note of its own, in the same day (M3).
-      await p2.click('[data-testid=tab-navigate]');
+      await tabTo(p2, 'navigate');
       await p2.click('[data-testid=start]');
       await p2.waitForURL(/\/walk/, { timeout: 15000 });
       const route2 = [];
@@ -3293,15 +3696,15 @@ function check(ok, what) {
       check(rows.length === 2 && rows[1].walk_id != null, 'a note made on a walk belongs to that walk (M3)');
 
       // Mid-memo, the drawer stays down, Start can't be pressed, and the memo keeps recording (audit 1, NV28).
-      await p2.click('[data-testid=tab-navigate]');
+      await tabTo(p2, 'navigate');
       await p2.click('[data-testid=moment-voice]');
       await p2.waitForSelector('[data-testid=moment-voice-save]');
       await p2.waitForTimeout(1500);
-      await p2.click('[data-testid=start-options]');
+      await p2.click('[data-testid=walk-stats]');
       await p2.waitForTimeout(500);
-      check((await p2.locator('[data-testid=start-dialog]').count()) === 0 && (await p2.locator('[data-testid=mode-quiet]').count()) === 0 && (await p2.locator('[data-testid=moment-voice-save]').isVisible())
+      check((await p2.locator('[data-testid=start-settings]').count()) === 0 && (await p2.locator('[data-testid=mode-quiet]').count()) === 0 && (await p2.locator('[data-testid=moment-voice-save]').isVisible())
         && (await p2.locator('[data-testid=start][aria-disabled=true]').count()) === 1,
-        'opening the drawer mid-memo does nothing, Start is disabled, and the memo keeps recording (audit 1, NV28)');
+        'raising the bar mid-memo does nothing, Start is disabled, and the memo keeps recording (audit 1, NV28, NR10)');
       await p2.click('[data-testid=moment-voice-discard]');
       await p2.waitForSelector('[data-testid=moment-voice-undo]');
       check(true, 'a memo discarded on the home can be undone (audit 14)');
@@ -3312,16 +3715,19 @@ function check(ok, what) {
       });
       await note('[data-testid=moment-note]', '[data-testid=moment-note-input]', '[data-testid=moment-note-save]', 'Sale on linen, ends Friday.');
       await p2.waitForTimeout(500);
-      await p2.click('[data-testid=tab-chronicle]');
+      await tabTo(p2, 'chronicle');
       await p2.click('[data-testid=sheet-days]');
       await p2.waitForSelector('[data-testid=day-row]');
       const early = await p2.locator('[data-testid=day-row]').first().innerText();
       check(/3 moments\b/.test(early), `a moment shows in its day at once, before its fix is settled (audit 2: ${early.replace(/\n/g, ' · ')})`);
       await p2.click('[data-testid=sheet-map]');
-      await p2.click('[data-testid=tab-navigate]');
-      check(await p2.waitForSelector('text=/No location/', { timeout: 20000 }).then(() => true, () => false), 'a moment with no fix is kept and says "No location" (M2)');
-      await p2.click('[data-testid=tab-chronicle]');
-      rows = await captureRows();
+      // Leaving Navigate closes its screen, so the moment's "No location" toast is checked in the ready
+      // scenario (NR13), where the screen stays up; here the stored row settles without a place.
+      for (let i = 0; i < 30; i++) {
+        rows = await captureRows();
+        if (rows.length === 3 && rows[2].lat == null && Date.now() - rows[2].t > 11000) break;
+        await p2.waitForTimeout(500);
+      }
       check(rows.length === 3 && rows[2].walk_id == null && rows[2].lat == null, 'the moment with no fix is stored without a place');
 
       // The day's timeline: moment, walk, moment, in time order; the walk is one row (M8).
@@ -3450,7 +3856,7 @@ function check(ok, what) {
       await pg.goto(navUrl);
       await pg.waitForSelector('[data-testid=start]');
       await pg.waitForTimeout(1500);
-      await pg.click('[data-testid=tab-explore]');
+      await tabTo(pg, 'explore');
       await pg.waitForSelector('[data-testid=atlas-grid]');
       await pg.waitForTimeout(1500);
       const box = await pg.locator('canvas.maplibregl-canvas').boundingBox();
@@ -3553,7 +3959,8 @@ function check(ok, what) {
       let perfA = null;
       await north(-0.15, 1.25, async (k) => {
         if (k === 6 || k === 14 || k === 22) {
-          const id = { 6: 'chronicle', 14: 'explore', 22: 'navigate' }[k];
+          // Navigate isn't a tab under the bar any more: it opens the walk (NR2), so the tour ends on Chronicle.
+          const id = { 6: 'chronicle', 14: 'explore', 22: 'chronicle' }[k];
           await pg.click(`[data-testid=tab-${id}]`);
           await pg.waitForTimeout(400);
           onTabs.push(`${id}:${await shownCount(pg, '[data-testid=recording-bar]')}:${await pg.locator('canvas.maplibregl-canvas').count()}`);
@@ -3570,7 +3977,7 @@ function check(ok, what) {
           `minimized, only the bar follows the walk (navigate ${rate('render:navigate').toFixed(2)}/s, bar ${rate('render:bar').toFixed(2)}/s over ${secs.toFixed(0)} s)`);
       }
       const d1 = m(await barText());
-      check(onTabs.join(',') === 'chronicle:1:1,explore:1:1,navigate:1:1', `the bar is on every tab, with one live map (NV4, NV9: ${onTabs.join(', ')})`);
+      check(onTabs.join(',') === 'chronicle:1:1,explore:1:1,chronicle:1:1', `the bar is on every tab, with one live map (NV4, NV9: ${onTabs.join(', ')})`);
       check(d1 > d0 + 100 && /^\d+:\d\d · \d+ m$/.test(await barText()), `minimized, the walk keeps recording: the bar's distance grows (NV8: ${d0} → ${d1} m)`);
       // Remind me here keeps firing while minimized (NV8): checked outside the walk screen, shown on the bar.
       const fired = await pg.evaluate(() => new Promise((resolve) => {
@@ -3585,9 +3992,9 @@ function check(ok, what) {
         `Remind me here fires with the walk minimized, and the bar says so (NV8: ${JSON.stringify(fired && { n: fired.fired_count, walk: fired.last_walk_id === w.id })}, "${reminderOnBar}")`);
       // NV10, as changed by the tabs audit (U2): no Start with a walk open, and the recording bar is the one way back.
       check((await shownCount(pg, '[data-testid=resume]')) === 0 && (await shownCount(pg, '[data-testid=start]')) === 0 && (await shownCount(pg, '[data-testid=recording-return]')) === 1,
-        'with a walk open, Navigate has no Start, and the recording bar is the way back (NV10, U2)');
+        'with a walk open, no tab has a Start, and the recording bar is the way back (NV10, NR2)');
       // NV10: Walk here on Explore routes the open walk there and returns to it; no second walk.
-      await pg.click('[data-testid=tab-explore]');
+      await tabTo(pg, 'explore');
       await pg.waitForTimeout(1500);
       {
         const box = await pg.locator('canvas.maplibregl-canvas').boundingBox();
@@ -3625,6 +4032,8 @@ function check(ok, what) {
     }
     await tabsAudit();
     await gapsScenario();
+    await readyScenario();
+    await readyAudit();
     await hiddenScenario();
     {
       // Start with Explore and a destination: the walk opens exploring, heading there (NV25).
@@ -3640,9 +4049,9 @@ function check(ok, what) {
       await pg.mouse.down();
       await pg.waitForTimeout(700);
       await pg.mouse.up();
-      await pg.waitForFunction(() => /Your spot/.test(document.querySelector('[data-testid=peek-choices]')?.textContent ?? ''), null, { timeout: 5000 });
+      await pg.waitForSelector('[data-testid=ready-dest]', { timeout: 5000 });
       await pg.click('[data-testid=start]');
-      await pg.waitForURL(/\/walk/, { timeout: 15000 });
+      await pg.waitForSelector('[data-testid=stop]', { timeout: 15000 });
       const said = await pg.waitForSelector('text=Walk started · recording', { timeout: 10000 }).then(() => true, () => false);
       const w = await openWalk(pg);
       const nav = JSON.parse((await metaOf(pg, 'nav')) || 'null');

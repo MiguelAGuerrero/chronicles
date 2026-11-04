@@ -1,3 +1,4 @@
+// @layer view
 import { useEffect, useState } from 'react';
 import { AccessibilityInfo, Platform } from 'react-native';
 import { successFeedback, tapFeedback, warnFeedback } from './haptics';

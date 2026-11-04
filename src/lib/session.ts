@@ -1,3 +1,4 @@
+// @layer shell
 import { db } from './db';
 import { newId } from './id';
 import { clearNav } from './nav/store';

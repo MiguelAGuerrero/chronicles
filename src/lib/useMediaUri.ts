@@ -1,3 +1,4 @@
+// @layer view
 import { useEffect, useState } from 'react';
 import { releaseMedia, resolveMedia } from './media';
 import type { Capture } from './types';

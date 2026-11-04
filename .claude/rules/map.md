@@ -63,7 +63,7 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
 - On native, pins are MapLibre RN `<Marker>` children. Use the Marker's own `onPress`:
   on iOS the annotation's tap recognizer swallows touches meant for a Pressable inside
   it.
-- **The reminder bell** (RB1-RB7, decision 0073): a pin with a live reminder on any of
+- **The reminder bell** (RB1-RB7, decision 0077): a pin with a live reminder on any of
   its captures (`pinReminded`, `lib/pins.ts`) wears an ink disc with a white bell, the
   clock's size (`pin-reminder`), top right, top left on a faint memory pin (the clock
   keeps top right). Each map reads the reminders once with `useReminded`, which re-reads
@@ -71,7 +71,7 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
   write goes through `recallCheck` (`saveRecall`, `stopRecall`, `forgetRecalls`), so a
   write that skips it leaves a stale bell. Anything showing "reminder set" reads
   `liveRecalls`, so one past its end is none everywhere.
-  - `useReminded` reads `db.listRecalls()`, never `recallCheck`'s cache: filling that
+  - `useReminded` reads `readRecalls()` (storage), never `recallCheck`'s cache: filling that
     cache when a map mounts hid a flag written later from the next check (the e2e's
     NV8 seeded one and it never fired).
   - On web the bell is **not** in the marker key: a change re-renders the same root in

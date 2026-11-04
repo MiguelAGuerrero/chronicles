@@ -1,3 +1,4 @@
+// @layer shell
 import { Platform, Share } from 'react-native';
 import { db } from './db';
 import { gpsLog } from './gpsLog';

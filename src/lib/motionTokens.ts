@@ -1,3 +1,4 @@
+// @layer core
 /**
  * The app's one set of timings (motion M1). Short and physical: a settle, a
  * press, a lift, never a celebration (the restraint rule). Pure, so tests can

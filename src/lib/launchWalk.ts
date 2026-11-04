@@ -1,3 +1,4 @@
+// @layer shell
 import { settleWithin } from './settleWithin';
 
 /**
@@ -5,7 +6,7 @@ import { settleWithin } from './settleWithin';
  * Explore first. The app is covered until the open walk has been looked up;
  * only then is the recorder picked back up, since on web that waits for the
  * browser's first fix (up to 10 s), and Explore showed all that time (the
- * owner's Home Screen app, Nov 3). Pure, so `npm test` can import it.
+ * owner's Home Screen app, Nov 3). Its effects come in as arguments, so `npm test` can run it.
  */
 export async function openWalkAtLaunch(deps: {
   /** The walk left open, read from the device. */

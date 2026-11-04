@@ -1,3 +1,4 @@
+// @layer adapter
 import { mediaStore } from '../db/index.web';
 
 /**

@@ -1,3 +1,4 @@
+// @layer core
 import { VectorTile } from '@mapbox/vector-tile';
 import { PbfReader } from 'pbf';
 import type { CollectedFeatures } from '../../components/map/types';

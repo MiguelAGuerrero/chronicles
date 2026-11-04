@@ -1,3 +1,4 @@
+// @layer core
 import { bearingDeg, distanceM, pointSegmentDist, projector } from '../geo';
 import type { LngLat } from '../types';
 import { NAV } from './rules';
@@ -101,12 +102,31 @@ const HEADING_MIN_SPEED = 0.5;
 const COURSE_AGREE_DEG = 45;
 
 /**
+ * How far back along the trace its direction is read. 8 m was too short: a
+ * phone's wander carries a few metres sideways for several fixes, and the
+ * cone pointed east while the owner walked north (Nov 3). Over 20 m the same
+ * wander moves the direction far less (simulated at 5 m of wander: 21% of
+ * headings more than 45° off over 8 m, under 2% over 20 m).
+ */
+export const HEADING_WINDOW_M = 20;
+
+/**
+ * The live dot's direction further than this from the trace's is not shown.
+ * Tighter than a course: told walking, the dot's filter swings with the wander
+ * (simulated at 5 m: 19% of its headings more than 45° off; the cone 5% at
+ * 45°, under 1% at 20°).
+ */
+const DOT_AGREE_DEG = 20;
+
+const agrees = (a: number, b: number, deg = COURSE_AGREE_DEG) => Math.abs(((a - b + 540) % 360) - 180) <= deg;
+
+/**
  * The way you are walking, in degrees clockwise from north. The direction of
- * the last 8 m or more of the trace, or the device's course while moving when
- * it agrees with the trace within 45° (it turns sooner). A course that
- * disagrees loses: a phone reported east-north-east while the owner walked
- * south (Nov 1). With no trace yet, a course is used, but never Android's 0
- * for "no bearing". Null while standing still.
+ * the last 20 m or more of the trace (HEADING_WINDOW_M), or the device's
+ * course while moving when it agrees with the trace within 45° (it turns
+ * sooner). A course that disagrees loses: a phone reported east-north-east
+ * while the owner walked south (Nov 1). With no trace yet, a course is used,
+ * but never Android's 0 for "no bearing". Null while standing still.
  */
 export function headingOf(fixes: { t: number; lon: number; lat: number; speed: number | null; course: number | null }[]): number | null {
   const last = fixes[fixes.length - 1];
@@ -116,7 +136,7 @@ export function headingOf(fixes: { t: number; lon: number; lat: number; speed: n
   for (let i = fixes.length - 2; i >= 0; i--) {
     const f = fixes[i];
     const d = distanceM([f.lon, f.lat], [last.lon, last.lat]);
-    if (d >= 8) {
+    if (d >= HEADING_WINDOW_M) {
       const dt = (last.t - f.t) / 1000;
       if (dt <= 0 || d / dt < HEADING_MIN_SPEED) still = true;
       else trace = bearingDeg([f.lon, f.lat], [last.lon, last.lat]);
@@ -125,9 +145,21 @@ export function headingOf(fixes: { t: number; lon: number; lat: number; speed: n
     if (last.t - f.t > 30_000) break;
   }
   const course = last.course != null && Number.isFinite(last.course) && last.course >= 0 && (last.speed ?? 0) >= HEADING_MIN_SPEED ? last.course : null;
-  if (trace != null) return course != null && Math.abs(((course - trace + 540) % 360) - 180) <= COURSE_AGREE_DEG ? course : trace;
+  if (trace != null) return course != null && agrees(course, trace) ? course : trace;
   if (still) return null;
   return course != null && course !== 0 ? course : null;
+}
+
+/**
+ * The cone's direction, from the live dot's (`dot`: per fix, null while it
+ * holds still) and the trace's (`trace`: headingOf). The dot turns sooner, so
+ * it is shown where it agrees with the trace within 20°; otherwise the trace
+ * wins. The dot alone was once drawn, and pointed east while the owner walked
+ * north (Nov 3). Hidden while the dot holds still or there is no trace yet.
+ */
+export function coneHeading(dot: number | null, trace: number | null): number | null {
+  if (dot == null || trace == null) return null;
+  return agrees(dot, trace, DOT_AGREE_DEG) ? dot : trace;
 }
 
 export interface NavState {

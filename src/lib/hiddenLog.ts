@@ -1,3 +1,4 @@
+// @layer core
 /**
  * When the page was out of front, so a gap in the trace can be told apart: the page hidden
  * (the browser stops sending positions) or on screen with no usable GPS (the status chip's

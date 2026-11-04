@@ -1,3 +1,4 @@
+// @layer core
 import { lineLengthM } from '../geo';
 import type { LngLat, StreetSegment } from '../types';
 import { PieceGraph, type Gap } from './infer';

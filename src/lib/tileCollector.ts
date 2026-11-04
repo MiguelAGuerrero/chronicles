@@ -1,3 +1,4 @@
+// @layer shell
 import { MAX_DERIVE_VIEWS, PLACES_ZOOM } from '../components/map/types';
 import { db } from './db';
 import { fetchTiles } from './discovery/tileFetch';

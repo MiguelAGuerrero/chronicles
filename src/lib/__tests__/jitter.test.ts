@@ -83,9 +83,10 @@ test('jitter 1: five minutes standing indoors draws no scribble', () => {
 test('jitter 2: the first minute and a half of a stop, before it counts as a standstill, stays calm', () => {
   // Wandering that drifts (each fix carries most of the last one's error), as a phone's does.
   const tr = readTrace(fixes({ seconds: 90, everyMs: 1000, sigma: 20, rho: 0.95, accuracy: 30 }), T0);
-  // 65, not 60, since jitter 8 (Nov 3): a settled spot no longer breaks the line, and about 16 m
-  // the break used to hide is drawn (46 m to 62 m here). Still the settled line, never the raw wander.
-  assert.ok(runsLength(liveRuns(tr)) < 65, `live runs are ${runsLength(liveRuns(tr)).toFixed(0)} m`);
+  // Since jitter 8 (Nov 3) a settled spot never breaks the line, so a minute of drift must read as
+  // standing on its own: it no longer hides behind a break (62 m was drawn here for a while).
+  assert.ok(runsLength(liveRuns(tr)) < 60, `live runs are ${runsLength(liveRuns(tr)).toFixed(0)} m`);
+  assert.equal(liveRuns(tr).length, 1, 'one line: standing is no gap');
 });
 
 test('jitter 3: one fix that jumps away and back is not drawn as a spike', () => {

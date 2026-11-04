@@ -4,12 +4,12 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { feedback } from '../lib/motion';
-import { formatElapsed } from '../lib/summary';
 import type { LocateResult } from '../lib/locate/types';
 import type { Capture } from '../lib/types';
 import { useCaptures, type MomentState } from '../lib/useCaptures';
-import { Icon, type IconName } from './icons';
 import { Modal } from './Modal';
+import { CaptureStack } from './walk/CaptureStack';
+import { useStackLayout } from './walk/layout';
 import { Button, LiftIn, theme } from './ui';
 
 const KIND_NAME = { photo: 'Photo', video: 'Video', voice: 'Voice memo', text: 'Note' } as const;
@@ -22,7 +22,7 @@ function momentToast(kind: Capture['kind'], reason?: LocateResult['reason']): st
 }
 
 /**
- * Camera, mic and pencil on the home (M1): a moment in one tap, with no walk
+ * Camera, mic and pencil on the ready screen (M1, NR9): a moment in one tap, with no walk
  * open. Each moment asks for one fix as it is begun and is kept at once; the
  * toast says where it landed when the fix comes, or "No location" (M2).
  */
@@ -53,10 +53,10 @@ export function MomentBar(props: {
 export type CaptureControls = ReturnType<typeof useCaptures>;
 
 /**
- * The capture row itself (camera, mic, pencil, the memo's controls and its
- * toasts), for a loose moment (MomentBar) or the open walk minimized under
- * Navigate (U2), whose captures are told to the walk screen through the
- * capture bus. With `walk`, a kept capture says it went to the walk.
+ * The moment's controls on the ready screen (NR9, NR10): the capture stack at
+ * the right edge, its pills and toast left of it above the strip, and the
+ * note's editor. Placed by the walk screen's own geometry, so Start leaves
+ * every button where it was.
  */
 export function CaptureRow(props: {
   cap: CaptureControls;
@@ -65,9 +65,9 @@ export function CaptureRow(props: {
   disabled?: boolean;
   onRecording?: (on: boolean) => void;
   focused?: boolean;
-  walk?: boolean;
 }) {
   const insets = useSafeAreaInsets();
+  const at = useStackLayout();
   const { cap, toast, setToast } = props;
   const [noteOpen, setNoteOpen] = useState(false);
   const [note, setNote] = useState('');
@@ -94,23 +94,20 @@ export function CaptureRow(props: {
     };
   }, [recording]);
 
-  const saved = (kind: Capture['kind']) => {
-    feedback('tap');
-    if (props.walk) setToast(`${KIND_NAME[kind]} saved to your walk`);
-  };
+  const saved = () => feedback('tap');
   const saveNote = async () => {
     if (await cap.saveNote(note)) {
       setNote('');
       setNoteOpen(false);
-      saved('text');
+      saved();
     }
   };
   const saveVoice = async () => {
     const r = await cap.finishVoice();
-    if (r === 'saved') saved('voice');
+    if (r === 'saved') saved();
     else if (r === 'dropped') setToast('Too short, not kept');
   };
-  // Another tab, the walk or a replay came to the front mid-memo: it is saved, as leaving the walk
+  // The screen went mid-memo (the chevron, another tab): it is saved, as leaving the walk
   // screen saves one, never left recording under another screen (tabs audit 3).
   const saveRef = useRef(saveVoice);
   useEffect(() => {
@@ -122,62 +119,43 @@ export function CaptureRow(props: {
   }, [focused, recording]);
 
   return (
-    <View style={styles.wrap} pointerEvents="box-none">
-      {toast && (
-        <LiftIn testID="moment-toast" style={styles.toast} accessibilityLiveRegion="polite">
-          <Text style={styles.toastText}>{toast}</Text>
-        </LiftIn>
-      )}
-      {recording && (
-        <View style={styles.live} accessible accessibilityLabel="Recording voice memo">
-          <View style={styles.recDot} />
-          <Elapsed from={cap.voiceStartedAt!} />
-        </View>
-      )}
-      {cap.discarded && !recording && (
-        <View style={styles.pill} accessibilityLiveRegion="polite">
-          <Text style={styles.pillText}>Voice memo discarded</Text>
-          <Pressable testID="moment-voice-undo" accessibilityRole="button" onPress={() => cap.undoDiscard()} hitSlop={10} style={styles.pillBtn}>
-            <Text style={styles.pillBtnText}>Undo</Text>
-          </Pressable>
-        </View>
-      )}
-      {cap.unsaved && (
-        <View style={styles.pill}>
-          <Text style={styles.pillText}>Voice memo not saved</Text>
-          <Pressable accessibilityRole="button" onPress={() => cap.retrySave()} hitSlop={10} style={styles.pillBtn}>
-            <Text style={styles.pillBtnText}>Retry</Text>
-          </Pressable>
-        </View>
-      )}
-      <View style={styles.row}>
-        {recording ? (
-          <>
-            <Round testID="moment-voice-discard" icon="trash-outline" label="Discard voice memo" onPress={() => cap.discardVoice()} />
-            <Round testID="moment-voice-save" icon="stop" label="Stop and save voice memo" onPress={saveVoice} voice busy={cap.busy === 'voice'} />
-          </>
-        ) : (
-          <>
-            <Round
-              testID="moment-photo"
-              icon="camera"
-              label="Keep a moment: take a photo or video"
-              onPress={() => cap.takePhoto().then((k) => k && saved(k.kind))}
-              busy={cap.busy === 'photo'}
-              disabled={props.disabled || cap.busy === 'voice'}
-            />
-            <Round
-              testID="moment-voice"
-              icon="mic"
-              label="Keep a moment: record a voice memo"
-              onPress={() => cap.startVoice().then((ok) => ok && feedback('tap'))}
-              busy={cap.busy === 'voice'}
-              disabled={props.disabled}
-            />
-            <Round testID="moment-note" icon="document-text" label="Keep a moment: write a note" onPress={() => setNoteOpen(true)} disabled={props.disabled} />
-          </>
+    <>
+      {/* Pills and the toast: left of the stack, above the strip, so the stack never moves (NR10). */}
+      <View style={[styles.pills, at.pills]} pointerEvents="box-none">
+        {toast && (
+          <LiftIn testID="moment-toast" style={styles.toast} accessibilityLiveRegion="polite">
+            <Text style={styles.toastText}>{toast}</Text>
+          </LiftIn>
+        )}
+        {cap.discarded && !recording && (
+          <View style={styles.pill} accessibilityLiveRegion="polite">
+            <Text style={styles.pillText}>Voice memo discarded</Text>
+            <Pressable testID="moment-voice-undo" accessibilityRole="button" onPress={() => cap.undoDiscard()} hitSlop={10} style={styles.pillBtn}>
+              <Text style={styles.pillBtnText}>Undo</Text>
+            </Pressable>
+          </View>
+        )}
+        {cap.unsaved && (
+          <View style={styles.pill}>
+            <Text style={styles.pillText}>Voice memo not saved</Text>
+            <Pressable accessibilityRole="button" onPress={() => cap.retrySave()} hitSlop={10} style={styles.pillBtn}>
+              <Text style={styles.pillBtnText}>Retry</Text>
+            </Pressable>
+          </View>
         )}
       </View>
+      <CaptureStack
+        ids={{ photo: 'moment-photo', voice: 'moment-voice', note: 'moment-note', save: 'moment-voice-save', discard: 'moment-voice-discard' }}
+        labels={{ photo: 'Keep a moment: take a photo or video', voice: 'Keep a moment: record a voice memo', note: 'Keep a moment: write a note' }}
+        voiceStartedAt={cap.voiceStartedAt}
+        busy={cap.busy}
+        disabled={props.disabled}
+        onPhoto={() => cap.takePhoto().then((k) => k && saved())}
+        onVoice={() => cap.startVoice().then((ok) => ok && feedback('tap'))}
+        onSave={saveVoice}
+        onDiscard={() => cap.discardVoice()}
+        onNote={() => setNoteOpen(true)}
+      />
 
       <Modal visible={noteOpen} transparent animationType="fade" onRequestClose={() => setNoteOpen(false)}>
         {/* Every way out keeps the draft; only Save clears it. */}
@@ -208,58 +186,16 @@ export function CaptureRow(props: {
           </KeyboardAvoidingView>
         </Pressable>
       </Modal>
-    </View>
-  );
-}
-
-/** The memo's timer ticks in its own component, so the home doesn't re-render every second. */
-function Elapsed({ from }: { from: number }) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, []);
-  return <Text style={styles.liveText}>{formatElapsed(now - from)}</Text>;
-}
-
-function Round(props: { testID: string; icon: IconName; label: string; onPress: () => void; busy?: boolean; disabled?: boolean; voice?: boolean }) {
-  const inactive = props.disabled || props.busy;
-  return (
-    <Pressable
-      testID={props.testID}
-      accessibilityRole="button"
-      accessibilityLabel={props.label}
-      accessibilityState={{ disabled: !!inactive, busy: !!props.busy }}
-      disabled={inactive}
-      onPress={props.onPress}
-      style={({ pressed }) => [styles.round, props.voice && styles.roundVoice, inactive && styles.dim, pressed && styles.pressed]}
-    >
-      <Icon name={props.icon} size={24} color={props.voice ? '#ffffff' : theme.ink} />
-    </Pressable>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { alignItems: 'center', gap: 10 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  round: {
-    width: 52, height: 52, borderRadius: 26, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, borderColor: theme.edge,
-    shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 4,
-  },
-  roundVoice: { backgroundColor: '#6b21a8', borderColor: '#6b21a8' },
-  dim: { opacity: 0.5 },
-  pressed: { opacity: 0.8 },
-  toast: { backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 14, alignSelf: 'center' },
+  pills: { position: 'absolute', alignItems: 'flex-end', gap: 8 },
+  toast: { backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 14 },
   toastText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
-  live: {
-    flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.surface, borderRadius: 999,
-    paddingVertical: 8, paddingHorizontal: 14, borderWidth: 1, borderColor: theme.line,
-  },
-  recDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: theme.danger },
-  liveText: { color: theme.ink, fontSize: 17, fontWeight: '700', fontVariant: ['tabular-nums'] },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 6, paddingLeft: 14, paddingRight: 6 },
-  pillText: { color: '#ffffff', fontSize: 15, fontWeight: '600' },
+  pillText: { color: '#ffffff', fontSize: 15, fontWeight: '600', flexShrink: 1 },
   pillBtn: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)' },
   pillBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
   modalBack: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' },

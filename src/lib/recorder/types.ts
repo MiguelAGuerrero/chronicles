@@ -1,3 +1,4 @@
+// @layer core
 import type { TracePoint } from '../types';
 
 export interface RecorderCapabilities {

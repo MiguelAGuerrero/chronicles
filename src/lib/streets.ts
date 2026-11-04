@@ -1,3 +1,4 @@
+// @layer core
 import { distanceM, lineLengthM, pointSegmentDist, projector, stepToward } from './geo';
 import { onTileEdge, tileAt, tileRect } from './tileMath';
 import type { LngLat, StreetSegment } from './types';

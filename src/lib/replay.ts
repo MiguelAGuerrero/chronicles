@@ -1,3 +1,4 @@
+// @layer core
 import { distanceM, isBreak, type PauseSpan } from './geo';
 import { RIDE_RULES } from './rides';
 import type { Capture, LngLat, TracePoint } from './types';

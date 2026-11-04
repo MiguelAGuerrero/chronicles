@@ -1,3 +1,4 @@
+// @layer core
 /** Distances and times as the screens show them. Pure, so tests and the recording bar can use them. */
 import { getUnits, type Units } from './units';
 

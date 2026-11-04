@@ -1,3 +1,4 @@
+// @layer view
 import { DeviceMotion } from 'expo-sensors';
 import { useEffect, useRef, useState } from 'react';
 import { AppState, Platform } from 'react-native';

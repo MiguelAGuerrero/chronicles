@@ -1,3 +1,4 @@
+// @layer core
 import type { RecorderStatus } from './recorder/types';
 
 /**

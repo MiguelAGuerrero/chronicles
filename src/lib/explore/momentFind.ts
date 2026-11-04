@@ -1,3 +1,4 @@
+// @layer shell
 import { db } from '../db';
 import { deletions } from '../deletion';
 import { boundsOf } from '../geo';

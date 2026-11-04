@@ -64,7 +64,9 @@ Recording a walk and reading its trace: pauses, standstills, GPS jitter, the liv
     doesn't move someone standing.
   - A spot walked through (its halves' centres more than half its reach apart)
     is drawn from one half's centre to the other's. A spot stood in is drawn as
-    its centre.
+    its centre. The share widens with the reach, up to 2x once held a minute
+    (jitter 2, Nov 3): 17 m of drift over 71 s at ±30 m read as walked once
+    no break hid it. `SNAP_RULES` 9.
   - A lone fix away and straight back is dropped. A lone first fix that the
     next two leave is dropped.
   - Fixes without accuracy pass as before.
@@ -79,6 +81,8 @@ Recording a walk and reading its trace: pauses, standstills, GPS jitter, the liv
     re-rendering the walk screen (`useGlideFrames(..., source)`), toward
     `lead`: one fix interval ahead while moving, so the glide ends where the
     walker is.
+  - Its heading is never the cone on its own: `coneHeading` checks it against
+    the trace's (decision 0075; see the cone in `.claude/rules/navigation.md`).
   - Without motion: held still unless the speed is steady in one direction
     for 3 fixes and, from a standstill, the fix left by its accuracy. A gap
     over 60 s or a jump over 150 m restarts it at the fix.
@@ -89,7 +93,7 @@ Recording a walk and reading its trace: pauses, standstills, GPS jitter, the liv
 - **Motion** (the concept doc's "Motion" tab, MO1-MO10; the owner's calls,
   Nov 1, after research: GPS can't tell 10 m of drift from a walk; steps can).
   - `expo-sensors` DeviceMotion on every platform; Expo's Pedometer has no web
-    build, so `steps.ts` (pure) finds steps in the acceleration's size
+    build, so `steps.ts` (core) finds steps in the acceleration's size
     (gravity removed): peaks of 0.6 m/s² or more, 0.3-1.3 s apart, with a dip
     below rest between (a tap only spikes up). Walking: 3 evenly spaced steps
     in 3 s; still: none for 3 s; unknown before the first firm answer.

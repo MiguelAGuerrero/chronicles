@@ -1,3 +1,4 @@
+// @layer core
 import { AREA_REACH_M } from '../areas/rules';
 import type { Area, WalkArea } from '../areas/types';
 import type { CategoryId, Kind } from '../discovery/types';

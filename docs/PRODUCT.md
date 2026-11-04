@@ -73,31 +73,36 @@ recording bar brings a minimized walk back.
 
 ### Navigate (during)
 
-- A drawer whose foot is **Start walk**: one tap starts recording where you
-  are, with the saved settings and the destination if one is set. Under Start,
-  a summary line ("Quiet", "Explore · Your spot · 120 m away") opens a **walk
-  settings dialog** (as does a pull on the grip): quiet or Explore mode, the
-  destination (a long press on the map, set with the dialog closed), "What I'm
-  into" and the "?" range (Explore only), reminders and alerts, all in one
-  scroll with its own Start walk.
-- A capture row (camera, mic, pencil) sits above the drawer, so a moment can
-  be kept with no walk open ("jot it down"). Such a loose moment is stored at
-  once and placed when its one fix arrives; nothing tracks between moments.
-- With a walk minimized, Navigate is a live view of it: trace, dot, captures,
-  destination and the capture row, with the recording bar as the way back.
-- A Locate button at the map's right edge (also on Explore) reads one fresh
+- Navigate opens the walk screen itself, **ready**: full screen with no tab bar, a
+  map around you from one fix, and the walk's bottom strip reading 0:00 and no
+  distance, with **Start** where Stop will be. One tap starts recording in place,
+  with the saved settings and the destination if one is set: the clock starts and
+  the strip becomes the walk's controls, and nothing else moves. A chevron at the
+  top-left goes back to the tab you came from. With a walk open, Navigate opens
+  that walk.
+- The bar pulls up (a drag on it, or a tap) into the **walk settings**: quiet or
+  Explore mode, the destination (a long press on the map), "What I'm into" and the
+  "?" range (Explore only), reminders and alerts, distances. Start stays at its
+  foot. A destination shows on the resting bar in one line ("To Your spot · 120 m
+  away").
+- The camera, mic and note are stacked at the right edge, above the bar, in the
+  same place before and during a walk. Before Start they keep a moment with no
+  walk open ("jot it down"), stored at once and placed when its one fix arrives;
+  nothing tracks between moments.
+- A Locate button sits above the stack (also on Explore): it reads one fresh
   fix, shows the dot there and frames 250 m around you. Nothing tracks after.
 
 ### The walk screen (during)
 
 - The map follows a live dot, with the walked trace in green and rides (bus,
-  train) dashed. A green ring marks where the walk began; the replay adds an
+  train) dashed. The map stays north-up; a soft cone on the dot shows the way
+  you are walking, read from the last 20 m of the trace (decision 0075). A green ring marks where the walk began; the replay adds an
   orange ring where it ended. Every map has a scale bar in its bottom-left
   corner. Pins mark captures, grouped by screen distance when zoomed
   out. A pin of one photo shows the photo itself, small and round. Faint
   pins with a clock badge show earlier walks' captures nearby (memories on
   revisit); a tap previews them.
-- Capture buttons (camera, mic, pencil) float in the lower middle. Photos and
+- Capture buttons (camera, mic, pencil) are stacked at the right edge, above the strip. Photos and
   videos come from the system camera (video capped at 30 s), memos from the
   mic, notes from the pencil. Captions can be added to photos later.
 - The bottom strip has time, distance, Pause, walk options and hold-to-stop.
@@ -181,7 +186,7 @@ recording bar brings a minimized walk back.
   test. Permission is asked only from a tap (first pause, a reminder saved, a
   switch turned on), never at launch. On the web, notifications come from a
   service worker and only work while the page is alive.
-- Distances show in km or miles: a "Distances" choice in the Start dialog,
+- Distances show in km or miles: a "Distances" choice in the walk settings (the ready bar pulled up),
   defaulting from the device's region. It reaches every distance the app shows,
   the scale bar included.
 - There is no Settings screen, no dark mode (light forced), and no account.
@@ -214,7 +219,8 @@ recording bar brings a minimized walk back.
 | Explore atlas (the tab as a grid of area tiles, presence bars, familiarity) | Shipped, audited (web verified by the e2e; native unverified) |
 | Moments and days, memories on revisit, thumbnails | Shipped, audited |
 | Rides, clearing walks and moments, motion polish | Shipped, audited |
-| Navigation and tabs (three-tab layout, docked drawer, recording bar) | Shipped, two audit batches done |
+| Navigation and tabs (three-tab layout, recording bar) | Shipped, two audit batches done |
+| Navigate, ready (Navigate is the walk screen, ready; the capture stack; the bar pulls up to the settings) | Shipped on web (native unverified) |
 | Quality of life: start and end markers, scale bar, Locate on Navigate and Explore | Shipped (web verified by the qol e2e; native unverified) |
 | Quality of life round 2: km or miles, time left while navigating, the "Not recording" chip with Open Settings and a retry on return | Shipped (web verified by the qol e2e; native unverified) |
 | Quality of life round 3: rename a walk later, edit a note, photos on their pins, months in the walks list | Shipped (web verified by the qol e2e; native unverified) |

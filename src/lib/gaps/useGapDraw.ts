@@ -1,3 +1,4 @@
+// @layer view
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { boundsOf } from '../geo';
 import { deriveSegments, type RoadFeature } from '../streets';

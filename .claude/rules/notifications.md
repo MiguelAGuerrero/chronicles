@@ -38,6 +38,9 @@ Local notifications on both platforms (`lib/notify`): the contract, kinds and sw
       none, and a tap opened on both screens at once (Nov 1). A phone also
     reads `getLastNotificationResponse()` at load, so a tap that launched the
     app is kept.
+  - **A tap kept while the walk screen mounts** (NR3): the walk screen now mounts as the app opens, so
+    it can read `recall_open` before the tap is written. `openRecall` tells `onRecallWaiting` listeners
+    once it is kept, and the walk screen takes it then.
   - **Web cold open:** with no window, `sw.js` opens the scope with the tap in
     `?notice=`, read once (`noticeFromUrl`) and removed from the URL. With a walk
     open, the home sends a waiting tap on to the walk.

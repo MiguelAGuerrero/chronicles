@@ -1,3 +1,4 @@
+// @layer core
 import { distanceM } from '../geo';
 import type { Capture, LngLat } from '../types';
 import type { Recall, RecallFrequency } from './types';

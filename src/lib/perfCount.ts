@@ -1,3 +1,4 @@
+// @layer shell
 /**
  * Opt-in counters for the long-walk harness (scripts/perf-walk.js): renders,
  * map data updates and camera moves. They cost nothing unless the page has

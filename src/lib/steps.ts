@@ -1,3 +1,4 @@
+// @layer core
 /**
  * Telling walking from standing by the phone's motion (Motion, MO3, MO4).
  * GPS can't tell 10 m of drift from a walk; steps can. Steps are found from

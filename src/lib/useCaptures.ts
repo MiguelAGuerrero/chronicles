@@ -1,3 +1,4 @@
+// @layer view
 import {
   RecordingPresets, requestRecordingPermissionsAsync, useAudioRecorder,
 } from 'expo-audio';

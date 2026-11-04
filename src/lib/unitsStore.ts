@@ -1,3 +1,4 @@
+// @layer shell
 import { db } from './db';
 import { deviceLocale, isUnits, setUnits, unitsForLocale, type Units } from './units';
 

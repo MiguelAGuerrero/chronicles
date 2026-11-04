@@ -1,3 +1,4 @@
+// @layer shell
 import { placesFromTiles } from '../areas/tilePlaces';
 import { db } from '../db';
 import { fetchTiles } from '../discovery/tileFetch';

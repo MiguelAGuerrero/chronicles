@@ -1,3 +1,4 @@
+// @layer core
 import type { LngLat } from '../types';
 import { AREA_REACH_M } from './rules';
 import type { AreaLevel, PlaceCandidate } from './types';
