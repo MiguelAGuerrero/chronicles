@@ -15,6 +15,7 @@ import {
   ATLAS_RULES, busyAreas, canWalkTo, distanceWords, familiarity, findsIn, nextDoor, otherTowns, nextFrame, townReachM, waitingMarks, walkTarget,
   type AtlasArea, type Familiarity, type Listed, type PageFramed,
 } from '../../lib/atlas/atlas';
+import { mapTopInset } from '../../lib/mapTopInset';
 import { nearReads } from '../../lib/atlas/read';
 import { useAtlas } from '../../lib/atlas/useAtlas';
 import { bordersFor, outlineIdHere, outlineOf, townFrame } from '../../lib/areas/borders';
@@ -281,11 +282,12 @@ export default function Explore() {
     }
   };
 
+  const topInset = mapTopInset(insets.top, Platform.OS === 'web');
   const wide = screen.w >= TWO_PANES;
   const cols = screen.w >= THREE_COLS ? 3 : 2;
   const gridMax = wide ? 960 : cols === 3 ? 960 : 640;
   // The map runs under the status bar to the top of the screen, so no band of it is left empty.
-  const mapH = wide ? screen.h : insets.top + Math.round(Math.min(260, Math.max(170, screen.h * 0.26)));
+  const mapH = wide ? screen.h : topInset + Math.round(Math.min(260, Math.max(170, screen.h * 0.26)));
   const mapW = wide ? Math.round(screen.w * 0.4) : screen.w;
   // The title lines up with the grid's column on a wide single pane (round 3).
   const titleLeft = wide ? 12 : Math.max(12, (screen.w - gridMax) / 2 + 12);
@@ -359,7 +361,7 @@ export default function Explore() {
           fitBounds={fit.bounds}
           fitKey={fit.key}
           onFitSettled={onFitSettled}
-          fitPadding={{ top: insets.top + 84, right: 24, bottom: spot ? 80 : 24, left: 24 }}
+          fitPadding={{ top: topInset + 84, right: 24, bottom: spot ? 80 : 24, left: 24 }}
           initialCenter={savedCamera?.center ?? from ?? WORLD.center}
           initialZoom={savedCamera?.zoom ?? (from ? 13 : WORLD.zoom)}
           onCameraChange={onCameraChange}
@@ -368,7 +370,7 @@ export default function Explore() {
       )}
       {/* The page's title floats over the map, lifted by a shadow; near you, it is the way into your own town.
           On a town's page it has no back arrow: the pill low on the screen is the one way back (decision 0077). */}
-      <View style={[styles.titleWrap, { top: insets.top + 8, left: titleLeft }]} pointerEvents="box-none">
+      <View style={[styles.titleWrap, { top: topInset + 8, left: titleLeft }]} pointerEvents="box-none">
         <View style={styles.titleCard}>
           <Pressable
             disabled={!!town || !home}
