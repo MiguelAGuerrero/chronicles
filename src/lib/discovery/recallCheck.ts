@@ -27,8 +27,6 @@ export function onRecallsChanged(fn: () => void): () => void {
     changed.delete(fn);
   };
 }
-/** The flags as stored now, for the pins' bells (RB1). */
-export const listRecalls = () => recalls();
 export async function saveRecall(r: Recall) {
   await db.setRecall(r);
   cache = null;

@@ -71,6 +71,9 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
   write goes through `recallCheck` (`saveRecall`, `stopRecall`, `forgetRecalls`), so a
   write that skips it leaves a stale bell. Anything showing "reminder set" reads
   `liveRecalls`, so one past its end is none everywhere.
+  - `useReminded` reads `db.listRecalls()`, never `recallCheck`'s cache: filling that
+    cache when a map mounts hid a flag written later from the next check (the e2e's
+    NV8 seeded one and it never fired).
   - On web the bell is **not** in the marker key: a change re-renders the same root in
     place, so focus returns to the pin when the viewer closes and a photo keeps its
     picture. On native it is in the Marker key (unverified whether children update
