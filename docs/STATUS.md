@@ -48,6 +48,7 @@ what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md
 | Affected checks (run what a change can break: affected tests, lint, typecheck, e2e journeys; AC1-AC11) | shipped 2026-11-04 (engineering; no behaviour change) | branch commits 2026-11-03 | `specs/affected-checks/spec.md` (repo only) | no (decision 0074: audits on the owner's request) |
 | Heading cone fix (the cone checked by the trace over 20 m; heading 1-5, decision 0075) | shipped (web verified by the e2e; native unverified) | branch `claude/heading-cone-rebased`, 2026-11-04 | none (a regression fix; criteria in `heading.test.ts`) | no (on request only, decision 0074) |
 | Pocket alert nudge (a double-tap as a "?" comes into range; the web too, on a touch screen; PA1-PA6, decision 0079) | shipped 2026-11-04 (web verified by the e2e; native unverified) | branch `claude/pocket-alert-nudge`, squashed onto main 2026-11-04 | `specs/pocket-alert-nudge/spec.md` (repo first; to be copied into the concept doc as a tab) | yes, before 0074 (7 findings: 7 fixed, one in part; 2 parts deferred) |
+| Atlas grading (the findable kinds count only findable places; thin rings say nothing; what a mark is; AG1-AG6, decision 0084) | built; unit tests, typecheck, lint, e2e `grading`, `marks`, `outlines` pass on the web build; native unverified | branch `claude/atlas-grading`, 2026-11-04 | `specs/atlas-grading/spec.md` (repo first; from the research doc https://claude.ai/artifact/KbWci9Guj4XcamTNqow8oC) | no (decision 0074) |
 | Activity density (busy streets as graded density of places, OSM + Overture, AD1-AD16) | shipped 2026-11-04 (web verified by the e2e; native unverified) | `829016e` and the audit fixes, 2026-11-04, branch `claude/busy-streets-calculator-accuracy-tk03rr` | `specs/activity-density/spec.md` (repo first) | yes (14 findings, 14 fixed) |
 | Compass (the map turns by two fingers; a compass shows while it is and sets north again, CP1-CP8, decision 0082) | shipped 2026-11-04 (web verified by the e2e `qol` and `ready`; native unverified; the live walk's compass slot is not covered by an e2e step) | branch `claude/compass-spec`, 2026-11-04 | `specs/compass/spec.md` (repo first) | no (on request only, decision 0074) |
 
@@ -133,6 +134,7 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 | Session | Branch | Doing |
 |---|---|---|
 | Bug fixes (open since Oct 31) | unknown | unknown |
+| Atlas grading | `claude/atlas-grading` | AG1-AG6 built and green; next: the "Whole areas" slice (dots across a town's outline or a neighborhood's share, density shading) |
 
 ## Updating this file
 

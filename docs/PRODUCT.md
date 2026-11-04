@@ -60,7 +60,11 @@ recording bar brings a minimized walk back.
   and eight kinds (history, art, culture, green, views, food, shops,
   nightlife), each with 0 to 3 bars.
 - The bars are presence, not quality. They are fixed steps per kind over the
-  same ring everywhere, explained under "How bars count".
+  same ring everywhere, explained under "How the marks work". History, art,
+  culture, green and views count only places worth finding (the ones that can
+  turn up as a "?"), so a plain parish church counts toward nothing; food, shops
+  and nightlife count every place. A ring with fewer than three mapped places
+  says nothing about its kinds (atlas grading, decision 0084).
 - Rings are read by themselves while the tab is open, nearest first.
 - A tile opens the area's card:
   - the eight kinds in words;

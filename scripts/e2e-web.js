@@ -55,6 +55,10 @@ const ys = [-1.5, -0.5, 0.5, 1.5];
 ys.forEach((y, i) => features.push({ type: 'Feature', properties: { class: 'minor', name: names[i] }, geometry: { type: 'LineString', coordinates: [at(-2, y), at(4, y)] } }));
 xs.forEach((x) => features.push({ type: 'Feature', properties: { class: 'minor' }, geometry: { type: 'LineString', coordinates: [at(x, -2), at(x, 2)] } }));
 features.push({ type: 'Feature', properties: { class: 'neighbourhood', name: 'Fox Point' }, geometry: { type: 'Point', coordinates: at(1, 0) } });
+// Atlas grading (AG3): a neighborhood 6 km west, far from every other area and place, whose ring holds
+// one café: too little on the map to say anything about its kinds. E2E_ONLY=grading goes there.
+features.push({ type: 'Feature', properties: { class: 'neighbourhood', name: 'Quiet Hollow' }, geometry: { type: 'Point', coordinates: at(-60, 0) } });
+features.push({ type: 'Feature', properties: { class: 'cafe', subclass: 'cafe', name: 'Hollow Café' }, geometry: { type: 'Point', coordinates: at(-60.5, 0.3) } });
 // A town point 2.9 km east: in reach of the walk, but outside the z14 tiles read for its streets.
 features.push({ type: 'Feature', properties: { class: 'city', name: 'Providence' }, geometry: { type: 'Point', coordinates: at(29, 0) } });
 // Points of interest for discovery (D1): a memorial and an unnamed artwork are
@@ -832,6 +836,28 @@ function check(ok, what) {
       `TO10: inside Pawtucket's outline the Explore tab names it, a town known only by its outline (TO4) (${after.title}, ${after.subtitle})`);
     const asked = overtureAsked.filter((q) => /divisions\.pmtiles/.test(q.url));
     check(asked.length > 0 && asked.every((q) => q.range), `TO12: outlines are read from Overture's divisions by byte range (${asked.length} requests)`);
+  };
+
+  // Atlas grading (AG3): a ring the map knows almost nothing about says nothing about its kinds,
+  // on its tile and on its card. E2E_ONLY=grading runs it alone.
+  const gradingScenario = async () => {
+    const { c, pg } = await freshPage('grading');
+    const hollow = at(-60, 0);
+    await c.setGeolocation({ longitude: hollow[0], latitude: hollow[1], accuracy: 6 });
+    await pg.goto(url);
+    const tile = pg.locator('[data-testid=atlas-tile][data-name="Quiet Hollow"]');
+    await pg.waitForSelector('[data-testid=atlas-tile][data-name="Quiet Hollow"][data-read="1"]', { timeout: 60000 }).catch(() => {});
+    const label = (await tile.getAttribute('aria-label').catch(() => null)) ?? '';
+    check((await tile.getAttribute('data-read').catch(() => null)) === '1' && (await tile.locator('[data-kind]').count()) === 0
+      && (await tile.locator('[data-testid=atlas-character]').count()) === 0 && !/Quiet|Not much|none/i.test(label.replace(/^Quiet Hollow\./, '')),
+      `AG3: a thin ring's tile shows no kinds and no character line, and its label says nothing of them (${label})`);
+    await tile.click().catch(() => {});
+    await pg.waitForSelector('[data-testid=atlas-card]', { timeout: 15000 }).catch(() => {});
+    const card = pg.locator('[data-testid=atlas-card]');
+    check((await card.count()) === 1 && (await card.locator('[data-testid^=atlas-kind-]').count()) === 0
+      && (await card.locator('[data-testid=atlas-how]').count()) === 0 && !/\bnone\b/.test(await card.innerText().catch(() => '')),
+      'AG3: a thin ring\'s card shows no kind rows, no "none", no "How the marks work"');
+    await c.close();
   };
 
   // Marks on a walk through an area read before (the owner, Nov 2): the Explore tab showed "?"
@@ -2379,6 +2405,11 @@ function check(ok, what) {
     }
     if (process.env.E2E_ONLY === 'outlines') {
       await outlinesScenario();
+      check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
+      return;
+    }
+    if (process.env.E2E_ONLY === 'grading') {
+      await gradingScenario();
       check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
       return;
     }

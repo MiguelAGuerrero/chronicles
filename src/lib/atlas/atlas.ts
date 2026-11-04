@@ -2,6 +2,7 @@
 import { coveredBy, townAt, withOutlines, type OutlineSet } from '../areas/outlines';
 import { AREA_REACH_M } from '../areas/rules';
 import type { Area, PlaceCandidate, WalkArea } from '../areas/types';
+import { MARK_CATEGORIES } from '../discovery/noise';
 import type { CategoryId, Kind } from '../discovery/types';
 import { distanceM, projector } from '../geo';
 import { NAV } from '../nav/rules';
@@ -17,11 +18,14 @@ import type { LngLat } from '../types';
 /** Bumped by hand when what a ring read keeps, or how it is judged, changes (AT12). */
 /** a2: activity density (AD14): graded streets in the sketch, from OSM and Overture. */
 /** a3: town outlines (TO10): the tab lists again, so a town known only by its outline gets a tile. */
-export const ATLAS_CODE = 'a3';
+/** a4: atlas grading (AG1, AG3): the findable kinds count only what could be found; thin rings are marked. */
+export const ATLAS_CODE = 'a4';
 
 export const ATLAS_RULES = {
   /** Every area is measured inside this ring around its point, whatever its level (AT4). */
   ringM: 800,
+  /** A ring with fewer mapped places than this, of the eight kinds, says nothing about its kinds (AG3). */
+  thinPlaces: 3,
   /** A ring measured without Overture while a release is known is tried again after this (activity-density audit 10). */
   overtureRetryMs: 30 * 60_000,
   /** Neighborhoods are listed within this of you (AT1), towns within the other (AT14). */
@@ -75,6 +79,8 @@ export interface AtlasPlace {
   key: string;
   category: CategoryId;
   at: LngLat;
+  /** Whether it could be a "?" mark (`isMarkable`); a findable kind counts only these (AG1). */
+  markable?: boolean;
 }
 
 /** A place that could be found (a mark's place): never named on the tab (AT7). */
@@ -101,6 +107,8 @@ export interface AtlasProfile {
   sketch: Sketch;
   /** The Overture release its density came from; null when measured from OpenStreetMap alone (AD6, AD7). */
   overture: string | null;
+  /** The map knows almost nothing here: the kinds say nothing (AG3). */
+  thin?: boolean;
 }
 
 /** Cache (AT12): one area the atlas listed, and once its ring is read, its profile. */
@@ -129,17 +137,31 @@ const SAME_M = { neighborhood: 1000, town: 3000 } as const;
 const sameArea = (a: { level: AtlasLevel; name: string; at: LngLat }, b: { level: AtlasLevel; name: string; at: LngLat }) =>
   a.level === b.level && a.name === b.name && distanceM(a.at, b.at) <= SAME_M[a.level];
 
-/** AT4: the bars of each kind from the places inside the ring, against the fixed steps. */
+/** The places inside the ring, once each. */
+function inRing<T extends AtlasPlace>(places: T[], centre: LngLat): T[] {
+  const seen = new Set<string>();
+  return places.filter((p) => !seen.has(p.key) && distanceM(p.at, centre) <= ATLAS_RULES.ringM && !!seen.add(p.key));
+}
+
+/**
+ * AT4: the bars of each kind from the places inside the ring, against the fixed steps.
+ * AG1: the five findable kinds count only places that could be found (a plain parish
+ * church counts toward nothing); food, shops and nightlife count every place.
+ */
 export function presenceSteps(places: AtlasPlace[], centre: LngLat): Steps {
   const seen = new Set<string>();
   const counts = Object.fromEntries(ATLAS_ORDER.map((c) => [c, 0])) as Record<CategoryId, number>;
   for (const p of places) {
+    if (p.markable === false && MARK_CATEGORIES.includes(p.category)) continue;
     if (seen.has(p.key) || distanceM(p.at, centre) > ATLAS_RULES.ringM) continue;
     seen.add(p.key);
     counts[p.category] += 1;
   }
   return Object.fromEntries(ATLAS_ORDER.map((c) => [c, STEPS[c].filter((s) => counts[c] >= s).length as Step])) as Steps;
 }
+
+/** AG3: the map knows almost nothing about this ring: fewer than `thinPlaces` places of the eight kinds, ordinary ones included. */
+export const thinRing = (places: AtlasPlace[], centre: LngLat): boolean => inRing(places, centre).length < ATLAS_RULES.thinPlaces;
 
 /** New rows for the candidates no current row already stands for. */
 export function newRows(
@@ -291,7 +313,9 @@ const NOUN: Record<CategoryId, string> = {
  * Never a count or a rank: "Lots of history and food", "Plenty of green space",
  * "A little of everything", "Quiet".
  */
-export function characterLine(steps: Steps): string {
+export function characterLine(steps: Steps, thin = false): string {
+  // AG3: where the map knows almost nothing, say nothing rather than "not much".
+  if (thin) return '';
   const top = Math.max(...ATLAS_ORDER.map((c) => steps[c]));
   // Never "Quiet": that is the walk mode's name on Navigate (atlas round 3).
   if (top === 0) return 'Not much on the map here';
@@ -440,11 +464,12 @@ export function walkTarget(area: AtlasArea): { at: LngLat; label: string; via: s
 export const otherTowns = (towns: Listed[]): Listed[] => towns.filter((l) => !l.here);
 
 /**
- * How the marks work, in words (atlas round 3): presence, never a count of
- * places, the same everywhere.
+ * How the marks work, in words (atlas round 3, AG4): presence, never a count of
+ * places, the same everywhere, and what each kind counts.
  */
 export const MARKS_EXPLAINED: readonly string[] = [
   'Marks say how much of each kind is around an area, never how good it is.',
+  'History, art, culture, green and views count only places worth finding, the ones that can turn up as a “?”. Food, shops and nightlife count every place.',
   'One mark: a place or two of the kind. Two: a handful. Three: a street’s worth.',
   'Every area is judged the same way, within about a ten-minute walk of its point, so the same marks mean the same anywhere.',
 ];
@@ -454,6 +479,7 @@ export function tileLabel(l: Listed, fam: Familiarity, fmt: (m: number) => strin
   const a = l.area;
   const head = `${a.name}. ${distanceWords(l.distanceM, l.here, fmt)}. ${familiarityWords(fam)}.`;
   if (!a.profile) return `${head} Being read.`;
+  if (a.profile.thin) return head;
   const kinds = ATLAS_ORDER.filter((c) => a.profile!.steps[c]).map((c) => `${ATLAS_LABEL[c]}: ${STEP_WORDS[a.profile!.steps[c]]}`);
   return [head, kinds.length ? `${kinds.join(', ')}.` : 'Quiet: little of any kind.', a.profile.strips[0] ? `Busy along ${a.profile.strips[0]}.` : '']
     .filter(Boolean).join(' ');

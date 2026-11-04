@@ -161,7 +161,7 @@ Discovery and Explore (v1)
   explore/exploreRun.ts      one explore read (decoder, z14 + z11) and the build check
   explore/useExplore.ts      Explore on the walk screen
   explore/exploreTab.ts the drawer's area-in-view (superseded on the tab by the atlas)
-  atlas/atlas.ts             the Explore atlas: near list, presence steps, sketch, familiarity, labels
+  atlas/atlas.ts             the Explore atlas: near list, presence steps (findable kinds count markable places, AG1), thin rings (AG3), sketch, familiarity, labels
   atlas/read.ts              the atlas's reads: areas near you, one ring at a time (decoder)
   atlas/useAtlas.ts          the atlas's data and its read loop, while Explore is in front
   explore/settings.ts        what I'm into, range, pocket alert (meta)

@@ -16,7 +16,7 @@ import { deriveSegments } from '../streets';
 import { tilesIn } from '../tileMath';
 import type { LngLat } from '../types';
 import {
-  ATLAS_CODE, ATLAS_RULES, keptProfile, marksOf, newRows, withNear, presenceSteps, sketchOf, SKETCH,
+  ATLAS_CODE, ATLAS_RULES, keptProfile, marksOf, newRows, withNear, presenceSteps, sketchOf, SKETCH, thinRing,
   type AtlasArea, type AtlasLevel, type AtlasProfile, type NearRead,
 } from './atlas';
 
@@ -78,12 +78,14 @@ export function readNear(at: LngLat, level: AtlasLevel, build: string, reach: nu
 
 /**
  * What one ring read keeps (AT4, AT6, AT7, AD14), from decoded tiles and Overture's places for the same
- * tiles (null without them, AD7). Pure apart from its inputs. The bars stay OpenStreetMap's (AD2).
+ * tiles (null without them, AD7). Pure apart from its inputs. The bars stay OpenStreetMap's (AD2), and the
+ * findable kinds count only markable places (AG1).
  */
 export function profileFrom(at: LngLat, feats: CollectedFeatures, build: string, overture: { release: string; points: ActivityPoint[] } | null = null) {
   const segments = deriveSegments(feats.roads, feats.names, build);
   const places = placesFromTilePois(feats.pois, build);
-  const ring = places.filter((p) => distanceM(p.at, at) <= ATLAS_RULES.ringM);
+  // AG1: each place says whether it could be found (chains too), so the findable kinds count only those.
+  const ring = places.filter((p) => distanceM(p.at, at) <= ATLAS_RULES.ringM).map((p) => ({ ...p, markable: isMarkable(p) }));
   const points = mergeSources(activityFromTilePois(feats.pois), overture?.points ?? []);
   const analysis = analyzeArea({ centre: at, points, segments, towns: placesFromTiles(feats.places), transit: transitFromTilePois(feats.pois) });
   const strips = analysis.strips.filter((s) => distanceM(s.peak, at) <= ATLAS_RULES.ringM);
@@ -91,6 +93,7 @@ export function profileFrom(at: LngLat, feats: CollectedFeatures, build: string,
   const frameM = (Math.hypot(SKETCH.w, SKETCH.h) / 2 / SKETCH.ringR) * ATLAS_RULES.ringM;
   const profile: AtlasProfile = {
     steps: presenceSteps(ring, at),
+    thin: thinRing(ring, at),
     strips: [...new Set(strips.map((s) => s.name))],
     stripAt: strips[0]?.peak ?? null,
     marks: marksOf(ring, isMarkable),

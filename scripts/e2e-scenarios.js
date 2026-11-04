@@ -39,6 +39,10 @@ const SCENARIOS = [
     covers: ['src/lib/areas/**', 'src/lib/atlas/**', 'src/lib/finish.ts', 'scripts/mvt-encode.mjs'],
   },
   {
+    name: 'grading',
+    covers: ['src/lib/atlas/atlas.ts', 'src/components/atlas/{AtlasCard,AtlasTile}.tsx'],
+  },
+  {
     name: 'marks',
     covers: ['src/lib/explore/**', 'src/lib/discovery/**', 'src/lib/atlas/**', 'src/components/MarkPinView.tsx', 'src/components/atlas/**', 'src/app/walk.tsx'],
   },
