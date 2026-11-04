@@ -32,7 +32,8 @@ No new storage, routes or dependencies. Reminders are read from the existing `re
 ## Tests
 
 - Unit: `reminderBell.test.ts` (RB1's any kind, RB2, RB3).
-- E2E: the main walk's existing "Remind me here" step checks the note's pin gains `pin-reminder` after Save (RB1, RB5); the "once" fire step checks it is gone after the fire clears it, and back after flagging again (RB5); the replay's pin for the reminded note wears it too (RB6); the note flagged again on the later walk, shown as a memory pin, checks the bell sits left of the clock and says "reminder set" (RB4, RB7).
+- E2E journey (decision 0074): `E2E_ONLY=qol`, step `qol RB1, RB5, RB6, RB7`: Remind me here on the replay's note puts the bell on that pin at once, on the same element, and Stop takes it off. `check:affected` names `qol` for `CapturePinView`, `useReminded` and the maps.
+- E2E, the full flow: the main walk's existing "Remind me here" step checks the note's pin gains `pin-reminder` after Save (RB1, RB5); the "once" fire step checks it is gone after the fire clears it, and back after flagging again (RB5); the replay's pin for the reminded note wears it too (RB6); the note flagged again on the later walk, shown as a memory pin, checks the bell sits left of the clock and says "reminder set" (RB4, RB7).
 
 ## Deferred
 

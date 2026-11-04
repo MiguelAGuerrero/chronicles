@@ -1,3 +1,4 @@
+/* global __dirname, Buffer */ // Node globals: the affected lint checks this file alone, without a Node environment.
 // End-to-end check of the web build: walk, note, hold-to-stop, replay, name, log.
 //
 //   npm run export:web && node scripts/e2e-web.js
@@ -1520,6 +1521,30 @@ function check(ok, what) {
       const row = await capRow('text');
       check(prefilled === 'First words on the corner.' && blankRefused && seenNow && seenAgain && row && row.body === 'Edited on the replay.',
         `qol QL24, QL25: Edit note opens prefilled, refuses blank, and the new words show at once and when opened again (prefilled ${JSON.stringify(prefilled)}, blank refused ${blankRefused}, now ${seenNow}, again ${seenAgain}, stored ${JSON.stringify(row && row.body)})`);
+      await pg.click('[data-testid=viewer-close]');
+      await pg.waitForTimeout(400);
+    });
+
+    // The reminder bell on the replay's pin (RB1, RB5, RB6, RB7): Remind me here puts it on the same
+    // pin element at once (reminder-bell audit 3), and Stop takes it off.
+    await qstep('qol RB1, RB5, RB6, RB7', async () => {
+      const bells = () => pg.locator('[data-ids] [data-testid=pin-reminder]').count();
+      const before = await bells();
+      await openNote();
+      await pg.evaluate(() => document.querySelectorAll('[data-ids]').forEach((e) => { e.__beforeBell = true; }));
+      await pg.click('[data-testid=viewer-remind]');
+      await pg.click('[data-testid=remind-save]');
+      await pg.waitForSelector('text=It will come back when you pass here', { timeout: 5000 });
+      await pg.waitForSelector('[data-ids] [data-testid=pin-reminder]', { timeout: 5000 }).catch(() => null);
+      const belled = pg.locator('[data-ids]:has([data-testid=pin-reminder])');
+      const set = { n: await belled.count(), kept: await belled.evaluateAll((els) => els.every((e) => e.__beforeBell === true)), label: (await belled.count()) ? await belled.first().getAttribute('aria-label') : '' };
+      await pg.click('[data-testid=viewer-remind]');
+      await pg.click('[data-testid=remind-stop]');
+      await pg.waitForSelector('text=No more reminders here', { timeout: 5000 });
+      await pg.waitForFunction(() => !document.querySelector('[data-testid=pin-reminder]'), null, { timeout: 5000 }).catch(() => null);
+      const after = await bells();
+      check(before === 0 && set.n === 1 && set.kept && /reminder set\. Open$/.test(set.label) && after === 0,
+        `qol RB1, RB5, RB6, RB7: the replay's note pin wears the bell once reminded, on the same element, says so, and loses it on Stop (before ${before}, set ${JSON.stringify(set)}, after ${after})`);
       await pg.click('[data-testid=viewer-close]');
       await pg.waitForTimeout(400);
     });

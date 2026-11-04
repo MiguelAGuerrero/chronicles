@@ -53,10 +53,10 @@ const SCENARIOS = [
   {
     name: 'qol',
     covers: [
-      'src/components/{LocateButton,HomeSheet,CaptureView}.tsx',
+      'src/components/{LocateButton,HomeSheet,CaptureView,CapturePinView}.tsx',
       'src/components/map/**',
       'src/app/(tabs)/chronicle.tsx',
-      'src/lib/{scaleBar,units,unitsStore,useUnits,useLocate,rename,noteEdit,months,pins,thumbPlan,thumbJob,walkTitle}.ts',
+      'src/lib/{scaleBar,units,unitsStore,useUnits,useLocate,rename,noteEdit,months,pins,thumbPlan,thumbJob,walkTitle,useReminded}.ts',
       'src/lib/nav/eta.ts',
     ],
   },
