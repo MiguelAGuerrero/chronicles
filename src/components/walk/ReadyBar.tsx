@@ -133,6 +133,9 @@ export function ReadyBar(props: {
         {...dragProps}
         // The summary below is the button for assistive tech; the grip is for the thumb.
         accessible={false}
+        // Focusable, but not a tab stop: without it a touch on the handle's strip went to the map's canvas
+        // beneath, and a finger could not lift the bar (the owner, Nov 4; mouse drags always worked).
+        tabIndex={-1}
         importantForAccessibility="no-hide-descendants"
         style={[styles.grip, { height: up ? GRIP_UP : 10 }]}
       >

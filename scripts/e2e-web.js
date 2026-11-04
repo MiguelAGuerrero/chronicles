@@ -2072,6 +2072,29 @@ function check(ok, what) {
   };
 
   // The Navigate, ready audit (2026-11-03): each accepted finding's regression check, `navigate-ready audit N`.
+  // The handle is what a thumb reaches for (the owner, Nov 4: "I cannot lift the drawer"). Chromium sent a touch on
+  // the handle's strip to the map's canvas, not the bar, unless the grip is focusable, so a mouse drag passed while
+  // a finger's did nothing. This one drags it with touch events, never the mouse.
+  const readyTouch = async () => {
+    const { c, pg } = await freshPage('ready-touch', { touch: true });
+    await pg.goto(navUrl);
+    await pg.waitForSelector('[data-testid=ready-bar]', { timeout: 20000 });
+    await pg.waitForTimeout(1200);
+    const cdp = await c.newCDPSession(pg);
+    const g = await pg.locator('[data-testid=ready-grip]').boundingBox();
+    const x = g.x + g.width / 2;
+    const y = g.y + g.height / 2;
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+    for (let i = 1; i <= 12; i++) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: y - i * 22 }] });
+      await pg.waitForTimeout(16);
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    const lifted = await pg.waitForSelector('[data-testid=start-settings]', { timeout: 4000 }).then(() => true, () => false);
+    check(lifted, `navigate-ready touch 1: a finger's drag on the handle lifts the bar to the walk settings (${lifted})`);
+    await c.close();
+  };
+
   const readyAudit = async () => {
     const box = async (pg, id) => {
       const b = await pg.locator(`[data-testid=${id}]`).filter({ visible: true }).first().boundingBox({ timeout: 3000 }).catch(() => null);
@@ -2247,6 +2270,7 @@ function check(ok, what) {
     if (process.env.E2E_ONLY === 'ready') {
       await readyScenario();
       await readyAudit();
+      await readyTouch();
       check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
       return;
     }
@@ -4275,6 +4299,7 @@ function check(ok, what) {
     await gapsScenario();
     await readyScenario();
     await readyAudit();
+    await readyTouch();
     await hiddenScenario();
     await nudgeScenario();
     {
