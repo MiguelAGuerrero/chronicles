@@ -2122,6 +2122,8 @@ function check(ok, what) {
     const notice = (await pg.locator('[data-testid=lift-in]').allInnerTexts()).join(' | ');
     check(pathOf(pg) === `${BASE}/walk` && (await pg.evaluate(() => window.__navs)) === 0 && same(before.cam, after.cam) && same(before.mic, after.mic) && same(before.pen, after.pen) && same(before.chev, after.chev),
       `ready NR6: Start records in place; the stack and the chevron don't move (${JSON.stringify({ before, after })})`);
+    // fix minimize-top-align: no empty band above the chevron; it sits at the safe area's top edge (0 in the headless browser).
+    check(before.chev.y <= 1 && after.chev.y <= 1, `ready fix minimize-top-align: the chevron and Minimize sit flush with the top (${before.chev.y}, ${after.chev.y})`);
     check(Math.abs(before.start.x + before.start.w - (after.stop.x + after.stop.w)) <= 2 && Math.abs(before.start.y + before.start.h / 2 - (after.stop.y + after.stop.h / 2)) <= 2,
       `ready NR5: Start sits in the strip where Stop sits (${JSON.stringify({ start: before.start, stop: after.stop })})`);
     check(/Walk started · recording/.test(notice), `ready NR6: the notice says the walk is recording (${notice})`);
