@@ -51,6 +51,7 @@ what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md
 | Atlas grading (the findable kinds count only findable places; thin rings say nothing; what a mark is; AG1-AG6, decision 0084) | shipped 2026-11-04 (unit tests, typecheck, lint, e2e `grading`, `marks`, `outlines` pass on the sub-path build; native unverified) | branch `claude/atlas-grading`, merged 2026-11-04 | `specs/atlas-grading/spec.md` (repo first; from the research doc https://claude.ai/artifact/KbWci9Guj4XcamTNqow8oC) | no (decision 0074) |
 | Activity density (busy streets as graded density of places, OSM + Overture, AD1-AD16) | shipped 2026-11-04 (web verified by the e2e; native unverified) | `829016e` and the audit fixes, 2026-11-04, branch `claude/busy-streets-calculator-accuracy-tk03rr` | `specs/activity-density/spec.md` (repo first) | yes (14 findings, 14 fixed) |
 | Compass (the map turns by two fingers; a compass shows while it is and sets north again, CP1-CP8, decision 0082) | shipped 2026-11-04 (web verified by the e2e `qol` and `ready`; native unverified; the live walk's compass slot is not covered by an e2e step) | branch `claude/compass-spec`, 2026-11-04 | `specs/compass/spec.md` (repo first) | no (on request only, decision 0074) |
+| Replay rhythm (the replay as a story told by a ceremony; glide to the moments, zip through the rest, tap to hold; RR1-RR22, decisions 0085, 0086) | shipped 2026-11-04 (web verified by the e2e `replay` journey; native unverified) | branch `claude/replay-rhythm`, 2026-11-04 | `specs/replay-rhythm/spec.md` (repo first) | yes, three rounds at the owner's request (19 findings: 16 fixed, 1 deferred, 2 rejected; 10: 9 fixed, 1 in part; 9: 8 fixed, 1 deferred to the owner) |
 
 Not a tab, but tracked: **suggested routes** (interesting ways, route preview,
 "Walk this way") are deferred as their own later slice (`749811d` 2026-11-01).
@@ -134,7 +135,6 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 | Session | Branch | Doing |
 |---|---|---|
 | Bug fixes (open since Oct 31) | unknown | unknown |
-| Replay rhythm (RR1-RR22, decisions 0085, 0086) | `claude/replay-rhythm` | built test-first; audit round 1: 19 findings, 16 fixed, 1 deferred, 2 rejected; round 2: 10 findings, 9 fixed, 1 in part; round 3: 9 findings, 8 fixed, 1 deferred to the owner; web verified by the e2e (`replay` journey), native unverified; waiting on the owner's review |
 
 ## Updating this file
 
