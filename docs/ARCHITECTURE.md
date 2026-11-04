@@ -197,6 +197,7 @@ Captures and media
   mediaEdit.ts               edits as data (core, ME5-ME21): rotate and crop against the original, the nine filter matrices, pen sizes and colours, the eraser's hit, simplify, trim, exportPlan (one transform for every renderer), parse/serialize
   editSession.ts             the editor's draft, undo/redo, close/discard/done (core)
   editOffer.ts               the after-capture Edit offer's timing and words (core)
+  ready/                     Navigate, ready's shell (`createReady`: its choices, one fix, notes and moments' writes) and the app's instance
   captureEdits/              saving a moment's edits from a screen with no capture path: stored, then told on the bus (shell)
   videoEdit/                 an edited video as one file: the local module on phones, canvas + MediaRecorder on the web
   media/                     where files are kept: Documents (relative paths) on native, Blobs in IndexedDB on web; resolveMedia
