@@ -198,6 +198,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const onCameraChange = useRef(props.onCameraChange);
   const onFitSettled = useRef(props.onFitSettled);
   const onSwipe = useRef(props.onSwipe);
+  const fitPadding = useRef(props.fitPadding);
   // Before paint, so a click right after a render never reaches the previous handler (audit 8).
   useLayoutEffect(() => {
     onPress.current = props.onPress;
@@ -207,6 +208,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     onCameraChange.current = props.onCameraChange;
     onFitSettled.current = props.onFitSettled;
     onSwipe.current = props.onSwipe;
+    fitPadding.current = props.fitPadding;
   });
   const pointerDown = useRef(false);
   const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
@@ -357,10 +359,12 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     let swipeMulti = false;
     // When the last one-finger tap ended, so a tap-drag zoom's second touch is never a swipe (audit 2).
     let tappedAt = -Infinity;
-    // Where areas are framed: the padded centre the fits and showPoint leave, below the title card,
-    // never the canvas's own middle (discrete-navigation audit 5).
+    // Where areas are framed: the middle of the frame's padding, below the title card, never the canvas's
+    // own middle (discrete-navigation audit 5). Read from the padding itself: the map keeps none (fix 2).
     const middle = (): LngLat => {
-      const c = map.getCenter();
+      const canvas = map.getCanvas();
+      const p = fitPadding.current ?? { top: 0, right: 0, bottom: 0, left: 0 };
+      const c = map.unproject([(p.left + canvas.clientWidth - p.right) / 2, (p.top + canvas.clientHeight - p.bottom) / 2]);
       return [c.lng, c.lat];
     };
     // A drag whose mouseup is lost (the window lost focus, or the button came up outside it) is dropped (audit 10).
@@ -442,10 +446,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           onSwipe.current?.({ ...swipe, center: middle() });
         } else if (e.key === '+' || e.key === '=') {
           e.preventDefault();
-          map.zoomIn({ duration: animateRef.current ? MOTION.camera : 0 });
+          // Around where areas are framed, so the selected one stays put (fix 2: the map keeps no padding).
+          map.zoomTo(map.getZoom() + 1, { around: middle(), duration: animateRef.current ? MOTION.camera : 0 });
         } else if (e.key === '-' || e.key === '_') {
           e.preventDefault();
-          map.zoomOut({ duration: animateRef.current ? MOTION.camera : 0 });
+          map.zoomTo(map.getZoom() - 1, { around: middle(), duration: animateRef.current ? MOTION.camera : 0 });
         }
       });
     }
@@ -904,7 +909,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       return out;
     },
     showPoint(at, padding) {
-      mapRef.current?.easeTo({ center: at, padding, duration: animateRef.current ? MOTION.ease : 0 });
+      // An offset, never `padding`: maplibre keeps an ease's padding on the map and counts it again in every later
+      // fit, so after a swipe on Explore's 200 px map a town's fit found no room and never moved (discrete-navigation
+      // fix 2, the owner's iPhone, Nov 4). The point lands in the middle of the padding all the same.
+      const offset: [number, number] = [(padding.left - padding.right) / 2, (padding.top - padding.bottom) / 2];
+      mapRef.current?.easeTo({ center: at, offset, duration: animateRef.current ? MOTION.ease : 0 });
     },
     resetNorth() {
       mapRef.current?.easeTo({ bearing: 0, duration: animateRef.current ? MOTION.camera : 0 });

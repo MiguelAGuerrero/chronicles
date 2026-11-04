@@ -75,3 +75,7 @@ Built on branch `claude/discrete-navigation`; the owner's go-ahead on the plan, 
 12. A swipe toward nothing is silent for a screen reader: defer, with the visual bounce (`docs/DEFERRED.md`).
 
 Test review: the DN5 unit line that could not fail now places a nearer area; DN6's "out of view before" and DN3's expected area no longer pass vacuously. Still not covered: a touch-screen swipe, the turned map on screen, pinch and double tap on screen.
+
+## After the deploy (Nov 4, the owner's iPhone)
+
+- **discrete-navigation fix 1, 2:** from Allentown's page, a swipe to Catasauqua tinted it but never moved the map. Cause: a neighborhood swipe before had eased with `padding`, which maplibre keeps on the map and adds to every later fit; on the 200 px map the two left no room, so the town's fit found no camera and did nothing. `showPoint` eases with an offset now, the swipe's start and the `+`/`-` keys read the frame's padding. The e2e `snap` reproduces the owner's order (a neighborhood swipe, the title, a swipe to a 600 m town beside a 4 km one), by touch; it failed before the fix ("discrete-navigation fix 2 (touch), after a neighborhood swipe": the view stayed at Allentown's width). Fix 1's checks (the same without the neighborhood swipe, mouse and touch) pass before and after. Chronicle's star taps used the same `showPoint` and are fixed with it.
