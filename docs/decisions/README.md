@@ -82,3 +82,4 @@ An owner's call made during a slice gets its record in the same commit as the sl
 | [0074](0074-fast-iteration-scoped-checks.md) | 2026-11-03 | Fast iteration: affected checks and the slice's own e2e journey; the full e2e and `/audit` only when the owner asks (supersedes 0018's audit on every slice) | process, testing |
 | [0075](0075-the-cone-is-checked-by-the-trace.md) | 2026-11-03 | The cone is checked by the trace over 20 m; the live dot's direction alone is never drawn (amends 0030) | navigation, map |
 | [0076](0076-navigate-opens-the-walk-screen-ready.md) | 2026-11-03 | Navigate opens the walk screen, ready; captures stack at the right edge; the bar pulls up | tabs, navigate, walk screen |
+| [0077](0077-one-way-back-from-a-town.md) | 2026-11-04 | A town's page has one way back, the pill low on the screen; the title card has no arrow | explore, atlas |

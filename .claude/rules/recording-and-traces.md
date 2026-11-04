@@ -28,7 +28,7 @@ Recording a walk and reading its trace: pauses, standstills, GPS jitter, the liv
   and the replay's `activeClock`. Pass the walk's pauses everywhere a trace is
   drawn, measured or replayed. `useLiveTrace` takes the pauses too, drops fixes
   inside them, and doesn't report a pause as a hidden-page gap.
-- **The hidden-page notice needs a hidden page** (decision 0072, Nov 3): a gap is
+- **The hidden-page notice needs a hidden page** (decision 0077, Nov 3): a gap is
   reported to the walk screen's "Tracing paused … while this page was hidden" only
   if it overlaps a spell out of front (`lib/hiddenLog.ts`, fed from AppState in
   `useLiveTrace`) or began before the page loaded. With the page on screen, a gap

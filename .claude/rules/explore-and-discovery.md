@@ -170,6 +170,7 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
   - Walk to is the card's footer (`walkTarget` → `label`, `via`). The card is a sheet (58% / 90%, drag or tap the handle), or a side panel from 1000 px.
   - The long press's choices (`atlas-spot`) sit over the map, and `spot` clears on `pick`, `enterArea`, `leave` and blur. Below z10 a toast shows. Meta `atlas_press_seen` ends the hint.
   - `otherTowns` drops your town; the title (`atlas-title`) opens it.
+  - A town's page has one way back, the pill low on the screen (`atlas-back-pill`), with Back and Escape; the title card has no arrow (decision 0077, Nov 4).
   - Area points are the map's `areaPoints` prop (`components/AreaPoint.tsx`, DOM markers on web, Markers on native), with names for the nearest three and the selected one. Never `marks`, which stay for the pressed spot.
 - **Position:** one fix read as the app opens (NV16, `launchFix`; the owner's call, Nov 3, since Explore is the opening tab), then the last fix, or a Locate tap. Until that fix comes, or if it fails, the tab opens where it last listed areas, from `atlas_near:neighborhood`, never saying "You're here", and the title says "Near you".
 - **Kept from the old tab:** the long press on the small map (What's good here, Walk here). The drawer's "?" and find pins on the map are gone; finds are on the cards.

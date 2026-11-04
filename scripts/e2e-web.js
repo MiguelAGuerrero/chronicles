@@ -3325,6 +3325,7 @@ function check(ok, what) {
         check(tile && sec && tile.height > 150 && tile.y + tile.height <= sec.y + 1,
           `town page: its tile ends above its neighborhoods (tile ${tile && Math.round(tile.y)}+${tile && Math.round(tile.height)}, heading ${sec && Math.round(sec.y)})`);
       }
+      check((await page.locator('[data-testid=atlas-back]').count()) === 0, 'town page: one way back, the low pill; the title has no arrow (decision 0077)');
       await shot(page, '11d-atlas-town');
       await page.click('[data-testid=atlas-back-pill]');
       await page.waitForSelector('[data-testid=atlas-tile][data-name="Fox Point"]', { timeout: 10000 });
