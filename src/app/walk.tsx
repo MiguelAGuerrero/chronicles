@@ -215,17 +215,16 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const [pausing, setPausing] = useState(false);
   const [status, setStatus] = useState<RecorderStatus>({ kind: 'idle' });
   const [now, setNow] = useState(() => Date.now());
-  // One-off notices: a start warning, or the web's visibility rule.
+  // One-off notices: a start warning or "started". The web's "keep this page open" note is said
+  // once on first launch (Navigate), not on every walk (the owner's call, Nov 4).
   const [notice, setNotice] = useState<Notice | null>(() =>
     !shownWalk
       ? null
       : params.warning
-      ? { message: params.warning }
-      : params.started
-        ? { message: 'Walk started · recording' }
-      : recorder.capabilities.background
-        ? null
-        : { message: 'Keep this page open and on screen while you walk.' },
+        ? { message: params.warning }
+        : params.started
+          ? { message: 'Walk started · recording' }
+          : null,
   );
   const [noteOpen, setNoteOpen] = useState(false);
   const [note, setNote] = useState('');
@@ -1041,6 +1040,23 @@ function WalkScreen(props: { onMinimize: () => void }) {
       <>
 
       <View style={[styles.top, { top: insets.top + 12, left: sideInset, right: sideInset }]} pointerEvents="box-none">
+        {/* The notice is first, so it sits flush at the top of the stack, above the navigation bar
+            and the minimize button (the owner's call, Nov 4). */}
+        {notice && (
+          <Banner
+            tone={notice.tone}
+            onDismiss={() => setNotice(null)}
+            action={
+              notice.openSettings && Platform.OS !== 'web'
+                ? { label: 'Open Settings', onPress: () => Linking.openSettings() }
+                : notice.maps
+                  ? { label: 'Open in Maps', onPress: () => notice.maps && handOff(notice.maps.at, notice.maps.label) }
+                  : undefined
+            }
+          >
+            {notice.message}
+          </Banner>
+        )}
         {navigation.nav && (
           // Not a live region: it changes with every fix. The distance is announced in steps instead.
           <View testID="nav-bar" style={styles.navBar}>
@@ -1168,21 +1184,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
             }}
             onDismiss={() => setReminder(null)}
           />
-        )}
-        {notice && (
-          <Banner
-            tone={notice.tone}
-            onDismiss={() => setNotice(null)}
-            action={
-              notice.openSettings && Platform.OS !== 'web'
-                ? { label: 'Open Settings', onPress: () => Linking.openSettings() }
-                : notice.maps
-                  ? { label: 'Open in Maps', onPress: () => notice.maps && handOff(notice.maps.at, notice.maps.label) }
-                  : undefined
-            }
-          >
-            {notice.message}
-          </Banner>
         )}
         {toast && (
           <LiftIn style={styles.toast} accessibilityLiveRegion="polite">
