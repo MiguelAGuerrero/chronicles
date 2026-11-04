@@ -221,7 +221,7 @@ recording bar brings a minimized walk back.
 
 ## Settings and notifications
 
-- Explore settings (a panel, not a screen): "What I'm into" (8 kinds), the
+- Explore settings (in the drawers: the ready bar's and the walk's, no panel of their own): "What I'm into" (8 kinds), the
   "?" range with a ring preview on the map, the pocket alert (phones, and browsers that can
   buzz: Android Chrome, maybe iPhone Safari).
 - Notifications: Remind me here and Pause reminder, each switchable, plus a

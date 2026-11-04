@@ -3,7 +3,7 @@ paths:
   - "src/app/walk.tsx"
   - "src/components/walk/**"
   - "src/lib/readyNav.ts"
-  - "src/components/{Ticking,MomentBar,MemoryPreview,ExploreSettings,OpenWalk,ConfirmCard,ReminderCard,RemindEditor,ui}.tsx"
+  - "src/components/{Ticking,MomentBar,MemoryPreview,OpenWalk,ConfirmCard,ReminderCard,RemindEditor,ui}.tsx"
   - "src/lib/{useCaptures,walkNav,walkGate,memoGate,useLiveTrace,walkEvents,recordingBar,walkMotion}.ts"
 ---
 # Walk screen
@@ -53,10 +53,13 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
   saves it: the walk's Minimize is disabled mid-memo, the ready screen's chevron closes and the memo is
   finished as `useCaptures` unmounts.
 - A quick tap on Stop shows "Hold to stop the walk".
-- Walk options (the Explore switch, the link to Settings, motion, Share GPS log) are the strip's
+- Walk options (the Explore switch, its range and kinds, motion, Share GPS log) are the strip's
   drawer, not a button (the owner, Nov 4): the walk's strip is the same `ReadyBar` as the ready
   screen's (`idPrefix="walk"`: `walk-bar`, `walk-grip`, `walk-summary`), pulled up by a drag or a tap on
-  the numbers, with Pause and Stop at its foot. Mid-memo it is locked. `options-card` is its content;
+  the numbers, with Pause and Stop at its foot. Mid-memo it is locked. `options-card` is its content,
+  and Explore's settings are in it, not in a panel of their own (the owner, Nov 4): with Explore on, the
+  "?" range (the ring on the map, fitted above the raised drawer) and what I'm into, then the pocket alert
+  and reminders; each saves as it changes. `settings` / `open-settings` / `settings-done` no longer exist;
   raising it closes any card, and Back or Escape lowers it (ReadyBar's own handler).
 - Pills (the caption offer, voice Undo, Retry, a moment's toast) sit left of the stack, just above the
   strip (`at.pills`), right-aligned, so the stack never moves under the thumb. Zooming keeps following;

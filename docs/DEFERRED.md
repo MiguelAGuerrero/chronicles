@@ -190,8 +190,6 @@ An item leaves only when it ships, or when it is rejected with a decision record
   on one origin are rare; a remount on a new walk id would fix it.
 - **Two pills at once overlap the scale bar at 375 wide** (the caption offer, then a memo discarded
   within 6 s): one pill clears it (audit 11).
-- **The walk's settings panel** (`ExploreSettings`, from the walk options) still covers the stack while
-  open; it is a sheet with its own Cancel (audit 5).
 
 ## Functional core (slice 1)
 
