@@ -840,6 +840,8 @@ function check(ok, what) {
       // TB2: the town's own page (the title opens it) draws its border tinted.
       let page = null;
       let pageView = [];
+      let roundTrip = [];
+      let reopened = [];
       if (title && title !== 'Near you') {
         await pg.click('[data-testid=atlas-title]').catch(() => {});
         await pg.waitForSelector('[data-testid=atlas-town-head]', { timeout: 10000 }).catch(() => {});
@@ -849,9 +851,22 @@ function check(ok, what) {
         await pg.waitForTimeout(2500);
         pageView = await inView();
         await shot(pg, `${label}-town`);
+        // fix explore-fit-area audit 1: another tab and back (the borders are unknown while it is blurred).
+        await tabTo(pg, 'chronicle');
+        await pg.waitForTimeout(1200);
+        await tabTo(pg, 'explore');
+        await pg.waitForTimeout(2500);
+        roundTrip = await inView();
+        // audit 3: back near you, then the same town's page again.
+        await pg.click('[data-testid=atlas-back-pill]').catch(() => {});
+        await pg.waitForTimeout(1500);
+        await pg.click('[data-testid=atlas-title]').catch(() => {});
+        await pg.waitForSelector('[data-testid=atlas-town-head]', { timeout: 10000 }).catch(() => {});
+        await pg.waitForTimeout(2500);
+        reopened = await inView();
       }
       await c.close();
-      return { title, subtitle, borders, page, zoom, view, pageView };
+      return { title, subtitle, borders, page, zoom, view, pageView, roundTrip, reopened };
     };
     serveDivisions = false;
     const before = await titleOf('outlines-off');
@@ -875,6 +890,13 @@ function check(ok, what) {
     };
     check(holdsTown(after.view), `fix explore-fit-area: Explore shows the whole of your town (${after.view.join(',')})`);
     check(holdsTown(after.pageView), `fix explore-fit-area: the town's page shows the whole town (${after.pageView.join(',')})`);
+    check(holdsTown(after.roundTrip), `fix explore-fit-area audit 1: back from another tab, the town's page still shows the whole town (${after.roundTrip.join(',')})`);
+    check(holdsTown(after.reopened), `fix explore-fit-area audit 3: the town's page opened again shows the whole town (${after.reopened.join(',')})`);
+    // The whole town, not the world: a map left zoomed far out would hold it too.
+    const span = (v) => (v[2] - v[0]) / ((at(10, 10)[0] - at(-10, -10)[0]) || 1);
+    check(span(after.pageView) < 6, `fix explore-fit-area: the town's page is framed on the town, not far wider (${span(after.pageView).toFixed(1)}x its width)`);
+    check(span(after.reopened) < span(after.pageView) * 1.2,
+      `fix explore-fit-area audit 3: opened again, the page is framed on the town as the first time, not on its reach (${span(after.reopened).toFixed(1)}x, first ${span(after.pageView).toFixed(1)}x)`);
     const asked = overtureAsked.filter((q) => /divisions\.pmtiles/.test(q.url));
     check(asked.length > 0 && asked.every((q) => q.range), `TO12: outlines are read from Overture's divisions by byte range (${asked.length} requests)`);
   };

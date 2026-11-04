@@ -281,28 +281,32 @@ export function townOf(area: { at: LngLat }, towns: AtlasArea[], outlines: Outli
   return i >= 0 && i < towns.length ? towns[i] : null;
 }
 
-/** How far around a town's point its neighborhoods are looked for. */
+/** What the map last framed for a visit to a page (AT9, TB11): its page, build, and town's border, or null for its areas. */
+export type PageFramed = { page: string; build: string | null; town: string | null };
+
 /**
- * What a page of the atlas frames (AT9, TB11; fix explore-fit-area, Nov 4): the whole of its town
- * once the town's border is known (yours near you, or the open town's), else the page's areas
- * (and you, near you) padded 150 m. The screen fits each key once, so a key changes only with the
- * page, the build or the border arriving: areas listed after the border never undo it, and Locate
- * or a pan afterwards is never undone. Two separate frames once raced, and the last one won.
+ * What a visit to a page of the atlas frames next (AT9, TB11; fix explore-fit-area, Nov 4): its
+ * areas (and you, near you) padded 150 m while its town's border is unknown, then the whole town
+ * once the border is known (yours near you, or the open town's). Within a visit nothing else
+ * refits: areas listed after the border, a border briefly unknown (the tab blurred), you moving,
+ * a Locate or a pan. A new page, a new build or another town frames again. `last` is null at the
+ * start of a visit. Two separate frames once raced, and the areas' won.
  */
-export function pageFrame(p: {
-  page: string;
-  build: string | null;
-  town: { id: string; bounds: Bounds } | null;
-  points: LngLat[];
-  from: LngLat | null;
-}): { key: string; bounds: Bounds } | null {
-  const base = `${p.page}:${p.build ?? ''}`;
-  if (p.town) return { key: `${base}:${p.town.id}`, bounds: p.town.bounds };
-  if (!p.points.length) return null;
+export function nextFrame(
+  last: PageFramed | null,
+  p: { page: string; build: string | null; town: { id: string; bounds: Bounds } | null; points: LngLat[]; from: LngLat | null },
+): { framed: PageFramed; bounds: Bounds } | null {
+  const same = !!last && last.page === p.page && last.build === p.build;
+  if (p.town) {
+    if (same && last.town === p.town.id) return null;
+    return { framed: { page: p.page, build: p.build, town: p.town.id }, bounds: p.town.bounds };
+  }
+  if (same || !p.points.length) return null;
   const box = boundsOf(p.page === 'near' && p.from ? [p.from, ...p.points] : p.points, 150);
-  return box ? { key: base, bounds: box } : null;
+  return box ? { framed: { page: p.page, build: p.build, town: null }, bounds: box } : null;
 }
 
+/** How far around a town's point its neighborhoods are looked for. */
 export const townReachM = (town: AtlasArea) => Math.min(town.reachM, ATLAS_RULES.townNeighborhoodsM);
 
 /**
