@@ -2739,6 +2739,22 @@ function check(ok, what) {
       check((await selected('edit-tool-crop')) === 'true', 'ME23: the bar’s Edit opens the editor on Crop');
       await pg.click('[data-testid=edit-close]');
     });
+
+    // ME4: the replay's cards show the edits too (the edited photo's SVG picture, not the plain file).
+    await step('ME4 replay', async () => {
+      await pg.click('[data-testid=recording-return]');
+      await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+      await pg.waitForTimeout(1000);
+      const b = await pg.locator('[data-testid=stop]').boundingBox();
+      await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+      await pg.mouse.down();
+      await pg.waitForTimeout(1100);
+      await pg.mouse.up();
+      await pg.waitForURL(/replay/, { timeout: 30000 });
+      const edited = await pg.waitForSelector('[data-testid=replay-card] svg image', { timeout: 45000 }).then(() => true, () => false);
+      check(edited, 'ME4: the replay\u2019s card for an edited photo draws its edits');
+      if (await pg.locator('[data-testid=skip]').count()) await pg.click('[data-testid=skip]').catch(() => {});
+    });
     await c.close();
   };
 
