@@ -849,6 +849,8 @@ function check(ok, what) {
       await shot(pg, `${label}-explore`);
       // TB2: the town's own page (the title opens it) draws its border tinted.
       let page = null;
+      let card = '';
+      let how = '';
       let pageView = [];
       let roundTrip = [];
       let reopened = [];
@@ -874,9 +876,19 @@ function check(ok, what) {
         await pg.waitForSelector('[data-testid=atlas-town-head]', { timeout: 10000 }).catch(() => {});
         await pg.waitForTimeout(2500);
         reopened = await inView();
+        // TP1, TP8: the town's card, counted across its whole outline (Pawtucket is known only by one).
+        await pg.click('[data-testid=atlas-town-head]').catch(() => {});
+        await pg.waitForSelector('[data-testid=atlas-card]', { timeout: 10000 }).catch(() => {});
+        await pg.waitForSelector('[data-testid=atlas-kind-food]', { timeout: 30000 }).catch(() => {});
+        card = await pg.locator('[data-testid=atlas-card]').innerText().catch(() => '');
+        if (await pg.locator('[data-testid=atlas-how]').count()) {
+          await pg.click('[data-testid=atlas-how]');
+          how = await pg.locator('[data-testid=atlas-how-panel]').innerText().catch(() => '');
+        }
+        await shot(pg, `${label}-town-card`);
       }
       await c.close();
-      return { title, subtitle, borders, page, zoom, view, pageView, roundTrip, reopened };
+      return { title, subtitle, borders, page, zoom, view, pageView, roundTrip, reopened, card, how };
     };
     serveDivisions = false;
     const before = await titleOf('outlines-off');
@@ -892,6 +904,9 @@ function check(ok, what) {
     check(after.page === 'lined:Central Falls|tinted:Pawtucket', `TB2: the town's page draws its border tinted (${after.page})`);
     // Pawtucket is 2 km across: framed whole, the map is zoomed out from the 800 m ring it opens on.
     check(after.zoom < before.zoom - 0.5, `TB11: Explore zooms out to frame the whole town (z${after.zoom.toFixed(2)}, the ring alone z${before.zoom.toFixed(2)})`);
+    // TP1, TP8: a town known by its outline is counted across it: its card no longer says "around its centre", and says so.
+    check(/what’s here/i.test(after.card) && !/around its centre/i.test(after.card) && /whole outline/.test(after.how),
+      `TP8: a town counted across its outline says "What's here" with no "around its centre", and how it counts (${after.card.replace(/\s+/g, ' ').slice(0, 120)} | ${after.how.replace(/\s+/g, ' ')})`);
     // fix explore-fit-area: the whole of Pawtucket's outline is in view, near you and on its own page, whose
     // areas, listed after the border, once framed only its point and a neighborhood.
     const holdsTown = ([w, s, e, n] = []) => {
@@ -2882,6 +2897,10 @@ function check(ok, what) {
       // ME13: Text goes straight to typing.
       await pg.click('[data-testid=edit-tool-text]');
       await pg.fill('[data-testid=caption-input]', 'Corner shop');
+      {
+        const ta = await pg.evaluate(() => ({ root: getComputedStyle(document.getElementById('root')).touchAction, input: parseFloat(getComputedStyle(document.querySelector('[data-testid=caption-input]')).fontSize) }));
+        check(ta.root === 'manipulation' && ta.input >= 16, `fix editor-zoom audit 3: double-tap zoom is off and the caption field types at ${ta.input} px (>= 16)`);
+      }
       await pg.locator('[data-testid=caption-input]').blur();
       await shot(pg, 'edit-photo');
       // ME22: every control has a name.

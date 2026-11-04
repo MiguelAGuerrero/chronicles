@@ -26,7 +26,10 @@ const POI: Record<string, Rule[]> = {
   shop: [
     [['coffee', 'chocolate', 'confectionery'], 'food'],
     [['antiques', 'second_hand', 'charity', 'gift', 'florist', 'boutique', 'jewelry', 'toys', 'outdoor', 'photo', 'stationery'], 'shops'],
+    // TP11: a shopping centre or department store is a destination, one place of Shops. Supermarkets and errand shops stay out (v1 spec).
+    [['mall', 'department_store'], 'shops'],
   ],
+  department_store: [['*', 'shops']],
   clothing_store: [[['clothes', 'bag'], 'shops']],
   library: [[['books'], 'shops'], [['library'], 'culture']],
   music: [[['music', 'musical_instrument'], 'shops']],
