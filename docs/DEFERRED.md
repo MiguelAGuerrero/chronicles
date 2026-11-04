@@ -216,3 +216,4 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - Marks across a whole outline are stored in the profile as keys and spots; a very large city's list is uncapped
 - The Undo toast (`insets.top + 64`) can cover the walk screen's Minimize row while a navigation bar shows (fix minimize-top-align audit 1; it overlapped before the top offset went from 12 to 4)
 - The walk screen's top edge `sideInset` ignores `insets.left`/`insets.right`, so a narrow landscape device could put Minimize under a cutout; the e2e has no way to inject a safe-area inset (fix minimize-top-align audit 2, 4)
+- Web overlays still pad by the unfiltered safe-area `insets.top` that iOS Safari reports on web: the Atlas card grip (`AtlasCard.tsx`), CaptureView, MediaEditor, NoteEditor, MomentBar; the Explore map no longer does (`lib/mapTopInset`, fix title-chip-corner audit 1)
