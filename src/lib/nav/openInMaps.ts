@@ -22,8 +22,18 @@ export const HANDOFF_HINT =
 export async function openInMaps(at: LngLat, label: string): Promise<boolean> {
   const nav = typeof navigator === 'undefined' ? undefined : navigator;
   const target = mapsTarget({ os: Platform.OS, ua: nav?.userAgent, touchPoints: nav?.maxTouchPoints });
-  for (const url of mapsUrls(at, label, target)) {
+  const standalone =
+    Platform.OS === 'web' &&
+    typeof window !== 'undefined' &&
+    ((nav as { standalone?: boolean } | undefined)?.standalone === true ||
+      !!window.matchMedia?.('(display-mode: standalone)').matches);
+  for (const url of mapsUrls(at, label, target, { standalone })) {
     try {
+      if (standalone && url.startsWith('maps:')) {
+        // Navigate, not window.open: no in-app browser is left behind (a blank page on return).
+        window.location.href = url;
+        return true;
+      }
       // Never canOpenURL first: Android 11+ answers false for schemes not declared in <queries>.
       await Linking.openURL(url);
       return true;

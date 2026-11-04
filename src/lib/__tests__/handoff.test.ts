@@ -32,3 +32,10 @@ test('handoff: walking directions to the destination, six decimals, nothing else
     'https://www.google.com/maps/dir/?api=1&destination=40.619512,-75.378457&travelmode=walking',
   ]);
 });
+
+test('handoff: a Home Screen app navigates to Maps instead of opening a window, which leaves a blank page (handoff 1)', () => {
+  // An https window.open from an iPhone Home Screen app opens its in-app browser, which hands off to Maps and stays blank on return.
+  assert.deepEqual(mapsUrls(DEST, 'Your spot', 'apple', { standalone: true }), ['maps://?daddr=40.619512,-75.378457&dirflg=w']);
+  assert.deepEqual(mapsUrls(DEST, 'Your spot', 'apple', { standalone: false }), ['https://maps.apple.com/?daddr=40.619512,-75.378457&dirflg=w']);
+  assert.deepEqual(mapsUrls(DEST, 'Your spot', 'google', { standalone: true }), mapsUrls(DEST, 'Your spot', 'google'));
+});

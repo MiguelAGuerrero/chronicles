@@ -24,9 +24,11 @@ export function mapsTarget(env: { os: string; ua?: string; touchPoints?: number 
 const fix6 = (n: number) => n.toFixed(6);
 
 /** The links to try, in order: the first that opens wins. */
-export function mapsUrls(at: LngLat, label: string, target: MapsTarget): string[] {
+export function mapsUrls(at: LngLat, label: string, target: MapsTarget, env: { standalone?: boolean } = {}): string[] {
   const ll = `${fix6(at[1])},${fix6(at[0])}`;
   const google = `https://www.google.com/maps/dir/?api=1&destination=${ll}&travelmode=walking`;
+  // A Home Screen app's https window.open lands in an in-app browser that hands off to Maps and is blank on return; the maps: scheme opens the app directly.
+  if (target === 'apple' && env.standalone) return [`maps://?daddr=${ll}&dirflg=w`];
   if (target === 'apple') return [`https://maps.apple.com/?daddr=${ll}&dirflg=w`];
   if (target === 'google') return [google];
   // geo: shows the pin in whichever maps app the walker picks; the label in

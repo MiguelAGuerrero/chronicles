@@ -148,3 +148,4 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 
 - [ ] `lib/ports/index.ts` builds the real ports from the native db, recorder and notifier at module load; its first user is the ready walk screen's shell (`lib/ready`, Navigate, ready), so a phone's first run of it is the ready screen opening
 - [ ] The SQLite adapter (`db/index.native.ts`) against the Db contract (`src/lib/__tests__/dbContract.ts`): the suite runs only over the fake and IndexedDB in Node, so SQLite's match to it is by reading
+- Open in Maps from an iPhone Home Screen app: `maps://` via `window.location.href` (replaces `window.open` of the https link, which left a blank in-app browser on return). Never run on a device.
