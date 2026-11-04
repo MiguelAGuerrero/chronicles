@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["ChroniclesVideoEditModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.chroniclesvideoedit.ChroniclesVideoEditModule"]
+  }
+}

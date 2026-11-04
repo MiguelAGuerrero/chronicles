@@ -10,7 +10,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WalkMap } from '../components/map/WalkMap';
 import { CompassButton } from '../components/CompassButton';
 import { COLORS, HOTSPOT, type WalkMapHandle } from '../components/map/types';
-import { CaptionEditor } from '../components/Caption';
+import { EditOfferPill, useEditOffer } from '../components/edit/EditOffer';
+import { MediaEditor } from '../components/edit/MediaEditor';
 import { CaptureViewer } from '../components/CaptureView';
 import { Icon, KIND_LABEL } from '../components/icons';
 import { Banner, Button, HoldButton, LiftIn, theme } from '../components/ui';
@@ -63,6 +64,9 @@ import { aboutTimeLeft, formatTimeLeft, paceMps, timeLeftMs } from '../lib/nav/e
 import { useVisible } from '../lib/deletion/useDeletions';
 import { deletions } from '../lib/deletion';
 import { UndoToast } from '../components/UndoToast';
+import { bordersFor, outlineIdAt } from '../lib/areas/borders';
+import { BORDER_ZOOM, OUTLINE_ZOOM } from '../lib/areas/outlines';
+import { useOutlineSet } from '../lib/areas/useOutlineSet';
 
 /** Streets around the walker: read from the map and shown as fog this far out. */
 const NEAR_RADIUS_M = 1000;
@@ -104,8 +108,6 @@ const NUDGED_KEY = 'deadzone_walk';
 /** A reminder's card goes after this long, or this far walked on. */
 const REMINDER_MS = 30_000;
 const REMINDER_AWAY_M = 100;
-/** How long "Aa Caption" stays offered after a photo. */
-const CAPTION_OFFER_MS = 6000;
 
 type Notice = {
   message: string;
@@ -303,6 +305,17 @@ function WalkScreen(props: { onMinimize: () => void }) {
   useEffect(() => onWalkGap(onGap), [onGap]);
   // The keeper's trace, once it holds this walk; motion runs in the keeper too (Motion).
   const live = openWalk.live;
+  // Town borders (TB4): thin lines around you, the town you're in firmer, no fill, so the trace and fog read as before.
+  const borderAt = walk ? live.here : ready.mapProps.walker ?? null;
+  const drawnBorders = useOutlineSet([borderAt], BORDER_ZOOM);
+  const decidedBorders = useOutlineSet([borderAt], OUTLINE_ZOOM);
+  const hereTown = borderAt ? outlineIdAt(borderAt, decidedBorders) : null;
+  // Ordered by distance from where you are to a few hundred metres, so the shapes aren't rebuilt per fix (TB9).
+  const nearKey = borderAt ? `${borderAt[0].toFixed(2)},${borderAt[1].toFixed(2)}` : '';
+  const borders = useMemo(() => {
+    const near = nearKey ? (nearKey.split(',').map(Number) as LngLat) : null;
+    return bordersFor(drawnBorders, { firm: hereTown ? [hereTown] : [], near });
+  }, [drawnBorders, hereTown, nearKey]);
   const motionAccess = useMotionAccess();
   const cap = useCaptures(walk?.id ?? null, live.here, live.lastFixAt, onCaptureError);
   // A deleted moment leaves the pins, Explore and the viewer at once (D3, D5).
@@ -844,21 +857,15 @@ function WalkScreen(props: { onMinimize: () => void }) {
     }
   }
 
-  // After a photo, a caption is offered for a few seconds; it is opt-in.
-  const [justTook, setJustTook] = useState<string | null>(null);
-  const [captioning, setCaptioning] = useState<Capture | null>(null);
-  useEffect(() => {
-    if (!justTook) return;
-    const t = setTimeout(() => setJustTook(null), CAPTION_OFFER_MS);
-    return () => clearTimeout(t);
-  }, [justTook]);
+  // After a photo or video, Edit is offered for a few seconds (ME23); it is opt-in.
+  const editOffer = useEditOffer();
+  const [editingKept, setEditingKept] = useState<Capture | null>(null);
 
   async function photo() {
     const kept = await cap.takePhoto();
     if (!kept) return;
     feedback('tap');
-    if (kept.kind === 'photo') setJustTook(kept.id);
-    else setToast('Video saved here');
+    editOffer.show(kept);
   }
 
   async function startVoice() {
@@ -958,7 +965,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     <View style={styles.screen}>
       {/* One map for both states, at one place in the tree, so Start never remounts it (NR6). */}
       {!walk ? (
-        <WalkMap {...ready.mapProps} ref={mapRef} onBearingChange={setBearing} scaleInset={{ bottom: at.barTop + SCALE_BOTTOM, left: sideInset + 12 }} />
+        <WalkMap {...ready.mapProps} borders={borders} ref={mapRef} onBearingChange={setBearing} scaleInset={{ bottom: at.barTop + SCALE_BOTTOM, left: sideInset + 12 }} />
       ) : (
       <WalkMap
         landing={hotView}
@@ -971,6 +978,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         // While drawing, a tap on a pin is a point along the way like any other (gap-drawing audit 8).
         onPinPress={recordingVoice || stopping || settingsOpen || isDrawing ? undefined : setViewing}
         walker={live.here}
+        borders={borders}
         walkerSource={live.dot}
         glideWalker
         walkerHeading={live.heading}
@@ -1207,22 +1215,16 @@ function WalkScreen(props: { onMinimize: () => void }) {
       {/* The pills (caption, undo, retry): left of the stack, above the strip, so the stack never
           moves (NR10). */}
       <View style={[styles.pills, at.pills]} pointerEvents="box-none">
-        {justTook && !recordingVoice && !spot && !openMark && !options && !memory && (
-          <View style={styles.undo} accessibilityLiveRegion="polite">
-            <Text style={styles.undoText}>Photo saved here</Text>
-            <Pressable
-              testID="add-caption"
-              accessibilityRole="button"
-              onPress={() => {
-                setCaptioning(captures.find((c) => c.id === justTook) ?? null);
-                setJustTook(null);
-              }}
-              hitSlop={10}
-              style={styles.undoBtn}
-            >
-              <Text style={styles.undoBtnText}>Aa Caption</Text>
-            </Pressable>
-          </View>
+        {editOffer.offer && !recordingVoice && !spot && !openMark && !options && !memory && (
+          <EditOfferPill
+            offer={editOffer.offer}
+            where="here"
+            onEdit={() => {
+              const id = editOffer.offer?.id;
+              setEditingKept(captures.find((c) => c.id === id) ?? null);
+              editOffer.clear();
+            }}
+          />
         )}
         {cap.discarded && !recordingVoice && !spot && !openMark && !options && !memory && (
           <View style={styles.undo} accessibilityLiveRegion="polite">
@@ -1501,7 +1503,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         autoPlay={autoPlay}
         remind
         walkId={walk?.id ?? null}
-        onSaveCaption={(c, caption, y) => cap.setCaption(c.id, caption, y)}
+        onSaveEdit={(c, patch) => cap.setEdit(c.id, patch)}
         onSaveNote={(c, body) => cap.setNote(c.id, body)}
         onGoHere={navigation.finding ? undefined : (c) => {
           setViewing(null);
@@ -1511,15 +1513,9 @@ function WalkScreen(props: { onMinimize: () => void }) {
           if (c.lat != null && c.lon != null) handOff([c.lon, c.lat], KIND_LABEL[c.kind]);
         }}
       />
-      <CaptionEditor
-        key={captioning?.id ?? 'none'}
-        capture={captioning}
-        onClose={() => setCaptioning(null)}
-        onSave={async (caption, y) => {
-          if (captioning) await cap.setCaption(captioning.id, caption, y).catch(() => setToast('The caption could not be saved'));
-          setCaptioning(null);
-        }}
-      />
+      {editingKept && (
+        <MediaEditor key={editingKept.id} capture={editingKept} initialTool="crop" onClose={() => setEditingKept(null)} onSave={(patch) => cap.setEdit(editingKept.id, patch)} />
+      )}
       {memory && memoryShown.length > 0 && !spot && !recordingVoice && (
         <View style={[styles.spotRow, cardAt]} pointerEvents="box-none">
           <MemoryPreview

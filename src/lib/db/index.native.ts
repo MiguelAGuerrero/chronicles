@@ -13,6 +13,7 @@ import { DERIVED_STORES } from './stores';
 import type { Capture, GapDecision, LngLat, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 import { segmentBbox } from './segmentBounds';
 import type { Db } from './types';
+import { parseEdit, serializeEdit } from '../mediaEdit';
 
 // Ordered migrations; PRAGMA user_version records how many have run.
 const MIGRATIONS = [
@@ -192,6 +193,15 @@ const MIGRATIONS = [
     pieces TEXT NOT NULL, points TEXT NOT NULL
   );
   `,
+  // 17: a photo's or video's edits (ME21, decision 0090): truth, JSON, null for none.
+  `
+  ALTER TABLE capture ADD COLUMN edit TEXT;
+  `,
+  // 18: town borders (TB7): tiles keyed by zoom (z/x/y), z10 to draw beside z12 to decide; the old x/y rows are dropped.
+  `
+  DELETE FROM outline_tile;
+  ALTER TABLE outline_tile ADD COLUMN z INTEGER NOT NULL DEFAULT 12;
+  `,
 ];
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
@@ -239,7 +249,12 @@ type WalkRow = Omit<Walk, 'open'> & { open: number };
 const toWalk = (r: WalkRow): Walk => ({ ...r, open: r.open === 1 });
 
 const WALK_COLUMNS = ['started_at', 'ended_at', 'title', 'epilogue', 'open', 'area', 'snapped_build'] as const;
-const CAPTURE_COLUMNS = ['walk_id', 't', 'lat', 'lon', 'kind', 'file_path', 'body', 'segment_id', 'caption', 'caption_y', 'thumb_path'] as const;
+const CAPTURE_COLUMNS = ['walk_id', 't', 'lat', 'lon', 'kind', 'file_path', 'body', 'segment_id', 'caption', 'caption_y', 'thumb_path', 'edit'] as const;
+
+/** A capture row as stored: the edit is JSON text (ME21). */
+type CaptureRow = Omit<Capture, 'edit'> & { edit?: string | null };
+const toCapture = (r: CaptureRow): Capture => ({ ...r, edit: parseEdit(r.edit) });
+const toCaptures = (rows: CaptureRow[]) => rows.map(toCapture);
 
 /** UPDATE ... SET for the given patch; only known column names reach the SQL. */
 function setClause(patch: Record<string, unknown>, allowed: readonly string[]) {
@@ -297,30 +312,30 @@ export const db: Db = {
 
   addCapture(c) {
     return write((t) => t.runAsync(
-      'INSERT INTO capture (id, walk_id, t, lat, lon, kind, file_path, body, segment_id, caption, caption_y, thumb_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      c.id, c.walk_id, c.t, c.lat, c.lon, c.kind, c.file_path, c.body, c.segment_id, c.caption ?? null, c.caption_y ?? null, c.thumb_path ?? null,
+      'INSERT INTO capture (id, walk_id, t, lat, lon, kind, file_path, body, segment_id, caption, caption_y, thumb_path, edit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      c.id, c.walk_id, c.t, c.lat, c.lon, c.kind, c.file_path, c.body, c.segment_id, c.caption ?? null, c.caption_y ?? null, c.thumb_path ?? null, serializeEdit(c.edit),
     ).then(() => {}));
   },
   updateCapture(id, patch) {
-    const { sql, values } = setClause(patch, CAPTURE_COLUMNS);
+    const { sql, values } = setClause('edit' in patch ? { ...patch, edit: serializeEdit(patch.edit) } : patch, CAPTURE_COLUMNS);
     if (!sql) return Promise.resolve();
     return write((t) => t.runAsync(`UPDATE capture SET ${sql} WHERE id = ?`, ...values, id).then(() => {}));
   },
   async getCaptures(walkId) {
-    return (await conn()).getAllAsync<Capture>('SELECT * FROM capture WHERE walk_id = ? ORDER BY t', walkId);
+    return toCaptures(await (await conn()).getAllAsync<CaptureRow>('SELECT * FROM capture WHERE walk_id = ? ORDER BY t', walkId));
   },
 
   async capturesBetween(from, to) {
-    return (await conn()).getAllAsync<Capture>('SELECT * FROM capture WHERE t >= ? AND t < ? ORDER BY t', from, to);
+    return toCaptures(await (await conn()).getAllAsync<CaptureRow>('SELECT * FROM capture WHERE t >= ? AND t < ? ORDER BY t', from, to));
   },
   async getCapturesByIds(ids) {
     if (!ids.length) return [];
-    return (await conn()).getAllAsync<Capture>(`SELECT * FROM capture WHERE id IN (${ids.map(() => '?').join(',')}) ORDER BY t`, ...ids);
+    return toCaptures(await (await conn()).getAllAsync<CaptureRow>(`SELECT * FROM capture WHERE id IN (${ids.map(() => '?').join(',')}) ORDER BY t`, ...ids));
   },
   async capturesIn([w, s, e, n]) {
-    return (await conn()).getAllAsync<Capture>(
+    return toCaptures(await (await conn()).getAllAsync<CaptureRow>(
       'SELECT * FROM capture WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ? ORDER BY t', s, n, w, e,
-    );
+    ));
   },
 
   deleteWalk(walkId) {
@@ -594,8 +609,8 @@ export const db: Db = {
     return write(async (t) => {
       for (const r of tiles) {
         await t.runAsync(
-          'INSERT OR REPLACE INTO outline_tile (key, x, y, release, read_at, pieces, points) VALUES (?, ?, ?, ?, ?, ?, ?)',
-          r.key, r.x, r.y, r.release, r.read_at, JSON.stringify(r.pieces), JSON.stringify(r.points),
+          'INSERT OR REPLACE INTO outline_tile (key, z, x, y, release, read_at, pieces, points) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          r.key, r.z, r.x, r.y, r.release, r.read_at, JSON.stringify(r.pieces), JSON.stringify(r.points),
         );
       }
     });

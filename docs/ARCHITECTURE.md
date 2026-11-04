@@ -86,8 +86,13 @@ Captures
   CaptureView.tsx            CaptureViewer (full-screen photos and videos over a strip; cards for notes and memos; More menu) and CaptureContent (plays memos and videos)
   CapturePinView.tsx         the round capture pin, grouped count, faint (memory) and found variants
   MarkPinView.tsx            an Explore "?" mark: unknown, named, found
-  Caption.tsx                CAPTION_STYLE, captionMetrics, captionTop, CaptionBar, CaptionEditor (an overlay inside the viewer)
-  Baker(.native|.web).tsx    bakes a caption into a saved photo: react-native-view-shot on native, canvas on web
+  Caption.tsx                CAPTION_STYLE, captionMetrics, captionTop, CaptionBar, CaptionField (the editor's Text tool)
+  Baker(.native|.web).tsx    renders a photo's edits and caption into a saved copy, or the lines and caption alone into a clear PNG for a video (Baker.types.ts): react-native-view-shot over EditedPicture on native, canvas on web
+  edit/MediaEditor.tsx       the Edit screen (ME1-ME23): crop and rotate, filters, Markup-style drawing, text, trim; an overlay inside the viewer, its own Modal elsewhere
+  edit/tools.tsx             CropFrame, DrawLayer (pen, marker, eraser), FilterStrip, TrimBar
+  edit/EditedPhoto.tsx       EditedPicture (one SVG through exportPlan's transform: FeColorMatrix filter, lines) and EditedPhoto (with the caption bar, full screen)
+  edit/EditedVideo.tsx       EditedVideo (the player turned and cropped by view transforms, lines and caption in a layer taking no taps, the trim kept while playing), VideoPicture, useVideoSize
+  edit/EditOffer.tsx         the 6 s Edit offer after a capture: useEditOffer, EditOfferPill, EditButton
   MemoryPreview.tsx          a memory pin's quick preview above the capture row
   ReminderCard.tsx           a flagged capture come back on the walk screen
   RemindEditor.tsx           Remind me here: how often, until when (drawn inside the viewer's Modal)
@@ -144,7 +149,9 @@ Places and areas (v0.5)
   areas/outlines.ts          town outlines: townAt (the smallest outline holding a point, else points), withOutlines, hoodAllowed, the z12 tiles
   areas/divisionTiles.ts     Overture's divisions schema (the only file that knows it): a tile's locality outlines and points
   areas/outlineRead.ts       createOutlines: outlines read by tile and kept (`outline_tile`); outlineReader.ts is the app's instance
-  areas/overtureOutlines.ts  the network side: divisions.pmtiles by byte range, the places' release
+  areas/overtureOutlines.ts  the network side: divisions.pmtiles by byte range (z12 to decide, z10 to draw), the places' release
+  areas/borders.ts           town borders to draw: bordersFor (tinted, firm, lined; simplified, 40 at most), outlineIdHere, outlineOf
+  areas/useOutlineSet.ts     a screen's outlines (useOutlineSet) and a replay's or day's borders (useWalkBorders)
   areas/boundaryPack.ts, boundaries.ts         the boundary-pack format and the packs shipped (US)
   places.ts                  the home map's stars from walks, Area and WalkArea only
   placeAll.ts                placing walks one pass at a time, withTimeout (the shell beside places.ts)
@@ -205,7 +212,13 @@ Memories, moments, days
   useLocate.ts               the Locate tap
 Captures and media
   useCaptures.ts             photo, video, memo and note capture; the voice queue; placing; UNDO_MS
-  captureBus.ts              news of a capture kept or patched, between the bar, the row and the walk screen
+  captureBus.ts              news of a capture kept or patched (thumbnail, place, note, caption, edits), between the bar, the row and the walk screen
+  mediaEdit.ts               edits as data (core, ME5-ME21): rotate and crop against the original, the nine filter matrices, pen sizes and colours, the eraser's hit, simplify, trim, exportPlan (one transform for every renderer), parse/serialize
+  editSession.ts             the editor's draft, undo/redo, close/discard/done (core)
+  editOffer.ts               the after-capture Edit offer's timing and words (core)
+  ready/                     Navigate, ready's shell (`createReady`: its choices, one fix, notes and moments' writes) and the app's instance
+  captureEdits/              saving a moment's edits from a screen with no capture path: stored, then told on the bus (shell)
+  videoEdit/                 an edited video as one file: the local module on phones, canvas + MediaRecorder on the web
   media/                     where files are kept: Documents (relative paths) on native, Blobs in IndexedDB on web; resolveMedia
   media/thumb.ts             the 240 px copy with expo-image-manipulator; thumbPlan.ts decides when; thumbJob.ts runs one job per photo at a time
   useMediaUri.ts             a capture's media as a playable URI
@@ -342,8 +355,14 @@ own code only where no Expo module covers the feature on web:
   `locate/index.web.ts`). expo-location's web watch emits fixes under the
   browser's watch id but looks callbacks up by its own, swallows errors and
   never asks for high accuracy.
-- **Caption baking:** canvas (`Baker.web.tsx`). react-native-view-shot has no
-  web build.
+- **Caption and edit baking:** canvas (`Baker.web.tsx`). react-native-view-shot has no
+  web build. The filter is applied to the pixels with the same matrix as the
+  screen (`ctx.filter` isn't dependable in Safari).
+- **Edited video:** canvas + `MediaRecorder` + Web Audio (`videoEdit/index.web.ts`).
+  No Expo module re-encodes video; phones use the local module
+  `modules/chronicles-video-edit`. The web player's video size comes from a
+  detached `<video>`'s metadata (`probeVideoSize`): expo-video's web player has
+  no video track.
 - **Notifications:** a service worker (`public/sw.js`, through
   `notify/transport.web.ts`). expo-notifications has no web build. Local
   only; scheduled notices are page timers.
@@ -381,7 +400,9 @@ Truth (`lib/types.ts`):
 - `TracePoint`: walk_id, t, lat, lon, accuracy_m, speed, course. Raw, unfiltered.
 - `Capture`: id, walk_id (null for a loose moment), t, lat/lon (null until
   placed), kind (photo | video | voice | text), file_path, body, segment_id,
-  caption, caption_y, thumb_path.
+  caption, caption_y, thumb_path, edit (a photo's or video's edits as data:
+  rotate, crop, filter, lines, trim; SQLite migration 17 stores it as JSON,
+  IndexedDB keeps the object; `parseEdit` reads both, decision 0090).
 - `Pause`, `Still`: walk_id, started_at, ended_at.
 - `GapDecision` (`gap_fill`, kept): a stretch kept or dismissed, with its line, so a map update never moves it.
 
@@ -390,7 +411,7 @@ kind_detail, length_m, geometry, build), `VisitedSegment` (segment_id,
 walk_id, covered_fraction, first_t, street_key), `WalkSummary` (distance_m,
 ride_m, duration_ms, new_streets, streets_walked, photos, videos, voices,
 notes, streets_read), `Area` and `WalkArea`, `OutlineTile` (`outline_tile`:
-the town outlines one z12 tile held, keyed `x/y`, with its release; TO12).
+the town outlines one tile held, keyed `z/x/y` (z12 to decide, z10 to draw), with its release; TO12, TB7).
 
 Discovery and Explore (`discovery/types.ts`, `explore/explore.ts`): `Place`
 (cache, per build, `markable`), `Offered`, `Mark`, `Recall` (kept),

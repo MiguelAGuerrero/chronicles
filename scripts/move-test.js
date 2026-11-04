@@ -18,8 +18,14 @@ const features = require('./features');
 const ROOT = process.env.MOVE_TEST_ROOT ? path.resolve(process.env.MOVE_TEST_ROOT) : path.join(__dirname, '..');
 const TESTS = path.join(ROOT, 'src', 'lib', '__tests__');
 
-/** `spec` (relative to `fromDir`) as seen from `toDir`, always starting with ./ or ../ */
+/**
+ * `spec` (relative to `fromDir`) as seen from `toDir`, always starting with ./ or ../ . A path that
+ * names nothing from the old folder but something from the new one (a fixture already moved into
+ * the feature folder, as a merge leaves it) is kept as it is.
+ */
 function rebase(spec, fromDir, toDir) {
+  const exists = (p) => [p, `${p}.ts`, `${p}.tsx`, `${p}.js`, `${p}.json`, path.join(p, 'index.ts')].some((x) => fs.existsSync(x));
+  if (!exists(path.resolve(fromDir, spec)) && exists(path.resolve(toDir, spec))) return spec;
   const rel = path.relative(toDir, path.resolve(fromDir, spec)).split(path.sep).join('/');
   return rel.startsWith('.') ? rel : `./${rel}`;
 }

@@ -1,4 +1,5 @@
 // @layer core
+import type { MediaEdit } from './mediaEdit';
 // The three truth tables (Walk, TracePoint, Capture) are append-only, apart
 // from the walk's own fields and a capture's placement at stop. Everything
 // else (StreetSegment, VisitedSegment, WalkSummary) is a cache derived from
@@ -55,6 +56,11 @@ export interface Capture {
   caption_y?: number | null;
   /** A small copy of a photo for previews (TH1), beside it; null until made, or when the photo is already small. */
   thumb_path?: string | null;
+  /**
+   * A photo's or video's edits (ME21, decision 0090): rotate, crop, filter,
+   * drawing, trim, as data on the untouched file. Null or absent: none.
+   */
+  edit?: MediaEdit | null;
 }
 
 /**

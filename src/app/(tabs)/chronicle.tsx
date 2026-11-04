@@ -11,6 +11,7 @@ import { Banner, Button, theme } from '../../components/ui';
 import type { Area, WalkArea } from '../../lib/areas/types';
 import { db } from '../../lib/db';
 import { applyPatch, captureBus } from '../../lib/captureBus';
+import { captureEdits } from '../../lib/captureEdits';
 import { perfCount } from '../../lib/perfCount';
 import { buildDays } from '../../lib/days';
 import { countLine, placeCount, type ChecklistArea, type Find } from '../../lib/explore/explore';
@@ -18,6 +19,9 @@ import { onRecallOpen, recallWaiting, takeRecallOpen } from '../../lib/discovery
 import { zoomOutFor } from '../../lib/zoomOut';
 import { placeBacklog } from '../../lib/backlog';
 import type { Bounds } from '../../lib/geo';
+import { bordersFor, outlineIdsOf, townPlaces } from '../../lib/areas/borders';
+import { BORDER_ZOOM } from '../../lib/areas/outlines';
+import { useOutlineSet } from '../../lib/areas/useOutlineSet';
 import { levelForZoom, placesIndex, starsFor, unplacedWalks, type Star } from '../../lib/places';
 import type { Capture, LngLat, Walk, WalkSummary } from '../../lib/types';
 import { deletions } from '../../lib/deletion';
@@ -189,6 +193,10 @@ export default function Chronicle() {
     [captures, pinZoom],
   );
   const index = useMemo(() => placesIndex(data?.areas ?? [], data?.rows ?? [], data?.walks ?? []), [data]);
+  // TB3: the towns your walks were in, as regions in one tint behind the stars (from z8, BORDER.minZoom).
+  const walkedTowns = useMemo(() => townPlaces([...index.byArea.keys()].map((k) => index.areas.get(k)!).filter(Boolean)), [index]);
+  const drawn = useOutlineSet(walkedTowns.map((t) => t.at), BORDER_ZOOM, focused);
+  const borders = useMemo(() => bordersFor(drawn, { tinted: outlineIdsOf(walkedTowns, drawn), lined: false }), [drawn, walkedTowns]);
   const summaries = useMemo(() => new Map((data?.summaries ?? []).map((s) => [s.walk_id, s])), [data]);
   const unplaced = useMemo(() => unplacedWalks(data?.walks ?? [], data?.rows ?? []), [data]);
   const stars = useMemo(() => {
@@ -312,9 +320,10 @@ export default function Chronicle() {
         captures={viewing && viewing.map((v) => captures.find((c) => c.id === v.id) ?? v)}
         onClose={() => setViewing(null)}
         remind
-        onSaveCaption={async (c, caption, y) => {
-          await db.updateCapture(c.id, { caption, caption_y: caption ? y : null });
-          setCaptures((prev) => prev.map((x) => (x.id === c.id ? { ...x, caption, caption_y: caption ? y : null } : x)));
+        onSaveEdit={async (c, patch) => {
+          // Stored and told on the bus first (ME21); Chronicle's pins then show it.
+          await captureEdits.save(c, patch);
+          setCaptures((prev) => applyPatch(prev, c.id, patch));
         }}
         onSaveNote={async (c, body) => {
           // Stored first; Chronicle's pins and any open view of the walk then show it (QL25).
@@ -366,6 +375,7 @@ export default function Chronicle() {
             captures={momentPins}
             onPinPress={setViewing}
             stars={stars}
+            borders={borders}
             selectedStar={selected?.id ?? null}
             marks={spot ? [spot] : undefined}
             // Walk here only at street zoom (NV12): a press on a zoomed-out map lands far from anywhere walkable.

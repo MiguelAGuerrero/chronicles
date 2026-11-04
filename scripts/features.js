@@ -153,7 +153,7 @@ const FEATURES = [
     rule: 'places-and-areas',
     source: ['src/lib/areas/**', 'src/lib/{places,placeAll,backlog}.ts', 'src/components/{StarView,AreaPoint}.tsx'],
     journeys: ['outlines'],
-    specs: ['v0.5-places', 'places-worth-the-stop', 'town-outlines'],
+    specs: ['v0.5-places', 'places-worth-the-stop', 'town-outlines', 'town-borders'],
   },
   {
     name: 'map',
@@ -180,9 +180,14 @@ const FEATURES = [
       'src/lib/here/**',
       'src/lib/audioMode*.ts',
       'src/lib/export/**',
+      // Media editing (ME1-ME23): the editor, edited photos and videos, the Edit offer.
+      'src/components/edit/**',
+      'src/components/Baker*.ts',
+      'src/lib/{mediaEdit,editSession,editOffer}.ts',
+      'src/lib/{captureEdits,videoEdit}/**',
     ],
-    journeys: [],
-    specs: ['memories-on-revisit'],
+    journeys: ['edit'],
+    specs: ['memories-on-revisit', 'media-editing'],
   },
   {
     name: 'chronicle',

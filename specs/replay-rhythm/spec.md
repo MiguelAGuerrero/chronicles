@@ -70,6 +70,11 @@ The prototype the owner tuned this from: https://claude.ai/artifact/XouW4WPy8e2y
 21. **RR21** A ceremony turns a story into frames (where the walker is, the camera, the clock, and what is drawn over the map). The rhythm is one ceremony. Both replays pick theirs by id from one registry and draw whatever its frames say, through one set of overlay views. A new ceremony is a new registry entry, plus a view for any overlay kind it adds, with no change to the story, the screens or the rhythm.
 22. **RR22** The screen reader's path (RR17) is the same story shown another way: its moments, one at a time.
 
+### The owner's answers after the deploy (Nov 4, decision 0087)
+
+23. **RR23** While the stage waits for a memo or video that hasn't started (loading, or a muted retry), it shows a skeleton where the medium will be: a video's card shows a quiet placeholder over its picture, a memo's bubble a placeholder waveform beside its play button. A photo's card shows the same until its picture has loaded. The placeholder pulses softly, and holds still with reduce motion. It goes as soon as the medium plays, or when the stage stops waiting for it. It counts nothing and says only "Loading" to a screen reader.
+24. **RR24** The screen stays awake while a replay plays: from reading the streets, through the fog and the path (or the screen reader's steps), until the card; also through the day's replay. It is let go on the card, on Skip, and when the replay closes, and taken again if the app comes back to the front mid-replay. (expo-keep-awake; on the web, the Screen Wake Lock, where the browser has it.)
+
 ## Audit, round 1 (2026-11-04)
 
 The `auditor` subagent, report-only, on `57ac857`. 19 findings (18 plus one from its UI notes): 16 accepted, 1 deferred, 2 rejected.
@@ -138,3 +143,5 @@ Tests it called weak, tightened: audit 21's test now checks where the walker is 
 ## Record
 
 2026-11-04, branch `claude/replay-rhythm`. RR1-RR22 built test-first (decisions 0085, 0086) and passing: `npm test` (the `ceremony`, `core`, `days`, `rides` and `explore` suites), typecheck, lint, and the e2e journeys `check:affected` names (`replay`, new; `tabs`, `gaps`, `qol`, `marks`, `nudge`). Three audits: round 1, 19 findings (16 fixed, 1 deferred, 2 rejected); round 2, 10 findings (9 fixed, 1 fixed in part); round 3, 9 findings (8 fixed, 1 deferred to the owner; its regression tests failed before their fixes). Deferred: the trace trailing the walker mid-zip, keeping the screen awake (a new library), the Undo toast over the clock, a sign while the stage waits for a medium. RR17 (the screen reader's steps) has never run: it is native only. The full e2e flow (its replay and day blocks rewritten) runs when the owner asks.
+
+RR23 and RR24 (decision 0087, the owner's answers after the deploy): built test-first, the `replay` journey's RR23 and RR24 checks failing before the code. Native unverified.

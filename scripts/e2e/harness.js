@@ -95,6 +95,9 @@ const divisionFeatures = [
   { type: 'Feature', geometry: { type: 'Polygon', coordinates: [[at(-10, -10), at(10, -10), at(10, 10), at(-10, 10), at(-10, -10)]] },
     properties: { subtype: 'locality', class: 'land', '@name': 'Pawtucket', division_id: 'pawtucket', id: 'pawtucket-area' } },
   { type: 'Feature', geometry: { type: 'Point', coordinates: at(-3, 4) }, properties: { subtype: 'locality', '@name': 'Pawtucket', id: 'pawtucket' } },
+  // Town borders (TB1): a neighbor east of it, drawn as a thin line.
+  { type: 'Feature', geometry: { type: 'Polygon', coordinates: [[at(10, -10), at(20, -10), at(20, 10), at(10, 10), at(10, -10)]] },
+    properties: { subtype: 'locality', class: 'land', '@name': 'Central Falls', division_id: 'central-falls', id: 'central-falls-area' } },
 ];
 const divisions = { serve: false };
 const OVERTURE_HOST = 'overturemaps-extras-us-west-2.s3.amazonaws.com';
@@ -345,13 +348,13 @@ async function createHarness() {
       return { z, x, y, data: encodeTile(overtureFeatures, z, x, y, () => ['place']) };
     }));
   })();
-  const divisionsArchive = (() => {
-    const z = 12;
+  // z12 to decide (TO10), z10 to draw (TB6): the same towns in both.
+  const divisionsArchive = encodeArchive([10, 12].map((z) => {
     const [lon, lat] = O;
     const x = Math.floor(((lon + 180) / 360) * 2 ** z);
     const y = Math.floor(((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2) * 2 ** z);
-    return encodeArchive([{ z, x, y, data: encodeTile(divisionFeatures, z, x, y, (f) => [f.geometry.type === 'Polygon' ? 'division_area' : 'division']) }]);
-  })();
+    return { z, x, y, data: encodeTile(divisionFeatures, z, x, y, (f) => [f.geometry.type === 'Polygon' ? 'division_area' : 'division']) };
+  }));
   // Every other journey: an archive with no towns in it (a 404 would be a console error), so towns go by points.
   const noDivisions = encodeArchive([{ z: 12, x: 0, y: 0, data: encodeTile([], 12, 0, 0) }]);
   const overtureAsked = [];

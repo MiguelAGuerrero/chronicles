@@ -43,7 +43,7 @@ A run exits non-zero on the first failed check and prints `ok - ...` lines.
 | `deletion` | after `walk` and `memories`: clearing walks and moments (D1-D11) |
 | `days` | Moments and days (M1-M17), a browser of its own |
 | `sensors` | motion from the sensors (MO1, MO5, MO8), a browser of its own |
-| `outlines`, `grading`, `replay` | town outlines (TO3, TO10, TO12), atlas grading (AG3), replay rhythm (RR6-RR16, RR19); by name only, not in the full flow |
+| `outlines`, `grading`, `replay`, `edit` | town outlines and borders (TO3, TO10, TO12, TB1, TB2, TB11), atlas grading (AG3), replay rhythm (RR6-RR16, RR19, RR24), media editing (ME1-ME23); by name only, not in the full flow |
 
 Add a scenario as one file, `scripts/e2e/journeys/<name>.js`, exporting
 `{ name, covers, run }`: `name` equal to the file name, `covers` the source
@@ -51,7 +51,9 @@ globs it checks (what `check:affected` reads; `affected.test.ts` fails without
 it), and `async run(h)` with `const { check, freshPage, ... } = h;` at the top,
 taking what it needs from the harness (`scripts/e2e/harness.js`: the GPS
 `start`, `at`, `navUrl`, `drawerTo`, `tabTo`, `metaOf`, `openWalk`, the tile
-switches `tiles.delayMs` and `tiles.stall`). The file is the registration;
+switches `tiles.delayMs` and `tiles.stall`). Require at the file's top any Node
+module the journey uses itself (`fs`, `path`): the harness passes only its own
+helpers, and a missing one fails only in the step that reaches it. The file is the registration;
 the entry ends it with the nothing-leaves check (nothing sent beyond localhost,
 the tile host and Overture) and the no-console-errors check itself. Add a row here too. A
 slice that changes a screen adds or extends a journey this way for its own

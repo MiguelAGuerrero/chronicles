@@ -6,14 +6,15 @@ import { setAudioMode } from './audioMode';
 import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
-import { applyPatch, captureBus, mergeCaptures } from './captureBus';
+import { applyPatch, captureBus, mergeCaptures, type CapturePatch } from './captureBus';
 import { db } from './db';
 import { newId } from './id';
 import { locateOnce } from './locate';
 import { memoGate } from './memoGate';
 import type { LocateResult } from './locate/types';
-import { dropTemp, keepFile } from './media';
+import { dropTemp, keepFile, removeMedia } from './media';
 import { makeThumb } from './media/thumb';
+import { captureThumbStillWanted, THUMB } from './thumbPlan';
 import type { Capture, CaptureKind, LngLat } from './types';
 
 /** A fix older than this is not trusted as "where the capture was taken". */
@@ -248,12 +249,19 @@ export function useCaptures(
         // Its small copy for previews (TH1), after the capture is kept: never holds it up or fails it (TH2).
         void makeThumb({ id, walk_id: folder(), t: Date.now(), lat: null, lon: null, kind: 'photo', file_path: path, body: null, segment_id: null }).then((thumb) => {
           if (!thumb) return;
-          if (alive.current) setCaptures((prev) => prev.map((x) => (x.id === id ? { ...x, thumb_path: thumb } : x)));
-          // Stored first, then told: a walk screen mounting meanwhile either reads it or hears it (tabs audit 5).
-          void db.updateCapture(id, { thumb_path: thumb }).then(
-            () => captureBus.patch(walkId, id, { thumb_path: thumb }, self),
-            () => {},
-          );
+          // An Edit offer's Done may have stored the edited copy meanwhile: this one then stands down (media-editing audit 8).
+          void db.getCapturesByIds([id]).then(([row]) => {
+            if (!captureThumbStillWanted(row ?? null)) {
+              if (thumb !== THUMB.none) void removeMedia([thumb]).catch(() => {});
+              return;
+            }
+            if (alive.current) setCaptures((prev) => prev.map((x) => (x.id === id ? { ...x, thumb_path: thumb } : x)));
+            // Stored first, then told: a walk screen mounting meanwhile either reads it or hears it (tabs audit 5).
+            void db.updateCapture(id, { thumb_path: thumb }).then(
+              () => captureBus.patch(walkId, id, { thumb_path: thumb }, self),
+              () => {},
+            );
+          }, () => {});
         });
       }
     });
@@ -456,10 +464,14 @@ export function useCaptures(
     };
   }, []);
 
-  /** Sets or clears a photo's caption, and where its bar sits. */
-  async function setCaption(id: string, caption: string | null, y: number) {
-    await db.updateCapture(id, { caption, caption_y: caption ? y : null });
-    setCaptures((prev) => prev.map((c) => (c.id === id ? { ...c, caption, caption_y: caption ? y : null } : c)));
+  /**
+   * A photo's or video's edits and caption, or its new small copy (ME21):
+   * stored, shown here, then sent on the bus so the walk's other views show it.
+   */
+  async function setEdit(id: string, patch: CapturePatch) {
+    await db.updateCapture(id, patch);
+    if (alive.current) setCaptures((prev) => applyPatch(prev, id, patch));
+    captureBus.patch(walkId, id, patch, self);
   }
 
   /**
@@ -491,7 +503,7 @@ export function useCaptures(
     retrySave,
     unsaved: unsaved != null,
     saveNote,
-    setCaption,
+    setEdit,
     setNote,
   };
 }

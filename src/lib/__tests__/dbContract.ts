@@ -8,6 +8,7 @@ import type { Mark, Offered, Place, Recall } from '../discovery/types';
 import type { ChecklistArea, ChecklistItem, ExploreRead, Find } from '../explore/explore';
 import type { LandingRow } from '../landing/view';
 import type { Capture, GapDecision, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
+import { parseEdit, type MediaEdit } from '../mediaEdit';
 
 /**
  * What every `Db` must do (FC7), run against each implementation that can run
@@ -73,9 +74,9 @@ export function dbContract(name: string, fresh: () => Promise<Db>) {
     key, area_key: null, walk_id, capture_id, found_at, name: key, category: 'art', kind: 'public_art', at: [LON, LAT], generic: false,
   });
   const outlineTile = (key: string, read_at = 1): OutlineTile => {
-    const [x, y] = key.split('/').map(Number);
+    const [z, x, y] = key.split('/').map(Number);
     return {
-      key, x, y, release: '2026-10-21.0', read_at,
+      key, z, x, y, release: '2026-10-21.0', read_at,
       pieces: [{ id: 'd1', name: 'Whitehall', polygons: [[[[-75.5, 40.6], [-75.4, 40.6], [-75.4, 40.7], [-75.5, 40.6]]]] }],
       points: [{ id: 'd1', at: [-75.45, 40.65] }],
     };
@@ -187,6 +188,37 @@ export function dbContract(name: string, fresh: () => Promise<Db>) {
       assert.deepEqual(ids(await db.getCapturesByIds(['loose', 'c2', 'nope', 'c1'])), ['c1', 'c2', 'loose']);
       assert.deepEqual(await db.getCapturesByIds([]), []);
       assert.deepEqual(await db.getCapturesByIds(['missing']), []);
+    });
+
+    test('ME21: updateCapture keeps an edit, and clears it with null', async () => {
+      const db = await fresh();
+      await db.addCapture(capture('c1', 'a', 1));
+      const edit: MediaEdit = { v: 1, rotate: 90, crop: { x: 0.1, y: 0.2, w: 0.5, h: 0.5 }, filter: 'mono', strokes: [{ tool: 'pen', color: 'red', w: 0.01, pts: [0.1, 0.2, 0.3, 0.4] }], trim: null };
+      await db.updateCapture('c1', { edit, caption: 'hi', caption_y: 0.4 });
+      const [got] = await db.getCapturesByIds(['c1']);
+      assert.deepEqual(parseEdit(got.edit), edit);
+      assert.equal(got.caption, 'hi');
+      await db.updateCapture('c1', { edit: null });
+      assert.equal(parseEdit((await db.getCaptures('a'))[0].edit), null);
+    });
+
+    test('media-editing audit 7: every capture read gives the edit parsed; a newer or broken one reads as none', async () => {
+      const db = await fresh();
+      const edit: MediaEdit = { v: 1, rotate: 180, crop: null, filter: 'noir', strokes: [], trim: null };
+      await db.addCapture({ ...capture('ok', 'a', 1), lat: 41.8, lon: -71.4 });
+      await db.addCapture({ ...capture('bad', 'a', 2), lat: 41.8, lon: -71.4 });
+      await db.updateCapture('ok', { edit });
+      await db.updateCapture('bad', { edit: { v: 2, rotate: 45 } as unknown as MediaEdit });
+      const reads = [
+        await db.getCaptures('a'),
+        await db.getCapturesByIds(['ok', 'bad']),
+        await db.capturesBetween(0, 10),
+        await db.capturesIn([-72, 41, -71, 42]),
+      ];
+      for (const rows of reads) {
+        assert.deepEqual(rows.find((r) => r.id === 'ok')?.edit, edit);
+        assert.equal(rows.find((r) => r.id === 'bad')?.edit, null);
+      }
     });
 
     test('FC7 addCapture: a capture id is used once; the first stays', async () => {
@@ -585,14 +617,18 @@ export function dbContract(name: string, fresh: () => Promise<Db>) {
 
     test('FC7 putOutlineTiles, getOutlineTiles: the same key replaces; only the keys asked for come back; an empty list is a no-op', async () => {
       const db = await fresh();
-      assert.deepEqual(await db.getOutlineTiles(['1/2']), []);
-      await db.putOutlineTiles([outlineTile('1/2', 1), outlineTile('3/4', 1)]);
-      await db.putOutlineTiles([outlineTile('1/2', 2)]);
+      assert.deepEqual(await db.getOutlineTiles(['12/1/2']), []);
+      await db.putOutlineTiles([outlineTile('12/1/2', 1), outlineTile('12/3/4', 1)]);
+      await db.putOutlineTiles([outlineTile('12/1/2', 2)]);
       await db.putOutlineTiles([]);
       assert.deepEqual(await db.getOutlineTiles([]), []);
-      assert.deepEqual(keys(await db.getOutlineTiles(['1/2', '9/9'])), ['1/2']);
-      assert.deepEqual((await db.getOutlineTiles(['1/2']))[0], outlineTile('1/2', 2));
-      assert.deepEqual(keys(await db.getOutlineTiles(['3/4', '1/2'])), ['1/2', '3/4']);
+      assert.deepEqual(keys(await db.getOutlineTiles(['12/1/2', '12/9/9'])), ['12/1/2']);
+      assert.deepEqual((await db.getOutlineTiles(['12/1/2']))[0], outlineTile('12/1/2', 2));
+      assert.deepEqual(keys(await db.getOutlineTiles(['12/3/4', '12/1/2'])), ['12/1/2', '12/3/4']);
+      // TB7: a z10 tile under the same x/y is its own row.
+      await db.putOutlineTiles([outlineTile('10/1/2', 3)]);
+      assert.deepEqual((await db.getOutlineTiles(['10/1/2']))[0], outlineTile('10/1/2', 3));
+      assert.deepEqual((await db.getOutlineTiles(['12/1/2']))[0], outlineTile('12/1/2', 2));
     });
 
     // ---- explore
@@ -672,7 +708,7 @@ export function dbContract(name: string, fresh: () => Promise<Db>) {
       await db.putGapDecision(gap('a', 1));
       await db.putLanding(landing('L', 1));
       await db.putAtlasAreas([atlasArea('T')]);
-      await db.putOutlineTiles([outlineTile('1/2')]);
+      await db.putOutlineTiles([outlineTile('12/1/2')]);
       await db.saveChecklists({ areas: [checklistArea('N1')], items: [item('i1', 'N1')], read: read('r1') });
       await db.addFind(find('f1', 'a', 'c1'));
       await db.setMeta('k', 'v');
@@ -682,7 +718,7 @@ export function dbContract(name: string, fresh: () => Promise<Db>) {
       assert.deepEqual(await db.placesIn(box), []);
       assert.deepEqual(await db.listExploreReads(), []);
       assert.deepEqual(await db.listAtlasAreas(), []);
-      assert.deepEqual(await db.getOutlineTiles(['1/2']), []);
+      assert.deepEqual(await db.getOutlineTiles(['12/1/2']), []);
       assert.deepEqual((await db.listWalks()).map((w) => w.snapped_build), [null, null]);
 
       assert.equal((await db.getVisited('a')).length, 1);

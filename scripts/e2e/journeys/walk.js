@@ -406,12 +406,14 @@ async function checks(h) {
         const lingering = await walkMap().locator('[data-testid=enter-drop]').count();
         check(drops.some((d) => d.animated && d.ids.split(',').includes(photoId)) && lingering === 0,
           `the new photo's own pin drops in, then is a plain pin again (M10, audit 3, 4: ${JSON.stringify(drops)}, ${lingering} left)`);
-        await page.click('[data-testid=add-caption]');
+        // The Edit offer (ME23), then its Text tool: the caption.
+        await page.click('[data-testid=capture-edit]');
+        await page.click('[data-testid=edit-tool-text]');
         await page.fill('[data-testid=caption-input]', 'Mural on Wickenden');
         await page.waitForTimeout(400);
         await shot(page, '03b-caption');
-        await page.click('[data-testid=caption-save]');
-        await page.waitForTimeout(800);
+        await page.click('[data-testid=edit-done]');
+        await page.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 10000 });
         check(true, 'a photo can take a caption');
       }
       if (k === 33) {

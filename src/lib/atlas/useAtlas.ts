@@ -32,6 +32,8 @@ export interface AtlasData {
   finds: Find[];
   walked: Set<string>;
   hidden: Set<Kind>;
+  /** The z12 outlines kept under you, which decided your town (TO10): the borders drawn tint the same one (TB1). */
+  outlines: OutlineSet | null;
 }
 
 /**
@@ -205,7 +207,7 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
   }, [focused, from, town, build, tick]);
 
   return useMemo(
-    () => ({ build, rows, neighborhoods, towns, home, status, hidden, ...extra }),
-    [build, rows, neighborhoods, towns, home, status, hidden, extra],
+    () => ({ build, rows, neighborhoods, towns, home, status, hidden, outlines: borders, ...extra }),
+    [build, rows, neighborhoods, towns, home, status, hidden, borders, extra],
   );
 }

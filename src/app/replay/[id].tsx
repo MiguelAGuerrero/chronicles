@@ -1,6 +1,7 @@
 import { useUnits } from '../../lib/useUnits';
 import { foundLine, foundList, passedLine } from '../../lib/explore/explore';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useWalkBorders } from '../../lib/areas/useOutlineSet';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AccessibilityInfo, BackHandler, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View,
@@ -11,6 +12,7 @@ import { Icon } from '../../components/icons';
 import { CaptureViewer } from '../../components/CaptureView';
 import { Stage } from '../../components/ceremony/Stage';
 import { StepThrough } from '../../components/ceremony/StepThrough';
+import { useAwakeWhile } from '../../components/ceremony/useAwakeWhile';
 import { useCeremonyClock } from '../../components/ceremony/useCeremonyClock';
 import { useRevealed } from '../../components/ceremony/useRevealed';
 import type { StageCtx } from '../../components/ceremony/layout';
@@ -20,6 +22,7 @@ import { planViews, type WalkMapHandle } from '../../components/map/types';
 import { Button, theme } from '../../components/ui';
 import { db } from '../../lib/db';
 import { applyPatch, captureBus } from '../../lib/captureBus';
+import { captureEdits } from '../../lib/captureEdits';
 import { snapWalk } from '../../lib/finish';
 import { decide } from '../../lib/gaps';
 import { emptyGapAt, emptyGaps, gapKey, stretchAt, type Gap } from '../../lib/gaps/infer';
@@ -57,6 +60,8 @@ export default function Replay() {
   const insets = useSafeAreaInsets();
   const mapRef = useRef<WalkMapHandle>(null);
   const [stored, setData] = useState<ReplayData | null>(null);
+  // Town borders (TB5): the towns this walk was in tinted, read again once the walk is placed.
+  const borders = useWalkBorders(id ? [id] : [], stored?.walk.snapped_build ?? '');
   // A deleted moment leaves the pins, the stops and the counts at once (D3, D9).
   const hidden = useHidden();
   const data = useMemo(() => {
@@ -294,6 +299,8 @@ export default function Replay() {
   }, []);
   const play = useCeremonyClock({ epoch: phase.t0, running: telling, paused: viewing != null || waits.size > 0, showing, onEnd: () => go('card') });
   const frame = telling ? showing.frame(play.ms) : null;
+  // The screen stays awake while the replay plays, until the card (RR24).
+  useAwakeWhile(beat === 'reading' || beat === 'fog' || beat === 'path');
 
   // The fog beat lights the streets, then the path begins.
   useEffect(() => {
@@ -409,6 +416,7 @@ export default function Replay() {
     <View style={styles.screen}>
       <WalkMap
         ref={mapRef}
+        borders={borders}
         trace={drawn.trace}
         rides={drawn.rides}
         traceOpacity={beat === 'fog' || beat === 'reading' ? 0.3 : 1}
@@ -480,10 +488,10 @@ export default function Replay() {
         captures={viewing && viewing.map((v) => data.captures.find((c) => c.id === v.id) ?? v)}
         onClose={() => setViewing(null)}
         remind
-        onSaveCaption={async (c, caption, y) => {
-          // A failed write throws to the viewer, which says so; the screen only changes once it is stored.
-          await db.updateCapture(c.id, { caption, caption_y: caption ? y : null });
-          setData((d) => d && { ...d, captures: d.captures.map((x) => (x.id === c.id ? { ...x, caption, caption_y: caption ? y : null } : x)) });
+        onSaveEdit={async (c, patch) => {
+          // A failed write throws to the viewer, which says so; the screen only changes once it is stored (ME21).
+          await captureEdits.save(c, patch);
+          setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, patch) });
         }}
         onSaveNote={async (c, body) => {
           // Stored first; the replay's own list and any open view of the walk then show it (QL25).

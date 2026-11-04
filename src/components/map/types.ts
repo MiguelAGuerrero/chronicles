@@ -1,3 +1,4 @@
+import type { BorderView } from '../../lib/areas/borders';
 import type { DotSource } from '../../lib/liveDot';
 import type { MarkPin } from '../MarkPinView';
 import type { AreaPointPin } from '../AreaPoint';
@@ -119,6 +120,8 @@ export interface WalkMapProps {
   areaPoints?: AreaPointPin[];
   /** The "?" range preview (E21): a ring around a point, drawn only while the setting is open. */
   ring?: { center: LngLat; radiusM: number } | null;
+  /** Town borders to draw (TB1-TB5), under the streets; null or absent draws none. */
+  borders?: BorderView | null;
   /** The way the walker is going (degrees from north), drawn as a soft cone; null hides it. */
   walkerHeading?: number | null;
   walker?: LngLat | null;
@@ -377,6 +380,37 @@ export function ringGeoJSON(ring: { center: LngLat; radiusM: number } | null | u
 
 /** The ring's colour: the walker's blue, so it reads as "around you". */
 export const RING_COLOR = '#1a73e8';
+
+/**
+ * Town borders (TB1-TB10): the town you're in (or a walk's towns) tinted with a firm edge, the
+ * others in a grey line. The fill is under the streets, so the map reads through it; the lines are
+ * over the streets, under the labels, since a border often runs along a road (TB10, Nov 4: at 7%
+ * under the streets, the owner saw nothing on a phone).
+ */
+export const BORDER = {
+  color: '#c2410c',
+  fillOpacity: 0.12,
+  firmWidth: 3,
+  firmOpacity: 0.9,
+  lined: '#6b7280',
+  linedWidth: 1.5,
+  linedOpacity: 0.75,
+  /** Borders show from this zoom: below it a town is too small to read as a region (TB3). */
+  minZoom: 8,
+} as const;
+
+/** The borders a map draws (TB1-TB5), one feature per town with its role, id and name only (TB3). */
+export function bordersGeoJSON(view: BorderView | null | undefined): GeoJSON.FeatureCollection {
+  if (!view) return { type: 'FeatureCollection', features: [] };
+  return {
+    type: 'FeatureCollection',
+    features: view.shapes.map((s) => ({
+      type: 'Feature',
+      properties: { role: s.role, id: s.id, name: s.name },
+      geometry: { type: 'MultiPolygon', coordinates: s.polygons },
+    })),
+  };
+}
 
 /** Points to mark (a destination, a pressed spot), as circles. */
 export function marksGeoJSON(marks: LngLat[] | undefined): GeoJSON.FeatureCollection {

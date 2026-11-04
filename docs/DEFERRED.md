@@ -92,6 +92,17 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - There is no import of the backup bundle yet (Round 3, the backup zip)
 - The backup bundle leaves still spells out, `Still` (Round 3, motion audit)
 - The backup bundle leaves gap decisions out, `gap_fill` (Filling gaps)
+- Filters on video: no consistent way on iOS without Skia or an experimental flag (the owner's call, Media editing, decision 0090)
+- A small copy remade later, because its file was gone, keeps the crop and rotation but not the filter or lines: those need the mounted baker (ME20)
+- No screen-reader way to draw a line or drag the crop frame; Rotate, the filters, pens, colours, Undo, Redo, Revert and aspects are reachable (ME22)
+- From Markup, left out: pencil texture, an opacity slider, a colour wheel, lasso, ruler, shapes; also text styles, free-placed text, stickers and flip (the owner's scope, ME10)
+- The trim bar shows no frames along it; the handles show the frame they're on (ME14)
+- The web's edited video records in real time, and plays muted where the browser refuses sound without a tap: that copy then has no sound (ME17)
+- The web's edited video is re-encoded (WebM in some browsers, MP4 in others); phones keep MP4 (ME17)
+- On iPhone Safari a saved video may be silent: by the time the copy is made, the tap no longer counts as allowing sound (media-editing audit 4; the export no longer hangs)
+- A web export recorded in a hidden tab: requestAnimationFrame stops and frames freeze until it is shown again (media-editing audit 10)
+- On Navigate, a moment's "kept here" toast and its Edit pill can show together (media-editing audit 13)
+- A turned or cropped video has only play and pause, no scrubber or progress (media-editing audit 15)
 
 ## Deletion
 
@@ -121,7 +132,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 6. An audit pass over the quality-of-life rounds (the owner chose checkpoints instead; 0064)
 7. Memory pins pick up a small copy made mid-walk only when their capture set changes (`memories.ts` sends only changed ids; QL26)
 8. Edit note on Navigate's live walk, which opens no viewer (QL24)
-9. Captions are not sent on the capture bus, so another open view of the walk shows a new caption only after a reload (QL25)
+9. ~~Captions are not sent on the capture bus~~: they are since Media editing (ME21, `captureEdits`)
 10. The day replay repeats its "Summary of the day" announcement after a note is edited there (QL25)
 11. Month headers keep last year's labels if the sheet stays mounted across New Year (QL28)
 
@@ -129,7 +140,6 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 - Neighborhood outlines: Overture's are mostly districts ("Manhattan Community Board 5"); neighborhoods stay points, kept inside their town (TO6)
 - Counties, states and countries from Overture: the Natural Earth pack does states, offline
-- Drawing a town's border on a map: outlines only decide, nothing draws them
 - Outlines bundled for a first launch offline: until a tile is read once, its towns go by points (TO3)
 - Where to read next on an exploring walk (`readCentre` in `useExplore`) still goes by points: the reads' candidates are stored without outlines
 - A neighborhood inside an outline town that isn't listed on the Explore tab still shows on the open town's page (`townOf` answers none)
@@ -141,6 +151,14 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - A significance file per tile (Wikidata, QRank page views, heritage tags, Wikivoyage "see" listings): needs a host the app has never had; the tiles' `rank` is a label order, not fame, so S23's idea of using it would not work
 - Retuning `STEPS` against real towns
 - A street-network catchment in place of the ring
+
+## Town borders (TB1-TB9, decision 0088)
+
+- Labels on borders: the base map's own town labels stay
+- Tapping a region to open its town: the stars and tiles already do
+- A dark map style for the borders: the app has one map style
+- Chronicle's walked-town regions (TB3) and the walk screen's lines (TB4) have unit tests but no e2e check: a journey would need a placed walk seeded into storage
+- On native the border layers can't go under the base map's streets (no road layer id): they sit over them, faint
 
 ## Explore atlas
 
@@ -185,15 +203,13 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - The meta `day_watched:<key>` is still written but changes nothing in the ceremony (only the screen reader's steps read it)
 - Highlights (starring a moment during the replay), as in the concept doc
 - The trace is redrawn every 66 ms, so on a zip the line trails the walker by a short stretch (replay-rhythm audit 14)
-- Keeping the screen awake through the replay (a minute with no touch can meet the phone's auto-lock): needs expo-keep-awake, a new library, so it waits on the owner; a lock now holds the replay rather than skipping it (replay-rhythm audit 6)
 - The Undo toast can sit over the clock for its 5 s after a moment is deleted mid-path (replay-rhythm audit, UI notes)
-- No sign while the stage waits for a medium (an iPhone memo refused sound stands 2 s, a video's muted retry about 1 s): a new thing on screen, the owner's call (replay-rhythm audit 38)
 
 ## Test organization (decision 0089)
 
 - Shells no unit test reaches (9 after test gaps round 1, Nov 4): `session` (the walk lifecycle; the rules call for a reducer), `explore/exploreRun`, `landing/read`, `atlas/read` and `activity/overture` (the explore reads; testing them needs a network-fetch port in `Ports`), `discovery/recallCheck` (reminders), `deletion/index` (its pending core is tested), `backlog` (it takes the map, the snap and the tile build) and `walkNav` (glue over `expo-router`). Each waits on the owner's call for its cluster.
 - Every `src/app` and `src/components` file is covered by a journey row as of Nov 4 (`arch/features.test.ts` does not hold that; `check:affected` names a new screen no row covers when it changes). Shared primitives (`icons`, `ui`, `webStyles*`) ride on the `launch` row, a proxy: no journey checks them for themselves.
 - A second mouse pan on the area card's grip never returned in the e2e (the `atlas` journey drags it with touch events instead; `docs/TESTING.md`, traps): whether a mouse pan after the spring-back blocks the page on the web is worth a look in the app (Explore atlas).
-- Live criterion ids no test names (`npm run check:specs`, 24 of 434 on Nov 4): triaged in `specs/test-gaps/triage.md`. Four look retired (H2, H3, E14, L17) and two may never have shipped (NH8, MR2): the owner's calls. Seventeen are owed tests, mostly e2e checks in journeys that exist. RR17 can only be checked on a device. `--strict` stays out of CI and the hook until the list is empty.
+- Live criterion ids no test names (`npm run check:specs`, 25 of 478 after main's media editing and town borders, Nov 4): triaged in `specs/test-gaps/triage.md`. Four look retired (H2, H3, E14, L17) and two may never have shipped (NH8, MR2): the owner's calls. Eighteen are owed tests (TB12 added), mostly e2e checks in journeys that exist. RR17 can only be checked on a device. `--strict` stays out of CI and the hook until the list is empty.
 - Coverage is a report (`npm run test:coverage [<feature>]`, TD2) with no threshold, in neither CI nor the hook; Node lists only the files a test loads, so a file no test reaches is missing from it, not at 0% (`check:affected` names those).
 - `walk.tsx` triggers six journeys (`tabs`, `ready`, `marks`, `reload`, `gaps`, `hidden`): a split of the walk screen's own journey (ready, recording, capture) when it grows again.

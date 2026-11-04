@@ -1,6 +1,6 @@
 # Live criteria no test names: a triage for the owner (Nov 4)
 
-`npm run check:specs` lists 24 live criterion ids that no unit test, e2e check or step names, after test gaps round 1 wrote tests for M15, AC11, NT12 and named R10, N14 and L18 in the nothing-leaves check, and after the v1 retired list was corrected to the spec's own "Retired by this slice" line. Each needs one of three calls: **retire** it (it goes into `RETIRED` in `scripts/features.js`, with who retired it), **test** it (built, a test is owed), or **build** it (not done). The column "Read" is the agent's reading from the code and the later slices; it is a suggestion, not a call.
+`npm run check:specs` lists 25 live criterion ids (24 at the first count, and TB12 from main's town borders) that no unit test, e2e check or step names, after test gaps round 1 wrote tests for M15, AC11, NT12 and named R10, N14 and L18 in the nothing-leaves check, and after the v1 retired list was corrected to the spec's own "Retired by this slice" line. Each needs one of three calls: **retire** it (it goes into `RETIRED` in `scripts/features.js`, with who retired it), **test** it (built, a test is owed), or **build** it (not done). The column "Read" is the agent's reading from the code and the later slices; it is a suggestion, not a call.
 
 | Spec | Id | Criterion (short) | Read | Why |
 |---|---|---|---|---|
@@ -28,7 +28,8 @@
 | quality-of-life | QL21 | Navigate's own fix on focus stays quiet when denied | test | The `qol` journey's denied context can check no banner |
 | replay-rhythm | RR17 | With a screen reader, both replays step through the moments | native | react-native-web always reports a screen reader; only a device can check it |
 | rides | R12 | On a ride, Explore names nothing, no pocket alert, no read; the fog reads nothing | test | Several unit tests prove parts (PA3 "on a ride"); one named test owed |
+| town-borders | TB12 | A slow read of the wide tile has 45 s, and a failed read is retried every 30 s while the screen is open | test | Arrived with main's town borders (Nov 4) after this triage; a shell test over fakes with a fake slow reader |
 
 ## Suggested next step
 
-Confirm the four "retire?" rows (H2, H3, E14, L17) and the two "build?" rows (NH8, MR2). The 17 "test" rows are owed tests, mostly e2e checks in journeys that already exist; they need no call and can be written as a round 2 of test gaps.
+Confirm the four "retire?" rows (H2, H3, E14, L17) and the two "build?" rows (NH8, MR2). The 18 "test" rows are owed tests, mostly e2e checks in journeys that already exist; they need no call and can be written as a round 2 of test gaps.

@@ -63,6 +63,8 @@ test('TG16 move-test moves a test into its feature folder and every relative pat
   w('scripts/affected.js', 'module.exports = {};\n');
   w('src/lib/__tests__/fakes/index.ts', 'export const fakePorts = () => ({});\n');
   w('src/lib/__tests__/outAndBack.json', '{}');
+  // A fixture a merge already put in the feature folder: the test's './' still names it there.
+  w('src/lib/__tests__/recording/eastonSlow.json', '{}');
   w('src/lib/__tests__/rides/rides.test.ts', '');
   const src = [
     "import { g } from '../geo';",
@@ -72,6 +74,7 @@ test('TG16 move-test moves a test into its feature folder and every relative pat
     "const r = require('../../../scripts/affected.js');",
     "const a = createRequire(import.meta.url)('../../../assets/x.json');",
     "const f = join(__dirname, 'outAndBack.json');",
+    "const e = require('./eastonSlow.json');",
     "const root = join(__dirname, '..', '..');",
     "const s = 'from \\'../geo\\' in a string is left alone';",
   ].join('\n');
@@ -82,7 +85,7 @@ test('TG16 move-test moves a test into its feature folder and every relative pat
   assert.ok(!existsSync(join(root, 'src/lib/__tests__/still.test.ts')));
   for (const want of [
     "from '../../geo'", "from '../../../components/map/types'", "from '../fakes'", "import('../../geo')",
-    "require('../../../../scripts/affected.js')", "('../../../../assets/x.json')", "join(__dirname, '..', 'outAndBack.json')", "join(__dirname, '..', '..', '..')",
+    "require('../../../../scripts/affected.js')", "('../../../../assets/x.json')", "join(__dirname, '..', 'outAndBack.json')", "join(__dirname, '..', '..', '..')", "require('./eastonSlow.json')",
   ]) assert.ok(moved.includes(want), `${want}\n${moved}`);
   assert.ok(moved.includes("'from \\'../geo\\' in a string is left alone'"), 'a string that is not a path call is untouched');
   assert.throws(() => run('src/lib/__tests__/recording/still.test.ts', 'nope'), /No feature named "nope"/);
