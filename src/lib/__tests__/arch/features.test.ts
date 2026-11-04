@@ -181,3 +181,30 @@ test('TO8 each feature\'s rule loads for its test folder', () => {
     assert.ok(globs.some((g) => features.globToRegExp(g).test(probe)), `.claude/rules/${f.rule}.md does not load for ${probe}: add "src/lib/__tests__/${f.name}/**" to its paths`);
   }
 });
+
+test('TO10 every screen and component is covered by a journey row', () => {
+  const ui = filesUnder(join(ROOT, 'src'), (p) => /\.(ts|tsx|js)$/.test(p) && !p.endsWith('.d.ts'))
+    .map((p) => posix(relative(ROOT, p)))
+    .filter((f) => /^src\/(app|components)\//.test(f));
+  const compiled = SCENARIOS.map((s) => ({ name: s.name, res: s.covers.map(features.globToRegExp) }));
+  const uncovered = ui.filter((f) => !compiled.some((s) => s.res.some((r) => r.test(f))));
+  assert.deepEqual(uncovered, [], `no journey row covers:\n  ${uncovered.join('\n  ')}\nAdd each to the covers of its feature's journey (scripts/e2e/journeys/), or list it in docs/DEFERRED.md and here.`);
+});
+
+test('TO11 the docs name the layout and the commands', () => {
+  const agents = readFileSync(join(ROOT, 'AGENTS.md'), 'utf8');
+  assert.match(agents, /npm run test:feature/);
+  assert.match(agents, /scripts\/features\.js/);
+  const testing = readFileSync(join(ROOT, 'docs', 'TESTING.md'), 'utf8');
+  for (const s of ['scripts/features.js', 'test:feature', 'scripts/e2e/journeys/', 'Covered by nothing']) assert.ok(testing.includes(s), `docs/TESTING.md says ${s}`);
+  const slice = readFileSync(join(ROOT, '.claude', 'skills', 'slice', 'SKILL.md'), 'utf8');
+  assert.match(slice, /src\/lib\/__tests__\/<feature>\//);
+  assert.match(slice, /scripts\/e2e\/journeys\//);
+});
+
+test('TO12 the selection still follows type-only imports, and the docs say it is on purpose', () => {
+  const r = affected.affectedTests(ROOT, ['src/lib/areas/types.ts']);
+  assert.ok(r.tests.length > 5, `${r.tests.length} tests reach a types-only module through import type`);
+  const testing = readFileSync(join(ROOT, 'docs', 'TESTING.md'), 'utf8');
+  assert.match(testing, /Type-only edges are followed on\s+purpose/);
+});

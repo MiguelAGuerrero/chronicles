@@ -65,7 +65,7 @@ npx tsx --test --test-name-pattern "rides audit" src/lib/__tests__/rides/rides.t
 ```
 
 - `npm test` is `tsx --test 'src/lib/__tests__/**/*.test.ts'` (Node's test
-  runner, TAP output, summary at the end): 22 folders, 73 files, about 790
+  runner, TAP output, summary at the end): 21 folders, 74 files, about 790
   tests, about 13 s.
 - **Layout:** one folder per feature of `scripts/features.js` (`recording`,
   `rides`, `streets`, `gaps`, `navigation`, `replay`, `moments`,

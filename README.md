@@ -14,7 +14,9 @@ the web build is a fallback that runs the same loop with the limits a browser im
 npm install          # also copies the maplibre-gl worker into public/
 npm run web          # dev server for the browser
 npm run export:web   # static build in dist/, servable by any static host
-npm test             # street derivation, snapping, fix filtering and replay timing
+npm test             # every unit test, one folder per feature under src/lib/__tests__/
+npm run test:feature <name>   # one feature's tests (scripts/features.js lists the features)
+npm run check:affected        # what a change can break: layers, affected tests, typecheck, lint, the e2e journeys to run
 npm run typecheck
 npm run lint
 npm run e2e:web      # headless walk end to end against dist/ (mocked GPS, fake streets)
