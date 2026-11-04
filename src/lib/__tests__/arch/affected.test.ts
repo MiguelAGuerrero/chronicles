@@ -1,7 +1,7 @@
 // @tree-wide: this repo's import graph, e2e scenario table, Stop hook and CI
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -224,10 +224,22 @@ test('AC9 a changed file names the scenarios that cover it; an uncovered screen 
   const own = affected.e2eFor(['src/components/GapCard.tsx', 'src/components/Ticking.tsx']);
   assert.deepEqual(own.scenarios.map((s) => s.name), ['gaps']);
   assert.deepEqual(own.uncovered, ['src/components/Ticking.tsx']);
-  const e2e = readFileSync(join(ROOT, 'scripts', 'e2e-web.js'), 'utf8');
-  const only = [...e2e.matchAll(/E2E_ONLY === '([a-z]+)'/g)].map((m) => m[1]).sort();
+  // One file per journey (TO9): the file is the registration, its name is its file's, and it says what it covers.
+  const dir = join(ROOT, 'scripts', 'e2e', 'journeys');
+  const files = readdirSync(dir).filter((f) => f.endsWith('.js')).map((f) => f.slice(0, -3)).sort();
+  assert.ok(files.includes('full'), 'the full flow is scripts/e2e/journeys/full.js');
   const names = (load(join(ROOT, 'scripts', 'e2e-scenarios.js')) as { SCENARIOS: Scenario[] }).SCENARIOS.map((s) => s.name).sort();
-  assert.deepEqual(names, only, 'every journey the e2e runs alone has a row in scripts/e2e-scenarios.js, and nothing else');
+  assert.deepEqual(names, files.filter((f) => f !== 'full'), 'every journey file but full.js is a row, and nothing else');
+  for (const f of files) {
+    const j = load(join(dir, `${f}.js`)) as { name: string; covers?: string[]; full?: boolean; run: unknown };
+    assert.equal(j.name, f, `scripts/e2e/journeys/${f}.js exports name "${j.name}"`);
+    assert.equal(typeof j.run, 'function', `${f}.js exports run`);
+    if (!j.full) assert.ok(Array.isArray(j.covers) && j.covers.length > 0, `${f}.js says which files it covers`);
+  }
+  // The entry runs a journey by name, and the full flow with none.
+  const e2e = readFileSync(join(ROOT, 'scripts', 'e2e-web.js'), 'utf8');
+  assert.match(e2e, /E2E_ONLY/);
+  assert.match(e2e, /journeys/);
 });
 
 test('AC10 CI runs lint before the export', () => {

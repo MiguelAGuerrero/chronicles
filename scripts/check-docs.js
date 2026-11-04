@@ -48,11 +48,11 @@ const PATH_PREFIX = /^(src|scripts|docs|specs|public|assets|\.claude|\.github)\/
 // Docs usually name modules short: `lib/quietLines`, `nav/types.ts`,
 // `components/Modal`, `(tabs)/index.tsx`. Those count when they look like a
 // source path (a known extension, or a lib/ components/ app/ start) and are
-// resolved against src/, src/lib/, src/components/ and src/app/.
+// resolved against src/, src/lib/, src/components/, src/app/, src/lib/__tests__/ and scripts/e2e/.
 const SHORT = /^[\w.()[\]-]+(\/[\w.()[\]-]+)+\/?$/;
 const SOURCE_EXT = /\.(tsx?|m?js|json)$/;
 const SHORT_START = /^(lib|components|app)\//;
-const BASES = ['', 'src/', 'src/lib/', 'src/components/', 'src/app/'];
+const BASES = ['', 'src/', 'src/lib/', 'src/components/', 'src/app/', 'src/lib/__tests__/', 'scripts/e2e/'];
 const EXTS = ['', '.ts', '.tsx', '.native.ts', '.web.ts', '.native.tsx', '.web.tsx', '/index.ts', '/index.tsx'];
 function resolves(p) {
   for (const base of BASES) for (const ext of EXTS) if (fs.existsSync(base + p.replace(/\/$/, '') + ext)) return true;
