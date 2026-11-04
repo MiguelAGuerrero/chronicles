@@ -1,3 +1,4 @@
+// @layer core
 import raw from './chains.json';
 import notable from './notable.json';
 import type { CategoryId, Place } from './types';

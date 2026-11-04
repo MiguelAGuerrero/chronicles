@@ -1,3 +1,4 @@
+// @layer core
 /**
  * Navigate, ready (NR1-NR4): the rules for reaching and leaving the walk
  * screen when Navigate is the walk screen itself. Pure, so `npm test` covers

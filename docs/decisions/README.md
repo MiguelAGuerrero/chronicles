@@ -77,4 +77,7 @@ An owner's call made during a slice gets its record in the same commit as the sl
 | [0069](0069-draw-a-gaps-way.md) | 2026-11-03 | A gap's way can be drawn (taps snapped to paths), and the guess fits the time | trace, gaps, map |
 | [0070](0070-app-opens-on-explore.md) | 2026-11-03 | The app opens on Explore, at `/`; a stale replay link at launch goes there too, and Explore reads one fix per launch (supersedes NV2's Navigate default) | tabs, navigation |
 | [0071](0071-every-break-is-a-gap.md) | 2026-11-03 | Every break in the trace is a gap, and settling never breaks the line | trace, gaps |
-| [0072](0072-navigate-opens-the-walk-screen-ready.md) | 2026-11-03 | Navigate opens the walk screen, ready; captures stack at the right edge; the bar pulls up | tabs, navigate, walk screen |
+| [0072](0072-hidden-notice-only-when-hidden.md) | 2026-11-03 | "Tracing paused while this page was hidden" only when the page was hidden | recording, walk screen |
+| [0073](0073-functional-core-checked.md) | 2026-11-03 | A functional core, imperative shell: four layers tagged per module, checked by tests and lint, baselines that only shrink | architecture, process |
+| [0074](0074-fast-iteration-scoped-checks.md) | 2026-11-03 | Fast iteration: affected checks and the slice's own e2e journey; the full e2e and `/audit` only when the owner asks (supersedes 0018's audit on every slice) | process, testing |
+| [0075](0075-navigate-opens-the-walk-screen-ready.md) | 2026-11-03 | Navigate opens the walk screen, ready; captures stack at the right edge; the bar pulls up | tabs, navigate, walk screen |

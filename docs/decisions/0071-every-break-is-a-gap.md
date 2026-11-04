@@ -12,5 +12,5 @@ The owner's rule: if the last point and the current one leave a break, it is a g
 
 ## Consequences
 - `SNAP_RULES` 8: every walk is read again when its replay next opens.
-- A drifting standstill draws a little more settled line (46 m to 62 m in the 90 s jitter test), the part the old break hid.
+- A drifting standstill drew more settled line at first (46 m to 62 m in the 90 s jitter test): a 71 s spot of drift had read as walked through, hidden until then by the break. The owner (Nov 3): standing in drift should stay resolved. A spot's walked-through test now widens with its reach, up to twice after a minute held (`SNAP_RULES` 9), and the test draws 39 m as one line.
 - A join from a fix to a street costs twice its length in the search, so a short gap runs along its street.

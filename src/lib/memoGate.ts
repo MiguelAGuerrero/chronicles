@@ -1,3 +1,4 @@
+// @layer shell
 /**
  * Whether a voice memo is recording anywhere (Navigate's row, the walk
  * screen), and the saves still under way (tabs audit 3). A walk never starts

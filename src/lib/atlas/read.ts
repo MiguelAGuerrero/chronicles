@@ -1,3 +1,4 @@
+// @layer shell
 import type { CollectedFeatures } from '../../components/map/types';
 import { placesFromTiles } from '../areas/tilePlaces';
 import { db } from '../db';

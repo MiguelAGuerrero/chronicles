@@ -1,3 +1,4 @@
+// @layer shell
 import { router } from 'expo-router';
 import { createWalkGate } from './walkGate';
 

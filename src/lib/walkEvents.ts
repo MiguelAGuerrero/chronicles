@@ -1,3 +1,4 @@
+// @layer shell
 /**
  * The open walk changed (NV8): started, paused, resumed or stopped. The
  * keeper of the open walk, mounted above the tabs, reads it again, so the

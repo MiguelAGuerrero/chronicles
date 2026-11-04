@@ -1,3 +1,4 @@
+// @layer shell
 import { db } from '../db';
 import { createNotifier, parseNoticePrefs, serializePrefs, type NoticePrefs } from './core';
 import { transport } from './transport';

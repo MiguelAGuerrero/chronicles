@@ -1,3 +1,4 @@
+// @layer view
 import { useFocusEffect, useIsFocused } from 'expo-router';
 import { useBottomTabBarHeight } from 'expo-router/js-tabs';
 import { useCallback, useEffect, useRef, useState } from 'react';

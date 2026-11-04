@@ -1,3 +1,4 @@
+// @layer adapter
 import { releaseMedia, resolveMedia } from '../media';
 import type { Capture } from '../types';
 import { bundleName, extensionOf, KeeperError, writeWalkBundle } from './bundle';

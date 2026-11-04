@@ -28,6 +28,11 @@ Recording a walk and reading its trace: pauses, standstills, GPS jitter, the liv
   and the replay's `activeClock`. Pass the walk's pauses everywhere a trace is
   drawn, measured or replayed. `useLiveTrace` takes the pauses too, drops fixes
   inside them, and doesn't report a pause as a hidden-page gap.
+- **The hidden-page notice needs a hidden page** (decision 0072, Nov 3): a gap is
+  reported to the walk screen's "Tracing paused … while this page was hidden" only
+  if it overlaps a spell out of front (`lib/hiddenLog.ts`, fed from AppState in
+  `useLiveTrace`) or began before the page loaded. With the page on screen, a gap
+  is weak GPS: the chip says so, no notice. `E2E_ONLY=hidden` checks both.
 - **Captures still work while paused** (the owner's call). An unstamped one is
   placed where the pause began, not on a line across it.
 - **Standstills** (`dwellsOf` / `smoothDwells`): fixes are averaged into 30 s bins.
@@ -59,7 +64,9 @@ Recording a walk and reading its trace: pauses, standstills, GPS jitter, the liv
     doesn't move someone standing.
   - A spot walked through (its halves' centres more than half its reach apart)
     is drawn from one half's centre to the other's. A spot stood in is drawn as
-    its centre.
+    its centre. The share widens with the reach, up to 2x once held a minute
+    (jitter 2, Nov 3): 17 m of drift over 71 s at ±30 m read as walked once
+    no break hid it. `SNAP_RULES` 9.
   - A lone fix away and straight back is dropped. A lone first fix that the
     next two leave is dropped.
   - Fixes without accuracy pass as before.
@@ -84,7 +91,7 @@ Recording a walk and reading its trace: pauses, standstills, GPS jitter, the liv
 - **Motion** (the concept doc's "Motion" tab, MO1-MO10; the owner's calls,
   Nov 1, after research: GPS can't tell 10 m of drift from a walk; steps can).
   - `expo-sensors` DeviceMotion on every platform; Expo's Pedometer has no web
-    build, so `steps.ts` (pure) finds steps in the acceleration's size
+    build, so `steps.ts` (core) finds steps in the acceleration's size
     (gravity removed): peaks of 0.6 m/s² or more, 0.3-1.3 s apart, with a dip
     below rest between (a tap only spikes up). Walking: 3 evenly spaced steps
     in 3 s; still: none for 3 s; unknown before the first firm answer.

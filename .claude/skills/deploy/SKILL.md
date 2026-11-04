@@ -1,6 +1,6 @@
 ---
 name: deploy
-description: Deploy the web build to GitHub Pages by pushing main (the only branch Pages accepts), after the full suite including the e2e against the sub-path build is green, STATUS.md is updated and the slice is audited; then check the Pages run with the GitHub MCP tools. Use only when the owner asks to deploy, ship or release.
+description: Deploy the web build to GitHub Pages by pushing main (the only branch Pages accepts), after typecheck, lint, the unit tests and the slice's e2e journeys are green and STATUS.md is updated (the full e2e and an audit only if the owner asked); then check the Pages run with the GitHub MCP tools. Use only when the owner asks to deploy, ship or release.
 when_to_use: The owner says deploy, ship, release, publish, or merge to main.
 disable-model-invocation: true
 allowed-tools: Bash, Read, Grep, Glob, mcp__github__actions_list, mcp__github__actions_get, mcp__github__get_job_logs
@@ -8,8 +8,8 @@ allowed-tools: Bash, Read, Grep, Glob, mcp__github__actions_list, mcp__github__a
 
 # Deploy
 
-A push to `main` runs `.github/workflows/pages.yml`: `npm ci`, typecheck,
-`npm test`, `expo export --platform web` with `CHRONICLES_BASE_URL=/chronicles`
+A push to `main` runs `.github/workflows/pages.yml`: `npm ci`, `check:docs`,
+typecheck, `npm test`, lint, `expo export --platform web` with `CHRONICLES_BASE_URL=/chronicles`
 (which `app.config.js` turns into `experiments.baseUrl`), `dist/index.html`
 copied to `404.html` (Pages has no app-route fallback; a reload on
 `/chronicles/walk` must resume the walk), then GitHub Pages at
@@ -18,7 +18,9 @@ https://miguelaguerrero.github.io/chronicles/.
 ## The owner's rules
 
 - `main` is the only branch the Pages environment accepts.
-- Merge to `main` only after the slice's audit fixes pass the full suite.
+- Merge to `main` only when typecheck, lint, `npm test` and the slice's e2e
+  journeys pass. The full e2e and `/audit` run only when the owner asks
+  (decision 0074); if they ran, their fixes must pass too.
 - Never add a server, an account, or anything that leaves the device.
 
 ## 1. Preconditions (all of them)
@@ -26,12 +28,14 @@ https://miguelaguerrero.github.io/chronicles/.
 ```bash
 git status --short                       # clean, on the branch to ship
 npm run typecheck && npm run lint && npm test
-CHRONICLES_BASE_URL=/chronicles npm run export:web && E2E_BASE=/chronicles npm run e2e:web
+npm run check:affected                   # names the e2e journeys for what ships
+CHRONICLES_BASE_URL=/chronicles npm run export:web && E2E_BASE=/chronicles E2E_ONLY=<journey> npm run e2e:web   # each journey it names
 ```
 
-- The e2e runs against the sub-path build, as Pages serves it.
-- `docs/STATUS.md` is updated: the slice's row shows its audit counts.
-- The slice was audited (`/audit`) and its accepted findings are fixed.
+- The journeys run against the sub-path build, as Pages serves it. The full
+  flow (no `E2E_ONLY`) only when the owner asks for it.
+- `docs/STATUS.md` is updated (with the audit's counts, if one ran).
+- If the owner asked for an audit, its accepted findings are fixed.
 - `docs/PRODUCT.md` says what shipped. Run `/docs-gc` if it was not run.
 
 Stop if any precondition fails; say which.

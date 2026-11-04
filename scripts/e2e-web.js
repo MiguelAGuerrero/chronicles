@@ -1358,11 +1358,18 @@ function check(ok, what) {
     await locate2.first().click();
     await pg.waitForTimeout(2000);
     {
+      // Explore frames inside its fit padding (atlas round 2: the title sits over the map): 84 px at
+      // the top, 24 px at the bottom, so the fix is in the middle of the map below the title, 30 px
+      // under the canvas's middle (QL10; this check measured from the canvas middle until Nov 4).
       const center = lonLat(await attr('data-center'));
       const walker = lonLat(await attr('data-walker'));
-      const off = center ? mAway(center, near) : NaN;
-      check(center && off < 250 && walker && mAway(walker, near) < 5,
-        `qol QL10: Explore's Locate frames the map around the fix and draws the dot (canvas middle ${off.toFixed(1)} m off, data-walker ${fmt(walker)})`);
+      const z = Number(await attr('data-zoom'));
+      const k = center ? mpp(z, center[1]) : NaN;
+      const dx = center ? ((near[0] - center[0]) * 111320 * Math.cos((center[1] * Math.PI) / 180)) / k : NaN;
+      const dy = center ? -((near[1] - center[1]) * 111320) / k : NaN;
+      const EXPLORE_PAD_SHIFT_PX = (84 - 24) / 2;
+      check(center && Math.abs(dx) <= 3 && Math.abs(dy - EXPLORE_PAD_SHIFT_PX) <= 3 && walker && mAway(walker, near) < 5,
+        `qol QL10: Explore's Locate frames the map around the fix, in the middle of the map below the title, and draws the dot (fix at canvas middle + (${dx.toFixed(1)}, ${dy.toFixed(1)}) px, ${EXPLORE_PAD_SHIFT_PX} px expected below; data-walker ${fmt(walker)})`);
       const s3 = await scaleBar();
       check(round(s3) && fits(s3), `qol QL5: Explore shows the scale bar (${describe(s3)})`);
     }
@@ -1996,10 +2003,65 @@ function check(ok, what) {
     }
   };
 
+  // The hidden-page notice (Nov 3, after it popped up with the page on screen): a gap over a
+  // minute between fixes says "paused while this page was hidden" only if the page really was.
+  // Fixes and the page's clock jump ahead (`__shift`) to make a 70 s gap in a few seconds, and the
+  // page's visibility is faked (`__vis`). E2E_ONLY=hidden runs it alone.
+  const hiddenScenario = async () => {
+    const { c, pg } = await freshPage('hidden');
+    await c.addInitScript(() => {
+      window.__shift = 0;
+      window.__vis = 'visible';
+      Object.defineProperty(document, 'visibilityState', { get: () => window.__vis });
+      Object.defineProperty(document, 'hidden', { get: () => window.__vis === 'hidden' });
+      // The page's clock jumps with the fixes, as if the time had passed.
+      const now = Date.now.bind(Date);
+      Date.now = () => now() + window.__shift;
+      const g = navigator.geolocation;
+      const watch = g.watchPosition.bind(g);
+      g.watchPosition = (ok, err, o) => watch((p) => ok({ coords: p.coords, timestamp: p.timestamp + window.__shift }), err, o);
+    });
+    let n = 0;
+    const step = async () => {
+      n++;
+      const p = at(-0.5, -0.5 + n * 0.012);
+      await c.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+      await pg.waitForTimeout(1000);
+    };
+    const paused = () => pg.locator('text=/Tracing paused/').count();
+    const setVis = (v) => pg.evaluate((s) => { window.__vis = s; document.dispatchEvent(new Event('visibilitychange')); }, v);
+    await pg.goto(navUrl);
+    await pg.waitForSelector('[data-testid=start]');
+    await pg.waitForTimeout(1500);
+    await pg.click('[data-testid=start]');
+    await pg.waitForURL(/\/walk/, { timeout: 30000 });
+    for (let i = 0; i < 5; i++) await step();
+    // On screen the whole time, with no fixes for 70 s: weak GPS, not a hidden page.
+    await pg.evaluate(() => { window.__shift = 70_000; });
+    for (let i = 0; i < 4; i++) await step();
+    await pg.waitForTimeout(2500);
+    const shownVisible = await paused();
+    check(shownVisible === 0, `hidden: a gap with the page on screen raises no "Tracing paused … hidden" notice (${shownVisible})`);
+    // Hidden, then back, then 70 s more without fixes: the notice says so.
+    await setVis('hidden');
+    await pg.waitForTimeout(300);
+    await pg.evaluate(() => { window.__shift = 140_000; });
+    await setVis('visible');
+    for (let i = 0; i < 4; i++) await step();
+    const shownHidden = await pg.waitForSelector('text=/Tracing paused for 1 min while this page was hidden/', { timeout: 6000 }).then(() => true, () => false);
+    check(shownHidden, 'hidden: a gap the page spent hidden still says "Tracing paused for 1 min while this page was hidden"');
+    await c.close();
+  };
+
   try {
     if (process.env.E2E_ONLY === 'ready') {
       await readyScenario();
       await readyAudit();
+      check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
+      return;
+    }
+    if (process.env.E2E_ONLY === 'hidden') {
+      await hiddenScenario();
       check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
       return;
     }
@@ -2529,7 +2591,7 @@ function check(ok, what) {
         // This window is busy with taps (memos, a video, a note, a long press); steady walking is about
         // 1.4 renders a second (scripts/perf-walk.js). Before the fixes it was 3.7 here.
         check(rate('render:walk') <= 2.5 && rate('setData:cone') <= 1.05 && rate('setData:trace') <= 0.6,
-          `walking stays within its render budget (walk ${rate('render:walk').toFixed(2)}/s, cone ${rate('setData:cone').toFixed(2)}/s, trace ${rate('setData:trace').toFixed(2)}/s)`);
+          `walking stays within its render budget, FC10 (walk ${rate('render:walk').toFixed(2)}/s, cone ${rate('setData:cone').toFixed(2)}/s, trace ${rate('setData:trace').toFixed(2)}/s)`);
         check(leak1.bodyDivs - leak0.bodyDivs <= 3 && leak1.listeners - leak0.listeners < 2000,
           `walking leaks no portals or listeners (body ${leak0.bodyDivs} → ${leak1.bodyDivs}, listeners ${leak0.listeners} → ${leak1.listeners}, nodes ${leak0.nodes} → ${leak1.nodes})`);
       }
@@ -3915,6 +3977,7 @@ function check(ok, what) {
     await gapsScenario();
     await readyScenario();
     await readyAudit();
+    await hiddenScenario();
     {
       // Start with Explore and a destination: the walk opens exploring, heading there (NV25).
       const { c, pg } = await freshPage('start-explore');

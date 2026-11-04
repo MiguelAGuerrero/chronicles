@@ -1,3 +1,4 @@
+// @layer adapter
 import type { SubscribeMotion } from './types';
 
 /**

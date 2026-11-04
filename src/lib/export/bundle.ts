@@ -1,3 +1,4 @@
+// @layer shell
 import { strToU8, Zip, ZipPassThrough } from 'fflate';
 import { db } from '../db';
 import type { Walk } from '../types';

@@ -1,3 +1,4 @@
+// @layer shell
 import { AppState } from 'react-native';
 import { createOpeners } from '../openers';
 import { db } from '../db';

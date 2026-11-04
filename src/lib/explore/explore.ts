@@ -1,3 +1,4 @@
+// @layer core
 import type { AreaLevel, PlaceCandidate } from '../areas/types';
 import { CATEGORIES, categoryOf } from '../discovery/categories';
 import { isMarkable } from '../discovery/noise';

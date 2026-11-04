@@ -123,3 +123,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] `locateOnce` each time the ready screen comes to the front, on expo-location (NV17)
 - [ ] `Linking.openSettings` from the ready screen's banner (NR13)
 
+## Functional core (slice 1, FC1-FC10)
+
+- [ ] `lib/ports/index.ts` builds the real ports from the native db, recorder and notifier at module load; its first user is the ready walk screen's shell (`lib/ready`, Navigate, ready), so a phone's first run of it is the ready screen opening
+- [ ] The SQLite adapter (`db/index.native.ts`) against the Db contract (`src/lib/__tests__/dbContract.ts`): the suite runs only over the fake and IndexedDB in Node, so SQLite's match to it is by reading

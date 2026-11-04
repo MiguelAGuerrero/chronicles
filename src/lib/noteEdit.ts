@@ -1,3 +1,4 @@
+// @layer core
 /** A note's text at most, as the composer allows (QL24). */
 export const NOTE_MAX = 500;
 

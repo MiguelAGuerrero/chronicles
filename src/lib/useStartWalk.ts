@@ -1,3 +1,4 @@
+// @layer view
 import { useState } from 'react';
 import { db } from './db';
 import { memoGate } from './memoGate';

@@ -8,7 +8,6 @@ import { StartSettings } from '../StartSettings';
 import { Icon } from '../icons';
 import { Banner, theme } from '../ui';
 import { useUnits } from '../../lib/useUnits';
-import { db } from '../../lib/db';
 import { applyPatch, captureBus } from '../../lib/captureBus';
 import { MOMENT_PIN_ZOOM, placedMoments, upsertMoment } from '../../lib/momentPins';
 import { useVisible } from '../../lib/deletion/useDeletions';
@@ -20,9 +19,9 @@ import { getLastFix, setLastFix } from '../../lib/lastFix';
 import { locateOnce } from '../../lib/locate';
 import { loadPendingDest, savePendingDest } from '../../lib/nav/store';
 import type { Waypoint } from '../../lib/nav/types';
-import { recorder } from '../../lib/recorder';
-import { parseStartMode, START_MODE_KEY, type StartMode } from '../../lib/startPlan';
-import type { Capture, LngLat, Walk } from '../../lib/types';
+import { ready } from '../../lib/ready';
+import { type StartMode } from '../../lib/startPlan';
+import type { Capture, LngLat } from '../../lib/types';
 import type { MomentState } from '../../lib/useCaptures';
 import { LOCATE_FIT_M, useLocate } from '../../lib/useLocate';
 import { useStartWalk } from '../../lib/useStartWalk';
@@ -31,8 +30,6 @@ import { ReadyBar } from './ReadyBar';
 
 const NONE: never[] = [];
 const WORLD = { center: [-40, 30] as [number, number], zoom: 1.2 };
-/** Meta: the web's "keep this page open" note was dismissed (U9). */
-const WEB_NOTE_KEY = 'web_note_dismissed';
 /** The fix on opening frames this far around you (NV17). */
 const OPEN_FIT_M = 250;
 
@@ -89,22 +86,14 @@ export function useReady(props: {
       if (!active) return;
       let live = true;
       (async () => {
-        const [m, d, s, walks, note, caps] = await Promise.all([
-          db.getMeta(START_MODE_KEY).catch(() => null),
-          loadPendingDest(),
-          loadSettings().catch(() => DEFAULT_SETTINGS),
-          db.listWalks().catch(() => [] as Walk[]),
-          db.getMeta(WEB_NOTE_KEY).catch(() => null),
-          // Rows only, never media (as Chronicle reads them for its days).
-          db.capturesBetween(0, Number.MAX_SAFE_INTEGER).catch(() => null),
-        ]);
+        const [choices, d, s] = await Promise.all([ready.load(), loadPendingDest(), loadSettings().catch(() => DEFAULT_SETTINGS)]);
         if (!live) return;
-        if (caps) setMoments(placedMoments(caps));
-        setModeState(parseStartMode(m));
+        if (choices.captures) setMoments(placedMoments(choices.captures));
+        setModeState(choices.mode);
         setDest(d);
         setSettings(s);
-        setFirstWalk(walks.length === 0);
-        setWebNoteOff(!!note);
+        setFirstWalk(choices.firstWalk);
+        setWebNoteOff(choices.webNoteOff);
       })().catch(() => {});
       // One fix, which ends its own watch (NV17): the first frames the map around you.
       locateOnce().then((r) => {
@@ -124,7 +113,7 @@ export function useReady(props: {
 
   const pickMode = (m: StartMode) => {
     setModeState(m);
-    db.setMeta(START_MODE_KEY, m).catch(() => {});
+    ready.setMode(m).catch(() => {});
   };
   const changeSettings = (next: ExploreSettings) => {
     setSettings(next);
@@ -142,7 +131,7 @@ export function useReady(props: {
   };
   const dismissWebNote = () => {
     setWebNoteOff(true);
-    db.setMeta(WEB_NOTE_KEY, '1').catch(() => {});
+    ready.dismissWebNote().catch(() => {});
   };
   const onMoment = useCallback((c: Capture, state: MomentState) => {
     if (state !== 'placed') return;
@@ -249,7 +238,7 @@ export function useReady(props: {
             {error.message}
           </Banner>
         )}
-        {firstWalk && !webNoteOff && !recorder.capabilities.background && (
+        {firstWalk && !webNoteOff && !ready.background() && (
           // Said once, and gone for good once dismissed (U9).
           <Banner onDismiss={dismissWebNote}>On the web, a walk is traced while this page is open and on screen.</Banner>
         )}
@@ -290,11 +279,11 @@ export function useReady(props: {
         onClose={() => setViewing(null)}
         remind
         onSaveCaption={async (c, caption, y) => {
-          await db.updateCapture(c.id, { caption, caption_y: caption ? y : null });
+          await ready.saveCaption(c.id, caption, y);
           setMoments((prev) => applyPatch(prev, c.id, { caption, caption_y: caption ? y : null }));
         }}
         onSaveNote={async (c, body) => {
-          await db.updateCapture(c.id, { body });
+          await ready.saveNote(c.id, body);
           setMoments((prev) => applyPatch(prev, c.id, { body }));
           captureBus.patch(c.walk_id, c.id, { body }, null);
         }}

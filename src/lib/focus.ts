@@ -1,3 +1,4 @@
+// @layer adapter
 import { AccessibilityInfo, findNodeHandle, Platform } from 'react-native';
 
 /**

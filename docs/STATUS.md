@@ -35,8 +35,11 @@ what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md
 | Navigate, ready (Navigate is the walk screen, ready; the capture stack; the bar pulls up to the settings, NR1-NR13) | shipped (web verified by the e2e; native unverified); the launch follows 0070 (the owner, Nov 4) | branch `claude/navigate-ready`, merged 2026-11-04 | `specs/navigate-ready/spec.md` (repo first; to be copied into the concept doc as a tab) | yes (13 findings, 12 fixed, 1 deferred) |
 | Filling gaps (streets walked across a gap in the trace, G1-G14) | shipped | `2a0501e`, `3a08a53`, merged as `28c7417` 2026-11-03 | `specs/filling-gaps/spec.md` | yes (17 findings, 12 fixed, `3a08a53`) |
 | Gap drawing (draw a gap's way; a guess that fits the time, GW1-GW8, GT1-GT3) | shipped | branch `claude/gap-drawing`, merged 2026-11-03 | `specs/gap-drawing/spec.md` | yes (14 findings, 11 fixed, 3 deferred) |
+| Hidden-page notice (a fix: "Tracing paused … while this page was hidden" only when it was, decision 0072) | shipped (web verified by the e2e `hidden`; native never shows it) | branch `claude/hidden-notice-0072`, 2026-11-03 | none (a local fix after the owner's screenshot; decision 0072) | no (a local fix, not a slice) |
 | Bridges and Open in Maps (NB1-NB7, NH1-NH8; NH4 retired) | shipped | `82186db`, `67b7c9d`, `d16c7c4`; `1ead218` retired NH4, all 2026-11-03 | `specs/bridges-and-open-in-maps/spec.md` | yes (bridges: 11 findings, 7 fixed, `67b7c9d`) |
 | Explore atlas (the Explore tab as a grid of area tiles, AT1-AT16) | shipped (web verified by the e2e; native unverified); round 2 after the owner's iPhone look: the hierarchy in the grid, the title over the map, tiles in words; round 3, the design review's fixes (decision 0067) | `d1080e7`, `d3158aa`, `18c0feb`, `06726be` 2026-11-03 (branches `explore-atlas`, `explore-atlas-2`) | `specs/explore-atlas/spec.md` (repo first; to be copied into the concept doc as a tab) | yes (14 findings: 11 fixed, 1 partly, 1 deferred, 1 rejected; `d3158aa`) |
+| Functional core, slice 1 (layer tags and checks, ports, fakes, the Db contract, typed meta; FC1-FC10) | shipped 2026-11-04 (engineering; no behaviour change; native unverified) | branch commits 2026-11-03 | `specs/functional-core/spec.md` (repo only: not a concept-doc tab) | yes (14 findings: 12 fixed, 1 deferred, 1 fixed in part) |
+| Affected checks (run what a change can break: affected tests, lint, typecheck, e2e journeys; AC1-AC11) | shipped 2026-11-04 (engineering; no behaviour change) | branch commits 2026-11-03 | `specs/affected-checks/spec.md` (repo only) | no (decision 0074: audits on the owner's request) |
 
 Not a tab, but tracked: **suggested routes** (interesting ways, route preview,
 "Walk this way") are deferred as their own later slice (`749811d` 2026-11-01).
@@ -60,7 +63,7 @@ first.
 | `claude/clear-storage` | 2026-11-01 | 0 | yes | Clearing walks and moments (D1-D11) with its audit fixes | merged |
 | `claude/filling-gaps` | 2026-11-03 | 0 | yes | Filling gaps (G1-G14) and its audit fixes | merged (`28c7417`) |
 | `claude/gap-drawing` | 2026-11-03 | 0 | yes | Gap drawing (GW1-GW8, GT1-GT3) and its audit fixes | merged |
-| `claude/functional-core-foundations` | 2026-11-01 | 3 | no | `Ports` type and real instance, in-memory fakes with one call log, a `Db` contract suite, typed `meta.ts`, `Store`/`useStore`, ESLint boundary rules, an AGENTS.md style section; plus its own copy of the fog-streak fix (`98faa36`), which main has as `2b0cdfe` | pending decision (see Needs the owner) |
+| `claude/functional-core-foundations` | 2026-11-01 | 3 | no | `Ports` type and real instance, in-memory fakes with one call log, a `Db` contract suite, typed `meta.ts`, `Store`/`useStore`, ESLint boundary rules, an AGENTS.md style section; plus its own copy of the fog-streak fix (`98faa36`), which main has as `2b0cdfe` | taken: `561b439` cherry-picked into `claude/functional-core-slice1` and brought up to main, without its `LEGACY_*` lists or its AGENTS.md section (decision 0073); safe to delete once slice 1 merges |
 | `claude/navigate-ready` | 2026-11-04 | 0 | yes | Navigate, ready (NR1-NR13) and its audit fixes, merged over main's launch on Explore | merged |
 | `claude/rides` | 2026-11-01 | 0 | yes | Rides (R1-R14) and its audit fixes | merged |
 | `docs/product-synopsis` | 2026-11-03 | 0 | yes | `docs/PRODUCT.md` and the QL section of AGENTS.md; fast-forwarded, it is main's head | merged |
@@ -83,15 +86,8 @@ first.
 
 ## Needs the owner
 
-- **`claude/functional-core-foundations`:** merge it, cherry-pick only the ESLint
-  boundary rules (`eslint.config.js`), or close it. It is additive (1,136 lines,
-  no existing module changes behaviour) and is the first step of the roadmap in
-  the "Chronicles: functional core assessment" doc
-  (https://claude.ai/artifact/NvVJu2kspKdmY2DFgXTvz1, 2026-11-01), which assumed it
-  would merge. It never did, nothing on main says why, and every slice since
-  (Nov 1-3) was written without ports or fakes, so a merge now needs the
-  allow-lists in its lint rules refreshed and its `meta.ts` schema brought up to
-  the keys added since (`explore_*`, `notify_off`, `day_watched:*`, `nav`, ...).
+- **Functional core, next:** the walk screen's fog refresh moves to a shell (the first shell, and the rules for shells with it).
+- **The web and native stores disagree** in five places the Db contract found (`docs/DEFERRED.md`, Functional core): which side is right, per case.
 - **`WALKED_THRESHOLD` (0.5)** in snapping is "still an open product decision"
   (AGENTS.md, Streets, fog and snapping).
 - **Two things are named Explore:** the tab and the walk's mode (AGENTS.md,

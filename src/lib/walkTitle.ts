@@ -1,3 +1,4 @@
+// @layer core
 import type { Walk } from './types';
 
 const PARTS: [number, string][] = [[5, 'night'], [12, 'morning'], [17, 'afternoon'], [21, 'evening'], [24, 'night']];

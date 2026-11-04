@@ -1,3 +1,4 @@
+// @layer adapter
 import { Linking, Platform } from 'react-native';
 import type { LngLat } from '../types';
 import { mapsTarget, mapsUrls } from './handoff';

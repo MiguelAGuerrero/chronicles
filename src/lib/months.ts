@@ -1,3 +1,4 @@
+// @layer core
 /** One month of the walks list (QL28). */
 export interface MonthGroup<W> {
   /** "2026-11", local time. */

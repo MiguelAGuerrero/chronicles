@@ -1,3 +1,4 @@
+// @layer core
 import type { StreetSegment } from '../types';
 import { tileAt, tilesIn } from '../tileMath';
 

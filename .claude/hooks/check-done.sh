@@ -3,7 +3,8 @@
 #   - the agent docs must pass scripts/check-docs.js (budgets, rule globs,
 #     named paths), whenever anything changed: a moved source file can break
 #     a doc as surely as an edit to one;
-#   - the typecheck must pass, when TypeScript changed.
+#   - the typecheck, the layer check and the unit tests that import what
+#     changed must pass, when TypeScript changed.
 # "Changed" means the working tree, new files, or commits not yet pushed.
 # Exit 2 blocks the stop and sends stderr back to Claude. CI runs the docs
 # check too, so a breach that gets past this still can't deploy.
@@ -32,6 +33,17 @@ if printf '%s\n' "$CHANGED" | grep -qE '\.(ts|tsx)$' && [ -d node_modules ]; the
   if [ $? -ne 0 ]; then
     echo "Typecheck fails (npm run typecheck). Fix before finishing:" >&2
     printf '%s\n' "$OUT" | head -25 >&2
+    FAILED=1
+  fi
+fi
+
+# With TypeScript changed: the layer check and the unit tests that import what
+# changed (scripts/affected.js, the affected-checks slice, AC8).
+if printf '%s\n' "$CHANGED" | grep -qE '\.(ts|tsx)$' && [ -d node_modules ]; then
+  OUT=$(node scripts/affected.js hook 2>&1)
+  if [ $? -ne 0 ]; then
+    echo "The layer check or the affected unit tests fail (node scripts/affected.js hook). Fix before finishing:" >&2
+    printf '%s\n' "$OUT" | tail -40 >&2
     FAILED=1
   fi
 fi

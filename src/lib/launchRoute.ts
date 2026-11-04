@@ -1,3 +1,4 @@
+// @layer core
 /**
  * The route the app opened on (NV2). A Home Screen web app can reopen on a
  * replay whose walk is no longer kept; that launch goes to Explore, while the

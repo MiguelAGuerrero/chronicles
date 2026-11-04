@@ -1,3 +1,4 @@
+// @layer adapter
 import * as Notifications from 'expo-notifications';
 // Named: lint's namespace check cannot follow the package's nested `export *` to it.
 import { AndroidImportance } from 'expo-notifications';

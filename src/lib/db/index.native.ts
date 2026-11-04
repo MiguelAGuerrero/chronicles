@@ -1,3 +1,4 @@
+// @layer adapter
 import * as SQLite from 'expo-sqlite';
 import { areaFromRow, areaToRow, findFromRow, findToRow, itemFromRow, itemToRow, readFromRow, readToRow, type AreaRow, type FindRow, type ItemRow, type ReadRow } from './exploreRow';
 import { placeFromRow, placeToRow, type PlaceRow } from './placeRow';

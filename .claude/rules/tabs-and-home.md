@@ -16,7 +16,7 @@ The three tabs (Explore, Navigate, Chronicle), the home sheet, the recording bar
 - **Explore is the root route** (`(tabs)/index.tsx`, `/`) and Navigate is
   `(tabs)/navigate.tsx` at `/navigate`, so the app, the Home Screen web app's
   `start_url: "./"` and Back on the other tabs (`backBehavior:
-  'initialRoute'`) all land on Explore. Since Navigate became the walk screen (0072), Minimize or
+  'initialRoute'`) all land on Explore. Since Navigate became the walk screen (0075), Minimize or
   the chevron with nothing beneath goes to Explore (`exitPlan`), and Chronicle's Navigate button
   calls `showWalk()`.
 - **Explore reads one fix per launch** (NV16): `launchFix` in `lib/lastFix`
@@ -45,7 +45,7 @@ The three tabs (Explore, Navigate, Chronicle), the home sheet, the recording bar
 
 ## After the audit
 
-- **Navigate is the walk screen** (NR1-NR13, decision 0072; it retires U1's docked drawer and U2's
+- **Navigate is the walk screen** (NR1-NR13, decision 0075; it retires U1's docked drawer and U2's
   live view): the Navigate tab's `tabPress` is prevented and calls `showWalk()` (`(tabs)/_layout.tsx`,
   `navigatePress` in `lib/readyNav`), so the walk screen opens over the tab in front, ready or with the
   open walk. `(tabs)/navigate.tsx` (`/navigate`) is only an entry: focused (a reload of `/navigate`, a
@@ -156,7 +156,7 @@ The three tabs (Explore, Navigate, Chronicle), the home sheet, the recording bar
   - A screen may refuse a height (`onSize`). A drag let go then settles back where the screen holds it;
     it was once left tall and empty where the finger let go (Nov 2).
 
-## Navigate's settings are in the ready bar (the owner's call, Nov 3, 0072)
+## Navigate's settings are in the ready bar (the owner's call, Nov 3, 0075)
 
 - The Start dialog (0056) is gone: its body is `StartSettings` (`components/StartSettings.tsx`),
   shown in the ready bar pulled up (see `.claude/rules/walk-screen.md`): mode, destination, "?"

@@ -10,7 +10,7 @@ paths:
 
 The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout, capture stack, pills, edge buttons, the ready bar and voice-memo controls. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
 
-- **Navigate is this screen, and it is one screen** (NR1-NR13, decision 0072; the owner, Nov 3: "one
+- **Navigate is this screen, and it is one screen** (NR1-NR13, decision 0075; the owner, Nov 3: "one
   in the same", not a separate context from the walk's). `WalkRoute` in `walk.tsx` renders `WalkScreen`
   once the keeper knows; the walk is the keeper's open walk (`useOpenWalkInfo`), kept by id in state.
   With none, the screen is ready: `useReady` (`components/walk/useReady.tsx`) gives the one `WalkMap`
@@ -22,7 +22,9 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
   Stopped, the walk stays on screen (`ended`) until the replay replaces it. The chevron, Minimize and
   Back go through `exitPlan` (back to the tab beneath, Explore when there is none). `walkScreenShown()`
   is the route's, so the gate holds in both states. `useReady` reads its choices and one fix only while
-  no walk is open (`active`).
+  no walk is open (`active`). Its effects are the `ready` shell (`lib/ready/shell.ts`, tested with
+  `fakePorts()` in `readyShell.test.ts`; the app's instance in `lib/ready/index.ts`), so the view imports
+  no db or recorder (functional core, FC5).
 - **One geometry for both states** (`components/walk/layout.ts`, `useStackLayout`): the strip is
   `BAR_H` (69) above the safe area; the captures are a column of 56 pt buttons at the right edge
   (camera nearest the strip, then mic, then note), inside the 640 column; the 44 pt edge buttons sit
@@ -34,7 +36,7 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
   distance and hold-to-stop stay in the thin strip at the very bottom, with Stop at the right end.
 - Why low and at the right edge: Hoober's touch research puts the most accurate taps near the centre
   and the least at the edges and corners, which is why the row was centred (0008). The owner chose
-  AllTrails' look instead (Nov 3, 0072): AllTrails floats its map controls at the right edge, as Google
+  AllTrails' look instead (Nov 3, 0075): AllTrails floats its map controls at the right edge, as Google
   Maps does at the bottom right. The stack keeps them low, above the strip, out of the corners.
 - Text is kept to a minimum. There is no header or "Recording" label, because the
   growing trace shows a walk is on. A status chip appears only when something is

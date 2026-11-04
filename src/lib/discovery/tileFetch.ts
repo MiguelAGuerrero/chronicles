@@ -1,3 +1,4 @@
+// @layer shell
 import { db } from '../db';
 import type { CollectedFeatures } from '../../components/map/types';
 import { deriveSegments } from '../streets';

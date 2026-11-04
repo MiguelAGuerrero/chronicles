@@ -28,6 +28,8 @@ jobs:
       - run: npm run check:docs
       - run: npm run typecheck
       - run: npm test
+      # Lint holds the import boundaries and the functional core's layers (FC3, FC5).
+      - run: npm run lint
       - name: Export for /chronicles
         run: npx expo export --platform web
         env:

@@ -1,7 +1,7 @@
 ---
 name: audit
-description: Run the adversarial, report-only audit of a built slice (the auditor subagent tries to break it against its spec), then triage every finding accept/defer/reject, give each accepted one a regression test named "<slice> audit N" before its fix, and record the counts. Use once a slice's own tests pass and before it is deployed.
-when_to_use: A slice is implemented and green; the owner asks to audit, harden, or "try to break" a feature; before /deploy.
+description: Run the adversarial, report-only audit of a built slice (the auditor subagent tries to break it against its spec), then triage every finding accept/defer/reject, give each accepted one a regression test named "<slice> audit N" before its fix, and record the counts. Use only when the owner asks (decision 0074).
+when_to_use: Only when the owner asks to audit, harden, or "try to break" a slice or feature (decision 0074); never by default.
 argument-hint: <slice-name>
 ---
 
@@ -68,11 +68,12 @@ Findings covered only by the e2e's flow and typecheck are said so in the record.
 
 ```bash
 npm run typecheck && npm run lint && npm test
-npm run export:web && npm run e2e:web
+npm run check:affected                                  # names the e2e journeys for the fixed files
+npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # each journey it names
 ```
 
-Only when all pass, and the owner agrees, run `/deploy`. Main takes the slice
-only after its audit fixes are green.
+The full e2e (no `E2E_ONLY`) only when the owner asks. When all pass, the
+owner decides on `/deploy`.
 
 ## Report
 

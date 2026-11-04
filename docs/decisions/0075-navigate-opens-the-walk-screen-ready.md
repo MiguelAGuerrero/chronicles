@@ -1,4 +1,4 @@
-# 0072. Navigate opens the walk screen, ready; captures stack at the right edge; the bar pulls up
+# 0075. Navigate opens the walk screen, ready; captures stack at the right edge; the bar pulls up
 
 Date: 2026-11-03 · Status: accepted · Area: tabs, navigate, walk screen
 

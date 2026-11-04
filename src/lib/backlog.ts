@@ -1,7 +1,8 @@
+// @layer shell
 import type { WalkMapHandle } from '../components/map/types';
 import { planViews } from '../components/map/types';
 import { snapWalk } from './finish';
-import { placeAll, withTimeout } from './places';
+import { placeAll, withTimeout } from './placeAll';
 import { ensureTileBuild } from './tiles';
 import type { Walk } from './types';
 

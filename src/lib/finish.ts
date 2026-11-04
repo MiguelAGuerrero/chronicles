@@ -1,3 +1,4 @@
+// @layer shell
 import type { CollectedFeatures } from '../components/map/types';
 import { db } from './db';
 import { isNamedStreet } from './deletion/core';

@@ -1,3 +1,4 @@
+// @layer core
 // The three truth tables (Walk, TracePoint, Capture) are append-only, apart
 // from the walk's own fields and a capture's placement at stop. Everything
 // else (StreetSegment, VisitedSegment, WalkSummary) is a cache derived from

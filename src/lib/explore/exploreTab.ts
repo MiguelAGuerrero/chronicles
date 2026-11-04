@@ -1,3 +1,4 @@
+// @layer core
 import { categoryOf } from '../discovery/categories';
 import { distanceM } from '../geo';
 import type { LandingRow } from '../landing/view';

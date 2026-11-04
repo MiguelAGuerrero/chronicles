@@ -1,3 +1,4 @@
+// @layer core
 /** One motion sample: acceleration including gravity, m/s². */
 export type Acceleration = { x: number; y: number; z: number };
 

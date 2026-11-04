@@ -1,3 +1,4 @@
+// @layer shell
 /**
  * Waits for `p` to settle (resolved or failed), but never longer than `ms`. Pure. For a wait
  * that must not hold something else for ever: the recording bar's return waits on its photo

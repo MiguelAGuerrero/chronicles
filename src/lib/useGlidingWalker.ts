@@ -1,3 +1,4 @@
+// @layer view
 import { useEffect, useRef, useState } from 'react';
 import { glideAngle, glideAngleTo, glideDone, glidePos, glideTo, type AngleGlide, type PosGlide } from './glide';
 import type { DotSource } from './liveDot';

@@ -4,7 +4,8 @@ import { test } from 'node:test';
 import { areaKey } from '../areas/assign';
 import type { Area, AreaLevel, WalkArea } from '../areas/types';
 import { metersPerPixel } from '../pins';
-import { levelForZoom, placeAll, placesIndex, placeWalks, starsFor, unplacedWalks, withTimeout } from '../places';
+import { placeAll, withTimeout } from '../placeAll';
+import { levelForZoom, placesIndex, placeWalks, starsFor, unplacedWalks } from '../places';
 import type { Walk } from '../types';
 
 // Slice 2 of v0.5 (the home map), written from its acceptance criteria before

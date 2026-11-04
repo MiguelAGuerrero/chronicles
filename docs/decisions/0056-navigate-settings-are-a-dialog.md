@@ -1,6 +1,6 @@
 # 0056. Navigate's settings are a dialog; the drawer stays at its peek
 
-Date: 2026-11-03 · Status: superseded by 0072 (the ready bar pulls up to the settings) · Area: tabs, navigate
+Date: 2026-11-03 · Status: superseded by 0075 (the ready bar pulls up to the settings) · Area: tabs, navigate
 
 ## Context
 The owner's call, Nov 3: the settings were split from Start, which was unintuitive. Supersedes the drawer half of 0021 ("pulling the drawer up shows the additional settings") and the settings band of 0046.

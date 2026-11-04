@@ -1,3 +1,4 @@
+// @layer core
 /*
  * Notifications, the platform-neutral part (v1 slice 6, NT3). The app says
  * what to notify; a NoticeTransport says how, on its platform:

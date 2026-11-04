@@ -1,3 +1,4 @@
+// @layer core
 import type { PlaceCandidate } from '../areas/types';
 import type { CategoryId, Kind } from '../discovery/types';
 import type { ChecklistArea, ChecklistItem, ExploreRead, Find } from '../explore/explore';

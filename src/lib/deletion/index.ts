@@ -1,3 +1,4 @@
+// @layer shell
 import { AppState } from 'react-native';
 import { db } from '../db';
 import { forgetRecalls } from '../discovery/recallCheck';

@@ -1,3 +1,4 @@
+// @layer core
 import { THUMB } from '../thumbPlan';
 import type { Capture, CaptureKind, WalkSummary } from '../types';
 

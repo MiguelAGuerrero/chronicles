@@ -1,3 +1,4 @@
+// @layer adapter
 import { Directory, File, Paths } from 'expo-file-system';
 
 /**

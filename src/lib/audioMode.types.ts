@@ -1,3 +1,4 @@
+// @layer core
 /** How the app's sound behaves: what expo-audio's setAudioModeAsync takes. */
 export interface AudioMode {
   /** Play even with the ringer switch off (memos and videos are the point). */

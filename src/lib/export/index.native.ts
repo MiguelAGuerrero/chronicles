@@ -1,3 +1,4 @@
+// @layer adapter
 import { Directory, File, FileMode, Paths } from 'expo-file-system';
 import { Asset, requestPermissionsAsync } from 'expo-media-library';
 import * as Sharing from 'expo-sharing';

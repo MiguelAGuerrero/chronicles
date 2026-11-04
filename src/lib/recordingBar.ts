@@ -1,3 +1,4 @@
+// @layer core
 import { formatDistance, formatDuration, formatElapsed } from './format';
 import { pausedMs, type PauseSpan } from './geo';
 
