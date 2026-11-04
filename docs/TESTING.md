@@ -158,10 +158,20 @@ npm run export:web && npm run e2e:web
 
 - `npm run export:web` builds `dist/`: about 34 s cold, 8 s with Metro's cache
   warm. The e2e serves `dist/` as it is, so **re-export after every change**.
-- `scripts/e2e-web.js` serves `dist/` locally (unknown paths get `index.html`,
-  like Pages' `404.html`) and drives Playwright's full Chromium headless
-  (`channel: 'chromium'`: the old headless shell denies notifications).
-  Playwright is not in `package.json`; it comes from the environment.
+- `scripts/e2e-web.js` is the entry: it builds the harness and runs one
+  journey (`E2E_ONLY=<name>`, the file `scripts/e2e/journeys/<name>.js`) or
+  the full flow (`scripts/e2e/journeys/full.js`). The harness
+  (`scripts/e2e/harness.js`) serves `dist/` locally (unknown paths get
+  `index.html`, like Pages' `404.html`), drives Playwright's full Chromium
+  headless (`channel: 'chromium'`: the old headless shell denies
+  notifications) and holds the helpers every journey shares (`freshPage`,
+  `check`, `drawerTo`, `tabTo`, the GPS start, the tile routes); a journey
+  destructures what it uses from the one object `run(h)` receives. Playwright
+  is not in `package.json`; it comes from the environment.
+- A journey file exports `{ name, covers, run }`: `name` equals its file name,
+  `covers` the source globs it checks (what `check:affected` reads), `run(h)`
+  the checks. The file is its registration: `scripts/e2e-scenarios.js` reads
+  the folder. `full.js` exports `full: true` and no `covers`.
 - What it fakes, in the harness only (the app has no simulation):
   - **GPS**: Playwright's `setGeolocation`, moved at 5 m/s with one fix a
     second; faster is dropped as a GPS jump.

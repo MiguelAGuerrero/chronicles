@@ -35,12 +35,17 @@ A run exits non-zero on the first failed check and prints `ok - ...` lines.
 | `qol` | map staples QL1-QL12: Locate, the scale bar, the trace's end markers |
 | `gaps` | a walk with two GPS gaps written into storage, then a reload: one gap fills by itself, one is offered faint (G5, G6, G9, G10, G12; `window.__project`, `data-runs`, `data-faint`) |
 
-Add a scenario as a function in the script plus an `if (process.env.E2E_ONLY
-=== '<name>')` branch at the top of the `try`, ending with the no-console-errors
-check, a row here, and a row in `scripts/e2e-scenarios.js` naming the files it
-covers (`affected.test.ts` fails without it). A slice that changes a screen
-adds or extends a journey this way for its own change: keep it to what the
-screen shows; write order, retries and guards belong in shell tests.
+Add a scenario as one file, `scripts/e2e/journeys/<name>.js`, exporting
+`{ name, covers, run }`: `name` equal to the file name, `covers` the source
+globs it checks (what `check:affected` reads; `affected.test.ts` fails without
+it), and `async run(h)` with `const { check, freshPage, ... } = h;` at the top,
+taking what it needs from the harness (`scripts/e2e/harness.js`: the GPS
+`start`, `at`, `navUrl`, `drawerTo`, `tabTo`, `metaOf`, `openWalk`, the tile
+switches `tiles.delayMs` and `tiles.stall`). The file is the registration;
+the entry adds the no-console-errors check itself. Add a row here too. A
+slice that changes a screen adds or extends a journey this way for its own
+change: keep it to what the screen shows; write order, retries and guards
+belong in shell tests. The full flow is `scripts/e2e/journeys/full.js`.
 
 ### Switches
 
