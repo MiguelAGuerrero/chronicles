@@ -147,6 +147,11 @@ export function EditedVideo(props: { uri: string; edit: MediaEdit | null; captio
   useEventListener(player, 'playingChange', ({ isPlaying: on }) => {
     isPlaying.current = on;
     setPlaying(on);
+    // Played again from the trim's end (the platform's own controls too): the kept part starts over (media-editing audit 6).
+    if (on && trim && player.currentTime >= trim.end_ms / 1000 - 0.05) {
+      seekTo(player, trim.start_ms / 1000);
+      ended.current = false;
+    }
   });
   useEventListener(player, 'statusChange', ({ status }) => {
     if (status === 'readyToPlay') start();

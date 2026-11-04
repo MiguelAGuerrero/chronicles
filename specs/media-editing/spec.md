@@ -89,3 +89,24 @@ Previews, storage and accessibility
 After capture
 
 23. **ME23** Right after a photo or video is kept, the place that took it offers Edit for 6 seconds, as the caption pill does today: the walk screen ("Photo saved here" or "Video saved here", replacing "Aa Caption" and the video's toast), Navigate's ready screen (a moment outside a walk) and the minimized walk's recording bar ("Photo saved to your walk" or "Video saved to your walk"). The button is `testID` `capture-edit`, label "Edit". A tap opens the editor on Crop for that capture, as a Modal of its own (none of the three is inside another Modal). Taking another capture replaces the offer with the new one. Done there saves exactly as from the viewer (ME2, ME20, ME21).
+
+## Audit (Nov 4, report-only pass by the auditor; the owner asked for one)
+
+16 findings: 12 fixed, 2 deferred, 2 rejected. Unit tests in `mediaEditAudit.test.ts` and the Db contract; e2e checks in the `edit` journey.
+
+1. Reset left the crop (two events in one handler, each from the same render): accept, fixed. One `resetCrop` event. `media-editing audit 1` (unit and e2e).
+2. A moment edited from Navigate's offer stayed unedited on its pin, and a second edit wiped the first: accept, fixed. Loose moments' changes go on the bus's `LOOSE_MOMENTS` channel, which the ready screen hears. `media-editing audit 2` (unit and e2e).
+3. Pins kept the old small copy (same file name, so the same ref): accept, fixed. The edited copy is named by its edit (`editedThumbName`); the old one is removed. `media-editing audit 3` (unit and e2e).
+4. On iPhone Safari a saved video could hang on a refused `play()` or a suspended AudioContext: accept, fixed in part. Both are bounded (1.5 s), the context is closed, and a refused start records the picture without sound. A silent copy on iPhone Safari is deferred. `media-editing audit 4` (e2e).
+5. Escape or Android Back threw edits away without asking: accept, fixed. The viewer asks the editor to close (`requestClose`). `media-editing audit 5` (e2e).
+6. A trimmed video with the platform's controls couldn't be played again from its end: accept, fixed. Play from the end starts the kept part. `media-editing audit 6` (e2e).
+7. On the web a broken or newer stored edit could fail the viewer (reads weren't parsed): accept, fixed. Every capture read on both stores and the fake parses the edit. `media-editing audit 7` (Db contract).
+8. The capture-time copy could overwrite the edited one: accept, fixed. It stands down once the photo has a copy or an edit (`captureThumbStillWanted`). `media-editing audit 8` (unit).
+9. A moment already at fifty lines took a line, then dropped it: accept, fixed. The session opens full. `media-editing audit 9` (unit).
+10. A source with no duration (MediaRecorder's own WebM) or a hidden tab spoiled a web export: accept, fixed in part. The span falls back to the capture's stored length (`exportSpan`). A hidden tab is deferred. `media-editing audit 10` (unit).
+11. "Selected" wasn't announced on the web (`aria-selected` on buttons): accept, fixed. Choices are radios with `aria-checked`. `media-editing audit 11` (e2e).
+12. The line limit was said in digits: accept, fixed. "A moment holds fifty lines at most." `media-editing audit 12` (unit).
+13. Navigate shows the moment's toast and the Edit pill together: defer (`docs/DEFERRED.md`).
+14. The offer pill may be announced twice (live region and an announcement): reject. iOS has no live regions; the announcement is how VoiceOver hears it.
+15. A turned or cropped video has only play and pause, no scrubber: defer (`docs/DEFERRED.md`).
+16. ME22's e2e check only proves buttons and tabs have names: reject. Not a failure; the drag surfaces have labels and their screen-reader gap is deferred (ME22).

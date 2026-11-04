@@ -99,6 +99,10 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - The trim bar shows no frames along it; the handles show the frame they're on (ME14)
 - The web's edited video records in real time, and plays muted where the browser refuses sound without a tap: that copy then has no sound (ME17)
 - The web's edited video is re-encoded (WebM in some browsers, MP4 in others); phones keep MP4 (ME17)
+- On iPhone Safari a saved video may be silent: by the time the copy is made, the tap no longer counts as allowing sound (media-editing audit 4; the export no longer hangs)
+- A web export recorded in a hidden tab: requestAnimationFrame stops and frames freeze until it is shown again (media-editing audit 10)
+- On Navigate, a moment's "kept here" toast and its Edit pill can show together (media-editing audit 13)
+- A turned or cropped video has only play and pause, no scrubber or progress (media-editing audit 15)
 
 ## Deletion
 

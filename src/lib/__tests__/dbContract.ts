@@ -202,6 +202,25 @@ export function dbContract(name: string, fresh: () => Promise<Db>) {
       assert.equal(parseEdit((await db.getCaptures('a'))[0].edit), null);
     });
 
+    test('media-editing audit 7: every capture read gives the edit parsed; a newer or broken one reads as none', async () => {
+      const db = await fresh();
+      const edit: MediaEdit = { v: 1, rotate: 180, crop: null, filter: 'noir', strokes: [], trim: null };
+      await db.addCapture({ ...capture('ok', 'a', 1), lat: 41.8, lon: -71.4 });
+      await db.addCapture({ ...capture('bad', 'a', 2), lat: 41.8, lon: -71.4 });
+      await db.updateCapture('ok', { edit });
+      await db.updateCapture('bad', { edit: { v: 2, rotate: 45 } as unknown as MediaEdit });
+      const reads = [
+        await db.getCaptures('a'),
+        await db.getCapturesByIds(['ok', 'bad']),
+        await db.capturesBetween(0, 10),
+        await db.capturesIn([-72, 41, -71, 42]),
+      ];
+      for (const rows of reads) {
+        assert.deepEqual(rows.find((r) => r.id === 'ok')?.edit, edit);
+        assert.equal(rows.find((r) => r.id === 'bad')?.edit, null);
+      }
+    });
+
     test('FC7 addCapture: a capture id is used once; the first stays', async () => {
       const db = await fresh();
       await db.addCapture(capture('c1', 'a', 1));

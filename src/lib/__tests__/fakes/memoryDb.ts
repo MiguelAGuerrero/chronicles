@@ -9,6 +9,7 @@ import { countsOf, recountNewStreets } from '../../deletion/core';
 import type { Mark, Offered, Place, Recall } from '../../discovery/types';
 import { exploredKey, type ChecklistArea, type ChecklistItem, type ExploreRead, type Find } from '../../explore/explore';
 import type { LandingRow } from '../../landing/view';
+import { parseEdit } from '../../mediaEdit';
 import type { Capture, GapDecision, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../../types';
 
 /** The `Db` methods that only read: left out of a fake's `effects()` log. */
@@ -114,6 +115,8 @@ function band(lo: number, hi: number): (v: Key) => boolean {
  */
 export function memoryDb(): Db {
   const copy = <T>(v: T): T => structuredClone(v);
+  // As the real stores: a capture's edit is read through parseEdit (media-editing audit 7).
+  const withEdit = (c: Capture): Capture => (c.edit === undefined ? c : { ...c, edit: parseEdit(c.edit) });
   const out = <T>(rows: T[]): T[] => rows.map(copy);
   const walks = new Table<Walk>((w) => w.id);
   const points = new Table<TracePoint & { seq: number }>((p) => p.seq); // autoIncrement
@@ -187,20 +190,21 @@ export function memoryDb(): Db {
       patch(captures, id, p);
     },
     async getCaptures(walkId) {
-      return out(captures.where(walkOf, walkId)).sort(byT);
+      return out(captures.where(walkOf, walkId)).map(withEdit).sort(byT);
     },
     async capturesBetween(from, to) {
       if (!(to > from)) return [];
-      return out(captures.index((c) => c.t, (t) => typeof t === 'number' && t >= from && t < to));
+      return out(captures.index((c) => c.t, (t) => typeof t === 'number' && t >= from && t < to)).map(withEdit);
     },
     async getCapturesByIds(ids) {
       return ids.flatMap((id) => {
         const c = captures.get(id);
-        return c ? [copy(c)] : [];
+        return c ? [withEdit(copy(c))] : [];
       }).sort(byT);
     },
     async capturesIn([w, s, e, n]) {
       return out(captures.index((c) => c.lat, band(s, n)))
+        .map(withEdit)
         .filter((c) => c.lon != null && c.lon >= w && c.lon <= e)
         .sort(byT);
     },

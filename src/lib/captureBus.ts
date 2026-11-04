@@ -12,6 +12,8 @@ import type { Capture } from './types';
  * lists in step.
  */
 export type CapturePatch = Partial<Pick<Capture, 'thumb_path' | 'lat' | 'lon' | 'caption' | 'caption_y' | 'body' | 'edit'>>;
+/** The channel for loose moments, which belong to no walk (media-editing audit 2). */
+export const LOOSE_MOMENTS = '@loose-moments';
 type Listener = { walkId: string; owner: object; fn: (c: Capture) => void; onPatch?: (id: string, patch: CapturePatch) => void };
 const listeners = new Set<Listener>();
 
@@ -34,8 +36,9 @@ export const captureBus = {
    * replay, a day), so every listener hears it.
    */
   patch(walkId: string | null, id: string, patch: CapturePatch, from: object | null) {
-    if (!walkId) return;
-    for (const l of [...listeners]) if (l.walkId === walkId && l.owner !== from) l.onPatch?.(id, patch);
+    // A loose moment's change goes to whoever lists loose moments (Navigate, ready).
+    const key = walkId ?? LOOSE_MOMENTS;
+    for (const l of [...listeners]) if (l.walkId === key && l.owner !== from) l.onPatch?.(id, patch);
   },
 };
 

@@ -11,6 +11,7 @@ import { DERIVED_STORES } from './stores';
 import type { Capture, GapDecision, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 import { intersects, segmentBbox, segmentTile, tileKeysFor } from './segmentBounds';
 import type { Db } from './types';
+import { parseEdit } from '../mediaEdit';
 
 // Same tables as the native SQLite store, as IndexedDB object stores.
 const DB_NAME = 'chronicles';
@@ -193,6 +194,9 @@ async function patch<T extends { id: string }>(name: string, id: string, p: Part
   await committed(tx);
 }
 
+/** A capture as read (ME21): its stored edit parsed, so a newer or broken one is none (media-editing audit 7). */
+const withEdit = (c: Capture): Capture => (c.edit === undefined ? c : { ...c, edit: parseEdit(c.edit) });
+
 export const db: Db = {
   async createWalk(w) {
     await done((await store('walk', 'readwrite')).add(w));
@@ -229,22 +233,23 @@ export const db: Db = {
     await patch<Capture>('capture', id, p);
   },
   async getCaptures(walkId) {
-    return (await byWalk<Capture>('capture', walkId)).sort((a, b) => a.t - b.t);
+    return (await byWalk<Capture>('capture', walkId)).map(withEdit).sort((a, b) => a.t - b.t);
   },
 
   async capturesBetween(from, to) {
     if (!(to > from)) return [];
     const range = IDBKeyRange.bound(from, to, false, true);
-    return (await done((await store('capture')).index('t').getAll(range))) as Capture[];
+    return ((await done((await store('capture')).index('t').getAll(range))) as Capture[]).map(withEdit);
   },
   async getCapturesByIds(ids) {
     const st = await store('capture');
     const got = await Promise.all(ids.map((id) => done(st.get(id)) as Promise<Capture | undefined>));
-    return got.filter((c): c is Capture => !!c).sort((a, b) => a.t - b.t);
+    return got.filter((c): c is Capture => !!c).map(withEdit).sort((a, b) => a.t - b.t);
   },
   async capturesIn([w, s, e, n]) {
     const band = (await done((await store('capture')).index('lat').getAll(IDBKeyRange.bound(s, n)))) as Capture[];
     return band
+      .map(withEdit)
       .filter((c) => c.lon != null && c.lon >= w && c.lon <= e)
       .sort((a, b) => a.t - b.t);
   },

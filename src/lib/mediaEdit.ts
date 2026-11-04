@@ -449,6 +449,21 @@ const clock = (ms: number) => {
 /** "0:02 – 0:09" (ME14). */
 export const trimLabel = (start: number, end: number): string => `${clock(start)} – ${clock(end)}`;
 
+/** The longest a clip can be (the camera's cap on phones), for a source that says no length. */
+const LONGEST_S = 30;
+
+/**
+ * The part of a video an export plays (media-editing audit 10): the trim, else
+ * the whole clip by the media's own duration, else by the capture's stored
+ * length (MediaRecorder's WebM reports none), else the longest a clip can be.
+ */
+export function exportSpan(trim: Trim | null, mediaDurationS: number, captureMs: number): { startS: number; endS: number } {
+  if (trim) return { startS: trim.start_ms / 1000, endS: trim.end_ms / 1000 };
+  if (Number.isFinite(mediaDurationS) && mediaDurationS > 0) return { startS: 0, endS: mediaDurationS };
+  if (captureMs > 0) return { startS: 0, endS: captureMs / 1000 };
+  return { startS: 0, endS: LONGEST_S };
+}
+
 /** Whether a trim keeps the whole clip (stored as none). */
 export const isFullTrim = (t: Trim | null, duration: number) => !t || (t.start_ms <= 0 && t.end_ms >= duration);
 

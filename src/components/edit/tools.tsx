@@ -239,9 +239,9 @@ export function FilterStrip(props: { uri: string; W: number; H: number; edit: Me
           <Pressable
             key={id}
             testID={`edit-filter-${id}`}
-            accessibilityRole="button"
+            accessibilityRole="radio"
             accessibilityLabel={FILTERS[id].label}
-            aria-selected={on}
+            aria-checked={on}
             onPress={() => props.onPick(id)}
             style={styles.tile}
           >

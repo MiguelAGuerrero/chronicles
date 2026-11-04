@@ -1,12 +1,13 @@
 import { useEventListener } from 'expo';
 import { useVideoPlayer } from 'expo-video';
-import { useEffect, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View, type LayoutRectangle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { CapturePatch } from '../../lib/captureBus';
-import { openSession, step, TOOLS, type EditTool, type Session, type SessionEvent } from '../../lib/editSession';
+import { FULL_LINES_TEXT, openSession, step, TOOLS, type EditTool, type Session, type SessionEvent } from '../../lib/editSession';
+import { removeMedia } from '../../lib/media';
 import { keepEditedThumb } from '../../lib/media/thumb';
-import { ASPECTS, aspectRatio, cropFromRotated, cropToRotated, editedSize, MAX_STROKES, PEN_COLORS, rotatedSize, SIZE_LABELS, type MediaEdit } from '../../lib/mediaEdit';
+import { ASPECTS, aspectRatio, cropFromRotated, cropToRotated, editedSize, PEN_COLORS, rotatedSize, SIZE_LABELS, type MediaEdit } from '../../lib/mediaEdit';
 import { THUMB } from '../../lib/thumbPlan';
 import type { Capture } from '../../lib/types';
 import { useMediaUri } from '../../lib/useMediaUri';
@@ -41,14 +42,17 @@ const DRAW_TOOLS: { id: 'pen' | 'marker' | 'eraser'; label: string; icon: IconNa
  * (the viewer): iOS can't present a Modal over a Modal. Elsewhere it is its
  * own Modal.
  */
-export function MediaEditor(props: {
+/** What a host may ask of the editor: Escape or Back goes through its own Close, which asks first (media-editing audit 5). */
+export type MediaEditorHandle = { requestClose(): void };
+
+export const MediaEditor = forwardRef<MediaEditorHandle, {
   capture: Capture;
   initialTool?: EditTool;
   overlay?: boolean;
   /** Stores a change to the capture: the edits and caption on Done, then the new small copy. */
   onSave: (patch: CapturePatch) => Promise<void>;
   onClose: () => void;
-}) {
+}>(function MediaEditor(props, ref) {
   const c = props.capture;
   const kind = c.kind === 'video' ? 'video' : 'photo';
   const insets = useSafeAreaInsets();
@@ -88,8 +92,13 @@ export function MediaEditor(props: {
     if (kind === 'photo' && uri) {
       try {
         const baked = await bakers.bake(uri, { edit: patch.edit ?? null, caption: null, captionY: null }, { maxLong: THUMB.edge });
-        const path = await keepEditedThumb(c, baked);
-        if (path !== c.thumb_path) await props.onSave({ thumb_path: path });
+        const path = await keepEditedThumb(c, baked, patch.edit ?? null);
+        const old = c.thumb_path;
+        if (path !== old) {
+          await props.onSave({ thumb_path: path });
+          // The copy it replaced, under its own name, goes (best effort).
+          if (old && old !== THUMB.none) void removeMedia([old]).catch(() => {});
+        }
       } catch {
         // The old copy stays; the photo itself shows the edits.
       }
@@ -104,6 +113,8 @@ export function MediaEditor(props: {
     if (r.effect?.type === 'close') props.onClose();
     else if (r.effect?.type === 'save') void save({ edit: r.effect.saved.edit, caption: r.effect.saved.caption, caption_y: r.effect.saved.caption_y });
   };
+
+  useImperativeHandle(ref, () => ({ requestClose: () => dispatch({ type: 'close' }) }));
 
   // The trim preview plays only the kept part.
   useEventListener(player, 'timeUpdate', ({ currentTime }) => {
@@ -185,8 +196,18 @@ export function MediaEditor(props: {
     </View>
   );
 
-  const chip = (testID: string, label: string, on: boolean, onPress: () => void, icon?: IconName) => (
-    <Pressable key={testID} testID={testID} accessibilityRole="button" accessibilityLabel={label} aria-selected={on} onPress={onPress} style={[styles.chip, on && styles.chipOn]} hitSlop={4}>
+  // A choice among several is a radio, so the web says which is chosen (media-editing audit 11); an action is a button.
+  const chip = (testID: string, label: string, on: boolean, onPress: () => void, icon?: IconName, choice = false) => (
+    <Pressable
+      key={testID}
+      testID={testID}
+      accessibilityRole={choice ? 'radio' : 'button'}
+      accessibilityLabel={label}
+      {...(choice ? { 'aria-checked': on } : {})}
+      onPress={onPress}
+      style={[styles.chip, on && styles.chipOn]}
+      hitSlop={4}
+    >
       {icon && <Icon name={icon} size={18} color={on ? theme.ink : '#ffffff'} />}
       <Text style={[styles.chipText, on && styles.chipTextOn]}>{label}</Text>
     </Pressable>
@@ -197,11 +218,8 @@ export function MediaEditor(props: {
       return (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
           {chip('edit-rotate', 'Rotate', false, () => dispatch({ type: 'rotate' }), 'refresh')}
-          {ASPECTS.map((a) => chip(`edit-aspect-${a.id}`, a.label, s.aspect === a.id, () => size && dispatch({ type: 'aspect', aspect: a.id, W: size.w, H: size.h })))}
-          {chip('edit-crop-reset', 'Reset', false, () => {
-            dispatch({ type: 'crop', crop: null });
-            if (size) dispatch({ type: 'aspect', aspect: 'free', W: size.w, H: size.h });
-          })}
+          {ASPECTS.map((a) => chip(`edit-aspect-${a.id}`, a.label, s.aspect === a.id, () => size && dispatch({ type: 'aspect', aspect: a.id, W: size.w, H: size.h }), undefined, true))}
+          {chip('edit-crop-reset', 'Reset', false, () => dispatch({ type: 'resetCrop' }))}
         </ScrollView>
       );
     }
@@ -214,17 +232,17 @@ export function MediaEditor(props: {
         <View style={styles.drawControls}>
           {s.full && (
             <Text style={styles.hint} accessibilityLiveRegion="polite">
-              A moment holds {MAX_STROKES} lines at most.
+              {FULL_LINES_TEXT}
             </Text>
           )}
           {s.pen.sizesOpen && s.pen.tool !== 'eraser' && (
             <View style={styles.row} testID="pen-sizes">
-              {SIZE_LABELS.map((l, i) => chip(`edit-size-${i}`, l, sizeNow === i, () => dispatch({ type: 'penSize', size: i })))}
+              {SIZE_LABELS.map((l, i) => chip(`edit-size-${i}`, l, sizeNow === i, () => dispatch({ type: 'penSize', size: i }), undefined, true))}
             </View>
           )}
           <View style={styles.row}>
             {DRAW_TOOLS.map((t) =>
-              chip(`edit-pen-${t.id}`, t.label, s.pen.tool === t.id, () => dispatch({ type: 'penTool', tool: t.id }), t.icon),
+              chip(`edit-pen-${t.id}`, t.label, s.pen.tool === t.id, () => dispatch({ type: 'penTool', tool: t.id }), t.icon, true),
             )}
           </View>
           <View style={styles.row}>
@@ -234,9 +252,9 @@ export function MediaEditor(props: {
                 <Pressable
                   key={p.id}
                   testID={`edit-color-${p.id}`}
-                  accessibilityRole="button"
+                  accessibilityRole="radio"
                   accessibilityLabel={p.label}
-                  aria-selected={on}
+                  aria-checked={on}
                   onPress={() => dispatch({ type: 'penColor', color: p.id })}
                   style={[styles.swatchRing, on && styles.swatchRingOn]}
                   hitSlop={4}
@@ -343,7 +361,7 @@ export function MediaEditor(props: {
       {body}
     </Modal>
   );
-}
+});
 
 const styles = StyleSheet.create({
   // A drag on the web must never start a text selection: react-native-web ends the gesture on one.

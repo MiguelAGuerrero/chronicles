@@ -3,7 +3,8 @@ import { ImageManipulator, SaveFormat, type ImageRef } from 'expo-image-manipula
 import type { Capture } from '../types';
 import { cropToRotated, rotatedSize } from '../mediaEdit';
 import { thumbJob } from '../thumbJob';
-import { THUMB, thumbName } from '../thumbPlan';
+import { editedThumbName, THUMB } from '../thumbPlan';
+import type { MediaEdit } from '../mediaEdit';
 import { keepFile, releaseMedia, resolveMedia } from './index';
 
 /**
@@ -60,9 +61,10 @@ export function makeThumb(c: Capture): Promise<string | null> {
 }
 
 /**
- * Keeps a small copy baked from the edited photo (ME20), in place of the old
- * one: crop, rotation, filter and lines, no caption. Resolves its stored path.
+ * Keeps a small copy baked from the edited photo (ME20): crop, rotation,
+ * filter and lines, no caption. Named by the edit, so its ref changes and
+ * previews load it (media-editing audit 3). Resolves its stored path.
  */
-export function keepEditedThumb(c: Pick<Capture, 'id' | 'walk_id'>, bakedUri: string): Promise<string> {
-  return keepFile(bakedUri, c.walk_id ?? 'moments', thumbName(c), { replace: true });
+export function keepEditedThumb(c: Pick<Capture, 'id' | 'walk_id'>, bakedUri: string, edit: MediaEdit | null): Promise<string> {
+  return keepFile(bakedUri, c.walk_id ?? 'moments', editedThumbName(c, edit), { replace: true });
 }

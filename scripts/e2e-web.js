@@ -2363,7 +2363,7 @@ function check(ok, what) {
       try {
         await fn();
       } catch (e) {
-        check(false, `${name}: ${String(e.message).split('\n')[0]}`);
+        check(false, `${name}: ${String(e.message).split('\n').filter((l) => /Timeout|waiting for|locator/.test(l)).slice(0, 3).join(' | ')}`);
       }
     };
     const rowOf = (kind) => pg.evaluate((k) => new Promise((resolve) => {
@@ -2390,7 +2390,8 @@ function check(ok, what) {
     }), ref);
     const photos = () => pg.locator('[data-testid=edited-photo]').count();
     const stage = () => pg.locator('[data-testid=edit-stage]').getAttribute('data-edit').then((v) => (v ? JSON.parse(v) : null));
-    const selected = (id) => pg.locator(`[data-testid=${id}]`).getAttribute('aria-selected');
+    // A tool tab is selected; a choice among several (pens, colours, filters) is a checked radio.
+    const selected = (id) => pg.locator(`[data-testid=${id}]`).evaluate((el) => el.getAttribute('aria-checked') ?? el.getAttribute('aria-selected'));
     // A mouse drag across a fraction of an element's box.
     const drag = async (sel, from, to, steps = 12) => {
       const b = await pg.locator(sel).boundingBox();
@@ -2423,12 +2424,44 @@ function check(ok, what) {
       await pg.click('[data-testid=edit-close]');
       await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 5000 });
       check(true, 'ME2: Close with no change closes at once');
+      // media-editing audit 2: a moment edited from the offer shows the edit on its own pin's viewer, and opens on it.
+      const offer2 = await pg.waitForSelector('[data-testid=capture-offer]', { timeout: 2000 }).then(() => true, () => false);
+      if (!offer2) {
+        const [ch2] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=moment-photo]')]);
+        await ch2.setFiles(path.join(fixtures, 'photo.jpg'));
+        await pg.waitForSelector('[data-testid=capture-offer]', { timeout: 15000 });
+      }
+      await pg.click('[data-testid=capture-edit]');
+      await pg.waitForSelector('[data-testid=media-editor]', { timeout: 10000 });
+      await pg.click('[data-testid=edit-rotate]');
+      await pg.click('[data-testid=edit-done]');
+      await pg.waitForSelector('[data-testid=media-editor]', { state: 'detached', timeout: 15000 });
+      const momentPin = pg.locator('.maplibregl-map [aria-label$=" captures here. Open"], .maplibregl-map [aria-label="Photo. Open"]');
+      await momentPin.first().waitFor({ timeout: 20000 });
+      await momentPin.first().click();
+      // The pin may hold both moments: step through them all.
+      const shownEdits = [];
+      for (let k = 0; k < 4; k++) {
+        await pg.waitForSelector('[data-testid=edited-photo]', { timeout: 10000 });
+        await pg.waitForTimeout(600);
+        shownEdits.push(await pg.locator('[data-testid=edited-photo]').first().getAttribute('data-edit'));
+        const next = pg.locator('[aria-label="Next capture"]:not([aria-disabled=true]) >> visible=true');
+        if (!(await next.count())) break;
+        await next.first().click();
+      }
+      check(shownEdits.some((e) => e && JSON.parse(e).rotate === 90), `media-editing audit 2: a moment edited from the ready offer shows its edit on its pin's viewer (${JSON.stringify(shownEdits)})`);
+      await pg.locator('[data-testid=viewer-close] >> visible=true').first().click();
+      await pg.waitForSelector('[data-testid=viewer-close]', { state: 'detached', timeout: 5000 }).catch(() => {});
+      await shot(pg, 'edit-after-moment');
     });
 
     // A walk, for the walk screen's offer and the viewer on its pins.
     await pg.click('[data-testid=start]');
     await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
-    await pg.waitForTimeout(2500);
+    // A fresh fix for the walk's watch, as the qol journey does after Start.
+    await c.setGeolocation({ longitude: start[0], latitude: start[1] + 0.000002, accuracy: 6 });
+    await pg.waitForSelector('[data-testid=walker-puck]', { timeout: 15000 }).catch(() => {});
+    await pg.waitForTimeout(1500);
 
     let photoId = null;
     await step('ME1-ME13 photo', async () => {
@@ -2437,6 +2470,15 @@ function check(ok, what) {
       const offer = await pg.waitForSelector('[data-testid=capture-offer]', { timeout: 15000 }).then((e) => e.innerText(), () => '');
       check(/Photo saved here/.test(offer), `ME23: the walk screen offers Edit after a photo ("${offer.replace(/\n/g, ' ')}")`);
       photoId = (await rowOf('photo'))?.id;
+      // The pin's small copy before the edit (media-editing audit 3).
+      const pinThumb = pg.locator('.maplibregl-map [aria-label="Photo. Open"] [data-testid=pin-thumb]');
+      // Within the offer's 6 s: the copy is made about a second after the photo is kept.
+      await pinThumb.first().waitFor({ timeout: 3500 }).catch(() => {});
+      // Read at once, never waited on: the offer only lasts 6 s.
+      const thumbSrc = async () => ((await pinThumb.count())
+        ? pinThumb.first().evaluate((el) => (el.tagName === 'IMG' ? el.src : el.querySelector('img')?.src ?? getComputedStyle(el).backgroundImage), null, { timeout: 1000 }).catch(() => null)
+        : null);
+      const srcBefore = await thumbSrc();
       await pg.click('[data-testid=capture-edit]');
       await pg.waitForSelector('[data-testid=media-editor]', { timeout: 10000 });
       const tools = await pg.locator('[data-testid^=edit-tool-]').evaluateAll((els) => els.map((e) => e.getAttribute('data-testid').slice(10)));
@@ -2452,6 +2494,8 @@ function check(ok, what) {
       await drag('[data-testid=crop-br]', [0.5, 0.5], [-1.5, -1.5], 6);
       const frameAfter = await pg.locator('[data-testid=crop-frame]').boundingBox();
       check(frameAfter.width < frameBefore.width && Math.abs(frameAfter.width - frameAfter.height) < 3, `ME6: a corner drag resizes the frame and keeps Square (${Math.round(frameBefore.width)} → ${Math.round(frameAfter.width)}×${Math.round(frameAfter.height)})`);
+      await pg.click('[data-testid=edit-crop-reset]');
+      check((await stage()).crop === null && (await selected('edit-aspect-free')) === 'true', 'media-editing audit 1: Reset after a crop leaves no crop');
       await pg.click('[data-testid=edit-aspect-square]');
       // ME8: the nine presets; Mono applies at once.
       await pg.click('[data-testid=edit-tool-filter]');
@@ -2459,6 +2503,8 @@ function check(ok, what) {
       check(presets.join(',') === 'Original,Vivid,Warm,Cool,Dramatic,Fade,Mono,Noir,Sepia', `ME8: the filter row holds the nine presets (${presets})`);
       await pg.click('[data-testid=edit-filter-mono]');
       check((await stage()).filter === 'mono' && (await selected('edit-filter-mono')) === 'true', 'ME8: a tap applies Mono and marks it selected');
+      const monoRole = await pg.locator('[data-testid=edit-filter-mono]').evaluate((el) => [el.getAttribute('role'), el.getAttribute('aria-checked')].join(':'));
+      check(monoRole === 'radio:true', `media-editing audit 11: the chosen filter is a checked radio, so the web says so (${monoRole})`);
       // ME10: Markup's pen: Black first; Red, a line; the marker, a line; Undo, Redo; the eraser.
       await pg.click('[data-testid=edit-tool-draw]');
       check((await selected('edit-pen-pen')) === 'true' && (await selected('edit-color-black')) === 'true', 'ME10: Draw starts on the Pen in Black');
@@ -2504,6 +2550,14 @@ function check(ok, what) {
         t = r2?.thumb_path ? await thumbSize(r2.thumb_path) : null;
       }
       check(t && t.w === t.h && t.w <= 240, `ME20: the small copy shows the edit (square: ${JSON.stringify(t)})`);
+      let srcAfter = await thumbSrc();
+      for (let i = 0; i < 20 && srcAfter === srcBefore; i++) {
+        await pg.waitForTimeout(250);
+        srcAfter = await thumbSrc();
+      }
+      await shot(pg, 'edit-after-done');
+      const labels = await pg.locator('.maplibregl-map [aria-label$=". Open"]').evaluateAll((els) => els.map((e) => e.getAttribute('aria-label')));
+      check(srcBefore && srcAfter && srcAfter !== srcBefore, `media-editing audit 3: after Done the open pin's picture is the edited copy (${String(srcBefore).slice(0, 40)} → ${String(srcAfter).slice(0, 40)}; pins ${JSON.stringify(labels)})`);
     });
 
     // A video on the same spot: the pin opens both.
@@ -2554,6 +2608,10 @@ function check(ok, what) {
       check((await stage()).filter === 'mono', 'ME3: the editor opens on the current edits');
       await pg.click('[data-testid=edit-tool-filter]');
       await pg.click('[data-testid=edit-filter-warm]');
+      await pg.keyboard.press('Escape');
+      const escAsked = await pg.waitForSelector('[data-testid=edit-discard]', { timeout: 3000 }).then(() => true, () => false);
+      check(escAsked && (await pg.locator('[data-testid=media-editor]').count()) === 1, 'media-editing audit 5: Escape in the viewer\u2019s editor with changes asks first');
+      if (escAsked) await pg.click('[data-testid=edit-keep]');
       await pg.click('[data-testid=edit-close]');
       const asked = await pg.waitForSelector('[data-testid=edit-discard]', { timeout: 3000 }).then(() => true, () => false);
       check(asked && (await pg.locator('text=Discard these edits?').count()) === 1, 'ME2: Close with changes asks "Discard these edits?"');
@@ -2591,6 +2649,12 @@ function check(ok, what) {
       await pg.waitForTimeout(v.edit.trim.end_ms + 1500);
       const at = await pg.locator('[data-testid=edited-video] video').first().evaluate((el) => ({ t: el.currentTime, paused: el.paused }));
       check(at.paused && Math.abs(at.t - v.edit.trim.end_ms / 1000) < 0.4, `ME15: a trimmed video stops at the kept part's end (${at.t.toFixed(2)} s, end ${(v.edit.trim.end_ms / 1000).toFixed(2)} s)`);
+      // media-editing audit 6: Play from the end (the platform's own control) starts the kept part again.
+      await pg.locator('[data-testid=edited-video] video').first().evaluate((el) => el.play()).catch(() => {});
+      await pg.waitForTimeout(800);
+      const again = await pg.locator('[data-testid=edited-video] video').first().evaluate((el) => ({ t: el.currentTime, paused: el.paused }));
+      check(!again.paused && again.t < v.edit.trim.end_ms / 1000 - 0.3, `media-editing audit 6: Play after a trimmed end starts the kept part again (${again.t.toFixed(2)} s, ${again.paused ? 'paused' : 'playing'})`);
+      await pg.locator('[data-testid=edited-video] video').first().evaluate((el) => el.pause());
       // ME17: Download re-records the kept part.
       await pg.click('[data-testid=viewer-more]');
       const saving = pg.waitForSelector('text=Saving…', { timeout: 3000 }).then(() => true, () => false);
@@ -2611,6 +2675,20 @@ function check(ok, what) {
       }, file) : null;
       check(meta && Math.abs(meta.d - v.edit.trim.end_ms / 1000) < 0.8 && /\.(webm|mp4)$/.test(file.name),
         `ME17: Download saves a video of the kept part (${file?.name}: ${JSON.stringify(meta)}, kept ${v.edit.trim.end_ms} ms)`);
+      // media-editing audit 4: with sound refused (iOS: play() without a tap) and Web Audio never starting,
+      // the export still ends: a silent copy, never "Saving…" for good.
+      await pg.evaluate(() => {
+        const P = HTMLMediaElement.prototype;
+        window.__realPlay = P.play;
+        P.play = function () { return this.muted ? window.__realPlay.call(this) : Promise.reject(new DOMException('no tap', 'NotAllowedError')); };
+        window.__realResume = AudioContext.prototype.resume;
+        AudioContext.prototype.resume = () => new Promise(() => {});
+      });
+      await pg.click('[data-testid=viewer-more]');
+      const refused = await download(30000);
+      await pg.evaluate(() => { HTMLMediaElement.prototype.play = window.__realPlay; AudioContext.prototype.resume = window.__realResume; });
+      check(!!refused && /\.(webm|mp4)$/.test(refused.name), `media-editing audit 4: with play() refused the export still ends with a video (${refused?.name ?? 'none'})`);
+      await pg.waitForTimeout(3500);
       // ME18: a failure says so, and nothing downloads.
       await pg.evaluate(() => { window.MediaRecorder = undefined; });
       await pg.click('[data-testid=viewer-more]');

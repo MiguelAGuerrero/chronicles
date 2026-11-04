@@ -12,8 +12,9 @@ import { newId } from './id';
 import { locateOnce } from './locate';
 import { memoGate } from './memoGate';
 import type { LocateResult } from './locate/types';
-import { dropTemp, keepFile } from './media';
+import { dropTemp, keepFile, removeMedia } from './media';
 import { makeThumb } from './media/thumb';
+import { captureThumbStillWanted, THUMB } from './thumbPlan';
 import type { Capture, CaptureKind, LngLat } from './types';
 
 /** A fix older than this is not trusted as "where the capture was taken". */
@@ -248,12 +249,19 @@ export function useCaptures(
         // Its small copy for previews (TH1), after the capture is kept: never holds it up or fails it (TH2).
         void makeThumb({ id, walk_id: folder(), t: Date.now(), lat: null, lon: null, kind: 'photo', file_path: path, body: null, segment_id: null }).then((thumb) => {
           if (!thumb) return;
-          if (alive.current) setCaptures((prev) => prev.map((x) => (x.id === id ? { ...x, thumb_path: thumb } : x)));
-          // Stored first, then told: a walk screen mounting meanwhile either reads it or hears it (tabs audit 5).
-          void db.updateCapture(id, { thumb_path: thumb }).then(
-            () => captureBus.patch(walkId, id, { thumb_path: thumb }, self),
-            () => {},
-          );
+          // An Edit offer's Done may have stored the edited copy meanwhile: this one then stands down (media-editing audit 8).
+          void db.getCapturesByIds([id]).then(([row]) => {
+            if (!captureThumbStillWanted(row ?? null)) {
+              if (thumb !== THUMB.none) void removeMedia([thumb]).catch(() => {});
+              return;
+            }
+            if (alive.current) setCaptures((prev) => prev.map((x) => (x.id === id ? { ...x, thumb_path: thumb } : x)));
+            // Stored first, then told: a walk screen mounting meanwhile either reads it or hears it (tabs audit 5).
+            void db.updateCapture(id, { thumb_path: thumb }).then(
+              () => captureBus.patch(walkId, id, { thumb_path: thumb }, self),
+              () => {},
+            );
+          }, () => {});
         });
       }
     });

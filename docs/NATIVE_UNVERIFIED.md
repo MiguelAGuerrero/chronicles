@@ -89,7 +89,12 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] `useVideoSize` and `probeVideoSize`: a first-frame thumbnail as the upright size (the track reports the encoded one)
 - [ ] The local module `modules/chronicles-video-edit` (never compiled): Swift (AVMutableComposition, AVMutableVideoComposition with preferredTransform then our rotation, AVVideoCompositionCoreAnimationTool overlay, `isGeometryFlipped`, export on iOS 16.4+), Kotlin (Media3 Transformer at expo-video's 1.9.1: the rotation's sign, the crop's NDC mapping, `OverlayEffect`), audio kept, partial output removed
 - [ ] The remade small copy (`keepEditedThumb`) and the lazy copy's crop and rotation through the manipulator (`media/thumb.ts`)
-- [ ] The editor as its own Modal from the recording bar and Navigate's ready screen
+- [ ] The editor as its own Modal from the recording bar and Navigate's ready screen; Android Back through `requestClose`
+- [ ] The video module's crop is in pixels against `probeVideoSize`'s thumbnail; a downscaled thumbnail would mis-crop, and Kotlin rejects a frame off by more than 2 px (audit)
+- [ ] `VideoPicture` on Android: expo-video's default `surfaceView` may ignore the view's rotation and clipping (`textureView` may be needed); AVPlayerLayer under a transform on iOS (audit)
+- [ ] `SvgImage` `onLoad` firing twice in the native baker (a second capture of a finished job) (audit)
+- [ ] `Image.getSize` with EXIF orientation on Android against how the SVG draws the photo (audit)
+- [ ] The edited copy under its new name (`editedThumbName`) and the old copy's removal (audit 3)
 
 ## Deletion (`db.deleteWalk`, `db.deleteCaptures`, `removeMedia`)
 

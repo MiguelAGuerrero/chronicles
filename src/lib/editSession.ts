@@ -55,6 +55,7 @@ export type SessionEvent =
   | { type: 'rotate' }
   | { type: 'crop'; crop: Rect | null }
   | { type: 'aspect'; aspect: Aspect; W: number; H: number }
+  | { type: 'resetCrop' }
   | { type: 'filter'; id: FilterId }
   | { type: 'penTool'; tool: DrawTool }
   | { type: 'penColor'; color: PenColorId }
@@ -74,6 +75,8 @@ export type SessionEvent =
 export type SessionEffect = { type: 'close' } | { type: 'save'; saved: Saved } | null;
 
 export const DEFAULT_CAPTION_Y = 0.6;
+/** Said when Draw stops taking lines (ME11); counts are words (media-editing audit 12). */
+export const FULL_LINES_TEXT = 'A moment holds fifty lines at most.';
 export const TOOLS: Record<'photo' | 'video', EditTool[]> = {
   photo: ['crop', 'filter', 'draw', 'text'],
   video: ['crop', 'draw', 'text', 'trim'],
@@ -94,7 +97,8 @@ export function openSession(kind: 'photo' | 'video', saved: Saved, tool: EditToo
     pen: { tool: 'pen', color: 'black', size: { pen: 1, marker: 1 }, sizesOpen: false },
     past: [],
     future: [],
-    full: false,
+    // Opened on a moment already holding the most lines, Draw takes no more from the start (media-editing audit 9).
+    full: edit.strokes.length >= MAX_STROKES,
     confirming: false,
     saved: { edit: saved.edit ?? null, caption: saved.caption ?? null, caption_y: saved.caption ? (saved.caption_y ?? DEFAULT_CAPTION_Y) : null },
   };
@@ -136,6 +140,9 @@ export function step(s: Session, e: SessionEvent): { state: Session; effect: Ses
       const crop = e.aspect === 'free' ? s.edit.crop : cropFromRotated(aspectRect(e.aspect, rs.w, rs.h), s.edit.rotate);
       return done({ ...s, aspect: e.aspect, edit: { ...s.edit, crop: isFullCrop(crop) ? null : crop } });
     }
+    case 'resetCrop':
+      // One event: two in one handler would each start from the same render's state (media-editing audit 1).
+      return done({ ...s, aspect: 'free', edit: { ...s.edit, crop: null } });
     case 'filter':
       return done({ ...s, edit: { ...s.edit, filter: s.kind === 'photo' ? e.id : 'original' } });
     case 'penTool':

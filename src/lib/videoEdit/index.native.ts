@@ -10,7 +10,7 @@ import type { ExportPlan, MediaEdit } from '../mediaEdit';
  * PNG over every frame. Resolves a temp file; `dropBaked` it after. Never
  * run on a device.
  */
-export async function exportVideo(sourceUri: string, plan: ExportPlan, edit: MediaEdit, overlayUri: string | null): Promise<string> {
+export async function exportVideo(sourceUri: string, plan: ExportPlan, edit: MediaEdit, overlayUri: string | null, _durationMs = 0): Promise<string> {
   const out = new File(Paths.cache, `edited-${plan.out.w}x${plan.out.h}-${Math.random().toString(36).slice(2)}.mp4`);
   return exportEditedVideo({
     source: sourceUri,

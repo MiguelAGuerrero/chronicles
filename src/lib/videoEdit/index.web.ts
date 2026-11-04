@@ -1,5 +1,12 @@
 // @layer adapter
-import type { ExportPlan, MediaEdit } from '../mediaEdit';
+import { exportSpan, type ExportPlan, type MediaEdit } from '../mediaEdit';
+
+/** How long a refused start (sound without a tap: Safari) may keep the export waiting. */
+const START_WAIT_MS = 1500;
+
+/** A promise, or false once `ms` have passed without it settling. */
+const within = <T>(p: Promise<T>, ms: number): Promise<T | false> =>
+  Promise.race([p, new Promise<false>((r) => setTimeout(() => r(false), ms))]);
 
 /** What the browser can record, best first: MP4 where it can (Safari), WebM elsewhere. */
 const TYPES = ['video/mp4;codecs=avc1,mp4a', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
@@ -33,7 +40,7 @@ const loadImage = (uri: string) =>
  * nothing is heard while it records. Real time: as long as the kept part.
  * Resolves a Blob URL. No Expo module covers this on the web.
  */
-export async function exportVideo(sourceUri: string, plan: ExportPlan, edit: MediaEdit, overlayUri: string | null): Promise<string> {
+export async function exportVideo(sourceUri: string, plan: ExportPlan, edit: MediaEdit, overlayUri: string | null, durationMs = 0): Promise<string> {
   if (typeof MediaRecorder === 'undefined') throw new Error('This browser cannot make videos.');
   const type = TYPES.find((t) => MediaRecorder.isTypeSupported(t));
   if (!type) throw new Error('This browser cannot make videos.');
@@ -46,8 +53,8 @@ export async function exportVideo(sourceUri: string, plan: ExportPlan, edit: Med
   let raf = 0;
   try {
     await once(video, 'loadedmetadata');
-    const startS = (edit.trim?.start_ms ?? 0) / 1000;
-    const endS = edit.trim ? edit.trim.end_ms / 1000 : video.duration;
+    // A source with no length (MediaRecorder's own WebM) ends at the capture's stored length (media-editing audit 10).
+    const { startS, endS } = exportSpan(edit.trim, video.duration, durationMs);
     video.currentTime = startS;
     await once(video, 'seeked');
     const overlay = overlayUri ? await loadImage(overlayUri) : null;
@@ -66,14 +73,17 @@ export async function exportVideo(sourceUri: string, plan: ExportPlan, edit: Med
     };
     draw();
     const stream = canvas.captureStream(30);
-    // The sound: routed to a recording destination only, so it is never heard.
+    // The sound: routed to a recording destination only, so it is never heard. A context the
+    // browser won't start (Safari, long after the tap) is closed, never waited on (media-editing audit 4).
     try {
       audio = new AudioContext();
       const dest = audio.createMediaStreamDestination();
       audio.createMediaElementSource(video).connect(dest);
+      await within(audio.resume(), START_WAIT_MS);
+      if (audio.state !== 'running') throw new Error('suspended');
       for (const t of dest.stream.getAudioTracks()) stream.addTrack(t);
-      await audio.resume();
     } catch {
+      if (audio) void audio.close().catch(() => {});
       audio = null; // a video with no sound, or a browser that won't: the picture alone
     }
     const rec = new MediaRecorder(stream, { mimeType: type, videoBitsPerSecond: 6_000_000 });
@@ -94,12 +104,16 @@ export async function exportVideo(sourceUri: string, plan: ExportPlan, edit: Med
       else raf = requestAnimationFrame(tick);
     };
     video.addEventListener('ended', finish, { once: true });
-    try {
-      await video.play();
-    } catch {
-      // Sound refused without a tap: the picture still records, without it.
+    // Sound refused without a tap: the picture still records, without it; a start that never
+    // comes fails rather than leaving "Saving…" up (media-editing audit 4).
+    const started = await within(video.play().then(() => true, () => false), START_WAIT_MS);
+    if (!started) {
       video.muted = true;
-      await video.play();
+      const again = await within(video.play().then(() => true, () => false), START_WAIT_MS);
+      if (!again) {
+        if (rec.state !== 'inactive') rec.stop();
+        throw new Error('The video could not be played.');
+      }
     }
     raf = requestAnimationFrame(tick);
     const limit = setTimeout(finish, (endS - startS) * 1000 + 15_000);

@@ -16,7 +16,7 @@ import { useMediaUri } from '../lib/useMediaUri';
 import { useBaker } from './Baker';
 import { EditedPhoto } from './edit/EditedPhoto';
 import { AUTOPLAY_CHECK_MS, EditedVideo } from './edit/EditedVideo';
-import { MediaEditor } from './edit/MediaEditor';
+import { MediaEditor, type MediaEditorHandle } from './edit/MediaEditor';
 import type { CapturePatch } from '../lib/captureBus';
 import { exportPlan, isEmptyEdit } from '../lib/mediaEdit';
 import { exportVideo } from '../lib/videoEdit';
@@ -239,6 +239,7 @@ export function CaptureViewer(props: {
   const insets = useSafeAreaInsets();
   const [index, setIndex] = useState(0);
   const [editing, setEditing] = useState<Capture | null>(null);
+  const editor = useRef<MediaEditorHandle>(null);
   // Edits saved here show at once, whether or not the caller's list hears of it (ME21).
   const [patched, setPatched] = useState<Map<string, CapturePatch>>(() => new Map());
   const [noting, setNoting] = useState<Capture | null>(null);
@@ -290,7 +291,7 @@ export function CaptureViewer(props: {
             if (!size) throw new Error('size');
             const plan = exportPlan(size, job.edit ?? { rotate: 0, crop: null }, { maxLong: 1920, even: true });
             overlay = await bakers.bakeOverlay(size, job, plan);
-            baked = await exportVideo(source, plan, job.edit ?? { v: 1, rotate: 0, crop: null, filter: 'original', strokes: [], trim: null }, overlay);
+            baked = await exportVideo(source, plan, job.edit ?? { v: 1, rotate: 0, crop: null, filter: 'original', strokes: [], trim: null }, overlay, Number(c.body) || 0);
           } catch {
             throw new Error('The video could not be saved');
           }
@@ -340,7 +341,7 @@ export function CaptureViewer(props: {
     <Modal
       visible={list.length > 0}
       animationType="fade"
-      onRequestClose={menu ? () => setMenu(false) : deleting ? () => setDeleting(null) : editing ? () => setEditing(null) : noting ? () => setNoting(null) : reminding ? () => setReminding(null) : close}
+      onRequestClose={menu ? () => setMenu(false) : deleting ? () => setDeleting(null) : editing ? () => editor.current?.requestClose() : noting ? () => setNoting(null) : reminding ? () => setReminding(null) : close}
     >
       <View style={styles.viewer}>
         {/* The baker draws behind everything; the cover hides it. */}
@@ -441,6 +442,7 @@ export function CaptureViewer(props: {
         {editing && (
           // Inside this Modal, not a second one: iOS will not present a Modal over a Modal.
           <MediaEditor
+            ref={editor}
             overlay
             key={editing.id}
             capture={editing}

@@ -80,6 +80,16 @@ Captures (photo, video, voice memo, note), their viewer, captions and baking, th
   reads landscape) and the web player has none, so `useVideoSize` asks a
   first-frame thumbnail on phones and `probeVideoSize` reads the metadata on
   the web.
+- **A loose moment's change goes on the bus's `LOOSE_MOMENTS` channel**
+  (`captureBus.patch(null, ...)`); the ready screen listens, so a moment
+  edited from its Edit offer shows on its pin (audit 2).
+- **An edited small copy is named by its edit** (`editedThumbName`): pins key
+  their picture by the ref, so the same name never reloaded (audit 3). The
+  capture-time copy stands down once a photo has a copy or an edit (audit 8).
+- **Escape and Back go through the editor's own Close** (`requestClose`), which
+  asks before discarding (audit 5). Choices (pens, colours, filters, aspects,
+  thicknesses) are radios with `aria-checked`; react-native-web ignores
+  `aria-selected` on a button (audit 11).
 - **Saving out:** photos through `bakers.bake` (the web applies the matrix to
   the pixels); videos through `exportVideo` with the lines and caption as a
   clear PNG (`bakers.bakeOverlay`): the local module on phones, canvas +
