@@ -75,5 +75,5 @@ The decision code is shared and runs under `npm test`. Never run on a device: SQ
 - `.claude/rules/places-and-areas.md`: the placement rule and the cache.
 - `.claude/rules/explore-and-discovery.md`: membership.
 - `docs/ARCHITECTURE.md`: codemap and data model.
-- `docs/decisions/0082-town-outlines.md`: the owner's four calls.
+- `docs/decisions/0083-town-outlines.md`: the owner's four calls.
 - `docs/PRODUCT.md` and `docs/STATUS.md`.

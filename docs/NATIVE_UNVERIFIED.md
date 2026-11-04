@@ -155,3 +155,9 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] The SQLite adapter (`db/index.native.ts`) against the Db contract (`src/lib/__tests__/dbContract.ts`): the suite runs only over the fake and IndexedDB in Node, so SQLite's match to it is by reading
 
 - **The area card's full-screen drawer** (Nov 4): `AtlasCard`'s `PanResponder` taking the touch from its `ScrollView` when the content is at the top (`onMoveShouldSetPanResponderCapture`), the JS-driven transform, and the tab bar folding away (`lib/tabsHidden`). On a touch browser the page's own scroll may take the touch before the capture does. Never run on a device; the e2e's drawer checks (full flow) use a mouse and did not run in the cloud session (no tiles).
+
+## Compass (CP1-CP8, decision 0082)
+
+- [ ] Two-finger rotate on MapLibre RN (`touchRotate`, `touchPitch={false}`) and the bearing in `onRegionDidChange`'s `ViewStateChangeEvent`
+- [ ] `resetNorth()` through the Camera ref's `setStop({ bearing: 0, duration })`: that centre and zoom stay
+- [ ] The compass button over the native map, above Locate and in the walk's column

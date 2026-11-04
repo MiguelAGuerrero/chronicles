@@ -1570,6 +1570,35 @@ function check(ok, what) {
       const s3 = await scaleBar();
       check(round(s3) && fits(s3), `qol QL5: Explore shows the scale bar (${describe(s3)})`);
     }
+    // The compass (CP1-CP5, CP8): none at north-up; turned, it sits above Locate with its needle against
+    // the turn; a tap eases the map back to north without moving the centre or zoom.
+    {
+      const compass = pg.locator('[data-testid=compass]').filter({ visible: true });
+      const before = { c: await attr('data-center'), z: await attr('data-zoom'), b: Number(await attr('data-bearing') || 0) };
+      check((await compass.count()) === 0 && Math.abs(before.b) < 1, `qol CP2, CP8: Explore opens north-up with no compass (${await compass.count()}, bearing ${before.b})`);
+      await pg.evaluate(() => window.__turn(90));
+      await pg.waitForTimeout(500);
+      const turned = Number(await attr('data-bearing'));
+      const cb = await compass.first().boundingBox().catch(() => null);
+      const lb = await shown('locate').first().boundingBox().catch(() => null);
+      check((await compass.count()) === 1 && Math.abs(turned - 90) < 1, `qol CP1, CP2: turned 90°, one compass shows (${await compass.count()}, bearing ${turned})`);
+      check(cb && lb && cb.width === 44 && cb.height === 44 && Math.abs(cb.x - lb.x) <= 1 && cb.y + cb.height <= lb.y,
+        `qol CP2: the compass is a 44 pt button directly above Locate in its column (compass ${cb && `${cb.x},${cb.y}`}, locate ${lb && `${lb.x},${lb.y}`})`);
+      const angle = await pg.evaluate(() => {
+        const el = document.querySelector('[data-testid=compass-needle]');
+        const m = el && getComputedStyle(el).transform;
+        const v = m && m.startsWith('matrix') ? m.slice(m.indexOf('(') + 1, -1).split(',').map(Number) : null;
+        return v ? Math.round((Math.atan2(v[1], v[0]) * 180) / Math.PI) : null;
+      });
+      check(angle === -90, `qol CP3: the needle turns against the map (${angle}° for a 90° turn)`);
+      check((await compass.first().getAttribute('aria-label')) === 'Point the map north', `qol CP5: the compass says "Point the map north"`);
+      await compass.first().click();
+      await pg.waitForTimeout(1500);
+      const after = { c: await attr('data-center'), z: await attr('data-zoom'), b: Number(await attr('data-bearing')) };
+      const cm = lonLat(after.c), cm0 = lonLat(before.c);
+      check(Math.abs(after.b) < 0.5 && (await compass.count()) === 0, `qol CP4: a tap turns the map back to north and the compass leaves (bearing ${after.b}, ${await compass.count()} compass)`);
+      check(cm && cm0 && mAway(cm, cm0) < 3 && Math.abs(Number(after.z) - Number(before.z)) < 0.05, `qol CP4: the centre and zoom stay (${mAway(cm, cm0).toFixed(1)} m, z ${before.z} → ${after.z})`);
+    }
     await tabTo(pg, 'chronicle');
     await pg.waitForTimeout(1200);
     {
@@ -1836,6 +1865,8 @@ function check(ok, what) {
       };
     }));
     const { c, pg } = await freshPage('ready');
+    // The map's test hooks (`__turn`, for the compass: CP2), defined only when the page is measuring.
+    await c.addInitScript(() => { window.__perf = {}; });
     await pg.goto(url);
     await pg.waitForSelector('[data-testid=tab-explore][aria-selected=true]');
     await pg.waitForTimeout(1200);
@@ -1864,6 +1895,20 @@ function check(ok, what) {
     check(cam && mic && pen && loc && Math.abs(cx(cam) - cx(mic)) <= 1 && Math.abs(cx(mic) - cx(pen)) <= 1 && Math.abs(cx(loc) - cx(cam)) <= 1
       && pen.y < mic.y && mic.y < cam.y && loc.y + loc.h <= pen.y && cam.x + cam.w >= 390 - 14 && cam.x + cam.w <= 390 - 10,
       `ready NR9: camera, mic and note stacked at the right edge, Locate above (${JSON.stringify({ cam, mic, pen, loc })})`);
+
+    // CP2: turned, the compass takes the slot above Locate in the same column; at north-up it is not drawn.
+    {
+      const noneBefore = (await boxOf(pg, 'compass')) === null;
+      await pg.evaluate(() => window.__turn && window.__turn(45)).catch(() => {});
+      await pg.waitForTimeout(500);
+      const comp = await boxOf(pg, 'compass');
+      const loc2 = await boxOf(pg, 'locate');
+      check(noneBefore && comp && loc2 && Math.abs(cx(comp) - cx(loc2)) <= 1 && comp.y + comp.h <= loc2.y && comp.w === 44,
+        `ready CP2: turned, the compass sits above Locate in its column, and not at north-up (${JSON.stringify({ noneBefore, comp, loc2 })})`);
+      await pg.click('[data-testid=compass]');
+      await pg.waitForTimeout(1200);
+      check((await boxOf(pg, 'compass')) === null, 'ready CP4: a tap on the compass sends the map back to north and it leaves');
+    }
 
     // NR4: the chevron goes back to the tab beneath, Explore after a launch.
     await pg.click('[data-testid=ready-close]');

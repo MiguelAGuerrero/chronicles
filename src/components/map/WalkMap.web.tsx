@@ -181,6 +181,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const onPress = useRef(props.onPress);
   const onLongPress = useRef(props.onLongPress);
   const onUserMove = useRef(props.onUserMove);
+  const onBearingChange = useRef(props.onBearingChange);
   const onCameraChange = useRef(props.onCameraChange);
   const onFitSettled = useRef(props.onFitSettled);
   // Before paint, so a click right after a render never reaches the previous handler (audit 8).
@@ -188,6 +189,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     onPress.current = props.onPress;
     onLongPress.current = props.onLongPress;
     onUserMove.current = props.onUserMove;
+    onBearingChange.current = props.onBearingChange;
     onCameraChange.current = props.onCameraChange;
     onFitSettled.current = props.onFitSettled;
   });
@@ -252,6 +254,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       pixelRatio: Math.min(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1, 2),
       maxTileCacheZoomLevels: 2,
       fadeDuration: 0,
+      // Two fingers turn the map (CP1); a right-drag or a tilt never does, and the map opens north-up (CP8).
+      dragRotate: false,
+      pitchWithRotate: false,
+      touchPitch: false,
     });
     mapRef.current = map;
     map.on('load', () => {
@@ -265,6 +271,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           const pt = map.project(p);
           return [r.left + pt.x, r.top + pt.y];
         };
+        // A two-finger turn can't be made headless: the e2e turns the newest map in code (CP1-CP5).
+        (window as { __turn?: (deg: number) => void }).__turn = (deg) => { map.rotateTo(deg, { duration: 0 }); };
       }
     });
     // maplibre fires click for each tap of a double-tap zoom: wait to see
@@ -344,6 +352,18 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     };
     map.on('dragstart', moved);
     map.on('rotatestart', moved);
+    // The bearing, for the compass (CP2): written to the DOM for the e2e, sent up on a real change.
+    let sentBearing = 0;
+    const turned = () => {
+      const b = map.getBearing();
+      container.current?.setAttribute('data-bearing', b.toFixed(1));
+      if (Math.abs(b - sentBearing) >= 0.5 || (b === 0 && sentBearing !== 0)) {
+        sentBearing = b;
+        onBearingChange.current?.(b);
+      }
+    };
+    map.on('rotate', turned);
+    map.on('rotateend', turned);
     // A camera move made in code cancels a drag in progress, and the glide moves
     // the camera every frame. So follow-moves wait while a pointer is down.
     const down = () => { pointerDown.current = true; };
@@ -740,6 +760,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     },
     showPoint(at, padding) {
       mapRef.current?.easeTo({ center: at, padding, duration: animateRef.current ? MOTION.ease : 0 });
+    },
+    resetNorth() {
+      mapRef.current?.easeTo({ bearing: 0, duration: animateRef.current ? MOTION.camera : 0 });
     },
     async collectPlaces(center) {
       await readyPromise.current!.promise;

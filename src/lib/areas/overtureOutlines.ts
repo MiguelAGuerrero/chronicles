@@ -10,7 +10,7 @@ import { OUTLINE_ZOOM } from './outlines';
 import type { TileFeature } from './tilePlaces';
 
 /*
- * Town outlines from Overture's divisions (TO1, decision 0082): the network
+ * Town outlines from Overture's divisions (TO1, decision 0083): the network
  * side. One release's divisions.pmtiles, read by byte range at z12, with no
  * key and nothing about the user, from the bucket the places come from
  * (decision 0080). The release is the one the places reader follows.

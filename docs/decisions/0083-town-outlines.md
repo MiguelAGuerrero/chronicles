@@ -1,4 +1,4 @@
-# 0082. The town you are in is the one whose border you are inside
+# 0083. The town you are in is the one whose border you are inside
 
 Date: 2026-11-04 · Status: accepted · Area: places-and-areas, explore
 
