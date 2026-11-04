@@ -80,7 +80,7 @@ export function CapturePinView({ pin, faint = false, drop: dropNow = false, remi
           on a memory pin it takes the other corner, so both read (RB4). */}
       {reminded && (
         <View testID="pin-reminder" style={[styles.bell, faint ? styles.bellLeft : styles.bellRight]}>
-          <Icon name="notifications" size={10} color="#ffffff" />
+          <Icon name="notifications" size={12} color="#ffffff" />
         </View>
       )}
     </View>
@@ -109,9 +109,10 @@ const styles = StyleSheet.create({
     position: 'absolute', right: -2, top: 4, width: 18, height: 18, borderRadius: 9, backgroundColor: '#1d2430',
     borderWidth: 1.5, borderColor: '#ffffff', alignItems: 'center', justifyContent: 'center',
   },
-  // The accent, so it never reads as the memory's ink clock (the owner's call).
+  // Ink, the clock's size: it reads on every pin colour (the owner's call after the audit; the
+  // accent was as bright as a note's amber). The bell itself tells it from the clock.
   bell: {
-    position: 'absolute', top: -2, width: 16, height: 16, borderRadius: 8, backgroundColor: theme.accent,
+    position: 'absolute', top: -2, width: 18, height: 18, borderRadius: 9, backgroundColor: theme.ink,
     borderWidth: 1.5, borderColor: '#ffffff', alignItems: 'center', justifyContent: 'center',
   },
   bellRight: { right: -3 },

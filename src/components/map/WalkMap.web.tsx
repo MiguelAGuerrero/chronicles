@@ -786,7 +786,7 @@ function usePinMarkers(
   useEffect(() => {
     latest.current = { pins: new Map(pins.map((p) => [p.id, p])), onPress };
   });
-  const markers = useRef(new Map<string, { marker: Marker; root: Root; key: string }>());
+  const markers = useRef(new Map<string, { marker: Marker; root: Root; key: string; bell: boolean; drops: boolean }>());
   const interactive = !!onPress;
   // A capture taken since the screen opened drops in (M10); one already shown, or a reload, never.
   const [openedAt] = useState(() => Date.now());
@@ -803,11 +803,19 @@ function usePinMarkers(
       live.add(pin.id);
       const ids = pin.captures.map((c) => c.id).join(',');
       const bell = pinReminded(pin, reminded);
-      // With the photo's small copy, so a copy made after the pin was drawn shows without a reload (QL27);
-      // with the bell, so a reminder set or stopped shows at once (RB5).
-      const key = `${pin.lngLat.join(',')}|${pin.kind}|${ids}|${interactive}|${pinThumb(pin) ?? ''}|${bell}`;
+      // With the photo's small copy, so a copy made after the pin was drawn shows without a reload (QL27).
+      const key = `${pin.lngLat.join(',')}|${pin.kind}|${ids}|${interactive}|${pinThumb(pin) ?? ''}`;
       const existing = markers.current.get(pin.id);
-      if (existing?.key === key) continue;
+      if (existing?.key === key) {
+        // A reminder set or stopped (RB5) redraws the same element in place: focus returns to it when
+        // the viewer closes (audit 3), and a photo keeps its painted picture (audit 4).
+        if (existing.bell !== bell) {
+          existing.marker.getElement().setAttribute('aria-label', pinLabel(pin, interactive, memory, bell));
+          existing.root.render(<CapturePinView pin={pin} faint={memory} drop={existing.drops} reminded={bell} />);
+          existing.bell = bell;
+        }
+        continue;
+      }
       if (existing) drop(existing);
       // A 48 px target around the 36 px pin: the touch minimum on phones.
       const el = document.createElement(interactive ? 'button' : 'div');
@@ -835,7 +843,7 @@ function usePinMarkers(
       const marker = new Marker({ element: el, anchor: 'bottom', offset: [0, 6] }).setLngLat(pin.lngLat).addTo(map);
       // Memories sit under this walk's pins, so a new capture over an old one opens the new one (audit 6).
       marker.getElement().style.zIndex = memory ? '0' : '1';
-      markers.current.set(pin.id, { marker, root, key });
+      markers.current.set(pin.id, { marker, root, key, bell, drops });
     }
     for (const [id, m] of markers.current) {
       if (live.has(id)) continue;

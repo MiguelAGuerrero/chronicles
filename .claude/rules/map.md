@@ -64,12 +64,17 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
   on iOS the annotation's tap recognizer swallows touches meant for a Pressable inside
   it.
 - **The reminder bell** (RB1-RB7, decision 0073): a pin with a live reminder on any of
-  its captures (`pinReminded`, `lib/pins.ts`) wears an accent disc with a white bell
-  (`pin-reminder`), top right, top left on a faint memory pin (the clock keeps top
-  right). Each map reads the reminders once with `useReminded`, which re-reads on
-  `onRecallsChanged`; every reminder write goes through `recallCheck`
-  (`saveRecall`, `stopRecall`, `forgetRecalls`), so a write that skips it leaves a
-  stale bell. The bell is in both maps' marker keys.
+  its captures (`pinReminded`, `lib/pins.ts`) wears an ink disc with a white bell, the
+  clock's size (`pin-reminder`), top right, top left on a faint memory pin (the clock
+  keeps top right). Each map reads the reminders once with `useReminded`, which re-reads
+  on `onRecallsChanged` and at the next reminder's end (`nextExpiry`); every reminder
+  write goes through `recallCheck` (`saveRecall`, `stopRecall`, `forgetRecalls`), so a
+  write that skips it leaves a stale bell. Anything showing "reminder set" reads
+  `liveRecalls`, so one past its end is none everywhere.
+  - On web the bell is **not** in the marker key: a change re-renders the same root in
+    place, so focus returns to the pin when the viewer closes and a photo keeps its
+    picture. On native it is in the Marker key (unverified whether children update
+    without it).
 
 ## Map staples (quality of life, QL1-QL12; Nov 3)
 

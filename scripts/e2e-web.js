@@ -2080,9 +2080,25 @@ function check(ok, what) {
         await page.waitForSelector('[data-testid=remind-editor]');
         check((await page.locator('[data-testid=remind-once][aria-checked=true]').count()) === 1 && (await page.locator('[data-testid=remind-none][aria-checked=true]').count()) === 1, 'remind me here offers how often, once by default, and until when');
         await shot(page, '03a-remind');
+        // Every pin element as it stands, to see that the bell redraws it in place (reminder-bell audit 3, 4).
+        await page.evaluate(() => document.querySelectorAll('[data-ids]').forEach((e) => { e.__beforeBell = true; }));
         await page.click('[data-testid=remind-save]');
         await page.waitForSelector('text=It will come back when you pass here');
         check((await page.locator('[aria-label="Reminder set. Change or stop it"]').count()) === 1, 'the viewer shows the reminder is set');
+        // The map behind the open viewer already wears the bell, on the same element (RB5, audit 3, 4).
+        await page.waitForSelector('[data-ids] [data-testid=pin-reminder]', { timeout: 5000 }).catch(() => null);
+        const keptOnSave = await page.locator('[data-ids]:has([data-testid=pin-reminder])').evaluateAll((els) => els.length === 1 && els[0].__beforeBell === true);
+        check(keptOnSave, 'reminder-bell audit 3: the bell redraws the same pin element in place, so focus can return to it and a photo keeps its picture (audit 4)');
+        // Stop from the viewer takes the bell off at once (RB5), then set again for the walk ahead.
+        await page.click('[data-testid=viewer-remind]');
+        await page.click('[data-testid=remind-stop]');
+        await page.waitForSelector('text=No more reminders here');
+        await page.waitForFunction(() => !document.querySelector('[data-testid=pin-reminder]'), null, { timeout: 5000 }).catch(() => null);
+        const bellsAfterStop = await page.locator('[data-testid=pin-reminder]').count();
+        check(bellsAfterStop === 0, `Stop reminding me takes the pin's bell off at once (RB5: ${bellsAfterStop} bells)`);
+        await page.click('[data-testid=viewer-remind]');
+        await page.click('[data-testid=remind-save]');
+        await page.waitForSelector('text=It will come back when you pass here');
         await page.click('[aria-label="Close"]');
         // Its pin wears the bell at once, top right, and says so (RB1, RB5, RB7).
         const belled = await page.waitForSelector('[data-ids] [data-testid=pin-reminder]', { timeout: 5000 }).then(() => true, () => false);
@@ -3034,10 +3050,6 @@ function check(ok, what) {
     await page.click('[data-testid=reminder-open]');
     await page.waitForSelector('[data-testid=viewer-remind]');
     check(true, 'the reminder opens its capture');
-    // The "once" cleared, so no pin wears a bell now (RB5).
-    await page.waitForTimeout(500);
-    const bellsAfterFire = await page.locator('[data-testid=pin-reminder]').count();
-    check(bellsAfterFire === 0, `a "once" reminder that fired takes its bell with it (RB5: ${bellsAfterFire} bells)`);
     // Flagged again here, mid-walk, every visit: it waits for the next walk, not two seconds (audit).
     await page.click('[data-testid=viewer-remind]');
     await page.click('[data-testid=remind-visit]');
@@ -3059,10 +3071,14 @@ function check(ok, what) {
       const bell = el.querySelector('[data-testid=pin-reminder]');
       const clock = el.querySelector('[data-testid=memory-badge]');
       if (!bell || !clock) return null;
-      return { bell: bell.getBoundingClientRect().left, clock: clock.getBoundingClientRect().left, opacity: Number(getComputedStyle(bell).opacity), label: el.getAttribute('aria-label') };
+      // The opacity it is seen at: its own times every ancestor's (reminder-bell audit 6: its own alone is always 1).
+      const seen = (n) => { let o = 1; for (let e = n; e && e !== el; e = e.parentElement) o *= Number(getComputedStyle(e).opacity); return o; };
+      const b = bell.getBoundingClientRect();
+      const c = clock.getBoundingClientRect();
+      return { bell: b.left, clock: c.left, opacity: seen(bell), clockOpacity: seen(clock), size: Math.round(b.width), clockSize: Math.round(c.width), label: el.getAttribute('aria-label') };
     }) : null;
-    check(!!corners && corners.bell < corners.clock && corners.opacity === 1 && /reminder set/.test(corners.label),
-      `a memory pin with a reminder shows the bell left of its clock, solid, and says so (RB4, RB7: ${JSON.stringify(corners)})`);
+    check(!!corners && corners.bell < corners.clock && corners.opacity === 1 && corners.clockOpacity === 1 && corners.size === corners.clockSize && /reminder set/.test(corners.label),
+      `a memory pin with a reminder shows the bell left of its clock, both solid and the same size, and says so (RB4, RB7, reminder-bell audit 6: ${JSON.stringify(corners)})`);
     await shot(page, '13b-memory-bell');
     // A memory pin: faded and smaller than a capture pin (MR3); a tap previews it (MR4), and the preview
     // opens the viewer with every memory from that spot (MR5).

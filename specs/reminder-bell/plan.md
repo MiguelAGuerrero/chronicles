@@ -13,7 +13,7 @@ For the owner to review before any code.
 
 ## Look
 
-A 16 px disc in `theme.accent` (`#c2410c`), with a white `notifications` icon at 10 px and a 1.5 px white edge, over the head's corner. It is the same size and placement as the memory clock, which is ink-coloured, so the two read as different things. The pin's 48 px tap target is unchanged.
+An 18 px disc in `theme.ink`, with a white `notifications` icon at 12 px and a 1.5 px white edge, over the head's corner: the memory clock's size and colour, told apart by the bell (after the audit; the plan's first pick, the accent orange, was as bright as a note pin's amber). The pin's 48 px tap target is unchanged.
 
 ## Data
 

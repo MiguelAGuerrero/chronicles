@@ -57,6 +57,8 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 - Clearing reminder flags whose capture is gone, `discovery/recall.ts` (Remind me here)
 - Remind me here firing outside a walk; needs background location (Moments and days)
+- The reminder bell in a second web tab: a reminder fired or stopped in one tab leaves the bell in the other until a reload; `tell()` is per JS context (Reminder bell, audit 5)
+- Native: the pin's Marker is re-keyed when its bell changes, so a photo pin shows its icon for a moment; the web redraws in place (Reminder bell, audit 4)
 - The "in front" rule stays per transport: a phone lists background notices quietly, a browser has no list, `NoticeTransport` (Notifications)
 - The Android channel's importance is DEFAULT, so the test may not pop up as a banner (Notifications)
 - Unit tests of the web transport, `notify/transport.web.ts`; the e2e drives the real service worker (Notifications)

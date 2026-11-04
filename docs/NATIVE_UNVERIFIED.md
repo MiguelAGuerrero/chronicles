@@ -100,7 +100,11 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] The rename editor and its keyboard inside the native actions Modal, and Android Back stepping out of it, `components/WalkActions.tsx` (Quality of life, QL22)
 - [ ] The note editor inside the native viewer Modal, `components/NoteEditor.tsx` (Quality of life, QL24)
 - [ ] The round picture inside a MapLibre RN Marker, its `onLoad`/`onError`, and the Marker remounting when the copy arrives, `components/CapturePinView.tsx` (Quality of life, QL26, QL27)
-- [ ] The reminder bell over a pin's corner inside a MapLibre RN Marker (not clipped by the Marker), and the Marker re-keyed when a reminder is set or stopped, `components/map/WalkMap.native.tsx` (Reminder bell, RB1, RB4, RB5)
+- [ ] The reminder bell over a pin's corner inside a MapLibre RN Marker: not clipped by the annotation's bounds or `pinHit`, drawn above the head's Android `elevation`, `components/map/WalkMap.native.tsx` (Reminder bell, RB1, RB4)
+- [ ] A capture Marker re-keyed with a new `id`, and a memory Marker re-keyed keeping its `id`, when a reminder is set or stopped: a clean remount with no stale annotation (Reminder bell, RB5)
+- [ ] ", reminder set" in the pins' labels read by VoiceOver and TalkBack (Reminder bell, RB7)
+- [ ] The bell following a fire or expiry from the background location task, after a cold background launch, and the notification's Stop action, once the app is back in front (Reminder bell, RB5)
+- [ ] expo-sqlite ordering: `listRecalls` reads outside the write queue (`db/index.native.ts`); a read started before a queued `setRecall`/`clearRecall` must not finish with the older rows (`recallCheck`'s cache, `useReminded`) (Reminder bell audit 11)
 
 ## Explore atlas
 

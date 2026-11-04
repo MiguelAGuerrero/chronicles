@@ -10,7 +10,8 @@ The owner's calls (Nov 4):
 - Any capture kind with a live reminder gets the bell, not notes only.
 - A merged pin shows the bell when any capture in it has a reminder.
 - A faint memory pin keeps its clock top right, and the bell goes top left.
-- The disc is the app's accent orange, so it never reads as the memory's ink clock. It is a bell, never a number (nothing is a score).
+- The disc is dark ink, the clock's size; the bell tells it from the clock. The first pick, the accent orange, was changed after the audit measured it as bright as a note pin's amber (about 1.05:1). It is a bell, never a number (nothing is a score).
+- The replay and a day show today's reminders, not the walk's (asked after the audit): the bell means a reminder is set now.
 
 ## Consequences
 - The bell is drawn from the live `recall` rows and never stored. A reminder past its until-date shows none (`remindedIds`).
