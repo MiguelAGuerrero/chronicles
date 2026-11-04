@@ -108,7 +108,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 
 - [ ] Open in Maps: Apple Maps from the app, `nav/openInMaps.ts` (Open in Maps)
 - [ ] Open in Maps: the Android `geo:` chooser (Open in Maps)
-- [ ] Open in Maps: an iPhone Home Screen app's `window.open` reaching Apple Maps (Open in Maps)
+- [ ] Open in Maps: an iPhone Home Screen app opens the `maps://` scheme via `location.href` (was `window.open`, which left a blank window to back out of) (Open in Maps, fix pwa-maps)
 - [ ] The docked drawer on Navigate (Navigation & tabs, U1)
 - [ ] `dangerouslySingular` on the native stack's `walk`, `showWalk()` (Navigation & tabs)
 - [ ] The memo saved when Navigate blurs mid-memo (Navigation & tabs)
