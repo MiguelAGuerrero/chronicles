@@ -210,13 +210,14 @@ async function checks(h) {
         const brook = area?.analysis.strips.find((x) => x.name === 'Brook Street');
         check(!!brook && area.overture === OVERTURE_RELEASE, `AD3: Overture's places make Brook Street a busy street (${area?.overture}, ${JSON.stringify(area?.analysis.strips.map((x) => x.name))})`);
         check(brook && distanceM(brook.peak, at(13, 0.08)) < 150, `AD4: Brook Street's busiest point sits among the places Overture is sure of, not the unsure or closed ones (${brook && JSON.stringify(brook.peak)})`);
-        // AD3: Overture is asked only for its release listing and its release's places, by byte range, with no key.
+        // AD3: Overture is asked only for its release listing and its release's places, by byte range, with no key;
+        // since town outlines, its divisions too, the same way (TO12).
         const odd = overtureAsked.filter((q) => {
           const u = new URL(q.url);
           if (u.searchParams.get('list-type') === '2') return [...u.searchParams.keys()].some((k) => !['list-type', 'prefix', 'delimiter'].includes(k));
-          return u.pathname !== `/tiles/${OVERTURE_RELEASE}/places.pmtiles` || u.search !== '' || !/^bytes=\d+-\d+$/.test(q.range ?? '');
+          return ![`/tiles/${OVERTURE_RELEASE}/places.pmtiles`, `/tiles/${OVERTURE_RELEASE}/divisions.pmtiles`].includes(u.pathname) || u.search !== '' || !/^bytes=\d+-\d+$/.test(q.range ?? '');
         });
-        check(overtureAsked.length > 0 && odd.length === 0, `AD3: Overture is asked for its listing and its places by byte range only (${overtureAsked.length} requests; odd: ${JSON.stringify(odd.slice(0, 2))})`);
+        check(overtureAsked.length > 0 && odd.length === 0, `AD3, TO12: Overture is asked for its listing, its places and its divisions by byte range only (${overtureAsked.length} requests; odd: ${JSON.stringify(odd.slice(0, 2))})`);
         // AD12: the area's grades are kept for drawing; AD15: no numbers in what is said.
         check(area && area.analysis.graded.some((g) => g.grade >= 2), 'AD12: the remembered area keeps its graded stretches');
         check(!/\d/.test(said.replace(/A best guess from the map\.?/, '')), `AD15: what's good here says no number (${said})`);

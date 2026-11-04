@@ -3,7 +3,7 @@
 // E2E_ONLY=outlines runs it alone.
 
 async function run(h) {
-  const { url, overtureAsked, check, shot, freshPage, divisions } = h;
+  const { url, overtureAsked, check, shot, freshPage, divisions, at, tabTo } = h;
     const titleOf = async (label) => {
       const { c, pg } = await freshPage(label);
       await pg.goto(url);

@@ -267,8 +267,9 @@ async function checks(h) {
         [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('[data-testid=cap-photo]')]);
         await chooser.setFiles(path.join(fixtures, 'clip-4s.webm'));
         await page.waitForSelector('text=Video saved here');
-        await page.waitForTimeout(2500);
-        // Within ~30 m at walking zoom, the video shares a pin with the memo.
+        // Within ~30 m at walking zoom, the video shares a pin with the memo. The pins regroup a moment after
+        // the save; a fixed 2.5 s wait read the label too early on the /chronicles build (Nov 4 deploy).
+        await page.waitForSelector('[aria-label="2 captures here. Open"]', { timeout: 10000 }).catch(() => {});
         check((await page.locator('[aria-label="2 captures here. Open"]').count()) === 1, 'a short video is kept, sharing a pin with the memo nearby');
         // The video is taken about 40 m from the memorial: it finds it (E8). (The memo at step 10, 62 m off, does not.)
         await page.waitForTimeout(500);
