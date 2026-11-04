@@ -111,6 +111,7 @@ Recording and traces
 Streets, snapping, fog
   streets.ts                 OpenMapTiles road features to street pieces (deriveSegments, streetKey); the only file that knows the road schema
   fog/                       the walk screen's fog: rules.ts (when to read, which pieces are fog), shell.ts (createFog: read, store, decide), index.ts (newFog on the app's ports)
+  ready/                     the ready walk screen's shell (Navigate, ready): shell.ts (createReady: the mode, the web note, what it reads as it comes to the front), index.ts (`ready` on the app's ports)
   snapper.ts                 trace to visited pieces: BUFFER_M, WALKED_THRESHOLD, STREET_MIN_M, along-not-across
   finish.ts                  snapWalk: derive, snap, place and summarize a walk behind the replay's first beat; pickArea, walkBounds
   tiles.ts                   ensureTileBuild (TileJSON build detection, purge on change), STREET_CODE, SNAP_RULES

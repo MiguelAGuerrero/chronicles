@@ -16,7 +16,7 @@ Fix the doc, not the code, unless the doc describes a rule the code broke.
 for f in $(cd src/app && find . -name '*.tsx' | sed 's#^\./##'); do
   grep -qF "$f" docs/ARCHITECTURE.md || echo "route not in codemap: $f"; done
 for d in src/lib/*/; do n=$(basename "$d"); [ "$n" = __tests__ ] && continue
-  grep -qE "lib/$n\b" docs/ARCHITECTURE.md || echo "lib dir not in codemap: $n"; done
+  grep -qE "lib/$n\b|^  $n/" docs/ARCHITECTURE.md || echo "lib dir not in codemap: $n"; done
 ```
 
 ## 2. Budgets, rule globs and named paths

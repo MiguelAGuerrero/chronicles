@@ -123,7 +123,7 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 | Session | Branch | Doing |
 |---|---|---|
 | Bug fixes (open since Oct 31) | unknown | unknown |
-| Fog refresh, the first shell (FR1-FR10) | `claude/fog-refresh-shell` | the walk screen's fog refresh to `lib/fog` (core rules, a shell on ports), the rules for shells, a `fog` journey; `specs/fog-refresh-shell/` |
+| Fog refresh, the first shell (FR1-FR10) | `claude/fog-refresh-shell` | built: `lib/fog` (core rules, a shell on ports), the walk screen draws it, the rules for shells, the `fog` journey; all eight journeys `check:affected` names pass; waits on `/deploy`; `specs/fog-refresh-shell/` |
 
 ## Updating this file
 

@@ -28,3 +28,7 @@ The walk screen's fog refresh is one effect in `src/app/walk.tsx` that reads the
 
 - 2026-11-04: the owner said proceed with the next functional-core step: the fog refresh as the first shell.
 - Carried from slice 1 (decision 0073): a shell exports a factory taking `ports` (tested with fakes) and the app's constructor built from the real `ports`; views never import `ports`. A view-owned handle (the map's `collectView`) is passed in as a function.
+
+## Built (Nov 4)
+
+FR1-FR10 pass: `fog.test.ts` (FR1-FR8, 11 tests), the `fog` journey (FR9), and the `tabs`, `gaps`, `ready`, `marks`, `reload`, `hidden` and `qol` journeys `check:affected` named for `walk.tsx` (FR10). The first run of the `fog` journey failed on its own walk: fixes 10 m apart each second were dropped by the 7 m/s fix filter; it walks at 5 m/s now. No audit (decision 0074). The shell rule (FR8) recorded 23 imports in 20 shells at landing (`docs/DEFERRED.md`). Native unverified (`docs/NATIVE_UNVERIFIED.md`).
