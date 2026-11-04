@@ -21,7 +21,7 @@ export const EDGE = 44;
 /** Between the captures and the first edge button above them. */
 const EDGE_LIFT = 16;
 
-/** The map's scale bar above the strip: clear of a pill (60 tall) at the strip (audit 11). */
+/** The map's scale bar above the strip's top (add `barTop`): clear of a pill (60 tall) at the strip (audit 11). */
 export const SCALE_BOTTOM = 80;
 
 /**
