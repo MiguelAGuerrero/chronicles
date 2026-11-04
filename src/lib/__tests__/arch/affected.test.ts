@@ -221,9 +221,9 @@ test('AC9 a changed file names the scenarios that cover it; an uncovered screen 
   assert.deepEqual(r.uncovered, ['src/components/Ticking.tsx']);
   // The repo's table lists journeys only: the full flow runs only when the owner asks (decision 0074),
   // so a screen no journey covers is named, for the slice to add one.
-  const own = affected.e2eFor(['src/components/GapCard.tsx', 'src/components/Ticking.tsx']);
-  assert.deepEqual(own.scenarios.map((s) => s.name), ['gaps']);
-  assert.deepEqual(own.uncovered, ['src/components/Ticking.tsx']);
+  const own = affected.e2eFor(['src/components/GapCard.tsx', 'src/components/Nowhere.tsx']);
+  assert.ok(own.scenarios.some((s) => s.name === 'gaps'), own.scenarios.map((s) => s.name).join(', '));
+  assert.deepEqual(own.uncovered, ['src/components/Nowhere.tsx']);
   // One file per journey (TO9): the file is the registration, its name is its file's, and it says what it covers.
   const dir = join(ROOT, 'scripts', 'e2e', 'journeys');
   const files = readdirSync(dir).filter((f) => f.endsWith('.js')).map((f) => f.slice(0, -3)).sort();

@@ -305,9 +305,12 @@ async function run(h) {
 module.exports = {
   name: 'launch',
   covers: [
-    'src/app/_layout.tsx',
+    'src/app/{_layout,explore}.tsx',
     'src/lib/{launchWalk,launchRoute,lastFix,settleWithin,tabsHidden}.ts',
     'src/components/{ScreenError,Modal}.tsx',
+    // The app's web styles and shared primitives: every screen wears them, and the launch shows the first.
+    'src/components/webStyles*.ts',
+    'src/components/{icons,ui}.tsx',
   ],
   run,
   checks,

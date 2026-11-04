@@ -210,7 +210,7 @@ module.exports = {
   name: 'gaps',
   covers: [
     'src/lib/gaps/**',
-    'src/components/GapCard.tsx',
+    'src/components/{GapCard,GapDraw}.tsx',
     'src/app/replay/**',
     'src/app/walk.tsx',
   ],

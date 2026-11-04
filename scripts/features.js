@@ -41,7 +41,7 @@ const FEATURES = [
       'src/lib/motionSource/**',
       'src/lib/recorder/**',
     ],
-    journeys: ['hidden'],
+    journeys: ['hidden', 'sensors'],
     specs: ['motion', 'concept'],
   },
   {
@@ -89,7 +89,7 @@ const FEATURES = [
     about: 'moments and days: the day screen, moment pins, the moment bar',
     rule: 'moments-and-days',
     source: ['src/lib/{days,useLocate,momentPins}.ts', 'src/lib/locate/**', 'src/app/day/**', 'src/components/MomentBar.tsx', 'src/lib/explore/momentFind.ts'],
-    journeys: [],
+    journeys: ['days'],
     specs: ['moments-and-days'],
   },
   {
@@ -105,7 +105,7 @@ const FEATURES = [
       'src/components/{Ticking,MomentBar,ConfirmCard,StartSettings,ui}.tsx',
       'src/lib/{useCaptures,walkNav,walkGate,memoGate,useLiveTrace,walkEvents,recordingBar,walkMotion,captureBus}.ts',
     ],
-    journeys: ['ready'],
+    journeys: ['ready', 'walk'],
     specs: ['navigate-ready'],
   },
   {
@@ -118,7 +118,7 @@ const FEATURES = [
       'src/components/{StartSettings,HomeSheet,RecordingBar,SwitchRow,OpenWalk,Modal,ScreenError}.tsx',
       'src/lib/{launchRoute,launchWalk,recordingBar,walkNav,walkGate,openWalkLoad,startPlan,useStartWalk,useTabMap,memoGate,quietLines,summary,walkEvents,settleWithin,tabsHidden,captureBus}.ts',
     ],
-    journeys: ['tabs', 'reload'],
+    journeys: ['tabs', 'reload', 'launch'],
     specs: ['navigation-and-tabs'],
   },
   {
@@ -135,7 +135,7 @@ const FEATURES = [
       'src/components/atlas/**',
       'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx',
     ],
-    journeys: ['marks'],
+    journeys: ['marks', 'atlas'],
     specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell'],
   },
   {
@@ -186,7 +186,7 @@ const FEATURES = [
     about: 'the Chronicle tab: the walks list, months, rename, editing a note',
     rule: 'tabs-and-home',
     source: ['src/app/(tabs)/chronicle.tsx', 'src/lib/{rename,noteEdit,months,walkTitle}.ts', 'src/components/{NoteEditor,WalkActions}.tsx'],
-    journeys: [],
+    journeys: ['chronicle'],
     specs: ['quality-of-life'],
   },
   {
@@ -202,7 +202,7 @@ const FEATURES = [
     about: 'notifications: reminders, the pause nudge, the service worker, openers',
     rule: 'notifications',
     source: ['src/lib/notify/**', 'src/components/pwa*.ts', 'src/components/NotificationSettings.tsx', 'src/lib/openers.ts'],
-    journeys: [],
+    journeys: ['notifications'],
     specs: ['v1-discovery'],
   },
   {
@@ -210,7 +210,7 @@ const FEATURES = [
     about: 'clearing walks and moments, with undo',
     rule: 'deletion',
     source: ['src/lib/deletion/**', 'src/components/{WalkActions,UndoToast}.tsx'],
-    journeys: [],
+    journeys: ['deletion'],
     specs: ['clearing-walks-and-moments'],
   },
   {
@@ -218,7 +218,7 @@ const FEATURES = [
     about: 'memories on revisit: faint pins, previews',
     rule: 'memories',
     source: ['src/lib/memories.ts', 'src/components/MemoryPreview.tsx'],
-    journeys: [],
+    journeys: ['memories'],
     specs: ['memories-on-revisit'],
   },
   {

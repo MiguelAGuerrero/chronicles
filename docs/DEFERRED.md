@@ -164,7 +164,8 @@ An item leaves only when it ships, or when it is rejected with a decision record
 ## Test organization (decision 0083)
 
 - Shells no unit test reaches (`check:affected` says "Covered by nothing" when one changes): `session`, `walkNav`, `unitsStore`, `nav/store`, `tileCollector`, `explore/exploreRun`, `explore/momentFind`, `landing/read`, `atlas/read`, `discovery/recallCheck`, `deletion/index`, `notify/index`, `here`, `backlog`, `mapReads`, `perfCount`, `shareLog`, `tabsHidden`, `export/bundle`, `activity/overture`, `ports/index`, `ready/index`. Each gets a test over `fakePorts()` as the functional-core migration reaches its cluster (one cluster per slice).
-- Screens and components no e2e journey row covers yet are named by `check:affected` when they change; the list after the full flow's split is in `docs/TESTING.md`, section 3.
+- Every `src/app` and `src/components` file is covered by a journey row as of Nov 4 (`arch/features.test.ts` does not hold that; `check:affected` names a new screen no row covers when it changes). Shared primitives (`icons`, `ui`, `webStyles*`) ride on the `launch` row, a proxy: no journey checks them for themselves.
+- A second mouse pan on the area card's grip never returned in the e2e (the `atlas` journey drags it with touch events instead; `docs/TESTING.md`, traps): whether a mouse pan after the spring-back blocks the page on the web is worth a look in the app (Explore atlas).
 - Live criterion ids no test names (`npm run check:specs`, 36 of 374 on Nov 4): the owner's calls on whether each is built, retired or still owed; `--strict` stays out of CI and the hook until the list is empty.
 - Retired ids still named by a test (`A1`, `A11`, `S1`, `S17`, `L13`, `L16`): rename those tests to what they now prove, or drop them.
 - Coverage measurement (`node --experimental-test-coverage` under tsx) per feature: not started; the import graph answers "what reaches this" today.
