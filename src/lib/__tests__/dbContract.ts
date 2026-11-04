@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import type { Area, WalkArea } from '../areas/types';
+import type { OutlineTile } from '../areas/outlines';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Db } from '../db/types';
 import type { Mark, Offered, Place, Recall } from '../discovery/types';
@@ -71,6 +72,14 @@ export function dbContract(name: string, fresh: () => Promise<Db>) {
   const find = (key: string, walk_id: string | null, capture_id: string, found_at = 1): Find => ({
     key, area_key: null, walk_id, capture_id, found_at, name: key, category: 'art', kind: 'public_art', at: [LON, LAT], generic: false,
   });
+  const outlineTile = (key: string, read_at = 1): OutlineTile => {
+    const [x, y] = key.split('/').map(Number);
+    return {
+      key, x, y, release: '2026-10-21.0', read_at,
+      pieces: [{ id: 'd1', name: 'Whitehall', polygons: [[[[-75.5, 40.6], [-75.4, 40.6], [-75.4, 40.7], [-75.5, 40.6]]]] }],
+      points: [{ id: 'd1', at: [-75.45, 40.65] }],
+    };
+  };
   const atlasArea = (key: string, listed_at = 1): AtlasArea => ({
     key, level: 'town', name: key, at: [LON, LAT], reachM: 2000, build: 'b1', code: 'a1', listed_at, read_at: null, failed_at: null, profile: null,
   });
@@ -574,6 +583,18 @@ export function dbContract(name: string, fresh: () => Promise<Db>) {
       assert.deepEqual(got.find((r) => r.key === 'A'), { ...atlasArea('A', 2), read_at: 5 });
     });
 
+    test('FC7 putOutlineTiles, getOutlineTiles: the same key replaces; only the keys asked for come back; an empty list is a no-op', async () => {
+      const db = await fresh();
+      assert.deepEqual(await db.getOutlineTiles(['1/2']), []);
+      await db.putOutlineTiles([outlineTile('1/2', 1), outlineTile('3/4', 1)]);
+      await db.putOutlineTiles([outlineTile('1/2', 2)]);
+      await db.putOutlineTiles([]);
+      assert.deepEqual(await db.getOutlineTiles([]), []);
+      assert.deepEqual(keys(await db.getOutlineTiles(['1/2', '9/9'])), ['1/2']);
+      assert.deepEqual((await db.getOutlineTiles(['1/2']))[0], outlineTile('1/2', 2));
+      assert.deepEqual(keys(await db.getOutlineTiles(['3/4', '1/2'])), ['1/2', '3/4']);
+    });
+
     // ---- explore
 
     test('FC7 saveChecklists, listChecklistAreas, checklistItemsIn, listExploreReads: a rebuilt area\'s items are replaced, other areas\' items and orphans stay, the read is recorded', async () => {
@@ -639,7 +660,7 @@ export function dbContract(name: string, fresh: () => Promise<Db>) {
       assert.equal(await db.getMeta('j'), 'w');
     });
 
-    test('FC7 purgeDerived: drops segments, places, explore reads and atlas areas and unmarks every walk; truth, visited rows and summaries stay', async () => {
+    test('FC7 purgeDerived: drops segments, places, explore reads, atlas areas and outline tiles and unmarks every walk; truth, visited rows and summaries stay', async () => {
       const db = await fresh();
       await db.createWalk(walk('a', 1));
       await db.createWalk(walk('b', 2));
@@ -651,6 +672,7 @@ export function dbContract(name: string, fresh: () => Promise<Db>) {
       await db.putGapDecision(gap('a', 1));
       await db.putLanding(landing('L', 1));
       await db.putAtlasAreas([atlasArea('T')]);
+      await db.putOutlineTiles([outlineTile('1/2')]);
       await db.saveChecklists({ areas: [checklistArea('N1')], items: [item('i1', 'N1')], read: read('r1') });
       await db.addFind(find('f1', 'a', 'c1'));
       await db.setMeta('k', 'v');
@@ -660,6 +682,7 @@ export function dbContract(name: string, fresh: () => Promise<Db>) {
       assert.deepEqual(await db.placesIn(box), []);
       assert.deepEqual(await db.listExploreReads(), []);
       assert.deepEqual(await db.listAtlasAreas(), []);
+      assert.deepEqual(await db.getOutlineTiles(['1/2']), []);
       assert.deepEqual((await db.listWalks()).map((w) => w.snapped_build), [null, null]);
 
       assert.equal((await db.getVisited('a')).length, 1);

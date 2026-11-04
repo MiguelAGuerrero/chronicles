@@ -1,6 +1,7 @@
 // @layer core
+import { coveredBy, townAt, withOutlines, type OutlineSet } from '../areas/outlines';
 import { AREA_REACH_M } from '../areas/rules';
-import type { Area, WalkArea } from '../areas/types';
+import type { Area, PlaceCandidate, WalkArea } from '../areas/types';
 import type { CategoryId, Kind } from '../discovery/types';
 import { distanceM, projector } from '../geo';
 import { NAV } from '../nav/rules';
@@ -15,7 +16,8 @@ import type { LngLat } from '../types';
 
 /** Bumped by hand when what a ring read keeps, or how it is judged, changes (AT12). */
 /** a2: activity density (AD14): graded streets in the sketch, from OSM and Overture. */
-export const ATLAS_CODE = 'a2';
+/** a3: town outlines (TO10): the tab lists again, so a town known only by its outline gets a tile. */
+export const ATLAS_CODE = 'a3';
 
 export const ATLAS_RULES = {
   /** Every area is measured inside this ring around its point, whatever its level (AT4). */
@@ -164,8 +166,12 @@ export interface Listed {
   here: boolean;
 }
 
-/** AT1, AT14: the current areas of a level near you, nearest first, the one you are in leading. */
-export function nearList(rows: AtlasArea[], from: LngLat, level: AtlasLevel, build: string | null): Listed[] {
+/**
+ * AT1, AT14: the current areas of a level near you, nearest first, the one you are in leading.
+ * With town outlines kept around you (TO10), the town you are in is the one whose outline
+ * holds you (`townOf`), or none while its row isn't listed yet; never the nearest point instead.
+ */
+export function nearList(rows: AtlasArea[], from: LngLat, level: AtlasLevel, build: string | null, outlines: OutlineSet | null = null): Listed[] {
   const within = level === 'neighborhood' ? ATLAS_RULES.nearNeighborhoodM : ATLAS_RULES.nearTownM;
   const list: Listed[] = [];
   for (const area of rows) {
@@ -175,6 +181,13 @@ export function nearList(rows: AtlasArea[], from: LngLat, level: AtlasLevel, bui
     list.push({ area, distanceM: d, here: false });
   }
   list.sort((a, b) => a.distanceM - b.distanceM);
+  if (level === 'town' && coveredBy(outlines, from)) {
+    const mine = townOf({ at: from }, list.map((l) => l.area), outlines);
+    const i = mine ? list.findIndex((l) => l.area === mine) : -1;
+    if (i < 0) return list.slice(0, ATLAS_RULES.cap);
+    const [here] = list.splice(i, 1);
+    return [{ ...here, here: true }, ...list].slice(0, ATLAS_RULES.cap);
+  }
   const out = list.slice(0, ATLAS_RULES.cap);
   if (out[0] && out[0].distanceM <= Math.min(out[0].area.reachM, level === 'neighborhood' ? AREA_REACH_M.neighborhood : AREA_REACH_M.city)) out[0].here = true;
   return out;
@@ -232,19 +245,18 @@ export function needsNear(reads: NearRead[] | NearRead | null, at: LngLat, build
 export const withNear = (reads: NearRead[], read: NearRead): NearRead[] => [read, ...reads].slice(0, NEAR_KEPT);
 
 /**
- * AT2: the town or city an area belongs to: the nearest, closer for its size,
- * within its reach. Null when none reaches it.
+ * AT2: the town or city an area belongs to: the one whose outline holds it,
+ * where outlines are kept (TO10); else the nearest, closer for its size,
+ * within its reach. Null when none reaches it, or when the outline holding it
+ * is a town not listed.
  */
-export function townOf(area: { at: LngLat }, towns: AtlasArea[]): AtlasArea | null {
-  let best: AtlasArea | null = null;
-  let score = Infinity;
-  for (const t of towns) {
-    const d = distanceM(area.at, t.at);
-    if (d > t.reachM) continue;
-    const s = d / t.reachM;
-    if (s < score) [best, score] = [t, s];
-  }
-  return best;
+export function townOf(area: { at: LngLat }, towns: AtlasArea[], outlines: OutlineSet | null = null): AtlasArea | null {
+  const cands: PlaceCandidate[] = towns.map((t) => ({ level: 'town', name: t.name, at: t.at, reachM: t.reachM }));
+  // withOutlines keeps each row's place in the list and adds outline-only towns after them.
+  const merged = withOutlines(cands, outlines);
+  const pick = townAt(area.at, merged, outlines);
+  const i = pick ? merged.indexOf(pick.c) : -1;
+  return i >= 0 && i < towns.length ? towns[i] : null;
 }
 
 /** How far around a town's point its neighborhoods are looked for. */
@@ -254,13 +266,13 @@ export const townReachM = (town: AtlasArea) => Math.min(town.reachM, ATLAS_RULES
  * AT2: a town's own neighborhoods, nearest you first: within its reach (capped),
  * and belonging to it rather than to a town beside it.
  */
-export function townNeighborhoods(rows: AtlasArea[], town: AtlasArea, towns: AtlasArea[], from: LngLat, build: string | null): Listed[] {
+export function townNeighborhoods(rows: AtlasArea[], town: AtlasArea, towns: AtlasArea[], from: LngLat, build: string | null, outlines: OutlineSet | null = null): Listed[] {
   const reach = townReachM(town);
   const list: Listed[] = [];
   for (const area of rows) {
     if (area.level !== 'neighborhood' || !rowCurrent(area, build)) continue;
     if (distanceM(area.at, town.at) > reach || list.some((l) => sameArea(l.area, area))) continue;
-    const owner = townOf(area, towns);
+    const owner = townOf(area, towns, outlines);
     if (owner && !sameArea(owner, town)) continue;
     list.push({ area, distanceM: distanceM(area.at, from), here: false });
   }

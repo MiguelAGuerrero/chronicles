@@ -120,10 +120,14 @@ Streets, snapping, fog
   backlog.ts                 placeBacklog: places old walks in one pass through the home map
   mapReads.ts                one camera read at a time (mapReadLock)
 Places and areas (v0.5)
-  areas/types.ts             PlaceCandidate, BoundarySource, Area, WalkArea: the whole contract
+  areas/types.ts             PlaceCandidate, TownOutline, BoundarySource, Area, WalkArea: the whole contract
   areas/assign.ts            places a trace by its 50 m pieces; the title place
   areas/rules.ts             AREA_RULES and the reaches
   areas/tilePlaces.ts the OpenMapTiles place classes (the only file that knows them)
+  areas/outlines.ts          town outlines: townAt (the smallest outline holding a point, else points), withOutlines, hoodAllowed, the z12 tiles
+  areas/divisionTiles.ts     Overture's divisions schema (the only file that knows it): a tile's locality outlines and points
+  areas/outlineRead.ts       createOutlines: outlines read by tile and kept (`outline_tile`); outlineReader.ts is the app's instance
+  areas/overtureOutlines.ts  the network side: divisions.pmtiles by byte range, the places' release
   areas/boundaryPack.ts, boundaries.ts         the boundary-pack format and the packs shipped (US)
   places.ts                  the home map's stars from walks, Area and WalkArea only
   placeAll.ts                placing walks one pass at a time, withTimeout (the shell beside places.ts)
@@ -366,7 +370,8 @@ Cache (`lib/types.ts`, `areas/types.ts`): `StreetSegment` (id, name,
 kind_detail, length_m, geometry, build), `VisitedSegment` (segment_id,
 walk_id, covered_fraction, first_t, street_key), `WalkSummary` (distance_m,
 ride_m, duration_ms, new_streets, streets_walked, photos, videos, voices,
-notes, streets_read), `Area` and `WalkArea`.
+notes, streets_read), `Area` and `WalkArea`, `OutlineTile` (`outline_tile`:
+the town outlines one z12 tile held, keyed `x/y`, with its release; TO12).
 
 Discovery and Explore (`discovery/types.ts`, `explore/explore.ts`): `Place`
 (cache, per build, `markable`), `Offered`, `Mark`, `Recall` (kept),

@@ -1,6 +1,8 @@
 // @layer view
 import { ensureOvertureRelease } from '../activity/overture';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { outlines } from '../areas/outlineReader';
+import { coveredBy, outlineTileKey, outlineTileOf, type OutlineSet } from '../areas/outlines';
 import type { Area, WalkArea } from '../areas/types';
 import { db } from '../db';
 import type { Find, Kind } from '../explore/explore';
@@ -50,6 +52,19 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
   const [tick, setTick] = useState(0);
   const [extra, setExtra] = useState<Pick<AtlasData, 'areas' | 'walkAreas' | 'finds' | 'walked'>>(() => ({ areas: [], walkAreas: [], finds: [], walked: new Set() }));
   const [hidden, setHidden] = useState<Set<Kind>>(() => new Set());
+  // Town outlines kept around you (TO10): which town you are in, at once across a border.
+  const [borders, setBorders] = useState<OutlineSet | null>(null);
+  const fromRef = useRef(from);
+  useEffect(() => {
+    fromRef.current = from;
+  }, [from]);
+  const failedRef = useRef<{ key: string; t: number } | null>(null);
+  const tileKey = from ? outlineTileKey(...outlineTileOf(from)) : null;
+  const townKey = town?.key ?? null;
+  const townAtRef = useRef(town?.at ?? null);
+  useEffect(() => {
+    townAtRef.current = town?.at ?? null;
+  }, [town]);
 
   useEffect(() => {
     let alive = true;
@@ -87,13 +102,35 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
     };
   }, [focused]);
 
-  const towns = useMemo(() => (from ? nearList(rows, from, 'town', build) : []), [rows, from, build]);
+  // The outlines under you (and the open town), from the phone; the tile under you is read once when missing.
+  useEffect(() => {
+    const at = fromRef.current;
+    if (!focused || !at || !tileKey) return;
+    let live = true;
+    (async () => {
+      const points = townAtRef.current ? [at, townAtRef.current] : [at];
+      const known = await outlines.known(points);
+      if (!live) return;
+      setBorders(known);
+      const failed = failedRef.current;
+      if (coveredBy(known, at) || (failed?.key === tileKey && Date.now() - failed.t < ATLAS_RULES.retryMs)) return;
+      const read = await outlines.read([at], () => !live);
+      if (!live) return;
+      if (read.complete) setBorders(await outlines.known(points));
+      else failedRef.current = { key: tileKey, t: Date.now() };
+    })().catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [focused, tileKey, townKey, rows.length]);
+
+  const towns = useMemo(() => (from ? nearList(rows, from, 'town', build, borders) : []), [rows, from, build, borders]);
   const neighborhoods = useMemo(() => {
     if (!from) return [];
     if (!town) return nearList(rows, from, 'neighborhood', build);
     const all = rows.filter((r) => r.level === 'town' && rowCurrent(r, build));
-    return townNeighborhoods(rows, town, all, from, build);
-  }, [rows, from, town, build]);
+    return townNeighborhoods(rows, town, all, from, build, borders);
+  }, [rows, from, town, build, borders]);
   const home = useMemo(() => towns.find((l) => l.here) ?? null, [towns]);
   const own = useMemo(() => {
     const t = town ? rows.find((r) => r.key === town.key) ?? town : null;

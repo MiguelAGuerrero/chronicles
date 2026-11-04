@@ -2,6 +2,7 @@
 import { distanceM, isBreak, type PauseSpan } from '../geo';
 import { readTrace, smoothKept } from '../rides';
 import type { Fill, LngLat, TracePoint } from '../types';
+import { hoodAllowed, townAt, withOutlines, type OutlineSet } from './outlines';
 import { AREA_RULES, AREA_SAMPLE_M } from './rules';
 import type { Area, AreaLevel, BoundarySource, PlaceCandidate, Region, WalkArea } from './types';
 
@@ -24,6 +25,14 @@ export function snapDone(read: { streetsRead: boolean; placesRead: boolean }): b
   return read.streetsRead && read.placesRead;
 }
 
+/**
+ * TO8: whether a walk's places were read: nothing to place, or placed with the
+ * town outlines read too. A walk placed by points alone is placed again later.
+ */
+export function placesRead(o: { needed: boolean; placed: boolean; outlinesRead: boolean }): boolean {
+  return !o.needed || (o.placed && o.outlinesRead);
+}
+
 interface Sample {
   p: LngLat;
   t: number;
@@ -38,8 +47,9 @@ interface Sample {
  * Places a walk: its active trace (fixes that pass the filter, no paused
  * stretches, no gaps, standstills held still) is cut into AREA_SAMPLE_M
  * pieces. Each piece takes its country and state from real outlines where
- * the boundary source has them, the nearest town within reach in that same
- * state, and the nearest neighborhood within reach. Each neighborhood then
+ * the boundary source has them, its town (the outline holding it where the
+ * outlines were read, else the nearest town within reach, TO1-TO3, TO7) in that
+ * same state, and the nearest neighborhood within reach inside that town (TO6). Each neighborhood then
  * hangs under the one town most of its metres were in; with no town it is
  * left out. A walk across two neighborhoods counts in both. A walk with no
  * distance (a standstill) is placed where it stood, with no metres.
@@ -54,12 +64,16 @@ export function assignAreas(
   stills: PauseSpan[] = [],
   /** Stretches filled across gaps (Filling gaps, G11): walked, so their places count. */
   fills: Fill[] = [],
+  /** Town borders read around the walk (town outlines): they decide before points. */
+  outlines: OutlineSet | null = null,
 ): Placement {
   // Ridden metres count too: riding through a neighborhood is being there (R8).
   const tr = readTrace(points, startedAt, pauses, stills, fills);
   const fixes = smoothKept(tr);
   const ridden = (t: number) => tr.rides.some((r) => t >= r.t0 && t <= r.t1);
+  // The outlines' release is not in the tag (TO9): a new edition alone never places every walk again.
   const rules = `${AREA_RULES}/${boundaries.id}`;
+  candidates = withOutlines(candidates, outlines);
 
   const nearest = (level: AreaLevel, p: LngLat, allowed: (c: PlaceCandidate) => boolean = () => true): PlaceCandidate | null => {
     let best: { c: PlaceCandidate; score: number } | null = null;
@@ -87,12 +101,13 @@ export function assignAreas(
     };
     const state = inside?.state ?? pointRegion('state');
     const sameState = (c: PlaceCandidate) => !inside?.state || candidateState(c) == null || candidateState(c) === inside.state.name;
+    const town = townAt(p, candidates, outlines, { allowed: sameState });
     samples.push({
       p, t, w,
       country: inside?.country ?? pointRegion('country'),
       state,
-      town: nearest('town', p, sameState),
-      hood: nearest('neighborhood', p),
+      town: town?.c ?? null,
+      hood: nearest('neighborhood', p, (h) => hoodAllowed(h, town, outlines)),
     });
   };
 

@@ -35,6 +35,10 @@ const SCENARIOS = [
     ],
   },
   {
+    name: 'outlines',
+    covers: ['src/lib/areas/**', 'src/lib/atlas/**', 'src/lib/finish.ts', 'scripts/mvt-encode.mjs'],
+  },
+  {
     name: 'marks',
     covers: ['src/lib/explore/**', 'src/lib/discovery/**', 'src/lib/atlas/**', 'src/components/MarkPinView.tsx', 'src/components/atlas/**', 'src/app/walk.tsx'],
   },

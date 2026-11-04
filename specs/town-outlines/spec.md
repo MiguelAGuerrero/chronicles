@@ -35,3 +35,27 @@ This slice makes a town's outline decide, wherever one is known, on the Explore 
 - No new routes or dependencies (`pmtiles`, `@mapbox/vector-tile` and `pbf` are already in the app).
 - New cache: town outlines (derived), SQLite migration 16 and IndexedDB v14.
 - Network: Overture's public bucket, already a host (decision 0080).
+
+## Record (Nov 4)
+
+Built on branch `claude/town-outlines`. The owner took the plan's defaults ("proceed with reasonable defaults"): neighborhood outlines deferred, outlines kept on the phone, the plan as written.
+
+| Id | Passed by |
+|---|---|
+| TO1 | `townOutlines.test.ts` "TO1: the gym at 2677 MacArthur Rd is in Whitehall, not Catasauqua" (Overture's real outlines) |
+| TO2 | `townOutlines.test.ts` "TO2: Midtown is in Manhattan, the smaller of two nested outlines" |
+| TO3 | `townOutlines.test.ts` "TO3: ..."; e2e `outlines` "TO3: with no outline holding you, the town is the nearest point's" |
+| TO4 | `townOutlines.test.ts` "TO4: an outline-only town is a place, at Overture's point, else the middle of what was read"; e2e `outlines` "TO10: ... a town known only by its outline (TO4)" |
+| TO5 | `townOutlines.test.ts` "TO5: a label point inside its own outline is one candidate, at the label point" |
+| TO6 | `townOutlines.test.ts` "TO6: a neighborhood point across the town's border does not count" |
+| TO7 | `townOutlines.test.ts` "TO7: a walk across the Whitehall-Catasauqua border counts metres in both, titled by the larger" |
+| TO8 | `townOutlines.test.ts` "TO8: places are read only when the outlines were too"; `townOutlinesShell.test.ts` "TO8: a failed or unreachable read is not complete, keeps nothing, and the next read tries again" |
+| TO9 | `townOutlines.test.ts` "TO9: the rules tag changes with AREA_RULES, not with the Overture release" |
+| TO10 | `townOutlines.test.ts` "TO10: here is the town whose outline you are in, at once across a border"; e2e `outlines` "TO10: inside Pawtucket's outline the Explore tab names it" |
+| TO11 | `townOutlines.test.ts` "TO11: a checklist place belongs to the town whose outline holds it, and to none across the border" |
+| TO12 | `townOutlinesShell.test.ts` (three TO12 cases); `dbContract.ts` "FC7 putOutlineTiles, getOutlineTiles" and the `purgeDerived` case; `townOutlines.test.ts` "TO12: a read asks for the tiles under its points, at most twelve"; e2e `outlines` "TO12: outlines are read from Overture's divisions by byte range" |
+
+- **Test-first, honestly:** the pure outline module (`areas/outlines.ts`, `divisionTiles.ts`) was written just before its tests (TO1-TO5 passed on their first run); TO6-TO12's tests were written and seen failing before their code.
+- **Changed from the plan:** the criteria's tests sit in `townOutlines.test.ts` and `townOutlinesShell.test.ts` rather than spread over `areas`, `explore` and `atlas` tests; TO8's decision is the pure `placesRead()`, since `snapWalk` is an older shell on the `db` singleton with no ports to fake. A walk too wide to read (more than 12 tiles) is placed by points for good (`tooMany`), so it isn't retried on every launch. The e2e's other journeys get a divisions archive with no towns in it, since a 404 counts as a console error.
+- **Deferred:** `docs/DEFERRED.md` "Town outlines". **Native, never run on a device:** `docs/NATIVE_UNVERIFIED.md` "Town outlines".
+- **Not audited** (decision 0074: only when the owner asks).

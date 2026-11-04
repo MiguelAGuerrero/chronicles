@@ -125,6 +125,15 @@ An item leaves only when it ships, or when it is rejected with a decision record
 10. The day replay repeats its "Summary of the day" announcement after a note is edited there (QL25)
 11. Month headers keep last year's labels if the sheet stays mounted across New Year (QL28)
 
+## Town outlines (TO1-TO12, decision 0081)
+
+- Neighborhood outlines: Overture's are mostly districts ("Manhattan Community Board 5"); neighborhoods stay points, kept inside their town (TO6)
+- Counties, states and countries from Overture: the Natural Earth pack does states, offline
+- Drawing a town's border on a map: outlines only decide, nothing draws them
+- Outlines bundled for a first launch offline: until a tile is read once, its towns go by points (TO3)
+- Where to read next on an exploring walk (`readCentre` in `useExplore`) still goes by points: the reads' candidates are stored without outlines
+- A neighborhood inside an outline town that isn't listed on the Explore tab still shows on the open town's page (`townOf` answers none)
+
 ## Explore atlas
 
 - Green by park area (the share of the ring that is park): the decoder reads no park outlines yet, so green counts park places (decision 0066)

@@ -3,7 +3,8 @@
  * The rules for placing walks. Bump AREA_RULES when any of these change, so
  * every walk is placed again (the owner tunes the reaches after ten walks).
  */
-export const AREA_RULES = '1';
+/** 2: town outlines decide before label points (town outlines, TO9). */
+export const AREA_RULES = '2';
 
 /** How far from a place's point a walk still counts as in it. */
 export const AREA_REACH_M = {

@@ -1,5 +1,6 @@
 // @layer core
 import type { Area, WalkArea } from '../areas/types';
+import type { OutlineTile } from '../areas/outlines';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Mark, Offered, Place, Recall } from '../discovery/types';
 import type { ChecklistArea, ChecklistItem, ExploreRead, Find } from '../explore/explore';
@@ -122,6 +123,11 @@ export interface Db {
   /** Explore atlas (AT12): areas listed near you and their ring reads, a cache; the same key replaces a row. */
   putAtlasAreas(rows: AtlasArea[]): Promise<void>;
   listAtlasAreas(): Promise<AtlasArea[]>;
+
+  /** Town outlines (TO12): what each read tile held, a cache keyed `x/y`; the same key replaces a tile. */
+  putOutlineTiles(tiles: OutlineTile[]): Promise<void>;
+  /** The tiles of these keys that were read, in key order. */
+  getOutlineTiles(keys: string[]): Promise<OutlineTile[]>;
 
   /**
    * One explore read in one transaction (E2, E4): each built area's items are

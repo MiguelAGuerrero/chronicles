@@ -1,4 +1,5 @@
 // @layer core
+import { hoodAllowed, townAt, withOutlines, type OutlineSet } from '../areas/outlines';
 import type { AreaLevel, PlaceCandidate } from '../areas/types';
 import { CATEGORIES, categoryOf } from '../discovery/categories';
 import { isMarkable } from '../discovery/noise';
@@ -131,22 +132,25 @@ export const checklistKey = (a: AreaRef): string => JSON.stringify([a.level, a.n
 
 /**
  * The area a point belongs to (E3): the nearest neighborhood within its
- * reach; else the town or city within reach, the closer for its size; else none.
+ * reach, inside the point's town (TO6); else its town: the one whose outline
+ * holds it (TO11), else the town or city within reach, the closer for its
+ * size; else none. Only as far as a checklist can see (audit 2): a city's
+ * 10 km outskirts, or a place inside a town's outline but past its list's
+ * reach, are orphans, never the neighbor's.
  */
-export function areaFor(at: LngLat, candidates: PlaceCandidate[]): AreaRef | null {
+export function areaFor(at: LngLat, candidates: PlaceCandidate[], outlines: OutlineSet | null = null): AreaRef | null {
+  const cands = withOutlines(candidates, outlines);
+  const town = townAt(at, cands, outlines, { within: coverM });
   let hood: PlaceCandidate | null = null;
   let hoodD = Infinity;
-  let town: PlaceCandidate | null = null;
-  let townScore = Infinity;
-  for (const c of candidates) {
+  for (const c of cands) {
+    if (c.level !== 'neighborhood') continue;
     const d = distanceM(at, c.at);
-    // Only as far as a checklist can see (audit 2): a city's 10 km outskirts are orphans, not lost.
-    if (d > coverM(c)) continue;
-    if (c.level === 'neighborhood' && d < hoodD) [hood, hoodD] = [c, d];
-    else if (c.level === 'town' && d / c.reachM < townScore) [town, townScore] = [c, d / c.reachM];
+    if (d <= coverM(c) && d < hoodD && hoodAllowed(c, town, outlines)) [hood, hoodD] = [c, d];
   }
-  const c = hood ?? town;
-  return c ? { level: c.level as AreaRef['level'], name: c.name, at: c.at } : null;
+  if (hood) return { level: 'neighborhood', name: hood.name, at: hood.at };
+  if (!town || distanceM(at, town.c.at) > coverM(town.c)) return null;
+  return { level: 'town', name: town.c.name, at: town.c.at };
 }
 
 
@@ -170,11 +174,15 @@ export function buildChecklists(o: {
   now: number;
   built?: Pick<ChecklistArea, 'level' | 'name' | 'at'>[];
   known?: PlaceCandidate[];
+  /** Town borders read around the centre (TO11): an outline-only town gets a list too. */
+  outlines?: OutlineSet | null;
 }): { areas: ChecklistArea[]; items: ChecklistItem[] } {
   const built = o.built ?? [];
-  const all = uniqueAreas([...o.candidates, ...(o.known ?? [])]);
+  const outlines = o.outlines ?? null;
+  const candidates = withOutlines(o.candidates, outlines);
+  const all = uniqueAreas([...candidates, ...(o.known ?? [])]);
   const areas = new Map<string, ChecklistArea>();
-  for (const c of uniqueAreas(o.candidates)) {
+  for (const c of uniqueAreas(candidates)) {
     if ((c.level !== 'neighborhood' && c.level !== 'town') || !covers(o.centre, c)) continue;
     if (built.some((b) => sameArea(b, c))) continue;
     const ref: AreaRef = { level: c.level, name: c.name, at: c.at };
@@ -185,7 +193,7 @@ export function buildChecklists(o: {
     if (!p.kind || !isMarkable(p)) continue;
     // A place keyed twice (it straddles a rounding line) is one place.
     if (isOffered(p, items)) continue;
-    const ref = areaFor(p.at, all);
+    const ref = areaFor(p.at, all, outlines);
     let key: string | null = null;
     if (ref) {
       const mine = [...areas.values()].find((x) => sameArea(x, ref));
@@ -210,10 +218,11 @@ export function readCentre(o: {
   areas: Pick<ChecklistArea, 'level' | 'name' | 'at' | 'build'>[];
   reads: Pick<ExploreRead, 'centre' | 'build'>[];
   build: string;
+  outlines?: OutlineSet | null;
 }): LngLat | null {
   const near = o.reads.some((r) => r.build === o.build && distanceM(r.centre, o.fix) <= EXPLORE_RULES.rereadM);
   if (!near) return o.fix;
-  const ref = areaFor(o.fix, uniqueAreas(o.candidates));
+  const ref = areaFor(o.fix, uniqueAreas(o.candidates), o.outlines ?? null);
   if (!ref) return null;
   return o.areas.some((a) => a.build === o.build && sameArea(a, ref)) ? null : ref.at;
 }

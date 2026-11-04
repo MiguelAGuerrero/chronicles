@@ -88,6 +88,14 @@ const ovPlace = (id, name, xy, extra = {}) => overtureFeatures.push({
 for (let i = 0; i < 9; i++) ovPlace(`brook-${i}`, `Brook ${i}`, [13 + (i % 2 ? 0.06 : -0.06), -0.92 + i * 0.25]);
 ovPlace('brook-unsure', 'Brook Unsure', [13.06, 1.33], { confidence: '0.5' });
 ovPlace('brook-closed', 'Brook Closed', [12.94, 1.58], { operating_status: 'permanently_closed' });
+// Town outlines (TO10): Overture's divisions, with a town only in the outlines journey (elsewhere none is in them).
+// Pawtucket is known only by its outline, a 2 km square around the start; Providence's city point is 2.9 km east.
+const divisionFeatures = [
+  { type: 'Feature', geometry: { type: 'Polygon', coordinates: [[at(-10, -10), at(10, -10), at(10, 10), at(-10, 10), at(-10, -10)]] },
+    properties: { subtype: 'locality', class: 'land', '@name': 'Pawtucket', division_id: 'pawtucket', id: 'pawtucket-area' } },
+  { type: 'Feature', geometry: { type: 'Point', coordinates: at(-3, 4) }, properties: { subtype: 'locality', '@name': 'Pawtucket', id: 'pawtucket' } },
+];
+let serveDivisions = false;
 const OVERTURE_HOST = 'overturemaps-extras-us-west-2.s3.amazonaws.com';
 const OVERTURE_RELEASE = '2026-10-21.0';
 
@@ -336,6 +344,15 @@ function check(ok, what) {
       return { z, x, y, data: encodeTile(overtureFeatures, z, x, y, () => ['place']) };
     }));
   })();
+  const divisionsArchive = (() => {
+    const z = 12;
+    const [lon, lat] = O;
+    const x = Math.floor(((lon + 180) / 360) * 2 ** z);
+    const y = Math.floor(((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2) * 2 ** z);
+    return encodeArchive([{ z, x, y, data: encodeTile(divisionFeatures, z, x, y, (f) => [f.geometry.type === 'Polygon' ? 'division_area' : 'division']) }]);
+  })();
+  // Every other journey: an archive with no towns in it (a 404 would be a console error), so towns go by points.
+  const noDivisions = encodeArchive([{ z: 12, x: 0, y: 0, data: encodeTile([], 12, 0, 0) }]);
   const overtureAsked = [];
   const overtureRoute = async (r) => {
     const req = r.request();
@@ -346,12 +363,15 @@ function check(ok, what) {
       return r.fulfill({ status: 200, headers: cors, contentType: 'application/xml',
         body: `<ListBucketResult><Prefix>tiles/</Prefix><CommonPrefixes><Prefix>tiles/2026-09-23.0/</Prefix></CommonPrefixes><CommonPrefixes><Prefix>tiles/${OVERTURE_RELEASE}/</Prefix></CommonPrefixes></ListBucketResult>` });
     }
-    if (url.pathname === `/tiles/${OVERTURE_RELEASE}/places.pmtiles`) {
+    const archive = url.pathname === `/tiles/${OVERTURE_RELEASE}/places.pmtiles`
+      ? overtureArchive
+      : url.pathname === `/tiles/${OVERTURE_RELEASE}/divisions.pmtiles` ? (serveDivisions ? divisionsArchive : noDivisions) : null;
+    if (archive) {
       const m = /bytes=(\d+)-(\d+)/.exec(req.headers().range ?? '');
       const from = m ? Number(m[1]) : 0;
-      const to = Math.min(m ? Number(m[2]) : overtureArchive.length - 1, overtureArchive.length - 1);
-      return r.fulfill({ status: 206, headers: { ...cors, 'content-range': `bytes ${from}-${to}/${overtureArchive.length}`, etag: '"e2e"' },
-        contentType: 'application/octet-stream', body: overtureArchive.subarray(from, to + 1) });
+      const to = Math.min(m ? Number(m[2]) : archive.length - 1, archive.length - 1);
+      return r.fulfill({ status: 206, headers: { ...cors, 'content-range': `bytes ${from}-${to}/${archive.length}`, etag: '"e2e"' },
+        contentType: 'application/octet-stream', body: archive.subarray(from, to + 1) });
     }
     return r.fulfill({ status: 404, headers: cors, body: '' });
   };
@@ -801,6 +821,34 @@ function check(ok, what) {
         `tabs audit U14: Not now goes to Chronicle and leaves the walk unnamed (${pg.url()}, ${row && row.title})`);
     });
     await c.close();
+  };
+
+  // Town outlines (TO10): at the start, inside Pawtucket's outline, the Explore tab names Pawtucket, though
+  // Providence's point is the only town point near; without the outlines it says Providence, as before.
+  // E2E_ONLY=outlines runs it alone.
+  const outlinesScenario = async () => {
+    const titleOf = async (label) => {
+      const { c, pg } = await freshPage(label);
+      await pg.goto(url);
+      await pg.waitForFunction(() => {
+        const t = document.querySelector('[data-testid=explore-area]')?.textContent ?? '';
+        return t && t !== 'Near you';
+      }, null, { timeout: 45000 }).catch(() => {});
+      const title = await pg.locator('[data-testid=explore-area]').innerText().catch(() => '');
+      const subtitle = await pg.locator('[data-testid=explore-subtitle]').innerText().catch(() => '');
+      await c.close();
+      return { title, subtitle };
+    };
+    serveDivisions = false;
+    const before = await titleOf('outlines-off');
+    check(before.title === 'Providence', `TO3: with no outline holding you, the town is the nearest point's, as before (${before.title})`);
+    serveDivisions = true;
+    const after = await titleOf('outlines-on');
+    serveDivisions = false;
+    check(after.title === 'Pawtucket' && after.subtitle === 'Your town',
+      `TO10: inside Pawtucket's outline the Explore tab names it, a town known only by its outline (TO4) (${after.title}, ${after.subtitle})`);
+    const asked = overtureAsked.filter((q) => /divisions\.pmtiles/.test(q.url));
+    check(asked.length > 0 && asked.every((q) => q.range), `TO12: outlines are read from Overture's divisions by byte range (${asked.length} requests)`);
   };
 
   // Marks on a walk through an area read before (the owner, Nov 2): the Explore tab showed "?"
@@ -2302,6 +2350,11 @@ function check(ok, what) {
     }
     if (process.env.E2E_ONLY === 'qol') {
       await qolScenario();
+      check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
+      return;
+    }
+    if (process.env.E2E_ONLY === 'outlines') {
+      await outlinesScenario();
       check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
       return;
     }

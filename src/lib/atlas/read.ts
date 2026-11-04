@@ -2,6 +2,8 @@
 import type { CollectedFeatures } from '../../components/map/types';
 import { readOverture } from '../activity/overture';
 import { activityFromTilePois, mergeSources, type ActivityPoint } from '../activity/points';
+import { outlines } from '../areas/outlineReader';
+import { listable, withOutlines } from '../areas/outlines';
 import { placesFromTiles } from '../areas/tilePlaces';
 import { db } from '../db';
 import { isMarkable } from '../discovery/noise';
@@ -58,7 +60,14 @@ export function readNear(at: LngLat, level: AtlasLevel, build: string, reach: nu
     if (!url || build === 'unknown' || shouldStop()) return false;
     const f = await fetchTiles(url, tilesIn(boundsOf([at], reach)!, ZOOM[level]), ZOOM[level], shouldStop).catch(() => null);
     if (!f || shouldStop()) return false;
-    const candidates = placesFromTiles(f.places).filter((c) => c.level === level && distanceM(c.at, at) <= reach);
+    let candidates = placesFromTiles(f.places);
+    // Towns known only by their outline (Whitehall) are listed too (TO4, TO10); without the outlines, by points.
+    if (level === 'town') {
+      const read = await outlines.read([at], shouldStop).catch(() => null);
+      if (shouldStop()) return false;
+      if (read) candidates = withOutlines(candidates, read.set).filter((c) => listable(c, at));
+    }
+    candidates = candidates.filter((c) => c.level === level && distanceM(c.at, at) <= reach);
     const rows = newRows(await db.listAtlasAreas().catch(() => []), candidates, build, Date.now());
     await db.putAtlasAreas(rows);
     const near: NearRead = { at, build, code: ATLAS_CODE, radiusM: reach };

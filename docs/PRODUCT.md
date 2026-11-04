@@ -49,7 +49,9 @@ recording bar brings a minimized walk back.
 
 - **An atlas of the areas near you** (decision 0066): neighborhoods, or towns
   through a Neighborhoods | Towns switch, as a grid of tiles nearest first,
-  under a small map. The one you're in says "You're here".
+  under a small map. The one you're in says "You're here": the town whose
+  real border you are inside (town outlines: Overture's borders, decision
+  0081), by its label point only where no border is known.
 - Each tile is the same picture at the same scale: an 800 m ring around the
   area's point, with its streets, busy streets (magenta, graded faint to
   strong), parks, the streets
@@ -156,7 +158,8 @@ recording bar brings a minimized walk back.
 ### Chronicle (after)
 
 - The home map shows stars where walks were, at the level for the zoom
-  (neighbourhoods, towns, states, countries). A merged star zooms in; a single
+  (neighbourhoods, towns, states, countries; a walk's towns are the borders
+  it crossed, by town outlines). A merged star zooms in; a single
   star is selected and its walks listed. Placed loose moments are pins from
   z11.
 - A bottom sheet with three heights peeks with **Walks | Days**:
