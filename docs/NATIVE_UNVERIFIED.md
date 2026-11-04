@@ -34,6 +34,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] Reading tiles in code for drawing on Hermes (`useGapDraw`, `readDrawTiles`), and the k-shortest search's cost on a phone (Gap drawing, GW7, GT2)
 - [ ] `LiveWalk`'s Markers and dot on Navigate (Navigation & tabs)
 - [ ] `capFitBounds` widening MapLibre RN's fitBounds (Navigation & tabs, U15)
+- [ ] The cone through `coneHeading` on the native glide (`useGlidingWalker`'s frames, ~15 fps), hidden while the dot holds still (decision 0073)
 
 ## Notifications (`notify/transport.native.ts`, expo-notifications)
 
