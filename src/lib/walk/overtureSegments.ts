@@ -64,6 +64,7 @@ export function waysFromOvertureTile(bytes: ArrayBuffer, x: number, y: number): 
         id: `${String(p.id ?? `${x}/${y}/${i}`)}${k ? `#${k}` : ''}`,
         cls: p.class as string,
         sub: typeof p.subclass === 'string' ? p.subclass : undefined,
+        name: typeof p['@name'] === 'string' && p['@name'] ? (p['@name'] as string) : undefined,
         speedKmh: speedOf(p.speed_limits),
         level: levelOf(p.road_flags),
         line: coords.map((c) => [c[0], c[1]] as LngLat),

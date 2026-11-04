@@ -67,6 +67,7 @@ export function waysFromOverpass(json: { elements?: unknown[] }): WayFacts[] {
       id: `osm${el.id}`,
       cls,
       sub,
+      name: t.name || undefined,
       speedKmh: speedOf(t.maxspeed),
       sidewalk: sidewalkOf(t),
       level: t.bridge && t.bridge !== 'no' ? 1 : t.tunnel && t.tunnel !== 'no' ? -1 : 0,

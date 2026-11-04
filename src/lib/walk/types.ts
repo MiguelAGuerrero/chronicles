@@ -24,6 +24,8 @@ export interface WayFacts {
   speedKmh?: number;
   /** An explicit sidewalk tag on a road. */
   sidewalk?: Side;
+  /** The street's name, for the heads-up line (WK15). */
+  name?: string;
   /** 0 on the ground; a bridge or tunnel is above or below (NB1). */
   level: number;
   line: LngLat[];
