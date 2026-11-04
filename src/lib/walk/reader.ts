@@ -1,6 +1,7 @@
 // @layer shell
 import type { Ports } from '../ports/types';
 import { WALK_CODE } from './bands';
+import { MAX_TILES } from './limits';
 import { walkTileKey } from './match';
 import type { TileFacts, WalkSource, WalkTile, WayFacts } from './types';
 
@@ -10,8 +11,7 @@ import type { TileFacts, WalkSource, WalkTile, WayFacts } from './types';
  * given its ports and its source, so tests run it with fakes.
  */
 
-/** WK4: no more tiles than this in one read. */
-export const MAX_TILES = 12;
+export { MAX_TILES } from './limits';
 /** WK3: a tile that failed is not asked again for this long. */
 export const RETRY_MS = 2 * 60_000;
 /** WK3: one tile's request gives up after this. */
