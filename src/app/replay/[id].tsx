@@ -11,6 +11,7 @@ import { Icon } from '../../components/icons';
 import { CaptureViewer } from '../../components/CaptureView';
 import { Stage } from '../../components/ceremony/Stage';
 import { StepThrough } from '../../components/ceremony/StepThrough';
+import { useAwakeWhile } from '../../components/ceremony/useAwakeWhile';
 import { useCeremonyClock } from '../../components/ceremony/useCeremonyClock';
 import { useRevealed } from '../../components/ceremony/useRevealed';
 import type { StageCtx } from '../../components/ceremony/layout';
@@ -294,6 +295,8 @@ export default function Replay() {
   }, []);
   const play = useCeremonyClock({ epoch: phase.t0, running: telling, paused: viewing != null || waits.size > 0, showing, onEnd: () => go('card') });
   const frame = telling ? showing.frame(play.ms) : null;
+  // The screen stays awake while the replay plays, until the card (RR24).
+  useAwakeWhile(beat === 'reading' || beat === 'fog' || beat === 'path');
 
   // The fog beat lights the streets, then the path begins.
   useEffect(() => {

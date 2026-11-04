@@ -183,7 +183,8 @@ recording bar brings a minimized walk back.
   corner; photos and videos grow from their pin into a card and tuck into a
   pile, which opens them full screen; places passed without stopping whisper
   by. Nothing waits for a tap: a tap (or Hold) holds it, Skip goes to the card;
-  about a minute at most, memos and videos always in full. With a screen
+  about a minute at most, memos and videos always in full (a soft skeleton
+  stands in while one loads), and the screen stays awake while it plays. With a screen
   reader, the moments one at a time instead. The card says distance, time,
   captures, new streets in words ("your first time down Elm Street"), finds by
   name, and the low ("Passed ... without stopping"). **Name it** sets the

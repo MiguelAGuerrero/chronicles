@@ -2406,6 +2406,13 @@ function check(ok, what) {
       };
       // Media events don't bubble; the capture phase still sees them.
       document.addEventListener('ended', (e) => window.__media.push([e.target.tagName, 'ended']), true);
+      // The screen's wake lock, recorded: how many held now, and every request and release (RR24).
+      window.__wake = { held: 0, log: [] };
+      const lock = () => {
+        const s = { released: false, type: 'screen', release: async () => { if (!s.released) { s.released = true; window.__wake.held--; window.__wake.log.push('release'); } }, addEventListener() {}, removeEventListener() {} };
+        return s;
+      };
+      Object.defineProperty(navigator, 'wakeLock', { configurable: true, value: { request: async () => { window.__wake.held++; window.__wake.log.push('request'); return lock(); } } });
     });
     const here = at(3.0, -0.5);
     await pg.goto(navUrl);
@@ -2487,7 +2494,7 @@ function check(ok, what) {
     await pg.waitForSelector('[data-testid=replay-clock]', { timeout: 60000 });
     // What the stage shows, recorded in the page every 50 ms: a card is up for about 2 s, quicker than a poll.
     await pg.evaluate(() => {
-      window.__rrSeen = { cards: [], later: [], notes: [], counted: [], memoPlay: null, videoEndedInCard: false };
+      window.__rrSeen = { cards: [], later: [], notes: [], counted: [], memoPlay: null, videoEndedInCard: false, videoSkeleton: false, memoSkeleton: false, awakeOnPath: false };
       const add = (list, v) => v && !list.includes(v) && list.push(v);
       window.__rrTimer = setInterval(() => {
         document.querySelectorAll('[data-testid=replay-card]').forEach((e) => add(window.__rrSeen.cards, e.getAttribute('aria-label')));
@@ -2498,6 +2505,10 @@ function check(ok, what) {
           const b = mp.getBoundingClientRect();
           window.__rrSeen.memoPlay = [Math.round(b.width), Math.round(b.height)];
         }
+        // A skeleton stands where a medium will be while it loads (RR23); the screen is held awake (RR24).
+        if (document.querySelector('[data-testid=replay-card] [data-testid=media-skeleton]') && document.querySelector('[data-testid=replay-card] video')) window.__rrSeen.videoSkeleton = true;
+        if (document.querySelector('[data-testid=memo-skeleton]')) window.__rrSeen.memoSkeleton = true;
+        if (window.__wake.held > 0) window.__rrSeen.awakeOnPath = true;
         // The video reached its end while its card was still up (audit 20).
         const v = document.querySelector('[data-testid=replay-card] video');
         if (v && v.ended) window.__rrSeen.videoEndedInCard = true;
@@ -2609,6 +2620,11 @@ function check(ok, what) {
     const tail = await pg.evaluate((n) => window.__media.slice(n).filter(([tag]) => tag === 'VIDEO'), afterViewer);
     const endAt = tail.findIndex(([, op]) => op === 'ended');
     check(afterViewer >= 0 && endAt >= 0 && !tail.slice(0, endAt).some(([, op]) => op === 'pause'), `replay-rhythm audit 34: the card's video plays on to its end with no pause (${JSON.stringify(tail)})`);
+    check(rec.videoSkeleton, 'RR23: a skeleton stands in the video\u2019s card until it plays');
+    check(rec.memoSkeleton, 'RR23: a skeleton waveform stands in the memo\u2019s bubble while it loads');
+    check((await pg.locator('[data-testid=media-skeleton], [data-testid=memo-skeleton]').count()) === 0, 'RR23: no skeleton is left on the card');
+    const wake = await pg.evaluate(() => window.__wake);
+    check(rec.awakeOnPath && wake.held === 0, `RR24: the screen is held awake through the replay and let go on the card (${JSON.stringify(wake)})`);
     check(rec.memoPlay && rec.memoPlay[0] >= 44 && rec.memoPlay[1] >= 44, `RR10, replay-rhythm audit 27: the memo's bubble shows, its play button 44 px (${JSON.stringify(rec.memoPlay)})`);
 
     // A landscape phone: the card stands between the top row and the corner, clear of the buttons (replay-rhythm audit 13).
@@ -2627,6 +2643,7 @@ function check(ok, what) {
     await pg.setViewportSize({ width: 390, height: 844 });
 
     // The day (RR16): its replay reaches the day's card with no taps, the note on the way.
+    const wakesBefore = (await pg.evaluate(() => window.__wake.log.length));
     await pg.click('[data-testid=not-now]');
     await pg.waitForURL((u) => u.pathname === `${BASE}/chronicle`, { timeout: 15000 });
     await pg.click('[data-testid=sheet-days]');
@@ -2641,6 +2658,8 @@ function check(ok, what) {
       await pg.waitForTimeout(150);
     }
     check((await pg.locator('[data-testid=day-card]').count()) === 1 && !dayCont && dayNote, `RR16: the day's replay reaches its card with no taps, its note on the way (${dayNote}, ${dayCont})`);
+    const dayWake = await pg.evaluate(() => window.__wake);
+    check(dayWake.log.length > wakesBefore && dayWake.held === 0, `RR24: the day's replay holds the screen awake too, and lets it go on its card (${JSON.stringify(dayWake)})`);
     await c.close();
   };
 

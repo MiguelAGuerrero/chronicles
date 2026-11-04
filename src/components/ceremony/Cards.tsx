@@ -8,6 +8,7 @@ import { useMediaUri } from '../../lib/useMediaUri';
 import { Icon, KIND_LABEL } from '../icons';
 import { theme } from '../ui';
 import { cardWidth, PILE, pileCenter, project, restCenter, tiltOf, timeOf, type StageCtx } from './layout';
+import { Skeleton } from './Skeleton';
 import { useMediaWait } from './useMediaWait';
 
 const lerp = (a: number, b: number, u: number) => a + (b - a) * u;
@@ -68,6 +69,8 @@ function CardVideo({ o, ctx, uri, height }: { o: CardOverlay; ctx: StageCtx; uri
       <View style={styles.fill} pointerEvents="none">
         <VideoView player={player} style={styles.fill} contentFit="cover" nativeControls={false} playsInline accessibilityLabel="Video" />
       </View>
+      {/* Until it plays (loading, or a muted retry), a skeleton where the picture will be (RR23). */}
+      {!started && !ended && (o.playing || waited) && <Skeleton testID="media-skeleton" style={StyleSheet.absoluteFill} still={ctx.reduceMotion} />}
       {muted && (
         <Pressable
           testID="video-sound"
@@ -90,6 +93,8 @@ function CardVideo({ o, ctx, uri, height }: { o: CardOverlay; ctx: StageCtx; uri
 /** A photo or video grows from its pin, holds, and tucks into the pile; with reduce motion it fades in place (RR11, RR12, RR18). */
 function MomentCard({ o, ctx }: { o: CardOverlay; ctx: StageCtx }) {
   const uri = useMediaUri(o.capture);
+  // A photo's picture, once it has loaded: a skeleton stands in until then (RR23).
+  const [loaded, setLoaded] = useState(false);
   const w = cardWidth(ctx);
   const imgH = w * 1.15;
   const h = imgH + 7 + 34;
@@ -128,8 +133,9 @@ function MomentCard({ o, ctx }: { o: CardOverlay; ctx: StageCtx }) {
         {uri && o.capture.kind === 'video' ? (
           <CardVideo o={o} ctx={ctx} uri={uri} height={imgH} />
         ) : uri ? (
-          <Image source={{ uri }} style={styles.fill} resizeMode="cover" accessibilityIgnoresInvertColors pointerEvents="none" />
+          <Image source={{ uri }} style={styles.fill} resizeMode="cover" accessibilityIgnoresInvertColors pointerEvents="none" onLoad={() => setLoaded(true)} />
         ) : null}
+        {(!uri || (o.capture.kind === 'photo' && !loaded)) && <Skeleton testID="media-skeleton" style={StyleSheet.absoluteFill} still={ctx.reduceMotion} />}
       </View>
       <View style={styles.cap} pointerEvents="none">
         <Text style={styles.capText} numberOfLines={1}>{label}</Text>
