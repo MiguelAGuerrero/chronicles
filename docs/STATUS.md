@@ -137,7 +137,7 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 | Session | Branch | Doing |
 |---|---|---|
 | Bug fixes (open since Oct 31) | unknown | unknown |
-| Discrete navigation (Explore's map steps area to area, DN1-DN13; `specs/discrete-navigation/spec.md`), started 2026-11-04 | `claude/discrete-navigation` | built: unit tests, typecheck, lint, e2e `snap`, `tabs`, `outlines` pass; `marks`, `replay`, `qol` running; native unverified; not audited (0074) |
+| Discrete navigation (Explore's map steps area to area, DN1-DN13; `specs/discrete-navigation/spec.md`), started 2026-11-04 | `claude/discrete-navigation` | built, waiting on the owner's try (an experiment, decision 0089): unit tests, typecheck, lint and the e2e `snap`, `tabs`, `outlines`, `marks`, `replay`, `qol` pass; native unverified; not audited (0074) |
 
 ## Updating this file
 
