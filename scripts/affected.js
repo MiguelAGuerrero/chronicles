@@ -15,6 +15,7 @@ const { execFileSync, spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const layers = require('./layers');
+const features = require('./features');
 
 const ROOT = path.join(__dirname, '..');
 const TESTS_DIR = 'src/lib/__tests__';
@@ -210,12 +211,95 @@ function affectedTests(root, changed) {
   return { all: false, tests: picked, skipped: tests.length - picked.length };
 }
 
-/** What `test:affected` prints before running (AC3). */
+/** The feature a test file belongs to: its folder under __tests__ (TO2), or null at the root. */
+function featureOfTest(file) {
+  const m = /^src\/lib\/__tests__\/([^/]+)\/[^/]+$/.exec(file);
+  return m ? m[1] : null;
+}
+
+/** What `test:affected` prints before running (AC3), the files under their feature (TO5). */
 function describeTests(r) {
   if (r.all) return `Running every test: ${r.why}.`;
   if (!r.tests.length) return `No unit test imports what changed (${r.skipped} test files skipped).`;
-  const lines = r.tests.map((t) => `  ${t.file}${t.wide ? `  (reads the whole tree: ${t.wide})` : t.chain.length > 1 ? `\n      ← ${t.chain.slice(1).join(' ← ')}` : '  (changed)'}`);
+  const groups = new Map();
+  for (const t of r.tests) {
+    const f = featureOfTest(t.file);
+    if (!groups.has(f)) groups.set(f, []);
+    groups.get(f).push(t);
+  }
+  const lines = [];
+  for (const [feature, tests] of groups) {
+    if (feature) lines.push(`  ${feature}:`);
+    const pad = feature ? '    ' : '  ';
+    for (const t of tests) lines.push(`${pad}${t.file}${t.wide ? `  (reads the whole tree: ${t.wide})` : t.chain.length > 1 ? `\n${pad}    ← ${t.chain.slice(1).join(' ← ')}` : '  (changed)'}`);
+  }
   return `Running ${r.tests.length} test file${r.tests.length === 1 ? '' : 's'} that import what changed:\n${lines.join('\n')}\n${r.skipped} test files skipped.`;
+}
+
+/** A module's layer tag, or the folder's layer for src/app and src/components. */
+function layerOf(root, rel) {
+  if (/^src\/(app|components)\//.test(rel)) return 'view';
+  try {
+    const m = /^\/\/ @layer (core|shell|adapter|view)/.exec(fs.readFileSync(path.join(root, rel), 'utf8'));
+    return m ? m[1] : 'untagged';
+  } catch {
+    return 'untagged';
+  }
+}
+
+/**
+ * What covers each changed source file (TO6): a hole is a file that no unit
+ * test reaches through the import graph and no e2e journey row covers. A file
+ * in no feature is named too. Tests, docs and deleted files are not judged.
+ */
+function coverage(root, changed, graph = importGraph(root)) {
+  const reached = new Set();
+  for (const t of [...graph.keys()].filter(isTest)) {
+    const queue = [t];
+    const seen = new Set([t]);
+    while (queue.length) {
+      const cur = queue.shift();
+      for (const next of graph.get(cur) ?? []) {
+        if (seen.has(next)) continue;
+        seen.add(next);
+        reached.add(next);
+        if (graph.has(next)) queue.push(next);
+      }
+    }
+  }
+  const holes = [];
+  const unmapped = [];
+  for (const c of changed) {
+    if (!c.startsWith('src/') || c.startsWith(`${TESTS_DIR}/`) || !SOURCE.test(c) || !fs.existsSync(path.join(root, c))) continue;
+    const feats = features.featuresOf(c).map((f) => f.name);
+    if (!feats.length) unmapped.push(c);
+    if (!reached.has(c) && !e2eFor([c]).scenarios.length) holes.push({ file: c, layer: layerOf(root, c), features: feats });
+  }
+  return { holes, unmapped };
+}
+
+/** The coverage report, in words distinct from "nothing to run" (TO6); empty when there is nothing to say. */
+function describeCoverage(cov) {
+  const lines = [];
+  for (const h of cov.holes) {
+    lines.push(`Covered by nothing: ${h.file} (${h.layer}; ${h.features.join(', ') || 'no feature'}): no unit test reaches it and no e2e journey covers it.`);
+  }
+  if (cov.holes.length) {
+    lines.push(
+      cov.holes.some((h) => h.layer === 'view')
+        ? '  A screen gets a check in its feature\'s journey (/e2e); a shell gets a test over fakePorts(); a core module a unit test (.claude/rules/functional-core.md).'
+        : '  A shell gets a test over fakePorts(); a core module a unit test (.claude/rules/functional-core.md).',
+    );
+  }
+  for (const u of cov.unmapped) lines.push(`In no feature: ${u}. Add it to a feature's source in scripts/features.js (arch/features.test.ts fails until then).`);
+  return lines.join('\n');
+}
+
+/** The test folders of the named features (TO4), or the unknown names and the list to pick from. */
+function featureFolders(names) {
+  const all = features.FEATURES.map((f) => f.name);
+  const unknown = names.filter((n) => !features.byName.has(n));
+  return { ok: names.length > 0 && unknown.length === 0, folders: names.filter((n) => features.byName.has(n)).map((n) => `${TESTS_DIR}/${n}`), unknown, names: all };
 }
 
 /**
@@ -230,24 +314,8 @@ function lintTargets(root, changed) {
   return { all: false, files };
 }
 
-/** A glob (`**`, `*`, `{a,b}`) as a regular expression over posix paths. */
-function globToRegExp(glob) {
-  let re = '';
-  for (let i = 0; i < glob.length; i++) {
-    const ch = glob[i];
-    if (ch === '*' && glob[i + 1] === '*') {
-      re += '.*';
-      i++;
-      if (glob[i + 1] === '/') i++;
-    } else if (ch === '*') re += '[^/]*';
-    else if (ch === '{') {
-      const end = glob.indexOf('}', i);
-      re += `(?:${glob.slice(i + 1, end).split(',').map((s) => s.replace(/[.+^$()|[\]\\]/g, '\\$&')).join('|')})`;
-      i = end;
-    } else re += /[.+^$()|[\]\\?]/.test(ch) ? `\\${ch}` : ch;
-  }
-  return new RegExp(`^${re}$`);
-}
+/** A glob (`**`, `*`, `{a,b}`) as a regular expression over posix paths: the feature map's reader. */
+const { globToRegExp } = features;
 
 /**
  * The e2e scenarios that cover the changed files (AC9), and the changed
@@ -296,10 +364,27 @@ function layersStep() {
 function testsStep(changed, all) {
   const r = all ? { all: true, why: 'no main branch to compare with', tests: [], skipped: 0 } : affectedTests(ROOT, changed);
   console.log(describeTests(r));
+  if (!all) {
+    const cov = describeCoverage(coverage(ROOT, changed));
+    if (cov) console.log(cov);
+  }
   if (!r.all && !r.tests.length) return { ok: true, output: '' };
   const files = r.all ? allTests() : r.tests.map((t) => t.file);
   const res = spawnSync('npx', ['tsx', '--test', '--test-reporter=dot', ...files], { cwd: ROOT, stdio: 'inherit' });
   return { ok: res.status === 0, output: res.status === 0 ? '' : 'Affected unit tests failed (above).' };
+}
+
+/** `npm run test:feature <name...>` (TO4): the named features' folders, whole. */
+function featureStep(names) {
+  const r = featureFolders(names);
+  if (!r.ok) {
+    const why = r.unknown.length ? `No feature named ${r.unknown.map((n) => `"${n}"`).join(', ')}.` : 'Name a feature.';
+    return { ok: false, output: `${why} Features: ${r.names.join(', ')}.\n  npm run test:feature <name> [<name> ...]` };
+  }
+  const files = allTests().filter((f) => r.folders.some((d) => f.startsWith(`${d}/`)));
+  console.log(`Running ${files.length} test file${files.length === 1 ? '' : 's'} of ${names.join(', ')}.`);
+  const res = spawnSync('npx', ['tsx', '--test', '--test-reporter=dot', ...files], { cwd: ROOT, stdio: 'inherit' });
+  return { ok: res.status === 0, output: res.status === 0 ? '' : `Tests of ${names.join(', ')} failed (above).` };
 }
 
 function lintStep(changed, all) {
@@ -320,7 +405,7 @@ function e2eHint(changed, all) {
   const lines = [];
   if (r.scenarios.length) {
     lines.push('E2E journeys that cover what changed (npm run export:web, then):');
-    for (const s of r.scenarios) lines.push(`  E2E_ONLY=${s.name} npm run e2e:web    (${s.files.join(', ')})`);
+    for (const s of r.scenarios) lines.push(`  E2E_ONLY=${s.name} npm run e2e:web    (${features.featureOfJourney(s.name)?.name ?? 'no feature'}: ${s.files.join(', ')})`);
   } else lines.push('E2E: no journey covers what changed.');
   if (r.uncovered.length) {
     lines.push(`  No journey covers ${r.uncovered.join(', ')}: if this slice changes what a screen shows, add a journey for it (/e2e, scripts/e2e-scenarios.js).`);
@@ -336,6 +421,7 @@ async function main(cmd) {
   const step = (name, fn) => ({ name, run: async () => fn() });
   let steps;
   if (cmd === 'test') steps = [step('tests', () => testsStep(changed, all))];
+  else if (cmd === 'feature') steps = [step('feature', () => featureStep(process.argv.slice(3)))];
   else if (cmd === 'lint') steps = [step('lint', () => lintStep(changed, all))];
   else if (cmd === 'hook') {
     const plan = all ? ['layers', 'tests'] : hookPlan(changed);
@@ -343,12 +429,13 @@ async function main(cmd) {
   } else if (cmd === 'check') {
     steps = [step('layers', layersStep), step('tests', () => testsStep(changed, all)), step('typecheck', typecheckStep), step('lint', () => lintStep(changed, all))];
   } else {
-    console.error('usage: node scripts/affected.js test | lint | check | hook');
+    console.error('usage: node scripts/affected.js test | lint | check | hook | feature <name...>');
     process.exit(64);
   }
   const r = await runSteps(steps);
   if (r.output.trim()) console.log(r.output.trim());
   if (!r.ok) {
+    if (cmd === 'feature') process.exit(64);
     console.error(`\n${r.failed} failed. Fix it before going on; the full suite (npm test, npm run lint) is for the end of the slice.`);
     process.exit(cmd === 'hook' ? 2 : 1);
   }
@@ -357,4 +444,4 @@ async function main(cmd) {
 
 if (require.main === module) main(process.argv[2]);
 
-module.exports = { HARNESS, changedFiles, changedPaths, importGraph, affectedTests, describeTests, lintTargets, e2eFor, runSteps, hookPlan, globToRegExp };
+module.exports = { HARNESS, changedFiles, changedPaths, importGraph, affectedTests, describeTests, lintTargets, e2eFor, runSteps, hookPlan, globToRegExp, coverage, describeCoverage, featureFolders, featureOfTest, allTests };

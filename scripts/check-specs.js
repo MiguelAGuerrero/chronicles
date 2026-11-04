@@ -1,25 +1,34 @@
 #!/usr/bin/env node
-// Report which acceptance-criterion ids in specs/*/spec.md no test mentions.
-// A report, not a gate: it always exits 0.
+// Report which acceptance-criterion ids in specs/*/spec.md no test mentions
+// (test-organization TO7). A report by default (exit 0); `--strict` exits 1
+// when a live id has no test; `--feature <name>` reports one feature's specs.
 //
 // A spec's ids are the literal ones its criteria open with: "**QL1**",
 // "1. **M1 · …**", "- **N1.**", "- D1. …". Any other mention of the same
 // prefix in that spec, up to the highest number defined, counts too, so ids
 // written inline ("S16. … S17 (owner, …") are found. Ids under a heading that
-// says "superseded" are skipped. Each id is searched for as a whole word in
-// src/lib/__tests__/*.test.ts and scripts/e2e-web.js.
+// says "superseded" are skipped.
+//
+// Where an id is looked for: every unit test file and every e2e file, as a
+// whole word. When two specs share a prefix (M, R, D, G), each spec's ids are
+// looked for only in the test folders of the features that list that spec
+// (scripts/features.js), so "R1" in explore/recall.test.ts counts for
+// v1-discovery and not for rides. Ids the map declares RETIRED are listed
+// apart: the app no longer has them, so no test should.
 //
 // Plain numbered criteria with no id (v0.5's area criteria 1-27, the concept
-// tab's lists) are not checked. Some prefixes are used by more than one spec
-// (M, R, D): a mention there may belong to either, so those are listed.
+// tab's lists) are not checked.
 //
-// Usage: node scripts/check-specs.js
+// Usage: node scripts/check-specs.js [--feature <name>] [--strict]
 
 const fs = require('fs');
 const path = require('path');
+const features = require('./features');
 
 const root = path.join(__dirname, '..');
 const specsDir = path.join(root, 'specs');
+const testsDir = path.join(root, 'src', 'lib', '__tests__');
+const e2eDir = path.join(root, 'scripts', 'e2e');
 
 const DEFINITION = [
   // **QL1**, **M1 ·, **N1.**, **D1 ·
@@ -60,6 +69,12 @@ function liveText(text) {
   return out.join('\n');
 }
 
+const order = (a, b) => {
+  const [, pa, na] = /^([A-Z]+)(\d+)$/.exec(a);
+  const [, pb, nb] = /^([A-Z]+)(\d+)$/.exec(b);
+  return pa === pb ? Number(na) - Number(nb) : pa.localeCompare(pb);
+};
+
 function idsOf(text) {
   const body = liveText(text);
   const max = new Map(); // prefix -> highest defined number
@@ -76,63 +91,124 @@ function idsOf(text) {
     const top = max.get(m[1]);
     if (top !== undefined && n >= 1 && n <= top) ids.add(m[1] + n);
   }
-  const order = (a, b) => {
-    const [, pa, na] = /^([A-Z]+)(\d+)$/.exec(a);
-    const [, pb, nb] = /^([A-Z]+)(\d+)$/.exec(b);
-    return pa === pb ? Number(na) - Number(nb) : pa.localeCompare(pb);
-  };
   return { ids: [...ids].sort(order), prefixes: [...max.keys()].sort() };
 }
 
-function testWords() {
-  const files = [];
-  const testDir = path.join(root, 'src', 'lib', '__tests__');
-  if (fs.existsSync(testDir)) {
-    const walk = (d) => { for (const f of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, f.name); if (f.isDirectory()) walk(p); else if (f.name.endsWith('.test.ts')) files.push(p); } };
-    walk(testDir);
-  }
-  const e2e = path.join(root, 'scripts', 'e2e-web.js');
-  if (fs.existsSync(e2e)) files.push(e2e);
-  const words = new Set();
-  for (const f of files) {
-    for (const m of fs.readFileSync(f, 'utf8').matchAll(ANY_ID)) words.add(m[1] + Number(m[2]));
-  }
-  return { words, count: files.length };
+/** Every file under `dir` that passes `keep` (absolute paths). */
+function filesUnder(dir, keep) {
+  const out = [];
+  if (!fs.existsSync(dir)) return out;
+  const walk = (d) => {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const p = path.join(d, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (keep(p)) out.push(p);
+    }
+  };
+  walk(dir);
+  return out;
 }
 
-function main() {
+const unitTests = () => filesUnder(testsDir, (p) => p.endsWith('.test.ts'));
+const e2eFiles = () => [path.join(root, 'scripts', 'e2e-web.js'), ...filesUnder(e2eDir, (p) => p.endsWith('.js'))].filter((p) => fs.existsSync(p));
+
+/** The test folder of a unit test file (its feature), or null for an e2e file. */
+const folderOf = (file) => {
+  const rel = path.relative(testsDir, file);
+  return rel.startsWith('..') ? null : rel.split(path.sep)[0];
+};
+
+/**
+ * The files whose words count for a spec: every test file for a prefix one
+ * spec defines; for a prefix two specs share, the unit tests of the features
+ * that list this spec (e2e files always count: a journey can name any id).
+ */
+function testFilesFor(slug, shared, files = [...unitTests(), ...e2eFiles()]) {
+  if (!shared) return files;
+  const folders = new Set(features.featuresOfSpec(slug).map((f) => f.name));
+  return files.filter((f) => {
+    const folder = folderOf(f);
+    return folder === null || folders.has(folder);
+  });
+}
+
+const wordsIn = (files) => {
+  const words = new Set();
+  for (const f of files) for (const m of fs.readFileSync(f, 'utf8').matchAll(ANY_ID)) words.add(m[1] + Number(m[2]));
+  return words;
+};
+
+/**
+ * One row per spec: its ids, the live ones no test mentions, the retired ones
+ * (mentioned or not), and whether each prefix is shared with another spec.
+ */
+function report({ feature = null } = {}) {
   const specs = readSpecs();
-  const { words, count } = testWords();
   const owners = new Map(); // prefix -> slugs defining it
+  const parsed = specs.map(({ slug, text }) => ({ slug, ...idsOf(text) }));
+  for (const p of parsed) for (const pre of p.prefixes) owners.set(pre, [...(owners.get(pre) ?? []), p.slug]);
+  const files = [...unitTests(), ...e2eFiles()];
+  const wanted = feature ? new Set(features.byName.get(feature)?.specs ?? []) : null;
   const rows = [];
+  for (const p of parsed) {
+    if (wanted && !wanted.has(p.slug)) continue;
+    const retired = new Set(features.RETIRED[p.slug] ?? []);
+    const sharedPrefixes = p.prefixes.filter((pre) => (owners.get(pre) ?? []).length > 1);
+    // Words from the scoped files for shared prefixes, from every file otherwise.
+    const wordsAll = wordsIn(files);
+    const wordsScoped = sharedPrefixes.length ? wordsIn(testFilesFor(p.slug, true, files)) : wordsAll;
+    const mentioned = (id) => (sharedPrefixes.includes(id.replace(/\d+$/, '')) ? wordsScoped : wordsAll).has(id);
+    const live = p.ids.filter((id) => !retired.has(id));
+    rows.push({
+      slug: p.slug,
+      prefixes: p.prefixes,
+      shared: sharedPrefixes,
+      ids: p.ids,
+      missing: live.filter((id) => !mentioned(id)),
+      retired: p.ids.filter((id) => retired.has(id)),
+      retiredStillTested: p.ids.filter((id) => retired.has(id) && mentioned(id)),
+      features: features.featuresOfSpec(p.slug).map((f) => f.name),
+    });
+  }
+  const shared = [...owners].filter(([, s]) => s.length > 1).map(([prefix, slugs]) => ({ prefix, slugs }));
+  return { rows, shared, fileCount: files.length };
+}
+
+function main(argv) {
+  const fi = argv.indexOf('--feature');
+  const feature = fi >= 0 ? argv[fi + 1] : null;
+  const strict = argv.includes('--strict');
+  if (feature && !features.byName.has(feature)) {
+    console.error(`No feature "${feature}". Features: ${features.FEATURES.map((f) => f.name).join(', ')}`);
+    process.exit(64);
+  }
+  const r = report({ feature });
   let totalIds = 0;
   let totalMissing = 0;
-
-  for (const { slug, text } of specs) {
-    const { ids, prefixes } = idsOf(text);
-    for (const p of prefixes) owners.set(p, [...(owners.get(p) ?? []), slug]);
-    const missing = ids.filter((id) => !words.has(id));
-    totalIds += ids.length;
-    totalMissing += missing.length;
-    rows.push({ slug, ids, prefixes, missing });
-  }
-
-  console.log(`Criterion ids with no mention in ${count} test files (src/lib/__tests__/*.test.ts, scripts/e2e-web.js)\n`);
-  for (const r of rows) {
-    if (!r.ids.length) {
-      console.log(`${r.slug}: no literal criterion ids`);
+  console.log(`Criterion ids with no mention in ${r.fileCount} test files (src/lib/__tests__/**/*.test.ts, scripts/e2e/**)${feature ? `, the specs of ${feature}` : ''}\n`);
+  for (const row of r.rows) {
+    if (!row.ids.length) {
+      console.log(`${row.slug}: no literal criterion ids`);
       continue;
     }
-    const head = `${r.slug} [${r.prefixes.join(', ')}]: ${r.missing.length} of ${r.ids.length} unmentioned`;
-    console.log(r.missing.length ? `${head}\n  ${r.missing.join(' ')}` : head);
+    totalIds += row.ids.length - row.retired.length;
+    totalMissing += row.missing.length;
+    const scope = row.shared.length ? ` (${row.shared.join(', ')} scoped to ${row.features.join(', ') || 'no feature: list the spec in scripts/features.js'})` : '';
+    const head = `${row.slug} [${row.prefixes.join(', ')}]${scope}: ${row.missing.length} of ${row.ids.length - row.retired.length} live ids unmentioned`;
+    console.log(row.missing.length ? `${head}\n  ${row.missing.join(' ')}` : head);
+    if (row.retired.length) console.log(`  retired (${row.retired.length}): ${row.retired.join(' ')}${row.retiredStillTested.length ? `; still named by a test: ${row.retiredStillTested.join(' ')}` : ''}`);
   }
-  const shared = [...owners].filter(([, s]) => s.length > 1);
-  if (shared.length) {
-    console.log('\nPrefixes used by more than one spec (a mention may belong to either):');
-    for (const [p, s] of shared) console.log(`  ${p}: ${s.join(', ')}`);
+  if (r.shared.length && !feature) {
+    console.log('\nPrefixes used by more than one spec (each resolved to the features that list the spec):');
+    for (const s of r.shared) console.log(`  ${s.prefix}: ${s.slugs.join(', ')}`);
   }
-  console.log(`\nTotal: ${totalMissing} of ${totalIds} ids unmentioned.`);
+  console.log(`\nTotal: ${totalMissing} of ${totalIds} live ids unmentioned.`);
+  if (strict && totalMissing) {
+    console.error('\n--strict: a live criterion has no test naming it. Write the test, or declare the id RETIRED in scripts/features.js with who retired it.');
+    process.exit(1);
+  }
 }
 
-main();
-process.exit(0);
+if (require.main === module) main(process.argv.slice(2));
+
+module.exports = { readSpecs, idsOf, liveText, testFilesFor, report, unitTests, e2eFiles, folderOf };
