@@ -430,7 +430,9 @@ async function createHarness() {
   // Nothing leaves the device (D10): every request so far went to this server, the tile host or Overture.
   const nothingLeaves = () => {
     const away = [...hosts].filter((h) => !h.startsWith('localhost') && h !== 'tiles.openfreemap.org' && h !== OVERTURE_HOST);
-    check(away.length === 0, `nothing is sent anywhere but the map tiles and Overture's places (${away.join(', ')})`);
+    // Nothing leaves the device (D10): reminders need no network (R10), routes are made on the device (N14),
+    // landing reads nothing but tiles (L18).
+    check(away.length === 0, `nothing is sent anywhere but the map tiles and Overture's places (D10, R10, N14, L18: ${away.join(', ')})`);
   };
   const noConsoleErrors = () => check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
   const close = async () => {

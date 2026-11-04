@@ -132,6 +132,23 @@ function testFilesFor(slug, shared, files = [...unitTests(), ...e2eFiles()]) {
   });
 }
 
+/**
+ * The ids a test names (TD1): those on a line that declares a test or an e2e check or step
+ * (`test(`, `it(`, `check(`, `step(`), so a comment or an assertion message that mentions an
+ * id, such as one saying it was retired, does not count.
+ */
+const NAMING = /\b(?:test|it|check|step|qstep)\(/;
+const namedIn = (files) => {
+  const words = new Set();
+  for (const f of files) {
+    for (const line of fs.readFileSync(f, 'utf8').split('\n')) {
+      if (!NAMING.test(line) || /^\s*\/\//.test(line)) continue;
+      for (const m of line.matchAll(ANY_ID)) words.add(m[1] + Number(m[2]));
+    }
+  }
+  return words;
+};
+
 const wordsIn = (files) => {
   const words = new Set();
   for (const f of files) for (const m of fs.readFileSync(f, 'utf8').matchAll(ANY_ID)) words.add(m[1] + Number(m[2]));
@@ -159,6 +176,7 @@ function report({ feature = null } = {}) {
     const wordsScoped = sharedPrefixes.length ? wordsIn(testFilesFor(p.slug, true, files)) : wordsAll;
     const mentioned = (id) => (sharedPrefixes.includes(id.replace(/\d+$/, '')) ? wordsScoped : wordsAll).has(id);
     const live = p.ids.filter((id) => !retired.has(id));
+    const named = namedIn(sharedPrefixes.length ? testFilesFor(p.slug, true, files) : files);
     rows.push({
       slug: p.slug,
       prefixes: p.prefixes,
@@ -166,7 +184,7 @@ function report({ feature = null } = {}) {
       ids: p.ids,
       missing: live.filter((id) => !mentioned(id)),
       retired: p.ids.filter((id) => retired.has(id)),
-      retiredStillTested: p.ids.filter((id) => retired.has(id) && mentioned(id)),
+      retiredStillTested: p.ids.filter((id) => retired.has(id) && named.has(id)),
       features: features.featuresOfSpec(p.slug).map((f) => f.name),
     });
   }
@@ -211,4 +229,4 @@ function main(argv) {
 
 if (require.main === module) main(process.argv.slice(2));
 
-module.exports = { readSpecs, idsOf, liveText, testFilesFor, report, unitTests, e2eFiles, folderOf };
+module.exports = { readSpecs, idsOf, liveText, testFilesFor, report, unitTests, e2eFiles, folderOf, namedIn };

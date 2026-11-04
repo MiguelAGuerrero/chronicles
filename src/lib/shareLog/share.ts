@@ -1,14 +1,8 @@
-// @layer shell
+// @layer adapter
 import { Platform, Share } from 'react-native';
-import { db } from './db';
-import { gpsLog } from './gpsLog';
 
-/** A walk's GPS log (`gpsLog`) from storage: every raw reading and its placed captures, open or finished. */
-export async function walkLogText(walkId: string, startedAt: number): Promise<string> {
-  const [points, captures] = await Promise.all([db.getPoints(walkId), db.getCaptures(walkId)]);
-  const device = Platform.OS === 'web' ? navigator.userAgent : `${Platform.OS} ${Platform.Version}`;
-  return gpsLog({ startedAt, points, captures, userAgent: device });
-}
+/** The phone or browser, for the GPS log's header. */
+export const deviceName = (): string => (Platform.OS === 'web' ? navigator.userAgent : `${Platform.OS} ${Platform.Version}`);
 
 /**
  * Hands the log to the share sheet, or copies it where a browser has none (a

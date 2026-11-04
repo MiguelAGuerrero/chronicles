@@ -750,12 +750,15 @@ async function run(h) {
 module.exports = {
   name: 'walk',
   covers: [
+    // It shares a walk's GPS log from the walk's options (lib/shareLog).
+    'src/lib/shareLog/**',
     // The drawer's destination before a walk (NV23) is saved through the navigation store.
     'src/lib/nav/store/**',
     'src/components/{CaptureView,Caption,CapturePinView,ConfirmCard,Ticking,WalkActions,NotificationSettings}.tsx',
     'src/components/walk/**',
     'src/app/replay/**',
-    'src/lib/{replay,summary,finish,quietLines,useCaptures,useMediaUri,captureBus,here}.ts',
+    'src/lib/{replay,summary,finish,quietLines,useCaptures,useMediaUri,captureBus}.ts',
+    'src/lib/here/**',
     'src/lib/media/**',
     'src/components/Baker*.tsx',
   ],

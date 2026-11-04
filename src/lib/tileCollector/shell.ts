@@ -1,11 +1,11 @@
 // @layer shell
-import { MAX_DERIVE_VIEWS, PLACES_ZOOM } from '../components/map/types';
-import { db } from './db';
-import { fetchTiles } from './discovery/tileFetch';
-import type { Collector } from './finish';
-import { boundsOf } from './geo';
-import { tileAt, tileRect, tilesIn, tilesNear } from './tileMath';
-import type { LngLat } from './types';
+import { MAX_DERIVE_VIEWS, PLACES_ZOOM } from '../../components/map/types';
+import type { fetchTiles } from '../discovery/tileFetch';
+import type { Collector } from '../finish';
+import { boundsOf } from '../geo';
+import type { Ports } from '../ports/types';
+import { tileAt, tileRect, tilesIn, tilesNear } from '../tileMath';
+import type { LngLat } from '../types';
 
 /** Place points are read this far around the walk's middle, as the map's own wide read covers about a z10 view. */
 const PLACES_M = 10_000;
@@ -17,10 +17,11 @@ const NEAR_M = 150;
  * gaps, G12): a decision on the replay card snaps the walk again while the
  * map stays as it is. Decoded tiles give the same street ids as the map's
  * read (tileDecode). Each view is one z14 tile; any failure rejects, and the
- * snap waits for the next replay.
+ * snap waits for the next replay. The tile reader (`fetchTiles`) is passed in,
+ * since it reads the tile cache itself (TD6).
  */
-export function tileCollector(): Collector {
-  const url = () => db.getMeta('tile_url').then((u) => {
+export function tileCollectorOf(p: Pick<Ports, 'db'> & { fetchTiles: typeof fetchTiles }): Collector {
+  const url = () => p.db.getMeta('tile_url').then((u) => {
     if (!u) throw new Error('No tile URL yet');
     return u;
   });
@@ -33,10 +34,10 @@ export function tileCollector(): Collector {
       }),
     collect: async (centers) => {
       const tiles = [...new Map(centers.map((c) => tileAt(c)).map((r) => [`${r.x},${r.y}`, [r.x, r.y] as [number, number]])).values()];
-      return fetchTiles(await url(), tiles);
+      return p.fetchTiles(await url(), tiles);
     },
     collectPlaces: async (center) => {
-      const f = await fetchTiles(await url(), tilesIn(boundsOf([center], PLACES_M)!, PLACES_ZOOM), PLACES_ZOOM).catch(() => null);
+      const f = await p.fetchTiles(await url(), tilesIn(boundsOf([center], PLACES_M)!, PLACES_ZOOM), PLACES_ZOOM).catch(() => null);
       return f ? f.places : null;
     },
   };

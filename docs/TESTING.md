@@ -10,6 +10,7 @@ were measured in a cloud container on Nov 3, 2026. The e2e skill
 npm run check:affected   # layers, affected unit tests, typecheck, affected lint; then the e2e journeys to run
 npm run test:affected    # only the unit tests that import a changed file, directly or not
 npm run test:feature <name> [<name> ...]   # one feature's tests, whole (src/lib/__tests__/<name>/)
+npm run test:coverage [<name> ...]         # those tests, with line, branch and function coverage of the features' own sources
 npm run lint:affected    # only the changed files that npm run lint covers (src, index.js)
 ```
 
@@ -34,6 +35,11 @@ npm run lint:affected    # only the changed files that npm run lint covers (src,
   only `tsc`. The cost is selection breadth (`types.ts` reaches most files;
   `days.test.ts` reaches storage through `import type`), small while the
   whole suite runs in about 13 s.
+- **Coverage** (`test:coverage`, TD2): Node's built-in coverage under tsx,
+  limited to the named features' source globs from `scripts/features.js`
+  (every file under `src/lib` with no name). A report, never a gate: no
+  threshold is set, and CI and the hook don't run it. Node lists only files
+  a test loads, so a module no test reaches is absent rather than at 0%.
 - **Covered by nothing:** a changed source file that no unit test reaches and
   no journey row covers is named, with its layer and features, in words apart
   from "nothing to run". A shell gets a test over `fakePorts()`, a core module
@@ -356,7 +362,9 @@ each spec (`scripts/features.js`), so `R1` in `src/lib/__tests__/explore/recall.
 for v1-discovery and not for rides. Ids the app retired are declared in
 `RETIRED` there, with who retired them, and listed apart from live ids. It is
 a report by default (exit 0); `--feature <name>` reports one feature's specs,
-`--strict` exits 1 on a live id with no test (not in CI or the hook: the
+`--strict` exits 1 on a live id with no test. A retired id counts as still
+tested only where a test's name or an e2e check or step names it (TD1), never
+a comment or an assertion message (not in CI or the hook: the
 owner's call when the live list is empty). Run it at the end of a slice; a
 criterion of the slice that shows up is missing its test.
 

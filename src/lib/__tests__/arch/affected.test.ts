@@ -157,7 +157,8 @@ test('AC4 a harness change runs everything and names the file', () => {
 test('AC5 the graph follows what the layer reader follows, in this repo', () => {
   const tests = testsFor(ROOT, ['src/lib/geo.ts']);
   assert.ok(tests.includes('src/lib/__tests__/rides/rides.test.ts'), 'geo.ts reaches rides.test.ts');
-  assert.ok(tests.length > 10 && tests.length < 60, `${tests.length} tests reach geo.ts`);
+  const every = (affected as Affected & { allTests(root: string): string[] }).allTests(ROOT).length;
+  assert.ok(tests.length > 10 && tests.length < every, `${tests.length} of ${every} tests reach geo.ts`);
   // A change to a screen reaches only the tests that read the whole tree; the db's types reach the contract.
   const wide = affected.affectedTests(ROOT, ['src/app/walk.tsx']).tests;
   assert.ok(wide.length > 0 && wide.every((t) => t.wide), wide.map((t) => t.file).join(', '));
@@ -247,4 +248,15 @@ test('AC10 CI runs lint before the export', () => {
   const lint = ci.indexOf('npm run lint');
   assert.ok(lint > 0, 'pages.yml runs npm run lint');
   assert.ok(lint < ci.indexOf('expo export'), 'lint runs before the export');
+});
+
+test('AC11 the docs say the inner loop is check:affected and the end of a slice is the full suite', () => {
+  const agents = readFileSync(join(ROOT, 'AGENTS.md'), 'utf8');
+  assert.match(agents, /npm run check:affected\s+# the inner loop/);
+  assert.match(agents, /before declaring a task done, typecheck, lint, `npm test`/);
+  const testing = readFileSync(join(ROOT, 'docs', 'TESTING.md'), 'utf8');
+  assert.match(testing, /## 0\. The inner loop/);
+  const slice = readFileSync(join(ROOT, '.claude', 'skills', 'slice', 'SKILL.md'), 'utf8');
+  assert.match(slice, /npm run check:affected/);
+  assert.match(slice, /npm run typecheck && npm run lint && npm test/);
 });

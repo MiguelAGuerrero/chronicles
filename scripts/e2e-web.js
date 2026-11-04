@@ -28,6 +28,8 @@ if (only && !names.includes(only)) {
   try {
     if (only) {
       await require(path.join(JOURNEYS, `${only}.js`)).run(h);
+      // Every journey ends as the full flow does: nothing left the device, no console errors.
+      h.nothingLeaves();
       h.noConsoleErrors();
     } else {
       await require(path.join(JOURNEYS, 'full.js')).run(h);

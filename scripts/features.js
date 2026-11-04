@@ -22,7 +22,7 @@ const FEATURES = [
     rule: 'functional-core',
     source: ['src/lib/types.ts', 'src/lib/{store,useStore,meta,id,focus}.ts', 'src/lib/ports/**'],
     journeys: [],
-    specs: ['functional-core', 'affected-checks', 'test-organization', 'shells-saved-settings'],
+    specs: ['functional-core', 'affected-checks', 'test-organization', 'shells-saved-settings', 'test-gaps'],
   },
   {
     name: 'storage',
@@ -37,7 +37,8 @@ const FEATURES = [
     about: 'the trace: fixes, the recorder, the live dot, steps, pauses, gaps in time',
     rule: 'recording-and-traces',
     source: [
-      'src/lib/{geo,liveDot,glide,useLiveTrace,useGlidingWalker,steps,walkMotion,gpsLog,session,lastFix,hiddenLog,recorderRetry,shareLog}.ts',
+      'src/lib/{geo,liveDot,glide,useLiveTrace,useGlidingWalker,steps,walkMotion,gpsLog,session,lastFix,hiddenLog,recorderRetry}.ts',
+      'src/lib/shareLog/**',
       'src/lib/motionSource/**',
       'src/lib/recorder/**',
     ],
@@ -64,7 +65,7 @@ const FEATURES = [
     name: 'gaps',
     about: 'streets walked across a gap in the trace, and drawing a gap\'s way',
     rule: 'gaps',
-    source: ['src/lib/gaps/**', 'src/lib/tileCollector.ts', 'src/components/{GapCard,GapDraw}.tsx'],
+    source: ['src/lib/gaps/**', 'src/lib/tileCollector/**', 'src/components/{GapCard,GapDraw}.tsx'],
     journeys: ['gaps'],
     specs: ['filling-gaps', 'gap-drawing'],
   },
@@ -72,7 +73,7 @@ const FEATURES = [
     name: 'navigation',
     about: 'the way: routes, the heading, bridges, Open in Maps, time left',
     rule: 'navigation',
-    source: ['src/lib/nav/**', 'src/lib/here.ts'],
+    source: ['src/lib/nav/**', 'src/lib/here/**'],
     journeys: [],
     specs: ['v0.5-places', 'bridges-and-open-in-maps', 'quality-of-life'],
   },
@@ -175,7 +176,8 @@ const FEATURES = [
       'src/components/Capture*.tsx',
       'src/components/{Caption,Baker}*.tsx',
       'src/lib/media/**',
-      'src/lib/{useCaptures,thumbPlan,thumbJob,useMediaUri,captureBus,here}.ts',
+      'src/lib/{useCaptures,thumbPlan,thumbJob,useMediaUri,captureBus}.ts',
+      'src/lib/here/**',
       'src/lib/audioMode*.ts',
       'src/lib/export/**',
     ],
@@ -238,8 +240,9 @@ const FEATURES = [
  * Keyed by the spec's slug; each entry says who retired it.
  */
 const RETIRED = {
-  // Scan (S1-S17) and the ambient hints (A1-A11) went with Explore (v1 slice 5, Nov 1).
-  'v1-discovery': [...Array.from({ length: 17 }, (_, i) => `S${i + 1}`), ...Array.from({ length: 11 }, (_, i) => `A${i + 1}`)],
+  // As the spec says (its "Retired by this slice" line, Explore, v1 slice 5, Nov 1): S1-S6, S9-S12, S14, S15,
+  // S22 and S23 of the scan, and all of slice 3's ambient hints (A1-A11). S7, S8, S13, S16 and S17 are live.
+  'v1-discovery': ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S9', 'S10', 'S11', 'S12', 'S14', 'S15', 'S22', 'S23', ...Array.from({ length: 11 }, (_, i) => `A${i + 1}`)],
   // Retired by Explore (docs/STATUS.md).
   'v1.5-landing': ['L10', 'L13', 'L16'],
   // No Open in Maps on "Off your route" (decision 0059).

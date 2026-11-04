@@ -397,6 +397,29 @@ function testsStep(changed, all) {
   return { ok: res.status === 0, output: res.status === 0 ? '' : 'Affected unit tests failed (above).' };
 }
 
+/**
+ * What `npm run test:coverage [<feature> ...]` runs (TD2): the features' test files, and their
+ * own source globs as the coverage report's include list; with no name, every test and every
+ * file under src/lib. A report only: no threshold is ever passed to the runner.
+ */
+function coverageArgs(names) {
+  if (!names.length) return { ok: true, files: allTests(), include: ['src/lib/**'], unknown: [] };
+  const r = featureFolders(names);
+  if (!r.ok) return { ok: false, files: [], include: [], unknown: r.unknown };
+  const files = allTests().filter((f) => r.folders.some((d) => f.startsWith(`${d}/`)));
+  const include = [...new Set(names.flatMap((n) => features.byName.get(n).source))];
+  return { ok: true, files, include, unknown: [] };
+}
+
+function coverageStep(names) {
+  const r = coverageArgs(names);
+  if (!r.ok) return { ok: false, output: `No feature named ${r.unknown.map((n) => `"${n}"`).join(', ')}. Features: ${features.FEATURES.map((f) => f.name).join(', ')}.` };
+  console.log(`Coverage of ${names.length ? names.join(', ') : 'src/lib'}: ${r.files.length} test file${r.files.length === 1 ? '' : 's'}, reporting ${r.include.join(', ')}.`);
+  const args = ['tsx', '--test', '--test-reporter=spec', '--experimental-test-coverage', '--test-coverage-exclude=src/lib/__tests__/**', ...r.include.map((g) => `--test-coverage-include=${g}`), ...r.files];
+  const res = spawnSync('npx', args, { cwd: ROOT, stdio: 'inherit' });
+  return { ok: res.status === 0, output: res.status === 0 ? '' : 'Tests failed (above); the coverage report is for passing tests.' };
+}
+
 /** `npm run test:feature <name...>` (TG4): the named features' folders, whole. */
 function featureStep(names) {
   const r = featureFolders(names);
@@ -445,6 +468,7 @@ async function main(cmd) {
   let steps;
   if (cmd === 'test') steps = [step('tests', () => testsStep(changed, all))];
   else if (cmd === 'feature') steps = [step('feature', () => featureStep(process.argv.slice(3)))];
+  else if (cmd === 'coverage') steps = [step('coverage', () => coverageStep(process.argv.slice(3)))];
   else if (cmd === 'lint') steps = [step('lint', () => lintStep(changed, all))];
   else if (cmd === 'hook') {
     const plan = all ? ['layers', 'tests'] : hookPlan(changed);
@@ -452,13 +476,13 @@ async function main(cmd) {
   } else if (cmd === 'check') {
     steps = [step('layers', layersStep), step('tests', () => testsStep(changed, all)), step('typecheck', typecheckStep), step('lint', () => lintStep(changed, all))];
   } else {
-    console.error('usage: node scripts/affected.js test | lint | check | hook | feature <name...>');
+    console.error('usage: node scripts/affected.js test | lint | check | hook | feature <name...> | coverage [<name...>]');
     process.exit(64);
   }
   const r = await runSteps(steps);
   if (r.output.trim()) console.log(r.output.trim());
   if (!r.ok) {
-    if (cmd === 'feature') process.exit(64);
+    if (cmd === 'feature' || cmd === 'coverage') process.exit(r.output.startsWith('No feature') ? 64 : 1);
     console.error(`\n${r.failed} failed. Fix it before going on; the full suite (npm test, npm run lint) is for the end of the slice.`);
     process.exit(cmd === 'hook' ? 2 : 1);
   }
@@ -467,4 +491,4 @@ async function main(cmd) {
 
 if (require.main === module) main(process.argv[2]);
 
-module.exports = { HARNESS, changedFiles, changedPaths, importGraph, affectedTests, describeTests, lintTargets, e2eFor, runSteps, hookPlan, globToRegExp, coverage, describeCoverage, featureFolders, featureOfTest, allTests };
+module.exports = { HARNESS, changedFiles, changedPaths, importGraph, affectedTests, describeTests, lintTargets, e2eFor, runSteps, hookPlan, globToRegExp, coverage, describeCoverage, featureFolders, featureOfTest, allTests, coverageArgs };

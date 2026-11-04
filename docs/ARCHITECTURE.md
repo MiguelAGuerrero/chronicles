@@ -164,7 +164,7 @@ Filling gaps
   gaps/infer.ts              gapsOf, the likely way over street pieces (A*), certain / offered / nothing
   gaps/index.ts              reads a gap's tiles in code, memoized per build, walk and gap
   gaps/useLiveStretches.ts   the open walk's inferred and decided stretches (lives in OpenWalkProvider)
-  tileCollector.ts           reads the tiles near a walk in code, no camera moves (re-snap after a decision)
+  tileCollector/             reads the tiles near a walk in code, no camera moves (re-snap after a decision); shell.ts takes the tile reader
 Discovery and Explore (v1)
   discovery/types.ts         Place, Offered, Mark, Recall, PlaceSource, Kind, CategoryId
   discovery/tilePois.ts the OpenMapTiles poi classes, markable, kindFor (the only file that knows them)
@@ -199,7 +199,7 @@ Landing (v1.5)
   landing/walk.ts            the strip chip and the dead-zone nudge
 Memories, moments, days
   memories.ts                faint pins from earlier walks: memoryReader, groupFirst
-  here.ts                    capturesHere: What happened here, across walks
+  here/                      capturesHere: What happened here, across walks (shell.ts, index.ts)
   days.ts                    days from capture and walk times, never stored; the day's card
   locate/                    one fix for a loose moment: expo-location on native, navigator.geolocation on web
   useLocate.ts               the Locate tap
@@ -212,7 +212,7 @@ Captures and media
   pins.ts                    pinsFor: grouping captures by screen distance; pinReminded, the bell
   useReminded.ts             the captures with a live reminder, per map; re-read on recallCheck's onRecallsChanged and at nextExpiry
   momentPins.ts              moments outside walks as pins (Navigate, Chronicle) and Chronicle's fit around them
-  export/bundle.ts           writeWalkBundle (deferred; nothing in the UI reaches it); export/ per-platform keepers
+  export/bundle/             writeWalkBundle (shell.ts over db and clock) (deferred; nothing in the UI reaches it); export/ per-platform keepers
 Deletion
   deletion/core.ts           what each delete takes; pending.ts: the Undo window on a given clock
   deletion/index.ts          the one Undo window wired to timers and storage; useDeletions.ts: useHidden / useVisible

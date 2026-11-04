@@ -140,13 +140,13 @@ test('TG5 the selected tests are listed under their feature', () => {
 });
 
 test('TG6 a changed file no unit test reaches and no journey covers is named, with its layer and features; one in no feature too', () => {
-  const c = affected.coverage(ROOT, ['src/lib/shareLog.ts', 'src/lib/rides.ts', 'src/app/walk.tsx', 'docs/STATUS.md']);
-  assert.deepEqual(c.holes.map((h) => h.file), ['src/lib/shareLog.ts'], 'rides has tests, walk.tsx has journeys');
-  assert.equal(c.holes[0].layer, 'shell');
-  assert.deepEqual(c.holes[0].features, ['recording']);
+  const c = affected.coverage(ROOT, ['src/lib/focus.ts', 'src/lib/rides.ts', 'src/app/walk.tsx', 'docs/STATUS.md']);
+  assert.deepEqual(c.holes.map((h) => h.file), ['src/lib/focus.ts'], 'rides has tests, walk.tsx has journeys');
+  assert.equal(c.holes[0].layer, 'adapter');
+  assert.deepEqual(c.holes[0].features, ['arch']);
   assert.deepEqual(c.unmapped, []);
   const text = affected.describeCoverage(c);
-  assert.match(text, /Covered by nothing: src\/lib\/shareLog\.ts \(shell; recording\)/);
+  assert.match(text, /Covered by nothing: src\/lib\/focus\.ts \(adapter; arch\)/);
   assert.doesNotMatch(text, /No unit test imports/);
 });
 
@@ -165,7 +165,8 @@ test('TG7 a prefix two specs share is looked for only in the folders of the feat
   const shared = r.shared.map((s) => s.prefix);
   for (const p of ['M', 'R', 'D']) assert.ok(shared.includes(p), `${p} is shared`);
   const v1 = r.rows.find((x) => x.slug === 'v1-discovery')!;
-  assert.equal(v1.retired.length, 28, 'S1-S17 and A1-A11 are retired, not missing');
+  assert.equal(v1.retired.length, 25, 'the ids the spec\'s "Retired by this slice" line names are retired, not missing');
+  for (const live of ['S7', 'S8', 'S13', 'S16', 'S17']) assert.ok(!v1.retired.includes(live), `${live} is live`);
   assert.ok(!v1.missing.some((id) => /^(S|A)\d+$/.test(id) && v1.retired.includes(id)));
   const one = specs.report({ feature: 'rides' });
   assert.deepEqual(one.rows.map((x) => x.slug), ['rides']);
@@ -232,4 +233,46 @@ test('SH6 an instance of a tested shell is not a hole; one of an untested shell 
     assert.match(readFileSync(join(ROOT, rel), 'utf8').split('\n')[1] ?? '', /^\/\/ @instance: /, rel);
   }
   assert.deepEqual(affected.coverage(ROOT, ['src/lib/ports/index.ts', 'src/lib/ready/index.ts', 'src/lib/tabsHidden.ts']).holes, []);
+});
+
+test('TD1 a retired id is still tested only when a test name or an e2e check names it, not a comment or an assertion message', () => {
+  const dir = join(ROOT, '..', `td1-${process.pid}`);
+  mkdirSync(dir, { recursive: true });
+  try {
+    const named = join(dir, 'named.test.ts');
+    const mentioned = join(dir, 'mentioned.test.ts');
+    writeFileSync(named, "test('S3 the scan is gone', () => {});\ncheck(ok, `A4: still here`);\n");
+    writeFileSync(mentioned, "// S5 was retired with scan.\nassert.equal(x, 1, 'S6 and A7 are retired, not missing');\n");
+    const s = specs as Specs & { namedIn(files: string[]): Set<string> };
+    const got = s.namedIn([named, mentioned]);
+    assert.ok(got.has('S3') && got.has('A4'), [...got].join(' '));
+    assert.ok(!got.has('S5') && !got.has('S6') && !got.has('A7'), [...got].join(' '));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+  const v1 = specs.report().rows.find((x) => x.slug === 'v1-discovery') as { retiredStillTested?: string[] } | undefined;
+  assert.deepEqual(v1?.retiredStillTested ?? [], [], 'this repo names no retired v1 id in a test');
+});
+
+test('TD2 coverage per feature: the features\' tests, their own sources only; an unknown name fails; no threshold', () => {
+  const a = affected as Affected & { coverageArgs(names: string[]): { ok: boolean; files: string[]; include: string[]; unknown: string[] } };
+  const r = a.coverageArgs(['rides']);
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.files, ['src/lib/__tests__/rides/rides.test.ts']);
+  assert.deepEqual(r.include, ['src/lib/rides.ts'], 'only the feature\'s own sources');
+  const all = a.coverageArgs([]);
+  assert.ok(all.ok && all.files.length > 50 && all.include.includes('src/lib/**'));
+  const bad = a.coverageArgs(['nope']);
+  assert.equal(bad.ok, false);
+  assert.deepEqual(bad.unknown, ['nope']);
+  const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as { scripts: Record<string, string> };
+  assert.equal(pkg.scripts['test:coverage'], 'node scripts/affected.js coverage');
+  assert.doesNotMatch(readFileSync(join(ROOT, 'scripts', 'affected.js'), 'utf8'), /--test-coverage-(lines|branches|functions)=/, 'no threshold');
+});
+
+test('NT12 the docs list the web notification transport as a web exception, with its reason', () => {
+  const arch = readFileSync(join(ROOT, 'docs', 'ARCHITECTURE.md'), 'utf8');
+  const section = arch.slice(arch.indexOf('## Web exceptions'), arch.indexOf('\n## ', arch.indexOf('## Web exceptions') + 1));
+  assert.match(section, /notify\/transport\.web\.ts/);
+  assert.match(section, /expo-notifications has no web build/);
 });

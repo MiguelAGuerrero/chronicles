@@ -182,6 +182,8 @@ async function run(h) {
 module.exports = {
   name: 'deletion',
   covers: [
+    // It shares a walk's GPS log from the walk's options (lib/shareLog).
+    'src/lib/shareLog/**',
     'src/lib/deletion/**',
     'src/components/{WalkActions,UndoToast}.tsx',
   ],

@@ -12,7 +12,7 @@ npm run check:affected                      # the inner loop: layers, the tests 
 npm run typecheck                           # tsc --noEmit, incremental: ~22 s cold, ~5 s after
 npm run lint                                # expo lint, ~40 s; includes the import boundaries below
 npm test                                    # every unit test, ~13 s; npm run test:affected for those a change reaches
-npm run test:feature <feature>              # one feature's folder (src/lib/__tests__/<feature>/); scripts/features.js is the map
+npm run test:feature <feature>              # one feature's folder (src/lib/__tests__/<feature>/); scripts/features.js is the map; test:coverage adds coverage
 npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # one e2e journey; the full flow (no E2E_ONLY) only when the owner asks
 npm run check:docs                          # this file's budget, rule globs, paths the docs name; CI runs it too
 npx expo-doctor                             # dependency and config issues; npx expo install --fix for versions
