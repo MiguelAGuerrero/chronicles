@@ -248,3 +248,5 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - Coverage is a report (`npm run test:coverage [<feature>]`, TD2) with no threshold, in neither CI nor the hook; Node lists only the files a test loads, so a file no test reaches is missing from it, not at 0% (`check:affected` names those).
 - `walk.tsx` triggers six journeys (`tabs`, `ready`, `marks`, `reload`, `gaps`, `hidden`): a split of the walk screen's own journey (ready, recording, capture) when it grows again.
 - An e2e for the Home Screen hand-off (`navigator.standalone` plus an iPhone UA, a `location.href` spy): `openInMaps` imports `Platform`, so no unit test reaches it (fix pwa-maps audit 1; deferred at `--tests=lean`)
+
+- **A self-referential `node_modules` symlink is tracked in git** (commit `16e54cf`, seen Nov 4 during fix busy-streets): it points at itself, so a fresh checkout has no dependencies until it is removed and `npm ci` runs. Untrack it and make sure `node_modules` is in `.gitignore`; left alone because it is not the busy-areas fix.
