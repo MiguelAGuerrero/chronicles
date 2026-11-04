@@ -63,6 +63,10 @@ Placing walks in neighborhoods, towns, cities and states (`lib/areas`), the boun
   - **Retry:** a walk whose tiles failed is saved by points with
     `placesRead` false (`placesRead()` in `assign.ts`), so it is placed again;
     one wider than 12 tiles (`tooMany`) is placed by points for good.
+  - **Drawing** (TB1-TB9, decision 0087): borders come from the z10 tiles
+    (`outlines.borders`, `BORDER_ZOOM`), whole towns; deciding stays on z12.
+    The tinted town is matched to the decided one by the source's id.
+    `outline_tile` keys are `z/x/y` (migration 17, IndexedDB v15).
   - **Traps:** outlines are clipped at tile edges, so "not inside" means
     something only where the point's own tile was read (`coveredBy`).
     Of nested outlines the smaller wins by area of the pieces read (Midtown

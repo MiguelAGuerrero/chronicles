@@ -192,6 +192,11 @@ const MIGRATIONS = [
     pieces TEXT NOT NULL, points TEXT NOT NULL
   );
   `,
+  // 17: town borders (TB7): tiles keyed by zoom (z/x/y), z10 to draw beside z12 to decide; the old x/y rows are dropped.
+  `
+  DELETE FROM outline_tile;
+  ALTER TABLE outline_tile ADD COLUMN z INTEGER NOT NULL DEFAULT 12;
+  `,
 ];
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
@@ -594,8 +599,8 @@ export const db: Db = {
     return write(async (t) => {
       for (const r of tiles) {
         await t.runAsync(
-          'INSERT OR REPLACE INTO outline_tile (key, x, y, release, read_at, pieces, points) VALUES (?, ?, ?, ?, ?, ?, ?)',
-          r.key, r.x, r.y, r.release, r.read_at, JSON.stringify(r.pieces), JSON.stringify(r.points),
+          'INSERT OR REPLACE INTO outline_tile (key, z, x, y, release, read_at, pieces, points) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          r.key, r.z, r.x, r.y, r.release, r.read_at, JSON.stringify(r.pieces), JSON.stringify(r.points),
         );
       }
     });

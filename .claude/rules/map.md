@@ -68,6 +68,12 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
 - `fitBounds` keeps the current bearing in maplibre; never pass a bearing to a follow or a fit.
 - The e2e turns the newest web map through `window.__turn(deg)`, defined only when `window.__perf` is (a two-finger gesture can't be made headless). The `ready` scenario sets `__perf` itself.
 
+## Town borders (TB1-TB9, decision 0087)
+
+- `WalkMap`'s `borders` prop (`BorderView` from `areas/borders.ts`): one `borders` source, three layers (`border-fill` for tinted, `border-firm` for tinted and firm, `border-lined`), from `BORDER.minZoom` (8). On web they go under the first base road layer (`source-layer` transportation, else the first line, else the first label); on native they are the first overlay (no road id to go below; unverified on a device).
+- Data is sent again only when `borders.key` changes (the towns and their roles), never per fix or zoom; the web writes `data-borders` (`role:name|...`) for the e2e.
+- Screens: Explore (`index.tsx`, yours tinted by `outlineIdHere`, the open town's by `outlineOf`), Chronicle (walked towns, `lined: false`), the walk screen (`firm` by `outlineIdAt`, no fill), the replay and a day (`useWalkBorders`). `BORDER` colours are held by `colors.test.ts` (TB8).
+
 ## Icons and pins
 
 - Icons come from `@expo/vector-icons` (Ionicons), via `src/components/icons.tsx`.

@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import { useWalkBorders } from '../../lib/areas/useOutlineSet';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AccessibilityInfo, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -130,6 +131,9 @@ export default function DayReplay() {
   // What happened that day, less any moment just deleted (D3), read once; the ceremony tells it (RR20, RR21).
   // The story and the card read the same day, less what was deleted (audit 26).
   const day = useMemo(() => (data ? dayWithout(data.day, hidden) : null), [data, hidden]);
+  // Town borders (TB5): the towns the day's walks were in tinted.
+  const dayWalks = useMemo(() => (data ? [...data.walks.keys()] : []), [data]);
+  const borders = useWalkBorders(dayWalks);
   const story = useMemo(() => {
     if (!data || !day) return null;
     const walks = new Map([...data.walks].map(([id, r]) => [id, { ...r, captures: r.captures.filter((c) => !hidden.has(c.id)) }]));
@@ -222,6 +226,7 @@ export default function DayReplay() {
   return (
     <View style={styles.screen}>
       <WalkMap
+        borders={borders}
         trace={drawn.trace}
         rides={drawn.rides}
         walked={[]}

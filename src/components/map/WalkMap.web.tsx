@@ -25,7 +25,7 @@ import { useUnits } from '../../lib/useUnits';
 import { useReminded } from '../../lib/useReminded';
 import { MOTION } from '../../lib/motionTokens';
 import {
-  COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
+  BORDER, bordersGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -44,6 +44,17 @@ function addOverlay(map: MapLibreMap) {
   const empty: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
   // The veil goes under the first label layer, so names stay readable.
   const firstSymbol = map.getStyle().layers.find((l: { type: string; id: string }) => l.type === 'symbol')?.id;
+  // Town borders under the streets (TB8): the first road layer of the base map, else under the labels.
+  const style = map.getStyle().layers as { type: string; id: string; 'source-layer'?: string }[];
+  const firstRoad = style.find((l) => l.type === 'line' && l['source-layer'] === 'transportation')?.id
+    ?? style.find((l) => l.type === 'line')?.id ?? firstSymbol;
+  map.addSource('borders', { type: 'geojson', data: empty, tolerance: 1 });
+  map.addLayer({ id: 'border-fill', type: 'fill', source: 'borders', minzoom: BORDER.minZoom, filter: ['==', ['get', 'role'], 'tinted'],
+    paint: { 'fill-color': BORDER.color, 'fill-opacity': BORDER.fillOpacity } }, firstRoad);
+  map.addLayer({ id: 'border-lined', type: 'line', source: 'borders', minzoom: BORDER.minZoom, filter: ['==', ['get', 'role'], 'lined'],
+    layout: { 'line-join': 'round' }, paint: { 'line-color': BORDER.lined, 'line-width': BORDER.linedWidth, 'line-opacity': BORDER.linedOpacity } }, firstRoad);
+  map.addLayer({ id: 'border-firm', type: 'line', source: 'borders', minzoom: BORDER.minZoom, filter: ['!=', ['get', 'role'], 'lined'],
+    layout: { 'line-join': 'round' }, paint: { 'line-color': BORDER.color, 'line-width': BORDER.firmWidth, 'line-opacity': BORDER.firmOpacity } }, firstRoad);
   map.addSource('veil', { type: 'geojson', data: WORLD_VEIL });
   map.addLayer({ id: 'veil', type: 'fill', source: 'veil', paint: { 'fill-color': COLORS.veil, 'fill-opacity': 0 } }, firstSymbol);
   // Lines are simplified a little more than the default and keep a smaller tile buffer: less to
@@ -442,6 +453,18 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, endsKey]);
   useEffect(() => { if (ready) setData('ring', ringGeoJSON(props.ring)); }, [ready, props.ring]);
+  // Town borders (TB1-TB5): sent again only when the towns or their roles change (TB9).
+  const borderKey = props.borders?.key ?? '';
+  const bordersRef = useRef(props.borders);
+  useEffect(() => {
+    bordersRef.current = props.borders;
+  }, [props.borders]);
+  useEffect(() => {
+    if (!ready) return;
+    setData('borders', bordersGeoJSON(bordersRef.current));
+    // The e2e reads which towns are drawn, and how.
+    container.current?.setAttribute('data-borders', (bordersRef.current?.shapes ?? []).map((b) => `${b.role}:${b.name}`).sort().join('|'));
+  }, [ready, borderKey]);
   useEffect(() => {
     if (ready) setData('cone', coneGeoJSON(glideOn ? null : props.walker, props.walkerHeading, view?.zoom ?? 16));
   }, [ready, glideOn, props.walker, props.walkerHeading, view]);

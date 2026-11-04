@@ -144,7 +144,9 @@ Places and areas (v0.5)
   areas/outlines.ts          town outlines: townAt (the smallest outline holding a point, else points), withOutlines, hoodAllowed, the z12 tiles
   areas/divisionTiles.ts     Overture's divisions schema (the only file that knows it): a tile's locality outlines and points
   areas/outlineRead.ts       createOutlines: outlines read by tile and kept (`outline_tile`); outlineReader.ts is the app's instance
-  areas/overtureOutlines.ts  the network side: divisions.pmtiles by byte range, the places' release
+  areas/overtureOutlines.ts  the network side: divisions.pmtiles by byte range (z12 to decide, z10 to draw), the places' release
+  areas/borders.ts           town borders to draw: bordersFor (tinted, firm, lined; simplified, 40 at most), outlineIdHere, outlineOf
+  areas/useOutlineSet.ts     a screen's outlines (useOutlineSet) and a replay's or day's borders (useWalkBorders)
   areas/boundaryPack.ts, boundaries.ts         the boundary-pack format and the packs shipped (US)
   places.ts                  the home map's stars from walks, Area and WalkArea only
   placeAll.ts                placing walks one pass at a time, withTimeout (the shell beside places.ts)
@@ -388,7 +390,7 @@ kind_detail, length_m, geometry, build), `VisitedSegment` (segment_id,
 walk_id, covered_fraction, first_t, street_key), `WalkSummary` (distance_m,
 ride_m, duration_ms, new_streets, streets_walked, photos, videos, voices,
 notes, streets_read), `Area` and `WalkArea`, `OutlineTile` (`outline_tile`:
-the town outlines one z12 tile held, keyed `x/y`, with its release; TO12).
+the town outlines one tile held, keyed `z/x/y` (z12 to decide, z10 to draw), with its release; TO12, TB7).
 
 Discovery and Explore (`discovery/types.ts`, `explore/explore.ts`): `Place`
 (cache, per build, `markable`), `Offered`, `Mark`, `Recall` (kept),

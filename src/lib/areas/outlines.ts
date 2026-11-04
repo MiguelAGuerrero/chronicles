@@ -13,6 +13,8 @@ import type { PlaceCandidate, TownOutline } from './types';
 
 /** Outlines are read from tiles at this zoom: a few metres' detail, 80-170 KB a tile. */
 export const OUTLINE_ZOOM = 12;
+/** Borders are drawn from tiles at this zoom (TB6): about 40 km across, so a town comes whole. */
+export const BORDER_ZOOM = 10;
 /** A read asks for at most this many tiles (TO12); past it, the caller places by points. */
 export const OUTLINE_TILES_MAX = 12;
 
@@ -23,9 +25,11 @@ export interface OutlinePiece {
   polygons: LngLat[][][];
 }
 
-/** Cache (TO12): what one tile held, so it is never read twice. Keyed `x/y` at OUTLINE_ZOOM. */
+/** Cache (TO12, TB7): what one tile held, so it is never read twice. Keyed `z/x/y`. */
 export interface OutlineTile {
   key: string;
+  /** OUTLINE_ZOOM to decide, BORDER_ZOOM to draw. */
+  z: number;
   x: number;
   y: number;
   /** The source's edition it came from (an Overture release). */
@@ -42,21 +46,21 @@ export interface OutlineSet {
   towns: TownOutline[];
 }
 
-export const outlineTileKey = (x: number, y: number) => `${x}/${y}`;
+export const outlineTileKey = (x: number, y: number, z: number = OUTLINE_ZOOM) => `${z}/${x}/${y}`;
 
-/** The OUTLINE_ZOOM tile a point lies in. */
-export function outlineTileOf([lon, lat]: LngLat): [number, number] {
-  const n = 2 ** OUTLINE_ZOOM;
+/** The tile a point lies in, at OUTLINE_ZOOM unless asked. */
+export function outlineTileOf([lon, lat]: LngLat, z: number = OUTLINE_ZOOM): [number, number] {
+  const n = 2 ** z;
   const r = (lat * Math.PI) / 180;
   return [Math.floor(((lon + 180) / 360) * n), Math.floor(((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * n)];
 }
 
 /** The tiles under these points, once each; null when there are more than `cap` (TO12). */
-export function outlineTilesFor(points: LngLat[], cap = OUTLINE_TILES_MAX): [number, number][] | null {
+export function outlineTilesFor(points: LngLat[], cap = OUTLINE_TILES_MAX, z: number = OUTLINE_ZOOM): [number, number][] | null {
   const out = new Map<string, [number, number]>();
   for (const p of points) {
-    const t = outlineTileOf(p);
-    out.set(outlineTileKey(t[0], t[1]), t);
+    const t = outlineTileOf(p, z);
+    out.set(outlineTileKey(t[0], t[1], z), t);
     if (out.size > cap) return null;
   }
   return [...out.values()];
@@ -122,10 +126,10 @@ export function inOutline(p: LngLat, t: Pick<TownOutline, 'polygons' | 'bbox'>):
 /** Where an outline-only town's star goes without its own point: the middle of what was read of it (TO4). */
 export const outlineCentre = (t: TownOutline): LngLat => t.at ?? [(t.bbox[0] + t.bbox[2]) / 2, (t.bbox[1] + t.bbox[3]) / 2];
 
-const sameName = (a: string, b: string) => a.normalize('NFC').trim().toLowerCase() === b.normalize('NFC').trim().toLowerCase();
+export const sameName = (a: string, b: string) => a.normalize('NFC').trim().toLowerCase() === b.normalize('NFC').trim().toLowerCase();
 
 /** Metres from a point to an outline's box (0 inside it). */
-function boxDistanceM(p: LngLat, [w, s, e, n]: TownOutline['bbox']): number {
+export function boxDistanceM(p: LngLat, [w, s, e, n]: TownOutline['bbox']): number {
   return distanceM(p, [Math.min(Math.max(p[0], w), e), Math.min(Math.max(p[1], s), n)]);
 }
 

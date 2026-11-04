@@ -6,13 +6,12 @@ import { ensureOvertureRelease } from '../activity/overture';
 import { overtureDivisionsUrl } from '../activity/release';
 import { outlineTileFrom } from './divisionTiles';
 import type { OutlineSource } from './outlineRead';
-import { OUTLINE_ZOOM } from './outlines';
 import type { TileFeature } from './tilePlaces';
 
 /*
  * Town outlines from Overture's divisions (TO1, decision 0083): the network
  * side. One release's divisions.pmtiles, read by byte range at z12, with no
- * key and nothing about the user, from the bucket the places come from
+ * key and nothing about the user (z12 to decide, z10 to draw, TB6), from the bucket the places come from
  * (decision 0080). The release is the one the places reader follows.
  */
 
@@ -25,13 +24,13 @@ const fileFor = (release: string) => {
   return archive.file;
 };
 
-function decode(bytes: ArrayBuffer, x: number, y: number) {
+function decode(bytes: ArrayBuffer, x: number, y: number, z: number) {
   const vt = new VectorTile(new PbfReader(new Uint8Array(bytes)));
   const layer = (id: string): TileFeature[] => {
     const l = vt.layers[id];
     const out: TileFeature[] = [];
     for (let i = 0; l && i < l.length; i++) {
-      const f = l.feature(i).toGeoJSON(x, y, OUTLINE_ZOOM);
+      const f = l.feature(i).toGeoJSON(x, y, z);
       out.push({ geometry: f.geometry as TileFeature['geometry'], properties: (f.properties ?? {}) as Record<string, unknown> });
     }
     return out;
@@ -41,13 +40,13 @@ function decode(bytes: ArrayBuffer, x: number, y: number) {
 
 export const overtureOutlines: OutlineSource = {
   release: () => ensureOvertureRelease(),
-  async tile(release, x, y) {
+  async tile(release, x, y, z) {
     const file = fileFor(release);
     const ctl = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
       const t = await Promise.race([
-        file.getZxy(OUTLINE_ZOOM, x, y, ctl.signal),
+        file.getZxy(z, x, y, ctl.signal),
         new Promise<never>((_, reject) => {
           timer = setTimeout(() => {
             ctl.abort();
@@ -56,7 +55,7 @@ export const overtureOutlines: OutlineSource = {
         }),
       ]);
       // No tile: open sea, or past the archive's reach. Nothing there is a town.
-      return outlineTileFrom(x, y, release, 0, t ? decode(t.data, x, y) : {});
+      return outlineTileFrom(x, y, release, 0, t ? decode(t.data, x, y, z) : {}, z);
     } catch (e) {
       // pmtiles keeps a failed header for good: the next read opens the archive afresh.
       if (archive?.file === file) archive = null;

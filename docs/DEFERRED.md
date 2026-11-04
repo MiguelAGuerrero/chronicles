@@ -129,7 +129,6 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 - Neighborhood outlines: Overture's are mostly districts ("Manhattan Community Board 5"); neighborhoods stay points, kept inside their town (TO6)
 - Counties, states and countries from Overture: the Natural Earth pack does states, offline
-- Drawing a town's border on a map: outlines only decide, nothing draws them
 - Outlines bundled for a first launch offline: until a tile is read once, its towns go by points (TO3)
 - Where to read next on an exploring walk (`readCentre` in `useExplore`) still goes by points: the reads' candidates are stored without outlines
 - A neighborhood inside an outline town that isn't listed on the Explore tab still shows on the open town's page (`townOf` answers none)
@@ -141,6 +140,14 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - A significance file per tile (Wikidata, QRank page views, heritage tags, Wikivoyage "see" listings): needs a host the app has never had; the tiles' `rank` is a label order, not fame, so S23's idea of using it would not work
 - Retuning `STEPS` against real towns
 - A street-network catchment in place of the ring
+
+## Town borders (TB1-TB9, decision 0087)
+
+- Labels on borders: the base map's own town labels stay
+- Tapping a region to open its town: the stars and tiles already do
+- A dark map style for the borders: the app has one map style
+- Chronicle's walked-town regions (TB3) and the walk screen's lines (TB4) have unit tests but no e2e check: a journey would need a placed walk seeded into storage
+- On native the border layers can't go under the base map's streets (no road layer id): they sit over them, faint
 
 ## Explore atlas
 

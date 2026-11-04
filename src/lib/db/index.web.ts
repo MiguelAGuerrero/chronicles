@@ -14,7 +14,7 @@ import type { Db } from './types';
 
 // Same tables as the native SQLite store, as IndexedDB object stores.
 const DB_NAME = 'chronicles';
-const VERSION = 14;
+const VERSION = 15;
 
 /** Raised when another open tab holds an older version of the database. */
 export class BlockedByOtherTabError extends Error {
@@ -106,6 +106,10 @@ function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number) {
   if (oldVersion < 14) {
     // Town outlines (TO12): what each read tile held, a cache cleared with the derived stores.
     d.createObjectStore('outline_tile', { keyPath: 'key' });
+  }
+  if (oldVersion < 15) {
+    // Town borders (TB7): tiles are keyed by zoom now (z/x/y); the cache's old x/y rows are dropped and read again.
+    tx.objectStore('outline_tile').clear();
   }
 }
 

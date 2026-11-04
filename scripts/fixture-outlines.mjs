@@ -6,6 +6,8 @@
  * from `toGeoJSON`). Run by hand, never by CI:
  *
  *   node scripts/fixture-outlines.mjs <release> <out.json> <names,comma,separated> <lon,lat> [<lon,lat> ...]
+ *
+ * Z=10 in the environment cuts the zoom-10 tiles borders are drawn from (TB6); z12 otherwise.
  */
 import { writeFileSync } from 'node:fs';
 import { VectorTile } from '@mapbox/vector-tile';
@@ -15,7 +17,7 @@ import { PMTiles } from 'pmtiles';
 const [release, out, namesS, ...pts] = process.argv.slice(2);
 if (!pts.length) throw new Error('usage: fixture-outlines.mjs <release> <out.json> <names> <lon,lat> ...');
 const names = new Set(namesS.split(','));
-const Z = 12;
+const Z = Number(process.env.Z ?? 12);
 const tileOf = ([lon, lat]) => {
   const n = 2 ** Z;
   const r = (lat * Math.PI) / 180;

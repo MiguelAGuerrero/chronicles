@@ -18,6 +18,9 @@ import { onRecallOpen, recallWaiting, takeRecallOpen } from '../../lib/discovery
 import { zoomOutFor } from '../../lib/zoomOut';
 import { placeBacklog } from '../../lib/backlog';
 import type { Bounds } from '../../lib/geo';
+import { bordersFor, outlineIdsOf, townPlaces } from '../../lib/areas/borders';
+import { BORDER_ZOOM } from '../../lib/areas/outlines';
+import { useOutlineSet } from '../../lib/areas/useOutlineSet';
 import { levelForZoom, placesIndex, starsFor, unplacedWalks, type Star } from '../../lib/places';
 import type { Capture, LngLat, Walk, WalkSummary } from '../../lib/types';
 import { deletions } from '../../lib/deletion';
@@ -189,6 +192,10 @@ export default function Chronicle() {
     [captures, pinZoom],
   );
   const index = useMemo(() => placesIndex(data?.areas ?? [], data?.rows ?? [], data?.walks ?? []), [data]);
+  // TB3: the towns your walks were in, as regions in one tint behind the stars (from z8, BORDER.minZoom).
+  const walkedTowns = useMemo(() => townPlaces([...index.byArea.keys()].map((k) => index.areas.get(k)!).filter(Boolean)), [index]);
+  const drawn = useOutlineSet(walkedTowns.map((t) => t.at), BORDER_ZOOM, focused);
+  const borders = useMemo(() => bordersFor(drawn, { tinted: outlineIdsOf(walkedTowns, drawn), lined: false }), [drawn, walkedTowns]);
   const summaries = useMemo(() => new Map((data?.summaries ?? []).map((s) => [s.walk_id, s])), [data]);
   const unplaced = useMemo(() => unplacedWalks(data?.walks ?? [], data?.rows ?? []), [data]);
   const stars = useMemo(() => {
@@ -366,6 +373,7 @@ export default function Chronicle() {
             captures={momentPins}
             onPinPress={setViewing}
             stars={stars}
+            borders={borders}
             selectedStar={selected?.id ?? null}
             marks={spot ? [spot] : undefined}
             // Walk here only at street zoom (NV12): a press on a zoomed-out map lands far from anywhere walkable.

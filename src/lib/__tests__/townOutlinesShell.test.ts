@@ -19,11 +19,11 @@ function fakeSource(opts: { fail?: boolean; release?: string | null } = {}) {
     async release() {
       return opts.release === undefined ? '2026-10-21.0' : opts.release;
     },
-    async tile(release, x, y): Promise<OutlineTile> {
-      asked.push(outlineTileKey(x, y));
+    async tile(release, x, y, z): Promise<OutlineTile> {
+      asked.push(outlineTileKey(x, y, z));
       if (source.fail) throw new Error('offline');
       return {
-        key: outlineTileKey(x, y), x, y, release, read_at: 0,
+        key: outlineTileKey(x, y, z), z, x, y, release, read_at: 0,
         pieces: [{ id: 'wh', name: 'Whitehall', polygons: [[[[-75.6, 40.6], [-75.4, 40.6], [-75.4, 40.7], [-75.6, 40.7], [-75.6, 40.6]]]] }],
         points: [],
       };

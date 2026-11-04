@@ -73,9 +73,9 @@ export function dbContract(name: string, fresh: () => Promise<Db>) {
     key, area_key: null, walk_id, capture_id, found_at, name: key, category: 'art', kind: 'public_art', at: [LON, LAT], generic: false,
   });
   const outlineTile = (key: string, read_at = 1): OutlineTile => {
-    const [x, y] = key.split('/').map(Number);
+    const [z, x, y] = key.split('/').map(Number);
     return {
-      key, x, y, release: '2026-10-21.0', read_at,
+      key, z, x, y, release: '2026-10-21.0', read_at,
       pieces: [{ id: 'd1', name: 'Whitehall', polygons: [[[[-75.5, 40.6], [-75.4, 40.6], [-75.4, 40.7], [-75.5, 40.6]]]] }],
       points: [{ id: 'd1', at: [-75.45, 40.65] }],
     };
@@ -585,14 +585,18 @@ export function dbContract(name: string, fresh: () => Promise<Db>) {
 
     test('FC7 putOutlineTiles, getOutlineTiles: the same key replaces; only the keys asked for come back; an empty list is a no-op', async () => {
       const db = await fresh();
-      assert.deepEqual(await db.getOutlineTiles(['1/2']), []);
-      await db.putOutlineTiles([outlineTile('1/2', 1), outlineTile('3/4', 1)]);
-      await db.putOutlineTiles([outlineTile('1/2', 2)]);
+      assert.deepEqual(await db.getOutlineTiles(['12/1/2']), []);
+      await db.putOutlineTiles([outlineTile('12/1/2', 1), outlineTile('12/3/4', 1)]);
+      await db.putOutlineTiles([outlineTile('12/1/2', 2)]);
       await db.putOutlineTiles([]);
       assert.deepEqual(await db.getOutlineTiles([]), []);
-      assert.deepEqual(keys(await db.getOutlineTiles(['1/2', '9/9'])), ['1/2']);
-      assert.deepEqual((await db.getOutlineTiles(['1/2']))[0], outlineTile('1/2', 2));
-      assert.deepEqual(keys(await db.getOutlineTiles(['3/4', '1/2'])), ['1/2', '3/4']);
+      assert.deepEqual(keys(await db.getOutlineTiles(['12/1/2', '12/9/9'])), ['12/1/2']);
+      assert.deepEqual((await db.getOutlineTiles(['12/1/2']))[0], outlineTile('12/1/2', 2));
+      assert.deepEqual(keys(await db.getOutlineTiles(['12/3/4', '12/1/2'])), ['12/1/2', '12/3/4']);
+      // TB7: a z10 tile under the same x/y is its own row.
+      await db.putOutlineTiles([outlineTile('10/1/2', 3)]);
+      assert.deepEqual((await db.getOutlineTiles(['10/1/2']))[0], outlineTile('10/1/2', 3));
+      assert.deepEqual((await db.getOutlineTiles(['12/1/2']))[0], outlineTile('12/1/2', 2));
     });
 
     // ---- explore
@@ -672,7 +676,7 @@ export function dbContract(name: string, fresh: () => Promise<Db>) {
       await db.putGapDecision(gap('a', 1));
       await db.putLanding(landing('L', 1));
       await db.putAtlasAreas([atlasArea('T')]);
-      await db.putOutlineTiles([outlineTile('1/2')]);
+      await db.putOutlineTiles([outlineTile('12/1/2')]);
       await db.saveChecklists({ areas: [checklistArea('N1')], items: [item('i1', 'N1')], read: read('r1') });
       await db.addFind(find('f1', 'a', 'c1'));
       await db.setMeta('k', 'v');
@@ -682,7 +686,7 @@ export function dbContract(name: string, fresh: () => Promise<Db>) {
       assert.deepEqual(await db.placesIn(box), []);
       assert.deepEqual(await db.listExploreReads(), []);
       assert.deepEqual(await db.listAtlasAreas(), []);
-      assert.deepEqual(await db.getOutlineTiles(['1/2']), []);
+      assert.deepEqual(await db.getOutlineTiles(['12/1/2']), []);
       assert.deepEqual((await db.listWalks()).map((w) => w.snapped_build), [null, null]);
 
       assert.equal((await db.getVisited('a')).length, 1);

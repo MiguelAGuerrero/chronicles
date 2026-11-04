@@ -124,6 +124,11 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] SQLite migration 16 (`outline_tile`) and `putOutlineTiles` / `getOutlineTiles` (`IN (...)` with up to 64 keys)
 - [ ] Overture's divisions.pmtiles read by byte range on a phone (`areas/overtureOutlines.ts`, the same `pmtiles` path as the places reader), inside the replay's snap and the backlog's pass
 
+## Town borders (TB1-TB9)
+
+- [ ] The `borders` GeoJSONSource with fill and line layers (`filter`, `minzoom`) on MapLibre RN, the first overlay over the base map
+- [ ] SQLite migration 17 (`outline_tile` cleared, `z` column) and z10 tiles read on a phone
+
 ## Explore atlas
 
 - [ ] react-native-svg mini-maps on iOS and Android (12 tiles, an even-odd veil, dashed strokes)

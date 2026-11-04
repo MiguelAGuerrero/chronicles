@@ -63,6 +63,9 @@ import { aboutTimeLeft, formatTimeLeft, paceMps, timeLeftMs } from '../lib/nav/e
 import { useVisible } from '../lib/deletion/useDeletions';
 import { deletions } from '../lib/deletion';
 import { UndoToast } from '../components/UndoToast';
+import { bordersFor, outlineIdAt } from '../lib/areas/borders';
+import { BORDER_ZOOM, OUTLINE_ZOOM } from '../lib/areas/outlines';
+import { useOutlineSet } from '../lib/areas/useOutlineSet';
 
 /** Streets around the walker: read from the map and shown as fog this far out. */
 const NEAR_RADIUS_M = 1000;
@@ -303,6 +306,17 @@ function WalkScreen(props: { onMinimize: () => void }) {
   useEffect(() => onWalkGap(onGap), [onGap]);
   // The keeper's trace, once it holds this walk; motion runs in the keeper too (Motion).
   const live = openWalk.live;
+  // Town borders (TB4): thin lines around you, the town you're in firmer, no fill, so the trace and fog read as before.
+  const borderAt = walk ? live.here : ready.mapProps.walker ?? null;
+  const drawnBorders = useOutlineSet([borderAt], BORDER_ZOOM);
+  const decidedBorders = useOutlineSet([borderAt], OUTLINE_ZOOM);
+  const hereTown = borderAt ? outlineIdAt(borderAt, decidedBorders) : null;
+  // Ordered by distance from where you are to a few hundred metres, so the shapes aren't rebuilt per fix (TB9).
+  const nearKey = borderAt ? `${borderAt[0].toFixed(2)},${borderAt[1].toFixed(2)}` : '';
+  const borders = useMemo(() => {
+    const near = nearKey ? (nearKey.split(',').map(Number) as LngLat) : null;
+    return bordersFor(drawnBorders, { firm: hereTown ? [hereTown] : [], near });
+  }, [drawnBorders, hereTown, nearKey]);
   const motionAccess = useMotionAccess();
   const cap = useCaptures(walk?.id ?? null, live.here, live.lastFixAt, onCaptureError);
   // A deleted moment leaves the pins, Explore and the viewer at once (D3, D5).
@@ -958,7 +972,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     <View style={styles.screen}>
       {/* One map for both states, at one place in the tree, so Start never remounts it (NR6). */}
       {!walk ? (
-        <WalkMap {...ready.mapProps} ref={mapRef} onBearingChange={setBearing} scaleInset={{ bottom: at.barTop + SCALE_BOTTOM, left: sideInset + 12 }} />
+        <WalkMap {...ready.mapProps} borders={borders} ref={mapRef} onBearingChange={setBearing} scaleInset={{ bottom: at.barTop + SCALE_BOTTOM, left: sideInset + 12 }} />
       ) : (
       <WalkMap
         landing={hotView}
@@ -971,6 +985,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         // While drawing, a tap on a pin is a point along the way like any other (gap-drawing audit 8).
         onPinPress={recordingVoice || stopping || settingsOpen || isDrawing ? undefined : setViewing}
         walker={live.here}
+        borders={borders}
         walkerSource={live.dot}
         glideWalker
         walkerHeading={live.heading}

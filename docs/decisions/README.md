@@ -92,3 +92,4 @@ An owner's call made during a slice gets its record in the same commit as the sl
 | [0083](0083-town-outlines.md) | 2026-11-04 | The town you are in is the one whose border (Overture's locality outline) you are inside; label points only where no outline was read; neighborhoods only inside their town | places-and-areas, explore |
 | [0085](0085-the-replay-flows.md) | 2026-11-04 | The replay flows: glide to the moments, zip through the rest, tap to hold (supersedes 0002, 0004) | replay |
 | [0086](0086-ceremonies-are-views.md) | 2026-11-04 | A ceremony is a view of the story, swapped without changing the code around it | replay, architecture |
+| [0087](0087-town-borders.md) | 2026-11-04 | Town borders are drawn on every map that shows a town: yours (or a walk's) tinted, the others lined; drawn from Overture's z10 tile, decided on z12 | map, places-and-areas |

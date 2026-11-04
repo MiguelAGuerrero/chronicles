@@ -50,7 +50,7 @@ const square = (x0: number, y0: number, x1: number, y1: number): LngLat[][][] =>
 function squaresTile(towns: { id: string; name: string; polygons: LngLat[][][]; at?: LngLat }[]): OutlineTile {
   const [x, y] = outlineTileOf(O);
   return {
-    key: outlineTileKey(x, y), x, y, release: 'test', read_at: 1,
+    key: outlineTileKey(x, y), z: 12, x, y, release: 'test', read_at: 1,
     pieces: towns.map(({ id, name, polygons }) => ({ id, name, polygons })),
     points: towns.filter((t) => t.at).map((t) => ({ id: t.id, at: t.at! })),
   };

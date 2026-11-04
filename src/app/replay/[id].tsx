@@ -1,6 +1,7 @@
 import { useUnits } from '../../lib/useUnits';
 import { foundLine, foundList, passedLine } from '../../lib/explore/explore';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useWalkBorders } from '../../lib/areas/useOutlineSet';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AccessibilityInfo, BackHandler, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View,
@@ -57,6 +58,8 @@ export default function Replay() {
   const insets = useSafeAreaInsets();
   const mapRef = useRef<WalkMapHandle>(null);
   const [stored, setData] = useState<ReplayData | null>(null);
+  // Town borders (TB5): the towns this walk was in tinted, read again once the walk is placed.
+  const borders = useWalkBorders(id ? [id] : [], stored?.walk.snapped_build ?? '');
   // A deleted moment leaves the pins, the stops and the counts at once (D3, D9).
   const hidden = useHidden();
   const data = useMemo(() => {
@@ -409,6 +412,7 @@ export default function Replay() {
     <View style={styles.screen}>
       <WalkMap
         ref={mapRef}
+        borders={borders}
         trace={drawn.trace}
         rides={drawn.rides}
         traceOpacity={beat === 'fog' || beat === 'reading' ? 0.3 : 1}

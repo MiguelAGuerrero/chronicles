@@ -29,3 +29,23 @@ Town outlines (TO1-TO12, decision 0083) made the town you're in the one whose bo
 - No new routes or dependencies.
 - The outline cache (`outline_tile`, TO12) also holds zoom-10 tiles, keyed by zoom: SQLite migration 17 and IndexedDB v15. Both clear the old rows, since it is a cache.
 - Network: Overture's divisions archive, already read (decision 0083).
+
+## Record (Nov 4)
+
+Built on branch `claude/town-borders`; the owner's go-ahead on the plan, Nov 4.
+
+| Id | Passed by |
+|---|---|
+| TB1 | `townBorders.test.ts` "TB1: ..." (Overture's real Whitehall, Catasauqua, Coplay, North Catasauqua); e2e `outlines` "TB1: Explore's map draws the town you're in tinted and its neighbor lined", "TB1, TB7: no outline known, no border drawn" |
+| TB2 | `townBorders.test.ts` "TB2: ..."; e2e `outlines` "TB2: the town's page draws its border tinted" |
+| TB3 | `townBorders.test.ts` "TB3: walked towns are one tint ...", "TB3, TB5: a walk's town areas become its tinted outlines" |
+| TB4 | `townBorders.test.ts` "TB4: the walk screen's borders are lines only, the town you're in firmer" |
+| TB5 | `townBorders.test.ts` "TB5: ...", "TB3, TB5: ..." |
+| TB6 | `townBorders.test.ts` "TB6: a border is drawn whole ..." |
+| TB7 | `townBordersShell.test.ts` (two TB7 cases); `dbContract.ts` z10 and z12 tiles under one x/y |
+| TB8 | `colors.test.ts` "TB8: the border fill keeps streets and labels readable; the lines show on the base map" |
+| TB9 | `townBorders.test.ts` "TB9: shapes are simplified to about 10 m and capped at 40 towns ..." |
+
+- **Test-first, honestly:** TB1-TB6 and TB9 were written and seen failing (no module) before `areas/borders.ts`; the reader's z10 read was written just before TB7's tests, which passed on their first run.
+- **Changed from the plan:** TB3 and TB4 have no e2e check (a journey would need a placed walk seeded into storage), and the web layer order is not checked by the e2e; both are in `docs/DEFERRED.md`. The replay and the day read their towns through `outlines.townsOf` (views read no db).
+- **Not audited** (decision 0074: only when the owner asks). **Native, never run on a device:** `docs/NATIVE_UNVERIFIED.md` "Town borders".

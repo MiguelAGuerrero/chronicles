@@ -1,6 +1,6 @@
 // @layer core
 import type { LngLat } from '../types';
-import { outlineTileKey, type OutlinePiece, type OutlineTile } from './outlines';
+import { OUTLINE_ZOOM, outlineTileKey, type OutlinePiece, type OutlineTile } from './outlines';
 import type { TileFeature } from './tilePlaces';
 
 /*
@@ -22,6 +22,7 @@ export function outlineTileFrom(
   release: string,
   readAt: number,
   layers: { division_area?: TileFeature[]; division?: TileFeature[] },
+  z: number = OUTLINE_ZOOM,
 ): OutlineTile {
   const pieces: OutlinePiece[] = [];
   for (const f of layers.division_area ?? []) {
@@ -38,5 +39,5 @@ export function outlineTileFrom(
     if (p.subtype !== 'locality' || typeof p.id !== 'string' || f.geometry.type !== 'Point') continue;
     points.push({ id: p.id, at: f.geometry.coordinates as LngLat });
   }
-  return { key: outlineTileKey(x, y), x, y, release, read_at: readAt, pieces, points };
+  return { key: outlineTileKey(x, y, z), z, x, y, release, read_at: readAt, pieces, points };
 }

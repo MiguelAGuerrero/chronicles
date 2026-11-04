@@ -17,6 +17,9 @@ import {
 } from '../../lib/atlas/atlas';
 import { nearReads } from '../../lib/atlas/read';
 import { useAtlas } from '../../lib/atlas/useAtlas';
+import { bordersFor, outlineIdHere, outlineOf } from '../../lib/areas/borders';
+import { BORDER_ZOOM } from '../../lib/areas/outlines';
+import { useOutlineSet } from '../../lib/areas/useOutlineSet';
 import { db } from '../../lib/db';
 import type { Find } from '../../lib/explore/explore';
 import { formatDistance } from '../../lib/format';
@@ -85,6 +88,14 @@ export default function Explore() {
   // Your own town is the title, never listed again (atlas round 3).
   const towns = useMemo(() => otherTowns(allTowns), [allTowns]);
   const home = stale ? null : fresh.home;
+  // Town borders (TB1, TB2): whole, from the z10 tile around you (or the open town); yours tinted, the rest lined.
+  const drawn = useOutlineSet([from, town?.at], BORDER_ZOOM, focused);
+  const borders = useMemo(() => {
+    const tinted = town
+      ? outlineOf({ name: town.name, at: town.at }, drawn)?.id
+      : home && from ? outlineIdHere(from, home.area.name, fresh.outlines) : null;
+    return bordersFor(drawn, { tinted: tinted ? [tinted] : [], near: town?.at ?? from });
+  }, [drawn, town, home, from, fresh.outlines]);
   const [spot, setSpot] = useState<{ at: LngLat; zoom: number } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [pressSeen, setPressSeen] = useState(true);
@@ -322,6 +333,7 @@ export default function Explore() {
           marks={spot ? [spot.at] : NONE}
           areaPoints={areaPoints}
           ring={sel ? { center: sel.area.at, radiusM: ATLAS_RULES.ringM } : null}
+          borders={borders}
           onLongPress={(at) => {
             if (looking) return;
             if ((view?.zoom ?? 0) < 10) {

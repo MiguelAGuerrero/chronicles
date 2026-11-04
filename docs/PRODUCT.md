@@ -51,7 +51,9 @@ recording bar brings a minimized walk back.
   through a Neighborhoods | Towns switch, as a grid of tiles nearest first,
   under a small map. The one you're in says "You're here": the town whose
   real border you are inside (town outlines: Overture's borders, decision
-  0083), by its label point only where no border is known.
+  0083), by its label point only where no border is known. The map draws
+  it tinted, the towns around in thin lines (town borders, decision 0087),
+  as do a town's page, the walk screen (lines only), the replay and a day.
 - Each tile is the same picture at the same scale: an 800 m ring around the
   area's point, with its streets, busy streets (magenta, graded faint to
   strong), parks, the streets
@@ -164,7 +166,8 @@ recording bar brings a minimized walk back.
 
 - The home map shows stars where walks were, at the level for the zoom
   (neighbourhoods, towns, states, countries; a walk's towns are the borders
-  it crossed, by town outlines). A merged star zooms in; a single
+  it crossed, by town outlines, drawn as tinted regions behind the stars from
+  zoom 8, all alike). A merged star zooms in; a single
   star is selected and its walks listed. Placed loose moments are pins from
   z11.
 - A bottom sheet with three heights peeks with **Walks | Days**:
