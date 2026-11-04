@@ -15,6 +15,13 @@ allowed-tools: Bash, Read, Edit, Write, Grep, Glob, Agent, Skill, AskUserQuestio
 does not cover a second issue found on the way (record it in `docs/DEFERRED.md`), a
 force push, or any "Hard stops" below.
 
+**Do not stop to ask before pushing.** Running `/fix` is the authorization for
+every push this skill describes: the fix branch, `main` (the default), and a
+revert on a red run. The general rule against pushing without being asked is
+satisfied by the owner having typed `/fix`. The only reasons to stop short of
+the push are the "Hard stops", a failed gate, open accepted findings, a
+rebase conflict, or `--deploy=branch|none`; say which one if you stop.
+
 ## Flags (parse them out of the arguments; the rest is the issue)
 
 | Flag | Values | Default |
