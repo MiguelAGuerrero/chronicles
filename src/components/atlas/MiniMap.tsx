@@ -1,6 +1,7 @@
 import { memo, useMemo } from 'react';
 import Svg, { Circle, G, Path, Rect, Text as SvgText } from 'react-native-svg';
-import { SKETCH, sketchPaths, toSketch, type AtlasArea } from '../../lib/atlas/atlas';
+import { useOvertureRelease } from '../../lib/activity/overture';
+import { profileStale, SKETCH, sketchPaths, toSketch, type AtlasArea } from '../../lib/atlas/atlas';
 import type { CategoryId } from '../../lib/discovery/types';
 import type { LngLat } from '../../lib/types';
 import { COLORS, HOTSPOT, HOTSPOT_GRADES } from '../map/types';
@@ -22,6 +23,9 @@ export const MiniMap = memo(function MiniMap(props: {
 }) {
   const { area, walked } = props;
   const sketch = area.profile?.sketch;
+  // Measured with another Overture release, or without one: dimmed until read again (AD6, activity-density audit 13).
+  const release = useOvertureRelease();
+  const dim = area.profile && profileStale(area.profile, release) ? HOTSPOT_GRADES.staleOpacity : 1;
   const paths = useMemo(() => (sketch ? sketchPaths(sketch, walked) : null), [sketch, walked]);
   const to = useMemo(() => toSketch(area.at), [area.at]);
   const { w, h, ringR } = SKETCH;
@@ -47,7 +51,7 @@ export const MiniMap = memo(function MiniMap(props: {
           {paths?.grades.map((d, i) =>
             d ? (
               <Path key={`g${i}`} d={d} stroke={HOTSPOT} strokeWidth={3.2 * HOTSPOT_GRADES[(i + 1) as 1 | 2 | 3].width}
-                strokeOpacity={HOTSPOT_GRADES[(i + 1) as 1 | 2 | 3].opacity} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                strokeOpacity={HOTSPOT_GRADES[(i + 1) as 1 | 2 | 3].opacity * dim} fill="none" strokeLinecap="round" strokeLinejoin="round" />
             ) : null,
           )}
           {paths?.walked ? <Path d={paths.walked} stroke={COLORS.trace} strokeWidth={2.2} fill="none" strokeLinecap="round" strokeLinejoin="round" /> : null}

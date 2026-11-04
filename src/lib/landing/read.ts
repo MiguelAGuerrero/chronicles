@@ -10,7 +10,7 @@ import { ensureTileBuild } from '../tiles';
 import { tilesIn } from '../tileMath';
 import type { LngLat } from '../types';
 import { analyzeArea, centreFor, LANDING_RULES, readTiles, type AreaAnalysis } from './analyze';
-import { keyFor, LANDING_VERSION, type LandingRow } from './view';
+import { keyFor, LANDING_VERSION, replacesRow, type LandingRow } from './view';
 
 /** Towns and cities are in the place layer from z10; z11 tiles keep the read to a few. */
 const TOWNS_ZOOM = 11;
@@ -19,10 +19,11 @@ class Cancelled extends Error {}
 
 export type AreaRead = { ok: true; centre: LngLat; analysis: AreaAnalysis; overture: string | null } | { ok: false; reason: 'failed' | 'cancelled' };
 
-export async function readAround(url: string, build: string, at: LngLat, shouldStop: () => boolean) {
+export async function readAround(url: string, build: string, at: LngLat, shouldStop: () => boolean, withOverture = true) {
   const tiles = readTiles(at);
-  // Overture's places for the same tiles (AD3), beside the map's; without them the read goes on (AD7).
-  const [features, overture] = await Promise.all([fetchTiles(url, tiles, undefined, shouldStop), readOverture(tiles, shouldStop)]);
+  // Overture's places for the same tiles (AD3), beside the map's; without them the read goes on (AD7). A read that
+  // measures no density (a quiet walk's checklists) asks Overture for nothing (activity-density audit 4).
+  const [features, overture] = await Promise.all([fetchTiles(url, tiles, undefined, shouldStop), withOverture ? readOverture(tiles, shouldStop) : null]);
   if (shouldStop()) throw new Cancelled();
   const segments = deriveSegments(features.roads, features.names, build);
   const places = placesFromTilePois(features.pois, build);
@@ -61,7 +62,10 @@ export async function readArea(pressed: LngLat, shouldStop: () => boolean): Prom
 /** Saves an analyzed area as a remembered one, replacing any centred within 1 km (L12). */
 export async function rememberArea(centre: LngLat, analysis: AreaAnalysis, build: string, overture: string | null): Promise<LandingRow> {
   const known = await db.listLandings().catch(() => []);
-  const row: LandingRow = { key: keyFor(known, centre), centre, analysis, build, rules: LANDING_VERSION, analyzed_at: Date.now(), overture };
+  const key = keyFor(known, centre);
+  const existing = known.find((r) => r.key === key);
+  if (existing && !replacesRow(existing, overture)) return existing;
+  const row: LandingRow = { key, centre, analysis, build, rules: LANDING_VERSION, analyzed_at: Date.now(), overture };
   await db.putLanding(row);
   return row;
 }

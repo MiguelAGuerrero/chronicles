@@ -38,6 +38,8 @@ const OSM_SUBCLASS: Record<string, number> = {
   books: FULL, library: HALF,
   // Things that are not places to go.
   post_box: 0, parcel_locker: 0, charging_station: 0, food_court: FULL, viewpoint: HALF,
+  // An empty storefront is no activity (activity-density audit 12).
+  vacant: 0, disused: 0,
 };
 
 /** AD1: the weight of an OpenMapTiles POI. */
@@ -57,6 +59,8 @@ const OVERTURE_SECOND: Record<string, number> = {
   place_of_worship: HALF, religious_organization: HALF,
   bank_or_credit_union: HALF, laundry_service: HALF,
   public_utility: 0, sport_league: 0,
+  // Schools count nothing, but a library is civic (activity-density audit 12).
+  library: HALF,
   // Travel and transportation counts only for vehicle services and travel agents.
   vehicle_service: QUARTER, fueling_station: QUARTER, travel_service: QUARTER,
 };

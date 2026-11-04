@@ -1,4 +1,4 @@
-import { knownRelease } from '../activity/overture';
+import { ensureOvertureRelease } from '../activity/overture';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MarkPin } from '../../components/MarkPinView';
 import { db } from '../db';
@@ -134,7 +134,8 @@ export function useExplore(opts: {
     let centre = readCentre({ fix, candidates, areas: k.areas, reads: k.reads, build });
     if (!centre && latest.current.exploring && !sweptAt.current.some((p) => distanceM(p, fix) <= EXPLORE_RULES.rereadM)) {
       const rows = await db.listLandings().catch(() => []);
-      if (!sweepCovered(rows, fix, build, knownRelease())) centre = fix;
+      // Asked, not assumed: on a walk opened straight from a launch the release isn't known yet (activity-density audit 8).
+      if (!sweepCovered(rows, fix, build, await ensureOvertureRelease().catch(() => null))) centre = fix;
     }
     if (!centre) return;
     if (latest.current.exploring) sweptAt.current.push(centre);

@@ -37,7 +37,9 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 
 ## Activity density (AD1-AD16)
 
-- [ ] `pmtiles` under React Native: `fetch` with a `Range` header, a 206 response's `arrayBuffer()`, `Headers`, and `AbortSignal` passed through (`activity/overture.ts`)
+- [ ] `pmtiles` under React Native: `fetch` with a `Range` header, a 206 response's `arrayBuffer()`, `Headers`, and `AbortSignal` passed through (`activity/overture.ts`); whether iOS's URL cache answers a range request with a cached 200
+- [ ] `AbortSignal.throwIfAborted`, which pmtiles calls, on Hermes
+- [ ] `OvertureReader`'s deadline against a header fetch that never ends on a phone (pmtiles' header takes no signal; the e2e doesn't stall it)
 - [ ] `fflate`'s gunzip on Hermes, where `DecompressionStream` is missing (Overture's directories and tiles are gzip)
 - [ ] Decoding a 0.5 MB Overture tile (about 1,000 places) on a phone: time and memory, and the 2-5 MB a read downloads on cellular
 - [ ] The release listing (`ensureOvertureRelease`) parsed from S3's XML on device

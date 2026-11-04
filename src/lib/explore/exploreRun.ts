@@ -45,7 +45,7 @@ export function exploreRead(centre: LngLat, opts: { remember: boolean }, shouldS
       if (!url || build === 'unknown' || shouldStop()) return { ok: false };
       const wide = await fetchTiles(url, tilesIn(boundsOf([centre], TOWNS_M)!, TOWNS_ZOOM), TOWNS_ZOOM, shouldStop).catch(() => null);
       if (shouldStop()) return { ok: false };
-      const read = await readAround(url, build, centre, shouldStop);
+      const read = await readAround(url, build, centre, shouldStop, opts.remember);
       if (shouldStop()) return { ok: false };
       // Neighborhoods come from the z14 place points, towns from the z11 read.
       const candidates = [...read.towns, ...(wide ? placesFromTiles(wide.places).filter((c) => c.level === 'town') : [])];

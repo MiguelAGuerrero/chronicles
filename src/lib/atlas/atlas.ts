@@ -19,6 +19,8 @@ export const ATLAS_CODE = 'a2';
 export const ATLAS_RULES = {
   /** Every area is measured inside this ring around its point, whatever its level (AT4). */
   ringM: 800,
+  /** A ring measured without Overture while a release is known is tried again after this (activity-density audit 10). */
+  overtureRetryMs: 30 * 60_000,
   /** Neighborhoods are listed within this of you (AT1), towns within the other (AT14). */
   nearNeighborhoodM: 2500,
   nearTownM: 12_000,
@@ -178,11 +180,26 @@ export function nearList(rows: AtlasArea[], from: LngLat, level: AtlasLevel, bui
 }
 
 /** AT5: the next ring to read, nearest first, skipping one that failed less than the retry wait ago. */
+/** When a ring read with another Overture release, or without one, is due to be read again (AD6, AD7); null when it isn't stale. */
+export function rereadAt(a: AtlasArea, release: string | null): number | null {
+  if (!a.profile || !profileStale(a.profile, release)) return null;
+  const wait = a.profile.overture == null ? ATLAS_RULES.overtureRetryMs : ATLAS_RULES.retryMs;
+  return (a.read_at ?? 0) + wait;
+}
+
+/** AD6, activity-density audit 13: a ring measured with another release, or without Overture while one is known. */
+export const profileStale = (p: AtlasProfile, release: string | null) => release != null && (p.overture ?? null) !== release;
+
+/** A read without Overture never replaces a profile measured with it (activity-density audit 6). */
+export const keptProfile = (old: AtlasProfile | null, fresh: AtlasProfile): AtlasProfile => (old?.overture != null && fresh.overture == null ? old : fresh);
+
 export function readQueue(list: Listed[], now: number, release: string | null = null): AtlasArea | null {
   for (const l of list) {
     const a = l.area;
-    // A ring measured with another Overture release, or without one, is read again once its wait is over (AD6, AD7).
-    if (a.profile && (release == null || a.profile.overture === release || (a.read_at != null && now - a.read_at < ATLAS_RULES.retryMs))) continue;
+    if (a.profile) {
+      const due = rereadAt(a, release);
+      if (due == null || now < due) continue;
+    }
     if (a.failed_at != null && now - a.failed_at < ATLAS_RULES.retryMs) continue;
     return a;
   }
@@ -490,6 +507,11 @@ function afterBuild(o: StepInput, build: string): AtlasStep {
   if (next) return { kind: 'ring', area: next };
   // A ring that failed is tried again once its wait is over (AT5, audit 3).
   const waits = o.list.filter((l) => !l.area.profile && l.area.failed_at != null).map((l) => l.area.failed_at! + ATLAS_RULES.retryMs - o.now);
+  // And a ring due a re-read for Overture is asked for when it comes due (activity-density audit 10).
+  for (const l of o.list) {
+    const due = rereadAt(l.area, o.release ?? null);
+    if (due != null) waits.push(due - o.now);
+  }
   return waits.length ? { kind: 'wait', ms: Math.max(0, Math.min(...waits)) } : { kind: 'idle' };
 }
 

@@ -335,9 +335,10 @@ export function pocketsGeoJSON(v: LandingView | null | undefined): GeoJSON.Featu
  * `width` scales the line's width at every zoom; a stale area's lines are drawn at `staleOpacity` of these.
  */
 export const HOTSPOT_GRADES = {
-  1: { width: 0.45, opacity: 0.45 },
-  2: { width: 0.75, opacity: 0.7 },
-  3: { width: 1, opacity: 0.92 },
+  // Every grade keeps 3:1 on the base map and on a road (L9, activity-density audit 14): width does most of the grading.
+  1: { width: 0.45, opacity: 0.75 },
+  2: { width: 0.75, opacity: 0.88 },
+  3: { width: 1, opacity: 1 },
   staleOpacity: 0.45,
 } as const;
 

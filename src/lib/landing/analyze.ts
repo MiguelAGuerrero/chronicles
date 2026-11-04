@@ -5,7 +5,7 @@ import { tilesIn } from '../tileMath';
 import type { LngLat, StreetSegment } from '../types';
 import { GRADE_RULES, gradeStreets, type GradedLine } from './grade';
 import mainStreets from './mainStreets.json';
-import { Buckets, cross, hull, linkWithin, longest, nearestOn, type XY } from './spatial';
+import { Buckets, cross, hull, linkWithin, longest, nearestOn, runLength, type XY } from './spatial';
 
 /**
  * Where a town's activity centres (v1.5, then activity density): how densely
@@ -192,15 +192,16 @@ export function analyzeArea(o: {
     else busyByName.set(s.name, [i]);
   });
   for (const [name, idx] of busyByName) {
-    for (const group of linkWithin(idx.map((i) => samples[i].xy), R.runGapM)) {
-      if (group.length < R.busyMinM) continue;
+    for (const group of linkWithin(idx.map((i) => samples[i].xy), R.runGapM, false)) {
       const members = group.members.map((k) => idx[k]);
+      const lengthM = runLength(members.map((i) => samples[i].xy));
+      if (lengthM < R.busyMinM) continue;
       const set = new Set(members);
       let peak = members[0];
       for (const i of members) if (samples[i].density > samples[peak].density) peak = i;
       const lines = g.stretches.filter((st) => st.grade >= 2 && st.members.some((i) => set.has(i))).map((st) => st.line);
       const weight = members.reduce((acc, i) => acc + mass(i), 0);
-      strips.push({ name, lengthM: group.length, weight, lines, peak: samples[peak].at, members: set });
+      strips.push({ name, lengthM, weight, lines, peak: samples[peak].at, members: set });
     }
   }
   strips.sort((a, b) => b.weight - a.weight);
@@ -211,8 +212,7 @@ export function analyzeArea(o: {
   const pockets: PocketX[] = [];
   for (const group of linkWithin(busyIdx.map((i) => samples[i].xy), R.maxGapM, false)) {
     const list = group.members.map((k) => busyIdx[k]);
-    const length = list.length * R.stepM;
-    if (length < R.minSpanM) continue;
+    if (runLength(list.map((i) => samples[i].xy)) < R.minSpanM) continue;
     const weight = list.reduce((acc, i) => acc + mass(i), 0);
     const spanM = longest(list.map((i) => samples[i].xy));
     const sum = list.reduce((acc, i) => acc + samples[i].density, 0);
@@ -292,7 +292,7 @@ export function analyzeArea(o: {
     return { basis: 'density', reason: 'Busiest area', pockets: cleanPockets, strips: cleanStrips, graded: g.graded, landing };
   }
 
-  // Fallbacks, only with nothing dense (L6).
+  // Fallbacks, only with nothing graded medium (L6). The graded stretches still draw (activity-density audit 1).
   const nearestTo = (list: typeof named) => {
     let best: { q: XY; d: number; name: string } | null = null;
     for (const n of list)
@@ -322,7 +322,7 @@ export function analyzeArea(o: {
             }
       if (at) {
         return {
-          basis: 'main-roads', reason: `Main roads: ${A.name} & ${B.name}`, pockets: [], strips: [], graded: [],
+          basis: 'main-roads', reason: `Main roads: ${A.name} & ${B.name}`, pockets: [], strips: [], graded: g.graded,
           landing: { at: toLL(at), street: A.name, via: 'fallback' },
         };
       }
@@ -331,12 +331,12 @@ export function analyzeArea(o: {
   const listed = new Set(MAIN_STREET_NAMES.map((n) => n.toLowerCase()));
   const main = nearestTo(named.filter((n) => listed.has(n.name.toLowerCase()) || listed.has(coreName(n.name))));
   if (main && main.d <= R.radiusM) {
-    return { basis: 'main-street', reason: `A main street: ${main.name}`, pockets: [], strips: [], graded: [], landing: { at: toLL(main.q), street: main.name, via: 'fallback' } };
+    return { basis: 'main-street', reason: `A main street: ${main.name}`, pockets: [], strips: [], graded: g.graded, landing: { at: toLL(main.q), street: main.name, via: 'fallback' } };
   }
   // (c) the town centre, on its nearest named street.
   const any = nearestTo(named);
   return {
-    basis: 'centre', reason: 'Town centre', pockets: [], strips: [], graded: [],
+    basis: 'centre', reason: 'Town centre', pockets: [], strips: [], graded: g.graded,
     landing: any ? { at: toLL(any.q), street: any.name, via: 'fallback' } : { at: o.centre, street: null, via: 'fallback' },
   };
 }

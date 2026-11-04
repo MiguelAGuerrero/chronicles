@@ -127,4 +127,35 @@ of (checked 2026-11-03, release 2026-10-21.0).
 
 ## Record
 
-(Filled in as the slice is built.)
+**Built 2026-11-04.** AD1-AD16 pass: `src/lib/__tests__/activityDensity.test.ts` (AD1-AD11, AD13),
+`landingView.test.ts` (AD12), `atlas.test.ts` (AD7, AD14), and the e2e (`AD3`, `AD4`, `AD12`, `AD14`, `AD15`,
+`AD16` checks, with a fake Overture release served as a PMTiles archive by byte range). AD16 is web only: the
+native map's credits can't name Overture yet (deferred). Owner's defaults taken (Nov 3): the `pmtiles` library,
+and following Overture's newest release automatically.
+
+Changed while building:
+- AD10's grades are fractions of the read's own high point, not shares of its length: the same pattern at four
+  times the places grades the same once it clears the minimums, and only the faint fringe reaches further.
+- The old v1.5 tests whose rules this replaces were rewritten to AD13's (gap, pockets, a strip without a pocket);
+  audit 6's pocket on unnamed paths can't happen now (AD9).
+
+**Audit (2026-11-04): 14 findings, 14 fixed, 0 deferred, 0 rejected.** Regression tests in
+`src/lib/__tests__/activityDensityAudit.test.ts`, named `activity-density audit N`.
+
+1. Fallbacks threw away every graded stretch: accept, fixed (audit 1).
+2. A stalled Overture header hung reads, past the timeout and cancel: accept, fixed with `OvertureReader`'s own deadline (audit 2).
+3. One failed header fetch disabled Overture for the session (pmtiles keeps the failed header): accept, fixed by opening the archive afresh (audit 3).
+4. Quiet walks downloaded Overture for nothing: accept, fixed (`readAround`'s `withOverture`). Wiring only, covered by review and typecheck: the e2e can't tell, since the atlas's memo already holds those tiles.
+5. One reader's cancel failed another sharing a tile: accept, fixed (loads own their abort; readers only stop waiting) (audit 5).
+6. A read without Overture replaced one measured with it, and a listed-but-missing release looped: accept, fixed (`replacesRow`, `keptProfile`, missing releases passed over) (audit 6).
+7. Lengths and grades depended on how a line was drawn (vertices, two carriageways, a piece twice): accept, fixed (even sampling, duplicate samples skipped, `runLength`) (audit 7).
+8. On a cold start into the walk the release was unknown: accept, fixed (`useOvertureRelease`; `useExplore` asks). A hook: covered by review and typecheck.
+9. The tile memo held places that don't count: accept, fixed (audit 9).
+10. The atlas re-read every ring while Overture failed, and never scheduled a re-read: accept, fixed (`overtureRetryMs`, waits for due re-reads) (audit 10).
+11. Short names didn't match across sources, and one OSM place absorbed many: accept, fixed (leading words; one-to-one) (audit 11).
+12. A vacant shop counted full, and Overture's libraries nothing: accept, fixed (audit 12).
+13. Atlas tiles never showed stale after a release change: accept, fixed (`profileStale`, dimmed in the mini-map) (audit 13).
+14. The faint grade failed L9's 3:1: accept, fixed (opacities 0.75, 0.88, 1; width carries the grades) (audit 14).
+
+UI note, deferred: in a town where OSM is thin, a tile can read "Quiet: little of any kind. Busy along South Main
+Street.", since the bars are OSM's (AD2) and the busy street is measured with Overture too.

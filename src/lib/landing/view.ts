@@ -23,6 +23,12 @@ export interface LandingRow {
   overture?: string | null;
 }
 
+/**
+ * Whether a new reading replaces the area remembered here (activity-density audit 6): a read without Overture
+ * never replaces one measured with it, even an older release's, which stays (dimmed) until Overture answers.
+ */
+export const replacesRow = (existing: LandingRow | undefined, overture: string | null) => !existing || overture != null || existing.overture == null;
+
 /** A new area's key, from its centre. */
 export const landingKey = ([lon, lat]: LngLat) => `${lon.toFixed(5)},${lat.toFixed(5)}`;
 

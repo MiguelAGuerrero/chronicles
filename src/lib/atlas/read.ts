@@ -13,7 +13,7 @@ import { deriveSegments } from '../streets';
 import { tilesIn } from '../tileMath';
 import type { LngLat } from '../types';
 import {
-  ATLAS_CODE, ATLAS_RULES, marksOf, newRows, withNear, presenceSteps, sketchOf, SKETCH,
+  ATLAS_CODE, ATLAS_RULES, keptProfile, marksOf, newRows, withNear, presenceSteps, sketchOf, SKETCH,
   type AtlasArea, type AtlasLevel, type AtlasProfile, type NearRead,
 } from './atlas';
 
@@ -116,7 +116,8 @@ export function readRing(area: AtlasArea, shouldStop: () => boolean): Promise<At
       // Only the atlas's own row is written (explore-atlas audit 6): a ring's streets and places are not
       // rewritten into the shared caches, so the write queue stays free for the walk.
       const { profile } = profileFrom(area.at, f, area.build, overture);
-      const row: AtlasArea = { ...area, profile, read_at: Date.now(), failed_at: null };
+      // read_at moves on either way, so a ring Overture didn't answer for waits before asking again.
+      const row: AtlasArea = { ...area, profile: keptProfile(area.profile, profile), read_at: Date.now(), failed_at: null };
       await db.putAtlasAreas([row]);
       return row;
     } catch {

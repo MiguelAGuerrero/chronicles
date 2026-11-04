@@ -61,6 +61,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - A side-by-side count of OSM and Overture places over Phillipsburg: OpenFreeMap's tiles were unreachable from the cloud session (activity density, AD11)
 - Places further than 40 m from a named street count toward nothing: a pedestrian plaza on unnamed paths, or a strip mall set back behind its car park, makes no busy street (activity density, AD9)
 - The native map's credits don't name Overture: MapLibre RN takes credits only from a style's sources, and the GeoJSON sources have no attribution (activity density, AD16; web only)
+- A tile can read "Quiet: little of any kind. Busy along South Main Street." where OSM is thin: the bars are OSM's (AD2), the busy street is measured with Overture too; the wording is the owner's to settle (activity density, audit UI note)
 
 ## Reminders and notifications
 

@@ -2948,7 +2948,7 @@ function check(ok, what) {
         const strokes = await tileOf('Fox Point').evaluate((el) => [...el.querySelectorAll('path')]
           .filter((p) => (p.getAttribute('stroke') ?? '').toLowerCase() === '#d6268c')
           .map((p) => Number(p.getAttribute('stroke-width'))));
-        check(strokes.length >= 1 && new Set(strokes).size === strokes.length, `AD14: Fox Point's tile draws its graded streets, one path per grade (${JSON.stringify(strokes)})`);
+        check(strokes.length >= 2 && new Set(strokes).size === strokes.length, `AD14: Fox Point's tile draws its graded streets, one path per grade (${JSON.stringify(strokes)})`);
         // AD16: the map credits Overture.
         const credits = await page.locator('.maplibregl-ctrl-attrib').first().textContent().catch(() => '');
         check(/Overture Maps Foundation/.test(credits ?? ''), `AD16: the map's credits name Overture Maps Foundation (${credits})`);

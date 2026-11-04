@@ -79,16 +79,13 @@ export function overturePlacesFromTile(features: TileFeature[]): OverturePlace[]
 /** AD4: Overture places count only at this confidence or above. */
 export const OVERTURE_MIN_CONFIDENCE = 0.8;
 
+/** AD1, AD4: whether an Overture place counts: sure enough, not closed, of a kind that weighs something. */
+export const countsOverture = (p: OverturePlace) =>
+  p.confidence >= OVERTURE_MIN_CONFIDENCE && (!p.operating_status || p.operating_status === 'open') && overtureWeight(p.hierarchy) > 0;
+
 /** AD1, AD4: Overture places that count, at their weight. */
 export function activityFromOverture(places: OverturePlace[]): ActivityPoint[] {
-  const out: ActivityPoint[] = [];
-  for (const p of places) {
-    if (p.confidence < OVERTURE_MIN_CONFIDENCE) continue;
-    if (p.operating_status && p.operating_status !== 'open') continue;
-    const weight = overtureWeight(p.hierarchy);
-    if (weight) out.push({ at: p.at, weight, name: p.name, source: 'overture' });
-  }
-  return out;
+  return places.filter(countsOverture).map((p) => ({ at: p.at, weight: overtureWeight(p.hierarchy), name: p.name, source: 'overture' as const }));
 }
 
 /** A name to compare across sources: case, accents, apostrophes and punctuation off. */
@@ -108,12 +105,19 @@ export const SAME_PLACE_M = 60;
 /** A name shorter than this is never matched by containment ("Steak" isn't Joe's Steak Shop). */
 const MIN_CONTAINED = 6;
 
+/** One name's words are the other's first words ("CVS" and "CVS Pharmacy"; activity-density audit 11). */
+const leadingWords = (a: string, b: string) => {
+  const [short, long] = a.length <= b.length ? [a, b] : [b, a];
+  return short.length >= 3 && (long === short || long.startsWith(`${short} `));
+};
 const sameName = (a: string, b: string) =>
-  a === b || (Math.min(a.length, b.length) >= MIN_CONTAINED && (a.includes(b) || b.includes(a)));
+  a === b || leadingWords(a, b) || (Math.min(a.length, b.length) >= MIN_CONTAINED && (a.includes(b) || b.includes(a)));
 
 /**
  * AD5: OSM and Overture together, each place once. An Overture place matching a
- * named OSM place within 60 m is left out; the OSM one keeps the higher weight.
+ * named OSM place within 60 m (the same name, one's words leading the other's, or
+ * one inside the other) is left out; the OSM one keeps the higher weight. Each OSM
+ * place takes in one Overture place at most.
  */
 export function mergeSources(osm: ActivityPoint[], overture: ActivityPoint[]): ActivityPoint[] {
   if (!overture.length) return osm;
@@ -130,6 +134,7 @@ export function mergeSources(osm: ActivityPoint[], overture: ActivityPoint[]): A
     (buckets.get(k) ?? buckets.set(k, []).get(k)!).push(i);
   });
   const out = kept;
+  const absorbed = new Set<number>();
   for (const p of overture) {
     const n = p.name ? matchName(p.name) : null;
     let twin = -1;
@@ -141,13 +146,17 @@ export function mergeSources(osm: ActivityPoint[], overture: ActivityPoint[]): A
         for (let dy = -1; dy <= 1; dy++)
           for (const i of buckets.get(`${cx + dx},${cy + dy}`) ?? []) {
             const [ox, oy] = to(kept[i].at);
-            if (Math.hypot(ox - x, oy - y) <= SAME_PLACE_M && sameName(n, names[i]!)) {
+            // One OSM place takes in at most one Overture place (activity-density audit 11).
+            if (!absorbed.has(i) && Math.hypot(ox - x, oy - y) <= SAME_PLACE_M && sameName(n, names[i]!)) {
               twin = i;
               break search;
             }
           }
     }
-    if (twin >= 0) kept[twin].weight = Math.max(kept[twin].weight, p.weight);
+    if (twin >= 0) {
+      absorbed.add(twin);
+      kept[twin].weight = Math.max(kept[twin].weight, p.weight);
+    }
     else out.push(p);
   }
   return out;

@@ -1,4 +1,4 @@
-import { knownRelease } from '../lib/activity/overture';
+import { useOvertureRelease } from '../lib/activity/overture';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { AccessibilityInfo, ActivityIndicator, Animated, AppState, BackHandler, Switch, Easing, KeyboardAvoidingView, Linking, Platform, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
@@ -626,6 +626,8 @@ export default function WalkScreen() {
   useEffect(() => {
     reloadLandings();
   }, [resumed, reloadLandings]);
+  // Known from launch, so a walk opened straight away judges its areas' staleness too (activity-density audit 8).
+  const overtureRelease = useOvertureRelease();
   const hotStrips = useMemo(() => landings.flatMap((r) => r.analysis.strips), [landings]);
   // Drawn on an exploring walk only (E9), as information: pockets, strips and their names.
   // Only areas within 3 km (audit), keyed so a new fix doesn't rebuild the labels.
@@ -633,8 +635,8 @@ export default function WalkScreen() {
   const hotView = useMemo(() => {
     const keys = new Set(nearKeys.split('|'));
     const near = landings.filter((r) => keys.has(r.key));
-    return near.length && exploring ? landingView(near, build, knownRelease()) : null;
-  }, [landings, build, nearKeys, exploring]);
+    return near.length && exploring ? landingView(near, build, overtureRelease) : null;
+  }, [landings, build, nearKeys, exploring, overtureRelease]);
   const hotPockets = useMemo(
     () => landings.flatMap((r) => r.analysis.pockets.map((p) => ({ name: p.name, centre: p.centre, strip: p.strips.length > 0 }))),
     [landings],

@@ -29,15 +29,31 @@ What's good here (`lib/landing`): reading an area, finding busy strips and pocke
     (or one name inside the other, 6+ letters) within 60 m are one.
   - **Overture** (`activity/overture.ts`): the newest release in the bucket's
     listing, checked at most daily (meta `overture_release`,
-    `overture_checked_at`; a failed check waits 10 min; a 403/404 on the
-    archive forces a fresh check). Tiles go through `TileMemo`: once per
-    release per session, failures forgotten. Any failure returns `null`
-    and the read goes on from OSM alone. Places are never stored.
+    `overture_checked_at`; a failed check waits 10 min). A release that
+    answers 403/404 is passed over for the one before (`newestRelease`'s
+    skip set). Any failure returns `null` and the read goes on from OSM
+    alone. Places are never stored. Quiet walks' reads ask Overture for
+    nothing (`readAround`'s `withOverture`).
+  - **`OvertureReader`** (`activity/release.ts`, pure, tested with fake
+    archives) is the robust part, because pmtiles' header fetch takes no
+    signal and pmtiles keeps a failed header for good: each tile loads once
+    per release (`TileMemo`) under its own timeout and abort; a reader stops
+    waiting at its own deadline or `shouldStop`, never aborting a load
+    another reader shares; any load failure drops the archive so the next
+    read opens it afresh; the memo holds only places that count.
+  - **Staleness:** screens judge it with `useOvertureRelease()` (checked on
+    mount), never a bare `knownRelease()`, which is null on a cold start. A
+    read without Overture never replaces a row or profile measured with it
+    (`replacesRow`, `keptProfile`).
   - **Density** (`landing/grade.ts`): each place snaps to its nearest named
     street within 40 m (a corner place is its nearest street's; a place on
     a cross street's line is the cross street's). Streets with places are
-    sampled every 10 m; a sample sums `weight × (1 − d/120)` over the
-    same-named street's places within 120 m.
+    sampled every 10 m along each line, however its vertices fall; a sample
+    within 2 m of one already taken on the street is skipped (joints, a
+    piece given twice). A sample sums `weight × (1 − d/120)` over the
+    same-named street's places within 120 m. Lengths (busy streets,
+    pockets) are `runLength`: samples thinned to one per 30 m, then their
+    joining tree, so two carriageways measure as one street.
   - **Grades** are fractions of the read's high point (the density beaten by
     only 5% of sampled length where any place is felt): strong ≥ 0.7, medium
     ≥ 0.4, faint above the floor (2). Medium and strong also need 3 and 4, so
@@ -52,7 +68,8 @@ What's good here (`lib/landing`): reading an area, finding busy strips and pocke
   - **Landing:** a station by the top pocket lands on its own street, else
     the top busy street's peak, else the pocket's densest sample. A landing
     snaps at most 150 m. **Fallbacks** (main roads, `mainStreets.json`, the
-    centre) apply only with nothing graded medium.
+    centre) name the landing only with no busy street or pocket; the graded
+    stretches still draw (activity-density audit 1).
   - **Tests:** synthetic shops sit 8 m off their street and clear of corners,
     or a cross street takes them. `phillipsburg.json` is Overture's real
     places and streets around downtown Phillipsburg (release 2026-10-21.0,
@@ -60,8 +77,9 @@ What's good here (`lib/landing`): reading an area, finding busy strips and pocke
   - 15,000 street pieces and 5,000 places measure in well under a second on
     a desktop.
 - **Hotspots are magenta** (`HOTSPOT`), the one hue no other layer uses, in
-  three grades (`HOTSPOT_GRADES`: width and opacity per grade; stale areas at
-  0.45 of the opacity). Areas analyzed before grades draw their strips as
+  three grades (`HOTSPOT_GRADES`: width and opacity per grade, every grade
+  3:1 on the base map and a road (L9); stale areas at 0.45 of the opacity).
+  The atlas's mini-map dims a ring measured with another release. Areas analyzed before grades draw their strips as
   medium. The walk map's container carries `data-graded` for the e2e;
   the pin is `HOTSPOT_PIN` for AA text. Remembered areas
   (`landing` store: SQLite migration 7, IndexedDB v6) are a cache kept across

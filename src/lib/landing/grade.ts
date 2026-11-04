@@ -119,26 +119,43 @@ export function densityAlong(o: Input): Sample[] {
     bucket.add(b.q, { q: b.q, w: p.weight });
   }
 
-  // Sample the streets that have places, and measure.
+  // Sample the streets that have places, every stepM along each line however its vertices fall, and measure.
+  // A sample within 2 m of one already taken on the same street (a joint, a piece given twice) is skipped
+  // (activity-density audit 7).
   const samples: Sample[] = [];
+  const taken = new Map<string, Buckets<true>>();
   for (const n of named) {
     const bucket = onStreet.get(n.name);
     if (!bucket) continue;
+    let seen = taken.get(n.name);
+    if (!seen) taken.set(n.name, (seen = new Buckets<true>(R.stepM)));
+    const already = seen;
     n.lines.forEach((line, li) => {
       let k = 0;
       const push = (xy: XY) => {
+        let dup = false;
+        already.each(xy, 2, () => (dup = true));
+        if (dup) return;
+        already.add(xy, true);
         let density = 0;
-        bucket.each(xy, R.kernelM, (_v, _q, d) => (density += _v.w * (1 - d / R.kernelM)));
+        bucket.each(xy, R.kernelM, (v, _q, d) => (density += v.w * (1 - d / R.kernelM)));
         samples.push({ at: toLL(xy), xy, name: n.name, density, seg: n.i, line: li, k: k++ });
       };
       if (!line.length) return;
       push(line[0]);
+      let carry = 0; // metres walked since the last sample
       for (let j = 1; j < line.length; j++) {
         const [a, b] = [line[j - 1], line[j]];
         const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
-        const steps = Math.max(1, Math.round(len / R.stepM));
-        for (let s = 1; s <= steps; s++) push([a[0] + ((b[0] - a[0]) * s) / steps, a[1] + ((b[1] - a[1]) * s) / steps]);
+        let d = R.stepM - carry;
+        while (d <= len) {
+          push([a[0] + ((b[0] - a[0]) * d) / len, a[1] + ((b[1] - a[1]) * d) / len]);
+          d += R.stepM;
+        }
+        carry = (carry + len) % R.stepM;
       }
+      // The line's end, unless a sample sits within half a step of it.
+      if (carry >= R.stepM / 2) push(line[line.length - 1]);
     });
   }
   return samples;

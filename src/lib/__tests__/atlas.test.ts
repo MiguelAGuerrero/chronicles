@@ -135,7 +135,10 @@ test('AD7: a ring measured without Overture, or with an older release, is read a
   const list = nearList([row('A', O, { profile, read_at: 1000 })], O, 'neighborhood', 'b1');
   assert.equal(readQueue(list, 1000, null), null, 'no release known: as read');
   assert.equal(readQueue(list, 1000 + 1, 'r2'), null, 'just read: waits');
-  assert.equal(readQueue(list, 1000 + ATLAS_RULES.retryMs, 'r2')?.name, 'A', 'read again with Overture');
+  assert.equal(readQueue(list, 1000 + ATLAS_RULES.retryMs, 'r2'), null, 'measured without Overture: waits longer (activity-density audit 10)');
+  assert.equal(readQueue(list, 1000 + ATLAS_RULES.overtureRetryMs, 'r2')?.name, 'A', 'read again with Overture');
+  const older = nearList([row('A', O, { profile: { ...profile, overture: 'r1' }, read_at: 1000 })], O, 'neighborhood', 'b1');
+  assert.equal(readQueue(older, 1000 + ATLAS_RULES.retryMs, 'r2')?.name, 'A', 'an older release: read again after the usual wait');
   const current = nearList([row('A', O, { profile: { ...profile, overture: 'r2' }, read_at: 1000 })], O, 'neighborhood', 'b1');
   assert.equal(readQueue(current, 1000 + ATLAS_RULES.retryMs, 'r2'), null);
 });

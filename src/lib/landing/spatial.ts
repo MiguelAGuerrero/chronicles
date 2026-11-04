@@ -183,3 +183,21 @@ export function cross(a: XY, b: XY, c: XY, d: XY): XY | null {
   return t >= -0.01 && t <= 1.01 && u >= -0.01 && u <= 1.01 ? [a[0] + t * r[0], a[1] + t * r[1]] : null;
 }
 
+
+/**
+ * How far a run of points along streets reaches: points thinned to one per `thin` metres, then their shortest
+ * joining tree. Thinning first means two carriageways of one street, or a line drawn with a vertex every few
+ * metres, measure as one street (activity-density audit 7).
+ */
+export function runLength(points: XY[], thin = 30): number {
+  const kept = new Buckets<true>(thin);
+  const out: XY[] = [];
+  for (const p of points) {
+    let near = false;
+    kept.each(p, thin, () => (near = true));
+    if (near) continue;
+    kept.add(p, true);
+    out.push(p);
+  }
+  return treeLength(out) + (out.length ? thin / 2 : 0);
+}
