@@ -428,7 +428,7 @@ export default function Explore() {
         <LocateButton busy={locating} onPress={locate} bottom={8} />
       )}
       {/* The compass (CP2): above Locate, only while the map is turned and on screen. */}
-      {focused && !spot && <WalkLayerControl wk={wk} bottom={8 + (44 + 12) * 2} />}
+      {focused && !spot && <WalkLayerControl wk={wk} top={insets.top + 8} />}
       {focused && !spot && <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={8 + 44 + 12} />}
       {toast ? <View style={styles.toast} accessibilityLiveRegion="polite"><Text style={styles.toastText}>{toast}</Text></View> : null}
     </View>

@@ -205,3 +205,14 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - The trace is redrawn every 66 ms, so on a zip the line trails the walker by a short stretch (replay-rhythm audit 14)
 - The Undo toast can sit over the clock for its 5 s after a moment is deleted mid-path (replay-rhythm audit, UI notes)
 
+## Walkability (specs/walkability, decision 0089)
+
+- **An area said in words is not on a screen yet** (WK11): `areaWords` and `bandLengths` are built and tested, but no card or tile shows "Mostly easy on foot". The Explore atlas's card and tiles are drawn from a ring profile (`MiniMap` is an SVG sketch, not a map), so showing it means reading walkability for every ring. Needs the owner's call on whether the atlas should pay that read.
+- **The heads-up is not covered by an e2e step** (WK15): it is unit tested (`walkAhead`, `walkAheadWatch`) and typechecked in the live walk, but no journey navigates a route over a car stretch.
+- Routing that avoids car-oriented streets, and any "walk this way instead" (0022 defers suggested routes).
+- Amenity, block length and intersection density as signals; street lighting, surface, slope, traffic volume.
+- The replay's mention of a car-oriented stretch.
+- Native credits for OpenStreetMap and Overture beside the layer (as AD16).
+- A failed read is not retried by a timer: it is read again when the tile set changes or the switch is toggled (the reader's 2-minute wait only stops asking too soon).
+- Overture has no "no sidewalk" tag; only Overpass tiles can say it (WK8b). A town where Overture is thin on sidewalks reads `mixed` more often than it should.
+

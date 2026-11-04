@@ -173,3 +173,29 @@ accessible label. The icon differs by shape, never by colour alone.
 - Street lighting, surface, slope, traffic volume.
 - The replay's mention of a car-oriented stretch.
 - Native credits for OpenStreetMap sidewalk data (as AD16).
+
+## Record
+
+**Built 2026-11-04**, on branch `claude/walkability-spec`. Unit tests: `walkBands` (WK5-WK10), `walkSummary` (WK11, WK12),
+`walkBandWords` (WK21-WK23), `walkAhead` and `walkAheadWatch` (WK15, WK16), `walkOverture` (WK1), `walkSourceChain` (WK1b, WK8b),
+`walkNetwork` (WK1, WK1b, WK4, WK18), `walkReader` (WK2-WK4, WK18), `walkLayer` (WK13, WK15), `walkSwitch` (WK4, WK13, WK20) and the Db
+contract (`putWalkTiles`, WK2, WK19). The e2e journey `walk` checks WK1, WK1b, WK2, WK4, WK13, WK14, WK17, WK18, WK20-WK23 on the web
+build (a fake Overture archive by byte range, a fake Overpass).
+
+Changed while building, so the criteria above read differently than as first written:
+- **WK13, where.** The area card's and the atlas tiles' maps are drawn sketches (`MiniMap`, SVG), not maps, so the layer is on the real
+  maps: the Explore page's map (around the selected area, else around you), and Navigate's map, ready and live. One switch for all.
+- **WK1, the unit.** The layer treats a tile's own road ways as the street segments (`walk/layer.ts`), so it works over ground nobody has
+  walked; `bandsFor` takes any segments, and the street cache could be joined later.
+- **WK8, the crossing.** It lifts a car stretch of 60 m or less; a longer one is unchanged (a band is per segment, not per metre).
+- **WK21, the badges.** The worst band's badge is a car, not a cancel (the owner offered either): a cancel reads as "you can't walk here",
+  which the data cannot say.
+- **WK22, the tooltip** opens on hover and focus (web), tap and long press (touch), and closes after 4 s, on Escape and on leaving.
+- **WK4, retry.** A failed read is read again when the tile set changes or the switch is toggled; the 2-minute wait only stops asking too soon.
+
+Not done, not covered:
+- **WK11 is built and unit tested but shown nowhere** (no card says "Mostly easy on foot"): see `docs/DEFERRED.md`.
+- **WK15's heads-up has no e2e step.** Its pure and shell parts are tested, and the live walk compiles with it; no journey navigates a route
+  over a car stretch.
+- **Nothing here has run on a device** (`docs/NATIVE_UNVERIFIED.md`, Walkability and migration 19).
+

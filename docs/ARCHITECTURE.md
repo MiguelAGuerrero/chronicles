@@ -197,6 +197,22 @@ Activity density (AD1-AD16)
   activity/reader.ts         OvertureReader and TileMemo: a tile once per release, deadlines, a failed archive reopened
   activity/useOvertureRelease.ts the release known, for screens that judge staleness
   activity/overture.ts       Overture's places by tile (pmtiles, byte ranges); the release check (meta)
+Walkability (WK1-WK23)
+  walk/types.ts              Band, WayFacts, TileFacts, WalkSource, WalkTile
+  walk/bands.ts              the band table (bandOf), WALK_CODE
+  walk/match.ts              bandsFor: ways to street segments by tile, EdgeGrid-style index, 35 degrees
+  walk/layer.ts              drawFor, routeSegments, tilesAround
+  walk/summary.ts            areaWords, bandLengths (built, not yet shown)
+  walk/bandWords.ts          each band's words and badge
+  walk/ahead.ts              carStretches, alongRoute, aheadStep, warningLine
+  walk/aheadWatch.ts         the heads-up's shell and Store
+  walk/overtureSegments.ts   Overture's `segment` schema (the only file that knows it)
+  walk/overpass.ts           Overpass's query and answer (the only file that knows it)
+  walk/chain.ts              Overture first, Overpass second
+  walk/overtureSource.ts, walk/overpassSource.ts  the network factories; walk/walkApp.ts is the app's instance
+  walk/reader.ts             createWalkReader: the device's cache, one request at a time, deadlines (`walk_tile`)
+  walk/switch.ts             the layer's switch (meta `walk_layer`)
+  walk/useWalkability.ts, walk/useRouteWarning.ts  the hooks the maps and the walk screen call
 Landing (v1.5)
   landing/analyze.ts         busy streets, pockets, the landing point, from the grades
   landing/grade.ts           density along each named street, and its grades against the read

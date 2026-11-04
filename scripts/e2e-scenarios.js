@@ -50,6 +50,18 @@ const SCENARIOS = [
     covers: ['src/lib/areas/**', 'src/lib/atlas/**', 'src/lib/finish.ts', 'scripts/mvt-encode.mjs'],
   },
   {
+    // Walkability (WK1-WK23): the layer, its switch on the Explore and Navigate maps, the icons and tooltips.
+    name: 'walk',
+    covers: [
+      'src/lib/walk/**',
+      'src/components/{Tooltip,WalkBandIcon,WalkLayerControl}.tsx',
+      'src/components/map/{types,WalkMap.web,WalkMap.native}.ts*',
+      'src/components/walk/{layout,useReady}.ts*',
+      'src/app/(tabs)/index.tsx',
+      'src/app/walk.tsx',
+    ],
+  },
+  {
     name: 'grading',
     covers: ['src/lib/atlas/atlas.ts', 'src/components/atlas/{AtlasCard,AtlasTile}.tsx'],
   },

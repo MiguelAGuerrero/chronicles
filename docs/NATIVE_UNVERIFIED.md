@@ -19,6 +19,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] Migration 14: the `gap_fill` table of kept and dismissed stretches (IndexedDB v12)
 - [ ] Migration 15: the `atlas_area` cache of the Explore atlas (IndexedDB v13)
 - [ ] Migration 17: `capture.edit`, JSON through `serializeEdit`/`parseEdit` on every capture read (no IndexedDB bump; Media editing, ME21)
+- [ ] Migration 19: the `walk_tile` cache of walkability, ways as JSON (IndexedDB v16; WK2)
 
 ## Map layers and markers (MapLibre RN v11)
 
@@ -202,4 +203,13 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] The compass button over the native map, above Locate and in the walk's column
 - [ ] expo-keep-awake through a replay (RR24): the screen held from reading the streets to the card, let go on the card and on leaving, taken again on AppState `active`
 - [ ] The loading skeleton's pulse with the native driver (RR23)
+
+## Walkability (WK1-WK23, decision 0089)
+
+- [ ] The layer on MapLibre RN: two `Layer`s over a `GeoJSONSource` (`walk-mixed`, `walk-car`), under the hotspots, fog and trace; their zoom-interpolated widths
+- [ ] Overture's `transportation.pmtiles` read by byte range through `pmtiles` in the native runtime, and the Overpass POST (`fetch` with a form body)
+- [ ] `walk_tile` writes through the single write queue (migration 19), ways as JSON (a dense tile is hundreds of KB)
+- [ ] The switch and legend over the native map: the new top edge slot (`walkability`) above the compass, and the legend card growing upward
+- [ ] `Tooltip` by tap and long press on a phone (hover and Escape are web only), closing after `MOTION.tip`
+- [ ] The heads-up pill in the walk's pills stack, and its live region read by VoiceOver and TalkBack
 

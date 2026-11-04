@@ -137,7 +137,7 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 | Session | Branch | Doing |
 |---|---|---|
 | Bug fixes (open since Oct 31) | unknown | unknown |
-| Walkability (bands as icons with tooltips; Overture then Overpass; Explore and Navigate maps; WK1-WK23) | `claude/walkability-spec` | spec and plan written, calls taken Nov 4; tests next |
+| Walkability (bands as icons with tooltips; Overture then Overpass; Explore and Navigate maps; WK1-WK23) | `claude/walkability-spec` | built Nov 4; unit tests and the `walk` e2e pass on the web build; WK11 (area words) not shown anywhere, WK15 not in the e2e, native unverified; waits on the owner's review |
 
 ## Updating this file
 

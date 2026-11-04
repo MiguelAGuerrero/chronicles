@@ -157,7 +157,7 @@ test('AC4 a harness change runs everything and names the file', () => {
 test('AC5 the graph follows what the layer reader follows, in this repo', () => {
   const tests = testsFor(ROOT, ['src/lib/geo.ts']);
   assert.ok(tests.includes('src/lib/__tests__/rides.test.ts'), 'geo.ts reaches rides.test.ts');
-  assert.ok(tests.length > 10 && tests.length < 60, `${tests.length} tests reach geo.ts`);
+  assert.ok(tests.length > 10 && tests.length < 80, `${tests.length} tests reach geo.ts`);
   // A change to a screen reaches only the tests that read the whole tree; the db's types reach the contract.
   const wide = affected.affectedTests(ROOT, ['src/app/walk.tsx']).tests;
   assert.ok(wide.length > 0 && wide.every((t) => t.wide), wide.map((t) => t.file).join(', '));

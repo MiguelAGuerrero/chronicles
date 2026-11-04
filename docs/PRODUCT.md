@@ -162,6 +162,18 @@ recording bar brings a minimized walk back.
 - Standstills, GPS wander, rides and motion (step detection) are all read
   from the raw fixes at read time; nothing derived is stored as truth.
 
+#### Walkability (before and during)
+
+- A switch on the Explore map and the Navigate map shades the stretches the map data suggests need a car to get
+  around: a warm line where a street is built around cars, a faint one where it is mixed, nothing where it is
+  easy on foot. The bands are icons (the pedestrian; with a caution badge; with a car badge) with a tooltip in
+  words. No number, share or rank is shown anywhere.
+- It reads sidewalks, crossings, speeds and road classes from Overture's transportation tiles, falling back to
+  OpenStreetMap through Overpass, and keeps each tile on the device. Where sidewalks are not mapped, the layer
+  says streets can read worse than they are.
+- While navigating, a quiet line says "Next: a stretch built around cars on <street>" 200 m before one, once,
+  with no sound; it never changes the route.
+
 ### Chronicle (after)
 
 - The home map shows stars where walks were, at the level for the zoom

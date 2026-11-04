@@ -102,7 +102,22 @@ const divisionFeatures = [
   { type: 'Feature', geometry: { type: 'Polygon', coordinates: [[at(10, -10), at(20, -10), at(20, 10), at(10, 10), at(10, -10)]] },
     properties: { subtype: 'locality', class: 'land', '@name': 'Central Falls', division_id: 'central-falls', id: 'central-falls-area' } },
 ];
+// Walkability (WK1, WK13): Overture's transportation tile around the start. A fast primary (car), a tertiary with
+// nothing mapped (mixed), and a calm residential with a sidewalk beside it (easy on foot: drawn as nothing).
+const transportFeatures = [];
+const wkSeg = (id, props, a, b) => transportFeatures.push({ type: 'Feature', properties: { id, subtype: 'road', ...props }, geometry: { type: 'LineString', coordinates: [a, b] } });
+const mph = (v) => JSON.stringify([{ max_speed: { unit: 'mph', value: v }, between: [0, 1] }]);
+wkSeg('wk-fast', { class: 'primary', '@name': 'Route 6', speed_limits: mph(55) }, at(-2, 3), at(2, 3));
+wkSeg('wk-mixed', { class: 'tertiary', '@name': 'Hope Street' }, at(-2, -3), at(2, -3));
+wkSeg('wk-calm', { class: 'residential', '@name': 'Elm Street', speed_limits: mph(25) }, at(-2, 6), at(2, 6));
+wkSeg('wk-walk', { class: 'footway', subclass: 'sidewalk' }, at(-2, 6.1), at(2, 6.1));
+// The Overpass answer for the same ground, for when Overture can't be read (WK1b).
+const overpassAnswer = { elements: [
+  { type: 'way', id: 1, tags: { highway: 'secondary', 'sidewalk:both': 'no', maxspeed: '35 mph', name: 'Route 6' }, geometry: [{ lat: at(0, 3)[1], lon: at(-2, 3)[0] }, { lat: at(0, 3)[1], lon: at(2, 3)[0] }] },
+] };
 let serveDivisions = false;
+let transportMode = 'ok';
+const OVERPASS_HOST = 'overpass-api.de';
 const OVERTURE_HOST = 'overturemaps-extras-us-west-2.s3.amazonaws.com';
 const OVERTURE_RELEASE = '2026-10-21.0';
 
@@ -360,7 +375,27 @@ function check(ok, what) {
   }));
   // Every other journey: an archive with no towns in it (a 404 would be a console error), so towns go by points.
   const noDivisions = encodeArchive([{ z: 12, x: 0, y: 0, data: encodeTile([], 12, 0, 0) }]);
+  // Walkability (WK1): the release's transportation.pmtiles, every z14 tile its segments touch.
+  const transportArchive = (() => {
+    const z = 14;
+    const keys = new Set();
+    for (const f of transportFeatures) for (const [lon, lat] of f.geometry.coordinates) {
+      const x = Math.floor(((lon + 180) / 360) * 2 ** z);
+      const y = Math.floor(((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2) * 2 ** z);
+      keys.add(`${x},${y}`);
+    }
+    return encodeArchive([...keys].map((k) => {
+      const [x, y] = k.split(',').map(Number);
+      return { z, x, y, data: encodeTile(transportFeatures, z, x, y, () => ['segment']) };
+    }));
+  })();
   const overtureAsked = [];
+  const overpassAsked = [];
+  const overpassRoute = async (r) => {
+    const req = r.request();
+    overpassAsked.push({ url: req.url(), method: req.method(), body: req.postData() });
+    return r.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*' }, contentType: 'application/json', body: JSON.stringify(overpassAnswer) });
+  };
   const overtureRoute = async (r) => {
     const req = r.request();
     const url = new URL(req.url());
@@ -372,7 +407,9 @@ function check(ok, what) {
     }
     const archive = url.pathname === `/tiles/${OVERTURE_RELEASE}/places.pmtiles`
       ? overtureArchive
-      : url.pathname === `/tiles/${OVERTURE_RELEASE}/divisions.pmtiles` ? (serveDivisions ? divisionsArchive : noDivisions) : null;
+      : url.pathname === `/tiles/${OVERTURE_RELEASE}/divisions.pmtiles` ? (serveDivisions ? divisionsArchive : noDivisions)
+        // A 200 that is not a PMTiles file, not a 404, which would be a console error: Overture "can't be read" (WK1b).
+        : url.pathname === `/tiles/${OVERTURE_RELEASE}/transportation.pmtiles` ? (transportMode === 'ok' ? transportArchive : Buffer.alloc(200, 7)) : null;
     if (archive) {
       const m = /bytes=(\d+)-(\d+)/.exec(req.headers().range ?? '');
       const from = m ? Number(m[1]) : 0;
@@ -383,6 +420,7 @@ function check(ok, what) {
     return r.fulfill({ status: 404, headers: cors, body: '' });
   };
   await ctx.route(`https://${OVERTURE_HOST}/**`, overtureRoute);
+  await ctx.route(`https://${OVERPASS_HOST}/**`, overpassRoute);
 
 // A fresh browser, for a flow of its own (NV12, NV15, NV25, the tabs audit).
   // `permissions: []` makes a browser that denies location (QL19).
@@ -398,6 +436,7 @@ function check(ok, what) {
     await metricRegion(c);
     await c.route('https://tiles.openfreemap.org/**', tileRoute);
     await c.route(`https://${OVERTURE_HOST}/**`, overtureRoute);
+    await c.route(`https://${OVERPASS_HOST}/**`, overpassRoute);
     c.on('request', (r) => { const u = new URL(r.url()); if (/^(https?|wss?):$/.test(u.protocol)) hosts.add(u.host); });
     const pg = await c.newPage();
     pg.on('pageerror', (e) => errors.push(`${label}: ${e}`));
@@ -862,6 +901,69 @@ function check(ok, what) {
     check(after.zoom < before.zoom - 0.5, `TB11: Explore zooms out to frame the whole town (z${after.zoom.toFixed(2)}, the ring alone z${before.zoom.toFixed(2)})`);
     const asked = overtureAsked.filter((q) => /divisions\.pmtiles/.test(q.url));
     check(asked.length > 0 && asked.every((q) => q.range), `TO12: outlines are read from Overture's divisions by byte range (${asked.length} requests)`);
+  };
+
+  // Walkability (WK1-WK4, WK13, WK14, WK17, WK20-WK22): the switch on the Explore and Navigate maps, what it draws from
+  // Overture's tile, the fallback to Overpass, the band icons and their tooltips. E2E_ONLY=walk runs it alone.
+  const walkScenario = async () => {
+    const drawn = (pg) => pg.locator('[data-walk]').first().getAttribute('data-walk').catch(() => null);
+    const { c, pg } = await freshPage('walk');
+    await pg.goto(url);
+    await pg.waitForSelector('[data-testid=walk-layer]', { timeout: 30000 });
+    check((await pg.locator('[data-testid=walk-legend]').count()) === 0 && !(await drawn(pg)), 'WK13: the layer is off until switched on, and draws nothing');
+    await pg.waitForTimeout(1500);
+    check(!overtureAsked.some((q) => /transportation\.pmtiles/.test(q.url)) && overpassAsked.length === 0, 'WK4: nothing is read while the layer is off');
+    await pg.click('[data-testid=walk-layer]');
+    await pg.waitForSelector('[data-testid=walk-legend]', { timeout: 5000 });
+    await pg.waitForFunction(() => (document.querySelector('[data-walk]')?.getAttribute('data-walk') ?? '') !== '', null, { timeout: 30000 }).catch(() => {});
+    const first = await drawn(pg);
+    check(first === 'car:1|mixed:1', `WK13: a fast road is drawn as built around cars, a street with nothing mapped as mixed, and a street with a sidewalk as nothing (${first})`);
+    const asked = overtureAsked.filter((q) => /transportation\.pmtiles/.test(q.url));
+    check(asked.length > 0 && asked.every((q) => q.range && new URL(q.url).search === ''), `WK1: Overture's transportation tiles are read by byte range, with nothing but the tile (${asked.length} requests)`);
+    check(overpassAsked.length === 0, 'WK1b: Overpass is not asked while Overture answers');
+    check((await pg.locator('[data-testid=walk-badge-car]').count()) === 1 && (await pg.locator('[data-testid=walk-badge-caution]').count()) === 1, 'WK21: the legend shows the pedestrian with a car badge and with a caution badge');
+    check(/OpenStreetMap and Overture/.test(await pg.locator('[data-testid=walk-credit]').innerText()) && /aren't mapped/.test(await pg.locator('[data-testid=walk-credit]').innerText()), 'WK14, WK17: the layer credits OpenStreetMap and Overture and says unmapped sidewalks can read worse than they are');
+    await shot(pg, 'walk-legend-open');
+    if (process.env.E2E_DEBUG) console.log(JSON.stringify(await pg.evaluate(() => ['walk-legend', 'walk-layer', 'walk-tip-car', 'walk-tip-mixed'].map((id) => { const b = document.querySelector(`[data-testid=${id}]`)?.getBoundingClientRect(); return [id, b && [Math.round(b.x), Math.round(b.y), Math.round(b.width), Math.round(b.height)], innerWidth, innerHeight]; }))));
+    await pg.hover('[data-testid=walk-tip-car]');
+    await pg.waitForSelector('[data-testid=tooltip]', { timeout: 3000 }).catch(() => {});
+    const tip = await pg.locator('[data-testid=tooltip]').innerText().catch(() => '');
+    check(/^Built around cars/.test(tip) && !/\d/.test(tip), `WK22, WK23: hovering the car icon says what it means, with no number (${tip})`);
+    await shot(pg, 'walk-explore');
+    await pg.keyboard.press('Escape');
+    check((await pg.locator('[data-testid=tooltip]').count()) === 0, 'WK22: Escape closes the tooltip');
+    if (process.env.E2E_DEBUG) console.log((await pg.locator('[data-testid=walk-layer]').evaluate((e) => e.outerHTML.slice(0, 300))));
+    check((await pg.locator('[data-testid=walk-layer]').getAttribute('aria-checked')) === 'true', 'WK13: the switch says it is on');
+    // WK20: a reload keeps the switch, and the tiles stay on the device.
+    const before = overtureAsked.filter((q) => /transportation\.pmtiles/.test(q.url)).length;
+    await pg.reload();
+    await pg.waitForSelector('[data-testid=walk-legend]', { timeout: 30000 });
+    await pg.waitForFunction(() => (document.querySelector('[data-walk]')?.getAttribute('data-walk') ?? '') !== '', null, { timeout: 30000 }).catch(() => {});
+    check((await drawn(pg)) === 'car:1|mixed:1' && overtureAsked.filter((q) => /transportation\.pmtiles/.test(q.url)).length === before, `WK20, WK2: after a reload the switch is still on and the tiles come from the device (${await drawn(pg)})`);
+    // One setting for every map: Navigate's map has it on too.
+    await pg.goto(navUrl);
+    await pg.waitForSelector('[data-testid=walk-layer]', { timeout: 30000 });
+    await pg.waitForFunction(() => (document.querySelector('[data-walk]')?.getAttribute('data-walk') ?? '') !== '', null, { timeout: 30000 }).catch(() => {});
+    check((await pg.locator('[data-testid=walk-layer]').getAttribute('aria-checked')) === 'true' && (await drawn(pg)) === 'car:1|mixed:1', `WK13: Navigate's map has the same switch, on, and draws the same stretches (${await drawn(pg)})`);
+    await shot(pg, 'walk-navigate');
+    await pg.click('[data-testid=walk-layer]');
+    check((await pg.locator('[data-testid=walk-legend]').count()) === 0, 'WK13: switching off hides the legend');
+    await c.close();
+
+    // WK1b, WK3: Overture can't be read (not a PMTiles file), so Overpass answers, with the tile's bounds and nothing else.
+    transportMode = 'broken';
+    const { c: c2, pg: p2 } = await freshPage('walk-fallback');
+    await p2.goto(url);
+    await p2.waitForSelector('[data-testid=walk-layer]', { timeout: 30000 });
+    await p2.click('[data-testid=walk-layer]');
+    await p2.waitForFunction(() => (document.querySelector('[data-walk]')?.getAttribute('data-walk') ?? '') !== '', null, { timeout: 45000 }).catch(() => {});
+    const second = await drawn(p2);
+    check(second === 'car:1|mixed:0', `WK1b: with Overture unreadable, Overpass's tags draw the stretch (a secondary mapped with no sidewalk is built around cars) (${second})`);
+    const q = overpassAsked[0];
+    check(!!q && q.method === 'POST' && /^data=/.test(q.body ?? '') && /way%5B%22highway%22%5D\(/.test(q.body) && !/key|user|device/i.test(q.body), `WK18: Overpass is asked with the tile's bounds in a form body and nothing else (${q?.body?.slice(0, 80)})`);
+    await shot(p2, 'walk-fallback');
+    transportMode = 'ok';
+    await c2.close();
   };
 
   // Atlas grading (AG3): a ring the map knows almost nothing about says nothing about its kinds,
@@ -3092,6 +3194,11 @@ function check(ok, what) {
     }
     if (process.env.E2E_ONLY === 'outlines') {
       await outlinesScenario();
+      check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
+      return;
+    }
+    if (process.env.E2E_ONLY === 'walk') {
+      await walkScenario();
       check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
       return;
     }
