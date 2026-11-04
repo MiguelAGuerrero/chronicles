@@ -1,13 +1,13 @@
 <!-- Walkability. Written in the repo first (2026-11-04) from the owner's calls in the session on
      "a walkability index so we can mark areas that might need a car"; to be copied into the concept doc as a tab.
-     The doc wins once it exists. DRAFT: waits on the owner's review of this spec and plan.md. -->
+     The doc wins once it exists. DRAFT, updated 2026-11-04 with the owner's calls (Overture then Overpass; Explore and Navigate; icons with tooltips). -->
 
 # Walkability (WK)
 
 Each street segment is read for how it treats someone on foot: a sidewalk or a path beside it, a calm
-speed, crossings, a road class made for people or for cars. The reading is a **band in words**, never a
-number. Streets read as built around cars are drawn on a toggleable layer over Explore's maps, and the
-Navigate walk says so, quietly, before the way runs onto one. Areas are described in words from their
+speed, crossings, a road class made for people or for cars. The reading is a **band shown as an icon with a
+tooltip in words**, never a number. Streets read as built around cars are drawn on a toggleable layer over
+Explore's maps and the Navigate map, and the Navigate walk says so, quietly, before the way runs onto one. Areas are described in words from their
 streets ("mostly easy on foot", "mostly built around cars").
 
 "Built around cars" is what the map data says, not a ruling that a place can't be walked. OpenStreetMap
@@ -26,33 +26,46 @@ merge a sidewalk into its street.
 
 - **Words, not a number** (the owner, 2026-11-04): the app computes bands and shows only words. This keeps
   AGENTS.md's "Nothing is a score". No percentage, count or 0-100 value is shown anywhere.
-- **Data: OpenStreetMap sidewalk data, added** (the owner, 2026-11-04): `sidewalk*`, `maxspeed`,
-  `crossing`, `footway=sidewalk|crossing` and `highway` tags come from OpenStreetMap by a new network
-  source, read per z14 tile and cached on the device. The source is behind an adapter; nothing is
-  hard-coded. *The endpoint is open for the owner (plan.md, question 1).*
-- **Surfaces: the Explore map overlay and a warning while navigating** (the owner, 2026-11-04).
+- **Data: Overture first, Overpass as the fallback** (the owner, 2026-11-04). Overture's transportation
+  tiles (`transportation.pmtiles`, the same release and bucket as its places, read by byte range) carry
+  each segment's class, speed limits and footways (`footway/sidewalk`, `footway/crosswalk`). Checked
+  2026-11-04, release 2026-10-21.0: Zurich's z14 tile holds 666 sidewalk and 334 crosswalk segments,
+  Phillipsburg's 14 sidewalks. Overture has no explicit "no sidewalk" tag, so on Overture alone `car` rests on
+  class and speed. When Overture can't be read, the Overpass API supplies OpenStreetMap's own tags
+  (`sidewalk*`, `maxspeed`, `crossing`). Both sit behind one `WalkSource` adapter; nothing is hard-coded.
+- **Surfaces: the Explore maps and the Navigate map** (the owner, 2026-11-04): the area card's map, the atlas
+  page's map, and the walk screen's map (Navigate), plus a warning while navigating.
+- **Bands are icons with a tooltip** (the owner, 2026-11-04): a pedestrian mark for the index, a pedestrian
+  with a cancel or a car for the worst band. Words are the tooltip and the accessible label.
 - **Unit: the street segment** (the owner, 2026-11-04): the bands live on the segments the app already
   derives; areas are summarized from them.
 
 ## Bands
 
-Four, said in words:
+Four. Each has an icon (a pedestrian mark, built from the app's `Icon`) and words that are its tooltip and
+accessible label. The icon differs by shape, never by colour alone.
 
-| Band | Words on screen | Meant |
-|---|---|---|
-| `foot` | "Easy on foot" | a street made for people (pedestrian, living street, footway, path), or a street with a mapped sidewalk and a calm speed |
-| `mixed` | "Mixed" | a sidewalk on one side, a busier street with a sidewalk, or a calm street with nothing mapped |
-| `car` | "Built around cars" | a fast or major road with no mapped way for people beside it, or mapped as having none |
-| `unknown` | nothing | a road with too little tagged to say; drawn as nothing and counted as nothing |
+| Band | Icon | Words (tooltip, label) | Meant |
+|---|---|---|---|
+| `foot` | the pedestrian | "Easy on foot" | a street made for people (pedestrian, living street, footway, path), or a street with a mapped sidewalk and a calm speed |
+| `mixed` | the pedestrian with a caution badge | "Mixed" | a sidewalk on one side, a busier street with a sidewalk, or a calm street with nothing mapped |
+| `car` | the pedestrian with a car badge | "Built around cars" | a fast or major road with no mapped way for people beside it, or mapped as having none |
+| `unknown` | none | none | a road with too little tagged to say; drawn as nothing and counted as nothing |
 
 ## Acceptance criteria
 
 ### Reading the data
 
-1. **WK1 · Sidewalk data comes from OpenStreetMap, by tile.** For every z14 tile a walkability read covers,
-   the app asks the source for that tile's ways with their `highway`, `sidewalk`, `sidewalk:left/right/both`,
-   `maxspeed`, `lanes`, `crossing`, `footway`, `foot` and `access` tags. The request carries the tile's
-   bounds and nothing else: no account, key, device id or position beyond the tile.
+1. **WK1 · Facts come from Overture, by tile.** For every z14 tile a walkability read covers, the app reads
+   Overture's transportation tile for it (byte ranges of `transportation.pmtiles`, the release the places
+   already follow, AD6) and keeps each segment's class, subclass, speed limits, level and road flags, and its
+   footways' kind (sidewalk, crosswalk, path). The request carries the tile and nothing else: no account, key,
+   device id or position beyond the tile.
+1b. **WK1b · Overpass answers when Overture can't.** If Overture's tile can't be read (unreachable, release
+   gone, 10 s deadline), the same tile is asked of the Overpass API for its ways with their `highway`,
+   `sidewalk`, `sidewalk:left/right/both`, `maxspeed`, `lanes`, `crossing`, `footway`, `foot` and `access`
+   tags. The request carries the tile's bounds and nothing else. A tile read from Overpass is marked as such,
+   and is read from Overture again on a later read. If both fail, WK3.
 2. **WK2 · Cached per tile, once per build.** A tile's data is stored on the device, tagged with the
    source's build and `WALK_CODE`, and read from there afterwards. While the app is open a tile is
    requested at most once, however many reads cover it (a failed request is forgotten, so a later read
@@ -84,6 +97,9 @@ Four, said in words:
    `car` crossing street's band to `mixed` for the 60 m around it. A footbridge or tunnel that links two
    `car` stretches is its own `foot` segment and never takes the road's band (bridges and tunnels leave the
    ground, NB1).
+8b. **WK8b · Overture's gap.** Overture says what is built, not what is absent: with Overture alone, a street
+   is `car` only by its class and speed (WK5's second clause), never by "no sidewalk". Overpass-sourced tiles
+   may use `sidewalk=no`.
 9. **WK9 · Bands are derived, never patched.** Bands are computed from the cached tile facts and the
    street segments, in memory, and never stored per segment. A change to the table bumps `WALK_CODE`,
    which drops the cached tiles' derived results; the raw facts stay until the source's build changes.
@@ -102,23 +118,26 @@ Four, said in words:
 
 ### What shows
 
-13. **WK13 · A toggleable layer on Explore's maps.** The area card's map and the Explore atlas page's map
-    get a "Walkability" switch (off by default, remembered, meta `walk_layer`). On, `car` stretches draw in a
-    warm hue and `mixed` in a faint one over the streets, `foot` and `unknown` draw as nothing. Turning it
+13. **WK13 · A toggleable layer on the Explore and Navigate maps.** The area card's map, the Explore atlas
+    page's map and the walk screen's map get a walkability switch (off by default, one setting for all,
+    remembered, meta `walk_layer`), shown with the pedestrian icon (WK21). On, `car` stretches draw in a
+    warm hue and `mixed` in a faint one over the streets, `foot` and `unknown` draw as nothing. The fog and
+    trace stay readable over it (it draws beneath them). Turning it
     on reads the tiles the view covers (WK4); while they load the switch shows a quiet "Reading" state, and
     if the source is unreachable a quiet "Not available now" line (WK3).
-14. **WK14 · The layer says what it is.** A legend of the two drawn bands in words, and one line:
-    "From OpenStreetMap. Where sidewalks aren't mapped, streets can read worse than they are." A segment's
-    long press names its street and band ("Main Street · built around cars").
+14. **WK14 · The layer says what it is.** A legend of the two drawn bands as icons (WK21), and one line:
+    "From OpenStreetMap and Overture. Where sidewalks aren't mapped, streets can read worse than they are."
+    A long press on a drawn stretch names its street with the band's icon ("Main Street · built around cars").
 15. **WK15 · A quiet warning while navigating.** When the Navigate route's way ahead crosses a `car`
     stretch of 100 m or more, the walk's strip says once per stretch, before the way reaches it (200 m
-    ahead): "Next: a stretch built around cars on <street>". Silent: no sound, no haptic, no notification,
+    ahead): the car-badge icon and "Next: a stretch built around cars on <street>". Silent: no sound, no haptic, no notification,
     no modal; it goes after the stretch is passed or after 15 s, whichever is later, and a stretch is
     said once per route. A route with no `car` stretch, or with no data (WK3), says nothing.
 16. **WK16 · The warning never blocks the way.** It adds no button that changes the route, no
     "avoid" choice, and does not reroute. Route choice is unchanged by walkability in this slice.
-17. **WK17 · Credit.** Where the app credits its map data, it also credits OpenStreetMap contributors for the
-    sidewalk data (on web; native's own credits are deferred like AD16).
+17. **WK17 · Credit.** Where the app credits its map data, it also credits OpenStreetMap contributors and
+    Overture Maps Foundation for the walkability data (Overture is already credited, AD16; Overpass tiles add
+    nothing new). On web; native's own credits are deferred like AD16.
 
 ### Everywhere else
 
@@ -129,6 +148,21 @@ Four, said in words:
     `SNAP_RULES` bump) and `purgeDerived` clears it.
 20. **WK20 · A reload keeps it.** The layer's switch state and every cached tile survive a reload; after a
     build change the tiles are read again (WK2).
+
+### Icons and tooltips
+
+21. **WK21 · A band is an icon.** `WalkBandIcon` draws a band as the pedestrian mark, with a caution badge for
+    `mixed` and a car badge for `car` (the owner asked for a cancel or a car; the car is used, since a cancel
+    reads as "no walking"). `foot` is the pedestrian alone; `unknown` draws nothing. Bands differ by shape, so
+    they read without colour. Wherever a band is named (the switch, the legend, the long press, the warning),
+    its icon stands with it.
+22. **WK22 · Every band icon has a tooltip.** Hovering or focusing it on web, and tapping or long-pressing it on
+    a phone, shows its words ("Easy on foot", "Mixed", "Built around cars") in a small popover beside it
+    that closes on its own after 4 s, on a tap elsewhere or on Escape. The same words are its
+    `accessibilityLabel`. The popover is inline, never a `Modal` (iOS can't present a Modal over a Modal) and
+    takes its timing from `lib/motionTokens`.
+23. **WK23 · The tooltip never scores.** The words are the band's name and, for `mixed` and `car`, one short
+    reason without numbers ("a busy road with no sidewalk mapped"). No count, share, speed or percentage.
 
 ## Not in this slice
 
