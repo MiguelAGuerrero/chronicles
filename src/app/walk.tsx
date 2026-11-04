@@ -1029,9 +1029,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
         initialCenter={live.here ?? getLastFix()?.at ?? undefined}
         initialZoom={16}
         // The map ends at the bottom strip's top (it is the strip's sibling in the column), so the
-        // scale bar is measured from there: above the capture row (its foot is 92 + insets.bottom
-        // from the screen bottom, less the strip's 69 + insets.bottom; its buttons are 68 tall),
-        // inside the 640 column (QL8).
+        // scale bar is measured from there: in the bottom-left corner, just above the strip,
+        // inside the 640 column (QL8). The pills stack above it (`at.pills`).
         scaleInset={{ bottom: SCALE_BOTTOM, left: sideInset + 12 }}
       />
       )}

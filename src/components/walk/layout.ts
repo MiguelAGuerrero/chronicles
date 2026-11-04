@@ -21,8 +21,10 @@ export const EDGE = 44;
 /** Between the captures and the first edge button above them. */
 const EDGE_LIFT = 16;
 
-/** The map's scale bar above the strip: clear of a pill (60 tall) at the strip (audit 11). */
-export const SCALE_BOTTOM = 80;
+/** The map's scale bar sits in the bottom-left corner, just above the strip (Nov 4, the owner). */
+export const SCALE_BOTTOM = 12;
+/** The scale bar's height (4 + 14 + 2 + 8 + 4): pills stack above it, so one never covers it (audit 11). */
+const SCALE_H = 32;
 
 /**
  * The ready bar pulled up (NR7): 60% of the screen, so the map above it still shows the range
@@ -60,7 +62,7 @@ export function useStackLayout() {
     edgeRight: right + (CAP - EDGE) / 2,
     capBottom,
     edgeBottom,
-    /** The pills' area: left of the stack, just above the strip. */
-    pills: { left: sideInset + 12, right: right + CAP + STACK_GAP, bottom: barTop + STACK_GAP },
+    /** The pills' area: left of the stack, above the strip and the scale bar in its corner. */
+    pills: { left: sideInset + 12, right: right + CAP + STACK_GAP, bottom: barTop + SCALE_BOTTOM + SCALE_H + 8 },
   };
 }
