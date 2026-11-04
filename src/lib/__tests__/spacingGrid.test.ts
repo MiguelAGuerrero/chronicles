@@ -22,7 +22,7 @@ test('banner-spacing 1: padding, margin and gap in the floating UI are multiples
   const off: string[] = [];
   for (const f of FLOATING) {
     read(f).split('\n').forEach((line, i) => {
-      for (const m of line.matchAll(/\b((?:padding|margin|gap|rowGap|columnGap)[A-Za-z]*):\s*(\d+(?:\.\d+)?)/g)) {
+      for (const m of line.matchAll(/\b((?:padding|margin|gap|rowGap|columnGap)[A-Za-z]*):\s*(-?\d+(?:\.\d+)?)/g)) {
         if (Number(m[2]) % 4 !== 0) off.push(`${f}:${i + 1} ${m[1]}: ${m[2]}`);
       }
     });
@@ -36,7 +36,7 @@ test('banner-spacing 2: the screen-edge gutter is one 16 pt constant, used by th
   assert.doesNotMatch(layout, /Math\.max\(12,/, 'the stack and banners must not fall back to a 12 pt edge');
   for (const f of ['app/walk.tsx', 'components/walk/useReady.tsx']) {
     const src = read(f);
-    assert.match(src, /\bGUTTER\b/, `${f} places its top overlay from the gutter`);
+    assert.match(src, /styles\.top\b[^\n]*insets\.top \+ GUTTER, left: (?:at\.)?sideInset/, `${f} places its top overlay from the gutter`);
     assert.doesNotMatch(src, /(?:left|right): 12,|insets\.top \+ 12/, `${f} has a 12 pt edge`);
   }
 });

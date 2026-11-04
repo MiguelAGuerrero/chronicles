@@ -2146,8 +2146,11 @@ function check(ok, what) {
       // banner-spacing: the notice banner, the chevron and the capture stack keep a 16 pt gutter from the screen's edge.
       const vw = pg.viewportSize().width;
       const banner = await boxOf(pg, 'lift-in');
-      const gutters = [after.chev.x, banner.x, vw - (banner.x + banner.w), vw - (after.cam.x + after.cam.w)];
-      check(gutters.every((g) => g >= 15.5), `banner-spacing: banner, chevron and capture stack sit 16 pt from the edge (${JSON.stringify(gutters)})`);
+      const gutters = [after.chev.x, vw - (banner.x + banner.w), vw - (after.cam.x + after.cam.w)];
+      check(gutters.every((g) => g >= 15.5), `banner-spacing: chevron, banner and capture stack sit 16 pt from the edge (${JSON.stringify(gutters)})`);
+      // fix banner-spacing audit 1: nothing is wider than the screen, so nothing is cropped at its edges.
+      const over = await pg.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      check(over <= 0, `banner-spacing audit 1: the walk screen has no horizontal overflow (${over} px)`);
     }
     {
       const sameMap = await pg.evaluate(() => { const cs = [...document.querySelectorAll('canvas.maplibregl-canvas')]; return cs.length === 1 && cs[0].__readyMark === 1; });

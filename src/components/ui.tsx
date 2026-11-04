@@ -255,6 +255,6 @@ const styles = StyleSheet.create({
   bannerAction: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 8 },
   bannerActionText: { color: theme.ink, fontWeight: '700', fontSize: 14, textDecorationLine: 'underline' },
   // 44 pt itself, not by hit slop (react-native-web has none), without making the banner taller (U4).
-  bannerClose: { width: 44, height: 44, marginVertical: -10, marginRight: -10, alignItems: 'center', justifyContent: 'center' },
+  bannerClose: { width: 44, height: 44, marginVertical: -8, marginRight: -12, alignItems: 'center', justifyContent: 'center' },
   bannerCloseText: { color: theme.muted, fontSize: 16 },
 });
