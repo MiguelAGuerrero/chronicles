@@ -34,7 +34,7 @@ split (see Invariants).
 
 ```
 index.js                     entry: imports lib/recorder (defines the background location task) before expo-router/entry
-src/app/_layout.tsx          root stack: the tabs first, then walk and replay over them; reconciles the open walk at launch; sets the audio mode; notes the launch path (lib/launchRoute)
+src/app/_layout.tsx          root stack: the tabs first, then walk and replay over them; opens the open walk at launch under a cover (lib/launchWalk), then reconciles the recorder; sets the audio mode; notes the launch path (lib/launchRoute)
 src/app/(tabs)/_layout.tsx   the three tabs, Explore · Navigate · Chronicle; Explore opens first, at / (NV2)
 src/app/(tabs)/navigate.tsx  Navigate (/navigate): the drawer (Start at its foot, settings above), the capture row, LiveWalk (a live view of a minimized walk)
 src/app/(tabs)/index.tsx     Explore (/): the atlas of the areas near you (tiles, the area card; 0066, 0067); long press = What's good here / Walk here
@@ -197,6 +197,7 @@ Motion (animation)
 Session, screens and small helpers
   walkNav.ts, walkGate.ts         showWalk(): the one way to the walk screen, gated
   launchRoute.ts            the path the app opened on: a stale replay or day link at launch goes to Explore (NV2)
+  launchWalk.ts             an open walk at launch: covered until it is read, the walk screen, then the recorder (NV2)
   walkEvents.ts              the open walk changed (started, paused, resumed, stopped)
   openWalkLoad.ts            latest-wins loader for the open walk
   useStartWalk.ts, startPlan.ts         Start and Walk here: the plan's meta, then the walk screen

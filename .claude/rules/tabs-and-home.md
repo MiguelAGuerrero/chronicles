@@ -4,8 +4,8 @@ paths:
   - "src/components/StartDialog.tsx"
   - "src/app/_layout.tsx"
   - "src/components/{HomeSheet,RecordingBar,SwitchRow,OpenWalk}.tsx"
-  - "src/lib/{launchRoute,recordingBar,walkNav,walkGate,openWalkLoad,startPlan,useStartWalk,useTabMap,memoGate,quietLines,summary,walkEvents,settleWithin}.ts"
-  - "src/lib/__tests__/{tabsAudit,tabsAuditQuiet,minimize,startPlan,launchRoute}.test.ts"
+  - "src/lib/{launchRoute,launchWalk,recordingBar,walkNav,walkGate,openWalkLoad,startPlan,useStartWalk,useTabMap,memoGate,quietLines,summary,walkEvents,settleWithin}.ts"
+  - "src/lib/__tests__/{tabsAudit,tabsAuditQuiet,minimize,startPlan,launchRoute,launchWalk}.test.ts"
 ---
 # Tabs and home
 
@@ -30,6 +30,15 @@ The three tabs (Explore, Navigate, Chronicle), the home sheet, the recording bar
   `leftForChronicle`, or its unmount would move to Chronicle). Reached from
   inside the app, the message and its button stay. A load that throws goes to
   the screen's `ScreenError` boundary, never "could not be found".
+- **An open walk at launch comes straight up** (`lib/launchWalk`, the owner,
+  Nov 3: the Home Screen app showed Explore, then jumped to the walk). The root
+  layout covers the app (`launch-cover`) until `db.getOpenWalk()` answers, then
+  `router.replace('/walk')`, lifts the cover once `usePathname()` is `/walk`
+  (a replace commits a frame later: lifting at once showed one frame of tabs),
+  and only then `reconcileOpenWalk()`: on web the recorder's resume waits for
+  the browser's first fix, up to 10 s, which is how long Explore used to show.
+  Each wait is capped at 3 s, so a stuck read never leaves the app covered.
+  The reload e2e opens `/` with a walk open and samples every frame.
 - **e2e:** `navUrl` (`${url}navigate`) opens the scenarios that begin on
   Navigate; `url` opens Explore.
 

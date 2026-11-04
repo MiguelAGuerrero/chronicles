@@ -86,6 +86,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] A deep link to a missing replay or day at launch, `router.dismissTo('/')` reaching Explore on the native stack (NV2, 0070)
 - [ ] Explore's one fix at launch, and the location prompt it raises before any tap (NV16, 0070)
 - [ ] An iPhone Home Screen app reopening on its last page (the `/explore` redirect, a stale replay link) (NV2, 0070)
+- [ ] The launch cover over the native stack while the open walk is read, and the walk screen coming up under it before the recorder resumes (NV2 launch 1-5)
 
 ## Quality of life
 
