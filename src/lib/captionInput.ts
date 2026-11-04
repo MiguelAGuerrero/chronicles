@@ -8,6 +8,7 @@
  */
 export const IOS_NO_ZOOM_FONT = 16;
 
-export function typingFontSize(fontSize: number): number {
-  return Math.max(fontSize, IOS_NO_ZOOM_FONT);
+/** Web only: native has no page to zoom, so it keeps the caption's own size. */
+export function typingFontSize(fontSize: number, isWeb: boolean): number {
+  return isWeb ? Math.max(fontSize, IOS_NO_ZOOM_FONT) : fontSize;
 }
