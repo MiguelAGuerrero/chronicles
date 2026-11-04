@@ -70,6 +70,34 @@ The prototype the owner tuned this from: https://claude.ai/artifact/XouW4WPy8e2y
 21. **RR21** A ceremony turns a story into frames (where the walker is, the camera, the clock, and what is drawn over the map). The rhythm is one ceremony. Both replays pick theirs by id from one registry and draw whatever its frames say, through one set of overlay views. A new ceremony is a new registry entry, plus a view for any overlay kind it adds, with no change to the story, the screens or the rhythm.
 22. **RR22** The screen reader's path (RR17) is the same story shown another way: its moments, one at a time.
 
+## Audit, round 1 (2026-11-04)
+
+The `auditor` subagent, report-only, on `57ac857`. 19 findings (18 plus one from its UI notes): 16 accepted, 1 deferred, 2 rejected.
+
+1. A memo over about 9 s is cut off when its bubble leaves: accept. A memo's bubble stays until it has played. `replay-rhythm audit 1`.
+2. The replay sticks on the path when the plan's total is 0 or shrinks under the clock (an empty walk, a moment deleted from the viewer near the end): accept. The tick is a pure function that ends a ceremony whose time has run out. `replay-rhythm audit 2`.
+3. "Tap for sound" on a video card can't be tapped (the card ignores pointer events): accept. `replay-rhythm audit 3` (e2e).
+4. Opening the pile or a note holds the clock but not a playing memo or video: accept. The stage is paused while a viewer is open. `replay-rhythm audit 4` (e2e).
+5. A standstill of 2 min or more with no capture plays as a cut ("14 min later"), because the trace's dwell is kept as its two end fixes: accept. A break whose ends are within the standstill radius and no pause is a stand, not a cut. `replay-rhythm audit 5`.
+6. A screen lock mid-replay jumps straight to the card: accept in part. A tick longer than a quarter second doesn't advance the ceremony, so a lock holds it. Keeping the screen awake needs a new library (expo-keep-awake): deferred to the owner. `replay-rhythm audit 6`.
+7. The pile opens at its oldest photo: accept. Newest first. `replay-rhythm audit 7` (e2e).
+8. Media timing follows the replay's clock, not the player (a video told to play before it loads; a refused memo tapped late is stopped at its slot's end): accept. The video starts when ready; a memo the viewer started plays to its end. Covered by the e2e's flow (the full flow's video checks and `replay-rhythm audit 3`).
+9. The walker and camera jump into and out of every stop: accept. A stop on a path holds the walker where the trace is, from arriving to leaving. `replay-rhythm audit 9`.
+10. The modularity leaks: the screens know the rhythm's walking zoom, the camera is always on the walker, the cards assume the pin is mid-screen, the views import the rhythm's easing, and pins can only appear in story order: accept (the owner's call, 0082). The frame carries the camera (centre and zoom), the pins by id and each card's origin; easing is its own module. `replay-rhythm audit 10`, with a source scan that the screens and the stage import no ceremony.
+11. Cuts, the intro and the rest never shrink under the cap: accept. They shrink too, above their floors. `replay-rhythm audit 11`.
+12. Reduce motion still slides the bubbles and drops the intro: accept. Bubbles appear in place; the intro holds still for its time. `replay-rhythm audit 12`.
+13. A landscape or short screen: the card covers the clock and the buttons; the bubbles run up over Hold; the notch: accept. The card is sized by the space between the top bar and the bottom; the corner keeps its height; side insets. `replay-rhythm audit 13` (e2e, landscape).
+14. The trace trails the walker mid-zip (rebuilt every 66 ms): defer (DEFERRED.md; drawing per frame costs the map more than the gap shows).
+15. A 449 m stretch (not "long") pulls the camera back a little: accept. `replay-rhythm audit 15`.
+16. A pause inside one group of captures plays no cut: reject. The captures are one stop by the grouping rule; the clock rolls through the pause inside it, and the drawn trace still breaks there.
+17. A place passed just after a gap whispers while the map is still dimming on the near side: accept. It waits for the far side. `replay-rhythm audit 17`.
+18. The screen reader's steps stall when the moment showing is deleted: accept. Stepping is a pure function that skips a moment gone and ends when none is left. `replay-rhythm audit 18`.
+19. Colours hard-coded in the stage (the cut's dim, the waveform's unlit bars, white): accept. From the theme and the kinds' colours. `replay-rhythm audit 19` (a source scan).
+
+Regression tests: the unit ones (`replay-rhythm audit 1, 2, 5, 6, 9, 10, 11, 12, 15, 17, 18, 19` in `ceremony.test.ts`) were written before their fixes; the e2e ones (`audit 3, 4, 7, 13` in the `replay` journey) alongside them, run against the fixed build only. The RR5 test lost an `||` that let it pass without ever fitting the cap; the RR7 and RR13 e2e checks now compare the walker's position, not only the minute clock.
+
+Rejected from its UI notes: the screen reader's steps saying "1 of 3" (RR17 keeps that path as it was, the owner's call). Noted: the Undo toast can sit over the clock for its 5 s after a deletion during the path (accepted as is).
+
 ## Record
 
 Not started: the code waits on the owner's go-ahead on `plan.md`.

@@ -2,25 +2,38 @@
 paths:
   - "src/app/replay/**"
   - "src/app/day/**"
+  - "src/lib/ceremony/**"
+  - "src/components/ceremony/**"
   - "src/lib/{replay,quietLines,summary}.ts"
   - "src/components/CaptureView.tsx"
 ---
 # Replay
 
-A walk's replay and the day replay: the five beats, the stops at captures, re-watches, the card's wording, and the clock. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
+A walk's replay and the day replay: the five beats, the story and its ceremonies, the rhythm, the card's wording. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
 
 ## Rules
 
-- **The replay waits at each capture** (the owner's call, over the doc's fixed ~40 s):
-  the path runs in a fixed 30 s, but stops at every capture until Continue. Photos
-  stay up; voice memos and videos play to the end. Skip jumps to the card.
-- **Photos and videos are full screen** (the owner's call): the media fills
-  everything above a thin dark strip with the details and the actions (‹ ›, or the
-  replay's Continue). Notes and memos keep their card. The replay uses the same
-  layout at its photo and video stops.
-- **Re-watches move on by themselves** (the owner's call): "Watch again", and replays
-  opened from the log, advance after 4 s for a photo or note, and when a memo or
-  video ends. Only the first replay after a walk waits for taps.
+- **A replay is a story told by a ceremony** (decision 0082). `lib/ceremony/story.ts`
+  reads what happened once (`walkStory`, `dayStory`: paths, moves, moments with
+  arriving and leaving, breaks, travel between a day's entries, passes), with no
+  timing or look. A ceremony (`lib/ceremony/types.ts`: `show(story) -> { total,
+  frame(ms) }`) says what is on screen at each time; the screens draw frames
+  through `components/ceremony/Stage` and its `OVERLAYS` by kind. The screens
+  and the stage never import a ceremony or `REPLAY_RHYTHM` (a test scans them,
+  `replay-rhythm audit 10`): the camera, the pins and a card's origin come in the
+  frame. A new ceremony is an entry in `CEREMONIES` and a view per new overlay kind.
+- **The rhythm** (decision 0081, RR1-RR19, `lib/ceremony/rhythm.ts`): a stretch's
+  time follows its length, not the minutes walked (a glide, or a zip with the camera
+  pulled back past `zipAtM`); a break is a cut with "N min later"; notes and memos
+  are bubbles, photos and videos cards that tuck into the pile; passed places
+  whisper by; a clock rolls with the walker. Every number is in `REPLAY_RHYTHM`
+  (`motionTokens.ts`). A soft cap of 60 s shrinks everything but memos and videos.
+- **Nothing waits for a tap.** A tap on the stage or Hold holds it; an open viewer
+  pauses it (the clock and any sound); Skip goes to the card. First watch and
+  re-watches play the same. Only the screen reader's steps (`StepThrough`) wait for
+  Continue, and move on by themselves on a re-watch, as before (RR17).
+- **Photos and videos are full screen in the viewer** (0003), opened from the pile
+  (newest first); in the path they are cards.
 - **Video** comes from the camera button (the system camera's own video mode),
   capped at 30 s on phones and 15 s on web. The mic stays the separate pocket
   recorder.
@@ -38,20 +51,24 @@ A walk's replay and the day replay: the five beats, the stops at captures, re-wa
 ## Gotchas
 
 - Change the beat and its start time together (`phase = { beat, t0 }`) and do beat
-  transitions in the clock's tick. A separate clock state once skipped the fog beat
-  on "Watch again".
-- The path runs in active time: gaps over 60 s collapse to a 5 s hop
-  (`activeClock` in `replay.ts`).
-- At a stop the clock stands still. `stop.atMs` holds the path time, and resuming
-  sets `t0 = now - atMs`. `shown` counts the groups already visited; reset it on
-  "Watch again".
+  transitions in a tick or a handler. A separate clock state once skipped the fog beat
+  on "Watch again". The ceremony's time restarts at each new `phase.t0` (its epoch,
+  `useCeremonyClock`), so no effect has to reset it.
+- The ceremony's clock ticks through `tickClock` (`lib/ceremony/clock.ts`): a tick
+  longer than 250 ms counts as 250 ms (a locked screen waits, never skips to the card),
+  and a time at or past the total ends it, even a total of 0 or one that shrank when
+  the story was rebuilt (a moment deleted from the viewer).
+- A trace's standstill is kept as its two end fixes (`smoothDwells`), minutes apart:
+  `ReplayData.stays` says which holes are stands, so the story joins them rather than
+  playing a cut (`joinStills`). A pause is a break however short.
+- A memo's bubble stays until the memo has played; a memo the viewer started by hand
+  (sound refused) plays past its slot. A card's video starts when the player is ready.
+- The trace is rebuilt from the frame at 66 ms buckets, not every frame, so on a zip
+  the line trails the walker (deferred).
 - `CaptureContent` plays a voice memo or video itself and is keyed by capture id, so
-  moving on or skipping unmounts the player and stops the sound.
-- Taps in the first 600 ms after a capture appears are ignored, so a double tap never
-  skips one unseen.
-- A capture after the last fix stops the path at its end. The path span is the trace;
-  captures are clamped to it.
+  moving on or skipping unmounts the player and stops the sound (the steps).
+- A capture after the last fix stops the path at its end. The path span is the trace.
 - With a screen reader on (native only, since react-native-web always says yes), the
-  replay skips the fog and path and goes through the captures, then the card.
+  replay skips the fog and path and steps through the story's moments, then the card.
 - The replay sets `playsInSilentMode` when it mounts, or memos are silent with the
   iPhone's ringer switch off.

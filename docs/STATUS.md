@@ -130,7 +130,7 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 | Session | Branch | Doing |
 |---|---|---|
 | Bug fixes (open since Oct 31) | unknown | unknown |
-| Replay rhythm (RR1-RR22, decisions 0081, 0082) | `claude/replay-rhythm` | built test-first; the owner asked for at least two audits |
+| Replay rhythm (RR1-RR22, decisions 0081, 0082) | `claude/replay-rhythm` | built test-first; audit round 1: 19 findings, 16 fixed, 1 deferred, 2 rejected; round 2 next |
 
 ## Updating this file
 

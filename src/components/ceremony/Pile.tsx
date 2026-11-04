@@ -5,6 +5,7 @@ import type { Capture } from '../../lib/types';
 import { useMediaUri } from '../../lib/useMediaUri';
 import { COLORS } from '../map/types';
 import { Icon } from '../icons';
+import { theme } from '../ui';
 import { PILE, pileCenter, tiltOf, type StageCtx } from './layout';
 
 /** A photo's small copy where it has one (a map never decodes full photos; nor does the pile). */
@@ -18,7 +19,7 @@ function Thumb({ capture }: { capture: Capture }) {
         <Image source={{ uri }} style={styles.img} resizeMode="cover" accessibilityIgnoresInvertColors />
       ) : (
         <View style={[styles.img, styles.video]}>
-          <Icon name="videocam" size={18} color="#ffffff" />
+          <Icon name="videocam" size={18} color={theme.surface} />
         </View>
       )}
     </View>
@@ -36,7 +37,8 @@ export function Pile({ items, ctx }: { items: PileOverlay[]; ctx: StageCtx }) {
       accessibilityRole="button"
       accessibilityLabel="The photos and videos so far"
       accessibilityHint="Opens them full screen; the replay holds until you close them"
-      onPress={() => ctx.open(captures)}
+      // Newest first: the one just tucked away (audit 7).
+      onPress={() => ctx.open([...captures].reverse())}
       style={[styles.pile, { left: cx - PILE.w / 2, top: cy - PILE.h / 2 }]}
     >
       {captures.slice(-3).map((c) => (
@@ -49,8 +51,8 @@ export function Pile({ items, ctx }: { items: PileOverlay[]; ctx: StageCtx }) {
 const styles = StyleSheet.create({
   pile: { position: 'absolute', width: PILE.w, height: PILE.h },
   thumb: {
-    position: 'absolute', left: 4, top: 4, width: PILE.thumb, backgroundColor: '#ffffff', paddingTop: 3, paddingHorizontal: 3, paddingBottom: 9, borderRadius: 3,
-    shadowColor: '#000000', shadowOpacity: 0.2, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3,
+    position: 'absolute', left: 4, top: 4, width: PILE.thumb, backgroundColor: theme.surface, paddingTop: 3, paddingHorizontal: 3, paddingBottom: 9, borderRadius: 3,
+    shadowColor: theme.ink, shadowOpacity: 0.2, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3,
   },
   img: { width: '100%', aspectRatio: 4 / 5 },
   video: { backgroundColor: COLORS.video, alignItems: 'center', justifyContent: 'center' },

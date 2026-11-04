@@ -5,7 +5,7 @@
  * decides how to tell it (decision 0082).
  */
 import { distanceM } from '../geo';
-import { groupCaptures, timedRuns, traceUntil, walkerAt } from '../replay';
+import { groupCaptures, timedRuns, traceUntil, walkerAt, type TimedRun } from '../replay';
 import type { Day } from '../days';
 import type { ReplayData } from '../summary';
 import type { Capture, LngLat } from '../types';
@@ -14,6 +14,8 @@ import type { Story, StoryEvent, StoryMoment, StoryPass, StoryPath } from './typ
 /** What a walk's story is read from: the replay's data, with where and when each passed place was passed. */
 export type WalkInput = Pick<ReplayData, 'walk' | 'fixes' | 'walkedFixes' | 'breaks' | 'pauses' | 'runs' | 'rideRuns' | 'rideTimed' | 'captures'> & {
   passed: { name: string; generic: boolean; at?: LngLat; t?: number }[];
+  /** Standstills, kept in `fixes` as their two ends: the time between is a stand, not a gap. */
+  stays?: { t0: number; t1: number }[];
 };
 
 /** Within this of where a capture was taken, you were still there (the standstill radius, 0010). */
@@ -66,9 +68,28 @@ export function pathDrawnAt(p: StoryPath, t: number): { trace: LngLat[][]; rides
 /** Where the walker is at walk time t. */
 export const positionAt = (p: StoryPath, t: number): LngLat | null => walkerAt(p.dot, t);
 
+/**
+ * Runs split only where the walker was really away (audit 5): a standstill is
+ * kept in the trace as its two end fixes (smoothDwells), minutes apart at one
+ * spot, which reads as a gap. Two runs whose join lies inside a known stay,
+ * with no pause between them, are one: standing there, not the app closed.
+ */
+function joinStills(runs: TimedRun[], pauses: WalkInput['pauses'], stays: { t0: number; t1: number }[]): TimedRun[] {
+  const out: TimedRun[] = [];
+  for (const run of runs) {
+    const prev = out[out.length - 1];
+    const a = prev?.[prev.length - 1];
+    const b = run[0];
+    const stand = a && b && stays.some((s) => s.t0 <= a.t && s.t1 >= b.t) && !pauses.some((p) => p.started_at < b.t && (p.ended_at ?? Infinity) > a.t);
+    if (stand) prev.push(...run);
+    else out.push([...run]);
+  }
+  return out;
+}
+
 function pathOf(r: WalkInput): StoryPath | null {
   if (r.fixes.length < 2) return null;
-  const dot = timedRuns(r.fixes, r.pauses);
+  const dot = joinStills(timedRuns(r.fixes, r.pauses), r.pauses, r.stays ?? []);
   const ts: number[] = [];
   const ms: number[] = [];
   const runOf: number[] = [];
@@ -267,3 +288,12 @@ export function dayStory(day: Day, walks: Map<string, WalkInput | null>): Story 
 
 /** The story's moments in order, each its captures: the screen reader's way through (RR17, RR22). */
 export const storySteps = (s: Story): Capture[][] => s.events.flatMap((e) => (e.kind === 'moment' ? [e.captures] : []));
+
+/**
+ * Where the screen reader's steps stand (audit 18): the same step, or the
+ * next moment when the one showing was deleted, or null when none is left.
+ */
+export function stepAt(steps: Capture[][], at: { step: number; item: number }): { step: number; item: number } | null {
+  for (let step = at.step, item = at.item; step < steps.length; step++, item = 0) if (item < steps[step].length) return { step, item };
+  return null;
+}

@@ -291,7 +291,7 @@ test('replay: a capture after the trace ends stops the path at its end, not afte
   const stop = p.segs.find((s) => s.k === 'stop')!;
   const end: LngLat = [trace.at(-1)!.lon, trace.at(-1)!.lat];
   const f = rhythmFrame(p, stop.t0 + 10);
-  assert.ok(f.walker && distanceM(f.walker, end) < 1, 'its stop comes as the path ends');
+  assert.ok(f.walker && distanceM(f.walker, end) <= 25, 'its stop comes as the path ends (within the standstill radius, where it came to a stand)');
   const leg = p.segs.find((s) => s.k === 'leg')!;
   assert.ok(leg.k === 'leg' && leg.move && leg.move.m1 - leg.move.m0 > 250, 'the walker moves through the trace all the way');
 });

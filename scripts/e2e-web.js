@@ -2286,6 +2286,25 @@ function check(ok, what) {
   // gap and a long stretch, watched with no taps but the ones it checks; then its day. E2E_ONLY=replay runs it alone.
   const replayScenario = async () => {
     const { c, pg } = await freshPage('replay');
+    // Media calls are recorded; a video's sound is refused unless a tap came just before, as iOS does.
+    await c.addInitScript(() => {
+      window.__media = [];
+      window.__tap = 0;
+      // Only a tap on Tap for sound counts, so the test's other taps never let a video's sound through early.
+      document.addEventListener('pointerdown', (e) => { if (e.target.closest?.('[data-testid=video-sound]')) window.__tap = Date.now(); }, true);
+      const P = HTMLMediaElement.prototype;
+      const play = P.play;
+      const pause = P.pause;
+      P.play = function () {
+        window.__media.push([this.tagName, 'play', this.muted]);
+        if (this.tagName === 'VIDEO' && !this.muted && Date.now() - window.__tap > 1000) return Promise.reject(new DOMException('refused', 'NotAllowedError'));
+        return play.call(this);
+      };
+      P.pause = function () {
+        window.__media.push([this.tagName, 'pause']);
+        return pause.call(this);
+      };
+    });
     const here = at(3.0, -0.5);
     await pg.goto(navUrl);
     await pg.waitForSelector('[data-testid=start]');
@@ -2314,7 +2333,9 @@ function check(ok, what) {
     const second = along([2.2, -0.5], [3.0, -0.5], first.at(-1).t + 20 * min);
     const capAt = (p, o) => ({ walk_id: walk.id, t: p.t, lat: p.lat, lon: p.lon, segment_id: null, caption: null, caption_y: null, ...o });
     const captures = [
-      capAt(first[12], { id: 'rr-photo', kind: 'photo', file_path: 'rr-photo', body: null, caption: 'Blue door', caption_y: 0.8 }),
+      capAt(first[8], { id: 'rr-photo', kind: 'photo', file_path: 'rr-photo', body: null, caption: 'Blue door', caption_y: 0.8 }),
+      capAt(first[25], { id: 'rr-photo-2', kind: 'photo', file_path: 'rr-photo', body: null, caption: 'Green gate', caption_y: 0.8 }),
+      capAt(first[45], { id: 'rr-video', kind: 'video', file_path: 'rr-video', body: '5000' }),
       capAt(first.at(-1), { id: 'rr-note', kind: 'text', file_path: null, body: 'Bought two plums. Ate one before I paid.' }),
       capAt(second[6], { id: 'rr-memo', kind: 'voice', file_path: 'rr-memo', body: '3000' }),
     ];
@@ -2325,7 +2346,19 @@ function check(ok, what) {
       const g = cv.getContext('2d');
       g.fillStyle = '#2f5f8f';
       g.fillRect(0, 0, 160, 200);
-      cv.toBlob((blob) => {
+      // A 5 s video, recorded from a canvas.
+      const rec = new MediaRecorder(cv.captureStream(10), { mimeType: 'video/webm' });
+      const parts = [];
+      let frame = 0;
+      const paint = setInterval(() => {
+        g.fillStyle = frame++ % 2 ? '#2f5f8f' : '#c0392b';
+        g.fillRect(0, 0, 160, 200);
+      }, 100);
+      rec.ondataavailable = (e) => parts.push(e.data);
+      const recorded = new Promise((r) => { rec.onstop = () => { clearInterval(paint); r(new Blob(parts, { type: 'video/webm' })); }; });
+      rec.start();
+      setTimeout(() => rec.stop(), 5200);
+      recorded.then((video) => cv.toBlob((blob) => {
         const req = indexedDB.open('chronicles');
         req.onsuccess = () => {
           const tx = req.result.transaction(['walk', 'trace_point', 'capture', 'media'], 'readwrite');
@@ -2334,9 +2367,10 @@ function check(ok, what) {
           for (const p of pts) tx.objectStore('trace_point').add(p);
           for (const cap of caps) tx.objectStore('capture').put(cap);
           tx.objectStore('media').put({ key: 'rr-photo', blob });
+          tx.objectStore('media').put({ key: 'rr-video', blob: video });
           tx.oncomplete = () => resolve(true);
         };
-      }, 'image/png');
+      }, 'image/png'));
     }), [walk.id, first[0].t - 1000, [...first, ...second], captures]);
     await pg.reload();
     await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
@@ -2357,7 +2391,8 @@ function check(ok, what) {
         document.querySelectorAll('[data-testid=replay-card]').forEach((e) => add(window.__rrSeen.cards, e.getAttribute('aria-label')));
         document.querySelectorAll('[data-testid=replay-later]').forEach((e) => add(window.__rrSeen.later, e.textContent));
         document.querySelectorAll('[data-testid=replay-note]').forEach((e) => add(window.__rrSeen.notes, e.textContent));
-        const m = /\b\d+ of \d+\b/.exec(document.body.innerText);
+        // The viewer (the pile opened) has its own "1 of 2"; the path itself counts nothing.
+        const m = document.querySelector('[data-testid=viewer-close]') ? null : /\b\d+ of \d+\b/.exec(document.body.innerText);
         if (m) add(window.__rrSeen.counted, m[0]);
       }, 50);
     });
@@ -2368,17 +2403,20 @@ function check(ok, what) {
     let holdChecked = false;
     let tapChecked = false;
     let pileChecked = false;
+    let soundChecked = false;
     for (let k = 0; k < 400 && !(await pg.locator('[data-testid=to-name]').count()); k++) {
       if (await pg.locator('[data-testid=moment]').count()) seen.cont = true;
       if ([2, 5, 9, 14, 20].includes(k)) await shot(pg, `rr-path-${k}`);
       const ck = await clockNow();
       if (ck) clocks.add(ck);
       if (!holdChecked && ck) {
-        // Hold holds everything, and reads Play while held (RR7).
+        // Hold holds everything, and reads Play while held (RR7): past the intro, the walker itself stands still.
+        await pg.waitForTimeout(1000);
         await pg.click('[data-testid=hold]');
-        const a = await clockNow();
+        const walkerAt = () => pg.locator('[data-walker]').first().getAttribute('data-walker');
+        const a = [await clockNow(), await walkerAt()].join(' @ ');
         await pg.waitForTimeout(1200);
-        const bb = await clockNow();
+        const bb = [await clockNow(), await walkerAt()].join(' @ ');
         const label = await pg.locator('[data-testid=hold]').innerText();
         const pill = await pg.locator('[data-testid=replay-held]').count();
         check(a === bb && label.trim() === 'Play' && pill === 1, `RR7: Hold holds the replay and reads Play (${a} → ${bb}, "${label.trim()}", pill ${pill})`);
@@ -2397,19 +2435,42 @@ function check(ok, what) {
         check(held === 1 && after === 0, `RR7: a tap on the map holds the replay, another goes on (${held}, ${after})`);
         tapChecked = true;
       }
-      if (!pileChecked && (await pg.locator('[data-testid=replay-pile]').count())) {
+      if (!pileChecked && (await pg.locator('[data-testid=replay-pile] img').count()) >= 2 && !(await pg.locator('[data-testid=replay-card]').count())) {
         const pileText = await pg.locator('[data-testid=replay-pile]').innerText();
         check(!/\d/.test(pileText), `RR19: the pile shows no count ("${pileText}")`);
         await shot(pg, 'rr-pile');
-        // The pile opens the viewer, and the replay holds until it closes (RR13).
+        // The pile opens the viewer at its latest photo, and the replay holds until it closes (RR13, replay-rhythm audit 7).
         await pg.click('[data-testid=replay-pile]');
         const open = await pg.waitForSelector('[data-testid=viewer-close]', { timeout: 5000 }).then(() => true, () => false);
-        const a = await clockNow();
+        const latest = await pg.waitForSelector('[aria-label="Caption: Green gate"]', { timeout: 3000 }).then(() => true, () => false);
+        const a = [await clockNow(), await pg.locator('[data-walker]').first().getAttribute('data-walker')].join(' @ ');
         await pg.waitForTimeout(1200);
-        const bb = await clockNow();
+        const bb = [await clockNow(), await pg.locator('[data-walker]').first().getAttribute('data-walker')].join(' @ ');
         check(open && a === bb, `RR13: the pile opens the viewer and the replay holds (${open}, ${a} → ${bb})`);
+        check(latest, 'replay-rhythm audit 7: the pile opens at its latest photo');
         await pg.click('[data-testid=viewer-close]').catch(() => {});
         pileChecked = true;
+      }
+      if (!soundChecked && (await pg.locator('[data-testid=video-sound]').count())) {
+        // Sound refused: the video plays muted, and its "Tap for sound" can be tapped (replay-rhythm audit 3).
+        const tapped = await pg.click('[data-testid=video-sound]', { timeout: 2000 }).then(() => true, () => false);
+        await pg.waitForTimeout(300);
+        const sound = await pg.evaluate(() => {
+          const v = document.querySelector('[data-testid=replay-card] video');
+          return !!v && !v.muted && !v.paused;
+        });
+        check(tapped && sound, `replay-rhythm audit 3: a refused video's Tap for sound turns the sound on (${tapped}, ${sound})`);
+        soundChecked = true;
+        // Opening the pile mid-video pauses the video too, not only the clock (replay-rhythm audit 4).
+        const before = await pg.evaluate(() => window.__media.length);
+        await pg.click('[data-testid=replay-pile]');
+        await pg.waitForSelector('[data-testid=viewer-close]', { timeout: 5000 }).catch(() => {});
+        await pg.waitForTimeout(400);
+        const ops = await pg.evaluate((n) => window.__media.slice(n), before);
+        const paused = ops.some(([tag, op]) => tag === 'VIDEO' && op === 'pause');
+        const v = await pg.evaluate(() => document.querySelector('[data-testid=replay-card] video')?.paused ?? null);
+        check(paused && v !== false, `replay-rhythm audit 4: opening the viewer pauses the card's video (${JSON.stringify(ops)})`);
+        await pg.click('[data-testid=viewer-close]').catch(() => {});
       }
       await pg.waitForTimeout(150);
     }
@@ -2430,6 +2491,22 @@ function check(ok, what) {
     check(pileChecked, 'RR11: the photo tucks into the pile');
     check(/^20 min later$/.test(seen.later), `RR4: the gap is a cut, "20 min later" ("${seen.later}")`);
     check(!seen.counted, `RR19: nothing during the path counts ("${seen.counted}")`);
+    check(soundChecked, 'replay-rhythm audit 3: the video came up muted with Tap for sound');
+
+    // A landscape phone: the card stands between the top row and the corner, clear of the buttons (replay-rhythm audit 13).
+    await pg.setViewportSize({ width: 844, height: 390 });
+    await pg.getByText('Watch again').click();
+    const card = await pg.waitForSelector('[data-testid=replay-card]', { timeout: 30000 }).then(() => true, () => false);
+    await pg.waitForTimeout(500);
+    const cb = await pg.locator('[data-testid=replay-card]').first().boundingBox().catch(() => null);
+    const hb = await pg.locator('[data-testid=hold]').boundingBox().catch(() => null);
+    const sb = await pg.locator('[data-testid=skip]').boundingBox().catch(() => null);
+    const clear = (r) => !r || !cb || cb.x + cb.width <= r.x || r.x + r.width <= cb.x || cb.y + cb.height <= r.y || r.y + r.height <= cb.y;
+    check(card && cb && cb.y >= 0 && cb.y + cb.height <= 390 && clear(hb) && clear(sb), `replay-rhythm audit 13: the card fits a landscape phone, clear of Hold and Skip (${JSON.stringify(cb)})`);
+    await shot(pg, 'rr-landscape');
+    await pg.click('[data-testid=skip]');
+    await pg.waitForSelector('[data-testid=to-name]', { timeout: 15000 });
+    await pg.setViewportSize({ width: 390, height: 844 });
 
     // The day (RR16): its replay reaches the day's card with no taps, the note on the way.
     await pg.click('[data-testid=not-now]');
@@ -2484,6 +2561,8 @@ function check(ok, what) {
     }
     if (process.env.E2E_ONLY === 'replay') {
       await replayScenario();
+      // The scenario refuses a video's sound on purpose; expo-video lets that refusal go unhandled.
+      for (let i = errors.length - 1; i >= 0; i--) if (/NotAllowedError: refused/.test(errors[i])) errors.splice(i, 1);
       check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
       return;
     }

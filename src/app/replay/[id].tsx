@@ -16,7 +16,6 @@ import { useRevealed } from '../../components/ceremony/useRevealed';
 import type { StageCtx } from '../../components/ceremony/layout';
 import { ceremonyFor } from '../../lib/ceremony/registry';
 import { pathDrawnAt, storySteps, walkStory } from '../../lib/ceremony/story';
-import { REPLAY_RHYTHM } from '../../lib/motionTokens';
 import { planViews, type WalkMapHandle } from '../../components/map/types';
 import { Button, theme } from '../../components/ui';
 import { db } from '../../lib/db';
@@ -325,11 +324,12 @@ export default function Replay() {
     },
     [data, story, traceFrame],
   );
-  const follow = frame && !reduceMotion ? frame.walker : null;
-  const followZoom = follow && frame ? REPLAY_RHYTHM.baseZoom - Math.log2(frame.zoomOut) : null;
+  // The camera is the ceremony's to say (audit 10).
+  const follow = frame?.camera.center ?? null;
+  const followZoom = follow ? frame?.camera.zoom ?? null : null;
   const ctx: StageCtx = {
-    width, height, insets: { top: insets.top, bottom: insets.bottom }, center: follow, zoom: followZoom ?? 0,
-    held: play.held, reduceMotion, open: setViewing,
+    width, height, insets, center: follow, zoom: followZoom ?? 0,
+    held: play.held, paused: viewing != null, reduceMotion, open: setViewing,
   };
 
   // Beat one: the walked streets light up out of the grey, in the order walked.
@@ -342,8 +342,7 @@ export default function Replay() {
   }, [data, beat, lit]);
 
   // Captures are pinned as the ceremony reaches them; on the card every pin opens its captures.
-  const revealed = frame ? frame.revealed : beat === 'card' || beat === 'name' || srMode ? Infinity : 0;
-  const pinned = useRevealed(story, revealed);
+  const pinned = useRevealed(story, frame ? frame.pins : beat === 'card' || beat === 'name' || srMode ? 'all' : 'none');
 
   // Stretches across gaps (Filling gaps, G6, G9): offered ones faint on the card, a tapped one's card.
   const faint = useMemo(() => (data && (beat === 'card' || beat === 'name') ? data.stretches.filter((x) => x.how === 'offer').map((x) => x.path) : []), [data, beat]);

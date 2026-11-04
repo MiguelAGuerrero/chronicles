@@ -124,5 +124,5 @@ export const REPLAY_RHYTHM = {
   rest: 800,
   /** The soft cap on the path (RR5), and the floors nothing shrinks below. */
   cap: 60_000,
-  floors: { leg: 600, photo: 1200, note: 300 },
+  floors: { leg: 600, photo: 1200, note: 300, cut: 600, intro: 300, rest: 300 },
 } as const;

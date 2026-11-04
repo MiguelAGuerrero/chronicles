@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { AccessibilityInfo, Pressable, StyleSheet, View } from 'react-native';
+import { stepAt } from '../../lib/ceremony/story';
 import type { Capture } from '../../lib/types';
 import { focusOn } from '../../lib/focus';
 import { CaptureContent } from '../CaptureView';
@@ -26,7 +27,9 @@ export function StepThrough(props: {
   topInset: number;
 }) {
   const [at, setAt] = useState(() => ({ step: 0, item: 0, shownAt: Date.now() }));
-  const capture = props.steps[at.step]?.[at.item] ?? null;
+  // A moment deleted while it showed moves on to the next, or ends the steps (audit 18).
+  const pos = stepAt(props.steps, at);
+  const capture = pos ? props.steps[pos.step][pos.item] : null;
   const continueRef = useRef<ComponentRef<typeof Pressable>>(null);
   const live = useRef(props);
   useEffect(() => {
@@ -35,22 +38,23 @@ export function StepThrough(props: {
   const advance = (fromAuto = false) => {
     const t = Date.now();
     if (!fromAuto && t - at.shownAt < TAP_GUARD_MS) return;
-    const group = props.steps[at.step] ?? [];
-    if (at.item < group.length - 1) setAt({ step: at.step, item: at.item + 1, shownAt: t });
-    else if (at.step < props.steps.length - 1) setAt({ step: at.step + 1, item: 0, shownAt: t });
+    if (!pos) return;
+    const next = stepAt(props.steps, { step: pos.step, item: pos.item + 1 });
+    if (next) setAt({ ...next, shownAt: t });
     else props.onDone();
   };
   const advanceRef = useRef(advance);
   useEffect(() => {
     advanceRef.current = advance;
   });
-  // Nothing to step through: straight on.
+  // Nothing (left) to step through: straight on.
+  const done = pos == null;
   useEffect(() => {
-    if (props.steps.length) return;
+    if (!done) return;
     const t = setTimeout(() => live.current.onDone(), 0);
     return () => clearTimeout(t);
-  }, [props.steps.length]);
-  const key = capture ? `${at.step}:${at.item}` : null;
+  }, [done]);
+  const key = pos ? `${pos.step}:${pos.item}:${capture?.id}` : null;
   useEffect(() => {
     if (!props.auto || !capture) return;
     const media = capture.kind === 'voice' || capture.kind === 'video';
@@ -70,8 +74,8 @@ export function StepThrough(props: {
     AccessibilityInfo.announceForAccessibility(`${what}. ${props.auto ? '' : 'Continue when ready.'}`);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
-  if (!capture) return null;
-  const n = props.steps[at.step].length;
+  if (!capture || !pos) return null;
+  const n = props.steps[pos.step].length;
   return (
     <View style={styles.moment}>
       {capture.kind !== 'voice' && capture.kind !== 'video' && <Pressable style={StyleSheet.absoluteFill} onPress={() => advance()} accessible={false} />}
@@ -82,7 +86,7 @@ export function StepThrough(props: {
         autoPlay
         topInset={props.topInset}
         onVoiceFinished={props.auto ? () => advance(true) : undefined}
-        footer={[props.footer?.(capture) ?? null, n > 1 ? `${at.item + 1} of ${n}` : null].filter(Boolean).join(' · ') || undefined}
+        footer={[props.footer?.(capture) ?? null, n > 1 ? `${pos.item + 1} of ${n}` : null].filter(Boolean).join(' · ') || undefined}
         action={{ label: 'Continue', hint: props.hint, onPress: () => advance(), testID: props.testID }}
       />
     </View>

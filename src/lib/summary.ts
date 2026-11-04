@@ -4,7 +4,7 @@ import { db } from './db';
 import { exploredKey, passedAlong, type Kind } from './explore/explore';
 import { isNamedStreet } from './deletion/core';
 import { loadSettings } from './explore/settings';
-import { splitAtGaps, type Bounds, smoothDwells, type PauseSpan } from './geo';
+import { dwellsOf, splitAtGaps, type Bounds, smoothDwells, type PauseSpan } from './geo';
 import { readTrace, rideRuns, smoothKept, timedRideRuns, traceDistances, withFilled } from './rides';
 import type { TimedRun } from './replay';
 import { walkBounds } from './finish';
@@ -45,6 +45,8 @@ export interface ReplayData {
   stretches: Stretch[];
   /** Every gap worth reading, with a stretch or not (GW1, GW2). */
   gaps: Gap[];
+  /** Standstills (0010), from arriving to leaving: in `fixes` as their two ends only. */
+  stays: { t0: number; t1: number }[];
 }
 
 /**
@@ -67,6 +69,8 @@ export async function loadReplay(walkId: string, opts: { readGaps?: boolean } = 
   const tr = withFilled(plain, fills);
   const fixes = smoothKept(tr);
   const walkedFixes = smoothDwells(tr.walked);
+  // The stands the smoothing keeps as their two ends, so the replay knows them from a gap (replay-rhythm audit 5).
+  const stays = dwellsOf(tr.walked).map((d) => ({ t0: d.t0, t1: d.t1 }));
   const captures = await db.getCaptures(walkId);
   // The view takes in the rides; streets and fog are only where you walked (R7).
   const bounds = walkBounds(fixes);
@@ -132,6 +136,7 @@ export async function loadReplay(walkId: string, opts: { readGaps?: boolean } = 
     walked,
     fog: segments.filter((s) => !visitedIds.has(s.id)),
     summary,
+    stays,
   };
 }
 

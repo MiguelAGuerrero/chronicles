@@ -177,7 +177,8 @@ test('audit (moments 7, RR16): a long way between entries pulls the camera back 
   const [day] = buildDays([], [cap('a', at(2, 9), null, -71.4), cap('b', at(2, 11), null, -71.34)]);
   const p = rhythmPlan(dayStory(day, new Map()), { reduceMotion: false });
   const leg = p.segs.find((s) => s.k === 'leg')!;
-  assert.ok(rhythmFrame(p, (leg.t0 + leg.t1) / 2).zoomOut > 2.5, 'about 5 km: pulled well back');
+  const z = rhythmFrame(p, (leg.t0 + leg.t1) / 2).camera.zoom!;
+  assert.ok(z < 16 - Math.log2(2.5), `about 5 km: pulled well back (zoom ${z.toFixed(2)})`);
 });
 
 test('day replay: the drawn trace ends at the dot, before and after a ride', async () => {

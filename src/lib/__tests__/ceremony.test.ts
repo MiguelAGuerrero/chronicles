@@ -10,6 +10,10 @@ import { REPLAY_RHYTHM as R } from '../motionTokens';
 import { dayStory, storySteps, walkStory, type WalkInput } from '../ceremony/story';
 import { laterLine, notePause, rhythm, rhythmFrame, rhythmPlan, type RhythmPlan } from '../ceremony/rhythm';
 import { CEREMONIES, ceremonyFor, DEFAULT_CEREMONY } from '../ceremony/registry';
+import { tickClock } from '../ceremony/clock';
+import { stepAt } from '../ceremony/story';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { OVERLAY_KINDS, type Ceremony, type Frame, type Story } from '../ceremony/types';
 import type { Day } from '../days';
 import type { Capture, LngLat, TracePoint } from '../types';
@@ -47,7 +51,7 @@ function cap(kind: Capture['kind'], t: number, p: LngLat | null, body: string | 
   return { id: `c${++ids}`, walk_id: walkId, t, lat: p ? p[1] : null, lon: p ? p[0] : null, kind, file_path: kind === 'text' ? null : 'x', body, segment_id: null };
 }
 
-function input(fixes: TracePoint[], captures: Capture[], o: { id?: string; passed?: WalkInput['passed']; pauses?: { started_at: number; ended_at: number | null }[] } = {}): WalkInput {
+function input(fixes: TracePoint[], captures: Capture[], o: { id?: string; passed?: WalkInput['passed']; pauses?: { started_at: number; ended_at: number | null }[]; stays?: WalkInput['stays'] } = {}): WalkInput {
   const id = o.id ?? 'w';
   const pauses = (o.pauses ?? []).map((p) => ({ walk_id: id, ...p }));
   return {
@@ -61,6 +65,7 @@ function input(fixes: TracePoint[], captures: Capture[], o: { id?: string; passe
     rideTimed: [],
     captures,
     passed: o.passed ?? [],
+    stays: o.stays ?? [],
   };
 }
 
@@ -200,11 +205,11 @@ test('RR3: the camera pulls back mid-way through a long stretch and not between 
   const p = plan(story);
   const long = legs(p).find((l) => l.len > 1000)!;
   const mid = rhythmFrame(p, (long.t0 + long.t1) / 2);
-  assert.ok(mid.zoomOut > 1.5 && mid.zoomOut <= R.zoomOut + 1e-9, `pulled back ${mid.zoomOut}`);
-  assert.ok(rhythmFrame(p, long.t1 - 1).zoomOut < 1.05, 'close again at the moment');
+  assert.ok(pull(mid) > 1.5 && pull(mid) <= R.zoomOut + 1e-6, `pulled back ${pull(mid)}`);
+  assert.ok(pull(rhythmFrame(p, long.t1 - 1)) < 1.05, 'close again at the moment');
   const near = plan(walkStory(input(line(A, at(100, 0), 0), [cap('text', 72_000, at(100, 0), 'x')])));
   const nl = legs(near)[0];
-  assert.equal(rhythmFrame(near, (nl.t0 + nl.t1) / 2).zoomOut, 1);
+  assert.equal(pull(rhythmFrame(near, (nl.t0 + nl.t1) / 2)), 1);
 });
 
 test('RR4: a break in the trace is a cut with "N min later"; the walker never crosses it', () => {
@@ -252,6 +257,22 @@ test('RR5: a plan over 60 s shrinks to fit, above its floors; memos and videos k
   assert.ok(p.total <= R.cap + 12000 + R.mediaTail + 1 || legs(p).every((l) => l.t1 - l.t0 <= R.floors.leg + 1), `plays in ${p.total}`);
   // A short walk is not stretched to fill the cap.
   assert.ok(plan(sampleWalk().story).total < R.cap / 2);
+  // A walk that can fit is shrunk to fit, with room left above the floors (audit: the test above can't fit).
+  const pts2: TracePoint[] = [];
+  const caps2: Capture[] = [];
+  let t2 = 0;
+  for (let i = 0; i < 20; i++) {
+    const seg = line(at(i * 300, 0), at(i * 300 + 300, 0), t2);
+    pts2.push(...(i ? seg.slice(1) : seg));
+    t2 = endT(seg);
+    caps2.push(cap('photo', t2, at(i * 300 + 300, 0)));
+    const st = stand(at(i * 300 + 300, 0), t2, 3 * MIN);
+    pts2.push(...st);
+    t2 = endT(st);
+  }
+  const fit = plan(walkStory(input(pts2, caps2)));
+  assert.ok(fit.total <= R.cap + 1 && fit.total > R.cap - 1000, `fits the cap: ${fit.total} ms`);
+  for (const s of fit.segs.flatMap((x) => (x.k === 'stop' ? x.slots : []))) assert.ok(s.t1 - s.t0 > R.floors.photo && s.t1 - s.t0 < R.photo, 'photos shrunk, above their floor');
 });
 
 test('RR7: a frame is a function of the time alone, so holding the time holds everything', () => {
@@ -363,8 +384,8 @@ test('RR14: moments taken together play in time order at one stop; a pin appears
   assert.equal(stops.length, 1);
   assert.ok(stops[0].k === 'stop');
   assert.deepEqual(stops[0].slots.map((s) => s.capture.id), [photo.id, note.id]);
-  assert.equal(rhythmFrame(p, stops[0].t0 - 1).revealed, 0);
-  assert.equal(rhythmFrame(p, stops[0].t0).revealed, 2);
+  assert.deepEqual(rhythmFrame(p, stops[0].t0 - 1).pins, []);
+  assert.deepEqual(rhythmFrame(p, stops[0].t0).pins, [photo.id, note.id]);
 });
 
 test('RR15: a passed place whispers as the walker reaches it, without slowing it', () => {
@@ -411,10 +432,9 @@ test('RR16: a day glides between its entries, says how much later, and plays eac
 test('RR18: with reduce motion there is no pull-back and cards fade instead of moving', () => {
   const p = plan(sampleWalk().story, true);
   for (const f of frames(p, 100)) {
-    assert.equal(f.zoomOut, 1);
+    assert.equal(pull(f), 1);
     for (const o of f.overlays) if (o.kind === 'card') assert.equal(o.fade, true);
   }
-  assert.ok(!p.segs.some((s) => s.k === 'intro'));
 });
 
 // ---------------------------------------------------------------- ceremonies are views (RR21)
@@ -435,9 +455,9 @@ test('RR21: the registry gives the rhythm by default, and any ceremony honouring
         frame: (ms) => {
           const c = steps[Math.floor(ms / 1000)];
           return {
-            done: ms >= steps.length * 1000, walker: c && c.lat != null ? [c.lon!, c.lat] : null, drawn: {}, revealed: Math.min(steps.length, Math.floor(ms / 1000) + 1),
-            zoomOut: 1, dim: 0, clock: c?.t ?? null, line: null, lineOpacity: 0,
-            overlays: c ? [{ kind: 'card', key: c.id, capture: c, grow: 1, tuck: 0, playing: false, progress: 0, fade: true }] : [],
+            done: ms >= steps.length * 1000, walker: null, camera: { center: null, zoom: null }, drawn: {}, pins: c ? [c.id] : [],
+            dim: 0, clock: c?.t ?? null, line: null, lineOpacity: 0,
+            overlays: c ? [{ kind: 'card', key: c.id, capture: c, from: null, grow: 1, tuck: 0, playing: false, progress: 0, fade: true }] : [],
           };
         },
       };
@@ -456,4 +476,131 @@ test('RR21: every overlay kind a ceremony draws is one the stage knows', () => {
     const s = c.show(story, { reduceMotion: false });
     for (let ms = 0; ms < s.total; ms += 50) for (const o of s.frame(ms).overlays) assert.ok(c.overlays.includes(o.kind), `${c.id} drew ${o.kind}`);
   }
+});
+
+// ---------------------------------------------------------------- audit, round 1
+
+/** How far the camera is pulled back in a frame (1 is the walking zoom). */
+const pull = (f: Frame) => (f.camera.zoom == null ? 1 : 2 ** (R.baseZoom - f.camera.zoom));
+
+test('replay-rhythm audit 1: a memo\'s bubble stays until the memo has played', () => {
+  const memo = cap('voice', 430_000, B, '30000');
+  const p = plan(walkStory(input(line(A, B, 0), [memo])));
+  const stop = p.segs.find((s) => s.k === 'stop')!;
+  const late = rhythmFrame(p, stop.t0 + 29_000).overlays.find((o) => o.kind === 'bubble');
+  assert.ok(late && late.kind === 'bubble' && late.playing && late.exit === 0, 'still there, still playing, 29 s in');
+});
+
+test('replay-rhythm audit 2: the clock ends the ceremony when total is 0 or shrinks below the time', () => {
+  assert.equal(tickClock({ ms: 0, held: false }, 33, { paused: false, total: 0 }).end, true, 'nothing to play ends at once');
+  assert.equal(tickClock({ ms: 9000, held: false }, 33, { paused: false, total: 5000 }).end, true, 'a plan rebuilt shorter ends');
+  assert.equal(tickClock({ ms: 9000, held: false }, 33, { paused: true, total: 5000 }).end, false, 'not while a viewer is open');
+  const t = tickClock({ ms: 100, held: false }, 33, { paused: false, total: 5000 });
+  assert.deepEqual([t.clock.ms, t.end], [133, false]);
+});
+
+test('replay-rhythm audit 5: a dwell with no moment is not a cut; a pause still is', () => {
+  // smoothDwells keeps a 14-minute stand as its two end fixes, 14 minutes apart, at one spot.
+  const ab = line(A, B, 0);
+  const bc = line(B, C, endT(ab) + 14 * MIN);
+  const fixes = [...ab, ...bc];
+  const stays = [{ t0: endT(ab), t1: bc[0].t }];
+  assert.ok(!walkStory(input(fixes, [], { stays })).events.some((e) => e.kind === 'break'), 'standing is not the app closed');
+  assert.ok(walkStory(input(fixes, [])).events.some((e) => e.kind === 'break'), 'with no stay known there, the same hole is a gap');
+  const paused = walkStory(input(fixes, [], { stays, pauses: [{ started_at: endT(ab) + MIN, ended_at: endT(ab) + 2 * MIN }] }));
+  assert.ok(paused.events.some((e) => e.kind === 'break'), 'a pause is a break, however short (0009)');
+  // A real gap, the walker somewhere else when the fixes come back, is still a cut.
+  assert.ok(sampleWalk().story.events.some((e) => e.kind === 'break'));
+});
+
+test('replay-rhythm audit 6: a long gap between ticks does not advance the ceremony', () => {
+  const t = tickClock({ ms: 1000, held: false }, 45_000, { paused: false, total: 20_000 });
+  assert.equal(t.end, false, 'a locked screen does not skip to the card');
+  assert.ok(t.clock.ms < 1300, `moved ${t.clock.ms - 1000} ms`);
+});
+
+test('replay-rhythm audit 9: the walker reaches a stop without a jump', () => {
+  const ab = line(A, B, 0);
+  const still = stand(B, endT(ab), 5 * MIN);
+  const bc = line(B, C, endT(still));
+  const off = cap('photo', endT(ab) + 2 * MIN, at(600, 30)); // the capture's own fix 30 m off the trace
+  const p = plan(walkStory(input([...ab, ...still, ...bc], [off])));
+  const stop = p.segs.find((s) => s.k === 'stop')!;
+  const jump = (a: number, b: number) => distanceM(rhythmFrame(p, a).walker!, rhythmFrame(p, b).walker!);
+  assert.ok(jump(stop.t0 - 1, stop.t0) < 3, `into the stop: ${jump(stop.t0 - 1, stop.t0).toFixed(1)} m`);
+  assert.ok(jump(stop.t1 - 1, stop.t1) < 3, `out of the stop: ${jump(stop.t1 - 1, stop.t1).toFixed(1)} m`);
+});
+
+test('replay-rhythm audit 10: the frame carries the camera, the pins by id and a card\'s origin', () => {
+  const { story, photo } = sampleWalk();
+  const p = plan(story);
+  const stop = p.segs.find((s) => s.k === 'stop')!;
+  const f = rhythmFrame(p, stop.t0 + R.grow / 2);
+  assert.ok(f.camera.center && f.camera.zoom != null && distanceM(f.camera.center, f.walker!) < 1, 'the rhythm follows the walker');
+  assert.deepEqual(f.pins, [photo.id]);
+  const card = f.overlays.find((o) => o.kind === 'card');
+  assert.ok(card && card.kind === 'card' && card.from && distanceM(card.from, B) < 1, 'the card grows from its pin');
+  // A stand-in ceremony can frame anything, and reveal pins out of order.
+  const framed: Frame = { ...f, camera: { center: C, zoom: 13 }, pins: [story.captures[1].id] };
+  assert.deepEqual(framed.pins, [story.captures[1].id]);
+});
+
+test('replay-rhythm audit 10: the screens and the stage know no ceremony but through the registry and the frame', () => {
+  const root = join(__dirname, '..', '..');
+  const files = ['app/replay/[id].tsx', 'app/day/[key].tsx', ...readdirSync(join(root, 'components/ceremony')).map((f) => `components/ceremony/${f}`)];
+  for (const f of files) {
+    const src = readFileSync(join(root, f), 'utf8');
+    assert.doesNotMatch(src, /ceremony\/rhythm|REPLAY_RHYTHM/, `${f} reaches into the rhythm`);
+  }
+});
+
+test('replay-rhythm audit 11: many cuts still fit the cap', () => {
+  const pts: TracePoint[] = [];
+  let t = 0;
+  for (let i = 0; i < 40; i++) {
+    const seg = line(at(i * 400, 0), at(i * 400 + 100, 0), t);
+    pts.push(...seg);
+    t = endT(seg) + 10 * MIN; // pocketed: the next fixes come 10 min and 300 m on
+  }
+  const p = plan(walkStory(input(pts, [])));
+  assert.ok(p.segs.filter((s) => s.k === 'cut').length >= 39);
+  assert.ok(p.total <= R.cap + 1, `plays in ${p.total} ms`);
+});
+
+test('replay-rhythm audit 12: reduce motion keeps the timing and holds the camera', () => {
+  const { story } = sampleWalk();
+  const a = plan(story);
+  const b = plan(story, true);
+  assert.equal(b.total, a.total, 'the same timing');
+  for (const f of frames(b, 100)) assert.equal(pull(f), 1);
+});
+
+test('replay-rhythm audit 15: a stretch short of long does not pull the camera back', () => {
+  const p = plan(walkStory(input(line(A, at(470, 0), 0), [cap('text', 340_000, at(470, 0), 'x')])));
+  const l = legs(p)[0];
+  assert.ok(l.len < R.zipAtM, `a ${l.len.toFixed(0)} m stretch`);
+  assert.equal(pull(rhythmFrame(p, (l.t0 + l.t1) / 2)), 1);
+});
+
+test('replay-rhythm audit 17: a place passed just after a gap whispers once the far side is up', () => {
+  const { fixes, photo, note, dd } = sampleWalk();
+  const p = plan(walkStory(input(fixes, [photo, note], { passed: [{ name: 'X', generic: false, at: at(920, 1220), t: dd[1].t }] })));
+  const cut = p.segs.find((s) => s.k === 'cut')!;
+  const first = frames(p, 10).findIndex((f) => f.overlays.some((o) => o.kind === 'whisper'));
+  assert.ok(first * 10 >= cut.t1 - 10, `whispered at ${first * 10} ms, the cut ends at ${cut.t1}`);
+});
+
+test('replay-rhythm audit 18: the screen reader\'s steps skip a moment gone and end when none is left', () => {
+  const a = cap('text', 1, A, 'a');
+  const b = cap('text', 2, A, 'b');
+  const c = cap('text', 3, B, 'c');
+  assert.deepEqual(stepAt([[a, b], [c]], { step: 0, item: 1 }), { step: 0, item: 1 });
+  assert.deepEqual(stepAt([[a], [c]], { step: 0, item: 1 }), { step: 1, item: 0 }, 'b deleted: on to c');
+  assert.equal(stepAt([[a]], { step: 1, item: 0 }), null, 'c deleted: done');
+  assert.equal(stepAt([], { step: 0, item: 0 }), null);
+});
+
+test('replay-rhythm audit 19: the stage takes its colours from the theme and the kinds', () => {
+  const dir = join(__dirname, '..', '..', 'components', 'ceremony');
+  for (const f of readdirSync(dir)) assert.doesNotMatch(readFileSync(join(dir, f), 'utf8'), /['"]#[0-9a-fA-F]{3,8}['"]/, `${f} has a colour of its own`);
 });

@@ -18,7 +18,6 @@ import { dayStory, pathDrawnAt, storySteps } from '../../lib/ceremony/story';
 import { buildDays, dayCaptures, dayCard, dayStart, nextDayStart, watchedKey, type Day } from '../../lib/days';
 import { launchRoute } from '../../lib/launchRoute';
 import { boundsOf, type Bounds } from '../../lib/geo';
-import { REPLAY_RHYTHM } from '../../lib/motionTokens';
 import { loadReplay, type ReplayData } from '../../lib/summary';
 import { useHidden } from '../../lib/deletion/useDeletions';
 import { UndoToast } from '../../components/UndoToast';
@@ -181,15 +180,15 @@ export default function DayReplay() {
   );
 
   // Pins appear as their moments are reached; on the card every pin opens its moments.
-  const revealed = frame ? frame.revealed : onCard || srMode ? Infinity : 0;
   // The story already leaves out a moment deleted from its viewer (D3).
-  const pinned = useRevealed(story, revealed);
+  const pinned = useRevealed(story, frame ? frame.pins : onCard || srMode ? 'all' : 'none');
 
-  const follow = frame && !reduceMotion ? frame.walker : null;
-  const followZoom = follow && frame ? REPLAY_RHYTHM.baseZoom - Math.log2(frame.zoomOut) : null;
+  // The camera is the ceremony's to say (audit 10).
+  const follow = frame?.camera.center ?? null;
+  const followZoom = follow ? frame?.camera.zoom ?? null : null;
   const ctx: StageCtx = {
-    width, height, insets: { top: insets.top, bottom: insets.bottom }, center: follow, zoom: followZoom ?? 0,
-    held: play.held, reduceMotion, open: setViewing,
+    width, height, insets, center: follow, zoom: followZoom ?? 0,
+    held: play.held, paused: viewing != null, reduceMotion, open: setViewing,
   };
   // The card is computed once it is reached, not every frame (audit).
   const cardAt = onCard ? phase.t0 : 0;

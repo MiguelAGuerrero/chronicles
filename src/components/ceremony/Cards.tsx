@@ -2,14 +2,13 @@ import { useEventListener } from 'expo';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useRef, useState } from 'react';
 import { Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { easeInOut } from '../../lib/ceremony/rhythm';
+import { easeInOut, easeOut } from '../../lib/ceremony/ease';
 import type { CardOverlay } from '../../lib/ceremony/types';
 import { useMediaUri } from '../../lib/useMediaUri';
 import { Icon, KIND_LABEL } from '../icons';
 import { theme } from '../ui';
-import { cardWidth, PILE, pileCenter, restCenter, tiltOf, timeOf, type StageCtx } from './layout';
+import { cardWidth, PILE, pileCenter, project, restCenter, tiltOf, timeOf, type StageCtx } from './layout';
 
-const easeOut = (u: number) => 1 - (1 - u) ** 3;
 const lerp = (a: number, b: number, u: number) => a + (b - a) * u;
 /** How long a video may take to start before it is treated as refused sound (as the viewer's player). */
 const AUTOPLAY_CHECK_MS = 800;
@@ -26,14 +25,19 @@ function CardVideo({ o, ctx, uri, height }: { o: CardOverlay; ctx: StageCtx; uri
     p.loop = false;
   });
   const [muted, setMuted] = useState(false);
+  const [ready, setReady] = useState(() => player.status === 'readyToPlay');
   const playing = useRef(false);
   const tried = useRef(false);
   useEventListener(player, 'playingChange', ({ isPlaying }) => {
     playing.current = isPlaying;
   });
-  const want = o.playing && !ctx.held;
+  // A player told to play before it has loaded ignores it on web: it starts once ready (audit 8).
+  useEventListener(player, 'statusChange', ({ status }) => {
+    if (status === 'readyToPlay') setReady(true);
+  });
+  const want = o.playing && !ctx.held && !ctx.paused;
   useEffect(() => {
-    if (!want) {
+    if (!want || !ready) {
       player.pause();
       return;
     }
@@ -46,11 +50,13 @@ function CardVideo({ o, ctx, uri, height }: { o: CardOverlay; ctx: StageCtx; uri
       setMuted(true);
     }, AUTOPLAY_CHECK_MS);
     return () => clearTimeout(check);
-  }, [want, player]);
+  }, [want, ready, player]);
   return (
-    <View style={{ height, width: '100%' }}>
-      <VideoView player={player} style={styles.fill} contentFit="cover" nativeControls={false} playsInline accessibilityLabel="Video" />
-      <View style={[styles.progress, { width: `${o.progress * 100}%` }]} />
+    <View style={{ height, width: '100%' }} pointerEvents="box-none">
+      <View style={styles.fill} pointerEvents="none">
+        <VideoView player={player} style={styles.fill} contentFit="cover" nativeControls={false} playsInline accessibilityLabel="Video" />
+      </View>
+      <View pointerEvents="none" style={[styles.progress, { width: `${o.progress * 100}%` }]} />
       {muted && (
         <Pressable
           testID="video-sound"
@@ -62,7 +68,7 @@ function CardVideo({ o, ctx, uri, height }: { o: CardOverlay; ctx: StageCtx; uri
           }}
           style={styles.sound}
         >
-          <Icon name="volume-mute" size={14} color="#ffffff" />
+          <Icon name="volume-mute" size={14} color={theme.surface} />
           <Text style={styles.soundText}>Tap for sound</Text>
         </Pressable>
       )}
@@ -77,8 +83,8 @@ function MomentCard({ o, ctx }: { o: CardOverlay; ctx: StageCtx }) {
   const imgH = w * 1.15;
   const h = imgH + 7 + 34;
   const rest = restCenter(ctx);
-  // While following, the pin is where the map is centred: the middle of the screen.
-  const pin: [number, number] = ctx.center ? [ctx.width / 2, ctx.height / 2] : rest;
+  // It grows from its pin, where the frame says the pin is (audit 10).
+  const pin = (o.from ? project(ctx, o.from) : null) ?? rest;
   const pile = pileCenter(ctx);
   let at = rest;
   let scale = 1;
@@ -103,17 +109,18 @@ function MomentCard({ o, ctx }: { o: CardOverlay; ctx: StageCtx }) {
       testID="replay-card"
       accessible
       accessibilityLabel={`${label}, ${timeOf(o.capture.t)}`}
-      pointerEvents="none"
+      // Taps go through to the stage (hold), except on the card's own buttons ("Tap for sound", audit 3).
+      pointerEvents="box-none"
       style={[styles.card, { left: at[0] - w / 2, top: at[1] - h / 2, width: w, opacity, transform: [{ rotate: `${tilt}deg` }, { scale }] }]}
     >
-      <View style={[styles.media, { height: imgH }]}>
+      <View style={[styles.media, { height: imgH }]} pointerEvents="box-none">
         {uri && o.capture.kind === 'video' ? (
           <CardVideo o={o} ctx={ctx} uri={uri} height={imgH} />
         ) : uri ? (
-          <Image source={{ uri }} style={styles.fill} resizeMode="cover" accessibilityIgnoresInvertColors />
+          <Image source={{ uri }} style={styles.fill} resizeMode="cover" accessibilityIgnoresInvertColors pointerEvents="none" />
         ) : null}
       </View>
-      <View style={styles.cap}>
+      <View style={styles.cap} pointerEvents="none">
         <Text style={styles.capText} numberOfLines={1}>{label}</Text>
         <Text style={styles.capTime}>{timeOf(o.capture.t)}</Text>
       </View>
@@ -133,18 +140,18 @@ export function Cards({ items, ctx }: { items: CardOverlay[]; ctx: StageCtx }) {
 
 const styles = StyleSheet.create({
   card: {
-    position: 'absolute', backgroundColor: '#ffffff', paddingTop: 7, paddingHorizontal: 7, borderRadius: 6,
-    shadowColor: '#000000', shadowOpacity: 0.22, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 8,
+    position: 'absolute', backgroundColor: theme.surface, paddingTop: 7, paddingHorizontal: 7, borderRadius: 6,
+    shadowColor: theme.ink, shadowOpacity: 0.22, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 8,
   },
-  media: { width: '100%', borderRadius: 2, overflow: 'hidden', backgroundColor: '#dcd9d3' },
+  media: { width: '100%', borderRadius: 2, overflow: 'hidden', backgroundColor: theme.line },
   fill: { width: '100%', height: '100%' },
   cap: { flexDirection: 'row', justifyContent: 'space-between', gap: 8, paddingVertical: 8, paddingHorizontal: 2 },
   capText: { flex: 1, fontSize: 13, color: theme.ink },
   capTime: { fontSize: 13, color: theme.muted, fontVariant: ['tabular-nums'] },
-  progress: { position: 'absolute', left: 0, bottom: 0, height: 3, backgroundColor: '#ffffff' },
+  progress: { position: 'absolute', left: 0, bottom: 0, height: 3, backgroundColor: theme.surface },
   sound: {
     position: 'absolute', right: 6, top: 6, flexDirection: 'row', alignItems: 'center', gap: 4,
     backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3,
   },
-  soundText: { color: '#ffffff', fontSize: 11, fontWeight: '600' },
+  soundText: { color: theme.surface, fontSize: 11, fontWeight: '600' },
 });

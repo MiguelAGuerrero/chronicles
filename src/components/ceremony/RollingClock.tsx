@@ -50,7 +50,7 @@ export function RollingClock({ time, still }: { time: number; still: boolean }) 
 const styles = StyleSheet.create({
   chip: {
     backgroundColor: theme.surface, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 6,
-    shadowColor: '#1d2430', shadowOpacity: 0.16, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 3,
+    shadowColor: theme.ink, shadowOpacity: 0.16, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 3,
   },
   row: { flexDirection: 'row', alignItems: 'center', height: LINE },
   slot: { height: LINE, overflow: 'hidden' },

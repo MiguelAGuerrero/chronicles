@@ -119,6 +119,8 @@ export interface CardOverlay {
   kind: 'card';
   key: string;
   capture: Capture;
+  /** Where it grows from: its pin, or null to grow in place. */
+  from: LngLat | null;
   grow: number;
   tuck: number;
   playing: boolean;
@@ -149,12 +151,12 @@ export interface Frame {
   /** The ceremony has ended: the card comes next. */
   done: boolean;
   walker: LngLat | null;
+  /** Where the camera holds the map, and at what zoom; a null centre leaves the map where it is (no following). */
+  camera: { center: LngLat | null; zoom: number | null };
   /** Walk time each path is drawn up to; a path not started is absent; Infinity is the whole path. */
   drawn: Record<string, number>;
-  /** How many of the story's captures have their pin on the map. */
-  revealed: number;
-  /** 1 is the walking zoom; 2 shows twice as much. */
-  zoomOut: number;
+  /** The captures whose pins are on the map, by id, in any order the ceremony likes. */
+  pins: string[];
   /** 0 to 1: the map dims across a cut. */
   dim: number;
   /** The time of day where the walker is (epoch ms), or null for no clock. */
