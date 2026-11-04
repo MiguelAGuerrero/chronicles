@@ -12,8 +12,8 @@ import type { WalkMapHandle } from '../../components/map/types';
 import { Icon } from '../../components/icons';
 import { Banner, Button, theme } from '../../components/ui';
 import {
-  ATLAS_RULES, canWalkTo, distanceWords, familiarity, findsIn, nextDoor, otherTowns, townReachM, waitingMarks, walkTarget,
-  type AtlasArea, type Familiarity, type Listed,
+  ATLAS_RULES, canWalkTo, distanceWords, familiarity, findsIn, nextDoor, otherTowns, nextFrame, townReachM, waitingMarks, walkTarget,
+  type AtlasArea, type Familiarity, type Listed, type PageFramed,
 } from '../../lib/atlas/atlas';
 import { nearReads } from '../../lib/atlas/read';
 import { useAtlas } from '../../lib/atlas/useAtlas';
@@ -95,14 +95,10 @@ export default function Explore() {
     [drawn, town, home, from, fresh.outlines],
   );
   const borders = useMemo(() => bordersFor(drawn, { tinted: tintedId ? [tintedId] : [], near: town?.at ?? from }), [drawn, tintedId, town, from]);
-  // TB11: the map frames the whole of the tinted town once its border is known, once per town (yours, or a page's).
-  const framedTown = useRef<string | null>(null);
+  // TB11: the whole of the tinted town (yours, or a page's) once its border is known; the page frames it below.
   const townBox = useMemo(() => townFrame(drawn, tintedId), [drawn, tintedId]);
-  useEffect(() => {
-    if (!townBox || framedTown.current === townBox.id) return;
-    framedTown.current = townBox.id;
-    setFit((f) => ({ bounds: townBox.bounds, key: f.key + 1 }));
-  }, [townBox]);
+  // What this visit to the page has framed; opening a page or going back starts a new visit.
+  const framed = useRef<PageFramed | null>(null);
   const [spot, setSpot] = useState<{ at: LngLat; zoom: number } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [pressSeen, setPressSeen] = useState(true);
@@ -223,6 +219,7 @@ export default function Explore() {
   // AT2: a town opens its page; Back, Escape and the back pill return (the title has no arrow: decision 0077).
   const enterArea = useCallback((area: AtlasArea) => {
     setSpot(null);
+    framed.current = null;
     setTownSeen(area);
     setSelected(null);
     frame([area.at], townReachM(area) * 0.6);
@@ -233,6 +230,7 @@ export default function Explore() {
   }, [enterArea]);
   const leave = useCallback(() => {
     setSpot(null);
+    framed.current = null;
     setTownSeen(null);
     setSelected(null);
   }, []);
@@ -249,14 +247,17 @@ export default function Explore() {
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
   }, [townSeen, open, focused, leave]);
-  // Each page is framed once its areas are first listed (AT9): the map shows them all.
-  const framed = useRef<string | null>(null);
+  // Each visit to a page is framed (AT9, TB11): its areas until its town's border is known, then the whole
+  // town, and nothing undoes that within the visit (`nextFrame`, fix explore-fit-area).
   useEffect(() => {
-    const key = `${townSeen?.key ?? 'near'}:${fresh.build}`;
-    if (!points.length || framed.current === key) return;
-    framed.current = key;
-    frame(from && !townSeen ? [from, ...points] : points, 150);
-  }, [points, townSeen, fresh.build, from, frame]);
+    const page = townSeen ? `town:${townSeen.key}` : 'near';
+    // A town's page waits for its areas with its reach in view, as `enterArea` frames it (audit 9).
+    const padM = townSeen ? townReachM(townSeen) * 0.6 : 150;
+    const next = nextFrame(framed.current, { page, build: fresh.build, town: townBox, points, from, padM });
+    if (!next) return;
+    framed.current = next.framed;
+    setFit((f) => ({ bounds: next.bounds, key: f.key + 1 }));
+  }, [townSeen, fresh.build, townBox, points, from]);
 
   const lookHere = async (at: LngLat) => {
     if (looking) return;

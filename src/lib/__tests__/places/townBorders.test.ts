@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { test } from 'node:test';
 import { bordersGeoJSON } from '../../../components/map/types';
+import { nextFrame } from '../../atlas/atlas';
 import { BORDER_RULES, bordersFor, outlineIdHere, outlineIdsOf, outlineOf, simplifyRing, townFrame, townPlaces } from '../../areas/borders';
 import { outlineTileFrom } from '../../areas/divisionTiles';
 import { BORDER_ZOOM, outlineSet, outlineTileKey, outlineTileOf, type OutlineTile } from '../../areas/outlines';
@@ -143,4 +144,66 @@ test('TB11: Explore frames the whole of your town: its drawn border\'s box, hold
   assert.ok(distanceM([w, s], [e, s]) > 4000, `${distanceM([w, s], [e, s]).toFixed(0)} m across`);
   assert.equal(townFrame(z10, null), null);
   assert.equal(townFrame(null, here), null);
+});
+
+const PAW = { id: 'pawtucket', bounds: [-71.412, 41.811, -71.388, 41.829] as [number, number, number, number] };
+const PTS: LngLat[] = [[-71.404, 41.824], [-71.401, 41.82]];
+const ME: LngLat = [-71.4, 41.82];
+
+test('fix explore-fit-area: a page frames its whole town once the border is known, never its points after it', () => {
+  // Before the border is known: the page's areas (and you, near you), padded, as AT9.
+  const early = nextFrame(null, { page: 'near', build: 'b1', town: null, points: PTS, from: ME, padM: 150 })!;
+  assert.ok(early.bounds[0] < -71.404 && early.bounds[2] > -71.4, 'points and you inside');
+  // Once known, the town's whole box, whatever came first.
+  const whole = nextFrame(early.framed, { page: 'near', build: 'b1', town: PAW, points: PTS, from: ME, padM: 150 })!;
+  assert.deepEqual(whole.bounds, PAW.bounds);
+  // The areas listed after the border, or you moving, frame nothing more: the town is never undone by them.
+  assert.equal(nextFrame(whole.framed, { page: 'near', build: 'b1', town: PAW, points: [...PTS, [-71.39, 41.83]], from: [-71.401, 41.821], padM: 150 }), null);
+  // The border first, then the areas: still the town alone.
+  const first = nextFrame(null, { page: 'near', build: 'b1', town: PAW, points: [], from: ME, padM: 150 })!;
+  assert.deepEqual(first.bounds, PAW.bounds);
+  assert.equal(nextFrame(first.framed, { page: 'near', build: 'b1', town: PAW, points: PTS, from: ME, padM: 150 }), null);
+  // A town's page frames its areas, never you, until its border is known; nothing listed and no border, nothing.
+  const far = nextFrame(null, { page: 'town:x', build: 'b1', town: null, points: [[-71.3, 41.9]], from: ME, padM: 150 })!;
+  assert.ok(far.bounds[0] > -71.31, 'you are left out of a town page');
+  assert.equal(nextFrame(null, { page: 'near', build: 'b1', town: null, points: [], from: ME, padM: 150 }), null);
+});
+
+test('fix explore-fit-area audit 1: a page whose town was framed never frames its points when the border is briefly unknown', () => {
+  const town = nextFrame(null, { page: 'town:paw', build: 'b1', town: PAW, points: PTS, from: ME, padM: 150 })!;
+  // Another tab in front: the outline set is null while the tab is blurred; then it comes back.
+  assert.equal(nextFrame(town.framed, { page: 'town:paw', build: 'b1', town: null, points: PTS, from: ME, padM: 150 }), null);
+  assert.equal(nextFrame(town.framed, { page: 'town:paw', build: 'b1', town: PAW, points: PTS, from: ME, padM: 150 }), null);
+  // Your town changing under you (Locate into the next town) frames the new one once.
+  const next = { id: 'central-falls', bounds: [-71.388, 41.811, -71.36, 41.829] as [number, number, number, number] };
+  assert.deepEqual(nextFrame(town.framed, { page: 'town:paw', build: 'b1', town: next, points: PTS, from: ME, padM: 150 })?.bounds, next.bounds);
+  // A new build frames the page again, as AT9 did.
+  assert.deepEqual(nextFrame(town.framed, { page: 'town:paw', build: 'b2', town: PAW, points: PTS, from: ME, padM: 150 })?.bounds, PAW.bounds);
+});
+
+test('fix explore-fit-area audit 2, audit 3: each visit to a page frames it, back near you or the same town again', () => {
+  const near = nextFrame(null, { page: 'near', build: 'b1', town: PAW, points: PTS, from: ME, padM: 150 })!;
+  const other = { id: 'providence', bounds: [-71.47, 41.77, -71.37, 41.86] as [number, number, number, number] };
+  const page = nextFrame(near.framed, { page: 'town:prov', build: 'b1', town: other, points: PTS, from: ME, padM: 150 })!;
+  assert.deepEqual(page.bounds, other.bounds);
+  // Back near you: the page that differs from the last framed frames your town again (audit 2).
+  assert.deepEqual(nextFrame(page.framed, { page: 'near', build: 'b1', town: PAW, points: PTS, from: ME, padM: 150 })?.bounds, PAW.bounds);
+  // A visit starts over from nothing framed (the screen clears it on opening a page), so the same town's page
+  // reopened frames it again (audit 3).
+  assert.deepEqual(nextFrame(null, { page: 'town:prov', build: 'b1', town: other, points: PTS, from: ME, padM: 150 })?.bounds, other.bounds);
+});
+
+test('fix explore-fit-area audit 8: a town already framed in this visit isn\'t framed again when you come back into it', () => {
+  const next = { id: 'central-falls', bounds: [-71.388, 41.811, -71.36, 41.829] as [number, number, number, number] };
+  const a = nextFrame(null, { page: 'near', build: 'b1', town: PAW, points: PTS, from: ME, padM: 150 })!;
+  const b = nextFrame(a.framed, { page: 'near', build: 'b1', town: next, points: PTS, from: ME, padM: 150 })!;
+  assert.deepEqual(b.bounds, next.bounds);
+  // Locate back into the first town: your view stands.
+  assert.equal(nextFrame(b.framed, { page: 'near', build: 'b1', town: PAW, points: PTS, from: ME, padM: 150 }), null);
+});
+
+test('fix explore-fit-area audit 9: a town\'s page with only its own point listed frames its reach, not 150 m around it', () => {
+  const at: LngLat = [-71.4, 41.82];
+  const f = nextFrame(null, { page: 'town:paw', build: 'b1', town: null, points: [at], from: null, padM: 1800 })!;
+  assert.ok(distanceM([f.bounds[0], at[1]], [f.bounds[2], at[1]]) > 3500, 'about 3.6 km across');
 });

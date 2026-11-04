@@ -159,6 +159,8 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - A dark map style for the borders: the app has one map style
 - Chronicle's walked-town regions (TB3) and the walk screen's lines (TB4) have unit tests but no e2e check: a journey would need a placed walk seeded into storage
 - On native the border layers can't go under the base map's streets (no road layer id): they sit over them, faint
+- A town that crosses a z10 tile edge is framed only by the piece in the tiles read (`outlineTilesFor` takes the tile under each point; outlines are cut at tile edges), and a piece arriving later doesn't refit: the whole of a large city may not be framed. Fixing it means reading the tiles a town spans, the owner's call (fix explore-fit-area audit 4, Nov 4)
+- The launch fix frames your 800 m ring even when a town's page was opened before it came (a town tapped while the location prompt is open), so that page loses its town frame (fix explore-fit-area audit 5, Nov 4)
 
 ## Explore atlas
 
