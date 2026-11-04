@@ -5,7 +5,7 @@ every branch holds and what is waiting on the owner. Update it at the start and
 end of every slice, and whenever a branch is opened, merged or abandoned. For
 what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md`.
 
-- **As of:** 2026-11-03
+- **As of:** 2026-11-04
 - **`origin/main` head:** `28c7417` (2026-11-03, the filling-gaps merge). Since
   `7a34666` main gained Bridges and Open in Maps (`82186db`, `67b7c9d`), the
   Start dialog (`6fb2572`, `9f547bd`), no Open in Maps on "Off your route"
@@ -40,6 +40,7 @@ what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md
 | Explore atlas (the Explore tab as a grid of area tiles, AT1-AT16) | shipped (web verified by the e2e; native unverified); round 2 after the owner's iPhone look: the hierarchy in the grid, the title over the map, tiles in words; round 3, the design review's fixes (decision 0067) | `d1080e7`, `d3158aa`, `18c0feb`, `06726be` 2026-11-03 (branches `explore-atlas`, `explore-atlas-2`) | `specs/explore-atlas/spec.md` (repo first; to be copied into the concept doc as a tab) | yes (14 findings: 11 fixed, 1 partly, 1 deferred, 1 rejected; `d3158aa`) |
 | Functional core, slice 1 (layer tags and checks, ports, fakes, the Db contract, typed meta; FC1-FC10) | shipped 2026-11-04 (engineering; no behaviour change; native unverified) | branch commits 2026-11-03 | `specs/functional-core/spec.md` (repo only: not a concept-doc tab) | yes (14 findings: 12 fixed, 1 deferred, 1 fixed in part) |
 | Affected checks (run what a change can break: affected tests, lint, typecheck, e2e journeys; AC1-AC11) | shipped 2026-11-04 (engineering; no behaviour change) | branch commits 2026-11-03 | `specs/affected-checks/spec.md` (repo only) | no (decision 0074: audits on the owner's request) |
+| Heading cone fix (the cone checked by the trace over 20 m; heading 1-5, decision 0075) | shipped (web verified by the e2e; native unverified) | branch `claude/heading-cone-rebased`, 2026-11-04 | none (a regression fix; criteria in `heading.test.ts`) | no (on request only, decision 0074) |
 
 Not a tab, but tracked: **suggested routes** (interesting ways, route preview,
 "Walk this way") are deferred as their own later slice (`749811d` 2026-11-01).

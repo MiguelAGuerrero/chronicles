@@ -18,7 +18,7 @@ The one crowded home becomes three tabs, AllTrails-style: Explore finds new plac
 
 ## Changed by Navigate, ready (2026-11-03)
 
-`specs/navigate-ready/spec.md` (NR1-NR13, decision 0075) makes Navigate the walk screen in a
+`specs/navigate-ready/spec.md` (NR1-NR13, decision 0076) makes Navigate the walk screen in a
 ready state. It **retires** NV10 (Return to walk on Navigate's peek), NV19-NV21 (the drawer's peek,
 half and full; the settings are the ready bar pulled up) and U1, U2 (the docked drawer, Navigate's
 live view of a minimized walk). It **changes** NV2 (the app opens on the ready screen over Explore)

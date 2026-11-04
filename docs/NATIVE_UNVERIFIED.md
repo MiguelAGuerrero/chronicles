@@ -33,6 +33,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] While drawing: whether a Marker tap also fires the map's onPress, `display: 'none'` on the capture row, `GapDraw`'s BackHandler against the screen's own, and `accessibilityViewIsModal` on the bar (Gap drawing)
 - [ ] Reading tiles in code for drawing on Hermes (`useGapDraw`, `readDrawTiles`), and the k-shortest search's cost on a phone (Gap drawing, GW7, GT2)
 - [ ] `capFitBounds` widening MapLibre RN's fitBounds (Navigation & tabs, U15)
+- [ ] The cone through `coneHeading` on the native glide (`useGlidingWalker`'s frames, ~15 fps), hidden while the dot holds still (decision 0075)
 
 ## Notifications (`notify/transport.native.ts`, expo-notifications)
 

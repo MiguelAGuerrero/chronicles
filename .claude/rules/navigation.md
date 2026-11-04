@@ -1,7 +1,7 @@
 ---
 paths:
   - "src/lib/nav/**"
-  - "src/lib/__tests__/{handoff,bridges}.test.ts"
+  - "src/lib/__tests__/{handoff,bridges,heading}.test.ts"
   - "src/lib/here.ts"
   - "src/lib/__tests__/nav.test.ts"
 ---
@@ -92,11 +92,18 @@ Routing inside a walk (`lib/nav`): walk me back, Go here, the route sources, rul
     edge) is drawn only ahead of you, under the trace.
   - A ring marks the destination, and a long press's spot.
   - A soft 60° cone on the walker shows the way they're going (`headingOf`:
-    the last 8 m or more of the trace, once moving at 0.5 m/s or faster; the
-    device's course only when it agrees with the trace within 45°, or when
-    there is no trace yet and it isn't Android's 0). A phone's course once
-    pointed east-north-east while the owner walked south (Nov 1). The map
-    stays north-up (the owner's call).
+    the last 20 m or more of the trace, `HEADING_WINDOW_M`, once moving at
+    0.5 m/s or faster; the device's course only when it agrees with the trace
+    within 45°, or when there is no trace yet and it isn't Android's 0). A
+    phone's course once pointed east-north-east while the owner walked south
+    (Nov 1). The map stays north-up (the owner's call).
+  - **The cone is drawn through `coneHeading`, never the live dot's heading
+    alone** (decision 0075, Nov 3: the owner walked north and the cone said
+    east). The dot's direction shows only within 20° of the trace's, else the
+    trace's; hidden while the dot holds still. `useGlideFrames` applies it on
+    every fix and on every new trace heading. A test of heading reads the cone
+    as drawn (`heading.test.ts`, the e2e's `heading 5`), with fixes that wander
+    a few metres the same way for several seconds, never clean lines only.
   - Errors are 6 s banners. "Finding a route" is a spinner pill with Cancel.
     Walk me back (`arrow-undo`) shows once you are more than 50 m from the
     start.
