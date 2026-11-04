@@ -17,7 +17,7 @@ memos. The app itself has no simulation. The rest is in `docs/TESTING.md`.
 
 ```bash
 npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # one journey, fresh browser: the normal run
-npm run export:web && npm run e2e:web                 # the whole flow, about 15 minutes: only when the owner asks (decision 0073)
+npm run export:web && npm run e2e:web                 # the whole flow, about 15 minutes: only when the owner asks (decision 0074)
 CHRONICLES_BASE_URL=/chronicles npm run export:web && E2E_BASE=/chronicles npm run e2e:web   # the Pages sub-path build
 ```
 

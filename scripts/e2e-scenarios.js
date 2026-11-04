@@ -3,7 +3,7 @@
 // file, to run with `E2E_ONLY=<name> npm run e2e:web` after `npm run
 // export:web`. Each journey runs alone in a fresh browser, a fraction of the full flow.
 //
-// The owner's rule (decision 0073): a slice that changes a screen adds or
+// The owner's rule (decision 0074): a slice that changes a screen adds or
 // extends a journey for its change, gives it a row here, and runs only the
 // journeys check:affected names. The full flow (`npm run e2e:web` with no
 // E2E_ONLY, about 15 minutes) runs only when the owner asks; it has no row.
@@ -33,6 +33,10 @@ const SCENARIOS = [
   {
     name: 'gaps',
     covers: ['src/lib/gaps/**', 'src/components/GapCard.tsx', 'src/app/replay/**', 'src/app/walk.tsx'],
+  },
+  {
+    name: 'hidden',
+    covers: ['src/lib/{hiddenLog,useLiveTrace}.ts', 'src/components/OpenWalk.tsx', 'src/app/walk.tsx'],
   },
   {
     name: 'qol',

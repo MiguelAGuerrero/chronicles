@@ -1,4 +1,4 @@
-# 0073. Fast iteration: scoped checks per slice; the full e2e and the audit on request
+# 0074. Fast iteration: scoped checks per slice; the full e2e and the audit on request
 
 Date: 2026-11-03 · Status: accepted · Area: process, testing · Supersedes in part: 0018 (the audit on every slice)
 

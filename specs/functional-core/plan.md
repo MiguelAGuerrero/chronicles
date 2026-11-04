@@ -21,7 +21,7 @@ For the owner's review before any code. Spec: `specs/functional-core/spec.md` (F
 - `src/lib/__tests__/layers.baseline.json`: FC2's recorded violations (expected empty or close to it, see Tagging).
 - `eslint-suppressions.json` (repo root, written by `eslint --suppress-rule`, ESLint 9.39.5 is installed): FC3 and FC5's existing violations, per file and rule, with counts.
 - `.claude/rules/functional-core.md` (`paths: src/**`): the convention, in under a page, so it loads whenever an agent opens code. Includes the "two of five" test for when a flow becomes a reducer, and "assert the end state; the call log only for order the spec states".
-- `docs/decisions/0072-functional-core-checked.md`: the Nov 1 call, the Nov 3 restatement, and what the research changed.
+- `docs/decisions/0073-functional-core-checked.md`: the Nov 1 call, the Nov 3 restatement, and what the research changed.
 
 **Cherry-picked from `561b439`** (the Nov 1 foundations; the AGENTS.md commit `570b68a` is not taken, the rule file replaces it)
 - `src/lib/ports/{types,index}.ts`, `src/lib/store.ts`, `src/lib/useStore.ts`, `src/lib/meta.ts`.

@@ -20,7 +20,7 @@ https://miguelaguerrero.github.io/chronicles/.
 - `main` is the only branch the Pages environment accepts.
 - Merge to `main` only when typecheck, lint, `npm test` and the slice's e2e
   journeys pass. The full e2e and `/audit` run only when the owner asks
-  (decision 0073); if they ran, their fixes must pass too.
+  (decision 0074); if they ran, their fixes must pass too.
 - Never add a server, an account, or anything that leaves the device.
 
 ## 1. Preconditions (all of them)

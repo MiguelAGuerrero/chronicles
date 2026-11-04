@@ -210,7 +210,7 @@ test('AC9 a changed file names the scenarios that cover it; an uncovered screen 
     { name: 'tabs', files: ['src/app/(tabs)/navigate.tsx'] },
   ]);
   assert.deepEqual(r.uncovered, ['src/components/Ticking.tsx']);
-  // The repo's table lists journeys only: the full flow runs only when the owner asks (decision 0073),
+  // The repo's table lists journeys only: the full flow runs only when the owner asks (decision 0074),
   // so a screen no journey covers is named, for the slice to add one.
   const own = affected.e2eFor(['src/components/GapCard.tsx', 'src/components/Ticking.tsx']);
   assert.deepEqual(own.scenarios.map((s) => s.name), ['gaps']);

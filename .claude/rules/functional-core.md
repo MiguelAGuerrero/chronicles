@@ -7,7 +7,7 @@ paths:
 ---
 # Functional core, imperative shell
 
-Decisions are data and plain functions; effects live in a thin shell. Draw the line at decisions, not at purity: a function may mutate its own locals, and React already requires most of this (derive in render, events in handlers, Effects only to sync with something outside). The owner's calls: `docs/decisions/0072-functional-core-checked.md`. The spec: `specs/functional-core/spec.md` (FC1-FC10).
+Decisions are data and plain functions; effects live in a thin shell. Draw the line at decisions, not at purity: a function may mutate its own locals, and React already requires most of this (derive in render, events in handlers, Effects only to sync with something outside). The owner's calls: `docs/decisions/0073-functional-core-checked.md`. The spec: `specs/functional-core/spec.md` (FC1-FC10).
 
 ## Layers
 
@@ -44,4 +44,4 @@ Make a flow an explicit `step(state, event, now) => { state, effects }` (a discr
 - `npm test` also checks core's mutated module-level containers, and the meta keys (`meta.test.ts`, read from the syntax tree: use a constant or a `(id) => \`family:${id}\`` builder, or the test asks where the key comes from).
 - `npm run lint`: core's hidden inputs (FC3) and views' singleton imports (FC5, under `no-restricted-syntax`, a rule nothing else in a view uses, so a suppressed count can't hide a `Modal` or Reanimated import). Each message names the fix. Known violations are counted per file and rule in `eslint-suppressions.json`; only FC5 in views is there, core has none. After fixing some, run `npx eslint src index.js --prune-suppressions`; a stale count fails lint.
 - Both baselines have a ceiling in `functionalCoreAudit.test.ts` (`functional-core audit 7`): lower it as you fix, never raise it. Never add to a baseline by hand, and never run `--suppress-all` or `--suppress-rule`: a new violation is fixed, not recorded.
-- Moving a screen over: one effect cluster per slice, the screen's e2e journey as the safety net (decision 0073), the decisions out first (test-first), then the shell against `fakePorts()`, then the view reads the store.
+- Moving a screen over: one effect cluster per slice, the screen's e2e journey as the safety net (decision 0074), the decisions out first (test-first), then the shell against `fakePorts()`, then the view reads the store.

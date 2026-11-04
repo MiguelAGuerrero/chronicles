@@ -15,7 +15,7 @@ An agent's inner loop should check what its change can break, fast, and leave th
 6. **AC6 · Affected lint.** `npm run lint:affected` lints the changed `.ts`, `.tsx` and `.js` files with the repo's config and its suppressions; with `eslint.config.js`, `eslint-suppressions.json` or `scripts/layers.js` changed, it lints everything.
 7. **AC7 · One inner-loop command.** `npm run check:affected` runs the layer check, the affected unit tests, the typecheck (incremental, so a second run after a small edit is faster than the first) and the affected lint, stops at the first failure, and prints which e2e scenarios cover the changed files (AC9).
 8. **AC8 · The Stop hook.** Before a turn ends with TypeScript changed, the hook runs the layer check and the affected unit tests as well as the typecheck; a failure blocks the stop with the failing output.
-9. **AC9 · E2E journeys declare their files.** Each e2e journey the script runs alone (`tabs`, `marks`, `reload`, `gaps`, `qol`, and every one a slice adds) declares the source files it covers in one table, and every such journey has a row. `check:affected` names the journeys that cover a changed file (`E2E_ONLY=<name>`), and names each changed screen or component that none covers. It never sends anyone to the full flow, which runs only when the owner asks (decision 0073).
+9. **AC9 · E2E journeys declare their files.** Each e2e journey the script runs alone (`tabs`, `marks`, `reload`, `gaps`, `qol`, and every one a slice adds) declares the source files it covers in one table, and every such journey has a row. `check:affected` names the journeys that cover a changed file (`E2E_ONLY=<name>`), and names each changed screen or component that none covers. It never sends anyone to the full flow, which runs only when the owner asks (decision 0074).
 10. **AC10 · CI and deploy run everything.** CI runs lint as well as `check:docs`, the typecheck and `npm test`, so FC3 and FC5 are enforced before a deploy. The full suite stays what `/deploy`, `/audit` and the end of a slice run.
 11. **AC11 · Agents use it.** `AGENTS.md`'s commands, `docs/TESTING.md` and `/slice` say: the inner loop is `check:affected`; the end of a slice is the full suite and the e2e.
 
@@ -28,9 +28,9 @@ An agent's inner loop should check what its change can break, fast, and leave th
 ## Decisions
 
 - 2026-11-03: after slice 1, the owner chose affected tests next, and "keep what's seen" for the e2e: when a rule gets a shell test, its e2e step keeps only what's on screen.
-- 2026-11-03, mid-slice (decision 0073): with seven or eight agents each running the full e2e, the owner chose fast iteration. The full e2e and `/audit` run only when the owner asks; a slice that changes a screen adds its own journey and runs the journeys `check:affected` names. So the main flow is not split up front, and this slice's own audit was stopped.
+- 2026-11-03, mid-slice (decision 0074): with seven or eight agents each running the full e2e, the owner chose fast iteration. The full e2e and `/audit` run only when the owner asks; a slice that changes a screen adds its own journey and runs the journeys `check:affected` names. So the main flow is not split up front, and this slice's own audit was stopped.
 
 ## Open
 
 - Selection by recorded coverage (V8 coverage per test file) instead of imports: only if the import graph proves too coarse.
-- The full flow is not split into journeys up front (decision 0073): journeys grow with the slices that change screens.
+- The full flow is not split into journeys up front (decision 0074): journeys grow with the slices that change screens.

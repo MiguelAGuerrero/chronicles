@@ -1,7 +1,7 @@
 ---
 name: audit
-description: Run the adversarial, report-only audit of a built slice (the auditor subagent tries to break it against its spec), then triage every finding accept/defer/reject, give each accepted one a regression test named "<slice> audit N" before its fix, and record the counts. Use only when the owner asks (decision 0073).
-when_to_use: Only when the owner asks to audit, harden, or "try to break" a slice or feature (decision 0073); never by default.
+description: Run the adversarial, report-only audit of a built slice (the auditor subagent tries to break it against its spec), then triage every finding accept/defer/reject, give each accepted one a regression test named "<slice> audit N" before its fix, and record the counts. Use only when the owner asks (decision 0074).
+when_to_use: Only when the owner asks to audit, harden, or "try to break" a slice or feature (decision 0074); never by default.
 argument-hint: <slice-name>
 ---
 

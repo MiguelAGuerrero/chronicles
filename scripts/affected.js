@@ -301,7 +301,7 @@ function e2eHint(changed, all) {
   if (r.uncovered.length) {
     lines.push(`  No journey covers ${r.uncovered.join(', ')}: if this slice changes what a screen shows, add a journey for it (/e2e, scripts/e2e-scenarios.js).`);
   }
-  lines.push('  The full flow (npm run e2e:web with no E2E_ONLY) runs only when the owner asks (decision 0073).');
+  lines.push('  The full flow (npm run e2e:web with no E2E_ONLY) runs only when the owner asks (decision 0074).');
   if (all) lines.unshift('No main branch to compare with: every file counts as changed.');
   return lines.join('\n');
 }

@@ -14,6 +14,11 @@
       "count": 2
     }
   },
+  "src/app/_layout.tsx": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
   "src/app/day/[key].tsx": {
     "no-restricted-syntax": {
       "count": 1

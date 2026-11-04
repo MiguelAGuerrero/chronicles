@@ -1,4 +1,4 @@
-# 0072. A functional core, imperative shell, checked by tools
+# 0073. A functional core, imperative shell, checked by tools
 
 Date: 2026-11-03 · Status: accepted · Area: architecture, process
 

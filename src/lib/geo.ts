@@ -370,7 +370,12 @@ export function settleJitter(fixes: TracePoint[]): TracePoint[] {
   return out;
 }
 
-/** A spot whose later fixes sit this far (a share of its reach) from its earlier ones was walked through. */
+/**
+ * A spot whose later fixes sit this far (a share of its reach) from its earlier ones was walked
+ * through. The share widens as the reach does, up to twice once the spot has held a minute past
+ * JITTER_SETTLE_FROM_MS: drift over a minute and more is a standstill's, a walk's moves on
+ * (jitter 2 and 8, Nov 3: 17 m of drift over 71 s at ±30 m was drawn as walked).
+ */
 const JITTER_MOVED_SHARE = 0.5;
 
 /** The centres of a spot's earlier and later halves, when they sit far enough apart that it was walked through. */
@@ -380,7 +385,9 @@ function movedHalves(members: TracePoint[], reach: number): [LngLat, LngLat] | n
   const mean = (xs: TracePoint[]): LngLat => [xs.reduce((s, p) => s + p.lon, 0) / xs.length, xs.reduce((s, p) => s + p.lat, 0) / xs.length];
   const a = mean(members.slice(0, half));
   const b = mean(members.slice(half));
-  return distanceM(a, b) > JITTER_MOVED_SHARE * reach ? [a, b] : null;
+  const span = members[members.length - 1].t - members[0].t;
+  const held = Math.min(1, Math.max(0, span - JITTER_SETTLE_FROM_MS) / JITTER_SETTLE_MS);
+  return distanceM(a, b) > JITTER_MOVED_SHARE * (1 + held) * reach ? [a, b] : null;
 }
 
 /** A stay this long inside DWELL_RADIUS_M counts as standing still (a shop, a café). */

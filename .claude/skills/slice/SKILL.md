@@ -102,7 +102,7 @@ fails for the right reason.
 
 ## 8. Audit, when the owner asks
 
-`/audit <slug>` runs only when the owner asks (decision 0073). Then fix the
+`/audit <slug>` runs only when the owner asks (decision 0074). Then fix the
 accepted findings, each behind a regression test named `<slug> audit N`.
 
 ## 9. Before done

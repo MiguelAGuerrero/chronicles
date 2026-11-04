@@ -142,9 +142,10 @@ npm run export:web && npm run e2e:web
 
 | `E2E_ONLY` | runs |
 |---|---|
-| (unset) | the full flow: the tabs, notifications, a walk with notes, photo, memo, hold-to-stop, replay, Chronicle, memories, rides, motion, deletes, the perf window, plus the `tabs` and `gaps` scenarios |
+| (unset) | the full flow: the tabs, notifications, a walk with notes, photo, memo, hold-to-stop, replay, Chronicle, memories, rides, motion, deletes, the perf window, plus the `tabs`, `gaps` and `hidden` scenarios |
 | `tabs` | the Navigation & tabs audit's regression checks (`tabs audit N`, U1-U15) |
 | `gaps` | a walk with two GPS gaps written into storage, then a reload: one gap fills by itself, one is offered faint (G5, G6, G9, G10, G12; `window.__project`, `data-runs`, `data-faint`) |
+| `hidden` | the hidden-page notice: a 70 s gap with the page on screen raises none, one spent hidden does (decision 0072; fixes and `Date.now` jump by `__shift`, visibility faked by `__vis`) |
 | `marks` | an exploring walk through an area read before draws the marks it passes (Nov 2 repro) |
 | `reload` | a reload with a walk minimized keeps it reachable: the bar's ›, its Stop, the tabs |
 | `qol` | quality of life QL1-QL28: Locate, the scale bar, the trace's end markers, the units segment, time left while navigating, the denied-location chip (a second context without the permission), a photo's pin thumbnail, editing a note from the replay, month headers, rename from a Chronicle row (29 checks, about a minute) |
@@ -217,6 +218,11 @@ Re-export without the variable afterwards for the plain e2e.
 - Each capture adds a replay stop: loop on Continue. Captions are checked
   through their aria-label after the photo's size loaded.
 
+- `data-center` is the canvas's middle, not the middle of what you see: a
+  screen that fits with uneven padding (Explore: 84 px under its title, 24 px
+  at the bottom) frames the fix (top - bottom) / 2 px below it. Measure a
+  framing in pixels against the padding (`qol QL10`), not in metres from
+  `data-center`.
 ## 4. The long walk: `scripts/perf-walk.js`
 
 ```bash
@@ -252,7 +258,7 @@ npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # each journey it nam
 
 A slice that changes a screen adds or extends its own journey (`/e2e`); one
 that changes no screen runs no e2e. The full flow (no `E2E_ONLY`, about 15
-minutes) and `/audit` run only when the owner asks (decision 0073).
+minutes) and `/audit` run only when the owner asks (decision 0074).
 
 The Stop hook (`.claude/hooks/check-done.sh`) runs `check:docs` on any
 change, and with `.ts`/`.tsx` changed, the typecheck, the layer check and the
