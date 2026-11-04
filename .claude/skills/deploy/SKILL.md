@@ -36,6 +36,9 @@ CHRONICLES_BASE_URL=/chronicles npm run export:web && E2E_BASE=/chronicles E2E_O
 
 - The journeys run against the sub-path build, as Pages serves it. The full
   flow (no `E2E_ONLY`) only when the owner asks for it.
+- `npm run check:test-first <slug>` passes for each slice that ships (its
+  tests were committed as todos before its code), and no shipped slice's spec
+  is still in `IN_PROGRESS` in `scripts/features.js`.
 - `docs/STATUS.md` is updated (with the audit's counts, if one ran).
 - If the owner asked for an audit, its accepted findings are fixed.
 - `docs/PRODUCT.md` says what shipped. Run `/docs-gc` if it was not run.

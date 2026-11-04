@@ -254,6 +254,21 @@ const RETIRED = {
   'bridges-and-open-in-maps': ['NH4'],
 };
 
+/**
+ * Live criteria that no test names, on purpose (TG20): `device: <why>` for a check only a phone can
+ * make (the web build can't reach it), `deferred: <why>` for the owner's call to wait. Keyed by spec.
+ */
+const UNTESTED = {
+  // react-native-web always reports a screen reader, so the screen-reader path runs only on a device.
+  'replay-rhythm': { RR17: 'device: both replays step through the moments with a screen reader on, native only' },
+};
+
+/**
+ * Specs a slice is building (TG22): from its plan until done, its criteria are exempt from the gate.
+ * `{ slug: { branch, since: 'YYYY-MM-DD' } }`; an entry older than 7 days fails the docs check.
+ */
+const IN_PROGRESS = {};
+
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 
 /** A glob (`**`, `*`, `{a,b}`) as a regular expression over posix paths. */
@@ -290,4 +305,4 @@ const featureOfJourney = (name) => FEATURES.find((f) => f.journeys.includes(name
 /** The features that list a spec slug. */
 const featuresOfSpec = (slug) => FEATURES.filter((f) => f.specs.includes(slug));
 
-module.exports = { FEATURES, RETIRED, globToRegExp, featuresOf, featureOfJourney, featuresOfSpec, byName };
+module.exports = { FEATURES, RETIRED, UNTESTED, IN_PROGRESS, globToRegExp, featuresOf, featureOfJourney, featuresOfSpec, byName };

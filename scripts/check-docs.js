@@ -13,6 +13,8 @@
  *   3. Every repo path the docs name in backticks exists.
  *   4. A criterion prefix belongs to one spec, a decision number to one record
  *      (scripts/collisions.js).
+ *   5. Every live criterion is tested, retired, untested with a reason, or in the
+ *      legacy baseline (scripts/criteria.js).
  *
  * Exit 1 with a list of problems, each saying how to fix it; exit 0 when clean.
  */
@@ -200,6 +202,9 @@ for (const doc of PATH_CHECKED) {
     fail(`Decision number ${d.number} is held by ${d.files.join(' and ')}: renumber the newer one to the next free number, in its file name, its title, docs/decisions/README.md and what cites it.`);
   }
 }
+
+// 5. Every live criterion has a status: a test, a retirement, a reason, or the legacy baseline (TG20-TG22)
+for (const p of require('./criteria').check(ROOT)) fail(p.message);
 
 if (problems.length) {
   console.error(`check-docs: ${problems.length} problem${problems.length > 1 ? 's' : ''}`);

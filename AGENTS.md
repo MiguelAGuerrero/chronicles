@@ -65,7 +65,7 @@ Procedures are skills: `/slice` (spec-first, test-first), `/audit` (the adversar
 ## Working with the owner
 
 - **Ask before architectural decisions:** libraries, data model, platform strategy, navigation flow. Use AskUserQuestion with a recommended option. Local fixes don't need asking.
-- **Spec first, test first.** A slice starts from numbered, testable criteria in its spec, then a plan the owner can read, then one failing test per criterion before its code (`/slice`). It is done when those pass with typecheck, lint, `npm test` and the e2e journeys covering its files; a slice that changes a screen adds a journey for it. The full e2e runs only when the owner asks.
+- **Spec first, test first.** A slice starts from numbered, testable criteria in its spec, then a plan the owner can read, then one failing test per criterion before its code (`/slice`), committed as todos first (`check:test-first` reads the history); `check:docs` fails on a criterion with no test or recorded reason. It is done when those pass with typecheck, lint, `npm test` and the e2e journeys covering its files; a slice that changes a screen adds a journey for it. The full e2e runs only when the owner asks.
 - **Audit when the owner asks** (`/audit`, decision 0074): a report-only pass that tries to break the slice, triage (accept, defer, reject, with reasons; architectural findings go to the owner), a regression test named `<slice> audit N` before each fix.
 - **Deferred is a decision, not a gap.** Record it in `docs/DEFERRED.md`; if the owner chose it, in `docs/decisions/` too.
 

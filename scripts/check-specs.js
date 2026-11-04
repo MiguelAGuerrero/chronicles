@@ -137,13 +137,58 @@ function testFilesFor(slug, shared, files = [...unitTests(), ...e2eFiles()]) {
  * (`test(`, `it(`, `check(`, `step(`), so a comment or an assertion message that mentions an
  * id, such as one saying it was retired, does not count.
  */
-const NAMING = /\b(?:test|it|check|step|qstep)\(/;
+/**
+ * The ids a test names (TD1, TG23): the ids in a test's or step's name (`test(`, `it(`, `step(`,
+ * `qstep(`: up to its body) and in an e2e check's arguments (`check(`, to its closing parenthesis,
+ * however many lines it spans). A comment, an assertion's message, and a todo (`{ todo: ... }` in a
+ * test's options, or `check.todo(`) do not count: a todo is a test not yet made real.
+ */
+const CALL = /\b(test|it|check|step|qstep)(\.todo)?\(/g;
+/** The text of a call from `from` (just after its opening parenthesis) to its closing one, strings kept, comments dropped. */
+function callText(src, from) {
+  let depth = 1;
+  let out = '';
+  for (let i = from; i < src.length && i < from + 4000; i++) {
+    const ch = src[i];
+    if (ch === '/' && src[i + 1] === '/') { while (i < src.length && src[i] !== '\n') i++; continue; }
+    if (ch === '/' && src[i + 1] === '*') { i = src.indexOf('*/', i + 2); if (i < 0) break; i++; continue; }
+    if (ch === "'" || ch === '"' || ch === '`') {
+      let j = i + 1;
+      let braces = 0;
+      while (j < src.length) {
+        if (src[j] === '\\') { j += 2; continue; }
+        if (ch === '`' && src[j] === '$' && src[j + 1] === '{') { braces++; j += 2; continue; }
+        if (ch === '`' && braces && src[j] === '}') { braces--; j++; continue; }
+        if (src[j] === ch && !braces) break;
+        j++;
+      }
+      out += src.slice(i, j + 1);
+      i = j;
+      continue;
+    }
+    if (ch === '(') depth++;
+    if (ch === ')' && --depth === 0) break;
+    out += ch;
+  }
+  return out;
+}
 const namedIn = (files) => {
   const words = new Set();
   for (const f of files) {
-    for (const line of fs.readFileSync(f, 'utf8').split('\n')) {
-      if (!NAMING.test(line) || /^\s*\/\//.test(line)) continue;
-      for (const m of line.matchAll(ANY_ID)) words.add(m[1] + Number(m[2]));
+    const src = fs.readFileSync(f, 'utf8');
+    for (const m of src.matchAll(CALL)) {
+      // Skip a call inside a line comment.
+      const lineStart = src.lastIndexOf('\n', m.index) + 1;
+      if (/^\s*\/\//.test(src.slice(lineStart, m.index))) continue;
+      if (m[2]) continue; // check.todo(...)
+      let text = callText(src, m.index + m[0].length);
+      if (m[1] !== 'check') {
+        // A test's or step's name and options, not its body.
+        const body = text.search(/=>|\bfunction\b/);
+        if (body >= 0) text = text.slice(0, body);
+        if (/\btodo\s*:/.test(text)) continue;
+      }
+      for (const id of text.matchAll(ANY_ID)) words.add(id[1] + Number(id[2]));
     }
   }
   return words;
@@ -172,8 +217,9 @@ function report({ feature = null } = {}) {
     const retired = new Set(features.RETIRED[p.slug] ?? []);
     const sharedPrefixes = p.prefixes.filter((pre) => (owners.get(pre) ?? []).length > 1);
     // Words from the scoped files for shared prefixes, from every file otherwise.
-    const wordsAll = wordsIn(files);
-    const wordsScoped = sharedPrefixes.length ? wordsIn(testFilesFor(p.slug, true, files)) : wordsAll;
+    // Named by a real test or check (TG20, TG23): a mention in a comment is not a test.
+    const wordsAll = namedIn(files);
+    const wordsScoped = sharedPrefixes.length ? namedIn(testFilesFor(p.slug, true, files)) : wordsAll;
     const mentioned = (id) => (sharedPrefixes.includes(id.replace(/\d+$/, '')) ? wordsScoped : wordsAll).has(id);
     const live = p.ids.filter((id) => !retired.has(id));
     const named = namedIn(sharedPrefixes.length ? testFilesFor(p.slug, true, files) : files);
@@ -203,7 +249,7 @@ function main(argv) {
   const r = report({ feature });
   let totalIds = 0;
   let totalMissing = 0;
-  console.log(`Criterion ids with no mention in ${r.fileCount} test files (src/lib/__tests__/**/*.test.ts, scripts/e2e/**)${feature ? `, the specs of ${feature}` : ''}\n`);
+  console.log(`Criterion ids no test or check names in ${r.fileCount} test files (src/lib/__tests__/**/*.test.ts, scripts/e2e/**)${feature ? `, the specs of ${feature}` : ''}\n`);
   for (const row of r.rows) {
     if (!row.ids.length) {
       console.log(`${row.slug}: no literal criterion ids`);
@@ -212,7 +258,7 @@ function main(argv) {
     totalIds += row.ids.length - row.retired.length;
     totalMissing += row.missing.length;
     const scope = row.shared.length ? ` (${row.shared.join(', ')} scoped to ${row.features.join(', ') || 'no feature: list the spec in scripts/features.js'})` : '';
-    const head = `${row.slug} [${row.prefixes.join(', ')}]${scope}: ${row.missing.length} of ${row.ids.length - row.retired.length} live ids unmentioned`;
+    const head = `${row.slug} [${row.prefixes.join(', ')}]${scope}: ${row.missing.length} of ${row.ids.length - row.retired.length} live ids not named by a test`;
     console.log(row.missing.length ? `${head}\n  ${row.missing.join(' ')}` : head);
     if (row.retired.length) console.log(`  retired (${row.retired.length}): ${row.retired.join(' ')}${row.retiredStillTested.length ? `; still named by a test: ${row.retiredStillTested.join(' ')}` : ''}`);
   }
@@ -220,7 +266,7 @@ function main(argv) {
     console.log('\nPrefixes used by more than one spec (each resolved to the features that list the spec):');
     for (const s of r.shared) console.log(`  ${s.prefix}: ${s.slugs.join(', ')}`);
   }
-  console.log(`\nTotal: ${totalMissing} of ${totalIds} live ids unmentioned.`);
+  console.log(`\nTotal: ${totalMissing} of ${totalIds} live ids not named by a test (check:docs fails on any not in scripts/criteria.baseline.json or UNTESTED).`);
   if (strict && totalMissing) {
     console.error('\n--strict: a live criterion has no test naming it. Write the test, or declare the id RETIRED in scripts/features.js with who retired it.');
     process.exit(1);

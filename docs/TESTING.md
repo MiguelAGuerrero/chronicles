@@ -368,6 +368,24 @@ the background task or MapLibre RN. Say so in any report touching native code.
 
 ## Spec traceability
 
+**Every live criterion has a status** (`scripts/criteria.js`, TG20-TG22), held by
+`check:docs`, so the Stop hook and CI fail on a criterion with none of these:
+named by a real test (a test's or step's name, or an e2e check's message;
+never a todo), retired (`RETIRED`), untested on purpose with a kind and a
+reason (`UNTESTED`: `device: ...` or `deferred: ...`), or in the legacy
+baseline `scripts/criteria.baseline.json` (untested when the gate arrived; it
+only shrinks, and a stale entry fails until removed). A spec a slice is
+building is listed in `IN_PROGRESS` (branch, start date) and exempt for 7
+days. `RETIRED`, `UNTESTED` and `IN_PROGRESS` are in `scripts/features.js`.
+
+**Test-first shows in the history** (TG24, TG25): a slice commits its failing
+tests as todos (`test('XX1: ...', { todo: 'test first' }, ...)`, or
+`check.todo(ok, 'XX1: ...')` in a journey) before any code, then makes each
+real with its code. `npm run check:test-first <slug>` reads the branch and
+fails on a criterion whose todo did not come first. `/slice` runs it at done,
+`/deploy` before it ships.
+
+
 `npm run check:specs` (`scripts/check-specs.js`) lists the criterion ids in
 `specs/*/spec.md` that no unit test or e2e file names. A prefix two specs
 share (M, R, D) is looked for only in the folders of the features that list
