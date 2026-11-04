@@ -355,6 +355,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       container.current?.setAttribute('data-zoom', zoom.toFixed(2));
       // And the centre (QL12), on the same path.
       container.current?.setAttribute('data-center', `${c.lng.toFixed(6)},${c.lat.toFixed(6)}`);
+      // And what is in view, west,south,east,north (fix explore-fit-area: the whole town is framed).
+      const b = map.getBounds();
+      container.current?.setAttribute('data-bounds', [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()].map((x) => x.toFixed(5)).join(','));
       setView((v) => (v && Math.abs(v.zoom - zoom) < 0.05 && Math.abs(v.lat - lat) < 0.01 ? v : { zoom, lat }));
     };
     // Only gestures carry an originalEvent; camera moves made in code do not.

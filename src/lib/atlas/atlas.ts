@@ -4,7 +4,7 @@ import { AREA_REACH_M } from '../areas/rules';
 import type { Area, PlaceCandidate, WalkArea } from '../areas/types';
 import { MARK_CATEGORIES } from '../discovery/noise';
 import type { CategoryId, Kind } from '../discovery/types';
-import { distanceM, projector } from '../geo';
+import { boundsOf, distanceM, projector, type Bounds } from '../geo';
 import { NAV } from '../nav/rules';
 import type { LngLat } from '../types';
 
@@ -282,6 +282,27 @@ export function townOf(area: { at: LngLat }, towns: AtlasArea[], outlines: Outli
 }
 
 /** How far around a town's point its neighborhoods are looked for. */
+/**
+ * What a page of the atlas frames (AT9, TB11; fix explore-fit-area, Nov 4): the whole of its town
+ * once the town's border is known (yours near you, or the open town's), else the page's areas
+ * (and you, near you) padded 150 m. The screen fits each key once, so a key changes only with the
+ * page, the build or the border arriving: areas listed after the border never undo it, and Locate
+ * or a pan afterwards is never undone. Two separate frames once raced, and the last one won.
+ */
+export function pageFrame(p: {
+  page: string;
+  build: string | null;
+  town: { id: string; bounds: Bounds } | null;
+  points: LngLat[];
+  from: LngLat | null;
+}): { key: string; bounds: Bounds } | null {
+  const base = `${p.page}:${p.build ?? ''}`;
+  if (p.town) return { key: `${base}:${p.town.id}`, bounds: p.town.bounds };
+  if (!p.points.length) return null;
+  const box = boundsOf(p.page === 'near' && p.from ? [p.from, ...p.points] : p.points, 150);
+  return box ? { key: base, bounds: box } : null;
+}
+
 export const townReachM = (town: AtlasArea) => Math.min(town.reachM, ATLAS_RULES.townNeighborhoodsM);
 
 /**

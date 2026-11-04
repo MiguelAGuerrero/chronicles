@@ -12,7 +12,7 @@ import type { WalkMapHandle } from '../../components/map/types';
 import { Icon } from '../../components/icons';
 import { Banner, Button, theme } from '../../components/ui';
 import {
-  ATLAS_RULES, canWalkTo, distanceWords, familiarity, findsIn, nextDoor, otherTowns, townReachM, waitingMarks, walkTarget,
+  ATLAS_RULES, canWalkTo, distanceWords, familiarity, findsIn, nextDoor, otherTowns, pageFrame, townReachM, waitingMarks, walkTarget,
   type AtlasArea, type Familiarity, type Listed,
 } from '../../lib/atlas/atlas';
 import { nearReads } from '../../lib/atlas/read';
@@ -95,14 +95,8 @@ export default function Explore() {
     [drawn, town, home, from, fresh.outlines],
   );
   const borders = useMemo(() => bordersFor(drawn, { tinted: tintedId ? [tintedId] : [], near: town?.at ?? from }), [drawn, tintedId, town, from]);
-  // TB11: the map frames the whole of the tinted town once its border is known, once per town (yours, or a page's).
-  const framedTown = useRef<string | null>(null);
+  // TB11: the whole of the tinted town (yours, or a page's) once its border is known; the page frames it below.
   const townBox = useMemo(() => townFrame(drawn, tintedId), [drawn, tintedId]);
-  useEffect(() => {
-    if (!townBox || framedTown.current === townBox.id) return;
-    framedTown.current = townBox.id;
-    setFit((f) => ({ bounds: townBox.bounds, key: f.key + 1 }));
-  }, [townBox]);
   const [spot, setSpot] = useState<{ at: LngLat; zoom: number } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [pressSeen, setPressSeen] = useState(true);
@@ -249,14 +243,18 @@ export default function Explore() {
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
   }, [townSeen, open, focused, leave]);
-  // Each page is framed once its areas are first listed (AT9): the map shows them all.
-  const framed = useRef<string | null>(null);
+  // Each page is framed once (AT9, TB11): its whole town once the border is known, its areas until then.
+  // One rule decides (`pageFrame`), so the areas listed after the border never undo it (fix explore-fit-area).
+  const framed = useRef(new Set<string>());
+  const pageBox = useMemo(
+    () => pageFrame({ page: townSeen ? `town:${townSeen.key}` : 'near', build: fresh.build, town: townBox, points, from }),
+    [townSeen, fresh.build, townBox, points, from],
+  );
   useEffect(() => {
-    const key = `${townSeen?.key ?? 'near'}:${fresh.build}`;
-    if (!points.length || framed.current === key) return;
-    framed.current = key;
-    frame(from && !townSeen ? [from, ...points] : points, 150);
-  }, [points, townSeen, fresh.build, from, frame]);
+    if (!pageBox || framed.current.has(pageBox.key)) return;
+    framed.current.add(pageBox.key);
+    setFit((f) => ({ bounds: pageBox.bounds, key: f.key + 1 }));
+  }, [pageBox]);
 
   const lookHere = async (at: LngLat) => {
     if (looking) return;
