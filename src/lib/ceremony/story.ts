@@ -132,11 +132,7 @@ function stillSpan(p: StoryPath, tFirst: number, tLast: number, lo: number, hi: 
   const a1 = positionAt(p, tLast);
   let i = lastAtOrBefore(p.ts, tFirst);
   // Never across a run's edge (audit 21): a capture in a gap or a pause, or at a run's last fix, leaves the break a break.
-  const inRun = (t: number) => {
-    const k = lastAtOrBefore(p.ts, t);
-    return k >= 0 && (p.ts[k] === t || (k + 1 < p.ts.length && p.runOf[k + 1] === p.runOf[k]));
-  };
-  if (a0 && inRun(tFirst)) {
+  if (a0 && inRun(p, tFirst)) {
     for (; i >= 0 && p.ts[i] >= lo; i--) {
       if (distanceM(p.ps[i], a0) > STILL_M) break;
       arrive = Math.min(arrive, p.ts[i]);
@@ -144,7 +140,7 @@ function stillSpan(p: StoryPath, tFirst: number, tLast: number, lo: number, hi: 
     }
   }
   let j = lastAtOrBefore(p.ts, tLast) + 1;
-  if (a1 && inRun(tLast) && j < p.ts.length && j > 0 && p.runOf[j] === p.runOf[j - 1]) {
+  if (a1 && inRun(p, tLast) && j < p.ts.length && j > 0 && p.runOf[j] === p.runOf[j - 1]) {
     for (; j < p.ts.length && p.ts[j] <= hi; j++) {
       if (distanceM(p.ps[j], a1) > STILL_M) break;
       leave = Math.max(leave, p.ts[j]);
@@ -152,6 +148,12 @@ function stillSpan(p: StoryPath, tFirst: number, tLast: number, lo: number, hi: 
     }
   }
   return [arrive, leave];
+}
+
+/** Whether walk time t falls on the trace: at a fix, or between two of one run (not in a gap or a pause). */
+function inRun(p: StoryPath, t: number): boolean {
+  const k = lastAtOrBefore(p.ts, t);
+  return k >= 0 && (p.ts[k] === t || (k + 1 < p.ts.length && p.runOf[k + 1] === p.runOf[k]));
 }
 
 /** Moves and breaks along a path between walk times a and b. */
@@ -182,6 +184,7 @@ const looseMoments = (captures: Capture[]): StoryMoment[] =>
     arrive: g.captures[0].t,
     leave: g.captures[g.captures.length - 1].t,
     pathId: null,
+    onTrace: false,
   }));
 
 const eventStart = (e: StoryEvent) => (e.kind === 'moment' ? e.arrive : e.t0);
@@ -239,16 +242,33 @@ export function walkStory(r: WalkInput): Story {
   }
   const events: StoryEvent[] = [];
   let cursor = path.start;
+  // A moment the trace doesn't cover (in a gap or a pause) is where it was taken: the break before it
+  // lands there, and the break after it leaves from there (audit 30).
+  let offTrace: { at: LngLat; leave: number } | null = null;
+  const from = (n: number) => {
+    const e = events[n];
+    if (offTrace && e?.kind === 'break' && e.t0 === offTrace.leave) e.from = offTrace.at;
+    offTrace = null;
+  };
   groups.forEach((g, i) => {
     const tFirst = g.captures[0].t;
     const tLast = g.captures[g.captures.length - 1].t;
     const next = groups[i + 1]?.captures[0].t ?? Infinity;
     const [arrive, leave] = stillSpan(path, tFirst, tLast, cursor, next);
+    const n = events.length;
     span(path, cursor, arrive, events);
-    events.push({ kind: 'moment', captures: g.captures, at: g.at ?? positionAt(path, tFirst), arrive, leave, pathId: path.id });
+    from(n);
+    const onTrace = inRun(path, tFirst) && inRun(path, tLast);
+    const at = g.at ?? positionAt(path, tFirst);
+    const before = events[events.length - 1];
+    if (!onTrace && g.at && before?.kind === 'break' && before.t1 === arrive) before.to = g.at;
+    events.push({ kind: 'moment', captures: g.captures, at, arrive, leave, pathId: path.id, onTrace });
+    if (!onTrace && g.at) offTrace = { at: g.at, leave };
     cursor = Math.max(cursor, leave);
   });
+  const n = events.length;
   span(path, cursor, path.end, events);
+  from(n);
   const passes: StoryPass[] = r.passed.flatMap((p) => (p.at && p.t != null ? [{ pathId: path.id, t: p.t, at: p.at, name: p.name, generic: p.generic }] : []));
   const moments = events.filter((e): e is StoryMoment => e.kind === 'moment');
   return {

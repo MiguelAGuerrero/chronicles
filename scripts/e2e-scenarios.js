@@ -49,7 +49,7 @@ const SCENARIOS = [
   {
     // Replay rhythm (RR6-RR16, RR19): a seeded walk and its day, watched with no taps.
     name: 'replay',
-    covers: ['src/app/replay/**', 'src/app/day/**', 'src/components/ceremony/**', 'src/lib/ceremony/**', 'src/lib/{replay,days,summary}.ts', 'src/components/map/WalkMap.web.tsx'],
+    covers: ['src/app/replay/**', 'src/app/day/**', 'src/components/ceremony/**', 'src/lib/ceremony/**', 'src/lib/{replay,days,summary,motionTokens}.ts', 'src/lib/explore/explore.ts', 'src/components/ui.tsx', 'src/components/map/WalkMap.web.tsx'],
   },
   {
     name: 'hidden',

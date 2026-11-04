@@ -27,17 +27,19 @@ function MemoBubble({ o, ctx }: { o: BubbleOverlay; ctx: StageCtx }) {
   const status = useAudioPlayerStatus(player);
   // A memo the viewer started themselves (sound refused, then a tap) plays to its end, and the stage waits for it (audits 8, 23).
   const [byHand, setByHand] = useState(false);
+  // Paused with its own button: the stage goes on without it (audit 32).
+  const [handPaused, setHandPaused] = useState(false);
   const stopped = ctx.held || ctx.paused;
   const len = Number(o.capture.body) || 0;
   const ended = status.didJustFinish || (status.duration > 0 && status.currentTime >= status.duration - 0.05);
   // Started once it has moved: a file that won't play can still say it is playing.
   const started = status.currentTime > 0;
   const waited = useMediaWait(o.key, ctx, {
-    inSlot: o.playing, slotOver: (o.progress >= 1 || byHand) && !ended, started, ended,
+    inSlot: o.playing && !handPaused, slotOver: (o.progress >= 1 || byHand) && !ended && !handPaused, started, ended,
     positionMs: () => status.currentTime * 1000, planMs: o.progress * Math.max(1000, len), lenMs: Math.max(1000, len), stopped,
   });
   // Plays in its slot, while the stage waits for it, and after Hold if it was started by hand.
-  const want = (o.playing || waited || byHand) && !ended && !stopped;
+  const want = (o.playing || waited || byHand) && !ended && !stopped && !handPaused;
   useEffect(() => {
     if (!status.isLoaded) return;
     if (want) player.play();
@@ -52,6 +54,7 @@ function MemoBubble({ o, ctx }: { o: BubbleOverlay; ctx: StageCtx }) {
         testID="memo-play"
         onPress={() => {
           setByHand(!status.playing);
+          setHandPaused(status.playing);
           if (status.playing) player.pause();
           else player.play();
         }}

@@ -170,4 +170,5 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - The trace is redrawn every 66 ms, so on a zip the line trails the walker by a short stretch (replay-rhythm audit 14)
 - Keeping the screen awake through the replay (a minute with no touch can meet the phone's auto-lock): needs expo-keep-awake, a new library, so it waits on the owner; a lock now holds the replay rather than skipping it (replay-rhythm audit 6)
 - The Undo toast can sit over the clock for its 5 s after a moment is deleted mid-path (replay-rhythm audit, UI notes)
+- No sign while the stage waits for a medium (an iPhone memo refused sound stands 2 s, a video's muted retry about 1 s): a new thing on screen, the owner's call (replay-rhythm audit 38)
 

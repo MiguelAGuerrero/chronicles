@@ -18,6 +18,8 @@ export function Whispers({ items, ctx }: { items: WhisperOverlay[]; ctx: StageCt
           <Text
             key={w.key}
             testID="replay-whisper"
+            // A tap on it holds the replay like any tap on the stage (audit 37).
+            pointerEvents="none"
             accessibilityLiveRegion="polite"
             style={[styles.whisper, { left, top, opacity: w.opacity, textAlign: p ? (right ? 'left' : 'right') : 'center' }]}
           >

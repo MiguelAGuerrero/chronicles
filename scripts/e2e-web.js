@@ -2416,6 +2416,7 @@ function check(ok, what) {
     let tapChecked = false;
     let pileChecked = false;
     let soundChecked = false;
+    let afterViewer = -1;
     for (let k = 0; k < 400 && !(await pg.locator('[data-testid=to-name]').count()); k++) {
       if (await pg.locator('[data-testid=moment]').count()) seen.cont = true;
       if ([2, 5, 9, 14, 20].includes(k)) await shot(pg, `rr-path-${k}`);
@@ -2481,8 +2482,9 @@ function check(ok, what) {
         const ops = await pg.evaluate((n) => window.__media.slice(n), before);
         const paused = ops.some(([tag, op]) => tag === 'VIDEO' && op === 'pause');
         const v = await pg.evaluate(() => document.querySelector('[data-testid=replay-card] video')?.paused ?? null);
-        check(paused && v !== false, `replay-rhythm audit 4: opening the viewer pauses the card's video (${JSON.stringify(ops)})`);
+        check(paused && v === true, `replay-rhythm audit 4: opening the viewer pauses the card's video (${JSON.stringify(ops)}, paused ${v})`);
         await pg.click('[data-testid=viewer-close]').catch(() => {});
+        afterViewer = await pg.evaluate(() => window.__media.length);
       }
       await pg.waitForTimeout(150);
     }
@@ -2505,6 +2507,10 @@ function check(ok, what) {
     check(!seen.counted, `RR19: nothing during the path counts ("${seen.counted}")`);
     check(soundChecked, 'replay-rhythm audit 3: the video came up muted with Tap for sound');
     check(rec.videoEndedInCard, 'replay-rhythm audit 20: the card\u2019s video plays to its end before it tucks away');
+    // From the viewer closing to its end, the video is never paused: not at its slot's edge either (audit 34).
+    const tail = await pg.evaluate((n) => window.__media.slice(n).filter(([tag]) => tag === 'VIDEO'), afterViewer);
+    const endAt = tail.findIndex(([, op]) => op === 'ended');
+    check(afterViewer >= 0 && endAt >= 0 && !tail.slice(0, endAt).some(([, op]) => op === 'pause'), `replay-rhythm audit 34: the card's video plays on to its end with no pause (${JSON.stringify(tail)})`);
     check(rec.memoPlay && rec.memoPlay[0] >= 44 && rec.memoPlay[1] >= 44, `RR10, replay-rhythm audit 27: the memo's bubble shows, its play button 44 px (${JSON.stringify(rec.memoPlay)})`);
 
     // A landscape phone: the card stands between the top row and the corner, clear of the buttons (replay-rhythm audit 13).

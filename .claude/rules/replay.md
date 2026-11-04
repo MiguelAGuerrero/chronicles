@@ -70,9 +70,14 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
   2 s more; one that plays, up to its length (30 s at least). Hold and the viewer
   pause the medium itself (`ctx.held`, `ctx.paused`); a wait never does, or it would
   never catch up. A memo started by hand plays to its end and resumes after Hold.
-- **A rebuilt telling keeps its place** (audit 22): deleting a moment from the pile,
-  Undo, or editing a note rebuilds the story; `useCeremonyClock` re-anchors to the same
-  time of day (`msAtClock`), so nothing ahead is skipped.
+- **A rebuilt telling keeps its place** (audits 22, 31, 33): deleting a moment from the
+  pile, Undo, or editing a note rebuilds the story; `useCeremonyClock` re-anchors with
+  `reanchor` in the very render that first shows it: the same time of day, and where the
+  clock stands still (a stop, a loose moment) as long before it moves on as there was.
+- **A moment the trace doesn't cover** (in a gap or a pause, `onTrace: false`) is where
+  it was taken: the cut lands there; a break of under a minute next to it is a step,
+  not a second cut (audit 30). A memo paused with its own button lets the stage go on;
+  the stall count resets once a player moves (`trackWait`, audit 32).
 - **Picking a ceremony**: the route parameter `style` (`ceremonyFor(style)`); the walk
   replay's `ceremony=0` means a re-watch, not a ceremony (audit 25).
 - The trace is rebuilt from the frame at 66 ms buckets, not every frame, so on a zip

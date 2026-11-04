@@ -8,7 +8,9 @@
  * and a clock rolls with the walker. Every number is in REPLAY_RHYTHM.
  */
 import { passedLine } from '../explore/explore';
+import { distanceM } from '../geo';
 import { REPLAY_RHYTHM as R } from '../motionTokens';
+import { GAP_MS } from '../replay';
 import type { Capture, LngLat } from '../types';
 import { easeInOut, easeOut } from './ease';
 import { positionAt, timeAtMetres } from './story';
@@ -17,6 +19,8 @@ import type {
 } from './types';
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+/** A short break no farther than this is a step, not a cut. */
+const STEP_M = 40;
 const lerp = (a: number, b: number, u: number) => a + (b - a) * u;
 const lerpAt = (a: LngLat | null, b: LngLat | null, u: number): LngLat | null =>
   a && b ? [lerp(a[0], b[0], u), lerp(a[1], b[1], u)] : (a ?? b);
@@ -150,11 +154,14 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
       }
       pos = to;
     } else if (e.kind === 'break') {
-      draft.push({ k: 'cut', dur: R.cut, brk: e, from: e.from ?? pos, to: e.to ?? pos });
+      // Under a minute, and no way to speak of (a moment in a gap, next to where the trace picks up): a step, not a cut (audit 30).
+      const step = e.t1 - e.t0 < GAP_MS && (!e.from || !e.to || distanceM(e.from, e.to) <= STEP_M);
+      if (!step) draft.push({ k: 'cut', dur: R.cut, brk: e, from: e.from ?? pos, to: e.to ?? pos });
       pos = e.to ?? pos;
     } else {
-      // On a path, the walker stays where the trace has it, from arriving to leaving (audit 9).
-      const path = e.pathId ? story.paths[e.pathId] : null;
+      // On a path, the walker stays where the trace has it, from arriving to leaving (audit 9);
+      // a moment the trace doesn't cover is where it was taken (audit 30).
+      const path = e.pathId && e.onTrace ? story.paths[e.pathId] : null;
       const at = (path ? positionAt(path, e.arrive) : null) ?? e.at ?? pos;
       const leave = (path ? positionAt(path, e.leave) : null) ?? at;
       // A slot's t1 holds its duration until the times are laid out.
@@ -302,7 +309,7 @@ export function rhythmFrame(plan: RhythmPlan, ms: number): Frame {
     case 'stop': {
       clock = lerp(s.moment.arrive, s.moment.leave, u);
       here = clock;
-      const path = s.moment.pathId ? story.paths[s.moment.pathId] : null;
+      const path = s.moment.pathId && s.moment.onTrace ? story.paths[s.moment.pathId] : null;
       walker = (path ? positionAt(path, clock) : null) ?? s.from;
       if (!still) zoomOut = 1 - 0.04 * easeOut(u);
       break;

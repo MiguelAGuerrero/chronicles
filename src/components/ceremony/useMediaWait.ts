@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { mediaWait } from '../../lib/ceremony/media';
+import { trackWait, type WaitBook } from '../../lib/ceremony/media';
 import type { StageCtx } from './layout';
 
-/** Re-checked this often while a medium might need waiting for. */
-const CHECK_MS = 100;
+/** Re-checked every frame while a medium might need waiting for, so a slot's end never runs on a beat (audit 34). */
+const CHECK_MS = 33;
 
 /**
  * Holds the stage's clock while a memo or video catches up with its slot
@@ -24,23 +24,13 @@ export function useMediaWait(
   const active = o.inSlot || o.slotOver;
   useEffect(() => {
     if (!active) return;
-    let waited = 0;
-    let stalled = 0;
-    let last = Date.now();
-    let lastPos = -1;
+    // The bookkeeping is `trackWait` (core): how long it has been waited for, and stood still (audit 32).
+    let book: WaitBook = { waited: 0, stalled: 0, lastPos: -1, last: Date.now() };
     const id = setInterval(() => {
-      const t = Date.now();
       const c = live.current;
-      const pos = c.positionMs();
-      const w = mediaWait({ inSlot: c.inSlot, slotOver: c.slotOver, started: c.started, ended: c.ended, behindMs: Math.max(0, c.planMs - pos), waitedMs: waited, lenMs: c.lenMs, stalledMs: stalled });
-      // Held or under a viewer, the wait doesn't count against it, nor does standing still.
-      if (w && !c.stopped) {
-        waited += t - last;
-        stalled = c.started && pos === lastPos ? stalled + (t - last) : 0;
-      }
-      lastPos = pos;
-      last = t;
-      setWaiting(w);
+      const r = trackWait(book, { ...c, t: Date.now(), pos: c.positionMs() });
+      book = r.book;
+      setWaiting(r.wait);
     }, CHECK_MS);
     return () => clearInterval(id);
   }, [active]);

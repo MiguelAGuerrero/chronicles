@@ -39,3 +39,21 @@ export function msAtClock(s: Showing, clock: number): number {
   }
   return hi >= s.total ? Math.max(0, s.total - 1) : hi;
 }
+
+/**
+ * Where a rebuilt telling (`next`) takes up from `ms` into the old one
+ * (audits 22, 31, 33): the same time of day; where the clock stands still (a
+ * stop, a loose moment), as long before it moves on again as there was. A
+ * moment deleted from the pile was already shown, so counting from the end of
+ * the standing still keeps the place even when an earlier one in it goes.
+ */
+export function reanchor(old: Showing, next: Showing, ms: number): number {
+  if (old === next) return ms;
+  const last = Math.max(0, next.total - 1);
+  const clock = old.frame(ms).clock;
+  if (clock == null) return Math.min(ms, last);
+  const left = Math.max(0, msAtClock(old, clock + 1) - ms);
+  const start = msAtClock(next, clock);
+  const end = msAtClock(next, clock + 1);
+  return Math.min(last, Math.max(start, Math.min(end - left, Math.max(start, end - 1))));
+}

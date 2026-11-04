@@ -31,3 +31,28 @@ export function mediaWait(o: {
   if (o.waitedMs >= Math.max(o.lenMs, R.mediaMaxWait)) return false;
   return o.slotOver || o.behindMs > R.mediaLag;
 }
+
+/** What the stage keeps about one medium while it might wait for it. */
+export interface WaitBook {
+  waited: number;
+  stalled: number;
+  lastPos: number;
+  last: number;
+}
+
+/**
+ * One check of a medium (audit 32): how long the stage has waited for it,
+ * and how long it has stood still while it should be playing, which resets
+ * the moment it moves again (paused by hand, then played again).
+ */
+export function trackWait(
+  b: WaitBook,
+  i: { t: number; pos: number; stopped: boolean; inSlot: boolean; slotOver: boolean; started: boolean; ended: boolean; planMs: number; lenMs: number },
+): { book: WaitBook; wait: boolean } {
+  const dt = Math.max(0, i.t - b.last);
+  const moved = i.pos !== b.lastPos;
+  const shouldMove = i.started && !i.stopped && !i.ended && (i.inSlot || i.slotOver);
+  const stalled = moved ? 0 : shouldMove ? b.stalled + dt : b.stalled;
+  const wait = mediaWait({ ...i, behindMs: Math.max(0, i.planMs - i.pos), waitedMs: b.waited, stalledMs: stalled });
+  return { book: { waited: wait && !i.stopped ? b.waited + dt : b.waited, stalled, lastPos: i.pos, last: i.t }, wait };
+}

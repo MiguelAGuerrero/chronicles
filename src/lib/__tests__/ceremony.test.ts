@@ -10,8 +10,8 @@ import { REPLAY_RHYTHM as R } from '../motionTokens';
 import { dayStory, storySteps, walkStory, type WalkInput } from '../ceremony/story';
 import { laterLine, notePause, rhythm, rhythmFrame, rhythmPlan, type RhythmPlan } from '../ceremony/rhythm';
 import { CEREMONIES, ceremonyFor, DEFAULT_CEREMONY } from '../ceremony/registry';
-import { msAtClock, tickClock } from '../ceremony/clock';
-import { mediaWait } from '../ceremony/media';
+import { msAtClock, reanchor, tickClock } from '../ceremony/clock';
+import { mediaWait, trackWait } from '../ceremony/media';
 import { project, type StageCtx } from '../../components/ceremony/layout';
 import { readTrace, rideRuns, smoothKept, timedRideRuns } from '../rides';
 import { dayWithout } from '../days';
@@ -727,4 +727,84 @@ test('replay-rhythm audit 26: the day card drops a moment deleted during its rep
   assert.ok(less.entries[0].kind === 'walk' && less.entries[0].captures.length === 0);
   assert.equal(less.moments, 0);
   assert.equal(dayWithout(day, new Set()), day, 'nothing deleted: the same day');
+});
+
+// ---------------------------------------------------------------- audit, round 3
+
+test('replay-rhythm audit 30: a capture inside a gap plays at its own place after one cut', () => {
+  const B2 = at(600, 500);
+  const ab = line(A, B, 0);
+  const resume = line(B2, at(900, 500), endT(ab) + 8 * MIN);
+  const photo = cap('photo', resume[0].t - 4000, B2);
+  const story = walkStory(input([...ab, ...resume], [photo]));
+  const p = plan(story);
+  const stop = p.segs.find((s) => s.k === 'stop')!;
+  const f = rhythmFrame(p, stop.t0 + 100);
+  assert.ok(f.walker && distanceM(f.walker, B2) < 5, `the walker is where the photo was taken (${f.walker && distanceM(f.walker, B2).toFixed(0)} m off)`);
+  assert.equal(p.segs.filter((s) => s.k === 'cut').length, 1, 'one cut, not "Moments later" after it');
+  const cut = p.segs.find((s) => s.k === 'cut')!;
+  assert.ok(cut.k === 'cut' && cut.to && distanceM(cut.to, B2) < 5, 'the cut lands at the photo');
+});
+
+test('replay-rhythm audit 31: a rebuilt day telling keeps its place inside a loose moment', () => {
+  const photo = cap('photo', 9 * 60 * MIN, at(-500, 0), null, null);
+  const memo = cap('voice', 12 * 60 * MIN, A, '20000', null);
+  const note = cap('text', 15 * 60 * MIN, B, 'Late', null);
+  const day = (caps: Capture[]): Day => ({ key: '2026-11-04', entries: caps.map((c) => ({ kind: 'moment', t: c.t, capture: c })), moments: caps.length, walks: 0 });
+  const before = rhythm.show(dayStory(day([photo, memo, note]), new Map()), { reduceMotion: false });
+  let ms = 0;
+  while (!before.frame(ms).overlays.some((o) => o.kind === 'bubble' && o.capture.id === memo.id)) ms += 20;
+  ms += 12_000;
+  const after = rhythm.show(dayStory(day([memo, note]), new Map()), { reduceMotion: false });
+  const b = after.frame(reanchor(before, after, ms)).overlays.find((o) => o.kind === 'bubble' && o.capture.id === memo.id);
+  assert.ok(b && b.kind === 'bubble' && Math.abs(b.progress - 0.6) < 0.05, `still 12 s into the memo (${b && b.kind === 'bubble' ? b.progress.toFixed(2) : 'gone'})`);
+  // The day's first entry, 1.5 s into its card: a rebuild keeps it there, never back to the intro.
+  let m2 = 0;
+  while (!before.frame(m2).overlays.some((o) => o.kind === 'card' && o.capture.id === photo.id)) m2 += 20;
+  m2 += 1500;
+  const less = rhythm.show(dayStory(day([photo, memo]), new Map()), { reduceMotion: false });
+  assert.ok(Math.abs(reanchor(before, less, m2) - m2) < 100, 'the same place in the first card');
+});
+
+test('replay-rhythm audit 32: a memo paused by hand isn\'t waited for; played again by hand, it is, to its end', () => {
+  const base = { stopped: false, inSlot: false, slotOver: true, started: true, ended: false, planMs: 20_000, lenMs: 20_000 };
+  let book = { waited: 0, stalled: 0, lastPos: 5000, last: 0 };
+  // Standing still where it was paused, while the stage waits: given up after the stall time.
+  let w = true;
+  for (let t = 100; t <= 2600; t += 100) ({ book, wait: w } = trackWait(book, { ...base, t, pos: 5000 }));
+  assert.equal(w, false, 'a player that doesn\'t move is not waited for forever');
+  // Played again by hand: it moves, so the stall resets and the stage waits for its end.
+  ({ book, wait: w } = trackWait(book, { ...base, t: 2700, pos: 5100 }));
+  ({ book, wait: w } = trackWait(book, { ...base, t: 2800, pos: 5200 }));
+  assert.equal(w, true, 'waited for again once it plays');
+  assert.equal(book.stalled, 0);
+});
+
+test('replay-rhythm audit 33: a rebuilt telling is re-anchored before its first frame', () => {
+  const ab = line(A, B, 0);
+  const old = cap('photo', ab[10].t, null);
+  const video = cap('video', ab[60].t, null, '5000');
+  const before = rhythm.show(walkStory(input(ab, [old, video])), { reduceMotion: false });
+  let ms = 0;
+  while (!before.frame(ms).overlays.some((o) => o.kind === 'card' && o.capture.id === video.id)) ms += 20;
+  ms += 3500;
+  const after = rhythm.show(walkStory(input(ab, [video])), { reduceMotion: false });
+  const card = after.frame(reanchor(before, after, ms)).overlays.find((o) => o.kind === 'card' && o.capture.id === video.id);
+  assert.ok(card && card.kind === 'card' && card.playing && card.progress > 0.5, 'the same video, still playing, past half way');
+});
+
+test('replay-rhythm audit 35: any style, even an object\'s own key, tells with a real ceremony', () => {
+  for (const id of ['constructor', '__proto__', 'toString', 'hasOwnProperty', '', 'nope']) {
+    const c = ceremonyFor(id);
+    assert.equal(c.id, 'rhythm', id);
+    assert.equal(typeof c.show, 'function');
+  }
+});
+
+test('replay-rhythm audit 36: check:affected names the replay journey for the rhythm\'s numbers', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { e2eFor } = require('../../../scripts/affected.js') as { e2eFor: (c: string[]) => { scenarios: { name: string }[] } };
+  for (const f of ['src/lib/motionTokens.ts', 'src/lib/explore/explore.ts', 'src/components/ui.tsx']) {
+    assert.ok(e2eFor([f]).scenarios.some((s) => s.name === 'replay'), f);
+  }
 });

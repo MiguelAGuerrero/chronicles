@@ -45,6 +45,8 @@ export interface StoryMoment {
   arrive: number;
   leave: number;
   pathId: string | null;
+  /** The trace covers it: the walker was on the trace there. False for one taken in a gap or a pause, or loose (audit 30). */
+  onTrace: boolean;
 }
 
 /** Moving along a path between two times, `m0` to `m1` metres along it. */

@@ -119,6 +119,22 @@ Tests the auditor called weak, rewritten: `audit 10`'s second half asserted its 
 
 Round 2's regression tests were written before their fixes (unit) or alongside them (e2e: `audit 20`, `27`, plus RR10's first e2e check). Writing them found one more: a memo whose file won't play still reports "playing", which held the stage for 30 s; a medium stuck where it is now counts as not playing after 2 s (`mediaWait`'s `stalledMs`).
 
+## Audit, round 3 (2026-11-04)
+
+A third `auditor` pass, independent, on `0717fe5`, weighing what would hurt someone on the web build before it ships. 9 findings (7 plus two from its UI notes): 8 accepted, 1 deferred to the owner. It found no permanent freeze: every wait is bounded and ends on the card.
+
+30. A capture inside a gap (taken just before the fixes came back, after a locked screen) plays at the near side, between two cuts, its card growing from a pin off screen: accept. A moment the trace doesn't cover is where it was taken: the cut before it lands there and the walker waits there; a break of under a minute between it and the trace is a step, not a second cut. `replay-rhythm audit 30`.
+31. A rebuilt telling jumps back when the clock stands still (a loose moment's single time, the day's first entry): the re-anchor found the first time with that clock, the stop's start: accept. It keeps how far into that standing still it was (`reanchor`). `replay-rhythm audit 31`.
+32. A memo paused with its own button isn't waited for when played again: the stall count latched, and the replay froze while it was paused: accept. Pausing by hand lets the stage go on; playing again by hand is waited for to the end; the stall count resets once the player moves (`trackWait`, in core). `replay-rhythm audit 32`.
+33. The frame before the re-anchor drew the old time against the new telling, so a video's card unmounted and its video restarted: accept. The clock re-anchors in render, so the first frame is already in place. `replay-rhythm audit 33`.
+34. At a video's slot end it paused for a beat and played its last part with the card shrinking: accept. A video that has started plays on past its slot until it ends (or the wait gives up), and the wait is checked every frame. `replay-rhythm audit 34` (e2e: no pause between its last play and its end, held or viewed aside).
+35. A `style` that is an object's own key (`constructor`, `__proto__`) crashed the screen: accept. Only the registry's own entries count. `replay-rhythm audit 35`.
+36. Tuning `REPLAY_RHYTHM` would not name the replay journey: accept. Its row covers `motionTokens.ts`, `explore.ts` and `ui.tsx`. `replay-rhythm audit 36`.
+37. From its UI notes: a tap on a whisper did nothing (the text sat over the stage): accept, the whisper lets taps through. Covered by code review.
+38. From its UI notes: a wait for a medium has no sign (an iPhone memo refused sound stands 2 s, a muted retry about 1 s): deferred to the owner, a new thing on screen (DEFERRED.md).
+
+Tests it called weak, tightened: audit 21's test now checks where the walker is (with 30); audit 4's e2e check requires the card's video paused, not merely absent; the stall bookkeeping is core, tested without the hook.
+
 ## Record
 
-2026-11-04, branch `claude/replay-rhythm`. RR1-RR22 built test-first (decisions 0081, 0082) and passing: `npm test` (the `ceremony`, `core`, `days`, `rides` and `explore` suites), typecheck, lint, and the e2e journeys `check:affected` names (`replay`, new; `tabs`, `gaps`, `qol`, `marks`, `nudge`). Two audits: round 1, 19 findings (16 fixed, 1 deferred, 2 rejected); round 2, 10 findings (9 fixed, 1 fixed in part). Deferred: the trace trailing the walker mid-zip, keeping the screen awake (a new library), the Undo toast over the clock. RR17 (the screen reader's steps) has never run: it is native only. The full e2e flow (its replay and day blocks rewritten) runs when the owner asks.
+2026-11-04, branch `claude/replay-rhythm`. RR1-RR22 built test-first (decisions 0081, 0082) and passing: `npm test` (the `ceremony`, `core`, `days`, `rides` and `explore` suites), typecheck, lint, and the e2e journeys `check:affected` names (`replay`, new; `tabs`, `gaps`, `qol`, `marks`, `nudge`). Three audits: round 1, 19 findings (16 fixed, 1 deferred, 2 rejected); round 2, 10 findings (9 fixed, 1 fixed in part); round 3, 9 findings (8 fixed, 1 deferred to the owner; its regression tests failed before their fixes). Deferred: the trace trailing the walker mid-zip, keeping the screen awake (a new library), the Undo toast over the clock, a sign while the stage waits for a medium. RR17 (the screen reader's steps) has never run: it is native only. The full e2e flow (its replay and day blocks rewritten) runs when the owner asks.

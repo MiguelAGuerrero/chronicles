@@ -46,7 +46,8 @@ function CardVideo({ o, ctx, uri, height }: { o: CardOverlay; ctx: StageCtx; uri
   useEventListener(player, 'statusChange', ({ status }) => {
     if (status === 'readyToPlay') setReady(true);
   });
-  const want = (o.playing || waited) && !ended && !stopped;
+  // A video that has started plays on past its slot until it ends: never a pause at the slot's edge (audit 34).
+  const want = (o.playing || waited || (started && o.progress >= 1)) && !ended && !stopped;
   useEffect(() => {
     if (!want || !ready) {
       player.pause();
