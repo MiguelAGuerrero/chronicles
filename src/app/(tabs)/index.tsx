@@ -6,7 +6,9 @@ import type { AreaPointPin } from '../../components/AreaPoint';
 import { AtlasCard, type CardLayout } from '../../components/atlas/AtlasCard';
 import { AtlasTile } from '../../components/atlas/AtlasTile';
 import { LocateButton } from '../../components/LocateButton';
+import { CompassButton } from '../../components/CompassButton';
 import { WalkMap } from '../../components/map/WalkMap';
+import type { WalkMapHandle } from '../../components/map/types';
 import { Icon } from '../../components/icons';
 import { Banner, Button, theme } from '../../components/ui';
 import {
@@ -95,6 +97,10 @@ export default function Explore() {
   }, []);
   // Back on the tab, a newer fix from Navigate moves the atlas with you (explore-atlas audit 1).
   const fixSeen = useRef(getLastFix()?.t ?? 0);
+  const mapRef = useRef<WalkMapHandle>(null);
+  const [bearing, setBearing] = useState(0);
+  // The map comes down when Explore loses focus and opens north-up again (CP8).
+  useFocusEffect(useCallback(() => () => setBearing(0), []));
   useFocusEffect(
     useCallback(() => {
       const fix = getLastFix();
@@ -309,6 +315,8 @@ export default function Explore() {
           trace={NONE}
           walked={NONE}
           fog={NONE}
+          ref={mapRef}
+          onBearingChange={setBearing}
           captures={NONE}
           walker={from}
           marks={spot ? [spot.at] : NONE}
@@ -395,6 +403,8 @@ export default function Explore() {
       ) : (
         <LocateButton busy={locating} onPress={locate} bottom={8} />
       )}
+      {/* The compass (CP2): above Locate, only while the map is turned and on screen. */}
+      {focused && !spot && <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={8 + 44 + 12} />}
       {toast ? <View style={styles.toast} accessibilityLiveRegion="polite"><Text style={styles.toastText}>{toast}</Text></View> : null}
     </View>
   );

@@ -68,6 +68,18 @@ function markableFor(cls: string, category: CategoryId, name: string): boolean {
   return !MARK_BY_NAME.has(cls) || notableName(name);
 }
 
+/**
+ * AG5: every class and subclass this adapter can make a mark, with its kind and whether
+ * only a notable name makes it one. The definition of a mark is in specs/atlas-grading;
+ * a test pins this list, so a new markable class is a deliberate change.
+ */
+export const MARKABLE_CLASSES: readonly { cls: string; sub: string; category: CategoryId; byName: boolean }[] = Object.entries(POI).flatMap(
+  ([cls, rules]) => rules.flatMap(([subs, category]) =>
+    !MARK_CATEGORIES.includes(category) || NEVER_MARKS.has(cls)
+      ? []
+      : (subs === '*' ? ['*'] : subs).map((sub) => ({ cls, sub, category, byName: MARK_BY_NAME.has(cls) }))),
+);
+
 /** An attraction's kind for the filter (E16): the history and culture categories split finer. */
 function kindFor(cls: string, category: CategoryId): Kind | undefined {
   switch (category) {

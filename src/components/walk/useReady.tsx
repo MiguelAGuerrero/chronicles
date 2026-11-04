@@ -1,12 +1,12 @@
 import { useFocusEffect, useIsFocused } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BackHandler, Linking, Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { BackHandler, Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { CaptureViewer } from '../CaptureView';
 import { LocateButton } from '../LocateButton';
 import { MomentBar } from '../MomentBar';
 import { StartSettings } from '../StartSettings';
 import { Icon } from '../icons';
-import { Banner, theme } from '../ui';
+import { Banner, Button, theme } from '../ui';
 import { useUnits } from '../../lib/useUnits';
 import { applyPatch, captureBus } from '../../lib/captureBus';
 import { MOMENT_PIN_ZOOM, placedMoments, upsertMoment } from '../../lib/momentPins';
@@ -20,7 +20,8 @@ import { locateOnce } from '../../lib/locate';
 import { loadPendingDest, savePendingDest } from '../../lib/nav/store';
 import type { Waypoint } from '../../lib/nav/types';
 import { ready } from '../../lib/ready';
-import { type StartMode } from '../../lib/startPlan';
+import { destLine, type StartMode } from '../../lib/startPlan';
+import { formatDistance } from '../../lib/summary';
 import type { Capture, LngLat } from '../../lib/types';
 import type { MomentState } from '../../lib/useCaptures';
 import { LOCATE_FIT_M, useLocate } from '../../lib/useLocate';
@@ -253,12 +254,26 @@ export function useReady(props: {
         up={up}
         onUp={(u) => setUp(u && !memoOn)}
         areaHeight={screenH}
-        dest={dest}
-        fix={fix}
-        starting={walkStart.starting}
-        startDisabled={memoOn}
         locked={memoOn}
-        onStart={() => void start()}
+        summaryLabel={['0:00 · ' + formatDistance(0), dest ? `To ${destLine(dest, fix)}` : null].filter(Boolean).join('. ')}
+        summary={
+          <>
+            <Text testID="walk-stats" style={barStyles.stats} numberOfLines={1}>{`0:00 · ${formatDistance(0)}`}</Text>
+            {dest && <Text testID="ready-dest" style={barStyles.dest} numberOfLines={1}>{`To ${destLine(dest, fix)}`}</Text>}
+          </>
+        }
+        actions={
+          // Start just starts, where you are, with the saved choices (NV19, NV25); never waits on a fix (NV28).
+          <Button
+            testID="start"
+            label="Start"
+            onPress={() => void start()}
+            busy={walkStart.starting}
+            busyLabel="Starting…"
+            disabled={memoOn}
+            style={barStyles.start}
+          />
+        }
       >
         <StartSettings
           mode={mode}
@@ -303,4 +318,10 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.8 },
   dim: { opacity: 0.5 },
+});
+
+const barStyles = StyleSheet.create({
+  stats: { color: theme.ink, fontSize: 17, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  dest: { color: theme.muted, fontSize: 13 },
+  start: { borderRadius: 999, paddingHorizontal: 32 },
 });

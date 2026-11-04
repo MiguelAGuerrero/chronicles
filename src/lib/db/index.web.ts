@@ -4,6 +4,7 @@ import type { Area, WalkArea } from '../areas/types';
 import { exploredKey, type ChecklistArea, type ChecklistItem, type ExploreRead, type Find } from '../explore/explore';
 import { countsOf, recountNewStreets } from '../deletion/core';
 import type { LandingRow } from '../landing/view';
+import type { OutlineTile } from '../areas/outlines';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Mark, Offered, Place, Recall } from '../discovery/types';
 import { DERIVED_STORES } from './stores';
@@ -13,7 +14,7 @@ import type { Db } from './types';
 
 // Same tables as the native SQLite store, as IndexedDB object stores.
 const DB_NAME = 'chronicles';
-const VERSION = 13;
+const VERSION = 14;
 
 /** Raised when another open tab holds an older version of the database. */
 export class BlockedByOtherTabError extends Error {
@@ -101,6 +102,10 @@ function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number) {
   if (oldVersion < 13) {
     // Explore atlas (AT12): areas near you and what their rings hold, a cache cleared with the derived stores.
     d.createObjectStore('atlas_area', { keyPath: 'key' });
+  }
+  if (oldVersion < 14) {
+    // Town outlines (TO12): what each read tile held, a cache cleared with the derived stores.
+    d.createObjectStore('outline_tile', { keyPath: 'key' });
   }
 }
 
@@ -480,6 +485,18 @@ export const db: Db = {
   },
   async listAtlasAreas() {
     return (await done((await store('atlas_area')).getAll())) as AtlasArea[];
+  },
+  async putOutlineTiles(tiles) {
+    if (!tiles.length) return;
+    const tx = (await conn()).transaction('outline_tile', 'readwrite');
+    for (const t of tiles) tx.objectStore('outline_tile').put(t);
+    await committed(tx);
+  },
+  async getOutlineTiles(keys) {
+    if (!keys.length) return [];
+    const s = await store('outline_tile');
+    const got = await Promise.all([...new Set(keys)].sort().map((k) => done(s.get(k)) as Promise<OutlineTile | undefined>));
+    return got.filter((t): t is OutlineTile => !!t);
   },
   async getMeta(key) {
     const r = (await done((await store('meta')).get(key))) as { value: string } | undefined;

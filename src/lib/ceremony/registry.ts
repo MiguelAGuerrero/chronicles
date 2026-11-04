@@ -1,6 +1,6 @@
 // @layer core
 /**
- * The ceremonies a replay can be told with (RR21, decision 0082). A new one
+ * The ceremonies a replay can be told with (RR21, decision 0086). A new one
  * is an entry here, plus a view for any overlay kind it adds
  * (`components/ceremony/overlays.tsx`); nothing else changes.
  */

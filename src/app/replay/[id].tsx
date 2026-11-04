@@ -277,7 +277,7 @@ export default function Replay() {
   }, [id, go]);
 
 
-  // What happened, read once; the ceremony tells it (RR20, RR21, decision 0082).
+  // What happened, read once; the ceremony tells it (RR20, RR21, decision 0086).
   const story = useMemo(() => (data ? walkStory(data) : null), [data]);
   const showing = useMemo(() => (story ? ceremonyFor(style).show(story, { reduceMotion }) : null), [story, reduceMotion, style]);
   const telling = beat === 'path' && !srMode && showing != null;

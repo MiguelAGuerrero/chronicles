@@ -1,7 +1,7 @@
 /// <reference types="node" />
 // Replay rhythm (specs/replay-rhythm/spec.md, RR1-RR22), written before the code.
 // A replay is a story (what happened) told by a ceremony (how it is shown);
-// the rhythm is the first ceremony (decisions 0081, 0082).
+// the rhythm is the first ceremony (decisions 0085, 0086).
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { distanceM, dwellsOf, smoothDwells, splitAtGaps, stepToward } from '../geo';

@@ -125,6 +125,23 @@ An item leaves only when it ships, or when it is rejected with a decision record
 10. The day replay repeats its "Summary of the day" announcement after a note is edited there (QL25)
 11. Month headers keep last year's labels if the sheet stays mounted across New Year (QL28)
 
+## Town outlines (TO1-TO12, decision 0083)
+
+- Neighborhood outlines: Overture's are mostly districts ("Manhattan Community Board 5"); neighborhoods stay points, kept inside their town (TO6)
+- Counties, states and countries from Overture: the Natural Earth pack does states, offline
+- Drawing a town's border on a map: outlines only decide, nothing draws them
+- Outlines bundled for a first launch offline: until a tile is read once, its towns go by points (TO3)
+- Where to read next on an exploring walk (`readCentre` in `useExplore`) still goes by points: the reads' candidates are stored without outlines
+- A neighborhood inside an outline town that isn't listed on the Explore tab still shows on the open town's page (`townOf` answers none)
+
+## Atlas grading (AG1-AG6, decision 0084)
+
+- **Whole areas** (the owner's next slice): a town graded across its outline, a neighborhood across its share of the town (closer to its point than to any other); dots say how much the area holds; density as shading on the area's picture, per kind
+- Distance weighting inside the ring (full credit to 400 m, nothing at 800 m): dropped by the owner in favour of whole areas
+- A significance file per tile (Wikidata, QRank page views, heritage tags, Wikivoyage "see" listings): needs a host the app has never had; the tiles' `rank` is a label order, not fame, so S23's idea of using it would not work
+- Retuning `STEPS` against real towns
+- A street-network catchment in place of the ring
+
 ## Explore atlas
 
 - Green by park area (the share of the ring that is park): the decoder reads no park outlines yet, so green counts park places (decision 0066)
@@ -161,7 +178,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
   - `addFind` on web swallows every transaction error, not just the duplicate key
 - `deleteWalk` / `deleteCaptures` all-or-nothing (D6) has no contract case: nothing shared can make IndexedDB fail halfway
 
-## Replay rhythm (RR1-RR22, decisions 0081, 0082)
+## Replay rhythm (RR1-RR22, decisions 0085, 0086)
 
 - The rhythm's numbers are the prototype's defaults until the owner sends tuned ones; only `REPLAY_RHYTHM` changes
 - Nothing picks a ceremony per walk or day yet: the registry holds the rhythm, the default

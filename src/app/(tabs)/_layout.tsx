@@ -8,6 +8,8 @@ import { RecordingBar } from '../../components/RecordingBar';
 import { theme } from '../../components/ui';
 import { navigatePress } from '../../lib/readyNav';
 import { TABS } from '../../lib/startPlan';
+import { tabsHidden } from '../../lib/tabsHidden';
+import { useStore } from '../../lib/useStore';
 import { showWalk } from '../../lib/walkNav';
 
 /**
@@ -36,8 +38,16 @@ const ignoreHeight = () => {};
 function TabBarWithRecording(props: BottomTabBarProps & { minimized: boolean }) {
   const { minimized, ...bar } = props;
   const setHeight = useContext(BottomTabBarHeightCallbackContext);
+  // A full-screen card (the area card) folds the bars away: zero height, so every scene gets the whole screen.
+  const hidden = useStore(tabsHidden, (h) => h);
   return (
-    <View onLayout={(e) => setHeight?.(e.nativeEvent.layout.height)}>
+    <View
+      onLayout={(e) => setHeight?.(e.nativeEvent.layout.height)}
+      style={hidden ? { height: 0, overflow: 'hidden' } : undefined}
+      pointerEvents={hidden ? 'none' : 'auto'}
+      aria-hidden={hidden}
+      testID="tab-bar-wrap"
+    >
       {minimized && <RecordingBar />}
       {/* The tab bar would report its own height alone. */}
       <BottomTabBarHeightCallbackContext.Provider value={ignoreHeight}>

@@ -2,7 +2,7 @@
 /**
  * The story of a walk or a day (RR20): what happened, in time order, read
  * once from the walk's trace and captures. No timing, no look: a ceremony
- * decides how to tell it (decision 0082).
+ * decides how to tell it (decision 0086).
  */
 import { distanceM } from '../geo';
 import { groupCaptures, timedRuns, traceUntil, walkerAt, type TimedRun } from '../replay';

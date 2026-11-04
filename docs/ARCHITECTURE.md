@@ -57,7 +57,7 @@ Screens' building blocks
   ScreenError.tsx            what a screen that threw shows instead of a blank page
   webStyles(.web).ts         web-only page fixes: pinned viewport, long-press guards (nothing on native)
   pwa(.web).ts               web manifest and Apple home-screen tags, under the base path
-Replay ceremonies (decisions 0081, 0082)
+Replay ceremonies (decisions 0085, 0086)
   ceremony/Stage.tsx         draws any ceremony's frame over the map: the cut's dim, the clock and the line under it, Held, the overlays by kind
   ceremony/overlays.tsx      OVERLAYS: one view per overlay kind (the type fails the build until every kind has one); OVERLAY_ORDER
   ceremony/Bubbles.tsx       notes and memos stacking in the bottom-left corner; a memo plays while its bubble says, pauses when held
@@ -130,17 +130,21 @@ Streets, snapping, fog
   db/segmentBounds.ts a piece's bbox and the z14 tile it is filed under
   summary.ts                 loadReplay (ReplayData for the replay, with where and when each passed place was passed) and suggestTitle
   replay.ts                  FOG_MS, groupCaptures, timedRuns, traceUntil, walkerAt: the replay's shared pieces
-  ceremony/types.ts          Story (paths, moves, moments, breaks, travel, passes), Frame, Overlay kinds, Ceremony (decision 0082)
+  ceremony/types.ts          Story (paths, moves, moments, breaks, travel, passes), Frame, Overlay kinds, Ceremony (decision 0086)
   ceremony/story.ts          walkStory, dayStory, storySteps; metresAt, timeAtMetres, pathDrawnAt: what happened, no timing or look
   ceremony/rhythm.ts         the rhythm ceremony (RR1-RR19): rhythmPlan (legs, stops, cuts, the soft cap), rhythmFrame, laterLine, notePause
   ceremony/registry.ts       CEREMONIES, DEFAULT_CEREMONY, ceremonyFor: a new ceremony is an entry here
   backlog.ts                 placeBacklog: places old walks in one pass through the home map
   mapReads.ts                one camera read at a time (mapReadLock)
 Places and areas (v0.5)
-  areas/types.ts             PlaceCandidate, BoundarySource, Area, WalkArea: the whole contract
+  areas/types.ts             PlaceCandidate, TownOutline, BoundarySource, Area, WalkArea: the whole contract
   areas/assign.ts            places a trace by its 50 m pieces; the title place
   areas/rules.ts             AREA_RULES and the reaches
   areas/tilePlaces.ts the OpenMapTiles place classes (the only file that knows them)
+  areas/outlines.ts          town outlines: townAt (the smallest outline holding a point, else points), withOutlines, hoodAllowed, the z12 tiles
+  areas/divisionTiles.ts     Overture's divisions schema (the only file that knows it): a tile's locality outlines and points
+  areas/outlineRead.ts       createOutlines: outlines read by tile and kept (`outline_tile`); outlineReader.ts is the app's instance
+  areas/overtureOutlines.ts  the network side: divisions.pmtiles by byte range, the places' release
   areas/boundaryPack.ts, boundaries.ts         the boundary-pack format and the packs shipped (US)
   places.ts                  the home map's stars from walks, Area and WalkArea only
   placeAll.ts                placing walks one pass at a time, withTimeout (the shell beside places.ts)
@@ -174,7 +178,7 @@ Discovery and Explore (v1)
   explore/exploreRun.ts      one explore read (decoder, z14 + z11) and the build check
   explore/useExplore.ts      Explore on the walk screen
   explore/exploreTab.ts the drawer's area-in-view (superseded on the tab by the atlas)
-  atlas/atlas.ts             the Explore atlas: near list, presence steps, sketch, familiarity, labels
+  atlas/atlas.ts             the Explore atlas: near list, presence steps (findable kinds count markable places, AG1), thin rings (AG3), sketch, familiarity, labels
   atlas/read.ts              the atlas's reads: areas near you, one ring at a time (decoder)
   atlas/useAtlas.ts          the atlas's data and its read loop, while Explore is in front
   explore/settings.ts        what I'm into, range, pocket alert (meta)
@@ -383,7 +387,8 @@ Cache (`lib/types.ts`, `areas/types.ts`): `StreetSegment` (id, name,
 kind_detail, length_m, geometry, build), `VisitedSegment` (segment_id,
 walk_id, covered_fraction, first_t, street_key), `WalkSummary` (distance_m,
 ride_m, duration_ms, new_streets, streets_walked, photos, videos, voices,
-notes, streets_read), `Area` and `WalkArea`.
+notes, streets_read), `Area` and `WalkArea`, `OutlineTile` (`outline_tile`:
+the town outlines one z12 tile held, keyed `x/y`, with its release; TO12).
 
 Discovery and Explore (`discovery/types.ts`, `explore/explore.ts`): `Place`
 (cache, per build, `markable`), `Offered`, `Mark`, `Recall` (kept),

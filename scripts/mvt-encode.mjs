@@ -1,6 +1,6 @@
 // Test harness only: encodes the e2e's fake GeoJSON world as Mapbox Vector
 // Tiles, so the app's own tile decoder (landing, ambient) can read it the way
-// it reads OpenFreeMap's tiles. Points and lines, string properties.
+// it reads OpenFreeMap's tiles. Points, lines and polygons, string properties.
 import { PbfWriter } from 'pbf';
 
 const EXTENT = 4096;
@@ -26,6 +26,25 @@ function geometry(points, line) {
     cy = py;
   });
   return line ? out : out.slice(0, 3);
+}
+
+/** A polygon's rings (closed, first point repeated last), as MoveTo, LineTo and ClosePath (town outlines, TO10). */
+function polygonGeometry(rings) {
+  const out = [];
+  let cx = 0;
+  let cy = 0;
+  for (const ring of rings) {
+    const pts = ring.slice(0, -1);
+    pts.forEach(([px, py], i) => {
+      if (i === 0) out.push(1 | (1 << 3));
+      else if (i === 1) out.push(2 | ((pts.length - 1) << 3));
+      out.push(zig(px - cx), zig(py - cy));
+      cx = px;
+      cy = py;
+    });
+    out.push(7 | (1 << 3));
+  }
+  return out;
 }
 
 /** The OpenMapTiles layer a fake feature belongs to. */
@@ -57,6 +76,10 @@ export function encodeTile(features, z, x, y, layers = layersOf) {
     const encoded = fs.map((f) => {
       const tags = [];
       for (const [k, v] of Object.entries(f.properties ?? {})) tags.push(index(keys, k), index(values, String(v)));
+      if (f.geometry.type === 'Polygon') {
+        const rings = f.geometry.coordinates.map((ring) => ring.map((p) => toTile(p, z, x, y)));
+        return { tags, type: 3, geom: polygonGeometry(rings) };
+      }
       const line = f.geometry.type === 'LineString';
       const pts = (line ? f.geometry.coordinates : [f.geometry.coordinates]).map((p) => toTile(p, z, x, y));
       return { tags, type: line ? 2 : 1, geom: geometry(pts, line) };

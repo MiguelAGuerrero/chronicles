@@ -6,7 +6,7 @@ import type { Capture, LngLat, TracePoint } from './types';
  * The replay's shared pieces: the fog beat's length, captures grouped into
  * stops, and the trace as timed runs, drawn up to a time with the walker at
  * its end. How the path beat is told is a ceremony's (`lib/ceremony`,
- * decisions 0081, 0082); the trace breaks where `isBreak` says (a gap over
+ * decisions 0085, 0086); the trace breaks where `isBreak` says (a gap over
  * GAP_MS, or a pause, however short).
  */
 

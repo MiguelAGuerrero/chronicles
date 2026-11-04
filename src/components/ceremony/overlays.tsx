@@ -1,5 +1,5 @@
 /**
- * Each overlay kind's view (RR21, decision 0082). A ceremony that adds an
+ * Each overlay kind's view (RR21, decision 0086). A ceremony that adds an
  * overlay kind adds it to `OVERLAY_KINDS` and its view here; the type below
  * makes the build fail until every kind has one.
  */

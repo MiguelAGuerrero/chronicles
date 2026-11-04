@@ -29,10 +29,18 @@ const SCENARIOS = [
       'src/app/walk.tsx',
       'src/app/(tabs)/{_layout,navigate}.tsx',
       'src/components/walk/**',
-      'src/components/{MomentBar,StartSettings,LocateButton}.tsx',
+      'src/components/{MomentBar,StartSettings,LocateButton,CompassButton}.tsx',
       'src/lib/{readyNav,walkNav,walkGate,useStartWalk}.ts',
       'src/lib/discovery/recallCheck.ts',
     ],
+  },
+  {
+    name: 'outlines',
+    covers: ['src/lib/areas/**', 'src/lib/atlas/**', 'src/lib/finish.ts', 'scripts/mvt-encode.mjs'],
+  },
+  {
+    name: 'grading',
+    covers: ['src/lib/atlas/atlas.ts', 'src/components/atlas/{AtlasCard,AtlasTile}.tsx'],
   },
   {
     name: 'marks',
@@ -67,7 +75,7 @@ const SCENARIOS = [
   {
     name: 'qol',
     covers: [
-      'src/components/{LocateButton,HomeSheet,CaptureView,CapturePinView}.tsx',
+      'src/components/{LocateButton,CompassButton,HomeSheet,CaptureView,CapturePinView}.tsx',
       'src/components/map/**',
       'src/app/(tabs)/chronicle.tsx',
       'src/lib/{scaleBar,units,unitsStore,useUnits,useLocate,rename,noteEdit,months,pins,thumbPlan,thumbJob,walkTitle,useReminded}.ts',

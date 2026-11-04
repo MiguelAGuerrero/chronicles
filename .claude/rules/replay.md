@@ -13,7 +13,7 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
 
 ## Rules
 
-- **A replay is a story told by a ceremony** (decision 0082). `lib/ceremony/story.ts`
+- **A replay is a story told by a ceremony** (decision 0086). `lib/ceremony/story.ts`
   reads what happened once (`walkStory`, `dayStory`: paths, moves, moments with
   arriving and leaving, breaks, travel between a day's entries, passes), with no
   timing or look. A ceremony (`lib/ceremony/types.ts`: `show(story) -> { total,
@@ -22,7 +22,7 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
   and the stage never import a ceremony or `REPLAY_RHYTHM` (a test scans them,
   `replay-rhythm audit 10`): the camera, the pins and a card's origin come in the
   frame. A new ceremony is an entry in `CEREMONIES` and a view per new overlay kind.
-- **The rhythm** (decision 0081, RR1-RR19, `lib/ceremony/rhythm.ts`): a stretch's
+- **The rhythm** (decision 0085, RR1-RR19, `lib/ceremony/rhythm.ts`): a stretch's
   time follows its length, not the minutes walked (a glide, or a zip with the camera
   pulled back past `zipAtM`); a break is a cut with "N min later"; notes and memos
   are bubbles, photos and videos cards that tuck into the pile; passed places

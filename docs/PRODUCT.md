@@ -49,7 +49,9 @@ recording bar brings a minimized walk back.
 
 - **An atlas of the areas near you** (decision 0066): neighborhoods, or towns
   through a Neighborhoods | Towns switch, as a grid of tiles nearest first,
-  under a small map. The one you're in says "You're here".
+  under a small map. The one you're in says "You're here": the town whose
+  real border you are inside (town outlines: Overture's borders, decision
+  0083), by its label point only where no border is known.
 - Each tile is the same picture at the same scale: an 800 m ring around the
   area's point, with its streets, busy streets (magenta, graded faint to
   strong), parks, the streets
@@ -58,7 +60,11 @@ recording bar brings a minimized walk back.
   and eight kinds (history, art, culture, green, views, food, shops,
   nightlife), each with 0 to 3 bars.
 - The bars are presence, not quality. They are fixed steps per kind over the
-  same ring everywhere, explained under "How bars count".
+  same ring everywhere, explained under "How the marks work". History, art,
+  culture, green and views count only places worth finding (the ones that can
+  turn up as a "?"), so a plain parish church counts toward nothing; food, shops
+  and nightlife count every place. A ring with fewer than three mapped places
+  says nothing about its kinds (atlas grading, decision 0084).
 - Rings are read by themselves while the tab is open, nearest first.
 - A tile opens the area's card:
   - the eight kinds in words;
@@ -101,7 +107,8 @@ recording bar brings a minimized walk back.
 ### The walk screen (during)
 
 - The map follows a live dot, with the walked trace in green and rides (bus,
-  train) dashed. The map stays north-up; a soft cone on the dot shows the way
+  train) dashed. The map stays north-up unless you turn it with two fingers (a compass then
+  shows above the edge buttons and sets north again, decision 0082); a soft cone on the dot shows the way
   you are walking, read from the last 20 m of the trace (decision 0075). A green ring marks where the walk began; the replay adds an
   orange ring where it ended. Every map has a scale bar in its bottom-left
   corner. Pins mark captures, grouped by screen distance when zoomed
@@ -156,7 +163,8 @@ recording bar brings a minimized walk back.
 ### Chronicle (after)
 
 - The home map shows stars where walks were, at the level for the zoom
-  (neighbourhoods, towns, states, countries). A merged star zooms in; a single
+  (neighbourhoods, towns, states, countries; a walk's towns are the borders
+  it crossed, by town outlines). A merged star zooms in; a single
   star is selected and its walks listed. Placed loose moments are pins from
   z11.
 - A bottom sheet with three heights peeks with **Walks | Days**:
@@ -168,7 +176,7 @@ recording bar brings a minimized walk back.
 - A star's sheet offers **Walk here**. With no walk finished, the peek shows
   an empty line and a Navigate button.
 - **The replay** (the make-or-break): reading the streets, the fog clearing,
-  the path, the card, then naming. The path has a rhythm (decision 0081): it
+  the path, the card, then naming. The path has a rhythm (decision 0085): it
   glides into each moment and away, zips through long empty stretches with
   the camera pulled back, and cuts across a gap with "20 min later". A clock
   rolls through the time of day. Notes and memos stack as speech bubbles in a
@@ -181,7 +189,7 @@ recording bar brings a minimized walk back.
   name, and the low ("Passed ... without stopping"). **Name it** sets the
   title and an epilogue; **Not now** leaves it unnamed, and the card's More
   menu can rename it later. Every way out of the first replay ends on Chronicle.
-  The replay is one ceremony, a view of the walk's story (decision 0082):
+  The replay is one ceremony, a view of the walk's story (decision 0086):
   another could be swapped in.
 - **The day's replay** tells the day the same way: from moment to moment and
   walk to walk, each walk's own path, "3 h later" between them.

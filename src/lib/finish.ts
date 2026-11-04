@@ -6,7 +6,8 @@ import { boundsOf, distanceM, pausedMs, positionAt, withoutPauses, type Bounds, 
 import { keptFixes, readTrace, smoothKept, traceDistances, withFilled } from './rides';
 import { snap } from './snapper';
 import { deriveSegments, type RoadFeature } from './streets';
-import { assignAreas, snapDone } from './areas/assign';
+import { assignAreas, placesRead, snapDone } from './areas/assign';
+import { outlines } from './areas/outlineReader';
 import { placesFromTilePois } from './discovery/tilePois';
 import { appBoundaries } from './areas/boundaries';
 import { placesFromTiles } from './areas/tilePlaces';
@@ -74,6 +75,8 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
 
   // The places the walk was in: kept as they were when the place points can't be read (offline).
   let placed: { areas: Area[]; rows: WalkArea[] } | null = null;
+  // Town borders under the walk (TO7); placed by points without them, and placed again later (TO8).
+  let outlinesRead = false;
   let streetsRead = false;
   let features: CollectedFeatures | null = null;
   if (bounds) {
@@ -92,9 +95,15 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
   // A walk that is all ride is still placed from its ride (R8); a failed street read waits, as before.
   if (keptBounds && (features || !bounds)) {
     const center: LngLat = [(keptBounds[0] + keptBounds[2]) / 2, (keptBounds[1] + keptBounds[3]) / 2];
-    const wide = await collector.collectPlaces(center).catch(() => null);
+    const [wide, read] = await Promise.all([
+      collector.collectPlaces(center).catch(() => null),
+      outlines.read(kept.map((p) => [p.lon, p.lat] as LngLat)).catch(() => null),
+    ]);
+    // A walk too wide to read is placed by points for good (TO12), not again on every launch.
+    outlinesRead = !!read && (read.complete || read.tooMany);
     if (wide) {
-      const placement = assignAreas(walk.id, points, pauses, placesFromTiles([...(features?.places ?? []), ...wide]), appBoundaries(), walk.started_at, stills, fills);
+      const candidates = placesFromTiles([...(features?.places ?? []), ...wide]);
+      const placement = assignAreas(walk.id, points, pauses, candidates, appBoundaries(), walk.started_at, stills, fills, read?.set ?? null);
       placed = { areas: [...placement.areas.values()], rows: placement.rows };
       // No neighborhood or town: the nearest named place (pickArea above) stays the title.
       area = placement.title ?? area;
@@ -135,7 +144,7 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
   // Without its places (the wide read failed or timed out), the walk is snapped
   // again at its next replay rather than marked done.
   // A walk with no trace has nothing to read, and is done.
-  await db.saveSnap(walk.id, derived, visited, summary, placed, snapDone({ streetsRead: (!bounds || streetsRead) && !gaps.unread, placesRead: !keptBounds || placed != null }));
+  await db.saveSnap(walk.id, derived, visited, summary, placed, snapDone({ streetsRead: (!bounds || streetsRead) && !gaps.unread, placesRead: placesRead({ needed: !!keptBounds, placed: placed != null, outlinesRead }) }));
   if (area !== walk.area) await db.updateWalk(walk.id, { area });
   return summary;
 }

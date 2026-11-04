@@ -1,6 +1,6 @@
 # Replay rhythm: plan
 
-The owner gave the go-ahead on Nov 4, adding one call: the ceremony must be a view of the data, swappable, never baked into it (RR20-RR22, decision 0082). No new data, no migration, no new dependency, no new route. One new map prop (`followZoom`) on both platforms.
+The owner gave the go-ahead on Nov 4, adding one call: the ceremony must be a view of the data, swappable, never baked into it (RR20-RR22, decision 0086). No new data, no migration, no new dependency, no new route. One new map prop (`followZoom`) on both platforms.
 
 ## The shape: a story, ceremonies, one stage
 
@@ -64,7 +64,7 @@ The screens keep their 33 ms tick and the beat clock (`phase = { beat, t0 }`) fo
 
 **Docs**
 
-- Decision records `0081-the-replay-flows.md` and `0082-ceremonies-are-views.md`.
+- Decision records `0085-the-replay-flows.md` and `0086-ceremonies-are-views.md`.
 - `.claude/rules/replay.md` and `.claude/rules/moments-and-days.md` rewritten where they describe stops.
 - `docs/PRODUCT.md`, `docs/ARCHITECTURE.md` (the codemap rows), `specs/moments-and-days/spec.md` (M10-M12 amended), `docs/STATUS.md`, `docs/NATIVE_UNVERIFIED.md`, `docs/DEFERRED.md`.
 

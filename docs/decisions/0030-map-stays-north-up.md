@@ -1,6 +1,6 @@
 # 0030. The map stays north-up; a soft cone shows the way you're going
 
-Date: 2026-11-01 · Status: accepted · Area: navigation, map
+Date: 2026-11-01 · Status: accepted · Area: navigation, map · Amended by [0082](0082-compass-and-rotation.md)
 
 ## Context
 A phone's course once pointed east-north-east while the owner walked south (Nov 1). The owner's call against rotating the map.

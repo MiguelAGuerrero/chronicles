@@ -1,4 +1,4 @@
-# 0082. A ceremony is a view of the story, swapped without changing the code around it
+# 0086. A ceremony is a view of the story, swapped without changing the code around it
 
 Date: 2026-11-04 · Status: accepted · Area: replay, architecture
 

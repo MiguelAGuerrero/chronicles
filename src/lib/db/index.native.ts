@@ -4,6 +4,7 @@ import { areaFromRow, areaToRow, findFromRow, findToRow, itemFromRow, itemToRow,
 import { placeFromRow, placeToRow, type PlaceRow } from './placeRow';
 import type { Area, WalkArea } from '../areas/types';
 import type { LandingRow } from '../landing/view';
+import type { OutlineTile } from '../areas/outlines';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Mark, MarkOrigin, MarkState, Offered, Recall } from '../discovery/types';
 import { countsOf, recountNewStreets } from '../deletion/core';
@@ -182,6 +183,13 @@ const MIGRATIONS = [
   CREATE TABLE atlas_area (
     key TEXT PRIMARY KEY, level TEXT NOT NULL, name TEXT NOT NULL, lon REAL NOT NULL, lat REAL NOT NULL, reach_m REAL NOT NULL,
     build TEXT NOT NULL, code TEXT NOT NULL, listed_at INTEGER NOT NULL, read_at INTEGER, failed_at INTEGER, profile TEXT
+  );
+  `,
+  // 16: town outlines (TO12): what each read tile held, a cache cleared with the derived stores.
+  `
+  CREATE TABLE outline_tile (
+    key TEXT PRIMARY KEY, x INTEGER NOT NULL, y INTEGER NOT NULL, release TEXT NOT NULL, read_at INTEGER NOT NULL,
+    pieces TEXT NOT NULL, points TEXT NOT NULL
   );
   `,
 ];
@@ -580,6 +588,24 @@ export const db: Db = {
       key: r.key, level: r.level, name: r.name, at: [r.lon, r.lat] as [number, number], reachM: r.reach_m, build: r.build, code: r.code,
       listed_at: r.listed_at, read_at: r.read_at, failed_at: r.failed_at, profile: r.profile ? JSON.parse(r.profile) : null,
     }));
+  },
+  putOutlineTiles(tiles) {
+    if (!tiles.length) return Promise.resolve();
+    return write(async (t) => {
+      for (const r of tiles) {
+        await t.runAsync(
+          'INSERT OR REPLACE INTO outline_tile (key, x, y, release, read_at, pieces, points) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          r.key, r.x, r.y, r.release, r.read_at, JSON.stringify(r.pieces), JSON.stringify(r.points),
+        );
+      }
+    });
+  },
+  async getOutlineTiles(keys) {
+    if (!keys.length) return [];
+    const want = [...new Set(keys)].sort();
+    type Row = Omit<OutlineTile, 'pieces' | 'points'> & { pieces: string; points: string };
+    const rows = await (await conn()).getAllAsync<Row>(`SELECT * FROM outline_tile WHERE key IN (${want.map(() => '?').join(', ')}) ORDER BY key`, ...want);
+    return rows.map((r) => ({ ...r, pieces: JSON.parse(r.pieces), points: JSON.parse(r.points) }));
   },
   async listLandings() {
     const rows = await (await conn()).getAllAsync<Omit<LandingRow, 'centre' | 'analysis'> & { lon: number; lat: number; analysis: string }>('SELECT * FROM landing');

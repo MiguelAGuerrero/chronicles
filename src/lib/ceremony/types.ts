@@ -1,6 +1,6 @@
 // @layer core
 /**
- * A replay is a story told by a ceremony (decision 0082).
+ * A replay is a story told by a ceremony (decision 0086).
  *
  * The story is what happened, in time order, with no timing or look of its
  * own: the paths walked, the moves along them, the moments (with when you

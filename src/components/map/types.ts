@@ -87,6 +87,8 @@ export interface WalkMapProps {
   captures: Capture[];
   /** Called when the person pans, zooms or rotates the map themselves. */
   onUserMove?: () => void;
+  /** The map's bearing in degrees from north, when it changes by more than half a degree (CP2). */
+  onBearingChange?: (bearing: number) => void;
   /** Opens a pin's captures; without it, pins are shown but not pressable. */
   onPinPress?: (captures: Capture[]) => void;
   /** Captures from earlier walks nearby, drawn as faint pins (Memories on revisit, MR1-MR3). */
@@ -183,6 +185,8 @@ export interface WalkMapHandle {
   collectPlaces(center: LngLat): Promise<RoadFeature[] | null>;
   /** Moves the camera to a point, keeping the padding clear (a sheet over the map). */
   showPoint(at: LngLat, padding: Padding): void;
+  /** Eases the bearing back to north, keeping the centre and zoom (CP4). */
+  resetNorth(): void;
 }
 
 /** The zoom the wide read of place points happens at: a z10 tile spans about 30 km. */

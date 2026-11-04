@@ -2,6 +2,8 @@
 import type { CollectedFeatures } from '../../components/map/types';
 import { readOverture } from '../activity/overture';
 import { activityFromTilePois, mergeSources, type ActivityPoint } from '../activity/points';
+import { outlines } from '../areas/outlineReader';
+import { listable, withOutlines } from '../areas/outlines';
 import { placesFromTiles } from '../areas/tilePlaces';
 import { db } from '../db';
 import { isMarkable } from '../discovery/noise';
@@ -14,7 +16,7 @@ import { deriveSegments } from '../streets';
 import { tilesIn } from '../tileMath';
 import type { LngLat } from '../types';
 import {
-  ATLAS_CODE, ATLAS_RULES, keptProfile, marksOf, newRows, withNear, presenceSteps, sketchOf, SKETCH,
+  ATLAS_CODE, ATLAS_RULES, keptProfile, marksOf, newRows, withNear, presenceSteps, sketchOf, SKETCH, thinRing,
   type AtlasArea, type AtlasLevel, type AtlasProfile, type NearRead,
 } from './atlas';
 
@@ -58,7 +60,14 @@ export function readNear(at: LngLat, level: AtlasLevel, build: string, reach: nu
     if (!url || build === 'unknown' || shouldStop()) return false;
     const f = await fetchTiles(url, tilesIn(boundsOf([at], reach)!, ZOOM[level]), ZOOM[level], shouldStop).catch(() => null);
     if (!f || shouldStop()) return false;
-    const candidates = placesFromTiles(f.places).filter((c) => c.level === level && distanceM(c.at, at) <= reach);
+    let candidates = placesFromTiles(f.places);
+    // Towns known only by their outline (Whitehall) are listed too (TO4, TO10); without the outlines, by points.
+    if (level === 'town') {
+      const read = await outlines.read([at], shouldStop).catch(() => null);
+      if (shouldStop()) return false;
+      if (read) candidates = withOutlines(candidates, read.set).filter((c) => listable(c, at));
+    }
+    candidates = candidates.filter((c) => c.level === level && distanceM(c.at, at) <= reach);
     const rows = newRows(await db.listAtlasAreas().catch(() => []), candidates, build, Date.now());
     await db.putAtlasAreas(rows);
     const near: NearRead = { at, build, code: ATLAS_CODE, radiusM: reach };
@@ -69,12 +78,14 @@ export function readNear(at: LngLat, level: AtlasLevel, build: string, reach: nu
 
 /**
  * What one ring read keeps (AT4, AT6, AT7, AD14), from decoded tiles and Overture's places for the same
- * tiles (null without them, AD7). Pure apart from its inputs. The bars stay OpenStreetMap's (AD2).
+ * tiles (null without them, AD7). Pure apart from its inputs. The bars stay OpenStreetMap's (AD2), and the
+ * findable kinds count only markable places (AG1).
  */
 export function profileFrom(at: LngLat, feats: CollectedFeatures, build: string, overture: { release: string; points: ActivityPoint[] } | null = null) {
   const segments = deriveSegments(feats.roads, feats.names, build);
   const places = placesFromTilePois(feats.pois, build);
-  const ring = places.filter((p) => distanceM(p.at, at) <= ATLAS_RULES.ringM);
+  // AG1: each place says whether it could be found (chains too), so the findable kinds count only those.
+  const ring = places.filter((p) => distanceM(p.at, at) <= ATLAS_RULES.ringM).map((p) => ({ ...p, markable: isMarkable(p) }));
   const points = mergeSources(activityFromTilePois(feats.pois), overture?.points ?? []);
   const analysis = analyzeArea({ centre: at, points, segments, towns: placesFromTiles(feats.places), transit: transitFromTilePois(feats.pois) });
   const strips = analysis.strips.filter((s) => distanceM(s.peak, at) <= ATLAS_RULES.ringM);
@@ -82,6 +93,7 @@ export function profileFrom(at: LngLat, feats: CollectedFeatures, build: string,
   const frameM = (Math.hypot(SKETCH.w, SKETCH.h) / 2 / SKETCH.ringR) * ATLAS_RULES.ringM;
   const profile: AtlasProfile = {
     steps: presenceSteps(ring, at),
+    thin: thinRing(ring, at),
     strips: [...new Set(strips.map((s) => s.name))],
     stripAt: strips[0]?.peak ?? null,
     marks: marksOf(ring, isMarkable),

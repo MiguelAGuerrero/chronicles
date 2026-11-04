@@ -70,7 +70,7 @@ export const PRESS_SCALE = 0.97;
 export const durationFor = (token: MotionToken, reduced: boolean): number => (reduced ? 0 : MOTION[token]);
 
 /**
- * The replay's rhythm (RR1-RR16, decision 0081): the prototype's numbers
+ * The replay's rhythm (RR1-RR16, decision 0085): the prototype's numbers
  * (https://claude.ai/artifact/XouW4WPy8e2yPQWYsYDUNc), in milliseconds unless
  * named in metres. The owner's tuned settings change only this object.
  */
