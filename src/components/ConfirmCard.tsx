@@ -32,9 +32,9 @@ export function ConfirmCard(props: { text: ConfirmText; onConfirm: () => void; o
 
 const styles = StyleSheet.create({
   back: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', padding: 16, zIndex: 20 },
-  card: { backgroundColor: theme.surface, borderRadius: theme.radius, padding: 20, gap: 10, width: '100%', maxWidth: 420 },
+  card: { backgroundColor: theme.surface, borderRadius: theme.radius, padding: 20, gap: 12, width: '100%', maxWidth: 420 },
   title: { fontSize: 18, fontWeight: '700', color: theme.ink },
   body: { fontSize: 15, lineHeight: 21, color: theme.ink },
-  row: { flexDirection: 'row', gap: 10, marginTop: 6 },
+  row: { flexDirection: 'row', gap: 8, marginTop: 8 },
   flex: { flex: 1 },
 });

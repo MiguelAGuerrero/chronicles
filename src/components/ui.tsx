@@ -220,7 +220,7 @@ export function Banner(props: {
 const styles = StyleSheet.create({
   btn: {
     minHeight: 48,
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     borderRadius: theme.radius,
     alignItems: 'center',
     justifyContent: 'center',
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.8 },
   label: { fontSize: 16, fontWeight: '600', color: theme.ink },
-  busyRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  busyRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   hold: { minHeight: 44, backgroundColor: theme.surface, borderWidth: 1.5, borderColor: theme.ink },
   // 3.5:1 against the white button, so the hold's progress is visible.
   holdFill: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: '#d9663a' },
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
   bannerError: { backgroundColor: '#fdecea', borderColor: '#e8a39a' },
   bannerText: { flex: 1, color: '#6b4500', fontSize: 14, lineHeight: 19 },
   // 44 pt: react-native-web ignores hitSlop (bridges audit 6).
-  bannerAction: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 6 },
+  bannerAction: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 8 },
   bannerActionText: { color: theme.ink, fontWeight: '700', fontSize: 14, textDecorationLine: 'underline' },
   // 44 pt itself, not by hit slop (react-native-web has none), without making the banner taller (U4).
   bannerClose: { width: 44, height: 44, marginVertical: -10, marginRight: -10, alignItems: 'center', justifyContent: 'center' },
