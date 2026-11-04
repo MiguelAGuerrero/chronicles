@@ -16,3 +16,8 @@ The owner wants to mark areas that may need a car to get around safely or effici
 - A derived cache `walk_tile` (in `DERIVED_STORES`) and `WALK_CODE`; no `SNAP_RULES` change.
 - Overpass is a new host; Overture's checked 2026-11-04 (release 2026-10-21.0).
 - Routing around car-oriented streets stays deferred (0022).
+
+## Later calls (2026-11-04)
+- The area summary shows on the open area card only (neighborhoods and towns), read when the card opens; the grid's tiles say nothing.
+- The heads-up is silent (no haptic) and only on a navigated route; it has its own spec (`specs/walkability-headsup`).
+

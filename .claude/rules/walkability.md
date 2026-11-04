@@ -2,7 +2,7 @@
 paths:
   - "src/lib/walk/**"
   - "src/components/{Tooltip,WalkBandIcon,WalkLayerControl}.tsx"
-  - "src/lib/__tests__/{walkBands,walkSummary,walkBandWords,walkAhead,walkAheadWatch,walkOverture,walkSourceChain,walkNetwork,walkReader,walkLayer,walkSwitch}.test.ts"
+  - "src/lib/__tests__/{walkBands,walkSummary,walkBandWords,walkAhead,walkAheadWatch,walkOverture,walkSourceChain,walkNetwork,walkReader,walkLayer,walkSwitch,walkHeadsUp}.test.ts"
 ---
 # Walkability
 
@@ -26,7 +26,8 @@ How a street treats someone on foot, as a band shown by an icon and a tooltip, n
 ## What shows
 
 - A switch (meta `walk_layer`, off by default, one setting for every map) on the Explore page map and on the Navigate map (ready and live). `WalkLayerControl` anchors from the bottom (Navigate) or the top (Explore: its map is about 200 px tall on a phone, and a card that grew upward ran off the screen).
-- **The heads-up** (`ahead.ts`, `aheadWatch.ts`, `useRouteWarning.ts`): 200 m before a `car` stretch of 100 m or more on the route, once per stretch (keyed by street and place, so a reroute does not say it twice), kept 15 s past it. Silent, never touches the route.
+- **The area card's line** (WK11, `useAreaWords`, `ringWords`): on the open card only (neighborhood and town), in words; read when the card opens, never for the tiles. It counts streets whose middle is inside the atlas's 800 m ring.
+- **The heads-up** (specs/walkability-headsup, WH1-WH13; `ahead.ts`, `aheadWatch.ts`, `useRouteWarning.ts`): 200 m before a `car` stretch of 100 m or more on the route, once per stretch (keyed by street and place, so a reroute does not say it twice), kept 15 s past it. Silent, never touches the route. `aheadWatch` remembers the walker's last distance along the route, so stretches that arrive after the last fix are said at once.
 - Tooltips are inline (`Tooltip`), never a `Modal`; their 4 s comes from `MOTION.tip`.
 
 ## Traps

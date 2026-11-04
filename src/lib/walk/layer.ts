@@ -1,10 +1,11 @@
 // @layer core
-import { lineLengthM } from '../geo';
+import { distanceM, lineLengthM } from '../geo';
 import { tilesIn } from '../tileMath';
 import type { LngLat } from '../types';
 import { WALK_CODE, isBeside, isCrossing } from './bands';
 import { bandsFor } from './match';
 import { MAX_TILES } from './limits';
+import { areaWords, bandLengths } from './summary';
 import type { Band, WayFacts } from './types';
 
 /*
@@ -74,4 +75,17 @@ export function tilesAround(c: LngLat, radiusM: number): [number, number][] {
   return tilesIn([c[0] - dLon, c[1] - dLat, c[0] + dLon, c[1] + dLat])
     .sort((a, b) => Math.abs(a[0] - cx) + Math.abs(a[1] - cy) - (Math.abs(b[0] - cx) + Math.abs(b[1] - cy)) || a[0] - b[0] || a[1] - b[1])
     .slice(0, MAX_TILES);
+}
+
+/**
+ * WK11: an area said in words from the streets within `radiusM` of its centre (the atlas's ring), or null when
+ * too little of it is known to say. Only streets whose middle is inside count; nothing but words leaves.
+ */
+export function ringWords(tiles: ReadonlyMap<string, readonly WayFacts[]>, centre: LngLat, radiusM: number): string | null {
+  const segs = segmentsOf(tiles).filter((s) => {
+    const line = s.geometry[0];
+    return distanceM(line[Math.floor(line.length / 2)], centre) <= radiusM;
+  });
+  if (!segs.length) return null;
+  return areaWords(bandLengths(segs, bandsFor(segs, tiles)));
 }

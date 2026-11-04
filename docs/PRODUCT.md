@@ -171,6 +171,9 @@ recording bar brings a minimized walk back.
 - It reads sidewalks, crossings, speeds and road classes from Overture's transportation tiles, falling back to
   OpenStreetMap through Overpass, and keeps each tile on the device. Where sidewalks are not mapped, the layer
   says streets can read worse than they are.
+- An open area card (a neighborhood or a town) has an "On foot" line in words ("Mostly easy on foot", "A mix of
+  easy and car-oriented streets", "Mostly built around cars"), read when the card opens; it says nothing where too
+  little is known. The grid's tiles say nothing.
 - While navigating, a quiet line says "Next: a stretch built around cars on <street>" 200 m before one, once,
   with no sound; it never changes the route.
 

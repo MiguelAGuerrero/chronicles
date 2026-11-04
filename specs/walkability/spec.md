@@ -109,7 +109,7 @@ accessible label. The icon differs by shape, never by colour alone.
 
 ### Areas in words
 
-11. **WK11 · An area is described from its streets.** A summary of a read area (a card's, a town's) is
+11. **WK11 · An area is described from its streets, on the area card.** A summary of a read area (a card's, a town's) is
     said in words from the share of street length in each band: "Mostly easy on foot", "A mix of easy and
     car-oriented streets", "Mostly built around cars", and nothing when most of it is `unknown`. The
     shares themselves are never shown. The words follow `lib/quietLines`.
@@ -182,6 +182,8 @@ accessible label. The icon differs by shape, never by colour alone.
 contract (`putWalkTiles`, WK2, WK19). The e2e journey `walk` checks WK1, WK1b, WK2, WK4, WK13, WK14, WK17, WK18, WK20-WK23 on the web
 build (a fake Overture archive by byte range, a fake Overpass).
 
+Added after: the area card line (WK11), the heads-up's own spec and journey.
+
 Changed while building, so the criteria above read differently than as first written:
 - **WK13, where.** The area card's and the atlas tiles' maps are drawn sketches (`MiniMap`, SVG), not maps, so the layer is on the real
   maps: the Explore page's map (around the selected area, else around you), and Navigate's map, ready and live. One switch for all.
@@ -194,8 +196,12 @@ Changed while building, so the criteria above read differently than as first wri
 - **WK4, retry.** A failed read is read again when the tile set changes or the switch is toggled; the 2-minute wait only stops asking too soon.
 
 Not done, not covered:
-- **WK11 is built and unit tested but shown nowhere** (no card says "Mostly easy on foot"): see `docs/DEFERRED.md`.
-- **WK15's heads-up has no e2e step.** Its pure and shell parts are tested, and the live walk compiles with it; no journey navigates a route
-  over a car stretch.
+- **WK11 shown (2026-11-04, the owner's call):** on the open area card only, for neighborhoods and towns, as an "On foot" section above
+  "What's here": one line in words, read when the card opens (`useAreaWords`, from the device where kept), "Reading the streets…" while it
+  does, nothing when too little is known. The grid's tiles say nothing. The ring is the atlas's (800 m around the area's point), counting the
+  streets whose middle is inside it (`ringWords`). The `walk` journey checks it (a third of the fixture ring's street is each band).
+- **WK15 and WK16 have their own spec now:** `specs/walkability-headsup/spec.md` (WH1-WH13), with unit tests (`walkHeadsUp`) and the
+  `headsup` journey. Writing the journey found a bug: stretches that arrived after the walker's last fix were not said until the next fix;
+  fixed with a test (`WH3`, late stretches).
 - **Nothing here has run on a device** (`docs/NATIVE_UNVERIFIED.md`, Walkability and migration 19).
 

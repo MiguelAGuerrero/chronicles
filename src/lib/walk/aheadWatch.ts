@@ -22,12 +22,22 @@ export function createAheadWatch(p: Pick<Ports, 'clock'>): AheadWatch {
   let route: string | null = null;
   let list: readonly Stretch[] = [];
   let state: AheadState = { said: [], shown: null };
+  /** Where the walker last was along the route, so stretches that arrive late are judged against it. */
+  let along: number | null = null;
+  const step = () => {
+    if (route === null || along === null) return;
+    const r = aheadStep(state, list, along, p.clock.now());
+    state = r.state;
+    // Only replace the shown stretch when it changed, so a view re-renders on a change and not on every fix.
+    if (r.show?.key !== store.get().show?.key) store.set({ show: r.show });
+  };
   return {
     store,
     stretches(next, found) {
       if (next === null) {
         route = null;
         list = [];
+        along = null;
         state = { said: [], shown: null };
         store.set({ show: null });
         return;
@@ -35,13 +45,11 @@ export function createAheadWatch(p: Pick<Ports, 'clock'>): AheadWatch {
       // A reroute keeps what was said: stretches are keyed by street and place, not by the route.
       route = next;
       list = found;
+      step();
     },
     at(alongM) {
-      if (route === null) return;
-      const r = aheadStep(state, list, alongM, p.clock.now());
-      state = r.state;
-      // Only replace the shown stretch when it changed, so a view re-renders on a change and not on every fix.
-      if (r.show?.key !== store.get().show?.key) store.set({ show: r.show });
+      along = alongM;
+      step();
     },
   };
 }

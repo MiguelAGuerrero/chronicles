@@ -207,8 +207,8 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 ## Walkability (specs/walkability, decision 0089)
 
-- **An area said in words is not on a screen yet** (WK11): `areaWords` and `bandLengths` are built and tested, but no card or tile shows "Mostly easy on foot". The Explore atlas's card and tiles are drawn from a ring profile (`MiniMap` is an SVG sketch, not a map), so showing it means reading walkability for every ring. Needs the owner's call on whether the atlas should pay that read.
-- **The heads-up is not covered by an e2e step** (WK15): it is unit tested (`walkAhead`, `walkAheadWatch`) and typechecked in the live walk, but no journey navigates a route over a car stretch.
+- **The grid's tiles say nothing about walkability** (WK11, the owner's call, 2026-11-04: the card only). Showing a line on every tile would read walkability for every ring listed.
+- **The heads-up** (specs/walkability-headsup): no haptic or sound, and nothing for a walk with no route (both declined, 2026-11-04); not shown while a voice memo is recording is checked in code only, and WH12 (no data) is unit tested only.
 - Routing that avoids car-oriented streets, and any "walk this way instead" (0022 defers suggested routes).
 - Amenity, block length and intersection density as signals; street lighting, surface, slope, traffic volume.
 - The replay's mention of a car-oriented stretch.

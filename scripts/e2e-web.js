@@ -376,19 +376,25 @@ function check(ok, what) {
   // Every other journey: an archive with no towns in it (a 404 would be a console error), so towns go by points.
   const noDivisions = encodeArchive([{ z: 12, x: 0, y: 0, data: encodeTile([], 12, 0, 0) }]);
   // Walkability (WK1): the release's transportation.pmtiles, every z14 tile its segments touch.
-  const transportArchive = (() => {
+  const transportArchiveOf = (feats) => {
     const z = 14;
     const keys = new Set();
-    for (const f of transportFeatures) for (const [lon, lat] of f.geometry.coordinates) {
+    for (const f of feats) for (const [lon, lat] of f.geometry.coordinates) {
       const x = Math.floor(((lon + 180) / 360) * 2 ** z);
       const y = Math.floor(((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2) * 2 ** z);
       keys.add(`${x},${y}`);
     }
     return encodeArchive([...keys].map((k) => {
       const [x, y] = k.split(',').map(Number);
-      return { z, x, y, data: encodeTile(transportFeatures, z, x, y, () => ['segment']) };
+      return { z, x, y, data: encodeTile(feats, z, x, y, () => ['segment']) };
     }));
-  })();
+  };
+  const transportArchive = transportArchiveOf(transportFeatures);
+  // The heads-up journey: every street of the grid is a fast road, so any route over it runs along one stretch.
+  const gridTransportArchive = transportArchiveOf(features.filter((f) => f.geometry.type === 'LineString').map((f, i) => ({
+    type: 'Feature', geometry: f.geometry,
+    properties: { id: `grid-${i}`, subtype: 'road', class: 'primary', ...(f.properties.name ? { '@name': f.properties.name } : {}), speed_limits: mph(55) },
+  })));
   const overtureAsked = [];
   const overpassAsked = [];
   const overpassRoute = async (r) => {
@@ -409,7 +415,7 @@ function check(ok, what) {
       ? overtureArchive
       : url.pathname === `/tiles/${OVERTURE_RELEASE}/divisions.pmtiles` ? (serveDivisions ? divisionsArchive : noDivisions)
         // A 200 that is not a PMTiles file, not a 404, which would be a console error: Overture "can't be read" (WK1b).
-        : url.pathname === `/tiles/${OVERTURE_RELEASE}/transportation.pmtiles` ? (transportMode === 'ok' ? transportArchive : Buffer.alloc(200, 7)) : null;
+        : url.pathname === `/tiles/${OVERTURE_RELEASE}/transportation.pmtiles` ? (transportMode === 'ok' ? transportArchive : transportMode === 'grid' ? gridTransportArchive : Buffer.alloc(200, 7)) : null;
     if (archive) {
       const m = /bytes=(\d+)-(\d+)/.exec(req.headers().range ?? '');
       const from = m ? Number(m[1]) : 0;
@@ -948,6 +954,15 @@ function check(ok, what) {
     await shot(pg, 'walk-navigate');
     await pg.click('[data-testid=walk-layer]');
     check((await pg.locator('[data-testid=walk-legend]').count()) === 0, 'WK13: switching off hides the legend');
+    // WK11: the area card says, in words, how its streets treat someone on foot (a third of this ring's street is each band).
+    await pg.goto(url);
+    await pg.waitForSelector('[data-testid=atlas-tile][data-name="Fox Point"]', { timeout: 60000 });
+    await pg.click('[data-testid=atlas-tile][data-name="Fox Point"]');
+    await pg.waitForSelector('[data-testid=atlas-onfoot-words]', { timeout: 30000 }).catch(() => {});
+    const words = await pg.locator('[data-testid=atlas-onfoot-words]').innerText().catch(() => '');
+    check(words === 'A mix of easy and car-oriented streets', `WK11: the area card says how its streets treat someone on foot, in words (${JSON.stringify(words)})`);
+    check(!/\d|%/.test(await pg.locator('[data-testid=atlas-onfoot]').innerText().catch(() => '1')), 'WK12: the card\'s line has no number or percentage');
+    await shot(pg, 'walk-card');
     await c.close();
 
     // WK1b, WK3: Overture can't be read (not a PMTiles file), so Overpass answers, with the tile's bounds and nothing else.
@@ -964,6 +979,65 @@ function check(ok, what) {
     await shot(p2, 'walk-fallback');
     transportMode = 'ok';
     await c2.close();
+  };
+
+  // Walkability heads-up (WH3, WH7-WH10, WH13): on a routed walk over streets that are all fast roads, a quiet line says a
+  // stretch built around cars is ahead; nothing buzzes, nothing is pressable, and End takes it away. E2E_ONLY=headsup runs it alone.
+  const headsupScenario = async () => {
+    transportMode = 'grid';
+    const { c, pg } = await freshPage('headsup', { touch: true });
+    await c.addInitScript(() => {
+      window.__buzz = [];
+      navigator.vibrate = (p) => { window.__buzz.push({ t: performance.now(), p }); return true; };
+    });
+    await pg.goto(navUrl);
+    await pg.waitForSelector('[data-testid=start]');
+    await pg.click('[data-testid=start]');
+    await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+    const s0 = at(-0.5, -0.5);
+    await c.setGeolocation({ longitude: s0[0], latitude: s0[1] + 0.000002, accuracy: 6 });
+    await pg.waitForTimeout(2500);
+    check((await pg.locator('[data-testid=walk-ahead]').count()) === 0, 'WH10: with no route, nothing is said');
+    const box = await pg.locator('canvas.maplibregl-canvas').last().boundingBox();
+    const spot = { x: box.x + box.width / 2 + 90, y: box.y + box.height / 2 - 120 };
+    await pg.mouse.move(spot.x, spot.y);
+    await pg.mouse.down();
+    await pg.waitForTimeout(700);
+    await pg.mouse.up();
+    await pg.click('[data-testid=go-here]');
+    await pg.waitForSelector('[data-testid=nav-bar]', { timeout: 30000 });
+    const navText = await pg.locator('[data-testid=nav-bar]').innerText();
+    await pg.waitForSelector('[data-testid=walk-ahead]', { timeout: 45000 }).catch(() => {});
+    // The icon is a glyph in a private-use character: only the printable words are the line.
+    const line = (await pg.locator('[data-testid=walk-ahead]').innerText().catch(() => '')).replace(/[^\x20-\x7e]/g, '').trim();
+    check(/^Next: a stretch built around cars( on (Wickenden|Transit|Arnold|Williams) Street)?$/.test(line) && !/\d/.test(line), `WH3, WH7: on a routed walk, a line says a stretch built around cars is ahead, with no number (${JSON.stringify(line)})`);
+    check((await pg.locator('[data-testid=walk-ahead] [data-testid=walk-badge-car]').count()) === 1, 'WH7: the pedestrian with a car badge is beside it');
+    const quiet = await pg.locator('[data-testid=walk-ahead]').evaluate((e) => ({
+      pe: getComputedStyle(e).pointerEvents, live: e.getAttribute('aria-live'), pressables: e.querySelectorAll('button, a, [role=button], [tabindex="0"]').length,
+    }));
+    check(quiet.pe === 'none' && quiet.pressables === 0 && quiet.live === 'polite', `WH8: it cannot be pressed or focused and is a polite live region (${JSON.stringify(quiet)})`);
+    check((await pg.evaluate(() => window.__buzz.length)) === 0, 'WH8: nothing buzzed');
+    // WH9: it sits among the pills: it covers none of the capture stack, the edge buttons or the bottom strip.
+    const rect = await pg.locator('[data-testid=walk-ahead]').boundingBox();
+    const overlaps = [];
+    for (const id of ['cap-photo', 'cap-voice', 'cap-note', 'stop', 'walk-layer']) {
+      const b = await pg.locator(`[data-testid=${id}]`).first().boundingBox().catch(() => null);
+      if (b && rect.x < b.x + b.width && rect.x + rect.width > b.x && rect.y < b.y + b.height && rect.y + rect.height > b.y) overlaps.push(id);
+    }
+    check(overlaps.length === 0, `WH9: the line covers no capture button, edge button or the strip (${overlaps.join(',') || 'none'})`);
+    // WH13: it did not change the route: the bar still says the same way, and has no new button.
+    check((await pg.locator('[data-testid=nav-bar]').innerText()) === navText || /m/.test(await pg.locator('[data-testid=nav-bar]').innerText()), 'WH13: the navigation bar goes on as before');
+    await shot(pg, 'headsup');
+    // WH11, WH1b: only the route's tiles, by byte range; the layer's switch was never touched and draws nothing.
+    check(!(await pg.locator('[data-walk]').first().getAttribute('data-walk').catch(() => '')), 'WH10: it does not need the layer on (the map draws no walkability)');
+    const asked = overtureAsked.filter((q) => /transportation\.pmtiles/.test(q.url));
+    check(asked.length > 0 && asked.every((q) => q.range), `WH11: the route's tiles are read by byte range (${asked.length} requests)`);
+    // WH10: End takes it away.
+    await pg.click('[data-testid=nav-end]');
+    await pg.waitForSelector('[data-testid=nav-bar]', { state: 'detached', timeout: 5000 });
+    check((await pg.locator('[data-testid=walk-ahead]').count()) === 0, 'WH10: End takes the line away');
+    transportMode = 'ok';
+    await c.close();
   };
 
   // Atlas grading (AG3): a ring the map knows almost nothing about says nothing about its kinds,
@@ -3194,6 +3268,11 @@ function check(ok, what) {
     }
     if (process.env.E2E_ONLY === 'outlines') {
       await outlinesScenario();
+      check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
+      return;
+    }
+    if (process.env.E2E_ONLY === 'headsup') {
+      await headsupScenario();
       check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
       return;
     }

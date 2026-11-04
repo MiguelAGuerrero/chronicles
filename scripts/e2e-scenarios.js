@@ -59,7 +59,13 @@ const SCENARIOS = [
       'src/components/walk/{layout,useReady}.ts*',
       'src/app/(tabs)/index.tsx',
       'src/app/walk.tsx',
+      'src/components/atlas/AtlasCard.tsx',
     ],
+  },
+  {
+    // Walkability heads-up (WH1-WH13): the quiet line on a routed walk.
+    name: 'headsup',
+    covers: ['src/lib/walk/{ahead,aheadWatch,useRouteWarning,walkApp,reader,layer}.ts', 'src/app/walk.tsx', 'src/components/WalkBandIcon.tsx'],
   },
   {
     name: 'grading',

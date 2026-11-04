@@ -212,4 +212,4 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] The switch and legend over the native map: the new top edge slot (`walkability`) above the compass, and the legend card growing upward
 - [ ] `Tooltip` by tap and long press on a phone (hover and Escape are web only), closing after `MOTION.tip`
 - [ ] The heads-up pill in the walk's pills stack, and its live region read by VoiceOver and TalkBack
-
+- [ ] The area card's "On foot" line (`useAreaWords`): its read when the card opens on a phone, and the card's scroll with the new section
