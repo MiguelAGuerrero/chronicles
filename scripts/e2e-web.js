@@ -3317,6 +3317,15 @@ function check(ok, what) {
       const head = await page.waitForSelector('[data-testid=atlas-town-head]', { timeout: 10000 }).then(() => true, () => false);
       check(head && (await page.locator('[data-testid=explore-area]').innerText()) === homeName && (await page.locator('[data-testid=atlas-back-pill]').count()) === 1,
         `AT2: the title opens your town's own page, headed by its picture, with a way back low on the screen (${homeName})`);
+      {
+        // The town's tile takes its own height: iPhone Safari collapsed it (flex 0 is a 0% basis) and the heading
+        // and the empty line were drawn over it (Nov 3).
+        const tile = await page.locator('[data-testid=atlas-town-head]').boundingBox();
+        const sec = await page.locator('[data-testid=atlas-town-section]').boundingBox();
+        check(tile && sec && tile.height > 150 && tile.y + tile.height <= sec.y + 1,
+          `town page: its tile ends above its neighborhoods (tile ${tile && Math.round(tile.y)}+${tile && Math.round(tile.height)}, heading ${sec && Math.round(sec.y)})`);
+      }
+      await shot(page, '11d-atlas-town');
       await page.click('[data-testid=atlas-back-pill]');
       await page.waitForSelector('[data-testid=atlas-tile][data-name="Fox Point"]', { timeout: 10000 });
       check((await page.locator('[data-testid=atlas-town-head]').count()) === 0, 'AT2: back returns to the areas near you');

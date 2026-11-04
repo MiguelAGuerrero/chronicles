@@ -467,7 +467,7 @@ export default function Explore() {
                 wide
                 onPress={pick}
               />
-              <Text style={styles.section} accessibilityRole="header">Neighborhoods of {town.name}</Text>
+              <Text style={styles.section} accessibilityRole="header" testID="atlas-town-section">Neighborhoods of {town.name}</Text>
               {neighborhoods.length ? grid(neighborhoods, false) : (
                 <View style={styles.empty} testID="atlas-empty">
                   {listing ? <ActivityIndicator color={theme.muted} /> : null}

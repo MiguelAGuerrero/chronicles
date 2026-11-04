@@ -39,7 +39,7 @@ export const AtlasTile = memo(function AtlasTile(props: {
   const label = tileLabel(listed, fam, fmt) + (props.drill ? ' Opens its neighborhoods.' : props.wide ? ' Opens what’s here.' : '');
   const footer = props.drill ? 'See its neighborhoods' : props.wide ? 'What’s here' : null;
   return (
-    <View style={[styles.outer, props.drill && styles.stack, props.wide && styles.outerWide]}>
+    <View style={props.wide ? styles.outerWide : [styles.outer, props.drill && styles.stack]}>
       <Pressable
         testID={props.wide ? 'atlas-town-head' : 'atlas-tile'}
         accessibilityRole="button"
@@ -90,7 +90,10 @@ export const AtlasTile = memo(function AtlasTile(props: {
 
 const styles = StyleSheet.create({
   outer: { flex: 1, minWidth: 0 },
-  outerWide: { flex: 0 },
+  // The wide tile heads a town's page, in the scrolled column: it takes its content's height. Never `flex: 0`,
+  // which react-native-web writes as `flex: 0 1 0%`; with a View's `min-height: 0`, iPhone Safari shrank it to
+  // almost nothing and drew the heading and the empty line over it (Nov 3).
+  outerWide: { flexGrow: 0, flexShrink: 0, minWidth: 0 },
   // A town reads as a stack of places: a second card's edge shows beneath it.
   stack: { paddingBottom: 4, borderRadius: 18, backgroundColor: '#e8e4dc' },
   tile: { backgroundColor: theme.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.line, overflow: 'hidden' },

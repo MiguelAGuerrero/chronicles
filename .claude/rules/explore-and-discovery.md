@@ -163,6 +163,7 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
 - **Storage:** `atlas_area` is in `DERIVED_STORES` (SQLite migration 15, IndexedDB v13), so `purgeDerived` clears it.
 - **The hierarchy is the grid** (round 2, the owner, Nov 3; AT2): no level switch. The page near you lists the neighborhoods around you, then "Towns nearby". A town's tile opens its page (`useAtlas(..., town)`): its wide tile, then `townNeighborhoods`, which are within its reach (capped at 5 km) and belong to it (`townOf`: the nearest town, closer for its size). Near reads are kept per level as a list (`atlas_near:<level>`, `withNear`, newest 12, each with its radius), so going into a town and back reads nothing twice.
 - **The title floats over the map** (AT15): the map starts under the status bar; the title card has a shadow. Tiles carry `characterLine` (AT16) and the busiest strip.
+- **The town page's wide tile takes its content's height** (`outerWide`, never `flex: 0`): collapsed, its heading and empty line drew over it on an iPhone (Nov 3). The e2e checks the tile ends above `atlas-town-section`.
 - **The area card is sized in pixels** from the screen's measured height: sized by percent and insets, it showed only its header on an iPhone's Safari (Nov 3).
 - **Round 3 (decision 0067, the design review):**
   - Presence is dots (`KindStrip`'s `Dots`). A tile shows only the kinds present; the card's `KindRow` shows all eight, with "none" at full ink. `MARKS_EXPLAINED` has no numbers, and the e2e checks it.
