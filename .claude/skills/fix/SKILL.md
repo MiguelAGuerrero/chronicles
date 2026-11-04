@@ -1,18 +1,18 @@
 ---
 name: fix
-description: Resolve one issue end to end in its own git worktree - reproduce, root-cause, minimal fix, verify at the test level the owner chose, review (adversarial by default, looped), commit, push the worktree's branch and stop, then clean the worktree up. It deploys to main only when the owner passes --deploy=main, which is the go-ahead to deploy (decision 0081).
+description: Resolve one issue end to end in its own git worktree - reproduce, root-cause, minimal fix, verify at the test level the owner chose, review (adversarial by default, looped), commit, deploy to main and check the live build (reverting if red), then clean the worktree up. Invoking it is the owner's go-ahead to deploy (decision 0081); --deploy=branch stops at a pushed branch instead.
 when_to_use: The owner types /fix with an issue (a bug, a regression, a small polish). Not for a new feature or anything bigger than a local fix - that is /slice.
-argument-hint: <issue> [--tests=none|lean|scoped|e2e|full] [--review=none|self|adversarial] [--loops=N] [--deploy=branch|main|none]
+argument-hint: <issue> [--tests=none|lean|scoped|e2e|full] [--review=none|self|adversarial] [--loops=N] [--deploy=main|branch|none]
 disable-model-invocation: true
 allowed-tools: Bash, Read, Edit, Write, Grep, Glob, Agent, Skill, AskUserQuestion, EnterWorktree, ExitWorktree, mcp__github__actions_list, mcp__github__actions_get, mcp__github__get_job_logs
 ---
 
 # Fix: $ARGUMENTS
 
-By default `/fix` works in a worktree of its own, pushes that worktree's branch
-and stops. Nothing reaches `main` unless the owner passes `--deploy=main`;
-that flag is the go-ahead to deploy this one issue (decision 0081). It does
-not cover a second issue found on the way (record it in `docs/DEFERRED.md`), a
+`/fix` works in a worktree of its own and, by default, deploys the fix to
+`main`. Typing `/fix` is the owner's go-ahead to deploy this one issue
+(decision 0081); `--deploy=branch` or `--deploy=none` withholds it. The grant
+does not cover a second issue found on the way (record it in `docs/DEFERRED.md`), a
 force push, or any "Hard stops" below.
 
 ## Flags (parse them out of the arguments; the rest is the issue)
@@ -22,7 +22,7 @@ force push, or any "Hard stops" below.
 | `--tests` | `none`, `lean`, `scoped`, `e2e`, `full` | `scoped` |
 | `--review` | `none`, `self`, `adversarial` | `adversarial` |
 | `--loops` | 0-4: review-and-fix rounds after the first pass | `2` |
-| `--deploy` | `branch` (push the fix branch, stop), `main` (also merge to `main`, check Pages, revert if red), `none` (commit locally, push nothing) | `branch` |
+| `--deploy` | `main` (merge to `main`, check Pages, revert if red), `branch` (push the fix branch and stop), `none` (commit locally, push nothing) | `main` |
 
 Echo the resolved flags in your first line so the owner can see what ran.
 
@@ -113,9 +113,8 @@ do not keep trying variations.
 
 Each round is: review, fix what was accepted, re-run the level's verify. Stop
 at `--loops` rounds or at the first round with no new accepted finding. If the
-cap is reached with accepted findings still open, push nothing to `main`: with
-`--deploy=branch` push the branch so the owner can look, and list the open
-findings in the report.
+cap is reached with accepted findings still open, do not deploy: push the
+branch so the owner can look, and list the open findings in the report.
 
 ## 6. Docs
 
@@ -131,12 +130,12 @@ findings in the report.
    with the attribution lines the session gives.
 2. `--deploy=none`: stop here; the commit exists only in the worktree, so save
    it as a patch before cleanup (section 9) and say where.
-3. `--deploy=branch` (the default): `git push -u origin fix/<short-name>`
-   (retry network failures up to four times with backoff). Stop. Do not open a
-   pull request unless the owner asked. Go to section 9.
-4. `--deploy=main`: go on to section 8.
+3. `--deploy=branch`: `git push -u origin fix/<short-name>` (retry network
+   failures up to four times with backoff). Stop. Do not open a pull request
+   unless the owner asked. Go to section 9.
+4. `--deploy=main` (the default): go on to section 8.
 
-## 8. Deploy to main (`--deploy=main` only)
+## 8. Deploy to main (the default)
 
 Follow `/deploy` steps 1-3 without asking again, with these limits:
 
@@ -184,7 +183,7 @@ this run created (section 0).
 
 | Outcome | Local branch | Remote branch |
 |---|---|---|
-| Pushed with `--deploy=branch` | delete (it lives on the remote; `git fetch origin fix/<name>` brings it back) | keep: it is what the owner reviews |
+| Pushed with `--deploy=branch` (or deployed work parked by an open finding) | delete (it lives on the remote; `git fetch origin fix/<name>` brings it back) | keep: it is what the owner reviews |
 | Deployed, Pages green, live check done | delete | delete (`git push origin --delete fix/<name>`): it is merged and carries nothing |
 | Reverted, diagnosis pushed | delete | keep `fix/<name>-retry`; delete `fix/<name>` |
 | Scrapped (cannot reproduce, hard stop declined, three failures, conflict) | delete | delete if you had pushed it, after saving any patch |
