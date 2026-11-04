@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import type { Area, WalkArea } from '../areas/types';
 import type { OutlineTile } from '../areas/outlines';
+import type { WalkTile } from '../walk/types';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Db } from '../db/types';
 import type { Mark, Offered, Place, Recall } from '../discovery/types';
@@ -80,6 +81,10 @@ export function dbContract(name: string, fresh: () => Promise<Db>) {
       pieces: [{ id: 'd1', name: 'Whitehall', polygons: [[[[-75.5, 40.6], [-75.4, 40.6], [-75.4, 40.7], [-75.5, 40.6]]]] }],
       points: [{ id: 'd1', at: [-75.45, 40.65] }],
     };
+  };
+  const walkTile = (key: string, read_at = 1): WalkTile => {
+    const [x, y] = key.split('/').map(Number);
+    return { key, x, y, build: '2026-10-21.0', code: 'w1', from: 'overture', read_at, ways: [{ id: 'a', cls: 'residential', speedKmh: 40, level: 0, line: [[LON, LAT], [LON + 0.001, LAT]] }] };
   };
   const atlasArea = (key: string, listed_at = 1): AtlasArea => ({
     key, level: 'town', name: key, at: [LON, LAT], reachM: 2000, build: 'b1', code: 'a1', listed_at, read_at: null, failed_at: null, profile: null,
@@ -613,6 +618,25 @@ export function dbContract(name: string, fresh: () => Promise<Db>) {
       const got = await db.listAtlasAreas();
       assert.deepEqual(keys(got), ['A', 'B']);
       assert.deepEqual(got.find((r) => r.key === 'A'), { ...atlasArea('A', 2), read_at: 5 });
+    });
+
+    test('FC7 putWalkTiles, getWalkTiles (WK2): the same key replaces; only the keys asked for come back, in key order; empty is a no-op', async () => {
+      const db = await fresh();
+      assert.deepEqual(await db.getWalkTiles(['1/2']), []);
+      await db.putWalkTiles([walkTile('1/2', 1), walkTile('3/4', 1)]);
+      await db.putWalkTiles([walkTile('1/2', 2)]);
+      await db.putWalkTiles([]);
+      assert.deepEqual(await db.getWalkTiles([]), []);
+      assert.deepEqual(keys(await db.getWalkTiles(['1/2', '9/9'])), ['1/2']);
+      assert.deepEqual((await db.getWalkTiles(['1/2']))[0], walkTile('1/2', 2));
+      assert.deepEqual(keys(await db.getWalkTiles(['3/4', '1/2'])), ['1/2', '3/4']);
+    });
+
+    test('WK19 purgeDerived clears the walk tiles', async () => {
+      const db = await fresh();
+      await db.putWalkTiles([walkTile('1/2', 1)]);
+      await db.purgeDerived();
+      assert.deepEqual(await db.getWalkTiles(['1/2']), []);
     });
 
     test('FC7 putOutlineTiles, getOutlineTiles: the same key replaces; only the keys asked for come back; an empty list is a no-op', async () => {

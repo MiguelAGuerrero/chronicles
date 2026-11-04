@@ -41,3 +41,17 @@ export interface WalkSource {
   /** The tile's facts, or null when this source can't give them (WK3). */
   read(x: number, y: number): Promise<TileFacts | null>;
 }
+
+/** A read tile as kept (WK2): a cache tagged with the source's build and `WALK_CODE`, cleared with the derived stores (WK19). */
+export interface WalkTile {
+  /** `x/y` at z14. */
+  key: string;
+  x: number;
+  y: number;
+  /** The Overture release it was read from (or the day, for Overpass: its data has no release). */
+  build: string;
+  code: string;
+  from: TileFacts['from'];
+  read_at: number;
+  ways: WayFacts[];
+}
