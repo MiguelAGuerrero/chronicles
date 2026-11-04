@@ -160,3 +160,12 @@ An item leaves only when it ships, or when it is rejected with a decision record
   - `deleteCaptures` with ids that don't exist: web clears reminders only for captures found, native for every id passed
   - `addFind` on web swallows every transaction error, not just the duplicate key
 - `deleteWalk` / `deleteCaptures` all-or-nothing (D6) has no contract case: nothing shared can make IndexedDB fail halfway
+
+## Test organization (decision 0083)
+
+- Shells no unit test reaches (`check:affected` says "Covered by nothing" when one changes): `session`, `walkNav`, `unitsStore`, `nav/store`, `tileCollector`, `explore/exploreRun`, `explore/momentFind`, `landing/read`, `atlas/read`, `discovery/recallCheck`, `deletion/index`, `notify/index`, `here`, `backlog`, `mapReads`, `perfCount`, `shareLog`, `tabsHidden`, `export/bundle`, `activity/overture`, `ports/index`, `ready/index`. Each gets a test over `fakePorts()` as the functional-core migration reaches its cluster (one cluster per slice).
+- Screens and components no e2e journey row covers yet are named by `check:affected` when they change; the list after the full flow's split is in `docs/TESTING.md`, section 3.
+- Live criterion ids no test names (`npm run check:specs`, 36 of 374 on Nov 4): the owner's calls on whether each is built, retired or still owed; `--strict` stays out of CI and the hook until the list is empty.
+- Retired ids still named by a test (`A1`, `A11`, `S1`, `S17`, `L13`, `L16`): rename those tests to what they now prove, or drop them.
+- Coverage measurement (`node --experimental-test-coverage` under tsx) per feature: not started; the import graph answers "what reaches this" today.
+- `walk.tsx` triggers six journeys (`tabs`, `ready`, `marks`, `reload`, `gaps`, `hidden`): a split of the walk screen's own journey (ready, recording, capture) when it grows again.

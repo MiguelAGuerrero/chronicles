@@ -11,8 +11,8 @@ EXPO_OFFLINE=1 npx expo install <package>   # never npm/yarn add; offline resolv
 npm run check:affected                      # the inner loop: layers, the tests that import what changed, typecheck, lint; names the e2e scenarios
 npm run typecheck                           # tsc --noEmit, incremental: ~22 s cold, ~5 s after
 npm run lint                                # expo lint, ~40 s; includes the import boundaries below
-npm test                                    # every unit test, ~11 s; npm run test:affected for those a change reaches
-npx tsx --test src/lib/__tests__/<one>.test.ts
+npm test                                    # every unit test, ~13 s; npm run test:affected for those a change reaches
+npm run test:feature <feature>              # one feature's folder (src/lib/__tests__/<feature>/); scripts/features.js is the map
 npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # one e2e journey; the full flow (no E2E_ONLY) only when the owner asks
 npm run check:docs                          # this file's budget, rule globs, paths the docs name; CI runs it too
 npx expo-doctor                             # dependency and config issues; npx expo install --fix for versions
@@ -39,6 +39,7 @@ The app is a companion for wandering towns on foot: Explore before (busy areas, 
 | The spec (acceptance criteria per slice) | `specs/<slug>/spec.md`, a mirror of the owner's Claude Docs doc; the doc wins |
 | Why a rule exists | `docs/decisions/` (one record per owner's call) |
 | What is deferred; what has never run on a phone | `docs/DEFERRED.md`, `docs/NATIVE_UNVERIFIED.md` |
+| Which feature owns a file, its tests, journeys and specs | `scripts/features.js`; tests in `src/lib/__tests__/<feature>/` |
 | Rules and traps of one area | `.claude/rules/<area>.md`: they load by themselves when you read or edit that area's files. Read one directly when planning work in an area you haven't opened yet |
 
 Rule areas: captures-and-media, deletion, explore-and-discovery, functional-core, gaps, landing, map, memories, moments-and-days, motion-polish, navigation, notifications, places-and-areas, react-native-web, recording-and-traces, replay, rides, storage, streets-fog-snapping, tabs-and-home, walk-screen.

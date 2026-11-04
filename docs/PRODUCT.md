@@ -256,6 +256,7 @@ address search (needs a geocoding server).
 - Spec: the "Explorer App Concept" doc in Claude Docs, one tab per version.
 - Decisions and traps: `AGENTS.md`.
 - Screens: `src/app/` (tabs, `walk.tsx`, `replay/[id].tsx`, `day/[key].tsx`).
-- Pure logic with unit tests: `src/lib/` and `src/lib/__tests__/`.
-- End to end: `scripts/e2e-web.js` (a headless walk with mocked GPS and fake
+- Pure logic with unit tests: `src/lib/` and `src/lib/__tests__/<feature>/` (the
+  features are listed in `scripts/features.js`).
+- End to end: `scripts/e2e-web.js` and one file per journey under `scripts/e2e/journeys/` (a headless walk with mocked GPS and fake
   streets).

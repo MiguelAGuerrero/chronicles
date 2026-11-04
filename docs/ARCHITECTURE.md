@@ -227,9 +227,11 @@ Layers (functional core, imperative shell)
   ports/                     Ports (types.ts: db, recorder, notifier, clock, newId) and the real instance (index.ts), the composition root a view hands a shell
   store.ts, useStore.ts      a shell's state (createStore) and a view's slice of it (useSyncExternalStore)
   meta.ts                    every meta key and key family with its codec; metaStore(db)
+  __tests__/<feature>/       the unit tests, one folder per feature of scripts/features.js (arch/ holds the tree-wide checks, storage/ the Db contract)
   __tests__/fakes/           fakePorts(): memoryDb, the fake recorder, notifier and clock, one call log, failNext; held to db/index.web.ts by dbContract.ts
   (scripts/layers.js)        reads the layer tags and core's imports for layers.test.ts and eslint.config.js
-  (scripts/affected.js)      what a change can break: changed files, the import graph, the tests and e2e scenarios to run (e2e-scenarios.js)
+  (scripts/affected.js)      what a change can break: changed files, the import graph, the tests (by feature) and e2e journeys to run, what nothing covers
+  (scripts/features.js)      the feature map: each feature's sources, journeys, specs and rule; test:feature, check:specs and the rules read it
 ```
 
 ## Invariants and boundaries

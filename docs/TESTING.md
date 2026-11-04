@@ -7,10 +7,21 @@ were measured in a cloud container on Nov 3, 2026. The e2e skill
 ## 0. The inner loop: what a change can break
 
 ```bash
-npm run check:affected   # layers, affected unit tests, typecheck, affected lint; then the e2e scenarios to run
+npm run check:affected   # layers, affected unit tests, typecheck, affected lint; then the e2e journeys to run
 npm run test:affected    # only the unit tests that import a changed file, directly or not
+npm run test:feature <name> [<name> ...]   # one feature's tests, whole (src/lib/__tests__/<name>/)
 npm run lint:affected    # only the changed files that npm run lint covers (src, index.js)
 ```
+
+- **Features.** `scripts/features.js` is the one map from a feature to what it
+  owns: source globs, e2e journeys, specs, its rule file (decision 0083,
+  `specs/test-organization/spec.md`). A feature's unit tests are the folder of
+  the same name under `src/lib/__tests__/`; `arch/` holds the tree-wide checks
+  and `storage/` the Db contract. `arch/features.test.ts` holds the map to the
+  tree: every source file in a feature, every test folder a feature, every
+  journey and spec claimed, each rule loading for its folder. A new feature is
+  a folder and a row; a file in no feature fails that test and is named by
+  `check:affected`.
 
 - **Changed** is everything that differs from the merge base with
   `origin/main` (or `main`): the branch's commits, edits, new files, renames
@@ -18,19 +29,29 @@ npm run lint:affected    # only the changed files that npm run lint covers (src,
   everything runs.
 - **Which tests:** each test file that imports a changed file through any
   import (type-only, `import()`, a platform split, JSON included), shortest
-  chain printed. A test that reads the whole tree instead of importing it
+  chain printed, listed under its feature. Type-only edges are followed on
+  purpose (AC2; the owner, Nov 4): a renamed field fails a named test, not
+  only `tsc`. The cost is selection breadth (`types.ts` reaches most files;
+  `days.test.ts` reaches storage through `import type`), small while the
+  whole suite runs in about 13 s.
+- **Covered by nothing:** a changed source file that no unit test reaches and
+  no journey row covers is named, with its layer and features, in words apart
+  from "nothing to run". A shell gets a test over `fakePorts()`, a core module
+  a unit test, a screen a check in its feature's journey. A test that reads the whole tree instead of importing it
   (the layer check, the meta-key scan) starts with `// @tree-wide: <what it
   reads>` and runs on any change under `src/` or `scripts/`. Mark a new one
   so, or it will be skipped.
 - **Everything runs** when the harness changes: `package.json`, the lockfile,
   `tsconfig.json`, `eslint.config.js`, `eslint-suppressions.json`,
-  `scripts/layers.js`, or any non-test file in `src/lib/__tests__/` (fakes,
-  fixtures, the contract suite).
-- **E2E:** `scripts/e2e-scenarios.js` lists the files each journey covers;
-  `check:affected` names the ones to run, and the changed screens no journey
-  covers (add one if the slice changes what they show). The full flow runs
-  only when the owner asks. A new journey gets its row there
-  (`affected.test.ts` fails otherwise).
+  `scripts/layers.js`, `fakes/`, or any non-test file at the root of
+  `src/lib/__tests__/` (the contract suite, `foxPoint.ts`, `metaKeys.ts`). A
+  fixture inside a feature folder selects only the tests that import it.
+- **E2E:** each journey is a file under `scripts/e2e/journeys/` that exports
+  its name, the files it covers and its run; `scripts/e2e-scenarios.js` reads
+  the folder. `check:affected` names the journeys to run, with the feature
+  that owns each, and the changed screens no journey covers (add a check to
+  the feature's journey if the slice changes what they show). The full flow
+  (`journeys/full.js`) runs only when the owner asks and has no row.
 - The end of a slice adds the whole unit suite, lint and the typecheck
   (section 6); CI runs them on every push to `main`.
 
@@ -38,13 +59,26 @@ npm run lint:affected    # only the changed files that npm run lint covers (src,
 
 ```bash
 npm test                                                      # every unit test
-npx tsx --test src/lib/__tests__/rides.test.ts                # one file
-npx tsx --test --test-name-pattern "rides audit" src/lib/__tests__/rides.test.ts   # tests by name
+npm run test:feature rides                                    # one feature's folder
+npx tsx --test src/lib/__tests__/rides/rides.test.ts          # one file
+npx tsx --test --test-name-pattern "rides audit" src/lib/__tests__/rides/rides.test.ts   # tests by name
 ```
 
-- `npm test` is `tsx --test src/lib/__tests__/*.test.ts` (Node's test runner,
-  TAP output, summary at the end): 57 files, 660 tests, about 10 s.
-- One file: `rides.test.ts` is 34 tests in about 1 s. `--test-name-pattern`
+- `npm test` is `tsx --test 'src/lib/__tests__/**/*.test.ts'` (Node's test
+  runner, TAP output, summary at the end): 22 folders, 73 files, about 790
+  tests, about 13 s.
+- **Layout:** one folder per feature of `scripts/features.js` (`recording`,
+  `rides`, `streets`, `gaps`, `navigation`, `replay`, `moments`,
+  `walk-screen`, `tabs`, `explore`, `landing`, `places`, `map`, `captures`,
+  `chronicle`, `motion`, `notify`, `deletion`, `memories`), plus `arch/` (the
+  layers, the meta keys, the functional-core audit, the affected checks, the
+  feature map, the fakes' and the store's own tests) and `storage/` (the Db
+  contract). Shared helpers stay at the root: `fakes/`, `dbContract.ts`,
+  `metaKeys.ts`, `mvtFixture.ts`, `foxPoint.ts` (a street grid and
+  `walkAlong`, used by four features), `layers.baseline.json`. A test goes in
+  the folder of the feature it proves; a file that proves two belongs to the
+  one whose module it imports most, and names both specs' ids.
+- One file: `rides/rides.test.ts` is 34 tests in about 1 s. `--test-name-pattern`
   is a regex over test names: the line above runs that file's 9
   `rides audit N` tests only.
 - **Tests import only core modules, fakes and types.** Node can't load React
@@ -73,8 +107,10 @@ npx tsx --test --test-name-pattern "rides audit" src/lib/__tests__/rides.test.ts
   - `mvtFixture.ts`: a test-only vector-tile encoder, since the tile host is
     blocked from cloud sessions. No test imports it now (its user went with
     the ambient hints); use it when a test needs decoded tiles.
-  - `outAndBack.json`: the tabs e2e walk of Nov 2, 200 m out and straight
-    back with a pause, as recorded (`still.test.ts`, `SNAP_RULES` 6).
+  - `recording/outAndBack.json`: the tabs e2e walk of Nov 2, 200 m out and
+    straight back with a pause, as recorded (`still.test.ts`, `SNAP_RULES` 6);
+    `recording/eastonSlow.json` and `landing/phillipsburg.json` are real
+    traces and places beside the tests that read them.
   - Keep made-up traces well inside one z14 tile unless the test is about
     tile edges: at lon -71.4, lat 41.82 a tile edge is 50 m away, so the
     tests sit at lat 41.812.
@@ -254,7 +290,8 @@ minutes): it is the agent's job before merging.
 
 ```bash
 npm run typecheck && npm run lint && npm test
-npm run check:affected                                  # names the e2e journeys for what changed
+npm run check:affected                                  # names the e2e journeys for what changed, and what nothing covers
+npm run test:feature <feature>                          # the slice's feature, whole
 npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # each journey it names
 ```
 
@@ -276,10 +313,15 @@ the background task or MapLibre RN. Say so in any report touching native code.
 ## Spec traceability
 
 `npm run check:specs` (`scripts/check-specs.js`) lists the criterion ids in
-`specs/*/spec.md` that no unit test or e2e step names. It is a report, not a
-gate (it always exits 0): retired ids and unbuilt rounds show up too. Run it
-at the end of a slice; a criterion of the slice that shows up is missing its
-test.
+`specs/*/spec.md` that no unit test or e2e file names. A prefix two specs
+share (M, R, D) is looked for only in the folders of the features that list
+each spec (`scripts/features.js`), so `R1` in `src/lib/__tests__/explore/recall.test.ts` counts
+for v1-discovery and not for rides. Ids the app retired are declared in
+`RETIRED` there, with who retired them, and listed apart from live ids. It is
+a report by default (exit 0); `--feature <name>` reports one feature's specs,
+`--strict` exits 1 on a live id with no test (not in CI or the hook: the
+owner's call when the live list is empty). Run it at the end of a slice; a
+criterion of the slice that shows up is missing its test.
 
 ## The docs check
 

@@ -22,7 +22,7 @@ harnesses before reading the code.
 ## Tools
 
 Bash is for `npm test` and single test files only
-(`npx tsx --test src/lib/__tests__/<file>.test.ts`), to confirm a scenario
+(`npx tsx --test src/lib/__tests__/<feature>/<file>.test.ts`, or `npm run test:feature <feature>`), to confirm a scenario
 or that a test is vacuous. Never run the e2e, install, export, git write
 commands, or anything that changes the tree.
 

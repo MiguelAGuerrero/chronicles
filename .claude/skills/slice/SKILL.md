@@ -58,14 +58,15 @@ Add a row to `docs/STATUS.md` "In flight": slice, spec path, started, state.
 
 For each criterion, write one failing test before its code:
 
-- pure logic: a unit test in `src/lib/__tests__/<area>.test.ts`, run by
+- pure logic: a unit test in `src/lib/__tests__/<feature>/<module>.test.ts` (the
+  feature's folder; a new feature is a folder and a row in `scripts/features.js`), run by
   `npm test` (`tsx --test`). Nothing a test imports may import React Native:
   split pure modules from ones that touch the db or the map.
 - orchestration (write order, failures, guards, reload): a shell test with
   `fakePorts()` (`.claude/rules/functional-core.md`).
 - screens: only for what a screen shows, a check in the slice's own e2e
-  journey (an `E2E_ONLY` scenario in `scripts/e2e-web.js`, with its files in
-  `scripts/e2e-scenarios.js`; see `/e2e`). A slice that changes no screen has
+  journey (a file under `scripts/e2e/journeys/` exporting its name, the files it
+  covers and its run; `E2E_ONLY=<name>` runs it; see `/e2e`). A slice that changes no screen has
   no e2e step.
 - Name every test by its criterion id: `test('QL3: ...')`, `check(ok, 'QL3: ...')`.
 
