@@ -11,7 +11,7 @@ import type { Capture } from './types';
  * gone (tabs audit 5). Storage stays the truth; this only keeps the screens'
  * lists in step.
  */
-export type CapturePatch = Partial<Pick<Capture, 'thumb_path' | 'lat' | 'lon' | 'caption' | 'caption_y' | 'body'>>;
+export type CapturePatch = Partial<Pick<Capture, 'thumb_path' | 'lat' | 'lon' | 'caption' | 'caption_y' | 'body' | 'edit'>>;
 type Listener = { walkId: string; owner: object; fn: (c: Capture) => void; onPatch?: (id: string, patch: CapturePatch) => void };
 const listeners = new Set<Listener>();
 
