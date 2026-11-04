@@ -1,3 +1,4 @@
+// @layer core
 import { boundsOf, type Bounds } from './geo';
 import type { Capture } from './types';
 

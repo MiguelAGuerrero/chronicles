@@ -1,3 +1,4 @@
+// @layer core
 import { distanceM, pointSegmentDist, projector } from '../geo';
 import type { LngLat, StreetSegment } from '../types';
 import { WalkGraph } from './graph';

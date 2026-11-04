@@ -1,3 +1,4 @@
+// @layer shell
 import { db } from '../db';
 import { fetchTiles } from '../discovery/tileFetch';
 import { boundsOf, distanceM } from '../geo';

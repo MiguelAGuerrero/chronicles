@@ -1,3 +1,4 @@
+// @layer adapter
 import { setAudioModeAsync } from 'expo-audio';
 import type { AudioMode } from './audioMode.types';
 

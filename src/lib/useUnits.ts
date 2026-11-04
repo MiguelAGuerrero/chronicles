@@ -1,3 +1,4 @@
+// @layer view
 import { useSyncExternalStore } from 'react';
 import { getUnits, onUnits, type Units } from './units';
 

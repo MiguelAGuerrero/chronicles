@@ -1,3 +1,4 @@
+// @layer core
 import { EXPLORE_KEY, exploredKey } from './explore/explore';
 import { distanceM } from './geo';
 import type { Waypoint } from './nav/types';

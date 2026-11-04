@@ -16,7 +16,7 @@ What's good here (`lib/landing`): reading an area, finding busy strips and pocke
     falls outside the read).
   - It then reads the z14 tiles of 1.5 km around the centre.
   - Cancel aborts the fetches and keeps nothing.
-- **Activity density** (AD1-AD16, decision 0072; supersedes L4 and L5's fixed
+- **Activity density** (AD1-AD16, decision 0077; supersedes L4 and L5's fixed
   thresholds). Busy means a density of places, never foot traffic.
   - **What counts** (`activity/weights.ts`, the one table for both sources):
     full for shops, food, drink, attractions; half for services, health,
@@ -34,13 +34,16 @@ What's good here (`lib/landing`): reading an area, finding busy strips and pocke
     skip set). Any failure returns `null` and the read goes on from OSM
     alone. Places are never stored. Quiet walks' reads ask Overture for
     nothing (`readAround`'s `withOverture`).
-  - **`OvertureReader`** (`activity/release.ts`, pure, tested with fake
-    archives) is the robust part, because pmtiles' header fetch takes no
+  - **`OvertureReader`** (`activity/reader.ts`, a shell given its archive
+    and decoder, tested with fake archives) is the robust part, because pmtiles' header fetch takes no
     signal and pmtiles keeps a failed header for good: each tile loads once
     per release (`TileMemo`) under its own timeout and abort; a reader stops
     waiting at its own deadline or `shouldStop`, never aborting a load
     another reader shares; any load failure drops the archive so the next
     read opens it afresh; the memo holds only places that count.
+  - **Layers:** `weights.ts`, `points.ts`, `release.ts`, `grade.ts` and
+    `spatial.ts` are core; `reader.ts` and `overture.ts` are shells (timers,
+    held state, the db); `useOvertureRelease.ts` is a view.
   - **Staleness:** screens judge it with `useOvertureRelease()` (checked on
     mount), never a bare `knownRelease()`, which is null on a cold start. A
     read without Overture never replaces a row or profile measured with it

@@ -1,3 +1,4 @@
+// @layer core
 import { formatDuration } from '../format';
 
 /**

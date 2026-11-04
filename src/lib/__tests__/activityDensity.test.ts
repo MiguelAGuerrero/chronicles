@@ -2,7 +2,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { activityFromOverture, activityFromTilePois, mergeSources, overturePlacesFromTile, type ActivityPoint, type OverturePlace } from '../activity/points';
-import { newestRelease, overtureUrl, releaseDue, RELEASE_CHECK_MS, TileMemo } from '../activity/release';
+import { TileMemo } from '../activity/reader';
+import { newestRelease, overtureUrl, releaseDue, RELEASE_CHECK_MS } from '../activity/release';
 import { osmWeight, overtureWeight } from '../activity/weights';
 import { presenceSteps } from '../atlas/atlas';
 import { placesFromTilePois } from '../discovery/tilePois';

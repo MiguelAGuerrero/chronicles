@@ -1,3 +1,4 @@
+// @layer shell
 import { readOverture } from '../activity/overture';
 import { activityFromTilePois, mergeSources } from '../activity/points';
 import { placesFromTiles } from '../areas/tilePlaces';

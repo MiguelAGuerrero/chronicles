@@ -1,3 +1,4 @@
+// @layer core
 import { distanceM, FixFilter, isBreak, lineLengthM, MAX_ACCURACY_M, MAX_STALE_MS, settleJitter, smoothDwells, splitAtGaps, stepToward, traceDistanceM, withoutPauses, type PauseSpan } from './geo';
 import { GAP_RULES } from './gaps/rules';
 import type { Fill, LngLat, TracePoint } from './types';

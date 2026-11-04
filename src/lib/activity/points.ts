@@ -1,3 +1,4 @@
+// @layer core
 import type { TileFeature } from '../areas/tilePlaces';
 import { projector } from '../geo';
 import type { LngLat } from '../types';

@@ -1,3 +1,4 @@
+// @layer core
 import type { ActivityPoint } from '../activity/points';
 import { projector } from '../geo';
 import type { LngLat, StreetSegment } from '../types';

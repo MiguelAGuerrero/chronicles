@@ -16,8 +16,8 @@ memos. The app itself has no simulation. The rest is in `docs/TESTING.md`.
 ## Run
 
 ```bash
-npm run export:web && npm run e2e:web                 # the whole flow
-E2E_ONLY=<scenario> npm run e2e:web                   # one scenario, fresh browser
+npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # one journey, fresh browser: the normal run
+npm run export:web && npm run e2e:web                 # the whole flow, about 15 minutes: only when the owner asks (decision 0074)
 CHRONICLES_BASE_URL=/chronicles npm run export:web && E2E_BASE=/chronicles npm run e2e:web   # the Pages sub-path build
 ```
 
@@ -37,7 +37,10 @@ A run exits non-zero on the first failed check and prints `ok - ...` lines.
 
 Add a scenario as a function in the script plus an `if (process.env.E2E_ONLY
 === '<name>')` branch at the top of the `try`, ending with the no-console-errors
-check, and a row here.
+check, a row here, and a row in `scripts/e2e-scenarios.js` naming the files it
+covers (`affected.test.ts` fails without it). A slice that changes a screen
+adds or extends a journey this way for its own change: keep it to what the
+screen shows; write order, retries and guards belong in shell tests.
 
 ### Switches
 

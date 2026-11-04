@@ -89,7 +89,7 @@ For the owner's review before any code. The spec is `specs/activity-density/spec
 - **Docs:**
   - `.claude/rules/landing.md`: the analysis section rewritten;
   - `.claude/rules/explore-and-discovery.md`: the note on density's place table;
-  - `docs/decisions/0072-activity-density.md`;
+  - `docs/decisions/0077-activity-density.md`;
   - `docs/PRODUCT.md`, `docs/ARCHITECTURE.md` (the Overture adapter and its network
     host);
   - `docs/NATIVE_UNVERIFIED.md`.

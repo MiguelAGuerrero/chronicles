@@ -1,3 +1,4 @@
+// @layer view
 import { ensureOvertureRelease } from '../activity/overture';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Area, WalkArea } from '../areas/types';

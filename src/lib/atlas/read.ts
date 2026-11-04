@@ -1,3 +1,4 @@
+// @layer shell
 import type { CollectedFeatures } from '../../components/map/types';
 import { readOverture } from '../activity/overture';
 import { activityFromTilePois, mergeSources, type ActivityPoint } from '../activity/points';

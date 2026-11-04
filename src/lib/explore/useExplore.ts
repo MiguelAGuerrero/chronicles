@@ -1,3 +1,4 @@
+// @layer view
 import { ensureOvertureRelease } from '../activity/overture';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MarkPin } from '../../components/MarkPinView';

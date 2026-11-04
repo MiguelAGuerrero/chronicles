@@ -1,6 +1,6 @@
 # 0008. Walk screen layout: a centered capture row, a thin bottom strip with Stop at the right
 
-Date: 2026-10 (v0) · Status: accepted · Area: walk screen
+Date: 2026-10 (v0) · Status: superseded in part by 0076 (captures stack at the right edge) · Area: walk screen
 
 ## Context
 Decided with the owner, after research. Hoober's touch research shows taps are most accurate near the center and least accurate at the top and bottom edges and in corners. About half of phone use is one-handed, mostly with the right thumb, and grips change with the task. Strava, AllTrails and Komoot keep record and capture controls low on the screen, and Google Maps floats its controls at the bottom right.

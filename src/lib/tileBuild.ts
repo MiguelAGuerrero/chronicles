@@ -1,3 +1,4 @@
+// @layer shell
 /**
  * Reads the served tile build from a TileJSON, within a time limit. Pure (no
  * db), so it can be tested. A phone's fetch can stall for minutes on a weak

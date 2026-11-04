@@ -1,3 +1,4 @@
+// @layer shell
 import { db } from '../db';
 import { NAV_KEY, navValue, pendingDest } from '../startPlan';
 import type { Waypoint } from './types';

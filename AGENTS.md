@@ -8,16 +8,17 @@ Expo ships breaking changes every SDK release. Before writing any code that touc
 
 ```bash
 EXPO_OFFLINE=1 npx expo install <package>   # never npm/yarn add; offline resolves from the installed expo
-npm run typecheck                           # tsc --noEmit, ~11 s
+npm run check:affected                      # the inner loop: layers, the tests that import what changed, typecheck, lint; names the e2e scenarios
+npm run typecheck                           # tsc --noEmit, incremental: ~22 s cold, ~5 s after
 npm run lint                                # expo lint, ~40 s; includes the import boundaries below
-npm test                                    # tsx --test src/lib/__tests__/*.test.ts, ~6 s
+npm test                                    # every unit test, ~11 s; npm run test:affected for those a change reaches
 npx tsx --test src/lib/__tests__/<one>.test.ts
-npm run export:web && npm run e2e:web       # headless walk; E2E_ONLY=<scenario> for one
+npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # one e2e journey; the full flow (no E2E_ONLY) only when the owner asks
 npm run check:docs                          # this file's budget, rule globs, paths the docs name; CI runs it too
 npx expo-doctor                             # dependency and config issues; npx expo install --fix for versions
 ```
 
-Run typecheck, lint, `npm test` and the e2e before declaring any task done. A Stop hook (`.claude/hooks/check-done.sh`) refuses to end a turn that changed the repo while `npm run check:docs` fails or changed TypeScript fails the typecheck, and CI blocks the deploy on either.
+While working, run `npm run check:affected`; before declaring a task done, typecheck, lint, `npm test` and the e2e journeys `check:affected` names (decision 0074). A Stop hook (`.claude/hooks/check-done.sh`) refuses to end a turn that changed the repo while `npm run check:docs` fails or, with TypeScript changed, while the typecheck, the layer check or the affected unit tests fail; CI blocks the deploy on the docs check, the typecheck, `npm test` or lint.
 
 Routing is Expo Router: routes live in `src/app/`, `_layout.tsx` files are navigators, non-route code stays outside `src/app/`. Import `Link`, `router` and `useLocalSearchParams` from `expo-router`; open the walk screen with `showWalk()` (`lib/walkNav`), never `router.push('/walk')`. `ios/` and `android/` are generated (never edit them; a hook blocks it); native behaviour is configured in `app.json` and config plugins. Native code needs a development build (`npx expo run:ios`, or `npx eas-cli@latest build --profile development`), never Expo Go. EAS builds, submits and ships over-the-air updates in the cloud (`npx eas-cli@latest build | submit | update`); there is no `eas.json` yet, so it is not set up for this app. Prefer the recommended Expo modules over third-party libraries, and check the available skills before adding a dependency.
 
@@ -40,9 +41,9 @@ The app is a companion for wandering towns on foot: Explore before (busy areas, 
 | What is deferred; what has never run on a phone | `docs/DEFERRED.md`, `docs/NATIVE_UNVERIFIED.md` |
 | Rules and traps of one area | `.claude/rules/<area>.md`: they load by themselves when you read or edit that area's files. Read one directly when planning work in an area you haven't opened yet |
 
-Rule areas: captures-and-media, deletion, explore-and-discovery, gaps, landing, map, memories, moments-and-days, motion-polish, navigation, notifications, places-and-areas, react-native-web, recording-and-traces, replay, rides, storage, streets-fog-snapping, tabs-and-home, walk-screen.
+Rule areas: captures-and-media, deletion, explore-and-discovery, functional-core, gaps, landing, map, memories, moments-and-days, motion-polish, navigation, notifications, places-and-areas, react-native-web, recording-and-traces, replay, rides, storage, streets-fog-snapping, tabs-and-home, walk-screen.
 
-Procedures are skills: `/slice` (spec-first, test-first), `/audit` (the adversarial pass, with the `auditor` subagent), `/e2e`, `/deploy`, `/docs-gc` (end-of-slice drift check).
+Procedures are skills: `/slice` (spec-first, test-first), `/audit` (the adversarial pass, with the `auditor` subagent, when the owner asks), `/e2e`, `/deploy`, `/docs-gc` (end-of-slice drift check).
 
 ## Rules that hold everywhere
 
@@ -55,15 +56,16 @@ Procedures are skills: `/slice` (spec-first, test-first), `/audit` (the adversar
 - **Raw fixes are stored unfiltered** and gated at read time by `readTrace` (`lib/rides.ts`). Always pass the walk's `started_at`, pauses, stills and gap fills; a pause is a break in the trace however short.
 - **No dataset is hard-coded.** Map data reaches the app through adapters (`areas/types.ts`, `discovery/tilePois.ts`, `landing/read.ts`); tests run against in-memory sources.
 - **Storage.** Schema changes are new entries in `MIGRATIONS` (SQLite, `PRAGMA user_version`) and a `VERSION` bump with an `oldVersion < N` step (IndexedDB). Never edit an existing migration. All native writes go through the single queue in `db/index.native.ts`.
-- **Pure logic is importable by `npm test`:** nothing a test imports may import React Native (that is why `tileMath.ts` is split from `tiles.ts`). Put new rules in pure modules with a test first.
+- **Functional core, imperative shell.** Every `src/lib` module starts with `// @layer core|shell|adapter|view`. Decisions go in core (no clock, randomness, timers or module state; imports only core) with a test first; effects go in a shell (a factory taking `ports`, and the app instance views call); views never import `ports`, the `db`, `recorder` or `notifier`. `npm test` and lint check it, with baselines that only shrink. Read `.claude/rules/functional-core.md` before adding a module.
+- **Pure logic is importable by `npm test`:** nothing a test imports may import React Native (that is why `tileMath.ts` is split from `tiles.ts`).
 - **Import boundaries** are lint errors with the fix in the message: `Modal` only from `components/Modal`, no Reanimated, `setAudioMode` from `lib/audioMode`, haptics only through `feedback()` in `lib/motion`. Timings come from `lib/motionTokens`; never hard-code a duration.
 - **The background location task is registered in `index.js`** before the router loads. Never move it into a route.
 
 ## Working with the owner
 
 - **Ask before architectural decisions:** libraries, data model, platform strategy, navigation flow. Use AskUserQuestion with a recommended option. Local fixes don't need asking.
-- **Spec first, test first.** A slice starts from numbered, testable criteria in its spec, then a plan the owner can read, then one failing test per criterion before its code (`/slice`). It is done when those pass with typecheck, lint, the whole suite and the e2e.
-- **Audit every slice adversarially once built** (`/audit`): a report-only pass that tries to break it, triage (accept, defer, reject, with reasons; architectural findings go to the owner), a regression test named `<slice> audit N` before each fix. Deploy to main only after the fixes pass the full suite.
+- **Spec first, test first.** A slice starts from numbered, testable criteria in its spec, then a plan the owner can read, then one failing test per criterion before its code (`/slice`). It is done when those pass with typecheck, lint, `npm test` and the e2e journeys covering its files; a slice that changes a screen adds a journey for it. The full e2e runs only when the owner asks.
+- **Audit when the owner asks** (`/audit`, decision 0074): a report-only pass that tries to break the slice, triage (accept, defer, reject, with reasons; architectural findings go to the owner), a regression test named `<slice> audit N` before each fix.
 - **Deferred is a decision, not a gap.** Record it in `docs/DEFERRED.md`; if the owner chose it, in `docs/decisions/` too.
 
 ## Gotchas that cost real time

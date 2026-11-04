@@ -1,3 +1,4 @@
+// @layer adapter
 import { DeviceMotion } from 'expo-sensors';
 import type { SubscribeMotion } from './types';
 

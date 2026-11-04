@@ -1,3 +1,4 @@
+// @layer adapter
 import type { AudioMode } from './audioMode.types';
 
 type AudioSessionType = 'auto' | 'playback' | 'play-and-record' | 'ambient';

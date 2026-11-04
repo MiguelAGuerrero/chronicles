@@ -1,3 +1,4 @@
+// @layer adapter
 import { staleAreas } from '../areas/assign';
 import type { Area, WalkArea } from '../areas/types';
 import { exploredKey, type ChecklistArea, type ChecklistItem, type ExploreRead, type Find } from '../explore/explore';

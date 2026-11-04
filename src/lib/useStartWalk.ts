@@ -1,3 +1,4 @@
+// @layer view
 import { useState } from 'react';
 import { db } from './db';
 import { memoGate } from './memoGate';
@@ -23,7 +24,11 @@ export type StartError = { message: string; openSettings?: boolean };
 export function useStartWalk() {
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<StartError | null>(null);
-  const start = async (dest: Waypoint | null, mode?: StartMode) => {
+  /**
+   * `inPlace` (NR6): the ready walk screen starts the walk itself, so nothing is opened; it gets the
+   * walk's notice params back once the plan's meta is written, and `null` if the walk didn't start.
+   */
+  const start = async (dest: Waypoint | null, mode?: StartMode, opts?: { inPlace?: boolean }): Promise<Record<string, string> | null> => {
     // Motion first, straight from the tap: an iPhone's browser asks only then (Motion, MO1).
     void askMotion();
     setError(null);
@@ -32,22 +37,29 @@ export function useStartWalk() {
       // Never under a memo (tabs audit 3): one being saved (Navigate left mid-memo) is waited for.
       if (!(await memoGate.readyToStart())) {
         setError({ message: 'A voice memo is recording. Save it first.' });
-        return;
+        return null;
       }
       const open = await db.getOpenWalk().catch(() => null);
       const here = walkHerePlan(open?.id ?? null, dest);
       if (here.kind !== 'start') {
         if (here.kind === 'route') for (const [k, v] of here.meta) await db.setMeta(k, v);
-        showWalk();
-        return;
+        if (!opts?.inPlace) showWalk();
+        return {};
       }
       const chosen = mode ?? parseStartMode(await db.getMeta(START_MODE_KEY).catch(() => null));
       const { walk, warning } = await startWalk();
       const plan = startPlan({ walkId: walk.id, now: Date.now(), mode: chosen, dest, warning });
       for (const [k, v] of plan.meta) await db.setMeta(k, v);
+      // In place, every start says it is recording (NR6); a recorder warning still wins.
+      if (opts?.inPlace) return plan.params?.warning ? plan.params : { started: '1' };
       showWalk(plan.params);
+      return plan.params ?? {};
     } catch (e) {
-      setError({ message: e instanceof Error ? e.message : String(e), openSettings: e instanceof RecorderError && e.openSettings });
+      const message = e instanceof Error ? e.message : String(e);
+      setError({ message, openSettings: e instanceof RecorderError && e.openSettings });
+      // In place, a walk that opened before its plan failed shows the error on the walk (audit 10).
+      if (opts?.inPlace && (await db.getOpenWalk().catch(() => null))) return { error: message };
+      return null;
     } finally {
       setStarting(false);
     }

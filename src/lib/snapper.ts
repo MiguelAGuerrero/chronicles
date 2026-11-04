@@ -1,3 +1,4 @@
+// @layer core
 import { pointSegmentDist, projector, splitAtGaps, type PauseSpan } from './geo';
 import { readTrace } from './rides';
 import { samples, streetKey } from './streets';

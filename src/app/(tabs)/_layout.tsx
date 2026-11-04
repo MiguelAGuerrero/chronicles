@@ -6,15 +6,20 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon, type IconName } from '../../components/icons';
 import { RecordingBar } from '../../components/RecordingBar';
 import { theme } from '../../components/ui';
+import { navigatePress } from '../../lib/readyNav';
 import { TABS } from '../../lib/startPlan';
+import { showWalk } from '../../lib/walkNav';
 
 /**
  * The three tabs (Navigation & tabs, NV1): Explore · Navigate · Chronicle, in
  * that order, with an icon and a label, the same on web and phone. Every tab
  * option lives here, so the iOS build can move to native tabs by changing only
  * this file. Explore opens first, at `/` (NV2, the owner's call, Nov 3), and
- * Back on another tab returns to it (NV5). Each tab keeps its state while another is in front (NV3); each takes
- * its own map down while unfocused, so one map is live at a time (NV4).
+ * Back on another tab returns to it (NV5). Navigate is the walk screen, ready
+ * or walking (NR1, NR2): its press opens it over the tab in front, and never
+ * shows a tab of its own. Each tab keeps its state while another is in front
+ * (NV3); each takes its own map down while unfocused, so one map is live at a
+ * time (NV4).
  */
 export const unstable_settings = { initialRouteName: 'index' };
 
@@ -71,6 +76,17 @@ export default function TabsLayout() {
             tabBarButtonTestID: `tab-${t.id}`,
             tabBarIcon: ({ color, focused, size }) => <Icon name={(focused ? t.iconOn : t.icon) as IconName} size={size} color={String(color)} />,
           }}
+          listeners={
+            t.id === 'navigate'
+              ? {
+                  tabPress: (e) => {
+                    const press = navigatePress();
+                    if (press.preventTab) e.preventDefault();
+                    if (press.showWalk) showWalk();
+                  },
+                }
+              : undefined
+          }
         />
       ))}
     </Tabs>

@@ -1,3 +1,4 @@
+// @layer core
 import { boundsOf, distanceM, type Bounds } from './geo';
 import { groupCaptures, schedule, timedRuns, traceUntil, walkerAt, type Schedule, type TimedRun } from './replay';
 import type { ReplayData } from './summary';

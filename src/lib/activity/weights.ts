@@ -1,3 +1,4 @@
+// @layer core
 /*
  * What counts toward a street's density, and how much (AD1): the one table for
  * both sources. Full for what makes a street a place to go (shops, food, drink,

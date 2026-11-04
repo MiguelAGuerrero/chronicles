@@ -1,3 +1,4 @@
+// @layer adapter
 import { boundarySource, type BoundaryPack } from './boundaryPack';
 import type { BoundarySource } from './types';
 

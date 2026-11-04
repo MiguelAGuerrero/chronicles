@@ -1,11 +1,12 @@
+// @layer shell
 import { VectorTile } from '@mapbox/vector-tile';
 import { PbfReader } from 'pbf';
 import { PMTiles } from 'pmtiles';
-import { useEffect, useState } from 'react';
 import type { TileFeature } from '../areas/tilePlaces';
 import { db } from '../db';
 import { activityFromOverture, overturePlacesFromTile, type ActivityPoint, type OverturePlace } from './points';
-import { newestRelease, overtureUrl, OvertureReader, releaseDue, releasesListUrl } from './release';
+import { OvertureReader } from './reader';
+import { newestRelease, overtureUrl, releaseDue, releasesListUrl } from './release';
 
 /*
  * Overture Maps Places, read by tile (AD3-AD8): the network side. Each read
@@ -48,10 +49,12 @@ async function fetchText(url: string, ms: number): Promise<string> {
 export function ensureOvertureRelease(): Promise<string | null> {
   if (checking) return checking;
   checking = (async () => {
+    // Keys declared in META (lib/meta.ts); read and written as the rest of the app does, so FC8's scan sees them.
     const [stored, at] = await Promise.all([db.getMeta('overture_release'), db.getMeta('overture_checked_at')]).catch(() => [null, null]);
     if (stored && !missing.has(stored)) known = stored;
     const now = Date.now();
-    const due = releaseDue(at ? Number(at) : null, now) || (known != null && missing.has(known));
+    const checkedAt = at ? Number(at) : null;
+    const due = releaseDue(Number.isFinite(checkedAt) ? checkedAt : null, now) || (known != null && missing.has(known));
     if (!due || now - failedAt < RETRY_MS) return known;
     try {
       const newest = newestRelease(await fetchText(releasesListUrl(), LIST_MS), missing);
@@ -68,24 +71,6 @@ export function ensureOvertureRelease(): Promise<string | null> {
     checking = null;
   });
   return checking;
-}
-
-/**
- * The release known, for screens that judge staleness (activity-density audit 8): checked once when the screen
- * mounts, so a walk opened straight from a launch knows it without visiting the Explore tab.
- */
-export function useOvertureRelease(): string | null {
-  const [release, setRelease] = useState<string | null>(known);
-  useEffect(() => {
-    let live = true;
-    ensureOvertureRelease()
-      .then((r) => live && setRelease(r))
-      .catch(() => {});
-    return () => {
-      live = false;
-    };
-  }, []);
-  return release;
 }
 
 function decode(bytes: ArrayBuffer, x: number, y: number): OverturePlace[] {

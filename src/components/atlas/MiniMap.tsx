@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react';
 import Svg, { Circle, G, Path, Rect, Text as SvgText } from 'react-native-svg';
-import { useOvertureRelease } from '../../lib/activity/overture';
+import { useOvertureRelease } from '../../lib/activity/useOvertureRelease';
 import { profileStale, SKETCH, sketchPaths, toSketch, type AtlasArea } from '../../lib/atlas/atlas';
 import type { CategoryId } from '../../lib/discovery/types';
 import type { LngLat } from '../../lib/types';

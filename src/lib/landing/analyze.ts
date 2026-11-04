@@ -1,3 +1,4 @@
+// @layer core
 import type { ActivityPoint } from '../activity/points';
 import type { PlaceCandidate } from '../areas/types';
 import { boundsOf, distanceM, projector } from '../geo';

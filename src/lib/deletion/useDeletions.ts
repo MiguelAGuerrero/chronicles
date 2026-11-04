@@ -1,3 +1,4 @@
+// @layer view
 import { useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
 import { deletions } from './index';
 import type { PendingState } from './pending';

@@ -1,3 +1,4 @@
+// @layer core
 /** Planar helpers for the area analysis, in metres in a local frame. Pure. */
 
 export type XY = [number, number];

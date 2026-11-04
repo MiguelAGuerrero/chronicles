@@ -7,9 +7,9 @@ import { theme } from './ui';
  * the 640 column on wide screens (the walk screen's edgeBtn look). While a
  * fix is read it shows busy and takes no tap, but still reads as a button.
  */
-export function LocateButton(props: { busy: boolean; onPress: () => void; bottom: number }) {
+export function LocateButton(props: { busy: boolean; onPress: () => void; bottom: number; right?: number }) {
   const { width } = useWindowDimensions();
-  const right = Math.max(12, (width - 640) / 2 + 12);
+  const right = props.right ?? Math.max(12, (width - 640) / 2 + 12);
   return (
     <Pressable
       testID="locate"
