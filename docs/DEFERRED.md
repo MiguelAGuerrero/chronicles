@@ -234,3 +234,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - The owner's phone screenshot showed the walk overlay cropped at both edges in Safari; at 390 px the layout was already 12 pt from the edge, so a viewport wider than the screen is suspected and not reproduced (unverified on a device)
 - Audit findings deferred (fix banner-spacing): the pills and scale bar sit at `sideInset + 12`, 4 pt further in than the 16 pt gutter, left as a step; horizontal safe-area insets (landscape notch) are not added to the gutter, as before; no e2e at 320 pt wide or for the nudge, spot card and Undo pill gutters; Button's and Banner's padding change reaches screens with no journey (settings, delete confirm); computed offsets (`edgeBottom + 7`) and radii are outside the grid test
 - Web overlays still pad by the unfiltered safe-area `insets.top` that iOS Safari reports on web: the Atlas card grip (`AtlasCard.tsx`), CaptureView, MediaEditor, NoteEditor, MomentBar; the Explore map no longer does (`lib/mapTopInset`, fix title-chip-corner audit 1)
+
+## Street labels (fix street-label-double)
+
+- **Street name twice on a long street** (fix street-label-double, Nov 4): two areas whose peaks on one street are over 300 m apart still draw its name twice, apart rather than stacked. Deduping by the street's lines would need the strip's reach, not its peak.

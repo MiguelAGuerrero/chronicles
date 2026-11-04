@@ -118,3 +118,15 @@ test('AD12: graded stretches draw wider and stronger as the grade rises; stale o
   const old = landingView([{ ...row, analysis: before as typeof a }], 'b1');
   assert.deepEqual(old.graded.map((g) => g.grade), [2]);
 });
+
+test('fix street-label-double audit 2, 3, 4: the current row\'s name wins, strips and pockets dedupe together, one area keeps its own pockets', () => {
+  const stale = row(m(0, 0), analysis('North 17th Street', m(0, 100)), 'b0');
+  const fresh = row(m(1500, 0), analysis('North 17th Street', m(20, 130)));
+  assert.equal(landingView([stale, fresh], 'b1').strips[0].stale, false, 'stale first');
+  assert.equal(landingView([fresh, stale], 'b1').strips[0].stale, false, 'fresh first');
+  const hood = { ...analysis('x', m(0, 0)), strips: [], pockets: [{ name: 'Fox Point', weight: 5, spanM: 250, centre: m(0, 0), hull: [m(0, 0), m(0, 0), m(0, 0)] as LngLat[], strips: [] }] };
+  const v = landingView([row(m(0, 0), hood), row(m(1500, 0), analysis('Fox Point', m(30, 30)))], 'b1');
+  assert.equal(v.labels.length + v.strips.length, 1, 'a neighbourhood and a strip of one name');
+  const two = { ...hood, pockets: [0, 100].map((x) => ({ ...hood.pockets[0], name: 'A busy pocket', centre: m(x, 0) })) };
+  assert.equal(landingView([row(m(0, 0), two)], 'b1').labels.length, 2);
+});
