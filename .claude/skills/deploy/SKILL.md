@@ -8,6 +8,8 @@ allowed-tools: Bash, Read, Grep, Glob, mcp__github__actions_list, mcp__github__a
 
 # Deploy
 
+`/fix` (decision 0081) runs steps 1-3 itself from its worktree; typing it is the owner's go-ahead.
+
 A push to `main` runs `.github/workflows/pages.yml`: `npm ci`, `check:docs`,
 typecheck, `npm test`, lint, `expo export --platform web` with `CHRONICLES_BASE_URL=/chronicles`
 (which `app.config.js` turns into `experiments.baseUrl`), `dist/index.html`
