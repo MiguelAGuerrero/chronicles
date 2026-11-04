@@ -18,7 +18,9 @@ A photo can carry a caption today; nothing else can be changed, and a video can'
 
 - Stay in React Native: react-native-svg and expo-image-manipulator, no Skia.
 - Saving out includes everything styled on the moment, videos too: a local Expo module in Swift and Kotlin for phones, canvas and MediaRecorder on the web.
-- Fixed filter presets, no sliders.
+- Fixed filter presets, no sliders. The set is the one people expect from their phone's photo app, so editing after the fact feels familiar: Original, Vivid, Warm, Cool, Dramatic, Fade, Mono, Noir, Sepia, under plain names (no app's own names). Each has to be a single colour matrix, so the set has no vignette, grain or tone curves. (The owner's first examples were black and white, high contrast and vivid; they asked for a better default set, Nov 4.)
+- Edits are data on top of the untouched original, and saving out renders them in one file (confirmed Nov 4).
+- Previews (the small copy on pins and the memory preview) show the edits but not the caption (confirmed Nov 4).
 - Scope: text, filters, crop, rotate, video trim, and a pen with a few basic colours (for circling something). No stickers, text styles or flip.
 - Videos get everything but filters, so a video looks the same on iPhone, Android and the web.
 - Editing happens from the viewer, and from an Edit pill shown right after every photo or video on the three places that take them (the walk screen, Navigate's ready screen, the minimized walk's recording bar). Taking a photo stays one tap: the pill is offered, the editor never opens by itself. (First call "viewer only", changed the same day.)
@@ -41,8 +43,15 @@ Crop and rotate
 
 Filters (photos)
 
-8. **ME8** Filter shows the presets Original, Black & white, High contrast and Vivid, each as a small preview of the photo itself. A tap applies one at once; Original removes it.
-9. **ME9** Each preset is a 4×5 colour matrix in `lib/mediaEdit.ts`, and `applyMatrix(pixel, matrix)` is pure and unit-tested: Original is the identity, Black & white gives equal red, green and blue, High contrast moves values away from mid-grey, Vivid moves colours away from their grey, and results are clamped to 0-255.
+8. **ME8** Filter shows the presets Original, Vivid, Warm, Cool, Dramatic, Fade, Mono, Noir and Sepia in one scrolling row, each as a small preview of the photo itself with its name under it. A tap applies one at once; Original removes it. The chosen one is marked and announced as selected.
+9. **ME9** Each preset is a 4×5 colour matrix in `lib/mediaEdit.ts`, and `applyMatrix(pixel, matrix)` is pure and unit-tested, results clamped to 0-255:
+   - Original is the identity;
+   - Vivid moves a colour away from its grey and leaves a grey pixel grey;
+   - Warm turns a mid-grey pixel red above blue; Cool, blue above red;
+   - Dramatic moves values away from mid-grey and lowers saturation;
+   - Fade lifts black above 0, brings white below 255 and lowers saturation;
+   - Mono gives equal red, green and blue; Noir does too, further from mid-grey than Mono;
+   - Sepia turns a mid-grey pixel red above green above blue.
 
 Drawing
 

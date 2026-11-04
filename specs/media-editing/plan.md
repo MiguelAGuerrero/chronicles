@@ -18,7 +18,7 @@ One order everywhere: on screen, in the native baker, in the web canvas and in t
 
 - `src/lib/mediaEdit.ts`:
   - the `MediaEdit` type: `{ v: 1, rotate, crop, filter, strokes, trim }`;
-  - `FILTERS` (four 4×5 matrices), `applyMatrix`, `PEN_COLORS`, `PEN_WIDTH_FRAC`, `MAX_STROKES`;
+  - `FILTERS` (nine 4×5 matrices: Original, Vivid, Warm, Cool, Dramatic, Fade, Mono, Noir, Sepia), `applyMatrix`, `PEN_COLORS`, `PEN_WIDTH_FRAC`, `MAX_STROKES`;
   - `parseEdit` / `serializeEdit` / `isEmptyEdit`;
   - `clampCrop`, `aspectCrop`, `editedSize`, `toFrame` (original to edited coordinates, for strokes);
   - `simplifyStroke` (Ramer-Douglas-Peucker, tolerance a fraction of the width);
@@ -95,7 +95,7 @@ One order everywhere: on screen, in the native baker, in the web canvas and in t
 | ME5 | `mediaEdit.test.ts`: `ME5: four quarter turns come back to none`; e2e: the rotate button |
 | ME6 | `mediaEdit.test.ts`: `ME6: a crop never leaves the picture or goes under a tenth`, `ME6: aspect crops are centred and fit`; e2e: Square gives a square `data-size` |
 | ME7 | `mediaEdit.test.ts`: `ME7: rotating after cropping keeps the same part of the picture` |
-| ME8 | e2e `edit`: Black & white, then the saved bake's sampled pixels have r = g = b |
+| ME8 | e2e `edit`: the row holds the nine presets; Mono, then the saved bake's sampled pixels have r = g = b |
 | ME9 | `mediaEdit.test.ts`: `ME9: …` one per preset, plus clamping |
 | ME10 | `editSession.test.ts`: `ME10: undo removes the last line, clear removes all`; e2e: a mouse drag adds a stroke in the chosen colour |
 | ME11 | `mediaEdit.test.ts`: `ME11: a line stays on its spot through a later crop and rotation`, `ME11: simplify keeps the ends and drops collinear points`, `ME11: no more than 50 lines` |
@@ -138,11 +138,11 @@ Each goes into `docs/NATIVE_UNVERIFIED.md`. The Kotlin and Swift can't even be c
 
 ## Points to confirm
 
-1. **Edits as data, file untouched** (the recommendation from the investigation; your answers fit it, but you didn't pick it explicitly). The other way, writing a new photo file on Done, would be simpler to show but would lose the original and break "Capture is append-only truth".
-2. **Filters:** exactly Original, Black & white, High contrast and Vivid?
-3. **Pen colours:** White, Black, Red, Yellow and Blue, one width, Red first?
-4. **The small copy shows the edits but not the caption**, as previews do today?
-5. **Size:** this is the largest slice yet in files touched. I'd build it in this order, each green before the next:
+Settled Nov 4: edits are data on the untouched original; previews show the edits, not the caption. The filter set is proposed in the spec's Decisions.
+
+1. **Filters:** Original, Vivid, Warm, Cool, Dramatic, Fade, Mono, Noir, Sepia?
+2. **Pen colours:** White, Black, Red, Yellow and Blue, one width, Red first?
+3. **Size:** this is the largest slice yet in files touched. I'd build it in this order, each green before the next:
    1. core;
    2. photo editing and photo export, with the after-capture pill;
    3. video display, trim and text;
