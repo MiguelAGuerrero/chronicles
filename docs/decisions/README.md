@@ -84,3 +84,4 @@ An owner's call made during a slice gets its record in the same commit as the sl
 | [0076](0076-navigate-opens-the-walk-screen-ready.md) | 2026-11-03 | Navigate opens the walk screen, ready; captures stack at the right edge; the bar pulls up | tabs, navigate, walk screen |
 | [0077](0077-one-way-back-from-a-town.md) | 2026-11-04 | A town's page has one way back, the pill low on the screen; the title card has no arrow | explore, atlas |
 | [0078](0078-reminder-bell-on-pins.md) | 2026-11-04 | A pin with a reminder wears a bell (any kind; a merged pin if any; top left on a memory pin) | map, notifications, memories |
+| [0079](0079-pocket-alert-double-tap-and-web.md) | 2026-11-04 | The pocket alert is a double-tap, and the web gives it too on a touch screen (amends NV21, E19) | explore, motion |

@@ -102,7 +102,12 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
     kind switches and doesn't restore the view after.
   - **Settings** (`ExploreSettings`, a panel, not a modal): what I'm into (8
     kinds, meta `explore_hidden`), the range (`explore_range`), the pocket alert
-    (`explore_haptic`, phone only, a light tap once per place per walk). The
+    (`explore_haptic`, a double-tap once per place per walk, one for places
+    coming into range together; `pocketAlert` decides, `feedback('nudge')`
+    plays; on phones and on a touch-screen browser, `canBuzz()`, 0079). Every
+    unfound mark counts, named or "?" (`alertKeys`): at the 60 m range a place
+    is never a bare "?". No alert while a range is previewed; the alerted set
+    is kept per walk (`alertedFor`), so a minimize doesn't alert twice. The
     range preview is a ring (`ring` prop, `ringGeoJSON`) on the map already on
     screen, never a second map: the walk's around you, the home's around your
     last walk's most-walked area.

@@ -50,7 +50,10 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - An index for Offered; it's read whole, fine for thousands (v1 discovery)
 - An unstamped capture can't find a place: it has no position until stop, `findFor` (v1 Explore)
 - A place moved by a new build can be found twice (v1 Explore)
-- The pocket alert likely needs the screen on (native), `explore_haptic` (v1 Explore)
+- The pocket alert likely needs the screen on (native), `explore_haptic` (v1 Explore); on the web a hidden page gets no fixes, so it never fires there with the screen off (Pocket alert nudge)
+- Button haptics on the web: only the pocket alert buzzes there (Pocket alert nudge, 0079)
+- A reload mid-walk forgets which places alerted, so they nudge again; on Android Chrome that nudge comes before any tap and is blocked, and the places count as alerted (pocket-alert-nudge audit 3)
+- The pocket alert's second tap still plays up to 120 ms after a hold-to-stop or the switch going off on the same fix (pocket-alert-nudge audit 6)
 - The home preview ignores the kind switches and doesn't restore the view after (v1 Explore)
 
 ## Reminders and notifications

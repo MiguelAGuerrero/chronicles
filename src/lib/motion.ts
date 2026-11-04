@@ -1,7 +1,8 @@
 // @layer view
 import { useEffect, useState } from 'react';
 import { AccessibilityInfo, Platform } from 'react-native';
-import { successFeedback, tapFeedback, warnFeedback } from './haptics';
+import { playFeedback } from './haptics';
+import type { FeedbackKind } from './motionTokens';
 
 export { durationFor, MOTION, PRESS_SCALE } from './motionTokens';
 
@@ -40,15 +41,14 @@ export function useReducedMotion(): boolean {
 /** Native driver where it exists: react-native-web runs Animated in JavaScript. */
 export const nativeDriver = Platform.OS !== 'web';
 
-export type FeedbackKind = 'tap' | 'success' | 'warning';
+export type { FeedbackKind };
 
 /**
- * One feedback call per action (M8): a haptic on phones, nothing on web. No
- * sounds yet; when they come, they are opt-in and must not use the memo's
- * audio session, which plays with the ringer switch off.
+ * One feedback call per action (M8): a haptic on phones; on web, only the
+ * pocket alert's nudge (PA6). The patterns are `HAPTIC_PATTERNS`
+ * (`motionTokens`). No sounds yet; when they come, they are opt-in and must not
+ * use the memo's audio session, which plays with the ringer switch off.
  */
 export function feedback(kind: FeedbackKind): void {
-  if (kind === 'tap') tapFeedback();
-  else if (kind === 'success') successFeedback();
-  else warnFeedback();
+  playFeedback(kind);
 }

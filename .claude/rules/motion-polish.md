@@ -20,7 +20,11 @@ Animation and haptics: the motion tokens, reduce motion, presses, the sheet spri
   lift, camera, ease, pulse, spring; `PRESS_SCALE`; `durationFor`) and
   `lib/motion.ts` (`useReducedMotion`, live through `AccessibilityInfo`;
   `nativeDriver`; `feedback(kind)` for every haptic). Never hard-code a duration
-  or call the haptics directly.
+  or call the haptics directly. Each kind's taps are `HAPTIC_PATTERNS`
+  (`motionTokens`): `tap` one light, `nudge` (the pocket alert) two medium
+  `MOTION.nudgeGap` apart. On web only `nudge` plays (0079). A nudge within three gaps of the last is
+  dropped (`nudgeAllowed`). `lib/haptics` may be imported only by `lib/motion`
+  (a lint pattern).
 - **Effects:**
   - `Button` presses down to 0.97 on the native driver and keeps the 0.8
     dimming, the press's only sign with reduce motion on.

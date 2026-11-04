@@ -126,7 +126,7 @@ recording bar brings a minimized walk back.
   card and in a pin's viewer. Navigation and the walk go on.
 - **Explore mode** (off by default, the walk starts quiet): "?" marks within
   range (60-300 m), a chip when on a busy strip, an optional pocket alert
-  (a light haptic once per place), and a nudge when an area is a dead zone.
+  (a double-tap once per place, on phones and browsers that can buzz), and a nudge when an area is a dead zone.
   A capture within 60 m of an unfound place finds it.
 - **Remind me here**: flag a capture, and the next walk that passes within
   75 m of it shows its card, or a notification when the app is behind.
@@ -181,7 +181,8 @@ recording bar brings a minimized walk back.
 ## Settings and notifications
 
 - Explore settings (a panel, not a screen): "What I'm into" (8 kinds), the
-  "?" range with a ring preview on the map, the pocket alert (phone only).
+  "?" range with a ring preview on the map, the pocket alert (phones, and browsers that can
+  buzz: Android Chrome, maybe iPhone Safari).
 - Notifications: Remind me here and Pause reminder, each switchable, plus a
   test. Permission is asked only from a tap (first pause, a reminder saved, a
   switch turned on), never at launch. On the web, notifications come from a

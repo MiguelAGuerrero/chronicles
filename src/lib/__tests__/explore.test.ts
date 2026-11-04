@@ -9,6 +9,10 @@ import {
   EXPLORE_RULES,
   KINDS,
   alertsDue,
+  pocketAlert,
+  alertedFor,
+  alertKeys,
+  POCKET_ALERT_NOTE,
   areaFor,
   buildChecklists,
   checklistKey,
@@ -296,6 +300,67 @@ test('E19: a place alerts once, when it first comes into range as a ?', () => {
   const first = alertsDue(['a', 'b'], new Set());
   assert.deepEqual(first, ['a', 'b']);
   assert.deepEqual(alertsDue(['a', 'b', 'c'], new Set(['a', 'b'])), ['c']);
+});
+
+test('PA2: places coming into range together give one nudge; each alerts once a walk', () => {
+  const on = { exploring: true, haptic: true, riding: false, previewing: false };
+  const first = pocketAlert({ ...on, nearKeys: ['a', 'b', 'c'], alerted: new Set() });
+  assert.deepEqual(first, { mark: ['a', 'b', 'c'], nudge: true }, 'three at once: one nudge');
+  const again = pocketAlert({ ...on, nearKeys: ['a', 'b', 'c'], alerted: new Set(['a', 'b', 'c']) });
+  assert.deepEqual(again, { mark: [], nudge: false }, 'nothing new: no nudge');
+  const next = pocketAlert({ ...on, nearKeys: ['a', 'd'], alerted: new Set(['a', 'b', 'c']) });
+  assert.deepEqual(next, { mark: ['d'], nudge: true });
+});
+
+test('PA3: no nudge with the switch off, on a quiet walk or on a ride', () => {
+  const base = { exploring: true, haptic: true, riding: false, previewing: false, nearKeys: ['a'], alerted: new Set<string>() };
+  for (const o of [{ haptic: false }, { exploring: false }, { riding: true }]) {
+    assert.deepEqual(pocketAlert({ ...base, ...o }), { mark: [], nudge: false }, JSON.stringify(o));
+  }
+});
+
+test('PA5: the pocket alert note says two soft taps', () => {
+  assert.equal(POCKET_ALERT_NOTE, 'Two soft taps when a “?” comes into range. Never on a quiet walk.');
+});
+
+// A walk along x toward a place at the origin, fix by fix, as the hook decides (the audit's probe).
+const walkIn = (rangeM: number, xs: number[], o: { previewAt?: number } = {}) => {
+  const p = item('P', m(0, 0));
+  const alerted = new Set<string>();
+  let nudges = 0;
+  for (const x of xs) {
+    const previewing = o.previewAt === x;
+    const shown = visibleMarks({ items: [p], here: m(x, 0), rangeM: previewing ? 300 : rangeM, found: new Set(), hidden: new Set(), revealed: new Set() });
+    const r = pocketAlert({ exploring: true, haptic: true, riding: false, previewing, nearKeys: alertKeys(shown), alerted });
+    for (const k of r.mark) alerted.add(k);
+    if (r.nudge) nudges++;
+  }
+  return nudges;
+};
+
+test('pocket-alert-nudge audit 1: at the 60 m range a place coming into range still nudges once', () => {
+  assert.equal(walkIn(60, [1000, 200, 100, 70, 55, 40, 20, 0]), 1);
+});
+
+test('pocket-alert-nudge audit 5: a place entering range inside 60 m between two fixes still nudges', () => {
+  assert.equal(walkIn(100, [300, 120, 40, 10]), 1);
+});
+
+test('pocket-alert-nudge audit 2: a range preview neither nudges nor marks places as alerted', () => {
+  // At 250 m the preview (300 m) shows the place; walking on into the real 100 m range still nudges, once.
+  assert.equal(walkIn(100, [400, 250, 250.5, 80, 50], { previewAt: 250 }), 1);
+  assert.deepEqual(pocketAlert({ exploring: true, haptic: true, riding: false, previewing: true, nearKeys: ['a'], alerted: new Set() }), { mark: [], nudge: false });
+});
+
+test('pocket-alert-nudge audit 3: the alerted places are kept per walk, across the walk screen closing and opening', () => {
+  const byWalk = new Map<string, Set<string>>();
+  alertedFor(byWalk, 'walk-1').add('x');
+  assert.ok(alertedFor(byWalk, 'walk-1').has('x'), 'the same walk keeps what it alerted');
+  assert.equal(alertedFor(byWalk, 'walk-2').size, 0, 'a new walk starts with none');
+  assert.equal(alertedFor(byWalk, null).size, 0);
+  for (const w of ['w3', 'w4', 'w5', 'w6']) alertedFor(byWalk, w);
+  assert.equal(byWalk.size, 4, 'only the latest few walks are kept');
+  assert.ok(!byWalk.has('walk-1'));
 });
 
 // ——— The home and the replay (E10, E11) ———

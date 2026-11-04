@@ -313,6 +313,7 @@ function check(ok, what) {
       viewport: { width: 390, height: 844 },
       // E2E_MOBILE=1: a phone's touch screen, so taps come as touches and the browser makes the clicks.
       ...(process.env.E2E_MOBILE ? { isMobile: true, hasTouch: true, deviceScaleFactor: 3 } : {}),
+      ...(opts.touch ? { hasTouch: true } : {}),
       permissions: opts.permissions ?? ['geolocation'],
       geolocation: { longitude: start[0], latitude: start[1], accuracy: 6 },
     });
@@ -809,6 +810,94 @@ function check(ok, what) {
     await startWalk();
     const second = await walkPast('second walk (area read before)');
     check(second.some((l) => /Hessian Memorial/.test(l)), `marks: a later exploring walk through an area read before draws the memorial it passes (${JSON.stringify(second)})`);
+    await c.close();
+  };
+
+
+  // The pocket alert nudge (PA2, PA3, PA6): a double-tap as a "?" comes into range, through
+  // expo-haptics' web build, which calls navigator.vibrate; recorded here. E2E_ONLY=nudge runs it alone.
+  const nudgeScenario = async () => {
+    // A touch screen, so the switch is offered (PA6); taps still come as clicks.
+    const { c, pg } = await freshPage('nudge', { touch: true });
+    await c.addInitScript(() => {
+      window.__buzz = [];
+      navigator.vibrate = (p) => { window.__buzz.push({ t: performance.now(), p }); return true; };
+    });
+    const setMeta = (k, v) => pg.evaluate(([key, value]) => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const tx = req.result.transaction('meta', 'readwrite');
+        tx.objectStore('meta').put({ key, value });
+        tx.oncomplete = () => resolve(true);
+      };
+    }), [k, v]);
+    const buzzes = () => pg.evaluate(() => window.__buzz.slice());
+    const marksNow = () => pg.locator('.maplibregl-map').last().locator('[data-testid=mark-pin]').count();
+    const startWalk = async () => {
+      await pg.waitForSelector('[data-testid=start]');
+      await pg.click('[data-testid=start]');
+      await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+      const s0 = at(-0.5, -0.5);
+      await c.setGeolocation({ longitude: s0[0], latitude: s0[1] + 0.000002, accuracy: 6 });
+      await pg.waitForTimeout(2500);
+    };
+    const walkPast = async () => {
+      let firstMark = null;
+      for (let k = 0; k <= 23; k++) {
+        const p = at(-0.5 + k * 0.05, -0.5);
+        await c.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+        await pg.waitForTimeout(1000);
+        if (firstMark === null && (await marksNow()) > 0) firstMark = (await buzzes()).length;
+      }
+      return firstMark;
+    };
+    const holdStop = async () => {
+      const b = await pg.locator('[data-testid=stop]').boundingBox();
+      await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+      await pg.mouse.down();
+      await pg.waitForTimeout(1100);
+      await pg.mouse.up();
+      await pg.waitForURL(/replay/, { timeout: 30000 });
+    };
+    await pg.goto(navUrl);
+    await pg.waitForSelector('[data-testid=start]');
+    {
+      // The switch, on a touch screen, with its note: the ready bar pulled up (PA5, PA6, NR7).
+      await drawerTo(pg, 'half');
+      await pg.waitForSelector('[data-testid=start-settings]');
+      const note = await pg.locator('[data-testid=start-settings]').innerText();
+      check((await pg.locator('[data-testid=pocket-alert]').count()) === 1 && /Two soft taps when a “\?” comes into range/.test(note),
+        'PA6: a touch screen is offered the pocket alert, with its note (PA5)');
+      await drawerTo(pg, 'peek');
+      await pg.waitForTimeout(400);
+    }
+    await setMeta('explore_haptic', '1');
+    // An exploring walk: one double-tap as the places come into range, never one per button press (PA2, PA6).
+    // It goes first: a walk that starts where the last one ended near the memorial would find it already named.
+    await setMeta('start_mode', 'explore');
+    await pg.reload();
+    await startWalk();
+    const atStart = (await buzzes()).length;
+    check(atStart === 0, `PA6: starting the walk, a button press, gives nothing on the web (${atStart} vibrations)`);
+    const firstMark = await walkPast();
+    const got = await buzzes();
+    console.log(`# nudge: ${JSON.stringify(got.map((b) => [Math.round(b.t), b.p]))} (${firstMark} buzzes when the first "?" showed)`);
+    check(firstMark === 2, `PA2: the double-tap comes with the first "?" in range (${firstMark})`);
+    check(got.length >= 2 && got.length % 2 === 0, `PA2: the alert is a double-tap, whole pairs only (${got.length} vibrations)`);
+    const gap = got.length >= 2 ? got[1].t - got[0].t : -1;
+    check(gap >= 80 && gap <= 400, `PA6: the two taps are a short gap apart (${Math.round(gap)} ms)`);
+    // Fox Point holds four attractions; at most one pair each, never more.
+    check(got.length / 2 <= 4, `PA2: each place alerts at most once a walk (${got.length / 2} nudges)`);
+    await holdStop();
+    // A quiet walk with the switch on: the "?" places are never shown, so nothing buzzes (PA3).
+    await pg.goto(navUrl);
+    await setMeta('start_mode', 'quiet');
+    await pg.reload();
+    const before = (await buzzes()).length;
+    await startWalk();
+    await walkPast();
+    const quiet = (await buzzes()).slice(before);
+    check(quiet.length === 0, `PA3: a quiet walk with the pocket alert on never buzzes (${JSON.stringify(quiet)})`);
     await c.close();
   };
 
@@ -2134,6 +2223,11 @@ function check(ok, what) {
       check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
       return;
     }
+    if (process.env.E2E_ONLY === 'nudge') {
+      await nudgeScenario();
+      check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
+      return;
+    }
     if (process.env.E2E_ONLY === 'tabs') {
       await tabsAudit();
       check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
@@ -2243,7 +2337,8 @@ function check(ok, what) {
     await drawerTo(page, 'half');
     const isOn = (id) => page.locator(`[data-testid=${id}] input`).isChecked();
     check((await isOn('notify-recall')) && (await isOn('notify-pause')), 'notifications: Remind me here and the pause reminder, both on by default (NT4)');
-    check((await page.locator('[data-testid=pocket-alert]').count()) === 0, 'the web has no pocket alert (NV21)');
+    check((await page.locator('[data-testid=pocket-alert]').count()) === (process.env.E2E_MOBILE ? 1 : 0),
+      'the pocket alert is offered on a touch screen only, never on a desktop browser with nothing to buzz (PA6, pocket-alert-nudge audit 4)');
     await page.click('[data-testid=notify-test]');
     await page.waitForSelector('[data-testid=notify-sent]', { timeout: 10000 });
     const shownNotes = await page.evaluate(async () => (await (await navigator.serviceWorker.ready).getNotifications()).map((n) => `${n.title}|${n.tag}`));
@@ -2364,7 +2459,7 @@ function check(ok, what) {
     for (let i = 0; i < 6; i++) await page.click('[data-testid=range-minus]');
     check((await page.locator('[data-testid=range-value]').innerText()) === '60 m', 'the range never goes under 60 m');
     for (let i = 0; i < 2; i++) await page.click('[data-testid=range-plus]');
-    check((await page.locator('[data-testid=kind-churches]').count()) === 1 && (await page.locator('[data-testid=pocket-alert]').count()) === 0, 'what I’m into lists the kinds; the web has no pocket alert');
+    check((await page.locator('[data-testid=kind-churches]').count()) === 1 && (await page.locator('[data-testid=pocket-alert]').count()) === (process.env.E2E_MOBILE ? 1 : 0), 'what I’m into lists the kinds; the pocket alert only on a touch screen (PA6, pocket-alert-nudge audit 4)');
     await shot(page, '01a-settings');
     await page.click('[data-testid=settings-done]');
     await page.waitForTimeout(300);
@@ -4094,6 +4189,7 @@ function check(ok, what) {
     await readyScenario();
     await readyAudit();
     await hiddenScenario();
+    await nudgeScenario();
     {
       // Start with Explore and a destination: the walk opens exploring, heading there (NV25).
       const { c, pg } = await freshPage('start-explore');

@@ -45,7 +45,10 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] DeviceMotion's units and update interval on iOS and Android, `motionSource`, `steps.ts` (Motion)
 - [ ] The iOS motion permission text, `askMotion` (Motion)
 - [ ] AppState `inactive` ending still spells, `useWalkMotion` (Motion)
-- [ ] The pocket alert, a light tap once per place per walk, `explore_haptic` (v1 Explore)
+- [ ] The pocket alert, a double-tap once per place per walk, `explore_haptic` (v1 Explore; PA1)
+- [ ] Whether the double-tap (two `impactAsync(Medium)` 120 ms apart, `HAPTIC_PATTERNS.nudge`) reads as one nudge on an iPhone and an Android phone, and whether Android's Vibrator merges them (Pocket alert nudge)
+- [ ] On the web: Android Chrome's vibrate for the pocket alert (it needs a tap on the page first, which Start gives); iPhone Safari's switch haptic, fired from a location update rather than a tap, may do nothing (Pocket alert nudge, 0079)
+- [ ] Success and warning feedback after the refactor through `HAPTIC_PATTERNS` (`haptics.ts` `playStep` → `notificationAsync`); an iPad offered the pocket alert on the web (a coarse pointer, no Taptic Engine); the 120 ms timer with the app backgrounded mid-pattern (pocket-alert-nudge audit)
 - [ ] The native-driver press (`Button`) and lift (`LiftIn`), and the `HomeSheet` spring (Polish: motion)
 
 ## Recording and the background task

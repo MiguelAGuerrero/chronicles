@@ -9,7 +9,9 @@ import { feedback } from '../motion';
 import { sweepCovered } from '../landing/view';
 import type { Capture, LngLat } from '../types';
 import {
-  alertsDue,
+  pocketAlert,
+  alertedFor,
+  alertKeys,
   EXPLORE_RULES,
   findFor,
   readCentre,
@@ -36,6 +38,9 @@ const CHECK_M = 25;
  * your range, faint ones along a route, the pocket alert; and on any walk, a
  * capture finding the nearest place within 60 m.
  */
+/** The places each walk has alerted (audit 3): outlives the walk screen, not a reload. */
+const alertedByWalk = new Map<string, Set<string>>();
+
 export function useExplore(opts: {
   walkId: string | null;
   exploring: boolean;
@@ -240,15 +245,14 @@ export function useExplore(opts: {
     return routeMarks({ items: routeItems, route: opts.route, rangeM, exclude: new Set(shown.map((s) => s.item.key)), found: foundSet, hidden: settings.hidden });
   }, [exploring, opts.route, routeItems, rangeM, settings.hidden, shown, foundSet]);
 
-  // The pocket alert (E19): a light tap, once a walk per place, as it comes into range as a "?".
-  const alerted = useRef(new Set<string>());
+  // The pocket alert (E19, PA1-PA3): one double-tap for the places that just came into range, each once a walk.
+  const previewing = opts.previewRangeM != null;
   useEffect(() => {
-    if (!exploring || !settings.haptic || riding) return;
-    const due = alertsDue(shown.filter((s) => s.state === 'unknown').map((s) => s.item.key), alerted.current);
-    if (!due.length) return;
-    for (const k of due) alerted.current.add(k);
-    feedback('tap');
-  }, [exploring, settings.haptic, riding, shown]);
+    const alerted = alertedFor(alertedByWalk, opts.walkId);
+    const { mark, nudge } = pocketAlert({ exploring, haptic: settings.haptic, riding, previewing, nearKeys: alertKeys(shown), alerted });
+    for (const k of mark) alerted.add(k);
+    if (nudge) feedback('nudge');
+  }, [exploring, settings.haptic, riding, previewing, shown, opts.walkId]);
 
   const pins = useMemo<MarkPin[]>(() => {
     const pin = (item: ChecklistItem, o: Partial<MarkPin>): MarkPin => {

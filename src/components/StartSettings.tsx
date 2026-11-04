@@ -1,5 +1,6 @@
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { clampRange, type Kind } from '../lib/explore/explore';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { canBuzz } from '../lib/canBuzz';
+import { clampRange, POCKET_ALERT_NOTE, type Kind } from '../lib/explore/explore';
 import type { ExploreSettings as Settings } from '../lib/explore/settings';
 import type { Waypoint } from '../lib/nav/types';
 import { destLine, type StartMode } from '../lib/startPlan';
@@ -83,12 +84,12 @@ export function StartSettings(props: {
 
       <View style={styles.rule} />
       <Text style={styles.title} accessibilityRole="header">Reminders and alerts</Text>
-      {/* The pocket alert is a tap you feel; a browser has none to give (E19). */}
-      {Platform.OS !== 'web' && (
+      {/* The pocket alert is a nudge you feel: on every phone, and on a touch-screen browser (E19, PA6). */}
+      {canBuzz() && (
         <SwitchRow
           testID="pocket-alert"
           label="Pocket alert"
-          note="A soft tap when a “?” comes into range. Never on a quiet walk."
+          note={POCKET_ALERT_NOTE}
           value={settings.haptic}
           onChange={(haptic) => props.onSettings({ ...settings, haptic })}
         />
