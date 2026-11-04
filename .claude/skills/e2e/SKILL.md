@@ -34,6 +34,15 @@ A run exits non-zero on the first failed check and prints `ok - ...` lines.
 | `reload` | a reload with a walk minimized keeps the walk reachable: the bar's ›, its Stop, the tabs |
 | `qol` | map staples QL1-QL12: Locate, the scale bar, the trace's end markers |
 | `gaps` | a walk with two GPS gaps written into storage, then a reload: one gap fills by itself, one is offered faint (G5, G6, G9, G10, G12; `window.__project`, `data-runs`, `data-faint`) |
+| `launch` | the launch: `/explore` and stale links, the tabs at their paths (NV1-NV6, NV11, NV16), manifest and service worker (NT1, NT2); then Walk here, a reload minimized, Start with Explore in fresh browsers (NV8, NV12, NV15, NV25) |
+| `walk` | the first walk: the ready bar's settings, 300 m with a note, reminder, photo, memo and video, hold-to-stop, the budgets, the replay. Ends on its card |
+| `chronicle` | after `walk`: placing, the card, naming, Chronicle's star, sheet and map view, the walks list, playback, reduce motion, the bar's spring |
+| `notifications` | after `walk`: a reminder tapped on Chronicle and from another tab (NV13), bulk placement (H8) |
+| `atlas` | after `walk`: the place view (E10), the atlas grid, tiles and card drawer (AT1-AT14), a town page, busy streets |
+| `memories` | after `walk`: Walk here from a star, the reminder firing, memory pins and previews (MR3, MR4), a bus ride. Ends on the ride walk's card |
+| `deletion` | after `walk` and `memories`: clearing walks and moments (D1-D11) |
+| `days` | Moments and days (M1-M17), a browser of its own |
+| `sensors` | motion from the sensors (MO1, MO5, MO8), a browser of its own |
 
 Add a scenario as one file, `scripts/e2e/journeys/<name>.js`, exporting
 `{ name, covers, run }`: `name` equal to the file name, `covers` the source

@@ -382,6 +382,32 @@ async function createHarness() {
     };
   }));
   const scriptsDir = path.join(__dirname, '..');
+  // A tab on the shared page, by its bar (NV4, NV5): the ready screen covers the tabs, so its chevron goes
+  // back to them first (NR4). Returns the path and the live map count after the move.
+  const onTab = async (id) => {
+    if (id !== 'navigate' && (await page.locator('[data-testid=ready-close]').count())) {
+      await page.click('[data-testid=ready-close]');
+      await page.waitForTimeout(600);
+    }
+    await page.click(`[data-testid=tab-${id}]`);
+    await page.waitForTimeout(800);
+    return { path: new URL(page.url()).pathname.slice(BASE.length), canvases: await page.locator('canvas.maplibregl-canvas').count() };
+  };
+  // The walk screen's map on the shared page, and its "?" marks.
+  const walkMap = () => page.locator('.maplibregl-map').last();
+  const walkMarks = () => walkMap().locator('[data-testid=mark-pin]');
+  // The first walk's route (the walk journey): 300 m at 5 m/s, one fix a second, 20 fixes a leg. The
+  // memories journey walks back along it.
+  const walkRoute = [at(-0.5, -0.5), at(0.5, -0.5), at(0.5, 0.5), at(1.5, 0.5)];
+  const walkPts = [];
+  for (let k = 1; k < walkRoute.length; k++)
+    for (let s = 1; s <= 20; s++)
+      walkPts.push([walkRoute[k - 1][0] + ((walkRoute[k][0] - walkRoute[k - 1][0]) * s) / 20, walkRoute[k - 1][1] + ((walkRoute[k][1] - walkRoute[k - 1][1]) * s) / 20]);
+  // Nothing leaves the device (D10): every request so far went to this server, the tile host or Overture.
+  const nothingLeaves = () => {
+    const away = [...hosts].filter((h) => !h.startsWith('localhost') && h !== 'tiles.openfreemap.org' && h !== OVERTURE_HOST);
+    check(away.length === 0, `nothing is sent anywhere but the map tiles and Overture's places (${away.join(', ')})`);
+  };
   const noConsoleErrors = () => check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
   const close = async () => {
     await browser.close();
@@ -389,7 +415,7 @@ async function createHarness() {
   };
   return {
     url, navUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, iconOf, metricRegion, pressedScale, metaOf, drawerTo, tabTo, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
-    noConsoleErrors, close,
+    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close,
   };
 }
 

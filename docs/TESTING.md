@@ -152,7 +152,16 @@ npm run export:web && npm run e2e:web
 
 | `E2E_ONLY` | runs |
 |---|---|
-| (unset) | the full flow: the ready screen and the tabs, notifications, a walk with notes, photo, memo, hold-to-stop, replay, Chronicle, memories, rides, motion, deletes, the perf window, plus the `tabs`, `gaps`, `ready`, `hidden` and `nudge` scenarios |
+| (unset) | the full flow (`scripts/e2e/journeys/full.js`): every journey's `checks` once, in the order of the one story: `launch`, `walk`, `chronicle`, `notifications`, `atlas`, `memories`, `days`, `sensors`, the fresh-browser flows, then `tabs`, `gaps`, `ready`, `hidden`, `nudge`, then `deletion`; about 15 minutes |
+| `launch` | the launch (NV1-NV6, NV11, NV16, NT1, NT2): the old `/explore` path, stale replay and day links, each tab at its path with one live map, the manifest and the service worker; then in fresh browsers Walk here from Explore (NV12, NV15), a reload with a walk minimized (NV8) and Start with Explore and a destination (NV25) |
+| `walk` | the first walk: the ready bar's settings (NR7, NV20-NV24, NT4, NV23), the hint and M7 banners, 300 m at 5 m/s with a note, a reminder, a captioned photo, a voice memo, a video, arrival, hold-to-stop, the leak and render budgets, and the replay with its stops and captions. Ends on the walk's card; the next four start there |
+| `chronicle` | after the walk (runs `walk` first when alone): placing and places of interest (D1), the card's finds and low (E11, U13), naming, Chronicle's star and sheet (H1, H5, H6, H7, NV27), the map view across a replay and the tabs (NV3, NV4), the walks list (M6), muted playback, reduce motion (M2), the ready bar's spring (NR7, NR9) |
+| `notifications` | after the walk: a reminder tapped with Chronicle in front, and from another tab (NV13); bulk placement behind a cover (H8) |
+| `atlas` | after the walk: the place view's checklist (E10), the atlas grid and tiles (AT1-AT14), the area card drawer, a town page, landing's busy streets (AD) |
+| `memories` | after the walk: Walk here from a star (N11), the walk back along the first route, the reminder firing once (R6, R9), memory pins and previews (MR3, MR4), a cold-open notice, a bus ride (R6). Ends on the ride walk's card |
+| `deletion` | after `walk` and `memories`: clearing walks and moments (D1-D11), the GPS log from More, undo, what is left, later walks' new streets (D7) |
+| `days` | Moments and days (M1-M17) in a browser of its own, nothing kept yet |
+| `sensors` | motion from the phone's sensors (MO1, MO5, MO8) in a browser of its own |
 | `tabs` | the Navigation & tabs audit's regression checks (`tabs audit N`, U1-U15) |
 | `gaps` | a walk with two GPS gaps written into storage, then a reload: one gap fills by itself, one is offered faint (G5, G6, G9, G10, G12; `window.__project`, `data-runs`, `data-faint`) |
 | `hidden` | the hidden-page notice: a 70 s gap with the page on screen raises none, one spent hidden does (decision 0072; fixes and `Date.now` jump by `__shift`, visibility faked by `__vis`) |
@@ -162,8 +171,14 @@ npm run export:web && npm run e2e:web
 | `reload` | a reload with a walk minimized keeps it reachable: the bar's ›, its Stop, the tabs |
 | `qol` | quality of life QL1-QL28: Locate, the scale bar, the trace's end markers, the units segment, time left while navigating, the denied-location chip (a second context without the permission), a photo's pin thumbnail, editing a note from the replay, month headers, rename from a Chronicle row (29 checks, about a minute) |
 
-`marks`, `reload` and `qol` run **only** through `E2E_ONLY`: run the ones your
-change touches as well as the full flow. Each ends with a no-console-errors check.
+Every journey has a `covers` list, so `check:affected` names the ones a change
+touches. A journey that continues the story (`chronicle`, `notifications`,
+`atlas`, `memories`, `deletion`) exports `checks(h)`, the block as the full
+flow runs it, and `run(h)`, which runs its prerequisites first (`walk`, and
+for `deletion` the `memories` checks) and, where the walk's card is not where
+it begins, a short `arrive` to Chronicle that does nothing in the full flow.
+The entry ends each named journey with the nothing-leaves-the-device and
+no-console-errors checks (`h.nothingLeaves()`, `h.noConsoleErrors()`).
 
 | variable | effect |
 |---|---|
@@ -214,6 +229,10 @@ Re-export without the variable afterwards for the plain e2e.
 - Reduced motion: `emulateMedia({ reducedMotion: 'reduce' })`. A mouse drag
   on a moving element reads as a tap: drag a moving sheet with CDP touch
   events (`Input.dispatchTouchEvent`). A mouse drag doesn't pan the home map.
+- The area card's grip: a short mouse pull springs back fine, but a second
+  mouse pull on it never returns (`page.mouse.move` waits forever on its
+  first step; the page stops answering, Nov 4). The `atlas` journey pulls it
+  the length of the screen with CDP touch events instead.
 - `window.__perf = {}` (in `addInitScript`) turns on `perfCount`: renders,
   `setData`, camera moves, `fit`, and the puck's `data-at`. The busy window
   fails above 2.5 walk-screen renders a second. `window.__enters` and
