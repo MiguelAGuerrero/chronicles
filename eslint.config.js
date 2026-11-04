@@ -28,7 +28,14 @@ const restrictedPaths = [
       "Haptics go through feedback(kind) in 'lib/motion' (built on lib/haptics), so reduce motion and the web no-op are honoured.",
   },
 ];
-const restricted = { 'no-restricted-imports': ['error', { paths: restrictedPaths }] };
+// lib/haptics is feedback()'s implementation; only lib/motion imports it (PA4, pocket-alert-nudge audit 7).
+const restrictedPatterns = [
+  {
+    group: ['**/haptics', './haptics'],
+    message: "Call feedback(kind) from 'lib/motion'; lib/haptics is its implementation (PA4, pocket-alert-nudge audit 7).",
+  },
+];
+const restricted = { 'no-restricted-imports': ['error', { paths: restrictedPaths, patterns: restrictedPatterns }] };
 
 // The layers (FC1-FC5, .claude/rules/functional-core.md). Which files are core
 // or view comes from each module's `// @layer` line, read by scripts/layers.js,
@@ -36,6 +43,11 @@ const restricted = { 'no-restricted-imports': ['error', { paths: restrictedPaths
 const layers = require('./scripts/layers');
 const CORE = layers.filesOfLayer(__dirname, 'core');
 const VIEWS = ['src/app/**/*.{ts,tsx}', 'src/components/**/*.{ts,tsx}', ...layers.filesOfLayer(__dirname, 'view')];
+
+// lib/motion is the one importer of lib/haptics: the same boundaries without that pattern.
+const restrictedForMotion = {
+  'no-restricted-imports': ['error', { paths: restrictedPaths }],
+};
 
 module.exports = defineConfig([
   expoConfig,
@@ -55,4 +67,5 @@ module.exports = defineConfig([
   { files: ['src/components/Modal.tsx'], rules: { 'no-restricted-imports': 'off' } },
   { files: ['src/lib/audioMode.native.ts'], rules: { 'no-restricted-imports': 'off' } },
   { files: ['src/lib/haptics.ts'], rules: { 'no-restricted-imports': 'off' } },
+  { files: ['src/lib/motion.ts'], rules: restrictedForMotion },
 ]);

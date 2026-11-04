@@ -94,7 +94,8 @@ const OVERTURE_RELEASE = '2026-10-21.0';
 const style = {
   version: 8,
   // maxzoom 14 matters: at the default 18, lines are clipped to z18 tiles, which real data never is.
-  sources: { openmaptiles: { type: 'geojson', maxzoom: 14, data: { type: 'FeatureCollection', features } } },
+  // The credit makes maplibre draw its attribution control, as the real tiles' do.
+  sources: { openmaptiles: { type: 'geojson', maxzoom: 14, attribution: 'Data from OpenStreetMap', data: { type: 'FeatureCollection', features } } },
   layers: [
     { id: 'bg', type: 'background', paint: { 'background-color': '#eeeae4' } },
     { id: 'roads', type: 'line', source: 'openmaptiles', paint: { 'line-color': '#ffffff', 'line-width': 6 } },
@@ -363,6 +364,7 @@ function check(ok, what) {
       viewport: { width: 390, height: 844 },
       // E2E_MOBILE=1: a phone's touch screen, so taps come as touches and the browser makes the clicks.
       ...(process.env.E2E_MOBILE ? { isMobile: true, hasTouch: true, deviceScaleFactor: 3 } : {}),
+      ...(opts.touch ? { hasTouch: true } : {}),
       permissions: opts.permissions ?? ['geolocation'],
       geolocation: { longitude: start[0], latitude: start[1], accuracy: 6 },
     });
@@ -863,6 +865,94 @@ function check(ok, what) {
     await c.close();
   };
 
+
+  // The pocket alert nudge (PA2, PA3, PA6): a double-tap as a "?" comes into range, through
+  // expo-haptics' web build, which calls navigator.vibrate; recorded here. E2E_ONLY=nudge runs it alone.
+  const nudgeScenario = async () => {
+    // A touch screen, so the switch is offered (PA6); taps still come as clicks.
+    const { c, pg } = await freshPage('nudge', { touch: true });
+    await c.addInitScript(() => {
+      window.__buzz = [];
+      navigator.vibrate = (p) => { window.__buzz.push({ t: performance.now(), p }); return true; };
+    });
+    const setMeta = (k, v) => pg.evaluate(([key, value]) => new Promise((resolve) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const tx = req.result.transaction('meta', 'readwrite');
+        tx.objectStore('meta').put({ key, value });
+        tx.oncomplete = () => resolve(true);
+      };
+    }), [k, v]);
+    const buzzes = () => pg.evaluate(() => window.__buzz.slice());
+    const marksNow = () => pg.locator('.maplibregl-map').last().locator('[data-testid=mark-pin]').count();
+    const startWalk = async () => {
+      await pg.waitForSelector('[data-testid=start]');
+      await pg.click('[data-testid=start]');
+      await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+      const s0 = at(-0.5, -0.5);
+      await c.setGeolocation({ longitude: s0[0], latitude: s0[1] + 0.000002, accuracy: 6 });
+      await pg.waitForTimeout(2500);
+    };
+    const walkPast = async () => {
+      let firstMark = null;
+      for (let k = 0; k <= 23; k++) {
+        const p = at(-0.5 + k * 0.05, -0.5);
+        await c.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+        await pg.waitForTimeout(1000);
+        if (firstMark === null && (await marksNow()) > 0) firstMark = (await buzzes()).length;
+      }
+      return firstMark;
+    };
+    const holdStop = async () => {
+      const b = await pg.locator('[data-testid=stop]').boundingBox();
+      await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+      await pg.mouse.down();
+      await pg.waitForTimeout(1100);
+      await pg.mouse.up();
+      await pg.waitForURL(/replay/, { timeout: 30000 });
+    };
+    await pg.goto(navUrl);
+    await pg.waitForSelector('[data-testid=start]');
+    {
+      // The switch, on a touch screen, with its note: the ready bar pulled up (PA5, PA6, NR7).
+      await drawerTo(pg, 'half');
+      await pg.waitForSelector('[data-testid=start-settings]');
+      const note = await pg.locator('[data-testid=start-settings]').innerText();
+      check((await pg.locator('[data-testid=pocket-alert]').count()) === 1 && /Two soft taps when a “\?” comes into range/.test(note),
+        'PA6: a touch screen is offered the pocket alert, with its note (PA5)');
+      await drawerTo(pg, 'peek');
+      await pg.waitForTimeout(400);
+    }
+    await setMeta('explore_haptic', '1');
+    // An exploring walk: one double-tap as the places come into range, never one per button press (PA2, PA6).
+    // It goes first: a walk that starts where the last one ended near the memorial would find it already named.
+    await setMeta('start_mode', 'explore');
+    await pg.reload();
+    await startWalk();
+    const atStart = (await buzzes()).length;
+    check(atStart === 0, `PA6: starting the walk, a button press, gives nothing on the web (${atStart} vibrations)`);
+    const firstMark = await walkPast();
+    const got = await buzzes();
+    console.log(`# nudge: ${JSON.stringify(got.map((b) => [Math.round(b.t), b.p]))} (${firstMark} buzzes when the first "?" showed)`);
+    check(firstMark === 2, `PA2: the double-tap comes with the first "?" in range (${firstMark})`);
+    check(got.length >= 2 && got.length % 2 === 0, `PA2: the alert is a double-tap, whole pairs only (${got.length} vibrations)`);
+    const gap = got.length >= 2 ? got[1].t - got[0].t : -1;
+    check(gap >= 80 && gap <= 400, `PA6: the two taps are a short gap apart (${Math.round(gap)} ms)`);
+    // Fox Point holds four attractions; at most one pair each, never more.
+    check(got.length / 2 <= 4, `PA2: each place alerts at most once a walk (${got.length / 2} nudges)`);
+    await holdStop();
+    // A quiet walk with the switch on: the "?" places are never shown, so nothing buzzes (PA3).
+    await pg.goto(navUrl);
+    await setMeta('start_mode', 'quiet');
+    await pg.reload();
+    const before = (await buzzes()).length;
+    await startWalk();
+    await walkPast();
+    const quiet = (await buzzes()).slice(before);
+    check(quiet.length === 0, `PA3: a quiet walk with the pocket alert on never buzzes (${JSON.stringify(quiet)})`);
+    await c.close();
+  };
+
   // A reload with a walk minimized (the owner, Nov 2): after it, nothing responded, and a reload
   // didn't clear it. E2E_ONLY=reload runs it alone.
   const reloadMinimized = async () => {
@@ -1282,10 +1372,33 @@ function check(ok, what) {
       await pg.waitForTimeout(800);
     };
 
+    // The map's credits start closed behind their (i) button, and a tap opens them (owner, Nov 4:
+    // maplibre's compact attribution opened itself across the bottom of a phone's map).
+    const attribution = () => pg.evaluate(() => {
+      const els = [...document.querySelectorAll('.maplibregl-ctrl-attrib')].filter((e) => !e.closest('[aria-hidden=true]'));
+      const el = els[els.length - 1];
+      if (!el) return null;
+      const inner = el.querySelector('.maplibregl-ctrl-attrib-inner');
+      return { compact: el.classList.contains('maplibregl-compact'), open: !!inner && getComputedStyle(inner).display !== 'none', text: inner ? inner.textContent : '' };
+    });
+    const checkAttribution = async (where) => {
+      const a = await attribution();
+      check(a && a.compact && !a.open, `map attribution: ${where} starts with its credits closed behind the (i) button (${JSON.stringify(a)})`);
+      const button = pg.locator('xpath=//*[contains(@class,"maplibregl-ctrl-attrib-button")][not(ancestor::*[@aria-hidden="true"])]').last();
+      // Dispatched: on Navigate the web notice banner lies over the top-right corner until dismissed.
+      await button.dispatchEvent('click');
+      await pg.waitForTimeout(200);
+      const b = await attribution();
+      check(b && b.open && /OpenStreetMap/.test(b.text), `map attribution: on ${where}, a tap on (i) shows the credits (${JSON.stringify(b)})`);
+      await button.dispatchEvent('click');
+      await pg.waitForTimeout(200);
+    };
+
     // Navigate: Locate from 1 km away.
     await pg.goto(navUrl);
     await pg.waitForSelector('[data-testid=start]');
     await pg.waitForTimeout(1500);
+    await checkAttribution('Navigate');
     const far = at(10, 0);
     await fix(far);
     const locate = shown('locate');
@@ -1403,6 +1516,7 @@ function check(ok, what) {
     // Explore has Locate and the bar; Chronicle has the bar and no trace ends.
     await tabTo(pg, 'explore');
     await pg.waitForTimeout(1200);
+    await checkAttribution('Explore');
     const near = at(0.2, 0.3);
     await fix(near);
     const locate2 = shown('locate');
@@ -1572,6 +1686,30 @@ function check(ok, what) {
       const row = await capRow('text');
       check(prefilled === 'First words on the corner.' && blankRefused && seenNow && seenAgain && row && row.body === 'Edited on the replay.',
         `qol QL24, QL25: Edit note opens prefilled, refuses blank, and the new words show at once and when opened again (prefilled ${JSON.stringify(prefilled)}, blank refused ${blankRefused}, now ${seenNow}, again ${seenAgain}, stored ${JSON.stringify(row && row.body)})`);
+      await pg.click('[data-testid=viewer-close]');
+      await pg.waitForTimeout(400);
+    });
+
+    // The reminder bell on the replay's pin (RB1, RB5, RB6, RB7): Remind me here puts it on the same
+    // pin element at once (reminder-bell audit 3), and Stop takes it off.
+    await qstep('qol RB1, RB5, RB6, RB7', async () => {
+      const bells = () => pg.locator('[data-ids] [data-testid=pin-reminder]').count();
+      const before = await bells();
+      await openNote();
+      await pg.evaluate(() => document.querySelectorAll('[data-ids]').forEach((e) => { e.__beforeBell = true; }));
+      await pg.click('[data-testid=viewer-remind]');
+      await pg.click('[data-testid=remind-save]');
+      await pg.waitForSelector('text=It will come back when you pass here', { timeout: 5000 });
+      await pg.waitForSelector('[data-ids] [data-testid=pin-reminder]', { timeout: 5000 }).catch(() => null);
+      const belled = pg.locator('[data-ids]:has([data-testid=pin-reminder])');
+      const set = { n: await belled.count(), kept: await belled.evaluateAll((els) => els.every((e) => e.__beforeBell === true)), label: (await belled.count()) ? await belled.first().getAttribute('aria-label') : '' };
+      await pg.click('[data-testid=viewer-remind]');
+      await pg.click('[data-testid=remind-stop]');
+      await pg.waitForSelector('text=No more reminders here', { timeout: 5000 });
+      await pg.waitForFunction(() => !document.querySelector('[data-testid=pin-reminder]'), null, { timeout: 5000 }).catch(() => null);
+      const after = await bells();
+      check(before === 0 && set.n === 1 && set.kept && /reminder set\. Open$/.test(set.label) && after === 0,
+        `qol RB1, RB5, RB6, RB7: the replay's note pin wears the bell once reminded, on the same element, says so, and loses it on Stop (before ${before}, set ${JSON.stringify(set)}, after ${after})`);
       await pg.click('[data-testid=viewer-close]');
       await pg.waitForTimeout(400);
     });
@@ -2137,6 +2275,11 @@ function check(ok, what) {
       check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
       return;
     }
+    if (process.env.E2E_ONLY === 'nudge') {
+      await nudgeScenario();
+      check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
+      return;
+    }
     if (process.env.E2E_ONLY === 'tabs') {
       await tabsAudit();
       check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
@@ -2246,7 +2389,8 @@ function check(ok, what) {
     await drawerTo(page, 'half');
     const isOn = (id) => page.locator(`[data-testid=${id}] input`).isChecked();
     check((await isOn('notify-recall')) && (await isOn('notify-pause')), 'notifications: Remind me here and the pause reminder, both on by default (NT4)');
-    check((await page.locator('[data-testid=pocket-alert]').count()) === 0, 'the web has no pocket alert (NV21)');
+    check((await page.locator('[data-testid=pocket-alert]').count()) === (process.env.E2E_MOBILE ? 1 : 0),
+      'the pocket alert is offered on a touch screen only, never on a desktop browser with nothing to buzz (PA6, pocket-alert-nudge audit 4)');
     await page.click('[data-testid=notify-test]');
     await page.waitForSelector('[data-testid=notify-sent]', { timeout: 10000 });
     const shownNotes = await page.evaluate(async () => (await (await navigator.serviceWorker.ready).getNotifications()).map((n) => `${n.title}|${n.tag}`));
@@ -2367,7 +2511,7 @@ function check(ok, what) {
     for (let i = 0; i < 6; i++) await page.click('[data-testid=range-minus]');
     check((await page.locator('[data-testid=range-value]').innerText()) === '60 m', 'the range never goes under 60 m');
     for (let i = 0; i < 2; i++) await page.click('[data-testid=range-plus]');
-    check((await page.locator('[data-testid=kind-churches]').count()) === 1 && (await page.locator('[data-testid=pocket-alert]').count()) === 0, 'what I’m into lists the kinds; the web has no pocket alert');
+    check((await page.locator('[data-testid=kind-churches]').count()) === 1 && (await page.locator('[data-testid=pocket-alert]').count()) === (process.env.E2E_MOBILE ? 1 : 0), 'what I’m into lists the kinds; the pocket alert only on a touch screen (PA6, pocket-alert-nudge audit 4)');
     await shot(page, '01a-settings');
     await page.click('[data-testid=settings-done]');
     await page.waitForTimeout(300);
@@ -2538,10 +2682,38 @@ function check(ok, what) {
         await page.waitForSelector('[data-testid=remind-editor]');
         check((await page.locator('[data-testid=remind-once][aria-checked=true]').count()) === 1 && (await page.locator('[data-testid=remind-none][aria-checked=true]').count()) === 1, 'remind me here offers how often, once by default, and until when');
         await shot(page, '03a-remind');
+        // Every pin element as it stands, to see that the bell redraws it in place (reminder-bell audit 3, 4).
+        await page.evaluate(() => document.querySelectorAll('[data-ids]').forEach((e) => { e.__beforeBell = true; }));
         await page.click('[data-testid=remind-save]');
         await page.waitForSelector('text=It will come back when you pass here');
         check((await page.locator('[aria-label="Reminder set. Change or stop it"]').count()) === 1, 'the viewer shows the reminder is set');
+        // The map behind the open viewer already wears the bell, on the same element (RB5, audit 3, 4).
+        await page.waitForSelector('[data-ids] [data-testid=pin-reminder]', { timeout: 5000 }).catch(() => null);
+        const keptOnSave = await page.locator('[data-ids]:has([data-testid=pin-reminder])').evaluateAll((els) => els.length === 1 && els[0].__beforeBell === true);
+        check(keptOnSave, 'reminder-bell audit 3: the bell redraws the same pin element in place, so focus can return to it and a photo keeps its picture (audit 4)');
+        // Stop from the viewer takes the bell off at once (RB5), then set again for the walk ahead.
+        await page.click('[data-testid=viewer-remind]');
+        await page.click('[data-testid=remind-stop]');
+        await page.waitForSelector('text=No more reminders here');
+        await page.waitForFunction(() => !document.querySelector('[data-testid=pin-reminder]'), null, { timeout: 5000 }).catch(() => null);
+        const bellsAfterStop = await page.locator('[data-testid=pin-reminder]').count();
+        check(bellsAfterStop === 0, `Stop reminding me takes the pin's bell off at once (RB5: ${bellsAfterStop} bells)`);
+        await page.click('[data-testid=viewer-remind]');
+        await page.click('[data-testid=remind-save]');
+        await page.waitForSelector('text=It will come back when you pass here');
         await page.click('[aria-label="Close"]');
+        // Its pin wears the bell at once, top right, and says so (RB1, RB5, RB7).
+        const belled = await page.waitForSelector('[data-ids] [data-testid=pin-reminder]', { timeout: 5000 }).then(() => true, () => false);
+        const bellPin = page.locator('[data-ids]:has([data-testid=pin-reminder])');
+        const bellLabel = belled ? await bellPin.first().getAttribute('aria-label') : '';
+        const bellSide = belled ? await bellPin.first().evaluate((el) => {
+          const b = el.querySelector('[data-testid=pin-reminder]').getBoundingClientRect();
+          const r = el.getBoundingClientRect();
+          return b.left + b.width / 2 > r.left + r.width / 2 ? 'right' : 'left';
+        }) : '';
+        check(belled && (await bellPin.count()) === 1 && /reminder set/.test(bellLabel) && bellSide === 'right',
+          `the reminded note's pin wears a bell, top right, and says so (RB1, RB5, RB7: ${await bellPin.count()} belled, "${bellLabel}", ${bellSide})`);
+        await shot(page, '03b-bell');
       }
       if (k === 28) {
         // Go here on a "?" routes to it, unnamed until it is revealed (E12).
@@ -2917,6 +3089,9 @@ function check(ok, what) {
       if (!moment) await page.waitForTimeout(500);
     }
     check(moment, 'the note gets its moment in the replay');
+    // The replay is another map: its pin for the reminded note wears the bell too (RB6).
+    const replayBell = await page.waitForSelector('[data-ids] [data-testid=pin-reminder]', { timeout: 5000 }).then(() => true, () => false);
+    check(replayBell, 'the replay\u2019s pin for the reminded note wears the bell too (RB6)');
     await page.waitForTimeout(3000);
     await shot(page, '04-replay-moment');
     check((await page.getByText('cardamom').count()) > 0, 'the replay waits at the note until a tap');
@@ -3349,6 +3524,16 @@ function check(ok, what) {
       const head = await page.waitForSelector('[data-testid=atlas-town-head]', { timeout: 10000 }).then(() => true, () => false);
       check(head && (await page.locator('[data-testid=explore-area]').innerText()) === homeName && (await page.locator('[data-testid=atlas-back-pill]').count()) === 1,
         `AT2: the title opens your town's own page, headed by its picture, with a way back low on the screen (${homeName})`);
+      {
+        // The town's tile takes its own height: iPhone Safari collapsed it (flex 0 is a 0% basis) and the heading
+        // and the empty line were drawn over it (Nov 3).
+        const tile = await page.locator('[data-testid=atlas-town-head]').boundingBox();
+        const sec = await page.locator('[data-testid=atlas-town-section]').boundingBox();
+        check(tile && sec && tile.height > 150 && tile.y + tile.height <= sec.y + 1,
+          `town page: its tile ends above its neighborhoods (tile ${tile && Math.round(tile.y)}+${tile && Math.round(tile.height)}, heading ${sec && Math.round(sec.y)})`);
+      }
+      check((await page.locator('[data-testid=atlas-back]').count()) === 0, 'town page: one way back, the low pill; the title has no arrow (decision 0077)');
+      await shot(page, '11d-atlas-town');
       await page.click('[data-testid=atlas-back-pill]');
       await page.waitForSelector('[data-testid=atlas-tile][data-name="Fox Point"]', { timeout: 10000 });
       check((await page.locator('[data-testid=atlas-town-head]').count()) === 0, 'AT2: back returns to the areas near you');
@@ -3524,6 +3709,22 @@ function check(ok, what) {
     const again = await recallRows();
     check((await page.locator('[data-testid=reminder]').count()) === 0 && again.length === 1 && again[0].fired_count === 0,
       'a capture flagged mid-walk doesn’t come back in that walk');
+    // Flagged again, its memory pin wears the bell top left and keeps its clock top right, both solid (RB4, RB5).
+    const noteMemory = page.locator(`[data-testid=memory-pin][data-ids*="${flaggedNote.id}"]`);
+    await page.waitForSelector(`[data-testid=memory-pin][data-ids*="${flaggedNote.id}"] [data-testid=pin-reminder]`, { timeout: 10000 }).catch(() => null);
+    const corners = (await noteMemory.count()) ? await noteMemory.first().evaluate((el) => {
+      const bell = el.querySelector('[data-testid=pin-reminder]');
+      const clock = el.querySelector('[data-testid=memory-badge]');
+      if (!bell || !clock) return null;
+      // The opacity it is seen at: its own times every ancestor's (reminder-bell audit 6: its own alone is always 1).
+      const seen = (n) => { let o = 1; for (let e = n; e && e !== el; e = e.parentElement) o *= Number(getComputedStyle(e).opacity); return o; };
+      const b = bell.getBoundingClientRect();
+      const c = clock.getBoundingClientRect();
+      return { bell: b.left, clock: c.left, opacity: seen(bell), clockOpacity: seen(clock), size: Math.round(b.width), clockSize: Math.round(c.width), label: el.getAttribute('aria-label') };
+    }) : null;
+    check(!!corners && corners.bell < corners.clock && corners.opacity === 1 && corners.clockOpacity === 1 && corners.size === corners.clockSize && /reminder set/.test(corners.label),
+      `a memory pin with a reminder shows the bell left of its clock, both solid and the same size, and says so (RB4, RB7, reminder-bell audit 6: ${JSON.stringify(corners)})`);
+    await shot(page, '13b-memory-bell');
     // A memory pin: faded and smaller than a capture pin (MR3); a tap previews it (MR4), and the preview
     // opens the viewer with every memory from that spot (MR5).
     await page.waitForSelector('[data-testid=memory-pin]', { timeout: 15000 });
@@ -4075,6 +4276,7 @@ function check(ok, what) {
     await readyScenario();
     await readyAudit();
     await hiddenScenario();
+    await nudgeScenario();
     {
       // Start with Explore and a destination: the walk opens exploring, heading there (NV25).
       const { c, pg } = await freshPage('start-explore');

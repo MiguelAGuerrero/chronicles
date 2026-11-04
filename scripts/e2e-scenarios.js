@@ -51,12 +51,21 @@ const SCENARIOS = [
     covers: ['src/lib/{hiddenLog,useLiveTrace}.ts', 'src/components/OpenWalk.tsx', 'src/app/walk.tsx'],
   },
   {
+    // The pocket alert nudge (PA2, PA3, PA5, PA6): a double-tap as a "?" comes into range.
+    name: 'nudge',
+    covers: [
+      'src/lib/{haptics,motion,motionTokens,canBuzz,canBuzz.web}.ts',
+      'src/lib/explore/{explore,useExplore,settings}.ts',
+      'src/components/{StartSettings,ExploreSettings}.tsx',
+    ],
+  },
+  {
     name: 'qol',
     covers: [
-      'src/components/{LocateButton,HomeSheet,CaptureView}.tsx',
+      'src/components/{LocateButton,HomeSheet,CaptureView,CapturePinView}.tsx',
       'src/components/map/**',
       'src/app/(tabs)/chronicle.tsx',
-      'src/lib/{scaleBar,units,unitsStore,useUnits,useLocate,rename,noteEdit,months,pins,thumbPlan,thumbJob,walkTitle}.ts',
+      'src/lib/{scaleBar,units,unitsStore,useUnits,useLocate,rename,noteEdit,months,pins,thumbPlan,thumbJob,walkTitle,useReminded}.ts',
       'src/lib/nav/eta.ts',
     ],
   },

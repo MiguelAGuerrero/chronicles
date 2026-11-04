@@ -16,17 +16,38 @@ const STEP_M = 10;
 // The flags, kept in memory between checks; every write goes through here.
 let cache: Recall[] | null = null;
 const recalls = async () => (cache ??= await db.listRecalls());
+// Maps listen, so a pin's bell follows a reminder set, fired, stopped or deleted (RB5).
+const changed = new Set<() => void>();
+const tell = () => {
+  for (const fn of changed) fn();
+};
+/** Called after any reminder is written or dropped; returns the unsubscribe. */
+export function onRecallsChanged(fn: () => void): () => void {
+  changed.add(fn);
+  return () => {
+    changed.delete(fn);
+  };
+}
+/**
+ * The flags as stored now, for the pins' bells (RB1). Read from storage, never
+ * through the cache above: filling that early would hide a flag written after a
+ * map opened from the next check.
+ */
+export const readRecalls = () => db.listRecalls();
 export async function saveRecall(r: Recall) {
   await db.setRecall(r);
   cache = null;
+  tell();
 }
 export async function stopRecall(captureId: string) {
   await db.clearRecall(captureId);
   cache = null;
+  tell();
 }
 /** Drops the in-memory flags after a delete took some with it (D3), so the next check reads storage. */
 export function forgetRecalls() {
   cache = null;
+  tell();
 }
 /** The flag as stored now, for an edit that must not undo a fire (R9). */
 export async function storedRecall(captureId: string): Promise<Recall | null> {

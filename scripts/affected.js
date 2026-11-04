@@ -198,11 +198,15 @@ function describeTests(r) {
   return `Running ${r.tests.length} test file${r.tests.length === 1 ? '' : 's'} that import what changed:\n${lines.join('\n')}\n${r.skipped} test files skipped.`;
 }
 
-/** The files `lint:affected` lints (AC6): changed sources that still exist, or everything when the lint config changed. */
+/**
+ * The files `lint:affected` lints (AC6): changed sources that still exist, or everything when the lint config changed.
+ * Only what `npm run lint` covers (`src`, `index.js`): the Node scripts were never written for that config, so a
+ * change to `scripts/e2e-web.js` failed on its `__dirname` and `Buffer`.
+ */
 function lintTargets(root, changed) {
   const config = changed.filter((c) => LINT_CONFIG.includes(c));
   if (config.length) return { all: true, why: `${config.join(', ')} changed: every file's lint result can change`, files: [] };
-  const files = changed.filter((c) => SOURCE.test(c) && !c.startsWith('node_modules/') && !c.startsWith('dist/') && fs.existsSync(path.join(root, c)));
+  const files = changed.filter((c) => SOURCE.test(c) && (c.startsWith('src/') || c === 'index.js') && fs.existsSync(path.join(root, c)));
   return { all: false, files };
 }
 

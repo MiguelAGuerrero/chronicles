@@ -11,7 +11,8 @@ import { namedStars, StarView, starLabel } from '../StarView';
 import type { RoadFeature } from '../../lib/streets';
 import type { Capture, LngLat } from '../../lib/types';
 import { TILEJSON_URL } from '../../lib/tiles';
-import { metersPerPixel, pinThumb } from '../../lib/pins';
+import { metersPerPixel, pinReminded, pinThumb } from '../../lib/pins';
+import { useReminded } from '../../lib/useReminded';
 import { scaleBar } from '../../lib/scaleBar';
 import { traceEnds } from '../../lib/traceEnds';
 import { ScaleBar, SCALE_MAX_PX } from './ScaleBar';
@@ -47,6 +48,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   // Pins grouped for the current zoom, so nearby ones merge instead of piling up.
   const pins = useZoomPins(props.captures, view?.zoom ?? props.initialZoom ?? null, view?.lat ?? null);
   const memoryPins = useZoomPins(props.memories ?? NO_CAPTURES, view?.zoom ?? props.initialZoom ?? null, view?.lat ?? null);
+  // One read of the reminders per map, for the bells on its pins (RB1, RB6).
+  const reminded = useReminded();
   // What was on screen before this change, for the deferred four (M10-M12): a remounted pin's view
   // gets its entrance from here. Nothing animates on first render, nor for captures older than the screen.
   const [openedAt] = useState(() => Date.now());
@@ -362,7 +365,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             before this walk's pins so those stay on top (audit 6). */}
         {memoryPins.map((pin) => (
           <Marker
-            key={`memory:${pin.id}:${pin.captures.map((c) => c.id).join(',')}:${pinThumb(pin) ?? ''}`}
+            key={`memory:${pin.id}:${pin.captures.map((c) => c.id).join(',')}:${pinThumb(pin) ?? ''}:${pinReminded(pin, reminded)}`}
             id={`memory:${pin.id}`}
             lngLat={pin.lngLat}
             anchor="bottom"
@@ -371,20 +374,21 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             <View
               accessible
               accessibilityRole={props.onMemoryPress ? 'button' : 'image'}
-              accessibilityLabel={pinLabel(pin, !!props.onMemoryPress, true)}
+              accessibilityLabel={pinLabel(pin, !!props.onMemoryPress, true, pinReminded(pin, reminded))}
               style={styles.pinHit}
             >
-              <CapturePinView pin={pin} faint />
+              <CapturePinView pin={pin} faint reminded={pinReminded(pin, reminded)} />
             </View>
           </Marker>
         ))}
         {/* The Marker's own onPress: on iOS the annotation's tap recognizer
             swallows touches meant for a Pressable inside it. */}
-        {/* The photo's small copy is in the key, so one made after the pin was drawn shows (QL27). */}
+        {/* The photo's small copy is in the key, so one made after the pin was drawn shows (QL27);
+            the bell too, so a reminder set or stopped shows at once (RB5). */}
         {pins.map((pin) => (
           <Marker
-            key={`${pin.id}:${pin.captures.length}:${pinThumb(pin) ?? ''}`}
-            id={`${pin.id}:${pin.captures.length}:${pinThumb(pin) ?? ''}`}
+            key={`${pin.id}:${pin.captures.length}:${pinThumb(pin) ?? ''}:${pinReminded(pin, reminded)}`}
+            id={`${pin.id}:${pin.captures.length}:${pinThumb(pin) ?? ''}:${pinReminded(pin, reminded)}`}
             lngLat={pin.lngLat}
             anchor="bottom"
             onPress={props.onPinPress ? () => props.onPinPress?.(pin.captures) : undefined}
@@ -392,10 +396,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             <View
               accessible
               accessibilityRole={props.onPinPress ? 'button' : 'image'}
-              accessibilityLabel={pinLabel(pin, !!props.onPinPress)}
+              accessibilityLabel={pinLabel(pin, !!props.onPinPress, false, pinReminded(pin, reminded))}
               style={styles.pinHit}
             >
-              <CapturePinView pin={pin} drop={pinDrops(pin.captures, seenCaptures, openedAt)} />
+              <CapturePinView pin={pin} drop={pinDrops(pin.captures, seenCaptures, openedAt)} reminded={pinReminded(pin, reminded)} />
             </View>
           </Marker>
         ))}

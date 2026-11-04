@@ -54,6 +54,11 @@ export function pinsFor(captures: Capture[], radiusM: number): CapturePin[] {
   return pins;
 }
 
+/** Whether a pin wears the reminder bell (RB1, RB2): any of its captures has a live reminder. */
+export function pinReminded(pin: CapturePin, ids: ReadonlySet<string>): boolean {
+  return pin.captures.some((c) => ids.has(c.id));
+}
+
 /**
  * The stored ref of the small copy a pin's head shows (QL26): only for a pin of
  * one photo whose copy is made. Never the full photo: while the copy is being

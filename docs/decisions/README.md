@@ -82,4 +82,7 @@ An owner's call made during a slice gets its record in the same commit as the sl
 | [0074](0074-fast-iteration-scoped-checks.md) | 2026-11-03 | Fast iteration: affected checks and the slice's own e2e journey; the full e2e and `/audit` only when the owner asks (supersedes 0018's audit on every slice) | process, testing |
 | [0075](0075-the-cone-is-checked-by-the-trace.md) | 2026-11-03 | The cone is checked by the trace over 20 m; the live dot's direction alone is never drawn (amends 0030) | navigation, map |
 | [0076](0076-navigate-opens-the-walk-screen-ready.md) | 2026-11-03 | Navigate opens the walk screen, ready; captures stack at the right edge; the bar pulls up | tabs, navigate, walk screen |
-| [0077](0077-activity-density.md) | 2026-11-03 | Busy streets measure the density of places, of every kind, from OpenStreetMap and Overture Places, graded along each street against the town itself (supersedes L4 and L5's fixed thresholds) | landing, explore |
+| [0077](0077-one-way-back-from-a-town.md) | 2026-11-04 | A town's page has one way back, the pill low on the screen; the title card has no arrow | explore, atlas |
+| [0078](0078-reminder-bell-on-pins.md) | 2026-11-04 | A pin with a reminder wears a bell (any kind; a merged pin if any; top left on a memory pin) | map, notifications, memories |
+| [0079](0079-pocket-alert-double-tap-and-web.md) | 2026-11-04 | The pocket alert is a double-tap, and the web gives it too on a touch screen (amends NV21, E19) | explore, motion |
+| [0080](0080-activity-density.md) | 2026-11-03 | Busy streets measure the density of places, of every kind, from OpenStreetMap and Overture Places, graded along each street against the town itself (supersedes L4 and L5's fixed thresholds) | landing, explore |

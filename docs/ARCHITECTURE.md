@@ -188,7 +188,8 @@ Captures and media
   media/                     where files are kept: Documents (relative paths) on native, Blobs in IndexedDB on web; resolveMedia
   media/thumb.ts             the 240 px copy with expo-image-manipulator; thumbPlan.ts decides when; thumbJob.ts runs one job per photo at a time
   useMediaUri.ts             a capture's media as a playable URI
-  pins.ts                    pinsFor: grouping captures by screen distance
+  pins.ts                    pinsFor: grouping captures by screen distance; pinReminded, the bell
+  useReminded.ts             the captures with a live reminder, per map; re-read on recallCheck's onRecallsChanged and at nextExpiry
   momentPins.ts              moments outside walks as pins (Navigate, Chronicle) and Chronicle's fit around them
   export/bundle.ts           writeWalkBundle (deferred; nothing in the UI reaches it); export/ per-platform keepers
 Deletion
@@ -200,10 +201,11 @@ Notifications
   notify/transport.native.ts expo-notifications; transport.web.ts: the service worker (public/sw.js); webNotice.ts: its message and URL
   openers.ts                 stacked listeners for a tapped notification, newest first
 Motion (animation)
-  motionTokens.ts            MOTION timings, PRESS_SCALE, durationFor
+  motionTokens.ts            MOTION timings, PRESS_SCALE, durationFor, HAPTIC_PATTERNS (each feedback kind's taps), nudgeAllowed, buzzOffered
   motion.ts                  useReducedMotion, nativeDriver, feedback(kind): every haptic goes through here
   enter.ts                   which change gets which of the four entrances
-  haptics.ts                 expo-haptics behind feedback()
+  haptics.ts                 expo-haptics behind feedback(); on web only the pocket alert's nudge plays
+  canBuzz.ts, canBuzz.web.ts whether to offer the pocket alert: always on a phone; on web, a touch screen
 Session, screens and small helpers
   walkNav.ts, walkGate.ts         showWalk(): the one way to the walk screen, gated
   launchRoute.ts            the path the app opened on: a stale replay or day link at launch goes to Explore (NV2)
@@ -335,6 +337,12 @@ own code only where no Expo module covers the feature on web:
   `navigator.userAgent` and `maxTouchPoints`, since `Platform.OS` is just
   `web` and no Expo module says which phone a browser runs on. The link
   itself goes through React Native's `Linking`, as on a phone.
+- **Can it buzz** (the pocket alert's switch): `canBuzz.web.ts` asks
+  whether the pointer is coarse. expo-haptics' web build vibrates where
+  `navigator.vibrate` exists and tries iPhone Safari's switch haptic on a touch
+  screen, but desktop Chrome has `navigator.vibrate` and no motor (audit 4);
+  expo-haptics has no availability call. The buzz itself goes through expo-haptics, as on a
+  phone (decision 0079).
 - **Browser fixes** with no native counterpart: `webStyles.web.ts` (pinned
   viewport, long-press guards) and the muted-autoplay fallback.
 

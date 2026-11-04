@@ -9,7 +9,7 @@ were measured in a cloud container on Nov 3, 2026. The e2e skill
 ```bash
 npm run check:affected   # layers, affected unit tests, typecheck, affected lint; then the e2e scenarios to run
 npm run test:affected    # only the unit tests that import a changed file, directly or not
-npm run lint:affected    # only the changed files
+npm run lint:affected    # only the changed files that npm run lint covers (src, index.js)
 ```
 
 - **Changed** is everything that differs from the merge base with
@@ -142,11 +142,12 @@ npm run export:web && npm run e2e:web
 
 | `E2E_ONLY` | runs |
 |---|---|
-| (unset) | the full flow: the ready screen and the tabs, notifications, a walk with notes, photo, memo, hold-to-stop, replay, Chronicle, memories, rides, motion, deletes, the perf window, plus the `tabs`, `gaps`, `ready` and `hidden` scenarios |
+| (unset) | the full flow: the ready screen and the tabs, notifications, a walk with notes, photo, memo, hold-to-stop, replay, Chronicle, memories, rides, motion, deletes, the perf window, plus the `tabs`, `gaps`, `ready`, `hidden` and `nudge` scenarios |
 | `tabs` | the Navigation & tabs audit's regression checks (`tabs audit N`, U1-U15) |
 | `gaps` | a walk with two GPS gaps written into storage, then a reload: one gap fills by itself, one is offered faint (G5, G6, G9, G10, G12; `window.__project`, `data-runs`, `data-faint`) |
 | `hidden` | the hidden-page notice: a 70 s gap with the page on screen raises none, one spent hidden does (decision 0072; fixes and `Date.now` jump by `__shift`, visibility faked by `__vis`) |
 | `ready` | Navigate, ready (NR1-NR13): the ready walk screen at launch, the chevron back to the tab beneath, the bar pulled up, a destination line, a memo in the stack, Start in place (boxes unchanged), a moment before and a capture after, NR11's overlaps at 375×667 with every edge button up, the web note and a denied location (29 checks, about three minutes) |
+| `nudge` | the pocket alert (PA2, PA3, PA5, PA6), in a touch context (`freshPage(..., { touch: true })`, so the switch is offered): `navigator.vibrate` recorded by an init script; an exploring walk gives one double-tap as the first "?" comes into range, Start gives none, a quiet walk none. The exploring walk goes first: a walk that starts where the last ended, by the memorial, finds it already named |
 | `marks` | an exploring walk through an area read before draws the marks it passes (Nov 2 repro) |
 | `reload` | a reload with a walk minimized keeps it reachable: the bar's ›, its Stop, the tabs |
 | `qol` | quality of life QL1-QL28: Locate, the scale bar, the trace's end markers, the units segment, time left while navigating, the denied-location chip (a second context without the permission), a photo's pin thumbnail, editing a note from the replay, month headers, rename from a Chronicle row (29 checks, about a minute) |

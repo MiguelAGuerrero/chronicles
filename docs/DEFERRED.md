@@ -50,10 +50,13 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - An index for Offered; it's read whole, fine for thousands (v1 discovery)
 - An unstamped capture can't find a place: it has no position until stop, `findFor` (v1 Explore)
 - A place moved by a new build can be found twice (v1 Explore)
-- The pocket alert likely needs the screen on (native), `explore_haptic` (v1 Explore)
+- The pocket alert likely needs the screen on (native), `explore_haptic` (v1 Explore); on the web a hidden page gets no fixes, so it never fires there with the screen off (Pocket alert nudge)
+- Button haptics on the web: only the pocket alert buzzes there (Pocket alert nudge, 0079)
+- A reload mid-walk forgets which places alerted, so they nudge again; on Android Chrome that nudge comes before any tap and is blocked, and the places count as alerted (pocket-alert-nudge audit 3)
+- The pocket alert's second tap still plays up to 120 ms after a hold-to-stop or the switch going off on the same fix (pocket-alert-nudge audit 6)
 - The home preview ignores the kind switches and doesn't restore the view after (v1 Explore)
 
-## Activity density (AD1-AD16, decision 0077)
+## Activity density (AD1-AD16, decision 0080)
 
 - Overture places as marks, finds or presence bars: marks stay the owner's attractions rule, and the bars must mean the same everywhere (activity density, AD2)
 - Building footprints, land use, address points and street centrality as density signals, for towns where neither OSM nor Overture has the shops (activity density, the research)
@@ -67,6 +70,8 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 - Clearing reminder flags whose capture is gone, `discovery/recall.ts` (Remind me here)
 - Remind me here firing outside a walk; needs background location (Moments and days)
+- The reminder bell in a second web tab: a reminder fired or stopped in one tab leaves the bell in the other until a reload; `tell()` is per JS context (Reminder bell, audit 5)
+- Native: the pin's Marker is re-keyed when its bell changes, so a photo pin shows its icon for a moment; the web redraws in place (Reminder bell, audit 4)
 - The "in front" rule stays per transport: a phone lists background notices quietly, a browser has no list, `NoticeTransport` (Notifications)
 - The Android channel's importance is DEFAULT, so the test may not pop up as a banner (Notifications)
 - Unit tests of the web transport, `notify/transport.web.ts`; the e2e drives the real service worker (Notifications)

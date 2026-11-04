@@ -196,7 +196,7 @@ export default function Explore() {
     setOpen(key);
     frame([l.area.at], ATLAS_RULES.ringM);
   }, [frame, setOpen, setSelected, setSpot]);
-  // AT2: a town opens its page; Back, Escape, the title's arrow and the back pill return.
+  // AT2: a town opens its page; Back, Escape and the back pill return (the title has no arrow: decision 0077).
   const enterArea = useCallback((area: AtlasArea) => {
     setSpot(null);
     setTownSeen(area);
@@ -338,14 +338,10 @@ export default function Explore() {
           scaleInset={{ bottom: 6, left: 8 }}
         />
       )}
-      {/* The page's title floats over the map, lifted by a shadow; near you, it is the way into your own town. */}
+      {/* The page's title floats over the map, lifted by a shadow; near you, it is the way into your own town.
+          On a town's page it has no back arrow: the pill low on the screen is the one way back (decision 0077). */}
       <View style={[styles.titleWrap, { top: insets.top + 8, left: titleLeft }]} pointerEvents="box-none">
         <View style={styles.titleCard}>
-          {town ? (
-            <Pressable testID="atlas-back" accessibilityRole="button" accessibilityLabel={`Back to ${home?.area.name ?? 'near you'}`} onPress={leave} style={styles.back}>
-              <Icon name="chevron-back" size={22} color={theme.ink} />
-            </Pressable>
-          ) : null}
           <Pressable
             disabled={!!town || !home}
             onPress={() => home && enterArea(home.area)}
@@ -467,7 +463,7 @@ export default function Explore() {
                 wide
                 onPress={pick}
               />
-              <Text style={styles.section} accessibilityRole="header">Neighborhoods of {town.name}</Text>
+              <Text style={styles.section} accessibilityRole="header" testID="atlas-town-section">Neighborhoods of {town.name}</Text>
               {neighborhoods.length ? grid(neighborhoods, false) : (
                 <View style={styles.empty} testID="atlas-empty">
                   {listing ? <ActivityIndicator color={theme.muted} /> : null}
@@ -546,7 +542,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: theme.surface, borderRadius: 14, paddingVertical: 8, paddingLeft: 14, paddingRight: 14,
     maxWidth: 616, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 5,
   },
-  back: { width: 44, height: 44, marginLeft: -10, alignItems: 'center', justifyContent: 'center' },
   titleText: { flexShrink: 1, minWidth: 0, minHeight: 44, justifyContent: 'center' },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   title: { fontSize: 22, fontWeight: '800', color: theme.ink, flexShrink: 1 },

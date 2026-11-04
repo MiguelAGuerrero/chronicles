@@ -56,7 +56,10 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] DeviceMotion's units and update interval on iOS and Android, `motionSource`, `steps.ts` (Motion)
 - [ ] The iOS motion permission text, `askMotion` (Motion)
 - [ ] AppState `inactive` ending still spells, `useWalkMotion` (Motion)
-- [ ] The pocket alert, a light tap once per place per walk, `explore_haptic` (v1 Explore)
+- [ ] The pocket alert, a double-tap once per place per walk, `explore_haptic` (v1 Explore; PA1)
+- [ ] Whether the double-tap (two `impactAsync(Medium)` 120 ms apart, `HAPTIC_PATTERNS.nudge`) reads as one nudge on an iPhone and an Android phone, and whether Android's Vibrator merges them (Pocket alert nudge)
+- [ ] On the web: Android Chrome's vibrate for the pocket alert (it needs a tap on the page first, which Start gives); iPhone Safari's switch haptic, fired from a location update rather than a tap, may do nothing (Pocket alert nudge, 0079)
+- [ ] Success and warning feedback after the refactor through `HAPTIC_PATTERNS` (`haptics.ts` `playStep` → `notificationAsync`); an iPad offered the pocket alert on the web (a coarse pointer, no Taptic Engine); the 120 ms timer with the app backgrounded mid-pattern (pocket-alert-nudge audit)
 - [ ] The native-driver press (`Button`) and lift (`LiftIn`), and the `HomeSheet` spring (Polish: motion)
 
 ## Recording and the background task
@@ -110,6 +113,11 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] The rename editor and its keyboard inside the native actions Modal, and Android Back stepping out of it, `components/WalkActions.tsx` (Quality of life, QL22)
 - [ ] The note editor inside the native viewer Modal, `components/NoteEditor.tsx` (Quality of life, QL24)
 - [ ] The round picture inside a MapLibre RN Marker, its `onLoad`/`onError`, and the Marker remounting when the copy arrives, `components/CapturePinView.tsx` (Quality of life, QL26, QL27)
+- [ ] The reminder bell over a pin's corner inside a MapLibre RN Marker: not clipped by the annotation's bounds or `pinHit`, drawn above the head's Android `elevation`, `components/map/WalkMap.native.tsx` (Reminder bell, RB1, RB4)
+- [ ] A capture Marker re-keyed with a new `id`, and a memory Marker re-keyed keeping its `id`, when a reminder is set or stopped: a clean remount with no stale annotation (Reminder bell, RB5)
+- [ ] ", reminder set" in the pins' labels read by VoiceOver and TalkBack (Reminder bell, RB7)
+- [ ] The bell following a fire or expiry from the background location task, after a cold background launch, and the notification's Stop action, once the app is back in front (Reminder bell, RB5)
+- [ ] expo-sqlite ordering: `listRecalls` reads outside the write queue (`db/index.native.ts`); a read started before a queued `setRecall`/`clearRecall` must not finish with the older rows (`recallCheck`'s cache, `useReminded`) (Reminder bell audit 11)
 
 ## Explore atlas
 

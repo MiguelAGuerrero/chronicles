@@ -1,16 +1,32 @@
 // @layer adapter
 import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
+import { HAPTIC_PATTERNS, nudgeAllowed, type FeedbackKind, type HapticStep } from './motionTokens';
 
-// Feedback for an app used with the phone half in a pocket. No-ops on web.
-export function tapFeedback() {
-  if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-}
+const playStep = (s: HapticStep) => {
+  const done =
+    s.weight === 'light' ? Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    : s.weight === 'medium' ? Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+    : Haptics.notificationAsync(s.weight === 'success' ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning);
+  done.catch(() => {});
+};
 
-export function successFeedback() {
-  if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-}
+/**
+ * Feedback for an app used with the phone half in a pocket. On the web only the
+ * pocket alert plays (PA6), through expo-haptics' web build (`navigator.vibrate`,
+ * or iPhone Safari's switch haptic); a button press gives nothing there.
+ */
+let lastNudge: number | null = null;
 
-export function warnFeedback() {
-  if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+export function playFeedback(kind: FeedbackKind) {
+  if (Platform.OS === 'web' && kind !== 'nudge') return;
+  if (kind === 'nudge') {
+    const now = Date.now();
+    if (!nudgeAllowed(lastNudge, now)) return;
+    lastNudge = now;
+  }
+  for (const s of HAPTIC_PATTERNS[kind]) {
+    if (s.at === 0) playStep(s);
+    else setTimeout(() => playStep(s), s.at);
+  }
 }

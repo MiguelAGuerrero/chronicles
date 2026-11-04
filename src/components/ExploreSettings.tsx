@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
-import { clampRange, EXPLORE_RULES, KINDS, type Kind } from '../lib/explore/explore';
+import { Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import { clampRange, EXPLORE_RULES, KINDS, POCKET_ALERT_NOTE, type Kind } from '../lib/explore/explore';
+import { canBuzz } from '../lib/canBuzz';
 import { loadSettings, saveSettings, type ExploreSettings as Settings } from '../lib/explore/settings';
 import { Icon, type IconName } from './icons';
 import { NotificationSettings } from './NotificationSettings';
@@ -96,12 +97,12 @@ export function ExploreSettings(props: {
             <Text style={styles.sub}>Switch a kind off to hide its “?” marks for a while. It stays on your lists, and your counts don’t change.</Text>
             <KindSwitches hidden={s.hidden} onToggle={toggle} />
           </View>
-          {/* The pocket alert is a tap you feel; a browser has none to give (E19). Kept with the explore settings. */}
-          {Platform.OS !== 'web' && (
+          {/* The pocket alert is a nudge you feel: on every phone, and on a browser that can buzz (E19, PA6). */}
+          {canBuzz() && (
             <SwitchRow
               testID="pocket-alert"
               label="Pocket alert"
-              note="A soft tap when a “?” comes into range. Never on a quiet walk."
+              note={POCKET_ALERT_NOTE}
               value={s.haptic}
               onChange={(haptic) => setS({ ...s, haptic })}
             />

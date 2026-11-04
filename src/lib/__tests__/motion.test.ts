@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { durationFor, MOTION, PRESS_SCALE } from '../motionTokens';
+import { buzzOffered, durationFor, HAPTIC_PATTERNS, MOTION, nudgeAllowed, PRESS_SCALE, type FeedbackKind } from '../motionTokens';
 import { zoomOutFor } from '../zoomOut';
 
 test('motion M1: one set of timings', () => {
@@ -48,4 +48,36 @@ test('motion audit 7: places out of view are framed, never closer than the curre
 
 test('motion audit 7: with no camera known yet, it frames the places', () => {
   assert.ok(zoomOutFor({ camera: null, size, padding: pad, places: [-71.4, 41.82, -71.4, 41.82] }));
+});
+
+// ——— Pocket alert nudge (PA1, PA4) ———
+
+test('PA1: the nudge is two firmer taps a token gap apart; a tap is one light tap', () => {
+  const tap = HAPTIC_PATTERNS.tap;
+  assert.deepEqual(tap, [{ at: 0, weight: 'light' }]);
+  const nudge = HAPTIC_PATTERNS.nudge;
+  assert.equal(nudge.length, 2);
+  assert.equal(nudge[0].at, 0);
+  assert.equal(nudge[1].at, MOTION.nudgeGap);
+  assert.ok(MOTION.nudgeGap >= 80 && MOTION.nudgeGap <= 200, 'close enough to read as one nudge, apart enough to feel two');
+  for (const s of nudge) assert.equal(s.weight, 'medium', 'each tap firmer than a button press');
+});
+
+test('PA4: every feedback kind has a pattern', () => {
+  const kinds: FeedbackKind[] = ['tap', 'success', 'warning', 'nudge'];
+  for (const k of kinds) assert.ok(HAPTIC_PATTERNS[k].length > 0, k);
+});
+
+test('pocket-alert-nudge audit 4: a desktop browser with navigator.vibrate and a fine pointer is not offered the pocket alert', () => {
+  assert.equal(buzzOffered({ vibrate: true, coarse: false }), false, 'desktop Chrome: vibrate exists, no motor');
+  assert.equal(buzzOffered({ vibrate: false, coarse: false }), false, 'desktop Safari');
+  assert.equal(buzzOffered({ vibrate: true, coarse: true }), true, 'Android Chrome');
+  assert.equal(buzzOffered({ vibrate: false, coarse: true }), true, 'iPhone Safari: the switch haptic');
+});
+
+test('pocket-alert-nudge audit 6: a nudge within the last one is dropped, so two never run together', () => {
+  assert.equal(nudgeAllowed(null, 1000), true);
+  assert.equal(nudgeAllowed(1000, 1000 + MOTION.nudgeGap), false, 'inside the double-tap');
+  assert.equal(nudgeAllowed(1000, 1000 + MOTION.nudgeGap * 2), false, 'right after it: would read as one long buzz');
+  assert.equal(nudgeAllowed(1000, 1000 + MOTION.nudgeGap * 3), true);
 });

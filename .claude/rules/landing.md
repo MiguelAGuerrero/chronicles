@@ -16,7 +16,7 @@ What's good here (`lib/landing`): reading an area, finding busy strips and pocke
     falls outside the read).
   - It then reads the z14 tiles of 1.5 km around the centre.
   - Cancel aborts the fetches and keeps nothing.
-- **Activity density** (AD1-AD16, decision 0077; supersedes L4 and L5's fixed
+- **Activity density** (AD1-AD16, decision 0080; supersedes L4 and L5's fixed
   thresholds). Busy means a density of places, never foot traffic.
   - **What counts** (`activity/weights.ts`, the one table for both sources):
     full for shops, food, drink, attractions; half for services, health,

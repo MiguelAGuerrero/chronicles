@@ -348,8 +348,47 @@ export function routeMarks(o: {
   return hits.sort((a, b) => a.along - b.along).slice(0, EXPLORE_RULES.routeCap).map((h) => h.item);
 }
 
-/** The places that just came into range as a "?", each alerting once a walk (E19). */
+/** The places that just came into range, each alerting once a walk (E19). */
 export const alertsDue = (unknownKeys: string[], alerted: Set<string>): string[] => unknownKeys.filter((k) => !alerted.has(k));
+
+/**
+ * The places the pocket alert counts: every unfound mark in range, a "?" or
+ * one already named within 60 m (audit 1, 5: at the 60 m range, or a fix
+ * landing inside 60 m, a place is never a bare "?").
+ */
+export const alertKeys = (shown: ShownMark[]): string[] => shown.filter((s) => s.state !== 'found').map((s) => s.item.key);
+
+/**
+ * The pocket alert's decision (E19, PA2, PA3): which places to mark as alerted,
+ * and whether to nudge, once for all of them. Nothing with the switch off, on a
+ * quiet walk, on a ride, or while a range is previewed in settings (audit 2:
+ * the preview's places would use up their alert).
+ */
+export function pocketAlert(o: { exploring: boolean; haptic: boolean; riding: boolean; previewing: boolean; nearKeys: string[]; alerted: Set<string> }): { mark: string[]; nudge: boolean } {
+  if (!o.exploring || !o.haptic || o.riding || o.previewing) return { mark: [], nudge: false };
+  const mark = alertsDue(o.nearKeys, o.alerted);
+  return { mark, nudge: mark.length > 0 };
+}
+
+/**
+ * The places a walk has alerted, from a map the walk screen keeps for the
+ * app's life, so closing the walk screen (minimize) and opening it again
+ * doesn't alert them twice (audit 3). Only the latest few walks are kept. A
+ * reload starts again (deferred).
+ */
+export function alertedFor(byWalk: Map<string, Set<string>>, walkId: string | null): Set<string> {
+  if (!walkId) return new Set();
+  let s = byWalk.get(walkId);
+  if (!s) {
+    s = new Set();
+    byWalk.set(walkId, s);
+    for (const k of byWalk.keys()) if (byWalk.size > 4) byWalk.delete(k);
+  }
+  return s;
+}
+
+/** The pocket alert switch's note, in the Start dialog and the Explore settings (PA5). */
+export const POCKET_ALERT_NOTE = 'Two soft taps when a “?” comes into range. Never on a quiet walk.';
 
 export interface HomeCount {
   found: number;

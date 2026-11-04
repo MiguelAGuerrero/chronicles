@@ -11,7 +11,7 @@ import { StripLabel } from '../LandingMarks';
 import { AreaPointView } from '../AreaPoint';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { Star } from '../../lib/places';
-import { metersPerPixel, pinThumb, type CapturePin } from '../../lib/pins';
+import { metersPerPixel, pinReminded, pinThumb, type CapturePin } from '../../lib/pins';
 import { scaleBar } from '../../lib/scaleBar';
 import { traceEnds } from '../../lib/traceEnds';
 import type { RoadFeature } from '../../lib/streets';
@@ -22,6 +22,7 @@ import { useGlideFrames, type GlideFrame } from '../../lib/useGlidingWalker';
 import { markEnter, pinDrops, starEnter } from '../../lib/enter';
 import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
+import { useReminded } from '../../lib/useReminded';
 import { MOTION } from '../../lib/motionTokens';
 import {
   COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
@@ -109,6 +110,36 @@ function addOverlay(map: MapLibreMap) {
 
 /** A second tap within this long makes a double-tap zoom, not a press. */
 const DOUBLE_TAP_MS = 300;
+
+/**
+ * maplibre's compact attribution opens itself the first time its credits fill in and closes only
+ * on a drag, so a phone's map started with a banner across its bottom. This one starts closed:
+ * the (i) button stays, and a tap on it shows the credits (OSM asks for them to be reachable).
+ */
+class ClosedAttribution extends AttributionControl {
+  private watch?: MutationObserver;
+  constructor() {
+    // Overture is credited beside the map data (AD16).
+    super({ compact: true, customAttribution: OVERTURE_CREDIT });
+  }
+  onAdd(map: MapLibreMap): HTMLElement {
+    const el = super.onAdd(map);
+    // The first time it turns compact it is also opened: close it then, once, before it paints.
+    const close = () => {
+      if (!el.classList.contains('maplibregl-compact')) return;
+      el.classList.remove('maplibregl-compact-show');
+      this.watch?.disconnect();
+    };
+    this.watch = new MutationObserver(close);
+    this.watch.observe(el, { attributes: true, attributeFilter: ['class'] });
+    close();
+    return el;
+  }
+  onRemove() {
+    this.watch?.disconnect();
+    super.onRemove();
+  }
+}
 /** Held this long without moving, a press is a long press. */
 const LONG_PRESS_MS = 500;
 
@@ -214,8 +245,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       style: MAP_STYLE_URL,
       center: props.initialCenter ?? [-71.4, 41.82],
       zoom: props.initialZoom ?? 15,
-      // Top right on the home, where the sheet never covers it (OSM requires it visible).
-      attributionControl: props.attributionTop ? false : { compact: true, customAttribution: OVERTURE_CREDIT },
+      // Added below, closed (ClosedAttribution).
+      attributionControl: false,
       // iPhone browsers give a tab little GPU memory, and two maps live during a walk:
       // at most 2x the pixels (a 3x canvas is 2.25x the memory), and a small tile cache.
       pixelRatio: Math.min(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1, 2),
@@ -323,7 +354,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     map.on('touchend', up);
     map.on('touchcancel', up);
     map.on('dragend', up);
-    if (props.attributionTop) map.addControl(new AttributionControl({ compact: true, customAttribution: OVERTURE_CREDIT }), 'top-right');
+    // Top right on the home, where the sheet never covers it (OSM requires it reachable).
+    map.addControl(new ClosedAttribution(), props.attributionTop ? 'top-right' : 'bottom-right');
     map.on('zoomend', track);
     // A pan changes the latitude the merge radius is measured at.
     map.on('moveend', track);
@@ -442,10 +474,12 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   // grouped for the current zoom. Clicks look the pin up by id, so a pin
   // whose members changed never opens stale captures.
   const pins = useZoomPins(props.captures, view?.zoom ?? null, view?.lat ?? null);
-  usePinMarkers(mapRef, ready, pins, props.onPinPress ? (p) => props.onPinPress?.(p.captures) : undefined, false);
+  // One read of the reminders per map, for the bells on its pins (RB1, RB6).
+  const reminded = useReminded();
+  usePinMarkers(mapRef, ready, pins, props.onPinPress ? (p) => props.onPinPress?.(p.captures) : undefined, false, reminded);
   // Memories from earlier walks: the same pins, faint, with their own tap (MR1-MR4).
   const memoryPins = useZoomPins(props.memories ?? NO_CAPTURES, view?.zoom ?? null, view?.lat ?? null);
-  usePinMarkers(mapRef, ready, memoryPins, props.onMemoryPress ? (p) => props.onMemoryPress?.(p.captures, p.lngLat) : undefined, true);
+  usePinMarkers(mapRef, ready, memoryPins, props.onMemoryPress ? (p) => props.onMemoryPress?.(p.captures, p.lngLat) : undefined, true, reminded);
   // Stars (the home map) are DOM markers too, drawn with the same view as on
   // native. Clicks look the star up by id, so a merged star never opens stale places.
   const onViewChange = useRef(props.onViewChange);
@@ -783,12 +817,13 @@ function usePinMarkers(
   pins: CapturePin[],
   onPress: ((pin: CapturePin) => void) | undefined,
   memory: boolean,
+  reminded: ReadonlySet<string>,
 ) {
   const latest = useRef({ pins: new Map<string, CapturePin>(), onPress });
   useEffect(() => {
     latest.current = { pins: new Map(pins.map((p) => [p.id, p])), onPress };
   });
-  const markers = useRef(new Map<string, { marker: Marker; root: Root; key: string }>());
+  const markers = useRef(new Map<string, { marker: Marker; root: Root; key: string; bell: boolean; drops: boolean }>());
   const interactive = !!onPress;
   // A capture taken since the screen opened drops in (M10); one already shown, or a reload, never.
   const [openedAt] = useState(() => Date.now());
@@ -804,14 +839,24 @@ function usePinMarkers(
     for (const pin of pins) {
       live.add(pin.id);
       const ids = pin.captures.map((c) => c.id).join(',');
+      const bell = pinReminded(pin, reminded);
       // With the photo's small copy, so a copy made after the pin was drawn shows without a reload (QL27).
       const key = `${pin.lngLat.join(',')}|${pin.kind}|${ids}|${interactive}|${pinThumb(pin) ?? ''}`;
       const existing = markers.current.get(pin.id);
-      if (existing?.key === key) continue;
+      if (existing?.key === key) {
+        // A reminder set or stopped (RB5) redraws the same element in place: focus returns to it when
+        // the viewer closes (audit 3), and a photo keeps its painted picture (audit 4).
+        if (existing.bell !== bell) {
+          existing.marker.getElement().setAttribute('aria-label', pinLabel(pin, interactive, memory, bell));
+          existing.root.render(<CapturePinView pin={pin} faint={memory} drop={existing.drops} reminded={bell} />);
+          existing.bell = bell;
+        }
+        continue;
+      }
       if (existing) drop(existing);
       // A 48 px target around the 36 px pin: the touch minimum on phones.
       const el = document.createElement(interactive ? 'button' : 'div');
-      el.setAttribute('aria-label', pinLabel(pin, interactive, memory));
+      el.setAttribute('aria-label', pinLabel(pin, interactive, memory, bell));
       el.dataset.ids = ids;
       if (memory) el.dataset.testid = 'memory-pin';
       if (interactive) {
@@ -830,19 +875,19 @@ function usePinMarkers(
       const root = createRoot(el);
       const drops = !memory && pinDrops(pin.captures, seen.current, openedAt);
       for (const c of pin.captures) seen.current.add(c.id);
-      root.render(<CapturePinView pin={pin} faint={memory} drop={drops} />);
+      root.render(<CapturePinView pin={pin} faint={memory} drop={drops} reminded={bell} />);
       // Anchored at the stem's foot, so the marked point stays visible.
       const marker = new Marker({ element: el, anchor: 'bottom', offset: [0, 6] }).setLngLat(pin.lngLat).addTo(map);
       // Memories sit under this walk's pins, so a new capture over an old one opens the new one (audit 6).
       marker.getElement().style.zIndex = memory ? '0' : '1';
-      markers.current.set(pin.id, { marker, root, key });
+      markers.current.set(pin.id, { marker, root, key, bell, drops });
     }
     for (const [id, m] of markers.current) {
       if (live.has(id)) continue;
       drop(m);
       markers.current.delete(id);
     }
-  }, [mapRef, ready, pins, interactive, memory, openedAt]);
+  }, [mapRef, ready, pins, interactive, memory, openedAt, reminded]);
   useEffect(() => () => {
     for (const m of markers.current.values()) {
       m.marker.remove();

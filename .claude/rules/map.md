@@ -51,6 +51,14 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
   of throwing. Check `map.getSource()` first.
 - `fitBounds` is driven by a `fitKey` counter, not by the bounds array identity. On
   native, wait for `onDidFinishLoadingMap` before moving the camera.
+- **The web map's credits start closed** (owner, Nov 4). maplibre's compact
+  `AttributionControl` opens itself when its credits first fill in and closes
+  only on a drag, which put a banner across the bottom of a phone's map.
+  `ClosedAttribution` (`WalkMap.web.tsx`) closes it once, the first time it
+  turns compact; the (i) button still opens it. Always add it yourself
+  (`attributionControl: false`). The e2e's fake source carries an OSM credit
+  so the control is drawn (`map attribution` checks in `qol`). Native's
+  MapLibre RN `attribution` prop is its own (i) button, untouched.
 
 ## Icons and pins
 
@@ -63,6 +71,21 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
 - On native, pins are MapLibre RN `<Marker>` children. Use the Marker's own `onPress`:
   on iOS the annotation's tap recognizer swallows touches meant for a Pressable inside
   it.
+- **The reminder bell** (RB1-RB7, decision 0078): a pin with a live reminder on any of
+  its captures (`pinReminded`, `lib/pins.ts`) wears an ink disc with a white bell, the
+  clock's size (`pin-reminder`), top right, top left on a faint memory pin (the clock
+  keeps top right). Each map reads the reminders once with `useReminded`, which re-reads
+  on `onRecallsChanged` and at the next reminder's end (`nextExpiry`); every reminder
+  write goes through `recallCheck` (`saveRecall`, `stopRecall`, `forgetRecalls`), so a
+  write that skips it leaves a stale bell. Anything showing "reminder set" reads
+  `liveRecalls`, so one past its end is none everywhere.
+  - `useReminded` reads `readRecalls()` (storage), never `recallCheck`'s cache: filling that
+    cache when a map mounts hid a flag written later from the next check (the e2e's
+    NV8 seeded one and it never fired).
+  - On web the bell is **not** in the marker key: a change re-renders the same root in
+    place, so focus returns to the pin when the viewer closes and a photo keeps its
+    picture. On native it is in the Marker key (unverified whether children update
+    without it).
 
 ## Map staples (quality of life, QL1-QL12; Nov 3)
 

@@ -69,7 +69,7 @@ recording bar brings a minimized walk back.
   - Walk to its busiest street.
 - A long press on the small map still offers **What's good here?** and
   **Walk here**. There are no counts of places on this tab.
-- **Busy streets are a density of places** (activity density, decision 0077):
+- **Busy streets are a density of places** (activity density, decision 0080):
   every kind of place counts (shops, food, services, attractions), from
   OpenStreetMap and Overture Maps Places, measured along each street and
   graded against the town itself, so a small town shows where its activity
@@ -132,10 +132,11 @@ recording bar brings a minimized walk back.
   card and in a pin's viewer. Navigation and the walk go on.
 - **Explore mode** (off by default, the walk starts quiet): "?" marks within
   range (60-300 m), a chip when on a busy strip, an optional pocket alert
-  (a light haptic once per place), and a nudge when an area is a dead zone.
+  (a double-tap once per place, on phones and browsers that can buzz), and a nudge when an area is a dead zone.
   A capture within 60 m of an unfound place finds it.
 - **Remind me here**: flag a capture, and the next walk that passes within
   75 m of it shows its card, or a notification when the app is behind.
+  Its pin wears a small bell on every map while the reminder is set.
 - **Unwalked streets near me** bolds the fog of named streets within 1 km.
 - **What happened here**: a long press on the map lists captures near that
   spot, from any walk.
@@ -186,7 +187,8 @@ recording bar brings a minimized walk back.
 ## Settings and notifications
 
 - Explore settings (a panel, not a screen): "What I'm into" (8 kinds), the
-  "?" range with a ring preview on the map, the pocket alert (phone only).
+  "?" range with a ring preview on the map, the pocket alert (phones, and browsers that can
+  buzz: Android Chrome, maybe iPhone Safari).
 - Notifications: Remind me here and Pause reminder, each switchable, plus a
   test. Permission is asked only from a tap (first pause, a reminder saved, a
   switch turned on), never at launch. On the web, notifications come from a
@@ -211,7 +213,7 @@ recording bar brings a minimized walk back.
 - Map data is OpenStreetMap via OpenFreeMap, with signal assumed (no offline
   maps). Streets, places and attractions are derived on the device from the
   vector tiles. Busy streets also read Overture Maps Places by tile, for the
-  shops OpenStreetMap is missing (decision 0077).
+  shops OpenStreetMap is missing (decision 0080).
 
 ## Status at a glance
 
@@ -220,6 +222,7 @@ recording bar brings a minimized walk back.
 | v0: record, capture, stop, replay, storage | Shipped |
 | v0.5: places (stars by area), navigate (walk me back, go here) | Shipped, audited |
 | v1: discovery (Explore mode, "?" marks, finds, Remind me here, notifications) | Shipped, audited |
+| Reminder bell (a pin with a reminder wears a bell) | Shipped, audited (web verified by the e2e; native unverified) |
 | v1.5: landing (busy areas on the Explore tab, strip chip, dead-zone nudge) | Shipped |
 | Explore atlas (the tab as a grid of area tiles, presence bars, familiarity) | Shipped, audited (web verified by the e2e; native unverified) |
 | Moments and days, memories on revisit, thumbnails | Shipped, audited |

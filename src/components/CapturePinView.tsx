@@ -5,6 +5,7 @@ import { useMediaUri } from '../lib/useMediaUri';
 import { COLORS } from './map/types';
 import { Enter } from './Enter';
 import { Icon, KIND_ICON, KIND_LABEL } from './icons';
+import { theme } from './ui';
 
 /** A neutral for pins holding several kinds, distinct from the trace's navy. */
 const MIXED = '#3f3f46';
@@ -26,9 +27,16 @@ const THUMB_SIZE = 36 - 2 * 2 - 2 * THUMB_RING;
 /**
  * A capture's marker on the map: a head with its kind's icon (or, for several
  * captures, their count) on a short stem, so the point it marks, and the
- * walker's dot there, stay visible beneath it.
+ * walker's dot there, stay visible beneath it. A pin with a reminder wears a
+ * bell in its corner (RB1).
  */
-export function CapturePinView({ pin, faint = false, drop: dropNow = false }: { pin: CapturePin; faint?: boolean; drop?: boolean }) {
+export function CapturePinView({ pin, faint = false, drop: dropNow = false, reminded = false }: {
+  pin: CapturePin;
+  faint?: boolean;
+  drop?: boolean;
+  /** Any of its captures has a live reminder (`pinReminded`). */
+  reminded?: boolean;
+}) {
   // Kept from mount, so a later render can't cut the drop short.
   const [drop] = useState(dropNow);
   const n = pin.captures.length;
@@ -68,17 +76,26 @@ export function CapturePinView({ pin, faint = false, drop: dropNow = false }: { 
           <Icon name="time" size={12} color="#ffffff" />
         </View>
       )}
+      {/* A reminder set here: a bell, never a number (RB1). Solid and full size like the clock;
+          on a memory pin it takes the other corner, so both read (RB4). */}
+      {reminded && (
+        <View testID="pin-reminder" style={[styles.bell, faint ? styles.bellLeft : styles.bellRight]}>
+          <Icon name="notifications" size={12} color="#ffffff" />
+        </View>
+      )}
     </View>
   );
   // A capture just taken drops into place (M10).
   return drop ? <Enter kind="drop">{view}</Enter> : view;
 }
 
-export function pinLabel(pin: CapturePin, interactive = true, memory = false): string {
+export function pinLabel(pin: CapturePin, interactive = true, memory = false, reminded = false): string {
   const n = pin.captures.length;
-  const what = memory
+  const kind = memory
     ? n > 1 ? `${n} memories here` : `Memory: ${KIND_LABEL[pin.captures[0].kind]}`
     : n > 1 ? `${n} captures here` : KIND_LABEL[pin.captures[0].kind];
+  // The bell said in words (RB7).
+  const what = reminded ? `${kind}, reminder set` : kind;
   return interactive ? `${what}. Open` : what;
 }
 
@@ -92,6 +109,15 @@ const styles = StyleSheet.create({
     position: 'absolute', right: -2, top: 4, width: 18, height: 18, borderRadius: 9, backgroundColor: '#1d2430',
     borderWidth: 1.5, borderColor: '#ffffff', alignItems: 'center', justifyContent: 'center',
   },
+  // Ink, the clock's size: it reads on every pin colour (the owner's call after the audit; the
+  // accent was as bright as a note's amber). The bell itself tells it from the clock.
+  bell: {
+    position: 'absolute', top: -2, width: 18, height: 18, borderRadius: 9, backgroundColor: theme.ink,
+    borderWidth: 1.5, borderColor: '#ffffff', alignItems: 'center', justifyContent: 'center',
+  },
+  bellRight: { right: -3 },
+  // Over the faded head's top left, mirroring the clock (it shrinks toward its foot, to 75%).
+  bellLeft: { left: -2, top: 4 },
   head: {
     width: 36,
     height: 36,

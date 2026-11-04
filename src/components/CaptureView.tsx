@@ -7,7 +7,7 @@ import { Image, Linking, Platform, Pressable, StyleSheet, Text, View, type Layou
 import { Modal } from './Modal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { db } from '../lib/db';
-import { editedRecall, newRecall } from '../lib/discovery/recall';
+import { editedRecall, liveRecalls, newRecall } from '../lib/discovery/recall';
 import { saveRecall, stopRecall, storedRecall } from '../lib/discovery/recallCheck';
 import { notifier } from '../lib/notify';
 import type { Recall } from '../lib/discovery/types';
@@ -324,7 +324,8 @@ export function CaptureViewer(props: {
   useEffect(() => {
     if (!props.remind || !listKey) return;
     let alive = true;
-    db.listRecalls().then((rs) => alive && setRecalls(new Map(rs.map((r) => [r.capture_id, r]))), () => {});
+    // Only live ones: a reminder past its end shows as none, as on its pin (audit 1).
+    db.listRecalls().then((rs) => alive && setRecalls(new Map(liveRecalls(rs, Date.now()).map((r) => [r.capture_id, r]))), () => {});
     return () => {
       alive = false;
     };
