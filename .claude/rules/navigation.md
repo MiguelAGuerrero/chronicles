@@ -76,7 +76,7 @@ Routing inside a walk (`lib/nav`): walk me back, Go here, the route sources, rul
     new Go here (`goTo` in `walk.tsx`), its action 44 pt.
   - **iPhone Home Screen app** (`navigator.standalone`): `window.open` of the https link left a blank
     window to navigate back from, so `mapsTarget` gives `appleApp` and the `maps://` scheme is set on
-    `location.href`, which opens Maps without unloading the page (unverified on a device).
+    `location.href`, which should open Maps without a window or an unload (unverified on a device).
   - The e2e replaces `window.open` and reads `window.__opened`.
   - **Not on "Off your route"** (the owner's call, Nov 3, retiring NH4): the
     first re-route clears the chip at once, so its button was rarely there;
