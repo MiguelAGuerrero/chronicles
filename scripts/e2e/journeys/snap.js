@@ -279,17 +279,18 @@ async function flick(h) {
     const b = await map.boundingBox();
     const x = b.x + b.width / 2;
     const y = b.y + b.height * 0.6;
-    const go = async (dy, rest) => {
+    // Playwright paces each step a frame apart: six steps over 40 px is a slow drag (about 400 px/s); two is a flick.
+    const go = async (dy, rest, steps = 6) => {
       await pg.mouse.move(x, y);
       await pg.mouse.down();
-      await pg.mouse.move(x, y + dy, { steps: 6 });
+      await pg.mouse.move(x, y + dy, { steps });
       if (rest) await pg.waitForTimeout(150);
       await pg.mouse.up();
       await pg.waitForTimeout(1500);
     };
     for (let i = 0; i < 3 && JSON.stringify(await selected()) !== '["Ship Street"]'; i++) await go(-60, true);
     const start = await selected();
-    await go(40, false);
+    await go(40, false, 2);
     check(JSON.stringify(start) === '["Ship Street"]' && JSON.stringify(await selected()) === '["Hope Village"]',
       `DN2: a flick coasts past the area a slow swipe would reach (${JSON.stringify(start)} → ${JSON.stringify(await selected())})`);
   } finally {
