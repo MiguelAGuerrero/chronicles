@@ -109,9 +109,10 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
   apply inside it), the tabs above the sheet at its current height, the replay
   above the card. Native's `view` updates every 0.25 zoom (the existing
   threshold), so the bar is coarser there.
+- **Explore's map has no Locate button** (the owner, Nov 4): it always shows the
+  selected town or neighborhood; "Find me" remains only when no position is known.
 - **Locate** (`lib/useLocate.ts`, `components/LocateButton.tsx`): a 44 pt edge
-  button on Navigate (gone with a walk open) and Explore (gone under the long
-  press's card), at the walk screen's Recenter look. A tap reads one **fresh**
+  button on Navigate (gone with a walk open), at the walk screen's Recenter look. A tap reads one **fresh**
   fix (`locateOnce(..., { fresh: true })`: `maximumAge` 0 on web, no fix
   stamped before the ask on native). Without `fresh`, a tap within 15 s of
   Navigate's focus fix got the browser's cached position (`LOCATE_MAX_AGE_MS`),

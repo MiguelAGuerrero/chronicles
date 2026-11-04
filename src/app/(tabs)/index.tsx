@@ -5,7 +5,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { AreaPointPin } from '../../components/AreaPoint';
 import { AtlasCard, type CardLayout } from '../../components/atlas/AtlasCard';
 import { AtlasTile } from '../../components/atlas/AtlasTile';
-import { LocateButton } from '../../components/LocateButton';
 import { WalkMap } from '../../components/map/WalkMap';
 import { Icon } from '../../components/icons';
 import { Banner, Button, theme } from '../../components/ui';
@@ -392,9 +391,7 @@ export default function Explore() {
             <Icon name="close" size={22} color={theme.ink} />
           </Pressable>
         </View>
-      ) : (
-        <LocateButton busy={locating} onPress={locate} bottom={8} />
-      )}
+      ) : null}
       {toast ? <View style={styles.toast} accessibilityLiveRegion="polite"><Text style={styles.toastText}>{toast}</Text></View> : null}
     </View>
   );

@@ -1519,23 +1519,9 @@ function check(ok, what) {
     await checkAttribution('Explore');
     const near = at(0.2, 0.3);
     await fix(near);
-    const locate2 = shown('locate');
-    check((await locate2.count()) === 1 && (await locate2.first().getAttribute('aria-label')) === 'Center on your position', `qol QL9: Explore shows a Locate button (${await locate2.count()})`);
-    await locate2.first().click();
-    await pg.waitForTimeout(2000);
+    // Explore's small map always shows the selected area, so it has no Locate button (the owner, Nov 4).
+    check((await shown('locate').count()) === 0, `explore: the map has no Locate button (${await shown('locate').count()})`);
     {
-      // Explore frames inside its fit padding (atlas round 2: the title sits over the map): 84 px at
-      // the top, 24 px at the bottom, so the fix is in the middle of the map below the title, 30 px
-      // under the canvas's middle (QL10; this check measured from the canvas middle until Nov 4).
-      const center = lonLat(await attr('data-center'));
-      const walker = lonLat(await attr('data-walker'));
-      const z = Number(await attr('data-zoom'));
-      const k = center ? mpp(z, center[1]) : NaN;
-      const dx = center ? ((near[0] - center[0]) * 111320 * Math.cos((center[1] * Math.PI) / 180)) / k : NaN;
-      const dy = center ? -((near[1] - center[1]) * 111320) / k : NaN;
-      const EXPLORE_PAD_SHIFT_PX = (84 - 24) / 2;
-      check(center && Math.abs(dx) <= 3 && Math.abs(dy - EXPLORE_PAD_SHIFT_PX) <= 3 && walker && mAway(walker, near) < 5,
-        `qol QL10: Explore's Locate frames the map around the fix, in the middle of the map below the title, and draws the dot (fix at canvas middle + (${dx.toFixed(1)}, ${dy.toFixed(1)}) px, ${EXPLORE_PAD_SHIFT_PX} px expected below; data-walker ${fmt(walker)})`);
       const s3 = await scaleBar();
       check(round(s3) && fits(s3), `qol QL5: Explore shows the scale bar (${describe(s3)})`);
     }
