@@ -165,7 +165,6 @@ An item leaves only when it ships, or when it is rejected with a decision record
 ## Discrete navigation (DN1-DN13, decision 0092)
 
 - A bounce at the edge: with nothing that way the map stays still, with no rubber band (DN4)
-- A fling's speed choosing how far to go: one swipe is always one step
 - Towns on the page near you stay tiles: swipes there move between neighborhoods only (the owner's call)
 - No touch-screen e2e for the swipe: the journey drags with the mouse; a finger's swipe on iOS Safari has not been tried
 - A spoken cue when a swipe finds nothing that way: a screen reader hears nothing (discrete-navigation audit 12), as the eye sees no bounce

@@ -11,8 +11,11 @@ import type { LngLat } from '../types';
 export const SNAP = {
   /** A drag shorter than this is a tap or a wobble, never a swipe (DN2). */
   minSwipePx: 24,
-  /** An area counts as "that way" within this many degrees either side (DN2). */
-  coneDeg: 45,
+  /**
+   * How a flick coasts, as maplibre-gl's own pan inertia does (its defaults): the release speed times
+   * `linearity`, capped at `maxSpeed` px/s, slowing at `deceleration` px/s² (DN2, the owner, Nov 4).
+   */
+  inertia: { linearity: 0.3, maxSpeed: 1400, deceleration: 2500 },
   /** With nothing selected, an area this close to the map's middle is where you are looking: a swipe goes past it (DN3). */
   hereM: 100,
   /** A second touch this soon after a tap is maplibre's tap-drag zoom, never a swipe (discrete-navigation audit 2). */
@@ -24,11 +27,12 @@ export interface SnapPoint {
   at: LngLat;
 }
 
-/** The step just taken, so the opposite swipe can come back (DN5). */
-export interface SnapStep {
-  from: string | null;
-  to: string;
-  heading: number;
+/** A finished drag: pixels moved, and the speed at release in px/s (0 when the finger stopped first). */
+export interface Swipe {
+  dx: number;
+  dy: number;
+  vx: number;
+  vy: number;
 }
 
 /** Degrees between two headings, 0 to 180. */
@@ -97,24 +101,47 @@ export function arrowSwipe(key: string): { dx: number; dy: number } | null {
   }
 }
 
+/** How far a flick coasts past the release, in screen pixels along the swipe, as a pan's inertia would. */
+export function coastPx(vx: number, vy: number): [number, number] {
+  const { linearity, maxSpeed, deceleration } = SNAP.inertia;
+  const v = Math.hypot(vx, vy);
+  if (!v) return [0, 0];
+  const speed = Math.min(v * linearity, maxSpeed);
+  const px = (speed * speed) / (2 * deceleration * linearity);
+  return [(vx / v) * px, (vy / v) * px];
+}
+
 /**
- * The area a swipe lands on (DN2-DN5): from the selected area (`fromKey`) or,
- * with none, from the map's middle, the nearest candidate within the cone
- * around `heading`. Straight after a step, the opposite swipe returns to where
- * that step began, while it is still listed. Null when nothing lies that way.
+ * Where the map's middle would land had the swipe panned it (DN2): the content follows the finger, so
+ * the middle moves the other way; a flick coasts on. `bearing` is the map's, `mpp` its metres a pixel.
  */
-export function nextArea(from: LngLat, fromKey: string | null, candidates: SnapPoint[], heading: number, last: SnapStep | null = null): SnapPoint | null {
-  if (last && fromKey != null && last.to === fromKey && apart(heading, last.heading + 180) <= SNAP.coneDeg) {
-    const back = candidates.find((c) => c.key === last.from);
-    if (back) return back;
-  }
+export function landing(from: LngLat, s: Swipe, bearing: number, mpp: number): LngLat {
+  const [cx, cy] = coastPx(s.vx, s.vy);
+  const right = -(s.dx + cx) * mpp;
+  const up = (s.dy + cy) * mpp;
+  const b = (bearing * Math.PI) / 180;
+  const east = right * Math.cos(b) + up * Math.sin(b);
+  const north = up * Math.cos(b) - right * Math.sin(b);
+  const k = 111320 * Math.cos((from[1] * Math.PI) / 180);
+  return [from[0] + east / k, from[1] + north / 111320];
+}
+
+/**
+ * The area a swipe lands on (DN2-DN4, the owner, Nov 4): the nearest to where the swipe would have panned
+ * the map's middle, among the areas on the side swiped toward (less than 90° off it), never the selected one,
+ * so every swipe moves and a longer or faster one goes further. From the selected area (`fromKey`), else the
+ * map's middle, past an area within `hereM` of it (DN3). Null when no area lies on that side.
+ */
+export function nextArea(from: LngLat, fromKey: string | null, candidates: SnapPoint[], s: Swipe, bearing: number, mpp: number): SnapPoint | null {
+  const heading = swipeHeading(s.dx, s.dy, bearing);
+  const land = landing(from, s, bearing, mpp);
   let best: SnapPoint | null = null;
   let bestM = Infinity;
   for (const c of candidates) {
     if (c.key === fromKey) continue;
-    const m = distanceM(from, c.at);
-    if (m < (fromKey == null ? SNAP.hereM : 1)) continue;
-    if (apart(bearingDeg(from, c.at), heading) > SNAP.coneDeg) continue;
+    if (distanceM(from, c.at) < (fromKey == null ? SNAP.hereM : 1)) continue;
+    if (apart(bearingDeg(from, c.at), heading) >= 90) continue;
+    const m = distanceM(land, c.at);
     if (m < bestM) {
       best = c;
       bestM = m;

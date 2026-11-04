@@ -72,8 +72,9 @@ recording bar brings a minimized walk back.
   experiment): a swipe goes to the next area that way, never panning. It
   selects the next neighborhood (its ring, its name, its tile scrolled into
   view) without opening its card; on a town's page with none of its
-  neighborhoods selected, it opens the next town's page. The opposite swipe
-  comes back; a tap on the map clears the selection; the arrow keys step on
+  neighborhoods selected, it opens the next town's page. A swipe lands where
+  it would have panned the map (a flick goes further) and picks the area
+  nearest there, on that side; a tap on the map clears the selection; the arrow keys step on
   the web. Pinch, the wheel, the two-finger turn and the long press stay.
 - A tile opens the area's card:
   - the eight kinds in words;

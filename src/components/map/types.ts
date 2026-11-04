@@ -161,7 +161,7 @@ export interface WalkMapProps {
    * map; a finished drag is reported as a swipe instead, in screen pixels, with the map's middle.
    * On web the arrow keys report swipes too. Pinch, wheel, double tap, the turn and the long press stay.
    */
-  onSwipe?: (swipe: { dx: number; dy: number; center: LngLat }) => void;
+  onSwipe?: (swipe: { dx: number; dy: number; vx: number; vy: number; center: LngLat; mpp: number }) => void;
   style?: StyleProp<ViewStyle>;
 }
 

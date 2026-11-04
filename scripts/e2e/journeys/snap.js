@@ -9,16 +9,20 @@ async function run(h) {
     await c.addInitScript(() => { window.__perf = {}; });
     try {
       const hoods = { 'Fox Point': at(1, 0), Wickenden: at(10, 0), 'Point Street': at(-9, 0), 'Hope Village': at(1, 12), 'Ship Street': at(1, -11) };
-      const headingOf = (a, b) => ((Math.atan2((b[0] - a[0]) / dLon, (b[1] - a[1]) / dLat) * 180) / Math.PI + 360) % 360;
-      const apart = (a, b) => Math.abs(((((a - b) % 360) + 540) % 360) - 180);
-      // What the spec says a swipe from here that way lands on (DN2, DN3): the nearest within 45°,
-      // past 100 m of the map's middle when nothing is selected.
-      const expectFrom = (from, heading, skip = null) => {
+      // What the spec says a slow swipe lands on (DN2-DN4, the owner, Nov 4): the map's middle moves where the
+      // pan would have taken it, and the nearest area to there on that side wins, never the one it left; with
+      // nothing selected, past 100 m of the map's middle. North up, no coast.
+      const expectSwipe = (from, skip, dx, dy, z) => {
+        const mpp = (40075016.686 * Math.cos((from[1] * Math.PI) / 180)) / (512 * 2 ** z);
+        const land = [from[0] + (-dx * mpp) / (100 / dLon), from[1] + (dy * mpp) / (100 / dLat)];
+        const heading = Math.atan2(-dx, dy);
         let best = null;
         let bestM = Infinity;
         for (const [name, p] of Object.entries(hoods)) {
-          const m = distanceM(from, p);
-          if (name === skip || m < (skip ? 1 : 100) || apart(headingOf(from, p), heading) > 45) continue;
+          if (name === skip || distanceM(from, p) < (skip ? 1 : 100)) continue;
+          const toward = Math.atan2((p[0] - from[0]) / dLon, (p[1] - from[1]) / dLat);
+          if (Math.cos(toward - heading) <= 0) continue;
+          const m = distanceM(land, p);
           if (m < bestM) [best, bestM] = [name, m];
         }
         return best;
@@ -39,6 +43,8 @@ async function run(h) {
         await pg.mouse.move(x, y);
         await pg.mouse.down();
         await pg.mouse.move(x + dx, y + dy, { steps: 6 });
+        // Rest before letting go: a slow swipe, no coast (DN2).
+        await pg.waitForTimeout(150);
         await pg.mouse.up();
         await pg.waitForTimeout(1500);
       };
@@ -60,7 +66,7 @@ async function run(h) {
       const inGrid = (r) => !!r && r.y >= grid.y - 1 && r.y + r.height <= grid.y + grid.height + 1;
       const hopeBefore = await pg.locator('[data-testid=atlas-tile][data-name="Hope Village"]').boundingBox().catch(() => null);
       await drag(0, 60);
-      const first = expectFrom(c0, 0);
+      const first = expectSwipe(c0, null, 0, 60, z0);
       const sel1 = await selected();
       check(first === 'Hope Village' && sel1.length === 1 && sel1[0] === first, `DN3: with nothing selected, a swipe starts from the map's middle (${JSON.stringify(sel1)}, expected ${first})`);
       const c1 = await centre();
@@ -85,58 +91,62 @@ async function run(h) {
       await shot(pg, 'snap-north');
 
       // From there, south, then east: Fox Point, then Wickenden.
+      const second = expectSwipe(hoods[first], first, 0, -60, await zoom());
       await drag(0, -60);
-      const second = expectFrom(hoods[first], 180, first);
       check(JSON.stringify(await selected()) === JSON.stringify([second]), `DN2: a drag up goes south (${JSON.stringify(await selected())}, expected ${second})`);
+      const third = expectSwipe(hoods[second], second, -60, 0, await zoom());
       await drag(-60, 0);
-      const third = expectFrom(hoods[second], 90, second);
       check(third === 'Wickenden' && JSON.stringify(await selected()) === JSON.stringify([third]), `DN2: a drag left goes east (${JSON.stringify(await selected())}, expected ${third})`);
       // DN4, DN1: nothing further east. The drag pans nothing and changes nothing.
       const cE = await centre();
       await drag(-60, 0);
       check(JSON.stringify(await selected()) === JSON.stringify([third]), `DN4: with nothing that way, the selection stays (${JSON.stringify(await selected())})`);
       check(distanceM(await centre(), cE) < 5, `DN1: a drag that points at no area leaves the map's centre where it was (${distanceM(await centre(), cE).toFixed(0)} m)`);
-      // DN5: the opposite swipe returns.
+      // DN2: back west, where the swipe lands (DN5's trail is retired: a swipe back lands back on its own).
+      const fourth = expectSwipe(hoods[third], third, 60, 0, await zoom());
       await drag(60, 0);
-      check(JSON.stringify(await selected()) === JSON.stringify([second]), `DN5: the opposite swipe returns where it came from (${JSON.stringify(await selected())})`);
+      check(fourth && JSON.stringify(await selected()) === JSON.stringify([fourth]), `DN2: a drag right goes west, to the area nearest where it lands (${JSON.stringify(await selected())}, expected ${fourth})`);
 
       // DN11: the arrow keys on the focused map; + still zooms.
       await pg.locator('.maplibregl-canvas').first().focus();
+      // An arrow is a swipe of 48 px that way (arrowSwipe).
+      const fifth = expectSwipe(hoods[fourth], fourth, -48, 0, await zoom());
       await pg.keyboard.press('ArrowRight');
       await pg.waitForTimeout(1500);
-      check(JSON.stringify(await selected()) === JSON.stringify([third]), `DN11: ArrowRight on the focused map selects the area to the east (${JSON.stringify(await selected())})`);
+      check(fifth && JSON.stringify(await selected()) === JSON.stringify([fifth]), `DN11: ArrowRight on the focused map selects the area to the east (${JSON.stringify(await selected())}, expected ${fifth})`);
       const zk = await zoom();
       await pg.keyboard.press('+');
       await pg.waitForTimeout(1200);
       check((await zoom()) > zk + 0.5, `DN11: + on the focused map still zooms in (z${zk.toFixed(2)} → z${(await zoom()).toFixed(2)})`);
 
-      // discrete-navigation audit 5: cleared at Wickenden, a swipe north starts from where Wickenden is framed
-      // (below the title card) and reaches Hope Village; from the canvas's middle, 400 m further north, it is
-      // just outside the 45° and nothing would be selected.
+      // discrete-navigation audit 5: cleared, a swipe north starts from where the area was framed (below the
+      // title card), never the canvas's middle.
       const bb = await map.boundingBox();
       await pg.mouse.click(bb.x + 30, bb.y + bb.height * 0.6);
       await pg.waitForTimeout(900);
       const cleared = await selected();
+      const sixth = expectSwipe(await framed(), null, 0, 60, await zoom());
       await drag(0, 60);
-      check(cleared.length === 0 && JSON.stringify(await selected()) === '["Hope Village"]',
+      check(cleared.length === 0 && sixth && JSON.stringify(await selected()) === JSON.stringify([sixth]),
         `discrete-navigation audit 5: after a tap clears a swiped-to area, a swipe starts from where it is framed (${JSON.stringify(cleared)} → ${JSON.stringify(await selected())})`);
       // discrete-navigation audit 6: a tap on the selected area's own point keeps it selected.
-      const [fx, fy] = await pg.evaluate((p) => window.__project(p), hoods['Hope Village']);
+      const [fx, fy] = await pg.evaluate((p) => window.__project(p), hoods[sixth]);
       await pg.mouse.click(fx, fy);
       await pg.waitForTimeout(900);
-      check(JSON.stringify(await selected()) === '["Hope Village"]', `discrete-navigation audit 6: a tap on the selected area's point keeps it selected (${JSON.stringify(await selected())})`);
-      // discrete-navigation audit 7: Fox Point twice in a row (a tile tap between) is announced twice.
+      check(JSON.stringify(await selected()) === JSON.stringify([sixth]), `discrete-navigation audit 6: a tap on the selected area's point keeps it selected (${JSON.stringify(await selected())})`);
+      // discrete-navigation audit 7: the same area twice in a row (a tile tap between) is announced twice.
       const saidRaw = () => pg.locator('[data-testid=atlas-snap-said]').evaluate((e) => e.textContent).catch(() => '');
+      const seventh = expectSwipe(hoods[sixth], sixth, 0, -60, await zoom());
       await drag(0, -60);
       const said1 = await saidRaw();
-      await pg.locator('[data-testid=atlas-tile][data-name="Hope Village"]').click().catch(() => {});
+      await pg.locator(`[data-testid=atlas-tile][data-name="${sixth}"]`).click().catch(() => {});
       await pg.waitForSelector('[data-testid=atlas-card]', { timeout: 5000 }).catch(() => {});
       await pg.keyboard.press('Escape');
       await pg.waitForFunction(() => !document.querySelector('[data-testid=atlas-card]'), null, { timeout: 5000 }).catch(() => {});
       await pg.waitForTimeout(800);
       await drag(0, -60);
       const said2 = await saidRaw();
-      check(JSON.stringify(await selected()) === JSON.stringify([second]) && said1.includes(second) && said2.includes(second) && said2 !== said1,
+      check(seventh && JSON.stringify(await selected()) === JSON.stringify([seventh]) && said1.includes(seventh) && said2.includes(seventh) && said2 !== said1,
         `discrete-navigation audit 7: a second swipe to the same area is announced again (${JSON.stringify(said1)} → ${JSON.stringify(said2)})`);
 
       // DN10: the wheel still zooms; the long press still offers its choices.
@@ -198,11 +208,11 @@ async function run(h) {
       await drag(60, 0);
       await pg.waitForFunction(() => document.querySelector('[data-testid=explore-area]')?.textContent === 'Cranston', null, { timeout: 5000 }).catch(() => {});
       const west = await title();
-      check(home === 'Providence' && west === 'Cranston', `DN8: on a town's page a swipe west opens the next town's page (${home} → ${west})`);
+      check(home === 'Providence' && west === 'Cranston', `DN8: on a town's page a swipe west opens that town's page (${home} → ${west})`);
       await shot(pg, 'snap-town');
       await drag(-60, 0);
       await pg.waitForFunction(() => document.querySelector('[data-testid=explore-area]')?.textContent === 'Providence', null, { timeout: 5000 }).catch(() => {});
-      check((await title()) === 'Providence', `DN8: the opposite swipe brings the first town back (${await title()})`);
+      check((await title()) === 'Providence', `DN8: a swipe back east lands on the first town again (${await title()})`);
 
       // DN13: Navigate's map still pans by a drag.
       await tabTo(pg, 'navigate');
@@ -248,9 +258,44 @@ async function run(h) {
       snapWorld.serve = false;
       await c.close();
     }
+    await flick(h);
     await townSwipe(h);
     await townSwipe(h, true);
     await townSwipe(h, true, true);
+}
+
+// DN2 (the owner, Nov 4): a flick coasts as a pan would. From Ship Street a slow 40 px north lands by Fox Point;
+// the same 40 px flicked coasts on to Hope Village, the farthest north.
+async function flick(h) {
+  const { url, check, freshPage, snapWorld } = h;
+  snapWorld.serve = true;
+  const { c, pg } = await freshPage('snap-flick');
+  try {
+    await pg.goto(url);
+    await pg.waitForFunction(() => document.querySelectorAll('[data-testid=area-point]').length >= 5, null, { timeout: 60000 }).catch(() => {});
+    await pg.waitForTimeout(2500);
+    const map = pg.locator('.maplibregl-map').first();
+    const selected = () => pg.evaluate(() => [...document.querySelectorAll('[data-testid=area-point][data-selected="1"]')].map((e) => e.dataset.name));
+    const b = await map.boundingBox();
+    const x = b.x + b.width / 2;
+    const y = b.y + b.height * 0.6;
+    const go = async (dy, rest) => {
+      await pg.mouse.move(x, y);
+      await pg.mouse.down();
+      await pg.mouse.move(x, y + dy, { steps: 6 });
+      if (rest) await pg.waitForTimeout(150);
+      await pg.mouse.up();
+      await pg.waitForTimeout(1500);
+    };
+    for (let i = 0; i < 3 && JSON.stringify(await selected()) !== '["Ship Street"]'; i++) await go(-60, true);
+    const start = await selected();
+    await go(40, false);
+    check(JSON.stringify(start) === '["Ship Street"]' && JSON.stringify(await selected()) === '["Hope Village"]',
+      `DN2: a flick coasts past the area a slow swipe would reach (${JSON.stringify(start)} → ${JSON.stringify(await selected())})`);
+  } finally {
+    snapWorld.serve = false;
+    await c.close();
+  }
 }
 
 // discrete-navigation fix 1 (the owner, Nov 4): a swipe from a big town's page to a small town's frames the small
@@ -266,15 +311,18 @@ async function townSwipe(h, touch = false, afterHood = false) {
   // A finger's swipe, as a phone's browser sends it (Chrome's touch events).
   const cdp = touch ? await c.newCDPSession(pg) : null;
   const swipe = async (x, y, dx, dy) => {
+    // A slow swipe: the finger rests before letting go, so nothing coasts (DN2).
     if (!cdp) {
       await pg.mouse.move(x, y);
       await pg.mouse.down();
       await pg.mouse.move(x + dx, y + dy, { steps: 6 });
+      await pg.waitForTimeout(150);
       await pg.mouse.up();
       return;
     }
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
     for (let i = 1; i <= 6; i++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x + (dx * i) / 6, y: y + (dy * i) / 6 }] });
+    await pg.waitForTimeout(150);
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   };
   try {
@@ -296,7 +344,8 @@ async function townSwipe(h, touch = false, afterHood = false) {
     const view = async () => ((await map.getAttribute('data-bounds')) || '0,0,0,0').split(',').map(Number);
     const big = await view();
     const b = await map.boundingBox();
-    await swipe(b.x + b.width / 2, b.y + b.height * 0.6, -60, 0);
+    // 30 px east from Allentown's framing (about 2.6 km) lands nearer Catasauqua than Providence.
+    await swipe(b.x + b.width / 2, b.y + b.height * 0.6, -30, 0);
     await pg.waitForFunction(() => document.querySelector('[data-testid=explore-area]')?.textContent === 'Catasauqua', null, { timeout: 5000 }).catch(() => {});
     await pg.waitForTimeout(3000);
     const small = await view();

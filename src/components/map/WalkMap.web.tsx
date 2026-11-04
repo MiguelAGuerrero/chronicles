@@ -356,6 +356,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     // the two-finger turn stay with maplibre; a long press or a second finger is never a swipe.
     let swipeFrom: { x: number; y: number } | null = null;
     let swipeTo = { x: 0, y: 0 };
+    // The drag's last moves, for its speed at release: a flick coasts, as a pan would (DN2).
+    let trail: { t: number; x: number; y: number }[] = [];
     let swipeMulti = false;
     // When the last one-finger tap ended, so a tap-drag zoom's second touch is never a swipe (audit 2).
     let tappedAt = -Infinity;
@@ -367,6 +369,18 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       const c = map.unproject([(p.left + canvas.clientWidth - p.right) / 2, (p.top + canvas.clientHeight - p.bottom) / 2]);
       return [c.lng, c.lat];
     };
+    // Speed at release, px/s, over the last 100 ms of moves; none when the finger rested before letting go.
+    const releaseSpeed = () => {
+      const t = Date.now();
+      const recent = trail.filter((p) => t - p.t <= 100);
+      trail = [];
+      if (recent.length < 2 || t - recent[recent.length - 1].t > 50) return { vx: 0, vy: 0 };
+      const a = recent[0];
+      const b = recent[recent.length - 1];
+      const dt = Math.max(b.t - a.t, 8) / 1000;
+      return { vx: (b.x - a.x) / dt, vy: (b.y - a.y) / dt };
+    };
+    const mpp = () => metersPerPixel(map.getZoom(), map.getCenter().lat);
     // A drag whose mouseup is lost (the window lost focus, or the button came up outside it) is dropped (audit 10).
     const dropSwipe = () => {
       swipeFrom = null;
@@ -379,12 +393,14 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       dropSwipe();
       if (!from || !onSwipe.current) return;
       const swipe = swipeOf(from, swipeTo, { multi: swipeMulti, held: Date.now() - heldAt < 1000 });
-      if (swipe) onSwipe.current({ ...swipe, center: middle() });
+      if (swipe) onSwipe.current({ ...swipe, ...releaseSpeed(), center: middle(), mpp: mpp() });
     };
     // The mouse is followed past the map's edge (over the title card), as maplibre's own drag does.
     // A drag past 8 px is never a tap, even one cut off before it ends (DN9, audit 10).
     const dragTo = (to: { x: number; y: number }) => {
       swipeTo = to;
+      const t = Date.now();
+      trail = [...trail.filter((p) => t - p.t <= 100), { t, ...to }];
       if (swipeFrom && Math.hypot(to.x - swipeFrom.x, to.y - swipeFrom.y) > 8) draggedAt = Date.now();
     };
     const mouseSwipe = (e: MouseEvent) => {
@@ -405,6 +421,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         swipeFrom = { x: e.point.x, y: e.point.y };
         swipeTo = swipeFrom;
         swipeMulti = false;
+        trail = [];
         window.addEventListener('mousemove', mouseSwipe);
         window.addEventListener('mouseup', endSwipe, { once: true });
         window.addEventListener('blur', dropSwipe, { once: true });
@@ -423,6 +440,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         swipeFrom = { x: e.point.x, y: e.point.y };
         swipeTo = swipeFrom;
         swipeMulti = false;
+        trail = [];
       });
       map.on('touchmove', (e: MapTouchEvent) => {
         if (e.originalEvent.touches.length > 1) swipeMulti = true;
@@ -443,7 +461,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         const swipe = arrowSwipe(e.key);
         if (swipe) {
           e.preventDefault();
-          onSwipe.current?.({ ...swipe, center: middle() });
+          onSwipe.current?.({ ...swipe, vx: 0, vy: 0, center: middle(), mpp: mpp() });
         } else if (e.key === '+' || e.key === '=') {
           e.preventDefault();
           // Around where areas are framed, so the selected one stays put (fix 2: the map keeps no padding).
