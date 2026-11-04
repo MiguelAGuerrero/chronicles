@@ -177,6 +177,15 @@ test('AC6 lint:affected lists the changed sources, or everything when the lint c
   }
 });
 
+test('lint:affected lints only what npm run lint covers (src and index.js), never a script it was never written for', () => {
+  const root = repo();
+  write(root, 'src/lib/geo.ts', '// @layer core\nexport const f = 3;\n');
+  write(root, 'index.js', '// entry\n');
+  write(root, 'scripts/e2e-web.js', 'console.log(__dirname);\n');
+  const r = affected.lintTargets(root, ['src/lib/geo.ts', 'index.js', 'scripts/e2e-web.js']);
+  assert.deepEqual(r, { all: false, files: ['src/lib/geo.ts', 'index.js'] });
+});
+
 test('AC7 check:affected runs its steps in order and stops at the first failure', async () => {
   const ran: string[] = [];
   const step = (name: string, ok: boolean): Step => ({ name, run: async () => (ran.push(name), { ok, output: `${name} said ${ok}` }) });

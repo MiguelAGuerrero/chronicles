@@ -109,6 +109,35 @@ function addOverlay(map: MapLibreMap) {
 
 /** A second tap within this long makes a double-tap zoom, not a press. */
 const DOUBLE_TAP_MS = 300;
+
+/**
+ * maplibre's compact attribution opens itself the first time its credits fill in and closes only
+ * on a drag, so a phone's map started with a banner across its bottom. This one starts closed:
+ * the (i) button stays, and a tap on it shows the credits (OSM asks for them to be reachable).
+ */
+class ClosedAttribution extends AttributionControl {
+  private watch?: MutationObserver;
+  constructor() {
+    super({ compact: true });
+  }
+  onAdd(map: MapLibreMap): HTMLElement {
+    const el = super.onAdd(map);
+    // The first time it turns compact it is also opened: close it then, once, before it paints.
+    const close = () => {
+      if (!el.classList.contains('maplibregl-compact')) return;
+      el.classList.remove('maplibregl-compact-show');
+      this.watch?.disconnect();
+    };
+    this.watch = new MutationObserver(close);
+    this.watch.observe(el, { attributes: true, attributeFilter: ['class'] });
+    close();
+    return el;
+  }
+  onRemove() {
+    this.watch?.disconnect();
+    super.onRemove();
+  }
+}
 /** Held this long without moving, a press is a long press. */
 const LONG_PRESS_MS = 500;
 
@@ -214,8 +243,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       style: MAP_STYLE_URL,
       center: props.initialCenter ?? [-71.4, 41.82],
       zoom: props.initialZoom ?? 15,
-      // Top right on the home, where the sheet never covers it (OSM requires it visible).
-      attributionControl: props.attributionTop ? false : { compact: true },
+      // Added below, closed (ClosedAttribution).
+      attributionControl: false,
       // iPhone browsers give a tab little GPU memory, and two maps live during a walk:
       // at most 2x the pixels (a 3x canvas is 2.25x the memory), and a small tile cache.
       pixelRatio: Math.min(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1, 2),
@@ -323,7 +352,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     map.on('touchend', up);
     map.on('touchcancel', up);
     map.on('dragend', up);
-    if (props.attributionTop) map.addControl(new AttributionControl({ compact: true }), 'top-right');
+    // Top right on the home, where the sheet never covers it (OSM requires it reachable).
+    map.addControl(new ClosedAttribution(), props.attributionTop ? 'top-right' : 'bottom-right');
     map.on('zoomend', track);
     // A pan changes the latitude the merge radius is measured at.
     map.on('moveend', track);

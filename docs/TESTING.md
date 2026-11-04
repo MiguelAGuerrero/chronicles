@@ -9,7 +9,7 @@ were measured in a cloud container on Nov 3, 2026. The e2e skill
 ```bash
 npm run check:affected   # layers, affected unit tests, typecheck, affected lint; then the e2e scenarios to run
 npm run test:affected    # only the unit tests that import a changed file, directly or not
-npm run lint:affected    # only the changed files
+npm run lint:affected    # only the changed files that npm run lint covers (src, index.js)
 ```
 
 - **Changed** is everything that differs from the merge base with

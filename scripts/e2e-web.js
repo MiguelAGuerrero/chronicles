@@ -1,4 +1,3 @@
-/* global __dirname, Buffer */ // Node globals: the affected lint checks this file alone, without a Node environment.
 // End-to-end check of the web build: walk, note, hold-to-stop, replay, name, log.
 //
 //   npm run export:web && node scripts/e2e-web.js
@@ -79,7 +78,8 @@ for (let i = 0; i <= 10; i++) {
 const style = {
   version: 8,
   // maxzoom 14 matters: at the default 18, lines are clipped to z18 tiles, which real data never is.
-  sources: { openmaptiles: { type: 'geojson', maxzoom: 14, data: { type: 'FeatureCollection', features } } },
+  // The credit makes maplibre draw its attribution control, as the real tiles' do.
+  sources: { openmaptiles: { type: 'geojson', maxzoom: 14, attribution: 'Data from OpenStreetMap', data: { type: 'FeatureCollection', features } } },
   layers: [
     { id: 'bg', type: 'background', paint: { 'background-color': '#eeeae4' } },
     { id: 'roads', type: 'line', source: 'openmaptiles', paint: { 'line-color': '#ffffff', 'line-width': 6 } },
@@ -1231,10 +1231,33 @@ function check(ok, what) {
       await pg.waitForTimeout(800);
     };
 
+    // The map's credits start closed behind their (i) button, and a tap opens them (owner, Nov 4:
+    // maplibre's compact attribution opened itself across the bottom of a phone's map).
+    const attribution = () => pg.evaluate(() => {
+      const els = [...document.querySelectorAll('.maplibregl-ctrl-attrib')].filter((e) => !e.closest('[aria-hidden=true]'));
+      const el = els[els.length - 1];
+      if (!el) return null;
+      const inner = el.querySelector('.maplibregl-ctrl-attrib-inner');
+      return { compact: el.classList.contains('maplibregl-compact'), open: !!inner && getComputedStyle(inner).display !== 'none', text: inner ? inner.textContent : '' };
+    });
+    const checkAttribution = async (where) => {
+      const a = await attribution();
+      check(a && a.compact && !a.open, `map attribution: ${where} starts with its credits closed behind the (i) button (${JSON.stringify(a)})`);
+      const button = pg.locator('xpath=//*[contains(@class,"maplibregl-ctrl-attrib-button")][not(ancestor::*[@aria-hidden="true"])]').last();
+      // Dispatched: on Navigate the web notice banner lies over the top-right corner until dismissed.
+      await button.dispatchEvent('click');
+      await pg.waitForTimeout(200);
+      const b = await attribution();
+      check(b && b.open && /OpenStreetMap/.test(b.text), `map attribution: on ${where}, a tap on (i) shows the credits (${JSON.stringify(b)})`);
+      await button.dispatchEvent('click');
+      await pg.waitForTimeout(200);
+    };
+
     // Navigate: Locate from 1 km away.
     await pg.goto(navUrl);
     await pg.waitForSelector('[data-testid=start]');
     await pg.waitForTimeout(1500);
+    await checkAttribution('Navigate');
     const far = at(10, 0);
     await fix(far);
     const locate = shown('locate');
@@ -1352,6 +1375,7 @@ function check(ok, what) {
     // Explore has Locate and the bar; Chronicle has the bar and no trace ends.
     await tabTo(pg, 'explore');
     await pg.waitForTimeout(1200);
+    await checkAttribution('Explore');
     const near = at(0.2, 0.3);
     await fix(near);
     const locate2 = shown('locate');
@@ -3348,6 +3372,16 @@ function check(ok, what) {
       const head = await page.waitForSelector('[data-testid=atlas-town-head]', { timeout: 10000 }).then(() => true, () => false);
       check(head && (await page.locator('[data-testid=explore-area]').innerText()) === homeName && (await page.locator('[data-testid=atlas-back-pill]').count()) === 1,
         `AT2: the title opens your town's own page, headed by its picture, with a way back low on the screen (${homeName})`);
+      {
+        // The town's tile takes its own height: iPhone Safari collapsed it (flex 0 is a 0% basis) and the heading
+        // and the empty line were drawn over it (Nov 3).
+        const tile = await page.locator('[data-testid=atlas-town-head]').boundingBox();
+        const sec = await page.locator('[data-testid=atlas-town-section]').boundingBox();
+        check(tile && sec && tile.height > 150 && tile.y + tile.height <= sec.y + 1,
+          `town page: its tile ends above its neighborhoods (tile ${tile && Math.round(tile.y)}+${tile && Math.round(tile.height)}, heading ${sec && Math.round(sec.y)})`);
+      }
+      check((await page.locator('[data-testid=atlas-back]').count()) === 0, 'town page: one way back, the low pill; the title has no arrow (decision 0077)');
+      await shot(page, '11d-atlas-town');
       await page.click('[data-testid=atlas-back-pill]');
       await page.waitForSelector('[data-testid=atlas-tile][data-name="Fox Point"]', { timeout: 10000 });
       check((await page.locator('[data-testid=atlas-town-head]').count()) === 0, 'AT2: back returns to the areas near you');

@@ -1,4 +1,4 @@
-# 0077. A pin with a reminder wears a bell
+# 0078. A pin with a reminder wears a bell
 
 Date: 2026-11-04 · Status: accepted · Area: map, notifications, memories
 

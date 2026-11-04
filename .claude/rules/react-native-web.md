@@ -51,3 +51,10 @@ UI code on both platforms: React Compiler lint rules, react-native-web differenc
   switch, so the screen's bottom bar ends halfway up. `webStyles.web.ts` pins
   `#root` to the viewport (`position: fixed; inset: 0`) and scrolls back to 0
   whenever nothing is being typed in.
+
+- **`flex: 0` is not "size to content" on web.** react-native-web writes it as
+  CSS `flex: 0` (`0 1 0%`), and every View has `min-height: 0`, so in a
+  scrolled column whose content overflows the item shrinks to nothing and the
+  next item draws over it (the town page's wide tile on the owner's iPhone,
+  Nov 3; Chromium does it too). To undo a shared `flex: 1`, leave that style
+  out, or set `flexGrow: 0, flexShrink: 0`.

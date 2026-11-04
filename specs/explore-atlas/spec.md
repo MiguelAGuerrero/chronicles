@@ -41,7 +41,8 @@ place like?" before a walk. Planning (keeping areas for later) is a later slice.
    its name is the title, the neighborhoods near you are the grid, and "Towns
    nearby" follow. A town's tile opens its page: its own picture and bars, then its
    own neighborhoods (those within its reach that belong to it, not to the town
-   beside it). The title's back arrow, Back and Escape return. A town with no
+   beside it). The back pill low on the page, Back and Escape return; the title has no
+   back arrow (the owner, Nov 4: two back buttons; decision 0077). A town with no
    neighborhoods on the map says it is one area.
 3. **AT3 · A tile.** Each tile shows the area's name, how far it is (a walking
    time, or a distance once it is over an hour), "New to you" or "Walked N times",
