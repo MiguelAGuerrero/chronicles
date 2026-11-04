@@ -21,7 +21,7 @@ A photo can carry a caption today; nothing else can be changed, and a video can'
 - Fixed filter presets, no sliders.
 - Scope: text, filters, crop, rotate, video trim, and a pen with a few basic colours (for circling something). No stickers, text styles or flip.
 - Videos get everything but filters, so a video looks the same on iPhone, Android and the web.
-- Editing happens from the viewer only; taking a photo stays one tap.
+- Editing happens from the viewer, and from an Edit pill shown right after every photo or video on the three places that take them (the walk screen, Navigate's ready screen, the minimized walk's recording bar). Taking a photo stays one tap: the pill is offered, the editor never opens by itself. (First call "viewer only", changed the same day.)
 - One Edit screen with a row of tools replaces the caption button.
 
 ## Criteria
@@ -52,7 +52,7 @@ Drawing
 
 Text
 
-13. **ME13** Text is today's caption bar (80 characters, dragged up and down), on photos as before and now on videos, where it shows for the whole clip and never takes a tap from the player. It sits against the edited frame. The walk screen's "Add caption" pill after a photo opens the editor straight on Text.
+13. **ME13** Text is today's caption bar (80 characters, dragged up and down), on photos as before and now on videos, where it shows for the whole clip and never takes a tap from the player. It sits against the edited frame.
 
 Trim (videos)
 
@@ -71,3 +71,7 @@ Previews, storage and accessibility
 20. **ME20** After Done on a photo, its small copy is remade from the edited photo (crop, rotation, filter and drawing; no caption, as today), so pins and the memory preview show it. A copy remade later, because its file was gone, has the crop and rotation.
 21. **ME21** Edits are one `edit` field on the capture. A missing, unreadable or newer-format value reads as no edits (the original shows) and never fails a screen. `parseEdit` and `serializeEdit` are pure and unit-tested, including a round trip. A saved edit and caption reach every open view of the walk through the capture bus.
 22. **ME22** Every editor control has a label and a role. Rotate, the filters, the colours, Undo, Clear, Revert and the aspect choices work with a screen reader. Freehand drawing and dragging the crop frame have no screen-reader way (accepted, `docs/DEFERRED.md`).
+
+After capture
+
+23. **ME23** Right after a photo or video is kept, the place that took it offers Edit for 6 seconds, as the caption pill does today: the walk screen ("Photo saved here" or "Video saved here", replacing "Aa Caption" and the video's toast), Navigate's ready screen (a moment outside a walk) and the minimized walk's recording bar ("Photo saved to your walk" or "Video saved to your walk"). The button is `testID` `capture-edit`, label "Edit". A tap opens the editor on Crop for that capture; the walk screen's own viewer opens it as an overlay, the other two as a Modal of their own (none of them is inside another Modal). Taking another capture replaces the offer with the new one. Done there saves exactly as from the viewer (ME2, ME20, ME21).

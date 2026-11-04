@@ -30,9 +30,9 @@ One order everywhere: on screen, in the native baker, in the web canvas and in t
 
 - `src/components/edit/EditedPhoto.tsx` (new): one react-native-svg `<Svg>` with a `viewBox` on the crop, a `<G>` rotation, an `<Image>` with an `FeColorMatrix` filter, and the strokes as `<Polyline>`s. `CaptionBar` sits on top. Used by the viewer, the editor and the native baker, so screen and file match. On web it carries `data-edit` for the e2e.
 - `src/components/edit/EditedVideo.tsx` (new): the expo-video `VideoView` in a clipping view, rotated and scaled to the crop. The strokes and caption sit in a `pointerEvents="none"` layer over it. Trim is applied with `timeUpdate` and `currentTime` (start at the start, stop and `onFinished` at the end, pull back a seek outside). It takes over `VideoPlayer` in `CaptureView.tsx`, keeping its autoplay and "Tap for sound" handling.
-- `src/components/edit/MediaEditor.tsx` (new): the overlay with the tool row, Close, Done, Revert, and the discard confirm. It opens on a given tool (Text for the walk's pill).
+- `src/components/edit/MediaEditor.tsx` (new): the editor with the tool row, Close, Done, Revert, and the discard confirm. It opens on a given tool: Crop from the after-capture pill, the first tool from the viewer. It works two ways: as an overlay inside the viewer, or as a Modal of its own where no viewer is open (Navigate's ready screen, the recording bar).
 - `src/components/edit/CropTool.tsx`, `FilterTool.tsx`, `DrawTool.tsx`, `TrimTool.tsx` (new). Built with `PanResponder` and `Animated` only (no Reanimated, decision 0039); timings from `lib/motionTokens`.
-- `src/components/Caption.tsx`: the bar-editing part of `CaptionEditor` becomes the Text tool. `CaptionEditor` itself goes, and the walk's pill opens `MediaEditor` on Text.
+- `src/components/Caption.tsx`: the bar-editing part of `CaptionEditor` becomes the Text tool, and `CaptionEditor` itself goes.
 - `src/components/CaptureView.tsx`:
   - Edit replaces the caption button;
   - `onSaveCaption` becomes `onSaveEdit(c, { edit, caption, caption_y })`;
@@ -45,6 +45,10 @@ One order everywhere: on screen, in the native baker, in the web canvas and in t
   - draws the strokes as canvas paths and the caption as today;
   - gains `bakeOverlay` for video too.
 - Screens: `src/app/walk.tsx`, `src/components/walk/useReady.tsx`, `src/app/(tabs)/chronicle.tsx` and `src/app/replay/[id].tsx` pass `onSaveEdit` instead of `onSaveCaption`.
+- After capture (ME23):
+  - `src/app/walk.tsx`: `justTook` holds photos and videos. The pill's "Aa Caption" becomes "Edit", and the video's toast becomes the same pill;
+  - `src/components/MomentBar.tsx` and `src/components/RecordingBar.tsx`: the same 6 s pill after `takePhoto` resolves, opening `MediaEditor` as its own Modal;
+  - `src/lib/editOffer.ts` (core): which capture is offered and when the offer ends, so a new capture replaces it and the 6 s is tested once for all three. The timer itself stays in the views.
 
 ### Shell and adapters
 
@@ -106,8 +110,9 @@ One order everywhere: on screen, in the native baker, in the web canvas and in t
 | ME20 | e2e `edit`: after Done, the pin's preview `src` is a new copy; `mediaEdit`/thumb test for the crop on a lazy remake |
 | ME21 | `mediaEdit.test.ts`: `ME21: round trip`, `ME21: bad or newer input reads as none`; `dbContract.ts`: `ME21: updateCapture keeps an edit`; a `captureBus` test that the patch carries the edit |
 | ME22 | e2e `edit`: roles and labels on every control |
+| ME23 | `editOffer.test.ts`: `ME23: a new capture replaces the offer`, `ME23: the offer ends after 6 s`; e2e `edit`: `capture-edit` after a photo on the walk screen, after a video on Navigate's ready screen and after a photo from the recording bar, each opening the editor on Crop |
 
-There's one e2e journey, `edit` (`E2E_ONLY=edit`). It uses the existing `clip-4s.webm` fixture and a photo fixture. The existing caption checks in the main flow move to the editor's Text tool.
+There's one e2e journey, `edit` (`E2E_ONLY=edit`). It uses the existing `clip-4s.webm` fixture and a photo fixture. The existing caption checks in the main flow (`add-caption`) move to `capture-edit` and then the editor's Text tool.
 
 ## Deferred, and why
 
@@ -139,7 +144,7 @@ Each goes into `docs/NATIVE_UNVERIFIED.md`. The Kotlin and Swift can't even be c
 4. **The small copy shows the edits but not the caption**, as previews do today?
 5. **Size:** this is the largest slice yet in files touched. I'd build it in this order, each green before the next:
    1. core;
-   2. photo editing and photo export;
+   2. photo editing and photo export, with the after-capture pill;
    3. video display, trim and text;
    4. web video export;
    5. the native module.
