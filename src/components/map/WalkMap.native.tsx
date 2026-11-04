@@ -118,7 +118,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   useEffect(() => {
     onFitSettled.current = props.onFitSettled;
   });
-  const fitAtMount = useRef(props.fitKey);
+  const fitAtMount = useRef(props.fitOnMount ? undefined : props.fitKey);
   useEffect(() => {
     if (!ready || !props.fitBounds || props.fitKey === fitAtMount.current) return;
     fitAtMount.current = undefined;

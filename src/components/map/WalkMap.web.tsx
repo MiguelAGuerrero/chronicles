@@ -693,7 +693,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     map.jumpTo({ center: to });
   }, [ready, props.follow, glideOn]);
   // A fit is a request made while mounted: a map brought back (the home, after a walk) keeps its view.
-  const fitAtMount = useRef(props.fitKey);
+  const fitAtMount = useRef(props.fitOnMount ? undefined : props.fitKey);
   useEffect(() => {
     if (ready && props.fitBounds && props.fitKey !== fitAtMount.current) {
       fitAtMount.current = undefined;

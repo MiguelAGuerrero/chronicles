@@ -484,6 +484,8 @@ export default function Replay() {
         follow={beat === 'path' && !reduceMotion ? walker : null}
         fitBounds={data.bounds}
         fitKey={fitKey}
+        // The first fit can be batched into the render that mounts the map (a re-watch has nothing to snap).
+        fitOnMount
         fitPadding={beat === 'card' || beat === 'name' ? sheetPad : undefined}
         animate={!reduceMotion}
         initialCenter={data.fixes[0] ? [data.fixes[0].lon, data.fixes[0].lat] : undefined}

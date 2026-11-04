@@ -129,6 +129,8 @@ export interface WalkMapProps {
   /** Fits the camera to these bounds whenever `fitKey` changes. */
   fitBounds?: Bounds | null;
   fitKey?: number;
+  /** Fits at mount too, even when `fitKey` has not changed since. For a screen that exists to show the bounds (the replay): its first fit can land in the render that mounts the map. */
+  fitOnMount?: boolean;
   /** Called with a fit's key once its camera move has ended, so a map taken down mid-move can redo it. */
   onFitSettled?: (fitKey: number) => void;
   /** Space kept clear of the fitted bounds, e.g. for a sheet over the map. */
