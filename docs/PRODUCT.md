@@ -125,6 +125,7 @@ recording bar brings a minimized walk back.
   A capture within 60 m of an unfound place finds it.
 - **Remind me here**: flag a capture, and the next walk that passes within
   75 m of it shows its card, or a notification when the app is behind.
+  Its pin wears a small bell on every map while the reminder is set.
 - **Unwalked streets near me** bolds the fog of named streets within 1 km.
 - **What happened here**: a long press on the map lists captures near that
   spot, from any walk.

@@ -100,6 +100,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] The rename editor and its keyboard inside the native actions Modal, and Android Back stepping out of it, `components/WalkActions.tsx` (Quality of life, QL22)
 - [ ] The note editor inside the native viewer Modal, `components/NoteEditor.tsx` (Quality of life, QL24)
 - [ ] The round picture inside a MapLibre RN Marker, its `onLoad`/`onError`, and the Marker remounting when the copy arrives, `components/CapturePinView.tsx` (Quality of life, QL26, QL27)
+- [ ] The reminder bell over a pin's corner inside a MapLibre RN Marker (not clipped by the Marker), and the Marker re-keyed when a reminder is set or stopped, `components/map/WalkMap.native.tsx` (Reminder bell, RB1, RB4, RB5)
 
 ## Explore atlas
 

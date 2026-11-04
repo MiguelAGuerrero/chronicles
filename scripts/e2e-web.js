@@ -2084,6 +2084,18 @@ function check(ok, what) {
         await page.waitForSelector('text=It will come back when you pass here');
         check((await page.locator('[aria-label="Reminder set. Change or stop it"]').count()) === 1, 'the viewer shows the reminder is set');
         await page.click('[aria-label="Close"]');
+        // Its pin wears the bell at once, top right, and says so (RB1, RB5, RB7).
+        const belled = await page.waitForSelector('[data-ids] [data-testid=pin-reminder]', { timeout: 5000 }).then(() => true, () => false);
+        const bellPin = page.locator('[data-ids]:has([data-testid=pin-reminder])');
+        const bellLabel = belled ? await bellPin.first().getAttribute('aria-label') : '';
+        const bellSide = belled ? await bellPin.first().evaluate((el) => {
+          const b = el.querySelector('[data-testid=pin-reminder]').getBoundingClientRect();
+          const r = el.getBoundingClientRect();
+          return b.left + b.width / 2 > r.left + r.width / 2 ? 'right' : 'left';
+        }) : '';
+        check(belled && (await bellPin.count()) === 1 && /reminder set/.test(bellLabel) && bellSide === 'right',
+          `the reminded note's pin wears a bell, top right, and says so (RB1, RB5, RB7: ${await bellPin.count()} belled, "${bellLabel}", ${bellSide})`);
+        await shot(page, '03b-bell');
       }
       if (k === 28) {
         // Go here on a "?" routes to it, unnamed until it is revealed (E12).
@@ -3022,6 +3034,10 @@ function check(ok, what) {
     await page.click('[data-testid=reminder-open]');
     await page.waitForSelector('[data-testid=viewer-remind]');
     check(true, 'the reminder opens its capture');
+    // The "once" cleared, so no pin wears a bell now (RB5).
+    await page.waitForTimeout(500);
+    const bellsAfterFire = await page.locator('[data-testid=pin-reminder]').count();
+    check(bellsAfterFire === 0, `a "once" reminder that fired takes its bell with it (RB5: ${bellsAfterFire} bells)`);
     // Flagged again here, mid-walk, every visit: it waits for the next walk, not two seconds (audit).
     await page.click('[data-testid=viewer-remind]');
     await page.click('[data-testid=remind-visit]');
@@ -3036,6 +3052,18 @@ function check(ok, what) {
     const again = await recallRows();
     check((await page.locator('[data-testid=reminder]').count()) === 0 && again.length === 1 && again[0].fired_count === 0,
       'a capture flagged mid-walk doesn’t come back in that walk');
+    // Flagged again, its memory pin wears the bell top left and keeps its clock top right, both solid (RB4, RB5).
+    const noteMemory = page.locator(`[data-testid=memory-pin][data-ids*="${flaggedNote.id}"]`);
+    await page.waitForSelector(`[data-testid=memory-pin][data-ids*="${flaggedNote.id}"] [data-testid=pin-reminder]`, { timeout: 10000 }).catch(() => null);
+    const corners = (await noteMemory.count()) ? await noteMemory.first().evaluate((el) => {
+      const bell = el.querySelector('[data-testid=pin-reminder]');
+      const clock = el.querySelector('[data-testid=memory-badge]');
+      if (!bell || !clock) return null;
+      return { bell: bell.getBoundingClientRect().left, clock: clock.getBoundingClientRect().left, opacity: Number(getComputedStyle(bell).opacity), label: el.getAttribute('aria-label') };
+    }) : null;
+    check(!!corners && corners.bell < corners.clock && corners.opacity === 1 && /reminder set/.test(corners.label),
+      `a memory pin with a reminder shows the bell left of its clock, solid, and says so (RB4, RB7: ${JSON.stringify(corners)})`);
+    await shot(page, '13b-memory-bell');
     // A memory pin: faded and smaller than a capture pin (MR3); a tap previews it (MR4), and the preview
     // opens the viewer with every memory from that spot (MR5).
     await page.waitForSelector('[data-testid=memory-pin]', { timeout: 15000 });

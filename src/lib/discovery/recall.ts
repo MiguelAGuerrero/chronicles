@@ -17,6 +17,11 @@ export const RECALL_RULES = {
 /** Past its until-date the flag ends silently; the capture stays an ordinary memory (R6). */
 export const isExpired = (r: Recall, now: number) => r.until != null && r.until < now;
 
+/** The captures whose reminder is still live, for the bell on their pins (RB1, RB3): one past its end never fires again. */
+export function remindedIds(recalls: Recall[], now: number): Set<string> {
+  return new Set(recalls.filter((r) => !isExpired(r, now)).map((r) => r.capture_id));
+}
+
 /** Whether the frequency lets it fire again yet (R5); "once" is cleared on its first fire. */
 function rested(r: Recall, now: number): boolean {
   if (r.last_fired_at == null) return true;

@@ -11,7 +11,7 @@ import { StripLabel } from '../LandingMarks';
 import { AreaPointView } from '../AreaPoint';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { Star } from '../../lib/places';
-import { metersPerPixel, pinThumb, type CapturePin } from '../../lib/pins';
+import { metersPerPixel, pinReminded, pinThumb, type CapturePin } from '../../lib/pins';
 import { scaleBar } from '../../lib/scaleBar';
 import { traceEnds } from '../../lib/traceEnds';
 import type { RoadFeature } from '../../lib/streets';
@@ -22,6 +22,7 @@ import { useGlideFrames, type GlideFrame } from '../../lib/useGlidingWalker';
 import { markEnter, pinDrops, starEnter } from '../../lib/enter';
 import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
+import { useReminded } from '../../lib/useReminded';
 import { MOTION } from '../../lib/motionTokens';
 import {
   COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
@@ -436,10 +437,12 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   // grouped for the current zoom. Clicks look the pin up by id, so a pin
   // whose members changed never opens stale captures.
   const pins = useZoomPins(props.captures, view?.zoom ?? null, view?.lat ?? null);
-  usePinMarkers(mapRef, ready, pins, props.onPinPress ? (p) => props.onPinPress?.(p.captures) : undefined, false);
+  // One read of the reminders per map, for the bells on its pins (RB1, RB6).
+  const reminded = useReminded();
+  usePinMarkers(mapRef, ready, pins, props.onPinPress ? (p) => props.onPinPress?.(p.captures) : undefined, false, reminded);
   // Memories from earlier walks: the same pins, faint, with their own tap (MR1-MR4).
   const memoryPins = useZoomPins(props.memories ?? NO_CAPTURES, view?.zoom ?? null, view?.lat ?? null);
-  usePinMarkers(mapRef, ready, memoryPins, props.onMemoryPress ? (p) => props.onMemoryPress?.(p.captures, p.lngLat) : undefined, true);
+  usePinMarkers(mapRef, ready, memoryPins, props.onMemoryPress ? (p) => props.onMemoryPress?.(p.captures, p.lngLat) : undefined, true, reminded);
   // Stars (the home map) are DOM markers too, drawn with the same view as on
   // native. Clicks look the star up by id, so a merged star never opens stale places.
   const onViewChange = useRef(props.onViewChange);
@@ -777,6 +780,7 @@ function usePinMarkers(
   pins: CapturePin[],
   onPress: ((pin: CapturePin) => void) | undefined,
   memory: boolean,
+  reminded: ReadonlySet<string>,
 ) {
   const latest = useRef({ pins: new Map<string, CapturePin>(), onPress });
   useEffect(() => {
@@ -798,14 +802,16 @@ function usePinMarkers(
     for (const pin of pins) {
       live.add(pin.id);
       const ids = pin.captures.map((c) => c.id).join(',');
-      // With the photo's small copy, so a copy made after the pin was drawn shows without a reload (QL27).
-      const key = `${pin.lngLat.join(',')}|${pin.kind}|${ids}|${interactive}|${pinThumb(pin) ?? ''}`;
+      const bell = pinReminded(pin, reminded);
+      // With the photo's small copy, so a copy made after the pin was drawn shows without a reload (QL27);
+      // with the bell, so a reminder set or stopped shows at once (RB5).
+      const key = `${pin.lngLat.join(',')}|${pin.kind}|${ids}|${interactive}|${pinThumb(pin) ?? ''}|${bell}`;
       const existing = markers.current.get(pin.id);
       if (existing?.key === key) continue;
       if (existing) drop(existing);
       // A 48 px target around the 36 px pin: the touch minimum on phones.
       const el = document.createElement(interactive ? 'button' : 'div');
-      el.setAttribute('aria-label', pinLabel(pin, interactive, memory));
+      el.setAttribute('aria-label', pinLabel(pin, interactive, memory, bell));
       el.dataset.ids = ids;
       if (memory) el.dataset.testid = 'memory-pin';
       if (interactive) {
@@ -824,7 +830,7 @@ function usePinMarkers(
       const root = createRoot(el);
       const drops = !memory && pinDrops(pin.captures, seen.current, openedAt);
       for (const c of pin.captures) seen.current.add(c.id);
-      root.render(<CapturePinView pin={pin} faint={memory} drop={drops} />);
+      root.render(<CapturePinView pin={pin} faint={memory} drop={drops} reminded={bell} />);
       // Anchored at the stem's foot, so the marked point stays visible.
       const marker = new Marker({ element: el, anchor: 'bottom', offset: [0, 6] }).setLngLat(pin.lngLat).addTo(map);
       // Memories sit under this walk's pins, so a new capture over an old one opens the new one (audit 6).
@@ -836,7 +842,7 @@ function usePinMarkers(
       drop(m);
       markers.current.delete(id);
     }
-  }, [mapRef, ready, pins, interactive, memory, openedAt]);
+  }, [mapRef, ready, pins, interactive, memory, openedAt, reminded]);
   useEffect(() => () => {
     for (const m of markers.current.values()) {
       m.marker.remove();

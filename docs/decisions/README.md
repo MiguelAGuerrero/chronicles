@@ -78,3 +78,4 @@ An owner's call made during a slice gets its record in the same commit as the sl
 | [0070](0070-app-opens-on-explore.md) | 2026-11-03 | The app opens on Explore, at `/`; a stale replay link at launch goes there too, and Explore reads one fix per launch (supersedes NV2's Navigate default) | tabs, navigation |
 | [0071](0071-every-break-is-a-gap.md) | 2026-11-03 | Every break in the trace is a gap, and settling never breaks the line | trace, gaps |
 | [0072](0072-hidden-notice-only-when-hidden.md) | 2026-11-03 | "Tracing paused while this page was hidden" only when the page was hidden | recording, walk screen |
+| [0073](0073-reminder-bell-on-pins.md) | 2026-11-04 | A pin with a reminder wears a bell (any kind; a merged pin if any; top left on a memory pin) | map, notifications, memories |
