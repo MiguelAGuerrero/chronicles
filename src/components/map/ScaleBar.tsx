@@ -14,7 +14,7 @@ export const SCALE_MAX_PX = 100;
 
 /**
  * A map's scale bar (QL5, QL8): a line with end ticks and a round length, on
- * a white pill in the bottom-left corner. Decorative: it takes no tap and is
+ * with a white halo and no background, in the bottom-left corner. Decorative: it takes no tap and is
  * hidden from screen readers; the e2e reads `data-m` and measures the line.
  */
 export function ScaleBar(props: { bar: ScaleBarSize; inset?: ScaleInset }) {
@@ -43,9 +43,16 @@ const webData = (meters: number) => ({ dataSet: { m: String(meters) } }) as obje
 const styles = StyleSheet.create({
   pill: {
     position: 'absolute', alignItems: 'flex-start', gap: 2,
-    backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: 8, paddingVertical: 4, paddingHorizontal: 8,
+    // No background (the owner, Nov 4): the ink sits on the map under a soft white halo instead.
+    paddingVertical: 4, paddingHorizontal: 8,
   },
-  label: { color: theme.ink, fontSize: 12, fontWeight: '600', fontVariant: ['tabular-nums'], lineHeight: 14 },
+  label: {
+    color: theme.ink, fontSize: 12, fontWeight: '600', fontVariant: ['tabular-nums'], lineHeight: 14,
+    textShadowColor: 'rgba(255,255,255,0.95)', textShadowRadius: 3, textShadowOffset: { width: 0, height: 0 },
+  },
   // The line with a 6 px tick at each end, drawn as borders so the view's width is the bar's.
-  line: { height: 8, borderColor: theme.ink, borderBottomWidth: 2, borderLeftWidth: 2, borderRightWidth: 2 },
+  line: {
+    height: 8, borderColor: theme.ink, borderBottomWidth: 2, borderLeftWidth: 2, borderRightWidth: 2,
+    shadowColor: '#ffffff', shadowOpacity: 0.95, shadowRadius: 3, shadowOffset: { width: 0, height: 0 },
+  },
 });
