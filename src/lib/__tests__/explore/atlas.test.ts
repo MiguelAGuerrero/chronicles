@@ -433,10 +433,10 @@ test('TP3: the tile\'s label says part of the town when the outline needed more 
   assert.doesNotMatch(l(true).replace(/\d+ min walk|\d+(\.\d+)? km away/g, ''), /\d/, 'no digits beyond the distance (AT11)');
 });
 
-test('TP7: the busy areas of a graded town are its pockets, named for the street through them, else "A busy area"', () => {
+test('TP7: the busy areas of a graded town are its pockets, named for the street through them; one with no street is left out', () => {
   const pockets = [{ at: far, name: 'MacArthur Road' }, { at: east(100), name: null }];
   const town = row('Whitehall', O, { level: 'town', profile: { steps: {}, strips: [], extent: 'outline', pockets } as unknown as AtlasProfile });
-  assert.deepEqual(busyAreas(town), [{ label: 'MacArthur Road', at: far }, { label: 'A busy area', at: east(100) }]);
+  assert.deepEqual(busyAreas(town), [{ label: 'MacArthur Road', at: far }]);
   assert.deepEqual(busyAreas({ ...town, level: 'neighborhood' }), [], 'a neighborhood has none');
   assert.deepEqual(busyAreas({ ...town, profile: { ...town.profile!, extent: 'ring' } }), [], 'a ring-graded town has none');
   assert.deepEqual(busyAreas({ ...town, profile: null }), []);
