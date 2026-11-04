@@ -134,7 +134,7 @@ Navigation (inside a walk)
   nav/graph.ts               a small walking graph with A*
   nav/traceRoute.ts, streetRoute.ts         the two RouteSources: along this trace; over derived streets
   nav/navigator.ts           routeTo: first source that can, or why none
-  nav/store.ts               the destination in meta `nav`
+  nav/store/                 the destination in meta `nav` (shell.ts the factory, index.ts the app's instance)
   nav/useNavigation.ts       routing, re-routing, arrival and the street read on the walk screen
   nav/handoff.ts             Open in Maps: picks the maps app and its links per platform and browser
   nav/openInMaps.ts          opens them with Linking.openURL straight from the tap
@@ -161,7 +161,7 @@ Discovery and Explore (v1)
   atlas/read.ts              the atlas's reads: areas near you, one ring at a time (decoder)
   atlas/useAtlas.ts          the atlas's data and its read loop, while Explore is in front
   explore/settings.ts        what I'm into, range, pocket alert (meta)
-  explore/momentFind.ts      a loose moment finds a place
+  explore/momentFind/        a loose moment finds a place (shell.ts, index.ts)
 Activity density (AD1-AD16)
   activity/weights.ts        what counts toward density and how much, for OSM and Overture
   activity/points.ts         places as weighted points from both sources; one place once across them
@@ -197,7 +197,7 @@ Deletion
   deletion/index.ts          the one Undo window wired to timers and storage; useDeletions.ts: useHidden / useVisible
 Notifications
   notify/core.ts             Notice, NoticeTransport, routeResponse: the contract
-  notify/index.ts            notifier, the kind switches (meta `notify_off`)
+  notify/index.ts            notifier, the kind switches (meta `notify_off`, from notify/prefs.ts); builds from `db`, since `ports` imports it
   notify/transport.native.ts expo-notifications; transport.web.ts: the service worker (public/sw.js); webNotice.ts: its message and URL
   openers.ts                 stacked listeners for a tapped notification, newest first
 Motion (animation)

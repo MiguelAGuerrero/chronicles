@@ -1,4 +1,5 @@
 // @layer shell
+// @instance: the ready walk screen's shell, on the app's ports
 import { ports } from '../ports';
 import { createReady } from './shell';
 

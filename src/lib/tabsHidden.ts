@@ -1,4 +1,5 @@
 // @layer shell
+// @instance: a store (lib/store) the area card sets and the tab layout reads
 import { createStore } from './store';
 
 /**

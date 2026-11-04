@@ -1,6 +1,6 @@
 // @tree-wide: every source file, test folder, journey, spec and rule file, against scripts/features.js
 import assert from 'node:assert/strict';
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join, relative } from 'node:path';
 import { test } from 'node:test';
@@ -207,4 +207,29 @@ test('TO12 the selection still follows type-only imports, and the docs say it is
   assert.ok(r.tests.length > 5, `${r.tests.length} tests reach a types-only module through import type`);
   const testing = readFileSync(join(ROOT, 'docs', 'TESTING.md'), 'utf8');
   assert.match(testing, /Type-only edges are followed on\s+purpose/);
+});
+
+test('SH6 an instance of a tested shell is not a hole; one of an untested shell is', () => {
+  const root = join(ROOT, '..', `sh6-${process.pid}`);
+  const write = (rel: string, src: string) => {
+    mkdirSync(join(root, rel, '..'), { recursive: true });
+    writeFileSync(join(root, rel), src);
+  };
+  try {
+    write('src/lib/tested/shell.ts', '// @layer shell\nexport const createT = () => 1;\n');
+    write('src/lib/tested/index.ts', "// @layer shell\n// @instance: the tested shell\nimport { createT } from './shell';\nexport const t = createT();\n");
+    write('src/lib/untested/shell.ts', '// @layer shell\nexport const createU = () => 1;\n');
+    write('src/lib/untested/index.ts', "// @layer shell\n// @instance: the untested shell\nimport { createU } from './shell';\nexport const u = createU();\n");
+    write('src/lib/__tests__/x/t.test.ts', "import { createT } from '../../tested/shell';\nvoid createT;\n");
+    const c = affected.coverage(root, ['src/lib/tested/index.ts', 'src/lib/untested/index.ts', 'src/lib/untested/shell.ts']);
+    assert.deepEqual(c.holes.map((h) => h.file), ['src/lib/untested/index.ts', 'src/lib/untested/shell.ts']);
+    assert.match(affected.describeCoverage(c), /src\/lib\/untested\/index\.ts \(instance of a shell no test reaches/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+  // This repo's instances are marked.
+  for (const rel of ['src/lib/ports/index.ts', 'src/lib/ready/index.ts', 'src/lib/tabsHidden.ts', 'src/lib/notify/index.ts', 'src/lib/unitsStore/index.ts', 'src/lib/nav/store/index.ts', 'src/lib/explore/momentFind/index.ts']) {
+    assert.match(readFileSync(join(ROOT, rel), 'utf8').split('\n')[1] ?? '', /^\/\/ @instance: /, rel);
+  }
+  assert.deepEqual(affected.coverage(ROOT, ['src/lib/ports/index.ts', 'src/lib/ready/index.ts', 'src/lib/tabsHidden.ts']).holes, []);
 });

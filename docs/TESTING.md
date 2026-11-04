@@ -37,7 +37,9 @@ npm run lint:affected    # only the changed files that npm run lint covers (src,
 - **Covered by nothing:** a changed source file that no unit test reaches and
   no journey row covers is named, with its layer and features, in words apart
   from "nothing to run". A shell gets a test over `fakePorts()`, a core module
-  a unit test, a screen a check in its feature's journey. A test that reads the whole tree instead of importing it
+  a unit test, a screen a check in its feature's journey. A file that only
+  builds a shell's app instance says `// @instance: <what>` on its second line
+  and counts as covered when the shell it builds from is tested. A test that reads the whole tree instead of importing it
   (the layer check, the meta-key scan) starts with `// @tree-wide: <what it
   reads>` and runs on any change under `src/` or `scripts/`. Mark a new one
   so, or it will be skipped.

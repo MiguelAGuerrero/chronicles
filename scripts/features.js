@@ -22,7 +22,7 @@ const FEATURES = [
     rule: 'functional-core',
     source: ['src/lib/types.ts', 'src/lib/{store,useStore,meta,id,focus}.ts', 'src/lib/ports/**'],
     journeys: [],
-    specs: ['functional-core', 'affected-checks', 'test-organization'],
+    specs: ['functional-core', 'affected-checks', 'test-organization', 'shells-saved-settings'],
   },
   {
     name: 'storage',
@@ -88,7 +88,7 @@ const FEATURES = [
     name: 'moments',
     about: 'moments and days: the day screen, moment pins, the moment bar',
     rule: 'moments-and-days',
-    source: ['src/lib/{days,useLocate,momentPins}.ts', 'src/lib/locate/**', 'src/app/day/**', 'src/components/MomentBar.tsx', 'src/lib/explore/momentFind.ts'],
+    source: ['src/lib/{days,useLocate,momentPins}.ts', 'src/lib/locate/**', 'src/app/day/**', 'src/components/MomentBar.tsx', 'src/lib/explore/momentFind/**'],
     journeys: ['days'],
     specs: ['moments-and-days'],
   },
@@ -161,7 +161,8 @@ const FEATURES = [
     source: [
       'src/components/map/**',
       'src/components/{icons,CapturePinView,MarkPinView,LocateButton,CompassButton}.tsx',
-      'src/lib/{pins,scaleBar,perfCount,mapReads,useTabMap,traceEnds,useLocate,units,unitsStore,useUnits,format,compass}.ts',
+      'src/lib/{pins,scaleBar,perfCount,mapReads,useTabMap,traceEnds,useLocate,units,useUnits,format,compass}.ts',
+      'src/lib/unitsStore/**',
     ],
     journeys: ['qol'],
     specs: ['quality-of-life', 'compass'],

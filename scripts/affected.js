@@ -273,16 +273,39 @@ function coverage(root, changed, graph = importGraph(root)) {
     if (!c.startsWith('src/') || c.startsWith(`${TESTS_DIR}/`) || !SOURCE.test(c) || !fs.existsSync(path.join(root, c))) continue;
     const feats = features.featuresOf(c).map((f) => f.name);
     if (!feats.length) unmapped.push(c);
-    if (!reached.has(c) && !e2eFor([c]).scenarios.length) holes.push({ file: c, layer: layerOf(root, c), features: feats });
+    if (reached.has(c) || e2eFor([c]).scenarios.length) continue;
+    // An instance file only builds a shell from the app's ports (SH6): it is covered when the
+    // shell it builds from is, which is any module it imports that a test reaches.
+    const instance = instanceOf(root, c);
+    if (instance && [...(graph.get(c) ?? [])].some((t) => reached.has(t))) continue;
+    holes.push({ file: c, layer: layerOf(root, c), features: feats, ...(instance ? { instance } : {}) });
   }
   return { holes, unmapped };
+}
+
+/**
+ * What an instance file says it builds: `// @instance: <what>` on the line after its layer tag
+ * (SH6), or null. Such a file holds no logic of its own: a shell's factory called with the
+ * app's ports, or the composition root.
+ */
+function instanceOf(root, rel) {
+  try {
+    const m = /^\/\/ @instance: (.+)$/.exec(fs.readFileSync(path.join(root, rel), 'utf8').split('\n', 2)[1] ?? '');
+    return m ? m[1].trim() : null;
+  } catch {
+    return null;
+  }
 }
 
 /** The coverage report, in words distinct from "nothing to run" (TO6); empty when there is nothing to say. */
 function describeCoverage(cov) {
   const lines = [];
   for (const h of cov.holes) {
-    lines.push(`Covered by nothing: ${h.file} (${h.layer}; ${h.features.join(', ') || 'no feature'}): no unit test reaches it and no e2e journey covers it.`);
+    lines.push(
+      h.instance
+        ? `Covered by nothing: ${h.file} (instance of a shell no test reaches; ${h.features.join(', ') || 'no feature'}): test the factory it builds from over fakePorts().`
+        : `Covered by nothing: ${h.file} (${h.layer}; ${h.features.join(', ') || 'no feature'}): no unit test reaches it and no e2e journey covers it.`,
+    );
   }
   if (cov.holes.length) {
     lines.push(

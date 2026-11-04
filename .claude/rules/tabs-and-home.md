@@ -167,7 +167,7 @@ The three tabs (Explore, Navigate, Chronicle), the home sheet, the recording bar
   test is (the ready screen's chevron first).
 - **Distances in km or miles** (QL13–QL16, Nov 3): `lib/units.ts` is a pure module
   store (`getUnits`, `setUnits`, `onUnits`; the default from the device locale, miles
-  for US, GB, LR, MM); `lib/unitsStore.ts` loads it from meta `units` at launch
+  for US, GB, LR, MM); `lib/unitsStore` (a shell, `unitsStore/shell.ts`, built on the app's ports in `unitsStore/index.ts`) loads it from meta `units` at launch
   (`_layout.tsx`) and saves it; `useUnits()` subscribes a component. `formatDistance`
   reads the store, so every formatter follows; a component that stays mounted across a
   change (the recording bar, a walks list row, the maps' scale bar) calls `useUnits()`

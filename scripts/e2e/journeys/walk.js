@@ -763,6 +763,8 @@ async function run(h) {
 module.exports = {
   name: 'walk',
   covers: [
+    // The drawer's destination before a walk (NV23) is saved through the navigation store.
+    'src/lib/nav/store/**',
     'src/components/{CaptureView,Caption,CapturePinView,ConfirmCard,Ticking,WalkActions,NotificationSettings}.tsx',
     'src/components/walk/**',
     'src/app/replay/**',

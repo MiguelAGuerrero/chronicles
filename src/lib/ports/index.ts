@@ -1,4 +1,5 @@
 // @layer shell
+// @instance: the composition root, the real ports every shell instance is built from
 import { db } from '../db';
 import { newId } from '../id';
 import { notifier } from '../notify';
