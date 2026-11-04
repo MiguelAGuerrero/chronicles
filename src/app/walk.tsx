@@ -151,7 +151,7 @@ function WalkLoading(props: { onClose: () => void }) {
   const at = useStackLayout();
   return (
     <View style={styles.screen}>
-      <View style={[styles.top, { top: at.insets.top, left: at.sideInset, right: at.sideInset }]} pointerEvents="box-none">
+      <View style={[styles.top, { top: at.insets.top + 4, left: at.sideInset, right: at.sideInset }]} pointerEvents="box-none">
         <View style={styles.minRow} pointerEvents="box-none">
           <Pressable
             testID="ready-close"
@@ -1057,7 +1057,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       ) : (
       <>
 
-      <View style={[styles.top, { top: insets.top, left: sideInset, right: sideInset }]} pointerEvents="box-none">
+      <View style={[styles.top, { top: insets.top + 4, left: sideInset, right: sideInset }]} pointerEvents="box-none">
         {navigation.nav && (
           // Not a live region: it changes with every fix. The distance is announced in steps instead.
           <View testID="nav-bar" style={styles.navBar}>

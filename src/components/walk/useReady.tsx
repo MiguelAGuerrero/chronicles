@@ -217,7 +217,7 @@ export function useReady(props: {
       {/* The strip's place in the column: the map ends where the walk's does. */}
       <View style={{ height: BAR_H + at.insets.bottom }} />
 
-      <View style={[styles.top, { top: at.insets.top, left: at.sideInset, right: at.sideInset }]} pointerEvents="box-none">
+      <View style={[styles.top, { top: at.insets.top + 4, left: at.sideInset, right: at.sideInset }]} pointerEvents="box-none">
         {/* The chevron (NR4): where the walk's Minimize sits, back to the tab you came from. */}
         <View style={styles.closeRow} pointerEvents="box-none">
           <Pressable
