@@ -61,7 +61,7 @@ The map component (maplibre-gl on web, MapLibre RN on native), pins and icons, t
   so the control is drawn (`map attribution` checks in `qol`). Native's
   MapLibre RN `attribution` prop is its own (i) button, untouched.
 
-## The compass (CP1-CP8, decision 0081)
+## The compass (CP1-CP8, decision 0082)
 
 - Two fingers turn the map (web: touch rotate with `dragRotate`, `touchPitch` and `pitchWithRotate` off; native: `touchRotate`, `touchPitch={false}`). `onBearingChange` reports a change of half a degree; the web also writes `data-bearing`. `resetNorth()` eases the bearing to 0 (`MOTION.camera`, instant when reduced) and keeps centre and zoom (web `easeTo`, native `setStop`).
 - `CompassButton` draws only while `showsCompass(bearing)` (more than 1° off north). On the live walk it is the top of the column: the `compass` slot above Walk me back while that is shown, else Walk me back's own slot (so no gap and no other button moves); on the ready screen it sits above Locate; on Explore above Locate, only while focused. A map taken down and brought back opens north-up, so Explore resets its bearing state on blur.

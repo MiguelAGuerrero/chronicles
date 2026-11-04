@@ -131,7 +131,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 
 - [ ] The Navigate tab's `tabPress` `preventDefault` and `showWalk()` on the JS tabs, iOS and Android (`(tabs)/_layout.tsx`, NR1)
 - [ ] The entry route's launch sequence on the native stack: Explore beneath, then the walk screen (`(tabs)/index.tsx`, NR3)
-- [ ] The ready bar's drag and spring over MapLibre RN, and Android Back lowering it (`components/walk/ReadyBar.tsx`, NR7)
+- [ ] The ready bar's drag and spring over MapLibre RN, and Android Back lowering it (`components/walk/ReadyBar.tsx`, NR7), now also the walk strip's options drawer (`walk-bar`)
 - [ ] The capture stack and edge buttons against the home indicator's safe area (`components/walk/layout.ts`, NR9, NR11)
 - [ ] Starting in place: the background location task and the pocket alert taking over a walk screen already mounted (`useStartWalk` with `inPlace`, NR6)
 - [ ] Moment pins and the one-fix dot on the walk screen's MapLibre RN map; the long press for a destination there (`components/walk/useReady.tsx`, NR1, NR8); the one MapLibre RN map kept across Start (NR6)
@@ -149,7 +149,9 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] `lib/ports/index.ts` builds the real ports from the native db, recorder and notifier at module load; its first user is the ready walk screen's shell (`lib/ready`, Navigate, ready), so a phone's first run of it is the ready screen opening
 - [ ] The SQLite adapter (`db/index.native.ts`) against the Db contract (`src/lib/__tests__/dbContract.ts`): the suite runs only over the fake and IndexedDB in Node, so SQLite's match to it is by reading
 
-## Compass (CP1-CP8, decision 0081)
+- **The area card's full-screen drawer** (Nov 4): `AtlasCard`'s `PanResponder` taking the touch from its `ScrollView` when the content is at the top (`onMoveShouldSetPanResponderCapture`), the JS-driven transform, and the tab bar folding away (`lib/tabsHidden`). On a touch browser the page's own scroll may take the touch before the capture does. Never run on a device; the e2e's drawer checks (full flow) use a mouse and did not run in the cloud session (no tiles).
+
+## Compass (CP1-CP8, decision 0082)
 
 - [ ] Two-finger rotate on MapLibre RN (`touchRotate`, `touchPitch={false}`) and the bearing in `onRegionDidChange`'s `ViewStateChangeEvent`
 - [ ] `resetNorth()` through the Camera ref's `setStop({ bearing: 0, duration })`: that centre and zoom stay

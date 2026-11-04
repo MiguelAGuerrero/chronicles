@@ -56,6 +56,7 @@ import { useNavigation } from '../lib/nav/useNavigation';
 import { exitPlan, screenState, startNotice } from '../lib/readyNav';
 import { getLastFix } from '../lib/lastFix';
 import { CaptureStack } from '../components/walk/CaptureStack';
+import { ReadyBar } from '../components/walk/ReadyBar';
 import { CAP, EDGE, SCALE_BOTTOM, STACK_GAP, useStackLayout } from '../components/walk/layout';
 import { useReady } from '../components/walk/useReady';
 import { aboutTimeLeft, formatTimeLeft, paceMps, timeLeftMs } from '../lib/nav/eta';
@@ -170,7 +171,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   // Every distance on this screen follows the units setting (QL16).
   useUnits();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
+  const { width, height: screenH } = useWindowDimensions();
   /** The top column's side margin: centered in 640 on wide screens, like the rest. */
   const sideInset = Math.max(12, (width - 640) / 2);
   const params = useLocalSearchParams<{ warning?: string; started?: string; recall?: string }>();
@@ -430,7 +431,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   }, []);
   // The spot card (and the options card) goes once you walk on, or with Back (Android) and Escape (web).
   useEffect(() => {
-    if (!spot && !options && !settingsOpen && !memory) return;
+    if (!spot && !settingsOpen && !memory) return;
     const close = () => {
       setSpot(null);
       setMemory(null);
@@ -450,7 +451,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       back.remove();
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
-  }, [spot, options, settingsOpen, memory]);
+  }, [spot, settingsOpen, memory]);
   useEffect(() => {
     if (!spot?.from || !live.here || distanceM(spot.from, live.here) < 30) return;
     const t = setTimeout(() => setSpot(null), 0);
@@ -957,7 +958,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     <View style={styles.screen}>
       {/* One map for both states, at one place in the tree, so Start never remounts it (NR6). */}
       {!walk ? (
-        <WalkMap {...ready.mapProps} ref={mapRef} onBearingChange={setBearing} scaleInset={{ bottom: SCALE_BOTTOM, left: sideInset + 12 }} />
+        <WalkMap {...ready.mapProps} ref={mapRef} onBearingChange={setBearing} scaleInset={{ bottom: at.barTop + SCALE_BOTTOM, left: sideInset + 12 }} />
       ) : (
       <WalkMap
         landing={hotView}
@@ -1032,10 +1033,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
         // Started in place, the walk opens where the ready map was: around the last fix (NR6).
         initialCenter={live.here ?? getLastFix()?.at ?? undefined}
         initialZoom={16}
-        // The map ends at the bottom strip's top (it is the strip's sibling in the column), so the
-        // scale bar is measured from there: in the bottom-left corner, just above the strip,
-        // inside the 640 column (QL8). The pills stack above it (`at.pills`).
-        scaleInset={{ bottom: SCALE_BOTTOM, left: sideInset + 12 }}
+        // The map runs under the bottom strip (an overlay, as on the ready screen), so the scale bar
+        // is measured from the strip's top: in the bottom-left corner just above it, inside the 640
+        // column (QL8). The pills stack above it (`at.pills`).
+        scaleInset={{ bottom: at.barTop + SCALE_BOTTOM, left: sideInset + 12 }}
       />
       )}
 
@@ -1259,55 +1260,115 @@ function WalkScreen(props: { onMinimize: () => void }) {
         onNote={() => setNoteOpen(true)}
       />
 
-      <View style={[styles.bar, { paddingBottom: 10 + insets.bottom }]}>
-        <View style={styles.barInner}>
-          <WalkStats startedAt={walk?.started_at ?? null} pauses={pauses} distanceM={live.distanceM} rideM={live.rideM} />
+      {/* The walk's strip is the ready bar's twin (NR7): pull it up for the walk's options, which are
+          no button of their own. Pause and Stop stay at its foot at every height. */}
+      <ReadyBar
+        idPrefix="walk"
+        up={options}
+        onUp={(u) => {
+          if (u) {
+            setSpot(null);
+            setMarkOpen(null);
+            setMemory(null);
+            setGapOpen(null);
+          }
+          setOptions(u && !recordingVoice);
+        }}
+        areaHeight={screenH}
+        locked={recordingVoice}
+        summaryLabel={exploring ? 'The walk, exploring' : 'The walk'}
+        summary={<WalkStats startedAt={walk?.started_at ?? null} pauses={pauses} distanceM={live.distanceM} rideM={live.rideM} />}
+        actions={
           <View style={styles.barActions}>
-          <Pressable
-            testID="walk-options"
-            accessibilityRole="button"
-            accessibilityLabel={exploring ? 'Walk options, exploring' : 'Walk options'}
-            accessibilityState={{ expanded: options }}
-            onPress={() => {
-              setSpot(null);
-              setMarkOpen(null);
-              setMemory(null);
-              setGapOpen(null);
-              setOptions((v) => !v);
-            }}
-            style={({ pressed }) => [styles.pauseBtn, options && styles.optionsOn, pressed && styles.pressed]}
-          >
-            {/* One icon whatever the mode (tabs audit U11): a compass read as the Explore tab. */}
-            <Icon name="options-outline" size={20} color={options ? '#ffffff' : theme.ink} />
-          </Pressable>
-          <Pressable
-            testID={paused ? 'resume-walk' : 'pause-walk'}
-            accessibilityRole="button"
-            accessibilityLabel={paused ? 'Resume the walk' : 'Pause the walk'}
-            accessibilityHint={paused ? undefined : 'Stops recording until you resume'}
-            onPress={togglePause}
-            disabled={pausing || stopping || !walk}
-            style={({ pressed }) => [styles.pauseBtn, paused && styles.pauseBtnOn, pressed && styles.pressed]}
-          >
-            <Icon name={paused ? 'play' : 'pause'} size={20} color={paused ? '#ffffff' : theme.ink} />
-          </Pressable>
-          <HoldButton
-            testID="stop"
-            label="Hold to stop"
-            busyLabel="Stopping…"
-            onHold={stop}
-            onTap={() => setToast('Hold to stop the walk')}
-            busy={stopping}
-            disabled={!walk || pausing}
-          >
-            <View style={styles.stopInner}>
-              <Icon name="stop" size={18} color={theme.ink} />
-              <Text style={styles.stopText} selectable={false}>Hold</Text>
-            </View>
-          </HoldButton>
+            <Pressable
+              testID={paused ? 'resume-walk' : 'pause-walk'}
+              accessibilityRole="button"
+              accessibilityLabel={paused ? 'Resume the walk' : 'Pause the walk'}
+              accessibilityHint={paused ? undefined : 'Stops recording until you resume'}
+              onPress={togglePause}
+              disabled={pausing || stopping || !walk}
+              style={({ pressed }) => [styles.pauseBtn, paused && styles.pauseBtnOn, pressed && styles.pressed]}
+            >
+              <Icon name={paused ? 'play' : 'pause'} size={20} color={paused ? '#ffffff' : theme.ink} />
+            </Pressable>
+            <HoldButton
+              testID="stop"
+              label="Hold to stop"
+              busyLabel="Stopping…"
+              onHold={stop}
+              onTap={() => setToast('Hold to stop the walk')}
+              busy={stopping}
+              disabled={!walk || pausing}
+            >
+              <View style={styles.stopInner}>
+                <Icon name="stop" size={18} color={theme.ink} />
+                <Text style={styles.stopText} selectable={false}>Hold</Text>
+              </View>
+            </HoldButton>
           </View>
+        }
+      >
+        <View testID="options-card" style={styles.drawer}>
+          <Text style={styles.spotTitle} accessibilityRole="header">This walk</Text>
+            <View style={styles.optionRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.optionLabel}>Explore</Text>
+                <Text style={styles.markSub}>
+                  {exploring
+                    ? 'Places to find show as “?” when they’re close, with busy streets and reminders.'
+                    : 'Off: a quiet walk, just navigation and your captures. Captures still find places.'}
+                </Text>
+              </View>
+              <Switch testID="explore-walk" accessibilityLabel="Explore" value={exploring} onValueChange={setExplore} />
+            </View>
+            <Pressable
+              testID="open-settings"
+              accessibilityRole="button"
+              accessibilityLabel="Settings: what I’m into and the question mark range"
+              onPress={() => {
+                setOptions(false);
+                setMarkOpen(null);
+                setSpot(null);
+                setSettingsOpen(true);
+              }}
+              style={({ pressed }) => [styles.optionRow, pressed && styles.pressed]}
+            >
+              <Icon name="settings-outline" size={20} color={theme.ink} />
+              <Text style={[styles.optionLabel, { flex: 1 }]}>What I’m into, and the “?” range</Text>
+              <Icon name="chevron-forward" size={18} color={theme.muted} />
+            </Pressable>
+            {motionAccess !== 'on' && (
+              // Without motion the walk goes on, on the GPS filters alone (Motion, MO2).
+              <View testID="motion-off" style={styles.optionRow}>
+                <Icon name="walk-outline" size={20} color={theme.ink} />
+                <Text style={[styles.markSub, { flex: 1 }]}>
+                  {motionAccess === 'unavailable'
+                    ? 'Motion isn’t available here: standing still may drift.'
+                    : motionAccess === 'denied'
+                      ? Platform.OS === 'web'
+                        ? 'Motion is blocked: allow Motion & Orientation Access in Settings › Safari. Standing still may drift.'
+                        : 'Motion is blocked: allow Motion & Fitness for Chronicles in Settings. Standing still may drift.'
+                      : 'Motion off: standing still may drift.'}
+                </Text>
+                {(motionAccess === 'off' || motionAccess === 'denied') && (
+                  <Pressable testID="motion-on" accessibilityRole="button" accessibilityLabel="Turn on motion" onPress={() => void askMotion()} hitSlop={8}>
+                    <Text style={styles.optionLabel}>Turn on</Text>
+                  </Pressable>
+                )}
+              </View>
+            )}
+            <Pressable
+              testID="share-gps-log"
+              accessibilityRole="button"
+              accessibilityLabel="Share this walk’s GPS log, to help fix location problems"
+              onPress={shareLog}
+              style={({ pressed }) => [styles.optionRow, pressed && styles.pressed]}
+            >
+              <Icon name="share-outline" size={20} color={theme.ink} />
+              <Text style={[styles.optionLabel, { flex: 1 }]}>Share GPS log</Text>
+            </Pressable>
         </View>
-      </View>
+      </ReadyBar>
 
       {/* Small round controls in the stack's column, above the captures (as in AllTrails), inside the
           640 column on wide screens: Recenter where Locate sits on the ready screen (NR9). */}
@@ -1368,73 +1429,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
         </Pressable>
       )}
 
-      {options && (
-        <View style={[styles.spotRow, cardAt]} pointerEvents="box-none">
-          <View testID="options-card" style={styles.spot} accessibilityViewIsModal>
-            <Text style={styles.spotTitle} accessibilityRole="header">This walk</Text>
-            <View style={styles.optionRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.optionLabel}>Explore</Text>
-                <Text style={styles.markSub}>
-                  {exploring
-                    ? 'Places to find show as “?” when they’re close, with busy streets and reminders.'
-                    : 'Off: a quiet walk, just navigation and your captures. Captures still find places.'}
-                </Text>
-              </View>
-              <Switch testID="explore-walk" accessibilityLabel="Explore" value={exploring} onValueChange={setExplore} />
-            </View>
-            <Pressable
-              testID="open-settings"
-              accessibilityRole="button"
-              accessibilityLabel="Settings: what I’m into and the question mark range"
-              onPress={() => {
-                setOptions(false);
-                setMarkOpen(null);
-                setSpot(null);
-                setSettingsOpen(true);
-              }}
-              style={({ pressed }) => [styles.optionRow, pressed && styles.pressed]}
-            >
-              <Icon name="settings-outline" size={20} color={theme.ink} />
-              <Text style={[styles.optionLabel, { flex: 1 }]}>What I’m into, and the “?” range</Text>
-              <Icon name="chevron-forward" size={18} color={theme.muted} />
-            </Pressable>
-            {motionAccess !== 'on' && (
-              // Without motion the walk goes on, on the GPS filters alone (Motion, MO2).
-              <View testID="motion-off" style={styles.optionRow}>
-                <Icon name="walk-outline" size={20} color={theme.ink} />
-                <Text style={[styles.markSub, { flex: 1 }]}>
-                  {motionAccess === 'unavailable'
-                    ? 'Motion isn’t available here: standing still may drift.'
-                    : motionAccess === 'denied'
-                      ? Platform.OS === 'web'
-                        ? 'Motion is blocked: allow Motion & Orientation Access in Settings › Safari. Standing still may drift.'
-                        : 'Motion is blocked: allow Motion & Fitness for Chronicles in Settings. Standing still may drift.'
-                      : 'Motion off: standing still may drift.'}
-                </Text>
-                {(motionAccess === 'off' || motionAccess === 'denied') && (
-                  <Pressable testID="motion-on" accessibilityRole="button" accessibilityLabel="Turn on motion" onPress={() => void askMotion()} hitSlop={8}>
-                    <Text style={styles.optionLabel}>Turn on</Text>
-                  </Pressable>
-                )}
-              </View>
-            )}
-            <Pressable
-              testID="share-gps-log"
-              accessibilityRole="button"
-              accessibilityLabel="Share this walk’s GPS log, to help fix location problems"
-              onPress={shareLog}
-              style={({ pressed }) => [styles.optionRow, pressed && styles.pressed]}
-            >
-              <Icon name="share-outline" size={20} color={theme.ink} />
-              <Text style={[styles.optionLabel, { flex: 1 }]}>Share GPS log</Text>
-            </Pressable>
-            <Pressable testID="options-close" accessibilityRole="button" accessibilityLabel="Close" onPress={() => setOptions(false)} style={[styles.spotClose, { position: 'absolute', top: 4, right: 4 }]} hitSlop={8}>
-              <Icon name="close" size={22} color={theme.ink} />
-            </Pressable>
-          </View>
-        </View>
-      )}
       {openMark && !spot && !quiet && (
         // A place's card, in the spot card's place (E7, E8, E12).
         <View style={[styles.spotRow, cardAt]} pointerEvents="box-none">
@@ -1687,7 +1681,7 @@ const styles = StyleSheet.create({
   markSub: { fontSize: 14, color: theme.muted },
   optionRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48 },
   optionLabel: { fontSize: 15, fontWeight: '600', color: theme.ink },
-  optionsOn: { backgroundColor: theme.ink, borderColor: theme.ink },
+  drawer: { paddingHorizontal: 16, paddingBottom: 8, gap: 4, maxWidth: 640, width: '100%', alignSelf: 'center' },
   edgeBtnOff: { opacity: 0.5 },
   spotActions: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
   spotClose: { marginLeft: 'auto', width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
@@ -1704,8 +1698,6 @@ const styles = StyleSheet.create({
   undoBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.8 },
-  bar: { backgroundColor: theme.bg, paddingHorizontal: 16, paddingTop: 10, borderTopWidth: 1, borderColor: theme.line },
-  barInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', maxWidth: 640, width: '100%', alignSelf: 'center' },
   stats: { color: theme.ink, fontSize: 17, fontWeight: '600', fontVariant: ['tabular-nums'], flexShrink: 1 },
   stopInner: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   barActions: { flexDirection: 'row', alignItems: 'center', gap: 20 },

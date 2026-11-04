@@ -11,7 +11,7 @@ For the owner to review before any code.
 - `src/components/map/WalkMap.native.tsx`: report bearing from `onRegionDidChange`; `resetNorth` through the Camera ref. Native enables rotation, which may already be on by default. **I will read MapLibre RN's `.d.ts` first** (the package isn't installed in this container; `npm ci` is needed before code).
 - `src/components/walk/layout.ts`: add an edge slot above the others so the compass sits over Locate/Recenter. On the walk the slots are locate, unwalked, back; the compass would otherwise collide with "unwalked". Proposal: it takes the **top** of the column (above "back"), so existing buttons never move. On Navigate/Explore it sits directly above Locate. This is a small deviation from "directly above Locate" on the walk.
 - `src/app/walk.tsx`, `src/components/walk/useReady.tsx`, `src/app/(tabs)/index.tsx`: hold `bearing` state from the map callback; render `CompassButton`.
-- `docs/decisions/0081-compass-and-rotation.md` (amends 0030), `docs/PRODUCT.md`, `docs/STATUS.md`, `.claude/rules/map.md`, `.claude/rules/walk-screen.md`.
+- `docs/decisions/0082-compass-and-rotation.md` (amends 0030), `docs/PRODUCT.md`, `docs/STATUS.md`, `.claude/rules/map.md`, `.claude/rules/walk-screen.md`.
 
 ## Data
 

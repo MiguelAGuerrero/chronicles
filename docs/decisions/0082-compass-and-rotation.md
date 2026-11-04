@@ -1,4 +1,4 @@
-# 0081. The map can be turned by hand; a compass appears while it is, and sets north again
+# 0082. The map can be turned by hand; a compass appears while it is, and sets north again
 
 Date: 2026-11-04 · Status: accepted · Area: map, navigation · Amends [0030](0030-map-stays-north-up.md)
 

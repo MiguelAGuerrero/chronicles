@@ -659,23 +659,6 @@ function check(ok, what) {
       check(off < 20 && (await pg.locator('[data-testid=stop]').count()) === 1 && (await pg.locator('canvas.maplibregl-canvas').count()) === 1,
         `NR2: Navigate's walk shows its growing trace to the walker, on one live map (${off.toFixed(0)} m off)`);
     });
-    await step('tabs audit U11: the options icon', async () => {
-      // tabs audit U11: the walk options button draws one icon, quiet or exploring.
-      const icon = () => pg.locator('[data-testid=walk-options]').innerText();
-      const quiet = await icon();
-      await pg.click('[data-testid=walk-options]');
-      await pg.waitForSelector('[data-testid=options-card]');
-      await pg.click('[data-testid=explore-walk]');
-      await pg.waitForTimeout(600);
-      const exploring = await icon();
-      const on = await pg.locator('[data-testid=explore-walk] input').isChecked().catch(() => null);
-      await pg.click('[data-testid=explore-walk]');
-      await pg.waitForTimeout(400);
-      await pg.click('[data-testid=walk-options]');
-      await pg.waitForTimeout(400);
-      check(on === true && quiet === exploring && quiet === glyph('options-outline'),
-        `tabs audit U11: the walk options button keeps one icon whatever the mode (${iconOf(quiet)}, ${iconOf(exploring)})`);
-    });
     await step('tabs audit U10: the bar when paused', async () => {
       // tabs audit U10: paused, the bar shows a pause glyph; its way back doesn't read as "expand".
       await pg.click('[data-testid=pause-walk]');
@@ -1166,10 +1149,10 @@ function check(ok, what) {
     check((await pg.locator('[data-testid=gap-card]').count()) === 0, 'gaps: Escape closes the card (G9)');
     // Another card in the slot closes it for good, rather than hiding it to come back (gaps audit 7).
     await tap(at(1.6, -0.5));
-    await pg.click('[data-testid=walk-options]');
+    await pg.click('[data-testid=walk-summary]');
     await pg.waitForTimeout(400);
     const underOptions = await pg.locator('[data-testid=gap-card]').count();
-    await pg.click('[data-testid=walk-options]');
+    await pg.click('[data-testid=walk-summary]');
     await pg.waitForTimeout(400);
     check(underOptions === 0 && (await pg.locator('[data-testid=gap-card]').count()) === 0, `gaps audit 7: the walk's options close the stretch's card, and it doesn't come back (${underOptions})`);
     // Drawing on the walk screen (GW1, GW8): the card offers Draw my way; drawing hides the capture
@@ -2089,7 +2072,7 @@ function check(ok, what) {
         await sp.waitForTimeout(600);
       }
       await shot(sp, 'ready-nr11-walk');
-      const walkBad = await layout(['walk-minimize', 'unwalked', 'walk-back', 'recenter', 'cap-photo', 'cap-voice', 'cap-note', 'walk-options', 'pause-walk', 'stop']);
+      const walkBad = await layout(['walk-minimize', 'unwalked', 'walk-back', 'recenter', 'cap-photo', 'cap-voice', 'cap-note', 'pause-walk', 'stop']);
       check(walkBad.length === 0, `ready NR11: at 375×667 the walk's buttons, with every edge button up, are on screen, 44 or more, apart (${walkBad.join(', ')}; ${await stats(sp)})`);
       await small.close();
     }
@@ -2232,16 +2215,12 @@ function check(ok, what) {
     await pg.click('[data-testid=start]');
     await pg.waitForSelector('[data-testid=stop]', { timeout: 15000 });
     await pg.waitForTimeout(800);
-    await pg.click('[data-testid=walk-options]');
+    // The options are the walk strip's drawer (no button): pulled up, it is the settings, not a card among the stack.
+    await pg.click('[data-testid=walk-summary]');
     await pg.waitForSelector('[data-testid=options-card]');
-    {
-      const card = await box(pg, 'options-card');
-      const hit = [];
-      for (const id of ['cap-photo', 'cap-voice', 'cap-note', 'unwalked']) if (meets(card, await box(pg, id))) hit.push(id);
-      check(hit.length === 0, `navigate-ready audit 5: the options card covers none of the stack or the edge buttons (${hit.join(', ')})`);
-    }
-    await pg.click('[data-testid=walk-options]');
-    await pg.waitForTimeout(400);
+    check((await pg.locator('[data-testid=walk-options]').count()) === 0, 'the walk has no options button: its settings are in the strip\u2019s drawer');
+    await pg.click('[data-testid=walk-summary]');
+    await pg.waitForTimeout(600);
 
     // audit 11: a pill (a memo discarded, with Undo) clears the scale bar at 375 wide.
     {
@@ -2576,7 +2555,7 @@ function check(ok, what) {
       `a quiet walk still builds its neighborhood's checklist, attractions only (${JSON.stringify(read.areas.map((x) => [x.name, x.count]))})`);
     check((await walkMarks().count()) === 0 && (await walkMap().getByText('Thayer Street', { exact: true }).count()) === 0, 'a quiet walk shows no "?" marks and no busy streets');
     // Settings, from the walk's options: the range previewed as a ring around you (E16, E20, E21).
-    await page.click('[data-testid=walk-options]');
+    await page.click('[data-testid=walk-summary]');
     await page.waitForSelector('[data-testid=options-card]');
     check((await page.locator('[data-testid=explore-walk][aria-checked=false], [data-testid=explore-walk]:not([aria-checked=true])').count()) === 1, 'Explore starts off on a new walk (E1)');
     await page.click('[data-testid=open-settings]');
@@ -2660,7 +2639,7 @@ function check(ok, what) {
       }
       if (k === 6) {
         // Explore on, for this walk (E1): the busy streets show, as information (E2, S21).
-        await page.click('[data-testid=walk-options]');
+        await page.click('[data-testid=walk-summary]');
         await page.waitForSelector('[data-testid=options-card]');
         await page.click('[data-testid=explore-walk]');
         await shot(page, '01c-options');
@@ -2673,7 +2652,7 @@ function check(ok, what) {
         const shared = await page.waitForFunction(() => window.__shared, null, { timeout: 5000 }).then((h) => h.jsonValue()).catch(() => null);
         const rows = shared?.text?.split('\n') ?? [];
         check(rows[0]?.startsWith('# Chronicles GPS log') && rows.includes('s,lat,lon,accuracy_m,speed_ms,course') && rows.filter((r) => /^\d+\.\d,/.test(r)).length >= 5, `the walk's options share its GPS log (${rows.length} lines)`);
-        await page.click('[data-testid=options-close]');
+        await page.click('[data-testid=walk-summary]');
         // The quiet read kept no busy streets (the owner's call); switching Explore on reads them at once.
         await walkMap().getByText('Thayer Street', { exact: true }).first().waitFor({ timeout: 15000 }).catch(() => {});
         check((await walkMap().getByText('Thayer Street', { exact: true }).count()) >= 1, 'switching Explore on brings in the busy streets around');
@@ -2935,13 +2914,13 @@ function check(ok, what) {
       if (k === 54) {
         // What I'm into (E17): public art switched off hides its "?" at once; back on, it shows again.
         check((await page.locator('[aria-label="Public art, Art. Open"]').count()) === 1, 'the artwork shows, named, beside you');
-        await page.click('[data-testid=walk-options]');
+        await page.click('[data-testid=walk-summary]');
         await page.click('[data-testid=open-settings]');
         await page.click('[data-testid=kind-public_art]');
         await page.click('[data-testid=settings-done]');
         await page.waitForTimeout(500);
         check((await page.locator('[aria-label="Public art, Art. Open"]').count()) === 0, 'a kind switched off loses its "?" marks');
-        await page.click('[data-testid=walk-options]');
+        await page.click('[data-testid=walk-summary]');
         await page.click('[data-testid=open-settings]');
         await page.click('[data-testid=kind-public_art]');
         await page.click('[data-testid=settings-done]');
@@ -3570,18 +3549,43 @@ function check(ok, what) {
       check((await page.locator('[data-testid=atlas-walk]').count()) === 0 && /You’re in Fox Point/.test(card), 'AT8: the area you are in has no Walk to');
       check((await page.locator('[data-testid=atlas-kind-history]').count()) === 1 && !/\d+\s*of\s*\d+/.test(card), 'AT8: the eight kinds in words, no counts');
       {
-        // The card's body shows, not only its header (an iPhone left it at the header's height, Nov 3). Round 3:
-        // it opens low, so the map above stays in sight; a tap on its handle raises it.
-        const vh = page.viewportSize().height;
-        const box = await page.locator('[data-testid=atlas-card]').boundingBox();
-        check(box && box.height > vh * 0.5 && box.height < vh * 0.7 && box.y > vh * 0.3,
-          `atlas round 3: the card opens as a sheet that leaves the map in sight (${box && Math.round(box.y)}+${box && Math.round(box.height)} of ${vh})`);
-        await page.click('[data-testid=atlas-card-grip]');
+        // The card is a full-screen drawer over the tabs, which fold away while it is open (the owner, Nov 4).
         await page.waitForTimeout(700);
-        const up = await page.locator('[data-testid=atlas-card]').boundingBox();
-        check(up && up.height > vh * 0.8, `atlas round 3: its handle raises it (${up && Math.round(up.height)})`);
+        const vp = page.viewportSize();
+        const box = await page.locator('[data-testid=atlas-card]').boundingBox();
+        check(box && box.y <= 1 && box.height >= vp.height - 2,
+          `drawer: the card covers the whole screen (${box && Math.round(box.y)}+${box && Math.round(box.height)} of ${vp.height})`);
+        check(await page.locator('[data-testid=tab-explore]').isVisible().then((v) => v, () => false) === false
+          || (await page.locator('[data-testid=tab-explore]').boundingBox())?.height === 0,
+          'drawer: the tab bar is folded away while the card is open');
         const kind = await page.locator('[data-testid=atlas-kind-history]').boundingBox();
-        check(kind && up && kind.y + kind.height <= up.y + up.height + 1, 'AT8: its body is inside it');
+        check(kind && box && kind.y + kind.height <= box.y + box.height + 1, 'AT8: its body is inside it');
+        // A pull on the handle follows the finger: half-way is not enough to close, so it springs back on let-go.
+        const grip = await page.locator('[data-testid=atlas-card-grip]').boundingBox();
+        const gx = grip.x + grip.width / 2;
+        const gy = grip.y + grip.height / 2;
+        await page.mouse.move(gx, gy);
+        await page.mouse.down();
+        await page.mouse.move(gx, gy + vp.height * 0.15, { steps: 6 });
+        await page.waitForTimeout(150);
+        const mid = await page.locator('[data-testid=atlas-card]').boundingBox();
+        check(mid && mid.y > vp.height * 0.1 && mid.y < vp.height * 0.2, `drawer: it follows the pull (${mid && Math.round(mid.y)})`);
+        await page.mouse.move(gx, gy + vp.height * 0.02, { steps: 4 });
+        await page.mouse.up();
+        await page.waitForTimeout(700);
+        const back = await page.locator('[data-testid=atlas-card]').boundingBox();
+        check(back && back.y <= 1, 'drawer: let go short of a third of the screen, it springs back');
+        // A pull the length of the screen, let go, finishes the close.
+        await page.mouse.move(gx, gy);
+        await page.mouse.down();
+        await page.mouse.move(gx, gy + vp.height * 0.6, { steps: 8 });
+        await page.mouse.up();
+        await page.waitForTimeout(700);
+        check((await page.locator('[data-testid=atlas-card]').count()) === 0, 'drawer: a long pull down closes it');
+        check(await page.locator('[data-testid=tab-explore]').isVisible(), 'drawer: the tabs come back as it closes');
+        await tileOf('Fox Point').click();
+        await page.waitForSelector('[data-testid=atlas-card]');
+        await page.waitForTimeout(700);
       }
       await page.click('[data-testid=atlas-how]');
       {
@@ -3596,8 +3600,10 @@ function check(ok, what) {
       // Back and Escape from that tab.
       await tileOf('Fox Point').click();
       await page.waitForSelector('[data-testid=atlas-card]');
-      await tabTo(page, 'chronicle');
-      await page.waitForTimeout(600);
+      await page.waitForTimeout(700);
+      // The tab bar is folded away under the drawer, so leave the way a notification would: by the router.
+      await page.evaluate(() => { window.history.pushState({}, '', window.location.pathname.replace(/\/$/, '') + '/chronicle'); window.dispatchEvent(new PopStateEvent('popstate')); });
+      await page.waitForTimeout(800);
       await tabTo(page, 'explore');
       await page.waitForSelector('[data-testid=atlas-grid]');
       check((await page.locator('[data-testid=atlas-card]').count()) === 0, 'explore-atlas audit 8: leaving the tab closes its card');
@@ -4385,7 +4391,7 @@ function check(ok, what) {
       const nav = JSON.parse((await metaOf(pg, 'nav')) || 'null');
       check(said && w && (await metaOf(pg, 'explore_walk')) === w.id && Number(await metaOf(pg, `explored:${w.id}`)) >= w.started_at - 5000 && nav?.walk_id === w.id,
         'Start with Explore and a destination opens the walk exploring, its destination saved for it, saying it is recording (NV25)');
-      await pg.click('[data-testid=walk-options]');
+      await pg.click('[data-testid=walk-summary]');
       await pg.waitForSelector('[data-testid=options-card]');
       check(await pg.locator('[data-testid=explore-walk] input').isChecked(), 'the walk’s options card shows the same mode (NV22, NV26)');
       await c.close();
