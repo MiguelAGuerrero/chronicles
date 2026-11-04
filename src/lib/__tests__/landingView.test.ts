@@ -50,6 +50,15 @@ test('landing: the view draws pockets and named strips, as information: no Start
   assert.ok(!/weight|score|rank/.test(text), 'nothing in the view carries a score');
 });
 
+test('landing: a street two overlapping areas both found is named once (fix street-label-double)', () => {
+  const v = landingView([row(m(0, 0), analysis('North 17th Street', m(0, 100))), row(m(1500, 0), analysis('North 17th Street', m(20, 130)))], 'b1');
+  assert.deepEqual(v.strips.map((s) => s.name), ['North 17th Street']);
+  const far = landingView([row(m(0, 0), analysis('Main Street', m(0, 100))), row(m(5000, 0), analysis('Main Street', m(5000, 100)))], 'b1');
+  assert.equal(far.strips.length, 2, 'the same name in another part of town is a different street');
+  const hood = (at: LngLat) => ({ ...analysis('Fox Point', at), pockets: [{ name: 'Fox Point', weight: 5, spanM: 250, centre: at, hull: [at, at, at] as LngLat[], strips: [] }], strips: [] });
+  assert.equal(landingView([row(m(0, 0), hood(m(0, 0))), row(m(1500, 0), hood(m(50, 40)))], 'b1').labels.length, 1);
+});
+
 test('landing: stale areas are drawn dimmed and say why (audit 5)', () => {
   const fresh = row(m(0, 0), analysis('Thayer Street', m(0, 100)));
   const old = row(m(5000, 0), analysis('Wickenden Street', m(5000, 100)), 'b0');

@@ -108,12 +108,20 @@ export function landingView(rows: LandingRow[], build: string | null, release: s
     const pin = r.analysis.landing?.at ?? null;
     for (const p of r.analysis.pockets) {
       v.pockets.push({ hull: p.hull, name: p.name, stale });
-      if (!p.strips.length) v.labels.push({ name: p.name, at: p.centre });
+      if (!p.strips.length && !named(v.labels, p.name, p.centre)) v.labels.push({ name: p.name, at: p.centre });
     }
-    for (const s of r.analysis.strips) v.strips.push({ lines: s.lines, name: s.name, at: labelAt(s.lines, s.peak, pin), stale });
+    for (const s of r.analysis.strips) {
+      const at = labelAt(s.lines, s.peak, pin);
+      if (!named(v.strips, s.name, at)) v.strips.push({ lines: s.lines, name: s.name, at, stale });
+    }
   }
   return v;
 }
+
+/** Two remembered areas may cover the same street; its name is drawn once, not once per area (fix street-label-double). */
+const SAME_LABEL_M = 300;
+const named = (drawn: { name: string; at: LngLat }[], name: string, at: LngLat) =>
+  drawn.some((d) => d.name === name && distanceM(d.at, at) < SAME_LABEL_M);
 
 /**
  * A current area (this build, these rules) centred within 1 km of a scan
