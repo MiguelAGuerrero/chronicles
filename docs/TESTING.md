@@ -267,6 +267,9 @@ Re-export without the variable afterwards for the plain e2e.
 
 ### Traps
 
+- Run journeys one at a time. Two at once on one machine failed timing checks
+  that pass alone (the first walk's video pin label, a walk started from the
+  home saying it is recording; Nov 4 deploy).
 - A pin's tap area is 48 px: a "what happened here" press goes 30 px beside
   it. A pin on a map with no `onPinPress` is labelled without ". Open".
 - Web long presses wait 300 ms so a double-tap zoom isn't also a press. A
