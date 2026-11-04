@@ -92,6 +92,13 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - There is no import of the backup bundle yet (Round 3, the backup zip)
 - The backup bundle leaves still spells out, `Still` (Round 3, motion audit)
 - The backup bundle leaves gap decisions out, `gap_fill` (Filling gaps)
+- Filters on video: no consistent way on iOS without Skia or an experimental flag (the owner's call, Media editing, decision 0084)
+- A small copy remade later, because its file was gone, keeps the crop and rotation but not the filter or lines: those need the mounted baker (ME20)
+- No screen-reader way to draw a line or drag the crop frame; Rotate, the filters, pens, colours, Undo, Redo, Revert and aspects are reachable (ME22)
+- From Markup, left out: pencil texture, an opacity slider, a colour wheel, lasso, ruler, shapes; also text styles, free-placed text, stickers and flip (the owner's scope, ME10)
+- The trim bar shows no frames along it; the handles show the frame they're on (ME14)
+- The web's edited video records in real time, and plays muted where the browser refuses sound without a tap: that copy then has no sound (ME17)
+- The web's edited video is re-encoded (WebM in some browsers, MP4 in others); phones keep MP4 (ME17)
 
 ## Deletion
 
@@ -121,7 +128,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 6. An audit pass over the quality-of-life rounds (the owner chose checkpoints instead; 0064)
 7. Memory pins pick up a small copy made mid-walk only when their capture set changes (`memories.ts` sends only changed ids; QL26)
 8. Edit note on Navigate's live walk, which opens no viewer (QL24)
-9. Captions are not sent on the capture bus, so another open view of the walk shows a new caption only after a reload (QL25)
+9. ~~Captions are not sent on the capture bus~~: they are since Media editing (ME21, `captureEdits`)
 10. The day replay repeats its "Summary of the day" announcement after a note is edited there (QL25)
 11. Month headers keep last year's labels if the sheet stays mounted across New Year (QL28)
 

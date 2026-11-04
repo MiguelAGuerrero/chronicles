@@ -74,8 +74,13 @@ Captures
   CaptureView.tsx            CaptureViewer (full-screen photos and videos over a strip; cards for notes and memos; More menu) and CaptureContent (plays memos and videos)
   CapturePinView.tsx         the round capture pin, grouped count, faint (memory) and found variants
   MarkPinView.tsx            an Explore "?" mark: unknown, named, found
-  Caption.tsx                CAPTION_STYLE, captionMetrics, captionTop, CaptionBar, CaptionEditor (an overlay inside the viewer)
-  Baker(.native|.web).tsx    bakes a caption into a saved photo: react-native-view-shot on native, canvas on web
+  Caption.tsx                CAPTION_STYLE, captionMetrics, captionTop, CaptionBar, CaptionField (the editor's Text tool)
+  Baker(.native|.web).tsx    renders a photo's edits and caption into a saved copy, or the lines and caption alone into a clear PNG for a video (Baker.types.ts): react-native-view-shot over EditedPicture on native, canvas on web
+  edit/MediaEditor.tsx       the Edit screen (ME1-ME23): crop and rotate, filters, Markup-style drawing, text, trim; an overlay inside the viewer, its own Modal elsewhere
+  edit/tools.tsx             CropFrame, DrawLayer (pen, marker, eraser), FilterStrip, TrimBar
+  edit/EditedPhoto.tsx       EditedPicture (one SVG through exportPlan's transform: FeColorMatrix filter, lines) and EditedPhoto (with the caption bar, full screen)
+  edit/EditedVideo.tsx       EditedVideo (the player turned and cropped by view transforms, lines and caption in a layer taking no taps, the trim kept while playing), VideoPicture, useVideoSize
+  edit/EditOffer.tsx         the 6 s Edit offer after a capture: useEditOffer, EditOfferPill, EditButton
   MemoryPreview.tsx          a memory pin's quick preview above the capture row
   ReminderCard.tsx           a flagged capture come back on the walk screen
   RemindEditor.tsx           Remind me here: how often, until when (drawn inside the viewer's Modal)
@@ -188,7 +193,12 @@ Memories, moments, days
   useLocate.ts               the Locate tap
 Captures and media
   useCaptures.ts             photo, video, memo and note capture; the voice queue; placing; UNDO_MS
-  captureBus.ts              news of a capture kept or patched, between the bar, the row and the walk screen
+  captureBus.ts              news of a capture kept or patched (thumbnail, place, note, caption, edits), between the bar, the row and the walk screen
+  mediaEdit.ts               edits as data (core, ME5-ME21): rotate and crop against the original, the nine filter matrices, pen sizes and colours, the eraser's hit, simplify, trim, exportPlan (one transform for every renderer), parse/serialize
+  editSession.ts             the editor's draft, undo/redo, close/discard/done (core)
+  editOffer.ts               the after-capture Edit offer's timing and words (core)
+  captureEdits/              saving a moment's edits from a screen with no capture path: stored, then told on the bus (shell)
+  videoEdit/                 an edited video as one file: the local module on phones, canvas + MediaRecorder on the web
   media/                     where files are kept: Documents (relative paths) on native, Blobs in IndexedDB on web; resolveMedia
   media/thumb.ts             the 240 px copy with expo-image-manipulator; thumbPlan.ts decides when; thumbJob.ts runs one job per photo at a time
   useMediaUri.ts             a capture's media as a playable URI
@@ -323,8 +333,14 @@ own code only where no Expo module covers the feature on web:
   `locate/index.web.ts`). expo-location's web watch emits fixes under the
   browser's watch id but looks callbacks up by its own, swallows errors and
   never asks for high accuracy.
-- **Caption baking:** canvas (`Baker.web.tsx`). react-native-view-shot has no
-  web build.
+- **Caption and edit baking:** canvas (`Baker.web.tsx`). react-native-view-shot has no
+  web build. The filter is applied to the pixels with the same matrix as the
+  screen (`ctx.filter` isn't dependable in Safari).
+- **Edited video:** canvas + `MediaRecorder` + Web Audio (`videoEdit/index.web.ts`).
+  No Expo module re-encodes video; phones use the local module
+  `modules/chronicles-video-edit`. The web player's video size comes from a
+  detached `<video>`'s metadata (`probeVideoSize`): expo-video's web player has
+  no video track.
 - **Notifications:** a service worker (`public/sw.js`, through
   `notify/transport.web.ts`). expo-notifications has no web build. Local
   only; scheduled notices are page timers.
@@ -362,7 +378,9 @@ Truth (`lib/types.ts`):
 - `TracePoint`: walk_id, t, lat, lon, accuracy_m, speed, course. Raw, unfiltered.
 - `Capture`: id, walk_id (null for a loose moment), t, lat/lon (null until
   placed), kind (photo | video | voice | text), file_path, body, segment_id,
-  caption, caption_y, thumb_path.
+  caption, caption_y, thumb_path, edit (a photo's or video's edits as data:
+  rotate, crop, filter, lines, trim; SQLite migration 17 stores it as JSON,
+  IndexedDB keeps the object; `parseEdit` reads both, decision 0084).
 - `Pause`, `Still`: walk_id, started_at, ended_at.
 - `GapDecision` (`gap_fill`, kept): a stretch kept or dismissed, with its line, so a map update never moves it.
 

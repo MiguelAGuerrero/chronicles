@@ -18,6 +18,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] Migration 13: the `still` table of still spells (IndexedDB v11)
 - [ ] Migration 14: the `gap_fill` table of kept and dismissed stretches (IndexedDB v12)
 - [ ] Migration 15: the `atlas_area` cache of the Explore atlas (IndexedDB v13)
+- [ ] Migration 17: `capture.edit`, JSON through `serializeEdit`/`parseEdit` on every capture read (no IndexedDB bump; Media editing, ME21)
 
 ## Map layers and markers (MapLibre RN v11)
 
@@ -77,6 +78,18 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] The home's capture row, `MomentBar` and `CaptureRow` (Moments and days)
 - [ ] Navigate's moment pins as MapLibre RN Markers, and their `CaptureViewer` over the tab map (moment pins 1-2)
 - [ ] The backup zip written to a file handle, `writeWalkBundle`, to be tested on a phone before it reaches the UI (Product, backing up)
+
+## Media editing (ME1-ME23, decision 0084)
+
+- [ ] `FeColorMatrix` on an SVG `Image` (react-native-svg) on iOS and Android, its speed on a full-size photo, and whether the colours match the web's sRGB matrix (CoreImage may filter in linear light)
+- [ ] The native baker over `EditedPicture`: view-shot capturing the SVG, the 15 s load timeout, the clear PNG overlay for a video
+- [ ] The editor's filter row: nine full-size SVG images at once (memory)
+- [ ] `VideoView` turned and clipped by view transforms (`VideoPicture`), with native controls off when turned or cropped
+- [ ] The trim kept through `timeUpdate` (0.1 s) and `currentTime`, and Android/iOS seeking precision
+- [ ] `useVideoSize` and `probeVideoSize`: a first-frame thumbnail as the upright size (the track reports the encoded one)
+- [ ] The local module `modules/chronicles-video-edit` (never compiled): Swift (AVMutableComposition, AVMutableVideoComposition with preferredTransform then our rotation, AVVideoCompositionCoreAnimationTool overlay, `isGeometryFlipped`, export on iOS 16.4+), Kotlin (Media3 Transformer at expo-video's 1.9.1: the rotation's sign, the crop's NDC mapping, `OverlayEffect`), audio kept, partial output removed
+- [ ] The remade small copy (`keepEditedThumb`) and the lazy copy's crop and rotation through the manipulator (`media/thumb.ts`)
+- [ ] The editor as its own Modal from the recording bar and Navigate's ready screen
 
 ## Deletion (`db.deleteWalk`, `db.deleteCaptures`, `removeMedia`)
 
