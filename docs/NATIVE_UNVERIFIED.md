@@ -18,6 +18,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] Migration 13: the `still` table of still spells (IndexedDB v11)
 - [ ] Migration 14: the `gap_fill` table of kept and dismissed stretches (IndexedDB v12)
 - [ ] Migration 15: the `atlas_area` cache of the Explore atlas (IndexedDB v13)
+- [ ] Migration 17: `capture.edit`, JSON through `serializeEdit`/`parseEdit` on every capture read (no IndexedDB bump; Media editing, ME21)
 
 ## Map layers and markers (MapLibre RN v11)
 
@@ -78,6 +79,23 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] Navigate's moment pins as MapLibre RN Markers, and their `CaptureViewer` over the tab map (moment pins 1-2)
 - [ ] The backup zip written to a file handle, `writeWalkBundle`, to be tested on a phone before it reaches the UI (Product, backing up)
 
+## Media editing (ME1-ME23, decision 0084)
+
+- [ ] `FeColorMatrix` on an SVG `Image` (react-native-svg) on iOS and Android, its speed on a full-size photo, and whether the colours match the web's sRGB matrix (CoreImage may filter in linear light)
+- [ ] The native baker over `EditedPicture`: view-shot capturing the SVG, the 15 s load timeout, the clear PNG overlay for a video
+- [ ] The editor's filter row: nine full-size SVG images at once (memory)
+- [ ] `VideoView` turned and clipped by view transforms (`VideoPicture`), with native controls off when turned or cropped
+- [ ] The trim kept through `timeUpdate` (0.1 s) and `currentTime`, and Android/iOS seeking precision
+- [ ] `useVideoSize` and `probeVideoSize`: a first-frame thumbnail as the upright size (the track reports the encoded one)
+- [ ] The local module `modules/chronicles-video-edit` (never compiled): Swift (AVMutableComposition, AVMutableVideoComposition with preferredTransform then our rotation, AVVideoCompositionCoreAnimationTool overlay, `isGeometryFlipped`, export on iOS 16.4+), Kotlin (Media3 Transformer at expo-video's 1.9.1: the rotation's sign, the crop's NDC mapping, `OverlayEffect`), audio kept, partial output removed
+- [ ] The remade small copy (`keepEditedThumb`) and the lazy copy's crop and rotation through the manipulator (`media/thumb.ts`)
+- [ ] The editor as its own Modal from the recording bar and Navigate's ready screen; Android Back through `requestClose`
+- [ ] The video module's crop is in pixels against `probeVideoSize`'s thumbnail; a downscaled thumbnail would mis-crop, and Kotlin rejects a frame off by more than 2 px (audit)
+- [ ] `VideoPicture` on Android: expo-video's default `surfaceView` may ignore the view's rotation and clipping (`textureView` may be needed); AVPlayerLayer under a transform on iOS (audit)
+- [ ] `SvgImage` `onLoad` firing twice in the native baker (a second capture of a finished job) (audit)
+- [ ] `Image.getSize` with EXIF orientation on Android against how the SVG draws the photo (audit)
+- [ ] The edited copy under its new name (`editedThumbName`) and the old copy's removal (audit 3)
+
 ## Deletion (`db.deleteWalk`, `db.deleteCaptures`, `removeMedia`)
 
 - [ ] The SQLite deletes (Clearing walks and moments)
@@ -127,7 +145,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 ## Town borders (TB1-TB9)
 
 - [ ] The `borders` GeoJSONSource with fill and line layers (`filter`, `minzoom`) on MapLibre RN, the first overlay over the base map
-- [ ] SQLite migration 17 (`outline_tile` cleared, `z` column) and z10 tiles read on a phone
+- [ ] SQLite migration 18 (`outline_tile` cleared, `z` column) and z10 tiles read on a phone
 
 ## Explore atlas
 
@@ -182,3 +200,6 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] Two-finger rotate on MapLibre RN (`touchRotate`, `touchPitch={false}`) and the bearing in `onRegionDidChange`'s `ViewStateChangeEvent`
 - [ ] `resetNorth()` through the Camera ref's `setStop({ bearing: 0, duration })`: that centre and zoom stay
 - [ ] The compass button over the native map, above Locate and in the walk's column
+- [ ] expo-keep-awake through a replay (RR24): the screen held from reading the streets to the card, let go on the card and on leaving, taken again on AppState `active`
+- [ ] The loading skeleton's pulse with the native driver (RR23)
+

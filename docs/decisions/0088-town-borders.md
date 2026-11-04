@@ -1,4 +1,4 @@
-# 0087. Town borders are drawn on every map that shows a town
+# 0088. Town borders are drawn on every map that shows a town
 
 Date: 2026-11-04 · Status: accepted · Area: map, places-and-areas
 
@@ -13,6 +13,6 @@ The owner's calls, Nov 4:
 
 ## Consequences
 - The spec is `specs/town-borders/spec.md` (TB1-TB9); the plan is `specs/town-borders/plan.md`.
-- `outline_tile` is keyed `z/x/y`: SQLite migration 17 and IndexedDB v15, both clearing the old rows.
+- `outline_tile` is keyed `z/x/y`: SQLite migration 18 and IndexedDB v15, both clearing the old rows.
 - A walked town's region is one tint whatever was walked there: nothing is a score.
 - On native the border layers sit over the base map's streets (MapLibre RN has no base road layer id to go below); unverified on a device.

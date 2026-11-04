@@ -27,7 +27,7 @@ Town outlines (TO1-TO12, decision 0083) made the town you're in the one whose bo
 ## Routes and data
 
 - No new routes or dependencies.
-- The outline cache (`outline_tile`, TO12) also holds zoom-10 tiles, keyed by zoom: SQLite migration 17 and IndexedDB v15. Both clear the old rows, since it is a cache.
+- The outline cache (`outline_tile`, TO12) also holds zoom-10 tiles, keyed by zoom: SQLite migration 18 and IndexedDB v15. Both clear the old rows, since it is a cache.
 - Network: Overture's divisions archive, already read (decision 0083).
 
 ## Record (Nov 4)

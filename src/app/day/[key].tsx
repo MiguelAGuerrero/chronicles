@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CaptureViewer } from '../../components/CaptureView';
 import { Stage } from '../../components/ceremony/Stage';
 import { StepThrough } from '../../components/ceremony/StepThrough';
+import { useAwakeWhile } from '../../components/ceremony/useAwakeWhile';
 import { useCeremonyClock } from '../../components/ceremony/useCeremonyClock';
 import { useRevealed } from '../../components/ceremony/useRevealed';
 import type { StageCtx } from '../../components/ceremony/layout';
@@ -160,6 +161,8 @@ export default function DayReplay() {
   }, []);
   const play = useCeremonyClock({ epoch: phase.t0, running: telling, paused: viewing != null || waits.size > 0, showing, onEnd: toCard });
   const frame = telling ? showing.frame(play.ms) : null;
+  // The screen stays awake while the replay plays, until the card (RR24).
+  useAwakeWhile(phase.beat === 'path');
 
   // The card: the day marked watched, unless Skip reached it (M12, audit).
   useEffect(() => {

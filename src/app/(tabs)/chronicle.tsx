@@ -11,6 +11,7 @@ import { Banner, Button, theme } from '../../components/ui';
 import type { Area, WalkArea } from '../../lib/areas/types';
 import { db } from '../../lib/db';
 import { applyPatch, captureBus } from '../../lib/captureBus';
+import { captureEdits } from '../../lib/captureEdits';
 import { perfCount } from '../../lib/perfCount';
 import { buildDays } from '../../lib/days';
 import { countLine, placeCount, type ChecklistArea, type Find } from '../../lib/explore/explore';
@@ -319,9 +320,10 @@ export default function Chronicle() {
         captures={viewing && viewing.map((v) => captures.find((c) => c.id === v.id) ?? v)}
         onClose={() => setViewing(null)}
         remind
-        onSaveCaption={async (c, caption, y) => {
-          await db.updateCapture(c.id, { caption, caption_y: caption ? y : null });
-          setCaptures((prev) => prev.map((x) => (x.id === c.id ? { ...x, caption, caption_y: caption ? y : null } : x)));
+        onSaveEdit={async (c, patch) => {
+          // Stored and told on the bus first (ME21); Chronicle's pins then show it.
+          await captureEdits.save(c, patch);
+          setCaptures((prev) => applyPatch(prev, c.id, patch));
         }}
         onSaveNote={async (c, body) => {
           // Stored first; Chronicle's pins and any open view of the walk then show it (QL25).

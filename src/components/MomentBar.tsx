@@ -8,6 +8,8 @@ import type { LocateResult } from '../lib/locate/types';
 import type { Capture } from '../lib/types';
 import { useCaptures, type MomentState } from '../lib/useCaptures';
 import { Modal } from './Modal';
+import { EditOfferPill, useEditOffer } from './edit/EditOffer';
+import { MediaEditor } from './edit/MediaEditor';
 import { CaptureStack } from './walk/CaptureStack';
 import { useStackLayout } from './walk/layout';
 import { Button, LiftIn, theme } from './ui';
@@ -70,6 +72,9 @@ export function CaptureRow(props: {
   const at = useStackLayout();
   const { cap, toast, setToast } = props;
   const [noteOpen, setNoteOpen] = useState(false);
+  // After a photo or video, Edit is offered for a few seconds (ME23).
+  const editOffer = useEditOffer();
+  const [editingKept, setEditingKept] = useState<Capture | null>(null);
   const [note, setNote] = useState('');
   const recording = cap.voiceStartedAt != null;
   const { onRecording } = props;
@@ -122,6 +127,17 @@ export function CaptureRow(props: {
     <>
       {/* Pills and the toast: left of the stack, above the strip, so the stack never moves (NR10). */}
       <View style={[styles.pills, at.pills]} pointerEvents="box-none">
+        {editOffer.offer && !recording && (
+          <EditOfferPill
+            offer={editOffer.offer}
+            where="moment"
+            onEdit={() => {
+              const id = editOffer.offer?.id;
+              setEditingKept(cap.captures.find((c) => c.id === id) ?? null);
+              editOffer.clear();
+            }}
+          />
+        )}
         {toast && (
           <LiftIn testID="moment-toast" style={styles.toast} accessibilityLiveRegion="polite">
             <Text style={styles.toastText}>{toast}</Text>
@@ -150,12 +166,22 @@ export function CaptureRow(props: {
         voiceStartedAt={cap.voiceStartedAt}
         busy={cap.busy}
         disabled={props.disabled}
-        onPhoto={() => cap.takePhoto().then((k) => k && saved())}
+        onPhoto={() =>
+          cap.takePhoto().then((k) => {
+            if (!k) return;
+            saved();
+            editOffer.show(k);
+          })
+        }
         onVoice={() => cap.startVoice().then((ok) => ok && feedback('tap'))}
         onSave={saveVoice}
         onDiscard={() => cap.discardVoice()}
         onNote={() => setNoteOpen(true)}
       />
+
+      {editingKept && (
+        <MediaEditor key={editingKept.id} capture={editingKept} initialTool="crop" onClose={() => setEditingKept(null)} onSave={(patch) => cap.setEdit(editingKept.id, patch)} />
+      )}
 
       <Modal visible={noteOpen} transparent animationType="fade" onRequestClose={() => setNoteOpen(false)}>
         {/* Every way out keeps the draft; only Save clears it. */}

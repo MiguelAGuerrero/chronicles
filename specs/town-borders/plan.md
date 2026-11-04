@@ -28,7 +28,7 @@ For the owner to review before any code. The criteria are `spec.md` (TB1-TB9).
    - **Walk screen:** the borders around the walker (the z10 tile under the walk's start, read once per walk), all `lined`. The town you're in (`townAt`, the z12 set) gets the firmer line (TB4).
    - **Replay and a day:** the walk's (or the day's walks') `WalkArea` town rows, `tinted`, and the rest of the tile `lined` (TB5).
    - Each screen keeps its borders in a memo keyed by the towns' ids, so nothing rebuilds per render or zoom (TB9).
-5. **Storage (TB7).** `OutlineTile` gains `z`, and keys become `z/x/y`. SQLite migration 17 adds the column and clears the table; IndexedDB v15 clears `outline_tile` (`oldVersion < 15`). It is derived, so the next read refills it. `Db` methods are unchanged; contract cases cover a z10 and a z12 tile under one x/y.
+5. **Storage (TB7).** `OutlineTile` gains `z`, and keys become `z/x/y`. SQLite migration 18 adds the column and clears the table; IndexedDB v15 clears `outline_tile` (`oldVersion < 15`). It is derived, so the next read refills it. `Db` methods are unchanged; contract cases cover a z10 and a z12 tile under one x/y.
 
 ## Tests per criterion
 
@@ -60,5 +60,5 @@ The e2e's fake divisions archive gains a z10 tile with Pawtucket and a neighbor,
 ## Docs
 
 - The `map` and `places-and-areas` rules.
-- `docs/decisions/0087-town-borders.md`.
+- `docs/decisions/0088-town-borders.md`.
 - `docs/PRODUCT.md`, `docs/STATUS.md`, and the e2e table in `docs/TESTING.md`.

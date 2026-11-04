@@ -92,6 +92,17 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - There is no import of the backup bundle yet (Round 3, the backup zip)
 - The backup bundle leaves still spells out, `Still` (Round 3, motion audit)
 - The backup bundle leaves gap decisions out, `gap_fill` (Filling gaps)
+- Filters on video: no consistent way on iOS without Skia or an experimental flag (the owner's call, Media editing, decision 0084)
+- A small copy remade later, because its file was gone, keeps the crop and rotation but not the filter or lines: those need the mounted baker (ME20)
+- No screen-reader way to draw a line or drag the crop frame; Rotate, the filters, pens, colours, Undo, Redo, Revert and aspects are reachable (ME22)
+- From Markup, left out: pencil texture, an opacity slider, a colour wheel, lasso, ruler, shapes; also text styles, free-placed text, stickers and flip (the owner's scope, ME10)
+- The trim bar shows no frames along it; the handles show the frame they're on (ME14)
+- The web's edited video records in real time, and plays muted where the browser refuses sound without a tap: that copy then has no sound (ME17)
+- The web's edited video is re-encoded (WebM in some browsers, MP4 in others); phones keep MP4 (ME17)
+- On iPhone Safari a saved video may be silent: by the time the copy is made, the tap no longer counts as allowing sound (media-editing audit 4; the export no longer hangs)
+- A web export recorded in a hidden tab: requestAnimationFrame stops and frames freeze until it is shown again (media-editing audit 10)
+- On Navigate, a moment's "kept here" toast and its Edit pill can show together (media-editing audit 13)
+- A turned or cropped video has only play and pause, no scrubber or progress (media-editing audit 15)
 
 ## Deletion
 
@@ -121,7 +132,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 6. An audit pass over the quality-of-life rounds (the owner chose checkpoints instead; 0064)
 7. Memory pins pick up a small copy made mid-walk only when their capture set changes (`memories.ts` sends only changed ids; QL26)
 8. Edit note on Navigate's live walk, which opens no viewer (QL24)
-9. Captions are not sent on the capture bus, so another open view of the walk shows a new caption only after a reload (QL25)
+9. ~~Captions are not sent on the capture bus~~: they are since Media editing (ME21, `captureEdits`)
 10. The day replay repeats its "Summary of the day" announcement after a note is edited there (QL25)
 11. Month headers keep last year's labels if the sheet stays mounted across New Year (QL28)
 
@@ -141,7 +152,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - Retuning `STEPS` against real towns
 - A street-network catchment in place of the ring
 
-## Town borders (TB1-TB9, decision 0087)
+## Town borders (TB1-TB9, decision 0088)
 
 - Labels on borders: the base map's own town labels stay
 - Tapping a region to open its town: the stars and tiles already do
@@ -192,7 +203,5 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - The meta `day_watched:<key>` is still written but changes nothing in the ceremony (only the screen reader's steps read it)
 - Highlights (starring a moment during the replay), as in the concept doc
 - The trace is redrawn every 66 ms, so on a zip the line trails the walker by a short stretch (replay-rhythm audit 14)
-- Keeping the screen awake through the replay (a minute with no touch can meet the phone's auto-lock): needs expo-keep-awake, a new library, so it waits on the owner; a lock now holds the replay rather than skipping it (replay-rhythm audit 6)
 - The Undo toast can sit over the clock for its 5 s after a moment is deleted mid-path (replay-rhythm audit, UI notes)
-- No sign while the stage waits for a medium (an iPhone memo refused sound stands 2 s, a video's muted retry about 1 s): a new thing on screen, the owner's call (replay-rhythm audit 38)
 

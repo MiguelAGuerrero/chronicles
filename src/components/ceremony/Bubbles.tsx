@@ -7,6 +7,7 @@ import { COLORS } from '../map/types';
 import { Icon } from '../icons';
 import { theme } from '../ui';
 import { cornerHeight, STAGE_BOTTOM, timeOf, type StageCtx } from './layout';
+import { Skeleton } from './Skeleton';
 import { useMediaWait } from './useMediaWait';
 
 const BARS = 22;
@@ -63,11 +64,16 @@ function MemoBubble({ o, ctx }: { o: BubbleOverlay; ctx: StageCtx }) {
         <Icon name={status.playing ? 'pause' : 'play'} size={18} color={theme.surface} />
       </Pressable>
       <View style={styles.memoBody}>
-        <View style={styles.wave}>
-          {bars(o.capture.id).map((h, i) => (
-            <View key={i} style={[styles.bar, { height: h, backgroundColor: COLORS.voice, opacity: i < lit ? 1 : 0.3 }]} />
-          ))}
-        </View>
+        {/* While the stage waits for it to start, a skeleton waveform; the play button stays to tap (RR23). */}
+        {!started && !ended && waited ? (
+          <Skeleton testID="memo-skeleton" style={styles.waveSkeleton} still={ctx.reduceMotion} />
+        ) : (
+          <View style={styles.wave}>
+            {bars(o.capture.id).map((h, i) => (
+              <View key={i} style={[styles.bar, { height: h, backgroundColor: COLORS.voice, opacity: i < lit ? 1 : 0.3 }]} />
+            ))}
+          </View>
+        )}
         <Text style={styles.when}>Voice memo · {secs(len)} · {timeOf(o.capture.t)}</Text>
       </View>
     </View>
@@ -136,4 +142,5 @@ const styles = StyleSheet.create({
   play: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.voice, alignItems: 'center', justifyContent: 'center' },
   wave: { flexDirection: 'row', alignItems: 'center', gap: 2, height: 24 },
   bar: { width: 3, borderRadius: 2 },
+  waveSkeleton: { width: BARS * 5 - 2, height: 16, marginVertical: 4, borderRadius: 4 },
 });

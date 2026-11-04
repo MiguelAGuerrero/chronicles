@@ -36,7 +36,6 @@ export function createReady(p: Pick<Ports, 'db' | 'recorder'>) {
     dismissWebNote: () => p.db.setMeta(WEB_NOTE_KEY, '1'),
     /** Whether the recorder keeps tracing in the background (a phone), or only while the page is open (web). */
     background: () => p.recorder.capabilities.background,
-    saveCaption: (id: string, caption: string | null, y: number | null) => p.db.updateCapture(id, { caption, caption_y: caption ? y : null }),
     saveNote: (id: string, body: string) => p.db.updateCapture(id, { body }),
   };
 }

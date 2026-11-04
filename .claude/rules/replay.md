@@ -78,6 +78,11 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
   it was taken: the cut lands there; a break of under a minute next to it is a step,
   not a second cut (audit 30). A memo paused with its own button lets the stage go on;
   the stall count resets once a player moves (`trackWait`, audit 32).
+- **Loading and waking** (RR23, RR24, decision 0087): while the stage waits for a medium
+  that hasn't started, a `Skeleton` stands where it will be (a photo's card too, until
+  its picture loads); still with reduce motion. The screen stays awake from reading the
+  streets to the card (`useAwakeWhile`, expo-keep-awake), taken again on AppState
+  `active`: the web's wake lock is let go whenever the page is hidden.
 - **Picking a ceremony**: the route parameter `style` (`ceremonyFor(style)`); the walk
   replay's `ceremony=0` means a re-watch, not a ceremony (audit 25).
 - The trace is rebuilt from the frame at 66 ms buckets, not every frame, so on a zip

@@ -1,0 +1,27 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.chroniclesvideoedit'
+version = '1.0.0'
+
+android {
+  namespace "expo.modules.chroniclesvideoedit"
+  defaultConfig {
+    versionCode 1
+    versionName "1.0.0"
+  }
+}
+
+dependencies {
+  // One Media3 in the app. expo-video and expo-audio pin it with a local
+  // `def androidxMedia3Version = "1.9.1"` in their own build.gradle (not a shared
+  // property), so this default must follow theirs on every Expo SDK upgrade:
+  // read node_modules/expo-video/android/build.gradle. A root `androidxMedia3Version`
+  // (ext or gradle.properties) overrides it. Media3 artifacts must share one version.
+  def androidxMedia3Version = rootProject.findProperty('androidxMedia3Version') ?: '1.9.1'
+  implementation "androidx.media3:media3-common:${androidxMedia3Version}"
+  implementation "androidx.media3:media3-effect:${androidxMedia3Version}"
+  implementation "androidx.media3:media3-transformer:${androidxMedia3Version}"
+}

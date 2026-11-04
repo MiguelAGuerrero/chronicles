@@ -8,7 +8,8 @@ import { StartSettings } from '../StartSettings';
 import { Icon } from '../icons';
 import { Banner, Button, theme } from '../ui';
 import { useUnits } from '../../lib/useUnits';
-import { applyPatch, captureBus } from '../../lib/captureBus';
+import { applyPatch, captureBus, LOOSE_MOMENTS } from '../../lib/captureBus';
+import { captureEdits } from '../../lib/captureEdits';
 import { MOMENT_PIN_ZOOM, placedMoments, upsertMoment } from '../../lib/momentPins';
 import { useVisible } from '../../lib/deletion/useDeletions';
 import { type Kind } from '../../lib/explore/explore';
@@ -158,6 +159,12 @@ export function useReady(props: {
     const params = await walkStart.start(dest, mode, { inPlace: true });
     props.onStarted(params);
   };
+  // A loose moment changed elsewhere (edited from the moment row's Edit offer): its pin shows it (media-editing audit 2).
+  useEffect(() => {
+    const owner = {};
+    return captureBus.subscribe(LOOSE_MOMENTS, owner, () => {}, (id, patch) => setMoments((prev) => applyPatch(prev, id, patch)));
+  }, []);
+
   // The chevron and Back (NR4): the raised bar lowers first. Mid-memo the chevron still closes, and the
   // memo is saved as the screen goes (useCaptures finishes it on unmount, NR10); Back does nothing then.
   const { onClose } = props;
@@ -293,9 +300,9 @@ export function useReady(props: {
         captures={viewing && viewing.map((v) => moments.find((c) => c.id === v.id) ?? v)}
         onClose={() => setViewing(null)}
         remind
-        onSaveCaption={async (c, caption, y) => {
-          await ready.saveCaption(c.id, caption, y);
-          setMoments((prev) => applyPatch(prev, c.id, { caption, caption_y: caption ? y : null }));
+        onSaveEdit={async (c, patch) => {
+          await captureEdits.save(c, patch);
+          setMoments((prev) => applyPatch(prev, c.id, patch));
         }}
         onSaveNote={async (c, body) => {
           await ready.saveNote(c.id, body);

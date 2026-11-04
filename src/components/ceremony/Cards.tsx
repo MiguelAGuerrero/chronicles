@@ -4,10 +4,14 @@ import { useEffect, useRef, useState } from 'react';
 import { Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { easeInOut, easeOut } from '../../lib/ceremony/ease';
 import type { CardOverlay } from '../../lib/ceremony/types';
+import { editedSize, isEmptyEdit, type MediaEdit } from '../../lib/mediaEdit';
 import { useMediaUri } from '../../lib/useMediaUri';
+import { EditedPicture, useNaturalSize } from '../edit/EditedPhoto';
+import { seekTo, useVideoSize, VideoPicture } from '../edit/EditedVideo';
 import { Icon, KIND_LABEL } from '../icons';
 import { theme } from '../ui';
 import { cardWidth, PILE, pileCenter, project, restCenter, tiltOf, timeOf, type StageCtx } from './layout';
+import { Skeleton } from './Skeleton';
 import { useMediaWait } from './useMediaWait';
 
 const lerp = (a: number, b: number, u: number) => a + (b - a) * u;
@@ -20,11 +24,35 @@ function playWithSound(player: ReturnType<typeof useVideoPlayer>, sound: boolean
   player.play();
 }
 
-/** A video in its card: plays while the card says so, pauses when held; muted with "Tap for sound" where sound is refused (RR12). */
-function CardVideo({ o, ctx, uri, height }: { o: CardOverlay; ctx: StageCtx; uri: string; height: number }) {
+/** Where a picture of `size` sits to fill a `w` x `h` box ("cover"), centred. */
+function coverRect(size: { w: number; h: number }, w: number, h: number) {
+  const k = Math.max(w / size.w, h / size.h);
+  return { left: (w - size.w * k) / 2, top: (h - size.h * k) / 2, width: size.w * k, height: size.h * k };
+}
+
+/** An edited photo filling its card (ME4): the same picture as the viewer, cropped to the card's shape. */
+function CardPhoto({ uri, edit, width, height, onLoad }: { uri: string; edit: MediaEdit; width: number; height: number; onLoad: () => void }) {
+  const size = useNaturalSize(uri);
+  if (!size || !width) return null;
+  const r = coverRect(editedSize(size.w, size.h, edit), width, height);
+  return (
+    <View style={[styles.fill, { overflow: 'hidden' }]} pointerEvents="none">
+      <View style={{ position: 'absolute', ...r }}>
+        <EditedPicture uri={uri} W={size.w} H={size.h} edit={edit} width={r.width} height={r.height} onLoad={onLoad} />
+      </View>
+    </View>
+  );
+}
+
+/** A video in its card: plays while the card says so, pauses when held; muted with "Tap for sound" where sound is refused (RR12). Edited, it is turned, cropped and trimmed as in the viewer (ME4, ME15). */
+function CardVideo({ o, ctx, uri, height, width }: { o: CardOverlay; ctx: StageCtx; uri: string; height: number; width: number }) {
+  const edit = o.capture.edit && !isEmptyEdit(o.capture.edit) ? o.capture.edit : null;
+  const trim = edit?.trim ?? null;
   const player = useVideoPlayer(uri, (p) => {
     p.loop = false;
+    if (trim) p.timeUpdateEventInterval = 0.1;
   });
+  const size = useVideoSize(player, edit ? uri : null);
   const [muted, setMuted] = useState(false);
   const [ready, setReady] = useState(() => player.status === 'readyToPlay');
   const [started, setStarted] = useState(false);
@@ -36,15 +64,26 @@ function CardVideo({ o, ctx, uri, height }: { o: CardOverlay; ctx: StageCtx; uri
     if (isPlaying) setStarted(true);
   });
   useEventListener(player, 'playToEnd', () => setEnded(true));
+  // A trimmed video plays only its kept part: it ends at the trim's end (ME15).
+  useEventListener(player, 'timeUpdate', ({ currentTime }) => {
+    if (trim && currentTime >= trim.end_ms / 1000 - 0.02 && !ended) {
+      player.pause();
+      setEnded(true);
+    }
+  });
   const stopped = ctx.held || ctx.paused;
-  const lenMs = Math.max(1000, Number(o.capture.body) || 0);
+  const startS = (trim?.start_ms ?? 0) / 1000;
+  const lenMs = Math.max(1000, trim ? trim.end_ms - trim.start_ms : Number(o.capture.body) || 0);
   // The stage waits while the video is behind its slot or not done at its end (audit 20); it plays on meanwhile.
   const waited = useMediaWait(o.key, ctx, {
-    inSlot: o.playing, slotOver: o.progress >= 1 && !ended, started, ended, positionMs: () => player.currentTime * 1000, planMs: o.progress * lenMs, lenMs, stopped,
+    inSlot: o.playing, slotOver: o.progress >= 1 && !ended, started, ended, positionMs: () => (player.currentTime - startS) * 1000, planMs: o.progress * lenMs, lenMs, stopped,
   });
   // A player told to play before it has loaded ignores it on web: it starts once ready (audit 8).
   useEventListener(player, 'statusChange', ({ status }) => {
-    if (status === 'readyToPlay') setReady(true);
+    if (status !== 'readyToPlay') return;
+    // A trimmed video starts at its start.
+    if (trim && player.currentTime < startS) seekTo(player, startS);
+    setReady(true);
   });
   // A video that has started plays on past its slot until it ends: never a pause at the slot's edge (audit 34).
   const want = (o.playing || waited || (started && o.progress >= 1)) && !ended && !stopped;
@@ -63,11 +102,20 @@ function CardVideo({ o, ctx, uri, height }: { o: CardOverlay; ctx: StageCtx; uri
     }, AUTOPLAY_CHECK_MS);
     return () => clearTimeout(check);
   }, [want, ready, player]);
+  const cover = edit && size && width ? coverRect(editedSize(size.w, size.h, edit), width, height) : null;
   return (
     <View style={{ height, width: '100%' }} pointerEvents="box-none">
-      <View style={styles.fill} pointerEvents="none">
-        <VideoView player={player} style={styles.fill} contentFit="cover" nativeControls={false} playsInline accessibilityLabel="Video" />
+      <View style={[styles.fill, { overflow: 'hidden' }]} pointerEvents="none">
+        {edit && size && cover ? (
+          <View style={{ position: 'absolute', ...cover }}>
+            <VideoPicture player={player} W={size.w} H={size.h} edit={edit} width={cover.width} height={cover.height} />
+          </View>
+        ) : (
+          <VideoView player={player} style={styles.fill} contentFit="cover" nativeControls={false} playsInline accessibilityLabel="Video" />
+        )}
       </View>
+      {/* Until it plays (loading, or a muted retry), a skeleton where the picture will be (RR23). */}
+      {!started && !ended && (o.playing || waited) && <Skeleton testID="media-skeleton" style={StyleSheet.absoluteFill} still={ctx.reduceMotion} />}
       {muted && (
         <Pressable
           testID="video-sound"
@@ -90,6 +138,8 @@ function CardVideo({ o, ctx, uri, height }: { o: CardOverlay; ctx: StageCtx; uri
 /** A photo or video grows from its pin, holds, and tucks into the pile; with reduce motion it fades in place (RR11, RR12, RR18). */
 function MomentCard({ o, ctx }: { o: CardOverlay; ctx: StageCtx }) {
   const uri = useMediaUri(o.capture);
+  // A photo's picture, once it has loaded: a skeleton stands in until then (RR23).
+  const [loaded, setLoaded] = useState(false);
   const w = cardWidth(ctx);
   const imgH = w * 1.15;
   const h = imgH + 7 + 34;
@@ -126,10 +176,13 @@ function MomentCard({ o, ctx }: { o: CardOverlay; ctx: StageCtx }) {
     >
       <View style={[styles.media, { height: imgH }]} pointerEvents="box-none">
         {uri && o.capture.kind === 'video' ? (
-          <CardVideo o={o} ctx={ctx} uri={uri} height={imgH} />
+          <CardVideo o={o} ctx={ctx} uri={uri} height={imgH} width={w - 14} />
+        ) : uri && o.capture.edit && !isEmptyEdit(o.capture.edit) ? (
+          <CardPhoto uri={uri} edit={o.capture.edit} width={w - 14} height={imgH} onLoad={() => setLoaded(true)} />
         ) : uri ? (
-          <Image source={{ uri }} style={styles.fill} resizeMode="cover" accessibilityIgnoresInvertColors pointerEvents="none" />
+          <Image source={{ uri }} style={styles.fill} resizeMode="cover" accessibilityIgnoresInvertColors pointerEvents="none" onLoad={() => setLoaded(true)} />
         ) : null}
+        {(!uri || (o.capture.kind === 'photo' && !loaded)) && <Skeleton testID="media-skeleton" style={StyleSheet.absoluteFill} still={ctx.reduceMotion} />}
       </View>
       <View style={styles.cap} pointerEvents="none">
         <Text style={styles.capText} numberOfLines={1}>{label}</Text>

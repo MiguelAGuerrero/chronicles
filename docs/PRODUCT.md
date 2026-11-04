@@ -52,7 +52,7 @@ recording bar brings a minimized walk back.
   under a small map. The one you're in says "You're here": the town whose
   real border you are inside (town outlines: Overture's borders, decision
   0083), by its label point only where no border is known. The map draws
-  it tinted, the towns around in thin lines (town borders, decision 0087),
+  it tinted, the towns around in thin lines (town borders, decision 0088),
   as do a town's page, the walk screen (lines only), the replay and a day.
 - Each tile is the same picture at the same scale: an 800 m ring around the
   area's point, with its streets, busy streets (magenta, graded faint to
@@ -186,7 +186,8 @@ recording bar brings a minimized walk back.
   corner; photos and videos grow from their pin into a card and tuck into a
   pile, which opens them full screen; places passed without stopping whisper
   by. Nothing waits for a tap: a tap (or Hold) holds it, Skip goes to the card;
-  about a minute at most, memos and videos always in full. With a screen
+  about a minute at most, memos and videos always in full (a soft skeleton
+  stands in while one loads), and the screen stays awake while it plays. With a screen
   reader, the moments one at a time instead. The card says distance, time,
   captures, new streets in words ("your first time down Elm Street"), finds by
   name, and the low ("Passed ... without stopping"). **Name it** sets the
@@ -198,8 +199,16 @@ recording bar brings a minimized walk back.
   walk to walk, each walk's own path, "3 h later" between them.
 - **The capture viewer** opens from any pin: full-screen photos and videos
   over a thin strip of details, cards for notes and memos. Its More menu
-  saves a keeper to the photo library (captions baked in), edits a note's
-  words, or deletes the moment. A caption editor and Remind me here live here too.
+  saves a keeper to the photo library (every edit and the caption baked in), edits a note's
+  words, or deletes the moment. Remind me here lives here too.
+- **Editing a photo or video** (Media editing, ME1-ME23): one Edit screen, from the
+  viewer or from the Edit pill shown for 6 s after every photo or video. Crop with
+  Free, Square, 4:5 and 16:9, and Rotate; nine filters a phone's photo app has
+  (Original, Vivid, Warm, Cool, Dramatic, Fade, Mono, Noir, Sepia; photos only);
+  drawing like the iPhone's Markup (Pen, Marker, Eraser, three thicknesses, six
+  swatches, Undo, Redo); a text bar; a trim for videos. The file is never changed:
+  edits are kept with the moment and can be changed or reverted later. Saving out
+  renders everything into one photo or video.
 - **Deletes** (a walk, a walk's media, one moment) hide at once with a 5 s
   Undo, then run as if it never happened.
 
@@ -253,6 +262,7 @@ recording bar brings a minimized walk back.
 | Quality of life round 3: rename a walk later, edit a note, photos on their pins, months in the walks list | Shipped (web verified by the qol e2e; native unverified) |
 | Bridges and Open in Maps | Shipped on web, audited (native unverified) |
 | Suggested routes (interesting ways, route preview, "Walk this way") | Deferred, next slice |
+| Media editing: crop, rotate, filters, drawing, text, video trim, all saved out | Shipped on web (native unverified; the video module never compiled) |
 | Backup and export of a walk | Code exists, no UI, deferred |
 | Quick capture outside the app (widget, lock screen, share sheet) | Deferred |
 | Remind me here outside a walk | Deferred (needs background location) |

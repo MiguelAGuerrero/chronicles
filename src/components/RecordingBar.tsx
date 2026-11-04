@@ -16,6 +16,9 @@ import { useCaptures } from '../lib/useCaptures';
 import { settleWithin } from '../lib/settleWithin';
 import { showWalk } from '../lib/walkNav';
 import { Icon } from './icons';
+import { EditButton, useEditOffer } from './edit/EditOffer';
+import { MediaEditor } from './edit/MediaEditor';
+import { offerText } from '../lib/editOffer';
 import { useOpenWalk } from './OpenWalk';
 import { Ticking } from './Ticking';
 import { HoldButton, theme } from './ui';
@@ -49,6 +52,9 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   // The bar stays mounted across a change of units under a minimized walk (QL16).
   useUnits();
   const [said, setSaid] = useState<{ text: string; error?: boolean } | null>(null);
+  // After a photo or video, Edit is offered for a few seconds (ME23).
+  const editOffer = useEditOffer();
+  const [editingKept, setEditingKept] = useState<Capture | null>(null);
   const onError = useCallback((e: { message: string }) => setSaid({ text: e.message, error: true }), []);
   const cap = useCaptures(walk.id, live.here, live.lastFixAt, onError);
   // A photo still being kept: Return waits for it, so the walk screen opens with it (NV9).
@@ -103,7 +109,8 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
     });
     if (!kept) return;
     feedback('tap');
-    setSaid({ text: kept.kind === 'photo' ? 'Photo saved to your walk' : 'Video saved to your walk' });
+    setSaid({ text: offerText(kept.kind, 'walk') });
+    editOffer.show(kept);
   };
 
   const [stopping, setStopping] = useState(false);
@@ -173,6 +180,11 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
             <Icon name="chevron-forward" size={20} color="#ffffff" />
           </View>
         </Pressable>
+        {editOffer.offer && <EditButton light style={styles.edit} onPress={() => {
+          const id = editOffer.offer?.id;
+          setEditingKept(cap.captures.find((c) => c.id === id) ?? null);
+          editOffer.clear();
+        }} />}
         <Pressable
           testID="bar-photo"
           accessibilityRole="button"
@@ -200,6 +212,9 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
           <Icon name="stop" size={18} color={theme.ink} />
         </HoldButton>
       </View>
+      {editingKept && (
+        <MediaEditor key={editingKept.id} capture={editingKept} initialTool="crop" onClose={() => setEditingKept(null)} onSave={(patch) => cap.setEdit(editingKept.id, patch)} />
+      )}
     </View>
   );
 }
@@ -219,6 +234,7 @@ const styles = StyleSheet.create({
   text: { flex: 1, color: '#ffffff', fontSize: 16, fontWeight: '600', fontVariant: ['tabular-nums'] },
   error: { fontSize: 14 },
   stop: { width: 44, height: 44, minHeight: 44, paddingHorizontal: 0, borderRadius: 22, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' },
+  edit: { minHeight: 44 },
   camera: { width: 44, height: 44, borderRadius: 22, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' },
   pressed: { opacity: 0.8 },
 });
