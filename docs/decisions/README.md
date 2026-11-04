@@ -80,3 +80,4 @@ An owner's call made during a slice gets its record in the same commit as the sl
 | [0072](0072-hidden-notice-only-when-hidden.md) | 2026-11-03 | "Tracing paused while this page was hidden" only when the page was hidden | recording, walk screen |
 | [0073](0073-functional-core-checked.md) | 2026-11-03 | A functional core, imperative shell: four layers tagged per module, checked by tests and lint, baselines that only shrink | architecture, process |
 | [0074](0074-fast-iteration-scoped-checks.md) | 2026-11-03 | Fast iteration: affected checks and the slice's own e2e journey; the full e2e and `/audit` only when the owner asks (supersedes 0018's audit on every slice) | process, testing |
+| [0075](0075-the-cone-is-checked-by-the-trace.md) | 2026-11-03 | The cone is checked by the trace over 20 m; the live dot's direction alone is never drawn (amends 0030) | navigation, map |
