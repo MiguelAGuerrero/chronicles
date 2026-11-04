@@ -1,6 +1,7 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { HOTSPOT_GRADES, stripsGeoJSON } from '../../components/map/types';
 import { DERIVED_STORES, KEPT_STORES } from '../db/stores';
 import type { AreaAnalysis } from '../landing/analyze';
 import { LANDING_CODE, LANDING_VERSION, isStale, keyFor, landingKey, landingView, staleNote, type LandingRow } from '../landing/view';
@@ -17,6 +18,7 @@ const analysis = (name: string, at: LngLat): AreaAnalysis => ({
   basis: 'density', reason: 'Busiest area',
   pockets: [{ name, weight: 12, spanM: 250, centre: at, hull: [at, at, at], strips: [name] }],
   strips: [{ name, lengthM: 250, weight: 11, lines: [[at, at]], peak: at }],
+  graded: [{ name, grade: 3, lines: [[at, at]] }],
   landing: { at, street: name, via: 'strip' },
 });
 const row = (centre: LngLat, a: AreaAnalysis, build = 'b1', rules = LANDING_VERSION): LandingRow =>
@@ -84,4 +86,26 @@ test('landing: areas analyzed before the street fix are left off the map (fog st
   assert.deepEqual(v.pockets.map((p) => p.name), ['Wickenden Street']);
   // A stale row from after the fix (another build) still shows, dimmed.
   assert.equal(landingView([row(O, analysis('Thayer Street', O), 'b0')], 'b1').strips[0].stale, true);
+});
+
+test('AD12: graded stretches draw wider and stronger as the grade rises; stale ones dimmed; old areas as medium', () => {
+  const at = m(0, 0);
+  const a = analysis('Main Street', at);
+  a.graded = [
+    { name: 'Main Street', grade: 3, lines: [[at, m(0, 50)]] },
+    { name: 'Main Street', grade: 1, lines: [[m(0, 50), m(0, 90)]] },
+    { name: 'Elm Street', grade: 2, lines: [[m(50, 0), m(90, 0)]] },
+  ];
+  const row: LandingRow = { key: 'k', centre: at, analysis: a, build: 'b1', rules: LANDING_VERSION, analyzed_at: 0, overture: null };
+  const fc = stripsGeoJSON(landingView([row], 'b1'));
+  assert.deepEqual(fc.features.map((f) => f.properties!.grade), [1, 2, 3], 'faint first, strong on top');
+  const w = fc.features.map((f) => f.properties!.width as number);
+  const o = fc.features.map((f) => f.properties!.opacity as number);
+  assert.ok(w[0] < w[1] && w[1] < w[2] && o[0] < o[1] && o[1] < o[2]);
+  const stale = stripsGeoJSON(landingView([{ ...row, build: 'old' }], 'b1'));
+  assert.equal(stale.features[2].properties!.opacity, HOTSPOT_GRADES[3].opacity * HOTSPOT_GRADES.staleOpacity);
+  // An area analyzed before grades: its busy streets draw as medium.
+  const { graded: _g, ...before } = a;
+  const old = landingView([{ ...row, analysis: before as typeof a }], 'b1');
+  assert.deepEqual(old.graded.map((g) => g.grade), [2]);
 });

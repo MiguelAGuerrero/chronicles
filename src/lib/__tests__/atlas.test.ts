@@ -103,15 +103,41 @@ test('AT6: the sketch draws streets, the ones you walked apart, busy streets and
       { id: 's2', geometry: [[north(-200), north(200)]] },
       { id: 'far', geometry: [[east(5000), east(5500)]] },
     ],
-    strips: [[[east(-100), east(100)]]],
+    graded: [{ lines: [[east(-100), east(100)]], grade: 2 }],
     parks: [north(300), east(9000)],
   });
   assert.deepEqual(s.streets.map((l) => l.id), ['s1', 's2']);
   assert.equal(s.parks.length, 2, 'one park in the frame');
   const p = sketchPaths(s, new Set(['s2']));
-  assert.ok(p.walked.startsWith('M') && p.streets.startsWith('M') && p.strips.startsWith('M'));
+  assert.ok(p.walked.startsWith('M') && p.streets.startsWith('M') && p.grades[1].startsWith('M'));
   assert.equal((p.walked.match(/M/g) ?? []).length, 1);
   assert.equal((p.streets.match(/M/g) ?? []).length, 1);
+});
+
+test('AD14: the sketch has one path per grade', () => {
+  const s = sketchOf({
+    centre: O,
+    segments: [],
+    graded: [
+      { lines: [[east(-300), east(-200)]], grade: 1 },
+      { lines: [[east(-100), east(0)], [north(0), north(100)]], grade: 2 },
+      { lines: [[east(100), east(200)]], grade: 3 },
+      { lines: [[east(5000), east(5100)]], grade: 3 },
+    ],
+    parks: [],
+  });
+  const p = sketchPaths(s, new Set());
+  assert.deepEqual(p.grades.map((d) => (d.match(/M/g) ?? []).length), [1, 2, 1], 'one path per grade; the stretch outside the frame is left out');
+});
+
+test('AD7: a ring measured without Overture, or with an older release, is read again after its wait', () => {
+  const profile: AtlasProfile = { steps: { art: 0, food: 0, shops: 0, history: 0, parks: 0, culture: 0, viewpoints: 0, nightlife: 0 }, strips: [], stripAt: null, marks: [], sketch: { streets: [], grades: [[], [], []] as [number[][], number[][], number[][]], parks: [] }, overture: null };
+  const list = nearList([row('A', O, { profile, read_at: 1000 })], O, 'neighborhood', 'b1');
+  assert.equal(readQueue(list, 1000, null), null, 'no release known: as read');
+  assert.equal(readQueue(list, 1000 + 1, 'r2'), null, 'just read: waits');
+  assert.equal(readQueue(list, 1000 + ATLAS_RULES.retryMs, 'r2')?.name, 'A', 'read again with Overture');
+  const current = nearList([row('A', O, { profile: { ...profile, overture: 'r2' }, read_at: 1000 })], O, 'neighborhood', 'b1');
+  assert.equal(readQueue(current, 1000 + ATLAS_RULES.retryMs, 'r2'), null);
 });
 
 test('AT7, AT10: what waits is kinds only, without finds, without kinds switched off', () => {
@@ -138,7 +164,7 @@ test('AT8: next door is the nearest areas to this one, with the distance from it
 
 test('AT11, AT13: a tile says each kind present in words, and no number but how far and the walked count', () => {
   const steps = { history: 3, art: 1, culture: 0, parks: 2, viewpoints: 0, food: 2, shops: 0, nightlife: 0 } as const;
-  const area = row('Fox Point', east(400), { profile: { steps, strips: ['Wickenden Street'], stripAt: O, marks: [], sketch: { streets: [], strips: [], parks: [] } } });
+  const area = row('Fox Point', east(400), { profile: { steps, strips: ['Wickenden Street'], stripAt: O, marks: [], sketch: { streets: [], grades: [[], [], []], parks: [] }, overture: null } });
   const [l] = nearList([area], O, 'neighborhood', 'b1');
   l.here = false;
   const label = tileLabel(l, { walks: 0, last: null }, fmt);
@@ -210,7 +236,7 @@ test('explore-atlas audit 3: a failed ring waits its retry, and the step says ho
 
 test('explore-atlas audit 5: past the cap, the streets nearest the point are kept', () => {
   const segments = Array.from({ length: 1200 }, (_, i) => ({ id: `s${i}`, geometry: [[east(-1100 + i * 0.9), east(-1090 + i * 0.9)]] }));
-  const s = sketchOf({ centre: O, segments, strips: [], parks: [] });
+  const s = sketchOf({ centre: O, segments, graded: [], parks: [] });
   assert.ok(s.streets.length <= 900);
   const ids = new Set(s.streets.map((l) => l.id));
   assert.ok(ids.has('s1199'), 'the line at the point, last in the input, is kept');

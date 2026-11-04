@@ -53,6 +53,15 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - The pocket alert likely needs the screen on (native), `explore_haptic` (v1 Explore)
 - The home preview ignores the kind switches and doesn't restore the view after (v1 Explore)
 
+## Activity density (AD1-AD16, decision 0072)
+
+- Overture places as marks, finds or presence bars: marks stay the owner's attractions rule, and the bars must mean the same everywhere (activity density, AD2)
+- Building footprints, land use, address points and street centrality as density signals, for towns where neither OSM nor Overture has the shops (activity density, the research)
+- Overture's tiles kept on the phone across launches; today a tile is fetched once per release per session, `TileMemo` (activity density, AD8)
+- A side-by-side count of OSM and Overture places over Phillipsburg: OpenFreeMap's tiles were unreachable from the cloud session (activity density, AD11)
+- Places further than 40 m from a named street count toward nothing: a pedestrian plaza on unnamed paths, or a strip mall set back behind its car park, makes no busy street (activity density, AD9)
+- The native map's credits don't name Overture: MapLibre RN takes credits only from a style's sources, and the GeoJSON sources have no attribution (activity density, AD16; web only)
+
 ## Reminders and notifications
 
 - Clearing reminder flags whose capture is gone, `discovery/recall.ts` (Remind me here)

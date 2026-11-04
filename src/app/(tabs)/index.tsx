@@ -246,7 +246,7 @@ export default function Explore() {
         return;
       }
       const tile = await db.getMeta('tile_build').catch(() => null);
-      await rememberArea(r.centre, r.analysis, tile ?? 'unknown');
+      await rememberArea(r.centre, r.analysis, tile ?? 'unknown', r.overture);
       const top = r.analysis.pockets[0]?.name ?? r.analysis.landing?.street;
       const message = `${r.analysis.reason}${r.analysis.basis === 'density' && top ? `: ${top}` : ''}. A best guess from the map.`;
       setNotice({ message });

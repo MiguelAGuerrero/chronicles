@@ -29,8 +29,9 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
   food, bars and a Domino's). The ordinary activity of an area shows as its busy
   streets instead.
   - `MARK_CATEGORIES` (`discovery/noise.ts`): art, history, parks, culture,
-    viewpoints. Food, shops and nightlife stay in the place cache only to feed the
-    landing's density.
+    viewpoints. Food, shops and nightlife stay in the place cache for the
+    atlas's bars. Busy-street density has its own table and sources
+    (`activity/`, AD1-AD2): every kind of place, OSM and Overture, never marks.
   - `tilePois` sets `markable` per place. Cinemas, dog parks and picnic sites are
     never marks. Places of worship, town halls, courthouses, cemeteries and
     libraries are marks only when the name holds a word from `notable.json`
@@ -156,7 +157,7 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
 - **Presence, not quality.** Bars come only from places inside the ring, against fixed steps. They are never relative to the neighbors, and every level uses the same ring (a town's is around its point). Green counts park places, not park area (deferred).
 - **Reads** (`atlas/read.ts`) decode tiles in code, like every read:
   - the near read: z14 place points for neighborhoods, z11 for towns, recorded in meta `atlas_near:<level>`;
-  - the ring read: the z14 tiles of the picture's frame. It caches streets and places like any read, and takes strips from `analyzeArea`, keeping those whose peak is inside the ring.
+  - the ring read: the z14 tiles of the picture's frame, with Overture's places for the same tiles (AD3). It takes strips from `analyzeArea`, keeping those whose peak is inside the ring, and the graded stretches for the sketch (one path per grade, AD14). `profile.overture` names the release; `readQueue` reads a ring again, after `retryMs`, when it differs from the one known (AD6, AD7). `ATLAS_CODE` a2.
   - `one()` keeps it to one read at a time; a second ask resolves `null` and is retried 1.5 s later.
   - A failed ring stores `failed_at` and waits `retryMs`.
 - **The loop** (`useAtlas`) runs only while the tab is focused and a position is known. It does one step per effect run and asks for the next with a timer. Moving 1 km, a new build or a new `ATLAS_CODE` lists again.

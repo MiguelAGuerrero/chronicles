@@ -155,8 +155,15 @@ Discovery and Explore (v1)
   atlas/useAtlas.ts          the atlas's data and its read loop, while Explore is in front
   explore/settings.ts        what I'm into, range, pocket alert (meta)
   explore/momentFind.ts      a loose moment finds a place
+Activity density (AD1-AD16)
+  activity/weights.ts (pure) what counts toward density and how much, for OSM and Overture
+  activity/points.ts  (pure) places as weighted points from both sources; one place once across them
+  activity/release.ts (pure) Overture's bucket, the newest release, TileMemo (a tile once per release)
+  activity/overture.ts       Overture's places by tile (pmtiles, byte ranges); the release check (meta)
 Landing (v1.5)
-  landing/analyze.ts (pure)  strips, pockets, the landing point, by density
+  landing/analyze.ts (pure)  busy streets, pockets, the landing point, from the grades
+  landing/grade.ts  (pure)   density along each named street, and its grades against the read
+  landing/spatial.ts (pure)  buckets, single linkage, hulls: the analysis's planar helpers
   landing/read.ts            What's good here: decoder reads, remembered areas
   landing/view.ts   (pure)   LANDING_CODE, LandingRow / LandingView, staleness
   landing/walk.ts   (pure)   the strip chip and the dead-zone nudge
@@ -242,6 +249,15 @@ Session, screens and small helpers
   edition changes what counts) re-snaps and re-places every walk through the
   `snap_rules` meta. `LANDING_CODE` (`landing/view.ts`, bumped by hand) marks
   remembered busy areas stale; they are drawn dimmed until analyzed again.
+  The Overture release (meta `overture_release`, checked at most daily by
+  `ensureOvertureRelease`) is a second version: a landing row or an atlas
+  ring measured with another release, or without Overture, is stale too
+  (`isStale`, `readQueue`), and measured again.
+- **Two map-data hosts.** The map's tiles come from OpenFreeMap; Overture's
+  places come from its public S3 bucket (`activity/release.ts`), one PMTiles
+  file per release read by byte range for the z14 tiles a read covers. Both
+  are asked only for tiles: no key, no account, nothing about the user. The
+  e2e checks no other host is reached.
 - **Storage.** SQLite: all writes go through the single queue in
   `db/index.native.ts` with `withExclusiveTransactionAsync`; schema changes go
   in `MIGRATIONS`, tracked with `PRAGMA user_version`. IndexedDB: bump
@@ -331,12 +347,14 @@ Discovery and Explore (`discovery/types.ts`, `explore/explore.ts`): `Place`
 (cache, per build, `markable`), `Offered`, `Mark`, `Recall` (kept),
 `ChecklistArea`, `ChecklistItem`, `Find` (kept), `ExploreRead` (derived).
 Landing (`landing/analyze.ts`, `landing/view.ts`): `AreaAnalysis` (strips,
-pockets, landing), stored as `LandingRow` in the `landing` store (kept across
-builds, shown stale). Navigation (`nav/types.ts`): `Waypoint`, `Route`,
+pockets, graded stretches, landing), stored as `LandingRow` in the `landing`
+store (kept across builds, shown stale; `overture` names the release it was
+measured with). Density's input is `ActivityPoint` (`activity/points.ts`),
+never stored. Navigation (`nav/types.ts`): `Waypoint`, `Route`,
 `RouteSource`; the destination is meta `nav`.
 
 Meta is a key/value table (`getMeta` / `setMeta`): `tile_build`, `tile_url`,
-`snap_rules`, `nav`, `start_mode`, `explore_walk`, `explored:<walk>`,
+`snap_rules`, `overture_release`, `overture_checked_at`, `nav`, `start_mode`, `explore_walk`, `explored:<walk>`,
 `explore_hidden`, `explore_range`, `explore_haptic`, `notify_off`,
 `recall_open`, `day_watched:<key>`.
 

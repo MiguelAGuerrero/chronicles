@@ -1,4 +1,6 @@
 import type { CollectedFeatures } from '../../components/map/types';
+import { readOverture } from '../activity/overture';
+import { activityFromTilePois, mergeSources, type ActivityPoint } from '../activity/points';
 import { placesFromTiles } from '../areas/tilePlaces';
 import { db } from '../db';
 import { isMarkable } from '../discovery/noise';
@@ -64,12 +66,16 @@ export function readNear(at: LngLat, level: AtlasLevel, build: string, reach: nu
   });
 }
 
-/** What one ring read keeps (AT4, AT6, AT7), from decoded tiles. Pure apart from its inputs. */
-export function profileFrom(at: LngLat, feats: CollectedFeatures, build: string) {
+/**
+ * What one ring read keeps (AT4, AT6, AT7, AD14), from decoded tiles and Overture's places for the same
+ * tiles (null without them, AD7). Pure apart from its inputs. The bars stay OpenStreetMap's (AD2).
+ */
+export function profileFrom(at: LngLat, feats: CollectedFeatures, build: string, overture: { release: string; points: ActivityPoint[] } | null = null) {
   const segments = deriveSegments(feats.roads, feats.names, build);
   const places = placesFromTilePois(feats.pois, build);
   const ring = places.filter((p) => distanceM(p.at, at) <= ATLAS_RULES.ringM);
-  const analysis = analyzeArea({ centre: at, places, segments, towns: placesFromTiles(feats.places), transit: transitFromTilePois(feats.pois) });
+  const points = mergeSources(activityFromTilePois(feats.pois), overture?.points ?? []);
+  const analysis = analyzeArea({ centre: at, points, segments, towns: placesFromTiles(feats.places), transit: transitFromTilePois(feats.pois) });
   const strips = analysis.strips.filter((s) => distanceM(s.peak, at) <= ATLAS_RULES.ringM);
   // What the frame can show: a little past the ring's corners.
   const frameM = (Math.hypot(SKETCH.w, SKETCH.h) / 2 / SKETCH.ringR) * ATLAS_RULES.ringM;
@@ -81,9 +87,10 @@ export function profileFrom(at: LngLat, feats: CollectedFeatures, build: string)
     sketch: sketchOf({
       centre: at,
       segments: segments.filter((s) => s.geometry.some((l) => l.some((p) => distanceM(p, at) <= frameM))),
-      strips: strips.map((s) => s.lines),
+      graded: analysis.graded,
       parks: places.filter((p) => p.category === 'parks').map((p) => p.at),
     }),
+    overture: overture?.release ?? null,
   };
   return { profile, cache: { segments, places } };
 }
@@ -100,13 +107,15 @@ export function readRing(area: AtlasArea, shouldStop: () => boolean): Promise<At
     if (!url) return failed();
     // The whole frame, so the picture's corners are drawn too.
     const frameM = (Math.hypot(SKETCH.w, SKETCH.h) / 2 / SKETCH.ringR) * ATLAS_RULES.ringM;
-    const f = await fetchTiles(url, tilesIn(boundsOf([area.at], frameM)!), undefined, shouldStop).catch(() => null);
+    const tiles = tilesIn(boundsOf([area.at], frameM)!);
+    // Overture's places for the same tiles (AD3); without them the ring is measured from the map's alone (AD7).
+    const [f, overture] = await Promise.all([fetchTiles(url, tiles, undefined, shouldStop).catch(() => null), readOverture(tiles, shouldStop)]);
     if (shouldStop()) return null;
     if (!f) return failed();
     try {
       // Only the atlas's own row is written (explore-atlas audit 6): a ring's streets and places are not
       // rewritten into the shared caches, so the write queue stays free for the walk.
-      const { profile } = profileFrom(area.at, f, area.build);
+      const { profile } = profileFrom(area.at, f, area.build, overture);
       const row: AtlasArea = { ...area, profile, read_at: Date.now(), failed_at: null };
       await db.putAtlasAreas([row]);
       return row;

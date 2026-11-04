@@ -287,8 +287,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         <GeoJSONSource id="strips" data={strips}>
           <Layer id="strips" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{
             'line-color': HOTSPOT,
-            'line-width': ['interpolate', ['linear'], ['zoom'], 12, 3, 17, 10],
-            'line-opacity': ['case', ['get', 'stale'], 0.4, 0.9],
+            // Graded (AD12): each feature carries its grade's width and opacity.
+            'line-width': ['interpolate', ['linear'], ['zoom'], 12, ['*', 3, ['get', 'width']], 17, ['*', 10, ['get', 'width']]],
+            'line-opacity': ['get', 'opacity'],
           }} />
         </GeoJSONSource>
         <GeoJSONSource id="fog" data={fog}>

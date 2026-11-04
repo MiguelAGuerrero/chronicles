@@ -24,6 +24,9 @@ export const FOG_BOLD = '#3f4a5a';
  * Hotspots (v1.5): magenta, the one hue no other layer uses (the owner's
  * call, after the trace took green), 3:1 or more on the base map (L9).
  */
+/** AD16: busy streets are measured with Overture's places too, so the map's credits name it. */
+export const OVERTURE_CREDIT = 'Places: Overture Maps Foundation';
+
 export const HOTSPOT = '#d6268c';
 export const HOTSPOT_INK = '#86145a';
 /** The Start here pin's fill: white text on it reads at AA. */
@@ -327,10 +330,27 @@ export function pocketsGeoJSON(v: LandingView | null | undefined): GeoJSON.Featu
     })),
   };
 }
+/**
+ * How each grade of a busy street draws (AD12): wider and stronger as the grade rises, in the one magenta.
+ * `width` scales the line's width at every zoom; a stale area's lines are drawn at `staleOpacity` of these.
+ */
+export const HOTSPOT_GRADES = {
+  1: { width: 0.45, opacity: 0.45 },
+  2: { width: 0.75, opacity: 0.7 },
+  3: { width: 1, opacity: 0.92 },
+  staleOpacity: 0.45,
+} as const;
+
+/** The graded stretches (AD12), faint first so strong draws on top; each carries its grade, width and opacity. */
 export function stripsGeoJSON(v: LandingView | null | undefined): GeoJSON.FeatureCollection {
+  const graded = [...(v?.graded ?? [])].sort((a, b) => a.grade - b.grade);
   return {
     type: 'FeatureCollection',
-    features: (v?.strips ?? []).map((s) => ({ type: 'Feature', properties: { stale: s.stale }, geometry: { type: 'MultiLineString', coordinates: s.lines } })),
+    features: graded.map((g) => {
+      const look = HOTSPOT_GRADES[g.grade];
+      const opacity = g.stale ? look.opacity * HOTSPOT_GRADES.staleOpacity : look.opacity;
+      return { type: 'Feature', properties: { grade: g.grade, stale: g.stale, width: look.width, opacity }, geometry: { type: 'MultiLineString', coordinates: g.lines } };
+    }),
   };
 }
 

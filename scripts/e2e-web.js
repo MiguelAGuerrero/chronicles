@@ -45,6 +45,8 @@ const O = [-71.4, 41.82];
 const dLat = 100 / 111320;
 const dLon = 100 / (111320 * Math.cos((O[1] * Math.PI) / 180));
 const at = (x, y) => [O[0] + x * dLon, O[1] + y * dLat];
+/** Metres between two points, near O. */
+const distanceM = (a, b) => 100 * Math.hypot((a[0] - b[0]) / dLon, (a[1] - b[1]) / dLat);
 const features = [];
 const names = ['Wickenden Street', 'Transit Street', 'Arnold Street', 'Williams Street'];
 const xs = [-1.5, -0.5, 0.5, 1.5, 2.5, 3.5];
@@ -74,6 +76,20 @@ for (let i = 0; i <= 10; i++) {
   const [cls, sub] = i % 2 ? ['cafe', 'cafe'] : ['shop', 'gift'];
   features.push({ type: 'Feature', properties: { class: cls, subclass: sub, name: `Thayer ${i}` }, geometry: { type: 'Point', coordinates: at(11 + (i % 2 ? 0.15 : -0.15), -1.2 + i * 0.25) } });
 }
+// Activity density (AD3, AD4): Brook Street, 200 m east of Thayer, has its places only in Overture's tiles: nine
+// restaurants 6 m off it, plus one Overture is unsure of and one closed, which never count.
+features.push({ type: 'Feature', properties: { class: 'tertiary', name: 'Brook Street' }, geometry: { type: 'LineString', coordinates: [at(13, -3), at(13, 3)] } });
+const overtureFeatures = [];
+const ovPlace = (id, name, xy, extra = {}) => overtureFeatures.push({
+  type: 'Feature', geometry: { type: 'Point', coordinates: at(...xy) },
+  properties: { id, '@name': name, confidence: '0.95', operating_status: 'open', taxonomy: '{"primary":"restaurant","hierarchy":["food_and_drink","restaurant"]}', ...extra },
+});
+for (let i = 0; i < 9; i++) ovPlace(`brook-${i}`, `Brook ${i}`, [13 + (i % 2 ? 0.06 : -0.06), -0.92 + i * 0.25]);
+ovPlace('brook-unsure', 'Brook Unsure', [13.06, 1.33], { confidence: '0.5' });
+ovPlace('brook-closed', 'Brook Closed', [12.94, 1.58], { operating_status: 'permanently_closed' });
+const OVERTURE_HOST = 'overturemaps-extras-us-west-2.s3.amazonaws.com';
+const OVERTURE_RELEASE = '2026-10-21.0';
+
 const style = {
   version: 8,
   // maxzoom 14 matters: at the default 18, lines are clipped to z18 tiles, which real data never is.
@@ -287,6 +303,41 @@ function check(ok, what) {
     });
   };
   await ctx.route('https://tiles.openfreemap.org/**', tileRoute);
+  // Overture's bucket (AD3, AD6): its release listing, and the release's one PMTiles file, by byte range.
+  const { encodeArchive } = await import('./pmtiles-encode.mjs');
+  const overtureArchive = (() => {
+    const z = 14;
+    const keys = new Set(overtureFeatures.map((f) => {
+      const [lon, lat] = f.geometry.coordinates;
+      const x = Math.floor(((lon + 180) / 360) * 2 ** z);
+      const y = Math.floor(((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2) * 2 ** z);
+      return `${x},${y}`;
+    }));
+    return encodeArchive([...keys].map((k) => {
+      const [x, y] = k.split(',').map(Number);
+      return { z, x, y, data: encodeTile(overtureFeatures, z, x, y, () => ['place']) };
+    }));
+  })();
+  const overtureAsked = [];
+  const overtureRoute = async (r) => {
+    const req = r.request();
+    const url = new URL(req.url());
+    overtureAsked.push({ url: req.url(), range: req.headers().range ?? null });
+    const cors = { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'ETag, Content-Length, Content-Range, Accept-Ranges' };
+    if (url.searchParams.get('list-type') === '2') {
+      return r.fulfill({ status: 200, headers: cors, contentType: 'application/xml',
+        body: `<ListBucketResult><Prefix>tiles/</Prefix><CommonPrefixes><Prefix>tiles/2026-09-23.0/</Prefix></CommonPrefixes><CommonPrefixes><Prefix>tiles/${OVERTURE_RELEASE}/</Prefix></CommonPrefixes></ListBucketResult>` });
+    }
+    if (url.pathname === `/tiles/${OVERTURE_RELEASE}/places.pmtiles`) {
+      const m = /bytes=(\d+)-(\d+)/.exec(req.headers().range ?? '');
+      const from = m ? Number(m[1]) : 0;
+      const to = Math.min(m ? Number(m[2]) : overtureArchive.length - 1, overtureArchive.length - 1);
+      return r.fulfill({ status: 206, headers: { ...cors, 'content-range': `bytes ${from}-${to}/${overtureArchive.length}`, etag: '"e2e"' },
+        contentType: 'application/octet-stream', body: overtureArchive.subarray(from, to + 1) });
+    }
+    return r.fulfill({ status: 404, headers: cors, body: '' });
+  };
+  await ctx.route(`https://${OVERTURE_HOST}/**`, overtureRoute);
 
 // A fresh browser, for a flow of its own (NV12, NV15, NV25, the tabs audit).
   // `permissions: []` makes a browser that denies location (QL19).
@@ -300,6 +351,7 @@ function check(ok, what) {
     });
     await metricRegion(c);
     await c.route('https://tiles.openfreemap.org/**', tileRoute);
+    await c.route(`https://${OVERTURE_HOST}/**`, overtureRoute);
     c.on('request', (r) => { const u = new URL(r.url()); if (/^(https?|wss?):$/.test(u.protocol)) hosts.add(u.host); });
     const pg = await c.newPage();
     pg.on('pageerror', (e) => errors.push(`${label}: ${e}`));
@@ -1924,6 +1976,11 @@ function check(ok, what) {
         // The quiet read kept no busy streets (the owner's call); switching Explore on reads them at once.
         await walkMap().getByText('Thayer Street', { exact: true }).first().waitFor({ timeout: 15000 }).catch(() => {});
         check((await walkMap().getByText('Thayer Street', { exact: true }).count()) >= 1, 'switching Explore on brings in the busy streets around');
+        // AD12: the busy streets draw graded, each grade wider than the one below.
+        const graded = ((await walkMap().getAttribute('data-graded')) ?? '').split(',').filter(Boolean).map((g) => g.split(':').map(Number));
+        const widths = graded.sort((a, b) => a[0] - b[0]).map((g) => g[1]);
+        check(graded.length >= 2 && graded.some((g) => g[0] === 3) && widths.every((w, i) => i === 0 || w > widths[i - 1]),
+          `AD12: the walk map draws the busy streets in grades, wider as the grade rises (${JSON.stringify(graded)})`);
       }
       if (k === 8) {
         // 75 m from the memorial: inside the 100 m range, a "?" that doesn't say what it is (E6).
@@ -2857,6 +2914,24 @@ function check(ok, what) {
       check(/Busiest area: Thayer Street/.test(said) && (await page.locator('[data-testid=start-here]').count()) === 0, `what’s good here finds the strip, named, with no Start here pin (${said})`);
       const first = await rows();
       check(first.some((r) => r.analysis.strips.some((x) => x.name === 'Thayer Street')), 'the area is remembered, Thayer Street among its strips');
+      {
+        // AD3, AD4: Brook Street's places are only in Overture's tiles, read by the app's own reader; the unsure and the
+        // closed ones don't count. The row says which release it was measured with (AD6).
+        const area = first.find((r) => r.analysis.strips.some((x) => x.name === 'Thayer Street'));
+        const brook = area?.analysis.strips.find((x) => x.name === 'Brook Street');
+        check(!!brook && area.overture === OVERTURE_RELEASE, `AD3: Overture's places make Brook Street a busy street (${area?.overture}, ${JSON.stringify(area?.analysis.strips.map((x) => x.name))})`);
+        check(brook && distanceM(brook.peak, at(13, 0.08)) < 150, `AD4: Brook Street's busiest point sits among the places Overture is sure of, not the unsure or closed ones (${brook && JSON.stringify(brook.peak)})`);
+        // AD3: Overture is asked only for its release listing and its release's places, by byte range, with no key.
+        const odd = overtureAsked.filter((q) => {
+          const u = new URL(q.url);
+          if (u.searchParams.get('list-type') === '2') return [...u.searchParams.keys()].some((k) => !['list-type', 'prefix', 'delimiter'].includes(k));
+          return u.pathname !== `/tiles/${OVERTURE_RELEASE}/places.pmtiles` || u.search !== '' || !/^bytes=\d+-\d+$/.test(q.range ?? '');
+        });
+        check(overtureAsked.length > 0 && odd.length === 0, `AD3: Overture is asked for its listing and its places by byte range only (${overtureAsked.length} requests; odd: ${JSON.stringify(odd.slice(0, 2))})`);
+        // AD12: the area's grades are kept for drawing; AD15: no numbers in what is said.
+        check(area && area.analysis.graded.some((g) => g.grade >= 2), 'AD12: the remembered area keeps its graded stretches');
+        check(!/\d/.test(said.replace(/A best guess from the map\.?/, '')), `AD15: what's good here says no number (${said})`);
+      }
       // Again: the same area is replaced, not added (L12).
       await press();
       await page.click('[data-testid=look-here]');
@@ -2868,6 +2943,16 @@ function check(ok, what) {
       const label = back ? (await tileOf('Fox Point').getAttribute('aria-label')) ?? '' : '';
       check(back && new URL(page.url()).pathname === `${BASE}/`,
         `AT1, AT12: after a reload, the atlas is back on the same tab from where it last listed (${label}; the launch's one fix may already say "You're here", NV16)`);
+      if (back) {
+        // AD14: the tile's small map draws its graded streets in magenta, a path per grade, wider as the grade rises.
+        const strokes = await tileOf('Fox Point').evaluate((el) => [...el.querySelectorAll('path')]
+          .filter((p) => (p.getAttribute('stroke') ?? '').toLowerCase() === '#d6268c')
+          .map((p) => Number(p.getAttribute('stroke-width'))));
+        check(strokes.length >= 1 && new Set(strokes).size === strokes.length, `AD14: Fox Point's tile draws its graded streets, one path per grade (${JSON.stringify(strokes)})`);
+        // AD16: the map credits Overture.
+        const credits = await page.locator('.maplibregl-ctrl-attrib').first().textContent().catch(() => '');
+        check(/Overture Maps Foundation/.test(credits ?? ''), `AD16: the map's credits name Overture Maps Foundation (${credits})`);
+      }
       await page.click('[data-testid=tab-chronicle]');
       await page.reload();
       await page.waitForSelector('[aria-label^="Fox Point,"]', { timeout: 30000 });
@@ -3071,6 +3156,7 @@ function check(ok, what) {
       });
       await metricRegion(ctx2);
       await ctx2.route('https://tiles.openfreemap.org/**', tileRoute);
+      await ctx2.route(`https://${OVERTURE_HOST}/**`, overtureRoute);
       ctx2.on('request', (r) => { const u = new URL(r.url()); if (/^(https?|wss?):$/.test(u.protocol)) hosts.add(u.host); });
       // Location watches started and cleared, so a moment is seen to leave none running (M5).
       await ctx2.addInitScript(() => {
@@ -3268,6 +3354,7 @@ function check(ok, what) {
       });
       await metricRegion(ctx3);
       await ctx3.route('https://tiles.openfreemap.org/**', tileRoute);
+      await ctx3.route(`https://${OVERTURE_HOST}/**`, overtureRoute);
       await ctx3.addInitScript(() => {
         window.__perf = {};
         // As on an iPhone: motion is asked for from a tap, then samples arrive; here, a phone held still.
@@ -3692,8 +3779,8 @@ function check(ok, what) {
       check(wrong.length === 0, `later walks' new streets are counted again without it (D7${wrong.length ? `: ${wrong.join('; ')}` : ''})`);
     }
 
-    const away = [...hosts].filter((h) => !h.startsWith('localhost') && h !== 'tiles.openfreemap.org');
-    check(away.length === 0, `nothing is sent anywhere but the map tiles (${away.join(', ')})`);
+    const away = [...hosts].filter((h) => !h.startsWith('localhost') && h !== 'tiles.openfreemap.org' && h !== OVERTURE_HOST);
+    check(away.length === 0, `nothing is sent anywhere but the map tiles and Overture's places (${away.join(', ')})`);
     check(errors.length === 0, `no console errors ${errors.length ? JSON.stringify(errors.slice(0, 3)) : ''}`);
   } catch (e) {
     console.error(e.message);

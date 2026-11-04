@@ -27,6 +27,7 @@
     "fflate": "^0.8.2",
     "maplibre-gl": "^6.16.0",
     "pbf": "5.1.2",
+    "pmtiles": "^4.5.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-native": "0.88.1",

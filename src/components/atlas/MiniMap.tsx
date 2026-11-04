@@ -3,12 +3,12 @@ import Svg, { Circle, G, Path, Rect, Text as SvgText } from 'react-native-svg';
 import { SKETCH, sketchPaths, toSketch, type AtlasArea } from '../../lib/atlas/atlas';
 import type { CategoryId } from '../../lib/discovery/types';
 import type { LngLat } from '../../lib/types';
-import { COLORS, HOTSPOT } from '../map/types';
+import { COLORS, HOTSPOT, HOTSPOT_GRADES } from '../map/types';
 import { KIND_COLOR, SKETCH_COLORS } from './kinds';
 
 /**
  * An area's ring as a picture (AT6): the same frame and scale for every area,
- * so tiles compare at a glance. Streets, busy streets (magenta), parks, the
+ * so tiles compare at a glance. Streets, graded busy streets (magenta), parks, the
  * streets you walked (the trace's green), a "?" for each kind waiting (one
  * per kind, never named: AT7) and a check for each find.
  */
@@ -43,7 +43,13 @@ export const MiniMap = memo(function MiniMap(props: {
             </G>
           )}
           {paths?.streets ? <Path d={paths.streets} stroke={SKETCH_COLORS.road} strokeWidth={1.1} fill="none" strokeLinecap="round" strokeLinejoin="round" /> : null}
-          {paths?.strips ? <Path d={paths.strips} stroke={HOTSPOT} strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" /> : null}
+          {/* Graded streets (AD14): faint first, so strong draws on top. */}
+          {paths?.grades.map((d, i) =>
+            d ? (
+              <Path key={`g${i}`} d={d} stroke={HOTSPOT} strokeWidth={3.2 * HOTSPOT_GRADES[(i + 1) as 1 | 2 | 3].width}
+                strokeOpacity={HOTSPOT_GRADES[(i + 1) as 1 | 2 | 3].opacity} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            ) : null,
+          )}
           {paths?.walked ? <Path d={paths.walked} stroke={COLORS.trace} strokeWidth={2.2} fill="none" strokeLinecap="round" strokeLinejoin="round" /> : null}
         </G>
       )}

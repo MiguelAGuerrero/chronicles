@@ -24,7 +24,7 @@ import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
 import { MOTION } from '../../lib/motionTokens';
 import {
-  COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
+  COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -54,8 +54,9 @@ function addOverlay(map: MapLibreMap) {
   // Hotspots under the streets: pockets shaded, strips bold, in the one green no other layer uses (L9).
   // Stale areas (an older map or rules) are dimmed until looked at again (L11).
   map.addLayer({ id: 'pockets', type: 'fill', source: 'pockets', paint: { 'fill-color': HOTSPOT, 'fill-opacity': ['case', ['get', 'stale'], 0.06, 0.14] } }, firstSymbol);
+  // Graded (AD12): each feature carries its grade's width and opacity.
   map.addLayer({ id: 'strips', type: 'line', source: 'strips', layout: lineLayout,
-    paint: { 'line-color': HOTSPOT, 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 3, 17, 10], 'line-opacity': ['case', ['get', 'stale'], 0.4, 0.9] } }, firstSymbol);
+    paint: { 'line-color': HOTSPOT, 'line-width': ['interpolate', ['linear'], ['zoom'], 12, ['*', 3, ['get', 'width']], 17, ['*', 10, ['get', 'width']]], 'line-opacity': ['get', 'opacity'] } }, firstSymbol);
   map.addLayer({ id: 'fog', type: 'line', source: 'fog', layout: lineLayout,
     paint: { 'line-color': COLORS.fog, 'line-opacity': FOG_STYLE.opacity,
       'line-width': ['interpolate', ['linear'], ['zoom'], 13, FOG_STYLE.widthMin, 17, FOG_STYLE.widthMax] } }, firstSymbol);
@@ -214,7 +215,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       center: props.initialCenter ?? [-71.4, 41.82],
       zoom: props.initialZoom ?? 15,
       // Top right on the home, where the sheet never covers it (OSM requires it visible).
-      attributionControl: props.attributionTop ? false : { compact: true },
+      attributionControl: props.attributionTop ? false : { compact: true, customAttribution: OVERTURE_CREDIT },
       // iPhone browsers give a tab little GPU memory, and two maps live during a walk:
       // at most 2x the pixels (a 3x canvas is 2.25x the memory), and a small tile cache.
       pixelRatio: Math.min(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1, 2),
@@ -322,7 +323,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     map.on('touchend', up);
     map.on('touchcancel', up);
     map.on('dragend', up);
-    if (props.attributionTop) map.addControl(new AttributionControl({ compact: true }), 'top-right');
+    if (props.attributionTop) map.addControl(new AttributionControl({ compact: true, customAttribution: OVERTURE_CREDIT }), 'top-right');
     map.on('zoomend', track);
     // A pan changes the latitude the merge radius is measured at.
     map.on('moveend', track);
@@ -376,6 +377,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   }, [ready, props.landing]);
   useEffect(() => { if (ready) setData('marks', marksGeoJSON(props.marks)); }, [ready, props.marks]);
   // The start and end markers (QL1, QL2): sent only when they move, not with every publish of the trace.
+  // The grades drawn, as grade:width pairs, for the e2e (AD12).
+  const gradedKey = useMemo(
+    () => [...new Set(stripsGeoJSON(props.landing).features.map((f) => `${f.properties!.grade}:${f.properties!.width}`))].sort().join(','),
+    [props.landing],
+  );
   const ends = traceEnds(props.trace, !!props.ended);
   const endsKey = `${fmt(ends.start)}|${fmt(ends.end)}`;
   useEffect(() => {
@@ -751,7 +757,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
 
   return (
     <View style={[styles.wrap, props.style]}>
-      <div ref={container} style={{ position: 'absolute', inset: 0 }} data-trace-opacity={String(props.traceOpacity ?? 1)} data-rides={`${props.rides?.length ?? 0}:${props.rides?.reduce((n, r) => n + r.length, 0) ?? 0}`} data-faint={String(props.faint?.length ?? 0)} data-gaplinks={String(props.gapLinks?.length ?? 0)} data-drawing={String(props.drawing?.length ?? 0)} data-runs={String(props.trace.filter((r) => r.length > 1).length)} data-ring={props.ring ? String(props.ring.radiusM) : ''} data-trace-end={traceEnd(props.trace)} data-ends={endsKey} />
+      <div ref={container} style={{ position: 'absolute', inset: 0 }} data-trace-opacity={String(props.traceOpacity ?? 1)} data-rides={`${props.rides?.length ?? 0}:${props.rides?.reduce((n, r) => n + r.length, 0) ?? 0}`} data-faint={String(props.faint?.length ?? 0)} data-gaplinks={String(props.gapLinks?.length ?? 0)} data-drawing={String(props.drawing?.length ?? 0)} data-runs={String(props.trace.filter((r) => r.length > 1).length)} data-ring={props.ring ? String(props.ring.radiusM) : ''} data-trace-end={traceEnd(props.trace)} data-ends={endsKey} data-graded={gradedKey} />
       {/* Beside the map's own DOM, not inside it, so React owns it. */}
       {scale && <ScaleBar bar={scale} inset={props.scaleInset} />}
       {props.covered && <View style={styles.cover} pointerEvents="none" />}

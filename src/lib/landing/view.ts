@@ -5,8 +5,9 @@ import { LANDING_RULES, type AreaAnalysis } from './analyze';
 /**
  * Bumped by hand when the analysis or the main-street list changes, as SNAP_RULES is (audit).
  * l3: areas analyzed from streets with collapsed junctions (the fog streaks, Nov 1) are stale.
+ * l4: activity density (AD1-AD16): graded streets from every kind of place, OSM and Overture.
  */
-export const LANDING_CODE = 'l3';
+export const LANDING_CODE = 'l4';
 /** Changes whenever the rules or the code do, so remembered areas show as stale until analyzed again (L11). */
 export const LANDING_VERSION = `${LANDING_CODE}:${JSON.stringify(LANDING_RULES)}`;
 
@@ -18,6 +19,8 @@ export interface LandingRow {
   build: string;
   rules: string;
   analyzed_at: number;
+  /** The Overture release its places came from; null when measured from OpenStreetMap alone (AD6, AD7). Missing before l4. */
+  overture?: string | null;
 }
 
 /** A new area's key, from its centre. */
@@ -35,13 +38,20 @@ export function keyFor(rows: LandingRow[], centre: LngLat): string {
   return best?.key ?? landingKey(centre);
 }
 
-/** Stale rows still show (offline too), dimmed; the next long press there analyzes again, never silently (L11). */
-export const isStale = (r: LandingRow, build: string) => r.build !== build || r.rules !== LANDING_VERSION;
-export const staleNote = (r: LandingRow, build: string) => (isStale(r, build) ? 'Analyzed before an update: press and hold to look again.' : null);
+/**
+ * Stale rows still show (offline too), dimmed; the next long press there analyzes again, never silently (L11).
+ * With an Overture release known, a row measured with another release, or without Overture, is stale too (AD6, AD7).
+ */
+export const isStale = (r: LandingRow, build: string, release: string | null = null) =>
+  r.build !== build || r.rules !== LANDING_VERSION || (release != null && (r.overture ?? null) !== release);
+export const staleNote = (r: LandingRow, build: string, release: string | null = null) =>
+  isStale(r, build, release) ? 'Analyzed before an update: press and hold to look again.' : null;
 
 export interface LandingView {
   pockets: { hull: LngLat[]; name: string; stale: boolean }[];
   strips: { lines: LngLat[][]; name: string; at: LngLat; stale: boolean }[];
+  /** Graded stretches to draw (AD12): every grade, named or not by a busy street. */
+  graded: { lines: LngLat[][]; grade: 1 | 2 | 3; stale: boolean }[];
   /** Names of pockets with no strip of their own (a neighbourhood, "A busy pocket"), at their centre (L9). */
   labels: { name: string; at: LngLat }[];
 }
@@ -80,11 +90,14 @@ export const predatesStreetFix = (r: LandingRow) => Number(/^l(\d+):/.exec(r.rul
  * (retired by explore), though a strip's name still keeps clear of where the
  * pin was, its busiest point.
  */
-export function landingView(rows: LandingRow[], build: string | null): LandingView {
-  const v: LandingView = { pockets: [], strips: [], labels: [] };
+export function landingView(rows: LandingRow[], build: string | null, release: string | null = null): LandingView {
+  const v: LandingView = { pockets: [], strips: [], graded: [], labels: [] };
   for (const r of rows) {
     if (predatesStreetFix(r)) continue;
-    const stale = build != null && isStale(r, build);
+    const stale = build != null && isStale(r, build, release);
+    // Areas analyzed before grades draw their busy streets as medium, until analyzed again.
+    if (r.analysis.graded) for (const g of r.analysis.graded) v.graded.push({ lines: g.lines, grade: g.grade, stale });
+    else for (const s of r.analysis.strips) v.graded.push({ lines: s.lines, grade: 2, stale });
     const pin = r.analysis.landing?.at ?? null;
     for (const p of r.analysis.pockets) {
       v.pockets.push({ hull: p.hull, name: p.name, stale });
@@ -100,11 +113,11 @@ export function landingView(rows: LandingRow[], build: string | null): LandingVi
  * covers it: the sweep shows that one rather than reading again, so it never
  * replaces a "What's good here" area or refetches its tiles (audit).
  */
-export function sweepCovered(rows: LandingRow[], at: LngLat, build: string): LandingRow | null {
+export function sweepCovered(rows: LandingRow[], at: LngLat, build: string, release: string | null = null): LandingRow | null {
   let best: LandingRow | null = null;
   let bestD = SAME_AREA_M;
   for (const r of rows) {
-    if (isStale(r, build)) continue;
+    if (isStale(r, build, release)) continue;
     const d = distanceM(r.centre, at);
     if (d <= bestD) [best, bestD] = [r, d];
   }

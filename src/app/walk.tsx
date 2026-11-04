@@ -1,3 +1,4 @@
+import { knownRelease } from '../lib/activity/overture';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { AccessibilityInfo, ActivityIndicator, Animated, AppState, BackHandler, Switch, Easing, KeyboardAvoidingView, Linking, Platform, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
@@ -632,7 +633,7 @@ export default function WalkScreen() {
   const hotView = useMemo(() => {
     const keys = new Set(nearKeys.split('|'));
     const near = landings.filter((r) => keys.has(r.key));
-    return near.length && exploring ? landingView(near, build) : null;
+    return near.length && exploring ? landingView(near, build, knownRelease()) : null;
   }, [landings, build, nearKeys, exploring]);
   const hotPockets = useMemo(
     () => landings.flatMap((r) => r.analysis.pockets.map((p) => ({ name: p.name, centre: p.centre, strip: p.strips.length > 0 }))),

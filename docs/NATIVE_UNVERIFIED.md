@@ -35,6 +35,15 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] `LiveWalk`'s Markers and dot on Navigate (Navigation & tabs)
 - [ ] `capFitBounds` widening MapLibre RN's fitBounds (Navigation & tabs, U15)
 
+## Activity density (AD1-AD16)
+
+- [ ] `pmtiles` under React Native: `fetch` with a `Range` header, a 206 response's `arrayBuffer()`, `Headers`, and `AbortSignal` passed through (`activity/overture.ts`)
+- [ ] `fflate`'s gunzip on Hermes, where `DecompressionStream` is missing (Overture's directories and tiles are gzip)
+- [ ] Decoding a 0.5 MB Overture tile (about 1,000 places) on a phone: time and memory, and the 2-5 MB a read downloads on cellular
+- [ ] The release listing (`ensureOvertureRelease`) parsed from S3's XML on device
+- [ ] The native `strips` layer's data-driven width and opacity (`['get', 'width']` inside a zoom interpolation)
+- [ ] The graded paths in the atlas's react-native-svg mini-map (`strokeOpacity`)
+
 ## Notifications (`notify/transport.native.ts`, expo-notifications)
 
 - [ ] The transport behind the contract, including the early-tap queue for a cold start and the test banner (Notifications)

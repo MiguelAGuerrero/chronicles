@@ -1,3 +1,4 @@
+import { knownRelease } from '../activity/overture';
 import { placesFromTiles } from '../areas/tilePlaces';
 import { db } from '../db';
 import { fetchTiles } from '../discovery/tileFetch';
@@ -61,8 +62,8 @@ export function exploreRead(centre: LngLat, opts: { remember: boolean }, shouldS
       // The busy streets from the same read (E2), on an exploring walk only (the owner's call: quiet walks
       // keep checklists, not magenta), unless a current area here is already remembered.
       const known = opts.remember ? await db.listLandings().catch(() => []) : [];
-      if (opts.remember && !sweepCovered(known, centre, build)) {
-        await rememberArea(centre, analyzeArea({ centre, ...read }), build).catch(() => {});
+      if (opts.remember && !sweepCovered(known, centre, build, knownRelease())) {
+        await rememberArea(centre, analyzeArea({ centre, ...read }), build, read.overture).catch(() => {});
       }
       return { ok: true, areas: built.areas };
     } catch {

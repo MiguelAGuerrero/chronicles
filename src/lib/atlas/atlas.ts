@@ -13,7 +13,8 @@ import type { LngLat } from '../types';
  */
 
 /** Bumped by hand when what a ring read keeps, or how it is judged, changes (AT12). */
-export const ATLAS_CODE = 'a1';
+/** a2: activity density (AD14): graded streets in the sketch, from OSM and Overture. */
+export const ATLAS_CODE = 'a2';
 
 export const ATLAS_RULES = {
   /** Every area is measured inside this ring around its point, whatever its level (AT4). */
@@ -79,7 +80,8 @@ export interface AtlasMark extends AtlasPlace {
 /** The same-scale picture of a ring (AT6), in a 200 x 150 frame with the ring's point at its middle. */
 export interface Sketch {
   streets: { id: string; pts: number[] }[];
-  strips: number[][];
+  /** Graded stretches (AD14): faint, medium and strong. */
+  grades: [number[][], number[][], number[][]];
   parks: number[];
 }
 
@@ -92,6 +94,8 @@ export interface AtlasProfile {
   stripAt: LngLat | null;
   marks: AtlasMark[];
   sketch: Sketch;
+  /** The Overture release its density came from; null when measured from OpenStreetMap alone (AD6, AD7). */
+  overture: string | null;
 }
 
 /** Cache (AT12): one area the atlas listed, and once its ring is read, its profile. */
@@ -174,10 +178,11 @@ export function nearList(rows: AtlasArea[], from: LngLat, level: AtlasLevel, bui
 }
 
 /** AT5: the next ring to read, nearest first, skipping one that failed less than the retry wait ago. */
-export function readQueue(list: Listed[], now: number): AtlasArea | null {
+export function readQueue(list: Listed[], now: number, release: string | null = null): AtlasArea | null {
   for (const l of list) {
     const a = l.area;
-    if (a.profile) continue;
+    // A ring measured with another Overture release, or without one, is read again once its wait is over (AD6, AD7).
+    if (a.profile && (release == null || a.profile.overture === release || (a.read_at != null && now - a.read_at < ATLAS_RULES.retryMs))) continue;
     if (a.failed_at != null && now - a.failed_at < ATLAS_RULES.retryMs) continue;
     return a;
   }
@@ -336,8 +341,8 @@ function flat(line: LngLat[], to: (p: LngLat) => [number, number]): number[] | n
 /** At most this many street lines in a sketch, so a dense downtown stays small. */
 const SKETCH_LINES = 900;
 
-/** AT6: the ring's picture from what one read found: streets with their ids (to show the walked ones), busy streets, parks. */
-export function sketchOf(o: { centre: LngLat; segments: { id: string; geometry: LngLat[][] }[]; strips: LngLat[][][]; parks: LngLat[] }): Sketch {
+/** AT6, AD14: the ring's picture from what one read found: streets with their ids (to show the walked ones), graded streets, parks. */
+export function sketchOf(o: { centre: LngLat; segments: { id: string; geometry: LngLat[][] }[]; graded: { lines: LngLat[][]; grade: 1 | 2 | 3 }[]; parks: LngLat[] }): Sketch {
   const to = toSketch(o.centre);
   const all: { id: string; pts: number[]; d: number }[] = [];
   for (const s of o.segments) {
@@ -352,12 +357,16 @@ export function sketchOf(o: { centre: LngLat; segments: { id: string; geometry: 
   // Past the cap, the lines nearest the point are kept (explore-atlas audit 5): a dense downtown's middle never drops out.
   const kept = all.length > SKETCH_LINES ? [...all].sort((a, b) => a.d - b.d).slice(0, SKETCH_LINES) : all;
   const streets: Sketch['streets'] = kept.map(({ id, pts }) => ({ id, pts }));
-  const strips = o.strips.flatMap((lines) => lines.map((l) => flat(l, to)).filter((p): p is number[] => !!p));
+  const grades: Sketch['grades'] = [[], [], []];
+  for (const g of o.graded) for (const l of g.lines) {
+    const pts = flat(l, to);
+    if (pts) grades[g.grade - 1].push(pts);
+  }
   const parks = o.parks.flatMap((p) => {
     const [x, y] = to(p);
     return inFrame(x, y, 0) ? [x, y] : [];
   });
-  return { streets, strips, parks };
+  return { streets, grades, parks };
 }
 
 const path = (pts: number[]) => {
@@ -366,15 +375,16 @@ const path = (pts: number[]) => {
   return d;
 };
 
-/** SVG paths for a sketch: the streets, the ones you walked (AT6), the busy ones. */
-export function sketchPaths(s: Sketch, walked: Set<string>): { streets: string; walked: string; strips: string } {
+/** SVG paths for a sketch: the streets, the ones you walked (AT6), one path per grade (AD14). */
+export function sketchPaths(s: Sketch, walked: Set<string>): { streets: string; walked: string; grades: [string, string, string] } {
   let streets = '';
   let mine = '';
   for (const l of s.streets) {
     if (walked.has(l.id)) mine += path(l.pts);
     else streets += path(l.pts);
   }
-  return { streets, walked: mine, strips: s.strips.map(path).join('') };
+  const g = (s.grades ?? [[], [], []]).map((lines) => lines.map(path).join('')) as [string, string, string];
+  return { streets, walked: mine, grades: g };
 }
 
 /** AT8: the other areas of its level nearest to this one, with the distance from it. */
@@ -460,6 +470,8 @@ interface StepInput {
   /** The tiles on screen, in reading order. */
   list: Listed[];
   now: number;
+  /** The Overture release known now (AD6). */
+  release?: string | null;
 }
 
 export type AtlasStepNear = { kind: 'near'; level: AtlasLevel; at: LngLat; radiusM: number };
@@ -474,7 +486,7 @@ export function atlasStep(o: StepInput): AtlasStep {
 function afterBuild(o: StepInput, build: string): AtlasStep {
   const near = o.nears.find((n) => needsNear(n.reads, n.at, build, n.radiusM));
   if (near) return { kind: 'near', level: near.level, at: near.at, radiusM: near.radiusM };
-  const next = readQueue(o.list, o.now);
+  const next = readQueue(o.list, o.now, o.release ?? null);
   if (next) return { kind: 'ring', area: next };
   // A ring that failed is tried again once its wait is over (AT5, audit 3).
   const waits = o.list.filter((l) => !l.area.profile && l.area.failed_at != null).map((l) => l.area.failed_at! + ATLAS_RULES.retryMs - o.now);

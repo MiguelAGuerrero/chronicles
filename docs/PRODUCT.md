@@ -51,7 +51,8 @@ recording bar brings a minimized walk back.
   through a Neighborhoods | Towns switch, as a grid of tiles nearest first,
   under a small map. The one you're in says "You're here".
 - Each tile is the same picture at the same scale: an 800 m ring around the
-  area's point, with its streets, busy streets (magenta), parks, the streets
+  area's point, with its streets, busy streets (magenta, graded faint to
+  strong), parks, the streets
   you walked, a "?" for each kind still waiting and a check for each find. It
   also shows how far the area is, "New to you" or how often you walked there,
   and eight kinds (history, art, culture, green, views, food, shops,
@@ -68,6 +69,11 @@ recording bar brings a minimized walk back.
   - Walk to its busiest street.
 - A long press on the small map still offers **What's good here?** and
   **Walk here**. There are no counts of places on this tab.
+- **Busy streets are a density of places** (activity density, decision 0072):
+  every kind of place counts (shops, food, services, attractions), from
+  OpenStreetMap and Overture Maps Places, measured along each street and
+  graded against the town itself, so a small town shows where its activity
+  centres. Never foot traffic, and never a number.
 - Suggested routes (a route with detours shaped by preferences, a route
   preview, "Walk this way") are deferred to their own slice.
 
@@ -199,7 +205,8 @@ recording bar brings a minimized walk back.
   nothing on web.
 - Map data is OpenStreetMap via OpenFreeMap, with signal assumed (no offline
   maps). Streets, places and attractions are derived on the device from the
-  vector tiles.
+  vector tiles. Busy streets also read Overture Maps Places by tile, for the
+  shops OpenStreetMap is missing (decision 0072).
 
 ## Status at a glance
 

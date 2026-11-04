@@ -1,3 +1,4 @@
+import { ensureOvertureRelease } from '../activity/overture';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Area, WalkArea } from '../areas/types';
 import { db } from '../db';
@@ -113,6 +114,8 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
     };
     (async () => {
       const latest = await exploreBuild().catch(() => 'unknown');
+      // Checked at most once a day (AD6): rings measured with another release, or none, are read again.
+      const release = await ensureOvertureRelease().catch(() => null);
       const [nb, tw] = await Promise.all([nearReads('neighborhood'), nearReads('town')]);
       if (stop) return;
       const nears: NearTarget[] = [
@@ -121,7 +124,7 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
           : { level: 'neighborhood', at: from, radiusM: ATLAS_RULES.nearNeighborhoodM, reads: nb },
         { level: 'town', at: from, radiusM: ATLAS_RULES.nearTownM, reads: tw },
       ];
-      const step = atlasStep({ build, latest, nears, list: queueRef.current, now: Date.now() });
+      const step = atlasStep({ build, latest, nears, list: queueRef.current, now: Date.now(), release });
       if (step.kind === 'adopt') {
         // A new map build (or the first known one): its rows are listed afresh, never chased (audit 2, 4).
         setBuild(step.build);

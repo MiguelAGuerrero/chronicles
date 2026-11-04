@@ -36,10 +36,11 @@ function layersOf(f) {
   return [];
 }
 
-export function encodeTile(features, z, x, y) {
+/** `layers` picks a feature's layers: OpenMapTiles' by default; the e2e's fake Overture puts every place in `place`. */
+export function encodeTile(features, z, x, y, layers = layersOf) {
   const byLayer = new Map();
   for (const f of features)
-    for (const l of layersOf(f)) {
+    for (const l of layers(f)) {
       if (!byLayer.has(l)) byLayer.set(l, []);
       byLayer.get(l).push(f);
     }

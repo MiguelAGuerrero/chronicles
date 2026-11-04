@@ -92,9 +92,11 @@ of (checked 2026-11-03, release 2026-10-21.0).
 10. **AD10 · Judged against the town, with a floor.** Within one read, a stretch of
     street gets a grade (faint, medium or strong) from its density compared with the
     read's other streets. The same pattern of places gets the same grades whether it is
-    sparse or four times denser. A stretch below the floor (about three full-weight
-    places within a block) gets no grade, whatever the town, so a residential area with
-    a few scattered places shows nothing.
+    sparse or four times denser, once the sparse one clears the minimums. A stretch
+    below the floor (about three full-weight places within a block) gets no grade,
+    whatever the town, so a residential area with a few scattered places shows nothing.
+    Medium and strong have minimums of their own, so one small cluster is never strong
+    just because nothing else in town is.
 11. **AD11 · Phillipsburg's Main Street shows.** On a test fixture built from
     Overture's real tiles for downtown Phillipsburg (places and streets, release
     2026-10-21.0), South Main Street by the park is graded medium or strong.
