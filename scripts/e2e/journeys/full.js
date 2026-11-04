@@ -15,7 +15,7 @@ async function run(h) {
   await journey('days').checks(h);
   await journey('sensors').checks(h);
   await journey('launch').fresh(h);
-  for (const name of ['tabs', 'gaps', 'ready', 'hidden', 'nudge']) await journey(name).run(h);
+  for (const name of ['tabs', 'gaps', 'ready', 'hidden', 'nudge', 'snap']) await journey(name).run(h);
   await journey('deletion').checks(h);
   h.nothingLeaves();
   h.noConsoleErrors();

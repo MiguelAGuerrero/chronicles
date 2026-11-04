@@ -136,8 +136,8 @@ const FEATURES = [
       'src/components/atlas/**',
       'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx',
     ],
-    journeys: ['marks', 'atlas', 'grading'],
-    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence'],
+    journeys: ['marks', 'atlas', 'grading', 'snap'],
+    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation'],
   },
   {
     name: 'landing',
@@ -162,7 +162,7 @@ const FEATURES = [
     source: [
       'src/components/map/**',
       'src/components/{icons,CapturePinView,MarkPinView,LocateButton,CompassButton}.tsx',
-      'src/lib/{pins,scaleBar,perfCount,mapReads,useTabMap,traceEnds,useLocate,units,useUnits,format,compass}.ts',
+      'src/lib/{pins,scaleBar,perfCount,mapReads,useTabMap,traceEnds,useLocate,units,useUnits,format,compass,mapTopInset}.ts',
       'src/lib/unitsStore/**',
     ],
     journeys: ['qol'],

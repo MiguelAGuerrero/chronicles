@@ -388,6 +388,9 @@ async function run(h) {
       check(Number.isFinite(y) && bar && y < bar.y && y > 0, `navigate-ready audit 1: with the bar up in Explore, the ring's centre is on the map above the bar (centre y ${Math.round(y)}, bar top ${bar && Math.round(bar.y)})`);
       void x;
     }
+    // A range set here is the one the walk's drawer shows after Start, with no reload between (fix walk-drawer-settings audit 1).
+    await pg.click('[data-testid=range-plus]');
+    await pg.waitForTimeout(300);
     await pg.click('[data-testid=mode-quiet]');
     await pg.keyboard.press('Escape');
     await settled(pg);
@@ -436,6 +439,16 @@ async function run(h) {
     await pg.click('[data-testid=walk-summary]');
     await pg.waitForSelector('[data-testid=options-card]');
     check((await pg.locator('[data-testid=walk-options]').count()) === 0, 'the walk has no options button: its settings are in the strip\u2019s drawer');
+    {
+      // fix walk-drawer-settings audit 1: the range set on the ready bar shows in the walk's drawer, no reload between.
+      await pg.click('[data-testid=explore-walk]');
+      await pg.waitForSelector('[data-testid=range-slider]');
+      const shown = await pg.locator('[data-testid=range-value]').innerText();
+      check(shown === '120 m', `fix walk-drawer-settings audit 1: the range set on the ready bar (120 m) is the walk drawer's (${shown})`);
+      await pg.click('[data-testid=range-minus]');
+      await pg.waitForTimeout(300);
+      await pg.click('[data-testid=explore-walk]');
+    }
     await pg.click('[data-testid=walk-summary]');
     await pg.waitForTimeout(600);
 

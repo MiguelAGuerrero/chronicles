@@ -80,7 +80,7 @@ Home / tabs
   walk/                      the walk screen's shared geometry (layout.ts), CaptureStack, ReadyBar, useReady (the walk screen's ready state)
   GapCard.tsx                a filled or offered stretch: Keep, Not this way
   LandingMarks.tsx           a strip's name beside it on the map
-  ExploreSettings.tsx        what I'm into, the "?" range (ring preview), the pocket alert: a panel, not a modal
+  ExploreSettings.tsx        the shared pieces of the drawers' settings: `KindSwitches`, `RangeSlider`, `walkNote`
   NotificationSettings.tsx   the kind switches, permission state, the test notification
 Captures
   CaptureView.tsx            CaptureViewer (full-screen photos and videos over a strip; cards for notes and memos; More menu) and CaptureContent (plays memos and videos)
@@ -190,6 +190,7 @@ Discovery and Explore (v1)
   atlas/pockets.ts           a town's pockets of activity: peak picking on a smoothed 400 m grid (TP4)
   atlas/read.ts              the atlas's reads: areas near you, one ring or one whole town at a time (decoder)
   atlas/useAtlas.ts          the atlas's data and its read loop, while Explore is in front
+  atlas/snap.ts              discrete navigation (DN1-DN13): what a drag or an arrow key means, which way it points, which area lies that way
   explore/settings.ts        what I'm into, range, pocket alert (meta)
   explore/momentFind/        a loose moment finds a place (shell.ts, index.ts)
 Activity density (AD1-AD16)
@@ -350,6 +351,9 @@ Every feature is built on the Expo modules the phone app uses. Web gets its
 own code only where no Expo module covers the feature on web:
 
 - **Map:** maplibre-gl (`map/WalkMap.web.tsx`). MapLibre RN has no web build.
+- **Announcing a swipe's area** (DN12): a visually hidden `accessibilityLiveRegion` Text on Explore (`atlas-snap-said`, web only).
+  react-native-web's `AccessibilityInfo.announceForAccessibility` is an empty function; phones announce through
+  that call alone, since a live region as well would say it twice on Android.
 - **Storage:** IndexedDB (`db/index.web.ts`, `media/index.web.ts`).
   expo-sqlite's web build needs `SharedArrayBuffer`, which needs cross-origin
   isolation headers GitHub Pages can't send; expo-file-system has no web build.

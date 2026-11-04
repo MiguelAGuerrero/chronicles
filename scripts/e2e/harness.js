@@ -100,6 +100,16 @@ const divisionFeatures = [
     properties: { subtype: 'locality', class: 'land', '@name': 'Central Falls', division_id: 'central-falls', id: 'central-falls-area' } },
 ];
 const divisions = { serve: false };
+// Discrete navigation (DN1-DN13): four neighborhoods around Fox Point, one each way, and a second town
+// west of Providence, only in the snap journey (serveSnap), so other journeys' areas don't change.
+const snapFeatures = [
+  { type: 'Feature', properties: { class: 'neighbourhood', name: 'Wickenden' }, geometry: { type: 'Point', coordinates: at(10, 0) } },
+  { type: 'Feature', properties: { class: 'neighbourhood', name: 'Point Street' }, geometry: { type: 'Point', coordinates: at(-9, 0) } },
+  { type: 'Feature', properties: { class: 'neighbourhood', name: 'Hope Village' }, geometry: { type: 'Point', coordinates: at(1, 12) } },
+  { type: 'Feature', properties: { class: 'neighbourhood', name: 'Ship Street' }, geometry: { type: 'Point', coordinates: at(1, -11) } },
+  { type: 'Feature', properties: { class: 'town', name: 'Cranston' }, geometry: { type: 'Point', coordinates: at(-40, 2) } },
+];
+const snapWorld = { serve: false };
 const OVERTURE_HOST = 'overturemaps-extras-us-west-2.s3.amazonaws.com';
 const OVERTURE_RELEASE = '2026-10-21.0';
 
@@ -320,7 +330,7 @@ async function createHarness() {
     if (tile && tiles.delayMs) await new Promise((res) => setTimeout(res, tiles.delayMs));
     if (tile) {
       const [z, x, y] = tile.slice(1).map(Number);
-      return r.fulfill({ contentType: 'application/x-protobuf', body: Buffer.from(encodeTile(features, z, x, y)) });
+      return r.fulfill({ contentType: 'application/x-protobuf', body: Buffer.from(encodeTile(snapWorld.serve ? [...features, ...snapFeatures] : features, z, x, y)) });
     }
     if (tiles.stall && r.request().url().endsWith('/planet')) await tiles.stall;
     return r.fulfill({
@@ -444,7 +454,7 @@ async function createHarness() {
   };
   return {
     url, navUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, iconOf, metricRegion, pressedScale, metaOf, drawerTo, tabTo, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
-    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions,
+    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld,
   };
 }
 

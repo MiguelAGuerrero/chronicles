@@ -18,6 +18,7 @@ import type { RoadFeature } from '../../lib/streets';
 import { ScaleBar, SCALE_MAX_PX } from './ScaleBar';
 import type { Capture, LngLat } from '../../lib/types';
 import { distanceM } from '../../lib/geo';
+import { arrowSwipe, swipeOf, zoomStart } from '../../lib/atlas/snap';
 import { useGlideFrames, type GlideFrame } from '../../lib/useGlidingWalker';
 import { markEnter, pinDrops, starEnter } from '../../lib/enter';
 import { useReducedMotion } from '../../lib/motion';
@@ -196,6 +197,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const onBearingChange = useRef(props.onBearingChange);
   const onCameraChange = useRef(props.onCameraChange);
   const onFitSettled = useRef(props.onFitSettled);
+  const onSwipe = useRef(props.onSwipe);
   // Before paint, so a click right after a render never reaches the previous handler (audit 8).
   useLayoutEffect(() => {
     onPress.current = props.onPress;
@@ -204,6 +206,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     onBearingChange.current = props.onBearingChange;
     onCameraChange.current = props.onCameraChange;
     onFitSettled.current = props.onFitSettled;
+    onSwipe.current = props.onSwipe;
   });
   const pointerDown = useRef(false);
   const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
@@ -270,6 +273,9 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       dragRotate: false,
       pitchWithRotate: false,
       touchPitch: false,
+      // Explore steps from area to area (DN1, DN11): one finger never pans, and the arrow keys are ours.
+      dragPan: !props.onSwipe,
+      keyboard: !props.onSwipe,
     });
     mapRef.current = map;
     map.on('load', () => {
@@ -283,6 +289,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
           const pt = map.project(p);
           return [r.left + pt.x, r.top + pt.y];
         };
+        // And back: a point on the map's own pixels to where it lies (discrete-navigation audit 5).
+        (window as { __unproject?: (xy: [number, number]) => LngLat }).__unproject = ([x, y]) => {
+          const c = map.unproject([x, y]);
+          return [c.lng, c.lat];
+        };
         // A two-finger turn can't be made headless: the e2e turns the newest map in code (CP1-CP5).
         (window as { __turn?: (deg: number) => void }).__turn = (deg) => { map.rotateTo(deg, { duration: 0 }); };
       }
@@ -291,9 +302,12 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     // whether a second tap follows before treating it as a press.
     let pressTimer: ReturnType<typeof setTimeout> | undefined;
     let heldAt = 0;
+    // When one finger doesn't pan (onSwipe), nothing in maplibre swallows the click a drag ends with.
+    let draggedAt = 0;
     map.on('click', (e: MapMouseEvent) => {
       clearTimeout(pressTimer);
       if (Date.now() - heldAt < 1000) return; // the end of a long press
+      if (Date.now() - draggedAt < 500) return; // the end of a drag (DN9: a swipe is never a tap)
       const at: LngLat = [e.lngLat.lng, e.lngLat.lat];
       pressTimer = setTimeout(() => onPress.current?.(at, pressRadiusM(map.getZoom(), at[1])), DOUBLE_TAP_MS);
     });
@@ -335,6 +349,106 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     map.on('touchend', cancelHold);
     map.on('touchcancel', cancelHold);
     map.on('dragstart', cancelHold);
+    // Discrete navigation (DN1, DN2, DN10): a finished one-pointer drag is a swipe, never a pan. The
+    // browser's own pan of the canvas is off too, or a phone's finger would scroll the page. Pinch and
+    // the two-finger turn stay with maplibre; a long press or a second finger is never a swipe.
+    let swipeFrom: { x: number; y: number } | null = null;
+    let swipeTo = { x: 0, y: 0 };
+    let swipeMulti = false;
+    // When the last one-finger tap ended, so a tap-drag zoom's second touch is never a swipe (audit 2).
+    let tappedAt = -Infinity;
+    // Where areas are framed: the padded centre the fits and showPoint leave, below the title card,
+    // never the canvas's own middle (discrete-navigation audit 5).
+    const middle = (): LngLat => {
+      const c = map.getCenter();
+      return [c.lng, c.lat];
+    };
+    // A drag whose mouseup is lost (the window lost focus, or the button came up outside it) is dropped (audit 10).
+    const dropSwipe = () => {
+      swipeFrom = null;
+      window.removeEventListener('mousemove', mouseSwipe);
+      window.removeEventListener('mouseup', endSwipe);
+      window.removeEventListener('blur', dropSwipe);
+    };
+    const endSwipe = () => {
+      const from = swipeFrom;
+      dropSwipe();
+      if (!from || !onSwipe.current) return;
+      const swipe = swipeOf(from, swipeTo, { multi: swipeMulti, held: Date.now() - heldAt < 1000 });
+      if (swipe) onSwipe.current({ ...swipe, center: middle() });
+    };
+    // The mouse is followed past the map's edge (over the title card), as maplibre's own drag does.
+    // A drag past 8 px is never a tap, even one cut off before it ends (DN9, audit 10).
+    const dragTo = (to: { x: number; y: number }) => {
+      swipeTo = to;
+      if (swipeFrom && Math.hypot(to.x - swipeFrom.x, to.y - swipeFrom.y) > 8) draggedAt = Date.now();
+    };
+    const mouseSwipe = (e: MouseEvent) => {
+      if ((e.buttons & 1) === 0) return dropSwipe();
+      const r = map.getContainer().getBoundingClientRect();
+      dragTo({ x: e.clientX - r.left, y: e.clientY - r.top });
+    };
+    if (props.onSwipe) {
+      map.getCanvas().style.touchAction = 'none';
+      map.getCanvasContainer().style.touchAction = 'none';
+      // The arrow keys are findable (discrete-navigation audit 11): maplibre labels the canvas "Map".
+      map.getCanvas().setAttribute('aria-label', 'Map. The arrow keys move between areas.');
+      map.on('mousedown', (e: MapMouseEvent) => {
+        if (!onSwipe.current || e.originalEvent.button !== 0) return;
+        dropSwipe();
+        // Shift and drag is maplibre's box zoom, never a swipe (audit 2).
+        if (zoomStart({ shift: e.originalEvent.shiftKey, sinceTapMs: Infinity })) return;
+        swipeFrom = { x: e.point.x, y: e.point.y };
+        swipeTo = swipeFrom;
+        swipeMulti = false;
+        window.addEventListener('mousemove', mouseSwipe);
+        window.addEventListener('mouseup', endSwipe, { once: true });
+        window.addEventListener('blur', dropSwipe, { once: true });
+      });
+      map.on('touchstart', (e: MapTouchEvent) => {
+        if (!onSwipe.current) return;
+        if (e.originalEvent.touches.length > 1) {
+          swipeMulti = true;
+          return;
+        }
+        // A touch just after a tap is a tap-drag zoom (audit 2).
+        if (zoomStart({ shift: false, sinceTapMs: Date.now() - tappedAt })) {
+          swipeFrom = null;
+          return;
+        }
+        swipeFrom = { x: e.point.x, y: e.point.y };
+        swipeTo = swipeFrom;
+        swipeMulti = false;
+      });
+      map.on('touchmove', (e: MapTouchEvent) => {
+        if (e.originalEvent.touches.length > 1) swipeMulti = true;
+        else dragTo({ x: e.point.x, y: e.point.y });
+      });
+      map.on('touchend', (e: MapTouchEvent) => {
+        const from = swipeFrom;
+        const tap = !!from && !swipeMulti && e.originalEvent.touches.length === 0 && Math.hypot(swipeTo.x - from.x, swipeTo.y - from.y) <= 8;
+        endSwipe();
+        tappedAt = tap ? Date.now() : -Infinity;
+      });
+      map.on('touchcancel', () => {
+        swipeFrom = null;
+      });
+      // DN11: the arrow keys step like swipes; + and - still zoom (maplibre's keyboard handler is off).
+      map.getCanvas().addEventListener('keydown', (e: KeyboardEvent) => {
+        if (e.altKey || e.ctrlKey || e.metaKey) return;
+        const swipe = arrowSwipe(e.key);
+        if (swipe) {
+          e.preventDefault();
+          onSwipe.current?.({ ...swipe, center: middle() });
+        } else if (e.key === '+' || e.key === '=') {
+          e.preventDefault();
+          map.zoomIn({ duration: animateRef.current ? MOTION.camera : 0 });
+        } else if (e.key === '-' || e.key === '_') {
+          e.preventDefault();
+          map.zoomOut({ duration: animateRef.current ? MOTION.camera : 0 });
+        }
+      });
+    }
     map.on('contextmenu', (e: MapMouseEvent) => {
       if (!onLongPress.current) return;
       e.preventDefault();
@@ -398,6 +512,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     return () => {
       clearTimeout(pressTimer);
       clearTimeout(holdTimer);
+      dropSwipe();
       map.remove();
       mapRef.current = null;
     };
@@ -700,6 +815,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       el.setAttribute('aria-hidden', 'true');
       el.dataset.testid = 'area-point';
       if (p.name) el.dataset.name = p.name;
+      if (p.selected) el.dataset.selected = '1';
       const root = createRoot(el);
       root.render(<AreaPointView pin={p} />);
       // Anchored at the top so the dot, not the label, sits on the point.

@@ -68,6 +68,13 @@ recording bar brings a minimized walk back.
   and nightlife count every place. A ring with fewer than three mapped places
   says nothing about its kinds (atlas grading, decision 0084).
 - Rings are read by themselves while the tab is open, nearest first.
+- **The small map moves in steps** (discrete navigation, decision 0092, an
+  experiment): a swipe goes to the next area that way, never panning. It
+  selects the next neighborhood (its ring, its name, its tile scrolled into
+  view) without opening its card; on a town's page with none of its
+  neighborhoods selected, it opens the next town's page. The opposite swipe
+  comes back; a tap on the map clears the selection; the arrow keys step on
+  the web. Pinch, the wheel, the two-finger turn and the long press stay.
 - A tile opens the area's card:
   - the eight kinds in words;
   - its busy streets;
@@ -214,7 +221,7 @@ recording bar brings a minimized walk back.
 
 ## Settings and notifications
 
-- Explore settings (a panel, not a screen): "What I'm into" (8 kinds), the
+- Explore settings (in the drawers: the ready bar's and the walk's, no panel of their own): "What I'm into" (8 kinds), the
   "?" range with a ring preview on the map, the pocket alert (phones, and browsers that can
   buzz: Android Chrome, maybe iPhone Safari).
 - Notifications: Remind me here and Pause reminder, each switchable, plus a
@@ -253,6 +260,7 @@ recording bar brings a minimized walk back.
 | Reminder bell (a pin with a reminder wears a bell) | Shipped, audited (web verified by the e2e; native unverified) |
 | v1.5: landing (busy areas on the Explore tab, strip chip, dead-zone nudge) | Shipped |
 | Explore atlas (the tab as a grid of area tiles, presence bars, familiarity) | Shipped, audited (web verified by the e2e; native unverified) |
+| Discrete navigation (Explore's map steps from area to area, DN1-DN13) | Shipped, audited, an experiment (web verified by the e2e; native unverified) |
 | Town presence (a town graded across its whole outline, with its busy areas listed) | Built (web verified by the e2e; native unverified) |
 | Moments and days, memories on revisit, thumbnails | Shipped, audited |
 | Rides, clearing walks and moments, motion polish | Shipped, audited |

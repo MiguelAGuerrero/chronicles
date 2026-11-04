@@ -20,14 +20,18 @@ import { emptyGapAt, gapKey, stretchAt, type Gap } from '../lib/gaps/infer';
 import type { DrawnLine } from '../lib/gaps/draw';
 import { useGapDraw } from '../lib/gaps/useGapDraw';
 import { GapDraw } from '../components/GapDraw';
-import { ExploreSettings } from '../components/ExploreSettings';
+import { KindSwitches, RangeSlider, walkNote } from '../components/ExploreSettings';
+import { NotificationSettings } from '../components/NotificationSettings';
+import { SwitchRow } from '../components/SwitchRow';
 import { ReminderCard } from '../components/ReminderCard';
 import { onRecallFired, onRecallOpen, onRecallWaiting, takeRecallOpen } from '../lib/discovery/recallCheck';
 import { categoryOf } from '../lib/discovery/categories';
 import { deadZoneDue, deadZoneNudge, inDeadZone, stripAt } from '../lib/landing/walk';
 import { landingView, LANDING_VERSION, nearAreas, type LandingRow } from '../lib/landing/view';
 import { placesFromTilePois } from '../lib/discovery/tilePois';
-import { EXPLORE_KEY, exploredKey, kindOf } from '../lib/explore/explore';
+import { canBuzz } from '../lib/canBuzz';
+import { clampRange, EXPLORE_KEY, exploredKey, kindOf, POCKET_ALERT_NOTE, type Kind } from '../lib/explore/explore';
+import { DEFAULT_SETTINGS, loadSettings, onSettings, saveSettings, type ExploreSettings } from '../lib/explore/settings';
 import { useExplore } from '../lib/explore/useExplore';
 import { db } from '../lib/db';
 import { focusOn } from '../lib/focus';
@@ -58,7 +62,7 @@ import { exitPlan, screenState, startNotice } from '../lib/readyNav';
 import { getLastFix } from '../lib/lastFix';
 import { CaptureStack } from '../components/walk/CaptureStack';
 import { ReadyBar } from '../components/walk/ReadyBar';
-import { CAP, EDGE, GUTTER, SCALE_BOTTOM, STACK_GAP, useStackLayout } from '../components/walk/layout';
+import { BAR_H, CAP, EDGE, GUTTER, raisedHeight, SCALE_BOTTOM, STACK_GAP, useStackLayout } from '../components/walk/layout';
 import { useReady } from '../components/walk/useReady';
 import { aboutTimeLeft, formatTimeLeft, paceMps, timeLeftMs } from '../lib/nav/eta';
 import { useVisible } from '../lib/deletion/useDeletions';
@@ -121,9 +125,6 @@ type Notice = {
 
 // A screen that throws shows what broke, with Try again, never a blank page (bug, Nov 1).
 export { ScreenError as ErrorBoundary } from '../components/ScreenError';
-
-/** The walk's settings panel sits this far up, clear of the capture row (bottom + 92, 68 tall) and its gap. */
-const SETTINGS_FOOT = 92 + 68 + 12;
 
 /**
  * The walk screen, and Navigate itself (NR1-NR6): ready with no walk open,
@@ -402,12 +403,33 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const [spot, setSpot] = useState<{ at: LngLat; here: HereResult | null; from: LngLat | null } | null>(null);
   const hereTaps = useRef(0);
   const [hereKey, setHereKey] = useState(0);
-  // Settings (E16-E21), opened from the walk's options; the range is previewed as a ring on this map.
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [preview, setPreview] = useState<number | null>(null);
-  const [panelH, setPanelH] = useState(0);
+  // Explore's settings (E16-E21) live in the walk's drawer, saved as they change; the range is a ring on this map while it is up.
+  // Nothing is saved before they have loaded (fix walk-drawer-settings audit 2), and a save from the ready
+  // screen's bar reaches this copy at once (audit 1): both screens are one instance.
+  const [loaded, setLoaded] = useState<ExploreSettings | null>(null);
+  const settings = loaded ?? DEFAULT_SETTINGS;
+  useEffect(() => {
+    let alive = true;
+    loadSettings().then((v) => alive && setLoaded((cur) => cur ?? v), () => {});
+    const off = onSettings((v) => setLoaded(v));
+    return () => {
+      alive = false;
+      off();
+    };
+  }, []);
+  const changeSettings = (next: ExploreSettings) => {
+    if (!loaded) return;
+    setLoaded(next);
+    saveSettings(next).catch(() => {});
+  };
+  const toggleKind = (k: Kind, on: boolean) => {
+    const hidden = new Set(settings.hidden);
+    if (on) hidden.delete(k);
+    else hidden.add(k);
+    changeSettings({ ...settings, hidden });
+  };
   async function pressMap(at: LngLat, radiusM?: number) {
-    if (cap.voiceStartedAt != null || stopping || viewing || here || settingsOpen) return;
+    if (cap.voiceStartedAt != null || stopping || viewing || here) return;
     setMarkOpen(null);
     setOptions(false);
     setMemory(null);
@@ -444,14 +466,11 @@ function WalkScreen(props: { onMinimize: () => void }) {
   }, []);
   // The spot card (and the options card) goes once you walk on, or with Back (Android) and Escape (web).
   useEffect(() => {
-    if (!spot && !settingsOpen && !memory) return;
+    if (!spot && !memory) return;
     const close = () => {
       setSpot(null);
       setMemory(null);
       setOptions(false);
-      // Settings close as Cancel does (audit, UI).
-      setSettingsOpen(false);
-      setPreview(null);
       setFollowing(true);
     };
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -464,7 +483,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       back.remove();
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
-  }, [spot, settingsOpen, memory]);
+  }, [spot, memory]);
   useEffect(() => {
     if (!spot?.from || !live.here || distanceM(spot.from, live.here) < 30) return;
     const t = setTimeout(() => setSpot(null), 0);
@@ -542,6 +561,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const reloadLandings = useCallback(() => {
     db.listLandings().then((r) => setLandings(r.filter((x) => x.rules === LANDING_VERSION)), () => {});
   }, []);
+  // The range preview (E21): a ring around you while the drawer is up on an exploring walk, as on the ready screen.
+  const preview = options && exploring && loaded ? loaded.rangeM : null;
   const explore = useExplore({
     walkId: walk?.id ?? null,
     exploring,
@@ -570,17 +591,11 @@ function WalkScreen(props: { onMinimize: () => void }) {
   useEffect(() => {
     if (navItem && (explore.revealed.has(navItem.key) || explore.found.has(navItem.key))) relabel(navItem.name);
   }, [navItem, explore.revealed, explore.found, relabel]);
-  // The range preview (E21): the ring is drawn on this map, around you, only while settings are open.
   const ring = useMemo(() => (preview != null && live.here ? { center: live.here, radiusM: preview } : null), [preview, live.here]);
   const ringFit = useMemo(() => (ring ? boundsOf([ring.center], ring.radiusM * 1.15) : null), [ring]);
-  const [ringKey, setRingKey] = useState(0);
-  // Each new range refits the map to the ring, above the panel.
-  const onPreview = useCallback((m: number | null) => {
-    setPreview(m);
-    if (m != null) setRingKey((k) => k + 1);
-    // Closed: back to following you, out of the ring's zoom (audit, UI).
-    else setFollowing(true);
-  }, []);
+  // Each new range refits the map to the ring, in the part left above the raised drawer.
+  const ringKey = ring ? 100000 + ring.radiusM : 0;
+  const drawerH = raisedHeight(screenH, BAR_H + insets.bottom);
   // Remind me here (v1 slice 4): a flagged capture comes back when this walk
   // passes it (R2, R3). The web checks on each accepted fix in the open walk's
   // keeper, minimized or not (NV8); on a phone the location task checks every
@@ -757,7 +772,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     };
   }, [walk, live.here, live.riding, hotPockets, quiet, pausedNow]);
   // Spent only once it has been seen: not under a card, a route or settings, never on a quiet walk (audit).
-  const nudgeShown = !!nudge && !quiet && !spot && !openMark && !options && !memory && !settingsOpen && !navigation.nav && !navigation.finding;
+  const nudgeShown = !!nudge && !quiet && !spot && !openMark && !options && !memory && !navigation.nav && !navigation.finding;
   useEffect(() => {
     if (!nudgeShown || !walk) return;
     if (!nudgedRef.current) {
@@ -976,7 +991,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         captures={captures}
         // Opening a capture would hide a memo that is still recording.
         // While drawing, a tap on a pin is a point along the way like any other (gap-drawing audit 8).
-        onPinPress={recordingVoice || stopping || settingsOpen || isDrawing ? undefined : setViewing}
+        onPinPress={recordingVoice || stopping || isDrawing ? undefined : setViewing}
         walker={live.here}
         borders={borders}
         walkerSource={live.dot}
@@ -1004,12 +1019,12 @@ function WalkScreen(props: { onMinimize: () => void }) {
           setGapOpen(hit ? gapKey(hit) : null);
         }}
         memories={memories}
-        onMemoryPress={recordingVoice || stopping || settingsOpen || isDrawing ? undefined : (group, at) => {
+        onMemoryPress={recordingVoice || stopping || isDrawing ? undefined : (group, at) => {
           setGapOpen(null);
           void openMemory(group, at);
         }}
         discoveries={explore.pins}
-        onDiscoveryPress={recordingVoice || stopping || settingsOpen || isDrawing ? undefined : (id) => {
+        onDiscoveryPress={recordingVoice || stopping || isDrawing ? undefined : (id) => {
           // A found place is shown, not a card to open: its capture's pin is the thing to tap (audit, UI).
           if (explore.found.has(id)) return;
           setSpot(null);
@@ -1021,7 +1036,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         ring={ring}
         fitBounds={ringFit}
         fitKey={ringKey}
-        fitPadding={{ top: insets.top + 24, bottom: panelH + 24, left: 24, right: 24 }}
+        fitPadding={{ top: insets.top + 24, bottom: drawerH - BAR_H - insets.bottom + 16, left: 24, right: 24 }}
         onUserMove={() => setFollowing(false)}
         onBearingChange={setBearing}
         // A long press, so a stray tap while walking does nothing.
@@ -1275,6 +1290,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
             setGapOpen(null);
           }
           setOptions(u && !recordingVoice);
+          // Lowered with the ring up: back to following you, out of the ring's zoom (audit, UI); a pan stays otherwise.
+          if (!u && preview != null) setFollowing(true);
         }}
         areaHeight={screenH}
         locked={recordingVoice}
@@ -1323,22 +1340,29 @@ function WalkScreen(props: { onMinimize: () => void }) {
               </View>
               <Switch testID="explore-walk" accessibilityLabel="Explore" value={exploring} onValueChange={setExplore} />
             </View>
-            <Pressable
-              testID="open-settings"
-              accessibilityRole="button"
-              accessibilityLabel="Settings: what I’m into and the question mark range"
-              onPress={() => {
-                setOptions(false);
-                setMarkOpen(null);
-                setSpot(null);
-                setSettingsOpen(true);
-              }}
-              style={({ pressed }) => [styles.optionRow, pressed && styles.pressed]}
-            >
-              <Icon name="settings-outline" size={20} color={theme.ink} />
-              <Text style={[styles.optionLabel, { flex: 1 }]}>What I’m into, and the “?” range</Text>
-              <Icon name="chevron-forward" size={18} color={theme.muted} />
-            </Pressable>
+            {exploring && loaded && (
+              <>
+                <Text style={styles.optionSection} accessibilityRole="header">“?” range</Text>
+                <Text style={styles.markSub}>
+                  A “?” shows for places within {settings.rangeM} m of you, {walkNote(settings.rangeM)}.
+                  {live.here ? ' The ring on the map shows how far that is.' : ' The ring shows on the map once there’s a position.'}
+                </Text>
+                <RangeSlider value={settings.rangeM} onChange={(m) => changeSettings({ ...settings, rangeM: clampRange(m) })} />
+                <Text style={styles.optionSection} accessibilityRole="header">What I’m into</Text>
+                <KindSwitches hidden={settings.hidden} onToggle={toggleKind} />
+              </>
+            )}
+            {/* The pocket alert is a nudge you feel: on every phone, and on a touch-screen browser (E19, PA6). */}
+            {canBuzz() && loaded && (
+              <SwitchRow
+                testID="pocket-alert"
+                label="Pocket alert"
+                note={POCKET_ALERT_NOTE}
+                value={settings.haptic}
+                onChange={(haptic) => changeSettings({ ...settings, haptic })}
+              />
+            )}
+            <NotificationSettings heading={false} />
             {motionAccess !== 'on' && (
               // Without motion the walk goes on, on the GPS filters alone (Motion, MO2).
               <View testID="motion-off" style={styles.optionRow}>
@@ -1482,17 +1506,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
       )}
       {/* Low, where the capture row was: big controls stay in thumb's reach (audit, UI). */}
       {isDrawing && <GapDraw drawing={drawing} style={{ bottom: insets.bottom + 92, zIndex: 6 }} />}
-      <ExploreSettings
-        visible={settingsOpen}
-        hasRing={!!live.here}
-        // Above the capture row and the strip: capture stays one tap away while settings are open (rev 34).
-        bottomInset={0}
-        bottom={insets.bottom + SETTINGS_FOOT}
-        onHeight={setPanelH}
-        onClose={() => setSettingsOpen(false)}
-        onPreview={onPreview}
-      />
-
       <CaptureViewer
         key={viewing?.[0]?.id ?? 'none'}
         captures={viewing && viewing.map((v) => captures.find((c) => c.id === v.id) ?? v)}
@@ -1677,6 +1690,7 @@ const styles = StyleSheet.create({
   markSub: { fontSize: 14, color: theme.muted },
   optionRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48 },
   optionLabel: { fontSize: 15, fontWeight: '600', color: theme.ink },
+  optionSection: { fontSize: 15, fontWeight: '700', color: theme.ink, marginTop: 8 },
   drawer: { paddingHorizontal: 16, paddingBottom: 8, gap: 4, maxWidth: 640, width: '100%', alignSelf: 'center' },
   edgeBtnOff: { opacity: 0.5 },
   spotActions: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },

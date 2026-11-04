@@ -162,6 +162,15 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - A town that crosses a z10 tile edge is framed only by the piece in the tiles read (`outlineTilesFor` takes the tile under each point; outlines are cut at tile edges), and a piece arriving later doesn't refit: the whole of a large city may not be framed. Fixing it means reading the tiles a town spans, the owner's call (fix explore-fit-area audit 4, Nov 4)
 - The launch fix frames your 800 m ring even when a town's page was opened before it came (a town tapped while the location prompt is open), so that page loses its town frame (fix explore-fit-area audit 5, Nov 4)
 
+## Discrete navigation (DN1-DN13, decision 0092)
+
+- A bounce at the edge: with nothing that way the map stays still, with no rubber band (DN4)
+- A fling's speed choosing how far to go: one swipe is always one step
+- Towns on the page near you stay tiles: swipes there move between neighborhoods only (the owner's call)
+- No touch-screen e2e for the swipe: the journey drags with the mouse; a finger's swipe on iOS Safari has not been tried
+- A spoken cue when a swipe finds nothing that way: a screen reader hears nothing (discrete-navigation audit 12), as the eye sees no bounce
+- E2e for the turned map, pinch, double tap and a touch-screen swipe on screen (the audit's test review): unit tests cover the direction and the zoom-gesture rules
+
 ## Explore atlas
 
 - Green by park area (the share of the ring that is park): the decoder reads no park outlines yet, so green counts park places (decision 0066)
@@ -181,8 +190,6 @@ An item leaves only when it ships, or when it is rejected with a decision record
   on one origin are rare; a remount on a new walk id would fix it.
 - **Two pills at once overlap the scale bar at 375 wide** (the caption offer, then a memo discarded
   within 6 s): one pill clears it (audit 11).
-- **The walk's settings panel** (`ExploreSettings`, from the walk options) still covers the stack while
-  open; it is a sheet with its own Cancel (audit 5).
 
 ## Functional core (slice 1)
 
@@ -226,6 +233,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - `ReadyBar`'s 10 pt strip padding stays until then: `BAR_H` (69) is derived from it and the stack's geometry from `BAR_H`
 - The owner's phone screenshot showed the walk overlay cropped at both edges in Safari; at 390 px the layout was already 12 pt from the edge, so a viewport wider than the screen is suspected and not reproduced (unverified on a device)
 - Audit findings deferred (fix banner-spacing): the pills and scale bar sit at `sideInset + 12`, 4 pt further in than the 16 pt gutter, left as a step; horizontal safe-area insets (landscape notch) are not added to the gutter, as before; no e2e at 320 pt wide or for the nudge, spot card and Undo pill gutters; Button's and Banner's padding change reaches screens with no journey (settings, delete confirm); computed offsets (`edgeBottom + 7`) and radii are outside the grid test
+- Web overlays still pad by the unfiltered safe-area `insets.top` that iOS Safari reports on web: the Atlas card grip (`AtlasCard.tsx`), CaptureView, MediaEditor, NoteEditor, MomentBar; the Explore map no longer does (`lib/mapTopInset`, fix title-chip-corner audit 1)
 
 ## Test organization (decision 0091)
 
