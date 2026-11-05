@@ -26,7 +26,7 @@ import { useUnits } from '../../lib/useUnits';
 import { useReminded } from '../../lib/useReminded';
 import { MOTION } from '../../lib/motionTokens';
 import {
-  alternatesGeoJSON, BORDER, bordersGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
+  alternatesGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -59,6 +59,11 @@ function addOverlay(map: MapLibreMap) {
     layout: { 'line-join': 'round' }, paint: { 'line-color': BORDER.color, 'line-width': BORDER.firmWidth, 'line-opacity': BORDER.firmOpacity } }, firstSymbol);
   map.addSource('veil', { type: 'geojson', data: WORLD_VEIL });
   map.addLayer({ id: 'veil', type: 'fill', source: 'veil', paint: { 'fill-color': COLORS.veil, 'fill-opacity': 0 } }, firstSymbol);
+  // Walkability (WK13), under the hotspots, fog and trace: a warm line where streets are built around cars, a faint one where mixed.
+  map.addSource('walkability', { type: 'geojson', data: empty, tolerance: 1, buffer: 64 });
+  for (const band of ['mixed', 'car'] as const)
+    map.addLayer({ id: `walk-${band}`, type: 'line', source: 'walkability', filter: ['==', ['get', 'band'], band], layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': WALK_STYLE[band].color, 'line-opacity': WALK_STYLE[band].opacity, 'line-width': ['interpolate', ['linear'], ['zoom'], 12, WALK_STYLE[band].width * 0.6, 17, WALK_STYLE[band].width * 2.2] } }, firstSymbol);
   // Lines are simplified a little more than the default and keep a smaller tile buffer: less to
   // re-tile on each update (perf, Nov 1; tolerance 0.375 and buffer 128 are maplibre's defaults).
   const lineSource = { type: 'geojson' as const, data: empty, tolerance: 1, buffer: 64 };
@@ -201,6 +206,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const onCameraChange = useRef(props.onCameraChange);
   const onFitSettled = useRef(props.onFitSettled);
   const onSwipe = useRef(props.onSwipe);
+  const fitPadding = useRef(props.fitPadding);
   // Before paint, so a click right after a render never reaches the previous handler (audit 8).
   useLayoutEffect(() => {
     onPress.current = props.onPress;
@@ -210,6 +216,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     onCameraChange.current = props.onCameraChange;
     onFitSettled.current = props.onFitSettled;
     onSwipe.current = props.onSwipe;
+    fitPadding.current = props.fitPadding;
   });
   const pointerDown = useRef(false);
   const [view, setView] = useState<{ zoom: number; lat: number } | null>(null);
@@ -357,15 +364,31 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     // the two-finger turn stay with maplibre; a long press or a second finger is never a swipe.
     let swipeFrom: { x: number; y: number } | null = null;
     let swipeTo = { x: 0, y: 0 };
+    // The drag's last moves, for its speed at release: a flick coasts, as a pan would (DN2).
+    let trail: { t: number; x: number; y: number }[] = [];
     let swipeMulti = false;
     // When the last one-finger tap ended, so a tap-drag zoom's second touch is never a swipe (audit 2).
     let tappedAt = -Infinity;
-    // Where areas are framed: the padded centre the fits and showPoint leave, below the title card,
-    // never the canvas's own middle (discrete-navigation audit 5).
+    // Where areas are framed: the middle of the frame's padding, below the title card, never the canvas's
+    // own middle (discrete-navigation audit 5). Read from the padding itself: the map keeps none (fix 2).
     const middle = (): LngLat => {
-      const c = map.getCenter();
+      const canvas = map.getCanvas();
+      const p = fitPadding.current ?? { top: 0, right: 0, bottom: 0, left: 0 };
+      const c = map.unproject([(p.left + canvas.clientWidth - p.right) / 2, (p.top + canvas.clientHeight - p.bottom) / 2]);
       return [c.lng, c.lat];
     };
+    // Speed at release, px/s, over the last 100 ms of moves; none when the finger rested before letting go.
+    const releaseSpeed = () => {
+      const t = Date.now();
+      const recent = trail.filter((p) => t - p.t <= 100);
+      trail = [];
+      if (recent.length < 2 || t - recent[recent.length - 1].t > 50) return { vx: 0, vy: 0 };
+      const a = recent[0];
+      const b = recent[recent.length - 1];
+      const dt = Math.max(b.t - a.t, 8) / 1000;
+      return { vx: (b.x - a.x) / dt, vy: (b.y - a.y) / dt };
+    };
+    const mpp = () => metersPerPixel(map.getZoom(), map.getCenter().lat);
     // A drag whose mouseup is lost (the window lost focus, or the button came up outside it) is dropped (audit 10).
     const dropSwipe = () => {
       swipeFrom = null;
@@ -378,12 +401,14 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       dropSwipe();
       if (!from || !onSwipe.current) return;
       const swipe = swipeOf(from, swipeTo, { multi: swipeMulti, held: Date.now() - heldAt < 1000 });
-      if (swipe) onSwipe.current({ ...swipe, center: middle() });
+      if (swipe) onSwipe.current({ ...swipe, ...releaseSpeed(), center: middle(), mpp: mpp() });
     };
     // The mouse is followed past the map's edge (over the title card), as maplibre's own drag does.
     // A drag past 8 px is never a tap, even one cut off before it ends (DN9, audit 10).
     const dragTo = (to: { x: number; y: number }) => {
       swipeTo = to;
+      const t = Date.now();
+      trail = [...trail.filter((p) => t - p.t <= 100), { t, ...to }];
       if (swipeFrom && Math.hypot(to.x - swipeFrom.x, to.y - swipeFrom.y) > 8) draggedAt = Date.now();
     };
     const mouseSwipe = (e: MouseEvent) => {
@@ -404,6 +429,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         swipeFrom = { x: e.point.x, y: e.point.y };
         swipeTo = swipeFrom;
         swipeMulti = false;
+        trail = [];
         window.addEventListener('mousemove', mouseSwipe);
         window.addEventListener('mouseup', endSwipe, { once: true });
         window.addEventListener('blur', dropSwipe, { once: true });
@@ -422,6 +448,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         swipeFrom = { x: e.point.x, y: e.point.y };
         swipeTo = swipeFrom;
         swipeMulti = false;
+        trail = [];
       });
       map.on('touchmove', (e: MapTouchEvent) => {
         if (e.originalEvent.touches.length > 1) swipeMulti = true;
@@ -442,13 +469,14 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         const swipe = arrowSwipe(e.key);
         if (swipe) {
           e.preventDefault();
-          onSwipe.current?.({ ...swipe, center: middle() });
+          onSwipe.current?.({ ...swipe, vx: 0, vy: 0, center: middle(), mpp: mpp() });
         } else if (e.key === '+' || e.key === '=') {
           e.preventDefault();
-          map.zoomIn({ duration: animateRef.current ? MOTION.camera : 0 });
+          // Around where areas are framed, so the selected one stays put (fix 2: the map keeps no padding).
+          map.zoomTo(map.getZoom() + 1, { around: middle(), duration: animateRef.current ? MOTION.camera : 0 });
         } else if (e.key === '-' || e.key === '_') {
           e.preventDefault();
-          map.zoomOut({ duration: animateRef.current ? MOTION.camera : 0 });
+          map.zoomTo(map.getZoom() - 1, { around: middle(), duration: animateRef.current ? MOTION.camera : 0 });
         }
       });
     }
@@ -593,6 +621,18 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     // The e2e reads which towns are drawn, and how.
     container.current?.setAttribute('data-borders', (bordersRef.current?.shapes ?? []).map((b) => `${b.role}:${b.name}`).sort().join('|'));
   }, [ready, borderKey]);
+  // Walkability (WK13): sent again only when the picture changes.
+  const walkKey = props.walkability?.key ?? '';
+  const walkRef = useRef(props.walkability);
+  useEffect(() => {
+    walkRef.current = props.walkability;
+  }, [props.walkability]);
+  useEffect(() => {
+    if (!ready) return;
+    setData('walkability', walkabilityGeoJSON(walkRef.current));
+    // The e2e reads what is drawn.
+    container.current?.setAttribute('data-walk', walkRef.current ? `car:${walkRef.current.car.length}|mixed:${walkRef.current.mixed.length}` : '');
+  }, [ready, walkKey]);
   useEffect(() => {
     if (ready) setData('cone', coneGeoJSON(glideOn ? null : props.walker, props.walkerHeading, view?.zoom ?? 16));
   }, [ready, glideOn, props.walker, props.walkerHeading, view]);
@@ -913,7 +953,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       return out;
     },
     showPoint(at, padding) {
-      mapRef.current?.easeTo({ center: at, padding, duration: animateRef.current ? MOTION.ease : 0 });
+      // An offset, never `padding`: maplibre keeps an ease's padding on the map and counts it again in every later
+      // fit, so after a swipe on Explore's 200 px map a town's fit found no room and never moved (discrete-navigation
+      // fix 2, the owner's iPhone, Nov 4). The point lands in the middle of the padding all the same.
+      const offset: [number, number] = [(padding.left - padding.right) / 2, (padding.top - padding.bottom) / 2];
+      mapRef.current?.easeTo({ center: at, offset, duration: animateRef.current ? MOTION.ease : 0 });
     },
     resetNorth() {
       mapRef.current?.easeTo({ bearing: 0, duration: animateRef.current ? MOTION.camera : 0 });

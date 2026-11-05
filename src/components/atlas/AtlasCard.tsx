@@ -14,6 +14,8 @@ import { focusOn } from '../../lib/focus';
 import { formatDistance } from '../../lib/format';
 import { useReducedMotion } from '../../lib/motion';
 import { MOTION } from '../../lib/motionTokens';
+import { ATLAS_RULES } from '../../lib/atlas/atlas';
+import { useAreaWords } from '../../lib/walk/useAreaWords';
 import { tabsHidden } from '../../lib/tabsHidden';
 import type { LngLat } from '../../lib/types';
 import { COLORS, HOTSPOT, HOTSPOT_INK } from '../map/types';
@@ -76,6 +78,8 @@ export function AtlasCard(props: {
   layout: CardLayout;
 }) {
   const { area, fam, layout } = props;
+  // How the area treats someone on foot (WK11): words only, read when the card opens.
+  const onFoot = useAreaWords(area.at, ATLAS_RULES.ringM, true);
   const p = area.profile;
   const [how, setHow] = useState(false);
   const reduced = useReducedMotion();
@@ -175,6 +179,21 @@ export function AtlasCard(props: {
           <View style={styles.bigMap}>
             <MiniMap area={area} walked={props.walked} waiting={props.waiting} finds={props.finds} here={props.here ? props.you : null} />
           </View>
+
+          {/* WK11: how the streets treat someone on foot, in words; nothing when too little is known. */}
+          {(onFoot.reading || onFoot.words) && (
+            <View style={styles.sec} testID="atlas-onfoot">
+              <Text style={styles.secTitle} accessibilityRole="header">On foot</Text>
+              {onFoot.words ? (
+                <>
+                  <Text style={styles.onFoot} testID="atlas-onfoot-words">{onFoot.words}</Text>
+                  <Text style={styles.muted}>From OpenStreetMap and Overture. Where sidewalks aren’t mapped, streets can read worse than they are.</Text>
+                </>
+              ) : (
+                <Text style={styles.muted} testID="atlas-onfoot-reading">Reading the streets…</Text>
+              )}
+            </View>
+          )}
 
           {/* AG3: a ring the map knows almost nothing about says nothing about its kinds. */}
           {!p?.thin && (
@@ -383,6 +402,7 @@ const styles = StyleSheet.create({
   youRow: { flexDirection: 'row', alignItems: 'center', gap: 4, flexWrap: 'wrap' },
   you: { fontSize: 14, color: theme.ink },
   known: { color: COLORS.trace, fontWeight: '600' },
+  onFoot: { fontSize: 16, color: theme.ink },
   muted: { fontSize: 13, color: theme.muted },
   close: { width: 44, height: 44, borderRadius: 22, backgroundColor: theme.bg, alignItems: 'center', justifyContent: 'center' },
   scroll: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minHeight: 0 },

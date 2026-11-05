@@ -1,4 +1,4 @@
-# 0093. Scenic routes: the direct way and one per leaning, side by side
+# 0094. Scenic routes: the direct way and one per leaning, side by side
 
 Date: 2026-11-04 · Status: accepted · Area: navigation
 

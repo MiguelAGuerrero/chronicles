@@ -2,7 +2,7 @@
 import type { Ports } from '../ports/types';
 import type { LngLat } from '../types';
 import { townPlaces } from './borders';
-import { BORDER_ZOOM, OUTLINE_TILES_MAX, OUTLINE_ZOOM, outlineSet, outlineTileKey, outlineTilesFor, type OutlineSet, type OutlineTile } from './outlines';
+import { BORDER_ZOOM, OUTLINE_TILES_MAX, OUTLINE_ZOOM, outlineSet, outlineTileKey, outlineTilesFor, stampRelease, tileCurrent, withoutNested, type OutlineSet, type OutlineTile } from './outlines';
 
 /** Where town outlines come from, tile by tile (today Overture's divisions, `overtureOutlines.ts`). */
 export interface OutlineSource {
@@ -19,6 +19,16 @@ export interface OutlineRead {
   tooMany: boolean;
 }
 
+/** The ward ids kept in meta `outline_nested`; anything unreadable is none. */
+function parseIds(raw: string | null): string[] {
+  try {
+    const v: unknown = raw ? JSON.parse(raw) : [];
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
 /** The cache is looked through for at most this many tiles, however many points ask (no network). */
 const KNOWN_TILES_MAX = 64;
 
@@ -29,6 +39,33 @@ const KNOWN_TILES_MAX = 64;
  * caller places by points otherwise and tries again later.
  */
 export function createOutlines(p: Pick<Ports, 'db' | 'clock'> & { source: OutlineSource }) {
+  /** The wards found so far (fix ward-subdivision audit 1): a piece in one tile is told from a town by a point in another. */
+  let loaded: Promise<Set<string>> | null = null;
+  let remembering: Promise<unknown> = Promise.resolve();
+  /** The ids kept in meta, read once; a failed read is not kept (that read filters nothing) and never replaces them. */
+  const wards = (): Promise<Set<string>> =>
+    (loaded ??= p.db.getMeta('outline_nested').then(
+      (raw) => new Set(parseIds(raw)),
+      () => {
+        loaded = null;
+        return new Set<string>();
+      },
+    ));
+  /** Saves these ids on top of the stored ones, one write at a time; rejects when it can't, so the tile that found them is not kept. */
+  const remember = (ids: string[]) => {
+    const job = remembering.catch(() => {}).then(async () => {
+      const stored = new Set(parseIds(await p.db.getMeta('outline_nested')));
+      const fresh = ids.filter((id) => !stored.has(id));
+      if (fresh.length) {
+        for (const id of fresh) stored.add(id);
+        await p.db.setMeta('outline_nested', JSON.stringify([...stored]));
+      }
+      loaded = Promise.resolve(stored);
+    });
+    remembering = job;
+    return job;
+  };
+
   /** One fetch per tile at a time, whoever asks. */
   const inflight = new Map<string, Promise<OutlineTile | null>>();
 
@@ -39,7 +76,10 @@ export function createOutlines(p: Pick<Ports, 'db' | 'clock'> & { source: Outlin
     const job = p.source
       .tile(release, x, y, z)
       .then(async (t) => {
-        const tile = { ...t, key, z, x, y, read_at: p.clock.now() };
+        const { nested: found, ...rest } = t;
+        const tile = { ...rest, key, z, x, y, release: stampRelease(t.release), read_at: p.clock.now() };
+        // The ids first: a tile kept without them could never find them again.
+        if (found?.length) await remember(found);
         await p.db.putOutlineTiles([tile]);
         return tile;
       })
@@ -49,16 +89,19 @@ export function createOutlines(p: Pick<Ports, 'db' | 'clock'> & { source: Outlin
     return job;
   };
 
+  /** Kept tiles cut by the current decoder; an older one is as good as missing. */
+  const keptTiles = async (keys: string[]): Promise<OutlineTile[]> => withoutNested((await p.db.getOutlineTiles(keys).catch(() => [] as OutlineTile[])).filter(tileCurrent), await wards());
+
   /** The tiles under these points at zoom z: kept ones, then the rest read (`read` for z12, `borders` for z10). */
   const readAt = async (points: LngLat[], z: number, shouldStop: () => boolean): Promise<OutlineRead> => {
     const tiles = outlineTilesFor(points, OUTLINE_TILES_MAX, z);
     if (!tiles) {
       const first = outlineTilesFor(points.slice(0, 1), 1, z) ?? [];
-      const kept = await p.db.getOutlineTiles(first.map(([x, y]) => outlineTileKey(x, y, z))).catch(() => [] as OutlineTile[]);
+      const kept = await keptTiles(first.map(([x, y]) => outlineTileKey(x, y, z)));
       return { set: outlineSet(kept), complete: false, tooMany: true };
     }
     const keys = tiles.map(([x, y]) => outlineTileKey(x, y, z));
-    const kept = await p.db.getOutlineTiles(keys).catch(() => [] as OutlineTile[]);
+    const kept = await keptTiles(keys);
     const have = new Set(kept.map((t) => t.key));
     const missing = tiles.filter(([x, y]) => !have.has(outlineTileKey(x, y, z)));
     if (!missing.length) return { set: outlineSet(kept), complete: true, tooMany: false };
@@ -67,14 +110,14 @@ export function createOutlines(p: Pick<Ports, 'db' | 'clock'> & { source: Outlin
     if (!release || shouldStop()) return { set: outlineSet(kept), complete: false, tooMany: false };
     const read = await Promise.all(missing.map(([x, y]) => fetchTile(release, x, y, z)));
     const got = read.filter((t): t is OutlineTile => !!t);
-    return { set: outlineSet([...kept, ...got]), complete: got.length === missing.length, tooMany: false };
+    return { set: outlineSet(withoutNested([...kept, ...got], await wards())), complete: got.length === missing.length, tooMany: false };
   };
 
   return {
     /** The outlines kept for the tiles under these points, with no network. */
     async known(points: LngLat[], z: number = OUTLINE_ZOOM): Promise<OutlineSet> {
       const tiles = outlineTilesFor(points, KNOWN_TILES_MAX, z) ?? [];
-      return outlineSet(await p.db.getOutlineTiles(tiles.map(([x, y]) => outlineTileKey(x, y, z))).catch(() => []));
+      return outlineSet(await keptTiles(tiles.map(([x, y]) => outlineTileKey(x, y, z))));
     },
 
     /** The outlines under these points, reading the tiles not kept yet (at most OUTLINE_TILES_MAX). */

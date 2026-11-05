@@ -19,6 +19,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] Migration 14: the `gap_fill` table of kept and dismissed stretches (IndexedDB v12)
 - [ ] Migration 15: the `atlas_area` cache of the Explore atlas (IndexedDB v13)
 - [ ] Migration 17: `capture.edit`, JSON through `serializeEdit`/`parseEdit` on every capture read (no IndexedDB bump; Media editing, ME21)
+- [ ] Migration 19: the `walk_tile` cache of walkability, ways as JSON (IndexedDB v16; WK2)
 
 ## Map layers and markers (MapLibre RN v11)
 
@@ -149,6 +150,8 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 
 ## Discrete navigation (DN1-DN13)
 
+- [ ] `showPoint` on MapLibre RN still eases with `padding`: whether the native camera keeps it and counts it again in a later `fitBounds`, as maplibre-gl did (discrete-navigation fix 2, fixed on web only)
+
 - [ ] `dragPan={false}` on MapLibre RN's `Map`: one finger no longer pans Explore's map
 - [ ] `createSwiper` (`WalkMap.native.tsx`): the `PanResponder` takes a one-finger move from the map, while MapLibre's own pinch, two-finger turn, double tap and long press still work beside it
 - [ ] The camera centre a swipe starts from (`onRegionDidChange`'s centre), with nothing selected
@@ -223,7 +226,21 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 
 - [ ] The walk screen's top overlay (Minimize, the navigation bar, the notice) and the ready chevron at `insets.top + 4`: clear of the notch and Dynamic Island, the Android status bar and landscape (inset 0); the ready-to-walk handover keeps the same box
 
-## Scenic routes (SR1-SR15, decision 0093)
+## Walkability (WK1-WK23, decision 0093)
+
+- [ ] The layer on MapLibre RN: two `Layer`s over a `GeoJSONSource` (`walk-mixed`, `walk-car`), under the hotspots, fog and trace; their zoom-interpolated widths
+- [ ] Overture's `transportation.pmtiles` read by byte range through `pmtiles` in the native runtime, and the Overpass POST (`fetch` with a form body)
+- [ ] `walk_tile` writes through the single write queue (migration 19), ways as JSON (a dense tile is hundreds of KB)
+- [ ] The switch and legend over the native map: the new top edge slot (`walkability`) above the compass, and the legend card growing upward
+- [ ] `Tooltip` by tap and long press on a phone (hover and Escape are web only), closing after `MOTION.tip`
+- [ ] The heads-up pill in the walk's pills stack, and its live region read by VoiceOver and TalkBack
+- [ ] The area card's "On foot" line (`useAreaWords`): its read when the card opens on a phone, and the card's scroll with the new section
+- [ ] The abort signal through `pmtiles`' `getZxy` and `fetch` in the native runtime (walkability audit 12), and a hung read being given up on at 6 s and 20 s
+- [ ] The tooltip's placement (below, right-aligned) on a phone's safe areas, and its hit slop (walkability audit 14)
+
+- [ ] Wards are not towns (fix ward-subdivision): SQLite `outline_tile` rows stored with the `#sub1` release stamp and an old row read again once; meta `outline_nested` written and read through the write queue (a failed write leaves the tile unkept); whether Overture's z10 `division` layer carries the points the decoder needs to find wards there (else a ward's z10 border piece shows until a z12 read finds its id)
+
+## Scenic routes (SR1-SR15, decision 0094)
 
 - [ ] The preview card (`RoutePreview`) over the native walk map, and the faint alternates (`alternates` source, `WalkMap.native.tsx`).
 - [ ] The "Scenic routes" switches in the native drawers (`RouteLeaningSettings`).

@@ -109,8 +109,12 @@ export const META = {
   explore_haptic: { owner: 'explore', codec: onOff },
   // Explore tab: the long-press hint was seen once (AT, atlas round 2)
   atlas_press_seen: { owner: 'explore', codec: flag },
+  // Walkability (lib/walk/switch): the layer on the Explore and Navigate maps, off until switched on (WK13)
+  walk_layer: { owner: 'walk', codec: onOff },
   // Recall (lib/discovery/recallCheck): captures a notification opened
   recall_open: { owner: 'discovery', codec: json<string[]>(isStrings) },
+  // Town outlines (lib/areas/outlineRead): the localities found to be wards of a city, whose outlines are never towns.
+  outline_nested: { owner: 'areas', codec: json<string[]>(isStrings) },
   // Settings
   units: { owner: 'settings', codec: oneOf<Units>('km', 'mi') },
   notify_off: { owner: 'notifications', codec: json<string[]>(isStrings) },
