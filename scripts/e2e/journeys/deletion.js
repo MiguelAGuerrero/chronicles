@@ -66,7 +66,7 @@ async function checks(h) {
           await page.click('[aria-label="Next capture"]');
           await page.waitForTimeout(300);
         }
-        await page.waitForSelector('text=The bakery smelled of cardamom.');
+        await page.waitForSelector('text=The bakery smelled of cardamom. >> visible=true');
       };
       await openNote();
       await page.click('[data-testid=viewer-more]');

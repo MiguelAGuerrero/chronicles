@@ -51,7 +51,7 @@ async function checks(h) {
       await page.click('[aria-label="Next capture"]');
       await page.waitForTimeout(300);
     }
-    await page.waitForSelector('text=The bakery smelled of cardamom.');
+    await page.waitForSelector('text=The bakery smelled of cardamom. >> visible=true');
     await page.waitForTimeout(1200);
     await shot(page, '06-pin-opened');
     check(true, 'a pin on the card opens its capture');
