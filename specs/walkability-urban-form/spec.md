@@ -1,0 +1,143 @@
+<!-- Walkability, judged by the urban form of an area (UF). Written in the repo first (2026-11-05) after the owner tried the
+     shipped walkability layer: it drew nothing a person could use, and called every area "mostly mixed" (Allentown, whose
+     core is very walkable, included). Their calls are in the Decisions list. To be copied into the concept doc as a tab. The
+     doc wins once it exists. DRAFT: waits on the owner's review of this spec and plan.md. -->
+
+# Walkability by urban form (UF)
+
+Replaces how the app judges **where** is easy on foot (specs/walkability: WK5-WK10, WK13, WK14 and WK11's basis). The street-by-street
+band from sidewalk tags is the wrong measure for this: OpenStreetMap maps sidewalks unevenly, so a dense, walkable grid with its sidewalks
+unmapped reads as no better than a cul-de-sac. The judgement now comes from **how the ground is built**, which the map data states well:
+how closely streets cross, how short the blocks, how much of it is arterial road, crosswalks and sidewalks where they are mapped, and how
+many places sit along the streets. The result is a **tint over areas** of the map, not lines on streets, and words on the area card.
+
+"Built around cars" is what the map data suggests, not a ruling that a place can't be walked.
+
+## Why (found 2026-11-05 on Overture's real tiles, release 2026-10-21.0)
+
+- Downtown Allentown's tiles map 610 sidewalk and 705 footway segments, yet of its road length 47 km read easy on foot, 124 km "mixed",
+  **0 km** built around cars and 216 km "unknown" (parking aisles, alleys and driveways). The area line said nothing; the map drew 1,091
+  faint "mixed" lines and no car stretch, so the legend's second symbol never appeared.
+- How the urban form separates places, over a 600 m circle:
+
+  | Place | Intersections per km² | Typical street piece | Sidewalk mapped per metre of street |
+  |---|---|---|---|
+  | Allentown downtown | 1,266 | 87 m | 0.66 |
+  | Allentown residential grid | 802 | 104 m | **0.05** |
+  | Lehigh Valley Mall | 424 | 158 m | 0.00 |
+  | Upper Macungie suburb | 310 | 136 m | 0.00 |
+  | Zurich old town | 2,659 | 58 m | 1.14 |
+
+  The residential grid has almost no sidewalk mapped and is still dense and well connected. Intersection density tells the mall and the
+  suburb from the grid; sidewalk tags do not.
+- A prototype of the rule below over a 10 km × 9 km window around Allentown (cells of 250 m) gives a coherent walkable core through
+  downtown and the grids south and west of it, and car-oriented ground at the mall and the outer suburbs. It marks too much of the outskirts
+  car-oriented (about 70% of cells), so its thresholds are starting values, tuned against fixtures (UF4).
+
+## Decisions
+
+- **Judged by the urban form of the area** (the owner, 2026-11-05): how closely streets cross, block length, crosswalks and sidewalks where
+  mapped, arterial share, and how many places sit along the streets. A missing sidewalk tag never lowers a reading.
+- **Soft tinted areas, both ends shown** (the owner, 2026-11-05): a green tint where it is easy on foot, a warm tint where it is built
+  around cars, nothing between. Both of the legend's symbols appear on the map.
+- **The card follows the area; the heads-up follows fast roads and car-oriented areas** (the owner, 2026-11-05).
+- **Words, not a number** (specs/walkability, decision 0093): no score, share, rank or comparison is shown anywhere.
+- Everything else in specs/walkability holds: Overture first, Overpass second; nothing leaves the device but the tile request; the layer
+  switch and its meta key; the tooltips' icons and words.
+
+## The model
+
+A **cell** is a square of about 250 m. Its **neighbourhood** is the ground within 450 m of its centre. Within it the app measures, from the
+tiles already read:
+
+- **Streets:** local streets (residential, living street, tertiary, unclassified) and arterials (primary, secondary, trunk, motorway).
+  Service ways (alleys, parking aisles, driveways), paths, steps and anything unclassified are **not streets**: they count for nothing,
+  neither in a length nor in a share.
+- **Junction density:** junctions per km². From Overture's `connector` points; from Overpass, the points where ways share a node.
+- **Arterial share:** arterial length over all street length.
+- **Crossing and sidewalk evidence:** mapped crosswalks per km², and mapped sidewalk length per metre of local street.
+- **Place density:** the weighted places per km² the activity density already reads (specs/activity-density: Overture and OpenStreetMap places).
+
+A cell is then one of: **foot**, **car**, **neither** (drawn as nothing), or **empty** (too little street to say: a park, water, open land).
+
+## Acceptance criteria
+
+### Reading the form
+
+1. **UF1 · Cells.** The ground the layer covers is cut into cells of about 250 m, judged each from its 450 m neighbourhood. The same cell
+   gets the same reading whichever other tiles have been read, once its neighbourhood's own tiles are (the WK10 rule, kept).
+2. **UF2 · What counts as a street.** Only local streets and arterials are streets. A service way, path, step or way of unknown class adds
+   nothing to a length, a density or a share, so a parking lot never makes a place look unknown or car-oriented by itself.
+3. **UF3 · Junctions come from the data.** Junction density is the count of Overture's connector points in a neighbourhood, per km²; for a
+   tile read from Overpass, the points where two or more ways share a node. A tile with neither (an old cached tile) is read again, never guessed.
+4. **UF4 · The rule, and what pins it.** A cell is **foot** when its junction density is high (a starting value of 600 per km² or more)
+   and its arterial share is at most half; or when it is middling (450 or more) with crosswalks or sidewalks mapped (a starting value of 15
+   crosswalks per km², or 0.3 m of sidewalk per metre of street) and the same share. A cell is **car** when its junction density is low
+   (under 450) with no crossing or sidewalk evidence, or when arterial road is more than 60% of its street. Anything else is **neither**.
+   The starting values are tuned until the fixtures below read as stated, and are changed only with the fixtures:
+   - downtown Allentown (Hamilton Street at 7th) and the residential grid at 19th and Liberty, sidewalks mostly unmapped: **foot**;
+   - Lehigh Valley Mall and an Upper Macungie cul-de-sac suburb: **car**;
+   - Zurich's old town: **foot**.
+5. **UF5 · Unmapped is not absent.** No sidewalk or crossing data in a neighbourhood never lowers a cell. Evidence only raises one.
+6. **UF6 · Places lift the middle.** A cell the form rule leaves **neither**, whose neighbourhood holds many places per km² (a starting
+   value tuned with UF4), becomes **foot**. Places never make a cell **car**, and never lift a **car** cell. With no places read, the cell is
+   judged on form alone, and nothing fails.
+7. **UF7 · Too little to say.** A neighbourhood with under 300 m of street is **empty**: drawn as nothing, counted as nothing.
+8. **UF8 · Derived, never stored.** Cells are computed on read from the cached tile facts (specs/walkability WK9) and never stored. The tile
+   facts grow by the junction points; `WALK_CODE` is bumped so an older cached tile is read again.
+
+### What shows
+
+9. **UF9 · A tint over areas.** With the switch on, each **foot** cell is tinted green and each **car** cell warm, softly, with the map's
+   streets and labels readable through. **Neither** and **empty** are not drawn. Neighbouring cells of one reading read as one area (no visible
+   seams between them). The tint draws beneath the trace, fog and pins.
+10. **UF10 · The legend shows what is drawn.** The legend lists two rows, each a swatch of its tint beside its icon and its words ("Easy on
+    foot", "Built around cars"). The pedestrian with a caution badge is no longer drawn on the map or in the legend. Both rows are visible
+    whenever the layer is on; the status lines ("Reading…", "Not available now") and the credit stay.
+11. **UF11 · Both ends appear in a real town.** On the Allentown fixture, the layer tints the walkable core green and the outer ground warm.
+    The e2e journey checks both tints are drawn.
+12. **UF12 · Nothing is a score.** No number, share, rank or comparison between places is shown or stored for display. The tooltips are the
+    band's name and one clause in words (specs/walkability WK22, WK23).
+
+### The area card
+
+13. **UF13 · The card's line follows its cells.** The "On foot" line (specs/walkability WK11) is said from the cells inside the card's ring:
+    "Mostly easy on foot" when foot cells are at least 60% of the cells that are not empty, "Mostly built around cars" when car cells are,
+    "A mix of easy and car-oriented streets" when each is at least 25%, and nothing otherwise (neither-dominated, or mostly empty). Never a count.
+14. **UF14 · Allentown says so.** The area card for downtown Allentown's neighborhood and its town both read "Mostly easy on foot" on the
+    fixture; the card for the mall's surroundings does not.
+
+### The heads-up
+
+15. **UF15 · Two reasons to speak.** Along a navigated route the silent heads-up (specs/walkability-headsup) says so before a stretch of fast
+    road built around cars (WH1, as shipped), and also as the route **enters** ground built around cars: a run of car cells of 300 m or more
+    along the route. The second says "Next: an area built around cars" (with no street name; no digit), once per run, with every other WH rule
+    (200 m ahead, silent, kept 15 s past, one at a time, never touches the route). A run that overlaps a fast-road stretch is said once, as the road.
+16. **UF16 · The heads-up needs no switch.** As before it reads the route's tiles itself and does not need the layer on (WH10).
+
+### What it needs
+
+17. **UF17 · Reads stay as they were, plus two.** Cells need the same z14 tiles the layer already reads (specs/walkability WK2-WK4) and the
+    places the area already reads (specs/activity-density AD3-AD8, by the same tiles and the same cache). Nothing is read while the layer is
+    off and no card is open (WK4). The only new network request is Overture's `connector` layer, which sits in the transportation tile already read.
+18. **UF18 · Cost.** Judging up to 12 tiles' cells takes under a second on a laptop and is O(n log n) in the ways, with a spatial index
+    (AGENTS.md). Cells are recomputed only when the tile set or its facts change.
+19. **UF19 · Failure says nothing.** If the tiles can't be read, or no cell is foot or car, nothing is tinted, the legend's status says
+    "Not available now" only if nothing could be read, and nothing else changes (WK3).
+20. **UF20 · Truth is untouched; local-only holds.** Walks, trace points and captures, and what a walk credited, are unchanged. No
+    `SNAP_RULES` bump. After a tile is cached, nothing about walkability leaves the device (WK18).
+
+## What is retired
+
+- **WK13's line layer** (stretches drawn as lines), replaced by the tint (UF9). The `mixed` band is no longer drawn or named on a map.
+- **WK5-WK8 as the map's and the card's basis.** The street band stays only where a single road is the point: the heads-up's fast-road
+  stretch (UF15) and the tooltips' words.
+- **WK11's basis** (street length per band), replaced by UF13.
+
+## Not in this slice
+
+- Routing that avoids car-oriented ground, or any "walk this way instead" (decision 0022).
+- A score, rank or comparison of places, or "most walkable".
+- Slope, lighting, surface, traffic volume, transit stops.
+- The long press on a drawn stretch (specs/walkability WK14, deferred): there are no drawn stretches now; a long press on a tint is its own call.
+- Native credits for the walkability data (as before).
