@@ -69,6 +69,14 @@ test('DN2: a short swipe always moves, to the nearest other area on that side', 
   assert.equal(nextArea(here.at, 'here', areas, slow(-30, 0), 0, 10)?.key, 'east');
 });
 
+test('DN2: under 24 px is not a swipe; a long press, two fingers or a pinch never are', () => {
+  assert.equal(SNAP.minSwipePx, 24);
+  assert.equal(swipeOf({ x: 100, y: 100 }, { x: 110, y: 115 }), null);
+  assert.deepEqual(swipeOf({ x: 100, y: 100 }, { x: 70, y: 100 }), { dx: -30, dy: 0 });
+  assert.equal(swipeOf({ x: 100, y: 100 }, { x: 40, y: 100 }, { multi: true }), null);
+  assert.equal(swipeOf({ x: 100, y: 100 }, { x: 40, y: 100 }, { held: true }), null);
+});
+
 test('DN3: with nothing selected, a swipe starts from the map\'s middle and goes past the area under it', () => {
   const middle = at(0, 0);
   const areas = [pt('at middle', 40, 0), pt('east', 700, 0), pt('west', -700, 0)];
