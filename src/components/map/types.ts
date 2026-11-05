@@ -109,6 +109,8 @@ export interface WalkMapProps {
   attributionTop?: boolean;
   /** A route being navigated, drawn bold under the trace (N6). */
   route?: LngLat[] | null;
+  /** The other routes of a preview, drawn faint under the route (scenic routes, SR2). */
+  alternates?: LngLat[][] | null;
   /** Explore's marks, as "?" pins until revealed (E6-E8, E22). */
   discoveries?: MarkPin[];
   onDiscoveryPress?: (id: string) => void;
@@ -171,6 +173,11 @@ export interface CollectedFeatures {
   places: RoadFeature[];
   /** Points of interest (the tiles' `poi` layer), for discovery. */
   pois: RoadFeature[];
+  /**
+   * The tiles' `landcover` polygons, for a scenic route's green (SR15). Only the in-code decoder
+   * reads them; the map's own reads leave it out.
+   */
+  landcover?: RoadFeature[];
   /** False when some views timed out before their tiles loaded. */
   complete: boolean;
 }
@@ -334,6 +341,14 @@ export function routeGeoJSON(route: LngLat[] | null | undefined): GeoJSON.Featur
   return {
     type: 'FeatureCollection',
     features: route && route.length > 1 ? [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: route } }] : [],
+  };
+}
+
+/** A preview's other routes as faint lines (SR2). */
+export function alternatesGeoJSON(lines: LngLat[][] | null | undefined): GeoJSON.FeatureCollection {
+  return {
+    type: 'FeatureCollection',
+    features: (lines ?? []).filter((l) => l.length > 1).map((l) => ({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: l } })),
   };
 }
 

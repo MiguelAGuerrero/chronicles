@@ -1,6 +1,7 @@
 // @layer shell
 import type { Ports } from '../../ports/types';
 import { NAV_KEY, navValue, pendingDest } from '../../startPlan';
+import { leaningsIn } from '../scenic';
 import type { Waypoint } from '../types';
 
 /**
@@ -17,7 +18,11 @@ export function createNavStore(p: Pick<Ports, 'db'>) {
     async loadNav(walkId: string): Promise<Waypoint | null> {
       try {
         const v = JSON.parse((await p.db.getMeta(NAV_KEY)) || 'null') as { walk_id: string; dest: Waypoint } | null;
-        return v && v.walk_id === walkId ? v.dest : null;
+        if (!v || v.walk_id !== walkId) return null;
+        // SR11: only known leanings come back; none, or a value from before scenic routes, is the direct way.
+        const { leanings, ...dest } = v.dest;
+        const kept = leaningsIn(leanings);
+        return kept.length ? { ...dest, leanings: kept } : dest;
       } catch {
         return null;
       }

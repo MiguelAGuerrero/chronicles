@@ -42,3 +42,18 @@ test('SH2 the drawer\'s destination before a walk', async () => {
   p.db.failNext('getMeta', new Error('disk'));
   assert.equal(await nav.loadPendingDest(), null, 'a failed read');
 });
+
+// Scenic routes, SR11: the leaning chosen in the preview is kept with the destination, so a reload
+// resumes on it; a value from before the slice has none, and reads as the direct way.
+test('SR11: the chosen leanings are kept with the destination; none, or unknown ones, read as direct', async () => {
+  const p = fakePorts();
+  const nav = createNavStore(p);
+  await nav.saveNav('w1', { ...dest, leanings: ['green', 'sights'] });
+  assert.deepEqual((await nav.loadNav('w1'))?.leanings, ['green', 'sights']);
+  await nav.saveNav('w1', dest);
+  assert.equal((await nav.loadNav('w1'))?.leanings, undefined, 'direct');
+  await p.db.setMeta(NAV_KEY, JSON.stringify({ walk_id: 'w1', dest: { ...dest, leanings: ['purple', 'busy'] } }));
+  assert.deepEqual((await nav.loadNav('w1'))?.leanings, ['busy'], 'an unknown leaning is dropped');
+  await p.db.setMeta(NAV_KEY, JSON.stringify({ walk_id: 'w1', dest: { ...dest, leanings: 'green' } }));
+  assert.equal((await nav.loadNav('w1'))?.leanings, undefined, 'not a list');
+});

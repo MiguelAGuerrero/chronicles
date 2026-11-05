@@ -6,7 +6,7 @@
 // Chronicle with its star, as the chronicle journey does. In the full flow the page is already there, so
 // this does nothing.
 async function arrive(h) {
-  const { page } = h;
+  const { page, routed } = h;
   if (await page.locator('[data-testid=to-name]').count()) {
     await page.click('[data-testid=to-name]');
     await page.click('[data-testid=save]');
@@ -16,7 +16,7 @@ async function arrive(h) {
 }
 
 async function checks(h) {
-  const { url, ctx, page, at, check, shot, glyph, walkMap, walkMarks, walkRoute, walkPts } = h;
+  const { url, ctx, page, at, check, shot, glyph, walkMap, walkMarks, walkRoute, walkPts, routed } = h;
   await arrive(h);
     // The first walk's route, from the harness (the walk journey walked it).
     const route = walkRoute;
@@ -38,7 +38,7 @@ async function checks(h) {
     check(await page.waitForSelector('text=Walk started · recording', { timeout: 10000 }).then(() => true, () => false), 'a walk started from the home says it is recording');
     await page.waitForTimeout(5000);
     await ctx.setGeolocation({ longitude: route[0][0], latitude: route[0][1] + 0.00002, accuracy: 6 });
-    await page.waitForSelector('[data-testid=nav-bar]', { timeout: 40000 });
+    await routed(page, 40000);
     check(/\/walk(\?|$)/.test(page.url()) && /Fox Point/.test(await page.locator('[data-testid=nav-bar]').innerText()), 'a star\u2019s Walk here starts a walk navigating there, once there is a fix');
     await shot(page, '12-home-go');
     // A walk from a star starts quiet (E1); reminders still come back on a quiet walk (the owner's call, after the audit).

@@ -110,6 +110,15 @@ const snapFeatures = [
   { type: 'Feature', properties: { class: 'town', name: 'Cranston' }, geometry: { type: 'Point', coordinates: at(-40, 2) } },
 ];
 const snapWorld = { serve: false };
+// Scenic routes (SR2-SR14): India Point Park one block north of Transit Street, 30 m off it, with a footway
+// through it from the street at x=-0.5 to the one at x=3.5; only in the scenic journey (scenicWorld.serve),
+// so other journeys' routes don't change. Transit Street is the direct way; the footway is 15% longer.
+const scenicFeatures = [
+  { type: 'Feature', properties: { class: 'path', subclass: 'footway' }, geometry: { type: 'LineString', coordinates: [at(-0.5, -0.2), at(3.5, -0.2)] } },
+  { type: 'Feature', properties: { class: 'grass', subclass: 'park' }, geometry: { type: 'Polygon', coordinates: [[at(0, -0.32), at(3, -0.32), at(3, -0.08), at(0, -0.08), at(0, -0.32)]] } },
+  { type: 'Feature', properties: { class: 'park', subclass: 'park', name: 'India Point Park' }, geometry: { type: 'Point', coordinates: at(1.5, -0.25) } },
+];
+const scenicWorld = { serve: false };
 const OVERTURE_HOST = 'overturemaps-extras-us-west-2.s3.amazonaws.com';
 const OVERTURE_RELEASE = '2026-10-21.0';
 
@@ -330,7 +339,7 @@ async function createHarness() {
     if (tile && tiles.delayMs) await new Promise((res) => setTimeout(res, tiles.delayMs));
     if (tile) {
       const [z, x, y] = tile.slice(1).map(Number);
-      return r.fulfill({ contentType: 'application/x-protobuf', body: Buffer.from(encodeTile(snapWorld.serve ? [...features, ...snapFeatures] : features, z, x, y)) });
+      return r.fulfill({ contentType: 'application/x-protobuf', body: Buffer.from(encodeTile([...features, ...(snapWorld.serve ? snapFeatures : []), ...(scenicWorld.serve ? scenicFeatures : [])], z, x, y)) });
     }
     if (tiles.stall && r.request().url().endsWith('/planet')) await tiles.stall;
     return r.fulfill({
@@ -418,6 +427,16 @@ async function createHarness() {
       g.onsuccess = () => resolve(g.result.find((w) => w.open) ?? null);
     };
   }));
+  // A route found (scenic routes, SR2): the blue bar, or the preview first when a scenic way is offered,
+  // where Direct's Go is taken, so a journey about the direct route goes on as before.
+  const routed = async (pg, timeout = 30000) => {
+    const first = await pg.waitForSelector('[data-testid=nav-bar], [data-testid=route-preview]', { timeout });
+    if ((await first.getAttribute('data-testid')) === 'route-preview') {
+      await pg.click('[data-testid=route-go-0]');
+      return pg.waitForSelector('[data-testid=nav-bar]', { timeout: 5000 });
+    }
+    return first;
+  };
   const scriptsDir = path.join(__dirname, '..');
   // A tab on the shared page, by its bar (NV4, NV5): the ready screen covers the tabs, so its chevron goes
   // back to them first (NR4). Returns the path and the live map count after the move.
@@ -453,8 +472,8 @@ async function createHarness() {
     server.close();
   };
   return {
-    url, navUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, iconOf, metricRegion, pressedScale, metaOf, drawerTo, tabTo, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
-    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld,
+    url, navUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, iconOf, metricRegion, pressedScale, metaOf, drawerTo, tabTo, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir, routed,
+    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, scenicWorld,
   };
 }
 

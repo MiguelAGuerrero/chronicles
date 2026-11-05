@@ -6,7 +6,7 @@
 const path = require('path');
 
 async function checks(h) {
-  const { url, BASE, browser, page, start, at, check, shownCount, tabBarShown, onTab } = h;
+  const { url, BASE, browser, page, start, at, check, shownCount, tabBarShown, onTab, routed } = h;
     // The old /explore path still opens Explore, with one tab bar (NV2).
     await page.goto(`${url}explore`);
     await page.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 15000 }).catch(() => {});
@@ -85,7 +85,7 @@ async function checks(h) {
 
 // The fresh-browser flows. The full flow runs them after the shared page's story, as before.
 async function fresh(h) {
-  const { navUrl, start, at, dLat, dLon, check, metaOf, drawerTo, tabTo, shownCount, tabBarShown, freshPage, openWalk, scriptsDir } = h;
+  const { navUrl, start, at, dLat, dLon, check, metaOf, drawerTo, tabTo, shownCount, tabBarShown, freshPage, openWalk, scriptsDir, routed } = h;
     // Starting from the tabs, in fresh browsers (NV12, NV15, NV25).
     {
       // Walk here on Explore is a one-tap start to that spot, with the saved choices; it never fills the drawer (NV12, NV15).
@@ -251,7 +251,7 @@ async function fresh(h) {
           g.onsuccess = () => resolve(g.result.length);
         };
       }));
-      const routed = await pg.waitForSelector('[data-testid=nav-bar]', { timeout: 40000 }).then(() => true, () => false);
+      const routed = await routed(pg, 40000).then(() => true, () => false);
       check(still?.id === w.id && walks === 1 && nav?.walk_id === w.id && nav.dest.label === 'Your spot' && routed,
         `with a walk open, Walk here routes that walk there and returns to it (NV10: ${walks} walk, routed ${routed})`);
       // NV7: under the navigation bar when one shows.

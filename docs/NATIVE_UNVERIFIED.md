@@ -222,3 +222,10 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] TP11: the OpenMapTiles class names for a mall and a department store (`shop` › `mall`, `department_store`) are from memory, since the tile host is blocked from cloud sessions; confirm on a phone that Lehigh Valley Mall counts as a shop
 
 - [ ] The walk screen's top overlay (Minimize, the navigation bar, the notice) and the ready chevron at `insets.top + 4`: clear of the notch and Dynamic Island, the Android status bar and landscape (inset 0); the ready-to-walk handover keeps the same box
+
+## Scenic routes (SR1-SR15, decision 0093)
+
+- [ ] The preview card (`RoutePreview`) over the native walk map, and the faint alternates (`alternates` source, `WalkMap.native.tsx`).
+- [ ] The "Scenic routes" switches in the native drawers (`RouteLeaningSettings`).
+- [ ] The corridor read on a phone: shared JS over `fetch` (`fetchTiles`, `readOverture`), and its time: about 1 s on Node for three leanings over 5 km of Zurich, likely several times that on a phone, under the 30 s timeout.
+- [ ] Back (Android) closing the preview.

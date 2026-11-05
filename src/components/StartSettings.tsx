@@ -10,6 +10,7 @@ import type { LngLat } from '../lib/types';
 import { KindSwitches, RangeSlider, walkNote } from './ExploreSettings';
 import { Icon } from './icons';
 import { NotificationSettings } from './NotificationSettings';
+import { RouteLeaningSettings } from './RouteLeaningSettings';
 import { SwitchRow } from './SwitchRow';
 import { theme } from './ui';
 
@@ -68,6 +69,7 @@ export function StartSettings(props: {
         <Text style={styles.sub}>None: Start wanders from where you are.</Text>
       )}
       <Text style={styles.sub}>Long-press the map to pick a spot (lower this first).</Text>
+      <RouteLeaningSettings />
 
       {mode === 'explore' && (
         <>

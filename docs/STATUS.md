@@ -142,6 +142,7 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 | Session | Branch | Doing |
 |---|---|---|
 | Bug fixes (open since Oct 31) | unknown | unknown |
+| Scenic routes (`specs/scenic-routes/spec.md`, SR1-SR15; started 2026-11-04) | `claude/scenic-routes` | spec and plan approved by the owner; tests first, then the code |
 
 ## Updating this file
 

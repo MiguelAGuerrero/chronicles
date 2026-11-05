@@ -122,6 +122,29 @@ Routing inside a walk (`lib/nav`): walk me back, Go here, the route sources, rul
     happened here (N)" when captures are near.
   - Walk me back is the top edge button.
   - A pin's viewer has Go here.
+- **Scenic routes** (SR1-SR15, decision 0093, the owner's calls, Nov 4): Go here offers Direct and one
+  route per leaning switched on (green, sights, streets with life), side by side, at most 30% longer.
+  - `nav/scenic.ts` (core): `scenicPlan` (who gets the preview: not `start`, not with all leanings off, not
+    past `SCENIC.maxM` 5 km), `routeOptions`, `scenicRouteSource` (re-routes keep the leaning, SR10),
+    `rowWords` and `passesLine` (in words, never a score). `SCENIC` lives in `nav/rules.ts`.
+  - Green and busy: a search where an appealing metre costs `1 - s × appeal`, tried at `SCENIC.strengths`;
+    the one gaining most within the detour wins, if it gains 100 m. Sights: stops on the way, chosen by
+    one bounded search from each end (`StreetSource.reach`), never a full search per candidate.
+  - `nav/scenicSignals.ts` (core): green from the tiles' `landcover` (grass/park, grass/garden, wood/*;
+    `tileDecode` reads the layer), sights (marks of the kinds on in "What I'm into", never parks), the
+    corridor (the detour's ellipse), and `probeOf`, the per-routing indexes.
+  - `nav/scenicRead` (shell): the corridor's tiles and Overture's places, cancellable, null on any
+    failure; its streets and places join today's caches.
+  - **Never name an unfound place on a route** ("past places to find"): a route must not spoil a "?".
+  - **Joins are indexed** (`streetRoute.ts`, a grid of `NAV.joinM` cells): a join scanned every line, 20 ms
+    a snap over a city's corridor; the sights search snaps dozens.
+  - The preview (`useNavigation` `preview`, `select`, `choose`, `dismiss`; `components/RoutePreview`): the
+    highlighted route drawn as the route, the rest as `alternates`; a tap on a line highlights it; Back
+    and Escape cancel. The chosen leanings go in meta `nav`'s destination; a reload routes on them with no
+    preview, or the direct way when it can't.
+  - Settings: meta `route_leanings` (`lib/routeLeanings`), loaded at launch; the switches are in both drawers.
+  - E2E: `E2E_ONLY=scenic` (India Point Park, `scenicWorld`). Other journeys reach a route through the
+    harness's `routed`, which takes Direct when a preview shows.
 - **Time left** (QL17, QL18; `lib/nav/eta.ts`, pure): the walk's own pace (walked
   metres over moving time) once 100 m and 60 s are walked, clamped to 0.7–2.0 m/s,
   else 1.3 m/s. The bar says "450 m · 6 min · Your spot"; its label and the stepped
