@@ -248,3 +248,4 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] The "Scenic routes" switches in the native drawers (`RouteLeaningSettings`).
 - [ ] The corridor read on a phone: shared JS over `fetch` (`fetchTiles`, `readOverture`), and its time: about 1 s on Node for three leanings over 5 km of Zurich, likely several times that on a phone, under the 30 s timeout.
 - [ ] Back (Android) closing the preview.
+- [ ] The layers button in the bottom-left corner above the native scale bar, its legend opening upward and stopping short of the capture column on a narrow phone (fix layers-corner; `WalkLayerControl` `left`).

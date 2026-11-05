@@ -14,17 +14,21 @@ export const WALK_CREDIT = 'From OpenStreetMap and Overture. Where sidewalks are
  * The walkability switch (WK13, WK14, WK21): a round button in the map's edge column, with the pedestrian
  * mark. On, a card below it names the two drawn bands as icons with tooltips and says where it is from;
  * while tiles load it says so quietly, and when none could be had it says "Not available now".
- * Anchored from the bottom, the card grows upward (Navigate, where the column is tall); anchored from the
+ * On Navigate it sits in the bottom-left corner above the scale bar (`left`), clear of the navigation bar the
+ * right column's top ran into, and its card grows upward over open map; anchored from the
  * top, it opens below the button and left of the other edge buttons (Explore, whose map is short: a card
  * growing upward ran off the top of a phone).
  */
-export function WalkLayerControl(props: { wk: Walkability; bottom?: number; top?: number; right?: number }) {
+export function WalkLayerControl(props: { wk: Walkability; bottom?: number; top?: number; right?: number; left?: number }) {
   const { width } = useWindowDimensions();
   const right = props.right ?? Math.max(12, (width - 640) / 2 + 12);
   const { wk } = props;
   const fromTop = props.top !== undefined;
+  const fromLeft = props.left !== undefined;
+  // In the left corner the card stops short of the capture column (56 + its gap) on a narrow phone.
+  const cardMax = fromLeft ? Math.min(270, width - (props.left ?? 0) - (Math.max(16, (width - 640) / 2 + 16) + 56 + 8)) : undefined;
   const card = wk.on ? (
-    <View testID="walk-legend" style={[styles.card, fromTop && styles.cardBeside]}>
+    <View testID="walk-legend" style={[styles.card, fromTop && styles.cardBeside, cardMax !== undefined && { maxWidth: cardMax }]}>
       <View style={styles.bands}>
         <View style={styles.row}>
           <Tooltip text={bandTip('mixed')!} testID="walk-tip-mixed" side={fromTop ? 'below' : 'above'}>
@@ -33,7 +37,7 @@ export function WalkLayerControl(props: { wk: Walkability; bottom?: number; top?
           <Text style={styles.label}>Mixed</Text>
         </View>
         <View style={styles.row}>
-          <Tooltip text={bandTip('car')!} testID="walk-tip-car" side={fromTop ? 'below' : 'above'} align="right">
+          <Tooltip text={bandTip('car')!} testID="walk-tip-car" side={fromTop ? 'below' : 'above'} align={fromLeft ? undefined : 'right'}>
             <WalkBandIcon band="car" size={22} />
           </Tooltip>
           <Text style={styles.label}>Built around cars</Text>
@@ -58,7 +62,7 @@ export function WalkLayerControl(props: { wk: Walkability; bottom?: number; top?
       </Pressable>
   );
   return (
-    <View pointerEvents="box-none" style={[styles.col, { right }, fromTop ? { top: props.top } : { bottom: props.bottom ?? 0 }]}>
+    <View pointerEvents="box-none" style={[styles.col, fromLeft ? { left: props.left, alignItems: 'flex-start' } : { right }, fromTop ? { top: props.top } : { bottom: props.bottom ?? 0 }]}>
       {fromTop ? button : card}
       {fromTop ? card : button}
     </View>

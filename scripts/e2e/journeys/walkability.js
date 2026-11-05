@@ -55,6 +55,10 @@ async function run(h) {
   await pg.waitForSelector('[data-testid=walk-layer]', { timeout: 30000 });
   await pg.waitForFunction(() => (document.querySelector('[data-walk]')?.getAttribute('data-walk') ?? '') !== '', null, { timeout: 30000 }).catch(() => {});
   check((await pg.locator('[data-testid=walk-layer]').getAttribute('aria-checked')) === 'true' && (await drawn(pg)) === 'car:1|mixed:1', `WK13: Navigate's map has the same switch, on, and draws the same stretches (${await drawn(pg)})`);
+  // fix layers-corner: on Navigate the switch sits in the bottom-left corner, off the right column (and so off the navigation bar).
+  const lb = await pg.locator('[data-testid=walk-layer]').boundingBox();
+  const vp2 = await pg.evaluate(() => ({ w: innerWidth, h: innerHeight }));
+  check(!!lb && lb.x + lb.width / 2 < vp2.w / 2 && lb.y > vp2.h / 2, `fix layers-corner: Navigate's layers button is in the bottom-left corner (${JSON.stringify(lb)} in ${vp2.w}x${vp2.h})`);
   await shot(pg, 'walk-navigate');
   await pg.click('[data-testid=walk-layer]');
   check((await pg.locator('[data-testid=walk-legend]').count()) === 0, 'WK13: switching off hides the legend');

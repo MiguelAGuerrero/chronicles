@@ -1488,8 +1488,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
         bottom={at.edgeBottom(awayFromStart && walkStart && !navigation.nav ? 'compass' : 'back')}
         right={at.edgeRight}
       />
-      {/* Walkability (WK13): the column's top, so nothing else moves. */}
-      <WalkLayerControl wk={wk} bottom={at.edgeBottom('walkability')} right={at.edgeRight} />
+      {/* Walkability (WK13): the bottom-left corner, above the scale bar, clear of the navigation bar. */}
+      <WalkLayerControl wk={wk} bottom={at.layers.bottom} left={at.layers.left} />
 
       {awayFromStart && walkStart && !navigation.nav && (
         // Walk me back: the way back to where this walk began (N1, N11).

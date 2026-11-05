@@ -32,6 +32,12 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
   above them in the same column (Locate on the ready screen where Recenter sits on the walk, then
   unwalked streets, then walk me back). The ready bar at rest is the strip, at its height, with Start
   where Stop sits. The e2e checks the boxes match across Start.
+- **The layers (walkability) button is in the bottom-left corner** (fix layers-corner, Nov 5, the owner): a
+  44 pt button just above the scale bar (`layersCorner`, `lib/stackSlots.ts`), not the right column's top,
+  where the navigation bar's End button sat under it and its legend card grew over the bar. The column has
+  four edge slots and the compass is its top; the pills sit above the button (`pillsBottom`); the legend opens
+  upward and stops short of the capture column on a narrow phone. Explore's own button is still anchored from
+  the top. Not run on a device. A card at `cardAt` (bottom-left of the stack) can cover the button while it shows.
 - Capture controls are one component, `CaptureStack` (`components/walk/CaptureStack.tsx`), given ids
   and handlers: `moment-*` on the ready screen (moments, `MomentBar`), `cap-*` on the walk. Time,
   distance and hold-to-stop stay in the thin strip at the very bottom, with Stop at the right end.

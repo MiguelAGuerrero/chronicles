@@ -259,7 +259,7 @@ export function useReady(props: {
 
       {/* Locate (QL9), in the stack's column where Recenter sits on the walk (NR9). */}
       <LocateButton busy={locating} onPress={locate} bottom={at.edgeBottom('locate')} right={at.edgeRight} />
-      <WalkLayerControl wk={wk} bottom={at.edgeBottom('walkability')} right={at.edgeRight} />
+      <WalkLayerControl wk={wk} bottom={at.layers.bottom} left={at.layers.left} />
       {/* The capture stack keeping moments (NR9), and its pills. */}
       <MomentBar disabled={walkStart.starting} onMoment={onMoment} onError={onMomentError} onRecording={setMemoOn} focused={focused} />
 
