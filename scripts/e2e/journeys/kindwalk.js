@@ -16,10 +16,17 @@ async function run(h) {
   const kind = pg.locator('[data-testid=atlas-kind-parks]');
   check((await kind.count()) === 1, 'KW1: Green Row\'s card has a Green row');
 
-  {
-    const btn = pg.locator('[data-testid=atlas-kind-walk-parks]');
-    check.todo((await btn.count()) === 1 && /Suggest a walk/.test(await btn.innerText().catch(() => '')), 'KW15: each kind row has a "Suggest a walk" button');
-  }
+  check((await pg.locator('[data-testid=atlas-kind-walk-history]').count()) === 0 && (await pg.locator('[data-testid=atlas-kind-walk-parks]').count()) === 1, 'KW2: a kind with none has no "Suggest a walk" button, one with some does');
+  const btn = pg.locator('[data-testid=atlas-kind-walk-parks]');
+  const box = await btn.boundingBox().catch(() => null);
+  check((await btn.count()) === 1 && /Suggest a walk/.test(await btn.innerText().catch(() => '')) && !!box && box.width >= 44 && box.height >= 44, 'KW15: each kind row has a "Suggest a walk" button, at least 44 px to touch');
+  check((await btn.getAttribute('aria-label').catch(() => '')) === 'Suggest a walk through green', 'KW15: the button reads as one to a screen reader');
+  await btn.click().catch(() => {});
+  await pg.waitForSelector('[data-testid=kindwalk-length]', { timeout: 60000 }).catch(() => {});
+  check((await pg.locator('[data-testid=kindwalk-parks]').count()) === 1 && pg.url() === before, 'KW15: the button opens the kind in place');
+  await btn.click().catch(() => {});
+  await pg.waitForTimeout(300);
+  check((await pg.locator('[data-testid=kindwalk-parks]').count()) === 0, 'KW15: and closes it');
 
   await kind.click().catch(() => {});
   await pg.waitForSelector('[data-testid=kindwalk-length]', { timeout: 60000 }).catch(() => {});

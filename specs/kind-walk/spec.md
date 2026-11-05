@@ -63,7 +63,8 @@ None. The owner chose A (Nov 5): a walk started from a kind says distance only.
    The button is at least 44 px square to touch and reads as a button to a screen reader ("Suggest a walk through green").
    (The owner, 2026-11-05, after finding the rows gave no sign they could be tapped.)
 2. **KW2 · A thin or empty kind offers no walk.** A ring the map knows almost nothing about (AG3), or a kind with no presence
-   (its word is "none"), shows no walk and says so in words.
+   (its word is "none"), shows no button and no walk, and its word says so ("none"); a button is on a row only where a walk
+   can be suggested.
 3. **KW3 · Where no way can be found, it says so.** With no streets to route on (or a read of the area that fails), no walk
    is offered and the row says so in words, on the web too. Nothing is simulated.
 
