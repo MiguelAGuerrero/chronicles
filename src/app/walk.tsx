@@ -1176,9 +1176,9 @@ function WalkScreen(props: { onMinimize: () => void }) {
               testID="nav-left"
               style={styles.navText}
               numberOfLines={1}
-              accessibilityLabel={`${formatDistance(navigation.nav.leftM)}, ${aboutTimeLeft(navTimeLeft)} left to ${navigation.nav.dest.label}`}
+              accessibilityLabel={`${formatDistance(navigation.nav.leftM)}${navigation.nav.dest.suggested ? '' : `, ${aboutTimeLeft(navTimeLeft)}`} left to ${navigation.nav.dest.label}`}
             >
-              {formatDistance(navigation.nav.leftM)} · {formatTimeLeft(navTimeLeft)} · {navigation.nav.dest.label}
+              {formatDistance(navigation.nav.leftM)} · {navigation.nav.dest.suggested ? '' : `${formatTimeLeft(navTimeLeft)} · `}{navigation.nav.dest.label}
             </Text>
             <Pressable
               testID="nav-handoff"

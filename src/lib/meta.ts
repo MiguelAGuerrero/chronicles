@@ -121,6 +121,9 @@ export const META = {
   recall_open: { owner: 'discovery', codec: json<string[]>(isStrings) },
   // Town outlines (lib/areas/outlineRead): the localities found to be wards of a city, whose outlines are never towns.
   outline_nested: { owner: 'areas', codec: json<string[]>(isStrings) },
+  // Kind walk (lib/kindWalk): how far a suggested walk is, in metres, and what to do about a stretch built around cars (KW8, KW11)
+  kindwalk_budget: { owner: 'kindwalk', codec: number },
+  kindwalk_pref: { owner: 'kindwalk', codec: oneOf<'warn' | 'skip'>('warn', 'skip') },
   // Chronicle's Memories (lib/resurface): what the user chose to see less of, renamed or removed (RM21)
   resurface_prefs: { owner: 'resurface', codec: json<Prefs>((v) => parsePrefs(v) !== null) },
   // Settings

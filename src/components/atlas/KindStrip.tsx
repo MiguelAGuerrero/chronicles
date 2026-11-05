@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ATLAS_LABEL, ATLAS_ORDER, STEP_WORDS, type Step, type Steps } from '../../lib/atlas/atlas';
 import type { CategoryId } from '../../lib/discovery/types';
 import { Icon } from '../icons';
@@ -48,16 +48,29 @@ export function KindStrip(props: { steps: Steps | null; testID?: string }) {
   );
 }
 
-/** One kind on the area's card: icon, name, its word and its dots, at full ink even when none. */
-export function KindRow(props: { kind: CategoryId; step: Step; testID?: string }) {
+/** One kind on the area's card: icon, name, its word and its dots, at full ink even when none. Tapping it opens the kind in place (KW1). */
+export function KindRow(props: { kind: CategoryId; step: Step; testID?: string; open?: boolean; onPress?: () => void }) {
   const { kind, step } = props;
-  return (
-    <View style={styles.kindRow} accessible accessibilityLabel={`${ATLAS_LABEL[kind]}: ${STEP_WORDS[step]}`} testID={props.testID}>
+  const body = (
+    <>
       <Icon name={KIND_ICON_OF[kind]} size={20} color={step ? KIND_COLOR[kind] : theme.edge} />
       <Text style={styles.kindName}>{ATLAS_LABEL[kind]}</Text>
       <Text style={styles.kindWord}>{STEP_WORDS[step]}</Text>
       <Dots step={step} color={KIND_COLOR[kind]} size={8} />
-    </View>
+    </>
+  );
+  if (!props.onPress) return <View style={styles.kindRow} accessible accessibilityLabel={`${ATLAS_LABEL[kind]}: ${STEP_WORDS[step]}`} testID={props.testID}>{body}</View>;
+  return (
+    <Pressable
+      style={[styles.kindRow, styles.kindPress]}
+      accessibilityRole="button"
+      accessibilityState={{ expanded: !!props.open }}
+      accessibilityLabel={`${ATLAS_LABEL[kind]}: ${STEP_WORDS[step]}`}
+      onPress={props.onPress}
+      testID={props.testID}
+    >
+      {body}
+    </Pressable>
   );
 }
 
@@ -67,6 +80,7 @@ const styles = StyleSheet.create({
   chip: { alignItems: 'center', gap: 3, minWidth: 22 },
   dots: { flexDirection: 'row', gap: 2, alignItems: 'center' },
   kindRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
+  kindPress: { minHeight: 44 },
   kindName: { fontSize: 15, color: theme.ink, fontWeight: '500' },
   kindWord: { fontSize: 14, color: theme.muted, flex: 1 },
 });
