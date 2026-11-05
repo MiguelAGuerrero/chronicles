@@ -45,11 +45,13 @@ five or more commits that changed a screen since the last review, run
 ## 3. PRODUCT.md mentions every shipped slice
 
 ```bash
-sed -n '/^## Shipped/,/^## /p' docs/STATUS.md | grep -oE '^\| *[^|]+' | sed 's/^| *//' | while read -r s; do
-  grep -qiF "$s" docs/PRODUCT.md || echo "shipped but not in PRODUCT.md: $s"; done
+node scripts/shipped.js
 ```
 
-Adjust the sed range to STATUS.md's actual heading and column if they differ.
+It reads the shipped rows of `docs/STATUS.md`'s "Slices" table (engineering
+slices skipped) and prints each one `docs/PRODUCT.md` never names; it exits 2
+if it finds no shipped row at all, so a moved table can't read as "no drift".
+A name can differ in wording (a fix folded into its feature): read each hit.
 
 ## 4. Specs match the concept doc
 
@@ -61,6 +63,11 @@ Read the doc https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7 with the
 Claude Docs tools (never WebFetch) and compare each tab's last change with
 its spec's date. Re-export a changed tab into its `specs/<slug>/spec.md` and
 set "Last exported" to today; the doc wins over the spec.
+
+A re-export replaces the criteria and the doc's own text, and keeps what only
+the repo writes: the `## Vision` section (`/vision`'s block; `check:vision`
+fails a spec without it), the Audit or Audited record and the build Record.
+Re-export into the spec between them, never over the whole file.
 
 ## 5. Deferred items that have since shipped
 

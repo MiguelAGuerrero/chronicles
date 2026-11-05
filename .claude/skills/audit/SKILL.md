@@ -3,6 +3,7 @@ name: audit
 description: Run the adversarial, report-only audit of a built slice (the auditor subagent tries to break it against its spec), then triage every finding accept/defer/reject, give each accepted one a regression test named "<slice> audit N" before its fix, and record the counts. Use only when the owner asks (decision 0074).
 when_to_use: Only when the owner asks to audit, harden, or "try to break" a slice or feature (decision 0074); never by default.
 argument-hint: <slice-name>
+disable-model-invocation: true
 ---
 
 # Audit: $ARGUMENTS
@@ -15,7 +16,10 @@ regression test for each accepted finding before its fix.
 - the spec: `specs/<slug>/spec.md` (criteria and the decisions list);
 - the rule file(s): `.claude/rules/<area>.md` whose `paths:` cover the slice;
 - the changed files: `git diff --name-only <base>..HEAD` for the slice's
-  commits, or the plan's file list (`specs/<slug>/plan.md`).
+  commits, or the plan's file list (`specs/<slug>/plan.md`). The base: for a
+  slice still on its branch, `git merge-base HEAD origin/main`; for one already
+  on `main`, the parent of its first commit,
+  `git log --reverse --format=%h -- specs/<slug>/spec.md | head -1` then `<that>^`.
 
 ## 2. Spawn the auditor
 
@@ -68,6 +72,13 @@ Findings covered only by the e2e's flow and typecheck are said so in the record.
 - `docs/DEFERRED.md`: the deferred findings.
 - `docs/NATIVE_UNVERIFIED.md`: the auditor's native list, merged in.
 - A new rule or trap learned from a finding: `.claude/rules/<area>.md`.
+
+## 5b. Commit
+
+Commit the tests, the fixes and the record together: `git commit`, its message
+naming the tests `<slice> audit N` as the log does,
+`Rides audit: 5 fixed, 1 deferred, 1 rejected (rides audit 1-5)`. `/deploy`
+needs a clean tree.
 
 ## 6. Verify, then deploy
 

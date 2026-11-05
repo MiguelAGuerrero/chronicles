@@ -490,6 +490,16 @@ async function main(cmd) {
   if (cmd === 'check') console.log(`\n${e2eHint(changed, all)}`);
 }
 
-if (require.main === module) main(process.argv[2]);
+/** `node scripts/affected.js changed`: the paths the Stop hook checks, one a line (procedures audit 1). A branch's own
+ * commits count whether or not it has an upstream; with no main to compare with, `*` stands for everything. */
+function printChanged(root = ROOT) {
+  const r = changedFiles(root);
+  console.log(r.all ? '*' : changedPaths(r.changes).join('\n'));
+}
+
+if (require.main === module) {
+  if (process.argv[2] === 'changed') printChanged();
+  else main(process.argv[2]);
+}
 
 module.exports = { HARNESS, changedFiles, changedPaths, importGraph, affectedTests, describeTests, lintTargets, e2eFor, runSteps, hookPlan, globToRegExp, coverage, describeCoverage, featureFolders, featureOfTest, allTests, coverageArgs };

@@ -28,7 +28,7 @@ rebase conflict, or `--deploy=branch|none`; say which one if you stop.
 |---|---|---|
 | `--tests` | `none`, `lean`, `scoped`, `e2e`, `full` | `scoped` |
 | `--review` | `none`, `self`, `adversarial` | `adversarial` |
-| `--loops` | 0-4: review-and-fix rounds after the first pass | `2` |
+| `--loops` | 0-4: review-and-fix rounds after the first review (`--loops=0`: the first review only; what it accepts is fixed and verified, with no second review) | `2` |
 | `--deploy` | `main` (merge to `main`, check Pages, revert if red), `branch` (push the fix branch and stop), `none` (commit locally, push nothing) | `main` |
 
 Echo the resolved flags in your first line so the owner can see what ran.
@@ -36,9 +36,12 @@ Echo the resolved flags in your first line so the owner can see what ran.
 ### Test levels
 
 The Stop hook and CI gate the repo whatever the level, so "less testing" means
-less work from you, not fewer gates: the hook runs typecheck, the layer check,
-the affected unit tests and `check:docs`; CI runs docs, typecheck, `npm test`
-and lint before Pages deploys.
+less work from you, not fewer gates: the hook, in the checkout the session is in
+(its cwd, so the worktree), runs `check:docs`, `check:vision`, the typecheck, the
+layer check and the affected unit tests over the branch's changes since `main`;
+CI runs `check:docs`, `check:vision`, the typecheck, `npm test` and lint before
+Pages deploys. The hook blocks a stop once, then lets the next one through:
+read what it printed and fix it, never stop again to get past it.
 
 | Level | You run | New test |
 |---|---|---|
@@ -51,6 +54,21 @@ and lint before Pages deploys.
 If the owner gave no `--tests` and the fix touches storage, the recorder,
 the walk screen or the replay, say that `scoped` is a thin bar there and
 raise the level to `e2e`. An explicit `--tests` always wins.
+
+## Checklist
+
+Copy it into your first reply and tick it as you go; after a compaction it says where you were.
+
+- [ ] 0. Worktree and branch `fix/<short-name>` from `origin/main`; `node_modules` copied or installed
+- [ ] 1. Reproduced (the failing test or script named); root cause in one sentence
+- [ ] 2. Size check: no hard stop (or the owner answered)
+- [ ] 3. Fixed; regression test failed before, passes after
+- [ ] 4. The level's verify commands run, each with its result
+- [ ] 5. Review rounds done; accepted findings fixed with `fix <name> audit N` tests
+- [ ] 6. `check:docs` passes; rules, ARCHITECTURE or STATUS updated if behaviour moved
+- [ ] 7. Committed; the branch pushed (or the patch saved for `--deploy=none`)
+- [ ] 8. `git log --oneline origin/main..HEAD` shows only this fix; `main` pushed once; Pages run green (or reverted)
+- [ ] 9. Worktree and branches removed or kept per the outcome table; `git worktree list` confirms
 
 ## 0. Open the worktree
 
@@ -127,10 +145,14 @@ do not keep trying variations.
 - `self`: re-read your own diff against the covering rule files and the
   AGENTS.md invariants (truth vs cache, raw fixes, nothing is a score, local
   only); run `/simplify` on it.
-- `adversarial`: spawn the `auditor` subagent. It has no spec for a fix, so
-  give it the issue, the root cause, the diff and the rule files, and ask it to
-  break the fix: inputs that still fail, neighbours the change could regress,
-  the web/native split. Triage each finding accept, defer or reject with a
+- `adversarial`: spawn the `auditor` subagent. A subagent gets none of this
+  conversation and its shell starts in the primary checkout, so the brief carries
+  everything: the worktree path (it reads and runs `npm test` there, with
+  `cd <worktree path> &&` on every command), the branch, the issue, the root
+  cause, the diff (`git -C <worktree path> diff origin/main`), the rule files, and
+  the naming: it has no spec, so its findings are `fix <name> audit N`, not a
+  slice's. Ask it to break the fix: inputs that still fail, neighbours the change
+  could regress, the web/native split. Triage each finding accept, defer or reject with a
   reason (as `/audit` does); an accepted one gets a regression test named
   `fix <name> audit N` before its fix. Architectural findings are a hard stop.
 
@@ -160,21 +182,38 @@ branch so the owner can look, and list the open findings in the report.
 
 ## 8. Deploy to main (the default)
 
-Follow `/deploy` steps 1-3 without asking again, with these limits:
+`/deploy` is owner-invoked, so it can't be called as a skill: Read `.claude/skills/deploy/SKILL.md`
+and follow its steps 2-3 without asking again. Its step 1 preconditions apply by level:
 
-- the worktree has only this fix's changes;
-- `git fetch origin main`; if `main` moved, rebase the branch, re-run the
-  level's verify, and only then continue; on a conflict, stop and keep the branch;
-- `main` is checked out elsewhere, so publish with
-  `git push origin fix/<short-name>:main` (a fast-forward; no force, no history
-  rewrite, no empty commits), once;
-- watch the Pages run with the GitHub MCP tools until it completes.
+| Level | `/deploy` step 1 preconditions that apply |
+|---|---|
+| `none` | clean `git status` on the branch; the hook's gates (it ran at each stop) |
+| `lean` | as `none`, plus the typecheck and `lint:affected` you ran |
+| `scoped` | as `lean`, plus `check:affected` and the regression test |
+| `e2e` | all of step 1 but `/docs-gc` and `check:test-first` (a fix has no spec): `npm test`, lint, each named journey on the sub-path build |
+| `full` | as `e2e`, plus the full flow |
+
+Then, in order:
+
+1. `git fetch origin main`; if `main` moved, rebase the branch, re-run the
+   level's verify, and only then continue; on a conflict, stop and keep the branch.
+2. Validate what would ship: `git log --oneline origin/main..HEAD`. Every line
+   must be this fix's own commit; if any is not this fix's (another branch's work
+   the worktree was cut from), stop, push the branch only, and report the extra
+   commits.
+3. Publish from the fix branch, not `git checkout main` (`main` is checked out
+   elsewhere): `git push origin fix/<short-name>:main`, a fast-forward, once. No
+   force, no history rewrite, no empty commits; the settings deny force pushes.
+4. Watch the Pages run with the GitHub MCP tools until it completes.
 
 Then:
 
-- Green run: load https://miguelaguerrero.github.io/chronicles/ (Playwright is
-  installed) and check the fix's visible effect. If the page cannot be reached
-  from the session, say the live check was not done.
+- Green run: the run's success is the evidence that the build deployed. If the
+  fix changes what a screen shows, load https://miguelaguerrero.github.io/chronicles/
+  (Playwright is installed) and check that effect; a fix with nothing visible has
+  no live check beyond the run. If the page can't be reached from the session
+  (github.io is blocked in some), say the live check was not done, never that it
+  passed.
 - Red run: one fix-forward attempt following `/deploy` section 4, only when
   the log names a cause the fix plainly owns. Otherwise, or if that run is also
   red, or the live site is broken: `git revert` the fix commit in the worktree,
@@ -207,7 +246,7 @@ this run created (section 0).
 | Outcome | Local branch | Remote branch |
 |---|---|---|
 | Pushed with `--deploy=branch` (or deployed work parked by an open finding) | delete (it lives on the remote; `git fetch origin fix/<name>` brings it back) | keep: it is what the owner reviews |
-| Deployed, Pages green, live check done | delete | delete (`git push origin --delete fix/<name>`): it is merged and carries nothing |
+| Deployed, Pages green (live check done, or said not possible) | delete | delete (`git push origin --delete fix/<name>`): it is merged and carries nothing |
 | Reverted, diagnosis pushed | delete | keep `fix/<name>-retry`; delete `fix/<name>` |
 | Scrapped (cannot reproduce, hard stop declined, three failures, conflict) | delete | delete if you had pushed it, after saving any patch |
 | `--deploy=none` | delete after the patch is saved | none |

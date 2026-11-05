@@ -10,6 +10,21 @@ argument-hint: <slice-name>
 Spec first, tests first, then code. The slice is done when every criterion's
 test passes with typecheck, lint, `npm test` and the e2e, and the docs say so.
 
+## Checklist
+
+Copy it into your first reply and tick it as you go; after a compaction it says where you were.
+
+- [ ] 1. Read STATUS, PRODUCT, the spec and its rule files
+- [ ] 1b. `/vision` run; its block is the spec's "## Vision" section
+- [ ] 2. Criteria numbered with the prefix; the spec in `IN_PROGRESS`
+- [ ] 3. Plan written; steward triaged; the owner said go
+- [ ] 4. On a branch; a STATUS "In flight" row
+- [ ] 5. One todo test per criterion, failing for the right reason; committed alone
+- [ ] 6. Each criterion's code and its test made real in one commit
+- [ ] 7. Rules, decisions, DEFERRED, NATIVE_UNVERIFIED, PRODUCT updated
+- [ ] 9. typecheck, lint, `npm test`, `test:feature`, `check:test-first`, the named journeys: each with its result
+- [ ] 9. Out of `IN_PROGRESS`; STATUS row moved to "Slices"; `/docs-gc`; committed, not pushed to `main`
+
 ## Standing rules
 
 - **Ask before architectural decisions**: libraries, data model, platform
@@ -81,7 +96,9 @@ Stop and show the owner the plan. Continue only on their go-ahead.
 
 ## 4. Track
 
-Add a row to `docs/STATUS.md` "In flight": slice, spec path, started, state.
+Work on a branch, never on `main`: the session's designated branch, or
+`git switch -c claude/<slug> origin/main`. `IN_PROGRESS` names it. Add a row to
+`docs/STATUS.md` "In flight": slice, spec path, started, state.
 
 ## 5. Tests first
 
@@ -103,6 +120,12 @@ commit them before any code:
   `check.todo(ok, 'QL3: ...')`. A todo runs and shows `not ok ... # TODO`,
   but never fails the run, so the Stop hook lets the turn end.
 
+A todo test that imports a module not written yet fails at load (`Cannot find
+module`), not as a todo, and the tests-first commit would be red. Add the module
+as a stub in that commit: its `// @layer` tag, the names the tests import, each
+throwing `new Error('not built')`. The todo then runs and is reported, and the
+stub is replaced by the code.
+
 Run the new tests (`npm run test:affected` picks them up) and confirm each
 fails for the right reason. Commit them alone, the code untouched:
 `<Slice>: tests first (QL1-QL8, failing)`. That commit is the record
@@ -118,16 +141,17 @@ paths right.
    `npm run check:affected`: the layer check, the tests that import what
    changed, the typecheck and lint of the changed files, and the e2e
    scenarios that cover them. The whole suite is for step 9.
-2. Keep truth vs cache: never patch derived data, recompute from the trace.
-3. Pass the walk's pauses (and stills) everywhere a trace is read, drawn or
-   measured; `tr.walked` for walked-only consumers, `smoothKept(tr)` for the
-   ridden too.
+2. AGENTS.md's "Rules that hold everywhere" apply; the two most often missed:
+   truth vs cache (never patch derived data, recompute from the trace), and
+   `readTrace` gets the walk's `started_at`, pauses, stills and gap fills
+   wherever a trace is read, drawn or measured.
+3. `tr.walked` for walked-only consumers, `smoothKept(tr)` for the ridden too.
 4. Web-only code only where no Expo module covers the feature on web; list
    each exception, with its reason, in `docs/ARCHITECTURE.md` ("Web
    exceptions to native first"). Check `node_modules/<module>/build/*.web.*`
    first.
-5. Changing a snapping, placing or reading rule: bump `SNAP_RULES`
-   (`src/lib/tiles.ts`); a street-derivation change bumps `STREET_CODE`.
+5. Changing a derivation rule bumps its code (`src/lib/tiles.ts`): snapping,
+   placing or reading `SNAP_RULES`, streets `STREET_CODE`, landing `LANDING_CODE`.
 6. New schema: append to `MIGRATIONS` (SQLite, never edit an old one) and bump
    IndexedDB `VERSION` with an `oldVersion < N` step.
 
@@ -163,8 +187,9 @@ screen; the full flow (no `E2E_ONLY`) only when the owner asks. Then:
 
 1. Take the spec out of `IN_PROGRESS` in `scripts/features.js`; `npm run
    check:docs` then holds every criterion to a test (TG20).
-2. Update `docs/STATUS.md`: move the row to "Shipped" (or leave it in flight
-   with its state), with the audit's counts if there was one.
+2. Update `docs/STATUS.md`: move the row from "In flight" to the "Slices"
+   table with its status, `shipped <date>` (or leave it in flight with its
+   state), with the audit's counts if there was one.
 3. Run `/docs-gc`.
 4. Commit, criterion ids in the message as the repo does:
    `Navigate: a Locate button (QL9-QL12)`. Do not push to `main`; that is

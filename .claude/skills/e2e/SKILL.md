@@ -18,7 +18,7 @@ memos. The app itself has no simulation. The rest is in `docs/TESTING.md`.
 ```bash
 npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # one journey, fresh browser: the normal run
 npm run export:web && npm run e2e:web                 # the whole flow, about 15 minutes: only when the owner asks (decision 0074)
-CHRONICLES_BASE_URL=/chronicles npm run export:web && E2E_BASE=/chronicles npm run e2e:web   # the Pages sub-path build
+CHRONICLES_BASE_URL=/chronicles npm run export:web && E2E_BASE=/chronicles E2E_ONLY=<journey> npm run e2e:web   # one journey on the Pages sub-path build
 ```
 
 Re-export after every code change; the script reads `dist/` as it is.
@@ -43,6 +43,13 @@ A run exits non-zero on the first failed check and prints `ok - ...` lines.
 | `deletion` | after `walk` and `memories`: clearing walks and moments (D1-D11) |
 | `days` | Moments and days (M1-M17), a browser of its own |
 | `sensors` | motion from the sensors (MO1, MO5, MO8), a browser of its own |
+| `ready` | Navigate, ready (NR1-NR13) and its audit, then the touch drag, in fresh browsers |
+| `hidden` | the hidden-page notice: a gap says "paused while this page was hidden" only if the page really was (decision 0072) |
+| `nudge` | the pocket alert (PA2, PA3, PA6): a double-tap as a "?" comes into range, `navigator.vibrate` recorded |
+| `snap` | discrete navigation (DN1-DN13): Explore's map steps from area to area |
+| `walkability` | walkability (WK1-WK4, WK13, WK14, WK17, WK20-WK22): the switch, Overture's tile, the Overpass fallback, the band icons |
+| `headsup` | the walkability heads-up (WH3, WH7-WH10, WH13): a quiet line before a stretch built around cars; nothing buzzes |
+| `scenic` | scenic routes (SR1-SR14): Go here offers Direct and a way through India Point Park |
 | `outlines`, `grading`, `replay`, `edit` | town outlines and borders (TO3, TO10, TO12, TB1, TB2, TB11), atlas grading (AG3), replay rhythm (RR6-RR16, RR19, RR24), media editing (ME1-ME23); by name only, not in the full flow |
 
 Add a scenario as one file, `scripts/e2e/journeys/<name>.js`, exporting
@@ -117,7 +124,8 @@ belong in shell tests. The full flow is `scripts/e2e/journeys/full.js`.
 
 ## Debug
 
-1. `E2E_SOFT=1 E2E_FAIL_SHOT=/tmp/e2e.png E2E_ONLY=<scenario> npm run e2e:web`.
+1. `npm run export:web && E2E_SOFT=1 E2E_FAIL_SHOT=/tmp/e2e.png E2E_ONLY=<scenario> npm run e2e:web`: export first, since a
+   `dist/` left by a sub-path export (or before your last edit) fails in ways that look like the app's.
 2. Read the failed check's values, then the screenshot.
 3. `page.evaluate` against the DOM or IndexedDB for the state; don't add
    waits longer than the app's own timings without a comment saying which.

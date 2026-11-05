@@ -7,7 +7,8 @@
 // specs/<spec>/spec.md must first be named by a todo test (`test('XX1: ...', { todo: 'test first' }, ...)`
 // or `check.todo(ok, 'XX1: ...')`) in an earlier commit than the one where a real test names it. So
 // the failing tests were committed before the code that makes them pass. Ids retired or untested on
-// purpose (scripts/features.js) are skipped. Exit 1 names each id that skipped it.
+// purpose (scripts/features.js) are skipped, and so are ids a real test already named on the base (a
+// slice's earlier round). Exit 1 names each id that skipped it.
 
 const { execFileSync } = require('child_process');
 const fs = require('fs');
@@ -97,7 +98,14 @@ function main(argv) {
     process.exit(1);
   }
   const commits = shas.map((sha) => ({ sha: sha.slice(0, 7), lines: testLines(sha) }));
-  const r = testFirst(ids, commits);
+  // A criterion a real test already named on the base shipped in an earlier round: this branch can't
+  // show its order, and needn't (procedures audit 4). Only ids new on the branch are judged.
+  const onBase = testLines(b).filter((l) => !TODO.test(l) && REAL.test(l));
+  const shipped = new Set(ids.filter((id) => onBase.some((l) => new RegExp(`\\b${id}\\b`).test(l))));
+  const r = [
+    ...ids.filter((id) => shipped.has(id)).map((id) => ({ id, ok: true, why: `already tested on the base (${b.slice(0, 7)}), before this branch` })),
+    ...testFirst(ids.filter((id) => !shipped.has(id)), commits),
+  ].sort((x, y) => ids.indexOf(x.id) - ids.indexOf(y.id));
   for (const x of r) console.log(`${x.id} ${x.ok ? 'ok' : 'FAILED'}: ${x.why}`);
   const bad = r.filter((x) => !x.ok);
   console.log(`\n${r.length - bad.length} of ${r.length} criteria of ${slug} were tested first.`);

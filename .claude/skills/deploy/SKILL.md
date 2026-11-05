@@ -3,7 +3,7 @@ name: deploy
 description: Deploy the web build to GitHub Pages by pushing main (the only branch Pages accepts), after typecheck, lint, the unit tests and the slice's e2e journeys are green and STATUS.md is updated (the full e2e and an audit only if the owner asked); then check the Pages run with the GitHub MCP tools. Use only when the owner asks to deploy, ship or release.
 when_to_use: The owner says deploy, ship, release, publish, or merge to main.
 disable-model-invocation: true
-allowed-tools: Bash, Read, Grep, Glob, mcp__github__actions_list, mcp__github__actions_get, mcp__github__get_job_logs
+allowed-tools: Bash, Read, Grep, Glob, AskUserQuestion, mcp__github__actions_list, mcp__github__actions_get, mcp__github__get_job_logs
 ---
 
 # Deploy
@@ -36,9 +36,11 @@ CHRONICLES_BASE_URL=/chronicles npm run export:web && E2E_BASE=/chronicles E2E_O
 
 - The journeys run against the sub-path build, as Pages serves it. The full
   flow (no `E2E_ONLY`) only when the owner asks for it.
-- `npm run check:test-first <slug>` passes for each slice that ships (its
-  tests were committed as todos before its code), and no shipped slice's spec
-  is still in `IN_PROGRESS` in `scripts/features.js`.
+- `npm run check:test-first <slug>` passes for each slice that ships: the specs
+  whose criteria the branch changed, `git diff --name-only origin/main..HEAD -- 'specs/*/spec.md'`.
+  Ids a real test already named on `main` (an earlier round) are skipped; the
+  rest must have been committed as todos before their code. No shipped slice's
+  spec is still in `IN_PROGRESS` in `scripts/features.js`.
 - `docs/STATUS.md` is updated (with the audit's counts, if one ran).
 - If the owner asked for an audit, its accepted findings are fixed.
 - `docs/PRODUCT.md` says what shipped. Run `/docs-gc` if it was not run.
@@ -49,24 +51,34 @@ Stop if any precondition fails; say which.
 
 ```bash
 git fetch origin main
-git log --oneline origin/main..HEAD      # what ships
-git checkout main && git merge --ff-only <branch>   # or the owner's merge
-git push origin main
+git merge-base --is-ancestor origin/main HEAD && echo fast-forward   # else main moved: see below
+git log --oneline origin/main..HEAD      # what ships: show it to the owner
+git push origin HEAD:main                # a fast-forward from the branch; never a force
 ```
 
-Push only what the owner agreed to ship. If a fast-forward is not possible,
-show the owner the divergence before merging.
+- Validate before the push: every commit in that list must be work the owner's
+  request covers. If it holds anything else (another session's branch merged in,
+  older unshipped work), ask with AskUserQuestion, the list in the question,
+  before pushing.
+- Not a fast-forward (`main` moved): show the divergence and ask (recommended:
+  merge `main` in, resolve, rerun step 1 for what the merge touched, then push).
+  `main` can move again while the checks run; fetch once more right before the push.
+- Push from the branch (`HEAD:main`), not `git checkout main`: a stale local
+  `main` or one checked out in a worktree makes the checkout fail or ship the wrong thing.
 
 ## 3. Check the run
 
-`gh` is not available in cloud sessions; use the GitHub MCP tools:
+Use the GitHub MCP tools (`gh` in a cloud session serves search only):
 
 1. `actions_list` for `miguelaguerrero/chronicles`, workflow
    `pages.yml`, newest first.
 2. `actions_get` on the run until it is `completed`; `get_job_logs` on a
    failed job.
-3. Open https://miguelaguerrero.github.io/chronicles/ and confirm the build
-   is the new one (a changed screen, or the commit's visible change).
+3. The run's success is the evidence that the build deployed. If what ships
+   changes a screen, open https://miguelaguerrero.github.io/chronicles/ and look
+   for that change; with nothing visible, there is no live check beyond the run.
+   If the page can't be reached from the session (github.io is blocked in some),
+   say the live check was not done, never that it passed.
 
 ## 4. If the export fails
 

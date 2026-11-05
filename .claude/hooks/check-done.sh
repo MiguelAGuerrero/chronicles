@@ -7,21 +7,23 @@
 #     package.json or the check itself changed (decision 0094);
 #   - the typecheck must pass when TypeScript changed; the layer check and the
 #     unit tests that import what changed, when TypeScript or a script changed.
-# "Changed" means the working tree, new files, or commits not yet pushed.
+# "Changed" means the working tree, new files, or the branch's commits since main
+# (scripts/affected.js changed), in the checkout the session is in (its cwd).
 # Exit 2 blocks the stop and sends stderr back to Claude. CI runs the docs
 # check too, so a breach that gets past this still can't deploy.
-ROOT="${CLAUDE_PROJECT_DIR:-$(pwd)}"
-cd "$ROOT" || exit 0
 INPUT=$(cat)
 # Don't loop: if this stop was already caused by a hook, let it through.
 if printf '%s' "$INPUT" | jq -e '.stop_hook_active == true' >/dev/null 2>&1; then exit 0; fi
+# The checkout to check is the one the session is in: a /fix worktree under .claude/worktrees/ is
+# gitignored by the main checkout, so checking $CLAUDE_PROJECT_DIR would see nothing (procedures audit 1).
+CWD=$(printf '%s' "$INPUT" | jq -r '.cwd // empty' 2>/dev/null)
+ROOT=$(git -C "${CWD:-${CLAUDE_PROJECT_DIR:-$(pwd)}}" rev-parse --show-toplevel 2>/dev/null) || ROOT="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+cd "$ROOT" || exit 0
 
-CHANGED=$( {
-  git diff --name-only HEAD
-  git ls-files --others --exclude-standard
-  git rev-parse --abbrev-ref '@{upstream}' >/dev/null 2>&1 && git diff --name-only '@{upstream}' HEAD
-} 2>/dev/null | sort -u )
+# What changed: the working tree, new files, and the branch's commits since main, with or without an upstream.
+CHANGED=$(node scripts/affected.js changed 2>/dev/null)
 [ -z "$CHANGED" ] && exit 0
+[ "$CHANGED" = '*' ] && CHANGED=$(git ls-files)
 
 FAILED=0
 DOCS=$(node scripts/check-docs.js 2>&1)
