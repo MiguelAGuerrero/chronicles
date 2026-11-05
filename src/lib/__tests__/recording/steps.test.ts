@@ -61,7 +61,7 @@ function feed(d: StepDetector, samples: MotionSample[]) {
   return states;
 }
 
-test('steps 1: walking at 1.6 to 2.2 steps a second is found within 3 s', () => {
+test('steps 1 (MO4): walking at 1.6 to 2.2 steps a second is found within 3 s', () => {
   for (const rate of [1.6, 1.9, 2.2]) {
     const d = new StepDetector();
     const states = feed(d, signal(10, walk(rate)));
@@ -77,7 +77,7 @@ test('steps 2: a gentle walk, phone held flat to look at the map, is walking', (
   assert.ok(states.filter((x) => x.t > 3000).every((x) => x.s === 'walking'));
 });
 
-test('steps 3: a phone lying still, or held in a hand while standing, is still', () => {
+test('steps 3 (MO4): a phone lying still, or held in a hand while standing, is still', () => {
   for (const f of [() => [0.02, 0.02, 0.02] as [number, number, number], handHeld()]) {
     const d = new StepDetector();
     const states = feed(d, signal(60, f));
@@ -85,14 +85,14 @@ test('steps 3: a phone lying still, or held in a hand while standing, is still',
   }
 });
 
-test('steps 4: typing on the screen while standing is still', () => {
+test('steps 4 (MO4): typing on the screen while standing is still', () => {
   const d = new StepDetector();
   const states = feed(d, signal(60, typing()));
   const walking = states.filter((x) => x.t > STEPS.stillAfterMs && x.s === 'walking').length;
   assert.ok(walking === 0, `${walking} samples read as walking`);
 });
 
-test('steps 5: riding a bus is not steps', () => {
+test('steps 5 (MO4): riding a bus is not steps', () => {
   const d = new StepDetector();
   const states = feed(d, signal(60, bus()));
   const walking = states.filter((x) => x.t > STEPS.stillAfterMs && x.s === 'walking').length;

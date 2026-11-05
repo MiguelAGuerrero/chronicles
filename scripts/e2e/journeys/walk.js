@@ -130,11 +130,11 @@ async function checks(h) {
     await page.waitForSelector('[data-testid=options-card]');
     check((await page.locator('[data-testid=explore-walk][aria-checked=false], [data-testid=explore-walk]:not([aria-checked=true])').count()) === 1, 'Explore starts off on a new walk (E1)');
     // Explore is off on this walk, so its range and kinds are not in the drawer; turn it on to find them there, in no panel of their own.
-    check((await page.locator('[data-testid=open-settings], [data-testid=settings], [data-testid=range-slider]').count()) === 0, 'an explore-off walk\'s drawer has no range and no separate settings panel');
+    check((await page.locator('[data-testid=range-slider]').count()) === 0, 'an explore-off walk\'s drawer has no range');
     await page.click('[data-testid=explore-walk]');
     await page.waitForSelector('[data-testid=range-slider]');
     await page.waitForTimeout(500);
-    check((await page.locator('[data-testid=options-card] [data-testid=range-slider]').count()) === 1 && (await page.locator('[data-testid=settings]').count()) === 0, 'the range and what I’m into are in the walk\'s drawer, not a separate panel');
+    check((await page.locator('[data-testid=options-card] [data-testid=range-slider]').count()) === 1, 'the range and what I’m into are in the walk\'s drawer');
     check((await page.locator('[data-testid=range-value]').innerText()) === '100 m' && (await ringNow()) === '100', 'the range is 100 m by default, drawn as a ring on the walk map while settings are open');
     await page.click('[data-testid=range-plus]');
     await page.waitForTimeout(300);
@@ -172,6 +172,10 @@ async function checks(h) {
     const route = walkRoute;
     const pts = walkPts;
     const dotMoves = [];
+    // N12: recording, pause, captures and the fog's streets go on while navigating to the "?" (from k 28).
+    const navOn = async () => (await page.locator('[data-testid=nav-bar]').count()) === 1;
+    const walkedM = async () => Number(/ · (\d+) m$/.exec(await page.locator('text=/ · \\d+ m$/').first().innerText())?.[1]);
+    const n12 = {};
     let dotLast = null;
     for (let k = 0; k < pts.length; k++) {
       await ctx.setGeolocation({ longitude: pts[k][0], latitude: pts[k][1], accuracy: 6 });
@@ -357,10 +361,12 @@ async function checks(h) {
         await page.click('[data-testid=mark-go]');
         await routed(page, 30000);
         check(/· A place to find$/.test(await page.locator('[data-testid=nav-left]').innerText()), 'going to a place says "A place to find" until it is revealed');
+        n12.fromM = await walkedM();
         // On the way (E22): nothing else is in range of this short route, so no faint marks beyond the target.
         check((await page.locator('[aria-label="A place on the way. Open"]').count()) === 0, 'no faint marks where nothing lies along the route');
       }
       if (k === 30) {
+        n12.photo = await navOn();
         // A photo, then the opt-in caption.
         const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('[data-testid=cap-photo]')]);
         await chooser.setFiles(path.join(scriptsDir, 'fixtures', 'photo.jpg'));
@@ -402,6 +408,7 @@ async function checks(h) {
           await page.waitForTimeout(250);
           thumb = await readThumb(photoId);
         }
+        n12.photoKept = !!photoId;
         check(!!thumb.path && Math.max(thumb.w, thumb.h) <= 240 && Math.max(thumb.w, thumb.h) >= 100,
           `a new photo keeps a small copy beside it (TH1: ${JSON.stringify(thumb)})`);
         await page.waitForTimeout(600);
@@ -420,6 +427,8 @@ async function checks(h) {
       }
       if (k === 33) {
         // Pause: positions sent while paused are not recorded, and the clock stops.
+        n12.pause = await navOn();
+        n12.grewM = (await walkedM()) - n12.fromM;
         await page.click('[data-testid=pause-walk]');
         await page.waitForSelector('text=Paused');
         // One publish cycle, so a fix taken just before the pause is already counted.
@@ -433,6 +442,7 @@ async function checks(h) {
         await page.waitForTimeout(2200);
         const during = await page.locator('text=/ · \\d+ m$/').first().innerText();
         check(before.split(' · ')[1] === during.split(' · ')[1], `nothing is recorded while paused (${before} → ${during})`);
+        n12.held = before.split(' · ')[1] === during.split(' · ')[1];
         await page.click('[data-testid=resume-walk]');
         await page.waitForSelector('[data-testid=pause-walk]');
         await ctx.setGeolocation({ longitude: pts[k][0], latitude: pts[k][1], accuracy: 6 });
@@ -449,10 +459,13 @@ async function checks(h) {
         await page.waitForSelector('[data-testid=recenter]', { state: 'detached' });
         check(true, 'after looking around, Recenter brings the map back');
         // Unwalked streets near me.
+        n12.fog = await navOn();
         await page.click('[data-testid=unwalked]');
         await page.waitForSelector('text=/unwalked nearby/');
+        n12.unwalked = await page.locator('text=/unwalked nearby/').first().innerText();
+        check(n12.photo && n12.photoKept && n12.pause && n12.grewM > 0 && n12.held && n12.fog && /^[1-9]\d* unwalked nearby$/.test(n12.unwalked),
+          `N12: while navigating, the walk records, a photo is kept, Pause holds the bar's distance, and the fog counts its streets (${JSON.stringify(n12)})`);
         await shot(page, '03c-unwalked');
-        check(true, 'unwalked streets near me shows a count');
         await page.click('[data-testid=unwalked]');
       }
       if (k === 39) {

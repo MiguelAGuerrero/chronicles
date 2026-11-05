@@ -35,9 +35,6 @@ export const RIDE_RULES = {
   joinSlackM: 25,
   /** A gap without fixes this long ends a ride, as it breaks the walked trace. */
   gapMs: 60_000,
-  /** The most a ride takes of the replay's path (R10), and of all rides together, a share of it. */
-  replayMs: 4000,
-  ridesShare: 0.5,
 } as const;
 
 export interface Ride {

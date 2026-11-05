@@ -176,15 +176,8 @@ async function shot(page, name) {
   if (SHOTS) await page.screenshot({ path: path.join(SHOTS, `${name}.png`) });
 }
 
-function check(ok, what) {
-  // E2E_SOFT=1 reports a failed check and goes on, to see every check fail on code from before a fix.
-  if (!ok && process.env.E2E_SOFT) {
-    console.log(`not ok - ${what}`);
-    return;
-  }
-  if (!ok) throw new Error(`FAILED: ${what}`);
-  console.log(`ok - ${what}`);
-}
+// The one check, with check.todo for a test written before its code (TG25).
+const { check } = require('./check');
 
 async function createHarness() {
   const server = await serve();

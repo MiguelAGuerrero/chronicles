@@ -31,8 +31,6 @@ export const OVERTURE_CREDIT = 'Places: Overture Maps Foundation';
 
 export const HOTSPOT = '#d6268c';
 export const HOTSPOT_INK = '#86145a';
-/** The Start here pin's fill: white text on it reads at AA. */
-export const HOTSPOT_PIN = '#a3166a';
 
 /**
  * The fog is quiet unless asked for (the owner's call, Nov 1): after a scan

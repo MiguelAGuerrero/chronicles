@@ -9,7 +9,9 @@ import { traceRouteSource } from '../../nav/traceRoute';
 import { timedRuns } from '../../replay';
 import { walkStory } from '../../ceremony/story';
 import { rhythmFrame, rhythmPlan, type RhythmPlan } from '../../ceremony/rhythm';
-import { keptFixes, readTrace, rideRuns, ridingAt, RIDE_RULES, smoothKept, timedRideRuns, traceDistances } from '../../rides';
+import { passedAlong, pocketAlert, type ChecklistItem } from '../../explore/explore';
+import { REPLAY_RHYTHM } from '../../motionTokens';
+import { keptFixes, readTrace, rideRuns, ridingAt, smoothKept, timedRideRuns, traceDistances } from '../../rides';
 import { snap } from '../../snapper';
 import type { Capture, LngLat, StreetSegment, TracePoint } from '../../types';
 
@@ -225,6 +227,36 @@ test('rides: "on a ride" holds through a stop, and ends once you walk off (R11)'
   assert.equal(ridingAt(readTrace(trip([{ v: WALK, s: 300 }]), 0), here, 300_000), false);
 });
 
+test('R12: on a ride, and at a stop on it, Explore waits: no pocket alert, and nothing passed on the bus is named; walked off, both come back', () => {
+  // 60 s on foot, 120 s on a bus, 90 s at a stop, then 150 s walking off.
+  const ride = trip([{ v: WALK, s: 60 }, { v: BUS, s: 120 }, { v: 0, s: 90 }], { reported: true });
+  const busEnd = 60 * WALK + 120 * BUS;
+  const off = trip([{ v: WALK, s: 150 }], { t0: ride.at(-1)!.t + 1000, from: [busEnd, 0], reported: true });
+  const place = (key: string, x: number): ChecklistItem => ({ key, area_key: null, name: key, category: 'history', kind: 'monuments', at: at(x, 20), generic: false });
+  // One beside the bus's line, halfway along it; one beside the walk off, 100 m on.
+  const items = [place('Bus-side Memorial', 60 * WALK + 60 * BUS), place('Walk-side Memorial', busEnd + 100)];
+  const alert = (riding: boolean) => pocketAlert({ exploring: true, haptic: true, riding, previewing: false, nearKeys: ['Bus-side Memorial'], alerted: new Set() });
+  const fixAt = (pts: TracePoint[]): LngLat => [pts.at(-1)!.lon, pts.at(-1)!.lat];
+
+  // Mid-ride and at the stop: riding, so the screens' gates (the pocket alert, the read, the naming,
+  // the fog, the dead-zone count, re-routing) all take the ride's word.
+  const midRide = ride.filter((p) => p.t <= 120_000);
+  assert.equal(ridingAt(readTrace(midRide, 0), fixAt(midRide), midRide.at(-1)!.t), true, 'on the bus');
+  const atStop = readTrace(ride, 0);
+  assert.equal(ridingAt(atStop, fixAt(ride), ride.at(-1)!.t), true, 'at a stop on it');
+  assert.deepEqual(alert(true), { mark: [], nudge: false }, 'no pocket alert on a ride');
+  // The replay names what the walked fixes passed (summary.ts): the bus's fixes are not walked ones.
+  const named = (tr: ReturnType<typeof readTrace>) =>
+    passedAlong({ items, fixes: tr.walked.map((p) => ({ at: [p.lon, p.lat] as LngLat, t: p.t })), since: 0, hidden: new Set(), foundHere: new Set() }).map((i) => i.key);
+  assert.deepEqual(named(atStop), [], 'riding past a place names nothing');
+
+  // Walked off: not riding, and Explore is back.
+  const all = [...ride, ...off];
+  assert.equal(ridingAt(readTrace(all, 0), fixAt(off), off.at(-1)!.t), false, 'walked off');
+  assert.equal(alert(false).nudge, true, 'the pocket alert comes back on foot');
+  assert.deepEqual(named(readTrace(all, 0)), ['Walk-side Memorial'], 'walking past names it; the bus-side place still not');
+});
+
 test('rides: weak GPS is judged on fixes inside the accuracy gate, not the speed gate (R11)', () => {
   const pts = trip([{ v: WALK, s: 30 }, { v: BUS, s: 15 }], { reported: true });
   const tr = readTrace(pts, 0);
@@ -302,24 +334,27 @@ test('rides: a capture on a ride is placed on the ride line (R9)', () => {
   assert.ok(Math.abs(distanceM(O, p) - (60 * WALK + 60 * BUS)) < 15);
 });
 
+// The rhythm's longest stretch (RR1): a ride is a stretch like any other since decision 0085, so this is its cap too.
+const STRETCH_MAX_MS = REPLAY_RHYTHM.glide + REPLAY_RHYTHM.zip;
+
 const capture = (t: number): Capture => ({ id: `c${t}`, walk_id: 'w', t, lat: null, lon: null, kind: 'text', file_path: null, body: 'x', segment_id: null });
 
-test('rides: the replay gives a long ride at most 4 s of the path, and stops at a capture on it (R10, RR1)', () => {
+test('rides: the replay gives a long ride no more than a glide and a zip, and stops at a capture on it (RR1)', () => {
   const pts = trip([{ v: WALK, s: 300 }, { v: BUS, s: 1200 }, { v: WALK, s: 300 }], { reported: true });
   const tr = readTrace(pts, 0);
   const p = rhythmOf(keptFixes(tr), [capture(900_000)], tr);
   const r = tr.rides[0];
-  for (const s of p.segs) if (s.k === 'leg' && s.move && s.move.t1 > r.t0 && s.move.t0 < r.t1) assert.ok(s.t1 - s.t0 <= RIDE_RULES.replayMs, `a stretch on the ride takes ${s.t1 - s.t0} ms`);
+  for (const s of p.segs) if (s.k === 'leg' && s.move && s.move.t1 > r.t0 && s.move.t0 < r.t1) assert.ok(s.t1 - s.t0 <= STRETCH_MAX_MS, `a stretch on the ride takes ${s.t1 - s.t0} ms`);
   const stop = p.segs.find((s) => s.k === 'stop')!;
   assert.ok(stop.k === 'stop' && stop.moment.arrive <= 900_000 && stop.moment.leave >= 900_000, 'the stop is the capture on the ride');
 });
 
-test('rides: a ride is a stretch like any other, never longer than a glide and a zip (R10, RR1)', () => {
+test('rides: a ride is a stretch like any other, never longer than a glide and a zip (RR1)', () => {
   const pts = trip([{ v: WALK, s: 600 }, { v: BUS, s: 40 }, { v: WALK, s: 600 }], { reported: true });
   const tr = readTrace(pts, 0);
   const p = rhythmOf(keptFixes(tr), [], tr);
   const r = tr.rides[0];
-  assert.ok(legMsOver(p, r.t0, r.t1) <= RIDE_RULES.replayMs);
+  assert.ok(legMsOver(p, r.t0, r.t1) <= STRETCH_MAX_MS, `the ride takes ${legMsOver(p, r.t0, r.t1)} ms`);
 });
 
 test('rides: a GPS jump just before boarding stays out of the ride (R2, the e2e card, Nov 1)', () => {
@@ -354,7 +389,7 @@ test('rides audit 2: a phone reporting speed 0 for "no reading" (Android) still 
   assert.equal(readTrace(pts, 0).rides.length, 1);
 });
 
-test('rides audit 3: a long stop inside a ride keeps the replay clock moving forward, the ride within 4 s', () => {
+test('rides audit 3: a long stop inside a ride keeps the replay clock moving forward, the ride within a glide and a zip', () => {
   for (const legs of [
     [{ v: WALK, s: 900 }, { v: BUS, s: 300 }, { v: 0, s: 150 }, { v: BUS, s: 300 }, { v: WALK, s: 900 }],
     [{ v: WALK, s: 60 }, { v: BUS, s: 300 }, { v: 0, s: 150 }, { v: BUS, s: 300 }, { v: WALK, s: 60 }],
@@ -370,7 +405,7 @@ test('rides audit 3: a long stop inside a ride keeps the replay clock moving for
       prev = c;
     }
     const r = tr.rides[0];
-    assert.ok(legMsOver(p, r.t0, r.t1) <= RIDE_RULES.replayMs, 'the ride within 4 s');
+    assert.ok(legMsOver(p, r.t0, r.t1) <= STRETCH_MAX_MS, `the ride takes ${legMsOver(p, r.t0, r.t1)} ms`);
   }
 });
 
@@ -410,7 +445,7 @@ test('rides audit 10: many rides together never stretch the replay: the walk is 
   const tr = readTrace(trip(legs, { reported: true }), 0);
   assert.equal(tr.rides.length, 10);
   const p = rhythmOf(keptFixes(tr));
-  assert.ok(legMsOver(p, 0, Infinity) <= RIDE_RULES.replayMs, `the stretches take ${legMsOver(p, 0, Infinity)} ms`);
+  assert.ok(legMsOver(p, 0, Infinity) <= STRETCH_MAX_MS, `the stretches take ${legMsOver(p, 0, Infinity)} ms`);
 });
 
 test('rides audit 7: a walk is titled by where you walked, not where you rode through', () => {

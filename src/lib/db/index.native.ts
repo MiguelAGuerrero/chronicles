@@ -7,7 +7,7 @@ import type { LandingRow } from '../landing/view';
 import type { OutlineTile } from '../areas/outlines';
 import type { WalkTile } from '../walk/types';
 import type { AtlasArea } from '../atlas/atlas';
-import type { Mark, MarkOrigin, MarkState, Offered, Recall } from '../discovery/types';
+import type { Mark, Recall } from '../discovery/types';
 import { countsOf, recountNewStreets } from '../deletion/core';
 import { exploredKey } from '../explore/explore';
 import { DERIVED_STORES } from './stores';
@@ -248,14 +248,8 @@ function write(task: (txn: SQLite.SQLiteDatabase) => Promise<void>): Promise<voi
 }
 
 const toPlace = placeFromRow;
-type OfferedRow = Omit<PlaceRow, 'build' | 'markable'> & { offered_at: number; origin: MarkOrigin };
-const toOffered = ({ lon, lat, generic, ...r }: OfferedRow): Offered => ({ ...r, at: [lon, lat], generic: generic === 1 });
-
 type MarkRow = Omit<Mark, 'at' | 'generic'> & { lon: number; lat: number; generic: number };
 const toMark = ({ lon, lat, generic, ...r }: MarkRow): Mark => ({ ...r, at: [lon, lat], generic: generic === 1 });
-const MARK_COLUMNS = ['walk_id', 'state', 'resolved_at', 'capture_id'] as const;
-const OFFERED_INSERT =
-  'INSERT OR IGNORE INTO offered (key, name, category, lon, lat, generic, offered_at, origin) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
 
 type WalkRow = Omit<Walk, 'open'> & { open: number };
 const toWalk = (r: WalkRow): Walk => ({ ...r, open: r.open === 1 });
@@ -685,35 +679,6 @@ export const db: Db = {
     );
     return rows.map(toPlace);
   },
-  addOffered(rows) {
-    if (rows.length === 0) return Promise.resolve();
-    return write(async (t) => {
-      // First offer wins: re-offering never moves the record.
-      const st = await t.prepareAsync(OFFERED_INSERT);
-      try {
-        for (const o of rows) await st.executeAsync(o.key, o.name, o.category, o.at[0], o.at[1], o.generic ? 1 : 0, o.offered_at, o.origin);
-      } finally {
-        await st.finalizeAsync();
-      }
-    });
-  },
-  async listOffered() {
-    return (await (await conn()).getAllAsync<OfferedRow>('SELECT * FROM offered')).map(toOffered);
-  },
-  saveScan({ replace, marks, offered }) {
-    return write(async (t) => {
-      const replaced: MarkState = 'replaced';
-      for (const id of replace) await t.runAsync('UPDATE mark SET state = ? WHERE id = ? AND state = ?', replaced, id, 'open');
-      for (const x of marks) {
-        await t.runAsync(
-          `INSERT INTO mark (id, walk_id, key, name, category, lon, lat, generic, origin, state, created_at, resolved_at, capture_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          x.id, x.walk_id, x.key, x.name, x.category, x.at[0], x.at[1], x.generic ? 1 : 0, x.origin, x.state, x.created_at, x.resolved_at, x.capture_id,
-        );
-      }
-      for (const o of offered) await t.runAsync(OFFERED_INSERT, o.key, o.name, o.category, o.at[0], o.at[1], o.generic ? 1 : 0, o.offered_at, o.origin);
-    });
-  },
   async listMarks(walkId) {
     const d = await conn();
     const rows = walkId == null
@@ -734,11 +699,6 @@ export const db: Db = {
   },
   async listRecalls() {
     return (await conn()).getAllAsync<Recall>('SELECT * FROM recall');
-  },
-  updateMark(id, patch) {
-    const { sql, values } = setClause(patch, MARK_COLUMNS);
-    if (!sql) return Promise.resolve();
-    return write((t) => t.runAsync(`UPDATE mark SET ${sql} WHERE id = ?`, ...values, id).then(() => {}));
   },
   purgeDerived() {
     const clear = DERIVED_STORES.map((s) => `DELETE FROM ${s};`).join(' ');

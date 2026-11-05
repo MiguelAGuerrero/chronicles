@@ -7,7 +7,7 @@ import type { LandingRow } from '../landing/view';
 import type { OutlineTile } from '../areas/outlines';
 import type { WalkTile } from '../walk/types';
 import type { AtlasArea } from '../atlas/atlas';
-import type { Mark, Offered, Place, Recall } from '../discovery/types';
+import type { Mark, Place, Recall } from '../discovery/types';
 import { DERIVED_STORES } from './stores';
 import type { Capture, GapDecision, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 import { intersects, segmentBbox, segmentTile, tileKeysFor } from './segmentBounds';
@@ -543,33 +543,6 @@ export const db: Db = {
     const rows = (await done((await store('place')).index('lat').getAll(IDBKeyRange.bound(s, n)))) as (Place & { lat?: number })[];
     return rows.filter((p) => p.at[0] >= w && p.at[0] <= e).map(({ lat: _lat, ...p }) => p);
   },
-  async addOffered(rows) {
-    if (rows.length === 0) return;
-    const tx = (await conn()).transaction('offered', 'readwrite');
-    const st = tx.objectStore('offered');
-    // First offer wins: re-offering never moves the record.
-    for (const o of rows) st.add(o).onerror = (ev) => { ev.preventDefault(); ev.stopPropagation(); };
-    await committed(tx);
-  },
-  async listOffered() {
-    return (await done((await store('offered')).getAll())) as Offered[];
-  },
-  async saveScan({ replace, marks, offered }) {
-    const tx = (await conn()).transaction(['mark', 'offered'], 'readwrite');
-    const ms = tx.objectStore('mark');
-    for (const id of replace) {
-      const r = ms.get(id);
-      r.onsuccess = () => {
-        const m = r.result as Mark | undefined;
-        if (m && m.state === 'open') ms.put({ ...m, state: 'replaced' });
-      };
-    }
-    for (const x of marks) ms.add(x);
-    const os = tx.objectStore('offered');
-    // First offer wins: re-offering never moves the record.
-    for (const o of offered) os.add(o).onerror = (ev) => { ev.preventDefault(); ev.stopPropagation(); };
-    await committed(tx);
-  },
   async listMarks(walkId) {
     // IndexedDB indexes skip null keys, so the home's marks are found by a scan of the store.
     const all = walkId == null
@@ -589,9 +562,6 @@ export const db: Db = {
   },
   async listRecalls() {
     return (await done((await store('recall')).getAll())) as Recall[];
-  },
-  async updateMark(id, p) {
-    await patch<Mark>('mark', id, p);
   },
   async purgeDerived() {
     const tx = (await conn()).transaction([...DERIVED_STORES, 'walk'], 'readwrite');

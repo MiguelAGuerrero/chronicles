@@ -116,9 +116,9 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
     screen, never a second map: the walk's around you, the home's around your
     last walk's most-walked area.
   - **The Explore tab honours "What I'm into"** (Nov 2, after its "?" never
-    showed on an exploring walk with kinds switched off): `tabMarks` and
-    `areaInView` take the hidden kinds, so a "?" on the tab is one a walk can
-    show. A find shows whatever its kind.
+    showed on an exploring walk with kinds switched off): the atlas's
+    `waitingKinds` and `waitingMarks` take the hidden kinds, so a "?" on the tab
+    is one a walk can show. A find shows whatever its kind.
   - **Home:** no "?" and no count on the overview; a place view shows
     "N of M · list from <date>" and its finds. **Replay:** finds by name
     (`foundList`) and "Passed Hessian Memorial without stopping", or "a few places"
