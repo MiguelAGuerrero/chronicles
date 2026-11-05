@@ -341,22 +341,17 @@ export function passesLine(p: Passes): string | null {
 }
 
 /**
- * SR3, SR14: one row in words, and its label for a screen reader. Never a score, and never minutes
- * compared (VISION.md, Never: "several ways ranked by minutes"; the owner, Nov 5): Direct says how far
- * it is, a scenic route how much of a detour it is, in words.
+ * SR3, SR14: one row in words, and its label for a screen reader. Each row says its own distance in
+ * the units setting (the owner, Nov 5: distance over minutes, so you still know how long it is); never
+ * a time, minutes compared or a difference (VISION.md, Never), and never a score.
  */
-export function rowWords(o: RouteOption, direct: RouteOption): { title: string; distance: string | null; detour: string | null; passes: string | null; label: string } {
+export function rowWords(o: RouteOption, units: Units): { title: string; distance: string; passes: string | null; label: string } {
   const title = o.leanings.length
     ? o.leanings.map((l, i) => (i ? TITLES[l][0].toLowerCase() + TITLES[l].slice(1) : TITLES[l])).join(', ')
     : 'Direct';
-  if (!o.leanings.length) {
-    const distance = formatDistance(o.route.lengthM);
-    return { title, distance, detour: null, passes: null, label: `${title}, ${distance}` };
-  }
-  const more = direct.route.lengthM > 0 ? o.route.lengthM / direct.route.lengthM - 1 : 0;
-  const detour = more < SCENIC.shortDetour ? 'a short detour' : 'a longer detour';
-  const passes = passesLine(o.passes);
-  return { title, distance: null, detour, passes, label: [title, detour, passes].filter(Boolean).join(', ') };
+  const distance = formatDistance(o.route.lengthM, units);
+  const passes = o.leanings.length ? passesLine(o.passes) : null;
+  return { title, distance, passes, label: [title, distance, passes].filter(Boolean).join(', ') };
 }
 
 /** SR8: the offered route whose line a map tap landed on (within `maxM`), or null. */

@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { rowWords } from '../lib/nav/scenic';
 import type { RoutePreview as Preview } from '../lib/nav/useNavigation';
+import { useUnits } from '../lib/useUnits';
 import { Icon } from './icons';
 import { Button, theme } from './ui';
 
@@ -11,7 +12,8 @@ import { Button, theme } from './ui';
  */
 export function RoutePreview(props: { preview: Preview; onSelect: (i: number) => void; onGo: (i: number) => void; onCancel: () => void }) {
   const { preview } = props;
-  const direct = preview.options[0];
+  // Each row's distance in km or miles, as the units setting says (QL13).
+  const units = useUnits();
   return (
     <View testID="route-preview" style={styles.card} accessibilityViewIsModal>
       <View style={styles.head}>
@@ -23,7 +25,7 @@ export function RoutePreview(props: { preview: Preview; onSelect: (i: number) =>
         </Pressable>
       </View>
       {preview.options.map((o, i) => {
-        const w = rowWords(o, direct);
+        const w = rowWords(o, units);
         const on = i === preview.selected;
         return (
           <View key={i} style={[styles.row, on && styles.rowOn]}>
@@ -39,9 +41,9 @@ export function RoutePreview(props: { preview: Preview; onSelect: (i: number) =>
               {...{ dataSet: { selected: on ? '1' : '0', route: o.route.source } }}
             >
               <Text style={styles.rowTitle} numberOfLines={1}>{w.title}</Text>
-              {/* Direct says how far; a scenic route its detour in words and what it passes: never minutes compared. */}
+              {/* Each route's own distance, then what it passes: never a time or minutes compared. */}
               <Text style={styles.rowMeta} numberOfLines={2}>
-                {w.distance ?? [w.detour, w.passes].filter(Boolean).join(' · ')}
+                {[w.distance, w.passes].filter(Boolean).join(' · ')}
               </Text>
             </Pressable>
             <Button testID={`route-go-${i}`} label="Go" variant={on ? 'primary' : 'secondary'} accessibilityHint={`Start: ${w.title}`} onPress={() => props.onGo(i)} />

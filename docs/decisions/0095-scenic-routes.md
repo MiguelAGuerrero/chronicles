@@ -21,8 +21,13 @@ suggested routes: "no minutes compared"). The owner chose to reshape: rows show 
 minutes; Direct says how far, a scenic row its detour in words ("a short detour", "a longer detour") and
 what it passes. The owner kept a row per leaning over the page's "one suggested way".
 
+**Distance over minutes (the owner, Nov 5, after).** Every row gives its route's whole distance in the
+units setting, km or miles, so the walker still knows how long it is; the detour words went. No time, no
+difference ("longer", "more") and no minutes on any row. The same holds for any suggested route that
+walks a town's features.
+
 **Proposed VISION.md edit** (the owner's to make): the Shapes row "Suggested routes" becomes "Direct and
-one way per leaning switched on, each named by what it leans toward, its detour in words; no 'fastest' and
+one way per leaning switched on, each named by what it leans toward, each with its own distance in km or miles; no 'fastest' and
 no minutes compared"; the row "Several routes to one point, Apple Maps style: out" adds "(routes ranked by
 time; a choice by leaning is suggested routes, 0095)".
 

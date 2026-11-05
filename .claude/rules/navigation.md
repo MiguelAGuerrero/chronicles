@@ -127,9 +127,9 @@ Routing inside a walk (`lib/nav`): walk me back, Go here, the route sources, rul
   - `nav/scenic.ts` (core): `scenicPlan` (who gets the preview: not `start`, not with all leanings off, not
     past `SCENIC.maxM` 5 km), `routeOptions`, `scenicRouteSource` (re-routes keep the leaning, SR10),
     `rowWords` and `passesLine` (in words, never a score). `SCENIC` lives in `nav/rules.ts`.
-  - **No minutes compared** (VISION.md, Never; the owner at the vision gate, Nov 5): no row shows a time.
-    Direct says how far; a scenic row says "a short detour" (under `SCENIC.shortDetour`, 15%) or "a longer
-    detour". Never a time, "N min longer", "faster" or "fastest" on a route.
+  - **Distance over minutes** (VISION.md, Never; the owner, Nov 5): every row gives its route's own distance
+    through `formatDistance` in the units setting (`rowWords(option, units)`, the card's `useUnits()`).
+    Never a time, a difference ("N min longer", "60 m more"), "faster" or "fastest" on a route.
   - Green and busy: a search where an appealing metre costs `1 - s × appeal`, tried at `SCENIC.strengths`;
     the one gaining most within the detour wins, if it gains 100 m. Sights: stops on the way, chosen by
     one bounded search from each end (`StreetSource.reach`), never a full search per candidate.
