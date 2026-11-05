@@ -1609,7 +1609,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
         <View style={[styles.spotRow, cardAt]} pointerEvents="box-none">
           <RoutePreview
             preview={routePreview}
-            pace={paceMps(live.distanceM, walk ? now - walk.started_at - pausedMs(pauses, walk.started_at, now) : 0)}
             onSelect={navigation.select}
             onGo={navigation.choose}
             onCancel={navigation.dismiss}

@@ -81,10 +81,10 @@ async function run(h) {
     check(r.length === 2 && /^Direct/.test(r[0].label) && /^Through green/.test(r[1].label) && r[0].selected === '1',
       `scenic SR2: Direct first and highlighted, then Through green (${JSON.stringify(r)})`);
     check((await alternates(pg)) === '1', `scenic SR2: the other route is drawn faint on the map (${await alternates(pg)})`);
-    check(r.length === 2 && /(min|minute) longer/.test(r[1].text) && /\d+ m|km/.test(r[1].text) && !/%|score/i.test(r.map((x) => x.text).join(' ')),
-      `scenic SR3: a row says its time, its distance and how much longer, never a score (${JSON.stringify(r.map((x) => x.text))})`);
+    check(r.length === 2 && /\d+ m|km/.test(r[0].text) && /a (short|longer) detour/.test(r[1].text) && !/%|score|\bmin\b|minute|hour/i.test(r.map((x) => x.text).join(' ')),
+      `scenic SR3: Direct says how far, a scenic row its detour in words; no time and no minutes compared (${JSON.stringify(r.map((x) => x.text))})`);
     check(r.length === 2 && /through India Point Park/.test(r[1].text), `scenic SR4: the park is named (${r[1]?.text})`);
-    check(r.length === 2 && /minutes?, .*(m|km), .*longer, through India Point Park/.test(r[1].label), `scenic SR14: the row's label says the whole row (${r[1]?.label})`);
+    check(r.length === 2 && /^Through green, a (short|longer) detour, through India Point Park$/.test(r[1].label), `scenic SR14: the row's label says the whole row (${r[1]?.label})`);
     await shot(pg, 'scenic-preview');
 
     // SR8: a tap on a row highlights it; Cancel closes the preview and sets no destination.

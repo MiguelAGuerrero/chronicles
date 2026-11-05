@@ -15,6 +15,17 @@ The owner's calls, Nov 4:
 - **Off route:** the re-route keeps the same leaning, quietly.
 - **Nothing scenic:** the direct route at once, with a notice saying why ("No scenic way nearby", "Scenic routes reach 5 km").
 
+**At the vision gate (the owner, Nov 5).** `docs/VISION.md` arrived on main after the build and rules out
+"several ways ranked by minutes" (Never) and "several routes to one point, Apple Maps style" (Shapes: out;
+suggested routes: "no minutes compared"). The owner chose to reshape: rows show no time and compare no
+minutes; Direct says how far, a scenic row its detour in words ("a short detour", "a longer detour") and
+what it passes. The owner kept a row per leaning over the page's "one suggested way".
+
+**Proposed VISION.md edit** (the owner's to make): the Shapes row "Suggested routes" becomes "Direct and
+one way per leaning switched on, each named by what it leans toward, its detour in words; no 'fastest' and
+no minutes compared"; the row "Several routes to one point, Apple Maps style: out" adds "(routes ranked by
+time; a choice by leaning is suggested routes, 0095)".
+
 Calls made in the plan the owner approved: scenic routes reach 5 km in a straight line; places not yet found are never named on a route ("past places to find"), so a route doesn't spoil a "?"; green is the tiles' `landcover` parks, gardens and woods.
 
 ## Consequences

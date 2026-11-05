@@ -13,13 +13,24 @@ Today every route is the shortest way. The concept's first principle is "the int
 - **A preview of each:** Direct, plus one scenic route per leaning switched on, each named by its leaning. Routes that come out nearly the same are merged into one row.
 - **Where:** Go here during a walk (the long press, a pin's viewer, a mark, a place) and a destination set before Start. Walk me back stays the shortest way (decision 0029).
 - **The detour:** fixed at most 30% longer than the direct route.
+- **No minutes compared** (the owner, Nov 5, at the vision gate): rows show no times; a detour is said in words. A row per leaning stays (decision 0095).
 - **Off route:** the re-route keeps the same leaning, quietly.
+
+## Vision
+
+Idea: suggested routes by preference: on Go here, ways through green spaces, places worth seeing or busy streets beside the direct way, chosen like Apple Maps' routes (the owner, Nov 4).
+Verb: earn (the interesting way: a route that detours for parks, places worth the stop and streets with life raises what you notice)
+Touches: Never, "Several ways ranked by minutes; 'fastest' as a label" (0020); Shapes, "Suggested routes: aligned if reshaped ... no 'fastest' and no minutes compared" and "Several routes to one point, Apple Maps style: out"; Always, "A route is a suggestion; drifting is never nagged"; 0022, 0029 (Walk me back stays shortest).
+Verdict: aligned if reshaped
+Shape: Direct and one row per leaning switched on, each named by what it leans toward. Direct says how far; a scenic row says its detour in words and what it passes. No row shows a time or compares minutes, nothing is called fastest, a re-route is quiet, Walk me back stays the shortest way, and an unfound place is never named. The owner kept a row per leaning over the page's "one way" (decision 0095).
+Criteria: SR3 as reshaped (no time on any row, no minutes compared, the detour in words); SR9's notices name no minutes; SR12.
+Open: VISION.md's Shapes row "Several routes to one point, Apple Maps style: out" against a row per leaning: decision 0095 proposes the amendment; the owner edits the page.
 
 ## Criteria
 
 1. **SR1 The leanings are settings.** The walk settings (the ready bar pulled up, and the walk's drawer) show "Scenic routes" with three switches: Green, Sights, Streets with life. All three are on by default, and a change is kept across a reload. With all three off, Go here behaves exactly as before this slice: no preview, the direct route.
 2. **SR2 A preview before going.** On Go here, or on Start with a destination set, with at least one leaning on and the destination at most 5 km away in a straight line, the app finds the direct route and one scenic route per leaning switched on. It then shows a preview: every offered route drawn on the map (the highlighted one strong, the rest faint) and a card with one row per route, Direct first.
-3. **SR3 Each row in words.** A row names its route ("Direct", "Through green", "Past the sights", "Along busy streets") and gives its time at the walk's pace and its distance. A scenic row says how much longer it takes in words ("4 min longer") and, in one line, what it passes. No score, percentage or rank appears anywhere.
+3. **SR3 Each row in words, no minutes compared** (reshaped by the vision gate, the owner, Nov 5). A row names its route ("Direct", "Through green", "Past the sights", "Along busy streets"). Direct says how far it is. A scenic row says its detour in words, "a short detour" (under 15% longer) or "a longer detour", and in one line what it passes. No row shows a time or compares minutes, and no score, percentage or rank appears anywhere.
 4. **SR4 What a route passes.** The line names parks by name when the map has one ("through Platzspitz"), else "through a park". It names busy streets by name ("along Bahnhofstrasse"), and places already found by name. Places not yet found are never named: they appear as "past places to find", with any count said in words.
 5. **SR5 A modest detour.** A scenic route is never more than 30% longer than the direct one.
 6. **SR6 A leaning pulls.** Compared with the direct route:
@@ -57,5 +68,5 @@ Built SR1-SR15 on the web; native never run on a device (`docs/NATIVE_UNVERIFIED
 - **Unit** (`src/lib/__tests__/navigation/`): `scenic.test.ts` (SR2-SR7, SR10, SR12, with a seeded property check for SR5), `scenicGreen.test.ts` (SR15), `scenicRead.test.ts` (SR6's sights, SR9, SR13), `routeLeanings.test.ts` (SR1), `navStore.test.ts` (SR11).
 - **E2E:** `E2E_ONLY=scenic` (SR1-SR4, SR8, SR9, SR11, SR14). SR10, SR12 and SR13's Cancel are unit-tested only. The preview's announcement (SR14) is not checked in the browser.
 - **Real data (SR15):** six to fifteen z14 tiles of tileserver-gl's Zurich `test_data.zip` decode about 180-640 green areas, with names from park points (Zeughaushof, Bullingerhof). On Node, all three leanings over a 5.4 km corridor (32,000 street pieces) take about 1.1 s, after joins were indexed (3.8 s before, 13 s with sights snapping every place). Downtown, a Sights row is common and often says only "past places to find".
-- **Changed on the way:** the row puts "how much longer" on the line with what it passes; on one line it was cut on a 390 px phone.
+- **Changed on the way:** the row first said its time and "N min longer" (cut on a 390 px phone, then moved to its own line). After merging main, the vision gate (decision 0094) found minutes compared between routes; the owner chose to reshape (Nov 5): no times, the detour in words (SR3).
 - **Deferred:** see the Deferred list above and `docs/DEFERRED.md` (Navigation and routes).

@@ -9,8 +9,8 @@ import { Button, theme } from './ui';
  * each, in words. A tap on a row shows its route on the map; Go starts it; Cancel sets nothing.
  * The walk records throughout.
  */
-export function RoutePreview(props: { preview: Preview; pace: number; onSelect: (i: number) => void; onGo: (i: number) => void; onCancel: () => void }) {
-  const { preview, pace } = props;
+export function RoutePreview(props: { preview: Preview; onSelect: (i: number) => void; onGo: (i: number) => void; onCancel: () => void }) {
+  const { preview } = props;
   const direct = preview.options[0];
   return (
     <View testID="route-preview" style={styles.card} accessibilityViewIsModal>
@@ -23,7 +23,7 @@ export function RoutePreview(props: { preview: Preview; pace: number; onSelect: 
         </Pressable>
       </View>
       {preview.options.map((o, i) => {
-        const w = rowWords(o, direct, pace);
+        const w = rowWords(o, direct);
         const on = i === preview.selected;
         return (
           <View key={i} style={[styles.row, on && styles.rowOn]}>
@@ -39,11 +39,10 @@ export function RoutePreview(props: { preview: Preview; pace: number; onSelect: 
               {...{ dataSet: { selected: on ? '1' : '0', route: o.route.source } }}
             >
               <Text style={styles.rowTitle} numberOfLines={1}>{w.title}</Text>
-              <Text style={styles.rowMeta} numberOfLines={1}>
-                {w.time} · {w.distance}
+              {/* Direct says how far; a scenic route its detour in words and what it passes: never minutes compared. */}
+              <Text style={styles.rowMeta} numberOfLines={2}>
+                {w.distance ?? [w.detour, w.passes].filter(Boolean).join(' · ')}
               </Text>
-              {/* How much longer, then what it passes: its own line, so neither is cut on a narrow phone. */}
-              {w.longer ? <Text style={styles.rowPasses} numberOfLines={2}>{[w.longer, w.passes].filter(Boolean).join(' · ')}</Text> : null}
             </Pressable>
             <Button testID={`route-go-${i}`} label="Go" variant={on ? 'primary' : 'secondary'} accessibilityHint={`Start: ${w.title}`} onPress={() => props.onGo(i)} />
           </View>
@@ -66,5 +65,4 @@ const styles = StyleSheet.create({
   rowText: { flex: 1, minHeight: 44, justifyContent: 'center' },
   rowTitle: { fontSize: 15, fontWeight: '700', color: theme.ink },
   rowMeta: { fontSize: 14, color: theme.ink },
-  rowPasses: { fontSize: 13, color: theme.muted },
 });

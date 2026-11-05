@@ -3,7 +3,6 @@ import { distanceM, projector } from '../geo';
 import { formatDistance } from '../format';
 import type { LngLat } from '../types';
 import type { Units } from '../units';
-import { formatTimeLeft, spokenTimeLeft, timeAtPaceMs } from './eta';
 import { SCENIC } from './rules';
 import { inCorridor, probeOf, type GreenArea, type Probe, type Signals } from './scenicSignals';
 import type { EdgeCost, StreetSource } from './streetRoute';
@@ -341,17 +340,23 @@ export function passesLine(p: Passes): string | null {
   return parts.length ? parts.join(', ') : null;
 }
 
-/** SR3, SR14: one row in words, and its label for a screen reader. Never a score. */
-export function rowWords(o: RouteOption, direct: RouteOption, pace: number): { title: string; time: string; distance: string; longer: string | null; passes: string | null; label: string } {
+/**
+ * SR3, SR14: one row in words, and its label for a screen reader. Never a score, and never minutes
+ * compared (VISION.md, Never: "several ways ranked by minutes"; the owner, Nov 5): Direct says how far
+ * it is, a scenic route how much of a detour it is, in words.
+ */
+export function rowWords(o: RouteOption, direct: RouteOption): { title: string; distance: string | null; detour: string | null; passes: string | null; label: string } {
   const title = o.leanings.length
     ? o.leanings.map((l, i) => (i ? TITLES[l][0].toLowerCase() + TITLES[l].slice(1) : TITLES[l])).join(', ')
     : 'Direct';
-  const ms = timeAtPaceMs(o.route.lengthM, pace);
-  const extra = ms - timeAtPaceMs(direct.route.lengthM, pace);
-  const longer = !o.leanings.length ? null : extra < 60_000 ? 'under a minute longer' : `${Math.round(extra / 60_000)} min longer`;
-  const passes = o.leanings.length ? passesLine(o.passes) : null;
-  const distance = formatDistance(o.route.lengthM);
-  return { title, time: formatTimeLeft(ms), distance, longer, passes, label: [title, spokenTimeLeft(ms), distance, longer, passes].filter(Boolean).join(', ') };
+  if (!o.leanings.length) {
+    const distance = formatDistance(o.route.lengthM);
+    return { title, distance, detour: null, passes: null, label: `${title}, ${distance}` };
+  }
+  const more = direct.route.lengthM > 0 ? o.route.lengthM / direct.route.lengthM - 1 : 0;
+  const detour = more < SCENIC.shortDetour ? 'a short detour' : 'a longer detour';
+  const passes = passesLine(o.passes);
+  return { title, distance: null, detour, passes, label: [title, detour, passes].filter(Boolean).join(', ') };
 }
 
 /** SR8: the offered route whose line a map tap landed on (within `maxM`), or null. */

@@ -149,9 +149,10 @@ recording bar brings a minimized walk back.
   Start, the app shows Direct beside up to three scenic routes, one per
   leaning switched on: **Through green** (parks, gardens, woods), **Past the
   sights** (places worth seeing, of the kinds in "What I'm into") and **Along
-  busy streets**. Each is at most 30% longer, and its row says its time, how
-  much longer and what it passes ("through India Point Park"), never naming
-  a place not yet found. A tap highlights one on the map; Go starts it; off
+  busy streets**. Each is at most 30% longer. Direct says how far; a scenic
+  row says its detour in words ("a short detour", "a longer detour") and what
+  it passes ("through India Point Park"), never a time or minutes compared,
+  never naming a place not yet found. A tap highlights one on the map; Go starts it; off
   route it re-routes on the same leaning. Within 5 km; with nothing scenic,
   the direct way at once. Walk me back stays the shortest way.
 - **Open in Maps** hands the destination to the phone's maps app (Apple Maps

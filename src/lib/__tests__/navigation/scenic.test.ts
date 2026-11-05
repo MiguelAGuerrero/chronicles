@@ -76,46 +76,47 @@ test('SR12: Walk me back gets no options and no notice', () => {
   assert.deepEqual(scenicPlan({ at: at(10, 0), label: 'Start', kind: 'start' }, from, ['green', 'sights', 'busy']), { scenic: false, notice: null });
 });
 
-test('SR3: a row in words: name, time at pace, distance, how much longer; no score', () => {
+test('SR3: a row in words: its name; Direct its distance; a scenic route its detour in words, never minutes or a time compared', () => {
   const o = opts(ladder(), sig({ green: [park] }), ['green']);
   assert.equal(o.length, 2);
-  const direct = rowWords(o[0], o[0], 1.3);
+  const direct = rowWords(o[0], o[0]);
   assert.equal(direct.title, 'Direct');
-  assert.equal(direct.longer, null);
-  assert.equal(direct.time, '13 min');
-  assert.match(direct.distance, /^(999 m|1\.0 km)$/, 'the ladder is 1 km to a metre');
-  const green = rowWords(o[1], o[0], 1.3);
+  assert.match(direct.distance ?? '', /^(999 m|1\.0 km)$/, 'how far it is, the ladder being 1 km to a metre');
+  assert.equal(direct.detour, null);
+  const green = rowWords(o[1], o[0]);
   assert.equal(green.title, 'Through green');
-  // 1220 m against 1000 m at 1.3 m/s: about 170 s more.
-  assert.equal(green.longer, '3 min longer');
+  assert.equal(green.distance, null, 'a scenic row gives no distance to set against Direct\'s');
+  // 1220 m against 1000 m is 22% more: a longer detour. Under 15% more is a short one.
+  assert.equal(green.detour, 'a longer detour');
+  assert.equal(rowWords({ ...o[1], route: { ...o[1].route, lengthM: o[0].route.lengthM * 1.1 } }, o[0]).detour, 'a short detour');
   for (const w of [direct, green]) {
     const all = Object.values(w).join(' ');
-    assert.doesNotMatch(all, /%|score|rank|\/10|points/i);
+    assert.doesNotMatch(all, /%|score|rank|points|\bmins?\b|minutes?|hours?|fast|quick|sooner/i, 'no time, no minutes compared (VISION.md, Never)');
   }
-  assert.match(green.label, /^Through green, 16 minutes, 1\.2 km, 3 min longer, through Prospect Park$/);
-  assert.equal(rowWords({ ...o[1], leanings: ['busy'] }, o[0], 1.3).title, 'Along busy streets');
-  assert.equal(rowWords({ ...o[1], leanings: ['sights'] }, o[0], 1.3).title, 'Past the sights');
+  assert.equal(green.label, 'Through green, a longer detour, through Prospect Park');
+  assert.equal(rowWords({ ...o[1], leanings: ['busy'] }, o[0]).title, 'Along busy streets');
+  assert.equal(rowWords({ ...o[1], leanings: ['sights'] }, o[0]).title, 'Past the sights');
 });
 
 test('SR4: parks and streets by name, found places by name, unfound never named', () => {
   const streets = ladder();
   const g = opts(streets, sig({ green: [park] }), ['green']);
-  assert.equal(rowWords(g[1], g[0], 1.3).passes, 'through Prospect Park');
+  assert.equal(rowWords(g[1], g[0]).passes, 'through Prospect Park');
   const unnamed = opts(streets, sig({ green: [rect(2, 8, 0.95, 1.25)] }), ['green']);
-  assert.equal(rowWords(unnamed[1], unnamed[0], 1.3).passes, 'through a park');
+  assert.equal(rowWords(unnamed[1], unnamed[0]).passes, 'through a park');
   const woods = opts(streets, sig({ green: [rect(2, 8, 0.95, 1.25, null, 'wood')] }), ['green']);
-  assert.equal(rowWords(woods[1], woods[0], 1.3).passes, 'through woods');
+  assert.equal(rowWords(woods[1], woods[0]).passes, 'through woods');
   const b = opts(streets, sig({ busy: [thayer] }), ['busy']);
-  assert.equal(rowWords(b[1], b[0], 1.3).passes, 'along Thayer Street');
+  assert.equal(rowWords(b[1], b[0]).passes, 'along Thayer Street');
   const one = opts(streets, sig({ sights: [sight(5, 1.3, 'Old Bell')] }), ['sights']);
   assert.equal(one.length, 2);
-  assert.equal(rowWords(one[1], one[0], 1.3).passes, 'past a place to find');
+  assert.equal(rowWords(one[1], one[0]).passes, 'past a place to find');
   const two = opts(streets, sig({ sights: [sight(4, 1.3, 'Old Bell'), sight(6, 1.3, 'Clock Tower')] }), ['sights']);
-  const said = rowWords(two[1], two[0], 1.3);
+  const said = rowWords(two[1], two[0]);
   assert.equal(said.passes, 'past two places to find');
   assert.doesNotMatch(said.label, /Old Bell|Clock Tower/, 'an unfound place is never named');
   const mixed = opts(streets, sig({ sights: [sight(4, 1.3, 'Old Bell', true), sight(6, 1.3, 'Clock Tower')] }), ['sights']);
-  assert.equal(rowWords(mixed[1], mixed[0], 1.3).passes, 'past Old Bell and a place to find');
+  assert.equal(rowWords(mixed[1], mixed[0]).passes, 'past Old Bell and a place to find');
 });
 
 test('SR5: a scenic route is never more than 30% longer than the direct one', () => {
@@ -202,8 +203,8 @@ test('SR7: two leanings on one way show as one row naming both; one like Direct 
   const o = opts(ladder(), s, ['green', 'sights']);
   assert.equal(o.length, 2, 'merged');
   assert.deepEqual(o[1].leanings, ['green', 'sights']);
-  assert.equal(rowWords(o[1], o[0], 1.3).title, 'Through green, past the sights');
-  assert.equal(rowWords(o[1], o[0], 1.3).passes, 'through Prospect Park, past a place to find');
+  assert.equal(rowWords(o[1], o[0]).title, 'Through green, past the sights');
+  assert.equal(rowWords(o[1], o[0]).passes, 'through Prospect Park, past a place to find');
   // A park along the direct street itself: the green route is the direct one.
   const onDirect = sig({ green: [rect(2, 8, -0.2, 0.2, 'Riverside')] });
   assert.equal(opts(ladder(), onDirect, ['green']).length, 1);

@@ -125,3 +125,4 @@ same argument is not had twice.
 | 0034 | Busy areas are information only |
 | 0052 | Counts are words |
 | 0094 | The vision gate: the gate advises and the owner decides; the mechanical check blocks |
+| 0095 | Scenic routes: a row per leaning (green, sights, streets with life) beside Direct, kept over the page's "one way"; no minutes compared, the detour in words (reshaped at the gate, Nov 5) |

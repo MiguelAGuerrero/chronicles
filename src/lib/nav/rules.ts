@@ -26,6 +26,8 @@ export const NAV = {
 export const SCENIC = {
   /** A scenic route is at most this share longer than the direct one (SR5). */
   detour: 0.3,
+  /** A scenic route under this share longer is "a short detour"; more is "a longer detour" (SR3). */
+  shortDetour: 0.15,
   /** Offered only when the destination is this close in a straight line (SR2, SR9). */
   maxM: 5000,
   /** A corridor of more z14 tiles than this is not read (about 5 km across at 45° north). */

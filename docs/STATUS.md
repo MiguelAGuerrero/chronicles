@@ -109,6 +109,7 @@ first.
 
 ## Needs the owner
 
+- **VISION.md and scenic routes:** decision 0095 proposes amending the Shapes rows "Suggested routes" and "Several routes to one point, Apple Maps style" to fit the row per leaning you kept at the gate (Nov 5); only you edit the page.
 - **The vision's open questions** (`docs/VISION.md`, decision 0094): likeness made by you or suggested; voice
   memos searchable on the phone only; the cloud as a mirror or a place where work happens; browse standard, dwell
   diegetic; where "nothing is calculated for you" ends; the found tally on a place's sheet, carried as debt by
