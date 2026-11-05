@@ -61,6 +61,7 @@ async function checks(h) {
       };
     }));
     await page.reload();
+    await h.mapUp(page);
     // Waited for as one: a single walk can be placed between seeing the text and counting the button.
     const placingCover = await page.waitForSelector('[data-testid=skip-placing]', { timeout: 20000 }).then(() => true, () => false);
     check(placingCover, 'placing old walks shows a cover that can be skipped');

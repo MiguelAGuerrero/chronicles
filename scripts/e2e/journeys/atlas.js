@@ -247,6 +247,7 @@ async function checks(h) {
       }
       await tabTo(page, 'chronicle');
       await page.reload();
+      await h.mapUp(page);
       await page.waitForSelector('[aria-label^="Fox Point,"]', { timeout: 30000 });
       await page.waitForTimeout(1000);
     }
