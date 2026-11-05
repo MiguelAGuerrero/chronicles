@@ -252,6 +252,13 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** open a band's tooltip near each edge of the screen and tap just beside the icon. **Expect:** the tooltip's placement (below, right-aligned) stays inside a phone's safe areas, and its hit slop opens it from a tap beside the icon (walkability audit 14).
 - [ ] **Do:** upgrade over a build before the ward fix, open Explore inside a city's ward (a London borough's ward, a Japanese ward), then force-quit and reopen. **Expect:** wards are not towns (fix ward-subdivision): SQLite `outline_tile` rows are stored with the `#sub1` release stamp and an old row is read again once; meta `outline_nested` is written and read through the write queue (a failed write leaves the tile unkept); record whether Overture's z10 `division` layer carries the points the decoder needs to find wards there (else a ward's z10 border piece shows until a z12 read finds its id).
 
+## Scenic routes (SR1-SR15, decision 0095)
+
+- [ ] **Do:** on a walk, long press a destination 1-3 km away near a park, tap Go here. **Expect:** the preview card (`RoutePreview`) shows over the native walk map with a row per route, each with its own distance, and the routes not highlighted drawn faint (the `alternates` source in `WalkMap.native.tsx`); tapping a row or its line highlights it. (SR2, SR3, SR8)
+- [ ] **Do:** pull the ready bar up, and open the walk's drawer, and turn each "Scenic routes" switch off and on; force-quit and reopen. **Expect:** Green, Sights and Streets with life show in both native drawers (`RouteLeaningSettings`), each change is kept after the relaunch, and with all three off Go here starts the direct route with no preview. (SR1)
+- [ ] **Do:** outdoors on cellular, Go here to a destination about 5 km away with all three leanings on, and time "Finding a route" to the preview. **Expect:** the corridor read (shared JS over `fetch`: `fetchTiles`, `readOverture`) finishes well under the 30 s timeout (about 1 s on Node for three leanings over 5 km of Zurich; a phone is likely several times that), and Cancel during it stops the read and starts no route. Record the time. (SR13)
+- [ ] **Do:** on Android, open the preview and press the system Back. **Expect:** the preview closes, no destination is set, and the walk keeps recording. (SR8)
+
 ## The web e2e's stand-ins
 
 Where the headless web e2e fakes what a phone does. Each item is the real thing on a phone.

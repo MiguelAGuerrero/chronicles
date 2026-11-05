@@ -6,6 +6,17 @@
 
 Native has never run on a device. The web e2e stands in for the phone where it can (a synthetic `devicemotion`, a stubbed `navigator.vibrate`, a service-worker message for a notification tap), and `docs/NATIVE_UNVERIFIED.md` listed every native path as a line to tick. A line said what had not been tried, not how to try it or what passing looks like, and nothing held a criterion that only a phone can check (RR17) to a line there. This slice makes that file the acceptance suite for the first mobile run: each item a test a person runs on a development build, each device-only criterion tied to one, and the gate holding both.
 
+## Vision
+
+```
+Idea: keep the tests only a phone can run as an acceptance suite for the first mobile run (the owner, Nov 5)
+Verb: none (engineering: a checklist, a check and a command; nothing a walker sees changes)
+Touches: none
+Verdict: no surface
+Shape: as asked
+Criteria: none
+```
+
 ## Criteria
 
 1. **DV1 · One suite.** `docs/NATIVE_UNVERIFIED.md` is the device acceptance suite: every native path the web build cannot run is an open item there, grouped by area (a `##` heading), and ticked only on a phone.

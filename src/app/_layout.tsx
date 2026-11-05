@@ -14,6 +14,7 @@ import { openWalkAtLaunch } from '../lib/launchWalk';
 import { reconcileOpenWalk } from '../lib/session';
 import { ensureTileBuild } from '../lib/tiles';
 import { loadUnits } from '../lib/unitsStore';
+import { routeLeanings } from '../lib/routeLeanings';
 
 /** The tabs are the stack's first screen, so a walk or a replay always has them beneath. */
 export const unstable_settings = { initialRouteName: '(tabs)' };
@@ -47,6 +48,8 @@ export default function RootLayout() {
     ensureTileBuild().catch(() => {});
     // The km or miles setting (QL13); until it loads, the locale's default shows.
     loadUnits().catch(() => {});
+    // The scenic routes' leanings (SR1); until they load, all three are on.
+    routeLeanings.load().catch(() => {});
     openWalkAtLaunch({
       findOpen: () => db.getOpenWalk(),
       showWalk: () =>

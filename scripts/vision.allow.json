@@ -1,0 +1,30 @@
+[
+  {
+    "file": "src/components/CaptureView.tsx",
+    "rule": "tally",
+    "text": "{} of {}",
+    "kind": "allowed",
+    "why": "the viewer's position among the moments open, a pager, not a tally of what you did"
+  },
+  {
+    "file": "src/components/ceremony/StepThrough.tsx",
+    "rule": "tally",
+    "text": "{} of {}",
+    "kind": "allowed",
+    "why": "the screen reader's step-through position in the replay, a pager, not a tally"
+  },
+  {
+    "file": "src/app/(tabs)/chronicle.tsx",
+    "rule": "tally",
+    "text": "Placing your walks",
+    "kind": "allowed",
+    "why": "progress of work the app is doing while it places walks, gone when it finishes; not a tally of the owner"
+  },
+  {
+    "file": "src/lib/explore/explore.ts",
+    "rule": "tally",
+    "text": "{} of {} · list from {}",
+    "kind": "debt",
+    "why": "the found tally on a place's sheet (E10, '12 of 87 · list from Nov 1'), open in the concept doc since NV14 and docs/VISION.md open question 6; remove or soften on the owner's call"
+  }
+]

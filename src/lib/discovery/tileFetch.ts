@@ -40,7 +40,7 @@ export async function fetchTiles(url: string, tiles: [number, number][], zoom = 
   const bodies = await Promise.all(
     tiles.map(([x, y]) => fetchTile(url.replace('{z}', String(zoom)).replace('{x}', String(x)).replace('{y}', String(y)), shouldStop)),
   );
-  const out: CollectedFeatures = { roads: [], names: [], places: [], pois: [], complete: true };
+  const out: CollectedFeatures = { roads: [], names: [], places: [], pois: [], landcover: [], complete: true };
   for (let i = 0; i < tiles.length; i++) {
     const [x, y] = tiles[i];
     const f = decodeTile(new Uint8Array(bodies[i]), zoom, x, y);
@@ -48,6 +48,7 @@ export async function fetchTiles(url: string, tiles: [number, number][], zoom = 
     out.names.push(...f.names);
     out.places.push(...f.places);
     out.pois.push(...f.pois);
+    out.landcover!.push(...(f.landcover ?? []));
   }
   return out;
 }

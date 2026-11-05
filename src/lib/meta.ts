@@ -94,6 +94,8 @@ export const META = {
   street_code: { owner: 'tiles', codec: text },
   // Navigation (lib/nav/store, lib/startPlan): where the open walk, or the drawer, is heading.
   nav: { owner: 'nav', codec: json<{ walk_id: string | null; dest: Waypoint }>(isNav) },
+  // Scenic routes (lib/routeLeanings): the leanings switched on in the walk settings (SR1).
+  route_leanings: { owner: 'nav', codec: json<string[]>(isStrings) },
   // Navigate tab (lib/startPlan, the Start dialog)
   start_mode: { owner: 'navigate', codec: oneOf<StartMode>('quiet', 'explore') },
   web_note_dismissed: { owner: 'navigate', codec: flag },

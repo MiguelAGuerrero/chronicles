@@ -22,7 +22,7 @@ const FEATURES = [
     rule: 'functional-core',
     source: ['src/lib/types.ts', 'src/lib/{store,useStore,meta,id,focus}.ts', 'src/lib/ports/**'],
     journeys: [],
-    specs: ['functional-core', 'affected-checks', 'test-organization', 'shells-saved-settings', 'test-gaps', 'device-acceptance'],
+    specs: ['functional-core', 'affected-checks', 'test-organization', 'shells-saved-settings', 'test-gaps', 'device-acceptance', 'vision-gate'],
   },
   {
     name: 'storage',
@@ -73,9 +73,9 @@ const FEATURES = [
     name: 'navigation',
     about: 'the way: routes, the heading, bridges, Open in Maps, time left',
     rule: 'navigation',
-    source: ['src/lib/nav/**', 'src/lib/here/**'],
-    journeys: [],
-    specs: ['v0.5-places', 'bridges-and-open-in-maps', 'quality-of-life'],
+    source: ['src/lib/nav/**', 'src/lib/here/**', 'src/lib/routeLeanings/**', 'src/components/{RoutePreview,RouteLeaningSettings}.tsx'],
+    journeys: ['scenic'],
+    specs: ['v0.5-places', 'bridges-and-open-in-maps', 'quality-of-life', 'scenic-routes'],
   },
   {
     name: 'replay',

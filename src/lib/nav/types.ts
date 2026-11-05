@@ -1,5 +1,6 @@
 // @layer core
 import type { LngLat } from '../types';
+import type { Leaning } from './scenic';
 
 /**
  * Navigation's contract. A destination is a Waypoint; a RouteSource turns two
@@ -13,6 +14,8 @@ export interface Waypoint {
   kind: 'start' | 'capture' | 'point' | 'place' | 'find';
   /** A checklist place (E12): its key, so the bar can show its name once it is revealed. */
   placeKey?: string;
+  /** The scenic route chosen for the way there (SR8, SR11); none is the direct way. */
+  leanings?: Leaning[];
 }
 
 export interface Route {
