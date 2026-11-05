@@ -1,6 +1,8 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 
+export { ScreenError as ErrorBoundary } from '../components/ScreenError';
+
 /**
  * Explore was `/explore` until Nov 3; it is `/` now (NV2, decision 0070). A
  * bookmark, or a Home Screen app reopening on its last page, still lands here.

@@ -38,6 +38,9 @@ import { useLocate, type LocateError } from '../../lib/useLocate';
 import { useStartWalk } from '../../lib/useStartWalk';
 import { useTabMap } from '../../lib/useTabMap';
 
+// A tab that throws shows what broke, with the tab bar and the recording bar still there (fix ios-video audit 1).
+export { ScreenError as ErrorBoundary } from '../../components/ScreenError';
+
 const NONE: never[] = [];
 const NEW_FAM: Familiarity = { walks: 0, last: null };
 const WORLD = { center: [-40, 30] as [number, number], zoom: 1.2 };

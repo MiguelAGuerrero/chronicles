@@ -126,16 +126,21 @@ export function EditedVideo(props: { uri: string; edit: MediaEdit | null; captio
     finished.current = props.onFinished;
   }, [props.onFinished]);
   const check = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Started by autoPlay (not by a later change of the prop), and where it had got to: a swapped-in view goes on from there.
+  const autoStarted = useRef(false);
+  const at = useRef(0);
   const toStart = () => {
     if (trim) seekTo(player, trim.start_ms / 1000);
   };
-  // A player told to play before it has loaded ignores it on web, so it
-  // starts once it is ready (and at once if it already is).
+  // On phones it starts once ready. The web player plays only the <video> it has mounted, and iOS
+  // loads a video only once play() is called, so it would never be ready (fix ios-video 1): on the
+  // web it starts on mount (a parent's effect runs after its children's).
   const start = () => {
     if (started.current) return;
     started.current = true;
     toStart();
     if (!props.autoPlay) return;
+    autoStarted.current = true;
     player.play();
     if (Platform.OS !== 'web') return;
     check.current = setTimeout(() => {
@@ -156,12 +161,20 @@ export function EditedVideo(props: { uri: string; edit: MediaEdit | null; captio
   useEventListener(player, 'statusChange', ({ status }) => {
     if (status === 'readyToPlay') start();
   });
+  // The plain player gives way to the sized one once the size is known; on the web the new <video> starts
+  // paused at 0, so an autoplay goes on from where the old one had got to (fix ios-video audit 2, 3).
+  const view = rect && size ? 'picture' : 'plain';
   useEffect(() => {
-    if (player.status === 'readyToPlay') start();
+    if (Platform.OS !== 'web' || !autoStarted.current || ended.current) return;
+    if (at.current > player.currentTime) seekTo(player, at.current);
+    player.play();
+  }, [view, player]);
+  useEffect(() => {
+    if (Platform.OS === 'web' || player.status === 'readyToPlay') start();
     return () => {
       if (check.current) clearTimeout(check.current);
     };
-    // Checked once, on mount; later readiness comes through statusChange.
+    // Checked once, on mount; later readiness (phones) comes through statusChange.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [player]);
   const end = () => {
@@ -172,6 +185,7 @@ export function EditedVideo(props: { uri: string; edit: MediaEdit | null; captio
   useEventListener(player, 'playToEnd', end);
   // The kept part only (ME15): stop at its end (the replay moves on), pull a seek outside back in.
   useEventListener(player, 'timeUpdate', ({ currentTime }) => {
+    at.current = currentTime;
     if (!trim) return;
     const s = trim.start_ms / 1000;
     const e = trim.end_ms / 1000;
