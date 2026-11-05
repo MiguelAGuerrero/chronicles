@@ -16,6 +16,11 @@ async function run(h) {
   const kind = pg.locator('[data-testid=atlas-kind-parks]');
   check((await kind.count()) === 1, 'KW1: Green Row\'s card has a Green row');
 
+  {
+    const btn = pg.locator('[data-testid=atlas-kind-walk-parks]');
+    check.todo((await btn.count()) === 1 && /Suggest a walk/.test(await btn.innerText().catch(() => '')), 'KW15: each kind row has a "Suggest a walk" button');
+  }
+
   await kind.click().catch(() => {});
   await pg.waitForSelector('[data-testid=kindwalk-length]', { timeout: 60000 }).catch(() => {});
   const panel = pg.locator('[data-testid=kindwalk-parks]');

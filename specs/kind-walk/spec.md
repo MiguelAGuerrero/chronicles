@@ -58,6 +58,10 @@ None. The owner chose A (Nov 5): a walk started from a kind says distance only.
 
 1. **KW1 · A kind row opens in place.** On an area's card (a neighborhood or a town), tapping a kind row under "What's here"
    expands it inside the card; tapping it again closes it. No new screen, route or modal opens.
+2. **KW15 · An explicit button says a walk can be suggested.** Each kind row carries its own button, a signpost icon
+   (`trail-sign-outline`) and the words "Suggest a walk", that opens and closes the kind in place, beside the row's own tap.
+   The button is at least 44 px square to touch and reads as a button to a screen reader ("Suggest a walk through green").
+   (The owner, 2026-11-05, after finding the rows gave no sign they could be tapped.)
 2. **KW2 · A thin or empty kind offers no walk.** A ring the map knows almost nothing about (AG3), or a kind with no presence
    (its word is "none"), shows no walk and says so in words.
 3. **KW3 · Where no way can be found, it says so.** With no streets to route on (or a read of the area that fails), no walk
