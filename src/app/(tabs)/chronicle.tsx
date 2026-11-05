@@ -34,6 +34,9 @@ import { UndoToast } from '../../components/UndoToast';
 import { WalkActions } from '../../components/WalkActions';
 import { useOpenWalkInfo } from '../../components/OpenWalk';
 
+// A tab that throws shows what broke, with the tab bar and the recording bar still there (fix ios-video audit 1).
+export { ScreenError as ErrorBoundary } from '../../components/ScreenError';
+
 const NONE: never[] = [];
 /** With nothing walked yet: the world, and one line. */
 const WORLD = { center: [-40, 30] as [number, number], zoom: 1.2 };
