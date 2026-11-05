@@ -32,7 +32,7 @@ Spec: `specs/places-worth-the-stop/spec.md` (PW1-PW16). Decision 0096. Nothing h
 - `scripts/features.js`: `places-worth-the-stop` moves from the `places` feature to `explore` (the code is in `discovery/**`), and the `explore` feature gains the `curiosities` journey.
 
 **Build and fixtures (new):**
-- `scripts/build-places-archive.js` with `scripts/places-archive/classify.js` (type decides; PW6), the gate and the writer, and `queries/` (the SPARQL and the OSM tag filter it expects). Output: a region's `places.pmtiles` and `manifest.json`, the same bytes each time. It reuses `scripts/pmtiles-encode.mjs` and `scripts/mvt-encode.mjs` (the e2e's encoders).
+- `scripts/build-places-archive.js` with `scripts/places-archive/classify.js` (type decides; PW6), the gate and the writer, and `queries/` (the SPARQL and the OSM tag filter it expects). Output: a region's `places.pmtiles` and `manifest.json`, the same bytes each time. Its writer is `tippecanoe` or a small writer with leaf directories; the e2e's `scripts/pmtiles-encode.mjs` is a test harness (uncompressed, one root directory) and stays for fixtures. Tiles are stored at z12 and files are named by version (`hosting-audit.md`, corrections 1 to 3).
 - `scripts/e2e/journeys/curiosities.js`: a fake manifest and archive served by byte range beside the fake Overture, an archive place and a tile place that are one, and a host that answers 404.
 
 **Docs:** `docs/ARCHITECTURE.md` (the codemap), `.claude/rules/explore-and-discovery.md`, `docs/DEFERRED.md`, `docs/NATIVE_UNVERIFIED.md`, `docs/PRODUCT.md`, `docs/STATUS.md`, and the spec's record.
@@ -94,6 +94,7 @@ A new journey, `curiosities`, because the slice changes what a screen shows. It 
 4. **The place sheet's tally (PW17), which blocks shipping.** Curiosities join an area's checklist, so its "N of M" grows with the pool, and the steward reads that as the "tourists working through a list" the vision names (Open question 6). I recommend the sheet name its finds and say what waits by kind, with no total; the alternative is to keep it as it is and accept the louder list. Decision 0096 says this is decided in the slice or before.
 5. **The Wikipedia signal.** The steward flags "a Wikidata or Wikipedia entry" as the weakest gate, since it measures editors' attention. It is the only open signal for the odd classes (a heritage listing covers buildings, not a giant chicken). I kept it as corroboration only (PW7: a class from the pinned table is always required, a signal never admits a place alone). If you agree, I add a line saying so to 0096; the record is yours, so I haven't touched it.
 6. **The doc.** Its "Region packs" call (R2, a scheduled job) predates 0096. Update it, or should I mark the mirror as the newer text?
+7. **Where the archive lives** (`hosting-audit.md`). Reading it from Pages is fast and light; the cost is repo growth, about 15 MB per refresh against a 5 MB repo today. I recommend a separate data repo with its own Pages site: the same hostname, so no new `ALLOWED_HOSTS` entry. The fallback is an orphan data branch in this repo; live queries are a stopgap at best. Whichever you choose changes a constant and decision 0096's "Host" line.
 
 ## Steward triage (report-only review of the spec and this plan, Nov 5)
 
