@@ -65,7 +65,7 @@ test('TG21 the baseline only shrinks: a stale entry fails until removed, and its
   assert.match(stale[0].message, /remove it from scripts\/criteria\.baseline\.json/);
   const baseline = JSON.parse(read('scripts/criteria.baseline.json')) as string[];
   // Lower the ceiling as entries go; never raise it (functional-core audit 7's rule, for criteria).
-  const CEILING = 55;
+  const CEILING = 40;
   assert.ok(baseline.length <= CEILING, `the baseline grew: ${baseline.length} entries, ceiling ${CEILING}`);
   assert.deepEqual([...baseline].sort(), baseline, 'kept sorted');
 });
