@@ -220,7 +220,7 @@ const FEATURES = [
     rule: 'resurface',
     source: ['src/lib/resurface/**', 'src/components/chronicle/**'],
     journeys: ['resurface'],
-    specs: ['resurfaced-moments'],
+    specs: ['resurfaced-moments', 'memories-context'],
   },
   {
     name: 'motion',
@@ -319,7 +319,9 @@ const UNTESTED = {
  * Specs a slice is building (TG22): from its plan until done, its criteria are exempt from the gate.
  * `{ slug: { branch, since: 'YYYY-MM-DD' } }`; an entry older than 7 days fails the docs check.
  */
-const IN_PROGRESS = {};
+const IN_PROGRESS = {
+  'memories-context': { branch: 'claude/memories-context', since: '2026-11-05' },
+};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 
