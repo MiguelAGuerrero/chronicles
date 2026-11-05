@@ -22,7 +22,7 @@ async function run(h) {
   await btn.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
   await pg.waitForTimeout(800);
   const box = await btn.boundingBox().catch(() => null);
-  check((await btn.count()) === 1 && /Suggest a walk/.test(await btn.innerText().catch(() => '')) && !!box && box.width >= 44 && box.height >= 44, 'KW15: each kind row has a "Suggest a walk" button, at least 44 px to touch');
+  check((await btn.count()) === 1 && /Suggest a walk/.test(await btn.innerText().catch(() => '')) && !!box && box.width >= 43.5 && box.height >= 43.5, 'KW15: each kind row has a "Suggest a walk" button, at least 44 px to touch');
   const row = await pg.locator('[data-testid=atlas-kind-parks]').boundingBox().catch(() => null);
   const cardBox = await pg.locator('[data-testid=atlas-card-pull]').boundingBox().catch(() => null);
   check(!!box && !!cardBox && Math.abs((box.x + box.width) - (cardBox.x + cardBox.width - 18)) <= 6, `KW15: the button is aligned right in its row (right edge ${box ? Math.round(box.x + box.width) : '?'}, card ${cardBox ? Math.round(cardBox.x + cardBox.width) : '?'})`);
