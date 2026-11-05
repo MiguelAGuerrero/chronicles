@@ -40,6 +40,7 @@ async function checks(h) {
       check(true, 'the replay card offers the walk’s actions, and Escape closes them (D1)');
       await page.click('[data-testid=to-name]');
       await page.click('[data-testid=save]');
+      await h.mapUp(page);
       await page.waitForSelector('[data-testid=home-sheet]');
 
       const first = (await all('walk')).sort((a, b) => a.started_at - b.started_at)[0];

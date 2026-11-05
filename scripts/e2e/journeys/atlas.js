@@ -10,6 +10,7 @@ async function arrive(h) {
   if (await page.locator('[data-testid=to-name]').count()) {
     await page.click('[data-testid=to-name]');
     await page.click('[data-testid=save]');
+    await h.mapUp(page);
     await page.waitForSelector('[data-testid=home-sheet]');
     await page.waitForSelector('[aria-label^="Fox Point,"]', { timeout: 15000 });
   }

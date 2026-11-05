@@ -61,6 +61,7 @@ async function checks(h) {
     await page.fill('[data-testid=epilogue-input]', 'Cardamom and the river.');
     await page.click('[data-testid=save]');
     // Back on Chronicle: the walk is a star where it was walked (H1, H7, NV27).
+    await h.mapUp(page);
     await page.waitForSelector('[data-testid=home-sheet]');
     check(new URL(page.url()).pathname === `${BASE}/chronicle` && (await page.locator('[data-testid=home-sheet]').count()) === 1 && (await tabBarShown(page)),
       `closing the replay after Stop returns to Chronicle, once, with the tab bar (NV27: ${page.url()})`);
@@ -167,6 +168,7 @@ async function checks(h) {
     check(sound, 'a tap on it turns the sound on');
     await fresh.close();
     await page.click('[data-testid=done]');
+    await h.mapUp(page);
     await page.waitForSelector('[data-testid=home-sheet]');
     // The sheet kept its walks list (H5), so it is counted rather than Start.
     check((await page.locator('[data-testid=home-sheet]').count()) === 1 && (await page.locator('[data-testid=walk-row]').count()) === 1, 'done returns to the one home, its walks list as it was');
@@ -190,6 +192,7 @@ async function checks(h) {
       still.on('pageerror', (e) => errors.push(String(e)));
       await still.emulateMedia({ reducedMotion: 'reduce' });
       await still.goto(page.url());
+      await h.mapUp(still);
       await still.waitForSelector('[data-testid=home-sheet]');
       await still.waitForTimeout(800);
       await still.click('[aria-label^="Fox Point,"]');

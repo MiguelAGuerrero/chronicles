@@ -53,11 +53,13 @@ async function checks(h) {
     const ex = await onTab('explore');
     check(ex.path === '/' && ex.canvases === 1, `Explore at /, one live map (NV4, NV5: ${JSON.stringify(ex)})`);
     const ch = await onTab('chronicle');
+    await h.mapUp(page);
     await page.waitForSelector('text=Walk somewhere and it is starred here');
     check(ch.path === '/chronicle' && ch.canvases === 1, `Chronicle at /chronicle, one live map (NV4, NV5: ${JSON.stringify(ch)})`);
     check((await shownCount(page, '[data-testid=start], [data-testid=start-explore], [data-testid=moment-note], [data-testid=look-here]')) === 0,
       'Chronicle has no Start, Explore button, quick capture or What’s good here (NV11)');
     await page.reload();
+    await h.mapUp(page);
     await page.waitForSelector('[data-testid=home-sheet]');
     check(new URL(page.url()).pathname === `${BASE}/chronicle` && (await page.locator('[data-testid=tab-chronicle][aria-selected=true]').count()) === 1, 'a reload keeps the tab (NV5)');
     await page.goBack();

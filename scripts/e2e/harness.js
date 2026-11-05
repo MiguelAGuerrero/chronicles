@@ -336,6 +336,12 @@ async function createHarness() {
       if (await pg.locator(`[data-testid=section-${section}]`).filter({ visible: true }).count()) await pg.click(`[data-testid=section-${section}]`);
     }
   };
+  // Chronicle opens on Memories (RM1); a journey that wants the map's sheet after leaving a replay brings it up.
+  const mapUp = async (pg) => {
+    await pg.waitForSelector('[data-testid=chronicle-sections]', { timeout: 15000 }).catch(() => {});
+    const sheetShown = (await pg.locator('[data-testid=home-sheet]').filter({ visible: true }).count()) > 0;
+    if (!sheetShown && (await pg.locator('[data-testid=section-map]').filter({ visible: true }).count())) await pg.click('[data-testid=section-map]');
+  };
   // Elements on the tab in front: JS tabs keep the others mounted beneath it, aria-hidden.
   const shownCount = (pg, sel) => pg.evaluate((q) => [...document.querySelectorAll(q)].filter((e) => !e.closest('[aria-hidden=true]')).length, sel);
   // What is drawn at a point: the tab bar hides under the walk and the replays (NV6).
@@ -521,7 +527,7 @@ async function createHarness() {
     server.close();
   };
   return {
-    url, navUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, iconOf, metricRegion, pressedScale, metaOf, drawerTo, tabTo, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
+    url, navUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, iconOf, metricRegion, pressedScale, metaOf, drawerTo, tabTo, mapUp, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
     onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, walkability, overpassAsked, OVERPASS_HOST,
   };
 }

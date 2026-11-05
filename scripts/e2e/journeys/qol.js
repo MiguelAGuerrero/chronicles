@@ -458,6 +458,7 @@ async function run(h) {
     // Chronicle: the walks list under this month's header (QL28); the walk renamed from its row (QL22, QL23).
     await qstep('qol QL22, QL23, QL28', async () => {
       await pg.click('[data-testid=not-now]');
+      await h.mapUp(pg);
       await pg.waitForSelector('[data-testid=home-sheet]', { timeout: 15000 });
       await pg.waitForTimeout(800);
       await drawerTo(pg, 'half', 'sheet-drag');
