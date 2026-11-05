@@ -154,7 +154,7 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 | Session | Branch | Doing |
 |---|---|---|
 | Bug fixes (open since Oct 31) | unknown | unknown |
-| Resurfaced moments (Chronicle opens on Memories, RM1-RM25) | `claude/resurfaced-moments-spec` | built 2026-11-05: unit tests, typecheck, lint and the `resurface` e2e pass; the older Chronicle journeys are being re-run; spec `specs/resurfaced-moments/spec.md`; native unverified; audited 2026-11-05 (16 findings: 12 fixed, 3 deferred, 1 rejected) |
+| Resurfaced moments (Chronicle opens on Memories, RM1-RM25, decision 0098) | `claude/resurfaced-moments-spec`, merged to main 2026-11-05 (`aac7d9d`) | shipped 2026-11-05: unit tests, typecheck, lint and the e2e journeys `resurface`, `chronicle`, `tabs`, `launch`, `qol`, `reload`, `replay`, `walk`, `gaps` pass on the /chronicles build; Pages run 125 succeeded; native unverified; audited 2026-11-05 (16 findings: 12 fixed, 3 deferred, 1 rejected); spec `specs/resurfaced-moments/spec.md` |
 
 ## Updating this file
 
