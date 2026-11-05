@@ -31,6 +31,17 @@ path the docs name exists (short names like `lib/quietLines` included). CI and
 the Stop hook run it too; each failure says how to fix it. Fix the reference,
 not the check.
 
+## 2b. The vision (decision 0094)
+
+```bash
+npm run check:vision -- --list
+git log --oneline "$(grep -oE 'Last reviewed:.*at `[0-9a-f]+`' docs/VISION.md | grep -oE '[0-9a-f]{7,}')"..HEAD -- src/app src/components | wc -l
+```
+
+The first must be clean; read each excused line's reason. When the second says
+five or more commits that changed a screen since the last review, run
+`/vision review` (or say it is due in the report).
+
 ## 3. PRODUCT.md mentions every shipped slice
 
 ```bash

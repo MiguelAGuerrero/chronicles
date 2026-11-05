@@ -26,6 +26,8 @@ jobs:
       - run: npm ci
       # The agent docs: AGENTS.md's budget, rule globs, named paths (scripts/check-docs.js).
       - run: npm run check:docs
+      # The vision's mechanical half: score words, tallies, hosts, dependencies, spec verdicts (decision 0094).
+      - run: npm run check:vision
       - run: npm run typecheck
       - run: npm test
       # Lint holds the import boundaries and the functional core's layers (FC3, FC5).

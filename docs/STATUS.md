@@ -5,7 +5,7 @@ every branch holds and what is waiting on the owner. Update it at the start and
 end of every slice, and whenever a branch is opened, merged or abandoned. For
 what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md`.
 
-- **As of:** 2026-11-04
+- **As of:** 2026-11-05
 - **`origin/main` head:** `28c7417` (2026-11-03, the filling-gaps merge). Since
   `7a34666` main gained Bridges and Open in Maps (`82186db`, `67b7c9d`), the
   Start dialog (`6fb2572`, `9f547bd`), no Open in Maps on "Off your route"
@@ -60,6 +60,7 @@ what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md
 | Replay rhythm (the replay as a story told by a ceremony; glide to the moments, zip through the rest, tap to hold; RR1-RR22, decisions 0085, 0086; then a loading skeleton and the screen kept awake, RR23-RR24, decision 0087) | shipped 2026-11-04 (web verified by the e2e `replay` journey, against the `/chronicles` build too; native unverified) | branch `claude/replay-rhythm`, 2026-11-04 | `specs/replay-rhythm/spec.md` (repo first) | yes, three rounds at the owner's request (19 findings: 16 fixed, 1 deferred, 2 rejected; 10: 9 fixed, 1 in part; 9: 8 fixed, 1 deferred to the owner) |
 | Town presence (a town graded across its whole outline; its pockets of activity listed as Busy areas; malls count as Shops; TP1-TP12, decision 0089) | built 2026-11-04 (unit tests, typecheck, lint, `npm test`, e2e `outlines`, `grading`, `marks`, `tabs` pass on the web build; native unverified; the tile class names for a mall are unconfirmed) | branch `claude/town-presence-spec` | `specs/town-presence/spec.md` (repo first) | no (decision 0074) |
 | Walkability (a band per street as an icon with a tooltip; the layer on the Explore and Navigate maps; the area card's "On foot" line; a silent heads-up on a navigated route; WK1-WK23, WH1-WH13, decision 0093) | shipped 2026-11-04 (web verified by the e2e `walkability` and `headsup` on the /chronicles build; native unverified) | branch `claude/walkability-spec`, merged 2026-11-04; audit fixes after | `specs/walkability/spec.md`, `specs/walkability-headsup/spec.md` (repo first) | yes (14 findings: 10 fixed, 3 deferred, 1 rejected) |
+| Vision gate (`docs/VISION.md`, the `/vision` skill, the `steward` subagent, `npm run check:vision` in CI and the Stop hook; VG1-VG12, decision 0094) | shipped 2026-11-05 (process; no app behaviour change): unit tests, typecheck, lint, `npm test` | branch `claude/vision-gate`, 2026-11-05 | `specs/vision-gate/spec.md` (repo only) | no (decision 0074) |
 
 Not a tab, but tracked: **suggested routes** (interesting ways, route preview,
 "Walk this way") are deferred as their own later slice (`749811d` 2026-11-01).
@@ -107,6 +108,10 @@ first.
 
 ## Needs the owner
 
+- **The vision's open questions** (`docs/VISION.md`, decision 0094): likeness made by you or suggested; voice
+  memos searchable on the phone only; the cloud as a mirror or a place where work happens; browse standard, dwell
+  diegetic; where "nothing is calculated for you" ends; the found tally on a place's sheet, carried as debt by
+  `npm run check:vision`. Lines marked [proposed] on the page wait on these.
 - **Functional core, next:** the walk screen's fog refresh moves to a shell (the first shell, and the rules for shells with it).
 - **The web and native stores disagree** in five places the Db contract found (`docs/DEFERRED.md`, Functional core): which side is right, per case.
 - **`WALKED_THRESHOLD` (0.5)** in snapping is "still an open product decision"
