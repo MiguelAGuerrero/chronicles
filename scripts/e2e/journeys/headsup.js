@@ -80,7 +80,7 @@ async function run(h) {
   await p2.waitForTimeout(700);
   await p2.mouse.up();
   await p2.click('[data-testid=go-here]');
-  await p2.waitForSelector('[data-testid=nav-bar]', { timeout: 30000 });
+  await routed(p2, 30000);
   await p2.waitForSelector('[data-testid=walk-ahead]', { timeout: 45000 }).catch(() => {});
   const area = (await p2.locator('[data-testid=walk-ahead]').innerText().catch(() => '')).replace(/[^\x20-\x7e]/g, '').trim();
   check(area === 'Next: an area built around cars', `UF15: entering ground built around cars, with no fast road in it, says an area and not a street, with no number (${JSON.stringify(area)})`);
@@ -108,7 +108,7 @@ async function run(h) {
   await p3.waitForTimeout(700);
   await p3.mouse.up();
   await p3.click('[data-testid=go-here]');
-  await p3.waitForSelector('[data-testid=nav-bar]', { timeout: 30000 });
+  await routed(p3, 30000);
   await p3.waitForTimeout(8000);
   check((await p3.locator('[data-testid=walk-ahead]').count()) === 0 && transport() === before, `vision review (the heads-up and its reads): with the layer off the route says nothing and reads no walkability tile (${transport() - before} requests)`);
   await p3.click('[data-testid=nav-end]');

@@ -141,7 +141,7 @@ export function AtlasCard(props: {
       }]
     : [styles.side, { width: layout.width, height: layout.height }];
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+    <View style={[StyleSheet.absoluteFill, styles.over]} pointerEvents="box-none">
       {/* Behind the drawer: dims the tab beneath as the drawer is pulled away, so the close reads as progress. */}
       {layout.kind === 'sheet' && (
         <Animated.View
@@ -378,6 +378,8 @@ function createPull(offset: Animated.Value) {
 }
 
 const styles = StyleSheet.create({
+  // Above Explore's map pane, which sits at zIndex 5 so the Layers panel can overlay the cards (ML4).
+  over: { zIndex: 6 },
   scrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.35)' },
   // Full screen, over the tabs (which fold away while it is open); `maxWidth` keeps a wide phone-width window readable.
   sheet: {

@@ -24,3 +24,4 @@ A layer puts graphics on the base map; one Layers button opens a panel with a sw
 - The Explore map is about 200 px tall on a phone: its Layers button is anchored from the top and the pane overflows (`overflow: visible`, `zIndex`) so the panel can run over the cards below; the walk's is anchored from the bottom, with the panel placed from the button's top.
 - The e2e reads `data-borders`, `data-walk`, `data-busy` and `data-busy-sets` (how many times the busy drawing was sent) on the map's container. A journey that looks at a layer turns it on first (`switchLayer` in the harness): they all start off.
 - `layerNotes` (`layers/notes.ts`) is the quiet line under a layer that cannot draw: waiting for a position, reading, not available.
+- **Explore's map pane is `zIndex: 5`** so the panel can overlay the cards; anything that must cover it (the area card, `AtlasCard`'s wrapper, `zIndex: 6`) needs a higher one, or the map takes the card's handle when it is full height.
