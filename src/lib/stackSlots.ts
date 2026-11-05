@@ -26,3 +26,12 @@ export function layersCorner(o: { barTop: number; sideInset: number; scaleBottom
 export function pillsBottom(corner: Corner): number {
   return corner.top + CORNER_GAP;
 }
+
+/**
+ * The scale bar's inset from the map's own bottom. On the walk the map runs under the strip, so the bar clears the strip's height; on the
+ * ready screen a spacer holds the strip's place and the map ends at the strip's top, so only the gap is left (fix layers-pad). Either way
+ * the bar is `scaleBottom` above the strip, where `layersCorner` expects it.
+ */
+export function scaleInsetBottom(o: { barTop: number; scaleBottom: number; mapEndsAtStrip: boolean }): number {
+  return o.mapEndsAtStrip ? o.scaleBottom : o.barTop + o.scaleBottom;
+}

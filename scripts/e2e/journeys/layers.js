@@ -99,6 +99,16 @@ async function run(h) {
   check((await on(pg, 'walkability')) && (await on(pg, 'busy')) && (await on(pg, 'borders')), 'ML7: Navigate\'s map has the same layers, one setting for every map');
   await pg.waitForFunction(() => (document.querySelector('[data-walk]')?.getAttribute('data-walk') ?? '') !== '', null, { timeout: 30000 }).catch(() => {});
   check(/^foot:/.test((await attr(pg, 'data-walk')) ?? ''), 'ML3: Navigate\'s Layers button switches the same drawing');
+  // fix layers-pad 1, 2: on the ready screen (the map ends at the strip's top) the scale bar is under the Layers button, not behind it,
+  // and the panel's rows keep off the card's edges.
+  const sb = await box(pg, '[data-testid=scale-bar]');
+  const lbtn = await box(pg, '[data-testid=layers]');
+  check(!!sb && !!lbtn && lbtn.y + lbtn.height <= sb.y, `fix layers-pad 1: the Layers button sits above the scale bar, covering none of it (${JSON.stringify({ scale: sb, button: lbtn })})`);
+  const pnl = await box(pg, '[data-testid=layers-panel]');
+  const rowBoxes = await Promise.all(['walkability', 'busy', 'borders'].map((id) => box(pg, `[data-testid=layer-${id}]`)));
+  const padL = Math.min(...rowBoxes.map((r) => r.x - pnl.x));
+  const padR = Math.min(...rowBoxes.map((r) => pnl.x + pnl.width - (r.x + r.width)));
+  check(padL >= 8 && padR >= 8, `fix layers-pad 2: the panel's rows keep at least 8 px from the card's left and right edges (${padL}, ${padR})`);
   await shot(pg, 'layers-navigate');
   // The legend is in the settings drawer: one block per layer that is on, none over the map.
   await pg.click('[data-testid=layers]');
@@ -140,6 +150,15 @@ async function run(h) {
   const panel = await box(p2, '[data-testid=layers-panel]');
   check(await inside('[data-testid=layer-walkability]') && await inside('[data-testid=layer-busy]') && await inside('[data-testid=layer-borders]'),
     `layers audit 1: on a 375x667 walk with every layer on, every switch is on screen (${JSON.stringify(panel)})`);
+  // fix layers-pad audit 1: at 360 wide, with the rows padded, each label still sits on one line.
+  await p2.setViewportSize({ width: 360, height: 740 });
+  await p2.waitForTimeout(400);
+  await openPanel(p2);
+  const labelH = await Promise.all([['walkability', 'Walkability'], ['busy', 'Busy streets'], ['borders', 'Town borders']].map(([id, t]) => p2.locator(`[data-testid=layer-${id}]`).getByText(t, { exact: true }).boundingBox().then((b) => b?.height ?? 99)));
+  check(Math.max(...labelH) < 24, `fix layers-pad audit 1: at 360 px each layer's label is on one line (${labelH.join(', ')})`);
+  await p2.setViewportSize({ width: 375, height: 667 });
+  await p2.waitForTimeout(400);
+  await openPanel(p2);
   const clash = [];
   for (const id of ['cap-photo', 'cap-voice', 'cap-note', 'stop']) {
     const b = await box(p2, `[data-testid=${id}]`).catch(() => null);
