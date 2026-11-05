@@ -31,7 +31,7 @@ test('WK15: street names come with the ways from both sources', () => {
   assert.equal(ways[0].name, 'Main Street');
 });
 
-test('WK4: the tiles around a point are the few its radius touches, never more than 12', () => {
+test('UF17, WK4: the tiles around a point are the few its radius touches, never more than 12', () => {
   const mid = tilesAround([-75.19, 40.69], 1000);
   assert.ok(mid.length >= 1 && mid.length <= 4, `${mid.length}`);
   assert.equal(tilesAround([-75.19, 40.69], 0).length, 1);

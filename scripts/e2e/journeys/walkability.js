@@ -45,7 +45,7 @@ async function run(h) {
   await h.drawerTo(pg, 'up');
   await pg.waitForSelector('[data-testid=layers-key]', { timeout: 5000 });
   check((await pg.locator('[data-testid=walk-badge-car]').count()) === 1 && (await pg.locator('[data-testid=walk-badge-caution]').count()) === 0 && (await pg.locator('[data-testid=layer-swatch-foot]').count()) === 1 && (await pg.locator('[data-testid=layer-swatch-car]').count()) === 1, 'UF10, WK21: the legend shows the pedestrian and the pedestrian with a car badge, each beside its tint, and no caution badge');
-  check(/OpenStreetMap and Overture/.test(await pg.locator('[data-testid=layer-note-walkability]').innerText()) && /read differently/.test(await pg.locator('[data-testid=layer-note-walkability]').innerText()), 'UF10, WK17: the layer credits OpenStreetMap and Overture and says an area can read differently from how it feels');
+  check(/OpenStreetMap and Overture/.test(await pg.locator('[data-testid=layer-note-walkability]').innerText()) && /read differently/.test(await pg.locator('[data-testid=layer-note-walkability]').innerText()), 'WK14, UF10, WK17: the layer credits OpenStreetMap and Overture and says an area can read differently from how it feels');
   await shot(pg, 'walk-legend-open');
   await pg.hover('[data-testid=walk-tip-car]');
   await pg.waitForSelector('[data-testid=tooltip]', { timeout: 3000 }).catch(() => {});
@@ -97,7 +97,7 @@ async function run(h) {
   await pg.click('[data-testid=atlas-tile][data-name="Fox Point"]');
   await pg.waitForSelector('[data-testid=atlas-onfoot-words]', { timeout: 30000 }).catch(() => {});
   const words = await pg.locator('[data-testid=atlas-onfoot-words]').innerText().catch(() => '');
-  check(words === 'Streets close together, with crossings', `UF13, UF14: the area card for the neighborhood around the dense grid says what its ground is, in words (${JSON.stringify(words)})`);
+  check(words === 'Streets close together, with crossings', `WK11, UF13, UF14: the area card for the neighborhood around the dense grid says what its ground is, in words (${JSON.stringify(words)})`);
   check(!/\d|%/.test(await pg.locator('[data-testid=atlas-onfoot]').innerText().catch(() => '1')), 'UF12: the card\'s line has no number or percentage');
   await shot(pg, 'walk-card');
   await c.close();
@@ -117,6 +117,8 @@ async function run(h) {
   await shot(p2, 'walk-fallback');
   // Overpass is the one new host (decision 0093): what it was sent is asserted above (the tile's bounds in a form body),
   // so the nothing-leaves check, strict for every other journey, is not asked about it here.
+  const away = [...hosts].filter((x) => !x.startsWith('localhost') && x !== 'tiles.openfreemap.org' && x !== h.OVERTURE_HOST && x !== OVERPASS_HOST);
+  check(away.length === 0, `UF20: reading tiles sends nothing but a tile's bounds to the two sources, and nothing to anyone else (${away.join(', ')})`);
   hosts.delete(OVERPASS_HOST);
   walkability.mode = 'ok';
   await c2.close();

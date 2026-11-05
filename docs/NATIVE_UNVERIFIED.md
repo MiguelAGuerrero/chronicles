@@ -256,16 +256,14 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 
 ## Map layers and walkability by urban form (ML1-ML13, UF1-UF20, decisions 0096, 0097)
 
-- [ ] Migration 20: `walk_tile.junctions`, JSON text, null on rows from before (IndexedDB stores the whole object, no bump)
-- [ ] The Walkability fill layers on MapLibre RN (`walk-foot`, `walk-car`, `fill-antialias: false` for no seams) under the hotspots, fog and trace
-- [ ] The connector decode (`junctionsFromOvertureTile`) and Overpass reads in the native runtime
-- [ ] The Layers button and panel over the native map: its place in the edge column (`layers` slot), the panel opening upward over the walk and over the cards below Explore's short map pane (`overflow: visible`, `zIndex`)
-- [ ] Busy streets as a layer: the one read when switched on (`readArea`), on a phone's network
-- [ ] A map press closing the panel (`layers.closePanel`) through the native map's `onPress`
-- [ ] The panel beside the button on the native walk and Explore: `position: absolute` with a `ScrollView` of `maxHeight`, and Explore's pane overflowing its bounds over the cards below (Android delivers no touches outside a parent's bounds, so the switches below the pane may be dead there)
-- [ ] The legend rows as `Tooltip` buttons: `onHoverIn` is web only; a tap shows the line, a second closes it; `accessibilityElementsHidden` on their contents
-- [ ] `aria-expanded`, `aria-checked` and `role="group"` are web only; `accessibilityState` and `accessibilityLabel` carry them on native
-- [ ] The panel's `elevation` over the native map and the button's outlined state
+- [ ] **Do:** upgrade from a build before migration 20, turn Walkability on over an area you walked before, then force-quit and reopen. **Expect:** migration 20 adds `walk_tile.junctions` (JSON text, null on older rows); old tiles are read again for their junctions and the tint draws. (UF3)
+- [ ] **Do:** turn Walkability on over Explore's map and a walk's map, and zoom in and out. **Expect:** the two fill layers on MapLibre RN (`walk-foot`, `walk-car`, `fill-antialias: false`) draw under the hotspots, fog and trace, with no seams between cells. (UF9)
+- [ ] **Do:** turn Walkability on in a new area on a phone's network. **Expect:** the connector decode (`junctionsFromOvertureTile`) and the Overpass fallback run in the native runtime and the tint appears. (UF3, WK1)
+- [ ] **Do:** open the Layers panel on a walk and on Explore, then tap the map. **Expect:** the button sits in the edge column (`layers` slot), the panel opens beside it and scrolls inside its room, over the cards below Explore's short map pane; a map press closes it (`layers.closePanel`). (ML3, ML4)
+- [ ] **Do:** switch Busy streets on in an area never read. **Expect:** the area is read once (`readArea`) and its busy streets draw, on a phone's network. (ML8, ML9)
+- [ ] **Do:** with every layer on, open the walk's settings (the ready bar pulled up, then the live walk's options). **Expect:** the legend of each layer that is on shows under "On the map" with its swatches; a row's tap shows its line and a second tap closes it (`onHoverIn` is web only); nothing floats over the map. (ML6, WK22)
+- [ ] **Do:** with VoiceOver and then TalkBack, open the Layers panel and flip a switch. **Expect:** `accessibilityState` and `accessibilityLabel` carry what `aria-expanded`, `aria-checked` and `role="group"` carry on the web. (ML5)
+- [ ] **Do:** look at the Layers button with a layer on and off, and at the panel's shadow over the map. **Expect:** the outlined button and the panel's `elevation` read clearly over the native map. (ML3)
 
 ## Scenic routes (SR1-SR15, decision 0095)
 

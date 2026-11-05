@@ -38,7 +38,7 @@ test('layers audit 3: on a wide Explore the panel is sized by the map pane, not 
 const here: LngLat = [-75.47, 40.6];
 const rows = [{ key: 'a', centre: [-75.47, 40.601] as LngLat }, { key: 'b', centre: [-75.2, 40.9] as LngLat }] as never[];
 
-test('layers audit 2: the busy streets are keyed by which areas are near, so a walker\'s fix never rebuilds the drawing', () => {
+test('ML15, layers audit 2: the busy streets are keyed by which areas are near, so a walker\'s fix never rebuilds the drawing', () => {
   const jitter = (n: number): LngLat => [here[0] + n * 0.00001, here[1] + n * 0.00001];
   const keys = new Set([0, 1, 2, 3, 4, 5].map((n) => nearKey(rows, jitter(n))));
   assert.equal(keys.size, 1, 'a few metres of walking is the same key');
@@ -46,7 +46,7 @@ test('layers audit 2: the busy streets are keyed by which areas are near, so a w
   assert.equal(nearKey(rows, null), '');
 });
 
-test('layers audit 7: a layer that is on but cannot draw says why: no position, reading, or not available', () => {
+test('ML14, UF19, layers audit 7: a layer that is on but cannot draw says why: no position, reading, or not available', () => {
   assert.deepEqual(drawNow(true, null, ''), { draw: null, status: 'waiting' });
   assert.deepEqual(drawNow(false, null, ''), { draw: null, status: 'off' });
   assert.equal(layerNotes({ walkability: 'waiting', busyReading: false, busyFailed: false }).walkability, 'Waiting for your position');

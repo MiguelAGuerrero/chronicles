@@ -86,6 +86,15 @@ test('UF4: real places: Zurich\'s old town reads foot', () => {
   assert.equal(place('zurich'), 'foot');
 });
 
+test('UF18: judging the cells of a dense downtown takes well under a second', () => {
+  const m = maps('allentownDowntown');
+  const t0 = performance.now();
+  const cells = cellsFor(m.ways, m.junctions);
+  const ms = performance.now() - t0;
+  assert.ok(cells.length > 100, 'a real window of cells');
+  assert.ok(ms < 1000, `${Math.round(ms)} ms`);
+});
+
 test('UF6 (real): places never make the mall or the suburb anything but car', () => {
   const dense: PlacePoint[] = Array.from({ length: 400 }, (_, i) => ({ at: [FX.places.lvMall.at[0] + (i % 20) * 0.0002, FX.places.lvMall.at[1] + Math.floor(i / 20) * 0.0002] as LngLat, weight: 1 }));
   const m = maps('lvMall');

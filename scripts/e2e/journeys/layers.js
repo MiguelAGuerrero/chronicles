@@ -66,6 +66,13 @@ async function run(h) {
   await pg.goto(url);
   await pg.waitForSelector('[data-testid=layers]', { timeout: 30000 });
 
+  // ML11: the Chronicle map is left alone.
+  await tabTo(pg, 'chronicle');
+  await pg.waitForTimeout(800);
+  check((await pg.locator('[data-testid=layers]').count()) === 0, 'ML11: the Chronicle map has no Layers button');
+  await pg.goto(url);
+  await pg.waitForSelector('[data-testid=layers]', { timeout: 30000 });
+
   // ML13, WK4: nothing is read for Walkability while it is off.
   check(transport() === 0, `ML13: no transportation tile is read while Walkability is off (${transport()})`);
 

@@ -11,7 +11,7 @@ import { tintOf } from '../../walk/tint';
 const J = 5000;
 const cell = (i: number, j: number, band: CellBand): Cell => ({ i, j, ...cellBounds(i, j), band });
 
-test('UF9: foot and car cells are drawn, neither and empty are not; a row of one reading is one shape with no seams', () => {
+test('UF1, UF9: foot and car cells are drawn, neither and empty are not; a row of one reading is one shape with no seams', () => {
   const cells = [cell(100, J, 'foot'), cell(101, J, 'foot'), cell(102, J, 'foot'), cell(103, J, 'car'), cell(104, J, 'neither'), cell(105, J, 'empty'), cell(106, J, 'car'), cell(100, J + 1, 'foot')];
   const t = tintOf(cells);
   assert.equal(t.foot.length, 2, 'three in a row are one shape; the cell in the next row is another');

@@ -32,7 +32,7 @@ test('UF13: the words say what the ground is, never how much or what it will be 
   assert.equal(cellWords(countCells(mk(6, 1, 3, 500))), 'Streets close together, with crossings');
 });
 
-test('UF12, UF13: no number, count, percentage or comparison in any line', () => {
+test('WK12, UF12, UF13: no number, count, percentage or comparison in any line', () => {
   for (const c of [mk(60, 10, 30), mk(10, 60, 30), mk(40, 30, 30)]) assert.ok(!/\d|%|most walkable|more walkable|less walkable|best|worst|rank/i.test(cellWords(countCells(c))!));
 });
 
@@ -46,7 +46,7 @@ const wordsAround = (key: string, ringM: number) => {
   return cellWords(countCells(cellsFor(ways, junctions), p.at, ringM));
 };
 
-test('UF14: the card for downtown Allentown says its streets are close together; the mall\'s and the suburb\'s do not', () => {
+test('WK11, UF14: the card for downtown Allentown says its streets are close together; the mall\'s and the suburb\'s do not', () => {
   assert.equal(wordsAround('allentownDowntown', 250), 'Streets close together, with crossings');
   assert.equal(wordsAround('allentownGrid', 250), 'Streets close together, with crossings');
   assert.notEqual(wordsAround('lvMall', 250), 'Streets close together, with crossings');

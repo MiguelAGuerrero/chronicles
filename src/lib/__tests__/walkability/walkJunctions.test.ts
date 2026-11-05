@@ -18,7 +18,7 @@ const way = (id: string, line: LngLat[]): WayFacts => ({ id, cls: 'residential',
 const conns = (...ids: string[]) => JSON.stringify(ids.map((id, k) => ({ connector_id: id, at: k })));
 const road = (cls: string, ids: string[], a: LngLat, b: LngLat) => ({ layer: 'segment', props: { subtype: 'road', class: cls, connectors: conns(...ids) }, coords: [a, b] });
 
-test('UF3: a junction is an Overture connector that two or more streets share, once; parking aisles, driveways and footways make none', () => {
+test('UF2, UF3: a junction is an Overture connector that two or more streets share, once; parking aisles, driveways and footways make none', () => {
   const bytes = encodeTile(
     [
       { layer: 'connector', props: { id: 'c1' }, coords: at(0) },

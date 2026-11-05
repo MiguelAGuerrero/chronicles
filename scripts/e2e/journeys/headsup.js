@@ -115,7 +115,7 @@ async function run(h) {
   await p3.click('[data-testid=go-here]');
   await routed(p3, 30000);
   await p3.waitForTimeout(8000);
-  check((await p3.locator('[data-testid=walk-ahead]').count()) === 0 && transport() === before, `vision review (the heads-up and its reads): with the layer off the route says nothing and reads no walkability tile (${transport() - before} requests)`);
+  check((await p3.locator('[data-testid=walk-ahead]').count()) === 0 && transport() === before, `UF16, vision review (the heads-up and its reads): with the layer off the route says nothing and reads no walkability tile (${transport() - before} requests)`);
   await p3.click('[data-testid=nav-end]');
   walkability.mode = 'ok';
   await c3.close();
