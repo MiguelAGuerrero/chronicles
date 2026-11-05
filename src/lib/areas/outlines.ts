@@ -40,6 +40,14 @@ export interface OutlineTile {
   points: { id: string; at: LngLat }[];
 }
 
+/**
+ * The decoder that cut a kept tile (fix ward-subdivision): tiles are stored with it after their
+ * release, and one stored without it (an older decoder, which read wards as towns) is read again.
+ */
+export const OUTLINE_DECODE = 'sub1';
+export const stampRelease = (release: string) => `${release}#${OUTLINE_DECODE}`;
+export const tileCurrent = (t: Pick<OutlineTile, 'release'>) => t.release.endsWith(`#${OUTLINE_DECODE}`);
+
 /** The outlines known around some points: which tiles were read, and the towns in them. */
 export interface OutlineSet {
   tiles: ReadonlySet<string>;

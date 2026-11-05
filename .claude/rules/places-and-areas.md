@@ -67,6 +67,17 @@ Placing walks in neighborhoods, towns, cities and states (`lib/areas`), the boun
     (`outlines.borders`, `BORDER_ZOOM`), whole towns; deciding stays on z12.
     The tinted town is matched to the decided one by the source's id.
     `outline_tile` keys are `z/x/y` (migration 18, IndexedDB v15).
+  - **Wards are not towns** (fix ward-subdivision): Overture files Allentown's
+    "10th Ward" as a `locality` under the city, so every `locality` was a town.
+    `outlineTileFrom` drops a locality whose hierarchy has another locality above
+    it, unless Overture classes it a settlement (`city`, `town`, `village`) or
+    gives it a population (Manhattan in New York, Coplay in Whitehall stay
+    towns). The hierarchy rides on the `division` point, so the drop works only
+    where that point is in the same tile as the piece. Kept tiles carry the
+    decoder in their `release` (`stampRelease`, `OUTLINE_DECODE`); one without it
+    is read again, so change the decoder's output and bump `OUTLINE_DECODE`. A
+    dropped ward is not a neighborhood either: neighborhoods come from the map
+    tiles' place points only.
   - **Traps:** outlines are clipped at tile edges, so "not inside" means
     something only where the point's own tile was read (`coveredBy`).
     Of nested outlines the smaller wins by area of the pieces read (Midtown

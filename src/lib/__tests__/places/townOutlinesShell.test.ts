@@ -95,3 +95,19 @@ test('TO12: a stop asked for mid-read keeps what was read and is not complete', 
   assert.equal(r.complete, false);
   assert.equal(source.asked.length, 0);
 });
+
+test('fix ward-subdivision 3: a tile kept by an older decoder (unstamped) is read again, and the fresh one is kept stamped', async () => {
+  const p = fakePorts();
+  const source = fakeSource();
+  const key = outlineTileKey(...outlineTileOf(GYM));
+  const [x, y] = outlineTileOf(GYM);
+  await p.db.putOutlineTiles([{ key, z: 12, x, y, release: '2026-10-21.0', read_at: 1, pieces: [], points: [] }]);
+  const o = createOutlines({ ...p, source });
+  assert.equal((await o.known([GYM])).towns.length, 0, 'a stale tile is not trusted');
+  const r = await o.read([GYM]);
+  assert.equal(r.complete, true);
+  assert.deepEqual(source.asked, [key]);
+  assert.deepEqual(r.set.towns.map((t) => t.name), ['Whitehall']);
+  await o.read([GYM]);
+  assert.equal(source.asked.length, 1, 'the new tile is current: never read again');
+});

@@ -308,3 +308,45 @@ test('TO11: a checklist place belongs to the town whose outline holds it, and to
   assert.ok(wh, 'Whitehall gets a list');
   assert.equal(built.items[0].area_key, wh!.key);
 });
+
+// ---- fix ward-subdivision: a locality inside another is a subdivision, never a town
+
+const chain = (...names: [string, string][]) => JSON.stringify([[
+  { name: 'United States', division_id: 'us', subtype: 'country' },
+  { name: 'Pennsylvania', division_id: 'pa', subtype: 'region' },
+  ...names.map(([name, subtype]) => ({ name, division_id: name, subtype })),
+]]);
+/** Overture's own properties for Allentown's points (release 2026-10-21.0): 10th Ward is a `locality` under the city Allentown. */
+const ALLENTOWN_TILE = () => {
+  const sq = (x0: number, y0: number, x1: number, y1: number) => ({ type: 'Polygon', coordinates: square(x0, y0, x1, y1)[0] });
+  return outlineTileFrom(...outlineTileOf(O), 'test', 1, {
+    division_area: [
+      { geometry: sq(-20, -20, 20, 20), properties: { '@name': 'Allentown', division_id: 'Allentown', subtype: 'locality', class: 'land' } },
+      { geometry: sq(-5, -5, 5, 5), properties: { '@name': '10th Ward', division_id: '10th Ward', subtype: 'locality', class: 'land' } },
+      { geometry: sq(-12, -12, -8, -8), properties: { '@name': 'Hanover Acres', division_id: 'Hanover Acres', subtype: 'locality', class: 'land' } },
+      { geometry: sq(8, 8, 12, 12), properties: { '@name': 'Coplay', division_id: 'Coplay', subtype: 'locality', class: 'land' } },
+      { geometry: sq(8, -12, 12, -8), properties: { '@name': 'Manhattan', division_id: 'Manhattan', subtype: 'locality', class: 'land' } },
+    ],
+    division: [
+      { geometry: { type: 'Point', coordinates: at(0, 15) }, properties: { id: 'Allentown', subtype: 'locality', class: 'city', population: 120443, hierarchies: chain(['Lehigh County', 'county'], ['Allentown', 'locality']) } },
+      { geometry: { type: 'Point', coordinates: at(0, 0) }, properties: { id: '10th Ward', subtype: 'locality', hierarchies: chain(['Lehigh County', 'county'], ['Allentown', 'locality'], ['10th Ward', 'locality']) } },
+      { geometry: { type: 'Point', coordinates: at(-10, -10) }, properties: { id: 'Hanover Acres', subtype: 'locality', class: 'hamlet', hierarchies: chain(['Lehigh County', 'county'], ['Allentown', 'locality'], ['Hanover Acres', 'locality']) } },
+      // A borough inside a township (class village) and a borough of a city with a population stay towns.
+      { geometry: { type: 'Point', coordinates: at(10, 10) }, properties: { id: 'Coplay', subtype: 'locality', class: 'village', hierarchies: chain(['Lehigh County', 'county'], ['Allentown', 'locality'], ['Coplay', 'locality']) } },
+      { geometry: { type: 'Point', coordinates: at(10, -10) }, properties: { id: 'Manhattan', subtype: 'locality', population: 1694251, hierarchies: chain(['Allentown', 'locality'], ['Manhattan', 'locality']) } },
+    ],
+  });
+};
+
+test('fix ward-subdivision 1: a locality whose parent is a locality (10th Ward in Allentown) is not read as a town', () => {
+  const tile = ALLENTOWN_TILE();
+  assert.deepEqual(tile.pieces.map((p) => p.name), ['Allentown', 'Coplay', 'Manhattan']);
+  assert.deepEqual(tile.points.map((p) => p.id), ['Allentown', 'Coplay', 'Manhattan']);
+});
+
+test('fix ward-subdivision 2: a walk in 10th Ward is placed in Allentown, and 10th Ward is not listed as a town', () => {
+  const set = outlineSet([ALLENTOWN_TILE()]);
+  assert.deepEqual(set.towns.map((t) => t.name), ['Allentown', 'Coplay', 'Manhattan']);
+  const ward = withOutlines([town('Allentown', at(0, 15))], set);
+  assert.equal(townAt(at(0, 0), ward, set)?.c.name, 'Allentown');
+});

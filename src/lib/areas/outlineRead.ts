@@ -2,7 +2,7 @@
 import type { Ports } from '../ports/types';
 import type { LngLat } from '../types';
 import { townPlaces } from './borders';
-import { BORDER_ZOOM, OUTLINE_TILES_MAX, OUTLINE_ZOOM, outlineSet, outlineTileKey, outlineTilesFor, type OutlineSet, type OutlineTile } from './outlines';
+import { BORDER_ZOOM, OUTLINE_TILES_MAX, OUTLINE_ZOOM, outlineSet, outlineTileKey, outlineTilesFor, stampRelease, tileCurrent, type OutlineSet, type OutlineTile } from './outlines';
 
 /** Where town outlines come from, tile by tile (today Overture's divisions, `overtureOutlines.ts`). */
 export interface OutlineSource {
@@ -39,7 +39,7 @@ export function createOutlines(p: Pick<Ports, 'db' | 'clock'> & { source: Outlin
     const job = p.source
       .tile(release, x, y, z)
       .then(async (t) => {
-        const tile = { ...t, key, z, x, y, read_at: p.clock.now() };
+        const tile = { ...t, key, z, x, y, release: stampRelease(t.release), read_at: p.clock.now() };
         await p.db.putOutlineTiles([tile]);
         return tile;
       })
@@ -49,16 +49,19 @@ export function createOutlines(p: Pick<Ports, 'db' | 'clock'> & { source: Outlin
     return job;
   };
 
+  /** Kept tiles cut by the current decoder; an older one is as good as missing. */
+  const keptTiles = async (keys: string[]): Promise<OutlineTile[]> => (await p.db.getOutlineTiles(keys).catch(() => [] as OutlineTile[])).filter(tileCurrent);
+
   /** The tiles under these points at zoom z: kept ones, then the rest read (`read` for z12, `borders` for z10). */
   const readAt = async (points: LngLat[], z: number, shouldStop: () => boolean): Promise<OutlineRead> => {
     const tiles = outlineTilesFor(points, OUTLINE_TILES_MAX, z);
     if (!tiles) {
       const first = outlineTilesFor(points.slice(0, 1), 1, z) ?? [];
-      const kept = await p.db.getOutlineTiles(first.map(([x, y]) => outlineTileKey(x, y, z))).catch(() => [] as OutlineTile[]);
+      const kept = await keptTiles(first.map(([x, y]) => outlineTileKey(x, y, z)));
       return { set: outlineSet(kept), complete: false, tooMany: true };
     }
     const keys = tiles.map(([x, y]) => outlineTileKey(x, y, z));
-    const kept = await p.db.getOutlineTiles(keys).catch(() => [] as OutlineTile[]);
+    const kept = await keptTiles(keys);
     const have = new Set(kept.map((t) => t.key));
     const missing = tiles.filter(([x, y]) => !have.has(outlineTileKey(x, y, z)));
     if (!missing.length) return { set: outlineSet(kept), complete: true, tooMany: false };
@@ -74,7 +77,7 @@ export function createOutlines(p: Pick<Ports, 'db' | 'clock'> & { source: Outlin
     /** The outlines kept for the tiles under these points, with no network. */
     async known(points: LngLat[], z: number = OUTLINE_ZOOM): Promise<OutlineSet> {
       const tiles = outlineTilesFor(points, KNOWN_TILES_MAX, z) ?? [];
-      return outlineSet(await p.db.getOutlineTiles(tiles.map(([x, y]) => outlineTileKey(x, y, z))).catch(() => []));
+      return outlineSet(await keptTiles(tiles.map(([x, y]) => outlineTileKey(x, y, z))));
     },
 
     /** The outlines under these points, reading the tiles not kept yet (at most OUTLINE_TILES_MAX). */
