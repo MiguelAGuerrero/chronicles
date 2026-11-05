@@ -5,6 +5,9 @@ for the decisions, rules and traps behind it, and the owner's "Explorer App
 Concept" doc in Claude Docs for the spec itself. When this file and
 `AGENTS.md` disagree, `AGENTS.md` is right and this file needs an update.
 
+The identity the features answer to, what the app never does and how an idea fits, is `docs/VISION.md`
+(decision 0094).
+
 ## In one paragraph
 
 Chronicles is a companion for wandering towns and cities on foot. Before a

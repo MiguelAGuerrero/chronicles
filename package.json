@@ -66,7 +66,8 @@
     "lint": "expo lint",
     "e2e:web": "node scripts/e2e-web.js",
     "check:specs": "node scripts/check-specs.js",
-    "check:docs": "node scripts/check-docs.js"
+    "check:docs": "node scripts/check-docs.js",
+    "check:vision": "node scripts/check-vision.js"
   },
   "private": true
 }

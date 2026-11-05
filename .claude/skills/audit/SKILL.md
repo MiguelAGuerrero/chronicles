@@ -31,6 +31,11 @@ Give it the three inputs above and ask for a report-only pass that:
 It may run `npm test` and single test files; it edits nothing. Wait for its
 report before going on.
 
+Beside it, run the `steward` subagent (`.claude/agents/steward.md`) with the spec,
+its "## Vision" section and the changed screens: does the built thing still pass
+the gate it was given (decision 0094)? Its findings are triaged with the
+auditor's, numbered on after them.
+
 ## 3. Triage
 
 For each finding, write one line in the spec's "Audit" record:

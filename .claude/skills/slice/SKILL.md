@@ -31,12 +31,27 @@ test passes with typecheck, lint, `npm test` and the e2e, and the docs say so.
 4. The `.claude/rules/<area>.md` files whose `paths:` cover the files you expect
    to touch.
 
+## 1b. Gate (decision 0094)
+
+Run `/vision` on the slice, in the owner's words. Its block becomes the spec's
+"## Vision" section (`npm run check:vision` fails a new spec without one).
+
+- **out**: stop; show the owner the verdict and the shape that fits, and ask with
+  AskUserQuestion (the shape first, recommended). Their reaffirmation is their call:
+  record it in `docs/decisions/` and go on.
+- **aligned if reshaped**: the reshaped version is the slice; its criteria join
+  the spec's own.
+- **not now**: stop and ask; a decision already says why.
+- **no surface**: the section is the one line; skip the steward in step 3.
+
 ## 2. Spec
 
 1. Write or confirm numbered, testable acceptance criteria in
    `specs/<slug>/spec.md`, each with an id (`XX1`, `XX2`, ... with the tab's
    prefix). A criterion names an observable outcome, never an implementation.
 2. Put owner's calls already made in the spec's "Decisions" list, with the date.
+3. Number the gate's criteria with the slice's prefix, beside the others: they
+   get tests like any criterion.
 
 ## 3. Plan (the owner reviews it before any code)
 
@@ -49,6 +64,10 @@ Write `specs/<slug>/plan.md`:
   folder and a row in `scripts/features.js`) or a new journey, if the slice needs one;
 - what is deferred, and why;
 - native paths that will not run on a device.
+
+Then run the `steward` subagent (`.claude/agents/steward.md`) on the spec and
+plan, unless the gate said no surface. Triage each finding in the plan (accept
+into a criterion, or reject with the reason), so the owner reviews both at once.
 
 Stop and show the owner the plan. Continue only on their go-ahead.
 

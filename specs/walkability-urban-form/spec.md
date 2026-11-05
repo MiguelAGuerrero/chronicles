@@ -13,6 +13,24 @@ many places sit along the streets. The result is a **tint over areas** of the ma
 
 "Built around cars" is what the map data suggests, not a ruling that a place can't be walked.
 
+## Vision
+
+(Written after the build, 2026-11-05, when the vision gate arrived: this spec predates it, so the verdict is a review of what was built, not a gate on an idea.)
+
+Idea: "Develop a walkability index ... a score of how walkable an area is ... so that we can mark areas of the map that might require a car to navigate safely or efficiently", then, after trying it: judge it by how the ground is built, tint the areas, say it in words on the card, and warn quietly on a route.
+Verb: earn (Explore and Navigate: structural guidance about the ground, where it is easy to get about on foot and where a car is likely needed, raising what you notice about a place).
+Touches:
+- Never, "Scores, streaks, completion, coverage, levels, badges, leaderboards" (0020) and "Ratings, reviews, stars, 'best of', rankings of places". The first ask was literally "a score". Reshaped before it was built (decision 0093): bands in words, no number, share, rank or comparison between places (UF12), nothing like "most walkable".
+- Always, "**Guidance is structural**: where there is a lot, and what makes a place itself, never whether it is good." The reading says how the ground is built (streets close together with crossings, or far apart and busy), not that a place is good or bad. The risk is the colour: a green tint reads as approval and a warm one as warning.
+- Never, "A heatmap of where others walk" and "Popularity, trending, foot traffic": this is neither. It is built form from open data (Overture's transportation and places, OpenStreetMap), the same footing as activity density (0080).
+- Never, "Nagging: off-route alarms": the heads-up is a silent line, once per stretch, never a sound or a haptic, never a reroute or an "avoid" (WH, UF15). It states a fact about the ground ahead.
+- Always, "**Restraint** in motion, colour and copy": the tint is soft (about a fifth opaque) and sits under the streets and labels; off by default (specs/map-layers).
+- Never, "Data leaving the device without a tap" and 0005: reading tiles is a request for a tile of open data, the same kind as the map's own, carrying no position beyond the tile; Overpass as a fallback host is the owner's call (decision 0093).
+Verdict: aligned if reshaped
+Shape: the reshaped version is what was built: two readings and a quiet middle, in words, no number or rank, drawn soft and off by default, with a heads-up that informs and never steers. Not the "walkability index" the first message asked for.
+Criteria: UF12 (no number, count, percentage, rank or comparison) and UF15 plus specs/walkability-headsup WH8 and WH13 (silent, never reroutes) already carry it. One more the vision implies: the words and tooltips name how the ground is built, never whether a place is good, so "Built around cars" is a fact about streets, not a verdict on a town.
+Open: Is a green and a warm tint right for ground that is "easy on foot" and "built around cars"? Green and orange invite a good-and-bad reading, which the vision's "never whether it is good" and "restraint in colour" argue against; the orange is also close to the app's accent. A neutral pair (two tones of one hue, or a hatch) would say the same without approving or alarming. Keep the colours, or neutral?
+
 ## Why (found 2026-11-05 on Overture's real tiles, release 2026-10-21.0)
 
 - Downtown Allentown's tiles map 610 sidewalk and 705 footway segments, yet of its road length 47 km read easy on foot, 124 km "mixed",

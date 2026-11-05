@@ -85,7 +85,11 @@ first) when the fix needs any of:
   a platform-strategy change (the AGENTS.md "ask before architectural decisions");
 - a change to derivation rules (`SNAP_RULES`, `STREET_CODE`, `LANDING_CODE`);
 - more than about 8 files or a new feature's worth of behaviour: use `/slice`;
-- anything that sends data off the device.
+- anything that sends data off the device;
+- a fix that adds a control or changes what a screen shows or says, when `/vision`
+  on it says **out** or **aligned if reshaped** and the issue asked for the
+  unreshaped version (decision 0094). Run `/vision` on any such fix first; a
+  reshaped version the issue allows is the fix.
 
 While the question is open the worktree stays; if the answer is no, scrap it.
 

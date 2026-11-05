@@ -9,6 +9,22 @@ A **layer** puts some graphics on the base map: a tint, a line, a border. The ma
 one that orients them. One button on the map opens a small panel of layers, each a switch. Three layers to begin: **Walkability**,
 **Busy streets** and **Town borders**. More can join later without changing the panel.
 
+## Vision
+
+(Written after the build, 2026-11-05, when the vision gate arrived: this spec predates it, so the verdict is a review of what was built, not a gate on an idea.)
+
+Idea: "Make the tints a setting in the walk ... the idea of layers, where a layer imposes some graphics on the base map ... off by default just to reduce visual clutter ... and move the busyness to those layers as well."
+Verb: earn (Explore and Navigate: a layer is a way to notice, chosen by the walker, so the map stays the content and the chrome stays out of the way).
+Touches:
+- Always, "**Restraint** in motion, colour and copy: the content is the novelty, not the chrome." Layers off by default is this line; the one layer on from the start (Town borders) is what orients you.
+- Always, "**Capture is one tap away** on every screen you walk or capture from." The Layers button takes the top slot of the edge column and its panel opens upward or over the cards below, never over the capture stack (ML4).
+- Always, "**Counts are words**" and Never, "Scores, streaks, completion, coverage"; 0052. No number or count on the button, panel or any legend (ML6).
+- 0034, "Busy areas are information only": Busy streets stay information (a graded shading, no pin, no card, no walk the loop). What changes is *when* they draw: on request on any walk, not only an exploring one. That is the owner's call of 2026-11-05 (decision 0096), not drift.
+Verdict: aligned
+Shape: as asked. Nothing in it betrays a rule; it removes chrome.
+Criteria: ML4 (never covers the capture stack, the other edge buttons or the bottom strip) and ML6 (no number, count or percentage) already carry what the vision needs.
+Open: Town borders default **on** is my reading, not the owner's call: the vision says "restraint ... the content is the novelty, not the chrome", which leans toward off. Keep on (it orients you and was already shown), or off with the others?
+
 ## Why
 
 Overlays arrived one at a time, each with its own rule for when it shows: town borders always, busy streets only on an exploring walk,
