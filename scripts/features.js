@@ -141,6 +141,14 @@ const FEATURES = [
     specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation'],
   },
   {
+    name: 'kind-walk',
+    about: 'a suggested walk through where a kind is dense, opened from a kind on an area\'s card: one way, a distance, walkability said',
+    rule: 'kind-walk',
+    source: ['src/lib/nav/types.ts'],
+    journeys: [],
+    specs: ['kind-walk'],
+  },
+  {
     name: 'layers',
     about: 'map layers: the Layers button and panel, what is on, busy streets and town borders as layers',
     rule: 'layers',
@@ -319,7 +327,9 @@ const UNTESTED = {
  * Specs a slice is building (TG22): from its plan until done, its criteria are exempt from the gate.
  * `{ slug: { branch, since: 'YYYY-MM-DD' } }`; an entry older than 7 days fails the docs check.
  */
-const IN_PROGRESS = {};
+const IN_PROGRESS = {
+  'kind-walk': { branch: 'claude/kind-walk', since: '2026-11-05' },
+};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 
