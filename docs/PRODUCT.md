@@ -71,6 +71,13 @@ recording bar brings a minimized walk back.
   and nightlife count every place. A ring with fewer than three mapped places
   says nothing about its kinds (atlas grading, decision 0084).
 - Rings are read by themselves while the tab is open, nearest first.
+- **A walk through a kind** (decision 0095, kind walk KW1-KW14): on an area's card, tapping a kind under "What's here" (Green,
+  History, ...) opens it in place with one suggested walk through where that kind is concentrated (the same 400 m cells as
+  the busy areas), moved onto streets. It says its length as a distance in the displayed unit, never a time, and whether it can
+  be walked the whole way (a stretch built around cars is named; "not known" when nothing could be read). Settings: about how
+  far (steps in km or miles, 2 km by default) and what to do about a stretch built around cars (say so, the default, or don't
+  suggest it). "Start this walk" opens the walk screen ready; the walk says distance only and is otherwise ordinary. It names
+  no place, so the "?" marks stay hidden until reached. The rest of suggested routes is still deferred (0022).
 - **The small map moves in steps** (discrete navigation, decision 0092, an
   experiment): a swipe goes to the next area that way, never panning. It
   selects the next neighborhood (its ring, its name, its tile scrolled into

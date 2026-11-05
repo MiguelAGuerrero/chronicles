@@ -4,6 +4,11 @@ import { clampRange, POCKET_ALERT_NOTE, type Kind } from '../lib/explore/explore
 import type { ExploreSettings as Settings } from '../lib/explore/settings';
 import type { Waypoint } from '../lib/nav/types';
 import { destLine, type StartMode } from '../lib/startPlan';
+import { kindWalkPrefs } from '../lib/kindWalk/app';
+import { nearestStep, stepBudget, type WalkabilityPref } from '../lib/kindWalk/settings';
+import { useKindWalkPrefs } from '../lib/kindWalk/useKindWalk';
+import { formatDistance } from '../lib/format';
+import { longerLabel, prefLabel, shorterLabel } from '../lib/kindWalk/words';
 import { saveUnits } from '../lib/unitsStore';
 import { useUnits } from '../lib/useUnits';
 import type { LngLat } from '../lib/types';
@@ -33,6 +38,7 @@ export function StartSettings(props: {
   const { mode, dest, fix, settings } = props;
   // Distances in km or miles (QL16): saved as it changes, every screen redraws at once.
   const units = useUnits();
+  const kw = useKindWalkPrefs();
   return (
     <View testID="start-settings" style={styles.content}>
       <Text style={styles.title} accessibilityRole="header">Walk settings</Text>
@@ -112,6 +118,36 @@ export function StartSettings(props: {
             style={[styles.segmentBtn, units === u && styles.segmentOn]}
           >
             <Text style={[styles.segmentText, units === u && styles.segmentTextOn]}>{u === 'km' ? 'km' : 'miles'}</Text>
+          </Pressable>
+        ))}
+      </View>
+
+      {/* KW8, KW11: how far a suggested walk is (a distance, never a time) and what to do about a stretch built around cars. */}
+      <View style={styles.rule} />
+      <Text style={styles.title} accessibilityRole="header">Suggested walks</Text>
+      <Text style={styles.sub}>About how far you would like to walk</Text>
+      <View style={styles.destRow}>
+        <Pressable testID="kindwalk-budget-shorter" accessibilityRole="button" onPress={() => void kindWalkPrefs.setBudget(stepBudget(kw.budgetM, -1, units))} style={styles.clear}>
+          <Text style={styles.clearText}>{shorterLabel}</Text>
+        </Pressable>
+        <Text style={styles.destText} testID="kindwalk-budget">{formatDistance(nearestStep(kw.budgetM, units), units)}</Text>
+        <Pressable testID="kindwalk-budget-longer" accessibilityRole="button" onPress={() => void kindWalkPrefs.setBudget(stepBudget(kw.budgetM, 1, units))} style={styles.clear}>
+          <Text style={styles.clearText}>{longerLabel}</Text>
+        </Pressable>
+      </View>
+      <Text style={styles.sub}>A stretch built around cars</Text>
+      <View style={styles.segment} accessibilityRole="radiogroup">
+        {(['warn', 'skip'] as WalkabilityPref[]).map((p) => (
+          <Pressable
+            key={p}
+            testID={`kindwalk-pref-${p}`}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: kw.pref === p }}
+            aria-checked={kw.pref === p}
+            onPress={() => void kindWalkPrefs.setPref(p)}
+            style={[styles.segmentBtn, kw.pref === p && styles.segmentOn]}
+          >
+            <Text style={[styles.segmentText, kw.pref === p && styles.segmentTextOn]}>{prefLabel(p)}</Text>
           </Pressable>
         ))}
       </View>

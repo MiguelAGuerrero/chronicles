@@ -148,6 +148,7 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 | Session | Branch | Doing |
 |---|---|---|
 | Bug fixes (open since Oct 31) | unknown | unknown |
+| Kind walk (a kind opened on an area's card offers one suggested walk: a distance, never a time; walkability said; KW1-KW14, decision 0095) | `claude/kind-walk-spec` | built 2026-11-05; web verified by the e2e `kindwalk`, unit tests, typecheck and lint green; native unverified; not audited (decision 0074); the suggested-routes worktree may touch `lib/nav` too |
 
 ## Updating this file
 

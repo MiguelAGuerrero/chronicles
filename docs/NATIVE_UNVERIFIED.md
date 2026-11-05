@@ -239,3 +239,5 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] The tooltip's placement (below, right-aligned) on a phone's safe areas, and its hit slop (walkability audit 14)
 
 - [ ] Wards are not towns (fix ward-subdivision): SQLite `outline_tile` rows stored with the `#sub1` release stamp and an old row read again once; meta `outline_nested` written and read through the write queue (a failed write leaves the tile unkept); whether Overture's z10 `division` layer carries the points the decoder needs to find wards there (else a ward's z10 border piece shows until a z12 read finds its id)
+
+- [ ] Kind walk (specs/kind-walk, decision 0095): the kind row as a `Pressable` inside the full-screen area drawer and the panel opening in its scroll; `showWalk()` with a destination that carries `via` and `suggested`; the walk bar and announcements without a time left; a re-route through the stops ahead on a phone; the reads of the area's tiles and of the way's walkability tiles at the tap

@@ -29,14 +29,12 @@ Verdict: aligned if reshaped
 Shape: one suggested way through where the kind is dense, no named stops; its length a number in the displayed unit, never
   a duration; walkability said in words before commit; accepting it opens the walk screen ready
 Criteria: KW1-KW14 below
-Open: 1 (below). The rest are defaults set for a quick iteration, the owner, Nov 5
+Open: none. The rest are defaults set for a quick iteration, the owner, Nov 5
 ```
 
 ## Open
 
-1. **Minutes on the walk it starts (steward S1, checked in code).** Navigation already says time left ("about 6 minutes", `nav/eta.ts`,
-   QL18) on every navigated walk. Either a walk started from a kind suppresses it (distance only, KW7b; but then other walks keep
-   minutes and this one does not), or KW7 is narrowed to the suggestion and its panel and the walk speaks as walks do. Which?
+None. The owner chose A (Nov 5): a walk started from a kind says distance only.
 
 ## Decisions
 
@@ -62,8 +60,8 @@ Open: 1 (below). The rest are defaults set for a quick iteration, the owner, Nov
    expands it inside the card; tapping it again closes it. No new screen, route or modal opens.
 2. **KW2 · A thin or empty kind offers no walk.** A ring the map knows almost nothing about (AG3), or a kind with no presence
    (its word is "none"), shows no walk and says so in words.
-3. **KW3 · On web, where no streets can be routed, it says why.** The kind row still opens. Where routing is not available the
-   walk is absent and the row says so in words. Nothing is simulated.
+3. **KW3 · Where no way can be found, it says so.** With no streets to route on (or a read of the area that fails), no walk
+   is offered and the row says so in words, on the web too. Nothing is simulated.
 
 ### The suggestion
 
@@ -79,11 +77,13 @@ Open: 1 (below). The rest are defaults set for a quick iteration, the owner, Nov
 8. **KW7 · A distance, never a time.** The suggestion states its length as the real length of the way, rounded, as a number in
    the displayed unit ("about 2 km" or "about 1.5 mi", following km or miles). No minutes, duration, ETA or pace appears on the
    suggestion, its panel or in a setting.
-9. **KW7b · On the walk it starts. Pending the owner's call (Open 1).** The walk screen and its announcements show
-   [distance only for a walk started from a kind | the app's existing time-left as for every walk].
+9. **KW7b · On the walk it starts.** A walk started from a kind shows and speaks distance only: the walk screen, the bar and
+   the start and stepped announcements carry no time left, ETA or pace (the owner, 2026-11-05, option A). Other navigated walks
+   keep their time left (QL18).
 10. **KW8 · It fits a distance budget.** The suggested length is within 25% of the walker's budget (setting, default 2 km;
     miles steps 0.5, 1, 1.5, 2, 3; km steps 1, 1.5, 2, 3, 5). A shorter and a longer step each replace the one suggestion and
-    write the budget setting.
+    write the budget setting. Where the kind has no more cells to pass, the way is shorter than the budget and says its real
+    length; it is never longer than the budget plus 25%.
 11. **KW8b · A step is not a browse.** The panel shows only the current length: never the prior one, a difference, or a history.
 12. **KW9 · The start is said.** If the way begins away from the walker, the suggestion says how far it is to get there (a
     distance, before the button).
@@ -106,8 +106,9 @@ Open: 1 (below). The rest are defaults set for a quick iteration, the owner, Nov
 
 13. **KW12 · Accepting opens the walk screen ready, and it is an ordinary walk.** The button, plain card style and worded
     "Walk this way" is not used (0022 reserves it): it reads "Start this walk". It opens the walk screen with the route ready
-    (0076, `showWalk()`). No tour mode, progress, stop tally or tick is kept before, during or after, and no field on the walk
-    marks it as a kind walk; the replay treats it like any walk.
+    (0076, `showWalk()`). No tour mode, progress, stop tally or tick is kept before, during or after, and no field on the walk, its
+    trace, captures or moments marks it as a kind walk (only the navigation destination, cleared with the walk, carries
+    `suggested` for KW7b); the replay treats it like any walk.
 14. **KW13 · Drifting is never nagged.** Leaving the suggested way raises no alarm, nag or notification; the only response is
     the quiet re-route that navigation already does. Walk me back stays the shortest way (0029).
 15. **KW1b · Words are fixed and plain.** The panel's sentences live in one place, use no superlative (best, finest, top, most)
@@ -118,7 +119,8 @@ Open: 1 (below). The rest are defaults set for a quick iteration, the owner, Nov
 16. **KW14 · What is stored, and what is asked.** The way is derived on open from the cached profile and streets, recomputed,
     never saved as a walk, a moment or a find. The only things stored are the two settings and the ordinary pending
     destination that every navigated walk has (cleared with the walk); no kind-walk record remains in meta after the walk.
-    Nothing is read until the row is tapped, the reads use only hosts already allowed (`npm run check:vision` passes
+    Nothing is read until the row is tapped (then the map tiles around the area are read, as the atlas does, and nothing of
+    them is kept: the atlas stores no ring's places or streets, explore-atlas audit 6), the reads use only hosts already allowed (`npm run check:vision` passes
     unchanged), and they send tile coordinates only. This is "nothing leaves the device without a tap", not "no request".
 
 ## Out (decision 0095 keeps these deferred, `docs/DEFERRED.md`)
@@ -128,4 +130,12 @@ instead" alternative; a route preview on the map for any other screen; mixed-kin
 
 ## Record
 
-Not started (2026-11-05).
+Built 2026-11-05 on branch `claude/kind-walk-spec`. Unit tests `src/lib/__tests__/kind-walk/` (words, density, plan, settings,
+via, suggest: KW1b, KW2-KW11b, KW13, KW14); the journey `kindwalk` covers KW1, KW1b, KW4, KW6, KW7, KW7b, KW8b, KW10, KW12 on
+the web. Decision 0095. Unrun on a device (docs/NATIVE_UNVERIFIED.md). Not audited (decision 0074). Deferred: see "Out" and
+`docs/DEFERRED.md`.
+
+- **KW13 has no e2e step.** Leaving the way raises nothing because the kind walk adds no off-route code; navigation's re-route
+  is the existing one (`routeVia` and `viaAhead` keep the stops ahead, unit tested). The off-route journey is not extended.
+- **The area's reach.** The walk is built from the tiles within 1.5 km of the area's point (a town's reach is wider), so a big
+  town's suggestion stays near its point.

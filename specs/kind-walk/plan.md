@@ -112,3 +112,13 @@ panel adds no count beyond the distance.
 
 Changed in the plan: the density source is the place cache for every kind, found and unfound, at 400 m cells (risk 1 above is now
 this, not `AtlasProfile.marks`); the budget is stored by the panel's step as well as the Start dialog.
+
+## Changes found while building (2026-11-05)
+
+- **No cached places or streets for an unwalked area.** The atlas keeps only a ring's profile (explore-atlas audit 6), so the
+  suggestion reads the area's tiles itself when the row is tapped (`app.ts`, `fetchTiles`, 1.5 km around the point) and keeps
+  nothing. The risk 1 above is resolved this way; `AtlasProfile.marks` and `placesIn` are not used.
+- **Cell centres move onto streets** (`onStreets`, 300 m), and a cell with no street that near is dropped.
+- **Navigation changed in three small places** (`Waypoint.via` and `suggested`, `routeVia` and `viaAhead` in `navigator.ts`,
+  `useNavigation`, `walk.tsx`'s bar): this is the seam the other worktree may also touch; expect a merge to settle by hand.
+- **A web e2e fixture** (`Green Row`, 12 km west of Fox Point, six parks in three clumps) in `scripts/e2e/harness.js`.

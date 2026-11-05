@@ -42,6 +42,39 @@ export function routeTo(
   return { route: null, reason: 'No walking route found nearby' };
 }
 
+/**
+ * A route through `via` in order and on to `to` (a suggested kind walk, KW5): `routeTo` for each leg, the paths joined. Any
+ * leg without a route is no route, with its reason.
+ */
+export function routeVia(
+  sources: RouteSource[],
+  from: LngLat,
+  via: readonly LngLat[],
+  to: LngLat,
+  pick: 'first' | 'shortest' = 'first',
+  hint?: RouteHint,
+): { route: Route | null; reason?: string } {
+  if (!via.length) return routeTo(sources, from, to, pick, hint);
+  const path: LngLat[] = [];
+  let lengthM = 0;
+  let source = '';
+  let at = from;
+  for (const next of [...via, to]) {
+    const leg = routeTo(sources, at, next, pick, path.length ? undefined : hint);
+    if (!leg.route) return leg;
+    path.push(...(path.length ? leg.route.path.slice(1) : leg.route.path));
+    lengthM += leg.route.lengthM;
+    source = leg.route.source;
+    at = next;
+  }
+  return { route: { path, lengthM, source } };
+}
+
+/** The stops of `via` still ahead: those after the last one the walker has come within `passedM` of. */
+export function viaAhead(via: readonly LngLat[], passed: number): LngLat[] {
+  return via.slice(Math.max(0, Math.min(passed, via.length)));
+}
+
 /** How far is left along the path from where you are, and how far off it you are (N7, N8). */
 export function progressOn(path: LngLat[], at: LngLat): { leftM: number; offM: number } {
   if (path.length < 2) return { leftM: path[0] ? distanceM(at, path[0]) : 0, offM: path[0] ? distanceM(at, path[0]) : 0 };

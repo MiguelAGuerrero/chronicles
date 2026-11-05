@@ -140,6 +140,14 @@ const FEATURES = [
     specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation'],
   },
   {
+    name: 'kind-walk',
+    about: 'a suggested walk through where a kind is dense, opened from a kind on an area\'s card: one way, a distance, walkability said',
+    rule: 'kind-walk',
+    source: ['src/lib/kindWalk/**'],
+    journeys: ['kindwalk'],
+    specs: ['kind-walk'],
+  },
+  {
     name: 'walkability',
     about: 'how a street treats someone on foot: the bands, the map layer and its icons, the area card\'s line, the heads-up',
     rule: 'walkability',

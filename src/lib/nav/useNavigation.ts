@@ -3,14 +3,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo } from 'react-native';
 import { planViews, type WalkMapHandle } from '../../components/map/types';
 import { db } from '../db';
-import { boundsOf, type Bounds } from '../geo';
+import { boundsOf, distanceM, type Bounds } from '../geo';
 import { mapReads } from '../mapReads';
 import { withTimeout } from '../placeAll';
 import { deriveSegments } from '../streets';
 import { formatDistance } from '../summary';
 import type { LngLat, StreetSegment, Walk } from '../types';
 import { aboutTimeLeft, DEFAULT_PACE_MPS, timeAtPaceMs } from './eta';
-import { announceStep, navStep, routeTo, startNav, tooFar, type NavState } from './navigator';
+import { announceStep, NAV, navStep, routeVia, startNav, tooFar, viaAhead, type NavState } from './navigator';
 import { clearNav, loadNav, saveNav } from './store';
 import { streetRouteSource } from './streetRoute';
 import { traceRouteSource } from './traceRoute';
@@ -24,6 +24,14 @@ const READ_MIN_MS = 15_000;
 const READ_MAX_MS = 90_000;
 /** A failed re-route reads the streets around you again, at most this often. */
 const REREAD_MS = 60_000;
+
+/**
+ * "800 m, about 6 minutes" at this walk's pace, for the start and stepped announcements (QL18); a suggested way says the
+ * distance only (KW7b, decision 0095).
+ */
+function saidLeft(leftM: number, dest: Waypoint, pace?: number): string {
+  return dest.suggested ? formatDistance(leftM) : `${formatDistance(leftM)}, ${aboutTimeLeft(timeAtPaceMs(leftM, pace ?? DEFAULT_PACE_MPS))}`;
+}
 
 /**
  * Navigating inside a walk (the owner's call): routes are computed on the
@@ -66,8 +74,8 @@ export function useNavigation(opts: {
     navRef.current = s;
     setNav(s);
   };
-  /** "about 6 minutes" at this walk's pace, for the start and stepped announcements (QL18). */
-  const timeLeftSaid = (leftM: number) => aboutTimeLeft(timeAtPaceMs(leftM, latest.current.pace?.() ?? DEFAULT_PACE_MPS));
+  /** How many of the destination's `via` stops the walker has come close to, so a re-route keeps only those ahead (KW13). */
+  const viaPassed = useRef(0);
 
   const end = useCallback(() => {
     apply(null);
@@ -134,11 +142,13 @@ export function useNavigation(opts: {
         list.push(await cachedStreets(boundsOf([from, dest.at], AREA_PAD_M)!));
       }
       const hint = { heading: here ? latest.current.heading : null };
-      let found = routeTo(list, from, dest.at, 'shortest', hint);
+      const stops = dest.via ?? [];
+      viaPassed.current = 0;
+      let found = routeVia(list, from, stops, dest.at, 'shortest', hint);
       if (!found.route) {
-        list.push(await readStreets(boundsOf([from, dest.at], AREA_PAD_M)!, [from, dest.at]));
+        list.push(await readStreets(boundsOf([from, ...stops, dest.at], AREA_PAD_M)!, [from, ...stops, dest.at]));
         if (cancelled.current) return;
-        found = routeTo(list, from, dest.at, 'shortest', hint);
+        found = routeVia(list, from, stops, dest.at, 'shortest', hint);
       }
       if (!found.route) return await fail(found.reason ?? 'No walking route found nearby');
       // Stopped while the route was being found: nothing to navigate.
@@ -146,7 +156,7 @@ export function useNavigation(opts: {
       sources.current = list;
       rereadAt.current = Date.now();
       apply(startNav(dest, found.route, Date.now()));
-      AccessibilityInfo.announceForAccessibility(`Navigating to ${dest.label}, ${formatDistance(found.route.lengthM)}, ${timeLeftSaid(found.route.lengthM)}`);
+      AccessibilityInfo.announceForAccessibility(`Navigating to ${dest.label}, ${saidLeft(found.route.lengthM, dest, latest.current.pace?.())}`);
       await saveNav(walk.id, dest);
     } finally {
       busy.current = false;
@@ -199,9 +209,12 @@ export function useNavigation(opts: {
       // A bus or trolley follows its own line: leaving the route on one is not getting lost (R12).
       const riding = !!latest.current.riding;
       if (riding) next = { ...next, offCount: 0, offRoute: false };
-      if (announceStep(s.leftM, next.leftM)) AccessibilityInfo.announceForAccessibility(`${formatDistance(next.leftM)}, ${timeLeftSaid(next.leftM)} left to ${s.dest.label}`);
+      if (announceStep(s.leftM, next.leftM)) AccessibilityInfo.announceForAccessibility(`${saidLeft(next.leftM, s.dest, latest.current.pace?.())} left to ${s.dest.label}`);
+      // A suggested way's stops: one the walker has come close to is passed, and a re-route goes on through those ahead (KW13).
+      const stops = s.dest.via ?? [];
+      while (viaPassed.current < stops.length && distanceM(here, stops[viaPassed.current]) <= NAV.arriveM * 4) viaPassed.current += 1;
       if (step.reroute && !riding) {
-        const again = routeTo(sources.current, here, s.dest.at, 'shortest', { heading: latest.current.heading }).route;
+        const again = routeVia(sources.current, here, viaAhead(stops, viaPassed.current), s.dest.at, 'shortest', { heading: latest.current.heading }).route;
         if (again) {
           next = { ...next, route: again, leftM: again.lengthM, offCount: 0, offRoute: false };
           latest.current.onNotice('New route');

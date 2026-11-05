@@ -13,7 +13,8 @@ An item leaves only when it ships, or when it is rejected with a decision record
 ## Navigation and routes
 
 - Suggested routes: routes to a destination with detours shaped by preferences (streets with life, things worth seeing), their own later slice, decision 0022 (Positioning)
-- Explore's route preview and "Walk this way", with suggested routes (Positioning)
+- Explore's route preview and "Walk this way", with suggested routes (Positioning). The kind walk (decision 0095) pulled out one slice: a suggested walk from a kind on an area's card. Still deferred: a route to a destination, quick actions between places, routing that avoids car-oriented streets, a "walk this way instead"
+- Kind walk: a sketch of the way in the panel; mixed-kind walks from the card's head; a walk built across a whole town outline (it is built from 1.5 km around the area's point); more than one distance step above 5 km or below 1 km
 - Open in Maps on the Explore mark card (v0.5 navigate, Open in Maps)
 - Open in Maps on the dead-zone nudge (v0.5 navigate, Open in Maps)
 - Open in Maps on the home's Walk here (v0.5 navigate, Open in Maps)

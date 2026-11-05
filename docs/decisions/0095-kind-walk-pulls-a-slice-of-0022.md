@@ -19,3 +19,6 @@ Pull this much of 0022 forward, and no more (`specs/kind-walk`):
 - The route comes through `RouteSource` (`lib/nav/types.ts`, 0017); nothing builds a second one. If the suggested-routes worktree lands first, this slice uses its source.
 - Walk me back stays the shortest way (0029).
 - Proposed for `docs/VISION.md` (the owner's to make): a Precedents row for this decision, and, if the owner wants it written down, that the length of a suggested walk is a distance, never a time.
+- Built after the fact (2026-11-05): a suggestion reads the area's map tiles itself when the row is tapped and keeps nothing,
+  because the atlas stores no ring's places or streets (explore-atlas audit 6). A destination may carry stops to pass (`via`)
+  and `suggested`, which leaves the time left out of the walk screen and its announcements (the owner's option A, Nov 5).
