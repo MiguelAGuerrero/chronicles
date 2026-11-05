@@ -1123,36 +1123,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
       <>
 
       <View style={[styles.top, { top: insets.top + 4, left: sideInset, right: sideInset }]} pointerEvents="box-none">
-        {navigation.nav && (
-          // Not a live region: it changes with every fix. The distance is announced in steps instead.
-          <View testID="nav-bar" style={styles.navBar}>
-            <Icon name="navigate" size={20} color="#ffffff" />
-            <Text
-              testID="nav-left"
-              style={styles.navText}
-              numberOfLines={1}
-              accessibilityLabel={`${formatDistance(navigation.nav.leftM)}, ${aboutTimeLeft(navTimeLeft)} left to ${navigation.nav.dest.label}`}
-            >
-              {formatDistance(navigation.nav.leftM)} · {formatTimeLeft(navTimeLeft)} · {navigation.nav.dest.label}
-            </Text>
-            <Pressable
-              testID="nav-handoff"
-              accessibilityRole="button"
-              accessibilityLabel="Open in Maps"
-              accessibilityHint={HANDOFF_HINT}
-              onPress={() => {
-                const d = navigation.nav?.dest;
-                if (d) handOff(d.at, d.label);
-              }}
-              style={({ pressed }) => [styles.navHandoff, pressed && styles.pressed]}
-            >
-              <Icon name="open-outline" size={22} color="#ffffff" />
-            </Pressable>
-            <Pressable testID="nav-end" accessibilityRole="button" accessibilityLabel="End navigation" onPress={navigation.end} style={styles.navEnd} hitSlop={8}>
-              <Text style={styles.navEndText}>End</Text>
-            </Pressable>
-          </View>
-        )}
         {/* Minimize (NV7): down to the recording bar above the tabs, still recording. At the top-left
             edge, under the navigation bar when one shows, away from the capture row and Stop. */}
         <View style={styles.minRow} pointerEvents="box-none">
@@ -1187,7 +1157,47 @@ function WalkScreen(props: { onMinimize: () => void }) {
             </Banner>
           </View>
         )}
+        {/* The street chip: top centre, level with the chevron, so nothing below it moves it (the owner, Nov 5). */}
+        {!notice && onStrip && !problem && (
+          // Quiet: a chip, not a notification or a hint (L14).
+          <View style={styles.chipCell} pointerEvents="none">
+            <LiftIn testID="on-strip" style={styles.chip}>
+              <View style={[styles.statusDot, { backgroundColor: HOTSPOT }]} />
+              <Text style={styles.chipText}>On {onStrip}</Text>
+            </LiftIn>
+          </View>
+        )}
         </View>
+        {navigation.nav && (
+          // Not a live region: it changes with every fix. The distance is announced in steps instead.
+          <View testID="nav-bar" style={styles.navBar}>
+            <Icon name="navigate" size={20} color="#ffffff" />
+            <Text
+              testID="nav-left"
+              style={styles.navText}
+              numberOfLines={1}
+              accessibilityLabel={`${formatDistance(navigation.nav.leftM)}, ${aboutTimeLeft(navTimeLeft)} left to ${navigation.nav.dest.label}`}
+            >
+              {formatDistance(navigation.nav.leftM)} · {formatTimeLeft(navTimeLeft)} · {navigation.nav.dest.label}
+            </Text>
+            <Pressable
+              testID="nav-handoff"
+              accessibilityRole="button"
+              accessibilityLabel="Open in Maps"
+              accessibilityHint={HANDOFF_HINT}
+              onPress={() => {
+                const d = navigation.nav?.dest;
+                if (d) handOff(d.at, d.label);
+              }}
+              style={({ pressed }) => [styles.navHandoff, pressed && styles.pressed]}
+            >
+              <Icon name="open-outline" size={22} color="#ffffff" />
+            </Pressable>
+            <Pressable testID="nav-end" accessibilityRole="button" accessibilityLabel="End navigation" onPress={navigation.end} style={styles.navEnd} hitSlop={8}>
+              <Text style={styles.navEndText}>End</Text>
+            </Pressable>
+          </View>
+        )}
         {navigation.nav?.offRoute && (
           <LiftIn style={styles.chip} accessibilityLiveRegion="polite">
             <View style={[styles.statusDot, { backgroundColor: theme.warn }]} />
@@ -1206,13 +1216,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
         {arrived && (
           <LiftIn style={styles.toast}>
             <Text style={[styles.toastText, styles.flashText]}>{arrived}</Text>
-          </LiftIn>
-        )}
-        {onStrip && !problem && (
-          // Quiet: a chip, not a notification or a hint (L14).
-          <LiftIn testID="on-strip" style={styles.chip}>
-            <View style={[styles.statusDot, { backgroundColor: HOTSPOT }]} />
-            <Text style={styles.chipText}>On {onStrip}</Text>
           </LiftIn>
         )}
         {problem && status.kind === 'error' && !paused ? (
@@ -1791,6 +1794,7 @@ const styles = StyleSheet.create({
   minRow: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   noticeCell: { flex: 1, minWidth: 0 },
   minBtn: { position: 'relative' },
+  chipCell: { position: 'absolute', left: 0, right: 0, top: 0, height: 44, alignItems: 'center', justifyContent: 'center' },
   ahead: { flexDirection: 'row', alignItems: 'center', gap: 8, maxWidth: 360, backgroundColor: theme.glass, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: theme.line },
   aheadText: { color: theme.ink, fontSize: 14, flexShrink: 1 },
   unwalked: { position: 'absolute', backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 12 },
