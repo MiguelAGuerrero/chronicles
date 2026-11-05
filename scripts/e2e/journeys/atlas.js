@@ -80,6 +80,8 @@ async function checks(h) {
     {
       // AT9: the small map shows the areas' points; selecting a tile frames its area with its 800 m ring.
       const ring = () => page.locator('[data-ring]').last().getAttribute('data-ring');
+      // The points are drawn once the map has loaded its style and the areas are read: wait for them before counting.
+      await page.waitForSelector('[data-testid=area-point]', { timeout: 15000 }).catch(() => {});
       const points = await page.locator('[data-testid=area-point]').count();
       const ringBefore = await ring();
       const hoods = await page.locator('[data-testid=atlas-tile]:not([data-level="town"])').evaluateAll((els) => els.map((e) => e.getAttribute('data-name')));

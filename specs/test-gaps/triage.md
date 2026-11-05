@@ -19,6 +19,9 @@ Round 2 (Nov 4) wrote a test for 15 of the 18 "test" rows (below). It stopped on
 
 ## Covered in round 2 (Nov 4)
 
+Each test below was made to fail against a deliberate break in the code it covers, then the break was reverted (Nov 5, after two container restarts lost the first proofs). Unit: H9 (the places index kept open walks), NB6 (the street cache never dropped), G13 (walks never marked to re-snap), R12 (a stop on a ride read as walking), TB12 (the z10 read's 45 s cut to 15 s; the retry slowed to 60 s), TH5 (migration 12 made NOT NULL). E2E, each journey run in soft mode under its break: AT9 (no ring on a selected area), AT15 (the title card 52 px lower), N12 (Pause ends the navigation), QL3 (the end markers ignore the trace's opacity), QL21 (a denied fix on focus raises a banner), E15 (nothing named within reach), MO6 (six steps before walking), MO10 (motion read while paused and hidden). MR9's break (no memories near, or a viewer handed nothing) fails the `memories` journey at the wait just before the MR9 check, which checks what those waits demand.
+
+
 - **H9** `places/places.test.ts` "H9: the open walk shows nowhere on Chronicle until it stops: no star, no row, no place, no day, no count"
 - **N12** e2e `walk` "N12: while navigating, the walk records, a photo is kept, Pause holds the bar's distance, and the fog counts its streets"
 - **E15** e2e `marks` "E15: on the web, with the page open, an exploring walk reads its area, keeps its checklist and names what it passes"
