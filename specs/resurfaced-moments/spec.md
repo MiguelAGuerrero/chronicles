@@ -6,6 +6,16 @@ Nov 5, 2026 · @Miguel Guerrero
 
 Chronicle is for remembering. Today it opens on a map and a sheet of walks, and the owner only goes back to it to pick a walk and replay it. The replay is a ceremony, and a ceremony is good once. This slice makes the tab give something back each time it opens: one resurfaced moment, the things you keep coming back to as threads, and your latest moments, in your own words. Walks, Days and the map stay, as their own sections.
 
+## Vision
+
+Idea: Chronicle opens on what you kept, brought back: one resurfaced moment, the threads you keep coming back to, and your latest moments, with walks, days and the map as sections.
+Verb: return (it gives moments back, truthfully, at the right time: a moment from a year ago, the words you keep using, the newest things you kept).
+Touches: "Every moment captured is worth remembering"; "the walks are one way into it; the map is one view of it, not its home" (What it is); "Return: Chronicle, replay, revisit, recall: ceremonies, revisits, threads, search". Never lines it comes near: "A feed, followers, likes, public profiles" (Lately is a personal list of the user's own moments, newest first, with no one else's activity, no likes and nothing shared); "Scores, streaks, completion, coverage" and "Tallies" (threads are ordered inside by how they recur and nothing ranked or counted is shown: RM22); "Editing out the lows" (Not this one only keeps a moment from being brought back; it stays kept, in Lately and in its walk: RM20); "Nagging: ... re-engagement pushes" (no notification is added; a "year ago today" nudge is deferred and would be opt-in); "Writing the owner's words for them" (a thread is named by the user's own word, a card shows their own words; the app writes only the label that says why a moment is here, RM6); "Data leaving the device" (all derived on the phone, RM23).
+Verdict: aligned
+Shape: as asked.
+Criteria: RM20, RM22, RM23 carry the Never lines above (a hidden moment stays kept; no score or count is shown; nothing leaves the device).
+Open: none.
+
 ## Decisions (the owner's calls, Nov 5)
 
 - Chronicle's job is to remember, to review and to recall. The map is a tool for that, not the front door.

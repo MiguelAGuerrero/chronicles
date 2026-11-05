@@ -65,6 +65,10 @@ async function run(h) {
   // RM22: no number is a score; nothing on Memories holds a digit here.
   const text = await pg.locator('[data-testid=memories]').innerText();
   check(!/\d/.test(text), `RM22: Memories shows no digit (${text.replace(/\s+/g, ' ').slice(0, 120)})`);
+  // RM25: the top card reads as one named button, and Another, Relive it and More are named buttons; the rail is a list.
+  const named = async (name) => (await pg.getByRole('button', { name }).filter({ visible: true }).count()) > 0;
+  check((await named(/Open$/)) && (await named('Relive it')) && (await named('Another')) && (await named('More about this moment'))
+    && (await pg.locator('[data-testid=threads-rail] [role=list]').count()) === 1, 'RM25: the top card, Relive it, Another and More are named buttons, and the rail is a list');
   await shot(pg, '60-memories');
 
   // RM14: the threads rail, a tile with a line in words.
@@ -116,7 +120,8 @@ async function run(h) {
 
   // RM9: Relive it opens the day of a moment made outside a walk.
   await pg.click('[data-testid=resurfaced-relive]');
-  check(await pg.waitForURL(/\/(day|replay)\//, { timeout: 15000 }).then(() => true, () => false), 'RM9: Relive it opens the replay of its day (or its walk)');
+  const lived = await pg.waitForURL(/\/(day|replay)\//, { timeout: 15000 }).then(() => true, () => false);
+  check(lived, 'RM9: Relive it opens the replay of its day (or its walk)');
   await pg.goBack();
   await pg.waitForSelector('[data-testid=resurfaced]', { timeout: 20000 });
 
