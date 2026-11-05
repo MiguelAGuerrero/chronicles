@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { arrowSwipe, nextArea, releaseSwipe, revealTo, SNAP, snapScope, swipeHeading, swipeOf, tapClears, zoomStart, type SnapPoint } from '../../atlas/snap';
+import { arrowSwipe, landing, nextArea, releaseSwipe, revealTo, SNAP, snapScope, swipeHeading, swipeOf, tapClears, zoomStart, type SnapPoint } from '../../atlas/snap';
 import type { LngLat } from '../../types';
 
 const O: LngLat = [-71.4, 41.82];
@@ -23,19 +23,50 @@ test('DN2: a drag left goes east, up goes south; turned 90° it follows the map'
   assert.ok(near(swipeHeading(-60, 0, 90), 180));
 });
 
-test('DN2: only areas within 45° count, the nearest wins', () => {
-  const from = pt('here', 0, 0);
-  const areas = [
-    from,
-    pt('far east', 1500, 0),
-    pt('near north-east', 600, 650), // 47° off east: outside the cone
-    pt('east-ish', 900, 400), // 24° off east: inside, and nearer than far east
-    pt('west', -300, 0),
-  ];
-  assert.equal(nextArea(from.at, 'here', areas, 90)?.key, 'east-ish');
-  assert.equal(nextArea(from.at, 'here', areas, 270)?.key, 'west');
-  // The selected area itself is never the answer.
-  assert.notEqual(nextArea(from.at, 'here', areas, 0)?.key, 'here');
+// A swipe (owner, Nov 4, after Fountain Hill never reached Bethlehem): the map lands where the swipe would
+// have panned it, coasting on a flick as a pan does, and snaps to the nearest area on that side, never the selected one.
+const slow = (dx: number, dy: number) => ({ dx, dy, vx: 0, vy: 0 });
+const metres = (a: LngLat, b: LngLat) => {
+  const k = 111320 * Math.cos((O[1] * Math.PI) / 180);
+  return Math.hypot((a[0] - b[0]) * k, (a[1] - b[1]) * 111320);
+};
+
+test('DN2: a swipe lands where it would have panned the map, turned with it', () => {
+  // 100 px left at 10 m a pixel: the middle lands 1 km east (what was on the right comes into view).
+  assert.ok(metres(landing(at(0, 0), slow(-100, 0), 0, 10), at(1000, 0)) < 1);
+  // 100 px down: 1 km north.
+  assert.ok(metres(landing(at(0, 0), slow(0, 100), 0, 10), at(0, 1000)) < 1);
+  // Turned so east is up (bearing 90): a drag left brings in the screen's right, which is south.
+  assert.ok(metres(landing(at(0, 0), slow(-100, 0), 90, 10), at(0, -1000)) < 1);
+});
+
+test('DN2: a flick coasts further than a slow drag of the same length, as a pan does', () => {
+  const still = landing(at(0, 0), slow(-100, 0), 0, 10);
+  const flick = landing(at(0, 0), { dx: -100, dy: 0, vx: -2000, vy: 0 }, 0, 10);
+  assert.ok(metres(flick, at(0, 0)) > metres(still, at(0, 0)) + 500);
+  // Along the swipe, and capped like the map's own coast.
+  assert.ok(flick[1] - at(0, 0)[1] < 1e-9 && flick[0] > still[0]);
+  const wild = landing(at(0, 0), { dx: -100, dy: 0, vx: -1e6, vy: 0 }, 0, 10);
+  assert.ok(metres(wild, at(0, 0)) < 1000 + SNAP.inertia.maxSpeed ** 2 / (2 * SNAP.inertia.deceleration * SNAP.inertia.linearity) * 10 + 1);
+});
+
+test('DN2: the nearest area to where the swipe lands wins, past a nearer one beside the way (Fountain Hill to Bethlehem)', () => {
+  const fountainHill = pt('fountain-hill', 0, 0);
+  const bethlehem = pt('bethlehem', 1300, 1550); // 40° east of north, 2 km
+  const hellertown = pt('hellertown', 170, 980); // 10° east of north, 1 km: nearer, and inside any cone that held Bethlehem
+  const towns = [fountainHill, bethlehem, hellertown];
+  // A drag of 200 px toward Bethlehem (down and left, at 10 m a pixel) lands 2 km that way.
+  const toward = { dx: -130, dy: 155, vx: 0, vy: 0 };
+  assert.equal(nextArea(fountainHill.at, fountainHill.key, towns, toward, 0, 10)?.key, 'bethlehem');
+  // A short one the same way lands nearer Hellertown.
+  assert.equal(nextArea(fountainHill.at, fountainHill.key, towns, { dx: -20, dy: 95, vx: 0, vy: 0 }, 0, 10)?.key, 'hellertown');
+});
+
+test('DN2: a short swipe always moves, to the nearest other area on that side', () => {
+  const here = pt('here', 0, 0);
+  const areas = [here, pt('east', 900, 100), pt('west', -400, 0)];
+  // 30 px at 10 m a pixel lands 300 m east, still nearest 'here': it moves on to 'east', never back to 'west'.
+  assert.equal(nextArea(here.at, 'here', areas, slow(-30, 0), 0, 10)?.key, 'east');
 });
 
 test('DN2: under 24 px is not a swipe; a long press, two fingers or a pinch never are', () => {
@@ -46,41 +77,21 @@ test('DN2: under 24 px is not a swipe; a long press, two fingers or a pinch neve
   assert.equal(swipeOf({ x: 100, y: 100 }, { x: 40, y: 100 }, { held: true }), null);
 });
 
-test('DN3: with nothing selected, a step starts from the map\'s middle', () => {
+test('DN3: with nothing selected, a swipe starts from the map\'s middle and goes past the area under it', () => {
   const middle = at(0, 0);
-  // An area at the middle is where you are looking: the swipe goes past it, to the next one that way.
   const areas = [pt('at middle', 40, 0), pt('east', 700, 0), pt('west', -700, 0)];
-  assert.equal(nextArea(middle, null, areas, 90)?.key, 'east');
-  assert.equal(nextArea(middle, null, areas, 270)?.key, 'west');
+  assert.equal(nextArea(middle, null, areas, slow(-50, 0), 0, 10)?.key, 'east');
+  assert.equal(nextArea(middle, null, areas, slow(50, 0), 0, 10)?.key, 'west');
   // Further than SNAP.hereM from the middle, it is a step of its own.
-  assert.equal(nextArea(middle, null, [pt('close east', SNAP.hereM + 50, 0), pt('east', 700, 0)], 90)?.key, 'close east');
+  assert.equal(nextArea(middle, null, [pt('close east', SNAP.hereM + 50, 0), pt('east', 700, 0)], slow(-15, 0), 0, 10)?.key, 'close east');
 });
 
-test('DN4: nothing that way returns null', () => {
-  const from = pt('here', 0, 0);
-  assert.equal(nextArea(from.at, 'here', [from, pt('west', -500, 0), pt('north', 0, 500)], 90), null);
-  assert.equal(nextArea(from.at, 'here', [from], 0), null);
-  assert.equal(nextArea(from.at, 'here', [], 0), null);
-});
-
-test('DN5: the opposite swipe returns where it came from, though another is nearer', () => {
-  const a = pt('a', 0, 0);
-  const b = pt('b', 800, 0);
-  // From b, going west, 'c' is nearer than a; but the last step was a → b eastwards.
-  const c = pt('c', 500, 150);
-  const areas = [a, b, c];
-  const last = { from: a.key, to: b.key, heading: 90 };
-  assert.equal(nextArea(b.at, 'b', areas, 270)?.key, 'c');
-  assert.equal(nextArea(b.at, 'b', areas, 270, last)?.key, 'a');
-  // Roughly opposite counts too (within the cone).
-  assert.equal(nextArea(b.at, 'b', areas, 250, last)?.key, 'a');
-  // Not opposite: the trail plays no part.
-  assert.equal(nextArea(b.at, 'b', areas, 0, last), null);
-  // The trail is only for the area it ended on: from c, west goes to the nearest (d), never back to a.
-  const d = pt('d', 200, 120);
-  assert.equal(nextArea(c.at, 'c', [...areas, d], 270, last)?.key, 'd');
-  // An origin no longer listed is not brought back.
-  assert.equal(nextArea(b.at, 'b', [b, c], 270, last)?.key, 'c');
+test('DN4: with no area on the side swiped toward, nothing changes', () => {
+  const here = pt('here', 0, 0);
+  // Only areas behind (west) and beside (due north, 90° off): a swipe east lands nowhere, never on them.
+  assert.equal(nextArea(here.at, 'here', [here, pt('west', -500, 0), pt('north', 0, 500)], slow(-50, 0), 0, 10), null);
+  assert.equal(nextArea(here.at, 'here', [here], slow(-50, 0), 0, 10), null);
+  assert.equal(nextArea(here.at, 'here', [], slow(-50, 0), 0, 10), null);
 });
 
 test('DN7, DN8: the page near you steps neighborhoods; a town\'s page steps towns until one of its neighborhoods is selected', () => {

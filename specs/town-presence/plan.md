@@ -32,7 +32,7 @@ neighborhood rows not be re-read, so `rowCurrent` keeps a neighborhood row valid
 | TP4 | `pockets.test.ts`, `TP4: peaks 1.5 km apart, busiest first, capped, floor; one mass with two peaks gives two; none above the floor gives none` |
 | TP5 | `pockets.test.ts`, `TP5: Whitehall's busiest pocket is the MacArthur Rd corridor` on a new `__tests__/whitehallPlaces.json` fixture (`scripts/fixture-overture.mjs`, radius 6 km around the outline) |
 | TP6 | `pockets.test.ts`, `TP6: Allentown and Bethlehem give at least two pockets, 1.5 km apart` (fixtures from the same script) |
-| TP7 | e2e `grading`: the fake grid's town card shows "Busy areas" with a Walk to; a neighborhood's card does not. `atlas.test.ts`, `TP7: a pocket's name is the busiest street through it, else "A busy area"` |
+| TP7 | e2e `grading`: the fake grid's town card shows "Busy areas" with a Walk to; a neighborhood's card does not. `atlas.test.ts`, `TP7: a pocket with no street is not listed` |
 | TP8 | `atlas.test.ts`, `TP8: the heading and explanation say whole outline for a graded town and keep "around its centre" for a ring`; the e2e checks the heading |
 | TP9 | `atlas.test.ts`, `TP9: fewer than 3 places in the outline is thin` |
 | TP10 | `atlas.test.ts`, `TP10: a town row under a4 is stale; a neighborhood row under a4 is current` |

@@ -20,12 +20,14 @@ export const HANDOFF_HINT =
  * on the web it is always true.
  */
 export async function openInMaps(at: LngLat, label: string): Promise<boolean> {
-  const nav = typeof navigator === 'undefined' ? undefined : navigator;
-  const target = mapsTarget({ os: Platform.OS, ua: nav?.userAgent, touchPoints: nav?.maxTouchPoints });
+  const nav = (typeof navigator === 'undefined' ? undefined : navigator) as (Navigator & { standalone?: boolean }) | undefined;
+  const target = mapsTarget({ os: Platform.OS, ua: nav?.userAgent, touchPoints: nav?.maxTouchPoints, standalone: nav?.standalone === true });
   for (const url of mapsUrls(at, label, target)) {
     try {
       // Never canOpenURL first: Android 11+ answers false for schemes not declared in <queries>.
-      await Linking.openURL(url);
+      // A scheme link opens the app without unloading the page; window.open would leave a blank window.
+      if (target === 'appleApp') window.location.href = url;
+      else await Linking.openURL(url);
       return true;
     } catch {
       // No app took it: the next link (Google's, on Android).

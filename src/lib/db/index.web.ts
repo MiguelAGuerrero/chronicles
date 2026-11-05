@@ -5,6 +5,7 @@ import { exploredKey, type ChecklistArea, type ChecklistItem, type ExploreRead, 
 import { countsOf, recountNewStreets } from '../deletion/core';
 import type { LandingRow } from '../landing/view';
 import type { OutlineTile } from '../areas/outlines';
+import type { WalkTile } from '../walk/types';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Mark, Offered, Place, Recall } from '../discovery/types';
 import { DERIVED_STORES } from './stores';
@@ -15,7 +16,7 @@ import { parseEdit } from '../mediaEdit';
 
 // Same tables as the native SQLite store, as IndexedDB object stores.
 const DB_NAME = 'chronicles';
-const VERSION = 15;
+const VERSION = 16;
 
 /** Raised when another open tab holds an older version of the database. */
 export class BlockedByOtherTabError extends Error {
@@ -111,6 +112,10 @@ function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number) {
   if (oldVersion < 15) {
     // Town borders (TB7): tiles are keyed by zoom now (z/x/y); the cache's old x/y rows are dropped and read again.
     tx.objectStore('outline_tile').clear();
+  }
+  if (oldVersion < 16) {
+    // Walkability (WK2): what each read z14 tile held, a cache cleared with the derived stores.
+    d.createObjectStore('walk_tile', { keyPath: 'key' });
   }
 }
 
@@ -506,6 +511,18 @@ export const db: Db = {
     const s = await store('outline_tile');
     const got = await Promise.all([...new Set(keys)].sort().map((k) => done(s.get(k)) as Promise<OutlineTile | undefined>));
     return got.filter((t): t is OutlineTile => !!t);
+  },
+  async putWalkTiles(tiles) {
+    if (!tiles.length) return;
+    const tx = (await conn()).transaction('walk_tile', 'readwrite');
+    for (const t of tiles) tx.objectStore('walk_tile').put(t);
+    await committed(tx);
+  },
+  async getWalkTiles(keys) {
+    if (!keys.length) return [];
+    const s = await store('walk_tile');
+    const got = await Promise.all([...new Set(keys)].sort().map((k) => done(s.get(k)) as Promise<WalkTile | undefined>));
+    return got.filter((t): t is WalkTile => !!t);
   },
   async getMeta(key) {
     const r = (await done((await store('meta')).get(key))) as { value: string } | undefined;

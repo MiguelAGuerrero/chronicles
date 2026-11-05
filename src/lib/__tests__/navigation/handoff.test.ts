@@ -32,3 +32,11 @@ test('handoff: walking directions to the destination, six decimals, nothing else
     'https://www.google.com/maps/dir/?api=1&destination=40.619512,-75.378457&travelmode=walking',
   ]);
 });
+
+test('handoff: an iPhone Home Screen app opens the maps: scheme, not a window (fix pwa-maps)', () => {
+  assert.equal(mapsTarget({ os: 'web', ua: IPHONE, touchPoints: 5, standalone: true }), 'appleApp');
+  assert.equal(mapsTarget({ os: 'web', ua: IPAD_AS_MAC, touchPoints: 5, standalone: true }), 'appleApp');
+  assert.equal(mapsTarget({ os: 'web', ua: IPHONE, touchPoints: 5, standalone: false }), 'apple', 'a Safari tab');
+  assert.equal(mapsTarget({ os: 'web', ua: DESKTOP, touchPoints: 0, standalone: true }), 'google');
+  assert.deepEqual(mapsUrls(DEST, 'Your spot', 'appleApp'), ['maps://?daddr=40.619512,-75.378457&dirflg=w']);
+});

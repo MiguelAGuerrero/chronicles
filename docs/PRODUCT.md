@@ -72,8 +72,9 @@ recording bar brings a minimized walk back.
   experiment): a swipe goes to the next area that way, never panning. It
   selects the next neighborhood (its ring, its name, its tile scrolled into
   view) without opening its card; on a town's page with none of its
-  neighborhoods selected, it opens the next town's page. The opposite swipe
-  comes back; a tap on the map clears the selection; the arrow keys step on
+  neighborhoods selected, it opens the next town's page. A swipe lands where
+  it would have panned the map (a flick goes further) and picks the area
+  nearest there, on that side; a tap on the map clears the selection; the arrow keys step on
   the web. Pinch, the wheel, the two-finger turn and the long press stay.
 - A tile opens the area's card:
   - the eight kinds in words;
@@ -168,6 +169,21 @@ recording bar brings a minimized walk back.
   the replay.
 - Standstills, GPS wander, rides and motion (step detection) are all read
   from the raw fixes at read time; nothing derived is stored as truth.
+
+#### Walkability (before and during)
+
+- A switch on the Explore map and the Navigate map shades the stretches the map data suggests need a car to get
+  around: a warm line where a street is built around cars, a faint one where it is mixed, nothing where it is
+  easy on foot. The bands are icons (the pedestrian; with a caution badge; with a car badge) with a tooltip in
+  words. No number, share or rank is shown anywhere.
+- It reads sidewalks, crossings, speeds and road classes from Overture's transportation tiles, falling back to
+  OpenStreetMap through Overpass, and keeps each tile on the device. Where sidewalks are not mapped, the layer
+  says streets can read worse than they are.
+- An open area card (a neighborhood or a town) has an "On foot" line in words ("Mostly easy on foot", "A mix of
+  easy and car-oriented streets", "Mostly built around cars"), read when the card opens; it says nothing where too
+  little is known. The grid's tiles say nothing.
+- While navigating, a quiet line says "Next: a stretch built around cars on <street>" 200 m before one, once,
+  with no sound; it never changes the route.
 
 ### Chronicle (after)
 

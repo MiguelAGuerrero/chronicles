@@ -165,7 +165,6 @@ An item leaves only when it ships, or when it is rejected with a decision record
 ## Discrete navigation (DN1-DN13, decision 0092)
 
 - A bounce at the edge: with nothing that way the map stays still, with no rubber band (DN4)
-- A fling's speed choosing how far to go: one swipe is always one step
 - Towns on the page near you stay tiles: swipes there move between neighborhoods only (the owner's call)
 - No touch-screen e2e for the swipe: the journey drags with the mouse; a finger's swipe on iOS Safari has not been tried
 - A spoken cue when a swipe finds nothing that way: a screen reader hears nothing (discrete-navigation audit 12), as the eye sees no bounce
@@ -247,3 +246,21 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - Live criterion ids no test names (`npm run check:specs`, 25 of 478 after main's media editing and town borders, Nov 4): triaged in `specs/test-gaps/triage.md`. Four look retired (H2, H3, E14, L17) and two may never have shipped (NH8, MR2): the owner's calls. Eighteen are owed tests (TB12 added), mostly e2e checks in journeys that exist. RR17 can only be checked on a device. `--strict` stays out of CI and the hook until the list is empty.
 - Coverage is a report (`npm run test:coverage [<feature>]`, TD2) with no threshold, in neither CI nor the hook; Node lists only the files a test loads, so a file no test reaches is missing from it, not at 0% (`check:affected` names those).
 - `walk.tsx` triggers six journeys (`tabs`, `ready`, `marks`, `reload`, `gaps`, `hidden`): a split of the walk screen's own journey (ready, recording, capture) when it grows again.
+- An e2e for the Home Screen hand-off (`navigator.standalone` plus an iPhone UA, a `location.href` spy): `openInMaps` imports `Platform`, so no unit test reaches it (fix pwa-maps audit 1; deferred at `--tests=lean`)
+
+- **A self-referential `node_modules` symlink is tracked in git** (commit `16e54cf`, seen Nov 4 during fix busy-streets): it points at itself, so a fresh checkout has no dependencies until it is removed and `npm ci` runs. Untrack it and make sure `node_modules` is in `.gitignore`; left alone because it is not the busy-areas fix.
+
+## Walkability (specs/walkability, decision 0093)
+
+- **The grid's tiles say nothing about walkability** (WK11, the owner's call, 2026-11-04: the card only). Showing a line on every tile would read walkability for every ring listed.
+- **The heads-up** (specs/walkability-headsup): no haptic or sound, and nothing for a walk with no route (both declined, 2026-11-04); not shown while a voice memo is recording is checked in code only, and WH12 (no data) is unit tested only.
+- Routing that avoids car-oriented streets, and any "walk this way instead" (0022 defers suggested routes).
+- Amenity, block length and intersection density as signals; street lighting, surface, slope, traffic volume.
+- The replay's mention of a car-oriented stretch.
+- Native credits for OpenStreetMap and Overture beside the layer (as AD16).
+- A failed read is not retried by a timer: it is read again when the tile set changes or the switch is toggled (the reader's 2-minute wait only stops asking too soon).
+- Overture has no "no sidewalk" tag; only Overpass tiles can say it (WK8b). A town where Overture is thin on sidewalks reads `mixed` more often than it should.
+- **WK14's long press on a drawn stretch** (walkability audit 2): "Main Street · built around cars" was never built. The map's long press opens the spot card, so naming a stretch there is a navigation-flow call for the owner. The legend's tooltips name the bands meanwhile.
+- **A footway counts as the sidewalk of any road within 25 m** (walkability audit 12): a park path beside a trunk, or the sidewalk of a parallel street 20 m away, lifts a street to `mixed` or `foot`. Fixing it means giving each footway to its nearest road, a change to the band table (bump `WALK_CODE`).
+- **`walk_tile` is never evicted** (walkability audit 13): rows live until the derived stores are cleared; a dense tile is hundreds of KB of JSON parsed on the main thread. Eviction by age is its own change.
+

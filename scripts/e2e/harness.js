@@ -100,6 +100,23 @@ const divisionFeatures = [
     properties: { subtype: 'locality', class: 'land', '@name': 'Central Falls', division_id: 'central-falls', id: 'central-falls-area' } },
 ];
 const divisions = { serve: false };
+// Walkability (WK1, WK13): Overture's transportation tile around the start. A fast primary (car), a tertiary with
+// nothing mapped (mixed), and a calm residential with a sidewalk beside it (easy on foot: drawn as nothing).
+const transportFeatures = [];
+const mph = (v) => JSON.stringify([{ max_speed: { unit: 'mph', value: v }, between: [0, 1] }]);
+const wkSeg = (id, props, a, b) => transportFeatures.push({ type: 'Feature', properties: { id, subtype: 'road', ...props }, geometry: { type: 'LineString', coordinates: [a, b] } });
+wkSeg('wk-fast', { class: 'primary', '@name': 'Route 6', speed_limits: mph(55) }, at(-2, 3), at(2, 3));
+wkSeg('wk-mixed', { class: 'tertiary', '@name': 'Hope Street' }, at(-2, -3), at(2, -3));
+wkSeg('wk-calm', { class: 'residential', '@name': 'Elm Street', speed_limits: mph(25) }, at(-2, 6), at(2, 6));
+wkSeg('wk-walk', { class: 'footway', subclass: 'sidewalk' }, at(-2, 6.1), at(2, 6.1));
+// The Overpass answer for the same ground, for when Overture can't be read (WK1b).
+const overpassAnswer = { elements: [
+  { type: 'way', id: 1, tags: { highway: 'secondary', 'sidewalk:both': 'no', maxspeed: '35 mph', name: 'Route 6' }, geometry: [{ lat: at(0, 3)[1], lon: at(-2, 3)[0] }, { lat: at(0, 3)[1], lon: at(2, 3)[0] }] },
+] };
+// What the transportation archive holds: 'ok' the fixture, 'grid' every street of the grid as a fast road (the heads-up
+// journey), 'broken' a 200 that is not a PMTiles file (not a 404, which would be a console error), so Overture "can't be read".
+const walkability = { mode: 'ok' };
+const OVERPASS_HOST = 'overpass-api.de';
 // Discrete navigation (DN1-DN13): four neighborhoods around Fox Point, one each way, and a second town
 // west of Providence, only in the snap journey (serveSnap), so other journeys' areas don't change.
 const snapFeatures = [
@@ -110,6 +127,18 @@ const snapFeatures = [
   { type: 'Feature', properties: { class: 'town', name: 'Cranston' }, geometry: { type: 'Point', coordinates: at(-40, 2) } },
 ];
 const snapWorld = { serve: false };
+// Discrete navigation's town swipe (the owner, Nov 4: Allentown to Catasauqua kept Allentown's zoom): a 4 km town
+// around the start and a 600 m one north-east of it, served in place of the others while both flags are on.
+// Catasauqua is a town on the map too (a place point inside its border), as the real one is.
+const snapTownFeatures = [
+  { type: 'Feature', properties: { class: 'town', name: 'Catasauqua' }, geometry: { type: 'Point', coordinates: at(20.5, 6.5) } },
+];
+const snapDivisionFeatures = [
+  { type: 'Feature', geometry: { type: 'Polygon', coordinates: [[at(-25, -20), at(15, -20), at(15, 20), at(-25, 20), at(-25, -20)]] },
+    properties: { subtype: 'locality', class: 'land', '@name': 'Allentown', division_id: 'allentown', id: 'allentown-area' } },
+  { type: 'Feature', geometry: { type: 'Polygon', coordinates: [[at(18, 4), at(24, 4), at(24, 10), at(18, 10), at(18, 4)]] },
+    properties: { subtype: 'locality', class: 'land', '@name': 'Catasauqua', division_id: 'catasauqua', id: 'catasauqua-area' } },
+];
 const OVERTURE_HOST = 'overturemaps-extras-us-west-2.s3.amazonaws.com';
 const OVERTURE_RELEASE = '2026-10-21.0';
 
@@ -323,7 +352,7 @@ async function createHarness() {
     if (tile && tiles.delayMs) await new Promise((res) => setTimeout(res, tiles.delayMs));
     if (tile) {
       const [z, x, y] = tile.slice(1).map(Number);
-      return r.fulfill({ contentType: 'application/x-protobuf', body: Buffer.from(encodeTile(snapWorld.serve ? [...features, ...snapFeatures] : features, z, x, y)) });
+      return r.fulfill({ contentType: 'application/x-protobuf', body: Buffer.from(encodeTile(snapWorld.serve ? [...features, ...snapFeatures, ...(divisions.serve ? snapTownFeatures : [])] : features, z, x, y)) });
     }
     if (tiles.stall && r.request().url().endsWith('/planet')) await tiles.stall;
     return r.fulfill({
@@ -358,9 +387,40 @@ async function createHarness() {
     const y = Math.floor(((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2) * 2 ** z);
     return { z, x, y, data: encodeTile(divisionFeatures, z, x, y, (f) => [f.geometry.type === 'Polygon' ? 'division_area' : 'division']) };
   }));
+  const snapDivisionsArchive = encodeArchive([10, 12].map((z) => {
+    const [lon, lat] = O;
+    const x = Math.floor(((lon + 180) / 360) * 2 ** z);
+    const y = Math.floor(((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2) * 2 ** z);
+    return { z, x, y, data: encodeTile(snapDivisionFeatures, z, x, y, () => ['division_area']) };
+  }));
   // Every other journey: an archive with no towns in it (a 404 would be a console error), so towns go by points.
   const noDivisions = encodeArchive([{ z: 12, x: 0, y: 0, data: encodeTile([], 12, 0, 0) }]);
+  // Walkability (WK1): the release's transportation.pmtiles, every z14 tile its segments touch.
+  const transportArchiveOf = (feats) => {
+    const z = 14;
+    const keys = new Set();
+    for (const f of feats) for (const [lon, lat] of f.geometry.coordinates) {
+      const x = Math.floor(((lon + 180) / 360) * 2 ** z);
+      const y = Math.floor(((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2) * 2 ** z);
+      keys.add(`${x},${y}`);
+    }
+    return encodeArchive([...keys].map((k) => {
+      const [x, y] = k.split(',').map(Number);
+      return { z, x, y, data: encodeTile(feats, z, x, y, () => ['segment']) };
+    }));
+  };
+  const transportArchive = transportArchiveOf(transportFeatures);
+  const gridTransportArchive = transportArchiveOf(features.filter((f) => f.geometry.type === 'LineString').map((f, i) => ({
+    type: 'Feature', geometry: f.geometry,
+    properties: { id: `grid-${i}`, subtype: 'road', class: 'primary', ...(f.properties.name ? { '@name': f.properties.name } : {}), speed_limits: mph(55) },
+  })));
   const overtureAsked = [];
+  const overpassAsked = [];
+  const overpassRoute = async (r) => {
+    const req = r.request();
+    overpassAsked.push({ url: req.url(), method: req.method(), body: req.postData() });
+    return r.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*' }, contentType: 'application/json', body: JSON.stringify(overpassAnswer) });
+  };
   const overtureRoute = async (r) => {
     const req = r.request();
     const url = new URL(req.url());
@@ -372,7 +432,8 @@ async function createHarness() {
     }
     const archive = url.pathname === `/tiles/${OVERTURE_RELEASE}/places.pmtiles`
       ? overtureArchive
-      : url.pathname === `/tiles/${OVERTURE_RELEASE}/divisions.pmtiles` ? (divisions.serve ? divisionsArchive : noDivisions) : null;
+      : url.pathname === `/tiles/${OVERTURE_RELEASE}/divisions.pmtiles` ? (divisions.serve ? (snapWorld.serve ? snapDivisionsArchive : divisionsArchive) : noDivisions)
+        : url.pathname === `/tiles/${OVERTURE_RELEASE}/transportation.pmtiles` ? (walkability.mode === 'ok' ? transportArchive : walkability.mode === 'grid' ? gridTransportArchive : Buffer.alloc(200, 7)) : null;
     if (archive) {
       const m = /bytes=(\d+)-(\d+)/.exec(req.headers().range ?? '');
       const from = m ? Number(m[1]) : 0;
@@ -383,6 +444,7 @@ async function createHarness() {
     return r.fulfill({ status: 404, headers: cors, body: '' });
   };
   await ctx.route(`https://${OVERTURE_HOST}/**`, overtureRoute);
+  await ctx.route(`https://${OVERPASS_HOST}/**`, overpassRoute);
 
 // A fresh browser, for a flow of its own (NV12, NV15, NV25, the tabs audit).
   // `permissions: []` makes a browser that denies location (QL19).
@@ -398,6 +460,7 @@ async function createHarness() {
     await metricRegion(c);
     await c.route('https://tiles.openfreemap.org/**', tileRoute);
     await c.route(`https://${OVERTURE_HOST}/**`, overtureRoute);
+    await c.route(`https://${OVERPASS_HOST}/**`, overpassRoute);
     c.on('request', (r) => { const u = new URL(r.url()); if (/^(https?|wss?):$/.test(u.protocol)) hosts.add(u.host); });
     const pg = await c.newPage();
     pg.on('pageerror', (e) => errors.push(`${label}: ${e}`));
@@ -447,7 +510,7 @@ async function createHarness() {
   };
   return {
     url, navUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, iconOf, metricRegion, pressedScale, metaOf, drawerTo, tabTo, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
-    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld,
+    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, walkability, overpassAsked, OVERPASS_HOST,
   };
 }
 

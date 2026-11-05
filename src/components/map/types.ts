@@ -1,4 +1,5 @@
 import type { BorderView } from '../../lib/areas/borders';
+import type { WalkDraw } from '../../lib/walk/layer';
 import type { DotSource } from '../../lib/liveDot';
 import type { MarkPin } from '../MarkPinView';
 import type { AreaPointPin } from '../AreaPoint';
@@ -122,6 +123,8 @@ export interface WalkMapProps {
   ring?: { center: LngLat; radiusM: number } | null;
   /** Town borders to draw (TB1-TB5), under the streets; null or absent draws none. */
   borders?: BorderView | null;
+  /** Walkability (WK13): stretches built around cars and mixed ones, under the trace and fog; null or absent draws none. */
+  walkability?: WalkDraw | null;
   /** The way the walker is going (degrees from north), drawn as a soft cone; null hides it. */
   walkerHeading?: number | null;
   walker?: LngLat | null;
@@ -161,7 +164,7 @@ export interface WalkMapProps {
    * map; a finished drag is reported as a swipe instead, in screen pixels, with the map's middle.
    * On web the arrow keys report swipes too. Pinch, wheel, double tap, the turn and the long press stay.
    */
-  onSwipe?: (swipe: { dx: number; dy: number; center: LngLat }) => void;
+  onSwipe?: (swipe: { dx: number; dy: number; vx: number; vy: number; center: LngLat; mpp: number }) => void;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -416,6 +419,19 @@ export function bordersGeoJSON(view: BorderView | null | undefined): GeoJSON.Fea
       geometry: { type: 'MultiPolygon', coordinates: s.polygons },
     })),
   };
+}
+
+/** Walkability (WK13): a warm line where streets are built around cars, a faint one where mixed; nothing for the rest. */
+export const WALK_STYLE = {
+  car: { color: '#c2410c', width: 3, opacity: 0.8 },
+  mixed: { color: '#d97706', width: 2, opacity: 0.45 },
+} as const;
+
+/** The stretches a map draws (WK13): one feature per line with its band only. */
+export function walkabilityGeoJSON(d: WalkDraw | null | undefined): GeoJSON.FeatureCollection {
+  if (!d) return { type: 'FeatureCollection', features: [] };
+  const f = (band: 'car' | 'mixed') => (lines: LngLat[][]): GeoJSON.Feature[] => lines.map((coordinates) => ({ type: 'Feature', properties: { band }, geometry: { type: 'LineString', coordinates } }));
+  return { type: 'FeatureCollection', features: [...f('mixed')(d.mixed), ...f('car')(d.car)] };
 }
 
 /** Points to mark (a destination, a pressed spot), as circles. */

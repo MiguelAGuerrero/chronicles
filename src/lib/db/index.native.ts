@@ -5,6 +5,7 @@ import { placeFromRow, placeToRow, type PlaceRow } from './placeRow';
 import type { Area, WalkArea } from '../areas/types';
 import type { LandingRow } from '../landing/view';
 import type { OutlineTile } from '../areas/outlines';
+import type { WalkTile } from '../walk/types';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Mark, MarkOrigin, MarkState, Offered, Recall } from '../discovery/types';
 import { countsOf, recountNewStreets } from '../deletion/core';
@@ -201,6 +202,13 @@ const MIGRATIONS = [
   `
   DELETE FROM outline_tile;
   ALTER TABLE outline_tile ADD COLUMN z INTEGER NOT NULL DEFAULT 12;
+  `,
+  // 19: walkability (WK2): what each read z14 tile held, a cache cleared with the derived stores.
+  `
+  CREATE TABLE walk_tile (
+    key TEXT PRIMARY KEY, x INTEGER NOT NULL, y INTEGER NOT NULL, build TEXT NOT NULL, code TEXT NOT NULL,
+    source TEXT NOT NULL, read_at INTEGER NOT NULL, ways TEXT NOT NULL
+  );
   `,
 ];
 
@@ -621,6 +629,24 @@ export const db: Db = {
     type Row = Omit<OutlineTile, 'pieces' | 'points'> & { pieces: string; points: string };
     const rows = await (await conn()).getAllAsync<Row>(`SELECT * FROM outline_tile WHERE key IN (${want.map(() => '?').join(', ')}) ORDER BY key`, ...want);
     return rows.map((r) => ({ ...r, pieces: JSON.parse(r.pieces), points: JSON.parse(r.points) }));
+  },
+  putWalkTiles(tiles) {
+    if (!tiles.length) return Promise.resolve();
+    return write(async (t) => {
+      for (const r of tiles) {
+        await t.runAsync(
+          'INSERT OR REPLACE INTO walk_tile (key, x, y, build, code, source, read_at, ways) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          r.key, r.x, r.y, r.build, r.code, r.from, r.read_at, JSON.stringify(r.ways),
+        );
+      }
+    });
+  },
+  async getWalkTiles(keys) {
+    if (!keys.length) return [];
+    const want = [...new Set(keys)].sort();
+    type Row = { key: string; x: number; y: number; build: string; code: string; source: WalkTile['from']; read_at: number; ways: string };
+    const rows = await (await conn()).getAllAsync<Row>(`SELECT * FROM walk_tile WHERE key IN (${want.map(() => '?').join(', ')}) ORDER BY key`, ...want);
+    return rows.map(({ source, ways, ...r }) => ({ ...r, from: source, ways: JSON.parse(ways) }));
   },
   async listLandings() {
     const rows = await (await conn()).getAllAsync<Omit<LandingRow, 'centre' | 'analysis'> & { lon: number; lat: number; analysis: string }>('SELECT * FROM landing');
