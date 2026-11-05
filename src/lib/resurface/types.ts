@@ -73,6 +73,8 @@ export interface Prefs {
   removed: string[];
   /** The moment the top card showed last, so the next open starts elsewhere (RM8). */
   lastShown: string | null;
+  /** Bring moments back is off: no top card, no Another (MC9). The rail and Lately stay. */
+  off: boolean;
 }
 
 export type Reason =

@@ -2,7 +2,7 @@
 import type { Prefs } from './types';
 
 /** What the user chose (RM20, RM21, RM16). Pure: each change returns a new Prefs. */
-export const EMPTY_PREFS: Prefs = { hidden: [], dim: [], less: [], renames: {}, removed: [], lastShown: null };
+export const EMPTY_PREFS: Prefs = { hidden: [], dim: [], less: [], renames: {}, removed: [], lastShown: null, off: false };
 
 const add = (xs: string[], ...more: string[]) => [...new Set([...xs, ...more])];
 
@@ -24,6 +24,21 @@ export function renameThread(p: Prefs, term: string, name: string): Prefs {
 /** Not a thread: the term is never offered again. */
 export const removeThread = (p: Prefs, term: string): Prefs => ({ ...p, removed: add(p.removed, term) });
 
+/** Bring back a moment hidden by Not this one, or set to fewer like this (MC8). */
+export const unhideMoment = (p: Prefs, id: string): Prefs => ({ ...p, hidden: p.hidden.filter((x) => x !== id), dim: p.dim.filter((x) => x !== id) });
+
+/** Bring back a removed thread (MC8). */
+export const unremoveThread = (p: Prefs, term: string): Prefs => ({ ...p, removed: p.removed.filter((x) => x !== term) });
+
+/** Bring back a softened word (MC8). */
+export const restoreWord = (p: Prefs, term: string): Prefs => ({ ...p, less: p.less.filter((x) => x !== term) });
+
+/** The switch (MC9): off means no top card and no Another. */
+export const setOff = (p: Prefs, off: boolean): Prefs => (p.off === off ? p : { ...p, off });
+
+/** Forget my choices (MC10): the lists and the renames go; the switch and what was last shown stay. */
+export const forgetChoices = (p: Prefs): Prefs => ({ ...EMPTY_PREFS, off: p.off, lastShown: p.lastShown });
+
 export const shown = (p: Prefs, id: string): Prefs => (p.lastShown === id ? p : { ...p, lastShown: id });
 
 const isStrings = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === 'string');
@@ -43,6 +58,8 @@ export function parsePrefs(v: unknown): Prefs | null {
     renames,
     removed: isStrings(o.removed) ? o.removed : [],
     lastShown: typeof o.lastShown === 'string' ? o.lastShown : null,
+    // Anything but a real true reads as on: a damaged value never turns Memories off (MC12).
+    off: o.off === true,
   };
 }
 

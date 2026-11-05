@@ -5,32 +5,19 @@ import { compose, lately } from '../../resurface/feed';
 import { EMPTY_PREFS } from '../../resurface/prefs';
 import { at, moment, NOW } from './fixtures';
 
-test('RM17: Lately is newest first by week, and a thread\'s moments lead within a week', () => {
-  const thr = [at(2026, 9, 1), at(2026, 9, 8), at(2026, 10, 30)].map((t) => moment(t, 'harbor', { id: `h${t}` }));
-  const newest = moment(at(2026, 11, 4), 'bench');
-  const sameWeekPlain = moment(at(2026, 10, 31), 'orchard');
-  const earlier = moment(at(2026, 10, 20), 'fountain');
-  const ms = [...thr, newest, sameWeekPlain, earlier];
-  const c = compose(ms, EMPTY_PREFS, new Set(), NOW, 's');
-  const ids = lately(c.moments, c.threads, NOW, 20).items.map((m) => m.id);
-  assert.deepEqual(ids.slice(0, 3), [thr[2].id, newest.id, sameWeekPlain.id], 'this week: the thread first, then newest first');
-  assert.ok(ids.indexOf(earlier.id) > ids.indexOf(sameWeekPlain.id), 'an earlier week comes after');
-  assert.equal(ids.length, 6);
-});
-
 test('RM17: with no thread it is plainly newest first', () => {
   const ms = [at(2026, 11, 1), at(2026, 11, 4), at(2026, 10, 2)].map((t, i) => moment(t, ['bench', 'orchard', 'fountain'][i], { id: `p${i}` }));
   const c = compose(ms, EMPTY_PREFS, new Set(), NOW, 's');
-  assert.deepEqual(lately(c.moments, c.threads, NOW, 20).items.map((m) => m.id), ['p1', 'p0', 'p2']);
+  assert.deepEqual(lately(c.moments, NOW, 20).items.map((m) => m.id), ['p1', 'p0', 'p2']);
 });
 
 test('RM17: twenty at first, then twenty more', () => {
   const ms = Array.from({ length: 45 }, (_, i) => moment(NOW - (i + 1) * 3_600_000, `n${i}`));
   const c = compose(ms, EMPTY_PREFS, new Set(), NOW, 's');
-  const first = lately(c.moments, c.threads, NOW, 20);
+  const first = lately(c.moments, NOW, 20);
   assert.equal(first.items.length, 20);
   assert.equal(first.more, true);
-  const third = lately(c.moments, c.threads, NOW, 60);
+  const third = lately(c.moments, NOW, 60);
   assert.equal(third.items.length, 45);
   assert.equal(third.more, false);
 });
@@ -53,17 +40,16 @@ test('RM20: Not this one keeps the moment in Lately', () => {
   const m = moment(at(2026, 3, 1), 'bench');
   const c = compose([m], { ...EMPTY_PREFS, hidden: [m.id] }, new Set(), NOW, 's');
   assert.equal(c.order.length, 0);
-  assert.equal(lately(c.moments, c.threads, NOW, 20).items.length, 1);
+  assert.equal(lately(c.moments, NOW, 20).items.length, 1);
 });
 
-test('MC13: Lately is strictly newest first, a thread gives no priority, ties broken by id', { todo: 'test first' }, async () => {
-  const feed = (await import(`../../resurface/${'feed'}`)) as any;
+test('MC13: Lately is strictly newest first, a thread gives no priority, ties broken by id', () => {
   const thr = [at(2026, 9, 1), at(2026, 9, 8), at(2026, 10, 30)].map((t) => moment(t, 'harbor', { id: `h${t}` }));
   const newer = moment(at(2026, 11, 4), 'bench', { id: 'newer' });
   const tieA = moment(at(2026, 10, 31), 'orchard', { id: 'a-tie' });
   const tieB = moment(at(2026, 10, 31), 'fountain', { id: 'b-tie' });
   const c = compose([...thr, newer, tieB, tieA], EMPTY_PREFS, new Set(), NOW, 's');
-  const ids = feed.lately(c.moments, NOW, 20).items.map((m: { id: string }) => m.id);
+  const ids = lately(c.moments, NOW, 20).items.map((m: { id: string }) => m.id);
   assert.deepEqual(ids.slice(0, 3), ['newer', 'a-tie', 'b-tie']);
   assert.equal(ids[3], thr[2].id, 'the thread moment is where its time puts it');
 });

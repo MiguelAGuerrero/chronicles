@@ -33,7 +33,7 @@ async function seeded() {
 }
 const ctxOf = (r: Any, id: string) => r.store.get().context?.[id];
 
-test('MC6: context is read for the moments asked about, once per open, and not again on a repeat', { todo: 'test first' }, async () => {
+test('MC6: context is read for the moments asked about, once per open, and not again on a repeat', async () => {
   const { p, r } = await seeded();
   p.log.clear();
   await r.contextFor(['m1']);
@@ -46,7 +46,7 @@ test('MC6: context is read for the moments asked about, once per open, and not a
   assert.equal(ctxOf(r, 'm3'), undefined, 'a moment not asked about is not read');
 });
 
-test('MC1, MC2, MC3: the context line has the street, the town, and the walked minutes (pauses excluded)', { todo: 'test first' }, async () => {
+test('MC1, MC2, MC3: the context line has the street, the town, and the walked minutes (pauses excluded)', async () => {
   const { r } = await seeded();
   await r.contextFor(['m1', 'm3']);
   assert.equal(ctxOf(r, 'm1').state, 'done');
@@ -54,20 +54,20 @@ test('MC1, MC2, MC3: the context line has the street, the town, and the walked m
   assert.match(ctxOf(r, 'm3').line, /Thirty minutes in$/, 'minute 40 less the ten paused is thirty walked');
 });
 
-test('MC5: a moment made soon after the capture before it says so by its kind', { todo: 'test first' }, async () => {
+test('MC5: a moment made soon after the capture before it says so by its kind', async () => {
   const { r } = await seeded();
   await r.contextFor(['m2', 'm3']);
-  assert.match(ctxOf(r, 'm2').line, /Seven minutes in, just after a note$/, 'm1 is the capture just before m2, seven minutes earlier');
+  assert.match(ctxOf(r, 'm2').line, /Twelve minutes in, just after a note$/, 'm1 is the capture just before m2, seven walked minutes earlier');
   assert.doesNotMatch(ctxOf(r, 'm3').line, /just after/, 'm2 was twenty-eight walked minutes before');
 });
 
-test('MC2: a moment far from any cached street shows the town alone', { todo: 'test first' }, async () => {
+test('MC2: a moment far from any cached street shows the town alone', async () => {
   const { r } = await seeded();
   await r.contextFor(['m4']);
   assert.match(ctxOf(r, 'm4').line, /^Fox Point · /);
 });
 
-test('MC17: while the read is unfinished there is no place claim, and a failed read is not "no street"', { todo: 'test first' }, async () => {
+test('MC17: while the read is unfinished there is no place claim, and a failed read is not "no street"', async () => {
   const { p, r } = await seeded();
   let release!: () => void;
   const gate = new Promise<void>((res) => { release = res; });
@@ -88,7 +88,7 @@ test('MC17: while the read is unfinished there is no place claim, and a failed r
   assert.equal(ctxOf(r, 'm3').state, 'done', 'the next ask reads again');
 });
 
-test('MC8: Hidden lists hidden moments, fewer-like-this moments, removed threads and softened words, each restorable', { todo: 'test first' }, async () => {
+test('MC8: Hidden lists hidden moments, fewer-like-this moments, removed threads and softened words, each restorable', async () => {
   const { r } = await seeded();
   await r.hide('m1');
   await r.less('m2'); // a photo caption "x": no words
@@ -109,7 +109,7 @@ test('MC8: Hidden lists hidden moments, fewer-like-this moments, removed threads
   assert.deepEqual(r.store.get().prefs.dim, []);
 });
 
-test('MC9, MC12: the switch is kept, empties the top card, and an old or damaged value reads as on', { todo: 'test first' }, async () => {
+test('MC9, MC12: the switch is kept, empties the top card, and an old or damaged value reads as on', async () => {
   const { p, r } = await seeded();
   const { compose } = (await import(`../../resurface/${'feed'}`)) as Any;
   const state = () => r.store.get();
@@ -129,7 +129,7 @@ test('MC9, MC12: the switch is kept, empties the top card, and an old or damaged
   }
 });
 
-test('MC10: Forget my choices clears the lists and renames, keeps the switch, and touches no moment', { todo: 'test first' }, async () => {
+test('MC10: Forget my choices clears the lists and renames, keeps the switch, and touches no moment', async () => {
   const { r } = await seeded();
   await r.hide('m1');
   await r.less('m3');
@@ -144,7 +144,7 @@ test('MC10: Forget my choices clears the lists and renames, keeps the switch, an
   assert.equal(r.store.get().moments.length, count);
 });
 
-test('MC11: Show less like this names at most one word, and every word it set is in Hidden', { todo: 'test first' }, async () => {
+test('MC11: Show less like this names at most one word, and every word it set is in Hidden', async () => {
   const { r } = await seeded();
   const change = await r.less('m3');
   assert.deepEqual(change.after.less, ['harbor', 'm3'].filter((t) => change.after.less.includes(t)));

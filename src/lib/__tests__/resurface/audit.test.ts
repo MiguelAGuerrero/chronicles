@@ -129,7 +129,7 @@ test('resurfaced-moments audit 7: what was kept in the last day heads Lately, th
   const thr = [at(2026, 9, 1), at(2026, 9, 8), at(2026, 10, 30)].map((t) => moment(t, 'harbor', { id: `h${t}` }));
   const justNow = moment(NOW - 20 * 60_000, 'bench', { id: 'now' });
   const c = compose([...thr, justNow], EMPTY_PREFS, new Set(), NOW, 's');
-  assert.equal(lately(c.moments, c.threads, NOW, 20).items[0].id, 'now');
+  assert.equal(lately(c.moments, NOW, 20).items[0].id, 'now');
 });
 
 test('resurfaced-moments audit 10: a choice says whether it was kept', async () => {

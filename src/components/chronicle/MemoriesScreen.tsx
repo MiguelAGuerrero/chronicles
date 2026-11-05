@@ -89,7 +89,7 @@ export function MemoriesScreen() {
   );
 
   const thread = threadTerm ? feed.threads.find((t) => t.term === threadTerm) ?? null : null;
-  const page = useMemo(() => lately(feed.moments, feed.threads, now, limit), [feed.moments, feed.threads, now, limit]);
+  const page = useMemo(() => lately(feed.moments, now, limit), [feed.moments, feed.threads, now, limit]);
 
   const say = (msg: string, change: PrefsChange) => {
     if (timer.current) clearTimeout(timer.current);
