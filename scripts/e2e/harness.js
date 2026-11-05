@@ -501,6 +501,7 @@ async function createHarness() {
       await page.waitForTimeout(600);
     }
     await page.click(`[data-testid=tab-${id}]`);
+    if (id === 'chronicle') await mapUp(page);
     await page.waitForTimeout(800);
     return { path: new URL(page.url()).pathname.slice(BASE.length), canvases: await page.locator('canvas.maplibregl-canvas').count() };
   };
