@@ -149,6 +149,8 @@ async function contextRun(h) {
     await menu('menu-off');
     await pg.click('[data-testid=resurfaced-more]');
     await pg.click('[data-testid=menu-hide]');
+    // An earlier toast may still be up: wait for this choice's own.
+    await pg.waitForFunction(() => /Hidden\./.test(document.querySelector('[data-testid=memories-toast]')?.textContent ?? ''), null, { timeout: 5000 });
     return /Hidden\. It stays in Lately and in its walk\./.test(await pg.locator('[data-testid=memories-toast]').innerText());
   });
   check(toastOk, 'MC14: the toast states a fact, Hidden. It stays in Lately and in its walk.');
@@ -184,6 +186,8 @@ async function contextRun(h) {
   // Audit 15: the switch survives a reload.
   const offKeptOk = await attempt(async () => {
     await menu('menu-off');
+    // The choice is kept a moment after the tap: reload once it has landed.
+    for (let i = 0; i < 30 && !((await prefsOf(pg)) ?? {}).off; i++) await pg.waitForTimeout(100);
     await pg.reload();
     await pg.waitForSelector('[data-testid=tab-chronicle]', { timeout: 30000 });
     await tabTo(pg, 'chronicle', 'memories');
