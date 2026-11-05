@@ -175,16 +175,19 @@ async function checks(h) {
     await page.waitForTimeout(800);
     const starAfter = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
     check(Math.abs(starAfter.x - starBefore.x) < 3 && Math.abs(starAfter.y - starBefore.y) < 3, `the map kept its view across the replay (${Math.round(starBefore.x)},${Math.round(starBefore.y)} → ${Math.round(starAfter.x)},${Math.round(starAfter.y)})`);
-    // And across the tabs: Chronicle's map is taken down while Navigate is in front, and comes back where it was (NV3, NV4).
+    // And across the tabs: Chronicle's map is taken down while Navigate is in front (NV4). Chronicle comes back on
+    // Memories, with no map (RM1); the Map section frames the places again. NV3's kept camera holds across a replay only.
     await tabTo(page, 'navigate');
     await page.waitForSelector('[data-testid=start]');
     await page.waitForTimeout(800);
     check((await page.locator('canvas.maplibregl-canvas').count()) === 1, 'one live map on Navigate after a walk (NV4)');
-    await tabTo(page, 'chronicle');
-    await page.waitForTimeout(1200);
-    const starTabs = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
-    check((await page.locator('canvas.maplibregl-canvas').count()) === 1 && Math.abs(starTabs.x - starBefore.x) < 3 && Math.abs(starTabs.y - starBefore.y) < 3 && (await page.locator('[data-testid=walk-row]').count()) === 1,
-      `Chronicle keeps its sheet and its map view across tabs (NV3: ${Math.round(starTabs.x)},${Math.round(starTabs.y)})`);
+    await tabTo(page, 'chronicle', 'memories');
+    await page.waitForTimeout(800);
+    check((await page.locator('canvas.maplibregl-canvas').count()) === 0 && (await page.locator('[data-testid=section-memories][aria-selected=true]').count()) === 1,
+      'Chronicle comes back on Memories, with no map (RM1, NV4)');
+    await h.mapUp(page);
+    await page.waitForSelector('[aria-label^="Fox Point,"]', { timeout: 15000 });
+    check((await page.locator('canvas.maplibregl-canvas').count()) === 1, 'the Map section brings the one live map back, with its stars (RM2, NV4)');
 
     // Reduce motion (M2): the same home with the system setting on. Nothing presses down, the sheet snaps.
     {

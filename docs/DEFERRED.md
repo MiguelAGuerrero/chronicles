@@ -276,3 +276,4 @@ An item leaves only when it ships, or when it is rejected with a decision record
   - **A thread from more than one word** (a phrase, a meaning), and languages other than English (the stop-word list in `terms.ts`).
   - **A nudge** ("a year ago today") as a local notification.
   - **A memo played in its card**: a card opens the viewer, which plays it, so a browser's sound rule is met by the tap.
+- **The Map section forgets its camera and the sheet's height across tabs** (resurfaced moments, RM1): Chronicle opens on Memories after another tab, which takes the map down, so NV3's kept view now holds across a replay only. Keeping the camera in the section store is small; the owner's call whether the Map should remember.
