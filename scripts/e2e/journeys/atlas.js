@@ -19,12 +19,12 @@ async function arrive(h) {
 async function checks(h) {
   const { BASE, ctx, page, start, at, distanceM, names, OVERTURE_RELEASE, overtureAsked, check, shot, tabTo, tabBarShown, tiles } = h;
   await arrive(h);
-    // The place view counts Fox Point's checklist, never the overview (E10).
+    // The place view names Fox Point's finds, never counts them, and the overview shows neither (E10, decision 0099).
     check((await page.locator('[data-testid=place-count]').count()) === 0 && (await page.locator('[data-testid=mark-pin]').count()) === 0, 'the home shows no count and no "?" on the overview');
     await page.click('[aria-label^="Fox Point,"]');
-    await page.waitForSelector('[data-testid=place-count]');
-    check(/^1 of 4 · list from /.test(await page.locator('[data-testid=place-count]').innerText()), `Fox Point's place view says how many of its places were found (${await page.locator('[data-testid=place-count]').innerText()})`);
-    check(/Hessian Memorial/.test(await page.locator('[data-testid=place-found]').innerText()), 'and which');
+    await page.waitForSelector('[data-testid=place-found]');
+    check(/Hessian Memorial/.test(await page.locator('[data-testid=place-found]').innerText()), "Fox Point's place view names what was found there");
+    check((await page.locator('[data-testid=place-count]').count()) === 0 && !/\d+\s*of\s*\d+/.test(await page.locator('[data-testid=home-sheet]').innerText().catch(() => '')), 'E10 (decision 0099): and never counts it: no "N of M"');
     await page.click('[data-testid=sheet-map]');
     // Explore is an atlas (AT1-AT14): the areas near Navigate's last fix as a grid of same-scale tiles,
     // read by themselves, nearest first; never asking for a position of its own.

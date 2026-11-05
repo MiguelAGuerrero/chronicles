@@ -16,7 +16,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - Scenic routes (decision 0095), left out: a detour via one named stop; a loop with no destination ("back here in 30 min"); choosing a route on the ready screen before Start (the preview comes up as Start records); "Streets new to you" as a leaning; a choice of detour size; water and riversides as green; routes past 5 km
 - Scenic routes: a Sights row in a dense centre often says only "past places to find", since most places there are not yet found and never named (scenic routes, SR4)
 - Scenic routes: a start or destination that snaps onto a street piece not joined to the rest (seen once in the Zurich tiles) finds no route at all, direct or scenic; today's Go here has the same gap (scenic routes)
-- Kind walk (decision 0099): a sketch of the way in the panel; mixed-kind walks from the card's head; a walk built across a whole town outline (it is built from 1.5 km around the area's point); distance steps above 5 km or below 1 km. The rest of a suggested walk's choices (a leaning, a preview) are scenic routes' (0095)
+- Kind walk (decision 0100): a sketch of the way in the panel; mixed-kind walks from the card's head; a walk built across a whole town outline (it is built from 1.5 km around the area's point); distance steps above 5 km or below 1 km. The rest of a suggested walk's choices (a leaning, a preview) are scenic routes' (0095)
 - Open in Maps on the Explore mark card (v0.5 navigate, Open in Maps)
 - Open in Maps on the dead-zone nudge (v0.5 navigate, Open in Maps)
 - Open in Maps on the home's Walk here (v0.5 navigate, Open in Maps)
@@ -305,7 +305,6 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 ## Vision gate (specs/vision-gate, decision 0094)
 
-- **The found tally on a place's sheet** ("12 of 87 · list from Nov 1", E10, `countLine` in `lib/explore/explore.ts`) breaks "counts are words"; carried as debt in `scripts/vision.allow.json` until the owner's call (`docs/VISION.md`, open question 6).
 - **Not checked by script:** tone, accent colours, celebration and motion, a capture moved behind a tap, a moment shown without its context. The steward and `/vision review` cover them; the replay's card keeps its own e2e scan for a large number and an accent colour.
 - **The copy heuristic is lexical:** copy built across several literals, or held in a constant with no space and a lowercase start, is not read; JSX text next to code with `;` or `=` is skipped.
 - **Explore's layers follow the selected area or you, not the panned map** (UI audit 7): pan away and the tint and busy streets are not there, with no cue.

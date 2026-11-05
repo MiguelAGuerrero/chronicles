@@ -140,9 +140,11 @@ export function LayersControl(props: {
               const on = !!layers.on[l.id];
               return (
                 <View key={l.id}>
-                  <SwitchRow testID={`layer-${l.id}`} label={l.name} icon={l.icon as IconName} value={on} onChange={() => layers.toggle(l.id)} />
+                  <View style={styles.rowPad}>
+                    <SwitchRow testID={`layer-${l.id}`} label={l.name} icon={l.icon as IconName} value={on} onChange={() => layers.toggle(l.id)} />
+                  </View>
                   {on && props.notes?.[l.id] ? (
-                    <View style={styles.legend}>
+                    <View style={[styles.legend, styles.noteInset]}>
                       <Text testID={`layer-status-${l.id}`} role="status" accessibilityLiveRegion="polite" style={styles.note}>{props.notes[l.id]}</Text>
                     </View>
                   ) : null}
@@ -168,6 +170,10 @@ const styles = StyleSheet.create({
     position: 'absolute', zIndex: 3, paddingVertical: 4, borderRadius: theme.radius, backgroundColor: theme.glass, borderWidth: 1, borderColor: theme.line,
     shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 4,
   },
+  /** The rows keep off the card's edges (fix layers-pad). */
+  rowPad: { paddingHorizontal: 8 },
+  /** A status note lines up with the row's icon above it. */
+  noteInset: { paddingHorizontal: 8 },
   legend: { paddingHorizontal: 16, paddingBottom: 8, gap: 4 },
   key: { gap: 8 },
   keyTitle: { color: theme.ink, fontSize: 14, fontWeight: '600', paddingHorizontal: 16, paddingTop: 4 },
