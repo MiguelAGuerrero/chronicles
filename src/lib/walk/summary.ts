@@ -25,21 +25,21 @@ export function countCells(cells: readonly Cell[], centre?: LngLat, radiusM?: nu
   return out;
 }
 
-/** Said only when most of the area's cells are judged; empty cells (a park, water) are left out of the shares. */
-const SAID_MIN = 0.5;
+/** Said only when one kind of ground stands out; empty cells (a park, water) are left out of the shares. */
 const MOSTLY = 0.6;
 const A_GOOD_SHARE = 0.25;
 
+/**
+ * The card's line (UF13): what the ground is, never how much of it or what it will be like (the vision review, 2026-11-05):
+ * no "most", no comparison, no outcome. Nothing when neither stands out.
+ */
 export function cellWords(n: CellCounts): string | null {
   const judged = n.foot + n.car + n.neither;
-  const all = judged + n.empty;
-  if (judged === 0 || all === 0) return null;
-  // Mostly empty ground says nothing; empty cells do not count in the shares themselves.
+  if (judged === 0) return null;
   if (n.empty > judged && judged < 5) return null;
   const [foot, car] = [n.foot / judged, n.car / judged];
-  if (foot >= MOSTLY) return 'Mostly easy on foot';
-  if (car >= MOSTLY) return 'Mostly built around cars';
-  if (foot >= A_GOOD_SHARE && car >= A_GOOD_SHARE) return 'A mix of easy and car-oriented streets';
+  if (foot >= MOSTLY) return 'Streets close together, with crossings';
+  if (car >= MOSTLY) return 'Streets far apart and busy';
+  if (foot >= A_GOOD_SHARE && car >= A_GOOD_SHARE) return 'Streets close together and far apart, side by side';
   return null;
 }
-void SAID_MIN;

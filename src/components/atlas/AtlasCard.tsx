@@ -180,18 +180,13 @@ export function AtlasCard(props: {
             <MiniMap area={area} walked={props.walked} waiting={props.waiting} finds={props.finds} here={props.here ? props.you : null} />
           </View>
 
-          {/* WK11: how the streets treat someone on foot, in words; nothing when too little is known. */}
-          {(onFoot.reading || onFoot.words) && (
+          {/* UF13: what the ground is like for someone on foot, in words. Shown only once there are words (never a "Reading" that
+              vanishes, layers audit 9), and for a town said of the ground around its centre, as "What's here" is. */}
+          {onFoot.words && (
             <View style={styles.sec} testID="atlas-onfoot">
-              <Text style={styles.secTitle} accessibilityRole="header">On foot</Text>
-              {onFoot.words ? (
-                <>
-                  <Text style={styles.onFoot} testID="atlas-onfoot-words">{onFoot.words}</Text>
-                  <Text style={styles.muted}>From OpenStreetMap and Overture. Judged from how the ground is built, so an area can read differently from how it feels.</Text>
-                </>
-              ) : (
-                <Text style={styles.muted} testID="atlas-onfoot-reading">Reading the streets…</Text>
-              )}
+              <Text style={styles.secTitle} accessibilityRole="header">{area.level === 'town' ? 'On foot · around its centre' : 'On foot'}</Text>
+              <Text style={styles.onFoot} testID="atlas-onfoot-words">{onFoot.words}</Text>
+              <Text style={styles.muted}>From OpenStreetMap and Overture.</Text>
             </View>
           )}
 

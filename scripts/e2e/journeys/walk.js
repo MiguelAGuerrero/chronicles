@@ -219,9 +219,12 @@ async function checks(h) {
         const rows = shared?.text?.split('\n') ?? [];
         check(rows[0]?.startsWith('# Chronicles GPS log') && rows.includes('s,lat,lon,accuracy_m,speed_ms,course') && rows.filter((r) => /^\d+\.\d,/.test(r)).length >= 5, `the walk's options share its GPS log (${rows.length} lines)`);
         await page.click('[data-testid=walk-summary]');
-        // The quiet read kept no busy streets (the owner's call); switching Explore on reads them at once.
+        // The quiet read kept no busy streets (the owner's call); switching Explore on reads them at once. They are drawn only when
+        // the Busy streets layer is on, on any walk (specs/map-layers ML8, ML10): Explore mode no longer draws them by itself.
+        check((await walkMap().getByText('Thayer Street', { exact: true }).count()) === 0, 'ML10: switching Explore on does not draw the busy streets by itself');
+        await h.switchLayer(page, 'busy');
         await walkMap().getByText('Thayer Street', { exact: true }).first().waitFor({ timeout: 15000 }).catch(() => {});
-        check((await walkMap().getByText('Thayer Street', { exact: true }).count()) >= 1, 'switching Explore on brings in the busy streets around');
+        check((await walkMap().getByText('Thayer Street', { exact: true }).count()) >= 1, 'ML8: with the Busy streets layer on, the busy streets around are drawn');
         // AD12: the busy streets draw graded, each grade wider than the one below.
         const graded = ((await walkMap().getAttribute('data-graded')) ?? '').split(',').filter(Boolean).map((g) => g.split(':').map(Number));
         const widths = graded.sort((a, b) => a[0] - b[0]).map((g) => g[1]);

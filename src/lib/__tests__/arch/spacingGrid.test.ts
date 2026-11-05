@@ -15,6 +15,8 @@ const FLOATING = [
   'components/UndoToast.tsx',
   'components/ReminderCard.tsx',
   'components/ConfirmCard.tsx',
+  'components/LayersControl.tsx',
+  'components/Tooltip.tsx',
 ];
 const read = (f: string) => readFileSync(join(SRC, f), 'utf8');
 

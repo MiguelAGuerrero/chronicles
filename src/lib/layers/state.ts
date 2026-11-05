@@ -1,5 +1,6 @@
 // @layer core
 import { distanceM } from '../geo';
+import { nearAreas, type LandingRow } from '../landing/view';
 import type { LngLat } from '../types';
 import { LAYERS, type LayerDef } from './registry';
 
@@ -40,3 +41,9 @@ export function decodeLayers(raw: string | null, legacyWalk: string | null, laye
 export const BUSY_READ_M = 1500;
 
 export const needsBusyRead = (rows: readonly { centre: LngLat }[], at: LngLat): boolean => !rows.some((r) => distanceM(r.centre, at) <= BUSY_READ_M);
+
+/**
+ * Which remembered areas are near a centre, as a key: a walker's fix a few metres on is the same key, so the busy streets
+ * are drawn again only when the set of areas near changes (layers audit 2), never once a fix.
+ */
+export const nearKey = (rows: readonly LandingRow[], centre: LngLat | null): string => (centre ? nearAreas([...rows], centre).map((r) => r.key).join('|') : '');

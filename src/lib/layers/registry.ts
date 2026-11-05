@@ -1,5 +1,5 @@
 // @layer core
-import { bandTip } from '../walk/bandWords';
+import { bandWhy } from '../walk/bandWords';
 
 /*
  * Map layers (specs/map-layers, ML1, ML2): a layer puts some graphics on the base map. A layer is data: its name,
@@ -8,7 +8,7 @@ import { bandTip } from '../walk/bandWords';
  */
 
 /** Which colour a legend row's swatch wears; the view maps these to the map's own colours (`components/map/types`). */
-export type SwatchKey = 'foot' | 'mixed' | 'car' | 'hotspot' | 'border-tint' | 'border-line';
+export type SwatchKey = 'foot' | 'car' | 'hotspot' | 'border-tint' | 'border-line';
 
 export interface LegendRow {
   key: string;
@@ -18,7 +18,7 @@ export interface LegendRow {
   tip?: string;
   swatch: SwatchKey;
   /** A walkability band whose icon (the pedestrian, with its badge) stands beside the swatch. */
-  band?: 'foot' | 'mixed' | 'car';
+  band?: 'foot' | 'car';
 }
 
 export interface LayerDef {
@@ -39,8 +39,8 @@ export const LAYERS: readonly LayerDef[] = [
     icon: 'walk-outline',
     defaultOn: false,
     legend: [
-      { key: 'foot', text: 'Easy on foot', swatch: 'foot', band: 'foot', tip: bandTip('foot') ?? undefined },
-      { key: 'car', text: 'Built around cars', swatch: 'car', band: 'car', tip: bandTip('car') ?? undefined },
+      { key: 'foot', text: 'Easy on foot', swatch: 'foot', band: 'foot', tip: bandWhy('foot') ?? undefined },
+      { key: 'car', text: 'Built around cars', swatch: 'car', band: 'car', tip: bandWhy('car') ?? undefined },
     ],
     note: "From OpenStreetMap and Overture. Judged from how the ground is built, so an area can read differently from how it feels.",
   },
@@ -55,7 +55,7 @@ export const LAYERS: readonly LayerDef[] = [
     id: 'borders',
     name: 'Town borders',
     icon: 'map-outline',
-    defaultOn: true,
+    defaultOn: false,
     legend: [
       { key: 'yours', text: 'Your town', swatch: 'border-tint' },
       { key: 'nearby', text: 'Nearby towns', swatch: 'border-line' },

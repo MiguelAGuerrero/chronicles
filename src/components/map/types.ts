@@ -423,8 +423,10 @@ export function bordersGeoJSON(view: BorderView | null | undefined): GeoJSON.Fea
 
 /** The Walkability layer's tints (UF9): soft, so the streets and labels show through. */
 export const WALK_STYLE = {
-  foot: { color: '#2f9e44', opacity: 0.22 },
-  car: { color: '#e8590c', opacity: 0.26 },
+  // One cool hue family, told apart by lightness: neither is green or orange, so neither reads as approval or warning, and
+  // neither is the app's accent or the town borders' colour (the vision review, 2026-11-05).
+  foot: { color: '#5b9bd5', opacity: 0.24 },
+  car: { color: '#3b4a6b', opacity: 0.3 },
 } as const;
 
 /** The shapes a map draws (UF9): one polygon per shape with its band only (UF12). */

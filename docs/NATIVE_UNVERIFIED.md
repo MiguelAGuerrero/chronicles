@@ -248,4 +248,8 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] The Layers button and panel over the native map: its place in the edge column (`layers` slot), the panel opening upward over the walk and over the cards below Explore's short map pane (`overflow: visible`, `zIndex`)
 - [ ] Busy streets as a layer: the one read when switched on (`readArea`), on a phone's network
 - [ ] A map press closing the panel (`layers.closePanel`) through the native map's `onPress`
+- [ ] The panel beside the button on the native walk and Explore: `position: absolute` with a `ScrollView` of `maxHeight`, and Explore's pane overflowing its bounds over the cards below (Android delivers no touches outside a parent's bounds, so the switches below the pane may be dead there)
+- [ ] The legend rows as `Tooltip` buttons: `onHoverIn` is web only; a tap shows the line, a second closes it; `accessibilityElementsHidden` on their contents
+- [ ] `aria-expanded`, `aria-checked` and `role="group"` are web only; `accessibilityState` and `accessibilityLabel` carry them on native
+- [ ] The panel's `elevation` over the native map and the button's outlined state
 

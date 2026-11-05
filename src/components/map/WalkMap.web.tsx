@@ -587,6 +587,8 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     setData('strips', stripsGeoJSON(props.landing));
     // The e2e reads whether busy streets are drawn (the Busy streets layer).
     container.current?.setAttribute('data-busy', props.landing ? `strips:${stripsGeoJSON(props.landing).features.length}` : '');
+    // How many times the drawing was sent: the e2e checks it is not sent once a fix (layers audit 2).
+    container.current?.setAttribute('data-busy-sets', String(Number(container.current?.getAttribute('data-busy-sets') ?? 0) + 1));
   }, [ready, props.landing]);
   useEffect(() => { if (ready) setData('marks', marksGeoJSON(props.marks)); }, [ready, props.marks]);
   // The start and end markers (QL1, QL2): sent only when they move, not with every publish of the trace.

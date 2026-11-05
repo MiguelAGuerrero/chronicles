@@ -21,13 +21,18 @@ export interface Layers {
 
 export function createLayers(p: Pick<Ports, 'db'>): Layers {
   const store = createStore({ on: layerDefaults(), loaded: false, open: false });
-  return {
-    store,
-    async load() {
+  // Loaded once however many screens ask, and a switch made before the load finishes is applied on top of it (layers audit 13).
+  let loading: Promise<void> | null = null;
+  const load = () =>
+    (loading ??= (async () => {
       const [raw, legacy] = await Promise.all([p.db.getMeta('map_layers').catch(() => null), p.db.getMeta('walk_layer').catch(() => null)]);
       store.set((s) => ({ ...s, on: decodeLayers(raw, legacy), loaded: true }));
-    },
+    })());
+  return {
+    store,
+    load,
     async set(id, on) {
+      await load();
       const next = { ...store.get().on, [id]: on };
       store.set((s) => ({ ...s, on: next }));
       await p.db.setMeta('map_layers', encodeLayers(next)).catch(() => {});

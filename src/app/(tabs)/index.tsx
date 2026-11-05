@@ -7,7 +7,8 @@ import { AtlasCard, type CardLayout } from '../../components/atlas/AtlasCard';
 import { AtlasTile } from '../../components/atlas/AtlasTile';
 import { LocateButton } from '../../components/LocateButton';
 import { CompassButton } from '../../components/CompassButton';
-import { LayersControl, layerNotes } from '../../components/LayersControl';
+import { LayersControl } from '../../components/LayersControl';
+import { layerNotes } from '../../lib/layers/notes';
 import { useBusyLayer } from '../../lib/layers/useBusyLayer';
 import { useLayers } from '../../lib/layers/useLayers';
 import { useWalkability } from '../../lib/walk/useWalkability';
@@ -535,7 +536,7 @@ export default function Explore() {
         <LocateButton busy={locating} onPress={locate} bottom={8} />
       )}
       {/* The compass (CP2): above Locate, only while the map is turned and on screen. */}
-      {focused && !spot && <LayersControl layers={layers} notes={layerNotes(wk.status, busy.reading)} top={insets.top + 8} />}
+      {focused && !spot && <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed })} top={insets.top + 8} right={12} paneWidth={mapW} clearBottom={insets.bottom + 100} />}
       {focused && !spot && <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={8 + 44 + 12} />}
       {toast ? <View style={styles.toast} accessibilityLiveRegion="polite"><Text style={styles.toastText}>{toast}</Text></View> : null}
       {/* DN12 on web: react-native-web's announceForAccessibility does nothing, so a hidden live region says it.

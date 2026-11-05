@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WalkMap } from '../components/map/WalkMap';
 import { CompassButton } from '../components/CompassButton';
 import { WalkBandIcon } from '../components/WalkBandIcon';
-import { LayersControl, layerNotes } from '../components/LayersControl';
+import { LayersControl } from '../components/LayersControl';
 import { COLORS, HOTSPOT, type WalkMapHandle } from '../components/map/types';
 import { EditOfferPill, useEditOffer } from '../components/edit/EditOffer';
 import { MediaEditor } from '../components/edit/MediaEditor';
@@ -59,6 +59,7 @@ import { notifyWalkChanged } from '../lib/walkEvents';
 import { routeAhead } from '../lib/nav/navigator';
 import { HANDOFF_HINT, openInMaps } from '../lib/nav/openInMaps';
 import { useNavigation } from '../lib/nav/useNavigation';
+import { layerNotes } from '../lib/layers/notes';
 import { useBusyLayer } from '../lib/layers/useBusyLayer';
 import { useLayers } from '../lib/layers/useLayers';
 import { useRouteWarning } from '../lib/walk/useRouteWarning';
@@ -560,7 +561,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const layers = useLayers();
   const wk = useWalkability(live.here, !!layers.on.walkability);
   const busy = useBusyLayer(live.here, !!layers.on.busy);
-  const aheadLine = useRouteWarning(navigation.nav?.route.path ?? null, live.here);
+  const aheadLine = useRouteWarning(navigation.nav?.route.path ?? null, live.here, !!layers.on.walkability);
   // Explore (v1 slice 5): checklists are built quietly on every walk (E2); the layers show only
   // on an exploring walk (E1, E9), and a capture finds a place on any walk.
   const fixes = useMemo(() => live.runs.flat(), [live.runs]);
@@ -1441,7 +1442,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         right={at.edgeRight}
       />
       {/* Walkability (WK13): the column's top, so nothing else moves. */}
-      <LayersControl layers={layers} notes={layerNotes(wk.status, busy.reading)} bottom={at.edgeBottom('layers')} right={at.edgeRight} />
+      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed })} bottom={at.edgeBottom('layers')} right={at.edgeRight} clearBottom={at.barTop + 112} />
 
       {awayFromStart && walkStart && !navigation.nav && (
         // Walk me back: the way back to where this walk began (N1, N11).

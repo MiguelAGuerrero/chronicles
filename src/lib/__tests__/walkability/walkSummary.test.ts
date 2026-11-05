@@ -19,17 +19,17 @@ const mk = (foot: number, car: number, neither = 0, empty = 0): Cell[] => {
   return out;
 };
 
-test('UF13: the words follow the cells that are not empty: mostly foot, mostly car, a mix, or nothing', () => {
-  assert.equal(cellWords(countCells(mk(60, 10, 30))), 'Mostly easy on foot', 'foot is 60% of the cells that are not empty');
-  assert.equal(cellWords(countCells(mk(10, 60, 30))), 'Mostly built around cars');
-  assert.equal(cellWords(countCells(mk(40, 30, 30))), 'A mix of easy and car-oriented streets');
+test('UF13: the words say what the ground is, never how much or what it will be like: close together, far apart, both, or nothing', () => {
+  assert.equal(cellWords(countCells(mk(60, 10, 30))), 'Streets close together, with crossings', 'foot is 60% of the cells that are not empty');
+  assert.equal(cellWords(countCells(mk(10, 60, 30))), 'Streets far apart and busy');
+  assert.equal(cellWords(countCells(mk(40, 30, 30))), 'Streets close together and far apart, side by side');
   assert.equal(cellWords(countCells(mk(20, 20, 60))), null, 'neither dominates: nothing');
-  assert.equal(cellWords(countCells(mk(59, 25, 16))), 'A mix of easy and car-oriented streets', 'just under 60% foot, car at 25%');
+  assert.equal(cellWords(countCells(mk(59, 25, 16))), 'Streets close together and far apart, side by side', 'just under 60% foot, car at 25%');
   assert.equal(cellWords(countCells(mk(59, 11, 30))), null, 'just under 60% foot and under 25% car: nothing');
   assert.equal(cellWords(countCells(mk(0, 0, 0, 40))), null, 'mostly empty: nothing');
   assert.equal(cellWords(countCells([])), null);
   // Empty cells are left out of the shares.
-  assert.equal(cellWords(countCells(mk(6, 1, 3, 500))), 'Mostly easy on foot');
+  assert.equal(cellWords(countCells(mk(6, 1, 3, 500))), 'Streets close together, with crossings');
 });
 
 test('UF12, UF13: no number, count, percentage or comparison in any line', () => {
@@ -46,9 +46,9 @@ const wordsAround = (key: string, ringM: number) => {
   return cellWords(countCells(cellsFor(ways, junctions), p.at, ringM));
 };
 
-test('UF14: the card for downtown Allentown says mostly easy on foot; the mall\'s and the suburb\'s do not', () => {
-  assert.equal(wordsAround('allentownDowntown', 250), 'Mostly easy on foot');
-  assert.equal(wordsAround('allentownGrid', 250), 'Mostly easy on foot');
-  assert.notEqual(wordsAround('lvMall', 250), 'Mostly easy on foot');
-  assert.equal(wordsAround('suburb', 250), 'Mostly built around cars');
+test('UF14: the card for downtown Allentown says its streets are close together; the mall\'s and the suburb\'s do not', () => {
+  assert.equal(wordsAround('allentownDowntown', 250), 'Streets close together, with crossings');
+  assert.equal(wordsAround('allentownGrid', 250), 'Streets close together, with crossings');
+  assert.notEqual(wordsAround('lvMall', 250), 'Streets close together, with crossings');
+  assert.equal(wordsAround('suburb', 250), 'Streets far apart and busy');
 });

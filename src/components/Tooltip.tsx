@@ -5,12 +5,13 @@ import { MOTION } from '../lib/motionTokens';
 import { theme } from './ui';
 
 /**
- * A small popover beside what it wraps (WK22): hover or focus on the web, a tap or long press on a phone.
- * It closes on its own, on Escape, and on leaving. Inline, never a `Modal` (iOS cannot present a Modal over
- * a Modal). The words are the wrapped thing's accessible label too, so a screen reader needs no popover.
+ * A row that says what it means in a line beneath it, in the flow (specs/walkability WK22; layers audit 4, 8): hover or focus on
+ * the web, a tap on a phone. Inline, never floating, so no ancestor clips it, no later sibling paints over it, and it is never a
+ * `Modal`. The whole row is the button (44 px tall), announced once as its label and its words together; what is inside is hidden
+ * from assistive tech. A press keeps it open and a second press closes it; it closes on its own, on Escape and on leaving.
  */
-export function Tooltip(props: { text: string; children: ReactNode; testID?: string; side?: 'above' | 'below'; align?: 'left' | 'right' }) {
-  const [open, setOpen] = useState(false);
+export function Tooltip(props: { text: string; label: string; children: ReactNode; testID?: string }) {
+  const [open, setOpen] = useState<'hover' | 'press' | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const clear = () => {
     if (timer.current) clearTimeout(timer.current);
@@ -18,12 +19,12 @@ export function Tooltip(props: { text: string; children: ReactNode; testID?: str
   };
   const close = useCallback(() => {
     clear();
-    setOpen(false);
+    setOpen(null);
   }, []);
-  const show = useCallback(() => {
+  const show = useCallback((by: 'hover' | 'press') => {
     clear();
-    setOpen(true);
-    timer.current = setTimeout(() => setOpen(false), MOTION.tip);
+    setOpen(by);
+    timer.current = setTimeout(() => setOpen(null), MOTION.tip);
   }, []);
   useEffect(() => clear, []);
   useEffect(() => {
@@ -32,41 +33,31 @@ export function Tooltip(props: { text: string; children: ReactNode; testID?: str
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [open, close]);
-  const below = props.side === 'below';
-  const alignRight = props.align === 'right';
   return (
-    <View style={styles.wrap}>
+    <View>
       <Pressable
         testID={props.testID}
         accessibilityRole="button"
-        accessibilityLabel={props.text}
-        hitSlop={10}
-        onHoverIn={show}
-        onHoverOut={close}
-        onFocus={show}
+        accessibilityLabel={`${props.label}. ${props.text}`}
+        accessibilityState={{ expanded: open !== null }}
+        onHoverIn={() => show('hover')}
+        onHoverOut={() => open === 'hover' && close()}
+        onFocus={() => show('hover')}
         onBlur={close}
-        // A press shows it (and starts its 4 s again): a tap after a hover never closes it under the finger (audit 14).
-        onPress={show}
-        onLongPress={show}
+        onPress={() => (open === 'press' ? close() : show('press'))}
+        style={styles.hit}
       >
-        {props.children}
-      </Pressable>
-      {open ? (
-        <View testID="tooltip" pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.tip, below ? styles.below : styles.above, alignRight ? styles.right : styles.leftEdge]}>
-          <Text style={styles.text}>{props.text}</Text>
+        <View style={styles.row} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" aria-hidden>
+          {props.children}
         </View>
-      ) : null}
+      </Pressable>
+      {open ? <Text testID="tooltip" style={styles.tip}>{props.text}</Text> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { position: 'relative' },
-  tip: { position: 'absolute', maxWidth: 240, minWidth: 160, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 10, backgroundColor: theme.ink, zIndex: 20 },
-  above: { bottom: '100%', marginBottom: 8 },
-  below: { top: '100%', marginTop: 8 },
-  /** Opens to the right of the icon, or, for an icon near the screen's right edge, to its left (audit 14). */
-  leftEdge: { left: 0 },
-  right: { right: 0 },
-  text: { color: '#fff', fontSize: 13, lineHeight: 18 },
+  hit: { minHeight: 44, justifyContent: 'center' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  tip: { color: theme.muted, fontSize: 12, lineHeight: 16, paddingBottom: 4 },
 });

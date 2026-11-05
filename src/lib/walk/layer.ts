@@ -56,14 +56,16 @@ export function tilesAround(c: LngLat, radiusM: number): [number, number][] {
     .slice(0, MAX_TILES);
 }
 
-export type WalkStatus = 'off' | 'reading' | 'ready' | 'unavailable';
+export type WalkStatus = 'off' | 'waiting' | 'reading' | 'ready' | 'unavailable';
 
 /**
  * What a map shows now (WK13): the last drawing read stays on screen while the tiles for a new centre are read, so
  * walking along a tile edge never blanks the layer (walkability audit 5). `status` says whether it is the right one.
  */
 export function drawNow<T>(on: boolean, last: { key: string; draw: T | null } | null, key: string): { draw: T | null; status: WalkStatus } {
-  if (!on || !key) return { draw: null, status: 'off' };
+  if (!on) return { draw: null, status: 'off' };
+  // On, but no position yet (no fix, location denied): say so, never a silent blank (layers audit 7).
+  if (!key) return { draw: null, status: 'waiting' };
   if (!last) return { draw: null, status: 'reading' };
   if (last.key !== key) return { draw: last.draw, status: 'reading' };
   return { draw: last.draw, status: last.draw ? 'ready' : 'unavailable' };

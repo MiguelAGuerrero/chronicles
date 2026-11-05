@@ -176,17 +176,17 @@ recording bar brings a minimized walk back.
 #### Map layers and walkability (before and during)
 
 - **Layers.** One Layers button on the Explore map and the Navigate map opens a small panel of switches: Walkability, Busy streets and Town
-  borders. Each draws something over the base map and shows its own legend while on. Walkability and Busy streets start off; Town borders start
-  on. One setting for every map, kept across launches.
-- **Walkability** tints the map green where the ground is easy on foot (streets close together, crossings, places along them) and warm where it is
+  borders. Each draws something over the base map and shows its own legend while on. All three start off, so a fresh map is clear; the button is outlined, and its glyph
+  and a firmer edge say a layer is on. One setting for every map, kept across launches.
+- **Walkability** tints the map a light blue where the ground is easy on foot (streets close together, crossings, places along them) and a darker slate where it is
   built around cars (streets far apart and busy), and nothing in between. It is judged from how the ground is built, so a walkable grid with its
   sidewalks unmapped still reads walkable; a missing sidewalk never lowers a reading. It comes from Overture's transportation tiles, with
   OpenStreetMap through Overpass when those can't be read, kept on the device. No number, share or rank is shown anywhere.
 - **Busy streets** is the graded magenta shading of streets with many places along them, now on request on any walk. Turning it on where nothing is
   remembered reads the area once.
-- An open area card (a neighborhood or a town) has an "On foot" line in words ("Mostly easy on foot", "Mostly built around cars", "A mix of easy
-  and car-oriented streets"), read when the card opens; it says nothing where neither dominates.
-- While navigating, a quiet line says "Next: a stretch built around cars on <street>" before a fast road, or "Next: an area built around cars"
+- An open area card (a neighborhood or a town) has an "On foot" line in words that say what the ground is ("Streets close together, with crossings",
+  "Streets far apart and busy", or both side by side), read when the card opens; it says nothing where neither stands out.
+- While navigating, with the Walkability layer on, a quiet line says "Next: a stretch built around cars on <street>" before a fast road, or "Next: an area built around cars"
   as the route enters one, 200 m ahead, once, with no sound; it never changes the route.
 
 ### Chronicle (after)

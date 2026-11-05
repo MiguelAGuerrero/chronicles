@@ -29,7 +29,7 @@ Touches:
 Verdict: aligned if reshaped
 Shape: the reshaped version is what was built: two readings and a quiet middle, in words, no number or rank, drawn soft and off by default, with a heads-up that informs and never steers. Not the "walkability index" the first message asked for.
 Criteria: UF12 (no number, count, percentage, rank or comparison) and UF15 plus specs/walkability-headsup WH8 and WH13 (silent, never reroutes) already carry it. One more the vision implies: the words and tooltips name how the ground is built, never whether a place is good, so "Built around cars" is a fact about streets, not a verdict on a town.
-Open: Is a green and a warm tint right for ground that is "easy on foot" and "built around cars"? Green and orange invite a good-and-bad reading, which the vision's "never whether it is good" and "restraint in colour" argue against; the orange is also close to the app's accent. A neutral pair (two tones of one hue, or a hatch) would say the same without approving or alarming. Keep the colours, or neutral?
+Open: answered 2026-11-05 by the owner on the UI audit and the vision review: a cool pair (a lighter and a darker tone of one blue family, neither green nor orange, told apart by lightness), the heads-up only while the Walkability layer is on, and the card says what the ground is, never "mostly".
 
 ## Why (found 2026-11-05 on Overture's real tiles, release 2026-10-21.0)
 
@@ -57,9 +57,10 @@ Open: Is a green and a warm tint right for ground that is "easy on foot" and "bu
 
 - **Judged by the urban form of the area** (the owner, 2026-11-05): how closely streets cross, block length, crosswalks and sidewalks where
   mapped, arterial share, and how many places sit along the streets. A missing sidewalk tag never lowers a reading.
-- **Soft tinted areas, both ends shown** (the owner, 2026-11-05): a green tint where it is easy on foot, a warm tint where it is built
-  around cars, nothing between. Both of the legend's symbols appear on the map.
+- **Soft tinted areas, both ends shown** (the owner, 2026-11-05): a light blue tint where it is easy on foot, a darker slate tint where it is built
+  around cars, nothing between (a cool pair, the owner on the UI audit: green and orange read as good and bad). Both of the legend's symbols appear on the map.
 - **The card follows the area; the heads-up follows fast roads and car-oriented areas** (the owner, 2026-11-05).
+- **The heads-up needs the layer on** (the owner, 2026-11-05, on the vision review): the walker asked for the information; nothing is read or said otherwise.
 - **Words, not a number** (specs/walkability, decision 0093): no score, share, rank or comparison is shown anywhere.
 - **A layer, off by default** (the owner, 2026-11-05): the tint is the Walkability layer of specs/map-layers, switched from the one Layers button, off
   until chosen, one setting for every map.
@@ -112,23 +113,24 @@ A cell is then one of: **foot**, **car**, **neither** (drawn as nothing), or **e
 
 ### What shows
 
-9. **UF9 · A tint over areas.** With the Walkability layer on (specs/map-layers), each **foot** cell is tinted green and each **car** cell warm, softly, with the map's
+9. **UF9 · A tint over areas.** With the Walkability layer on (specs/map-layers), each **foot** cell is tinted a light blue and each **car** cell a darker slate, softly, never green or orange, with the map's
    streets and labels readable through. **Neither** and **empty** are not drawn. Neighbouring cells of one reading read as one area (no visible
    seams between them). The tint draws beneath the trace, fog and pins.
 10. **UF10 · The legend shows what is drawn.** The Walkability layer's legend, in the Layers panel under its switch, lists two rows, each a swatch of its tint beside its icon and its words ("Easy on
     foot", "Built around cars"). The pedestrian with a caution badge is no longer drawn on the map or in the legend. Both rows are visible
     whenever the layer is on and the panel is open; the status lines ("Reading…", "Not available now") and the credit stay.
-11. **UF11 · Both ends appear in a real town.** On the Allentown fixture, the layer tints the walkable core green and the outer ground warm.
+11. **UF11 · Both ends appear in a real town.** On the Allentown fixture, the layer tints the walkable core light blue and the outer ground slate.
     The e2e journey checks both tints are drawn.
 12. **UF12 · Nothing is a score.** No number, share, rank or comparison between places is shown or stored for display. The tooltips are the
     band's name and one clause in words (specs/walkability WK22, WK23).
 
 ### The area card
 
-13. **UF13 · The card's line follows its cells.** The "On foot" line (specs/walkability WK11) is said from the cells inside the card's ring:
-    "Mostly easy on foot" when foot cells are at least 60% of the cells that are not empty, "Mostly built around cars" when car cells are,
-    "A mix of easy and car-oriented streets" when each is at least 25%, and nothing otherwise (neither-dominated, or mostly empty). Never a count.
-14. **UF14 · Allentown says so.** The area card for downtown Allentown's neighborhood and its town both read "Mostly easy on foot" on the
+13. **UF13 · The card's line says what the ground is.** The "On foot" line is said from the cells inside the card's ring, never "mostly", never a count or a
+    comparison, and no outcome: "Streets close together, with crossings" when foot cells are at least 60% of the cells that are not empty, "Streets far apart and
+    busy" when car cells are, "Streets close together and far apart, side by side" when each is at least 25%, and nothing otherwise. It is shown only once it has
+    words (never a "Reading" that vanishes); for a town it is headed "On foot · around its centre", because the ring is 800 m around the town's point.
+14. **UF14 · Allentown says so.** The area card for downtown Allentown's neighborhood and its town both read "Streets close together, with crossings" on the
     fixture; the card for the mall's surroundings does not.
 
 ### The heads-up
@@ -137,7 +139,8 @@ A cell is then one of: **foot**, **car**, **neither** (drawn as nothing), or **e
     road built around cars (WH1, as shipped), and also as the route **enters** ground built around cars: a run of car cells of 300 m or more
     along the route. The second says "Next: an area built around cars" (with no street name; no digit), once per run, with every other WH rule
     (200 m ahead, silent, kept 15 s past, one at a time, never touches the route). A run that overlaps a fast-road stretch is said once, as the road.
-16. **UF16 · The heads-up needs no switch.** As before it reads the route's tiles itself and does not need the layer on (WH10).
+16. **UF16 · The heads-up follows the Walkability layer.** With the layer off the line is not shown and no walkability tile is read for a route (the owner,
+    2026-11-05); with it on, the heads-up reads the route's tiles itself, once per route (WH11).
 
 ### What it needs
 
@@ -187,7 +190,12 @@ Not done, not proven:
 - **UF6's places threshold (150 weighted places per km²) is untuned.** No real places fixture exists; the rule is unit tested with synthetic
   numbers, and the e2e's fake places never reach it. A real town may lift too many or too few middling cells.
 - **The thresholds are pinned by five places.** A sixth can disagree. They are in one table, `walk/form.ts`.
-- **The tint's look on a phone is seen only on the web build** (soft green and orange over the streets, no seams). Native has never run it.
+- **The tint's look on a phone is seen only on the web build** (a soft blue pair over the streets, no seams). Native has never run it.
 - **UF18's 12-tile bound** is checked on 36 real tiles (133 ms for the judging, not the read).
 - **Nothing here has run on a device** (`docs/NATIVE_UNVERIFIED.md`).
+
+## Audit
+
+The UI audit of 2026-11-05 is recorded in specs/map-layers/spec.md ("Audit"): the walkability findings are the tooltip (`walkability audit 4`, `8`), the palette
+(`walkability audit 15`) and the card's words and section (`walkability audit 16`, the `walkability` journey), and the owner's call on the heads-up (UF16).
 

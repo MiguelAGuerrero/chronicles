@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BackHandler, Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { CaptureViewer } from '../CaptureView';
 import { LocateButton } from '../LocateButton';
-import { LayersControl, layerNotes } from '../LayersControl';
+import { LayersControl } from '../LayersControl';
 import { MomentBar } from '../MomentBar';
 import { StartSettings } from '../StartSettings';
 import { Icon } from '../icons';
@@ -28,6 +28,7 @@ import type { Capture, LngLat } from '../../lib/types';
 import type { MomentState } from '../../lib/useCaptures';
 import { LOCATE_FIT_M, useLocate } from '../../lib/useLocate';
 import { useStartWalk } from '../../lib/useStartWalk';
+import { layerNotes } from '../../lib/layers/notes';
 import { useBusyLayer } from '../../lib/layers/useBusyLayer';
 import { useLayers } from '../../lib/layers/useLayers';
 import { useWalkability } from '../../lib/walk/useWalkability';
@@ -266,7 +267,7 @@ export function useReady(props: {
 
       {/* Locate (QL9), in the stack's column where Recenter sits on the walk (NR9). */}
       <LocateButton busy={locating} onPress={locate} bottom={at.edgeBottom('locate')} right={at.edgeRight} />
-      <LayersControl layers={layers} notes={layerNotes(wk.status, busy.reading)} bottom={at.edgeBottom('layers')} right={at.edgeRight} />
+      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed })} bottom={at.edgeBottom('layers')} right={at.edgeRight} clearBottom={at.barTop + 112} />
       {/* The capture stack keeping moments (NR9), and its pills. */}
       <MomentBar disabled={walkStart.starting} onMoment={onMoment} onError={onMomentError} onRecording={setMemoOn} focused={focused} />
 

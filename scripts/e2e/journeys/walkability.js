@@ -32,7 +32,20 @@ async function run(h) {
   await pg.hover('[data-testid=walk-tip-car]');
   await pg.waitForSelector('[data-testid=tooltip]', { timeout: 3000 }).catch(() => {});
   const tip = await pg.locator('[data-testid=tooltip]').innerText().catch(() => '');
-  check(/^Built around cars/.test(tip) && !/\d/.test(tip), `WK22, WK23: hovering the car icon says what it means, with no number (${tip})`);
+  check(/^Streets far apart and busy/.test(tip) && !/\d|most|likely/i.test(tip), `WK22, WK23: hovering the car row says what the ground is, with no number and no promise (${tip})`);
+  // walkability audit 8: the whole legend row is the target, at least 44 px tall.
+  const rowBox = await pg.locator('[data-testid=walk-tip-car]').boundingBox();
+  check(rowBox.height >= 44, `walkability audit 8: a legend row's target is at least 44 px tall (${Math.round(rowBox.height)})`);
+  // walkability audit 4: it is in the flow, so it is never covered: the topmost element at its middle is the tip itself.
+  const topmost = await pg.evaluate(() => { const t = document.querySelector('[data-testid=tooltip]'); if (!t) return null; const r = t.getBoundingClientRect(); return document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)?.closest('[data-testid]')?.getAttribute('data-testid') ?? null; });
+  check(topmost === 'tooltip', `walkability audit 4: the tip is the topmost thing where it is (${topmost})`);
+  await pg.mouse.move(5, 300);
+  // walkability audit 8: a tap shows it and a second tap closes it, with no mouse over it.
+  await pg.locator('[data-testid=walk-tip-car]').click();
+  await pg.mouse.move(5, 300);
+  check((await pg.locator('[data-testid=tooltip]').count()) === 1, 'walkability audit 8: a tap keeps the tip open');
+  await pg.locator('[data-testid=walk-tip-car]').click();
+  check((await pg.locator('[data-testid=tooltip]').count()) === 0, 'walkability audit 8: a second tap closes it');
   // walkability audit 14: each band's tooltip opens fully on screen, in Explore's short map pane on a 390 px phone.
   const inside = async (id, label) => {
     await pg.hover(`[data-testid=${id}]`);
@@ -47,6 +60,9 @@ async function run(h) {
   await inside('walk-tip-car', 'car');
   await pg.hover('[data-testid=walk-tip-car]');
   await pg.waitForSelector('[data-testid=tooltip]', { timeout: 3000 }).catch(() => {});
+  // walkability audit 8: the row is announced once, as its words and what it means together.
+  const label = await pg.locator('[data-testid=walk-tip-car]').getAttribute('aria-label');
+  check(/^Built around cars\. Streets far apart and busy/.test(label ?? ''), `walkability audit 8: the legend row has one label, its words then its meaning (${label})`);
   await shot(pg, 'walk-explore');
   await pg.keyboard.press('Escape');
   check((await pg.locator('[data-testid=tooltip]').count()) === 0, 'WK22: Escape closes the tooltip');
@@ -74,7 +90,7 @@ async function run(h) {
   await pg.click('[data-testid=atlas-tile][data-name="Fox Point"]');
   await pg.waitForSelector('[data-testid=atlas-onfoot-words]', { timeout: 30000 }).catch(() => {});
   const words = await pg.locator('[data-testid=atlas-onfoot-words]').innerText().catch(() => '');
-  check(words === 'Mostly easy on foot', `UF13, UF14: the area card for the neighborhood around the dense grid says so, in words (${JSON.stringify(words)})`);
+  check(words === 'Streets close together, with crossings', `UF13, UF14: the area card for the neighborhood around the dense grid says what its ground is, in words (${JSON.stringify(words)})`);
   check(!/\d|%/.test(await pg.locator('[data-testid=atlas-onfoot]').innerText().catch(() => '1')), 'UF12: the card\'s line has no number or percentage');
   await shot(pg, 'walk-card');
   await c.close();

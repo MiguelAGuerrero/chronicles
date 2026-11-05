@@ -528,9 +528,18 @@ async function createHarness() {
     await browser.close();
     server.close();
   };
+  // Switches a map layer on (or off) through the Layers panel and closes the panel (specs/map-layers ML3-ML5): the layers all
+  // start off, so a journey that looks at one turns it on first.
+  const switchLayer = async (pg, id, wantOn = true) => {
+    await pg.waitForSelector('[data-testid=layers]', { timeout: 30000 });
+    if (!(await pg.locator('[data-testid=layers-panel]').count())) await pg.click('[data-testid=layers]');
+    await pg.waitForSelector(`[data-testid=layer-${id}]`, { timeout: 5000 });
+    if (((await pg.locator(`[data-testid=layer-${id}]`).getAttribute('aria-checked')) === 'true') !== wantOn) await pg.click(`[data-testid=layer-${id}]`);
+    await pg.click('[data-testid=layers]');
+  };
   return {
     url, navUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, iconOf, metricRegion, pressedScale, metaOf, drawerTo, tabTo, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
-    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, walkability, overpassAsked, OVERPASS_HOST,
+    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, walkability, overpassAsked, OVERPASS_HOST, switchLayer,
   };
 }
 

@@ -284,3 +284,8 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **The found tally on a place's sheet** ("12 of 87 · list from Nov 1", E10, `countLine` in `lib/explore/explore.ts`) breaks "counts are words"; carried as debt in `scripts/vision.allow.json` until the owner's call (`docs/VISION.md`, open question 6).
 - **Not checked by script:** tone, accent colours, celebration and motion, a capture moved behind a tap, a moment shown without its context. The steward and `/vision review` cover them; the replay's card keeps its own e2e scan for a large number and an accent colour.
 - **The copy heuristic is lexical:** copy built across several literals, or held in a constant with no space and a lowercase start, is not read; JSX text next to code with `;` or `=` is skipped.
+- **Explore's layers follow the selected area or you, not the panned map** (UI audit 7): pan away and the tint and busy streets are not there, with no cue.
+- **The Layers button is off-screen in a short landscape web window** (UI audit 10, web only; native is portrait).
+- **The heads-up is not announced by VoiceOver or TalkBack** (UI audit 12): `accessibilityLiveRegion` is Android-only and a node that mounts filled is not announced on the web; native needs an explicit announcement.
+- **Escape also closes an open atlas card or capture viewer** in the same keypress as the Layers panel (UI audit 13).
+

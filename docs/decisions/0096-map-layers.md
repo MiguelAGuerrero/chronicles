@@ -14,3 +14,4 @@ Map overlays arrived one at a time with their own rules: town borders always, bu
 - The walkability switch and its `walk_layer` setting are read once into the new per-layer setting, then replaced.
 - An exploring walk no longer draws busy streets by itself; Explore's chip, nudge and marks are unchanged.
 - Turning Busy streets on where nothing is remembered reads the area once, like What's good here.
+- On the UI audit (2026-11-05): all three layers start off, Town borders included, and the Layers button is outlined, not filled with the accent.

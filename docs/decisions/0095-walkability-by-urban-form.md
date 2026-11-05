@@ -18,4 +18,4 @@ The owner tried the shipped walkability layer (0093). Its legend showed symbols 
 
 ## Later call (2026-11-05)
 - The tint is one layer among several (specs/map-layers, decision 0096): a Layers button replaces the walkability button, off by default.
-
+- On the UI audit (2026-11-05): the tint is a cool pair (light blue and slate), not green and orange; the card says what the ground is, never "mostly"; the heads-up speaks only while the layer is on.

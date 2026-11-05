@@ -17,8 +17,10 @@ const ROUTE_TILE_M = 500;
  * route's tiles once per route (from the device where kept) and says nothing when there is no data (WK3).
  * It never changes the route (WK16): it takes the route and the walker's position and gives back words.
  */
-export function useRouteWarning(route: readonly LngLat[] | null, here: LngLat | null): string | null {
-  const key = route && route.length > 1 ? `${route[0].join(',')}>${route[route.length - 1].join(',')}#${route.length}` : null;
+export function useRouteWarning(route: readonly LngLat[] | null, here: LngLat | null, enabled: boolean): string | null {
+  // Only while the Walkability layer is on (the owner's call, 2026-11-05): the walker asked for the information, and no route
+  // tile is read otherwise (the vision review S2, S3).
+  const key = enabled && route && route.length > 1 ? `${route[0].join(',')}>${route[route.length - 1].join(',')}#${route.length}` : null;
   /** The distance last found along this route, so a route that retraces itself is read on the leg being walked. */
   const lastAlong = useRef<number | null>(null);
   useEffect(() => {
