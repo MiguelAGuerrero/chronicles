@@ -401,8 +401,8 @@ async function run(h) {
       await pg.waitForURL((u) => u.pathname === `${BASE}/chronicle`, { timeout: 5000 }).catch(() => {});
       await pg.waitForTimeout(1000);
       const row = second && await walkRow(second.id);
-      check(new URL(pg.url()).pathname === `${BASE}/chronicle` && (await pg.locator('[data-testid=home-sheet]').count()) === 1 && row && row.title == null && !row.open,
-        `tabs audit U14: Not now goes to Chronicle and leaves the walk unnamed (${pg.url()}, ${row && row.title})`);
+      check(new URL(pg.url()).pathname === `${BASE}/chronicle` && (await pg.locator('[data-testid=section-memories][aria-selected=true]').count()) === 1 && row && row.title == null && !row.open,
+        `tabs audit U14, RM3: Not now goes to Chronicle's Memories and leaves the walk unnamed (${pg.url()}, ${row && row.title})`);
     });
     await c.close();
 }
