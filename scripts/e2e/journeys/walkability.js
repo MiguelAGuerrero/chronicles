@@ -19,13 +19,31 @@ async function run(h) {
   await pg.waitForTimeout(1500);
   check(!overtureAsked.some((q) => /transportation\.pmtiles/.test(q.url)) && overpassAsked.length === 0, 'WK4: nothing is read while the layer is off');
   await pg.click('[data-testid=layer-walkability]');
-  await pg.waitForSelector('[data-testid=layer-legend-walkability]', { timeout: 5000 });
   await pg.waitForFunction(() => (document.querySelector('[data-walk]')?.getAttribute('data-walk') ?? '') !== '', null, { timeout: 30000 }).catch(() => {});
   const first = await drawn(pg);
   check(/^foot:[1-9]\d*\|car:[1-9]\d*$/.test(first ?? ''), `UF9, UF11: the dense grid around you is tinted easy on foot and the sparse arterials east of it built around cars (${first})`);
   const asked = overtureAsked.filter((q) => /transportation\.pmtiles/.test(q.url));
   check(asked.length > 0 && asked.every((q) => q.range && new URL(q.url).search === ''), `WK1: Overture's transportation tiles are read by byte range, with nothing but the tile (${asked.length} requests)`);
   check(overpassAsked.length === 0, 'WK1b: Overpass is not asked while Overture answers');
+  check((await pg.locator('[data-testid=layers-key]').count()) === 0 && (await pg.locator('[data-testid=tooltip]').count()) === 0, 'the Layers panel on the map carries no legend and no tooltip (the owner, Nov 5: the tooltip is intrusive)');
+  await openPanel(pg);
+  check(await isOn(pg), 'WK13: the switch says it is on');
+  // WK20: a reload keeps the switch, and the tiles stay on the device.
+  const before = overtureAsked.filter((q) => /transportation\.pmtiles/.test(q.url)).length;
+  await pg.reload();
+  await openPanel(pg);
+  await pg.waitForFunction(() => (document.querySelector('[data-walk]')?.getAttribute('data-walk') ?? '') !== '', null, { timeout: 30000 }).catch(() => {});
+  check(/^foot:[1-9]\d*\|car:[1-9]\d*$/.test((await drawn(pg)) ?? '') && overtureAsked.filter((q) => /transportation\.pmtiles/.test(q.url)).length === before, `WK20, WK2: after a reload the switch is still on and the tiles come from the device (${await drawn(pg)})`);
+  // One setting for every map: Navigate's map has it on too.
+  await pg.goto(navUrl);
+  await pg.waitForSelector('[data-testid=layers]', { timeout: 30000 });
+  await openPanel(pg);
+  await pg.waitForFunction(() => (document.querySelector('[data-walk]')?.getAttribute('data-walk') ?? '') !== '', null, { timeout: 30000 }).catch(() => {});
+  check((await isOn(pg)) && /^foot:[1-9]\d*\|car:[1-9]\d*$/.test((await drawn(pg)) ?? ''), `WK13: Navigate's map has the same switch, on, and draws the same stretches (${await drawn(pg)})`);
+  await shot(pg, 'walk-navigate');
+  // The legend lives in the walk's settings drawer, never over the map.
+  await h.drawerTo(pg, 'up');
+  await pg.waitForSelector('[data-testid=layers-key]', { timeout: 5000 });
   check((await pg.locator('[data-testid=walk-badge-car]').count()) === 1 && (await pg.locator('[data-testid=walk-badge-caution]').count()) === 0 && (await pg.locator('[data-testid=layer-swatch-foot]').count()) === 1 && (await pg.locator('[data-testid=layer-swatch-car]').count()) === 1, 'UF10, WK21: the legend shows the pedestrian and the pedestrian with a car badge, each beside its tint, and no caution badge');
   check(/OpenStreetMap and Overture/.test(await pg.locator('[data-testid=layer-note-walkability]').innerText()) && /read differently/.test(await pg.locator('[data-testid=layer-note-walkability]').innerText()), 'UF10, WK17: the layer credits OpenStreetMap and Overture and says an area can read differently from how it feels');
   await shot(pg, 'walk-legend-open');
@@ -67,24 +85,12 @@ async function run(h) {
   await shot(pg, 'walk-explore');
   await pg.keyboard.press('Escape');
   check((await pg.locator('[data-testid=tooltip]').count()) === 0, 'WK22: Escape closes the tooltip');
+  await h.drawerTo(pg, 'peek');
   await openPanel(pg);
-  check(await isOn(pg), 'WK13: the switch says it is on');
-  // WK20: a reload keeps the switch, and the tiles stay on the device.
-  const before = overtureAsked.filter((q) => /transportation\.pmtiles/.test(q.url)).length;
-  await pg.reload();
-  await openPanel(pg);
-  await pg.waitForSelector('[data-testid=layer-legend-walkability]', { timeout: 30000 });
-  await pg.waitForFunction(() => (document.querySelector('[data-walk]')?.getAttribute('data-walk') ?? '') !== '', null, { timeout: 30000 }).catch(() => {});
-  check(/^foot:[1-9]\d*\|car:[1-9]\d*$/.test((await drawn(pg)) ?? '') && overtureAsked.filter((q) => /transportation\.pmtiles/.test(q.url)).length === before, `WK20, WK2: after a reload the switch is still on and the tiles come from the device (${await drawn(pg)})`);
-  // One setting for every map: Navigate's map has it on too.
-  await pg.goto(navUrl);
-  await pg.waitForSelector('[data-testid=layers]', { timeout: 30000 });
-  await openPanel(pg);
-  await pg.waitForFunction(() => (document.querySelector('[data-walk]')?.getAttribute('data-walk') ?? '') !== '', null, { timeout: 30000 }).catch(() => {});
-  check((await isOn(pg)) && /^foot:[1-9]\d*\|car:[1-9]\d*$/.test((await drawn(pg)) ?? ''), `WK13: Navigate's map has the same switch, on, and draws the same stretches (${await drawn(pg)})`);
-  await shot(pg, 'walk-navigate');
   await pg.click('[data-testid=layer-walkability]');
+  await h.drawerTo(pg, 'up');
   check((await pg.locator('[data-testid=layer-legend-walkability]').count()) === 0, 'WK13: switching off hides the legend');
+  await h.drawerTo(pg, 'peek');
   // WK11: the area card says, in words, how its streets treat someone on foot (a third of this ring's street is each band).
   await pg.goto(url);
   await pg.waitForSelector('[data-testid=atlas-tile][data-name="Fox Point"]', { timeout: 60000 });

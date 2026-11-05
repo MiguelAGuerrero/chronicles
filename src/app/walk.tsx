@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WalkMap } from '../components/map/WalkMap';
 import { CompassButton } from '../components/CompassButton';
 import { WalkBandIcon } from '../components/WalkBandIcon';
-import { LayersControl } from '../components/LayersControl';
+import { LayersControl, LayersKey } from '../components/LayersControl';
 import { COLORS, HOTSPOT, type WalkMapHandle } from '../components/map/types';
 import { EditOfferPill, useEditOffer } from '../components/edit/EditOffer';
 import { MediaEditor } from '../components/edit/MediaEditor';
@@ -1364,6 +1364,12 @@ function WalkScreen(props: { onMinimize: () => void }) {
                 <RangeSlider value={settings.rangeM} onChange={(m) => changeSettings({ ...settings, rangeM: clampRange(m) })} />
                 <Text style={styles.optionSection} accessibilityRole="header">What I’m into</Text>
                 <KindSwitches hidden={settings.hidden} onToggle={toggleKind} />
+              </>
+            )}
+            {Object.values(layers.on).some(Boolean) && (
+              <>
+                <Text style={styles.optionSection} accessibilityRole="header">On the map</Text>
+                <LayersKey layers={layers} />
               </>
             )}
             {/* The pocket alert is a nudge you feel: on every phone, and on a touch-screen browser (E19, PA6). */}

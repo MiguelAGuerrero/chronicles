@@ -54,10 +54,32 @@ function Legend(props: { row: LegendRow }) {
 }
 
 /**
+ * What each layer that is on shows, with a line per row when pressed: lives in the walk's settings drawers, never over the map
+ * (the owner, Nov 5: "The tooltip is intrusive"). Nothing renders while every layer is off.
+ */
+export function LayersKey(props: { layers: ReturnType<typeof useLayers> }) {
+  const on = LAYERS.filter((l) => props.layers.on[l.id]);
+  if (!on.length) return null;
+  return (
+    <View testID="layers-key" style={styles.key}>
+      {on.map((l) => (
+        <View key={l.id} testID={`layer-legend-${l.id}`}>
+          <Text style={styles.keyTitle} accessibilityRole="header">{l.name}</Text>
+          <View style={styles.legend}>
+            {l.legend.map((r) => <Legend key={r.key} row={r} />)}
+            {l.note ? <Text testID={`layer-note-${l.id}`} style={styles.note}>{l.note}</Text> : null}
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/**
  * The Layers button and its panel (specs/map-layers ML3-ML6): one round outlined button in the map's edge column, opening a card
- * beside it with a switch per layer and, under a layer that is on, its legend. The card opens to the button's left, from its top
- * down, scrolling inside what room there is (layers audit 1, 3), so a short phone and a wide Explore both fit; a layer's
- * legend rows each say what they mean in a line beneath them when pressed. Inline, never a `Modal`. The button says a layer is on by
+ * beside it with a switch per layer and, under a layer that is on, a quiet status line. The card opens to the button's left, from its top
+ * down, scrolling inside what room there is (layers audit 1, 3), so a short phone and a wide Explore both fit; the legend is `LayersKey`,
+ * in the walk's settings. Inline, never a `Modal`. The button says a layer is on by
  * its glyph and a firmer edge, not by an accent fill (the vision review). `notes` are quiet lines per layer; no count is shown.
  */
 export function LayersControl(props: {
@@ -108,11 +130,9 @@ export function LayersControl(props: {
               return (
                 <View key={l.id}>
                   <SwitchRow testID={`layer-${l.id}`} label={l.name} icon={l.icon as IconName} value={on} onChange={() => layers.toggle(l.id)} />
-                  {on ? (
-                    <View style={styles.legend} testID={`layer-legend-${l.id}`}>
-                      {l.legend.map((r) => <Legend key={r.key} row={r} />)}
-                      {props.notes?.[l.id] ? <Text testID={`layer-status-${l.id}`} role="status" accessibilityLiveRegion="polite" style={styles.note}>{props.notes[l.id]}</Text> : null}
-                      {l.note ? <Text testID={`layer-note-${l.id}`} style={styles.note}>{l.note}</Text> : null}
+                  {on && props.notes?.[l.id] ? (
+                    <View style={styles.legend}>
+                      <Text testID={`layer-status-${l.id}`} role="status" accessibilityLiveRegion="polite" style={styles.note}>{props.notes[l.id]}</Text>
                     </View>
                   ) : null}
                 </View>
@@ -138,6 +158,8 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 4,
   },
   legend: { paddingHorizontal: 16, paddingBottom: 8, gap: 4 },
+  key: { gap: 8 },
+  keyTitle: { color: theme.ink, fontSize: 14, fontWeight: '600', paddingHorizontal: 16, paddingTop: 4 },
   plainRow: { minHeight: 32, flexDirection: 'row', alignItems: 'center', gap: 8 },
   swatch: { width: 20, height: 20, borderRadius: 4, overflow: 'hidden', backgroundColor: theme.bg, borderWidth: 1, borderColor: theme.line },
   label: { color: theme.ink, fontSize: 14, flexShrink: 1 },

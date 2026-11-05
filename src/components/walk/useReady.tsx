@@ -305,6 +305,7 @@ export function useReady(props: {
           onClearDest={() => chooseDest(null)}
           onSettings={changeSettings}
           onToggleKind={toggleKind}
+          layers={layers}
         />
       </ReadyBar>
 

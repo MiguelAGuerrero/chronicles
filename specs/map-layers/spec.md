@@ -62,7 +62,7 @@ what is drawn, off unless wanted, is the quieter map.
    button; no layer has a button of its own. Its accessible name is "Layers", it says whether the panel is open, and it is at least 44 px. It is an
    outlined button: while any layer is on its glyph is the filled one and its edge firmer, and it is never filled with the app's accent. It shows no count.
 4. **ML4 · The panel.** A small card **beside** the button, to its left and from its top down, listing the layers, each a row: its icon, its name, a
-   switch. A layer that is on shows its legend under its name; each legend row is a 44 px target that says what it means in a line beneath it when
+   switch. A layer that is on shows its legend, not in this panel but under "On the map" in the walk's settings drawers (the owner, Nov 5: the tooltip is intrusive); each legend row is a 44 px target that says what it means in a line beneath it when
    pressed or hovered, in the flow of the panel, never floating. The card scrolls inside the room it has, so on a 375×667 phone with every layer on
    every switch is reachable, and its width follows the map's own pane (at least 280 px wherever the pane allows), so a wide Explore keeps a
    readable panel. It is inline (never a `Modal`), opens and closes on the button, closes on Escape, on a tap on the map and when its screen goes,

@@ -37,13 +37,13 @@ async function run(h) {
   // ML12: Town borders draw only while on, and the map redraws at once.
   await pg.click('[data-testid=layer-borders]');
   await pg.waitForFunction(() => (document.querySelector('[data-borders]')?.getAttribute('data-borders') ?? '').includes('tinted:'), null, { timeout: 45000 }).catch(() => {});
-  check((await attr(pg, 'data-borders')) === 'lined:Central Falls|tinted:Pawtucket' && (await pg.locator('[data-testid=layer-legend-yours]').count()) === 1
-    && (await pg.locator('[data-testid=layer-legend-nearby]').count()) === 1 && (await pg.locator('[data-testid=layer-swatch-yours]').count()) === 1,
-    `ML12: with Town borders on the map draws the town you are in and its neighbour, and the legend says so, with a swatch (${await attr(pg, 'data-borders')})`);
+  check((await attr(pg, 'data-borders')) === 'lined:Central Falls|tinted:Pawtucket',
+    `ML12: with Town borders on the map draws the town you are in and its neighbour (${await attr(pg, 'data-borders')})`);
+  check((await pg.locator('[data-testid=layers-key]').count()) === 0 && (await pg.locator('[data-testid=layer-legend-yours]').count()) === 0, 'the panel over the map carries no legend: it is in the walk\'s settings');
   check(!/\d|%/.test(await pg.locator('[data-testid=layers-panel]').innerText()), 'ML6: still no number with a legend open');
   await pg.click('[data-testid=layer-borders]');
   await pg.waitForFunction(() => (document.querySelector('[data-borders]')?.getAttribute('data-borders') ?? 'x') === '', null, { timeout: 5000 }).catch(() => {});
-  check(!(await on(pg, 'borders')) && (await attr(pg, 'data-borders')) === '' && (await pg.locator('[data-testid=layer-legend-yours]').count()) === 0, 'ML12: switched off, the map draws none and the legend goes');
+  check(!(await on(pg, 'borders')) && (await attr(pg, 'data-borders')) === '', 'ML12: switched off, the map draws none');
 
   // ML4: the button and Escape close the panel, and so does a tap on the map.
   await pg.keyboard.press('Escape');
@@ -72,7 +72,6 @@ async function run(h) {
   // ML8, ML9: Busy streets draw on request, and are read once where nothing is remembered.
   await openPanel(pg);
   await pg.click('[data-testid=layer-busy]');
-  check((await pg.locator('[data-testid=layer-legend-busy]').count()) === 1, 'ML8: Busy streets on shows its legend');
   await pg.waitForFunction(() => /^strips:[1-9]/.test(document.querySelector('[data-busy]')?.getAttribute('data-busy') ?? ''), null, { timeout: 90000 }).catch(() => {});
   const busy = await attr(pg, 'data-busy');
   check(/^strips:[1-9]/.test(busy ?? ''), `ML8, ML9: with the layer on and nothing remembered, the area is read once and its busy streets are drawn (${busy})`);
@@ -94,6 +93,17 @@ async function run(h) {
   await pg.waitForFunction(() => (document.querySelector('[data-walk]')?.getAttribute('data-walk') ?? '') !== '', null, { timeout: 30000 }).catch(() => {});
   check(/^foot:/.test((await attr(pg, 'data-walk')) ?? ''), 'ML3: Navigate\'s Layers button switches the same drawing');
   await shot(pg, 'layers-navigate');
+  // The legend is in the settings drawer: one block per layer that is on, none over the map.
+  await pg.click('[data-testid=layers]');
+  await h.drawerTo(pg, 'up');
+  await pg.waitForSelector('[data-testid=layers-key]', { timeout: 5000 });
+  check((await pg.locator('[data-testid=layer-legend-walkability]').count()) === 1 && (await pg.locator('[data-testid=layer-legend-busy]').count()) === 1
+    && (await pg.locator('[data-testid=layer-legend-yours]').count()) === 1 && (await pg.locator('[data-testid=layer-legend-nearby]').count()) === 1 && (await pg.locator('[data-testid=layer-swatch-yours]').count()) === 1,
+    'ML8, ML12: the walk\'s settings drawer shows the legend of each layer that is on, with a swatch');
+  check(!/\d|%/.test(await pg.locator('[data-testid=layers-key]').innerText()), 'ML6: no number in the drawer\'s legend');
+  await shot(pg, 'layers-key');
+  await h.drawerTo(pg, 'peek');
+  await openPanel(pg);
   await pg.click('[data-testid=layer-busy]');
   await pg.waitForFunction(() => (document.querySelector('[data-busy]')?.getAttribute('data-busy') ?? 'x') === '', null, { timeout: 5000 }).catch(() => {});
   check(!(await attr(pg, 'data-busy')), 'ML8: with Busy streets off the map draws none');
