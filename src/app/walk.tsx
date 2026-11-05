@@ -189,7 +189,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const params = useLocalSearchParams<{ warning?: string; started?: string; recall?: string }>();
   const at = useStackLayout();
   // The walk's cards sit above the strip, left of the stack's column, so they never cover it (audit 5).
-  const cardAt = { bottom: at.barTop + 12, right: at.right + CAP + STACK_GAP };
+  // zIndex 2: over the Layers button in the corner (1), under the drawer (3) (fix layers-corner audit 2).
+  const cardAt = { bottom: at.barTop + 12, right: at.right + CAP + STACK_GAP, zIndex: 2 };
   // One screen, ready or walking (NR1, NR6): the walk is the keeper's open walk. While Start writes the
   // walk's plan the screen stays ready (the walk reads its mode as it shows); once stopped, the walk stays
   // on screen until the replay replaces it, never flashing the ready state.

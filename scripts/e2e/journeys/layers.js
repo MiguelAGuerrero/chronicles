@@ -150,6 +150,12 @@ async function run(h) {
   const lb = await box(p2, '[data-testid=layers]');
   check(lb.x + lb.width / 2 < vp.w / 2 && lb.y > vp.h / 2 && panel.x >= lb.x + lb.width && panel.y + panel.height <= lb.y + lb.height + 1,
     `fix layers-corner: the Layers button is in the bottom-left corner and the panel opens beside it, growing upward (${JSON.stringify(lb)}, ${JSON.stringify(panel)})`);
+  // fix layers-corner audit 1: with the walk's drawer pulled up, it covers the corner button (as on the ready screen).
+  await p2.click('[data-testid=layers]');
+  await h.drawerTo(p2, 'up', 'walk-grip');
+  const hit = await p2.evaluate(([x, y]) => !!document.elementFromPoint(x, y)?.closest('[data-testid=walk-bar]'), [lb.x + lb.width / 2, lb.y + lb.height / 2]);
+  check(hit, 'fix layers-corner audit 1: the raised drawer covers the corner button, not the other way round');
+  await h.drawerTo(p2, 'peek', 'walk-grip');
   await shot(p2, 'layers-small');
   // layers audit 2: with Busy streets on, a walker's fixes do not rebuild the drawing once a fix.
   await p2.waitForFunction(() => /^strips:/.test(document.querySelector('[data-busy]')?.getAttribute('data-busy') ?? ''), null, { timeout: 90000 }).catch(() => {});

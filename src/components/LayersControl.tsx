@@ -21,6 +21,8 @@ const SWATCH: Record<SwatchKey, { color: string; opacity: number; outline?: bool
 };
 
 const BUTTON = 44;
+/** In the walk's corner the button and panel sit under the walk's cards (2) and drawer (3), over the map (fix layers-corner audit 1, 2). */
+const CORNER_Z = 1;
 /** The button's width and the gap to the panel beside it. */
 const BESIDE = BUTTON + 8;
 
@@ -127,12 +129,12 @@ export function LayersControl(props: {
         accessibilityState={{ expanded: layers.open }}
         aria-expanded={layers.open}
         onPress={layers.togglePanel}
-        style={({ pressed }) => [styles.btn, fromLeft ? { left: props.left, top: buttonTop } : { right, top: buttonTop }, anyOn && styles.btnOn, pressed && styles.pressed]}
+        style={({ pressed }) => [styles.btn, fromLeft ? { left: props.left, top: buttonTop, zIndex: CORNER_Z } : { right, top: buttonTop }, anyOn && styles.btnOn, pressed && styles.pressed]}
       >
         <Icon name={anyOn ? 'layers' : 'layers-outline'} size={24} color={theme.ink} />
       </Pressable>
       {layers.open ? (
-        <View testID="layers-panel" accessibilityLabel="Layers" role="group" style={[styles.card, fromLeft ? { left: props.left! + BESIDE, bottom } : { right: right + BESIDE, top: buttonTop }, { width: box.width, maxHeight: box.maxHeight }]}>
+        <View testID="layers-panel" accessibilityLabel="Layers" role="group" style={[styles.card, fromLeft ? { left: props.left! + BESIDE, bottom, zIndex: CORNER_Z } : { right: right + BESIDE, top: buttonTop }, { width: box.width, maxHeight: box.maxHeight }]}>
           <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
             {LAYERS.map((l) => {
               const on = !!layers.on[l.id];
