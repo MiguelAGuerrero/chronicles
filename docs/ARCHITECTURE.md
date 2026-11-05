@@ -184,7 +184,6 @@ Discovery and Explore (v1)
   explore/explore.ts         checklists, membership, visibleMarks, routeMarks, findFor, foundList, passedLine
   explore/exploreRun.ts      one explore read (decoder, z14 + z11) and the build check
   explore/useExplore.ts      Explore on the walk screen
-  explore/exploreTab.ts the drawer's area-in-view (superseded on the tab by the atlas)
   atlas/atlas.ts             the Explore atlas: near list, presence steps (findable kinds count markable places, AG1), thin rings (AG3), sketch, familiarity, labels
   atlas/extent.ts            a town's whole-outline extent and the z14 tiles a read takes, capped (TP1-TP3)
   atlas/pockets.ts           a town's pockets of activity: peak picking on a smoothed 400 m grid (TP4)

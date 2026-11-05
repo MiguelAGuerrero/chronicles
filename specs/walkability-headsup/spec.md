@@ -75,7 +75,7 @@ the useful moment is just before the stretch, without opening anything.
 ## Record
 
 Built with the walkability slice (2026-11-04) as WK15 and WK16, then given this spec. Tests named by id:
-`src/lib/__tests__/walkHeadsUp.test.ts` (WH1-WH8, WH10-WH13; these assert behaviour that was built first, so they were
+`src/lib/__tests__/walkability/walkHeadsUp.test.ts` (WH1-WH8, WH10-WH13; these assert behaviour that was built first, so they were
 written to pass, not seen failing) and the e2e journey `headsup` (WH3, WH7-WH10, WH13: a fake Overture tile with
 every street fast, a real walk and a routed destination). WH9's "not while a voice memo is recording" is checked in
 code only (`!recordingVoice` in `walk.tsx`).

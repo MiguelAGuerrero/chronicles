@@ -306,7 +306,7 @@ async function run(h) {
       const s4 = await scaleBar();
       const ends = await attr('data-ends');
       check(round(s4) && fits(s4), `qol QL5: Chronicle shows the scale bar (${describe(s4)})`);
-      check(ends == null || ends === '' || ends === '|', `qol QL1: Chronicle draws no trace, so it marks no start (data-ends ${JSON.stringify(ends)})`);
+      check(ends !== null && (ends === '' || ends === '|'), `qol QL1: Chronicle draws no trace, so it marks no start (data-ends ${JSON.stringify(ends)})`);
     }
     await tabTo(pg, 'navigate');
     await pg.waitForTimeout(800);

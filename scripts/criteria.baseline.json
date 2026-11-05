@@ -1,20 +1,10 @@
 [
-  "bridges-and-open-in-maps:NH8",
-  "compass:CP7",
   "filling-gaps:G14",
-  "memories-on-revisit:MR2",
   "memories-on-revisit:TH2",
-  "motion:MO3",
-  "motion:MO4",
-  "motion:MO7",
-  "motion:MO9",
   "navigation-and-tabs:NV24",
   "quality-of-life:QL20",
   "rides:R14",
   "v0.5-places:H1",
-  "v0.5-places:H10",
-  "v0.5-places:H2",
-  "v0.5-places:H3",
   "v0.5-places:H4",
   "v0.5-places:H5",
   "v0.5-places:H6",
@@ -23,9 +13,7 @@
   "v0.5-places:N10",
   "v0.5-places:N11",
   "v0.5-places:N13",
-  "v0.5-places:N6",
   "v1-discovery:E12",
-  "v1-discovery:E14",
   "v1-discovery:E21",
   "v1-discovery:E9",
   "v1-discovery:NT2",
@@ -37,6 +25,5 @@
   "v1-discovery:S17",
   "v1-discovery:S21",
   "v1-discovery:S7",
-  "v1-discovery:S8",
-  "v1.5-landing:L17"
+  "v1-discovery:S8"
 ]

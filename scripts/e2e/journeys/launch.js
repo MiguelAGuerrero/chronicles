@@ -46,7 +46,7 @@ async function checks(h) {
     check(nv.path === '/walk' && (await page.locator('[data-testid=ready-bar]').count()) === 1 && !(await tabBarShown(page))
       && (await page.locator('canvas.maplibregl-canvas').count()) === 1 && (await page.locator('[data-testid=start]').count()) === 1,
       `Navigate opens the ready walk screen, no tab bar, one map with Start (NR1, NV4: ${JSON.stringify(nv)})`);
-    check((await page.locator('[data-testid=start-explore]').count()) === 0 && (await page.locator('[data-testid=ready-dest]').count()) === 0,
+    check((await page.locator('[data-testid=ready-dest]').count()) === 0,
       'Start alone in the bar, with no destination line (NV19, NR5, NR8)');
     check((await page.locator('[data-testid=moment-photo]').count()) === 1 && (await page.locator('[data-testid=moment-note]').isVisible()), 'Navigate has quick capture, outside the bar (NV18, NR9)');
     await page.waitForTimeout(1500);
@@ -55,7 +55,7 @@ async function checks(h) {
     const ch = await onTab('chronicle');
     await page.waitForSelector('text=Walk somewhere and it is starred here');
     check(ch.path === '/chronicle' && ch.canvases === 1, `Chronicle at /chronicle, one live map (NV4, NV5: ${JSON.stringify(ch)})`);
-    check((await shownCount(page, '[data-testid=start], [data-testid=start-explore], [data-testid=moment-note], [data-testid=look-here]')) === 0,
+    check((await shownCount(page, '[data-testid=start], [data-testid=moment-note], [data-testid=look-here]')) === 0,
       'Chronicle has no Start, Explore button, quick capture or What’s good here (NV11)');
     await page.reload();
     await page.waitForSelector('[data-testid=home-sheet]');

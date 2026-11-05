@@ -5,7 +5,7 @@ import type { OutlineTile } from '../areas/outlines';
 import type { WalkTile } from '../walk/types';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Db } from '../db/types';
-import type { Mark, Offered, Place, Recall } from '../discovery/types';
+import type { Mark, Place, Recall } from '../discovery/types';
 import type { ChecklistArea, ChecklistItem, ExploreRead, Find } from '../explore/explore';
 import type { LandingRow } from '../landing/view';
 import type { Capture, GapDecision, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
@@ -24,7 +24,10 @@ import { parseEdit, type MediaEdit } from '../mediaEdit';
  * the IndexedDB store does where that differs from its doc comment or from the
  * native store: the fake follows the web store, and the case says so.
  */
-export function dbContract(name: string, fresh: () => Promise<Db>) {
+/** Rows only an older app wrote: the retired scan's marks, which old walks' replays still read (`listMarks`). */
+export type Legacy = { marks?: Mark[] };
+
+export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>) {
   const LON = -71.4, LAT = 41.812;
   const walk = (id: string, started_at: number, more: Partial<Walk> = {}): Walk => ({
     id, started_at, ended_at: null, title: null, epilogue: null, open: false, area: null, snapped_build: null, ...more,
@@ -50,9 +53,6 @@ export function dbContract(name: string, fresh: () => Promise<Db>) {
   });
   const place = (key: string, at: [number, number] = [LON, LAT]): Place => ({
     key, name: key, category: 'art', at, generic: false, build: 'b1', markable: true,
-  });
-  const offer = (key: string, offered_at: number): Offered => ({
-    key, name: key, category: 'art', at: [LON, LAT], generic: false, offered_at, origin: 'scan',
   });
   const mark = (id: string, walk_id: string | null, created_at: number, more: Partial<Mark> = {}): Mark => ({
     id, walk_id, key: `k-${id}`, name: id, category: 'art', at: [LON, LAT], generic: false, origin: 'scan',
@@ -131,7 +131,8 @@ export function dbContract(name: string, fresh: () => Promise<Db>) {
     });
 
     test('FC7 getWalk, listWalks, getCaptures, listMarks, getVisited, listSummaries: rows go in and come out as copies', async () => {
-      const db = await fresh();
+      const m = mark('m1', 'a', 1);
+      const db = await fresh({ marks: [m] });
       const w = walk('a', 1);
       await db.createWalk(w);
       w.title = 'changed after writing';
@@ -146,8 +147,6 @@ export function dbContract(name: string, fresh: () => Promise<Db>) {
       (await db.getCaptures('a'))[0].body = 'changed';
       assert.equal((await db.getCaptures('a'))[0].body, 'hi');
 
-      const m = mark('m1', 'a', 1);
-      await db.saveScan({ replace: [], marks: [m], offered: [] });
       m.at[0] = 0;
       (await db.listMarks('a'))[0].at[0] = 0;
       assert.equal((await db.listMarks('a'))[0].at[0], LON);
@@ -267,7 +266,7 @@ export function dbContract(name: string, fresh: () => Promise<Db>) {
     // ---- deleting (D1-D9)
 
     test('FC7 deleteWalk: removes the walk, its trace, pauses, stills, gap decisions, captures and their reminders, summary, visited rows, finds, marks and explored meta; other walks keep theirs', async () => {
-      const db = await fresh();
+      const db = await fresh({ marks: [mark('m-a', 'a', 1), mark('m-b', 'b', 2)] });
       const fill = async (w: string, t: number) => {
         await db.createWalk(walk(w, t));
         await db.appendPoints([point(w, t)]);
@@ -281,7 +280,6 @@ export function dbContract(name: string, fresh: () => Promise<Db>) {
           areas: [area(`A-${w}`)], rows: [walkArea(w, `A-${w}`)],
         });
         await db.addFind(find(`f-${w}`, w, `c-${w}`));
-        await db.saveScan({ replace: [], marks: [mark(`m-${w}`, w, t)], offered: [offer(`o-${w}`, t)] });
         await db.setMeta(`explored:${w}`, String(t));
       };
       await fill('a', 1);
@@ -304,7 +302,7 @@ export function dbContract(name: string, fresh: () => Promise<Db>) {
       assert.deepEqual(sorted((await db.listRecalls()).map((r) => r.capture_id)), ['c-b']);
       assert.deepEqual((await db.listWalkAreas()).map((r) => r.walk_id), ['b']);
 
-      // The other walk is whole; offered stays (truth); cached segments stay (cache, not the walk's).
+      // The other walk is whole; cached segments stay (cache, not the walk's).
       assert.deepEqual(ids(await db.listWalks()), ['b']);
       assert.equal((await db.getPoints('b')).length, 1);
       assert.equal((await db.getPauses('b')).length, 1);
@@ -316,7 +314,6 @@ export function dbContract(name: string, fresh: () => Promise<Db>) {
       assert.equal((await db.listMarks('b')).length, 1);
       assert.equal(await db.getMeta('explored:b'), '2');
       assert.equal(await db.getMeta('other'), 'kept');
-      assert.deepEqual(keys(await db.listOffered()), ['o-a', 'o-b']);
       assert.deepEqual(ids(await db.getSegmentsIn(box)).sort(), ['s-a', 's-b']);
     });
 
@@ -393,7 +390,7 @@ export function dbContract(name: string, fresh: () => Promise<Db>) {
       assert.deepEqual(keys(await db.listFinds()), ['f1']);
     });
 
-    test('FC7 deleteCaptures: (web store as it is) a find filed under another walk than its capture\'s stays; native deletes every find of the capture', async () => {
+    test('FC7 deleteCaptures: (web store as it is) a find filed under another walk than its capture\'s stays (SQLite deletes every find of the capture: a device check)', async () => {
       // The web store looks finds up by the deleted captures' walks; SQLite deletes by capture_id.
       // Finds are written with their capture's walk, so this only shows if a capture moves walk.
       const db = await fresh();
@@ -463,7 +460,7 @@ export function dbContract(name: string, fresh: () => Promise<Db>) {
       assert.deepEqual(ids(await db.getSegmentsIn([LON + 0.999, LAT - 0.01, LON + 1.01, LAT + 0.01])), ['far']);
     });
 
-    test('FC7 getSegmentsIn: (web store as it is) a piece is found by the tile of its centre, so a piece far longer than 200 m that only grazes the bounds is missed; native finds it', async () => {
+    test('FC7 getSegmentsIn: (web store as it is) a piece is found by the tile of its centre, so a piece far longer than 200 m that only grazes the bounds is missed (SQLite compares each piece\'s box: a device check)', async () => {
       // The web store files pieces under one z14 tile and reads the bounds' tiles widened by 250 m
       // (pieces are at most 200 m); SQLite compares each piece's box.
       const db = await fresh();
@@ -555,38 +552,12 @@ export function dbContract(name: string, fresh: () => Promise<Db>) {
       assert.deepEqual(await db.placesIn([LON + 0.99, LAT - 0.01, LON + 1.01, LAT + 0.01]), [place('p2', [LON + 1, LAT])]);
     });
 
-    test('FC7 addOffered, listOffered, saveScan: the first offer of a place wins, from addOffered or a scan', async () => {
-      const db = await fresh();
-      assert.deepEqual(await db.listOffered(), []);
-      await db.addOffered([offer('k1', 1)]);
-      await db.addOffered([offer('k1', 2), offer('k2', 3)]);
-      await db.addOffered([]);
-      await db.saveScan({ replace: [], marks: [], offered: [offer('k2', 4), offer('k3', 5)] });
-      assert.deepEqual((await db.listOffered()).map((o) => `${o.key}@${o.offered_at}`).sort(), ['k1@1', 'k2@3', 'k3@5']);
-    });
-
-    test('FC7 saveScan, listMarks, updateMark: replaces only open marks; home marks are those with no walk; in creation order; patches merge', async () => {
-      const db = await fresh();
-      await db.saveScan({ replace: [], marks: [mark('m1', null, 2), mark('m2', null, 1), mark('m3', 'w', 3, { state: 'found' })], offered: [] });
-      await db.saveScan({ replace: ['m1', 'm3', 'missing'], marks: [mark('m4', 'w', 4)], offered: [] });
-      assert.deepEqual((await db.listMarks(null)).map((m) => `${m.id}:${m.state}`), ['m2:open', 'm1:replaced']);
+    test('FC7 listMarks: a walk\'s marks by walk, the home\'s are those with no walk, each in creation order', async () => {
+      const db = await fresh({ marks: [mark('m1', null, 2), mark('m2', null, 1), mark('m3', 'w', 3, { state: 'found' }), mark('m4', 'w', 4)] });
+      assert.deepEqual(ids(await db.listMarks(null)), ['m2', 'm1']);
       assert.deepEqual((await db.listMarks('w')).map((m) => `${m.id}:${m.state}`), ['m3:found', 'm4:open']);
+      assert.deepEqual(await db.listMarks('w'), [mark('m3', 'w', 3, { state: 'found' }), mark('m4', 'w', 4)]);
       assert.deepEqual(await db.listMarks('none'), []);
-      await db.updateMark('m4', { state: 'dismissed', resolved_at: 9 });
-      await db.updateMark('missing', { state: 'dismissed' });
-      assert.deepEqual((await db.listMarks('w'))[1], mark('m4', 'w', 4, { state: 'dismissed', resolved_at: 9 }));
-      await db.updateMark('m2', { walk_id: 'w' });
-      assert.deepEqual(ids(await db.listMarks(null)), ['m1']);
-      assert.deepEqual(ids(await db.listMarks('w')), ['m2', 'm3', 'm4']);
-    });
-
-    test('FC7 saveScan: all or nothing: a duplicate mark id changes nothing, replaced marks and offers included', async () => {
-      const db = await fresh();
-      await db.saveScan({ replace: [], marks: [mark('m1', null, 1), mark('m0', null, 0)], offered: [] });
-      await assert.rejects(db.saveScan({ replace: ['m0'], marks: [mark('m1', null, 2)], offered: [offer('k9', 1)] }));
-      await assert.rejects(db.saveScan({ replace: ['m0'], marks: [mark('m5', null, 5), mark('m5', null, 6)], offered: [offer('k9', 1)] }));
-      assert.deepEqual((await db.listMarks(null)).map((m) => `${m.id}:${m.state}:${m.created_at}`), ['m0:open:0', 'm1:open:1']);
-      assert.deepEqual(await db.listOffered(), []);
     });
 
     test('FC7 setRecall, clearRecall, listRecalls: one per capture, replaced by capture, cleared by capture', async () => {
@@ -721,13 +692,12 @@ export function dbContract(name: string, fresh: () => Promise<Db>) {
     });
 
     test('FC7 purgeDerived: drops segments, places, explore reads, atlas areas and outline tiles and unmarks every walk; truth, visited rows and summaries stay', async () => {
-      const db = await fresh();
+      const db = await fresh({ marks: [mark('m1', 'a', 1)] });
       await db.createWalk(walk('a', 1));
       await db.createWalk(walk('b', 2));
       await db.saveSnap('a', [segment('s1')], [visit('s1', 'a')], summary('a'), { areas: [area('A')], rows: [walkArea('a', 'A')] });
       await db.saveSnap('b', [], [], summary('b'));
       await db.putPlaces([place('p1')]);
-      await db.saveScan({ replace: [], marks: [mark('m1', 'a', 1)], offered: [offer('k1', 1)] });
       await db.setRecall(recall('c1'));
       await db.putGapDecision(gap('a', 1));
       await db.putLanding(landing('L', 1));
@@ -750,7 +720,6 @@ export function dbContract(name: string, fresh: () => Promise<Db>) {
       assert.equal((await db.listAreas()).length, 1);
       assert.equal((await db.listWalkAreas()).length, 1);
       assert.equal((await db.listMarks('a')).length, 1);
-      assert.equal((await db.listOffered()).length, 1);
       assert.equal((await db.listRecalls()).length, 1);
       assert.equal((await db.getGapDecisions('a')).length, 1);
       assert.equal((await db.listLandings()).length, 1);

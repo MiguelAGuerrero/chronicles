@@ -252,14 +252,39 @@ const FEATURES = [
  * later call, not missing a test. `check:specs` reports them apart from live ids.
  * Keyed by the spec's slug; each entry says who retired it.
  */
+const V1_SCAN_AND_AMBIENT = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S9', 'S10', 'S11', 'S12', 'S14', 'S15', 'S22', 'S23', ...Array.from({ length: 11 }, (_, i) => `A${i + 1}`)];
+
 const RETIRED = {
   // As the spec says (its "Retired by this slice" line, Explore, v1 slice 5, Nov 1): S1-S6, S9-S12, S14, S15,
   // S22 and S23 of the scan, and all of slice 3's ambient hints (A1-A11). S7, S8, S13, S16 and S17 are live.
-  'v1-discovery': ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S9', 'S10', 'S11', 'S12', 'S14', 'S15', 'S22', 'S23', ...Array.from({ length: 11 }, (_, i) => `A${i + 1}`)],
-  // Retired by Explore (docs/STATUS.md).
-  'v1.5-landing': ['L10', 'L13', 'L16'],
-  // No Open in Maps on "Off your route" (decision 0059).
-  'bridges-and-open-in-maps': ['NH4'],
+  // E14 (the test trim, Nov 5, at the owner's ask): the one-time upgrade off scan and ambient marks ran Nov 1; nothing is left to read.
+  'v1-discovery': [...V1_SCAN_AND_AMBIENT, 'E14'],
+  // Retired by Explore (docs/STATUS.md). L17 (the test trim, Nov 5): it fed the scan and ambient, both retired above.
+  'v1.5-landing': ['L10', 'L13', 'L16', 'L17'],
+  // The test trim (Nov 5, at the owner's ask): the home became the tabs (navigation-and-tabs) and Start moved to the
+  // ready bar (decision 0076), so H2's empty home with its Start, and H3's one Start above the sheet, are gone.
+  // H10 and N6 (the test trim, Nov 5, the owner's call): later slices changed both. Chronicle reads every capture row,
+  // checklist areas, finds and photos' small copies, not only walks, summaries and areas (H10). The trace steps aside
+  // while navigating (the owner, Nov 2), so N6's "the trace stays visible" no longer holds; the route's look, the pins
+  // and the walker are checked by the walk and qol journeys.
+  'v0.5-places': ['H2', 'H3', 'H10', 'N6'],
+  // The test trim (Nov 5): Explore became an atlas (decision 0066); the tab's drawer of busy areas, places to find
+  // and finds, and its "?" marks, are gone (the atlas's AT1-AT16 hold the tab now). `exploreTab.ts` went with it.
+  'navigation-and-tabs': ['NV14'],
+  // No Open in Maps on "Off your route" (decision 0059). NH8 (the test trim, Nov 5, the owner's call): no
+  // "Couldn't open a maps app." banner was built.
+  'bridges-and-open-in-maps': ['NH4', 'NH8'],
+  // The test trim (Nov 5, the owner's call): a turn by hand stops following and Recenter resumes at the bearing (qol),
+  // but Locate's fit turns the map back to north, so CP7 as written does not hold.
+  compass: ['CP7'],
+  // The test trim (Nov 5, the owner's call): memory pins never grouped by screen distance.
+  'memories-on-revisit': ['MR2'],
+  // The test trim (Nov 5, the owner's call): the detector reads 3 evenly spaced steps in 3 s, peaks 0.3-1.3 s apart,
+  // with a dip between (steps.ts, motion audit), not MO3's 2 steps 0.3-1 s apart. MO4 holds the behaviour.
+  motion: ['MO3'],
+  // The test trim (Nov 5, the owner's call): the replay rhythm (decision 0085, RR1) replaced the ride's 4 s squeeze; a
+  // ride is a stretch like any other, and still draws dashed (R5).
+  rides: ['R10'],
   // DN2's amendment (Nov 4): a swipe back lands back where it came from by itself, so there is no trail.
   'discrete-navigation': ['DN5'],
 };

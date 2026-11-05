@@ -40,7 +40,7 @@ function nativeMigrations(): string[] {
 const photo = (o: Partial<Capture> = {}): Capture =>
   ({ id: 'p1', walk_id: 'w1', t: 1000, lat: 41.82, lon: -71.4, kind: 'photo', file_path: 'walks/w1/p1.jpg', body: null, segment_id: null, ...o }) as Capture;
 
-test('TH5: SQLite migration 12 adds the small copy as one nullable column on capture', () => {
+test('TH5: SQLite migration 12, read from its source (SQLite never runs in Node), adds the small copy as one nullable column on capture', () => {
   const m = nativeMigrations();
   assert.ok(m.length >= 12, `${m.length} migrations`);
   const twelve = m[11].trim();

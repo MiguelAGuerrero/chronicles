@@ -100,6 +100,8 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 ## Deletion (`db.deleteWalk`, `db.deleteCaptures`, `removeMedia`)
 
 - [ ] The SQLite deletes (Clearing walks and moments)
+- [ ] Deleting a capture deletes every find of it, whatever walk the find is filed under (`deleteCaptures`; the web store keeps a find filed under another walk, a contract case says so)
+- [ ] `getSegmentsIn` finds a street piece far longer than 200 m that only grazes the bounds, by comparing each piece's box (the web store files a piece by its centre's tile and misses it)
 - [ ] File and folder removal, and `Directory.size` (Clearing walks and moments)
 - [ ] The Undo pill over the viewer's Modal, `UndoToast` (Clearing walks and moments)
 - [ ] The background commit of a waiting delete, `deletion/index.ts` (Clearing walks and moments)

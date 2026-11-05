@@ -39,16 +39,3 @@ test('WK15: a new route over the same stretch is not said again; no route says n
   w.at(100);
   assert.equal(w.store.get().show, null);
 });
-
-test('WK16: ending the route clears the line and forgets what was said', () => {
-  const p = fakePorts();
-  const w = createAheadWatch(p);
-  w.stretches('a', [s]);
-  w.at(150);
-  assert.ok(w.store.get().show);
-  w.stretches(null, []);
-  assert.equal(w.store.get().show, null);
-  w.stretches('c', [s]);
-  w.at(150);
-  assert.ok(w.store.get().show, 'a fresh walk to somewhere says it again');
-});

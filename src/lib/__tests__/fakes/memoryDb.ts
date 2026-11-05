@@ -7,7 +7,7 @@ import { intersects, segmentBbox, segmentTile, tileKeysFor } from '../../db/segm
 import { DERIVED_STORES } from '../../db/stores';
 import type { Db } from '../../db/types';
 import { countsOf, recountNewStreets } from '../../deletion/core';
-import type { Mark, Offered, Place, Recall } from '../../discovery/types';
+import type { Mark, Place, Recall } from '../../discovery/types';
 import { exploredKey, type ChecklistArea, type ChecklistItem, type ExploreRead, type Find } from '../../explore/explore';
 import type { LandingRow } from '../../landing/view';
 import { parseEdit } from '../../mediaEdit';
@@ -18,7 +18,7 @@ export const DB_READS = [
   'getWalk', 'listWalks', 'getOpenWalk', 'getPoints', 'getCaptures', 'capturesBetween', 'getCapturesByIds', 'capturesIn',
   'getPauses', 'getStills', 'getGapDecisions',
   'listAreas', 'listWalkAreas', 'getSegmentsIn', 'getVisited', 'visitedSegmentIds', 'streetKeysBefore', 'listSummaries',
-  'placesIn', 'listOffered', 'listMarks', 'listRecalls', 'listLandings', 'listAtlasAreas', 'getOutlineTiles', 'getWalkTiles',
+  'placesIn', 'listMarks', 'listRecalls', 'listLandings', 'listAtlasAreas', 'getOutlineTiles', 'getWalkTiles',
   'listChecklistAreas', 'checklistItemsIn', 'listExploreReads', 'listFinds', 'getMeta',
 ] as const;
 
@@ -114,7 +114,7 @@ function band(lo: number, hi: number): (v: Key) => boolean {
  * key order. A write that would fail part-way (a duplicate id) fails before
  * changing anything, like a transaction.
  */
-export function memoryDb(): Db {
+export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
   const copy = <T>(v: T): T => structuredClone(v);
   // As the real stores: a capture's edit is read through parseEdit (media-editing audit 7).
   const withEdit = (c: Capture): Capture => (c.edit === undefined ? c : { ...c, edit: parseEdit(c.edit) });
@@ -132,7 +132,6 @@ export function memoryDb(): Db {
   const areas = new Table<Area>((a) => a.key);
   const walkAreas = new Table<WalkArea>((r) => [r.walk_id, r.area_key]);
   const places = new Table<Place>((p) => p.key);
-  const offered = new Table<Offered>((o) => o.key);
   const marks = new Table<Mark>((m) => m.id);
   const recalls = new Table<Recall>((r) => r.capture_id);
   const landings = new Table<LandingRow>((r) => r.key);
@@ -153,10 +152,8 @@ export function memoryDb(): Db {
     if (cur) t.put({ ...cur, ...p });
   };
   const stripTile = ({ tile: _t, ...s }: StreetSegment & { tile: string }): StreetSegment => copy(s);
-  /** First offer wins: re-offering never moves the record. */
-  const offerOnce = (rows: Offered[]) => {
-    for (const o of rows) if (!offered.has(o.key)) offered.put(o);
-  };
+  // Rows an older app wrote (the retired scan's marks), for the contract to read back.
+  for (const m of legacy.marks ?? []) marks.put(copy(m));
 
   const db: Db = {
     async createWalk(w) {
@@ -344,33 +341,10 @@ export function memoryDb(): Db {
     async placesIn([w, s, e, n]) {
       return out(places.index((p) => p.at[1], band(s, n)).filter((p) => p.at[0] >= w && p.at[0] <= e));
     },
-    async addOffered(rows) {
-      offerOnce(rows);
-    },
-    async listOffered() {
-      return out(offered.all());
-    },
-    async saveScan({ replace, marks: fresh, offered: rows }) {
-      // All or nothing: a duplicate mark id fails the whole scan.
-      const ids = new Set<string>();
-      for (const m of fresh) {
-        if (marks.has(m.id) || ids.has(m.id)) throw constraint(`mark ${m.id}`);
-        ids.add(m.id);
-      }
-      for (const id of replace) {
-        const m = marks.get(id);
-        if (m && m.state === 'open') marks.put({ ...m, state: 'replaced' });
-      }
-      for (const m of fresh) marks.put(m);
-      offerOnce(rows);
-    },
     async listMarks(walkId) {
       // The web store reads the home's by a scan of the store (an index skips null), a walk's by index.
       const rows = walkId == null ? marks.all().filter((m) => m.walk_id == null) : marks.where(walkOf, walkId);
       return out(rows).sort((a, b) => a.created_at - b.created_at);
-    },
-    async updateMark(id, p) {
-      patch(marks, id, p);
     },
     async setRecall(r) {
       recalls.put(r);

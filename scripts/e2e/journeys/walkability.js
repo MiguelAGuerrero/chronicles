@@ -1,5 +1,5 @@
 // Walkability (WK1-WK4, WK13, WK14, WK17, WK20-WK22): the switch on the Explore and Navigate maps, what it draws from
-// Overture's tile, the fallback to Overpass, the band icons and their tooltips. E2E_ONLY=walk runs it alone.
+// Overture's tile, the fallback to Overpass, the band icons and their tooltips. E2E_ONLY=walkability runs it alone.
 
 async function run(h) {
   const { url, navUrl, BASE, at, check, shot, freshPage, overtureAsked, overpassAsked, walkability, hosts, OVERPASS_HOST } = h;

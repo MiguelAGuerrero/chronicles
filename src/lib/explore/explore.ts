@@ -1,7 +1,7 @@
 // @layer core
 import { hoodAllowed, townAt, withOutlines, type OutlineSet } from '../areas/outlines';
 import type { AreaLevel, PlaceCandidate } from '../areas/types';
-import { CATEGORIES, categoryOf } from '../discovery/categories';
+import { categoryOf } from '../discovery/categories';
 import { isMarkable } from '../discovery/noise';
 import { isOffered } from '../discovery/places';
 import type { CategoryId, Kind, Place } from '../discovery/types';
@@ -443,18 +443,6 @@ type Found = { name: string; category: CategoryId; generic: boolean; kind?: Kind
  */
 export const foundLine = (f: Found): string =>
   f.generic ? `Found: ${f.name}` : `Found: ${f.name} · ${f.kind ? kindOf(f.kind).label : categoryOf(f.category).label}`;
-
-/** The card's finds, by category, most first (E11): "Found 2 art · 1 culture". Null with none. */
-export function findsLine(found: { category: CategoryId }[]): string | null {
-  if (!found.length) return null;
-  const order = CATEGORIES.map((c) => c.id);
-  const by = new Map<CategoryId, number>();
-  for (const x of found) by.set(x.category, (by.get(x.category) ?? 0) + 1);
-  return `Found ${[...by]
-    .sort((a, b) => b[1] - a[1] || order.indexOf(a[0]) - order.indexOf(b[0]))
-    .map(([c, n]) => `${n} ${categoryOf(c).noun}`)
-    .join(' · ')}`;
-}
 
 /** The card's finds by name (E11): "Found RISD Museum · Old North Church", three at most, then how many more. */
 export function foundList(names: string[]): string | null {

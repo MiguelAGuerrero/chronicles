@@ -45,7 +45,12 @@ async function run(h) {
   }
   check(overlaps.length === 0, `WH9: the line covers no capture button, edge button or the strip (${overlaps.join(',') || 'none'})`);
   // WH13: it did not change the route: the bar still says the same way, and has no new button.
-  check((await pg.locator('[data-testid=nav-bar]').innerText()) === navText || /m/.test(await pg.locator('[data-testid=nav-bar]').innerText()), 'WH13: the navigation bar goes on as before');
+  {
+    // The distances tick as the walker moves; the words (the way, the street) are what must hold.
+    const words = (t) => t.replace(/\d+([.,]\d+)?/g, '#');
+    const bar = await pg.locator('[data-testid=nav-bar]').innerText();
+    check(words(bar) === words(navText), `WH13: the navigation bar goes on as before (${JSON.stringify(navText)} → ${JSON.stringify(bar)})`);
+  }
   await shot(pg, 'headsup');
   // WH11, WH1b: only the route's tiles, by byte range; the layer's switch was never touched and draws nothing.
   check(!(await pg.locator('[data-walk]').first().getAttribute('data-walk').catch(() => '')), 'WH10: it does not need the layer on (the map draws no walkability)');

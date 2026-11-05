@@ -40,8 +40,8 @@ async function run(h) {
     await pg.waitForTimeout(2500);
     check(/^0:00 · 0(\.0+)? ?(m|km|mi|ft)$/.test(s0) && (await stats(pg)) === s0 && (await pg.locator('[data-testid=stop]').count()) === 0,
       `ready NR1, NR5: at rest the bar reads 0:00 and no distance, and nothing ticks (${s0})`);
-    check((await pg.locator('canvas.maplibregl-canvas').count()) === 1 && (await boxOf(pg, 'locate')) !== null && (await pg.locator('[data-testid=start-dialog]').count()) === 0,
-      'ready NR1, NR12: one map, Locate, and no Start dialog any more');
+    check((await pg.locator('canvas.maplibregl-canvas').count()) === 1 && (await boxOf(pg, 'locate')) !== null,
+      'ready NR1, NR12: one map, and Locate');
 
     // NR9: camera, mic and note stacked at the right edge, Locate above them.
     const cam = await boxOf(pg, 'moment-photo');
@@ -305,7 +305,7 @@ async function run(h) {
       await pg2.locator('[data-testid=locate]').filter({ visible: true }).first().click();
       await pg2.waitForTimeout(1500);
       const denied = (await pg2.locator('[data-testid=lift-in]').allInnerTexts()).join(' | ');
-      check(/Location permission was denied|location/i.test(denied) && (await pg2.locator('[data-testid=ready-bar]').count()) === 1,
+      check(/Location permission was denied/.test(denied) && (await pg2.locator('[data-testid=ready-bar]').count()) === 1,
         `ready NR13: a denied location says so on the ready screen (${denied})`);
       // M2 on the ready screen: a moment with no fix is kept and says so.
       await pg2.click('[data-testid=moment-note]');
@@ -438,7 +438,6 @@ async function run(h) {
     // The options are the walk strip's drawer (no button): pulled up, it is the settings, not a card among the stack.
     await pg.click('[data-testid=walk-summary]');
     await pg.waitForSelector('[data-testid=options-card]');
-    check((await pg.locator('[data-testid=walk-options]').count()) === 0, 'the walk has no options button: its settings are in the strip\u2019s drawer');
     {
       // fix walk-drawer-settings audit 1: the range set on the ready bar shows in the walk's drawer, no reload between.
       await pg.click('[data-testid=explore-walk]');

@@ -245,7 +245,7 @@ async function checks(h) {
       await page.click('[data-testid=look-here]');
       const said = await page.waitForSelector('text=/A best guess from the map|Couldn’t read the map here/', { timeout: 30000 }).then((e) => e.innerText(), () => 'nothing');
       await shot(page, '11c-landing');
-      check(/Busiest area: Thayer Street/.test(said) && (await page.locator('[data-testid=start-here]').count()) === 0, `what’s good here finds the strip, named, with no Start here pin (${said})`);
+      check(/Busiest area: Thayer Street/.test(said), `what’s good here finds the strip, named (${said})`);
       const first = await rows();
       check(first.some((r) => r.analysis.strips.some((x) => x.name === 'Thayer Street')), 'the area is remembered, Thayer Street among its strips');
       {

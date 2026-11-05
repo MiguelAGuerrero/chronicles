@@ -181,7 +181,7 @@ test('motion 3: told walking, the dot moves within 2 s of starting', () => {
   assert.ok(distanceM(start, twoS.shown!.at) > 1, 'moved within 2 s');
 });
 
-test('motion 4: told walking, a fix faster than 4 m/s from the dot is a jump', () => {
+test('motion 4 (MO7): told walking, a fix faster than 4 m/s from the dot is a jump', () => {
   const dot = new LiveDot();
   dot.setMotion('walking');
   run(dot, feed(east, 30, { sigma: 0.5 }));

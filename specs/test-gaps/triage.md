@@ -40,4 +40,4 @@ Each test below was made to fail against a deliberate break in the code it cover
 
 ## Suggested next step
 
-Confirm the four "retire?" rows (H2, H3, E14, L17), the "build?" rows (NH8, MR2, and CP7's Locate) and the two "reword?" rows (H10, N6).
+Done in the test trim (Nov 5): all nine retired at the owner's call (`trim.md`). RR17 waits for a device.

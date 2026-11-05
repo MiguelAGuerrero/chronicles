@@ -10,7 +10,8 @@ import { timedRuns } from '../../replay';
 import { walkStory } from '../../ceremony/story';
 import { rhythmFrame, rhythmPlan, type RhythmPlan } from '../../ceremony/rhythm';
 import { passedAlong, pocketAlert, type ChecklistItem } from '../../explore/explore';
-import { keptFixes, readTrace, rideRuns, ridingAt, RIDE_RULES, smoothKept, timedRideRuns, traceDistances } from '../../rides';
+import { REPLAY_RHYTHM } from '../../motionTokens';
+import { keptFixes, readTrace, rideRuns, ridingAt, smoothKept, timedRideRuns, traceDistances } from '../../rides';
 import { snap } from '../../snapper';
 import type { Capture, LngLat, StreetSegment, TracePoint } from '../../types';
 
@@ -333,24 +334,27 @@ test('rides: a capture on a ride is placed on the ride line (R9)', () => {
   assert.ok(Math.abs(distanceM(O, p) - (60 * WALK + 60 * BUS)) < 15);
 });
 
+// The rhythm's longest stretch (RR1): a ride is a stretch like any other since decision 0085, so this is its cap too.
+const STRETCH_MAX_MS = REPLAY_RHYTHM.glide + REPLAY_RHYTHM.zip;
+
 const capture = (t: number): Capture => ({ id: `c${t}`, walk_id: 'w', t, lat: null, lon: null, kind: 'text', file_path: null, body: 'x', segment_id: null });
 
-test('rides: the replay gives a long ride at most 4 s of the path, and stops at a capture on it (R10, RR1)', () => {
+test('rides: the replay gives a long ride no more than a glide and a zip, and stops at a capture on it (RR1)', () => {
   const pts = trip([{ v: WALK, s: 300 }, { v: BUS, s: 1200 }, { v: WALK, s: 300 }], { reported: true });
   const tr = readTrace(pts, 0);
   const p = rhythmOf(keptFixes(tr), [capture(900_000)], tr);
   const r = tr.rides[0];
-  for (const s of p.segs) if (s.k === 'leg' && s.move && s.move.t1 > r.t0 && s.move.t0 < r.t1) assert.ok(s.t1 - s.t0 <= RIDE_RULES.replayMs, `a stretch on the ride takes ${s.t1 - s.t0} ms`);
+  for (const s of p.segs) if (s.k === 'leg' && s.move && s.move.t1 > r.t0 && s.move.t0 < r.t1) assert.ok(s.t1 - s.t0 <= STRETCH_MAX_MS, `a stretch on the ride takes ${s.t1 - s.t0} ms`);
   const stop = p.segs.find((s) => s.k === 'stop')!;
   assert.ok(stop.k === 'stop' && stop.moment.arrive <= 900_000 && stop.moment.leave >= 900_000, 'the stop is the capture on the ride');
 });
 
-test('rides: a ride is a stretch like any other, never longer than a glide and a zip (R10, RR1)', () => {
+test('rides: a ride is a stretch like any other, never longer than a glide and a zip (RR1)', () => {
   const pts = trip([{ v: WALK, s: 600 }, { v: BUS, s: 40 }, { v: WALK, s: 600 }], { reported: true });
   const tr = readTrace(pts, 0);
   const p = rhythmOf(keptFixes(tr), [], tr);
   const r = tr.rides[0];
-  assert.ok(legMsOver(p, r.t0, r.t1) <= RIDE_RULES.replayMs);
+  assert.ok(legMsOver(p, r.t0, r.t1) <= STRETCH_MAX_MS, `the ride takes ${legMsOver(p, r.t0, r.t1)} ms`);
 });
 
 test('rides: a GPS jump just before boarding stays out of the ride (R2, the e2e card, Nov 1)', () => {
@@ -385,7 +389,7 @@ test('rides audit 2: a phone reporting speed 0 for "no reading" (Android) still 
   assert.equal(readTrace(pts, 0).rides.length, 1);
 });
 
-test('rides audit 3: a long stop inside a ride keeps the replay clock moving forward, the ride within 4 s', () => {
+test('rides audit 3: a long stop inside a ride keeps the replay clock moving forward, the ride within a glide and a zip', () => {
   for (const legs of [
     [{ v: WALK, s: 900 }, { v: BUS, s: 300 }, { v: 0, s: 150 }, { v: BUS, s: 300 }, { v: WALK, s: 900 }],
     [{ v: WALK, s: 60 }, { v: BUS, s: 300 }, { v: 0, s: 150 }, { v: BUS, s: 300 }, { v: WALK, s: 60 }],
@@ -401,7 +405,7 @@ test('rides audit 3: a long stop inside a ride keeps the replay clock moving for
       prev = c;
     }
     const r = tr.rides[0];
-    assert.ok(legMsOver(p, r.t0, r.t1) <= RIDE_RULES.replayMs, 'the ride within 4 s');
+    assert.ok(legMsOver(p, r.t0, r.t1) <= STRETCH_MAX_MS, `the ride takes ${legMsOver(p, r.t0, r.t1)} ms`);
   }
 });
 
@@ -441,7 +445,7 @@ test('rides audit 10: many rides together never stretch the replay: the walk is 
   const tr = readTrace(trip(legs, { reported: true }), 0);
   assert.equal(tr.rides.length, 10);
   const p = rhythmOf(keptFixes(tr));
-  assert.ok(legMsOver(p, 0, Infinity) <= RIDE_RULES.replayMs, `the stretches take ${legMsOver(p, 0, Infinity)} ms`);
+  assert.ok(legMsOver(p, 0, Infinity) <= STRETCH_MAX_MS, `the stretches take ${legMsOver(p, 0, Infinity)} ms`);
 });
 
 test('rides audit 7: a walk is titled by where you walked, not where you rode through', () => {
