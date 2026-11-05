@@ -57,7 +57,7 @@ test('MC1, MC2, MC3: the context line has the street, the town, and the walked m
 test('MC5: a moment made soon after the capture before it says so by its kind', async () => {
   const { r } = await seeded();
   await r.contextFor(['m2', 'm3']);
-  assert.match(ctxOf(r, 'm2').line, /Twelve minutes in, just after a note$/, 'm1 is the capture just before m2, seven walked minutes earlier');
+  assert.match(ctxOf(r, 'm2').line, /Twelve minutes in, after a note$/, 'm1 is the capture just before m2, seven walked minutes earlier');
   assert.doesNotMatch(ctxOf(r, 'm3').line, /just after/, 'm2 was twenty-eight walked minutes before');
 });
 
@@ -98,7 +98,7 @@ test('MC8: Hidden lists hidden moments, fewer-like-this moments, removed threads
   const items = hiddenItems(r.store.get().prefs, r.store.get().moments);
   assert.deepEqual(items.moments.map((m: Any) => [m.id, m.mode]).sort(), [['m1', 'hidden'], ['m2', 'fewer'], ['m3', 'fewer']]);
   assert.deepEqual(items.threads, ['harbor']);
-  assert.deepEqual(items.words, ['harbor']);
+  assert.deepEqual(items.words.map((w: Any) => w.term), ['harbor']);
   await r.restoreMoment('m1');
   await r.restoreMoment('m2');
   await r.restoreThread('harbor');
@@ -156,11 +156,11 @@ test('MC11: Show less like this names at most one word, and every word it set is
 test('MC5: after a delete, a neighbour is read again, so a deleted capture is never "just before"', async () => {
   const { p, r } = await seeded();
   await r.contextFor(['m2']);
-  assert.match(ctxOf(r, 'm2').line, /just after a note$/);
+  assert.match(ctxOf(r, 'm2').line, /after a note$/);
   await p.db.deleteCaptures(['m1']);
   await r.refresh();
   assert.equal(ctxOf(r, 'm2'), undefined, 'its cached line named the capture that is gone');
   await r.contextFor(['m2']);
-  assert.doesNotMatch(ctxOf(r, 'm2').line, /just after/);
+  assert.doesNotMatch(ctxOf(r, 'm2').line, /after a/);
   assert.equal(ctxOf(r, 'm4'), undefined, 'a walk-mate not asked about stays unread');
 });

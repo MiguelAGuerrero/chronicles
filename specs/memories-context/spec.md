@@ -27,27 +27,27 @@ Open: none for this slice. Deferred, still open for the owner: owner-made thread
 
 ### Arriving whole
 
-1. **MC1** Every moment on Memories, the top card included, shows a place line that says only what is known: its street and its town ("Hope Street, Fox Point"); the street alone for a moment outside a walk; the town alone when no street is known; "No place kept" when neither is. A town is the walk's (`Walk.area`). Where the walk's town is known, the line is never "No place kept". The line is never blank.
+1. **MC1** Every moment on Memories, the top card included, shows a place line that says only what is known: its street and its town ("Hope Street, Fox Point"), the street worded "Near Hope Street" when it was found only by nearness and not the one the moment snapped to; the street alone for a moment outside a walk; the town alone when no street is known; "No place kept" when neither is. A town is the walk's (`Walk.area`). Where the walk's town is known, the line is never "No place kept". The line is never blank.
 2. **MC2** A street is shown only if its geometry lies within 40 m of the moment's own fix. It is the street the moment snapped to when its walk ended, if that street is in the cache and within 40 m; else the nearest cached street within 40 m; else none. A street with no name counts as none. Nothing is fetched; a moment with no fix has no street.
 3. **MC3** A moment of a walk says how far into the walk it was, in words, pauses not counted: "At the start", "Ten minutes in", "One hour and five minutes in". A moment outside a walk says "On its own".
-4. **MC4** A moment says its time of day in words with its day: "Tuesday evening", "Last Sunday morning". The part of the day is by the phone's clock zone as it is now (a moment made in another zone reads by the zone you are in), with the boundaries `walkTitle` already uses: night before 5, morning before 12, afternoon before 17, evening before 21, night after.
-5. **MC5** A moment made within ten walked minutes after the capture immediately before it in the same walk says so by that capture's kind: "just after a photo", "just after a note", "just after a voice memo". Only the immediately previous capture counts; a deleted one never does. It never quotes that capture's words. Otherwise the clause is absent.
+4. **MC4** A moment says its time of day in words with its day: "Tuesday evening", "Last Sunday morning". The small hours belong to the evening before: "Late Tuesday night", "Late last night", never "Tonight" for 2 am. The part of the day is by the phone's clock zone as it is now (a moment made in another zone reads by the zone you are in), with the boundaries `walkTitle` already uses: night before 5, morning before 12, afternoon before 17, evening before 21, night after.
+5. **MC5** A moment made within ten walked minutes after the capture immediately before it in the same walk says so by that capture's kind: "just after a photo" within two walked minutes, "after a photo" within ten; the same for a note, a voice memo and a video. Only the immediately previous capture counts; a deleted one never does. It never quotes that capture's words. Otherwise the clause is absent.
 6. **MC6** Context is read only for the moments rendered (the top card, the cards rendered in Lately, an open thread's moments), once per moment per open. Opening Memories reads nothing for a moment not rendered, and scrolling, re-rendering or Another asks for nothing already read.
 7. **MC7** The walk-time clause and every sentence this slice writes hold no digit: durations are words (`numberWord`). Street names are the map's words and may hold digits ("5th Avenue"); dates and a memo's length keep their digits, as in RM22.
 8. **MC17** While a moment's context is still being read, its card shows no place claim at all, neither a street nor "No place kept". A read that fails is not "no street": the card shows no place claim and the next render asks again.
 
 ### In your hands
 
-9. **MC8** A menu on the Memories header opens **Hidden**: every moment hidden by Not this one or set to fewer like this, every thread removed, and every word brought up less, each with **Bring back**. A moment's row shows its kind and its context line, with no picture and no words, until tapped open; a thread shows its name; a word shows as the stored word, labelled "word". Bringing one back makes it eligible again at once and removes it from the list. Hiding is not privacy and no copy says so.
+9. **MC8** A menu on the Memories header opens **Hidden**: every moment hidden by Not this one or set to fewer like this, every thread removed, and every word brought up less, each with **Bring back**. A moment's row shows its kind and its day, with no picture, no words and no place, until tapped open; a thread shows its name; a word shows as the owner wrote it ("cookies", not the stem), labelled "word". Bringing one back makes it eligible again at once and removes it from the list. Hiding is not privacy and no copy says so.
 10. **MC9** The same menu has **Bring moments back**, a switch, on by default. Off: Memories shows no top card and no Another, and in the top card's place one quiet line, "Bringing moments back is off", with the switch on it. The rail and Lately stay. It touches the top card and Another only: revisit memories (0037) and Remind me here are untouched. With it off and nothing kept, the empty state shows as before. The choice is kept and survives a reload.
-11. **MC10** The same menu has **Forget my choices**: after one confirmation inside the same sheet, it clears everything Hidden lists and every thread rename. The switch keeps its state. The confirmation says that hidden moments, removed threads and softened words will be offered again. Moments, walks and threads' contents are not touched.
-12. **MC11** Show less like this says which word it will bring up less: the toast names at most one, "Fewer like this: harbor", or reads "Fewer like this" for a moment with none. Every word it set appears in Hidden (MC8).
+11. **MC10** The same menu has **Forget my choices**: after one confirmation inside the same sheet, it clears everything Hidden lists and every thread rename. The switch keeps its state. The confirmation says that hidden moments, removed threads and softened words will be offered again and that thread names go back to your own words. A toast "Choices forgotten." follows, with Undo, which restores every list and rename. Moments, walks and threads' contents are not touched.
+12. **MC11** Show less like this says which word it will bring up less: the toast names at most one, as the owner wrote it, "Fewer like this: harbor", or reads "Fewer like this" for a moment with none. Every word it set appears in Hidden (MC8).
 13. **MC12** The switch and the restores are kept in the same meta key as the other choices (`resurface_prefs`) and read back after a reload. A stored value from before this slice reads as the switch on and nothing restored; a stored `off` that is not a boolean reads as on.
 
 ### Saying only what is true
 
-14. **MC13** Lately is strictly newest first, by the time each moment was kept, ties broken by id, with no thread priority, and its sub-line "Newest first" is true. A thread's page lists its moments newest first, as before.
-15. **MC14** Memories' copy states a fact and gives no instruction or chat. Every sentence is in `lib/resurface/copy.ts` and asserted verbatim: "Hidden. It stays in Lately and in its walk." (Not this one); "Fewer like this: harbor" (MC11); "That is not a thread." (Not a thread); "Nothing kept yet." with the Navigate button (the empty state); "Bring back" (Hidden); a failed save adds "Couldn't keep this choice; it may come back." to the toast.
+14. **MC13** Lately is strictly newest first, by the time each moment was kept, ties broken by id, with no thread priority, and its sub-line names what it holds, "Moments you kept, newest first", which is true (the lows are not among them yet). A thread's page lists its moments newest first, as before.
+15. **MC14** Memories' copy states a fact and gives no instruction or chat. Every sentence is in `lib/resurface/copy.ts` and asserted verbatim: "Hidden. It stays in Lately and in its walk." (Not this one); "Fewer like this: harbor" (MC11); "That is not a thread." (Not a thread); "Nothing kept yet." with the Navigate button (the empty state); "Choices forgotten." (Forget); "Bring back" (Hidden); the menu's hints "What you set aside", "On" / "Off" and "Clears Hidden and thread names"; "Nothing is hidden."; a failed save adds "Couldn't keep this choice; it may come back." to the toast.
 16. **MC15** Words the owner wrote are shown in italics and nothing else is: the placeholders the app writes ("A voice memo", "A moment you kept") are upright.
 17. **MC16** "No place kept" and "On its own" name the app's lack, not the moment's: they read as facts about what is stored, never as a failure of the capture.
 
@@ -87,3 +87,34 @@ Built on `claude/memories-context`; not audited (decision 0074). Unit tests (`sr
 - **The deleted-capture rule (MC5)** holds through a refresh: a walk that lost a capture drops its cached lines, so a neighbour never names a capture that is gone. During the Undo window, before storage commits, a pending delete is not yet excluded.
 - **Test-first history:** MC1, MC3 and MC14 read as "no order" in `check:test-first`: the first tests-first commit had those ids on lines that matched the checker's pattern for a real test. The branch was not rewritten.
 - **Native:** nothing new native; unverified on a device (`docs/NATIVE_UNVERIFIED.md`).
+
+## Audit (Nov 5)
+
+24 findings: 23 fixed (one in part), 0 deferred whole (one part and one native item deferred), 1 rejected. The auditor found 15 and the steward 7 beside them; three overlap. Regression tests: `src/lib/__tests__/resurface/memoriesContextAudit.test.ts` (`memories-context audit 1` to `20`) and the `resurface` journey's `audit 3, 5, 7, 15, 17, 18` checks. Prior art (Apple Photos and Google Photos Memories controls, Apple Journal's on-device suggestions, undo against confirmation, 44 pt and 48 dp targets) informed the calls below.
+
+1. A failed `getPauses` read was kept for the whole open: accept (`audit 1`).
+2. A mounted card never asked again after a failed read: accept, `state.version` counts reads and a refresh drops failed ones (`audit 2`).
+3. A pending card named the town through "From ...": accept, the foot line names the walk without its town (`audit 3`).
+4. The street window narrowed away from the equator: accept, longitude is divided by cos(latitude) (`audit 4`).
+5. Forget did not name thread renames and had no Undo: accept, `revertChange` puts back what a change removed, and a toast follows (`audit 5`, journey).
+6. A choice made during a refresh was overwritten: accept (`audit 6`).
+7. Show less like this showed a stem the owner never wrote ("cooky"): accept, the owner's call: the written form is kept beside the term (`audit 7`, journey).
+8. A context read per mounting card ran at once: accept, reads queue one at a time (`audit 8`).
+9. A pending delete could be named "just before": accept, the views pass the deleted ids, a delete drops its walk's lines, a read overtaken by a refresh writes nothing (`audit 9`).
+10. "Tonight" for 2 am and "Last week, morning": accept (`audit 10`).
+11. Hidden could show an empty Moments group: accept, it lists only what is still shown; covered by the typecheck and the journey's flow.
+12. Hidden reopened after a failed refresh: accept, Try again closes it; covered by the flow.
+13. Menu hints were inline and could be untrue: accept, they are in `copy.ts` and state a fact ("On", "Off"); steward 21 is the same (`audit 5, 13, 24`).
+14. A changed walk area left a stale line: accept (`audit 14`).
+15. A stale test name and vacuous e2e checks: accept, the name is fixed and the journey now checks Forget's effect and the switch across a reload (journey).
+16. Hidden showed stemmed words (the steward's S1): same as 7.
+17. A street found by nearness was stated as fact: accept, the owner's call: "Near Hope Street" unless it is the snapped street (`audit 17`, journey).
+18. The top card was a wall of text that named the walk twice: accept, the "From" is gone from the top card and the context is two lines at most (journey).
+19. The night hours and the zone: accept in part, the small hours read as the evening before (`audit 10`); the capture's own time zone is not stored, so it stays the phone's zone now (deferred: needs a stored zone).
+20. "just after" implied more than was measured: accept, "just after" within two walked minutes, "after" within ten (`audit 20`).
+21. Menu hints sold or explained (S6): same as 13.
+22. Forget had no confirmation or Undo (S7): same as 5.
+23. The off line keeps a "Turn on" button, a standing nag: reject, the owner approved the line carrying the switch (MC9), it is inert text on the screen and sends nothing.
+24. Nothing said the lows are missing: accept, the sub-line names what Lately holds (`audit 24`).
+
+Deferred: the capture's own time zone (a stored zone, a migration); Android's hardware Back from Hidden closes the tab instead of Hidden (native, `docs/NATIVE_UNVERIFIED.md`).

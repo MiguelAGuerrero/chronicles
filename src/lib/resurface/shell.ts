@@ -5,7 +5,7 @@ import type { Ports } from '../ports/types';
 import type { Capture, Pause, Walk } from '../types';
 import { DEFAULT_EXTRACTORS, signalsOf } from './extractors';
 import { pausedMs } from '../geo';
-import { arrivalLine, nearestStreet, previousCapture } from './context';
+import { arrivalLine, previousCapture, streetAt } from './context';
 import { EMPTY_PREFS, forgetChoices, hideMoment, lessLike, parsePrefs, removeThread, renameThread, restoreWord, revertChange, setOff, shown, unhideMoment, unremoveThread, type PrefsChange } from './prefs';
 import type { MomentView, Prefs, SignalExtractor } from './types';
 import { toMomentViews, wordsOf } from './views';
@@ -28,13 +28,16 @@ export interface ResurfaceState {
   lastShownAtOpen: string | null;
   /** The arrival line of the moments asked about this open (MC1-MC5, MC6, MC17). Absent: not asked yet. */
   context: Record<string, ContextEntry>;
+  /** Counts every read of the moments, so a card whose read failed asks again (audit 2). */
+  version: number;
 }
 
 /** A moment's context: being read, failed (not "no street"), or its line (MC17). */
 export type ContextEntry = { state: 'pending' } | { state: 'failed' } | { state: 'done'; line: string };
 
-/** How far a street is looked for around a fix: a little over the 40 m reach, as degrees of latitude. */
-const READ_DEG = 0.0005;
+/** The street cache is read this far around a fix: a little over the 40 m reach, in metres. */
+const READ_M = 45;
+const M_PER_DEG = 111_320;
 
 export interface ResurfaceOptions {
   /** Where a memo's words come from, once something transcribes them (RM13). */
@@ -49,7 +52,7 @@ export interface ResurfaceOptions {
  */
 export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceOptions = {}) {
   const extractors = opts.extractors ?? DEFAULT_EXTRACTORS;
-  const store: Store<ResurfaceState> = createStore<ResurfaceState>({ status: 'loading', moments: [], walks: {}, prefs: EMPTY_PREFS, seed: '0', index: 0, lastShownAtOpen: null, context: {} });
+  const store: Store<ResurfaceState> = createStore<ResurfaceState>({ status: 'loading', moments: [], walks: {}, prefs: EMPTY_PREFS, seed: '0', index: 0, lastShownAtOpen: null, context: {}, version: 0 });
 
   /** The saved choices; damage or nothing reads as none (RM21). */
   async function readPrefs(): Promise<Prefs> {
@@ -67,34 +70,49 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
   const pausesByWalk = new Map<string, Promise<Pause[]>>();
   const pausesOf = (walkId: string) => {
     let got = pausesByWalk.get(walkId);
-    if (!got) pausesByWalk.set(walkId, (got = p.db.getPauses(walkId)));
+    if (!got) {
+      got = p.db.getPauses(walkId);
+      pausesByWalk.set(walkId, got);
+      // A read that fails is not kept for the open: the next ask reads again (audit 1).
+      got.catch(() => pausesByWalk.delete(walkId));
+    }
     return got;
   };
 
+  // Context reads run one at a time (audit 8).
+  let readQueue: Promise<void> = Promise.resolve();
+
   // The newest read wins: an older one that finishes late is dropped (audit 3).
   let generation = 0;
+  // Counts the owner's choices: a read that began before one never overwrites it (audit 6).
+  let choices = 0;
 
   /** Sets the choices at once, then keeps them; says whether they were kept (audit 10). */
   function setPrefs(next: Prefs): Promise<PrefsChange> {
     const before = store.get().prefs;
+    choices += 1;
     store.set((s) => ({ ...s, prefs: next }));
     const saved = writes.then(() => p.db.setMeta(PREFS_KEY, JSON.stringify(next)).then(() => true, () => false));
     writes = saved;
     return saved.then((ok) => ({ before, after: next, saved: ok }));
   }
 
-  /** The context a refresh keeps: every moment's line, but not those of a walk that lost a capture (MC5). */
-  function keepContext(prev: ResurfaceState, next: MomentView[]): Record<string, ContextEntry> {
+  /**
+   * The context a refresh keeps: finished lines only (a failed or pending read is asked again), and not those of
+   * a walk that lost a capture (MC5, audit 9) or whose area changed (audit 14).
+   */
+  function keepContext(prev: ResurfaceState, next: MomentView[], walks: Walk[]): Record<string, ContextEntry> {
     const now = new Set(next.map((m) => m.id));
     const lost = new Set(prev.moments.filter((m) => m.walkId && !now.has(m.id)).map((m) => m.walkId as string));
-    if (!lost.size) return prev.context;
+    for (const w of walks) if (prev.walks[w.id] && (prev.walks[w.id].area ?? null) !== (w.area ?? null)) lost.add(w.id);
     const walkOf = new Map(prev.moments.map((m) => [m.id, m.walkId]));
-    return Object.fromEntries(Object.entries(prev.context).filter(([id]) => !lost.has(walkOf.get(id) ?? '')));
+    return Object.fromEntries(Object.entries(prev.context).filter(([id, e]) => e.state === 'done' && !lost.has(walkOf.get(id) ?? '')));
   }
 
   /** Reads the moments and the choices; `open` also starts a new open (a new seed, the top card first). */
   async function read(open: boolean): Promise<void> {
     const mine = ++generation;
+    const choicesThen = choices;
     try {
       await writes;
       const [prefs, captures, walks] = await Promise.all([readPrefs(), p.db.capturesBetween(0, Number.MAX_SAFE_INTEGER), p.db.listWalks()]);
@@ -103,13 +121,15 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
         status: 'ready',
         moments: toMomentViews(captures, walks, opts.transcript),
         walks: Object.fromEntries(walks.map((w) => [w.id, w])),
-        prefs: { ...EMPTY_PREFS, ...prefs },
+        // A choice made while this read was running is newer than what it read (audit 6).
+        prefs: choices === choicesThen ? { ...EMPTY_PREFS, ...prefs } : s.prefs,
         seed: open ? String(p.clock.now()) : s.seed,
         index: open ? 0 : s.index,
         lastShownAtOpen: open ? prefs.lastShown ?? null : s.lastShownAtOpen,
         // A new open reads its context afresh; a refresh keeps what it has (MC6), except for a walk that lost a
         // capture: its neighbours' lines may name the one that is gone (MC5).
-        context: open ? {} : keepContext(s, toMomentViews(captures, walks, opts.transcript)),
+        context: open ? {} : keepContext(s, toMomentViews(captures, walks, opts.transcript), walks),
+        version: s.version + 1,
       }));
       if (open) pausesByWalk.clear();
     } catch {
@@ -126,7 +146,8 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
     /**
      * The arrival line of each moment asked about, read once per open and only for those (MC6). A moment is
      * `pending` while it is read and `failed` if the read fails, never "no street" (MC17); a failed one is
-     * asked again the next time. `deleted` are captures a delete has hidden: never named as "just before" (MC5).
+     * asked again next time. Reads run one at a time (audit 8), and one that a refresh overtook writes nothing
+     * (audit 9). `deleted` are captures a delete has hidden: never named as "just before" (MC5).
      */
     async contextFor(ids: string[], deleted: ReadonlySet<string> = new Set()): Promise<void> {
       const todo = ids.filter((id) => {
@@ -135,32 +156,52 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
       });
       if (!todo.length) return;
       const put = (entries: Record<string, ContextEntry>) => store.set((s) => ({ ...s, context: { ...s.context, ...entries } }));
+      const drop = (id: string) =>
+        store.set((s) => {
+          const { [id]: _gone, ...rest } = s.context;
+          return { ...s, context: rest };
+        });
       put(Object.fromEntries(todo.map((id) => [id, { state: 'pending' } as ContextEntry])));
-      const { moments, walks } = store.get();
-      await Promise.all(
-        todo.map(async (id) => {
-          const m = moments.find((x) => x.id === id);
-          if (!m) return put({ [id]: { state: 'failed' } });
-          try {
-            const c = m.capture;
-            const walk = c.walk_id ? walks[c.walk_id] : undefined;
-            const fix = c.lat != null && c.lon != null ? ([c.lon, c.lat] as [number, number]) : null;
-            const segments = fix ? await p.db.getSegmentsIn([fix[0] - READ_DEG, fix[1] - READ_DEG, fix[0] + READ_DEG, fix[1] + READ_DEG]) : [];
-            const pauses = walk ? await pausesOf(walk.id) : [];
-            let walkedMs: number | null = null;
-            let prev: { kind: Capture['kind']; walkedGapMs: number } | null = null;
-            if (walk) {
-              walkedMs = Math.max(0, c.t - walk.started_at - pausedMs(pauses, walk.started_at, c.t));
-              const before = previousCapture(moments.filter((x) => x.walkId === walk.id).map((x) => x.capture), id, deleted);
-              if (before) prev = { kind: before.kind, walkedGapMs: Math.max(0, c.t - before.t - pausedMs(pauses, before.t, c.t)) };
-            }
-            const line = arrivalLine({ street: nearestStreet(fix, segments, c.segment_id), town: walk?.area?.trim() || null, t: c.t, now: p.clock.now(), walkedMs, prev });
-            put({ [id]: { state: 'done', line } });
-          } catch {
-            put({ [id]: { state: 'failed' } });
+      const readOne = async (id: string): Promise<void> => {
+        const began = generation;
+        const { moments, walks } = store.get();
+        const m = moments.find((x) => x.id === id);
+        if (!m) return put({ [id]: { state: 'failed' } });
+        try {
+          const c = m.capture;
+          const walk = c.walk_id ? walks[c.walk_id] : undefined;
+          const fix = c.lat != null && c.lon != null ? ([c.lon, c.lat] as [number, number]) : null;
+          const dLon = fix ? READ_M / (M_PER_DEG * Math.max(0.05, Math.cos((fix[1] * Math.PI) / 180))) : 0;
+          const dLat = READ_M / M_PER_DEG;
+          const segments = fix ? await p.db.getSegmentsIn([fix[0] - dLon, fix[1] - dLat, fix[0] + dLon, fix[1] + dLat]) : [];
+          const pauses = walk ? await pausesOf(walk.id) : [];
+          // The moments were read again while this was running: what it knows may name a capture that is gone.
+          if (began !== generation) return drop(id);
+          let walkedMs: number | null = null;
+          let prev: { kind: Capture['kind']; walkedGapMs: number } | null = null;
+          if (walk) {
+            walkedMs = Math.max(0, c.t - walk.started_at - pausedMs(pauses, walk.started_at, c.t));
+            const before = previousCapture(moments.filter((x) => x.walkId === walk.id).map((x) => x.capture), id, deleted);
+            if (before) prev = { kind: before.kind, walkedGapMs: Math.max(0, c.t - before.t - pausedMs(pauses, before.t, c.t)) };
           }
-        }),
-      );
+          const street = streetAt(fix, segments, c.segment_id);
+          const line = arrivalLine({ street: street?.name ?? null, streetNear: street?.near, town: walk?.area?.trim() || null, t: c.t, now: p.clock.now(), walkedMs, prev });
+          put({ [id]: { state: 'done', line } });
+        } catch {
+          put({ [id]: { state: 'failed' } });
+        }
+      };
+      await Promise.all(todo.map((id) => (readQueue = readQueue.then(() => readOne(id)))));
+    },
+    /** A delete began: the lines of the walks it touches are read again, so none names the capture that is going (audit 9). */
+    dropContextOfWalks(walkIds: string[]): void {
+      if (!walkIds.length) return;
+      const gone = new Set(walkIds);
+      store.set((s) => {
+        const walkOf = new Map(s.moments.map((m) => [m.id, m.walkId]));
+        const context = Object.fromEntries(Object.entries(s.context).filter(([id]) => !gone.has(walkOf.get(id) ?? '')));
+        return Object.keys(context).length === Object.keys(s.context).length ? s : { ...s, context, version: s.version + 1 };
+      });
     },
     /** Whether a walk is open: a reminder waiting from a cold start opens on the walk then, else on Memories (NV13). */
     async openWalk(): Promise<boolean> {
@@ -181,8 +222,9 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
     /** Show less like this (RM20): the moment, and the terms it is about. */
     less(id: string): Promise<PrefsChange> {
       const m = store.get().moments.find((x) => x.id === id);
-      const terms = m ? signalsOf(m, extractors).map((s) => s.term) : [];
-      return setPrefs(lessLike(store.get().prefs, id, terms));
+      const signals = m ? signalsOf(m, extractors) : [];
+      const written = Object.fromEntries(signals.map((s) => [s.term, s.shown ?? s.term]));
+      return setPrefs(lessLike(store.get().prefs, id, signals.map((s) => s.term), written));
     },
     /** Bring back (MC8): a hidden or fewer-like-this moment, a removed thread, a softened word. */
     restoreMoment: (id: string) => setPrefs(unhideMoment(store.get().prefs, id)),

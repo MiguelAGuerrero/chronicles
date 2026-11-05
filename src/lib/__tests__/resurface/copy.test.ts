@@ -12,8 +12,8 @@ test('MC14: every sentence the screen writes, verbatim', async () => {
   assert.equal(c.EMPTY, 'Nothing kept yet.');
   assert.equal(c.BRING_BACK, 'Bring back');
   assert.equal(c.OFF_LINE, 'Bringing moments back is off');
-  assert.equal(c.NEWEST_FIRST, 'Newest first');
-  assert.equal(c.FORGET_CONFIRM, 'Hidden moments, removed threads and softened words will be offered again.');
+  assert.equal(c.NEWEST_FIRST, 'Moments you kept, newest first');
+  assert.equal(c.FORGET_CONFIRM, 'Hidden moments, removed threads and softened words will be offered again, and thread names go back to your own words.');
   assert.equal(c.FAILED_SAVE, "Couldn't keep this choice; it may come back.");
   assert.equal(c.withSaveNote('Hidden.', true), 'Hidden.');
   assert.equal(c.withSaveNote('Hidden.', false), "Hidden. Couldn't keep this choice; it may come back.");

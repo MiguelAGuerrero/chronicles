@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { captureEdits } from '../../lib/captureEdits';
 import { dayKey } from '../../lib/days';
-import { EMPTY, HIDDEN_TOAST, NEWEST_FIRST, NOT_A_THREAD, OFF_LINE, fewerLike, fewerWord, withSaveNote } from '../../lib/resurface/copy';
+import { EMPTY, FORGOT_TOAST, HIDDEN_TOAST, NEWEST_FIRST, NOT_A_THREAD, OFF_LINE, fewerLike, fewerWord, withSaveNote } from '../../lib/resurface/copy';
 import { LATELY_PAGE, lately } from '../../lib/resurface/feed';
 import { hiddenItems } from '../../lib/resurface/hidden';
 import { resurface } from '../../lib/resurface';
@@ -26,23 +26,23 @@ import { MomentCard } from './MomentCard';
 import { Resurfaced } from './Resurfaced';
 import { ThreadScreen } from './ThreadScreen';
 import { ThreadsRail } from './ThreadsRail';
-import { fromLine } from '../../lib/resurface/views';
 
 const TOAST_MS = 4200;
 const stepIndex = (s: { index: number }) => s.index;
 const NO_IDS: string[] = [];
 
 /** Reads a card's context as the card mounts, and so only for the cards the list renders (MC6); a moment read already is not read again. */
-function ReadsContext({ id }: { id: string }) {
+function ReadsContext({ id, version, deleted }: { id: string; version: number; deleted: ReadonlySet<string> }) {
+  // `version` counts the reads of the moments: a card whose read failed asks again when the owner comes back (audit 2).
   useEffect(() => {
-    void resurface.contextFor([id]);
-  }, [id]);
+    void resurface.contextFor([id], deleted);
+  }, [id, version, deleted]);
   return null;
 }
 
 /** Chronicle's Memories (RM4-RM21): the resurfaced moment, the threads, and Lately. */
 export function MemoriesScreen() {
-  const { state, feed, now } = useResurface();
+  const { state, feed, now, hidden: deletedIds } = useResurface();
   const index = useStore(resurface.store, stepIndex);
   const [limit, setLimit] = useState(LATELY_PAGE);
   const [threadTerm, setThreadTerm] = useState<string | null>(null);
@@ -97,9 +97,9 @@ export function MemoriesScreen() {
   useEffect(() => {
     if (heroId) {
       void resurface.shown(heroId);
-      void resurface.contextFor([heroId]);
+      void resurface.contextFor([heroId], deletedIds);
     }
-  }, [heroId]);
+  }, [heroId, deletedIds, state.version]);
   useEffect(
     () => () => {
       if (timer.current) clearTimeout(timer.current);
@@ -111,13 +111,15 @@ export function MemoriesScreen() {
   // An open thread's moments are on screen: read their context too (MC6).
   const threadIds = thread ? thread.momentIds : NO_IDS;
   useEffect(() => {
-    if (threadIds.length) void resurface.contextFor(threadIds);
-  }, [threadIds]);
-  const hidden = useMemo(() => hiddenItems(state.prefs, state.moments), [state.prefs, state.moments]);
-  const hiddenIds = useMemo(() => hidden.moments.map((m) => m.id), [hidden]);
+    if (threadIds.length) void resurface.contextFor(threadIds, deletedIds);
+  }, [threadIds, deletedIds, state.version]);
+  const hidden = useMemo(() => hiddenItems(state.prefs, feed.moments), [state.prefs, feed.moments]);
+  // A delete began: the lines of the walks it touches are read again, so none names the capture that is going (audit 9).
   useEffect(() => {
-    if (hiddenOpen && hiddenIds.length) void resurface.contextFor(hiddenIds);
-  }, [hiddenOpen, hiddenIds]);
+    if (!deletedIds.size) return;
+    const walks = new Set(state.moments.filter((m) => deletedIds.has(m.id) && m.walkId).map((m) => m.walkId as string));
+    resurface.dropContextOfWalks([...walks]);
+  }, [deletedIds, state.moments]);
   const page = useMemo(() => lately(feed.moments, now, limit), [feed.moments, now, limit]);
 
   const say = (msg: string, change: PrefsChange) => {
@@ -139,7 +141,7 @@ export function MemoriesScreen() {
     body = (
       <View style={styles.quiet} testID="memories-failed">
         <Text style={styles.quietText}>Couldn’t read your moments.</Text>
-        <Button label="Try again" onPress={() => void resurface.load()} />
+        <Button label="Try again" onPress={() => { setHiddenOpen(false); void resurface.load(); }} />
       </View>
     );
   } else if (state.status === 'ready' && feed.moments.length === 0) {
@@ -177,7 +179,7 @@ export function MemoriesScreen() {
         keyExtractor={(m) => m.id}
         renderItem={({ item }) => (
           <View style={styles.item}>
-            <ReadsContext id={item.id} />
+            <ReadsContext id={item.id} version={state.version} deleted={deletedIds} />
             {card(item)}
           </View>
         )}
@@ -197,7 +199,6 @@ export function MemoriesScreen() {
                 pick={pick}
                 context={state.context[pick.moment.id]}
                 now={now}
-                placeLine={fromLine(walkOf(pick.moment))}
                 onOpen={() => open(pick.moment)}
                 onRelive={() => relive(pick.moment)}
                 onAnother={() => resurface.another()}
@@ -227,7 +228,6 @@ export function MemoriesScreen() {
         <HiddenScreen
           items={hidden}
           moments={byId}
-          context={state.context}
           names={state.prefs.renames}
           now={now}
           onBack={() => setHiddenOpen(false)}
@@ -264,7 +264,7 @@ export function MemoriesScreen() {
         }}
         onForget={() => {
           setMenuOpen(false);
-          void resurface.forget();
+          void resurface.forget().then((change) => say(FORGOT_TOAST, change));
         }}
       />
       <MemoryMenu
@@ -276,7 +276,7 @@ export function MemoriesScreen() {
           if (id) {
             void resurface.less(id).then((change) => {
               const set = change.after.less.filter((t) => !change.before.less.includes(t));
-              say(fewerLike(fewerWord(set)), change);
+              say(fewerLike(fewerWord(set, change.after.shown)), change);
             });
           }
         }}

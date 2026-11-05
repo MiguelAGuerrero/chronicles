@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { FORGET_CONFIRM, OFF_LINE } from '../../lib/resurface/copy';
+import { FORGET_CONFIRM, HINT_FORGET, HINT_HIDDEN, HINT_OFF, HINT_ON } from '../../lib/resurface/copy';
 import { Modal } from '../Modal';
 import { Button, theme } from '../ui';
 
@@ -32,15 +32,15 @@ export function MemoriesMenu(props: { open: boolean; off: boolean; onClose: () =
             <>
               <Pressable testID="menu-hidden" accessibilityRole="button" onPress={() => { setConfirming(false); props.onHidden(); }} style={styles.item}>
                 <Text style={styles.label}>Hidden</Text>
-                <Text style={styles.hint}>What you hid or asked for less of, to bring back</Text>
+                <Text style={styles.hint}>{HINT_HIDDEN}</Text>
               </Pressable>
               <Pressable testID="menu-off" accessibilityRole="switch" accessibilityState={{ checked: !props.off }} onPress={props.onToggle} style={styles.item}>
                 <Text style={styles.label}>Bring moments back</Text>
-                <Text style={styles.hint}>{props.off ? OFF_LINE : 'On: a moment is brought back at the top'}</Text>
+                <Text style={styles.hint}>{props.off ? HINT_OFF : HINT_ON}</Text>
               </Pressable>
               <Pressable testID="menu-forget" accessibilityRole="button" onPress={() => setConfirming(true)} style={styles.item}>
                 <Text style={styles.label}>Forget my choices</Text>
-                <Text style={styles.hint}>Clears Hidden and your thread names; the switch stays</Text>
+                <Text style={styles.hint}>{HINT_FORGET}</Text>
               </Pressable>
               <Pressable testID="menu-close" accessibilityRole="button" onPress={close} style={styles.item}>
                 <Text style={[styles.label, { color: theme.muted }]}>Close</Text>

@@ -59,8 +59,8 @@ test('MC4: time of day in words with its day, by the walkTitle boundaries', asyn
 test('MC5: "just after a photo" names the immediately previous capture, within ten walked minutes, never its words', async () => {
   const { justAfter } = await ctx();
   const min = 60_000;
-  assert.equal(justAfter({ kind: 'photo', walkedGapMs: 4 * min }), 'just after a photo');
-  assert.equal(justAfter({ kind: 'text', walkedGapMs: 10 * min }), 'just after a note');
+  assert.equal(justAfter({ kind: 'photo', walkedGapMs: 4 * min }), 'after a photo', 'beyond two minutes it is "after", not "just after"');
+  assert.equal(justAfter({ kind: 'text', walkedGapMs: 10 * min }), 'after a note');
   assert.equal(justAfter({ kind: 'voice', walkedGapMs: 1 * min }), 'just after a voice memo');
   assert.equal(justAfter({ kind: 'video', walkedGapMs: 2 * min }), 'just after a video');
   assert.equal(justAfter({ kind: 'photo', walkedGapMs: 11 * min }), null, 'not at eleven minutes');
@@ -80,7 +80,7 @@ test('MC1, MC3, MC4, MC5: one arrival line, clauses joined, the walk-time clause
   const t = new Date(2026, 10, 3, 19).getTime();
   assert.equal(
     arrivalLine({ street: 'Hope Street', town: 'Fox Point', t, now: NOW, walkedMs: 10 * 60_000, prev: { kind: 'photo', walkedGapMs: 4 * 60_000 } }),
-    'Hope Street, Fox Point · Tuesday evening · Ten minutes in, just after a photo',
+    'Hope Street, Fox Point · Tuesday evening · Ten minutes in, after a photo',
   );
   assert.equal(
     arrivalLine({ street: null, town: null, t, now: NOW, walkedMs: null, prev: null }),

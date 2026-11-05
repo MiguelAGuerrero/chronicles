@@ -50,7 +50,7 @@ export function MomentCard(props: {
             </View>
           )}
           {m.words ? <Text style={[styles.words, styles.owner, m.kind === 'text' && styles.note]} numberOfLines={10}>{m.words}</Text> : null}
-          <Text style={styles.meta} testID="moment-context">{contextText(props.context, m, now)}</Text>
+          <Text style={styles.meta} numberOfLines={2} testID="moment-context">{contextText(props.context, m, now)}</Text>
         </View>
       </Pressable>
       <View style={styles.foot}>

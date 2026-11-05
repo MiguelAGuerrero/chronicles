@@ -5,7 +5,8 @@ import type { MomentView, Prefs } from './types';
 export interface HiddenItems {
   moments: { id: string; mode: 'hidden' | 'fewer' }[];
   threads: string[];
-  words: string[];
+  /** Each softened word as the owner wrote it (`shown`), with its stored term. */
+  words: { term: string; shown: string }[];
 }
 
 /**
@@ -19,6 +20,6 @@ export function hiddenItems(prefs: Prefs, moments: MomentView[]): HiddenItems {
   return {
     moments: [...hidden.map((id) => ({ id, mode: 'hidden' as const })), ...fewer.map((id) => ({ id, mode: 'fewer' as const }))],
     threads: [...prefs.removed],
-    words: [...prefs.less],
+    words: prefs.less.map((term) => ({ term, shown: prefs.shown[term] ?? term })),
   };
 }

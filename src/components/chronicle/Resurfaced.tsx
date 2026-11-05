@@ -16,7 +16,6 @@ export function Resurfaced(props: {
   pick: Pick;
   now: number;
   context?: ContextEntry;
-  placeLine: string | null;
   onOpen: () => void;
   onRelive: () => void;
   onAnother: () => void;
@@ -37,7 +36,7 @@ export function Resurfaced(props: {
         <View style={styles.body}>
           <Text style={styles.eyebrow} testID="resurfaced-label">{label}</Text>
           {m.words ? <Text style={[styles.quote, styles.owner]} numberOfLines={8}>{m.words}</Text> : <Text style={styles.quote}>{m.kind === 'voice' ? 'A voice memo' : 'A moment you kept'}</Text>}
-          <Text style={styles.meta} testID="resurfaced-context">{contextText(props.context, m, props.now)}{props.placeLine ? ` · ${props.placeLine}` : ''}</Text>
+          <Text style={styles.meta} numberOfLines={2} testID="resurfaced-context">{contextText(props.context, m, props.now)}</Text>
         </View>
       </Pressable>
       <View style={styles.acts}>

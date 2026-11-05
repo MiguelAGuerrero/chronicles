@@ -1,20 +1,18 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { BRING_BACK } from '../../lib/resurface/copy';
+import { dayPartLine } from '../../lib/resurface/context';
+import { BRING_BACK, NOTHING_HIDDEN } from '../../lib/resurface/copy';
 import type { HiddenItems } from '../../lib/resurface/hidden';
-import type { ContextEntry } from '../../lib/resurface/shell';
 import type { MomentView } from '../../lib/resurface/types';
 import { Icon, KIND_LABEL } from '../icons';
 import { theme } from '../ui';
-import { contextText } from './MomentCard';
 
 /**
  * Hidden (MC8): everything the owner hid or asked for less of, to read and bring back. A moment shows as its
- * kind and its context line, with no picture and no words until it is opened; hiding is not privacy.
+ * kind and its day, with no picture, no words and no place until it is opened; hiding is not privacy.
  */
 export function HiddenScreen(props: {
   items: HiddenItems;
   moments: Map<string, MomentView>;
-  context: Record<string, ContextEntry>;
   names: Record<string, string>;
   now: number;
   onBack: () => void;
@@ -44,7 +42,7 @@ export function HiddenScreen(props: {
         </Pressable>
         <Text style={styles.h} accessibilityRole="header">Hidden</Text>
       </View>
-      {empty && <Text style={styles.hint} testID="hidden-empty">Nothing is hidden.</Text>}
+      {empty && <Text style={styles.hint} testID="hidden-empty">{NOTHING_HIDDEN}</Text>}
       {items.moments.length > 0 && (
         <View style={styles.group}>
           <Text style={styles.gh} accessibilityRole="header">Moments</Text>
@@ -52,7 +50,7 @@ export function HiddenScreen(props: {
             const m = props.moments.get(id);
             if (!m) return null;
             const kind = `${KIND_LABEL[m.kind]}${mode === 'fewer' ? ' · fewer like this' : ''}`;
-            return row(id, 'hidden-moment', kind, contextText(props.context[id], m, props.now), () => props.onMoment(id), () => props.onOpen(m));
+            return row(id, 'hidden-moment', kind, dayPartLine(m.t, props.now), () => props.onMoment(id), () => props.onOpen(m));
           })}
         </View>
       )}
@@ -65,7 +63,7 @@ export function HiddenScreen(props: {
       {items.words.length > 0 && (
         <View style={styles.group}>
           <Text style={styles.gh} accessibilityRole="header">Words</Text>
-          {items.words.map((term) => row(term, 'hidden-word', term, 'word, brought up less', () => props.onWord(term)))}
+          {items.words.map(({ term, shown }) => row(term, 'hidden-word', shown, 'word, brought up less', () => props.onWord(term)))}
         </View>
       )}
     </View>

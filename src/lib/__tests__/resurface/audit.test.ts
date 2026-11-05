@@ -125,7 +125,7 @@ test('resurfaced-moments audit 6: a word and its plural are one term, for -ie an
   one('statue', 'statues');
 });
 
-test('resurfaced-moments audit 7: what was kept in the last day heads Lately, then the week rule', () => {
+test('resurfaced-moments audit 7: what was kept in the last day heads Lately (now by plain time: MC13)', () => {
   const thr = [at(2026, 9, 1), at(2026, 9, 8), at(2026, 10, 30)].map((t) => moment(t, 'harbor', { id: `h${t}` }));
   const justNow = moment(NOW - 20 * 60_000, 'bench', { id: 'now' });
   const c = compose([...thr, justNow], EMPTY_PREFS, new Set(), NOW, 's');

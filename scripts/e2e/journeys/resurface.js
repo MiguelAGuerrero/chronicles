@@ -102,6 +102,17 @@ async function contextRun(h) {
   const noDigit = await attempt(async () => !/\d/.test(await textOf('harbor bench')));
   check(noDigit, 'MC7: a card context line holds no digit');
 
+  // Audit 18: the top card's context is short and does not repeat the walk. Audit 17: a street found by nearness is "Near".
+  const heroShort = await attempt(async () => {
+    const t = (await pg.locator('[data-testid=resurfaced-context]').innerText()).trim();
+    return !/From/.test(t) && t.split(' · ').length <= 3;
+  });
+  check(heroShort, 'memories-context audit 18: the top card holds no "From" and at most three segments');
+  const nearOk = await attempt(async () => /Near Hope Street/.test(await textOf('loose near hope')) && !/Near/.test(await textOf('harbor bench')));
+  check(nearOk, 'memories-context audit 17: a street found by nearness reads "Near", the snapped one bare');
+  const footOk = await attempt(async () => !/Fox Point/.test(await cardOf('harbor bench').locator('[data-testid=moment-walk]').innerText()));
+  check(footOk, 'memories-context audit 3: the foot line names the walk without its town');
+
   // MC15: the owner's words are italic; the app's placeholder is upright.
   const italic = (sel) => pg.locator(sel).first().evaluate((e) => getComputedStyle(e).fontStyle);
   const italicOk = await attempt(async () => (await italic('[data-testid=moment-card] >> text=harbor bench')) === 'italic' && (await italic('[data-testid=resurfaced] >> text=A voice memo')) === 'normal');
@@ -141,6 +152,45 @@ async function contextRun(h) {
     return /Hidden\. It stays in Lately and in its walk\./.test(await pg.locator('[data-testid=memories-toast]').innerText());
   });
   check(toastOk, 'MC14: the toast states a fact, Hidden. It stays in Lately and in its walk.');
+  // Audit 7: the toast names the word as the owner wrote it, and Undo takes it back.
+  const fewerOk = await attempt(async () => {
+    await cardOf('harbor bench').locator('[data-testid=moment-more]').click();
+    await pg.click('[data-testid=menu-less]');
+    // The earlier toast may still be up: wait for this one.
+    await pg.waitForFunction(() => /Fewer like this/.test(document.querySelector('[data-testid=memories-toast]')?.textContent ?? ''), null, { timeout: 5000 });
+    const said = await pg.locator('[data-testid=memories-toast]').innerText();
+    await pg.click('[data-testid=memories-undo]');
+    return /Fewer like this: harbor/.test(said);
+  });
+  check(fewerOk, 'memories-context audit 7: Show less like this names the word as written');
+  // Audit 5: Forget leaves a toast with Undo that brings back what it cleared.
+  const forgetUndoOk = await attempt(async () => {
+    await cardOf('loose near hope').locator('[data-testid=moment-more]').click();
+    await pg.click('[data-testid=menu-hide]');
+    await pg.waitForTimeout(400);
+    const hiddenBefore = (await prefsOf(pg)).hidden.length;
+    await menu('menu-forget');
+    await pg.click('[data-testid=forget-confirm]');
+    await pg.waitForFunction(() => /Choices forgotten/.test(document.querySelector('[data-testid=memories-toast]')?.textContent ?? ''), null, { timeout: 5000 });
+    const said = await pg.locator('[data-testid=memories-toast]').innerText();
+    await pg.waitForTimeout(400);
+    const cleared = (await prefsOf(pg)).hidden.length === 0;
+    await pg.click('[data-testid=memories-undo]');
+    await pg.waitForTimeout(400);
+    const back = hiddenBefore >= 1 && (await prefsOf(pg)).hidden.length === hiddenBefore;
+    return /Choices forgotten\./.test(said) && cleared && back;
+  });
+  check(forgetUndoOk, 'memories-context audit 5: Forget says so, and Undo restores what it cleared');
+  // Audit 15: the switch survives a reload.
+  const offKeptOk = await attempt(async () => {
+    await menu('menu-off');
+    await pg.reload();
+    await pg.waitForSelector('[data-testid=tab-chronicle]', { timeout: 30000 });
+    await tabTo(pg, 'chronicle', 'memories');
+    await pg.waitForSelector('[data-testid=resurfaced-off]', { timeout: 15000 });
+    return true;
+  });
+  check(offKeptOk, 'memories-context audit 15: the switch stays off after a reload');
   await c.close();
 
   const empty = await freshPage('resurface-context-empty');
