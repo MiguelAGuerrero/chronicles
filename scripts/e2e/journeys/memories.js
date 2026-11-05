@@ -159,7 +159,11 @@ async function checks(h) {
     check((await page.locator('[data-testid=reminder]').count()) === 0, 'opening a memory never brings a card or a buzz of its own');
     await page.click('[data-testid=memory-open]');
     await page.waitForSelector('text=Memories here');
+    const viewerMemories = await page.locator('text=Memories here').count();
     check((await page.locator('[data-testid=memory-preview]').count()) === 0, 'the preview opens the viewer with the memories from that spot (MR5)');
+    // MR9: all of it on the web build: faint pins on a later walk, the preview, and the viewer from it.
+    check(shownIds.length > 0 && /Fox Point|Cardamom/.test(preview) && viewerMemories === 1 && (await page.locator('[data-testid=viewer-close]').count()) >= 1,
+      `MR9: on the web build, a later walk shows memory pins, previews one and opens its spot's memories (pins ${shownIds}, viewer ${viewerMemories})`);
     await page.click('[data-testid=viewer-close]');
     // A tapped reminder notification opens its capture, playing (NT8). First with the walk screen in front:
     // the service worker's message reaches the page's listener, and the capture opens at once (audit 1).
