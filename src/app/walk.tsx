@@ -189,7 +189,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const params = useLocalSearchParams<{ warning?: string; started?: string; recall?: string }>();
   const at = useStackLayout();
   // The walk's cards sit above the strip, left of the stack's column, so they never cover it (audit 5).
-  const cardAt = { bottom: at.barTop + 12, right: at.right + CAP + STACK_GAP };
+  // zIndex 2: over the Layers button in the corner (1), under the drawer (3) (fix layers-corner audit 2).
+  const cardAt = { bottom: at.barTop + 12, right: at.right + CAP + STACK_GAP, zIndex: 2 };
   // One screen, ready or walking (NR1, NR6): the walk is the keeper's open walk. While Start writes the
   // walk's plan the screen stays ready (the walk reads its mode as it shows); once stopped, the walk stays
   // on screen until the replay replaces it, never flashing the ready state.
@@ -1493,8 +1494,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
         bottom={at.edgeBottom(awayFromStart && walkStart && !navigation.nav ? 'compass' : 'back')}
         right={at.edgeRight}
       />
-      {/* Walkability (WK13): the column's top, so nothing else moves. */}
-      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed })} bottom={at.edgeBottom('layers')} right={at.edgeRight} clearBottom={at.barTop + 112} />
+      {/* Layers (ML3): the bottom-left corner above the scale bar, clear of the navigation bar. */}
+      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
 
       {awayFromStart && walkStart && !navigation.nav && (
         // Walk me back: the way back to where this walk began (N1, N11).

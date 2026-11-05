@@ -20,3 +20,17 @@ export function panelBox(o: { windowW: number; windowH: number; buttonTop: numbe
     maxHeight: Math.max(MIN_HEIGHT, o.windowH - o.buttonTop - o.clearBottom),
   };
 }
+
+const CORNER_MIN_WIDTH = 188;
+
+/**
+ * The panel of a button in the bottom-left corner (fix layers-corner): to the button's right, its bottom level with the button's,
+ * growing upward. It stops short of the capture column on the right and of the top overlay (chevron row, navigation bar).
+ */
+export function cornerPanelBox(o: { windowW: number; windowH: number; left: number; bottom: number; button: number; rightClear: number; clearTop: number }): { width: number; maxHeight: number } {
+  const room = o.windowW - o.left - o.button - 8 - o.rightClear;
+  return {
+    width: Math.max(CORNER_MIN_WIDTH, Math.min(MAX_WIDTH, room)),
+    maxHeight: Math.max(MIN_HEIGHT, o.windowH - o.bottom - o.button - o.clearTop),
+  };
+}
