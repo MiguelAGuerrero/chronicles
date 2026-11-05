@@ -7,6 +7,7 @@ import { overtureDivisionsUrl } from '../activity/release';
 import { outlineTileFrom } from './divisionTiles';
 import type { OutlineSource } from './outlineRead';
 import type { TileFeature } from './tilePlaces';
+import { net } from '../net';
 
 /*
  * Town outlines from Overture's divisions (TO1, decision 0083): the network
@@ -20,7 +21,7 @@ const TILE_MS: Record<number, number> = { 10: 45_000, 12: 15_000 };
 
 let archive: { release: string; file: PMTiles } | null = null;
 const fileFor = (release: string) => {
-  if (archive?.release !== release) archive = { release, file: new PMTiles(overtureDivisionsUrl(release)) };
+  if (archive?.release !== release) archive = { release, file: new PMTiles(net.source(overtureDivisionsUrl(release))) };
   return archive.file;
 };
 

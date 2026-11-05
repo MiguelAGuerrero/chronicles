@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { HOTSPOT, HOTSPOT_GRADES } from '../../../components/map/types';
-import { mergeSources, type ActivityPoint, type OverturePlace } from '../../activity/points';
+import { mergeSources, OvertureSchemaError, overturePlacesSchemaOk, SCHEMA_MIN_PLACES, type ActivityPoint, type OverturePlace } from '../../activity/points';
 import { OvertureReader } from '../../activity/reader';
 import { newestRelease, type Archive } from '../../activity/release';
 import { osmWeight, overtureWeight } from '../../activity/weights';
@@ -197,4 +197,40 @@ test('activity-density audit 14: every grade, blended, is 3:1 on the base map an
       const c = contrast(over(HOTSPOT, HOTSPOT_GRADES[g].opacity, bg), bg);
       assert.ok(c >= 3, `grade ${g} on ${bg}: ${c.toFixed(2)}:1`);
     }
+});
+
+// fix net-rules (Nov 5): a new Overture release is used only if its places still decode (the 2026-09 release
+// renamed `categories` to `taxonomy`; the next rename should fall back, not silently count nothing).
+
+test('fix net-rules 1: a tile whose places carry no taxonomy is a schema mismatch; an empty tile or one good place is not', () => {
+  const at = { type: 'Point' as const, coordinates: [-75.19, 40.69] };
+  const good = { geometry: at, properties: { id: 'a', taxonomy: JSON.stringify({ hierarchy: ['food_and_drink', 'restaurant'] }), confidence: 0.9 } };
+  const renamed = { geometry: at, properties: { id: 'b', categories: JSON.stringify({ primary: 'restaurant' }), confidence: 0.9 } };
+  assert.equal(overturePlacesSchemaOk([]), true, 'an empty tile says nothing');
+  assert.equal(overturePlacesSchemaOk([renamed, good]), true, 'one place that decodes is enough');
+  const many = (f: typeof renamed) => Array.from({ length: SCHEMA_MIN_PLACES }, (_, i) => ({ ...f, properties: { ...f.properties, id: `p${i}` } }));
+  assert.equal(overturePlacesSchemaOk(many(renamed)), false, 'a town tile where no place decodes: renamed');
+  assert.equal(overturePlacesSchemaOk(many({ geometry: at, properties: { taxonomy: '{"hierarchy":["x"]}' } } as unknown as typeof renamed).map((f) => ({ ...f, properties: { ...f.properties, id: undefined } }))), false, 'no id: the reader keys places by id');
+});
+
+test('fix net-rules 2: a release whose tiles fail the schema check is passed over like a missing one', async () => {
+  const reader = new OvertureReader({
+    open: () => fakeArchive({}),
+    decode: () => { throw new OvertureSchemaError('places carry no taxonomy'); },
+    tileMs: 100,
+    readMs: 200,
+  });
+  const r = await reader.read('2026-12-16.0', [[1, 1]]);
+  assert.ok(!r.ok && r.missing, 'missing: the release before it is used from the next read');
+  const other = new OvertureReader({ open: () => fakeArchive({}), decode: () => { throw new Error('truncated'); }, tileMs: 100, readMs: 200 });
+  const o = await other.read('r1', [[1, 1]]);
+  assert.ok(!o.ok && !o.missing, 'another decode failure is only a failed read');
+});
+
+test('fix net-rules audit 1: a sparse tile whose few places lack taxonomy says nothing about the release', () => {
+  const at = { type: 'Point' as const, coordinates: [-75.19, 40.69] };
+  const bare = (id: string) => ({ geometry: at, properties: { id, confidence: 0.5 } });
+  assert.ok(SCHEMA_MIN_PLACES >= 10, 'a town tile has dozens of places; the countryside a few');
+  assert.equal(overturePlacesSchemaOk([bare('a')]), true, 'one uncategorised rural place is not a rename');
+  assert.equal(overturePlacesSchemaOk(Array.from({ length: SCHEMA_MIN_PLACES - 1 }, (_, i) => bare(`b${i}`))), true);
 });

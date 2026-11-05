@@ -297,3 +297,8 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** open a thread, then press Android's Back. **Expect:** Back returns to the rail; today it leaves Chronicle instead, a known gap (audit 14, deferred). (RM15)
 - [ ] **Do:** make a choice (Not this one), force-quit, and reopen. **Expect:** the choice is kept: that moment is not brought back (`resurface_prefs` through the write queue). (RM21)
 - [ ] **Do:** receive a Remind me here notification with no walk open and tap it. **Expect:** Chronicle opens on Memories and the reminded capture opens at once, playing. (NV13)
+
+## Network rules (`lib/net`, decision 0100)
+
+- Whether React Native's `fetch` sends the custom `User-Agent` (`Chronicles (+github.com/…)`) on iOS and Android, or the platform's own replaces it.
+- The PMTiles source over `net.fetch` (byte ranges, `credentials: 'omit'`, `referrerPolicy: 'no-referrer'`) against Overture's bucket on a phone.

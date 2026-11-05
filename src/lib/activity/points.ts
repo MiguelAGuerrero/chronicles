@@ -58,6 +58,35 @@ const parse = (s: unknown): unknown => {
   }
 };
 
+/** A release whose places no longer decode as the app reads them (fix net-rules): the reader treats it as missing. */
+export class OvertureSchemaError extends Error {
+  constructor(message: string) {
+    super(`Overture schema: ${message}`);
+    this.name = 'OvertureSchemaError';
+  }
+}
+
+/** Fewer places than this in a tile say nothing about the release's schema. */
+export const SCHEMA_MIN_PLACES = 10;
+
+/**
+ * Whether a tile's `place` features still decode as `overturePlacesFromTile` reads them (fix net-rules): a tile with
+ * fewer than SCHEMA_MIN_PLACES places says nothing; otherwise at least one place carries an id and a taxonomy hierarchy. The 2026-09 release
+ * renamed `categories` to `taxonomy`; a rename like it fails here instead of counting nothing in silence.
+ */
+export function overturePlacesSchemaOk(features: TileFeature[]): boolean {
+  const points = features.filter((f) => f.geometry?.type === 'Point');
+  // A few places say nothing: an uncategorised one in the countryside must not push the app off a release
+  // (fix net-rules audit 1). A rename shows in any town tile, which has dozens.
+  if (points.length < SCHEMA_MIN_PLACES) return true;
+  return points.some((f) => {
+    const p = f.properties ?? {};
+    if (!p.id) return false;
+    const tax = parse(p.taxonomy) as { hierarchy?: unknown } | null;
+    return Array.isArray(tax?.hierarchy);
+  });
+}
+
 /** Overture's `place` layer, decoded: one place per id however many tiles carried it (AD4). */
 export function overturePlacesFromTile(features: TileFeature[]): OverturePlace[] {
   const out = new Map<string, OverturePlace>();
