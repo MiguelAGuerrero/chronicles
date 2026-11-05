@@ -55,3 +55,15 @@ test('RM20: Not this one keeps the moment in Lately', () => {
   assert.equal(c.order.length, 0);
   assert.equal(lately(c.moments, c.threads, NOW, 20).items.length, 1);
 });
+
+test('MC13: Lately is strictly newest first, a thread gives no priority, ties broken by id', { todo: 'test first' }, async () => {
+  const feed = (await import(`../../resurface/${'feed'}`)) as any;
+  const thr = [at(2026, 9, 1), at(2026, 9, 8), at(2026, 10, 30)].map((t) => moment(t, 'harbor', { id: `h${t}` }));
+  const newer = moment(at(2026, 11, 4), 'bench', { id: 'newer' });
+  const tieA = moment(at(2026, 10, 31), 'orchard', { id: 'a-tie' });
+  const tieB = moment(at(2026, 10, 31), 'fountain', { id: 'b-tie' });
+  const c = compose([...thr, newer, tieB, tieA], EMPTY_PREFS, new Set(), NOW, 's');
+  const ids = feed.lately(c.moments, NOW, 20).items.map((m: { id: string }) => m.id);
+  assert.deepEqual(ids.slice(0, 3), ['newer', 'a-tie', 'b-tie']);
+  assert.equal(ids[3], thr[2].id, 'the thread moment is where its time puts it');
+});

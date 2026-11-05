@@ -10,10 +10,10 @@ Chronicle now opens on Memories (`specs/resurfaced-moments`). An adversarial rea
 
 Idea: Make every moment on Memories arrive with its place, time of day and how far into the walk it was; let the owner see, restore and switch off what the app brings back; and make Lately and its copy say only what is true.
 Verb: return (a moment given back whole, truthfully, and only as the owner allows).
-Touches: Always, "A moment carries its context: place, time, its walk, what came just before ... It never appears as a bare thumbnail, filename or count" (MC1-MC8a mend it). Always, "Counts are words" (MC7). Never, "Writing the owner's words for them" (the context reads a moment's kind, never its words: MC5). Never, "Editing out the lows" and "Nagging" (the controls hide nothing from the walk or Lately, no notification is added, and Forget keeps the off switch: MC8-MC10). Never, "Data leaving the device" (the street comes from the cache on the phone: MC2). Open questions 1 and 5 (who may volunteer a moment) stay open: this slice gives the owner the controls, it does not settle the rule.
+Touches: Always, "A moment carries its context: place, time, its walk, what came just before ... It never appears as a bare thumbnail, filename or count" (MC1-MC7 and MC17 mend it). Always, "Counts are words" (MC7). Never, "Writing the owner's words for them" (the context reads a moment's kind, never its words: MC5). Never, "Editing out the lows" and "Nagging" (the controls hide nothing from the walk or Lately, no notification is added, and Forget keeps the off switch: MC8-MC10). Never, "Data leaving the device" (the street comes from the cache on the phone: MC2). Open questions 1 and 5 (who may volunteer a moment) stay open: this slice gives the owner the controls, it does not settle the rule.
 Verdict: aligned
 Shape: as asked.
-Criteria: MC1-MC8a (context, in words, from the device, never a claim that is not known), MC8-MC12 (hide, restore, switch off, reset), MC13-MC16 (labels and copy that state facts).
+Criteria: MC1-MC7, MC17 (context, in words, from the device, never a claim that is not known), MC8-MC12 (hide, restore, switch off, reset), MC13-MC16 (labels and copy that state facts).
 Open: none for this slice. Deferred, still open for the owner: owner-made threads first (VISION.md [proposed]), a share of the top card for moments without words, the words the stop list drops, lows and finds in Memories, search and the map as a lens, a dwell register.
 
 ## Decisions (the owner's calls, Nov 5)
@@ -34,7 +34,7 @@ Open: none for this slice. Deferred, still open for the owner: owner-made thread
 5. **MC5** A moment made within ten walked minutes after the capture immediately before it in the same walk says so by that capture's kind: "just after a photo", "just after a note", "just after a voice memo". Only the immediately previous capture counts; a deleted one never does. It never quotes that capture's words. Otherwise the clause is absent.
 6. **MC6** Context is read only for the moments rendered (the top card, the cards rendered in Lately, an open thread's moments), once per moment per open. Opening Memories reads nothing for a moment not rendered, and scrolling, re-rendering or Another asks for nothing already read.
 7. **MC7** The walk-time clause and every sentence this slice writes hold no digit: durations are words (`numberWord`). Street names are the map's words and may hold digits ("5th Avenue"); dates and a memo's length keep their digits, as in RM22.
-8. **MC8a** While a moment's context is still being read, its card shows no place claim at all, neither a street nor "No place kept". A read that fails is not "no street": the card shows no place claim and the next render asks again.
+8. **MC17** While a moment's context is still being read, its card shows no place claim at all, neither a street nor "No place kept". A read that fails is not "no street": the card shows no place claim and the next render asks again.
 
 ### In your hands
 
@@ -59,7 +59,7 @@ Open: none for this slice. Deferred, still open for the owner: owner-made thread
 
 ## Tests
 
-- Unit (`src/lib/__tests__/resurface/`): `context.test.ts` (MC1-MC5, MC7, MC16), `shell.test.ts` additions (MC6, MC8a, MC8-MC12, over `fakePorts()`, including a rejecting `getSegmentsIn`), `feed.test.ts` (MC13, replacing RM17's thread rule), `copy.test.ts` (MC11, MC14 verbatim).
+- Unit (`src/lib/__tests__/resurface/`): `context.test.ts` (MC1-MC5, MC7, MC16), `shell.test.ts` additions (MC6, MC17, MC8-MC12, over `fakePorts()`, including a rejecting `getSegmentsIn`), `feed.test.ts` (MC13, replacing RM17's thread rule), `copy.test.ts` (MC11, MC14 verbatim).
 - E2E journey `resurface` (extended): MC1, MC3, MC8-MC10, MC14, MC15 on a seeded street cache, a walk with a pause and moments at known minutes; MC9's quiet line.
 
 ## Deferred
