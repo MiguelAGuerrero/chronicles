@@ -133,13 +133,26 @@ async function checks(h) {
     // may not start a video with sound: it plays muted and offers the sound.
     const fresh = await ctx.newPage();
     fresh.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
-    // iOS's rule, which headless Chromium does not enforce: sound needs a tap first.
+    // iOS's rules, which headless Chromium does not enforce: sound needs a tap first, and a video
+    // loads no more than its metadata until a play() is let through, so it never says it can play
+    // before then (fix ios-video 1). Chromium loads a blob: video whatever its preload says, so the
+    // readyState it reports is held at 1 until then.
     await fresh.addInitScript(() => {
       let tapped = false;
       document.addEventListener('pointerdown', () => (tapped = true), true);
-      const play = HTMLMediaElement.prototype.play;
-      HTMLMediaElement.prototype.play = function () {
+      const P = HTMLMediaElement.prototype;
+      const readyState = Object.getOwnPropertyDescriptor(P, 'readyState');
+      Object.defineProperty(P, 'readyState', {
+        configurable: true,
+        get() {
+          const r = readyState.get.call(this);
+          return this.tagName === 'VIDEO' && !this.__played ? Math.min(r, 1) : r;
+        },
+      });
+      const play = P.play;
+      P.play = function () {
         if (!this.muted && !tapped) return Promise.reject(new DOMException('play() needs a tap', 'NotAllowedError'));
+        this.__played = true;
         return play.call(this);
       };
     });

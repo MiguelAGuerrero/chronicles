@@ -5,7 +5,7 @@ every branch holds and what is waiting on the owner. Update it at the start and
 end of every slice, and whenever a branch is opened, merged or abandoned. For
 what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md`.
 
-- **As of:** 2026-11-04
+- **As of:** 2026-11-05
 - **`origin/main` head:** `28c7417` (2026-11-03, the filling-gaps merge). Since
   `7a34666` main gained Bridges and Open in Maps (`82186db`, `67b7c9d`), the
   Start dialog (`6fb2572`, `9f547bd`), no Open in Maps on "Off your route"
@@ -40,6 +40,7 @@ what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md
 | Town outlines (the town you're in is the border you're inside, Overture's divisions; TO1-TO12, decision 0083) | shipped (web verified by the e2e `outlines`, `marks`, `nudge` on the /chronicles build; native unverified) | branch `claude/town-outlines`, merged 2026-11-04 | `specs/town-outlines/spec.md` (repo first) | no |
 | Town borders (the outlines drawn: yours tinted, the others lined, on every map that shows a town; TB1-TB9, decision 0088) | shipped (web verified by the e2e `outlines`, `edit`, `tabs`, `ready`, `marks`, `reload`, `gaps`, `replay`, `hidden`, `qol` on the /chronicles build; native unverified) | branch `claude/town-borders`, merged 2026-11-04; fix explore-fit-area 2026-11-04 (a town's page, and Explore near you, frame the whole town: `nextFrame`, audited, 7 fixed, 2 deferred) | `specs/town-borders/spec.md` (repo first) | no |
 | Discrete navigation (Explore's map steps from area to area: a swipe selects the next neighborhood that way, or opens the next town's page; DN1-DN13, decision 0092, an experiment to revert if it doesn't feel right) | shipped 2026-11-04 (web verified by the e2e `snap`, `tabs`, `outlines`, `marks`, `replay`, `qol`, `ready` on the /chronicles build; native unverified) | branch `claude/discrete-navigation`, merged 2026-11-04 | `specs/discrete-navigation/spec.md` (repo first) | yes, at the owner's request (12 findings: 11 fixed, one in part; 1 deferred) |
+| iPhone video and white page (a fix: the replay's video waited for a ready that iOS never gives before `play()`; a tab that throws shows `ScreenError` instead of a white page; `fix ios-video 1, 2`, audit 1-5) | shipped (web verified by the e2e `chronicle` with iOS's loading rule copied in, and `replay`, `edit`, `tabs`, `ready`, `launch`, `qol`, `snap`, `walkability` on the /chronicles build; WebKit not run; native unverified); why Chronicle threw after Keep it is not known yet (DEFERRED) | branch `fix/ios-video-blank`, 2026-11-05 | none (a local fix after the owner's screenshot) | yes (7 findings: 4 fixed, 2 deferred, 1 rejected) |
 | Map credits start closed (a fix: the web map's attribution no longer opens itself across the map's bottom; the (i) button opens it) | shipped (web verified by the e2e `qol`, `map attribution` checks; native's own (i) untouched) | branch `claude/attribution-closed`, 2026-11-04 | none (a local fix after the owner's screenshot) | no (a local fix, not a slice) |
 | Navigate drawer lifts by touch (a fix: a finger's drag on the ready bar's handle went to the map beneath; the grip is focusable now; `navigate-ready touch 1`) | shipped (web verified by the e2e `ready`; iOS WebKit not run) | branch `claude/navigate-drawer-touch`, 2026-11-04 | none (a local fix after the owner's screenshot) | no (a local fix, not a slice) |
 | Town page fix (a town's tile no longer collapses under its heading; one way back, decision 0077) | shipped (web verified by the e2e; the collapse reproduced in Chromium before the fix) | branch `fix/town-page-tile`, 2026-11-04 | `specs/explore-atlas/spec.md` (AT2's way back) | no (a local fix after the owner's screenshot) |
@@ -49,6 +50,7 @@ what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md
 | Functional core, slice 1 (layer tags and checks, ports, fakes, the Db contract, typed meta; FC1-FC10) | shipped 2026-11-04 (engineering; no behaviour change; native unverified) | branch commits 2026-11-03 | `specs/functional-core/spec.md` (repo only: not a concept-doc tab) | yes (14 findings: 12 fixed, 1 deferred, 1 fixed in part) |
 | Affected checks (run what a change can break: affected tests, lint, typecheck, e2e journeys; AC1-AC11) | shipped 2026-11-04 (engineering; no behaviour change) | branch commits 2026-11-03 | `specs/affected-checks/spec.md` (repo only) | no (decision 0074: audits on the owner's request) |
 | Test gaps, round 1 (retired ids counted only where a test names them; `test:coverage` per feature; what happened here, the GPS log, a walk's bundle and the replay's tile reads as factories over fakes; TD1-TD8) | shipped 2026-11-04 (engineering; no app behaviour change; native unverified) | branch commits 2026-11-04 | `specs/test-gaps/spec.md` (repo only) | no (decision 0074) |
+| Test trim and device acceptance (repeated, unfailable and dead-code tests cut; twelve out-of-date criteria retired, the baseline 40 → 27; `docs/NATIVE_UNVERIFIED.md` as the device acceptance suite, each item a Do/Expect test with its criteria, gated; `npm run check:device`; DV1-DV7) | shipped 2026-11-05 (engineering; unit tests, typecheck, lint, the edited journeys pass; native unverified, and the suite has never run on a phone) | branch `claude/shells-saved-settings`, 2026-11-05 | `specs/device-acceptance/spec.md`, `specs/test-gaps/trim.md` (repo only) | no (decision 0074) |
 | Saved-settings shells (the units, the navigation destination, the notification switches and a moment's find as factories tested over `fakePorts()`; `@instance` files; SH1-SH9) | shipped 2026-11-04 (engineering; no app behaviour change; native unverified): 811 unit tests, typecheck, lint and the seven journeys it touches green; merges after the test organization | branch commits 2026-11-04 | `specs/shells-saved-settings/spec.md` (repo only) | no (decision 0074) |
 | Test organization (tests by feature: one map in `scripts/features.js`, a folder per feature, `test:feature`, coverage holes named, one e2e file per journey, the full flow cut into journeys; TG1-TG12, decision 0091; the procedures that hold other agents to it, the Stop hook on script changes, prefix and decision-number collisions, `move-test`, TG13-TG19) | shipped 2026-11-04 (engineering; no app behaviour change; deployed with `claude/shells-saved-settings`): the full flow ran green once on the branch (399 checks, 19 min). An unmerged branch's tests land at the test folder's root; `npm run move-test` puts each in its feature folder | branch commits 2026-11-04 | `specs/test-organization/spec.md` (repo only) | no (decision 0074) |
 | Heading cone fix (the cone checked by the trace over 20 m; heading 1-5, decision 0075) | shipped (web verified by the e2e; native unverified) | branch `claude/heading-cone-rebased`, 2026-11-04 | none (a regression fix; criteria in `heading.test.ts`) | no (on request only, decision 0074) |
@@ -60,9 +62,12 @@ what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md
 | Replay rhythm (the replay as a story told by a ceremony; glide to the moments, zip through the rest, tap to hold; RR1-RR22, decisions 0085, 0086; then a loading skeleton and the screen kept awake, RR23-RR24, decision 0087) | shipped 2026-11-04 (web verified by the e2e `replay` journey, against the `/chronicles` build too; native unverified) | branch `claude/replay-rhythm`, 2026-11-04 | `specs/replay-rhythm/spec.md` (repo first) | yes, three rounds at the owner's request (19 findings: 16 fixed, 1 deferred, 2 rejected; 10: 9 fixed, 1 in part; 9: 8 fixed, 1 deferred to the owner) |
 | Town presence (a town graded across its whole outline; its pockets of activity listed as Busy areas; malls count as Shops; TP1-TP12, decision 0089) | built 2026-11-04 (unit tests, typecheck, lint, `npm test`, e2e `outlines`, `grading`, `marks`, `tabs` pass on the web build; native unverified; the tile class names for a mall are unconfirmed) | branch `claude/town-presence-spec` | `specs/town-presence/spec.md` (repo first) | no (decision 0074) |
 | Walkability (a band per street as an icon with a tooltip; the layer on the Explore and Navigate maps; the area card's "On foot" line; a silent heads-up on a navigated route; WK1-WK23, WH1-WH13, decision 0093) | shipped 2026-11-04 (web verified by the e2e `walkability` and `headsup` on the /chronicles build; native unverified) | branch `claude/walkability-spec`, merged 2026-11-04; audit fixes after | `specs/walkability/spec.md`, `specs/walkability-headsup/spec.md` (repo first) | yes (14 findings: 10 fixed, 3 deferred, 1 rejected) |
+| Map layers (one Layers button; Walkability, Busy streets, Town borders; ML1-ML13, decision 0097) and Walkability by urban form (cells judged by street junctions, tinted areas, the card's words, an area-entry heads-up; UF1-UF20, decision 0096) | shipped 2026-11-05 (web verified by the e2e `layers`, `walkability`, `headsup` on the /chronicles build; native unverified) | branch `claude/walkability-urban-form` | `specs/map-layers/spec.md`, `specs/walkability-urban-form/spec.md` (repo first) | yes: a UI audit, 2026-11-05 (auditor: 14 findings, 10 fixed, 3 in part, 1 deferred; steward: 8, the owner's calls made) |
+| Vision gate (`docs/VISION.md`, the `/vision` skill, the `steward` subagent, `npm run check:vision` in CI and the Stop hook; VG1-VG12, decision 0094) | shipped 2026-11-05 (process; no app behaviour change): unit tests, typecheck, lint, `npm test` | branch `claude/vision-gate`, 2026-11-05 | `specs/vision-gate/spec.md` (repo only) | no (decision 0074) |
+| Scenic routes (Go here offers Direct and one route per leaning: green, sights, streets with life, at most 30% longer, in words; SR1-SR15, decision 0095) | shipped 2026-11-05 (web verified by the e2e `scenic`, `walkability`, `headsup`, `walk`, `memories`, `launch`, `ready`, `tabs`, `reload`, `qol`, `marks`, `edit`, `gaps`, `hidden`, `nudge`, `outlines`, `replay`, `snap` on the /chronicles build, merged with main; 1124 unit tests; native unverified) | branch `claude/scenic-routes`, merged and deployed 2026-11-05 (`28af9a2`, Pages run 116); reshaped at the vision gate (no minutes compared, decision 0095) | `specs/scenic-routes/spec.md` (repo first) | no (decision 0074) |
 
-Not a tab, but tracked: **suggested routes** (interesting ways, route preview,
-"Walk this way") are deferred as their own later slice (`749811d` 2026-11-01).
+Not a tab, but tracked: **suggested routes** shipped as scenic routes (decision 0095);
+Explore's route preview and "Walk this way" stay deferred.
 **Backup and export** has code (`lib/export`) and no UI (deferred, `565b244`).
 
 **Native has never run on a device.** Every slice above is verified on the web
@@ -104,9 +109,15 @@ first.
 | `claude/agent-friendly-bootstrap` | 2026-11-03 | 0 | yes | AGENTS.md as an index; `.claude/` rules, skills, hooks and the auditor; the docs split out of AGENTS.md; the specs mirror | merged |
 | `explore-atlas` | 2026-11-03 | 0 | yes | Explore atlas (AT1-AT14) and its audit fixes | merged |
 | `claude/pocket-alert-nudge` | 2026-11-03 | 0 | yes | Pocket alert nudge (PA1-PA6) and its audit fixes, squashed onto main | merged |
+| `claude/scenic-routes` | 2026-11-05 | 0 | yes | Scenic routes (SR1-SR15) and its reshape at the vision gate | merged |
 
 ## Needs the owner
 
+- **VISION.md and scenic routes:** decision 0095 proposes amending the Shapes rows "Suggested routes" and "Several routes to one point, Apple Maps style" to fit the row per leaning you kept at the gate (Nov 5); only you edit the page.
+- **The vision's open questions** (`docs/VISION.md`, decision 0094): likeness made by you or suggested; voice
+  memos searchable on the phone only; the cloud as a mirror or a place where work happens; browse standard, dwell
+  diegetic; where "nothing is calculated for you" ends; the found tally on a place's sheet, carried as debt by
+  `npm run check:vision`. Lines marked [proposed] on the page wait on these.
 - **Functional core, next:** the walk screen's fog refresh moves to a shell (the first shell, and the rules for shells with it).
 - **The web and native stores disagree** in five places the Db contract found (`docs/DEFERRED.md`, Functional core): which side is right, per case.
 - **`WALKED_THRESHOLD` (0.5)** in snapping is "still an open product decision"
@@ -123,7 +134,7 @@ first.
   only copy of the concept in the repo.
 - **Branch clean-up:** nine branches are merged and five superseded (see the
   table); deleting them is the owner's call.
-- **Suggested routes** (deferred Nov 1) and the rest of Quality of life
+- **The rest of Quality of life**
   (QL13+, in the owner's order: units, time left, a Settings link when location is
   denied, renaming a walk, editing a note, thumbnails on pins, month headers,
   keep awake, GPX export, the current street chip, dark mode): when, and which next.

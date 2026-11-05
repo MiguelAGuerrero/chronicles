@@ -105,7 +105,7 @@ New journey: `scripts/e2e/journeys/resurface.js`, seeded through the same fixtur
 
 ## Docs
 
-- `docs/decisions/0094-chronicle-opens-on-memories.md` (the owner's calls above).
+- `docs/decisions/0098-chronicle-opens-on-memories.md` (the owner's calls above).
 - `.claude/rules/resurface.md` (traps: no counts shown, signals are the extension point, prefs hold ids not text).
 - `docs/PRODUCT.md` (Chronicle section), `docs/ARCHITECTURE.md` (code map and the meta key), `docs/STATUS.md` (a row), `docs/DEFERRED.md` (the deferred list in the spec), `docs/NATIVE_UNVERIFIED.md` (the new views).
 

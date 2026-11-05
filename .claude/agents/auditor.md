@@ -39,7 +39,8 @@ commands, or anything that changes the tree.
    - which criterion or invariant it breaks;
    - a proposed regression test name: `<slice> audit N: <what it proves>`,
      and whether it is a unit test or an e2e check.
-2. **UI/UX review**: against the spec's criteria and the product's
+2. **UI/UX review**: against the spec's criteria, its "## Vision" section,
+   `docs/VISION.md` (the Never and Always lists) and the product's
    restraint: counts are words, nothing is a score, no celebration, large
    buttons low on the screen, every icon-only button has a label, web is a
    fallback that may be limited but never broken.

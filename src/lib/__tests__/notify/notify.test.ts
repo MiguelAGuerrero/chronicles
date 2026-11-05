@@ -132,7 +132,7 @@ test('NT7: reminders and pauses are for the background: never shown in front', a
   assert.ok(!f.shown[0].inFront && !f.scheduled[0].n.inFront);
 });
 
-test('NT8, NT9: a tap opens the captures, the stop action stops them, from either platform', () => {
+test('NT8, NT9: a tap opens the captures and the stop action stops them, once a transport has named the action', () => {
   assert.deepEqual(routeResponse({ data: { captureIds: ['c1', 'c2'] }, action: null }), { kind: 'open', captureIds: ['c1', 'c2'] });
   assert.deepEqual(routeResponse({ data: { captureIds: ['c1'] }, action: 'stop' }), { kind: 'stop', captureIds: ['c1'] });
   assert.equal(routeResponse({ data: undefined, action: null }), null);
@@ -192,10 +192,4 @@ test('audit 6: no prompt for a kind that is off; turning the pause reminder off 
   const g = fakeTransport();
   await make(g).prefsChanged({ recall: true, pause: false }, 'w1');
   assert.ok(g.log.includes('cancel:pause-w1'));
-});
-
-test('audit 7: stopping clears old hint notifications from before explore too', async () => {
-  const f = fakeTransport();
-  await make(f).walkEnded('w1');
-  assert.ok(f.log.includes('cancel:ambient-w1'));
 });

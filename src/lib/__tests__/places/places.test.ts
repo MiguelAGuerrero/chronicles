@@ -6,7 +6,8 @@ import type { Area, AreaLevel, WalkArea } from '../../areas/types';
 import { metersPerPixel } from '../../pins';
 import { placeAll, withTimeout } from '../../placeAll';
 import { levelForZoom, placesIndex, placeWalks, starsFor, unplacedWalks } from '../../places';
-import type { Walk } from '../../types';
+import { buildDays } from '../../days';
+import type { Capture, Walk } from '../../types';
 
 // Slice 2 of v0.5 (the home map), written from its acceptance criteria before
 // the code. Everything here is built from walks, Area and WalkArea only.
@@ -98,6 +99,29 @@ test('home: a star tells whose place it is, its walks newest first, and how far 
   assert.equal(p.subtitle, 'Montclair, New Jersey');
   assert.deepEqual(p.walks.map((w) => w.id), ['w2', 'w1'], 'newest first');
   assert.equal(p.metres, 1900);
+});
+
+test('H9: the open walk shows nowhere on Chronicle until it stops: no star, no row, no place, no day, no count', () => {
+  // w5 is open and already has rows from a live placement in Upper Montclair, and a capture.
+  const note = { id: 'c5', walk_id: 'w5', t: 5500, lat: upper.lat, lon: upper.lon, kind: 'text', file_path: null, body: 'open', segment_id: null } as Capture;
+  const shows = (ws: Walk[]) => {
+    const ix = placesIndex(areas, rows, ws);
+    const starred = ['neighborhood', 'town', 'state'].flatMap((l) => starsFor(ix, l as AreaLevel, 14, 40.8)).some((s) => s.walkIds.includes('w5'));
+    const days = buildDays(ws, [note]);
+    return {
+      row: ix.walks.has('w5'), // the walks list is the index's walks
+      starred,
+      place: placeWalks(ix, upper.key).walks.some((w) => w.id === 'w5'),
+      toPlace: unplacedWalks(ws, rows.filter((r) => r.walk_id !== 'w5')).some((w) => w.id === 'w5'),
+      counted: ix.walkCount,
+      inDay: days.some((d) => d.entries.some((e) => e.kind === 'walk' && e.walk.id === 'w5')),
+      noteInDay: days.some((d) => d.entries.some((e) => (e.kind === 'walk' ? e.captures : [e.capture]).some((c) => c.id === 'c5'))),
+    };
+  };
+  assert.deepEqual(shows(walks), { row: false, starred: false, place: false, toPlace: false, counted: 4, inDay: false, noteInDay: false }, 'open');
+  // Stopped, it shows everywhere at once.
+  const stopped = walks.map((w) => (w.id === 'w5' ? { ...w, open: false, ended_at: 6000 } : w));
+  assert.deepEqual(shows(stopped), { row: true, starred: true, place: true, toPlace: true, counted: 5, inDay: true, noteInDay: true }, 'stopped');
 });
 
 test('home: stopped walks with no places are the ones to place; the open walk is not one', () => {

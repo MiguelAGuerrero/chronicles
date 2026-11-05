@@ -5,6 +5,9 @@ for the decisions, rules and traps behind it, and the owner's "Explorer App
 Concept" doc in Claude Docs for the spec itself. When this file and
 `AGENTS.md` disagree, `AGENTS.md` is right and this file needs an update.
 
+The identity the features answer to, what the app never does and how an idea fits, is `docs/VISION.md`
+(decision 0094).
+
 ## In one paragraph
 
 Chronicles is a companion for wandering towns and cities on foot. Before a
@@ -90,8 +93,8 @@ recording bar brings a minimized walk back.
   OpenStreetMap and Overture Maps Places, measured along each street and
   graded against the town itself, so a small town shows where its activity
   centres. Never foot traffic, and never a number.
-- Suggested routes (a route with detours shaped by preferences, a route
-  preview, "Walk this way") are deferred to their own slice.
+- Explore's route preview and "Walk this way" are deferred: Walk here and
+  "Walk to its busiest street" start at once.
 
 ### Navigate (during)
 
@@ -142,6 +145,16 @@ recording bar brings a minimized walk back.
   navigating. Off-route re-routes quietly; arrival says "You're here".
   Bridges and tunnels cross what lies under them without a turn onto it, and a
   route starts on the street you are walking along.
+- **Scenic routes** (decision 0095): on Go here, or a destination set before
+  Start, the app shows Direct beside up to three scenic routes, one per
+  leaning switched on: **Through green** (parks, gardens, woods), **Past the
+  sights** (places worth seeing, of the kinds in "What I'm into") and **Along
+  busy streets**. Each is at most 30% longer. Every row gives its own
+  distance in km or miles, and a scenic row what it passes ("Through green ·
+  360 m · through India Point Park"): never a time or minutes compared, never
+  naming a place not yet found. A tap highlights one on the map; Go starts it; off
+  route it re-routes on the same leaning. Within 5 km; with nothing scenic,
+  the direct way at once. Walk me back stays the shortest way.
 - **Open in Maps** hands the destination to the phone's maps app (Apple Maps
   on iPhone, the Android chooser, Google Maps elsewhere) for walking
   directions, when Chronicles' route is wrong: in the blue bar, on a route
@@ -170,24 +183,25 @@ recording bar brings a minimized walk back.
 - Standstills, GPS wander, rides and motion (step detection) are all read
   from the raw fixes at read time; nothing derived is stored as truth.
 
-#### Walkability (before and during)
+#### Map layers and walkability (before and during)
 
-- A switch on the Explore map and the Navigate map shades the stretches the map data suggests need a car to get
-  around: a warm line where a street is built around cars, a faint one where it is mixed, nothing where it is
-  easy on foot. The bands are icons (the pedestrian; with a caution badge; with a car badge) with a tooltip in
-  words. No number, share or rank is shown anywhere.
-- It reads sidewalks, crossings, speeds and road classes from Overture's transportation tiles, falling back to
-  OpenStreetMap through Overpass, and keeps each tile on the device. Where sidewalks are not mapped, the layer
-  says streets can read worse than they are.
-- An open area card (a neighborhood or a town) has an "On foot" line in words ("Mostly easy on foot", "A mix of
-  easy and car-oriented streets", "Mostly built around cars"), read when the card opens; it says nothing where too
-  little is known. The grid's tiles say nothing.
-- While navigating, a quiet line says "Next: a stretch built around cars on <street>" 200 m before one, once,
-  with no sound; it never changes the route.
+- **Layers.** One Layers button on the Explore map and the Navigate map opens a small panel of switches: Walkability, Busy streets and Town
+  borders. Each draws something over the base map and shows its own legend while on. All three start off, so a fresh map is clear; the button is outlined, and its glyph
+  and a firmer edge say a layer is on. One setting for every map, kept across launches.
+- **Walkability** tints the map a light blue where the ground is easy on foot (streets close together, crossings, places along them) and a darker slate where it is
+  built around cars (streets far apart and busy), and nothing in between. It is judged from how the ground is built, so a walkable grid with its
+  sidewalks unmapped still reads walkable; a missing sidewalk never lowers a reading. It comes from Overture's transportation tiles, with
+  OpenStreetMap through Overpass when those can't be read, kept on the device. No number, share or rank is shown anywhere.
+- **Busy streets** is the graded magenta shading of streets with many places along them, now on request on any walk. Turning it on where nothing is
+  remembered reads the area once.
+- An open area card (a neighborhood or a town) has an "On foot" line in words that say what the ground is ("Streets close together, with crossings",
+  "Streets far apart and busy", or both side by side), read when the card opens; it says nothing where neither stands out.
+- While navigating, with the Walkability layer on, a quiet line says "Next: a stretch built around cars on <street>" before a fast road, or "Next: an area built around cars"
+  as the route enters one, 200 m ahead, once, with no sound; it never changes the route.
 
 ### Chronicle (after)
 
-- **Chronicle opens on Memories** (decision 0094): a control at the top chooses
+- **Chronicle opens on Memories** (decision 0098): a control at the top chooses
   **Memories | Walks | Days | Map**, and leaving for another tab puts it back on
   Memories. Memories is the feed:
   - **A resurfaced moment** at the top, different on each open, in the user's own
@@ -266,6 +280,8 @@ recording bar brings a minimized walk back.
   test. Permission is asked only from a tap (first pause, a reminder saved, a
   switch turned on), never at launch. On the web, notifications come from a
   service worker and only work while the page is alive.
+- Scenic routes: three switches in the walk settings (Green, Sights, Streets
+  with life), all on by default; all off, Go here goes the direct way.
 - Distances show in km or miles: a "Distances" choice in the walk settings (the ready bar pulled up),
   defaulting from the device's region. It reaches every distance the app shows,
   the scale bar included.
@@ -309,7 +325,8 @@ recording bar brings a minimized walk back.
 | Quality of life round 2: km or miles, time left while navigating, the "Not recording" chip with Open Settings and a retry on return | Shipped (web verified by the qol e2e; native unverified) |
 | Quality of life round 3: rename a walk later, edit a note, photos on their pins, months in the walks list | Shipped (web verified by the qol e2e; native unverified) |
 | Bridges and Open in Maps | Shipped on web, audited (native unverified) |
-| Suggested routes (interesting ways, route preview, "Walk this way") | Deferred, next slice |
+| Scenic routes (Go here offers Direct and one route per leaning: green, sights, streets with life) | Shipped on web (native unverified) |
+| Explore's route preview, "Walk this way" | Deferred |
 | Media editing: crop, rotate, filters, drawing, text, video trim, all saved out | Shipped on web (native unverified; the video module never compiled) |
 | Backup and export of a walk | Code exists, no UI, deferred |
 | Quick capture outside the app (widget, lock screen, share sheet) | Deferred |

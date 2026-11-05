@@ -13,6 +13,8 @@
  *   3. Every repo path the docs name in backticks exists.
  *   4. A criterion prefix belongs to one spec, a decision number to one record
  *      (scripts/collisions.js).
+ *   5. Every live criterion is tested, retired, untested with a reason, or in the
+ *      legacy baseline (scripts/criteria.js).
  *
  * Exit 1 with a list of problems, each saying how to fix it; exit 0 when clean.
  */
@@ -26,6 +28,8 @@ process.chdir(ROOT);
 const BUDGET = {
   agentsLines: 200,
   agentsBytes: 12_000,
+  visionLines: 160,
+  visionBytes: 12_000,
   ruleChars: 40_000,
   skillLines: 500,
 };
@@ -42,6 +46,7 @@ const PATH_CHECKED = [
   'docs/PRODUCT.md',
   'docs/DEFERRED.md',
   'docs/NATIVE_UNVERIFIED.md',
+  'docs/VISION.md',
   ...list('.claude/rules', '.md'),
   ...list('.claude/agents', '.md'),
   ...listSkills(),
@@ -135,6 +140,18 @@ function frontmatterPaths(text) {
         'a procedure to a skill, and keep only what every session needs.',
     );
   }
+  {
+    // The vision is read whole by every gate (decision 0094): one page, kept to one.
+    const v = fs.readFileSync('docs/VISION.md', 'utf8');
+    const vl = v.split('\n').length;
+    const vb = Buffer.byteLength(v);
+    if (vl > BUDGET.visionLines || vb > BUDGET.visionBytes) {
+      fail(
+        `docs/VISION.md is ${vl} lines / ${vb} bytes (budget ${BUDGET.visionLines} lines / ${BUDGET.visionBytes} bytes). ` +
+          'Every /vision gate reads it whole: keep rules and shapes, move history to docs/decisions/.',
+      );
+    }
+  }
   for (const f of list('.claude/rules', '.md')) {
     const n = fs.readFileSync(f, 'utf8').length;
     if (n > BUDGET.ruleChars) {
@@ -200,6 +217,11 @@ for (const doc of PATH_CHECKED) {
     fail(`Decision number ${d.number} is held by ${d.files.join(' and ')}: renumber the newer one to the next free number, in its file name, its title, docs/decisions/README.md and what cites it.`);
   }
 }
+
+// 5. Every live criterion has a status: a test, a retirement, a reason, or the legacy baseline (TG20-TG22)
+for (const p of require('./criteria').check(ROOT)) fail(p.message);
+// The device acceptance suite: its format, and an item for every device-only criterion (DV1-DV5).
+for (const p of require('./device').check(ROOT)) fail(p.message);
 
 if (problems.length) {
   console.error(`check-docs: ${problems.length} problem${problems.length > 1 ? 's' : ''}`);

@@ -48,8 +48,7 @@ Local notifications on both platforms (`lib/notify`): the contract, kinds and sw
     storage (a browser refuses a late prompt); a kind switched off never
     prompts; turning Pause reminder off cancels a pending one; `show` resolves
     whether it showed, so the test never says "Sent." for nothing; a failed
-    service-worker registration is retried; old `ambient-` notices are cleared
-    at stop for one more release. The switches save as they change.
+    service-worker registration is retried. The switches save as they change.
   - **Shared origin:** GitHub Pages serves every project of the account from one
     origin, so they share notification permission (and IndexedDB). A crafted
     `?notice=` link can only name capture ids, which can't be guessed.

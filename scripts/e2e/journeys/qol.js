@@ -84,6 +84,26 @@ async function run(h) {
       await pg.waitForTimeout(800);
     };
 
+    // What is drawn around a point of the map (QL3): green pixels (the trace's colour) and the middle one,
+    // read from a screenshot of the composited page, decoded in the page.
+    const pixelsAround = async (p, r = 14) => {
+      const [x, y] = await pg.evaluate((q) => window.__project(q), p);
+      const png = await pg.screenshot({ clip: { x: x - r, y: y - r, width: 2 * r, height: 2 * r } });
+      return pg.evaluate(async (b64) => {
+        const bytes = Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0));
+        const bmp = await createImageBitmap(new Blob([bytes], { type: 'image/png' }));
+        const cv = new OffscreenCanvas(bmp.width, bmp.height);
+        const g = cv.getContext('2d');
+        g.drawImage(bmp, 0, 0);
+        const d = g.getImageData(0, 0, bmp.width, bmp.height).data;
+        const near = (i, rgb, tol) => Math.abs(d[i] - rgb[0]) + Math.abs(d[i + 1] - rgb[1]) + Math.abs(d[i + 2] - rgb[2]) <= tol;
+        let green = 0;
+        for (let i = 0; i < d.length; i += 4) if (near(i, [0x15, 0x80, 0x3d], 90)) green++;
+        const c = ((bmp.height >> 1) * bmp.width + (bmp.width >> 1)) * 4;
+        return { green, white: near(c, [255, 255, 255], 24), centre: [d[c], d[c + 1], d[c + 2]] };
+      }, png.toString('base64'));
+    };
+
     // The map's credits start closed behind their (i) button, and a tap opens them (owner, Nov 4:
     // maplibre's compact attribution opened itself across the bottom of a phone's map).
     const attribution = () => pg.evaluate(() => {
@@ -286,7 +306,7 @@ async function run(h) {
       const s4 = await scaleBar();
       const ends = await attr('data-ends');
       check(round(s4) && fits(s4), `qol QL5: Chronicle shows the scale bar (${describe(s4)})`);
-      check(ends == null || ends === '' || ends === '|', `qol QL1: Chronicle draws no trace, so it marks no start (data-ends ${JSON.stringify(ends)})`);
+      check(ends !== null && (ends === '' || ends === '|'), `qol QL1: Chronicle draws no trace, so it marks no start (data-ends ${JSON.stringify(ends)})`);
     }
     await tabTo(pg, 'navigate');
     await pg.waitForTimeout(800);
@@ -338,6 +358,7 @@ async function run(h) {
     });
     await pg.waitForTimeout(2500);
     // Time left beside the distance (QL17, QL18), then End so the trace and its ends show as before.
+    let qlNav = null;
     {
       const navLeft = pg.locator('[data-testid=nav-left]');
       await navLeft.waitFor({ timeout: 20000 }).catch(() => {});
@@ -345,6 +366,9 @@ async function run(h) {
       const label = (await navLeft.count()) ? await navLeft.getAttribute('aria-label') : '';
       check(/·\s*(<\s*1|\d+(\s*h\s*\d+)?)\s*min\s*·/.test(text) && /about .* left to /.test(label || ''),
         `qol QL17, QL18: the navigation bar says the time left and its label speaks it (${JSON.stringify(text)}, ${JSON.stringify(label)})`);
+      // QL3: the start marker goes with the trace, which steps aside while navigating.
+      const navEnds = lonLat(((await attr('data-ends')) ?? '').split('|')[0]);
+      qlNav = navEnds ? { at: navEnds, opacity: await pg.locator('[data-trace-opacity]').last().getAttribute('data-trace-opacity'), px: await pixelsAround(navEnds) } : null;
       if (await pg.locator('[data-testid=nav-end]').count()) await pg.click('[data-testid=nav-end]');
       await pg.waitForTimeout(800);
     }
@@ -354,6 +378,11 @@ async function run(h) {
       const startAt = lonLat(a);
       check(ends != null && startAt && mAway(startAt, s0) < 15 && !b,
         `qol QL2, QL4: a live walk marks where it began and has no end marker (data-ends ${JSON.stringify(ends)}, start ${startAt ? mAway(startAt, s0).toFixed(1) : '-'} m from the first fix)`);
+      // QL3: drawn above the trace that starts under it (its middle is the marker's white, not the line's
+      // green, with its green ring round it); while navigating, neither marker nor trace was drawn.
+      const px = startAt ? await pixelsAround(startAt) : null;
+      check(qlNav && qlNav.opacity === '0' && qlNav.px.green <= 3 && px && px.white && px.green >= 30,
+        `qol QL3: the start marker sits above the trace and goes with it while navigating (navigating: ${JSON.stringify(qlNav && { opacity: qlNav.opacity, ...qlNav.px })}; after End: ${JSON.stringify(px)})`);
       const s5 = await scaleBar();
       const stop = await pg.locator('[data-testid=stop]').boundingBox();
       check(round(s5) && fits(s5) && s5.box && stop && s5.box.y + s5.box.height <= stop.y + 0.5,
@@ -386,6 +415,22 @@ async function run(h) {
         `qol QL8: the replay's scale bar sits above the card (bar bottom ${s6 && s6.box && Math.round(s6.box.y + s6.box.height)}, card from ${Math.round(cardTop)}; ${describe(s6)})`);
     }
     await shot(pg, 'qol-03-replay-card');
+    // QL3: the markers never take a tap: the photo and the note were kept where the trace ends, so their
+    // pin stands on the end marker, and a tap there opens it.
+    await qstep('qol QL3 tap', async () => {
+      const endAt = lonLat(((await attr('data-ends')) ?? '').split('|')[1]);
+      const [x, y] = await pg.evaluate((q) => window.__project(q), endAt);
+      const hit = await pg.evaluate(([px, py]) => {
+        const el = document.elementFromPoint(px, py);
+        const pin = el && el.closest('[aria-label$=". Open"]');
+        return pin ? pin.getAttribute('aria-label') : el ? el.tagName.toLowerCase() : null;
+      }, [x, y - 4]);
+      await pg.mouse.click(x, y - 4);
+      const opened = await pg.waitForSelector('[data-testid=viewer-close]', { timeout: 5000 }).then(() => true, () => false);
+      check(opened && /Open$/.test(hit ?? ''), `qol QL3: a tap on a pin over the end marker opens the pin (${JSON.stringify(hit)}, viewer ${opened})`);
+      if (opened) await pg.click('[data-testid=viewer-close]');
+      await pg.waitForTimeout(400);
+    });
 
     // A note edited from the replay's viewer reads the new words when opened again (QL24, QL25).
     const openNote = async () => {
@@ -503,6 +548,20 @@ async function run(h) {
       const { c: c2, pg: pg2 } = await freshPage('qol-denied', { permissions: [] });
       await pg2.goto(navUrl);
       await pg2.waitForSelector('[data-testid=start]');
+      // QL21: Navigate's own fix as it comes to the front is refused, quietly: no banner, no chip. Locate
+      // is the loud path: its tap says why.
+      const deniedSaid = () => pg2.getByText(/Location permission was denied|Couldn.t find your position/).count();
+      await pg2.waitForTimeout(3000);
+      const quiet = { banners: await deniedSaid(), chip: await pg2.locator('[data-testid=status-chip]').count() };
+      await pg2.locator('xpath=//*[@data-testid="locate"][not(ancestor::*[@aria-hidden="true"])]').first().click();
+      await pg2.waitForTimeout(2500);
+      const loud = await deniedSaid();
+      check(quiet.banners === 0 && quiet.chip === 0 && loud >= 1,
+        `qol QL21: denied, Navigate's own fix on focus stays quiet; Locate says why (on focus ${JSON.stringify(quiet)}, after Locate ${loud})`);
+      for (let i = 0; i < 4 && (await pg2.locator('[data-testid=banner-dismiss]').count()); i++) {
+        await pg2.locator('[data-testid=banner-dismiss]').first().click();
+        await pg2.waitForTimeout(300);
+      }
       await pg2.waitForTimeout(800);
       await pg2.click('[data-testid=start]');
       const chip = pg2.locator('[data-testid=status-chip]');

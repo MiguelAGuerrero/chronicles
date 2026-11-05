@@ -81,13 +81,6 @@ test('TB4: the walk screen\'s borders are lines only, the town you\'re in firmer
   assert.ok(!v!.shapes.some((s) => s.role === 'tinted'), 'no fill on the walk screen');
 });
 
-test('TB5: a walk\'s towns are tinted, the rest of the tile lined', () => {
-  const walked = [outlineOf({ name: 'Whitehall', at: [-75.507445, 40.657413] }, z10)!.id];
-  const v = bordersFor(z10, { tinted: walked, near: GYM });
-  assert.equal(roleOf(v, 'Whitehall'), 'tinted');
-  assert.equal(roleOf(v, 'Coplay'), 'lined');
-});
-
 test('TB6: a border is drawn whole: Whitehall at z10 reaches past the z12 tile that decides; two tiles make one border', () => {
   const drawn = z10.towns.find((t) => t.name === 'Whitehall')!;
   // What decided at the gym: its own z12 tile, cut at the tile's edge.

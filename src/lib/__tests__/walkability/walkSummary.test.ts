@@ -1,62 +1,54 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
 import { test } from 'node:test';
-import { tileAt } from '../../tileMath';
 import type { LngLat } from '../../types';
-import { ringWords } from '../../walk/layer';
-import { walkTileKey } from '../../walk/match';
-import { areaWords, bandLengths } from '../../walk/summary';
+import { cellsFor } from '../../walk/cells';
+import { cellWords, countCells } from '../../walk/summary';
+import type { Cell } from '../../walk/cells';
+import type { CellBand } from '../../walk/form';
 import type { WayFacts } from '../../walk/types';
 
-// Walkability (WK11, WK12), written from specs/walkability/spec.md before the code.
+// Urban form, the area card's line (UF13, UF14, UF12), written from specs/walkability-urban-form/spec.md before the code.
 
-const L = (foot: number, mixed: number, car: number, unknown = 0) => ({ foot, mixed, car, unknown });
+const mk = (foot: number, car: number, neither = 0, empty = 0): Cell[] => {
+  const out: Cell[] = [];
+  let i = 0;
+  const push = (n: number, band: CellBand) => { for (let k = 0; k < n; k++) out.push({ i: i++, j: 0, west: 0, south: 0, east: 0, north: 0, band }); };
+  push(foot, 'foot'); push(car, 'car'); push(neither, 'neither'); push(empty, 'empty');
+  return out;
+};
 
-test('WK11: an area is said in words from its streets', () => {
-  assert.equal(areaWords(L(800, 100, 100)), 'Mostly easy on foot');
-  assert.equal(areaWords(L(100, 100, 800)), 'Mostly built around cars');
-  assert.equal(areaWords(L(400, 100, 500)), 'A mix of easy and car-oriented streets');
-  assert.equal(areaWords(L(100, 800, 100)), 'Mostly mixed');
-  // Most of it unknown: nothing is said.
-  assert.equal(areaWords(L(100, 50, 50, 900)), null);
-  assert.equal(areaWords(L(0, 0, 0, 0)), null);
+test('UF13: the words say what the ground is, never how much or what it will be like: close together, far apart, both, or nothing', () => {
+  assert.equal(cellWords(countCells(mk(60, 10, 30))), 'Streets close together, with crossings', 'foot is 60% of the cells that are not empty');
+  assert.equal(cellWords(countCells(mk(10, 60, 30))), 'Streets far apart and busy');
+  assert.equal(cellWords(countCells(mk(40, 30, 30))), 'Streets close together and far apart, side by side');
+  assert.equal(cellWords(countCells(mk(20, 20, 60))), null, 'neither dominates: nothing');
+  assert.equal(cellWords(countCells(mk(59, 25, 16))), 'Streets close together and far apart, side by side', 'just under 60% foot, car at 25%');
+  assert.equal(cellWords(countCells(mk(59, 11, 30))), null, 'just under 60% foot and under 25% car: nothing');
+  assert.equal(cellWords(countCells(mk(0, 0, 0, 40))), null, 'mostly empty: nothing');
+  assert.equal(cellWords(countCells([])), null);
+  // Empty cells are left out of the shares.
+  assert.equal(cellWords(countCells(mk(6, 1, 3, 500))), 'Streets close together, with crossings');
 });
 
-test('WK11: lengths add up per band, unknown for a segment with none', () => {
-  const segs = [{ id: 'a', length_m: 100 }, { id: 'b', length_m: 50 }, { id: 'c', length_m: 25 }];
-  const got = bandLengths(segs, new Map([['a', 'foot'], ['b', 'car']] as const));
-  assert.deepEqual(got, { foot: 100, mixed: 0, car: 50, unknown: 25 });
+test('WK12, UF12, UF13: no number, count, percentage or comparison in any line', () => {
+  for (const c of [mk(60, 10, 30), mk(10, 60, 30), mk(40, 30, 30)]) assert.ok(!/\d|%|most walkable|more walkable|less walkable|best|worst|rank/i.test(cellWords(countCells(c))!));
 });
 
-test('WK12: nothing is a score: no digit, percent or comparison in any line', () => {
-  const lines = [L(800, 100, 100), L(100, 100, 800), L(400, 100, 500), L(100, 800, 100), L(1, 1, 1, 0)].map(areaWords);
-  for (const line of lines) {
-    if (line == null) continue;
-    assert.ok(!/\d|%|most walkable|more walkable|less walkable|best|worst|rank/i.test(line), line);
-  }
-});
+const require = createRequire(import.meta.url);
+type Fx = { places: Record<string, { at: LngLat; tiles: Record<string, { ways: WayFacts[]; junctions: LngLat[] }> }> };
+const FX = require('./walkFixtures.json') as Fx;
+const wordsAround = (key: string, ringM: number) => {
+  const p = FX.places[key];
+  const ways = new Map(Object.entries(p.tiles).map(([k, t]) => [k, t.ways]));
+  const junctions = new Map(Object.entries(p.tiles).map(([k, t]) => [k, t.junctions]));
+  return cellWords(countCells(cellsFor(ways, junctions), p.at, ringM));
+};
 
-// The area card's line (WK11, owner's call 2026-11-04: the card, at town and neighbourhood level).
-
-const C: LngLat = [-75.19, 40.69];
-const KX = 111_320 * Math.cos((C[1] * Math.PI) / 180);
-const pt = (dx: number, dy: number): LngLat => [C[0] + dx / KX, C[1] + dy / 110_540];
-let wn = 0;
-const wy = (cls: string, a: [number, number], b: [number, number], more: Partial<WayFacts> = {}): WayFacts => ({ id: `r${wn++}`, cls, level: 0, line: [pt(...a), pt(...b)], ...more });
-const home = tileAt(C);
-const tl = (ws: WayFacts[]) => new Map([[walkTileKey(home.x, home.y), ws]]);
-
-test('WK11: a ring is described by the streets inside it only; streets beyond it count for nothing', () => {
-  const inside = [wy('motorway', [-300, 0], [300, 0]), wy('trunk', [-300, 100], [300, 100]), wy('primary', [-300, 200], [300, 200], { speedKmh: 90 })];
-  const outside = [0, 1, 2, 3, 4].map((i) => wy('pedestrian', [-300, 1500 + i * 20], [300, 1500 + i * 20]));
-  assert.equal(ringWords(tl([...inside, ...outside]), C, 800), 'Mostly built around cars');
-  assert.equal(ringWords(tl(outside), C, 800), null, 'nothing of the ring was read');
-  assert.equal(ringWords(new Map(), C, 800), null);
-});
-
-test('WK11, WK12: a ring of calm streets with sidewalks says easy on foot, in words with no number', () => {
-  const calm = [0, 1, 2].flatMap((i) => [wy('residential', [-300, i * 60], [300, i * 60], { speedKmh: 30 }), wy('footway', [-300, i * 60 + 8], [300, i * 60 + 8], { sub: 'sidewalk' })]);
-  const w = ringWords(tl(calm), C, 800);
-  assert.equal(w, 'Mostly easy on foot');
-  assert.ok(!/\d/.test(w!));
+test('WK11, UF14: the card for downtown Allentown says its streets are close together; the mall\'s and the suburb\'s do not', () => {
+  assert.equal(wordsAround('allentownDowntown', 250), 'Streets close together, with crossings');
+  assert.equal(wordsAround('allentownGrid', 250), 'Streets close together, with crossings');
+  assert.notEqual(wordsAround('lvMall', 250), 'Streets close together, with crossings');
+  assert.equal(wordsAround('suburb', 250), 'Streets far apart and busy');
 });

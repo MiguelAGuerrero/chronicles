@@ -1,22 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createWalkGate } from '../../walkGate';
-import { BENEATH_TAB, entryPlan, exitPlan, navigatePress, screenState, startNotice } from '../../readyNav';
+import { exitPlan, screenState, startNotice } from '../../readyNav';
 
 test('NR1: with no walk open the walk screen is ready; until the read settles it waits', () => {
   assert.equal(screenState({ known: false, walkId: null }), 'loading');
   assert.equal(screenState({ known: true, walkId: null }), 'ready');
   assert.equal(screenState({ known: true, walkId: 'w1' }), 'walking');
-});
-
-test('NR2: a Navigate press opens the walk screen, ready or with the walk open, never a tab of its own', () => {
-  assert.deepEqual(navigatePress(), { preventTab: true, showWalk: true });
-});
-
-test('NR3: a link to /navigate puts Explore beneath, then opens the walk screen over it', () => {
-  // The app itself opens on Explore at `/` with no walk open, and on the walk with one (the owner, Nov 4).
-  assert.equal(BENEATH_TAB, '/');
-  assert.deepEqual(entryPlan(), { tabs: '/', thenShowWalk: true });
 });
 
 test('NR4: the chevron and Back return to the tab beneath, Explore when there is none', () => {

@@ -17,7 +17,7 @@ the useful moment is just before the stretch, without opening anything.
 ## Decisions
 
 - **Silent** (the owner, 2026-11-04): no sound, no haptic, no notification. A pocketed phone is not told.
-- **Only on a navigated route** (the owner, 2026-11-04): it looks ahead along the route you are following. A walk with
+- **Only on a navigated route, with the Walkability layer on** (the owner, 2026-11-04 and 2026-11-05): it looks ahead along the route you are following. A walk with
   no route says nothing; there is no guess about where you are heading.
 - **It never routes** (specs/walkability WK16): no "avoid", no alternative, no change to the route.
 - **Words, not a number** (AGENTS.md, nothing is a score): no distance, count or percentage in the line.
@@ -55,8 +55,8 @@ the useful moment is just before the stretch, without opening anything.
 
 ### What it needs
 
-10. **WH10 · A route, and nothing else.** With no navigation, or after End or arrival, nothing shows and what was said is
-    forgotten. It does not depend on the map's walkability switch (WK13): the layer can be off.
+10. **WH10 · A route and the Walkability layer, and nothing else.** With no navigation, or after End or arrival, nothing shows and what was said is
+    forgotten. **It follows the Walkability layer** (specs/map-layers; the owner, 2026-11-05): with the layer off nothing shows and no route tile is read.
 11. **WH11 · Reads only the route's tiles.** The tiles within 100 m of the route, 12 at most, from the device where kept
     (specs/walkability WK2, WK4), once per route. Nothing is read without a route.
 12. **WH12 · No data says nothing, never an error.** If the tiles can't be read (offline, Overture and Overpass both
@@ -75,7 +75,7 @@ the useful moment is just before the stretch, without opening anything.
 ## Record
 
 Built with the walkability slice (2026-11-04) as WK15 and WK16, then given this spec. Tests named by id:
-`src/lib/__tests__/walkHeadsUp.test.ts` (WH1-WH8, WH10-WH13; these assert behaviour that was built first, so they were
+`src/lib/__tests__/walkability/walkHeadsUp.test.ts` (WH1-WH8, WH10-WH13; these assert behaviour that was built first, so they were
 written to pass, not seen failing) and the e2e journey `headsup` (WH3, WH7-WH10, WH13: a fake Overture tile with
 every street fast, a real walk and a routed destination). WH9's "not while a voice memo is recording" is checked in
 code only (`!recordingVoice` in `walk.tsx`).

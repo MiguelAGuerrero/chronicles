@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { BORDER, COLORS, FOG_STYLE, HOTSPOT, HOTSPOT_PIN } from '../../../components/map/types';
+import { BORDER, COLORS, FOG_STYLE, HOTSPOT } from '../../../components/map/types';
 
 // The owner's calls (Nov 1): the trace is green, and hotspots move to magenta.
 
@@ -38,11 +38,9 @@ test('colors: hotspots are magenta, and no other layer shares their hue or the t
     assert.ok(Math.abs(hue(c) - hue(COLORS.trace)) > 25, `${c} too close to the trace`);
     assert.ok(Math.abs(hue(c) - h) > 20, `${c} too close to hotspots`);
   }
-  // White text on the Start here pin reads at AA (4.5:1).
-  assert.ok(contrast('#ffffff', HOTSPOT_PIN) >= 4.5, `${contrast('#ffffff', HOTSPOT_PIN)}`);
 });
 
-test('colors: the fog is quiet unless asked for, so the trace reads over a scan’s streets', () => {
+test('colors: the fog is quiet unless asked for, so the trace reads over the fog’s streets', () => {
   assert.ok(FOG_STYLE.opacity <= 0.55);
   assert.ok(FOG_STYLE.widthMax <= 2.5);
   assert.ok(FOG_STYLE.widthMax < FOG_STYLE.traceWidth, 'the trace is wider than the fog');

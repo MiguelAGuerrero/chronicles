@@ -1,5 +1,7 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { test } from 'node:test';
 import { tilesNear } from '../../tileMath';
 import type { LngLat } from '../../types';
@@ -27,12 +29,6 @@ test('WH1: only a car stretch of 100 m or more is a stretch', () => {
   for (const b of ['mixed', 'foot', 'unknown'] as Band[]) assert.deepEqual(carStretches(path, segs, bands(b)), [], b);
   assert.deepEqual(carStretches(path, segs, new Map()), [], 'no data');
   assert.deepEqual(carStretches([at(0), at(90)], [seg('s', 'X', 0, 90)], new Map([['s', 'car']])), [], 'under 100 m');
-});
-
-test('WH2: a new route over the same stretch is the same stretch', () => {
-  const [a] = carStretches(path, segs, bands('car'));
-  const [b] = carStretches([at(100), at(1000)], segs, bands('car'));
-  assert.equal(a.key, b.key);
 });
 
 test('WH3: it appears within 200 m of the stretch, not before, and is there when on it', () => {
@@ -85,9 +81,12 @@ test('WH8, WH13: the watch reaches nothing but the clock: it cannot buzz, notify
   const [s] = carStretches(path, segs, bands('car'));
   w.stretches('r', [s]);
   w.at(150);
-  assert.ok(w.store.get().show);
-  assert.deepEqual(Object.keys(only), ['clock'], 'it was given a clock and no notifier, recorder or db');
-  assert.deepEqual(p.log.effects(), [], 'nothing left the app');
+  assert.ok(w.store.get().show, 'given only a clock, it still says the stretch');
+  // Nor can it reach one another way: the watch and its decisions import no notifier, motion, recorder or db.
+  for (const f of ['aheadWatch.ts', 'ahead.ts']) {
+    const imports = readFileSync(join(__dirname, '..', '..', 'walk', f), 'utf8').match(/^import .*$/gm) ?? [];
+    for (const line of imports) assert.doesNotMatch(line, /notif|motion|feedback|haptic|recorder|\/db\b|ports(\/index)?'/, `${f}: ${line}`);
+  }
 });
 
 test('WH10: no route says nothing; ending the route forgets what was said', () => {

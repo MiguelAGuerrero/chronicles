@@ -3,6 +3,7 @@ import type { Ports } from '../ports/types';
 import { WALK_CODE } from './bands';
 import { MAX_TILES } from './limits';
 import { walkTileKey } from './match';
+import type { LngLat } from '../types';
 import type { TileFacts, WalkSource, WalkTile, WayFacts } from './types';
 
 /*
@@ -22,6 +23,8 @@ export const OVERPASS_KEEP_MS = 30 * 60_000;
 export interface WalkRead {
   /** Ways per tile, keyed `walkTileKey`. A tile not here has no data (WK3, WK10). */
   tiles: Map<string, WayFacts[]>;
+  /** Where streets meet, per tile (UF3). */
+  junctions: Map<string, LngLat[]>;
   /** How many tiles asked for could not be had. */
   failed: number;
 }
@@ -80,6 +83,7 @@ export function createWalkReader(p: Pick<Ports, 'db' | 'clock'>, source: WalkSou
       const kept = await p.db.getWalkTiles(keys).catch(() => [] as WalkTile[]);
       const byKey = new Map(kept.filter((t) => t.code === WALK_CODE).map((t) => [t.key, t]));
       const out = new Map<string, WayFacts[]>();
+      const junctions = new Map<string, LngLat[]>();
       let failed = 0;
       for (const [x, y] of want) {
         const key = walkTileKey(x, y);
@@ -88,6 +92,7 @@ export function createWalkReader(p: Pick<Ports, 'db' | 'clock'>, source: WalkSou
         // An unknown build (the release could not be looked up) trusts what the device holds (walkability audit 11).
         if (have && (have.from === 'overture' ? have.build === build || build === 'unknown' : now - have.read_at < OVERPASS_KEEP_MS)) {
           out.set(key, have.ways);
+          junctions.set(key, have.junctions ?? []);
           continue;
         }
         // A screen that has moved on does not queue the rest of its tiles (walkability audit 6).
@@ -98,7 +103,8 @@ export function createWalkReader(p: Pick<Ports, 'db' | 'clock'>, source: WalkSou
           if (got) {
             failedAt.delete(key);
             out.set(key, got.ways);
-            const row: WalkTile = { key, x, y, build: got.from === 'overture' ? build : 'overpass', code: WALK_CODE, from: got.from, read_at: p.clock.now(), ways: got.ways };
+            junctions.set(key, got.junctions);
+            const row: WalkTile = { key, x, y, build: got.from === 'overture' ? build : 'overpass', code: WALK_CODE, from: got.from, read_at: p.clock.now(), ways: got.ways, junctions: got.junctions };
             settled.set(key, row);
             await p.db.putWalkTiles([row]).catch(() => {});
             continue;
@@ -106,10 +112,12 @@ export function createWalkReader(p: Pick<Ports, 'db' | 'clock'>, source: WalkSou
           failedAt.set(key, p.clock.now());
         }
         // Could not be read now: any older tile is better than none, a previous Overture release's too (WK3, audit 11).
-        if (have) out.set(key, have.ways);
-        else failed++;
+        if (have) {
+          out.set(key, have.ways);
+          junctions.set(key, have.junctions ?? []);
+        } else failed++;
       }
-      return { tiles: out, failed };
+      return { tiles: out, junctions, failed };
     },
   };
 }

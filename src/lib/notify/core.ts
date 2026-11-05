@@ -91,8 +91,6 @@ export function routeResponse(r: Pick<NoticeResponse, 'data' | 'action'>): { kin
 
 export const recallId = (walkId: string) => `recall-${walkId}`;
 export const pauseId = (walkId: string) => `pause-${walkId}`;
-/** Hints left by a build before explore (ambient); cleared at stop for one more release (audit 7). */
-const legacyIds = (walkId: string) => [`ambient-${walkId}`];
 
 /** The app's notifier: the same calls on every platform. */
 export interface Notifier {
@@ -159,7 +157,7 @@ export function createNotifier(o: {
       });
     },
     async walkEnded(walkId) {
-      for (const id of [recallId(walkId), pauseId(walkId), ...legacyIds(walkId)]) await t.cancel(id).catch(() => {});
+      for (const id of [recallId(walkId), pauseId(walkId)]) await t.cancel(id).catch(() => {});
     },
     async ask(kind) {
       if (!kind || (await on(kind))) await allowed(true);

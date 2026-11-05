@@ -27,6 +27,7 @@ test('WK1: Overture\'s transportation archive is the release\'s one file, read b
   const got = await src.read(T.x, T.y);
   assert.equal(got?.from, 'overture');
   assert.equal(got?.ways[0].cls, 'residential');
+  assert.deepEqual(got?.junctions, [], 'no connector layer in the fixture tile: no junctions');
   assert.deepEqual(asked, [`14/${T.x}/${T.y}`], 'the tile and nothing else (WK18)');
   const empty = await src.read(T.x + 1, T.y);
   assert.deepEqual(empty?.ways, [], 'a tile the archive lacks is a tile with no roads');
@@ -60,6 +61,7 @@ test('WK1b, WK18: Overpass is asked with the tile\'s bounds in a form body and n
   const got = await src.read(T.x, T.y);
   assert.equal(got?.from, 'overpass');
   assert.equal(got?.ways.length, 1);
+  assert.deepEqual(got?.junctions, [], 'one way shares no node');
   assert.equal(calls.length, 1);
   assert.equal(calls[0].init.method, 'POST');
   const body = String(calls[0].init.body);

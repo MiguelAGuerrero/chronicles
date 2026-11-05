@@ -153,8 +153,19 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
   itself. iOS also draws no frame of a video that hasn't played. Headless
   Chromium allows sound regardless (any earlier tap counts), so the e2e copies
   iOS's rule into a fresh page by overriding `HTMLMediaElement.prototype.play`.
-- expo-video on web ignores `play()` before the source has loaded. Start it on
-  `statusChange` → `readyToPlay`.
+- **On web, never wait for `readyToPlay` before `play()`** (fix ios-video, Nov 5:
+  the replay's video never loaded on the owner's iPhone). expo-video's web
+  `play()` reaches only the `<video>` tags already mounted, and iOS Safari
+  loads nothing until `play()` is called, so it never gets to `readyToPlay`
+  (`readyState >= 3`) on its own: a gate on it waits forever. Call `play()`
+  from an effect of the component that renders the `VideoView` (a parent's
+  effect runs after its children's, so the tag is mounted), and again when a
+  different `VideoView` swaps in (a sized or edited one after the size probe):
+  the new tag starts paused at 0, so the viewer seeks it to where the old one
+  had got to (the last `timeUpdate`). Phones still start on `readyToPlay`. The
+  `chronicle` journey's fresh page copies iOS's rule by holding a `<video>`'s
+  `readyState` at 1 until a `play()` is let through (Chromium loads a `blob:`
+  video whatever its `preload` says).
 - **Edit a note** (QL24, QL25): the viewer's More menu offers Edit note for a note
   when the screen passes `onSaveNote`; `NoteEditor` opens inside the viewer's Modal (as
   the caption and reminder editors do). `noteText` (`lib/noteEdit.ts`, pure) trims,

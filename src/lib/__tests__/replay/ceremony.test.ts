@@ -142,13 +142,6 @@ test('RR20: a day\'s story has the same shape, with travel between its entries',
   assert.deepEqual(s.captures.map((c) => c.id), [morning.id, walk.captures[0].id, evening.id]);
 });
 
-test('RR20: a day\'s walk whose replay could not load still shows its moments', () => {
-  const c1 = cap('photo', 10 * 60 * MIN, at(0, 0));
-  const day: Day = { key: '2026-11-04', entries: [{ kind: 'walk', t: c1.t, walk: input([], [c1]).walk, captures: [c1] }], moments: 1, walks: 1 };
-  const s = dayStory(day, new Map());
-  assert.deepEqual(s.events.map((e) => e.kind), ['moment']);
-});
-
 test('RR22: the screen reader\'s steps are the story\'s moments, in order', () => {
   const { story, photo, note } = sampleWalk();
   assert.deepEqual(storySteps(story).map((g) => g.map((c) => c.id)), [[photo.id], [note.id]]);

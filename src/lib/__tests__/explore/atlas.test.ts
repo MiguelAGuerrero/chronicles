@@ -322,19 +322,6 @@ test('atlas round 3: your own town is the title, never listed again among the ot
   assert.deepEqual(otherTowns(nearList([rows[1]], O, 'town', 'b1')).map((x) => x.area.name), ['Cranston'], 'no home town: all listed');
 });
 
-test('atlas round 3: How the marks work says it in words, with no counts of places', async () => {
-  const { MARKS_EXPLAINED } = await import('../../atlas/atlas');
-  assert.ok(MARKS_EXPLAINED.length >= 3);
-  assert.equal(MARKS_EXPLAINED.join(' ').match(/\d/), null, `no numbers (${MARKS_EXPLAINED.join(' ')})`);
-});
-
-test('atlas round 3: Walk to names the area, and says which street it starts at', async () => {
-  const { walkTarget } = await import('../../atlas/atlas');
-  const p = { strips: ['Thayer Street'], stripAt: east(50) } as AtlasProfile;
-  assert.deepEqual(walkTarget(row('College Hill', O, { profile: p })), { at: east(50), label: 'College Hill', via: 'Thayer Street' });
-  assert.deepEqual(walkTarget(row('Smith Hill', O)), { at: O, label: 'Smith Hill', via: null });
-});
-
 // Atlas grading (AG1-AG6), written from specs/atlas-grading/spec.md before the code.
 
 const marked = (category: CategoryId, n: number, at: LngLat, markable: boolean, tag = ''): AtlasPlace[] =>
@@ -390,6 +377,7 @@ test('AG3: fewer than 3 places in the ring is thin, and the tile’s words say n
 test('AG4: how the marks work names what counts, with no digits', async () => {
   const { MARKS_EXPLAINED } = await import('../../atlas/atlas');
   const all = MARKS_EXPLAINED.join(' ');
+  assert.ok(MARKS_EXPLAINED.length >= 3, 'said in a few lines');
   assert.equal(all.match(/\d/), null, all);
   assert.match(all, /worth finding/i, 'the findable kinds count places worth finding');
   assert.match(all, /food, shops and nightlife/i, 'the others are named');

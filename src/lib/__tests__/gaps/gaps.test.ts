@@ -64,7 +64,7 @@ function only(points: TracePoint[], segs: StreetSegment[], coverage: Bounds | nu
   return inferGap(gaps[0], segs, coverage);
 }
 
-test('gaps: a minute without fixes, 40 m or more apart and at most 30 min, is a gap (G1)', () => {
+test('gaps: a minute without fixes, at most 30 min, is a gap from the last fix to the next (G1)', () => {
   const tr = readTrace(withGap([at(1.5, 0), at(2, 0)], [at(6, 0), at(7, 0)], 300), 0);
   const gaps = gapsOf(tr);
   assert.equal(gaps.length, 1);
@@ -72,7 +72,7 @@ test('gaps: a minute without fixes, 40 m or more apart and at most 30 min, is a 
   assert.ok(distanceM(gaps[0].from, at(2, 0)) < 2 && distanceM(gaps[0].to, at(6, 0)) < 2, 'from the last fix to the next');
 });
 
-test('gaps: short, close, long, paused or ridden breaks are not gaps (G1)', () => {
+test('gaps: a break under a minute, over 30 min or across a pause is not a gap (G1)', () => {
   // Fixes 50 s apart: no break at all.
   assert.equal(gapsOf(readTrace(withGap([at(0, 0), at(1, 0)], [at(1.2, 0), at(2, 0)], 50), 0)).length, 0, 'under a minute');
   // 31 minutes out.

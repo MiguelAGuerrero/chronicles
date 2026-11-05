@@ -12,8 +12,10 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 ## Navigation and routes
 
-- Suggested routes: routes to a destination with detours shaped by preferences (streets with life, things worth seeing), their own later slice, decision 0022 (Positioning)
-- Explore's route preview and "Walk this way", with suggested routes (Positioning)
+- Explore's route preview and "Walk this way": Explore's Walk here and an area's "Walk to its busiest street" start at once, with no scenic preview (Positioning; scenic routes, decision 0095)
+- Scenic routes (decision 0095), left out: a detour via one named stop; a loop with no destination ("back here in 30 min"); choosing a route on the ready screen before Start (the preview comes up as Start records); "Streets new to you" as a leaning; a choice of detour size; water and riversides as green; routes past 5 km
+- Scenic routes: a Sights row in a dense centre often says only "past places to find", since most places there are not yet found and never named (scenic routes, SR4)
+- Scenic routes: a start or destination that snaps onto a street piece not joined to the rest (seen once in the Zurich tiles) finds no route at all, direct or scenic; today's Go here has the same gap (scenic routes)
 - Open in Maps on the Explore mark card (v0.5 navigate, Open in Maps)
 - Open in Maps on the dead-zone nudge (v0.5 navigate, Open in Maps)
 - Open in Maps on the home's Walk here (v0.5 navigate, Open in Maps)
@@ -75,7 +77,6 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - The "in front" rule stays per transport: a phone lists background notices quietly, a browser has no list, `NoticeTransport` (Notifications)
 - The Android channel's importance is DEFAULT, so the test may not pop up as a banner (Notifications)
 - Unit tests of the web transport, `notify/transport.web.ts`; the e2e drives the real service worker (Notifications)
-- Old `ambient-` notices are cleared at stop for one more release; drop that clear after it (Notifications, after the audit)
 
 ## Moments and days
 
@@ -212,6 +213,8 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - Highlights (starring a moment during the replay), as in the concept doc
 - The trace is redrawn every 66 ms, so on a zip the line trails the walker by a short stretch (replay-rhythm audit 14)
 - The Undo toast can sit over the clock for its 5 s after a moment is deleted mid-path (replay-rhythm audit, UI notes)
+- **Videos under iOS's loading rule, beyond a plain card** (fix ios-video, Nov 5): the `chronicle` journey copies iOS's rule (no `readyToPlay` before a `play()`) for a plain video card only. Not covered: an edited or trimmed card (its view swap and the seek to the trim's start, audit 5), and a viewer opened by a tapped reminder on a video, which carries its time over when the sized view swaps in (audit 2). A journey with a video reminder and an edited, trimmed clip under the rule would cover both. Never tried in WebKit: whether a time set at `readyState` 0 holds, and whether the size probe's detached `<video>` ever reports its metadata on iOS (if not, an edited video shows unturned in the viewer, as before the fix)
+- **Why Chronicle went white after Keep it** (Nov 4, the owner's iPhone): not reproduced in Chromium. The tabs now show `ScreenError` with the message; the cause waits for it. On a tab, its "Back to walks" goes nowhere (Chronicle is already the route, and only `retry` clears the boundary); Try again and the tab bar work (fix ios-video audit 6)
 
 ## Town presence (TP, decision 0089)
 
@@ -243,7 +246,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - Shells no unit test reaches (9 after test gaps round 1, Nov 4): `session` (the walk lifecycle; the rules call for a reducer), `explore/exploreRun`, `landing/read`, `atlas/read` and `activity/overture` (the explore reads; testing them needs a network-fetch port in `Ports`), `discovery/recallCheck` (reminders), `deletion/index` (its pending core is tested), `backlog` (it takes the map, the snap and the tile build) and `walkNav` (glue over `expo-router`). Each waits on the owner's call for its cluster.
 - Every `src/app` and `src/components` file is covered by a journey row as of Nov 4 (`arch/features.test.ts` does not hold that; `check:affected` names a new screen no row covers when it changes). Shared primitives (`icons`, `ui`, `webStyles*`) ride on the `launch` row, a proxy: no journey checks them for themselves.
 - A second mouse pan on the area card's grip never returned in the e2e (the `atlas` journey drags it with touch events instead; `docs/TESTING.md`, traps): whether a mouse pan after the spring-back blocks the page on the web is worth a look in the app (Explore atlas).
-- Live criterion ids no test names (`npm run check:specs`, 25 of 478 after main's media editing and town borders, Nov 4): triaged in `specs/test-gaps/triage.md`. Four look retired (H2, H3, E14, L17) and two may never have shipped (NH8, MR2): the owner's calls. Eighteen are owed tests (TB12 added), mostly e2e checks in journeys that exist. RR17 can only be checked on a device. `--strict` stays out of CI and the hook until the list is empty.
+- Live criterion ids no test names (`npm run check:specs`, 28 of 533 after the test trim, Nov 5, counting only a test's name or a check's message, never a comment): 27 are in `scripts/criteria.baseline.json`, which only shrinks, and RR17 is device-only (`UNTESTED`). The trim retired twelve criteria whose text no longer matches the code (`specs/test-gaps/trim.md`). The 27 are named only in comments beside checks that test them in substance: each wants its check renamed or a test of its own.
 - Coverage is a report (`npm run test:coverage [<feature>]`, TD2) with no threshold, in neither CI nor the hook; Node lists only the files a test loads, so a file no test reaches is missing from it, not at 0% (`check:affected` names those).
 - `walk.tsx` triggers six journeys (`tabs`, `ready`, `marks`, `reload`, `gaps`, `hidden`): a split of the walk screen's own journey (ready, recording, capture) when it grows again.
 - An e2e for the Home Screen hand-off (`navigator.standalone` plus an iPhone UA, a `location.href` spy): `openInMaps` imports `Platform`, so no unit test reaches it (fix pwa-maps audit 1; deferred at `--tests=lean`)
@@ -283,3 +286,26 @@ An item leaves only when it ships, or when it is rejected with a decision record
   - **Android's Back on a thread** (audit 14): a thread is local state, not a route, so Back leaves Chronicle. Native, unverified.
   - **A cliff at the "too common" rule** (audit 15): at ten moments a term in five stops being a thread. A smoother rule needs the owner's idea of "too common".
   - **Merging with main** (audit 16): main wraps Chronicle in the tab `ErrorBoundary`; the new default export must sit inside it after the merge.
+
+## Map layers and walkability by urban form (specs/map-layers, specs/walkability-urban-form, decisions 0096, 0097)
+
+- **The places lift (UF6) is untuned**: 150 weighted places per km² is a starting value with no real places fixture behind it.
+- **The thresholds rest on five places** (`walk/form.ts`); a sixth can disagree. A way to look at the cells (a debug overlay of the signals) is not built.
+- **Cells are 250 m squares**: coarse at close zoom. Smoothing or a finer grid is a look-and-feel call for the owner once seen on a phone.
+- **The tint reads about 1.5 km around the map's centre** (a cell needs its whole neighbourhood read), so it fades out near that edge.
+- **Busy streets draw only for remembered areas** and for the one read when the layer is switched on; a very large view shows only what is near.
+- **The unwalked-streets toggle, fog, "?" marks and routes are not layers yet** (the owner chose only walkability, busy streets and town borders).
+- **Layer options** (a busy-grade slider, a tint choice), **ordering and opacity** are not built.
+- **The long press on a drawn stretch (specs/walkability WK14) is retired**: the layer draws areas, not stretches. A long press on a tint is its own call.
+
+
+## Vision gate (specs/vision-gate, decision 0094)
+
+- **The found tally on a place's sheet** ("12 of 87 · list from Nov 1", E10, `countLine` in `lib/explore/explore.ts`) breaks "counts are words"; carried as debt in `scripts/vision.allow.json` until the owner's call (`docs/VISION.md`, open question 6).
+- **Not checked by script:** tone, accent colours, celebration and motion, a capture moved behind a tap, a moment shown without its context. The steward and `/vision review` cover them; the replay's card keeps its own e2e scan for a large number and an accent colour.
+- **The copy heuristic is lexical:** copy built across several literals, or held in a constant with no space and a lowercase start, is not read; JSX text next to code with `;` or `=` is skipped.
+- **Explore's layers follow the selected area or you, not the panned map** (UI audit 7): pan away and the tint and busy streets are not there, with no cue.
+- **The Layers button is off-screen in a short landscape web window** (UI audit 10, web only; native is portrait).
+- **The heads-up is not announced by VoiceOver or TalkBack** (UI audit 12): `accessibilityLiveRegion` is Android-only and a node that mounts filled is not announced on the web; native needs an explicit announcement.
+- **Escape also closes an open atlas card or capture viewer** in the same keypress as the Layers panel (UI audit 13).
+- **Street-named neighborhoods** (the owner, Nov 5, after "7th Street" was listed as a neighborhood of Allentown): OpenStreetMap names a real neighborhood "7th Street" (Overture's divisions carry it beside "1st Ward", "East Side"), and the tiles' place points bring it in as a neighborhood. The owner chose to leave it. Nothing in `tilePlaces.ts` filters by name; the options weighed were dropping names that end in a street-type word (English suffixes, a re-list with `ATLAS_CODE` a7 and `AREA_RULES` 4) or dropping a name only when the area's own street read has a street of that name.

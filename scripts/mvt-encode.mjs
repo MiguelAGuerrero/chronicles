@@ -52,6 +52,8 @@ function layersOf(f) {
   const p = f.properties ?? {};
   if (f.geometry.type === 'LineString') return p.name ? ['transportation', 'transportation_name'] : ['transportation'];
   if (f.geometry.type === 'Point') return p.subclass ? ['poi'] : ['place'];
+  // Parks, gardens and woods: OpenMapTiles' landcover (scenic routes, SR15).
+  if (f.geometry.type === 'Polygon' && (p.class === 'grass' || p.class === 'wood')) return ['landcover'];
   return [];
 }
 

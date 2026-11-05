@@ -15,6 +15,7 @@ npm test                                    # every unit test, ~13 s; npm run te
 npm run test:feature <feature>              # one feature's folder (src/lib/__tests__/<feature>/); scripts/features.js is the map; test:coverage adds coverage
 npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # one e2e journey; the full flow (no E2E_ONLY) only when the owner asks
 npm run check:docs                          # this file's budget, rule globs, paths the docs name; CI runs it too
+npm run check:vision                        # score words, tallies, hosts, data-sending deps, spec verdicts (0094)
 npx expo-doctor                             # dependency and config issues; npx expo install --fix for versions
 ```
 
@@ -32,6 +33,7 @@ The app is a companion for wandering towns on foot: Explore before (busy areas, 
 
 | Need | Read |
 |---|---|
+| What the product is for, what it never does, how an idea fits | `docs/VISION.md` (`/vision` argues from it) |
 | What the app is and every feature | `docs/PRODUCT.md` |
 | Where the code for X lives, invariants, the web exceptions to native-first, the data model | `docs/ARCHITECTURE.md` |
 | What state the work is in: slices, branches, what waits on the owner | `docs/STATUS.md` |
@@ -44,7 +46,7 @@ The app is a companion for wandering towns on foot: Explore before (busy areas, 
 
 Rule areas: captures-and-media, deletion, explore-and-discovery, functional-core, gaps, landing, map, memories, moments-and-days, motion-polish, navigation, notifications, places-and-areas, react-native-web, recording-and-traces, replay, rides, storage, streets-fog-snapping, tabs-and-home, walk-screen, walkability.
 
-Procedures are skills: `/slice` (spec-first, test-first), `/audit` (the adversarial pass, with the `auditor` subagent, when the owner asks), `/e2e`, `/deploy`, `/docs-gc` (end-of-slice drift check), `/fix` (one issue end to end in a worktree; deploys by default, `--deploy=branch` stops at a pushed branch; decision 0081).
+Procedures are skills: `/vision` (the gate before any spec; `review` for drift; the `steward` subagent), `/slice` (spec-first, test-first), `/audit` (the adversarial pass, with the `auditor` subagent, when the owner asks), `/e2e`, `/deploy`, `/docs-gc` (end-of-slice drift check), `/fix` (one issue end to end in a worktree; deploys by default, `--deploy=branch` stops at a pushed branch; decision 0081).
 
 ## Rules that hold everywhere
 
@@ -64,8 +66,9 @@ Procedures are skills: `/slice` (spec-first, test-first), `/audit` (the adversar
 
 ## Working with the owner
 
+- **Gate first:** `/vision` on any feature idea before its spec. Push back once when it betrays `docs/VISION.md`; then the owner decides (0094).
 - **Ask before architectural decisions:** libraries, data model, platform strategy, navigation flow. Use AskUserQuestion with a recommended option. Local fixes don't need asking.
-- **Spec first, test first.** A slice starts from numbered, testable criteria in its spec, then a plan the owner can read, then one failing test per criterion before its code (`/slice`). It is done when those pass with typecheck, lint, `npm test` and the e2e journeys covering its files; a slice that changes a screen adds a journey for it. The full e2e runs only when the owner asks.
+- **Spec first, test first.** A slice starts from numbered, testable criteria in its spec, then a plan the owner can read, then one failing test per criterion before its code (`/slice`), committed as todos first (`check:test-first` reads the history); `check:docs` fails on a criterion with no test or recorded reason. It is done when those pass with typecheck, lint, `npm test` and the e2e journeys covering its files; a slice that changes a screen adds a journey for it. The full e2e runs only when the owner asks.
 - **Audit when the owner asks** (`/audit`, decision 0074): a report-only pass that tries to break the slice, triage (accept, defer, reject, with reasons; architectural findings go to the owner), a regression test named `<slice> audit N` before each fix.
 - **Deferred is a decision, not a gap.** Record it in `docs/DEFERRED.md`; if the owner chose it, in `docs/decisions/` too.
 

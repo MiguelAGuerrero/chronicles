@@ -1,4 +1,4 @@
-# 0094. Chronicle opens on Memories: what you kept, brought back
+# 0098. Chronicle opens on Memories: what you kept, brought back
 
 Date: 2026-11-05 · Status: accepted · Area: chronicle, product
 

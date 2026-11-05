@@ -89,7 +89,7 @@ test('D5: a second delete stores the first at once and takes the pill', async ()
   assert.equal(p.hidden().has('b'), false);
 });
 
-test('D5: going to the background stores what waits', async () => {
+test('D5: a flush (what going to the background runs, native only) stores what waits', async () => {
   const t = fakeTimers();
   const p = createPending(t);
   const log: string[] = [];

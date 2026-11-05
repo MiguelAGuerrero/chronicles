@@ -8,7 +8,6 @@ import type { CategoryId, Place } from '../../discovery/types';
 import {
   EXPLORE_RULES,
   KINDS,
-  alertsDue,
   pocketAlert,
   alertedFor,
   alertKeys,
@@ -19,14 +18,12 @@ import {
   clampRange,
   countLine,
   findFor,
-  findsLine,
   foundList,
   foundLine,
   homeCount,
   placeCount,
   passedAlong,
   passedCount,
-  passedLine,
   readCentre,
   retryAllowed,
   revealedKeys,
@@ -297,13 +294,7 @@ test('E23: route marks are capped at 20 and skip what already shows nearby, foun
 
 // ——— Pocket alert (E19) ———
 
-test('E19: a place alerts once, when it first comes into range as a ?', () => {
-  const first = alertsDue(['a', 'b'], new Set());
-  assert.deepEqual(first, ['a', 'b']);
-  assert.deepEqual(alertsDue(['a', 'b', 'c'], new Set(['a', 'b'])), ['c']);
-});
-
-test('PA2: places coming into range together give one nudge; each alerts once a walk', () => {
+test('E19, PA2: a place alerts once, when it first comes into range; places coming into range together give one nudge', () => {
   const on = { exploring: true, haptic: true, riding: false, previewing: false };
   const first = pocketAlert({ ...on, nearKeys: ['a', 'b', 'c'], alerted: new Set() });
   assert.deepEqual(first, { mark: ['a', 'b', 'c'], nudge: true }, 'three at once: one nudge');
@@ -373,13 +364,6 @@ test('E10: the place view reads "12 of 87 · list from Nov 1"; an empty checklis
   assert.equal(homeCount({ ...a, count: 0 }, 0), null);
 });
 
-test('E11: the low names places revealed on the walk but not captured (in words since tabs audit U13)', () => {
-  const p = (name: string) => ({ name, generic: false });
-  assert.equal(passedLine([p('A'), p('B'), p('C')]), 'Passed a few places without stopping');
-  assert.equal(passedLine([p('Museum')]), 'Passed Museum without stopping');
-  assert.equal(passedLine([]), null);
-});
-
 // ——— Retry (E5) ———
 
 
@@ -397,12 +381,10 @@ test('E23: a route is probed every 500 m, so each area along it is read once', (
   assert.deepEqual(probes[0], O);
 });
 
-test('E11: a found place shows its name and category with its capture; the card lists finds by category', () => {
+test('E11: a found place shows its name and category with its capture', () => {
   assert.equal(foundLine({ name: 'RISD Museum', category: 'culture', generic: false }), 'Found: RISD Museum · Culture');
   assert.equal(foundLine({ name: 'RISD Museum', category: 'culture', generic: false, kind: 'museums' }), 'Found: RISD Museum · Museums and galleries');
   assert.equal(foundLine({ name: 'Public art', category: 'art', generic: true }), 'Found: Public art');
-  assert.equal(findsLine([{ category: 'art' }, { category: 'culture' }, { category: 'art' }]), 'Found 2 art · 1 culture');
-  assert.equal(findsLine([]), null);
 });
 
 test('E11: the card lists the places found on this walk, by name', () => {

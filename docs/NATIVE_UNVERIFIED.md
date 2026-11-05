@@ -1,247 +1,296 @@
 # Native, unverified on a device
 
-Native has never run on a device. This is every native path AGENTS.md marks "unverified on a device" or "not tried on a device", as a checklist to tick on the first phone runs; the web build is what the e2e exercises.
+Native has never run on a device. This file is the device acceptance suite for the first mobile run (specs/device-acceptance, DV1-DV7): every native path AGENTS.md marks "unverified on a device" or "not tried on a device", each as a test a person runs on a development build, grouped by area. The web build is what the e2e exercises; the last section lists where the e2e stands in for a phone. An item is ticked only on a phone. `npm run check:device` lists the open items by area (`--area <words>` keeps one).
 The concept doc's first milestone, a pocketed walk whose trace survives the screen being off, is still open. The owner's rule: say so in any report that touches native code.
+
+## How to run
+
+**The build.** Run every item on a development build, never Expo Go: the app's native modules, the background location task (registered in `index.js`) and the local module `modules/chronicles-video-edit` are not in Expo Go. Build with `npx expo run:ios` or `npx expo run:android` with the phone plugged in, or with `npx eas-cli@latest build --profile development` once an `eas.json` exists (there is none yet). A simulator, an emulator or the web build never ticks an item.
+
+**Two installs.** Run the suite on a fresh install (delete the app first) and again on an upgrade from an older build. For the upgrade: install a development build of an older commit, make a walk with captures (a note, a photo with a caption, a voice memo, a video, a pause, a reminder), let its replay play, then install the new build over it without deleting the app. That is how the migrations are exercised: the SQLite migrations run once, at the first launch after the upgrade, from `PRAGMA user_version`. To find the commit before migration N, run `git log --oneline -S '<its table or column>' -- src/lib/db/index.native.ts` and build its parent. One upgrade from a build before migration 5 runs them all at once; an upgrade from just before one migration tests it against the rows it was written for.
+
+**What some items need.** A walk outdoors (real GPS, a few hundred metres of named streets), a bus or another ride, the screen off with the phone in a pocket, a second app in front (Maps, Settings), notifications allowed and then denied (Settings, Notifications, Chronicles), location "While Using" and "Always", a screen reader (VoiceOver, TalkBack), reduce motion, airplane mode, and for a few items a tablet or the web build opened in the phone's browser. The item says which. Where an item names iOS and Android, run it on both; tick it once both pass and record the second device.
+
+**Recording a result.** A pass: tick the box, `- [x]`, and end the line with the date and the device, `— passed Nov 9, iPhone 13 (iOS 18.1)`. A failure stays open, `- [ ]`, and ends with what happened, `— failed Nov 9, Pixel 7 (Android 15): <what happened>`. Fix a failure like any other issue (`/fix`); the item stays open until it passes. The ids in parentheses at the end of an item are the criteria it accepts.
 
 ## Migrations (SQLite, `db/index.native.ts` `MIGRATIONS`, tracked with `PRAGMA user_version`)
 
-The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each SQLite migration below has run only in code review. Migrations 1-4 (v0: the base tables, the versioned cache with `walk_summary` and `meta`, videos, pauses and captions) never ran on a device either.
+The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each SQLite migration below has run only in code review. Migrations 1-4 (v0: the base tables, the versioned cache with `walk_summary` and `meta`, videos, pauses and captions) never ran on a device either. Each IndexedDB version named is the web's counterpart, for reference.
 
-- [ ] Migration 5: `area` and `walk_area`, written with the walk's snap (IndexedDB v4)
-- [ ] Migration 6: the `place` cache and the kept `offered`, `mark` and `recall` tables (IndexedDB v5)
-- [ ] Migration 7: the `landing` store of remembered busy areas (IndexedDB v6)
-- [ ] Migration 8: `place.markable`, mapped by `db/placeRow.ts` (IndexedDB stores the whole object, no bump)
-- [ ] Migration 9: `checklist_area`, `checklist_item`, `find`, `explore_read` (IndexedDB v8)
-- [ ] Migration 10: `walk_summary.ride_m`, nullable (no IndexedDB bump; absent on older rows)
-- [ ] Migration 11: `capture` and `find` rebuilt with a nullable `walk_id`, plus `capture_t` (IndexedDB v10, the capture `t` index)
-- [ ] Migration 12: `capture.thumb_path` (no IndexedDB bump)
-- [ ] Migration 13: the `still` table of still spells (IndexedDB v11)
-- [ ] Migration 14: the `gap_fill` table of kept and dismissed stretches (IndexedDB v12)
-- [ ] Migration 15: the `atlas_area` cache of the Explore atlas (IndexedDB v13)
-- [ ] Migration 17: `capture.edit`, JSON through `serializeEdit`/`parseEdit` on every capture read (no IndexedDB bump; Media editing, ME21)
-- [ ] Migration 19: the `walk_tile` cache of walkability, ways as JSON (IndexedDB v16; WK2)
+- [ ] **Do:** on a fresh install, make a walk with a note, a photo with a caption, a voice memo and a video, pause it once and resume, stop it and let the replay play, then force-quit and reopen the app. **Expect:** the app opens with no error; the walk is on Chronicle with its distance; its replay plays the four captures, the photo with its caption, and the pause is a break in the trace (migrations 1-4: the base tables, `walk_summary` and `meta`, videos, pauses and captions).
+- [ ] **Do:** upgrade from a build before migration 5 with walks kept, then open an old walk's replay. **Expect:** the app opens and the old walks read back on Chronicle; the replay's snap writes the walk's places into `area` and `walk_area`: its card names the town and neighborhood walked, and a town's walks on Chronicle list it (IndexedDB v4).
+- [ ] **Do:** upgrade from a build before migration 6 with walks and captures kept, then start an exploring walk and set Remind me here on an old capture. **Expect:** the app opens and the old walks and captures read back; the walk shows "?" marks from the new `place` cache; the reminder is still set after a force-quit (the bell on its pin), from the kept `recall` table, beside the kept `offered` and `mark` tables (IndexedDB v5).
+- [ ] **Do:** upgrade from a build before migration 7, open Explore in a town with shops and cafés, then force-quit and reopen it in airplane mode. **Expect:** the app opens; Explore draws the remembered busy areas (magenta) after its read, and after the relaunch offline draws them again from the `landing` store (IndexedDB v6).
+- [ ] **Do:** upgrade from a build before migration 8 that already cached places (an exploring walk), then start an exploring walk in a new area. **Expect:** the app opens with no error; places cached before it read back with `place.markable` null (not markable), mapped by `db/placeRow.ts`, and places read after the upgrade show as "?" marks (IndexedDB stores the whole object, no bump).
+- [ ] **Do:** upgrade from a build before migration 9, start an exploring walk, take a photo within 60 m of a "?", stop and force-quit. **Expect:** the app opens; the walk builds a checklist (`checklist_area`, `checklist_item`) and shows "?" marks; the photo finds the place (`find`), the replay shows the find, and after the relaunch the find and the area's read (`explore_read`) are still there (IndexedDB v8).
+- [ ] **Do:** upgrade from a build before migration 10 with walks kept, then make a walk with a bus ride in it. **Expect:** the app opens; old walks' replay cards read as before (`walk_summary.ride_m` null falls back to the trace's distance, absent on older rows); the new walk's card adds "+ N km by ride" below its line (no IndexedDB bump). (R6)
+- [ ] **Do:** upgrade from a build before migration 11 with walks holding captures and finds, then make a moment on Navigate's ready screen with no walk open. **Expect:** the app opens; every old capture and find reads back in its walk's replay (`capture` and `find` rebuilt with a nullable `walk_id`); the new moment is kept with no walk and shows under today on Chronicle's days, read by time (`capture_t`; IndexedDB v10, the capture `t` index). (M3, M6)
+- [ ] **Do:** upgrade from a build before migration 12 with photos kept, open an old photo's memory preview, then take a new photo. **Expect:** the app opens and the old photos read back; the new photo gets a small copy (`capture.thumb_path`) and its pin shows it as a round picture; the old photo gets one the first time its preview shows it (no IndexedDB bump). (TH1, TH3, TH5)
+- [ ] **Do:** upgrade from a build before migration 13, start a walk, stand still a minute indoors, walk on, stop and open the replay. **Expect:** the app opens and the old walks read back; the walk keeps a still spell in the `still` table: the dot held while you stood, and the replay's trace has no drift there (IndexedDB v11). (MO8)
+- [ ] **Do:** upgrade from a build before migration 14, make a walk with a gap (force-quit mid-walk for 2-5 min), tap the faint stretch and Keep it, then force-quit and reopen its replay. **Expect:** the app opens; the kept stretch is in the `gap_fill` table and still drawn solid after the relaunch; a stretch dismissed with Not this way stays a break (IndexedDB v12). (G10)
+- [ ] **Do:** upgrade from a build before migration 15, open Explore's atlas, then force-quit and reopen it in airplane mode. **Expect:** the app opens; the atlas lists the areas near you with their tiles, and after the relaunch offline they show from the `atlas_area` cache (IndexedDB v13). (AT12)
+- [ ] **Do:** upgrade from a build before migration 17 with photos and videos kept, then edit one photo (a crop and a filter), tap Done and force-quit. **Expect:** the app opens; old photos and videos read back as their originals with no error (`capture.edit` null, JSON through `serializeEdit`/`parseEdit` on every capture read); the edited photo shows its edits in the viewer and the replay after the relaunch (no IndexedDB bump; Media editing). (ME21)
+- [ ] **Do:** upgrade from a build before migration 19, turn walkability on over Explore's map, then force-quit and reopen it in airplane mode over the same streets. **Expect:** the app opens; the layer draws, and after the relaunch offline it draws again from the `walk_tile` cache, ways as JSON (IndexedDB v16). (WK2)
 
 ## Map layers and markers (MapLibre RN v11)
 
-- [ ] Layer order without `beforeId`, and the busy-area markers (v1.5 landing)
-- [ ] The invisible `q-pois` layer: whether it is needed to load the poi source layer, or costs layout (v1 discovery)
-- [ ] Native source features carry no zoom, so POIs off z14 can't be dropped by `zoom` (v1 discovery)
-- [ ] Explore's range ring layers, `ringGeoJSON` (v1 Explore)
-- [ ] The memory Markers, drawn first under this walk's pins (Memories on revisit)
-- [ ] The dashed ride layer, `RIDE_DASH` (Rides)
-- [ ] The live link line from the trace's end to the dot, `setData:trace-link` (Motion)
-- [ ] The faint gap layer, `FAINT_OPACITY`, and `GapCard` over the native map (Filling gaps)
-- [ ] The dotted gap joins (`GAP_LINK_DASH`), the dashed drawing line (`DRAWING_DASH`), map taps while drawing, and the `GapDraw` bar over the native map (Gap drawing, GW2-GW8)
-- [ ] While drawing: whether a Marker tap also fires the map's onPress, `display: 'none'` on the capture row, `GapDraw`'s BackHandler against the screen's own, and `accessibilityViewIsModal` on the bar (Gap drawing)
-- [ ] Reading tiles in code for drawing on Hermes (`useGapDraw`, `readDrawTiles`), and the k-shortest search's cost on a phone (Gap drawing, GW7, GT2)
-- [ ] `capFitBounds` widening MapLibre RN's fitBounds (Navigation & tabs, U15)
-- [ ] The cone through `coneHeading` on the native glide (`useGlidingWalker`'s frames, ~15 fps), hidden while the dot holds still (decision 0075)
+- [ ] **Do:** on Explore and on a walk, with busy streets, a trace and pins drawn, look at what draws over what, beside the web build at the same place. **Expect:** layers stack as on the web without `beforeId`: the base map's labels stay readable, the trace and pins are on top, and the busy-area markers show where the web shows them (v1.5 landing).
+- [ ] **Do:** on an exploring walk where places are mapped, wait for "?" marks; then in a build with the invisible `q-pois` layer removed from `WalkMap.native.tsx`, repeat. **Expect:** with the layer, the poi source layer loads and "?" marks show; record whether they still show without it (it is needed) and whether panning the map stutters with it (it costs layout) (v1 discovery).
+- [ ] **Do:** on an exploring walk where places are mapped, zoom the map from z13 to z16 and back. **Expect:** each place is offered once at every zoom, with no doubles from tiles off z14: native source features carry no zoom, so they can't be dropped by `zoom` (v1 discovery).
+- [ ] **Do:** pull the ready bar up in Explore mode and drag the range from 60 to 300 m. **Expect:** Explore's range ring layers (`ringGeoJSON`) redraw around your dot as you drag, at the chosen radius against the scale bar (v1 Explore).
+- [ ] **Do:** walk back to a spot where an earlier walk kept a capture, and take a capture there. **Expect:** the earlier one shows as a faint memory Marker with its clock, drawn first, under this walk's new pin, and both open their own viewer (Memories on revisit). (MR1, MR3)
+- [ ] **Do:** on a walk outdoors, ride a bus a few stops, get off and walk on, then stop. **Expect:** the ride is the dashed ride layer (`RIDE_DASH`), in the trace's green on its white edge, joined to the walk on both sides, on the walk screen and in the replay (Rides). (R5)
+- [ ] **Do:** walk with the app open and watch the dot between fixes. **Expect:** the live link line (`setData:trace-link`) always joins the trace's end to the dot, with no gap and nothing drawn ahead of the dot (Motion).
+- [ ] **Do:** on a walk along streets, force-quit the app for 2-5 minutes while walking, reopen it, then tap the stretch across the gap. **Expect:** the stretch draws in the faint gap layer (`FAINT_OPACITY`, the trace's green at 40%) or filled; the tap opens `GapCard` over the native map, "Probably along <street>" with Keep and Not this way (Filling gaps). (G6, G9)
+- [ ] **Do:** on a gap with nothing offered (or after Not this way), tap the grey join, then Draw my way, and tap three points along a street, then Done. **Expect:** the join is dotted (`GAP_LINK_DASH`); the card says "Not recorded for N min"; each map tap while drawing adds a point and the dashed drawing line (`DRAWING_DASH`) runs along the paths; the `GapDraw` bar's Undo, Cancel and Done work over the native map (Gap drawing, GW2-GW8). (GW2, GW3, GW4, GW5)
+- [ ] **Do:** while drawing on the walk screen, tap a capture pin, then press Android Back; draw again and turn VoiceOver or TalkBack on. **Expect:** record whether the Marker tap also fires the map's onPress (a point added under it); the capture row is hidden (`display: 'none'`); Back cancels the drawing through `GapDraw`'s BackHandler and leaves the screen, not the walk; the screen reader stays inside the bar (`accessibilityViewIsModal`) (Gap drawing). (GW4, GW8)
+- [ ] **Do:** draw across a gap in a dense part of town, tapping 6 points. **Expect:** after each tap, "Reading the paths…" gives way within a few seconds and the line follows the paths (tiles read in code on Hermes, `useGapDraw`, `readDrawTiles`); a faint guess across a long gap appears without the screen freezing (the k-shortest search's cost on a phone) (Gap drawing). (GW7, GT2)
+- [ ] **Do:** on Chronicle, open a place with one short walk so the map fits it. **Expect:** the fit stops around z15, never at street-sign zoom: `capFitBounds` widens MapLibre RN's fitBounds, which has no maxZoom (Navigation & tabs, tabs audit U15).
+- [ ] **Do:** walk outdoors with the app open, turn on the spot, then stand still. **Expect:** the cone points where you head through `coneHeading` and turns with the native glide (`useGlidingWalker`'s frames, ~15 fps) without stutter; it hides while the dot holds still (decision 0075).
 
 ## Activity density (AD1-AD16)
 
-- [ ] `pmtiles` under React Native: `fetch` with a `Range` header, a 206 response's `arrayBuffer()`, `Headers`, and `AbortSignal` passed through (`activity/overture.ts`); whether iOS's URL cache answers a range request with a cached 200
-- [ ] `AbortSignal.throwIfAborted`, which pmtiles calls, on Hermes
-- [ ] `OvertureReader`'s deadline against a header fetch that never ends on a phone (pmtiles' header takes no signal; the e2e doesn't stall it)
-- [ ] `fflate`'s gunzip on Hermes, where `DecompressionStream` is missing (Overture's directories and tiles are gzip)
-- [ ] Decoding a 0.5 MB Overture tile (about 1,000 places) on a phone: time and memory, and the 2-5 MB a read downloads on cellular
-- [ ] The release listing (`ensureOvertureRelease`) parsed from S3's XML on device
-- [ ] The native `strips` layer's data-driven width and opacity (`['get', 'width']` inside a zoom interpolation)
-- [ ] The graded paths in the atlas's react-native-svg mini-map (`strokeOpacity`)
+- [ ] **Do:** with a proxy (Proxyman, Charles) or Xcode's network report, open Explore in a town twice, the second time after a force-quit. **Expect:** every request to Overture's host carries a `Range` header and gets a 206, the bytes read through `arrayBuffer()` and `Headers`, and the stop passes an `AbortSignal` through (`activity/overture.ts`); record whether iOS's URL cache answers a range request with a cached 200 (the busy streets would then be wrong or missing).
+- [ ] **Do:** open Explore in a town with shops, then leave it before the read finishes. **Expect:** no red screen or error in the log from `AbortSignal.throwIfAborted`, which pmtiles calls, on Hermes; the next open reads again.
+- [ ] **Do:** with Network Link Conditioner (iOS) or a proxy holding Overture's host open without answering, open Explore. **Expect:** `OvertureReader` gives up at its deadline (`READ_MS`, 20 s) against a header fetch that never ends (pmtiles' header takes no signal; the e2e doesn't stall it), and the busy streets draw from OSM alone. (AD7)
+- [ ] **Do:** open Explore in a town Overture covers. **Expect:** busy streets draw graded, so `fflate`'s gunzip works on Hermes, where `DecompressionStream` is missing (Overture's directories and tiles are gzip). (AD12)
+- [ ] **Do:** on cellular, open Explore in a dense downtown (a 0.5 MB Overture tile, about 1,000 places) and note the time to the busy streets, the memory in Xcode or Android Studio, and the data used in Settings. **Expect:** decoding takes a few seconds at most with no crash, and a read downloads 2-5 MB (AD8).
+- [ ] **Do:** on a fresh install, open Explore online. **Expect:** the release listing (`ensureOvertureRelease`) is parsed from S3's XML on device: the read uses Overture's newest release and busy streets show. (AD6)
+- [ ] **Do:** look at the busy streets on a walk's map at z13, z15 and z17. **Expect:** the native `strips` layer's data-driven width and opacity (`['get', 'width']` inside a zoom interpolation) draw as on the web: wider and firmer on busier stretches, growing with the zoom. (AD12)
+- [ ] **Do:** open Explore's atlas in a town with busy streets. **Expect:** the graded paths in each tile's react-native-svg mini-map show their grades by `strokeOpacity`, as on the web. (AD14)
 
 ## Notifications (`notify/transport.native.ts`, expo-notifications)
 
-- [ ] The transport behind the contract, including the early-tap queue for a cold start and the test banner (Notifications)
-- [ ] Reminder notifications, their actions and cold-start taps (Remind me here)
+- [ ] **Do:** with notifications allowed, tap "Send a test notification" in the ready bar's notifications section, once with the app in front and once after sending it and pressing Home; then deny notifications in Settings and come back. **Expect:** the test banner, "A memory from here", shows within a few seconds whatever is on screen, through the transport behind the contract; denied in Settings, the section says "Notifications are off for Chronicles. Turn them on in your phone’s Settings, then come back." (Notifications). (NT5, NT6)
+- [ ] **Do:** set a reminder, let it fire with the app in the background, force-quit the app, then tap the notification from the lock screen. **Expect:** the app cold-starts on that capture, once: the early-tap queue holds the tap until the screen listens (Notifications). (NT8)
+- [ ] **Do:** set Remind me here on a capture, walk 200 m away and back with the app in the background; tap the notification; set it again and use the notification's Stop reminding me; repeat with the app force-quit before coming back. **Expect:** a reminder notification with the capture's content; its tap opens the capture, playing; Stop reminding me stops it with no next notification; after a force-quit, a cold-start tap still opens the capture (Remind me here). (NT8, NT9)
 
 ## Sensors and motion
 
-- [ ] DeviceMotion's units and update interval on iOS and Android, `motionSource`, `steps.ts` (Motion)
-- [ ] The iOS motion permission text, `askMotion` (Motion)
-- [ ] AppState `inactive` ending still spells, `useWalkMotion` (Motion)
-- [ ] The pocket alert, a double-tap once per place per walk, `explore_haptic` (v1 Explore; PA1)
-- [ ] Whether the double-tap (two `impactAsync(Medium)` 120 ms apart, `HAPTIC_PATTERNS.nudge`) reads as one nudge on an iPhone and an Android phone, and whether Android's Vibrator merges them (Pocket alert nudge)
-- [ ] On the web: Android Chrome's vibrate for the pocket alert (it needs a tap on the page first, which Start gives); iPhone Safari's switch haptic, fired from a location update rather than a tap, may do nothing (Pocket alert nudge, 0079)
-- [ ] Success and warning feedback after the refactor through `HAPTIC_PATTERNS` (`haptics.ts` `playStep` → `notificationAsync`); an iPad offered the pocket alert on the web (a coarse pointer, no Taptic Engine); the 120 ms timer with the app backgrounded mid-pattern (pocket-alert-nudge audit)
-- [ ] The native-driver press (`Button`) and lift (`LiftIn`), and the `HomeSheet` spring (Polish: motion)
+- [ ] **Do:** on iOS and Android, walk 100 m at a normal pace with the app open, then stand still a minute. **Expect:** DeviceMotion's units and update interval suit `motionSource` and `steps.ts`: walking is found within 3 s, standing reads still, the dot holds while still and moves within 2 s of the first step (Motion). (MO4, MO5, MO6)
+- [ ] **Do:** on a fresh install on an iPhone, tap Start. **Expect:** `askMotion` raises the iOS motion permission from that tap, reading "Chronicles uses your phone's motion to tell when you're standing still during a walk, so GPS drift doesn't move your trace."; the next Start doesn't ask again (Motion). (MO1)
+- [ ] **Do:** standing still on a walk, pull down Control Center or the notification shade (AppState `inactive`), let it go, then walk off. **Expect:** the still spell ends at that moment (`useWalkMotion`): the dot moves with you, and the replay holds the trace only while you stood (Motion). (MO8, MO10)
+- [ ] **Do:** turn on the pocket alert, start an exploring walk with the phone in a pocket, walk into range of a "?", out, and back in; force-quit and reopen. **Expect:** a double-tap when the "?" comes into range, once per place per walk, nothing on coming back; the switch is still on after the relaunch (`explore_haptic`) (v1 Explore). (PA1)
+- [ ] **Do:** with the pocket alert on and the phone in hand, walk into range of a "?" on an iPhone and on an Android phone. **Expect:** the double-tap (two `impactAsync(Medium)` 120 ms apart, `HAPTIC_PATTERNS.nudge`) reads as one nudge, two firm taps close together, firmer than a button's tap; Android's Vibrator doesn't merge them into one buzz (Pocket alert nudge). (PA1)
+- [ ] **Do:** on the web build in Android Chrome, turn the pocket alert on, tap Start, and walk into range of a "?". **Expect:** the phone vibrates the double-tap; it needs a tap on the page first, which Start gives (Pocket alert nudge, 0079). (PA6)
+- [ ] **Do:** on the web build in iPhone Safari, turn the pocket alert on, tap Start, and walk into range of a "?". **Expect:** the switch haptic is felt; it fires from a location update rather than a tap, so it may do nothing: record which (Pocket alert nudge, 0079). (PA6)
+- [ ] **Do:** stop a walk, arrive at a destination, and find a place on an exploring walk. **Expect:** one success haptic each, after the refactor through `HAPTIC_PATTERNS` (`haptics.ts` `playStep` → `notificationAsync`); warning feedback goes the same way, but nothing in the app calls `feedback('warning')` today, so there is nothing to feel for it (pocket-alert-nudge audit).
+- [ ] **Do:** on an iPad, open the web build in Safari and pull up the ready bar. **Expect:** record whether the pocket alert is offered (a coarse pointer, no Taptic Engine) and whether turning it on does anything (pocket-alert-nudge audit). (PA6)
+- [ ] **Do:** with the pocket alert on, press the side button the moment a "?" comes into range, so the app goes to the background mid-pattern. **Expect:** the 120 ms timer either plays the second tap or drops it; it never plays later, on coming back (pocket-alert-nudge audit).
+- [ ] **Do:** press and hold Start, Pause and the large buttons, lift a pill in (save a capture), and drag the sheet and let go. **Expect:** the native-driver press (`Button`) shrinks and springs back, the lift (`LiftIn`) rises smoothly, and the `HomeSheet` spring settles without a jump; all instant with reduce motion on (Polish: motion). (M2, M4, M5, M7)
 
 ## Recording and the background task
 
-- [ ] A pocketed walk whose trace survives the screen being off: the location task registered from `index.js` (the concept doc's first milestone)
-- [ ] The task's reminder check over each batch of accepted fixes, `recallCheck.ts` (Remind me here)
-- [ ] The task's two-minute `tail`, so reminders fire from a ride (Rides)
-- [ ] Explore's background read on a quiet walk, `exploreRun.ts` (v1 Explore)
-- [ ] One fix per moment, `locate/index.native.ts`, refusing a cached fix older than 15 s (Moments and days)
+- [ ] **Do:** start a walk outdoors with location "While Using", lock the screen, pocket the phone, walk 15 minutes, unlock and stop. **Expect:** a pocketed walk whose trace survives the screen being off: the trace covers the whole walk with no gap, recorded by the location task registered from `index.js`; Android shows "Walk in progress" while it records (the concept doc's first milestone).
+- [ ] **Do:** set Remind me here on a capture, then walk back to it with the screen off. **Expect:** the task's reminder check runs over each batch of accepted fixes (`recallCheck.ts`) and the reminder notification arrives as you reach it, not later (Remind me here).
+- [ ] **Do:** with a reminder set near a bus stop, ride a bus past it with the screen off. **Expect:** the task's two-minute `tail` reads the bus's fixes as a ride, not jumps, so the reminder fires from the ride (Rides).
+- [ ] **Do:** start an exploring walk on a quiet street, lock the screen and walk into a new area for 10 minutes. **Expect:** Explore's background read (`exploreRun.ts`) builds the area's checklist with the screen off: "?" marks show at once when you unlock (v1 Explore).
+- [ ] **Do:** after a drive with no walk, park and make a note on Navigate's ready screen; then make one indoors with a weak signal. **Expect:** one fix per moment (`locate/index.native.ts`): the note is placed where you are, never at a cached fix older than 15 s from before the drive; with no fresh fix in 10 s, it is kept with no place (Moments and days). (M2)
 
 ## Media and capture
 
-- [ ] Native caption baking: the view sized in points (`px / PixelRatio`), pixel `width`/`height` to `captureRef`, `useRenderInContext` on iOS, behind the viewer's cover, one bake at a time (Round 3, captions)
-- [ ] The thumbnail copy through expo-image-manipulator, `media/thumb.ts`, and whether EXIF orientation survives it (Memories on revisit, thumbnails)
-- [ ] The home's capture row, `MomentBar` and `CaptureRow` (Moments and days)
-- [ ] Navigate's moment pins as MapLibre RN Markers, and their `CaptureViewer` over the tab map (moment pins 1-2)
-- [ ] The backup zip written to a file handle, `writeWalkBundle`, to be tested on a phone before it reaches the UI (Product, backing up)
+- [ ] **Do:** take a photo, add a caption, and Save to Photos twice in a row. **Expect:** two saved JPEGs at the photo's full size, each with the caption where and as large as on screen (the view sized in points, `px / PixelRatio`, pixel `width`/`height` to `captureRef`, `useRenderInContext` on iOS); the viewer's cover hides the bake, and the second waits for the first (Round 3, captions).
+- [ ] **Do:** take photos in portrait, in landscape, and upside down, then look at their pins and memory previews. **Expect:** each thumbnail copy, made through expo-image-manipulator (`media/thumb.ts`), is upright like the photo in the viewer: the EXIF orientation survives it (Memories on revisit, thumbnails). (TH1)
+- [ ] **Do:** on Navigate's ready screen with no walk, tap the camera, the mic and the note once each. **Expect:** the home's capture row (`MomentBar` and `CaptureRow`) makes a moment from each in one tap plus the capture, placed by one fix, shown as a pin and under today on Chronicle (Moments and days). (M1)
+- [ ] **Do:** after moments made with no walk, open Navigate and tap a moment's pin. **Expect:** the moment pins are MapLibre RN Markers where they were made, grouped when close; the tap opens `CaptureViewer` full screen over the tab map, and closing it leaves the map as it was (moment pins 1-2). (M16)
+- [ ] **Do:** in a debug build's JS console, call `exportWalk(<walk id>)` (`lib/export`) for a walk with photos, a memo and a video, and save the zip to Files. **Expect:** the share sheet "Save a copy of this walk" opens; the backup zip, written to a file handle by `writeWalkBundle`, opens in Files with the walk and every medium, and `missing` is 0. It is not in the UI yet: test it on a phone before it reaches the UI (Product, backing up).
 
 ## Media editing (ME1-ME23, decision 0090)
 
-- [ ] `FeColorMatrix` on an SVG `Image` (react-native-svg) on iOS and Android, its speed on a full-size photo, and whether the colours match the web's sRGB matrix (CoreImage may filter in linear light)
-- [ ] The native baker over `EditedPicture`: view-shot capturing the SVG, the 15 s load timeout, the clear PNG overlay for a video
-- [ ] The editor's filter row: nine full-size SVG images at once (memory)
-- [ ] `VideoView` turned and clipped by view transforms (`VideoPicture`), with native controls off when turned or cropped
-- [ ] The trim kept through `timeUpdate` (0.1 s) and `currentTime`, and Android/iOS seeking precision
-- [ ] `useVideoSize` and `probeVideoSize`: a first-frame thumbnail as the upright size (the track reports the encoded one)
-- [ ] The local module `modules/chronicles-video-edit` (never compiled): Swift (AVMutableComposition, AVMutableVideoComposition with preferredTransform then our rotation, AVVideoCompositionCoreAnimationTool overlay, `isGeometryFlipped`, export on iOS 16.4+), Kotlin (Media3 Transformer at expo-video's 1.9.1: the rotation's sign, the crop's NDC mapping, `OverlayEffect`), audio kept, partial output removed
-- [ ] The remade small copy (`keepEditedThumb`) and the lazy copy's crop and rotation through the manipulator (`media/thumb.ts`)
-- [ ] The editor as its own Modal from the recording bar and Navigate's ready screen; Android Back through `requestClose`
-- [ ] The video module's crop is in pixels against `probeVideoSize`'s thumbnail; a downscaled thumbnail would mis-crop, and Kotlin rejects a frame off by more than 2 px (audit)
-- [ ] `VideoPicture` on Android: expo-video's default `surfaceView` may ignore the view's rotation and clipping (`textureView` may be needed); AVPlayerLayer under a transform on iOS (audit)
-- [ ] `SvgImage` `onLoad` firing twice in the native baker (a second capture of a finished job) (audit)
-- [ ] `Image.getSize` with EXIF orientation on Android against how the SVG draws the photo (audit)
-- [ ] The edited copy under its new name (`editedThumbName`) and the old copy's removal (audit 3)
+- [ ] **Do:** on iOS and Android, apply each filter to a full-size photo in the editor, and open the same photo with the same filter in the web build. **Expect:** `FeColorMatrix` on an SVG `Image` (react-native-svg) draws each filter within a second; the colours match the web's sRGB matrix (CoreImage may filter in linear light: compare side by side). (ME8, ME9)
+- [ ] **Do:** edit a photo (crop, filter, drawing) and Save to Photos; then edit a video with a drawing and save it. **Expect:** the native baker over `EditedPicture` saves one JPEG matching the screen (view-shot capturing the SVG, inside the 15 s load timeout); the video's overlay is a clear PNG with only the drawing on it. (ME16)
+- [ ] **Do:** open the editor's filter row on a large photo and scroll it end to end. **Expect:** nine full-size SVG images at once don't crash the app or stutter, and memory in Xcode or Android Studio comes back down on closing. (ME8)
+- [ ] **Do:** rotate and crop a video in the editor, then play it in the viewer. **Expect:** `VideoView` is turned and clipped by view transforms (`VideoPicture`) to match the edit, with native controls off while turned or cropped. (ME4, ME5, ME6)
+- [ ] **Do:** trim a video to 0:02 – 0:05 and play it in the viewer and the replay, on iOS and Android. **Expect:** the trim is kept through `timeUpdate` (0.1 s) and `currentTime`: it starts at 0:02 and ends at 0:05 on both, within the seeking precision noted for each. (ME14, ME15)
+- [ ] **Do:** record a portrait video and a landscape one, and open each in the editor. **Expect:** `useVideoSize` and `probeVideoSize` take a first-frame thumbnail as the upright size (the track reports the encoded one): the crop frame fits the picture the right way up.
+- [ ] **Do:** edit a video on iOS 16.4+ and on Android (trim, crop, a rotation, a drawing, a caption), Save to Photos, and play the saved file in Photos; then make one fail (nearly fill the phone's storage first). **Expect:** the local module `modules/chronicles-video-edit` (never compiled) builds and saves one MP4 with every edit and its sound, the picture upright (Swift: AVMutableComposition, AVMutableVideoComposition with preferredTransform then our rotation, the AVVideoCompositionCoreAnimationTool overlay, `isGeometryFlipped`, export on iOS 16.4+; Kotlin: Media3 Transformer at expo-video's 1.9.1, the rotation's sign, the crop's NDC mapping, `OverlayEffect`); audio kept; a failure leaves no partial output. (ME17, ME18)
+- [ ] **Do:** crop and rotate a photo, tap Done, and look at its pin; then open an old photo with edits and no small copy. **Expect:** the remade small copy (`keepEditedThumb`) shows the edited picture; the lazy copy's crop and rotation through the manipulator (`media/thumb.ts`) match the edit. (ME20)
+- [ ] **Do:** open the editor from the recording bar's Edit offer and from Navigate's ready screen, then press Android Back with and without changes. **Expect:** the editor opens as its own Modal from both; Back goes through `requestClose`: with changes it asks "Discard these edits?", without it closes. (ME2, ME23)
+- [ ] **Do:** crop a 4K video and a phone's own video to a small corner, and save each. **Expect:** the saved crop is the corner chosen: the video module's crop is in pixels against `probeVideoSize`'s thumbnail, so a downscaled thumbnail would mis-crop, and Kotlin rejects a frame off by more than 2 px (audit).
+- [ ] **Do:** on Android, rotate and crop a video and play it; on iOS, the same. **Expect:** on Android the picture turns and clips (expo-video's default `surfaceView` may ignore the view's rotation and clipping, and `textureView` may be needed); on iOS AVPlayerLayer under a transform turns and clips too (audit).
+- [ ] **Do:** save an edited photo to Photos several times. **Expect:** one saved image per save: `SvgImage` `onLoad` firing twice in the native baker never makes a second capture of a finished job (audit).
+- [ ] **Do:** on Android, edit a portrait photo taken with the phone turned (EXIF orientation set). **Expect:** `Image.getSize` with EXIF orientation agrees with how the SVG draws the photo: the crop frame and the saved crop match the upright picture (audit).
+- [ ] **Do:** edit a photo twice, tapping Done each time, then look in the app's folder (Xcode's container download or Android Studio's Device Explorer). **Expect:** the edited copy has its new name (`editedThumbName`), the pin shows the newest edit, and the old copy is removed (audit 3).
 
 ## Deletion (`db.deleteWalk`, `db.deleteCaptures`, `removeMedia`)
 
-- [ ] The SQLite deletes (Clearing walks and moments)
-- [ ] File and folder removal, and `Directory.size` (Clearing walks and moments)
-- [ ] The Undo pill over the viewer's Modal, `UndoToast` (Clearing walks and moments)
-- [ ] The background commit of a waiting delete, `deletion/index.ts` (Clearing walks and moments)
-- [ ] `router.dismissTo` right after the actions Modal closes; iOS can drop a navigation during a Modal's dismissal, `WalkActions` (Clearing walks and moments)
+- [ ] **Do:** delete a finished walk from its More menu on Chronicle, let the 5 s Undo pass, then force-quit and reopen. **Expect:** the SQLite deletes hold: the walk, its trace, pauses and moments are gone after the relaunch, its star and counts drop it, and streets only it walked are fog again (Clearing walks and moments). (D1, D8)
+- [ ] **Do:** delete a capture that found a place, including one whose find is filed under another walk than the capture's, let Undo pass and relaunch. **Expect:** no replay or checklist shows any find of it: deleting a capture deletes every find of it, whatever walk the find is filed under (`deleteCaptures`; the web store keeps a find filed under another walk, a contract case says so). (D3)
+- [ ] **Do:** delete a walk that only grazed a long street piece (far longer than 200 m, no junctions) at one end, while another walk walked the rest of it. **Expect:** the piece is recounted along its whole length: `getSegmentsIn` finds a piece that only grazes the bounds by comparing each piece's box (the web store files a piece by its centre's tile and misses it). (D7, D8)
+- [ ] **Do:** delete a walk with photos, a video and memos, noting "Frees about N MB" in the confirm; let Undo pass and check the app's storage in Settings. **Expect:** the media files and the walk's folder are removed, the storage drops by about N MB, and N is `Directory.size` of what goes (Clearing walks and moments). (D4, D11)
+- [ ] **Do:** delete a moment from the viewer's More menu, then tap Undo within 5 s. **Expect:** the Undo pill, `UndoToast`, "Moment deleted", shows over the viewer's Modal, not behind it, and Undo brings the moment back (Clearing walks and moments). (D5)
+- [ ] **Do:** delete a walk and press Home within 5 s; wait a minute, force-quit and reopen. **Expect:** the background commit of the waiting delete (`deletion/index.ts`) ran on going to the background: the walk stays deleted (Clearing walks and moments). (D5)
+- [ ] **Do:** from a replay card's More menu, Delete walk and confirm, ten times over different walks. **Expect:** each lands on Chronicle: `router.dismissTo` right after the actions Modal closes is never dropped, though iOS can drop a navigation during a Modal's dismissal (`WalkActions`; Clearing walks and moments).
 
 ## Navigation and tabs
 
-- [ ] Open in Maps: Apple Maps from the app, `nav/openInMaps.ts` (Open in Maps)
-- [ ] Open in Maps: the Android `geo:` chooser (Open in Maps)
-- [ ] Open in Maps: an iPhone Home Screen app opens the `maps://` scheme via `location.href` (was `window.open`, which left a blank window to back out of) (Open in Maps, fix pwa-maps). Confirm: Maps opens with the walking route, no blank window, the page is intact on return, recording resumes, and what shows if Maps can't take the scheme
-- [ ] The docked drawer on Navigate (Navigation & tabs, U1)
-- [ ] `dangerouslySingular` on the native stack's `walk`, `showWalk()` (Navigation & tabs)
-- [ ] The memo saved when Navigate blurs mid-memo (Navigation & tabs)
-- [ ] The replay's `BackHandler`, ending on Chronicle (Navigation & tabs, audit 6)
-- [ ] The app opening on Explore at `/` on the native stack and tabs, and Android back on Navigate or Chronicle returning to Explore (NV2, NV5, 0070)
-- [ ] A deep link to a missing replay or day at launch, `router.dismissTo('/')` reaching Explore on the native stack (NV2, 0070)
-- [ ] Explore's one fix at launch, and the location prompt it raises before any tap (NV16, 0070)
-- [ ] An iPhone Home Screen app reopening on its last page (the `/explore` redirect, a stale replay link) (NV2, 0070)
-- [ ] The launch cover over the native stack while the open walk is read, and the walk screen coming up under it before the recorder resumes (NV2 launch 1-5)
+- [ ] **Do:** on an iPhone, set a destination, then tap Open in Maps in the navigation bar. **Expect:** Apple Maps opens from the app (`nav/openInMaps.ts`) with walking directions to the destination; back in Chronicles the route and the walk are as they were (Open in Maps). (NH1, NH2, NH7)
+- [ ] **Do:** on Android, set a destination, then tap Open in Maps. **Expect:** the `geo:` chooser opens and the chosen maps app shows the destination; back in Chronicles nothing changed (Open in Maps). (NH1, NH2)
+- [ ] **Do:** add the web build to an iPhone's Home Screen, start a walk with a destination, and tap Open in Maps; then try it where Maps can't take the scheme (Maps removed). **Expect:** the Home Screen app opens the `maps://` scheme via `location.href` (it was `window.open`, which left a blank window to back out of): Maps opens with the walking route, no blank window, the page is intact on return, recording resumes; record what shows if Maps can't take the scheme (Open in Maps, fix pwa-maps).
+- [ ] **Do:** on Navigate, drag the ready bar up through its heights and let go. **Expect:** Start stays at the bar's foot at every height and the capture stack doesn't move: what remains of the docked drawer on Navigate, which the ready bar replaced (Navigation & tabs, U1, decision 0076). (NR7)
+- [ ] **Do:** with a walk minimized, tap Navigate, the recording bar and a reminder notification in quick succession. **Expect:** one walk screen on the stack (`dangerouslySingular` on the native stack's `walk`, `showWalk()`): one chevron or Back returns to the tab beneath (Navigation & tabs).
+- [ ] **Do:** on Navigate's ready screen, start a voice memo, then leave mid-memo by the chevron or another tab. **Expect:** the memo saved when Navigate blurs mid-memo is a moment that plays back (Navigation & tabs). (NR10)
+- [ ] **Do:** open a walk's replay from Chronicle and from a stopped walk, and press Android Back on each. **Expect:** the replay's `BackHandler` ends on Chronicle, showing the walk (Navigation & tabs, audit 6). (NV27)
+- [ ] **Do:** with no walk open, force-quit and open the app; go to Navigate and to Chronicle and press Android Back on each; press it again on Explore. **Expect:** the app opens on Explore at `/` on the native stack and tabs; Back on Navigate or Chronicle returns to Explore; on Explore it leaves the app (decision 0070). (NV2, NV5)
+- [ ] **Do:** with the app closed, open `chronicles://replay/nope` and then `chronicles://day/nope` from Notes or Safari. **Expect:** a deep link to a missing replay or day at launch goes straight to Explore, `router.dismissTo('/')` reaching it on the native stack (decision 0070). (NV2)
+- [ ] **Do:** on a fresh install, open the app and touch nothing. **Expect:** Explore's one fix at launch raises the location prompt before any tap, then frames where you are once (decision 0070). (NV16)
+- [ ] **Do:** add the web build to an iPhone's Home Screen, open a walk's replay, close the app from the app switcher, delete that walk in another session or wait for the link to go stale, and reopen it. **Expect:** an iPhone Home Screen app reopening on its last page lands on Explore (the `/explore` redirect, a stale replay link) (decision 0070). (NV2)
+- [ ] **Do:** start a walk, force-quit, and open the app again. **Expect:** the launch cover hides the native stack while the open walk is read, and the walk screen comes up under it before the recorder resumes: no flash of Explore (NV2 launch 1-5). (NV2)
 
 ## Quality of life
 
-- [ ] The `ends` layer's `match` stroke colour, `lib/traceEnds.ts` (Quality of life)
-- [ ] The scale bar over the native map, `components/map/ScaleBar.tsx` (Quality of life)
-- [ ] `locateOnce` fresh on expo-location, `lib/useLocate.ts` (Quality of life)
-- [ ] The Locate edge button over the native sheet, `components/LocateButton.tsx` (Quality of life)
-- [ ] The recorder retried on a return to the front through expo-location's permission request and the background task, `session.restartRecording` beside the recorder's own AppState listener (Quality of life, QL20)
-- [ ] The pressable "Not recording" chip over the native map, and its Open Settings action (Quality of life, QL19)
-- [ ] The Distances segment inside the native ready bar pulled up, and `Intl` on Hermes for the locale default (Quality of life, QL13, QL16)
-- [ ] The rename editor and its keyboard inside the native actions Modal, and Android Back stepping out of it, `components/WalkActions.tsx` (Quality of life, QL22)
-- [ ] The note editor inside the native viewer Modal, `components/NoteEditor.tsx` (Quality of life, QL24)
-- [ ] The round picture inside a MapLibre RN Marker, its `onLoad`/`onError`, and the Marker remounting when the copy arrives, `components/CapturePinView.tsx` (Quality of life, QL26, QL27)
-- [ ] The reminder bell over a pin's corner inside a MapLibre RN Marker: not clipped by the annotation's bounds or `pinHit`, drawn above the head's Android `elevation`, `components/map/WalkMap.native.tsx` (Reminder bell, RB1, RB4)
-- [ ] A capture Marker re-keyed with a new `id`, and a memory Marker re-keyed keeping its `id`, when a reminder is set or stopped: a clean remount with no stale annotation (Reminder bell, RB5)
-- [ ] ", reminder set" in the pins' labels read by VoiceOver and TalkBack (Reminder bell, RB7)
-- [ ] The bell following a fire or expiry from the background location task, after a cold background launch, and the notification's Stop action, once the app is back in front (Reminder bell, RB5)
-- [ ] expo-sqlite ordering: `listRecalls` reads outside the write queue (`db/index.native.ts`); a read started before a queued `setRecall`/`clearRecall` must not finish with the older rows (`recallCheck`'s cache, `useReminded`) (Reminder bell audit 11)
+- [ ] **Do:** stop a walk and open its replay. **Expect:** the `ends` layer (`lib/traceEnds.ts`) draws the start and end markers with the `match` stroke colour, as on the web (Quality of life). (QL1, QL2)
+- [ ] **Do:** zoom each map in and out (the walk screen, Explore, Chronicle, a replay). **Expect:** the scale bar over the native map (`components/map/ScaleBar.tsx`) sits bottom-left clear of each screen's bottom UI and follows the zoom with a round length (Quality of life). (QL5, QL7, QL8)
+- [ ] **Do:** after a drive, tap Locate on Explore. **Expect:** `locateOnce` fresh on expo-location (`lib/useLocate.ts`) reads a fix taken after the tap, never a cached one, and centres on where you are (Quality of life). (QL10)
+- [ ] **Do:** tap Locate on Explore and on Navigate's ready screen, twice quickly. **Expect:** the Locate edge button over the native sheet (`components/LocateButton.tsx`) is 44 pt, shows busy while reading, and ignores the second tap (Quality of life). (QL9, QL11)
+- [ ] **Do:** start a walk, turn location off for Chronicles in Settings, come back to the app (the chip says Not recording), then turn it back on in Settings and return. **Expect:** the recorder is retried on the return to the front through expo-location's permission request and the background task, once (`session.restartRecording` beside the recorder's own AppState listener), and the trace carries on with no second notice (Quality of life). (QL20)
+- [ ] **Do:** with location denied mid-walk, tap the "Not recording" chip, dismiss the notice and tap again, then use Open Settings. **Expect:** the pressable chip over the native map brings back the sticky notice each time; its Open Settings action opens the app's page in Settings (Quality of life). (QL19)
+- [ ] **Do:** on a phone set to the US region with no units chosen, pull the ready bar up to Distances, then switch to km. **Expect:** the default is miles through `Intl` on Hermes for the locale default; the Distances segment inside the native ready bar pulled up switches every distance on screen at once (Quality of life). (QL13, QL16)
+- [ ] **Do:** on a walk's More menu (Chronicle row and replay card), tap Rename, type in both fields, then press Android Back. **Expect:** the rename editor and its keyboard sit inside the native actions Modal without covering Save; Android Back steps out of the editor to the menu (`components/WalkActions.tsx`; Quality of life). (QL22)
+- [ ] **Do:** open a note in the viewer, tap More, Edit note, change it and save. **Expect:** the note editor opens inside the native viewer Modal (never a second Modal), the keyboard leaves the field visible, and the text saves (`components/NoteEditor.tsx`; Quality of life). (QL24)
+- [ ] **Do:** take a photo on a walk and watch its pin; open a walk with a photo that won't decode. **Expect:** the round picture fills the pin inside a MapLibre RN Marker once the small copy arrives, the Marker remounting to show it with no reload (`onLoad`); a failed load keeps the camera icon (`onError`) (`components/CapturePinView.tsx`; Quality of life). (QL26, QL27)
+- [ ] **Do:** set a reminder on a capture and on an earlier walk's capture shown as a memory, on Android and iOS. **Expect:** the reminder bell over a pin's corner inside a MapLibre RN Marker is whole: not clipped by the annotation's bounds or `pinHit`, drawn above the head's Android `elevation` (`components/map/WalkMap.native.tsx`; Reminder bell). (RB1, RB4)
+- [ ] **Do:** set a reminder on a capture pin and stop it; do the same on a memory pin. **Expect:** a capture Marker re-keyed with a new `id`, and a memory Marker re-keyed keeping its `id`, remount cleanly: the bell shows and goes at once, with no stale annotation left on the map (Reminder bell). (RB5)
+- [ ] **Do:** with VoiceOver and then TalkBack on, move to a pin with a reminder and to one with several captures. **Expect:** ", reminder set" is read in the pins' labels: "Note, reminder set. Open", "3 captures here, reminder set. Open" (Reminder bell). (RB7)
+- [ ] **Do:** with a "once" reminder set, let it fire from the background location task with the app force-quit (a cold background launch); in a second run, use the notification's Stop action; then bring the app to the front each time. **Expect:** the bell follows the fire, the expiry or the Stop once the app is back in front: it is gone from the pin (Reminder bell). (RB5)
+- [ ] **Do:** on a walk, set and stop reminders quickly on several captures while walking near them. **Expect:** expo-sqlite ordering holds: `listRecalls` reads outside the write queue (`db/index.native.ts`), and a read started before a queued `setRecall`/`clearRecall` never finishes with the older rows; the bells and `recallCheck`'s cache (`useReminded`) match what was set last (Reminder bell audit 11). (RB5)
 
 ## Town outlines (TO1-TO12)
 
-- [ ] SQLite migration 16 (`outline_tile`) and `putOutlineTiles` / `getOutlineTiles` (`IN (...)` with up to 64 keys)
-- [ ] Overture's divisions.pmtiles read by byte range on a phone (`areas/overtureOutlines.ts`, the same `pmtiles` path as the places reader), inside the replay's snap and the backlog's pass
+- [ ] **Do:** upgrade from a build before migration 16, open Explore in a town, then force-quit and reopen it in airplane mode. **Expect:** the app opens; SQLite migration 16 adds `outline_tile`; `putOutlineTiles` and `getOutlineTiles` (`IN (...)` with up to 64 keys) keep and read the outlines, so the town is named offline from the cache. (TO12)
+- [ ] **Do:** stand inside a town whose label point is farther than a neighbour's (the gym in Whitehall) and open Explore; then open an old walk's replay and let the backlog run. **Expect:** Overture's divisions.pmtiles is read by byte range on a phone (`areas/overtureOutlines.ts`, the same `pmtiles` path as the places reader): Explore's title says the town you're in, and the replay's snap and the backlog's pass place walks by outline. (TO1, TO10)
 
 ## Town borders (TB1-TB9)
 
-- [ ] The `borders` GeoJSONSource with fill and line layers (`filter`, `minzoom`) on MapLibre RN, the first overlay over the base map
-- [ ] SQLite migration 18 (`outline_tile` cleared, `z` column) and z10 tiles read on a phone
+- [ ] **Do:** open Explore in a town with neighbours, then zoom out below z8. **Expect:** the `borders` GeoJSONSource draws your town with a soft fill and a firm border and the others as thin lines (fill and line layers, `filter`, `minzoom`) on MapLibre RN, the first overlay over the base map: under the trace and pins, gone below z8. (TB1, TB8)
+- [ ] **Do:** upgrade from a build before migration 18 that had outlines kept, open Explore, then reopen it in airplane mode. **Expect:** the app opens; SQLite migration 18 clears `outline_tile` and adds the `z` column; z10 tiles are read on a phone and the borders draw whole, and offline from the cache after. (TB6, TB7)
 
 ## Discrete navigation (DN1-DN13)
 
-- [ ] `showPoint` on MapLibre RN still eases with `padding`: whether the native camera keeps it and counts it again in a later `fitBounds`, as maplibre-gl did (discrete-navigation fix 2, fixed on web only)
-
-- [ ] `dragPan={false}` on MapLibre RN's `Map`: one finger no longer pans Explore's map
-- [ ] `createSwiper` (`WalkMap.native.tsx`): the `PanResponder` takes a one-finger move from the map, while MapLibre's own pinch, two-finger turn, double tap and long press still work beside it
-- [ ] The camera centre a swipe starts from (`onRegionDidChange`'s centre), with nothing selected
-- [ ] `AccessibilityInfo.announceForAccessibility` saying the area's name (VoiceOver, TalkBack)
-- [ ] The grid scrolling the selected tile into view (`measureInWindow` on the row and the ScrollView, then `scrollTo`), clear of the back pill
-- [ ] `createSwiper` against MapLibre's own gestures: a slid long press (`swiper.held()` from `onLongPress`) and a pinch begun with one finger are never swipes (audit 3); whether a granted JS responder cancels MapLibre's native recognizers on iOS or Android
-- [ ] The swipe's centre before the first `onRegionDidChange` (it defaults to `[-71.4, 41.82]`), and whether native's centre is the padded one, as the web's `getCenter()` is (audit 5)
-- [ ] `swiper.sync` runs in an effect: a release between a render and its effect uses the previous `onSwipe`
-- [ ] `showPoint` (`Camera.easeTo` with padding) keeping the zoom, and jumping with reduced motion
-- [ ] The selected Marker's ring and accent
+- [ ] **Do:** on Explore, swipe from one neighborhood to the next, then switch to a town and swipe again. **Expect:** `showPoint` on MapLibre RN still eases with `padding`: record whether the native camera keeps it and counts it again in a later `fitBounds`, as maplibre-gl did (the town fit then never moves); every fit lands (discrete-navigation fix 2, fixed on web only).
+- [ ] **Do:** drag one finger slowly across Explore's map. **Expect:** `dragPan={false}` on MapLibre RN's `Map`: one finger no longer pans Explore's map; on lifting it, the map has moved to an area or stayed put. (DN1)
+- [ ] **Do:** on Explore, swipe with one finger, then pinch, turn with two fingers, double tap and long press. **Expect:** `createSwiper` (`WalkMap.native.tsx`): the `PanResponder` takes the one-finger move from the map, while MapLibre's own pinch, two-finger turn, double tap and long press still work beside it. (DN2, DN10)
+- [ ] **Do:** with nothing selected, pan the map with two fingers, then swipe once. **Expect:** the swipe starts from the camera centre (`onRegionDidChange`'s centre), selecting the area next to the middle of the view. (DN3)
+- [ ] **Do:** with VoiceOver and then TalkBack on, swipe Explore's map to an area. **Expect:** `AccessibilityInfo.announceForAccessibility` says the area's name. (DN12)
+- [ ] **Do:** swipe to an area whose tile is off screen in the grid. **Expect:** the grid scrolls the selected tile into view (`measureInWindow` on the row and the ScrollView, then `scrollTo`), clear of the back pill. (DN6)
+- [ ] **Do:** long press Explore's map and slide the finger before lifting; start a pinch with one finger then add the second. **Expect:** neither is a swipe (`swiper.held()` from `onLongPress`, audit 3); record whether a granted JS responder cancels MapLibre's native recognizers on iOS or Android (a pinch that stops working). (DN10)
+- [ ] **Do:** right after opening Explore, before the map has settled, swipe once. **Expect:** the swipe starts from the map's real centre, not the default `[-71.4, 41.82]` before the first `onRegionDidChange`; record whether native's centre is the padded one, as the web's `getCenter()` is (audit 5). (DN3)
+- [ ] **Do:** swipe twice in quick succession, the second lifting the moment the first lands. **Expect:** each swipe moves one area from where the last landed: `swiper.sync` runs in an effect, and a release between a render and its effect would use the previous `onSwipe`. (DN2)
+- [ ] **Do:** zoom Explore's map in, swipe between areas; then turn reduce motion on and swipe again. **Expect:** `showPoint` (`Camera.easeTo` with padding) keeps the zoom you set; with reduced motion it jumps. (DN2)
+- [ ] **Do:** swipe to an area. **Expect:** the selected Marker shows its ring and accent colour, and the previous one loses them. (DN6)
 
 ## Explore atlas
 
-- [ ] react-native-svg mini-maps on iOS and Android (12 tiles, an even-odd veil, dashed strokes)
-- [ ] The atlas card's Back (BackHandler) and its layout over the tab bar
-- [ ] The small map's long press and the ring layer at its height
-- [ ] The atlas card's drag (responder props on the handle) and its two heights; the side panel on a tablet
-- [ ] Area points as MapLibre RN Markers (anchor top, offset) on the small map
+- [ ] **Do:** open Explore's atlas on iOS and Android. **Expect:** the react-native-svg mini-maps draw on all 12 tiles, each with its even-odd veil and dashed strokes as on the web. (AT6)
+- [ ] **Do:** open an area's card, then press Android Back; look at the card at its lowest. **Expect:** the atlas card's Back (BackHandler) closes the card, not the tab; its layout sits above the tab bar, nothing hidden under it. (AT8)
+- [ ] **Do:** long press the small map above the grid. **Expect:** the small map's long press runs as on the big map, and the ring layer draws at the small map's height. (AT9)
+- [ ] **Do:** drag the atlas card by its handle between its two heights; then open the atlas on a tablet. **Expect:** the atlas card's drag (responder props on the handle) follows the finger and settles at one of its two heights; on a tablet it is a side panel. (AT8)
+- [ ] **Do:** look at the small map with areas near you. **Expect:** the area points are MapLibre RN Markers (anchor top, offset) on the small map, each on its area's spot. (AT9)
 
 ## Navigate, ready
 
-- [ ] The Navigate tab's `tabPress` `preventDefault` and `showWalk()` on the JS tabs, iOS and Android (`(tabs)/_layout.tsx`, NR1)
-- [ ] The entry route's launch sequence on the native stack: Explore beneath, then the walk screen (`(tabs)/index.tsx`, NR3)
-- [ ] The ready bar's drag and spring over MapLibre RN, and Android Back lowering it (`components/walk/ReadyBar.tsx`, NR7), now also the walk strip's options drawer (`walk-bar`)
-- [ ] The capture stack and edge buttons against the home indicator's safe area (`components/walk/layout.ts`, NR9, NR11)
-- [ ] Starting in place: the background location task and the pocket alert taking over a walk screen already mounted (`useStartWalk` with `inPlace`, NR6)
-- [ ] Moment pins and the one-fix dot on the walk screen's MapLibre RN map; the long press for a destination there (`components/walk/useReady.tsx`, NR1, NR8); the one MapLibre RN map kept across Start (NR6)
-- [ ] The chevron mid-memo: the memo finished as `useCaptures` unmounts, on expo-audio (NR10)
-- [ ] Android Back with `backBehavior="initialRoute"` and Explore as the tabs' initial route (NR4)
-- [ ] A cold start's order: the entry route's `showWalk`, the root layout's, and a tapped notification's (`onRecallWaiting`), with `/walk` on top (NR3)
-- [ ] VoiceOver and TalkBack on the ready bar's summary button, its `activate` action and its name (navigate-ready audit 6)
-- [ ] One MapLibre RN `MapView` kept across Start while its props swap (static dot to the glide, `follow`, marks, moment pins) (NR6)
-- [ ] `locateOnce` each time the ready screen comes to the front, on expo-location (NV17)
-- [ ] `Linking.openSettings` from the ready screen's banner (NR13)
-- [ ] After a denied microphone or camera request on iOS, the banner offers Open Settings (`canAskAgain` is no longer trusted), and Settings lets the permission back on
+- [ ] **Do:** from Explore and from Chronicle, tap the Navigate tab, on iOS and Android. **Expect:** the Navigate tab's `tabPress` `preventDefault` and `showWalk()` on the JS tabs open the ready walk screen over the tabs, full screen, with the tab bar hidden (`(tabs)/_layout.tsx`). (NR1)
+- [ ] **Do:** with a walk open, force-quit and reopen the app. **Expect:** the entry route's launch sequence on the native stack: Explore beneath, then the walk screen on top (`(tabs)/index.tsx`). (NR3)
+- [ ] **Do:** on the ready screen and on a walk, drag the bar's grip up and down and tap it; press Android Back while it is up. **Expect:** the ready bar's drag and spring over MapLibre RN follow the finger and settle; Back lowers it; the same holds for the walk strip's options drawer (`walk-bar`) (`components/walk/ReadyBar.tsx`). (NR7)
+- [ ] **Do:** on an iPhone with a home indicator, and on Android with gesture navigation, look at the capture stack and the edge buttons on the ready screen and on a walk. **Expect:** they sit clear of the home indicator's safe area, at least 44 pt, none overlapping (`components/walk/layout.ts`). (NR9, NR11)
+- [ ] **Do:** on the ready screen, tap Start, then lock the screen and walk with the pocket alert on. **Expect:** starting in place: the background location task and the pocket alert take over the walk screen already mounted (`useStartWalk` with `inPlace`): the trace records with the screen off and the alert fires. (NR6)
+- [ ] **Do:** on the ready screen, look for your moment pins and the dot, long press for a destination, then tap Start. **Expect:** moment pins and the one-fix dot show on the walk screen's MapLibre RN map; the long press sets a destination there (`components/walk/useReady.tsx`); the one MapLibre RN map is kept across Start, with no flash or reload. (NR1, NR6, NR8)
+- [ ] **Do:** on the ready screen, record a memo and tap the chevron mid-memo. **Expect:** the chevron mid-memo closes the screen and the memo is finished as `useCaptures` unmounts, on expo-audio: it is a moment that plays back. (NR10)
+- [ ] **Do:** from Explore, open Navigate and press Android Back; open Chronicle, then Navigate, and press Back twice. **Expect:** Android Back with `backBehavior="initialRoute"` and Explore as the tabs' initial route goes to the tab you came from, then to Explore. (NR4)
+- [ ] **Do:** with a walk open and a reminder notification waiting, force-quit and cold-start the app from the notification. **Expect:** a cold start's order (the entry route's `showWalk`, the root layout's, and a tapped notification's `onRecallWaiting`) ends with `/walk` on top and the capture open on it, once. (NR3)
+- [ ] **Do:** with VoiceOver and then TalkBack on, move to the ready bar's summary button and activate it. **Expect:** VoiceOver and TalkBack read its name and offer its `activate` action, which raises the bar (navigate-ready audit 6).
+- [ ] **Do:** on the ready screen, tap Start and watch the map; then set a destination and start again. **Expect:** one MapLibre RN `MapView` kept across Start while its props swap (the static dot to the glide, `follow`, marks, moment pins): no blank frame, no reload of tiles. (NR6)
+- [ ] **Do:** open Navigate, walk 200 m with the app on another tab, then open Navigate again. **Expect:** `locateOnce` runs each time the ready screen comes to the front, on expo-location: the map is around where you are now, and nothing tracks between. (NV17)
+- [ ] **Do:** deny location, open Navigate's ready screen and tap Start, then use the banner's Open Settings. **Expect:** the start error shows on the ready screen, and `Linking.openSettings` from the ready screen's banner opens the app's page in Settings. (NR13)
+- [ ] **Do:** on an iPhone, deny the microphone and then the camera when asked, tap them again, use the banner's Open Settings, turn the permission on and come back. **Expect:** after a denied microphone or camera request on iOS, the banner offers Open Settings (`canAskAgain` is no longer trusted), and Settings lets the permission back on: the next tap records.
 
 ## Functional core (slice 1, FC1-FC10)
 
-- [ ] `lib/ports/index.ts` builds the real ports from the native db, recorder and notifier at module load; its first user is the ready walk screen's shell (`lib/ready`, Navigate, ready), so a phone's first run of it is the ready screen opening
-- [ ] The SQLite adapter (`db/index.native.ts`) against the Db contract (`src/lib/__tests__/dbContract.ts`): the suite runs only over the fake and IndexedDB in Node, so SQLite's match to it is by reading
+- [ ] **Do:** on a fresh install, open Navigate. **Expect:** `lib/ports/index.ts` builds the real ports from the native db, recorder and notifier at module load; its first user is the ready walk screen's shell (`lib/ready`, Navigate, ready), so a phone's first run of it is the ready screen opening with your dot and choices, with no error.
+- [ ] **Do:** run the whole suite on one phone and check the items that read and write each `Db` method. **Expect:** the SQLite adapter (`db/index.native.ts`) answers as the Db contract (`src/lib/__tests__/dbContract.ts`) says: the suite runs only over the fake and IndexedDB in Node, so SQLite's match to it is by reading, and this suite's passes are its first evidence.
 
 ## Replay rhythm (RR1-RR22)
 
-- [ ] `followZoom` on MapLibre RN's Camera: `jumpTo` with a zoom every frame while the walker moves; whether it keeps up and doesn't fight the follow
-- [ ] The overlays' motion with `Animated` and per-frame styles (the rolling clock's reels, the card's flight, the bubbles)
-- [ ] A memo pausing and resuming with Hold (expo-audio), and a video in its card (expo-video `VideoView`, `nativeControls={false}`)
-- [ ] The screen reader's steps (RR17), unchanged in behaviour but moved into `StepThrough`
-- [ ] The whisper's place on screen, projected from the map's centre and zoom (`layout.project`), against the native map's own tile size
-- [ ] `useMediaWait` on native: expo-video's `playingChange`, `playToEnd` and `currentTime`, expo-audio's status, holding the stage until a medium catches up
-- [ ] A memo started by hand resuming after Hold, and pausing under the native viewer Modal
-- [ ] MapLibre RN's camera going where `follow` says when it isn't gliding (`WalkMap.native`, audit 25)
-- [ ] `VideoView` inside a `pointerEvents="none"` wrapper on iOS, with Tap for sound above it
-- [ ] The bubbles' column (`maxHeight`, `overflow: hidden`) clipping Android elevation shadows; the card and corner with side safe-area insets in landscape
-- [ ] `tickClock`'s 250 ms cap when iOS suspends JS timers with the app in the background
-- [ ] `toLocaleTimeString` under Hermes against iOS's 24-Hour Time switch (RR8, "the device's own clock format")
-
-
-- **The area card's full-screen drawer** (Nov 4): `AtlasCard`'s `PanResponder` taking the touch from its `ScrollView` when the content is at the top (`onMoveShouldSetPanResponderCapture`), the JS-driven transform, and the tab bar folding away (`lib/tabsHidden`). On a touch browser the page's own scroll may take the touch before the capture does. Never run on a device; the e2e's drawer checks (full flow) use a mouse and did not run in the cloud session (no tiles).
+- [ ] **Do:** play the replay of a walk with long stretches between moments. **Expect:** `followZoom` on MapLibre RN's Camera, `jumpTo` with a zoom every frame while the walker moves, keeps up and doesn't fight the follow: the camera pulls back mid-stretch and closes in at the next moment smoothly. (RR3)
+- [ ] **Do:** play a replay with notes, photos and a memo. **Expect:** the overlays' motion with `Animated` and per-frame styles is smooth: the rolling clock's reels roll, the card flies from its pin and back to the pile, the bubbles come and go. (RR8, RR9, RR11)
+- [ ] **Do:** in a replay, tap Hold while a memo plays and again to go on; play a video's card. **Expect:** the memo pauses and resumes with Hold (expo-audio); the video plays in its card (expo-video `VideoView`, `nativeControls={false}`) to its end. (RR7, RR10, RR12)
+- [ ] **Do:** with VoiceOver and then TalkBack on, open a walk's replay and a day's replay. **Expect:** the screen reader's steps, unchanged in behaviour but moved into `StepThrough`: the fog and the path are skipped, the moments come one at a time with Continue, then the card. (RR17, RR22)
+- [ ] **Do:** play a replay of a walk that passed named places without capturing them, at different zooms. **Expect:** each whisper's place on screen, projected from the map's centre and zoom (`layout.project`), sits by its place against the native map's own tile size. (RR15)
+- [ ] **Do:** play a replay with a video and a memo on a slow connection or a large file. **Expect:** `useMediaWait` on native (expo-video's `playingChange`, `playToEnd` and `currentTime`, expo-audio's status) holds the stage until a medium catches up, with the skeleton showing meanwhile. (RR23)
+- [ ] **Do:** in a replay, start a memo by hand, tap Hold and then go on; open the pile's viewer while it plays. **Expect:** a memo started by hand resumes after Hold, and pauses under the native viewer Modal. (RR7, RR13)
+- [ ] **Do:** in a replay, hold it and pan away, then let it go on. **Expect:** MapLibre RN's camera goes where `follow` says when it isn't gliding (`WalkMap.native`, audit 25): back to the walker.
+- [ ] **Do:** on an iPhone, play a replay's video card where sound is refused, and tap Tap for sound. **Expect:** `VideoView` inside a `pointerEvents="none"` wrapper on iOS still plays, and Tap for sound above it takes the tap and unmutes. (RR12)
+- [ ] **Do:** play a replay with many notes on Android, then turn an iPhone to landscape mid-replay. **Expect:** the bubbles' column (`maxHeight`, `overflow: hidden`) clips without cutting Android elevation shadows oddly; in landscape the card and the corner keep clear of the side safe-area insets.
+- [ ] **Do:** start a replay, press Home for a minute, then come back. **Expect:** `tickClock`'s 250 ms cap holds when iOS suspends JS timers with the app in the background: the replay goes on from where it was, never jumping ahead. (RR8)
+- [ ] **Do:** on an iPhone, play a replay with the 24-Hour Time switch on, then off. **Expect:** the clock follows the device's own clock format: `toLocaleTimeString` under Hermes against iOS's 24-Hour Time switch shows 14:05 with it on and 2:05 PM with it off. (RR8)
+- [ ] **Do:** open an area's card on Explore, scroll its content to the top, keep dragging down and up; then try the web build in a phone browser. **Expect:** the area card's full-screen drawer (Nov 4): `AtlasCard`'s `PanResponder` takes the touch from its `ScrollView` when the content is at the top (`onMoveShouldSetPanResponderCapture`), the JS-driven transform follows the finger, and the tab bar folds away (`lib/tabsHidden`); on a touch browser, record whether the page's own scroll takes the touch before the capture does. Never run on a device; the e2e's drawer checks (full flow) use a mouse and did not run in the cloud session (no tiles).
+- [ ] **Do:** on an iPhone and an Android phone, play the replay of a walk with a video, and of one with an edited (trimmed) video. **Expect:** each video card plays once it is ready (`readyToPlay`), an edited video's `VideoPicture` swaps in and starts at the trim's start before each `play()`, with no stutter and no double start (fix ios-video, Nov 5). (RR12)
+- [ ] **Do:** make a tab's screen throw (a development build's debug menu, or a broken route while developing) on each of Explore, Navigate and Chronicle. **Expect:** the tab shows its error screen (`ScreenError`, through each tab's own `ErrorBoundary` export on the native tab navigator), never a white page, and the other tabs still open (fix ios-video 2).
 
 ## Compass (CP1-CP8, decision 0082)
 
-- [ ] Two-finger rotate on MapLibre RN (`touchRotate`, `touchPitch={false}`) and the bearing in `onRegionDidChange`'s `ViewStateChangeEvent`
-- [ ] `resetNorth()` through the Camera ref's `setStop({ bearing: 0, duration })`: that centre and zoom stay
-- [ ] The compass button over the native map, above Locate and in the walk's column
-- [ ] expo-keep-awake through a replay (RR24): the screen held from reading the streets to the card, let go on the card and on leaving, taken again on AppState `active`
-- [ ] The loading skeleton's pulse with the native driver (RR23)
+- [ ] **Do:** turn a map with two fingers, then tilt with two fingers. **Expect:** two-finger rotate on MapLibre RN (`touchRotate`, `touchPitch={false}`) turns the map and never tilts it; the bearing in `onRegionDidChange`'s `ViewStateChangeEvent` shows the compass past 1°. (CP1, CP2)
+- [ ] **Do:** turn the map, note the centre and zoom, and tap the compass. **Expect:** `resetNorth()` through the Camera ref's `setStop({ bearing: 0, duration })` eases to north; that centre and zoom stay. (CP4)
+- [ ] **Do:** turn the map on Explore, on the ready screen and on a walk. **Expect:** the compass button over the native map sits above Locate, and in the walk's column, with no other button moving. (CP2, CP5)
+- [ ] **Do:** set auto-lock to 30 s and play a long replay without touching the phone; press Home mid-replay and come back. **Expect:** expo-keep-awake holds the screen through a replay: from reading the streets to the card, let go on the card and on leaving (the screen then dims), taken again on AppState `active`. (RR24)
+- [ ] **Do:** open a replay with a memo or video on a slow connection; then turn reduce motion on and repeat. **Expect:** the loading skeleton's pulse runs smoothly with the native driver, and holds still with reduce motion. (RR23)
 
 ## Town presence (TP, decision 0089)
 
-- [ ] A town read takes up to 60 z14 tiles (Whitehall's outline touches 21), decoded on the phone: the time it takes and its memory on a phone, never run on a device
-- [ ] TP11: the OpenMapTiles class names for a mall and a department store (`shop` › `mall`, `department_store`) are from memory, since the tile host is blocked from cloud sessions; confirm on a phone that Lehigh Valley Mall counts as a shop
-
-- [ ] The walk screen's top overlay (Minimize, the navigation bar, the notice) and the ready chevron at `insets.top + 4`: clear of the notch and Dynamic Island, the Android status bar and landscape (inset 0); the ready-to-walk handover keeps the same box
+- [ ] **Do:** open the card of a wide town (Whitehall's outline touches 21 z14 tiles) and time it, watching memory in Xcode or Android Studio. **Expect:** a town read takes up to 60 z14 tiles, decoded on the phone: the time it takes and its memory on a phone, never run on a device, stay within a few seconds and no crash. (TP3)
+- [ ] **Do:** open Whitehall's card near Lehigh Valley Mall. **Expect:** the mall counts as a shop: the OpenMapTiles class names for a mall and a department store (`shop` › `mall`, `department_store`) are from memory, since the tile host is blocked from cloud sessions, so this confirms them on a phone. (TP11)
+- [ ] **Do:** on an iPhone with a notch, one with a Dynamic Island, an Android phone, and in landscape, open the walk screen with navigation on and a notice showing, then the ready screen. **Expect:** the walk screen's top overlay (Minimize, the navigation bar, the notice) and the ready chevron at `insets.top + 4` sit clear of the notch and Dynamic Island, the Android status bar and landscape (inset 0); the ready-to-walk handover keeps the same box.
 
 ## Walkability (WK1-WK23, decision 0093)
 
-- [ ] The layer on MapLibre RN: two `Layer`s over a `GeoJSONSource` (`walk-mixed`, `walk-car`), under the hotspots, fog and trace; their zoom-interpolated widths
-- [ ] Overture's `transportation.pmtiles` read by byte range through `pmtiles` in the native runtime, and the Overpass POST (`fetch` with a form body)
-- [ ] `walk_tile` writes through the single write queue (migration 19), ways as JSON (a dense tile is hundreds of KB)
-- [ ] The switch and legend over the native map: the new top edge slot (`walkability`) above the compass, and the legend card growing upward
-- [ ] `Tooltip` by tap and long press on a phone (hover and Escape are web only), closing after `MOTION.tip`
-- [ ] The heads-up pill in the walk's pills stack, and its live region read by VoiceOver and TalkBack
-- [ ] The area card's "On foot" line (`useAreaWords`): its read when the card opens on a phone, and the card's scroll with the new section
-- [ ] The abort signal through `pmtiles`' `getZxy` and `fetch` in the native runtime (walkability audit 12), and a hung read being given up on at 6 s and 20 s
-- [ ] The tooltip's placement (below, right-aligned) on a phone's safe areas, and its hit slop (walkability audit 14)
+- [ ] **Do:** turn walkability on over Explore's map and over a walk's, at several zooms. **Expect:** the layer on MapLibre RN, two `Layer`s over a `GeoJSONSource` (`walk-mixed`, `walk-car`), draws under the hotspots, fog and trace, with zoom-interpolated widths. (WK13)
+- [ ] **Do:** turn walkability on in a new area online; then in an area where Overture is missing a street. **Expect:** Overture's `transportation.pmtiles` is read by byte range through `pmtiles` in the native runtime, and the Overpass POST (`fetch` with a form body) answers: the layer draws. (WK1)
+- [ ] **Do:** turn walkability on over a dense downtown, then force-quit and reopen offline. **Expect:** `walk_tile` writes go through the single write queue (migration 19), ways as JSON (a dense tile is hundreds of KB), with no "database is locked" error, and read back offline. (WK2)
+- [ ] **Do:** on Explore and on a walk, turn the walkability switch on. **Expect:** the switch and legend over the native map: the new top edge slot (`walkability`) sits above the compass, and the legend card grows upward without covering the buttons. (WK14)
+- [ ] **Do:** tap a band icon in the legend, then long press one. **Expect:** `Tooltip` opens by tap and by long press on a phone (hover and Escape are web only), and closes after `MOTION.tip`. (WK22)
+- [ ] **Do:** navigate a route over a stretch built around cars, with VoiceOver and then TalkBack on. **Expect:** the heads-up pill shows in the walk's pills stack, and its live region is read by VoiceOver and TalkBack once, with nothing to press. (WH7, WH8, WH9)
+- [ ] **Do:** open an area's card on Explore and scroll it. **Expect:** the area card's "On foot" line (`useAreaWords`) is read when the card opens on a phone, and the card scrolls with the new section to its end. (WK11)
+- [ ] **Do:** with Network Link Conditioner or a proxy stalling Overture's and Overpass's hosts, turn walkability on, then turn it off mid-read. **Expect:** the abort signal goes through `pmtiles`' `getZxy` and `fetch` in the native runtime (walkability audit 12); a hung read is given up on at 6 s and at 20 s, and the map works as before. (WK3)
+- [ ] **Do:** open a band's tooltip near each edge of the screen and tap just beside the icon. **Expect:** the tooltip's placement (below, right-aligned) stays inside a phone's safe areas, and its hit slop opens it from a tap beside the icon (walkability audit 14).
+- [ ] **Do:** upgrade over a build before the ward fix, open Explore inside a city's ward (a London borough's ward, a Japanese ward), then force-quit and reopen. **Expect:** wards are not towns (fix ward-subdivision): SQLite `outline_tile` rows are stored with the `#sub1` release stamp and an old row is read again once; meta `outline_nested` is written and read through the write queue (a failed write leaves the tile unkept); record whether Overture's z10 `division` layer carries the points the decoder needs to find wards there (else a ward's z10 border piece shows until a z12 read finds its id).
 
 - [ ] Wards are not towns (fix ward-subdivision): SQLite `outline_tile` rows stored with the `#sub1` release stamp and an old row read again once; meta `outline_nested` written and read through the write queue (a failed write leaves the tile unkept); whether Overture's z10 `division` layer carries the points the decoder needs to find wards there (else a ward's z10 border piece shows until a z12 read finds its id)
 
-- [ ] Resurfaced moments (decision 0094): Chronicle's Memories screen on a phone: the section bar, the `FlatList` of Lately (`onEndReached` paging), the horizontal threads rail, the More sheet (`components/Modal`), the toast over the tab bar, and the capture viewer opened from a card
+- [ ] Resurfaced moments (decision 0098): Chronicle's Memories screen on a phone: the section bar, the `FlatList` of Lately (`onEndReached` paging), the horizontal threads rail, the More sheet (`components/Modal`), the toast over the tab bar, and the capture viewer opened from a card
 - [ ] `SafeAreaInsetsContext` with a zero top for the map sections, under the section bar: the map's fit padding, the banner and the Undo pill start in the right place
 - [ ] A photo's small copy in a card and a thread tile (`thumbShown`), and a card whose file is gone
 - [ ] The meta key `resurface_prefs` through the single write queue (a JSON value, rewritten whole on each choice)
 - [ ] Resurfaced moments audit: the Map section starting from a kept camera (`initialCenter`/`initialZoom` from `chronicleSection.keptMap`) and not framing the places again; the threads rail's `role="list"` read by VoiceOver and TalkBack; Android's hardware Back on a thread (leaves Chronicle); the toast's Undo at 44 px over the tab bar
+
+## Map layers and walkability by urban form (ML1-ML13, UF1-UF20, decisions 0096, 0097)
+
+- [ ] **Do:** upgrade from a build before migration 20, turn Walkability on over an area you walked before, then force-quit and reopen. **Expect:** migration 20 adds `walk_tile.junctions` (JSON text, null on older rows); old tiles are read again for their junctions and the tint draws. (UF3)
+- [ ] **Do:** turn Walkability on over Explore's map and a walk's map, and zoom in and out. **Expect:** the two fill layers on MapLibre RN (`walk-foot`, `walk-car`, `fill-antialias: false`) draw under the hotspots, fog and trace, with no seams between cells. (UF9)
+- [ ] **Do:** turn Walkability on in a new area on a phone's network. **Expect:** the connector decode (`junctionsFromOvertureTile`) and the Overpass fallback run in the native runtime and the tint appears. (UF3, WK1)
+- [ ] **Do:** open the Layers panel on a walk and on Explore, then tap the map. **Expect:** the button sits in the edge column (`layers` slot), the panel opens beside it and scrolls inside its room, over the cards below Explore's short map pane; a map press closes it (`layers.closePanel`). (ML3, ML4)
+- [ ] **Do:** switch Busy streets on in an area never read. **Expect:** the area is read once (`readArea`) and its busy streets draw, on a phone's network. (ML8, ML9)
+- [ ] **Do:** with every layer on, open the walk's settings (the ready bar pulled up, then the live walk's options). **Expect:** the legend of each layer that is on shows under "On the map" with its swatches; a row's tap shows its line and a second tap closes it (`onHoverIn` is web only); nothing floats over the map. (ML6, WK22)
+- [ ] **Do:** with VoiceOver and then TalkBack, open the Layers panel and flip a switch. **Expect:** `accessibilityState` and `accessibilityLabel` carry what `aria-expanded`, `aria-checked` and `role="group"` carry on the web. (ML5)
+- [ ] **Do:** look at the Layers button with a layer on and off, and at the panel's shadow over the map. **Expect:** the outlined button and the panel's `elevation` read clearly over the native map. (ML3)
+
+## Scenic routes (SR1-SR15, decision 0095)
+
+- [ ] **Do:** on a walk, long press a destination 1-3 km away near a park, tap Go here. **Expect:** the preview card (`RoutePreview`) shows over the native walk map with a row per route, each with its own distance, and the routes not highlighted drawn faint (the `alternates` source in `WalkMap.native.tsx`); tapping a row or its line highlights it. (SR2, SR3, SR8)
+- [ ] **Do:** pull the ready bar up, and open the walk's drawer, and turn each "Scenic routes" switch off and on; force-quit and reopen. **Expect:** Green, Sights and Streets with life show in both native drawers (`RouteLeaningSettings`), each change is kept after the relaunch, and with all three off Go here starts the direct route with no preview. (SR1)
+- [ ] **Do:** outdoors on cellular, Go here to a destination about 5 km away with all three leanings on, and time "Finding a route" to the preview. **Expect:** the corridor read (shared JS over `fetch`: `fetchTiles`, `readOverture`) finishes well under the 30 s timeout (about 1 s on Node for three leanings over 5 km of Zurich; a phone is likely several times that), and Cancel during it stops the read and starts no route. Record the time. (SR13)
+- [ ] **Do:** on Android, open the preview and press the system Back. **Expect:** the preview closes, no destination is set, and the walk keeps recording. (SR8)
+
+## The web e2e's stand-ins
+
+Where the headless web e2e fakes what a phone does. Each item is the real thing on a phone.
+
+- [ ] **Do:** turn the pocket alert on (its note reads "Two soft taps when a “?” comes into range. Never on a quiet walk."), walk into range of two "?" at once on an exploring walk, then press a large button; repeat on a quiet walk. **Expect:** one double-tap haptic for the two places, a light tap for the button, and nothing on the quiet walk: haptics only through `feedback()` in `lib/motion` and expo-haptics, which the `nudge` journey and the `headsup` journey fake by stubbing `navigator.vibrate`, and the `walk` journey offers the alert only on a touch screen. (PA1, PA2, PA3, PA4, PA5, PA6)
+- [ ] **Do:** on an iPhone with the ring/silent switch on silent, play a voice memo in the viewer and a replay's memo and video; record a memo, then play one again. **Expect:** sound plays though the phone is silent, the memo records, and after it playback still sounds: `setAudioMode` (`lib/audioMode`), which the `launch` journey and the `walk` journey check through a stubbed `navigator.audioSession` (`scripts/e2e/harness.js`, about lines 190-199).
+- [ ] **Do:** on an iPhone, tap Start and answer the motion prompt; stand still indoors two minutes, then walk; pause; then send the app to the background. **Expect:** motion asked once from the tap, the dot held while still and moving within 2 s of the first step, the still spell kept with the walk, and motion read only while the walk is open and on screen (the debugger shows DeviceMotion's listener gone on pause and in the background): the `sensors` journey fakes this with a synthetic `devicemotion` and a stubbed `requestPermission`. (MO1, MO5, MO6, MO8, MO10)
+- [ ] **Do:** allow notifications, tap Send a test notification; set a reminder and let it fire with the app in the background, then tap it, once with Chronicle in front and once with a walk minimized. **Expect:** the OS shows the notification, and each tap opens the capture, on the walk when one is minimized, in one viewer: the `notifications` journey and the `tabs` journey's audit 2 fake the tap as a service-worker `MessageEvent`, and NT6 reads Chromium's `getNotifications` in the `walk` journey. (NT6, NT8, NV13)
+- [ ] **Do:** start a walk, lock the screen, pocket the phone and walk 10 minutes; unlock. **Expect:** the trace covers the whole stretch, recorded in the background by the location task registered in `index.js`, with no "paused while this page was hidden" note: the `hidden` journey and the `sensors` journey fake the page's `visibilityState` instead.
+- [ ] **Do:** with VoiceOver and then TalkBack on, swipe Explore's map to an area; then open a walk's replay and a day's replay. **Expect:** the screen reader says the area's name, and both replays step through the moments one at a time with Continue, then the card (native only): the `snap` journey reads react-native-web's live region for the name, and no journey can run the screen reader's steps. (DN12, RR17)
+- [ ] **Do:** set auto-lock to 30 s and play a long replay without touching the phone. **Expect:** the screen stays awake until the card (expo-keep-awake), then dims: the `replay` journey stubs `wakeLock` instead. (RR24)
+- [ ] **Do:** on a walk, tap the camera and take a photo, record a video, then tap the mic and record a 5 s memo. **Expect:** the system camera opens and the photo and video are kept as pins and play in the viewer; the microphone records your voice, which plays back: the `walk` journey gives the camera's files through the file chooser's `setFiles` and uses Chromium's fake microphone.
+- [ ] **Do:** set a destination by long press and tap Open in Maps on the long-press card and in the navigation bar; then ask for a destination too far to walk and use the error banner's Open in Maps. **Expect:** the phone's maps app opens with walking directions each time, and back in Chronicles the route and the walk are as they were: the `walk` journey stubs `window.open` and records the link. (NH1, NH3, NH5, NH7)
+- [ ] **Do:** with a finger, swipe Explore's map, drag the ready bar's grip, long press the map for a destination, and tap the small buttons. **Expect:** each answers the touch as it does a mouse: a swipe steps areas, the bar follows the finger, the long press sets the destination, every tap lands: the `nudge` journey, the `snap` journey and the `ready` journey emulate touch with `E2E_MOBILE` or `freshPage(..., { touch: true })`. (DN1, NR7)

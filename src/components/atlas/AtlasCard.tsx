@@ -141,7 +141,7 @@ export function AtlasCard(props: {
       }]
     : [styles.side, { width: layout.width, height: layout.height }];
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+    <View style={[StyleSheet.absoluteFill, styles.over]} pointerEvents="box-none">
       {/* Behind the drawer: dims the tab beneath as the drawer is pulled away, so the close reads as progress. */}
       {layout.kind === 'sheet' && (
         <Animated.View
@@ -180,18 +180,13 @@ export function AtlasCard(props: {
             <MiniMap area={area} walked={props.walked} waiting={props.waiting} finds={props.finds} here={props.here ? props.you : null} />
           </View>
 
-          {/* WK11: how the streets treat someone on foot, in words; nothing when too little is known. */}
-          {(onFoot.reading || onFoot.words) && (
+          {/* UF13: what the ground is like for someone on foot, in words. Shown only once there are words (never a "Reading" that
+              vanishes, layers audit 9), and for a town said of the ground around its centre, as "What's here" is. */}
+          {onFoot.words && (
             <View style={styles.sec} testID="atlas-onfoot">
-              <Text style={styles.secTitle} accessibilityRole="header">On foot</Text>
-              {onFoot.words ? (
-                <>
-                  <Text style={styles.onFoot} testID="atlas-onfoot-words">{onFoot.words}</Text>
-                  <Text style={styles.muted}>From OpenStreetMap and Overture. Where sidewalks aren’t mapped, streets can read worse than they are.</Text>
-                </>
-              ) : (
-                <Text style={styles.muted} testID="atlas-onfoot-reading">Reading the streets…</Text>
-              )}
+              <Text style={styles.secTitle} accessibilityRole="header">{area.level === 'town' ? 'On foot · around its centre' : 'On foot'}</Text>
+              <Text style={styles.onFoot} testID="atlas-onfoot-words">{onFoot.words}</Text>
+              <Text style={styles.muted}>From OpenStreetMap and Overture.</Text>
             </View>
           )}
 
@@ -383,6 +378,8 @@ function createPull(offset: Animated.Value) {
 }
 
 const styles = StyleSheet.create({
+  // Above Explore's map pane, which sits at zIndex 5 so the Layers panel can overlay the cards (ML4).
+  over: { zIndex: 6 },
   scrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.35)' },
   // Full screen, over the tabs (which fold away while it is open); `maxWidth` keeps a wide phone-width window readable.
   sheet: {

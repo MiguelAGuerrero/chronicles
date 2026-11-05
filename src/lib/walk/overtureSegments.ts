@@ -47,6 +47,44 @@ function levelOf(raw: unknown): number {
   return 0;
 }
 
+/** Street classes: the only ways whose meetings are junctions (UF2, UF3). */
+const STREETS = new Set(['residential', 'living_street', 'tertiary', 'unclassified', 'primary', 'secondary', 'trunk', 'motorway']);
+
+/**
+ * UF3: a tile's junctions: an Overture connector that two or more streets share, once. A connector only a service way, a
+ * parking aisle or a footway meets makes none, so a car park's connectors never read as a street grid. Connectors sit at
+ * fractional positions along a segment, so they are read from the `connectors` the segments list, not from their ends.
+ * A tile with no connector layer has none.
+ */
+export function junctionsFromOvertureTile(bytes: ArrayBuffer, x: number, y: number): LngLat[] {
+  const vt = new VectorTile(new PbfReader(new Uint8Array(bytes)));
+  const cl = vt.layers.connector;
+  const sl = vt.layers.segment;
+  if (!cl || !sl) return [];
+  const points = new Map<string, LngLat>();
+  for (let i = 0; i < cl.length; i++) {
+    const f = cl.feature(i);
+    const id = String((f.properties as Record<string, unknown>).id ?? '');
+    const g = f.toGeoJSON(x, y, Z).geometry;
+    if (id && g.type === 'Point' && !points.has(id)) points.set(id, [g.coordinates[0], g.coordinates[1]]);
+  }
+  const streets = new Map<string, number>();
+  for (let i = 0; i < sl.length; i++) {
+    const p = sl.feature(i).properties as Record<string, unknown>;
+    if (p.subtype !== 'road' || typeof p.class !== 'string' || !STREETS.has(p.class)) continue;
+    const list = parse(p.connectors);
+    if (!Array.isArray(list)) continue;
+    const ids = new Set((list as { connector_id?: unknown }[]).map((c) => String(c?.connector_id ?? '')).filter(Boolean));
+    for (const id of ids) streets.set(id, (streets.get(id) ?? 0) + 1);
+  }
+  const out: LngLat[] = [];
+  for (const [id, n] of streets) {
+    const at = points.get(id);
+    if (n >= 2 && at) out.push(at);
+  }
+  return out;
+}
+
 /** WK1: a z14 tile's ways. Anything that is not a road or path (rail, water) is left out. */
 export function waysFromOvertureTile(bytes: ArrayBuffer, x: number, y: number): WayFacts[] {
   const layer = new VectorTile(new PbfReader(new Uint8Array(bytes))).layers.segment;

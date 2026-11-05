@@ -25,6 +25,9 @@ import { showWalk } from '../../lib/walkNav';
  */
 export const unstable_settings = { initialRouteName: 'index' };
 
+// A tab that throws while rendering shows what broke, never a blank page (the white page after Keep it, Nov 4).
+export { ScreenError as ErrorBoundary } from '../../components/ScreenError';
+
 /** The tab bar's height above the safe area. */
 const TAB_BAR_H = 58;
 

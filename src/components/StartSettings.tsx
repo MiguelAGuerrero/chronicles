@@ -9,7 +9,10 @@ import { useUnits } from '../lib/useUnits';
 import type { LngLat } from '../lib/types';
 import { KindSwitches, RangeSlider, walkNote } from './ExploreSettings';
 import { Icon } from './icons';
+import { LayersKey } from './LayersControl';
+import type { useLayers } from '../lib/layers/useLayers';
 import { NotificationSettings } from './NotificationSettings';
+import { RouteLeaningSettings } from './RouteLeaningSettings';
 import { SwitchRow } from './SwitchRow';
 import { theme } from './ui';
 
@@ -29,6 +32,8 @@ export function StartSettings(props: {
   onClearDest: () => void;
   onSettings: (s: Settings) => void;
   onToggleKind: (k: Kind, on: boolean) => void;
+  /** The map's layers: what each one that is on shows, here and not over the map. */
+  layers?: ReturnType<typeof useLayers>;
 }) {
   const { mode, dest, fix, settings } = props;
   // Distances in km or miles (QL16): saved as it changes, every screen redraws at once.
@@ -68,6 +73,7 @@ export function StartSettings(props: {
         <Text style={styles.sub}>None: Start wanders from where you are.</Text>
       )}
       <Text style={styles.sub}>Long-press the map to pick a spot (lower this first).</Text>
+      <RouteLeaningSettings />
 
       {mode === 'explore' && (
         <>
@@ -81,6 +87,13 @@ export function StartSettings(props: {
           <KindSwitches hidden={settings.hidden} onToggle={props.onToggleKind} />
         </>
       )}
+
+      {props.layers && Object.values(props.layers.on).some(Boolean) ? (
+        <>
+          <Text style={styles.section} accessibilityRole="header">On the map</Text>
+          <LayersKey layers={props.layers} />
+        </>
+      ) : null}
 
       <View style={styles.rule} />
       <Text style={styles.title} accessibilityRole="header">Reminders and alerts</Text>

@@ -328,6 +328,7 @@ async function townSwipe(h, touch = false, afterHood = false) {
   };
   try {
     await pg.goto(url);
+    await h.switchLayer(pg, 'borders');
     await pg.waitForFunction(() => document.querySelector('[data-testid=explore-area]')?.textContent === 'Allentown', null, { timeout: 60000 }).catch(() => {});
     if (afterHood) {
       await pg.waitForFunction(() => document.querySelectorAll('[data-testid=area-point]').length >= 3, null, { timeout: 30000 }).catch(() => {});
