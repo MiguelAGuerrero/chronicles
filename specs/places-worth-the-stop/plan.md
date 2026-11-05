@@ -51,22 +51,24 @@ Names are `PWn: ...`. Pure logic in `src/lib/__tests__/explore/`, shells over `f
 
 | Id | Test |
 |---|---|
-| PW1 | `archiveShell.test.ts`: a fake archive records every `getZxy`; only the read's tiles, one region file. `check:vision` holds the host. Journey: the request log shows only ranged requests, with no cookie or credential header. |
+| PW1 | `archiveShell.test.ts`: a fake archive records every `getZxy`; only the read's tiles, one region file. `check:vision` holds the host. Journey: the request log shows only ranged requests, with no cookie or credential header. The archive opens through a small custom pmtiles `Source` that fetches with `credentials: 'omit'` and `referrerPolicy: 'no-referrer'`; a test of the source pins both, and the journey's log shows no cookie or referer. |
 | PW2 | `archiveManifest.test.ts`: `pickRegion`, the daily due time, a failed check's wait, no manifest and outside every region. |
 | PW3 | `archiveShell.test.ts`: offline, timeout, 403, 404 and a header that never arrives each give no places and no error; the explore read equals one without the archive. Journey: the host answers 404; the tab is unchanged. |
 | PW4 | `explore.test.ts`: the kinds list holds Curiosities, on by default, in the viewpoints category; the switch hides its places. Journey: "What I'm into" lists it. |
 | PW5 | `archivePois.test.ts`: the pinned class table; an unmapped class is dropped. |
-| PW6 | `placesArchiveBuild.test.ts`: a listed folly is a curiosity, a listed ordinary house is history, a statue is a monument. |
-| PW7 | `placesArchiveBuild.test.ts`: output properties are exactly name, class, source and id; a place enters by a rule and never by a count. |
+| PW6 | `placesArchiveBuild.test.ts`: a listed folly is a curiosity, a listed ordinary house is history, a statue is a monument. Each step of the order is a fixed list of classes and tags in `classify.js`, pinned by a test. |
+| PW7 | `placesArchiveBuild.test.ts`: output properties are exactly name, class, source and id; a place enters by a class and a signal, never by a count; a signal without a class is dropped; a test over the sources shows no view, sort or string reads `source` or the id. |
 | PW8 | `archiveMerge.test.ts`: same name within 50 m across categories is one, the archive winning; a find on either source counts. |
 | PW9 | `explore.test.ts`: `buildChecklists` with archive places (kind, area, unnamed dropped). Journey: a "?" for an archive place, found by a capture; a quiet walk reads it. |
-| PW10 | `atlas.test.ts`: `profileFrom` counts them across a ring and an outline; dots and "?" agree; `profile.archive`; a ring measured without it is stale once one is known. |
-| PW11 | Journey: no digit in the new strings. `check:vision` stays green. |
-| PW12 | `exploreRun` shell test: an area built without the archive is rebuilt when one is known; a found item stays found. |
+| PW10 | `atlas.test.ts`: `profileFrom` counts them across a ring and an outline; dots and "?" agree; `profile.archive`; a ring measured without it is stale once one is known and is read again after 30 minutes; `STEPS` takes no archive input (pinned); `thin` reads the same with and without it; a read without it never replaces a profile measured with it. |
+| PW11 | Journey: no digit in the new strings, the kind rows or `MARKS_EXPLAINED`. `check:vision` stays green. |
+| PW12 | `exploreRun` shell test: an area built without the archive is rebuilt when one is known; a found item stays found and keeps its kind when a newer archive changes or drops its place. |
 | PW13 | `archiveMerge.test.ts`: a removal and an add. |
 | PW14 | `placesArchiveBuild.test.ts`: fixtures in, the same bytes out twice; the manifest names the region and its box. |
 | PW15 | Journey, once the owner places it. |
-| PW16 | Not automated: one fetch against the Pages deploy, recorded in the spec. |
+| PW16 | Not automated: one fetch against the Pages deploy, recorded in the spec. Until then the manifest address is empty (PW2: no archive) and `ALLOWED_HOSTS` is not touched; both change in the commit that records it. |
+| PW17 | Pending the owner's answer (question 4). Recommended shape: `explore.test.ts` pins that an area's sheet text carries no total including archive items; journey check. |
+| PW18 | `scenic.test.ts`: the Sights read returns the same stops with and without an archive in play. |
 
 A new journey, `curiosities`, because the slice changes what a screen shows. It also runs with the existing `marks`, `grading`, `atlas`, `tabs` and `walk` journeys that `check:affected` will name; `tabs.js` and `walk.js` name the kinds and need their counts updated.
 
@@ -89,5 +91,29 @@ A new journey, `curiosities`, because the slice changes what a screen shows. It 
 1. **One reader, or a second?** I would generalize `OvertureReader` (its tests stay as they are). The alternative is a copy of its hardening for the archive.
 2. **Who builds the archive?** The doc says a scheduled GitHub Actions job; decision 0096 says an owner-run script. The script is the same either way; the job would add a workflow that commits to or builds into the Pages artifact.
 3. **Where is the credit line** for OpenStreetMap-derived places (PW15)?
-4. **The place sheet's tally.** Curiosities join an area's checklist, so its "N of M" grows with the pool (Open question 6). Leave it, soften it or remove it now?
-5. **The doc.** Its "Region packs" call (R2, a scheduled job) predates 0096. Update it, or should I mark the mirror as the newer text?
+4. **The place sheet's tally (PW17), which blocks shipping.** Curiosities join an area's checklist, so its "N of M" grows with the pool, and the steward reads that as the "tourists working through a list" the vision names (Open question 6). I recommend the sheet name its finds and say what waits by kind, with no total; the alternative is to keep it as it is and accept the louder list. Decision 0096 says this is decided in the slice or before.
+5. **The Wikipedia signal.** The steward flags "a Wikidata or Wikipedia entry" as the weakest gate, since it measures editors' attention. It is the only open signal for the odd classes (a heritage listing covers buildings, not a giant chicken). I kept it as corroboration only (PW7: a class from the pinned table is always required, a signal never admits a place alone). If you agree, I add a line saying so to 0096; the record is yours, so I haven't touched it.
+6. **The doc.** Its "Region packs" call (R2, a scheduled job) predates 0096. Update it, or should I mark the mirror as the newer text?
+
+## Steward triage (report-only review of the spec and this plan, Nov 5)
+
+The steward found one breach, seven drifts, one tone note, five criteria not testable as written, and four plan lines no criterion covers. Judged against `docs/VISION.md`'s rules; no `[proposed]` line was cited. Each finding is accepted into a criterion, or rejected with the reason.
+
+| Finding | Verdict | What changed |
+|---|---|---|
+| S1: the atlas's presence follows the archive's coverage, so it reads as notability | **Accepted in part, reclassified.** Not a breach: the vision's own nearest fit for popularity is "Presence of places from open data (0080, 0084)", and the Always line the steward quoted ("derived data treated as truth") is not on the page. The coverage unevenness is real, so its testable parts are in. | PW10: `STEPS` takes no archive input; `thin` is judged from the tiles' places alone; a read without the archive never replaces a profile measured with it; the reread is 30 minutes. |
+| S2: the place sheet's "N of M" grows with the archive | **Accepted; it is the owner's call.** I had written "left as it is", which contradicted 0096's "decided in the slice or before". | PW11 no longer says the tally stays; new PW17 is pending your answer and blocks shipping (question 4). |
+| S3: a Wikipedia entry as a gate measures editors' attention | **Accepted as a criterion; the record waits on you.** A class from the pinned table is always required; a signal never admits a place alone. | PW7; question 5. 0096 is not edited. |
+| S4: `source` and the id could become an ordering key | **Accepted, one line.** | PW7: no view, sort or string reads `source` or the id. |
+| S5: a rebuild could move a found item to another kind | **Accepted.** | PW12: found items keep their kind, even when a newer archive changes or drops their place. |
+| S6: more archive marks, more pocket alerts | **Rejected.** The alert is opt-in, once per place, and the slice leaves its rules and the 8-mark cap alone. | None. |
+| S7: copy for the kind and the class table | **Rejected.** The kind has a label and no description line; nothing is built to judge, and PW11's digit checks cover the rest. | None. |
+| S8: requests could carry cookies or a referer | **Accepted.** | PW1: `credentials: 'omit'`, `referrerPolicy: 'no-referrer'`, through a small custom pmtiles `Source`. |
+| S9: silent failure hides why a ring is thin | **Rejected:** it duplicates S1. | None. |
+| Scenic Sights read not pinned | **Accepted.** | New PW18. |
+| Kind rows and `MARKS_EXPLAINED` need no digit | **Accepted.** | PW11. |
+| PW6's "commemorates", "made as art" are judgments | **Accepted.** | PW6: each step is a fixed list of classes and tags in `classify.js`. |
+| PW10's "read again later" has no time; PW16 has no gate | **Accepted.** | PW10 (30 minutes); PW16 (the manifest address is empty and the host is not added until it is recorded). |
+| PW11 can't prove an absence | **Noted, kept.** The journey's digit check and `check:vision` are the proxy. | None. |
+
+**Silent items:** `waitingKinds` follows the existing kind rules, so a kind a walker has switched off is not named. A place that is both odd and heritage-listed is the type's call (0096), accepted as the owner's. A find whose place a refresh drops keeps its snapshot (PW12).
