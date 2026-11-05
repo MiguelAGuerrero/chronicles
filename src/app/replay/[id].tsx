@@ -17,6 +17,7 @@ import { useCeremonyClock } from '../../components/ceremony/useCeremonyClock';
 import { useRevealed } from '../../components/ceremony/useRevealed';
 import type { StageCtx } from '../../components/ceremony/layout';
 import { ceremonyFor } from '../../lib/ceremony/registry';
+import { chronicleSection } from '../../lib/resurface/sectionStore';
 import { pathDrawnAt, storySteps, walkStory } from '../../lib/ceremony/story';
 import { planViews, type WalkMapHandle } from '../../components/map/types';
 import { Button, theme } from '../../components/ui';
@@ -190,6 +191,8 @@ export default function Replay() {
   }, []);
   useEffect(() => {
     if (rewatch) return;
+    // However it is left, the first replay ends on Chronicle's Memories (RM3).
+    chronicleSection.set('memories');
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
       toChronicle();
       return true;

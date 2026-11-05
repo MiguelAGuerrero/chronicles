@@ -3,6 +3,8 @@ import type { NearRead } from './atlas/atlas';
 import type { Db } from './db/types';
 import type { Waypoint } from './nav/types';
 import type { StartMode } from './startPlan';
+import { parsePrefs } from './resurface/prefs';
+import type { Prefs } from './resurface/types';
 import type { Units } from './units';
 
 /**
@@ -113,6 +115,8 @@ export const META = {
   recall_open: { owner: 'discovery', codec: json<string[]>(isStrings) },
   // Town outlines (lib/areas/outlineRead): the localities found to be wards of a city, whose outlines are never towns.
   outline_nested: { owner: 'areas', codec: json<string[]>(isStrings) },
+  // Chronicle's Memories (lib/resurface): what the user chose to see less of, renamed or removed (RM21)
+  resurface_prefs: { owner: 'resurface', codec: json<Prefs>((v) => parsePrefs(v) !== null) },
   // Settings
   units: { owner: 'settings', codec: oneOf<Units>('km', 'mi') },
   notify_off: { owner: 'notifications', codec: json<string[]>(isStrings) },

@@ -266,3 +266,13 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 - **Wards read as towns where nothing says otherwise** (fix ward-subdivision): Overture has no field separating a ward from a small village with no class and no population. A nested locality like that (Deer Park, IL, inside a township) is dropped, so a walk there is placed in the township (the owner accepted it). A ward whose point's tile has not been read yet is a town until it is (its id is then remembered in meta `outline_nested`).
 - **Remembered ward ids never expire** (fix ward-subdivision audit 11): meta `outline_nested` grows by about 40 bytes per ward ever seen and is rewritten whole; a locality that later gains a class or population stays dropped. `purgeDerived` leaves it alone on purpose (clearing it would reopen the gap until tiles are decoded again). Fine for thousands of ids.
+
+- **Resurfaced moments, round 2** (`specs/resurfaced-moments/spec.md`, Deferred):
+  - **Search** and the map as a lens on its results: the next slice, on the same signals.
+  - **Memo transcripts**: the seam is built (`ResurfaceOptions.transcript`, `transcriptExtractor`); the transcriber is not. It needs a native speech module and a development build, so threads read memos only once that exists.
+  - **Photo and audio features** (what is in a picture): another `SignalExtractor`, no feed change.
+  - **Replay this thread**: a thread played as one ceremony. The replay is a view of one walk's story (0086); a thread spans days and places.
+  - **Finds and the lows** ("Passed ... without stopping") in the feed: they are derived rows, not captures.
+  - **A thread from more than one word** (a phrase, a meaning), and languages other than English (the stop-word list in `terms.ts`).
+  - **A nudge** ("a year ago today") as a local notification.
+  - **A memo played in its card**: a card opens the viewer, which plays it, so a browser's sound rule is met by the tap.

@@ -1,7 +1,11 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Linking, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaInsetsContext, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MemoriesScreen } from '../../components/chronicle/MemoriesScreen';
+import { SectionBar } from '../../components/chronicle/SectionBar';
+import { chronicleSection } from '../../lib/resurface/sectionStore';
+import { useStore } from '../../lib/useStore';
 import { CaptureViewer } from '../../components/CaptureView';
 import { HomeSheet, SHEET_PEEK, type SheetMode } from '../../components/HomeSheet';
 import { WalkMap } from '../../components/map/WalkMap';
@@ -52,7 +56,7 @@ const allCaptures = () => db.capturesBetween(0, Number.MAX_SAFE_INTEGER);
  * only walks, summaries, Area, WalkArea and capture rows; placing old walks
  * (which reads their traces) lives in lib/backlog.
  */
-export default function Chronicle() {
+function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
   perfCount('render:home');
   const insets = useSafeAreaInsets();
   const { width: screenW } = useWindowDimensions();
@@ -77,7 +81,8 @@ export default function Chronicle() {
   const walkStart = useStartWalk();
   const [loadError, setLoadError] = useState<{ message: string; openSettings?: boolean } | null>(null);
   const error = walkStart.error ?? loadError;
-  const [mode, setMode] = useState<SheetMode>({ kind: 'summary' });
+  // Walks and Days open the sheet on that list (RM2); Map is the sheet at rest.
+  const [mode, setMode] = useState<SheetMode>(() => (section === 'map' ? { kind: 'summary' } : { kind: section }));
   const [sheetH, setSheetH] = useState(SHEET_PEEK);
   // The sheet's live height: the spot card rides on it as it moves.
   const [sheetAnim] = useState(() => new Animated.Value(SHEET_PEEK));
@@ -411,6 +416,7 @@ export default function Chronicle() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
+  body: { flex: 1 },
   under: { zIndex: 0 },
   over: { zIndex: 1 },
   top: { position: 'absolute', left: 16, right: 16, gap: 8, maxWidth: 640, alignSelf: 'center' },
@@ -428,3 +434,30 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
   },
 });
+
+/**
+ * Chronicle (RM1-RM4): Memories first (what you kept, brought back), then the
+ * walks list, the days list and the map, each as it was (RM2). The map and its
+ * sheet are mounted only for their sections, so Memories carries no map.
+ */
+export default function Chronicle() {
+  const insets = useSafeAreaInsets();
+  const section = useStore(chronicleSection.store, (s) => s);
+  return (
+    <View style={styles.screen}>
+      <View style={{ paddingTop: insets.top, backgroundColor: theme.bg }}>
+        <SectionBar section={section} onChange={chronicleSection.set} />
+      </View>
+      <View style={styles.body}>
+        {section === 'memories' ? (
+          <MemoriesScreen />
+        ) : (
+          // The bar above has taken the safe area's top: the map's own offsets start below it.
+          <SafeAreaInsetsContext.Provider value={{ ...insets, top: 0 }}>
+            <ChronicleMap key={section} section={section} />
+          </SafeAreaInsetsContext.Provider>
+        )}
+      </View>
+    </View>
+  );
+}

@@ -69,6 +69,20 @@ Replay ceremonies (decisions 0085, 0086)
   ceremony/useCeremonyClock.ts  the time into a ceremony: an epoch, hold, a pause while a viewer is open, onEnd once
   ceremony/useRevealed.ts    the captures whose pins are up, one list per count
   ceremony/layout.ts         where the stage puts things (pile, card, bottom margin), project(), tiltOf
+Chronicle's Memories (decision 0094)
+  resurface/types.ts         MomentView, Signal, SignalExtractor (the extension point), Thread, Prefs, Pick
+  resurface/terms.ts         the user's words folded into terms (case, accents, plurals, common words, aliases)
+  resurface/extractors.ts    noteExtractor, captionExtractor, transcriptExtractor; signalsOf
+  resurface/threads.ts       deriveThreads: a term in three moments on two days; THREAD_RULES
+  resurface/pick.ts          resurfaceOrder / pickResurfaced: anniversary, thread, same month, older; seeded
+  resurface/feed.ts          compose (deletes applied) and lately (newest first, a thread's moments lead within a week)
+  resurface/lines.ts         every sentence: when, the card's label, a thread's line; numbers as words
+  resurface/prefs.ts         Not this one, Show less, rename, remove; parsePrefs
+  resurface/views.ts         captures into MomentViews; the From line
+  resurface/section.ts       which Chronicle section after a route; sectionStore.ts holds it
+  resurface/shell.ts         createResurface(ports): load, choices in meta `resurface_prefs`, saveNote, patch; index.ts is the app instance
+  resurface/useResurface.ts  the view hook (reads on focus and after a delete)
+  chronicle/                 SectionBar, MemoriesScreen, Resurfaced, ThreadsRail, ThreadScreen, MomentCard, MomentPicture, MemoryMenu
 Home / tabs
   HomeSheet.tsx              the three-height bottom sheet (Animated + responders), Walks | Days, a place's walks, a day's timeline
   StarView.tsx               a star for a place; all one size; the 8 busiest carry names

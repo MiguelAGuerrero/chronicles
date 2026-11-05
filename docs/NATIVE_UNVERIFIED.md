@@ -239,3 +239,8 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] The tooltip's placement (below, right-aligned) on a phone's safe areas, and its hit slop (walkability audit 14)
 
 - [ ] Wards are not towns (fix ward-subdivision): SQLite `outline_tile` rows stored with the `#sub1` release stamp and an old row read again once; meta `outline_nested` written and read through the write queue (a failed write leaves the tile unkept); whether Overture's z10 `division` layer carries the points the decoder needs to find wards there (else a ward's z10 border piece shows until a z12 read finds its id)
+
+- [ ] Resurfaced moments (decision 0094): Chronicle's Memories screen on a phone: the section bar, the `FlatList` of Lately (`onEndReached` paging), the horizontal threads rail, the More sheet (`components/Modal`), the toast over the tab bar, and the capture viewer opened from a card
+- [ ] `SafeAreaInsetsContext` with a zero top for the map sections, under the section bar: the map's fit padding, the banner and the Undo pill start in the right place
+- [ ] A photo's small copy in a card and a thread tile (`thumbShown`), and a card whose file is gone
+- [ ] The meta key `resurface_prefs` through the single write queue (a JSON value, rewritten whole on each choice)

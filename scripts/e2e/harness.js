@@ -321,7 +321,7 @@ async function createHarness() {
   };
   // A tab, from wherever the test is (NR1-NR4): the ready screen covers the tabs, so its chevron goes back
   // to them first; Navigate opens the walk screen (ready or walking) and is left alone if it is up.
-  const tabTo = async (pg, id) => {
+  const tabTo = async (pg, id, section = 'map') => {
     const shown = async (sel) => (await pg.locator(sel).filter({ visible: true }).count()) > 0;
     if (id === 'navigate') {
       if ((await shown('[data-testid=ready-bar]')) || (await shown('[data-testid=stop]'))) return;
@@ -330,6 +330,11 @@ async function createHarness() {
       await pg.waitForTimeout(600);
     }
     await pg.click(`[data-testid=tab-${id}]`);
+    // Chronicle opens on Memories (RM1); the journeys written before it want the map and its sheet.
+    if (id === 'chronicle' && section !== 'memories') {
+      await pg.waitForSelector('[data-testid=chronicle-sections]', { timeout: 15000 }).catch(() => {});
+      if (await pg.locator(`[data-testid=section-${section}]`).filter({ visible: true }).count()) await pg.click(`[data-testid=section-${section}]`);
+    }
   };
   // Elements on the tab in front: JS tabs keep the others mounted beneath it, aria-hidden.
   const shownCount = (pg, sel) => pg.evaluate((q) => [...document.querySelectorAll(q)].filter((e) => !e.closest('[aria-hidden=true]')).length, sel);

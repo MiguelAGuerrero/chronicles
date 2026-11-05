@@ -11,7 +11,7 @@ Chronicle is for remembering. Today it opens on a map and a sheet of walks, and 
 - Chronicle's job is to remember, to review and to recall. The map is a tool for that, not the front door.
 - The front door is the feed. It leads with what the user circles around (threads), not with walks. A walk is a tool that makes moments; it stays a section, like Days and the map.
 - Threads come from the user's own words first (notes, photo captions). Memos show in the feed now and join threads once they have a transcript; transcription is its own later slice. The thread code is extensible: a new source of signals plugs in without changing the feed.
-- The tab is one screen with a control at the top: **Memories | Walks | Days | Map**. Memories opens every time.
+- The tab is one screen with a control at the top: **Memories | Walks | Days | Map**. Memories opens first (RM1).
 - Choices (Less like this, Not this one, a renamed or removed thread) are kept in the meta store: no migration.
 - Nothing is a score. Counts are said in words. A thread is ranked by how it recurs over time, and no rank, weight or count is ever shown.
 - Local only: everything is derived on the phone from captures.
@@ -21,7 +21,7 @@ Chronicle is for remembering. Today it opens on a map and a sheet of walks, and 
 
 ### The front door
 
-1. **RM1** Chronicle opens on **Memories**, every time, not on the map. A control at the top has four choices: Memories, Walks, Days, Map. It is a tab list for a screen reader, with the chosen one marked.
+1. **RM1** Chronicle opens on **Memories**, not on the map: at launch, after another tab or the walk, and after a walk's first replay (RM3). A replay or a day opened from Walks, Days or Map keeps that section, so Back returns to the list it came from. A control at the top has four choices: Memories, Walks, Days, Map. It is a tab list for a screen reader, with the chosen one marked.
 2. **RM2** **Walks**, **Days** and **Map** show what Chronicle showed before this slice: the walks list under a month header per month, the days list with Replay this day, and the map with its stars and moment pins. Their behaviour is unchanged, including rename, delete, undo and the capture viewer.
 3. **RM3** Every way out of a walk's first replay ends on Chronicle's **Memories**, and that walk's moments are the newest in Lately.
 4. **RM4** With no moments at all, Memories shows one quiet line and a Navigate button (what the empty Chronicle showed), and no rail, no resurfaced card and no Lately.
@@ -86,3 +86,15 @@ Chronicle is for remembering. Today it opens on a map and a sheet of walks, and 
 ## Native (unverified on a device)
 
 Views are React Native components only; no new native module. All of it runs on the web build and has never run on a phone.
+
+## Record (Nov 5)
+
+Built on `claude/resurfaced-moments-spec`; not audited (decision 0074). Unit tests (`src/lib/__tests__/resurface/`), typecheck, lint, `npm test` and the e2e journey `resurface` pass; the older Chronicle journeys were re-run (see `docs/STATUS.md`).
+
+- **Built as written:** RM1, RM2, RM4-RM21, RM23, RM24, RM25 (the roles and names; reduce motion is the app's, no new animation).
+- **RM1 reworded** (above) so that Back from a replay returns to the section it came from; the section resets on any other route (`sectionOnRoute`).
+- **RM3** is done by the first replay, which sets Memories as it mounts; the walk's moments appear in Lately once the walk is stopped (a moment of a walk still open is left out until then).
+- **RM22** is checked on the e2e's seeded text (no digit) and on every line `lines.ts` writes. Dates and a memo's length are digits by design; the e2e's seeds hold none.
+- **RM25** screen-reader roles are asserted by the e2e only for the tab list; the rest is by the names the controls carry.
+- **Not built, as the spec says:** search, the map as a lens, memo transcripts, photo features, Replay this thread, finds and lows, a nudge (`docs/DEFERRED.md`).
+- **Native:** nothing new; every view is unverified on a device (`docs/NATIVE_UNVERIFIED.md`).

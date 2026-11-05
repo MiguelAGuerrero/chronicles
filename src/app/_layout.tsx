@@ -10,6 +10,7 @@ import '../components/pwa';
 import { setAudioMode } from '../lib/audioMode';
 import { db } from '../lib/db';
 import { launchRoute } from '../lib/launchRoute';
+import { chronicleSection } from '../lib/resurface/sectionStore';
 import { openWalkAtLaunch } from '../lib/launchWalk';
 import { reconcileOpenWalk } from '../lib/session';
 import { ensureTileBuild } from '../lib/tiles';
@@ -29,6 +30,8 @@ export default function RootLayout() {
   const walkInFront = useRef<(() => void) | null>(null);
   useEffect(() => {
     launchRoute.note(pathname);
+    // Chronicle opens on Memories again once the app has been elsewhere (RM1).
+    chronicleSection.noteRoute(pathname);
     at.current = pathname;
     if (pathname === '/walk') {
       walkInFront.current?.();

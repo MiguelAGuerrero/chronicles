@@ -206,6 +206,14 @@ const FEATURES = [
     specs: ['quality-of-life'],
   },
   {
+    name: 'resurface',
+    about: 'Chronicle opens on Memories: a resurfaced moment, threads from the user\'s own words, Lately',
+    rule: 'resurface',
+    source: ['src/lib/resurface/**', 'src/components/chronicle/**'],
+    journeys: ['resurface'],
+    specs: ['resurfaced-moments'],
+  },
+  {
     name: 'motion',
     about: 'motion polish: timings, presses, entrances, haptics, the pocket alert',
     rule: 'motion-polish',

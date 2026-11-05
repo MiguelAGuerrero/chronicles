@@ -187,6 +187,28 @@ recording bar brings a minimized walk back.
 
 ### Chronicle (after)
 
+- **Chronicle opens on Memories** (decision 0094): a control at the top chooses
+  **Memories | Walks | Days | Map**, and leaving for another tab puts it back on
+  Memories. Memories is the feed:
+  - **A resurfaced moment** at the top, different on each open, in the user's own
+    words, with a label that says why ("A year ago today", "Last October", "You
+    keep coming back to the water"). **Relive it** opens the replay of its walk
+    (or its day); **Another** steps to the next. Nothing from the last day is
+    resurfaced; it is in Lately.
+  - **Threads**: things the user keeps coming back to, found in the words of
+    notes and photo captions (a word in three moments on two days). A tile shows
+    the user's own word and a line in words ("Just beginning", "Often, lately",
+    "Comes back every October"). A thread's page shows two of the user's own
+    sentences and its moments; **Rename** and **Not a thread** change only the
+    thread. No rank or count is shown.
+  - **Lately**: every moment, newest first, a thread's moments leading within a
+    week; a card opens the moment and a small line opens the walk's replay.
+  - **Show less like this** and **Not this one** (on the ... of the top card and
+    of every card) change what is brought back, never what is kept; both have Undo.
+  - Memos show here but join threads only once they have a transcript (not yet).
+- **Walks, Days and Map** are what Chronicle was before: the walks list, the days
+  list with Replay this day, and the map with its stars. The map is mounted only
+  there.
 - The home map shows stars where walks were, at the level for the zoom
   (neighbourhoods, towns, states, countries; a walk's towns are the borders
   it crossed, by town outlines, drawn as tinted regions behind the stars from
@@ -278,6 +300,7 @@ recording bar brings a minimized walk back.
 | Explore atlas (the tab as a grid of area tiles, presence bars, familiarity) | Shipped, audited (web verified by the e2e; native unverified) |
 | Discrete navigation (Explore's map steps from area to area, DN1-DN13) | Shipped, audited, an experiment (web verified by the e2e; native unverified) |
 | Town presence (a town graded across its whole outline, with its busy areas listed) | Built (web verified by the e2e; native unverified) |
+| Resurfaced moments (Chronicle opens on Memories: a moment brought back, threads from the user's words, Lately) | Built (web verified by the e2e `resurface`; native unverified) |
 | Moments and days, memories on revisit, thumbnails | Shipped, audited |
 | Rides, clearing walks and moments, motion polish | Shipped, audited |
 | Navigation and tabs (three-tab layout, recording bar) | Shipped, two audit batches done |
