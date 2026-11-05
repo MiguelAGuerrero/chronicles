@@ -16,7 +16,11 @@ test passes with typecheck, lint, `npm test` and the e2e, and the docs say so.
   strategy, navigation flow. Use AskUserQuestion with a recommended option.
   Local fixes don't need asking.
 - **Native has never run on a device.** Say so in any report that touches
-  native code, and list each untried native path in `docs/NATIVE_UNVERIFIED.md`.
+  native code, and add each untried native path to `docs/NATIVE_UNVERIFIED.md`,
+  the device acceptance suite, as a test for the first phone run: one line,
+  `- [ ] **Do:** … **Expect:** … (IDS)` (DV2, DV3). A criterion only a phone
+  can check goes in `UNTESTED` in `scripts/features.js` as `device: <why>`,
+  and gets an item naming its id; `check:docs` fails otherwise.
 - Local-only, no simulation, native first: see `.claude/rules/` and
   `docs/ARCHITECTURE.md` before touching recording, streets, the replay or storage.
 
@@ -112,8 +116,8 @@ paths right.
 
 - A new rule or trap: the matching `.claude/rules/<area>.md`.
 - An owner's call made during the slice: `docs/decisions/` (date, the call, why).
-- What was left out: `docs/DEFERRED.md`; untried native code:
-  `docs/NATIVE_UNVERIFIED.md`.
+- What was left out: `docs/DEFERRED.md`; untried native code: an item in
+  `docs/NATIVE_UNVERIFIED.md` (`**Do:** … **Expect:** …`).
 - A feature shipped or changed: `docs/PRODUCT.md`.
 - The spec's record section: what passed, what was deferred.
 

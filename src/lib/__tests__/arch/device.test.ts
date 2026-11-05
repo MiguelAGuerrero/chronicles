@@ -43,7 +43,7 @@ const SUITE = [
   '- [ ] **Do:** turn VoiceOver on and open a replay. **Expect:** each swipe steps to the next moment. (RR17)',
 ].join('\n');
 
-test('DV1 the suite is this repo\'s native checklist, grouped by area, every item under a heading', { todo: 'test first' }, () => {
+test('DV1 the suite is this repo\'s native checklist, grouped by area, every item under a heading', () => {
   const d = device();
   assert.equal(d.SUITE_FILE, 'docs/NATIVE_UNVERIFIED.md');
   const { areas } = d.parseSuite(SUITE);
@@ -54,7 +54,7 @@ test('DV1 the suite is this repo\'s native checklist, grouped by area, every ite
   assert.deepEqual(d.check(ROOT).map((p) => `${p.line}: ${p.message}`), []);
 });
 
-test('DV2 each item says what to do and what to expect, or the check names its line', { todo: 'test first' }, () => {
+test('DV2 each item says what to do and what to expect, or the check names its line', () => {
   const bad = SUITE.replace('**Expect:** the ride is drawn dashed.', 'the ride is drawn dashed.').replace('**Do:** stand still', 'stand still');
   const got = device().suiteProblems(bad, []);
   assert.deepEqual(got.map((p) => p.line).sort(), [10, 11]);
@@ -62,7 +62,7 @@ test('DV2 each item says what to do and what to expect, or the check names its l
   assert.deepEqual(device().suiteProblems(SUITE, []), []);
 });
 
-test('DV3 an item names the criteria it accepts; every device-only criterion has an item', { todo: 'test first' }, () => {
+test('DV3 an item names the criteria it accepts; every device-only criterion has an item', () => {
   const d = device();
   const items = d.parseSuite(SUITE).areas.flatMap((a) => a.items);
   assert.deepEqual(items.map((i) => i.ids), [['MO6', 'MO10'], [], [], ['RR17']]);
@@ -77,7 +77,7 @@ test('DV3 an item names the criteria it accepts; every device-only criterion has
   assert.match(read('scripts/check-docs.js'), /require\('\.\/device'\)/);
 });
 
-test('DV4 the suite opens with how to run it', { todo: 'test first' }, () => {
+test('DV4 the suite opens with how to run it', () => {
   const d = device();
   const text = read(d.SUITE_FILE);
   const first = d.parseSuite(text).areas[0];
@@ -86,7 +86,7 @@ test('DV4 the suite opens with how to run it', { todo: 'test first' }, () => {
   for (const s of ['development build', 'Expo Go', 'upgrade', 'outdoors', 'bus', 'screen off', '— passed', '— failed']) assert.ok(how.includes(s), `how to run says ${s}`);
 });
 
-test('DV5 a ticked item says when and on what it passed; a failure stays open with what happened', { todo: 'test first' }, () => {
+test('DV5 a ticked item says when and on what it passed; a failure stays open with what happened', () => {
   const d = device();
   const items = d.parseSuite(SUITE).areas.flatMap((a) => a.items);
   assert.deepEqual(items[1].result, { kind: 'passed', date: 'Nov 9', device: 'iPhone 13 (iOS 18.1)' });
@@ -98,7 +98,7 @@ test('DV5 a ticked item says when and on what it passed; a failure stays open wi
   assert.match(d.suiteProblems(tickedFailure, [])[0].message, /failed.*stays open/);
 });
 
-test('DV6 each place the e2e stands in for a phone has an item naming the journey that fakes it', { todo: 'test first' }, () => {
+test('DV6 each place the e2e stands in for a phone has an item naming the journey that fakes it', () => {
   const d = device();
   const text = read(d.SUITE_FILE);
   const area = d.parseSuite(text).areas.find((a) => /stand-ins/i.test(a.heading));
@@ -108,13 +108,14 @@ test('DV6 each place the e2e stands in for a phone has an item naming the journe
   for (const what of ['haptic', 'silent', 'motion', 'notification', 'background', 'screen reader', 'awake', 'camera', 'microphone', 'Open in Maps', 'touch']) {
     const item = items.find((l) => l.toLowerCase().includes(what.toLowerCase()));
     assert.ok(item, `an item for ${what}`);
-    const journeys = [...item!.matchAll(/the `([a-z-]+)` journey/g)].map((m) => m[1]);
+    // "the `nudge` journey", "the `launch` and `walk` journeys": a backticked name that is a journey's file.
+    assert.match(item!, /journeys?\b/, `${what}: says which journey fakes it`);
+    const journeys = [...item!.matchAll(/`([a-z-]+)`/g)].map((m) => m[1]).filter((j) => existsSync(join(ROOT, 'scripts', 'e2e', 'journeys', `${j}.js`)));
     assert.ok(journeys.length > 0, `${what}: names the journey faking it`);
-    for (const j of journeys) assert.ok(existsSync(join(ROOT, 'scripts', 'e2e', 'journeys', `${j}.js`)), `${what}: ${j} is a journey`);
   }
 });
 
-test('DV7 check:device lists the open items by area, with their criteria and the counts; the procedures keep the suite', { todo: 'test first' }, () => {
+test('DV7 check:device lists the open items by area, with their criteria and the counts; the procedures keep the suite', () => {
   const f = join(tmp, 'suite.md');
   writeFileSync(f, SUITE);
   const run = (...args: string[]) => execFileSync('node', [join(ROOT, 'scripts', 'device.js'), ...args], { encoding: 'utf8', env: { ...process.env, DEVICE_SUITE: f } });

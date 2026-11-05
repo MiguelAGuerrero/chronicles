@@ -205,6 +205,8 @@ for (const doc of PATH_CHECKED) {
 
 // 5. Every live criterion has a status: a test, a retirement, a reason, or the legacy baseline (TG20-TG22)
 for (const p of require('./criteria').check(ROOT)) fail(p.message);
+// The device acceptance suite: its format, and an item for every device-only criterion (DV1-DV5).
+for (const p of require('./device').check(ROOT)) fail(p.message);
 
 if (problems.length) {
   console.error(`check-docs: ${problems.length} problem${problems.length > 1 ? 's' : ''}`);

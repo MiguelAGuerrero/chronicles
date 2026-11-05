@@ -368,6 +368,17 @@ Native has never run on a device. The unit tests prove pure logic and the e2e
 the web build in Chromium; neither runs `*.native.ts(x)`, SQLite migrations,
 the background task or MapLibre RN. Say so in any report touching native code.
 
+What only a phone can check is kept as the **device acceptance suite**,
+`docs/NATIVE_UNVERIFIED.md` (specs/device-acceptance, DV1-DV7): one line per
+test, `- [ ] **Do:** … **Expect:** … (IDS)`, under its area, with how to run it
+first (a development build, a fresh install and an upgrade). A pass is ticked
+with `— passed <Mon D>, <device> (<OS>)`; a failure stays open with what
+happened. `npm run check:device [--area <words>]` lists what is open for a
+phone run. `check:docs` holds the format and ties every `device:` entry in
+`UNTESTED` to an item. Its section "The web e2e's stand-ins" names each fake
+the journeys use for a phone (haptics, sensors, notifications, the screen
+reader, the camera, ...) and the journey that uses it.
+
 ## Spec traceability
 
 **Every live criterion has a status** (`scripts/criteria.js`, TG20-TG22), held by

@@ -94,7 +94,8 @@ While the question is open the worktree stays; if the answer is no, scrap it.
 1. The minimal change that removes the root cause. Respect the functional-core
    layering (`.claude/rules/functional-core.md`): decisions in core, effects in
    a shell. No refactors, no drive-by cleanups.
-2. Native code touched: add it to `docs/NATIVE_UNVERIFIED.md` and say in the
+2. Native code touched: add an item for it to `docs/NATIVE_UNVERIFIED.md`, the
+   device acceptance suite (`- [ ] **Do:** … **Expect:** …`), and say in the
    report that it has never run on a device.
 3. The regression test (per the level) fails before the fix and passes after.
    Never skip, loosen or quarantine a test to get green.
