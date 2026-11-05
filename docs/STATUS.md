@@ -116,8 +116,8 @@ first.
 - **VISION.md and scenic routes:** decision 0095 proposes amending the Shapes rows "Suggested routes" and "Several routes to one point, Apple Maps style" to fit the row per leaning you kept at the gate (Nov 5); only you edit the page.
 - **The vision's open questions** (`docs/VISION.md`, decision 0094): likeness made by you or suggested; voice
   memos searchable on the phone only; the cloud as a mirror or a place where work happens; browse standard, dwell
-  diegetic; where "nothing is calculated for you" ends; the found tally on a place's sheet, carried as debt by
-  `npm run check:vision`. Lines marked [proposed] on the page wait on these.
+  diegetic; where "nothing is calculated for you" ends. The found tally (open question 6) is answered: removed (decision 0099),
+  and the page's question waits on your edit. Lines marked [proposed] on the page wait on these.
 - **Functional core, next:** the walk screen's fog refresh moves to a shell (the first shell, and the rules for shells with it).
 - **The web and native stores disagree** in five places the Db contract found (`docs/DEFERRED.md`, Functional core): which side is right, per case.
 - **`WALKED_THRESHOLD` (0.5)** in snapping is "still an open product decision"

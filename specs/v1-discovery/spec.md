@@ -243,14 +243,14 @@ Acceptance criteria:
 - E7. Within 60 m the "?" shows the category icon and the name, with S7's labels for unnamed art and viewpoints. Walking past only names a place; it never counts as found.
 - E8. Found means a capture (photo, memo, note or video) within 60 m of a checklist place; with two in reach, the nearer. A found place stays drawn on the walk at any distance, and shows in its neighborhood's place view on the home.
 - E9. A quiet walk is navigation plus captures (owner, Nov 1). It hides every discovery layer: "?" marks, magenta busy streets, the "On \<strip>" chip, the dead-zone pill and the pocket haptic. Navigation, captures, reminders, the trace and the fog stay. Its background reads build checklists but save no busy streets (owner, after the audit). A capture still finds a place, quietly.
-- E10. The home shows no "?" marks and no found places on the overview. A neighborhood's place view shows "12 of 87 · list from Nov 1" and its found places. No ring, badge, streak or percentage, and nothing on the walk screen.
+- E10. The home shows no "?" marks and no found places on the overview. A neighborhood's place view shows its found places by name, never a count of them or of what remains (the owner, Nov 5, decision 0099; it showed "12 of 87 · list from Nov 1" before). No ring, badge, streak or percentage, and nothing on the walk screen.
 - E11. The replay shows a found place's name and category with its capture. The card lists the places found on this walk. Its low is the places revealed (within 60 m) but not captured: "Passed 3 places you didn't stop for". The card shows no checklist count.
 - E12. Go here in a revealed place's sheet navigates to it; the top bar shows its name.
 - E13. Checklists and finds are their own records, not Marks, and are kept: a tile-build purge never clears them. A checklist copies what it needs (key, name, category, kind, place) from the derived place cache.
 - E14. On upgrade, scan and ambient Marks are no longer read or drawn. The rows stay (they are truth). Found ones stay in their walks' replays.
 - E15. On the web, exploring works while the page is open, with the same code.
 - E16. Settings has a "What I'm into" filter with 8 switches, all on: public art; museums and galleries; theatres; monuments and ruins; historic churches; cemeteries; parks and gardens; viewpoints and attractions. The walk's options card links to it. A choice lasts until changed (owner, Nov 1).
-- E17. A kind switched off gets no "?" marks on the walk. It stays on the checklist and in the count, so "12 of 87" never moves with the filter. Switching it back on shows its marks at once.
+- E17. A kind switched off gets no "?" marks on the walk. It stays on the checklist, so what a place holds never moves with the filter (no count is shown since decision 0099). Switching it back on shows its marks at once.
 - E18. A capture near a hidden place still finds it, and the replay shows the find.
 - E19. Pocket alert: an optional soft haptic, once per place, when a "?" comes into your range. It is a setting, off by default, never a notification banner, and silent on a quiet walk.
 - E20. Range: settings has a "?" range slider, 60–300 m in 20 m steps, 100 m by default (owner, Nov 1). It never goes below the 60 m naming distance. It lasts until changed and applies from the next fix. The 8-mark cap still holds.

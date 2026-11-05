@@ -119,8 +119,8 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
     showed on an exploring walk with kinds switched off): the atlas's
     `waitingKinds` and `waitingMarks` take the hidden kinds, so a "?" on the tab
     is one a walk can show. A find shows whatever its kind.
-  - **Home:** no "?" and no count on the overview; a place view shows
-    "N of M · list from <date>" and its finds. **Replay:** finds by name
+  - **Home:** no "?" and no count on the overview; a place view names its
+    finds (`placeFinds`) and never counts them (decision 0099). **Replay:** finds by name
     (`foundList`) and "Passed Hessian Memorial without stopping", or "a few places"
     (`passedLine`, never a count since tabs audit U13).
     Marks found before explore stay in their replays; old open marks are not

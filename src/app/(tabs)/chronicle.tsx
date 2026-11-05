@@ -18,7 +18,7 @@ import { applyPatch, captureBus } from '../../lib/captureBus';
 import { captureEdits } from '../../lib/captureEdits';
 import { perfCount } from '../../lib/perfCount';
 import { buildDays } from '../../lib/days';
-import { countLine, placeCount, type ChecklistArea, type Find } from '../../lib/explore/explore';
+import { placeFinds, type ChecklistArea, type Find } from '../../lib/explore/explore';
 import { onRecallOpen, recallWaiting, takeRecallOpen } from '../../lib/discovery/recallCheck';
 import { zoomOutFor } from '../../lib/zoomOut';
 import { placeBacklog } from '../../lib/backlog';
@@ -236,12 +236,12 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
     mapRef.current?.showPoint(s.at, { top: insets.top + 48, right: 24, bottom: Math.round(screenH * 0.5) + 24, left: 24 });
   };
 
-  // The place view's count and found places (E10): never on the overview.
+  // The place view's found places, named and never counted (E10, decision 0099): never on the overview.
   const placeExtra = useMemo(() => {
     if (mode.kind !== 'place') return null;
     const a = index.areas.get(mode.key);
-    const got = a ? placeCount(a, checklists, finds) : null;
-    return got ? { count: countLine(got.count), found: got.found.map((f) => f.name) } : null;
+    const got = a ? placeFinds(a, checklists, finds) : null;
+    return got ? { found: got.map((f) => f.name) } : null;
   }, [mode, index, checklists, finds]);
 
   const busy = placing != null || walkStart.starting;
