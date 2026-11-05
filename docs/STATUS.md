@@ -5,7 +5,7 @@ every branch holds and what is waiting on the owner. Update it at the start and
 end of every slice, and whenever a branch is opened, merged or abandoned. For
 what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md`.
 
-- **As of:** 2026-11-04
+- **As of:** 2026-11-05
 - **`origin/main` head:** `28c7417` (2026-11-03, the filling-gaps merge). Since
   `7a34666` main gained Bridges and Open in Maps (`82186db`, `67b7c9d`), the
   Start dialog (`6fb2572`, `9f547bd`), no Open in Maps on "Off your route"
@@ -59,9 +59,10 @@ what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md
 | Compass (the map turns by two fingers; a compass shows while it is and sets north again, CP1-CP8, decision 0082) | shipped 2026-11-04 (web verified by the e2e `qol` and `ready`; native unverified; the live walk's compass slot is not covered by an e2e step) | branch `claude/compass-spec`, 2026-11-04 | `specs/compass/spec.md` (repo first) | no (on request only, decision 0074) |
 | Replay rhythm (the replay as a story told by a ceremony; glide to the moments, zip through the rest, tap to hold; RR1-RR22, decisions 0085, 0086; then a loading skeleton and the screen kept awake, RR23-RR24, decision 0087) | shipped 2026-11-04 (web verified by the e2e `replay` journey, against the `/chronicles` build too; native unverified) | branch `claude/replay-rhythm`, 2026-11-04 | `specs/replay-rhythm/spec.md` (repo first) | yes, three rounds at the owner's request (19 findings: 16 fixed, 1 deferred, 2 rejected; 10: 9 fixed, 1 in part; 9: 8 fixed, 1 deferred to the owner) |
 | Town presence (a town graded across its whole outline; its pockets of activity listed as Busy areas; malls count as Shops; TP1-TP12, decision 0089) | built 2026-11-04 (unit tests, typecheck, lint, `npm test`, e2e `outlines`, `grading`, `marks`, `tabs` pass on the web build; native unverified; the tile class names for a mall are unconfirmed) | branch `claude/town-presence-spec` | `specs/town-presence/spec.md` (repo first) | no (decision 0074) |
+| Scenic routes (Go here offers Direct and one route per leaning: green, sights, streets with life, at most 30% longer, in words; SR1-SR15, decision 0093) | shipped 2026-11-05 (web verified by the e2e `scenic`, `walk`, `memories`, `launch`, `ready`, `tabs`, `reload`, `qol`, `marks`, `edit`, `gaps`, `hidden`, `nudge`, `outlines`, `replay`, `snap` on the /chronicles build; 1041 unit tests; native unverified) | branch `claude/scenic-routes` | `specs/scenic-routes/spec.md` (repo first) | no (decision 0074) |
 
-Not a tab, but tracked: **suggested routes** (interesting ways, route preview,
-"Walk this way") are deferred as their own later slice (`749811d` 2026-11-01).
+Not a tab, but tracked: **suggested routes** shipped as scenic routes (decision 0093);
+Explore's route preview and "Walk this way" stay deferred.
 **Backup and export** has code (`lib/export`) and no UI (deferred, `565b244`).
 
 **Native has never run on a device.** Every slice above is verified on the web
@@ -122,7 +123,7 @@ first.
   only copy of the concept in the repo.
 - **Branch clean-up:** nine branches are merged and five superseded (see the
   table); deleting them is the owner's call.
-- **Suggested routes** (deferred Nov 1) and the rest of Quality of life
+- **The rest of Quality of life**
   (QL13+, in the owner's order: units, time left, a Settings link when location is
   denied, renaming a walk, editing a note, thumbnails on pins, month headers,
   keep awake, GPX export, the current street chip, dark mode): when, and which next.
@@ -142,7 +143,6 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 | Session | Branch | Doing |
 |---|---|---|
 | Bug fixes (open since Oct 31) | unknown | unknown |
-| Scenic routes (`specs/scenic-routes/spec.md`, SR1-SR15; started 2026-11-04) | `claude/scenic-routes` | spec and plan approved by the owner; tests first, then the code |
 
 ## Updating this file
 

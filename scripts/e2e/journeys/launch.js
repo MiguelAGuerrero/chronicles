@@ -251,9 +251,9 @@ async function fresh(h) {
           g.onsuccess = () => resolve(g.result.length);
         };
       }));
-      const routed = await routed(pg, 40000).then(() => true, () => false);
-      check(still?.id === w.id && walks === 1 && nav?.walk_id === w.id && nav.dest.label === 'Your spot' && routed,
-        `with a walk open, Walk here routes that walk there and returns to it (NV10: ${walks} walk, routed ${routed})`);
+      const wasRouted = await routed(pg, 40000).then(() => true, () => false);
+      check(still?.id === w.id && walks === 1 && nav?.walk_id === w.id && nav.dest.label === 'Your spot' && wasRouted,
+        `with a walk open, Walk here routes that walk there and returns to it (NV10: ${walks} walk, routed ${wasRouted})`);
       // NV7: under the navigation bar when one shows.
       const navBox = await pg.locator('[data-testid=nav-bar]').boundingBox();
       const minNav = await pg.locator('[data-testid=walk-minimize]').boundingBox();
