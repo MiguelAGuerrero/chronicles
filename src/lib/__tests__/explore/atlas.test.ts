@@ -430,6 +430,12 @@ test('TP7: the busy areas of a graded town are its pockets, named for the street
   assert.deepEqual(busyAreas({ ...town, profile: null }), []);
 });
 
+test('fix busy-areas-twice: two pockets on one street list the street once, at the busier pocket', () => {
+  const pockets = [{ at: far, name: 'MacArthur Road' }, { at: east(900, far), name: 'MacArthur Road' }, { at: east(100), name: 'Chestnut Street' }];
+  const town = row('Whitehall', O, { level: 'town', profile: { steps: {}, strips: [], extent: 'outline', pockets } as unknown as AtlasProfile });
+  assert.deepEqual(busyAreas(town), [{ label: 'MacArthur Road', at: far }, { label: 'Chestnut Street', at: east(100) }]);
+});
+
 test('TP8: a graded town\'s heading and explanation say it is counted across its outline; a ring keeps "around its centre"', () => {
   assert.equal(kindsHeading('town', { extent: 'outline' }), 'What’s here');
   assert.equal(kindsHeading('town', { extent: 'ring' }), 'What’s here · around its centre');

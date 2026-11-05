@@ -218,7 +218,7 @@ export function AtlasCard(props: {
           {/* TP3: a town wider than one read takes says it covers part of it. */}
           {p?.partial && <Text style={styles.muted} testID="atlas-partial">Covers part of the town: the middle of it, around its point.</Text>}
 
-          {/* TP7: where a town is busy, apart from its kinds: each pocket, busiest first, with Walk to. */}
+          {/* TP7: where a town is busy, apart from its kinds: each busy street once, busiest first, with Walk to. */}
           {props.busyAreas.length > 0 && (
             <View style={styles.sec}>
               <Text style={styles.secTitle} accessibilityRole="header">Busy areas</Text>
