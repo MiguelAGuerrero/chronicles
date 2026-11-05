@@ -21,10 +21,11 @@ import type { Pocket } from './pockets';
 /** a3: town outlines (TO10): the tab lists again, so a town known only by its outline gets a tile. */
 /** a4: atlas grading (AG1, AG3): the findable kinds count only what could be found; thin rings are marked. */
 /** a5: towns graded across their whole outline, with pockets of activity (TP1-TP11); neighborhoods read as under a4. */
-export const ATLAS_CODE = 'a5';
+/** a6: wards inside a city are not towns (fix ward-subdivision); neighborhood rows stand as under a5. */
+export const ATLAS_CODE = 'a6';
 
 /** TP10: the older rules a level's rows still stand under, because the change did not touch that level. */
-const CARRIED: Partial<Record<AtlasLevel, readonly string[]>> = { neighborhood: ['a4'] };
+const CARRIED: Partial<Record<AtlasLevel, readonly string[]>> = { neighborhood: ['a4', 'a5'] };
 
 export const ATLAS_RULES = {
   /** Every area is measured inside this ring around its point, whatever its level (AT4). */

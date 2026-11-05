@@ -38,7 +38,25 @@ export interface OutlineTile {
   pieces: OutlinePiece[];
   /** The source's own points for towns, by the id their pieces carry. */
   points: { id: string; at: LngLat }[];
+  /** Fresh from the decoder only, never stored: ids of the localities it found nested in another (wards), for the reader to remember. */
+  nested?: string[];
 }
+
+/**
+ * The decoder that cut a kept tile (fix ward-subdivision): tiles are stored with it after their
+ * release, and one stored without it (an older decoder, which read wards as towns) is read again.
+ */
+export const OUTLINE_DECODE = 'sub1';
+export const stampRelease = (release: string) => `${release}#${OUTLINE_DECODE}`;
+export const tileCurrent = (t: Pick<OutlineTile, 'release'>) => t.release.endsWith(`#${OUTLINE_DECODE}`);
+
+/** The tiles without the pieces and points of localities known to be wards (fix ward-subdivision audit 1). */
+export const withoutNested = (tiles: OutlineTile[], ids: ReadonlySet<string>): OutlineTile[] =>
+  ids.size
+    ? tiles.map((t) => (t.pieces.some((p) => ids.has(p.id)) || t.points.some((p) => ids.has(p.id))
+        ? { ...t, pieces: t.pieces.filter((p) => !ids.has(p.id)), points: t.points.filter((p) => !ids.has(p.id)) }
+        : t))
+    : tiles;
 
 /** The outlines known around some points: which tiles were read, and the towns in them. */
 export interface OutlineSet {
