@@ -143,3 +143,10 @@ test('RM20: a choice that cannot be kept still shows now (the write failed; labe
   await r.hide('n3');
   assert.deepEqual(r.store.get().prefs.hidden, ['n3']);
 });
+
+test('NV13: the shell says whether a walk is open, so a reminder waiting from a cold start opens on the walk or on Memories', async () => {
+  const { p, r } = await seeded();
+  assert.equal(await r.openWalk(), false);
+  await p.db.createWalk({ ...walk, id: 'w2', ended_at: null, open: true });
+  assert.equal(await r.openWalk(), true);
+});

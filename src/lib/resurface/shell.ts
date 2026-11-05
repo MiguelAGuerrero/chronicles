@@ -82,6 +82,10 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
         store.set((s) => ({ ...s, status: 'failed' }));
       }
     },
+    /** Whether a walk is open: a reminder waiting from a cold start opens on the walk then, else on Memories (NV13). */
+    async openWalk(): Promise<boolean> {
+      return !!(await p.db.getOpenWalk().catch(() => null));
+    },
     /** Another (RM8): the next resurfaced moment. The view takes it modulo how many there are. */
     another(): void {
       store.set((s) => ({ ...s, index: s.index + 1 }));

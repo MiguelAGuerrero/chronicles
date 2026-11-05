@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { captureEdits } from '../../lib/captureEdits';
@@ -8,6 +8,8 @@ import { LATELY_PAGE, lately } from '../../lib/resurface/feed';
 import { resurface } from '../../lib/resurface';
 import { useResurface } from '../../lib/resurface/useResurface';
 import type { MomentView, Prefs, Thread } from '../../lib/resurface/types';
+import { onRecallOpen, recallWaiting, takeRecallOpen } from '../../lib/discovery/recallCheck';
+import { useOpenWalkInfo } from '../OpenWalk';
 import { UndoToast } from '../UndoToast';
 import { useStore } from '../../lib/useStore';
 import type { Capture } from '../../lib/types';
@@ -33,6 +35,43 @@ export function MemoriesScreen() {
   const [threadTerm, setThreadTerm] = useState<string | null>(null);
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [viewing, setViewing] = useState<Capture[] | null>(null);
+  // A reminder tapped with no walk open lands on Chronicle and opens its capture at once (NV13), as the map's
+  // screen does; with a walk open, the walk screen opens it and this declines. Until the keeper knows, it declines.
+  const [recalled, setRecalled] = useState<Capture[] | null>(null);
+  const openInfo = useOpenWalkInfo();
+  const openRef = useRef(openInfo);
+  useEffect(() => {
+    openRef.current = openInfo;
+  });
+  useEffect(
+    () =>
+      onRecallOpen((found) => {
+        if (!openRef.current.known || openRef.current.walk) return false;
+        setRecalled(found);
+        router.navigate('/chronicle');
+        return true;
+      }),
+    [],
+  );
+  // One waiting from a cold start: with a walk open it opens on the walk (audit 2), else here.
+  useFocusEffect(
+    useCallback(() => {
+      let live = true;
+      (async () => {
+        const open = await resurface.openWalk();
+        if (!live) return;
+        if (open && (await recallWaiting().catch(() => false))) {
+          showWalk();
+          return;
+        }
+        const found = open ? [] : await takeRecallOpen().catch(() => [] as Capture[]);
+        if (live && found.length) setRecalled(found);
+      })().catch(() => {});
+      return () => {
+        live = false;
+      };
+    }, []),
+  );
   const [toast, setToast] = useState<{ msg: string; before: Prefs } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -190,6 +229,14 @@ export function MemoriesScreen() {
           await captureEdits.save(c, patch);
           resurface.patch(c.id, patch);
         }}
+        onSaveNote={(c, body) => resurface.saveNote(c, body)}
+      />
+      <CaptureViewer
+        key={recalled?.[0]?.id ?? 'none'}
+        captures={recalled}
+        onClose={() => setRecalled(null)}
+        autoPlay
+        remind
         onSaveNote={(c, body) => resurface.saveNote(c, body)}
       />
       <UndoToast style={{ top: 8 }} />
