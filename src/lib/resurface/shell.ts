@@ -83,6 +83,15 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
     return saved.then((ok) => ({ before, after: next, saved: ok }));
   }
 
+  /** The context a refresh keeps: every moment's line, but not those of a walk that lost a capture (MC5). */
+  function keepContext(prev: ResurfaceState, next: MomentView[]): Record<string, ContextEntry> {
+    const now = new Set(next.map((m) => m.id));
+    const lost = new Set(prev.moments.filter((m) => m.walkId && !now.has(m.id)).map((m) => m.walkId as string));
+    if (!lost.size) return prev.context;
+    const walkOf = new Map(prev.moments.map((m) => [m.id, m.walkId]));
+    return Object.fromEntries(Object.entries(prev.context).filter(([id]) => !lost.has(walkOf.get(id) ?? '')));
+  }
+
   /** Reads the moments and the choices; `open` also starts a new open (a new seed, the top card first). */
   async function read(open: boolean): Promise<void> {
     const mine = ++generation;
@@ -98,8 +107,9 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
         seed: open ? String(p.clock.now()) : s.seed,
         index: open ? 0 : s.index,
         lastShownAtOpen: open ? prefs.lastShown ?? null : s.lastShownAtOpen,
-        // A new open reads its context afresh; a refresh keeps what it has (MC6).
-        context: open ? {} : s.context,
+        // A new open reads its context afresh; a refresh keeps what it has (MC6), except for a walk that lost a
+        // capture: its neighbours' lines may name the one that is gone (MC5).
+        context: open ? {} : keepContext(s, toMomentViews(captures, walks, opts.transcript)),
       }));
       if (open) pausesByWalk.clear();
     } catch {

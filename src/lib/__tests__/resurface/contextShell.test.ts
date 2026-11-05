@@ -152,3 +152,15 @@ test('MC11: Show less like this names at most one word, and every word it set is
   assert.equal(fewerWord(change.after.less.filter((t: string) => !change.before.less.includes(t))), 'harbor', 'the first word the owner wrote');
   assert.equal(fewerWord([]), null);
 });
+
+test('MC5: after a delete, a neighbour is read again, so a deleted capture is never "just before"', async () => {
+  const { p, r } = await seeded();
+  await r.contextFor(['m2']);
+  assert.match(ctxOf(r, 'm2').line, /just after a note$/);
+  await p.db.deleteCaptures(['m1']);
+  await r.refresh();
+  assert.equal(ctxOf(r, 'm2'), undefined, 'its cached line named the capture that is gone');
+  await r.contextFor(['m2']);
+  assert.doesNotMatch(ctxOf(r, 'm2').line, /just after/);
+  assert.equal(ctxOf(r, 'm4'), undefined, 'a walk-mate not asked about stays unread');
+});

@@ -38,7 +38,7 @@ Open: none for this slice. Deferred, still open for the owner: owner-made thread
 
 ### In your hands
 
-9. **MC8** A menu on the Memories header opens **Hidden**: every moment hidden by Not this one, every thread removed, and every word brought up less, each with **Bring back**. A moment's row shows its kind and its context line, with no picture and no words, until tapped open; a thread shows its name; a word shows as the stored word, labelled "word". Bringing one back makes it eligible again at once and removes it from the list. Hiding is not privacy and no copy says so.
+9. **MC8** A menu on the Memories header opens **Hidden**: every moment hidden by Not this one or set to fewer like this, every thread removed, and every word brought up less, each with **Bring back**. A moment's row shows its kind and its context line, with no picture and no words, until tapped open; a thread shows its name; a word shows as the stored word, labelled "word". Bringing one back makes it eligible again at once and removes it from the list. Hiding is not privacy and no copy says so.
 10. **MC9** The same menu has **Bring moments back**, a switch, on by default. Off: Memories shows no top card and no Another, and in the top card's place one quiet line, "Bringing moments back is off", with the switch on it. The rail and Lately stay. It touches the top card and Another only: revisit memories (0037) and Remind me here are untouched. With it off and nothing kept, the empty state shows as before. The choice is kept and survives a reload.
 11. **MC10** The same menu has **Forget my choices**: after one confirmation inside the same sheet, it clears everything Hidden lists and every thread rename. The switch keeps its state. The confirmation says that hidden moments, removed threads and softened words will be offered again. Moments, walks and threads' contents are not touched.
 12. **MC11** Show less like this says which word it will bring up less: the toast names at most one, "Fewer like this: harbor", or reads "Fewer like this" for a moment with none. Every word it set appears in Hidden (MC8).
@@ -75,3 +75,15 @@ Open: none for this slice. Deferred, still open for the owner: owner-made thread
 ## Native (unverified on a device)
 
 Views are React Native only. The per-moment street read (`getSegmentsIn` over SQLite) and the Hidden list have only run on the web build.
+
+## Record (Nov 5)
+
+Built on `claude/memories-context`; not audited (decision 0074). Unit tests (`src/lib/__tests__/resurface/`), typecheck, lint and `npm test` pass; the `resurface` journey passes with the new checks (MC1, MC3, MC4, MC7-MC10, MC14, MC15).
+
+- **Built as written:** MC1-MC17.
+- **Hidden also lists a moment set to fewer like this** (a moment with no words has no word to list), labelled "fewer like this". The spec's MC8 says so now.
+- **RM17's thread-first rule is retired** (the owner's call): `lately` is strictly newest first. `specs/resurfaced-moments` keeps RM17's other words (twenty at first, then more).
+- **Context is read when a card mounts** (a `FlatList` renders only what is near the screen), not through the list's viewability callback, which the web build never fires. A moment read already is not read again; a failed read is asked again on the next render.
+- **The deleted-capture rule (MC5)** holds through a refresh: a walk that lost a capture drops its cached lines, so a neighbour never names a capture that is gone. During the Undo window, before storage commits, a pending delete is not yet excluded.
+- **Test-first history:** MC1, MC3 and MC14 read as "no order" in `check:test-first`: the first tests-first commit had those ids on lines that matched the checker's pattern for a real test. The branch was not rewritten.
+- **Native:** nothing new native; unverified on a device (`docs/NATIVE_UNVERIFIED.md`).
