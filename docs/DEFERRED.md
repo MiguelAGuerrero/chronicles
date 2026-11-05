@@ -150,7 +150,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 - **Whole areas** (the owner's next slice): a town graded across its outline, a neighborhood across its share of the town (closer to its point than to any other); dots say how much the area holds; density as shading on the area's picture, per kind
 - Distance weighting inside the ring (full credit to 400 m, nothing at 800 m): dropped by the owner in favour of whole areas
-- A significance file per tile (Wikidata, QRank page views, heritage tags, Wikivoyage "see" listings): taken up by decision 0096 (Nov 5) as a static places archive on the Pages site, read by tile, significance as a gate only; QRank and page views stay out (popularity). The tiles' `rank` is a label order, not fame, so S23's idea of using it would not work
+- A significance file per tile (Wikidata, QRank page views, heritage tags, Wikivoyage "see" listings): taken up by decision 0101 (Nov 5) as a static places archive on the Pages site, read by tile, significance as a gate only; QRank and page views stay out (popularity). The tiles' `rank` is a label order, not fame, so S23's idea of using it would not work
 - Retuning `STEPS` against real towns
 - A street-network catchment in place of the ring
 

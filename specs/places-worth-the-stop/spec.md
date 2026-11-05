@@ -1,4 +1,4 @@
-<!-- Mirror of the Claude Docs tab "Places worth the stop (queued)" (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7). The doc is the owner's authoring surface; this file is the greppable copy. When they differ, the doc wins and this file needs a re-export. Last exported: 2026-11-03. Everything from "## Vision" down is repo first (Nov 5, after decision 0096), not yet in the doc; the doc's "Region packs" call (R2, a scheduled job) predates 0096 and needs the owner's edit. -->
+<!-- Mirror of the Claude Docs tab "Places worth the stop (queued)" (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7). The doc is the owner's authoring surface; this file is the greppable copy. When they differ, the doc wins and this file needs a re-export. Last exported: 2026-11-03. Everything from "## Vision" down is repo first (Nov 5, after decision 0101), not yet in the doc; the doc's "Region packs" call (R2, a scheduled job) predates 0101 and needs the owner's edit. -->
 
 # Places worth the stop
 
@@ -46,21 +46,21 @@ A place reaches the app through the existing `PlaceSource` interface, behind an 
 
 Idea: Enrich Explore's marks with Atlas Obscura-like places from a prebuilt static PMTiles archive (Wikidata including the National Register, plus OSM tags), read lazily by tile from the Pages site, US first and any region after; oddities get a kind of their own (the owner, Nov 5).
 Verb: earn (it raises what you notice: places worth the stop that the tiles don't carry; a find then becomes a memory)
-Touches: Never, "Ratings, reviews, stars, 'best of', rankings of places" (nearest fit: "open-data signals such as a heritage listing"); Never, "Popularity, trending, foot traffic, other people's activity"; Never, "Tallies such as '12 of 87'" and Always, "Counts are words" (Open question 6); Never, "Data leaving the device without a tap" (tile reads, the accepted class of 0080, 0083, 0093); decision 0084 ("No significance file and no host"), reversed by 0096; AG5 (what a mark is).
-Verdict: aligned if reshaped (decision 0096)
+Touches: Never, "Ratings, reviews, stars, 'best of', rankings of places" (nearest fit: "open-data signals such as a heritage listing"); Never, "Popularity, trending, foot traffic, other people's activity"; Never, "Tallies such as '12 of 87'" and Always, "Counts are words" (Open question 6); Never, "Data leaving the device without a tap" (tile reads, the accepted class of 0080, 0083, 0093); decision 0084 ("No significance file and no host"), reversed by 0101; AG5 (what a mark is).
+Verdict: aligned if reshaped (decision 0101)
 Shape: As asked, with these changes. Significance is a build-time include/exclude gate only, and the archive carries no popularity field. Curiosities are a kind of the existing category "Viewpoints & oddities", chosen by a place's type and never its age or listing. One mark per place across sources, the archive winning. No new count anywhere.
 Criteria: PW1, PW3 (tile-aligned reads to one allowed host; silent failure); PW5, PW6 (a pinned class table; type decides); PW7 (no popularity field); PW8 (one mark per place); PW9 (a curiosity is a mark); PW10 (steps fixed, `thin` unchanged); PW11 (never a number); PW12 (cache tagged, recomputed, finds keep their kind); PW15 (credit); PW17 (the sheet's total).
 Open: Open question 6 (the place sheet's "N of M" tally, carried as debt); where the credit line lives (PW15).
 
 ## Decisions (the owner's calls, Nov 5)
 
-- **Reverses 0084's "no significance file and no host"** for a read-only static archive (decision 0096). Everything else in 0084 stands.
+- **Reverses 0084's "no significance file and no host"** for a read-only static archive (decision 0101). Everything else in 0084 stands.
 - **The archive adds to the tiles' POIs; it does not replace them** (answers the doc's third open question). A place in both is one mark, the archive's category and kind winning.
 - **Host:** the Pages site that serves the web build. One PMTiles file per region and a `manifest.json` naming the regions. US first.
 - **Curiosities** are a kind of "Viewpoints & oddities", not History and not a new category. The type of a place decides its kind, never its age or its listing.
 - **Significance is a gate, never a measure.** No sitelink count, page views, QRank or rank is stored or shown.
 - **Marks only.** The Explore tab shows these places as it shows any mark; no arrival list (the doc's first open question stays as the tab works today).
-- **Left for later:** Wikivoyage's listings, a line of why a place is worth the stop, the one-of-a-kind shops and cafés tier, and the scenic routes' Sights leaning (it reads tiles only; decision 0096 asks to check what Curiosities do to it).
+- **Left for later:** Wikivoyage's listings, a line of why a place is worth the stop, the one-of-a-kind shops and cafés tier, and the scenic routes' Sights leaning (it reads tiles only; decision 0101 asks to check what Curiosities do to it).
 
 ## Criteria
 
@@ -80,5 +80,5 @@ Open: Open question 6 (the place sheet's "N of M" tally, carried as debt); where
 14. **PW14 The build script.** `scripts/build-places-archive.js` turns a Wikidata result file and an OSM GeoJSON export into one region's `places.pmtiles` and the `manifest.json`, the same bytes each time. The queries it expects are kept beside it. The app never reads Wikidata's or OSM's format.
 15. **PW15 Credit.** OSM-derived places are credited where the app credits its sources (where: the owner's call).
 16. **PW16 Verified on the real host.** Before the reader is relied on, one fetch against the Pages deploy shows byte-range requests and CORS working for the web build and for a cross-origin client. The result is recorded here. Until then the manifest's address is empty and the reader does nothing (PW2), and the host is added to `ALLOWED_HOSTS` in the commit that records it.
-17. **PW17 The place sheet's total** (pending the owner's answer to Open question 6; the slice does not ship without it). Recommended: an area's sheet names its finds and says what waits by kind, and shows no total that includes archive places, so the pool's size is never a list to complete.
+17. **PW17 The place sheet's total** (settled by decision 0099, the owner, Nov 5): a place's sheet names its finds and shows no count or total, so archive places add nothing to count. A test pins that no total including archive places is shown.
 18. **PW18 The scenic routes are unchanged.** The Sights leaning reads the same places with and without the archive (it is not wired into the scenic read), and a test pins it.

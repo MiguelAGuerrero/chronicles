@@ -1,6 +1,6 @@
 # Where the places archive lives: a cost audit (Nov 5)
 
-Asked by the owner: what does keeping the archive in this repo cost, and is there a way to fetch it live and lazily instead? If the cost is a big performance hit or doesn't scale, the owner makes a separate repo. Decision 0096 chose the app's own Pages site; this audit tests that choice.
+Asked by the owner: what does keeping the archive in this repo cost, and is there a way to fetch it live and lazily instead? If the cost is a big performance hit or doesn't scale, the owner makes a separate repo. Decision 0101 chose the app's own Pages site; this audit tests that choice.
 
 ## Verdict
 
@@ -47,7 +47,7 @@ Bandwidth is not a limit: a cold read is about 16 KB for the header and root dir
 
 ## The live alternative
 
-Querying Wikidata and Overpass at the moment of a read keeps nothing in any repo. It would need a different decision from 0096, which covers a static host, and a new host in `ALLOWED_HOSTS` (`query.wikidata.org`; Overpass is already there).
+Querying Wikidata and Overpass at the moment of a read keeps nothing in any repo. It would need a different decision from 0101, which covers a static host, and a new host in `ALLOWED_HOSTS` (`query.wikidata.org`; Overpass is already there).
 
 | | Static archive on Pages | Live query |
 |---|---|---|

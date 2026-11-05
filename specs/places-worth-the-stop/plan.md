@@ -1,6 +1,6 @@
 # Plan: Places worth the stop (the archive and Curiosities)
 
-Spec: `specs/places-worth-the-stop/spec.md` (PW1-PW16). Decision 0096. Nothing here is built; the owner reviews it first.
+Spec: `specs/places-worth-the-stop/spec.md` (PW1-PW16). Decision 0101. Nothing here is built; the owner reviews it first.
 
 ## The seam
 
@@ -28,7 +28,7 @@ Spec: `specs/places-worth-the-stop/spec.md` (PW1-PW16). Decision 0096. Nothing h
 - `landing/read.ts`, `atlas/read.ts`, `atlas/atlas.ts`: the archive read and merge; `profile.archive`; `ATLAS_CODE` a6; `readQueue` rereads a ring measured without the archive while one is known.
 - `lib/meta.ts`: `places_archive_manifest` and `places_archive_checked_at`, declared in `META`.
 - `db/`: `checklist_area.archive` (below); `areaRow` mapping; a `dbContract.ts` case first.
-- `scripts/check-vision.js`: the host in `ALLOWED_HOSTS`, with its reason (the owner's call, 0096).
+- `scripts/check-vision.js`: the host in `ALLOWED_HOSTS`, with its reason (the owner's call, 0101).
 - `scripts/features.js`: `places-worth-the-stop` moves from the `places` feature to `explore` (the code is in `discovery/**`), and the `explore` feature gains the `curiosities` journey.
 
 **Build and fixtures (new):**
@@ -89,12 +89,12 @@ A new journey, `curiosities`, because the slice changes what a screen shows. It 
 ## Questions for the owner (they change the work)
 
 1. **One reader, or a second?** I would generalize `OvertureReader` (its tests stay as they are). The alternative is a copy of its hardening for the archive.
-2. **Who builds the archive?** The doc says a scheduled GitHub Actions job; decision 0096 says an owner-run script. The script is the same either way; the job would add a workflow that commits to or builds into the Pages artifact.
+2. **Who builds the archive?** The doc says a scheduled GitHub Actions job; decision 0101 says an owner-run script. The script is the same either way; the job would add a workflow that commits to or builds into the Pages artifact.
 3. **Where is the credit line** for OpenStreetMap-derived places (PW15)?
-4. **The place sheet's tally (PW17), which blocks shipping.** Curiosities join an area's checklist, so its "N of M" grows with the pool, and the steward reads that as the "tourists working through a list" the vision names (Open question 6). I recommend the sheet name its finds and say what waits by kind, with no total; the alternative is to keep it as it is and accept the louder list. Decision 0096 says this is decided in the slice or before.
-5. **The Wikipedia signal.** The steward flags "a Wikidata or Wikipedia entry" as the weakest gate, since it measures editors' attention. It is the only open signal for the odd classes (a heritage listing covers buildings, not a giant chicken). I kept it as corroboration only (PW7: a class from the pinned table is always required, a signal never admits a place alone). If you agree, I add a line saying so to 0096; the record is yours, so I haven't touched it.
-6. **The doc.** Its "Region packs" call (R2, a scheduled job) predates 0096. Update it, or should I mark the mirror as the newer text?
-7. **Where the archive lives** (`hosting-audit.md`). Reading it from Pages is fast and light; the cost is repo growth, about 15 MB per refresh against a 5 MB repo today. I recommend a separate data repo with its own Pages site: the same hostname, so no new `ALLOWED_HOSTS` entry. The fallback is an orphan data branch in this repo; live queries are a stopgap at best. Whichever you choose changes a constant and decision 0096's "Host" line.
+4. **The place sheet's tally (PW17), which blocks shipping.** Curiosities join an area's checklist, so its "N of M" grows with the pool, and the steward reads that as the "tourists working through a list" the vision names (Open question 6). I recommend the sheet name its finds and say what waits by kind, with no total; the alternative is to keep it as it is and accept the louder list. Decision 0101 says this is decided in the slice or before.
+5. **The Wikipedia signal.** The steward flags "a Wikidata or Wikipedia entry" as the weakest gate, since it measures editors' attention. It is the only open signal for the odd classes (a heritage listing covers buildings, not a giant chicken). I kept it as corroboration only (PW7: a class from the pinned table is always required, a signal never admits a place alone). If you agree, I add a line saying so to 0101; the record is yours, so I haven't touched it.
+6. **The doc.** Its "Region packs" call (R2, a scheduled job) predates 0101. Update it, or should I mark the mirror as the newer text?
+7. **Where the archive lives** (`hosting-audit.md`). Reading it from Pages is fast and light; the cost is repo growth, about 15 MB per refresh against a 5 MB repo today. I recommend a separate data repo with its own Pages site: the same hostname, so no new `ALLOWED_HOSTS` entry. The fallback is an orphan data branch in this repo; live queries are a stopgap at best. Whichever you choose changes a constant and decision 0101's "Host" line.
 
 ## Steward triage (report-only review of the spec and this plan, Nov 5)
 
@@ -103,8 +103,8 @@ The steward found one breach, seven drifts, one tone note, five criteria not tes
 | Finding | Verdict | What changed |
 |---|---|---|
 | S1: the atlas's presence follows the archive's coverage, so it reads as notability | **Accepted in part, reclassified.** Not a breach: the vision's own nearest fit for popularity is "Presence of places from open data (0080, 0084)", and the Always line the steward quoted ("derived data treated as truth") is not on the page. The coverage unevenness is real, so its testable parts are in. | PW10: `STEPS` takes no archive input; `thin` is judged from the tiles' places alone; a read without the archive never replaces a profile measured with it; the reread is 30 minutes. |
-| S2: the place sheet's "N of M" grows with the archive | **Accepted; it is the owner's call.** I had written "left as it is", which contradicted 0096's "decided in the slice or before". | PW11 no longer says the tally stays; new PW17 is pending your answer and blocks shipping (question 4). |
-| S3: a Wikipedia entry as a gate measures editors' attention | **Accepted as a criterion; the record waits on you.** A class from the pinned table is always required; a signal never admits a place alone. | PW7; question 5. 0096 is not edited. |
+| S2: the place sheet's "N of M" grows with the archive | **Accepted; it is the owner's call.** I had written "left as it is", which contradicted 0101's "decided in the slice or before". | PW11 no longer says the tally stays; new PW17 is pending your answer and blocks shipping (question 4). |
+| S3: a Wikipedia entry as a gate measures editors' attention | **Accepted as a criterion; the record waits on you.** A class from the pinned table is always required; a signal never admits a place alone. | PW7; question 5. 0101 is not edited. |
 | S4: `source` and the id could become an ordering key | **Accepted, one line.** | PW7: no view, sort or string reads `source` or the id. |
 | S5: a rebuild could move a found item to another kind | **Accepted.** | PW12: found items keep their kind, even when a newer archive changes or drops their place. |
 | S6: more archive marks, more pocket alerts | **Rejected.** The alert is opt-in, once per place, and the slice leaves its rules and the 8-mark cap alone. | None. |
@@ -117,4 +117,4 @@ The steward found one breach, seven drifts, one tone note, five criteria not tes
 | PW10's "read again later" has no time; PW16 has no gate | **Accepted.** | PW10 (30 minutes); PW16 (the manifest address is empty and the host is not added until it is recorded). |
 | PW11 can't prove an absence | **Noted, kept.** The journey's digit check and `check:vision` are the proxy. | None. |
 
-**Silent items:** `waitingKinds` follows the existing kind rules, so a kind a walker has switched off is not named. A place that is both odd and heritage-listed is the type's call (0096), accepted as the owner's. A find whose place a refresh drops keeps its snapshot (PW12).
+**Silent items:** `waitingKinds` follows the existing kind rules, so a kind a walker has switched off is not named. A place that is both odd and heritage-listed is the type's call (0101), accepted as the owner's. A find whose place a refresh drops keeps its snapshot (PW12).
