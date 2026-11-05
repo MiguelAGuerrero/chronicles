@@ -5,7 +5,7 @@ import { test } from 'node:test';
 // Memories' copy (MC11, MC14, MC16): every sentence in copy.ts asserted verbatim. Loaded inside the todo until the module exists.
 const copy = (): Promise<any> => import(`../../resurface/${'copy'}`);
 
-test('MC14: every sentence the screen writes, verbatim', { todo: 'test first' }, async () => {
+test('MC14: every sentence the screen writes, verbatim', async () => {
   const c = await copy();
   assert.equal(c.HIDDEN_TOAST, 'Hidden. It stays in Lately and in its walk.');
   assert.equal(c.NOT_A_THREAD, 'That is not a thread.');
@@ -19,13 +19,13 @@ test('MC14: every sentence the screen writes, verbatim', { todo: 'test first' },
   assert.equal(c.withSaveNote('Hidden.', false), "Hidden. Couldn't keep this choice; it may come back.");
 });
 
-test('MC11: the "fewer like this" toast names at most one word', { todo: 'test first' }, async () => {
+test('MC11: the "fewer like this" toast names at most one word', async () => {
   const c = await copy();
   assert.equal(c.fewerLike('harbor'), 'Fewer like this: harbor');
   assert.equal(c.fewerLike(null), 'Fewer like this');
 });
 
-test('MC14: no chat and no instruction in any sentence', { todo: 'test first' }, async () => {
+test('MC14: no chat and no instruction in any sentence', async () => {
   const c = await copy();
   const all = [c.HIDDEN_TOAST, c.NOT_A_THREAD, c.EMPTY, c.OFF_LINE, c.NEWEST_FIRST, c.FORGET_CONFIRM, c.FAILED_SAVE, c.fewerLike('harbor'), c.fewerLike(null)];
   for (const s of all) {
@@ -34,7 +34,7 @@ test('MC14: no chat and no instruction in any sentence', { todo: 'test first' },
   }
 });
 
-test('MC16: no-place wording names the app\'s lack', { todo: 'test first' }, async () => {
+test('MC16: no-place wording names the app\'s lack', async () => {
   const c = await copy();
   assert.equal(c.NO_PLACE, 'No place kept');
   assert.equal(c.ON_ITS_OWN, 'On its own');

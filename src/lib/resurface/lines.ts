@@ -8,13 +8,19 @@ import type { Reason, Thread } from './types';
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
+const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+const TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty'];
 
-export const numberWord = (n: number) => WORDS[n] ?? 'many';
+/** A number as a word: up to nineteen, then twenty to fifty-nine; "many" beyond. */
+export function numberWord(n: number): string {
+  if (WORDS[n]) return WORDS[n];
+  if (n >= 20 && n < 60) return `${TENS[Math.floor(n / 10)]}${n % 10 ? `-${WORDS[n % 10]}` : ''}`;
+  return 'many';
+}
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 
 /** Whole local days from `t` to `now`. */
-function daysAgo(t: number, now: number): number {
+export function daysAgo(t: number, now: number): number {
   const a = new Date(t);
   const b = new Date(now);
   return Math.round((new Date(b.getFullYear(), b.getMonth(), b.getDate()).getTime() - new Date(a.getFullYear(), a.getMonth(), a.getDate()).getTime()) / DAY_MS);
