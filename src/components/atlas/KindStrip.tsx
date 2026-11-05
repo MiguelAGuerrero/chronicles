@@ -98,9 +98,10 @@ const styles = StyleSheet.create({
   chip: { alignItems: 'center', gap: 3, minWidth: 22 },
   dots: { flexDirection: 'row', gap: 2, alignItems: 'center' },
   kindRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
-  kindLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  kindLine: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'stretch' },
   kindPress: { minHeight: 44, flex: 1, minWidth: 0 },
   walkBtn: {
+    marginLeft: 'auto', flexShrink: 0,
     flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44, minWidth: 44, paddingHorizontal: 12,
     borderRadius: 22, borderWidth: 1, borderColor: theme.edge, backgroundColor: theme.surface,
   },

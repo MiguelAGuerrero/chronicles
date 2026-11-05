@@ -18,8 +18,14 @@ async function run(h) {
 
   check((await pg.locator('[data-testid=atlas-kind-walk-history]').count()) === 0 && (await pg.locator('[data-testid=atlas-kind-walk-parks]').count()) === 1, 'KW2: a kind with none has no "Suggest a walk" button, one with some does');
   const btn = pg.locator('[data-testid=atlas-kind-walk-parks]');
+  // The card slides up as it opens: measured once it has settled.
+  await btn.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
+  await pg.waitForTimeout(800);
   const box = await btn.boundingBox().catch(() => null);
   check((await btn.count()) === 1 && /Suggest a walk/.test(await btn.innerText().catch(() => '')) && !!box && box.width >= 44 && box.height >= 44, 'KW15: each kind row has a "Suggest a walk" button, at least 44 px to touch');
+  const row = await pg.locator('[data-testid=atlas-kind-parks]').boundingBox().catch(() => null);
+  const cardBox = await pg.locator('[data-testid=atlas-card-pull]').boundingBox().catch(() => null);
+  check(!!box && !!cardBox && Math.abs((box.x + box.width) - (cardBox.x + cardBox.width - 18)) <= 6, `KW15: the button is aligned right in its row (right edge ${box ? Math.round(box.x + box.width) : '?'}, card ${cardBox ? Math.round(cardBox.x + cardBox.width) : '?'})`);
   check((await btn.getAttribute('aria-label').catch(() => '')) === 'Suggest a walk through green', 'KW15: the button reads as one to a screen reader');
   await btn.click().catch(() => {});
   await pg.waitForSelector('[data-testid=kindwalk-length]', { timeout: 60000 }).catch(() => {});
