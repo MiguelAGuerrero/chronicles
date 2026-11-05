@@ -1,8 +1,10 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { outlineTileFrom } from '../../areas/divisionTiles';
 import { createOutlines, type OutlineSource } from '../../areas/outlineRead';
 import { outlineTileKey, outlineTileOf, type OutlineTile } from '../../areas/outlines';
+import type { TileFeature } from '../../areas/tilePlaces';
 import type { LngLat } from '../../types';
 import { fakePorts } from '../fakes';
 
@@ -110,4 +112,34 @@ test('fix ward-subdivision 3: a tile kept by an older decoder (unstamped) is rea
   assert.deepEqual(r.set.towns.map((t) => t.name), ['Whitehall']);
   await o.read([GYM]);
   assert.equal(source.asked.length, 1, 'the new tile is current: never read again');
+});
+
+test('fix ward-subdivision audit 1: a ward piece in a tile without its point is dropped once the point\'s tile is read, and stays dropped after a restart', async () => {
+  const p = fakePorts();
+  const [ax, ay] = outlineTileOf(GYM);
+  const [bx, by] = outlineTileOf(WEST);
+  assert.notDeepEqual([ax, ay], [bx, by]);
+  const sq = (c: LngLat, d: number) => ({ type: 'Polygon', coordinates: [[[c[0] - d, c[1] - d], [c[0] + d, c[1] - d], [c[0] + d, c[1] + d], [c[0] - d, c[1] + d], [c[0] - d, c[1] - d]]] });
+  const area = (name: string, c: LngLat, d: number): TileFeature => ({ geometry: sq(c, d), properties: { '@name': name, division_id: name, subtype: 'locality', class: 'land' } });
+  const chain = (...n: string[]) => JSON.stringify([n.map((name) => ({ name, division_id: name, subtype: 'locality' }))]);
+  const source: OutlineSource = {
+    release: async () => '2026-10-21.0',
+    async tile(release, x, y, z) {
+      // Tile A holds Allentown and the ward's outline; the ward's point is in tile B.
+      if (x === ax && y === ay) {
+        return outlineTileFrom(x, y, release, 0, { division_area: [area('Allentown', GYM, 0.01), area('10th Ward', GYM, 0.002)], division: [] }, z);
+      }
+      return outlineTileFrom(x, y, release, 0, {
+        division_area: [],
+        division: [{ geometry: { type: 'Point', coordinates: GYM }, properties: { id: '10th Ward', subtype: 'locality', hierarchies: chain('Allentown', '10th Ward') } }],
+      }, z);
+    },
+  };
+  const o = createOutlines({ ...p, source });
+  const before = await o.read([GYM]);
+  assert.ok(before.set.towns.some((t) => t.name === '10th Ward'), 'until its point is read, the ward cannot be told from a town');
+  const after = await o.read([GYM, WEST]);
+  assert.deepEqual(after.set.towns.map((t) => t.name), ['Allentown']);
+  const restarted = createOutlines({ ...p, source });
+  assert.deepEqual((await restarted.known([GYM])).towns.map((t) => t.name), ['Allentown'], 'kept ids survive a restart');
 });

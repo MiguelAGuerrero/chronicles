@@ -73,5 +73,5 @@ export function outlineTileFrom(
     if (p.subtype !== 'locality' || typeof p.id !== 'string' || nested.has(p.id) || f.geometry.type !== 'Point') continue;
     points.push({ id: p.id, at: f.geometry.coordinates as LngLat });
   }
-  return { key: outlineTileKey(x, y, z), z, x, y, release, read_at: readAt, pieces, points };
+  return { key: outlineTileKey(x, y, z), z, x, y, release, read_at: readAt, pieces, points, nested: [...nested] };
 }

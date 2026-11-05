@@ -2,7 +2,7 @@
 import type { Ports } from '../ports/types';
 import type { LngLat } from '../types';
 import { townPlaces } from './borders';
-import { BORDER_ZOOM, OUTLINE_TILES_MAX, OUTLINE_ZOOM, outlineSet, outlineTileKey, outlineTilesFor, stampRelease, tileCurrent, type OutlineSet, type OutlineTile } from './outlines';
+import { BORDER_ZOOM, OUTLINE_TILES_MAX, OUTLINE_ZOOM, outlineSet, outlineTileKey, outlineTilesFor, stampRelease, tileCurrent, withoutNested, type OutlineSet, type OutlineTile } from './outlines';
 
 /** Where town outlines come from, tile by tile (today Overture's divisions, `overtureOutlines.ts`). */
 export interface OutlineSource {
@@ -19,6 +19,16 @@ export interface OutlineRead {
   tooMany: boolean;
 }
 
+/** The ward ids kept in meta `outline_nested`; anything unreadable is none. */
+function parseIds(raw: string | null): string[] {
+  try {
+    const v: unknown = raw ? JSON.parse(raw) : [];
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
 /** The cache is looked through for at most this many tiles, however many points ask (no network). */
 const KNOWN_TILES_MAX = 64;
 
@@ -29,6 +39,21 @@ const KNOWN_TILES_MAX = 64;
  * caller places by points otherwise and tries again later.
  */
 export function createOutlines(p: Pick<Ports, 'db' | 'clock'> & { source: OutlineSource }) {
+  /** The wards found so far (fix ward-subdivision audit 1): a piece in one tile is told from a town by a point in another. */
+  let nested: Set<string> | null = null;
+  let remembering: Promise<unknown> = Promise.resolve();
+  const wards = async (): Promise<Set<string>> => (nested ??= new Set(parseIds(await p.db.getMeta('outline_nested').catch(() => null))));
+  const remember = (ids: string[]) => {
+    remembering = remembering.then(async () => {
+      const have = await wards();
+      const fresh = ids.filter((id) => !have.has(id));
+      if (!fresh.length) return;
+      for (const id of fresh) have.add(id);
+      await p.db.setMeta('outline_nested', JSON.stringify([...have])).catch(() => {});
+    });
+    return remembering;
+  };
+
   /** One fetch per tile at a time, whoever asks. */
   const inflight = new Map<string, Promise<OutlineTile | null>>();
 
@@ -39,8 +64,10 @@ export function createOutlines(p: Pick<Ports, 'db' | 'clock'> & { source: Outlin
     const job = p.source
       .tile(release, x, y, z)
       .then(async (t) => {
-        const tile = { ...t, key, z, x, y, release: stampRelease(t.release), read_at: p.clock.now() };
+        const { nested: found, ...rest } = t;
+        const tile = { ...rest, key, z, x, y, release: stampRelease(t.release), read_at: p.clock.now() };
         await p.db.putOutlineTiles([tile]);
+        if (found?.length) await remember(found);
         return tile;
       })
       .catch(() => null)
@@ -50,7 +77,7 @@ export function createOutlines(p: Pick<Ports, 'db' | 'clock'> & { source: Outlin
   };
 
   /** Kept tiles cut by the current decoder; an older one is as good as missing. */
-  const keptTiles = async (keys: string[]): Promise<OutlineTile[]> => (await p.db.getOutlineTiles(keys).catch(() => [] as OutlineTile[])).filter(tileCurrent);
+  const keptTiles = async (keys: string[]): Promise<OutlineTile[]> => withoutNested((await p.db.getOutlineTiles(keys).catch(() => [] as OutlineTile[])).filter(tileCurrent), await wards());
 
   /** The tiles under these points at zoom z: kept ones, then the rest read (`read` for z12, `borders` for z10). */
   const readAt = async (points: LngLat[], z: number, shouldStop: () => boolean): Promise<OutlineRead> => {
@@ -70,7 +97,7 @@ export function createOutlines(p: Pick<Ports, 'db' | 'clock'> & { source: Outlin
     if (!release || shouldStop()) return { set: outlineSet(kept), complete: false, tooMany: false };
     const read = await Promise.all(missing.map(([x, y]) => fetchTile(release, x, y, z)));
     const got = read.filter((t): t is OutlineTile => !!t);
-    return { set: outlineSet([...kept, ...got]), complete: got.length === missing.length, tooMany: false };
+    return { set: outlineSet(withoutNested([...kept, ...got], await wards())), complete: got.length === missing.length, tooMany: false };
   };
 
   return {

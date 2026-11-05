@@ -13,7 +13,7 @@ import type { BoundarySource, PlaceCandidate, TownOutline } from '../../areas/ty
 import { distanceM, stepToward } from '../../geo';
 import type { LngLat, TracePoint } from '../../types';
 import type { TileFeature } from '../../areas/tilePlaces';
-import { ATLAS_CODE, nearList, townOf, type AtlasArea } from '../../atlas/atlas';
+import { ATLAS_CODE, nearList, rowCurrent, townOf, type AtlasArea } from '../../atlas/atlas';
 import { areaFor, buildChecklists } from '../../explore/explore';
 
 // Town outlines (TO1-TO9), written from specs/town-outlines/spec.md. The real
@@ -229,7 +229,7 @@ test('TO8: places are read only when the outlines were too; an unread outline me
 });
 
 test('TO9: the rules tag changes with AREA_RULES, not with the Overture release', () => {
-  assert.equal(AREA_RULES, '2');
+  assert.equal(AREA_RULES, '3');
   const tiles = realTiles();
   const other = tiles.map((t) => ({ ...t, release: '2027-01-01.0' }));
   const path = walk([GYM, stepToward(GYM, CATASAUQUA, 200)]);
@@ -349,4 +349,13 @@ test('fix ward-subdivision 2: a walk in 10th Ward is placed in Allentown, and 10
   assert.deepEqual(set.towns.map((t) => t.name), ['Allentown', 'Coplay', 'Manhattan']);
   const ward = withOutlines([town('Allentown', at(0, 15))], set);
   assert.equal(townAt(at(0, 0), ward, set)?.c.name, 'Allentown');
+});
+
+test('fix ward-subdivision audit 2: an Explore town row kept under the old code (a5) is not current, so a listed ward is read again', () => {
+  assert.equal(rowCurrent({ build: 'b1', code: 'a5', level: 'town' }, 'b1'), false);
+  assert.equal(rowCurrent({ build: 'b1', code: ATLAS_CODE, level: 'town' }, 'b1'), true);
+});
+
+test('fix ward-subdivision audit 3: the rules tag is not the one that placed walks in 10th Ward', () => {
+  assert.notEqual(AREA_RULES, '2');
 });
