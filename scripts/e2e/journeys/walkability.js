@@ -43,6 +43,7 @@ async function run(h) {
   // walkability audit 8: a tap shows it and a second tap closes it, with no mouse over it.
   await pg.locator('[data-testid=walk-tip-car]').click();
   await pg.mouse.move(5, 300);
+  await pg.waitForTimeout(300);
   check((await pg.locator('[data-testid=tooltip]').count()) === 1, 'walkability audit 8: a tap keeps the tip open');
   await pg.locator('[data-testid=walk-tip-car]').click();
   check((await pg.locator('[data-testid=tooltip]').count()) === 0, 'walkability audit 8: a second tap closes it');
