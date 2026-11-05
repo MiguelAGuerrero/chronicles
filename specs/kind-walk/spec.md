@@ -29,8 +29,14 @@ Verdict: aligned if reshaped
 Shape: one suggested way through where the kind is dense, no named stops; its length a number in the displayed unit, never
   a duration; walkability said in words before commit; accepting it opens the walk screen ready
 Criteria: KW1-KW14 below
-Open: none (defaults chosen for a quick iteration, the owner, Nov 5)
+Open: 1 (below). The rest are defaults set for a quick iteration, the owner, Nov 5
 ```
+
+## Open
+
+1. **Minutes on the walk it starts (steward S1, checked in code).** Navigation already says time left ("about 6 minutes", `nav/eta.ts`,
+   QL18) on every navigated walk. Either a walk started from a kind suppresses it (distance only, KW7b; but then other walks keep
+   minutes and this one does not), or KW7 is narrowed to the suggestion and its panel and the walk speaks as walks do. Which?
 
 ## Decisions
 
@@ -63,18 +69,26 @@ Open: none (defaults chosen for a quick iteration, the owner, Nov 5)
 
 4. **KW4 · One way.** An open kind shows exactly one suggested walk. No screen shows several routes, a ranking, "fastest", or a
    distance compared or saved against another.
-5. **KW5 · Through where the kind is dense.** The way passes through the place or places in the area where the kind is most
-   concentrated (found places counted too), drawn from presence in the cache. No rating, popularity or "best" input exists
-   in the choice.
-6. **KW6 · No place is named.** The suggestion names no place of the kind and marks none on the map. A "?" mark still appears
-   only as it does today, when the walker reaches it.
-7. **KW7 · A distance, never a time.** The suggestion states its length as a number in the displayed unit ("about 2 km" or
-   "about 1.2 mi", following km or miles). No minutes, duration, ETA or pace appears on the suggestion, on its walk, or in a
-   setting.
-8. **KW8 · It fits a distance budget.** The suggested length is near the walker's budget (setting, default about 2 km, or its
-   miles equivalent), and a shorter and a longer step change the one suggestion; they never show alternatives.
-9. **KW9 · The start is said.** If the way begins away from the walker, the suggestion says how far it is to get there (a
-   distance, in words). It never silently becomes a drive.
+5. **KW5 · Through where the kind is dense.** The way passes through the cells of the area where the kind is most concentrated,
+   densest first, ties broken by a fixed order. The cells count every place of the kind, found and unfound alike, in the same
+   400 m cells as the town's pockets (TP4). No rating, popularity or "best" input exists in the choice.
+6. **KW5b · A find never moves the way.** Marking a place found, or any place of the kind turning up, leaves the suggestion
+   unchanged. A waypoint is a cell's centre, never a single place's spot.
+7. **KW6 · No place is named.** The suggestion names no place of the kind and marks none on the map. A "?" mark still appears
+   only as it does today, when the walker reaches it. The route's end carries no name.
+8. **KW7 · A distance, never a time.** The suggestion states its length as the real length of the way, rounded, as a number in
+   the displayed unit ("about 2 km" or "about 1.5 mi", following km or miles). No minutes, duration, ETA or pace appears on the
+   suggestion, its panel or in a setting.
+9. **KW7b · On the walk it starts. Pending the owner's call (Open 1).** The walk screen and its announcements show
+   [distance only for a walk started from a kind | the app's existing time-left as for every walk].
+10. **KW8 · It fits a distance budget.** The suggested length is within 25% of the walker's budget (setting, default 2 km;
+    miles steps 0.5, 1, 1.5, 2, 3; km steps 1, 1.5, 2, 3, 5). A shorter and a longer step each replace the one suggestion and
+    write the budget setting.
+11. **KW8b · A step is not a browse.** The panel shows only the current length: never the prior one, a difference, or a history.
+12. **KW9 · The start is said.** If the way begins away from the walker, the suggestion says how far it is to get there (a
+    distance, before the button).
+13. **KW9b · Too far to start on foot.** Beyond 5 km from the walker to the start, no walk is offered and the row says so in
+    words. It never silently becomes a drive.
 
 ### Walkability
 
@@ -82,21 +96,30 @@ Open: none (defaults chosen for a quick iteration, the owner, Nov 5)
     way, and names any stretch built around cars (0093), by street where known. "No data" says it is not known; it never claims
     the way is fine.
 11. **KW11 · The walker chooses what to do about it.** A setting, warn (the default) or don't suggest. With warn, the walk is
-    offered with the stretch named. With don't suggest, a way that needs a stretch built around cars is left out, and if none
-    remains the row says so in words instead of staying blank.
+    offered with the stretch named. With don't suggest, a way that needs a stretch built around cars is not offered and the
+    row says so in words instead of staying blank.
+12. **KW11b · One chain only.** The planner builds one deterministic chain and tries no other: with don't suggest, a chain that
+    crosses a stretch built around cars gives the "no walk offered" sentence even when another chain would be clean. Walking
+    pace is not known, so "needs running" is not judged.
 
 ### Starting it
 
-12. **KW12 · Accepting opens the walk screen ready, and it is an ordinary walk.** The button opens the walk screen with the
-    route ready (0076, `showWalk()`). No tour mode, progress, stop tally or tick is kept before, during or after; the replay
-    treats it like any walk.
-13. **KW13 · Drifting is never nagged.** Leaving the suggested way raises no alarm, nag or notification; the only response is
+13. **KW12 · Accepting opens the walk screen ready, and it is an ordinary walk.** The button, plain card style and worded
+    "Walk this way" is not used (0022 reserves it): it reads "Start this walk". It opens the walk screen with the route ready
+    (0076, `showWalk()`). No tour mode, progress, stop tally or tick is kept before, during or after, and no field on the walk
+    marks it as a kind walk; the replay treats it like any walk.
+14. **KW13 · Drifting is never nagged.** Leaving the suggested way raises no alarm, nag or notification; the only response is
     the quiet re-route that navigation already does. Walk me back stays the shortest way (0029).
+15. **KW1b · Words are fixed and plain.** The panel's sentences live in one place, use no superlative (best, finest, top, most)
+    and no sales line, and add no count beyond the distance.
 
 ### Data
 
-14. **KW14 · Nothing leaves the device and nothing is stored as truth.** The way is derived from the cached atlas profile and
-    streets and recomputed, never saved as a walk, a moment or a find. Only the two settings are stored.
+16. **KW14 · What is stored, and what is asked.** The way is derived on open from the cached profile and streets, recomputed,
+    never saved as a walk, a moment or a find. The only things stored are the two settings and the ordinary pending
+    destination that every navigated walk has (cleared with the walk); no kind-walk record remains in meta after the walk.
+    Nothing is read until the row is tapped, the reads use only hosts already allowed (`npm run check:vision` passes
+    unchanged), and they send tile coordinates only. This is "nothing leaves the device without a tap", not "no request".
 
 ## Out (decision 0095 keeps these deferred, `docs/DEFERRED.md`)
 

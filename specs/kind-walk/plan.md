@@ -91,3 +91,24 @@ saved from the card, and the walkability reads are all web-verified at most. Lis
    (not marks) are not in it; for those the plan reads the place cache instead (`candidatesFrom`). I will confirm that read is
    cheap and in range of the area before relying on it.
 2. **The budget in settings** goes in the Start dialog beside the units; if you want it on the panel instead, say so.
+
+## Steward triage (2026-11-05)
+
+Accepted into the spec: S2 (KW5, KW5b: cells count found and unfound, 400 m like the pockets, never a place's spot; test over
+two profiles that differ only in `found`), S3 (KW14 says what is true: the pending destination is stored as for every walk; reads
+only after the tap, on allowed hosts; tests with `fakePorts()` that meta holds no kind-walk record after the walk, and
+`check:vision` passes unchanged), S4 (KW11b: one chain; test a first chain over a car stretch gives the "none" sentence although a
+second would be clean), S5 (KW9b: 5 km; "needs running" dropped because the app knows no pace), S6 (KW8, KW8b: a step writes the
+budget setting; the panel shows only the current length; test that no prior length or difference is rendered), S7 (25% in KW8;
+mile and km steps stated; the overlay clause removed from KW6 since the panel is words only, and the route's end pin carries no
+name; KW12 test that no field marks a kind walk; the thin-ring path for KW2 gets a test; the words test uses word boundaries,
+`\bminutes?\b`, `\bmins?\b`, `\bhours?\b`, `\bETA\b`, `\bpace\b`, `\bfast(est)?\b`, `\b(best|finest|top|most)\b`, scoped to
+`kindWalk/words.ts` so the existing "ten-minute walk" atlas copy needs no exception), S8 (KW1b; the button reads "Start this walk" in
+the neutral card style, not "Walk this way").
+
+Waits on the owner: S1 (spec Open 1). Not changed: steward's questions 2-4. I keep the same suggestion on every open (no
+variation, which would look like a ranking), density from open data only (the walker's own notes and finds never bend it), and the
+panel adds no count beyond the distance.
+
+Changed in the plan: the density source is the place cache for every kind, found and unfound, at 400 m cells (risk 1 above is now
+this, not `AtlasProfile.marks`); the budget is stored by the panel's step as well as the Start dialog.
