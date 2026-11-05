@@ -240,7 +240,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 
 - [ ] Wards are not towns (fix ward-subdivision): SQLite `outline_tile` rows stored with the `#sub1` release stamp and an old row read again once; meta `outline_nested` written and read through the write queue (a failed write leaves the tile unkept); whether Overture's z10 `division` layer carries the points the decoder needs to find wards there (else a ward's z10 border piece shows until a z12 read finds its id)
 
-## Scenic routes (SR1-SR15, decision 0094)
+## Scenic routes (SR1-SR15, decision 0095)
 
 - [ ] The preview card (`RoutePreview`) over the native walk map, and the faint alternates (`alternates` source, `WalkMap.native.tsx`).
 - [ ] The "Scenic routes" switches in the native drawers (`RouteLeaningSettings`).

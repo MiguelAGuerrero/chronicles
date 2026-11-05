@@ -122,7 +122,7 @@ Routing inside a walk (`lib/nav`): walk me back, Go here, the route sources, rul
     happened here (N)" when captures are near.
   - Walk me back is the top edge button.
   - A pin's viewer has Go here.
-- **Scenic routes** (SR1-SR15, decision 0094, the owner's calls, Nov 4): Go here offers Direct and one
+- **Scenic routes** (SR1-SR15, decision 0095, the owner's calls, Nov 4): Go here offers Direct and one
   route per leaning switched on (green, sights, streets with life), side by side, at most 30% longer.
   - `nav/scenic.ts` (core): `scenicPlan` (who gets the preview: not `start`, not with all leanings off, not
     past `SCENIC.maxM` 5 km), `routeOptions`, `scenicRouteSource` (re-routes keep the leaning, SR10),

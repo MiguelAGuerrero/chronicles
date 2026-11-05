@@ -1,6 +1,6 @@
 # 0022. Suggested routes are deferred to their own later slice
 
-Date: 2026-11-01 · Status: accepted; superseded in part by 0094 (scenic routes shipped Nov 4) · Area: navigation
+Date: 2026-11-01 · Status: accepted; superseded in part by 0095 (scenic routes shipped Nov 4) · Area: navigation
 
 ## Context
 The positioning principle is the interesting way, not only the fastest. The owner's call, Nov 1, on when that ships.

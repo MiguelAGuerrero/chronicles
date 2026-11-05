@@ -5,6 +5,9 @@ for the decisions, rules and traps behind it, and the owner's "Explorer App
 Concept" doc in Claude Docs for the spec itself. When this file and
 `AGENTS.md` disagree, `AGENTS.md` is right and this file needs an update.
 
+The identity the features answer to, what the app never does and how an idea fits, is `docs/VISION.md`
+(decision 0094).
+
 ## In one paragraph
 
 Chronicles is a companion for wandering towns and cities on foot. Before a
@@ -142,7 +145,7 @@ recording bar brings a minimized walk back.
   navigating. Off-route re-routes quietly; arrival says "You're here".
   Bridges and tunnels cross what lies under them without a turn onto it, and a
   route starts on the street you are walking along.
-- **Scenic routes** (decision 0094): on Go here, or a destination set before
+- **Scenic routes** (decision 0095): on Go here, or a destination set before
   Start, the app shows Direct beside up to three scenic routes, one per
   leaning switched on: **Through green** (parks, gardens, woods), **Past the
   sights** (places worth seeing, of the kinds in "What I'm into") and **Along

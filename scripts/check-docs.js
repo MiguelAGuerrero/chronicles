@@ -26,6 +26,8 @@ process.chdir(ROOT);
 const BUDGET = {
   agentsLines: 200,
   agentsBytes: 12_000,
+  visionLines: 160,
+  visionBytes: 12_000,
   ruleChars: 40_000,
   skillLines: 500,
 };
@@ -42,6 +44,7 @@ const PATH_CHECKED = [
   'docs/PRODUCT.md',
   'docs/DEFERRED.md',
   'docs/NATIVE_UNVERIFIED.md',
+  'docs/VISION.md',
   ...list('.claude/rules', '.md'),
   ...list('.claude/agents', '.md'),
   ...listSkills(),
@@ -134,6 +137,18 @@ function frontmatterPaths(text) {
         'It loads into every session: move area rules to .claude/rules/<area>.md, an owner\'s call to docs/decisions/, ' +
         'a procedure to a skill, and keep only what every session needs.',
     );
+  }
+  {
+    // The vision is read whole by every gate (decision 0094): one page, kept to one.
+    const v = fs.readFileSync('docs/VISION.md', 'utf8');
+    const vl = v.split('\n').length;
+    const vb = Buffer.byteLength(v);
+    if (vl > BUDGET.visionLines || vb > BUDGET.visionBytes) {
+      fail(
+        `docs/VISION.md is ${vl} lines / ${vb} bytes (budget ${BUDGET.visionLines} lines / ${BUDGET.visionBytes} bytes). ` +
+          'Every /vision gate reads it whole: keep rules and shapes, move history to docs/decisions/.',
+      );
+    }
   }
   for (const f of list('.claude/rules', '.md')) {
     const n = fs.readFileSync(f, 'utf8').length;

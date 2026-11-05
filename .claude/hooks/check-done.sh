@@ -3,6 +3,8 @@
 #   - the agent docs must pass scripts/check-docs.js (budgets, rule globs,
 #     named paths), whenever anything changed: a moved source file can break
 #     a doc as surely as an edit to one;
+#   - the vision check (scripts/check-vision.js) must pass when source, a spec,
+#     package.json or the check itself changed (decision 0094);
 #   - the typecheck must pass when TypeScript changed; the layer check and the
 #     unit tests that import what changed, when TypeScript or a script changed.
 # "Changed" means the working tree, new files, or commits not yet pushed.
@@ -26,6 +28,14 @@ DOCS=$(node scripts/check-docs.js 2>&1)
 if [ $? -ne 0 ]; then
   printf '%s\n' "$DOCS" >&2
   FAILED=1
+fi
+
+if printf '%s\n' "$CHANGED" | grep -qE '^(src|specs|public)/|^package\.json$|^index\.js$|^app\.config\.js$|^scripts/(check-vision\.js|vision\.allow\.json)$'; then
+  OUT=$(node scripts/check-vision.js 2>&1)
+  if [ $? -ne 0 ]; then
+    printf '%s\n' "$OUT" >&2
+    FAILED=1
+  fi
 fi
 
 if printf '%s\n' "$CHANGED" | grep -qE '\.(ts|tsx)$' && [ -d node_modules ]; then

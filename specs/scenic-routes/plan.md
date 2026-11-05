@@ -70,4 +70,4 @@ The preview card and the faint alternates on native MapLibre, the switches in th
 
 ## Then
 
-The spec's record, STATUS and PRODUCT, decision 0094 (scenic routes: the owner's calls of Nov 4), the navigation rule file, `/docs-gc`, commit on `claude/scenic-routes`, then `/deploy`.
+The spec's record, STATUS and PRODUCT, decision 0095 (scenic routes: the owner's calls of Nov 4), the navigation rule file, `/docs-gc`, commit on `claude/scenic-routes`, then `/deploy`.
