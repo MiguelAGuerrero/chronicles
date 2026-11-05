@@ -166,6 +166,11 @@ npm run export:web && npm run e2e:web
 
 - `npm run export:web` builds `dist/`: about 34 s cold, 8 s with Metro's cache
   warm. The e2e serves `dist/` as it is, so **re-export after every change**.
+- **Never export with a symlinked `node_modules`** (a worktree pointing at the
+  primary's): Metro bakes the link's absolute path into the asset URLs, the
+  icon font and the map's assets 404, and journeys fail on the GPS and the map
+  (fix ios-video, Nov 5). Give a worktree `cp -al <primary>/node_modules
+  node_modules` (same lockfile) or `npm ci`.
 - `scripts/e2e-web.js` is the entry: it builds the harness and runs one
   journey (`E2E_ONLY=<name>`, the file `scripts/e2e/journeys/<name>.js`) or
   the full flow (`scripts/e2e/journeys/full.js`). The harness

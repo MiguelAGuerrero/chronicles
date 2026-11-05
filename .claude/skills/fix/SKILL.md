@@ -63,8 +63,19 @@ raise the level to `e2e`. An explicit `--tests` always wins.
 3. Note the worktree path and branch: they are the only things this run may
    remove at the end.
 4. A new worktree has no `node_modules`, and the Stop hook skips the typecheck
-   without one. Symlink the primary checkout's (`ln -s <primary>/node_modules
-   node_modules`) or run `npm ci`. It is gitignored; never commit it.
+   without one. Give it a real directory, never a symlink: Metro bakes a
+   symlinked package's absolute path into the web build's asset URLs
+   (`/chronicles/assets/______home/...`), so the icon font and the map's
+   assets 404 and the e2e fails in ways that look like the app's bugs (the
+   walker never shows, a long press reads "1995.8 km away"; fix ios-video,
+   Nov 5). Either:
+   - `cp -al <primary>/node_modules node_modules`: a hard-linked copy, about
+     a second, no extra disk. Only when the branch's `package-lock.json`
+     matches what the primary checkout installed
+     (`git diff --quiet <primary's HEAD> -- package-lock.json`); or
+   - `npm ci`: about 20 s, always right, and the only choice when the lock differs.
+
+   It is gitignored; never commit it.
 
 ## 1. Understand and reproduce
 
@@ -188,8 +199,8 @@ this run created (section 0).
    report. Never remove a worktree holding work that is neither pushed nor saved.
 3. Leave the worktree directory first (`ExitWorktree`, or `cd` to the primary
    checkout), then `git worktree remove <path>`. Use `--force` only after step 2
-   saved what mattered (`node_modules` is a symlink; removal does not touch the
-   primary's).
+   saved what mattered (removing a hard-linked or `npm ci` copy of
+   `node_modules` does not touch the primary's).
 4. By outcome:
 
 | Outcome | Local branch | Remote branch |
