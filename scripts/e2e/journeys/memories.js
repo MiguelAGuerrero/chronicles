@@ -173,6 +173,8 @@ async function checks(h) {
     }));
     const tap = { type: 'notice-response', id: 'recall-x', data: { captureIds: [noteId] }, action: null };
     await page.evaluate((m) => navigator.serviceWorker.dispatchEvent(new MessageEvent('message', { data: m })), tap);
+    await page.waitForTimeout(2500);
+    console.log('DBG noteId', noteId, 'url', page.url(), 'viewer', await page.locator('[data-testid=viewer-close]').count(), 'body', (await page.locator('body').innerText()).replace(/\s+/g,' ').slice(0,300));
     check(await page.waitForSelector('text=The bakery smelled of cardamom.', { timeout: 10000 }).then(() => true, () => false),
       'a reminder tapped with the walk in front opens its capture at once');
     await page.click('[data-testid=viewer-close]');
