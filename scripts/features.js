@@ -22,7 +22,7 @@ const FEATURES = [
     rule: 'functional-core',
     source: ['src/lib/types.ts', 'src/lib/{store,useStore,meta,id,focus}.ts', 'src/lib/ports/**'],
     journeys: [],
-    specs: ['functional-core', 'affected-checks', 'test-organization', 'shells-saved-settings', 'test-gaps'],
+    specs: ['functional-core', 'affected-checks', 'test-organization', 'shells-saved-settings', 'test-gaps', 'device-acceptance'],
   },
   {
     name: 'storage',
@@ -302,7 +302,7 @@ const UNTESTED = {
  * Specs a slice is building (TG22): from its plan until done, its criteria are exempt from the gate.
  * `{ slug: { branch, since: 'YYYY-MM-DD' } }`; an entry older than 7 days fails the docs check.
  */
-const IN_PROGRESS = {};
+const IN_PROGRESS = { 'device-acceptance': { branch: 'claude/shells-saved-settings', since: '2026-11-05' } };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 
