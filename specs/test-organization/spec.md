@@ -28,6 +28,14 @@ The affected checks select the unit tests a change can break from the import gra
 18. **TG18 · Procedures name the feature.** `/slice`'s plan gives each criterion's feature folder and any new feature or journey, and its done step runs `test:feature` and treats "Covered by nothing" for its files as a gap to close or defer; `/fix` writes its regression test in the feature's folder; the auditor reports the coverage of the slice's files, as a report.
 19. **TG19 · No misleading lines.** The `/e2e` skill says each journey run by name ends with the nothing-leaves and the console-errors checks; AGENTS.md's "nothing is a score" rule says it is about the app.
 
+20. **TG20 · Every live criterion has a status.** It is named by a test (not a todo), retired (`RETIRED`), untested on purpose with a kind and a reason (`UNTESTED`: `device`, a check only a phone can make, or `deferred`, the owner's call to wait), or in the legacy baseline. Any other live id fails the docs check, so the Stop hook and CI hold it, naming the spec, the id and the four ways to settle it.
+21. **TG21 · The legacy baseline only shrinks.** `scripts/criteria.baseline.json` holds the ids that were untested when this gate arrived. An entry that is now tested, retired or untested-with-a-reason fails until its line is removed, and the baseline's size has a ceiling that only goes down.
+22. **TG22 · A spec being built is in progress.** A slice lists its spec in `IN_PROGRESS` (with its branch and the date it started) from the plan until done; its ids are exempt from TG20 meanwhile. An entry older than 7 days fails the docs check: finish the slice or take the entry out.
+23. **TG23 · A todo is not a test.** An id named only by a unit test marked `todo`, or an e2e check made with `check.todo`, counts as untested.
+24. **TG24 · Test-first shows in the history.** `npm run check:test-first <spec>` passes only when, on the branch, each live id of the spec was first named by a todo test in an earlier commit than the one where its test became a real test. It names each id that fails and why; an id retired or untested on purpose is skipped.
+25. **TG25 · The e2e has todo checks.** `check.todo(ok, what)` prints `ok` or `not ok` marked `# TODO` and never fails the run.
+26. **TG26 · The procedures say so.** `/slice` lists the spec in progress at its plan, commits the failing tests as todos before any code, makes them real with the code, takes the spec out of progress and runs `check:test-first` at done; `/deploy`'s preconditions run `check:test-first` for the slice it ships and refuse a shipped spec still in progress.
+
 ## Out of scope
 
 Coverage measurement (`--experimental-test-coverage`), splitting the walk screen's own journey, and tests for the 22 shells no test reaches (they are the functional-core migration's work, listed in `docs/DEFERRED.md`).
@@ -36,3 +44,4 @@ Coverage measurement (`--experimental-test-coverage`), splitting the walk screen
 
 - 2026-11-04: the owner chose all three phases (decision 0091) and kept type-only edges (TG12).
 - 2026-11-04: the owner asked for the procedures to hold other agents to the feature-based testing (TG13-TG19), after a review of the skills, the hooks and CI.
+- 2026-11-04: the owner chose to gate criteria per spec (TG20-TG23) and to make test-first visible in the history (TG24-TG26), of five proposals after the review of why criteria shipped untested.

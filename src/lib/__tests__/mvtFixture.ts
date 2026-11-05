@@ -2,15 +2,15 @@ import { PbfWriter as Pbf } from 'pbf';
 import type { LngLat } from '../types';
 
 /**
- * A tiny Mapbox Vector Tile encoder, for test fixtures only: points and
- * lines, string properties, one tile. Real tiles come from the tile host,
+ * A tiny Mapbox Vector Tile encoder, for test fixtures only: points,
+ * lines and polygons, string properties, one tile. Real tiles come from the tile host,
  * which tests can't reach.
  */
 export interface FixtureFeature {
   layer: string;
   props: Record<string, string>;
-  /** A point, or a line. */
-  coords: LngLat | LngLat[];
+  /** A point, a line, or a polygon's rings (each closed: its last point repeats its first). */
+  coords: LngLat | LngLat[] | LngLat[][];
 }
 
 const EXTENT = 4096;
@@ -39,6 +39,24 @@ function geometry(points: [number, number][], line: boolean): number[] {
   return line ? out : out.slice(0, 3);
 }
 
+/** Rings as MoveTo, LineTo, ClosePath, the cursor carried from ring to ring (MVT 2.1). */
+function polygonGeometry(rings: [number, number][][]): number[] {
+  const out: number[] = [];
+  let cx = 0;
+  let cy = 0;
+  for (const ring of rings) {
+    ring.forEach(([px, py], i) => {
+      if (i === 0) out.push((1 & 0x7) | (1 << 3));
+      else if (i === 1) out.push((2 & 0x7) | ((ring.length - 1) << 3));
+      out.push(zig(px - cx), zig(py - cy));
+      cx = px;
+      cy = py;
+    });
+    out.push((7 & 0x7) | (1 << 3));
+  }
+  return out;
+}
+
 export function encodeTile(features: FixtureFeature[], z: number, x: number, y: number): Uint8Array {
   const pbf = new Pbf();
   const layers = [...new Set(features.map((f) => f.layer))];
@@ -55,6 +73,11 @@ export function encodeTile(features: FixtureFeature[], z: number, x: number, y: 
     const encoded = fs.map((f) => {
       const tags: number[] = [];
       for (const [k, v] of Object.entries(f.props)) tags.push(index(keys, k), index(values, v));
+      const polygon = Array.isArray(f.coords[0]) && Array.isArray((f.coords as LngLat[][])[0][0]);
+      if (polygon) {
+        const rings = (f.coords as LngLat[][]).map((r) => r.slice(0, -1).map((p) => toTile(p, z, x, y)));
+        return { tags, type: 3, geom: polygonGeometry(rings) };
+      }
       const line = Array.isArray(f.coords[0]);
       const pts = (line ? (f.coords as LngLat[]) : [f.coords as LngLat]).map((p) => toTile(p, z, x, y));
       return { tags, type: line ? 2 : 1, geom: geometry(pts, line) };

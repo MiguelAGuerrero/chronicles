@@ -1,6 +1,7 @@
 // @layer core
 import { pointSegmentDist, projector } from '../geo';
 import type { LngLat } from '../types';
+import { cellIndexOf, type Cell } from './cells';
 import type { Band } from './types';
 
 /*
@@ -19,6 +20,8 @@ const ON_M = 15;
 
 export interface Stretch {
   key: string;
+  /** A fast road (a street band, WH1) or ground built around cars (a run of car cells, UF15). */
+  kind?: 'road' | 'area';
   street: string | null;
   /** Metres along the route. */
   fromM: number;
@@ -86,6 +89,56 @@ export function carStretches(path: readonly LngLat[], segments: readonly Seg[], 
   return out;
 }
 
+/** UF15: a run of car cells this long along the route is worth a word (about two cells). */
+export const AREA_MIN_M = 300;
+
+/**
+ * UF15: the runs of car cells of at least AREA_MIN_M along a route: ground built around cars, not a single road. Keyed by the
+ * run's last car cell, so a reroute over the same ground is the same run. No street name: it is an area.
+ */
+export function areaStretches(path: readonly LngLat[], cells: readonly Cell[]): Stretch[] {
+  if (path.length < 2) return [];
+  const car = new Set<string>();
+  for (const c of cells) if (c.band === 'car') car.add(`${c.i},${c.j}`);
+  if (!car.size) return [];
+  const project = projector(path[0]);
+  const pts = path.map(project);
+  const out: Stretch[] = [];
+  let run: { from: number; to: number; last: string } | null = null;
+  const close = () => {
+    if (run && run.to - run.from >= AREA_MIN_M) out.push({ key: `area@${run.last}`, kind: 'area', street: null, fromM: run.from, toM: run.to });
+    run = null;
+  };
+  let along = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const [a, b] = [pts[i - 1], pts[i]];
+    const L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    const n = Math.max(1, Math.ceil(L / STEP_M));
+    for (let k = 0; k < n; k++) {
+      const t = (k + 0.5) / n;
+      const p: LngLat = [path[i - 1][0] + (path[i][0] - path[i - 1][0]) * t, path[i - 1][1] + (path[i][1] - path[i - 1][1]) * t];
+      const { i: ci, j: cj } = cellIndexOf(p);
+      const from = along + (L * k) / n;
+      const to = along + (L * (k + 1)) / n;
+      const id = `${ci},${cj}`;
+      if (car.has(id)) {
+        if (!run) run = { from, to, last: id };
+        run.to = to;
+        run.last = id;
+      } else close();
+    }
+    along += L;
+  }
+  close();
+  return out;
+}
+
+/** UF15: the road stretches and the area runs together, in route order; an area run overlapping a road stretch is said once, as the road. */
+export function mergeStretches(roads: readonly Stretch[], areas: readonly Stretch[]): Stretch[] {
+  const kept = areas.filter((a) => !roads.some((r) => r.fromM < a.toM && a.fromM < r.toM));
+  return [...roads, ...kept].sort((x, y) => x.fromM - y.fromM);
+}
+
 /** With a last known position, only this far behind and ahead of it is searched first (walkability audit 10). */
 const WINDOW_BACK_M = 100;
 const WINDOW_FWD_M = 400;
@@ -145,4 +198,5 @@ export function aheadStep(state: AheadState, stretches: readonly Stretch[], alon
   return { state: { said: [...state.said, next.key], shown: { key: next.key, at: now, toM: next.toM } }, show: next };
 }
 
-export const warningLine = (s: Pick<Stretch, 'street'>) => (s.street ? `Next: a stretch built around cars on ${s.street}` : 'Next: a stretch built around cars');
+export const warningLine = (s: Pick<Stretch, 'street' | 'kind'>) =>
+  s.kind === 'area' ? 'Next: an area built around cars' : s.street ? `Next: a stretch built around cars on ${s.street}` : 'Next: a stretch built around cars';

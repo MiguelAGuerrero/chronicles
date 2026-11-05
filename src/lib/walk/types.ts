@@ -36,6 +36,8 @@ export interface TileFacts {
   x: number;
   y: number;
   ways: WayFacts[];
+  /** Where streets meet: Overture's connector points, or the nodes two ways of an Overpass tile share (UF3). */
+  junctions: LngLat[];
   from: 'overture' | 'overpass';
 }
 
@@ -56,4 +58,5 @@ export interface WalkTile {
   from: TileFacts['from'];
   read_at: number;
   ways: WayFacts[];
+  junctions: LngLat[];
 }

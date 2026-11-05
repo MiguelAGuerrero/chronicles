@@ -7,7 +7,10 @@ import { AtlasCard, type CardLayout } from '../../components/atlas/AtlasCard';
 import { AtlasTile } from '../../components/atlas/AtlasTile';
 import { LocateButton } from '../../components/LocateButton';
 import { CompassButton } from '../../components/CompassButton';
-import { WalkLayerControl } from '../../components/WalkLayerControl';
+import { LayersControl } from '../../components/LayersControl';
+import { layerNotes } from '../../lib/layers/notes';
+import { useBusyLayer } from '../../lib/layers/useBusyLayer';
+import { useLayers } from '../../lib/layers/useLayers';
 import { useWalkability } from '../../lib/walk/useWalkability';
 import { WalkMap } from '../../components/map/WalkMap';
 import type { WalkMapHandle } from '../../components/map/types';
@@ -37,6 +40,9 @@ import type { LngLat } from '../../lib/types';
 import { useLocate, type LocateError } from '../../lib/useLocate';
 import { useStartWalk } from '../../lib/useStartWalk';
 import { useTabMap } from '../../lib/useTabMap';
+
+// A tab that throws shows what broke, with the tab bar and the recording bar still there (fix ios-video audit 1).
+export { ScreenError as ErrorBoundary } from '../../components/ScreenError';
 
 const NONE: never[] = [];
 const NEW_FAM: Familiarity = { walks: 0, last: null };
@@ -259,8 +265,11 @@ export default function Explore() {
     return pointsOf.map((l) => ({ id: l.area.key, at: l.area.at, name: near.has(l.area.key) || l.area.key === selected ? l.area.name : null, selected: l.area.key === selected }));
   }, [pointsOf, selected]);
   const sel = shown.find((l) => l.area.key === selected) ?? null;
-  // Walkability (WK13): around the selected area, else around you; one switch for every map.
-  const wk = useWalkability(sel?.area.at ?? from ?? null);
+  // Map layers (ML3-ML9): what is drawn over the base map, one setting for every map, around the selected area else around you.
+  const layers = useLayers();
+  const layersAt = sel?.area.at ?? from ?? null;
+  const wk = useWalkability(layersAt, !!layers.on.walkability);
+  const busy = useBusyLayer(layersAt, !!layers.on.busy);
   // A card is only ever one of the areas shown, with its real distance (explore-atlas audit 7).
   const card = focused ? shown.find((l) => l.area.key === open) ?? null : null;
   const shownRef = useRef(shown);
@@ -435,8 +444,10 @@ export default function Explore() {
           marks={spot ? [spot.at] : NONE}
           areaPoints={areaPoints}
           ring={sel ? { center: sel.area.at, radiusM: ATLAS_RULES.ringM } : null}
-          borders={borders}
+          // Town borders are a layer (ML12); a town's own page keeps the border it frames (TB2).
+          borders={layers.on.borders || town ? borders : null}
           walkability={wk.draw}
+          landing={busy.view}
           onLongPress={(at) => {
             if (looking) return;
             if ((view?.zoom ?? 0) < 10) {
@@ -450,6 +461,7 @@ export default function Explore() {
             }
           }}
           onPress={(at, radiusM) => {
+            layers.closePanel();
             // A tap closes the long press's choices; with none open, it clears the selection (DN9),
             // only away from every area's point: a tap on the selected dot keeps it (audit 6).
             if (spot) setSpot(null);
@@ -527,7 +539,7 @@ export default function Explore() {
         <LocateButton busy={locating} onPress={locate} bottom={8} />
       )}
       {/* The compass (CP2): above Locate, only while the map is turned and on screen. */}
-      {focused && !spot && <WalkLayerControl wk={wk} top={insets.top + 8} />}
+      {focused && !spot && <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed })} top={insets.top + 8} right={12} paneWidth={mapW} clearBottom={insets.bottom + 100} />}
       {focused && !spot && <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={8 + 44 + 12} />}
       {toast ? <View style={styles.toast} accessibilityLiveRegion="polite"><Text style={styles.toastText}>{toast}</Text></View> : null}
       {/* DN12 on web: react-native-web's announceForAccessibility does nothing, so a hidden live region says it.
@@ -688,7 +700,8 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
   said: { position: 'absolute', width: 1, height: 1, overflow: 'hidden', opacity: 0 },
   screenWide: { flexDirection: 'row' },
-  map: { borderBottomWidth: 1, borderColor: theme.line, overflow: 'hidden' },
+  // Overflow visible, above the grid: the Layers panel opens over the cards below the short map like a popover (ML4).
+  map: { borderBottomWidth: 1, borderColor: theme.line, overflow: 'visible', zIndex: 5 },
   mapWide: { borderBottomWidth: 0, borderRightWidth: 1 },
   listPane: { flex: 1, minWidth: 0 },
   titleWrap: { position: 'absolute', right: 12, alignItems: 'flex-start' },

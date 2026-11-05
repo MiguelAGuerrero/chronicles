@@ -165,7 +165,8 @@ test('TG7 a prefix two specs share is looked for only in the folders of the feat
   const shared = r.shared.map((s) => s.prefix);
   for (const p of ['M', 'R', 'D']) assert.ok(shared.includes(p), `${p} is shared`);
   const v1 = r.rows.find((x) => x.slug === 'v1-discovery')!;
-  assert.equal(v1.retired.length, 25, 'the ids the spec\'s "Retired by this slice" line names are retired, not missing');
+  // The 25 the spec's "Retired by this slice" line names, and E14 (the test trim, Nov 5).
+  assert.equal(v1.retired.length, 26, 'the ids the spec\'s "Retired by this slice" line names are retired, not missing');
   for (const live of ['S7', 'S8', 'S13', 'S16', 'S17']) assert.ok(!v1.retired.includes(live), `${live} is live`);
   assert.ok(!v1.missing.some((id) => /^(S|A)\d+$/.test(id) && v1.retired.includes(id)));
   const one = specs.report({ feature: 'rides' });

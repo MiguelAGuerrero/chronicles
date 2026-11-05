@@ -51,7 +51,7 @@ async function checks(h) {
       await page.click('[aria-label="Next capture"]');
       await page.waitForTimeout(300);
     }
-    await page.waitForSelector('text=The bakery smelled of cardamom.');
+    await page.waitForSelector('text=The bakery smelled of cardamom. >> visible=true');
     await page.waitForTimeout(1200);
     await shot(page, '06-pin-opened');
     check(true, 'a pin on the card opens its capture');
@@ -61,6 +61,7 @@ async function checks(h) {
     await page.fill('[data-testid=epilogue-input]', 'Cardamom and the river.');
     await page.click('[data-testid=save]');
     // Back on Chronicle: the walk is a star where it was walked (H1, H7, NV27).
+    await h.mapUp(page);
     await page.waitForSelector('[data-testid=home-sheet]');
     check(new URL(page.url()).pathname === `${BASE}/chronicle` && (await page.locator('[data-testid=home-sheet]').count()) === 1 && (await tabBarShown(page)),
       `closing the replay after Stop returns to Chronicle, once, with the tab bar (NV27: ${page.url()})`);
@@ -132,13 +133,26 @@ async function checks(h) {
     // may not start a video with sound: it plays muted and offers the sound.
     const fresh = await ctx.newPage();
     fresh.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
-    // iOS's rule, which headless Chromium does not enforce: sound needs a tap first.
+    // iOS's rules, which headless Chromium does not enforce: sound needs a tap first, and a video
+    // loads no more than its metadata until a play() is let through, so it never says it can play
+    // before then (fix ios-video 1). Chromium loads a blob: video whatever its preload says, so the
+    // readyState it reports is held at 1 until then.
     await fresh.addInitScript(() => {
       let tapped = false;
       document.addEventListener('pointerdown', () => (tapped = true), true);
-      const play = HTMLMediaElement.prototype.play;
-      HTMLMediaElement.prototype.play = function () {
+      const P = HTMLMediaElement.prototype;
+      const readyState = Object.getOwnPropertyDescriptor(P, 'readyState');
+      Object.defineProperty(P, 'readyState', {
+        configurable: true,
+        get() {
+          const r = readyState.get.call(this);
+          return this.tagName === 'VIDEO' && !this.__played ? Math.min(r, 1) : r;
+        },
+      });
+      const play = P.play;
+      P.play = function () {
         if (!this.muted && !tapped) return Promise.reject(new DOMException('play() needs a tap', 'NotAllowedError'));
+        this.__played = true;
         return play.call(this);
       };
     });
@@ -167,22 +181,29 @@ async function checks(h) {
     check(sound, 'a tap on it turns the sound on');
     await fresh.close();
     await page.click('[data-testid=done]');
+    await h.mapUp(page);
     await page.waitForSelector('[data-testid=home-sheet]');
     // The sheet kept its walks list (H5), so it is counted rather than Start.
     check((await page.locator('[data-testid=home-sheet]').count()) === 1 && (await page.locator('[data-testid=walk-row]').count()) === 1, 'done returns to the one home, its walks list as it was');
     await page.waitForTimeout(800);
     const starAfter = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
     check(Math.abs(starAfter.x - starBefore.x) < 3 && Math.abs(starAfter.y - starBefore.y) < 3, `the map kept its view across the replay (${Math.round(starBefore.x)},${Math.round(starBefore.y)} → ${Math.round(starAfter.x)},${Math.round(starAfter.y)})`);
-    // And across the tabs: Chronicle's map is taken down while Navigate is in front, and comes back where it was (NV3, NV4).
+    // And across the tabs: Chronicle's map is taken down while Navigate is in front (NV4). Chronicle comes back on
+    // Memories, with no map (RM1); the Map section comes back where it was (NV3, audit 8).
     await tabTo(page, 'navigate');
     await page.waitForSelector('[data-testid=start]');
     await page.waitForTimeout(800);
     check((await page.locator('canvas.maplibregl-canvas').count()) === 1, 'one live map on Navigate after a walk (NV4)');
-    await tabTo(page, 'chronicle');
+    await tabTo(page, 'chronicle', 'memories');
+    await page.waitForTimeout(800);
+    check((await page.locator('canvas.maplibregl-canvas').count()) === 0 && (await page.locator('[data-testid=section-memories][aria-selected=true]').count()) === 1,
+      'Chronicle comes back on Memories, with no map (RM1, NV4)');
+    await h.mapUp(page);
+    await page.waitForSelector('[aria-label^="Fox Point,"]', { timeout: 15000 });
     await page.waitForTimeout(1200);
-    const starTabs = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
-    check((await page.locator('canvas.maplibregl-canvas').count()) === 1 && Math.abs(starTabs.x - starBefore.x) < 3 && Math.abs(starTabs.y - starBefore.y) < 3 && (await page.locator('[data-testid=walk-row]').count()) === 1,
-      `Chronicle keeps its sheet and its map view across tabs (NV3: ${Math.round(starTabs.x)},${Math.round(starTabs.y)})`);
+    const starBack = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
+    check((await page.locator('canvas.maplibregl-canvas').count()) === 1 && Math.abs(starBack.x - starBefore.x) < 3 && Math.abs(starBack.y - starBefore.y) < 3,
+      `the Map section comes back where it was, with its stars (RM2, NV3, NV4, audit 8: ${Math.round(starBack.x)},${Math.round(starBack.y)})`);
 
     // Reduce motion (M2): the same home with the system setting on. Nothing presses down, the sheet snaps.
     {
@@ -190,6 +211,7 @@ async function checks(h) {
       still.on('pageerror', (e) => errors.push(String(e)));
       await still.emulateMedia({ reducedMotion: 'reduce' });
       await still.goto(page.url());
+      await h.mapUp(still);
       await still.waitForSelector('[data-testid=home-sheet]');
       await still.waitForTimeout(800);
       await still.click('[aria-label^="Fox Point,"]');

@@ -71,13 +71,13 @@ recording bar brings a minimized walk back.
   and nightlife count every place. A ring with fewer than three mapped places
   says nothing about its kinds (atlas grading, decision 0084).
 - Rings are read by themselves while the tab is open, nearest first.
-- **A walk through a kind** (decision 0095, kind walk KW1-KW14): on an area's card, tapping a kind under "What's here" (Green,
+- **A walk through a kind** (decision 0099, kind walk KW1-KW14): on an area's card, tapping a kind under "What's here" (Green,
   History, ...) opens it in place with one suggested walk through where that kind is concentrated (the same 400 m cells as
   the busy areas), moved onto streets. It says its length as a distance in the displayed unit, never a time, and whether it can
   be walked the whole way (a stretch built around cars is named; "not known" when nothing could be read). Settings: about how
   far (steps in km or miles, 2 km by default) and what to do about a stretch built around cars (say so, the default, or don't
   suggest it). "Start this walk" opens the walk screen ready; the walk says distance only and is otherwise ordinary. It names
-  no place, so the "?" marks stay hidden until reached. The rest of suggested routes is still deferred (0022).
+  no place, so the "?" marks stay hidden until reached. Scenic routes (0095) are a separate feature on Go here; this walk skips their preview.
 - **The small map moves in steps** (discrete navigation, decision 0092, an
   experiment): a swipe goes to the next area that way, never panning. It
   selects the next neighborhood (its ring, its name, its tile scrolled into
@@ -100,8 +100,8 @@ recording bar brings a minimized walk back.
   OpenStreetMap and Overture Maps Places, measured along each street and
   graded against the town itself, so a small town shows where its activity
   centres. Never foot traffic, and never a number.
-- Suggested routes (a route with detours shaped by preferences, a route
-  preview, "Walk this way") are deferred to their own slice.
+- Explore's route preview and "Walk this way" are deferred: Walk here and
+  "Walk to its busiest street" start at once.
 
 ### Navigate (during)
 
@@ -152,6 +152,16 @@ recording bar brings a minimized walk back.
   navigating. Off-route re-routes quietly; arrival says "You're here".
   Bridges and tunnels cross what lies under them without a turn onto it, and a
   route starts on the street you are walking along.
+- **Scenic routes** (decision 0095): on Go here, or a destination set before
+  Start, the app shows Direct beside up to three scenic routes, one per
+  leaning switched on: **Through green** (parks, gardens, woods), **Past the
+  sights** (places worth seeing, of the kinds in "What I'm into") and **Along
+  busy streets**. Each is at most 30% longer. Every row gives its own
+  distance in km or miles, and a scenic row what it passes ("Through green ·
+  360 m · through India Point Park"): never a time or minutes compared, never
+  naming a place not yet found. A tap highlights one on the map; Go starts it; off
+  route it re-routes on the same leaning. Within 5 km; with nothing scenic,
+  the direct way at once. Walk me back stays the shortest way.
 - **Open in Maps** hands the destination to the phone's maps app (Apple Maps
   on iPhone, the Android chooser, Google Maps elsewhere) for walking
   directions, when Chronicles' route is wrong: in the blue bar, on a route
@@ -180,23 +190,46 @@ recording bar brings a minimized walk back.
 - Standstills, GPS wander, rides and motion (step detection) are all read
   from the raw fixes at read time; nothing derived is stored as truth.
 
-#### Walkability (before and during)
+#### Map layers and walkability (before and during)
 
-- A switch on the Explore map and the Navigate map shades the stretches the map data suggests need a car to get
-  around: a warm line where a street is built around cars, a faint one where it is mixed, nothing where it is
-  easy on foot. The bands are icons (the pedestrian; with a caution badge; with a car badge) with a tooltip in
-  words. No number, share or rank is shown anywhere.
-- It reads sidewalks, crossings, speeds and road classes from Overture's transportation tiles, falling back to
-  OpenStreetMap through Overpass, and keeps each tile on the device. Where sidewalks are not mapped, the layer
-  says streets can read worse than they are.
-- An open area card (a neighborhood or a town) has an "On foot" line in words ("Mostly easy on foot", "A mix of
-  easy and car-oriented streets", "Mostly built around cars"), read when the card opens; it says nothing where too
-  little is known. The grid's tiles say nothing.
-- While navigating, a quiet line says "Next: a stretch built around cars on <street>" 200 m before one, once,
-  with no sound; it never changes the route.
+- **Layers.** One Layers button on the Explore map and the Navigate map opens a small panel of switches: Walkability, Busy streets and Town
+  borders. Each draws something over the base map and shows its own legend while on. All three start off, so a fresh map is clear; the button is outlined, and its glyph
+  and a firmer edge say a layer is on. One setting for every map, kept across launches.
+- **Walkability** tints the map a light blue where the ground is easy on foot (streets close together, crossings, places along them) and a darker slate where it is
+  built around cars (streets far apart and busy), and nothing in between. It is judged from how the ground is built, so a walkable grid with its
+  sidewalks unmapped still reads walkable; a missing sidewalk never lowers a reading. It comes from Overture's transportation tiles, with
+  OpenStreetMap through Overpass when those can't be read, kept on the device. No number, share or rank is shown anywhere.
+- **Busy streets** is the graded magenta shading of streets with many places along them, now on request on any walk. Turning it on where nothing is
+  remembered reads the area once.
+- An open area card (a neighborhood or a town) has an "On foot" line in words that say what the ground is ("Streets close together, with crossings",
+  "Streets far apart and busy", or both side by side), read when the card opens; it says nothing where neither stands out.
+- While navigating, with the Walkability layer on, a quiet line says "Next: a stretch built around cars on <street>" before a fast road, or "Next: an area built around cars"
+  as the route enters one, 200 m ahead, once, with no sound; it never changes the route.
 
 ### Chronicle (after)
 
+- **Chronicle opens on Memories** (decision 0098): a control at the top chooses
+  **Memories | Walks | Days | Map**, and leaving for another tab puts it back on
+  Memories. Memories is the feed:
+  - **A resurfaced moment** at the top, different on each open, in the user's own
+    words, with a label that says why ("A year ago today", "Last October", "You
+    keep coming back to the water"). **Relive it** opens the replay of its walk
+    (or its day); **Another** steps to the next. Nothing from the last day is
+    resurfaced; it is in Lately.
+  - **Threads**: things the user keeps coming back to, found in the words of
+    notes and photo captions (a word in three moments on two days). A tile shows
+    the user's own word and a line in words ("Just beginning", "Often, lately",
+    "Comes back every October"). A thread's page shows two of the user's own
+    sentences and its moments; **Rename** and **Not a thread** change only the
+    thread. No rank or count is shown.
+  - **Lately**: every moment, newest first, a thread's moments leading within a
+    week; a card opens the moment and a small line opens the walk's replay.
+  - **Show less like this** and **Not this one** (on the ... of the top card and
+    of every card) change what is brought back, never what is kept; both have Undo.
+  - Memos show here but join threads only once they have a transcript (not yet).
+- **Walks, Days and Map** are what Chronicle was before: the walks list, the days
+  list with Replay this day, and the map with its stars. The map is mounted only
+  there.
 - The home map shows stars where walks were, at the level for the zoom
   (neighbourhoods, towns, states, countries; a walk's towns are the borders
   it crossed, by town outlines, drawn as tinted regions behind the stars from
@@ -254,6 +287,8 @@ recording bar brings a minimized walk back.
   test. Permission is asked only from a tap (first pause, a reminder saved, a
   switch turned on), never at launch. On the web, notifications come from a
   service worker and only work while the page is alive.
+- Scenic routes: three switches in the walk settings (Green, Sights, Streets
+  with life), all on by default; all off, Go here goes the direct way.
 - Distances show in km or miles: a "Distances" choice in the walk settings (the ready bar pulled up),
   defaulting from the device's region. It reaches every distance the app shows,
   the scale bar included.
@@ -288,6 +323,7 @@ recording bar brings a minimized walk back.
 | Explore atlas (the tab as a grid of area tiles, presence bars, familiarity) | Shipped, audited (web verified by the e2e; native unverified) |
 | Discrete navigation (Explore's map steps from area to area, DN1-DN13) | Shipped, audited, an experiment (web verified by the e2e; native unverified) |
 | Town presence (a town graded across its whole outline, with its busy areas listed) | Built (web verified by the e2e; native unverified) |
+| Resurfaced moments (Chronicle opens on Memories: a moment brought back, threads from the user's words, Lately) | Built (web verified by the e2e `resurface`; native unverified) |
 | Moments and days, memories on revisit, thumbnails | Shipped, audited |
 | Rides, clearing walks and moments, motion polish | Shipped, audited |
 | Navigation and tabs (three-tab layout, recording bar) | Shipped, two audit batches done |
@@ -296,7 +332,8 @@ recording bar brings a minimized walk back.
 | Quality of life round 2: km or miles, time left while navigating, the "Not recording" chip with Open Settings and a retry on return | Shipped (web verified by the qol e2e; native unverified) |
 | Quality of life round 3: rename a walk later, edit a note, photos on their pins, months in the walks list | Shipped (web verified by the qol e2e; native unverified) |
 | Bridges and Open in Maps | Shipped on web, audited (native unverified) |
-| Suggested routes (interesting ways, route preview, "Walk this way") | Deferred, next slice |
+| Scenic routes (Go here offers Direct and one route per leaning: green, sights, streets with life) | Shipped on web (native unverified) |
+| Explore's route preview, "Walk this way" | Deferred |
 | Media editing: crop, rotate, filters, drawing, text, video trim, all saved out | Shipped on web (native unverified; the video module never compiled) |
 | Backup and export of a walk | Code exists, no UI, deferred |
 | Quick capture outside the app (widget, lock screen, share sheet) | Deferred |

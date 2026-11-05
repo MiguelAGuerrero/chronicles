@@ -53,6 +53,21 @@ async function run(h) {
     await startWalk();
     const first = await walkPast('first walk (area unread)');
     check(first.some((l) => /Hessian Memorial/.test(l)), `marks: a first exploring walk draws the memorial it passes (${JSON.stringify(first)})`);
+    // E15: on the web, with the page open, exploring runs the same code as on a phone: the walk read its
+    // area with the app's own tile decoder, kept the checklist, and named what it passed.
+    {
+      const kept = await pg.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('chronicles');
+        req.onsuccess = () => {
+          const tx = req.result.transaction(['explore_read', 'checklist_item'], 'readonly');
+          const reads = tx.objectStore('explore_read').getAll();
+          const items = tx.objectStore('checklist_item').getAll();
+          tx.oncomplete = () => resolve({ reads: reads.result.length, items: items.result.length, visible: document.visibilityState });
+        };
+      }));
+      check(kept.visible === 'visible' && kept.reads >= 1 && kept.items >= 1 && first.some((l) => /Hessian Memorial/.test(l)),
+        `E15: on the web, with the page open, an exploring walk reads its area, keeps its checklist and names what it passes (${JSON.stringify(kept)})`);
+    }
     await holdStop();
     await pg.goto(navUrl);
     // Second walk through the same area, read before: the tab's "?" must show on the walk too.

@@ -32,6 +32,13 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
   above them in the same column (Locate on the ready screen where Recenter sits on the walk, then
   unwalked streets, then walk me back). The ready bar at rest is the strip, at its height, with Start
   where Stop sits. The e2e checks the boxes match across Start.
+- **The Layers button is in the bottom-left corner** (fix layers-corner, Nov 5, the owner): a 44 pt button just
+  above the scale bar (`layersCorner`, `lib/stackSlots.ts`), not the right column's top, where the navigation
+  bar's End button sat under it. The column has four edge slots and the compass is its top; the pills sit above
+  the button (`pillsBottom`). Its panel opens to the button's right, bottom level with it, growing upward
+  (`cornerPanelBox`, `lib/layers/layout.ts`), stopping short of the capture column and the top overlay; it
+  paints over the pills while open and closes on a tap on the map. Explore's button is still anchored from the
+  top. Not run on a device.
 - Capture controls are one component, `CaptureStack` (`components/walk/CaptureStack.tsx`), given ids
   and handlers: `moment-*` on the ready screen (moments, `MomentBar`), `cap-*` on the walk. Time,
   distance and hold-to-stop stay in the thin strip at the very bottom, with Stop at the right end.
@@ -80,6 +87,10 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
 - **The walk's notice sits in the minimize button's row** (the owner, Nov 4), level with it at the top
   edge, so the button doesn't move when one appears (NR6). The web's "keep this page open" is said once, on
   the ready screen's first launch (NR13), never as a walk's notice or by `startNotice`.
+- **The chevron and the street chip are pinned to the top row** (Nov 5, the owner): the Minimize row is the
+  first child of the top column and the "On <street>" chip is centred in it (`chipCell`, absolute, 44 pt),
+  so the navigation bar, a banner or an off-route chip below never pushes them down. A notice takes the
+  chip's place in the row, so the chip hides while one shows. Not run on a device.
 - **The grip is a 28 px band, focusable (`tabIndex={-1}`)** (Nov 4, the owner: "I cannot lift the drawer",
   on the web; Explore's 24 px grip lifted). It was a 10 px transparent strip, and a touch on it went to the
   map canvas beneath, not the bar, so a finger's drag on the handle did nothing while a mouse drag, and a

@@ -26,7 +26,7 @@ import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
 import { MOTION } from '../../lib/motionTokens';
 import {
-  BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
+  alternatesGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -141,6 +141,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const traceHistory = useMemo(() => traceGeoJSON(split.history), [split.historyKey]);
   const route = useMemo(() => routeGeoJSON(props.route), [props.route]);
+  const alternates = useMemo(() => alternatesGeoJSON(props.alternates), [props.alternates]);
   const pockets = useMemo(() => pocketsGeoJSON(props.landing), [props.landing]);
   const strips = useMemo(() => stripsGeoJSON(props.landing), [props.landing]);
   const marks = useMemo(() => marksGeoJSON(props.marks), [props.marks]);
@@ -380,11 +381,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         <GeoJSONSource id="veil" data={WORLD_VEIL}>
           <Layer id="veil" type="fill" paint={{ 'fill-color': COLORS.veil, 'fill-opacity': props.veil ? 0.45 : 0 }} />
         </GeoJSONSource>
-        {/* Walkability (WK13), under the hotspots, fog and trace (unverified on a device). */}
+        {/* The Walkability layer (UF9), under the hotspots, fog and trace: soft tints, no antialiasing so no seams (unverified on a device). */}
         <GeoJSONSource id="walkability" data={walkability}>
-          {(['mixed', 'car'] as const).map((band) => (
-            <Layer key={band} id={`walk-${band}`} type="line" filter={['==', ['get', 'band'], band]} layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-              paint={{ 'line-color': WALK_STYLE[band].color, 'line-opacity': WALK_STYLE[band].opacity, 'line-width': ['interpolate', ['linear'], ['zoom'], 12, WALK_STYLE[band].width * 0.6, 17, WALK_STYLE[band].width * 2.2] }} />
+          {(['foot', 'car'] as const).map((band) => (
+            <Layer key={band} id={`walk-${band}`} type="fill" filter={['==', ['get', 'band'], band]}
+              paint={{ 'fill-color': WALK_STYLE[band].color, 'fill-opacity': WALK_STYLE[band].opacity, 'fill-antialias': false }} />
           ))}
         </GeoJSONSource>
         {/* Hotspots under the streets, in the one green no other layer uses (L9). */}
@@ -410,6 +411,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         <GeoJSONSource id="walked" data={walked}>
           <Layer id="walked" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }}
             paint={{ 'line-color': COLORS.walked, 'line-width': 6 }} />
+        </GeoJSONSource>
+        {/* A preview's other routes, faint, under the one highlighted (SR2). */}
+        <GeoJSONSource id="alternates" data={alternates}>
+          <Layer id="alternates-edge" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': '#ffffff', 'line-width': 9, 'line-opacity': 0.8 }} />
+          <Layer id="alternates" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': COLORS.route, 'line-width': 6, 'line-opacity': 0.4 }} />
         </GeoJSONSource>
         <GeoJSONSource id="route" data={route}>
           <Layer id="route-edge" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': '#ffffff', 'line-width': 12 }} />

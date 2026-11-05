@@ -69,6 +69,20 @@ Replay ceremonies (decisions 0085, 0086)
   ceremony/useCeremonyClock.ts  the time into a ceremony: an epoch, hold, a pause while a viewer is open, onEnd once
   ceremony/useRevealed.ts    the captures whose pins are up, one list per count
   ceremony/layout.ts         where the stage puts things (pile, card, bottom margin), project(), tiltOf
+Chronicle's Memories (decision 0098)
+  resurface/types.ts         MomentView, Signal, SignalExtractor (the extension point), Thread, Prefs, Pick
+  resurface/terms.ts         the user's words folded into terms (case, accents, plurals, common words, aliases)
+  resurface/extractors.ts    noteExtractor, captionExtractor, transcriptExtractor; signalsOf
+  resurface/threads.ts       deriveThreads: a term in three moments on two days; THREAD_RULES
+  resurface/pick.ts          resurfaceOrder / pickResurfaced: anniversary, thread, same month, older; seeded
+  resurface/feed.ts          compose (deletes applied) and lately (newest first, a thread's moments lead within a week)
+  resurface/lines.ts         every sentence: when, the card's label, a thread's line; numbers as words
+  resurface/prefs.ts         Not this one, Show less, rename, remove; parsePrefs
+  resurface/views.ts         captures into MomentViews; the From line
+  resurface/section.ts       which Chronicle section after a route; sectionStore.ts holds it
+  resurface/shell.ts         createResurface(ports): load, choices in meta `resurface_prefs`, saveNote, patch; index.ts is the app instance
+  resurface/useResurface.ts  the view hook (reads on focus and after a delete)
+  chronicle/                 SectionBar, MemoriesScreen, Resurfaced, ThreadsRail, ThreadScreen, MomentCard, MomentPicture, MemoryMenu
 Home / tabs
   HomeSheet.tsx              the three-height bottom sheet (Animated + responders), Walks | Days, a place's walks, a day's timeline
   StarView.tsx               a star for a place; all one size; the 8 busiest carry names
@@ -124,6 +138,8 @@ Recording and traces
   useGlidingWalker.ts        runs the glide as a render loop outside React
   traceEnds.ts               where a walk began and ended
   gpsLog.ts                  the raw readings as text for Share GPS log
+  shareLog/                  sharing that text: the share sheet, or a copy on the web (`lib/shareLog`: shell.ts, share.ts, index.ts)
+  unitsStore/                the km or miles setting in meta `units` (`lib/unitsStore`: shell.ts, index.ts)
   lastFix.ts                 the last fix Navigate read, in memory
 Streets, snapping, fog
   streets.ts                 OpenMapTiles road features to street pieces (deriveSegments, streetKey); the only file that knows the road schema
@@ -166,6 +182,10 @@ Navigation (inside a walk)
   nav/useNavigation.ts       routing, re-routing, arrival and the street read on the walk screen
   nav/handoff.ts             Open in Maps: picks the maps app and its links per platform and browser
   nav/openInMaps.ts          opens them with Linking.openURL straight from the tap
+  nav/scenic.ts              scenic routes: who gets the preview, one route per leaning within 30%, the rows in words
+  nav/scenicSignals.ts       green (landcover), sights and busy streets of a corridor; their per-routing indexes
+  nav/scenicRead/            the corridor's tiles and Overture places for a scenic route (shell.ts, index.ts)
+  routeLeanings/             the "Scenic routes" switches in meta `route_leanings` (`lib/routeLeanings`: shell.ts, index.ts)
 Filling gaps
   gaps/rules.ts              GAP_RULES: what counts as a gap, the paces, the budgets
   gaps/infer.ts              gapsOf, the likely way over street pieces (A*), certain / offered / nothing
@@ -184,7 +204,6 @@ Discovery and Explore (v1)
   explore/explore.ts         checklists, membership, visibleMarks, routeMarks, findFor, foundList, passedLine
   explore/exploreRun.ts      one explore read (decoder, z14 + z11) and the build check
   explore/useExplore.ts      Explore on the walk screen
-  explore/exploreTab.ts the drawer's area-in-view (superseded on the tab by the atlas)
   atlas/atlas.ts             the Explore atlas: near list, presence steps (findable kinds count markable places, AG1), thin rings (AG3), sketch, familiarity, labels
   atlas/extent.ts            a town's whole-outline extent and the z14 tiles a read takes, capped (TP1-TP3)
   atlas/pockets.ts           a town's pockets of activity: peak picking on a smoothed 400 m grid (TP4)
@@ -200,12 +219,21 @@ Activity density (AD1-AD16)
   activity/reader.ts         OvertureReader and TileMemo: a tile once per release, deadlines, a failed archive reopened
   activity/useOvertureRelease.ts the release known, for screens that judge staleness
   activity/overture.ts       Overture's places by tile (pmtiles, byte ranges); the release check (meta)
-Walkability (WK1-WK23)
+Map layers (ML1-ML13)
+  layers/registry.ts         the list of layers: name, icon, default, legend rows (a layer is data)
+  layers/state.ts            the stored setting decoded and defaulted; the old walk_layer read in once; needsBusyRead
+  layers/shell.ts            createLayers: the state and the panel's open flag as a Store (meta `map_layers`); index.ts is the app's instance
+  layers/busy.ts, useBusyLayer.ts  Busy streets as a layer: the remembered areas and the one read
+  layers/useLayers.ts        the hook the maps call
+Walkability (WK1-WK23, UF1-UF20)
+  walk/form.ts               the rule and its one table of thresholds (judge)
+  walk/cells.ts              cells on a fixed grid, judged from their 450 m neighbourhood through a spatial index
+  walk/tint.ts               the foot and car cells as shapes the map draws, with a key
   walk/types.ts              Band, WayFacts, TileFacts, WalkSource, WalkTile
   walk/bands.ts              the band table (bandOf), WALK_CODE
   walk/match.ts              bandsFor: ways to street segments by tile, EdgeGrid-style index, 35 degrees
   walk/layer.ts              drawFor, routeSegments, tilesAround
-  walk/summary.ts            areaWords, bandLengths (built, not yet shown)
+  walk/summary.ts            cellWords and countCells: an area said in words from its cells (the card's line)
   walk/bandWords.ts          each band's words and badge
   walk/ahead.ts              carStretches, alongRoute, aheadStep, warningLine
   walk/aheadWatch.ts         the heads-up's shell and Store

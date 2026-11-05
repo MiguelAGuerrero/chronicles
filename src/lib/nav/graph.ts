@@ -2,6 +2,45 @@
 import { distanceM, projector } from '../geo';
 import type { LngLat } from '../types';
 
+/** A binary min-heap of [key, index]. */
+class Heap {
+  private readonly h: [number, number][] = [];
+  get size() {
+    return this.h.length;
+  }
+  push(e: [number, number]) {
+    const h = this.h;
+    h.push(e);
+    let i = h.length - 1;
+    while (i > 0) {
+      const parent = (i - 1) >> 1;
+      if (h[parent][0] <= h[i][0]) break;
+      [h[parent], h[i]] = [h[i], h[parent]];
+      i = parent;
+    }
+  }
+  pop(): [number, number] {
+    const h = this.h;
+    const top = h[0];
+    const last = h.pop()!;
+    if (h.length) {
+      h[0] = last;
+      let i = 0;
+      for (;;) {
+        const l = 2 * i + 1;
+        const r = l + 1;
+        let m = i;
+        if (l < h.length && h[l][0] < h[m][0]) m = l;
+        if (r < h.length && h[r][0] < h[m][0]) m = r;
+        if (m === i) break;
+        [h[m], h[i]] = [h[i], h[m]];
+        i = m;
+      }
+    }
+    return top;
+  }
+}
+
 /**
  * A small walking graph: points joined by edges with lengths in meters, and
  * a shortest-path search (A*, by straight-line distance). Both route sources
@@ -106,60 +145,61 @@ export class WalkGraph {
     return this.edges[i];
   }
 
-  /** The shortest path between two points, as point indices, or null if they don't connect. */
-  shortest(from: number, to: number): { path: number[]; m: number } | null {
-    const goal = this.points[to];
+  /** Walking distance from one point to every point within `maxM` of it along the graph (Dijkstra). */
+  distances(from: number, maxM: number): Map<number, number> {
     const best = new Map<number, number>([[from, 0]]);
-    const prev = new Map<number, number>();
-    // A binary heap of [estimate, index].
-    const heap: [number, number][] = [[distanceM(this.points[from], goal), from]];
-    const push = (e: [number, number]) => {
-      heap.push(e);
-      let i = heap.length - 1;
-      while (i > 0) {
-        const parent = (i - 1) >> 1;
-        if (heap[parent][0] <= heap[i][0]) break;
-        [heap[parent], heap[i]] = [heap[i], heap[parent]];
-        i = parent;
-      }
-    };
-    const pop = (): [number, number] => {
-      const top = heap[0];
-      const last = heap.pop()!;
-      if (heap.length) {
-        heap[0] = last;
-        let i = 0;
-        for (;;) {
-          const l = 2 * i + 1;
-          const r = l + 1;
-          let m = i;
-          if (l < heap.length && heap[l][0] < heap[m][0]) m = l;
-          if (r < heap.length && heap[r][0] < heap[m][0]) m = r;
-          if (m === i) break;
-          [heap[m], heap[i]] = [heap[i], heap[m]];
-          i = m;
+    const done = new Set<number>();
+    const queue = new Heap();
+    queue.push([0, from]);
+    while (queue.size) {
+      const [d, i] = queue.pop();
+      if (done.has(i)) continue;
+      done.add(i);
+      for (const e of this.edges[i]) {
+        const g = d + e.m;
+        if (g <= maxM && g < (best.get(e.to) ?? Infinity)) {
+          best.set(e.to, g);
+          queue.push([g, e.to]);
         }
       }
-      return top;
-    };
+    }
+    return best;
+  }
+
+  /**
+   * The shortest path between two points, as point indices, or null if they don't connect. `m` is
+   * always the path's length in metres. With `cost`, the path is the cheapest by it instead
+   * (scenic routes, SR6), and `hScale` is the least cost per metre any edge can have, so the
+   * straight-line estimate never overshoots.
+   */
+  shortest(from: number, to: number, cost?: (a: number, b: number, m: number) => number, hScale = 1): { path: number[]; m: number } | null {
+    const goal = this.points[to];
+    const h = (i: number) => distanceM(this.points[i], goal) * (cost ? hScale : 1);
+    const best = new Map<number, number>([[from, 0]]);
+    const prev = new Map<number, number>();
+    const heap = new Heap();
+    heap.push([h(from), from]);
     const done = new Set<number>();
-    while (heap.length) {
-      const [, i] = pop();
+    while (heap.size) {
+      const [, i] = heap.pop();
       if (done.has(i)) continue;
       done.add(i);
       if (i === to) break;
       for (const e of this.edges[i]) {
-        const g = best.get(i)! + e.m;
+        const g = best.get(i)! + (cost ? cost(i, e.to, e.m) : e.m);
         if (g < (best.get(e.to) ?? Infinity)) {
           best.set(e.to, g);
           prev.set(e.to, i);
-          push([g + distanceM(this.points[e.to], goal), e.to]);
+          heap.push([g + h(e.to), e.to]);
         }
       }
     }
     if (!best.has(to)) return null;
     const path = [to];
     while (path[0] !== from) path.unshift(prev.get(path[0])!);
-    return { path, m: best.get(to)! };
+    if (!cost) return { path, m: best.get(to)! };
+    let m = 0;
+    for (let k = 1; k < path.length; k++) m += this.edges[path[k - 1]].find((e) => e.to === path[k])!.m;
+    return { path, m };
   }
 }

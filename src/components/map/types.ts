@@ -1,5 +1,5 @@
 import type { BorderView } from '../../lib/areas/borders';
-import type { WalkDraw } from '../../lib/walk/layer';
+import type { WalkTint } from '../../lib/walk/tint';
 import type { DotSource } from '../../lib/liveDot';
 import type { MarkPin } from '../MarkPinView';
 import type { AreaPointPin } from '../AreaPoint';
@@ -31,8 +31,6 @@ export const OVERTURE_CREDIT = 'Places: Overture Maps Foundation';
 
 export const HOTSPOT = '#d6268c';
 export const HOTSPOT_INK = '#86145a';
-/** The Start here pin's fill: white text on it reads at AA. */
-export const HOTSPOT_PIN = '#a3166a';
 
 /**
  * The fog is quiet unless asked for (the owner's call, Nov 1): after a scan
@@ -110,6 +108,8 @@ export interface WalkMapProps {
   attributionTop?: boolean;
   /** A route being navigated, drawn bold under the trace (N6). */
   route?: LngLat[] | null;
+  /** The other routes of a preview, drawn faint under the route (scenic routes, SR2). */
+  alternates?: LngLat[][] | null;
   /** Explore's marks, as "?" pins until revealed (E6-E8, E22). */
   discoveries?: MarkPin[];
   onDiscoveryPress?: (id: string) => void;
@@ -123,8 +123,8 @@ export interface WalkMapProps {
   ring?: { center: LngLat; radiusM: number } | null;
   /** Town borders to draw (TB1-TB5), under the streets; null or absent draws none. */
   borders?: BorderView | null;
-  /** Walkability (WK13): stretches built around cars and mixed ones, under the trace and fog; null or absent draws none. */
-  walkability?: WalkDraw | null;
+  /** The Walkability layer (UF9): areas easy on foot tinted green and built around cars warm, under the trace and fog; null or absent draws none. */
+  walkability?: WalkTint | null;
   /** The way the walker is going (degrees from north), drawn as a soft cone; null hides it. */
   walkerHeading?: number | null;
   walker?: LngLat | null;
@@ -174,6 +174,11 @@ export interface CollectedFeatures {
   places: RoadFeature[];
   /** Points of interest (the tiles' `poi` layer), for discovery. */
   pois: RoadFeature[];
+  /**
+   * The tiles' `landcover` polygons, for a scenic route's green (SR15). Only the in-code decoder
+   * reads them; the map's own reads leave it out.
+   */
+  landcover?: RoadFeature[];
   /** False when some views timed out before their tiles loaded. */
   complete: boolean;
 }
@@ -340,6 +345,14 @@ export function routeGeoJSON(route: LngLat[] | null | undefined): GeoJSON.Featur
   };
 }
 
+/** A preview's other routes as faint lines (SR2). */
+export function alternatesGeoJSON(lines: LngLat[][] | null | undefined): GeoJSON.FeatureCollection {
+  return {
+    type: 'FeatureCollection',
+    features: (lines ?? []).filter((l) => l.length > 1).map((l) => ({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: l } })),
+  };
+}
+
 export function pocketsGeoJSON(v: LandingView | null | undefined): GeoJSON.FeatureCollection {
   return {
     type: 'FeatureCollection',
@@ -421,17 +434,19 @@ export function bordersGeoJSON(view: BorderView | null | undefined): GeoJSON.Fea
   };
 }
 
-/** Walkability (WK13): a warm line where streets are built around cars, a faint one where mixed; nothing for the rest. */
+/** The Walkability layer's tints (UF9): soft, so the streets and labels show through. */
 export const WALK_STYLE = {
-  car: { color: '#c2410c', width: 3, opacity: 0.8 },
-  mixed: { color: '#d97706', width: 2, opacity: 0.45 },
+  // One cool hue family, told apart by lightness: neither is green or orange, so neither reads as approval or warning, and
+  // neither is the app's accent or the town borders' colour (the vision review, 2026-11-05).
+  foot: { color: '#5b9bd5', opacity: 0.24 },
+  car: { color: '#3b4a6b', opacity: 0.3 },
 } as const;
 
-/** The stretches a map draws (WK13): one feature per line with its band only. */
-export function walkabilityGeoJSON(d: WalkDraw | null | undefined): GeoJSON.FeatureCollection {
-  if (!d) return { type: 'FeatureCollection', features: [] };
-  const f = (band: 'car' | 'mixed') => (lines: LngLat[][]): GeoJSON.Feature[] => lines.map((coordinates) => ({ type: 'Feature', properties: { band }, geometry: { type: 'LineString', coordinates } }));
-  return { type: 'FeatureCollection', features: [...f('mixed')(d.mixed), ...f('car')(d.car)] };
+/** The shapes a map draws (UF9): one polygon per shape with its band only (UF12). */
+export function walkabilityGeoJSON(t: WalkTint | null | undefined): GeoJSON.FeatureCollection {
+  if (!t) return { type: 'FeatureCollection', features: [] };
+  const f = (band: 'foot' | 'car', rings: LngLat[][]): GeoJSON.Feature[] => rings.map((r) => ({ type: 'Feature', properties: { band }, geometry: { type: 'Polygon', coordinates: [r] } }));
+  return { type: 'FeatureCollection', features: [...f('foot', t.foot), ...f('car', t.car)] };
 }
 
 /** Points to mark (a destination, a pressed spot), as circles. */

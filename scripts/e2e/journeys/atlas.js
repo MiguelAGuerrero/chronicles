@@ -10,6 +10,7 @@ async function arrive(h) {
   if (await page.locator('[data-testid=to-name]').count()) {
     await page.click('[data-testid=to-name]');
     await page.click('[data-testid=save]');
+    await h.mapUp(page);
     await page.waitForSelector('[data-testid=home-sheet]');
     await page.waitForSelector('[aria-label^="Fox Point,"]', { timeout: 15000 });
   }
@@ -58,6 +59,51 @@ async function checks(h) {
       check(foxRow && foxRow.profile && foxRow.build && foxRow.code, 'AT12: the ring read is kept as a cache tagged with the build and the atlas rules');
       check(!/\d+\s*of\s*\d+/.test(await page.locator('body').innerText()), 'AT11: no "N of M" anywhere on Explore');
       await shot(page, '11b-explore');
+    }
+    {
+      // AT15: the title floats over the map: the map runs to the top of the screen (no inset on the web),
+      // and the title and subtitle sit on a card lifted by a shadow, with no empty band above it.
+      const canvas = await page.locator('canvas.maplibregl-canvas').boundingBox();
+      const card = await page.evaluate(() => {
+        let el = document.querySelector('[data-testid=atlas-title]');
+        for (; el; el = el.parentElement) if (getComputedStyle(el).boxShadow !== 'none') break;
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        const inside = ['explore-area', 'explore-subtitle'].every((id) => {
+          const b = document.querySelector(`[data-testid=${id}]`)?.getBoundingClientRect();
+          return !!b && b.height > 0 && b.top >= r.top && b.bottom <= r.bottom + 0.5;
+        });
+        return { y: Math.round(r.y), h: Math.round(r.height), shadow: getComputedStyle(el).boxShadow, inside };
+      });
+      check(canvas && canvas.y <= 0.5 && card && card.inside && card.y > canvas.y && card.y <= canvas.y + 24 && card.y + card.h < canvas.y + canvas.height,
+        `AT15: the title and subtitle float on a shadowed card over a map that runs to the top (map from ${canvas && Math.round(canvas.y)}, ${JSON.stringify(card)})`);
+    }
+    {
+      // AT9: the small map shows the areas' points; selecting a tile frames its area with its 800 m ring.
+      const ring = () => page.locator('[data-ring]').last().getAttribute('data-ring');
+      // The points are drawn once the map has loaded its style and the areas are read: wait for them before counting.
+      await page.waitForSelector('[data-testid=area-point]', { timeout: 15000 }).catch(() => {});
+      const points = await page.locator('[data-testid=area-point]').count();
+      const ringBefore = await ring();
+      const hoods = await page.locator('[data-testid=atlas-tile]:not([data-level="town"])').evaluateAll((els) => els.map((e) => e.getAttribute('data-name')));
+      const pickName = hoods.find((n) => n !== 'Fox Point') ?? 'Fox Point';
+      await tileOf(pickName).click();
+      await page.waitForSelector('[data-testid=atlas-card]');
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(1500);
+      const canvas = await page.locator('canvas.maplibregl-canvas').boundingBox();
+      const sel = page.locator('[data-testid=area-point][data-selected="1"]');
+      // The selected dot itself (14 px), not the marker's box, which holds its name below it.
+      const dot = (await sel.count()) ? await sel.first().evaluate((el) => {
+        const d = [...el.querySelectorAll('div')].map((x) => x.getBoundingClientRect()).find((r) => Math.abs(r.width - 14) < 1 && Math.abs(r.height - 14) < 1);
+        return d ? { x: d.x, y: d.y, width: d.width, height: d.height } : null;
+      }) : null;
+      const dx = dot ? dot.x + dot.width / 2 - (canvas.x + canvas.width / 2) : NaN;
+      const dy = dot ? dot.y + dot.height / 2 - (canvas.y + canvas.height / 2) : NaN;
+      const selName = (await sel.count()) ? await sel.first().getAttribute('data-name') : null;
+      // Explore's fit pads 84 px under its title and 24 px at the bottom: the area sits 30 px below the middle.
+      check(points >= hoods.length && !ringBefore && (await ring()) === '800' && selName === pickName && Math.abs(dx) <= 8 && Math.abs(dy - 30) <= 8,
+        `AT9: the small map shows the areas' points, and a selected tile frames its area with its 800 m ring (${points} points for ${hoods.length} tiles, ring ${JSON.stringify(ringBefore)} → ${await ring()}, ${selName} at (${dx.toFixed(1)}, ${dy.toFixed(1)}) px from the middle)`);
     }
     {
       // AT8: a tile opens its card; unfound places are never named (AT7), finds are.
@@ -200,7 +246,7 @@ async function checks(h) {
       await page.click('[data-testid=look-here]');
       const said = await page.waitForSelector('text=/A best guess from the map|Couldn’t read the map here/', { timeout: 30000 }).then((e) => e.innerText(), () => 'nothing');
       await shot(page, '11c-landing');
-      check(/Busiest area: Thayer Street/.test(said) && (await page.locator('[data-testid=start-here]').count()) === 0, `what’s good here finds the strip, named, with no Start here pin (${said})`);
+      check(/Busiest area: Thayer Street/.test(said), `what’s good here finds the strip, named (${said})`);
       const first = await rows();
       check(first.some((r) => r.analysis.strips.some((x) => x.name === 'Thayer Street')), 'the area is remembered, Thayer Street among its strips');
       {
@@ -246,6 +292,7 @@ async function checks(h) {
       }
       await tabTo(page, 'chronicle');
       await page.reload();
+      await h.mapUp(page);
       await page.waitForSelector('[aria-label^="Fox Point,"]', { timeout: 30000 });
       await page.waitForTimeout(1000);
     }

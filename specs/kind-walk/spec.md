@@ -1,7 +1,7 @@
 <!-- Kind walk. Written in the repo first (2026-11-05) from the owner's ask in session: "the explorer's page when clicking on a
      tab in what's here such as green space should offer a tour ... or some way to navigate and propose a walk for that town
      or neighbourhood's features", then their calls below. To be copied into the concept doc as a tab. The doc wins once it
-     exists. Decision 0095. -->
+     exists. Decision 0099. -->
 
 # Kind walk: a suggested walk through where a kind is dense (KW)
 
@@ -17,7 +17,7 @@ and from then on it is an ordinary walk.
 ```
 Idea: tapping a kind under "What's here" offers a suggested walk through that town's or neighbourhood's features
 Verb: earn (it helps the walker notice where a kind is concentrated, and gives them a way in)
-Touches: decision 0022 (suggested routes deferred; this pulls a narrow slice forward, decision 0095);
+Touches: decision 0022 (suggested routes deferred; this pulls a narrow slice forward, decision 0099);
   Shapes, "Suggested routes": "One way ... within a stated budget; no 'fastest' and no minutes compared; drifting never
   nagged; Walk me back stays shortest";
   Never: "Several ways ranked by minutes; 'fastest' as a label"; tallies ("12 of 87"); scores, completion; ratings, "best of";
@@ -38,7 +38,7 @@ None. The owner chose A (Nov 5): a walk started from a kind says distance only.
 
 ## Decisions
 
-- **Pulled out of 0022** (the owner, 2026-11-05; decision 0095): Explore only, and only from a kind. A route to a destination,
+- **Pulled out of 0022** (the owner, 2026-11-05; decision 0099): Explore only, and only from a kind. A route to a destination,
   quick actions from place to place and avoiding car-oriented streets stay deferred. The broader suggested-routes work is on a
   separate worktree; this uses its `RouteSource` rather than building another.
 - **Distance, not minutes** (the owner, 2026-11-05): a number in the displayed unit (km or miles, from the existing setting).
@@ -123,7 +123,7 @@ None. The owner chose A (Nov 5): a walk started from a kind says distance only.
     them is kept: the atlas stores no ring's places or streets, explore-atlas audit 6), the reads use only hosts already allowed (`npm run check:vision` passes
     unchanged), and they send tile coordinates only. This is "nothing leaves the device without a tap", not "no request".
 
-## Out (decision 0095 keeps these deferred, `docs/DEFERRED.md`)
+## Out (decision 0099 keeps these deferred, `docs/DEFERRED.md`)
 
 A route to a destination; quick actions from one place to another; routing that avoids car-oriented streets; a "walk this way
 instead" alternative; a route preview on the map for any other screen; mixed-kind walks from the card's head.
@@ -132,7 +132,7 @@ instead" alternative; a route preview on the map for any other screen; mixed-kin
 
 Built 2026-11-05 on branch `claude/kind-walk-spec`. Unit tests `src/lib/__tests__/kind-walk/` (words, density, plan, settings,
 via, suggest: KW1b, KW2-KW11b, KW13, KW14); the journey `kindwalk` covers KW1, KW1b, KW4, KW6, KW7, KW7b, KW8b, KW10, KW12 on
-the web. Decision 0095. Unrun on a device (docs/NATIVE_UNVERIFIED.md). Not audited (decision 0074). Deferred: see "Out" and
+the web. Decision 0099. Unrun on a device (docs/NATIVE_UNVERIFIED.md). Not audited (decision 0074). Deferred: see "Out" and
 `docs/DEFERRED.md`.
 
 - **KW13 has no e2e step.** Leaving the way raises nothing because the kind walk adds no off-route code; navigation's re-route

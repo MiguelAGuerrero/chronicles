@@ -10,6 +10,7 @@ async function arrive(h) {
   if (await page.locator('[data-testid=to-name]').count()) {
     await page.click('[data-testid=to-name]');
     await page.click('[data-testid=save]');
+    await h.mapUp(page);
     await page.waitForSelector('[data-testid=home-sheet]');
     await page.waitForSelector('[aria-label^="Fox Point,"]', { timeout: 15000 });
   }
@@ -60,6 +61,7 @@ async function checks(h) {
       };
     }));
     await page.reload();
+    await h.mapUp(page);
     // Waited for as one: a single walk can be placed between seeing the text and counting the button.
     const placingCover = await page.waitForSelector('[data-testid=skip-placing]', { timeout: 20000 }).then(() => true, () => false);
     check(placingCover, 'placing old walks shows a cover that can be skipped');

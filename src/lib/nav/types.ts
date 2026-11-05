@@ -1,5 +1,6 @@
 // @layer core
 import type { LngLat } from '../types';
+import type { Leaning } from './scenic';
 
 /**
  * Navigation's contract. A destination is a Waypoint; a RouteSource turns two
@@ -19,10 +20,12 @@ export interface Waypoint {
    */
   via?: LngLat[];
   /**
-   * A way the app suggested (decision 0095): it says distance only, never a time left (KW7b). On the destination, which is
+   * A way the app suggested (decision 0099): it says distance only, never a time left (KW7b). On the destination, which is
    * cleared with the walk, never on the walk.
    */
   suggested?: boolean;
+  /** The scenic route chosen for the way there (SR8, SR11); none is the direct way. */
+  leanings?: Leaning[];
 }
 
 export interface Route {

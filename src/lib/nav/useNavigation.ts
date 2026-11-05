@@ -9,12 +9,17 @@ import { withTimeout } from '../placeAll';
 import { deriveSegments } from '../streets';
 import { formatDistance } from '../summary';
 import type { LngLat, StreetSegment, Walk } from '../types';
+import { routeLeanings } from '../routeLeanings';
+import { getUnits } from '../units';
 import { aboutTimeLeft, DEFAULT_PACE_MPS, timeAtPaceMs } from './eta';
 import { announceStep, NAV, navStep, routeVia, startNav, tooFar, viaAhead, type NavState } from './navigator';
+import { routeOptions, scenicPlan, scenicRouteSource, type RouteOption } from './scenic';
+import { scenicRead } from './scenicRead';
+import type { Signals } from './scenicSignals';
 import { clearNav, loadNav, saveNav } from './store';
-import { streetRouteSource } from './streetRoute';
+import { streetRouteSource, type StreetSource } from './streetRoute';
 import { traceRouteSource } from './traceRoute';
-import type { RouteSource, Waypoint } from './types';
+import type { Route, RouteSource, Waypoint } from './types';
 
 /** Streets are read this far around both ends of a route. */
 const AREA_PAD_M = 300;
@@ -24,10 +29,26 @@ const READ_MIN_MS = 15_000;
 const READ_MAX_MS = 90_000;
 /** A failed re-route reads the streets around you again, at most this often. */
 const REREAD_MS = 60_000;
+/** The scenic read (tiles and Overture for the corridor) gets this long; then the direct way (SR9). */
+const SCENIC_READ_MS = 30_000;
+
+/** The destination with no scenic leaning: the direct way there. */
+function directTo(dest: Waypoint): Waypoint {
+  const out = { ...dest };
+  delete out.leanings;
+  return out;
+}
+
+/** Scenic routes (SR2, SR8): the routes offered for a destination, and the one highlighted. */
+export interface RoutePreview {
+  dest: Waypoint;
+  options: RouteOption[];
+  selected: number;
+}
 
 /**
  * "800 m, about 6 minutes" at this walk's pace, for the start and stepped announcements (QL18); a suggested way says the
- * distance only (KW7b, decision 0095).
+ * distance only (KW7b, decision 0099).
  */
 function saidLeft(leftM: number, dest: Waypoint, pace?: number): string {
   return dest.suggested ? formatDistance(leftM) : `${formatDistance(leftM)}, ${aboutTimeLeft(timeAtPaceMs(leftM, pace ?? DEFAULT_PACE_MPS))}`;
@@ -59,6 +80,14 @@ export function useNavigation(opts: {
 }) {
   const [nav, setNav] = useState<NavState | null>(null);
   const [finding, setFinding] = useState(false);
+  const [preview, setPreviewState] = useState<RoutePreview | null>(null);
+  const previewRef = useRef<RoutePreview | null>(null);
+  const setPreview = (p: RoutePreview | null) => {
+    previewRef.current = p;
+    setPreviewState(p);
+  };
+  // The streets and signals the preview's routes were found on, for the chosen one's re-routes (SR10).
+  const previewRead = useRef<{ streets: StreetSource; signals: Signals } | null>(null);
   const navRef = useRef<NavState | null>(null);
   const sources = useRef<RouteSource[]>([]);
   // Where you are heading before there is a fix to route from (a walk just started from the home).
@@ -79,6 +108,8 @@ export function useNavigation(opts: {
 
   const end = useCallback(() => {
     apply(null);
+    setPreview(null);
+    previewRead.current = null;
     pending.current = null;
     sources.current = [];
     clearNav().catch(() => {});
@@ -109,11 +140,22 @@ export function useNavigation(opts: {
     return { ...s, id: 'cached-streets' };
   };
 
+  /** Navigating starts: the route, the sources its re-routes use, the announcement, the destination kept. */
+  const begin = useCallback(async (walkId: string, dest: Waypoint, route: Route, list: RouteSource[]) => {
+    sources.current = list;
+    rereadAt.current = Date.now();
+    apply(startNav(dest, route, Date.now()));
+    AccessibilityInfo.announceForAccessibility(`Navigating to ${dest.label}, ${saidLeft(route.lengthM, dest, latest.current.pace?.())}`);
+    await saveNav(walkId, dest);
+  }, []);
+
   const goTo = useCallback(async (dest: Waypoint): Promise<void> => {
     const { walk, here } = latest.current;
     if (!walk || busy.current) return;
     busy.current = true;
     cancelled.current = false;
+    setPreview(null);
+    previewRead.current = null;
     const fail = async (message: string) => {
       // A destination that can't be reached is forgotten, so a reload doesn't try it again.
       clearNav().catch(() => {});
@@ -134,6 +176,37 @@ export function useNavigation(opts: {
       pending.current = null;
       if (tooFar(from, dest.at)) return await fail('Too far to walk from here');
       setFinding(true);
+      const hint0 = { heading: here ? latest.current.heading : null };
+      // Scenic routes (SR2, SR9, SR11, SR12): a chosen leaning (a reload) routes on it again; otherwise,
+      // with a leaning on and within reach, the corridor is read and the routes offered side by side.
+      const leanings = dest.leanings ?? routeLeanings.store.get();
+      // A suggested kind walk is one way, made through its own stops: no scenic preview offered for it (decision 0099).
+      const plan = dest.suggested ? { scenic: false as const, notice: null } : scenicPlan(dest, from, leanings, getUnits());
+      if (!plan.scenic && plan.notice) latest.current.onNotice(plan.notice);
+      if (plan.scenic) {
+        const read = await withTimeout(scenicRead.read(from, dest.at, () => cancelled.current), SCENIC_READ_MS, 'The scenic read').catch(() => null);
+        if (cancelled.current) return;
+        if (read) {
+          const cached = await db.getSegmentsIn(boundsOf([from, dest.at], AREA_PAD_M)!).catch(() => [] as StreetSegment[]);
+          const streets = streetRouteSource([...new Map([...cached, ...read.segments].map((x) => [x.id, x])).values()]);
+          if (!(await db.getWalk(walk.id))?.open) return;
+          if (dest.leanings) {
+            const src = scenicRouteSource(streets, read.signals, dest.leanings);
+            const r = src.route(from, dest.at, hint0);
+            if (r) return await begin(walk.id, dest, r, [src]);
+          } else {
+            const options = routeOptions({ streets, signals: read.signals, leanings, from, to: dest.at, hint: hint0 });
+            if (options.length > 1) {
+              previewRead.current = { streets, signals: read.signals };
+              setPreview({ dest, options, selected: 0 });
+              AccessibilityInfo.announceForAccessibility(`${options.length} routes to ${dest.label}`);
+              return;
+            }
+            latest.current.onNotice('No scenic way nearby');
+            if (options.length === 1) return await begin(walk.id, dest, options[0].route, [streets]);
+          }
+        } else if (!dest.leanings) latest.current.onNotice('No scenic way nearby');
+      }
       // Back along this walk, for its start or a capture (walk me back), against the streets
       // already cached around you; the shorter wins, so it never retraces a detour (owner, Nov 1).
       const list: RouteSource[] = [];
@@ -153,21 +226,45 @@ export function useNavigation(opts: {
       if (!found.route) return await fail(found.reason ?? 'No walking route found nearby');
       // Stopped while the route was being found: nothing to navigate.
       if (!(await db.getWalk(walk.id))?.open) return;
-      sources.current = list;
-      rereadAt.current = Date.now();
-      apply(startNav(dest, found.route, Date.now()));
-      AccessibilityInfo.announceForAccessibility(`Navigating to ${dest.label}, ${saidLeft(found.route.lengthM, dest, latest.current.pace?.())}`);
-      await saveNav(walk.id, dest);
+      // A scenic leaning that couldn't be routed again is dropped: this is the direct way (SR11).
+      await begin(walk.id, directTo(dest), found.route, list);
     } finally {
       busy.current = false;
       setFinding(false);
     }
-  }, []);
+  }, [begin]);
 
   /** Stops finding a route: the street read ends after the view at hand. */
   const cancel = useCallback(() => {
     cancelled.current = true;
     pending.current = null;
+    clearNav().catch(() => {});
+  }, []);
+
+  /** SR8: highlights one of the preview's routes. */
+  const select = useCallback((i: number) => {
+    const p = previewRef.current;
+    if (p && i >= 0 && i < p.options.length && i !== p.selected) setPreview({ ...p, selected: i });
+  }, []);
+
+  /** SR8: Go on a row: navigating starts on that route, its re-routes keeping its leaning (SR10). */
+  const choose = useCallback((i: number) => {
+    const walk = latest.current.walk;
+    const read = previewRead.current;
+    const p = previewRef.current;
+    const o = p?.options[i];
+    if (!p || !o || !walk || !read) return;
+    const dest: Waypoint = o.leanings.length ? { ...directTo(p.dest), leanings: o.leanings } : directTo(p.dest);
+    const list: RouteSource[] = o.leanings.length ? [scenicRouteSource(read.streets, read.signals, o.leanings)] : [read.streets];
+    setPreview(null);
+    previewRead.current = null;
+    void begin(walk.id, dest, o.route, list);
+  }, [begin]);
+
+  /** SR8: Cancel, Back or Escape on the preview: no destination is set. */
+  const dismiss = useCallback(() => {
+    setPreview(null);
+    previewRead.current = null;
     clearNav().catch(() => {});
   }, []);
 
@@ -250,5 +347,5 @@ export function useNavigation(opts: {
     saveNav(walk.id, dest).catch(() => {});
   }, []);
 
-  return { nav, finding, goTo, end, cancel, relabel };
+  return { nav, finding, preview, goTo, end, cancel, relabel, select, choose, dismiss };
 }

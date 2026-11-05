@@ -6,17 +6,18 @@
 // Chronicle with its star, as the chronicle journey does. In the full flow the page is already there, so
 // this does nothing.
 async function arrive(h) {
-  const { page } = h;
+  const { page, routed } = h;
   if (await page.locator('[data-testid=to-name]').count()) {
     await page.click('[data-testid=to-name]');
     await page.click('[data-testid=save]');
+    await h.mapUp(page);
     await page.waitForSelector('[data-testid=home-sheet]');
     await page.waitForSelector('[aria-label^="Fox Point,"]', { timeout: 15000 });
   }
 }
 
 async function checks(h) {
-  const { url, ctx, page, at, check, shot, glyph, walkMap, walkMarks, walkRoute, walkPts } = h;
+  const { url, ctx, page, at, check, shot, glyph, walkMap, walkMarks, walkRoute, walkPts, routed } = h;
   await arrive(h);
     // The first walk's route, from the harness (the walk journey walked it).
     const route = walkRoute;
@@ -38,7 +39,7 @@ async function checks(h) {
     check(await page.waitForSelector('text=Walk started · recording', { timeout: 10000 }).then(() => true, () => false), 'a walk started from the home says it is recording');
     await page.waitForTimeout(5000);
     await ctx.setGeolocation({ longitude: route[0][0], latitude: route[0][1] + 0.00002, accuracy: 6 });
-    await page.waitForSelector('[data-testid=nav-bar]', { timeout: 40000 });
+    await routed(page, 40000);
     check(/\/walk(\?|$)/.test(page.url()) && /Fox Point/.test(await page.locator('[data-testid=nav-bar]').innerText()), 'a star\u2019s Walk here starts a walk navigating there, once there is a fix');
     await shot(page, '12-home-go');
     // A walk from a star starts quiet (E1); reminders still come back on a quiet walk (the owner's call, after the audit).
@@ -159,7 +160,11 @@ async function checks(h) {
     check((await page.locator('[data-testid=reminder]').count()) === 0, 'opening a memory never brings a card or a buzz of its own');
     await page.click('[data-testid=memory-open]');
     await page.waitForSelector('text=Memories here');
+    const viewerMemories = await page.locator('text=Memories here').count();
     check((await page.locator('[data-testid=memory-preview]').count()) === 0, 'the preview opens the viewer with the memories from that spot (MR5)');
+    // MR9: all of it on the web build: faint pins on a later walk, the preview, and the viewer from it.
+    check(shownIds.length > 0 && /Fox Point|Cardamom/.test(preview) && viewerMemories === 1 && (await page.locator('[data-testid=viewer-close]').count()) >= 1,
+      `MR9: on the web build, a later walk shows memory pins, previews one and opens its spot's memories (pins ${shownIds}, viewer ${viewerMemories})`);
     await page.click('[data-testid=viewer-close]');
     // A tapped reminder notification opens its capture, playing (NT8). First with the walk screen in front:
     // the service worker's message reaches the page's listener, and the capture opens at once (audit 1).
@@ -172,13 +177,13 @@ async function checks(h) {
     }));
     const tap = { type: 'notice-response', id: 'recall-x', data: { captureIds: [noteId] }, action: null };
     await page.evaluate((m) => navigator.serviceWorker.dispatchEvent(new MessageEvent('message', { data: m })), tap);
-    check(await page.waitForSelector('text=The bakery smelled of cardamom.', { timeout: 10000 }).then(() => true, () => false),
+    check(await page.waitForSelector('text=The bakery smelled of cardamom. >> visible=true', { timeout: 10000 }).then(() => true, () => false),
       'a reminder tapped with the walk in front opens its capture at once');
     await page.click('[data-testid=viewer-close]');
     // Then a cold open: no window was open, so the service worker opened one carrying the tap. With the
     // walk still open, the home sends it on to the walk, which opens the capture (audit 2).
     await page.goto(`${url}?notice=${encodeURIComponent(JSON.stringify(tap))}`);
-    check(await page.waitForSelector('text=The bakery smelled of cardamom.', { timeout: 20000 }).then(() => true, () => false)
+    check(await page.waitForSelector('text=The bakery smelled of cardamom. >> visible=true', { timeout: 20000 }).then(() => true, () => false)
       && !page.url().includes('notice='), 'a tap that opened the app opens its capture on the walk, and leaves the URL clean');
     await page.waitForTimeout(800);
     const viewers = await page.locator('[data-testid=viewer-close]').count();

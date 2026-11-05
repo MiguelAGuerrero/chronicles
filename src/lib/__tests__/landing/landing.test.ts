@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { PlaceCandidate } from '../../areas/types';
 import type { ActivityPoint } from '../../activity/points';
-import { placesFromTilePois, transitFromTilePois } from '../../discovery/tilePois';
+import { transitFromTilePois } from '../../discovery/tilePois';
 import type { CategoryId } from '../../discovery/types';
 import { boundsOf, distanceM, distanceToLinesM } from '../../geo';
 import { tileAt, tilesIn } from '../../tileMath';
@@ -75,14 +75,6 @@ test('landing: centres on the nearest town or city within the read, else the pre
     { level: 'town', name: 'Providence', at: m(1300, 0), reachM: 10_000, kind: 'city' },
   ];
   assert.deepEqual(centreFor(O, both), m(600, 0));
-});
-
-test('landing: only places a scan recognizes count; a bodega isn’t one (L4)', () => {
-  const pois = [
-    { geometry: { type: 'Point', coordinates: m(15, 0) }, properties: { class: 'shop', subclass: 'convenience', name: 'Corner Bodega' } },
-    { geometry: { type: 'Point', coordinates: m(15, 20) }, properties: { class: 'grocery', subclass: 'supermarket', name: 'Stop & Shop' } },
-  ];
-  assert.deepEqual(placesFromTilePois(pois, 'b1'), []);
 });
 
 test('landing: two and a half blocks of shops is a strip, named by its street (L5)', () => {

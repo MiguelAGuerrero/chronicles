@@ -1,5 +1,6 @@
 import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { EDGE_INDEX, layersCorner, pillsBottom, type EdgeSlot } from '../../lib/stackSlots';
 
 /**
  * The walk screen's geometry, shared by its ready state and the walk (NR5,
@@ -40,10 +41,8 @@ export function raisedHeight(areaH: number, rest: number): number {
 /** Capture slots, from the strip up: the camera nearest the thumb. */
 export type CapSlot = 'photo' | 'voice' | 'note';
 const CAP_INDEX: Record<CapSlot, number> = { photo: 0, voice: 1, note: 2 };
-/** Edge slots above the captures, from the bottom up. */
-export type EdgeSlot = 'locate' | 'unwalked' | 'back' | 'compass' | 'walkability';
-/** Walkability (WK13) is the column's top, so no other button moves. */
-const EDGE_INDEX: Record<EdgeSlot, number> = { locate: 0, unwalked: 1, back: 2, compass: 3, walkability: 4 };
+/** Edge slots above the captures, from the bottom up (`lib/stackSlots`): the compass is the column's top. */
+export type { EdgeSlot };
 
 /** The stack's column: its right edge inside the 640 column on wide screens, and every slot's bottom. */
 export function useStackLayout() {
@@ -56,6 +55,8 @@ export function useStackLayout() {
   const capBottom = (s: CapSlot) => barTop + STACK_GAP + CAP_INDEX[s] * (CAP + STACK_GAP);
   const capsTop = capBottom('note') + CAP;
   const edgeBottom = (s: EdgeSlot) => capsTop + EDGE_LIFT + EDGE_INDEX[s] * (EDGE + STACK_GAP);
+  /** The Layers button (ML3): the bottom-left corner above the scale bar, clear of the top's navigation bar. */
+  const layers = layersCorner({ barTop, sideInset, scaleBottom: SCALE_BOTTOM, scaleH: SCALE_H, edge: EDGE });
   return {
     insets,
     sideInset,
@@ -66,7 +67,10 @@ export function useStackLayout() {
     edgeRight: right + (CAP - EDGE) / 2,
     capBottom,
     edgeBottom,
-    /** The pills' area: left of the stack, above the strip and the scale bar in its corner. */
-    pills: { left: sideInset + 12, right: right + CAP + STACK_GAP, bottom: barTop + SCALE_BOTTOM + SCALE_H + 8 },
+    layers,
+    /** What the Layers panel keeps clear on the right: the capture column and its gap. */
+    layersRightClear: right + CAP + STACK_GAP,
+    /** The pills' area: left of the stack, above the Layers button in the corner (and so above the scale bar). */
+    pills: { left: sideInset + 12, right: right + CAP + STACK_GAP, bottom: pillsBottom(layers) },
   };
 }

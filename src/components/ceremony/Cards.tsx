@@ -87,22 +87,29 @@ function CardVideo({ o, ctx, uri, height, width }: { o: CardOverlay; ctx: StageC
   });
   // A video that has started plays on past its slot until it ends: never a pause at the slot's edge (audit 34).
   const want = (o.playing || waited || (started && o.progress >= 1)) && !ended && !stopped;
+  const cover = edit && size && width ? coverRect(editedSize(size.w, size.h, edit), width, height) : null;
+  // The web player plays only the <video> it has mounted, and iOS loads a video only once play() is
+  // called, so it is never ready before then (fix ios-video 1). On the web, play is asked once the shown
+  // view is mounted (this effect runs after its children's) and again when an edited video's view swaps in.
+  const canPlay = ready || Platform.OS === 'web';
+  const view = cover ? 'picture' : 'plain';
   useEffect(() => {
-    if (!want || !ready) {
+    if (!want || !canPlay) {
       player.pause();
       return;
     }
+    if (startS > 0 && player.currentTime < startS) seekTo(player, startS);
     player.play();
     if (Platform.OS !== 'web' || tried.current) return;
-    tried.current = true;
+    // Spent only once it has looked: a view swapped in before then asks again, and is checked again.
     const check = setTimeout(() => {
+      tried.current = true;
       if (playing.current) return;
       playWithSound(player, false);
       setMuted(true);
     }, AUTOPLAY_CHECK_MS);
     return () => clearTimeout(check);
-  }, [want, ready, player]);
-  const cover = edit && size && width ? coverRect(editedSize(size.w, size.h, edit), width, height) : null;
+  }, [want, canPlay, player, view, startS]);
   return (
     <View style={{ height, width: '100%' }} pointerEvents="box-none">
       <View style={[styles.fill, { overflow: 'hidden' }]} pointerEvents="none">

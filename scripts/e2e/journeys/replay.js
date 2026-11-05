@@ -266,6 +266,7 @@ async function run(h) {
     const wakesBefore = (await pg.evaluate(() => window.__wake.log.length));
     await pg.click('[data-testid=not-now]');
     await pg.waitForURL((u) => u.pathname === `${BASE}/chronicle`, { timeout: 15000 });
+    await h.mapUp(pg);
     await pg.click('[data-testid=sheet-days]');
     await pg.click('[data-testid=day-row]');
     await pg.click('[data-testid=day-replay]');
