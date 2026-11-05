@@ -256,10 +256,10 @@ async function fresh(h) {
       const wasRouted = await routed(pg, 40000).then(() => true, () => false);
       check(still?.id === w.id && walks === 1 && nav?.walk_id === w.id && nav.dest.label === 'Your spot' && wasRouted,
         `with a walk open, Walk here routes that walk there and returns to it (NV10: ${walks} walk, routed ${wasRouted})`);
-      // NV7: under the navigation bar when one shows.
+      // NV7: Minimize is pinned to the top row, above the navigation bar when one shows (the owner, Nov 5: the bar never pushes it down).
       const navBox = await pg.locator('[data-testid=nav-bar]').boundingBox();
       const minNav = await pg.locator('[data-testid=walk-minimize]').boundingBox();
-      check(minNav.y >= navBox.y + navBox.height && minNav.x < 60, 'Minimize sits under the navigation bar while one shows (NV7)');
+      check(minNav.y + minNav.height <= navBox.y + 1 && minNav.x < 60, 'Minimize sits on the top row, above the navigation bar while one shows (NV7)');
       // Back on the walk screen, the trace covers the stretch walked while minimized, and memories are pinned again (NV8).
       const last = at(-0.5, 1.25);
       const end = ((await pg.locator('[data-trace-end]').last().getAttribute('data-trace-end')) || '0,0').split(',').map(Number);
