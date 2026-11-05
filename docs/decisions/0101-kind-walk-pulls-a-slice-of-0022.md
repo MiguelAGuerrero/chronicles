@@ -1,4 +1,4 @@
-# 0100. A kind-scoped suggested walk pulls one slice of 0022 forward
+# 0101. A kind-scoped suggested walk pulls one slice of 0022 forward
 
 Date: 2026-11-05 · Status: accepted · Area: explore, navigation
 

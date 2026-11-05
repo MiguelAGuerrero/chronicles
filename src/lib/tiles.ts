@@ -3,6 +3,7 @@ import { AREA_RULES } from './areas/rules';
 import { BOUNDARY_PACKS_ID } from './areas/boundaries';
 import { db } from './db';
 import { fetchTileBuild, TILEJSON_MS } from './tileBuild';
+import { net } from './net';
 
 export { TILE_ZOOM, tileAt, tileRect, onTileEdge, type TileRect } from './tileMath';
 
@@ -19,7 +20,7 @@ let pendingUrl: string | null = null;
 
 export async function currentTileBuild(): Promise<string> {
   // Within a time limit: offline, slow or stalled, keep using what we have.
-  const read = await fetchTileBuild((u, init) => fetch(u, init), TILEJSON_MS, TILEJSON_URL);
+  const read = await fetchTileBuild((u, init) => net.fetch(u, init), TILEJSON_MS, TILEJSON_URL);
   if (read) {
     pendingUrl = read.url;
     return read.build;

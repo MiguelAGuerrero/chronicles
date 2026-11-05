@@ -48,7 +48,7 @@ export interface RoutePreview {
 
 /**
  * "800 m, about 6 minutes" at this walk's pace, for the start and stepped announcements (QL18); a suggested way says the
- * distance only (KW7b, decision 0100).
+ * distance only (KW7b, decision 0101).
  */
 function saidLeft(leftM: number, dest: Waypoint, pace?: number): string {
   return dest.suggested ? formatDistance(leftM) : `${formatDistance(leftM)}, ${aboutTimeLeft(timeAtPaceMs(leftM, pace ?? DEFAULT_PACE_MPS))}`;
@@ -180,7 +180,7 @@ export function useNavigation(opts: {
       // Scenic routes (SR2, SR9, SR11, SR12): a chosen leaning (a reload) routes on it again; otherwise,
       // with a leaning on and within reach, the corridor is read and the routes offered side by side.
       const leanings = dest.leanings ?? routeLeanings.store.get();
-      // A suggested kind walk is one way, made through its own stops: no scenic preview offered for it (decision 0100).
+      // A suggested kind walk is one way, made through its own stops: no scenic preview offered for it (decision 0101).
       const plan = dest.suggested ? { scenic: false as const, notice: null } : scenicPlan(dest, from, leanings, getUnits());
       if (!plan.scenic && plan.notice) latest.current.onNotice(plan.notice);
       if (plan.scenic) {

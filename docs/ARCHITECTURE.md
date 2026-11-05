@@ -360,6 +360,13 @@ Layers (functional core, imperative shell)
   file per release read by byte range for the z14 tiles a read covers. Both
   are asked only for tiles: no key, no account, nothing about the user. The
   e2e checks no other host is reached.
+- **One set of network rules** (`lib/net`, decision 0100): the app's own
+  outside requests go through `net.fetch` (and every PMTiles archive through
+  `net.source`): the host table in `net/policy.ts`, the app's name on a phone,
+  OpenFreeMap left alone for a while after it refuses, a per-host off switch.
+  MapLibre's requests for the map on screen don't pass through it. A new
+  Overture release whose places no longer decode is passed over
+  (`overturePlacesSchemaOk`).
 - **Storage.** SQLite: all writes go through the single queue in
   `db/index.native.ts` with `withExclusiveTransactionAsync`; schema changes go
   in `MIGRATIONS`, tracked with `PRAGMA user_version`. IndexedDB: bump

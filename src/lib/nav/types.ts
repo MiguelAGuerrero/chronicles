@@ -20,7 +20,7 @@ export interface Waypoint {
    */
   via?: LngLat[];
   /**
-   * A way the app suggested (decision 0100): it says distance only, never a time left (KW7b). On the destination, which is
+   * A way the app suggested (decision 0101): it says distance only, never a time left (KW7b). On the destination, which is
    * cleared with the walk, never on the walk.
    */
   suggested?: boolean;

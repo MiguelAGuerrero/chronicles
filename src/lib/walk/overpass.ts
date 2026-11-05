@@ -16,19 +16,7 @@ export const OVERPASS_TIMEOUT_S = 10;
  */
 export const OVERPASS_BUSY: readonly number[] = [429, 502, 503, 504];
 
-/**
- * A Retry-After header as seconds to wait (its seconds form, or its HTTP-date form against `now`), or null when
- * absent or unreadable. Browsers hide the header on a cross-origin answer unless the server exposes it, so on
- * the web it is usually null.
- */
-export function retryAfterS(header: string | null | undefined, now: number): number | null {
-  if (header == null) return null;
-  if (/^\s*\d+\s*$/.test(header)) return Number(header);
-  // An HTTP date always says GMT; without a zone, Date.parse would read the device's time zone.
-  if (!/\bGMT\b/.test(header)) return null;
-  const at = Date.parse(header);
-  return Number.isFinite(at) ? Math.max(0, Math.ceil((at - now) / 1000)) : null;
-}
+export { retryAfterS } from '../net/policy';
 
 /** An answer Overpass sent as 200 that is a failure: a query that timed out or ran out of memory says so in `remark`. */
 export function overpassRuntimeError(json: unknown): boolean {

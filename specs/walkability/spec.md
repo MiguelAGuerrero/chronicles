@@ -144,7 +144,8 @@ accessible label. The icon differs by shape, never by colour alone.
 ### Everywhere else
 
 18. **WK18 · Local-only holds.** After a tile is cached, nothing about walkability leaves the device. The
-    only request is WK1's, and it is the same kind as the map's own tile requests.
+    only request is WK1's, a tile's bounds and nothing about the user. On a phone it names the app
+    (`User-Agent: Chronicles (+github.com/…)`), never the person or the device (decision 0100).
 19. **WK19 · Truth is untouched.** Walks, trace points and captures, and what a walk credited as walked, are
     unchanged by walkability. It adds a derived cache and a layer; it changes no snapping rule (no
     `SNAP_RULES` bump) and `purgeDerived` clears it.

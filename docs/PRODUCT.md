@@ -71,7 +71,7 @@ recording bar brings a minimized walk back.
   and nightlife count every place. A ring with fewer than three mapped places
   says nothing about its kinds (atlas grading, decision 0084).
 - Rings are read by themselves while the tab is open, nearest first.
-- **A walk through a kind** (decision 0100, kind walk KW1-KW14): on an area's card, tapping a kind under "What's here" (Green,
+- **A walk through a kind** (decision 0101, kind walk KW1-KW14): on an area's card, tapping a kind under "What's here" (Green,
   History, ...) opens it in place with one suggested walk through where that kind is concentrated (the same 400 m cells as
   the busy areas), moved onto streets. It says its length as a distance in the displayed unit, never a time, and whether it can
   be walked the whole way (a stretch built around cars is named; "not known" when nothing could be read). Settings: about how

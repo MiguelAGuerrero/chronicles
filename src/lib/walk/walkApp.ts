@@ -9,13 +9,14 @@ import { chain } from './chain';
 import { createOverpassSource } from './overpassSource';
 import { createOvertureSource } from './overtureSource';
 import { createWalkReader } from './reader';
+import { net } from '../net';
 
 /**
  * Walkability's instance (WK1-WK4): Overture first, Overpass when it can't answer, read through the device's
  * cache. Views call `walkReader.read(tiles, build)` with the Overture release (`ensureOvertureRelease`).
  */
-const overture = createOvertureSource({ release: ensureOvertureRelease, open: (r) => new PMTiles(transportationUrl(r)) });
-const overpass = createOverpassSource({ fetch: (...a) => fetch(...a), now: () => Date.now() });
+const overture = createOvertureSource({ release: ensureOvertureRelease, open: (r) => new PMTiles(net.source(transportationUrl(r))) });
+const overpass = createOverpassSource({ fetch: ((u: RequestInfo | URL, init?: RequestInit) => net.fetch(String(u), init)) as typeof fetch, now: () => Date.now() });
 
 export const walkReader = createWalkReader(ports, chain(overture, overpass));
 export { ensureOvertureRelease as walkBuild };

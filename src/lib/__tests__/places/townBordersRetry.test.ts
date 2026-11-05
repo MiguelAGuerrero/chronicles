@@ -44,7 +44,7 @@ test('TB12: a z10 tile read has 45 s before it gives up, a z12 one 15 s', async 
     }
   }
   const { overtureOutlines: source } = loadSource<{ overtureOutlines: typeof overtureOutlines }>('areas/overtureOutlines.ts', {
-    VectorTile: null, PbfReader: null, PMTiles: StalledArchive,
+    VectorTile: null, PbfReader: null, PMTiles: StalledArchive, net: { source: (url: string) => url },
     ensureOvertureRelease: async () => '2026-10-21.0', overtureDivisionsUrl: (r: string) => `https://o.example/${r}`, outlineTileFrom,
   });
   const outcome = (p: Promise<unknown>) => {

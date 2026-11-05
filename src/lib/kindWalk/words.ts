@@ -7,7 +7,7 @@ import type { WalkabilityPref } from './settings';
 
 /*
  * Every sentence the kind walk says, in one place (KW1b, KW7, KW10). A distance is the only number, and it is a distance:
- * no minutes, hours, ETA, pace, rank or superlative (decision 0100; the words test holds this file to it).
+ * no minutes, hours, ETA, pace, rank or superlative (decision 0101; the words test holds this file to it).
  */
 
 /** What the walk is, in a sentence (KW1b). */

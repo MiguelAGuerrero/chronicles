@@ -6,7 +6,7 @@ paths:
 ---
 # Kind walk
 
-A kind (Green, History, ...) opened in place on an area's card offers one suggested walk through where the kind is dense (KW1-KW14, decision 0100). The spec is `specs/kind-walk/spec.md`; it pulls one slice of 0022 forward, and the rest of suggested routes stays deferred.
+A kind (Green, History, ...) opened in place on an area's card offers one suggested walk through where the kind is dense (KW1-KW14, decision 0101). The spec is `specs/kind-walk/spec.md`; it pulls one slice of 0022 forward, and the rest of suggested routes stays deferred.
 
 ## What it is
 

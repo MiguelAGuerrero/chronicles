@@ -3,7 +3,7 @@ import type { Units } from '../units';
 
 /*
  * The kind walk's two settings (KW8, KW11): how far the walker would like to walk, and what to do about a stretch built around
- * cars. A distance, never a time: the app knows no pace (decision 0100).
+ * cars. A distance, never a time: the app knows no pace (decision 0101).
  */
 
 const MI_M = 1609.344;
