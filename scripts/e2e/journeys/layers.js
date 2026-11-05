@@ -146,6 +146,10 @@ async function run(h) {
     if (b && panel.x < b.x + b.width && panel.x + panel.width > b.x && panel.y < b.y + b.height && panel.y + panel.height > b.y) clash.push(id);
   }
   check(clash.length === 0, `ML4: the panel covers none of the capture stack or the stop button (${clash.join(',') || 'none'})`);
+  // fix layers-corner: on Navigate the button is in the bottom-left corner, off the right column and the navigation bar, and its panel opens to its right.
+  const lb = await box(p2, '[data-testid=layers]');
+  check(lb.x + lb.width / 2 < vp.w / 2 && lb.y > vp.h / 2 && panel.x >= lb.x + lb.width && panel.y + panel.height <= lb.y + lb.height + 1,
+    `fix layers-corner: the Layers button is in the bottom-left corner and the panel opens beside it, growing upward (${JSON.stringify(lb)}, ${JSON.stringify(panel)})`);
   await shot(p2, 'layers-small');
   // layers audit 2: with Busy streets on, a walker's fixes do not rebuild the drawing once a fix.
   await p2.waitForFunction(() => /^strips:/.test(document.querySelector('[data-busy]')?.getAttribute('data-busy') ?? ''), null, { timeout: 90000 }).catch(() => {});

@@ -1493,8 +1493,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
         bottom={at.edgeBottom(awayFromStart && walkStart && !navigation.nav ? 'compass' : 'back')}
         right={at.edgeRight}
       />
-      {/* Walkability (WK13): the column's top, so nothing else moves. */}
-      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed })} bottom={at.edgeBottom('layers')} right={at.edgeRight} clearBottom={at.barTop + 112} />
+      {/* Layers (ML3): the bottom-left corner above the scale bar, clear of the navigation bar. */}
+      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
 
       {awayFromStart && walkStart && !navigation.nav && (
         // Walk me back: the way back to where this walk began (N1, N11).

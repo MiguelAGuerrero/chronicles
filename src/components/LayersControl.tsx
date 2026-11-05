@@ -1,7 +1,7 @@
 // @layer view
 import { useEffect } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { panelBox } from '../lib/layers/layout';
+import { cornerPanelBox, panelBox } from '../lib/layers/layout';
 import { LAYERS, type LegendRow, type SwatchKey } from '../lib/layers/registry';
 import type { useLayers } from '../lib/layers/useLayers';
 import { Icon, type IconName } from './icons';
@@ -93,13 +93,22 @@ export function LayersControl(props: {
   paneWidth?: number;
   /** How far above the screen's bottom the panel stops (the strip, the tab bar). */
   clearBottom?: number;
+  /** The walk's corner (fix layers-corner): the button sits at `left` and `bottom`, and the panel opens to its right, growing upward. */
+  left?: number;
+  /** In the corner, what the panel keeps clear on the right (the capture column), and above (the top overlay). */
+  rightClear?: number;
+  clearTop?: number;
 }) {
   const { width: winW, height: winH } = useWindowDimensions();
   const right = props.right ?? Math.max(12, (winW - 640) / 2 + 12);
   const { layers } = props;
   const { closePanel } = layers;
   const buttonTop = props.top !== undefined ? props.top : winH - (props.bottom ?? 0) - BUTTON;
-  const box = panelBox({ windowW: winW, windowH: winH, buttonTop, right, paneWidth: props.paneWidth, clearBottom: props.clearBottom ?? 160 });
+  const fromLeft = props.left !== undefined;
+  const bottom = props.bottom ?? 0;
+  const box = fromLeft
+    ? cornerPanelBox({ windowW: winW, windowH: winH, left: props.left!, bottom, button: BUTTON, rightClear: props.rightClear ?? 80, clearTop: props.clearTop ?? 152 })
+    : panelBox({ windowW: winW, windowH: winH, buttonTop, right, paneWidth: props.paneWidth, clearBottom: props.clearBottom ?? 160 });
   const anyOn = LAYERS.some((l) => layers.on[l.id]);
   // A panel left open never follows the person to another screen: it closes when its button goes (layers audit 5).
   useEffect(() => closePanel, [closePanel]);
@@ -118,12 +127,12 @@ export function LayersControl(props: {
         accessibilityState={{ expanded: layers.open }}
         aria-expanded={layers.open}
         onPress={layers.togglePanel}
-        style={({ pressed }) => [styles.btn, { right, top: buttonTop }, anyOn && styles.btnOn, pressed && styles.pressed]}
+        style={({ pressed }) => [styles.btn, fromLeft ? { left: props.left, top: buttonTop } : { right, top: buttonTop }, anyOn && styles.btnOn, pressed && styles.pressed]}
       >
         <Icon name={anyOn ? 'layers' : 'layers-outline'} size={24} color={theme.ink} />
       </Pressable>
       {layers.open ? (
-        <View testID="layers-panel" accessibilityLabel="Layers" role="group" style={[styles.card, { right: right + BESIDE, top: buttonTop, width: box.width, maxHeight: box.maxHeight }]}>
+        <View testID="layers-panel" accessibilityLabel="Layers" role="group" style={[styles.card, fromLeft ? { left: props.left! + BESIDE, bottom } : { right: right + BESIDE, top: buttonTop }, { width: box.width, maxHeight: box.maxHeight }]}>
           <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
             {LAYERS.map((l) => {
               const on = !!layers.on[l.id];
