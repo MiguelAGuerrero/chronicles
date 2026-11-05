@@ -52,6 +52,10 @@ test('TG20 a live criterion needs a test, a retirement, a reason not to test it,
 
 test('TG20 this repo: every live criterion has a status, and the docs check runs the gate', () => {
   assert.deepEqual(criteria.check(ROOT).map((p) => `${p.slug}:${p.id} ${p.message}`), []);
+  // A test declared in a helper counts too: the Db contract suite (dbContract.ts) names WK19 and the FC7 cases.
+  const { namedIn, unitTests } = load(join(ROOT, 'scripts', 'check-specs.js')) as { namedIn(f: string[]): Set<string>; unitTests(): string[] };
+  assert.ok(unitTests().some((f) => f.endsWith('dbContract.ts')), 'the contract suite is read');
+  assert.ok(namedIn(unitTests()).has('WK19'), 'WK19, tested in the contract suite, is named');
   assert.match(read('scripts/check-docs.js'), /require\('\.\/criteria'\)/);
 });
 

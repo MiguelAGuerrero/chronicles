@@ -109,7 +109,8 @@ function filesUnder(dir, keep) {
   return out;
 }
 
-const unitTests = () => filesUnder(testsDir, (p) => p.endsWith('.test.ts'));
+// Test files, and the helpers that declare tests for them (the Db contract suite, dbContract.ts).
+const unitTests = () => filesUnder(testsDir, (p) => p.endsWith('.test.ts') || (p.endsWith('.ts') && /^\s*test\(/m.test(fs.readFileSync(p, 'utf8'))));
 const e2eFiles = () => [path.join(root, 'scripts', 'e2e-web.js'), ...filesUnder(e2eDir, (p) => p.endsWith('.js'))].filter((p) => fs.existsSync(p));
 
 /** The test folder of a unit test file (its feature), or null for an e2e file. */

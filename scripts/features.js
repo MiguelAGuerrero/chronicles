@@ -260,6 +260,8 @@ const RETIRED = {
   'v1.5-landing': ['L10', 'L13', 'L16'],
   // No Open in Maps on "Off your route" (decision 0059).
   'bridges-and-open-in-maps': ['NH4'],
+  // DN2's amendment (Nov 4): a swipe back lands back where it came from by itself, so there is no trail.
+  'discrete-navigation': ['DN5'],
 };
 
 /**
