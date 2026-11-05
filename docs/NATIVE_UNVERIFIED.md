@@ -19,6 +19,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] Migration 14: the `gap_fill` table of kept and dismissed stretches (IndexedDB v12)
 - [ ] Migration 15: the `atlas_area` cache of the Explore atlas (IndexedDB v13)
 - [ ] Migration 17: `capture.edit`, JSON through `serializeEdit`/`parseEdit` on every capture read (no IndexedDB bump; Media editing, ME21)
+- [ ] Migration 19: the `walk_tile` cache of walkability, ways as JSON (IndexedDB v16; WK2)
 
 ## Map layers and markers (MapLibre RN v11)
 
@@ -108,7 +109,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 
 - [ ] Open in Maps: Apple Maps from the app, `nav/openInMaps.ts` (Open in Maps)
 - [ ] Open in Maps: the Android `geo:` chooser (Open in Maps)
-- [ ] Open in Maps: an iPhone Home Screen app's `window.open` reaching Apple Maps (Open in Maps)
+- [ ] Open in Maps: an iPhone Home Screen app opens the `maps://` scheme via `location.href` (was `window.open`, which left a blank window to back out of) (Open in Maps, fix pwa-maps). Confirm: Maps opens with the walking route, no blank window, the page is intact on return, recording resumes, and what shows if Maps can't take the scheme
 - [ ] The docked drawer on Navigate (Navigation & tabs, U1)
 - [ ] `dangerouslySingular` on the native stack's `walk`, `showWalk()` (Navigation & tabs)
 - [ ] The memo saved when Navigate blurs mid-memo (Navigation & tabs)
@@ -224,3 +225,13 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] TP11: the OpenMapTiles class names for a mall and a department store (`shop` › `mall`, `department_store`) are from memory, since the tile host is blocked from cloud sessions; confirm on a phone that Lehigh Valley Mall counts as a shop
 
 - [ ] The walk screen's top overlay (Minimize, the navigation bar, the notice) and the ready chevron at `insets.top + 4`: clear of the notch and Dynamic Island, the Android status bar and landscape (inset 0); the ready-to-walk handover keeps the same box
+
+## Walkability (WK1-WK23, decision 0093)
+
+- [ ] The layer on MapLibre RN: two `Layer`s over a `GeoJSONSource` (`walk-mixed`, `walk-car`), under the hotspots, fog and trace; their zoom-interpolated widths
+- [ ] Overture's `transportation.pmtiles` read by byte range through `pmtiles` in the native runtime, and the Overpass POST (`fetch` with a form body)
+- [ ] `walk_tile` writes through the single write queue (migration 19), ways as JSON (a dense tile is hundreds of KB)
+- [ ] The switch and legend over the native map: the new top edge slot (`walkability`) above the compass, and the legend card growing upward
+- [ ] `Tooltip` by tap and long press on a phone (hover and Escape are web only), closing after `MOTION.tip`
+- [ ] The heads-up pill in the walk's pills stack, and its live region read by VoiceOver and TalkBack
+- [ ] The area card's "On foot" line (`useAreaWords`): its read when the card opens on a phone, and the card's scroll with the new section

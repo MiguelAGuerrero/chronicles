@@ -26,7 +26,7 @@ import { useReducedMotion } from '../../lib/motion';
 import { useUnits } from '../../lib/useUnits';
 import { MOTION } from '../../lib/motionTokens';
 import {
-  BORDER, bordersGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
+  BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -155,6 +155,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   const borderKey = props.borders?.key ?? '';
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const borders = useMemo(() => bordersGeoJSON(props.borders), [borderKey]);
+  // Walkability (WK13): rebuilt only when the picture changes.
+  const walkKey = props.walkability?.key ?? '';
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const walkability = useMemo(() => walkabilityGeoJSON(props.walkability), [walkKey]);
   // The scale bar follows the view (QL7): the longest round length that fits at this zoom and latitude.
   const units = useUnits();
   const scale = useMemo(() => (view ? scaleBar(metersPerPixel(view.zoom, view.lat), SCALE_MAX_PX, units) : null), [view, units]);
@@ -375,6 +379,13 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         </GeoJSONSource>
         <GeoJSONSource id="veil" data={WORLD_VEIL}>
           <Layer id="veil" type="fill" paint={{ 'fill-color': COLORS.veil, 'fill-opacity': props.veil ? 0.45 : 0 }} />
+        </GeoJSONSource>
+        {/* Walkability (WK13), under the hotspots, fog and trace (unverified on a device). */}
+        <GeoJSONSource id="walkability" data={walkability}>
+          {(['mixed', 'car'] as const).map((band) => (
+            <Layer key={band} id={`walk-${band}`} type="line" filter={['==', ['get', 'band'], band]} layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+              paint={{ 'line-color': WALK_STYLE[band].color, 'line-opacity': WALK_STYLE[band].opacity, 'line-width': ['interpolate', ['linear'], ['zoom'], 12, WALK_STYLE[band].width * 0.6, 17, WALK_STYLE[band].width * 2.2] }} />
+          ))}
         </GeoJSONSource>
         {/* Hotspots under the streets, in the one green no other layer uses (L9). */}
         <GeoJSONSource id="pockets" data={pockets}>

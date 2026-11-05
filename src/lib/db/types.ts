@@ -1,6 +1,7 @@
 // @layer core
 import type { Area, WalkArea } from '../areas/types';
 import type { OutlineTile } from '../areas/outlines';
+import type { WalkTile } from '../walk/types';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Mark, Offered, Place, Recall } from '../discovery/types';
 import type { ChecklistArea, ChecklistItem, ExploreRead, Find } from '../explore/explore';
@@ -128,6 +129,11 @@ export interface Db {
   putOutlineTiles(tiles: OutlineTile[]): Promise<void>;
   /** The tiles of these keys that were read, in key order. */
   getOutlineTiles(keys: string[]): Promise<OutlineTile[]>;
+
+  /** Walkability (WK2): what each read z14 tile held, a cache keyed `x/y`; the same key replaces a tile. */
+  putWalkTiles(tiles: WalkTile[]): Promise<void>;
+  /** The tiles of these keys that were read, in key order. */
+  getWalkTiles(keys: string[]): Promise<WalkTile[]>;
 
   /**
    * One explore read in one transaction (E2, E4): each built area's items are

@@ -140,6 +140,14 @@ const FEATURES = [
     specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation'],
   },
   {
+    name: 'walkability',
+    about: 'how a street treats someone on foot: the bands, the map layer and its icons, the area card\'s line, the heads-up',
+    rule: 'walkability',
+    source: ['src/lib/walk/**', 'src/components/{Tooltip,WalkBandIcon,WalkLayerControl}.tsx'],
+    journeys: ['walkability', 'headsup'],
+    specs: ['walkability', 'walkability-headsup'],
+  },
+  {
     name: 'landing',
     about: 'what\'s good here: landing analysis, busy streets, activity density',
     rule: 'landing',

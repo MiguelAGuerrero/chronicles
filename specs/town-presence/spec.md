@@ -56,7 +56,7 @@ merged all of Allentown's built-up fabric into one blob; peak picking on a smoot
 6. **TP6 · A big town has several.** On the Allentown and Bethlehem fixtures, the pockets number at least two,
    are at least 1.5 km apart, and the busiest holds each town's downtown.
 7. **TP7 · The card lists the busy areas.** A town's card shows a "Busy areas" section, busiest first, each
-   named for the busiest street through it (else "A busy area") with a Walk to that goes to its peak. A
+   named for the busiest street through it (a pocket with no street is not listed) with a Walk to that goes to its peak. A
    neighborhood's card has none. No counts, no scores, no ranks as numbers (AT11).
 8. **TP8 · The words say the extent.** A graded town's card heading says "What's here" with no "around its
    centre", and the card's explanation says a town is counted across its whole outline. A ring-graded area's
