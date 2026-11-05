@@ -4,6 +4,9 @@ Spec: `specs/walkability-urban-form/spec.md` (UF1-UF20). Replaces how the layer,
 
 ## What I'm asking you to look at
 
+0. **Two choices of mine in the layers (specs/map-layers).** Town borders default **on** (so nothing shipped quietly disappears); and turning Busy
+   streets on where nothing is remembered **reads the area once**, as What's good here does, so the layer is not blank on a quiet walk.
+
 1. **The rule (UF4, UF6)** and its starting numbers. They come from a prototype on real tiles and are meant to be tuned against fixtures, not
    trusted: the prototype marked about 70% of a 10 × 9 km window around Allentown car-oriented, which is too much.
 2. **That a cell near the edge of what was read is left out**, not guessed: a cell needs its whole 450 m neighbourhood inside the tiles read, so the
@@ -11,6 +14,25 @@ Spec: `specs/walkability-urban-form/spec.md` (UF1-UF20). Replaces how the layer,
    a little smaller than the map view at low zoom.
 3. **The places signal reads Overture's places** (the same tiles and cache as busy streets) and not OpenStreetMap's, to avoid a second source in this
    slice. Say so if you want OpenStreetMap's too.
+
+## Layers (specs/map-layers, ML1-ML13) come first
+
+The owner asked on 2026-11-05 for the tint to be one **layer** among several, off by default, with busy streets and town borders moved into the
+same system. That is built **before** the urban-form engine, as its own deployable step, because it also fixes the clutter today:
+
+1. **The layers system.** `src/lib/layers/registry.ts` (core: the list of layers, their defaults and legend rows), `layers/store.ts` (a shell, one
+   meta key `map_layers` holding every layer's state, with `walk_layer` read once into it), `useLayers.ts` (the hook the maps call), and
+   `components/LayersControl.tsx` (the button and the panel) replacing `WalkLayerControl`. The existing walkability line layer keeps drawing for
+   now, behind its switch, until the tint replaces it.
+2. **Busy streets as a layer.** The walk screen's `hotView` stops depending on Explore mode; the Explore map and the Navigate ready map gain the same
+   `landing` drawing from a hook that lists the remembered areas near the map (`useBusyLayer`), plus the one-time read when switched on (ML9).
+3. **Town borders as a layer.** The `borders` prop is handed to a map only when the layer is on.
+4. **Then the urban-form engine and tint** (below), as the Walkability layer's drawing.
+
+Tests: `src/lib/__tests__/layers/` (a new feature folder, `layers` in `scripts/features.js`): the registry and defaults (ML1, ML2, ML7 with the old
+`walk_layer` read), the store with `fakePorts()` (ML5, ML7), the busy layer's data and the one-time read (ML8-ML10); the e2e journey `layers` for
+ML3-ML6, ML8, ML12 (the button, the panel, each switch redrawing the map, a reload keeping them), with `walkability`, `tabs`, `ready`, `marks` and
+`outlines` rerun because borders and busy streets move.
 
 ## Files
 

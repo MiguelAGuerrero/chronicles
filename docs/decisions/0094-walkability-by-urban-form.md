@@ -15,3 +15,7 @@ The owner tried the shipped walkability layer (0093). Its legend showed symbols 
 - Supersedes the street-band basis of 0093 for the map and the card; the street band stays for fast roads and the tooltips.
 - `walk_tile` gains junction points (SQLite migration 20, `WALK_CODE` w2); cells are derived on read.
 - The thresholds are starting values, pinned by five real fixtures and tuned with them.
+
+## Later call (2026-11-05)
+- The tint is one layer among several (specs/map-layers, decision 0095): a Layers button replaces the walkability button, off by default.
+

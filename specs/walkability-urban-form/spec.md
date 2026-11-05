@@ -42,8 +42,10 @@ many places sit along the streets. The result is a **tint over areas** of the ma
   around cars, nothing between. Both of the legend's symbols appear on the map.
 - **The card follows the area; the heads-up follows fast roads and car-oriented areas** (the owner, 2026-11-05).
 - **Words, not a number** (specs/walkability, decision 0093): no score, share, rank or comparison is shown anywhere.
-- Everything else in specs/walkability holds: Overture first, Overpass second; nothing leaves the device but the tile request; the layer
-  switch and its meta key; the tooltips' icons and words.
+- **A layer, off by default** (the owner, 2026-11-05): the tint is the Walkability layer of specs/map-layers, switched from the one Layers button, off
+  until chosen, one setting for every map.
+- Everything else in specs/walkability holds: Overture first, Overpass second; nothing leaves the device but the tile request; the tooltips'
+  icons and words. (Its own switch and button are replaced by the Layers panel, ML3-ML7.)
 
 ## The model
 
@@ -88,12 +90,12 @@ A cell is then one of: **foot**, **car**, **neither** (drawn as nothing), or **e
 
 ### What shows
 
-9. **UF9 · A tint over areas.** With the switch on, each **foot** cell is tinted green and each **car** cell warm, softly, with the map's
+9. **UF9 · A tint over areas.** With the Walkability layer on (specs/map-layers), each **foot** cell is tinted green and each **car** cell warm, softly, with the map's
    streets and labels readable through. **Neither** and **empty** are not drawn. Neighbouring cells of one reading read as one area (no visible
    seams between them). The tint draws beneath the trace, fog and pins.
-10. **UF10 · The legend shows what is drawn.** The legend lists two rows, each a swatch of its tint beside its icon and its words ("Easy on
+10. **UF10 · The legend shows what is drawn.** The Walkability layer's legend, in the Layers panel under its switch, lists two rows, each a swatch of its tint beside its icon and its words ("Easy on
     foot", "Built around cars"). The pedestrian with a caution badge is no longer drawn on the map or in the legend. Both rows are visible
-    whenever the layer is on; the status lines ("Reading…", "Not available now") and the credit stay.
+    whenever the layer is on and the panel is open; the status lines ("Reading…", "Not available now") and the credit stay.
 11. **UF11 · Both ends appear in a real town.** On the Allentown fixture, the layer tints the walkable core green and the outer ground warm.
     The e2e journey checks both tints are drawn.
 12. **UF12 · Nothing is a score.** No number, share, rank or comparison between places is shown or stored for display. The tooltips are the

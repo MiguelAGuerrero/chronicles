@@ -143,7 +143,7 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 | Session | Branch | Doing |
 |---|---|---|
 | Bug fixes (open since Oct 31) | unknown | unknown |
-| Walkability by urban form (cells judged by junction density, tinted areas, the card's words, an area-entry heads-up; UF1-UF20, decision 0094) | `claude/walkability-urban-form` | spec and plan written Nov 5 after the owner's test of the shipped layer; waits on the owner's review of `specs/walkability-urban-form/plan.md` |
+| Map layers (one Layers button; Walkability, Busy streets, Town borders; ML1-ML13, decision 0095) then Walkability by urban form (cells, tinted areas, the card's words, an area-entry heads-up; UF1-UF20, decision 0094) | `claude/walkability-urban-form` | specs and plan written Nov 5 after the owner's test of the shipped layer; waits on the owner's review of `specs/walkability-urban-form/plan.md` |
 
 ## Updating this file
 
