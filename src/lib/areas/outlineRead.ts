@@ -40,18 +40,30 @@ const KNOWN_TILES_MAX = 64;
  */
 export function createOutlines(p: Pick<Ports, 'db' | 'clock'> & { source: OutlineSource }) {
   /** The wards found so far (fix ward-subdivision audit 1): a piece in one tile is told from a town by a point in another. */
-  let nested: Set<string> | null = null;
+  let loaded: Promise<Set<string>> | null = null;
   let remembering: Promise<unknown> = Promise.resolve();
-  const wards = async (): Promise<Set<string>> => (nested ??= new Set(parseIds(await p.db.getMeta('outline_nested').catch(() => null))));
+  /** The ids kept in meta, read once; a failed read is not kept (that read filters nothing) and never replaces them. */
+  const wards = (): Promise<Set<string>> =>
+    (loaded ??= p.db.getMeta('outline_nested').then(
+      (raw) => new Set(parseIds(raw)),
+      () => {
+        loaded = null;
+        return new Set<string>();
+      },
+    ));
+  /** Saves these ids on top of the stored ones, one write at a time; rejects when it can't, so the tile that found them is not kept. */
   const remember = (ids: string[]) => {
-    remembering = remembering.then(async () => {
-      const have = await wards();
-      const fresh = ids.filter((id) => !have.has(id));
-      if (!fresh.length) return;
-      for (const id of fresh) have.add(id);
-      await p.db.setMeta('outline_nested', JSON.stringify([...have])).catch(() => {});
+    const job = remembering.catch(() => {}).then(async () => {
+      const stored = new Set(parseIds(await p.db.getMeta('outline_nested')));
+      const fresh = ids.filter((id) => !stored.has(id));
+      if (fresh.length) {
+        for (const id of fresh) stored.add(id);
+        await p.db.setMeta('outline_nested', JSON.stringify([...stored]));
+      }
+      loaded = Promise.resolve(stored);
     });
-    return remembering;
+    remembering = job;
+    return job;
   };
 
   /** One fetch per tile at a time, whoever asks. */
@@ -66,8 +78,9 @@ export function createOutlines(p: Pick<Ports, 'db' | 'clock'> & { source: Outlin
       .then(async (t) => {
         const { nested: found, ...rest } = t;
         const tile = { ...rest, key, z, x, y, release: stampRelease(t.release), read_at: p.clock.now() };
-        await p.db.putOutlineTiles([tile]);
+        // The ids first: a tile kept without them could never find them again.
         if (found?.length) await remember(found);
+        await p.db.putOutlineTiles([tile]);
         return tile;
       })
       .catch(() => null)

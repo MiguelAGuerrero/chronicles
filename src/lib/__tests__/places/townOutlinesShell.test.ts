@@ -143,3 +143,53 @@ test('fix ward-subdivision audit 1: a ward piece in a tile without its point is 
   const restarted = createOutlines({ ...p, source });
   assert.deepEqual((await restarted.known([GYM])).towns.map((t) => t.name), ['Allentown'], 'kept ids survive a restart');
 });
+
+/** A source whose one tile carries a ward's point (nested in Allentown) and nothing else. */
+function wardPointSource(id: string): OutlineSource {
+  const chain = JSON.stringify([[{ name: 'Allentown', division_id: 'Allentown', subtype: 'locality' }, { name: id, division_id: id, subtype: 'locality' }]]);
+  return {
+    release: async () => '2026-10-21.0',
+    async tile(release, x, y, z) {
+      return outlineTileFrom(x, y, release, 0, {
+        division_area: [],
+        division: [{ geometry: { type: 'Point', coordinates: GYM }, properties: { id, subtype: 'locality', hierarchies: chain } }],
+      }, z);
+    },
+  };
+}
+
+test('fix ward-subdivision audit 8: a failed first read of the ward ids is not cached, and never overwrites the stored ones', async () => {
+  const p = fakePorts();
+  await p.db.setMeta('outline_nested', JSON.stringify(['old']));
+  const o = createOutlines({ ...p, source: wardPointSource('w1') });
+  p.db.failNext('getMeta');
+  await o.known([GYM]);
+  const r = await o.read([GYM]);
+  assert.equal(r.complete, true);
+  assert.deepEqual(JSON.parse((await p.db.getMeta('outline_nested')) ?? '[]').sort(), ['old', 'w1']);
+});
+
+test('fix ward-subdivision audit 9: when saving the ward ids fails, the tile that found them is not kept, so it is read again', async () => {
+  const p = fakePorts();
+  const o = createOutlines({ ...p, source: wardPointSource('w1') });
+  p.db.failNext('setMeta');
+  const first = await o.read([GYM]);
+  assert.equal(first.complete, false);
+  assert.equal((await p.db.getOutlineTiles([outlineTileKey(...outlineTileOf(GYM))])).length, 0);
+  const second = await o.read([GYM]);
+  assert.equal(second.complete, true);
+  assert.deepEqual(JSON.parse((await p.db.getMeta('outline_nested')) ?? '[]'), ['w1']);
+});
+
+test('fix ward-subdivision audit 10: two first asks for the ward ids share one read of them', async () => {
+  const p = fakePorts();
+  let reads = 0;
+  const getMeta = p.db.getMeta.bind(p.db);
+  p.db.getMeta = async (k: string) => {
+    if (k === 'outline_nested') reads++;
+    return getMeta(k);
+  };
+  const o = createOutlines({ ...p, source: wardPointSource('w1') });
+  await Promise.all([o.known([GYM]), o.known([WEST])]);
+  assert.equal(reads, 1);
+});
