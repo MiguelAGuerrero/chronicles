@@ -90,11 +90,11 @@ A new journey, `curiosities`, because the slice changes what a screen shows. It 
 
 1. **One reader, or a second?** I would generalize `OvertureReader` (its tests stay as they are). The alternative is a copy of its hardening for the archive.
 2. **Who builds the archive?** The doc says a scheduled GitHub Actions job; decision 0101 says an owner-run script. The script is the same either way; the job would add a workflow that commits to or builds into the Pages artifact.
-3. **Where is the credit line** for OpenStreetMap-derived places (PW15)?
-4. **The place sheet's tally (PW17), which blocks shipping.** Curiosities join an area's checklist, so its "N of M" grows with the pool, and the steward reads that as the "tourists working through a list" the vision names (Open question 6). I recommend the sheet name its finds and say what waits by kind, with no total; the alternative is to keep it as it is and accept the louder list. Decision 0101 says this is decided in the slice or before.
-5. **The Wikipedia signal.** The steward flags "a Wikidata or Wikipedia entry" as the weakest gate, since it measures editors' attention. It is the only open signal for the odd classes (a heritage listing covers buildings, not a giant chicken). I kept it as corroboration only (PW7: a class from the pinned table is always required, a signal never admits a place alone). If you agree, I add a line saying so to 0101; the record is yours, so I haven't touched it.
+3. **Where is the credit line**: answered (Nov 5): with the map's credits (PW15).
+4. **The place sheet's tally**: answered (Nov 5): removed, decision 0099 (PW17).
+5. **The Wikipedia signal**: answered (Nov 5): a Wikidata entry with a location is enough if the place still exists; an OpenStreetMap match strengthens it (PW7).
 6. **The doc.** Its "Region packs" call (R2, a scheduled job) predates 0101. Update it, or should I mark the mirror as the newer text?
-7. **Where the archive lives** (`hosting-audit.md`). Reading it from Pages is fast and light; the cost is repo growth, about 15 MB per refresh against a 5 MB repo today. I recommend a separate data repo with its own Pages site: the same hostname, so no new `ALLOWED_HOSTS` entry. The fallback is an orphan data branch in this repo; live queries are a stopgap at best. Whichever you choose changes a constant and decision 0101's "Host" line.
+7. **Where the archive lives**: answered (Nov 5): the `chronicles-data` repo, one GitHub Release per version, published to its Pages site with a manifest.
 
 ## Steward triage (report-only review of the spec and this plan, Nov 5)
 

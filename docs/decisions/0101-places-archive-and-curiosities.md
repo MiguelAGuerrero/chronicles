@@ -11,11 +11,12 @@ Decision 0084 (Nov 4) said "No significance file and no host", and `docs/DEFERRE
 The owner's calls, Nov 5:
 - **0084 is reversed in one part:** "No significance file and no host" no longer holds. Everything else in 0084 stands (what a mark is, the thin ring, fixed steps).
 - **A static archive of notable places**, built by an owner-run script from Wikidata (including the National Register of Historic Places) and OpenStreetMap tags, deduped and classified once at build time. It is read by tile through byte-range requests like Overture's places (0080). US first; another region is the same script run again.
-- **Host:** the Pages site that serves the web build. The host is expected to be `miguelaguerrero.github.io`, confirmed in the slice, and goes in `ALLOWED_HOSTS` (`scripts/check-vision.js`) with its reason.
+- **Host (superseded the same day, below):** the Pages site that serves the web build. The host is expected to be `miguelaguerrero.github.io`, confirmed in the slice, and goes in `ALLOWED_HOSTS` (`scripts/check-vision.js`) with its reason.
 - **Significance is a gate, never a measure.** The archive holds no sitelink count, page views, QRank or rank. Nothing in the app orders, sizes, labels or counts a place by notability. Popularity stays a Never (VISION.md).
 - **Curiosities** are a new kind inside the existing category "Viewpoints & oddities" (`viewpoints`), not History and not a new category. Defined by what a place is, from a pinned class table: follies and novelty buildings, roadside giants, natural oddities, odd engineering, places that mark a fact, art environments, ruins and abandoned places not framed as historic. An unmapped class is left out, never guessed.
 - **Type decides, never age or listing.** In order: it commemorates, so Monuments; made as art, so Public art; you go there to look out, so Viewpoints; one of the odd classes, so Curiosities; else History, or left out. A century-old folly is a Curiosity; an old ordinary house is History.
 - **One mark per place across sources.** The adapter drops a tile place when the archive holds one with the same name within about 50 m, in any category; the archive wins (`placeKey` and `isOffered` only match within a category).
+- **Later the same day:** the archive lives in its own repo, `chronicles-data` (Releases, a Pages workflow, a manifest), not on the app's Pages site. A Wikidata entry with a location is enough if the place still exists (an OpenStreetMap match strengthens it); OpenStreetMap is credited with the map's credits.
 - **Folded into the queued "Places worth the stop" slice.** Its small owner-edited add/remove file stays beside the archive.
 
 ## Consequences
