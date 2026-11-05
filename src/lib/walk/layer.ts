@@ -3,7 +3,7 @@ import { distanceM, lineLengthM } from '../geo';
 import { tilesIn } from '../tileMath';
 import type { LngLat } from '../types';
 import { WALK_CODE, isBeside, isCrossing } from './bands';
-import { bandsFor } from './match';
+import { bandsFor, midOf } from './match';
 import { MAX_TILES } from './limits';
 import { areaWords, bandLengths } from './summary';
 import type { Band, WayFacts } from './types';
@@ -37,10 +37,15 @@ function segmentsOf(tiles: ReadonlyMap<string, readonly WayFacts[]>): RouteSeg[]
   const seen = new Set<string>();
   for (const ways of tiles.values())
     for (const w of ways) {
-      // A way on a tile edge is in both tiles' buffers: once by its id.
-      if (!isStreet(w) || w.line.length < 2 || seen.has(w.id)) continue;
-      seen.add(w.id);
-      out.push({ id: w.id, name: w.name ?? null, length_m: lineLengthM(w.line), geometry: [w.line] });
+      if (!isStreet(w) || w.line.length < 2) continue;
+      // A way on a tile edge is in both tiles' buffers: the same piece once, but each tile's own clipped piece of it
+      // is drawn and judged (walkability audit 1), so the key is the piece, not the id.
+      const a = w.line[0];
+      const b = w.line[w.line.length - 1];
+      const piece = `${w.id}|${a[0].toFixed(6)},${a[1].toFixed(6)}|${b[0].toFixed(6)},${b[1].toFixed(6)}|${w.line.length}`;
+      if (seen.has(piece)) continue;
+      seen.add(piece);
+      out.push({ id: piece, name: w.name ?? null, length_m: lineLengthM(w.line), geometry: [w.line] });
     }
   return out;
 }
@@ -52,13 +57,16 @@ export function drawFor(tiles: ReadonlyMap<string, readonly WayFacts[]>): WalkDr
   const car: LngLat[][] = [];
   const mixed: LngLat[][] = [];
   let points = 0;
+  let sum = 0;
   for (const s of segs) {
     const b = bands.get(s.id);
     if (b !== 'car' && b !== 'mixed') continue;
     (b === 'car' ? car : mixed).push(s.geometry[0]);
     points += s.geometry[0].length;
+    // A checksum of where the lines are, so equal counts over different ground are not the same picture (audit 13).
+    for (const [lon, lat] of s.geometry[0]) sum = (sum + Math.round(lon * 1e5) * 31 + Math.round(lat * 1e5)) % 1_000_000_007;
   }
-  return { car, mixed, key: `${WALK_CODE}|${car.length}|${mixed.length}|${points}` };
+  return { car, mixed, key: `${WALK_CODE}|${car.length}|${mixed.length}|${points}|${sum}` };
 }
 
 /** WK15: the segments a route is matched against, with their bands. */
@@ -83,9 +91,21 @@ export function tilesAround(c: LngLat, radiusM: number): [number, number][] {
  */
 export function ringWords(tiles: ReadonlyMap<string, readonly WayFacts[]>, centre: LngLat, radiusM: number): string | null {
   const segs = segmentsOf(tiles).filter((s) => {
-    const line = s.geometry[0];
-    return distanceM(line[Math.floor(line.length / 2)], centre) <= radiusM;
+    return distanceM(midOf(s.geometry[0]), centre) <= radiusM;
   });
   if (!segs.length) return null;
   return areaWords(bandLengths(segs, bandsFor(segs, tiles)));
+}
+
+export type WalkStatus = 'off' | 'reading' | 'ready' | 'unavailable';
+
+/**
+ * What a map shows now (WK13): the last drawing read stays on screen while the tiles for a new centre are read, so
+ * walking along a tile edge never blanks the layer (walkability audit 5). `status` says whether it is the right one.
+ */
+export function drawNow(on: boolean, last: { key: string; draw: WalkDraw | null } | null, key: string): { draw: WalkDraw | null; status: WalkStatus } {
+  if (!on || !key) return { draw: null, status: 'off' };
+  if (!last) return { draw: null, status: 'reading' };
+  if (last.key !== key) return { draw: last.draw, status: 'reading' };
+  return { draw: last.draw, status: last.draw ? 'ready' : 'unavailable' };
 }

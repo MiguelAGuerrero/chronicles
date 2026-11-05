@@ -14,11 +14,11 @@ export const RATE_PAUSE_MS = 60_000;
 export function createOverpassSource(o: { fetch: typeof fetch; now: () => number; url?: string }): WalkSource {
   let pausedUntil = 0;
   return {
-    async read(x, y) {
+    async read(x, y, signal) {
       if (o.now() < pausedUntil) return null;
       const r = tileRect(x, y);
       try {
-        const res = await o.fetch(o.url ?? OVERPASS_URL, { method: 'POST', body: `data=${encodeURIComponent(overpassQuery(r.s, r.w, r.n, r.e))}` });
+        const res = await o.fetch(o.url ?? OVERPASS_URL, { method: 'POST', body: `data=${encodeURIComponent(overpassQuery(r.s, r.w, r.n, r.e))}`, signal });
         if (res.status === 429 || res.status === 504) {
           pausedUntil = o.now() + RATE_PAUSE_MS;
           return null;

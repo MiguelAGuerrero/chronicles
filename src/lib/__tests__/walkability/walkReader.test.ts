@@ -55,7 +55,8 @@ test('WK2: concurrent reads of one tile ask once; a new build or a new code read
   assert.equal(s.calls.length, 2, 'a new Overture release');
   const old = (await p.db.getWalkTiles(['1/2']))[0];
   await p.db.putWalkTiles([{ ...old, code: 'w0' }]);
-  await r.read([[1, 2]], 'rel2');
+  // A code changes between launches, never inside one: a new session reads the tile again.
+  await createWalkReader(p, s).read([[1, 2]], 'rel2');
   assert.equal(s.calls.length, 3, 'a new WALK_CODE');
 });
 

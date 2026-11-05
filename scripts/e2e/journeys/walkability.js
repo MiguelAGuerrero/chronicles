@@ -26,6 +26,19 @@ async function run(h) {
   await pg.waitForSelector('[data-testid=tooltip]', { timeout: 3000 }).catch(() => {});
   const tip = await pg.locator('[data-testid=tooltip]').innerText().catch(() => '');
   check(/^Built around cars/.test(tip) && !/\d/.test(tip), `WK22, WK23: hovering the car icon says what it means, with no number (${tip})`);
+  // walkability audit 14: each band's tooltip opens fully on screen, in Explore's short map pane on a 390 px phone.
+  const inside = async (id, label) => {
+    await pg.hover(`[data-testid=${id}]`);
+    await pg.waitForSelector('[data-testid=tooltip]', { timeout: 3000 }).catch(() => {});
+    const r = await pg.locator('[data-testid=tooltip]').boundingBox().catch(() => null);
+    const vp = await pg.evaluate(() => ({ w: innerWidth, h: innerHeight }));
+    check(!!r && r.x >= 0 && r.y >= 0 && r.x + r.width <= vp.w && r.y + r.height <= vp.h, `walkability audit 14: the ${label} tooltip opens fully on screen (${JSON.stringify(r)} in ${vp.w}x${vp.h})`);
+    await pg.keyboard.press('Escape');
+  };
+  await inside('walk-tip-mixed', 'mixed');
+  await inside('walk-tip-car', 'car');
+  await pg.hover('[data-testid=walk-tip-car]');
+  await pg.waitForSelector('[data-testid=tooltip]', { timeout: 3000 }).catch(() => {});
   await shot(pg, 'walk-explore');
   await pg.keyboard.press('Escape');
   check((await pg.locator('[data-testid=tooltip]').count()) === 0, 'WK22: Escape closes the tooltip');

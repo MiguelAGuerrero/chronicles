@@ -23,7 +23,7 @@ export function useAreaWords(centre: LngLat, radiusM: number, active: boolean): 
     let live = true;
     void (async () => {
       const build = await walkBuild().catch(() => null);
-      const read = await walkReader.read(tilesAround(centre, radiusM), build ?? 'unknown');
+      const read = await walkReader.read(tilesAround(centre, radiusM), build ?? 'unknown', () => !live);
       if (live) setDone({ key, words: read.tiles.size ? ringWords(read.tiles, centre, radiusM) : null });
     })();
     return () => {

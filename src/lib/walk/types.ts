@@ -41,7 +41,7 @@ export interface TileFacts {
 
 export interface WalkSource {
   /** The tile's facts, or null when this source can't give them (WK3). */
-  read(x: number, y: number): Promise<TileFacts | null>;
+  read(x: number, y: number, signal?: AbortSignal): Promise<TileFacts | null>;
 }
 
 /** A read tile as kept (WK2): a cache tagged with the source's build and `WALK_CODE`, cleared with the derived stores (WK19). */

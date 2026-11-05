@@ -233,3 +233,6 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] `Tooltip` by tap and long press on a phone (hover and Escape are web only), closing after `MOTION.tip`
 - [ ] The heads-up pill in the walk's pills stack, and its live region read by VoiceOver and TalkBack
 - [ ] The area card's "On foot" line (`useAreaWords`): its read when the card opens on a phone, and the card's scroll with the new section
+- [ ] The abort signal through `pmtiles`' `getZxy` and `fetch` in the native runtime (walkability audit 12), and a hung read being given up on at 6 s and 20 s
+- [ ] The tooltip's placement (below, right-aligned) on a phone's safe areas, and its hit slop (walkability audit 14)
+

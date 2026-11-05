@@ -14,8 +14,8 @@ import type { TileFacts, WalkSource, WalkTile, WayFacts } from './types';
 export { MAX_TILES } from './limits';
 /** WK3: a tile that failed is not asked again for this long. */
 export const RETRY_MS = 2 * 60_000;
-/** WK3: one tile's request gives up after this. */
-export const TILE_MS = 10_000;
+/** WK3: one tile's request, Overture and then Overpass if it comes to that, gives up after this (Overture's own share is `chain`'s). */
+export const TILE_MS = 20_000;
 /** WK1b: a tile Overpass gave is read from Overture again after this. */
 export const OVERPASS_KEEP_MS = 30 * 60_000;
 
@@ -28,7 +28,7 @@ export interface WalkRead {
 
 export interface WalkReader {
   /** WK2: the ways of these z14 tiles for this Overture release, from the device where kept, else from the source. */
-  read(tiles: readonly (readonly [number, number])[], build: string): Promise<WalkRead>;
+  read(tiles: readonly (readonly [number, number])[], build: string, shouldStop?: () => boolean): Promise<WalkRead>;
 }
 
 export function createWalkReader(p: Pick<Ports, 'db' | 'clock'>, source: WalkSource, o: { tileMs?: number } = {}): WalkReader {
@@ -38,13 +38,21 @@ export function createWalkReader(p: Pick<Ports, 'db' | 'clock'>, source: WalkSou
   /** WK4: every request waits for the one before it. */
   let queue: Promise<unknown> = Promise.resolve();
 
+  /** What was read this session, newer than a read's snapshot of the device: an overlapping read never asks again (audit 4). */
+  const settled = new Map<string, WalkTile>();
+
   const request = async (x: number, y: number): Promise<TileFacts | null> => {
     let timer: ReturnType<typeof setTimeout> | undefined;
+    // A request given up on is told to stop, so it never runs on beside the next one (walkability audit 12).
+    const ctl = new AbortController();
     try {
       return await Promise.race([
-        source.read(x, y),
+        source.read(x, y, ctl.signal),
         new Promise<null>((resolve) => {
-          timer = setTimeout(() => resolve(null), tileMs);
+          timer = setTimeout(() => {
+            ctl.abort();
+            resolve(null);
+          }, tileMs);
         }),
       ]);
     } catch {
@@ -66,7 +74,7 @@ export function createWalkReader(p: Pick<Ports, 'db' | 'clock'>, source: WalkSou
   };
 
   return {
-    async read(tiles, build) {
+    async read(tiles, build, shouldStop) {
       const want = tiles.slice(0, MAX_TILES);
       const keys = want.map(([x, y]) => walkTileKey(x, y));
       const kept = await p.db.getWalkTiles(keys).catch(() => [] as WalkTile[]);
@@ -76,11 +84,14 @@ export function createWalkReader(p: Pick<Ports, 'db' | 'clock'>, source: WalkSou
       for (const [x, y] of want) {
         const key = walkTileKey(x, y);
         const now = p.clock.now();
-        const have = byKey.get(key);
-        if (have && (have.from === 'overture' ? have.build === build : now - have.read_at < OVERPASS_KEEP_MS)) {
+        const have = settled.get(key) ?? byKey.get(key);
+        // An unknown build (the release could not be looked up) trusts what the device holds (walkability audit 11).
+        if (have && (have.from === 'overture' ? have.build === build || build === 'unknown' : now - have.read_at < OVERPASS_KEEP_MS)) {
           out.set(key, have.ways);
           continue;
         }
+        // A screen that has moved on does not queue the rest of its tiles (walkability audit 6).
+        if (shouldStop?.()) break;
         const failedWhen = failedAt.get(key);
         if (failedWhen === undefined || now - failedWhen >= RETRY_MS) {
           const got = await ask(x, y);
@@ -88,13 +99,14 @@ export function createWalkReader(p: Pick<Ports, 'db' | 'clock'>, source: WalkSou
             failedAt.delete(key);
             out.set(key, got.ways);
             const row: WalkTile = { key, x, y, build: got.from === 'overture' ? build : 'overpass', code: WALK_CODE, from: got.from, read_at: p.clock.now(), ways: got.ways };
+            settled.set(key, row);
             await p.db.putWalkTiles([row]).catch(() => {});
             continue;
           }
           failedAt.set(key, p.clock.now());
         }
-        // Could not be read now: an older Overpass tile is better than none (WK3).
-        if (have && have.from === 'overpass') out.set(key, have.ways);
+        // Could not be read now: any older tile is better than none, a previous Overture release's too (WK3, audit 11).
+        if (have) out.set(key, have.ways);
         else failed++;
       }
       return { tiles: out, failed };

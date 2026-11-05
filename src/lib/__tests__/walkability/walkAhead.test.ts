@@ -65,10 +65,10 @@ test('WK15: how far along the route you are is the nearest point on it', () => {
   assert.ok(Math.abs(alongRoute(bent, at(100, 60)) - 160) < 3);
 });
 
-test('WK15: a stretch\'s key is its street and where it starts, so a new route over the same stretch is not said twice', () => {
+test('WK15: a stretch\'s key is its street and its last segment, so a new route over the same stretch is not said twice', () => {
   const [s] = carStretches(path, segs, bands('car'));
   const shorter = [at(100), at(1000)];
   const [again] = carStretches(shorter, segs, bands('car'));
   assert.equal(s.key, again.key, `${s.key} vs ${again.key}`);
-  assert.match(s.key, /^Route 22@-?\d+\.\d{4},-?\d+\.\d{4}$/);
+  assert.equal(s.key, 'Route 22@b');
 });
