@@ -40,6 +40,7 @@ const VIEW_TIMEOUT_MS = 4000;
 function createSwiper() {
   let onSwipe: WalkMapProps['onSwipe'];
   let centre: LngLat = [-71.4, 41.82];
+  let zoom = 13;
   // This gesture's start, the most fingers seen in it, and the last long press: a pinch begun with one
   // finger, or a long press slid after it fired, is never a swipe (discrete-navigation audit 3).
   let downAt = 0;
@@ -65,7 +66,8 @@ function createSwiper() {
     onPanResponderTerminationRequest: () => false,
     onPanResponderRelease: (_e, g) => {
       const swipe = releaseSwipe({ dx: g.dx, dy: g.dy, maxTouches: fingers, held: heldAt >= downAt });
-      if (swipe) onSwipe?.({ ...swipe, center: centre });
+      // PanResponder's release speed is px/ms (DN2: a flick coasts).
+      if (swipe) onSwipe?.({ ...swipe, vx: g.vx * 1000, vy: g.vy * 1000, center: centre, mpp: metersPerPixel(zoom, centre[1]) });
     },
   });
   return {
@@ -73,8 +75,9 @@ function createSwiper() {
     sync: (f: WalkMapProps['onSwipe']) => {
       onSwipe = f;
     },
-    at: (c: LngLat) => {
+    at: (c: LngLat, z: number) => {
       centre = c;
+      zoom = z;
     },
     held: () => {
       heldAt = Date.now();
@@ -336,7 +339,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         onRegionDidChange={(e) => {
           regionChanged.current?.();
           const { zoom, center, bearing } = e.nativeEvent;
-          swiper.at([center[0], center[1]]);
+          swiper.at([center[0], center[1]], zoom);
           if (typeof bearing === 'number' && Math.abs(bearing - lastBearing.current) >= 0.5) {
             lastBearing.current = bearing;
             props.onBearingChange?.(bearing);

@@ -19,7 +19,7 @@ import {
 } from '../../lib/atlas/atlas';
 import { mapTopInset } from '../../lib/mapTopInset';
 import { nearReads } from '../../lib/atlas/read';
-import { nextArea, revealTo, snapScope, swipeHeading, tapClears, type SnapStep } from '../../lib/atlas/snap';
+import { nextArea, revealTo, snapScope, tapClears, type Swipe } from '../../lib/atlas/snap';
 import { useAtlas } from '../../lib/atlas/useAtlas';
 import { bordersFor, outlineIdHere, outlineOf, townFrame } from '../../lib/areas/borders';
 import { BORDER_ZOOM } from '../../lib/areas/outlines';
@@ -130,8 +130,6 @@ export default function Explore() {
   const [fit, setFit] = useState<{ bounds: Bounds | null; key: number }>({ bounds: null, key: 0 });
   const { focused, savedCamera, onCameraChange, onFitSettled } = useTabMap({ key: fit.key, refit: () => setFit((f) => ({ ...f, key: f.key + 1 })) });
   const [selected, setSelected] = useState<string | null>(null);
-  // The step a swipe just took, so the opposite swipe comes back (DN5); cleared by anything else that moves the selection.
-  const lastStep = useRef<SnapStep | null>(null);
   // What a swipe landed on, for the screen reader (DN12): web's live region, since react-native-web's announce does nothing.
   // A count beside it, so the same name twice in a row still changes the region and is said again (audit 7).
   const [said, setSaid] = useState({ text: '', n: 0 });
@@ -186,8 +184,6 @@ export default function Explore() {
       return () => {
         setOpen(null);
         setSpot(null);
-        // The trail is for the swipe straight after; a turn away from the tab ends it (audit 9).
-        lastStep.current = null;
       };
     }, []),
   );
@@ -275,7 +271,6 @@ export default function Explore() {
     const l = shownRef.current.find((x) => x.area.key === key);
     if (!l) return;
     setSpot(null);
-    lastStep.current = null;
     setSelected(key);
     setOpen(key);
     frame([l.area.at], ATLAS_RULES.ringM);
@@ -283,7 +278,6 @@ export default function Explore() {
   // AT2: a town opens its page; Back, Escape and the back pill return (the title has no arrow: decision 0077).
   const enterArea = useCallback((area: AtlasArea) => {
     setSpot(null);
-    lastStep.current = null;
     framed.current = null;
     setTownSeen(area);
     setSelected(null);
@@ -295,7 +289,6 @@ export default function Explore() {
   }, [enterArea]);
   const leave = useCallback(() => {
     setSpot(null);
-    lastStep.current = null;
     framed.current = null;
     setTownSeen(null);
     setSelected(null);
@@ -351,31 +344,30 @@ export default function Explore() {
   // The fit's padding, so a swipe centres an area where a tap's frame would (DN2).
   const mapPad = useMemo(() => ({ top: topInset + 84, right: 24, bottom: spot ? 80 : 24, left: 24 }), [topInset, spot]);
   const reduced = useReducedMotion();
-  // Discrete navigation (DN2-DN8, DN12): a swipe selects the next area that way and never opens its card;
-  // on a town's page with none of its neighborhoods selected, it opens the next town's page.
-  const onSwipe = useCallback(({ dx, dy, center }: { dx: number; dy: number; center: LngLat }) => {
-    const heading = swipeHeading(dx, dy, bearing);
+  // Discrete navigation (DN2-DN8, DN12): a swipe lands where it would have panned the map and selects the
+  // area nearest there, on that side (the owner, Nov 4), never opening its card; on a town's page with none of
+  // its neighborhoods selected, it opens that town's page.
+  const onSwipe = useCallback(({ center, mpp, ...swipe }: Swipe & { center: LngLat; mpp: number }) => {
     const say = (name: string) => {
       setSaid((s) => ({ text: name, n: s.n + 1 }));
       AccessibilityInfo.announceForAccessibility(name);
     };
     if (town && snapScope({ townPage: town.key, selected }) === 'towns') {
-      const next = nextArea(town.at, town.key, allTowns.map((l) => ({ key: l.area.key, at: l.area.at })), heading, lastStep.current);
+      // From where you are looking: the town's page frames the whole town.
+      const next = nextArea(center, town.key, allTowns.map((l) => ({ key: l.area.key, at: l.area.at })), swipe, bearing, mpp);
       const to = next ? allTowns.find((l) => l.area.key === next.key) : null;
       if (!to) return;
       // A swipe only selects: a card left open (a side panel on a wide screen) never outlives it (audit 1).
       setOpen(null);
       enterArea(to.area);
-      lastStep.current = { from: town.key, to: to.area.key, heading };
       say(to.area.name);
       return;
     }
-    const next = nextArea(sel?.area.at ?? center, sel?.area.key ?? null, neighborhoods.map((l) => ({ key: l.area.key, at: l.area.at })), heading, lastStep.current);
+    const next = nextArea(sel?.area.at ?? center, sel?.area.key ?? null, neighborhoods.map((l) => ({ key: l.area.key, at: l.area.at })), swipe, bearing, mpp);
     const to = next ? neighborhoods.find((l) => l.area.key === next.key) : null;
     if (!to) return;
     setSpot(null);
     setOpen(null);
-    lastStep.current = { from: sel?.area.key ?? null, to: to.area.key, heading };
     setSelected(to.area.key);
     mapRef.current?.showPoint(to.area.at, mapPad);
     // On a town's page the back pill (44 pt, 12 from the bottom) covers the grid's bottom (audit 8).
@@ -462,7 +454,6 @@ export default function Explore() {
             // only away from every area's point: a tap on the selected dot keeps it (audit 6).
             if (spot) setSpot(null);
             else if (tapClears(at, radiusM, points)) {
-              lastStep.current = null;
               setSelected(null);
             }
           }}

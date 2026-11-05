@@ -150,6 +150,8 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 
 ## Discrete navigation (DN1-DN13)
 
+- [ ] `showPoint` on MapLibre RN still eases with `padding`: whether the native camera keeps it and counts it again in a later `fitBounds`, as maplibre-gl did (discrete-navigation fix 2, fixed on web only)
+
 - [ ] `dragPan={false}` on MapLibre RN's `Map`: one finger no longer pans Explore's map
 - [ ] `createSwiper` (`WalkMap.native.tsx`): the `PanResponder` takes a one-finger move from the map, while MapLibre's own pinch, two-finger turn, double tap and long press still work beside it
 - [ ] The camera centre a swipe starts from (`onRegionDidChange`'s centre), with nothing selected
@@ -236,3 +238,4 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] The abort signal through `pmtiles`' `getZxy` and `fetch` in the native runtime (walkability audit 12), and a hung read being given up on at 6 s and 20 s
 - [ ] The tooltip's placement (below, right-aligned) on a phone's safe areas, and its hit slop (walkability audit 14)
 
+- [ ] Wards are not towns (fix ward-subdivision): SQLite `outline_tile` rows stored with the `#sub1` release stamp and an old row read again once; meta `outline_nested` written and read through the write queue (a failed write leaves the tile unkept); whether Overture's z10 `division` layer carries the points the decoder needs to find wards there (else a ward's z10 border piece shows until a z12 read finds its id)

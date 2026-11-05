@@ -165,7 +165,6 @@ An item leaves only when it ships, or when it is rejected with a decision record
 ## Discrete navigation (DN1-DN13, decision 0092)
 
 - A bounce at the edge: with nothing that way the map stays still, with no rubber band (DN4)
-- A fling's speed choosing how far to go: one swipe is always one step
 - Towns on the page near you stay tiles: swipes there move between neighborhoods only (the owner's call)
 - No touch-screen e2e for the swipe: the journey drags with the mouse; a finger's swipe on iOS Safari has not been tried
 - A spoken cue when a swipe finds nothing that way: a screen reader hears nothing (discrete-navigation audit 12), as the eye sees no bounce
@@ -265,3 +264,5 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **A footway counts as the sidewalk of any road within 25 m** (walkability audit 12): a park path beside a trunk, or the sidewalk of a parallel street 20 m away, lifts a street to `mixed` or `foot`. Fixing it means giving each footway to its nearest road, a change to the band table (bump `WALK_CODE`).
 - **`walk_tile` is never evicted** (walkability audit 13): rows live until the derived stores are cleared; a dense tile is hundreds of KB of JSON parsed on the main thread. Eviction by age is its own change.
 
+- **Wards read as towns where nothing says otherwise** (fix ward-subdivision): Overture has no field separating a ward from a small village with no class and no population. A nested locality like that (Deer Park, IL, inside a township) is dropped, so a walk there is placed in the township (the owner accepted it). A ward whose point's tile has not been read yet is a town until it is (its id is then remembered in meta `outline_nested`).
+- **Remembered ward ids never expire** (fix ward-subdivision audit 11): meta `outline_nested` grows by about 40 bytes per ward ever seen and is rewritten whole; a locality that later gains a class or population stays dropped. `purgeDerived` leaves it alone on purpose (clearing it would reopen the gap until tiles are decoded again). Fine for thousands of ids.
