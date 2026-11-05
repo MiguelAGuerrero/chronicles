@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import { distanceM } from '../../geo';
 import { routeVia, viaAhead } from '../../nav/navigator';
 import type { RouteSource } from '../../nav/types';
+import { NAV_KEY, startPlan } from '../../startPlan';
 import type { LngLat } from '../../types';
 
 const p = (x: number): LngLat => [8.54 + x / 80000, 47.37];
@@ -33,7 +34,6 @@ test('KW13: after a re-route only the stops not yet passed are kept', () => {
   assert.deepEqual(viaAhead(via, 5), []);
 });
 
-import { NAV_KEY, startPlan } from '../../startPlan';
 
 test('KW12: a walk started from a kind is an ordinary one: only the navigation destination says it was suggested', () => {
   const dest = { at: p(900), label: 'Through green', kind: 'point' as const, via: [p(400)], suggested: true };
