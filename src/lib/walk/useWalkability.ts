@@ -2,13 +2,13 @@
 import { useEffect, useState } from 'react';
 import type { LngLat } from '../types';
 import { useStore } from '../useStore';
-import { drawFor, tilesAround, type WalkDraw } from './layer';
+import { drawFor, drawNow, tilesAround, type WalkDraw, type WalkStatus } from './layer';
 import { walkBuild, walkReader, walkSwitch } from './walkApp';
 
 /** How far around the centre the layer reads (WK4): a ring, an area card, the walker's neighbourhood. */
 export const LAYER_RADIUS_M = 1000;
 
-export type WalkStatus = 'off' | 'reading' | 'ready' | 'unavailable';
+export type { WalkStatus };
 
 export interface Walkability {
   on: boolean;
@@ -36,14 +36,15 @@ export function useWalkability(centre: LngLat | null): Walkability {
     void (async () => {
       const build = await walkBuild().catch(() => null);
       const tiles = tilesKey.split(',').map((t) => t.split('/').map(Number) as [number, number]);
-      const read = await walkReader.read(tiles, build ?? 'unknown');
+      // A read this screen has moved on from does not queue its remaining tiles (walkability audit 6).
+      const read = await walkReader.read(tiles, build ?? 'unknown', () => !live);
       if (live) setResult({ key: tilesKey, draw: read.tiles.size ? drawFor(read.tiles) : null });
     })();
     return () => {
       live = false;
     };
   }, [on, tilesKey]);
-  const here = on && result?.key === tilesKey ? result : null;
-  const status: WalkStatus = !on || !tilesKey ? 'off' : !here ? 'reading' : here.draw ? 'ready' : 'unavailable';
-  return { on, status, draw: here?.draw ?? null, toggle: () => void walkSwitch.set(!on) };
+  // The last drawing stays while the tiles for a new centre are read (walkability audit 5).
+  const { draw, status } = drawNow(on, result, tilesKey);
+  return { on, status, draw, toggle: () => void walkSwitch.set(!on) };
 }

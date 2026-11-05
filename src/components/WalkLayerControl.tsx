@@ -27,13 +27,13 @@ export function WalkLayerControl(props: { wk: Walkability; bottom?: number; top?
     <View testID="walk-legend" style={[styles.card, fromTop && styles.cardBeside]}>
       <View style={styles.bands}>
         <View style={styles.row}>
-          <Tooltip text={bandTip('mixed')!} testID="walk-tip-mixed">
+          <Tooltip text={bandTip('mixed')!} testID="walk-tip-mixed" side={fromTop ? 'below' : 'above'}>
             <WalkBandIcon band="mixed" size={22} />
           </Tooltip>
           <Text style={styles.label}>Mixed</Text>
         </View>
         <View style={styles.row}>
-          <Tooltip text={bandTip('car')!} testID="walk-tip-car">
+          <Tooltip text={bandTip('car')!} testID="walk-tip-car" side={fromTop ? 'below' : 'above'} align="right">
             <WalkBandIcon band="car" size={22} />
           </Tooltip>
           <Text style={styles.label}>Built around cars</Text>

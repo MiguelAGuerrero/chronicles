@@ -29,8 +29,8 @@ the useful moment is just before the stretch, without opening anything.
 1. **WH1 · A stretch built around cars of 100 m or more.** Along the route, a run of street whose band is built around
    cars (specs/walkability WK5-WK8) and that is at least 100 m long. Shorter runs, mixed streets, streets easy on foot
    and streets with no data say nothing.
-2. **WH2 · One stretch is one stretch.** A stretch is its street and where it starts, so a new route over the same
-   stretch (a reroute) is the same stretch.
+2. **WH2 · One stretch is one stretch.** A stretch is its street and the last segment of it, so a new route over the same
+   stretch (a reroute, even one that starts inside it) is the same stretch.
 
 ### When
 

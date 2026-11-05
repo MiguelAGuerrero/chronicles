@@ -16,13 +16,13 @@ const Z = 14;
 export function createOvertureSource(o: { release: () => Promise<string | null>; open: (release: string) => Archive }): WalkSource {
   let archive: { release: string; file: Archive } | null = null;
   return {
-    async read(x, y) {
+    async read(x, y, signal) {
       const release = await o.release().catch(() => null);
       if (!release) return null;
       if (archive?.release !== release) archive = { release, file: o.open(release) };
       const file = archive.file;
       try {
-        const t = await file.getZxy(Z, x, y);
+        const t = await file.getZxy(Z, x, y, signal);
         // No tile: open ground or water. A tile with no roads, not a failure.
         return { x, y, from: 'overture', ways: t ? waysFromOvertureTile(t.data, x, y) : [] };
       } catch {

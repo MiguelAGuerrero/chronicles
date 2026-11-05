@@ -62,7 +62,7 @@ accessible label. The icon differs by shape, never by colour alone.
    footways' kind (sidewalk, crosswalk, path). The request carries the tile and nothing else: no account, key,
    device id or position beyond the tile.
 1b. **WK1b · Overpass answers when Overture can't.** If Overture's tile can't be read (unreachable, release
-   gone, 10 s deadline), the same tile is asked of the Overpass API for its ways with their `highway`,
+   gone, or no answer in 6 s), the same tile is asked of the Overpass API for its ways with their `highway`,
    `sidewalk`, `sidewalk:left/right/both`, `maxspeed`, `lanes`, `crossing`, `footway`, `foot` and `access`
    tags. The request carries the tile's bounds and nothing else. A tile read from Overpass is marked as such,
    and is read from Overture again on a later read. If both fail, WK3.
@@ -70,7 +70,7 @@ accessible label. The icon differs by shape, never by colour alone.
    source's build and `WALK_CODE`, and read from there afterwards. While the app is open a tile is
    requested at most once, however many reads cover it (a failed request is forgotten, so a later read
    tries again).
-3. **WK3 · Offline and failure never fail a read.** If the source can't be reached, times out (10 s) or
+3. **WK3 · Offline and failure never fail a read.** If the source can't be reached, times out (6 s for Overture, 20 s for the whole tile) or
    answers with an error, the walk, replay, Explore and navigation behave as before and every segment
    without data reads `unknown`. The area is marked as read without sidewalk data and read again on a
    later read, after a wait (2 min and 100 m, like route reads).
@@ -127,7 +127,9 @@ accessible label. The icon differs by shape, never by colour alone.
     if the source is unreachable a quiet "Not available now" line (WK3).
 14. **WK14 · The layer says what it is.** A legend of the two drawn bands as icons (WK21), and one line:
     "From OpenStreetMap and Overture. Where sidewalks aren't mapped, streets can read worse than they are."
-    A long press on a drawn stretch names its street with the band's icon ("Main Street · built around cars").
+    ~~A long press on a drawn stretch names its street with the band's icon ("Main Street · built around cars").~~
+    **The long press is deferred (walkability audit 2, 2026-11-04)**: it was never built; see `docs/DEFERRED.md`. The legend's icons and
+    their tooltips name the bands.
 15. **WK15 · A quiet warning while navigating.** When the Navigate route's way ahead crosses a `car`
     stretch of 100 m or more, the walk's strip says once per stretch, before the way reaches it (200 m
     ahead): the car-badge icon and "Next: a stretch built around cars on <street>". Silent: no sound, no haptic, no notification,
@@ -204,4 +206,40 @@ Not done, not covered:
   `headsup` journey. Writing the journey found a bug: stretches that arrived after the walker's last fix were not said until the next fix;
   fixed with a test (`WH3`, late stretches).
 - **Nothing here has run on a device** (`docs/NATIVE_UNVERIFIED.md`, Walkability and migration 19).
+
+## Audit
+
+**walkability audit, 2026-11-04** (the `auditor` subagent, report-only, then triage): 14 findings, 2 high, 7 medium, 5 low.
+**10 fixed, 3 deferred, 1 rejected.** Each fixed finding has a regression test named `walkability audit N` in
+`src/lib/__tests__/walkability/walkAudit.test.ts` (written first and seen failing, bar the one noted), numbered as the auditor's findings.
+
+1. A road crossing a tile edge lost its far half, or read `unknown`: **accept, fixed** (`walkability audit 1`, `1b`). The layer kept
+   one piece of a way per id and took a way's middle vertex for its home tile; now each tile's clipped piece is drawn and judged, and
+   the middle is halfway by length (`layer.ts` `segmentsOf`, `match.ts` `midOf`).
+2. WK14's long press on a drawn stretch was never built: **defer**, a real gap in what shipped, not a defect in what is built. It
+   needs the map's long press, which belongs to the spot card, so a stretch's naming is a navigation-flow call. The criterion is struck
+   through above and in `docs/DEFERRED.md`. No test.
+3. Overlapping reads asked the network twice for one tile: **accept, fixed** (`audit 4`). The reader keeps what it read this session.
+4. A moving walker blanked the layer; abandoned reads still queued tiles: **accept, fixed** (`audit 5`, `6`). The last drawing stays
+   while new tiles are read (`drawNow`), and a screen that has moved on stops its read (`shouldStop`).
+5. A reroute left the previous route's stretches live: **accept, fixed** (`audit 7`, `8`). The watch resets on a new route before its
+   tiles are read, and a stretch is keyed by street and last segment, so a reroute starting inside one does not say it again.
+6. A junction split a car stretch: **accept, fixed** (`audit 9`). A stretch prefers the segment it is already on over a nearer side street.
+7. The distance along a route had no memory: **accept, fixed** (`audit 10`). Searched in a window around the last distance first.
+8. An older Overture release's tile was ignored with the source down: **accept, fixed** (`audit 11`). Any cached tile beats none, and
+   an unknown build trusts the device.
+9. A hung Overture blocked the Overpass fallback and ran on outside the queue: **accept, fixed** (`audit 12`). Overture gets 6 s and
+   is aborted, the reader aborts what it abandons at 20 s, and both sources take the signal.
+10. The draw key was only counts: **accept, fixed** (`audit 13`). It now carries a checksum of the lines.
+11. A tooltip could overflow a 390 px phone or Explore's short pane; small tap targets: **accept, fixed** (`audit 14`, e2e
+    `walkability`). Tooltips open below in Explore and align right for the second icon, press shows rather than toggles, hit slop 10, a
+    button role. **This check was added after the fix, not seen failing.**
+12. Any nearby path counts as a sidewalk, even another street's: **defer**. WK6 says within 25 m on purpose, and a fix means
+    assigning each footway to its nearest road, a change to the band table that bumps `WALK_CODE`. In `docs/DEFERRED.md`.
+13. `walk_tile` grows without limit: **defer**. Cleared with the derived stores; eviction by age is its own change. In `docs/DEFERRED.md`.
+14. The area card reads from the network with the layer off: **reject**. The owner chose it (reading when the card opens, 2026-11-04),
+    WK18 allows it, and the card's line says where the data is from.
+
+Findings the tests cannot reach: the hooks (`useWalkability`, `useAreaWords`, `useRouteWarning`) and the three components have no unit
+tests, and are covered by the `walkability` and `headsup` journeys only.
 

@@ -101,6 +101,22 @@ interface Seg {
   length_m: number;
 }
 
+/** The point halfway along a line by its length, not its middle vertex: a two-vertex way's middle is not its end (walkability audit 1b). */
+export function midOf(line: readonly LngLat[]): LngLat {
+  let total = 0;
+  for (let i = 1; i < line.length; i++) total += Math.hypot(line[i][0] - line[i - 1][0], line[i][1] - line[i - 1][1]);
+  let left = total / 2;
+  for (let i = 1; i < line.length; i++) {
+    const L = Math.hypot(line[i][0] - line[i - 1][0], line[i][1] - line[i - 1][1]);
+    if (left <= L && L > 0) {
+      const t = left / L;
+      return [line[i - 1][0] + (line[i][0] - line[i - 1][0]) * t, line[i - 1][1] + (line[i][1] - line[i - 1][1]) * t];
+    }
+    left -= L;
+  }
+  return line[line.length - 1];
+}
+
 /** The longest line of a segment, which stands for it. */
 function mainLine(g: Seg['geometry']): readonly LngLat[] | null {
   let best: readonly LngLat[] | null = null;
@@ -136,8 +152,7 @@ export function bandsFor(segments: readonly Seg[], tiles: ReadonlyMap<string, re
       out.set(s.id, 'unknown');
       continue;
     }
-    const mid = line[Math.floor(line.length / 2)];
-    const home = tileAt(mid);
+    const home = tileAt(midOf(line));
     const t = indexOf(walkTileKey(home.x, home.y));
     if (!t) {
       out.set(s.id, 'unknown');

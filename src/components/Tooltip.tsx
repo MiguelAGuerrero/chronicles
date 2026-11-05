@@ -9,7 +9,7 @@ import { theme } from './ui';
  * It closes on its own, on Escape, and on leaving. Inline, never a `Modal` (iOS cannot present a Modal over
  * a Modal). The words are the wrapped thing's accessible label too, so a screen reader needs no popover.
  */
-export function Tooltip(props: { text: string; children: ReactNode; testID?: string; side?: 'above' | 'left' }) {
+export function Tooltip(props: { text: string; children: ReactNode; testID?: string; side?: 'above' | 'below'; align?: 'left' | 'right' }) {
   const [open, setOpen] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const clear = () => {
@@ -32,23 +32,27 @@ export function Tooltip(props: { text: string; children: ReactNode; testID?: str
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [open, close]);
-  const left = props.side === 'left';
+  const below = props.side === 'below';
+  const alignRight = props.align === 'right';
   return (
     <View style={styles.wrap}>
       <Pressable
         testID={props.testID}
+        accessibilityRole="button"
         accessibilityLabel={props.text}
+        hitSlop={10}
         onHoverIn={show}
         onHoverOut={close}
         onFocus={show}
         onBlur={close}
-        onPress={() => (open ? close() : show())}
+        // A press shows it (and starts its 4 s again): a tap after a hover never closes it under the finger (audit 14).
+        onPress={show}
         onLongPress={show}
       >
         {props.children}
       </Pressable>
       {open ? (
-        <View testID="tooltip" pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.tip, left ? styles.left : styles.above]}>
+        <View testID="tooltip" pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.tip, below ? styles.below : styles.above, alignRight ? styles.right : styles.leftEdge]}>
           <Text style={styles.text}>{props.text}</Text>
         </View>
       ) : null}
@@ -59,7 +63,10 @@ export function Tooltip(props: { text: string; children: ReactNode; testID?: str
 const styles = StyleSheet.create({
   wrap: { position: 'relative' },
   tip: { position: 'absolute', maxWidth: 240, minWidth: 160, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 10, backgroundColor: theme.ink, zIndex: 20 },
-  above: { bottom: '100%', marginBottom: 6, left: 0 },
-  left: { right: '100%', marginRight: 8, top: 0 },
+  above: { bottom: '100%', marginBottom: 8 },
+  below: { top: '100%', marginTop: 8 },
+  /** Opens to the right of the icon, or, for an icon near the screen's right edge, to its left (audit 14). */
+  leftEdge: { left: 0 },
+  right: { right: 0 },
   text: { color: '#fff', fontSize: 13, lineHeight: 18 },
 });
