@@ -1,4 +1,4 @@
-# 0095. Walkability by urban form, shown as tinted areas
+# 0096. Walkability by urban form, shown as tinted areas
 
 Date: 2026-11-05 · Status: accepted (the build waits on the owner's review of the plan) · Area: streets, explore, navigation
 
@@ -17,5 +17,5 @@ The owner tried the shipped walkability layer (0093). Its legend showed symbols 
 - The thresholds are starting values, pinned by five real fixtures and tuned with them.
 
 ## Later call (2026-11-05)
-- The tint is one layer among several (specs/map-layers, decision 0096): a Layers button replaces the walkability button, off by default.
+- The tint is one layer among several (specs/map-layers, decision 0097): a Layers button replaces the walkability button, off by default.
 - On the UI audit (2026-11-05): the tint is a cool pair (light blue and slate), not green and orange; the card says what the ground is, never "mostly"; the heads-up speaks only while the layer is on.

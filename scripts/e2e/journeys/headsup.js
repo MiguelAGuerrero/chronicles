@@ -2,7 +2,7 @@
 // stretch built around cars is ahead; nothing buzzes, nothing is pressable, and End takes it away. E2E_ONLY=headsup runs it alone.
 
 async function run(h) {
-  const { url, navUrl, BASE, at, check, shot, freshPage, overtureAsked, overpassAsked, walkability, hosts, OVERPASS_HOST, switchLayer } = h;
+  const { url, navUrl, BASE, at, check, shot, freshPage, overtureAsked, overpassAsked, walkability, hosts, OVERPASS_HOST, switchLayer, routed } = h;
   const transport = () => overtureAsked.filter((q) => /transportation\.pmtiles/.test(q.url)).length;
   walkability.mode = 'grid';
   const { c, pg } = await freshPage('headsup', { touch: true });
@@ -27,7 +27,8 @@ async function run(h) {
   await pg.waitForTimeout(700);
   await pg.mouse.up();
   await pg.click('[data-testid=go-here]');
-  await pg.waitForSelector('[data-testid=nav-bar]', { timeout: 30000 });
+  // Direct, if a scenic route is offered too (scenic routes, SR2).
+  await routed(pg, 30000);
   const navText = await pg.locator('[data-testid=nav-bar]').innerText();
   await pg.waitForSelector('[data-testid=walk-ahead]', { timeout: 45000 }).catch(() => {});
   // The icon is a glyph in a private-use character: only the printable words are the line.

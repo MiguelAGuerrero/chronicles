@@ -4,7 +4,7 @@ import { PbfReader } from 'pbf';
 import type { CollectedFeatures } from '../../components/map/types';
 import type { RoadFeature } from '../streets';
 
-const LAYERS = { roads: 'transportation', names: 'transportation_name', places: 'place', pois: 'poi' } as const;
+const LAYERS = { roads: 'transportation', names: 'transportation_name', places: 'place', pois: 'poi', landcover: 'landcover' } as const;
 
 /**
  * One vector tile decoded without the map (A11): the background location
@@ -23,5 +23,5 @@ export function decodeTile(bytes: Uint8Array | ArrayBuffer, z: number, x: number
     }
     return out;
   };
-  return { roads: read(LAYERS.roads), names: read(LAYERS.names), places: read(LAYERS.places), pois: read(LAYERS.pois), complete: true };
+  return { roads: read(LAYERS.roads), names: read(LAYERS.names), places: read(LAYERS.places), pois: read(LAYERS.pois), landcover: read(LAYERS.landcover), complete: true };
 }

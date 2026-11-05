@@ -23,7 +23,7 @@ Touches:
 Verdict: aligned
 Shape: as asked, with two changes the owner made on 2026-11-05 after the UI audit and the vision review: all three layers start off (Town borders were on), and the button is outlined, not filled with the app's accent.
 Criteria: ML4 (never covers the capture stack, the other edge buttons or the bottom strip) and ML6 (no number, count or percentage) carry what the vision needs.
-Precedent: 0034 (busy areas are information only) and 0096 (the owner's call that Busy streets draw on request on any walk, not only an exploring one).
+Precedent: 0034 (busy areas are information only) and 0097 (the owner's call that Busy streets draw on request on any walk, not only an exploring one).
 Open: none.
 
 ## Why

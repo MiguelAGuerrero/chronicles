@@ -240,7 +240,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 
 - [ ] Wards are not towns (fix ward-subdivision): SQLite `outline_tile` rows stored with the `#sub1` release stamp and an old row read again once; meta `outline_nested` written and read through the write queue (a failed write leaves the tile unkept); whether Overture's z10 `division` layer carries the points the decoder needs to find wards there (else a ward's z10 border piece shows until a z12 read finds its id)
 
-## Map layers and walkability by urban form (ML1-ML13, UF1-UF20, decisions 0095, 0096)
+## Map layers and walkability by urban form (ML1-ML13, UF1-UF20, decisions 0096, 0097)
 
 - [ ] Migration 20: `walk_tile.junctions`, JSON text, null on rows from before (IndexedDB stores the whole object, no bump)
 - [ ] The Walkability fill layers on MapLibre RN (`walk-foot`, `walk-car`, `fill-antialias: false` for no seams) under the hotspots, fog and trace
@@ -253,3 +253,9 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] `aria-expanded`, `aria-checked` and `role="group"` are web only; `accessibilityState` and `accessibilityLabel` carry them on native
 - [ ] The panel's `elevation` over the native map and the button's outlined state
 
+## Scenic routes (SR1-SR15, decision 0095)
+
+- [ ] The preview card (`RoutePreview`) over the native walk map, and the faint alternates (`alternates` source, `WalkMap.native.tsx`).
+- [ ] The "Scenic routes" switches in the native drawers (`RouteLeaningSettings`).
+- [ ] The corridor read on a phone: shared JS over `fetch` (`fetchTiles`, `readOverture`), and its time: about 1 s on Node for three leanings over 5 km of Zurich, likely several times that on a phone, under the 30 s timeout.
+- [ ] Back (Android) closing the preview.

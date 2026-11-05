@@ -6,7 +6,7 @@ paths:
 ---
 # Map layers
 
-A layer puts graphics on the base map; one Layers button opens a panel with a switch per layer (specs/map-layers, ML1-ML13, decision 0096).
+A layer puts graphics on the base map; one Layers button opens a panel with a switch per layer (specs/map-layers, ML1-ML13, decision 0097).
 
 ## What it is
 

@@ -23,6 +23,8 @@ import { useGapDraw } from '../lib/gaps/useGapDraw';
 import { GapDraw } from '../components/GapDraw';
 import { KindSwitches, RangeSlider, walkNote } from '../components/ExploreSettings';
 import { NotificationSettings } from '../components/NotificationSettings';
+import { RouteLeaningSettings } from '../components/RouteLeaningSettings';
+import { RoutePreview } from '../components/RoutePreview';
 import { SwitchRow } from '../components/SwitchRow';
 import { ReminderCard } from '../components/ReminderCard';
 import { onRecallFired, onRecallOpen, onRecallWaiting, takeRecallOpen } from '../lib/discovery/recallCheck';
@@ -71,6 +73,7 @@ import { ReadyBar } from '../components/walk/ReadyBar';
 import { BAR_H, CAP, EDGE, GUTTER, raisedHeight, SCALE_BOTTOM, STACK_GAP, useStackLayout } from '../components/walk/layout';
 import { useReady } from '../components/walk/useReady';
 import { aboutTimeLeft, formatTimeLeft, paceMps, timeLeftMs } from '../lib/nav/eta';
+import { optionAt } from '../lib/nav/scenic';
 import { useVisible } from '../lib/deletion/useDeletions';
 import { deletions } from '../lib/deletion';
 import { UndoToast } from '../components/UndoToast';
@@ -539,6 +542,22 @@ function WalkScreen(props: { onMinimize: () => void }) {
     setNotice((n) => (n?.maps ? null : n));
     void navigation.goTo(dest);
   };
+  // Scenic routes' preview (SR8): Back (Android) and Escape (web) cancel it, setting no destination.
+  const routePreview = navigation.preview;
+  const dismissPreview = navigation.dismiss;
+  useEffect(() => {
+    if (!routePreview) return;
+    const back = BackHandler.addEventListener('hardwareBackPress', () => {
+      dismissPreview();
+      return true;
+    });
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && dismissPreview();
+    if (Platform.OS === 'web' && typeof window !== 'undefined') window.addEventListener('keydown', onKey);
+    return () => {
+      back.remove();
+      if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
+    };
+  }, [routePreview, dismissPreview]);
   /**
    * Open in Maps (NH3-NH8): the destination to the phone's maps app, straight from the tap (a
    * browser opens a window only from one). Navigation and the walk go on as they were (NH7).
@@ -552,11 +571,25 @@ function WalkScreen(props: { onMinimize: () => void }) {
       () => setNotice({ message: 'Couldn’t open a maps app.', tone: 'error' }),
     );
   };
-  // The route ahead of you only; what is behind is walked.
+  // The route ahead of you only; what is behind is walked. A preview shows its highlighted route whole (SR2).
   const routeLine = useMemo(
-    () => (navigation.nav ? (live.here ? routeAhead(navigation.nav.route.path, live.here) : navigation.nav.route.path) : null),
-    [navigation.nav, live.here],
+    () =>
+      navigation.preview
+        ? navigation.preview.options[navigation.preview.selected].route.path
+        : navigation.nav
+          ? live.here
+            ? routeAhead(navigation.nav.route.path, live.here)
+            : navigation.nav.route.path
+          : null,
+    [navigation.nav, navigation.preview, live.here],
   );
+  // The preview's other routes, faint (SR2), and the map framed around all of them.
+  const alternates = useMemo(
+    () => (navigation.preview ? navigation.preview.options.filter((_, i) => i !== navigation.preview!.selected).map((o) => o.route.path) : null),
+    [navigation.preview],
+  );
+  const previewFit = useMemo(() => (navigation.preview ? boundsOf(navigation.preview.options.flatMap((o) => o.route.path), 30) : null), [navigation.preview]);
+  const previewKey = previewFit ? 300000 + (Math.abs(Math.round((previewFit[0] + previewFit[1]) * 1e5)) % 99999) : 0;
   // Walkability (WK13, WK15): the layer around you, and a quiet line before a stretch built around cars on the route.
   const layers = useLayers();
   const wk = useWalkability(live.here, !!layers.on.walkability);
@@ -1005,7 +1038,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         walkerHeading={live.heading}
         // Not while a route is found: the street read moves the camera itself.
         // Drawing holds the map where it is: a new fix never moves it under a tap (GW8).
-        follow={following && !navigation.finding && !ring && !isDrawing ? live.here : null}
+        follow={following && !navigation.finding && !navigation.preview && !ring && !isDrawing ? live.here : null}
         faint={gapView.faint}
         gapLinks={isDrawing ? undefined : gapView.links}
         drawing={drawing.line}
@@ -1014,6 +1047,12 @@ function WalkScreen(props: { onMinimize: () => void }) {
           // While drawing, every tap is a point along the way (GW3).
           if (isDrawing) {
             drawing.tap(at);
+            return;
+          }
+          // A tap on one of the preview's routes highlights it (SR8); elsewhere it does nothing.
+          if (routePreview) {
+            const i = optionAt(routePreview.options, at, Math.max(15, radiusM * 0.45));
+            if (i != null) navigation.select(i);
             return;
           }
           setSpot(null);
@@ -1041,9 +1080,11 @@ function WalkScreen(props: { onMinimize: () => void }) {
         }}
         marks={marks}
         ring={ring}
-        fitBounds={ringFit}
-        fitKey={ringKey}
-        fitPadding={{ top: insets.top + 24, bottom: drawerH - BAR_H - insets.bottom + 16, left: 24, right: 24 }}
+        fitBounds={previewFit ?? ringFit}
+        fitKey={previewFit ? previewKey : ringKey}
+        fitPadding={previewFit
+          ? { top: insets.top + 24, bottom: cardAt.bottom + 300, left: 24, right: 24 }
+          : { top: insets.top + 24, bottom: drawerH - BAR_H - insets.bottom + 16, left: 24, right: 24 }}
         onUserMove={() => setFollowing(false)}
         onBearingChange={setBearing}
         // A long press, so a stray tap while walking does nothing.
@@ -1054,6 +1095,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
           pressMap(at, radiusM);
         }}
         route={routeLine}
+        alternates={alternates}
         // While navigating the trace steps aside, so the route reads; it is still recorded (the owner's call, Nov 2).
         traceOpacity={navigation.nav ? 0 : 1}
         covered={navigation.finding}
@@ -1382,6 +1424,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
                 onChange={(haptic) => changeSettings({ ...settings, haptic })}
               />
             )}
+            <RouteLeaningSettings sectionStyle={styles.optionSection} />
             <NotificationSettings heading={false} />
             {motionAccess !== 'on' && (
               // Without motion the walk goes on, on the GPS filters alone (Motion, MO2).
@@ -1564,6 +1607,16 @@ function WalkScreen(props: { onMinimize: () => void }) {
               setMemoryView(r);
             }}
             onClose={() => setMemory(null)}
+          />
+        </View>
+      )}
+      {routePreview && !spot && (
+        <View style={[styles.spotRow, cardAt]} pointerEvents="box-none">
+          <RoutePreview
+            preview={routePreview}
+            onSelect={navigation.select}
+            onGo={navigation.choose}
+            onCancel={navigation.dismiss}
           />
         </View>
       )}

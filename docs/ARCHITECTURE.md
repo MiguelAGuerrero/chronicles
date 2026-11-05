@@ -124,6 +124,8 @@ Recording and traces
   useGlidingWalker.ts        runs the glide as a render loop outside React
   traceEnds.ts               where a walk began and ended
   gpsLog.ts                  the raw readings as text for Share GPS log
+  shareLog/                  sharing that text: the share sheet, or a copy on the web (`lib/shareLog`: shell.ts, share.ts, index.ts)
+  unitsStore/                the km or miles setting in meta `units` (`lib/unitsStore`: shell.ts, index.ts)
   lastFix.ts                 the last fix Navigate read, in memory
 Streets, snapping, fog
   streets.ts                 OpenMapTiles road features to street pieces (deriveSegments, streetKey); the only file that knows the road schema
@@ -166,6 +168,10 @@ Navigation (inside a walk)
   nav/useNavigation.ts       routing, re-routing, arrival and the street read on the walk screen
   nav/handoff.ts             Open in Maps: picks the maps app and its links per platform and browser
   nav/openInMaps.ts          opens them with Linking.openURL straight from the tap
+  nav/scenic.ts              scenic routes: who gets the preview, one route per leaning within 30%, the rows in words
+  nav/scenicSignals.ts       green (landcover), sights and busy streets of a corridor; their per-routing indexes
+  nav/scenicRead/            the corridor's tiles and Overture places for a scenic route (shell.ts, index.ts)
+  routeLeanings/             the "Scenic routes" switches in meta `route_leanings` (`lib/routeLeanings`: shell.ts, index.ts)
 Filling gaps
   gaps/rules.ts              GAP_RULES: what counts as a gap, the paces, the budgets
   gaps/infer.ts              gapsOf, the likely way over street pieces (A*), certain / offered / nothing

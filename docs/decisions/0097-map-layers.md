@@ -1,4 +1,4 @@
-# 0096. Map layers: one button, a switch per layer, off unless wanted
+# 0097. Map layers: one button, a switch per layer, off unless wanted
 
 Date: 2026-11-05 · Status: accepted (the build waits on the owner's review of the plan) · Area: map, explore, navigation
 

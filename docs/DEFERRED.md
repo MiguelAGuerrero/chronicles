@@ -12,8 +12,10 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 ## Navigation and routes
 
-- Suggested routes: routes to a destination with detours shaped by preferences (streets with life, things worth seeing), their own later slice, decision 0022 (Positioning)
-- Explore's route preview and "Walk this way", with suggested routes (Positioning)
+- Explore's route preview and "Walk this way": Explore's Walk here and an area's "Walk to its busiest street" start at once, with no scenic preview (Positioning; scenic routes, decision 0095)
+- Scenic routes (decision 0095), left out: a detour via one named stop; a loop with no destination ("back here in 30 min"); choosing a route on the ready screen before Start (the preview comes up as Start records); "Streets new to you" as a leaning; a choice of detour size; water and riversides as green; routes past 5 km
+- Scenic routes: a Sights row in a dense centre often says only "past places to find", since most places there are not yet found and never named (scenic routes, SR4)
+- Scenic routes: a start or destination that snaps onto a street piece not joined to the rest (seen once in the Zurich tiles) finds no route at all, direct or scenic; today's Go here has the same gap (scenic routes)
 - Open in Maps on the Explore mark card (v0.5 navigate, Open in Maps)
 - Open in Maps on the dead-zone nudge (v0.5 navigate, Open in Maps)
 - Open in Maps on the home's Walk here (v0.5 navigate, Open in Maps)
@@ -267,7 +269,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **Wards read as towns where nothing says otherwise** (fix ward-subdivision): Overture has no field separating a ward from a small village with no class and no population. A nested locality like that (Deer Park, IL, inside a township) is dropped, so a walk there is placed in the township (the owner accepted it). A ward whose point's tile has not been read yet is a town until it is (its id is then remembered in meta `outline_nested`).
 - **Remembered ward ids never expire** (fix ward-subdivision audit 11): meta `outline_nested` grows by about 40 bytes per ward ever seen and is rewritten whole; a locality that later gains a class or population stays dropped. `purgeDerived` leaves it alone on purpose (clearing it would reopen the gap until tiles are decoded again). Fine for thousands of ids.
 
-## Map layers and walkability by urban form (specs/map-layers, specs/walkability-urban-form, decisions 0095, 0096)
+## Map layers and walkability by urban form (specs/map-layers, specs/walkability-urban-form, decisions 0096, 0097)
 
 - **The places lift (UF6) is untuned**: 150 weighted places per km² is a starting value with no real places fixture behind it.
 - **The thresholds rest on five places** (`walk/form.ts`); a sixth can disagree. A way to look at the cells (a debug overlay of the signals) is not built.
@@ -288,4 +290,4 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **The Layers button is off-screen in a short landscape web window** (UI audit 10, web only; native is portrait).
 - **The heads-up is not announced by VoiceOver or TalkBack** (UI audit 12): `accessibilityLiveRegion` is Android-only and a node that mounts filled is not announced on the web; native needs an explicit announcement.
 - **Escape also closes an open atlas card or capture viewer** in the same keypress as the Layers panel (UI audit 13).
-
+- **Street-named neighborhoods** (the owner, Nov 5, after "7th Street" was listed as a neighborhood of Allentown): OpenStreetMap names a real neighborhood "7th Street" (Overture's divisions carry it beside "1st Ward", "East Side"), and the tiles' place points bring it in as a neighborhood. The owner chose to leave it. Nothing in `tilePlaces.ts` filters by name; the options weighed were dropping names that end in a street-type word (English suffixes, a re-list with `ATLAS_CODE` a7 and `AREA_RULES` 4) or dropping a name only when the area's own street read has a street of that name.

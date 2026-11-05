@@ -6,7 +6,7 @@
 const path = require('path');
 
 async function checks(h) {
-  const { BASE, browser, ctx, page, start, at, dLat, dLon, names, check, shot, pressedScale, metaOf, drawerTo, tabBarShown, tiles, scriptsDir, onTab, walkMap, walkMarks, walkRoute, walkPts } = h;
+  const { BASE, browser, ctx, page, start, at, dLat, dLon, names, check, shot, pressedScale, metaOf, drawerTo, tabBarShown, tiles, scriptsDir, onTab, walkMap, walkMarks, walkRoute, walkPts, routed } = h;
     // The ready bar pulled up (NR7, NV20-NV24): the choices, each saved as it changes.
     await onTab('navigate');
     await page.waitForSelector('[data-testid=ready-bar]');
@@ -355,7 +355,7 @@ async function checks(h) {
         await page.waitForSelector('[data-testid=mark-card]');
         check(/A place to find/.test(await page.locator('[data-testid=mark-card]').innerText()), 'an unrevealed place’s card does not say what it is');
         await page.click('[data-testid=mark-go]');
-        await page.waitForSelector('[data-testid=nav-bar]', { timeout: 30000 });
+        await routed(page, 30000);
         check(/· A place to find$/.test(await page.locator('[data-testid=nav-left]').innerText()), 'going to a place says "A place to find" until it is revealed');
         // On the way (E22): nothing else is in range of this short route, so no faint marks beyond the target.
         check((await page.locator('[aria-label="A place on the way. Open"]').count()) === 0, 'no faint marks where nothing lies along the route');
@@ -560,7 +560,7 @@ async function checks(h) {
       await page.waitForTimeout(700);
       await page.mouse.up();
       await page.click('[data-testid=go-here]');
-      await page.waitForSelector('[data-testid=nav-bar]', { timeout: 30000 });
+      await routed(page, 30000);
       const left = await navLeft();
       check(left > 50 && left < 1500, `a long press, then Go here, routes over the streets (${left} m)`);
       await shot(page, '03e-go-here');
@@ -608,7 +608,7 @@ async function checks(h) {
       await page.waitForTimeout(1100);
       await press(spot.x, spot.y);
       await page.click('[data-testid=go-here]');
-      await page.waitForSelector('[data-testid=nav-bar]', { timeout: 30000 });
+      await routed(page, 30000);
       const left = await navLeft();
       await page.click('[data-testid=nav-handoff]');
       const fromBar = destOf((await opened()).at(-1));
@@ -743,7 +743,7 @@ async function checks(h) {
 }
 
 async function run(h) {
-  const { page, url } = h;
+  const { page, url, routed } = h;
   await page.goto(url);
   await page.waitForSelector('[data-testid=tab-explore][aria-selected=true]', { timeout: 30000 });
   await checks(h);

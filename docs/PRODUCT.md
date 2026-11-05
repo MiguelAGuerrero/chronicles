@@ -93,8 +93,8 @@ recording bar brings a minimized walk back.
   OpenStreetMap and Overture Maps Places, measured along each street and
   graded against the town itself, so a small town shows where its activity
   centres. Never foot traffic, and never a number.
-- Suggested routes (a route with detours shaped by preferences, a route
-  preview, "Walk this way") are deferred to their own slice.
+- Explore's route preview and "Walk this way" are deferred: Walk here and
+  "Walk to its busiest street" start at once.
 
 ### Navigate (during)
 
@@ -145,6 +145,16 @@ recording bar brings a minimized walk back.
   navigating. Off-route re-routes quietly; arrival says "You're here".
   Bridges and tunnels cross what lies under them without a turn onto it, and a
   route starts on the street you are walking along.
+- **Scenic routes** (decision 0095): on Go here, or a destination set before
+  Start, the app shows Direct beside up to three scenic routes, one per
+  leaning switched on: **Through green** (parks, gardens, woods), **Past the
+  sights** (places worth seeing, of the kinds in "What I'm into") and **Along
+  busy streets**. Each is at most 30% longer. Every row gives its own
+  distance in km or miles, and a scenic row what it passes ("Through green ·
+  360 m · through India Point Park"): never a time or minutes compared, never
+  naming a place not yet found. A tap highlights one on the map; Go starts it; off
+  route it re-routes on the same leaning. Within 5 km; with nothing scenic,
+  the direct way at once. Walk me back stays the shortest way.
 - **Open in Maps** hands the destination to the phone's maps app (Apple Maps
   on iPhone, the Android chooser, Google Maps elsewhere) for walking
   directions, when Chronicles' route is wrong: in the blue bar, on a route
@@ -248,6 +258,8 @@ recording bar brings a minimized walk back.
   test. Permission is asked only from a tap (first pause, a reminder saved, a
   switch turned on), never at launch. On the web, notifications come from a
   service worker and only work while the page is alive.
+- Scenic routes: three switches in the walk settings (Green, Sights, Streets
+  with life), all on by default; all off, Go here goes the direct way.
 - Distances show in km or miles: a "Distances" choice in the walk settings (the ready bar pulled up),
   defaulting from the device's region. It reaches every distance the app shows,
   the scale bar included.
@@ -290,7 +302,8 @@ recording bar brings a minimized walk back.
 | Quality of life round 2: km or miles, time left while navigating, the "Not recording" chip with Open Settings and a retry on return | Shipped (web verified by the qol e2e; native unverified) |
 | Quality of life round 3: rename a walk later, edit a note, photos on their pins, months in the walks list | Shipped (web verified by the qol e2e; native unverified) |
 | Bridges and Open in Maps | Shipped on web, audited (native unverified) |
-| Suggested routes (interesting ways, route preview, "Walk this way") | Deferred, next slice |
+| Scenic routes (Go here offers Direct and one route per leaning: green, sights, streets with life) | Shipped on web (native unverified) |
+| Explore's route preview, "Walk this way" | Deferred |
 | Media editing: crop, rotate, filters, drawing, text, video trim, all saved out | Shipped on web (native unverified; the video module never compiled) |
 | Backup and export of a walk | Code exists, no UI, deferred |
 | Quick capture outside the app (widget, lock screen, share sheet) | Deferred |

@@ -7,7 +7,7 @@ paths:
 ---
 # Walkability
 
-How an area treats someone on foot, judged from how the ground is built and shown as a light blue and a slate tint on the map (a cool pair, never green or orange: the vision review), with words on the area card and a silent heads-up on a route (specs/walkability, specs/walkability-urban-form UF1-UF20, specs/walkability-headsup, decisions 0093, 0095). Never a number.
+How an area treats someone on foot, judged from how the ground is built and shown as a light blue and a slate tint on the map (a cool pair, never green or orange: the vision review), with words on the area card and a silent heads-up on a route (specs/walkability, specs/walkability-urban-form UF1-UF20, specs/walkability-headsup, decisions 0093, 0096). Never a number.
 
 ## What it is
 
