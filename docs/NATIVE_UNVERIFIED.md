@@ -207,6 +207,8 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] The bubbles' column (`maxHeight`, `overflow: hidden`) clipping Android elevation shadows; the card and corner with side safe-area insets in landscape
 - [ ] `tickClock`'s 250 ms cap when iOS suspends JS timers with the app in the background
 - [ ] `toLocaleTimeString` under Hermes against iOS's 24-Hour Time switch (RR8, "the device's own clock format")
+- [ ] fix ios-video (Nov 5): a video card's play effect, still gated on `readyToPlay` on phones, now also runs when an edited video's `VideoPicture` swaps in and seeks to a trim's start before each `play()`; no stutter or double start on a device
+- [ ] The tabs' own `ErrorBoundary` exports (`ScreenError`) on the native tab navigator
 
 
 - **The area card's full-screen drawer** (Nov 4): `AtlasCard`'s `PanResponder` taking the touch from its `ScrollView` when the content is at the top (`onMoveShouldSetPanResponderCapture`), the JS-driven transform, and the tab bar folding away (`lib/tabsHidden`). On a touch browser the page's own scroll may take the touch before the capture does. Never run on a device; the e2e's drawer checks (full flow) use a mouse and did not run in the cloud session (no tiles).
