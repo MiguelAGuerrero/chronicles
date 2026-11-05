@@ -113,6 +113,7 @@ first.
 ## Needs the owner
 
 - **VISION.md and scenic routes:** decision 0095 proposes amending the Shapes rows "Suggested routes" and "Several routes to one point, Apple Maps style" to fit the row per leaning you kept at the gate (Nov 5); only you edit the page.
+- **Vision review (Nov 5, `0a254ba..d0c763f`):** two findings. (1) Opening the scenic preview announces "3 routes to Your spot" (SR14, `useNavigation.ts`): a count said as a numeral, where the page's Always says counts are words (0052); "Three routes to Your spot" would bring it back, but SR14 names the numeral, so it is your call. (2) The page's Never cites "No counts on Explore (NV14)" for tallies, and the test trim retired NV14 with the old tab's drawer (decision 0066); the rule still holds and the atlas checks it (AT11, AT13), so the page could cite AT13 and 0052 instead (a page edit, yours to make).
 - **The vision's open questions** (`docs/VISION.md`, decision 0094): likeness made by you or suggested; voice
   memos searchable on the phone only; the cloud as a mirror or a place where work happens; browse standard, dwell
   diegetic; where "nothing is calculated for you" ends; the found tally on a place's sheet, carried as debt by
