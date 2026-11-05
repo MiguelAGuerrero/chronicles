@@ -187,7 +187,7 @@ export function AtlasCard(props: {
               {onFoot.words ? (
                 <>
                   <Text style={styles.onFoot} testID="atlas-onfoot-words">{onFoot.words}</Text>
-                  <Text style={styles.muted}>From OpenStreetMap and Overture. Where sidewalks aren’t mapped, streets can read worse than they are.</Text>
+                  <Text style={styles.muted}>From OpenStreetMap and Overture. Judged from how the ground is built, so an area can read differently from how it feels.</Text>
                 </>
               ) : (
                 <Text style={styles.muted} testID="atlas-onfoot-reading">Reading the streets…</Text>

@@ -48,6 +48,26 @@ function speedOf(v: string | undefined): number | undefined {
   return Math.round(Number(m[1]) * (m[2] ? 1.609344 : 1));
 }
 
+const STREET_CLASSES = new Set(['residential', 'living_street', 'tertiary', 'unclassified', 'primary', 'secondary', 'trunk', 'motorway']);
+
+/**
+ * UF3: the junctions of a set of ways: the points where two or more streets share a node. Service ways, parking aisles and
+ * footways make none (UF2).
+ */
+export function junctionsFromWays(ways: readonly WayFacts[]): LngLat[] {
+  const touched = new Map<string, { at: LngLat; ways: Set<string> }>();
+  for (const w of ways) {
+    if (!STREET_CLASSES.has(w.cls)) continue;
+    for (const p of w.line) {
+      const k = `${p[0].toFixed(6)},${p[1].toFixed(6)}`;
+      const e = touched.get(k) ?? { at: p, ways: new Set<string>() };
+      e.ways.add(w.id);
+      touched.set(k, e);
+    }
+  }
+  return [...touched.values()].filter((e) => e.ways.size >= 2).map((e) => e.at);
+}
+
 /** WK1b: the ways of an Overpass answer (`out tags geom`). Nodes and ways of fewer than two points are dropped. */
 export function waysFromOverpass(json: { elements?: unknown[] }): WayFacts[] {
   const out: WayFacts[] = [];

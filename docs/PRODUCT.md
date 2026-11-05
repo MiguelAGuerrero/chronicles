@@ -170,20 +170,21 @@ recording bar brings a minimized walk back.
 - Standstills, GPS wander, rides and motion (step detection) are all read
   from the raw fixes at read time; nothing derived is stored as truth.
 
-#### Walkability (before and during)
+#### Map layers and walkability (before and during)
 
-- A switch on the Explore map and the Navigate map shades the stretches the map data suggests need a car to get
-  around: a warm line where a street is built around cars, a faint one where it is mixed, nothing where it is
-  easy on foot. The bands are icons (the pedestrian; with a caution badge; with a car badge) with a tooltip in
-  words. No number, share or rank is shown anywhere.
-- It reads sidewalks, crossings, speeds and road classes from Overture's transportation tiles, falling back to
-  OpenStreetMap through Overpass, and keeps each tile on the device. Where sidewalks are not mapped, the layer
-  says streets can read worse than they are.
-- An open area card (a neighborhood or a town) has an "On foot" line in words ("Mostly easy on foot", "A mix of
-  easy and car-oriented streets", "Mostly built around cars"), read when the card opens; it says nothing where too
-  little is known. The grid's tiles say nothing.
-- While navigating, a quiet line says "Next: a stretch built around cars on <street>" 200 m before one, once,
-  with no sound; it never changes the route.
+- **Layers.** One Layers button on the Explore map and the Navigate map opens a small panel of switches: Walkability, Busy streets and Town
+  borders. Each draws something over the base map and shows its own legend while on. Walkability and Busy streets start off; Town borders start
+  on. One setting for every map, kept across launches.
+- **Walkability** tints the map green where the ground is easy on foot (streets close together, crossings, places along them) and warm where it is
+  built around cars (streets far apart and busy), and nothing in between. It is judged from how the ground is built, so a walkable grid with its
+  sidewalks unmapped still reads walkable; a missing sidewalk never lowers a reading. It comes from Overture's transportation tiles, with
+  OpenStreetMap through Overpass when those can't be read, kept on the device. No number, share or rank is shown anywhere.
+- **Busy streets** is the graded magenta shading of streets with many places along them, now on request on any walk. Turning it on where nothing is
+  remembered reads the area once.
+- An open area card (a neighborhood or a town) has an "On foot" line in words ("Mostly easy on foot", "Mostly built around cars", "A mix of easy
+  and car-oriented streets"), read when the card opens; it says nothing where neither dominates.
+- While navigating, a quiet line says "Next: a stretch built around cars on <street>" before a fast road, or "Next: an area built around cars"
+  as the route enters one, 200 m ahead, once, with no sound; it never changes the route.
 
 ### Chronicle (after)
 

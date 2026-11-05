@@ -8,9 +8,9 @@ import type { Band } from './types';
 
 const WORDS: Partial<Record<Band, string>> = { foot: 'Easy on foot', mixed: 'Mixed', car: 'Built around cars' };
 const WHY: Partial<Record<Band, string>> = {
-  foot: 'a street made for people, or with a sidewalk and calm traffic.',
-  mixed: "a busier street, or one where the sidewalk isn't fully mapped.",
-  car: 'a fast or major road with no sidewalk mapped.',
+  foot: 'streets close together, with crossings, so most things are a short walk.',
+  mixed: 'some of both, or too little mapped to say.',
+  car: 'streets far apart and busy, so a car is likely needed.',
 };
 
 /** The badge on the pedestrian: none for easy on foot (the pedestrian alone), a caution, a car (WK21). */

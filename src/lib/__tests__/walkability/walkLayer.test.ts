@@ -1,10 +1,9 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { walkabilityGeoJSON } from '../../../components/map/types';
 import { tileAt } from '../../tileMath';
 import type { LngLat } from '../../types';
-import { drawFor, routeSegments, tilesAround } from '../../walk/layer';
+import { routeSegments, tilesAround } from '../../walk/layer';
 import { walkTileKey } from '../../walk/match';
 import { waysFromOverpass } from '../../walk/overpass';
 import type { WayFacts } from '../../walk/types';
@@ -18,24 +17,6 @@ let n = 0;
 const way = (cls: string, p: [number, number][], more: Partial<WayFacts> = {}): WayFacts => ({ id: `w${n++}`, cls, level: 0, line: p.map(([x, y]) => at(x, y)), ...more });
 const home = tileAt(O);
 const tiles = (ws: WayFacts[]) => new Map([[walkTileKey(home.x, home.y), ws]]);
-
-test('WK13: only car and mixed stretches are drawn; foot and unknown draw as nothing', () => {
-  const ws = [
-    way('motorway', [[0, 0], [300, 0]]),
-    way('residential', [[0, 100], [300, 100]], { speedKmh: 40 }),
-    way('residential', [[0, 200], [300, 200]], { speedKmh: 40, sidewalk: 'both' }),
-    way('pedestrian', [[0, 300], [300, 300]]),
-    way('service', [[0, 400], [300, 400]]),
-    way('footway', [[0, 700], [300, 700]], { sub: 'sidewalk' }),
-  ];
-  const d = drawFor(tiles(ws));
-  assert.equal(d.car.length, 1);
-  assert.equal(d.mixed.length, 1);
-  const fc = walkabilityGeoJSON(d);
-  assert.deepEqual(fc.features.map((f) => f.properties!.band).sort(), ['car', 'mixed']);
-  assert.equal(walkabilityGeoJSON(null).features.length, 0);
-  assert.ok(d.key.length > 0 && drawFor(tiles(ws)).key === d.key, 'a key that changes only when the picture does');
-});
 
 test('WK15: a route sees the roads of its tiles as named segments with their bands', () => {
   const ws = [way('motorway', [[0, 0], [300, 0]], { name: 'Route 22' }), way('footway', [[0, 8], [300, 8]], { sub: 'sidewalk' })];

@@ -1,4 +1,4 @@
-// Walkability heads-up (WH3, WH7-WH10, WH13): on a routed walk over streets that are all fast roads, a quiet line says a
+// Walkability heads-up (WH3, WH7-WH10, WH13, UF15): on a routed walk over streets that are all fast roads, a quiet line says a
 // stretch built around cars is ahead; nothing buzzes, nothing is pressable, and End takes it away. E2E_ONLY=headsup runs it alone.
 
 async function run(h) {
@@ -57,6 +57,34 @@ async function run(h) {
   check((await pg.locator('[data-testid=walk-ahead]').count()) === 0, 'WH10: End takes the line away');
   walkability.mode = 'ok';
   await c.close();
+
+  // UF15: ground built around cars with no fast road in it: arterial streets at 25 mph. No road stretch can fire, so the
+  // second reason does, in its own words: an area, not a street.
+  walkability.mode = 'arterial';
+  const { c: c2, pg: p2 } = await freshPage('headsup-area', { touch: true });
+  await p2.goto(navUrl);
+  await p2.waitForSelector('[data-testid=start]');
+  await p2.click('[data-testid=start]');
+  await p2.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+  const s1 = at(-0.5, -0.5);
+  await c2.setGeolocation({ longitude: s1[0], latitude: s1[1] + 0.000002, accuracy: 6 });
+  await p2.waitForTimeout(2500);
+  const box2 = await p2.locator('canvas.maplibregl-canvas').last().boundingBox();
+  await p2.mouse.move(box2.x + box2.width / 2 + 90, box2.y + box2.height / 2 - 120);
+  await p2.mouse.down();
+  await p2.waitForTimeout(700);
+  await p2.mouse.up();
+  await p2.click('[data-testid=go-here]');
+  await p2.waitForSelector('[data-testid=nav-bar]', { timeout: 30000 });
+  await p2.waitForSelector('[data-testid=walk-ahead]', { timeout: 45000 }).catch(() => {});
+  const area = (await p2.locator('[data-testid=walk-ahead]').innerText().catch(() => '')).replace(/[^\x20-\x7e]/g, '').trim();
+  check(area === 'Next: an area built around cars', `UF15: entering ground built around cars, with no fast road in it, says an area and not a street, with no number (${JSON.stringify(area)})`);
+  await shot(p2, 'headsup-area');
+  await p2.click('[data-testid=nav-end]');
+  await p2.waitForSelector('[data-testid=nav-bar]', { state: 'detached', timeout: 5000 });
+  check((await p2.locator('[data-testid=walk-ahead]').count()) === 0, 'UF15, WH10: End takes it away');
+  walkability.mode = 'ok';
+  await c2.close();
 }
 
 module.exports = {

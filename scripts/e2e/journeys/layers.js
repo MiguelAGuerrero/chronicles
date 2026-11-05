@@ -71,7 +71,7 @@ async function run(h) {
   // ML5, ML7: a switch moves no other layer, and the setting is one for every map and survives a reload.
   await pg.click('[data-testid=layer-walkability]');
   await pg.waitForFunction(() => (document.querySelector('[data-walk]')?.getAttribute('data-walk') ?? '') !== '', null, { timeout: 30000 }).catch(() => {});
-  check((await attr(pg, 'data-walk')) === 'car:1|mixed:1' && (await on(pg, 'busy')) && (await on(pg, 'borders')), `ML5: Walkability on draws its layer and moves no other (${await attr(pg, 'data-walk')})`);
+  check(/^foot:[1-9]\d*\|car:[1-9]\d*$/.test((await attr(pg, 'data-walk')) ?? '') && (await on(pg, 'busy')) && (await on(pg, 'borders')), `ML5: Walkability on draws its layer and moves no other (${await attr(pg, 'data-walk')})`);
   await pg.click('[data-testid=layer-borders]');
   await pg.reload();
   await pg.waitForSelector('[data-testid=layers]', { timeout: 30000 });
@@ -82,7 +82,7 @@ async function run(h) {
   await openPanel(pg);
   check((await on(pg, 'walkability')) && (await on(pg, 'busy')) && !(await on(pg, 'borders')), 'ML7: Navigate\'s map has the same layers, one setting for every map');
   await pg.waitForFunction(() => (document.querySelector('[data-walk]')?.getAttribute('data-walk') ?? '') !== '', null, { timeout: 30000 }).catch(() => {});
-  check((await attr(pg, 'data-borders')) === '' && /^car:/.test((await attr(pg, 'data-walk')) ?? ''), 'ML3, ML12: Navigate\'s Layers button switches the same drawing (no borders, walkability drawn)');
+  check((await attr(pg, 'data-borders')) === '' && /^foot:/.test((await attr(pg, 'data-walk')) ?? ''), 'ML3, ML12: Navigate\'s Layers button switches the same drawing (no borders, walkability drawn)');
   await shot(pg, 'layers-navigate');
   await pg.click('[data-testid=layer-busy]');
   await pg.waitForFunction(() => (document.querySelector('[data-busy]')?.getAttribute('data-busy') ?? 'x') === '', null, { timeout: 5000 }).catch(() => {});

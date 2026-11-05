@@ -100,15 +100,23 @@ const divisionFeatures = [
     properties: { subtype: 'locality', class: 'land', '@name': 'Central Falls', division_id: 'central-falls', id: 'central-falls-area' } },
 ];
 const divisions = { serve: false };
-// Walkability (WK1, WK13): Overture's transportation tile around the start. A fast primary (car), a tertiary with
-// nothing mapped (mixed), and a calm residential with a sidewalk beside it (easy on foot: drawn as nothing).
+// The Walkability layer (specs/walkability-urban-form): Overture's transportation tile around the start. A dense grid of
+// residential streets 100 m apart with a connector at every crossing, which reads easy on foot, and two long arterials 1.2 km
+// east with next to no junctions, which read built around cars.
 const transportFeatures = [];
 const mph = (v) => JSON.stringify([{ max_speed: { unit: 'mph', value: v }, between: [0, 1] }]);
-const wkSeg = (id, props, a, b) => transportFeatures.push({ type: 'Feature', properties: { id, subtype: 'road', ...props }, geometry: { type: 'LineString', coordinates: [a, b] } });
-wkSeg('wk-fast', { class: 'primary', '@name': 'Route 6', speed_limits: mph(55) }, at(-2, 3), at(2, 3));
-wkSeg('wk-mixed', { class: 'tertiary', '@name': 'Hope Street' }, at(-2, -3), at(2, -3));
-wkSeg('wk-calm', { class: 'residential', '@name': 'Elm Street', speed_limits: mph(25) }, at(-2, 6), at(2, 6));
-wkSeg('wk-walk', { class: 'footway', subclass: 'sidewalk' }, at(-2, 6.1), at(2, 6.1));
+const wkConn = (id, p) => transportFeatures.push({ type: 'Feature', properties: { id }, geometry: { type: 'Point', coordinates: p } });
+const wkSeg = (id, props, a, b, ids = []) => transportFeatures.push({
+  type: 'Feature', properties: { id, subtype: 'road', ...props, connectors: JSON.stringify(ids.map((c, k) => ({ connector_id: c, at: k / Math.max(1, ids.length - 1) }))) },
+  geometry: { type: 'LineString', coordinates: [a, b] },
+});
+const GRID = [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5];
+for (const gx of GRID) for (const gy of GRID) wkConn(`c${gx}_${gy}`, at(gx, gy));
+for (const gy of GRID) wkSeg(`h${gy}`, { class: 'residential', '@name': `Grid ${gy} Street`, speed_limits: mph(25) }, at(-5, gy), at(5, gy), GRID.map((gx) => `c${gx}_${gy}`));
+for (const gx of GRID) wkSeg(`v${gx}`, { class: 'residential', speed_limits: mph(25) }, at(gx, -5), at(gx, 5), GRID.map((gy) => `c${gx}_${gy}`));
+wkConn('far-w', at(14, -2)); wkConn('far-e', at(26, -2));
+wkSeg('far-a', { class: 'primary', '@name': 'Route 6', speed_limits: mph(55) }, at(14, -2), at(26, -2), ['far-w', 'far-e']);
+wkSeg('far-b', { class: 'primary', '@name': 'Route 7', speed_limits: mph(55) }, at(14, 3), at(26, 3), []);
 // The Overpass answer for the same ground, for when Overture can't be read (WK1b).
 const overpassAnswer = { elements: [
   { type: 'way', id: 1, tags: { highway: 'secondary', 'sidewalk:both': 'no', maxspeed: '35 mph', name: 'Route 6' }, geometry: [{ lat: at(0, 3)[1], lon: at(-2, 3)[0] }, { lat: at(0, 3)[1], lon: at(2, 3)[0] }] },
@@ -406,20 +414,25 @@ async function createHarness() {
   const transportArchiveOf = (feats) => {
     const z = 14;
     const keys = new Set();
-    for (const f of feats) for (const [lon, lat] of f.geometry.coordinates) {
+    for (const f of feats) for (const [lon, lat] of (f.geometry.type === 'Point' ? [f.geometry.coordinates] : f.geometry.coordinates)) {
       const x = Math.floor(((lon + 180) / 360) * 2 ** z);
       const y = Math.floor(((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2) * 2 ** z);
       keys.add(`${x},${y}`);
     }
     return encodeArchive([...keys].map((k) => {
       const [x, y] = k.split(',').map(Number);
-      return { z, x, y, data: encodeTile(feats, z, x, y, () => ['segment']) };
+      return { z, x, y, data: encodeTile(feats, z, x, y, (f) => (f.geometry.type === 'Point' ? ['connector'] : ['segment'])) };
     }));
   };
   const transportArchive = transportArchiveOf(transportFeatures);
   const gridTransportArchive = transportArchiveOf(features.filter((f) => f.geometry.type === 'LineString').map((f, i) => ({
     type: 'Feature', geometry: f.geometry,
     properties: { id: `grid-${i}`, subtype: 'road', class: 'primary', ...(f.properties.name ? { '@name': f.properties.name } : {}), speed_limits: mph(55) },
+  })));
+  // The heads-up's second reason (UF15): the same grid as arterial streets at 25 mph, so no fast road, only ground built around cars.
+  const gridSlowArchive = transportArchiveOf(features.filter((f) => f.geometry.type === 'LineString').map((f, i) => ({
+    type: 'Feature', geometry: f.geometry,
+    properties: { id: `slow-${i}`, subtype: 'road', class: 'primary', ...(f.properties.name ? { '@name': f.properties.name } : {}), speed_limits: mph(25) },
   })));
   const overtureAsked = [];
   const overpassAsked = [];
@@ -440,7 +453,7 @@ async function createHarness() {
     const archive = url.pathname === `/tiles/${OVERTURE_RELEASE}/places.pmtiles`
       ? overtureArchive
       : url.pathname === `/tiles/${OVERTURE_RELEASE}/divisions.pmtiles` ? (divisions.serve ? (snapWorld.serve ? snapDivisionsArchive : divisionsArchive) : noDivisions)
-        : url.pathname === `/tiles/${OVERTURE_RELEASE}/transportation.pmtiles` ? (walkability.mode === 'ok' ? transportArchive : walkability.mode === 'grid' ? gridTransportArchive : Buffer.alloc(200, 7)) : null;
+        : url.pathname === `/tiles/${OVERTURE_RELEASE}/transportation.pmtiles` ? (walkability.mode === 'ok' ? transportArchive : walkability.mode === 'grid' ? gridTransportArchive : walkability.mode === 'arterial' ? gridSlowArchive : Buffer.alloc(200, 7)) : null;
     if (archive) {
       const m = /bytes=(\d+)-(\d+)/.exec(req.headers().range ?? '');
       const from = m ? Number(m[1]) : 0;

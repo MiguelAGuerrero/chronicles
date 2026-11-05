@@ -13,9 +13,10 @@ import { WalkBandIcon } from './WalkBandIcon';
 
 /** The legend swatch of each row: the colour the map draws it in (specs/map-layers ML1). */
 const SWATCH: Record<SwatchKey, { color: string; opacity: number; outline?: boolean }> = {
-  foot: { color: '#2f9e44', opacity: 0.55 },
-  mixed: { color: WALK_STYLE.mixed.color, opacity: 0.7 },
-  car: { color: WALK_STYLE.car.color, opacity: 0.8 },
+  // The swatches are the tints at a legible strength: the map draws them very softly over the streets.
+  foot: { color: WALK_STYLE.foot.color, opacity: 0.6 },
+  mixed: { color: '#d97706', opacity: 0.7 },
+  car: { color: WALK_STYLE.car.color, opacity: 0.75 },
   hotspot: { color: HOTSPOT, opacity: 0.85 },
   'border-tint': { color: BORDER.color, opacity: 0.35, outline: true },
   'border-line': { color: BORDER.lined, opacity: 0.9, outline: true },

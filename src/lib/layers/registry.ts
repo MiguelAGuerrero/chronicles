@@ -1,4 +1,5 @@
 // @layer core
+import { bandTip } from '../walk/bandWords';
 
 /*
  * Map layers (specs/map-layers, ML1, ML2): a layer puts some graphics on the base map. A layer is data: its name,
@@ -38,10 +39,10 @@ export const LAYERS: readonly LayerDef[] = [
     icon: 'walk-outline',
     defaultOn: false,
     legend: [
-      { key: 'mixed', text: 'Mixed', swatch: 'mixed', band: 'mixed', tip: "Mixed: a busier street, or one where the sidewalk isn't fully mapped." },
-      { key: 'car', text: 'Built around cars', swatch: 'car', band: 'car', tip: 'Built around cars: a fast or major road with no sidewalk mapped.' },
+      { key: 'foot', text: 'Easy on foot', swatch: 'foot', band: 'foot', tip: bandTip('foot') ?? undefined },
+      { key: 'car', text: 'Built around cars', swatch: 'car', band: 'car', tip: bandTip('car') ?? undefined },
     ],
-    note: "From OpenStreetMap and Overture. Where sidewalks aren't mapped, streets can read worse than they are.",
+    note: "From OpenStreetMap and Overture. Judged from how the ground is built, so an area can read differently from how it feels.",
   },
   {
     id: 'busy',

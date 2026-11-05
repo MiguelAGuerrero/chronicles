@@ -1,7 +1,7 @@
 <!-- Walkability, judged by the urban form of an area (UF). Written in the repo first (2026-11-05) after the owner tried the
      shipped walkability layer: it drew nothing a person could use, and called every area "mostly mixed" (Allentown, whose
      core is very walkable, included). Their calls are in the Decisions list. To be copied into the concept doc as a tab. The
-     doc wins once it exists. DRAFT: waits on the owner's review of this spec and plan.md. -->
+     doc wins once it exists. Built 2026-11-05 (see Record). -->
 
 # Walkability by urban form (UF)
 
@@ -18,21 +18,22 @@ many places sit along the streets. The result is a **tint over areas** of the ma
 - Downtown Allentown's tiles map 610 sidewalk and 705 footway segments, yet of its road length 47 km read easy on foot, 124 km "mixed",
   **0 km** built around cars and 216 km "unknown" (parking aisles, alleys and driveways). The area line said nothing; the map drew 1,091
   faint "mixed" lines and no car stretch, so the legend's second symbol never appeared.
-- How the urban form separates places, over a 600 m circle:
+- How the urban form separates places, within 450 m (street junctions are Overture connectors that two or more streets share):
 
-  | Place | Intersections per km² | Typical street piece | Sidewalk mapped per metre of street |
-  |---|---|---|---|
-  | Allentown downtown | 1,266 | 87 m | 0.66 |
-  | Allentown residential grid | 802 | 104 m | **0.05** |
-  | Lehigh Valley Mall | 424 | 158 m | 0.00 |
-  | Upper Macungie suburb | 310 | 136 m | 0.00 |
-  | Zurich old town | 2,659 | 58 m | 1.14 |
+  | Place | Street junctions per km² | Arterial share of street | Crosswalks per km² | Sidewalk mapped per metre of local street |
+  |---|---|---|---|---|
+  | Allentown downtown | 57 | 0.60 | 77 | 0.97 |
+  | Allentown residential grid | 35 | 0.00 | 38 | 0.11 |
+  | Lehigh Valley Mall | 22 | 0.59 | 0 | 0.00 |
+  | Upper Macungie suburb | 17 | 0.16 | 5 | 0.00 |
+  | Zurich old town | 154 | 0.00 | 75 | 1.00 |
 
-  The residential grid has almost no sidewalk mapped and is still dense and well connected. Intersection density tells the mall and the
-  suburb from the grid; sidewalk tags do not.
-- A prototype of the rule below over a 10 km × 9 km window around Allentown (cells of 250 m) gives a coherent walkable core through
-  downtown and the grids south and west of it, and car-oriented ground at the mall and the outer suburbs. It marks too much of the outskirts
-  car-oriented (about 70% of cells), so its thresholds are starting values, tuned against fixtures (UF4).
+  The residential grid has almost no sidewalk mapped and is still dense and well connected. Junction density tells the mall and the suburb
+  from the grid; sidewalk tags do not. (Counting every Overture connector, which includes each parking aisle and driveway, gave 1,405 per km²
+  downtown and 531 at the mall: a car park looked like a street grid. UF3 counts street junctions only.)
+- The rule below, run over a 10 km × 9 km window around Allentown (cells of 250 m, 25,000 ways, judged in 133 ms), gives one contiguous walkable
+  core through downtown and the grids south and west of it (715 foot, 253 neither, 619 car cells), and car-oriented ground at the mall and
+  the outer suburbs. Its thresholds are starting values pinned by five real fixtures (UF4).
 
 ## Decisions
 
@@ -55,7 +56,7 @@ tiles already read:
 - **Streets:** local streets (residential, living street, tertiary, unclassified) and arterials (primary, secondary, trunk, motorway).
   Service ways (alleys, parking aisles, driveways), paths, steps and anything unclassified are **not streets**: they count for nothing,
   neither in a length nor in a share.
-- **Junction density:** junctions per km². From Overture's `connector` points; from Overpass, the points where ways share a node.
+- **Street junction density:** street junctions per km² (UF3).
 - **Arterial share:** arterial length over all street length.
 - **Crossing and sidewalk evidence:** mapped crosswalks per km², and mapped sidewalk length per metre of local street.
 - **Place density:** the weighted places per km² the activity density already reads (specs/activity-density: Overture and OpenStreetMap places).
@@ -70,19 +71,22 @@ A cell is then one of: **foot**, **car**, **neither** (drawn as nothing), or **e
    gets the same reading whichever other tiles have been read, once its neighbourhood's own tiles are (the WK10 rule, kept).
 2. **UF2 · What counts as a street.** Only local streets and arterials are streets. A service way, path, step or way of unknown class adds
    nothing to a length, a density or a share, so a parking lot never makes a place look unknown or car-oriented by itself.
-3. **UF3 · Junctions come from the data.** Junction density is the count of Overture's connector points in a neighbourhood, per km²; for a
-   tile read from Overpass, the points where two or more ways share a node. A tile with neither (an old cached tile) is read again, never guessed.
-4. **UF4 · The rule, and what pins it.** A cell is **foot** when its junction density is high (a starting value of 600 per km² or more)
-   and its arterial share is at most half; or when it is middling (450 or more) with crosswalks or sidewalks mapped (a starting value of 15
-   crosswalks per km², or 0.3 m of sidewalk per metre of street) and the same share. A cell is **car** when its junction density is low
-   (under 450) with no crossing or sidewalk evidence, or when arterial road is more than 60% of its street. Anything else is **neither**.
-   The starting values are tuned until the fixtures below read as stated, and are changed only with the fixtures:
+3. **UF3 · Street junctions come from the data.** A junction is an Overture connector that two or more **streets** share (local streets and
+   arterials), counted once; a connector only a service way, parking aisle, driveway or footway meets is not one. For a tile read from Overpass, a
+   junction is a node two or more streets share. Connectors sit partway along a segment, so they are read from the connectors the segments list,
+   never from segment ends. A tile with no junction data (a cached tile from before) is read again, never guessed.
+4. **UF4 · The rule, and what pins it.** A cell is **foot** when its street junctions are high (a starting value of 45 or more per km²), or
+   middling (30 or more) with crossings or sidewalks mapped (15 crosswalks per km², or 0.3 m of sidewalk per metre of local street), and its
+   arterial share is at most half, or at most three quarters where crossings or sidewalks are mapped (a downtown's main streets are arterial by
+   class and still walkable). A cell is **car** when arterial road is more than 60% of its street (more than 85% where crossings or sidewalks
+   are mapped), or when its junctions are low (under 30) with no crossing or sidewalk evidence. Anything else is **neither**. The starting values
+   are changed only with the fixtures, which read as stated:
    - downtown Allentown (Hamilton Street at 7th) and the residential grid at 19th and Liberty, sidewalks mostly unmapped: **foot**;
    - Lehigh Valley Mall and an Upper Macungie cul-de-sac suburb: **car**;
    - Zurich's old town: **foot**.
 5. **UF5 · Unmapped is not absent.** No sidewalk or crossing data in a neighbourhood never lowers a cell. Evidence only raises one.
 6. **UF6 · Places lift the middle.** A cell the form rule leaves **neither**, whose neighbourhood holds many places per km² (a starting
-   value tuned with UF4), becomes **foot**. Places never make a cell **car**, and never lift a **car** cell. With no places read, the cell is
+   value of 150 weighted places per km²), becomes **foot**. Places never make a cell **car**, and never lift a **car** cell. With no places read, the cell is
    judged on form alone, and nothing fails.
 7. **UF7 · Too little to say.** A neighbourhood with under 300 m of street is **empty**: drawn as nothing, counted as nothing.
 8. **UF8 · Derived, never stored.** Cells are computed on read from the cached tile facts (specs/walkability WK9) and never stored. The tile
@@ -143,3 +147,29 @@ A cell is then one of: **foot**, **car**, **neither** (drawn as nothing), or **e
 - Slope, lighting, surface, traffic volume, transit stops.
 - The long press on a drawn stretch (specs/walkability WK14, deferred): there are no drawn stretches now; a long press on a tint is its own call.
 - Native credits for the walkability data (as before).
+
+## Record
+
+**Built 2026-11-05**, on branch `claude/walkability-urban-form`, as the Walkability layer of specs/map-layers. Unit tests: `walkForm` (UF4-UF7,
+the five real places), `walkJunctions` (UF3), `walkTint` (UF9, UF12), `walkSummary` (UF12-UF14), `walkAreaAhead` (UF15), `walkReader`,
+`walkNetwork`, `walkOverture` (UF3, UF8), the Db contract (the `junctions` column). The e2e journeys `walkability` (UF3, UF9-UF14), `layers` and
+`headsup` (UF15). Real fixtures: `scripts/fixture-walkability.mjs` writes `walkFixtures.json` from Overture release 2026-10-21.0 (about 450 KB).
+
+Changed while building, so the criteria above read differently than as first written:
+- **UF3: street junctions, not every connector, and not segment ends.** The first cut counted every Overture connector (1,405 per km² downtown,
+  531 at the mall: a car park read as a grid), and a second idea, shared segment ends, found almost none because connectors sit partway along a
+  segment. The criterion now counts connectors two streets share, read from the connectors a segment lists. The thresholds in UF4 moved to the
+  right scale (45 and 30 per km², not 600 and 450).
+- **UF4: arterial tolerance with evidence.** Downtown Allentown's main streets are arterial by class (0.60 share) with crosswalks and sidewalks
+  mapped everywhere; with the first rule it read car. The arterial limits are looser where crossings or sidewalks are mapped.
+- **UF17: reads.** The tile set is now 1.5 km around the map's centre (a cell's whole neighbourhood must be inside the tiles read), and the area card
+  reads the ring plus one neighbourhood beyond it.
+
+Not done, not proven:
+- **UF6's places threshold (150 weighted places per km²) is untuned.** No real places fixture exists; the rule is unit tested with synthetic
+  numbers, and the e2e's fake places never reach it. A real town may lift too many or too few middling cells.
+- **The thresholds are pinned by five places.** A sixth can disagree. They are in one table, `walk/form.ts`.
+- **The tint's look on a phone is seen only on the web build** (soft green and orange over the streets, no seams). Native has never run it.
+- **UF18's 12-tile bound** is checked on 36 real tiles (133 ms for the judging, not the read).
+- **Nothing here has run on a device** (`docs/NATIVE_UNVERIFIED.md`).
+

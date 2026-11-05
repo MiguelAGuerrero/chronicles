@@ -210,6 +210,10 @@ const MIGRATIONS = [
     source TEXT NOT NULL, read_at INTEGER NOT NULL, ways TEXT NOT NULL
   );
   `,
+  // 20: urban form (UF3, UF8): where streets meet, kept beside the ways; a cache, so older rows (code w1) are read again.
+  `
+  ALTER TABLE walk_tile ADD COLUMN junctions TEXT;
+  `,
 ];
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
@@ -635,8 +639,8 @@ export const db: Db = {
     return write(async (t) => {
       for (const r of tiles) {
         await t.runAsync(
-          'INSERT OR REPLACE INTO walk_tile (key, x, y, build, code, source, read_at, ways) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-          r.key, r.x, r.y, r.build, r.code, r.from, r.read_at, JSON.stringify(r.ways),
+          'INSERT OR REPLACE INTO walk_tile (key, x, y, build, code, source, read_at, ways, junctions) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          r.key, r.x, r.y, r.build, r.code, r.from, r.read_at, JSON.stringify(r.ways), JSON.stringify(r.junctions),
         );
       }
     });
@@ -644,9 +648,9 @@ export const db: Db = {
   async getWalkTiles(keys) {
     if (!keys.length) return [];
     const want = [...new Set(keys)].sort();
-    type Row = { key: string; x: number; y: number; build: string; code: string; source: WalkTile['from']; read_at: number; ways: string };
+    type Row = { key: string; x: number; y: number; build: string; code: string; source: WalkTile['from']; read_at: number; ways: string; junctions: string | null };
     const rows = await (await conn()).getAllAsync<Row>(`SELECT * FROM walk_tile WHERE key IN (${want.map(() => '?').join(', ')}) ORDER BY key`, ...want);
-    return rows.map(({ source, ways, ...r }) => ({ ...r, from: source, ways: JSON.parse(ways) }));
+    return rows.map(({ source, ways, junctions, ...r }) => ({ ...r, from: source, ways: JSON.parse(ways), junctions: junctions ? JSON.parse(junctions) : [] }));
   },
   async listLandings() {
     const rows = await (await conn()).getAllAsync<Omit<LandingRow, 'centre' | 'analysis'> & { lon: number; lat: number; analysis: string }>('SELECT * FROM landing');

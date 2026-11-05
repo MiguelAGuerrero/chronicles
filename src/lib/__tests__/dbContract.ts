@@ -84,7 +84,7 @@ export function dbContract(name: string, fresh: () => Promise<Db>) {
   };
   const walkTile = (key: string, read_at = 1): WalkTile => {
     const [x, y] = key.split('/').map(Number);
-    return { key, x, y, build: '2026-10-21.0', code: 'w1', from: 'overture', read_at, ways: [{ id: 'a', cls: 'residential', speedKmh: 40, level: 0, line: [[LON, LAT], [LON + 0.001, LAT]] }] };
+    return { key, x, y, build: '2026-10-21.0', code: 'w2', from: 'overture', read_at, junctions: [[LON, LAT], [LON + 0.0005, LAT]], ways: [{ id: 'a', cls: 'residential', speedKmh: 40, level: 0, line: [[LON, LAT], [LON + 0.001, LAT]] }] };
   };
   const atlasArea = (key: string, listed_at = 1): AtlasArea => ({
     key, level: 'town', name: key, at: [LON, LAT], reachM: 2000, build: 'b1', code: 'a1', listed_at, read_at: null, failed_at: null, profile: null,

@@ -1,4 +1,4 @@
-# Walkability by urban form: plan (for the owner's review, nothing built yet)
+# Walkability by urban form: plan (built 2026-11-05; see the spec's Record for what changed)
 
 Spec: `specs/walkability-urban-form/spec.md` (UF1-UF20). Replaces how the layer, the area card and (in part) the heads-up judge walkability.
 

@@ -1,6 +1,6 @@
 // @layer adapter
 import { tileRect } from '../tileMath';
-import { OVERPASS_URL, overpassQuery, waysFromOverpass } from './overpass';
+import { OVERPASS_URL, junctionsFromWays, overpassQuery, waysFromOverpass } from './overpass';
 import type { WalkSource } from './types';
 
 /*
@@ -24,7 +24,8 @@ export function createOverpassSource(o: { fetch: typeof fetch; now: () => number
           return null;
         }
         if (!res.ok) return null;
-        return { x, y, from: 'overpass', ways: waysFromOverpass(await res.json()) };
+        const ways = waysFromOverpass(await res.json());
+        return { x, y, from: 'overpass', ways, junctions: junctionsFromWays(ways) };
       } catch {
         return null;
       }

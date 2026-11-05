@@ -266,3 +266,15 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 - **Wards read as towns where nothing says otherwise** (fix ward-subdivision): Overture has no field separating a ward from a small village with no class and no population. A nested locality like that (Deer Park, IL, inside a township) is dropped, so a walk there is placed in the township (the owner accepted it). A ward whose point's tile has not been read yet is a town until it is (its id is then remembered in meta `outline_nested`).
 - **Remembered ward ids never expire** (fix ward-subdivision audit 11): meta `outline_nested` grows by about 40 bytes per ward ever seen and is rewritten whole; a locality that later gains a class or population stays dropped. `purgeDerived` leaves it alone on purpose (clearing it would reopen the gap until tiles are decoded again). Fine for thousands of ids.
+
+## Map layers and walkability by urban form (specs/map-layers, specs/walkability-urban-form, decisions 0094, 0095)
+
+- **The places lift (UF6) is untuned**: 150 weighted places per km² is a starting value with no real places fixture behind it.
+- **The thresholds rest on five places** (`walk/form.ts`); a sixth can disagree. A way to look at the cells (a debug overlay of the signals) is not built.
+- **Cells are 250 m squares**: coarse at close zoom. Smoothing or a finer grid is a look-and-feel call for the owner once seen on a phone.
+- **The tint reads about 1.5 km around the map's centre** (a cell needs its whole neighbourhood read), so it fades out near that edge.
+- **Busy streets draw only for remembered areas** and for the one read when the layer is switched on; a very large view shows only what is near.
+- **The unwalked-streets toggle, fog, "?" marks and routes are not layers yet** (the owner chose only walkability, busy streets and town borders).
+- **Layer options** (a busy-grade slider, a tint choice), **ordering and opacity** are not built.
+- **The long press on a drawn stretch (specs/walkability WK14) is retired**: the layer draws areas, not stretches. A long press on a tint is its own call.
+

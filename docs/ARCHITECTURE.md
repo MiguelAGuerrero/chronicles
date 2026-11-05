@@ -200,12 +200,21 @@ Activity density (AD1-AD16)
   activity/reader.ts         OvertureReader and TileMemo: a tile once per release, deadlines, a failed archive reopened
   activity/useOvertureRelease.ts the release known, for screens that judge staleness
   activity/overture.ts       Overture's places by tile (pmtiles, byte ranges); the release check (meta)
-Walkability (WK1-WK23)
+Map layers (ML1-ML13)
+  layers/registry.ts         the list of layers: name, icon, default, legend rows (a layer is data)
+  layers/state.ts            the stored setting decoded and defaulted; the old walk_layer read in once; needsBusyRead
+  layers/shell.ts            createLayers: the state and the panel's open flag as a Store (meta `map_layers`); index.ts is the app's instance
+  layers/busy.ts, useBusyLayer.ts  Busy streets as a layer: the remembered areas and the one read
+  layers/useLayers.ts        the hook the maps call
+Walkability (WK1-WK23, UF1-UF20)
+  walk/form.ts               the rule and its one table of thresholds (judge)
+  walk/cells.ts              cells on a fixed grid, judged from their 450 m neighbourhood through a spatial index
+  walk/tint.ts               the foot and car cells as shapes the map draws, with a key
   walk/types.ts              Band, WayFacts, TileFacts, WalkSource, WalkTile
   walk/bands.ts              the band table (bandOf), WALK_CODE
   walk/match.ts              bandsFor: ways to street segments by tile, EdgeGrid-style index, 35 degrees
   walk/layer.ts              drawFor, routeSegments, tilesAround
-  walk/summary.ts            areaWords, bandLengths (built, not yet shown)
+  walk/summary.ts            cellWords and countCells: an area said in words from its cells (the card's line)
   walk/bandWords.ts          each band's words and badge
   walk/ahead.ts              carStretches, alongRoute, aheadStep, warningLine
   walk/aheadWatch.ts         the heads-up's shell and Store

@@ -7,7 +7,9 @@ import { alongRoute, carStretches, type Stretch } from '../../walk/ahead';
 import { createAheadWatch } from '../../walk/aheadWatch';
 import { chain } from '../../walk/chain';
 import { bandsFor, walkTileKey } from '../../walk/match';
-import { drawFor, drawNow } from '../../walk/layer';
+import { drawNow, routeSegments } from '../../walk/layer';
+import { tintOf } from '../../walk/tint';
+import { cellBounds, type Cell } from '../../walk/cells';
 import { createWalkReader, OVERPASS_KEEP_MS } from '../../walk/reader';
 import { WALK_CODE } from '../../walk/bands';
 import type { Band, TileFacts, WalkSource, WayFacts } from '../../walk/types';
@@ -31,24 +33,22 @@ const edge = (dx: number): LngLat => {
 let n = 0;
 const way = (cls: string, line: LngLat[], more: Partial<WayFacts> = {}): WayFacts => ({ id: `a${n++}`, cls, level: 0, line, ...more });
 
-test('walkability audit 1: a way present in two tiles with different clipped pieces is drawn over both pieces', () => {
+test('walkability audit 1: a way present in two tiles with different clipped pieces is judged over both pieces; the same piece twice is one', () => {
   const x = { id: 'same-road', cls: 'motorway', level: 0 };
   const tiles = new Map<string, WayFacts[]>([
     [A, [{ ...x, line: [edge(-300), edge(0)] }]],
     [B, [{ ...x, line: [edge(0), edge(300)] }]],
   ]);
-  const d = drawFor(tiles);
-  assert.equal(d.car.length, 2, 'each tile\'s piece is drawn');
-  // The same piece in both tiles' buffers is still one line.
-  const twice = drawFor(new Map([[A, [{ ...x, line: [edge(-300), edge(0)] }]], [B, [{ ...x, line: [edge(-300), edge(0)] }]]]));
-  assert.equal(twice.car.length, 1);
+  assert.equal(routeSegments(tiles).segments.length, 2, 'each tile\'s piece');
+  const twice = new Map([[A, [{ ...x, line: [edge(-300), edge(0)] }]], [B, [{ ...x, line: [edge(-300), edge(0)] }]]]);
+  assert.equal(routeSegments(twice).segments.length, 1);
 });
 
 test('walkability audit 1b: a way that overhangs its tile by a little reads the band of the tile it mostly lies in', () => {
   const road = way('motorway', [edge(-300), edge(20)]);
   const bands = bandsFor([{ id: 's', geometry: [road.line], length_m: 320 }], new Map([[A, [road]]]));
   assert.equal(bands.get('s'), 'car', 'its middle is in tile A, not at its last vertex in B');
-  assert.equal(drawFor(new Map([[A, [road]]])).car.length, 1);
+  assert.equal(routeSegments(new Map([[A, [road]]])).bands.get(routeSegments(new Map([[A, [road]]])).segments[0].id), 'car');
 });
 
 test('walkability audit 4: two overlapping reads in different orders ask each tile once', async () => {
@@ -57,7 +57,7 @@ test('walkability audit 4: two overlapping reads in different orders ask each ti
     async read(x, y) {
       calls.push(`${x}/${y}`);
       await new Promise((r) => setTimeout(r, 2));
-      return { x, y, from: 'overture', ways: [] };
+      return { x, y, from: 'overture', ways: [], junctions: [] };
     },
   };
   const r = createWalkReader(fakePorts(), src);
@@ -66,7 +66,7 @@ test('walkability audit 4: two overlapping reads in different orders ask each ti
 });
 
 test('walkability audit 5: the previous drawing stays while the new tiles are read', () => {
-  const D = drawFor(new Map());
+  const D = tintOf([]);
   const prev = { key: 'tiles-a', draw: D };
   assert.deepEqual(drawNow(true, prev, 'tiles-b'), { draw: D, status: 'reading' });
   assert.deepEqual(drawNow(true, prev, 'tiles-a'), { draw: D, status: 'ready' });
@@ -81,7 +81,7 @@ test('walkability audit 6: a read dropped by its screen does not queue its remai
     async read(x, y) {
       calls.push(`${x}/${y}`);
       await new Promise((r) => setTimeout(r, 2));
-      return { x, y, from: 'overture', ways: [] };
+      return { x, y, from: 'overture', ways: [], junctions: [] };
     },
   };
   let stop = false;
@@ -142,7 +142,7 @@ test('walkability audit 10: on a route that retraces itself, the distance along 
 
 test('walkability audit 11: with the source down, a tile from an older Overture release is still used; an unknown build trusts the cache', async () => {
   const p = fakePorts();
-  const row = { key: '1/2', x: 1, y: 2, build: 'rel1', code: WALK_CODE, from: 'overture' as const, read_at: 1, ways: [way('residential', [at(0), at(100)])] };
+  const row = { key: '1/2', x: 1, y: 2, build: 'rel1', code: WALK_CODE, from: 'overture' as const, read_at: 1, junctions: [] as LngLat[], ways: [way('residential', [at(0), at(100)])] };
   await p.db.putWalkTiles([row]);
   let asked = 0;
   const down: WalkSource = { async read() { asked++; return null; } };
@@ -159,7 +159,7 @@ test('walkability audit 11: with the source down, a tile from an older Overture 
 test('walkability audit 12: a hung primary is given up on, so the fallback answers inside the queue; the reader aborts what it abandons', async () => {
   let primarySignal: AbortSignal | undefined;
   const hung: WalkSource = { read: (_x, _y, signal) => { primarySignal = signal; return new Promise<null>(() => {}); } };
-  const ok: WalkSource = { async read(x, y): Promise<TileFacts> { return { x, y, from: 'overpass', ways: [] }; } };
+  const ok: WalkSource = { async read(x, y): Promise<TileFacts> { return { x, y, from: 'overpass', ways: [], junctions: [] }; } };
   const got = await chain(hung, ok, { primaryMs: 20 }).read(1, 2);
   assert.equal(got?.from, 'overpass');
   assert.equal(primarySignal?.aborted, true, 'the abandoned primary was told to stop');
@@ -169,9 +169,7 @@ test('walkability audit 12: a hung primary is given up on, so the fallback answe
   assert.equal(seen?.aborted, true, 'the reader aborts a request it gives up on');
 });
 
-test('walkability audit 13: drawings with equal counts but different geometry have different keys', () => {
-  const a = drawFor(new Map([[A, [way('motorway', [edge(-300), edge(-100)])]]]));
-  const b = drawFor(new Map([[A, [way('motorway', [edge(-250), edge(-50)])]]]));
-  assert.equal(a.car.length, b.car.length);
-  assert.notEqual(a.key, b.key);
+test('walkability audit 13: pictures with equal counts but different ground have different keys', () => {
+  const cell = (i: number, j: number): Cell => ({ i, j, ...cellBounds(i, j), band: 'car' });
+  assert.notEqual(tintOf([cell(100, 5000), cell(102, 5000)]).key, tintOf([cell(300, 5000), cell(302, 5000)]).key);
 });

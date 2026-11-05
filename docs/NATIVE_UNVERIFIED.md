@@ -239,3 +239,13 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] The tooltip's placement (below, right-aligned) on a phone's safe areas, and its hit slop (walkability audit 14)
 
 - [ ] Wards are not towns (fix ward-subdivision): SQLite `outline_tile` rows stored with the `#sub1` release stamp and an old row read again once; meta `outline_nested` written and read through the write queue (a failed write leaves the tile unkept); whether Overture's z10 `division` layer carries the points the decoder needs to find wards there (else a ward's z10 border piece shows until a z12 read finds its id)
+
+## Map layers and walkability by urban form (ML1-ML13, UF1-UF20, decisions 0094, 0095)
+
+- [ ] Migration 20: `walk_tile.junctions`, JSON text, null on rows from before (IndexedDB stores the whole object, no bump)
+- [ ] The Walkability fill layers on MapLibre RN (`walk-foot`, `walk-car`, `fill-antialias: false` for no seams) under the hotspots, fog and trace
+- [ ] The connector decode (`junctionsFromOvertureTile`) and Overpass reads in the native runtime
+- [ ] The Layers button and panel over the native map: its place in the edge column (`layers` slot), the panel opening upward over the walk and over the cards below Explore's short map pane (`overflow: visible`, `zIndex`)
+- [ ] Busy streets as a layer: the one read when switched on (`readArea`), on a phone's network
+- [ ] A map press closing the panel (`layers.closePanel`) through the native map's `onPress`
+

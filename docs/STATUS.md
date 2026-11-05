@@ -60,6 +60,7 @@ what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md
 | Replay rhythm (the replay as a story told by a ceremony; glide to the moments, zip through the rest, tap to hold; RR1-RR22, decisions 0085, 0086; then a loading skeleton and the screen kept awake, RR23-RR24, decision 0087) | shipped 2026-11-04 (web verified by the e2e `replay` journey, against the `/chronicles` build too; native unverified) | branch `claude/replay-rhythm`, 2026-11-04 | `specs/replay-rhythm/spec.md` (repo first) | yes, three rounds at the owner's request (19 findings: 16 fixed, 1 deferred, 2 rejected; 10: 9 fixed, 1 in part; 9: 8 fixed, 1 deferred to the owner) |
 | Town presence (a town graded across its whole outline; its pockets of activity listed as Busy areas; malls count as Shops; TP1-TP12, decision 0089) | built 2026-11-04 (unit tests, typecheck, lint, `npm test`, e2e `outlines`, `grading`, `marks`, `tabs` pass on the web build; native unverified; the tile class names for a mall are unconfirmed) | branch `claude/town-presence-spec` | `specs/town-presence/spec.md` (repo first) | no (decision 0074) |
 | Walkability (a band per street as an icon with a tooltip; the layer on the Explore and Navigate maps; the area card's "On foot" line; a silent heads-up on a navigated route; WK1-WK23, WH1-WH13, decision 0093) | shipped 2026-11-04 (web verified by the e2e `walkability` and `headsup` on the /chronicles build; native unverified) | branch `claude/walkability-spec`, merged 2026-11-04; audit fixes after | `specs/walkability/spec.md`, `specs/walkability-headsup/spec.md` (repo first) | yes (14 findings: 10 fixed, 3 deferred, 1 rejected) |
+| Map layers (one Layers button; Walkability, Busy streets, Town borders; ML1-ML13, decision 0095) and Walkability by urban form (cells judged by street junctions, tinted areas, the card's words, an area-entry heads-up; UF1-UF20, decision 0094) | shipped 2026-11-05 (web verified by the e2e `layers`, `walkability`, `headsup` on the /chronicles build; native unverified) | branch `claude/walkability-urban-form` | `specs/map-layers/spec.md`, `specs/walkability-urban-form/spec.md` (repo first) | no (decision 0074) |
 
 Not a tab, but tracked: **suggested routes** (interesting ways, route preview,
 "Walk this way") are deferred as their own later slice (`749811d` 2026-11-01).
@@ -143,7 +144,6 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 | Session | Branch | Doing |
 |---|---|---|
 | Bug fixes (open since Oct 31) | unknown | unknown |
-| Map layers (one Layers button; Walkability, Busy streets, Town borders; ML1-ML13, decision 0095) then Walkability by urban form (cells, tinted areas, the card's words, an area-entry heads-up; UF1-UF20, decision 0094) | `claude/walkability-urban-form` | specs and plan written Nov 5 after the owner's test of the shipped layer; waits on the owner's review of `specs/walkability-urban-form/plan.md` |
 
 ## Updating this file
 

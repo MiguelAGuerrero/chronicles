@@ -3,13 +3,14 @@ import { useEffect, useRef } from 'react';
 import { tilesNear } from '../tileMath';
 import type { LngLat } from '../types';
 import { useStore } from '../useStore';
-import { alongRoute, carStretches, warningLine } from './ahead';
+import { alongRoute, areaStretches, carStretches, mergeStretches, warningLine } from './ahead';
+import { cellsFor } from './cells';
 import { routeSegments } from './layer';
 import { MAX_TILES } from './limits';
-import { aheadWatch, walkBuild, walkReader } from './walkApp';
+import { aheadWatch, walkBuild, walkPlaces, walkReader } from './walkApp';
 
-/** Tiles within this of the route are read (WK4): the street under it and the footways beside. */
-const ROUTE_TILE_M = 100;
+/** Tiles within this of the route are read (WK4): the street under it, the footways beside, and a cell's whole neighbourhood (UF1). */
+const ROUTE_TILE_M = 500;
 
 /**
  * The quiet heads-up ahead of a stretch built around cars (WK15): the line to show, or null. It reads the
@@ -32,10 +33,15 @@ export function useRouteWarning(route: readonly LngLat[] | null, here: LngLat | 
     let live = true;
     void (async () => {
       const build = await walkBuild().catch(() => null);
-      const read = await walkReader.read(tilesNear([...route], ROUTE_TILE_M, MAX_TILES), build ?? 'unknown', () => !live);
+      const tiles = tilesNear([...route], ROUTE_TILE_M, MAX_TILES);
+      const read = await walkReader.read(tiles, build ?? 'unknown', () => !live);
       if (!live || !read.tiles.size) return;
       const { segments, bands } = routeSegments(read.tiles);
-      aheadWatch.stretches(key, carStretches(route, segments, bands));
+      // Two reasons to speak (UF15): a stretch of fast road, and ground built around cars the route enters.
+      const places = await walkPlaces(tiles, () => !live);
+      if (!live) return;
+      const areas = areaStretches(route, cellsFor(read.tiles, read.junctions, places));
+      aheadWatch.stretches(key, mergeStretches(carStretches(route, segments, bands), areas));
     })();
     return () => {
       live = false;
