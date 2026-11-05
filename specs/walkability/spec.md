@@ -76,7 +76,7 @@ accessible label. The icon differs by shape, never by colour alone.
    later read, after a wait (2 min and 100 m, like route reads).
 4. **WK4 · Reads stay small and polite.** One tile request at a time; at most 12 tiles per read; a tile is
    asked for only when something needs it (an overlay on, a route ahead, a card opened), never for the
-   whole of a walk. The source's busy answers back off instead of retrying at once: for Overpass, a 429, 502, 503 or 504, a 200 whose remark is a runtime error or whose body isn't JSON, or a request that fails or is given up on before an answer. It waits 60 s, twice as long for each busy answer in a row up to 16 min, never less than a Retry-After it can read (up to an hour; on the web the browser usually hides it), and starts over after a good answer. Until the app restarts, it is asked at most 60 times, refused requests included (fix overpass-hardening, the owner, Nov 5).
+   whole of a walk. The source's busy answers back off instead of retrying at once: for Overpass, a 429, 502, 503 or 504, a 200 whose remark is a runtime error or whose body isn't JSON, or a request that fails or is given up on before an answer. It waits 60 s, twice as long for each busy answer in a row up to 16 min, never less than a Retry-After it can read (up to an hour; on the web the browser usually hides it), and starts over after a good answer. It is asked at most 60 times a day (the count starts over a day after its first request), refused requests included (fix overpass-hardening, the owner, Nov 5).
 
 ### Judging a segment
 
