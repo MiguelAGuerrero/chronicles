@@ -9,6 +9,7 @@ import { traceRouteSource } from '../../nav/traceRoute';
 import { timedRuns } from '../../replay';
 import { walkStory } from '../../ceremony/story';
 import { rhythmFrame, rhythmPlan, type RhythmPlan } from '../../ceremony/rhythm';
+import { passedAlong, pocketAlert, type ChecklistItem } from '../../explore/explore';
 import { keptFixes, readTrace, rideRuns, ridingAt, RIDE_RULES, smoothKept, timedRideRuns, traceDistances } from '../../rides';
 import { snap } from '../../snapper';
 import type { Capture, LngLat, StreetSegment, TracePoint } from '../../types';
@@ -223,6 +224,36 @@ test('rides: "on a ride" holds through a stop, and ends once you walk off (R11)'
   const end = walkedOff.at(-1)!;
   assert.equal(ridingAt(tr2, [end.lon, end.lat], end.t), false, 'walked 200 m away');
   assert.equal(ridingAt(readTrace(trip([{ v: WALK, s: 300 }]), 0), here, 300_000), false);
+});
+
+test('R12: on a ride, and at a stop on it, Explore waits: no pocket alert, and nothing passed on the bus is named; walked off, both come back', () => {
+  // 60 s on foot, 120 s on a bus, 90 s at a stop, then 150 s walking off.
+  const ride = trip([{ v: WALK, s: 60 }, { v: BUS, s: 120 }, { v: 0, s: 90 }], { reported: true });
+  const busEnd = 60 * WALK + 120 * BUS;
+  const off = trip([{ v: WALK, s: 150 }], { t0: ride.at(-1)!.t + 1000, from: [busEnd, 0], reported: true });
+  const place = (key: string, x: number): ChecklistItem => ({ key, area_key: null, name: key, category: 'history', kind: 'monuments', at: at(x, 20), generic: false });
+  // One beside the bus's line, halfway along it; one beside the walk off, 100 m on.
+  const items = [place('Bus-side Memorial', 60 * WALK + 60 * BUS), place('Walk-side Memorial', busEnd + 100)];
+  const alert = (riding: boolean) => pocketAlert({ exploring: true, haptic: true, riding, previewing: false, nearKeys: ['Bus-side Memorial'], alerted: new Set() });
+  const fixAt = (pts: TracePoint[]): LngLat => [pts.at(-1)!.lon, pts.at(-1)!.lat];
+
+  // Mid-ride and at the stop: riding, so the screens' gates (the pocket alert, the read, the naming,
+  // the fog, the dead-zone count, re-routing) all take the ride's word.
+  const midRide = ride.filter((p) => p.t <= 120_000);
+  assert.equal(ridingAt(readTrace(midRide, 0), fixAt(midRide), midRide.at(-1)!.t), true, 'on the bus');
+  const atStop = readTrace(ride, 0);
+  assert.equal(ridingAt(atStop, fixAt(ride), ride.at(-1)!.t), true, 'at a stop on it');
+  assert.deepEqual(alert(true), { mark: [], nudge: false }, 'no pocket alert on a ride');
+  // The replay names what the walked fixes passed (summary.ts): the bus's fixes are not walked ones.
+  const named = (tr: ReturnType<typeof readTrace>) =>
+    passedAlong({ items, fixes: tr.walked.map((p) => ({ at: [p.lon, p.lat] as LngLat, t: p.t })), since: 0, hidden: new Set(), foundHere: new Set() }).map((i) => i.key);
+  assert.deepEqual(named(atStop), [], 'riding past a place names nothing');
+
+  // Walked off: not riding, and Explore is back.
+  const all = [...ride, ...off];
+  assert.equal(ridingAt(readTrace(all, 0), fixAt(off), off.at(-1)!.t), false, 'walked off');
+  assert.equal(alert(false).nudge, true, 'the pocket alert comes back on foot');
+  assert.deepEqual(named(readTrace(all, 0)), ['Walk-side Memorial'], 'walking past names it; the bus-side place still not');
 });
 
 test('rides: weak GPS is judged on fixes inside the accuracy gate, not the speed gate (R11)', () => {
