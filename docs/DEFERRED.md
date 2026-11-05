@@ -276,5 +276,10 @@ An item leaves only when it ships, or when it is rejected with a decision record
   - **A thread from more than one word** (a phrase, a meaning), and languages other than English (the stop-word list in `terms.ts`).
   - **A nudge** ("a year ago today") as a local notification.
   - **A memo played in its card**: a card opens the viewer, which plays it, so a browser's sound rule is met by the tap.
-- **The Map section forgets its camera and the sheet's height across tabs** (resurfaced moments, RM1): Chronicle opens on Memories after another tab, which takes the map down, so NV3's kept view now holds across a replay only. Keeping the camera in the section store is small; the owner's call whether the Map should remember.
+- **The Map section keeps its camera across tabs, but not the sheet's height** (resurfaced moments audit 8): the camera and the framed places are kept in the section store while the app is open; the sheet comes back at its resting height.
 - **Placing old walks waits for the map** (resurfaced moments, RM1): the pass that places walks without places (`lib/backlog`) reads them through the home map, which is mounted only for Walks, Days and Map. With Chronicle opening on Memories, a walk made before places existed is placed the first time one of those sections opens. Memories needs no place for its words, so nothing shows wrong; its cards simply have no place line until then.
+- **Resurfaced moments audit** (`specs/resurfaced-moments/spec.md`, Audit):
+  - **Other languages, "buses" and "bus", the `fall` alias** (audit 6): `terms.ts` is English only; a Spanish note makes a thread of "los". A language-aware stop list and stemmer is its own change.
+  - **Android's Back on a thread** (audit 14): a thread is local state, not a route, so Back leaves Chronicle. Native, unverified.
+  - **A cliff at the "too common" rule** (audit 15): at ten moments a term in five stops being a thread. A smoother rule needs the owner's idea of "too common".
+  - **Merging with main** (audit 16): main wraps Chronicle in the tab `ErrorBoundary`; the new default export must sit inside it after the merge.

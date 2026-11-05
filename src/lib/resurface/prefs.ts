@@ -45,3 +45,32 @@ export function parsePrefs(v: unknown): Prefs | null {
     lastShown: typeof o.lastShown === 'string' ? o.lastShown : null,
   };
 }
+
+/** One choice, as it was made: the choices before and after it, so Undo can take back that choice alone (audit 2). */
+export interface PrefsChange {
+  before: Prefs;
+  after: Prefs;
+  /** False when keeping it failed: it shows for this open and is gone after a reload (audit 10). */
+  saved: boolean;
+}
+
+const without = (xs: string[], before: string[], after: string[]) => xs.filter((x) => !(after.includes(x) && !before.includes(x)));
+
+/** `current` with only what `change` added taken out again; later choices stay. Pure. */
+export function revertChange(current: Prefs, change: { before: Prefs; after: Prefs }): Prefs {
+  const { before, after } = change;
+  const renames = { ...current.renames };
+  for (const k of new Set([...Object.keys(before.renames), ...Object.keys(after.renames)])) {
+    if (before.renames[k] === after.renames[k] || current.renames[k] !== after.renames[k]) continue;
+    if (before.renames[k] === undefined) delete renames[k];
+    else renames[k] = before.renames[k];
+  }
+  return {
+    ...current,
+    hidden: without(current.hidden, before.hidden, after.hidden),
+    dim: without(current.dim, before.dim, after.dim),
+    less: without(current.less, before.less, after.less),
+    removed: without(current.removed, before.removed, after.removed),
+    renames,
+  };
+}

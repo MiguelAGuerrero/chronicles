@@ -30,8 +30,7 @@ export function whenLine(t: number, now: number): string {
   if (d < 35) return `${cap(numberWord(Math.floor(d / 7)))} weeks ago`;
   const month = MONTHS[new Date(t).getMonth()];
   const years = new Date(now).getFullYear() - new Date(t).getFullYear();
-  if (d < 365 && years === 0) return `In ${month}`;
-  if (d < 365) return `In ${month}`;
+  if (years === 0) return `In ${month}`;
   return years <= 1 ? `${month} last year` : `${month}, ${numberWord(years)} years ago`;
 }
 
@@ -47,7 +46,8 @@ export function labelFor(reason: Reason, t: number, now: number): string {
     case 'thread':
       return `You keep coming back to ${reason.name.toLowerCase()}`;
     case 'older':
-      return 'A while ago';
+      // A moment from the last weeks is said by its day; "a while ago" is for the long ago.
+      return daysAgo(t, now) < 35 ? whenLine(t, now) : 'A while ago';
   }
 }
 

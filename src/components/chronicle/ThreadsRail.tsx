@@ -16,18 +16,20 @@ export function ThreadsRail(props: { threads: Thread[]; moments: Map<string, Mom
         <Text style={styles.h} accessibilityRole="header">Threads</Text>
         <Text style={styles.sub}>Things you keep coming back to</Text>
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row} style={styles.scroll}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row} style={styles.scroll} role="list">
         {props.threads.map((t) => {
           const photo = t.momentIds.map((id) => props.moments.get(id)).find((m) => m?.kind === 'photo');
           const line = threadLine(t, props.now);
           return (
-            <Pressable key={t.term} testID="thread-tile" accessibilityRole="button" accessibilityLabel={`${t.name}. ${line}`} onPress={() => props.onOpen(t)} style={styles.tile}>
+            <View key={t.term} role="listitem">
+            <Pressable testID="thread-tile" accessibilityRole="button" accessibilityLabel={`${t.name}. ${line}`} onPress={() => props.onOpen(t)} style={styles.tile}>
               {photo ? <MomentPicture capture={photo.capture} style={styles.art} /> : <View style={[styles.art, styles.plain]} />}
               <View style={styles.tx}>
                 <Text style={styles.name} numberOfLines={1}>{t.name}</Text>
                 <Text style={styles.line} numberOfLines={2}>{line}</Text>
               </View>
             </Pressable>
+            </View>
           );
         })}
       </ScrollView>

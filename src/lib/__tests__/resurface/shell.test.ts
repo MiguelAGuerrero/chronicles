@@ -58,9 +58,9 @@ test('RM20, RM21: Not this one and Show less like this are kept in one meta key,
 
 test('RM20: Undo puts the choices back, in the store and in meta', async () => {
   const { p, r } = await seeded();
-  const before = await r.hide('n3');
+  const change = await r.hide('n3');
   assert.deepEqual(r.store.get().prefs.hidden, ['n3']);
-  await r.undo(before);
+  await r.undo(change);
   assert.deepEqual(r.store.get().prefs.hidden, []);
   const again = createResurface(p);
   await again.load();

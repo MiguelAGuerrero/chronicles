@@ -244,3 +244,4 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] `SafeAreaInsetsContext` with a zero top for the map sections, under the section bar: the map's fit padding, the banner and the Undo pill start in the right place
 - [ ] A photo's small copy in a card and a thread tile (`thumbShown`), and a card whose file is gone
 - [ ] The meta key `resurface_prefs` through the single write queue (a JSON value, rewritten whole on each choice)
+- [ ] Resurfaced moments audit: the Map section starting from a kept camera (`initialCenter`/`initialZoom` from `chronicleSection.keptMap`) and not framing the places again; the threads rail's `role="list"` read by VoiceOver and TalkBack; Android's hardware Back on a thread (leaves Chronicle); the toast's Undo at 44 px over the tab bar

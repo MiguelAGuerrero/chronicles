@@ -35,7 +35,7 @@ export function SectionBar(props: { section: Section; onChange: (s: Section) => 
 
 const styles = StyleSheet.create({
   bar: { flexDirection: 'row', gap: 6, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: theme.bg },
-  tab: { minHeight: 40, paddingHorizontal: 14, borderRadius: 999, justifyContent: 'center', borderWidth: 1, borderColor: theme.line, backgroundColor: theme.surface },
+  tab: { minHeight: 44, paddingHorizontal: 14, borderRadius: 999, justifyContent: 'center', borderWidth: 1, borderColor: theme.line, backgroundColor: theme.surface },
   on: { backgroundColor: theme.ink, borderColor: theme.ink },
   label: { color: theme.ink, fontSize: 14, fontWeight: '600' },
   labelOn: { color: theme.bg },

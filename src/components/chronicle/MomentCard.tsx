@@ -41,7 +41,7 @@ export function MomentCard(props: {
               <Text style={styles.memoText}>{Number.isFinite(memo) && memo > 0 ? `Voice memo, ${formatElapsed(memo)}` : 'Voice memo'}</Text>
             </View>
           )}
-          {m.words ? <Text style={[styles.words, m.kind === 'text' && styles.note]}>{m.words}</Text> : null}
+          {m.words ? <Text style={[styles.words, m.kind === 'text' && styles.note]} numberOfLines={10}>{m.words}</Text> : null}
           <Text style={styles.meta}>{[m.place, whenLine(m.t, now)].filter(Boolean).join(' · ')}</Text>
         </View>
       </Pressable>

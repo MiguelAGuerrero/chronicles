@@ -91,6 +91,13 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
   // A fit may bring its own frame (the walks list's zoom-out, framed above the sheet it opens to).
   const [fit, setFit] = useState<{ bounds: Bounds | null; key: number; padding?: { top: number; right: number; bottom: number; left: number }; maxZoom?: number }>({ bounds: null, key: 0 });
   const { focused, cameraNow, savedCamera, onCameraChange, areaH, onFitSettled } = useTabMap({ key: fit.key, refit: () => setFit((f) => ({ ...f, key: f.key + 1 })) });
+  // On leaving (a tab, another section), the view is kept for the next time the map is shown (audit 8).
+  useEffect(
+    () => () => {
+      chronicleSection.keepMap({ camera: cameraNow.current ?? chronicleSection.keptMap()?.camera ?? null, fittedTo: fittedTo.current });
+    },
+    [cameraNow],
+  );
   const screenH = areaH;
   const [placing, setPlacing] = useState<{ done: number; of: number } | null>(null);
   const [selected, setSelected] = useState<Star | null>(null);
@@ -98,7 +105,9 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
   const [spot, setSpot] = useState<LngLat | null>(null);
   // The map refits only when the places walked change (a new walk, a pass),
   // never just for coming back: a replay keeps the view you left (H5).
-  const fittedTo = useRef('');
+  // Kept while the app is open, so the section comes back where it was (audit 8): the framed places, and the camera below.
+  const kept = chronicleSection.keptMap();
+  const fittedTo = useRef(kept?.fittedTo ?? '');
   // The place view's found places (E10).
   const [checklists, setChecklists] = useState<ChecklistArea[]>([]);
   const [finds, setFinds] = useState<Find[]>([]);
@@ -400,8 +409,8 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
             fitPadding={fit.padding ?? { top: insets.top + 60, right: 48, bottom: sheetH + 96, left: 48 }}
             // A fit to one short walk stops around z15, not at street-sign zoom (tabs audit U15).
             fitMaxZoom={Math.min(fit.maxZoom ?? FIT_MAX_ZOOM, FIT_MAX_ZOOM)}
-            initialCenter={savedCamera?.center ?? WORLD.center}
-            initialZoom={savedCamera?.zoom ?? WORLD.zoom}
+            initialCenter={savedCamera?.center ?? kept?.camera?.center ?? WORLD.center}
+            initialZoom={savedCamera?.zoom ?? kept?.camera?.zoom ?? WORLD.zoom}
             onCameraChange={onCameraChange}
             covered={placing != null}
             attributionTop

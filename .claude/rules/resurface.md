@@ -18,3 +18,7 @@ Chronicle opens on Memories: one resurfaced moment, the threads the user keeps c
 - **Views never import `db`.** A note edited in the viewer goes through `resurface.saveNote`; an edit through `captureEdits` and then `resurface.patch`.
 - **E2E:** older journeys that expect the map open Chronicle with `tabTo(pg, 'chronicle')`, which now clicks Map when Memories is up; `tabTo(pg, 'chronicle', 'memories')` stays on Memories.
 - **A tapped reminder opens on Memories too** (NV13): `MemoriesScreen` carries the same `onRecallOpen` handler and cold-start `takeRecallOpen` as the map's screen, since only one of the two is mounted. If you change one, change both.
+- **Choices are written in a chain and Undo is per choice** (audit 2, 3, 10): each choice returns a `PrefsChange { before, after, saved }`; `undo(change)` removes only what that change added (`revertChange`), so a later rename or hide stays. A read waits for pending writes, and the newest read wins.
+- **A new open and a refresh differ** (audit 4): `load()` starts a new open (a new seed, the top card first); `refresh()` reads again and keeps the open's seed, order and place. `useResurface` loads when `chronicleSection.visit()` changed (the app was elsewhere), else refreshes.
+- **The Map keeps its view** (audit 8): `ChronicleMap` saves its camera and framed places into `chronicleSection.keepMap` as it unmounts and starts from them.
+- **Lately** puts what was kept in the last day first (the owner's call), then week by week with threads leading.

@@ -4,7 +4,7 @@ import { createStore, type Store } from '../store';
 import type { Ports } from '../ports/types';
 import type { Capture, Walk } from '../types';
 import { DEFAULT_EXTRACTORS, signalsOf } from './extractors';
-import { EMPTY_PREFS, hideMoment, lessLike, parsePrefs, removeThread, renameThread, shown } from './prefs';
+import { EMPTY_PREFS, hideMoment, lessLike, parsePrefs, removeThread, renameThread, revertChange, shown, type PrefsChange } from './prefs';
 import type { MomentView, Prefs, SignalExtractor } from './types';
 import { toMomentViews, wordsOf } from './views';
 
@@ -51,37 +51,47 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
     }
   }
 
-  /** Sets the choices at once, then keeps them. A write that fails leaves them on screen for this open. */
-  async function setPrefs(next: Prefs): Promise<Prefs> {
+  // Choices are written one after another, and a read waits for them (audit 3).
+  let writes: Promise<unknown> = Promise.resolve();
+  // The newest read wins: an older one that finishes late is dropped (audit 3).
+  let generation = 0;
+
+  /** Sets the choices at once, then keeps them; says whether they were kept (audit 10). */
+  function setPrefs(next: Prefs): Promise<PrefsChange> {
     const before = store.get().prefs;
     store.set((s) => ({ ...s, prefs: next }));
-    await p.db.setMeta(PREFS_KEY, JSON.stringify(next)).catch(() => {});
-    return before;
+    const saved = writes.then(() => p.db.setMeta(PREFS_KEY, JSON.stringify(next)).then(() => true, () => false));
+    writes = saved;
+    return saved.then((ok) => ({ before, after: next, saved: ok }));
+  }
+
+  /** Reads the moments and the choices; `open` also starts a new open (a new seed, the top card first). */
+  async function read(open: boolean): Promise<void> {
+    const mine = ++generation;
+    try {
+      await writes;
+      const [prefs, captures, walks] = await Promise.all([readPrefs(), p.db.capturesBetween(0, Number.MAX_SAFE_INTEGER), p.db.listWalks()]);
+      if (mine !== generation) return;
+      store.set((s) => ({
+        status: 'ready',
+        moments: toMomentViews(captures, walks, opts.transcript),
+        walks: Object.fromEntries(walks.map((w) => [w.id, w])),
+        prefs: { ...EMPTY_PREFS, ...prefs },
+        seed: open ? String(p.clock.now()) : s.seed,
+        index: open ? 0 : s.index,
+        lastShownAtOpen: open ? prefs.lastShown ?? null : s.lastShownAtOpen,
+      }));
+    } catch {
+      if (mine === generation) store.set((s) => ({ ...s, status: 'failed' }));
+    }
   }
 
   return {
     store,
-    /** On every open of Memories: the choices first (RM21), then the moments. */
-    async load(): Promise<void> {
-      try {
-        const [prefs, captures, walks] = await Promise.all([
-          readPrefs(),
-          p.db.capturesBetween(0, Number.MAX_SAFE_INTEGER),
-          p.db.listWalks(),
-        ]);
-        store.set({
-          status: 'ready',
-          moments: toMomentViews(captures, walks, opts.transcript),
-          walks: Object.fromEntries(walks.map((w) => [w.id, w])),
-          prefs: { ...EMPTY_PREFS, ...prefs },
-          seed: String(p.clock.now()),
-          index: 0,
-          lastShownAtOpen: prefs?.lastShown ?? null,
-        });
-      } catch {
-        store.set((s) => ({ ...s, status: 'failed' }));
-      }
-    },
+    /** On every open of Memories, coming from elsewhere: the choices first (RM21), then the moments, in a new order. */
+    load: () => read(true),
+    /** Reads again within the same open (a delete, coming back from a replay): the top card and its order stay (audit 4). */
+    refresh: () => read(false),
     /** Whether a walk is open: a reminder waiting from a cold start opens on the walk then, else on Memories (NV13). */
     async openWalk(): Promise<boolean> {
       return !!(await p.db.getOpenWalk().catch(() => null));
@@ -96,10 +106,10 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
       if (prefs.lastShown === id) return;
       await setPrefs(shown(prefs, id));
     },
-    /** Not this one (RM20). Returns the choices as they were, for Undo. */
+    /** Not this one (RM20). Returns the change, for Undo and to say whether it was kept. */
     hide: (id: string) => setPrefs(hideMoment(store.get().prefs, id)),
     /** Show less like this (RM20): the moment, and the terms it is about. */
-    less(id: string): Promise<Prefs> {
+    less(id: string): Promise<PrefsChange> {
       const m = store.get().moments.find((x) => x.id === id);
       const terms = m ? signalsOf(m, extractors).map((s) => s.term) : [];
       return setPrefs(lessLike(store.get().prefs, id, terms));
@@ -123,9 +133,9 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
       captureBus.patch(c.walk_id, c.id, { body }, null);
       this.patch(c.id, { body });
     },
-    /** Puts the choices back as they were (RM20's Undo). */
-    async undo(before: Prefs): Promise<void> {
-      await setPrefs(before);
+    /** Takes back that one choice (RM20's Undo); choices made since stay (audit 2). */
+    async undo(change: PrefsChange): Promise<void> {
+      await setPrefs(revertChange(store.get().prefs, change));
     },
   };
 }

@@ -1,13 +1,13 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { captureEdits } from '../../lib/captureEdits';
 import { dayKey } from '../../lib/days';
 import { LATELY_PAGE, lately } from '../../lib/resurface/feed';
 import { resurface } from '../../lib/resurface';
 import { useResurface } from '../../lib/resurface/useResurface';
-import type { MomentView, Prefs, Thread } from '../../lib/resurface/types';
+import type { PrefsChange } from '../../lib/resurface/prefs';
+import type { MomentView, Thread } from '../../lib/resurface/types';
 import { onRecallOpen, recallWaiting, takeRecallOpen } from '../../lib/discovery/recallCheck';
 import { useOpenWalkInfo } from '../OpenWalk';
 import { UndoToast } from '../UndoToast';
@@ -28,7 +28,6 @@ const stepIndex = (s: { index: number }) => s.index;
 
 /** Chronicle's Memories (RM4-RM21): the resurfaced moment, the threads, and Lately. */
 export function MemoriesScreen() {
-  const insets = useSafeAreaInsets();
   const { state, feed, now } = useResurface();
   const index = useStore(resurface.store, stepIndex);
   const [limit, setLimit] = useState(LATELY_PAGE);
@@ -72,7 +71,7 @@ export function MemoriesScreen() {
       };
     }, []),
   );
-  const [toast, setToast] = useState<{ msg: string; before: Prefs } | null>(null);
+  const [toast, setToast] = useState<{ msg: string; change: PrefsChange } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const byId = useMemo(() => new Map(feed.moments.map((m) => [m.id, m])), [feed.moments]);
@@ -92,9 +91,10 @@ export function MemoriesScreen() {
   const thread = threadTerm ? feed.threads.find((t) => t.term === threadTerm) ?? null : null;
   const page = useMemo(() => lately(feed.moments, feed.threads, now, limit), [feed.moments, feed.threads, now, limit]);
 
-  const say = (msg: string, before: Prefs) => {
+  const say = (msg: string, change: PrefsChange) => {
     if (timer.current) clearTimeout(timer.current);
-    setToast({ msg, before });
+    // A choice that could not be kept shows for now, and the toast says so (audit 10).
+    setToast({ msg: change.saved ? msg : `${msg} It may not be remembered next time.`, change });
     timer.current = setTimeout(() => setToast(null), TOAST_MS);
   };
   const open = (m: MomentView) => setViewing([m.capture]);
@@ -135,7 +135,7 @@ export function MemoriesScreen() {
           onRename={(name) => void resurface.rename(thread.term, name)}
           onRemove={() => {
             setThreadTerm(null);
-            void resurface.removeThread(thread.term).then((before) => say('Okay, that is not a thread.', before));
+            void resurface.removeThread(thread.term).then((change) => say('Okay, that is not a thread.', change));
           }}
         />
       </ScrollView>
@@ -189,12 +189,12 @@ export function MemoriesScreen() {
         onLess={() => {
           const id = menuFor;
           setMenuFor(null);
-          if (id) void resurface.less(id).then((before) => say('Okay, less like this.', before));
+          if (id) void resurface.less(id).then((change) => say('Okay, less like this.', change));
         }}
         onHide={() => {
           const id = menuFor;
           setMenuFor(null);
-          if (id) void resurface.hide(id).then((before) => say('Okay, not this one.', before));
+          if (id) void resurface.hide(id).then((change) => say('Okay, not this one.', change));
         }}
         onOpen={() => {
           const m = menuMoment;
@@ -203,17 +203,17 @@ export function MemoriesScreen() {
         }}
       />
       {toast && (
-        <View style={[styles.toast, { bottom: 16 + insets.bottom * 0 }]} accessibilityLiveRegion="polite" testID="memories-toast">
+        <View style={styles.toast} accessibilityLiveRegion="polite" testID="memories-toast">
           <Text style={styles.toastText}>{toast.msg}</Text>
           <Pressable
             testID="memories-undo"
             accessibilityRole="button"
             accessibilityLabel="Undo"
-            hitSlop={10}
+            style={styles.undoHit}
             onPress={() => {
-              const before = toast.before;
+              const change = toast.change;
               setToast(null);
-              void resurface.undo(before);
+              void resurface.undo(change);
             }}
           >
             <Text style={styles.undo}>Undo</Text>
@@ -256,7 +256,8 @@ const styles = StyleSheet.create({
   hint: { color: theme.muted, fontSize: 14, borderWidth: 1, borderStyle: 'dashed', borderColor: theme.line, borderRadius: 14, padding: 12 },
   quiet: { padding: 24, gap: 14, alignItems: 'flex-start' },
   quietText: { color: theme.ink, fontSize: 16, lineHeight: 23 },
-  toast: { position: 'absolute', left: 16, right: 16, alignSelf: 'center', maxWidth: 480, backgroundColor: theme.ink, borderRadius: 14, paddingHorizontal: 16, minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  toast: { position: 'absolute', bottom: 16, left: 16, right: 16, alignSelf: 'center', maxWidth: 480, backgroundColor: theme.ink, borderRadius: 14, paddingHorizontal: 16, minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   toastText: { color: theme.bg, fontSize: 14, flex: 1 },
-  undo: { color: '#ffb48a', fontSize: 14, fontWeight: '700' },
+  undo: { color: '#ffb48a', fontSize: 14, fontWeight: '700', paddingHorizontal: 8 },
+  undoHit: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
 });

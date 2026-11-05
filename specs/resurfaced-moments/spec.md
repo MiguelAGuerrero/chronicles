@@ -15,6 +15,7 @@ Chronicle is for remembering. Today it opens on a map and a sheet of walks, and 
 - Choices (Less like this, Not this one, a renamed or removed thread) are kept in the meta store: no migration.
 - Nothing is a score. Counts are said in words. A thread is ranked by how it recurs over time, and no rank, weight or count is ever shown.
 - Local only: everything is derived on the phone from captures.
+- After the audit (Nov 5): the Map section remembers its camera while the app is open (so Map, Walks and Days come back where they were); and what was kept in the last day heads Lately, newest first (RM17), so a walk just finished is at the top (RM3).
 - Search and the map lens are the next slice. Threads, search and the map lens share the signals this slice defines.
 
 ## Criteria
@@ -46,7 +47,7 @@ Chronicle is for remembering. Today it opens on a map and a sheet of walks, and 
 
 ### Lately
 
-17. **RM17** Lately lists moments, newest first, walk or no walk, photos, videos, notes and memos together. Within a week, moments that belong to a thread come before the rest. It shows twenty at first and the next twenty as the end is reached.
+17. **RM17** Lately lists moments, walk or no walk, photos, videos, notes and memos together. What was kept in the last day leads, newest first. After that, newest first by week, and within a week the moments that belong to a thread come before the rest. It shows twenty at first and the next twenty as the end is reached.
 18. **RM18** A moment's card shows its picture or thumbnail (its edits as everywhere else), its words, a memo's play button, "place · when" in words, and a small "From <the walk's name or a day-part, like a Sunday walk>" line. Tapping the card opens the capture viewer; tapping the "From" line opens that walk's replay.
 19. **RM19** A deleted moment, and a moment of a deleted walk, leave Memories at once, with Undo while it waits, and a thread that falls below three moments leaves the rail.
 
@@ -98,3 +99,24 @@ Built on `claude/resurfaced-moments-spec`; not audited (decision 0074). Unit tes
 - **RM25** screen-reader roles are asserted by the e2e only for the tab list; the rest is by the names the controls carry.
 - **Not built, as the spec says:** search, the map as a lens, memo transcripts, photo features, Replay this thread, finds and lows, a nudge (`docs/DEFERRED.md`).
 - **Native:** nothing new; every view is unverified on a device (`docs/NATIVE_UNVERIFIED.md`).
+
+## Audit (Nov 5)
+
+16 findings: 12 fixed (one in part), 3 deferred, 1 rejected. Regression tests are `src/lib/__tests__/resurface/audit.test.ts` (`resurfaced-moments audit 1` to `11`); audit 8, 12 and 13 are checks in the `resurface` and `chronicle` journeys.
+
+1. Contractions became threads ("Don", "Didn", "Couldn"): accept, `termsOf` keeps an apostrophe inside a word and drops contractions (`audit 1`).
+2. Undo restored a whole snapshot and erased later choices: accept, a choice returns its own change and Undo takes back only that (`audit 2`).
+3. Overlapping loads let stale prefs or moments win: accept, choices are written in a chain, a read waits for them, and the newest read wins (`audit 3`).
+4. Every load reshuffled the top card, after a delete and after a replay: accept, `refresh` keeps the open's seed, order and place; only a new open (the app was elsewhere) loads afresh (`audit 4`, `visit` in the section store).
+5. "In November" for a moment 350 days old: accept (`audit 5`).
+6. Plurals of -ie words split ("cookie" and "cookies"): accept in part (`audit 6`). Other languages, "buses" and "bus", and the `fall` alias stay English-only: defer.
+7. RM3 and RM17 disagreed: accept, the owner's call: the last day leads (`audit 7`).
+8. The Map lost its camera across tabs: accept, the owner's call: it is kept while the app is open (the `chronicle` journey's NV3 position check is back, on the Map section).
+9. The section resets on any route that is not a replay, a day or Chronicle: reject, this is RM1 (`audit 9` pins the set of routes).
+10. A toast promised a write that failed: accept, a choice says whether it was kept and the toast says when it was not (`audit 10`).
+11. A 29 Feb moment never resurfaced in a common year, and "A while ago" for a day-old moment: accept (`audit 11`).
+12. A very long note pushed the buttons off screen: accept, eight lines on the top card and ten on a card (journey check).
+13. The rail was not a list, the section tabs were 40 px, Undo was under 44 px, the toast ignored nothing but carried dead code: accept (journey checks).
+14. Android's Back on a thread leaves Chronicle: defer, native, unverified.
+15. A term in 5 of 9 moments is a thread and stops being one when a tenth arrives: defer, a limit of the share rule (`THREAD_MAX_SHARE`).
+16. This branch lacks main's tab `ErrorBoundary` export for Chronicle: defer to the merge; check that the new default export sits inside it.

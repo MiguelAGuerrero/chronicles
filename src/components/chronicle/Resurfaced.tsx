@@ -34,7 +34,7 @@ export function Resurfaced(props: {
         {hasPicture && <MomentPicture capture={m.capture} style={styles.picture} iconSize={44} />}
         <View style={styles.body}>
           <Text style={styles.eyebrow} testID="resurfaced-label">{label}</Text>
-          {m.words ? <Text style={styles.quote}>{m.words}</Text> : <Text style={styles.quote}>{m.kind === 'voice' ? 'A voice memo' : 'A moment you kept'}</Text>}
+          {m.words ? <Text style={styles.quote} numberOfLines={8}>{m.words}</Text> : <Text style={styles.quote}>{m.kind === 'voice' ? 'A voice memo' : 'A moment you kept'}</Text>}
           <Text style={styles.meta}>{[m.place, whenLine(m.t, props.now)].filter(Boolean).join(' · ')}{props.placeLine ? ` · ${props.placeLine}` : ''}</Text>
         </View>
       </Pressable>

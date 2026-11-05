@@ -176,7 +176,7 @@ async function checks(h) {
     const starAfter = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
     check(Math.abs(starAfter.x - starBefore.x) < 3 && Math.abs(starAfter.y - starBefore.y) < 3, `the map kept its view across the replay (${Math.round(starBefore.x)},${Math.round(starBefore.y)} → ${Math.round(starAfter.x)},${Math.round(starAfter.y)})`);
     // And across the tabs: Chronicle's map is taken down while Navigate is in front (NV4). Chronicle comes back on
-    // Memories, with no map (RM1); the Map section frames the places again. NV3's kept camera holds across a replay only.
+    // Memories, with no map (RM1); the Map section comes back where it was (NV3, audit 8).
     await tabTo(page, 'navigate');
     await page.waitForSelector('[data-testid=start]');
     await page.waitForTimeout(800);
@@ -187,7 +187,10 @@ async function checks(h) {
       'Chronicle comes back on Memories, with no map (RM1, NV4)');
     await h.mapUp(page);
     await page.waitForSelector('[aria-label^="Fox Point,"]', { timeout: 15000 });
-    check((await page.locator('canvas.maplibregl-canvas').count()) === 1, 'the Map section brings the one live map back, with its stars (RM2, NV4)');
+    await page.waitForTimeout(1200);
+    const starBack = await page.locator('[aria-label^="Fox Point,"]').boundingBox();
+    check((await page.locator('canvas.maplibregl-canvas').count()) === 1 && Math.abs(starBack.x - starBefore.x) < 3 && Math.abs(starBack.y - starBefore.y) < 3,
+      `the Map section comes back where it was, with its stars (RM2, NV3, NV4, audit 8: ${Math.round(starBack.x)},${Math.round(starBack.y)})`);
 
     // Reduce motion (M2): the same home with the system setting on. Nothing presses down, the sheet snaps.
     {

@@ -16,6 +16,7 @@ const SEED = () => {
     note('h3', now - 20 * DAY, 'Out to the harbor early.', null),
     note('o1', now - 3 * DAY, 'Orchard blossoms everywhere.', null),
     note('r1', now - 3600000, 'Just now.', null),
+    note('l1', now - 2 * DAY, 'quiet '.repeat(700).trim(), null),
   ];
   return new Promise((resolve, reject) => {
     const req = indexedDB.open('chronicles');
@@ -71,7 +72,16 @@ async function run(h) {
   check(tile.length === 1 && /^Harbor\b/.test(tile[0]) && /Just beginning/.test(tile[0]), `RM14: one thread, Harbor, with a line in words (${tile.join('|').replace(/\n/g, ' ')})`);
 
   // RM17, RM18: Lately lists every moment, a card opens the viewer.
-  check((await pg.locator('[data-testid=moment-card]').count()) === 6, 'RM17: Lately lists the six moments, the top card among them');
+  check((await pg.locator('[data-testid=moment-card]').count()) === 7, 'RM17: Lately lists the seven moments, the top card among them');
+  // Audit 12: a very long note leaves its card's buttons on screen. Audit 13: the rail is a list, the targets are 44 px.
+  const longCard = pg.locator('[data-testid=moment-card]:has-text("quiet quiet")').first();
+  await longCard.scrollIntoViewIfNeeded();
+  const lb = await longCard.boundingBox();
+  const mb = await longCard.locator('[data-testid=moment-more]').boundingBox();
+  check(lb && mb && lb.height < 600 && mb.x + mb.width <= 390 && mb.y + mb.height <= lb.y + lb.height + 1, `audit 12: a 4,000-character note keeps its card short and its More button in view (${Math.round(lb?.height ?? 0)} px)`);
+  await pg.locator('[data-testid=memories-list]').evaluate((e) => e.scrollTo?.(0, 0)).catch(() => {});
+  const sb = await pg.locator('[data-testid=section-memories]').boundingBox();
+  check((await pg.locator('[data-testid=threads-rail] [role=listitem]').count()) === 1 && sb && sb.height >= 44, 'audit 13: the threads rail is a list, and the section tabs are 44 px tall');
   await pg.locator('[data-testid=moment-open]').first().click();
   check(await pg.waitForSelector('[data-testid=viewer-close]', { timeout: 10000 }).then(() => true, () => false), 'RM18: a card opens the moment in the viewer');
   await pg.click('[data-testid=viewer-close]');
@@ -86,6 +96,8 @@ async function run(h) {
   await pg.click('[data-testid=menu-less]');
   await pg.waitForSelector('[data-testid=memories-toast]');
   await pg.waitForTimeout(300);
+  const ub = await pg.locator('[data-testid=memories-undo]').boundingBox();
+  check(ub && ub.width >= 44 && ub.height >= 44, `audit 13: Undo is a 44 px target (${Math.round(ub?.width ?? 0)}x${Math.round(ub?.height ?? 0)})`);
   let prefs = await prefsOf(pg);
   check(prefs && prefs.less.includes('harbor') && prefs.dim.length === 1, 'RM20, RM21: Show less like this is kept in meta (the term and the moment)');
   await pg.click('[data-testid=memories-undo]');
@@ -99,7 +111,7 @@ async function run(h) {
   await pg.click('[data-testid=menu-hide]');
   await pg.waitForTimeout(300);
   prefs = await prefsOf(pg);
-  check(prefs && prefs.hidden.length === 1 && (await pg.locator('[data-testid=resurfaced]').innerText()) !== was && (await pg.locator('[data-testid=moment-card]').count()) === 6,
+  check(prefs && prefs.hidden.length === 1 && (await pg.locator('[data-testid=resurfaced]').innerText()) !== was && (await pg.locator('[data-testid=moment-card]').count()) === 7,
     'RM20: Not this one is kept, the top card moves on, and the moment stays in Lately');
 
   // RM9: Relive it opens the day of a moment made outside a walk.

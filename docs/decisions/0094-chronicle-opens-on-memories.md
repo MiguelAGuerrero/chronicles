@@ -18,3 +18,7 @@ The owner's calls, Nov 5:
 - The spec is `specs/resurfaced-moments/spec.md` (RM1-RM25); the plan is `specs/resurfaced-moments/plan.md`; the mock was a published artifact, https://claude.ai/artifact/HqApXsfK4HsvKdvnEXn9gR.
 - Chronicle's old body (the map and its sheet) is mounted only for Walks, Days and Map, so Memories carries no map. Older e2e journeys open Chronicle with `tabTo(pg, 'chronicle')`, which now clicks Map.
 - Search, the map as a lens on results, a thread played as one ceremony, finds and lows in the feed, memo transcripts and photo features are deferred (`docs/DEFERRED.md`).
+
+## Later calls (2026-11-05, after the audit)
+- **The Map remembers its view while the app is open.** Leaving Chronicle takes the map down; the camera and the framed places are kept, so Map, Walks and Days come back where they were (NV3). Memories still opens first.
+- **What was kept in the last day heads Lately**, newest first, so a walk just finished is at the top; after that, week by week with a thread's moments leading.

@@ -20,6 +20,13 @@ export function hash(s: string): number {
   return h;
 }
 
+const isLeap = (y: number) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+/** The same month and day; a 29 Feb moment keeps 28 Feb in a year that has no 29th (audit 11). */
+function sameDay(d: Date, today: Date): boolean {
+  if (d.getMonth() === today.getMonth() && d.getDate() === today.getDate()) return true;
+  return d.getMonth() === 1 && d.getDate() === 29 && today.getMonth() === 1 && today.getDate() === 28 && !isLeap(today.getFullYear());
+}
+
 const CATEGORY: Record<Reason['kind'], number> = { anniversary: 0, thread: 1, month: 2, older: 3 };
 
 /**
@@ -46,7 +53,7 @@ export function resurfaceOrder(moments: MomentView[], ctx: PickContext): Pick[] 
     const d = new Date(m.t);
     const years = today.getFullYear() - d.getFullYear();
     let reason: Reason;
-    if (years >= 1 && d.getMonth() === today.getMonth() && d.getDate() === today.getDate()) reason = { kind: 'anniversary', years };
+    if (years >= 1 && sameDay(d, today)) reason = { kind: 'anniversary', years };
     else if (threadOf.has(m.id)) reason = { kind: 'thread', name: threadOf.get(m.id)!.name };
     else if (years >= 1 && d.getMonth() === today.getMonth()) reason = { kind: 'month' };
     else reason = { kind: 'older' };

@@ -18,9 +18,13 @@ const ALIASES: Record<string, string> = { fall: 'autumn', autumnal: 'autumn' };
 
 export const fold = (s: string) => s.normalize('NFD').replace(/\p{M}+/gu, '').toLowerCase();
 
-/** The plural folded away: statues → statue, bakeries → bakery, glass stays glass, bus stays bus. */
+/**
+ * The plural folded away: statues → statue, bakeries → bakery, glass stays glass, bus stays bus. A word
+ * ending in -ie goes the same way as its plural (cookie, cookies → cooky), so the two are one term.
+ */
 function stem(w: string): string {
   if (w.length > 4 && w.endsWith('ies')) return `${w.slice(0, -3)}y`;
+  if (w.length > 4 && w.endsWith('ie')) return `${w.slice(0, -2)}y`;
   if (w.length > 4 && /(sses|shes|ches|xes)$/.test(w)) return w.slice(0, -2);
   if (w.length > 3 && w.endsWith('s') && !/(ss|us|is)$/.test(w)) return w.slice(0, -1);
   return w;
@@ -36,8 +40,13 @@ export interface Term {
 export function termsOf(words: string | null | undefined): Term[] {
   if (!words) return [];
   const out = new Map<string, Term>();
-  for (const raw of words.split(/[^\p{L}]+/u)) {
-    if (raw.length < 3) continue;
+  // Apostrophes stay inside a word, so "don't" is one word and not "don" and "t" (audit 1).
+  for (const token of words.split(/[^\p{L}'’]+/u)) {
+    const trimmed = token.replace(/^['’]+|['’]+$/g, '');
+    // A possessive keeps its word (John's → john); any other contraction (don't, couldn't) says nothing.
+    const possessive = trimmed.match(/^([\p{L}]+)['’]s$/u);
+    const raw = possessive ? possessive[1] : trimmed;
+    if (raw.length < 3 || /['’]/.test(raw)) continue;
     const f = fold(raw);
     if (STOP.has(f)) continue;
     const term = ALIASES[stem(f)] ?? stem(f);
