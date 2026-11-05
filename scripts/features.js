@@ -140,12 +140,20 @@ const FEATURES = [
     specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation'],
   },
   {
+    name: 'layers',
+    about: 'map layers: the Layers button and panel, what is on, busy streets and town borders as layers',
+    rule: 'layers',
+    source: ['src/lib/layers/**', 'src/components/LayersControl.tsx'],
+    journeys: ['layers'],
+    specs: ['map-layers'],
+  },
+  {
     name: 'walkability',
-    about: 'how a street treats someone on foot: the bands, the map layer and its icons, the area card\'s line, the heads-up',
+    about: 'how a street treats someone on foot: the bands, the walkability layer and its icons, the area card\'s line, the heads-up',
     rule: 'walkability',
-    source: ['src/lib/walk/**', 'src/components/{Tooltip,WalkBandIcon,WalkLayerControl}.tsx'],
+    source: ['src/lib/walk/**', 'src/components/{Tooltip,WalkBandIcon}.tsx'],
     journeys: ['walkability', 'headsup'],
-    specs: ['walkability', 'walkability-headsup'],
+    specs: ['walkability', 'walkability-headsup', 'walkability-urban-form'],
   },
   {
     name: 'landing',

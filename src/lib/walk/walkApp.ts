@@ -8,7 +8,6 @@ import { chain } from './chain';
 import { createOverpassSource } from './overpassSource';
 import { createOvertureSource } from './overtureSource';
 import { createWalkReader } from './reader';
-import { createWalkSwitch } from './switch';
 
 /**
  * Walkability's instance (WK1-WK4): Overture first, Overpass when it can't answer, read through the device's
@@ -20,8 +19,6 @@ const overpass = createOverpassSource({ fetch: (...a) => fetch(...a), now: () =>
 export const walkReader = createWalkReader(ports, chain(overture, overpass));
 export { ensureOvertureRelease as walkBuild };
 
-/** The layer's switch (WK13, WK20), loaded at launch by the first map that needs it. */
-export const walkSwitch = createWalkSwitch(ports);
 
 /** The heads-up ahead (WK15): what has been said on this route, and what shows now. */
 export const aheadWatch = createAheadWatch(ports);

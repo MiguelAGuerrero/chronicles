@@ -39,7 +39,7 @@ async function run(h) {
   // WH9: it sits among the pills: it covers none of the capture stack, the edge buttons or the bottom strip.
   const rect = await pg.locator('[data-testid=walk-ahead]').boundingBox();
   const overlaps = [];
-  for (const id of ['cap-photo', 'cap-voice', 'cap-note', 'stop', 'walk-layer']) {
+  for (const id of ['cap-photo', 'cap-voice', 'cap-note', 'stop', 'layers']) {
     const b = await pg.locator(`[data-testid=${id}]`).first().boundingBox().catch(() => null);
     if (b && rect.x < b.x + b.width && rect.x + rect.width > b.x && rect.y < b.y + b.height && rect.y + rect.height > b.y) overlaps.push(id);
   }
