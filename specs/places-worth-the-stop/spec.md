@@ -89,3 +89,10 @@ Open: none (the tally was removed by decision 0099; the credit goes with the map
 17. **PW17 The place sheet's total** (settled by decision 0099, the owner, Nov 5): a place's sheet names its finds and shows no count or total, so archive places add nothing to count. A test pins that no total including archive places is shown.
 18. **PW18 The scenic routes are unchanged.** The Sights leaning reads the same places with and without the archive (it is not wired into the scenic read), and a test pins it.
 19. **PW19 Rebuilt weekly, published on change.** A scheduled job in `chronicles-data` runs the build script once a week. When the new archive's SHA-256 matches the current release's, nothing is published; otherwise it becomes a new release, and the Pages workflow republishes the manifest with the newest three. A failed build publishes nothing and leaves the current archive in place.
+
+## Record (Nov 6)
+
+- **Tests:** every criterion PW1-PW19 has a test named by its id: `src/lib/__tests__/explore/placesArchive.test.ts` (app side), `placesArchiveBuild.test.ts` (the build, fetch and publish scripts), the storage contract's PW12 case, and the `curiosities` journey (PW1, PW4, PW9, PW11, PW12 in a browser: the folly shown as a mark, kept as a Curiosity, the archive asked for the manifest, its header range and one tile range, with no cookie or referer).
+- **A live test cell** (Lehigh Valley, 1° square, Nov 6): 916 Wikidata items in 4-12 s; as first specced 900 kept, 847 of them National Register listings; after the owner's call (landmarks only) 87 kept, 9.5 KB.
+- **Not yet live:** PW16 (PLACES_BASE stays empty until a real archive is read from the chronicles-data Pages site), and the weekly job reads the app repo's `main`, so it runs once this slice is merged.
+- **Native, never run on a device:** migration 21, the archive's byte-range reads, a quiet walk's background read (`docs/NATIVE_UNVERIFIED.md`).
