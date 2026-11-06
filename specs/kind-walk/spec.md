@@ -95,6 +95,14 @@ None. The owner chose A (Nov 5): a walk started from a kind says distance only.
 13. **KW9b · Too far to start on foot.** Beyond 5 km from the walker to the start, no walk is offered and the row says so in
     words. It never silently becomes a drive.
 
+### Continuous, and one distance (found on the owner's phone, Bethlehem, 2026-11-06)
+
+16. **KW16 · One continuous route.** The way does not double back on itself: no more than 10% of its length runs over a street
+    piece it has already used, the walk from where you stand included. Where the stops would force more, the stop is left out.
+17. **KW17 · One distance.** The length the panel states is the length of the whole route the walk screen then navigates,
+    from where you stand to the end; the budget is a ceiling on that whole distance (the owner: a preference for how far you
+    are willing to go), and the way is shorter than the budget wherever the kind fills less ground than that.
+
 ### Walkability
 
 10. **KW10 · Said before commit.** Before the walker starts it, the suggestion says in words whether it can be walked the whole
