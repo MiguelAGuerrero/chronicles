@@ -149,6 +149,14 @@ const FEATURES = [
     specs: ['kind-walk'],
   },
   {
+    name: 'walk-planner',
+    about: 'a page of its own for a kind: up to three routes on the map, a loop or one-way, a distance ceiling, density, a feel for the commitment',
+    rule: 'walk-planner',
+    source: ['src/lib/nav/types.ts'],
+    journeys: [],
+    specs: ['walk-planner'],
+  },
+  {
     name: 'layers',
     about: 'map layers: the Layers button and panel, what is on, busy streets and town borders as layers',
     rule: 'layers',
