@@ -1,4 +1,4 @@
-<!-- Mirror of the Claude Docs tab "Places worth the stop (queued)" (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7). The doc is the owner's authoring surface; this file is the greppable copy. When they differ, the doc wins and this file needs a re-export. Last exported: 2026-11-03. Everything from "## Vision" down is repo first (Nov 5, after decision 0101), not yet in the doc; the doc's "Region packs" call (R2, a scheduled job) predates 0101 and needs the owner's edit. -->
+<!-- Mirror of the Claude Docs tab "Places worth the stop (spec ready)" (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7). The doc is the owner's authoring surface; this file is the greppable copy. When they differ, the doc wins and this file needs a re-export. Last exported: 2026-11-06: the doc now holds the updated calls, the answered open questions, "Decisions (Nov 5–6)" and the criteria PW1-PW19; the "## Vision" block below is repo only. -->
 
 # Places worth the stop
 
