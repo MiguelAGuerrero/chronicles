@@ -8,7 +8,7 @@ import type { Capture, CaptureKind, WalkSummary } from '../types';
  * `db.deleteCaptures`; the Undo window is `pending.ts`.
  */
 
-export type DeleteKind = 'walk' | 'media' | 'moment';
+export type DeleteKind = 'walk' | 'media' | 'moment' | 'thread';
 
 /** Photos, videos and memos: what "Remove photos, videos and memos" takes (D2). Notes stay. */
 export const isMedia = (c: { kind: CaptureKind }): boolean => c.kind !== 'text';
@@ -129,6 +129,7 @@ export function momentDeleteText(kind: CaptureKind, bytes: number): ConfirmText 
 export function toastText(kind: DeleteKind, what?: CaptureKind): string {
   if (kind === 'walk') return 'Walk deleted';
   if (kind === 'media') return 'Photos, videos and memos removed';
+  if (kind === 'thread') return 'Thread deleted';
   if (!what) return 'Moment deleted';
   const noun = KIND_NOUN[what];
   return `${noun[0].toUpperCase()}${noun.slice(1)} deleted`;

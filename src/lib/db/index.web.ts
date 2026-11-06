@@ -11,12 +11,14 @@ import type { Mark, Place, Recall } from '../discovery/types';
 import { DERIVED_STORES } from './stores';
 import type { Capture, GapDecision, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 import { intersects, segmentBbox, segmentTile, tileKeysFor } from './segmentBounds';
+import { thinThreads } from '../threads/rules';
+import type { Link, Member, Thread, ThreadsChange } from '../threads/types';
 import type { Db } from './types';
 import { parseEdit } from '../mediaEdit';
 
 // Same tables as the native SQLite store, as IndexedDB object stores.
 const DB_NAME = 'chronicles';
-const VERSION = 16;
+const VERSION = 17;
 
 /** Raised when another open tab holds an older version of the database. */
 export class BlockedByOtherTabError extends Error {
@@ -117,6 +119,16 @@ function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number) {
     // Walkability (WK2): what each read z14 tile held, a cache cleared with the derived stores.
     d.createObjectStore('walk_tile', { keyPath: 'key' });
   }
+  if (oldVersion < 17) {
+    // Owner threads (OT21, decision 0102): threads, memberships and replies. Truth, never cleared by the app.
+    d.createObjectStore('thread', { keyPath: 'id' });
+    const members = d.createObjectStore('thread_member', { keyPath: ['thread_id', 'moment_id'] });
+    members.createIndex('thread_id', 'thread_id');
+    members.createIndex('moment_id', 'moment_id');
+    const links = d.createObjectStore('moment_link', { keyPath: ['from_id', 'to_id'] });
+    links.createIndex('from_id', 'from_id');
+    links.createIndex('to_id', 'to_id');
+  }
 }
 
 let dbPromise: Promise<IDBDatabase> | null = null;
@@ -191,6 +203,32 @@ async function atomically(tx: IDBTransaction, body: () => Promise<void>): Promis
 }
 
 /** Deletes every row of a store whose index holds the key, inside the caller's transaction. */
+/** Drops the threads, among `ids`, that fewer than two moments belong to, with their memberships (OT15). */
+async function dissolveThin(tx: IDBTransaction, ids: Iterable<string>) {
+  const members = tx.objectStore('thread_member');
+  for (const id of new Set(ids)) {
+    const left = (await done(members.index('thread_id').getAll(id))) as Member[];
+    if (!thinThreads([id], left).length) continue;
+    tx.objectStore('thread').delete(id);
+    for (const m of left) members.delete([m.thread_id, m.moment_id]);
+  }
+}
+/** The memberships and links of deleted moments go with them, and a thread left thin dissolves (OT16, OT17). */
+async function dropMoments(tx: IDBTransaction, ids: string[]) {
+  const members = tx.objectStore('thread_member');
+  const links = tx.objectStore('moment_link');
+  const affected = new Set<string>();
+  for (const id of ids) {
+    for (const m of (await done(members.index('moment_id').getAll(id))) as Member[]) {
+      members.delete([m.thread_id, m.moment_id]);
+      affected.add(m.thread_id);
+    }
+    for (const side of ['from_id', 'to_id']) {
+      for (const l of (await done(links.index(side).getAll(id))) as Link[]) links.delete([l.from_id, l.to_id]);
+    }
+  }
+  await dissolveThin(tx, affected);
+}
 async function dropBy(st: IDBObjectStore, index: string, key: IDBValidKey) {
   for (const k of (await done(st.index(index).getAllKeys(key))) as IDBValidKey[]) st.delete(k);
 }
@@ -263,12 +301,42 @@ export const db: Db = {
       .sort((a, b) => a.t - b.t);
   },
 
+  async listThreads() {
+    const tx = (await conn()).transaction(['thread', 'thread_member', 'moment_link'], 'readonly');
+    const all = <T>(n: string) => done(tx.objectStore(n).getAll()) as Promise<T[]>;
+    const [threads, members, links] = await Promise.all([all<Thread>('thread'), all<Member>('thread_member'), all<Link>('moment_link')]);
+    return { threads, members, links };
+  },
+  async applyThreads(c: ThreadsChange) {
+    const tx = (await conn()).transaction(['thread', 'thread_member', 'moment_link'], 'readwrite');
+    return atomically(tx, async () => {
+      const threads = tx.objectStore('thread');
+      const members = tx.objectStore('thread_member');
+      const links = tx.objectStore('moment_link');
+      for (const t of c.putThreads ?? []) threads.put(t);
+      for (const m of c.putMembers ?? []) members.put(m);
+      for (const l of c.putLinks ?? []) links.put(l);
+      for (const id of c.deleteThreads ?? []) {
+        threads.delete(id);
+        await dropBy(members, 'thread_id', id);
+      }
+      for (const d of c.deleteMembers ?? []) members.delete([d.thread_id, d.moment_id]);
+      for (const d of c.deleteLinks ?? []) links.delete([d.from_id, d.to_id]);
+      await dissolveThin(tx, [
+        ...(c.putThreads ?? []).map((t) => t.id),
+        ...(c.putMembers ?? []).map((m) => m.thread_id),
+        ...(c.deleteMembers ?? []).map((m) => m.thread_id),
+      ]);
+    });
+  },
+
   async deleteWalk(walkId) {
-    const names = ['walk', 'trace_point', 'capture', 'pause', 'still', 'gap_fill', 'visited_segment', 'walk_summary', 'walk_area', 'area', 'find', 'recall', 'mark', 'meta'];
+    const names = ['walk', 'trace_point', 'capture', 'pause', 'still', 'gap_fill', 'visited_segment', 'walk_summary', 'walk_area', 'area', 'find', 'recall', 'mark', 'meta', 'thread', 'thread_member', 'moment_link'];
     const tx = (await conn()).transaction(names, 'readwrite');
     const os = (n: string) => tx.objectStore(n);
     return atomically(tx, async () => {
       const caps = (await done(os('capture').index('walk_id').getAll(walkId))) as Capture[];
+      await dropMoments(tx, caps.map((c) => c.id));
       for (const c of caps) {
         os('capture').delete(c.id);
         os('recall').delete(c.id);
@@ -299,10 +367,11 @@ export const db: Db = {
   },
   async deleteCaptures(ids, opts = {}) {
     if (!ids.length) return;
-    const tx = (await conn()).transaction(['capture', 'recall', 'find', 'walk_summary'], 'readwrite');
+    const tx = (await conn()).transaction(['capture', 'recall', 'find', 'walk_summary', 'thread', 'thread_member', 'moment_link'], 'readwrite');
     return atomically(tx, async () => {
       const capStore = tx.objectStore('capture');
       const got = (await Promise.all(ids.map((id) => done(capStore.get(id)) as Promise<Capture | undefined>))).filter((c): c is Capture => !!c);
+      await dropMoments(tx, got.map((c) => c.id));
       for (const c of got) {
         capStore.delete(c.id);
         tx.objectStore('recall').delete(c.id);

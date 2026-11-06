@@ -6,6 +6,7 @@ import type { AtlasArea } from '../atlas/atlas';
 import type { Mark, Place, Recall } from '../discovery/types';
 import type { ChecklistArea, ChecklistItem, ExploreRead, Find } from '../explore/explore';
 import type { LandingRow } from '../landing/view';
+import type { ThreadsChange, ThreadsData } from '../threads/types';
 import type { Capture, GapDecision, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 
 /**
@@ -46,6 +47,18 @@ export interface Db {
    * (D9). Media files are the caller's.
    */
   deleteCaptures(ids: string[], opts?: { keepFinds?: boolean }): Promise<void>;
+
+  /**
+   * The owner's threads (OT18, decision 0102): threads, memberships and replies. Truth, never derived; a moment's
+   * own row is never touched by them.
+   */
+  listThreads(): Promise<ThreadsData>;
+  /**
+   * Applies one change in one transaction: puts replace a row of the same key, a deleted thread takes its memberships
+   * (never a moment or a link), and a thread the change leaves with fewer than two members is dissolved with it (OT15).
+   * `deleteCaptures` and `deleteWalk` take the memberships and links of the moments they delete the same way (OT16, OT17).
+   */
+  applyThreads(change: ThreadsChange): Promise<void>;
 
   /** Starts a pause; at most one pause is open per walk. */
   startPause(walkId: string, at: number): Promise<void>;

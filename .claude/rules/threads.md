@@ -1,5 +1,6 @@
 ---
 paths:
+  - "src/lib/threads/**"
   - "src/lib/__tests__/threads/**"
 ---
 # Owner threads
