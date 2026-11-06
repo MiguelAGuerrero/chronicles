@@ -55,7 +55,7 @@ export function StarView({ star, selected, named, enter }: { star: Star; selecte
         head
       )}
       {named && (
-        <Text style={styles.name} numberOfLines={1}>
+        <Text style={styles.name}>
           {star.label}
         </Text>
       )}
