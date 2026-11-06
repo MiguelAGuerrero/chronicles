@@ -5,10 +5,10 @@ import { VectorTile } from '@mapbox/vector-tile';
 import { PbfReader } from 'pbf';
 import { PMTiles, type RangeResponse, type Source } from 'pmtiles';
 import { writeArchive } from '../../../../scripts/places-archive/archive.mjs';
-import { CLASSES, classify, gone, keep } from '../../../../scripts/places-archive/classify.mjs';
+import { ALL_CLASS_IDS, CLASSES, classify, gone, keep } from '../../../../scripts/places-archive/classify.mjs';
 import { build } from '../../../../scripts/build-places-archive.mjs';
 import { cellQuery, cellsFor, itemsFrom, splitCell } from '../../../../scripts/places-archive/fetch-wikidata.mjs';
-import { ALL_CLASS_IDS } from '../../../../scripts/places-archive/classify.mjs';
+import { decide } from '../../../../scripts/places-archive/publish.mjs';
 import { ARCHIVE_CLASSES } from '../../discovery/archivePois';
 
 // Places worth the stop: the build script's archive writer (PW14), written from the spec before the code.
@@ -155,4 +155,19 @@ test('PW14: the fetch\'s rows become one item each, with its classes, listing an
     { id: 'Q1', name: 'Folly', lon: -75.2, lat: 40.7, p31: ['Q180174', 'Q3947'], heritage: true, nhl: true, dissolved: false, closed: false, states: [] },
     { id: 'Q2', name: 'Old Mill', lon: -75.3, lat: 40.8, p31: ['Q44494'], heritage: false, nhl: false, dissolved: true, closed: false, states: ['demolished'] },
   ]);
+});
+
+test('PW15: no place in the archive is taken from OpenStreetMap (it only corroborates), so the map\'s own credit, which names it, stands', () => {
+  const osm = { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [-75.2, 40.7] }, properties: { wikidata: 'Q1', man_made: 'lighthouse' } }] };
+  const r = build({ items: [{ id: 'Q1', name: 'Light', lon: -75.2, lat: 40.7, p31: ['Q39715'] }], osm, edits: { remove: [], add: [{ name: 'Mine', at: [-75.1, 40.6], class: 'folly' }] }, region: 'us', version: '20261108' });
+  assert.deepEqual([...new Set(r.places.map((p: { src: string }) => p.src))].sort(), ['owner', 'wd']);
+});
+
+test('PW19: the weekly build publishes only when the archive changed, and a failed build publishes nothing', () => {
+  const manifest = { schema: 1, regions: [{ id: 'us', current: { file: 'places-us-20261101.pmtiles', version: '20261101', sha256: 'aaa', bounds: [-125, 24, -66, 50] } }] };
+  assert.deepEqual(decide({ region: 'us', sha256: 'aaa', manifest }), { publish: false, reason: 'unchanged' });
+  assert.deepEqual(decide({ region: 'us', sha256: 'bbb', manifest }), { publish: true, reason: 'changed' });
+  assert.deepEqual(decide({ region: 'us', sha256: 'bbb', manifest: { schema: 1, regions: [] } }), { publish: true, reason: 'new region' });
+  assert.deepEqual(decide({ region: 'us', sha256: 'bbb', manifest: null }), { publish: true, reason: 'no manifest yet' });
+  assert.deepEqual(decide({ region: 'us', sha256: null, manifest }), { publish: false, reason: 'no archive built' });
 });

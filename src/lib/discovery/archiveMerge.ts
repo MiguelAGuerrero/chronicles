@@ -2,6 +2,7 @@
 import { distanceM } from '../geo';
 import type { LngLat } from '../types';
 import { archivePlace } from './archivePois';
+import archiveEdits from './archiveEdits.json';
 import { normalizeName } from './places';
 import type { Place } from './types';
 
@@ -25,6 +26,9 @@ export interface ArchiveEdits {
   remove: { name: string; at: LngLat }[];
   add: { name: string; at: LngLat; class: string }[];
 }
+
+/** PW13: the owner's removals and adds, as kept in `archiveEdits.json`. */
+export const ARCHIVE_EDITS = archiveEdits as ArchiveEdits;
 
 /** PW13: removals drop a place whichever source named it; adds are marks of their class (an unknown class is left out). */
 export function applyEdits(places: Place[], edits: ArchiveEdits, version: string): Place[] {

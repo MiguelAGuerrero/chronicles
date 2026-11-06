@@ -13,14 +13,10 @@ import type { LngLat } from '../types';
 import { analyzeArea, centreFor, LANDING_RULES, readTiles, type AreaAnalysis } from './analyze';
 import { keyFor, LANDING_VERSION, replacesRow, type LandingRow } from './view';
 import { placesArchive } from '../discovery/archive';
-import { applyEdits, mergePlaces, type ArchiveEdits } from '../discovery/archiveMerge';
-import archiveEdits from '../discovery/archiveEdits.json';
+import { applyEdits, ARCHIVE_EDITS, mergePlaces } from '../discovery/archiveMerge';
 
 /** Towns and cities are in the place layer from z10; z11 tiles keep the read to a few. */
 const TOWNS_ZOOM = 11;
-
-/** PW13: the owner's removals and adds (`discovery/archiveEdits.json`). */
-const ARCHIVE_EDITS = archiveEdits as ArchiveEdits;
 
 class Cancelled extends Error {}
 

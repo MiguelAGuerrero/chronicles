@@ -1,7 +1,6 @@
 // @layer shell
 import type { Archive } from '../../activity/release';
 import type { TileFeature } from '../../areas/tilePlaces';
-import { metaStore } from '../../meta';
 import { TileReader } from '../../net/tileReader';
 import type { Ports } from '../../ports/types';
 import type { LngLat } from '../../types';
@@ -27,7 +26,6 @@ export interface ArchiveIo {
 export type ArchiveRead = { version: string; places: Place[] } | null;
 
 export function createPlacesArchive(p: Pick<Ports, 'db' | 'clock'> & { io: ArchiveIo; tileMs?: number; readMs?: number }) {
-  const meta = metaStore(p.db);
   let manifest: Manifest | null = null;
   let failedAt: number | null = null;
   let recheck = false;
@@ -43,18 +41,20 @@ export function createPlacesArchive(p: Pick<Ports, 'db' | 'clock'> & { io: Archi
   async function ensureManifest(): Promise<Manifest | null> {
     const now = p.clock.now();
     if (!manifest) {
-      const kept = await meta.get('places_archive_manifest');
+      // Direct getMeta/setMeta, so the meta scan sees the keys (meta.test.ts; declared in META).
+      const kept = await p.db.getMeta('places_archive_manifest');
       manifest = kept ? parseManifest(kept) : null;
     }
-    if (recheck || manifestDue(await meta.get('places_archive_checked_at'), failedAt, now)) {
+    const checkedAt = Number(await p.db.getMeta('places_archive_checked_at')) || null;
+    if (recheck || manifestDue(checkedAt, failedAt, now)) {
       try {
         const text = await p.io.fetchText(regionUrl(p.io.base, 'manifest.json'));
         const m = parseManifest(text);
         if (m) {
           manifest = m;
-          await meta.set('places_archive_manifest', text);
+          await p.db.setMeta('places_archive_manifest', text);
         }
-        await meta.set('places_archive_checked_at', now);
+        await p.db.setMeta('places_archive_checked_at', String(now));
         failedAt = null;
         recheck = false;
       } catch {
@@ -65,6 +65,11 @@ export function createPlacesArchive(p: Pick<Ports, 'db' | 'clock'> & { io: Archi
   }
 
   return {
+    /** PW10: the version the loaded manifest names for a point; null before it is read, outside every region, or with no address. */
+    versionAt(at: LngLat): string | null {
+      if (!p.io.base || !manifest) return null;
+      return pickRegion(manifest, at)?.current.version ?? null;
+    },
     /** PW1-PW3: the archive's places for a read's z14 tiles around `centre`, with the version they came from; null when there are none to read. */
     async read(tiles: [number, number][], centre: LngLat, shouldStop?: () => boolean): Promise<ArchiveRead> {
       if (!p.io.base) return null;

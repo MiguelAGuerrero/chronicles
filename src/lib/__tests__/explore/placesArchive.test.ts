@@ -6,6 +6,10 @@ import { ARCHIVE_CLASSES, placesFromArchive } from '../../discovery/archivePois'
 import { placeKey } from '../../discovery/places';
 import type { Place } from '../../discovery/types';
 import { archiveStale, KINDS, parseHidden } from '../../explore/explore';
+import { ATLAS_CODE, ATLAS_RULES, keptProfile, MARKS_EXPLAINED, profileStale, rereadAt, ringOf, rowCurrent, STEPS, type AtlasArea, type AtlasProfile } from '../../atlas/atlas';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { placeFinds, type ChecklistArea } from '../../explore/explore';
 import { createPlacesArchive } from '../../discovery/archive/shell';
 import { fakePorts } from '../fakes';
 import { archiveTilesFor, ARCHIVE_ZOOM, manifestDue, parseManifest, pickRegion, PLACES_BASE, regionUrl } from '../../discovery/archiveManifest';
@@ -187,4 +191,67 @@ test('PW12: an area built without the archive while one is known, or with an old
   assert.equal(archiveStale('20261108', '20261108'), false);
   assert.equal(archiveStale('20261108', null), false, 'this read had no archive (offline): keep what was built');
   assert.equal(archiveStale(null, null), false);
+});
+
+// ——— The atlas (PW10) ———
+
+const RING: [number, number] = [-75.19, 40.69];
+const near = (dx: number): [number, number] => [RING[0] + dx * 0.0001, RING[1]];
+
+test('PW10: the atlas counts the archive\'s curiosities among Viewpoints & oddities, and its dots and "?" agree', () => {
+  const tiles = [tilePlace('Main Street Bakery', 'food', near(1)), tilePlace('Town Clock', 'history', near(2))];
+  const archive = placesFromArchive([pt(...near(3), { name: 'Bushkill Folly', class: 'folly', src: 'wd', id: 'Q1' }), pt(...near(4), { name: 'Odd Rock', class: 'natural_oddity', src: 'wd', id: 'Q2' })], 'v1');
+  const r = ringOf(tiles, archive, RING);
+  assert.equal(r.steps.viewpoints, 2, 'two curiosities: two findable places of Viewpoints & oddities');
+  assert.deepEqual(r.marks.filter((m) => m.kind === 'curiosities').length, 2, 'the "?" marks are the same places');
+  assert.equal(ringOf(tiles, null, RING).steps.viewpoints, 0, 'without the archive, as before');
+});
+
+test('PW10: the steps stay fixed, and a ring\'s thin is judged from the map\'s places alone', () => {
+  assert.deepEqual(STEPS, { history: [1, 4, 12], art: [1, 4, 12], culture: [1, 3, 8], parks: [1, 3, 6], viewpoints: [1, 2, 5], food: [4, 15, 50], shops: [4, 15, 50], nightlife: [2, 6, 20] },
+    'STEPS takes no input from the archive');
+  const archive = placesFromArchive([1, 2, 3, 4, 5].map((i) => pt(...near(i), { name: `Rock ${i}`, class: 'natural_oddity', src: 'wd', id: `Q${i}` })), 'v1');
+  assert.equal(ringOf([], archive, RING).thin, true, 'five curiosities and nothing on the map: still thin, as with no archive');
+  assert.equal(ringOf([], null, RING).thin, true);
+});
+
+test('PW10: a read without the archive never replaces one measured with it; a ring measured without it is read again 30 minutes after one is known', () => {
+  const prof = (archive: string | null): AtlasProfile => ({ steps: {} as AtlasProfile['steps'], strips: [], stripAt: null, marks: [], sketch: { paths: [] } as unknown as AtlasProfile['sketch'], overture: 'r1', archive });
+  assert.equal(keptProfile(prof('v1'), prof(null)).archive, 'v1');
+  assert.equal(keptProfile(prof('v1'), prof('v2')).archive, 'v2');
+  assert.equal(profileStale(prof(null), 'r1', 'v1'), true, 'measured without the archive while one is known');
+  assert.equal(profileStale(prof('v0'), 'r1', 'v1'), true, 'an older version');
+  assert.equal(profileStale(prof('v1'), 'r1', 'v1'), false);
+  assert.equal(profileStale(prof(null), 'r1', null), false, 'no archive known: nothing to wait for');
+  const area = (p: AtlasProfile): AtlasArea => ({ key: 'k', level: 'neighborhood', name: 'Fox', at: RING, reachM: 800, build: 'b', code: 'a7', listed_at: 0, read_at: 1000, failed_at: null, profile: p });
+  assert.equal(rereadAt(area(prof(null)), 'r1', 'v1'), 1000 + 30 * 60_000);
+  assert.equal(rereadAt(area(prof('v0')), 'r1', 'v1'), 1000 + ATLAS_RULES.retryMs);
+  assert.equal(rereadAt(area(prof('v1')), 'r1', 'v1'), null);
+});
+
+test('PW10: ATLAS_CODE is bumped, and rows measured under a6 stand until an archive is known', () => {
+  assert.equal(ATLAS_CODE, 'a7');
+  for (const level of ['neighborhood', 'town'] as const)
+    assert.equal(rowCurrent({ build: 'b1', code: 'a6', level }, 'b1'), true, `${level} rows from a6 are not read again for nothing`);
+});
+
+test('PW11: no count, rank or "popular" mark: the kinds, their labels and the marks text carry no digit', () => {
+  for (const k of KINDS) assert.ok(!/\d/.test(k.label), k.label);
+  for (const line of MARKS_EXPLAINED) assert.ok(!/\d/.test(line), line);
+  const fields = Object.keys(placesFromArchive([pt(-75.19, 40.69, { name: 'Folly', class: 'folly', src: 'wd', id: 'Q1', sitelinks: '40', rank: '1' })], 'v')[0]).sort();
+  assert.deepEqual(fields, ['at', 'build', 'category', 'generic', 'key', 'kind', 'markable', 'name'], 'nothing that measures a place reaches the app');
+});
+
+test('PW17: a place\'s sheet names its finds and never a total, archive places included', () => {
+  const a: ChecklistArea = { key: 'H', level: 'neighborhood', name: 'H', at: CENTRE, build: 'b', built_at: 1, count: 40, archive: '20261108' };
+  const f = (name: string) => ({ key: name, area_key: 'H', name }) as unknown as Parameters<typeof placeFinds>[2][number];
+  const got = placeFinds({ level: 'neighborhood', name: 'H', lon: CENTRE[0], lat: CENTRE[1] }, [{ ...a, key: a.key }], [f('Bushkill Folly')]);
+  assert.ok(Array.isArray(got) && got.every((x) => !('total' in (x as object)) && !('count' in (x as object))));
+  assert.deepEqual(got!.map((x) => x.name), ['Bushkill Folly']);
+});
+
+test('PW18: the scenic routes\' Sights read is unchanged: it reads the map\'s places only, not the archive', () => {
+  const src = readFileSync(join(__dirname, '..', '..', 'nav', 'scenicRead', 'shell.ts'), 'utf8');
+  assert.match(src, /placesFromTilePois\(/);
+  assert.ok(!/archive/i.test(src), 'the archive is not wired into the scenic read');
 });

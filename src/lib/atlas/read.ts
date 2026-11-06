@@ -8,7 +8,6 @@ import { listable, withOutlines } from '../areas/outlines';
 import type { TownOutline } from '../areas/types';
 import { placesFromTiles } from '../areas/tilePlaces';
 import { db } from '../db';
-import { isMarkable } from '../discovery/noise';
 import { fetchTiles } from '../discovery/tileFetch';
 import { placesFromTilePois, transitFromTilePois } from '../discovery/tilePois';
 import { exploreBusy } from '../explore/exploreRun';
@@ -18,11 +17,14 @@ import { deriveSegments } from '../streets';
 import { tilesIn } from '../tileMath';
 import type { LngLat } from '../types';
 import {
-  ATLAS_CODE, ATLAS_RULES, keptProfile, marksOf, newRows, withNear, presenceSteps, sketchOf, SKETCH, thinRing,
+  ATLAS_CODE, ATLAS_RULES, keptProfile, newRows, withNear, ringOf, sketchOf, SKETCH,
   type AtlasArea, type AtlasLevel, type AtlasProfile, type NearRead, type Within,
 } from './atlas';
 import { extentTiles, inExtent } from './extent';
 import { findPockets, type Pocket } from './pockets';
+import { placesArchive } from '../discovery/archive';
+import type { ArchiveRead } from '../discovery/archive/shell';
+import { ARCHIVE_EDITS } from '../discovery/archiveMerge';
 
 /*
  * The atlas's reads (AT1, AT5, AT14): the tiles are fetched and decoded in
@@ -93,12 +95,12 @@ export interface Extent {
  * and marks count across it, its pockets of activity are found (TP4) and its picture is drawn around the
  * busiest; without one, the 800 m ring around the point.
  */
-export function profileFrom(at: LngLat, feats: CollectedFeatures, build: string, overture: { release: string; points: ActivityPoint[] } | null = null, extent: Extent | null = null) {
+export function profileFrom(at: LngLat, feats: CollectedFeatures, build: string, overture: { release: string; points: ActivityPoint[] } | null = null, extent: Extent | null = null, archive: ArchiveRead = null) {
   const segments = deriveSegments(feats.roads, feats.names, build);
   const places = placesFromTilePois(feats.pois, build);
   const within: Within = extent ? (p) => inExtent(p, extent.outline) : (p) => distanceM(p, at) <= ATLAS_RULES.ringM;
-  // AG1: each place says whether it could be found (chains too), so the findable kinds count only those.
-  const ring = places.filter((p) => within(p.at)).map((p) => ({ ...p, markable: isMarkable(p) }));
+  // PW10: the map's places and the archive's, with the owner's edits; thin from the map's alone.
+  const counted = ringOf(places, archive?.places ?? null, at, within, { edits: ARCHIVE_EDITS, version: archive?.version ?? 'owner' });
   const points = mergeSources(activityFromTilePois(feats.pois), overture?.points ?? []);
   const towns = placesFromTiles(feats.places);
   const transit = transitFromTilePois(feats.pois);
@@ -125,11 +127,11 @@ export function profileFrom(at: LngLat, feats: CollectedFeatures, build: string,
   // What the frame can show: a little past the ring's corners.
   const frameM = (Math.hypot(SKETCH.w, SKETCH.h) / 2 / SKETCH.ringR) * ATLAS_RULES.ringM;
   const profile: AtlasProfile = {
-    steps: presenceSteps(ring, at, within),
-    thin: thinRing(ring, at, within),
+    steps: counted.steps,
+    thin: counted.thin,
     strips: [...new Set(strips.map((s) => s.name))],
     stripAt: strips[0]?.peak ?? (named[0]?.at ?? null),
-    marks: marksOf(ring, isMarkable),
+    marks: counted.marks,
     sketch: sketchOf({
       centre: view,
       segments: segments.filter((s) => s.geometry.some((l) => l.some((p) => distanceM(p, view) <= frameM))),
@@ -137,6 +139,7 @@ export function profileFrom(at: LngLat, feats: CollectedFeatures, build: string,
       parks: places.filter((p) => p.category === 'parks').map((p) => p.at),
     }),
     overture: overture?.release ?? null,
+    archive: archive?.version ?? null,
     ...(extent ? { extent: 'outline' as const, partial: extent.partial, pockets: named, ...(named[0] ? { sketchAt: view } : {}) } : { extent: 'ring' as const }),
   };
   return { profile, cache: { segments, places } };
@@ -171,13 +174,18 @@ export function readRing(area: AtlasArea, shouldStop: () => boolean): Promise<At
       }
     }
     // Overture's places for the same tiles (AD3); without them the ring is measured from the map's alone (AD7).
-    const [f, overture] = await Promise.all([fetchTiles(url, tiles, undefined, shouldStop).catch(() => null), readOverture(tiles, shouldStop)]);
+    // And the places archive's (PW10); without it the findable kinds are counted from the map's places (PW3).
+    const [f, overture, archive] = await Promise.all([
+      fetchTiles(url, tiles, undefined, shouldStop).catch(() => null),
+      readOverture(tiles, shouldStop),
+      placesArchive.read(tiles, area.at, shouldStop).catch(() => null),
+    ]);
     if (shouldStop()) return null;
     if (!f) return failed();
     try {
       // Only the atlas's own row is written (explore-atlas audit 6): a ring's streets and places are not
       // rewritten into the shared caches, so the write queue stays free for the walk.
-      const { profile } = profileFrom(area.at, f, area.build, overture, extent);
+      const { profile } = profileFrom(area.at, f, area.build, overture, extent, archive);
       if (outlineRetry) profile.outlineRetry = true;
       // read_at moves on either way, so a ring Overture didn't answer for waits before asking again.
       const row: AtlasArea = { ...area, profile: keptProfile(area.profile, profile), read_at: Date.now(), failed_at: null };
