@@ -318,3 +318,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 - **Switching a host off remotely:** the off switch is in the code's host table; the `chronicles-data` manifest, which the app will read daily, could carry it so a misbehaving service can be stopped without a release.
 - **The decode check for Overture's divisions and transportation:** only places are checked before a new release is relied on; town outlines and walkability read the same release without it.
+
+## Threads the owner makes (decision 0102)
+
+- **A place-rooted journal**: a thread with no moments, started top-down and rooted in a place. Out of the owner-made threads slice by the owner's call (a thread comes only from connecting moments that have their own time and place). It would be its own feature and goes through `/vision` first.
