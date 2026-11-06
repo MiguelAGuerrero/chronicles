@@ -1151,7 +1151,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
             accessibilityHint="It keeps recording. The bar above the tabs brings it back."
             onPress={minimize}
             disabled={recordingVoice || stopping}
-            hitSlop={6}
+            hitSlop={2}
             style={({ pressed }) => [styles.edgeBtn, styles.minBtn, (recordingVoice || stopping) && styles.disabled, pressed && styles.pressed]}
           >
             <Icon name="chevron-down" size={24} color={theme.ink} />
@@ -1165,7 +1165,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
               <Text
                 testID="nav-left"
                 style={styles.navText}
-                numberOfLines={1}
+                numberOfLines={2}
                 accessibilityLabel={`${formatDistance(navigation.nav.leftM)}${navigation.nav.dest.suggested ? '' : `, ${aboutTimeLeft(navTimeLeft)}`} left to ${navigation.nav.dest.label}`}
               >
                 {formatDistance(navigation.nav.leftM)} · {navigation.nav.dest.suggested ? '' : `${formatTimeLeft(navTimeLeft)} · `}{navigation.nav.dest.label}
@@ -1764,7 +1764,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, backgroundColor: COLORS.route, borderRadius: 16,
     paddingLeft: 16, paddingRight: 8, minHeight: 56,
   },
-  navText: { flex: 1, color: '#ffffff', fontSize: 18, fontWeight: '700' },
+  navText: { flex: 1, color: '#ffffff', fontSize: 16, fontWeight: '700' },
   // A white pill: 5.2:1 for its blue text.
   navEnd: { minHeight: 44, minWidth: 64, paddingHorizontal: 16, borderRadius: 22, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
   navEndText: { color: COLORS.route, fontSize: 16, fontWeight: '700' },
