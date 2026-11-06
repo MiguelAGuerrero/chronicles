@@ -34,17 +34,25 @@ export const CLASSES = {
   ruin: ['Q109607', 'Q74047'], // ruins, ghost town
 };
 
+/** National Historic Landmark, as a heritage designation (P1435): 2,522 uses on 2026-11-06. */
+export const NHL = 'Q624232';
+/** Historic district (P31): an area, never a place, so never a heritage building (the owner, Nov 6). */
+export const DISTRICT = 'Q15243209';
+
 /** Every Wikidata class the fetch asks for. */
 export const ALL_CLASS_IDS = [...new Set(Object.values(CLASSES).flat())].sort();
 
 /**
- * PW6: the archive class of a Wikidata item {p31: [Q…], heritage}: the first in ORDER whose list holds one of its
- * classes; else a heritage-listed building (a National Register id or a heritage designation); else null.
+ * PW6: the archive class of a Wikidata item {p31: [Q…], heritage, nhl, article}: the first in ORDER whose list holds
+ * one of its classes; else a heritage building, only when it is a National Historic Landmark (the owner, Nov 6: a
+ * plain listing is left out, and an English Wikipedia article is no sign, as nearly every listing has one). A
+ * historic district is never one. Else null.
  */
 export function classify(item) {
   const p31 = new Set(item.p31 ?? []);
   for (const cls of ORDER) if (CLASSES[cls].some((q) => p31.has(q))) return cls;
-  return item.heritage ? 'heritage_building' : null;
+  if (p31.has(DISTRICT)) return null;
+  return item.nhl ? 'heritage_building' : null;
 }
 
 /**

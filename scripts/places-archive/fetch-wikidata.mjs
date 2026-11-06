@@ -6,10 +6,10 @@
 //
 //   node scripts/places-archive/fetch-wikidata.mjs --region us --out items.jsonl
 //
-// Writes one JSON object per line: {id, name, lon, lat, p31, heritage, dissolved, closed, states}. Nothing about
-// popularity (sitelinks, page views) is ever asked for (PW7).
+// Writes one JSON object per line: {id, name, lon, lat, p31, heritage, nhl, dissolved, closed, states}. Nothing
+// about articles or popularity (sitelinks, page views) is ever asked for (PW7).
 import { appendFileSync, writeFileSync } from 'node:fs';
-import { ALL_CLASS_IDS } from './classify.mjs';
+import { ALL_CLASS_IDS, NHL } from './classify.mjs';
 
 const ENDPOINT = 'https://query.wikidata.org/sparql';
 const AGENT = 'Chronicles places build (+github.com/MiguelAGuerrero/chronicles; weekly, one query at a time)';
@@ -48,6 +48,7 @@ export function cellQuery([w, s, e, n]) {
   OPTIONAL { ?item wdt:P31 ?p31 . }
   OPTIONAL { ?item wdt:P649 ?nrhp . }
   OPTIONAL { ?item wdt:P1435 ?des . }
+  OPTIONAL { ?item wdt:P1435 wd:${NHL} . BIND(wd:${NHL} AS ?des) }
   OPTIONAL { ?item wdt:P576 ?dissolved . }
   OPTIONAL { ?item wdt:P3999 ?closed . }
   OPTIONAL { ?item (wdt:P5817|wdt:P5816) ?state . ?state rdfs:label ?stateLabel . FILTER(LANG(?stateLabel) = "en") }
@@ -64,11 +65,12 @@ export function itemsFrom(bindings) {
     let it = byId.get(id);
     if (!it) {
       const m = /Point\(([-\d.eE]+) ([-\d.eE]+)\)/.exec(b.coord?.value ?? '');
-      it = { id, name: b.label?.value ?? '', lon: m ? Number(m[1]) : NaN, lat: m ? Number(m[2]) : NaN, p31: [], heritage: false, dissolved: false, closed: false, states: [] };
+      it = { id, name: b.label?.value ?? '', lon: m ? Number(m[1]) : NaN, lat: m ? Number(m[2]) : NaN, p31: [], heritage: false, nhl: false, dissolved: false, closed: false, states: [] };
       byId.set(id, it);
     }
     if (b.p31 && !it.p31.includes(qid(b.p31.value))) it.p31.push(qid(b.p31.value));
     if (b.nrhp || b.des) it.heritage = true;
+    if (b.des && qid(b.des.value) === NHL) it.nhl = true;
     if (b.dissolved) it.dissolved = true;
     if (b.closed) it.closed = true;
     if (b.stateLabel && !it.states.includes(b.stateLabel.value)) it.states.push(b.stateLabel.value);

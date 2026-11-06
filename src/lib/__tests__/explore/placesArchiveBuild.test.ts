@@ -76,8 +76,9 @@ test('PW14: the root directory always fits in the reader\'s first read; leaf dir
   }
 });
 
-const item = (o: Partial<{ p31: string[]; heritage: boolean; dissolved: boolean; closed: boolean; states: string[]; name: string; lon: number; lat: number }>) =>
-  ({ p31: [], heritage: false, dissolved: false, closed: false, states: [], name: 'X', lon: -75.19, lat: 40.69, ...o });
+const item = (o: Partial<{ p31: string[]; heritage: boolean; nhl: boolean; article: boolean; dissolved: boolean; closed: boolean; states: string[]; name: string; lon: number; lat: number }>) =>
+  ({ p31: [], heritage: false, nhl: false, article: false, dissolved: false, closed: false, states: [], name: 'X', lon: -75.19, lat: 40.69, ...o });
+const DISTRICT = 'Q15243209';
 const FOLLY = 'Q180174';
 const STATUE = 'Q179700';
 const MURAL = 'Q219423';
@@ -86,7 +87,10 @@ const HOUSE = 'Q3947';
 
 test('PW6: type decides, in a fixed order of pinned Wikidata classes, never age or listing', () => {
   assert.equal(classify(item({ p31: [FOLLY], heritage: true })), 'folly', 'a listed century-old folly is a curiosity');
-  assert.equal(classify(item({ p31: [HOUSE], heritage: true })), 'heritage_building', 'a listed ordinary house is history');
+  assert.equal(classify(item({ p31: [HOUSE], heritage: true, nhl: true })), 'heritage_building', 'a National Historic Landmark house is history');
+  assert.equal(classify(item({ p31: [HOUSE], heritage: true, article: true })), null, 'an article is no sign: nearly every listing has one (the owner, Nov 6: landmarks only)');
+  assert.equal(classify(item({ p31: [HOUSE], heritage: true })), null, 'a plain listing is left out (the owner, Nov 6)');
+  assert.equal(classify(item({ p31: [DISTRICT], heritage: true, nhl: true, article: true })), null, 'a historic district is an area, never a place');
   assert.equal(classify(item({ p31: [HOUSE] })), null, 'an unlisted ordinary house is left out');
   assert.equal(classify(item({ p31: [STATUE, FOLLY] })), 'statue', 'it commemorates: a monument first');
   assert.equal(classify(item({ p31: [MURAL, OVERLOOK] })), 'mural', 'made as art, before a viewpoint');
@@ -136,7 +140,8 @@ test('PW14, PW7: the fetch asks each US cell for the pinned classes and heritage
   assert.match(q, /cornerSouthWest "Point\(-76 40\)"/);
   assert.match(q, /wdt:P576/);
   assert.match(q, /wdt:P3999/);
-  assert.ok(!/sitelinks|schema:about|pageviews|COUNT/i.test(q), 'no popularity is ever asked for (PW7)');
+  assert.match(q, /wd:Q624232/, 'National Historic Landmark');
+  assert.ok(!/sitelinks|schema:about|wikipedia|pageviews|COUNT/i.test(q), 'nothing about articles or popularity is ever asked for (PW7)');
   assert.ok(cellsFor([[-125, 24, -66, 50]], 2).length > 300, 'the conterminous US in 2-degree cells');
   assert.deepEqual(splitCell([-76, 40, -74, 42]), [[-76, 40, -75, 41], [-75, 40, -74, 41], [-76, 41, -75, 42], [-75, 41, -74, 42]]);
 });
@@ -145,11 +150,11 @@ test('PW14: the fetch\'s rows become one item each, with its classes, listing an
   const b = (o: Record<string, string>) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, { value: v }]));
   const items = itemsFrom([
     b({ item: 'http://www.wikidata.org/entity/Q1', label: 'Folly', coord: 'Point(-75.2 40.7)', p31: 'http://www.wikidata.org/entity/Q180174' }),
-    b({ item: 'http://www.wikidata.org/entity/Q1', label: 'Folly', coord: 'Point(-75.2 40.7)', p31: 'http://www.wikidata.org/entity/Q3947', nrhp: '123' }),
+    b({ item: 'http://www.wikidata.org/entity/Q1', label: 'Folly', coord: 'Point(-75.2 40.7)', p31: 'http://www.wikidata.org/entity/Q3947', nrhp: '123', des: 'http://www.wikidata.org/entity/Q624232' }),
     b({ item: 'http://www.wikidata.org/entity/Q2', label: 'Old Mill', coord: 'Point(-75.3 40.8)', p31: 'http://www.wikidata.org/entity/Q44494', dissolved: '1950-01-01', stateLabel: 'demolished' }),
   ]);
   assert.deepEqual(items, [
-    { id: 'Q1', name: 'Folly', lon: -75.2, lat: 40.7, p31: ['Q180174', 'Q3947'], heritage: true, dissolved: false, closed: false, states: [] },
-    { id: 'Q2', name: 'Old Mill', lon: -75.3, lat: 40.8, p31: ['Q44494'], heritage: false, dissolved: true, closed: false, states: ['demolished'] },
+    { id: 'Q1', name: 'Folly', lon: -75.2, lat: 40.7, p31: ['Q180174', 'Q3947'], heritage: true, nhl: true, dissolved: false, closed: false, states: [] },
+    { id: 'Q2', name: 'Old Mill', lon: -75.3, lat: 40.8, p31: ['Q44494'], heritage: false, nhl: false, dissolved: true, closed: false, states: ['demolished'] },
   ]);
 });
