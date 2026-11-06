@@ -88,12 +88,12 @@ A new journey, `curiosities`, because the slice changes what a screen shows. It 
 
 ## Questions for the owner (they change the work)
 
-1. **One reader, or a second?** I would generalize `OvertureReader` (its tests stay as they are). The alternative is a copy of its hardening for the archive.
-2. **Who builds the archive?** The doc says a scheduled GitHub Actions job; decision 0101 says an owner-run script. The script is the same either way; the job would add a workflow that commits to or builds into the Pages artifact.
+1. **One reader, or a second?**: answered (Nov 6): generalize `OvertureReader`.
+2. **Who builds the archive?**: answered (Nov 6): a weekly scheduled job in `chronicles-data`, publishing only when the archive changed (PW19).
 3. **Where is the credit line**: answered (Nov 5): with the map's credits (PW15).
 4. **The place sheet's tally**: answered (Nov 5): removed, decision 0099 (PW17).
 5. **The Wikipedia signal**: answered (Nov 5): a Wikidata entry with a location is enough if the place still exists; an OpenStreetMap match strengthens it (PW7).
-6. **The doc.** Its "Region packs" call (R2, a scheduled job) predates 0101. Update it, or should I mark the mirror as the newer text?
+6. **The doc**: answered (Nov 6): the Claude Docs tab is updated to match this spec.
 7. **Where the archive lives**: answered (Nov 5): the `chronicles-data` repo, one GitHub Release per version, published to its Pages site with a manifest.
 
 ## Steward triage (report-only review of the spec and this plan, Nov 5)

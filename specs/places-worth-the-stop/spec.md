@@ -56,11 +56,14 @@ Open: none (the tally was removed by decision 0099; the credit goes with the map
 
 - **Reverses 0084's "no significance file and no host"** for a read-only static archive (decision 0101). Everything else in 0084 stands.
 - **The archive adds to the tiles' POIs; it does not replace them** (answers the doc's third open question). A place in both is one mark, the archive's category and kind winning.
-- **Host:** the Pages site that serves the web build. One PMTiles file per region and a `manifest.json` naming the regions. US first.
+- **Host:** the `chronicles-data` repo (Nov 5, after the hosting audit): one PMTiles file per region and version as a GitHub Release, served by that repo's Pages site with a `manifest.json` naming the newest three. US first.
+- **No count on a place's sheet** (Nov 5, decision 0099): its finds are named, never counted, so the archive adds nothing to count (PW17).
 - **Curiosities** are a kind of "Viewpoints & oddities", not History and not a new category. The type of a place decides its kind, never its age or its listing.
 - **Significance is a gate, never a measure.** No sitelink count, page views, QRank or rank is stored or shown.
 - **Notable means it exists** (Nov 5): a Wikidata entry with a location is enough, an OpenStreetMap match strengthens it, and a place its sources say is gone is left out (PW7).
 - **Credit:** with the map's existing credits (PW15).
+- **Built on a schedule** (Nov 6): a weekly job in `chronicles-data` rebuilds the archive and publishes a release only when its bytes changed, so the weekly build is also the check for changes (PW19).
+- **One robust reader** (Nov 6): the archive is read through the generalized form of the hardened Overture reader, not a second copy.
 - **Marks only.** The Explore tab shows these places as it shows any mark; no arrival list (the doc's first open question stays as the tab works today).
 - **Left for later:** Wikivoyage's listings, a line of why a place is worth the stop, the one-of-a-kind shops and cafés tier, and the scenic routes' Sights leaning (it reads tiles only; decision 0101 asks to check what Curiosities do to it).
 
@@ -81,6 +84,7 @@ Open: none (the tally was removed by decision 0099; the credit goes with the map
 13. **PW13 The owner's edits.** A small file beside `chains.json` removes places (by name and position) and adds them (name, position, class). A removed place never shows, whichever source named it; an added one is a mark of its class.
 14. **PW14 The build script.** `scripts/build-places-archive.js` turns a Wikidata result file and an OSM GeoJSON export into one region's `places.pmtiles` and the `manifest.json`, the same bytes each time. The queries it expects are kept beside it. The app never reads Wikidata's or OSM's format.
 15. **PW15 Credit.** OSM-derived places are credited in the map's existing attribution (the (i) credits, beside OpenFreeMap and OpenStreetMap), with nothing new on screen (the owner, Nov 5).
-16. **PW16 Verified on the real host.** Before the reader is relied on, one fetch against the Pages deploy shows byte-range requests and CORS working for the web build and for a cross-origin client. The result is recorded here. Until then the manifest's address is empty and the reader does nothing (PW2), and the host is added to `ALLOWED_HOSTS` in the commit that records it.
+16. **PW16 Verified on the real host.** Before the reader is relied on, one fetch against the Pages deploy shows byte-range requests and CORS working for the web build and for a cross-origin client. Recorded so far: on Nov 5 the Pages hostname (`miguelaguerrero.github.io`) answered a cross-origin byte range with 206, a correct `content-range` and `access-control-allow-origin: *`; on Nov 6 the data repo's `manifest.json` was served there with `access-control-allow-origin: *`. A range read of a real archive is still to do. Until then the manifest's address is empty and the reader does nothing (PW2), and the host is added to `ALLOWED_HOSTS` in the commit that records it.
 17. **PW17 The place sheet's total** (settled by decision 0099, the owner, Nov 5): a place's sheet names its finds and shows no count or total, so archive places add nothing to count. A test pins that no total including archive places is shown.
 18. **PW18 The scenic routes are unchanged.** The Sights leaning reads the same places with and without the archive (it is not wired into the scenic read), and a test pins it.
+19. **PW19 Rebuilt weekly, published on change.** A scheduled job in `chronicles-data` runs the build script once a week. When the new archive's SHA-256 matches the current release's, nothing is published; otherwise it becomes a new release, and the Pages workflow republishes the manifest with the newest three. A failed build publishes nothing and leaves the current archive in place.
