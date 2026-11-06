@@ -59,6 +59,8 @@ export const KINDS: readonly KindInfo[] = [
   { id: 'cemeteries', label: 'Cemeteries', icon: 'rose-outline' },
   { id: 'parks', label: 'Parks and gardens', icon: 'leaf-outline' },
   { id: 'viewpoints', label: 'Viewpoints and attractions', icon: 'eye-outline' },
+  // PW4: follies, roadside giants, natural oddities and the like, from the places archive (decision 0102).
+  { id: 'curiosities', label: 'Curiosities', icon: 'telescope-outline' },
 ];
 
 export const kindOf = (id: Kind): KindInfo => KINDS.find((k) => k.id === id) ?? KINDS[0];

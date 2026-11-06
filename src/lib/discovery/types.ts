@@ -6,7 +6,9 @@ export type CategoryId =
 
 /** The finer kinds of attraction the "What I'm into" filter switches (E16). */
 export type Kind =
-  | 'public_art' | 'museums' | 'theatres' | 'monuments' | 'churches' | 'cemeteries' | 'parks' | 'viewpoints';
+  | 'public_art' | 'museums' | 'theatres' | 'monuments' | 'churches' | 'cemeteries' | 'parks' | 'viewpoints'
+  /** Odd places of the Viewpoints & oddities category, from the places archive (PW4, decision 0102). */
+  | 'curiosities';
 
 /** A place worth offering, from whatever source; cache, tagged with the build it came from. */
 export interface Place {
