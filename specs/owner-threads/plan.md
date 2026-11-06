@@ -82,7 +82,7 @@ The SQLite migration and cascades; the viewer's More menu items over the Modal; 
 - **S6 drift, accepted:** the spec's Vision section now lists its two open items and the Celebration and Nagging lines. It rests on 0102, not on VISION.md's proposed line.
 - **Silent 3, 4:** a reply sets no reminder; no thread information reaches a share or reel (OT20). **Silent 1, 2:** OT23, OT24, put to the owner.
 
-## For you to decide
+## Answered (Nov 6)
 
-1. **Kept quiet (OT23).** Can the resurfaced card bring back a moment that is in one of your threads, and can a thread be kept quiet from it? A thread about your body is the kind you may not want surfaced on a bus.
-2. **Respond away from the place (OT24).** If you answer a moment at home, the reply is placed where you are and at the time you write it (one fix per moment, 0036). The link, not the place, ties it to the original. Is that what you want?
+- **OT23:** a moment in an owner thread resurfaces like any moment, with no thread name and no opt-out. The steward's worry (a sensitive thread coming back on a bus) is the owner's to weigh and was weighed; a later switch is cheap to add and is recorded in `docs/DEFERRED.md` at the end of the slice.
+- **OT24:** a reply is placed where its author is, when they write it.

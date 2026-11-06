@@ -14,7 +14,7 @@ Touches: Never "Celebration" and "Nagging" (no new-reply cue, no unread mark, no
 Verdict: aligned if reshaped
 Shape: A moment is unchanged. `thread`, `thread_member` and a directed `moment_link` are separate stored records. A thread arises only from connecting existing moments and dissolves below two. A reply is a new moment that joins the thread. The Chronicle's suggestions stay computed and independent.
 Criteria: OT1 (capture stays one tap), OT4 and OT9 (context on every moment), OT6 (no thread without two kept moments), OT10 (size in words), OT13 (the name is the owner's), OT14-OT17 (deletes), OT18 (truth), OT19 (the two kinds stay independent), OT20 (nothing leaves the device).
-Open: whether a thread can be kept quiet from the resurfaced card (OT23); where a reply made away from the place is read (OT24). The reasons rest on decision 0102, not on VISION.md's **[proposed]** line, which the owner has yet to edit.
+Open: none (OT23 and OT24 answered Nov 6). The reasons rest on decision 0102, not on VISION.md's **[proposed]** line, which the owner has yet to edit.
 
 ## Decisions (the owner's calls, Nov 5-6, decision 0102)
 
@@ -24,6 +24,7 @@ Open: whether a thread can be kept quiet from the resurfaced card (OT23); where 
 - A reply is a new moment with its own place and time, a directed link to the moment it answers, and it joins that moment's thread; if there is none, an unnamed thread of the two is made.
 - A thread with fewer than two moments dissolves, name and all; the delete that causes it is undoable.
 - Deleting a thread deletes its memberships only. Deleting a moment deletes its memberships and links only.
+- A moment in an owner thread is eligible for the resurfaced card like any moment, with no thread name and no opt-out (Nov 6, OT23). A reply is placed where its author is when they write it (Nov 6, OT24).
 - The Chronicle's suggested threads are computed, never stored, and neither reads the other kind. A suggestion becomes the owner's only by a tap, as a copy.
 
 ## Criteria
@@ -65,7 +66,7 @@ Open: whether a thread can be kept quiet from the resurfaced card (OT23); where 
 21. **OT21** The owner's threads survive a restart, a reload (web) and an app update: a migration adds the stores and never edits an existing one (SQLite and IndexedDB).
 22. **OT22** The viewer's other behaviour is unchanged: Save, Open in Maps, edit, delete (with Undo), and every list's filter on moments waiting in Undo (`useHidden`).
 
-### Kept quiet, and replying away
+### Resurfacing, and replying away
 
-23. **OT23** (the owner's call, pending) Whether the resurfaced card may bring back a moment that is in an owner thread, and whether a thread can be kept quiet from it. Until decided, a moment in an owner thread is eligible like any moment and shows no thread name.
-24. **OT24** (the owner's call, pending) A reply made away from the answered moment's place is placed where its author is, at the time they write it; its row says "answering" and the answered moment's place, so the two places are both in the words.
+23. **OT23** A moment in an owner thread is eligible for the resurfaced card like any moment (the owner's call, Nov 6: no per-thread opt-out). The card, Lately and every notification never show the thread's name or a title made from it (OT20).
+24. **OT24** A reply made away from the answered moment's place is placed where its author is, at the time they write it (one fix per moment, 0036); its row says "answering" and the answered moment's place, so both places are in the words.
