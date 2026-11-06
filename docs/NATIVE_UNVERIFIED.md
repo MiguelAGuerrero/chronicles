@@ -314,3 +314,7 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** open an area's card on a phone, tap Green, then tap Start this walk. **Expect:** the kind row (a `Pressable`) opens its panel inside the full-screen drawer's scroll; `showWalk()` opens the walk with a destination that carries `via` and `suggested`; the walk bar and announcements say a distance and no time left; walking off the way re-routes quietly through the stops still ahead. (KW1, KW7b, KW12, KW13)
 - [ ] **Do:** tap a kind on a phone's network in an area you never walked. **Expect:** the area's tiles are read at the tap, and the walkability tiles for the way's tiles, with nothing kept; "not known yet" reads when none could be read. (KW10, KW14)
 
+
+## Wrapped map names (fix long-names)
+
+- [ ] **Do:** on a phone, find a mark, a star and an Explore area point with a name over 20 characters (e.g. "Lopes International Park and gardens"), and a busy-street name that long. **Expect:** each name wraps onto further lines at 140/160 pt, centred, with no "…"; lines 2 and up are not clipped by the marker's box on iOS or Android; the pin stays on its point; a wrapped busy-street label stays near its street.
