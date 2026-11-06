@@ -538,10 +538,10 @@ export const marksExplained = (p: Pick<AtlasProfile, 'extent'> | null | undefine
 export const kindsHeading = (level: AtlasLevel, p: Pick<AtlasProfile, 'extent'> | null | undefined): string =>
   level === 'town' && p?.extent !== 'outline' ? 'What’s here · around its centre' : 'What’s here';
 
-/** TP7: the busy areas of a town, busiest first, each a street with where Walk to goes; a pocket no street runs through is not listed (the owner, Nov 4: a busy area is a street, never a place); none for a neighborhood or a ring-graded town. */
+/** TP7: the busy areas of a town, busiest first, each a street with where Walk to goes; a pocket no street runs through is not listed (the owner, Nov 4: a busy area is a street, never a place); two pockets on one street list it once, at the busier; none for a neighborhood or a ring-graded town. */
 export const busyAreas = (a: AtlasArea): { label: string; at: LngLat }[] =>
   a.level === 'town' && a.profile?.extent === 'outline'
-    ? (a.profile.pockets ?? []).flatMap((p) => (p.name ? [{ label: p.name, at: p.at }] : []))
+    ? (a.profile.pockets ?? []).flatMap((p, i, all) => (p.name && all.findIndex((q) => q.name === p.name) === i ? [{ label: p.name, at: p.at }] : []))
     : [];
 
 /** AT13: one sentence a screen reader says for a tile; how far and the walked count are its only numbers (AT11). */

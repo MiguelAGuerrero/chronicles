@@ -20,7 +20,7 @@ const spy = (): Spy => {
       try {
         if (s.hang) return await new Promise<never>(() => {});
         await new Promise((r) => setTimeout(r, 1));
-        return s.fail ? null : { x, y, from: s.from, ways: [way(`${x}/${y}`)] };
+        return s.fail ? null : { x, y, from: s.from, ways: [way(`${x}/${y}`)], junctions: [[-75.19, 40.69]] };
       } finally {
         s.busy--;
       }
@@ -124,4 +124,19 @@ test('WK18: the source is asked for a tile and nothing else', async () => {
   const s = spy();
   await createWalkReader(fakePorts(), s).read([[7, 8]], 'rel1');
   assert.deepEqual(s.calls, [[7, 8]]);
+});
+
+test('UF3, UF8: junctions are read with the ways, kept on the device, and come back from it; a tile cached under an older code is read again', async () => {
+  const p = fakePorts();
+  const s = spy();
+  const a = await createWalkReader(p, s).read([[1, 2]], 'rel1');
+  assert.deepEqual(a.junctions.get('1/2'), [[-75.19, 40.69]]);
+  assert.deepEqual((await p.db.getWalkTiles(['1/2']))[0].junctions, [[-75.19, 40.69]]);
+  const b = await createWalkReader(p, s).read([[1, 2]], 'rel1');
+  assert.equal(s.calls.length, 1, 'from the device');
+  assert.deepEqual(b.junctions.get('1/2'), [[-75.19, 40.69]]);
+  const old = (await p.db.getWalkTiles(['1/2']))[0];
+  await p.db.putWalkTiles([{ ...old, code: 'w1', junctions: [] }]);
+  await createWalkReader(p, s).read([[1, 2]], 'rel1');
+  assert.equal(s.calls.length, 2, 'WALK_CODE w2: a w1 tile has no junctions and is read again');
 });

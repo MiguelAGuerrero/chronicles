@@ -199,7 +199,7 @@ export function HomeSheet(props: {
   /** Starts a walk navigating to the place shown (N11). */
   onGoToPlace?: () => void;
   /** The place's found places (E10), in the place view only. */
-  placeExtra?: { count?: string; found: string[] } | null;
+  placeExtra?: { found: string[] } | null;
   /** Days with something in them, newest first (M7). */
   days?: Day[];
   /** Opens moments in the viewer (M8). */
@@ -261,9 +261,6 @@ export function HomeSheet(props: {
               <Text style={styles.meta} numberOfLines={2}>
                 {[place.subtitle, `${place.walks.length} ${place.walks.length === 1 ? 'walk' : 'walks'}`, formatDistance(place.metres)].filter(Boolean).join(' · ')}
               </Text>
-              {props.placeExtra?.count ? (
-                <Text testID="place-count" style={styles.meta} numberOfLines={1}>{props.placeExtra.count}</Text>
-              ) : null}
             </View>
           ) : noWalks && !expanded ? (
             // Nothing walked yet, a walk minimized or not (tabs audit U7): how walks get here, and the way there.

@@ -1,6 +1,6 @@
 // @layer adapter
 import type { Archive } from '../activity/release';
-import { waysFromOvertureTile } from './overtureSegments';
+import { junctionsFromOvertureTile, waysFromOvertureTile } from './overtureSegments';
 import type { WalkSource } from './types';
 
 /*
@@ -24,7 +24,7 @@ export function createOvertureSource(o: { release: () => Promise<string | null>;
       try {
         const t = await file.getZxy(Z, x, y, signal);
         // No tile: open ground or water. A tile with no roads, not a failure.
-        return { x, y, from: 'overture', ways: t ? waysFromOvertureTile(t.data, x, y) : [] };
+        return { x, y, from: 'overture', ways: t ? waysFromOvertureTile(t.data, x, y) : [], junctions: t ? junctionsFromOvertureTile(t.data, x, y) : [] };
       } catch {
         // pmtiles keeps a failed header for good: the next read opens the archive afresh.
         if (archive?.file === file) archive = null;

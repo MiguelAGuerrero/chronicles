@@ -3,6 +3,8 @@ import type { NearRead } from './atlas/atlas';
 import type { Db } from './db/types';
 import type { Waypoint } from './nav/types';
 import type { StartMode } from './startPlan';
+import { parsePrefs } from './resurface/prefs';
+import type { Prefs } from './resurface/types';
 import type { Units } from './units';
 
 /**
@@ -73,6 +75,7 @@ const isNav = (v: unknown) =>
   isLngLat(v.dest.at) &&
   typeof v.dest.label === 'string' &&
   typeof v.dest.kind === 'string';
+const isLayerState = (v: unknown) => isObject(v) && Object.values(v).every((x) => typeof x === 'boolean');
 const isNearRead = (v: unknown) => isObject(v) && isLngLat(v.at) && typeof v.build === 'string' && typeof v.code === 'string';
 
 /** '1' is on, '0' is off (the Explore haptic). */
@@ -110,11 +113,19 @@ export const META = {
   // Explore tab: the long-press hint was seen once (AT, atlas round 2)
   atlas_press_seen: { owner: 'explore', codec: flag },
   // Walkability (lib/walk/switch): the layer on the Explore and Navigate maps, off until switched on (WK13)
+  // Map layers (lib/layers): every layer's state as one setting for every map (ML7). `walk_layer` is the walkability switch from
+  // before layers; it is read once into this when no setting is stored.
+  map_layers: { owner: 'map', codec: json<Record<string, boolean>>(isLayerState) },
   walk_layer: { owner: 'walk', codec: onOff },
   // Recall (lib/discovery/recallCheck): captures a notification opened
   recall_open: { owner: 'discovery', codec: json<string[]>(isStrings) },
   // Town outlines (lib/areas/outlineRead): the localities found to be wards of a city, whose outlines are never towns.
   outline_nested: { owner: 'areas', codec: json<string[]>(isStrings) },
+  // Kind walk (lib/kindWalk): how far a suggested walk is, in metres, and what to do about a stretch built around cars (KW8, KW11)
+  kindwalk_budget: { owner: 'kindwalk', codec: number },
+  kindwalk_pref: { owner: 'kindwalk', codec: oneOf<'warn' | 'skip'>('warn', 'skip') },
+  // Chronicle's Memories (lib/resurface): what the user chose to see less of, renamed or removed (RM21)
+  resurface_prefs: { owner: 'resurface', codec: json<Prefs>((v) => parsePrefs(v) !== null) },
   // Settings
   units: { owner: 'settings', codec: oneOf<Units>('km', 'mi') },
   notify_off: { owner: 'notifications', codec: json<string[]>(isStrings) },

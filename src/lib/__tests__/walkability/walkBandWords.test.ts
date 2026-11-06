@@ -28,5 +28,6 @@ test('WK23: the tooltip gives a reason in words and never a number', () => {
     assert.ok(tip.length > bandWords(b)!.length, `${b} has a reason`);
     assert.ok(!/\d|%|mph|km/i.test(tip), tip);
   }
-  assert.match(bandTip('car')!, /no sidewalk (is )?mapped/i);
+  assert.match(bandTip('car')!, /far apart and busy/i);
+  assert.match(bandTip('foot')!, /close together, with crossings/i);
 });

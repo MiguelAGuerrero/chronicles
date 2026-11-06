@@ -53,6 +53,9 @@ test('nav: walk me back runs from where you stand back along the trace to the st
   assert.ok(distanceM(r.path[0], here) < 15, 'starts where you stand');
   assert.ok(distanceM(r.path.at(-1)!, at(0, 0)) < 1, 'ends at the start');
   assert.ok(Math.abs(r.lengthM - 500) < 25, `about 500 m back, got ${Math.round(r.lengthM)}`);
+  // The trace is an L (300 m east, 200 m north): cutting its corner would be about 360 m. The reading rounds a
+  // corner by a few metres (fixes inside the GPS's accuracy are one spot), so the corner is walked round.
+  assert.ok(r.lengthM >= 485, `the corner is walked round, not cut: ${Math.round(r.lengthM)} m`);
   assert.equal(r.source, src.id);
 });
 
@@ -73,7 +76,7 @@ test('nav: walk me back can end at a capture’s pin (N1)', () => {
   assert.ok(distanceM(r.path.at(-1)!, at(1, 0.05)) < 1);
 });
 
-test('nav: the trace router never crosses a pause or a gap it did not walk', () => {
+test('nav: the trace router never crosses a pause it did not walk', () => {
   // Paused while carried 300 m east: the way back runs only along what was walked.
   const a = walk([at(0, 0), at(1, 0)]);
   const pause = { started_at: a.at(-1)!.t + 1000, ended_at: a.at(-1)!.t + 60_000 };
@@ -152,15 +155,6 @@ test('nav: routeTo tries each source in turn and says why when none can (N3-N5, 
   assert.equal(routeTo([none, straight], at(0, 0), at(1, 0)).route?.source, 'straight');
   assert.equal(routeTo([none], at(0, 0), at(1, 0)).reason, 'No walking route found nearby');
   assert.equal(routeTo([straight], at(0, 0), at(200, 0)).reason, 'Too far to walk from here');
-});
-
-test('nav: walk me back never cuts a corner the walk turned, only a loop it came back to (screenshot)', () => {
-  // An L: 300 m east, 200 m north. Points either side of the corner are within 30 m of each other.
-  const trace = walk([at(0, 0), at(3, 0), at(3, 2)]);
-  const r = traceRouteSource(trace, []).route(at(3, 2), at(0, 0))!;
-  // Cutting it would be about 360 m. The reading rounds a corner by a few metres (fixes inside
-  // the GPS's accuracy are one spot, since the scribble fix), so allow for that.
-  assert.ok(r.lengthM >= 485, `the corner is walked round, not cut: ${Math.round(r.lengthM)} m`);
 });
 
 // Regression tests from the slice's audit and UI review, written before the fixes.

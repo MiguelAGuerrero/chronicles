@@ -210,7 +210,7 @@ test('AC8 the Stop hook runs the layer check and affected tests when TypeScript 
   assert.match(hook, /node scripts\/affected\.js hook/);
 });
 
-test('AC9 a changed file names the scenarios that cover it; an uncovered screen is named', () => {
+test('AC9, TG9 a changed file names the scenarios that cover it; an uncovered screen is named; one file per journey', () => {
   const table: Scenario[] = [
     { name: 'gaps', covers: ['src/lib/gaps/**', 'src/components/GapCard.tsx'] },
     { name: 'tabs', covers: ['src/app/(tabs)/**'] },

@@ -3,21 +3,24 @@ import { useEffect, useRef } from 'react';
 import { tilesNear } from '../tileMath';
 import type { LngLat } from '../types';
 import { useStore } from '../useStore';
-import { alongRoute, carStretches, warningLine } from './ahead';
+import { alongRoute, areaStretches, carStretches, mergeStretches, warningLine } from './ahead';
+import { cellsFor } from './cells';
 import { routeSegments } from './layer';
 import { MAX_TILES } from './limits';
-import { aheadWatch, walkBuild, walkReader } from './walkApp';
+import { aheadWatch, walkBuild, walkPlaces, walkReader } from './walkApp';
 
-/** Tiles within this of the route are read (WK4): the street under it and the footways beside. */
-const ROUTE_TILE_M = 100;
+/** Tiles within this of the route are read (WK4): the street under it, the footways beside, and a cell's whole neighbourhood (UF1). */
+const ROUTE_TILE_M = 500;
 
 /**
  * The quiet heads-up ahead of a stretch built around cars (WK15): the line to show, or null. It reads the
  * route's tiles once per route (from the device where kept) and says nothing when there is no data (WK3).
  * It never changes the route (WK16): it takes the route and the walker's position and gives back words.
  */
-export function useRouteWarning(route: readonly LngLat[] | null, here: LngLat | null): string | null {
-  const key = route && route.length > 1 ? `${route[0].join(',')}>${route[route.length - 1].join(',')}#${route.length}` : null;
+export function useRouteWarning(route: readonly LngLat[] | null, here: LngLat | null, enabled: boolean): string | null {
+  // Only while the Walkability layer is on (the owner's call, 2026-11-05): the walker asked for the information, and no route
+  // tile is read otherwise (the vision review S2, S3).
+  const key = enabled && route && route.length > 1 ? `${route[0].join(',')}>${route[route.length - 1].join(',')}#${route.length}` : null;
   /** The distance last found along this route, so a route that retraces itself is read on the leg being walked. */
   const lastAlong = useRef<number | null>(null);
   useEffect(() => {
@@ -32,10 +35,15 @@ export function useRouteWarning(route: readonly LngLat[] | null, here: LngLat | 
     let live = true;
     void (async () => {
       const build = await walkBuild().catch(() => null);
-      const read = await walkReader.read(tilesNear([...route], ROUTE_TILE_M, MAX_TILES), build ?? 'unknown', () => !live);
+      const tiles = tilesNear([...route], ROUTE_TILE_M, MAX_TILES);
+      const read = await walkReader.read(tiles, build ?? 'unknown', () => !live);
       if (!live || !read.tiles.size) return;
       const { segments, bands } = routeSegments(read.tiles);
-      aheadWatch.stretches(key, carStretches(route, segments, bands));
+      // Two reasons to speak (UF15): a stretch of fast road, and ground built around cars the route enters.
+      const places = await walkPlaces(tiles, () => !live);
+      if (!live) return;
+      const areas = areaStretches(route, cellsFor(read.tiles, read.junctions, places));
+      aheadWatch.stretches(key, mergeStretches(carStretches(route, segments, bands), areas));
     })();
     return () => {
       live = false;

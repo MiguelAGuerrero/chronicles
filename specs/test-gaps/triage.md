@@ -1,35 +1,43 @@
 # Live criteria no test names: a triage for the owner (Nov 4)
 
-`npm run check:specs` lists 25 live criterion ids (24 at the first count, and TB12 from main's town borders) that no unit test, e2e check or step names, after test gaps round 1 wrote tests for M15, AC11, NT12 and named R10, N14 and L18 in the nothing-leaves check, and after the v1 retired list was corrected to the spec's own "Retired by this slice" line. Each needs one of three calls: **retire** it (it goes into `RETIRED` in `scripts/features.js`, with who retired it), **test** it (built, a test is owed), or **build** it (not done). The column "Read" is the agent's reading from the code and the later slices; it is a suggestion, not a call.
+`npm run check:specs` listed 25 live criterion ids (24 at the first count, and TB12 from main's town borders) that no unit test, e2e check or step names, after test gaps round 1 wrote tests for M15, AC11, NT12 and named R10, N14 and L18 in the nothing-leaves check, and after the v1 retired list was corrected to the spec's own "Retired by this slice" line. Each needs one of three calls: **retire** it (it goes into `RETIRED` in `scripts/features.js`, with who retired it), **test** it (built, a test is owed), or **build** it (not done). The column "Read" is the agent's reading from the code and the later slices; it is a suggestion, not a call.
+
+Round 2 (Nov 4) wrote a test for 15 of the 18 "test" rows (below). It stopped on three where the code no longer says what the criterion says (H10, N6, CP7): those now wait on the owner with the rest.
 
 | Spec | Id | Criterion (short) | Read | Why |
 |---|---|---|---|---|
 | v0.5-places | H2 | With no stopped walks: a world view, "Walk somewhere and it is starred here", Start | retire? | The home became the tabs (Navigation & tabs); Start moved to the ready bar (decision 0076) |
 | v0.5-places | H3 | One Start button above the sheet; "Return to your walk" | retire? | Same: Start is the ready bar's, the walk comes back through the recording bar |
-| v0.5-places | H9 | The open walk shows nowhere until it stops | test | Still the rule for Chronicle; an e2e check in `chronicle` would hold it |
-| v0.5-places | H10 | The home reads only walks, summaries, areas, never traces or media | test | A structural unit test over the tab screens' imports and db calls |
-| v0.5-places | N6 | The route drawn bold in blue with a white edge; trace, pins, walker visible | test | A `walk` journey check on the route layer's paint |
-| v0.5-places | N12 | Recording, pause, captures, fog and streets work while navigating | test | Partly in the `walk` journey's navigation steps; one named check owed |
+| v0.5-places | H10 | The home reads only walks, summaries, areas, never traces or media | reword? | Later slices widened it: Chronicle also reads every capture row (the days, M7), checklist areas and finds, and its moment pins load photos' small copies (QL26). Still true: no trace is read but by `lib/backlog` (placing old walks, H8). A test of "never traces" is ready to write once the owner rewords it |
+| v0.5-places | N6 | The route drawn bold in blue with a white edge; trace, pins, walker visible | reword? | The trace steps aside while navigating (the owner's call, Nov 2; the `walk` journey checks "the trace hides while navigating"), and QL3's markers go with it. The route (blue, 8 px on a 12 px white edge), the pins and the walker hold |
 | v1-discovery | E14 | On upgrade, scan and ambient marks are no longer read or drawn | retire? | A one-time upgrade from Nov 1; nothing left to read |
-| v1-discovery | E15 | On the web, exploring works while the page is open | test | The `marks` and `nudge` journeys explore on the web; name it in one |
 | v1.5-landing | L17 | Remembered pockets feed the v1 scan and ambient as context only | retire? | Scan and ambient are retired (v1-discovery's retired line) |
-| bridges-and-open-in-maps | NB6 | `STREET_CODE` 3 drops the street cache once | test | A unit test on `STREET_CODE` and the cache drop in `tileBuild` |
 | bridges-and-open-in-maps | NH8 | "Couldn't open a maps app." when nothing opens it | build? | That text is not in the code; ask whether the banner shipped under other words |
-| compass | CP7 | Turning stops following like a pan; Recenter and Locate resume and keep the bearing | test | A `ready` or `qol` journey check through `window.__turn` |
-| explore-atlas | AT9 | The small map above the grid follows | test | An `atlas` journey check on the mini map's centre |
-| explore-atlas | AT15 | The title floats over the map | test | An `atlas` journey layout check |
-| filling-gaps | G13 | The rule change marks every walk to snap again | test | A unit test that `SNAP_RULES` was bumped with the gap rules |
+| compass | CP7 | Turning stops following like a pan; Recenter and Locate resume and keep the bearing | build? | Half holds: a turn by hand (shift-arrow on the walk's map) stops following and Recenter resumes it at the same bearing (checked in `qol`, Nov 4, then left out). Locate does not keep the bearing: its fit (`fitBounds` with no `bearing`) turns the map back to north (Explore, 90° → 0°). `window.__turn` is a camera move in code, so it never stops following |
 | memories-on-revisit | MR2 | Memory pins group by screen distance, with a count | build? | `memories.ts` doesn't group through `pinsFor`; ask whether grouping shipped |
-| memories-on-revisit | MR9 | The same on the web build | test | The `memories` journey runs on the web; name it there |
-| memories-on-revisit | TH5 | One thumbnail model on phones and web; migration 12 | test | Native half unverifiable here; the web half is the `walk` journey's thumbnails |
-| motion | MO6 | When steps start, the dot moves within 2 s | test | The `sensors` journey fakes DeviceMotion; a timing check is owed |
-| motion | MO10 | Motion is read only while a walk is open and on screen | test | The `sensors` journey can count listeners after pause and blur |
-| quality-of-life | QL3 | Markers above the trace, under pins and walker, never take a tap | test | A `qol` journey check: a tap on a start-marker pin still opens it |
-| quality-of-life | QL21 | Navigate's own fix on focus stays quiet when denied | test | The `qol` journey's denied context can check no banner |
 | replay-rhythm | RR17 | With a screen reader, both replays step through the moments | native | react-native-web always reports a screen reader; only a device can check it |
-| rides | R12 | On a ride, Explore names nothing, no pocket alert, no read; the fog reads nothing | test | Several unit tests prove parts (PA3 "on a ride"); one named test owed |
-| town-borders | TB12 | A slow read of the wide tile has 45 s, and a failed read is retried every 30 s while the screen is open | test | Arrived with main's town borders (Nov 4) after this triage; a shell test over fakes with a fake slow reader |
+
+## Covered in round 2 (Nov 4)
+
+Each test below was made to fail against a deliberate break in the code it covers, then the break was reverted (Nov 5, after two container restarts lost the first proofs). Unit: H9 (the places index kept open walks), NB6 (the street cache never dropped), G13 (walks never marked to re-snap), R12 (a stop on a ride read as walking), TB12 (the z10 read's 45 s cut to 15 s; the retry slowed to 60 s), TH5 (migration 12 made NOT NULL). E2E, each journey run in soft mode under its break: AT9 (no ring on a selected area), AT15 (the title card 52 px lower), N12 (Pause ends the navigation), QL3 (the end markers ignore the trace's opacity), QL21 (a denied fix on focus raises a banner), E15 (nothing named within reach), MO6 (six steps before walking), MO10 (motion read while paused and hidden). MR9's break (no memories near, or a viewer handed nothing) fails the `memories` journey at the wait just before the MR9 check, which checks what those waits demand.
+
+
+- **H9** `places/places.test.ts` "H9: the open walk shows nowhere on Chronicle until it stops: no star, no row, no place, no day, no count"
+- **N12** e2e `walk` "N12: while navigating, the walk records, a photo is kept, Pause holds the bar's distance, and the fog counts its streets"
+- **E15** e2e `marks` "E15: on the web, with the page open, an exploring walk reads its area, keeps its checklist and names what it passes"
+- **NB6** `streets/tileRules.test.ts` "NB6: STREET_CODE 3 drops the street cache once and marks every walk to re-snap" (`tiles.ts` run from its own source over the fake db)
+- **AT9** e2e `atlas` "AT9: the small map shows the areas' points, and a selected tile frames its area with its 800 m ring"
+- **AT15** e2e `atlas` "AT15: the title and subtitle float on a shadowed card over a map that runs to the top"
+- **G13** `streets/tileRules.test.ts` "G13: the gap rules bumped SNAP_RULES, which marks every walk to snap again and keeps the street pieces"
+- **MR9** e2e `memories` "MR9: on the web build, a later walk shows memory pins, previews one and opens its spot's memories"
+- **TH5** `captures/thumbModel.test.ts`, three "TH5: ..." tests: migration 12 (read from the native list; SQLite never ran), the web record, one module
+- **MO6** e2e `sensors` "when steps start, the dot moves within 2 s (MO6: ...)": 1.8-2.0 s with a fix every quarter second; at 1 Hz the fix wait can add up to a second, so a phone may take longer than 2 s
+- **MO10** e2e `sensors` "MO10: motion is read only while the walk is open and on screen" (listeners counted: ready, walking, paused, resumed, hidden, back, stopped)
+- **QL3** e2e `qol` "qol QL3: the start marker sits above the trace and goes with it while navigating" (pixels read from the page) and "qol QL3: a tap on a pin over the end marker opens the pin"
+- **QL21** e2e `qol` "qol QL21: denied, Navigate's own fix on focus stays quiet; Locate says why"
+- **R12** `rides/rides.test.ts` "R12: on a ride, and at a stop on it, Explore waits: ..." (the decisions: `ridingAt`, the pocket alert, what the walked fixes name; the gates in `useExplore`, `useNavigation` and `walk.tsx` are views no Node test loads)
+- **TB12** `places/townBordersRetry.test.ts`, three "TB12: ..." tests: the z10 read's 45 s in `overtureOutlines.ts` and the 30 s retry in `useOutlineSet`, each run from its own source under mocked timers
 
 ## Suggested next step
 
-Confirm the four "retire?" rows (H2, H3, E14, L17) and the two "build?" rows (NH8, MR2). The 18 "test" rows are owed tests, mostly e2e checks in journeys that already exist; they need no call and can be written as a round 2 of test gaps.
+Done in the test trim (Nov 5): all nine retired at the owner's call (`trim.md`). RR17 waits for a device.

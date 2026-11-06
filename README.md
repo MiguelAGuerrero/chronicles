@@ -20,6 +20,7 @@ npm run check:affected        # what a change can break: layers, affected tests,
 npm run typecheck
 npm run lint
 npm run e2e:web      # headless walk end to end against dist/ (mocked GPS, fake streets)
+npm run check:device         # the device acceptance suite: what is still to run on a phone (docs/NATIVE_UNVERIFIED.md)
 ```
 
 The web build is deployed to GitHub Pages at https://miguelaguerrero.github.io/chronicles/

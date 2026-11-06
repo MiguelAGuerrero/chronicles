@@ -70,6 +70,13 @@ features.push({ type: 'Feature', properties: { class: 'bus', subclass: 'bus_stop
 features.push({ type: 'Feature', properties: { class: 'park', subclass: 'park', name: 'Gano Park' }, geometry: { type: 'Point', coordinates: at(5.4, 0.6) } });
 features.push({ type: 'Feature', properties: { class: 'bakery', subclass: 'bakery', name: 'Sunny Bakery' }, geometry: { type: 'Point', coordinates: at(5.2, -1.0) } });
 features.push({ type: 'Feature', properties: { class: 'museum', subclass: 'museum', name: 'Fox Point Museum' }, geometry: { type: 'Point', coordinates: at(4.6, 1.8) } });
+// Kind walk (KW1-KW14): Green Row, a neighborhood 12 km west, far from every other area, with one street and six parks in
+// three clumps along it (three cells of green, each within 300 m of the street). E2E_ONLY=kindwalk goes there.
+features.push({ type: 'Feature', properties: { class: 'neighbourhood', name: 'Green Row' }, geometry: { type: 'Point', coordinates: at(-120, 0) } });
+features.push({ type: 'Feature', properties: { class: 'minor', name: 'Row Street' }, geometry: { type: 'LineString', coordinates: [at(-130, 0), at(-110, 0)] } });
+[[-126, 'Elm'], [-125.7, 'Oak'], [-121, 'Ash'], [-120.8, 'Fir'], [-115, 'Yew'], [-114.8, 'Bay']].forEach(([x, n]) => {
+  features.push({ type: 'Feature', properties: { class: 'park', subclass: 'park', name: `${n} Green` }, geometry: { type: 'Point', coordinates: at(x, 1) } });
+});
 // A busy strip 1.1 km east of Fox Point (v1.5 landing): Thayer Street lined with shops for 250 m,
 // inside the read around a press at Fox Point, and inside the walk's own explore read (E2).
 features.push({ type: 'Feature', properties: { class: 'tertiary', name: 'Thayer Street' }, geometry: { type: 'LineString', coordinates: [at(11, -3), at(11, 3)] } });
@@ -100,15 +107,23 @@ const divisionFeatures = [
     properties: { subtype: 'locality', class: 'land', '@name': 'Central Falls', division_id: 'central-falls', id: 'central-falls-area' } },
 ];
 const divisions = { serve: false };
-// Walkability (WK1, WK13): Overture's transportation tile around the start. A fast primary (car), a tertiary with
-// nothing mapped (mixed), and a calm residential with a sidewalk beside it (easy on foot: drawn as nothing).
+// The Walkability layer (specs/walkability-urban-form): Overture's transportation tile around the start. A dense grid of
+// residential streets 100 m apart with a connector at every crossing, which reads easy on foot, and two long arterials 1.2 km
+// east with next to no junctions, which read built around cars.
 const transportFeatures = [];
 const mph = (v) => JSON.stringify([{ max_speed: { unit: 'mph', value: v }, between: [0, 1] }]);
-const wkSeg = (id, props, a, b) => transportFeatures.push({ type: 'Feature', properties: { id, subtype: 'road', ...props }, geometry: { type: 'LineString', coordinates: [a, b] } });
-wkSeg('wk-fast', { class: 'primary', '@name': 'Route 6', speed_limits: mph(55) }, at(-2, 3), at(2, 3));
-wkSeg('wk-mixed', { class: 'tertiary', '@name': 'Hope Street' }, at(-2, -3), at(2, -3));
-wkSeg('wk-calm', { class: 'residential', '@name': 'Elm Street', speed_limits: mph(25) }, at(-2, 6), at(2, 6));
-wkSeg('wk-walk', { class: 'footway', subclass: 'sidewalk' }, at(-2, 6.1), at(2, 6.1));
+const wkConn = (id, p) => transportFeatures.push({ type: 'Feature', properties: { id }, geometry: { type: 'Point', coordinates: p } });
+const wkSeg = (id, props, a, b, ids = []) => transportFeatures.push({
+  type: 'Feature', properties: { id, subtype: 'road', ...props, connectors: JSON.stringify(ids.map((c, k) => ({ connector_id: c, at: k / Math.max(1, ids.length - 1) }))) },
+  geometry: { type: 'LineString', coordinates: [a, b] },
+});
+const GRID = [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5];
+for (const gx of GRID) for (const gy of GRID) wkConn(`c${gx}_${gy}`, at(gx, gy));
+for (const gy of GRID) wkSeg(`h${gy}`, { class: 'residential', '@name': `Grid ${gy} Street`, speed_limits: mph(25) }, at(-5, gy), at(5, gy), GRID.map((gx) => `c${gx}_${gy}`));
+for (const gx of GRID) wkSeg(`v${gx}`, { class: 'residential', speed_limits: mph(25) }, at(gx, -5), at(gx, 5), GRID.map((gy) => `c${gx}_${gy}`));
+wkConn('far-w', at(14, -2)); wkConn('far-e', at(26, -2));
+wkSeg('far-a', { class: 'primary', '@name': 'Route 6', speed_limits: mph(55) }, at(14, -2), at(26, -2), ['far-w', 'far-e']);
+wkSeg('far-b', { class: 'primary', '@name': 'Route 7', speed_limits: mph(55) }, at(14, 3), at(26, 3), []);
 // The Overpass answer for the same ground, for when Overture can't be read (WK1b).
 const overpassAnswer = { elements: [
   { type: 'way', id: 1, tags: { highway: 'secondary', 'sidewalk:both': 'no', maxspeed: '35 mph', name: 'Route 6' }, geometry: [{ lat: at(0, 3)[1], lon: at(-2, 3)[0] }, { lat: at(0, 3)[1], lon: at(2, 3)[0] }] },
@@ -168,15 +183,8 @@ async function shot(page, name) {
   if (SHOTS) await page.screenshot({ path: path.join(SHOTS, `${name}.png`) });
 }
 
-function check(ok, what) {
-  // E2E_SOFT=1 reports a failed check and goes on, to see every check fail on code from before a fix.
-  if (!ok && process.env.E2E_SOFT) {
-    console.log(`not ok - ${what}`);
-    return;
-  }
-  if (!ok) throw new Error(`FAILED: ${what}`);
-  console.log(`ok - ${what}`);
-}
+// The one check, with check.todo for a test written before its code (TG25).
+const { check } = require('./check');
 
 async function createHarness() {
   const server = await serve();
@@ -330,7 +338,7 @@ async function createHarness() {
   };
   // A tab, from wherever the test is (NR1-NR4): the ready screen covers the tabs, so its chevron goes back
   // to them first; Navigate opens the walk screen (ready or walking) and is left alone if it is up.
-  const tabTo = async (pg, id) => {
+  const tabTo = async (pg, id, section = 'map') => {
     const shown = async (sel) => (await pg.locator(sel).filter({ visible: true }).count()) > 0;
     if (id === 'navigate') {
       if ((await shown('[data-testid=ready-bar]')) || (await shown('[data-testid=stop]'))) return;
@@ -339,6 +347,17 @@ async function createHarness() {
       await pg.waitForTimeout(600);
     }
     await pg.click(`[data-testid=tab-${id}]`);
+    // Chronicle opens on Memories (RM1); the journeys written before it want the map and its sheet.
+    if (id === 'chronicle' && section !== 'memories') {
+      await pg.waitForSelector('[data-testid=chronicle-sections]', { timeout: 15000 }).catch(() => {});
+      if (await pg.locator(`[data-testid=section-${section}]`).filter({ visible: true }).count()) await pg.click(`[data-testid=section-${section}]`);
+    }
+  };
+  // Chronicle opens on Memories (RM1); a journey that wants the map's sheet after leaving a replay brings it up.
+  const mapUp = async (pg) => {
+    await pg.waitForSelector('[data-testid=chronicle-sections]', { timeout: 15000 }).catch(() => {});
+    const sheetShown = (await pg.locator('[data-testid=home-sheet]').filter({ visible: true }).count()) > 0;
+    if (!sheetShown && (await pg.locator('[data-testid=section-map]').filter({ visible: true }).count())) await pg.click('[data-testid=section-map]');
   };
   // Elements on the tab in front: JS tabs keep the others mounted beneath it, aria-hidden.
   const shownCount = (pg, sel) => pg.evaluate((q) => [...document.querySelectorAll(q)].filter((e) => !e.closest('[aria-hidden=true]')).length, sel);
@@ -415,20 +434,25 @@ async function createHarness() {
   const transportArchiveOf = (feats) => {
     const z = 14;
     const keys = new Set();
-    for (const f of feats) for (const [lon, lat] of f.geometry.coordinates) {
+    for (const f of feats) for (const [lon, lat] of (f.geometry.type === 'Point' ? [f.geometry.coordinates] : f.geometry.coordinates)) {
       const x = Math.floor(((lon + 180) / 360) * 2 ** z);
       const y = Math.floor(((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2) * 2 ** z);
       keys.add(`${x},${y}`);
     }
     return encodeArchive([...keys].map((k) => {
       const [x, y] = k.split(',').map(Number);
-      return { z, x, y, data: encodeTile(feats, z, x, y, () => ['segment']) };
+      return { z, x, y, data: encodeTile(feats, z, x, y, (f) => (f.geometry.type === 'Point' ? ['connector'] : ['segment'])) };
     }));
   };
   const transportArchive = transportArchiveOf(transportFeatures);
   const gridTransportArchive = transportArchiveOf(features.filter((f) => f.geometry.type === 'LineString').map((f, i) => ({
     type: 'Feature', geometry: f.geometry,
     properties: { id: `grid-${i}`, subtype: 'road', class: 'primary', ...(f.properties.name ? { '@name': f.properties.name } : {}), speed_limits: mph(55) },
+  })));
+  // The heads-up's second reason (UF15): the same grid as arterial streets at 25 mph, so no fast road, only ground built around cars.
+  const gridSlowArchive = transportArchiveOf(features.filter((f) => f.geometry.type === 'LineString').map((f, i) => ({
+    type: 'Feature', geometry: f.geometry,
+    properties: { id: `slow-${i}`, subtype: 'road', class: 'primary', ...(f.properties.name ? { '@name': f.properties.name } : {}), speed_limits: mph(25) },
   })));
   const overtureAsked = [];
   const overpassAsked = [];
@@ -449,7 +473,7 @@ async function createHarness() {
     const archive = url.pathname === `/tiles/${OVERTURE_RELEASE}/places.pmtiles`
       ? overtureArchive
       : url.pathname === `/tiles/${OVERTURE_RELEASE}/divisions.pmtiles` ? (divisions.serve ? (snapWorld.serve ? snapDivisionsArchive : divisionsArchive) : noDivisions)
-        : url.pathname === `/tiles/${OVERTURE_RELEASE}/transportation.pmtiles` ? (walkability.mode === 'ok' ? transportArchive : walkability.mode === 'grid' ? gridTransportArchive : Buffer.alloc(200, 7)) : null;
+        : url.pathname === `/tiles/${OVERTURE_RELEASE}/transportation.pmtiles` ? (walkability.mode === 'ok' ? transportArchive : walkability.mode === 'grid' ? gridTransportArchive : walkability.mode === 'arterial' ? gridSlowArchive : Buffer.alloc(200, 7)) : null;
     if (archive) {
       const m = /bytes=(\d+)-(\d+)/.exec(req.headers().range ?? '');
       const from = m ? Number(m[1]) : 0;
@@ -509,6 +533,7 @@ async function createHarness() {
       await page.waitForTimeout(600);
     }
     await page.click(`[data-testid=tab-${id}]`);
+    if (id === 'chronicle') await mapUp(page);
     await page.waitForTimeout(800);
     return { path: new URL(page.url()).pathname.slice(BASE.length), canvases: await page.locator('canvas.maplibregl-canvas').count() };
   };
@@ -534,9 +559,18 @@ async function createHarness() {
     await browser.close();
     server.close();
   };
+  // Switches a map layer on (or off) through the Layers panel and closes the panel (specs/map-layers ML3-ML5): the layers all
+  // start off, so a journey that looks at one turns it on first.
+  const switchLayer = async (pg, id, wantOn = true) => {
+    await pg.waitForSelector('[data-testid=layers]', { timeout: 30000 });
+    if (!(await pg.locator('[data-testid=layers-panel]').count())) await pg.click('[data-testid=layers]');
+    await pg.waitForSelector(`[data-testid=layer-${id}]`, { timeout: 5000 });
+    if (((await pg.locator(`[data-testid=layer-${id}]`).getAttribute('aria-checked')) === 'true') !== wantOn) await pg.click(`[data-testid=layer-${id}]`);
+    await pg.click('[data-testid=layers]');
+  };
   return {
-    url, navUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, iconOf, metricRegion, pressedScale, metaOf, drawerTo, tabTo, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
-    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, walkability, overpassAsked, OVERPASS_HOST, scenicWorld, routed,
+    url, navUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, iconOf, metricRegion, pressedScale, metaOf, drawerTo, tabTo, mapUp, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
+    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, walkability, overpassAsked, OVERPASS_HOST, scenicWorld, routed, switchLayer,
   };
 }
 

@@ -1,6 +1,6 @@
 # Plan: Places worth the stop (the archive and Curiosities)
 
-Spec: `specs/places-worth-the-stop/spec.md` (PW1-PW16). Decision 0101. Nothing here is built; the owner reviews it first.
+Spec: `specs/places-worth-the-stop/spec.md` (PW1-PW16). Decision 0102. Nothing here is built; the owner reviews it first.
 
 ## The seam
 
@@ -28,7 +28,7 @@ Spec: `specs/places-worth-the-stop/spec.md` (PW1-PW16). Decision 0101. Nothing h
 - `landing/read.ts`, `atlas/read.ts`, `atlas/atlas.ts`: the archive read and merge; `profile.archive`; `ATLAS_CODE` a6; `readQueue` rereads a ring measured without the archive while one is known.
 - `lib/meta.ts`: `places_archive_manifest` and `places_archive_checked_at`, declared in `META`.
 - `db/`: `checklist_area.archive` (below); `areaRow` mapping; a `dbContract.ts` case first.
-- `scripts/check-vision.js`: the host in `ALLOWED_HOSTS`, with its reason (the owner's call, 0101).
+- `scripts/check-vision.js`: the host in `ALLOWED_HOSTS`, with its reason (the owner's call, 0102).
 - `scripts/features.js`: `places-worth-the-stop` moves from the `places` feature to `explore` (the code is in `discovery/**`), and the `explore` feature gains the `curiosities` journey.
 
 **Build and fixtures (new):**
@@ -103,8 +103,8 @@ The steward found one breach, seven drifts, one tone note, five criteria not tes
 | Finding | Verdict | What changed |
 |---|---|---|
 | S1: the atlas's presence follows the archive's coverage, so it reads as notability | **Accepted in part, reclassified.** Not a breach: the vision's own nearest fit for popularity is "Presence of places from open data (0080, 0084)", and the Always line the steward quoted ("derived data treated as truth") is not on the page. The coverage unevenness is real, so its testable parts are in. | PW10: `STEPS` takes no archive input; `thin` is judged from the tiles' places alone; a read without the archive never replaces a profile measured with it; the reread is 30 minutes. |
-| S2: the place sheet's "N of M" grows with the archive | **Accepted; it is the owner's call.** I had written "left as it is", which contradicted 0101's "decided in the slice or before". | PW11 no longer says the tally stays; new PW17 is pending your answer and blocks shipping (question 4). |
-| S3: a Wikipedia entry as a gate measures editors' attention | **Accepted as a criterion; the record waits on you.** A class from the pinned table is always required; a signal never admits a place alone. | PW7; question 5. 0101 is not edited. |
+| S2: the place sheet's "N of M" grows with the archive | **Accepted; it is the owner's call.** I had written "left as it is", which contradicted 0102's "decided in the slice or before". | PW11 no longer says the tally stays; new PW17 is pending your answer and blocks shipping (question 4). |
+| S3: a Wikipedia entry as a gate measures editors' attention | **Accepted as a criterion; the record waits on you.** A class from the pinned table is always required; a signal never admits a place alone. | PW7; question 5. 0102 is not edited. |
 | S4: `source` and the id could become an ordering key | **Accepted, one line.** | PW7: no view, sort or string reads `source` or the id. |
 | S5: a rebuild could move a found item to another kind | **Accepted.** | PW12: found items keep their kind, even when a newer archive changes or drops their place. |
 | S6: more archive marks, more pocket alerts | **Rejected.** The alert is opt-in, once per place, and the slice leaves its rules and the 8-mark cap alone. | None. |
@@ -117,4 +117,4 @@ The steward found one breach, seven drifts, one tone note, five criteria not tes
 | PW10's "read again later" has no time; PW16 has no gate | **Accepted.** | PW10 (30 minutes); PW16 (the manifest address is empty and the host is not added until it is recorded). |
 | PW11 can't prove an absence | **Noted, kept.** The journey's digit check and `check:vision` are the proxy. | None. |
 
-**Silent items:** `waitingKinds` follows the existing kind rules, so a kind a walker has switched off is not named. A place that is both odd and heritage-listed is the type's call (0101), accepted as the owner's. A find whose place a refresh drops keeps its snapshot (PW12).
+**Silent items:** `waitingKinds` follows the existing kind rules, so a kind a walker has switched off is not named. A place that is both odd and heritage-listed is the type's call (0102), accepted as the owner's. A find whose place a refresh drops keeps its snapshot (PW12).

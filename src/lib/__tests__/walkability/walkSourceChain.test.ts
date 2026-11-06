@@ -8,7 +8,7 @@ import type { TileFacts, WalkSource } from '../../walk/types';
 
 // Walkability (WK1b, WK8b), written from specs/walkability/spec.md before the code.
 
-const facts = (from: TileFacts['from']): TileFacts => ({ x: 1, y: 2, from, ways: [] });
+const facts = (from: TileFacts['from']): TileFacts => ({ x: 1, y: 2, from, ways: [], junctions: [] });
 const source = (r: TileFacts | null | 'throw'): WalkSource & { calls: number } => ({
   calls: 0,
   async read() {

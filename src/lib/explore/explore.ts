@@ -1,7 +1,7 @@
 // @layer core
 import { hoodAllowed, townAt, withOutlines, type OutlineSet } from '../areas/outlines';
 import type { AreaLevel, PlaceCandidate } from '../areas/types';
-import { CATEGORIES, categoryOf } from '../discovery/categories';
+import { categoryOf } from '../discovery/categories';
 import { isMarkable } from '../discovery/noise';
 import { isOffered } from '../discovery/places';
 import type { CategoryId, Kind, Place } from '../discovery/types';
@@ -399,39 +399,23 @@ export function alertedFor(byWalk: Map<string, Set<string>>, walkId: string | nu
 /** The pocket alert switch's note, in the Start dialog and the Explore settings (PA5). */
 export const POCKET_ALERT_NOTE = 'Two soft taps when a “?” comes into range. Never on a quiet walk.';
 
-export interface HomeCount {
-  found: number;
-  total: number;
-  builtAt: number;
-}
-
-/** An area's count for the place view (E10); null for an empty checklist, which the home leaves out. */
-export const homeCount = (a: Pick<ChecklistArea, 'count' | 'built_at'>, found: number): HomeCount | null =>
-  a.count > 0 ? { found: Math.min(found, a.count), total: a.count, builtAt: a.built_at } : null;
-
 /**
- * A home place's count and found places (E10): its checklist is found by the
- * area's level, name and point, which the home's Area rows carry too.
+ * A home place's finds (E10): its checklist is found by the area's level, name
+ * and point, which the home's Area rows carry too. Only the finds themselves,
+ * never how many there are or how many remain (the owner, Nov 5, decision 0099).
+ * Null where the place has no checklist.
  */
-export function placeCount(
+export function placeFinds(
   a: { level: AreaLevel; name: string; lon: number; lat: number },
   areas: ChecklistArea[],
   finds: Find[],
-): { count: HomeCount; found: Find[] } | null {
+): Find[] | null {
   if (a.level !== 'neighborhood' && a.level !== 'town') return null;
   const here = { level: a.level, name: a.name, at: [a.lon, a.lat] as LngLat };
   // The nearest same-named list: a town's point differs with the zoom it was read at (audit 5).
   const list = areas.filter((x) => sameArea(x, here)).sort((x, y) => distanceM(x.at, here.at) - distanceM(y.at, here.at))[0];
   if (!list) return null;
-  const found = finds.filter((f) => f.area_key === list.key);
-  const count = homeCount(list, found.length);
-  return count ? { count, found } : null;
-}
-
-/** "12 of 87 · list from Nov 1" (E10). */
-export function countLine(c: HomeCount, locale?: string, timeZone?: string): string {
-  const date = new Date(c.builtAt).toLocaleDateString(locale, { month: 'short', day: 'numeric', timeZone });
-  return `${c.found} of ${c.total} · list from ${date}`;
+  return finds.filter((f) => f.area_key === list.key);
 }
 
 type Found = { name: string; category: CategoryId; generic: boolean; kind?: Kind };
@@ -443,18 +427,6 @@ type Found = { name: string; category: CategoryId; generic: boolean; kind?: Kind
  */
 export const foundLine = (f: Found): string =>
   f.generic ? `Found: ${f.name}` : `Found: ${f.name} · ${f.kind ? kindOf(f.kind).label : categoryOf(f.category).label}`;
-
-/** The card's finds, by category, most first (E11): "Found 2 art · 1 culture". Null with none. */
-export function findsLine(found: { category: CategoryId }[]): string | null {
-  if (!found.length) return null;
-  const order = CATEGORIES.map((c) => c.id);
-  const by = new Map<CategoryId, number>();
-  for (const x of found) by.set(x.category, (by.get(x.category) ?? 0) + 1);
-  return `Found ${[...by]
-    .sort((a, b) => b[1] - a[1] || order.indexOf(a[0]) - order.indexOf(b[0]))
-    .map(([c, n]) => `${n} ${categoryOf(c).noun}`)
-    .join(' · ')}`;
-}
 
 /** The card's finds by name (E11): "Found RISD Museum · Old North Church", three at most, then how many more. */
 export function foundList(names: string[]): string | null {

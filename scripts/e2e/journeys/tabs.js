@@ -137,6 +137,7 @@ async function run(h) {
       await pg.click('[data-testid=ready-close]');
       await pg.waitForTimeout(600);
       await tabTo(pg, 'chronicle');
+      await h.mapUp(pg);
       await pg.waitForSelector('[data-testid=home-sheet]');
       await pg.waitForTimeout(800);
       await emptyPeek('with nothing walked');
@@ -261,6 +262,7 @@ async function run(h) {
     });
     await step('tabs audit U7: Chronicle while minimized', async () => {
       await tabTo(pg, 'chronicle');
+      await h.mapUp(pg);
       await pg.waitForSelector('[data-testid=home-sheet]');
       await pg.waitForTimeout(1000);
       await emptyPeek('with a walk minimized and none finished');
@@ -344,10 +346,12 @@ async function run(h) {
       check(row && !row.open && row.title == null, 'tabs audit audit 6: the walk is kept, unnamed');
       if (path !== `${BASE}/chronicle`) {
         await pg.goto(`${url}chronicle`);
+        await h.mapUp(pg);
         await pg.waitForSelector('[data-testid=home-sheet]');
       }
     });
     await step('tabs audit U8, U13, U15: Chronicle after a walk', async () => {
+      await h.mapUp(pg);
       await pg.waitForSelector('[data-testid=home-sheet]');
       await pg.waitForTimeout(2500);
       // tabs audit U15: a fit to one short walk stops around z15, not at street-sign zoom.
@@ -374,6 +378,7 @@ async function run(h) {
       await drawerTo(pg, 'full', 'sheet-drag');
       await both('full');
       if (await pg.locator('[data-testid=sheet-days]').count()) {
+        await h.mapUp(pg);
         await pg.click('[data-testid=sheet-days]');
         await pg.waitForTimeout(500);
         check((await pg.locator('[data-testid=day-row]').count()) >= 1 && (await pg.locator('[data-testid=sheet-walks]').count()) === 1,
@@ -396,8 +401,8 @@ async function run(h) {
       await pg.waitForURL((u) => u.pathname === `${BASE}/chronicle`, { timeout: 5000 }).catch(() => {});
       await pg.waitForTimeout(1000);
       const row = second && await walkRow(second.id);
-      check(new URL(pg.url()).pathname === `${BASE}/chronicle` && (await pg.locator('[data-testid=home-sheet]').count()) === 1 && row && row.title == null && !row.open,
-        `tabs audit U14: Not now goes to Chronicle and leaves the walk unnamed (${pg.url()}, ${row && row.title})`);
+      check(new URL(pg.url()).pathname === `${BASE}/chronicle` && (await pg.locator('[data-testid=section-memories][aria-selected=true]').count()) === 1 && row && row.title == null && !row.open,
+        `tabs audit U14, RM3: Not now goes to Chronicle's Memories and leaves the walk unnamed (${pg.url()}, ${row && row.title})`);
     });
     await c.close();
 }

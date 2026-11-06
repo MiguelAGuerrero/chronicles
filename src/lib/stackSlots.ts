@@ -1,0 +1,37 @@
+// @layer core
+/**
+ * The walk screen's edge slots and the Layers button's corner (fix layers-corner). Pure, so `npm test`
+ * covers them; `components/walk/layout.ts` places everything from these.
+ */
+
+/** Edge slots in the right column above the captures, from the bottom up. The Layers button is not one: it sits in the left corner. */
+export type EdgeSlot = 'locate' | 'unwalked' | 'back' | 'compass';
+export const EDGE_INDEX: Record<EdgeSlot, number> = { locate: 0, unwalked: 1, back: 2, compass: 3 };
+
+/** The gap between the Layers button and what sits above it (the pills). */
+const CORNER_GAP = 8;
+
+export type Corner = { left: number; bottom: number; top: number };
+
+/**
+ * The Layers button's place (ML3): the bottom-left corner, above the scale bar, so the navigation bar at the top
+ * never reaches it and its panel opens upward over open map. Distances from the screen's bottom.
+ */
+export function layersCorner(o: { barTop: number; sideInset: number; scaleBottom: number; scaleH: number; edge: number }): Corner {
+  const bottom = o.barTop + o.scaleBottom + o.scaleH + CORNER_GAP;
+  return { left: o.sideInset + 12, bottom, top: bottom + o.edge };
+}
+
+/** The pills' bottom: above the Layers button, which shares their corner. */
+export function pillsBottom(corner: Corner): number {
+  return corner.top + CORNER_GAP;
+}
+
+/**
+ * The scale bar's inset from the map's own bottom. On the walk the map runs under the strip, so the bar clears the strip's height; on the
+ * ready screen a spacer holds the strip's place and the map ends at the strip's top, so only the gap is left (fix layers-pad). Either way
+ * the bar is `scaleBottom` above the strip, where `layersCorner` expects it.
+ */
+export function scaleInsetBottom(o: { barTop: number; scaleBottom: number; mapEndsAtStrip: boolean }): number {
+  return o.mapEndsAtStrip ? o.scaleBottom : o.barTop + o.scaleBottom;
+}

@@ -3,7 +3,7 @@ import type { Area, WalkArea } from '../areas/types';
 import type { OutlineTile } from '../areas/outlines';
 import type { WalkTile } from '../walk/types';
 import type { AtlasArea } from '../atlas/atlas';
-import type { Mark, Offered, Place, Recall } from '../discovery/types';
+import type { Mark, Place, Recall } from '../discovery/types';
 import type { ChecklistArea, ChecklistItem, ExploreRead, Find } from '../explore/explore';
 import type { LandingRow } from '../landing/view';
 import type { Capture, GapDecision, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
@@ -99,18 +99,8 @@ export interface Db {
   putPlaces(places: Place[]): Promise<void>;
   /** Cached places inside the bounds. */
   placesIn(bounds: [number, number, number, number]): Promise<Place[]>;
-  /** Records places as offered. Offered is truth and is never cleared. */
-  addOffered(rows: Offered[]): Promise<void>;
-  /** Every place ever offered, by scan or ambient. */
-  listOffered(): Promise<Offered[]>;
-  /**
-   * A scan's result in one transaction: the replaced marks are marked so, the
-   * new ones stored, and their places recorded as offered (S6, S10).
-   */
-  saveScan(scan: { replace: string[]; marks: Mark[]; offered: Offered[] }): Promise<void>;
-  /** A walk's marks; `null` gives the home's (no walk yet). */
+  /** A walk's marks, kept from the retired scan (read by old walks' replays); `null` gives the home's. */
   listMarks(walkId: string | null): Promise<Mark[]>;
-  updateMark(id: string, patch: Partial<Omit<Mark, 'id'>>): Promise<void>;
   /** Remind me here on a capture (R1): sets or replaces its flag. */
   setRecall(r: Recall): Promise<void>;
   /** Stop reminding me, or a "once" that fired (R6, R8). */

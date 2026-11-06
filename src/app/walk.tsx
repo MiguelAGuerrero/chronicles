@@ -1,4 +1,3 @@
-import { useOvertureRelease } from '../lib/activity/useOvertureRelease';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { AccessibilityInfo, ActivityIndicator, AppState, BackHandler, Switch, KeyboardAvoidingView, Linking, Platform, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
@@ -10,7 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WalkMap } from '../components/map/WalkMap';
 import { CompassButton } from '../components/CompassButton';
 import { WalkBandIcon } from '../components/WalkBandIcon';
-import { WalkLayerControl } from '../components/WalkLayerControl';
+import { LayersControl, LayersKey } from '../components/LayersControl';
 import { COLORS, HOTSPOT, type WalkMapHandle } from '../components/map/types';
 import { EditOfferPill, useEditOffer } from '../components/edit/EditOffer';
 import { MediaEditor } from '../components/edit/MediaEditor';
@@ -31,7 +30,7 @@ import { ReminderCard } from '../components/ReminderCard';
 import { onRecallFired, onRecallOpen, onRecallWaiting, takeRecallOpen } from '../lib/discovery/recallCheck';
 import { categoryOf } from '../lib/discovery/categories';
 import { deadZoneDue, deadZoneNudge, inDeadZone, stripAt } from '../lib/landing/walk';
-import { landingView, LANDING_VERSION, nearAreas, type LandingRow } from '../lib/landing/view';
+import { LANDING_VERSION, type LandingRow } from '../lib/landing/view';
 import { placesFromTilePois } from '../lib/discovery/tilePois';
 import { canBuzz } from '../lib/canBuzz';
 import { clampRange, EXPLORE_KEY, exploredKey, kindOf, POCKET_ALERT_NOTE, type Kind } from '../lib/explore/explore';
@@ -62,12 +61,16 @@ import { notifyWalkChanged } from '../lib/walkEvents';
 import { routeAhead } from '../lib/nav/navigator';
 import { HANDOFF_HINT, openInMaps } from '../lib/nav/openInMaps';
 import { useNavigation } from '../lib/nav/useNavigation';
+import { layerNotes } from '../lib/layers/notes';
+import { useBusyLayer } from '../lib/layers/useBusyLayer';
+import { useLayers } from '../lib/layers/useLayers';
 import { useRouteWarning } from '../lib/walk/useRouteWarning';
 import { useWalkability } from '../lib/walk/useWalkability';
 import { exitPlan, screenState, startNotice } from '../lib/readyNav';
 import { getLastFix } from '../lib/lastFix';
 import { CaptureStack } from '../components/walk/CaptureStack';
 import { ReadyBar } from '../components/walk/ReadyBar';
+import { scaleInsetBottom } from '../lib/stackSlots';
 import { BAR_H, CAP, EDGE, GUTTER, raisedHeight, SCALE_BOTTOM, STACK_GAP, useStackLayout } from '../components/walk/layout';
 import { useReady } from '../components/walk/useReady';
 import { aboutTimeLeft, formatTimeLeft, paceMps, timeLeftMs } from '../lib/nav/eta';
@@ -187,7 +190,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const params = useLocalSearchParams<{ warning?: string; started?: string; recall?: string }>();
   const at = useStackLayout();
   // The walk's cards sit above the strip, left of the stack's column, so they never cover it (audit 5).
-  const cardAt = { bottom: at.barTop + 12, right: at.right + CAP + STACK_GAP };
+  // zIndex 2: over the Layers button in the corner (1), under the drawer (3) (fix layers-corner audit 2).
+  const cardAt = { bottom: at.barTop + 12, right: at.right + CAP + STACK_GAP, zIndex: 2 };
   // One screen, ready or walking (NR1, NR6): the walk is the keeper's open walk. While Start writes the
   // walk's plan the screen stays ready (the walk reads its mode as it shows); once stopped, the walk stays
   // on screen until the replay replaces it, never flashing the ready state.
@@ -589,8 +593,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const previewFit = useMemo(() => (navigation.preview ? boundsOf(navigation.preview.options.flatMap((o) => o.route.path), 30) : null), [navigation.preview]);
   const previewKey = previewFit ? 300000 + (Math.abs(Math.round((previewFit[0] + previewFit[1]) * 1e5)) % 99999) : 0;
   // Walkability (WK13, WK15): the layer around you, and a quiet line before a stretch built around cars on the route.
-  const wk = useWalkability(live.here);
-  const aheadLine = useRouteWarning(navigation.nav?.route.path ?? null, live.here);
+  const layers = useLayers();
+  const wk = useWalkability(live.here, !!layers.on.walkability);
+  const busy = useBusyLayer(live.here, !!layers.on.busy);
+  const aheadLine = useRouteWarning(navigation.nav?.route.path ?? null, live.here, !!layers.on.walkability);
   // Explore (v1 slice 5): checklists are built quietly on every walk (E2); the layers show only
   // on an exploring walk (E1, E9), and a capture finds a place on any walk.
   const fixes = useMemo(() => live.runs.flat(), [live.runs]);
@@ -613,7 +619,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
     route: routeLine,
     routePath: navigation.nav?.route.path ?? null,
     previewRangeM: preview,
-    onAreas: reloadLandings,
+    onAreas: () => {
+      reloadLandings();
+      busy.reload();
+    },
     onFound: (item) => {
       // Quietly on a quiet walk (E9): kept, shown in the replay, nothing on screen.
       if (!exploring) return;
@@ -761,17 +770,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
   useEffect(() => {
     reloadLandings();
   }, [resumed, reloadLandings]);
-  // Known from launch, so a walk opened straight away judges its areas' staleness too (activity-density audit 8).
-  const overtureRelease = useOvertureRelease();
   const hotStrips = useMemo(() => landings.flatMap((r) => r.analysis.strips), [landings]);
   // Drawn on an exploring walk only (E9), as information: pockets, strips and their names.
-  // Only areas within 3 km (audit), keyed so a new fix doesn't rebuild the labels.
-  const nearKeys = nearAreas(landings, live.here).map((r) => r.key).join('|');
-  const hotView = useMemo(() => {
-    const keys = new Set(nearKeys.split('|'));
-    const near = landings.filter((r) => keys.has(r.key));
-    return near.length && exploring ? landingView(near, build, overtureRelease) : null;
-  }, [landings, build, nearKeys, exploring, overtureRelease]);
   const hotPockets = useMemo(
     () => landings.flatMap((r) => r.analysis.pockets.map((p) => ({ name: p.name, centre: p.centre, strip: p.strips.length > 0 }))),
     [landings],
@@ -1020,10 +1020,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
     <View style={styles.screen}>
       {/* One map for both states, at one place in the tree, so Start never remounts it (NR6). */}
       {!walk ? (
-        <WalkMap {...ready.mapProps} borders={borders} ref={mapRef} onBearingChange={setBearing} scaleInset={{ bottom: at.barTop + SCALE_BOTTOM, left: sideInset + 12 }} />
+        <WalkMap {...ready.mapProps} borders={ready.bordersOn ? borders : null} ref={mapRef} onBearingChange={setBearing} scaleInset={{ bottom: scaleInsetBottom({ barTop: at.barTop, scaleBottom: SCALE_BOTTOM, mapEndsAtStrip: true }), left: sideInset + 12 }} />
       ) : (
       <WalkMap
-        landing={hotView}
+        landing={busy.view}
         trace={live.runs}
         rides={live.rides}
         walked={walked}
@@ -1033,7 +1033,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         // While drawing, a tap on a pin is a point along the way like any other (gap-drawing audit 8).
         onPinPress={recordingVoice || stopping || isDrawing ? undefined : setViewing}
         walker={live.here}
-        borders={borders}
+        borders={layers.on.borders ? borders : null}
         walkability={wk.draw}
         walkerSource={live.dot}
         glideWalker
@@ -1045,6 +1045,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         gapLinks={isDrawing ? undefined : gapView.links}
         drawing={drawing.line}
         onPress={(at, radiusM) => {
+          layers.closePanel();
           // While drawing, every tap is a point along the way (GW3).
           if (isDrawing) {
             drawing.tap(at);
@@ -1106,10 +1107,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
         // Started in place, the walk opens where the ready map was: around the last fix (NR6).
         initialCenter={live.here ?? getLastFix()?.at ?? undefined}
         initialZoom={16}
-        // The map runs under the bottom strip (an overlay, as on the ready screen), so the scale bar
+        // The map runs under the bottom strip (on the ready screen it ends at the strip's top), so the scale bar
         // is measured from the strip's top: in the bottom-left corner just above it, inside the 640
         // column (QL8). The pills stack above it (`at.pills`).
-        scaleInset={{ bottom: at.barTop + SCALE_BOTTOM, left: sideInset + 12 }}
+        scaleInset={{ bottom: scaleInsetBottom({ barTop: at.barTop, scaleBottom: SCALE_BOTTOM, mapEndsAtStrip: false }), left: sideInset + 12 }}
       />
       )}
 
@@ -1123,36 +1124,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
       <>
 
       <View style={[styles.top, { top: insets.top + 4, left: sideInset, right: sideInset }]} pointerEvents="box-none">
-        {navigation.nav && (
-          // Not a live region: it changes with every fix. The distance is announced in steps instead.
-          <View testID="nav-bar" style={styles.navBar}>
-            <Icon name="navigate" size={20} color="#ffffff" />
-            <Text
-              testID="nav-left"
-              style={styles.navText}
-              numberOfLines={1}
-              accessibilityLabel={`${formatDistance(navigation.nav.leftM)}, ${aboutTimeLeft(navTimeLeft)} left to ${navigation.nav.dest.label}`}
-            >
-              {formatDistance(navigation.nav.leftM)} · {formatTimeLeft(navTimeLeft)} · {navigation.nav.dest.label}
-            </Text>
-            <Pressable
-              testID="nav-handoff"
-              accessibilityRole="button"
-              accessibilityLabel="Open in Maps"
-              accessibilityHint={HANDOFF_HINT}
-              onPress={() => {
-                const d = navigation.nav?.dest;
-                if (d) handOff(d.at, d.label);
-              }}
-              style={({ pressed }) => [styles.navHandoff, pressed && styles.pressed]}
-            >
-              <Icon name="open-outline" size={22} color="#ffffff" />
-            </Pressable>
-            <Pressable testID="nav-end" accessibilityRole="button" accessibilityLabel="End navigation" onPress={navigation.end} style={styles.navEnd} hitSlop={8}>
-              <Text style={styles.navEndText}>End</Text>
-            </Pressable>
-          </View>
-        )}
         {/* Minimize (NV7): down to the recording bar above the tabs, still recording. At the top-left
             edge, under the navigation bar when one shows, away from the capture row and Stop. */}
         <View style={styles.minRow} pointerEvents="box-none">
@@ -1187,7 +1158,47 @@ function WalkScreen(props: { onMinimize: () => void }) {
             </Banner>
           </View>
         )}
+        {/* The street chip: top centre, level with the chevron, so nothing below it moves it (the owner, Nov 5). */}
+        {!notice && onStrip && !problem && (
+          // Quiet: a chip, not a notification or a hint (L14).
+          <View style={styles.chipCell} pointerEvents="none">
+            <LiftIn testID="on-strip" style={styles.chip}>
+              <View style={[styles.statusDot, { backgroundColor: HOTSPOT }]} />
+              <Text style={styles.chipText}>On {onStrip}</Text>
+            </LiftIn>
+          </View>
+        )}
         </View>
+        {navigation.nav && (
+          // Not a live region: it changes with every fix. The distance is announced in steps instead.
+          <View testID="nav-bar" style={styles.navBar}>
+            <Icon name="navigate" size={20} color="#ffffff" />
+            <Text
+              testID="nav-left"
+              style={styles.navText}
+              numberOfLines={1}
+              accessibilityLabel={`${formatDistance(navigation.nav.leftM)}${navigation.nav.dest.suggested ? '' : `, ${aboutTimeLeft(navTimeLeft)}`} left to ${navigation.nav.dest.label}`}
+            >
+              {formatDistance(navigation.nav.leftM)} · {navigation.nav.dest.suggested ? '' : `${formatTimeLeft(navTimeLeft)} · `}{navigation.nav.dest.label}
+            </Text>
+            <Pressable
+              testID="nav-handoff"
+              accessibilityRole="button"
+              accessibilityLabel="Open in Maps"
+              accessibilityHint={HANDOFF_HINT}
+              onPress={() => {
+                const d = navigation.nav?.dest;
+                if (d) handOff(d.at, d.label);
+              }}
+              style={({ pressed }) => [styles.navHandoff, pressed && styles.pressed]}
+            >
+              <Icon name="open-outline" size={22} color="#ffffff" />
+            </Pressable>
+            <Pressable testID="nav-end" accessibilityRole="button" accessibilityLabel="End navigation" onPress={navigation.end} style={styles.navEnd} hitSlop={8}>
+              <Text style={styles.navEndText}>End</Text>
+            </Pressable>
+          </View>
+        )}
         {navigation.nav?.offRoute && (
           <LiftIn style={styles.chip} accessibilityLiveRegion="polite">
             <View style={[styles.statusDot, { backgroundColor: theme.warn }]} />
@@ -1206,13 +1217,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
         {arrived && (
           <LiftIn style={styles.toast}>
             <Text style={[styles.toastText, styles.flashText]}>{arrived}</Text>
-          </LiftIn>
-        )}
-        {onStrip && !problem && (
-          // Quiet: a chip, not a notification or a hint (L14).
-          <LiftIn testID="on-strip" style={styles.chip}>
-            <View style={[styles.statusDot, { backgroundColor: HOTSPOT }]} />
-            <Text style={styles.chipText}>On {onStrip}</Text>
           </LiftIn>
         )}
         {problem && status.kind === 'error' && !paused ? (
@@ -1409,6 +1413,12 @@ function WalkScreen(props: { onMinimize: () => void }) {
                 <KindSwitches hidden={settings.hidden} onToggle={toggleKind} />
               </>
             )}
+            {Object.values(layers.on).some(Boolean) && (
+              <>
+                <Text style={styles.optionSection} accessibilityRole="header">On the map</Text>
+                <LayersKey layers={layers} />
+              </>
+            )}
             {/* The pocket alert is a nudge you feel: on every phone, and on a touch-screen browser (E19, PA6). */}
             {canBuzz() && loaded && (
               <SwitchRow
@@ -1485,8 +1495,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
         bottom={at.edgeBottom(awayFromStart && walkStart && !navigation.nav ? 'compass' : 'back')}
         right={at.edgeRight}
       />
-      {/* Walkability (WK13): the column's top, so nothing else moves. */}
-      <WalkLayerControl wk={wk} bottom={at.edgeBottom('walkability')} right={at.edgeRight} />
+      {/* Layers (ML3): the bottom-left corner above the scale bar, clear of the navigation bar. */}
+      <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed })} bottom={at.layers.bottom} left={at.layers.left} rightClear={at.layersRightClear} clearTop={at.insets.top + 152} />
 
       {awayFromStart && walkStart && !navigation.nav && (
         // Walk me back: the way back to where this walk began (N1, N11).
@@ -1791,6 +1801,7 @@ const styles = StyleSheet.create({
   minRow: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   noticeCell: { flex: 1, minWidth: 0 },
   minBtn: { position: 'relative' },
+  chipCell: { position: 'absolute', left: 0, right: 0, top: 0, height: 44, alignItems: 'center', justifyContent: 'center' },
   ahead: { flexDirection: 'row', alignItems: 'center', gap: 8, maxWidth: 360, backgroundColor: theme.glass, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: theme.line },
   aheadText: { color: theme.ink, fontSize: 14, flexShrink: 1 },
   unwalked: { position: 'absolute', backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 12 },

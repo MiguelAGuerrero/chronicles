@@ -72,6 +72,7 @@ async function checks(h) {
       check(await p2.waitForSelector('[aria-label="Note. Open"]', { timeout: 15000 }).then(() => true, () => false), 'Chronicle frames a moment made before any walk, and shows its pin (M16, moment pins 3)');
 
       // Today is listed in Chronicle's sheet with its moment (M7, M9, NV18).
+      await h.mapUp(p2);
       await p2.click('[data-testid=sheet-days]');
       await p2.waitForSelector('[data-testid=day-row]');
       const dayRow = await p2.locator('[data-testid=day-row]').first().innerText();
@@ -102,6 +103,7 @@ async function checks(h) {
       await p2.click('[data-testid=skip]');
       await p2.click('[data-testid=to-name]');
       await p2.click('[data-testid=save]');
+      await h.mapUp(p2);
       await p2.waitForSelector('[data-testid=home-sheet]');
       rows = await captureRows();
       check(rows.length === 2 && rows[1].walk_id != null, 'a note made on a walk belongs to that walk (M3)');
@@ -127,6 +129,7 @@ async function checks(h) {
       await note('[data-testid=moment-note]', '[data-testid=moment-note-input]', '[data-testid=moment-note-save]', 'Sale on linen, ends Friday.');
       await p2.waitForTimeout(500);
       await tabTo(p2, 'chronicle');
+      await h.mapUp(p2);
       await p2.click('[data-testid=sheet-days]');
       await p2.waitForSelector('[data-testid=day-row]');
       const early = await p2.locator('[data-testid=day-row]').first().innerText();
@@ -142,6 +145,7 @@ async function checks(h) {
       check(rows.length === 3 && rows[2].walk_id == null && rows[2].lat == null, 'the moment with no fix is stored without a place');
 
       // The day's timeline: moment, walk, moment, in time order; the walk is one row (M8).
+      await h.mapUp(p2);
       await p2.click('[data-testid=sheet-days]');
       await p2.click('[data-testid=day-row]');
       await p2.waitForSelector('[data-testid=day-title]');
@@ -199,6 +203,7 @@ async function checks(h) {
       check(new URL(p2.url()).pathname === `${BASE}/chronicle`, 'the day replay closes back to Chronicle');
       await p2.click('[data-testid=sheet-map]');
       check(await p2.waitForSelector('[aria-label="Note. Open"]', { timeout: 15000 }).then(() => true, () => false), 'a placed moment shows as a pin on the home map (M16)');
+      await h.mapUp(p2);
       await p2.click('[data-testid=sheet-days]');
       await p2.click('[data-testid=day-row]');
       await p2.click('[data-testid=timeline-walk]');

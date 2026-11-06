@@ -381,11 +381,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
         <GeoJSONSource id="veil" data={WORLD_VEIL}>
           <Layer id="veil" type="fill" paint={{ 'fill-color': COLORS.veil, 'fill-opacity': props.veil ? 0.45 : 0 }} />
         </GeoJSONSource>
-        {/* Walkability (WK13), under the hotspots, fog and trace (unverified on a device). */}
+        {/* The Walkability layer (UF9), under the hotspots, fog and trace: soft tints, no antialiasing so no seams (unverified on a device). */}
         <GeoJSONSource id="walkability" data={walkability}>
-          {(['mixed', 'car'] as const).map((band) => (
-            <Layer key={band} id={`walk-${band}`} type="line" filter={['==', ['get', 'band'], band]} layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-              paint={{ 'line-color': WALK_STYLE[band].color, 'line-opacity': WALK_STYLE[band].opacity, 'line-width': ['interpolate', ['linear'], ['zoom'], 12, WALK_STYLE[band].width * 0.6, 17, WALK_STYLE[band].width * 2.2] }} />
+          {(['foot', 'car'] as const).map((band) => (
+            <Layer key={band} id={`walk-${band}`} type="fill" filter={['==', ['get', 'band'], band]}
+              paint={{ 'fill-color': WALK_STYLE[band].color, 'fill-opacity': WALK_STYLE[band].opacity, 'fill-antialias': false }} />
           ))}
         </GeoJSONSource>
         {/* Hotspots under the streets, in the one green no other layer uses (L9). */}

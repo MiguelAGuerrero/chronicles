@@ -46,18 +46,20 @@ async function checks(h) {
     check(nv.path === '/walk' && (await page.locator('[data-testid=ready-bar]').count()) === 1 && !(await tabBarShown(page))
       && (await page.locator('canvas.maplibregl-canvas').count()) === 1 && (await page.locator('[data-testid=start]').count()) === 1,
       `Navigate opens the ready walk screen, no tab bar, one map with Start (NR1, NV4: ${JSON.stringify(nv)})`);
-    check((await page.locator('[data-testid=start-explore]').count()) === 0 && (await page.locator('[data-testid=ready-dest]').count()) === 0,
+    check((await page.locator('[data-testid=ready-dest]').count()) === 0,
       'Start alone in the bar, with no destination line (NV19, NR5, NR8)');
     check((await page.locator('[data-testid=moment-photo]').count()) === 1 && (await page.locator('[data-testid=moment-note]').isVisible()), 'Navigate has quick capture, outside the bar (NV18, NR9)');
     await page.waitForTimeout(1500);
     const ex = await onTab('explore');
     check(ex.path === '/' && ex.canvases === 1, `Explore at /, one live map (NV4, NV5: ${JSON.stringify(ex)})`);
     const ch = await onTab('chronicle');
+    await h.mapUp(page);
     await page.waitForSelector('text=Walk somewhere and it is starred here');
     check(ch.path === '/chronicle' && ch.canvases === 1, `Chronicle at /chronicle, one live map (NV4, NV5: ${JSON.stringify(ch)})`);
-    check((await shownCount(page, '[data-testid=start], [data-testid=start-explore], [data-testid=moment-note], [data-testid=look-here]')) === 0,
+    check((await shownCount(page, '[data-testid=start], [data-testid=moment-note], [data-testid=look-here]')) === 0,
       'Chronicle has no Start, Explore button, quick capture or What’s good here (NV11)');
     await page.reload();
+    await h.mapUp(page);
     await page.waitForSelector('[data-testid=home-sheet]');
     check(new URL(page.url()).pathname === `${BASE}/chronicle` && (await page.locator('[data-testid=tab-chronicle][aria-selected=true]').count()) === 1, 'a reload keeps the tab (NV5)');
     await page.goBack();
@@ -214,7 +216,7 @@ async function fresh(h) {
           `minimized, only the bar follows the walk (navigate ${rate('render:navigate').toFixed(2)}/s, bar ${rate('render:bar').toFixed(2)}/s over ${secs.toFixed(0)} s)`);
       }
       const d1 = m(await barText());
-      check(onTabs.join(',') === 'chronicle:1:1,explore:1:1,chronicle:1:1', `the bar is on every tab, with one live map (NV4, NV9: ${onTabs.join(', ')})`);
+      check(onTabs.join(',') === 'chronicle:1:0,explore:1:1,chronicle:1:0', `the bar is on every tab, with one live map where there is a map; Chronicle's Memories has none (NV4, NV9, RM1: ${onTabs.join(', ')})`);
       check(d1 > d0 + 100 && /^\d+:\d\d · \d+ m$/.test(await barText()), `minimized, the walk keeps recording: the bar's distance grows (NV8: ${d0} → ${d1} m)`);
       // Remind me here keeps firing while minimized (NV8): checked outside the walk screen, shown on the bar.
       const fired = await pg.evaluate(() => new Promise((resolve) => {
@@ -254,10 +256,10 @@ async function fresh(h) {
       const wasRouted = await routed(pg, 40000).then(() => true, () => false);
       check(still?.id === w.id && walks === 1 && nav?.walk_id === w.id && nav.dest.label === 'Your spot' && wasRouted,
         `with a walk open, Walk here routes that walk there and returns to it (NV10: ${walks} walk, routed ${wasRouted})`);
-      // NV7: under the navigation bar when one shows.
+      // NV7: Minimize is pinned to the top row, above the navigation bar when one shows (the owner, Nov 5: the bar never pushes it down).
       const navBox = await pg.locator('[data-testid=nav-bar]').boundingBox();
       const minNav = await pg.locator('[data-testid=walk-minimize]').boundingBox();
-      check(minNav.y >= navBox.y + navBox.height && minNav.x < 60, 'Minimize sits under the navigation bar while one shows (NV7)');
+      check(minNav.y + minNav.height <= navBox.y + 1 && minNav.x < 60, 'Minimize sits on the top row, above the navigation bar while one shows (NV7)');
       // Back on the walk screen, the trace covers the stretch walked while minimized, and memories are pinned again (NV8).
       const last = at(-0.5, 1.25);
       const end = ((await pg.locator('[data-trace-end]').last().getAttribute('data-trace-end')) || '0,0').split(',').map(Number);

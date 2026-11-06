@@ -59,11 +59,12 @@ function addOverlay(map: MapLibreMap) {
     layout: { 'line-join': 'round' }, paint: { 'line-color': BORDER.color, 'line-width': BORDER.firmWidth, 'line-opacity': BORDER.firmOpacity } }, firstSymbol);
   map.addSource('veil', { type: 'geojson', data: WORLD_VEIL });
   map.addLayer({ id: 'veil', type: 'fill', source: 'veil', paint: { 'fill-color': COLORS.veil, 'fill-opacity': 0 } }, firstSymbol);
-  // Walkability (WK13), under the hotspots, fog and trace: a warm line where streets are built around cars, a faint one where mixed.
-  map.addSource('walkability', { type: 'geojson', data: empty, tolerance: 1, buffer: 64 });
-  for (const band of ['mixed', 'car'] as const)
-    map.addLayer({ id: `walk-${band}`, type: 'line', source: 'walkability', filter: ['==', ['get', 'band'], band], layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': WALK_STYLE[band].color, 'line-opacity': WALK_STYLE[band].opacity, 'line-width': ['interpolate', ['linear'], ['zoom'], 12, WALK_STYLE[band].width * 0.6, 17, WALK_STYLE[band].width * 2.2] } }, firstSymbol);
+  // The Walkability layer (UF9), under the hotspots, fog and trace: a soft green over ground easy on foot, a warm tint over
+  // ground built around cars. No antialiasing, so shapes of one reading side by side show no seam.
+  map.addSource('walkability', { type: 'geojson', data: empty, tolerance: 0 });
+  for (const band of ['foot', 'car'] as const)
+    map.addLayer({ id: `walk-${band}`, type: 'fill', source: 'walkability', filter: ['==', ['get', 'band'], band],
+      paint: { 'fill-color': WALK_STYLE[band].color, 'fill-opacity': WALK_STYLE[band].opacity, 'fill-antialias': false } }, firstSymbol);
   // Lines are simplified a little more than the default and keep a smaller tile buffer: less to
   // re-tile on each update (perf, Nov 1; tolerance 0.375 and buffer 128 are maplibre's defaults).
   const lineSource = { type: 'geojson' as const, data: empty, tolerance: 1, buffer: 64 };
@@ -593,6 +594,10 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     if (!ready) return;
     setData('pockets', pocketsGeoJSON(props.landing));
     setData('strips', stripsGeoJSON(props.landing));
+    // The e2e reads whether busy streets are drawn (the Busy streets layer).
+    container.current?.setAttribute('data-busy', props.landing ? `strips:${stripsGeoJSON(props.landing).features.length}` : '');
+    // How many times the drawing was sent: the e2e checks it is not sent once a fix (layers audit 2).
+    container.current?.setAttribute('data-busy-sets', String(Number(container.current?.getAttribute('data-busy-sets') ?? 0) + 1));
   }, [ready, props.landing]);
   useEffect(() => { if (ready) setData('marks', marksGeoJSON(props.marks)); }, [ready, props.marks]);
   // The start and end markers (QL1, QL2): sent only when they move, not with every publish of the trace.
@@ -631,7 +636,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     if (!ready) return;
     setData('walkability', walkabilityGeoJSON(walkRef.current));
     // The e2e reads what is drawn.
-    container.current?.setAttribute('data-walk', walkRef.current ? `car:${walkRef.current.car.length}|mixed:${walkRef.current.mixed.length}` : '');
+    container.current?.setAttribute('data-walk', walkRef.current ? `foot:${walkRef.current.foot.length}|car:${walkRef.current.car.length}` : '');
   }, [ready, walkKey]);
   useEffect(() => {
     if (ready) setData('cone', coneGeoJSON(glideOn ? null : props.walker, props.walkerHeading, view?.zoom ?? 16));

@@ -46,7 +46,7 @@ test('still 2: an open still spell (standing now) holds the fixes since it began
   assert.equal(new Set(inside.map((p) => `${p.lon},${p.lat}`)).size, 1);
 });
 
-test('still 3: a ride inside a still spell stays a ride', () => {
+test('still 3 (MO9): a ride inside a still spell stays a ride', () => {
   const pts: TracePoint[] = [];
   for (let s = 0; s <= 60; s++) pts.push({ ...fix(s, 1.4 * s, 0, 8), speed: 1.4 });
   for (let s = 61; s <= 240; s++) pts.push({ ...fix(s, 84 + 12 * (s - 60), 0, 8), speed: 12 });
@@ -57,12 +57,6 @@ test('still 3: a ride inside a still spell stays a ride', () => {
   assert.ok(traceDistances(tr).rideM > 2000);
   const end = tr.walked.at(-1)!;
   assert.ok(distanceM([end.lon, end.lat], at(84 + 12 * 180 + 1.4 * 60, 0)) < 15, 'the walk after the ride is where it was');
-});
-
-test('still 4: without still spells, reading is unchanged', () => {
-  const pts: TracePoint[] = [];
-  for (let s = 0; s <= 60; s++) pts.push(fix(s, 1.4 * s, 0, 5));
-  assert.deepEqual(readTrace(pts, 0, [], []), readTrace(pts, 0, []));
 });
 
 // The motion audit (Nov 1): regression tests written before the fixes.

@@ -22,7 +22,9 @@ import { COLORS, HOTSPOT, HOTSPOT_INK } from '../map/types';
 import { Icon } from '../icons';
 import { Button, theme } from '../ui';
 import { KIND_COLOR, KIND_ICON_OF } from './kinds';
+import type { Waypoint } from '../../lib/nav/types';
 import { KindRow } from './KindStrip';
+import { KindWalkPanel } from './KindWalkPanel';
 import { MiniMap } from './MiniMap';
 
 const fmt = (m: number) => formatDistance(m);
@@ -69,6 +71,8 @@ export function AtlasCard(props: {
   starting: boolean;
   onWalk: () => void;
   onWalkAt: (at: LngLat, label: string) => void;
+  /** KW12: a suggested walk from a kind, started as an ordinary walk. */
+  onStartWalk: (dest: Waypoint) => void;
   onPick: (key: string) => void;
   onClose: () => void;
   /**
@@ -82,6 +86,8 @@ export function AtlasCard(props: {
   const onFoot = useAreaWords(area.at, ATLAS_RULES.ringM, true);
   const p = area.profile;
   const [how, setHow] = useState(false);
+  // The kind opened in place (KW1): one at a time.
+  const [openKind, setOpenKind] = useState<CategoryId | null>(null);
   const reduced = useReducedMotion();
   const close = useRef(props.onClose);
   useEffect(() => {
@@ -141,7 +147,7 @@ export function AtlasCard(props: {
       }]
     : [styles.side, { width: layout.width, height: layout.height }];
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+    <View style={[StyleSheet.absoluteFill, styles.over]} pointerEvents="box-none">
       {/* Behind the drawer: dims the tab beneath as the drawer is pulled away, so the close reads as progress. */}
       {layout.kind === 'sheet' && (
         <Animated.View
@@ -180,18 +186,13 @@ export function AtlasCard(props: {
             <MiniMap area={area} walked={props.walked} waiting={props.waiting} finds={props.finds} here={props.here ? props.you : null} />
           </View>
 
-          {/* WK11: how the streets treat someone on foot, in words; nothing when too little is known. */}
-          {(onFoot.reading || onFoot.words) && (
+          {/* UF13: what the ground is like for someone on foot, in words. Shown only once there are words (never a "Reading" that
+              vanishes, layers audit 9), and for a town said of the ground around its centre, as "What's here" is. */}
+          {onFoot.words && (
             <View style={styles.sec} testID="atlas-onfoot">
-              <Text style={styles.secTitle} accessibilityRole="header">On foot</Text>
-              {onFoot.words ? (
-                <>
-                  <Text style={styles.onFoot} testID="atlas-onfoot-words">{onFoot.words}</Text>
-                  <Text style={styles.muted}>From OpenStreetMap and Overture. Where sidewalks aren’t mapped, streets can read worse than they are.</Text>
-                </>
-              ) : (
-                <Text style={styles.muted} testID="atlas-onfoot-reading">Reading the streets…</Text>
-              )}
+              <Text style={styles.secTitle} accessibilityRole="header">{area.level === 'town' ? 'On foot · around its centre' : 'On foot'}</Text>
+              <Text style={styles.onFoot} testID="atlas-onfoot-words">{onFoot.words}</Text>
+              <Text style={styles.muted}>From OpenStreetMap and Overture.</Text>
             </View>
           )}
 
@@ -213,7 +214,12 @@ export function AtlasCard(props: {
                 </View>
               )}
               {p ? (
-                ATLAS_ORDER.map((c) => <KindRow key={c} kind={c} step={p.steps[c]} testID={`atlas-kind-${c}`} />)
+                ATLAS_ORDER.map((c) => (
+                  <View key={c}>
+                    <KindRow kind={c} step={p.steps[c]} testID={`atlas-kind-${c}`} open={openKind === c} onPress={p.steps[c] ? () => setOpenKind((k) => (k === c ? null : c)) : undefined} />
+                    {openKind === c ? <KindWalkPanel kind={c} area={area} you={props.you} none={p.steps[c] === 0} starting={props.starting} onStart={props.onStartWalk} /> : null}
+                  </View>
+                ))
               ) : (
                 <Text style={styles.muted}>Reading this area…</Text>
               )}
@@ -223,7 +229,7 @@ export function AtlasCard(props: {
           {/* TP3: a town wider than one read takes says it covers part of it. */}
           {p?.partial && <Text style={styles.muted} testID="atlas-partial">Covers part of the town: the middle of it, around its point.</Text>}
 
-          {/* TP7: where a town is busy, apart from its kinds: each pocket, busiest first, with Walk to. */}
+          {/* TP7: where a town is busy, apart from its kinds: each busy street once, busiest first, with Walk to. */}
           {props.busyAreas.length > 0 && (
             <View style={styles.sec}>
               <Text style={styles.secTitle} accessibilityRole="header">Busy areas</Text>
@@ -383,6 +389,8 @@ function createPull(offset: Animated.Value) {
 }
 
 const styles = StyleSheet.create({
+  // Above Explore's map pane, which sits at zIndex 5 so the Layers panel can overlay the cards (ML4).
+  over: { zIndex: 6 },
   scrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.35)' },
   // Full screen, over the tabs (which fold away while it is open); `maxWidth` keeps a wide phone-width window readable.
   sheet: {

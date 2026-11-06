@@ -44,7 +44,7 @@ The app is a companion for wandering towns on foot: Explore before (busy areas, 
 | Which feature owns a file, its tests, journeys and specs | `scripts/features.js`; tests in `src/lib/__tests__/<feature>/` |
 | Rules and traps of one area | `.claude/rules/<area>.md`: they load by themselves when you read or edit that area's files. Read one directly when planning work in an area you haven't opened yet |
 
-Rule areas: captures-and-media, deletion, explore-and-discovery, functional-core, gaps, landing, map, memories, moments-and-days, motion-polish, navigation, notifications, places-and-areas, react-native-web, recording-and-traces, replay, rides, storage, streets-fog-snapping, tabs-and-home, walk-screen, walkability.
+Rule areas: captures-and-media, deletion, explore-and-discovery, functional-core, gaps, kind-walk, landing, map, memories, moments-and-days, motion-polish, navigation, notifications, places-and-areas, react-native-web, recording-and-traces, replay, rides, storage, streets-fog-snapping, tabs-and-home, walk-screen, walkability.
 
 Procedures are skills: `/vision` (the gate before any spec; `review` for drift; the `steward` subagent), `/slice` (spec-first, test-first), `/audit` (the adversarial pass, with the `auditor` subagent, when the owner asks), `/e2e`, `/deploy`, `/docs-gc` (end-of-slice drift check), `/fix` (one issue end to end in a worktree; deploys by default, `--deploy=branch` stops at a pushed branch; decision 0081).
 
@@ -68,7 +68,7 @@ Procedures are skills: `/vision` (the gate before any spec; `review` for drift; 
 
 - **Gate first:** `/vision` on any feature idea before its spec. Push back once when it betrays `docs/VISION.md`; then the owner decides (0094).
 - **Ask before architectural decisions:** libraries, data model, platform strategy, navigation flow. Use AskUserQuestion with a recommended option. Local fixes don't need asking.
-- **Spec first, test first.** A slice starts from numbered, testable criteria in its spec, then a plan the owner can read, then one failing test per criterion before its code (`/slice`). It is done when those pass with typecheck, lint, `npm test` and the e2e journeys covering its files; a slice that changes a screen adds a journey for it. The full e2e runs only when the owner asks.
+- **Spec first, test first.** A slice starts from numbered, testable criteria in its spec, then a plan the owner can read, then one failing test per criterion before its code (`/slice`), committed as todos first (`check:test-first` reads the history); `check:docs` fails on a criterion with no test or recorded reason. It is done when those pass with typecheck, lint, `npm test` and the e2e journeys covering its files; a slice that changes a screen adds a journey for it. The full e2e runs only when the owner asks.
 - **Audit when the owner asks** (`/audit`, decision 0074): a report-only pass that tries to break the slice, triage (accept, defer, reject, with reasons; architectural findings go to the owner), a regression test named `<slice> audit N` before each fix.
 - **Deferred is a decision, not a gap.** Record it in `docs/DEFERRED.md`; if the owner chose it, in `docs/decisions/` too.
 

@@ -4,11 +4,18 @@ import { clampRange, POCKET_ALERT_NOTE, type Kind } from '../lib/explore/explore
 import type { ExploreSettings as Settings } from '../lib/explore/settings';
 import type { Waypoint } from '../lib/nav/types';
 import { destLine, type StartMode } from '../lib/startPlan';
+import { kindWalkPrefs } from '../lib/kindWalk/app';
+import { nearestStep, stepBudget, type WalkabilityPref } from '../lib/kindWalk/settings';
+import { useKindWalkPrefs } from '../lib/kindWalk/useKindWalk';
+import { formatDistance } from '../lib/format';
+import { longerLabel, prefLabel, shorterLabel } from '../lib/kindWalk/words';
 import { saveUnits } from '../lib/unitsStore';
 import { useUnits } from '../lib/useUnits';
 import type { LngLat } from '../lib/types';
 import { KindSwitches, RangeSlider, walkNote } from './ExploreSettings';
 import { Icon } from './icons';
+import { LayersKey } from './LayersControl';
+import type { useLayers } from '../lib/layers/useLayers';
 import { NotificationSettings } from './NotificationSettings';
 import { RouteLeaningSettings } from './RouteLeaningSettings';
 import { SwitchRow } from './SwitchRow';
@@ -30,10 +37,13 @@ export function StartSettings(props: {
   onClearDest: () => void;
   onSettings: (s: Settings) => void;
   onToggleKind: (k: Kind, on: boolean) => void;
+  /** The map's layers: what each one that is on shows, here and not over the map. */
+  layers?: ReturnType<typeof useLayers>;
 }) {
   const { mode, dest, fix, settings } = props;
   // Distances in km or miles (QL16): saved as it changes, every screen redraws at once.
   const units = useUnits();
+  const kw = useKindWalkPrefs();
   return (
     <View testID="start-settings" style={styles.content}>
       <Text style={styles.title} accessibilityRole="header">Walk settings</Text>
@@ -84,6 +94,13 @@ export function StartSettings(props: {
         </>
       )}
 
+      {props.layers && Object.values(props.layers.on).some(Boolean) ? (
+        <>
+          <Text style={styles.section} accessibilityRole="header">On the map</Text>
+          <LayersKey layers={props.layers} />
+        </>
+      ) : null}
+
       <View style={styles.rule} />
       <Text style={styles.title} accessibilityRole="header">Reminders and alerts</Text>
       {/* The pocket alert is a nudge you feel: on every phone, and on a touch-screen browser (E19, PA6). */}
@@ -114,6 +131,36 @@ export function StartSettings(props: {
             style={[styles.segmentBtn, units === u && styles.segmentOn]}
           >
             <Text style={[styles.segmentText, units === u && styles.segmentTextOn]}>{u === 'km' ? 'km' : 'miles'}</Text>
+          </Pressable>
+        ))}
+      </View>
+
+      {/* KW8, KW11: how far a suggested walk is (a distance, never a time) and what to do about a stretch built around cars. */}
+      <View style={styles.rule} />
+      <Text style={styles.title} accessibilityRole="header">Suggested walks</Text>
+      <Text style={styles.sub}>About how far you would like to walk</Text>
+      <View style={styles.destRow}>
+        <Pressable testID="kindwalk-budget-shorter" accessibilityRole="button" onPress={() => void kindWalkPrefs.setBudget(stepBudget(kw.budgetM, -1, units))} style={styles.clear}>
+          <Text style={styles.clearText}>{shorterLabel}</Text>
+        </Pressable>
+        <Text style={styles.destText} testID="kindwalk-budget">{formatDistance(nearestStep(kw.budgetM, units), units)}</Text>
+        <Pressable testID="kindwalk-budget-longer" accessibilityRole="button" onPress={() => void kindWalkPrefs.setBudget(stepBudget(kw.budgetM, 1, units))} style={styles.clear}>
+          <Text style={styles.clearText}>{longerLabel}</Text>
+        </Pressable>
+      </View>
+      <Text style={styles.sub}>A stretch built around cars</Text>
+      <View style={styles.segment} accessibilityRole="radiogroup">
+        {(['warn', 'skip'] as WalkabilityPref[]).map((p) => (
+          <Pressable
+            key={p}
+            testID={`kindwalk-pref-${p}`}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: kw.pref === p }}
+            aria-checked={kw.pref === p}
+            onPress={() => void kindWalkPrefs.setPref(p)}
+            style={[styles.segmentBtn, kw.pref === p && styles.segmentOn]}
+          >
+            <Text style={[styles.segmentText, kw.pref === p && styles.segmentTextOn]}>{prefLabel(p)}</Text>
           </Pressable>
         ))}
       </View>

@@ -4,7 +4,8 @@ import { PbfReader } from 'pbf';
 import { PMTiles } from 'pmtiles';
 import type { TileFeature } from '../areas/tilePlaces';
 import { db } from '../db';
-import { activityFromOverture, overturePlacesFromTile, type ActivityPoint, type OverturePlace } from './points';
+import { net } from '../net';
+import { activityFromOverture, OvertureSchemaError, overturePlacesFromTile, overturePlacesSchemaOk, type ActivityPoint, type OverturePlace } from './points';
 import { OvertureReader } from './reader';
 import { newestRelease, overtureUrl, releaseDue, releasesListUrl } from './release';
 
@@ -37,7 +38,7 @@ async function fetchText(url: string, ms: number): Promise<string> {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), ms);
   try {
-    const res = await fetch(url, { signal: ctl.signal });
+    const res = await net.fetch(url, { signal: ctl.signal });
     if (!res.ok) throw new Error(`${res.status}`);
     return await res.text();
   } finally {
@@ -81,10 +82,12 @@ function decode(bytes: ArrayBuffer, x: number, y: number): OverturePlace[] {
     const f = layer.feature(i).toGeoJSON(x, y, Z);
     features.push({ geometry: f.geometry as TileFeature['geometry'], properties: (f.properties ?? {}) as Record<string, unknown> });
   }
+  // A release renamed under us (2026-09: categories to taxonomy) falls back to the one before (fix net-rules).
+  if (!overturePlacesSchemaOk(features)) throw new OvertureSchemaError('the place layer has no taxonomy');
   return overturePlacesFromTile(features);
 }
 
-const reader = new OvertureReader({ open: (release) => new PMTiles(overtureUrl(release)), decode, tileMs: TILE_MS, readMs: READ_MS });
+const reader = new OvertureReader({ open: (release) => new PMTiles(net.source(overtureUrl(release))), decode, tileMs: TILE_MS, readMs: READ_MS });
 
 /**
  * AD3, AD7, AD8: the Overture places that count in these z14 tiles, with the

@@ -8,7 +8,7 @@ import type { Band, WayFacts } from './types';
  */
 
 /** Bump when the table below changes (WK9). */
-export const WALK_CODE = 'w1';
+export const WALK_CODE = 'w2';
 
 /** A calm street: at or under this the sidewalk makes it easy on foot (WK5). 50 km/h is 30 mph. */
 export const CALM_KMH = 50;

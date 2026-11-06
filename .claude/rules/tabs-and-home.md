@@ -31,6 +31,10 @@ The three tabs (Explore, Navigate, Chronicle), the home sheet, the recording bar
   `leftForChronicle`, or its unmount would move to Chronicle). Reached from
   inside the app, the message and its button stay. A load that throws goes to
   the screen's `ScreenError` boundary, never "could not be found".
+- **Every route has a `ScreenError` boundary**, its own or its layout's: the tabs get
+  theirs from `(tabs)/_layout.tsx`. With none, a throw unmounts the whole app and the
+  web shows a white page (the owner's iPhone after Keep it, Nov 4; `fix ios-video 2`
+  checks every file under `src/app`).
 - **An open walk at launch comes straight up** (`lib/launchWalk`, the owner,
   Nov 3: the Home Screen app showed Explore, then jumped to the walk). The root
   layout covers the app (`launch-cover`) until `db.getOpenWalk()` answers, then
