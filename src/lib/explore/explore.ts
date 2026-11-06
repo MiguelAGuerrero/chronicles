@@ -3,6 +3,7 @@ import { hoodAllowed, townAt, withOutlines, type OutlineSet } from '../areas/out
 import type { AreaLevel, PlaceCandidate } from '../areas/types';
 import { categoryOf } from '../discovery/categories';
 import { isMarkable } from '../discovery/noise';
+import { keepFindKeys } from '../discovery/archiveMerge';
 import { isOffered } from '../discovery/places';
 import type { CategoryId, Kind, Place } from '../discovery/types';
 import { distanceM, nearPoints, projector } from '../geo';
@@ -190,6 +191,8 @@ export function buildChecklists(o: {
   outlines?: OutlineSet | null;
   /** The places archive version this read used, or null (PW12). */
   archive?: string | null;
+  /** Finds so far: a place matching one keeps its key (places-worth-the-stop audit 1-2). */
+  finds?: Pick<Find, 'key' | 'name' | 'at'>[];
 }): { areas: ChecklistArea[]; items: ChecklistItem[] } {
   const built = o.built ?? [];
   const outlines = o.outlines ?? null;
@@ -203,7 +206,7 @@ export function buildChecklists(o: {
     areas.set(checklistKey(ref), { key: checklistKey(ref), ...ref, build: o.build, built_at: o.now, count: 0, archive: o.archive ?? null });
   }
   const items: ChecklistItem[] = [];
-  for (const p of o.places) {
+  for (const p of keepFindKeys(o.places, o.finds ?? [])) {
     if (!p.kind || !isMarkable(p)) continue;
     // A place keyed twice (it straddles a rounding line) is one place.
     if (isOffered(p, items)) continue;
@@ -229,16 +232,18 @@ export function buildChecklists(o: {
 export function readCentre(o: {
   fix: LngLat;
   candidates: PlaceCandidate[];
-  areas: Pick<ChecklistArea, 'level' | 'name' | 'at' | 'build'>[];
+  areas: (Pick<ChecklistArea, 'level' | 'name' | 'at' | 'build'> & { archive?: string | null })[];
   reads: Pick<ExploreRead, 'centre' | 'build'>[];
   build: string;
   outlines?: OutlineSet | null;
+  /** The places archive version known here (audit 3): an area built with an older one, or none, is read again. */
+  archive?: string | null;
 }): LngLat | null {
   const near = o.reads.some((r) => r.build === o.build && distanceM(r.centre, o.fix) <= EXPLORE_RULES.rereadM);
   if (!near) return o.fix;
   const ref = areaFor(o.fix, uniqueAreas(o.candidates), o.outlines ?? null);
   if (!ref) return null;
-  return o.areas.some((a) => a.build === o.build && sameArea(a, ref)) ? null : ref.at;
+  return o.areas.some((a) => a.build === o.build && !archiveStale(a.archive, o.archive ?? null) && sameArea(a, ref)) ? null : ref.at;
 }
 
 /** After a failed read, the next waits 2 min and 100 m walked (E5). */

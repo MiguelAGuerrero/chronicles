@@ -29,6 +29,8 @@ export interface ArchiveFile {
 export interface Region {
   id: string;
   current: ArchiveFile;
+  /** Older versions still served, newest first: used when the current one is missing (audit 4). */
+  previous: ArchiveFile[];
 }
 
 export interface Manifest {
@@ -57,10 +59,11 @@ export function parseManifest(text: string): Manifest | null {
   const m = raw as { schema?: unknown; regions?: unknown } | null;
   if (!m || m.schema !== 1 || !Array.isArray(m.regions)) return null;
   const regions: Region[] = [];
-  for (const r of m.regions as { id?: unknown; current?: unknown }[]) {
+  for (const r of m.regions as { id?: unknown; current?: unknown; previous?: unknown }[]) {
     const current = fileOf(r?.current);
     if (!current || typeof r.id !== 'string') return null;
-    regions.push({ id: r.id, current });
+    const previous = (Array.isArray(r.previous) ? r.previous : []).map(fileOf).filter((f): f is ArchiveFile => f != null);
+    regions.push({ id: r.id, current, previous });
   }
   return { regions };
 }

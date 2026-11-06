@@ -36,3 +36,16 @@ export function applyEdits(places: Place[], edits: ArchiveEdits, version: string
   const added = edits.add.map((a) => archivePlace(a.name, a.class, a.at, version)).filter((p): p is Place => p != null);
   return [...kept.filter((p) => !added.some((a) => same(p, a))), ...added];
 }
+
+/**
+ * places-worth-the-stop audit 1-2: a place that matches a find (same name within 50 m, any category) carries the
+ * find's key, so a place found under the map's key, or under an earlier archive's position, stays found and is
+ * never found twice when the archive's version of it replaces it.
+ */
+export function keepFindKeys<T extends { key: string; name: string; at: LngLat }>(places: T[], finds: { key: string; name: string; at: LngLat }[]): T[] {
+  if (!finds.length) return places;
+  return places.map((p) => {
+    const f = finds.find((x) => same(p, x));
+    return f && f.key !== p.key ? { ...p, key: f.key } : p;
+  });
+}

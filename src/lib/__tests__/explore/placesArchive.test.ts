@@ -9,7 +9,8 @@ import { archiveStale, KINDS, parseHidden } from '../../explore/explore';
 import { ATLAS_CODE, ATLAS_RULES, keptProfile, MARKS_EXPLAINED, profileStale, rereadAt, ringOf, rowCurrent, STEPS, type AtlasArea, type AtlasProfile } from '../../atlas/atlas';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { placeFinds, type ChecklistArea } from '../../explore/explore';
+import { buildChecklists, placeFinds, readCentre, type ChecklistArea, type Find } from '../../explore/explore';
+import type { PlaceCandidate } from '../../areas/types';
 import { createPlacesArchive } from '../../discovery/archive/shell';
 import { fakePorts } from '../fakes';
 import { archiveTilesFor, ARCHIVE_ZOOM, manifestDue, parseManifest, pickRegion, PLACES_BASE, regionUrl } from '../../discovery/archiveManifest';
@@ -254,4 +255,59 @@ test('PW18: the scenic routes\' Sights read is unchanged: it reads the map\'s pl
   const src = readFileSync(join(__dirname, '..', '..', 'nav', 'scenicRead', 'shell.ts'), 'utf8');
   assert.match(src, /placesFromTilePois\(/);
   assert.ok(!/archive/i.test(src), 'the archive is not wired into the scenic read');
+});
+
+// ——— Audit regressions (places-worth-the-stop audit, Nov 6) ———
+
+const fox: PlaceCandidate = { level: 'neighborhood', name: 'Fox', at: CENTRE, reachM: 1000 };
+const findOf = (p: Place): Find => ({ key: p.key, area_key: null, walk_id: 'w', capture_id: 'c', found_at: 1, name: p.name, category: p.category, kind: p.kind ?? 'monuments', at: p.at, generic: false });
+
+test('places-worth-the-stop audit 1: a find made on the map\'s place stays found after its area is rebuilt with the archive\'s', () => {
+  const tile = { ...tilePlace('Hessian Powder Magazine', 'history', [CENTRE[0] + 0.0003, CENTRE[1]]), kind: 'monuments' as const };
+  const found = findOf(tile);
+  const archive = placesFromArchive([pt(CENTRE[0] + 0.0003, CENTRE[1] + 0.00002, { name: 'Hessian Powder Magazine', class: 'ruin', src: 'wd', id: 'Q9' })], 'v1');
+  const built = buildChecklists({ places: mergePlaces([tile], archive), candidates: [fox], centre: CENTRE, build: 'b1', now: 2, archive: 'v1', finds: [found] });
+  const item = built.items.find((i) => i.name === 'Hessian Powder Magazine');
+  assert.equal(item?.key, found.key, 'the rebuilt item keeps the find\'s key, so it shows as found and is never found again');
+  const ring = ringOf([tile], archive, CENTRE, undefined, undefined, [found]);
+  assert.ok(ring.marks.some((m) => m.key === found.key), 'the atlas sees the same find');
+});
+
+test('places-worth-the-stop audit 2: a find stays found when the next version moves the place a few metres', () => {
+  const v1 = placesFromArchive([pt(CENTRE[0] + 0.0004, CENTRE[1], { name: 'Odd Rock', class: 'natural_oddity', src: 'wd', id: 'Q2' })], 'v1')[0];
+  const found = findOf(v1);
+  const v2 = placesFromArchive([pt(CENTRE[0] + 0.00046, CENTRE[1], { name: 'Odd Rock', class: 'natural_oddity', src: 'wd', id: 'Q2' })], 'v2');
+  assert.notEqual(v2[0].key, v1.key, 'the position moved past the key\'s rounding');
+  const built = buildChecklists({ places: v2, candidates: [fox], centre: CENTRE, build: 'b1', now: 2, archive: 'v2', finds: [found] });
+  assert.equal(built.items[0]?.key, found.key);
+});
+
+test('places-worth-the-stop audit 3: a fix in an area built with an older archive version, or none, asks for a read', () => {
+  const area = (archive: string | null) => ({ level: 'neighborhood' as const, name: 'Fox', at: CENTRE, build: 'b1', archive });
+  const reads = [{ centre: CENTRE, build: 'b1' }];
+  assert.deepEqual(readCentre({ fix: CENTRE, candidates: [fox], areas: [area(null)], reads, build: 'b1', archive: 'v1' }), CENTRE, 'built before the archive: read again');
+  assert.deepEqual(readCentre({ fix: CENTRE, candidates: [fox], areas: [area('v0')], reads, build: 'b1', archive: 'v1' }), CENTRE, 'an older version: read again');
+  assert.equal(readCentre({ fix: CENTRE, candidates: [fox], areas: [area('v1')], reads, build: 'b1', archive: 'v1' }), null);
+  assert.equal(readCentre({ fix: CENTRE, candidates: [fox], areas: [area(null)], reads, build: 'b1', archive: null }), null, 'no archive known: nothing to read for');
+});
+
+test('places-worth-the-stop audit 4: a version listed but missing is passed over for the previous one, without asking again and again', async () => {
+  const ports = fakePorts();
+  const prevFile = 'places-us-20261101.pmtiles';
+  const { io, log } = fakeIo({ tile: async () => { throw new Error('Bad response code: 404'); } });
+  const tiles: string[] = [];
+  const io2 = { ...io, open: (url: string) => (log.opened.push(url), { getZxy: async (z: number, x: number, y: number) => {
+    tiles.push(`${url.split('/').pop()} ${z}/${x}/${y}`);
+    if (url.endsWith('20261108.pmtiles')) throw new Error('Bad response code: 404');
+    return { data: new TextEncoder().encode(JSON.stringify([pt(-75.19, 40.69, { name: 'Old Folly', class: 'folly', src: 'wd', id: 'Q7' })])).buffer as ArrayBuffer };
+  } }) };
+  const archive = createPlacesArchive({ ...ports, io: io2, tileMs: 50, readMs: 100 });
+  assert.equal(await archive.read(READ, CENTRE), null, 'the current file is missing');
+  const got = await archive.read(READ, CENTRE);
+  assert.equal(got?.version, '20261101', 'the previous version is used');
+  assert.ok(log.opened.some((u) => u.endsWith(prevFile)));
+  assert.equal(archive.versionAt(CENTRE), '20261101', 'the atlas is told the version actually read, so no ring is re-read every two minutes');
+  const fetched = log.fetched.length;
+  for (let i = 0; i < 5; i++) await archive.read(READ, CENTRE);
+  assert.equal(log.fetched.length, fetched, 'the manifest is not asked for again on every read');
 });

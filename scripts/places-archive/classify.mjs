@@ -56,12 +56,15 @@ export function classify(item) {
 }
 
 /**
- * PW7: whether the place's sources say it no longer exists: a dissolved, abolished or demolished date (P576), a
- * closure date (P3999), or a state saying demolished or destroyed (P5817, P5816). Abandoned and ruined places
- * still exist and stay.
+ * PW7: whether the place's sources say it no longer exists: a dissolved, abolished or demolished date (P576), or a
+ * state saying demolished or destroyed (P5817, P5816). A closure date (P3999) is not gone: a decommissioned
+ * lighthouse still stands. A ruin's or ghost town's abolished date is not gone either: the ruins are what is
+ * there (places-worth-the-stop audit 6; the owner, Nov 5: "ensure they actually exist").
+ * @param {{ dissolved?: boolean, closed?: boolean, states?: string[] }} item
+ * @param {string | null} [cls]
  */
-export function gone(item) {
-  if (item.dissolved || item.closed) return true;
+export function gone(item, cls = null) {
+  if (item.dissolved && cls !== 'ruin') return true;
   return (item.states ?? []).some((s) => /\b(demolish|destroy|razed|no longer exist)/i.test(String(s)));
 }
 
@@ -72,6 +75,7 @@ export function gone(item) {
  */
 export function keep(item) {
   if (!Number.isFinite(item.lon) || !Number.isFinite(item.lat)) return null;
-  if (!String(item.name ?? '').trim() || gone(item)) return null;
-  return classify(item);
+  if (!String(item.name ?? '').trim()) return null;
+  const cls = classify(item);
+  return cls && !gone(item, cls) ? cls : null;
 }

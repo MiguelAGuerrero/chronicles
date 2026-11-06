@@ -2,7 +2,7 @@
 import { coveredBy, townAt, withOutlines, type OutlineSet } from '../areas/outlines';
 import { AREA_REACH_M } from '../areas/rules';
 import type { Area, PlaceCandidate, WalkArea } from '../areas/types';
-import { applyEdits, mergePlaces, type ArchiveEdits } from '../discovery/archiveMerge';
+import { applyEdits, keepFindKeys, mergePlaces, type ArchiveEdits } from '../discovery/archiveMerge';
 import { isMarkable, MARK_CATEGORIES } from '../discovery/noise';
 import type { CategoryId, Kind, Place } from '../discovery/types';
 import { boundsOf, distanceM, projector, type Bounds } from '../geo';
@@ -647,9 +647,10 @@ export function marksOf<T extends AtlasMark & { name?: string }>(places: T[], ma
  * place, PW8; the owner's edits, PW13), against the fixed STEPS. `thin` is judged from the map's places alone, so a
  * ring reads the same with or without the archive.
  */
-export function ringOf(tilePlaces: Place[], archivePlaces: Place[] | null, centre: LngLat, within: Within = ringWithin(centre), edits?: { edits: ArchiveEdits; version: string }) {
+export function ringOf(tilePlaces: Place[], archivePlaces: Place[] | null, centre: LngLat, within: Within = ringWithin(centre), edits?: { edits: ArchiveEdits; version: string }, finds: { key: string; name: string; at: LngLat }[] = []) {
   const merged = archivePlaces ? mergePlaces(tilePlaces, archivePlaces) : tilePlaces;
-  const counted = edits ? applyEdits(merged, edits.edits, edits.version) : merged;
+  // A found place keeps its find's key, so the atlas shows it found (places-worth-the-stop audit 1).
+  const counted = keepFindKeys(edits ? applyEdits(merged, edits.edits, edits.version) : merged, finds);
   // AG1: each place says whether it could be found (chains too), so the findable kinds count only those.
   const ring = counted.filter((p) => within(p.at)).map((p) => ({ ...p, markable: isMarkable(p) }));
   const mapRing = tilePlaces.filter((p) => within(p.at));

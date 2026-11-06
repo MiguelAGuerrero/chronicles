@@ -60,12 +60,14 @@ export function exploreRead(centre: LngLat, opts: { remember: boolean }, shouldS
       const candidates = withoutOutlines(withOutlines(points, borders?.set));
       const now = Date.now();
       // Areas built for this build stay as they are; earlier reads' candidates keep places with their areas (audit 3).
-      const [done, reads] = await Promise.all([db.listChecklistAreas(), db.listExploreReads()]);
+      const [done, reads, finds] = await Promise.all([db.listChecklistAreas(), db.listExploreReads(), db.listFinds().catch(() => [])]);
       const built = buildChecklists({
         places: read.places, candidates: points, centre, build, now, outlines: borders?.set ?? null,
         // PW12: an area built before the places archive (or with an older version) is built again.
         built: done.filter((a) => a.build === build && !archiveStale(a.archive, read.archive)),
         archive: read.archive,
+        // Audit 1-2: a place already found keeps its find's key through a rebuild.
+        finds,
         known: reads.filter((r) => r.build === build).flatMap((r) => r.candidates),
       });
       const record: ExploreRead = { key: `${centre[0].toFixed(5)},${centre[1].toFixed(5)}`, centre, build, read_at: now, candidates };

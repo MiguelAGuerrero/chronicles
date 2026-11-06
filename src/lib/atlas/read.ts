@@ -95,12 +95,12 @@ export interface Extent {
  * and marks count across it, its pockets of activity are found (TP4) and its picture is drawn around the
  * busiest; without one, the 800 m ring around the point.
  */
-export function profileFrom(at: LngLat, feats: CollectedFeatures, build: string, overture: { release: string; points: ActivityPoint[] } | null = null, extent: Extent | null = null, archive: ArchiveRead = null) {
+export function profileFrom(at: LngLat, feats: CollectedFeatures, build: string, overture: { release: string; points: ActivityPoint[] } | null = null, extent: Extent | null = null, archive: ArchiveRead = null, finds: { key: string; name: string; at: LngLat }[] = []) {
   const segments = deriveSegments(feats.roads, feats.names, build);
   const places = placesFromTilePois(feats.pois, build);
   const within: Within = extent ? (p) => inExtent(p, extent.outline) : (p) => distanceM(p, at) <= ATLAS_RULES.ringM;
   // PW10: the map's places and the archive's, with the owner's edits; thin from the map's alone.
-  const counted = ringOf(places, archive?.places ?? null, at, within, { edits: ARCHIVE_EDITS, version: archive?.version ?? 'owner' });
+  const counted = ringOf(places, archive?.places ?? null, at, within, { edits: ARCHIVE_EDITS, version: archive?.version ?? 'owner' }, finds);
   const points = mergeSources(activityFromTilePois(feats.pois), overture?.points ?? []);
   const towns = placesFromTiles(feats.places);
   const transit = transitFromTilePois(feats.pois);
@@ -180,12 +180,14 @@ export function readRing(area: AtlasArea, shouldStop: () => boolean): Promise<At
       readOverture(tiles, shouldStop),
       placesArchive.read(tiles, area.at, shouldStop).catch(() => null),
     ]);
+    // Audit 1: a found place keeps its find's key, so the atlas shows it found.
+    const finds = archive ? await db.listFinds().catch(() => []) : [];
     if (shouldStop()) return null;
     if (!f) return failed();
     try {
       // Only the atlas's own row is written (explore-atlas audit 6): a ring's streets and places are not
       // rewritten into the shared caches, so the write queue stays free for the walk.
-      const { profile } = profileFrom(area.at, f, area.build, overture, extent, archive);
+      const { profile } = profileFrom(area.at, f, area.build, overture, extent, archive, finds);
       if (outlineRetry) profile.outlineRetry = true;
       // read_at moves on either way, so a ring Overture didn't answer for waits before asking again.
       const row: AtlasArea = { ...area, profile: keptProfile(area.profile, profile), read_at: Date.now(), failed_at: null };

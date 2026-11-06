@@ -10,8 +10,10 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 
 /** PW19: whether to publish, from the built archive's SHA-256 (null when the build made none) and the live manifest. */
-export function decide({ region, sha256, manifest }) {
+export function decide({ region, sha256, manifest, unreachable = false }) {
   if (!sha256) return { publish: false, reason: 'no archive built' };
+  // One network error must not publish a duplicate (places-worth-the-stop audit 7): only a real 404 is no manifest.
+  if (unreachable) return { publish: false, reason: 'manifest unreachable' };
   if (!manifest) return { publish: true, reason: 'no manifest yet' };
   const current = (manifest.regions ?? []).find((r) => r.id === region)?.current;
   if (!current) return { publish: true, reason: 'new region' };
@@ -29,13 +31,15 @@ async function main() {
   const url = arg('manifest-url');
   const sha256 = archive && existsSync(archive) ? createHash('sha256').update(readFileSync(archive)).digest('hex') : null;
   let manifest = null;
+  let unreachable = false;
   try {
     const res = await fetch(url);
     if (res.ok) manifest = await res.json();
+    else if (res.status !== 404) unreachable = true;
   } catch {
-    manifest = null;
+    unreachable = true;
   }
-  const d = decide({ region, sha256, manifest });
+  const d = decide({ region, sha256, manifest, unreachable });
   console.log(`publish=${d.publish}`);
   console.log(`reason=${d.reason}`);
 }

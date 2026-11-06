@@ -101,8 +101,9 @@ test('PW7: a place enters with a class and a location, and only while its source
   assert.equal(keep(item({ p31: [FOLLY] })), 'folly', 'a Wikidata entry with a location is enough');
   assert.equal(keep(item({ p31: [FOLLY], lon: Number.NaN })), null, 'no location: left out');
   assert.equal(keep(item({ p31: [HOUSE] })), null, 'no class from the table: a signal alone never admits a place');
-  assert.equal(gone(item({ dissolved: true })), true, 'demolished, dissolved or abolished (P576)');
-  assert.equal(gone(item({ closed: true })), true, 'closed for good (P3999)');
+  assert.equal(gone(item({ dissolved: true }), 'folly'), true, 'demolished, dissolved or abolished (P576)');
+  assert.equal(gone(item({ closed: true }), 'odd_engineering'), false, 'closed is not gone: a decommissioned lighthouse still stands (places-worth-the-stop audit 6)');
+  assert.equal(gone(item({ dissolved: true }), 'ruin'), false, 'a ghost town\'s abolished date: the ruins still stand (audit 6)');
   assert.equal(gone(item({ states: ['demolished'] })), true);
   assert.equal(gone(item({ states: ['destroyed by fire'] })), true);
   assert.equal(gone(item({ states: ['abandoned'] })), false, 'an abandoned place still exists and stays');
@@ -132,13 +133,12 @@ test('PW14, PW7, PW13: the build turns Wikidata items (and, if given, OSM tags) 
 test('PW14, PW7: the fetch asks each US cell for the pinned classes and heritage places, and never for a count', () => {
   const q = cellQuery([-76, 40, -75, 41]);
   for (const id of ALL_CLASS_IDS) assert.ok(q.includes(`wd:${id}`), id);
-  assert.match(q, /wdt:P649/, 'National Register id');
-  assert.match(q, /wdt:P1435/, 'heritage designation');
+  assert.match(q, /wdt:P1435 wd:Q624232/, 'heritage only as a National Historic Landmark (places-worth-the-stop audit 5)');
+  assert.ok(!/wdt:P649/.test(q), 'never every National Register listing, which the build would throw away');
   assert.match(q, /wdt:P17 wd:Q30/, 'in the US');
   assert.match(q, /cornerSouthWest "Point\(-76 40\)"/);
   assert.match(q, /wdt:P576/);
   assert.match(q, /wdt:P3999/);
-  assert.match(q, /wd:Q624232/, 'National Historic Landmark');
   assert.ok(!/sitelinks|schema:about|wikipedia|pageviews|COUNT/i.test(q), 'nothing about articles or popularity is ever asked for (PW7)');
   assert.ok(cellsFor([[-125, 24, -66, 50]], 2).length > 300, 'the conterminous US in 2-degree cells');
   assert.deepEqual(splitCell([-76, 40, -74, 42]), [[-76, 40, -75, 41], [-75, 40, -74, 41], [-76, 41, -75, 42], [-75, 41, -74, 42]]);
@@ -148,12 +148,12 @@ test('PW14: the fetch\'s rows become one item each, with its classes, listing an
   const b = (o: Record<string, string>) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, { value: v }]));
   const items = itemsFrom([
     b({ item: 'http://www.wikidata.org/entity/Q1', label: 'Folly', coord: 'Point(-75.2 40.7)', p31: 'http://www.wikidata.org/entity/Q180174' }),
-    b({ item: 'http://www.wikidata.org/entity/Q1', label: 'Folly', coord: 'Point(-75.2 40.7)', p31: 'http://www.wikidata.org/entity/Q3947', nrhp: '123', des: 'http://www.wikidata.org/entity/Q624232' }),
+    b({ item: 'http://www.wikidata.org/entity/Q1', label: 'Folly', coord: 'Point(-75.2 40.7)', p31: 'http://www.wikidata.org/entity/Q3947', nhl: 'true' }),
     b({ item: 'http://www.wikidata.org/entity/Q2', label: 'Old Mill', coord: 'Point(-75.3 40.8)', p31: 'http://www.wikidata.org/entity/Q44494', dissolved: '1950-01-01', stateLabel: 'demolished' }),
   ]);
   assert.deepEqual(items, [
-    { id: 'Q1', name: 'Folly', lon: -75.2, lat: 40.7, p31: ['Q180174', 'Q3947'], heritage: true, nhl: true, dissolved: false, closed: false, states: [] },
-    { id: 'Q2', name: 'Old Mill', lon: -75.3, lat: 40.8, p31: ['Q44494'], heritage: false, nhl: false, dissolved: true, closed: false, states: ['demolished'] },
+    { id: 'Q1', name: 'Folly', lon: -75.2, lat: 40.7, p31: ['Q180174', 'Q3947'], nhl: true, dissolved: false, closed: false, states: [] },
+    { id: 'Q2', name: 'Old Mill', lon: -75.3, lat: 40.8, p31: ['Q44494'], nhl: false, dissolved: true, closed: false, states: ['demolished'] },
   ]);
 });
 
@@ -170,4 +170,5 @@ test('PW19: the weekly build publishes only when the archive changed, and a fail
   assert.deepEqual(decide({ region: 'us', sha256: 'bbb', manifest: { schema: 1, regions: [] } }), { publish: true, reason: 'new region' });
   assert.deepEqual(decide({ region: 'us', sha256: 'bbb', manifest: null }), { publish: true, reason: 'no manifest yet' });
   assert.deepEqual(decide({ region: 'us', sha256: null, manifest }), { publish: false, reason: 'no archive built' });
+  assert.deepEqual(decide({ region: 'us', sha256: 'bbb', manifest: null, unreachable: true }), { publish: false, reason: 'manifest unreachable' }, 'places-worth-the-stop audit 7: one network error publishes nothing');
 });

@@ -29,6 +29,11 @@ export function createPlacesArchive(p: Pick<Ports, 'db' | 'clock'> & { io: Archi
   let manifest: Manifest | null = null;
   let failedAt: number | null = null;
   let recheck = false;
+  /** Files the manifest listed that answered 403/404 this session, and those the manifest was read again for (audit 4). */
+  const missing = new Set<string>();
+  const rechecked = new Set<string>();
+  const usable = (region: { current: { file: string; version: string }; previous: { file: string; version: string }[] }) =>
+    [region.current, ...region.previous].find((f) => !missing.has(f.file)) ?? null;
   const reader = new TileReader<Place & { id: string }>({
     open: (file) => p.io.open(regionUrl(p.io.base, file)),
     // The version is stamped after the read: the reader's decoder sees only the tile.
@@ -65,24 +70,37 @@ export function createPlacesArchive(p: Pick<Ports, 'db' | 'clock'> & { io: Archi
   }
 
   return {
+    /** Loads the manifest when it is due (at most daily), so the version is known before any read (places-worth-the-stop audit 3). */
+    async refresh(): Promise<void> {
+      if (p.io.base) await ensureManifest().catch(() => null);
+    },
     /** PW10: the version the loaded manifest names for a point; null before it is read, outside every region, or with no address. */
     versionAt(at: LngLat): string | null {
       if (!p.io.base || !manifest) return null;
-      return pickRegion(manifest, at)?.current.version ?? null;
+      const region = pickRegion(manifest, at);
+      return region ? (usable(region)?.version ?? null) : null;
     },
     /** PW1-PW3: the archive's places for a read's z14 tiles around `centre`, with the version they came from; null when there are none to read. */
     async read(tiles: [number, number][], centre: LngLat, shouldStop?: () => boolean): Promise<ArchiveRead> {
       if (!p.io.base) return null;
       const m = await ensureManifest().catch(() => null);
       const region = m ? pickRegion(m, centre) : null;
-      if (!region || shouldStop?.()) return null;
-      const r = await reader.read(region.current.file, archiveTilesFor(tiles), shouldStop);
+      const file = region ? usable(region) : null;
+      if (!file || shouldStop?.()) return null;
+      const r = await reader.read(file.file, archiveTilesFor(tiles), shouldStop);
       if (!r.ok) {
-        // The file the manifest named is gone (a newer version replaced it): read the manifest again next time.
-        if (r.missing) recheck = true;
+        // Listed but missing (Pages lagging, or a newer version replaced it): pass it over for the previous one, and
+        // read the manifest again once for it, never on every read (audit 4).
+        if (r.missing) {
+          missing.add(file.file);
+          if (!rechecked.has(file.file)) {
+            rechecked.add(file.file);
+            recheck = true;
+          }
+        }
         return null;
       }
-      const version = region.current.version;
+      const version = file.version;
       return { version, places: r.items.map(({ id: _id, ...pl }) => ({ ...pl, build: version })) };
     },
   };
