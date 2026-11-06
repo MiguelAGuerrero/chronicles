@@ -4,15 +4,10 @@ import { test } from 'node:test';
 import { VectorTile } from '@mapbox/vector-tile';
 import { PbfReader } from 'pbf';
 import { PMTiles, type RangeResponse, type Source } from 'pmtiles';
-// @ts-expect-error: a plain ES module script, no types
 import { writeArchive } from '../../../../scripts/places-archive/archive.mjs';
-// @ts-expect-error: a plain ES module script, no types
 import { CLASSES, classify, gone, keep } from '../../../../scripts/places-archive/classify.mjs';
-// @ts-expect-error: a plain ES module script, no types
 import { build } from '../../../../scripts/build-places-archive.mjs';
-// @ts-expect-error: a plain ES module script, no types
 import { cellQuery, cellsFor, itemsFrom, splitCell } from '../../../../scripts/places-archive/fetch-wikidata.mjs';
-// @ts-expect-error: a plain ES module script, no types
 import { ALL_CLASS_IDS } from '../../../../scripts/places-archive/classify.mjs';
 import { ARCHIVE_CLASSES } from '../../discovery/archivePois';
 
@@ -30,7 +25,10 @@ async function featuresAt(buf: Uint8Array, z: number, x: number, y: number) {
   const t = await new PMTiles(memory(buf)).getZxy(z, x, y);
   if (!t) return [];
   const layer = new VectorTile(new PbfReader(new Uint8Array(t.data))).layers.places;
-  return Array.from({ length: layer?.length ?? 0 }, (_, i) => layer!.feature(i).toGeoJSON(x, y, z));
+  return Array.from({ length: layer?.length ?? 0 }, (_, i) => {
+    const f = layer!.feature(i).toGeoJSON(x, y, z);
+    return { geometry: f.geometry, properties: (f.properties ?? {}) as Record<string, unknown> };
+  });
 }
 
 test('PW14: the archive is the same bytes each time, and the app\'s reader finds each place in its z12 tile', async () => {
@@ -65,7 +63,7 @@ test('PW14: the root directory always fits in the reader\'s first read; leaf dir
   const buf = writeArchive(places, { firstRead: 2048 });
   const header = await new PMTiles(memory(buf)).getHeader();
   assert.ok(header.rootDirectoryOffset + header.rootDirectoryLength <= 2048, 'the root fits the smaller read');
-  assert.ok(header.leafDirectoryLength > 0, 'leaf directories hold the rest');
+  assert.ok((header.leafDirectoryLength ?? 0) > 0, 'leaf directories hold the rest');
   for (const i of [0, 12345, 79999]) {
     const p = places[i];
     const n = 2 ** 12;

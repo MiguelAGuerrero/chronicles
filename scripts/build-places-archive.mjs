@@ -36,7 +36,10 @@ function goneInOsm(osm) {
   return out;
 }
 
-/** PW14: {items, osm?, edits?, region, version} to {file, bytes, places}. */
+/**
+ * PW14: {items, osm?, edits?, region, version} to {file, bytes, places}.
+ * @param {{ items: any[], osm?: any, edits?: { remove: { name: string, at: number[] }[], add: { name: string, at: number[], class: string }[] }, region: string, version: string }} o
+ */
 export function build({ items, osm = null, edits = { remove: [], add: [] }, region, version }) {
   if (!/^[a-z0-9]+$/.test(region) || !/^\d{8}(\.\d+)?$/.test(version)) throw new Error('region is lowercase letters and digits; version is YYYYMMDD');
   const gone = goneInOsm(osm);

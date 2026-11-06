@@ -12,9 +12,15 @@ import { tilesIn } from '../tileMath';
 import type { LngLat } from '../types';
 import { analyzeArea, centreFor, LANDING_RULES, readTiles, type AreaAnalysis } from './analyze';
 import { keyFor, LANDING_VERSION, replacesRow, type LandingRow } from './view';
+import { placesArchive } from '../discovery/archive';
+import { applyEdits, mergePlaces, type ArchiveEdits } from '../discovery/archiveMerge';
+import archiveEdits from '../discovery/archiveEdits.json';
 
 /** Towns and cities are in the place layer from z10; z11 tiles keep the read to a few. */
 const TOWNS_ZOOM = 11;
+
+/** PW13: the owner's removals and adds (`discovery/archiveEdits.json`). */
+const ARCHIVE_EDITS = archiveEdits as ArchiveEdits;
 
 class Cancelled extends Error {}
 
@@ -24,15 +30,23 @@ export async function readAround(url: string, build: string, at: LngLat, shouldS
   const tiles = readTiles(at);
   // Overture's places for the same tiles (AD3), beside the map's; without them the read goes on (AD7). A read that
   // measures no density (a quiet walk's checklists) asks Overture for nothing (activity-density audit 4).
-  const [features, overture] = await Promise.all([fetchTiles(url, tiles, undefined, shouldStop), withOverture ? readOverture(tiles, shouldStop) : null]);
+  // The places archive for the same tiles (PW1, PW9), on every read, quiet walks too, so a capture can find one;
+  // without it the read goes on from the map alone (PW3).
+  const [features, overture, archive] = await Promise.all([
+    fetchTiles(url, tiles, undefined, shouldStop),
+    withOverture ? readOverture(tiles, shouldStop) : null,
+    placesArchive.read(tiles, at, shouldStop).catch(() => null),
+  ]);
   if (shouldStop()) throw new Cancelled();
   const segments = deriveSegments(features.roads, features.names, build);
-  const places = placesFromTilePois(features.pois, build);
-  // Cached like any read, tagged with the build (L2). Overture's places are never stored.
+  const tilePlaces = placesFromTilePois(features.pois, build);
+  // Cached like any read, tagged with the build (L2). Overture's places, and the archive's, are never stored.
   await db.putSegments(segments).catch(() => {});
-  await db.putPlaces(places).catch(() => {});
+  await db.putPlaces(tilePlaces).catch(() => {});
+  // PW8, PW13: one mark per place across the map and the archive, then the owner's removals and adds.
+  const places = applyEdits(archive ? mergePlaces(tilePlaces, archive.places) : tilePlaces, ARCHIVE_EDITS, archive?.version ?? 'owner');
   const points = mergeSources(activityFromTilePois(features.pois), overture?.points ?? []);
-  return { segments, places, points, overture: overture?.release ?? null, towns: placesFromTiles(features.places), transit: transitFromTilePois(features.pois) };
+  return { segments, places, points, overture: overture?.release ?? null, archive: archive?.version ?? null, towns: placesFromTiles(features.places), transit: transitFromTilePois(features.pois) };
 }
 
 /**

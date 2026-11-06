@@ -16,7 +16,7 @@ test('E13: checklists and finds are kept; where reads happened is derived (E4: a
 });
 
 test('E13: rows round-trip through SQLite columns', () => {
-  const area: ChecklistArea = { key: 'k', level: 'neighborhood', name: 'Fox Point', at: [-71.4, 41.8], build: 'b1', built_at: 5, count: 3 };
+  const area: ChecklistArea = { key: 'k', level: 'neighborhood', name: 'Fox Point', at: [-71.4, 41.8], build: 'b1', built_at: 5, count: 3, archive: '20261108' };
   assert.deepEqual(areaFromRow(areaToRow(area)), area);
   const item: ChecklistItem = { key: 'p', area_key: null, name: 'Mural', category: 'art', kind: 'public_art', at: [-71.4, 41.8], generic: true };
   assert.deepEqual(itemFromRow(itemToRow(item)), item);

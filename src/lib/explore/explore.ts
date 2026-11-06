@@ -75,6 +75,8 @@ export interface ChecklistArea {
   build: string;
   built_at: number;
   count: number;
+  /** The places archive version it was built with, or null without one (PW12); missing on rows from before. */
+  archive: string | null;
 }
 
 /** One attraction on a checklist: a snapshot of the place, so a cache purge leaves it whole (E13). */
@@ -160,6 +162,14 @@ export function areaFor(at: LngLat, candidates: PlaceCandidate[], outlines: Outl
 const covers = (centre: LngLat, c: PlaceCandidate) => distanceM(centre, c.at) + coverM(c) <= EXPLORE_RULES.readM + 1;
 
 /**
+ * PW12: an area built without the places archive while this read has one, or with an older version, is rebuilt.
+ * With no archive in this read (offline, outside every region), what was built stays.
+ */
+export function archiveStale(builtWith: string | null | undefined, now: string | null): boolean {
+  return now != null && (builtWith ?? null) !== now;
+}
+
+/**
  * One read's checklists (E2, E3): each attraction (markable, with a kind)
  * goes to its area; only areas the read saw whole are built, with 0 when they
  * hold nothing, so they aren't read again. Places no area reaches are kept as
@@ -178,6 +188,8 @@ export function buildChecklists(o: {
   known?: PlaceCandidate[];
   /** Town borders read around the centre (TO11): an outline-only town gets a list too. */
   outlines?: OutlineSet | null;
+  /** The places archive version this read used, or null (PW12). */
+  archive?: string | null;
 }): { areas: ChecklistArea[]; items: ChecklistItem[] } {
   const built = o.built ?? [];
   const outlines = o.outlines ?? null;
@@ -188,7 +200,7 @@ export function buildChecklists(o: {
     if ((c.level !== 'neighborhood' && c.level !== 'town') || !covers(o.centre, c)) continue;
     if (built.some((b) => sameArea(b, c))) continue;
     const ref: AreaRef = { level: c.level, name: c.name, at: c.at };
-    areas.set(checklistKey(ref), { key: checklistKey(ref), ...ref, build: o.build, built_at: o.now, count: 0 });
+    areas.set(checklistKey(ref), { key: checklistKey(ref), ...ref, build: o.build, built_at: o.now, count: 0, archive: o.archive ?? null });
   }
   const items: ChecklistItem[] = [];
   for (const p of o.places) {
