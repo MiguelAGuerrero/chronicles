@@ -28,7 +28,7 @@ Verdict: aligned if reshaped
 Shape: three fixed presets named by what shapes them (not by pace or length); the distance a ceiling and a preference;
   exposure as a shaded route, a strip and words, no pin for an unfound place; "Suggest more" replaces the three without a
   history; Start routes an open walk or starts one
-Criteria: WP1-WP22 below
+Criteria: WP1-WP27 below
 Open: none (the owner's answers of Nov 6 below)
 ```
 
@@ -65,15 +65,18 @@ Open: none (the owner's answers of Nov 6 below)
 
 ### The three routes
 
-4. **WP4 · Three, fixed.** Three routes are shown at once, in a fixed order that does not depend on length or quality: through the
-   densest part, across the area, around the edge. The same inputs give the same three routes.
-5. **WP5 · Each preset's rule.** "Through the densest part" passes the cells of the kind in density order. "Across the area" passes
+4. **WP4 · Up to three, fixed.** Up to three routes are shown at once, in a fixed order by preset that does not depend on length,
+   density or quality: through the middle, across the area, around the edge. The same inputs give the same routes. One route is a
+   normal state (a small area gives the same cells to every preset): Start is available, and the page says why in words that do
+   not call the area poor. No row is highlighted when the page opens and Start waits for a tap on a row.
+5. **WP5 · Each preset's rule.** "Through the middle" passes the dense cells of the kind, those nearest the middle of where the
+   kind is concentrated, in order. "Across the area" passes
    the dense cells along the area's widest direction, end to end. "Around the edge" passes the dense cells furthest from the
    densest, in order around it.
 6. **WP6 · Different streets and directions.** No two routes share more than 80% of their length. Where fewer than three differ
    that much, fewer are shown and the page says why in words.
 7. **WP7 · Names say what shapes them.** A preset's name and every line on the page use no time, pace, "brisk", "quick", "shorter",
-   "longer", "best", "fastest" or superlative.
+   "longer", "more", "most", "best", "fastest", "densest" or any "-est" word.
 
 ### Mode and settings
 
@@ -81,23 +84,31 @@ Open: none (the owner's answers of Nov 6 below)
    ends there; a one-way trip ends at the route's last stop.
 9. **WP9 · A loop is not "arrived" when it starts.** Starting a loop does not arrive at once: arrival counts only after the stops
    have been passed.
-10. **WP10 · The distance is a ceiling.** A setting, in steps in the displayed unit (km or miles), default 2 km. No route is longer
-    than it. Where the kind fills less ground than the ceiling, the route is shorter and the page says so in words.
-11. **WP11 · Density.** A setting, in words ("anywhere", "where there is some", "where there is plenty"). A route that passes less of
+10. **WP10 · The distance is a hard ceiling.** A setting, in steps in the displayed unit (km or miles), default 2 km. No route is
+    longer than it, counting the way from where the walker stands and, in a loop, the way back. Where the kind fills less ground than
+    the ceiling, the route is shorter and the page says so in words; where it is out of reach at this distance, the page says that.
+11. **WP11 · Density.** A setting, in words ("anywhere", "where there is some", "where there is plenty"), "anywhere" by default;
+    the words never imply a number and the thresholds behind them are never shown. A route that passes less of
     the kind than the setting asks for is not offered; when none is, the page says so in words.
 12. **WP12 · Settings are kept and act at once.** Each setting is stored, and changing one plans the three again.
-13. **WP13 · Suggest more.** A button replaces the three with three different routes (none sharing more than 80% with one shown
-    before the press). The page keeps no history and shows no count, "was" or earlier route. With nothing more it says so in words.
+13. **WP13 · Suggest different routes.** A button replaces the routes with others (none sharing more than 80% with one shown just
+    before the press). The only state kept is the routes on screen, discarded on close and on any setting change; a route from two
+    presses ago may come back. The page shows no count, "was" or earlier route. Different means the other direction round, another
+    street between the same cells, or another of the dense cells as the start; it never moves to less dense ground, so ten presses
+    do not lower the density of the routes. "Nothing different" is said in words only when the routes on screen cannot be replaced.
 
 ### The feel for the commitment
 
 14. **WP14 · Each row.** A row gives its own distance in the displayed unit and a line in words of how much of the kind the route
-    passes and where ("plenty along most of the way", "mostly near the end"), and says plainly how much of the route is only
-    getting there. No time and no number but the distance.
-15. **WP15 · A strip.** Each row has a strip from the route's start to its end, shaded where the kind is dense, with no number,
-    percent or count.
-16. **WP16 · The map.** The highlighted route is drawn shaded where the kind is dense, the other two faint. No pin or name for a
-    place not yet found appears anywhere. Places already found, and features the map draws, may be pins, on the planner only.
+    passes and where ("plenty along most of the way", "mostly near the end"), and says in words how much of the route is only
+    getting there ("most of the way is getting there"). No digit appears in a row except its distance and unit.
+15. **WP15 · A strip.** Each row has a strip from the route's start to its end, in three flat grades of the kind's colour at low
+    contrast (not the accent), with no number, percent, count, end cap or fill animation, and a text equivalent for a screen reader.
+16. **WP16 · The map.** The highlighted route is drawn shaded where the kind is dense, the others faint. The shading is at the
+    cells' resolution (400 m) or coarser, never narrower than a cell, and does not change when a place in it is found. No pin or name
+    for a place not yet found appears anywhere: the planner's map is given no point-of-interest layer and no "?" mark. The only pins
+    are places already found, taken from the walker's own captures and finds, never from the map's tiles, and several on one route
+    are one pin with no count.
 17. **WP17 · Plain after starting.** The shading and pins appear on the planner only. Once started, the navigator map shows the plain
     route.
 
@@ -106,13 +117,24 @@ Open: none (the owner's answers of Nov 6 below)
 18. **WP18 · Choosing.** Tapping a row, or its line on the map, highlights it, and a Start button starts the highlighted route.
     Nothing starts until Start is pressed.
 19. **WP19 · An open walk, or a new one.** If a walk is recording, Start routes that walk (no second walk is started) and returns
-    to it. Otherwise it starts a walk ready (0076). Capture stays one tap away on the planner while a walk is recording.
-20. **WP20 · Every route is a good one.** Every route holds the kind walk's rules: continuous (KW16), one distance for the row and the
+    to it, replacing any destination already set. Otherwise it starts a walk ready (0076).
+20. **WP20 · Every route holds the kind walk's rules.** Every route: continuous (KW16), one distance for the row and the
     bar (KW17), walkability said in words per route with the warn or don't-suggest setting (KW10, KW11).
 21. **WP21 · An ordinary walk.** After Start there is no tour mode, tally, progress, off-route alarm, or time left on a walk started
     from the planner (KW7b); the quiet re-route keeps the stops ahead.
 22. **WP22 · Local.** Nothing is read until the planner opens, the reads use the hosts already allowed, and nothing is kept but the
     settings and the ordinary pending destination (KW14).
+
+23. **WP23 · Capture is one tap away.** While a walk is recording, the planner shows the capture stack above its content; one tap
+    opens capture (photo, voice, note) and the moment arrives with its place, time and walk. With no walk recording the stack is
+    not shown.
+24. **WP24 · Start plans again from here.** Start plans the highlighted route again from where the walker stands at that moment,
+    with the same settings, and starts that one, so an open walk that has moved starts from where it is.
+25. **WP25 · A skipped stop is let go.** A stop the walker has passed by on the way is dropped from the route's stops, so the quiet
+    re-route does not pull back to it; a loop arrives within 30 m of its end once the stops are passed or dropped.
+26. **WP26 · Too far.** When the walker is more than 5 km from where the kind is, the planner says so in words and offers no route.
+27. **WP27 · The settings live on the planner.** The kind walk's two settings (the distance and the walkability choice) move from the
+    Start dialog to the planner, with the mode and the density; the Start dialog keeps what a walk needs.
 
 ## Amends the kind walk (decision 0102)
 
@@ -127,4 +149,5 @@ areas); a route to a destination of the walker's (scenic routes' Go here); routi
 
 ## Record
 
-Not started (2026-11-06): the spec and plan await the owner's review.
+Not started (2026-11-06): the spec and plan await the owner's review. The steward's findings are folded in (S1-S9, plan "Steward
+triage"); two points wait on the owner (the density of a found stretch, the preset names).
