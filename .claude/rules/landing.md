@@ -32,7 +32,8 @@ What's good here (`lib/landing`): reading an area, finding busy strips and pocke
     `overture_checked_at`; a failed check waits 10 min). A release that
     answers 403/404 is passed over for the one before (`newestRelease`'s
     skip set). Any failure returns `null` and the read goes on from OSM
-    alone. Places are never stored. Quiet walks' reads ask Overture for
+    alone. A release whose tiles have places but none with a `taxonomy` is passed over like a missing one
+    (`overturePlacesSchemaOk`, `OvertureSchemaError`; fix net-rules). Requests go through `lib/net`. Places are never stored. Quiet walks' reads ask Overture for
     nothing (`readAround`'s `withOverture`).
   - **`OvertureReader`** (`activity/reader.ts`, a shell given its archive
     and decoder, tested with fake archives) is the robust part, because pmtiles' header fetch takes no

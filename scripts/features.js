@@ -20,7 +20,7 @@ const FEATURES = [
     name: 'arch',
     about: 'the layers, ports, fakes, the Db contract, the checks themselves',
     rule: 'functional-core',
-    source: ['src/lib/types.ts', 'src/lib/{store,useStore,meta,id,focus}.ts', 'src/lib/ports/**'],
+    source: ['src/lib/types.ts', 'src/lib/{store,useStore,meta,id,focus}.ts', 'src/lib/ports/**', 'src/lib/net/**'],
     journeys: [],
     specs: ['functional-core', 'affected-checks', 'test-organization', 'shells-saved-settings', 'test-gaps', 'device-acceptance', 'vision-gate'],
   },
@@ -139,6 +139,14 @@ const FEATURES = [
     ],
     journeys: ['marks', 'atlas', 'grading', 'snap'],
     specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation'],
+  },
+  {
+    name: 'kind-walk',
+    about: 'a suggested walk through where a kind is dense, opened from a kind on an area\'s card: one way, a distance, walkability said',
+    rule: 'kind-walk',
+    source: ['src/lib/kindWalk/**'],
+    journeys: ['kindwalk'],
+    specs: ['kind-walk'],
   },
   {
     name: 'layers',

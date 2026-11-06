@@ -1,5 +1,5 @@
 // @layer shell
-import { countsOverture, type OverturePlace } from './points';
+import { countsOverture, OvertureSchemaError, type OverturePlace } from './points';
 import type { Archive, OvertureRead } from './release';
 
 /*
@@ -134,7 +134,8 @@ export class OvertureReader {
           for (const list of lists) for (const p of list) if (!byId.has(p.id)) byId.set(p.id, p);
           finish({ ok: true, places: [...byId.values()] });
         },
-        (e) => finish({ ok: false, missing: /\b40[34]\b/.test(String(e)) }),
+        // A 403 or 404, or tiles that no longer decode (fix net-rules): the release before it is used instead.
+        (e) => finish({ ok: false, missing: e instanceof OvertureSchemaError || /\b40[34]\b/.test(String(e)) }),
       );
     });
   }

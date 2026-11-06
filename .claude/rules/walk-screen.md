@@ -39,6 +39,11 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
   (`cornerPanelBox`, `lib/layers/layout.ts`), stopping short of the capture column and the top overlay; it
   paints over the pills while open and closes on a tap on the map. Explore's button is still anchored from the
   top. Not run on a device.
+- **The scale bar's inset is measured from the map's own bottom, which differs by state** (fix layers-pad, Nov 5): on the
+  ready screen a spacer holds the strip's place, so the map ends at the strip's top; on the walk it runs under the strip.
+  `scaleInsetBottom` (`lib/stackSlots.ts`) says which; passing the walk's value to the ready map hid the bar behind the
+  Layers button. The panel's rows are padded 8 px (`rowPad`); at 12 "Town borders" wraps at 360 px wide. The `layers` journey
+  measures both (the button clears the bar, rows keep off the edges, labels stay on one line).
 - Capture controls are one component, `CaptureStack` (`components/walk/CaptureStack.tsx`), given ids
   and handlers: `moment-*` on the ready screen (moments, `MomentBar`), `cap-*` on the walk. Time,
   distance and hold-to-stop stay in the thin strip at the very bottom, with Stop at the right end.

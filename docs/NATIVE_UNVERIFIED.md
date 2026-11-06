@@ -302,3 +302,15 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** open Hidden and a thread, then press Android's hardware Back. **Expect:** Back returns to Memories; today it leaves the tab, a known gap (memories-context audit, deferred).
 - [ ] **Do:** scroll Lately fast on a phone with a large street cache. **Expect:** each card's place line appears in turn, one read at a time, with no stutter; a read that fails shows no place until you return, then fills in. (MC6, MC17, audit 8)
 - [ ] **Do:** make a moment at 1 am, then look at it the next afternoon. **Expect:** it reads "Late <the evening before> night", not "<today> night". (audit 10)
+
+
+## Network rules (`lib/net`, decision 0100)
+
+- Whether React Native's `fetch` sends the custom `User-Agent` (`Chronicles (+github.com/…)`) on iOS and Android, or the platform's own replaces it.
+- The PMTiles source over `net.fetch` (byte ranges, `credentials: 'omit'`, `referrerPolicy: 'no-referrer'`) against Overture's bucket on a phone.
+
+## Kind walk (KW1-KW14, decision 0101)
+
+- [ ] **Do:** open an area's card on a phone, tap Green, then tap Start this walk. **Expect:** the kind row (a `Pressable`) opens its panel inside the full-screen drawer's scroll; `showWalk()` opens the walk with a destination that carries `via` and `suggested`; the walk bar and announcements say a distance and no time left; walking off the way re-routes quietly through the stops still ahead. (KW1, KW7b, KW12, KW13)
+- [ ] **Do:** tap a kind on a phone's network in an area you never walked. **Expect:** the area's tiles are read at the tap, and the walkability tiles for the way's tiles, with nothing kept; "not known yet" reads when none could be read. (KW10, KW14)
+

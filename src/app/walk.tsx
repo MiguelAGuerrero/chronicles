@@ -70,6 +70,7 @@ import { exitPlan, screenState, startNotice } from '../lib/readyNav';
 import { getLastFix } from '../lib/lastFix';
 import { CaptureStack } from '../components/walk/CaptureStack';
 import { ReadyBar } from '../components/walk/ReadyBar';
+import { scaleInsetBottom } from '../lib/stackSlots';
 import { BAR_H, CAP, EDGE, GUTTER, raisedHeight, SCALE_BOTTOM, STACK_GAP, useStackLayout } from '../components/walk/layout';
 import { useReady } from '../components/walk/useReady';
 import { aboutTimeLeft, formatTimeLeft, paceMps, timeLeftMs } from '../lib/nav/eta';
@@ -1019,7 +1020,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     <View style={styles.screen}>
       {/* One map for both states, at one place in the tree, so Start never remounts it (NR6). */}
       {!walk ? (
-        <WalkMap {...ready.mapProps} borders={ready.bordersOn ? borders : null} ref={mapRef} onBearingChange={setBearing} scaleInset={{ bottom: at.barTop + SCALE_BOTTOM, left: sideInset + 12 }} />
+        <WalkMap {...ready.mapProps} borders={ready.bordersOn ? borders : null} ref={mapRef} onBearingChange={setBearing} scaleInset={{ bottom: scaleInsetBottom({ barTop: at.barTop, scaleBottom: SCALE_BOTTOM, mapEndsAtStrip: true }), left: sideInset + 12 }} />
       ) : (
       <WalkMap
         landing={busy.view}
@@ -1106,10 +1107,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
         // Started in place, the walk opens where the ready map was: around the last fix (NR6).
         initialCenter={live.here ?? getLastFix()?.at ?? undefined}
         initialZoom={16}
-        // The map runs under the bottom strip (an overlay, as on the ready screen), so the scale bar
+        // The map runs under the bottom strip (on the ready screen it ends at the strip's top), so the scale bar
         // is measured from the strip's top: in the bottom-left corner just above it, inside the 640
         // column (QL8). The pills stack above it (`at.pills`).
-        scaleInset={{ bottom: at.barTop + SCALE_BOTTOM, left: sideInset + 12 }}
+        scaleInset={{ bottom: scaleInsetBottom({ barTop: at.barTop, scaleBottom: SCALE_BOTTOM, mapEndsAtStrip: false }), left: sideInset + 12 }}
       />
       )}
 
@@ -1176,9 +1177,9 @@ function WalkScreen(props: { onMinimize: () => void }) {
               testID="nav-left"
               style={styles.navText}
               numberOfLines={1}
-              accessibilityLabel={`${formatDistance(navigation.nav.leftM)}, ${aboutTimeLeft(navTimeLeft)} left to ${navigation.nav.dest.label}`}
+              accessibilityLabel={`${formatDistance(navigation.nav.leftM)}${navigation.nav.dest.suggested ? '' : `, ${aboutTimeLeft(navTimeLeft)}`} left to ${navigation.nav.dest.label}`}
             >
-              {formatDistance(navigation.nav.leftM)} · {formatTimeLeft(navTimeLeft)} · {navigation.nav.dest.label}
+              {formatDistance(navigation.nav.leftM)} · {navigation.nav.dest.suggested ? '' : `${formatTimeLeft(navTimeLeft)} · `}{navigation.nav.dest.label}
             </Text>
             <Pressable
               testID="nav-handoff"

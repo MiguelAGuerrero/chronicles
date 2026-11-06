@@ -142,11 +142,11 @@ test('VG10 exceptions carry reasons: vision-ok with a why excuses a line, allow 
   assert.match(vision.applyAllow(findings(), [{ file: 'b.ts', rule: 'tally', text: 'x', kind: 'allowed', why: 'a reason long enough' }])[0], /matches nothing now/);
 });
 
-test('VG11 the repo passes with the found tally as its one debt; CI and the Stop hook run the check', () => {
+test('VG11 the repo passes with no debt (the found tally went with decision 0099); CI and the Stop hook run the check', () => {
   const { findings, problems } = vision.run();
   assert.deepEqual(problems, []);
   assert.deepEqual(findings.filter((f) => !f.excused).map((f) => `${f.file}:${f.line} ${f.rule} ${f.text}`), []);
-  assert.deepEqual(findings.filter((f) => f.excused === 'debt').map((f) => f.file), ['src/lib/explore/explore.ts']);
+  assert.deepEqual(findings.filter((f) => f.excused === 'debt').map((f) => f.file), [], 'no debt left');
   const ci = read('.github/workflows/pages.yml');
   assert.ok(ci.indexOf('npm run check:vision') > 0 && ci.indexOf('npm run check:vision') < ci.indexOf('expo export'), 'CI checks before the export');
   const hook = read('.claude/hooks/check-done.sh');

@@ -14,6 +14,16 @@ export interface Waypoint {
   kind: 'start' | 'capture' | 'point' | 'place' | 'find';
   /** A checklist place (E12): its key, so the bar can show its name once it is revealed. */
   placeKey?: string;
+  /**
+   * Stops to pass on the way, in order, before `at` (a suggested kind walk, KW5): the route is made leg by leg through them.
+   * Not a destination of their own: arrival is at `at`.
+   */
+  via?: LngLat[];
+  /**
+   * A way the app suggested (decision 0101): it says distance only, never a time left (KW7b). On the destination, which is
+   * cleared with the walk, never on the walk.
+   */
+  suggested?: boolean;
   /** The scenic route chosen for the way there (SR8, SR11); none is the direct way. */
   leanings?: Leaning[];
 }

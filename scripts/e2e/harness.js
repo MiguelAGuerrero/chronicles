@@ -70,6 +70,13 @@ features.push({ type: 'Feature', properties: { class: 'bus', subclass: 'bus_stop
 features.push({ type: 'Feature', properties: { class: 'park', subclass: 'park', name: 'Gano Park' }, geometry: { type: 'Point', coordinates: at(5.4, 0.6) } });
 features.push({ type: 'Feature', properties: { class: 'bakery', subclass: 'bakery', name: 'Sunny Bakery' }, geometry: { type: 'Point', coordinates: at(5.2, -1.0) } });
 features.push({ type: 'Feature', properties: { class: 'museum', subclass: 'museum', name: 'Fox Point Museum' }, geometry: { type: 'Point', coordinates: at(4.6, 1.8) } });
+// Kind walk (KW1-KW14): Green Row, a neighborhood 12 km west, far from every other area, with one street and six parks in
+// three clumps along it (three cells of green, each within 300 m of the street). E2E_ONLY=kindwalk goes there.
+features.push({ type: 'Feature', properties: { class: 'neighbourhood', name: 'Green Row' }, geometry: { type: 'Point', coordinates: at(-120, 0) } });
+features.push({ type: 'Feature', properties: { class: 'minor', name: 'Row Street' }, geometry: { type: 'LineString', coordinates: [at(-130, 0), at(-110, 0)] } });
+[[-126, 'Elm'], [-125.7, 'Oak'], [-121, 'Ash'], [-120.8, 'Fir'], [-115, 'Yew'], [-114.8, 'Bay']].forEach(([x, n]) => {
+  features.push({ type: 'Feature', properties: { class: 'park', subclass: 'park', name: `${n} Green` }, geometry: { type: 'Point', coordinates: at(x, 1) } });
+});
 // A busy strip 1.1 km east of Fox Point (v1.5 landing): Thayer Street lined with shops for 250 m,
 // inside the read around a press at Fox Point, and inside the walk's own explore read (E2).
 features.push({ type: 'Feature', properties: { class: 'tertiary', name: 'Thayer Street' }, geometry: { type: 'LineString', coordinates: [at(11, -3), at(11, 3)] } });

@@ -6,6 +6,7 @@ import { tileAt, TILE_ZOOM } from '../tileMath';
 import type { LngLat } from '../types';
 import { decodeTile } from './tileDecode';
 import { placesFromTilePois } from './tilePois';
+import { net } from '../net';
 
 /** The z14 tiles read this session under a build, so walking around inside them fetches nothing (A11). */
 const read = new Set<string>();
@@ -22,7 +23,7 @@ async function fetchTile(url: string, shouldStop?: () => boolean): Promise<Array
   // Cancel stops the fetch itself, not just what is done with it (audit).
   const poll = shouldStop ? setInterval(() => shouldStop() && ctl.abort(), 200) : null;
   try {
-    const res = await fetch(url, { signal: ctl.signal });
+    const res = await net.fetch(url, { signal: ctl.signal });
     if (!res.ok) throw new Error(`${res.status}`);
     return await res.arrayBuffer();
   } finally {

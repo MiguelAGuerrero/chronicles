@@ -76,7 +76,7 @@ accessible label. The icon differs by shape, never by colour alone.
    later read, after a wait (2 min and 100 m, like route reads).
 4. **WK4 · Reads stay small and polite.** One tile request at a time; at most 12 tiles per read; a tile is
    asked for only when something needs it (an overlay on, a route ahead, a card opened), never for the
-   whole of a walk. The source's rate limit answers (429, 504) back off instead of retrying at once.
+   whole of a walk. The source's busy answers back off instead of retrying at once: for Overpass, a 429, 502, 503 or 504, a 200 whose remark is a runtime error or whose body isn't JSON, or a request that fails or is given up on before an answer. It waits 60 s, twice as long for each busy answer in a row up to 16 min, never less than a Retry-After it can read (up to an hour; on the web the browser usually hides it), and starts over after a good answer. It is asked at most 60 times a day (the count starts over a day after its first request), refused requests included (fix overpass-hardening, the owner, Nov 5).
 
 ### Judging a segment
 
@@ -144,7 +144,8 @@ accessible label. The icon differs by shape, never by colour alone.
 ### Everywhere else
 
 18. **WK18 · Local-only holds.** After a tile is cached, nothing about walkability leaves the device. The
-    only request is WK1's, and it is the same kind as the map's own tile requests.
+    only request is WK1's, a tile's bounds and nothing about the user. On a phone it names the app
+    (`User-Agent: Chronicles (+github.com/…)`), never the person or the device (decision 0100).
 19. **WK19 · Truth is untouched.** Walks, trace points and captures, and what a walk credited as walked, are
     unchanged by walkability. It adds a derived cache and a layer; it changes no snapping rule (no
     `SNAP_RULES` bump) and `purgeDerived` clears it.

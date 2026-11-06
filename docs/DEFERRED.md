@@ -16,6 +16,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - Scenic routes (decision 0095), left out: a detour via one named stop; a loop with no destination ("back here in 30 min"); choosing a route on the ready screen before Start (the preview comes up as Start records); "Streets new to you" as a leaning; a choice of detour size; water and riversides as green; routes past 5 km
 - Scenic routes: a Sights row in a dense centre often says only "past places to find", since most places there are not yet found and never named (scenic routes, SR4)
 - Scenic routes: a start or destination that snaps onto a street piece not joined to the rest (seen once in the Zurich tiles) finds no route at all, direct or scenic; today's Go here has the same gap (scenic routes)
+- Kind walk (decision 0101): a sketch of the way in the panel; mixed-kind walks from the card's head; a walk built across a whole town outline (it is built from 1.5 km around the area's point); distance steps above 5 km or below 1 km. The rest of a suggested walk's choices (a leaning, a preview) are scenic routes' (0095)
 - Open in Maps on the Explore mark card (v0.5 navigate, Open in Maps)
 - Open in Maps on the dead-zone nudge (v0.5 navigate, Open in Maps)
 - Open in Maps on the home's Walk here (v0.5 navigate, Open in Maps)
@@ -264,6 +265,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - A failed read is not retried by a timer: it is read again when the tile set changes or the switch is toggled (the reader's 2-minute wait only stops asking too soon).
 - Overture has no "no sidewalk" tag; only Overpass tiles can say it (WK8b). A town where Overture is thin on sidewalks reads `mixed` more often than it should.
 - **WK14's long press on a drawn stretch** (walkability audit 2): "Main Street · built around cars" was never built. The map's long press opens the spot card, so naming a stretch there is a navigation-flow call for the owner. The legend's tooltips name the bands meanwhile.
+- **Overpass replaced by prebuilt data** (fix overpass-hardening, Nov 5): the lasting fix is to build the fallback's sidewalk facts from an OpenStreetMap extract into a static archive (the chronicles-data repo, decision 0096's pattern) and stop asking a public instance at all. The hardening (busy answers pause and grow, a session cap) bounds the load meanwhile.
 - **A footway counts as the sidewalk of any road within 25 m** (walkability audit 12): a park path beside a trunk, or the sidewalk of a parallel street 20 m away, lifts a street to `mixed` or `foot`. Fixing it means giving each footway to its nearest road, a change to the band table (bump `WALK_CODE`).
 - **`walk_tile` is never evicted** (walkability audit 13): rows live until the derived stores are cleared; a dense tile is hundreds of KB of JSON parsed on the main thread. Eviction by age is its own change.
 
@@ -301,7 +303,6 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 ## Vision gate (specs/vision-gate, decision 0094)
 
-- **The found tally on a place's sheet** ("12 of 87 · list from Nov 1", E10, `countLine` in `lib/explore/explore.ts`) breaks "counts are words"; carried as debt in `scripts/vision.allow.json` until the owner's call (`docs/VISION.md`, open question 6).
 - **Not checked by script:** tone, accent colours, celebration and motion, a capture moved behind a tap, a moment shown without its context. The steward and `/vision review` cover them; the replay's card keeps its own e2e scan for a large number and an accent colour.
 - **The copy heuristic is lexical:** copy built across several literals, or held in a constant with no space and a lowercase start, is not read; JSX text next to code with `;` or `=` is skipped.
 - **Explore's layers follow the selected area or you, not the panned map** (UI audit 7): pan away and the tint and busy streets are not there, with no cue.
@@ -312,3 +313,9 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 - **Layers button, corner (fix layers-corner audit, Nov 5):** the panel's clearance under the top overlay is a fixed `insets.top + 152`, so a banner plus the navigation bar plus a long chip could still reach it; below 360 px wide the panel floors at 188 and can touch the capture column; the corner button is reached by keyboard after the right-column buttons; the corner's `left` is written in `layersCorner` and in the scale bar's inset separately.
 - **Memories in context, audit** (`specs/memories-context/spec.md`, Audit): the time of day is by the phone's zone now, not the zone the moment was made in (needs a stored zone on the capture, a migration, audit 19); Android's hardware Back from Hidden (and from a thread) closes the tab instead of the screen (native); VISION.md's open questions 1 and 5 (who may volunteer a moment) still stand, now with a switch to turn volunteering off.
+
+
+## Network rules (decision 0100)
+
+- **Switching a host off remotely:** the off switch is in the code's host table; the `chronicles-data` manifest, which the app will read daily, could carry it so a misbehaving service can be stopped without a release.
+- **The decode check for Overture's divisions and transportation:** only places are checked before a new release is relied on; town outlines and walkability read the same release without it.

@@ -16,12 +16,10 @@ import {
   buildChecklists,
   checklistKey,
   clampRange,
-  countLine,
   findFor,
   foundList,
   foundLine,
-  homeCount,
-  placeCount,
+  placeFinds,
   passedAlong,
   passedCount,
   readCentre,
@@ -357,11 +355,14 @@ test('pocket-alert-nudge audit 3: the alerted places are kept per walk, across t
 
 // ——— The home and the replay (E10, E11) ———
 
-test('E10: the place view reads "12 of 87 · list from Nov 1"; an empty checklist reads nothing', () => {
+test('E10: the place view names its finds and never counts them (the owner, Nov 5, decision 0099)', async () => {
+  const explore = await import('../../explore/explore');
+  for (const gone of ['countLine', 'homeCount']) assert.equal((explore as Record<string, unknown>)[gone], undefined, `${gone} is gone: no "N of M"`);
   const a: ChecklistArea = { ...area('H', O), count: 87, built_at: Date.UTC(2026, 10, 1, 12) };
-  assert.deepEqual(homeCount(a, 12), { found: 12, total: 87, builtAt: a.built_at });
-  assert.equal(countLine(homeCount(a, 12)!, 'en-US', 'UTC'), '12 of 87 · list from Nov 1');
-  assert.equal(homeCount({ ...a, count: 0 }, 0), null);
+  const f = (key: string) => ({ key, area_key: a.key, name: key }) as unknown as Parameters<typeof placeFinds>[2][number];
+  const got = placeFinds({ level: 'neighborhood', name: 'H', lon: O[0], lat: O[1] }, [a], [f('Hessian Memorial')]);
+  assert.ok(Array.isArray(got), 'the finds themselves, nothing else: no total, no found count');
+  assert.deepEqual(got!.map((x) => x.name), ['Hessian Memorial']);
 });
 
 // ——— Retry (E5) ———
@@ -393,13 +394,13 @@ test('E11: the card lists the places found on this walk, by name', () => {
   assert.equal(foundList([]), null);
 });
 
-test('E10: a home place finds its checklist by level, name and point; found counts only its own finds', () => {
+test('E10: a home place finds its checklist by level, name and point, and only its own finds', () => {
   const a: ChecklistArea = { ...area('Fox Point', [-71.40001, 41.81204]), count: 4 };
-  const f = (key: string, area_key: string | null) => ({ key, area_key }) as unknown as Parameters<typeof placeCount>[2][number];
-  const got = placeCount({ level: 'neighborhood', name: 'Fox Point', lon: -71.40003, lat: 41.81201 }, [a], [f('x', a.key), f('y', a.key), f('z', 'other')]);
-  assert.deepEqual(got && { found: got.count.found, total: got.count.total, names: got.found.length }, { found: 2, total: 4, names: 2 });
-  assert.equal(placeCount({ level: 'state', name: 'Rhode Island', lon: 0, lat: 0 }, [a], []), null);
-  assert.equal(placeCount({ level: 'neighborhood', name: 'Elsewhere', lon: 0, lat: 0 }, [a], []), null);
+  const f = (key: string, area_key: string | null) => ({ key, area_key }) as unknown as Parameters<typeof placeFinds>[2][number];
+  const got = placeFinds({ level: 'neighborhood', name: 'Fox Point', lon: -71.40003, lat: 41.81201 }, [a], [f('x', a.key), f('y', a.key), f('z', 'other')]);
+  assert.deepEqual(got?.map((x) => x.key), ['x', 'y']);
+  assert.equal(placeFinds({ level: 'state', name: 'Rhode Island', lon: 0, lat: 0 }, [a], []), null);
+  assert.equal(placeFinds({ level: 'neighborhood', name: 'Elsewhere', lon: 0, lat: 0 }, [a], []), null);
 });
 
 // ——— Audit regressions (slice 5) ———
@@ -435,7 +436,7 @@ test('audit 5: the same town seen at two zooms is one area; the home finds it', 
   const built = buildChecklists({ places: [], candidates: [z14], centre: z14.at, build: 'b1', now: 1 }).areas;
   assert.equal(readCentre({ fix: [-71.4115, 41.8240], candidates: [z11, z14], areas: built, reads: [{ centre: z14.at, build: 'b1' }], build: 'b1' }), null);
   const a: ChecklistArea = { ...built[0], count: 5 };
-  assert.ok(placeCount({ level: 'town', name: 'Providence', lon: -71.4135, lat: 41.8245 }, [a], []));
+  assert.ok(placeFinds({ level: 'town', name: 'Providence', lon: -71.4135, lat: 41.8245 }, [a], []));
 });
 
 test('audit 9: what a walk passed counts shown kinds, after exploring began, minus this walk’s finds', () => {

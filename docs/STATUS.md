@@ -116,8 +116,8 @@ first.
 - **VISION.md and scenic routes:** decision 0095 proposes amending the Shapes rows "Suggested routes" and "Several routes to one point, Apple Maps style" to fit the row per leaning you kept at the gate (Nov 5); only you edit the page.
 - **The vision's open questions** (`docs/VISION.md`, decision 0094): likeness made by you or suggested; voice
   memos searchable on the phone only; the cloud as a mirror or a place where work happens; browse standard, dwell
-  diegetic; where "nothing is calculated for you" ends; the found tally on a place's sheet, carried as debt by
-  `npm run check:vision`. Lines marked [proposed] on the page wait on these.
+  diegetic; where "nothing is calculated for you" ends. The found tally (open question 6) is answered: removed (decision 0099),
+  and the page's question waits on your edit. Lines marked [proposed] on the page wait on these.
 - **Functional core, next:** the walk screen's fog refresh moves to a shell (the first shell, and the rules for shells with it).
 - **The web and native stores disagree** in five places the Db contract found (`docs/DEFERRED.md`, Functional core): which side is right, per case.
 - **`WALKED_THRESHOLD` (0.5)** in snapping is "still an open product decision"
@@ -156,6 +156,7 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 | Bug fixes (open since Oct 31) | unknown | unknown |
 | Memories in context and under your control (MC1-MC16: place, time of day and minutes in; Hidden, a switch, Forget; Lately newest first) | `claude/memories-context` | built 2026-11-05: unit tests, typecheck, lint and the `resurface` e2e pass; spec `specs/memories-context/spec.md`; native unverified; audited 2026-11-05 (24 findings: 23 fixed, one in part; 1 rejected) |
 | Resurfaced moments (Chronicle opens on Memories, RM1-RM25, decision 0098) | `claude/resurfaced-moments-spec`, merged to main 2026-11-05 (`aac7d9d`) | shipped 2026-11-05: unit tests, typecheck, lint and the e2e journeys `resurface`, `chronicle`, `tabs`, `launch`, `qol`, `reload`, `replay`, `walk`, `gaps` pass on the /chronicles build; Pages run 125 succeeded; native unverified; audited 2026-11-05 (16 findings: 12 fixed, 3 deferred, 1 rejected); spec `specs/resurfaced-moments/spec.md` |
+| Kind walk (a kind opened on an area's card offers one suggested walk: a distance, never a time; walkability said; KW1-KW14, decision 0101) | `claude/kind-walk-spec` | built 2026-11-05; web verified by the e2e `kindwalk`, unit tests, typecheck and lint green; native unverified; not audited (decision 0074); merged with main's scenic routes (a suggested walk skips the scenic preview) |
 
 ## Updating this file
 

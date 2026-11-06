@@ -678,6 +678,10 @@ export default function Explore() {
             setOpen(null);
             walkStart.start({ at, label, kind: 'point' });
           }}
+          onStartWalk={(dest) => {
+            setOpen(null);
+            walkStart.start(dest);
+          }}
           onWalk={() => {
             const t = walkTarget(card.area);
             setOpen(null);

@@ -57,7 +57,7 @@ Open: the six open questions in docs/VISION.md
 10. **VG10** Exceptions carry reasons: `// vision-ok: <why>` on the line or the line above excuses it, and an empty
     reason does not; `scripts/vision.allow.json` entries are "allowed" or "debt" with a why, and an entry that no
     longer matches fails.
-11. **VG11** The repo passes the check, with the place sheet's found tally carried as debt; CI runs it before the
+11. **VG11** The repo passes the check, with no debt (the place sheet's found tally, the one debt at first, was removed by decision 0099); CI runs it before the
     export, and the Stop hook runs it when source, a spec, `package.json` or the check changed.
 12. **VG12** `AGENTS.md` points to the page, the skill and the check.
 
