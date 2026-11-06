@@ -17,6 +17,7 @@ The owner's calls, Nov 5:
 - **Type decides, never age or listing.** In order: it commemorates, so Monuments; made as art, so Public art; you go there to look out, so Viewpoints; one of the odd classes, so Curiosities; else History, or left out. A century-old folly is a Curiosity; an old ordinary house is History.
 - **One mark per place across sources.** The adapter drops a tile place when the archive holds one with the same name within about 50 m, in any category; the archive wins (`placeKey` and `isOffered` only match within a category).
 - **Later the same day:** the archive lives in its own repo, `chronicles-data` (Releases, a Pages workflow, a manifest), not on the app's Pages site. A Wikidata entry with a location is enough if the place still exists (an OpenStreetMap match strengthens it); OpenStreetMap is credited with the map's credits.
+- **Nov 6:** the archive is rebuilt weekly by a scheduled job in `chronicles-data` and published only when it changed (PW19), not by an owner-run script; it is read through the generalized Overture reader.
 - **Folded into the queued "Places worth the stop" slice.** Its small owner-edited add/remove file stays beside the archive.
 
 ## Consequences
