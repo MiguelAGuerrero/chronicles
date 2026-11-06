@@ -16,6 +16,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - Scenic routes (decision 0095), left out: a detour via one named stop; a loop with no destination ("back here in 30 min"); choosing a route on the ready screen before Start (the preview comes up as Start records); "Streets new to you" as a leaning; a choice of detour size; water and riversides as green; routes past 5 km
 - Scenic routes: a Sights row in a dense centre often says only "past places to find", since most places there are not yet found and never named (scenic routes, SR4)
 - Scenic routes: a start or destination that snaps onto a street piece not joined to the rest (seen once in the Zurich tiles) finds no route at all, direct or scenic; today's Go here has the same gap (scenic routes)
+- A complete walk through every point of interest in an area, which may double back: its own architecture, especially in dense areas such as Philadelphia or New York (decision 0102)
 - Kind walk (decision 0101): a sketch of the way in the panel; mixed-kind walks from the card's head; a walk built across a whole town outline (it is built from 1.5 km around the area's point); distance steps above 5 km or below 1 km. The rest of a suggested walk's choices (a leaning, a preview) are scenic routes' (0095)
 - Open in Maps on the Explore mark card (v0.5 navigate, Open in Maps)
 - Open in Maps on the dead-zone nudge (v0.5 navigate, Open in Maps)
