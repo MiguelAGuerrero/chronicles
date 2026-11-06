@@ -27,6 +27,12 @@ import { UndoToast } from './UndoToast';
 import { deleteMoment, planMoment } from '../lib/deletion';
 import { momentDeleteText, type ConfirmText } from '../lib/deletion/core';
 import { useVisible } from '../lib/deletion/useDeletions';
+import { router } from 'expo-router';
+import { chronicleSection } from '../lib/resurface/sectionStore';
+import { threads } from '../lib/threads';
+import { AddToThread } from './threads/AddToThread';
+import { RespondBar } from './threads/RespondBar';
+import { ThreadChip } from './threads/ThreadChip';
 import { Icon, KIND_LABEL } from './icons';
 import { theme } from './ui';
 
@@ -235,6 +241,10 @@ export function CaptureViewer(props: {
   walkId?: string | null;
   /** Plays a memo or video as it opens (a reminder opened, R4). */
   autoPlay?: boolean;
+  /** The owner's thread this viewer was opened from: Respond answers into it, and only here is its name said (OT3, OT11). */
+  thread?: { id: string; name: string | null } | null;
+  /** The walk a reply belongs to when the viewer is opened during one ("Memories here"); else a reply is a moment of its own (OT1). */
+  respondWalkId?: string | null;
 }) {
   const insets = useSafeAreaInsets();
   const [index, setIndex] = useState(0);
@@ -250,6 +260,8 @@ export function CaptureViewer(props: {
   const list = useVisible(props.captures);
   const [deleting, setDeleting] = useState<{ capture: Capture; text: ConfirmText } | null>(null);
   const [menu, setMenu] = useState(false);
+  // Add to a thread (OT5): the picker is drawn inside this Modal.
+  const [adding, setAdding] = useState<Capture | null>(null);
   // Remind me here: the flags of the captures shown, read when the viewer opens.
   const [recalls, setRecalls] = useState<Map<string, Recall>>(() => new Map());
   const [reminding, setReminding] = useState<Capture | null>(null);
@@ -319,6 +331,7 @@ export function CaptureViewer(props: {
     setNoting(null);
     setReminding(null);
     setDeleting(null);
+    setAdding(null);
     setMenu(false);
     props.onClose();
   };
@@ -341,7 +354,7 @@ export function CaptureViewer(props: {
     <Modal
       visible={list.length > 0}
       animationType="fade"
-      onRequestClose={menu ? () => setMenu(false) : deleting ? () => setDeleting(null) : editing ? () => editor.current?.requestClose() : noting ? () => setNoting(null) : reminding ? () => setReminding(null) : close}
+      onRequestClose={menu ? () => setMenu(false) : adding ? () => setAdding(null) : deleting ? () => setDeleting(null) : editing ? () => editor.current?.requestClose() : noting ? () => setNoting(null) : reminding ? () => setReminding(null) : close}
     >
       <View style={styles.viewer}>
         {/* The baker draws behind everything; the cover hides it. */}
@@ -439,6 +452,36 @@ export function CaptureViewer(props: {
             <Icon name="close" size={26} color={theme.ink} />
           </Pressable>
         </View>
+        {current && !editing && !noting && !reminding && !adding && (
+          <>
+            <ThreadChip
+              key={`chip:${current.id}`}
+              momentId={current.id}
+              top={insets.top + 68}
+              from={props.thread}
+              onOpen={(id) => {
+                close();
+                // Already on that thread's screen: closing the viewer is opening it.
+                if (props.thread?.id === id) return;
+                threads.requestOpen(id);
+                chronicleSection.set('memories');
+                router.navigate('/chronicle');
+              }}
+            />
+            <RespondBar key={`respond:${current.id}`} answeredId={current.id} threadId={props.thread?.id ?? null} walkId={props.respondWalkId ?? null} top={insets.top + 116} />
+          </>
+        )}
+        {adding && (
+          <AddToThread
+            moment={adding}
+            onClose={() => setAdding(null)}
+            onDone={(text) => {
+              const id = adding.id;
+              setAdding(null);
+              setSaveState({ id, text });
+            }}
+          />
+        )}
         {editing && (
           // Inside this Modal, not a second one: iOS will not present a Modal over a Modal.
           <MediaEditor
@@ -567,6 +610,18 @@ export function CaptureViewer(props: {
                   <Text style={styles.menuText}>Edit note</Text>
                 </Pressable>
               )}
+              <Pressable
+                testID="viewer-add-thread"
+                accessibilityRole="button"
+                onPress={() => {
+                  setMenu(false);
+                  setAdding(current);
+                }}
+                style={({ pressed }) => [styles.menuItem, pressed && styles.dim]}
+              >
+                <Icon name="link" size={22} color={theme.ink} />
+                <Text style={styles.menuText}>Add to a thread</Text>
+              </Pressable>
               <Pressable
                 testID="viewer-delete"
                 accessibilityRole="button"

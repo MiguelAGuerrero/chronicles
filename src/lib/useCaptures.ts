@@ -9,6 +9,7 @@ import { Platform } from 'react-native';
 import { applyPatch, captureBus, mergeCaptures, type CapturePatch } from './captureBus';
 import { db } from './db';
 import { newId } from './id';
+import { threads } from './threads';
 import { locateOnce } from './locate';
 import { memoGate } from './memoGate';
 import type { LocateResult } from './locate/types';
@@ -78,13 +79,22 @@ export function useCaptures(
   here: LngLat | null,
   lastFixAt: number | null,
   onError?: (e: { message: string; openSettings?: boolean }) => void,
-  opts: { loose?: boolean; onMoment?: (c: Capture, state: MomentState) => void } = {},
+  opts: {
+    loose?: boolean;
+    onMoment?: (c: Capture, state: MomentState) => void;
+    /** Every moment this path keeps answers this one, and joins its thread (OT2); null when it answers nothing. */
+    replyTo?: { answeredId: string; from?: string | null } | null;
+  } = {},
 ) {
   const enabled = walkId != null || !!opts.loose;
   const onMoment = useRef(opts.onMoment);
   useEffect(() => {
     onMoment.current = opts.onMoment;
   }, [opts.onMoment]);
+  const replyTo = useRef(opts.replyTo ?? null);
+  useEffect(() => {
+    replyTo.current = opts.replyTo ?? null;
+  }, [opts.replyTo]);
   const [captures, setCaptures] = useState<Capture[]>([]);
   const [busy, setBusy] = useState<Busy>(null);
   const [voiceStartedAt, setVoiceStartedAt] = useState<number | null>(null);
@@ -152,6 +162,9 @@ export function useCaptures(
       lat: stamp.at?.[1] ?? null, lon: stamp.at?.[0] ?? null,
     };
     await db.addCapture(c);
+    // A reply is linked once it is kept; a failed link leaves the moment kept, unconnected (OT2).
+    const answers = replyTo.current;
+    if (answers) void threads.reply(c.id, answers.answeredId, answers.from ?? null).catch(() => {});
     // Without a fresh fix, it is stored unplaced (the trace places it at
     // stop), but pinned meanwhile at the last known position.
     const last = pos.current.here;

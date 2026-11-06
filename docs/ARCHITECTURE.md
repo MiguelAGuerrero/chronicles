@@ -83,6 +83,14 @@ Chronicle's Memories (decision 0098)
   resurface/shell.ts         createResurface(ports): load, choices in meta `resurface_prefs`, saveNote, patch; index.ts is the app instance
   resurface/useResurface.ts  the view hook (reads on focus and after a delete)
   chronicle/                 SectionBar, MemoriesScreen, Resurfaced, ThreadsRail, ThreadScreen, MomentCard, MomentPicture, MemoryMenu
+Owner threads (decision 0102)
+  threads/types.ts           Thread, Member, Link (all truth), ThreadsData, ThreadsChange (one atomic change)
+  threads/rules.ts           thinThreads (dissolve below two), canMakeThread, threadForReply, replyChange, addChange, visibleThreads (what Undo hides)
+  threads/timeline.ts        buildTimeline: oldest first, a reply under what it answers
+  threads/lines.ts           every sentence: size words from a fixed set, since March, answering, context, a heading
+  threads/shell.ts           createThreads(ports, { schedule }): startThread, addToThread, removeFromThread, rename, deleteThread (Undo), reply, moments
+  threads/index.ts           the app instance (the Undo window is `deletions`); useThreads.ts the view hook
+  threads/                   (components/) RespondBar, AddToThread, ThreadChip, MyThreads, OwnThreadScreen, ThreadMomentMenu
 Home / tabs
   HomeSheet.tsx              the three-height bottom sheet (Animated + responders), Walks | Days, a place's walks, a day's timeline
   StarView.tsx               a star for a place; all one size; the 8 busiest carry names
@@ -462,6 +470,13 @@ Truth (`lib/types.ts`):
   IndexedDB keeps the object; `parseEdit` reads both, decision 0090).
 - `Pause`, `Still`: walk_id, started_at, ended_at.
 - `GapDecision` (`gap_fill`, kept): a stretch kept or dismissed, with its line, so a map update never moves it.
+
+Owner threads (`threads/types.ts`, truth, never derived, decision 0102): `Thread`
+(`thread`: id, name nullable, created_at), `Member` (`thread_member`: thread_id,
+moment_id, added_at) and `Link` (`moment_link`: from_id answers to_id). A moment
+carries nothing of them. `applyThreads` dissolves a thread left with fewer than two
+members in the same transaction; `deleteCaptures` and `deleteWalk` take the
+memberships and links of their moments. SQLite migration 21, IndexedDB 17.
 
 Cache (`lib/types.ts`, `areas/types.ts`): `StreetSegment` (id, name,
 kind_detail, length_m, geometry, build), `VisitedSegment` (segment_id,

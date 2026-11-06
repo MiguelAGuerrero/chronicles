@@ -321,4 +321,9 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 ## Threads the owner makes (decision 0102)
 
+- **A reply made on a walk is a moment of its own, not part of the walk** (OT1): `CaptureViewer` takes `respondWalkId`, but no screen passes it. A reply made from "Memories here" while walking is kept outside the walk (placed by one fix, in Lately, the day and the map), so the walk's replay does not tell it. Passing the open walk's id from `walk.tsx`'s memory viewer is the change; the capture bus already syncs the two capture paths (NV9).
+- **A thread cannot be kept quiet from the resurfaced card** (OT23, the owner's call, Nov 6: it resurfaces like any moment, with no thread name). A per-thread "keep quiet" switch is the cheap way to add one if a thread turns out to be one the owner does not want brought back.
+- **A moment of a walk still open is not offered by the picker or listed in a thread** until the walk stops (`toMomentViews`), as in Lately (RM3).
+- **The moment picker lists the newest sixty matches** and searches only a moment's own words (notes, captions); memos have none until they are transcribed (0098).
+- **Words that look alike**: the Chronicle's "Threads" rail and Your threads are two headings for two kinds. The owner may want a better pair of names (the steward's S5 withdrew "Keeps coming up").
 - **A place-rooted journal**: a thread with no moments, started top-down and rooted in a place. Out of the owner-made threads slice by the owner's call (a thread comes only from connecting moments that have their own time and place). It would be its own feature and goes through `/vision` first.

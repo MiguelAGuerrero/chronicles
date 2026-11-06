@@ -298,6 +298,15 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** make a choice (Not this one), force-quit, and reopen. **Expect:** the choice is kept: that moment is not brought back (`resurface_prefs` through the write queue). (RM21)
 - [ ] **Do:** receive a Remind me here notification with no walk open and tap it. **Expect:** Chronicle opens on Memories and the reminded capture opens at once, playing. (NV13)
 
+## Owner threads (OT1-OT24, decision 0102)
+
+- [ ] **Do:** update the app from a build before threads, open a walk with moments, then delete one moment that was in a thread and a whole walk that held two others. **Expect:** the migration to 21 runs once, no thread or link table is missing, the threads those deletes leave thin are gone and the others keep their moments. (OT16, OT17, OT21)
+- [ ] **Do:** open a moment from Lately on a phone and tap Photo, then Voice (and Stop and keep), then Note under Respond. **Expect:** the camera, the mic and the keyboard each open over the viewer's Modal, each reply is kept as a moment of its own with where you are and when, and it joins the answered moment's thread. (OT1, OT2, OT24)
+- [ ] **Do:** open a moment in the viewer, then More, Add to a thread, A new thread, search for a word and tap a moment. **Expect:** the picker draws inside the viewer (no second Modal), the keyboard does not hide the rows, and the thread is made. (OT5)
+- [ ] **Do:** open a thread, tap a moment's ellipsis, Remove from this thread; then Delete this thread and tap Undo on the pill; then delete it again. **Expect:** the menu sheet and the confirm card open and close cleanly, the pill shows over the screen with Undo, Undo brings the thread back with its name, and after the window the thread is gone and every moment is still in Lately. (OT8, OT14, OT15)
+- [ ] **Do:** on a moment in a thread, tap "In a thread" in the viewer, from Lately. **Expect:** the viewer closes and Chronicle's Memories opens on that thread (the navigation after a Modal's dismissal is not dropped). (OT11)
+- [ ] **Do:** with VoiceOver and TalkBack on, move through Your threads, a thread's timeline and the Respond row. **Expect:** each row reads as one named button with its heading and line, a reply says what it answers, and Respond's three kinds are buttons. (OT9, OT12)
+
 ## Network rules (`lib/net`, decision 0100)
 
 - Whether React Native's `fetch` sends the custom `User-Agent` (`Chronicles (+github.com/…)`) on iOS and Android, or the platform's own replaces it.

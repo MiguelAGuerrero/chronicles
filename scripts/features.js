@@ -234,8 +234,8 @@ const FEATURES = [
     name: 'threads',
     about: 'threads the owner makes: respond to a moment, connect moments across walks; a thread, its members and a directed reply are stored apart from the moments',
     rule: 'threads',
-    source: ['src/lib/threads/**'],
-    journeys: [],
+    source: ['src/lib/threads/**', 'src/components/threads/**'],
+    journeys: ['threads'],
     specs: ['owner-threads'],
   },
   {
@@ -335,9 +335,7 @@ const UNTESTED = {
  * Specs a slice is building (TG22): from its plan until done, its criteria are exempt from the gate.
  * `{ slug: { branch, since: 'YYYY-MM-DD' } }`; an entry older than 7 days fails the docs check.
  */
-const IN_PROGRESS = {
-  'owner-threads': { branch: 'claude/owner-threads-decision', since: '2026-11-06' },
-};
+const IN_PROGRESS = {};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 

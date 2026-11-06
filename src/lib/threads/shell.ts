@@ -1,12 +1,15 @@
 // @layer shell
 import { createStore, type Store } from '../store';
 import type { Ports } from '../ports/types';
+import type { Capture, Walk } from '../types';
 import { addChange, canMakeThread, cleanName, replyChange } from './rules';
 import type { ThreadsData } from './types';
 
 export interface ThreadsState {
   loaded: boolean;
   data: ThreadsData;
+  /** A thread another screen asked Memories to open (OT11); taken once by the screen that shows it. */
+  open: string | null;
 }
 
 const NONE: ThreadsData = { threads: [], members: [], links: [] };
@@ -24,12 +27,12 @@ export interface ThreadDeleteJob {
  * here reads them (OT19).
  */
 export function createThreads(p: Pick<Ports, 'db' | 'clock' | 'newId'>, deps: { schedule: (job: ThreadDeleteJob) => void }) {
-  const store: Store<ThreadsState> = createStore<ThreadsState>({ loaded: false, data: NONE });
+  const store: Store<ThreadsState> = createStore<ThreadsState>({ loaded: false, data: NONE, open: null });
   let writes: Promise<unknown> = Promise.resolve();
 
   async function load(): Promise<ThreadsData> {
     const data = await p.db.listThreads();
-    store.set({ loaded: true, data });
+    store.set({ ...store.get(), loaded: true, data });
     return data;
   }
   /** Changes are written one after another, and the store follows what was stored. */
@@ -46,6 +49,23 @@ export function createThreads(p: Pick<Ports, 'db' | 'clock' | 'newId'>, deps: { 
   return {
     store,
     load,
+
+    /** Asks Memories to open a thread (the viewer's "in a thread", OT11). */
+    requestOpen(threadId: string): void {
+      store.set({ ...store.get(), open: threadId });
+    },
+    /** The thread asked for, once; null if none. */
+    takeOpen(): string | null {
+      const id = store.get().open;
+      if (id) store.set({ ...store.get(), open: null });
+      return id;
+    },
+
+    /** Every kept moment, newest first, with the walks they belong to: what the moment picker lists (OT5). */
+    async moments(): Promise<{ captures: Capture[]; walks: Walk[] }> {
+      const [captures, walks] = await Promise.all([p.db.capturesBetween(0, p.clock.now() + 1), p.db.listWalks()]);
+      return { captures: captures.sort((a, b) => b.t - a.t), walks };
+    },
 
     /** A new thread of at least two kept moments (OT5, OT6); null when it cannot be made. */
     async startThread(momentIds: string[], name: string | null = null): Promise<string | null> {

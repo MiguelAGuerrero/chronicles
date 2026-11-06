@@ -227,6 +227,16 @@ recording bar brings a minimized walk back.
   - **Show less like this** and **Not this one** (on the ... of the top card and
     of every card) change what is brought back, never what is kept; both have Undo.
   - Memos show here but join threads only once they have a transcript (not yet).
+- **Your threads** (decision 0102): moments the owner connected, apart from the
+  Chronicle's threads above it. From a moment's menu, **Add to a thread** names a
+  thread or makes a new one with a second kept moment; **Respond** (photo, voice,
+  note, one tap each on the viewer's face) keeps a new moment linked to the one it
+  answers, in its thread. A thread reads oldest first, a reply under what it
+  answers; its size is a phrase ("a few moments, since March"), its name is the
+  owner's and optional. **Remove from this thread** and **Delete this thread**
+  (with Undo) never delete a moment; a thread left with fewer than two moments
+  dissolves. **Keep as my thread** copies a Chronicle thread. The viewer says "In a
+  thread" and names it only from the thread itself.
 - **Walks, Days and Map** are what Chronicle was before: the walks list, the days
   list with Replay this day, and the map with its stars. The map is mounted only
   there.
@@ -324,6 +334,7 @@ recording bar brings a minimized walk back.
 | Discrete navigation (Explore's map steps from area to area, DN1-DN13) | Shipped, audited, an experiment (web verified by the e2e; native unverified) |
 | Town presence (a town graded across its whole outline, with its busy areas listed) | Built (web verified by the e2e; native unverified) |
 | Resurfaced moments (Chronicle opens on Memories: a moment brought back, threads from the user's words, Lately) | Built (web verified by the e2e `resurface`; native unverified) |
+| Owner threads (respond to a moment; connect moments across walks; Your threads on Memories) | Built (web verified by the e2e `threads`; native unverified) |
 | Moments and days, memories on revisit, thumbnails | Shipped, audited |
 | Rides, clearing walks and moments, motion polish | Shipped, audited |
 | Navigation and tabs (three-tab layout, recording bar) | Shipped, two audit batches done |

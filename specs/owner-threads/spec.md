@@ -70,3 +70,16 @@ Open: none (OT23 and OT24 answered Nov 6). The reasons rest on decision 0102, no
 
 23. **OT23** A moment in an owner thread is eligible for the resurfaced card like any moment (the owner's call, Nov 6: no per-thread opt-out). The card, Lately and every notification never show the thread's name or a title made from it (OT20).
 24. **OT24** A reply made away from the answered moment's place is placed where its author is, at the time they write it (one fix per moment, 0036); its row says "answering" and the answered moment's place, so both places are in the words.
+
+## Record (Nov 6)
+
+Built on `claude/owner-threads-decision`; not audited (decision 0074). Tests first: `Owner threads: tests first (OT1-OT24, failing)`. Unit tests in `src/lib/__tests__/threads/` (`core`, `shell`, `arch`) and the contract cases in `dbContract.ts` (OT14-OT18); the journey `threads` covers the screens. Typecheck, lint, `npm test` and the journeys `threads`, `resurface`, `deletion`, `edit`, `qol`, `walk` pass on the web build.
+
+- **Built as written:** OT1-OT24.
+- **Gate steward (Nov 6):** 1 breach, 4 drift, 1 tone, all accepted (see `plan.md`).
+- **Choices made in the build, for the owner to confirm:**
+  - The heading is **Your threads** ("Moments you connected"); the Chronicle's rail keeps **Threads** ("Things you keep coming back to"). Two near names, as the plan warned.
+  - **Respond** sits in a floating row under the viewer's top buttons, not at the bottom, because the viewer's own strip and card fill the bottom.
+  - **Keep as my thread** copies the Chronicle thread's name too (a tap accepts a suggestion).
+  - A reply made on a walk is a moment of its own (DEFERRED).
+- **Native:** every path is unverified on a device (`docs/NATIVE_UNVERIFIED.md`, "Owner threads").
