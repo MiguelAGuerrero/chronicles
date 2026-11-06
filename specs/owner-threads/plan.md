@@ -30,11 +30,11 @@ New, pure (`// @layer core`) in `src/lib/threads/`:
 | `types.ts` | `Thread`, `Member`, `Link` |
 | `rules.ts` | `afterRemove` (dissolve below two), `joinFor` (which thread a reply joins), `canMakeThread` (two kept moments), no empty thread (OT6) |
 | `timeline.ts` | `buildTimeline(thread, moments, links)`: oldest first, a reply under what it answers (OT9) |
-| `lines.ts` | the words: size and span (OT10), "answering …" (OT4), "in a thread: …" (OT11), an unnamed thread's title (OT13); numbers as words, reusing `resurface/lines.ts`'s number words |
+| `lines.ts` | the words: size from a fixed set and a span, never a number word above three (OT10), "answering …" with nothing when the parent is gone (OT4), "in a thread" without the name (OT11), an unnamed thread's heading as place and date (OT13); a test checks no digit and no number above "three" leaves it |
 
 New shell (`// @layer shell`): `src/lib/threads/shell.ts` (`createThreads(ports)`: `connect`, `addToThread`, `makeThread`, `remove`, `rename`, `deleteThread`, `read`, with Undo as `deletion/pending.ts` does) and `index.ts` (the app instance). `useThreads.ts` is the view hook.
 
-Changed: `src/lib/db/types.ts`, `index.native.ts`, `index.web.ts`, `stores.ts` (the three tables, plus cascades in `deleteCaptures` and `deleteWalk`, same transaction, OT16, OT17); `src/lib/useCaptures.ts` (`replyTo`); `src/components/CaptureView.tsx` (More: Respond, Add to a thread; "in a thread"); `src/components/MemoryPreview.tsx` (Respond from a faint pin, OT3); `src/components/chronicle/MemoriesScreen.tsx` (a "Your threads" block, OT12); `src/components/chronicle/ThreadScreen.tsx` stays the 0098 thread (its **Keep as my thread** is the one new control, OT19). New components: `ThreadTimeline.tsx`, `ThreadPicker.tsx`, `MomentPicker.tsx` in `src/components/chronicle/`.
+Changed: `src/lib/db/types.ts`, `index.native.ts`, `index.web.ts`, `stores.ts` (the three tables, plus cascades in `deleteCaptures` and `deleteWalk`, same transaction, OT16, OT17); `src/lib/useCaptures.ts` (`replyTo`); `src/components/CaptureView.tsx` (Respond on its face as the capture row's kinds; More: Add to a thread; "in a thread"); `src/components/MemoryPreview.tsx` (Respond from a faint pin, OT3); `src/components/chronicle/MemoriesScreen.tsx` (a "Your threads" block, OT12); `src/components/chronicle/ThreadScreen.tsx` stays the 0098 thread (its **Keep as my thread** is the one new control, OT19). New components: `ThreadTimeline.tsx`, `ThreadPicker.tsx`, `MomentPicker.tsx` in `src/components/chronicle/`.
 
 ## Data
 
@@ -72,8 +72,17 @@ New feature `threads` in `scripts/features.js` (rule `threads`, source `src/lib/
 
 The SQLite migration and cascades; the viewer's More menu items over the Modal; Respond opening the camera, mic and note flows from the viewer on a phone; the Undo pill over the viewer's Modal. Each goes into `docs/NATIVE_UNVERIFIED.md` as a Do/Expect item with its OT ids. Native has never run on a device.
 
+## Steward triage (Nov 6: 1 breach, 4 drift, 1 tone, all accepted)
+
+- **S1 breach, accepted:** Respond moves out of More onto the viewer's face and the faint pin's preview, as the capture kinds, one tap each (OT1, OT3). Add to a thread stays in More: it captures nothing.
+- **S2 drift, accepted:** the name appears only on the thread's own screen, the picker and the Memories block; the viewer says "in a thread" (OT11); OT20 adds the resurfaced card, Lately, notifications and the reel. Whether a thread can be kept quiet is the owner's call (OT23).
+- **S3 drift, accepted:** a fixed vocabulary of size words, nothing above "three", no unread mark (OT10).
+- **S4 drift, accepted:** place and time on every picker and timeline row; place and date when there is no walk; an orphaned reply has no "answering" line (OT4, OT5, OT9).
+- **S5 tone, accepted:** my proposed rename "Keeps coming up" is withdrawn; 0098's rail copy stays. Mine is headed **Threads** and the Chronicle's rail keeps its words (the plan reads the rail's heading to check the two differ). An unnamed thread is headed by place and date (OT13).
+- **S6 drift, accepted:** the spec's Vision section now lists its two open items and the Celebration and Nagging lines. It rests on 0102, not on VISION.md's proposed line.
+- **Silent 3, 4:** a reply sets no reminder; no thread information reaches a share or reel (OT20). **Silent 1, 2:** OT23, OT24, put to the owner.
+
 ## For you to decide
 
-1. **The word "thread".** Memories already has a rail of Chronicle threads ("the things you keep coming back to"). Two things called threads, one computed and one yours, will confuse. My recommendation: yours keep **Thread** (the owner's word), and the Chronicle's rail becomes **Keeps coming up**. That changes 0098's copy and RM texts; say if you want it, or give another pair of names.
-2. **Where Add to a thread / Respond live.** The viewer's More menu (my plan) is one tap deeper than the capture row. That is fine for the optional path; capture itself stays one tap (OT1).
-3. **Respond away from the place.** If you answer a moment at home, the reply is placed where you are and at the time you write it (one fix per moment, 0036). The link, not the place, ties it to the original. Is that what you want?
+1. **Kept quiet (OT23).** Can the resurfaced card bring back a moment that is in one of your threads, and can a thread be kept quiet from it? A thread about your body is the kind you may not want surfaced on a bus.
+2. **Respond away from the place (OT24).** If you answer a moment at home, the reply is placed where you are and at the time you write it (one fix per moment, 0036). The link, not the place, ties it to the original. Is that what you want?
