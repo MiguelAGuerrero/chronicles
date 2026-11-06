@@ -297,6 +297,12 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** open a thread, then press Android's Back. **Expect:** Back returns to the rail; today it leaves Chronicle instead, a known gap (audit 14, deferred). (RM15)
 - [ ] **Do:** make a choice (Not this one), force-quit, and reopen. **Expect:** the choice is kept: that moment is not brought back (`resurface_prefs` through the write queue). (RM21)
 - [ ] **Do:** receive a Remind me here notification with no walk open and tap it. **Expect:** Chronicle opens on Memories and the reminded capture opens at once, playing. (NV13)
+- [ ] **Do:** with several moments from different walks and some made outside a walk, scroll Memories on a phone. **Expect:** each card shows a street and town, or the town alone, or "No place kept"; a walk's moments say how far in they were; the lines appear within a moment of the card, never a wrong place first. (MC1-MC5, MC17)
+- [ ] **Do:** open the header menu, then Hidden, bring one moment back, switch Bring moments back off and on, then Forget my choices. **Expect:** the sheet and the Hidden list open and close cleanly; the quiet line replaces the top card while off; Forget asks once, inside the same sheet. (MC8-MC10)
+- [ ] **Do:** open Hidden and a thread, then press Android's hardware Back. **Expect:** Back returns to Memories; today it leaves the tab, a known gap (memories-context audit, deferred).
+- [ ] **Do:** scroll Lately fast on a phone with a large street cache. **Expect:** each card's place line appears in turn, one read at a time, with no stutter; a read that fails shows no place until you return, then fills in. (MC6, MC17, audit 8)
+- [ ] **Do:** make a moment at 1 am, then look at it the next afternoon. **Expect:** it reads "Late <the evening before> night", not "<today> night". (audit 10)
+
 
 ## Network rules (`lib/net`, decision 0100)
 

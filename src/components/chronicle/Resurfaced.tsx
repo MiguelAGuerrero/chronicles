@@ -1,9 +1,10 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { labelFor, whenLine } from '../../lib/resurface/lines';
+import { labelFor } from '../../lib/resurface/lines';
+import type { ContextEntry } from '../../lib/resurface/shell';
 import type { Pick } from '../../lib/resurface/types';
 import { Icon } from '../icons';
 import { Button, theme } from '../ui';
-import { momentSpoken } from './MomentCard';
+import { contextText, momentSpoken } from './MomentCard';
 import { MomentPicture } from './MomentPicture';
 
 /**
@@ -14,7 +15,7 @@ import { MomentPicture } from './MomentPicture';
 export function Resurfaced(props: {
   pick: Pick;
   now: number;
-  placeLine: string | null;
+  context?: ContextEntry;
   onOpen: () => void;
   onRelive: () => void;
   onAnother: () => void;
@@ -28,14 +29,14 @@ export function Resurfaced(props: {
       <Pressable
         testID="resurfaced-open"
         accessibilityRole="button"
-        accessibilityLabel={`${label}. ${momentSpoken(m, props.now)}. Open`}
+        accessibilityLabel={`${label}. ${momentSpoken(m, props.now, props.context)}. Open`}
         onPress={props.onOpen}
       >
         {hasPicture && <MomentPicture capture={m.capture} style={styles.picture} iconSize={44} />}
         <View style={styles.body}>
           <Text style={styles.eyebrow} testID="resurfaced-label">{label}</Text>
-          {m.words ? <Text style={styles.quote} numberOfLines={8}>{m.words}</Text> : <Text style={styles.quote}>{m.kind === 'voice' ? 'A voice memo' : 'A moment you kept'}</Text>}
-          <Text style={styles.meta}>{[m.place, whenLine(m.t, props.now)].filter(Boolean).join(' · ')}{props.placeLine ? ` · ${props.placeLine}` : ''}</Text>
+          {m.words ? <Text style={[styles.quote, styles.owner]} numberOfLines={8}>{m.words}</Text> : <Text style={styles.quote}>{m.kind === 'voice' ? 'A voice memo' : 'A moment you kept'}</Text>}
+          <Text style={styles.meta} numberOfLines={2} testID="resurfaced-context">{contextText(props.context, m, props.now)}</Text>
         </View>
       </Pressable>
       <View style={styles.acts}>
@@ -54,7 +55,8 @@ const styles = StyleSheet.create({
   picture: { height: 230, width: '100%' },
   body: { padding: 16, gap: 8 },
   eyebrow: { color: theme.accent, fontSize: 12, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
-  quote: { color: theme.ink, fontSize: 21, lineHeight: 28, fontStyle: 'italic' },
+  quote: { color: theme.ink, fontSize: 21, lineHeight: 28 },
+  owner: { fontStyle: 'italic' },
   meta: { color: theme.muted, fontSize: 13 },
   acts: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingBottom: 14 },
   more: { marginLeft: 'auto', width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },

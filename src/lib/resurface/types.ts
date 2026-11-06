@@ -73,6 +73,10 @@ export interface Prefs {
   removed: string[];
   /** The moment the top card showed last, so the next open starts elsewhere (RM8). */
   lastShown: string | null;
+  /** Bring moments back is off: no top card, no Another (MC9). The rail and Lately stay. */
+  off: boolean;
+  /** How the owner wrote a softened word, by its term, so Hidden and the toast show "cookies", not "cooky" (audit 7). */
+  shown: Record<string, string>;
 }
 
 export type Reason =

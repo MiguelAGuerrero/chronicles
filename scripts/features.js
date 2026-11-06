@@ -228,7 +228,7 @@ const FEATURES = [
     rule: 'resurface',
     source: ['src/lib/resurface/**', 'src/components/chronicle/**'],
     journeys: ['resurface'],
-    specs: ['resurfaced-moments'],
+    specs: ['resurfaced-moments', 'memories-context'],
   },
   {
     name: 'motion',

@@ -57,7 +57,7 @@ Open: none.
 
 ### Lately
 
-17. **RM17** Lately lists moments, walk or no walk, photos, videos, notes and memos together. What was kept in the last day leads, newest first. After that, newest first by week, and within a week the moments that belong to a thread come before the rest. It shows twenty at first and the next twenty as the end is reached.
+17. **RM17** Lately lists moments, walk or no walk, photos, videos, notes and memos together. What was kept in the last day leads, newest first. After that, newest first by week, and within a week the moments that belong to a thread come before the rest. *Superseded Nov 5 by `specs/memories-context` MC13 (the owner's call): Lately is strictly newest first, with no thread priority and no last-day rule.* It shows twenty at first and the next twenty as the end is reached.
 18. **RM18** A moment's card shows its picture or thumbnail (its edits as everywhere else), its words, a memo's play button, "place · when" in words, and a small "From <the walk's name or a day-part, like a Sunday walk>" line. Tapping the card opens the capture viewer; tapping the "From" line opens that walk's replay.
 19. **RM19** A deleted moment, and a moment of a deleted walk, leave Memories at once, with Undo while it waits, and a thread that falls below three moments leaves the rail.
 

@@ -1,5 +1,5 @@
 // @layer core
-import { suggestTitle } from '../walkTitle';
+import { partOfDay, weekdayName } from './context';
 import type { Capture, Walk } from '../types';
 import type { MomentView } from './types';
 
@@ -36,8 +36,12 @@ export function toMomentViews(captures: Capture[], walks: Walk[], transcript?: (
   return out;
 }
 
-/** The small "From ..." line under a card: the walk's name, else the part of the day. Null for a moment on its own. */
+/**
+ * The small "From ..." line under a card: the walk's own name, else its day and part of the day. No town: the
+ * arrival line carries the place, and says none until it is read (audit 3).
+ */
 export function fromLine(walk: Walk | undefined): string | null {
   if (!walk) return null;
-  return `From ${walk.title?.trim() || suggestTitle(walk)}`;
+  const title = walk.title?.trim();
+  return `From ${title || `${weekdayName(walk.started_at)} ${partOfDay(walk.started_at)} walk`}`;
 }

@@ -43,5 +43,7 @@ test('RM22: every line the feed writes holds no digit', () => {
   ];
   for (const l of lines) assert.ok(!/\d/.test(l), l);
   assert.equal(numberWord(4), 'four');
-  assert.equal(numberWord(40), 'many');
+  assert.equal(numberWord(40), 'forty');
+  assert.equal(numberWord(47), 'forty-seven');
+  assert.equal(numberWord(60), 'many');
 });
