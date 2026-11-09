@@ -13,7 +13,7 @@ import { buildChecklists, placeFinds, readCentre, type ChecklistArea, type Find 
 import type { PlaceCandidate } from '../../areas/types';
 import { createPlacesArchive } from '../../discovery/archive/shell';
 import { fakePorts } from '../fakes';
-import { archiveTilesFor, ARCHIVE_ZOOM, manifestDue, parseManifest, pickRegion, PLACES_BASE, regionUrl } from '../../discovery/archiveManifest';
+import { archiveTag, archiveTilesFor, ARCHIVE_ZOOM, blockKey, manifestDue, parseManifest, pickRegion, PLACES_BASE, regionUrl } from '../../discovery/archiveManifest';
 
 // Places worth the stop (specs/places-worth-the-stop, PW1-PW19), written from the spec before the code.
 
@@ -291,6 +291,17 @@ test('places-worth-the-stop audit 3: a fix in an area built with an older archiv
   assert.equal(readCentre({ fix: CENTRE, candidates: [fox], areas: [area(null)], reads, build: 'b1', archive: null }), null, 'no archive known: nothing to read for');
 });
 
+test('PP13: with blocks, an area is tagged and judged at its own point, so one by a block\'s edge is not read on every fix', () => {
+  const reads = [{ centre: CENTRE, build: 'b1' }];
+  // Its point is in block A; the walker stands just over the edge in block B.
+  const tagAt = (at: [number, number]) => (blockKey(at) === blockKey(CENTRE) ? 'b:aaaaaaaaaaaaaaaa' : 'b:bbbbbbbbbbbbbbbb');
+  const area = { level: 'neighborhood' as const, name: 'Fox', at: CENTRE, build: 'b1', archive: 'b:aaaaaaaaaaaaaaaa' };
+  assert.equal(readCentre({ fix: CENTRE, candidates: [fox], areas: [area], reads, build: 'b1', archive: tagAt }), null);
+  assert.equal(tagAt([CENTRE[0], CENTRE[1] + 0.7]), 'b:bbbbbbbbbbbbbbbb', 'a fix in the next block has another tag');
+  const built = buildChecklists({ places: [], candidates: [fox], centre: CENTRE, build: 'b1', now: 1, archive: tagAt });
+  assert.equal(built.areas[0]?.archive, 'b:aaaaaaaaaaaaaaaa', 'each area records its own block\'s tag');
+});
+
 test('places-worth-the-stop audit 4: a version listed but missing is passed over for the previous one, without asking again and again', async () => {
   const ports = fakePorts();
   const prevFile = 'places-us-20261101.pmtiles';
@@ -313,4 +324,32 @@ test('places-worth-the-stop audit 4: a version listed but missing is passed over
 });
 
 // Places pipeline (specs/places-pipeline): written before its code (decision 0018).
-test('PP13: an area is rebuilt only when its block\'s hash changes, and once for an area tagged with a file version', { todo: 'test first' }, () => {});
+test('PP13: an area is rebuilt only when its block\'s hash changes, and once for an area tagged with a file version', async () => {
+  const here = blockKey(CENTRE);
+  assert.equal(here, '8/74/96');
+  const withBlocks = (h: string, other = 'cccccccccccccccc', version = '20261108') =>
+    JSON.stringify({ ...manifest, regions: [{ ...manifest.regions[0], current: { ...manifest.regions[0].current, file: `places-us-${version}.pmtiles`, version, blocks: { [here]: h, '8/40/90': other } } }] });
+  const ports = fakePorts();
+  let text = withBlocks('aaaaaaaaaaaaaaaa');
+  const { io } = fakeIo({ manifest: async () => text });
+  const archive = createPlacesArchive({ ...ports, io });
+  const first = await archive.read(READ, CENTRE);
+  assert.equal(first?.version, 'b:aaaaaaaaaaaaaaaa', 'an area records its block\'s hash');
+  assert.equal(archive.versionAt(CENTRE), 'b:aaaaaaaaaaaaaaaa');
+  assert.equal(archive.versionAt([-110, 40]), 'b:none', 'a block with no places');
+  assert.equal(archiveStale('20261108', archive.versionAt(CENTRE)), true, 'an area tagged with a file version is rebuilt once');
+  assert.equal(archiveStale(first!.version, archive.versionAt(CENTRE)), false);
+  // A new file whose other blocks changed but not this one: the area stands.
+  text = withBlocks('aaaaaaaaaaaaaaaa', 'dddddddddddddddd', '20261115');
+  ports.clock.advance(24 * 3600_000);
+  await archive.refresh();
+  assert.equal(archiveStale(first!.version, archive.versionAt(CENTRE)), false, 'a new file version alone rebuilds nothing');
+  text = withBlocks('bbbbbbbbbbbbbbbb');
+  ports.clock.advance(24 * 3600_000);
+  await archive.refresh();
+  assert.equal(archiveStale(first!.version, archive.versionAt(CENTRE)), true, 'its block changed: rebuilt');
+  // A malformed blocks map is ignored, and the file's version is the tag as before.
+  const bad = parseManifest(JSON.stringify({ ...manifest, regions: [{ ...manifest.regions[0], current: { ...manifest.regions[0].current, blocks: { here: 'x' } } }] }));
+  assert.equal(bad?.regions[0].current.blocks, undefined);
+  assert.equal(archiveTag(bad!.regions[0].current, CENTRE), '20261108');
+});
