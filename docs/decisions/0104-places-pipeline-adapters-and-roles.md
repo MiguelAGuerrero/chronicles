@@ -32,7 +32,6 @@ The owner's calls, Nov 9:
   redistributed is left out of it (PP1).
 - The research doc's version, where a confirmed nomination enters, is superseded by this record.
 - VISION.md needs no edit to its rules; its Precedents table gains this row.
-</content>
 
 ## Later the same day: the pipeline lives in chronicles-data
 
