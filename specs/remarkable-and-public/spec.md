@@ -80,4 +80,12 @@ The replay and reachability:
 
 ## Record
 
-(Filled in as the slice is built.)
+Built Nov 9 on `claude/gallant-maxwell-hp14jb` (tests first `59d0663`, code `3a99310`; decision 0105 for the slice's calls).
+
+- **Passed:** RP1-RP20, each by its named test (`npm run check:test-first remarkable-and-public`: 20 of 20 tested first). Unit tests 1,422 pass; typecheck and lint clean. E2E: `marks` (RP18, RP20 and its own checks), and `curiosities`, `edit`, `gaps`, `headsup`, `hidden`, `layers`, `nudge`, `ready`, `reload`, `replay`, `tabs`, `walkability`, all green on the e2e build.
+- **Re-pinned on purpose:** PW5 (`ARCHIVE_CLASSES`), E16 (ten kinds), PW14's fetch rows (`listed`) and its audit-5 message (listings are asked for).
+- **Not changed:** `ATLAS_CODE` stays a7 (the plan says why).
+- **What the benchmark showed on Bethlehem (Nov 9):** the rule adds Bethlehem Waterworks, Burnside Plantation, the Gemeinhaus and Packer Memorial Chapel without OSM's signals; most remaining misses are unlisted churches and cemeteries (stopped by the name rule) and unlisted bridges and stations (not in the tiles). Central Moravian Church is a contributing building of a listed district with no listing of its own, so the listing gate does not lift it (DEFERRED).
+- **Deferred:** OSM's signals in production (the weekly job passes no `--osm` yet), places only OSM knows, contributing buildings of a listed district, registers outside the US, the "History & landmarks" category label and "Historic churches" for every place of worship (the owner's copy calls); `docs/DEFERRED.md`.
+- **Native:** the card's line and the new switch have never run on a phone (`docs/NATIVE_UNVERIFIED.md`).
+- **Audit:** none (decision 0074: on the owner's request).
