@@ -148,6 +148,10 @@ Routing inside a walk (`lib/nav`): walk me back, Go here, the route sources, rul
   - Settings: meta `route_leanings` (`lib/routeLeanings`), loaded at launch; the switches are in both drawers.
   - E2E: `E2E_ONLY=scenic` (India Point Park, `scenicWorld`). Other journeys reach a route through the
     harness's `routed`, which takes Direct when a preview shows.
+- **Only the routes while choosing** (fix preview-clutter, the owner's phone screenshot): with the preview open, the live map draws
+  none of the walked trace, rides, gap stretches and links, fog, walked streets, busy streets' shading, town borders or walkability tint
+  (`forPreview` in `nav/previewView.ts`, applied in `walk.tsx`); they come back as it closes. The e2e reads which of them carry anything
+  (`data-drawn`, under `window.__perf`). Pins and the walker stay.
 - **Time left** (QL17, QL18; `lib/nav/eta.ts`, pure): the walk's own pace (walked
   metres over moving time) once 100 m and 60 s are walked, clamped to 0.7–2.0 m/s,
   else 1.3 m/s. The bar says "450 m · 6 min · Your spot"; its label and the stepped
