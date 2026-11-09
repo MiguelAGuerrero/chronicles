@@ -84,7 +84,7 @@ Built on `claude/owner-threads-decision`; not audited (decision 0074). Tests fir
 - **Built as written:** OT1-OT24.
 - **Gate steward (Nov 6):** 1 breach, 4 drift, 1 tone, all accepted (see `plan.md`).
 - **Choices made in the build, for the owner to confirm:**
-  - The heading is **Threads you made** ("Moments you connected, the latest first"; was "Your threads" until the audit); the Chronicle's rail keeps **Threads** ("Things you keep coming back to"). Two near names, as the plan warned.
+  - The heading is **Threads** ("Moments you connected, the latest first"), beside the Chronicle's own Threads and told apart by a mark (decision 0105, OT25; it was "Your threads", then "Threads you made"); the Chronicle's rail keeps **Threads** ("Things you keep coming back to"). Two near names, as the plan warned.
   - **Respond** sits in a floating row under the viewer's top buttons, not at the bottom, because the viewer's own strip and card fill the bottom.
   - **Keep as my thread** keeps no name (audit 13): the Chronicle's is only a placeholder in the name field.
   - A reply made from a viewer opened during a walk belongs to that walk (audit 11).
@@ -115,3 +115,8 @@ Built on `claude/owner-threads-decision`; not audited (decision 0074). Tests fir
 19. "Thread made" reads warm; the Respond label is unreadable on a bright photo: **accept**. "Connected"; the label has a dark pill. Journey `audit 19`.
 
 **Left for the owner (the steward's Silent):** whether an unnamed thread's heading may change when an older moment is added (it does today); whether the "In a thread" chip may stand on every moment in a thread or should live in More; whether the picker should also search a memo's words once transcribed.
+
+## Round 2 (Nov 9, decision 0105)
+
+OT12 amended and OT25, OT26 added at the owner's word: "thread" for both kinds, an icon to tell them apart, an unnamed heading free to change and be renamed. Built as `ThreadMark` (a link for the owner's, a repeat arrow for the Chronicle's, in ink, with a spoken name); the choice of an icon over a colour is the build's, for restraint and screen readers. Unit test `OT26` (`threads/core.test.ts`); journey checks OT12 and OT25 (`threads`). Native: the marks' spoken names are on the device list.
+

@@ -240,8 +240,9 @@ recording bar brings a minimized walk back.
   - **Show less like this** and **Not this one** (on the ... of the top card and
     of every card) change what is brought back, never what is kept; both have Undo.
   - Memos show here but join threads only once they have a transcript (not yet).
-- **Threads you made** (decision 0104): moments the owner connected, apart from the
-  Chronicle's threads above it. From a moment's menu, **Add to a thread** names a
+- **Threads the owner makes** (decisions 0104, 0105): moments the owner connected, beside the
+  Chronicle's threads above it; both are "threads", told apart by an icon (a link for
+  the owner's, a repeat arrow for the Chronicle's), spoken as "connected by you" and "found for you". From a moment's menu, **Add to a thread** names a
   thread or makes a new one with a second kept moment; **Respond** (photo, voice,
   note, one tap each on the viewer's face) keeps a new moment linked to the one it
   answers, in its thread. A thread reads oldest first, a reply under what it
@@ -347,7 +348,7 @@ recording bar brings a minimized walk back.
 | Discrete navigation (Explore's map steps from area to area, DN1-DN13) | Shipped, audited, an experiment (web verified by the e2e; native unverified) |
 | Town presence (a town graded across its whole outline, with its busy areas listed) | Built (web verified by the e2e; native unverified) |
 | Resurfaced moments (Chronicle opens on Memories: a moment brought back, threads from the user's words, Lately) | Built (web verified by the e2e `resurface`; native unverified) |
-| Owner threads (respond to a moment; connect moments across walks; Threads you made on Memories) | Built (web verified by the e2e `threads`; native unverified) |
+| Owner threads (respond to a moment; connect moments across walks; Threads on Memories) | Built (web verified by the e2e `threads`; native unverified) |
 | Moments and days, memories on revisit, thumbnails | Shipped, audited |
 | Rides, clearing walks and moments, motion polish | Shipped, audited |
 | Navigation and tabs (three-tab layout, recording bar) | Shipped, two audit batches done |

@@ -103,3 +103,14 @@ test('OT9: a thread reads oldest first, a reply set under what it answers, every
   assert.equal(contextLine({ place: null, t: at(9, 20), walkLine: null, now: NOW }), 'Oct 20', 'a moment with no walk shows place and date');
   assert.match(contextLine({ place: 'Providence', t: at(9, 20), walkLine: null, now: NOW }), /Providence/);
 });
+
+test('OT26: an unnamed thread\'s heading follows its moments and may be renamed; a given name never changes by itself', () => {
+  const oct = { place: 'Providence', t: at(9, 20), words: 'Someone said I looked strong' };
+  const sep = { place: 'Fox Point', t: at(8, 3), words: 'A kind word at the harbor' };
+  const oldest = (ms: { place: string | null; t: number; words: string | null }[]) => ms.reduce((o, m) => (m.t < o.t ? m : o));
+  assert.equal(headingOf({ name: null, ...oldest([oct]) }, NOW).title, 'Providence, Oct 20');
+  assert.equal(headingOf({ name: null, ...oldest([oct, sep]) }, NOW).title, 'Fox Point, Sep 3', 'an older moment added: the heading follows it');
+  assert.equal(headingOf({ name: 'Compliments', ...oldest([oct, sep]) }, NOW).title, 'Compliments', 'a name the owner gave stays whatever is added');
+  assert.equal(headingOf({ name: cleanName('  '), ...oldest([oct, sep]) }, NOW).title, 'Fox Point, Sep 3', 'renaming to blank hands the heading back to the moments');
+  assert.equal(headingOf({ name: cleanName(' Harbor '), ...oldest([oct]) }, NOW).title, 'Harbor', 'the owner may rename at any time');
+});

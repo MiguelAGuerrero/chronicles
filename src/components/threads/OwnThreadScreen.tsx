@@ -9,6 +9,7 @@ import type { Walk } from '../../lib/types';
 import { MomentCard } from '../chronicle/MomentCard';
 import { Icon } from '../icons';
 import { Button, theme } from '../ui';
+import { ThreadMark } from './ThreadMark';
 
 /**
  * One of the owner's threads (OT9, OT13, OT14): a plain timeline, oldest first, read like a conversation with
@@ -43,7 +44,8 @@ export function OwnThreadScreen(props: {
         <Pressable testID="own-thread-back" accessibilityRole="button" accessibilityLabel="Back to Memories" onPress={props.onBack} style={styles.back}>
           <Icon name="chevron-back" size={20} color={theme.ink} />
         </Pressable>
-        <Text style={styles.eyebrow}>A thread you made</Text>
+        <ThreadMark kind="made" />
+        <Text style={styles.eyebrow}>Thread</Text>
       </View>
       {renaming ? (
         <View style={styles.rename}>

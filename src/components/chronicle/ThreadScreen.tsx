@@ -5,6 +5,7 @@ import type { MomentView, Thread } from '../../lib/resurface/types';
 import type { Walk } from '../../lib/types';
 import { Icon } from '../icons';
 import { Button, theme } from '../ui';
+import { ThreadMark } from '../threads/ThreadMark';
 import { MomentCard } from './MomentCard';
 
 /**
@@ -35,6 +36,7 @@ export function ThreadScreen(props: {
         <Pressable testID="thread-back" accessibilityRole="button" accessibilityLabel="Back to Memories" onPress={props.onBack} style={styles.back}>
           <Icon name="chevron-back" size={20} color={theme.ink} />
         </Pressable>
+        <ThreadMark kind="found" />
         <Text style={styles.eyebrow}>Thread</Text>
       </View>
       {renaming ? (
