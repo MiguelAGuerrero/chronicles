@@ -17,6 +17,7 @@ It builds on Places worth the stop, which must be live first (PW16; the owner, N
 - **One-of-a-kind businesses** (0106, 0107) enter only by a structural signal (a heritage listing, a historic or heritage tag, the owner's add), never ratings, reviews, popularity or a Wikipedia article, never a chain; they show wherever they are in range, in town and out, as any mark.
 - **Showing a place is the value; its kind is a bonus** (0108). Nothing is fetched or joined only to sort a place; no age threshold; no measuring step.
 - **On the map** (0106): places beyond every area's reach show as "?" within 50 km of you, merged into same-size stars with no number; a tap on one names it, with Walk here or Open in Maps.
+- **Plan choices** (Nov 9, decision 0109): the build flags a place within a town's reach, from city, town and village points with the app's own reach numbers; OpenStreetMap places come from Geofabrik's state and province extracts filtered with osmium; Other places get a presence dot and a kind row on the atlas like any kind; the owner's add file needs no stated reason.
 - **Test cases** (0107): a rural Saskatchewan shrine out of town; the Julius Sturgis Pretzel Bakery in Lititz, Pennsylvania, a historic business in town.
 
 ## Vision
@@ -53,11 +54,13 @@ Open: none for the gate. A line in VISION.md's Shapes table for places reached b
 12. **OP12 Named on a tap, and only there.** No "?" on this layer carries a label. A tap on one opens a card with its name, its kind's label and its distance in words ("about 12 km"), and nothing else: no description, source, id, rank or notability. The kind line is one of the `KINDS` labels word for word, or "A place" for Other places; it never shows the place's type, source, town flag or a listing (steward S3).
 13. **OP13 Walk here near, Open in Maps far.** The card offers Walk here only when the place is within walking reach (the navigator's own limit, `NAV.maxM`); beyond it, only Open in Maps. The app never computes a driving route.
 14. **OP14 Never a list, a count or an order.** Nothing on Explore (map, card, title, toast, live region, accessible names, titles) lists these places, counts them in digits or in words, or orders them. A digit appears only in the card's distance line (steward S5).
-15. **OP15 Areas unchanged.** Out-of-town places change no area's dots, kind rows, `thin` or "?" marks: an area's profile is the same with and without them.
+15. **OP15 Far places leave areas alone.** A place flagged out of town changes no area's dots, kind rows, `thin` or "?" marks: an area's profile is the same with and without it.
 16. **OP16 Silent, and to one host.** The layer reads only the archive's host, already allowed; when the archive or its overview can't be read, Explore shows nothing extra and no error (as PW3). It reads only while Explore's map is on screen, never during a walk or in the background, and again only after you move 10 km or a new archive version is known (steward silent 2, following the atlas's loop).
 
 18. **OP18 A find changes nothing on this layer.** A far place you have found looks and is labelled exactly like one you haven't, and is named only on its card: no colour, tick or "Found" on the far layer (steward S2).
 19. **OP19 No paging through places.** A far mark is never the target of a swipe or arrow-key step between areas, and the card has no next or previous place (steward S4).
+
+20. **OP20 Other places on the atlas.** Inside an area, Other places count as presence like any kind: a dot on the area's tile when present and a row on its card, read against fixed steps (AG). `thin` is still judged from the map's places alone (PW10).
 
 ### Credit
 

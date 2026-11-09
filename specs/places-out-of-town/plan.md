@@ -35,11 +35,12 @@ For the owner to review before any code. The criteria are `spec.md` (OP1-OP17). 
 4. **`discovery/outOfTown.ts` (core, new):** `farMarks(places, at, hidden)`: archive places without the town flag, within 50 km, kind on (OP10, OP7); `farCard(place, at, units)`: name, kind label, distance in words, and `walkable` from `NAV.maxM` (OP12, OP13). No list, sort or count is exported (OP14).
 5. **`discovery/archive/shell.ts`:** `readFar(at)`: the overview tiles within 50 km, silent on failure, read again after 10 km moved or a new version (OP16). Places are never stored (the archive's rule).
 6. **The view** (`src/app/(tabs)/index.tsx`, `components/map/WalkMap.web.tsx` and native): a `farMarks` prop drawn as "?" pins without labels (DOM markers on web, `Marker` on native), grouped by `groupPins` at the map's zoom; a tap on a group frames its points; a tap on one opens `components/atlas/FarCard.tsx`: its name, kind, distance, and Walk here (`showWalk` with the destination) or Open in Maps (`nav/handoff`). `tapClears` protects a far mark as it protects an area's point. Hidden while an area's card or a town's page is open.
-7. **Grading** (`atlas/`): `other` gets no presence dot and no kind row (open choice 3), and far places never enter a ring read (OP15). No `ATLAS_CODE` bump.
+7. **Grading** (`atlas/`): `other` joins the kinds with its own steps, a dot on a tile and a row on the card (OP20, decision 0109); far places never enter a ring read (OP15). `ATLAS_CODE` is bumped, so every area is read again once.
 8. **Credits:** GeoNames beside OpenStreetMap where the map's credits are (OP17).
 
 ## Data
 
+- `ATLAS_CODE` bump (OP20): `atlas_area` is derived, so old rows are re-read, never patched.
 - No new store, table or migration. Archive places are never stored (decision 0103's rule). `explore_hidden` may hold `other`.
 - The archive's schema gains `town`; `ARCHIVE_CLASSES` and AG5's pinned list change deliberately.
 
@@ -65,6 +66,7 @@ For the owner to review before any code. The criteria are `spec.md` (OP1-OP17). 
 | OP16 | `outOfTownRead.test.ts`: "OP16: one host, silent on failure, read again after 10 km or a new version" | shell (`fakePorts()`) |
 | OP17 | journey `out-of-town`: "OP17: GeoNames is credited beside OpenStreetMap" | e2e |
 | OP18 | `outOfTown.test.ts`: "OP18: a found far place is drawn and labelled as an unfound one" | core |
+| OP20 | `atlas.test.ts`: "OP20: Other places inside a ring are a dot and a row; thin unchanged" | core |
 | OP19 | `snap.test.ts`: "OP19: nextArea never lands on a far mark"; `outOfTown.test.ts`: "OP19: the card has no next or previous" | core |
 
 A new e2e journey, `out-of-town` (`scripts/e2e/journeys/`), serves a fixture archive with an overview level: a shrine 30 km from a town (the Saskatchewan case), a cluster of three, and the Lititz bakery inside its town's reach (it must not show on the layer, OP10, and shows as a "?" on an exploring walk, OP9).
@@ -94,14 +96,14 @@ Places worth the stop is merged and live first (PW16). Then phase 1 (the build, 
 | S3 [drift] the card's kind line could show a listing | Accepted into OP12: a `KINDS` label word for word, "A place" for Other places |
 | S4 [drift] swipes or a next/previous could page through far places | Accepted: OP19 |
 | S5 [drift] OP14's "no digit" contradicts the card's distance | Accepted into OP14: a digit only in the distance line; labels and titles scanned too |
-| Silent 1: the owner's add file is the one editorial way in | Put to the owner (below) |
+| Silent 1: the owner's add file is the one editorial way in | Put to the owner: no reason needed, the owner's call is enough (decision 0109) |
 | Silent 2: when the layer reads | Accepted into OP16: only while Explore's map is on screen, as the atlas's loop |
 | Silent 3: a 50 km field invites planning a drive | The owner's pending Shapes line ("a walk can start where you park") |
 
-## Open choices for the owner
+## The owner's choices (Nov 9, decision 0109)
 
-1. **How the app knows a place is out of town.** Recommended: the build flags it from city, town and village points with the app's own reach numbers, so the app reads 4 small tiles. The other way, the app reading town points at z11 across 100 km, is 50-65 tile reads each time you move 10 km.
-2. **Where OpenStreetMap places come from in the weekly build.** Recommended: Geofabrik's state and province extracts filtered with osmium, one at a time. A public query service (Overpass, QLever) is what `docs/DEFERRED.md` already wants to stop asking.
-3. **Other places on the atlas.** Recommended: a "?" on walks and the out-of-town map, with no presence dot or kind row on an area's tile, so area grading is unchanged and `ATLAS_CODE` stays.
-4. **The owner's add file** (steward): should each added place carry a structural reason (a listing, a tag, a source), so the one hand-made way in stays structural?
-5. **The Saskatchewan test case:** St. Laurent (Duck Lake), Our Lady of Lourdes (Rama), St. Peter's Colony grotto, Holy Rosary (Reward), Mount Carmel, or another.
+1. Out of town is a build flag, from city, town and village points with the app's reach numbers.
+2. OpenStreetMap places come from Geofabrik's state and province extracts, filtered with osmium one at a time.
+3. Other places get a presence dot and a kind row on the atlas (OP20); `ATLAS_CODE` is bumped.
+4. The owner's add file needs no stated reason: the owner's call is enough.
+5. The Saskatchewan test case is the St. Laurent Shrine near Duck Lake unless the owner names another.
