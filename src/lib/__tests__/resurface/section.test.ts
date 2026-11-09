@@ -14,3 +14,9 @@ test('RM1: a replay or a day keeps the section, so Back returns to the walks lis
 test('RM1: Chronicle itself keeps its section', () => {
   assert.equal(sectionOnRoute('days', '/chronicle'), 'days');
 });
+
+test('HC5: Chronicle at the root keeps its section; Explore at /explore is elsewhere', { todo: 'test first' }, () => {
+  assert.equal(sectionOnRoute('days', '/'), 'days');
+  assert.equal(sectionOnRoute('walks', '/explore'), 'memories');
+  assert.equal(sectionOnRoute('map', '/navigate'), 'memories');
+});

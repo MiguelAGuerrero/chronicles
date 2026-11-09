@@ -15,6 +15,12 @@ The owner's calls, Nov 9:
 - **Quick capture is on Chronicle, on Memories only.** This amends Navigation & tabs' "Chronicle doesn't" and NV11. Walks, Days and Map keep their map and sheet.
 - **With a walk open and minimized, Chronicle's capture row files into that walk**, as the recording bar's camera does (NV9).
 
+Taken as defaults in the plan and confirmed by the owner's go-ahead ("Proceed", Nov 9):
+- **The recording bar shows no camera while Memories is in front**; the band's camera files into the walk (steward S4). Elsewhere the bar keeps its camera.
+- **Memories' empty state is "Nothing kept yet." and the band**, without its accent Navigate button (steward S3).
+- **A launch still leads with a resurfaced moment** (0098, unchanged), with the band first for a screen reader.
+- **Chronicle is the root path `/`**, Explore moves to `/explore`, and `/chronicle` redirects to `/`.
+
 ## Consequences
 - The spec is `specs/capture-from-chronicle/spec.md` (HC1-HC14), and the plan is `specs/capture-from-chronicle/plan.md`.
 - Explore's one fix per launch (NV16) moves to Explore's first focus. Opening the app reads no location.

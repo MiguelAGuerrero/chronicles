@@ -90,7 +90,7 @@ const FEATURES = [
     about: 'moments and days: the day screen, moment pins, the moment bar',
     rule: 'moments-and-days',
     source: ['src/lib/{days,useLocate,momentPins}.ts', 'src/lib/locate/**', 'src/app/day/**', 'src/components/MomentBar.tsx', 'src/lib/explore/momentFind/**'],
-    journeys: ['days'],
+    journeys: ['days', 'capturehome'],
     specs: ['moments-and-days'],
   },
   {
@@ -117,12 +117,12 @@ const FEATURES = [
     rule: 'tabs-and-home',
     source: [
       'src/app/(tabs)/**',
-      'src/app/{_layout,explore}.tsx',
+      'src/app/{_layout,chronicle}.tsx',
       'src/components/{StartSettings,HomeSheet,RecordingBar,SwitchRow,OpenWalk,Modal,ScreenError}.tsx',
-      'src/lib/{launchRoute,launchWalk,recordingBar,walkNav,walkGate,openWalkLoad,startPlan,useStartWalk,useTabMap,memoGate,quietLines,summary,walkEvents,settleWithin,tabsHidden,captureBus}.ts',
+      'src/lib/{launchRoute,launchWalk,recordingBar,walkNav,walkGate,openWalkLoad,startPlan,useStartWalk,useTabMap,memoGate,quietLines,summary,walkEvents,settleWithin,tabsHidden,captureBus,captureBand}.ts',
     ],
-    journeys: ['tabs', 'reload', 'launch'],
-    specs: ['navigation-and-tabs'],
+    journeys: ['tabs', 'reload', 'launch', 'capturehome'],
+    specs: ['navigation-and-tabs', 'capture-from-chronicle'],
   },
   {
     name: 'explore',

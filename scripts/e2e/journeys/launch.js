@@ -7,6 +7,20 @@ const path = require('path');
 
 async function checks(h) {
   const { url, BASE, browser, page, start, at, check, shownCount, tabBarShown, onTab, routed } = h;
+    // HC5 (test first): a stale replay or day link at launch, and the old /chronicle path, open Chronicle at /;
+    // /explore opens Explore. Each with one tab bar.
+    for (const stale of ['replay/no-such-walk', 'day/1999-01-01', 'chronicle']) {
+      await page.goto(`${url}${stale}`);
+      await page.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 15000 }).catch(() => {});
+      await page.waitForSelector('[data-testid=tab-chronicle][aria-selected=true]', { timeout: 15000 }).catch(() => {});
+      check.todo(new URL(page.url()).pathname === `${BASE}/` && (await page.locator('[data-testid=tab-chronicle][aria-selected=true]').count()) === 1
+        && (await page.locator('[data-testid=tab-bar-wrap]').count()) === 1 && (await page.locator('text=This walk could not be found.').count()) === 0,
+        `HC5: a launch on ${stale.split('/')[0]} opens Chronicle at / (${page.url()})`);
+    }
+    await page.goto(`${url}explore`);
+    await page.waitForSelector('[data-testid=tab-explore][aria-selected=true]', { timeout: 15000 }).catch(() => {});
+    check.todo(new URL(page.url()).pathname === `${BASE}/explore` && (await page.locator('[data-testid=tab-explore][aria-selected=true]').count()) === 1
+      && (await page.locator('[data-testid=tab-bar-wrap]').count()) === 1, `HC5: /explore opens Explore, with one tab bar (${page.url()})`);
     // The old /explore path still opens Explore, with one tab bar (NV2).
     await page.goto(`${url}explore`);
     await page.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 15000 }).catch(() => {});
