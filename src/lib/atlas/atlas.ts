@@ -525,6 +525,26 @@ export function walkTarget(area: AtlasArea): { at: LngLat; label: string; via: s
 /** Atlas round 3: the town you're in is the page's title, so it isn't listed again among the other towns. */
 export const otherTowns = (towns: Listed[]): Listed[] => towns.filter((l) => !l.here);
 
+/** A point on Explore's small map: named, or a dot alone when `name` is null. */
+export interface AreaPin {
+  id: string;
+  at: LngLat;
+  name: string | null;
+  selected: boolean;
+}
+
+/**
+ * The map's area points, of one level only (fix map-levels): the selected area's, else neighborhoods.
+ * A town's point among its neighborhoods, or a neighborhood among towns, drew names over each other.
+ * The nearest `named` of the level are named, and the selected one; the rest are dots.
+ */
+export function areaPins(listed: Listed[], selected: string | null, named: number): AreaPin[] {
+  const level: AtlasLevel = listed.find((l) => l.area.key === selected)?.area.level ?? 'neighborhood';
+  const same = listed.filter((l) => l.area.level === level);
+  const near = new Set(same.slice(0, named).map((l) => l.area.key));
+  return same.map((l) => ({ id: l.area.key, at: l.area.at, name: near.has(l.area.key) || l.area.key === selected ? l.area.name : null, selected: l.area.key === selected }));
+}
+
 /**
  * How the marks work, in words (atlas round 3, AG4): presence, never a count of
  * places, the same everywhere, and what each kind counts.
