@@ -261,7 +261,9 @@ export default function Explore() {
   const pointsOf = useMemo(() => (town ? [{ area: town, distanceM: 0, here: false }, ...neighborhoods] : neighborhoods), [town, neighborhoods]);
   const points = useMemo(() => pointsOf.map((l) => l.area.at), [pointsOf]);
   // Only the selected area's level is drawn, so a town's name and its neighborhoods' never overlay (fix map-levels).
-  const areaPoints = useMemo<AreaPointPin[]>(() => areaPins(shown, selected, NAMED_POINTS), [shown, selected]);
+  const areaPoints = useMemo<AreaPointPin[]>(() => areaPins(shown, selected, NAMED_POINTS, !!town), [shown, selected, town]);
+  // A tap protects only the points drawn (fix map-levels audit 3).
+  const pinAts = useMemo(() => areaPoints.map((p) => p.at), [areaPoints]);
   const sel = shown.find((l) => l.area.key === selected) ?? null;
   // Map layers (ML3-ML9): what is drawn over the base map, one setting for every map, around the selected area else around you.
   const layers = useLayers();
@@ -463,7 +465,7 @@ export default function Explore() {
             // A tap closes the long press's choices; with none open, it clears the selection (DN9),
             // only away from every area's point: a tap on the selected dot keeps it (audit 6).
             if (spot) setSpot(null);
-            else if (tapClears(at, radiusM, points)) {
+            else if (tapClears(at, radiusM, pinAts)) {
               setSelected(null);
             }
           }}
