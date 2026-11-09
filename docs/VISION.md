@@ -129,3 +129,4 @@ same argument is not had twice.
 | 0099 | The found tally is removed: a place's sheet names its finds and never counts them (answers open question 6, Nov 5) |
 | 0103 | A static places archive in the chronicles-data repo, read by tile; significance is a gate, never a measure; Curiosities are a kind of "Viewpoints & oddities"; reverses 0084's "no host" (reshaped at the gate, Nov 5) |
 | 0104 | Listed places enter when remarkable and public: a listing is the gate, reachable from public ground the bar, never a mundane building or a closed place on a listing alone, a Landmark house excepted; the archive reads OpenStreetMap's tags; attractions pinned; Overture stays for busy streets (reshaped at the gate, Nov 9) |
+| 0105 | The slice's calls: OpenStreetMap only corroborates; the new kind is "Buildings and structures", never named for significance; passed places whisper as the card says them; reachability is said ("No street or path close by"), never a filter |

@@ -110,6 +110,20 @@ recording bar brings a minimized walk back.
   a kind of "Viewpoints & oddities" in What I'm into, on by default. Nothing
   is ranked or counted; a place shows only while its sources say it exists.
   Built; the app reads the archive once its address is set (PW16).
+- **Remarkable and public** (decisions 0104, 0105): the archive also takes a
+  National Register listing when the place is public: its type is public by
+  nature (places of worship, cemeteries, civic buildings, stations, bridges,
+  dams, mills, factories, furnaces, lighthouses, forts), or a source shows it
+  open to visitors (a museum), or it is a National Historic Landmark. A listed
+  house, school, office or hotel without one of those stays out, and a place
+  OpenStreetMap marks private never enters. Listed churches are Historic
+  churches; other listed buildings and structures are a new kind, "Buildings
+  and structures", on by default. Attractions in the map stay places to find,
+  and the National Aviary joins them. A place to find with no street or path
+  within 60 m says "No street or path close by" on its card; nothing is hidden
+  for it. The replay whispers one or two passed places by name, more as "a few
+  places". `npm run places:coverage` measures what the app keeps of a town's
+  destinations, for the owner.
 
 ### Navigate (during)
 

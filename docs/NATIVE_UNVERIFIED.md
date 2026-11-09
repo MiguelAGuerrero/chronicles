@@ -320,6 +320,11 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** with PLACES_BASE set, take an exploring walk past a curiosity in the archive. **Expect:** it shows as a "?" and is named within 60 m, as any mark.
 - [ ] **Do:** take a quiet walk past a curiosity with the screen off, and take a photo beside it. **Expect:** the replay names it as found.
 
+## Remarkable and public (RP1-RP20, decisions 0104, 0105)
+
+- [ ] **Do:** on a phone, take an exploring walk and open the card of a place to find that stands more than 60 m from any street or path (a building set back in a park), then one beside a street. **Expect:** the first card says "No street or path close by" under its name, the second says nothing of the kind, and both places can still be found (RP20).
+- [ ] **Do:** on a phone, open the walk's drawer with Explore on. **Expect:** "What I'm into" lists Buildings and structures after Monuments and ruins, switched on (RP18).
+
 ## Wrapped map names (fix long-names)
 
 - [ ] **Do:** on a phone, find a mark, a star and an Explore area point with a name over 20 characters (e.g. "Lopes International Park and gardens"), and a busy-street name that long. **Expect:** each name wraps onto further lines at 140/160 pt, centred, with no "…"; lines 2 and up are not clipped by the marker's box on iOS or Android; the pin stays on its point; a wrapped busy-street label stays near its street.
