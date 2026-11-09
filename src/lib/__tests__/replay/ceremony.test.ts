@@ -399,7 +399,7 @@ test('RR15: a passed place whispers as the walker reaches it, without slowing it
   assert.ok(first.walker && distanceM(first.walker, at(300, 0)) < 40, 'it comes as the walker reaches the place');
 });
 
-test('RP19: a replay past many places whispers once, as the card says it', { todo: 'test first' }, () => {
+test('RP19: a replay past many places whispers once, as the card says it', () => {
   const ab = line(A, B, 0);
   const note = cap('text', endT(ab), B, 'x');
   const pass = (name: string, i: number) => ({ name, generic: false, at: at(100 + i * 50, 30), t: ab[10 + i * 8].t });

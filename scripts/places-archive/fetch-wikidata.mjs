@@ -6,10 +6,10 @@
 //
 //   node scripts/places-archive/fetch-wikidata.mjs --region us --out items.jsonl
 //
-// Writes one JSON object per line: {id, name, lon, lat, p31, nhl, dissolved, closed, states}. Nothing
+// Writes one JSON object per line: {id, name, lon, lat, p31, listed, nhl, dissolved, closed, states}. Nothing
 // about articles or popularity (sitelinks, page views) is ever asked for (PW7).
 import { appendFileSync, writeFileSync } from 'node:fs';
-import { ALL_CLASS_IDS, NHL } from './classify.mjs';
+import { ALL_CLASS_IDS, NHL, NRHP } from './classify.mjs';
 
 const ENDPOINT = 'https://query.wikidata.org/sparql';
 const AGENT = 'Chronicles places build (+github.com/MiguelAGuerrero/chronicles; weekly, one query at a time)';
@@ -33,20 +33,21 @@ export function splitCell([w, s, e, n]) {
   return [[w, s, mx, my], [mx, s, e, my], [w, my, mx, n], [mx, my, e, n]];
 }
 
-/** PW14: one cell's query: the pinned classes or a heritage listing, in the US, with what says a place is gone. */
+/** PW14, RP10: one cell's query: the pinned classes, a National Register listing or a Landmark, in the US, with what says a place is gone. */
 export function cellQuery([w, s, e, n]) {
   const classes = ALL_CLASS_IDS.map((q) => `wd:${q}`).join(' ');
-  return `SELECT ?item ?label ?coord ?p31 ?nhl ?dissolved ?closed ?stateLabel WHERE {
+  return `SELECT ?item ?label ?coord ?p31 ?nhl ?listed ?dissolved ?closed ?stateLabel WHERE {
   SERVICE wikibase:box {
     ?item wdt:P625 ?coord .
     bd:serviceParam wikibase:cornerSouthWest "Point(${w} ${s})"^^geo:wktLiteral .
     bd:serviceParam wikibase:cornerNorthEast "Point(${e} ${n})"^^geo:wktLiteral .
   }
-  { VALUES ?cls { ${classes} } ?item wdt:P31 ?cls . } UNION { ?item wdt:P1435 wd:${NHL} . }
+  { VALUES ?cls { ${classes} } ?item wdt:P31 ?cls . } UNION { ?item wdt:P1435 wd:${NHL} . } UNION { ?item wdt:P1435 wd:${NRHP} . }
   ?item wdt:P17 wd:Q30 .
   ?item rdfs:label ?label . FILTER(LANG(?label) = "en")
   OPTIONAL { ?item wdt:P31 ?p31 . }
   OPTIONAL { ?item wdt:P1435 wd:${NHL} . BIND("true" AS ?nhl) }
+  OPTIONAL { ?item wdt:P1435 wd:${NRHP} . BIND("true" AS ?listed) }
   OPTIONAL { ?item wdt:P576 ?dissolved . }
   OPTIONAL { ?item wdt:P3999 ?closed . }
   OPTIONAL { ?item (wdt:P5817|wdt:P5816) ?state . ?state rdfs:label ?stateLabel . FILTER(LANG(?stateLabel) = "en") }
@@ -63,11 +64,12 @@ export function itemsFrom(bindings) {
     let it = byId.get(id);
     if (!it) {
       const m = /Point\(([-\d.eE]+) ([-\d.eE]+)\)/.exec(b.coord?.value ?? '');
-      it = { id, name: b.label?.value ?? '', lon: m ? Number(m[1]) : NaN, lat: m ? Number(m[2]) : NaN, p31: [], nhl: false, dissolved: false, closed: false, states: [] };
+      it = { id, name: b.label?.value ?? '', lon: m ? Number(m[1]) : NaN, lat: m ? Number(m[2]) : NaN, p31: [], listed: false, nhl: false, dissolved: false, closed: false, states: [] };
       byId.set(id, it);
     }
     if (b.p31 && !it.p31.includes(qid(b.p31.value))) it.p31.push(qid(b.p31.value));
     if (b.nhl) it.nhl = true;
+    if (b.listed) it.listed = true;
     if (b.dissolved) it.dissolved = true;
     if (b.closed) it.closed = true;
     if (b.stateLabel && !it.states.includes(b.stateLabel.value)) it.states.push(b.stateLabel.value);

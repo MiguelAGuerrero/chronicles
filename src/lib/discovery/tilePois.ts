@@ -48,7 +48,8 @@ const POI: Record<string, Rule[]> = {
   cinema: [['*', 'culture']],
   attraction: [[['viewpoint', 'attraction'], 'viewpoints']],
   aquarium: [['*', 'viewpoints']],
-  zoo: [[['zoo'], 'viewpoints']],
+  // RP15: the National Aviary is OSM's zoo=aviary (the owner, Nov 9).
+  zoo: [[['zoo', 'aviary'], 'viewpoints']],
   theme_park: [['*', 'viewpoints']],
   bar: [[['bar', 'nightclub'], 'nightlife']],
   beer: [[['pub', 'biergarten'], 'nightlife']],

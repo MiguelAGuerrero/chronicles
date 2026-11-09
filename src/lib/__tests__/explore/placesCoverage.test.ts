@@ -5,7 +5,7 @@ import { test } from 'node:test';
 // Remarkable and public, RP17: the coverage benchmark's pure parts. Written before the code.
 const later = (path: string): Promise<Record<string, unknown>> => import(String(path));
 
-test('RP17: the benchmark matches a Wikidata item to a place and names why a miss was missed', { todo: 'test first' }, async () => {
+test('RP17: the benchmark matches a Wikidata item to a place and names why a miss was missed', async () => {
   const m = await later('../../../../scripts/places-archive/coverage.mjs') as {
     isDestination: (item: { p31: string[]; listed?: boolean; nhl?: boolean; dissolved?: boolean; links?: number }) => boolean;
     outcome: (item: { name: string; at: [number, number] }, seen: { places: { name: string; at: [number, number]; mark: boolean }[]; raw: { name: string; at: [number, number] }[] }) => string;

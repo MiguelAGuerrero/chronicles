@@ -28,7 +28,12 @@ export const ARCHIVE_CLASSES: Record<string, readonly [CategoryId, Kind]> = {
   sculpture: ['art', 'public_art'],
   overlook: ['viewpoints', 'viewpoints'],
   tower: ['viewpoints', 'viewpoints'],
-  heritage_building: ['history', 'monuments'],
+  // RP8 (decision 0104): listed places by type; a listed building or structure of any other type is Buildings and structures.
+  church: ['history', 'churches'],
+  cemetery: ['history', 'cemeteries'],
+  theatre: ['culture', 'theatres'],
+  museum: ['culture', 'museums'],
+  heritage_building: ['history', 'structures'],
 };
 
 /** One archive place as the app's `Place`: a mark of its class's kind, tagged with the archive's version. */

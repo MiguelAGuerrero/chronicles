@@ -1,6 +1,11 @@
 // The places archive's classes and gate (Places worth the stop, PW5-PW7, decision 0103). Each class is a fixed
 // list of Wikidata classes (P31 values), pinned from a lookup on 2026-11-06: never a judgment at run time. The
 // class names are the app's vocabulary (`src/lib/discovery/archivePois.ts` ARCHIVE_CLASSES); a test keeps them in it.
+// Listed places (Remarkable and public, RP1-RP8, decision 0104) take their types from `public-types.json`, pinned by
+// `pin-types.mjs` on Nov 9.
+import { createRequire } from 'node:module';
+
+const TYPES = createRequire(import.meta.url)('./public-types.json');
 
 /** PW6: the order a place is classified in: it commemorates; it was made as art; you look out from it; it is odd. */
 export const ORDER = [
@@ -36,23 +41,56 @@ export const CLASSES = {
 
 /** National Historic Landmark, as a heritage designation (P1435): 2,522 uses on 2026-11-06. */
 export const NHL = 'Q624232';
+/** National Register of Historic Places listing, as a heritage designation (P1435): the owner's Nov 9 call (RP1). */
+export const NRHP = 'Q19558910';
 /** Historic district (P31): an area, never a place, so never a heritage building (the owner, Nov 6). */
 export const DISTRICT = 'Q15243209';
 
 /** Every Wikidata class the fetch asks for. */
 export const ALL_CLASS_IDS = [...new Set(Object.values(CLASSES).flat())].sort();
 
+const GROUPS = Object.fromEntries(Object.entries(TYPES.groups).map(([g, ids]) => [g, new Set(ids)]));
+const inGroup = (p31, g) => [...p31].some((q) => GROUPS[g].has(q));
+
+/** RP2: OpenStreetMap tags that show a place open to visitors; `historic=building` and the like are no sign. */
+export const OPEN_TAGS = {
+  tourism: ['museum', 'attraction', 'gallery'],
+  historic: ['monument', 'memorial', 'castle', 'ruins', 'fort', 'archaeological_site'],
+  amenity: ['place_of_worship', 'theatre', 'arts_centre', 'library', 'townhall', 'courthouse'],
+};
+/** RP5: OpenStreetMap's word that a place can't be reached. */
+export const CLOSED_ACCESS = ['private', 'no'];
+
 /**
- * PW6: the archive class of a Wikidata item {p31: [Q…], heritage, nhl, article}: the first in ORDER whose list holds
- * one of its classes; else a heritage building, only when it is a National Historic Landmark (the owner, Nov 6: a
- * plain listing is left out, and an English Wikipedia article is no sign, as nearly every listing has one). A
- * historic district is never one. Else null.
+ * RP1-RP4, RP8: a listed item's class and why it enters, or null. Listed is the National Register or a Landmark.
+ * By type first (a place of worship, a cemetery, a theatre, a museum, then any public type); else shown open (an open
+ * type, or OSM's tags); else a Landmark, whatever its type (the owner, Nov 9: a private Landmark house too). A
+ * mundane type (a house, a school, an office, a hotel) is never public by type (`pin-types.mjs`).
+ * @param {{ p31?: string[], listed?: boolean, nhl?: boolean }} item
+ * @param {{ open?: boolean }} [signals]
+ * @returns {{ cls: string, reason: 'public type' | 'shown open' | 'landmark' } | null}
  */
-export function classify(item) {
+export function listing(item, signals = {}) {
+  if (!item.listed && !item.nhl) return null;
+  const p31 = new Set(item.p31 ?? []);
+  if (p31.has(DISTRICT)) return null;
+  for (const cls of ['church', 'cemetery', 'theatre']) if (inGroup(p31, cls)) return { cls, reason: 'public type' };
+  if (inGroup(p31, 'museum')) return { cls: 'museum', reason: 'shown open' };
+  if (inGroup(p31, 'public')) return { cls: 'heritage_building', reason: 'public type' };
+  if (inGroup(p31, 'open') || signals.open) return { cls: 'heritage_building', reason: 'shown open' };
+  if (item.nhl) return { cls: 'heritage_building', reason: 'landmark' };
+  return null;
+}
+
+/**
+ * PW6: the archive class of a Wikidata item {p31: [Q…], listed, nhl}: the first in ORDER whose list holds one of
+ * its classes (a listing never changes it, RP8); else, for a listed item, its class by RP1-RP4 (`listing`). A
+ * historic district is never one (RP6). Nothing about articles is read (the owner, Nov 6). Else null.
+ */
+export function classify(item, signals = {}) {
   const p31 = new Set(item.p31 ?? []);
   for (const cls of ORDER) if (CLASSES[cls].some((q) => p31.has(q))) return cls;
-  if (p31.has(DISTRICT)) return null;
-  return item.nhl ? 'heritage_building' : null;
+  return listing(item, signals)?.cls ?? null;
 }
 
 /**
@@ -69,13 +107,16 @@ export function gone(item, cls = null) {
 }
 
 /**
- * PW7: the place's archive class if it enters the archive, else null. A class from the table and a location are
+ * PW7, RP5: the place's archive class if it enters the archive, else null; `signals` are OpenStreetMap's word on it
+ * (RP7: joined by its wikidata tag only). A class from the table and a location are
  * required; a Wikidata entry with a location is enough (the owner, Nov 5); a place that is gone is left out.
  * Never a count: no sitelinks, page views or rank are read.
  */
-export function keep(item) {
+export function keep(item, signals = {}) {
   if (!Number.isFinite(item.lon) || !Number.isFinite(item.lat)) return null;
   if (!String(item.name ?? '').trim()) return null;
-  const cls = classify(item);
+  // RP5: a place OpenStreetMap marks private or closed to access never enters, a Landmark too.
+  if (signals.closed) return null;
+  const cls = classify(item, signals);
   return cls && !gone(item, cls) ? cls : null;
 }
