@@ -3,6 +3,7 @@ import { hoodAllowed, townAt, withOutlines, type OutlineSet } from '../areas/out
 import type { AreaLevel, PlaceCandidate } from '../areas/types';
 import { categoryOf } from '../discovery/categories';
 import { isMarkable } from '../discovery/noise';
+import { keepFindKeys } from '../discovery/archiveMerge';
 import { isOffered } from '../discovery/places';
 import type { CategoryId, Kind, Place } from '../discovery/types';
 import { distanceM, nearPoints, projector } from '../geo';
@@ -59,6 +60,8 @@ export const KINDS: readonly KindInfo[] = [
   { id: 'cemeteries', label: 'Cemeteries', icon: 'rose-outline' },
   { id: 'parks', label: 'Parks and gardens', icon: 'leaf-outline' },
   { id: 'viewpoints', label: 'Viewpoints and attractions', icon: 'eye-outline' },
+  // PW4: follies, roadside giants, natural oddities and the like, from the places archive (decision 0103).
+  { id: 'curiosities', label: 'Curiosities', icon: 'telescope-outline' },
 ];
 
 export const kindOf = (id: Kind): KindInfo => KINDS.find((k) => k.id === id) ?? KINDS[0];
@@ -73,6 +76,8 @@ export interface ChecklistArea {
   build: string;
   built_at: number;
   count: number;
+  /** The places archive version it was built with, or null without one (PW12); missing on rows from before. */
+  archive: string | null;
 }
 
 /** One attraction on a checklist: a snapshot of the place, so a cache purge leaves it whole (E13). */
@@ -158,6 +163,14 @@ export function areaFor(at: LngLat, candidates: PlaceCandidate[], outlines: Outl
 const covers = (centre: LngLat, c: PlaceCandidate) => distanceM(centre, c.at) + coverM(c) <= EXPLORE_RULES.readM + 1;
 
 /**
+ * PW12: an area built without the places archive while this read has one, or with an older version, is rebuilt.
+ * With no archive in this read (offline, outside every region), what was built stays.
+ */
+export function archiveStale(builtWith: string | null | undefined, now: string | null): boolean {
+  return now != null && (builtWith ?? null) !== now;
+}
+
+/**
  * One read's checklists (E2, E3): each attraction (markable, with a kind)
  * goes to its area; only areas the read saw whole are built, with 0 when they
  * hold nothing, so they aren't read again. Places no area reaches are kept as
@@ -176,6 +189,10 @@ export function buildChecklists(o: {
   known?: PlaceCandidate[];
   /** Town borders read around the centre (TO11): an outline-only town gets a list too. */
   outlines?: OutlineSet | null;
+  /** The places archive version this read used, or null (PW12). */
+  archive?: string | null;
+  /** Finds so far: a place matching one keeps its key (places-worth-the-stop audit 1-2). */
+  finds?: Pick<Find, 'key' | 'name' | 'at'>[];
 }): { areas: ChecklistArea[]; items: ChecklistItem[] } {
   const built = o.built ?? [];
   const outlines = o.outlines ?? null;
@@ -186,10 +203,10 @@ export function buildChecklists(o: {
     if ((c.level !== 'neighborhood' && c.level !== 'town') || !covers(o.centre, c)) continue;
     if (built.some((b) => sameArea(b, c))) continue;
     const ref: AreaRef = { level: c.level, name: c.name, at: c.at };
-    areas.set(checklistKey(ref), { key: checklistKey(ref), ...ref, build: o.build, built_at: o.now, count: 0 });
+    areas.set(checklistKey(ref), { key: checklistKey(ref), ...ref, build: o.build, built_at: o.now, count: 0, archive: o.archive ?? null });
   }
   const items: ChecklistItem[] = [];
-  for (const p of o.places) {
+  for (const p of keepFindKeys(o.places, o.finds ?? [])) {
     if (!p.kind || !isMarkable(p)) continue;
     // A place keyed twice (it straddles a rounding line) is one place.
     if (isOffered(p, items)) continue;
@@ -215,16 +232,18 @@ export function buildChecklists(o: {
 export function readCentre(o: {
   fix: LngLat;
   candidates: PlaceCandidate[];
-  areas: Pick<ChecklistArea, 'level' | 'name' | 'at' | 'build'>[];
+  areas: (Pick<ChecklistArea, 'level' | 'name' | 'at' | 'build'> & { archive?: string | null })[];
   reads: Pick<ExploreRead, 'centre' | 'build'>[];
   build: string;
   outlines?: OutlineSet | null;
+  /** The places archive version known here (audit 3): an area built with an older one, or none, is read again. */
+  archive?: string | null;
 }): LngLat | null {
   const near = o.reads.some((r) => r.build === o.build && distanceM(r.centre, o.fix) <= EXPLORE_RULES.rereadM);
   if (!near) return o.fix;
   const ref = areaFor(o.fix, uniqueAreas(o.candidates), o.outlines ?? null);
   if (!ref) return null;
-  return o.areas.some((a) => a.build === o.build && sameArea(a, ref)) ? null : ref.at;
+  return o.areas.some((a) => a.build === o.build && !archiveStale(a.archive, o.archive ?? null) && sameArea(a, ref)) ? null : ref.at;
 }
 
 /** After a failed read, the next waits 2 min and 100 m walked (E5). */

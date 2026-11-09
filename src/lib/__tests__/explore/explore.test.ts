@@ -55,10 +55,10 @@ const item = (name: string, at: LngLat, kind: Kind = 'museums', area_key = 'A'):
 
 // ——— Kinds (E16) ———
 
-test('E16: eight kinds, in the settings order', () => {
+test('E16, PW4: nine kinds, in the settings order (Curiosities joined with Places worth the stop)', () => {
   assert.deepEqual(
     KINDS.map((k) => k.id),
-    ['public_art', 'museums', 'theatres', 'monuments', 'churches', 'cemeteries', 'parks', 'viewpoints'],
+    ['public_art', 'museums', 'theatres', 'monuments', 'churches', 'cemeteries', 'parks', 'viewpoints', 'curiosities'],
   );
 });
 
@@ -165,7 +165,7 @@ test('E16: places without a kind (cached before kinds) are left out', () => {
 // ——— When to read (E2, E4, E5) ———
 
 const area = (name: string, at: LngLat, build = 'b1'): ChecklistArea => ({
-  key: checklistKey({ level: 'neighborhood', name, at }), level: 'neighborhood', name, at, build, built_at: 1, count: 3,
+  key: checklistKey({ level: 'neighborhood', name, at }), level: 'neighborhood', name, at, build, built_at: 1, count: 3, archive: null,
 });
 
 test('E2: no read when the fix is in an area with a current checklist and a read covers it', () => {

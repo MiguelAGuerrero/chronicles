@@ -10,7 +10,7 @@ export type FindRow = Omit<ItemRow, 'area_key'> & { area_key: string | null; wal
 export type ReadRow = { key: string; lon: number; lat: number; build: string; read_at: number; candidates: string };
 
 export const areaToRow = ({ at, ...a }: ChecklistArea): AreaRow => ({ ...a, lon: at[0], lat: at[1] });
-export const areaFromRow = ({ lon, lat, ...r }: AreaRow): ChecklistArea => ({ ...r, at: [lon, lat] });
+export const areaFromRow = ({ lon, lat, ...r }: AreaRow): ChecklistArea => ({ ...r, archive: r.archive ?? null, at: [lon, lat] });
 
 export const itemToRow = ({ at, generic, ...i }: ChecklistItem): ItemRow => ({ ...i, lon: at[0], lat: at[1], generic: generic ? 1 : 0 });
 export const itemFromRow = ({ lon, lat, generic, ...r }: ItemRow): ChecklistItem => ({ ...r, at: [lon, lat], generic: generic === 1 });

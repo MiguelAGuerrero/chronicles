@@ -214,6 +214,10 @@ const MIGRATIONS = [
   `
   ALTER TABLE walk_tile ADD COLUMN junctions TEXT;
   `,
+  // 21: places worth the stop (PW12): the places archive version a checklist area was built with (null before).
+  `
+  ALTER TABLE checklist_area ADD COLUMN archive TEXT;
+  `,
 ];
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
@@ -542,8 +546,8 @@ export const db: Db = {
       for (const a of areas) {
         const r = areaToRow(a);
         await t.runAsync(
-          'INSERT OR REPLACE INTO checklist_area (key, level, name, lon, lat, build, built_at, count) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-          r.key, r.level, r.name, r.lon, r.lat, r.build, r.built_at, r.count,
+          'INSERT OR REPLACE INTO checklist_area (key, level, name, lon, lat, build, built_at, count, archive) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          r.key, r.level, r.name, r.lon, r.lat, r.build, r.built_at, r.count, r.archive ?? null,
         );
       }
       const r = readToRow(read);

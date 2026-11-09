@@ -318,6 +318,11 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** choose a loop, Start, and walk it, skipping one of its stops. **Expect:** the walk opens ready saying distance only, with no time left on the bar or in the announcements; it does not arrive at once; a skipped stop is let go and the quiet re-route does not pull back to it; it arrives once you are back where you began. (WP9, WP21, WP25, KW7b)
 - [ ] **Do:** with a walk already recording and a destination set, Start a route from the planner. **Expect:** that walk is routed (no second walk starts) and the earlier destination is replaced. (WP19)
 
+## Places worth the stop (PW1-PW19, decision 0103)
+
+- [ ] **Do:** install a build with SQLite migration 21 over one that has Explore checklists, then open Explore. **Expect:** the app opens with no error, and the old areas' checklists still show their finds.
+- [ ] **Do:** with PLACES_BASE set, take an exploring walk past a curiosity in the archive. **Expect:** it shows as a "?" and is named within 60 m, as any mark.
+- [ ] **Do:** take a quiet walk past a curiosity with the screen off, and take a photo beside it. **Expect:** the replay names it as found.
 
 ## Wrapped map names (fix long-names)
 

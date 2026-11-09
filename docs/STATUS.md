@@ -153,6 +153,7 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 
 | Session | Branch | Doing |
 |---|---|---|
+| Places worth the stop (curiosities and the places archive, PW1-PW19, decision 0103) | `claude/places-archive` | built 2026-11-06: PW1-PW19 tested (1399 unit tests with main's; journeys curiosities, marks, atlas); audited (10 findings: 7 fixed, the rest deferred). Its tests came with the code; on Nov 9 the owner had the branch rebuilt from `claude/places-archive-decision` with the todos committed first, so the history's test-first order was made after the code was written. Not live until PW16 sets the address; native unverified |
 | Bug fixes (open since Oct 31) | unknown | unknown |
 | Memories in context and under your control (MC1-MC16: place, time of day and minutes in; Hidden, a switch, Forget; Lately newest first) | `claude/memories-context` | built 2026-11-05: unit tests, typecheck, lint and the `resurface` e2e pass; spec `specs/memories-context/spec.md`; native unverified; audited 2026-11-05 (24 findings: 23 fixed, one in part; 1 rejected) |
 | Resurfaced moments (Chronicle opens on Memories, RM1-RM25, decision 0098) | `claude/resurfaced-moments-spec`, merged to main 2026-11-05 (`aac7d9d`) | shipped 2026-11-05: unit tests, typecheck, lint and the e2e journeys `resurface`, `chronicle`, `tabs`, `launch`, `qol`, `reload`, `replay`, `walk`, `gaps` pass on the /chronicles build; Pages run 125 succeeded; native unverified; audited 2026-11-05 (16 findings: 12 fixed, 3 deferred, 1 rejected); spec `specs/resurfaced-moments/spec.md` |
