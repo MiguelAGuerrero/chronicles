@@ -27,6 +27,6 @@ test('RM17: a moment of a walk still open, or of a walk that is gone, is left ou
 
 test('RM18: the From line names the walk, else the part of the day; none for a moment on its own', () => {
   assert.equal(fromLine(walk({ title: 'Sunday by the river' })), 'From Sunday by the river');
-  assert.match(fromLine(walk({}))!, /^From \w+ \w+ in Fox Point$/);
+  assert.match(fromLine(walk({}))!, /^From \w+ \w+ walk$/, 'no town: the arrival line carries the place');
   assert.equal(fromLine(undefined), null);
 });

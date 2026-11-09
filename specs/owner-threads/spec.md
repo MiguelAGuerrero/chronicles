@@ -1,4 +1,4 @@
-<!-- Repo first: written from the owner's request in a session (Nov 5-6), not yet a tab of the concept doc (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7). The owner's calls are decision 0102. -->
+<!-- Repo first: written from the owner's request in a session (Nov 5-6), not yet a tab of the concept doc (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7). The owner's calls are decision 0104. -->
 
 # Owner threads: respond to a moment, connect moments across walks
 
@@ -10,13 +10,13 @@ Back in an area where moments were kept, the owner wants to answer one, and to c
 
 Idea: Respond to a moment, and connect moments across walks into threads the owner makes, kept separate from the moments and from the Chronicle's own suggestions.
 Verb: return (it gives moments back as a thread across days and places), honour (a reply is a new moment, kept where and when it happened, in context).
-Touches: Never "Celebration" and "Nagging" (no new-reply cue, no unread mark, no pill beyond the neutral Undo); Always "Moments and the trace are truth"; Always "A moment carries its context"; Always "Counts are words"; Never "Tallies such as '12 of 87'"; Never "Scores, streaks, completion, coverage"; Never "A capture behind a menu, a drawer or an extra tap"; Never "Writing the owner's words for them"; Never "Data leaving the device without a tap"; precedents 0098 (derived threads), 0037 (memories on revisit), 0102 (this slice's decision).
+Touches: Never "Celebration" and "Nagging" (no new-reply cue, no unread mark, no pill beyond the neutral Undo); Always "Moments and the trace are truth"; Always "A moment carries its context"; Always "Counts are words"; Never "Tallies such as '12 of 87'"; Never "Scores, streaks, completion, coverage"; Never "A capture behind a menu, a drawer or an extra tap"; Never "Writing the owner's words for them"; Never "Data leaving the device without a tap"; precedents 0098 (derived threads), 0037 (memories on revisit), 0104 (this slice's decision).
 Verdict: aligned if reshaped
 Shape: A moment is unchanged. `thread`, `thread_member` and a directed `moment_link` are separate stored records. A thread arises only from connecting existing moments and dissolves below two. A reply is a new moment that joins the thread. The Chronicle's suggestions stay computed and independent.
 Criteria: OT1 (capture stays one tap), OT4 and OT9 (context on every moment), OT6 (no thread without two kept moments), OT10 (size in words), OT13 (the name is the owner's), OT14-OT17 (deletes), OT18 (truth), OT19 (the two kinds stay independent), OT20 (nothing leaves the device).
-Open: none (OT23 and OT24 answered Nov 6). The reasons rest on decision 0102, not on VISION.md's **[proposed]** line, which the owner has yet to edit.
+Open: none (OT23 and OT24 answered Nov 6). The reasons rest on decision 0104, not on VISION.md's **[proposed]** line, which the owner has yet to edit.
 
-## Decisions (the owner's calls, Nov 5-6, decision 0102)
+## Decisions (the owner's calls, Nov 5-6, decision 0104)
 
 - A moment is a node and gets no new field. Linking or unlinking never edits it.
 - Three stored records: `thread (id, name nullable, created_at)`, `thread_member (thread_id, moment_id, added_at)`, `moment_link (from_id, to_id, created_at)`. A moment may be in several threads.

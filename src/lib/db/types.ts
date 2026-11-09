@@ -49,7 +49,7 @@ export interface Db {
   deleteCaptures(ids: string[], opts?: { keepFinds?: boolean }): Promise<void>;
 
   /**
-   * The owner's threads (OT18, decision 0102): threads, memberships and replies. Truth, never derived; a moment's
+   * The owner's threads (OT18, decision 0104): threads, memberships and replies. Truth, never derived; a moment's
    * own row is never touched by them.
    */
   listThreads(): Promise<ThreadsData>;

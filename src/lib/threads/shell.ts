@@ -22,7 +22,7 @@ export interface ThreadDeleteJob {
 }
 
 /**
- * Owner threads (specs/owner-threads, decision 0102): reads and writes the owner's threads, memberships and replies.
+ * Owner threads (specs/owner-threads, decision 0104): reads and writes the owner's threads, memberships and replies.
  * A moment is never touched. The Chronicle's own threads (`lib/resurface`) are a separate, computed thing; nothing
  * here reads them (OT19).
  */

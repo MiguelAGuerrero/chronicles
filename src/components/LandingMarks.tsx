@@ -5,7 +5,7 @@ import { HOTSPOT_INK } from './map/types';
 export function StripLabel({ name }: { name: string }) {
   return (
     <View style={styles.labelWrap} pointerEvents="none">
-      <Text style={styles.label} numberOfLines={1}>{name}</Text>
+      <Text style={styles.label}>{name}</Text>
     </View>
   );
 }
@@ -14,7 +14,7 @@ const LABEL_W = 160;
 const styles = StyleSheet.create({
   labelWrap: { width: LABEL_W, alignItems: 'center' },
   label: {
-    maxWidth: LABEL_W, fontSize: 13, fontWeight: '800', color: HOTSPOT_INK,
+    maxWidth: LABEL_W, textAlign: 'center', fontSize: 13, fontWeight: '800', color: HOTSPOT_INK,
     textShadowColor: '#ffffff', textShadowRadius: 3,
   },
 });

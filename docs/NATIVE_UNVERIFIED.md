@@ -297,10 +297,16 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** open a thread, then press Android's Back. **Expect:** Back returns to the rail; today it leaves Chronicle instead, a known gap (audit 14, deferred). (RM15)
 - [ ] **Do:** make a choice (Not this one), force-quit, and reopen. **Expect:** the choice is kept: that moment is not brought back (`resurface_prefs` through the write queue). (RM21)
 - [ ] **Do:** receive a Remind me here notification with no walk open and tap it. **Expect:** Chronicle opens on Memories and the reminded capture opens at once, playing. (NV13)
+- [ ] **Do:** with several moments from different walks and some made outside a walk, scroll Memories on a phone. **Expect:** each card shows a street and town, or the town alone, or "No place kept"; a walk's moments say how far in they were; the lines appear within a moment of the card, never a wrong place first. (MC1-MC5, MC17)
+- [ ] **Do:** open the header menu, then Hidden, bring one moment back, switch Bring moments back off and on, then Forget my choices. **Expect:** the sheet and the Hidden list open and close cleanly; the quiet line replaces the top card while off; Forget asks once, inside the same sheet. (MC8-MC10)
+- [ ] **Do:** open Hidden and a thread, then press Android's hardware Back. **Expect:** Back returns to Memories; today it leaves the tab, a known gap (memories-context audit, deferred).
+- [ ] **Do:** scroll Lately fast on a phone with a large street cache. **Expect:** each card's place line appears in turn, one read at a time, with no stutter; a read that fails shows no place until you return, then fills in. (MC6, MC17, audit 8)
+- [ ] **Do:** make a moment at 1 am, then look at it the next afternoon. **Expect:** it reads "Late <the evening before> night", not "<today> night". (audit 10)
 
-## Owner threads (OT1-OT24, decision 0102)
 
-- [ ] **Do:** update the app from a build before threads, open a walk with moments, then delete one moment that was in a thread and a whole walk that held two others. **Expect:** the migration to 21 runs once, no thread or link table is missing, the threads those deletes leave thin are gone and the others keep their moments. (OT16, OT17, OT21)
+## Owner threads (OT1-OT24, decision 0104)
+
+- [ ] **Do:** update the app from a build before threads, open a walk with moments, then delete one moment that was in a thread and a whole walk that held two others. **Expect:** the migration to 22 runs once, no thread or link table is missing, the threads those deletes leave thin are gone and the others keep their moments. (OT16, OT17, OT21)
 - [ ] **Do:** open a moment from Lately on a phone and tap Photo, then Voice (and Stop and keep), then Note under Respond. **Expect:** the camera, the mic and the keyboard each open over the viewer's Modal, each reply is kept as a moment of its own with where you are and when, and it joins the answered moment's thread. (OT1, OT2, OT24)
 - [ ] **Do:** open a moment from "Memories here" during a walk, tap Respond's Note and keep a reply. **Expect:** the reply belongs to the walk and shows in its replay; the live memo and the reply's recorder do not collide. (owner-threads audit 11)
 - [ ] **Do:** open a moment in the viewer, then More, Add to a thread, A new thread, search for a word and tap a moment. **Expect:** the picker draws inside the viewer (no second Modal), the keyboard does not hide the rows, and the thread is made. (OT5)
@@ -319,3 +325,12 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** open an area's card on a phone, tap Green, then tap Start this walk. **Expect:** the kind row (a `Pressable`) opens its panel inside the full-screen drawer's scroll; `showWalk()` opens the walk with a destination that carries `via` and `suggested`; the walk bar and announcements say a distance and no time left; walking off the way re-routes quietly through the stops still ahead. (KW1, KW7b, KW12, KW13)
 - [ ] **Do:** tap a kind on a phone's network in an area you never walked. **Expect:** the area's tiles are read at the tap, and the walkability tiles for the way's tiles, with nothing kept; "not known yet" reads when none could be read. (KW10, KW14)
 
+## Places worth the stop (PW1-PW19, decision 0103)
+
+- [ ] **Do:** install a build with SQLite migration 21 over one that has Explore checklists, then open Explore. **Expect:** the app opens with no error, and the old areas' checklists still show their finds.
+- [ ] **Do:** with PLACES_BASE set, take an exploring walk past a curiosity in the archive. **Expect:** it shows as a "?" and is named within 60 m, as any mark.
+- [ ] **Do:** take a quiet walk past a curiosity with the screen off, and take a photo beside it. **Expect:** the replay names it as found.
+
+## Wrapped map names (fix long-names)
+
+- [ ] **Do:** on a phone, find a mark, a star and an Explore area point with a name over 20 characters (e.g. "Lopes International Park and gardens"), and a busy-street name that long. **Expect:** each name wraps onto further lines at 140/160 pt, centred, with no "…"; lines 2 and up are not clipped by the marker's box on iOS or Android; the pin stays on its point; a wrapped busy-street label stays near its street.

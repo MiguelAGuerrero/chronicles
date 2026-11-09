@@ -9,8 +9,8 @@ import type { WalkSource } from './types';
  * 503), times out (504, or a 200 whose remark is a runtime error) or fails before answering (a throw: offline,
  * or a 502 page the browser hides, a body that isn't JSON, or the reader giving up at its deadline): each pauses
  * every request instead of retrying at once, for longer each time in a row, until a good answer comes (WK4; fix
- * overpass-hardening). Another failure (a 400, a 500) is null without a pause and leaves the streak as it is. Every request sent counts toward OVERPASS_SESSION_CAP, which lasts
- * until the app restarts, so a slow Overture (which falls back here, WK1b) can never turn into a flood. Any
+ * overpass-hardening). Another failure (a 400, a 500) is null without a pause and leaves the streak as it is. Every request sent counts toward OVERPASS_SESSION_CAP, which starts
+ * over a day after its window's first request (the owner, Nov 5), so a slow Overture (which falls back here, WK1b) can never turn into a flood. Any
  * failure is `null`, never a tile. One request at a time: the reader's queue guarantees it, and the streak
  * assumes it.
  */
@@ -21,11 +21,14 @@ export const RATE_PAUSE_MS = 60_000;
 export const MAX_PAUSE_MS = 16 * 60_000;
 /** Requests one app session (until a restart) may send, refused ones too: a few full reads (12 tiles each), far under the instance's guidance. */
 export const OVERPASS_SESSION_CAP = 60;
+/** The cap starts over this long after the first request of its window (the owner, Nov 5: daily). */
+export const CAP_WINDOW_MS = 24 * 3600_000;
 
 export function createOverpassSource(o: { fetch: typeof fetch; now: () => number; url?: string }): WalkSource {
   let pausedUntil = 0;
   let strikes = 0;
   let asked = 0;
+  let windowStart = 0;
   const busy = (retryAfter: number | null = null) => {
     strikes++;
     pausedUntil = o.now() + overpassPause(strikes, RATE_PAUSE_MS, MAX_PAUSE_MS, retryAfter);
@@ -33,7 +36,9 @@ export function createOverpassSource(o: { fetch: typeof fetch; now: () => number
   };
   return {
     async read(x, y, signal) {
+      if (asked > 0 && o.now() - windowStart >= CAP_WINDOW_MS) asked = 0;
       if (o.now() < pausedUntil || asked >= OVERPASS_SESSION_CAP) return null;
+      if (asked === 0) windowStart = o.now();
       asked++;
       const r = tileRect(x, y);
       try {

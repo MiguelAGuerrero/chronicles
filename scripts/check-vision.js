@@ -67,7 +67,7 @@ const LEGACY_SPECS = [
   'activity-density', 'affected-checks', 'atlas-grading', 'bridges-and-open-in-maps', 'clearing-walks-and-moments',
   'compass', 'concept', 'discrete-navigation', 'explore-atlas', 'filling-gaps', 'functional-core', 'gap-drawing',
   'media-editing', 'memories-on-revisit', 'moments-and-days', 'motion', 'navigate-ready', 'navigation-and-tabs',
-  'places-worth-the-stop', 'pocket-alert-nudge', 'polish-motion', 'quality-of-life', 'reminder-bell', 'replay-rhythm',
+  'pocket-alert-nudge', 'polish-motion', 'quality-of-life', 'reminder-bell', 'replay-rhythm',
   'rides', 'shells-saved-settings', 'test-gaps', 'test-organization', 'town-borders', 'town-outlines', 'town-presence',
   'v0.5-places', 'v1-discovery', 'v1.5-landing', 'walkability', 'walkability-headsup',
 ];

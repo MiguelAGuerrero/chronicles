@@ -64,8 +64,8 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
   const gap = (walk_id: string, t0: number, state: GapDecision['state'] = 'kept'): GapDecision => ({
     walk_id, t0, t1: t0 + 10, state, path: [[LON, LAT], [LON + 0.001, LAT]], length_m: 80, street: null, decided_at: t0 + 20,
   });
-  const checklistArea = (key: string, count = 1, build = 'b1'): ChecklistArea => ({
-    key, level: 'neighborhood', name: key, at: [LON, LAT], build, built_at: 1, count,
+  const checklistArea = (key: string, count = 1, build = 'b1', archive: string | null = null): ChecklistArea => ({
+    key, level: 'neighborhood', name: key, at: [LON, LAT], build, built_at: 1, count, archive,
   });
   const item = (key: string, area_key: string | null, at: [number, number] = [LON, LAT]): ChecklistItem => ({
     key, area_key, name: key, category: 'art', kind: 'public_art', at, generic: false,
@@ -643,6 +643,14 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(keys(await db.listExploreReads()), ['r1', 'r2']);
       await db.saveChecklists({ areas: [], items: [], read: read('r1', 9) });
       assert.deepEqual((await db.listExploreReads()).map((r) => `${r.key}@${r.read_at}`).sort(), ['r1@9', 'r2@2']);
+    });
+
+    test('PW12 saveChecklists, listChecklistAreas: an area keeps the archive version it was built with, or none', async () => {
+      const db = await fresh();
+      await db.saveChecklists({ areas: [checklistArea('N1', 1, 'b1', '20261108'), checklistArea('N2')], items: [], read: read('r1', 1) });
+      const areas = await db.listChecklistAreas();
+      assert.equal(areas.find((a) => a.key === 'N1')?.archive, '20261108');
+      assert.equal(areas.find((a) => a.key === 'N2')?.archive ?? null, null);
     });
 
     test('FC7 checklistItemsIn: only items inside the bounds (edges included), as they were saved', async () => {

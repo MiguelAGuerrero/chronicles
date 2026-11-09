@@ -1,6 +1,6 @@
 # Plan: owner threads
 
-Spec: `specs/owner-threads/spec.md` (OT1-OT22). Decision: `docs/decisions/0102-threads-the-owner-makes.md`.
+Spec: `specs/owner-threads/spec.md` (OT1-OT22). Decision: `docs/decisions/0104-threads-the-owner-makes.md`.
 
 Read this, then say go (or what to change). No code has been written.
 
@@ -40,7 +40,7 @@ Changed: `src/lib/db/types.ts`, `index.native.ts`, `index.web.ts`, `stores.ts` (
 
 All three are **truth**, not cache (OT18). No tile build tag.
 
-- **SQLite migration 21** (`MIGRATIONS` holds 20 entries today; `docs/ARCHITECTURE.md`'s data model is out of date and `/docs-gc` fixes it): `thread(id PK, name, created_at)`, `thread_member(thread_id, moment_id, added_at, PK(thread_id, moment_id))` with an index on `moment_id`, `moment_link(from_id, to_id, created_at, PK(from_id, to_id))` with an index on `to_id`. No foreign keys are enforced by the engine (the repo cascades in code, in the delete transaction).
+- **SQLite migration 22** (`MIGRATIONS` holds 21 entries after main's places archive; `docs/ARCHITECTURE.md`'s data model is out of date and `/docs-gc` fixes it): `thread(id PK, name, created_at)`, `thread_member(thread_id, moment_id, added_at, PK(thread_id, moment_id))` with an index on `moment_id`, `moment_link(from_id, to_id, created_at, PK(from_id, to_id))` with an index on `to_id`. No foreign keys are enforced by the engine (the repo cascades in code, in the delete transaction).
 - **IndexedDB `VERSION` 17** (it is 16): three stores, `oldVersion < 17`, indexes `moment_id`, `to_id`. Web deletes run through `atomically` as the others do.
 - Meta: none.
 
@@ -65,7 +65,7 @@ New feature `threads` in `scripts/features.js` (rule `threads`, source `src/lib/
 - Moment picker search over memo transcripts (needs the transcriber, already deferred in 0098).
 - Drawing a thread on the map and replaying a thread as a ceremony (DEFERRED already, 0086).
 - Reordering or hand-ordering a thread (time is the order; nothing in the owner's request needs more).
-- A place-rooted journal (decision 0102).
+- A place-rooted journal (decision 0104).
 - Android's Back on a thread screen (same as 0098, audit 14).
 
 ## Native paths that will not run on a device
@@ -79,7 +79,7 @@ The SQLite migration and cascades; the viewer's More menu items over the Modal; 
 - **S3 drift, accepted:** a fixed vocabulary of size words, nothing above "three", no unread mark (OT10).
 - **S4 drift, accepted:** place and time on every picker and timeline row; place and date when there is no walk; an orphaned reply has no "answering" line (OT4, OT5, OT9).
 - **S5 tone, accepted:** my proposed rename "Keeps coming up" is withdrawn; 0098's rail copy stays. Mine is headed **Threads** and the Chronicle's rail keeps its words (the plan reads the rail's heading to check the two differ). An unnamed thread is headed by place and date (OT13).
-- **S6 drift, accepted:** the spec's Vision section now lists its two open items and the Celebration and Nagging lines. It rests on 0102, not on VISION.md's proposed line.
+- **S6 drift, accepted:** the spec's Vision section now lists its two open items and the Celebration and Nagging lines. It rests on 0104, not on VISION.md's proposed line.
 - **Silent 3, 4:** a reply sets no reminder; no thread information reaches a share or reel (OT20). **Silent 1, 2:** OT23, OT24, put to the owner.
 
 ## Answered (Nov 6)

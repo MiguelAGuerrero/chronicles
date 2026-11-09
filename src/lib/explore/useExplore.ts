@@ -25,6 +25,7 @@ import {
   type ChecklistItem,
   type ExploreRead,
 } from './explore';
+import { placesArchive } from '../discovery/archive';
 import { exploreBuild, exploreBusy, exploreRead, itemBounds } from './exploreRun';
 import { DEFAULT_SETTINGS, loadSettings, onSettings, type ExploreSettings } from './settings';
 
@@ -137,7 +138,9 @@ export function useExplore(opts: {
     if (build === 'unknown') return;
     const k = known.current ?? (await loadKnown());
     const candidates = k.reads.filter((r) => r.build === build).flatMap((r) => r.candidates);
-    let centre = readCentre({ fix, candidates, areas: k.areas, reads: k.reads, build });
+    // Audit 3: the archive's version here, so an area built before it (or with an older one) is read again.
+    await placesArchive.refresh();
+    let centre = readCentre({ fix, candidates, areas: k.areas, reads: k.reads, build, archive: placesArchive.versionAt(fix) });
     if (!centre && latest.current.exploring && !sweptAt.current.some((p) => distanceM(p, fix) <= EXPLORE_RULES.rereadM)) {
       const rows = await db.listLandings().catch(() => []);
       // Asked, not assumed: on a walk opened straight from a launch the release isn't known yet (activity-density audit 8).
@@ -183,7 +186,7 @@ export function useExplore(opts: {
         if (build === 'unknown') break;
         const k = known.current ?? (await loadKnown());
         const candidates = k.reads.filter((r) => r.build === build).flatMap((r) => r.candidates);
-        const centre = readCentre({ fix: p, candidates, areas: k.areas, reads: k.reads, build });
+        const centre = readCentre({ fix: p, candidates, areas: k.areas, reads: k.reads, build, archive: placesArchive.versionAt(p) });
         if (centre && !(await readAt(centre))) break;
       }
       const box = boundsOf(routePath, EXPLORE_RULES.rangeMax);

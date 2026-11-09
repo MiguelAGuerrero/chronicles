@@ -37,13 +37,14 @@ test('OT20: nothing about a thread can leave the device: no network, share, expo
   }
 });
 
-test('OT21: the stores are added by a new migration (SQLite 21, IndexedDB 17) and the earlier ones are left alone', () => {
+test('OT21: the stores are added by a new migration (SQLite, IndexedDB 17) and the earlier ones are left alone', () => {
   const native = readFileSync(join(LIB, 'db', 'index.native.ts'), 'utf8');
   const block = native.slice(native.indexOf('const MIGRATIONS = ['), native.indexOf('\n];', native.indexOf('const MIGRATIONS = [')));
   const entries = block.split(/^  `\n/m).slice(1);
-  assert.ok(entries.length >= 21, 'the migration list holds at least 21 entries');
-  assert.match(entries[20], /CREATE TABLE thread\b[\s\S]*CREATE TABLE thread_member[\s\S]*CREATE TABLE moment_link/);
-  for (const [i, e] of entries.slice(0, 20).entries()) assert.doesNotMatch(e, /thread_member|moment_link/, `migration ${i + 1} was edited`);
+  const mine = entries.findIndex((e) => /CREATE TABLE thread\b/.test(e));
+  assert.ok(mine >= 20, 'the threads migration is added after the 20 that existed, never among them');
+  assert.match(entries[mine], /CREATE TABLE thread\b[\s\S]*CREATE TABLE thread_member[\s\S]*CREATE TABLE moment_link/);
+  for (const [i, e] of entries.entries()) if (i !== mine) assert.doesNotMatch(e, /thread_member|moment_link/, `migration ${i + 1} was edited`);
   const web = readFileSync(join(LIB, 'db', 'index.web.ts'), 'utf8');
   assert.match(web, /const VERSION = (1[7-9]|[2-9]\d);/);
   assert.match(web, /oldVersion < 17\)[\s\S]*createObjectStore\('thread'[\s\S]*createObjectStore\('thread_member'[\s\S]*createObjectStore\('moment_link'/);

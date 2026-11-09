@@ -1,7 +1,7 @@
 // @layer core
 
 /**
- * Owner threads (specs/owner-threads, decision 0102): the three records the owner's
+ * Owner threads (specs/owner-threads, decision 0104): the three records the owner's
  * connections are made of. All truth, none derived. A moment is never edited by them.
  */
 

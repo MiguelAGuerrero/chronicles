@@ -137,8 +137,8 @@ const FEATURES = [
       'src/components/atlas/**',
       'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx',
     ],
-    journeys: ['marks', 'atlas', 'grading', 'snap'],
-    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation'],
+    journeys: ['marks', 'atlas', 'grading', 'snap', 'curiosities'],
+    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'places-worth-the-stop'],
   },
   {
     name: 'kind-walk',
@@ -178,7 +178,7 @@ const FEATURES = [
     rule: 'places-and-areas',
     source: ['src/lib/areas/**', 'src/lib/{places,placeAll,backlog}.ts', 'src/components/{StarView,AreaPoint}.tsx'],
     journeys: ['outlines'],
-    specs: ['v0.5-places', 'places-worth-the-stop', 'town-outlines', 'town-borders', 'town-presence'],
+    specs: ['v0.5-places', 'town-outlines', 'town-borders', 'town-presence'],
   },
   {
     name: 'map',
@@ -228,7 +228,7 @@ const FEATURES = [
     rule: 'resurface',
     source: ['src/lib/resurface/**', 'src/components/chronicle/**'],
     journeys: ['resurface'],
-    specs: ['resurfaced-moments'],
+    specs: ['resurfaced-moments', 'memories-context'],
   },
   {
     name: 'threads',

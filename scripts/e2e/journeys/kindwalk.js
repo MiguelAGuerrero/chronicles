@@ -16,6 +16,24 @@ async function run(h) {
   const kind = pg.locator('[data-testid=atlas-kind-parks]');
   check((await kind.count()) === 1, 'KW1: Green Row\'s card has a Green row');
 
+  check((await pg.locator('[data-testid=atlas-kind-walk-history]').count()) === 0 && (await pg.locator('[data-testid=atlas-kind-walk-parks]').count()) === 1, 'KW2: a kind with none has no "Suggest a walk" button, one with some does');
+  const btn = pg.locator('[data-testid=atlas-kind-walk-parks]');
+  // The card slides up as it opens: measured once it has settled.
+  await btn.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
+  await pg.waitForTimeout(800);
+  const box = await btn.boundingBox().catch(() => null);
+  check((await btn.count()) === 1 && /Suggest a walk/.test(await btn.innerText().catch(() => '')) && !!box && box.width >= 43.5 && box.height >= 43.5, 'KW15: each kind row has a "Suggest a walk" button, at least 44 px to touch');
+  const row = await pg.locator('[data-testid=atlas-kind-parks]').boundingBox().catch(() => null);
+  const cardBox = await pg.locator('[data-testid=atlas-card-pull]').boundingBox().catch(() => null);
+  check(!!box && !!cardBox && Math.abs((box.x + box.width) - (cardBox.x + cardBox.width - 18)) <= 6, `KW15: the button is aligned right in its row (right edge ${box ? Math.round(box.x + box.width) : '?'}, card ${cardBox ? Math.round(cardBox.x + cardBox.width) : '?'})`);
+  check((await btn.getAttribute('aria-label').catch(() => '')) === 'Suggest a walk through green', 'KW15: the button reads as one to a screen reader');
+  await btn.click().catch(() => {});
+  await pg.waitForSelector('[data-testid=kindwalk-length]', { timeout: 60000 }).catch(() => {});
+  check((await pg.locator('[data-testid=kindwalk-parks]').count()) === 1 && pg.url() === before, 'KW15: the button opens the kind in place');
+  await btn.click().catch(() => {});
+  await pg.waitForTimeout(300);
+  check((await pg.locator('[data-testid=kindwalk-parks]').count()) === 0, 'KW15: and closes it');
+
   await kind.click().catch(() => {});
   await pg.waitForSelector('[data-testid=kindwalk-length]', { timeout: 60000 }).catch(() => {});
   const panel = pg.locator('[data-testid=kindwalk-parks]');
@@ -34,7 +52,7 @@ async function run(h) {
     };
   }))));
   if (process.env.E2E_DEBUG) console.log('CARD', (await pg.locator('[data-testid=atlas-card]').innerText()).replace(/\s+/g, ' ').slice(0, 600));
-  check(/About \d+(\.\d)? (km|mi)\b/.test(await pg.locator('[data-testid=kindwalk-length]').innerText().catch(() => '')),
+  check(/About \d+(\.\d)? (km|mi|m|ft)\b/.test(await pg.locator('[data-testid=kindwalk-length]').innerText().catch(() => '')),
     `KW7: the suggestion says its length as a distance in the displayed unit (${first})`);
   check(!/\b(min|mins|minutes?|hours?|ETA|pace|fastest?)\b/i.test(first) && !/\bbest\b/i.test(first), 'KW7, KW1b: no time, no pace, no superlative on the panel');
   check(/(Easy on foot|built around cars|not known yet)/.test(await pg.locator('[data-testid=kindwalk-reach]').innerText().catch(() => '')),

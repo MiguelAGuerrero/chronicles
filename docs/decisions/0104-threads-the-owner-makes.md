@@ -1,4 +1,4 @@
-# 0102. Threads the owner makes: moments stay whole, connections are separate records
+# 0104. Threads the owner makes: moments stay whole, connections are separate records
 
 Date: 2026-11-06 · Status: accepted · Area: chronicle, storage, vision
 
@@ -25,4 +25,4 @@ The owner's calls, Nov 5-6:
 - A new spec carries these as criteria; it starts at `/slice`. Storage is two new tables plus `moment_link`: new `MIGRATIONS` entries (SQLite) and a `VERSION` bump with an `oldVersion < N` step (IndexedDB); no existing migration is edited.
 - Capture from the edge stack is unchanged (one tap). "Respond" is an optional entry from a moment's viewer and from "Memories here" on a faint pin (0037).
 - Deletion rules (`.claude/rules/deletion.md`) gain the cascades above.
-- **Proposed edit to `docs/VISION.md`** (the owner makes it): replace the **[proposed]** "threads the owner makes first; suggested groups only once there is a corpus to learn from" with this record's rule, answer open question 1 (owner-made threads and the Chronicle's suggestions are independent), and note under question 5 that calculated connections live only in the Chronicle's own environment. Add 0102 to Precedents. Until then the page still shows the old line.
+- **Proposed edit to `docs/VISION.md`** (the owner makes it): replace the **[proposed]** "threads the owner makes first; suggested groups only once there is a corpus to learn from" with this record's rule, answer open question 1 (owner-made threads and the Chronicle's suggestions are independent), and note under question 5 that calculated connections live only in the Chronicle's own environment. Add 0104 to Precedents. Until then the page still shows the old line.

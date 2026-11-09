@@ -216,7 +216,11 @@ const MIGRATIONS = [
   `
   ALTER TABLE walk_tile ADD COLUMN junctions TEXT;
   `,
-  // 21: owner threads (OT21, decision 0102): threads, their members and replies. Truth, never derived; no foreign keys,
+  // 21: places worth the stop (PW12): the places archive version a checklist area was built with (null before).
+  `
+  ALTER TABLE checklist_area ADD COLUMN archive TEXT;
+  `,
+  // 22: owner threads (OT21, decision 0104): threads, their members and replies. Truth, never derived; no foreign keys,
   // the delete transactions cascade (OT16, OT17).
   `
   CREATE TABLE thread (
@@ -610,8 +614,8 @@ export const db: Db = {
       for (const a of areas) {
         const r = areaToRow(a);
         await t.runAsync(
-          'INSERT OR REPLACE INTO checklist_area (key, level, name, lon, lat, build, built_at, count) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-          r.key, r.level, r.name, r.lon, r.lat, r.build, r.built_at, r.count,
+          'INSERT OR REPLACE INTO checklist_area (key, level, name, lon, lat, build, built_at, count, archive) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          r.key, r.level, r.name, r.lon, r.lat, r.build, r.built_at, r.count, r.archive ?? null,
         );
       }
       const r = readToRow(read);

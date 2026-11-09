@@ -5,7 +5,7 @@ import { transportationUrl } from '../../activity/release';
 import { tileAt } from '../../tileMath';
 import { createOvertureSource } from '../../walk/overtureSource';
 import { overpassPause, overpassRuntimeError, retryAfterS } from '../../walk/overpass';
-import { createOverpassSource, MAX_PAUSE_MS, OVERPASS_SESSION_CAP, RATE_PAUSE_MS } from '../../walk/overpassSource';
+import { CAP_WINDOW_MS, createOverpassSource, MAX_PAUSE_MS, OVERPASS_SESSION_CAP, RATE_PAUSE_MS } from '../../walk/overpassSource';
 import { encodeTile } from '../mvtFixture';
 
 // Walkability (WK1, WK1b, WK4, WK18), written from specs/walkability/spec.md before the code.
@@ -188,9 +188,9 @@ test('fix overpass-hardening audit 3: refused and failed requests count toward t
     await src.read(1, 2);
     now += 60_000;
   }
-  now += 24 * 3600_000;
+  now += 60_000;
   await src.read(1, 2);
-  assert.equal(n, OVERPASS_SESSION_CAP, 'the cap counts every request sent, and lasts until the app restarts');
+  assert.equal(n, OVERPASS_SESSION_CAP, 'the cap counts every request sent (it starts over a day later: fix overpass-cap-daily 1)');
 });
 
 test('fix overpass-hardening audit 4: Retry-After as seconds or as an HTTP date; anything else is null', () => {
@@ -254,4 +254,18 @@ test('fix overpass-hardening audit 9: a Retry-After date without GMT is null; on
   assert.equal(retryAfterS('Nov 5 2026 12:10', now), null, 'no zone: would depend on the device\'s time zone');
   assert.equal(overpassPause(1, 60_000, 960_000, 99_999_999_999), 3_600_000);
   assert.equal(overpassPause(1, 60_000, 960_000, 1800), 1_800_000, 'under an hour, as asked');
+});
+
+test('fix overpass-cap-daily 1: the request cap starts over a day after its first request, however long the app stays open', async () => {
+  let now = 0;
+  let n = 0;
+  const src = createOverpassSource({ fetch: async () => (n++, res(200, { elements: [] })), now: () => now });
+  for (let i = 0; i < OVERPASS_SESSION_CAP; i++) await src.read(i, 0);
+  now += CAP_WINDOW_MS - 1;
+  assert.equal(await src.read(1, 1), null, 'still within the day: capped');
+  assert.equal(n, OVERPASS_SESSION_CAP);
+  now += 1;
+  assert.notEqual(await src.read(1, 1), null, 'a day after the first request: asked again');
+  assert.equal(n, OVERPASS_SESSION_CAP + 1);
+  assert.equal(CAP_WINDOW_MS, 24 * 3600_000);
 });

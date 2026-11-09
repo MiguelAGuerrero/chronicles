@@ -455,7 +455,7 @@ test('TP9: fewer than 3 mapped places in the whole outline is thin', () => {
 });
 
 test('TP10: a town row from the older rules is stale; a neighborhood row from them is current', () => {
-  assert.equal(ATLAS_CODE, 'a6');
+  assert.equal(ATLAS_CODE, 'a7', 'a7: the places archive (PW10); its rows stand as under a6');
   assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a5' }), 'b1'), true, 'a5 neighborhoods stand (fix ward-subdivision)');
   assert.equal(rowCurrent(row('Whitehall', O, { level: 'town', code: 'a4' }), 'b1'), false, 'towns are read again');
   assert.equal(rowCurrent(row('Fox Point', O, { level: 'neighborhood', code: 'a4' }), 'b1'), true, 'neighborhoods are not');

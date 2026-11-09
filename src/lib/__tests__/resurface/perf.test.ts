@@ -12,7 +12,7 @@ test('RM24: threads and the feed for 5,000 moments take under a second', () => {
   const ms = Array.from({ length: 5000 }, (_, i) => moment(NOW - (i + 2) * 3 * DAY / 8, Array.from({ length: 8 }, () => vocab[(rand() * vocab.length) | 0]).join(' ')));
   const start = performance.now();
   const c = compose(ms, EMPTY_PREFS, new Set(), NOW, 's');
-  lately(c.moments, c.threads, NOW, 20);
+  lately(c.moments, NOW, 20);
   const took = performance.now() - start;
   assert.ok(c.threads.length > 0 && c.order.length > 0);
   assert.ok(took < 1000, `took ${Math.round(took)} ms`);

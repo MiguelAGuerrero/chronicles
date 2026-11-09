@@ -120,7 +120,7 @@ function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number) {
     d.createObjectStore('walk_tile', { keyPath: 'key' });
   }
   if (oldVersion < 17) {
-    // Owner threads (OT21, decision 0102): threads, memberships and replies. Truth, never cleared by the app.
+    // Owner threads (OT21, decision 0104): threads, memberships and replies. Truth, never cleared by the app.
     d.createObjectStore('thread', { keyPath: 'id' });
     const members = d.createObjectStore('thread_member', { keyPath: ['thread_id', 'moment_id'] });
     members.createIndex('thread_id', 'thread_id');

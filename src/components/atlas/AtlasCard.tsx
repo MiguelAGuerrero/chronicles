@@ -216,7 +216,7 @@ export function AtlasCard(props: {
               {p ? (
                 ATLAS_ORDER.map((c) => (
                   <View key={c}>
-                    <KindRow kind={c} step={p.steps[c]} testID={`atlas-kind-${c}`} open={openKind === c} onPress={() => setOpenKind((k) => (k === c ? null : c))} />
+                    <KindRow kind={c} step={p.steps[c]} testID={`atlas-kind-${c}`} open={openKind === c} onPress={p.steps[c] ? () => setOpenKind((k) => (k === c ? null : c)) : undefined} />
                     {openKind === c ? <KindWalkPanel kind={c} area={area} you={props.you} none={p.steps[c] === 0} starting={props.starting} onStart={props.onStartWalk} /> : null}
                   </View>
                 ))

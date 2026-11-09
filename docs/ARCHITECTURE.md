@@ -83,7 +83,7 @@ Chronicle's Memories (decision 0098)
   resurface/shell.ts         createResurface(ports): load, choices in meta `resurface_prefs`, saveNote, patch; index.ts is the app instance
   resurface/useResurface.ts  the view hook (reads on focus and after a delete)
   chronicle/                 SectionBar, MemoriesScreen, Resurfaced, ThreadsRail, ThreadScreen, MomentCard, MomentPicture, MemoryMenu
-Owner threads (decision 0102)
+Owner threads (decision 0104)
   threads/types.ts           Thread, Member, Link (all truth), ThreadsData, ThreadsChange (one atomic change)
   threads/rules.ts           thinThreads (dissolve below two), canMakeThread, threadForReply, replyChange, addChange, visibleThreads (what Undo hides)
   threads/timeline.ts        buildTimeline: oldest first, a reply under what it answers
@@ -203,6 +203,10 @@ Filling gaps
 Discovery and Explore (v1)
   discovery/types.ts         Place, Offered, Mark, Recall, PlaceSource, Kind, CategoryId
   discovery/tilePois.ts the OpenMapTiles poi classes, markable, kindFor (the only file that knows them)
+  discovery/archivePois.ts   the places archive's schema: ARCHIVE_CLASSES (pinned, PW5), placesFromArchive (the only file that knows it; decision 0103)
+  discovery/archiveMerge.ts  mergePlaces (one mark per place, PW8), ARCHIVE_EDITS and applyEdits (archiveEdits.json, PW13)
+  discovery/archiveManifest.ts the manifest (PW2): parse, pickRegion, manifestDue, z12 tiles for a read, PLACES_BASE (empty until PW16)
+  discovery/archive/shell.ts createPlacesArchive: the manifest daily, the region, the read's tiles through net/tileReader; index.ts is the app's instance
   discovery/places.ts placeKey, normalization, same-place rules
   discovery/noise.ts         MARK_CATEGORIES, chains.json and notable.json rules
   discovery/categories.ts the eight categories: labels, icons
@@ -224,7 +228,8 @@ Activity density (AD1-AD16)
   activity/weights.ts        what counts toward density and how much, for OSM and Overture
   activity/points.ts         places as weighted points from both sources; one place once across them
   activity/release.ts        Overture's bucket, its listing, the newest release
-  activity/reader.ts         OvertureReader and TileMemo: a tile once per release, deadlines, a failed archive reopened
+  activity/reader.ts         OvertureReader: the generic net/tileReader with Overture's rules (z14, places that count, a missing release)
+  net/tileReader.ts          TileReader and TileMemo: a PMTiles archive by tile, once per version, deadlines, a failed archive reopened
   activity/useOvertureRelease.ts the release known, for screens that judge staleness
   activity/overture.ts       Overture's places by tile (pmtiles, byte ranges); the release check (meta)
 Map layers (ML1-ML13)
@@ -471,12 +476,12 @@ Truth (`lib/types.ts`):
 - `Pause`, `Still`: walk_id, started_at, ended_at.
 - `GapDecision` (`gap_fill`, kept): a stretch kept or dismissed, with its line, so a map update never moves it.
 
-Owner threads (`threads/types.ts`, truth, never derived, decision 0102): `Thread`
+Owner threads (`threads/types.ts`, truth, never derived, decision 0104): `Thread`
 (`thread`: id, name nullable, created_at), `Member` (`thread_member`: thread_id,
 moment_id, added_at) and `Link` (`moment_link`: from_id answers to_id). A moment
 carries nothing of them. `applyThreads` dissolves a thread left with fewer than two
 members in the same transaction; `deleteCaptures` and `deleteWalk` take the
-memberships and links of their moments. SQLite migration 21, IndexedDB 17.
+memberships and links of their moments. SQLite migration 22, IndexedDB 17.
 
 Cache (`lib/types.ts`, `areas/types.ts`): `StreetSegment` (id, name,
 kind_detail, length_m, geometry, build), `VisitedSegment` (segment_id,
@@ -538,3 +543,8 @@ stores the record whole.
   `window.__perf`). The e2e injects its own probes with `addInitScript`
   (`window.__perf`, `__enters`, `__lifts`, `__audioSessions`, the geolocation
   watch counters); the app reads none of them.
+
+## The places archive (Places worth the stop, decision 0103)
+
+- **Built outside the app.** `scripts/places-archive/fetch-wikidata.mjs` asks the Wikidata Query Service one 2-degree US cell at a time; `scripts/build-places-archive.mjs` classifies (`scripts/places-archive/classify.mjs`: pinned Wikidata classes, type before age, National Historic Landmarks only, gone places out), applies `archiveEdits.json` and writes `places-<region>-<version>.pmtiles` (`archive.mjs`: z12, gzip, leaf directories); `publish.mjs` publishes only a changed archive. The chronicles-data repo runs them weekly and serves the newest three releases from its Pages site with a `manifest.json`.
+- **Read by tile in the app,** through `lib/net`, in the explore read (checklists, every walk) and the atlas ring read (PW10); never stored, merged with the map's places, the archive's kind winning. `EXPO_PUBLIC_PLACES_BASE` points the e2e build at `/places-e2e/` on the harness's server.

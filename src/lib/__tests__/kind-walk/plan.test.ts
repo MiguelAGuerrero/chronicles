@@ -53,12 +53,13 @@ test('KW2: fewer than two cells is no way', () => {
   assert.deepEqual(planKindWalk([], near, 2000, leg), { kind: 'few' });
 });
 
-test('KW9: the start is the cell nearest the walker; its distance is reported apart from the length', () => {
-  const r = planKindWalk([cell(0, 0, 9), cell(800, 0, 8)], at(2000, 0), 800, leg);
+test('KW9 KW17: the length is the whole route from the walker, and the start says how much of it is the way there', () => {
+  const r = planKindWalk([cell(0, 0, 9), cell(800, 0, 8)], at(2000, 0), 2400, leg);
   assert.ok(r.kind === 'walk');
   if (r.kind === 'walk') {
     assert.equal(Math.round(r.walk.startM / 100), 12, 'about 1.2 km to the nearer cell');
-    assert.ok(Math.abs(r.walk.lengthM - 800) < 5, 'the length is the chain, not the way there');
+    assert.ok(Math.abs(r.walk.lengthM - (r.walk.startM + 800)) < 5, 'the length is the way there and the way through');
+    assert.deepEqual(r.walk.path[0], at(2000, 0), 'the path begins where the walker stands');
   }
 });
 

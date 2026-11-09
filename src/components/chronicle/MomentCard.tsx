@@ -4,15 +4,21 @@ import { whenLine } from '../../lib/resurface/lines';
 import type { MomentView } from '../../lib/resurface/types';
 import { fromLine } from '../../lib/resurface/views';
 import type { Walk } from '../../lib/types';
+import type { ContextEntry } from '../../lib/resurface/shell';
 import { Icon } from '../icons';
 import { theme } from '../ui';
 import { MomentPicture } from './MomentPicture';
 
 const KIND_WORD = { photo: 'Photo', video: 'Video', voice: 'Voice memo', text: 'Note' } as const;
 
+/** The line under a card: the arrival line once read, else only when, so no place is claimed that is not known (MC17). */
+export function contextText(context: ContextEntry | undefined, m: MomentView, now: number): string {
+  return context?.state === 'done' ? context.line : whenLine(m.t, now);
+}
+
 /** What a moment says about itself in one line, for a screen reader (RM25). */
-export function momentSpoken(m: MomentView, now: number): string {
-  return [KIND_WORD[m.kind], m.words, m.place, whenLine(m.t, now)].filter(Boolean).join(', ');
+export function momentSpoken(m: MomentView, now: number, context?: ContextEntry): string {
+  return [KIND_WORD[m.kind], m.words, contextText(context, m, now)].filter(Boolean).join(', ');
 }
 
 /**
@@ -22,6 +28,8 @@ export function momentSpoken(m: MomentView, now: number): string {
 export function MomentCard(props: {
   moment: MomentView;
   walk: Walk | undefined;
+  /** The arrival line, once read (MC1-MC5); until then the card claims no place (MC17). */
+  context?: ContextEntry;
   now: number;
   onOpen: () => void;
   onWalk: (walkId: string) => void;
@@ -34,7 +42,7 @@ export function MomentCard(props: {
   const memo = m.kind === 'voice' ? Number(m.capture.body) : NaN;
   return (
     <View style={styles.card} testID="moment-card">
-      <Pressable testID="moment-open" accessibilityRole="button" accessibilityLabel={`${momentSpoken(m, now)}. Open`} onPress={props.onOpen}>
+      <Pressable testID="moment-open" accessibilityRole="button" accessibilityLabel={`${momentSpoken(m, now, props.context)}. Open`} onPress={props.onOpen}>
         {(m.kind === 'photo' || m.kind === 'video') && <MomentPicture capture={m.capture} style={styles.picture} iconSize={36} />}
         <View style={styles.body}>
           {m.kind === 'voice' && (
@@ -43,9 +51,9 @@ export function MomentCard(props: {
               <Text style={styles.memoText}>{Number.isFinite(memo) && memo > 0 ? `Voice memo, ${formatElapsed(memo)}` : 'Voice memo'}</Text>
             </View>
           )}
-          {m.words ? <Text style={[styles.words, m.kind === 'text' && styles.note]} numberOfLines={10}>{m.words}</Text> : null}
+          {m.words ? <Text style={[styles.words, styles.owner, m.kind === 'text' && styles.note]} numberOfLines={10}>{m.words}</Text> : null}
           {props.answering ? <Text style={styles.meta} testID="moment-answering">{props.answering}</Text> : null}
-          <Text style={styles.meta}>{[m.place, whenLine(m.t, now)].filter(Boolean).join(' · ')}</Text>
+          <Text style={styles.meta} numberOfLines={2} testID="moment-context">{contextText(props.context, m, now)}</Text>
         </View>
       </Pressable>
       <View style={styles.foot}>
@@ -67,7 +75,8 @@ const styles = StyleSheet.create({
   picture: { height: 170, width: '100%' },
   body: { paddingHorizontal: 14, paddingTop: 12, gap: 6 },
   words: { color: theme.ink, fontSize: 16, lineHeight: 22 },
-  note: { fontStyle: 'italic', fontSize: 17 },
+  owner: { fontStyle: 'italic' },
+  note: { fontSize: 17 },
   meta: { color: theme.muted, fontSize: 13 },
   memo: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   play: { width: 32, height: 32, borderRadius: 16, backgroundColor: theme.accent, alignItems: 'center', justifyContent: 'center' },

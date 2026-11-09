@@ -58,8 +58,13 @@ None. The owner chose A (Nov 5): a walk started from a kind says distance only.
 
 1. **KW1 · A kind row opens in place.** On an area's card (a neighborhood or a town), tapping a kind row under "What's here"
    expands it inside the card; tapping it again closes it. No new screen, route or modal opens.
+2. **KW15 · An explicit button says a walk can be suggested.** Each kind row carries its own button, a signpost icon
+   (`trail-sign-outline`) and the words "Suggest a walk", that opens and closes the kind in place, beside the row's own tap.
+   The button is at least 44 px square to touch and reads as a button to a screen reader ("Suggest a walk through green").
+   (The owner, 2026-11-05, after finding the rows gave no sign they could be tapped.)
 2. **KW2 · A thin or empty kind offers no walk.** A ring the map knows almost nothing about (AG3), or a kind with no presence
-   (its word is "none"), shows no walk and says so in words.
+   (its word is "none"), shows no button and no walk, and its word says so ("none"); a button is on a row only where a walk
+   can be suggested.
 3. **KW3 · Where no way can be found, it says so.** With no streets to route on (or a read of the area that fails), no walk
    is offered and the row says so in words, on the web too. Nothing is simulated.
 
@@ -89,6 +94,14 @@ None. The owner chose A (Nov 5): a walk started from a kind says distance only.
     distance, before the button).
 13. **KW9b · Too far to start on foot.** Beyond 5 km from the walker to the start, no walk is offered and the row says so in
     words. It never silently becomes a drive.
+
+### Continuous, and one distance (found on the owner's phone, Bethlehem, 2026-11-06)
+
+16. **KW16 · One continuous route.** The way does not double back on itself: no more than 10% of its length runs over a street
+    piece it has already used, the walk from where you stand included. Where the stops would force more, the stop is left out.
+17. **KW17 · One distance.** The length the panel states is the length of the whole route the walk screen then navigates,
+    from where you stand to the end; the budget is a ceiling on that whole distance (the owner: a preference for how far you
+    are willing to go), and the way is shorter than the budget wherever the kind fills less ground than that.
 
 ### Walkability
 
