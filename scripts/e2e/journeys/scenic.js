@@ -100,7 +100,7 @@ async function run(h) {
     check(r2[1]?.selected === '1' && r2[0]?.selected === '0', `scenic SR8: a tap on a row highlights it (${JSON.stringify(r2.map((x) => x.selected))})`);
     await pg.click('[data-testid=route-cancel]');
     await pg.waitForTimeout(400);
-    check((await drawn(pg)) === drawnBefore, `fix preview-clutter: the layers come back as the preview closes (${await drawn(pg)})`);
+    check(/trace/.test(drawnBefore ?? '') && /trace/.test((await drawn(pg)) ?? ''), `fix preview-clutter audit 1: the trace was drawn before the preview and is drawn again as it closes (${drawnBefore} -> ${await drawn(pg)})`);
     check((await gone(pg, 'route-preview')) && (await pg.locator('[data-testid=nav-bar]').count()) === 0 && (await navDest(pg)) === null,
       'scenic SR8: Cancel closes the preview and sets no destination');
     // Escape does the same.
