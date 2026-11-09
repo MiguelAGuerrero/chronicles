@@ -28,9 +28,9 @@ const FEATURES = [
     name: 'storage',
     about: 'the db adapters, migrations and media paths',
     rule: 'storage',
-    source: ['src/lib/db/**', 'src/lib/media/**'],
-    journeys: [],
-    specs: [],
+    source: ['src/lib/db/**', 'src/lib/media/**', 'src/lib/space/**', 'src/components/SpaceLine.tsx'],
+    journeys: ['space'],
+    specs: ['storage-awareness'],
   },
   {
     name: 'recording',
@@ -328,7 +328,9 @@ const UNTESTED = {
  * Specs a slice is building (TG22): from its plan until done, its criteria are exempt from the gate.
  * `{ slug: { branch, since: 'YYYY-MM-DD' } }`; an entry older than 7 days fails the docs check.
  */
-const IN_PROGRESS = {};
+const IN_PROGRESS = {
+  'storage-awareness': { branch: 'claude/quirky-ramanujan-5z25ga', since: '2026-11-09' },
+};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 
