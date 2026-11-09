@@ -88,6 +88,8 @@ async function contextRun(h) {
   // seeded once it is running and Memories reads it as the tab comes to the front.
   await pg.waitForTimeout(1500);
   await pg.evaluate(SEED_CONTEXT);
+  // The app opens on Memories (0106): away and back, so Memories reads the seeded moments as a new open.
+  await tabTo(pg, 'explore');
   await tabTo(pg, 'chronicle', 'memories');
   await pg.waitForSelector('[data-testid=moment-card]', { timeout: 20000 });
   const cardOf = (words) => pg.locator(`[data-testid=moment-card]:has-text("${words}")`).first();
