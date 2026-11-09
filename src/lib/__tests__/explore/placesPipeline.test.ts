@@ -1,6 +1,8 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
 import { mkdtempSync, readdirSync, readFileSync } from 'node:fs';
+import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -344,7 +346,45 @@ test('PP14: a failing source falls back to its last raw snapshot, is reported, a
   assert.equal(r2.report.sources[0].fellBack, 'none');
 });
 
-test('PP15: the weekly workflow runs the stages in order, keeps the state asset and stays within one 6-hour job', { todo: 'test first' }, () => {});
+test('PP15: the weekly workflow runs the stages in order, keeps the state asset and stays within one 6-hour job', async () => {
+  // The job's own steps, as chronicles-data's weekly workflow runs them: restore the state, run the command line
+  // (asking nothing here: --no-fetch reads the restored raw store), save the state, publish what changed.
+  const state = mkdtempSync(join(tmpdir(), 'pp-state-'));
+  const raw = createRawStore(join(state, 'raw'));
+  for (const r of ['20261012', '20261019', '20261026', '20261102']) {
+    for (const cell of [[-76, 40, -74, 42], [-74, 40, -72, 42]] as Box[]) raw.put('wikidata', r, partOf(cell), fixture(cell), `${r.slice(0, 4)}-${r.slice(4, 6)}-${r.slice(6)}T07:17:00.000Z`);
+    raw.complete('wikidata', r);
+  }
+  const cli = (version: string, out: string, manifestUrl?: string) =>
+    new Promise<Record<string, string>>((resolve, reject) => {
+      const args = ['--import', 'tsx', join(ROOT, 'scripts/places-pipeline/cli.ts'), '--region', 'us', '--version', version, '--state', state, '--out', out, '--no-fetch', ...(manifestUrl ? ['--manifest-url', manifestUrl] : [])];
+      execFile(process.execPath, args, { cwd: ROOT }, (err, stdout, stderr) => {
+        if (err) return reject(new Error(stderr || String(err)));
+        resolve(Object.fromEntries(stdout.trim().split('\n').map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)])));
+      });
+    });
+  const out1 = mkdtempSync(join(tmpdir(), 'pp-out-'));
+  const first = await cli('20261109', out1);
+  assert.equal(first.publish, 'true');
+  assert.equal(first.files, 'places-us-20261109.pmtiles');
+  assert.equal(first['state-sources'], 'wikidata', 'only redistributable sources go in the saved state');
+  assert.deepEqual(raw.runs('wikidata'), ['20261019', '20261026', '20261102'], 'the state keeps three runs');
+  const registry1 = readFileSync(join(state, 'registry-us.json'), 'utf8');
+  const blocks = JSON.parse(readFileSync(join(out1, 'places-us-20261109.blocks.json'), 'utf8'));
+  // The live manifest, as the Pages workflow writes it from the release.
+  const server = createServer((_q, res) => res.end(JSON.stringify({ schema: 1, regions: [{ id: 'us', current: { file: 'places-us-20261109.pmtiles', version: '20261109', bounds: [-125, 24, -66, 50], blocks } }] })));
+  await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
+  try {
+    const out2 = mkdtempSync(join(tmpdir(), 'pp-out-'));
+    const second = await cli('20261116', out2, `http://127.0.0.1:${(server.address() as { port: number }).port}/manifest.json`);
+    assert.equal(second.publish, 'false', 'nothing changed: nothing published');
+    assert.equal(second.reason, 'us: unchanged');
+    assert.deepEqual(readdirSync(out2), ['report.json']);
+    assert.deepEqual(Object.keys(JSON.parse(readFileSync(join(state, 'registry-us.json'), 'utf8')).places), Object.keys(JSON.parse(registry1).places), 'the restored registry keeps every ID');
+  } finally {
+    server.close();
+  }
+});
 
 test('PP16: phones still never call a source: no new allowed host, no adapter host named under src/', () => {
   const hosts = wikidata.declaration.hosts;

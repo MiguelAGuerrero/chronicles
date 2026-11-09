@@ -80,6 +80,10 @@ export function createRawStore(dir: string) {
         if (now - newest > retentionDays * 86_400_000) rmSync(runDir(source, r), { recursive: true, force: true });
       }
     },
+    /** PP15: keeps a source's newest `n` runs, so the saved state stays a few weeks long. */
+    keepNewest(source: string, n: number) {
+      for (const r of runs(source).slice(0, Math.max(0, runs(source).length - n))) rmSync(runDir(source, r), { recursive: true, force: true });
+    },
     sources(): string[] {
       return existsSync(dir) ? readdirSync(dir).filter((s) => SAFE.test(s)).sort() : [];
     },
