@@ -102,6 +102,7 @@ const FEATURES = [
       'src/app/(tabs)/navigate.tsx',
       'src/components/walk/**',
       'src/lib/readyNav.ts',
+      'src/lib/pauseReminder.ts',
       'src/lib/stackSlots.ts',
       'src/lib/ready/**',
       'src/components/{Ticking,MomentBar,ConfirmCard,StartSettings,ui}.tsx',
@@ -145,8 +146,16 @@ const FEATURES = [
     about: 'a suggested walk through where a kind is dense, opened from a kind on an area\'s card: one way, a distance, walkability said',
     rule: 'kind-walk',
     source: ['src/lib/kindWalk/**'],
-    journeys: ['kindwalk'],
+    journeys: [],
     specs: ['kind-walk'],
+  },
+  {
+    name: 'walk-planner',
+    about: 'a page of its own for a kind: up to three routes on the map, a loop or one-way, a distance ceiling, density, a feel for the commitment',
+    rule: 'walk-planner',
+    source: ['src/lib/walkPlanner/**', 'src/components/planner/**'],
+    journeys: ['planner'],
+    specs: ['walk-planner'],
   },
   {
     name: 'layers',
@@ -231,6 +240,14 @@ const FEATURES = [
     specs: ['resurfaced-moments', 'memories-context'],
   },
   {
+    name: 'threads',
+    about: 'threads the owner makes: respond to a moment, connect moments across walks; a thread, its members and a directed reply are stored apart from the moments',
+    rule: 'threads',
+    source: ['src/lib/threads/**', 'src/components/threads/**'],
+    journeys: ['threads'],
+    specs: ['owner-threads'],
+  },
+  {
     name: 'motion',
     about: 'motion polish: timings, presses, entrances, haptics, the pocket alert',
     rule: 'motion-polish',
@@ -280,11 +297,14 @@ const FEATURES = [
 const V1_SCAN_AND_AMBIENT = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S9', 'S10', 'S11', 'S12', 'S14', 'S15', 'S22', 'S23', ...Array.from({ length: 11 }, (_, i) => `A${i + 1}`)];
 
 const RETIRED = {
-  // Moved to chronicles-data with the pipeline (the owner, Nov 9, decision 0104): that repo owns the build, its
+  // Moved to chronicles-data with the pipeline (the owner, Nov 9, decision 0107): that repo owns the build, its
   // schemas and their tests (its docs/spec.md). PP1-PP12, PP14, PP15 were built here first; the build-side criteria
   // of Places worth the stop went with them.
   'places-pipeline': ['PP1', 'PP2', 'PP3', 'PP4', 'PP5', 'PP6', 'PP7', 'PP8', 'PP9', 'PP10', 'PP11', 'PP12', 'PP14', 'PP15'],
   'places-worth-the-stop': ['PW6', 'PW7', 'PW13', 'PW14', 'PW15', 'PW19'],
+  // The walk planner (decision 0102) replaced the kind walk's in-card panel and its one way: KW1 (the row opens the kind in place),
+  // KW4 (one way), KW8 (Shorter, Longer), KW9 (the start said apart from the length; WP14 says it in words) and KW9b/WP26 (too far).
+  'kind-walk': ['KW1', 'KW4', 'KW8', 'KW9'],
   // As the spec says (its "Retired by this slice" line, Explore, v1 slice 5, Nov 1): S1-S6, S9-S12, S14, S15,
   // S22 and S23 of the scan, and all of slice 3's ambient hints (A1-A11). S7, S8, S13, S16 and S17 are live.
   // E14 (the test trim, Nov 5, at the owner's ask): the one-time upgrade off scan and ambient marks ran Nov 1; nothing is left to read.

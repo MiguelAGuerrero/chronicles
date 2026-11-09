@@ -5,6 +5,7 @@ import type { MomentView, Thread } from '../../lib/resurface/types';
 import type { Walk } from '../../lib/types';
 import { Icon } from '../icons';
 import { Button, theme } from '../ui';
+import { ThreadMark } from '../threads/ThreadMark';
 import { MomentCard } from './MomentCard';
 
 /**
@@ -23,6 +24,8 @@ export function ThreadScreen(props: {
   onMore: (m: MomentView) => void;
   onRename: (name: string) => void;
   onRemove: () => void;
+  /** Copies this thread's moments into a thread of the owner's (OT19); this one is untouched. */
+  onKeep: () => void;
 }) {
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState(props.thread.name);
@@ -33,6 +36,7 @@ export function ThreadScreen(props: {
         <Pressable testID="thread-back" accessibilityRole="button" accessibilityLabel="Back to Memories" onPress={props.onBack} style={styles.back}>
           <Icon name="chevron-back" size={20} color={theme.ink} />
         </Pressable>
+        <ThreadMark kind="found" />
         <Text style={styles.eyebrow}>Thread</Text>
       </View>
       {renaming ? (
@@ -50,6 +54,7 @@ export function ThreadScreen(props: {
           <View style={styles.row}>
             <Button testID="thread-rename" label="Rename" variant="secondary" onPress={() => { setName(props.thread.name); setRenaming(true); }} />
             <Button testID="thread-remove" label="Not a thread" variant="secondary" onPress={props.onRemove} />
+            <Button testID="thread-keep" label="Keep as my thread" variant="secondary" onPress={props.onKeep} />
           </View>
         </View>
       )}

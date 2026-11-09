@@ -9,6 +9,7 @@ import { Platform } from 'react-native';
 import { applyPatch, captureBus, mergeCaptures, type CapturePatch } from './captureBus';
 import { db } from './db';
 import { newId } from './id';
+import { threads } from './threads';
 import { locateOnce } from './locate';
 import { memoGate } from './memoGate';
 import type { LocateResult } from './locate/types';
@@ -78,13 +79,22 @@ export function useCaptures(
   here: LngLat | null,
   lastFixAt: number | null,
   onError?: (e: { message: string; openSettings?: boolean }) => void,
-  opts: { loose?: boolean; onMoment?: (c: Capture, state: MomentState) => void } = {},
+  opts: {
+    loose?: boolean;
+    onMoment?: (c: Capture, state: MomentState) => void;
+    /** Every moment this path keeps answers this one, and joins its thread (OT2); null when it answers nothing. */
+    replyTo?: { answeredId: string; from?: string | null } | null;
+  } = {},
 ) {
   const enabled = walkId != null || !!opts.loose;
   const onMoment = useRef(opts.onMoment);
   useEffect(() => {
     onMoment.current = opts.onMoment;
   }, [opts.onMoment]);
+  const replyTo = useRef(opts.replyTo ?? null);
+  useEffect(() => {
+    replyTo.current = opts.replyTo ?? null;
+  }, [opts.replyTo]);
   const [captures, setCaptures] = useState<Capture[]>([]);
   const [busy, setBusy] = useState<Busy>(null);
   const [voiceStartedAt, setVoiceStartedAt] = useState<number | null>(null);
@@ -141,7 +151,8 @@ export function useCaptures(
    * prompts never stack (audit: Android takes one request at a time).
    */
   const startLocating = (s: Stamp) => {
-    if (!walkId && !s.at && !s.locating) s.locating = locateOnce().catch(() => ({ at: null, reason: 'unavailable' as const }));
+    // In a walk too: while paused the recorder is stopped, so the last fix is where the pause began.
+    if (!s.at && !s.locating) s.locating = locateOnce().catch(() => ({ at: null, reason: 'unavailable' as const }));
   };
   const folder = () => walkId ?? LOOSE_FOLDER;
 
@@ -152,6 +163,9 @@ export function useCaptures(
       lat: stamp.at?.[1] ?? null, lon: stamp.at?.[0] ?? null,
     };
     await db.addCapture(c);
+    // A reply is linked once it is kept; a failed link leaves the moment kept, unconnected (OT2).
+    const answers = replyTo.current;
+    if (answers) void threads.reply(c.id, answers.answeredId, answers.from ?? null).catch(() => {});
     // Without a fresh fix, it is stored unplaced (the trace places it at
     // stop), but pinned meanwhile at the last known position.
     const last = pos.current.here;
@@ -159,10 +173,8 @@ export function useCaptures(
     if (alive.current) setCaptures((prev) => [...prev, shown]);
     // Told even once this path is gone: the walk screen may have come back meanwhile (NV9).
     captureBus.emit(shown, self);
-    if (!walkId) {
-      onMoment.current?.(c, 'kept');
-      placeMoment(c, stamp);
-    }
+    if (!walkId) onMoment.current?.(c, 'kept');
+    placeMoment(c, stamp);
     return c.id;
   }
 
@@ -171,22 +183,28 @@ export function useCaptures(
    * arrives (M2), so a save never waits on GPS. No fix: it stays unplaced.
    */
   function placeMoment(c: Capture, stamp: Stamp) {
+    // In a walk, no fix leaves it for the trace to place at stop; nothing is reported.
+    const report = (x: Capture, state: MomentState) => {
+      if (!walkId) onMoment.current?.(x, state);
+    };
     if (c.lat != null || !stamp.locating) {
-      onMoment.current?.(c, c.lat != null ? 'placed' : 'unavailable');
+      report(c, c.lat != null ? 'placed' : 'unavailable');
       return;
     }
     stamp.locating
       .then(async (r) => {
         if (!r.at) {
-          onMoment.current?.(c, r.reason ?? 'timeout');
+          report(c, r.reason ?? 'timeout');
           return;
         }
         const placed = { ...c, lon: r.at[0], lat: r.at[1] };
         await db.updateCapture(c.id, { lon: placed.lon, lat: placed.lat });
         if (alive.current) setCaptures((prev) => prev.map((x) => (x.id === c.id ? placed : x)));
-        onMoment.current?.(placed, 'placed');
+        // The pin shown at the last position elsewhere moves too (NV9).
+        if (walkId) captureBus.patch(walkId, c.id, { lon: placed.lon, lat: placed.lat }, self);
+        report(placed, 'placed');
       })
-      .catch(() => onMoment.current?.(c, 'unavailable'));
+      .catch(() => report(c, 'unavailable'));
   }
 
   async function guarded(kind: CaptureKind, fn: () => Promise<void>) {

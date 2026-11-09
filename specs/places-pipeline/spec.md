@@ -37,7 +37,7 @@ Criteria: PP5 (closed schema, no number but a position); PP7 (a place needs a lo
 Open: none (the owner's calls below)
 ```
 
-## Decisions (the owner's calls, Nov 9; decision 0104)
+## Decisions (the owner's calls, Nov 9; decision 0107)
 
 - **chronicles-data owns the pipeline and the contract**: the code, the schemas, the class names, the owner's edits and
   the pipeline's spec and plan. The app keeps a pinned copy of the contract and tests itself against it.

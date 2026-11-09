@@ -736,5 +736,90 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.equal((await db.listFinds()).length, 1);
       assert.equal(await db.getMeta('k'), 'v');
     });
+
+    test('FC7 listThreads, applyThreads: puts, replaces and reads back threads, members and replies; deleting a thread keeps the moments and links (OT14, OT18)', async () => {
+      const db = await fresh();
+      await db.createWalk(walk('a', 1));
+      await db.addCapture(capture('m1', 'a', 10));
+      await db.addCapture(capture('m2', 'a', 20));
+      const before = await db.getCaptures('a');
+      assert.deepEqual(await db.listThreads(), { threads: [], members: [], links: [] });
+      await db.applyThreads({
+        putThreads: [{ id: 't1', name: null, created_at: 1 }],
+        putMembers: [{ thread_id: 't1', moment_id: 'm1', added_at: 2 }, { thread_id: 't1', moment_id: 'm2', added_at: 3 }],
+        putLinks: [{ from_id: 'm2', to_id: 'm1', created_at: 3 }],
+      });
+      await db.applyThreads({ putThreads: [{ id: 't1', name: 'Compliments', created_at: 1 }] });
+      const got = await db.listThreads();
+      assert.deepEqual(got.threads, [{ id: 't1', name: 'Compliments', created_at: 1 }]);
+      assert.equal(got.members.length, 2);
+      assert.deepEqual(got.links, [{ from_id: 'm2', to_id: 'm1', created_at: 3 }]);
+      assert.deepEqual(await db.getCaptures('a'), before, 'linking never touches a moment\'s row');
+      await db.applyThreads({ deleteThreads: ['t1'] });
+      const left = await db.listThreads();
+      assert.deepEqual([left.threads, left.members], [[], []]);
+      assert.equal(left.links.length, 1, 'a reply link is its own record');
+      assert.equal((await db.getCaptures('a')).length, 2, 'deleting a thread deletes no moment');
+    });
+
+    test('FC7 applyThreads: removing a member dissolves a thread left with fewer than two, name and all; a second thread of the moment stays (OT15)', async () => {
+      const db = await fresh();
+      await db.applyThreads({
+        putThreads: [{ id: 'a', name: 'A', created_at: 1 }, { id: 'b', name: null, created_at: 1 }],
+        putMembers: [
+          { thread_id: 'a', moment_id: 'm1', added_at: 1 }, { thread_id: 'a', moment_id: 'm2', added_at: 1 },
+          { thread_id: 'b', moment_id: 'm1', added_at: 1 }, { thread_id: 'b', moment_id: 'm2', added_at: 1 }, { thread_id: 'b', moment_id: 'm3', added_at: 1 },
+        ],
+      });
+      await db.applyThreads({ deleteMembers: [{ thread_id: 'a', moment_id: 'm2' }, { thread_id: 'b', moment_id: 'm2' }] });
+      const got = await db.listThreads();
+      assert.deepEqual(got.threads.map((t) => t.id), ['b']);
+      assert.deepEqual(got.members.map((m) => `${m.thread_id}:${m.moment_id}`).sort(), ['b:m1', 'b:m3']);
+      await db.applyThreads({ putThreads: [{ id: 'solo', name: null, created_at: 1 }], putMembers: [{ thread_id: 'solo', moment_id: 'm1', added_at: 1 }] });
+      assert.deepEqual((await db.listThreads()).threads.map((t) => t.id), ['b'], 'a thread put with one member never exists');
+    });
+
+    test('FC7 deleteCaptures: takes the moments\' memberships and links, dissolves a thread left with fewer than two, leaves the other moments (OT16)', async () => {
+      const db = await fresh();
+      await db.createWalk(walk('a', 1));
+      for (const id of ['m1', 'm2', 'm3']) await db.addCapture(capture(id, 'a', 10));
+      await db.applyThreads({
+        putThreads: [{ id: 't1', name: 'T', created_at: 1 }, { id: 't2', name: null, created_at: 1 }],
+        putMembers: [
+          { thread_id: 't1', moment_id: 'm1', added_at: 1 }, { thread_id: 't1', moment_id: 'm2', added_at: 1 }, { thread_id: 't1', moment_id: 'm3', added_at: 1 },
+          { thread_id: 't2', moment_id: 'm1', added_at: 1 }, { thread_id: 't2', moment_id: 'm2', added_at: 1 },
+        ],
+        putLinks: [{ from_id: 'm2', to_id: 'm1', created_at: 1 }, { from_id: 'm3', to_id: 'm2', created_at: 1 }],
+      });
+      await db.deleteCaptures(['m1']);
+      const got = await db.listThreads();
+      assert.deepEqual(got.threads.map((t) => t.id), ['t1'], 't2 had two moments and m1 went');
+      assert.deepEqual(got.members.map((m) => m.moment_id).sort(), ['m2', 'm3']);
+      assert.deepEqual(got.links, [{ from_id: 'm3', to_id: 'm2', created_at: 1 }], 'only the links touching m1 went');
+      assert.deepEqual((await db.getCaptures('a')).map((c) => c.id), ['m2', 'm3']);
+    });
+
+    test('FC7 deleteWalk: takes its moments\' memberships and links, and dissolves the threads that leaves (OT17)', async () => {
+      const db = await fresh();
+      await db.createWalk(walk('a', 1));
+      await db.createWalk(walk('b', 2));
+      await db.addCapture(capture('a1', 'a', 10));
+      await db.addCapture(capture('a2', 'a', 11));
+      await db.addCapture(capture('b1', 'b', 20));
+      await db.addCapture(capture('b2', 'b', 21));
+      await db.applyThreads({
+        putThreads: [{ id: 'x', name: null, created_at: 1 }, { id: 'y', name: null, created_at: 1 }],
+        putMembers: [
+          { thread_id: 'x', moment_id: 'a1', added_at: 1 }, { thread_id: 'x', moment_id: 'b1', added_at: 1 },
+          { thread_id: 'y', moment_id: 'b1', added_at: 1 }, { thread_id: 'y', moment_id: 'b2', added_at: 1 }, { thread_id: 'y', moment_id: 'a2', added_at: 1 },
+        ],
+        putLinks: [{ from_id: 'b1', to_id: 'a1', created_at: 1 }, { from_id: 'b2', to_id: 'b1', created_at: 1 }],
+      });
+      await db.deleteWalk('a');
+      const got = await db.listThreads();
+      assert.deepEqual(got.threads.map((t) => t.id), ['y']);
+      assert.deepEqual(got.members.map((m) => m.moment_id).sort(), ['b1', 'b2']);
+      assert.deepEqual(got.links, [{ from_id: 'b2', to_id: 'b1', created_at: 1 }]);
+    });
   });
 }

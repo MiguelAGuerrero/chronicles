@@ -83,6 +83,14 @@ Chronicle's Memories (decision 0098)
   resurface/shell.ts         createResurface(ports): load, choices in meta `resurface_prefs`, saveNote, patch; index.ts is the app instance
   resurface/useResurface.ts  the view hook (reads on focus and after a delete)
   chronicle/                 SectionBar, MemoriesScreen, Resurfaced, ThreadsRail, ThreadScreen, MomentCard, MomentPicture, MemoryMenu
+Owner threads (decision 0104)
+  threads/types.ts           Thread, Member, Link (all truth), ThreadsData, ThreadsChange (one atomic change)
+  threads/rules.ts           thinThreads (dissolve below two), canMakeThread, threadForReply, replyChange, addChange, visibleThreads (what Undo hides)
+  threads/timeline.ts        buildTimeline: oldest first, a reply under what it answers
+  threads/lines.ts           every sentence: size words from a fixed set, since March, answering, context, a heading
+  threads/shell.ts           createThreads(ports, { schedule }): startThread, addToThread, removeFromThread, rename, deleteThread (Undo), reply, moments
+  threads/index.ts           the app instance (the Undo window is `deletions`); useThreads.ts the view hook
+  threads/                   (components/) RespondBar, AddToThread, ThreadChip, MyThreads, OwnThreadScreen, ThreadMomentMenu, ThreadMark (the made/found icon, decision 0105)
 Home / tabs
   HomeSheet.tsx              the three-height bottom sheet (Animated + responders), Walks | Days, a place's walks, a day's timeline
   StarView.tsx               a star for a place; all one size; the 8 busiest carry names
@@ -468,6 +476,13 @@ Truth (`lib/types.ts`):
 - `Pause`, `Still`: walk_id, started_at, ended_at.
 - `GapDecision` (`gap_fill`, kept): a stretch kept or dismissed, with its line, so a map update never moves it.
 
+Owner threads (`threads/types.ts`, truth, never derived, decision 0104): `Thread`
+(`thread`: id, name nullable, created_at), `Member` (`thread_member`: thread_id,
+moment_id, added_at) and `Link` (`moment_link`: from_id answers to_id). A moment
+carries nothing of them. `applyThreads` dissolves a thread left with fewer than two
+members in the same transaction; `deleteCaptures` and `deleteWalk` take the
+memberships and links of their moments. SQLite migration 22, IndexedDB 17.
+
 Cache (`lib/types.ts`, `areas/types.ts`): `StreetSegment` (id, name,
 kind_detail, length_m, geometry, build), `VisitedSegment` (segment_id,
 walk_id, covered_fraction, first_t, street_key), `WalkSummary` (distance_m,
@@ -531,5 +546,5 @@ stores the record whole.
 
 ## The places archive (Places worth the stop, decision 0103)
 
-- **Built outside the app, in chronicles-data** (decision 0104): the places pipeline, its schemas, its class names and the owner's `edits.json` live there (https://github.com/MiguelAGuerrero/chronicles-data, its docs/spec.md). It builds the packs weekly, publishes them with `manifest.json` (each file's z8 `blocks`) and serves its `contract/` beside them. The app pins a copy of that contract (`src/lib/__tests__/explore/contract/`), and `placesContract.test.ts` holds the app's class table and reader to it (PP17); the owner's edits are applied in the build, never in the app.
+- **Built outside the app, in chronicles-data** (decision 0107): the places pipeline, its schemas, its class names and the owner's `edits.json` live there (https://github.com/MiguelAGuerrero/chronicles-data, its docs/spec.md). It builds the packs weekly, publishes them with `manifest.json` (each file's z8 `blocks`) and serves its `contract/` beside them. The app pins a copy of that contract (`src/lib/__tests__/explore/contract/`), and `placesContract.test.ts` holds the app's class table and reader to it (PP17); the owner's edits are applied in the build, never in the app.
 - **Read by tile in the app,** through `lib/net`, in the explore read (checklists, every walk) and the atlas ring read (PW10); never stored, merged with the map's places, the archive's kind winning. `EXPO_PUBLIC_PLACES_BASE` points the e2e build at `/places-e2e/` on the harness's server.

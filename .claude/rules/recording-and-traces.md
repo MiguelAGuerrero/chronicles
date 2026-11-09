@@ -32,8 +32,12 @@ Recording a walk and reading its trace: pauses, standstills, GPS jitter, the liv
   if it overlaps a spell out of front (`lib/hiddenLog.ts`, fed from AppState in
   `useLiveTrace`) or began before the page loaded. With the page on screen, a gap
   is weak GPS: the chip says so, no notice. `E2E_ONLY=hidden` checks both.
-- **Captures still work while paused** (the owner's call). An unstamped one is
-  placed where the pause began, not on a line across it.
+- **Captures still work while paused** (the owner's call). With no fresh fix (the
+  recorder is stopped while paused), a capture asks for one fix of its own
+  (`locateOnce`, as a loose moment does) and is placed there when it arrives (fix
+  paused-pins, Nov 9: moments taken walking while paused all sat where the pause
+  began). Only if no fix comes is it placed where the pause began, not on a line
+  across it. Not run on a device.
 - **Standstills** (`dwellsOf` / `smoothDwells`): fixes are averaged into 30 s bins.
   A stay grows while each bin is within 25 m of the stay's running center, and it
   survives two bins outside (GPS jumps). It must last 2 min, its first and last

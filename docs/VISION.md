@@ -128,4 +128,4 @@ same argument is not had twice.
 | 0095 | Scenic routes: a row per leaning (green, sights, streets with life) beside Direct, kept over the page's "one way"; no minutes compared, the detour in words (reshaped at the gate, Nov 5) |
 | 0099 | The found tally is removed: a place's sheet names its finds and never counts them (answers open question 6, Nov 5) |
 | 0103 | A static places archive in the chronicles-data repo, read by tile; significance is a gate, never a measure; Curiosities are a kind of "Viewpoints & oddities"; reverses 0084's "no host" (reshaped at the gate, Nov 5) |
-| 0104 | The places archive becomes a pipeline of adapters; a community source may only nominate, and a nomination reaches only the owner's review list, never a pack (the steward's finding, the owner's call, Nov 9) |
+| 0107 | The places archive becomes a pipeline of adapters; a community source may only nominate, and a nomination reaches only the owner's review list, never a pack (the steward's finding, the owner's call, Nov 9) |

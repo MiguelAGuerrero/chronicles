@@ -13,6 +13,8 @@ import { exploredKey } from '../explore/explore';
 import { DERIVED_STORES } from './stores';
 import type { Capture, GapDecision, LngLat, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 import { segmentBbox } from './segmentBounds';
+import { thinThreads } from '../threads/rules';
+import type { Link, Member, Thread, ThreadsChange } from '../threads/types';
 import type { Db } from './types';
 import { parseEdit, serializeEdit } from '../mediaEdit';
 
@@ -218,6 +220,23 @@ const MIGRATIONS = [
   `
   ALTER TABLE checklist_area ADD COLUMN archive TEXT;
   `,
+  // 22: owner threads (OT21, decision 0104): threads, their members and replies. Truth, never derived; no foreign keys,
+  // the delete transactions cascade (OT16, OT17).
+  `
+  CREATE TABLE thread (
+    id TEXT PRIMARY KEY, name TEXT, created_at INTEGER NOT NULL
+  );
+  CREATE TABLE thread_member (
+    thread_id TEXT NOT NULL, moment_id TEXT NOT NULL, added_at INTEGER NOT NULL,
+    PRIMARY KEY (thread_id, moment_id)
+  );
+  CREATE INDEX thread_member_moment ON thread_member (moment_id);
+  CREATE TABLE moment_link (
+    from_id TEXT NOT NULL, to_id TEXT NOT NULL, created_at INTEGER NOT NULL,
+    PRIMARY KEY (from_id, to_id)
+  );
+  CREATE INDEX moment_link_to ON moment_link (to_id);
+  `,
 ];
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
@@ -249,6 +268,25 @@ function write(task: (txn: SQLite.SQLiteDatabase) => Promise<void>): Promise<voi
   const run = queue.then(async () => (await conn()).withExclusiveTransactionAsync(task));
   queue = run.catch(() => {});
   return run;
+}
+
+/** Drops the threads, among `ids`, that fewer than two moments belong to, with their memberships (OT15). */
+async function dissolveThin(t: SQLite.SQLiteDatabase, ids: Iterable<string>) {
+  for (const id of new Set(ids)) {
+    const left = await t.getAllAsync<Member>('SELECT * FROM thread_member WHERE thread_id = ?', id);
+    if (!thinThreads([id], left).length) continue;
+    await t.runAsync('DELETE FROM thread_member WHERE thread_id = ?', id);
+    await t.runAsync('DELETE FROM thread WHERE id = ?', id);
+  }
+}
+/** The memberships and links of deleted moments go with them, and a thread left thin dissolves (OT16, OT17). */
+async function dropMoments(t: SQLite.SQLiteDatabase, ids: string[]) {
+  if (!ids.length) return;
+  const marks = ids.map(() => '?').join(',');
+  const affected = await t.getAllAsync<{ thread_id: string }>(`SELECT DISTINCT thread_id FROM thread_member WHERE moment_id IN (${marks})`, ...ids);
+  await t.runAsync(`DELETE FROM thread_member WHERE moment_id IN (${marks})`, ...ids);
+  await t.runAsync(`DELETE FROM moment_link WHERE from_id IN (${marks}) OR to_id IN (${marks})`, ...ids, ...ids);
+  await dissolveThin(t, affected.map((r) => r.thread_id));
 }
 
 const toPlace = placeFromRow;
@@ -348,8 +386,37 @@ export const db: Db = {
     ));
   },
 
+  async listThreads() {
+    const c = await conn();
+    const [threads, members, links] = await Promise.all([
+      c.getAllAsync<Thread>('SELECT * FROM thread ORDER BY created_at'),
+      c.getAllAsync<Member>('SELECT * FROM thread_member ORDER BY added_at'),
+      c.getAllAsync<Link>('SELECT * FROM moment_link ORDER BY created_at'),
+    ]);
+    return { threads, members, links };
+  },
+  applyThreads(c: ThreadsChange) {
+    return write(async (t) => {
+      for (const x of c.putThreads ?? []) await t.runAsync('INSERT OR REPLACE INTO thread (id, name, created_at) VALUES (?, ?, ?)', x.id, x.name, x.created_at);
+      for (const x of c.putMembers ?? []) await t.runAsync('INSERT OR REPLACE INTO thread_member (thread_id, moment_id, added_at) VALUES (?, ?, ?)', x.thread_id, x.moment_id, x.added_at);
+      for (const x of c.putLinks ?? []) await t.runAsync('INSERT OR REPLACE INTO moment_link (from_id, to_id, created_at) VALUES (?, ?, ?)', x.from_id, x.to_id, x.created_at);
+      for (const id of c.deleteThreads ?? []) {
+        await t.runAsync('DELETE FROM thread_member WHERE thread_id = ?', id);
+        await t.runAsync('DELETE FROM thread WHERE id = ?', id);
+      }
+      for (const d of c.deleteMembers ?? []) await t.runAsync('DELETE FROM thread_member WHERE thread_id = ? AND moment_id = ?', d.thread_id, d.moment_id);
+      for (const d of c.deleteLinks ?? []) await t.runAsync('DELETE FROM moment_link WHERE from_id = ? AND to_id = ?', d.from_id, d.to_id);
+      await dissolveThin(t, [
+        ...(c.putThreads ?? []).map((x) => x.id),
+        ...(c.putMembers ?? []).map((x) => x.thread_id),
+        ...(c.deleteMembers ?? []).map((x) => x.thread_id),
+      ]);
+    });
+  },
+
   deleteWalk(walkId) {
     return write(async (t) => {
+      await dropMoments(t, (await t.getAllAsync<{ id: string }>('SELECT id FROM capture WHERE walk_id = ?', walkId)).map((r) => r.id));
       await t.runAsync('DELETE FROM recall WHERE capture_id IN (SELECT id FROM capture WHERE walk_id = ?)', walkId);
       for (const table of ['capture', 'trace_point', 'pause', 'still', 'gap_fill', 'visited_segment', 'walk_area', 'find', 'mark', 'walk_summary']) {
         await t.runAsync(`DELETE FROM ${table} WHERE walk_id = ?`, walkId);
@@ -372,6 +439,7 @@ export const db: Db = {
     const marks = ids.map(() => '?').join(',');
     return write(async (t) => {
       const got = await t.getAllAsync<Capture>(`SELECT * FROM capture WHERE id IN (${marks})`, ...ids);
+      await dropMoments(t, got.map((c) => c.id));
       await t.runAsync(`DELETE FROM capture WHERE id IN (${marks})`, ...ids);
       await t.runAsync(`DELETE FROM recall WHERE capture_id IN (${marks})`, ...ids);
       if (!opts.keepFinds) await t.runAsync(`DELETE FROM find WHERE capture_id IN (${marks})`, ...ids);

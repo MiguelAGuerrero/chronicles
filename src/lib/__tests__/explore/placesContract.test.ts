@@ -12,7 +12,7 @@ import { HOSTS } from '../../net/policy';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { ALLOWED_HOSTS } = require('../../../../scripts/check-vision.js') as { ALLOWED_HOSTS: Record<string, string> };
 
-// The places pipeline's contract, the app's side (specs/places-pipeline, decision 0104). chronicles-data owns the
+// The places pipeline's contract, the app's side (specs/places-pipeline, decision 0107). chronicles-data owns the
 // contract; contract/ here is the app's pinned copy of it (its README says how to take a new one).
 
 const ROOT = join(__dirname, '../../../..');

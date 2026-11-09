@@ -2,6 +2,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { threadLine } from '../../lib/resurface/lines';
 import type { MomentView, Thread } from '../../lib/resurface/types';
 import { theme } from '../ui';
+import { ThreadMark } from '../threads/ThreadMark';
 import { MomentPicture } from './MomentPicture';
 
 /**
@@ -13,7 +14,10 @@ export function ThreadsRail(props: { threads: Thread[]; moments: Map<string, Mom
   return (
     <View style={styles.sec} testID="threads-rail">
       <View>
-        <Text style={styles.h} accessibilityRole="header">Threads</Text>
+        <View style={styles.head}>
+          <ThreadMark kind="found" />
+          <Text style={styles.h} accessibilityRole="header" accessibilityLabel="Threads, found for you">Threads</Text>
+        </View>
         <Text style={styles.sub}>Things you keep coming back to</Text>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row} style={styles.scroll} role="list">
@@ -22,10 +26,13 @@ export function ThreadsRail(props: { threads: Thread[]; moments: Map<string, Mom
           const line = threadLine(t, props.now);
           return (
             <View key={t.term} role="listitem">
-            <Pressable testID="thread-tile" accessibilityRole="button" accessibilityLabel={`${t.name}. ${line}`} onPress={() => props.onOpen(t)} style={styles.tile}>
+            <Pressable testID="thread-tile" accessibilityRole="button" accessibilityLabel={`${t.name}. ${line}. Found for you`} onPress={() => props.onOpen(t)} style={styles.tile}>
               {photo ? <MomentPicture capture={photo.capture} style={styles.art} /> : <View style={[styles.art, styles.plain]} />}
               <View style={styles.tx}>
-                <Text style={styles.name} numberOfLines={1}>{t.name}</Text>
+                <View style={styles.head}>
+                  <ThreadMark kind="found" size={14} />
+                  <Text style={[styles.name, styles.grow]} numberOfLines={1}>{t.name}</Text>
+                </View>
                 <Text style={styles.line} numberOfLines={2}>{line}</Text>
               </View>
             </Pressable>
@@ -39,6 +46,8 @@ export function ThreadsRail(props: { threads: Thread[]; moments: Map<string, Mom
 
 const styles = StyleSheet.create({
   sec: { gap: 10 },
+  head: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  grow: { flexShrink: 1 },
   h: { color: theme.ink, fontSize: 16, fontWeight: '700' },
   sub: { color: theme.muted, fontSize: 13 },
   scroll: { marginHorizontal: -16 },
