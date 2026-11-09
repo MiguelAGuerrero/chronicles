@@ -19,7 +19,7 @@ import type { WalkMapHandle } from '../../components/map/types';
 import { Icon } from '../../components/icons';
 import { Banner, Button, theme } from '../../components/ui';
 import {
-  ATLAS_RULES, busyAreas, canWalkTo, distanceWords, familiarity, findsIn, nextDoor, otherTowns, nextFrame, townReachM, waitingMarks, walkTarget,
+  ATLAS_RULES, areaPins, busyAreas, canWalkTo, distanceWords, familiarity, findsIn, nextDoor, otherTowns, nextFrame, townReachM, waitingMarks, walkTarget,
   type AtlasArea, type Familiarity, type Listed, type PageFramed,
 } from '../../lib/atlas/atlas';
 import { mapTopInset } from '../../lib/mapTopInset';
@@ -264,10 +264,10 @@ export default function Explore() {
   // The map's areas: the page's neighborhoods (and the town), the nearest few named, the selected one in the accent (round 3).
   const pointsOf = useMemo(() => (town ? [{ area: town, distanceM: 0, here: false }, ...neighborhoods] : neighborhoods), [town, neighborhoods]);
   const points = useMemo(() => pointsOf.map((l) => l.area.at), [pointsOf]);
-  const areaPoints = useMemo<AreaPointPin[]>(() => {
-    const near = new Set(pointsOf.slice(0, NAMED_POINTS).map((l) => l.area.key));
-    return pointsOf.map((l) => ({ id: l.area.key, at: l.area.at, name: near.has(l.area.key) || l.area.key === selected ? l.area.name : null, selected: l.area.key === selected }));
-  }, [pointsOf, selected]);
+  // Only the selected area's level is drawn, so a town's name and its neighborhoods' never overlay (fix map-levels).
+  const areaPoints = useMemo<AreaPointPin[]>(() => areaPins(shown, selected, NAMED_POINTS, !!town), [shown, selected, town]);
+  // A tap protects only the points drawn (fix map-levels audit 3).
+  const pinAts = useMemo(() => areaPoints.map((p) => p.at), [areaPoints]);
   const sel = shown.find((l) => l.area.key === selected) ?? null;
   // Map layers (ML3-ML9): what is drawn over the base map, one setting for every map, around the selected area else around you.
   const layers = useLayers();
@@ -469,7 +469,7 @@ export default function Explore() {
             // A tap closes the long press's choices; with none open, it clears the selection (DN9),
             // only away from every area's point: a tap on the selected dot keeps it (audit 6).
             if (spot) setSpot(null);
-            else if (tapClears(at, radiusM, points)) {
+            else if (tapClears(at, radiusM, pinAts)) {
               setSelected(null);
             }
           }}

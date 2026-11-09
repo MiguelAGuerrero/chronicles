@@ -1,4 +1,4 @@
-# 0104. The planner opens with the first route selected, and names the other kinds along it
+# 0105. The planner opens with the first route selected, and names the other kinds along it
 
 Date: 2026-11-09 · Status: accepted · Area: explore, navigation
 

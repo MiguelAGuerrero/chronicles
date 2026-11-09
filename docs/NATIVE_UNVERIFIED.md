@@ -304,6 +304,17 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** make a moment at 1 am, then look at it the next afternoon. **Expect:** it reads "Late <the evening before> night", not "<today> night". (audit 10)
 
 
+## Owner threads (OT1-OT24, decision 0104)
+
+- [ ] **Do:** update the app from a build before threads, open a walk with moments, then delete one moment that was in a thread and a whole walk that held two others. **Expect:** the migration to 22 runs once, no thread or link table is missing, the threads those deletes leave thin are gone and the others keep their moments. (OT16, OT17, OT21)
+- [ ] **Do:** open a moment from Lately on a phone and tap Photo, then Voice (and Stop and keep), then Note under Respond. **Expect:** the camera, the mic and the keyboard each open over the viewer's Modal, each reply is kept as a moment of its own with where you are and when, and it joins the answered moment's thread. (OT1, OT2, OT24)
+- [ ] **Do:** open a moment from "Memories here" during a walk, tap Respond's Note and keep a reply. **Expect:** the reply belongs to the walk and shows in its replay; the live memo and the reply's recorder do not collide. (owner-threads audit 11)
+- [ ] **Do:** open a moment in the viewer, then More, Add to a thread, A new thread, search for a word and tap a moment. **Expect:** the picker draws inside the viewer (no second Modal), the keyboard does not hide the rows, and the thread is made. (OT5)
+- [ ] **Do:** open a thread, tap a moment's ellipsis, Remove from this thread; then Delete this thread and tap Undo on the pill; then delete it again. **Expect:** the menu sheet and the confirm card open and close cleanly, the pill shows over the screen with Undo, Undo brings the thread back with its name, and after the window the thread is gone and every moment is still in Lately. (OT8, OT14, OT15)
+- [ ] **Do:** on a moment in a thread, tap "In a thread" in the viewer, from Lately. **Expect:** the viewer closes and Chronicle's Memories opens on that thread (the navigation after a Modal's dismissal is not dropped). (OT11)
+- [ ] **Do:** on Android, open a moment, tap Respond's Note, type a few words, press Back; then press Back again. **Expect:** the first Back closes the note being written and leaves the viewer open with Respond ready; the second closes the viewer. (owner-threads audit 9)
+- [ ] **Do:** with VoiceOver and TalkBack on, move through Threads you made, a thread's timeline and the Respond row. **Expect:** each row reads as one named button with its heading and line, a reply says what it answers, and Respond's three kinds are buttons. (OT9, OT12)
+
 ## Network rules (`lib/net`, decision 0100)
 
 - Whether React Native's `fetch` sends the custom `User-Agent` (`Chronicles (+github.com/…)`) on iOS and Android, or the platform's own replaces it.
@@ -330,3 +341,7 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 ## Wrapped map names (fix long-names)
 
 - [ ] **Do:** on a phone, find a mark, a star and an Explore area point with a name over 20 characters (e.g. "Lopes International Park and gardens"), and a busy-street name that long. **Expect:** each name wraps onto further lines at 140/160 pt, centred, with no "…"; lines 2 and up are not clipped by the marker's box on iOS or Android; the pin stays on its point; a wrapped busy-street label stays near its street.
+
+## Captures while paused (fix paused-pins)
+
+- [ ] **Do:** on a phone, start a walk, pause it, walk two streets, take a photo and a note, then resume and stop. **Expect:** each moment sits where you took it (a pin on the walk map within a few seconds, and on the replay), not where the pause began. With location refused, the moment sits where the pause began.

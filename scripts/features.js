@@ -240,6 +240,14 @@ const FEATURES = [
     specs: ['resurfaced-moments', 'memories-context'],
   },
   {
+    name: 'threads',
+    about: 'threads the owner makes: respond to a moment, connect moments across walks; a thread, its members and a directed reply are stored apart from the moments',
+    rule: 'threads',
+    source: ['src/lib/threads/**', 'src/components/threads/**'],
+    journeys: ['threads'],
+    specs: ['owner-threads'],
+  },
+  {
     name: 'motion',
     about: 'motion polish: timings, presses, entrances, haptics, the pocket alert',
     rule: 'motion-polish',

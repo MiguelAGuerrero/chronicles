@@ -17,7 +17,7 @@ A page of its own for a kind, opened from its "Suggest a walk" button (WP1-WP27,
 - **The other kinds along a route** (`alsoPasses`, WP28): each other kind's dense cells at the cells' resolution, every place counted found or not, named by kind in words ("Also passes some history"), never by place; no pin for them.
 - **What the map is given** (`mapProps.ts`): the routes, the highlighted one's graded pieces (`routeGrades`), and `foundPins` from the walker's own finds, one for those close together. It has no field for a point of interest or a "?" mark (WP16).
 - **Starting** (`dest.ts`): the destination carries the stops (`via`), the planned `path` (followed as it is, KW17), `suggested` and, for a loop, `loop` (arrives only after the stops are passed or let go, WP9, WP25: `passedStops` in `nav/navigator.ts`). Start plans again from the fix at that moment (WP24) and either routes the open walk (`walkHerePlan`) or starts one ready.
-- **The page** (`PlannerDrawer`): a full-screen drawer over Explore; Explore's map steps aside while it is open (one map live at a time, NV4); the first route is selected when there are routes, as the maps do (WP4, WP18, decision 0104); with a walk recording, `PlannerCapture` puts the capture stack on it (WP23).
+- **The page** (`PlannerDrawer`): a full-screen drawer over Explore; Explore's map steps aside while it is open (one map live at a time, NV4); the first route is selected when there are routes, as the maps do (WP4, WP18, decision 0105); with a walk recording, `PlannerCapture` puts the capture stack on it (WP23).
 
 ## Traps
 
