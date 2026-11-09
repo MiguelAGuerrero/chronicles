@@ -100,14 +100,14 @@ Open: none (the owner's answers of Nov 6 below)
 ### The feel for the commitment
 
 14. **WP14 · Each row.** A row gives its own distance in the displayed unit and a line in words of how much of the kind the route
-    passes and where ("plenty along most of the way", "mostly near the end"), and says in words how much of the route is only
-    getting there ("most of the way is getting there"). No digit appears in a row except its distance and unit.
+    passes and where ("plenty along much of the way", "mostly near the end"), and says in words how much of the route is only
+    getting there ("much of the way is getting there"). No digit appears in a row except its distance and unit.
 15. **WP15 · A strip.** Each row has a strip from the route's start to its end, in three flat grades of the kind's colour at low
     contrast (not the accent), with no number, percent, count, end cap or fill animation, and a text equivalent for a screen reader.
 16. **WP16 · The map.** The highlighted route is drawn shaded where the kind is dense, the others faint. The shading is at the
     cells' resolution (400 m) or coarser, never narrower than a cell, and does not change when a place in it is found. No pin or name
     for a place not yet found appears anywhere: the planner's map is given no point-of-interest layer and no "?" mark. The only pins
-    are places already found, taken from the walker's own captures and finds, never from the map's tiles, and several on one route
+    are places already found, taken from the walker's own captures and finds, never from the map's tiles, and several close together
     are one pin with no count.
 17. **WP17 · Plain after starting.** The shading and pins appear on the planner only. Once started, the navigator map shows the plain
     route.
@@ -149,5 +149,16 @@ areas); a route to a destination of the walker's (scenic routes' Go here); routi
 
 ## Record
 
-Not started (2026-11-06): the spec and plan await the owner's review. The steward's findings are folded in (S1-S9, plan "Steward
-triage"); two points wait on the owner (the density of a found stretch, the preset names).
+Built 2026-11-09 on branch `claude/walk-planner`. Tests-first commit `f5c5cc8` (a failing todo per criterion), then the code. Unit tests in
+`src/lib/__tests__/walk-planner/` (planner, presets, exposure and mapProps, words, loop, startFromPlanner, service) and the journey
+`planner` (28 checks on the web, with a walk recording for WP19 and WP23); the kind walk's ids that still hold are named on the same
+tests. Decision 0102. Unrun on a device (docs/NATIVE_UNVERIFIED.md). Not audited (decision 0074).
+
+- **A loop needs a ring of streets.** The way back avoids the streets the way out used; where there is none, the loop would retrace
+  and is not offered, and the page says so and points to One way (`noLoop`). The e2e's test area has one street, so the loop is checked
+  there as that sentence; the loop itself is tested on a street grid in the unit tests.
+- **Suggest different routes** turns the way round and rotates the start cell among the dense cells; it does not yet take another
+  street between the same cells (docs/DEFERRED.md).
+- **Found pins** come from the walker's own finds (`listFinds`), one for those within 150 m of each other.
+- **Changed from the plan:** the kind walk's `kindWalk/` modules stay where they are and the planner imports them (density, limits,
+  words, settings) rather than moving them; the page's map is `WalkMap` with two new props (`routeGrades`, `foundPins`).

@@ -309,8 +309,12 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - Whether React Native's `fetch` sends the custom `User-Agent` (`Chronicles (+github.com/…)`) on iOS and Android, or the platform's own replaces it.
 - The PMTiles source over `net.fetch` (byte ranges, `credentials: 'omit'`, `referrerPolicy: 'no-referrer'`) against Overture's bucket on a phone.
 
-## Kind walk (KW1-KW14, decision 0101)
+## Walk planner (WP1-WP27, KW15, decision 0102)
 
-- [ ] **Do:** open an area's card on a phone, tap Green, then tap Start this walk. **Expect:** the kind row (a `Pressable`) opens its panel inside the full-screen drawer's scroll; `showWalk()` opens the walk with a destination that carries `via` and `suggested`; the walk bar and announcements say a distance and no time left; walking off the way re-routes quietly through the stops still ahead. (KW1, KW7b, KW12, KW13)
-- [ ] **Do:** tap a kind on a phone's network in an area you never walked. **Expect:** the area's tiles are read at the tap, and the walkability tiles for the way's tiles, with nothing kept; "not known yet" reads when none could be read. (KW10, KW14)
+- [ ] **Do:** on a phone, open an area's card, tap a kind's "Suggest a walk" button, then pull the drawer down and open it again. **Expect:** the planner opens as a full-screen drawer over the card with the tabs folded away, Explore's map stepping aside; Back and the close button return to the card as it was. (WP1, KW15)
+- [ ] **Do:** open the planner and tap a row, then change the mode and the distance. **Expect:** the highlighted route is drawn on MapLibre RN with a band under it, wider where the kind is denser (`route-grades`), the other routes faint, the camera fitted to all of them; found places show as small pins (`found-pins`). Nothing is highlighted when it opens. (WP4, WP16, WP18)
+- [ ] **Do:** with a walk recording, open the planner and take a photo, record a voice memo and write a note. **Expect:** the capture stack is on the page and each arrives as a moment on the walk with its place and time; the system camera and microphone permission prompts behave as on the walk screen. (WP23)
+- [ ] **Do:** on a phone's network in an area you have never walked, open the planner. **Expect:** the area's tiles are read when it opens and the way's walkability tiles for each route; "not known yet" reads where none could be read. (WP22, KW10)
+- [ ] **Do:** choose a loop, Start, and walk it, skipping one of its stops. **Expect:** the walk opens ready saying distance only, with no time left on the bar or in the announcements; it does not arrive at once; a skipped stop is let go and the quiet re-route does not pull back to it; it arrives once you are back where you began. (WP9, WP21, WP25, KW7b)
+- [ ] **Do:** with a walk already recording and a destination set, Start a route from the planner. **Expect:** that walk is routed (no second walk starts) and the earlier destination is replaced. (WP19)
 

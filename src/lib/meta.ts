@@ -123,6 +123,8 @@ export const META = {
   outline_nested: { owner: 'areas', codec: json<string[]>(isStrings) },
   // Kind walk (lib/kindWalk): how far a suggested walk is, in metres, and what to do about a stretch built around cars (KW8, KW11)
   kindwalk_budget: { owner: 'kindwalk', codec: number },
+  kindwalk_mode: { owner: 'kindwalk', codec: oneOf<'loop' | 'oneway'>('loop', 'oneway') },
+  kindwalk_density: { owner: 'kindwalk', codec: oneOf<'anywhere' | 'some' | 'plenty'>('anywhere', 'some', 'plenty') },
   kindwalk_pref: { owner: 'kindwalk', codec: oneOf<'warn' | 'skip'>('warn', 'skip') },
   // Chronicle's Memories (lib/resurface): what the user chose to see less of, renamed or removed (RM21)
   resurface_prefs: { owner: 'resurface', codec: json<Prefs>((v) => parsePrefs(v) !== null) },

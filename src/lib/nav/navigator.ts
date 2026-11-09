@@ -70,6 +70,28 @@ export function routeVia(
   return { route: { path, lengthM, source } };
 }
 
+/**
+ * How many of a route's stops the walker has passed (WP25): those they came within a few arrivals of, and those they have gone by
+ * along the route, so a stop skipped on the way is let go and does not pull the re-route back. Never fewer than `already`.
+ */
+export function passedStops(path: LngLat[], stops: readonly LngLat[], here: LngLat, already = 0): number {
+  let n = already;
+  const me = progressOn(path, here);
+  while (n < stops.length) {
+    if (distanceM(here, stops[n]) <= NAV.arriveM * 4) {
+      n += 1;
+      continue;
+    }
+    const stopLeft = progressOn(path, stops[n]).leftM;
+    if (me.offM <= NAV.offM * 2 && me.leftM < stopLeft - 60) {
+      n += 1;
+      continue;
+    }
+    break;
+  }
+  return n;
+}
+
 /** The stops of `via` still ahead: those after the last one the walker has come within `passedM` of. */
 export function viaAhead(via: readonly LngLat[], passed: number): LngLat[] {
   return via.slice(Math.max(0, Math.min(passed, via.length)));
@@ -215,11 +237,18 @@ export function startNav(dest: Waypoint, route: Route, _now: number): NavState {
  * NAV.offFixes fixes in a row further than NAV.offM (re-routing at most every
  * NAV.rerouteMs), and arrival within NAV.arriveM (N7-N9).
  */
-export function navStep(state: NavState, at: LngLat, now: number): { state: NavState; reroute: boolean } {
+export function navStep(state: NavState, at: LngLat, now: number, stopsLeft = 0): { state: NavState; reroute: boolean } {
+  // A loop ends where it began: it is not arrived at while stops are still ahead (WP9).
+  if (stopsLeft > 0) return stepAlong(state, at, now);
   if (distanceM(at, state.dest.at) <= NAV.arriveM) return { state: { ...state, arrived: true, leftM: 0, offRoute: false }, reroute: false };
   // The end of the route counts too: a spot in a park or a block lies off the streets that reach it.
   const routeEnd = state.route.path.length > 1 ? state.route.path[state.route.path.length - 2] : state.dest.at;
   if (distanceM(at, routeEnd) <= NAV.arriveM) return { state: { ...state, arrived: true, leftM: 0, offRoute: false }, reroute: false };
+  return stepAlong(state, at, now);
+}
+
+/** Distance left, and off the route after NAV.offFixes fixes in a row: everything but arriving. */
+function stepAlong(state: NavState, at: LngLat, now: number): { state: NavState; reroute: boolean } {
   const p = progressOn(state.route.path, at);
   const off = p.offM > NAV.offM;
   const offCount = off ? state.offCount + 1 : 0;

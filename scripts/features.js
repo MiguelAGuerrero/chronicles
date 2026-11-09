@@ -145,15 +145,15 @@ const FEATURES = [
     about: 'a suggested walk through where a kind is dense, opened from a kind on an area\'s card: one way, a distance, walkability said',
     rule: 'kind-walk',
     source: ['src/lib/kindWalk/**'],
-    journeys: ['kindwalk'],
+    journeys: [],
     specs: ['kind-walk'],
   },
   {
     name: 'walk-planner',
     about: 'a page of its own for a kind: up to three routes on the map, a loop or one-way, a distance ceiling, density, a feel for the commitment',
     rule: 'walk-planner',
-    source: ['src/lib/nav/types.ts'],
-    journeys: [],
+    source: ['src/lib/walkPlanner/**', 'src/components/planner/**'],
+    journeys: ['planner'],
     specs: ['walk-planner'],
   },
   {
@@ -288,6 +288,9 @@ const FEATURES = [
 const V1_SCAN_AND_AMBIENT = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S9', 'S10', 'S11', 'S12', 'S14', 'S15', 'S22', 'S23', ...Array.from({ length: 11 }, (_, i) => `A${i + 1}`)];
 
 const RETIRED = {
+  // The walk planner (decision 0102) replaced the kind walk's in-card panel and its one way: KW1 (the row opens the kind in place),
+  // KW4 (one way), KW8 (Shorter, Longer), KW9 (the start said apart from the length; WP14 says it in words) and KW9b/WP26 (too far).
+  'kind-walk': ['KW1', 'KW4', 'KW8', 'KW9'],
   // As the spec says (its "Retired by this slice" line, Explore, v1 slice 5, Nov 1): S1-S6, S9-S12, S14, S15,
   // S22 and S23 of the scan, and all of slice 3's ambient hints (A1-A11). S7, S8, S13, S16 and S17 are live.
   // E14 (the test trim, Nov 5, at the owner's ask): the one-time upgrade off scan and ambient marks ran Nov 1; nothing is left to read.
@@ -335,9 +338,7 @@ const UNTESTED = {
  * Specs a slice is building (TG22): from its plan until done, its criteria are exempt from the gate.
  * `{ slug: { branch, since: 'YYYY-MM-DD' } }`; an entry older than 7 days fails the docs check.
  */
-const IN_PROGRESS = {
-  'walk-planner': { branch: 'claude/walk-planner', since: '2026-11-06' },
-};
+const IN_PROGRESS = {};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 

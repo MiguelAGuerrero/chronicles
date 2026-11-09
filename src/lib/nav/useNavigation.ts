@@ -12,7 +12,7 @@ import type { LngLat, StreetSegment, Walk } from '../types';
 import { routeLeanings } from '../routeLeanings';
 import { getUnits } from '../units';
 import { aboutTimeLeft, DEFAULT_PACE_MPS, timeAtPaceMs } from './eta';
-import { announceStep, NAV, navStep, routeVia, startNav, tooFar, viaAhead, type NavState } from './navigator';
+import { announceStep, navStep, passedStops, routeVia, startNav, tooFar, viaAhead, type NavState } from './navigator';
 import { routeOptions, scenicPlan, scenicRouteSource, type RouteOption } from './scenic';
 import { scenicRead } from './scenicRead';
 import type { Signals } from './scenicSignals';
@@ -44,6 +44,13 @@ export interface RoutePreview {
   dest: Waypoint;
   options: RouteOption[];
   selected: number;
+}
+
+/** The planner's path as a route: its length is the whole of it. */
+function plannedRoute(path: LngLat[]): Route {
+  let lengthM = 0;
+  for (let i = 1; i < path.length; i++) lengthM += distanceM(path[i - 1], path[i]);
+  return { path, lengthM, source: 'planned' };
 }
 
 /**
@@ -217,7 +224,11 @@ export function useNavigation(opts: {
       const hint = { heading: here ? latest.current.heading : null };
       const stops = dest.via ?? [];
       viaPassed.current = 0;
-      let found = routeVia(list, from, stops, dest.at, 'shortest', hint);
+      // The walk planner's own way (WP20, KW17): followed as it was planned, from where the walker stood. Its re-routes use the
+      // streets around, read once.
+      const planned = dest.path && dest.path.length > 1 ? plannedRoute(dest.path) : null;
+      if (planned) list.push(await cachedStreets(boundsOf([from, ...dest.path!], AREA_PAD_M)!));
+      let found = planned ? { route: planned } : routeVia(list, from, stops, dest.at, 'shortest', hint);
       if (!found.route) {
         list.push(await readStreets(boundsOf([from, ...stops, dest.at], AREA_PAD_M)!, [from, ...stops, dest.at]));
         if (cancelled.current) return;
@@ -296,7 +307,11 @@ export function useNavigation(opts: {
       const s = navRef.current;
       if (!s) return;
       const now = Date.now();
-      const step = navStep(s, here, now);
+      // A suggested way's stops: one the walker has come close to, or gone by along the way, is passed and let go (WP25); a loop is
+      // not arrived at until they are (WP9). A re-route goes on through those ahead (KW13).
+      const stops = s.dest.via ?? [];
+      viaPassed.current = passedStops(s.route.path, stops, here, viaPassed.current);
+      const step = navStep(s, here, now, s.dest.loop ? stops.length - viaPassed.current : 0);
       if (step.state.arrived) {
         latest.current.onArrive(s.dest);
         end();
@@ -307,9 +322,6 @@ export function useNavigation(opts: {
       const riding = !!latest.current.riding;
       if (riding) next = { ...next, offCount: 0, offRoute: false };
       if (announceStep(s.leftM, next.leftM)) AccessibilityInfo.announceForAccessibility(`${saidLeft(next.leftM, s.dest, latest.current.pace?.())} left to ${s.dest.label}`);
-      // A suggested way's stops: one the walker has come close to is passed, and a re-route goes on through those ahead (KW13).
-      const stops = s.dest.via ?? [];
-      while (viaPassed.current < stops.length && distanceM(here, stops[viaPassed.current]) <= NAV.arriveM * 4) viaPassed.current += 1;
       if (step.reroute && !riding) {
         const again = routeVia(sources.current, here, viaAhead(stops, viaPassed.current), s.dest.at, 'shortest', { heading: latest.current.heading }).route;
         if (again) {

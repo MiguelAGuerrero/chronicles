@@ -71,13 +71,18 @@ recording bar brings a minimized walk back.
   and nightlife count every place. A ring with fewer than three mapped places
   says nothing about its kinds (atlas grading, decision 0084).
 - Rings are read by themselves while the tab is open, nearest first.
-- **A walk through a kind** (decision 0101, kind walk KW1-KW14): on an area's card, tapping a kind under "What's here" (Green,
-  History, ...) opens it in place with one suggested walk through where that kind is concentrated (the same 400 m cells as
-  the busy areas), moved onto streets. It says its length as a distance in the displayed unit, never a time, and whether it can
-  be walked the whole way (a stretch built around cars is named; "not known" when nothing could be read). Settings: about how
-  far (steps in km or miles, 2 km by default) and what to do about a stretch built around cars (say so, the default, or don't
-  suggest it). "Start this walk" opens the walk screen ready; the walk says distance only and is otherwise ordinary. It names
-  no place, so the "?" marks stay hidden until reached. Scenic routes (0095) are a separate feature on Go here; this walk skips their preview.
+- **A walk planner for a kind** (decision 0102, walk planner WP1-WP27): on an area's card, a kind that has something under "What's here"
+  (Green, History, ...) has a "Suggest a walk" button, which opens a page of its own over Explore. It plans up to three routes from where
+  you are, drawn on the map and listed as rows: through the middle of where the kind is, across the area, and around the edge. Each says
+  only its own distance in the displayed unit, how much of the kind it passes and where ("plenty along much of the way", "mostly near the
+  end"), how much of it is only getting there, and whether it can be walked the whole way; a strip along each row and a shading of the
+  highlighted route show the same without a number. It never shows or names a place not yet found, so the "?" marks stay hidden until
+  reached; only places you have already found may be pinned. The settings are on the page: a loop (the default, back where you start)
+  or a one way, a distance as a hard ceiling (2 km by default; where the kind fills less ground the route is shorter, and the page
+  says so), how much of the kind a route must pass, and what to do about a stretch built around cars. "Suggest different routes"
+  replaces the three and keeps no history. Start plans again from where you are and either routes the walk you have open (capture is
+  on the page meanwhile) or starts one ready; it says distance only, never a time left. Scenic routes (0095) are a separate feature on
+  Go here.
 - **The small map moves in steps** (discrete navigation, decision 0092, an
   experiment): a swipe goes to the next area that way, never panning. It
   selects the next neighborhood (its ring, its name, its tile scrolled into

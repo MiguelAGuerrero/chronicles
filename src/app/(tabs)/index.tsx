@@ -13,6 +13,8 @@ import { useBusyLayer } from '../../lib/layers/useBusyLayer';
 import { useLayers } from '../../lib/layers/useLayers';
 import { useWalkability } from '../../lib/walk/useWalkability';
 import { WalkMap } from '../../components/map/WalkMap';
+import { PlannerDrawer } from '../../components/planner/PlannerDrawer';
+import type { CategoryId } from '../../lib/discovery/types';
 import type { WalkMapHandle } from '../../components/map/types';
 import { Icon } from '../../components/icons';
 import { Banner, Button, theme } from '../../components/ui';
@@ -175,6 +177,8 @@ export default function Explore() {
   // Back on the tab, a newer fix from Navigate moves the atlas with you (explore-atlas audit 1).
   const fixSeen = useRef(getLastFix()?.t ?? 0);
   const mapRef = useRef<WalkMapHandle>(null);
+  // The walk planner's kind (WP1): a page over the card, with a map of its own, so Explore's map steps aside while it is open.
+  const [plan, setPlan] = useState<CategoryId | null>(null);
   const [bearing, setBearing] = useState(0);
   // The map comes down when Explore loses focus and opens north-up again (CP8).
   useFocusEffect(useCallback(() => () => setBearing(0), []));
@@ -432,7 +436,7 @@ export default function Explore() {
   const mapPane = (
     <View style={[styles.map, { height: mapH, width: mapW }, wide && styles.mapWide]}>
       {/* Only while Explore is in front (NV4): one map is live at a time. */}
-      {focused && (
+      {focused && !plan && (
         <WalkMap
           trace={NONE}
           walked={NONE}
@@ -678,10 +682,7 @@ export default function Explore() {
             setOpen(null);
             walkStart.start({ at, label, kind: 'point' });
           }}
-          onStartWalk={(dest) => {
-            setOpen(null);
-            walkStart.start(dest);
-          }}
+          onPlan={(k) => setPlan(k)}
           onWalk={() => {
             const t = walkTarget(card.area);
             setOpen(null);
@@ -690,6 +691,21 @@ export default function Explore() {
           onPick={pick}
           onClose={() => setOpen(null)}
           layout={cardLayout}
+        />
+      )}
+      {card && plan && (
+        <PlannerDrawer
+          kind={plan}
+          area={card.area}
+          you={from}
+          lastFixAt={getLastFix()?.t ?? null}
+          starting={walkStart.starting}
+          onClose={() => setPlan(null)}
+          onStart={(dest) => {
+            setPlan(null);
+            setOpen(null);
+            walkStart.start(dest);
+          }}
         />
       )}
     </View>
