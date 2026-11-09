@@ -67,6 +67,7 @@ import { useLayers } from '../lib/layers/useLayers';
 import { useRouteWarning } from '../lib/walk/useRouteWarning';
 import { useWalkability } from '../lib/walk/useWalkability';
 import { exitPlan, screenState, startNotice } from '../lib/readyNav';
+import { noticeShown } from '../lib/pauseReminder';
 import { getLastFix } from '../lib/lastFix';
 import { CaptureStack } from '../components/walk/CaptureStack';
 import { ReadyBar } from '../components/walk/ReadyBar';
@@ -128,6 +129,8 @@ type Notice = {
   tone?: 'info' | 'error';
   openSettings?: boolean;
   sticky?: boolean;
+  /** The paused reminder: it goes when the pause ends (fix pause-banner). */
+  forPause?: boolean;
   /** A route that couldn't be found offers the destination to the phone's maps app (NH5). */
   maps?: { at: LngLat; label: string };
 };
@@ -233,7 +236,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const [now, setNow] = useState(() => Date.now());
   // One-off notices: a start warning or "started". The web's "keep this page open" note is said
   // once on first launch (Navigate), not on every walk (the owner's call, Nov 4).
-  const [notice, setNotice] = useState<Notice | null>(() =>
+  const [rawNotice, setNotice] = useState<Notice | null>(() =>
     !shownWalk
       ? null
       : params.warning
@@ -334,10 +337,10 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const captures = useVisible(cap.captures);
 
   useEffect(() => {
-    if (!notice || notice.sticky) return;
+    if (!rawNotice || rawNotice.sticky) return;
     const t = setTimeout(() => setNotice(null), NOTICE_MS);
     return () => clearTimeout(t);
-  }, [notice]);
+  }, [rawNotice]);
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 1500);
@@ -885,6 +888,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       if (paused) {
         void askMotion();
         await resumeWalk(walk.id);
+        setNotice((n) => noticeShown(n, false)); // the paused reminder ends with the pause
         AccessibilityInfo.announceForAccessibility('Walk resumed');
       } else {
         // A memo in progress is saved first; a paused walk records nothing.
@@ -995,11 +999,12 @@ function WalkScreen(props: { onMinimize: () => void }) {
     : null;
   // A forgotten pause loses the rest of the walk: after a while, say so once per pause.
   const openPause = pauses.find((p) => p.ended_at == null);
+  const notice = noticeShown(rawNotice, !!openPause);
   const remindedFor = useRef<number | null>(null);
   useEffect(() => {
     if (!openPause || remindedFor.current === openPause.started_at || now - openPause.started_at < PAUSE_REMIND_MS) return;
     remindedFor.current = openPause.started_at;
-    setNotice({ message: `Paused for ${formatDuration(now - openPause.started_at)}. Nothing is recorded until you resume.`, sticky: true });
+    setNotice({ message: `Paused for ${formatDuration(now - openPause.started_at)}. Nothing is recorded until you resume.`, sticky: true, forPause: true });
   }, [openPause, now]);
   const recordingVoice = cap.voiceStartedAt != null;
   // Keep or Not this way (G10): stored with the walk, and the line follows at once.
