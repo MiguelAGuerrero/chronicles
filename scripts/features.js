@@ -102,6 +102,7 @@ const FEATURES = [
       'src/app/(tabs)/navigate.tsx',
       'src/components/walk/**',
       'src/lib/readyNav.ts',
+      'src/lib/pauseReminder.ts',
       'src/lib/stackSlots.ts',
       'src/lib/ready/**',
       'src/components/{Ticking,MomentBar,ConfirmCard,StartSettings,ui}.tsx',
