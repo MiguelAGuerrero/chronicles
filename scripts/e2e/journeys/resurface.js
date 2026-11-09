@@ -337,9 +337,9 @@ async function run(h) {
   await empty.pg.waitForSelector('[data-testid=tab-chronicle]', { timeout: 30000 });
   await tabTo(empty.pg, 'chronicle', 'memories');
   check(await empty.pg.waitForSelector('[data-testid=memories-empty]', { timeout: 15000 }).then(() => true, () => false)
-    && (await empty.pg.locator('[data-testid=memories-navigate]').count()) === 1
+    && (await empty.pg.locator('[data-testid=memories-navigate]').count()) === 0 && (await empty.pg.locator('[data-testid=capture-band]').count()) === 1
     && (await empty.pg.locator('[data-testid=resurfaced]').count()) === 0 && (await empty.pg.locator('[data-testid=threads-rail]').count()) === 0,
-    'RM4: with nothing kept, one quiet line and a Navigate button, and no card or rail');
+    'RM4: with nothing kept, one quiet line and the capture band, and no card or rail (amended by HC13)');
   await empty.c.close();
   await contextRun(h);
 }

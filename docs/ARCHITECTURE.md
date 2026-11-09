@@ -82,7 +82,7 @@ Chronicle's Memories (decision 0098)
   resurface/section.ts       which Chronicle section after a route; sectionStore.ts holds it
   resurface/shell.ts         createResurface(ports): load, choices in meta `resurface_prefs`, saveNote, patch; index.ts is the app instance
   resurface/useResurface.ts  the view hook (reads on focus and after a delete)
-  chronicle/                 SectionBar, MemoriesScreen, Resurfaced, ThreadsRail, ThreadScreen, MomentCard, MomentPicture, MemoryMenu
+  chronicle/                 SectionBar, MemoriesScreen, MemoriesBand (the capture band, HC6-HC15), Resurfaced, ThreadsRail, ThreadScreen, MomentCard, MomentPicture, MemoryMenu
 Owner threads (decision 0104)
   threads/types.ts           Thread, Member, Link (all truth), ThreadsData, ThreadsChange (one atomic change)
   threads/rules.ts           thinThreads (dissolve below two), canMakeThread, threadForReply, replyChange, addChange, visibleThreads (what Undo hides)
@@ -96,10 +96,10 @@ Home / tabs
   StarView.tsx               a star for a place; all one size; the 8 busiest carry names
   OpenWalk.tsx               the open walk kept above the tabs: walk, pauses, live trace, useOpenWalk / useOpenWalkInfo
   RecordingBar.tsx           the bar above the tabs while a walk is minimized: time, distance, camera, Stop, › back to the walk
-  MomentBar.tsx              MomentBar (loose moments from Navigate) and CaptureRow (captures for the open walk)
+  MomentBar.tsx              MomentBar (loose moments from Navigate and Memories, or the open walk's from Memories' band) and CaptureRow (the controls, as a stack or a band)
   LocateButton.tsx           Locate me, an edge button
   StartSettings.tsx          the walk settings, shown in the ready bar pulled up (NR7)
-  walk/                      the walk screen's shared geometry (layout.ts), CaptureStack, ReadyBar, useReady (the walk screen's ready state)
+  walk/                      the walk screen's shared geometry (layout.ts), CaptureStack (a stack, or Memories' band), ReadyBar, useReady (the walk screen's ready state)
   GapCard.tsx                a filled or offered stretch: Keep, Not this way
   LandingMarks.tsx           a strip's name beside it on the map
   ExploreSettings.tsx        the shared pieces of the drawers' settings: `KindSwitches`, `RangeSlider`, `walkNote`
@@ -285,6 +285,7 @@ Captures and media
   pins.ts                    pinsFor: grouping captures by screen distance; pinReminded, the bell
   useReminded.ts             the captures with a live reminder, per map; re-read on recallCheck's onRecallsChanged and at nextExpiry
   momentPins.ts              moments outside walks as pins (Navigate, Chronicle) and Chronicle's fit around them
+  captureBand.ts             Memories' capture band (0106): its layout, where a moment goes (loose or the open walk), its labels and toasts, and whether the recording bar shows its camera
   export/bundle/             writeWalkBundle (shell.ts over db and clock) (deferred; nothing in the UI reaches it); export/ per-platform keepers
 Deletion
   deletion/core.ts           what each delete takes; pending.ts: the Undo window on a given clock

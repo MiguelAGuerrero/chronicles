@@ -265,7 +265,7 @@ async function run(h) {
     // The day (RR16): its replay reaches the day's card with no taps, the note on the way.
     const wakesBefore = (await pg.evaluate(() => window.__wake.log.length));
     await pg.click('[data-testid=not-now]');
-    await pg.waitForURL((u) => u.pathname === `${BASE}/chronicle`, { timeout: 15000 });
+    await pg.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 15000 });
     await h.mapUp(pg);
     await pg.click('[data-testid=sheet-days]');
     await pg.click('[data-testid=day-row]');

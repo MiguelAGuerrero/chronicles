@@ -3,7 +3,7 @@
 // once, Busy streets' one read, and the panel's fit on a short phone and a wide window. E2E_ONLY=layers runs it alone.
 
 async function run(h) {
-  const { url, navUrl, BASE, at, check, shot, freshPage, overtureAsked, divisions, tabTo } = h;
+  const { url, exploreUrl, navUrl, BASE, at, check, shot, freshPage, overtureAsked, divisions, tabTo } = h;
   const attr = (pg, name) => pg.locator(`[${name}]`).first().getAttribute(name).catch(() => null);
   const openPanel = async (pg) => {
     if (!(await pg.locator('[data-testid=layers-panel]').count())) await pg.click('[data-testid=layers]');
@@ -16,7 +16,7 @@ async function run(h) {
   // Pawtucket's outline is served, so the Town borders layer has something to draw when it is on.
   divisions.serve = true;
   const { c, pg } = await freshPage('layers');
-  await pg.goto(url);
+  await pg.goto(exploreUrl);
   await pg.waitForSelector('[data-testid=layers]', { timeout: 30000 });
   await pg.waitForTimeout(2500);
 
@@ -63,14 +63,14 @@ async function run(h) {
   await tabTo(pg, 'navigate');
   await pg.waitForSelector('[data-testid=start]', { timeout: 15000 });
   check((await pg.locator('[data-testid=layers-panel]').count()) === 0, 'layers audit 5: the panel is closed after a tab change');
-  await pg.goto(url);
+  await pg.goto(exploreUrl);
   await pg.waitForSelector('[data-testid=layers]', { timeout: 30000 });
 
   // ML11: the Chronicle map is left alone.
   await tabTo(pg, 'chronicle');
   await pg.waitForTimeout(800);
   check((await pg.locator('[data-testid=layers]').count()) === 0, 'ML11: the Chronicle map has no Layers button');
-  await pg.goto(url);
+  await pg.goto(exploreUrl);
   await pg.waitForSelector('[data-testid=layers]', { timeout: 30000 });
 
   // ML13, WK4: nothing is read for Walkability while it is off.
@@ -190,7 +190,7 @@ async function run(h) {
   // layers audit 3: a wide Explore (two panes, a narrow map) keeps a panel wide enough to read, inside the map pane.
   const { c: c3, pg: p3 } = await freshPage('layers-wide');
   await p3.setViewportSize({ width: 1280, height: 800 });
-  await p3.goto(url);
+  await p3.goto(exploreUrl);
   await p3.waitForSelector('[data-testid=layers]', { timeout: 30000 });
   await openPanel(p3);
   const wide = await box(p3, '[data-testid=layers-panel]');
@@ -201,7 +201,7 @@ async function run(h) {
 
   // ML7: someone who turned the walkability switch on before layers existed has it on, once.
   const { c: c4, pg: p4 } = await freshPage('layers-migrate');
-  await p4.goto(url);
+  await p4.goto(exploreUrl);
   await p4.waitForSelector('[data-testid=layers]', { timeout: 30000 });
   await p4.evaluate(() => new Promise((resolve) => {
     const req = indexedDB.open('chronicles');

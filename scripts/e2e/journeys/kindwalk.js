@@ -3,11 +3,11 @@
 // E2E_ONLY=kindwalk runs it alone.
 
 async function run(h) {
-  const { url, at, check, freshPage, shot } = h;
+  const { url, exploreUrl, at, check, freshPage, shot } = h;
   const { c, pg } = await freshPage('kindwalk');
   const here = at(-120, 0);
   await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
-  await pg.goto(url);
+  await pg.goto(exploreUrl);
   const tile = pg.locator('[data-testid=atlas-tile][data-name="Green Row"]');
   await pg.waitForSelector('[data-testid=atlas-tile][data-name="Green Row"][data-read="1"]', { timeout: 60000 }).catch(() => {});
   await tile.click().catch(() => {});

@@ -83,6 +83,8 @@ An item leaves only when it ships, or when it is rejected with a decision record
 ## Moments and days
 
 - Quick capture outside the app: widget, lock screen, share sheet (Moments and days)
+- A capture band on Chronicle's Walks, Days and Map (the owner's call, Nov 9: Memories only; decision 0106)
+- An open walk's moment from Memories' band joins Lately only once the walk is stopped (0098's rule, kept); the toast says "saved to your walk" meanwhile (Capture from Chronicle, steward S2)
 - Moments in a place's stars (Moments and days)
 - The home reads every capture row on focus; per-day counts would need storing (Moments and days)
 - Moment pins filtered to the viewport, `MOMENT_PIN_ZOOM` (Moments and days)

@@ -63,7 +63,7 @@ async function checks(h) {
     // Back on Chronicle: the walk is a star where it was walked (H1, H7, NV27).
     await h.mapUp(page);
     await page.waitForSelector('[data-testid=home-sheet]');
-    check(new URL(page.url()).pathname === `${BASE}/chronicle` && (await page.locator('[data-testid=home-sheet]').count()) === 1 && (await tabBarShown(page)),
+    check(new URL(page.url()).pathname === `${BASE}/` && (await page.locator('[data-testid=home-sheet]').count()) === 1 && (await tabBarShown(page)),
       `closing the replay after Stop returns to Chronicle, once, with the tab bar (NV27: ${page.url()})`);
     await page.waitForSelector('[aria-label^="Fox Point,"]', { timeout: 15000 });
     await shot(page, '08-home-star');

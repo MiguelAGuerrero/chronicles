@@ -22,7 +22,7 @@ Taken as defaults in the plan and confirmed by the owner's go-ahead ("Proceed", 
 - **Chronicle is the root path `/`**, Explore moves to `/explore`, and `/chronicle` redirects to `/`.
 
 ## Consequences
-- The spec is `specs/capture-from-chronicle/spec.md` (HC1-HC14), and the plan is `specs/capture-from-chronicle/plan.md`.
+- The spec is `specs/capture-from-chronicle/spec.md` (HC1-HC15), and the plan is `specs/capture-from-chronicle/plan.md`.
 - Explore's one fix per launch (NV16) moves to Explore's first focus. Opening the app reads no location.
-- Amends `specs/navigation-and-tabs/spec.md` NV1, NV2, NV5, NV11 and NV16.
+- Amends `specs/navigation-and-tabs/spec.md` NV1, NV2, NV5, NV11 and NV16, and `specs/navigate-ready/spec.md` NR3.
 - VISION.md's Precedents gains this row. No rule on the page changes.

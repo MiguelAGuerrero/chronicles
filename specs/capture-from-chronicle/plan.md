@@ -4,7 +4,7 @@ For the owner's review before any code (`/slice` step 3). Spec: `specs/capture-f
 
 ## Defaults for your review
 
-These are my calls where the owner's answers left room. Each can flip without touching the rest.
+These are my calls where the owner's answers left room. Each can flip without touching the rest. **All four were taken by the owner's go-ahead ("Proceed", Nov 9) and recorded in decision 0106.**
 
 1. **Paths: Chronicle becomes the root route (`/`), Explore moves to `/explore`, `/chronicle` redirects to `/`.** This is what 0070 did for Explore, and it is what makes the Home Screen app (`start_url: "./"`) and a native cold start (expo-router always opens `/`) land on Chronicle with no redirect at launch. Rejected: keeping `/` as Explore and replacing it with `/chronicle` at launch. Every launch would pay a hidden redirect (one frame of Explore, or a cover as the open walk's launch uses), and Back's "initial route" would disagree with the URL.
 2. **The row is a band at the foot of Memories, three equal buttons, icon and one word each** (Photo, Voice, Note). The walk screen's stack is a column at the right edge, over a map; over a list it would sit on top of the cards' text (HC7), so on Memories it lies flat above the tab bar instead. The glyphs, order (camera, mic, note), ink and surface are the stack's. 56 pt tall, as the stack's buttons. While a memo records: Discard in the camera's place, Stop & save in the mic's, the timer in the note's, so nothing moves (HC11).
