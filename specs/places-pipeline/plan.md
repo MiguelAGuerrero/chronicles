@@ -99,14 +99,13 @@ All eight findings accepted; each made a criterion stricter. Nothing rejected.
 | S7 nothing holds "phones never call a source" | Accepted as PP16 |
 | S8 slice 1 has no surface; later adapters must not inherit "aligned" | Accepted into PP1: a nominating adapter names the decision record that admitted it. The verdict stays aligned for the frame, whose gate rules are the slice's point |
 
-The owner's call: S1. Should a nomination that a locating source confirms be able to admit a place the class table
-would not (the research doc's version), or only ever reach a review list for you (the spec as now written)?
+The owner's call on S1 (Nov 9, decision 0104): a review list only, never a pack.
 
 ## Data
 
 No SQLite migration, no IndexedDB version: the `archive` column and `profile.archive` keep a string. No new meta key.
 
-## Dependencies (the owner's call)
+## Dependencies (the owner's call, Nov 9: added)
 
 - **Zod 4** as a dev dependency, for the schema and its JSON Schema export (`z.toJSONSchema`). Zod 3.25 is in the tree
   only as another package's dependency; relying on it would break when that package moves.

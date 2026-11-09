@@ -36,12 +36,16 @@ Criteria: PP5 (closed schema, no number but a position); PP7 (a place needs a lo
 Open: none (the owner's calls below)
 ```
 
-## Decisions (the owner's calls, Nov 9)
+## Decisions (the owner's calls, Nov 9; decision 0104)
 
 - **Node and TypeScript only.** Python tools (Splink, dlt) wait until rule-based matching falls short.
 - **Our own opaque place IDs from this slice**, with a crosswalk from source IDs (Wikidata QIDs now). IDs carry no
   meaning (Overture's lesson: IDs that encoded a cell had to be thrown away).
 - **Packs are tile lists inside one region file**, never a file per town.
+- **Zod 4** as a dev dependency for the schema and its JSON Schema export.
+- **Nominations reach only a review list** (after the steward's review): never a pack, even when a locating source
+  confirms them; the owner adds a place through the edits. Each nominating adapter needs its own decision record
+  (decision 0104).
 - **Architecture as researched:** stages fetch, raw store, adapt, conflate, gate, package, publish; an adapter is a
   declaration plus `fetch` and `adapt`; roles locate, corroborate or deny, nominate.
 
