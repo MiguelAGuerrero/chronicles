@@ -14,7 +14,7 @@
     "why": "the screen reader's step-through position in the replay, a pager, not a tally"
   },
   {
-    "file": "src/app/(tabs)/chronicle.tsx",
+    "file": "src/app/(tabs)/index.tsx",
     "rule": "tally",
     "text": "Placing your walks",
     "kind": "allowed",

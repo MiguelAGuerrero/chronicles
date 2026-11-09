@@ -3,7 +3,7 @@ paths:
   - "src/lib/discovery/**"
   - "src/lib/explore/**"
   - "src/lib/db/{exploreRow,placeRow,stores}.ts"
-  - "src/app/(tabs)/index.tsx"
+  - "src/app/(tabs)/explore.tsx"
   - "src/lib/atlas/**"
   - "src/components/atlas/**"
   - "src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx"

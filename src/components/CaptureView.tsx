@@ -466,7 +466,7 @@ export function CaptureViewer(props: {
                 if (props.thread?.id === id) return;
                 threads.requestOpen(id);
                 chronicleSection.set('memories');
-                router.navigate('/chronicle');
+                router.navigate('/');
               }}
             />
             <RespondBar answeredId={current.id} threadId={props.thread?.id ?? null} walkId={props.walkId ?? null} top={insets.top + 116} composeFor={composeFor} setComposeFor={setComposeFor} />

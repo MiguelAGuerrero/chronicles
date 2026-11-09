@@ -102,7 +102,7 @@ export function MemoriesScreen() {
       onRecallOpen((found) => {
         if (!openRef.current.known || openRef.current.walk) return false;
         setRecalled(found);
-        router.navigate('/chronicle');
+        router.navigate('/');
         return true;
       }),
     [],

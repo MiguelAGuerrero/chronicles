@@ -5,7 +5,7 @@
  * them; the tabs layout, the Navigate route and the walk screen follow them.
  */
 
-/** The tab beneath the walk screen when nothing else is (Explore, at `/` since NV2's change; a bare reload of `/walk`). */
+/** The tab beneath the walk screen when nothing else is (Chronicle, at `/` since HC1, decision 0106; a bare reload of `/walk`). */
 export const BENEATH_TAB = '/' as const;
 
 export type ScreenState = 'loading' | 'ready' | 'walking';
@@ -21,7 +21,7 @@ export function navigatePress(): { preventTab: true; showWalk: true } {
   return { preventTab: true, showWalk: true };
 }
 
-/** The Navigate route itself focused (a reload of `/navigate`, a link): Explore beneath, the walk screen over it. */
+/** The Navigate route itself focused (a reload of `/navigate`, a link): Chronicle beneath, the walk screen over it. */
 export function entryPlan(): { tabs: typeof BENEATH_TAB; thenShowWalk: true } {
   return { tabs: BENEATH_TAB, thenShowWalk: true };
 }
@@ -35,7 +35,7 @@ export function startNotice(params: Record<string, string>): string {
   return params.warning ? params.warning : 'Walk started · recording';
 }
 
-/** The chevron, Android Back and the browser's back (NR4): to the tab beneath, Explore when there is none. */
+/** The chevron, Android Back and the browser's back (NR4): to the tab beneath, Chronicle when there is none (HC4). */
 export function exitPlan(canGoBack: boolean): { kind: 'back' } | { kind: 'replace'; to: typeof BENEATH_TAB } {
   return canGoBack ? { kind: 'back' } : { kind: 'replace', to: BENEATH_TAB };
 }

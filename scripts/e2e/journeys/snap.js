@@ -370,7 +370,7 @@ module.exports = {
   name: 'snap',
   // Discrete navigation (DN1-DN13): Explore's map steps from area to area.
   covers: [
-    'src/app/(tabs)/index.tsx',
+    'src/app/(tabs)/explore.tsx',
     'src/lib/atlas/snap.ts',
     'src/components/map/WalkMap.web.tsx',
     'src/components/map/types.ts',

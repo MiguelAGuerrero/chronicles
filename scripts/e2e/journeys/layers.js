@@ -226,7 +226,7 @@ module.exports = {
     'src/components/LayersControl.tsx',
     'src/components/map/{types,WalkMap.web,WalkMap.native}.ts*',
     'src/components/walk/{layout,useReady}.ts*',
-    'src/app/(tabs)/index.tsx',
+    'src/app/(tabs)/explore.tsx',
     'src/app/walk.tsx',
   ],
   run,

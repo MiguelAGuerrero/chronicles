@@ -7,7 +7,7 @@ import { TABS, tabFor } from '../../startPlan';
 // Capture from Chronicle (specs/capture-from-chronicle, decision 0106): the app opens on Chronicle, and
 // Memories keeps a moment in one tap. The screen's own checks are in the `capturehome` journey.
 
-test('HC1: Chronicle is the root route, so the app opens there', { todo: 'test first' }, () => {
+test('HC1: Chronicle is the root route, so the app opens there', () => {
   const ch = tabFor('chronicle');
   assert.equal(ch.route, 'index');
   assert.equal(ch.path, '/');
@@ -15,12 +15,12 @@ test('HC1: Chronicle is the root route, so the app opens there', { todo: 'test f
   assert.equal(tabFor('explore').route, 'explore');
 });
 
-test('HC3: the tabs read Chronicle, Explore, Navigate', { todo: 'test first' }, () => {
+test('HC3: the tabs read Chronicle, Explore, Navigate', () => {
   assert.deepEqual(TABS.map((t) => t.label), ['Chronicle', 'Explore', 'Navigate']);
   assert.deepEqual(TABS.map((t) => t.id), ['chronicle', 'explore', 'navigate']);
 });
 
-test('HC4: the walk screen with nothing beneath it goes to Chronicle', { todo: 'test first' }, () => {
+test('HC4: the walk screen with nothing beneath it goes to Chronicle', () => {
   const plan = exitPlan(false);
   assert.equal(plan.kind, 'replace');
   assert.equal(plan.kind === 'replace' ? plan.to : null, tabFor('chronicle').path);

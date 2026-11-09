@@ -73,11 +73,11 @@ export function walkHerePlan(openWalkId: string | null, dest: Waypoint | null): 
   return { kind: 'route', meta: [[NAV_KEY, navValue(openWalkId, dest)]] };
 }
 
-/** The three tabs, in order (NV1), with their web paths (NV5). Explore is the root route, so the app opens there (NV2). */
+/** The three tabs, in order (HC3), with their web paths (NV5). Chronicle is the root route, so the app opens there (HC1, decision 0106). */
 export type TabId = 'explore' | 'navigate' | 'chronicle';
 export const TABS: { id: TabId; route: string; path: string; label: string; icon: string; iconOn: string }[] = [
-  { id: 'explore', route: 'index', path: '/', label: 'Explore', icon: 'compass-outline', iconOn: 'compass' },
+  { id: 'chronicle', route: 'index', path: '/', label: 'Chronicle', icon: 'book-outline', iconOn: 'book' },
+  { id: 'explore', route: 'explore', path: '/explore', label: 'Explore', icon: 'compass-outline', iconOn: 'compass' },
   { id: 'navigate', route: 'navigate', path: '/navigate', label: 'Navigate', icon: 'navigate-outline', iconOn: 'navigate' },
-  { id: 'chronicle', route: 'chronicle', path: '/chronicle', label: 'Chronicle', icon: 'book-outline', iconOn: 'book' },
 ];
 export const tabFor = (id: TabId) => TABS.find((t) => t.id === id)!;
