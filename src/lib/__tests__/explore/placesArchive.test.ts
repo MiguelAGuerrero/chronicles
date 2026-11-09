@@ -311,3 +311,6 @@ test('places-worth-the-stop audit 4: a version listed but missing is passed over
   for (let i = 0; i < 5; i++) await archive.read(READ, CENTRE);
   assert.equal(log.fetched.length, fetched, 'the manifest is not asked for again on every read');
 });
+
+// Places pipeline (specs/places-pipeline): written before its code (decision 0018).
+test('PP13: an area is rebuilt only when its block\'s hash changes, and once for an area tagged with a file version', { todo: 'test first' }, () => {});
