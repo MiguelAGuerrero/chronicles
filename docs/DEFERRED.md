@@ -17,6 +17,9 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - Scenic routes: a Sights row in a dense centre often says only "past places to find", since most places there are not yet found and never named (scenic routes, SR4)
 - Scenic routes: a start or destination that snaps onto a street piece not joined to the rest (seen once in the Zurich tiles) finds no route at all, direct or scenic; today's Go here has the same gap (scenic routes)
 - A complete walk through every point of interest in an area, which may double back: its own architecture, especially in dense areas such as Philadelphia or New York (decision 0102)
+- Walk planner audit 18 (the owner's call): repeated "Suggest different routes" rotate the start among the eight densest cells, so enough presses cover them all, at the cells' resolution. Keep (it is the feature), or keep the first cells fixed?
+- Walk planner audit 16: when Start replaces a destination already set, a line says so; whether the old one should be restorable is the owner's call.
+- Walk planner audit 10: planning three routes (up to 6! orders per trial) has not been timed on a phone; the unit tests take seconds per scenario. Profile on a device, and move it off the JS thread if it blocks.
 - Walk planner (decision 0102): other kinds in the same route (the opened kind is pre-selected; the page is laid out for a chooser); a sketch of the strip as a profile; pins for places the map draws (only found places are pinned); another street between the same cells for "Suggest different routes" (it turns the way round a loop and rotates the start cell); a walk across a whole town outline (it is built from 1.5 km around the area's point)
 - Open in Maps on the Explore mark card (v0.5 navigate, Open in Maps)
 - Open in Maps on the dead-zone nudge (v0.5 navigate, Open in Maps)

@@ -1,5 +1,6 @@
 // @layer core
-import { DEFAULT_BUDGET_M } from '../kindWalk/settings';
+import { DEFAULT_BUDGET_M, nearestStep } from '../kindWalk/settings';
+import type { Units } from '../units';
 
 /*
  * The planner's settings (WP8, WP10-WP12): a loop or a one-way, a hard distance ceiling (steps in kindWalk/settings), and how much
@@ -20,3 +21,6 @@ export const isDensity = (v: unknown): v is Density => v === 'anywhere' || v ===
 export const DENSITY_SHARE: Record<Density, number> = { anywhere: 0, some: 0.15, plenty: 0.4 };
 
 export const DEFAULT_CEILING_M = DEFAULT_BUDGET_M;
+
+/** The ceiling in force: the step the settings show in the displayed unit, so what is shown is what is enforced (walk planner audit 6). */
+export const ceilingFor = (budgetM: number, units: Units): number => nearestStep(budgetM, units);

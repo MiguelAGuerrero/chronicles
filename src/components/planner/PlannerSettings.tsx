@@ -6,12 +6,13 @@ import type { KindWalkPrefs } from '../../lib/kindWalk/prefs';
 import { prefLabel } from '../../lib/kindWalk/words';
 import { DENSITIES } from '../../lib/walkPlanner/settings';
 import type { Units } from '../../lib/units';
-import { CEILING_HEADING, CEILING_NOTE, DENSITY_HEADING, DENSITY_LABEL, MODE_HEADING, MODE_LABEL, settingsHeading } from '../../lib/walkPlanner/words';
+import type { CategoryId } from '../../lib/discovery/types';
+import { CEILING_HEADING, CEILING_NOTE, DENSITY_LABEL, MODE_HEADING, MODE_LABEL, densityHeading, settingsHeading } from '../../lib/walkPlanner/words';
 import { Icon } from '../icons';
 import { theme } from '../ui';
 
 /** The settings on the planner (WP8, WP10-WP12, WP27): loop or one-way, the distance, density, and what to do about cars. */
-export function PlannerSettings(props: { prefs: KindWalkPrefs; units: Units }) {
+export function PlannerSettings(props: { prefs: KindWalkPrefs; units: Units; kind: CategoryId }) {
   const { prefs, units } = props;
   return (
     <View style={styles.box} testID="plan-settings">
@@ -32,7 +33,7 @@ export function PlannerSettings(props: { prefs: KindWalkPrefs; units: Units }) {
         </Pressable>
       </View>
       <Text style={styles.note}>{CEILING_NOTE}</Text>
-      <Text style={styles.sub}>{DENSITY_HEADING}</Text>
+      <Text style={styles.sub}>{densityHeading(props.kind)}</Text>
       <Segment items={DENSITIES.map((d) => ({ id: d, label: DENSITY_LABEL[d], on: prefs.density === d, onPress: () => void kindWalkPrefs.setDensity(d) }))} id="plan-density" />
       <Text style={styles.sub}>A stretch built around cars</Text>
       <Segment

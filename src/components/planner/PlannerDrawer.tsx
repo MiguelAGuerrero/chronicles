@@ -1,15 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { BackHandler, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { AtlasArea } from '../../lib/atlas/atlas';
 import type { CategoryId } from '../../lib/discovery/types';
 import type { Waypoint } from '../../lib/nav/types';
-import { tabsHidden } from '../../lib/tabsHidden';
+import { hideTabs } from '../../lib/tabsHidden';
 import type { LngLat } from '../../lib/types';
 import { useUnits } from '../../lib/useUnits';
 import { plannerMap } from '../../lib/walkPlanner/mapProps';
 import { usePlanner } from '../../lib/walkPlanner/usePlanner';
-import { closeLabel, differentLabel, reasonLine, readingLine, startLabel, title } from '../../lib/walkPlanner/words';
+import { closeLabel, differentLabel, reasonLine, readingLine, replacesLine, startLabel, title } from '../../lib/walkPlanner/words';
 import { Icon } from '../icons';
 import { WalkMap } from '../map/WalkMap';
 import { Button, theme } from '../ui';
@@ -28,6 +28,8 @@ export function PlannerDrawer(props: {
   area: AtlasArea;
   you: LngLat | null;
   lastFixAt: number | null;
+  /** The walker's latest position, read when Start is pressed (audit 13). */
+  fixNow: () => LngLat | null;
   starting: boolean;
   onClose: () => void;
   onStart: (dest: Waypoint) => void;
@@ -36,11 +38,8 @@ export function PlannerDrawer(props: {
   const units = useUnits();
   const p = usePlanner(props.kind, { at: props.area.at, reachM: props.area.reachM }, props.you, true);
   const [busy, setBusy] = useState(false);
-  // The tabs fold away while the planner is up, and come back when it goes.
-  useEffect(() => {
-    tabsHidden.set(true);
-    return () => tabsHidden.set(false);
-  }, []);
+  // The tabs fold away while the planner is up, and go back as they were when it goes: the area card under it may still be open (audit 12).
+  useEffect(() => hideTabs(), []);
   // Back (Android) and Escape (web) close it: the card is as it was.
   useEffect(() => {
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -64,12 +63,21 @@ export function PlannerDrawer(props: {
     return h;
   }, [p.routes]);
   const reasons = p.result ? [...new Set(p.result.reasons)] : [];
+  // Two taps in one frame start once: a ref, not state (audit 11).
+  const starting = useRef(false);
+  const [failed, setFailed] = useState(false);
   async function start() {
+    if (starting.current) return;
+    starting.current = true;
     setBusy(true);
+    setFailed(false);
     try {
-      const dest = await p.start();
+      const dest = await p.start(props.fixNow());
       if (dest) props.onStart(dest);
+    } catch {
+      setFailed(true);
     } finally {
+      starting.current = false;
       setBusy(false);
     }
   }
@@ -99,14 +107,17 @@ export function PlannerDrawer(props: {
       <ScrollView style={styles.body} contentContainerStyle={styles.content}>
         {p.reading ? <Text style={styles.line} testID="plan-reading">{readingLine}</Text> : null}
         {p.routes.length > 0 ? (
-          <RouteRows routes={p.routes} selected={p.page.selected} kind={props.kind} units={units} ceilingM={p.prefs.budgetM} onSelect={p.choose} />
+          <RouteRows routes={p.routes} selected={p.page.selected} kind={props.kind} units={units} ceilingM={p.ceilingM} onSelect={p.choose} />
         ) : null}
         {reasons.map((r) => <Text key={r} style={styles.line} testID={`plan-reason-${r}`}>{reasonLine(r)}</Text>)}
+        {p.nothing ? <Text style={styles.line} testID="plan-reason-nothingDifferent">{reasonLine('nothingDifferent')}</Text> : null}
+        {failed ? <Text style={styles.line} testID="plan-failed">{reasonLine('noRoute')}</Text> : null}
+        {p.walkId && p.replaces ? <Text style={styles.line} testID="plan-replaces">{replacesLine}</Text> : null}
         <View style={styles.actions}>
           <Button testID="plan-different" variant="secondary" label={differentLabel} disabled={!p.routes.length} onPress={p.different} />
           <Button testID="plan-start" label={startLabel} disabled={!p.canStart || busy || props.starting} onPress={() => void start()} />
         </View>
-        <PlannerSettings prefs={p.prefs} units={units} />
+        <PlannerSettings prefs={p.prefs} units={units} kind={props.kind} />
       </ScrollView>
       {p.walkId ? <PlannerCapture walkId={p.walkId} here={props.you} lastFixAt={props.lastFixAt} /> : null}
     </View>

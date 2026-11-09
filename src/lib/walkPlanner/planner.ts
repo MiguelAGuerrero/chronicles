@@ -1,6 +1,6 @@
 // @layer core
-import { distanceM } from '../geo';
-import { FAR_START_M, MAX_RETRACE, MIN_CELLS, retracedM } from '../kindWalk/plan';
+import { distanceM, distanceToLinesM } from '../geo';
+import { FAR_START_M, MAX_RETRACE, MIN_CELLS, retracedEdgesM, retracedM } from '../kindWalk/plan';
 import type { Cell } from '../kindWalk/density';
 import type { Route } from '../nav/types';
 import type { LngLat } from '../types';
@@ -53,20 +53,32 @@ export interface Planned {
 export type Leg = (a: LngLat, b: LngLat, avoid?: readonly LngLat[]) => Route | null;
 
 const pk = (p: LngLat) => `${p[0].toFixed(5)},${p[1].toFixed(5)}`;
-const edgeKey = (a: LngLat, b: LngLat) => [pk(a), pk(b)].sort().join('>');
 
 function lengthOf(path: readonly LngLat[]): number {
   return path.reduce((s, p, i) => (i ? s + distanceM(path[i - 1], p) : 0), 0);
 }
 
-/** The share of the shorter of two paths that runs over streets the other uses (WP6). */
+/**
+ * The share of the shorter of two paths that runs along the other, measured along the geometry (WP6): a stop in the middle of a street
+ * does not make it another street (walk planner audit 8).
+ */
 export function overlapShare(a: readonly LngLat[], b: readonly LngLat[]): number {
-  const inB = new Set<string>();
-  for (let i = 1; i < b.length; i++) inB.add(edgeKey(b[i - 1], b[i]));
+  const [short, long] = lengthOf(a) <= lengthOf(b) ? [a, b] : [b, a];
+  const total = lengthOf(short);
+  if (!total) return 0;
+  const lines = [[...long]];
   let shared = 0;
-  for (let i = 1; i < a.length; i++) if (inB.has(edgeKey(a[i - 1], a[i]))) shared += distanceM(a[i - 1], a[i]);
-  const shorter = Math.min(lengthOf(a), lengthOf(b));
-  return shorter ? shared / shorter : 0;
+  const STEP = 25;
+  for (let i = 1; i < short.length; i++) {
+    const d = distanceM(short[i - 1], short[i]);
+    const n = Math.max(1, Math.round(d / STEP));
+    for (let k = 0; k < n; k++) {
+      const f = (k + 0.5) / n;
+      const p: LngLat = [short[i - 1][0] + (short[i][0] - short[i - 1][0]) * f, short[i - 1][1] + (short[i][1] - short[i - 1][1]) * f];
+      if (distanceToLinesM(p, lines) <= 12) shared += d / n;
+    }
+  }
+  return shared / total;
 }
 
 function* permutations(items: number[]): Generator<number[]> {
@@ -114,7 +126,7 @@ function fitOrder(set: number[], pts: readonly LngLat[], leg: (i: number, j: num
     if (!ok) continue;
     // A loop is judged by its way out and a straight guess of the way back; the best few get the real way back below.
     const guess = loop ? distanceM(pts[order[order.length - 1]], pts[0]) * 1.3 : 0;
-    outbound.push({ order, path, len, startM, cost: len + RETRACE_WEIGHT * retracedM(path) + guess });
+    outbound.push({ order, path, len, startM, cost: len + RETRACE_WEIGHT * retracedEdgesM(path) + guess });
   }
   outbound.sort((a, b) => a.cost - b.cost);
   let best: (Fit & { cost: number }) | null = null;
@@ -128,7 +140,7 @@ function fitOrder(set: number[], pts: readonly LngLat[], leg: (i: number, j: num
       path = [...o.path, ...r.path.slice(1)];
       lengthM += r.lengthM;
     }
-    const cost = lengthM + RETRACE_WEIGHT * retracedM(path);
+    const cost = lengthM + RETRACE_WEIGHT * retracedEdgesM(path);
     if (!best || cost < best.cost) best = { order: o.order, path, lengthM, startM: o.startM, cost };
   }
   return best;
@@ -154,31 +166,34 @@ function nearestFirst(set: number[], pts: readonly LngLat[]): number[] {
  * stays within the ceiling and runs over itself by no more than a tenth. A route that passes less of the kind than the density
  * asks for, or shares more than 80% with an earlier one or with one on screen, is left out, and the reason is said.
  */
-export function planRoutes(input: PlanInput, route: Leg): Planned {
-  if (!input.from) return { routes: [], reasons: ['noPosition'] };
-  const from = input.from;
-  const dense = [...input.cells].slice(0, CONSIDERED);
-  if (dense.length < MIN_CELLS) return { routes: [], reasons: ['few'] };
-  if (Math.min(...dense.map((c) => distanceM(from, c.at))) > FAR_START_M) return { routes: [], reasons: ['far'] };
-  const loop = input.mode === 'loop';
-  // Two points on the same spot are no leg at all; the streets give no route between them, and none is needed.
+/**
+ * One preset's route (WP5, WP10, walk planner audit 3): its cells are tried in its order, a cell kept only while the whole route stays
+ * within the ceiling and retraces by no more than a tenth. When the first cell cannot be reached within the ceiling, the preset starts
+ * again from the next, so one far cell does not take a pair that would fit.
+ */
+export function fitPreset(
+  id: PresetId,
+  dense: readonly Cell[],
+  from: LngLat,
+  mode: Mode,
+  ceilingM: number,
+  route: Leg,
+  round = 0,
+  state: { routed: boolean } = { routed: false },
+  cache: Map<string, Route | null> = new Map(),
+): { stops: LngLat[]; path: LngLat[]; lengthM: number; startM: number } | null {
+  const loop = mode === 'loop';
   const here: Leg = (a, b, avoid) => (distanceM(a, b) < 5 ? { path: [a, b], lengthM: 0, source: 'here' } : route(a, b, avoid));
-  const cache = new Map<string, Route | null>();
-  const legBy = (pts: readonly LngLat[]) => (i: number, j: number): Route | null => {
-    // By the points, not their indices: each preset numbers its own.
-    const k = `${pk(pts[i])}>${pk(pts[j])}`;
-    if (!cache.has(k)) cache.set(k, here(pts[i], pts[j]));
-    return cache.get(k)!;
-  };
-  const round = input.round ?? 0;
-  const out: PlannedRoute[] = [];
-  const reasons = new Set<Reason>();
-  let anyRouted = false;
-  for (const id of PRESET_IDS) {
-    const order = priority(id, dense, round);
-    // The points of this preset: the walker, then its cells in the order they are tried.
-    const pts: LngLat[] = [from, ...order.map((c) => c.at)];
-    const leg = legBy(pts);
+  const order = priority(id, dense, round);
+  for (let seed = 0; seed < Math.min(3, Math.max(1, order.length - 1)); seed++) {
+    const cells = order.slice(seed);
+    const pts: LngLat[] = [from, ...cells.map((c) => c.at)];
+    const leg = (i: number, j: number): Route | null => {
+      // By the points, not their indices: each preset numbers its own.
+      const k = `${pk(pts[i])}>${pk(pts[j])}`;
+      if (!cache.has(k)) cache.set(k, here(pts[i], pts[j]));
+      return cache.get(k)!;
+    };
     let chosen: number[] = [];
     let best: Fit | null = null;
     for (let c = 1; c < pts.length; c++) {
@@ -189,21 +204,45 @@ export function planRoutes(input: PlanInput, route: Leg): Planned {
       }
       const fit = fitOrder(trial, pts, leg, here, loop);
       if (!fit) continue;
-      anyRouted = true;
-      if (fit.lengthM > input.ceilingM || retracedM(fit.path) > MAX_RETRACE * fit.lengthM) continue;
+      state.routed = true;
+      if (fit.lengthM > ceilingM || retracedM(fit.path) > MAX_RETRACE * fit.lengthM) continue;
       chosen = trial;
       best = fit;
     }
-    if (!best) {
+    if (best) return { stops: best.order.map((i) => pts[i]), path: best.path, lengthM: best.lengthM, startM: best.startM };
+  }
+  return null;
+}
+
+export function planRoutes(input: PlanInput, route: Leg): Planned {
+  if (!input.from) return { routes: [], reasons: ['noPosition'] };
+  const from = input.from;
+  const dense = [...input.cells].slice(0, CONSIDERED);
+  if (dense.length < MIN_CELLS) return { routes: [], reasons: ['few'] };
+  if (Math.min(...dense.map((c) => distanceM(from, c.at))) > FAR_START_M) return { routes: [], reasons: ['far'] };
+  const loop = input.mode === 'loop';
+  // Two points on the same spot are no leg at all; the streets give no route between them, and none is needed.
+  const here: Leg = (a, b, avoid) => (distanceM(a, b) < 5 ? { path: [a, b], lengthM: 0, source: 'here' } : route(a, b, avoid));
+  const cache = new Map<string, Route | null>();
+  const round = input.round ?? 0;
+  const out: PlannedRoute[] = [];
+  const reasons = new Set<Reason>();
+  let anyRouted = false;
+  for (const id of PRESET_IDS) {
+    const state = { routed: false };
+    const found = fitPreset(id, dense, from, input.mode, input.ceilingM, here, round, state, cache);
+    if (state.routed) anyRouted = true;
+    if (!found) {
       reasons.add(anyRouted ? 'outOfReach' : 'noRoute');
       continue;
     }
+    const best = found;
     const runs = gradeRuns(best.path, dense);
     if (kindShare(runs) < DENSITY_SHARE[input.density]) {
       reasons.add('little');
       continue;
     }
-    const stops = best.order.map((i) => pts[i]);
+    const stops = best.stops;
     const candidate: PlannedRoute = { preset: id, stops, path: best.path, lengthM: best.lengthM, startM: best.startM, loop, runs };
     if (out.some((r) => overlapShare(r.path, candidate.path) > MAX_OVERLAP)) {
       reasons.add('same');

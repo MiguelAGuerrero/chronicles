@@ -12,7 +12,7 @@ import type { LngLat, StreetSegment, Walk } from '../types';
 import { routeLeanings } from '../routeLeanings';
 import { getUnits } from '../units';
 import { aboutTimeLeft, DEFAULT_PACE_MPS, timeAtPaceMs } from './eta';
-import { announceStep, navStep, passedStops, routeVia, startNav, tooFar, viaAhead, type NavState } from './navigator';
+import { announceStep, navStep, passedStops, rejoinPlanned, routeTo, routeVia, startNav, tooFar, viaAhead, type NavState } from './navigator';
 import { routeOptions, scenicPlan, scenicRouteSource, type RouteOption } from './scenic';
 import { scenicRead } from './scenicRead';
 import type { Signals } from './scenicSignals';
@@ -310,7 +310,7 @@ export function useNavigation(opts: {
       // A suggested way's stops: one the walker has come close to, or gone by along the way, is passed and let go (WP25); a loop is
       // not arrived at until they are (WP9). A re-route goes on through those ahead (KW13).
       const stops = s.dest.via ?? [];
-      viaPassed.current = passedStops(s.route.path, stops, here, viaPassed.current);
+      viaPassed.current = passedStops(s.route.path, stops, here, viaPassed.current, s.dest.loop ? s.seg : undefined);
       const step = navStep(s, here, now, s.dest.loop ? stops.length - viaPassed.current : 0);
       if (step.state.arrived) {
         latest.current.onArrive(s.dest);
@@ -323,9 +323,12 @@ export function useNavigation(opts: {
       if (riding) next = { ...next, offCount: 0, offRoute: false };
       if (announceStep(s.leftM, next.leftM)) AccessibilityInfo.announceForAccessibility(`${saidLeft(next.leftM, s.dest, latest.current.pace?.())} left to ${s.dest.label}`);
       if (step.reroute && !riding) {
-        const again = routeVia(sources.current, here, viaAhead(stops, viaPassed.current), s.dest.at, 'shortest', { heading: latest.current.heading }).route;
+        // A planned way is rejoined, so its way back stays (walk planner audit 1); any other goes by the shortest streets.
+        const again = s.dest.path
+          ? rejoinPlanned(s.dest.path, here, (x, y) => routeTo(sources.current, x, y, 'shortest', { heading: latest.current.heading }).route)
+          : routeVia(sources.current, here, viaAhead(stops, viaPassed.current), s.dest.at, 'shortest', { heading: latest.current.heading }).route;
         if (again) {
-          next = { ...next, route: again, leftM: again.lengthM, offCount: 0, offRoute: false };
+          next = { ...next, route: again, leftM: again.lengthM, offCount: 0, offRoute: false, seg: 1 };
           latest.current.onNotice('New route');
           AccessibilityInfo.announceForAccessibility(`New route, ${formatDistance(again.lengthM)} to ${s.dest.label}`);
         } else if (now - rereadAt.current >= REREAD_MS && !busy.current) {

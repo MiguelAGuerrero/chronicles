@@ -21,5 +21,11 @@ A page of its own for a kind, opened from its "Suggest a walk" button (WP1-WP27,
 
 ## Traps
 
+- **Closed loops confuse progress.** A loop's start and end are one point, so `progressOn` is searched from the segment last matched (`NavState.seg`, `passedStops`'s `seg`), never the first nearest (audit 4). A planned path is rejoined on a re-route (`rejoinPlanned`), not replaced by the shortest streets (audit 1).
+- **Overlap and retracing are measured along the geometry** (sampled, `overlapShare`, `retracedM`): a stop in the middle of a street makes vertex-pair edges differ from a pass along it (audit 8). Ordering stops uses the cheap `retracedEdgesM`.
+- **Grades are absolute** (one place the faintest): a lone place must never read "plenty" (audit 9).
+- **Tabs are held, not set.** `hideTabs()` counts holds; the area card and the planner over it each hold, and release in either order (audit 12).
+- **The ceiling in force is the step shown** (`ceilingFor`), in either unit (audit 6). A kind that can be found counts only places that could be, the opened kind too (audit 5).
+
 - The planner's words are held to the same banned-word grep as the kind walk's: no "most", "more", "shorter", "longer", "best", "densest", time or pace (`words.test.ts`).
 - Native, unverified: `routeGrades` and `foundPins` line and circle layers on MapLibre RN, the drawer over a second map instance, `showWalk()` with a loop destination, the loop's arrival on a phone, three routes' walkability reads.

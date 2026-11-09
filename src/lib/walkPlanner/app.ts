@@ -32,13 +32,19 @@ export const planner = createPlanner({
     return { cars: carStretches(path, segments, bands).map((s) => s.street), unknown: false };
   },
   // Finds are the walker's own: captured at a place that was a mark. A place not yet found is not in this list (WP16).
-  async found() {
+  async found(kind) {
     const finds = await db.listFinds();
-    return finds.map((f) => ({ at: f.at }));
+    // Only the opened kind's finds: a pin with no word on it would read as a point of interest for a kind not asked about (audit 21).
+    return finds.filter((f) => f.category === kind).map((f) => ({ at: f.at }));
   },
 });
 
 /** The open walk's id, or null (WP19, WP23). */
 export async function openWalkId(): Promise<string | null> {
   return (await db.getOpenWalk().catch(() => null))?.id ?? null;
+}
+
+/** Whether the open walk has a destination set, which Start would replace (walk planner audit 16): meta `nav`, as it is held. */
+export async function navRaw(): Promise<string | null> {
+  return db.getMeta('nav').catch(() => null);
 }

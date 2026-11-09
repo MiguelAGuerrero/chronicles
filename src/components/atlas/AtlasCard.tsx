@@ -16,7 +16,7 @@ import { useReducedMotion } from '../../lib/motion';
 import { MOTION } from '../../lib/motionTokens';
 import { ATLAS_RULES } from '../../lib/atlas/atlas';
 import { useAreaWords } from '../../lib/walk/useAreaWords';
-import { tabsHidden } from '../../lib/tabsHidden';
+import { hideTabs } from '../../lib/tabsHidden';
 import type { LngLat } from '../../lib/types';
 import { COLORS, HOTSPOT, HOTSPOT_INK } from '../map/types';
 import { Icon } from '../icons';
@@ -114,8 +114,7 @@ export function AtlasCard(props: {
   // The tabs fold away while the drawer is up, and come back when it goes (however it goes).
   useEffect(() => {
     if (!sheet) return;
-    tabsHidden.set(true);
-    return () => tabsHidden.set(false);
+    return hideTabs();
   }, [sheet]);
 
   // How far down the drawer is: 0 is full screen. It slides up as it opens and follows a pull down.

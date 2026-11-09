@@ -23,14 +23,17 @@ export interface Run {
   grade: Grade;
 }
 
-function gradeOf(count: number, max: number): Grade {
-  return Math.max(1, Math.min(3, Math.ceil((3 * count) / max))) as Grade;
+/**
+ * A cell's grade from how many places it holds, in steps that do not depend on the area's other cells: one place is the faintest, so a
+ * lone place along a route is never "plenty" and the words cannot be read as a place (walk planner audit 9).
+ */
+function gradeOf(count: number): Grade {
+  return (count >= 4 ? 3 : count >= 2 ? 2 : 1) as Grade;
 }
 
 /** The route's length in runs of one grade: 0 away from the kind, 1 to 3 as the cells passed are fewer or denser. */
 export function gradeRuns(path: readonly LngLat[], cells: readonly Cell[]): Run[] {
   if (path.length < 2) return [];
-  const max = Math.max(1, ...cells.map((c) => c.count));
   const raw: Grade[] = [];
   let carried = 0;
   const total = path.reduce((s, p, i) => (i ? s + distanceM(path[i - 1], p) : 0), 0);
@@ -42,7 +45,7 @@ export function gradeRuns(path: readonly LngLat[], cells: readonly Cell[]): Run[
       const f = m / d;
       const p: LngLat = [path[i - 1][0] + (path[i][0] - path[i - 1][0]) * f, path[i - 1][1] + (path[i][1] - path[i - 1][1]) * f];
       let g: Grade = 0;
-      for (const c of cells) if (distanceM(p, c.at) <= REACH_M) g = Math.max(g, gradeOf(c.count, max)) as Grade;
+      for (const c of cells) if (distanceM(p, c.at) <= REACH_M) g = Math.max(g, gradeOf(c.count)) as Grade;
       raw.push(g);
       m += STEP_M;
     }
@@ -87,13 +90,13 @@ export function kindShare(runs: readonly Run[]): number {
 const GRADE_WORD = ['none', 'a little', 'some', 'plenty'] as const;
 
 /** The strip said in words: how much of the kind at the start, in the middle and near the end (WP15). */
-export function stripLabel(grades: readonly Grade[]): string {
+export function stripLabel(grades: readonly Grade[], kindLabel = 'The kind'): string {
   const third = (i: number) => {
     const part = grades.slice(Math.floor((i * grades.length) / 3), Math.floor(((i + 1) * grades.length) / 3));
     const mean = part.length ? part.reduce<number>((s, g) => s + g, 0) / part.length : 0;
     return GRADE_WORD[mean < 0.4 ? 0 : mean < 1.4 ? 1 : mean < 2.2 ? 2 : 3];
   };
-  return `The kind along this route: ${third(0)} at the start, ${third(1)} in the middle, ${third(2)} near the end`;
+  return `${kindLabel} along this route: ${third(0)} at the start, ${third(1)} in the middle, ${third(2)} near the end`;
 }
 
 /** The strip: the route from start to end as `n` equal cells of a grade each, flat (WP15). */
@@ -118,7 +121,7 @@ export function exposureWords(runs: readonly Run[], startM: number, totalM: numb
   const total = runs.length ? runs[runs.length - 1].toM : totalM;
   const share = kindShare(runs);
   const strong = runs.filter((r) => r.grade >= 2).reduce((s, r) => s + (r.toM - r.fromM), 0) / (total || 1);
-  const amount = strong >= 0.45 || share >= 0.7 ? 'plenty' : share >= 0.3 ? 'some' : 'little';
+  const amount = strong >= 0.45 ? 'plenty' : share >= 0.3 ? 'some' : 'little';
   const thirds = [0, 0, 0];
   for (const r of runs) {
     if (r.grade === 0) continue;
@@ -157,7 +160,7 @@ export function alsoPasses(path: readonly LngLat[], cellsByKind: Partial<Record<
     const share = kindShare(runs);
     const strong = runs.filter((r) => r.grade >= 2).reduce((t, r) => t + (r.toM - r.fromM), 0) / total;
     if (share < 0.15) continue;
-    out.push({ kind, level: strong >= 0.45 || share >= 0.7 ? 'plenty' : 'some' });
+    out.push({ kind, level: strong >= 0.45 ? 'plenty' : 'some' });
   }
   return out;
 }

@@ -2,35 +2,50 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CategoryId } from '../discovery/types';
 import { useKindWalkPrefs } from '../kindWalk/useKindWalk';
-import type { LngLat } from '../types';
-import { planner, openWalkId } from './app';
-import { destFor } from './dest';
-import { close, open, replanned, select, startable, type PageState } from './page';
-import { startFrom, type PlannerResult, type PlannerRoute } from './service';
 import type { Waypoint } from '../nav/types';
+import type { LngLat } from '../types';
+import { useUnits } from '../useUnits';
+import { planner, navRaw, openWalkId } from './app';
+import { destFor } from './dest';
+import { applyRound, close, headingNote, open, replanned, roundFor, select, startable, type PageState } from './page';
+import { ceilingFor } from './settings';
+import { startFrom, type PlannerResult, type PlannerRoute } from './service';
 
 /**
  * The planner page's state (WP1-WP4, WP12, WP13, WP18, WP24): reads once the page is open and again when a setting changes or
- * different routes are asked for; the only memory is the routes on screen (WP13).
+ * different routes are asked for; the only memory is the routes on screen (WP13). An empty answer to "different routes" leaves the
+ * routes on screen (audit 2); the round starts over with the settings in the same render (audit 10); the ceiling is the step shown (audit 6).
  */
 export function usePlanner(kind: CategoryId, area: { at: LngLat; reachM: number }, you: LngLat | null, active: boolean) {
   const prefs = useKindWalkPrefs();
+  const units = useUnits();
+  const ceilingM = ceilingFor(prefs.budgetM, units);
   const [page, setPage] = useState<PageState>(() => (active ? open() : close()));
   const [result, setResult] = useState<PlannerResult | null>(null);
-  const [round, setRound] = useState(0);
+  const [nothing, setNothing] = useState(false);
   const [walkId, setWalkId] = useState<string | null>(null);
+  const [replaces, setReplaces] = useState<string | null>(null);
+  const settingsKey = `${ceilingM}|${prefs.pref}|${prefs.mode}|${prefs.density}`;
+  const [roundState, setRoundState] = useState({ key: settingsKey, n: 0 });
+  const round = roundFor(roundState, settingsKey);
   const shown = useRef<LngLat[][]>([]);
-  const key = `${kind}|${area.at.join(',')}|${you ? you.join(',') : ''}|${prefs.budgetM}|${prefs.pref}|${prefs.mode}|${prefs.density}|${round}`;
+  const prev = useRef<PlannerResult | null>(null);
+  const key = `${kind}|${area.at.join(',')}|${you ? you.join(',') : ''}|${settingsKey}|${round}`;
   const asked = useRef('');
   useEffect(() => {
     if (!active) return;
     let live = true;
     asked.current = key;
-    void planner.plan({ kind, area, from: you, prefs, round, shown: round ? shown.current : [] }).then((r) => {
+    // A new setting means nothing is remembered: what was on screen is not "shown" for the new plan.
+    const sent = round ? shown.current : [];
+    void planner.plan({ kind, area, from: you, prefs: { ...prefs, budgetM: ceilingM }, round, shown: sent }).then((r) => {
       if (!live || asked.current !== key) return;
-      setResult(r);
-      shown.current = r.routes.map((x) => x.path);
-      setPage((p) => replanned(p, r.routes));
+      const a = applyRound(prev.current, r, round);
+      prev.current = a.result;
+      shown.current = a.result.routes.map((x) => x.path);
+      setResult(a.result);
+      setNothing(a.nothing);
+      if (!a.nothing) setPage((p) => replanned(p, a.result.routes));
     });
     return () => {
       live = false;
@@ -39,26 +54,26 @@ export function usePlanner(kind: CategoryId, area: { at: LngLat; reachM: number 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, key]);
   useEffect(() => {
-    if (active) void openWalkId().then(setWalkId);
+    if (!active) return;
+    void openWalkId().then((id) => {
+      setWalkId(id);
+      if (id) void navRaw().then((raw) => setReplaces(headingNote(raw, id)));
+    });
   }, [active]);
-  // A setting changes: the routes are asked for again from the first round (WP12), and nothing is remembered.
-  const settingsKey = `${prefs.budgetM}|${prefs.pref}|${prefs.mode}|${prefs.density}`;
-  const lastSettings = useRef(settingsKey);
+  // A setting changed: nothing is remembered and nothing is "nothing different" any more.
   useEffect(() => {
-    if (lastSettings.current === settingsKey) return;
-    lastSettings.current = settingsKey;
+    prev.current = null;
     shown.current = [];
-    setRound(0);
   }, [settingsKey]);
   const routes: PlannerRoute[] = useMemo(() => result?.routes ?? [], [result]);
-  const different = useCallback(() => setRound((r) => r + 1), []);
+  const different = useCallback(() => setRoundState({ key: settingsKey, n: round + 1 }), [settingsKey, round]);
   const choose = useCallback((i: number) => setPage((p) => select(p, i, routes)), [routes]);
   const chosen = startable(page, routes);
-  /** Start (WP24): plans again from where the walker is now, and gives the destination to start. */
-  const start = useCallback(async (): Promise<Waypoint | null> => {
+  /** Start (WP24): plans again from where the walker is now (`now`), and gives the destination to start. */
+  const start = useCallback(async (now: LngLat | null): Promise<Waypoint | null> => {
     if (!chosen) return null;
-    const route = await startFrom(planner, { kind, area, from: you, prefs }, chosen);
+    const route = await startFrom(planner, { kind, area, from: now ?? you, prefs: { ...prefs, budgetM: ceilingM } }, chosen);
     return destFor(route);
-  }, [chosen, kind, area, you, prefs]);
-  return { prefs, page, routes, result, reading: active && !result, walkId, choose, different, start, canStart: !!chosen, round };
+  }, [chosen, kind, area, you, prefs, ceilingM]);
+  return { prefs, ceilingM, page, routes, result, nothing, reading: active && !result, walkId, replaces, choose, different, start, canStart: !!chosen, round };
 }

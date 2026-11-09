@@ -8,7 +8,7 @@ import { distanceM } from '../../geo';
 import { fakePorts } from '../fakes';
 import { A, at, segs } from './grid';
 
-const parks: Place[] = [[130, 130], [160, 150], [850, 140], [880, 120], [1250, 130]].map(([e, n], i) => ({ key: `p${i}`, name: `P${i}`, category: 'parks', at: at(e, n), generic: false, build: 'b' }) as Place);
+const parks: Place[] = [[130, 130], [160, 150], [850, 140], [880, 120], [1250, 130]].map(([e, n], i) => ({ key: `p${i}`, name: `P${i}`, category: 'parks', at: at(e, n), generic: false, build: 'b', markable: true }) as Place);
 const area = { at: at(650, 650), reachM: 1200 };
 const prefs = { budgetM: 3000, pref: 'warn' as const, mode: 'oneway' as const, density: 'anywhere' as const };
 

@@ -316,6 +316,9 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** with a walk recording, open the planner and take a photo, record a voice memo and write a note. **Expect:** the capture stack is on the page and each arrives as a moment on the walk with its place and time; the system camera and microphone permission prompts behave as on the walk screen. (WP23)
 - [ ] **Do:** on a phone's network in an area you have never walked, open the planner. **Expect:** the area's tiles are read when it opens and the way's walkability tiles for each route; "not known yet" reads where none could be read. (WP22, KW10)
 - [ ] **Do:** choose a loop, Start, and walk it, skipping one of its stops. **Expect:** the walk opens ready saying distance only, with no time left on the bar or in the announcements; it does not arrive at once; a skipped stop is let go and the quiet re-route does not pull back to it; it arrives once you are back where you began. (WP9, WP21, WP25, KW7b)
+- [ ] **Do:** plan with the three presets in a town of long streets on a mid-range phone and watch the page. **Expect:** the routes appear without freezing the screen or the walk's recording; if not, the planning moves off the JS thread (walk planner audit 10).
+- [ ] **Do:** walk a loop and wander 80 m off it, then return. **Expect:** the quiet re-route rejoins the planned loop and its way back; it does not take the streets the way out used. (WP9, WP20, audit 1)
+- [ ] **Do:** open an area card, open the planner over it, close the planner. **Expect:** the tabs stay hidden under the card, and come back when the card closes; the Back button closes the planner first. (audit 12)
 - [ ] **Do:** with a walk already recording and a destination set, Start a route from the planner. **Expect:** that walk is routed (no second walk starts) and the earlier destination is replaced. (WP19)
 
 ## Places worth the stop (PW1-PW19, decision 0103)

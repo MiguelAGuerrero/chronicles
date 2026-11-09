@@ -26,7 +26,7 @@ export interface PlannerDeps {
   /** The stretches built around cars along a path, and whether the streets could be read at all (KW10). */
   reach(path: LngLat[]): Promise<Reach>;
   /** Where the walker has found places: their captures' finds, and nothing else (WP16). */
-  found(): Promise<{ at: LngLat }[]>;
+  found(kind: CategoryId): Promise<{ at: LngLat }[]>;
 }
 
 export interface PlanRequest {
@@ -57,7 +57,10 @@ const MARK_KINDS = new Set<CategoryId>(['history', 'art', 'culture', 'parks', 'v
 const pk = (p: LngLat) => `${p[0].toFixed(5)},${p[1].toFixed(5)}`;
 const edge = (a: LngLat, b: LngLat) => [pk(a), pk(b)].sort().join('>');
 
-/** Routing over `segments`; with `avoid`, over the pieces that path does not use (the way back of a loop, WP8, KW16). */
+/**
+ * Routing over `segments`; with `avoid`, over the pieces the way out did not mostly use (the way back of a loop, WP8, KW16). A long
+ * piece the way out only touched stays, so a loop is not lost for a few metres shared with an avenue (walk planner audit 7).
+ */
 export function legOver(segments: readonly StreetSegment[]): Leg {
   const all = streetRouteSource([...segments]);
   return (a, b, avoid) => {
@@ -65,7 +68,19 @@ export function legOver(segments: readonly StreetSegment[]): Leg {
     if (!avoid) return routeTo([all], a, b, 'shortest').route;
     const used = new Set<string>();
     for (let i = 1; i < avoid.length; i++) used.add(edge(avoid[i - 1], avoid[i]));
-    const keep = segments.filter((s) => !s.geometry.some((line) => line.some((p, i) => i > 0 && used.has(edge(line[i - 1], p)))));
+    const mostlyUsed = (s: StreetSegment): boolean => {
+      let total = 0;
+      let shared = 0;
+      for (const line of s.geometry) {
+        for (let k = 1; k < line.length; k++) {
+          const d = distanceM(line[k - 1], line[k]);
+          total += d;
+          if (used.has(edge(line[k - 1], line[k]))) shared += d;
+        }
+      }
+      return total > 0 && shared / total >= 0.5;
+    };
+    const keep = segments.filter((s) => !mostlyUsed(s));
     return keep.length ? routeTo([streetRouteSource(keep)], a, b, 'shortest').route : null;
   };
 }
@@ -77,13 +92,16 @@ export function createPlanner(deps: PlannerDeps) {
       const radiusM = Math.min(i.area.reachM, READ_M);
       const read = await deps.read(i.area.at, radiusM).catch(() => null);
       if (!read || !read.segments.length) return { routes: [], reasons: ['noRoute'], found: [] };
-      const places = read.places.filter((p) => p.category === i.kind && distanceM(p.at, i.area.at) <= radiusM);
+      // The same rule for every kind, the opened one too: a kind that can be found counts only places that could be, as the atlas does,
+      // so a cell of churches that cannot be found is not dense (walk planner audit 5).
+      const counted = read.places.filter((p) => distanceM(p.at, i.area.at) <= radiusM && (p.markable === undefined ? isMarkable(p) : p.markable !== false || !MARK_KINDS.has(p.category)));
+      const places = counted.filter((p) => p.category === i.kind);
       if (!places.length) return { routes: [], reasons: ['few'], found: [] };
       const cells = onStreets(densestCells(places, i.area.at), read.segments.flatMap((s) => s.geometry));
       const planned = planRoutes({ cells, from: i.from, mode: i.prefs.mode, ceilingM: i.prefs.budgetM, density: i.prefs.density, round: i.round, shown: i.shown }, legOver(read.segments));
       // Every other kind's dense cells, at the cells' resolution and counting every place found or not (WP28): a presence along the
       // route, never a place. A kind that can be found counts only places that could be (as the atlas does).
-      const inRange = read.places.filter((p) => distanceM(p.at, i.area.at) <= radiusM && (p.markable === undefined ? isMarkable(p) : p.markable !== false || !MARK_KINDS.has(p.category)));
+      const inRange = counted;
       const cellsByKind: Partial<Record<CategoryId, ReturnType<typeof densestCells>>> = {};
       for (const k of ATLAS_ORDER) if (k !== i.kind) cellsByKind[k] = densestCells(inRange.filter((p) => p.category === k), i.area.at);
       const withReach = await Promise.all(planned.routes.map(async (r): Promise<PlannerRoute> => ({
@@ -95,7 +113,7 @@ export function createPlanner(deps: PlannerDeps) {
       const routes = i.prefs.pref === 'skip' ? withReach.filter((r) => !r.reach.cars.length) : withReach;
       const reasons = [...planned.reasons];
       if (routes.length < withReach.length) reasons.push('cars');
-      const found = await deps.found().catch(() => []);
+      const found = await deps.found(i.kind).catch(() => []);
       return { routes, reasons: routes.length ? reasons : [...new Set<Reason>([...reasons, ...(reasons.length ? [] : ['noRoute' as const])])], found };
     },
   };

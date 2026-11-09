@@ -172,3 +172,32 @@ tests. Decision 0102. Unrun on a device (docs/NATIVE_UNVERIFIED.md). Not audited
   words, settings) rather than moving them; the page's map is `WalkMap` with two new props (`routeGrades`, `foundPins`).
 - **Amended 2026-11-09 (decision 0104):** the first route is selected when the page opens (WP4, WP18), and a route names the other kinds
   along it (WP28). The plan's earlier "nothing is highlighted at first" no longer holds.
+
+## Audit (2026-11-09, at the owner's request)
+
+The auditor (F1-F13) and the steward (S1-S8, numbered 14-21 here). Regression tests are `walk-planner audit N` in
+`src/lib/__tests__/walk-planner/audit.test.ts` and `tabsHold.test.ts`, and `step` checks in the journey `planner`.
+
+1. A drifted start drops the planned path (F1): accept, fixed. A re-route rejoins the planned path (`rejoinPlanned`) and keeps its way back. `walk-planner audit 1`.
+2. "Suggest different routes" can leave a stuck, empty page (F2): accept, fixed. An empty answer leaves the routes on screen with "No other way to suggest from here." (`applyRound`). The rotation wrapping after eight presses is rejected: WP13 allows a route from two presses ago to return. `walk-planner audit 2`.
+3. The first cell is never dropped (F3): accept, fixed. A preset tries again from the next cell (`fitPreset`). `walk-planner audit 3`.
+4. Progress on a closed loop is ambiguous (F4): accept, fixed. Progress searches from the segment last matched (`progressOn`, `NavState.seg`). `walk-planner audit 4`.
+5. The opened kind ignores `markable` (F5): accept, fixed. Every kind counts only places that could be found, as the atlas does. `walk-planner audit 5`.
+6. The ceiling shown differs from the one enforced in miles (F6): accept, fixed (`ceilingFor`). `walk-planner audit 6`.
+7. The avoid filter drops whole long segments (F7): accept, fixed. A segment the way out mostly used (half or more) is dropped; one it only touched stays (`legOver`). `walk-planner audit 7`.
+8. Overlap and retracing miss mid-street stops (F8): accept, fixed. Both are measured along the geometry (`overlapShare`, `retracedM`); ordering keeps the cheap vertex-pair count (`retracedEdgesM`). `walk-planner audit 8`.
+9. A lone place grades "plenty" (F9): accept, fixed. Grades are absolute: one place is the faintest, and "plenty" needs places in the denser steps. `walk-planner audit 9`.
+10. A settings change plans twice (F10): accept, fixed in part. The round starts over with the settings in the same render (`roundFor`). Planning on a phone has not been timed: deferred, on the native list. `walk-planner audit 10`.
+11. Start is not guarded against a double tap (F11): accept, fixed. A ref lock and a "no way" line on a throw. `walk-planner audit 11` (journey: two taps start one walk).
+12. `tabsHidden` is cleared unconditionally (F12): accept, fixed. `hideTabs()` holds are counted, so the tabs return when the last card lets go. `walk-planner audit 12` (unit and journey).
+13. The capture stack gets a stale position (F13): accept, fixed by wiring (the latest fix is read when the page renders and when Start is pressed); covered by the typecheck and the journey's capture checks, no separate test.
+14. "Also passes" is on every row (S1): accept, fixed. Only the selected row (`visibleLines`). `walk-planner audit 14` (unit and journey).
+15. Comparison words (S2): accept, fixed. "less", "than", "same" and "different" (except the button) are gone from the lines. `walk-planner audit 15`.
+16. Start replaces a set destination silently (S3): accept, fixed. "This replaces where you were heading." above Start when the open walk has a destination (`headingNote`). `walk-planner audit 16`. Whether the old destination should be restorable is the owner's call.
+17. Start can begin from a stale position (S4): accept, covered by 13.
+18. Repeated "Suggest different routes" can cover all eight dense cells (S5): defer to the owner, not a defect: it is the feature, at the cells' resolution. The question is in `docs/DEFERRED.md`.
+19. The density setting reads as a threshold on a count (S6): accept, fixed in the copy. "How much history the walk passes". The thresholds stay hidden. `walk-planner audit 19`.
+20. Kind names where a walker may read a place (S7): accept, fixed. "A walk for green", "Green along this route". `walk-planner audit 20`.
+21. Found pins are not limited to the opened kind (S8): accept, fixed. `walk-planner audit 21`.
+
+21 findings, 20 fixed (F10 in part), 1 deferred to the owner (S18), 0 rejected outright (one part of F2: the rotation cycling).

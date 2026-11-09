@@ -2,11 +2,18 @@
 // settings, Suggest different routes, and Start. Phase two has a walk recording: capture is on the page and Start routes that walk.
 // E2E_ONLY=planner runs it alone.
 
-const BANNED = /\b(minutes?|mins?|hours?|ETA|pace|brisk|quick(er|est)?|fast(er|est)?|shorter|longer|more|most|best|densest)\b/i;
+const BANNED = /\b(minutes?|mins?|hours?|ETA|pace|brisk|quick(er|est)?|fast(er|est)?|shorter|longer|more|most|best|densest|less|than|same)\b/i;
 
 async function run(h) {
-  const { url, at, check, freshPage, shot, openWalk, tabTo } = h;
+  const { url, at, check, freshPage, shot, openWalk, tabTo, tabBarShown } = h;
   const { c, pg } = await freshPage('planner');
+  const walksCount = (page) => page.evaluate(() => new Promise((resolve) => {
+    const req = indexedDB.open('chronicles');
+    req.onsuccess = () => {
+      const g = req.result.transaction('walk', 'readonly').objectStore('walk').getAll();
+      g.onsuccess = () => resolve(g.result.length);
+    };
+  }));
   if (process.env.E2E_DEBUG) pg.on('console', (m) => /^PLAN/.test(m.text()) && console.log('PAGE', m.text()));
   const here = at(-120, 0);
   await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
@@ -20,7 +27,7 @@ async function run(h) {
   await btn.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
   await pg.waitForTimeout(800);
   const box = await btn.boundingBox().catch(() => null);
-  check((await pg.locator('[data-testid=atlas-kind-walk-history]').count()) === 0 && (await btn.count()) === 1, 'KW2: a kind with none has no "Suggest a walk" button, one with some does');
+  check((await pg.locator('[data-testid=atlas-kind-walk-nightlife]').count()) === 0 && (await btn.count()) === 1, 'KW2: a kind with none has no "Suggest a walk" button, one with some does');
   check((await btn.count()) === 1 && /Suggest a walk/.test(await btn.innerText().catch(() => '')) && !!box && box.width >= 43.5 && box.height >= 43.5, 'KW15: each kind row has a "Suggest a walk" button, at least 44 px to touch');
   check((await btn.getAttribute('aria-label').catch(() => '')) === 'Suggest a walk through green', 'KW15: the button reads as one to a screen reader');
   const cardBox = await pg.locator('[data-testid=atlas-card-pull]').boundingBox().catch(() => null);
@@ -38,6 +45,13 @@ async function run(h) {
   const rows = pg.locator('[data-testid^=plan-row-]:not([data-testid^=plan-row-distance])');
   const n = await pg.locator('[data-testid^="plan-row-"][data-preset]').count();
   check((await pg.locator('[data-testid=planner]').count()) === 1 && pg.url() === before, 'WP1: the button opens the planner over Explore: no new route');
+  // Closing the planner leaves the tabs as the card under it had them: hidden while the card is open (audit 12).
+  await pg.click('[data-testid=plan-close]');
+  await pg.waitForTimeout(600);
+  check((await pg.locator('[data-testid=atlas-card]').count()) === 1 && !(await tabBarShown(pg)), 'walk-planner audit 12: closing the planner leaves the tabs hidden while the area card is open');
+  await btn.click();
+  await pg.waitForSelector('[data-testid=plan-row-0]', { timeout: 90000 }).catch(() => {});
+  await pg.waitForTimeout(500);
   check((await pg.locator('[data-testid=plan-map]').count()) === 1 && n >= 1 && (await pg.locator('[data-testid=plan-settings]').count()) === 1, 'WP2: the planner has the map, a row for each route and the settings');
   check(n >= 1 && n <= 3, `WP4: up to three routes are shown (${n})`);
   const order = await pg.locator('[data-testid^="plan-row-"][data-preset]').evaluateAll((els) => els.map((e) => e.getAttribute('data-preset')));
@@ -45,14 +59,16 @@ async function run(h) {
   check(order.map((p) => rank.indexOf(p)).every((v, i, a) => i === 0 || a[i - 1] < v), `WP4: the rows are in the presets' fixed order (${order.join(',')})`);
   const selected = await pg.locator('[data-testid^="plan-row-"][data-preset]').evaluateAll((els) => els.map((e) => e.getAttribute('data-selected')));
   check(selected[0] === '1' && selected.slice(1).every((s) => s === '0') && !(await pg.locator('[data-testid=plan-start]').isDisabled().catch(() => true)), `WP4, WP18: the first route is selected when it opens, and Start is ready (${selected.join(',')})`);
-  check((await pg.locator('[data-testid^=plan-also-]').count()) === 0, 'WP28: a route with no other kind along it says nothing of the sort');
+  const alsoLines = await pg.locator('[data-testid^=plan-also-]').evaluateAll((els) => els.map((e) => [e.getAttribute('data-testid'), e.textContent]));
+  check(alsoLines.length === 1 && alsoLines[0][0] === 'plan-also-0' && /^Also passes (some|plenty of) history/.test(alsoLines[0][1] ?? ''), `WP28, audit 14: the selected route names the other kind along it, by kind, and only the selected row does (${JSON.stringify(alsoLines)})`);
+  check(!/Memorial/.test(await pg.locator('[data-testid=planner]').innerText()), 'WP28: no place is named');
   const text = await pg.locator('[data-testid=planner]').innerText();
   check(!BANNED.test(text), 'WP7: no time, pace, comparison or superlative anywhere on the page');
   check(!/\b(Plenty|Some|Little)[^.]*\d/.test(text.replace(/About [\d.]+ (km|mi|m|ft)/g, '')), 'WP14: no digit in what a row passes');
   const first = pg.locator('[data-testid=plan-row-0]');
   const dist = await pg.locator('[data-testid=plan-row-distance-0]').innerText().catch(() => '');
   check(/^About \d+(\.\d)? (km|mi|m|ft)/.test(dist), `WP14: a row gives its own distance (${dist})`);
-  check((await pg.locator('[data-testid=plan-strip-0]').count()) === 1 && /^The kind along this route/.test((await pg.locator('[data-testid=plan-strip-0]').getAttribute('aria-label')) ?? ''), 'WP15: each row has a strip with a text equivalent');
+  check((await pg.locator('[data-testid=plan-strip-0]').count()) === 1 && /^Green along this route/.test((await pg.locator('[data-testid=plan-strip-0]').getAttribute('aria-label')) ?? ''), 'WP15: each row has a strip with a text equivalent');
   check(/^(Easy on foot|Part of it|It is not known)/.test(await pg.locator('[data-testid=plan-reach-0]').innerText().catch(() => '')), 'KW10, WP20: each row says whether it can be walked the whole way');
   await shot(pg, 'planner-open');
 
@@ -94,8 +110,9 @@ async function run(h) {
   await pg.locator('[data-testid^="plan-row-"][data-preset]').first().click();
   await pg.waitForTimeout(300);
   check((await openWalk(pg)) === null, 'WP19: nothing is started until Start');
-  await pg.click('[data-testid=plan-start]');
+  await pg.dblclick('[data-testid=plan-start]');
   await pg.waitForSelector('[data-testid=nav-bar]', { timeout: 90000 }).catch(() => {});
+  check((await walksCount(pg)) === 1, 'walk-planner audit 11: two taps on Start start one walk');
   const bar = await pg.locator('[data-testid=nav-left]').innerText().catch(() => '');
   check(/^\d/.test(bar) && !/\b(min|mins|minutes?|hours?|h)\b/i.test(bar), `WP19, WP21: Start opens a walk ready, saying distance only (${bar})`);
   check((await openWalk(pg)) !== null && (await pg.locator('[data-testid=planner]').count()) === 0 && (await pg.locator('[data-testid=plan-strip-0]').count()) === 0, 'WP17: the walk is open, and the shading and the strip are on the planner only');

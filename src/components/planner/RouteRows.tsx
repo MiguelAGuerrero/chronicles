@@ -1,17 +1,18 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { CategoryId } from '../../lib/discovery/types';
 import { stripLabel, strip, type Grade } from '../../lib/walkPlanner/exposure';
+import { ATLAS_LABEL } from '../../lib/atlas/atlas';
 import type { PlannerRoute } from '../../lib/walkPlanner/service';
-import { fillsLess, lessGroundLine, rowWords } from '../../lib/walkPlanner/words';
+import { fillsLess, lessGroundLine, rowWords, visibleLines } from '../../lib/walkPlanner/words';
 import { walkabilityLine } from '../../lib/kindWalk/words';
 import type { Units } from '../../lib/units';
 import { KIND_COLOR } from '../atlas/kinds';
 import { theme } from '../ui';
 
 /** The strip (WP15): the route start to end in three flat grades of the kind's colour, no number, no fill, no cap. */
-export function ExposureStrip(props: { grades: Grade[]; color: string; testID?: string }) {
+export function ExposureStrip(props: { grades: Grade[]; color: string; kindLabel: string; testID?: string }) {
   return (
-    <View style={styles.strip} accessible accessibilityLabel={stripLabel(props.grades)} testID={props.testID}>
+    <View style={styles.strip} accessible accessibilityLabel={stripLabel(props.grades, props.kindLabel)} testID={props.testID}>
       {props.grades.map((g, i) => (
         <View key={i} style={[styles.cell, { backgroundColor: g === 0 ? theme.line : props.color, opacity: g === 0 ? 1 : 0.25 + 0.25 * g }]} />
       ))}
@@ -41,7 +42,7 @@ export function RouteRows(props: {
             accessibilityRole="button"
             accessibilityState={{ selected: on }}
             aria-selected={on}
-            accessibilityLabel={`${w.title}. ${w.distance}. ${w.passes}.${w.getting ? ` ${w.getting}.` : ''}${w.also ? ` ${w.also}.` : ''} ${reach}`}
+            accessibilityLabel={`${w.title}. ${visibleLines(w, on).join('. ')}. ${reach}`}
             onPress={() => props.onSelect(i)}
             style={[styles.row, on && styles.rowOn]}
             {...{ dataSet: { selected: on ? '1' : '0', preset: r.preset } }}
@@ -50,8 +51,8 @@ export function RouteRows(props: {
             <Text style={styles.meta} testID={`plan-row-distance-${i}`}>{w.distance}</Text>
             <Text style={styles.meta}>{w.passes}</Text>
             {w.getting ? <Text style={styles.meta}>{w.getting}</Text> : null}
-            {w.also ? <Text style={styles.meta} testID={`plan-also-${i}`}>{w.also}</Text> : null}
-            <ExposureStrip grades={strip(r.runs)} color={KIND_COLOR[props.kind]} testID={`plan-strip-${i}`} />
+            {on && w.also ? <Text style={styles.meta} testID={`plan-also-${i}`}>{w.also}</Text> : null}
+            <ExposureStrip grades={strip(r.runs)} color={KIND_COLOR[props.kind]} kindLabel={ATLAS_LABEL[props.kind]} testID={`plan-strip-${i}`} />
             <Text style={styles.meta} testID={`plan-reach-${i}`}>{reach}</Text>
             {fillsLess(r, props.ceilingM) ? <Text style={styles.meta}>{lessGroundLine}</Text> : null}
           </Pressable>

@@ -697,8 +697,9 @@ export default function Explore() {
         <PlannerDrawer
           kind={plan}
           area={card.area}
-          you={from}
+          you={getLastFix()?.at ?? from}
           lastFixAt={getLastFix()?.t ?? null}
+          fixNow={() => getLastFix()?.at ?? from}
           starting={walkStart.starting}
           onClose={() => setPlan(null)}
           onStart={(dest) => {

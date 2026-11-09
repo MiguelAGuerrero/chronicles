@@ -3,23 +3,23 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { exposureWords, gradeRuns, stripLabel, strip } from '../../walkPlanner/exposure';
 import { planRoutes } from '../../walkPlanner/planner';
-import { alsoLine, DENSITY_LABEL, MODE_LABEL, PRESET_NAMES, closeLabel, differentLabel, lessGroundLine, readingLine, reasonLine, rowWords, settingsHeading, startLabel, title, CEILING_HEADING, CEILING_NOTE, DENSITY_HEADING, MODE_HEADING } from '../../walkPlanner/words';
+import { alsoLine, DENSITY_LABEL, MODE_LABEL, PRESET_NAMES, closeLabel, differentLabel, lessGroundLine, readingLine, reasonLine, rowWords, settingsHeading, startLabel, title, CEILING_HEADING, CEILING_NOTE, MODE_HEADING, densityHeading } from '../../walkPlanner/words';
 import { ATLAS_ORDER } from '../../atlas/atlas';
 import { cases, leg } from './grid';
 
 const REASONS = ['noPosition', 'far', 'few', 'noRoute', 'outOfReach', 'little', 'same', 'nothingDifferent', 'cars', 'noLoop'] as const;
-const BANNED = /\b(minutes?|mins?|hours?|hrs?|ETA|pace|brisk|quick(er|est)?|fast(er|est)?|shorter|longer|more|most|best|densest|finest|top)\b/i;
+const BANNED = /\b(minutes?|mins?|hours?|hrs?|ETA|pace|brisk|quick(er|est)?|fast(er|est)?|shorter|longer|more|most|best|densest|finest|top|less|than|same)\b/i;
 
 function everySentence(): string[] {
   const out: string[] = [...Object.values(PRESET_NAMES), ...Object.values(MODE_LABEL), ...Object.values(DENSITY_LABEL), ...REASONS.map(reasonLine),
-    startLabel, differentLabel, closeLabel, settingsHeading, readingLine, lessGroundLine, CEILING_HEADING, CEILING_NOTE, DENSITY_HEADING, MODE_HEADING, ...ATLAS_ORDER.map(title)];
+    startLabel, differentLabel, closeLabel, settingsHeading, readingLine, lessGroundLine, CEILING_HEADING, CEILING_NOTE, MODE_HEADING, ...ATLAS_ORDER.map(title), ...ATLAS_ORDER.map(densityHeading)];
   for (const k of ATLAS_ORDER) for (const level of ['some', 'plenty'] as const) out.push(alsoLine([{ kind: k, level }])!);
   for (const c of cases(20)) {
     for (const mode of ['loop', 'oneway'] as const) {
       for (const units of ['km', 'mi'] as const) {
         for (const r of planRoutes({ cells: c.cells, from: c.from, mode, ceilingM: 3500, density: 'anywhere' }, leg).routes) {
           const w = rowWords(r, units);
-          out.push(w.title, w.distance, w.passes, ...(w.getting ? [w.getting] : []), stripLabel(strip(r.runs)));
+          out.push(w.title, w.distance, w.passes, ...(w.getting ? [w.getting] : []), stripLabel(strip(r.runs), 'Green'));
         }
       }
     }
@@ -76,7 +76,7 @@ test('WP15: The strip is three flat grades in order along the route, with a text
   assert.ok(!/\d/.test(label));
 });
 
-test('WP10: A route well short of the distance is said to be so because there is less of the kind', () => {
-  assert.equal(lessGroundLine, 'There is less of it here than that distance.');
+test('WP10: A route well short of the distance is said to be so because there is only a little of the kind', () => {
+  assert.equal(lessGroundLine, 'There is only a little of it here.');
   assert.ok(!BANNED.test(lessGroundLine));
 });
