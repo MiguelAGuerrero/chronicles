@@ -4,9 +4,12 @@ For the owner to read before any code. Spec: `specs/remarkable-and-public/spec.m
 
 ## Questions for the owner
 
-1. **The kind of a listed building or structure that is not a church, cemetery, theatre or museum** (a bridge, a mill, a station, a courthouse, a Landmark house). These would be the bulk of what the slice adds.
-   - **A new kind, "Landmarks"** (recommended), in History, on by default, with its own switch in "What I'm into". It gives the walker an off switch for the whole new set, which is the cheapest guard against noise you'd still find too much, and its name says what it is. Cost: a new `Kind`, a row in `KINDS`, a check in the `marks` journey (the switch list), nothing stored changes shape (`kind` is already a string).
-   - **"Monuments and ruins"**, as 0103's `heritage_building` does today: no new switch, but a station or a mill under "Monuments and ruins" reads wrong, and switching it off also hides monuments.
+1. **The name of the new kind** for listed buildings and structures that are not churches, cemeteries, theatres or museums (a bridge, a mill, a station, a courthouse, a Landmark house): the bulk of what the slice adds. A separate kind, on by default, gives the walker an off switch for the whole new set. Its label is shown beside every one ("Bethlehem Silk Mill · …", "Found: Trout Hall · …"), so it names what the places are, never their significance (RP18; the steward's finding 1 struck "Landmarks").
+   - **"Buildings and structures"** (recommended): plain, true of a mill, a station and a house alike.
+   - "Bridges, mills and stations": concrete, but untrue of a courthouse or a house.
+   - Fold into "Monuments and ruins" (no new switch): a station or a mill labelled a monument or a ruin is untrue.
+2. **The replay's whispers** (steward 2): every place passed whispers "Passed X without stopping" (RR15), with no bound; an exploring walk through a listed old core would play back as a run of misses. **Recommended:** the whispers follow the card's rule (two names, else one "Passed a few places without stopping"): the lows stay in, the volume is bounded. This amends RR15 (the replay), so it is your call. New criterion RP19.
+3. **Reachable from a street** (steward 4): your bar is "reachable from public ground", but only OSM's `access` tag tests it, and a building rarely carries one; a Landmark house down a private drive would be a "?" found only by trespassing (a find needs a capture within 60 m). **Recommended:** an archive place is offered only when a street or path from the same tile read is within 60 m of it (the app already reads them; nothing new is fetched). It applies to every archive place, so a curiosity deep off-path goes too. New criterion RP20.
 
 Everything else follows from the owner's calls in the spec's Decisions.
 
@@ -24,8 +27,10 @@ The app:
 
 - `src/lib/discovery/archivePois.ts`: `ARCHIVE_CLASSES` gains `church` → History / churches, `cemetery` → History / cemeteries, `theatre` → Culture / theatres, `museum` → Culture / museums; `heritage_building` → History / the kind of question 1. The PW5 pin is re-pinned deliberately.
 - `src/lib/discovery/tilePois.ts`: `zoo: [[['zoo', 'aviary'], 'viewpoints']]` (RP15); `MARKABLE_CLASSES` re-pinned (AG5). Nothing for lodging (RP16).
-- `src/lib/atlas/atlas.ts`: `ATLAS_CODE` a7 → a8 (the aviary changes what a ring counts).
-- If question 1 is "Landmarks": `src/lib/discovery/types.ts` (`Kind`), `src/lib/explore/explore.ts` (`KINDS`, after "Monuments and ruins"), and the e2e `marks` journey's check of the switch list.
+- `src/lib/atlas/atlas.ts`: `ATLAS_CODE` a7 → a8. The aviary changes what a ring counts, and the listings change the History step most: in US old cores History will mostly fill, and outside the US (no register yet) it won't, which bends "where there is a lot" toward "where a register is" (steward 7). RP12's review shows each test area's History step before and after, so the owner sees it before publishing.
+- The new kind (question 1): `src/lib/discovery/types.ts` (`Kind`), `src/lib/explore/explore.ts` (`KINDS`, after "Monuments and ruins"), and the e2e `marks` journey's check of the switch list.
+- Question 2, if yes: `src/lib/ceremony/rhythm.ts` (the whispers take `passedLine` over the walk's passes, as the card does).
+- Question 3, if yes: the read that builds checklists (`landing/read.ts`, `atlas/read.ts`) keeps an archive place only within 60 m of a street or path of the same read (a pure `reachable(place, segments)` beside `mergePlaces`, over `EdgeGrid`).
 
 The benchmark (RP17):
 
@@ -64,7 +69,10 @@ All in the `explore` feature (`src/lib/__tests__/explore/`):
 
 - RP13's fixture: `src/lib/__tests__/explore/steelstacksPois.json`, the decoded `poi` features of the z14 tiles over the campus from build `20261101_080013_pt` (names, classes, positions; a few kilobytes), with the build named in the file.
 - RP11's "no copy names a listing": a grep over `src/app` and `src/components` strings for "listed", "register", "landmark" as a label (beside `check:vision`).
-- No new journey: no screen changes unless question 1 is "Landmarks", which adds one check to `marks` (the switch is listed and on by default).
+- RP18: a unit test over `KINDS` labels.
+- RP19 (if question 2 is yes): `src/lib/__tests__/replay/` "RP19: a replay past many places whispers no more than the card names".
+- RP20 (if question 3 is yes): `remarkablePublic.test.ts` "RP20: an archive place more than 60 m from every street or path is not offered".
+- No new journey: the new kind adds one check to `marks` (the switch is listed and on by default).
 
 ## Deferred, and why
 
@@ -78,6 +86,15 @@ All in the `explore` feature (`src/lib/__tests__/explore/`):
 
 No native code. Nothing to add to `docs/NATIVE_UNVERIFIED.md`.
 
-## Steward
+## Steward (Nov 9) and triage
 
-(Findings and their triage, below, before the owner reads this.)
+1. **Breach: "Landmarks" puts the listing on screen**, since a kind's label shows beside every place (`walk.tsx:1554`, `foundLine`). **Accepted:** the recommendation is now "Buildings and structures" (question 1), and RP18 forbids significance words in a kind's label.
+2. **The replay whispers every place passed, unbounded** (`rhythm.ts`). **Accepted as question 2** (it amends RR15, the owner's call); RP19 if yes.
+3. **RP17's "plausible destinations" could measure fame.** **Accepted:** RP17 defines a destination by structure only (register, pinned type, standing, not a district), never by sitelinks or articles, and reports in words and lists, never a percentage. The Nov 9 measurement used sitelinks for "well known"; the kept benchmark does not.
+4. **A Landmark house can be one you can't reach without trespassing.** **Accepted as question 3** (RP20 if yes). The Precedents row for 0104 now says "a Landmark house excepted", so it no longer reads against RP4.
+5. **RP11 doesn't test what it says** ("historic" left out of the grep, since "Historic churches" now holds listed places; "never sized or ordered" not carried). **Accepted:** RP11 now says the existing kind labels are the only words beside a listed place, in the same order, size and colour as any place.
+6. **"Historic churches" for a synagogue or a mosque** (tone). **Noted, not changed:** it is today's label for every place of worship from the tiles too, so renaming it ("Places of worship") is a copy change beyond this slice. Offered to the owner as a one-line follow-up.
+7. **The atlas's History dots will mostly reflect listing density.** **Accepted:** named under `ATLAS_CODE` above; RP12's review shows the History step before and after per test area.
+8. **The review must stay off the published host; only test areas are reviewed.** **Accepted:** RP12 says the review is never part of a release, the archive or the manifest, and adds a per-class, per-reason summary for the whole region.
+
+Silent, put to the owner: whether VISION.md should say a find may be a private house seen from the street (the owner's NHL call); whether `tourism=attraction` is a type or a popularity sign (kept as a sign of "open" in RP2: a mapper's statement that visitors go there, not a measure of how many).

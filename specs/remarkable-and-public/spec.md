@@ -24,8 +24,8 @@ Verb: earn (it raises what you notice: the buildings, bridges, mills and churche
 Touches: Never, "Ratings, reviews, stars, 'best of', rankings of places" (nearest fit: "open-data signals such as a heritage listing"); Never, "Popularity, trending, foot traffic"; Always, "Guidance is structural: where there is a lot, and what makes a place itself, never whether it is good"; decision 0103 ("a listed building enters only as a National Historic Landmark", Nov 6, after 847 of 900 places in a test cell were National Register listings; "Significance is a gate, never a measure"; "Type decides, never age or listing"); PW7 (name, class, src, id); PW15 (OSM only corroborates); the "signal" rule of Places worth the stop ("A shop or eatery becomes a place only with a signal"); the activity-density rule (Overture's places, never marks); AG5 (`MARKABLE_CLASSES` pinned).
 Verdict: aligned if reshaped (decision 0104)
 Shape: A listing is a gate on what a place is, never a measure or a label: a listed place enters when it is public (its type public by nature, or a source showing it open) or a Landmark, never a district and never a place OSM marks closed. OpenStreetMap's tags corroborate Wikidata items; Overture stays for busy streets. On screen nothing new: these are places to find of the existing kinds, never labelled listed or historic, never sized, ordered or counted by notability.
-Criteria: RP1-RP6 (the rule), RP7 (OSM corroborates), RP8 (kinds by type), RP9 (the name rule lifted), RP11 (nothing about a listing shown or stored), RP12 (the owner's review), RP13-RP14 (attractions), RP15 (aviary), RP16 (no hotels from tiles).
-Open: the kind of listed buildings and structures that are neither churches, cemeteries, theatres nor museums (the plan's question 1).
+Criteria: RP1-RP6 (the rule), RP7 (OSM corroborates), RP8 (kinds by type), RP9 (the name rule lifted), RP11 (nothing about a listing shown or stored; order and size unchanged), RP12 (the owner's review, never published), RP13-RP14 (attractions), RP15 (aviary), RP16 (no hotels from tiles), RP17 (the benchmark structural), RP18 (no kind named for significance).
+Open: the plan's questions 1-3 (the new kind's name; the replay's whispers; reachable from a street).
 
 ## Decisions
 
@@ -54,8 +54,8 @@ What the app does with them:
 
 9. **RP9 A listing lifts the name rule.** A tile place with the same name as a listed archive place within 50 m is one place to find, of the archive's kind, whatever its name says: "Central Moravian Church" with no word from `notable.json` (PW8's merge).
 10. **RP10 The fetch asks for listings, never popularity.** The weekly fetch asks each US cell for National Register listings and Landmarks beside the pinned classes, with what says a place is gone, and never for sitelinks, articles, page views or a count (PW7 holds).
-11. **RP11 Nothing new is stored or shown.** An archive point still carries name, class, src and id only: no listing, register, date or notability field. No screen shows a listing, a register, "historic" as a badge, or a count of listed places.
-12. **RP12 The owner's review.** For each named test area, the build writes beside the archive (never inside it) a review listing every place it would add, with its class and why it entered (public type, shown open, Landmark). The owner strikes a place through `archiveEdits.json`'s `remove`, and the next build leaves it out.
+11. **RP11 Nothing new is stored or shown.** An archive point still carries name, class, src and id only: no listing, register, date or notability field. A listed place shows as any place to find does: its name and its kind's label, the existing labels the only words beside it, in the same order, size and colour as any other place whatever its source. No screen shows a listing, a register or a count of listed places (steward 5).
+12. **RP12 The owner's review.** For each named test area, the build writes beside the archive (never inside it) a review listing every place it would add, with its class and why it entered (public type, shown open, Landmark). It also gives, for the whole region, how many places each class and reason adds, and each test area's atlas History step before and after (steward 7, 8). The review is the owner's: never part of a release, the archive or the manifest. The owner strikes a place through `archiveEdits.json`'s `remove`, and the next build leaves it out.
 
 Attractions and the tiles:
 
@@ -66,7 +66,11 @@ Attractions and the tiles:
 
 The benchmark:
 
-17. **RP17 The coverage measurement is kept.** `npm run places:coverage` (network; never in CI or `npm test`) reads the tiles and Wikidata for a fixed set of areas and reports, per area, the plausible destinations, those shown, those an archive would add, and those still missed with the reason (never in the tiles, dropped by the adapter, stopped by the name rule). Its pure parts (matching a Wikidata item to a place, the reason) have unit tests. Its reports are for the owner, never shown in the app.
+17. **RP17 The coverage measurement is kept.** `npm run places:coverage` (network; never in CI or `npm test`) reads the tiles and Wikidata for a fixed set of areas and reports, per area, the plausible destinations (defined by structure only: on a register or of a pinned public type, standing, not a district; never by sitelinks, articles or page views, steward 3), those shown, those an archive would add, and those still missed with the reason (never in the tiles, dropped by the adapter, stopped by the name rule). Its pure parts (matching a Wikidata item to a place, the reason) have unit tests. Its reports are for the owner, per area in words and lists, never shown in the app and never a percentage to aim at.
+
+The labels:
+
+18. **RP18 No kind is named for significance.** No kind's label holds a register's name or a word for significance ("landmark", "notable", "listed", "remarkable"), since a kind's label is shown beside every place of that kind (`name · kind` on the walk's card, "Found: … · kind") (steward 1).
 
 ## Record
 
