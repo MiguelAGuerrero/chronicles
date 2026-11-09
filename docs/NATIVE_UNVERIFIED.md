@@ -320,6 +320,10 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** with PLACES_BASE set, take an exploring walk past a curiosity in the archive. **Expect:** it shows as a "?" and is named within 60 m, as any mark.
 - [ ] **Do:** take a quiet walk past a curiosity with the screen off, and take a photo beside it. **Expect:** the replay names it as found.
 
+## Places pipeline (PP13, decision 0104)
+
+- [ ] **Do:** with PLACES_BASE set and checklist areas built from an archive without blocks, install a build that reads blocks, walk the same areas, then again after a weekly archive that changed places elsewhere only. **Expect:** each area is rebuilt once after the install, and not again after the second archive. (PP13)
+
 ## Wrapped map names (fix long-names)
 
 - [ ] **Do:** on a phone, find a mark, a star and an Explore area point with a name over 20 characters (e.g. "Lopes International Park and gardens"), and a busy-street name that long. **Expect:** each name wraps onto further lines at 140/160 pt, centred, with no "…"; lines 2 and up are not clipped by the marker's box on iOS or Android; the pin stays on its point; a wrapped busy-street label stays near its street.

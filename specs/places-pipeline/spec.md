@@ -100,3 +100,17 @@ Open: none (the owner's calls below)
 </invoke>
 16. **PP16 Phones still never call a source.** The slice adds nothing to `ALLOWED_HOSTS` or `lib/net`'s host table, and
     no file under `src/` names an adapter's host (`query.wikidata.org` and any later one).
+
+## Record (Nov 9)
+
+- **Built:** PP1-PP16, each with its test (`placesPipeline.test.ts`, PP13 in `placesArchive.test.ts`), the todos committed
+  first. The pipeline is `scripts/places-pipeline/`; the Wikidata adapter carries the archive's query and classes, and
+  `build-places-archive.mjs`, `fetch-wikidata.mjs` and `publish.mjs` are retired (PW7, PW13-PW15 and PW19 now run
+  against the pipeline). PP6 holds against the places the old build made from the same sample answers, frozen in
+  `adapters/wikidata/fixtures/expected-places.json`.
+- **Found while building:** Explore compared an area's archive tag with the tag at the walker's fix, so with blocks an
+  area by a block's edge would have been read on every fix; each area is now tagged and judged at its own point
+  (PP13's second test). The run's report, which holds the nominations list, is not published with a release.
+- **chronicles-data:** the weekly job runs `cli.ts` and keeps the state as the `state-us` pre-release (branch
+  `claude/places-pipeline` there). The old workflow on its main had a YAML error in its last step and would not have run.
+- **Deferred:** see `docs/DEFERRED.md`, "Places pipeline".
