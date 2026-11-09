@@ -46,3 +46,9 @@ export function buildTimeline<M extends TimelineMoment>(moments: M[], links: Lin
   }
   return rows;
 }
+
+/** The moment a reply answers: the latest of its links, wherever that moment is kept (audit 1, 17). */
+export function answeredBy(momentId: string, links: Link[]): string | null {
+  const mine = links.filter((l) => l.from_id === momentId).sort((a, b) => b.created_at - a.created_at);
+  return mine[0]?.to_id ?? null;
+}

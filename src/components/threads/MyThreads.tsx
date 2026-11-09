@@ -18,8 +18,8 @@ export function MyThreads(props: { rows: MyThreadRow[]; onOpen: (id: string) => 
   return (
     <View style={styles.sec} testID="my-threads">
       <View>
-        <Text style={styles.h} accessibilityRole="header">Your threads</Text>
-        <Text style={styles.sub}>Moments you connected</Text>
+        <Text style={styles.h} accessibilityRole="header">Threads you made</Text>
+        <Text style={styles.sub}>Moments you connected, the latest first</Text>
       </View>
       {props.rows.length === 0 ? (
         <Text style={styles.hint} testID="my-threads-hint">Connect moments from a moment’s menu: Add to a thread.</Text>

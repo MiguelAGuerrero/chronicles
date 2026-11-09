@@ -23,7 +23,9 @@ import { ThreadScreen } from './ThreadScreen';
 import { ThreadsRail } from './ThreadsRail';
 import { fromLine } from '../../lib/resurface/views';
 import { threads } from '../../lib/threads';
-import { headingOf, threadLine as ownThreadLine } from '../../lib/threads/lines';
+import { answeringLine, headingOf, threadLine as ownThreadLine } from '../../lib/threads/lines';
+import { removalDissolves } from '../../lib/threads/rules';
+import { answeredBy } from '../../lib/threads/timeline';
 import { useThreads } from '../../lib/threads/useThreads';
 import { ConfirmCard } from '../ConfirmCard';
 import { MyThreads, type MyThreadRow } from '../threads/MyThreads';
@@ -44,6 +46,11 @@ export function MemoriesScreen() {
   const [ownId, setOwnId] = useState<string | null>(null);
   const [ownMenuFor, setOwnMenuFor] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  // Remove from this thread asks first when it would end the thread (owner-threads audit 5).
+  const [removing, setRemoving] = useState<{ threadId: string; momentId: string } | null>(null);
+  // A kept Chronicle thread's own name, offered in the name field and never stored (audit 13); and one Keep at a time (audit 12).
+  const [suggested, setSuggested] = useState<string | null>(null);
+  const keeping = useRef(false);
   const { data: mine } = useThreads();
   // Another screen's "in a thread" asks for a thread to open (OT11): taken when this screen is shown, and while it is.
   useEffect(
@@ -54,6 +61,16 @@ export function MemoriesScreen() {
       }),
     [],
   );
+  // A reply linked after the viewer closed (a memo saved on its way out) is a moment Memories has not read yet (audit 8).
+  useEffect(() => {
+    let members = threads.store.get().data.members.length;
+    return threads.store.subscribe(() => {
+      const next = threads.store.get().data.members.length;
+      if (next === members) return;
+      members = next;
+      void resurface.refresh();
+    });
+  }, []);
   const [viewing, setViewing] = useState<Capture[] | null>(null);
   // A reminder tapped with no walk open lands on Chronicle and opens its capture at once (NV13), as the map's
   // screen does; with a walk open, the walk screen opens it and this declines. Until the keeper knows, it declines.
@@ -141,8 +158,14 @@ export function MemoriesScreen() {
   const relive = (m: MomentView) => router.push(m.walkId ? `/replay/${m.walkId}?ceremony=0` : `/day/${dayKey(m.t)}`);
   const menuMoment = menuFor ? byId.get(menuFor) ?? null : null;
   const walkOf = (m: MomentView) => (m.walkId ? state.walks[m.walkId] : undefined);
+  // A reply says what it answers wherever it is listed (audit 1).
+  const answerLine = (m: MomentView) => {
+    const to = answeredBy(m.id, mine.links);
+    const parent = to ? byId.get(to) : undefined;
+    return parent ? answeringLine({ place: parent.place, t: parent.t, walkLine: fromLine(walkOf(parent)) }, now) : null;
+  };
   const card = (m: MomentView) => (
-    <MomentCard key={m.id} moment={m} walk={walkOf(m)} now={now} onOpen={() => open(m)} onWalk={(id) => router.push(`/replay/${id}?ceremony=0`)} onMore={() => setMenuFor(m.id)} />
+    <MomentCard key={m.id} moment={m} walk={walkOf(m)} now={now} answering={answerLine(m)} onOpen={() => open(m)} onWalk={(id) => router.push(`/replay/${id}?ceremony=0`)} onMore={() => setMenuFor(m.id)} />
   );
 
   let body;
@@ -175,6 +198,8 @@ export function MemoriesScreen() {
           onMore={(m) => setOwnMenuFor(m.id)}
           onRename={(name) => void threads.rename(own.id, name).catch(() => {})}
           onDelete={() => setConfirmingDelete(true)}
+          momentById={(id) => byId.get(id)}
+          suggestion={suggested}
         />
       </ScrollView>
     );
@@ -192,12 +217,18 @@ export function MemoriesScreen() {
           onMore={(m) => setMenuFor(m.id)}
           onKeep={() => {
             // A tap copies the Chronicle's thread into one of the owner's; the Chronicle's own is untouched (OT19).
-            void threads.startThread(thread.momentIds, thread.name).then((id) => {
+            // No name is kept for the owner: the Chronicle's is only offered in the name field (audit 13). One tap, one thread (audit 12).
+            if (keeping.current) return;
+            keeping.current = true;
+            void threads.startThread(thread.momentIds).then((id) => {
               if (id) {
+                setSuggested(thread.name);
                 setThreadTerm(null);
                 setOwnId(id);
               }
-            }).catch(() => {});
+            }).catch(() => {}).finally(() => {
+              keeping.current = false;
+            });
           }}
           onRename={(name) => void resurface.rename(thread.term, name)}
           onRemove={() => {
@@ -281,9 +312,24 @@ export function MemoriesScreen() {
         onRemove={() => {
           const m = ownMenuMoment;
           setOwnMenuFor(null);
-          if (m && own) void threads.removeFromThread(own.id, m.id).catch(() => {});
+          if (!m || !own) return;
+          if (removalDissolves(mine.members, own.id)) setRemoving({ threadId: own.id, momentId: m.id });
+          else void threads.removeFromThread(own.id, m.id).catch(() => {});
         }}
       />
+      {removing && (
+        <ConfirmCard
+          testID="confirm-remove"
+          text={{ title: 'Remove it from this thread?', body: 'This thread has two moments, so removing one ends it. The moments stay kept.', confirm: 'Remove' }}
+          onCancel={() => setRemoving(null)}
+          onConfirm={() => {
+            const r = removing;
+            setRemoving(null);
+            setOwnId(null);
+            void threads.removeFromThread(r.threadId, r.momentId).catch(() => {});
+          }}
+        />
+      )}
       {confirmingDelete && own && (
         <ConfirmCard
           testID="confirm"

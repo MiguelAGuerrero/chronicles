@@ -14,8 +14,9 @@ export function useThreads(): { data: ThreadsData; loaded: boolean; reload: () =
   const raw = useStore(threads.store, (s) => s.data);
   const loaded = useStore(threads.store, (s) => s.loaded);
   const hidden = useHidden();
+  // Read once: every write goes through the shell, which keeps the store, and a delete reloads it (owner-threads audit 10).
   useEffect(() => {
-    void threads.load().catch(() => {});
+    if (!threads.store.get().loaded) void threads.load().catch(() => {});
   }, []);
   useOnDeleted(() => void threads.load().catch(() => {}));
   const data = useMemo(() => visibleThreads(raw, hidden), [raw, hidden]);

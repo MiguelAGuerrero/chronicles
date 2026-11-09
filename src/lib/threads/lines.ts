@@ -55,7 +55,15 @@ export const IN_A_THREAD = 'in a thread';
  * own words are the second line, never the heading on their own.
  */
 export function headingOf(o: { name: string | null; place: string | null; t: number; words: string | null }, now: number): { title: string; sub: string | null } {
-  const sub = o.words ? o.words.trim().slice(0, 80) || null : null;
+  const sub = o.words ? clipWords(o.words.trim(), 80) || null : null;
   if (o.name) return { title: o.name, sub: null };
   return { title: [o.place, dateLine(o.t, now)].filter(Boolean).join(', '), sub };
+}
+
+/** Words cut at a space with an ellipsis, never mid-word unless one word is longer than the room (audit 16). */
+export function clipWords(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  const at = text.charAt(max) === ' ' ? max : cut.lastIndexOf(' ');
+  return `${(at > 0 ? text.slice(0, at) : cut).trimEnd()}…`;
 }

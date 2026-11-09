@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { noteText, NOTE_MAX } from '../../lib/noteEdit';
 import { useCaptures } from '../../lib/useCaptures';
@@ -9,12 +9,18 @@ import { theme } from '../ui';
  * Respond (OT1, OT3): the capture row's own kinds on the viewer's face, one tap each. The new moment is kept by the
  * capture's own path, with its own time and place; once kept it is linked to the moment it answers and joins its
  * thread (`useCaptures` `replyTo`). Outside a walk it is a moment of its own, placed by one fix (OT24); on a walk it
- * belongs to the walk.
+ * belongs to the walk. One bar serves every moment the viewer shows, so swiping builds no new recorder (audit 10); the
+ * note being written belongs to one moment and is the viewer's to close with Back (`composeFor`, audit 9).
  */
-export function RespondBar(props: { answeredId: string; threadId?: string | null; walkId?: string | null; top: number }) {
+export function RespondBar(props: {
+  answeredId: string;
+  threadId?: string | null;
+  walkId?: string | null;
+  top: number;
+  composeFor: string | null;
+  setComposeFor: (id: string | null) => void;
+}) {
   const [message, setMessage] = useState<string | null>(null);
-  const [composing, setComposing] = useState(false);
-  const [text, setText] = useState('');
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const say = (m: string) => {
     setMessage(m);
@@ -37,7 +43,7 @@ export function RespondBar(props: { answeredId: string; threadId?: string | null
     },
   });
   const recording = cap.voiceStartedAt != null;
-  const kept = noteText(text);
+  const composing = props.composeFor === props.answeredId;
   const tool = (testID: string, icon: IconName, label: string, onPress: () => void, disabled?: boolean) => (
     <Pressable
       testID={testID}
@@ -56,29 +62,15 @@ export function RespondBar(props: { answeredId: string; threadId?: string | null
     <View style={[styles.wrap, { top: props.top }]} testID="respond-bar" accessibilityLabel="Respond to this moment">
       {message ? <Text style={styles.message} accessibilityLiveRegion="polite" testID="respond-message">{message}</Text> : null}
       {composing ? (
-        <View style={styles.compose}>
-          <TextInput
-            testID="respond-note-input"
-            autoFocus
-            multiline
-            value={text}
-            onChangeText={setText}
-            placeholder="Your reply"
-            placeholderTextColor={theme.muted}
-            accessibilityLabel="Your reply"
-            maxLength={NOTE_MAX}
-            style={styles.input}
-          />
-          <View style={styles.row}>
-            {tool('respond-note-cancel', 'close', 'Cancel', () => { setComposing(false); setText(''); })}
-            {tool('respond-note-save', 'checkmark', 'Keep reply', () => {
-              if (!kept) return;
-              setComposing(false);
-              setText('');
-              void cap.saveNote(kept);
-            }, !kept)}
-          </View>
-        </View>
+        <ReplyNote
+          key={props.answeredId}
+          onCancel={() => props.setComposeFor(null)}
+          onKeep={(text) => {
+            props.setComposeFor(null);
+            void cap.saveNote(text);
+          }}
+          tool={tool}
+        />
       ) : (
         <View style={styles.row}>
           <Text style={styles.label} accessibilityRole="header">Respond</Text>
@@ -88,7 +80,7 @@ export function RespondBar(props: { answeredId: string; threadId?: string | null
             <>
               {tool('respond-photo', 'camera', 'Photo', () => void cap.takePhoto(), cap.busy != null)}
               {tool('respond-voice', 'mic', 'Voice', () => void cap.startVoice(), cap.busy != null)}
-              {tool('respond-note', 'create-outline', 'Note', () => setComposing(true), cap.busy != null)}
+              {tool('respond-note', 'create-outline', 'Note', () => props.setComposeFor(props.answeredId), cap.busy != null)}
             </>
           )}
         </View>
@@ -97,10 +89,42 @@ export function RespondBar(props: { answeredId: string; threadId?: string | null
   );
 }
 
+/** The note being written as a reply: its text is its own, and is gone with the moment it was for. */
+function ReplyNote(props: {
+  onCancel: () => void;
+  onKeep: (text: string) => void;
+  tool: (testID: string, icon: IconName, label: string, onPress: () => void, disabled?: boolean) => ReactNode;
+}) {
+  const [text, setText] = useState('');
+  const kept = noteText(text);
+  return (
+    <View style={styles.compose}>
+      <TextInput
+        testID="respond-note-input"
+        autoFocus
+        multiline
+        value={text}
+        onChangeText={setText}
+        placeholder="Your reply"
+        placeholderTextColor={theme.muted}
+        accessibilityLabel="Your reply"
+        maxLength={NOTE_MAX}
+        style={styles.input}
+      />
+      <View style={styles.row}>
+        {props.tool('respond-note-cancel', 'close', 'Cancel', props.onCancel)}
+        {props.tool('respond-note-save', 'checkmark', 'Keep reply', () => {
+          if (kept) props.onKeep(kept);
+        }, !kept)}
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   wrap: { position: 'absolute', left: 12, right: 12, gap: 8, alignItems: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'center' },
-  label: { color: '#ffffff', fontSize: 14, fontWeight: '700', paddingHorizontal: 4 },
+  label: { color: '#ffffff', fontSize: 14, fontWeight: '700', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: 'rgba(20,24,32,0.72)', overflow: 'hidden' },
   tool: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 48, paddingHorizontal: 14, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.92)' },
   toolText: { color: theme.ink, fontSize: 15, fontWeight: '600' },
   dim: { opacity: 0.4 },

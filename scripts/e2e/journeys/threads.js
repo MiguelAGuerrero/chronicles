@@ -1,4 +1,4 @@
-// Owner threads (OT1-OT24): connect moments, respond, read a thread, name it, delete it with Undo, keep a Chronicle
+// Owner threads (OT1-OT24, owner-threads audit): connect moments, respond, read a thread, name it, delete it with Undo, keep a Chronicle
 // thread as one's own. Seeded straight into IndexedDB. E2E_ONLY=threads runs it alone.
 
 const SEED = () => {
@@ -60,9 +60,9 @@ async function run(h) {
 
   // OT12: Your threads is its own block, with a hint and no row while there are none; the Chronicle's rail is apart.
   check((await has('[data-testid=my-threads-hint]')) && (await pg.locator('[data-testid=my-thread-row]').count()) === 0
-    && (await pg.locator('[data-testid=my-threads]').innerText()).includes('Your threads')
+    && (await pg.locator('[data-testid=my-threads]').innerText()).includes('Threads you made') && /latest first/.test(await pg.locator('[data-testid=my-threads]').innerText())
     && (await pg.locator('[data-testid=threads-rail]').count()) === 1 && !(await pg.locator('[data-testid=threads-rail]').innerText()).includes('Your threads'),
-    'OT12: Your threads has its own heading and a hint, apart from the Chronicle\'s threads');
+    'OT12, owner-threads audit 15: Threads you made has its own heading, says its order, and a hint, apart from the Chronicle\'s threads');
   await shot(pg, '70-threads-empty');
 
   // OT5, OT6: a thread is made from a moment and a second kept moment, nothing else.
@@ -78,6 +78,7 @@ async function run(h) {
     'OT5, OT9: the moment picker searches the words in the moments, and each row carries its date');
   await pg.click('[data-testid=add-moment-row]');
   await gone('[data-testid=add-to-thread]');
+  check(await there('text=Connected', 5000), 'owner-threads audit 19: the pill says Connected, nothing warmer');
   let db = await stored(pg);
   check(db.threads.length === 1 && db.threads[0].name === null && db.members.length === 2, 'OT5, OT6: the thread is made of the two moments, unnamed');
   check(JSON.stringify(db.captures.find((x) => x.id === 's1')) === JSON.stringify({ id: 's1', walk_id: null, t: db.captures.find((x) => x.id === 's1').t, lat: null, lon: null, kind: 'text', file_path: null, body: 'Someone said I looked strong at the pier.', segment_id: null }),
@@ -109,6 +110,8 @@ async function run(h) {
 
   // OT4: the reply is in Lately like any moment.
   check((await pg.locator('[data-testid=moment-card]:has-text("Same again today")').count()) >= 1, 'OT4: the reply appears in Lately as a moment');
+  const lately = await pg.locator('[data-testid=moment-card]:has-text("Same again today") [data-testid=moment-answering]').allInnerTexts();
+  check(lately.length === 1 && /^answering /.test(lately[0]), `owner-threads audit 1: the reply in Lately says what it answers (${lately.join('|')})`);
 
   // OT12, OT10: the thread is listed under Your threads, a line in words.
   const row = pg.locator('[data-testid=my-thread-row]');
@@ -145,6 +148,17 @@ async function run(h) {
   check(db.threads.length === 1 && db.members.filter((m) => m.thread_id === db.threads[0].id).length === 4, 'OT3: the reply made from the thread joined that thread');
   await closeViewer();
 
+  // owner-threads audit 9: the note being written closes on its own, not the viewer.
+  await pg.locator('[data-testid=own-thread] [data-testid=moment-card]:has-text("pier") [data-testid=moment-open]').first().click();
+  await pg.waitForSelector('[data-testid=respond-note]');
+  await pg.click('[data-testid=respond-note]');
+  await pg.fill('[data-testid=respond-note-input]', 'half a thought');
+  // The web's viewer takes no Escape; native's Back goes through the same composeFor first (NATIVE_UNVERIFIED).
+  await pg.click('[data-testid=respond-note-cancel]');
+  await pg.waitForTimeout(300);
+  check(!(await has('[data-testid=respond-note-input]')) && (await has('[data-testid=viewer-close]')) && (await has('[data-testid=respond-note]')), 'owner-threads audit 9: Cancel closes the note being written, leaves the viewer open and Respond ready');
+  await closeViewer();
+
   // OT8: Remove from this thread keeps the moment.
   await pg.locator('[data-testid=own-thread] [data-testid=moment-card]:has-text("And a third") [data-testid=moment-more]').click();
   await pg.click('[data-testid=thread-menu-remove]');
@@ -166,6 +180,10 @@ async function run(h) {
   await pg.click('[data-testid=thread-keep]');
   await pg.waitForSelector('[data-testid=own-thread]');
   db = await stored(pg);
+  check(db.threads.every((t) => t.name !== 'Harbor'), 'owner-threads audit 13: Keep as my thread stores no name the owner did not give');
+  await pg.click('[data-testid=own-thread-rename]');
+  check(/Harbor/.test((await pg.locator('[data-testid=own-thread-name]').getAttribute('placeholder')) ?? ''), 'owner-threads audit 13: the Chronicle\'s name is only a suggestion in the name field');
+  await pg.click('text=Cancel');
   check(db.threads.length === 2 && (await pg.locator('[data-testid=own-thread] [data-testid=moment-card]').count()) === chronicleCards && chronicleCards === 3,
     'OT19: Keep as my thread makes a thread of the owner\'s with the same three moments');
   await pg.click('[data-testid=own-thread-back]');
@@ -209,6 +227,22 @@ async function run(h) {
   await tabTo(pg, 'chronicle', 'memories');
   await pg.waitForSelector('[data-testid=my-threads]', { timeout: 20000 });
   check((await there('[data-testid=my-thread-row]', 15000)) && (await pg.locator('[data-testid=my-thread-row]').count()) === 1, 'OT21: the owner\'s thread is still there after a reload');
+
+  // owner-threads audit 5: Remove asks first when it would end the thread; Cancel keeps it, Remove ends it, the moments stay.
+  await pg.locator('[data-testid=my-thread-row]').first().click();
+  await pg.waitForSelector('[data-testid=own-thread]');
+  const kept = (await stored(pg)).captures.length;
+  await pg.locator('[data-testid=own-thread] [data-testid=moment-card] [data-testid=moment-more]').first().click();
+  await pg.click('[data-testid=thread-menu-remove]');
+  check(await there('[data-testid=confirm-remove]', 5000), 'owner-threads audit 5: Remove asks first when it would end the thread');
+  await pg.click('[data-testid=confirm-remove] [data-testid=confirm-cancel]');
+  check((await stored(pg)).threads.length === 1, 'owner-threads audit 5: Cancel keeps the thread');
+  await pg.locator('[data-testid=own-thread] [data-testid=moment-card] [data-testid=moment-more]').first().click();
+  await pg.click('[data-testid=thread-menu-remove]');
+  await pg.click('[data-testid=confirm-remove] [data-testid=confirm-delete]');
+  await pg.waitForTimeout(600);
+  db = await stored(pg);
+  check(db.threads.length === 0 && db.members.length === 0 && db.captures.length === kept, 'owner-threads audit 5: confirmed, the thread ends and every moment stays kept');
   await c.close();
 }
 

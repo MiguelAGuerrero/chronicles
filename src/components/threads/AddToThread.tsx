@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useHidden } from '../../lib/deletion/useDeletions';
 import { threads } from '../../lib/threads';
+import { filterPicker } from '../../lib/threads/picker';
 import { contextLine, headingOf, threadLine } from '../../lib/threads/lines';
 import { useThreads } from '../../lib/threads/useThreads';
 import type { MomentView } from '../../lib/resurface/types';
@@ -11,7 +13,7 @@ import { Icon } from '../icons';
 import { theme } from '../ui';
 
 const KIND_WORD = { photo: 'Photo', video: 'Video', voice: 'Voice memo', text: 'Note' } as const;
-const SHOWN = 60;
+const PAGE = 40;
 
 /** A moment as the pickers list it (OT5, OT9): its place and date, its walk, and its own first words. Never bare. */
 function rowOf(m: MomentView, walks: Map<string, Walk>, now: number) {
@@ -34,6 +36,9 @@ export function AddToThread(props: { moment: Capture; onClose: () => void; onDon
   const [step, setStep] = useState<'threads' | 'moment'>('threads');
   const [query, setQuery] = useState('');
   const [now] = useState(() => Date.now());
+  const [limit, setLimit] = useState(PAGE);
+  // What waits in the Undo window is not offered (owner-threads audit 4).
+  const hidden = useHidden();
   useEffect(() => {
     let live = true;
     threads.moments().then(
@@ -58,21 +63,20 @@ export function AddToThread(props: { moment: Capture; onClose: () => void; onDon
         .sort((a, b) => b.latest - a.latest),
     [data, byId, props.moment.id],
   );
-  const candidates = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return (pool?.views ?? [])
-      .filter((v) => v.id !== props.moment.id && (!q || (v.words ?? '').toLowerCase().includes(q)))
-      .sort((a, b) => b.t - a.t)
-      .slice(0, SHOWN);
-  }, [pool, query, props.moment.id]);
+  // Found by its words, its place or its date, a page at a time (audit 3).
+  const found = useMemo(() => {
+    const items = (pool?.views ?? []).map((v) => ({ id: v.id, t: v.t, words: v.words, context: rowOf(v, pool!.walks, now).context }));
+    return filterPicker(items, { hidden, self: props.moment.id, query, limit });
+  }, [pool, hidden, query, limit, props.moment.id, now]);
+  const candidates = found.shown.map((i) => byId.get(i.id)).filter((v): v is MomentView => !!v);
 
   const addTo = async (threadId: string) => {
     const ok = await threads.addToThread(threadId, props.moment.id).catch(() => false);
-    props.onDone(ok ? 'Added to the thread' : 'Could not add it');
+    props.onDone(ok ? 'Connected' : 'Could not connect');
   };
   const joinWith = async (other: MomentView) => {
     const id = await threads.startThread([props.moment.id, other.id]).catch(() => null);
-    props.onDone(id ? 'Thread made' : 'Could not make a thread');
+    props.onDone(id ? 'Connected' : 'Could not connect');
   };
   return (
     <View style={[StyleSheet.absoluteFill, styles.back, { paddingTop: insets.top + 56, paddingBottom: insets.bottom + 12 }]}>
@@ -112,10 +116,13 @@ export function AddToThread(props: { moment: Capture; onClose: () => void; onDon
             <TextInput
               testID="add-search"
               value={query}
-              onChangeText={setQuery}
-              placeholder="Search the words in your moments"
+              onChangeText={(t) => {
+                setQuery(t);
+                setLimit(PAGE);
+              }}
+              placeholder="Search words, places or dates"
               placeholderTextColor={theme.muted}
-              accessibilityLabel="Search the words in your moments"
+              accessibilityLabel="Search words, places or dates"
               style={styles.input}
             />
             <ScrollView style={styles.list} contentContainerStyle={styles.pad}>
@@ -129,6 +136,11 @@ export function AddToThread(props: { moment: Capture; onClose: () => void; onDon
                   </Pressable>
                 );
               })}
+              {found.more ? (
+                <Pressable testID="add-more" accessibilityRole="button" onPress={() => setLimit((l) => l + PAGE)} style={styles.row}>
+                  <Text style={styles.name}>Show more</Text>
+                </Pressable>
+              ) : null}
             </ScrollView>
           </>
         )}

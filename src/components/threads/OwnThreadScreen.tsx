@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { answeringLine, headingOf, threadLine } from '../../lib/threads/lines';
-import { buildTimeline } from '../../lib/threads/timeline';
+import { answeredBy, buildTimeline } from '../../lib/threads/timeline';
 import type { Link, Thread } from '../../lib/threads/types';
 import type { MomentView } from '../../lib/resurface/types';
 import { fromLine } from '../../lib/resurface/views';
@@ -27,6 +27,10 @@ export function OwnThreadScreen(props: {
   onMore: (m: MomentView) => void;
   onRename: (name: string) => void;
   onDelete: () => void;
+  /** Any kept moment, so a reply says what it answers even when that moment is outside this thread (audit 17). */
+  momentById: (id: string) => MomentView | undefined;
+  /** The Chronicle's name for a thread that was kept: offered in the name field, never stored (audit 13). */
+  suggestion?: string | null;
 }) {
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState(props.thread.name ?? '');
@@ -39,11 +43,11 @@ export function OwnThreadScreen(props: {
         <Pressable testID="own-thread-back" accessibilityRole="button" accessibilityLabel="Back to Memories" onPress={props.onBack} style={styles.back}>
           <Icon name="chevron-back" size={20} color={theme.ink} />
         </Pressable>
-        <Text style={styles.eyebrow}>Your thread</Text>
+        <Text style={styles.eyebrow}>A thread you made</Text>
       </View>
       {renaming ? (
         <View style={styles.rename}>
-          <TextInput testID="own-thread-name" value={name} onChangeText={setName} autoFocus maxLength={40} style={styles.input} accessibilityLabel="Thread name" placeholder="A name for this thread" placeholderTextColor={theme.muted} />
+          <TextInput testID="own-thread-name" value={name} onChangeText={setName} autoFocus maxLength={40} style={styles.input} accessibilityLabel="Thread name" placeholder={props.suggestion ? `A name, such as “${props.suggestion}”` : 'A name for this thread'} placeholderTextColor={theme.muted} />
           <View style={styles.row}>
             <Button testID="own-thread-save" label="Save" onPress={() => { props.onRename(name); setRenaming(false); }} />
             <Button label="Cancel" variant="secondary" onPress={() => { setName(props.thread.name ?? ''); setRenaming(false); }} />
@@ -63,7 +67,8 @@ export function OwnThreadScreen(props: {
       <View style={styles.sec}>
         {rows.map((r) => {
           const m = r.moment;
-          const parent = r.answering;
+          const answeredId = answeredBy(m.id, props.links);
+          const parent = r.answering ?? (answeredId ? props.momentById(answeredId) ?? null : null);
           return (
             <View key={m.id} style={[styles.item, r.depth === 1 && styles.reply]} testID={r.depth === 1 ? 'own-thread-reply' : 'own-thread-moment'}>
               {parent ? (

@@ -35,15 +35,19 @@ export function createThreads(p: Pick<Ports, 'db' | 'clock' | 'newId'>, deps: { 
     store.set({ ...store.get(), loaded: true, data });
     return data;
   }
-  /** Changes are written one after another, and the store follows what was stored. */
-  function apply(change: Parameters<typeof p.db.applyThreads>[0]): Promise<ThreadsData> {
-    const run = writes.then(async () => {
-      await p.db.applyThreads(change);
-      return load();
-    });
+  /**
+   * Everything that reads then writes runs one after another, reads included: two replies fired together join one thread
+   * (owner-threads audit 6), and a moment deleted meanwhile is found out just before the write (audit 7).
+   */
+  function serial<T>(fn: () => Promise<T>): Promise<T> {
+    const run = writes.then(fn);
     writes = run.catch(() => {});
     return run;
   }
+  const commit = async (change: Parameters<typeof p.db.applyThreads>[0]): Promise<ThreadsData> => {
+    await p.db.applyThreads(change);
+    return load();
+  };
   const keptIds = async (ids: string[]) => new Set((await p.db.getCapturesByIds([...new Set(ids)])).map((c) => c.id));
 
   return {
@@ -68,51 +72,59 @@ export function createThreads(p: Pick<Ports, 'db' | 'clock' | 'newId'>, deps: { 
     },
 
     /** A new thread of at least two kept moments (OT5, OT6); null when it cannot be made. */
-    async startThread(momentIds: string[], name: string | null = null): Promise<string | null> {
-      if (!canMakeThread(momentIds, await keptIds(momentIds))) return null;
-      const now = p.clock.now();
-      const id = p.newId();
-      await apply({
-        putThreads: [{ id, name: name ? cleanName(name) : null, created_at: now }],
-        putMembers: [...new Set(momentIds)].map((moment_id) => ({ thread_id: id, moment_id, added_at: now })),
+    startThread(momentIds: string[], name: string | null = null): Promise<string | null> {
+      return serial(async () => {
+        if (!canMakeThread(momentIds, await keptIds(momentIds))) return null;
+        const now = p.clock.now();
+        const id = p.newId();
+        await commit({
+          putThreads: [{ id, name: name ? cleanName(name) : null, created_at: now }],
+          putMembers: [...new Set(momentIds)].map((moment_id) => ({ thread_id: id, moment_id, added_at: now })),
+        });
+        return id;
       });
-      return id;
     },
 
     /** Adds a kept moment to a thread; false if the thread or the moment does not exist, true if it was already in (OT7). */
-    async addToThread(threadId: string, momentId: string): Promise<boolean> {
-      const data = await p.db.listThreads();
-      if (!data.threads.some((t) => t.id === threadId) || !(await keptIds([momentId])).has(momentId)) return false;
-      const change = addChange(threadId, momentId, data.members, p.clock.now());
-      if (change) await apply(change);
-      return true;
+    addToThread(threadId: string, momentId: string): Promise<boolean> {
+      return serial(async () => {
+        const data = await p.db.listThreads();
+        if (!data.threads.some((t) => t.id === threadId) || !(await keptIds([momentId])).has(momentId)) return false;
+        const change = addChange(threadId, momentId, data.members, p.clock.now());
+        if (change) await commit(change);
+        return true;
+      });
     },
 
     /** Takes one moment out of one thread; the moment and its other threads stay (OT8). A thread left thin dissolves. */
     async removeFromThread(threadId: string, momentId: string): Promise<void> {
-      await apply({ deleteMembers: [{ thread_id: threadId, moment_id: momentId }] });
+      await serial(() => commit({ deleteMembers: [{ thread_id: threadId, moment_id: momentId }] }));
     },
 
     /** Names a thread; a blank name clears it (OT13). */
     async rename(threadId: string, name: string): Promise<void> {
-      const t = (await p.db.listThreads()).threads.find((x) => x.id === threadId);
-      if (t) await apply({ putThreads: [{ ...t, name: cleanName(name) }] });
+      await serial(async () => {
+        const t = (await p.db.listThreads()).threads.find((x) => x.id === threadId);
+        if (t) await commit({ putThreads: [{ ...t, name: cleanName(name) }] });
+      });
     },
 
     /** Deletes the thread and its memberships after the Undo window; every moment stays (OT14). */
     deleteThread(threadId: string): void {
-      deps.schedule({ ids: [threadId], run: async () => void (await apply({ deleteThreads: [threadId] })) });
+      deps.schedule({ ids: [threadId], run: () => serial(() => commit({ deleteThreads: [threadId] })).then(() => {}) });
     },
 
     /**
      * A saved reply: the directed link, and the membership in the thread it was started from, or in the answered
      * moment's thread, or in a new unnamed thread of the two (OT2). Both moments must be kept.
      */
-    async reply(replyId: string, answeredId: string, from: string | null = null): Promise<boolean> {
-      if (replyId === answeredId || (await keptIds([replyId, answeredId])).size < 2) return false;
-      const { members } = await p.db.listThreads();
-      await apply(replyChange({ replyId, answeredId, members, from, newThreadId: p.newId(), now: p.clock.now() }));
-      return true;
+    reply(replyId: string, answeredId: string, from: string | null = null): Promise<boolean> {
+      return serial(async () => {
+        if (replyId === answeredId || (await keptIds([replyId, answeredId])).size < 2) return false;
+        const { members } = await p.db.listThreads();
+        await commit(replyChange({ replyId, answeredId, members, from, newThreadId: p.newId(), now: p.clock.now() }));
+        return true;
+      });
     },
   };
 }

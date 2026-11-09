@@ -78,8 +78,34 @@ Built on `claude/owner-threads-decision`; not audited (decision 0074). Tests fir
 - **Built as written:** OT1-OT24.
 - **Gate steward (Nov 6):** 1 breach, 4 drift, 1 tone, all accepted (see `plan.md`).
 - **Choices made in the build, for the owner to confirm:**
-  - The heading is **Your threads** ("Moments you connected"); the Chronicle's rail keeps **Threads** ("Things you keep coming back to"). Two near names, as the plan warned.
+  - The heading is **Threads you made** ("Moments you connected, the latest first"; was "Your threads" until the audit); the Chronicle's rail keeps **Threads** ("Things you keep coming back to"). Two near names, as the plan warned.
   - **Respond** sits in a floating row under the viewer's top buttons, not at the bottom, because the viewer's own strip and card fill the bottom.
-  - **Keep as my thread** copies the Chronicle thread's name too (a tap accepts a suggestion).
-  - A reply made on a walk is a moment of its own (DEFERRED).
+  - **Keep as my thread** keeps no name (audit 13): the Chronicle's is only a placeholder in the name field.
+  - A reply made from a viewer opened during a walk belongs to that walk (audit 11).
 - **Native:** every path is unverified on a device (`docs/NATIVE_UNVERIFIED.md`, "Owner threads").
+
+## Audit (Nov 9)
+
+19 findings: the auditor's 12 (F1-F12) and the steward's 7 (S1-S7, numbered 13-19). 16 accepted (14 fixed in full, 2 in part), 3 deferred, 0 rejected whole (parts of 9, 12 rejected). The steward found no breach. Triage, each fixed one behind a test named `owner-threads audit N` (unit in `src/lib/__tests__/threads/audit.test.ts`, or a check in the `threads` journey):
+
+1. A reply's row says "answering" only in the thread: **accept**. A reply names what it answers in Lately too (`MomentCard answering`), and inside a thread even when the answered moment is outside it (`answeredBy`). Its walk, day and map surfaces are **deferred** (they draw captures as pins or day entries, not cards). Tests: `audit 1` (unit and journey).
+2. Loose moments and replies show no place: **defer**. The app names a place only for a walk (`Walk.area`); a loose moment has a pin and a date and no place words anywhere. Giving it words is a new reading of where it was (an area lookup for a moment, a dataset), not a fix here. A thread headed by a loose moment shows its date. For the owner (DEFERRED).
+3. The picker could not reach most moments: **accept**. Paged ("Show more"), found by words, place or date. Test: `audit 3`.
+4. The picker offered moments waiting in Undo: **accept**. `useHidden` in the picker. Test: `audit 4`.
+5. Remove ends a named two-moment thread with no ask and no Undo: **accept**. It asks first when it would end the thread (`removalDissolves`). Tests: `audit 5` (unit and journey).
+6. Two replies at once made two threads: **accept**. Every read-then-write runs one after another (`serial`). Test: `audit 6`.
+7. A reply lost or a ghost member when the answered moment is deleted mid-capture: **accept in part**. The kept check now runs just before the write, inside the chain (`audit 7`). A storage-level check that `applyThreads` ignores members whose moment is gone is **deferred**: the window is one round trip, and the views already ignore a member they cannot read.
+8. A memo reply saved after the viewer closed missed the refresh: **accept**. Memories reads again when a thread's members change. Covered by the journey's flow and typecheck only.
+9. Typed reply text lost on Back or Escape or a swipe: **accept in part**. Back closes the note first (`composeFor`); Cancel is tested on web (the web's viewer takes no Escape; Back is a device item). A swipe discards a note addressed to another moment on purpose: **rejected**.
+10. Every swipe reloaded the threads and built a recorder: **accept**. The store is read once and the Respond bar is one per viewer. Covered by the journey's flow and typecheck only.
+11. A Respond bar mid-walk (a reply made on a walk is not part of it): **accept**. The viewer's `walkId` (the open walk) is the reply's walk. Covered by the flow; native unverified.
+12. One chip target, Keep twice, an open walk: **accept in part**. Keep makes one thread per tap (a guard); the chip opens the oldest thread, by design (**rejected**); the open-walk branch the auditor described does not exist in `MemoriesScreen` (**rejected**, not reproduced).
+13. Keep as my thread stored the Chronicle's derived name as the owner's: **accept**. The thread is made unnamed, and the Chronicle's name is only the name field's placeholder. Tests: `audit 13` (unit and journey).
+14. A reply made from a walk's viewer is placed outside the walk: **accept** (same fix as 11).
+15. Your threads' order is a silent new-reply cue: **accept**. The order is said ("the latest first"). Test: the journey (`audit 15`).
+16. An unnamed thread's second line clipped mid-word: **accept**. `clipWords` cuts at a word with an ellipsis. Test: `audit 16`.
+17. A reply loses "answering" when its answered moment is kept but not in the thread: **accept**. Test: `audit 1`.
+18. The two headings mislead: **accept**. Mine is **Threads you made** ("A thread you made"); the Chronicle's rail keeps its words. For the owner to confirm.
+19. "Thread made" reads warm; the Respond label is unreadable on a bright photo: **accept**. "Connected"; the label has a dark pill. Journey `audit 19`.
+
+**Left for the owner (the steward's Silent):** whether an unnamed thread's heading may change when an older moment is added (it does today); whether the "In a thread" chip may stand on every moment in a thread or should live in More; whether the picker should also search a memo's words once transcribed.

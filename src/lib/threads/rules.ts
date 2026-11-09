@@ -90,3 +90,8 @@ export function threadsOf(momentId: string, data: ThreadsData): Thread[] {
     .map((m) => byId.get(m.thread_id))
     .filter((t): t is Thread => !!t);
 }
+
+/** Would taking one moment out of this thread leave it thin, so the thread ends (audit 5)? */
+export function removalDissolves(members: Member[], threadId: string): boolean {
+  return new Set(members.filter((m) => m.thread_id === threadId).map((m) => m.moment_id)).size <= MIN_MEMBERS;
+}

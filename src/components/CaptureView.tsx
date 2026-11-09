@@ -243,8 +243,6 @@ export function CaptureViewer(props: {
   autoPlay?: boolean;
   /** The owner's thread this viewer was opened from: Respond answers into it, and only here is its name said (OT3, OT11). */
   thread?: { id: string; name: string | null } | null;
-  /** The walk a reply belongs to when the viewer is opened during one ("Memories here"); else a reply is a moment of its own (OT1). */
-  respondWalkId?: string | null;
 }) {
   const insets = useSafeAreaInsets();
   const [index, setIndex] = useState(0);
@@ -262,6 +260,8 @@ export function CaptureViewer(props: {
   const [menu, setMenu] = useState(false);
   // Add to a thread (OT5): the picker is drawn inside this Modal.
   const [adding, setAdding] = useState<Capture | null>(null);
+  // The reply note being written, for the moment it answers: Back and Escape close it before the viewer (owner-threads audit 9).
+  const [composeFor, setComposeFor] = useState<string | null>(null);
   // Remind me here: the flags of the captures shown, read when the viewer opens.
   const [recalls, setRecalls] = useState<Map<string, Recall>>(() => new Map());
   const [reminding, setReminding] = useState<Capture | null>(null);
@@ -332,6 +332,7 @@ export function CaptureViewer(props: {
     setReminding(null);
     setDeleting(null);
     setAdding(null);
+    setComposeFor(null);
     setMenu(false);
     props.onClose();
   };
@@ -354,7 +355,7 @@ export function CaptureViewer(props: {
     <Modal
       visible={list.length > 0}
       animationType="fade"
-      onRequestClose={menu ? () => setMenu(false) : adding ? () => setAdding(null) : deleting ? () => setDeleting(null) : editing ? () => editor.current?.requestClose() : noting ? () => setNoting(null) : reminding ? () => setReminding(null) : close}
+      onRequestClose={menu ? () => setMenu(false) : composeFor ? () => setComposeFor(null) : adding ? () => setAdding(null) : deleting ? () => setDeleting(null) : editing ? () => editor.current?.requestClose() : noting ? () => setNoting(null) : reminding ? () => setReminding(null) : close}
     >
       <View style={styles.viewer}>
         {/* The baker draws behind everything; the cover hides it. */}
@@ -468,7 +469,7 @@ export function CaptureViewer(props: {
                 router.navigate('/chronicle');
               }}
             />
-            <RespondBar key={`respond:${current.id}`} answeredId={current.id} threadId={props.thread?.id ?? null} walkId={props.respondWalkId ?? null} top={insets.top + 116} />
+            <RespondBar answeredId={current.id} threadId={props.thread?.id ?? null} walkId={props.walkId ?? null} top={insets.top + 116} composeFor={composeFor} setComposeFor={setComposeFor} />
           </>
         )}
         {adding && (
