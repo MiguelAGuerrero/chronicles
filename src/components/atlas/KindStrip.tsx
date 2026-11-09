@@ -49,11 +49,11 @@ export function KindStrip(props: { steps: Steps | null; testID?: string }) {
 }
 
 /**
- * One kind on the area's card: icon, name, its word and its dots, at full ink even when none. Tapping the row opens the kind in
- * place (KW1), and so does its own button (KW15): a signpost and "Suggest a walk", a target of its own so nothing about the
- * row has to be guessed at.
+ * One kind on the area's card: icon, name, its word and its dots, at full ink even when none. Tapping the row opens the walk
+ * planner for the kind (WP1), and so does its own button (KW15): a signpost and "Suggest a walk", a target of its own so nothing
+ * about the row has to be guessed at.
  */
-export function KindRow(props: { kind: CategoryId; step: Step; testID?: string; open?: boolean; onPress?: () => void }) {
+export function KindRow(props: { kind: CategoryId; step: Step; testID?: string; onPress?: () => void }) {
   const { kind, step } = props;
   const body = (
     <>
@@ -69,7 +69,6 @@ export function KindRow(props: { kind: CategoryId; step: Step; testID?: string; 
       <Pressable
         style={[styles.kindRow, styles.kindPress]}
         accessibilityRole="button"
-        accessibilityState={{ expanded: !!props.open }}
         accessibilityLabel={`${ATLAS_LABEL[kind]}: ${STEP_WORDS[step]}`}
         onPress={props.onPress}
         testID={props.testID}
@@ -79,7 +78,6 @@ export function KindRow(props: { kind: CategoryId; step: Step; testID?: string; 
       <Pressable
         style={styles.walkBtn}
         accessibilityRole="button"
-        accessibilityState={{ expanded: !!props.open }}
         accessibilityLabel={`Suggest a walk through ${ATLAS_LABEL[kind].toLowerCase()}`}
         onPress={props.onPress}
         hitSlop={4}

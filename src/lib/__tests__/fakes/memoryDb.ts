@@ -11,12 +11,14 @@ import type { Mark, Place, Recall } from '../../discovery/types';
 import { exploredKey, type ChecklistArea, type ChecklistItem, type ExploreRead, type Find } from '../../explore/explore';
 import type { LandingRow } from '../../landing/view';
 import { parseEdit } from '../../mediaEdit';
+import { thinThreads } from '../../threads/rules';
+import type { Link, Member, Thread, ThreadsChange } from '../../threads/types';
 import type { Capture, GapDecision, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../../types';
 
 /** The `Db` methods that only read: left out of a fake's `effects()` log. */
 export const DB_READS = [
   'getWalk', 'listWalks', 'getOpenWalk', 'getPoints', 'getCaptures', 'capturesBetween', 'getCapturesByIds', 'capturesIn',
-  'getPauses', 'getStills', 'getGapDecisions',
+  'getPauses', 'getStills', 'getGapDecisions', 'listThreads',
   'listAreas', 'listWalkAreas', 'getSegmentsIn', 'getVisited', 'visitedSegmentIds', 'streetKeysBefore', 'listSummaries',
   'placesIn', 'listMarks', 'listRecalls', 'listLandings', 'listAtlasAreas', 'getOutlineTiles', 'getWalkTiles',
   'listChecklistAreas', 'checklistItemsIn', 'listExploreReads', 'listFinds', 'getMeta',
@@ -143,6 +145,28 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
   const finds = new Table<Find>((f) => f.key);
   const exploreReads = new Table<ExploreRead>((r) => r.key);
   const meta = new Table<{ key: string; value: string }>((m) => m.key);
+  const threads = new Table<Thread>((t) => t.id);
+  const members = new Table<Member>((m) => [m.thread_id, m.moment_id]);
+  const links = new Table<Link>((l) => [l.from_id, l.to_id]);
+  // A thread left with fewer than two members is gone with its memberships (OT15).
+  const dissolve = (ids: Iterable<string>) => {
+    for (const id of thinThreads(ids, members.all())) {
+      threads.delete(id);
+      members.dropWhere((m) => m.thread_id, id);
+    }
+  };
+  // The memberships and links of deleted moments go with them (OT16, OT17).
+  const dropMoments = (ids: string[]) => {
+    const gone = new Set(ids);
+    const affected = new Set<string>();
+    for (const m of members.all()) {
+      if (!gone.has(m.moment_id)) continue;
+      members.delete([m.thread_id, m.moment_id]);
+      affected.add(m.thread_id);
+    }
+    for (const l of links.all()) if (gone.has(l.from_id) || gone.has(l.to_id)) links.delete([l.from_id, l.to_id]);
+    dissolve(affected);
+  };
 
   const byT = <T extends { t: number }>(a: T, b: T) => a.t - b.t;
   const byStart = <T extends { started_at: number }>(a: T, b: T) => a.started_at - b.started_at;
@@ -209,6 +233,7 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
     },
 
     async deleteWalk(walkId) {
+      dropMoments(captures.where(walkOf, walkId).map((c) => c.id));
       for (const c of captures.where(walkOf, walkId)) {
         captures.delete(c.id);
         recalls.delete(c.id);
@@ -239,6 +264,7 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
         const c = captures.get(id);
         return c ? [c] : [];
       });
+      dropMoments(got.map((c) => c.id));
       for (const c of got) {
         captures.delete(c.id);
         recalls.delete(c.id);
@@ -257,6 +283,26 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
         const s = summaries.get(w);
         if (s) summaries.put({ ...s, ...countsOf(captures.where(walkOf, w)) });
       }
+    },
+
+    async listThreads() {
+      return { threads: out(threads.all()), members: out(members.all()), links: out(links.all()) };
+    },
+    async applyThreads(c: ThreadsChange) {
+      for (const t of c.putThreads ?? []) threads.put(t);
+      for (const m of c.putMembers ?? []) members.put(m);
+      for (const l of c.putLinks ?? []) links.put(l);
+      for (const id of c.deleteThreads ?? []) {
+        threads.delete(id);
+        members.dropWhere((m) => m.thread_id, id);
+      }
+      for (const d of c.deleteMembers ?? []) members.delete([d.thread_id, d.moment_id]);
+      for (const d of c.deleteLinks ?? []) links.delete([d.from_id, d.to_id]);
+      dissolve([
+        ...(c.putThreads ?? []).map((t) => t.id),
+        ...(c.putMembers ?? []).map((m) => m.thread_id),
+        ...(c.deleteMembers ?? []).map((m) => m.thread_id),
+      ]);
     },
 
     async startPause(walkId, at) {

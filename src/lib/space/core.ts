@@ -1,6 +1,6 @@
 // @layer core
 /**
- * Storage awareness (specs/storage-awareness, SA1-SA10, decision 0104): how much room is left, when to
+ * Storage awareness (specs/storage-awareness, SA1-SA10, decision 0107): how much room is left, when to
  * say so, and the words. Pure: the room is read by the probe and remembered by the shell.
  */
 

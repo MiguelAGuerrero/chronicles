@@ -71,13 +71,18 @@ recording bar brings a minimized walk back.
   and nightlife count every place. A ring with fewer than three mapped places
   says nothing about its kinds (atlas grading, decision 0084).
 - Rings are read by themselves while the tab is open, nearest first.
-- **A walk through a kind** (decision 0101, kind walk KW1-KW14): on an area's card, tapping a kind under "What's here" (Green,
-  History, ...) opens it in place with one suggested walk through where that kind is concentrated (the same 400 m cells as
-  the busy areas), moved onto streets. It says its length as a distance in the displayed unit, never a time, and whether it can
-  be walked the whole way (a stretch built around cars is named; "not known" when nothing could be read). Settings: about how
-  far (steps in km or miles, 2 km by default) and what to do about a stretch built around cars (say so, the default, or don't
-  suggest it). "Start this walk" opens the walk screen ready; the walk says distance only and is otherwise ordinary. It names
-  no place, so the "?" marks stay hidden until reached. Scenic routes (0095) are a separate feature on Go here; this walk skips their preview.
+- **A walk planner for a kind** (decision 0102, walk planner WP1-WP27): on an area's card, a kind that has something under "What's here"
+  (Green, History, ...) has a "Suggest a walk" button, which opens a page of its own over Explore. It plans up to three routes from where
+  you are, drawn on the map and listed as rows: through the middle of where the kind is, across the area, and around the edge. The first is selected when the page opens, as in Apple or Google Maps. Each says
+  only its own distance in the displayed unit, how much of the kind it passes and where ("plenty along much of the way", "mostly near the
+  end"), how much of it is only getting there, which other kinds it also passes (by kind, never by place), and whether it can be walked the whole way; a strip along each row and a shading of the
+  highlighted route show the same without a number. It never shows or names a place not yet found, so the "?" marks stay hidden until
+  reached; only places you have already found may be pinned. The settings are on the page: a loop (the default, back where you start)
+  or a one way, a distance as a hard ceiling (2 km by default; where the kind fills less ground the route is shorter, and the page
+  says so), how much of the kind a route must pass, and what to do about a stretch built around cars. "Suggest different routes"
+  replaces the three and keeps no history. Start plans again from where you are and either routes the walk you have open (capture is
+  on the page meanwhile) or starts one ready; it says distance only, never a time left. Scenic routes (0095) are a separate feature on
+  Go here.
 - **The small map moves in steps** (discrete navigation, decision 0092, an
   experiment): a swipe goes to the next area that way, never panning. It
   selects the next neighborhood (its ring, its name, its tile scrolled into
@@ -150,7 +155,7 @@ recording bar brings a minimized walk back.
   for each level (low under 500 MB, very low under 100 MB), with OK to dismiss; it never blocks a capture and
   never shows a number. A photo or video whose save fails is held with Retry ("Photo not saved"), and says why
   in words. On the web the app asks the browser once to keep its data, never mid-walk, and says once on
-  Navigate, ready if it was refused. There is no Storage screen (0041). Storage awareness, decision 0104.
+  Navigate, ready if it was refused. There is no Storage screen (0041). Storage awareness, decision 0107.
 - The bottom strip has time, distance, Pause, walk options and hold-to-stop.
   A status chip shows only when something is wrong (waiting for GPS, weak GPS,
   not recording) or on a ride. "Not recording" is a button: it says why, with
@@ -245,6 +250,17 @@ recording bar brings a minimized walk back.
   - **Show less like this** and **Not this one** (on the ... of the top card and
     of every card) change what is brought back, never what is kept; both have Undo.
   - Memos show here but join threads only once they have a transcript (not yet).
+- **Threads the owner makes** (decisions 0104, 0105): moments the owner connected, beside the
+  Chronicle's threads above it; both are "threads", told apart by an icon (a link for
+  the owner's, a repeat arrow for the Chronicle's), spoken as "connected by you" and "found for you". From a moment's menu, **Add to a thread** names a
+  thread or makes a new one with a second kept moment; **Respond** (photo, voice,
+  note, one tap each on the viewer's face) keeps a new moment linked to the one it
+  answers, in its thread. A thread reads oldest first, a reply under what it
+  answers; its size is a phrase ("a few moments, since March"), its name is the
+  owner's and optional. **Remove from this thread** and **Delete this thread**
+  (with Undo) never delete a moment; a thread left with fewer than two moments
+  dissolves. **Keep as my thread** copies a Chronicle thread. The viewer says "In a
+  thread" and names it only from the thread itself.
 - **Walks, Days and Map** are what Chronicle was before: the walks list, the days
   list with Replay this day, and the map with its stars. The map is mounted only
   there.
@@ -342,6 +358,7 @@ recording bar brings a minimized walk back.
 | Discrete navigation (Explore's map steps from area to area, DN1-DN13) | Shipped, audited, an experiment (web verified by the e2e; native unverified) |
 | Town presence (a town graded across its whole outline, with its busy areas listed) | Built (web verified by the e2e; native unverified) |
 | Resurfaced moments (Chronicle opens on Memories: a moment brought back, threads from the user's words, Lately) | Built (web verified by the e2e `resurface`; native unverified) |
+| Owner threads (respond to a moment; connect moments across walks; Threads on Memories) | Built (web verified by the e2e `threads`; native unverified) |
 | Moments and days, memories on revisit, thumbnails | Shipped, audited |
 | Rides, clearing walks and moments, motion polish | Shipped, audited |
 | Navigation and tabs (three-tab layout, recording bar) | Shipped, two audit batches done |

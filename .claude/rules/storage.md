@@ -16,7 +16,7 @@ SQLite (native) and IndexedDB (web) behind the shared `Db` interface, migrations
   tracked with `PRAGMA user_version`. Never edit an existing migration.
 - IndexedDB: bump `VERSION` and add an `oldVersion < N` step in `migrate()`. An
   unconditional `createObjectStore` aborts the upgrade.
-- **The room left** (storage awareness, SA1-SA10, decision 0104; `lib/space`): `core.ts` decides (levels
+- **The room left** (storage awareness, SA1-SA10, decision 0107; `lib/space`): `core.ts` decides (levels
   at 500 MB and 100 MB, the words, said once for each level, `isOutOfSpace`), `shell.ts` reads the probe and
   keeps meta `space_said` (the level said; cleared when the room is back) and `space_persist` (`due`,
   `refused`, `asked`); `index.ts` is the instance. Phones read `Paths.availableDiskSpace` (iOS: the plain

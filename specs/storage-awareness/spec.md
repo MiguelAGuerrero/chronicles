@@ -18,7 +18,7 @@ Criteria: SA1-SA10.
 Open: none for this slice (the owner, Nov 9: Expo first, the recommended defaults). Deferred: Apple's "important usage" capacity (a native module), caps on rebuildable caches.
 ```
 
-## Decisions (the owner's calls, Nov 9; decision 0104)
+## Decisions (the owner's calls, Nov 9; decision 0107)
 
 - **"Memory" is storage:** the phone's storage, or the browser's storage for the web app. Not the app's working memory.
 - **Expo first.** A phone reads its free space with expo-file-system's `Paths.availableDiskSpace`. No native module of our own: Apple's "available for important usage" capacity is deferred. On iOS the Expo figure leaves out what the system could purge, so it reads low, never high.

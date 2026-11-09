@@ -21,7 +21,7 @@ export interface Where {
 }
 
 /**
- * Storage awareness (SA1-SA10, decision 0104): reads the room left through the probe, decides with
+ * Storage awareness (SA1-SA10, decision 0107): reads the room left through the probe, decides with
  * `core`, keeps what was said in meta so a reload doesn't say it again, and holds the one line the
  * pills show. Calls run one at a time, so two looks at once never ask the browser twice.
  */

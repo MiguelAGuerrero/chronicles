@@ -17,7 +17,10 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - Scenic routes: a Sights row in a dense centre often says only "past places to find", since most places there are not yet found and never named (scenic routes, SR4)
 - Scenic routes: a start or destination that snaps onto a street piece not joined to the rest (seen once in the Zurich tiles) finds no route at all, direct or scenic; today's Go here has the same gap (scenic routes)
 - A complete walk through every point of interest in an area, which may double back: its own architecture, especially in dense areas such as Philadelphia or New York (decision 0102)
-- Kind walk (decision 0101): a sketch of the way in the panel; mixed-kind walks from the card's head; a walk built across a whole town outline (it is built from 1.5 km around the area's point); distance steps above 5 km or below 1 km. The rest of a suggested walk's choices (a leaning, a preview) are scenic routes' (0095)
+- Walk planner audit 18 (the owner's call): repeated "Suggest different routes" rotate the start among the eight densest cells, so enough presses cover them all, at the cells' resolution. Keep (it is the feature), or keep the first cells fixed?
+- Walk planner audit 16: when Start replaces a destination already set, a line says so; whether the old one should be restorable is the owner's call.
+- Walk planner audit 10: planning three routes (up to 6! orders per trial) has not been timed on a phone; the unit tests take seconds per scenario. Profile on a device, and move it off the JS thread if it blocks.
+- Walk planner (decision 0102): other kinds in the same route (the opened kind is pre-selected; the page is laid out for a chooser); a sketch of the strip as a profile; pins for places the map draws (only found places are pinned); another street between the same cells for "Suggest different routes" (it turns the way round a loop and rotates the start cell); a walk across a whole town outline (it is built from 1.5 km around the area's point)
 - Open in Maps on the Explore mark card (v0.5 navigate, Open in Maps)
 - Open in Maps on the dead-zone nudge (v0.5 navigate, Open in Maps)
 - Open in Maps on the home's Walk here (v0.5 navigate, Open in Maps)
@@ -336,9 +339,18 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **No line cap:** a very long name (60+ characters) wraps to many lines under its pin and can cover neighbouring pins. The owner asked for names not to be truncated, so no cap was added; a cap is the owner's call.
 - **Busy-street label shifts up when it wraps:** `StripLabel`'s marker is centre-anchored, so its first line moves about 8 px up per extra line. Cosmetic; check on a device.
 
+## Threads the owner makes (decision 0104)
+
+- **A loose moment has no place in words** (owner-threads audit 2): only a walk has an area name, so a reply or any moment made outside a walk shows its date in a thread, the picker and Lately, and a thread headed by one is headed by a date. Words for where a moment was need an area lookup for a single fix, a decision of its own.
+- **A reply's "answering" line in the walk, the day and the map** (owner-threads audit 1): it shows in Lately and in a thread; the replay, the day's timeline and the pins do not carry it.
+- **`applyThreads` does not check that a member's moment still exists** (owner-threads audit 7): the shell checks just before the write; a delete in that one round trip leaves a member row for a moment that is gone, which the screens ignore and the next `deleteCaptures` cannot clear. A check inside the transaction is the fix.
+- **A thread cannot be kept quiet from the resurfaced card** (OT23, the owner's call, Nov 6: it resurfaces like any moment, with no thread name). A per-thread "keep quiet" switch is the cheap way to add one if a thread turns out to be one the owner does not want brought back.
+- **A moment of a walk still open is not offered by the picker or listed in a thread** until the walk stops (`toMomentViews`), as in Lately (RM3).
+- **The moment picker lists the newest sixty matches** and searches only a moment's own words (notes, captions); memos have none until they are transcribed (0098).
+- **A place-rooted journal**: a thread with no moments, started top-down and rooted in a place. Out of the owner-made threads slice by the owner's call (a thread comes only from connecting moments that have their own time and place). It would be its own feature and goes through `/vision` first.
 - **A failed resume drops the paused reminder** (fix pause-banner audit 2, Nov 9): the error notice replaces the "Paused for N min" one, and `remindedFor` keeps it from coming back, so the walk stays paused with no banner. Predates the fix; low.
 
-## Storage awareness (SA1-SA10, decision 0104)
+## Storage awareness (SA1-SA10, decision 0107)
 
 - **Apple's "available for important usage" capacity**: it counts what iOS can purge for a user's save, so it reads closer to Settings than `Paths.availableDiskSpace` (the plain free size, which reads low). Needs a native module; the owner chose Expo first (Nov 9).
 - **Caps on the caches that can be rebuilt** (`walk_tile`, old builds' rows, remembered ward ids, above): the only "limit" the vision allows; the owner asked for limitations too, so this is next if the room keeps running low.

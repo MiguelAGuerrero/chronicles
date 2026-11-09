@@ -34,6 +34,8 @@ export function MomentCard(props: {
   onOpen: () => void;
   onWalk: (walkId: string) => void;
   onMore: () => void;
+  /** "answering Oct 20, ...": a reply says what it answers wherever it is listed (owner-threads audit 1). */
+  answering?: string | null;
 }) {
   const { moment: m, walk, now } = props;
   const from = fromLine(walk);
@@ -50,6 +52,7 @@ export function MomentCard(props: {
             </View>
           )}
           {m.words ? <Text style={[styles.words, styles.owner, m.kind === 'text' && styles.note]} numberOfLines={10}>{m.words}</Text> : null}
+          {props.answering ? <Text style={styles.meta} testID="moment-answering">{props.answering}</Text> : null}
           <Text style={styles.meta} numberOfLines={2} testID="moment-context">{contextText(props.context, m, now)}</Text>
         </View>
       </Pressable>

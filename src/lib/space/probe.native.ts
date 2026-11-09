@@ -4,7 +4,7 @@ import type { SpaceProbe } from './core';
 
 /**
  * A phone's room (SA1): expo-file-system's free space on the volume that holds the app's documents
- * (decision 0104, Expo first). On iOS it is the plain free size, which leaves out what the system could
+ * (decision 0107, Expo first). On iOS it is the plain free size, which leaves out what the system could
  * purge, so it reads low, never high. Nothing to ask: a phone's app storage is never cleared by a browser.
  */
 export const probe: SpaceProbe = {

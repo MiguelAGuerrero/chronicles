@@ -1,4 +1,4 @@
-# 0104. Storage awareness: the room left is said in words before it loses a moment; Expo first
+# 0107. Storage awareness: the room left is said in words before it loses a moment; Expo first
 
 Date: 2026-11-09 · Status: accepted · Area: storage, captures
 
