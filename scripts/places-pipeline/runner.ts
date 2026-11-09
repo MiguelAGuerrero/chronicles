@@ -47,6 +47,8 @@ export interface RunOptions {
   clock: Clock;
   newId: () => string;
   log?: (line: string) => void;
+  /** Runs of raw answers kept per source (PP15); default 3. */
+  keepRuns?: number;
 }
 
 export interface RunResult {
@@ -111,6 +113,7 @@ export async function run(o: RunOptions): Promise<RunResult> {
     }
     // PP1: a source that may not store its answers keeps none past the run; the rest keep theirs for their retention.
     o.store.prune(d.name, d.allowed.store ? d.allowed.retentionDays : 0, o.clock.now() + (d.allowed.store ? 0 : 1));
+    o.store.keepNewest(d.name, o.keepRuns ?? 3);
   }
 
   const sources: SourceInfo[] = o.adapters.map((a) => ({ name: a.declaration.name, code: a.declaration.code, role: a.declaration.role, licenseFamily: a.declaration.licenseFamily }));
