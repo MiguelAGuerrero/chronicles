@@ -129,8 +129,8 @@ type Notice = {
   tone?: 'info' | 'error';
   openSettings?: boolean;
   sticky?: boolean;
-  /** The paused reminder: it goes when the pause ends (fix pause-banner). */
-  forPause?: boolean;
+  /** The paused reminder: the `started_at` of its pause; it goes when that pause ends (fix pause-banner). */
+  forPause?: number;
   /** A route that couldn't be found offers the destination to the phone's maps app (NH5). */
   maps?: { at: LngLat; label: string };
 };
@@ -888,7 +888,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
       if (paused) {
         void askMotion();
         await resumeWalk(walk.id);
-        setNotice((n) => noticeShown(n, false)); // the paused reminder ends with the pause
+        setNotice((n) => noticeShown(n, null)); // the paused reminder ends with the pause
         AccessibilityInfo.announceForAccessibility('Walk resumed');
       } else {
         // A memo in progress is saved first; a paused walk records nothing.
@@ -999,12 +999,12 @@ function WalkScreen(props: { onMinimize: () => void }) {
     : null;
   // A forgotten pause loses the rest of the walk: after a while, say so once per pause.
   const openPause = pauses.find((p) => p.ended_at == null);
-  const notice = noticeShown(rawNotice, !!openPause);
+  const notice = noticeShown(rawNotice, openPause?.started_at ?? null);
   const remindedFor = useRef<number | null>(null);
   useEffect(() => {
     if (!openPause || remindedFor.current === openPause.started_at || now - openPause.started_at < PAUSE_REMIND_MS) return;
     remindedFor.current = openPause.started_at;
-    setNotice({ message: `Paused for ${formatDuration(now - openPause.started_at)}. Nothing is recorded until you resume.`, sticky: true, forPause: true });
+    setNotice({ message: `Paused for ${formatDuration(now - openPause.started_at)}. Nothing is recorded until you resume.`, sticky: true, forPause: openPause.started_at });
   }, [openPause, now]);
   const recordingVoice = cap.voiceStartedAt != null;
   // Keep or Not this way (G10): stored with the walk, and the line follows at once.
