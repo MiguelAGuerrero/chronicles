@@ -338,6 +338,7 @@ const UNTESTED = {
  */
 const IN_PROGRESS = {
   'places-out-of-town': { branch: 'claude/youthful-einstein-go1xie', since: '2026-11-09' },
+  'staged-places-build': { branch: 'claude/youthful-einstein-go1xie', since: '2026-11-09' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
