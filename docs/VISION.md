@@ -128,3 +128,4 @@ same argument is not had twice.
 | 0095 | Scenic routes: a row per leaning (green, sights, streets with life) beside Direct, kept over the page's "one way"; no minutes compared, the detour in words (reshaped at the gate, Nov 5) |
 | 0099 | The found tally is removed: a place's sheet names its finds and never counts them (answers open question 6, Nov 5) |
 | 0103 | A static places archive in the chronicles-data repo, read by tile; significance is a gate, never a measure; Curiosities are a kind of "Viewpoints & oddities"; reverses 0084's "no host" (reshaped at the gate, Nov 5) |
+| 0106 | Places out of town: kinds filter what you see, never what exists; one-of-a-kind businesses only by a structural signal, never ratings or popularity; "?" within 50 km in countless stars, named only on a tap, never listed or counted (reshaped at the gate, Nov 9) |
