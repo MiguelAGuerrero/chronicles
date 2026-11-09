@@ -90,7 +90,7 @@ Owner threads (decision 0104)
   threads/lines.ts           every sentence: size words from a fixed set, since March, answering, context, a heading
   threads/shell.ts           createThreads(ports, { schedule }): startThread, addToThread, removeFromThread, rename, deleteThread (Undo), reply, moments
   threads/index.ts           the app instance (the Undo window is `deletions`); useThreads.ts the view hook
-  threads/                   (components/) RespondBar, AddToThread, ThreadChip, MyThreads, OwnThreadScreen, ThreadMomentMenu, ThreadMark (the made/found icon, decision 0105)
+  threads/                   (components/) ReplyDock (the viewer's toolbar: Respond, Edit, the reply sheet), AddToThread, MyThreads, OwnThreadScreen, ThreadMomentMenu, ThreadMark (the made/found icon, decision 0105)
 Home / tabs
   HomeSheet.tsx              the three-height bottom sheet (Animated + responders), Walks | Days, a place's walks, a day's timeline
   StarView.tsx               a star for a place; all one size; the 8 busiest carry names

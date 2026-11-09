@@ -452,7 +452,7 @@ async function run(h) {
     };
     await qstep('qol QL24, QL25', async () => {
       await openNote();
-      await pg.click('[data-testid=viewer-more]');
+      // Edit is in the viewer's toolbar (decision 0108).
       const item = pg.locator('[data-testid=viewer-edit-note]');
       await item.waitFor({ timeout: 5000 });
       await item.click();

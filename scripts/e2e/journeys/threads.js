@@ -53,6 +53,15 @@ async function run(h) {
     await pg.locator(`[data-testid=moment-card]:has-text("${text}") [data-testid=moment-open]`).first().click();
     await pg.waitForSelector('[data-testid=viewer-close]', { timeout: 10000 });
   };
+  const meta = async () => (await pg.locator('[data-testid=capture-meta]').first().innerText()).replace(/[^\x20-\x7e]/g, '').trim();
+  const replyNote = async (text) => {
+    await pg.click('[data-testid=viewer-respond]');
+    await pg.waitForSelector('[data-testid=respond-sheet]');
+    await pg.click('[data-testid=respond-note]');
+    await pg.waitForSelector('[data-testid=note-edit-input]');
+    await pg.fill('[data-testid=note-edit-input]', text);
+    await pg.click('[data-testid=note-edit-save]');
+  };
   const closeViewer = async () => {
     await pg.click('[data-testid=viewer-close]');
     await gone('[data-testid=viewer-close]');
@@ -93,37 +102,47 @@ async function run(h) {
   // OT11: the viewer says "in a thread", without the thread's name.
   await closeViewer();
   await openCard('looked strong at the pier');
-  const chip1 = (await pg.locator('[data-testid=viewer-in-thread]').innerText()).replace(/[^\x20-\x7e]/g, '').trim();
-  check(chip1 === 'In a thread', `OT11: the viewer says "In a thread" and no name (${chip1})`);
+  const line1 = await meta();
+  check(/In a thread$/.test(line1) && !/In a thread:/.test(line1), `OT11: the info line says "In a thread" and no name (${line1})`);
 
   // OT1, OT11, OT27 (decision 0108): the viewer's actions are a docked toolbar and a menu, nothing over the moment.
   const overMoment = () => pg.evaluate(() => {
     const card = document.querySelector('[data-testid=capture-card], [data-testid=edited-photo]');
     if (!card) return null;
     const c = card.getBoundingClientRect();
-    return [...document.querySelectorAll('[role=button]')].filter((b) => {
+    // Only the viewer's own buttons: the screen under its Modal is not on screen.
+    const root = card.closest('[aria-modal=true], [role=dialog]') || document;
+    return [...root.querySelectorAll('[role=button]')].filter((b) => {
       const r = b.getBoundingClientRect();
       if (!r.width || !r.height || b.closest('[aria-hidden=true]') || card.contains(b)) return false;
       return r.left < c.right && r.right > c.left && r.top < c.bottom && r.bottom > c.top;
     }).map((b) => b.getAttribute('aria-label') || b.textContent);
   });
-  check.todo((await has('[data-testid=viewer-toolbar] [data-testid=viewer-respond]')) && !(await has('[data-testid=respond-sheet]')) && !(await has('[data-testid=respond-bar]')),
+  check((await has('[data-testid=viewer-toolbar] [data-testid=viewer-respond]')) && !(await has('[data-testid=respond-sheet]')) && !(await has('[data-testid=respond-bar]')),
     'OT1: Respond sits in the toolbar docked under the moment, and no row of kinds is on its face');
   const over = await overMoment();
-  check.todo(Array.isArray(over) && over.length === 0, `OT27: no button sits over the moment (${JSON.stringify(over)})`);
-  check.todo((await pg.locator('[data-testid=viewer-in-thread]').count()) === 0 && /In a thread/.test(await pg.locator('[data-testid=capture-meta]').first().innerText().catch(() => '')),
+  check(Array.isArray(over) && over.length === 0, `OT27: no button sits over the moment (${JSON.stringify(over)})`);
+  check((await pg.locator('[data-testid=viewer-in-thread]').count()) === 0 && /In a thread/.test(await pg.locator('[data-testid=capture-meta]').first().innerText().catch(() => '')),
     'OT11: "In a thread" is said in the moment\'s info line, not as a chip over it');
 
-  // OT1: Respond is on the viewer's face, three kinds, one tap each, none behind a menu.
-  const faceKinds = await Promise.all(['respond-photo', 'respond-voice', 'respond-note'].map((id) => has(`[data-testid=${id}]`)));
-  check(faceKinds.every(Boolean) && !(await has('[data-testid=viewer-menu]')), 'OT1: Respond shows photo, voice and note on the viewer\'s face, with no menu open');
-  check((await has('[data-testid=viewer-edit-note]')) === false, 'OT22: the viewer\'s own menu items wait in More, as before');
+  // OT1: Respond opens an action sheet of kinds, and Cancel leaves the viewer as it was.
+  await pg.click('[data-testid=viewer-respond]');
+  const kinds = await Promise.all(['respond-photo', 'respond-voice', 'respond-note', 'respond-cancel'].map((id) => has(`[data-testid=respond-sheet] [data-testid=${id}]`)));
+  check(kinds.every(Boolean), 'OT1: Respond opens an action sheet: Photo or video, Voice memo, Note, Cancel');
+  await pg.click('[data-testid=respond-cancel]');
+  check(!(await has('[data-testid=respond-sheet]')) && (await has('[data-testid=viewer-respond]')), 'OT1: Cancel closes the sheet and leaves the viewer');
+  // OT22: Edit is the toolbar's; Save, Open in Maps, Add to a thread and Delete wait in More.
+  check((await has('[data-testid=viewer-toolbar] [data-testid=viewer-edit-note]')) && !(await has('[data-testid=viewer-delete]')), 'OT22: Edit is in the toolbar; Delete and the rest wait in More');
+  const toolbarBox = await pg.locator('[data-testid=viewer-toolbar]').boundingBox();
+  const respondBox = await pg.locator('[data-testid=viewer-respond]').boundingBox();
+  const editBox = await pg.locator('[data-testid=viewer-edit-note]').boundingBox();
+  check(toolbarBox && respondBox && editBox && Math.abs(respondBox.y - editBox.y) < 2 && respondBox.height >= 44, 'OT27: the toolbar\'s actions sit on one row, 44 px tall');
+  await pg.waitForTimeout(800);
+  await shot(pg, '73-viewer-toolbar');
 
   // OT2, OT4: a note reply is kept as a moment of its own, linked to what it answers, in its thread.
-  await pg.click('[data-testid=respond-note]');
-  await pg.fill('[data-testid=respond-note-input]', 'Same again today, at the same pier.');
-  await pg.click('[data-testid=respond-note-save]');
-  check(await there('[data-testid=respond-message]'), 'OT1: a reply is kept (Reply kept)');
+  await replyNote('Same again today, at the same pier.');
+  check(await there('text=Reply kept'), 'OT1: a reply is kept (Reply kept)');
   await pg.waitForTimeout(800);
   db = await stored(pg);
   const reply = db.captures.find((x) => x.body === 'Same again today, at the same pier.');
@@ -163,12 +182,10 @@ async function run(h) {
   // OT11, OT3: opened from the thread, the viewer names it and a reply goes into it.
   await pg.locator('[data-testid=own-thread] [data-testid=moment-card]:has-text("bakery") [data-testid=moment-open]').click();
   await pg.waitForSelector('[data-testid=viewer-close]');
-  const chip2 = (await pg.locator('[data-testid=viewer-in-thread]').innerText()).replace(/[^\x20-\x7e]/g, '').trim();
-  check(chip2 === 'In a thread: Compliments', `OT11, OT3: opened from its thread, the viewer names the thread (${chip2})`);
-  await pg.click('[data-testid=respond-note]');
-  await pg.fill('[data-testid=respond-note-input]', 'And a third, on the bridge.');
-  await pg.click('[data-testid=respond-note-save]');
-  await there('[data-testid=respond-message]');
+  const line2 = await meta();
+  check(/In a thread: Compliments$/.test(line2), `OT11, OT3: opened from its thread, the info line names the thread (${line2})`);
+  await replyNote('And a third, on the bridge.');
+  await there('text=Reply kept');
   await pg.waitForTimeout(800);
   db = await stored(pg);
   check(db.threads.length === 1 && db.members.filter((m) => m.thread_id === db.threads[0].id).length === 4, 'OT3: the reply made from the thread joined that thread');
@@ -176,13 +193,14 @@ async function run(h) {
 
   // owner-threads audit 9: the note being written closes on its own, not the viewer.
   await pg.locator('[data-testid=own-thread] [data-testid=moment-card]:has-text("pier") [data-testid=moment-open]').first().click();
-  await pg.waitForSelector('[data-testid=respond-note]');
+  await pg.waitForSelector('[data-testid=viewer-respond]');
+  await pg.click('[data-testid=viewer-respond]');
   await pg.click('[data-testid=respond-note]');
-  await pg.fill('[data-testid=respond-note-input]', 'half a thought');
+  await pg.fill('[data-testid=note-edit-input]', 'half a thought');
   // The web's viewer takes no Escape; native's Back goes through the same composeFor first (NATIVE_UNVERIFIED).
-  await pg.click('[data-testid=respond-note-cancel]');
+  await pg.locator('[data-testid=note-editor] >> text=Cancel').click();
   await pg.waitForTimeout(300);
-  check(!(await has('[data-testid=respond-note-input]')) && (await has('[data-testid=viewer-close]')) && (await has('[data-testid=respond-note]')), 'owner-threads audit 9: Cancel closes the note being written, leaves the viewer open and Respond ready');
+  check(!(await has('[data-testid=note-edit-input]')) && (await has('[data-testid=viewer-close]')) && (await has('[data-testid=viewer-respond]')), 'owner-threads audit 9: Cancel closes the note being written, leaves the viewer open and Respond ready');
   await closeViewer();
 
   // OT8: Remove from this thread keeps the moment.

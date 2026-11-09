@@ -15,7 +15,11 @@ regression test for each accepted finding before its fix.
 - the spec: `specs/<slug>/spec.md` (criteria and the decisions list);
 - the rule file(s): `.claude/rules/<area>.md` whose `paths:` cover the slice;
 - the changed files: `git diff --name-only <base>..HEAD` for the slice's
-  commits, or the plan's file list (`specs/<slug>/plan.md`).
+  commits, or the plan's file list (`specs/<slug>/plan.md`);
+- **the screens as a person sees them** (decision 0108): run each journey
+  `check:affected` names with `E2E_SHOTS=<scratchpad>/shots` (390 x 844), so
+  every changed screen state is a PNG. A changed screen with no `shot()` in its
+  journey gets one first (after the Modal's fade). List the pictures by screen.
 
 ## 2. Spawn the auditor
 
@@ -25,14 +29,17 @@ Give it the three inputs above and ask for a report-only pass that:
 - tries to break the slice with concrete failure scenarios (inputs, the wrong
   output, the file and function), each with a severity;
 - reviews the UI/UX against the spec and the product's restraint (counts are
-  words, nothing is a score, no celebration);
+  words, nothing is a score, no celebration), **by opening every picture** and
+  judging it against `.claude/rules/ui-patterns.md` (controls over content,
+  wrapped rows, more than one primary action, actions outside a bar, a menu or
+  a sheet); a UI finding names its picture;
 - flags every native code path the slice touches that has not run on a device.
 
 It may run `npm test` and single test files; it edits nothing. Wait for its
 report before going on.
 
 Beside it, run the `steward` subagent (`.claude/agents/steward.md`) with the spec,
-its "## Vision" section and the changed screens: does the built thing still pass
+its "## Vision" section, the changed screens and their pictures: does the built thing still pass
 the gate it was given (decision 0094)? Its findings are triaged with the
 auditor's, numbered on after them.
 

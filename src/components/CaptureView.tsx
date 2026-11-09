@@ -31,8 +31,10 @@ import { router } from 'expo-router';
 import { chronicleSection } from '../lib/resurface/sectionStore';
 import { threads } from '../lib/threads';
 import { AddToThread } from './threads/AddToThread';
-import { RespondBar } from './threads/RespondBar';
-import { ThreadChip } from './threads/ThreadChip';
+import { ReplyDock, DOCK_H, type ReplyStage } from './threads/ReplyDock';
+import { IN_A_THREAD } from '../lib/threads/lines';
+import { threadsOf } from '../lib/threads/rules';
+import { useThreads } from '../lib/threads/useThreads';
 import { Icon, KIND_LABEL } from './icons';
 import { theme } from './ui';
 
@@ -122,6 +124,8 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
   nav?: { onPrev?: () => void; onNext?: () => void };
   /** A primary action (the replay's Continue), within thumb reach. The ref is the action's. */
   action?: { label: string; hint?: string; onPress: () => void; testID?: string };
+  /** Room left clear at the bottom for the viewer's docked toolbar, so nothing sits over the moment (OT27). */
+  dock?: number;
 }>(function CaptureContent(props, actionRef) {
   const { capture } = props;
   const insets = useSafeAreaInsets();
@@ -171,7 +175,8 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
       // reusing its views would leave the media area unmeasured on web.
       <View key="media" style={[StyleSheet.absoluteFill, styles.mediaScreen]} pointerEvents="box-none">
         <View
-          style={styles.mediaArea}
+          // In the viewer (docked), the picture starts under the top bar, so no button sits on it (OT27).
+          style={[styles.mediaArea, props.dock ? { marginTop: (props.topInset ?? 0) + TOP_BAR_H } : null]}
           onLayout={(e) => setBox(e.nativeEvent.layout)}
           // A photo lets taps through (the replay moves on with one); a video
           // keeps its controls. Set on the photo, not this view: on web a view
@@ -183,9 +188,9 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
             <EditedVideo uri={uri!} edit={capture.edit ?? null} caption={capture.caption} captionY={capture.caption_y} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} />
           )}
         </View>
-        <View style={[styles.strip, { paddingBottom: insets.bottom + 10 }]}>
+        <View style={[styles.strip, { paddingBottom: (props.dock ? props.dock : 0) + insets.bottom + 10 }]}>
           <View style={styles.stripInner}>
-            <Text style={styles.stripMeta} numberOfLines={2}>{meta}</Text>
+            <Text style={styles.stripMeta} numberOfLines={2} testID="capture-meta">{meta}</Text>
             {actions(true)}
           </View>
         </View>
@@ -195,15 +200,15 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
 
   return (
     <View key="card" style={StyleSheet.absoluteFill} pointerEvents="box-none">
-      <View style={[styles.cardRow, { bottom: insets.bottom + 16 }]} pointerEvents="box-none">
-        <View style={styles.card}>
+      <View style={[styles.cardRow, { bottom: (props.dock ?? 0) + insets.bottom + 16 }]} pointerEvents="box-none">
+        <View style={styles.card} testID="capture-card">
           {capture.kind === 'text' && <Text style={styles.note}>{capture.body}</Text>}
           {capture.kind === 'voice' && uri && (
             <VoicePlayer uri={uri} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} durationMs={Number(capture.body) || 0} />
           )}
           {capture.kind !== 'text' && !uri && <Text style={styles.note}>{KIND_LABEL[capture.kind]}</Text>}
           <View style={styles.metaRow}>
-            <Text style={[styles.meta, styles.metaText]}>{meta}</Text>
+            <Text style={[styles.meta, styles.metaText]} testID="capture-meta">{meta}</Text>
             {actions(false)}
           </View>
         </View>
@@ -260,8 +265,10 @@ export function CaptureViewer(props: {
   const [menu, setMenu] = useState(false);
   // Add to a thread (OT5): the picker is drawn inside this Modal.
   const [adding, setAdding] = useState<Capture | null>(null);
-  // The reply note being written, for the moment it answers: Back and Escape close it before the viewer (owner-threads audit 9).
-  const [composeFor, setComposeFor] = useState<string | null>(null);
+  // Respond's sheet or its note, open: Back closes it before the viewer (owner-threads audit 9).
+  const [replyStage, setReplyStage] = useState<ReplyStage>(null);
+  // The owner's threads, so the info line can say a moment is in one (OT11).
+  const { data: owned } = useThreads();
   // Remind me here: the flags of the captures shown, read when the viewer opens.
   const [recalls, setRecalls] = useState<Map<string, Recall>>(() => new Map());
   const [reminding, setReminding] = useState<Capture | null>(null);
@@ -332,7 +339,7 @@ export function CaptureViewer(props: {
     setReminding(null);
     setDeleting(null);
     setAdding(null);
-    setComposeFor(null);
+    setReplyStage(null);
     setMenu(false);
     props.onClose();
   };
@@ -351,11 +358,31 @@ export function CaptureViewer(props: {
     if (last) close();
   };
   const busy = !!saveState?.busy;
+  // The toolbar is docked while the moment shows on its own; an editor or a picker takes the screen (OT1, OT27).
+  const docked = !!current && !editing && !noting && !reminding && !adding;
+  const mine = current ? threadsOf(current.id, owned) : [];
+  const here = props.thread ? mine.find((t) => t.id === props.thread!.id) : undefined;
+  const inThreadWords = here?.name ? `${IN_A_THREAD}: ${here.name}` : IN_A_THREAD;
+  const inThread = mine.length ? inThreadWords[0].toUpperCase() + inThreadWords.slice(1) : null;
+  const openThread = (id: string) => {
+    close();
+    // Already on that thread's screen: closing the viewer is opening it.
+    if (props.thread?.id === id) return;
+    threads.requestOpen(id);
+    chronicleSection.set('memories');
+    router.navigate('/chronicle');
+  };
+  const editAction =
+    current && (current.kind === 'photo' || current.kind === 'video') && props.onSaveEdit
+      ? { label: 'Edit', testID: 'viewer-edit', onPress: () => setEditing(current) }
+      : current && current.kind === 'text' && props.onSaveNote
+        ? { label: 'Edit', testID: 'viewer-edit-note', onPress: () => setNoting(current) }
+        : null;
   return (
     <Modal
       visible={list.length > 0}
       animationType="fade"
-      onRequestClose={menu ? () => setMenu(false) : composeFor ? () => setComposeFor(null) : adding ? () => setAdding(null) : deleting ? () => setDeleting(null) : editing ? () => editor.current?.requestClose() : noting ? () => setNoting(null) : reminding ? () => setReminding(null) : close}
+      onRequestClose={menu ? () => setMenu(false) : replyStage ? () => setReplyStage(null) : adding ? () => setAdding(null) : deleting ? () => setDeleting(null) : editing ? () => editor.current?.requestClose() : noting ? () => setNoting(null) : reminding ? () => setReminding(null) : close}
     >
       <View style={styles.viewer}>
         {/* The baker draws behind everything; the cover hides it. */}
@@ -368,7 +395,8 @@ export function CaptureViewer(props: {
             capture={current}
             autoPlay={props.autoPlay}
             topInset={insets.top}
-            footer={[props.context?.get(current.id), list.length > 1 ? `${i + 1} of ${list.length}` : null].filter(Boolean).join(' · ') || undefined}
+            dock={docked ? DOCK_H : 0}
+            footer={[props.context?.get(current.id), list.length > 1 ? `${i + 1} of ${list.length}` : null, inThread].filter(Boolean).join(' · ') || undefined}
             nav={
               list.length > 1
                 ? { onPrev: i > 0 ? () => setIndex(i - 1) : undefined, onNext: i < list.length - 1 ? () => setIndex(i + 1) : undefined }
@@ -395,18 +423,6 @@ export function CaptureViewer(props: {
               </View>
             ) : null}
           </View>
-          {(current?.kind === 'photo' || current?.kind === 'video') && props.onSaveEdit && (
-            <Pressable
-              testID="viewer-edit"
-              accessibilityRole="button"
-              accessibilityLabel="Edit"
-              onPress={() => setEditing(current)}
-              style={styles.roundBtn}
-              hitSlop={8}
-            >
-              <Icon name="options" size={22} color={theme.ink} />
-            </Pressable>
-          )}
           {current && current.lat != null && props.remind && (
             <Pressable
               testID="viewer-remind"
@@ -453,24 +469,17 @@ export function CaptureViewer(props: {
             <Icon name="close" size={26} color={theme.ink} />
           </Pressable>
         </View>
-        {current && !editing && !noting && !reminding && !adding && (
-          <>
-            <ThreadChip
-              key={`chip:${current.id}`}
-              momentId={current.id}
-              top={insets.top + 68}
-              from={props.thread}
-              onOpen={(id) => {
-                close();
-                // Already on that thread's screen: closing the viewer is opening it.
-                if (props.thread?.id === id) return;
-                threads.requestOpen(id);
-                chronicleSection.set('memories');
-                router.navigate('/chronicle');
-              }}
-            />
-            <RespondBar answeredId={current.id} threadId={props.thread?.id ?? null} walkId={props.walkId ?? null} top={insets.top + 116} composeFor={composeFor} setComposeFor={setComposeFor} />
-          </>
+        {docked && current && (
+          <ReplyDock
+            answeredId={current.id}
+            threadId={props.thread?.id ?? null}
+            walkId={props.walkId ?? null}
+            bottomInset={insets.bottom}
+            stage={replyStage}
+            setStage={setReplyStage}
+            say={(text) => setSaveState({ id: current.id, text })}
+            edit={editAction}
+          />
         )}
         {adding && (
           <AddToThread
@@ -597,18 +606,18 @@ export function CaptureViewer(props: {
                   <Text style={styles.menuText}>Open in Maps</Text>
                 </Pressable>
               )}
-              {current.kind === 'text' && props.onSaveNote && (
+              {mine.length > 0 && (
                 <Pressable
-                  testID="viewer-edit-note"
+                  testID="viewer-open-thread"
                   accessibilityRole="button"
                   onPress={() => {
                     setMenu(false);
-                    setNoting(current);
+                    openThread((here ?? mine[0]).id);
                   }}
                   style={({ pressed }) => [styles.menuItem, pressed && styles.dim]}
                 >
-                  <Icon name="create-outline" size={22} color={theme.ink} />
-                  <Text style={styles.menuText}>Edit note</Text>
+                  <Icon name="link" size={22} color={theme.ink} />
+                  <Text style={styles.menuText}>Open its thread</Text>
                 </Pressable>
               )}
               <Pressable
@@ -644,6 +653,9 @@ export function CaptureViewer(props: {
     </Modal>
   );
 }
+
+/** The viewer's top bar: its 48 px buttons at 8 px from the safe area, and room under them. */
+const TOP_BAR_H = 64;
 
 const styles = StyleSheet.create({
   // A full-width row centers the card on any screen width.

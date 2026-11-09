@@ -10,7 +10,7 @@ import { Button, theme } from './ui';
  * Delete). Drawn inside the viewer's Modal, never as a second one (iOS can't
  * present a Modal over a Modal).
  */
-export function NoteEditor(props: { body: string; onSave: (body: string) => void; onClose: () => void }) {
+export function NoteEditor(props: { body: string; onSave: (body: string) => void; onClose: () => void; title?: string }) {
   const insets = useSafeAreaInsets();
   const [text, setText] = useState(props.body);
   const kept = noteText(text);
@@ -23,7 +23,7 @@ export function NoteEditor(props: { body: string; onSave: (body: string) => void
       style={[StyleSheet.absoluteFill, styles.back, { paddingTop: insets.top + 56 }]}
     >
       <View testID="note-editor" style={styles.card} accessibilityViewIsModal>
-        <Text style={styles.title} accessibilityRole="header">Edit note</Text>
+        <Text style={styles.title} accessibilityRole="header">{props.title ?? 'Edit note'}</Text>
         <TextInput
           testID="note-edit-input"
           autoFocus

@@ -124,3 +124,11 @@ Built on `claude/owner-threads-decision`; not audited (decision 0074). Tests fir
 
 OT12 amended and OT25, OT26 added at the owner's word: "thread" for both kinds, an icon to tell them apart, an unnamed heading free to change and be renamed. Built as `ThreadMark` (a link for the owner's, a repeat arrow for the Chronicle's, in ink, with a spoken name); the choice of an icon over a colour is the build's, for restraint and screen readers. Unit test `OT26` (`threads/core.test.ts`); journey checks OT12 and OT25 (`threads`). Native: the marks' spoken names are on the device list.
 
+## Round 3 (Nov 9, decision 0108)
+
+The owner saw Respond on a phone: a row of buttons floating over the photo, wrapping onto two lines. "This UI is atrocious." The viewer now follows the standard photo-viewer pattern: a top bar (Close, More, and the existing Remind and Go here), a toolbar docked under the moment (Respond, Edit), and the More menu (Add to a thread, Open its thread, Save, Open in Maps, Delete). Respond opens an action sheet; a note reply uses the note editor titled Reply. "In a thread" is a phrase in the info line. A photo or video starts under the top bar, so nothing sits over it. OT1, OT3 and OT11 amended; OT27 added; tests first (`Viewer toolbar: tests first`), then the code. Checked by the `threads` journey (the action sheet, the dock on one row, no button over the note's card) and the `edit` journey (the photo between the top bar and the dock), and by looking at both screens at 390 x 844 (`73-viewer-toolbar`, `45-photo-viewer`).
+
+The steward's S1 (Respond one tap from the face) is overruled by the owner: a reply is an action on a moment that exists, not the capture stack. Guardrails added: `.claude/rules/ui-patterns.md` and a screenshot review in `/audit` (the auditor and the steward open the pictures).
+
+Left for the owner: the top bar still carries four round buttons (Remind, Go here, More, Close) on a photo. The patterns page says at most two actions and More; moving Remind and Go here into More is a change to Remind me here (R) and Go here (NH) and was not made here.
+

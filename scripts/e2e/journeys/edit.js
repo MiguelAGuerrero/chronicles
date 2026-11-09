@@ -256,6 +256,13 @@ async function run(h) {
       const size = await pg.locator('[data-testid=edited-photo]').getAttribute('data-size');
       const [w, h] = size.split('x').map(Number);
       check(Math.abs(w - h) <= 1 && (await pg.locator('[aria-label="Caption: Corner shop"]').count()) === 1, `ME4: the viewer shows the edited photo (square ${size}) and its caption`);
+      // The photo viewer as a person sees it: the moment clear, Respond and Edit docked under it (decision 0108).
+      await pg.waitForTimeout(800);
+      await shot(pg, '45-photo-viewer');
+      const photoBox = await pg.locator('[data-testid=edited-photo]').boundingBox();
+      const topBtns = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=viewer-close], [data-testid=viewer-more]')].map((b) => b.getBoundingClientRect().bottom));
+      const dockBox = await pg.locator('[data-testid=viewer-toolbar]').boundingBox();
+      check(photoBox && dockBox && topBtns.every((b) => b <= photoBox.y + 1) && photoBox.y + photoBox.height <= dockBox.y + 1, 'owner-threads OT27: the photo sits between the top bar and the docked toolbar, under no button');
       await pg.click('[data-testid=viewer-edit]');
       await pg.waitForSelector('[data-testid=media-editor]', { timeout: 10000 });
       check((await stage()).filter === 'mono', 'ME3: the editor opens on the current edits');
