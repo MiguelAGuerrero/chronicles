@@ -323,3 +323,7 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 ## Wrapped map names (fix long-names)
 
 - [ ] **Do:** on a phone, find a mark, a star and an Explore area point with a name over 20 characters (e.g. "Lopes International Park and gardens"), and a busy-street name that long. **Expect:** each name wraps onto further lines at 140/160 pt, centred, with no "…"; lines 2 and up are not clipped by the marker's box on iOS or Android; the pin stays on its point; a wrapped busy-street label stays near its street.
+
+## Captures while paused (fix paused-pins)
+
+- [ ] **Do:** on a phone, start a walk, pause it, walk two streets, take a photo and a note, then resume and stop. **Expect:** each moment sits where you took it (a pin on the walk map within a few seconds, and on the replay), not where the pause began. With location refused, the moment sits where the pause began.
