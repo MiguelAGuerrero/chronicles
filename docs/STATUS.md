@@ -29,7 +29,7 @@ what the app is, read `docs/PRODUCT.md`; for the decisions behind it, `AGENTS.md
 | Moments and days | shipped | `03e801d` 2026-11-01; `1b4853e` 2026-11-02 day replay fix | `specs/moments-and-days/spec.md` | yes ("After the audit" in AGENTS.md; `9187b3c`) |
 | Navigation & tabs (three tabs, drawer, minimize, recording bar; the Start dialog) | shipped | `6fe5a2a` 2026-11-01 phase 1; `2cc38d7` 2026-11-02 audit; `d3b9770` 2026-11-03; the settings dialog `6fb2572`, `9f547bd` 2026-11-03; opens on Explore (NV2, 0070) 2026-11-03; an open walk at launch comes straight up, no Explore first (NV2 launch 1-5) 2026-11-03 | `specs/navigation-and-tabs/spec.md` | yes, two batches (`2cc38d7`, `a3bdc45`..`0a79e05`) |
 | Clearing walks and moments | shipped | `b2bfcf7` 2026-11-01 audit fixes; `e59d65f` 2026-11-01 | `specs/clearing-walks-and-moments/spec.md` | yes (13 findings, 8 fixed, `b2bfcf7`) |
-| Places worth the stop | queued (no commit on main mentions it) | none | `specs/places-worth-the-stop/spec.md` | no |
+| Places worth the stop | on main, not live: PW16 (the archive's address) waits on the first published archive; the weekly build in chronicles-data reads main and has not run since the merge | `339caf7` 2026-11-09 (PW1-PW19, audit 1-7) | `specs/places-worth-the-stop/spec.md` | yes (10 findings: 7 fixed, the rest deferred) |
 | Places out of town (rural and roadside places as "?" within 50 km, countless stars, an "Other places" switch, more sources and Canada; decision 0106) | queued after Places worth the stop goes live (PW16); gated aligned if reshaped, Nov 9 | none | none yet (the gate's criteria are in decisions 0106-0108) | no |
 | Motion (steps from the phone's sensors, MO1-MO10) | shipped | `09f504a` 2026-11-01; `8edc09b` 2026-11-01 audit fixes; `93ef082` 2026-11-01 | `specs/motion/spec.md` | yes (11 findings, 9 fixed, `8edc09b`) |
 | Quality of life | shipped in rounds: QL1-QL12 (markers, scale bar, Locate), QL13-QL21 (km or miles, time left, the denied-location chip and retry), QL22-QL28 (rename later, edit a note, photos on pins, months in the walks list); round 4 waits on the owner's calls (decisions 0063-0065) | round 1 `dc8f249`..`7a34666`; round 2 `1910a2d`, `c7539b1`; round 3 `48adb36`, `3a721ed`, `cdf2961`, `2799fa9`; all 2026-11-03 (branch `docs/product-synopsis`) | `specs/quality-of-life/spec.md` | no (the owner chose checkpoints per feature over an audit pass; an audit is still owed) |
@@ -84,6 +84,7 @@ first.
 
 | Branch | Last commit | Ahead | Merged | Holds | Disposition |
 |---|---|---|---|---|---|
+| `claude/places-archive` | 2026-11-09 | 0 | yes | Places worth the stop (PW1-PW19) and its audit fixes | merged (`339caf7`) |
 | `claude/bridges-open-in-maps` | 2026-11-03 | 3 | no | the first copy of Bridges and Open in Maps; main took the `-rebased` copy | superseded by `-rebased` (one commit not patch-identical; its content reached main reworked) |
 | `claude/bridges-open-in-maps-rebased` | 2026-11-03 | 0 | yes | Bridges and Open in Maps as merged | merged |
 | `claude/clear-storage` | 2026-11-01 | 0 | yes | Clearing walks and moments (D1-D11) with its audit fixes | merged |
@@ -154,7 +155,6 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 
 | Session | Branch | Doing |
 |---|---|---|
-| Places worth the stop (curiosities and the places archive, PW1-PW19, decision 0103) | `claude/places-archive` | built 2026-11-06: PW1-PW19 tested (1399 unit tests with main's; journeys curiosities, marks, atlas); audited (10 findings: 7 fixed, the rest deferred). Its tests came with the code; on Nov 9 the owner had the branch rebuilt from `claude/places-archive-decision` with the todos committed first, so the history's test-first order was made after the code was written. Not live until PW16 sets the address; native unverified |
 | Bug fixes (open since Oct 31) | unknown | unknown |
 | Memories in context and under your control (MC1-MC16: place, time of day and minutes in; Hidden, a switch, Forget; Lately newest first) | `claude/memories-context` | built 2026-11-05: unit tests, typecheck, lint and the `resurface` e2e pass; spec `specs/memories-context/spec.md`; native unverified; audited 2026-11-05 (24 findings: 23 fixed, one in part; 1 rejected) |
 | Resurfaced moments (Chronicle opens on Memories, RM1-RM25, decision 0098) | `claude/resurfaced-moments-spec`, merged to main 2026-11-05 (`aac7d9d`) | shipped 2026-11-05: unit tests, typecheck, lint and the e2e journeys `resurface`, `chronicle`, `tabs`, `launch`, `qol`, `reload`, `replay`, `walk`, `gaps` pass on the /chronicles build; Pages run 125 succeeded; native unverified; audited 2026-11-05 (16 findings: 12 fixed, 3 deferred, 1 rejected); spec `specs/resurfaced-moments/spec.md` |
