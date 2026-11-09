@@ -94,7 +94,7 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
   the ready screen's first launch (NR13), never as a walk's notice or by `startNotice`.
 - **The chevron and the street chip are pinned to the top row** (Nov 5, the owner): the Minimize row is the
   first child of the top column and the "On <street>" chip is centred in it (`chipCell`, absolute, 44 pt),
-  so the navigation bar, a banner or an off-route chip below never pushes them down. A notice takes the
+  so a banner or an off-route chip below never pushes them down. **The navigation bar shares that row** (the owner, Nov 6: it kept drifting down; this supersedes "Minimize above the bar"): Minimize at the left, the bar filling the rest of the row, so the bar's top is the row's top. With the bar up, the street chip and any notice sit just under it. `launch` checks the bar level with Minimize; don't put anything above the bar. A notice takes the
   chip's place in the row, so the chip hides while one shows. Not run on a device.
 - **The grip is a 28 px band, focusable (`tabIndex={-1}`)** (Nov 4, the owner: "I cannot lift the drawer",
   on the web; Explore's 24 px grip lifted). It was a 10 px transparent strip, and a touch on it went to the

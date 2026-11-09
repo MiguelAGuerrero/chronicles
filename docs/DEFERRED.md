@@ -315,8 +315,15 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **Layers button, corner (fix layers-corner audit, Nov 5):** the panel's clearance under the top overlay is a fixed `insets.top + 152`, so a banner plus the navigation bar plus a long chip could still reach it; below 360 px wide the panel floors at 188 and can touch the capture column; the corner button is reached by keyboard after the right-column buttons; the corner's `left` is written in `layersCorner` and in the scale bar's inset separately.
 - **Memories in context, audit** (`specs/memories-context/spec.md`, Audit): the time of day is by the phone's zone now, not the zone the moment was made in (needs a stored zone on the capture, a migration, audit 19); Android's hardware Back from Hidden (and from a thread) closes the tab instead of the screen (native); VISION.md's open questions 1 and 5 (who may volunteer a moment) still stand, now with a switch to turn volunteering off.
 
+- **Navigation bar on the top row (fix nav-top audit, Nov 6):** the Undo toast sits at `insets.top + 64`, just under the bar, so it can cover the street chip or a notice shown there (audit 2); the Layers panel's `clearTop` (`insets.top + 152`) is shorter than a stack of notice, street chip, off-route chip and status chip under the bar (audit 3); a notice and the street chip move from the Minimize row to under the bar when navigation starts or ends (audit 4); a notice that carries an Open in Maps action would repeat the bar's own button (audit 5). Not run on a device.
+
 
 ## Network rules (decision 0100)
 
 - **Switching a host off remotely:** the off switch is in the code's host table; the `chronicles-data` manifest, which the app will read daily, could carry it so a misbehaving service can be stopped without a release.
 - **The decode check for Overture's divisions and transportation:** only places are checked before a new release is relied on; town outlines and walkability read the same release without it.
+
+## Wrapped map names (fix long-names audit)
+
+- **No line cap:** a very long name (60+ characters) wraps to many lines under its pin and can cover neighbouring pins. The owner asked for names not to be truncated, so no cap was added; a cap is the owner's call.
+- **Busy-street label shifts up when it wraps:** `StripLabel`'s marker is centre-anchored, so its first line moves about 8 px up per extra line. Cosmetic; check on a device.

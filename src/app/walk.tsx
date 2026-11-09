@@ -1016,6 +1016,23 @@ function WalkScreen(props: { onMinimize: () => void }) {
     }
   };
 
+  // The walk's notice, in the minimize row or just under the navigation bar when one holds the row.
+  const noticeBanner = notice ? (
+    <Banner
+      tone={notice.tone}
+      onDismiss={() => setNotice(null)}
+      action={
+        notice.openSettings && Platform.OS !== 'web'
+          ? { label: 'Open Settings', onPress: () => Linking.openSettings() }
+          : notice.maps
+            ? { label: 'Open in Maps', onPress: () => notice.maps && handOff(notice.maps.at, notice.maps.label) }
+            : undefined
+      }
+    >
+      {notice.message}
+    </Banner>
+  ) : null;
+
   return (
     <View style={styles.screen}>
       {/* One map for both states, at one place in the tree, so Start never remounts it (NR6). */}
@@ -1134,32 +1151,54 @@ function WalkScreen(props: { onMinimize: () => void }) {
             accessibilityHint="It keeps recording. The bar above the tabs brings it back."
             onPress={minimize}
             disabled={recordingVoice || stopping}
-            hitSlop={6}
+            hitSlop={2}
             style={({ pressed }) => [styles.edgeBtn, styles.minBtn, (recordingVoice || stopping) && styles.disabled, pressed && styles.pressed]}
           >
             <Icon name="chevron-down" size={24} color={theme.ink} />
           </Pressable>
+          {/* The navigation bar takes the top row beside Minimize, so nothing sits above it (the owner, Nov 6: it keeps
+              drifting down; supersedes Nov 5's "Minimize above the bar"). */}
+          {navigation.nav && (
+            // Not a live region: it changes with every fix. The distance is announced in steps instead.
+            <View testID="nav-bar" style={styles.navBar}>
+              <Icon name="navigate" size={20} color="#ffffff" />
+              <Text
+                testID="nav-left"
+                style={styles.navText}
+                numberOfLines={2}
+                accessibilityLabel={`${formatDistance(navigation.nav.leftM)}${navigation.nav.dest.suggested ? '' : `, ${aboutTimeLeft(navTimeLeft)}`} left to ${navigation.nav.dest.label}`}
+              >
+                {formatDistance(navigation.nav.leftM)} · {navigation.nav.dest.suggested ? '' : `${formatTimeLeft(navTimeLeft)} · `}{navigation.nav.dest.label}
+              </Text>
+              <Pressable
+                testID="nav-handoff"
+                accessibilityRole="button"
+                accessibilityLabel="Open in Maps"
+                accessibilityHint={HANDOFF_HINT}
+                onPress={() => {
+                  const d = navigation.nav?.dest;
+                  if (d) handOff(d.at, d.label);
+                }}
+                style={({ pressed }) => [styles.navHandoff, pressed && styles.pressed]}
+              >
+                <Icon name="open-outline" size={22} color="#ffffff" />
+              </Pressable>
+              <Pressable testID="nav-end" accessibilityRole="button" accessibilityLabel="End navigation" onPress={navigation.end} style={styles.navEnd} hitSlop={8}>
+                <Text style={styles.navEndText}>End</Text>
+              </Pressable>
+            </View>
+          )}
           {/* The notice shares the minimize button's row, level with it at the top edge (the owner's call,
-              Nov 4), so the button doesn't move when one appears (NR6). */}
-        {notice && (
+              Nov 4), so the button doesn't move when one appears (NR6). While the navigation bar holds the row
+              it sits just below. */}
+        {notice && !navigation.nav && (
           <View style={styles.noticeCell}>
-            <Banner
-              tone={notice.tone}
-              onDismiss={() => setNotice(null)}
-              action={
-                notice.openSettings && Platform.OS !== 'web'
-                  ? { label: 'Open Settings', onPress: () => Linking.openSettings() }
-                  : notice.maps
-                    ? { label: 'Open in Maps', onPress: () => notice.maps && handOff(notice.maps.at, notice.maps.label) }
-                    : undefined
-              }
-            >
-              {notice.message}
-            </Banner>
+            {noticeBanner}
           </View>
         )}
-        {/* The street chip: top centre, level with the chevron, so nothing below it moves it (the owner, Nov 5). */}
-        {!notice && onStrip && !problem && (
+        {/* The street chip: top centre, level with the chevron, so nothing below it moves it (the owner, Nov 5).
+            Under the navigation bar it sits in the column instead of over the bar. */}
+        {!notice && onStrip && !problem && !navigation.nav && (
           // Quiet: a chip, not a notification or a hint (L14).
           <View style={styles.chipCell} pointerEvents="none">
             <LiftIn testID="on-strip" style={styles.chip}>
@@ -1169,35 +1208,12 @@ function WalkScreen(props: { onMinimize: () => void }) {
           </View>
         )}
         </View>
-        {navigation.nav && (
-          // Not a live region: it changes with every fix. The distance is announced in steps instead.
-          <View testID="nav-bar" style={styles.navBar}>
-            <Icon name="navigate" size={20} color="#ffffff" />
-            <Text
-              testID="nav-left"
-              style={styles.navText}
-              numberOfLines={1}
-              accessibilityLabel={`${formatDistance(navigation.nav.leftM)}${navigation.nav.dest.suggested ? '' : `, ${aboutTimeLeft(navTimeLeft)}`} left to ${navigation.nav.dest.label}`}
-            >
-              {formatDistance(navigation.nav.leftM)} · {navigation.nav.dest.suggested ? '' : `${formatTimeLeft(navTimeLeft)} · `}{navigation.nav.dest.label}
-            </Text>
-            <Pressable
-              testID="nav-handoff"
-              accessibilityRole="button"
-              accessibilityLabel="Open in Maps"
-              accessibilityHint={HANDOFF_HINT}
-              onPress={() => {
-                const d = navigation.nav?.dest;
-                if (d) handOff(d.at, d.label);
-              }}
-              style={({ pressed }) => [styles.navHandoff, pressed && styles.pressed]}
-            >
-              <Icon name="open-outline" size={22} color="#ffffff" />
-            </Pressable>
-            <Pressable testID="nav-end" accessibilityRole="button" accessibilityLabel="End navigation" onPress={navigation.end} style={styles.navEnd} hitSlop={8}>
-              <Text style={styles.navEndText}>End</Text>
-            </Pressable>
-          </View>
+        {navigation.nav && notice && <View style={styles.noticeBelow}>{noticeBanner}</View>}
+        {navigation.nav && !notice && onStrip && !problem && (
+          <LiftIn testID="on-strip" style={styles.chip}>
+            <View style={[styles.statusDot, { backgroundColor: HOTSPOT }]} />
+            <Text style={styles.chipText}>On {onStrip}</Text>
+          </LiftIn>
         )}
         {navigation.nav?.offRoute && (
           <LiftIn style={styles.chip} accessibilityLiveRegion="polite">
@@ -1745,10 +1761,10 @@ const styles = StyleSheet.create({
   chipText: { color: theme.ink, fontWeight: '600', fontSize: 14 },
   // Navigating: what is left and where to, as on a maps app's top bar, with End.
   navBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'stretch', backgroundColor: COLORS.route, borderRadius: 16,
+    flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, backgroundColor: COLORS.route, borderRadius: 16,
     paddingLeft: 16, paddingRight: 8, minHeight: 56,
   },
-  navText: { flex: 1, color: '#ffffff', fontSize: 18, fontWeight: '700' },
+  navText: { flex: 1, color: '#ffffff', fontSize: 16, fontWeight: '700' },
   // A white pill: 5.2:1 for its blue text.
   navEnd: { minHeight: 44, minWidth: 64, paddingHorizontal: 16, borderRadius: 22, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
   navEndText: { color: COLORS.route, fontSize: 16, fontWeight: '700' },
@@ -1800,6 +1816,7 @@ const styles = StyleSheet.create({
   edgeBtnOn: { backgroundColor: theme.ink, borderColor: theme.ink },
   minRow: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   noticeCell: { flex: 1, minWidth: 0 },
+  noticeBelow: { alignSelf: 'stretch' },
   minBtn: { position: 'relative' },
   chipCell: { position: 'absolute', left: 0, right: 0, top: 0, height: 44, alignItems: 'center', justifyContent: 'center' },
   ahead: { flexDirection: 'row', alignItems: 'center', gap: 8, maxWidth: 360, backgroundColor: theme.glass, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: theme.line },

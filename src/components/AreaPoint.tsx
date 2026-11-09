@@ -14,7 +14,7 @@ export function AreaPointView({ pin }: { pin: AreaPointPin }) {
   return (
     <View style={styles.wrap} pointerEvents="none">
       <View style={[styles.dot, pin.selected && styles.dotOn]} />
-      {pin.name ? <Text style={[styles.label, pin.selected && styles.labelOn]} numberOfLines={1}>{pin.name}</Text> : null}
+      {pin.name ? <Text style={[styles.label, pin.selected && styles.labelOn]}>{pin.name}</Text> : null}
     </View>
   );
 }
@@ -26,7 +26,7 @@ const styles = StyleSheet.create({
   dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#ffffff', borderWidth: 2, borderColor: theme.edge },
   dotOn: { width: 14, height: 14, borderRadius: 7, borderColor: theme.accent, borderWidth: 3 },
   label: {
-    maxWidth: W, marginTop: 2, fontSize: 11, fontWeight: '700', color: theme.ink,
+    maxWidth: W, textAlign: 'center', marginTop: 2, fontSize: 11, fontWeight: '700', color: theme.ink,
     textShadowColor: '#ffffff', textShadowRadius: 3,
   },
   labelOn: { color: theme.accent },

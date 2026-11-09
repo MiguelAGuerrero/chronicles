@@ -60,7 +60,7 @@ function MarkBody({ pin }: { pin: MarkPin }) {
       </View>
       <View style={[styles.stem, pin.found && styles.stemFound]} />
       {shown && !pin.faint && !pin.found && (
-        <Text style={styles.name} numberOfLines={1}>
+        <Text style={styles.name}>
           {pin.name}
         </Text>
       )}
