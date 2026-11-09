@@ -58,11 +58,17 @@ async function run(h) {
     await gone('[data-testid=viewer-close]');
   };
 
-  // OT12: Your threads is its own block, with a hint and no row while there are none; the Chronicle's rail is apart.
-  check((await has('[data-testid=my-threads-hint]')) && (await pg.locator('[data-testid=my-thread-row]').count()) === 0
-    && (await pg.locator('[data-testid=my-threads]').innerText()).includes('Threads you made') && /latest first/.test(await pg.locator('[data-testid=my-threads]').innerText())
-    && (await pg.locator('[data-testid=threads-rail]').count()) === 1 && !(await pg.locator('[data-testid=threads-rail]').innerText()).includes('Your threads'),
-    'OT12, owner-threads audit 15: Threads you made has its own heading, says its order, and a hint, apart from the Chronicle\'s threads');
+  // OT12, OT25: the owner's threads are a block of their own beside the Chronicle's, both headed Threads, told apart by a mark.
+  const mine0 = await pg.locator('[data-testid=my-threads]').innerText();
+  check.todo((await has('[data-testid=my-threads-hint]')) && (await pg.locator('[data-testid=my-thread-row]').count()) === 0
+    && /^\W*Threads\b/.test(mine0) && !/Threads you made/.test(mine0) && /latest first/.test(mine0)
+    && (await pg.locator('[data-testid=threads-rail]').count()) === 1,
+    'OT12: the owner\'s threads are headed Threads, say their order, and have a hint, beside the Chronicle\'s own threads');
+  check.todo((await pg.locator('[data-testid=my-threads] [data-testid=thread-mark-made]').count()) >= 1
+    && (await pg.locator('[data-testid=threads-rail] [data-testid=thread-mark-found]').count()) >= 1
+    && (await pg.locator('[data-testid=thread-mark-made]').first().getAttribute('aria-label')) === 'connected by you'
+    && (await pg.locator('[data-testid=thread-mark-found]').first().getAttribute('aria-label')) === 'found for you',
+    'OT25: a mark tells the owner\'s threads from the Chronicle\'s, with a spoken name');
   await shot(pg, '70-threads-empty');
 
   // OT5, OT6: a thread is made from a moment and a second kept moment, nothing else.

@@ -24,6 +24,7 @@ Open: none (OT23 and OT24 answered Nov 6). The reasons rest on decision 0104, no
 - A reply is a new moment with its own place and time, a directed link to the moment it answers, and it joins that moment's thread; if there is none, an unnamed thread of the two is made.
 - A thread with fewer than two moments dissolves, name and all; the delete that causes it is undoable.
 - Deleting a thread deletes its memberships only. Deleting a moment deletes its memberships and links only.
+- **One word for both kinds, told apart by a mark** (Nov 9, decision 0105): the owner's threads and the Chronicle's suggested threads are both "threads"; an icon tells them apart, and an unnamed thread's heading may change as its moments do, and be renamed whenever the owner likes.
 - A moment in an owner thread is eligible for the resurfaced card like any moment, with no thread name and no opt-out (Nov 6, OT23). A reply is placed where its author is when they write it (Nov 6, OT24).
 - The Chronicle's suggested threads are computed, never stored, and neither reads the other kind. A suggestion becomes the owner's only by a tap, as a copy.
 
@@ -48,7 +49,7 @@ Open: none (OT23 and OT24 answered Nov 6). The reasons rest on decision 0104, no
 9. **OT9** A thread opens as a plain typographic timeline of its moments, oldest first, read like a conversation with yourself. Every moment shows its place and its time, and what came just before it (its walk's context line) when it has a walk; a moment with no walk shows place and date. Never a bare thumbnail, filename or count; the same holds for every row of the moment picker. (Steward S4.) A reply is set under the moment it answers.
 10. **OT10** A thread's size is one of a short fixed set of words ("a couple of moments", "a few", "several", "many"), never a number word above "three", a digit, rank, total, streak or percentage; its span is "since March". No unread, new-reply or progress mark ever appears on a thread. Dates and times are fine. (Steward S3.)
 11. **OT11** Where a moment is in a thread, its viewer says "in a thread" without the name, and opening it opens the thread. The viewer shows the thread's name only when it was opened from that thread. (Steward S2.)
-12. **OT12** The owner's threads are listed on Memories, apart from the Chronicle's own threads (the 0098 rail): their own heading, ordered by the latest moment in them, with no rank, count or progress shown. The Chronicle's threads are unchanged by this slice.
+12. **OT12** The owner's threads are listed on Memories in a block of their own beside the Chronicle's own threads (the 0098 rail), both headed **Threads** and told apart by a mark (OT25): the owner's ordered by the latest moment in them, and saying so, with no rank, count or progress shown. The Chronicle's threads are unchanged by this slice. (Amended Nov 9, decision 0105: was "their own heading", "Threads you made".)
 13. **OT13** A thread has a name only the owner gives it: **Name this thread** in its menu, optional, editable, never overwritten. A thread with no name is headed by its oldest moment's place and date, with the first words of that moment as a second line; no heading is a clipped fragment on its own. (Steward S5.)
 
 ### Ending a thread
@@ -70,6 +71,11 @@ Open: none (OT23 and OT24 answered Nov 6). The reasons rest on decision 0104, no
 
 23. **OT23** A moment in an owner thread is eligible for the resurfaced card like any moment (the owner's call, Nov 6: no per-thread opt-out). The card, Lately and every notification never show the thread's name or a title made from it (OT20).
 24. **OT24** A reply made away from the answered moment's place is placed where its author is, at the time they write it (one fix per moment, 0036); its row says "answering" and the answered moment's place, so both places are in the words.
+
+### One word, two marks (the owner's call, Nov 9, decision 0105)
+
+25. **OT25** Wherever a thread is listed or opened, a small mark says who made it: one icon for a thread the owner made, another for a thread the Chronicle suggests (from the user's own words, 0098). The mark is an icon in the ink colour, never a colour on its own, and it carries a spoken name ("connected by you", "found for you"). No accent colour, badge or count marks either kind. The Chronicle's threads keep their own words (0098) beside the mark.
+26. **OT26** An unnamed thread's heading follows its moments (the place and date of its oldest, with its first words beneath) and may change as they do; the owner may name it, or rename it, at any time, and a name they gave never changes by itself.
 
 ## Record (Nov 6)
 
