@@ -88,4 +88,30 @@ Built Nov 9 on `claude/gallant-maxwell-hp14jb` (tests first `59d0663`, code `3a9
 - **What the benchmark showed on Bethlehem (Nov 9):** the rule adds Bethlehem Waterworks, Burnside Plantation, the Gemeinhaus and Packer Memorial Chapel without OSM's signals; most remaining misses are unlisted churches and cemeteries (stopped by the name rule) and unlisted bridges and stations (not in the tiles). Central Moravian Church is a contributing building of a listed district with no listing of its own, so the listing gate does not lift it (DEFERRED).
 - **Deferred:** OSM's signals in production (the weekly job passes no `--osm` yet), places only OSM knows, contributing buildings of a listed district, registers outside the US, the "History & landmarks" category label and "Historic churches" for every place of worship (the owner's copy calls); `docs/DEFERRED.md`.
 - **Native:** the card's line and the new switch have never run on a phone (`docs/NATIVE_UNVERIFIED.md`).
-- **Audit:** none (decision 0074: on the owner's request).
+- **Audit:** see "Audit" below.
+
+## Audit (Nov 9, at the owner's request)
+
+The auditor (13 findings) and the steward (6, numbered on after them). 19 findings: 17 fixed, 1 fixed in part and deferred in part, 1 rejected. Regression tests `remarkable-and-public audit N` in `placesArchiveBuild.test.ts`, `remarkablePublic.test.ts`, `placesCoverage.test.ts` and `replay/ceremony.test.ts`, each committed failing (`remarkable-and-public audit: regression tests first`) before its fix. The owner's two calls are decision 0106.
+
+1. Listed courthouses, town halls, city halls and libraries never entered (they are offices to Wikidata): accept, fixed. A home is never public by type; another mundane class stays public when a public root reaches it; libraries are public roots. The overlap kept is civic: county courthouses (1,298 listings), town halls, courthouses, armories, city halls. (audit 1)
+2. `osm.overpassql` did not parse and one statement was unbounded; the build read any `--osm` shape as empty: accept, fixed. (audit 2)
+3. The review lacked the History step before and after, and the reach flag: accept in part. The reach flag is the benchmark's (`places:coverage --review`, matched by `areaKey` since audit 8); the History step needs the atlas's tiles, which the build does not read: deferred.
+4. `was:*` dropped repurposed, still-standing stations and churches: accept, fixed (only `demolished:`, `razed:`, `destroyed:` mean gone). (audit 4)
+5. A large place showed twice (Wikidata at the gate, the map mid-grounds): accept, the owner's call, 200 m for the same name and category (decision 0106). (audit 5)
+6. Two fast taps could lose the second card's line: accept, fixed (the shell answers only the latest ask). (audit 6)
+7. "No street or path close by" at the edge of the read tiles: accept, fixed (said only when every tile under the 60 m disc holds cached streets). (audit 7)
+8. The benchmark counted rail and ferries as ways, missed "Jim Thorpe", and matched on one shared word: accept, fixed. (audit 8)
+9. A day replay bounded passes across its walks: accept, fixed (bounded per walk). (audit 9)
+10. Sites, battlefields and wrecks were "Buildings and structures": accept, the owner's call, Monuments and ruins (decision 0106). (audit 10)
+11. `wikidata=Q1;Q2` was ignored: accept, fixed. (audit 11)
+12. A district also typed ghost town or monument entered: accept, fixed. (audit 12)
+13. An ended listing counted; a cut-off answer killed the fetch: accept, fixed. (audit 13)
+14. (steward S1) "Passed a few places" came at the first place, false when said: accept, fixed (at the last). (audit 14)
+15. (steward S2) Absence the cache cannot know: accept, the same as 7, fixed there.
+16. (steward S3) "Buildings and structures" stands in for "listed": reject for now: only listed places fill it by design (0105); widening it to unlisted structures is the owner's open question (DEFERRED).
+17. (steward S4) The deferred "History & landmarks" entry should name the find announcement too: accept, DEFERRED says so.
+18. (steward S5) The review was written into the archive's folder: accept, fixed (`--review-out`, refused when it is `--out`). (audit 18)
+19. (steward S6) `passedAlong`'s comment described the old whispers: accept, fixed.
+
+Also from the auditor, for the owner: "No street or path close by" sits under "Walk within 60 m to see what it is." on a "?", which reads as two instructions (copy; DEFERRED).

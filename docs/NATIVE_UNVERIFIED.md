@@ -323,7 +323,9 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 ## Remarkable and public (RP1-RP20, decisions 0104, 0105)
 
 - [ ] **Do:** on a phone, take an exploring walk and open the card of a place to find that stands more than 60 m from any street or path (a building set back in a park), then one beside a street. **Expect:** the first card says "No street or path close by" under its name, the second says nothing of the kind, and both places can still be found (RP20).
-- [ ] **Do:** on a phone, open the walk's drawer with Explore on. **Expect:** "What I'm into" lists Buildings and structures after Monuments and ruins, switched on (RP18).
+- [ ] **Do:** on a phone, open the walk's drawer with Explore on, on an install that already had kinds switched off. **Expect:** "What I'm into" lists Buildings and structures after Monuments and ruins, switched on, and the kinds switched off before stay off (RP18).
+- [ ] **Do:** on a phone, in a dense downtown, tap several place pins quickly in a row. **Expect:** each card opens at once, the line "No street or path close by" appears only on the card of the place it belongs to, never on a found place, and the map stays smooth (RP20, remarkable-and-public audit 6).
+- [ ] **Do:** on a phone, replay a walk that passed four places to find without stopping. **Expect:** one whisper, "Passed a few places without stopping", as the walker reaches the last of them (RP19, audit 14).
 
 ## Wrapped map names (fix long-names)
 
