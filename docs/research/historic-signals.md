@@ -42,4 +42,4 @@ A building's age is the building's, not the business's: a 1990 café in an 1850 
 
 ## Next
 
-On the slice's test areas (rural Saskatchewan; a rural US county; Lititz for the business case), count what each cascade step adds and what each age threshold lets in, then bring the numbers to the owner.
+Parked by decision 0108 (Nov 9): showing a place is the value and its kind a bonus, so nothing here is joined or fetched only to sort a place, and no age threshold is measured. A kind comes from what the archive already reads; the rest goes under "Other places". A register that adds places of its own (HABS, Canada's directory) is a source question for 0106, not a sorting one.
