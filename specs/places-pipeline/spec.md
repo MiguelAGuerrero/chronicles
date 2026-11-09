@@ -5,14 +5,15 @@
      research doc "Places data pipeline: research" (https://claude.ai/artifact/R1GLx9Q5gurtYdJrLsRi4s). Grows decision
      0103's places archive; it does not replace it. -->
 
-# Places pipeline: the frame, with Wikidata behind it (PP)
+# Places pipeline: the app's side of the interface (PP)
 
 Nov 9, 2026 · @Miguel Guerrero
 
-The places archive's build grows into a pipeline any source can join through its own adapter: fetch, raw store, adapt,
-conflate, gate, package, publish. This first slice builds the frame and moves today's Wikidata code behind it. The app
-reads the same places from the same host. Phones never call a source; every outside call happens once a week in the
-build job.
+The places pipeline, its schemas, its class names and its docs live in **chronicles-data**
+(https://github.com/MiguelAGuerrero/chronicles-data: `docs/spec.md`, `docs/plan.md`, `contract/`). That repo is the
+interface the app consumes: it builds the packs, publishes them with a manifest, and publishes its contract beside them.
+This spec holds only what the app does with them. PP1-PP12, PP14 and PP15 were built here first and moved there with the
+code (the owner, Nov 9); their ids are retired here.
 
 ## Vision
 
@@ -38,79 +39,46 @@ Open: none (the owner's calls below)
 
 ## Decisions (the owner's calls, Nov 9; decision 0104)
 
-- **Node and TypeScript only.** Python tools (Splink, dlt) wait until rule-based matching falls short.
-- **Our own opaque place IDs from this slice**, with a crosswalk from source IDs (Wikidata QIDs now). IDs carry no
-  meaning (Overture's lesson: IDs that encoded a cell had to be thrown away).
-- **Packs are tile lists inside one region file**, never a file per town.
-- **Zod 4** as a dev dependency for the schema and its JSON Schema export.
-- **Nominations reach only a review list** (after the steward's review): never a pack, even when a locating source
-  confirms them; the owner adds a place through the edits. Each nominating adapter needs its own decision record
-  (decision 0104).
-- **Architecture as researched:** stages fetch, raw store, adapt, conflate, gate, package, publish; an adapter is a
-  declaration plus `fetch` and `adapt`; roles locate, corroborate or deny, nominate.
+- **chronicles-data owns the pipeline and the contract**: the code, the schemas, the class names, the owner's edits and
+  the pipeline's spec and plan. The app keeps a pinned copy of the contract and tests itself against it.
+- **The owner's edits apply only when packs are built**, in chronicles-data (`edits.json`); the app no longer applies
+  them, so they can no longer hide a place from the map's own tiles.
+- The rest, as built: Node and TypeScript only, Zod in the data repo, opaque place IDs, packs as tile lists in a region
+  file, nominations only on the owner's review list.
 
-## Criteria
+## Moved to chronicles-data
 
-1. **PP1 No adapter runs without its declaration, and the declaration is enforced.** An adapter declares its name,
-   license, attribution line, role (locates, confirms or denies, nominates), pace (requests a minute, User-Agent) and
-   allowed uses (may it be stored, for how long, may it be redistributed, may it reach a pack), and that its terms were
-   checked, with the date. The runner refuses to run one whose declaration is missing any of these, naming what is
-   missing. A source that may not reach a pack contributes nothing to one; raw parts older than its retention are deleted
-   before the state is saved; a source that may not be redistributed is left out of the published state. A nominating
-   adapter also names the decision record that admitted it, or the runner refuses it.
-2. **PP2 Only fetch touches the network.** Fetch writes each source's answers to the raw store as received, with the
-   date and a SHA-256. Every later stage reads only the raw store, so a rerun from the raw store makes no request.
-3. **PP3 Each source at its own pace.** The runner holds a source to its declared requests a minute, waits a 429's or
-   503's `Retry-After` (capped), and sends the declared User-Agent. The Wikidata adapter keeps today's behaviour: one
-   query at a time, a pause between, a cell that times out split in four.
-4. **PP4 Candidates are checked.** `adapt` turns raw files into candidates in the canonical shape. A schema checks each
-   one; one that fails is set aside with its reason in the run's report, and the run goes on.
-5. **PP5 Nothing in the shape is a score.** Every object in the canonical schema (candidates, places, packs) is closed,
-   nested ones included, and the only numbers anywhere are the two of a position. Evidence is a string that never reaches
-   a place. The schema is exported as JSON Schema and committed; a record carrying `count`, `rank`, `score`, `votes`,
-   `likes`, `mentions`, `upvotes`, `followers`, `sitelinks` or `views`, at any depth, fails it.
-6. **PP6 The same places, through a gate blind to sources.** The gate is written in the archive's own class vocabulary
-   (`ARCHIVE_CLASSES`); the Wikidata adapter maps P31 classes, heritage and "gone" signals to it. The gate reads no source
-   name and no number of sources: renaming a source changes no result. From the same Wikidata items, the pipeline yields
-   the same places (name, position, class) as the current build.
-7. **PP7 A place needs a locating source; nominations never change a pack.** A place enters a pack only with a
-   position from an adapter whose role is locates. For the same other candidates, a build with zero, one or fifty
-   nominations yields identical blocks. Nominations appear only in the run's report, as a list for the owner to review
-   (who can add a place through the edits, PP10); never in a pack, the registry's places or the crosswalk. Confirming or
-   denying can only confirm a place or mark it gone; nothing records how many sources confirm it.
-8. **PP8 Places keep their IDs.** Each place gets an opaque ID. A registry kept between builds gives a place the same ID
-   when it matches the last build's (the same source ID first, else the same name within 50 m). A crosswalk lists each
-   source ID with its place ID. A place that disappears keeps its ID retired, never reused.
-9. **PP9 Every place says where it came from, once.** A pack's feature holds exactly name, class, src (its first
-   locating source) and id; the full list of sources lives only in the registry. Within a block, places are in ID order,
-   so a confirming source added to a place changes neither its feature nor its position. A pack holds one license family,
-   and ODbL is never mixed with another.
-10. **PP10 The owner's edits still apply.** `archiveEdits.json` removes and adds places after the gate, as PW13 does.
-11. **PP11 Blocks carry their own hash.** The manifest lists, for each region, its blocks (z8 tiles) with a hash of the
-    places inside each (ID, name, class, position), not of the file's bytes.
-12. **PP12 No change publishes nothing.** A weekly run in which no place changed publishes no new file and leaves the
-    manifest as it was.
+- **PP1 No adapter runs without its declaration, and the declaration is enforced.** Moved to chronicles-data (`docs/spec.md` there), retired here.
+- **PP2 Only fetch touches the network.** Moved to chronicles-data (`docs/spec.md` there), retired here.
+- **PP3 Each source at its own pace.** Moved to chronicles-data (`docs/spec.md` there), retired here.
+- **PP4 Candidates are checked.** Moved to chronicles-data (`docs/spec.md` there), retired here.
+- **PP5 Nothing in the shape is a score.** Moved to chronicles-data (`docs/spec.md` there), retired here.
+- **PP6 The same places, through a gate blind to sources.** Moved to chronicles-data (`docs/spec.md` there), retired here.
+- **PP7 A place needs a locating source; nominations never change a pack.** Moved to chronicles-data (`docs/spec.md` there), retired here.
+- **PP8 Places keep their IDs.** Moved to chronicles-data (`docs/spec.md` there), retired here.
+- **PP9 Every place says where it came from, once.** Moved to chronicles-data (`docs/spec.md` there), retired here.
+- **PP10 The owner's edits still apply (in the build only).** Moved to chronicles-data (`docs/spec.md` there), retired here.
+- **PP11 Blocks carry their own hash.** Moved to chronicles-data (`docs/spec.md` there), retired here.
+- **PP12 No change publishes nothing.** Moved to chronicles-data (`docs/spec.md` there), retired here.
+- **PP14 A failing source doesn't sink the run.** Moved to chronicles-data (`docs/spec.md` there), retired here.
+- **PP15 Runs weekly in chronicles-data.** Moved to chronicles-data (`docs/spec.md` there), retired here.
+
+## Criteria (the app's side)
+
 13. **PP13 Only changed areas are rebuilt.** The app rebuilds a checklist area or re-reads an atlas ring only when its
-    block's hash changes, not on every new file version. Areas built before blocks existed are rebuilt once.
-14. **PP14 A failing source doesn't sink the run.** When a source's fetch fails, its last good raw snapshot is used, the
-    report says so, and the other stages publish.
-15. **PP15 Runs weekly in chronicles-data.** The weekly workflow runs the stages in order, keeps the raw store and the ID
-    registry between runs as release assets, and stays within the free tier (one job, under 6 hours).
-</content>
-</invoke>
-16. **PP16 Phones still never call a source.** The slice adds nothing to `ALLOWED_HOSTS` or `lib/net`'s host table, and
-    no file under `src/` names an adapter's host (`query.wikidata.org` and any later one).
+    block's hash changes, not on every new file version, and judges each area at its own point. Areas built before
+    blocks existed are rebuilt once.
+16. **PP16 Phones still never call a source.** No host in the contract's `sources.json` is in `ALLOWED_HOSTS` or
+    `lib/net`'s host table, and no file under `src/` names one.
+17. **PP17 The app keeps to the contract it pins.** The app holds a copy of chronicles-data's `contract/` (its
+    `contractVersion` named in the test). Its class table has exactly the contract's class names; its reader reads the
+    contract's example pack and manifest (blocks included) and keeps every place, with the four fields the feature
+    schema allows. A new contract fails this test until the app takes it.
 
 ## Record (Nov 9)
 
-- **Built:** PP1-PP16, each with its test (`placesPipeline.test.ts`, PP13 in `placesArchive.test.ts`), the todos committed
-  first. The pipeline is `scripts/places-pipeline/`; the Wikidata adapter carries the archive's query and classes, and
-  `build-places-archive.mjs`, `fetch-wikidata.mjs` and `publish.mjs` are retired (PW7, PW13-PW15 and PW19 now run
-  against the pipeline). PP6 holds against the places the old build made from the same sample answers, frozen in
-  `adapters/wikidata/fixtures/expected-places.json`.
+- **Built here, then moved:** the pipeline and its tests (PP1-PP12, PP14, PP15) and the build-side Places worth the
+  stop criteria (PW6, PW7, PW13, PW14, PW15, PW19) now live in chronicles-data, branch `claude/places-pipeline-contract`.
+  The test-first history of PP1-PP16 is on this repo's `claude/places-pipeline-frame`.
 - **Found while building:** Explore compared an area's archive tag with the tag at the walker's fix, so with blocks an
-  area by a block's edge would have been read on every fix; each area is now tagged and judged at its own point
-  (PP13's second test). The run's report, which holds the nominations list, is not published with a release.
-- **chronicles-data:** the weekly job runs `cli.ts` and keeps the state as the `state-us` pre-release (branch
-  `claude/places-pipeline` there). The old workflow on its main had a YAML error in its last step and would not have run.
-- **Deferred:** see `docs/DEFERRED.md`, "Places pipeline".
+  area by a block's edge would have been read on every fix; each area is now tagged and judged at its own point.

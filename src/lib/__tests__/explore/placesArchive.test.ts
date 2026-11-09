@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { applyEdits, mergePlaces } from '../../discovery/archiveMerge';
+import { mergePlaces } from '../../discovery/archiveMerge';
 import { ARCHIVE_CLASSES, placesFromArchive } from '../../discovery/archivePois';
 import { placeKey } from '../../discovery/places';
 import type { Place } from '../../discovery/types';
@@ -99,13 +99,6 @@ test('PW8: a place in the tiles and in the archive, same name within 50 m in any
   assert.deepEqual(merged.map((p) => [p.name, p.kind ?? null]).sort(), [['Hessian Powder Magazine', 'curiosities'], ['Main Street Bakery', null]]);
   const far = mergePlaces([tilePlace('Hessian Powder Magazine', 'history', [-75.19, 40.70])], archive);
   assert.equal(far.length, 2, 'the same name a kilometre away is another place');
-});
-
-test('PW13: the owner\'s file removes a place whichever source named it, and adds one as a mark of its class', () => {
-  const places = mergePlaces([tilePlace('Old Water Tower', 'history', [-75.19, 40.69])], placesFromArchive([pt(-75.2, 40.69, { name: 'Odd Rock', class: 'natural_oddity', src: 'wd', id: 'Q3' })], 'v1'));
-  const edited = applyEdits(places, { remove: [{ name: 'old water tower', at: [-75.19002, 40.69001] }, { name: 'Odd Rock', at: [-75.2, 40.69] }], add: [{ name: 'Giant Peanut', at: [-75.18, 40.69], class: 'roadside_giant' }] }, 'v1');
-  assert.deepEqual(edited.map((p) => [p.name, p.category, p.kind]), [['Giant Peanut', 'viewpoints', 'curiosities']]);
-  assert.deepEqual(applyEdits(places, { remove: [], add: [{ name: 'Mystery', at: [0, 0], class: 'unknown' }] }, 'v1').length, 2, 'an added place of an unknown class is left out');
 });
 
 // ——— The archive's network side (PW1, PW2, PW3, PW16), over fakes ———
@@ -269,7 +262,7 @@ test('places-worth-the-stop audit 1: a find made on the map\'s place stays found
   const built = buildChecklists({ places: mergePlaces([tile], archive), candidates: [fox], centre: CENTRE, build: 'b1', now: 2, archive: 'v1', finds: [found] });
   const item = built.items.find((i) => i.name === 'Hessian Powder Magazine');
   assert.equal(item?.key, found.key, 'the rebuilt item keeps the find\'s key, so it shows as found and is never found again');
-  const ring = ringOf([tile], archive, CENTRE, undefined, undefined, [found]);
+  const ring = ringOf([tile], archive, CENTRE, undefined, [found]);
   assert.ok(ring.marks.some((m) => m.key === found.key), 'the atlas sees the same find');
 });
 

@@ -1,5 +1,6 @@
 {
-  "$comment": "Generated from scripts/places-pipeline/schema.ts; a test fails when they differ (PP5).",
+  "$comment": "Generated from src/schema.ts by `npm run contract`; a test fails when they differ (PP5).",
+  "contractVersion": 1,
   "candidate": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
@@ -37,14 +38,6 @@
       "class": {
         "type": "string",
         "enum": [
-          "folly",
-          "novelty_building",
-          "roadside_giant",
-          "natural_oddity",
-          "odd_engineering",
-          "marks_a_fact",
-          "art_environment",
-          "ruin",
           "monument",
           "memorial",
           "statue",
@@ -53,6 +46,14 @@
           "sculpture",
           "overlook",
           "tower",
+          "folly",
+          "novelty_building",
+          "roadside_giant",
+          "natural_oddity",
+          "odd_engineering",
+          "marks_a_fact",
+          "art_environment",
+          "ruin",
           "heritage_building"
         ]
       },
@@ -126,14 +127,6 @@
       "class": {
         "type": "string",
         "enum": [
-          "folly",
-          "novelty_building",
-          "roadside_giant",
-          "natural_oddity",
-          "odd_engineering",
-          "marks_a_fact",
-          "art_environment",
-          "ruin",
           "monument",
           "memorial",
           "statue",
@@ -142,6 +135,14 @@
           "sculpture",
           "overlook",
           "tower",
+          "folly",
+          "novelty_building",
+          "roadside_giant",
+          "natural_oddity",
+          "odd_engineering",
+          "marks_a_fact",
+          "art_environment",
+          "ruin",
           "heritage_building"
         ]
       },
@@ -183,14 +184,6 @@
       "class": {
         "type": "string",
         "enum": [
-          "folly",
-          "novelty_building",
-          "roadside_giant",
-          "natural_oddity",
-          "odd_engineering",
-          "marks_a_fact",
-          "art_environment",
-          "ruin",
           "monument",
           "memorial",
           "statue",
@@ -199,6 +192,14 @@
           "sculpture",
           "overlook",
           "tower",
+          "folly",
+          "novelty_building",
+          "roadside_giant",
+          "natural_oddity",
+          "odd_engineering",
+          "marks_a_fact",
+          "art_environment",
+          "ruin",
           "heritage_building"
         ]
       },
