@@ -1,4 +1,4 @@
-// The places archive's classes and gate (Places worth the stop, PW5-PW7, decision 0102). Each class is a fixed
+// The places archive's classes and gate (Places worth the stop, PW5-PW7, decision 0103). Each class is a fixed
 // list of Wikidata classes (P31 values), pinned from a lookup on 2026-11-06: never a judgment at run time. The
 // class names are the app's vocabulary (`src/lib/discovery/archivePois.ts` ARCHIVE_CLASSES); a test keeps them in it.
 

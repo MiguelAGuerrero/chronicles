@@ -14,7 +14,7 @@ const whole = (s: ResurfaceState) => s;
  * front (a new open, or the same one again) and after a delete reached storage (RM19); composed from the
  * moments, the user's choices and the ids a delete or its Undo window hides.
  */
-export function useResurface(): { state: ResurfaceState; feed: Composed; now: number } {
+export function useResurface(): { state: ResurfaceState; feed: Composed; now: number; hidden: ReadonlySet<string> } {
   const state = useStore(resurface.store, whole);
   const hidden = useHidden();
   const [now, setNow] = useState(() => Date.now());
@@ -34,5 +34,5 @@ export function useResurface(): { state: ResurfaceState; feed: Composed; now: nu
   });
   const { moments, prefs, seed, lastShownAtOpen } = state;
   const feed = useMemo(() => compose(moments, { ...prefs, lastShown: lastShownAtOpen }, hidden, now, seed), [moments, prefs, hidden, now, seed, lastShownAtOpen]);
-  return { state, feed, now };
+  return { state, feed, now, hidden };
 }

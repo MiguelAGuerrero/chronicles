@@ -153,8 +153,9 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 
 | Session | Branch | Doing |
 |---|---|---|
-| Places worth the stop (curiosities and the places archive, PW1-PW19, decision 0102) | `claude/places-archive-decision` | built 2026-11-06: PW1-PW19 tested (1355 unit tests; journeys curiosities, marks, atlas); audited (10 findings: 7 fixed, the rest deferred); not live until PW16 sets the address and the branch merges; native unverified |
+| Places worth the stop (curiosities and the places archive, PW1-PW19, decision 0103) | `claude/places-archive-decision` | built 2026-11-06: PW1-PW19 tested (1355 unit tests; journeys curiosities, marks, atlas); audited (10 findings: 7 fixed, the rest deferred); not live until PW16 sets the address and the branch merges; native unverified |
 | Bug fixes (open since Oct 31) | unknown | unknown |
+| Memories in context and under your control (MC1-MC16: place, time of day and minutes in; Hidden, a switch, Forget; Lately newest first) | `claude/memories-context` | built 2026-11-05: unit tests, typecheck, lint and the `resurface` e2e pass; spec `specs/memories-context/spec.md`; native unverified; audited 2026-11-05 (24 findings: 23 fixed, one in part; 1 rejected) |
 | Resurfaced moments (Chronicle opens on Memories, RM1-RM25, decision 0098) | `claude/resurfaced-moments-spec`, merged to main 2026-11-05 (`aac7d9d`) | shipped 2026-11-05: unit tests, typecheck, lint and the e2e journeys `resurface`, `chronicle`, `tabs`, `launch`, `qol`, `reload`, `replay`, `walk`, `gaps` pass on the /chronicles build; Pages run 125 succeeded; native unverified; audited 2026-11-05 (16 findings: 12 fixed, 3 deferred, 1 rejected); spec `specs/resurfaced-moments/spec.md` |
 | Kind walk (a kind opened on an area's card offers one suggested walk: a distance, never a time; walkability said; KW1-KW14, decision 0101) | `claude/kind-walk-spec` | built 2026-11-05; web verified by the e2e `kindwalk`, unit tests, typecheck and lint green; native unverified; not audited (decision 0074); merged with main's scenic routes (a suggested walk skips the scenic preview) |
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Fetches the places archive's Wikidata items for a region (Places worth the stop, PW14, decision 0102), one map
+// Fetches the places archive's Wikidata items for a region (Places worth the stop, PW14, decision 0103), one map
 // cell at a time from the Wikidata Query Service, politely: one query at a time, a pause between, a User-Agent
 // naming the project, a 429's Retry-After honoured, and a cell that times out split in four. Runs in the
 // chronicles-data weekly job, never in the app (the service is not for an app's live traffic).

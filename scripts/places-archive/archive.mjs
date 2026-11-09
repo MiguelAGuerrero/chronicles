@@ -1,4 +1,4 @@
-// Writes the places archive (Places worth the stop, PW14, decision 0102): one region's places as a PMTiles v3
+// Writes the places archive (Places worth the stop, PW14, decision 0103): one region's places as a PMTiles v3
 // file of gzipped z12 vector tiles, layer `places`, each point carrying name, class, src and id (PW7) and nothing
 // else. Unlike the e2e's harness encoder it writes leaf directories, so a US-sized archive keeps its root in the
 // first 16 KB the reader asks for. The same places give the same bytes, whatever order they come in.

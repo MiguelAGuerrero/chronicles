@@ -195,7 +195,7 @@ Filling gaps
 Discovery and Explore (v1)
   discovery/types.ts         Place, Offered, Mark, Recall, PlaceSource, Kind, CategoryId
   discovery/tilePois.ts the OpenMapTiles poi classes, markable, kindFor (the only file that knows them)
-  discovery/archivePois.ts   the places archive's schema: ARCHIVE_CLASSES (pinned, PW5), placesFromArchive (the only file that knows it; decision 0102)
+  discovery/archivePois.ts   the places archive's schema: ARCHIVE_CLASSES (pinned, PW5), placesFromArchive (the only file that knows it; decision 0103)
   discovery/archiveMerge.ts  mergePlaces (one mark per place, PW8), ARCHIVE_EDITS and applyEdits (archiveEdits.json, PW13)
   discovery/archiveManifest.ts the manifest (PW2): parse, pickRegion, manifestDue, z12 tiles for a read, PLACES_BASE (empty until PW16)
   discovery/archive/shell.ts createPlacesArchive: the manifest daily, the region, the read's tiles through net/tileReader; index.ts is the app's instance
@@ -529,7 +529,7 @@ stores the record whole.
   (`window.__perf`, `__enters`, `__lifts`, `__audioSessions`, the geolocation
   watch counters); the app reads none of them.
 
-## The places archive (Places worth the stop, decision 0102)
+## The places archive (Places worth the stop, decision 0103)
 
 - **Built outside the app.** `scripts/places-archive/fetch-wikidata.mjs` asks the Wikidata Query Service one 2-degree US cell at a time; `scripts/build-places-archive.mjs` classifies (`scripts/places-archive/classify.mjs`: pinned Wikidata classes, type before age, National Historic Landmarks only, gone places out), applies `archiveEdits.json` and writes `places-<region>-<version>.pmtiles` (`archive.mjs`: z12, gzip, leaf directories); `publish.mjs` publishes only a changed archive. The chronicles-data repo runs them weekly and serves the newest three releases from its Pages site with a `manifest.json`.
 - **Read by tile in the app,** through `lib/net`, in the explore read (checklists, every walk) and the atlas ring read (PW10); never stored, merged with the map's places, the archive's kind winning. `EXPO_PUBLIC_PLACES_BASE` points the e2e build at `/places-e2e/` on the harness's server.

@@ -3,7 +3,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { captureEdits } from '../../lib/captureEdits';
 import { dayKey } from '../../lib/days';
+import { EMPTY, FORGOT_TOAST, HIDDEN_TOAST, NEWEST_FIRST, NOT_A_THREAD, OFF_LINE, fewerLike, fewerWord, withSaveNote } from '../../lib/resurface/copy';
 import { LATELY_PAGE, lately } from '../../lib/resurface/feed';
+import { hiddenItems } from '../../lib/resurface/hidden';
 import { resurface } from '../../lib/resurface';
 import { useResurface } from '../../lib/resurface/useResurface';
 import type { PrefsChange } from '../../lib/resurface/prefs';
@@ -15,25 +17,39 @@ import { useStore } from '../../lib/useStore';
 import type { Capture } from '../../lib/types';
 import { showWalk } from '../../lib/walkNav';
 import { CaptureViewer } from '../CaptureView';
+import { Icon } from '../icons';
 import { Button, theme } from '../ui';
+import { HiddenScreen } from './HiddenScreen';
+import { MemoriesMenu } from './MemoriesMenu';
 import { MemoryMenu } from './MemoryMenu';
 import { MomentCard } from './MomentCard';
 import { Resurfaced } from './Resurfaced';
 import { ThreadScreen } from './ThreadScreen';
 import { ThreadsRail } from './ThreadsRail';
-import { fromLine } from '../../lib/resurface/views';
 
 const TOAST_MS = 4200;
 const stepIndex = (s: { index: number }) => s.index;
+const NO_IDS: string[] = [];
+
+/** Reads a card's context as the card mounts, and so only for the cards the list renders (MC6); a moment read already is not read again. */
+function ReadsContext({ id, version, deleted }: { id: string; version: number; deleted: ReadonlySet<string> }) {
+  // `version` counts the reads of the moments: a card whose read failed asks again when the owner comes back (audit 2).
+  useEffect(() => {
+    void resurface.contextFor([id], deleted);
+  }, [id, version, deleted]);
+  return null;
+}
 
 /** Chronicle's Memories (RM4-RM21): the resurfaced moment, the threads, and Lately. */
 export function MemoriesScreen() {
-  const { state, feed, now } = useResurface();
+  const { state, feed, now, hidden: deletedIds } = useResurface();
   const index = useStore(resurface.store, stepIndex);
   const [limit, setLimit] = useState(LATELY_PAGE);
   const [threadTerm, setThreadTerm] = useState<string | null>(null);
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [viewing, setViewing] = useState<Capture[] | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [hiddenOpen, setHiddenOpen] = useState(false);
   // A reminder tapped with no walk open lands on Chronicle and opens its capture at once (NV13), as the map's
   // screen does; with a walk open, the walk screen opens it and this declines. Until the keeper knows, it declines.
   const [recalled, setRecalled] = useState<Capture[] | null>(null);
@@ -79,8 +95,11 @@ export function MemoriesScreen() {
   const heroId = pick?.moment.id ?? null;
   // The top card showed this moment: kept, so the next open starts elsewhere (RM8).
   useEffect(() => {
-    if (heroId) void resurface.shown(heroId);
-  }, [heroId]);
+    if (heroId) {
+      void resurface.shown(heroId);
+      void resurface.contextFor([heroId], deletedIds);
+    }
+  }, [heroId, deletedIds, state.version]);
   useEffect(
     () => () => {
       if (timer.current) clearTimeout(timer.current);
@@ -89,12 +108,24 @@ export function MemoriesScreen() {
   );
 
   const thread = threadTerm ? feed.threads.find((t) => t.term === threadTerm) ?? null : null;
-  const page = useMemo(() => lately(feed.moments, feed.threads, now, limit), [feed.moments, feed.threads, now, limit]);
+  // An open thread's moments are on screen: read their context too (MC6).
+  const threadIds = thread ? thread.momentIds : NO_IDS;
+  useEffect(() => {
+    if (threadIds.length) void resurface.contextFor(threadIds, deletedIds);
+  }, [threadIds, deletedIds, state.version]);
+  const hidden = useMemo(() => hiddenItems(state.prefs, feed.moments), [state.prefs, feed.moments]);
+  // A delete began: the lines of the walks it touches are read again, so none names the capture that is going (audit 9).
+  useEffect(() => {
+    if (!deletedIds.size) return;
+    const walks = new Set(state.moments.filter((m) => deletedIds.has(m.id) && m.walkId).map((m) => m.walkId as string));
+    resurface.dropContextOfWalks([...walks]);
+  }, [deletedIds, state.moments]);
+  const page = useMemo(() => lately(feed.moments, now, limit), [feed.moments, now, limit]);
 
   const say = (msg: string, change: PrefsChange) => {
     if (timer.current) clearTimeout(timer.current);
     // A choice that could not be kept shows for now, and the toast says so (audit 10).
-    setToast({ msg: change.saved ? msg : `${msg} It may not be remembered next time.`, change });
+    setToast({ msg: withSaveNote(msg, change.saved), change });
     timer.current = setTimeout(() => setToast(null), TOAST_MS);
   };
   const open = (m: MomentView) => setViewing([m.capture]);
@@ -102,7 +133,7 @@ export function MemoriesScreen() {
   const menuMoment = menuFor ? byId.get(menuFor) ?? null : null;
   const walkOf = (m: MomentView) => (m.walkId ? state.walks[m.walkId] : undefined);
   const card = (m: MomentView) => (
-    <MomentCard key={m.id} moment={m} walk={walkOf(m)} now={now} onOpen={() => open(m)} onWalk={(id) => router.push(`/replay/${id}?ceremony=0`)} onMore={() => setMenuFor(m.id)} />
+    <MomentCard key={m.id} moment={m} walk={walkOf(m)} context={state.context[m.id]} now={now} onOpen={() => open(m)} onWalk={(id) => router.push(`/replay/${id}?ceremony=0`)} onMore={() => setMenuFor(m.id)} />
   );
 
   let body;
@@ -110,13 +141,13 @@ export function MemoriesScreen() {
     body = (
       <View style={styles.quiet} testID="memories-failed">
         <Text style={styles.quietText}>Couldn’t read your moments.</Text>
-        <Button label="Try again" onPress={() => void resurface.load()} />
+        <Button label="Try again" onPress={() => { setHiddenOpen(false); void resurface.load(); }} />
       </View>
     );
   } else if (state.status === 'ready' && feed.moments.length === 0) {
     body = (
       <View style={styles.quiet} testID="memories-empty">
-        <Text style={styles.quietText}>Nothing kept yet. Walk somewhere, and keep what you notice.</Text>
+        <Text style={styles.quietText}>{EMPTY}</Text>
         <Button testID="memories-navigate" label="Navigate" onPress={() => showWalk()} />
       </View>
     );
@@ -135,7 +166,7 @@ export function MemoriesScreen() {
           onRename={(name) => void resurface.rename(thread.term, name)}
           onRemove={() => {
             setThreadTerm(null);
-            void resurface.removeThread(thread.term).then((change) => say('Okay, that is not a thread.', change));
+            void resurface.removeThread(thread.term).then((change) => say(NOT_A_THREAD, change));
           }}
         />
       </ScrollView>
@@ -146,17 +177,28 @@ export function MemoriesScreen() {
         testID="memories-list"
         data={page.items}
         keyExtractor={(m) => m.id}
-        renderItem={({ item }) => <View style={styles.item}>{card(item)}</View>}
+        renderItem={({ item }) => (
+          <View style={styles.item}>
+            <ReadsContext id={item.id} version={state.version} deleted={deletedIds} />
+            {card(item)}
+          </View>
+        )}
         onEndReached={() => page.more && setLimit((l) => l + LATELY_PAGE)}
         onEndReachedThreshold={0.6}
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <View style={styles.header}>
+            {state.prefs.off && (
+              <View style={styles.off} testID="resurfaced-off">
+                <Text style={styles.offText}>{OFF_LINE}</Text>
+                <Button testID="resurfaced-on" label="Turn on" variant="secondary" onPress={() => void resurface.setOff(false)} />
+              </View>
+            )}
             {pick && (
               <Resurfaced
                 pick={pick}
+                context={state.context[pick.moment.id]}
                 now={now}
-                placeLine={fromLine(walkOf(pick.moment))}
                 onOpen={() => open(pick.moment)}
                 onRelive={() => relive(pick.moment)}
                 onAnother={() => resurface.another()}
@@ -170,7 +212,7 @@ export function MemoriesScreen() {
             )}
             <View>
               <Text style={styles.h} accessibilityRole="header">Lately</Text>
-              <Text style={styles.sub}>Newest first</Text>
+              <Text style={styles.sub}>{NEWEST_FIRST}</Text>
             </View>
           </View>
         }
@@ -180,21 +222,68 @@ export function MemoriesScreen() {
     body = null;
   }
 
+  if (hiddenOpen && state.status === 'ready') {
+    body = (
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.pad}>
+        <HiddenScreen
+          items={hidden}
+          moments={byId}
+          names={state.prefs.renames}
+          now={now}
+          onBack={() => setHiddenOpen(false)}
+          onOpen={open}
+          onMoment={(id) => void resurface.restoreMoment(id)}
+          onThread={(term) => void resurface.restoreThread(term)}
+          onWord={(term) => void resurface.restoreWord(term)}
+        />
+      </ScrollView>
+    );
+  }
+
   return (
     <View style={styles.screen} testID="memories">
+      {state.status === 'ready' && !thread && !hiddenOpen && (
+        <View style={styles.bar}>
+          <Pressable testID="memories-menu" accessibilityRole="button" accessibilityLabel="Memories options" onPress={() => setMenuOpen(true)} style={styles.menuBtn}>
+            <Icon name="ellipsis-horizontal" size={22} color={theme.muted} />
+          </Pressable>
+        </View>
+      )}
       {body}
+      <MemoriesMenu
+        open={menuOpen}
+        off={state.prefs.off}
+        onClose={() => setMenuOpen(false)}
+        onHidden={() => {
+          setMenuOpen(false);
+          setHiddenOpen(true);
+        }}
+        onToggle={() => {
+          setMenuOpen(false);
+          void resurface.setOff(!state.prefs.off);
+        }}
+        onForget={() => {
+          setMenuOpen(false);
+          void resurface.forget().then((change) => say(FORGOT_TOAST, change));
+        }}
+      />
       <MemoryMenu
         open={!!menuMoment}
         onClose={() => setMenuFor(null)}
         onLess={() => {
           const id = menuFor;
           setMenuFor(null);
-          if (id) void resurface.less(id).then((change) => say('Okay, less like this.', change));
+          if (id) {
+            void resurface.less(id).then((change) => {
+              const set = change.after.less.filter((t) => !change.before.less.includes(t));
+              say(fewerLike(fewerWord(set, change.after.shown)), change);
+            });
+          }
         }}
         onHide={() => {
           const id = menuFor;
           setMenuFor(null);
-          if (id) void resurface.hide(id).then((change) => say('Okay, not this one.', change));
+          if (id) void resurface.hide(id).then((change) => say(HIDDEN_TOAST, change));
         }}
         onOpen={() => {
           const m = menuMoment;
@@ -250,6 +339,10 @@ const styles = StyleSheet.create({
   pad: { paddingHorizontal: 16, paddingBottom: 24, width: '100%', maxWidth: 640, alignSelf: 'center' },
   list: { paddingHorizontal: 16, paddingBottom: 32, width: '100%', maxWidth: 640, alignSelf: 'center' },
   header: { gap: 22, paddingBottom: 12 },
+  bar: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 16, width: '100%', maxWidth: 640, alignSelf: 'center' },
+  menuBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  off: { backgroundColor: theme.surface, borderRadius: 14, borderWidth: 1, borderColor: theme.line, padding: 14, gap: 10, alignItems: 'flex-start' },
+  offText: { color: theme.ink, fontSize: 15 },
   item: { paddingBottom: 12 },
   h: { color: theme.ink, fontSize: 16, fontWeight: '700' },
   sub: { color: theme.muted, fontSize: 13 },

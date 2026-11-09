@@ -2,7 +2,7 @@
 import type { LngLat } from '../types';
 
 /*
- * The places archive's manifest (PW2, decision 0102): which file is current for each region, read from the
+ * The places archive's manifest (PW2, decision 0103): which file is current for each region, read from the
  * `chronicles-data` Pages site. The only file that knows the manifest's shape; the network side is
  * `discovery/archive/shell.ts`.
  */

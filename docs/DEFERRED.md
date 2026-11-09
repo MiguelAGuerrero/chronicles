@@ -16,6 +16,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - Scenic routes (decision 0095), left out: a detour via one named stop; a loop with no destination ("back here in 30 min"); choosing a route on the ready screen before Start (the preview comes up as Start records); "Streets new to you" as a leaning; a choice of detour size; water and riversides as green; routes past 5 km
 - Scenic routes: a Sights row in a dense centre often says only "past places to find", since most places there are not yet found and never named (scenic routes, SR4)
 - Scenic routes: a start or destination that snaps onto a street piece not joined to the rest (seen once in the Zurich tiles) finds no route at all, direct or scenic; today's Go here has the same gap (scenic routes)
+- A complete walk through every point of interest in an area, which may double back: its own architecture, especially in dense areas such as Philadelphia or New York (decision 0102)
 - Kind walk (decision 0101): a sketch of the way in the panel; mixed-kind walks from the card's head; a walk built across a whole town outline (it is built from 1.5 km around the area's point); distance steps above 5 km or below 1 km. The rest of a suggested walk's choices (a leaning, a preview) are scenic routes' (0095)
 - Open in Maps on the Explore mark card (v0.5 navigate, Open in Maps)
 - Open in Maps on the dead-zone nudge (v0.5 navigate, Open in Maps)
@@ -150,7 +151,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 - **Whole areas** (the owner's next slice): a town graded across its outline, a neighborhood across its share of the town (closer to its point than to any other); dots say how much the area holds; density as shading on the area's picture, per kind
 - Distance weighting inside the ring (full credit to 400 m, nothing at 800 m): dropped by the owner in favour of whole areas
-- A significance file per tile (Wikidata, QRank page views, heritage tags, Wikivoyage "see" listings): taken up by decision 0102 (Nov 5) as a static places archive on the Pages site, read by tile, significance as a gate only; QRank and page views stay out (popularity). The tiles' `rank` is a label order, not fame, so S23's idea of using it would not work
+- A significance file per tile (Wikidata, QRank page views, heritage tags, Wikivoyage "see" listings): taken up by decision 0103 (Nov 5) as a static places archive on the Pages site, read by tile, significance as a gate only; QRank and page views stay out (popularity). The tiles' `rank` is a label order, not fame, so S23's idea of using it would not work
 - Retuning `STEPS` against real towns
 - A street-network catchment in place of the ring
 
@@ -312,16 +313,25 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **Street-named neighborhoods** (the owner, Nov 5, after "7th Street" was listed as a neighborhood of Allentown): OpenStreetMap names a real neighborhood "7th Street" (Overture's divisions carry it beside "1st Ward", "East Side"), and the tiles' place points bring it in as a neighborhood. The owner chose to leave it. Nothing in `tilePlaces.ts` filters by name; the options weighed were dropping names that end in a street-type word (English suffixes, a re-list with `ATLAS_CODE` a7 and `AREA_RULES` 4) or dropping a name only when the area's own street read has a street of that name.
 
 - **Layers button, corner (fix layers-corner audit, Nov 5):** the panel's clearance under the top overlay is a fixed `insets.top + 152`, so a banner plus the navigation bar plus a long chip could still reach it; below 360 px wide the panel floors at 188 and can touch the capture column; the corner button is reached by keyboard after the right-column buttons; the corner's `left` is written in `layersCorner` and in the scale bar's inset separately.
+- **Memories in context, audit** (`specs/memories-context/spec.md`, Audit): the time of day is by the phone's zone now, not the zone the moment was made in (needs a stored zone on the capture, a migration, audit 19); Android's hardware Back from Hidden (and from a thread) closes the tab instead of the screen (native); VISION.md's open questions 1 and 5 (who may volunteer a moment) still stand, now with a switch to turn volunteering off.
+
+- **Navigation bar on the top row (fix nav-top audit, Nov 6):** the Undo toast sits at `insets.top + 64`, just under the bar, so it can cover the street chip or a notice shown there (audit 2); the Layers panel's `clearTop` (`insets.top + 152`) is shorter than a stack of notice, street chip, off-route chip and status chip under the bar (audit 3); a notice and the street chip move from the Minimize row to under the bar when navigation starts or ends (audit 4); a notice that carries an Open in Maps action would repeat the bar's own button (audit 5). Not run on a device.
+
 
 ## Network rules (decision 0100)
 
 - **Switching a host off remotely:** the off switch is in the code's host table; the `chronicles-data` manifest, which the app will read daily, could carry it so a misbehaving service can be stopped without a release.
 - **The decode check for Overture's divisions and transportation:** only places are checked before a new release is relied on; town outlines and walkability read the same release without it.
 
-## Places worth the stop (decision 0102)
+## Places worth the stop (decision 0103)
 
 - **PW16, the real host:** PLACES_BASE stays empty until a real archive has been read by byte range from the chronicles-data Pages site; then it is set and the host is added to ALLOWED_HOSTS and `lib/net`'s table in the same commit.
 - **OpenStreetMap in the weekly build:** the build takes an OSM export to corroborate (a `demolished:` tag removes a place), but the weekly job feeds it Wikidata only: an OSM extract of the US is large for a runner, and the public Overpass blocks cloud ranges.
 - **Classes not yet pinned:** historical markers (no Wikidata class with real use), petroglyphs (archaeology, not an oddity), water towers and rock formations (too broad), time capsules (the lookup's match looked wrong). Each is a deliberate change to `classify.mjs` and ARCHIVE_CLASSES.
 - **A line on why a place is worth the stop, Wikivoyage, the one-of-a-kind shops tier, the scenic routes' Sights leaning (PW18 pins it unchanged).**
 - **From the slice's audit (Nov 6), deferred:** the manifest's region box is the archive's data bounds, which cover much of Canada and northern Mexico, so a read there asks for US tiles (F7: give a region its own boxes); a new `archiveEdits.json` reaches an area only when the archive version changes (F8); routine Wikidata edits change the archive's bytes almost every week, so every client rebuilds areas and re-reads rings weekly (compare a content hash of the places instead of the file's bytes); the weekly job installs the whole app for two packages; `KEEP: 3` counts releases across regions; a private app repo needs `APP_REPO_TOKEN`.
+
+## Wrapped map names (fix long-names audit)
+
+- **No line cap:** a very long name (60+ characters) wraps to many lines under its pin and can cover neighbouring pins. The owner asked for names not to be truncated, so no cap was added; a cap is the owner's call.
+- **Busy-street label shifts up when it wraps:** `StripLabel`'s marker is centre-anchored, so its first line moves about 8 px up per extra line. Cosmetic; check on a device.

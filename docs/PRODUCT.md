@@ -103,7 +103,7 @@ recording bar brings a minimized walk back.
 - Explore's route preview and "Walk this way" are deferred: Walk here and
   "Walk to its busiest street" start at once.
 
-- **Places worth the stop** (decision 0102): curiosities (follies, roadside
+- **Places worth the stop** (decision 0103): curiosities (follies, roadside
   oddities, natural oddities, covered bridges and lighthouses, places that
   mark a fact, ruins) and National Historic Landmarks join the map's own
   places as marks, from a weekly archive built from Wikidata. Curiosities are
@@ -230,8 +230,13 @@ recording bar brings a minimized walk back.
     "Comes back every October"). A thread's page shows two of the user's own
     sentences and its moments; **Rename** and **Not a thread** change only the
     thread. No rank or count is shown.
-  - **Lately**: every moment, newest first, a thread's moments leading within a
-    week; a card opens the moment and a small line opens the walk's replay.
+  - **Lately**: every moment, strictly newest first; a card opens the moment and a
+    small line opens the walk's replay. Each moment arrives with its place (the
+    street and the walk's town), the time of day, how far into the walk it was and,
+    when the capture before it was close, "just after a photo" (decision 0098).
+  - **A menu on the header** opens **Hidden** (what you hid, set to fewer, removed
+    or softened, each to bring back), the switch **Bring moments back**, and
+    **Forget my choices**.
   - **Show less like this** and **Not this one** (on the ... of the top card and
     of every card) change what is brought back, never what is kept; both have Undo.
   - Memos show here but join threads only once they have a transcript (not yet).

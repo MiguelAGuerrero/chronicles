@@ -60,7 +60,7 @@ export const KINDS: readonly KindInfo[] = [
   { id: 'cemeteries', label: 'Cemeteries', icon: 'rose-outline' },
   { id: 'parks', label: 'Parks and gardens', icon: 'leaf-outline' },
   { id: 'viewpoints', label: 'Viewpoints and attractions', icon: 'eye-outline' },
-  // PW4: follies, roadside giants, natural oddities and the like, from the places archive (decision 0102).
+  // PW4: follies, roadside giants, natural oddities and the like, from the places archive (decision 0103).
   { id: 'curiosities', label: 'Curiosities', icon: 'telescope-outline' },
 ];
 

@@ -52,7 +52,7 @@ async function run(h) {
     };
   }))));
   if (process.env.E2E_DEBUG) console.log('CARD', (await pg.locator('[data-testid=atlas-card]').innerText()).replace(/\s+/g, ' ').slice(0, 600));
-  check(/About \d+(\.\d)? (km|mi)\b/.test(await pg.locator('[data-testid=kindwalk-length]').innerText().catch(() => '')),
+  check(/About \d+(\.\d)? (km|mi|m|ft)\b/.test(await pg.locator('[data-testid=kindwalk-length]').innerText().catch(() => '')),
     `KW7: the suggestion says its length as a distance in the displayed unit (${first})`);
   check(!/\b(min|mins|minutes?|hours?|ETA|pace|fastest?)\b/i.test(first) && !/\bbest\b/i.test(first), 'KW7, KW1b: no time, no pace, no superlative on the panel');
   check(/(Easy on foot|built around cars|not known yet)/.test(await pg.locator('[data-testid=kindwalk-reach]').innerText().catch(() => '')),

@@ -9,7 +9,7 @@ import { placesFromArchive } from '../archivePois';
 import type { Place } from '../types';
 
 /*
- * The places archive's network side (PW1-PW3, decision 0102): the manifest at most daily, the region holding the
+ * The places archive's network side (PW1-PW3, decision 0103): the manifest at most daily, the region holding the
  * read, and the read's z12 tiles from that region's current file through the generic tile reader. Any failure is
  * no archive (PW3): the caller goes on with the map's own places. A factory given its ports and io, so tests run
  * it over fakes; the app's instance is `index.ts`.

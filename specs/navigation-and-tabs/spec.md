@@ -43,7 +43,7 @@ The tab bar
 
 Minimizing a walk
 
-7. **NV7** The walk screen has a Minimize button (chevron down) at its top-left edge, below the navigation bar when one shows, away from the capture row and Stop.
+7. **NV7** The walk screen has a Minimize button (chevron down) at its top-left edge, with the navigation bar beside it on the same top row when one shows (the owner, Nov 6), away from the capture row and Stop.
 8. **NV8** Minimized, the walk keeps recording, paused or not, and Remind me here keeps firing (on web the check moves out of the walk screen). Explore names places and memory pins again when the walk screen returns.
 9. **NV9** While a walk is open and minimized, a recording bar sits just above the tab bar on every tab: elapsed time, distance, and Paused when paused. A tap returns to the walk. It replaces the home's "Return to your walk" banner. It has no Stop. It has a camera button (the owner's call, Nov 1, so capture stays one tap away on every tab): a photo or video taken from it belongs to the open walk, is placed as a walk capture is, and doesn't open the walk screen. It works while paused, as captures do.
 10. **NV10** With a walk open, Navigate's peek shows Return to walk in place of Start, and Walk here routes the open walk there (as the walk's own Go here) and returns to it.

@@ -7,7 +7,7 @@ import { normalizeName } from './places';
 import type { Place } from './types';
 
 /*
- * The places archive beside the map's own places (decision 0102): one mark per place (PW8), and the owner's
+ * The places archive beside the map's own places (decision 0103): one mark per place (PW8), and the owner's
  * removals and adds (PW13, `archiveEdits.json`).
  */
 

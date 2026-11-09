@@ -5,7 +5,7 @@ import { placeKey } from './places';
 import type { CategoryId, Kind, Place } from './types';
 
 /*
- * The places archive's schema (decision 0102): the only file that knows it, as `tilePois.ts` knows the map
+ * The places archive's schema (decision 0103): the only file that knows it, as `tilePois.ts` knows the map
  * tiles'. Each feature is a point with `name`, `class` (the build script's own vocabulary, PW6), `src` and an
  * `id` for deduping (PW7); the app maps the class to a category and kind here.
  */

@@ -46,15 +46,15 @@ A place reaches the app through the existing `PlaceSource` interface, behind an 
 
 Idea: Enrich Explore's marks with Atlas Obscura-like places from a prebuilt static PMTiles archive (Wikidata including the National Register, plus OSM tags), read lazily by tile from the Pages site, US first and any region after; oddities get a kind of their own (the owner, Nov 5).
 Verb: earn (it raises what you notice: places worth the stop that the tiles don't carry; a find then becomes a memory)
-Touches: Never, "Ratings, reviews, stars, 'best of', rankings of places" (nearest fit: "open-data signals such as a heritage listing"); Never, "Popularity, trending, foot traffic, other people's activity"; Never, "Tallies such as '12 of 87'" and Always, "Counts are words" (Open question 6); Never, "Data leaving the device without a tap" (tile reads, the accepted class of 0080, 0083, 0093); decision 0084 ("No significance file and no host"), reversed by 0102; AG5 (what a mark is).
-Verdict: aligned if reshaped (decision 0102)
+Touches: Never, "Ratings, reviews, stars, 'best of', rankings of places" (nearest fit: "open-data signals such as a heritage listing"); Never, "Popularity, trending, foot traffic, other people's activity"; Never, "Tallies such as '12 of 87'" and Always, "Counts are words" (Open question 6); Never, "Data leaving the device without a tap" (tile reads, the accepted class of 0080, 0083, 0093); decision 0084 ("No significance file and no host"), reversed by 0103; AG5 (what a mark is).
+Verdict: aligned if reshaped (decision 0103)
 Shape: As asked, with these changes. Significance is a build-time include/exclude gate only, and the archive carries no popularity field. Curiosities are a kind of the existing category "Viewpoints & oddities", chosen by a place's type and never its age or listing. One mark per place across sources, the archive winning. No new count anywhere.
 Criteria: PW1, PW3 (tile-aligned reads to one allowed host; silent failure); PW5, PW6 (a pinned class table; type decides); PW7 (no popularity field); PW8 (one mark per place); PW9 (a curiosity is a mark); PW10 (steps fixed, `thin` unchanged); PW11 (never a number); PW12 (cache tagged, recomputed, finds keep their kind); PW15 (credit); PW17 (the sheet's total).
 Open: none (the tally was removed by decision 0099; the credit goes with the map's credits, PW15).
 
 ## Decisions (the owner's calls, Nov 5)
 
-- **Reverses 0084's "no significance file and no host"** for a read-only static archive (decision 0102). Everything else in 0084 stands.
+- **Reverses 0084's "no significance file and no host"** for a read-only static archive (decision 0103). Everything else in 0084 stands.
 - **The archive adds to the tiles' POIs; it does not replace them** (answers the doc's third open question). A place in both is one mark, the archive's category and kind winning.
 - **Host:** the `chronicles-data` repo (Nov 5, after the hosting audit): one PMTiles file per region and version as a GitHub Release, served by that repo's Pages site with a `manifest.json` naming the newest three. US first.
 - **No count on a place's sheet** (Nov 5, decision 0099): its finds are named, never counted, so the archive adds nothing to count (PW17).
@@ -66,7 +66,7 @@ Open: none (the tally was removed by decision 0099; the credit goes with the map
 - **Built on a schedule** (Nov 6): a weekly job in `chronicles-data` rebuilds the archive and publishes a release only when its bytes changed, so the weekly build is also the check for changes (PW19).
 - **One robust reader** (Nov 6): the archive is read through the generalized form of the hardened Overture reader, not a second copy.
 - **Marks only.** The Explore tab shows these places as it shows any mark; no arrival list (the doc's first open question stays as the tab works today).
-- **Left for later:** Wikivoyage's listings, a line of why a place is worth the stop, the one-of-a-kind shops and cafés tier, and the scenic routes' Sights leaning (it reads tiles only; decision 0102 asks to check what Curiosities do to it).
+- **Left for later:** Wikivoyage's listings, a line of why a place is worth the stop, the one-of-a-kind shops and cafés tier, and the scenic routes' Sights leaning (it reads tiles only; decision 0103 asks to check what Curiosities do to it).
 
 ## Criteria
 

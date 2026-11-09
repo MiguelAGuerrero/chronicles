@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The weekly job's last step (Places worth the stop, PW19, decision 0102): publish a newly built archive only when
+// The weekly job's last step (Places worth the stop, PW19, decision 0103): publish a newly built archive only when
 // it differs from the current release's, so the weekly build is also the check for changes. Run by the
 // chronicles-data workflow:
 //

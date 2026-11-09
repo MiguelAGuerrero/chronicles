@@ -4,7 +4,7 @@ import type { Archive } from '../activity/release';
 /*
  * Reading a PMTiles archive by tile, robustly (AD7, AD8, activity-density audit 2, 3, 5, 9): timers and held
  * state, so a shell. Given its archive opener and decoder, so tests run it with fakes. Overture's reader
- * (`activity/reader.ts`) and the places archive's (decision 0102) are both this one.
+ * (`activity/reader.ts`) and the places archive's (decision 0103) are both this one.
  */
 
 export type TileRead<T> = { ok: true; items: T[] } | { ok: false; missing: boolean };
@@ -53,7 +53,7 @@ export class TileMemo<T> {
 
 /**
  * Reads one version's PMTiles archive by tile, robust to what a phone's network does (generalized from Overture's
- * reader for the places archive, decision 0102). Overture's places for z14 tiles out of one release's archive (AD3, AD7, AD8), robust to what a phone's
+ * reader for the places archive, decision 0103). Overture's places for z14 tiles out of one release's archive (AD3, AD7, AD8), robust to what a phone's
  * network does (activity-density audit 2, 3, 5, 9):
  * - each tile loads once per release (`TileMemo`), under its own timeout and abort, never a reader's, so one
  *   reader cancelling never fails another waiting on the same tile;

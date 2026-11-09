@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Builds one region's places archive (Places worth the stop, PW14, decision 0102).
+// Builds one region's places archive (Places worth the stop, PW14, decision 0103).
 //
 //   node scripts/build-places-archive.mjs --wikidata items.jsonl [--osm osm.geojson] [--edits src/lib/discovery/archiveEdits.json]
 //        --region us --version 20261108 --out dir

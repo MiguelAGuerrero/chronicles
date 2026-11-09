@@ -1,4 +1,4 @@
-# 0102. A static places archive, and Curiosities in Viewpoints & oddities
+# 0103. A static places archive, and Curiosities in Viewpoints & oddities
 
 Date: 2026-11-05 · Status: accepted · Area: explore, discovery, atlas
 
