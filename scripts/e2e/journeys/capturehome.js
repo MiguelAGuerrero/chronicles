@@ -90,8 +90,8 @@ async function run(h) {
     text: e.innerText.trim(),
     buttons: e.querySelectorAll('[role=button], button').length,
   })) : null;
-  check(!!empty && empty.text === 'Nothing kept yet.' && empty.buttons === 0 && (await shown(band)),
-    `HC13: empty Memories is "Nothing kept yet." and the band (${JSON.stringify(empty)})`);
+  const emptyOk = !!empty && empty.text === 'Nothing kept yet.' && empty.buttons === 0 && (await shown(band));
+  check(emptyOk, `HC13: empty Memories is "Nothing kept yet." and the band (${JSON.stringify(empty)})`);
 
   // HC6, HC8: three buttons, camera, mic, note, left to right, each a thumb's target, named for a screen reader.
   const buttons = await pg.locator(`${band} [data-testid^=band-]`).filter({ visible: true }).evaluateAll((els) => els
