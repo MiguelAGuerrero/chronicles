@@ -28,7 +28,7 @@ Verdict: aligned if reshaped
 Shape: three fixed presets named by what shapes them (not by pace or length); the distance a ceiling and a preference;
   exposure as a shaded route, a strip and words, no pin for an unfound place; "Suggest more" replaces the three without a
   history; Start routes an open walk or starts one
-Criteria: WP1-WP27 below
+Criteria: WP1-WP28 below
 Open: none (the owner's answers of Nov 6 below)
 ```
 
@@ -68,7 +68,8 @@ Open: none (the owner's answers of Nov 6 below)
 4. **WP4 · Up to three, fixed.** Up to three routes are shown at once, in a fixed order by preset that does not depend on length,
    density or quality: through the middle, across the area, around the edge. The same inputs give the same routes. One route is a
    normal state (a small area gives the same cells to every preset): Start is available, and the page says why in words that do
-   not call the area poor. No row is highlighted when the page opens and Start waits for a tap on a row.
+   not call the area poor. The first route is selected when the page opens (decision 0104), with Start ready; nothing is labelled
+   recommended, fastest or best.
 5. **WP5 · Each preset's rule.** "Through the middle" passes the dense cells of the kind, those nearest the middle of where the
    kind is concentrated, in order. "Across the area" passes
    the dense cells along the area's widest direction, end to end. "Around the edge" passes the dense cells furthest from the
@@ -102,6 +103,8 @@ Open: none (the owner's answers of Nov 6 below)
 14. **WP14 · Each row.** A row gives its own distance in the displayed unit and a line in words of how much of the kind the route
     passes and where ("plenty along much of the way", "mostly near the end"), and says in words how much of the route is only
     getting there ("much of the way is getting there"). No digit appears in a row except its distance and unit.
+    The selected route also says which other kinds it passes ("Also passes some history and some art"), by kind and never by
+    place (WP28).
 15. **WP15 · A strip.** Each row has a strip from the route's start to its end, in three flat grades of the kind's colour at low
     contrast (not the accent), with no number, percent, count, end cap or fill animation, and a text equivalent for a screen reader.
 16. **WP16 · The map.** The highlighted route is drawn shaded where the kind is dense, the others faint. The shading is at the
@@ -114,8 +117,8 @@ Open: none (the owner's answers of Nov 6 below)
 
 ### Choosing and starting
 
-18. **WP18 · Choosing.** Tapping a row, or its line on the map, highlights it, and a Start button starts the highlighted route.
-    Nothing starts until Start is pressed.
+18. **WP18 · Choosing.** The first route is highlighted when the page opens. Tapping another row, or its line on the map, highlights
+    that one, and a Start button starts the highlighted route. Nothing starts until Start is pressed.
 19. **WP19 · An open walk, or a new one.** If a walk is recording, Start routes that walk (no second walk is started) and returns
     to it, replacing any destination already set. Otherwise it starts a walk ready (0076).
 20. **WP20 · Every route holds the kind walk's rules.** Every route: continuous (KW16), one distance for the row and the
@@ -135,6 +138,11 @@ Open: none (the owner's answers of Nov 6 below)
 26. **WP26 · Too far.** When the walker is more than 5 km from where the kind is, the planner says so in words and offers no route.
 27. **WP27 · The settings live on the planner.** The kind walk's two settings (the distance and the walkability choice) move from the
     Start dialog to the planner, with the mode and the density; the Start dialog keeps what a walk needs.
+
+28. **WP28 · The other kinds along a route.** A route's row names, in words, the other kinds with a presence along it ("Also passes
+    some history and some art"), at the cells' resolution (400 m), counting every place found or not, so a find changes nothing; a
+    kind with none along it is not named. It names kinds and never places, no pin or place is added for them, and a route with
+    none says nothing of the sort.
 
 ## Amends the kind walk (decision 0102)
 
