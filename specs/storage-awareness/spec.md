@@ -76,3 +76,12 @@ Open: none for this slice (the owner, Nov 9: Expo first, the recommended default
 `Paths.availableDiskSpace` on iOS and Android, an iOS photo save failing with a full disk, and the SA9 words for it.
 
 ## Record
+
+Nov 9, 2026, branch `claude/quirky-ramanujan-5z25ga`:
+
+- SA1-SA10 pass: `storage/space.test.ts` and `storage/spaceShell.test.ts` (unit), the `space` journey (e2e). Each criterion's todo came before its code (`npm run check:test-first storage-awareness`).
+- Typecheck, lint, `npm test` and the journeys covering the changed files pass: `space`, `ready`, `walk`, `edit`, `days`, `tabs`, `reload`, `hidden`, `gaps`, `layers`, `marks`, `headsup`, `walkability`.
+- The steward's read (one breach, four drifts, two tone) was accepted whole before the code (plan.md).
+- Deferred: as above, also in `docs/DEFERRED.md`. Native unverified: four items in `docs/NATIVE_UNVERIFIED.md`.
+- Not audited (decision 0074: on the owner's request).
+
