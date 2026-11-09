@@ -141,7 +141,8 @@ export function useCaptures(
    * prompts never stack (audit: Android takes one request at a time).
    */
   const startLocating = (s: Stamp) => {
-    if (!walkId && !s.at && !s.locating) s.locating = locateOnce().catch(() => ({ at: null, reason: 'unavailable' as const }));
+    // In a walk too: while paused the recorder is stopped, so the last fix is where the pause began.
+    if (!s.at && !s.locating) s.locating = locateOnce().catch(() => ({ at: null, reason: 'unavailable' as const }));
   };
   const folder = () => walkId ?? LOOSE_FOLDER;
 
@@ -159,10 +160,8 @@ export function useCaptures(
     if (alive.current) setCaptures((prev) => [...prev, shown]);
     // Told even once this path is gone: the walk screen may have come back meanwhile (NV9).
     captureBus.emit(shown, self);
-    if (!walkId) {
-      onMoment.current?.(c, 'kept');
-      placeMoment(c, stamp);
-    }
+    if (!walkId) onMoment.current?.(c, 'kept');
+    placeMoment(c, stamp);
     return c.id;
   }
 
@@ -171,22 +170,28 @@ export function useCaptures(
    * arrives (M2), so a save never waits on GPS. No fix: it stays unplaced.
    */
   function placeMoment(c: Capture, stamp: Stamp) {
+    // In a walk, no fix leaves it for the trace to place at stop; nothing is reported.
+    const report = (x: Capture, state: MomentState) => {
+      if (!walkId) onMoment.current?.(x, state);
+    };
     if (c.lat != null || !stamp.locating) {
-      onMoment.current?.(c, c.lat != null ? 'placed' : 'unavailable');
+      report(c, c.lat != null ? 'placed' : 'unavailable');
       return;
     }
     stamp.locating
       .then(async (r) => {
         if (!r.at) {
-          onMoment.current?.(c, r.reason ?? 'timeout');
+          report(c, r.reason ?? 'timeout');
           return;
         }
         const placed = { ...c, lon: r.at[0], lat: r.at[1] };
         await db.updateCapture(c.id, { lon: placed.lon, lat: placed.lat });
         if (alive.current) setCaptures((prev) => prev.map((x) => (x.id === c.id ? placed : x)));
-        onMoment.current?.(placed, 'placed');
+        // The pin shown at the last position elsewhere moves too (NV9).
+        if (walkId) captureBus.patch(walkId, c.id, { lon: placed.lon, lat: placed.lat }, self);
+        report(placed, 'placed');
       })
-      .catch(() => onMoment.current?.(c, 'unavailable'));
+      .catch(() => report(c, 'unavailable'));
   }
 
   async function guarded(kind: CaptureKind, fn: () => Promise<void>) {
