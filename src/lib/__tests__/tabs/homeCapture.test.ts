@@ -26,17 +26,17 @@ test('HC4: the walk screen with nothing beneath it goes to Chronicle', () => {
   assert.equal(plan.kind === 'replace' ? plan.to : null, tabFor('chronicle').path);
 });
 
-test('HC9: with no walk open, the band keeps loose moments', { todo: 'test first' }, async () => {
+test('HC9: with no walk open, the band keeps loose moments', async () => {
   const { captureTarget } = await import('../../captureBand');
   assert.deepEqual(captureTarget(null), { loose: true });
 });
 
-test('HC10: with a walk open, the band files into that walk', { todo: 'test first' }, async () => {
+test('HC10: with a walk open, the band files into that walk', async () => {
   const { captureTarget } = await import('../../captureBand');
   assert.deepEqual(captureTarget({ id: 'w1' }), { walkId: 'w1' });
 });
 
-test('HC7: the band is three equal buttons inside the 640 column, at least a thumb tall', { todo: 'test first' }, async () => {
+test('HC7: the band is three equal buttons inside the 640 column, at least a thumb tall', async () => {
   const { bandLayout } = await import('../../captureBand');
   const phone = bandLayout(390);
   assert.equal(phone.buttons.length, 3);
@@ -53,7 +53,7 @@ test('HC7: the band is three equal buttons inside the 640 column, at least a thu
   for (const b of bandLayout(320).buttons) assert.ok(b.width >= 44);
 });
 
-test('HC8: the band names its buttons for a screen reader, for the walk when one is open', { todo: 'test first' }, async () => {
+test('HC8: the band names its buttons for a screen reader, for the walk when one is open', async () => {
   const { bandLabels } = await import('../../captureBand');
   assert.deepEqual(bandLabels(false), {
     photo: 'Keep a moment: take a photo or video',
@@ -67,11 +67,19 @@ test('HC8: the band names its buttons for a screen reader, for the walk when one
   });
 });
 
-test('HC15: the moment\'s toast says where it went, in words', { todo: 'test first' }, async () => {
+test('HC15: the moment\'s toast says where it went, in words', async () => {
   const { momentToast } = await import('../../captureBand');
   assert.equal(momentToast('text', 'loose'), 'Note kept here');
   assert.equal(momentToast('photo', 'loose', 'unavailable'), 'Photo kept · No location');
   assert.equal(momentToast('voice', 'loose', 'denied'), 'Voice memo kept · No location (location is off)');
   assert.equal(momentToast('text', 'walk'), 'Note saved to your walk');
   assert.equal(momentToast('video', 'walk'), 'Video saved to your walk');
+});
+
+test('HC7: the recording bar shows no camera on Memories, where the band files into the walk (decision 0106)', async () => {
+  const { barCamera } = await import('../../captureBand');
+  assert.equal(barCamera('/', 'memories'), false);
+  assert.equal(barCamera('/', 'walks'), true);
+  assert.equal(barCamera('/explore', 'memories'), true);
+  assert.equal(barCamera('/day/2026-11-09', 'memories'), true);
 });

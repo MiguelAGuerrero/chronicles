@@ -22,7 +22,7 @@ const COUNT_GEO = () => {
   };
 };
 
-const SEED = (now, day) => {
+const SEED = ({ now, day }) => {
   const note = (id, t, body) => ({ id, walk_id: null, t, lat: null, lon: null, kind: 'text', file_path: null, body, segment_id: null });
   const caps = [];
   for (let i = 0; i < 14; i++) caps.push(note(`n${i}`, now - (i + 2) * day, `A quiet note from a walk around town, number ${String.fromCharCode(97 + i)}.`));
@@ -75,22 +75,22 @@ async function run(h) {
     bars: await pg.locator('[data-testid=tab-bar-wrap]').count(),
     maps: await pg.locator('canvas.maplibregl-canvas').count(),
   };
-  check.todo(opened.path === `${BASE}/` && opened.chronicle === 1 && opened.memories && opened.bars === 1 && opened.maps === 0,
+  check(opened.path === `${BASE}/` && opened.chronicle === 1 && opened.memories && opened.bars === 1 && opened.maps === 0,
     `HC1: the app opens on Memories at /, one tab bar, no live map (${JSON.stringify(opened)})`);
   const geoAtLaunch = await pg.evaluate(() => window.__geo.reads);
-  check.todo(geoAtLaunch === 0, `HC14: opening on Chronicle reads no location (${geoAtLaunch} reads)`);
+  check(geoAtLaunch === 0, `HC14: opening on Chronicle reads no location (${geoAtLaunch} reads)`);
 
   // HC3: Chronicle, Explore, Navigate.
   const tabs = await pg.locator('[data-testid^=tab-]').filter({ hasNot: pg.locator('[data-testid=tab-bar-wrap]') }).evaluateAll((els) =>
     els.filter((e) => /^tab-(chronicle|explore|navigate)$/.test(e.dataset.testid)).map((e) => e.innerText.replace(/[^A-Za-z]/g, '')));
-  check.todo(tabs.join(',') === 'Chronicle,Explore,Navigate', `HC3: the tabs read Chronicle, Explore, Navigate (${tabs.join(', ')})`);
+  check(tabs.join(',') === 'Chronicle,Explore,Navigate', `HC3: the tabs read Chronicle, Explore, Navigate (${tabs.join(', ')})`);
 
   // HC13: nothing kept is one line and the band, no other button, no accent.
   const empty = await shown('[data-testid=memories-empty]') ? await pg.locator('[data-testid=memories-empty]').evaluate((e) => ({
     text: e.innerText.trim(),
     buttons: e.querySelectorAll('[role=button], button').length,
   })) : null;
-  check.todo(!!empty && empty.text === 'Nothing kept yet.' && empty.buttons === 0 && (await shown(band)),
+  check(!!empty && empty.text === 'Nothing kept yet.' && empty.buttons === 0 && (await shown(band)),
     `HC13: empty Memories is "Nothing kept yet." and the band (${JSON.stringify(empty)})`);
 
   // HC6, HC8: three buttons, camera, mic, note, left to right, each a thumb's target, named for a screen reader.
@@ -98,11 +98,11 @@ async function run(h) {
     .filter((e) => /^band-(photo|voice|note)$/.test(e.dataset.testid))
     .map((e) => { const r = e.getBoundingClientRect(); return { id: e.dataset.testid, x: r.x, w: r.width, h: r.height, label: e.getAttribute('aria-label'), text: e.innerText }; })
     .sort((a, b) => a.x - b.x));
-  check.todo(buttons.map((b) => b.id).join(',') === 'band-photo,band-voice,band-note',
+  check(buttons.map((b) => b.id).join(',') === 'band-photo,band-voice,band-note',
     `HC6: the band holds the camera, the mic and the note, in that order (${buttons.map((b) => b.id).join(', ')})`);
-  check.todo(buttons.length === 3 && [glyph('camera'), glyph('mic'), glyph('document-text')].every((g, i) => (buttons[i].text ?? '').includes(g)),
+  check(buttons.length === 3 && [glyph('camera'), glyph('mic'), glyph('document-text')].every((g, i) => (buttons[i].text ?? '').includes(g)),
     `HC6: with the walk screen's glyphs (${buttons.map((b) => iconOf((b.text ?? '').trim()[0] ?? '')).join(', ')})`);
-  check.todo(buttons.length === 3 && buttons.every((b) => b.w >= 44 && b.h >= 44)
+  check(buttons.length === 3 && buttons.every((b) => b.w >= 44 && b.h >= 44)
     && buttons[0].label === 'Keep a moment: take a photo or video' && buttons[1].label === 'Keep a moment: record a voice memo' && buttons[2].label === 'Keep a moment: write a note',
     `HC8: each a thumb's target, named for a screen reader (${JSON.stringify(buttons.map((b) => [b.w, b.h, b.label]))})`);
   // HC8: in screen-reader order the band comes right after the Memories options button.
@@ -112,7 +112,7 @@ async function run(h) {
     await pg.keyboard.press('Tab');
     next = await pg.evaluate(() => document.activeElement?.getAttribute('data-testid'));
   }
-  check.todo(next === 'band-photo', `HC8: Tab from the options button reaches the camera next (${next})`);
+  check(next === 'band-photo', `HC8: Tab from the options button reaches the camera next (${next})`);
   // HC12: at rest, no accent colour, digit or prompt copy in the band or the empty state.
   const loud = await pg.evaluate((sels) => {
     const accent = 'rgb(194, 65, 12)';
@@ -127,7 +127,7 @@ async function run(h) {
     }
     return out;
   }, [band, '[data-testid=memories-empty]']);
-  check.todo(loud.length === 0, `HC12: no accent colour, number or prompt copy at rest (${loud.join('; ')})`);
+  check(loud.length === 0, `HC12: no accent colour, number or prompt copy at rest (${loud.join('; ')})`);
   await shot(pg, '90-capturehome-empty');
 
   // HC9, HC15: a note heads Lately at once, then its toast says where it went; one fix, nothing after.
@@ -140,13 +140,13 @@ async function run(h) {
     const first = document.querySelector('[data-testid=memories-list] [data-testid=moment-card]');
     return !!first && first.innerText.includes('A heron on the old pier.');
   }, null, { timeout: 8000 }).then(() => true, () => false);
-  check.todo(headed && (await pg.locator('[data-testid=tab-chronicle][aria-selected=true]').count()) === 1,
+  check(headed && (await pg.locator('[data-testid=tab-chronicle][aria-selected=true]').count()) === 1,
     'HC9: a note kept from the band heads Lately at once, without leaving Memories');
   const toast = await pg.waitForSelector('[data-testid=band-toast]', { timeout: 15000 }).then((e) => e.innerText(), () => null);
-  check.todo(toast === 'Note kept here', `HC15: the toast says, in words, where the note went ("${toast}")`);
+  check(toast === 'Note kept here', `HC15: the toast says, in words, where the note went ("${toast}")`);
   const toastBox = await box(pg, '[data-testid=band-toast]');
   const bandWithToast = await box(pg, band);
-  check.todo(!!toastBox && !!bandWithToast && toastBox.y + toastBox.h <= bandWithToast.y && same(bandAtRest, bandWithToast),
+  check(!!toastBox && !!bandWithToast && toastBox.y + toastBox.h <= bandWithToast.y && same(bandAtRest, bandWithToast),
     `HC15: the toast sits above the band, and the band keeps its box (${JSON.stringify({ toastBox, bandWithToast, bandAtRest })})`);
   const placed = await pg.waitForFunction(() => {
     const first = document.querySelector('[data-testid=memories-list] [data-testid=moment-card]');
@@ -155,7 +155,7 @@ async function run(h) {
   const geo1 = await pg.evaluate(() => ({ ...window.__geo }));
   await pg.waitForTimeout(4000);
   const geo2 = await pg.evaluate(() => ({ ...window.__geo }));
-  check.todo(placed && geo1.reads >= 1 && geo2.reads === geo1.reads && geo2.watching === 0,
+  check(placed && geo1.reads >= 1 && geo2.reads === geo1.reads && geo2.watching === 0,
     `HC9: the moment read one fix, and nothing reads a location after it (${JSON.stringify({ geo1, geo2 })})`);
   // Memories' own toast (Undo) sits above the band too.
   const first = pg.locator('[data-testid=memories-list] [data-testid=moment-card]').first();
@@ -163,12 +163,12 @@ async function run(h) {
   await pg.locator('[data-testid=memory-menu-hide], [data-testid=menu-hide]').first().click({ timeout: 3000 }).catch(() => {});
   const undoBox = await pg.waitForSelector('[data-testid=memories-toast]', { timeout: 5000 }).then(() => box(pg, '[data-testid=memories-toast]'), () => null);
   const bandWithUndo = await box(pg, band);
-  check.todo(!!undoBox && !!bandWithUndo && undoBox.y + undoBox.h <= bandWithUndo.y && same(bandAtRest, bandWithUndo),
+  check(!!undoBox && !!bandWithUndo && undoBox.y + undoBox.h <= bandWithUndo.y && same(bandAtRest, bandWithUndo),
     `HC15: Memories' Undo toast sits above the band (${JSON.stringify({ undoBox, bandWithUndo })})`);
   await pg.locator('[data-testid=memories-undo]').click({ timeout: 3000 }).catch(() => {});
 
   // HC7: with many moments, the band stays put while Lately scrolls, and the last card clears it.
-  await pg.evaluate(SEED, Date.now(), DAY);
+  await pg.evaluate(SEED, { now: Date.now(), day: DAY });
   await tabTo(pg, 'explore');
   await tabTo(pg, 'chronicle', 'memories');
   await pg.waitForSelector('[data-testid=memories-list] [data-testid=moment-card]', { timeout: 15000 });
@@ -181,7 +181,7 @@ async function run(h) {
   await pg.waitForTimeout(800);
   const afterScroll = await box(pg, band);
   const lastCard = await pg.locator('[data-testid=memories-list] [data-testid=moment-card]').last().boundingBox();
-  check.todo(same(beforeScroll, afterScroll) && !!lastCard && !!afterScroll && lastCard.y + lastCard.height <= afterScroll.y + 0.5,
+  check(same(beforeScroll, afterScroll) && !!lastCard && !!afterScroll && lastCard.y + lastCard.height <= afterScroll.y + 0.5,
     `HC7: the band stays put as Lately scrolls, and the last card clears it (${JSON.stringify({ beforeScroll, afterScroll, last: lastCard && Math.round(lastCard.y + lastCard.height) })})`);
   await shot(pg, '91-capturehome-scrolled');
 
@@ -199,9 +199,9 @@ async function run(h) {
   await pg.click('[data-testid=band-note-save]').catch(() => {});
   await pg.waitForTimeout(1200);
   const afterThread = await stored(pg);
-  check.todo(inThread && same(beforeScroll, bandInThread),
+  check(inThread && same(beforeScroll, bandInThread),
     `HC7: the band is there, unmoved, while a thread is open (${JSON.stringify({ inThread, bandInThread })})`);
-  check.todo(inThread && afterThread.members.length === membersBefore
+  check(inThread && afterThread.members.length === membersBefore
     && (await pg.locator('[data-testid=thread-screen] [data-testid=moment-card]').count()) === threadCards
     && afterThread.captures.some((x) => x.body === 'Kept while reading a thread.' && x.walk_id == null),
     'HC8: a note kept while a thread is open is kept, and joins no thread');
@@ -215,7 +215,7 @@ async function run(h) {
     sections[s] = await shown(band);
   }
   await pg.click('[data-testid=section-memories]');
-  check.todo(Object.values(sections).every((v) => v === false), `HC6: Walks, Days and Map show no band (${JSON.stringify(sections)})`);
+  check(Object.values(sections).every((v) => v === false), `HC6: Walks, Days and Map show no band (${JSON.stringify(sections)})`);
 
   // HC11: mid-memo the band's buttons keep their places, and leaving Memories saves the memo.
   await pg.waitForSelector(band, { timeout: 5000 }).catch(() => {});
@@ -226,13 +226,13 @@ async function run(h) {
   const recBoxes = { discard: await box(pg, '[data-testid=band-voice-discard]'), save: await box(pg, '[data-testid=band-voice-save]'), timer: await box(pg, '[data-testid=band-voice-timer]') };
   const centre = (b) => b && { x: b.x + b.w / 2, y: b.y + b.h / 2 };
   const near = (a, b) => !!a && !!b && Math.abs(centre(a).x - centre(b).x) <= 1 && Math.abs(centre(a).y - centre(b).y) <= 1;
-  check.todo(near(restBoxes.photo, recBoxes.discard) && near(restBoxes.voice, recBoxes.save) && near(restBoxes.note, recBoxes.timer),
+  check(near(restBoxes.photo, recBoxes.discard) && near(restBoxes.voice, recBoxes.save) && near(restBoxes.note, recBoxes.timer),
     `HC11: mid-memo, Discard, Stop & save and the timer take the camera's, mic's and note's places (${JSON.stringify({ restBoxes, recBoxes })})`);
   await pg.waitForTimeout(1600);
   await pg.click('[data-testid=section-walks]');
   await pg.waitForTimeout(2000);
   const voicesAfter = (await stored(pg)).captures.filter((x) => x.kind === 'voice').length;
-  check.todo(voicesAfter === voicesBefore + 1, `HC11: leaving Memories mid-memo saves the memo (${voicesBefore} → ${voicesAfter})`);
+  check(voicesAfter === voicesBefore + 1, `HC11: leaving Memories mid-memo saves the memo (${voicesBefore} → ${voicesAfter})`);
   await pg.click('[data-testid=section-memories]');
 
   // HC11: mid-memo, opening a moment saves the memo first, and nothing plays over it.
@@ -243,7 +243,7 @@ async function run(h) {
   await pg.locator('[data-testid=memories-list] [data-testid=moment-open]').first().click().catch(() => {});
   await pg.waitForTimeout(2000);
   const voicesOpened = (await stored(pg)).captures.filter((x) => x.kind === 'voice').length;
-  check.todo(voicesOpened === voicesAfter + 1 && !(await shown('[data-testid=band-voice-save]')),
+  check(voicesOpened === voicesAfter + 1 && !(await shown('[data-testid=band-voice-save]')),
     `HC11: opening a moment mid-memo saves the memo first (${voicesAfter} → ${voicesOpened})`);
   await pg.locator('[data-testid=viewer-close]').click({ timeout: 3000 }).catch(() => {});
 
@@ -257,7 +257,7 @@ async function run(h) {
   await pg.fill('[data-testid=band-note-input]', 'Kept while the list was down.').catch(() => {});
   await pg.click('[data-testid=band-note-save]').catch(() => {});
   await pg.waitForTimeout(1200);
-  check.todo(failed && (await stored(pg)).captures.some((x) => x.body === 'Kept while the list was down.'),
+  check(failed && (await stored(pg)).captures.some((x) => x.body === 'Kept while the list was down.'),
     `HC6: the band keeps a moment while Memories shows it failed to read (failed: ${failed})`);
 
   // HC10, HC7, HC15: with a walk minimized, the band files into the walk, sits above the recording bar,
@@ -269,29 +269,54 @@ async function run(h) {
   await pg.waitForTimeout(1500);
   await pg.click('[data-testid=walk-minimize]');
   await pg.waitForSelector('[data-testid=recording-bar]', { timeout: 10000 });
+  // A few steps along Wickenden Street, so the walk has a trace and a fresh fix to place by.
+  const step = async (i) => {
+    await c.setGeolocation({ longitude: h.at(-1 + i * 0.12, -1.5)[0], latitude: h.at(-1 + i * 0.12, -1.5)[1], accuracy: 6 });
+    await pg.waitForTimeout(1000);
+  };
+  for (let i = 0; i < 6; i++) await step(i);
   await tabTo(pg, 'chronicle', 'memories');
   await pg.waitForSelector(band, { timeout: 10000 }).catch(() => {});
   const walkBand = await box(pg, band);
   const barBox = await box(pg, '[data-testid=recording-bar]');
-  check.todo(!!walkBand && !!barBox && walkBand.y + walkBand.h <= barBox.y + 0.5 && !(await shown('[data-testid=bar-photo]')),
+  check(!!walkBand && !!barBox && walkBand.y + walkBand.h <= barBox.y + 0.5 && !(await shown('[data-testid=bar-photo]')),
     `HC7: with a walk minimized, the band sits above the recording bar, which shows no camera on Memories (${JSON.stringify({ walkBand, barBox })})`);
   const walkLabel = await pg.locator('[data-testid=band-note]').getAttribute('aria-label').catch(() => null);
-  check.todo(walkLabel === 'Add to your walk: write a note', `HC8: with a walk open, the band is named for the walk ("${walkLabel}")`);
+  check(walkLabel === 'Add to your walk: write a note', `HC8: with a walk open, the band is named for the walk ("${walkLabel}")`);
   await pg.click('[data-testid=band-note]').catch(() => {});
   await pg.fill('[data-testid=band-note-input]', 'Kept on the walk, from Memories.').catch(() => {});
   await pg.click('[data-testid=band-note-save]').catch(() => {});
   const walkToast = await pg.waitForSelector('[data-testid=band-toast]', { timeout: 8000 }).then((e) => e.innerText(), () => null);
+  for (let i = 6; i < 10; i++) await step(i);
   const db = await stored(pg);
   const open = db.walks.find((w) => w.ended_at == null);
   const kept = db.captures.find((x) => x.body === 'Kept on the walk, from Memories.');
-  check.todo(!!open && !!kept && kept.walk_id === open.id && walkToast === 'Note saved to your walk',
+  check(!!open && !!kept && kept.walk_id === open.id && walkToast === 'Note saved to your walk',
     `HC10: a note from Memories with a walk minimized belongs to the walk, and says so ("${walkToast}", ${kept && kept.walk_id} vs ${open && open.id})`);
   await pg.click('[data-testid=recording-return]');
   await pg.waitForSelector('[data-testid=stop]', { timeout: 10000 });
   await pg.waitForTimeout(1200);
-  check.todo((await pg.locator('[data-testid=cap-note]').count()) > 0 && (await stored(pg)).captures.filter((x) => x.walk_id === open?.id).length >= 1,
-    'HC10: the note is the walk\'s own when the walk screen opens');
   await shot(pg, '92-capturehome-walk');
+  // Stopped from the bar, the walk places the note as it places its own captures (here, at stop), and its
+  // replay plays it.
+  await pg.click('[data-testid=walk-minimize]');
+  await pg.waitForSelector('[data-testid=bar-stop]', { timeout: 10000 });
+  const sb = await pg.locator('[data-testid=bar-stop]').boundingBox();
+  await pg.mouse.move(sb.x + sb.width / 2, sb.y + sb.height / 2);
+  await pg.mouse.down();
+  await pg.waitForTimeout(1100);
+  await pg.mouse.up();
+  await pg.waitForURL(/replay/, { timeout: 30000 }).catch(() => {});
+  const placedNote = await pg.waitForFunction(() => new Promise((resolve) => {
+    const req = indexedDB.open('chronicles');
+    req.onsuccess = () => {
+      const g = req.result.transaction(['capture'], 'readonly').objectStore('capture').getAll();
+      g.onsuccess = () => resolve(g.result.find((x) => x.body === 'Kept on the walk, from Memories.' && x.lat != null) ?? null);
+    };
+  }), null, { timeout: 15000, polling: 500 }).then((v) => v.jsonValue(), () => null);
+  check(!!placedNote && placedNote.walk_id === open?.id, `HC10: the stopped walk placed the note as its own capture (${placedNote && [placedNote.lat, placedNote.lon]})`);
+  const played = await pg.waitForSelector('text=Kept on the walk, from Memories.', { timeout: 60000 }).then(() => true, () => false);
+  check(played, 'HC10: the walk\'s replay plays the note kept from Memories');
 
   // HC14: Explore reads its one fix the first time it comes to the front.
   await pg.click('[data-testid=walk-minimize]').catch(() => {});
@@ -304,7 +329,7 @@ async function run(h) {
   await p2.click('[data-testid=tab-explore]');
   await p2.waitForTimeout(4000);
   const after = await p2.evaluate(() => window.__geo.reads);
-  check.todo(before === 0 && after >= 1, `HC14: Explore reads its fix on its first focus, not at launch (${before} → ${after})`);
+  check(before === 0 && after >= 1, `HC14: Explore reads its fix on its first focus, not at launch (${before} → ${after})`);
   await c2.close();
   await c.close();
 }

@@ -1,6 +1,8 @@
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useIsFocused } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { bandLayout } from '../../lib/captureBand';
+import type { MomentState } from '../../lib/useCaptures';
 import { captureEdits } from '../../lib/captureEdits';
 import { dayKey } from '../../lib/days';
 import { EMPTY, FORGOT_TOAST, HIDDEN_TOAST, NEWEST_FIRST, NOT_A_THREAD, OFF_LINE, fewerLike, fewerWord, withSaveNote } from '../../lib/resurface/copy';
@@ -20,6 +22,7 @@ import { CaptureViewer } from '../CaptureView';
 import { Icon } from '../icons';
 import { Button, theme } from '../ui';
 import { HiddenScreen } from './HiddenScreen';
+import { MemoriesBand } from './MemoriesBand';
 import { MemoriesMenu } from './MemoriesMenu';
 import { MemoryMenu } from './MemoryMenu';
 import { MomentCard } from './MomentCard';
@@ -188,6 +191,18 @@ export function MemoriesScreen() {
   };
   const open = (m: MomentView) => setViewing([m.capture]);
   const relive = (m: MomentView) => router.push(m.walkId ? `/replay/${m.walkId}?ceremony=0` : `/day/${dayKey(m.t)}`);
+  // The capture band (HC6-HC11): in front only while nothing is open over Memories, so opening a moment, a
+  // menu, Relive or a replay mid-memo saves the memo first, and nothing plays over a recording.
+  const isFocused = useIsFocused();
+  const bandFocused = isFocused && !viewing && !recalled && !menuFor && !ownMenuFor && !menuOpen;
+  // A moment kept from the band heads Lately at once, and gains its place when its fix comes (HC9).
+  const onMoment = useCallback((_c: Capture, state: MomentState) => {
+    if (state === 'kept' || state === 'placed') void resurface.refresh();
+  }, []);
+  const { width } = useWindowDimensions();
+  const bandH = bandLayout(width).height;
+  // Every list scrolls its last card clear above the band (HC7), and the toast sits above it (HC15).
+  const clear = { paddingBottom: bandH + 24 };
   const menuMoment = menuFor ? byId.get(menuFor) ?? null : null;
   const walkOf = (m: MomentView) => (m.walkId ? state.walks[m.walkId] : undefined);
   // A reply says what it answers wherever it is listed (audit 1).
@@ -210,14 +225,14 @@ export function MemoriesScreen() {
     );
   } else if (state.status === 'ready' && feed.moments.length === 0) {
     body = (
+      // Nothing kept: one line in words, and the band below (HC13). No other button: Navigate is a tab.
       <View style={styles.quiet} testID="memories-empty">
         <Text style={styles.quietText}>{EMPTY}</Text>
-        <Button testID="memories-navigate" label="Navigate" onPress={() => showWalk()} />
       </View>
     );
   } else if (own) {
     body = (
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.pad}>
+      <ScrollView style={styles.scroll} contentContainerStyle={[styles.pad, clear]}>
         <OwnThreadScreen
           thread={own}
           moments={ownMoments}
@@ -237,7 +252,7 @@ export function MemoriesScreen() {
     );
   } else if (thread) {
     body = (
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.pad}>
+      <ScrollView style={styles.scroll} contentContainerStyle={[styles.pad, clear]}>
         <ThreadScreen
           thread={thread}
           moments={thread.momentIds.map((id) => byId.get(id)).filter((m): m is MomentView => !!m)}
@@ -284,7 +299,7 @@ export function MemoriesScreen() {
         )}
         onEndReached={() => page.more && setLimit((l) => l + LATELY_PAGE)}
         onEndReachedThreshold={0.6}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, clear]}
         ListHeaderComponent={
           <View style={styles.header}>
             {state.prefs.off && (
@@ -324,7 +339,7 @@ export function MemoriesScreen() {
 
   if (hiddenOpen && state.status === 'ready') {
     body = (
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.pad}>
+      <ScrollView style={styles.scroll} contentContainerStyle={[styles.pad, clear]}>
         <HiddenScreen
           items={hidden}
           moments={byId}
@@ -349,6 +364,10 @@ export function MemoriesScreen() {
           </Pressable>
         </View>
       )}
+      {/* First after the options button, so a screen reader reaches the band before the feed (HC8); drawn at the foot. */}
+      <View style={styles.bandLayer} pointerEvents="box-none">
+        <MemoriesBand focused={bandFocused} onMoment={onMoment} />
+      </View>
       {body}
       <MemoriesMenu
         open={menuOpen}
@@ -433,7 +452,7 @@ export function MemoriesScreen() {
         />
       )}
       {toast && (
-        <View style={styles.toast} accessibilityLiveRegion="polite" testID="memories-toast">
+        <View style={[styles.toast, { bottom: bandH + 12 }]} accessibilityLiveRegion="polite" testID="memories-toast">
           <Text style={styles.toastText}>{toast.msg}</Text>
           <Pressable
             testID="memories-undo"
@@ -482,6 +501,7 @@ export function MemoriesScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
+  bandLayer: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, zIndex: 2 },
   scroll: { flex: 1 },
   pad: { paddingHorizontal: 16, paddingBottom: 24, width: '100%', maxWidth: 640, alignSelf: 'center' },
   list: { paddingHorizontal: 16, paddingBottom: 32, width: '100%', maxWidth: 640, alignSelf: 'center' },

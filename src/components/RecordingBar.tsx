@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, usePathname } from 'expo-router';
+import { barCamera } from '../lib/captureBand';
+import { chronicleSection } from '../lib/resurface/sectionStore';
+import { useStore } from '../lib/useStore';
 import { useUnits } from '../lib/useUnits';
 import { db } from '../lib/db';
 import { memoGate } from '../lib/memoGate';
@@ -57,6 +60,10 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   const [editingKept, setEditingKept] = useState<Capture | null>(null);
   const onError = useCallback((e: { message: string }) => setSaid({ text: e.message, error: true }), []);
   const cap = useCaptures(walk.id, live.here, live.lastFixAt, onError);
+  // On Memories the band's camera files into the walk: the bar shows none there (decision 0106).
+  const path = usePathname();
+  const section = useStore(chronicleSection.store, (x) => x);
+  const showCamera = barCamera(path, section);
   // A photo still being kept: Return waits for it, so the walk screen opens with it (NV9).
   const keeping = useRef<Promise<unknown> | null>(null);
   const returning = useRef(false);
@@ -185,7 +192,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
           setEditingKept(cap.captures.find((c) => c.id === id) ?? null);
           editOffer.clear();
         }} />}
-        <Pressable
+        {(showCamera || cap.busy === 'photo') && <Pressable
           testID="bar-photo"
           accessibilityRole="button"
           accessibilityLabel="Take a photo or video for this walk"
@@ -196,7 +203,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
           style={({ pressed }) => [styles.camera, pressed && styles.pressed]}
         >
           {cap.busy === 'photo' ? <ActivityIndicator color={theme.ink} /> : <Icon name="camera" size={22} color={theme.ink} />}
-        </Pressable>
+        </Pressable>}
         {/* Stop from the bar itself, held as on the walk screen: a way out even when the walk screen
             can't be reached (the owner, Nov 2). */}
         <HoldButton
