@@ -2,16 +2,12 @@
 
 For the owner to read before any code. Spec: `specs/remarkable-and-public/spec.md` (RP1-RP17). Decisions 0103, 0104.
 
-## Questions for the owner
+## The owner's answers (Nov 9)
 
-1. **The name of the new kind** for listed buildings and structures that are not churches, cemeteries, theatres or museums (a bridge, a mill, a station, a courthouse, a Landmark house): the bulk of what the slice adds. A separate kind, on by default, gives the walker an off switch for the whole new set. Its label is shown beside every one ("Bethlehem Silk Mill · …", "Found: Trout Hall · …"), so it names what the places are, never their significance (RP18; the steward's finding 1 struck "Landmarks").
-   - **"Buildings and structures"** (recommended): plain, true of a mill, a station and a house alike.
-   - "Bridges, mills and stations": concrete, but untrue of a courthouse or a house.
-   - Fold into "Monuments and ruins" (no new switch): a station or a mill labelled a monument or a ruin is untrue.
-2. **The replay's whispers** (steward 2): every place passed whispers "Passed X without stopping" (RR15), with no bound; an exploring walk through a listed old core would play back as a run of misses. **Recommended:** the whispers follow the card's rule (two names, else one "Passed a few places without stopping"): the lows stay in, the volume is bounded. This amends RR15 (the replay), so it is your call. New criterion RP19.
-3. **Reachable from a street** (steward 4): your bar is "reachable from public ground", but only OSM's `access` tag tests it, and a building rarely carries one; a Landmark house down a private drive would be a "?" found only by trespassing (a find needs a capture within 60 m). **Recommended:** an archive place is offered only when a street or path from the same tile read is within 60 m of it (the app already reads them; nothing new is fetched). It applies to every archive place, so a curiosity deep off-path goes too. New criterion RP20.
-
-Everything else follows from the owner's calls in the spec's Decisions.
+1. The new kind: **"Buildings and structures"** (`structures`, in History, on by default, icon `library-outline`).
+2. The replay's whispers: **bounded like the card** (RP19, amends RR15).
+3. Reachability: **"Trust the tags, but … warn or inspect … don't limit the data"**; the warning goes to **both** the owner and the walker (RP20). The walker's line: "No street or path close by", factual rather than "private".
+4. **Go ahead.**
 
 ## Files
 
@@ -29,8 +25,8 @@ The app:
 - `src/lib/discovery/tilePois.ts`: `zoo: [[['zoo', 'aviary'], 'viewpoints']]` (RP15); `MARKABLE_CLASSES` re-pinned (AG5). Nothing for lodging (RP16).
 - `src/lib/atlas/atlas.ts`: `ATLAS_CODE` a7 → a8. The aviary changes what a ring counts, and the listings change the History step most: in US old cores History will mostly fill, and outside the US (no register yet) it won't, which bends "where there is a lot" toward "where a register is" (steward 7). RP12's review shows each test area's History step before and after, so the owner sees it before publishing.
 - The new kind (question 1): `src/lib/discovery/types.ts` (`Kind`), `src/lib/explore/explore.ts` (`KINDS`, after "Monuments and ruins"), and the e2e `marks` journey's check of the switch list.
-- Question 2, if yes: `src/lib/ceremony/rhythm.ts` (the whispers take `passedLine` over the walk's passes, as the card does).
-- Question 3, if yes: the read that builds checklists (`landing/read.ts`, `atlas/read.ts`) keeps an archive place only within 60 m of a street or path of the same read (a pure `reachable(place, segments)` beside `mergePlaces`, over `EdgeGrid`).
+- RP19: `src/lib/ceremony/rhythm.ts`: more than two passes make one whisper, `passedLine(passes)`, at the first pass; one or two keep a whisper each (RR15).
+- RP20: `src/lib/explore/reach.ts` (new, core): `wayNear(at, segments, 60)` is `true`, `false`, or `null` when no segment at all lies within 300 m (nothing cached there: say nothing, never "far" by absence). `src/lib/explore/reach/shell.ts` + `index.ts` (new, a shell over `db.getSegmentsIn`, `createReach({ db })`), called by the walk's mark card when it opens (`walk.tsx`, its sub line under the name: "No street or path close by" only on `false`). The benchmark (RP17) flags its places and, given `--review`, the review's, with the same `wayNear` over the tiles' roads (`deriveSegments`).
 
 The benchmark (RP17):
 
@@ -66,13 +62,16 @@ All in the `explore` feature (`src/lib/__tests__/explore/`):
 | RP15 | `remarkablePublic.test.ts` | RP15: the National Aviary (zoo/aviary) is a place to find |
 | RP16 | `remarkablePublic.test.ts` | RP16: a lodging place in the tiles is never a place to find |
 | RP17 | `placesCoverage.test.ts` | RP17: the benchmark matches a Wikidata item to a place and names why a miss was missed |
+| RP18 | `remarkablePublic.test.ts` | RP18: no kind's label names a register or significance, and Buildings and structures is a kind |
+| RP19 | `../replay/ceremony.test.ts` | RP19: a replay past many places whispers once, as the card says it |
+| RP20 | `remarkablePublic.test.ts` | RP20: a place with no street or path within 60 m is said, never filtered |
 
 - RP13's fixture: `src/lib/__tests__/explore/steelstacksPois.json`, the decoded `poi` features of the z14 tiles over the campus from build `20261101_080013_pt` (names, classes, positions; a few kilobytes), with the build named in the file.
 - RP11's "no copy names a listing": a grep over `src/app` and `src/components` strings for "listed", "register", "landmark" as a label (beside `check:vision`).
 - RP18: a unit test over `KINDS` labels.
-- RP19 (if question 2 is yes): `src/lib/__tests__/replay/` "RP19: a replay past many places whispers no more than the card names".
-- RP20 (if question 3 is yes): `remarkablePublic.test.ts` "RP20: an archive place more than 60 m from every street or path is not offered".
-- No new journey: the new kind adds one check to `marks` (the switch is listed and on by default).
+- RP19: `src/lib/__tests__/replay/ceremony.test.ts` "RP19: a replay past many places whispers once, as the card says it".
+- RP20: `remarkablePublic.test.ts` "RP20: a place with no street or path within 60 m is said, never filtered; with nothing cached around it, nothing is said".
+- E2E: the `marks` journey checks the "Buildings and structures" switch is listed and on (RP18, RP8), and a mark's card far from every street says "No street or path close by" (RP20).
 
 ## Deferred, and why
 

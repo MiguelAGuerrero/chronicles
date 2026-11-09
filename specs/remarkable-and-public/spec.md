@@ -24,8 +24,8 @@ Verb: earn (it raises what you notice: the buildings, bridges, mills and churche
 Touches: Never, "Ratings, reviews, stars, 'best of', rankings of places" (nearest fit: "open-data signals such as a heritage listing"); Never, "Popularity, trending, foot traffic"; Always, "Guidance is structural: where there is a lot, and what makes a place itself, never whether it is good"; decision 0103 ("a listed building enters only as a National Historic Landmark", Nov 6, after 847 of 900 places in a test cell were National Register listings; "Significance is a gate, never a measure"; "Type decides, never age or listing"); PW7 (name, class, src, id); PW15 (OSM only corroborates); the "signal" rule of Places worth the stop ("A shop or eatery becomes a place only with a signal"); the activity-density rule (Overture's places, never marks); AG5 (`MARKABLE_CLASSES` pinned).
 Verdict: aligned if reshaped (decision 0104)
 Shape: A listing is a gate on what a place is, never a measure or a label: a listed place enters when it is public (its type public by nature, or a source showing it open) or a Landmark, never a district and never a place OSM marks closed. OpenStreetMap's tags corroborate Wikidata items; Overture stays for busy streets. On screen nothing new: these are places to find of the existing kinds, never labelled listed or historic, never sized, ordered or counted by notability.
-Criteria: RP1-RP6 (the rule), RP7 (OSM corroborates), RP8 (kinds by type), RP9 (the name rule lifted), RP11 (nothing about a listing shown or stored; order and size unchanged), RP12 (the owner's review, never published), RP13-RP14 (attractions), RP15 (aviary), RP16 (no hotels from tiles), RP17 (the benchmark structural), RP18 (no kind named for significance).
-Open: the plan's questions 1-3 (the new kind's name; the replay's whispers; reachable from a street).
+Criteria: RP1-RP6 (the rule), RP7 (OSM corroborates), RP8 (kinds by type), RP9 (the name rule lifted), RP11 (nothing about a listing shown or stored; order and size unchanged), RP12 (the owner's review, never published), RP13-RP14 (attractions), RP15 (aviary), RP16 (no hotels from tiles), RP17 (the benchmark structural), RP18 (no kind named for significance), RP19 (whispers bounded), RP20 (reachability said, never filtered).
+Open: none (the plan's questions answered Nov 9).
 
 ## Decisions
 
@@ -35,6 +35,7 @@ Open: the plan's questions 1-3 (the new kind's name; the replay's whispers; reac
 - **Nov 9:** "ensure that we have attractions supported too": the tiles' attractions are pinned; the listing rules never remove one; Wikidata's loose "tourist attraction" class is not used.
 - **Nov 9:** OpenStreetMap only corroborates ("Corroborate only"): its tags decide whether a listed Wikidata item is public, closed or gone; a place found only in OSM is not added (deferred, with its licence question: an archive with OSM-only places is a derived ODbL database). This supersedes 0104's "a place found only there enters by the same pinned class table" (recorded in a new decision with the slice).
 - **Nov 9:** Overture stays for busy streets; historic hotels are not added to `tilePois`.
+- **Nov 9 (the plan's questions):** the new kind is "Buildings and structures", on by default; the replay's whispers follow the card's rule ("Bound them like the card"; amends RR15); reachability is not a filter ("Trust the tags, but just develop a way to warn or inspect whether something might or may not be accessible, but don't limit the data because of it"), and the warning goes to both the owner's review and the walker's card ("Both").
 - **Nov 9:** "Viewpoints and attractions" (the kind) and "Viewpoints & oddities" (its category) are two levels, not two names for one thing; both stay.
 
 ## Acceptance criteria
@@ -48,7 +49,7 @@ The rule (the archive's build, `classify.mjs`):
 5. **RP5 Never where it can't be reached.** An item whose OpenStreetMap element is tagged `access=private` or `access=no` never enters, a Landmark included.
 6. **RP6 Districts never.** A historic district never enters, a Landmark included (PW7 holds).
 7. **RP7 OpenStreetMap corroborates.** OSM elements are joined to items only by their `wikidata` tag; every place in the archive comes from Wikidata or the owner's file (PW15 holds), and an OSM element with no Wikidata item adds nothing.
-8. **RP8 Kinds by type.** A listed place of worship is a Historic church; a cemetery a Cemetery; a theatre or opera house a Theatre; a museum a Museum; any other listed building or structure the kind of the plan's question 1. The classes of 0103 come first in their order (a monument is a Monument, an observation tower a Viewpoint, a lighthouse a Curiosity), so a listing never changes the kind of a place 0103 already classed.
+8. **RP8 Kinds by type.** A listed place of worship is a Historic church; a cemetery a Cemetery; a theatre or opera house a Theatre; a museum a Museum; any other listed building or structure (a bridge, a mill, a station, a courthouse, a Landmark house) is of a new kind, "Buildings and structures", in History, on by default in "What I'm into". The classes of 0103 come first in their order (a monument is a Monument, an observation tower a Viewpoint, a lighthouse a Curiosity), so a listing never changes the kind of a place 0103 already classed.
 
 What the app does with them:
 
@@ -71,6 +72,11 @@ The benchmark:
 The labels:
 
 18. **RP18 No kind is named for significance.** No kind's label holds a register's name or a word for significance ("landmark", "notable", "listed", "remarkable"), since a kind's label is shown beside every place of that kind (`name · kind` on the walk's card, "Found: … · kind") (steward 1).
+
+The replay and reachability:
+
+19. **RP19 The whispers are bounded.** A replay whispers passed places as its card names them: one or two by name, more than two as one "Passed a few places without stopping", never one whisper per place (amends RR15).
+20. **RP20 Reachability is said, never filtered.** A place to find with no street or path of the same tile read within 60 m is still offered and still findable; its card on the walk says "No street or path close by" under its name. The owner's review (RP12) and the benchmark (RP17) flag such places "may not be reachable". Nothing is removed for it.
 
 ## Record
 
