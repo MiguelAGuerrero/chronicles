@@ -31,7 +31,7 @@ function probe(free: number | null | (() => Promise<number | null>), persist: bo
   return p;
 }
 
-test('SA1: a probe that can\'t read says nothing; a failing one neither', { todo: 'test first' }, async () => {
+test('SA1: a probe that can\'t read says nothing; a failing one neither', async () => {
   const { createSpace } = await shell();
   const none = createSpace(fakePorts(), probe(null));
   assert.equal(await none.check(walking), null);
@@ -41,7 +41,7 @@ test('SA1: a probe that can\'t read says nothing; a failing one neither', { todo
   assert.equal(failing.store.get().line, null);
 });
 
-test('SA3: little room left shows the line; plenty shows none', { todo: 'test first' }, async () => {
+test('SA3: little room left shows the line; plenty shows none', async () => {
   const { createSpace } = await shell();
   const low = createSpace(fakePorts(), probe(300 * MB));
   assert.equal(await low.check(walking), LOW);
@@ -53,7 +53,7 @@ test('SA3: little room left shows the line; plenty shows none', { todo: 'test fi
   assert.equal(plenty.store.get().line, null);
 });
 
-test('SA4: once for each level across screens and walks, a reload included; again when worse', { todo: 'test first' }, async () => {
+test('SA4: once for each level across screens and walks, a reload included; again when worse', async () => {
   const { createSpace } = await shell();
   const p = fakePorts();
   const pr = probe(300 * MB);
@@ -70,7 +70,7 @@ test('SA4: once for each level across screens and walks, a reload included; agai
   assert.equal(await reloaded.check(ready), null, 'and only once at that level');
 });
 
-test('SA4: room that recovers and runs low again is said again', { todo: 'test first' }, async () => {
+test('SA4: room that recovers and runs low again is said again', async () => {
   const { createSpace } = await shell();
   const pr = probe(300 * MB);
   const s = createSpace(fakePorts(), pr);
@@ -82,7 +82,7 @@ test('SA4: room that recovers and runs low again is said again', { todo: 'test f
   assert.equal(await s.check(walking), LOW, 'low again');
 });
 
-test('SA4: an unread room changes nothing; a failed meta write still says it once in this run', { todo: 'test first' }, async () => {
+test('SA4: an unread room changes nothing; a failed meta write still says it once in this run', async () => {
   const { createSpace } = await shell();
   const p = fakePorts();
   const pr = probe(300 * MB);
@@ -96,7 +96,7 @@ test('SA4: an unread room changes nothing; a failed meta write still says it onc
   assert.equal(await s.check(walking), null, 'an unread room is not a recovery');
 });
 
-test('SA5: a kept capture reads the room again', { todo: 'test first' }, async () => {
+test('SA5: a kept capture reads the room again', async () => {
   const { createSpace } = await shell();
   const pr = probe(4000 * MB);
   const s = createSpace(fakePorts(), pr);
@@ -106,7 +106,7 @@ test('SA5: a kept capture reads the room again', { todo: 'test first' }, async (
   assert.equal(s.store.get().line, VERY_LOW, 'said after the capture that made it low');
 });
 
-test('SA10: never asked while a walk records; asked when Navigate, ready next shows; the refusal said there once', { todo: 'test first' }, async () => {
+test('SA10: never asked while a walk records; asked when Navigate, ready next shows; the refusal said there once', async () => {
   const { createSpace } = await shell();
   const p = fakePorts();
   const pr = probe(4000 * MB, false);
@@ -130,7 +130,7 @@ test('SA10: never asked while a walk records; asked when Navigate, ready next sh
   assert.equal(reloaded.store.get().line, null, 'never said again');
 });
 
-test('SA10: a moment kept outside a walk asks at once; the Home Screen named on an iPhone browser', { todo: 'test first' }, async () => {
+test('SA10: a moment kept outside a walk asks at once; the Home Screen named on an iPhone browser', async () => {
   const { createSpace } = await shell();
   const pr = probe(4000 * MB, false, true);
   const s = createSpace(fakePorts(), pr);
@@ -139,7 +139,7 @@ test('SA10: a moment kept outside a walk asks at once; the Home Screen named on 
   assert.equal(s.store.get().line, `${REFUSED} The Home Screen app is less likely to.`);
 });
 
-test('SA10: granted is silent; a phone (no persistence to ask) never says it', { todo: 'test first' }, async () => {
+test('SA10: granted is silent; a phone (no persistence to ask) never says it', async () => {
   const { createSpace } = await shell();
   const granted = probe(4000 * MB, true);
   const g = createSpace(fakePorts(), granted);
@@ -153,7 +153,7 @@ test('SA10: granted is silent; a phone (no persistence to ask) never says it', {
   assert.equal(n.store.get().line, null);
 });
 
-test('SA10: the room left wins over the refusal when both are due; the refusal waits for the next look', { todo: 'test first' }, async () => {
+test('SA10: the room left wins over the refusal when both are due; the refusal waits for the next look', async () => {
   const { createSpace } = await shell();
   const s = createSpace(fakePorts(), probe(300 * MB, false));
   await s.afterKept(ready);

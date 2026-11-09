@@ -82,6 +82,9 @@ import { UndoToast } from '../components/UndoToast';
 import { bordersFor, outlineIdAt } from '../lib/areas/borders';
 import { BORDER_ZOOM, OUTLINE_ZOOM } from '../lib/areas/outlines';
 import { useOutlineSet } from '../lib/areas/useOutlineSet';
+import { SpaceLine } from '../components/SpaceLine';
+import { space } from '../lib/space';
+import { heldLabel } from '../lib/space/core';
 
 /** Streets around the walker: read from the map and shown as fog this far out. */
 const NEAR_RADIUS_M = 1000;
@@ -253,6 +256,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const [walked, setWalked] = useState<StreetSegment[]>([]);
   // The memo whose save failed at Stop; holding Stop again ends the walk without it.
   const giveUpMemo = useRef(false);
+  const giveUpHeld = useRef(false);
   const saveRef = useRef<PressableRef>(null);
   const mapRef = useRef<WalkMapHandle>(null);
   // The map's turn, for the compass (CP2): the map opens north-up and keeps no bearing (CP8).
@@ -333,6 +337,11 @@ function WalkScreen(props: { onMinimize: () => void }) {
   }, [drawnBorders, hereTown, nearKey]);
   const motionAccess = useMotionAccess();
   const cap = useCaptures(walk?.id ?? null, live.here, live.lastFixAt, onCaptureError);
+  // A walk shown: the room left, said beside the captures (SA3, SA4); nothing is asked mid-walk (SA10).
+  const shownWalkId = walk?.id ?? null;
+  useEffect(() => {
+    if (shownWalkId) void space.check({ recording: true });
+  }, [shownWalkId]);
   // A deleted moment leaves the pins, Explore and the viewer at once (D3, D5).
   const captures = useVisible(cap.captures);
 
@@ -859,6 +868,12 @@ function WalkScreen(props: { onMinimize: () => void }) {
         setNotice({ message: 'The voice memo could not be saved. Retry, or hold Stop again to end the walk without it.', tone: 'error', sticky: true });
         return;
       }
+      // A photo or video still held is said before the walk ends without it (SA8).
+      if (cap.held.length > 0 && !giveUpHeld.current) {
+        giveUpHeld.current = true;
+        setNotice({ message: `${heldLabel(cap.held)} yet. Retry, or hold Stop again to end the walk without it.`, tone: 'error', sticky: true });
+        return;
+      }
       // The walk stays on screen until the replay replaces it (the keeper hears it ended first).
       setEnded(walk);
       await stopWalk(walk.id);
@@ -1339,6 +1354,15 @@ function WalkScreen(props: { onMinimize: () => void }) {
             </Pressable>
           </View>
         )}
+        {walk && cap.held.length > 0 && !recordingVoice && !spot && !openMark && !options && !memory && (
+          <View testID="held-captures" style={styles.undo} accessibilityLiveRegion="polite">
+            <Text style={styles.undoText}>{heldLabel(cap.held)}</Text>
+            <Pressable testID="held-retry" accessibilityRole="button" onPress={() => cap.retryHeld()} hitSlop={10} style={styles.undoBtn}>
+              <Text style={styles.undoBtnText}>Retry</Text>
+            </Pressable>
+          </View>
+        )}
+        {walk && !recordingVoice && !spot && !openMark && !options && !memory && <SpaceLine />}
       </View>
       {/* The capture stack at the right edge (NR9): where it was on the ready screen. While recording,
           Save takes the mic's own place, so tapping the mic again saves; Discard is smaller, in the

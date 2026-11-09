@@ -18,17 +18,14 @@ async function run(h) {
     window.__persistAsked = 0;
     window.__failMedia = 0;
     const quota = 1e12;
-    Object.defineProperty(navigator, 'storage', {
-      configurable: true,
-      value: {
-        estimate: async () => ({ quota, usage: quota - window.__free }),
-        persisted: async () => false,
-        persist: async () => {
-          window.__persistAsked++;
-          return false;
-        },
-      },
-    });
+    // Only these three: the rest of the storage API (a worker's) stays the browser's own.
+    const sm = StorageManager.prototype;
+    sm.estimate = async () => ({ quota, usage: quota - window.__free });
+    sm.persisted = async () => false;
+    sm.persist = async () => {
+      window.__persistAsked++;
+      return false;
+    };
     const put = IDBObjectStore.prototype.put;
     IDBObjectStore.prototype.put = function (...args) {
       if (this.name === 'media' && window.__failMedia > 0) {
@@ -63,15 +60,15 @@ async function run(h) {
   await pg.goto(navUrl);
   await pg.waitForSelector('[data-testid=start]');
   const ready = await lineText();
-  check.todo(ready.includes(LOW), `SA3: Navigate, ready says the room is low beside the captures ("${say(ready)}")`);
-  check.todo(ready !== '' && !/[0-9%]/.test(ready), `SA7: the line holds no digit or percentage ("${say(ready)}")`);
-  check.todo((await enabled('moment-photo')) && (await enabled('moment-voice')) && (await enabled('moment-note')), 'SA6: the moment buttons stay enabled with the line shown');
-  check.todo(!!ready && (await dismiss()), 'SA6: the line has a dismiss button, and it goes');
+  check(ready.includes(LOW), `SA3: Navigate, ready says the room is low beside the captures ("${say(ready)}")`);
+  check(ready !== '' && !/[0-9%]/.test(ready), `SA7: the line holds no digit or percentage ("${say(ready)}")`);
+  check((await enabled('moment-photo')) && (await enabled('moment-voice')) && (await enabled('moment-note')), 'SA6: the moment buttons stay enabled with the line shown');
+  check(!!ready && (await dismiss()), 'SA6: the line has a dismiss button, and it goes');
 
   // A moment kept outside a walk: the browser is asked once to keep the data; its refusal said there (SA10).
   await shoot('moment-photo');
   const refused = await lineText(10000);
-  check.todo((await pg.evaluate(() => window.__persistAsked)) === 1 && refused.includes(REFUSED), `SA10: asked once after a moment kept outside a walk; the refusal said ("${say(refused)}")`);
+  check((await pg.evaluate(() => window.__persistAsked)) === 1 && refused.includes(REFUSED), `SA10: asked once after a moment kept outside a walk; the refusal said ("${say(refused)}")`);
   await dismiss();
 
   // The walk, with the room now very low: said again, because it got worse (SA3, SA4).
@@ -80,8 +77,8 @@ async function run(h) {
   await pg.click('[data-testid=start]');
   await pg.waitForURL(/\/walk/, { timeout: 30000 });
   const walk = await lineText();
-  check.todo(walk.includes(VERY_LOW), `SA4: room that got worse is said again when the walk opens ("${say(walk)}")`);
-  check.todo((await enabled('cap-photo')) && (await enabled('cap-voice')) && (await enabled('cap-note')), 'SA6: the capture buttons stay enabled');
+  check(walk.includes(VERY_LOW), `SA4: room that got worse is said again when the walk opens ("${say(walk)}")`);
+  check((await enabled('cap-photo')) && (await enabled('cap-voice')) && (await enabled('cap-note')), 'SA6: the capture buttons stay enabled');
   await dismiss();
 
   // Two photos whose saves are refused for lack of room: both held, with Retry, and why in words (SA8, SA9).
@@ -92,22 +89,22 @@ async function run(h) {
   await shoot('cap-photo');
   await pg.waitForTimeout(1500);
   const pill = await pg.locator('[data-testid=held-captures]').innerText().catch(() => '');
-  check.todo(/Photos not saved/.test(pill) && /Retry/.test(pill), `SA8: both refused photos are held with Retry ("${say(pill)}")`);
+  check(/Photos not saved/.test(pill) && /Retry/.test(pill), `SA8: both refused photos are held with Retry ("${say(pill)}")`);
   const said = await pg.locator(`text=${OUT}`).count();
   const raw = await pg.locator('text=/quota/i').count();
-  check.todo(said > 0 && raw === 0, `SA9: it says why in words, never the raw error (${said}, ${raw})`);
-  check.todo((await photoRows()) === before, 'SA8: nothing is stored while they wait');
-  check.todo((await pg.evaluate(() => window.__persistAsked)) === 1, 'SA10: nothing is asked while the walk records');
+  check(said > 0 && raw === 0, `SA9: it says why in words, never the raw error (${said}, ${raw})`);
+  check((await photoRows()) === before, 'SA8: nothing is stored while they wait');
+  check((await pg.evaluate(() => window.__persistAsked)) === 1, 'SA10: nothing is asked while the walk records');
   if (pill) await pg.click('[data-testid=held-retry]');
   const kept = await pg.waitForSelector('[data-testid=held-captures]', { state: 'detached', timeout: 10000 }).then(() => true, () => false);
-  check.todo(!!pill && kept && (await photoRows()) === before + 2, `SA8: Retry keeps both photos (${(await photoRows()) - before})`);
+  check(!!pill && kept && (await photoRows()) === before + 2, `SA8: Retry keeps both photos (${(await photoRows()) - before})`);
 
   // A reload: the room is low again, which is better than very low, so nothing is said; nothing is asked (SA4, SA10).
   await pg.reload();
   await pg.waitForSelector('[data-testid=cap-photo]', { timeout: 30000 });
   await pg.waitForTimeout(2500);
   const again = await pg.locator('[data-testid=space-line]').count();
-  check.todo(again === 0 && (await pg.evaluate(() => window.__persistAsked)) === 0, `SA4: a level said is not said again after a reload (${again})`);
+  check(again === 0 && (await pg.evaluate(() => window.__persistAsked)) === 0, `SA4: a level said is not said again after a reload (${again})`);
   await c.close();
 }
 

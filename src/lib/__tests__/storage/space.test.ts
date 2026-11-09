@@ -8,7 +8,7 @@ const core = (): Promise<any> => import(`../../space/${'core'}`);
 
 const MB = 1024 * 1024;
 
-test('SA2: low under 500 MB, very low under 100 MB, else nothing; unreadable is nothing', { todo: 'test first' }, async () => {
+test('SA2: low under 500 MB, very low under 100 MB, else nothing; unreadable is nothing', async () => {
   const { spaceLevel, SPACE } = await core();
   assert.equal(SPACE.lowBytes, 500 * MB);
   assert.equal(SPACE.veryLowBytes, 100 * MB);
@@ -23,14 +23,14 @@ test('SA2: low under 500 MB, very low under 100 MB, else nothing; unreadable is 
   assert.equal(spaceLevel(-5), null, 'a negative reading says nothing (SA1)');
 });
 
-test('SA3: the lines, verbatim; none says "this device"', { todo: 'test first' }, async () => {
+test('SA3: the lines, verbatim; none says "this device"', async () => {
   const { spaceLine } = await core();
   assert.equal(spaceLine('low'), 'Room for new photos and videos is running low.');
   assert.equal(spaceLine('very-low'), 'There is almost no room left for new photos, videos and memos.');
   for (const l of [spaceLine('low'), spaceLine('very-low')]) assert.doesNotMatch(l, /this device/i);
 });
 
-test('SA4: once for each level; again only when worse', { todo: 'test first' }, async () => {
+test('SA4: once for each level; again only when worse', async () => {
   const { shouldSay } = await core();
   assert.equal(shouldSay(null, null), false, 'nothing to say');
   assert.equal(shouldSay(null, 'low'), true, 'first time at this level');
@@ -40,7 +40,7 @@ test('SA4: once for each level; again only when worse', { todo: 'test first' }, 
   assert.equal(shouldSay('very-low', 'low'), false, 'better is not said again');
 });
 
-test('SA7: no line holds a digit, a percentage or a size, or asks to free, delete or clear', { todo: 'test first' }, async () => {
+test('SA7: no line holds a digit, a percentage or a size, or asks to free, delete or clear', async () => {
   const { spaceLine, persistLine, saveFailLine, heldLabel } = await core();
   const lines = [
     spaceLine('low'), spaceLine('very-low'), persistLine(false), persistLine(true),
@@ -54,7 +54,7 @@ test('SA7: no line holds a digit, a percentage or a size, or asks to free, delet
   }
 });
 
-test('SA8: what is held, in words, never a count', { todo: 'test first' }, async () => {
+test('SA8: what is held, in words, never a count', async () => {
   const { heldLabel } = await core();
   assert.equal(heldLabel(['photo']), 'Photo not saved');
   assert.equal(heldLabel(['video']), 'Video not saved');
@@ -63,7 +63,7 @@ test('SA8: what is held, in words, never a count', { todo: 'test first' }, async
   assert.equal(heldLabel(['video', 'photo']), 'Photos and videos not saved');
 });
 
-test('SA9: a failure from lack of room is told apart from any other', { todo: 'test first' }, async () => {
+test('SA9: a failure from lack of room is told apart from any other', async () => {
   const { isOutOfSpace } = await core();
   const named = (name: string, message = '') => Object.assign(new Error(message), { name });
   assert.equal(isOutOfSpace(named('QuotaExceededError', 'The quota has been exceeded.')), true, 'the web');
@@ -79,7 +79,7 @@ test('SA9: a failure from lack of room is told apart from any other', { todo: 't
   assert.equal(isOutOfSpace('quota'), false, 'a bare string is not an error');
 });
 
-test('SA9: the words, never the raw error', { todo: 'test first' }, async () => {
+test('SA9: the words, never the raw error', async () => {
   const { saveFailLine } = await core();
   assert.equal(saveFailLine('photo', true), 'Not saved: there is no room left. It is held here for Retry.');
   assert.equal(saveFailLine('video', true), 'Not saved: there is no room left. It is held here for Retry.');
@@ -88,8 +88,20 @@ test('SA9: the words, never the raw error', { todo: 'test first' }, async () => 
   assert.equal(saveFailLine('voice', false), 'Couldn’t save this voice memo.');
 });
 
-test('SA10: the browser\'s refusal, verbatim; the Home Screen named only where there is one', { todo: 'test first' }, async () => {
+test('SA10: the browser\'s refusal, verbatim; the Home Screen named only where there is one', async () => {
   const { persistLine } = await core();
   assert.equal(persistLine(false), 'This browser may clear Chronicles’ moments when it needs room.');
   assert.equal(persistLine(true), 'This browser may clear Chronicles’ moments when it needs room. The Home Screen app is less likely to.');
+});
+
+test('SA10: the Home Screen is named only in an iPhone or iPad browser, never in the Home Screen app', async () => {
+  const { homeScreenNamed } = await core();
+  const iphone = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1';
+  const mac = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/18.0 Safari/605.1.15';
+  assert.equal(homeScreenNamed({ ua: iphone }), true);
+  assert.equal(homeScreenNamed({ ua: iphone, standalone: true }), false, 'already on the Home Screen');
+  assert.equal(homeScreenNamed({ ua: mac, touchPoints: 5 }), true, 'an iPad asking for the desktop site');
+  assert.equal(homeScreenNamed({ ua: mac, touchPoints: 0 }), false, 'a Mac');
+  assert.equal(homeScreenNamed({ ua: 'Mozilla/5.0 (Linux; Android 14) Chrome/130.0 Mobile Safari/537.36' }), false);
+  assert.equal(homeScreenNamed({}), false);
 });

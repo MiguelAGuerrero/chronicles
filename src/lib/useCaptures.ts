@@ -14,6 +14,8 @@ import { memoGate } from './memoGate';
 import type { LocateResult } from './locate/types';
 import { dropTemp, keepFile, removeMedia } from './media';
 import { makeThumb } from './media/thumb';
+import { isOutOfSpace, saveFailLine } from './space/core';
+import { space } from './space';
 import { captureThumbStillWanted, THUMB } from './thumbPlan';
 import type { Capture, CaptureKind, LngLat } from './types';
 
@@ -54,6 +56,20 @@ const clockNow = () => Date.now();
 
 /** Folder for the media of moments made outside any walk. */
 const LOOSE_FOLDER = 'moments';
+
+/**
+ * A photo or video whose save failed, held for Retry with the time and place it was taken (SA8). `path`
+ * is set once its file is kept, so a Retry after a failed row write doesn't move the file twice.
+ */
+interface HeldShot {
+  kind: 'photo' | 'video';
+  stamp: Stamp;
+  uri: string;
+  ext: string;
+  /** A video's length in ms, its capture's body. */
+  ms: number | null;
+  path: string | null;
+}
 
 interface StoppedMemo {
   uri: string | null;
@@ -162,6 +178,8 @@ export function useCaptures(
     captureBus.emit(shown, self);
     if (!walkId) onMoment.current?.(c, 'kept');
     placeMoment(c, stamp);
+    // The room again after each kept photo, video or memo (SA5); the web's request waits for a calm moment (SA10).
+    if (kind !== 'text') void space.afterKept({ recording: walkId != null });
     return c.id;
   }
 
@@ -212,6 +230,69 @@ export function useCaptures(
   }
 
   /** The system camera, in photo or video mode as the person picks there. Resolves what was kept, if anything. */
+  /** Photos and videos whose save failed, every one of them, held for Retry (SA8). */
+  const [held, setHeld] = useState<HeldShot[]>([]);
+
+  /** Keeps a shot's file, then its row; on a failure, the shot as far as it got and why. */
+  async function keepShot(s: HeldShot): Promise<{ id: string | null } | { failed: HeldShot; error: unknown }> {
+    let path = s.path;
+    try {
+      path = path ?? (await keepFile(s.uri, folder(), `${newId()}.${s.ext}`));
+      const id = await add(s.kind, s.stamp, path, s.ms == null ? null : String(s.ms));
+      if (id && s.kind === 'photo') thumbFor(id, path);
+      return { id };
+    } catch (error) {
+      return { failed: { ...s, path }, error };
+    }
+  }
+
+  /** Keeps a new shot, or holds it with why in words, never the raw error (SA8, SA9). */
+  async function keepOrHold(s: HeldShot): Promise<{ kind: 'photo' | 'video'; id: string } | null> {
+    const r = await keepShot(s);
+    if ('failed' in r) {
+      if (alive.current) setHeld((prev) => [...prev, r.failed]);
+      setError({ message: saveFailLine(s.kind, isOutOfSpace(r.error)) });
+      return null;
+    }
+    return r.id ? { kind: s.kind, id: r.id } : null;
+  }
+
+  /** Retry: each held shot saved in turn; one that fails again stays held (SA8). */
+  const retryHeld = () =>
+    guarded(held[0]?.kind ?? 'photo', async () => {
+      const still: HeldShot[] = [];
+      let last: { kind: HeldShot['kind']; error: unknown } | null = null;
+      for (const s of held) {
+        const r = await keepShot(s);
+        if ('failed' in r) {
+          still.push(r.failed);
+          last = { kind: s.kind, error: r.error };
+        }
+      }
+      if (alive.current) setHeld(still);
+      if (last) setError({ message: saveFailLine(last.kind, isOutOfSpace(last.error)) });
+    });
+
+  /** A new photo's small copy for previews (TH1), after the capture is kept: never holds it up or fails it (TH2). */
+  function thumbFor(id: string, path: string) {
+    void makeThumb({ id, walk_id: folder(), t: Date.now(), lat: null, lon: null, kind: 'photo', file_path: path, body: null, segment_id: null }).then((thumb) => {
+      if (!thumb) return;
+      // An Edit offer's Done may have stored the edited copy meanwhile: this one then stands down (media-editing audit 8).
+      void db.getCapturesByIds([id]).then(([row]) => {
+        if (!captureThumbStillWanted(row ?? null)) {
+          if (thumb !== THUMB.none) void removeMedia([thumb]).catch(() => {});
+          return;
+        }
+        if (alive.current) setCaptures((prev) => prev.map((x) => (x.id === id ? { ...x, thumb_path: thumb } : x)));
+        // Stored first, then told: a walk screen mounting meanwhile either reads it or hears it (tabs audit 5).
+        void db.updateCapture(id, { thumb_path: thumb }).then(
+          () => captureBus.patch(walkId, id, { thumb_path: thumb }, self),
+          () => {},
+        );
+      }, () => {});
+    });
+  }
+
   const takePhoto = async (): Promise<{ kind: 'photo' | 'video'; id: string } | null> => {
     let kept: { kind: 'photo' | 'video'; id: string } | null = null;
     await guarded('photo', async () => {
@@ -242,33 +323,11 @@ export function useCaptures(
           return;
         }
         const ext = asset.mimeType?.split('/')[1]?.replace('quicktime', 'mov') ?? 'mp4';
-        const id = await add('video', stamp, await keepFile(asset.uri, folder(), `${newId()}.${ext}`), String(Math.round(ms)));
-        if (id) kept = { kind: 'video', id };
+        kept = await keepOrHold({ kind: 'video', stamp, uri: asset.uri, ext, ms: Math.round(ms), path: null });
         return;
       }
       const ext = asset.mimeType?.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
-      const path = await keepFile(asset.uri, folder(), `${newId()}.${ext}`);
-      const id = await add('photo', stamp, path, null);
-      if (id) {
-        kept = { kind: 'photo', id };
-        // Its small copy for previews (TH1), after the capture is kept: never holds it up or fails it (TH2).
-        void makeThumb({ id, walk_id: folder(), t: Date.now(), lat: null, lon: null, kind: 'photo', file_path: path, body: null, segment_id: null }).then((thumb) => {
-          if (!thumb) return;
-          // An Edit offer's Done may have stored the edited copy meanwhile: this one then stands down (media-editing audit 8).
-          void db.getCapturesByIds([id]).then(([row]) => {
-            if (!captureThumbStillWanted(row ?? null)) {
-              if (thumb !== THUMB.none) void removeMedia([thumb]).catch(() => {});
-              return;
-            }
-            if (alive.current) setCaptures((prev) => prev.map((x) => (x.id === id ? { ...x, thumb_path: thumb } : x)));
-            // Stored first, then told: a walk screen mounting meanwhile either reads it or hears it (tabs audit 5).
-            void db.updateCapture(id, { thumb_path: thumb }).then(
-              () => captureBus.patch(walkId, id, { thumb_path: thumb }, self),
-              () => {},
-            );
-          }, () => {});
-        });
-      }
+      kept = await keepOrHold({ kind: 'photo', stamp, uri: asset.uri, ext, ms: null, path: null });
     });
     return kept;
   };
@@ -387,7 +446,7 @@ export function useCaptures(
           return 'saved';
         } catch (e) {
           if (alive.current) setUnsaved(m);
-          setError({ message: `The voice memo could not be saved: ${e instanceof Error ? e.message : e}` });
+          setError({ message: saveFailLine('voice', isOutOfSpace(e)) });
           return 'failed';
         }
       }),
@@ -404,7 +463,7 @@ export function useCaptures(
           setUnsaved(null);
           return 'saved';
         } catch (e) {
-          setError({ message: `The voice memo could not be saved: ${e instanceof Error ? e.message : e}` });
+          setError({ message: saveFailLine('voice', isOutOfSpace(e)) });
           return 'failed';
         }
       }),
@@ -449,7 +508,7 @@ export function useCaptures(
           return 'saved';
         } catch (e) {
           setUnsaved(m);
-          setError({ message: `The voice memo could not be saved: ${e instanceof Error ? e.message : e}` });
+          setError({ message: saveFailLine('voice', isOutOfSpace(e)) });
           return 'failed';
         }
       }),
@@ -507,6 +566,9 @@ export function useCaptures(
     discarded: discarded != null,
     retrySave,
     unsaved: unsaved != null,
+    /** What is held for Retry, by kind, in the order taken (SA8). */
+    held: held.map((h) => h.kind),
+    retryHeld,
     saveNote,
     setEdit,
     setNote,

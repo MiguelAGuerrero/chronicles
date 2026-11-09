@@ -130,6 +130,11 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
   `allowsBackgroundRecording: true` and the expo-audio plugin has
   `enableBackgroundRecording`.
 
+- **A failed photo or video is held** (SA8, decision 0104): `useCaptures` keeps every one (`held`, the
+  file's kept path once it is), the walk screen and Navigate, ready show "Photo not saved" with Retry
+  (`heldLabel`), Retry saves each with its stamp, and Stop warns once before ending without them. Every
+  save failure is worded by `saveFailLine` (lack of room told apart by `isOutOfSpace`), never the raw error.
+
 - All voice actions (start, save, discard, undo, retry) run on one promise queue in
   `useCaptures`, so taps never interleave. Stop waits for that queue.
 - Never call `stop()` on a recorder that already stopped by itself: on web it waits

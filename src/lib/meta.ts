@@ -131,6 +131,9 @@ export const META = {
   resurface_prefs: { owner: 'resurface', codec: json<Prefs>((v) => parsePrefs(v) !== null) },
   // Settings
   units: { owner: 'settings', codec: oneOf<Units>('km', 'mi') },
+  // Storage awareness (lib/space, SA4, SA10).
+  space_said: { owner: 'space', codec: oneOf<'low' | 'very-low'>('low', 'very-low') },
+  space_persist: { owner: 'space', codec: oneOf<'due' | 'refused' | 'asked'>('due', 'refused', 'asked') },
   notify_off: { owner: 'notifications', codec: json<string[]>(isStrings) },
 } as const;
 

@@ -146,6 +146,11 @@ recording bar brings a minimized walk back.
 - Capture buttons (camera, mic, pencil) are stacked at the right edge, above the strip. Photos and
   videos come from the system camera (video capped at 30 s), memos from the
   mic, notes from the pencil. Captions can be added to photos later.
+- When room for new photos and videos runs low, one line says so in words beside the capture buttons, once
+  for each level (low under 500 MB, very low under 100 MB), with OK to dismiss; it never blocks a capture and
+  never shows a number. A photo or video whose save fails is held with Retry ("Photo not saved"), and says why
+  in words. On the web the app asks the browser once to keep its data, never mid-walk, and says once on
+  Navigate, ready if it was refused. There is no Storage screen (0041). Storage awareness, decision 0104.
 - The bottom strip has time, distance, Pause, walk options and hold-to-stop.
   A status chip shows only when something is wrong (waiting for GPS, weak GPS,
   not recording) or on a ride. "Not recording" is a button: it says why, with
@@ -348,6 +353,7 @@ recording bar brings a minimized walk back.
 | Scenic routes (Go here offers Direct and one route per leaning: green, sights, streets with life) | Shipped on web (native unverified) |
 | Explore's route preview, "Walk this way" | Deferred |
 | Media editing: crop, rotate, filters, drawing, text, video trim, all saved out | Shipped on web (native unverified; the video module never compiled) |
+| Storage awareness: the room left said in words beside the captures; a failed save held for Retry; the web asks to be kept | Shipped on web (web verified by the space e2e; native unverified) |
 | Backup and export of a walk | Code exists, no UI, deferred |
 | Quick capture outside the app (widget, lock screen, share sheet) | Deferred |
 | Remind me here outside a walk | Deferred (needs background location) |
