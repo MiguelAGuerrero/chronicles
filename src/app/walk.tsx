@@ -621,6 +621,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
     landing: busy.view,
     borders: layers.on.borders ? borders : null,
     walkability: wk.draw,
+    veil: showUnwalked,
+    fogEmphasis: showUnwalked,
   });
   const aheadLine = useRouteWarning(navigation.nav?.route.path ?? null, live.here, !!layers.on.walkability);
   // Explore (v1 slice 5): checklists are built quietly on every walk (E2); the layers show only
@@ -1144,8 +1146,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
         // While navigating the trace steps aside, so the route reads; it is still recorded (the owner's call, Nov 2).
         traceOpacity={navigation.nav ? 0 : 1}
         covered={navigation.finding}
-        veil={showUnwalked}
-        fogEmphasis={showUnwalked}
         ref={mapRef}
         // Started in place, the walk opens where the ready map was: around the last fix (NR6).
         initialCenter={live.here ?? getLastFix()?.at ?? undefined}
