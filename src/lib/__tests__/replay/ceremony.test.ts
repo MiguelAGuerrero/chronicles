@@ -399,6 +399,16 @@ test('RR15: a passed place whispers as the walker reaches it, without slowing it
   assert.ok(first.walker && distanceM(first.walker, at(300, 0)) < 40, 'it comes as the walker reaches the place');
 });
 
+test('RP19: a replay past many places whispers once, as the card says it', { todo: 'test first' }, () => {
+  const ab = line(A, B, 0);
+  const note = cap('text', endT(ab), B, 'x');
+  const pass = (name: string, i: number) => ({ name, generic: false, at: at(100 + i * 50, 30), t: ab[10 + i * 8].t });
+  const many = plan(walkStory(input(ab, [note], { passed: ['Hessian Memorial', 'Moravian Book Shop', 'Sun Inn', 'Kemerer Museum'].map(pass) })));
+  assert.deepEqual(many.whispers.map((w) => w.text), ['Passed a few places without stopping'], 'more than two: one whisper, as the card says it');
+  const two = plan(walkStory(input(ab, [note], { passed: ['Hessian Memorial', 'Sun Inn'].map(pass) })));
+  assert.deepEqual(two.whispers.map((w) => w.text), ['Passed Hessian Memorial without stopping', 'Passed Sun Inn without stopping'], 'one or two: each by name (RR15)');
+});
+
 test('RR16: a day glides between its entries, says how much later, and plays each walk\'s rhythm', () => {
   const morning = cap('photo', 9 * 60 * MIN, at(-500, 0), null, null);
   const ab = line(A, B, 11 * 60 * MIN);

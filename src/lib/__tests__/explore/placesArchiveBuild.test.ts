@@ -172,3 +172,132 @@ test('PW19: the weekly build publishes only when the archive changed, and a fail
   assert.deepEqual(decide({ region: 'us', sha256: null, manifest }), { publish: false, reason: 'no archive built' });
   assert.deepEqual(decide({ region: 'us', sha256: 'bbb', manifest: null, unreachable: true }), { publish: false, reason: 'manifest unreachable' }, 'places-worth-the-stop audit 7: one network error publishes nothing');
 });
+
+// Remarkable and public (RP1-RP12, decision 0104): a listed place enters when remarkable and public. Written before
+// the code, from specs/remarkable-and-public/spec.md. Class ids checked against Wikidata on Nov 9.
+const Q = {
+  church: 'Q16970', cemetery: 'Q39614', roadBridge: 'Q537127', gristmill: 'Q623605', station: 'Q55488',
+  house: 'Q3947', building: 'Q41176', schoolBuilding: 'Q1244442', office: 'Q1021645', bank: 'Q18761864', hotel: 'Q27686',
+  museum: 'Q33506', houseMuseum: 'Q2087181', theatre: 'Q24354', district: 'Q15243209', statue: 'Q179700', lighthouse: 'Q39715',
+};
+let n = 0;
+const listed = (name: string, p31: string[], o: { nhl?: boolean; listed?: boolean } = {}) =>
+  ({ id: `Q9${++n}`, name, lon: -75.37 + n * 0.001, lat: 40.61, p31, listed: o.listed ?? true, nhl: o.nhl ?? false });
+const osmFor = (...tagged: [{ id: string; lon: number; lat: number }, Record<string, string>][]) =>
+  ({ type: 'FeatureCollection', features: tagged.map(([it, tags]) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [it.lon, it.lat] }, properties: { wikidata: it.id, ...tags } })) });
+const built = (items: ReturnType<typeof listed>[], osm: unknown = null, extra: Record<string, unknown> = {}) =>
+  build({ items, osm, region: 'us', version: '20261109', ...extra } as Parameters<typeof build>[0]);
+const names = (r: { places: { name: string }[] }) => r.places.map((p) => p.name).sort();
+const classOf = (r: { places: { name: string; class: string }[] }, name: string) => r.places.find((p) => p.name === name)?.class;
+
+test('RP1: a listed church, cemetery, bridge, mill and station enter by their type', { todo: 'test first' }, () => {
+  const r = built([
+    listed('Central Moravian Church', [Q.church]),
+    listed('Nisky Hill Cemetery', [Q.cemetery]),
+    listed('Northampton Street Bridge', [Q.roadBridge]),
+    listed('Bushkill Gristmill', [Q.gristmill]),
+    listed('Mauch Chunk Station', [Q.station]),
+  ]);
+  assert.deepEqual(names(r), ['Bushkill Gristmill', 'Central Moravian Church', 'Mauch Chunk Station', 'Nisky Hill Cemetery', 'Northampton Street Bridge']);
+});
+
+test('RP2: a listed house or building enters only when a museum type or its OSM tags show it open; historic=building is no sign', { todo: 'test first' }, () => {
+  const trout = listed('Trout Hall', [Q.house]);
+  const burnside = listed('Burnside Plantation', [Q.building]);
+  const plain = listed('Gauff-Roth House', [Q.house]);
+  const gem = listed('Gemeinhaus', [Q.building, Q.houseMuseum]);
+  const r = built([trout, burnside, plain, gem], osmFor([trout, { tourism: 'museum' }], [burnside, { tourism: 'attraction' }], [plain, { historic: 'building' }]));
+  assert.deepEqual(names(r), ['Burnside Plantation', 'Gemeinhaus', 'Trout Hall']);
+});
+
+test('RP3: a listed house, school, office, bank, hotel or bare building with no open sign and no Landmark stays out', { todo: 'test first' }, () => {
+  const r = built([
+    listed('Kistler Residence', [Q.house]),
+    listed('Liberty High School', [Q.schoolBuilding]),
+    listed('Farr Building', [Q.office]),
+    listed('Allentown National Bank', [Q.bank]),
+    listed('Hotel Sterling', [Q.hotel]),
+    listed('Dime Savings and Trust Company', [Q.building]),
+    listed('Old Mill, unlisted', [Q.gristmill], { listed: false }),
+  ]);
+  assert.deepEqual(names(r), []);
+});
+
+test('RP4: a National Historic Landmark enters whatever its type, a private house included', { todo: 'test first' }, () => {
+  const r = built([listed('Private Landmark House', [Q.house], { nhl: true, listed: false }), listed('Landmark Office', [Q.office], { nhl: true })]);
+  assert.deepEqual(names(r), ['Landmark Office', 'Private Landmark House']);
+});
+
+test('RP5: access=private or access=no keeps a place out, a Landmark too', { todo: 'test first' }, () => {
+  const estate = listed('Gated Landmark Estate', [Q.house], { nhl: true });
+  const chapel = listed('Closed Chapel', [Q.church]);
+  const open = listed('Open Church', [Q.church]);
+  const r = built([estate, chapel, open], osmFor([estate, { access: 'private' }], [chapel, { access: 'no' }], [open, { access: 'yes' }]));
+  assert.deepEqual(names(r), ['Open Church']);
+});
+
+test('RP6: a historic district never enters, a Landmark too', { todo: 'test first' }, () => {
+  const r = built([listed('Historic Moravian Bethlehem Historic District', [Q.district], { nhl: true }), listed('A Church', [Q.church])]);
+  assert.deepEqual(names(r), ['A Church']);
+});
+
+test('RP7: OSM joins only by its wikidata tag, and every place comes from Wikidata or the owner (extends PW15\'s test)', { todo: 'test first' }, () => {
+  const house = listed('Kistler Residence', [Q.house]);
+  const church = listed('A Church', [Q.church]);
+  // A museum tag on an element with no wikidata tag, at the house's very spot, says nothing about the house.
+  const osm = { type: 'FeatureCollection', features: [
+    { type: 'Feature', geometry: { type: 'Point', coordinates: [house.lon, house.lat] }, properties: { tourism: 'museum', name: 'Kistler Residence' } },
+    { type: 'Feature', geometry: { type: 'Point', coordinates: [-75.1, 40.5] }, properties: { historic: 'monument', name: 'OSM-only Monument' } },
+  ] };
+  const r = built([house, church], osm);
+  assert.deepEqual(names(r), ['A Church']);
+  assert.deepEqual([...new Set(r.places.map((p: { src: string }) => p.src))], ['wd']);
+});
+
+test('RP8: listed places take their kind by type, and 0103\'s classes keep theirs', { todo: 'test first' }, () => {
+  const r = built([
+    listed('A Church', [Q.church]), listed('A Cemetery', [Q.cemetery]), listed('State Theatre', [Q.theatre]),
+    listed('A Museum', [Q.museum]), listed('A Bridge', [Q.roadBridge]), listed('Washington Grays Monument', [Q.statue]),
+    listed('A Lighthouse', [Q.lighthouse]),
+  ]);
+  assert.equal(classOf(r, 'A Church'), 'church');
+  assert.equal(classOf(r, 'A Cemetery'), 'cemetery');
+  assert.equal(classOf(r, 'State Theatre'), 'theatre');
+  assert.equal(classOf(r, 'A Museum'), 'museum');
+  assert.equal(classOf(r, 'A Bridge'), 'heritage_building');
+  assert.equal(classOf(r, 'Washington Grays Monument'), 'statue', 'a listing never changes the class 0103 gave');
+  assert.equal(classOf(r, 'A Lighthouse'), 'odd_engineering');
+  const kinds = ARCHIVE_CLASSES as Record<string, readonly [string, string]>;
+  assert.deepEqual(kinds.church, ['history', 'churches']);
+  assert.deepEqual(kinds.cemetery, ['history', 'cemeteries']);
+  assert.deepEqual(kinds.theatre, ['culture', 'theatres']);
+  assert.deepEqual(kinds.museum, ['culture', 'museums']);
+  assert.deepEqual(kinds.heritage_building, ['history', 'structures'], 'Buildings and structures (the owner, Nov 9)');
+});
+
+test('RP10: the fetch asks for National Register listings and Landmarks, never for popularity', { todo: 'test first' }, () => {
+  const q = cellQuery([-76, 40, -75, 41]);
+  assert.match(q, /wdt:P1435 wd:Q19558910/, 'National Register listings (the owner, Nov 9)');
+  assert.match(q, /wdt:P1435 wd:Q624232/, 'and Landmarks');
+  assert.ok(!/sitelinks|schema:about|wikipedia|pageviews|COUNT/i.test(q));
+  const b = (o: Record<string, string>) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, { value: v }]));
+  const [it] = itemsFrom([b({ item: 'http://www.wikidata.org/entity/Q1', label: 'A Church', coord: 'Point(-75.2 40.7)', p31: 'http://www.wikidata.org/entity/Q16970', listed: 'true' })]);
+  assert.equal((it as { listed?: boolean }).listed, true);
+});
+
+test('RP12: the build writes a review per area beside the archive, and an owner\'s remove leaves the place out', { todo: 'test first' }, () => {
+  const church = listed('A Church', [Q.church]);
+  const trout = listed('Trout Hall', [Q.house]);
+  const landmark = listed('Landmark House', [Q.house], { nhl: true });
+  const items = [church, trout, landmark];
+  const osm = osmFor([trout, { tourism: 'museum' }]);
+  const areas = [{ name: 'Bethlehem', bbox: [-75.5, 40.5, -75.2, 40.7] }];
+  const r = built(items, osm, { review: areas }) as unknown as { bytes: Uint8Array; review?: { areas: { name: string; places: { name: string; class: string; reason: string }[] }[]; region: Record<string, number> } };
+  const plain = built(items, osm);
+  assert.deepEqual(Buffer.from(r.bytes), Buffer.from(plain.bytes), 'the review is never inside the archive');
+  const reasons = Object.fromEntries((r.review?.areas[0].places ?? []).map((p) => [p.name, p.reason]));
+  assert.deepEqual(reasons, { 'A Church': 'public type', 'Trout Hall': 'shown open', 'Landmark House': 'landmark' });
+  assert.ok(r.review && Object.keys(r.review.region).length > 0, 'and a summary for the whole region, by class and reason');
+  const struck = built(items, osm, { edits: { remove: [{ name: 'A Church', at: [church.lon, church.lat] }], add: [] } });
+  assert.ok(!names(struck).includes('A Church'));
+});

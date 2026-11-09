@@ -74,6 +74,9 @@ async function run(h) {
     await startWalk();
     const second = await walkPast('second walk (area read before)');
     check(second.some((l) => /Hessian Memorial/.test(l)), `marks: a later exploring walk through an area read before draws the memorial it passes (${JSON.stringify(second)})`);
+    // Remarkable and public (RP18, RP8, RP20), written before the code.
+    check.todo(false, 'RP18: "What I\'m into" lists Buildings and structures after Monuments and ruins, on by default');
+    check.todo(false, 'RP20: a place to find with no street or path within 60 m says "No street or path close by" on its card, and is still shown');
     await c.close();
 }
 
