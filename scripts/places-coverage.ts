@@ -12,7 +12,7 @@ import { isMarkable } from '../src/lib/discovery/noise';
 import { placesFromTilePois } from '../src/lib/discovery/tilePois';
 import { wayNear } from '../src/lib/explore/reach/rule';
 import type { LngLat } from '../src/lib/types';
-import { isDestination, outcome } from './places-archive/coverage.mjs';
+import { areaKey, isDestination, outcome, walkable } from './places-archive/coverage.mjs';
 import { keep, NHL, NRHP } from './places-archive/classify.mjs';
 
 const AGENT = 'Chronicles places coverage (+github.com/MiguelAGuerrero/chronicles; owner-run, one query at a time)';
@@ -77,6 +77,7 @@ async function tiles(box: number[]) {
       for (let i = 0; poi && i < poi.length; i++) pois.push({ ...(poi.feature(i).toGeoJSON(x, y, 14) as unknown as Feature), zoom: 14 });
       const tr = vt.layers.transportation;
       for (let i = 0; tr && i < tr.length; i++) {
+        if (!walkable(tr.feature(i).properties.class)) continue;
         const g = tr.feature(i).toGeoJSON(x, y, 14).geometry;
         if (g.type === 'LineString') ways.push(g.coordinates as LngLat[]);
         if (g.type === 'MultiLineString') ways.push(...(g.coordinates as LngLat[][]));
@@ -107,7 +108,7 @@ async function main() {
         if (wayNear(it.at, t.ways) === false) far.push(it.name);
       }
     }
-    for (const p of review?.areas.find((a) => a.name.toLowerCase() === area)?.places ?? [])
+    for (const p of review?.areas.find((a) => areaKey(a.name) === area)?.places ?? [])
       if (wayNear(p.at, t.ways) === false && !far.includes(p.name)) far.push(p.name);
     const n = Object.values(by).reduce((a, b) => a + b.length, 0);
     console.log(`\n## ${area} (tiles ${t.build})\n${n} destinations.`);

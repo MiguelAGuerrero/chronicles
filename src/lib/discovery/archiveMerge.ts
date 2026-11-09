@@ -17,9 +17,18 @@ export const SAME_PLACE_M = 50;
 const same = (a: { name: string; at: LngLat }, b: { name: string; at: LngLat }) =>
   normalizeName(a.name) === normalizeName(b.name) && distanceM(a.at, b.at) <= SAME_PLACE_M;
 
+/**
+ * Remarkable-and-public audit 5 (the owner, Nov 9): a large place's two points can sit apart (Wikidata's at a
+ * cemetery's gate, the map's mid-grounds), so the same name and category are one place within this.
+ */
+export const SAME_KIND_M = 200;
+
+const samePlace = (t: Place, a: Place) =>
+  same(t, a) || (t.category === a.category && normalizeName(t.name) === normalizeName(a.name) && distanceM(t.at, a.at) <= SAME_KIND_M);
+
 /** PW8: the map's places and the archive's, a place in both kept once, with the archive's category and kind. */
 export function mergePlaces(tiles: Place[], archive: Place[]): Place[] {
-  return [...tiles.filter((t) => !archive.some((a) => same(t, a))), ...archive];
+  return [...tiles.filter((t) => !archive.some((a) => samePlace(t, a))), ...archive];
 }
 
 export interface ArchiveEdits {

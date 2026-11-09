@@ -80,7 +80,7 @@ test('PW5: each archive class maps to one category and kind; the table is pinned
     mural: ['art', 'public_art'], sculpture: ['art', 'public_art'],
     overlook: ['viewpoints', 'viewpoints'], tower: ['viewpoints', 'viewpoints'],
     church: ['history', 'churches'], cemetery: ['history', 'cemeteries'], theatre: ['culture', 'theatres'], museum: ['culture', 'museums'],
-    heritage_building: ['history', 'structures'],
+    heritage_building: ['history', 'structures'], historic_site: ['history', 'monuments'],
   }, 'a new class is a deliberate change to this table (as AG5); RP8 re-pinned it (decision 0104)');
   const got = placesFromArchive([pt(-75.19, 40.69, { name: 'Bushkill Park Folly', class: 'folly', src: 'wd', id: 'Q1' }), pt(-75.19, 40.691, { name: 'A shop', class: 'shop', src: 'osm', id: 'n2' })], 'v20261108');
   assert.equal(got.length, 1, 'the shop\'s class is not in the table: left out, never guessed');

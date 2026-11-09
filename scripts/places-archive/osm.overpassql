@@ -8,6 +8,6 @@
   nwr["wikidata"]["historic"~"^(monument|memorial|castle|ruins|fort|archaeological_site)$"]({{bbox}});
   nwr["wikidata"]["amenity"~"^(place_of_worship|theatre|arts_centre|library|townhall|courthouse)$"]({{bbox}});
   nwr["wikidata"]["access"~"^(private|no)$"]({{bbox}});
-  nwr["wikidata"]~"^(demolished|razed|was):"~".";
+  nwr["wikidata"][~"^(demolished|razed|destroyed):"~"."]({{bbox}});
 );
 out tags center;

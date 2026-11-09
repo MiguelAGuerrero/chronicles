@@ -1107,7 +1107,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
           setGapOpen(null);
           setMarkOpen(id);
           const item = explore.itemOf(id);
-          if (item) reach.near(item.at).then((near) => setMarkReach({ key: id, near })).catch(() => {});
+          if (item) reach.ask(id, item.at, setMarkReach);
         }}
         marks={marks}
         ring={ring}

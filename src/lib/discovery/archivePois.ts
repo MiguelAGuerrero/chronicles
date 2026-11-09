@@ -34,6 +34,8 @@ export const ARCHIVE_CLASSES: Record<string, readonly [CategoryId, Kind]> = {
   theatre: ['culture', 'theatres'],
   museum: ['culture', 'museums'],
   heritage_building: ['history', 'structures'],
+  // Audit 10 (the owner, Nov 9): a listed site, battlefield or wreck is no building.
+  historic_site: ['history', 'monuments'],
 };
 
 /** One archive place as the app's `Place`: a mark of its class's kind, tagged with the archive's version. */

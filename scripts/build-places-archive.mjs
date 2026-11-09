@@ -2,7 +2,7 @@
 // Builds one region's places archive (Places worth the stop, PW14, decision 0103).
 //
 //   node scripts/build-places-archive.mjs --wikidata items.jsonl [--osm osm.geojson] [--edits src/lib/discovery/archiveEdits.json]
-//        [--review areas.json] --region us --version 20261108 --out dir
+//        [--review areas.json --review-out review-dir] --region us --version 20261108 --out dir
 //
 // Input: Wikidata items, one JSON object per line ({id, name, lon, lat, p31: [Q…], heritage, dissolved, closed,
 // states}), as `scripts/places-archive/fetch-wikidata.mjs` writes them; and, if given, an OpenStreetMap GeoJSON
@@ -13,7 +13,7 @@
 // manifest is written by the chronicles-data workflow from the published archives. The app never reads Wikidata's
 // or OpenStreetMap's format.
 import { readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { writeArchive } from './places-archive/archive.mjs';
 import { CLOSED_ACCESS, keep, listing, OPEN_TAGS } from './places-archive/classify.mjs';
 
@@ -34,16 +34,30 @@ const same = (a, b) => norm(a.name) === norm(b.name) && metres([a.lon, a.lat], b
  */
 export function osmSignals(osm) {
   const out = new Map();
-  for (const f of osm?.features ?? []) {
-    const t = f.properties ?? {};
-    if (typeof t.wikidata !== 'string' || !/^Q\d+$/.test(t.wikidata)) continue;
-    const s = out.get(t.wikidata) ?? { gone: false, open: false, closed: false };
-    if (Object.keys(t).some((k) => /^(demolished|razed|was):/.test(k))) s.gone = true;
-    if (Object.entries(OPEN_TAGS).some(([k, vs]) => vs.includes(t[k]))) s.open = true;
-    if (CLOSED_ACCESS.includes(t.access)) s.closed = true;
-    out.set(t.wikidata, s);
+  if (!osm) return out;
+  // GeoJSON features' properties, or Overpass's own JSON elements' tags; any other shape is refused, never read as
+  // empty (remarkable-and-public audit 2).
+  const tagsOf = Array.isArray(osm.features) ? osm.features.map((f) => f.properties ?? {}) : Array.isArray(osm.elements) ? osm.elements.map((e) => e.tags ?? {}) : null;
+  if (!tagsOf) throw new Error('--osm: expected GeoJSON features or Overpass JSON elements');
+  for (const t of tagsOf) {
+    if (typeof t.wikidata !== 'string') continue;
+    // Audit 11: `wikidata=Q1;Q2` speaks for both.
+    for (const id of t.wikidata.split(';').map((s) => s.trim()).filter((s) => /^Q\d+$/.test(s))) {
+      const s = out.get(id) ?? { gone: false, open: false, closed: false };
+      // Audit 4: `was:*` is a former use of a place still standing (a station now a restaurant); only these say gone.
+      if (Object.keys(t).some((k) => /^(demolished|razed|destroyed):/.test(k))) s.gone = true;
+      if (Object.entries(OPEN_TAGS).some(([k, vs]) => vs.includes(t[k]))) s.open = true;
+      if (CLOSED_ACCESS.includes(t.access)) s.closed = true;
+      out.set(id, s);
+    }
   }
   return out;
+}
+
+/** RP12, audit 18: where the owner's review is written: its own folder, never the archive's, so it is never published. */
+export function reviewDir(out, reviewOut) {
+  if (!reviewOut || resolve(reviewOut) === resolve(out)) throw new Error('--review needs --review-out, a folder other than --out (the review is never published)');
+  return reviewOut;
 }
 
 const inside = ([w, s, e, n], p) => p.lon >= w && p.lon <= e && p.lat >= s && p.lat <= n;
@@ -104,7 +118,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const version = arg('version');
   const out = arg('out') ?? '.';
   if (!wikidata || !region || !version) {
-    console.error('usage: build-places-archive.mjs --wikidata items.jsonl [--osm osm.geojson] [--edits edits.json] [--review areas.json] --region us --version YYYYMMDD --out dir');
+    console.error('usage: build-places-archive.mjs --wikidata items.jsonl [--osm osm.geojson] [--edits edits.json] [--review areas.json --review-out dir] --region us --version YYYYMMDD --out dir');
     process.exit(1);
   }
   const items = readFileSync(wikidata, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l));
@@ -113,8 +127,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const review = arg('review') ? JSON.parse(readFileSync(arg('review'), 'utf8')) : null;
   const r = build({ items, osm, edits, review, region, version });
   writeFileSync(join(out, r.file), r.bytes);
-  // RP12: beside the archive, never in it; the publishing workflow uploads only the .pmtiles and the manifest.
-  if (r.review) writeFileSync(join(out, `review-${region}-${version}.json`), `${JSON.stringify(r.review, null, 1)}\n`);
+  // RP12: in its own folder (--review-out), never the archive's, so the publishing workflow can't upload it.
+  if (r.review) writeFileSync(join(reviewDir(out, arg('review-out')), `review-${region}-${version}.json`), `${JSON.stringify(r.review, null, 1)}\n`);
   const byClass = {};
   for (const p of r.places) byClass[p.class] = (byClass[p.class] ?? 0) + 1;
   console.log(JSON.stringify({ file: r.file, bytes: r.bytes.length, places: r.places.length, byClass }));

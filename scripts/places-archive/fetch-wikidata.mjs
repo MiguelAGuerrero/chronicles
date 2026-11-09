@@ -42,12 +42,12 @@ export function cellQuery([w, s, e, n]) {
     bd:serviceParam wikibase:cornerSouthWest "Point(${w} ${s})"^^geo:wktLiteral .
     bd:serviceParam wikibase:cornerNorthEast "Point(${e} ${n})"^^geo:wktLiteral .
   }
-  { VALUES ?cls { ${classes} } ?item wdt:P31 ?cls . } UNION { ?item wdt:P1435 wd:${NHL} . } UNION { ?item wdt:P1435 wd:${NRHP} . }
+  { VALUES ?cls { ${classes} } ?item wdt:P31 ?cls . } UNION { ?item wdt:P1435 wd:${NHL} . } UNION { ?item p:P1435 ?hl . ?hl ps:P1435 wd:${NRHP} . FILTER NOT EXISTS { ?hl pq:P582 [] } }
   ?item wdt:P17 wd:Q30 .
   ?item rdfs:label ?label . FILTER(LANG(?label) = "en")
   OPTIONAL { ?item wdt:P31 ?p31 . }
   OPTIONAL { ?item wdt:P1435 wd:${NHL} . BIND("true" AS ?nhl) }
-  OPTIONAL { ?item wdt:P1435 wd:${NRHP} . BIND("true" AS ?listed) }
+  OPTIONAL { ?item p:P1435 ?hs . ?hs ps:P1435 wd:${NRHP} . FILTER NOT EXISTS { ?hs pq:P582 [] } BIND("true" AS ?listed) }
   OPTIONAL { ?item wdt:P576 ?dissolved . }
   OPTIONAL { ?item wdt:P3999 ?closed . }
   OPTIONAL { ?item (wdt:P5817|wdt:P5816) ?state . ?state rdfs:label ?stateLabel . FILTER(LANG(?stateLabel) = "en") }
@@ -79,6 +79,16 @@ export function itemsFrom(bindings) {
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/** Audit 13: a query's answer, or null when the JSON is cut off (a timeout after the 200 began): the caller splits the cell. */
+export function parseAnswer(text) {
+  try {
+    const b = JSON.parse(text)?.results?.bindings;
+    return Array.isArray(b) ? b : null;
+  } catch {
+    return null;
+  }
+}
+
 async function ask(query) {
   for (let attempt = 0; attempt < 5; attempt++) {
     const res = await fetch(ENDPOINT, {
@@ -87,7 +97,7 @@ async function ask(query) {
       body: `query=${encodeURIComponent(query)}`,
       signal: AbortSignal.timeout(75_000),
     }).catch(() => null);
-    if (res?.ok) return (await res.json()).results.bindings;
+    if (res?.ok) return parseAnswer(await res.text().catch(() => ''));
     if (res && (res.status === 429 || res.status === 503)) {
       await wait(Math.min(Number(res.headers.get('retry-after')) || 60, 300) * 1000);
       continue;

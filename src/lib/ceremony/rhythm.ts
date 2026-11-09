@@ -219,9 +219,13 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
 
   const plan: RhythmPlan = { story, total: t, segs, reduceMotion: opts.reduceMotion, bubbles, cards, whispers: [], lines, lastSeg };
   // A passed place whispers as the walker reaches it (RR15): the first segment that reaches its time. More than two
-  // whisper once, as the card says them ("Passed a few places without stopping"), at the first (RP19, the owner, Nov 9).
-  const many = story.passes.length > 2;
-  const whispered = many ? [story.passes.reduce((a, b) => (b.t < a.t ? b : a))] : story.passes;
+  // on one walk whisper once, as that walk's card says them ("Passed a few places without stopping", RP19, the owner,
+  // Nov 9), at the last, when it is true (audit 14); a day bounds each walk by its own card (audit 9).
+  const byWalk = new Map<string, typeof story.passes>();
+  for (const p of story.passes) byWalk.set(p.pathId, [...(byWalk.get(p.pathId) ?? []), p]);
+  const whispered = [...byWalk.values()].flatMap((ps) =>
+    ps.length > 2 ? [{ ...ps.reduce((a, b) => (b.t >= a.t ? b : a)), all: ps }] : ps.map((p) => ({ ...p, all: [p] })),
+  );
   for (const p of whispered) {
     const i = segs.findIndex((s) => walkEnd(s, story) >= p.t && (s.k !== 'leg' || !s.move || s.move.pathId === p.pathId));
     if (i < 0) continue;
@@ -236,7 +240,7 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
       }
       tw = s.t0 + hi * (s.t1 - s.t0);
     }
-    plan.whispers.push({ key: `${p.name}@${p.t}`, text: (many ? passedLine(story.passes) : passedLine([p])) ?? p.name, at: p.at, tw });
+    plan.whispers.push({ key: `${p.name}@${p.t}`, text: passedLine(p.all) ?? p.name, at: p.at, tw });
   }
   return plan;
 }

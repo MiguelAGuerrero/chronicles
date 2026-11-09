@@ -471,7 +471,8 @@ export const passedCount = (o: Parameters<typeof passedPlaces>[0]): number => pa
 
 /**
  * The places `passedPlaces` names, each with when the walk first came within
- * reach of it (RR15): the replay whispers each one as the walker gets there.
+ * reach of it (RR15): the replay whispers one or two by name as the walker gets there, more than two once, at the
+ * last, as the card says them (RP19, remarkable-and-public audit 14).
  */
 export function passedAlong(o: Parameters<typeof passedPlaces>[0]): (ChecklistItem & { t: number })[] {
   const fixes = o.fixes.filter((f) => f.t >= o.since);

@@ -76,10 +76,10 @@ export function listing(item, signals = {}) {
   if (p31.has(DISTRICT)) return null;
   for (const cls of ['church', 'cemetery', 'theatre']) if (inGroup(p31, cls)) return { cls, reason: 'public type' };
   if (inGroup(p31, 'museum')) return { cls: 'museum', reason: 'shown open' };
-  if (inGroup(p31, 'public')) return { cls: 'heritage_building', reason: 'public type' };
-  if (inGroup(p31, 'open') || signals.open) return { cls: 'heritage_building', reason: 'shown open' };
-  if (item.nhl) return { cls: 'heritage_building', reason: 'landmark' };
-  return null;
+  const reason = inGroup(p31, 'public') ? 'public type' : inGroup(p31, 'open') || signals.open ? 'shown open' : item.nhl ? 'landmark' : null;
+  if (!reason) return null;
+  // Audit 10 (the owner, Nov 9): a site, a battlefield or a wreck is no building: a Monument.
+  return { cls: inGroup(p31, 'site') ? 'historic_site' : 'heritage_building', reason };
 }
 
 /**
@@ -89,6 +89,8 @@ export function listing(item, signals = {}) {
  */
 export function classify(item, signals = {}) {
   const p31 = new Set(item.p31 ?? []);
+  // RP6, audit 12: a district never enters, whatever else it is typed (a ghost town, a monument).
+  if (p31.has(DISTRICT)) return null;
   for (const cls of ORDER) if (CLASSES[cls].some((q) => p31.has(q))) return cls;
   return listing(item, signals)?.cls ?? null;
 }

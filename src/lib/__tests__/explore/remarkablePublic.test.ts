@@ -115,7 +115,8 @@ test('RP20: a place with no street or path within 60 m is said, never filtered; 
   const mLat = 1 / 110540;
   const O: LngLat = [-75.366, 40.6145];
   const at = (x: number, y: number): LngLat => [O[0] + x * mLon, O[1] + y * mLat];
-  const street = [at(-200, 0), at(200, 0)];
+  // A street as the cache holds it: pieces a few metres long, so each lies in its own z14 tile (audit 7).
+  const street = Array.from({ length: 21 }, (_, i) => at(-200 + i * 20, 0));
   assert.equal(wayNear(at(0, 30), [street]), true);
   assert.equal(wayNear(at(0, 100), [street]), false, 'no street or path within 60 m');
   assert.equal(wayNear(at(0, 400), [street]), null, 'nothing within 300 m: nothing cached there, so nothing is said');
@@ -142,7 +143,7 @@ test('remarkable-and-public audit 5: a listed cemetery 120 m from the tiles\' sa
   assert.equal(merged.filter((p) => p.name === 'Nisky Hill Cemetery').length, 1, 'same name, same category, within 200 m (the owner, Nov 9)');
   const far = archivePlace('Nisky Hill Cemetery', 'cemetery', [-75.3725 + 250 / 84400, 40.6235], 'v1')!;
   assert.equal(mergePlaces(tiles, [far]).filter((p) => p.name === 'Nisky Hill Cemetery').length, 2, 'past 200 m they are two');
-  const otherKind = archivePlace('Nisky Hill Cemetery', 'heritage_building', gate, 'v1')!;
+  const otherKind = archivePlace('Nisky Hill Cemetery', 'museum', gate, 'v1')!;
   assert.equal(mergePlaces(tiles, [otherKind]).filter((p) => p.name === 'Nisky Hill Cemetery').length, 2, 'another category merges only within 50 m');
 });
 

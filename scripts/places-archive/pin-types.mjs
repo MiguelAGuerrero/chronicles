@@ -5,8 +5,10 @@
 //
 //   node scripts/places-archive/pin-types.mjs
 //
-// A class reached from a mundane root (a house, a school, an office, a hotel) is never public by type, even when
-// it is also a subclass of a public one (a rectory is a house before it is a church's).
+// A class reached from a home (a house, a residence, an apartment building) is never public by type, even when it is
+// also a subclass of a public one (a rectory is a house before it is a church's). A class reached from another mundane
+// root (an office, a school, a hotel) stays public when a public root reaches it too: a courthouse is a government
+// building, which Wikidata makes an office building (remarkable-and-public audit 1).
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -22,6 +24,7 @@ export const ROOTS = {
   // Public by nature, of the kind Buildings and structures: civic buildings, stations, engineering, industry, towers.
   public: {
     Q1137809: 'courthouse', Q543654: 'town hall', Q25550691: 'city hall', Q35054: 'post office', Q856584: 'library building',
+    Q7075: 'library', Q28564: 'public library',
     Q55488: 'railway station', Q12280: 'bridge', Q12323: 'dam', Q105731: 'lock', Q474: 'aqueduct', Q181348: 'viaduct',
     Q44494: 'mill', Q185187: 'watermill', Q623605: 'gristmill', Q83405: 'factory', Q131734: 'brewery', Q181485: 'blast furnace',
     Q39715: 'lighthouse', Q274153: 'water tower', Q1785071: 'fort', Q483453: 'fountain',
@@ -29,9 +32,12 @@ export const ROOTS = {
   // Shown open by its type (RP2): a museum is a Museum (RP8); a historic site is open but keeps the class of its type.
   museum: { Q33506: 'museum', Q2087181: 'historic house museum', Q756102: 'open-air museum' },
   open: { Q1081138: 'historic site' },
-  // Never public by type (RP3): enters only shown open or as a Landmark.
+  // Not a building: an admitted site is a Monument (audit 10, the owner, Nov 9); it decides the kind, never entry.
+  site: { Q839954: 'archaeological site', Q4895508: 'battlefield', Q852190: 'shipwreck', Q1081138: 'historic site' },
+  // Homes: never public by type, whatever else they are (RP3).
+  home: { Q3947: 'house', Q11755880: 'residential building', Q1307276: 'single-family detached home', Q13402009: 'apartment building' },
+  // Never public by type on their own (RP3): enters only shown open or as a Landmark.
   mundane: {
-    Q3947: 'house', Q11755880: 'residential building', Q1307276: 'single-family detached home', Q13402009: 'apartment building',
     Q3914: 'school', Q1244442: 'school building', Q1021645: 'office building', Q655686: 'commercial building',
     Q18761864: 'bank building', Q27686: 'hotel', Q63099748: 'hotel building',
   },
@@ -52,13 +58,18 @@ async function subclasses(root) {
 /** The groups a mundane class is taken out of: public by type. A museum or a historic site is shown open whatever else it is. */
 const BY_TYPE = new Set(['church', 'cemetery', 'theatre', 'public']);
 
-/** Each group's ids, every root with its subclasses; a mundane class is never public by type (a historic house museum still shows open). */
+const HOMES = ['Q3947', 'Q11755880', 'Q1307276', 'Q13402009'];
+
+/**
+ * Each group's ids, every root with its subclasses. A home's class is never public by type (a historic house museum
+ * still shows open); another mundane class is taken out only where no public root reaches it (audit 1).
+ */
 export function groupsFrom(closures) {
-  const mundane = new Set(Object.keys(ROOTS.mundane).flatMap((r) => closures[r] ?? [r]));
+  const homes = new Set(HOMES.flatMap((r) => closures[r] ?? [r]));
   const out = {};
   for (const [group, roots] of Object.entries(ROOTS)) {
     const ids = new Set(Object.keys(roots).flatMap((r) => closures[r] ?? [r]));
-    out[group] = [...ids].filter((id) => !BY_TYPE.has(group) || !mundane.has(id)).sort();
+    out[group] = [...ids].filter((id) => !BY_TYPE.has(group) || !homes.has(id)).sort();
   }
   return out;
 }

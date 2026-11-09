@@ -279,7 +279,7 @@ test('RP8: listed places take their kind by type, and 0103\'s classes keep their
 
 test('RP10: the fetch asks for National Register listings and Landmarks, never for popularity', () => {
   const q = cellQuery([-76, 40, -75, 41]);
-  assert.match(q, /wdt:P1435 wd:Q19558910/, 'National Register listings (the owner, Nov 9)');
+  assert.match(q, /ps:P1435 wd:Q19558910/, 'National Register listings (the owner, Nov 9; ended ones left out since audit 13)');
   assert.match(q, /wdt:P1435 wd:Q624232/, 'and Landmarks');
   assert.ok(!/sitelinks|schema:about|wikipedia|pageviews|COUNT/i.test(q));
   const b = (o: Record<string, string>) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, { value: v }]));
