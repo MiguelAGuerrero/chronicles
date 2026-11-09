@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from '../ui';
+import { ThreadMark } from './ThreadMark';
 
 export interface MyThreadRow {
   id: string;
@@ -18,7 +19,10 @@ export function MyThreads(props: { rows: MyThreadRow[]; onOpen: (id: string) => 
   return (
     <View style={styles.sec} testID="my-threads">
       <View>
-        <Text style={styles.h} accessibilityRole="header">Threads you made</Text>
+        <View style={styles.head}>
+          <ThreadMark kind="made" />
+          <Text style={styles.h} accessibilityRole="header" accessibilityLabel="Threads, connected by you">Threads</Text>
+        </View>
         <Text style={styles.sub}>Moments you connected, the latest first</Text>
       </View>
       {props.rows.length === 0 ? (
@@ -26,8 +30,11 @@ export function MyThreads(props: { rows: MyThreadRow[]; onOpen: (id: string) => 
       ) : (
         <View style={styles.list}>
           {props.rows.map((r) => (
-            <Pressable key={r.id} testID="my-thread-row" accessibilityRole="button" accessibilityLabel={`${r.title}. ${r.line}`} onPress={() => props.onOpen(r.id)} style={styles.row}>
-              <Text style={styles.name} numberOfLines={1}>{r.title}</Text>
+            <Pressable key={r.id} testID="my-thread-row" accessibilityRole="button" accessibilityLabel={`${r.title}. ${r.line}. Connected by you`} onPress={() => props.onOpen(r.id)} style={styles.row}>
+              <View style={styles.head}>
+                <ThreadMark kind="made" size={14} />
+                <Text style={[styles.name, styles.grow]} numberOfLines={1}>{r.title}</Text>
+              </View>
               {r.sub ? <Text style={styles.words} numberOfLines={1}>{r.sub}</Text> : null}
               <Text style={styles.line}>{r.line}</Text>
             </Pressable>
@@ -40,6 +47,8 @@ export function MyThreads(props: { rows: MyThreadRow[]; onOpen: (id: string) => 
 
 const styles = StyleSheet.create({
   sec: { gap: 10 },
+  head: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  grow: { flexShrink: 1 },
   h: { color: theme.ink, fontSize: 16, fontWeight: '700' },
   sub: { color: theme.muted, fontSize: 13 },
   hint: { color: theme.muted, fontSize: 14, borderWidth: 1, borderStyle: 'dashed', borderColor: theme.line, borderRadius: 14, padding: 12 },

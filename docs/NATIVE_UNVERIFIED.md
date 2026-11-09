@@ -313,7 +313,7 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** open a thread, tap a moment's ellipsis, Remove from this thread; then Delete this thread and tap Undo on the pill; then delete it again. **Expect:** the menu sheet and the confirm card open and close cleanly, the pill shows over the screen with Undo, Undo brings the thread back with its name, and after the window the thread is gone and every moment is still in Lately. (OT8, OT14, OT15)
 - [ ] **Do:** on a moment in a thread, tap "In a thread" in the viewer, from Lately. **Expect:** the viewer closes and Chronicle's Memories opens on that thread (the navigation after a Modal's dismissal is not dropped). (OT11)
 - [ ] **Do:** on Android, open a moment, tap Respond's Note, type a few words, press Back; then press Back again. **Expect:** the first Back closes the note being written and leaves the viewer open with Respond ready; the second closes the viewer. (owner-threads audit 9)
-- [ ] **Do:** with VoiceOver and TalkBack on, move through Threads you made, a thread's timeline and the Respond row. **Expect:** each row reads as one named button with its heading and line, a reply says what it answers, and Respond's three kinds are buttons. (OT9, OT12)
+- [ ] **Do:** with VoiceOver and TalkBack on, move through the Chronicle's Threads, the owner's Threads, a thread's timeline and the Respond row. **Expect:** the two headings are said apart ("found for you", "connected by you"), each row reads as one named button with its heading and line, a reply says what it answers, and Respond's three kinds are buttons. (OT9, OT12)
 
 ## Network rules (`lib/net`, decision 0100)
 

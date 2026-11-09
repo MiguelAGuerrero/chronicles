@@ -68,7 +68,7 @@ Open: none (the owner's answers of Nov 6 below)
 4. **WP4 · Up to three, fixed.** Up to three routes are shown at once, in a fixed order by preset that does not depend on length,
    density or quality: through the middle, across the area, around the edge. The same inputs give the same routes. One route is a
    normal state (a small area gives the same cells to every preset): Start is available, and the page says why in words that do
-   not call the area poor. The first route is selected when the page opens (decision 0105), with Start ready; nothing is labelled
+   not call the area poor. The first route is selected when the page opens (decision 0106), with Start ready; nothing is labelled
    recommended, fastest or best.
 5. **WP5 · Each preset's rule.** "Through the middle" passes the dense cells of the kind, those nearest the middle of where the
    kind is concentrated, in order. "Across the area" passes
@@ -170,7 +170,7 @@ tests. Decision 0102. Unrun on a device (docs/NATIVE_UNVERIFIED.md). Not audited
 - **Found pins** come from the walker's own finds (`listFinds`), one for those within 150 m of each other.
 - **Changed from the plan:** the kind walk's `kindWalk/` modules stay where they are and the planner imports them (density, limits,
   words, settings) rather than moving them; the page's map is `WalkMap` with two new props (`routeGrades`, `foundPins`).
-- **Amended 2026-11-09 (decision 0105):** the first route is selected when the page opens (WP4, WP18), and a route names the other kinds
+- **Amended 2026-11-09 (decision 0106):** the first route is selected when the page opens (WP4, WP18), and a route names the other kinds
   along it (WP28). The plan's earlier "nothing is highlighted at first" no longer holds.
 
 ## Audit (2026-11-09, at the owner's request)

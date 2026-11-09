@@ -243,7 +243,7 @@ async function run(h) {
 
   // RM14: the threads rail, a tile with a line in words.
   const tile = await pg.locator('[data-testid=thread-tile]').allInnerTexts();
-  check(tile.length === 1 && /^Harbor\b/.test(tile[0]) && /Just beginning/.test(tile[0]), `RM14: one thread, Harbor, with a line in words (${tile.join('|').replace(/\n/g, ' ')})`);
+  check(tile.length === 1 && /^\W*Harbor\b/.test(tile[0]) && /Just beginning/.test(tile[0]), `RM14: one thread, Harbor, with a line in words (${tile.join('|').replace(/\n/g, ' ')})`);
 
   // RM17, RM18: Lately lists every moment, a card opens the viewer.
   check((await pg.locator('[data-testid=moment-card]').count()) === 7, 'RM17: Lately lists the seven moments, the top card among them');

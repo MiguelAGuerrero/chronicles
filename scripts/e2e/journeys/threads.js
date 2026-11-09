@@ -58,11 +58,17 @@ async function run(h) {
     await gone('[data-testid=viewer-close]');
   };
 
-  // OT12: Your threads is its own block, with a hint and no row while there are none; the Chronicle's rail is apart.
+  // OT12, OT25: the owner's threads are a block of their own beside the Chronicle's, both headed Threads, told apart by a mark.
+  const mine0 = await pg.locator('[data-testid=my-threads]').innerText();
   check((await has('[data-testid=my-threads-hint]')) && (await pg.locator('[data-testid=my-thread-row]').count()) === 0
-    && (await pg.locator('[data-testid=my-threads]').innerText()).includes('Threads you made') && /latest first/.test(await pg.locator('[data-testid=my-threads]').innerText())
-    && (await pg.locator('[data-testid=threads-rail]').count()) === 1 && !(await pg.locator('[data-testid=threads-rail]').innerText()).includes('Your threads'),
-    'OT12, owner-threads audit 15: Threads you made has its own heading, says its order, and a hint, apart from the Chronicle\'s threads');
+    && /^\W*Threads\b/.test(mine0) && !/Threads you made/.test(mine0) && /latest first/.test(mine0)
+    && (await pg.locator('[data-testid=threads-rail]').count()) === 1,
+    'OT12: the owner\'s threads are headed Threads, say their order, and have a hint, beside the Chronicle\'s own threads');
+  check((await pg.locator('[data-testid=my-threads] [data-testid=thread-mark-made]').count()) >= 1
+    && (await pg.locator('[data-testid=threads-rail] [data-testid=thread-mark-found]').count()) >= 1
+    && (await pg.locator('[data-testid=thread-mark-made]').first().getAttribute('aria-label')) === 'connected by you'
+    && (await pg.locator('[data-testid=thread-mark-found]').first().getAttribute('aria-label')) === 'found for you',
+    'OT25: a mark tells the owner\'s threads from the Chronicle\'s, with a spoken name');
   await shot(pg, '70-threads-empty');
 
   // OT5, OT6: a thread is made from a moment and a second kept moment, nothing else.
@@ -113,14 +119,16 @@ async function run(h) {
   const lately = await pg.locator('[data-testid=moment-card]:has-text("Same again today") [data-testid=moment-answering]').allInnerTexts();
   check(lately.length === 1 && /^answering /.test(lately[0]), `owner-threads audit 1: the reply in Lately says what it answers (${lately.join('|')})`);
 
-  // OT12, OT10: the thread is listed under Your threads, a line in words.
+  // OT12, OT10: the thread is listed under Threads, a line in words.
   const row = pg.locator('[data-testid=my-thread-row]');
   check((await row.count()) === 1 && /a few moments, since /.test(await row.first().innerText()), `OT12, OT10: Your threads lists it, its size in words (${(await row.first().innerText()).replace(/\n/g, ' | ')})`);
+  check((await row.first().locator('[data-testid=thread-mark-made]').count()) === 1, 'OT25: a thread the owner made wears the made mark in its row');
   await shot(pg, '71-threads-row');
 
   // OT9, OT13: opened, the thread reads oldest first, the reply under what it answers; naming is the owner's.
   await row.first().click();
   await pg.waitForSelector('[data-testid=own-thread]');
+  check((await pg.locator('[data-testid=own-thread] [data-testid=thread-mark-made]').count()) === 1, 'OT25: the thread\'s own screen carries the made mark');
   const order = await pg.locator('[data-testid=own-thread] [data-testid=moment-card]').allInnerTexts();
   check(order.length === 3 && /pier/.test(order[0]) && /Same again/.test(order[1]) && /bakery/.test(order[2])
     && (await pg.locator('[data-testid=own-thread-reply]').count()) === 1 && /^answering /.test(await pg.locator('[data-testid=own-thread-answering]').innerText()),
@@ -176,6 +184,7 @@ async function run(h) {
   // OT19: Keep as my thread copies the Chronicle's thread; the Chronicle's own is untouched.
   await pg.click('[data-testid=thread-tile]');
   await pg.waitForSelector('[data-testid=thread-screen]');
+  check((await pg.locator('[data-testid=thread-screen] [data-testid=thread-mark-found]').count()) === 1 && (await pg.locator('[data-testid=thread-screen] [data-testid=thread-mark-made]').count()) === 0, 'OT25: the Chronicle\'s thread screen carries the found mark, not the made one');
   const chronicleCards = await pg.locator('[data-testid=thread-screen] [data-testid=moment-card]').count();
   await pg.click('[data-testid=thread-keep]');
   await pg.waitForSelector('[data-testid=own-thread]');
