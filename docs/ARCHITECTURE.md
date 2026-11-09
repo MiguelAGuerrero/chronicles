@@ -280,6 +280,7 @@ Captures and media
   captureEdits/              saving a moment's edits from a screen with no capture path: stored, then told on the bus (shell)
   videoEdit/                 an edited video as one file: the local module on phones, canvas + MediaRecorder on the web
   media/                     where files are kept: Documents (relative paths) on native, Blobs in IndexedDB on web; resolveMedia
+  space/                     storage awareness (SA1-SA10, 0107): core.ts levels, words, the once rule; shell.ts reads the probe, keeps meta space_said/space_persist; probe.native/web.ts
   media/thumb.ts             the 240 px copy with expo-image-manipulator; thumbPlan.ts decides when; thumbJob.ts runs one job per photo at a time
   useMediaUri.ts             a capture's media as a playable URI
   pins.ts                    pinsFor: grouping captures by screen distance; pinReminded, the bell
@@ -455,6 +456,10 @@ own code only where no Expo module covers the feature on web:
   screen, but desktop Chrome has `navigator.vibrate` and no motor (audit 4);
   expo-haptics has no availability call. The buzz itself goes through expo-haptics, as on a
   phone (decision 0079).
+- **The room left** (storage awareness, SA1, SA10, decision 0107): `space/probe.web.ts` reads
+  `navigator.storage.estimate()` (the quota minus what the app uses) and asks `navigator.storage.persist()`.
+  expo-file-system's web build reports `availableDiskSpace` as 0, and no Expo module asks a browser to
+  keep an app's data. Phones read `Paths.availableDiskSpace` (`space/probe.native.ts`).
 - **Browser fixes** with no native counterpart: `webStyles.web.ts` (pinned
   viewport, long-press guards) and the muted-autoplay fallback.
 
@@ -546,5 +551,5 @@ stores the record whole.
 
 ## The places archive (Places worth the stop, decision 0103)
 
-- **Built outside the app, in chronicles-data** (decision 0107): the places pipeline, its schemas, its class names and the owner's `edits.json` live there (https://github.com/MiguelAGuerrero/chronicles-data, its docs/spec.md). It builds the packs weekly, publishes them with `manifest.json` (each file's z8 `blocks`) and serves its `contract/` beside them. The app pins a copy of that contract (`src/lib/__tests__/explore/contract/`), and `placesContract.test.ts` holds the app's class table and reader to it (PP17); the owner's edits are applied in the build, never in the app.
+- **Built outside the app, in chronicles-data** (decision 0108): the places pipeline, its schemas, its class names and the owner's `edits.json` live there (https://github.com/MiguelAGuerrero/chronicles-data, its docs/spec.md). It builds the packs weekly, publishes them with `manifest.json` (each file's z8 `blocks`) and serves its `contract/` beside them. The app pins a copy of that contract (`src/lib/__tests__/explore/contract/`), and `placesContract.test.ts` holds the app's class table and reader to it (PP17); the owner's edits are applied in the build, never in the app.
 - **Read by tile in the app,** through `lib/net`, in the explore read (checklists, every walk) and the atlas ring read (PW10); never stored, merged with the map's places, the archive's kind winning. `EXPO_PUBLIC_PLACES_BASE` points the e2e build at `/places-e2e/` on the harness's server.

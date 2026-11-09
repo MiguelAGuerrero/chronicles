@@ -1,4 +1,4 @@
-# 0107. The places archive becomes a pipeline of adapters; community sources may only nominate, for the owner's review
+# 0108. The places archive becomes a pipeline of adapters; community sources may only nominate, for the owner's review
 
 Date: 2026-11-09 · Status: accepted · Area: explore, discovery, data
 

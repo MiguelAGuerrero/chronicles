@@ -6,7 +6,7 @@ import type { Place } from './types';
 
 /*
  * The places archive beside the map's own places (decision 0103): one mark per place (PW8). The owner's removals
- * and adds are applied when the archive is built, in chronicles-data (`edits.json`, decision 0107), never here.
+ * and adds are applied when the archive is built, in chronicles-data (`edits.json`, decision 0108), never here.
  */
 
 /** PW8: two sources' places are one within this distance, by name, whatever category each gives. */

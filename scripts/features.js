@@ -28,9 +28,9 @@ const FEATURES = [
     name: 'storage',
     about: 'the db adapters, migrations and media paths',
     rule: 'storage',
-    source: ['src/lib/db/**', 'src/lib/media/**'],
-    journeys: [],
-    specs: [],
+    source: ['src/lib/db/**', 'src/lib/media/**', 'src/lib/space/**', 'src/components/SpaceLine.tsx'],
+    journeys: ['space'],
+    specs: ['storage-awareness'],
   },
   {
     name: 'recording',
@@ -297,7 +297,7 @@ const FEATURES = [
 const V1_SCAN_AND_AMBIENT = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S9', 'S10', 'S11', 'S12', 'S14', 'S15', 'S22', 'S23', ...Array.from({ length: 11 }, (_, i) => `A${i + 1}`)];
 
 const RETIRED = {
-  // Moved to chronicles-data with the pipeline (the owner, Nov 9, decision 0107): that repo owns the build, its
+  // Moved to chronicles-data with the pipeline (the owner, Nov 9, decision 0108): that repo owns the build, its
   // schemas and their tests (its docs/spec.md). PP1-PP12, PP14, PP15 were built here first; the build-side criteria
   // of Places worth the stop went with them.
   'places-pipeline': ['PP1', 'PP2', 'PP3', 'PP4', 'PP5', 'PP6', 'PP7', 'PP8', 'PP9', 'PP10', 'PP11', 'PP12', 'PP14', 'PP15'],

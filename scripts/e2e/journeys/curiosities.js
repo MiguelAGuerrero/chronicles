@@ -5,7 +5,7 @@
 
 async function run(h) {
   const { navUrl, BASE, at, check, freshPage, places } = h;
-  // The archive is built in chronicles-data (decision 0107); here the e2e's own encoders write one of the same shape
+  // The archive is built in chronicles-data (decision 0108); here the e2e's own encoders write one of the same shape
   // (z12 tiles, layer `places`, name, class, src and id), as the contract's example pack has.
   const { encodeTile } = await import('../../mvt-encode.mjs');
   const { encodeArchive } = await import('../../pmtiles-encode.mjs');

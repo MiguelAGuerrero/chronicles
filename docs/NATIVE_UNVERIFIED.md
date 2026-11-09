@@ -338,7 +338,7 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** with PLACES_BASE set, take an exploring walk past a curiosity in the archive. **Expect:** it shows as a "?" and is named within 60 m, as any mark.
 - [ ] **Do:** take a quiet walk past a curiosity with the screen off, and take a photo beside it. **Expect:** the replay names it as found.
 
-## Places pipeline (PP13, decision 0107)
+## Places pipeline (PP13, decision 0108)
 
 - [ ] **Do:** with PLACES_BASE set and checklist areas built from an archive without blocks, install a build that reads blocks, walk the same areas, then again after a weekly archive that changed places elsewhere only. **Expect:** each area is rebuilt once after the install, and not again after the second archive. (PP13)
 
@@ -349,3 +349,10 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 ## Captures while paused (fix paused-pins)
 
 - [ ] **Do:** on a phone, start a walk, pause it, walk two streets, take a photo and a note, then resume and stop. **Expect:** each moment sits where you took it (a pin on the walk map within a few seconds, and on the replay), not where the pause began. With location refused, the moment sits where the pause began.
+
+## Storage awareness (SA1-SA10, decision 0107)
+
+- [ ] **Do:** on an iPhone and an Android phone, fill the storage until Settings shows under 500 MB free, then open Navigate and start a walk. **Expect:** Navigate, ready shows "Room for new photos and videos is running low." beside the capture buttons once, and the walk does not say it again; note what `Paths.availableDiskSpace` read against what Settings shows (on iOS it leaves out what the system can purge, so it may read lower). (SA1, SA3, SA4)
+- [ ] **Do:** with under 100 MB free, take a photo, a 30 s video and a voice memo on a walk. **Expect:** after a capture the line becomes "There is almost no room left for new photos, videos and memos."; a save that fails shows "Not saved: there is no room left. It is held here for Retry." (never the system's own error text) and a "Photo not saved" or "Video not saved" pill; after freeing room, Retry keeps each with its time and place. (SA5, SA8, SA9)
+- [ ] **Do:** with a photo held, hold Stop. **Expect:** the walk does not end; it says the photo isn't saved yet with Retry, and a second hold ends the walk without it. (SA8)
+- [ ] **Do:** on an iPhone in Safari (not the Home Screen app), keep a moment on Navigate, ready. **Expect:** if Safari refuses to keep the data, the line "This browser may clear Chronicles’ moments when it needs room. The Home Screen app is less likely to." shows once there; from the Home Screen app, whether `persist()` is granted (nothing said). (SA10)
