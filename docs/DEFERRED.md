@@ -331,15 +331,14 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **A line on why a place is worth the stop, Wikivoyage, the one-of-a-kind shops tier, the scenic routes' Sights leaning (PW18 pins it unchanged).**
 - **From the slice's audit (Nov 6), deferred:** the manifest's region box is the archive's data bounds, which cover much of Canada and northern Mexico, so a read there asks for US tiles (F7: give a region its own boxes); a new `archiveEdits.json` reaches an area only when the archive version changes (F8); routine Wikidata edits change the archive's bytes almost every week, so every client rebuilds areas and re-reads rings weekly (compare a content hash of the places instead of the file's bytes); the weekly job installs the whole app for two packages; `KEEP: 3` counts releases across regions; a private app repo needs `APP_REPO_TOKEN`.
 
-## Places pipeline (PP1-PP16, decision 0104)
+## Places pipeline (decision 0104)
 
-- **Town and city pack entries in the manifest:** no screen asks for a town offline yet, so a z8 block is the only unit in slice 1. The owner's call stands for when they come: tile lists inside the region file, never a file per town.
-- **GeoParquet and DuckDB:** Wikidata's few thousand US items fit in JSON; they come with the Overture adapter (slice 2), which reads Overture's GeoParquet by box.
-- **Overture, OpenStreetMap and nominating adapters, Splink, Cloudflare R2:** later slices, in the order of the research doc. A nominating adapter needs its own decision record (decision 0104).
-- **Whether OSM counts when it only removes places:** the safe reading is that any pack OSM changed is ODbL; the build has no OSM adapter yet, so nothing is decided (a question for a lawyer, not code).
-- **The weekly workflow's file is checked by hand:** PP15's test runs the command line through the state round trip the job does; the YAML in chronicles-data is not read by a test in this repo.
-- **Conditional requests:** the query service offers none; the raw store already spares Wikidata on reruns.
-- **Two Wikidata items with the same name within 50 m become one place** in conflate, where the old build kept both (the app's merge already showed one). Accepted.
+- **The pipeline's deferrals live in chronicles-data** (its docs/spec.md, Record): town and city pack entries,
+  GeoParquet and DuckDB, the Overture, OSM and nominating adapters, the ODbL question, conditional requests, R2.
+- **The app takes a new contract by hand:** the pinned copy (`src/lib/__tests__/explore/contract/`) is copied from
+  chronicles-data when its contract version changes; PP17 fails until then. No script fetches it.
+- **Hiding a map-tile place:** the owner's edits no longer reach places from the map's own tiles (decision 0104,
+  later the same day). Nothing replaces that yet; the edits file was empty.
 
 ## Wrapped map names (fix long-names audit)
 

@@ -33,3 +33,15 @@ The owner's calls, Nov 9:
 - The research doc's version, where a confirmed nomination enters, is superseded by this record.
 - VISION.md needs no edit to its rules; its Precedents table gains this row.
 </content>
+
+## Later the same day: the pipeline lives in chronicles-data
+
+The owner, Nov 9, after slice 1 was built here: the data repo houses the frame, the schemas and the plans, as the
+interface the app consumes.
+- **chronicles-data owns the contract**: the schemas, the class names and the manifest's shape, generated from its code,
+  checked by its CI and served beside the archives (`contract/`). The app pins a copy and a test (PP17) fails until it
+  takes a new one.
+- **The owner's edits apply only when packs are built** (`edits.json` there). The app no longer applies them, so they
+  can no longer hide a place that comes from the map's own tiles.
+- **The pipeline's spec and plan live there** (`docs/spec.md`, `docs/plan.md`); this repo's `specs/places-pipeline`
+  keeps the app's side (PP13, PP16, PP17), and this record keeps the product rules both repos follow.

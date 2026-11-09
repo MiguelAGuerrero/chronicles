@@ -110,10 +110,11 @@ recording bar brings a minimized walk back.
   a kind of "Viewpoints & oddities" in What I'm into, on by default. Nothing
   is ranked or counted; a place shows only while its sources say it exists.
   Built; the app reads the archive once its address is set (PW16). Since
-  Nov 9 the archive comes from the places pipeline (decision 0104): any open
-  source can join through an adapter, a community source may only suggest a
-  place for the owner's review, and an area is rebuilt only when its own
-  places change.
+  Nov 9 the archive comes from the places pipeline in chronicles-data
+  (decision 0104): any open source can join through an adapter, a community
+  source may only suggest a place for the owner's review, and an area is
+  rebuilt only when its own places change. The app keeps to the contract that
+  repo publishes.
 
 ### Navigate (during)
 
