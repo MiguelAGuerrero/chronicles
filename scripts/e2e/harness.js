@@ -20,11 +20,42 @@ const DIST = process.env.E2E_DIST ?? path.join(__dirname, '..', '..', 'dist');
 const BASE = process.env.E2E_BASE ?? '';
 const TYPES = { '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json', '.ttf': 'font/ttf', '.webmanifest': 'application/manifest+json' };
 
+/**
+ * Places worth the stop (PW1-PW3): the e2e build reads the places archive from `/places-e2e/` on this server
+ * (`export:web` sets EXPO_PUBLIC_PLACES_BASE), so no journey reaches another host. An empty manifest unless a
+ * journey sets one; every request is logged with the headers PW1 forbids.
+ */
+const PLACES_PATH = '/places-e2e/';
+const places = { manifest: JSON.stringify({ schema: 1, regions: [] }), files: {}, asked: [] };
+
+function servePlaces(q, r, pathname) {
+  const name = pathname.slice(PLACES_PATH.length);
+  places.asked.push({ name, range: q.headers.range ?? null, cookie: q.headers.cookie ?? null, referer: q.headers.referer ?? null });
+  const cors = { 'access-control-allow-origin': '*' };
+  if (name === 'manifest.json') {
+    r.writeHead(200, { ...cors, 'content-type': 'application/json' });
+    r.end(places.manifest);
+    return;
+  }
+  const file = places.files[name];
+  if (!file) {
+    r.writeHead(404, cors);
+    r.end();
+    return;
+  }
+  const m = /bytes=(\d+)-(\d+)/.exec(q.headers.range ?? '');
+  const from = m ? Number(m[1]) : 0;
+  const to = Math.min(m ? Number(m[2]) : file.length - 1, file.length - 1);
+  r.writeHead(m ? 206 : 200, { ...cors, 'content-type': 'application/octet-stream', 'accept-ranges': 'bytes', 'content-length': String(to - from + 1), ...(m ? { 'content-range': `bytes ${from}-${to}/${file.length}` } : {}) });
+  r.end(Buffer.from(file.subarray(from, to + 1)));
+}
+
 function serve() {
   // Unknown paths get index.html, as GitHub Pages serves 404.html; .mjs must be
   // served as JavaScript for the map worker. Paths outside BASE are a 404.
   const server = http.createServer((q, r) => {
     const pathname = decodeURIComponent(q.url.split('?')[0]);
+    if (pathname.startsWith(PLACES_PATH)) return servePlaces(q, r, pathname);
     if (!pathname.startsWith(`${BASE}/`)) {
       r.writeHead(404);
       r.end();
@@ -570,7 +601,7 @@ async function createHarness() {
   };
   return {
     url, navUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, iconOf, metricRegion, pressedScale, metaOf, drawerTo, tabTo, mapUp, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
-    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, walkability, overpassAsked, OVERPASS_HOST, scenicWorld, routed, switchLayer,
+    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, walkability, overpassAsked, OVERPASS_HOST, scenicWorld, routed, switchLayer, places,
   };
 }
 

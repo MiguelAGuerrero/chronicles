@@ -11,6 +11,7 @@ import { loadSettings, onSettings } from '../explore/settings';
 import type { LngLat } from '../types';
 import { ATLAS_RULES, atlasStep, nearList, rowCurrent, townNeighborhoods, townReachM, type AtlasArea, type Listed, type NearTarget } from './atlas';
 import { nearReads, readNear, readRing } from './read';
+import { placesArchive } from '../discovery/archive';
 
 /** Another read is running (the walk's, or the other level's): look again shortly. */
 const BUSY_MS = 1500;
@@ -164,7 +165,7 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
           : { level: 'neighborhood', at: from, radiusM: ATLAS_RULES.nearNeighborhoodM, reads: nb },
         { level: 'town', at: from, radiusM: ATLAS_RULES.nearTownM, reads: tw },
       ];
-      const step = atlasStep({ build, latest, nears, list: queueRef.current, now: Date.now(), release });
+      const step = atlasStep({ build, latest, nears, list: queueRef.current, now: Date.now(), release, archiveAt: (at) => placesArchive.versionAt(at) });
       if (step.kind === 'adopt') {
         // A new map build (or the first known one): its rows are listed afresh, never chased (audit 2, 4).
         setBuild(step.build);

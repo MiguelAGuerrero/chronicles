@@ -2,8 +2,9 @@
 import { coveredBy, townAt, withOutlines, type OutlineSet } from '../areas/outlines';
 import { AREA_REACH_M } from '../areas/rules';
 import type { Area, PlaceCandidate, WalkArea } from '../areas/types';
-import { MARK_CATEGORIES } from '../discovery/noise';
-import type { CategoryId, Kind } from '../discovery/types';
+import { applyEdits, keepFindKeys, mergePlaces, type ArchiveEdits } from '../discovery/archiveMerge';
+import { isMarkable, MARK_CATEGORIES } from '../discovery/noise';
+import type { CategoryId, Kind, Place } from '../discovery/types';
 import { boundsOf, distanceM, projector, type Bounds } from '../geo';
 import { NAV } from '../nav/rules';
 import type { LngLat } from '../types';
@@ -22,10 +23,11 @@ import type { Pocket } from './pockets';
 /** a4: atlas grading (AG1, AG3): the findable kinds count only what could be found; thin rings are marked. */
 /** a5: towns graded across their whole outline, with pockets of activity (TP1-TP11); neighborhoods read as under a4. */
 /** a6: wards inside a city are not towns (fix ward-subdivision); neighborhood rows stand as under a5. */
-export const ATLAS_CODE = 'a6';
+/** a7: the places archive's curiosities and landmarks count among the findable kinds (PW10); rows stand until an archive is known, then read again (profileStale). */
+export const ATLAS_CODE = 'a7';
 
 /** TP10: the older rules a level's rows still stand under, because the change did not touch that level. */
-const CARRIED: Partial<Record<AtlasLevel, readonly string[]>> = { neighborhood: ['a4', 'a5'] };
+const CARRIED: Partial<Record<AtlasLevel, readonly string[]>> = { neighborhood: ['a4', 'a5', 'a6'], town: ['a6'] };
 
 export const ATLAS_RULES = {
   /** Every area is measured inside this ring around its point, whatever its level (AT4). */
@@ -113,6 +115,8 @@ export interface AtlasProfile {
   sketch: Sketch;
   /** The Overture release its density came from; null when measured from OpenStreetMap alone (AD6, AD7). */
   overture: string | null;
+  /** The places archive version its findable kinds counted; null or missing without one (PW10). */
+  archive?: string | null;
   /** The map knows almost nothing here: the kinds say nothing (AG3). */
   thin?: boolean;
   /** TP1: what the bars were counted across: the town's whole outline, or the 800 m ring around its point (absent: the ring). */
@@ -239,27 +243,32 @@ export function nearList(rows: AtlasArea[], from: LngLat, level: AtlasLevel, bui
 
 /** AT5: the next ring to read, nearest first, skipping one that failed less than the retry wait ago. */
 /** When a ring read with another Overture release, or without one, is due to be read again (AD6, AD7); null when it isn't stale. */
-export function rereadAt(a: AtlasArea, release: string | null): number | null {
+export function rereadAt(a: AtlasArea, release: string | null, archive: string | null = null): number | null {
   if (!a.profile) return null;
+  const read = a.read_at ?? 0;
   // TP12: a town's ring read for want of its outline is asked again once the retry wait is over.
-  const outline = a.profile.outlineRetry ? (a.read_at ?? 0) + ATLAS_RULES.retryMs : null;
-  if (!profileStale(a.profile, release)) return outline;
-  const wait = a.profile.overture == null ? ATLAS_RULES.overtureRetryMs : ATLAS_RULES.retryMs;
-  const overture = (a.read_at ?? 0) + wait;
-  return outline == null ? overture : Math.min(outline, overture);
+  const due: number[] = a.profile.outlineRetry ? [read + ATLAS_RULES.retryMs] : [];
+  if (profileStale(a.profile, release)) due.push(read + (a.profile.overture == null ? ATLAS_RULES.overtureRetryMs : ATLAS_RULES.retryMs));
+  // PW10: the places archive, as Overture: 30 min after one is known for a ring measured without it.
+  if (archiveStaleProfile(a.profile, archive)) due.push(read + (a.profile.archive == null ? ATLAS_RULES.overtureRetryMs : ATLAS_RULES.retryMs));
+  return due.length ? Math.min(...due) : null;
 }
 
+const archiveStaleProfile = (p: AtlasProfile, archive: string | null) => archive != null && (p.archive ?? null) !== archive;
+
 /** AD6, activity-density audit 13: a ring measured with another release, or without Overture while one is known. */
-export const profileStale = (p: AtlasProfile, release: string | null) => release != null && (p.overture ?? null) !== release;
+export const profileStale = (p: AtlasProfile, release: string | null, archive: string | null = null) =>
+  (release != null && (p.overture ?? null) !== release) || archiveStaleProfile(p, archive);
 
 /** A read without Overture never replaces a profile measured with it (activity-density audit 6). */
-export const keptProfile = (old: AtlasProfile | null, fresh: AtlasProfile): AtlasProfile => (old?.overture != null && fresh.overture == null ? old : fresh);
+export const keptProfile = (old: AtlasProfile | null, fresh: AtlasProfile): AtlasProfile =>
+  (old?.overture != null && fresh.overture == null) || (old?.archive != null && fresh.archive == null) ? old! : fresh;
 
-export function readQueue(list: Listed[], now: number, release: string | null = null): AtlasArea | null {
+export function readQueue(list: Listed[], now: number, release: string | null = null, archiveAt: (at: LngLat) => string | null = () => null): AtlasArea | null {
   for (const l of list) {
     const a = l.area;
     if (a.profile) {
-      const due = rereadAt(a, release);
+      const due = rereadAt(a, release, archiveAt(a.at));
       if (due == null || now < due) continue;
     }
     if (a.failed_at != null && now - a.failed_at < ATLAS_RULES.retryMs) continue;
@@ -599,6 +608,8 @@ interface StepInput {
   now: number;
   /** The Overture release known now (AD6). */
   release?: string | null;
+  /** The places archive version known for a point, or null (PW10). */
+  archiveAt?: (at: LngLat) => string | null;
 }
 
 export type AtlasStepNear = { kind: 'near'; level: AtlasLevel; at: LngLat; radiusM: number };
@@ -613,13 +624,14 @@ export function atlasStep(o: StepInput): AtlasStep {
 function afterBuild(o: StepInput, build: string): AtlasStep {
   const near = o.nears.find((n) => needsNear(n.reads, n.at, build, n.radiusM));
   if (near) return { kind: 'near', level: near.level, at: near.at, radiusM: near.radiusM };
-  const next = readQueue(o.list, o.now, o.release ?? null);
+  const archiveAt = o.archiveAt ?? (() => null);
+  const next = readQueue(o.list, o.now, o.release ?? null, archiveAt);
   if (next) return { kind: 'ring', area: next };
   // A ring that failed is tried again once its wait is over (AT5, audit 3).
   const waits = o.list.filter((l) => !l.area.profile && l.area.failed_at != null).map((l) => l.area.failed_at! + ATLAS_RULES.retryMs - o.now);
   // And a ring due a re-read for Overture is asked for when it comes due (activity-density audit 10).
   for (const l of o.list) {
-    const due = rereadAt(l.area, o.release ?? null);
+    const due = rereadAt(l.area, o.release ?? null, archiveAt(l.area.at));
     if (due != null) waits.push(due - o.now);
   }
   return waits.length ? { kind: 'wait', ms: Math.max(0, Math.min(...waits)) } : { kind: 'idle' };
@@ -628,4 +640,19 @@ function afterBuild(o: StepInput, build: string): AtlasStep {
 /** AT7: a ring's marks as the atlas keeps them: its markable places by key, kind and spot, with their names dropped. */
 export function marksOf<T extends AtlasMark & { name?: string }>(places: T[], markable: (p: T) => boolean): AtlasMark[] {
   return places.filter(markable).map((p) => ({ key: p.key, category: p.category, kind: p.kind, at: p.at }));
+}
+
+/**
+ * PW10: a ring's findable kinds and marks, from the map's places and the places archive's together (one mark per
+ * place, PW8; the owner's edits, PW13), against the fixed STEPS. `thin` is judged from the map's places alone, so a
+ * ring reads the same with or without the archive.
+ */
+export function ringOf(tilePlaces: Place[], archivePlaces: Place[] | null, centre: LngLat, within: Within = ringWithin(centre), edits?: { edits: ArchiveEdits; version: string }, finds: { key: string; name: string; at: LngLat }[] = []) {
+  const merged = archivePlaces ? mergePlaces(tilePlaces, archivePlaces) : tilePlaces;
+  // A found place keeps its find's key, so the atlas shows it found (places-worth-the-stop audit 1).
+  const counted = keepFindKeys(edits ? applyEdits(merged, edits.edits, edits.version) : merged, finds);
+  // AG1: each place says whether it could be found (chains too), so the findable kinds count only those.
+  const ring = counted.filter((p) => within(p.at)).map((p) => ({ ...p, markable: isMarkable(p) }));
+  const mapRing = tilePlaces.filter((p) => within(p.at));
+  return { ring, steps: presenceSteps(ring, centre, within), marks: marksOf(ring, isMarkable), thin: thinRing(mapRing, centre, within) };
 }

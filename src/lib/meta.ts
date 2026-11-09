@@ -94,6 +94,9 @@ export const META = {
   /** The Overture release busy streets are measured with, and when the listing was last checked (AD6). */
   overture_release: { owner: 'activity', codec: text },
   overture_checked_at: { owner: 'activity', codec: number },
+  /** The places archive's manifest as last read, and when it was checked (PW2, decision 0103). */
+  places_archive_manifest: { owner: 'discovery', codec: text },
+  places_archive_checked_at: { owner: 'discovery', codec: number },
   street_code: { owner: 'tiles', codec: text },
   // Navigation (lib/nav/store, lib/startPlan): where the open walk, or the drawer, is heading.
   nav: { owner: 'nav', codec: json<{ walk_id: string | null; dest: Waypoint }>(isNav) },

@@ -103,6 +103,14 @@ recording bar brings a minimized walk back.
 - Explore's route preview and "Walk this way" are deferred: Walk here and
   "Walk to its busiest street" start at once.
 
+- **Places worth the stop** (decision 0103): curiosities (follies, roadside
+  oddities, natural oddities, covered bridges and lighthouses, places that
+  mark a fact, ruins) and National Historic Landmarks join the map's own
+  places as marks, from a weekly archive built from Wikidata. Curiosities are
+  a kind of "Viewpoints & oddities" in What I'm into, on by default. Nothing
+  is ranked or counted; a place shows only while its sources say it exists.
+  Built; the app reads the archive once its address is set (PW16).
+
 ### Navigate (during)
 
 - Navigate opens the walk screen itself, **ready**: full screen with no tab bar, a

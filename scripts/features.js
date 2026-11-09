@@ -137,8 +137,8 @@ const FEATURES = [
       'src/components/atlas/**',
       'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx',
     ],
-    journeys: ['marks', 'atlas', 'grading', 'snap'],
-    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation'],
+    journeys: ['marks', 'atlas', 'grading', 'snap', 'curiosities'],
+    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'places-worth-the-stop'],
   },
   {
     name: 'kind-walk',
@@ -178,7 +178,7 @@ const FEATURES = [
     rule: 'places-and-areas',
     source: ['src/lib/areas/**', 'src/lib/{places,placeAll,backlog}.ts', 'src/components/{StarView,AreaPoint}.tsx'],
     journeys: ['outlines'],
-    specs: ['v0.5-places', 'places-worth-the-stop', 'town-outlines', 'town-borders', 'town-presence'],
+    specs: ['v0.5-places', 'town-outlines', 'town-borders', 'town-presence'],
   },
   {
     name: 'map',
@@ -327,9 +327,7 @@ const UNTESTED = {
  * Specs a slice is building (TG22): from its plan until done, its criteria are exempt from the gate.
  * `{ slug: { branch, since: 'YYYY-MM-DD' } }`; an entry older than 7 days fails the docs check.
  */
-const IN_PROGRESS = {
-  'places-worth-the-stop': { branch: 'claude/places-archive', since: '2026-11-09' },
-};
+const IN_PROGRESS = {};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 
