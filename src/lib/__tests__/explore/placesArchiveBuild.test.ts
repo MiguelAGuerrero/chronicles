@@ -6,9 +6,17 @@ import { PbfReader } from 'pbf';
 import { PMTiles, type RangeResponse, type Source } from 'pmtiles';
 import { writeArchive } from '../../../../scripts/places-archive/archive.mjs';
 import { ALL_CLASS_IDS, CLASSES, classify, gone, keep } from '../../../../scripts/places-archive/classify.mjs';
-import { build } from '../../../../scripts/build-places-archive.mjs';
-import { cellQuery, cellsFor, itemsFrom, splitCell } from '../../../../scripts/places-archive/fetch-wikidata.mjs';
-import { decide } from '../../../../scripts/places-archive/publish.mjs';
+import type { Adapter } from '../../../../scripts/places-pipeline/adapter';
+import { wikidata } from '../../../../scripts/places-pipeline/adapters/wikidata';
+import { cellQuery, cellsFor, itemsFrom, splitCell } from '../../../../scripts/places-pipeline/adapters/wikidata/query';
+import { emptyRegistry } from '../../../../scripts/places-pipeline/conflate';
+import { decide } from '../../../../scripts/places-pipeline/publish';
+import { createRawStore } from '../../../../scripts/places-pipeline/rawStore';
+import { run } from '../../../../scripts/places-pipeline/runner';
+import type { Declaration } from '../../../../scripts/places-pipeline/schema';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { ARCHIVE_CLASSES } from '../../discovery/archivePois';
 
 // Places worth the stop: the build script's archive writer (PW14), written from the spec before the code.
@@ -111,23 +119,41 @@ test('PW7: a place enters with a class and a location, and only while its source
   assert.equal(keep(item({ p31: [FOLLY], dissolved: true })), null);
 });
 
+type Item = { id: string; name: string; lon: number; lat: number; p31: string[] };
+const E = 'http://www.wikidata.org/entity/';
+/** Wikidata items as the query service's answer, so they go through the real adapter. */
+const answer = (items: Item[]) => JSON.stringify({ results: { bindings: items.flatMap((it) => it.p31.map((q) => ({ item: { value: E + it.id }, label: { value: it.name }, coord: { value: `Point(${it.lon} ${it.lat})` }, p31: { value: E + q } }))) } });
+const withAnswer = (items: Item[]): Adapter => ({ ...wikidata, fetch: async (ctx) => ctx.put('cell.json', answer(items)) });
+/** OSM's tags, as a confirming source: a `demolished:*` tag says its place is gone (PW7). */
+const osmSays = (gone: { wikidata: string; name: string; at: [number, number] }[]): Adapter => ({
+  declaration: { ...wikidata.declaration, name: 'osm', code: 'osm', role: 'confirms', license: 'ODbL 1.0', licenseFamily: 'odbl', hosts: ['example.org'] } as Declaration,
+  fetch: async (ctx) => ctx.put('tags.json', JSON.stringify(gone)),
+  adapt: (raw, _p, fetchedAt) => (JSON.parse(raw) as typeof gone).map((g) => ({ source: 'osm', sourceId: g.wikidata, name: g.name, at: g.at, sameAs: [`wikidata:${g.wikidata}`], signals: { gone: true }, fetchedAt })),
+});
+const clock = { now: () => Date.parse('2026-11-08T07:17:00Z'), sleep: async () => {} };
+const counter = () => { let n = 0; return () => `p_${(++n).toString(16).padStart(16, '0')}`; };
+async function buildWith(adapters: Adapter[], edits = { remove: [] as { name: string; at: [number, number] }[], add: [] as { name: string; at: [number, number]; class: string }[] }) {
+  const r = await run({ adapters, region: 'us', area: [[-76, 40, -74, 42]], version: '20261108', store: createRawStore(mkdtempSync(join(tmpdir(), 'pw-raw-'))), registry: emptyRegistry(), edits, fetch: true, http: async () => { throw new Error('no network'); }, clock, newId: counter() });
+  return r.packs[0];
+}
+
 test('PW14, PW7, PW13: the build turns Wikidata items (and, if given, OSM tags) into one region\'s archive, the same bytes each time', async () => {
-  const items = [
+  const items: Item[] = [
     { id: 'Q1', name: 'Bushkill Folly', lon: -75.2, lat: 40.7, p31: [FOLLY] },
     { id: 'Q2', name: 'Gone Tower', lon: -75.21, lat: 40.71, p31: ['Q1440300'] },
     { id: 'Q3', name: 'Old House', lon: -75.22, lat: 40.72, p31: [HOUSE] },
     { id: 'Q4', name: 'Unwanted Statue', lon: -75.23, lat: 40.73, p31: [STATUE] },
   ];
-  const osm = { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [-75.21, 40.71] }, properties: { wikidata: 'Q2', 'demolished:man_made': 'tower' } }] };
-  const edits = { remove: [{ name: 'Unwanted Statue', at: [-75.23, 40.73] }], add: [{ name: 'Giant Peanut', at: [-75.18, 40.69], class: 'roadside_giant' }] };
-  const a = build({ items, osm, edits, region: 'us', version: '20261108' });
-  const b = build({ items: [...items].reverse(), osm, edits, region: 'us', version: '20261108' });
+  const osm = osmSays([{ wikidata: 'Q2', name: 'Gone Tower', at: [-75.21, 40.71] }]);
+  const edits = { remove: [{ name: 'Unwanted Statue', at: [-75.23, 40.73] as [number, number] }], add: [{ name: 'Giant Peanut', at: [-75.18, 40.69] as [number, number], class: 'roadside_giant' }] };
+  const a = await buildWith([withAnswer(items), osm], edits);
+  const b = await buildWith([withAnswer([...items].reverse()), osm], edits);
   assert.equal(a.file, 'places-us-20261108.pmtiles');
   assert.deepEqual(Buffer.from(a.bytes), Buffer.from(b.bytes));
-  assert.deepEqual(a.places.map((p: { name: string; class: string }) => `${p.name}:${p.class}`).sort(), ['Bushkill Folly:folly', 'Giant Peanut:roadside_giant'],
+  assert.deepEqual(a.places.map((p) => `${p.name}:${p.class}`).sort(), ['Bushkill Folly:folly', 'Giant Peanut:roadside_giant'],
     'the tower OSM says is demolished, the unlisted house and the removed statue are left out; the owner\'s add is in');
-  const noOsm = build({ items, region: 'us', version: '20261108' });
-  assert.ok(noOsm.places.some((p: { name: string }) => p.name === 'Gone Tower'), 'without OSM, Wikidata alone decides');
+  const noOsm = await buildWith([withAnswer(items)]);
+  assert.ok(noOsm.places.some((p) => p.name === 'Gone Tower'), 'without OSM, Wikidata alone decides');
 });
 
 test('PW14, PW7: the fetch asks each US cell for the pinned classes and heritage places, and never for a count', () => {
@@ -157,18 +183,18 @@ test('PW14: the fetch\'s rows become one item each, with its classes, listing an
   ]);
 });
 
-test('PW15: no place in the archive is taken from OpenStreetMap (it only corroborates), so the map\'s own credit, which names it, stands', () => {
-  const osm = { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [-75.2, 40.7] }, properties: { wikidata: 'Q1', man_made: 'lighthouse' } }] };
-  const r = build({ items: [{ id: 'Q1', name: 'Light', lon: -75.2, lat: 40.7, p31: ['Q39715'] }], osm, edits: { remove: [], add: [{ name: 'Mine', at: [-75.1, 40.6], class: 'folly' }] }, region: 'us', version: '20261108' });
-  assert.deepEqual([...new Set(r.places.map((p: { src: string }) => p.src))].sort(), ['owner', 'wd']);
+test('PW15: no place in the archive is taken from OpenStreetMap (it only corroborates), so the map\'s own credit, which names it, stands', async () => {
+  const pack = await buildWith([withAnswer([{ id: 'Q1', name: 'Light', lon: -75.2, lat: 40.7, p31: ['Q39715'] }]), osmSays([])], { remove: [], add: [{ name: 'Mine', at: [-75.1, 40.6], class: 'folly' }] });
+  assert.deepEqual([...new Set(pack.places.map((p) => p.src))].sort(), ['owner', 'wd']);
 });
 
 test('PW19: the weekly build publishes only when the archive changed, and a failed build publishes nothing', () => {
-  const manifest = { schema: 1, regions: [{ id: 'us', current: { file: 'places-us-20261101.pmtiles', version: '20261101', sha256: 'aaa', bounds: [-125, 24, -66, 50] } }] };
-  assert.deepEqual(decide({ region: 'us', sha256: 'aaa', manifest }), { publish: false, reason: 'unchanged' });
-  assert.deepEqual(decide({ region: 'us', sha256: 'bbb', manifest }), { publish: true, reason: 'changed' });
-  assert.deepEqual(decide({ region: 'us', sha256: 'bbb', manifest: { schema: 1, regions: [] } }), { publish: true, reason: 'new region' });
-  assert.deepEqual(decide({ region: 'us', sha256: 'bbb', manifest: null }), { publish: true, reason: 'no manifest yet' });
-  assert.deepEqual(decide({ region: 'us', sha256: null, manifest }), { publish: false, reason: 'no archive built' });
-  assert.deepEqual(decide({ region: 'us', sha256: 'bbb', manifest: null, unreachable: true }), { publish: false, reason: 'manifest unreachable' }, 'places-worth-the-stop audit 7: one network error publishes nothing');
+  const blocks = { '8/71/96': 'aaaaaaaaaaaaaaaa' };
+  const manifest = { schema: 1, regions: [{ id: 'us', current: { file: 'places-us-20261101.pmtiles', version: '20261101', bounds: [-125, 24, -66, 50], blocks } }] };
+  assert.deepEqual(decide({ region: 'us', blocks, manifest }), { publish: false, reason: 'unchanged' });
+  assert.deepEqual(decide({ region: 'us', blocks: { '8/71/96': 'bbbbbbbbbbbbbbbb' }, manifest }), { publish: true, reason: 'changed' });
+  assert.deepEqual(decide({ region: 'us', blocks, manifest: { schema: 1, regions: [] } }), { publish: true, reason: 'new region' });
+  assert.deepEqual(decide({ region: 'us', blocks, manifest: null }), { publish: true, reason: 'no manifest yet' });
+  assert.deepEqual(decide({ region: 'us', blocks: null, manifest }), { publish: false, reason: 'no archive built' });
+  assert.deepEqual(decide({ region: 'us', blocks, manifest: null, unreachable: true }), { publish: false, reason: 'manifest unreachable' }, 'places-worth-the-stop audit 7: one network error publishes nothing');
 });
