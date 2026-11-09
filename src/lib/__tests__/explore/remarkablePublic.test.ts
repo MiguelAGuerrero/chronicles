@@ -131,3 +131,45 @@ test('RP20: a place with no street or path within 60 m is said, never filtered; 
   assert.equal(await r.near(at(0, 100)), false);
   assert.equal(await r.near(at(0, 2000)), null);
 });
+
+// Remarkable and public, the audit (Nov 9): regression tests, each written before its fix.
+
+test('remarkable-and-public audit 5: a listed cemetery 120 m from the tiles\' same-named one is one place to find', () => {
+  const tiles = placesFromTilePois([poi('cemetery', 'cemetery', 'Nisky Hill Cemetery', [-75.3725, 40.6235])], 'b');
+  const gate: LngLat = [-75.3725 + 120 / 84400, 40.6235];
+  const archived = archivePlace('Nisky Hill Cemetery', 'cemetery', gate, 'v1')!;
+  const merged = mergePlaces(tiles, [archived]);
+  assert.equal(merged.filter((p) => p.name === 'Nisky Hill Cemetery').length, 1, 'same name, same category, within 200 m (the owner, Nov 9)');
+  const far = archivePlace('Nisky Hill Cemetery', 'cemetery', [-75.3725 + 250 / 84400, 40.6235], 'v1')!;
+  assert.equal(mergePlaces(tiles, [far]).filter((p) => p.name === 'Nisky Hill Cemetery').length, 2, 'past 200 m they are two');
+  const otherKind = archivePlace('Nisky Hill Cemetery', 'heritage_building', gate, 'v1')!;
+  assert.equal(mergePlaces(tiles, [otherKind]).filter((p) => p.name === 'Nisky Hill Cemetery').length, 2, 'another category merges only within 50 m');
+});
+
+test('remarkable-and-public audit 6: a later tap\'s reach line is never replaced by an earlier tap\'s answer', async () => {
+  const waits: ((v: never[]) => void)[] = [];
+  const db = { getSegmentsIn: () => new Promise<never[]>((r) => waits.push(r)) };
+  const r = createReach({ db } as never) as unknown as { ask?: (key: string, at: LngLat, answer: (a: { key: string; near: boolean | null }) => void) => void };
+  assert.equal(typeof r.ask, 'function', 'the shell answers only the latest ask');
+  const got: string[] = [];
+  r.ask!('A', [-75.3, 40.6], (a) => got.push(a.key));
+  r.ask!('B', [-75.3, 40.6], (a) => got.push(a.key));
+  waits[1]([]);
+  await new Promise((x) => setTimeout(x, 0));
+  waits[0]([]);
+  await new Promise((x) => setTimeout(x, 0));
+  assert.deepEqual(got, ['B'], 'A answered last and is dropped');
+});
+
+test('remarkable-and-public audit 7: with the tile beside a place unread, a place by its tile edge says nothing', () => {
+  // z14 tile 4770/6158's west edge, at Bethlehem: a place 20 m inside it, its street 30 m west in the unread tile.
+  const n = 2 ** 14;
+  const edgeLon = (4770 / n) * 360 - 180;
+  const lat = 40.6145;
+  const m = 1 / (111320 * Math.cos((lat * Math.PI) / 180));
+  const place: LngLat = [edgeLon + 20 * m, lat];
+  const farInTile = [[edgeLon + 200 * m, lat - 0.002], [edgeLon + 200 * m, lat + 0.002]] as LngLat[];
+  assert.equal(wayNear(place, [farInTile]), null, 'the disc reaches an unread tile: nothing is said');
+  const westStreet = [[edgeLon - 30 * m, lat - 0.002], [edgeLon - 30 * m, lat + 0.002]] as LngLat[];
+  assert.equal(wayNear(place, [farInTile, westStreet]), true);
+});

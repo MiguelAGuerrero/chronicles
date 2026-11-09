@@ -1,6 +1,8 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { VectorTile } from '@mapbox/vector-tile';
 import { PbfReader } from 'pbf';
 import { PMTiles, type RangeResponse, type Source } from 'pmtiles';
@@ -300,4 +302,75 @@ test('RP12: the build writes a review per area beside the archive, and an owner\
   assert.ok(r.review && Object.keys(r.review.region).length > 0, 'and a summary for the whole region, by class and reason');
   const struck = built(items, osm, { edits: { remove: [{ name: 'A Church', at: [church.lon, church.lat] }], add: [] } });
   assert.ok(!names(struck).includes('A Church'));
+});
+
+// Remarkable and public, the audit (Nov 9): regression tests, each written before its fix.
+const laterMod = (path: string): Promise<Record<string, unknown>> => import(String(path));
+
+test('remarkable-and-public audit 1: a listed courthouse, town hall, city hall and library enter by their type; a home never does', async () => {
+  const r = built([
+    listed('Old Lehigh County Courthouse', ['Q1137809']), listed('Easton Town Hall', ['Q543654']), listed('Bethlehem City Hall', ['Q25550691']),
+    listed('Easton Area Public Library', ['Q28564']), listed('Dimmick Memorial Library', ['Q7075']),
+  ]);
+  assert.deepEqual(names(r), ['Bethlehem City Hall', 'Dimmick Memorial Library', 'Easton Area Public Library', 'Easton Town Hall', 'Old Lehigh County Courthouse']);
+  const { groupsFrom } = await laterMod('../../../../scripts/places-archive/pin-types.mjs') as { groupsFrom: (c: Record<string, string[]>) => Record<string, string[]> };
+  // A rectory is a house and a church's; a courthouse is a government building, an office building's subclass.
+  const g = groupsFrom({ Q16970: ['Q16970', 'Qrectory'], Q3947: ['Q3947', 'Qrectory'], Q1137809: ['Q1137809'], Q1021645: ['Q1021645', 'Q16831714', 'Q1137809'] });
+  assert.ok(!g.church.includes('Qrectory'), 'a place people live in is never public by type');
+  assert.ok(g.public.includes('Q1137809'), 'a courthouse stays public though it is also an office building');
+});
+
+test('remarkable-and-public audit 2: every statement of osm.overpassql is bounded and well formed; the build reads Overpass JSON and refuses any other shape', () => {
+  const ql = readFileSync(join(__dirname, '..', '..', '..', '..', 'scripts', 'places-archive', 'osm.overpassql'), 'utf8');
+  const statements = ql.split('\n').filter((l) => /^\s*nwr/.test(l));
+  assert.ok(statements.length >= 4);
+  for (const s of statements) {
+    assert.match(s, /\(\{\{bbox\}\}\);\s*$/, `bounded: ${s}`);
+    assert.ok(!/\]~"/.test(s), `a key regex sits inside its brackets: ${s}`);
+  }
+  const estate = listed('Gated Landmark Estate', ['Q3947'], { nhl: true });
+  const overpass = { elements: [{ type: 'way', id: 1, center: { lon: estate.lon, lat: estate.lat }, tags: { wikidata: estate.id, access: 'private' } }] };
+  assert.deepEqual(names(built([estate], overpass)), [], 'Overpass\'s own JSON is read: access=private keeps it out');
+  assert.throws(() => built([estate], { nodes: [] }), /osm/i, 'an export of another shape is refused, never read as empty');
+});
+
+test('remarkable-and-public audit 4: a listed station tagged was:railway=station still enters; demolished: and destroyed: still remove', () => {
+  const station = listed('Union Station', ['Q55488']);
+  const gone1 = listed('Gone Station', ['Q55488']);
+  const gone2 = listed('Burnt Church', ['Q16970']);
+  const r = built([station, gone1, gone2], osmFor([station, { 'was:railway': 'station', amenity: 'restaurant' }], [gone1, { 'demolished:building': 'train_station' }], [gone2, { 'destroyed:building': 'church' }]));
+  assert.deepEqual(names(r), ['Union Station']);
+});
+
+test('remarkable-and-public audit 10: a Landmark archaeological site, battlefield or shipwreck is a Monument, not a building', () => {
+  const r = built([listed('Indian Steps', ['Q839954'], { nhl: true }), listed('Bushy Run Battlefield', ['Q4895508'], { nhl: true }), listed('A Wreck', ['Q852190'], { nhl: true })]);
+  for (const n of ['Indian Steps', 'Bushy Run Battlefield', 'A Wreck']) assert.equal(classOf(r, n), 'historic_site', n);
+  assert.deepEqual((ARCHIVE_CLASSES as Record<string, readonly [string, string]>).historic_site, ['history', 'monuments']);
+});
+
+test('remarkable-and-public audit 11: an element tagged wikidata=Q1;Q2 speaks for both items', () => {
+  const a = listed('Church A', ['Q16970']);
+  const b = listed('Church B', ['Q16970']);
+  const osm = { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [a.lon, a.lat] }, properties: { wikidata: `${a.id};${b.id}`, access: 'private' } }] };
+  assert.deepEqual(names(built([a, b], osm)), []);
+});
+
+test('remarkable-and-public audit 12: a district also typed ghost town or monument never enters', () => {
+  const r = built([listed('Eckley Miners\' Village', ['Q15243209', 'Q74047'], { nhl: true }), listed('Monument Square District', ['Q15243209', 'Q4989906'])]);
+  assert.deepEqual(names(r), []);
+});
+
+test('remarkable-and-public audit 13: a listing that ended is no listing, and a cut-off answer splits the cell', async () => {
+  const q = cellQuery([-76, 40, -75, 41]);
+  assert.match(q, /p:P1435 \?h\w* \. \?h\w* ps:P1435 wd:Q19558910 \. FILTER NOT EXISTS \{ \?h\w* pq:P582/, 'delisted (an end time) is not listed');
+  const { parseAnswer } = await laterMod('../../../../scripts/places-archive/fetch-wikidata.mjs') as { parseAnswer: (t: string) => unknown };
+  assert.equal(parseAnswer('{"results": {"bindings": [{"item"'), null, 'a timeout that cut the JSON is a split, not a crash');
+  assert.deepEqual(parseAnswer('{"results":{"bindings":[]}}'), []);
+});
+
+test('remarkable-and-public audit 18: the review is written to its own folder, never the archive\'s', async () => {
+  const { reviewDir } = await laterMod('../../../../scripts/build-places-archive.mjs') as { reviewDir: (out: string, reviewOut: string | null) => string };
+  assert.throws(() => reviewDir('out', null), /review-out/);
+  assert.throws(() => reviewDir('out', 'out/'), /review-out/);
+  assert.equal(reviewDir('out', 'review'), 'review');
 });

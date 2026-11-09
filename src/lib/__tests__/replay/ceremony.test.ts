@@ -409,6 +409,30 @@ test('RP19: a replay past many places whispers once, as the card says it', () =>
   assert.deepEqual(two.whispers.map((w) => w.text), ['Passed Hessian Memorial without stopping', 'Passed Sun Inn without stopping'], 'one or two: each by name (RR15)');
 });
 
+test('remarkable-and-public audit 14: with more than two passes, the one whisper comes at the last pass, when it is true', () => {
+  const ab = line(A, B, 0);
+  const note = cap('text', endT(ab), B, 'x');
+  const pass = (name: string, i: number) => ({ name, generic: false, at: at(100 + i * 50, 30), t: ab[10 + i * 8].t });
+  const p = plan(walkStory(input(ab, [note], { passed: ['Hessian Memorial', 'Moravian Book Shop', 'Sun Inn', 'Kemerer Museum'].map(pass) })));
+  assert.equal(p.whispers.length, 1);
+  const last = pass('Kemerer Museum', 3);
+  assert.deepEqual(p.whispers[0].at, last.at, 'at the last passed place');
+  const first = frames(p, 20).find((f) => f.overlays.some((o) => o.kind === 'whisper'))!;
+  assert.ok(first.walker && distanceM(first.walker, at(250, 0)) < 40, 'it comes as the walker reaches the last one');
+});
+
+test('remarkable-and-public audit 9: a day replay bounds each walk\'s passes by that walk\'s card', () => {
+  const walks = [9, 11, 13].map((h, i) => {
+    const id = `w${i + 1}`;
+    const ab = line(A, B, h * 60 * MIN, 1.4, id);
+    return input(ab, [cap('text', endT(ab), B, 'x', id)], { id, passed: [{ name: `Place ${i + 1}`, generic: false, at: at(300, 30), t: ab[43].t }] });
+  });
+  const day: Day = { key: '2026-11-04', entries: walks.map((w) => ({ kind: 'walk' as const, t: w.walk.started_at, walk: w.walk, captures: w.captures })), moments: 3, walks: 3 };
+  const p = plan(dayStory(day, new Map(walks.map((w) => [w.walk.id, w]))));
+  assert.deepEqual(p.whispers.map((w) => w.text), ['Passed Place 1 without stopping', 'Passed Place 2 without stopping', 'Passed Place 3 without stopping'],
+    'each walk passed one place, so each whispers it by name');
+});
+
 test('RR16: a day glides between its entries, says how much later, and plays each walk\'s rhythm', () => {
   const morning = cap('photo', 9 * 60 * MIN, at(-500, 0), null, null);
   const ab = line(A, B, 11 * 60 * MIN);

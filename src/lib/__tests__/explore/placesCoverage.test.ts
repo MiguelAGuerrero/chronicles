@@ -23,3 +23,15 @@ test('RP17: the benchmark matches a Wikidata item to a place and names why a mis
   assert.equal(m.outcome(item, { places: [], raw: [] }), 'not in the tiles');
   assert.equal(m.outcome(item, { places: [{ name: 'Central Moravian Church', at: [at[0] + 0.01, at[1]], mark: true }], raw: [] }), 'not in the tiles', 'a namesake 800 m away is another place');
 });
+
+test('remarkable-and-public audit 8: the benchmark measures reach over walkable ways, matches "Jim Thorpe", and a shared town word is no match', async () => {
+  const m = await later('../../../../scripts/places-archive/coverage.mjs') as {
+    similar: (a: string, b: string) => boolean; areaKey?: (s: string) => string; walkable?: (cls: string) => boolean;
+  };
+  assert.equal(m.similar('Moravian Museum', 'Moravian Book Shop'), false, '"moravian" alone is the town\'s word');
+  assert.equal(m.similar('Central Moravian Church', 'Central Moravian Church'), true);
+  assert.equal(m.similar('Hugh Moore Park', 'Hugh Moore Historical Park'), true);
+  assert.equal(m.areaKey?.('Jim Thorpe'), 'jimthorpe');
+  for (const c of ['rail', 'transit', 'ferry', 'aerialway', 'motorway']) assert.equal(m.walkable?.(c), false, c);
+  for (const c of ['minor', 'path', 'service', 'tertiary', 'primary']) assert.equal(m.walkable?.(c), true, c);
+});
