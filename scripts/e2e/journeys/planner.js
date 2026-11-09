@@ -44,7 +44,8 @@ async function run(h) {
   const rank = ['middle', 'across', 'edge'];
   check(order.map((p) => rank.indexOf(p)).every((v, i, a) => i === 0 || a[i - 1] < v), `WP4: the rows are in the presets' fixed order (${order.join(',')})`);
   const selected = await pg.locator('[data-testid^="plan-row-"][data-preset]').evaluateAll((els) => els.map((e) => e.getAttribute('data-selected')));
-  check(selected.every((s) => s === '0') && (await pg.locator('[data-testid=plan-start]').isDisabled().catch(() => false)), 'WP4, WP18: no row is highlighted when it opens, and Start waits for a tap on one');
+  check(selected[0] === '1' && selected.slice(1).every((s) => s === '0') && !(await pg.locator('[data-testid=plan-start]').isDisabled().catch(() => true)), `WP4, WP18: the first route is selected when it opens, and Start is ready (${selected.join(',')})`);
+  check((await pg.locator('[data-testid^=plan-also-]').count()) === 0, 'WP28: a route with no other kind along it says nothing of the sort');
   const text = await pg.locator('[data-testid=planner]').innerText();
   check(!BANNED.test(text), 'WP7: no time, pace, comparison or superlative anywhere on the page');
   check(!/\b(Plenty|Some|Little)[^.]*\d/.test(text.replace(/About [\d.]+ (km|mi|m|ft)/g, '')), 'WP14: no digit in what a row passes');
@@ -55,15 +56,16 @@ async function run(h) {
   check(/^(Easy on foot|Part of it|It is not known)/.test(await pg.locator('[data-testid=plan-reach-0]').innerText().catch(() => '')), 'KW10, WP20: each row says whether it can be walked the whole way');
   await shot(pg, 'planner-open');
 
-  await first.click();
+  const last = pg.locator('[data-testid^="plan-row-"][data-preset]').last();
+  await last.click();
   await pg.waitForTimeout(300);
-  check((await first.getAttribute('data-selected')) === '1' && !(await pg.locator('[data-testid=plan-start]').isDisabled()), 'WP18: tapping a row highlights it and Start can go');
+  check(n === 1 || ((await last.getAttribute('data-selected')) === '1' && (await first.getAttribute('data-selected')) === '0'), 'WP18: tapping another row selects it, and Start can go');
   check(((await pg.locator('[data-testid=plan-map]').innerHTML().catch(() => '')).length) > 100 && (await pg.locator('canvas.maplibregl-canvas').count()) >= 1, 'WP16: the map is drawn on the real map');
 
   // WP12: a setting acts at once, and is kept.
   await pg.click('[data-testid=plan-mode-loop]');
   await pg.waitForSelector('[data-testid=plan-reason-noLoop]', { timeout: 60000 }).catch(() => {});
-  check((await pg.locator('[data-testid=plan-reason-noLoop]').count()) === 1 && (await pg.locator('[data-testid^="plan-row-"][data-selected="1"]').count()) === 0, 'WP12: a setting plans again at once, and nothing is highlighted');
+  check((await pg.locator('[data-testid=plan-reason-noLoop]').count()) === 1 && (await pg.locator('[data-testid^="plan-row-"][data-selected="1"]').count()) === 0, 'WP12: a setting plans again at once');
   await pg.click('[data-testid=plan-mode-oneway]');
   await pg.waitForSelector('[data-testid=plan-row-0]', { timeout: 60000 }).catch(() => {});
   await pg.waitForTimeout(500);

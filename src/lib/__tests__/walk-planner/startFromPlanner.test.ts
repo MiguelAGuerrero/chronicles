@@ -45,16 +45,19 @@ test('WP24: If the preset gives no route from there, the highlighted route stand
   assert.equal(far, first);
 });
 
-test('WP1 WP18: Nothing is highlighted when the page opens, Start waits for a tap on a row, and closing starts over', () => {
+test('WP1 WP18: Nothing starts before there are routes, then the first is selected and Start is ready; tapping another selects it; closing starts over', () => {
   const routes = planRoutes(input(cases(3)[1]), leg).routes;
   const o = open();
   assert.equal(o.open, true);
-  assert.equal(o.selected, null);
-  assert.equal(startable(o, routes), null, 'nothing starts until a row is chosen');
-  const s = select(o, 0, routes);
-  assert.equal(startable(s, routes), routes[0]);
-  assert.equal(select(o, 99, routes).selected, null, 'a row that is not there is not chosen');
-  assert.equal(replanned(s).selected, null, 'new routes: nothing is highlighted again');
+  assert.equal(startable(o, routes), null, 'no routes yet: nothing to start');
+  const ready = replanned(o, routes);
+  assert.equal(ready.selected, 0, 'the first route is selected when there are routes');
+  assert.equal(startable(ready, routes), routes[0], 'and Start is ready');
+  const s = select(ready, routes.length - 1, routes);
+  assert.equal(startable(s, routes), routes[routes.length - 1], 'tapping another selects it');
+  assert.equal(select(ready, 99, routes).selected, 0, 'a row that is not there is not chosen');
+  assert.equal(replanned(s, routes).selected, 0, 'new routes: the first is selected again');
+  assert.equal(replanned(open(), []).selected, null, 'no routes, nothing selected');
   assert.deepEqual(close(), { open: false, selected: null });
   assert.equal(startable(close(), routes), null);
 });

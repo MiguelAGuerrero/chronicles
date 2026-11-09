@@ -1,5 +1,5 @@
 // @layer shell
-import { ATLAS_LABEL } from '../atlas/atlas';
+import { ATLAS_LABEL, ATLAS_ORDER } from '../atlas/atlas';
 import type { CategoryId, Place } from '../discovery/types';
 import { distanceM } from '../geo';
 import { densestCells, onStreets } from '../kindWalk/density';
@@ -8,6 +8,8 @@ import type { Reach } from '../kindWalk/words';
 import { routeTo } from '../nav/navigator';
 import { streetRouteSource } from '../nav/streetRoute';
 import type { LngLat, StreetSegment } from '../types';
+import { isMarkable } from '../discovery/noise';
+import { alsoPasses, type Also } from './exposure';
 import { planRoutes, type Leg, type PlannedRoute, type Reason } from './planner';
 
 /*
@@ -40,6 +42,8 @@ export interface PlanRequest {
 
 export interface PlannerRoute extends PlannedRoute {
   reach: Reach;
+  /** The other kinds along it, by kind and never by place (WP28). */
+  also: Also[];
 }
 
 export interface PlannerResult {
@@ -47,6 +51,8 @@ export interface PlannerResult {
   reasons: Reason[];
   found: { at: LngLat }[];
 }
+
+const MARK_KINDS = new Set<CategoryId>(['history', 'art', 'culture', 'parks', 'viewpoints']);
 
 const pk = (p: LngLat) => `${p[0].toFixed(5)},${p[1].toFixed(5)}`;
 const edge = (a: LngLat, b: LngLat) => [pk(a), pk(b)].sort().join('>');
@@ -75,7 +81,16 @@ export function createPlanner(deps: PlannerDeps) {
       if (!places.length) return { routes: [], reasons: ['few'], found: [] };
       const cells = onStreets(densestCells(places, i.area.at), read.segments.flatMap((s) => s.geometry));
       const planned = planRoutes({ cells, from: i.from, mode: i.prefs.mode, ceilingM: i.prefs.budgetM, density: i.prefs.density, round: i.round, shown: i.shown }, legOver(read.segments));
-      const withReach = await Promise.all(planned.routes.map(async (r): Promise<PlannerRoute> => ({ ...r, reach: await deps.reach(r.path).catch((): Reach => ({ cars: [], unknown: true })) })));
+      // Every other kind's dense cells, at the cells' resolution and counting every place found or not (WP28): a presence along the
+      // route, never a place. A kind that can be found counts only places that could be (as the atlas does).
+      const inRange = read.places.filter((p) => distanceM(p.at, i.area.at) <= radiusM && (p.markable === undefined ? isMarkable(p) : p.markable !== false || !MARK_KINDS.has(p.category)));
+      const cellsByKind: Partial<Record<CategoryId, ReturnType<typeof densestCells>>> = {};
+      for (const k of ATLAS_ORDER) if (k !== i.kind) cellsByKind[k] = densestCells(inRange.filter((p) => p.category === k), i.area.at);
+      const withReach = await Promise.all(planned.routes.map(async (r): Promise<PlannerRoute> => ({
+        ...r,
+        reach: await deps.reach(r.path).catch((): Reach => ({ cars: [], unknown: true })),
+        also: alsoPasses(r.path, cellsByKind, ATLAS_ORDER, i.kind),
+      })));
       // With "don't suggest", a route with a stretch built around cars is left out, not swapped for another (KW11).
       const routes = i.prefs.pref === 'skip' ? withReach.filter((r) => !r.reach.cars.length) : withReach;
       const reasons = [...planned.reasons];

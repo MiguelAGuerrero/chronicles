@@ -2,8 +2,8 @@
 import type { PlannedRoute } from './planner';
 
 /*
- * The planner page's own state (WP1, WP4, WP18): shut, or open with the routes and the row highlighted. Nothing is highlighted when
- * it opens, so no row reads as the one to take, and Start waits for a tap on one.
+ * The planner page's own state (WP1, WP4, WP18): shut, or open with the routes and the row highlighted. The first route is selected
+ * once there are routes (decision 0104); tapping another selects it, and Start starts the selected one.
  */
 
 export interface PageState {
@@ -14,8 +14,8 @@ export interface PageState {
 export const SHUT: PageState = { open: false, selected: null };
 export const open = (): PageState => ({ open: true, selected: null });
 export const close = (): PageState => SHUT;
-/** A new set of routes (a setting changed, or different ones asked for): nothing is highlighted again. */
-export const replanned = (s: PageState): PageState => (s.open ? { open: true, selected: null } : s);
+/** A new set of routes (a setting changed, or different ones asked for): the first is selected, as the maps do (decision 0104). */
+export const replanned = (s: PageState, routes: readonly unknown[]): PageState => (s.open ? { open: true, selected: routes.length ? 0 : null } : s);
 export const select = (s: PageState, i: number, routes: readonly unknown[]): PageState => (s.open && i >= 0 && i < routes.length ? { ...s, selected: i } : s);
 
 /** Start works only on a highlighted row (WP18). */

@@ -1,6 +1,7 @@
 // @layer core
 import { distanceM } from '../geo';
 import type { LngLat } from '../types';
+import type { CategoryId } from '../discovery/types';
 import type { Cell } from '../kindWalk/density';
 
 /*
@@ -133,4 +134,30 @@ export function exposureWords(runs: readonly Run[], startM: number, totalM: numb
   const gettingShare = totalM ? startM / totalM : 0;
   const getting = gettingShare >= 0.5 ? 'Much of the way is getting there' : gettingShare >= 0.25 ? 'Part of the way is getting there' : null;
   return { line, getting };
+}
+
+export interface Also {
+  kind: CategoryId;
+  level: 'some' | 'plenty';
+}
+
+/**
+ * The other kinds with a presence along a route (WP28), by kind and never by place: the route graded by each kind's dense cells at
+ * their resolution, every place counted found or not. A kind with little along it is not named. In the kinds' fixed order.
+ */
+export function alsoPasses(path: readonly LngLat[], cellsByKind: Partial<Record<CategoryId, readonly Cell[]>>, order: readonly CategoryId[], except: CategoryId): Also[] {
+  const out: Also[] = [];
+  for (const kind of order) {
+    if (kind === except) continue;
+    const cells = cellsByKind[kind];
+    if (!cells || !cells.length) continue;
+    const runs = gradeRuns(path, cells);
+    const total = runs.length ? runs[runs.length - 1].toM : 0;
+    if (!total) continue;
+    const share = kindShare(runs);
+    const strong = runs.filter((r) => r.grade >= 2).reduce((t, r) => t + (r.toM - r.fromM), 0) / total;
+    if (share < 0.15) continue;
+    out.push({ kind, level: strong >= 0.45 || share >= 0.7 ? 'plenty' : 'some' });
+  }
+  return out;
 }

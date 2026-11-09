@@ -170,3 +170,5 @@ tests. Decision 0102. Unrun on a device (docs/NATIVE_UNVERIFIED.md). Not audited
 - **Found pins** come from the walker's own finds (`listFinds`), one for those within 150 m of each other.
 - **Changed from the plan:** the kind walk's `kindWalk/` modules stay where they are and the planner imports them (density, limits,
   words, settings) rather than moving them; the page's map is `WalkMap` with two new props (`routeGrades`, `foundPins`).
+- **Amended 2026-11-09 (decision 0104):** the first route is selected when the page opens (WP4, WP18), and a route names the other kinds
+  along it (WP28). The plan's earlier "nothing is highlighted at first" no longer holds.

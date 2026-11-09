@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { exposureWords, gradeRuns, stripLabel, strip } from '../../walkPlanner/exposure';
 import { planRoutes } from '../../walkPlanner/planner';
-import { DENSITY_LABEL, MODE_LABEL, PRESET_NAMES, closeLabel, differentLabel, lessGroundLine, readingLine, reasonLine, rowWords, settingsHeading, startLabel, title, CEILING_HEADING, CEILING_NOTE, DENSITY_HEADING, MODE_HEADING } from '../../walkPlanner/words';
+import { alsoLine, DENSITY_LABEL, MODE_LABEL, PRESET_NAMES, closeLabel, differentLabel, lessGroundLine, readingLine, reasonLine, rowWords, settingsHeading, startLabel, title, CEILING_HEADING, CEILING_NOTE, DENSITY_HEADING, MODE_HEADING } from '../../walkPlanner/words';
 import { ATLAS_ORDER } from '../../atlas/atlas';
 import { cases, leg } from './grid';
 
@@ -13,6 +13,7 @@ const BANNED = /\b(minutes?|mins?|hours?|hrs?|ETA|pace|brisk|quick(er|est)?|fast
 function everySentence(): string[] {
   const out: string[] = [...Object.values(PRESET_NAMES), ...Object.values(MODE_LABEL), ...Object.values(DENSITY_LABEL), ...REASONS.map(reasonLine),
     startLabel, differentLabel, closeLabel, settingsHeading, readingLine, lessGroundLine, CEILING_HEADING, CEILING_NOTE, DENSITY_HEADING, MODE_HEADING, ...ATLAS_ORDER.map(title)];
+  for (const k of ATLAS_ORDER) for (const level of ['some', 'plenty'] as const) out.push(alsoLine([{ kind: k, level }])!);
   for (const c of cases(20)) {
     for (const mode of ['loop', 'oneway'] as const) {
       for (const units of ['km', 'mi'] as const) {

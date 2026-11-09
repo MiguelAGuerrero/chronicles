@@ -41,7 +41,7 @@ export function RouteRows(props: {
             accessibilityRole="button"
             accessibilityState={{ selected: on }}
             aria-selected={on}
-            accessibilityLabel={`${w.title}. ${w.distance}. ${w.passes}.${w.getting ? ` ${w.getting}.` : ''} ${reach}`}
+            accessibilityLabel={`${w.title}. ${w.distance}. ${w.passes}.${w.getting ? ` ${w.getting}.` : ''}${w.also ? ` ${w.also}.` : ''} ${reach}`}
             onPress={() => props.onSelect(i)}
             style={[styles.row, on && styles.rowOn]}
             {...{ dataSet: { selected: on ? '1' : '0', preset: r.preset } }}
@@ -50,6 +50,7 @@ export function RouteRows(props: {
             <Text style={styles.meta} testID={`plan-row-distance-${i}`}>{w.distance}</Text>
             <Text style={styles.meta}>{w.passes}</Text>
             {w.getting ? <Text style={styles.meta}>{w.getting}</Text> : null}
+            {w.also ? <Text style={styles.meta} testID={`plan-also-${i}`}>{w.also}</Text> : null}
             <ExposureStrip grades={strip(r.runs)} color={KIND_COLOR[props.kind]} testID={`plan-strip-${i}`} />
             <Text style={styles.meta} testID={`plan-reach-${i}`}>{reach}</Text>
             {fillsLess(r, props.ceilingM) ? <Text style={styles.meta}>{lessGroundLine}</Text> : null}

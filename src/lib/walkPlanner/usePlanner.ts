@@ -30,7 +30,7 @@ export function usePlanner(kind: CategoryId, area: { at: LngLat; reachM: number 
       if (!live || asked.current !== key) return;
       setResult(r);
       shown.current = r.routes.map((x) => x.path);
-      setPage((p) => replanned(p));
+      setPage((p) => replanned(p, r.routes));
     });
     return () => {
       live = false;

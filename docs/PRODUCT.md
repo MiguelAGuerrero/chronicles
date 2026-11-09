@@ -73,9 +73,9 @@ recording bar brings a minimized walk back.
 - Rings are read by themselves while the tab is open, nearest first.
 - **A walk planner for a kind** (decision 0102, walk planner WP1-WP27): on an area's card, a kind that has something under "What's here"
   (Green, History, ...) has a "Suggest a walk" button, which opens a page of its own over Explore. It plans up to three routes from where
-  you are, drawn on the map and listed as rows: through the middle of where the kind is, across the area, and around the edge. Each says
+  you are, drawn on the map and listed as rows: through the middle of where the kind is, across the area, and around the edge. The first is selected when the page opens, as in Apple or Google Maps. Each says
   only its own distance in the displayed unit, how much of the kind it passes and where ("plenty along much of the way", "mostly near the
-  end"), how much of it is only getting there, and whether it can be walked the whole way; a strip along each row and a shading of the
+  end"), how much of it is only getting there, which other kinds it also passes (by kind, never by place), and whether it can be walked the whole way; a strip along each row and a shading of the
   highlighted route show the same without a number. It never shows or names a place not yet found, so the "?" marks stay hidden until
   reached; only places you have already found may be pinned. The settings are on the page: a loop (the default, back where you start)
   or a one way, a distance as a hard ceiling (2 km by default; where the kind fills less ground the route is shorter, and the page

@@ -4,7 +4,7 @@ import type { CategoryId } from '../discovery/types';
 import { lengthLine } from '../kindWalk/words';
 import type { Units } from '../units';
 import type { PlannedRoute, Reason } from './planner';
-import { exposureWords } from './exposure';
+import { exposureWords, type Also } from './exposure';
 import type { PresetId } from './presets';
 import type { Density, Mode } from './settings';
 
@@ -52,15 +52,26 @@ export interface RowWords {
   distance: string;
   passes: string;
   getting: string | null;
+  /** The other kinds along the route, in words (WP28); null when there are none. */
+  also: string | null;
 }
 
-export function rowWords(r: PlannedRoute, units: Units): RowWords {
+/** "Also passes some history and plenty of art": kinds, never places (WP28). */
+export function alsoLine(also: readonly Also[]): string | null {
+  if (!also.length) return null;
+  const parts = also.map((a) => `${a.level === 'plenty' ? 'plenty of' : 'some'} ${ATLAS_LABEL[a.kind].toLowerCase()}`);
+  const text = parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`;
+  return `Also passes ${text}`;
+}
+
+export function rowWords(r: PlannedRoute & { also?: readonly Also[] }, units: Units): RowWords {
   const e = exposureWords(r.runs, r.startM, r.lengthM);
   return {
     title: PRESET_NAMES[r.preset],
     distance: r.loop ? `${lengthLine(r.lengthM, units)}, back where you start` : lengthLine(r.lengthM, units),
     passes: e.line,
     getting: e.getting,
+    also: alsoLine(r.also ?? []),
   };
 }
 
