@@ -32,9 +32,9 @@ Open: none (OT23 and OT24 answered Nov 6). The reasons rest on decision 0104, no
 
 ### Responding
 
-1. **OT1** A moment's viewer shows **Respond** on its face, not in the More menu, as the capture row's own kinds (photo, voice, note). Each kind is one tap from the viewer, with no menu opened first. The new moment is saved by the capture's own path with its own time and place (the fix, or placed later, as a moment outside a walk is). Capture from the edge stack takes the same one tap as before, with no thread step in front of it. (Steward S1.)
+1. **OT1** A moment's viewer has a toolbar docked under the photo, below its info line, with **Respond** (and **Edit** where the moment can be edited). Respond opens an action sheet: Photo, Voice memo, Note, Cancel. The new moment is saved by the capture's own path with its own time and place (the fix, or placed later, as a moment outside a walk is). Capture from the edge stack takes the same one tap as before, with no thread step in front of it. (Amended Nov 9, decision 0108: Respond was a row of kinds on the viewer's face, one tap each.)
 2. **OT2** Saving a reply writes a directed link from the new moment to the one it answers, and adds the new moment to the answered moment's thread. If the answered moment is in no thread, an unnamed thread of the two is made. If it is in several, the reply joins the one the Respond started from (OT3).
-3. **OT3** Respond is offered from a moment seen in a thread (it answers that moment and joins that thread), from the viewer opened on a faint pin ("Memories here", whose preview also shows the kinds, one tap each), and from the viewer anywhere else (it answers that moment).
+3. **OT3** Respond is offered from a moment seen in a thread (it answers that moment and joins that thread), from the viewer opened on a faint pin ("Memories here"), and from the viewer anywhere else (it answers that moment). (Amended Nov 9: the faint pin's preview carries no kinds of its own.)
 4. **OT4** A reply is a moment like any other: it appears in Lately, its walk, its day and the map. It never appears as a bare note: its row names the moment it answers and when ("answering Oct 20, just after the bakery"). A reply whose answered moment is gone shows no "answering" line, only its own place and time (OT16). (Steward S4.)
 
 ### Connecting
@@ -48,7 +48,7 @@ Open: none (OT23 and OT24 answered Nov 6). The reasons rest on decision 0104, no
 
 9. **OT9** A thread opens as a plain typographic timeline of its moments, oldest first, read like a conversation with yourself. Every moment shows its place and its time, and what came just before it (its walk's context line) when it has a walk; a moment with no walk shows place and date. Never a bare thumbnail, filename or count; the same holds for every row of the moment picker. (Steward S4.) A reply is set under the moment it answers.
 10. **OT10** A thread's size is one of a short fixed set of words ("a couple of moments", "a few", "several", "many"), never a number word above "three", a digit, rank, total, streak or percentage; its span is "since March". No unread, new-reply or progress mark ever appears on a thread. Dates and times are fine. (Steward S3.)
-11. **OT11** Where a moment is in a thread, its viewer says "in a thread" without the name, and opening it opens the thread. The viewer shows the thread's name only when it was opened from that thread. (Steward S2.)
+11. **OT11** Where a moment is in a thread, its viewer's info line says "In a thread" without the name, and the More menu's **Open its thread** opens it. The viewer shows the thread's name only when it was opened from that thread. (Amended Nov 9, decision 0108: was a chip over the photo.)
 12. **OT12** The owner's threads are listed on Memories in a block of their own beside the Chronicle's own threads (the 0098 rail), both headed **Threads** and told apart by a mark (OT25): the owner's ordered by the latest moment in them, and saying so, with no rank, count or progress shown. The Chronicle's threads are unchanged by this slice. (Amended Nov 9, decision 0105: was "their own heading", "Threads you made".)
 13. **OT13** A thread has a name only the owner gives it: **Name this thread** in its menu, optional, editable, never overwritten. A thread with no name is headed by its oldest moment's place and date, with the first words of that moment as a second line; no heading is a clipped fragment on its own. (Steward S5.)
 
@@ -76,6 +76,10 @@ Open: none (OT23 and OT24 answered Nov 6). The reasons rest on decision 0104, no
 
 25. **OT25** Wherever a thread is listed or opened, a small mark says who made it: one icon for a thread the owner made, another for a thread the Chronicle suggests (from the user's own words, 0098). The mark is an icon in the ink colour, never a colour on its own, and it carries a spoken name ("connected by you", "found for you"). No accent colour, badge or count marks either kind. The Chronicle's threads keep their own words (0098) beside the mark.
 26. **OT26** An unnamed thread's heading follows its moments (the place and date of its oldest, with its first words beneath) and may change as they do; the owner may name it, or rename it, at any time, and a name they gave never changes by itself.
+
+### The viewer's actions (the owner's call, Nov 9, decision 0108)
+
+27. **OT27** Nothing the viewer offers sits over the moment itself: the photo or video area, and a note's or memo's card, are clear of every button. Actions live in the top bar (Close, More), the docked toolbar (Respond, Edit) and the More menu; no row of controls wraps onto a second line on a 320 px phone.
 
 ## Record (Nov 6)
 

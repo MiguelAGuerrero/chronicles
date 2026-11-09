@@ -96,6 +96,24 @@ async function run(h) {
   const chip1 = (await pg.locator('[data-testid=viewer-in-thread]').innerText()).replace(/[^\x20-\x7e]/g, '').trim();
   check(chip1 === 'In a thread', `OT11: the viewer says "In a thread" and no name (${chip1})`);
 
+  // OT1, OT11, OT27 (decision 0108): the viewer's actions are a docked toolbar and a menu, nothing over the moment.
+  const overMoment = () => pg.evaluate(() => {
+    const card = document.querySelector('[data-testid=capture-card], [data-testid=edited-photo]');
+    if (!card) return null;
+    const c = card.getBoundingClientRect();
+    return [...document.querySelectorAll('[role=button]')].filter((b) => {
+      const r = b.getBoundingClientRect();
+      if (!r.width || !r.height || b.closest('[aria-hidden=true]') || card.contains(b)) return false;
+      return r.left < c.right && r.right > c.left && r.top < c.bottom && r.bottom > c.top;
+    }).map((b) => b.getAttribute('aria-label') || b.textContent);
+  });
+  check.todo((await has('[data-testid=viewer-toolbar] [data-testid=viewer-respond]')) && !(await has('[data-testid=respond-sheet]')) && !(await has('[data-testid=respond-bar]')),
+    'OT1: Respond sits in the toolbar docked under the moment, and no row of kinds is on its face');
+  const over = await overMoment();
+  check.todo(Array.isArray(over) && over.length === 0, `OT27: no button sits over the moment (${JSON.stringify(over)})`);
+  check.todo((await pg.locator('[data-testid=viewer-in-thread]').count()) === 0 && /In a thread/.test(await pg.locator('[data-testid=capture-meta]').first().innerText().catch(() => '')),
+    'OT11: "In a thread" is said in the moment\'s info line, not as a chip over it');
+
   // OT1: Respond is on the viewer's face, three kinds, one tap each, none behind a menu.
   const faceKinds = await Promise.all(['respond-photo', 'respond-voice', 'respond-note'].map((id) => has(`[data-testid=${id}]`)));
   check(faceKinds.every(Boolean) && !(await has('[data-testid=viewer-menu]')), 'OT1: Respond shows photo, voice and note on the viewer\'s face, with no menu open');
