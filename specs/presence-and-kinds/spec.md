@@ -40,7 +40,7 @@ Touches: Always, "Guidance is structural: where there is a lot, and what makes a
 Verdict: aligned if reshaped
 Shape: A community centre is a place to find only when its name says it is historic or notable, as a town hall or library is (AG1, S20); a plain one counts toward nothing. Plazas and art walkways are not in any data the app reads, so they wait for a source (0117). The lean toward places you pass is by kind, never by a place's name, rank or popularity, and never named on screen. A museum lights History from what is already read (the archive's class, the name's words), never from a new field naming a listing. The measurement is the owner's script, in words and lists.
 Criteria: PK16 (nothing about a listing or notability shown), PK17 (the planner names no place and says no count), PK12 (a plain community centre is not a place to find), PK15 (the measurement in words and lists, never a percentage).
-Open: the new kind's label; how strongly a route leans (only places you pass when they can make a route, or a weight).
+Open: none (the plan's questions answered Nov 10).
 
 ## Decisions
 
@@ -57,6 +57,10 @@ Open: the new kind's label; how strongly a route leans (only places you pass whe
   area)"; "a museum … reflects … the past".
 - **Nov 10:** "fold all three into a V3 slice": the redundancy rule (V3), the lean toward places you pass, the Community
   kind, with the gate's measurement.
+- **Nov 10 (the plan's questions):** the kind is "Community spaces"; a route leans on places you pass only ("Pass-by
+  only, if enough": they choose the cells when they make the planner's minimum, else every place of the bar does); a
+  community centre is a place to find only when its name holds a notable word, as a town hall or library; the plan
+  approved, tests first.
 
 ## Acceptance criteria
 
@@ -76,7 +80,8 @@ The bars:
    one in ten of those where History is lit.
 6. **PK6 Small towns and a city.** With frozen fixtures of their tiles and archive places: Coplay, PA (the Kilns),
    Galena, IL (Old Market House, Q7084478) and Andalusia, AL (Three Notch Museum, Q16901630) each show History at one
-   step or more; Philadelphia's Old City shows History and Culture at the same steps as before the slice.
+   step or more, with their museum among the places lighting it; Philadelphia's Old City shows History and Culture at
+   the same steps as before the slice.
 7. **PK7 Cached bars are read again.** An area read under the earlier rules (any code before this slice's, at any level)
    is read again before its bars show (`ATLAS_CODE` bumped; no carried codes).
 

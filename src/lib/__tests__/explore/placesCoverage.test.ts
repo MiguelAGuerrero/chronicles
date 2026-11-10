@@ -35,3 +35,19 @@ test('remarkable-and-public audit 8: the benchmark measures reach over walkable 
   for (const c of ['rail', 'transit', 'ferry', 'aerialway', 'motorway']) assert.equal(m.walkable?.(c), false, c);
   for (const c of ['minor', 'path', 'service', 'tertiary', 'primary']) assert.equal(m.walkable?.(c), true, c);
 });
+
+// Presence and kinds, PK15: the gate's measurement, written before the code.
+test('PK15: the gate report lists names and says overlap in words, no percentage', { todo: 'test first' }, async () => {
+  const m = await later('../../../../scripts/places-archive/coverage.mjs') as {
+    gateReport?: (areas: { name: string; held: string[]; apart: { historyAlone: number; cultureAlone: number; both: number } }[]) => string;
+  };
+  assert.equal(typeof m.gateReport, 'function');
+  const r = m.gateReport!([
+    { name: 'Lititz', held: ['General Sutter Inn', 'Lititz Springs Park'], apart: { historyAlone: 1, cultureAlone: 0, both: 2 } },
+    { name: 'Coplay', held: [], apart: { historyAlone: 0, cultureAlone: 0, both: 1 } },
+  ]);
+  assert.match(r, /General Sutter Inn/);
+  assert.match(r, /Lititz Springs Park/);
+  assert.match(r, /Coplay/);
+  assert.ok(!/%|percent|\d+\s*(of|\/)\s*\d+/i.test(r), r);
+});

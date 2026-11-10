@@ -43,28 +43,22 @@ No change in chronicles-data: its `museum` class and contract stay as they are.
 
 ## Tests (each written first as a todo)
 
-| Id | File | Name |
-|---|---|---|
-| PK1 | `__tests__/explore/presence.test.ts` | `PK1: an archive museum lights History and Culture (Coplay, the Kilns)` |
-| PK2 | same | `PK2: a map museum whose name holds a notable word lights History too` |
-| PK3 | same | `PK3: a plain museum lights Culture only` |
-| PK4 | same | `PK4: a museum in the map and the archive is one place in each bar` |
-| PK5 | `__tests__/explore/presenceSample.test.ts` | `PK5: on the recorded sample, History and Culture are each lit without the other in one area in ten` |
-| PK6 | same as PK1 | `PK6: Coplay, Galena and Andalusia show History; Philadelphia's Old City unchanged` |
-| PK7 | `__tests__/explore/atlas.test.ts` | `PK7: a row under an earlier code, any level, is read again` |
-| PK8 | `__tests__/walk-planner/service.test.ts` | `PK8: a bar lit by a museum alone plans a route through it` |
-| PK9 | same | `PK9: cells come from places you pass when they make the minimum, else from all` |
-| PK10 | `__tests__/walk-planner/alsoPasses.test.ts` | `PK10: a museum the data calls historic counts toward History along the route` |
-| PK11 | `__tests__/explore/explore.test.ts` | `PK11: Community spaces is a kind in Culture, on by default, and on after an older saved choice` |
-| PK12 | `__tests__/explore/discovery.test.ts` | `PK12: a plain community centre is not a place to find; a notable-named one is` |
-| PK13 | same | `PK13: arts centres and libraries are Community spaces; museums and galleries stay` |
-| PK14 | same (AG5's test re-pinned) | `PK14: MARKABLE_CLASSES re-pinned with the community centre by name` |
-| PK15 | `__tests__/explore/placesCoverage.test.ts` | `PK15: the gate report lists names and says overlap in words, no percentage` |
-| PK16 | `__tests__/explore/remarkablePublic.test.ts` | `PK16: no label, field or announcement names a listing or notability; Community spaces passes labels-plain` |
-| PK17 | `__tests__/walk-planner/words.test.ts` | `PK17: the planner's words name no place, say no count and never the lean` |
+| Ids | File |
+|---|---|
+| PK1-PK7, PK11-PK14, PK16, PK18, PK19 | `src/lib/__tests__/explore/presence.test.ts` (fixtures `presenceTowns.json`, `presenceSample.json`, recorded by `scripts/fixture-presence.mjs`) |
+| PK8-PK10, PK17 | `src/lib/__tests__/walk-planner/presence.test.ts` (the planner's street grid) |
+| PK15 | `src/lib/__tests__/explore/placesCoverage.test.ts` |
 
-Red before: PK1, PK2, PK6 (History 0 for the three towns), PK7 (a7 rows current), PK8 ("few"), PK9, PK10, PK11-PK14 (no
-kind), PK15 (no mode). PK3, PK4, PK16 and PK17 hold today and pin what must not change; each todo still runs first.
+Each test is named by its id. The tests go through the existing entry points (`ringOf`, `placesFromTilePois`,
+`archivePlace`, `createPlanner`, `parseHidden`, `rowCurrent`), so the todos type-check before any code exists.
+PK18 adds a second argument to `parseHidden`: the kinds known when the choice was saved (meta `explore_kinds_known`,
+written by `saveSettings`), so a choice saved before Community spaces existed follows Museums and galleries, and one
+saved since is the walker's.
+
+Red before: PK1, PK2, PK4, PK6 (Coplay's History 0; no museum lights History alone), PK7 (a7 rows current), PK8 ("few"), PK9 (one place you pass:
+"few"), PK10 (only Culture along the route), PK11-PK14 (no kind), PK15 (no report), PK16 (no Community spaces), PK18
+(the switch not followed), PK19 (the contract's notes). PK5 waits on its fixture, and holds today; PK3 and PK17 hold today
+and pin what must not change. Each todo still runs first.
 
 No e2e journey changes: the screens show the same dots and the same switch list from `KINDS`. `npm run check:affected`
 will name the `atlas`, `grading`, `marks`, `planner` and `walk` journeys (they cover the files); they run once at the end.
@@ -106,10 +100,8 @@ Tests added: PK18 (`__tests__/explore/explore.test.ts`, `PK18: a saved choice wi
 Community spaces off`); PK19 (`__tests__/explore/placesContract.test.ts`, `PK19: the pinned contract's notes name PK1
 for the museum class`).
 
-## For the owner
+## For the owner (answered Nov 10)
 
-1. The new kind's label: **"Community spaces"** (recommended), "Community", or another.
-2. How strongly a route leans: **only places you pass choose the cells when they can make a route** (recommended), or
-   places you pass weighted above the rest.
-3. A plain community centre: **not a place to find** (recommended, as town halls and libraries; the gate's shape), or
-   every community centre counts toward Culture.
+1. The kind's label: **"Community spaces"**.
+2. The lean: **places you pass choose the cells when they make the minimum**, else all the bar's places.
+3. A plain community centre: **not a place to find**; only a notable name makes it one.
