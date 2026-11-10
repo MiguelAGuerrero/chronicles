@@ -19,6 +19,7 @@ Verdict: no surface (storage and readers move to moments; every screen shows wha
 - A container model (like Day One's entries or Instagram's carousels) over a group key on each media row (Apple Photos' bursts): moment-level facts have one home, and "one fix per moment" (0036) is one row.
 - A risky change is accepted if it is capable and fast; this round goes first, with no visible change, so a regression shows before stacks exist.
 - Existing captures migrate to one moment each under the same id.
+- The native store runs under the Db contract in Node (Nov 10, MT11).
 
 ## Criteria
 
@@ -37,6 +38,10 @@ Verdict: no surface (storage and readers move to moments; every screen shows wha
 
 9. **MT9 · No visible change.** Every e2e journey passes unchanged, run as the full flow once at the end of the round (the owner's call, decision 0106), and every unit test's expected values are unchanged apart from the shape of a moment.
 10. **MT10 · Layers.** The moment's shape and the pure readers over it are core modules with tests first; views read moments through the existing shells and never import the `db` (functional core).
+
+### The native store, tested
+
+11. **MT11 · SQLite under the contract.** The native store (`db/index.native.ts`) runs under the same Db contract (FC7) as the fake and the IndexedDB store, in `npm test`, over Node's built-in SQLite through an adapter for the `expo-sqlite` calls it uses; every migration runs from an empty database and from one at `user_version` 22, today's schema (the owner's call, Nov 10).
 
 ## Record
 

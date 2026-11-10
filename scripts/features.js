@@ -29,8 +29,8 @@ const FEATURES = [
     about: 'the db adapters, migrations and media paths',
     rule: 'storage',
     source: ['src/lib/db/**', 'src/lib/media/**'],
-    journeys: [],
-    specs: [],
+    journeys: ['upgrade'],
+    specs: ['moment-table'],
   },
   {
     name: 'recording',
@@ -89,7 +89,7 @@ const FEATURES = [
     name: 'moments',
     about: 'moments and days: the day screen, moment pins, the moment bar',
     rule: 'moments-and-days',
-    source: ['src/lib/{days,useLocate,momentPins}.ts', 'src/lib/locate/**', 'src/app/day/**', 'src/components/MomentBar.tsx', 'src/lib/explore/momentFind/**'],
+    source: ['src/lib/{days,useLocate,momentPins,moment}.ts', 'src/lib/locate/**', 'src/app/day/**', 'src/components/MomentBar.tsx', 'src/lib/explore/momentFind/**'],
     journeys: ['days'],
     specs: ['moments-and-days'],
   },
@@ -213,7 +213,7 @@ const FEATURES = [
       'src/lib/{captureEdits,videoEdit}/**',
     ],
     journeys: ['edit'],
-    specs: ['memories-on-revisit', 'media-editing'],
+    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks'],
   },
   {
     name: 'chronicle',

@@ -263,6 +263,80 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(ids(await db.capturesBetween(0, 100)), ['before', 'c1', 'loose', 'c3', 'end']);
     });
 
+    // ---- moments (Moment table, MT3-MT6, decision 0106). Test first: the new methods are reached through
+    // `planned`, so these run before they exist.
+
+    type Piece = Omit<Capture, 'walk_id' | 'lat' | 'lon' | 'segment_id'> & { moment_id: string };
+    type Moment = { id: string; walk_id: string | null; t: number; lat: number | null; lon: number | null; segment_id: string | null; pieces: Piece[] };
+    type Planned = Db & {
+      addMoment(m: Moment): Promise<void>;
+      updateMoment(id: string, patch: Partial<Pick<Moment, 'walk_id' | 'lat' | 'lon' | 'segment_id'>>): Promise<void>;
+      updatePiece(id: string, patch: Partial<Omit<Piece, 'id' | 'moment_id'>>): Promise<void>;
+      getMoments(walkId: string): Promise<Moment[]>;
+      momentsBetween(from: number, to: number): Promise<Moment[]>;
+      getMomentsByIds(ids: string[]): Promise<Moment[]>;
+      momentsIn(bounds: [number, number, number, number]): Promise<Moment[]>;
+      deleteMoments(ids: string[], opts?: { keepFinds?: boolean }): Promise<void>;
+    };
+    const planned = async (legacy?: Legacy) => (await fresh(legacy)) as unknown as Planned;
+    const one = (id: string, walk_id: string | null, t: number, more: Partial<Moment> = {}, media: Partial<Piece> = {}): Moment => ({
+      id, walk_id, t, lat: LAT, lon: LON, segment_id: null,
+      pieces: [{ id, moment_id: id, t, kind: 'text', file_path: null, body: 'hi', ...media }], ...more,
+    });
+
+    test('FC7 addMoment, MT3: a moment and its first piece are one write; an id is used once and the first stays', { todo: 'test first' }, async () => {
+      const db = await planned();
+      await db.addMoment(one('m1', 'a', 1));
+      await assert.rejects(db.addMoment(one('m1', 'b', 9)));
+      assert.deepEqual(await db.getMomentsByIds(['m1']), [one('m1', 'a', 1)]);
+      await assert.rejects(db.addMoment({ ...one('m2', 'a', 2), pieces: [] }), 'a moment is never kept without a piece');
+      assert.deepEqual(await db.getMomentsByIds(['m2']), []);
+    });
+
+    test('FC7 getMoments, momentsBetween, getMomentsByIds, momentsIn, MT4: moments with their pieces, as the capture reads were', { todo: 'test first' }, async () => {
+      const db = await planned();
+      await db.addMoment(one('c2', 'a', 2));
+      await db.addMoment(one('c1', 'b', 1, { lat: LAT - 0.01, lon: LON + 0.01 }));
+      await db.addMoment(one('loose', null, 3));
+      await db.addMoment(one('noplace', 'a', 4, { lat: null, lon: null }));
+      await db.addMoment(one('east', 'a', 5, { lon: LON + 1 }));
+      assert.deepEqual(ids(await db.getMoments('a')), ['c2', 'noplace', 'east']);
+      assert.deepEqual(ids(await db.momentsIn(box)), ['c1', 'c2', 'loose']);
+      assert.deepEqual(ids(await db.momentsBetween(2, 5)), ['c2', 'loose', 'noplace']);
+      assert.deepEqual(await db.momentsBetween(5, 2), []);
+      assert.deepEqual(ids(await db.getMomentsByIds(['loose', 'nope', 'c1'])), ['c1', 'loose']);
+      assert.deepEqual(await db.getMomentsByIds([]), []);
+      assert.deepEqual((await db.getMoments('a'))[0], one('c2', 'a', 2));
+    });
+
+    test('FC7 updateMoment, updatePiece, MT5: the place is the moment\'s; a piece\'s update never moves it, and patches merge', { todo: 'test first' }, async () => {
+      const db = await planned();
+      await db.addMoment(one('m1', null, 1, { lat: null, lon: null }));
+      await db.updateMoment('m1', { lat: LAT, lon: LON, segment_id: 's1' });
+      await db.updatePiece('m1', { caption: 'hello', caption_y: 0.5 });
+      await db.updatePiece('missing', { caption: 'x' });
+      await db.updateMoment('m1', { walk_id: 'a' });
+      const [m] = await db.getMoments('a');
+      assert.deepEqual([m.lat, m.lon, m.segment_id], [LAT, LON, 's1']);
+      assert.equal(m.pieces[0].caption, 'hello');
+      assert.equal(m.pieces[0].caption_y, 0.5);
+      const edit: MediaEdit = { v: 1, rotate: 90, crop: null, filter: 'mono', strokes: [], trim: null };
+      await db.updatePiece('m1', { edit });
+      assert.deepEqual((await db.getMomentsByIds(['m1']))[0].pieces[0].edit, edit);
+    });
+
+    test('FC7 deleteMoments, MT6: a moment goes with its pieces, reminder, find, memberships and links; others stay', { todo: 'test first' }, async () => {
+      const db = await planned();
+      await db.addMoment(one('m1', 'a', 1));
+      await db.addMoment(one('m2', 'a', 2));
+      await db.setRecall(recall('m1'));
+      await db.addFind(find('f1', 'a', 'm1'));
+      await db.deleteMoments(['m1']);
+      assert.deepEqual(ids(await db.getMoments('a')), ['m2']);
+      assert.deepEqual(await db.listRecalls(), []);
+      assert.deepEqual(await db.listFinds('a'), []);
+    });
+
     // ---- deleting (D1-D9)
 
     test('FC7 deleteWalk: removes the walk, its trace, pauses, stills, gap decisions, captures and their reminders, summary, visited rows, finds, marks and explored meta; other walks keep theirs', async () => {

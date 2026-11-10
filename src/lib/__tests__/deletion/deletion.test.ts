@@ -256,3 +256,13 @@ test('audit 10: a failure of an earlier delete is kept beside the newer one\'s U
   assert.deepEqual(p.state().pending, { kind: 'moment', what: 'photo' }, 'B still waits, naming its kind');
   assert.equal(p.state().error, "Couldn't delete. Try again.", 'and A\'s failure is still there to show');
 });
+
+test('MT6: a moment\'s files are every piece\'s media and small copy', { todo: 'test first' }, async () => {
+  type Piece = Pick<Capture, 'file_path' | 'thumb_path'>;
+  const { filesOfMoments } = (await import('../../deletion/core' + '')) as { filesOfMoments: (ms: { pieces: Piece[] }[]) => string[] };
+  const got = filesOfMoments([
+    { pieces: [{ file_path: 'walks/w/a.jpg', thumb_path: 'walks/w/a.thumb.jpg' }, { file_path: 'walks/w/b.m4a', thumb_path: null }] },
+    { pieces: [{ file_path: null, thumb_path: null }] },
+  ]);
+  assert.deepEqual(got, ['walks/w/a.jpg', 'walks/w/a.thumb.jpg', 'walks/w/b.m4a']);
+});

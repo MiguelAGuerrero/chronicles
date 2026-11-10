@@ -62,3 +62,20 @@ test('TD5 a walk that isn\'t kept fails with a message; names and extensions', a
   assert.equal(extensionOf('walks/w1/noext'), 'bin');
   assert.match(bundleName(walk), /^chronicle-2026-10-30-cafe-paseo\.zip$/);
 });
+
+test('MT8: the bundle lists moments with their pieces, each piece\'s media named by its own id', { todo: 'test first' }, async () => {
+  type Piece = { id: string; moment_id: string; t: number; kind: string; file_path: string | null; body: string | null };
+  type Planned = { addMoment(m: { id: string; walk_id: string; t: number; lat: number; lon: number; segment_id: null; pieces: Piece[] }): Promise<void> };
+  const p = fakePorts({ now: Date.UTC(2026, 10, 4, 12) });
+  await p.db.createWalk(walk);
+  const t = walk.started_at + 1000;
+  await (p.db as unknown as Planned).addMoment({
+    id: 'm1', walk_id: 'w1', t, lat: at(0, 0)[1], lon: at(0, 0)[0], segment_id: null,
+    pieces: [{ id: 'm1', moment_id: 'm1', t, kind: 'photo', file_path: 'walks/w1/m1.jpg', body: null }],
+  });
+  const io = memoryIO({ 'walks/w1/m1.jpg': new Uint8Array([7]) });
+  await createBundleWriter(p).writeWalkBundle('w1', io);
+  const json = JSON.parse(strFromU8(unzipSync(io.bytes())['walk.json']));
+  assert.equal(json.version, 2);
+  assert.deepEqual(json.moments.map((m: { id: string; pieces: { id: string; moment_id: string; media: string }[] }) => [m.id, m.pieces.map((x) => [x.id, x.moment_id, x.media])]), [['m1', [['m1', 'm1', 'media/m1.jpg']]]]);
+});

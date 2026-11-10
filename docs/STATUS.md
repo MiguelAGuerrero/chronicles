@@ -153,6 +153,7 @@ active on 2026-11-02 and 2026-11-03 and the session list of 2026-11-03.
 
 | Session | Branch | Doing |
 |---|---|---|
+| Moment stacks, round 0: the moment table (a moment holds its media; every reader moves to moments, no visible change; MT1-MT11, decision 0106) | `claude/wizardly-mayer-k9vmge` | started 2026-11-10: spec `specs/moment-table/spec.md`, plan reviewed by the owner; rounds 1-2 in `specs/moment-stacks/spec.md` (MS1-MS21) |
 | Places worth the stop (curiosities and the places archive, PW1-PW19, decision 0103) | `claude/places-archive` | built 2026-11-06: PW1-PW19 tested (1399 unit tests with main's; journeys curiosities, marks, atlas); audited (10 findings: 7 fixed, the rest deferred). Its tests came with the code; on Nov 9 the owner had the branch rebuilt from `claude/places-archive-decision` with the todos committed first, so the history's test-first order was made after the code was written. Not live until PW16 sets the address; native unverified |
 | Bug fixes (open since Oct 31) | unknown | unknown |
 | Memories in context and under your control (MC1-MC16: place, time of day and minutes in; Hidden, a switch, Forget; Lately newest first) | `claude/memories-context` | built 2026-11-05: unit tests, typecheck, lint and the `resurface` e2e pass; spec `specs/memories-context/spec.md`; native unverified; audited 2026-11-05 (24 findings: 23 fixed, one in part; 1 rejected) |

@@ -26,7 +26,7 @@ from `Capture` makes TypeScript list every reader that has to move, so nothing i
 
 ## Storage
 
-**SQLite, migration 23** (`MIGRATIONS[23]`, `src/lib/db/index.native.ts`; no earlier entry edited):
+**SQLite, migration 22** (`MIGRATIONS[22]`, the 23rd entry, `user_version` 23, `src/lib/db/index.native.ts`; no earlier entry edited):
 
 ```sql
 CREATE TABLE moment (id TEXT PRIMARY KEY, walk_id TEXT, t INTEGER NOT NULL, lat REAL, lon REAL, segment_id TEXT);
@@ -88,7 +88,7 @@ Thumbnails and media files are named by the piece's id, which is unchanged, so n
 
 | Id | Test | Where |
 |---|---|---|
-| MT1 | `MT1: a v17 IndexedDB upgrades to one-piece moments`; `MT1: SQLite migration 23 over seeded rows in node:sqlite`; `MT1: no earlier migration changed` (hash of entries 0-22) | `__tests__/storage/momentMigration.test.ts` |
+| MT1 | `MT1: a v17 IndexedDB upgrades to one-piece moments`; `MT1: SQLite migration 22 over seeded rows in node:sqlite`; `MT1: no earlier migration changed` (hash of entries 0-21) | `__tests__/storage/momentMigration.test.ts` |
 | MT2 | `MT2: threads, links, recall, finds and resurface prefs read the same after the upgrade` | same file |
 | MT3 | `FC7 addMoment, MT3: the moment and its first piece are one write` (+ a failing put leaves nothing) | `dbContract.ts` |
 | MT4 | `FC7 getMoments / momentsBetween / getMomentsByIds / momentsIn, MT4: …` (today's capture cases, carried over) | `dbContract.ts` |
@@ -99,10 +99,10 @@ Thumbnails and media files are named by the piece's id, which is unchanged, so n
 | MT9 | `check(…, 'MT9: …')` in a new journey **`upgrade`**: the browser is seeded with a version-17 database (captures, a thread, a reminder) before the app loads; Chronicle, a day, a pin, the viewer and the thread show them as before | `scripts/e2e/journeys/upgrade.js` |
 | MT10 | `MT10: moment.ts is core and tested` (the layer check), `face`/`foldRows` unit tests | `__tests__/moments/moment.test.ts` |
 
-**An extra, recommended:** run the native store (`index.native.ts`) under the same Db contract through a small
+**MT11 (the owner took it, Nov 10):** run the native store (`index.native.ts`) under the same Db contract through a small
 `node:sqlite` adapter that mimics the handful of `expo-sqlite` calls it uses (`getAllAsync`, `getFirstAsync`, `runAsync`,
 `execAsync`, `withTransactionAsync`). Today SQLite is "held to the same behavior by hand"; with this every migration and query of
-the native store would run in `npm test`. About a day's work. The owner can cut it.
+the native store would run in `npm test`. Test: `db.contract.test.ts` gains a third run, `dbContract('sqlite', …)`, over `__tests__/fakes/nodeSqlite.ts`.
 
 Before done: typecheck, lint, `npm test`, the journeys `check:affected` names, then the **full e2e flow** (the owner's call in 0106).
 
@@ -114,7 +114,7 @@ Before done: typecheck, lint, `npm test`, the journeys `check:affected` names, t
 
 ## Native that will not run on a device
 
-- Migration 23 on a phone with existing walks and moments (`docs/NATIVE_UNVERIFIED.md`: **Do:** update the app over a
+- Migration 22 on a phone with existing walks and moments (`docs/NATIVE_UNVERIFIED.md`: **Do:** update the app over a
   phone with walks, moments, a thread and a reminder. **Expect:** every one is there and opens as before (MT1, MT2)).
 - The joined reads on expo-sqlite (covered in Node only if the extra above is taken).
 

@@ -76,3 +76,18 @@ test('FC7 every Db method has a contract case', () => {
   const missing = methods.filter((m) => !titles.some((t) => new RegExp(`\\b${m}\\b`).test(t)));
   assert.deepEqual(missing, [], `add a contract case for these Db methods in src/lib/__tests__/dbContract.ts: ${missing.join(', ')}`);
 });
+
+// MT11 (decision 0106, the owner's call Nov 10): the native store under the same contract, over Node's built-in
+// SQLite. Test first: the store's factory and the adapter are reached by name.
+test('MT11: the native store opens over node:sqlite, from an empty database and from one at user_version 22', { todo: 'test first' }, async () => {
+  type Sql = { open: () => Promise<unknown>; userVersion: () => number; at22: () => Promise<unknown> };
+  const { nodeSqlite } = (await import('../fakes/nodeSqlite' + '')) as { nodeSqlite: () => Sql };
+  const { makeSqliteDb } = (await import('../../db/sqliteStore' + '')) as { makeSqliteDb: (open: () => Promise<unknown>) => Db };
+  const empty = nodeSqlite();
+  assert.deepEqual(await makeSqliteDb(empty.open).listWalks(), []);
+  assert.equal(empty.userVersion(), 23);
+  const old = nodeSqlite();
+  await old.at22();
+  assert.deepEqual(await makeSqliteDb(old.open).listWalks(), []);
+  assert.equal(old.userVersion(), 23);
+});
