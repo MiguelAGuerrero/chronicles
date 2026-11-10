@@ -318,6 +318,11 @@ async function run(h) {
   await pg.waitForTimeout(800);
   db = await stored(pg);
   check(db.threads.length === 0 && db.members.length === 0 && db.captures.length === kept, 'UC6, ui-conformance audit 6: leaving the screen stores the removal: the thread ends and every moment stays kept');
+
+  // Moment references (RF1-RF8, decision 0125): a note mentions another moment with @. Tests first.
+  check.todo(false, 'RF1: typing @ in a note opens the moment picker, and a pick puts a reference at that point');
+  check.todo(false, 'RF4: the viewer draws a reference as a card of its moment, with its kind, date, place and walk, and a tap opens it');
+  check.todo(false, 'RF7: the referenced moment says Mentioned in a note, and More opens the note');
   await c.close();
 }
 
