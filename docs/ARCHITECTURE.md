@@ -316,7 +316,7 @@ Session, screens and small helpers
   perfCount.ts               opt-in counters when window.__perf is set
   id.ts                      newId
   types.ts                   the data model (below)
-  db/                        the Db contract (types.ts), SQLite (index.native.ts), IndexedDB (index.web.ts), row mappers (placeRow, exploreRow), DERIVED_STORES / KEPT_STORES (stores.ts)
+  db/                        the Db contract (types.ts), SQLite (sqliteStore.ts, the factory; index.native.ts, the app's instance; migrations.ts), IndexedDB (index.web.ts), row mappers (placeRow, exploreRow), DERIVED_STORES / KEPT_STORES (stores.ts)
 Layers (functional core, imperative shell)
   ports/                     Ports (types.ts: db, recorder, notifier, clock, newId) and the real instance (index.ts), the composition root a view hands a shell
   store.ts, useStore.ts      a shell's state (createStore) and a view's slice of it (useSyncExternalStore)
@@ -381,8 +381,9 @@ Layers (functional core, imperative shell)
   Overture release whose places no longer decode is passed over
   (`overturePlacesSchemaOk`).
 - **Storage.** SQLite: all writes go through the single queue in
-  `db/index.native.ts` with `withExclusiveTransactionAsync`; schema changes go
-  in `MIGRATIONS`, tracked with `PRAGMA user_version`. IndexedDB: bump
+  `db/sqliteStore.ts` (the factory; `db/index.native.ts` builds the app's
+  instance) with `withExclusiveTransactionAsync`; schema changes go in
+  `MIGRATIONS` (`db/migrations.ts`), tracked with `PRAGMA user_version`. IndexedDB: bump
   `VERSION` and add an `oldVersion < N` step in `migrate()`. Never edit an
   existing migration. `DERIVED_STORES` (`street_segment`, `place`,
   `explore_read`) are cleared by `purgeDerived`; `KEPT_STORES` (`offered`,
@@ -468,11 +469,21 @@ Truth (`lib/types.ts`):
 
 - `Walk`: id, started_at, ended_at, title, epilogue, open, area, snapped_build.
 - `TracePoint`: walk_id, t, lat, lon, accuracy_m, speed, course. Raw, unfiltered.
-- `Capture`: id, walk_id (null for a loose moment), t, lat/lon (null until
-  placed), kind (photo | video | voice | text), file_path, body, segment_id,
-  caption, caption_y, thumb_path, edit (a photo's or video's edits as data:
-  rotate, crop, filter, lines, trim; SQLite migration 17 stores it as JSON,
-  IndexedDB keeps the object; `parseEdit` reads both, decision 0090).
+- `Moment` (decision 0106): id, walk_id (null for a loose moment), t, lat/lon
+  (null until placed: its one fix, or the trace at stop, `placeAt`), segment_id,
+  and `pieces`, its media in capture order, never empty. Every moment kept
+  before the moment table has one piece under the moment's own id, so threads,
+  replies, reminders and finds point at the same ids as before.
+- `Capture`, a moment's piece: id, moment_id, t (its own capture time), kind
+  (photo | video | voice | text), file_path, body, caption, caption_y,
+  thumb_path, edit (a photo's or video's edits as data: rotate, crop, filter,
+  lines, trim; SQLite migration 17 stores it as JSON, IndexedDB keeps the
+  object; `parseEdit` reads both, decision 0090). Media files and small copies
+  are named by the piece's id.
+- Screens read `Faced` moments (`lib/moment.ts`): the moment's own fields with
+  its face's media (`face`: the first photo or video, else the first piece),
+  the face's id as `piece_id` for media writes (`db.updatePiece`), and every
+  piece. A place write is the moment's (`db.updateMoment`).
 - `Pause`, `Still`: walk_id, started_at, ended_at.
 - `GapDecision` (`gap_fill`, kept): a stretch kept or dismissed, with its line, so a map update never moves it.
 
@@ -480,7 +491,7 @@ Owner threads (`threads/types.ts`, truth, never derived, decision 0104): `Thread
 (`thread`: id, name nullable, created_at), `Member` (`thread_member`: thread_id,
 moment_id, added_at) and `Link` (`moment_link`: from_id answers to_id). A moment
 carries nothing of them. `applyThreads` dissolves a thread left with fewer than two
-members in the same transaction; `deleteCaptures` and `deleteWalk` take the
+members in the same transaction; `deleteMoments` and `deleteWalk` take the
 memberships and links of their moments. SQLite migration 22, IndexedDB 17.
 
 Cache (`lib/types.ts`, `areas/types.ts`): `StreetSegment` (id, name,
@@ -505,8 +516,12 @@ Meta is a key/value table (`getMeta` / `setMeta`): `tile_build`, `tile_url`,
 `explore_hidden`, `explore_range`, `explore_haptic`, `notify_off`,
 `recall_open`, `day_watched:<key>`.
 
-Migrations: SQLite has 14 (`PRAGMA user_version`), IndexedDB is at `VERSION`
-12. SQLite 14 and IndexedDB 12 add `gap_fill`. The most recent: SQLite 10 `ride_m` on summaries; 11 nullable
+Migrations: SQLite has 23 (`db/migrations.ts`, `PRAGMA user_version`), IndexedDB is at `VERSION`
+18. SQLite 22 (the 23rd entry) and IndexedDB 18 are the moment table (MT1): a
+`moment` table beside `capture` with `capture.moment_id` (SQLite; the capture
+table's old walk_id, lat, lon and segment_id are left unread), and on the web a
+`moment` store whose records hold their pieces (indexes `walk_id`, `t`, `lat`,
+multiEntry `piece_ids`), the `capture` store folded into it and removed. Older: SQLite 14 and IndexedDB 12 add `gap_fill`. The most recent: SQLite 10 `ride_m` on summaries; 11 nullable
 `Capture.walk_id` and `Find.walk_id` (tables rebuilt) plus `capture_t`; 12
 `thumb_path`; 13 the `still` table. IndexedDB 9 the capture `lat` index; 10
 the capture `t` index; 11 stills. `thumb_path` needed no IndexedDB bump: it

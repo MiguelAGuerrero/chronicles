@@ -13,7 +13,7 @@ The concept doc's first milestone, a pocketed walk whose trace survives the scre
 
 **Recording a result.** A pass: tick the box, `- [x]`, and end the line with the date and the device, `— passed Nov 9, iPhone 13 (iOS 18.1)`. A failure stays open, `- [ ]`, and ends with what happened, `— failed Nov 9, Pixel 7 (Android 15): <what happened>`. Fix a failure like any other issue (`/fix`); the item stays open until it passes. The ids in parentheses at the end of an item are the criteria it accepts.
 
-## Migrations (SQLite, `db/index.native.ts` `MIGRATIONS`, tracked with `PRAGMA user_version`)
+## Migrations (SQLite, `db/migrations.ts` `MIGRATIONS`, tracked with `PRAGMA user_version`)
 
 The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each SQLite migration below has run only in code review. Migrations 1-4 (v0: the base tables, the versioned cache with `walk_summary` and `meta`, videos, pauses and captions) never ran on a device either. Each IndexedDB version named is the web's counterpart, for reference.
 
@@ -206,8 +206,9 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 
 ## Functional core (slice 1, FC1-FC10)
 
+- [ ] **Do:** update the app over a phone with walks, loose moments, a thread, a reply and a reminder kept (a build before migration 22), then open Chronicle, a thread, a day, a walk's replay and a moment's viewer, and make a new photo and note. **Expect:** the app opens with no error; every walk, moment, thread, reply and reminder is there and opens as before, each moment once with its place; the new photo and note are kept and show at once (migration 22: the `moment` table and `capture.moment_id`; `db/sqliteStore.ts` reads one joined statement per read; IndexedDB 18). (MT1, MT2, MT9)
 - [ ] **Do:** on a fresh install, open Navigate. **Expect:** `lib/ports/index.ts` builds the real ports from the native db, recorder and notifier at module load; its first user is the ready walk screen's shell (`lib/ready`, Navigate, ready), so a phone's first run of it is the ready screen opening with your dot and choices, with no error.
-- [ ] **Do:** run the whole suite on one phone and check the items that read and write each `Db` method. **Expect:** the SQLite adapter (`db/index.native.ts`) answers as the Db contract (`src/lib/__tests__/dbContract.ts`) says: the suite runs only over the fake and IndexedDB in Node, so SQLite's match to it is by reading, and this suite's passes are its first evidence.
+- [ ] **Do:** run the whole suite on one phone and check the items that read and write each `Db` method. **Expect:** the SQLite store (`db/sqliteStore.ts`) answers as the Db contract (`src/lib/__tests__/dbContract.ts`) says: since MT11 the contract runs it over Node's built-in SQLite, so what remains for a phone is expo-sqlite itself (its bindings, WAL, the exclusive transactions under the background task). (MT11)
 
 ## Replay rhythm (RR1-RR22)
 

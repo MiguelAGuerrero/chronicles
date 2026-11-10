@@ -199,13 +199,14 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - The two core violations in `layers.baseline.json`: `format.ts` and `scaleBar.ts` read the global units as a default argument; pass the units in
 - The device's timezone and locale are read in core (`getHours`, `toLocaleDateString` in `days.ts`, `walkTitle.ts`, `months.ts`, `explore.ts`): pass them in (functional-core audit 10)
 - `components/map/types.ts` mixes pure helpers that tests import (`splitTrace`, `planViews`, `pressRadiusM`) with a hook, outside any layer check: move the helpers to a core module in `src/lib` (functional-core audit 13)
+- **The SQLite capture table's dead columns** (moment table, decision 0106): `capture.walk_id`, `lat`, `lon` and `segment_id` stay after migration 22, unread and unwritten; dropping them means rebuilding the table, a second risk for no behaviour. A later migration may drop them.
 - The Db contract found the web and native stores disagreeing; the fake follows the web store and the first two are pinned as "(web store as it is)" in `dbContract.ts`. Each needs the owner's call on which side is right:
-  - `deleteCaptures` deletes finds through the captures' walks on web, by capture id on native: a find filed under another walk survives on web
+  - `deleteMoments` deletes finds through the moments' walks on web, by moment id on native: a find filed under another walk survives on web (both pinned in the contract since MT11)
   - `getSegmentsIn` on web reads tiles around each piece's centre (bounds widened 250 m), so a piece much longer than 200 m that only grazes the bounds is missed; native compares bounding boxes
   - `startPause` / `startStill` at an earlier pause's start time replaces and reopens it on web; native's `INSERT` would fail on the primary key
-  - `deleteCaptures` with ids that don't exist: web clears reminders only for captures found, native for every id passed
+  - `deleteMoments` with ids that don't exist: web clears reminders only for captures found, native for every id passed
   - `addFind` on web swallows every transaction error, not just the duplicate key
-- `deleteWalk` / `deleteCaptures` all-or-nothing (D6) has no contract case: nothing shared can make IndexedDB fail halfway
+- `deleteWalk` / `deleteMoments` all-or-nothing (D6) has no contract case: nothing shared can make IndexedDB fail halfway
 
 ## Replay rhythm (RR1-RR22, decisions 0085, 0086)
 

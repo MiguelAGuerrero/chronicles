@@ -110,7 +110,15 @@ npx tsx --test --test-name-pattern "rides audit" src/lib/__tests__/rides/rides.t
   `memoryDb()` and the IndexedDB store (`db/index.web.ts` over
   fake-indexeddb, a fresh module per case, since it caches its connection)
   to the same cases. Every `Db` method needs a case (`FC7 every Db method has
-  a contract case`). The SQLite adapter can't run in Node.
+  a contract case`). Since the moment table (MT11, decision 0106) the native
+  store runs the same cases: `db/sqliteStore.ts` over Node's built-in SQLite
+  through `__tests__/fakes/nodeSqlite.ts`, a small stand-in for the
+  `expo-sqlite` calls it makes, one in-memory database per case. A case marked
+  "(web store as it is)" pins each store's own answer (`store` is 'sqlite').
+  `storage/momentMigration.test.ts` runs every SQLite migration in Node and the
+  IndexedDB upgrade from a version-17 database built by the frozen schema
+  `scripts/e2e/fixtures/web17.js`; the `upgrade` journey does the same in the
+  browser.
 - **Fixtures** live in `src/lib/__tests__/`:
   - `mvtFixture.ts`: a test-only vector-tile encoder, since the tile host is
     blocked from cloud sessions. No test imports it now (its user went with

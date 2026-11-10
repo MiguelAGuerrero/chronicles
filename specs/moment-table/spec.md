@@ -45,4 +45,10 @@ Verdict: no surface (storage and readers move to moments; every screen shows wha
 
 ## Record
 
-Not started.
+Built 2026-11-10 on `claude/wizardly-mayer-k9vmge` (tests first `135809f`, code `43d02cc`, journeys `cc84ad7`).
+
+- MT1-MT8, MT10, MT11: unit tests in `src/lib/__tests__/storage/` (`momentMigration`, `momentPerf`, `db.contract`), `moments/moment.test.ts`, `captures/bundle.test.ts`, `deletion/deletion.test.ts`; the Db contract runs over the fake, IndexedDB and SQLite (node:sqlite). 5,000 moments read from IndexedDB in about 33 ms against about 25 ms for a flat store (MT7).
+- MT9: the `upgrade` journey (a version-17 database seeded before the app loads) and the full e2e flow: RESULT_PENDING.
+- Every reader moved to moments as `Faced` rows (the moment's place and time with its face's media); expected values of existing unit tests unchanged apart from the shape of a moment.
+- Deferred: dropping the SQLite capture table's dead columns (`docs/DEFERRED.md`).
+- Native: migration 22 and expo-sqlite itself have never run on a phone (`docs/NATIVE_UNVERIFIED.md`, MT1, MT2, MT9, MT11).
