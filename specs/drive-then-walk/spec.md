@@ -70,4 +70,12 @@ See `plan.md`.
 
 ## Record
 
-Plan approved Nov 10; building.
+Built Nov 10, test-first by history (`4ca031f` the todos, `16ea035` the code). Every criterion has a test:
+
+- Unit (`src/lib/__tests__/navigation/wayBack.test.ts`, `wayBackStore.test.ts`): DW1, DW2, DW3, DW4, DW5, DW6, DW7, DW8, DW9, DW10, DW14.
+- E2E (`E2E_ONLY=drive`, 19 checks, green on the web build): DW1-DW4, DW6-DW8, DW11-DW14.
+- `check:test-first`: DW13's todo check at `4ca031f` put its id on the line after `check.todo(`, so the line-based check can't see it was first; the check is one line now.
+- The steward's read (8 findings): 7 accepted into criteria, S7 answered by the owner (DW14).
+- Deferred: Explore's long press, Chronicle's Walk here and the walk planner still start at once; Open in Maps on the card (0058); undoing a chosen spot except by choosing another or Stop.
+- Native: nothing native is new; the card, the meta write and the labels have never run on a device (`docs/NATIVE_UNVERIFIED.md`, "Drive there, walk back").
+- Not audited (decision 0074: on the owner's request).

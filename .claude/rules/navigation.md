@@ -121,6 +121,18 @@ Routing inside a walk (`lib/nav`): walk me back, Go here, the route sources, rul
   - The long press on the walk map opens a small sheet: Go here, plus "What
     happened here (N)" when captures are near.
   - Walk me back is the top edge button.
+- **Drive there, walk back** (DW1-DW14, decision 0109, the owner, Nov 10):
+  - Walk me back's target is `wayBackTarget` (`nav/wayBack.ts`, core): the spot chosen with "Walk back here" (meta
+    `way_back`, `{ walk_id, at }`, cleared by `stopWalk`), else where the last ride that has ended ended (`landingOf`, the
+    first walked fix after it, published by `useLiveTrace` as `landing`; a ride under way is skipped), else the start.
+    Never store the landing: it is read from the trace. It routes as `kind: 'start'` (trace and streets, shortest).
+  - Its label is spoken only (the icon stays): "Walk me back to the start" / "to where the ride ended" / "to the spot you
+    chose"; the bar names it "Start", "Where the ride ended", "The spot you chose". "Got off" named a bus (the steward).
+  - The live walk's map writes `data-marks` (the rings drawn) under `window.__perf`; the way-back point is never one
+    unless you are led there.
+  - **E2E** (`E2E_ONLY=drive`): a drive is 45 s at 12 m/s; walking off must be under 3 m/s (`RIDE_RULES.edge`), or the
+    ride joins across it as slow traffic and "On a ride" stays. A town's Explore tile opens its page; its card is
+    behind `atlas-town-head`.
   - A pin's viewer has Go here.
 - **Scenic routes** (SR1-SR15, decision 0095, the owner's calls, Nov 4): Go here offers Direct and one
   route per leaning switched on (green, sights, streets with life), side by side, at most 30% longer.

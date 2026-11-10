@@ -156,8 +156,8 @@ async function run(h) {
         return document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)?.closest('[data-testid]')?.getAttribute('data-testid') === id;
       }), ids);
       const same = before.every((b, i) => b && during[i] && Math.abs(b.x - during[i].x) < 1 && Math.abs(b.y - during[i].y) < 1);
-      check((await pg.locator('[data-testid=spot-way-back]').count()) === 1 && free && same,
-        `DW13: with Walk back here on the card at 320 px, the camera, mic and note stay put and in reach (free ${free}, same ${same})`);
+      const offered = (await pg.locator('[data-testid=spot-way-back]').count()) === 1;
+      check(offered && free && same, `DW13: with Walk back here on the card at 320 px, the camera, mic and note stay put and in reach (free ${free}, same ${same})`);
       await pg.click('[data-testid=spot-way-back]').catch(() => {});
       await pg.waitForTimeout(800);
       const said = await pg.locator('body').innerText();
