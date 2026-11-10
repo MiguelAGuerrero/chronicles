@@ -1,8 +1,8 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ATLAS_CODE, type AtlasArea, type Listed } from '../../atlas/atlas';
-import { busyNamesNear, busyNamesOn, busyRadiusM, cardFooter, firstSelection, layerCentre, nearWords, offsetOf, rowOf, rowStep, settledIndex, settleStep, stepKey, townNote } from '../../atlas/carousel';
+import { ATLAS_CODE, ATLAS_RULES, type AtlasArea, type Listed, type NearRead } from '../../atlas/atlas';
+import { busyNamesNear, busyNamesOn, busyRadiusM, cardFooter, firstSelection, layerCentre, nearWords, townsListedAfter, offsetOf, rowOf, rowStep, settledIndex, settleStep, stepKey, townNote } from '../../atlas/carousel';
 import { readFileSync } from 'node:fs';
 import type { LandingView } from '../../landing/view';
 import type { LngLat } from '../../types';
@@ -35,10 +35,21 @@ test('fix explore-town-scope audit 1: a row of neighborhoods is never titled or 
   assert.deepEqual(nearWords([]), { subtitle: 'Areas around you', label: 'Areas near you' }, 'nothing listed claims no towns');
 });
 
+test('fix explore-town-scope audit 9, 10: the towns count as listed once a town read of this build covers you, and stay so until the build changes', () => {
+  const read = (at: LngLat, build = 'b1', code = ATLAS_CODE): NearRead => ({ at, build, code, radiusM: ATLAS_RULES.nearTownM });
+  assert.equal(townsListedAfter(false, { reads: [], at: O, build: 'b1' }), false, 'no town read yet: not listed (audit 10)');
+  assert.equal(townsListedAfter(false, { reads: [read(O, 'b0')], at: O, build: 'b1' }), false, 'a read of another build does not count (audit 10)');
+  assert.equal(townsListedAfter(false, { reads: [read(O, 'b1', 'old')], at: O, build: 'b1' }), false, 'a read of other rules does not count (audit 10)');
+  assert.equal(townsListedAfter(false, { reads: [read(O)], at: O, build: 'b1' }), true, 'a read covering you: listed');
+  assert.equal(townsListedAfter(true, { reads: [read(O)], at: east(5000), build: 'b1' }), true, 'moved on, listing again: still listed, so a row of neighborhoods stays (audit 9)');
+  assert.equal(townsListedAfter(false, { reads: [read(O)], at: O, build: null }), false, 'no build yet: unchanged');
+});
+
 test('fix explore-town-scope audit 8: the layers read around you while your own town is selected, else around the selected area', () => {
   const me: LngLat = east(300);
   const home = listed('Providence', 2900, 'town', true);
   assert.deepEqual(layerCentre(home, me), me, 'your town selected on arrival: around you, not its label point kilometres off');
+  assert.deepEqual(layerCentre(home, me, false), home.area.at, 'on your town\'s own page: around the town (audit 11)');
   assert.deepEqual(layerCentre(listed('Cranston', 5000, 'town'), me), east(5000), 'another town: around it, as before');
   assert.deepEqual(layerCentre(listed('Fox Point', 100, 'neighborhood', true), me), east(100), 'a neighborhood: around it');
   assert.deepEqual(layerCentre(home, null), home.area.at, 'no position: the town');

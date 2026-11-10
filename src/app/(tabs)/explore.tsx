@@ -206,9 +206,9 @@ export default function Explore() {
     return allTowns.find((x) => x.area.key === town.key) ?? { area: town, distanceM: 0, here: false };
   }, [town, allTowns]);
   // Near you the row is the towns, yours leading and so selected on arrival; a town's page is the town, then its neighborhoods.
-  // The neighborhoods stand in only once the towns are listed and none is named (fix explore-town-scope audit 1).
+  // The neighborhoods stand in only once a town read has covered you and named none (fix explore-town-scope audits 1, 9, 10).
   const listing = fresh.status === 'listing' || (fresh.status === 'idle' && !fresh.build);
-  const shown = useMemo(() => rowOf({ ownTown, neighborhoods, towns: allTowns, townsListed: !listing }), [ownTown, neighborhoods, allTowns, listing]);
+  const shown = useMemo(() => rowOf({ ownTown, neighborhoods, towns: allTowns, townsListed: fresh.townsListed }), [ownTown, neighborhoods, allTowns, fresh.townsListed]);
   const words = useMemo(() => nearWords(shown), [shown]);
   const order = useMemo(() => shown.map((l) => l.area.key), [shown]);
   const selected = useMemo(() => firstSelection(order, picked), [order, picked]);
@@ -262,15 +262,15 @@ export default function Explore() {
   const townBox = useMemo(() => townFrame(drawn, tintedId), [drawn, tintedId]);
   // Map layers (ML3-ML9): what is drawn over the base map, one setting for every map, around the selected area else around you.
   const layers = useLayers();
-  const layersAt = layerCentre(sel, from);
+  const layersAt = layerCentre(sel, from, !town);
   const wk = useWalkability(layersAt, !!layers.on.walkability);
   const busy = useBusyLayer(layersAt, !!layers.on.busy);
   // The Busy layer's lines draw at any zoom; its street names only near the selected area and zoomed in (EC7).
   // On or off by one boolean, never the zoom itself, so a camera move does not send the map a new view (audit 3); a
   // neighborhood's names reach its ring, a town's its own reach (audit 16).
   const namesOn = busyNamesOn(view?.zoom ?? 0, BUSY_NAMES_ZOOM);
-  // Your own town's names are kept around you, where its layers read (fix explore-town-scope audit 8).
-  const namesAt = sel ? layersAt : null;
+  // The names stay near the selected area itself, your town's too, so they never reach into the next town (audit 12).
+  const namesAt = sel?.area.at ?? null;
   const selLevel = sel?.area.level ?? 'neighborhood';
   const selReach = sel ? sel.area.reachM : 0;
   const namesM = busyRadiusM(selLevel, ATLAS_RULES.ringM, Math.min(selReach, ATLAS_RULES.townNeighborhoodsM));

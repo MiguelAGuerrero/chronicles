@@ -11,6 +11,7 @@ import { loadSettings, onSettings } from '../explore/settings';
 import type { LngLat } from '../types';
 import { ATLAS_RULES, atlasStep, nearList, rowCurrent, townNeighborhoods, townReachM, type AtlasArea, type Listed, type NearTarget } from './atlas';
 import { nearReads, readNear, readRing } from './read';
+import { townsListedAfter } from './carousel';
 import { placesArchive } from '../discovery/archive';
 
 /** Another read is running (the walk's, or the other level's): look again shortly. */
@@ -28,6 +29,8 @@ export interface AtlasData {
   /** The town you are in, when known. */
   home: Listed | null;
   status: AtlasStatus;
+  /** A town read of this build has covered you (fix explore-town-scope audits 9, 10): only then may neighborhoods stand in for towns. */
+  townsListed: boolean;
   areas: Area[];
   walkAreas: WalkArea[];
   finds: Find[];
@@ -53,6 +56,8 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
   const [build, setBuild] = useState<string | null>(null);
   const [status, setStatus] = useState<AtlasStatus>('idle');
   const [tick, setTick] = useState(0);
+  // Kept with the build it was judged under, so a new build starts again at false (`townsListedAfter`).
+  const [townsKnown, setTownsKnown] = useState<{ build: string | null; listed: boolean }>({ build: null, listed: false });
   const [extra, setExtra] = useState<Pick<AtlasData, 'areas' | 'walkAreas' | 'finds' | 'walked'>>(() => ({ areas: [], walkAreas: [], finds: [], walked: new Set() }));
   const [hidden, setHidden] = useState<Set<Kind>>(() => new Set());
   // Town outlines kept around you (TO10): which town you are in, at once across a border.
@@ -160,6 +165,7 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
       const release = await ensureOvertureRelease().catch(() => null);
       const [nb, tw] = await Promise.all([nearReads('neighborhood'), nearReads('town')]);
       if (stop) return;
+      setTownsKnown((k) => ({ build, listed: townsListedAfter(k.build === build ? k.listed : false, { reads: tw, at: from, build }) }));
       const nears: NearTarget[] = [
         town
           ? { level: 'neighborhood', at: town.at, radiusM: townReachM(town), reads: nb }
@@ -209,7 +215,7 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
   }, [focused, from, town, build, tick]);
 
   return useMemo(
-    () => ({ build, rows, neighborhoods, towns, home, status, hidden, outlines: borders, ...extra }),
-    [build, rows, neighborhoods, towns, home, status, hidden, borders, extra],
+    () => ({ build, rows, neighborhoods, towns, home, status, townsListed: townsKnown.build === build && townsKnown.listed, hidden, outlines: borders, ...extra }),
+    [build, rows, neighborhoods, towns, home, status, townsKnown, hidden, borders, extra],
   );
 }
