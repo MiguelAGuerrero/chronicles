@@ -98,5 +98,7 @@ Each fix has a regression test named `capture-from-chronicle audit N`, run faili
 12. HC9 and HC10's unit tests reached `captureTarget`, which no view called: accept, `MemoriesBand` decides with it now. Covered by typecheck and the journey's HC9, HC10 checks.
 13. Lost toasts: "Too short, not kept" under a viewer opened mid-memo, and "saved to your walk" when the walk stops and the band remounts: defer (`docs/DEFERRED.md`).
 
+**After the fixes:** typecheck, lint and `npm test` (1458) pass; the 21 journeys `check:affected` named pass on their latest run. `walk`'s video pin (its own comment calls it timing-sensitive), `edit`'s video step and `chronicle`'s star settle each failed once in a sequential run and passed on the next; `launch` and `edit` now take the recording bar's camera from Explore, since Memories hides it (0106).
+
 For the owner, from the steward (silent): the note editor's placeholder, "What's worth remembering?", now one tap from launch, asks the walker to judge worth (VISION.md: "every moment captured is worth remembering"); keep it or say something neutral? And with a walk open, only the toast and the screen reader say a capture goes to the walk; the recording bar beneath is the visible cue.
 
