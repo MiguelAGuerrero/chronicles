@@ -82,7 +82,7 @@ No screen changes, so no e2e journey.
 
 None new: SB10 is core logic used by the same shells on every platform.
 
-## The owner's choices (Nov 9, decision 0110)
+## The owner's choices (Nov 9, decision 0113)
 
 1. The daily assemble checks the app's `main` for changed edits or class lists; no token.
 2. Kept outputs live on a `sources` prerelease in `chronicles-data`.

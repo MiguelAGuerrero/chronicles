@@ -11,7 +11,7 @@ The places archive (Places worth the stop, decision 0103) is built by one weekly
 - **A staged build with tile change lists**: each source fetched by its own job and kept; a short assemble step merges what is kept with the owner's edits; phones rebuild only the areas whose tiles changed.
 - **Its own slice, before Places out of town**, so the new sources (OpenStreetMap, GeoNames, Canada) arrive as separate staged fetches.
 - **Not adopted**: a workflow engine (Dagster), binary diffs of the archive file, Wikidata's dumps (the research's reasons).
-- **Plan choices** (decision 0110): the daily assemble checks the app's `main` for changed edits or class lists; kept outputs live on a `sources` prerelease in `chronicles-data`; Wikidata is asked for changes first, not re-swept; the first archive comes from the new pipeline's first run, which sweeps every cell.
+- **Plan choices** (decision 0113): the daily assemble checks the app's `main` for changed edits or class lists; kept outputs live on a `sources` prerelease in `chronicles-data`; Wikidata is asked for changes first, not re-swept; the first archive comes from the new pipeline's first run, which sweeps every cell.
 
 ## Vision
 

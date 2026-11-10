@@ -1,4 +1,4 @@
-# 0109. Places out of town: the plan's choices
+# 0112. Places out of town: the plan's choices
 
 Date: 2026-11-09 · Status: accepted · Area: explore, discovery, atlas
 
