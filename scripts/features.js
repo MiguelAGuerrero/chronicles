@@ -138,7 +138,7 @@ const FEATURES = [
       'src/components/atlas/**',
       'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx',
     ],
-    journeys: ['marks', 'atlas', 'grading', 'snap', 'curiosities'],
+    journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities'],
     specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline'],
   },
   {
