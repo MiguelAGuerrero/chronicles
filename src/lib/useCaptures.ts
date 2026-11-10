@@ -392,8 +392,11 @@ export function useCaptures(
       withBusy(async () => {
         if (!enabled || voiceOn.current) return false;
         try {
-          const perm = await requestRecordingPermissionsAsync();
-          if (!perm.granted) {
+          // On the web expo-audio's permission request folds every getUserMedia failure into "denied" (a microphone
+          // another app or tab holds reads as refused although the site is allowed) and opens the microphone a second
+          // time; prepareToRecordAsync below asks too and throws the browser's own error, which the catch tells apart.
+          const perm = Platform.OS === 'web' ? null : await requestRecordingPermissionsAsync();
+          if (perm && !perm.granted) {
             // The request above already showed the system prompt if it could; a refusal now is only fixable in Settings.
             // (`canAskAgain` is not trusted: iOS can report true after a denial, which left no way to recover.)
             setError({ message: accessOff('Microphone'), openSettings: true });
@@ -415,7 +418,15 @@ export function useCaptures(
           return true;
         } catch (e) {
           await resetAudioMode();
-          setError({ message: e instanceof Error ? e.message : String(e) });
+          const name = e instanceof Error ? e.name : '';
+          if (Platform.OS === 'web' && (name === 'NotAllowedError' || name === 'SecurityError')) {
+            setError({ message: accessOff('Microphone'), openSettings: true });
+          } else if (Platform.OS === 'web' && name) {
+            // Allowed, but the browser could not open it: say what it said (busy, none found) rather than "off".
+            setError({ message: `The microphone could not start (${name}${e instanceof Error && e.message ? `: ${e.message}` : ''}).` });
+          } else {
+            setError({ message: e instanceof Error ? e.message : String(e) });
+          }
           return false;
         }
       }),
