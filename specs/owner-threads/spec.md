@@ -85,7 +85,7 @@ Built on `claude/owner-threads-decision`; not audited (decision 0074). Tests fir
 - **Gate steward (Nov 6):** 1 breach, 4 drift, 1 tone, all accepted (see `plan.md`).
 - **Choices made in the build, for the owner to confirm:**
   - The heading is **Threads** ("Moments you connected, the latest first"), beside the Chronicle's own Threads and told apart by a mark (decision 0105, OT25; it was "Your threads", then "Threads you made"); the Chronicle's rail keeps **Threads** ("Things you keep coming back to"). Two near names, as the plan warned.
-  - **Respond** sits in a floating row under the viewer's top buttons, not at the bottom, because the viewer's own strip and card fill the bottom.
+  - **Respond** sat in a floating row under the viewer's top buttons, not at the bottom, because the viewer's own strip and card fill the bottom. Changed by the owner (fix respond-bottom, Nov 10): the row stands just above the moment's strip or card, with no "Respond" label; its place says what it is, and a reply note being written rises with the keyboard.
   - **Keep as my thread** keeps no name (audit 13): the Chronicle's is only a placeholder in the name field.
   - A reply made from a viewer opened during a walk belongs to that walk (audit 11).
 - **Native:** every path is unverified on a device (`docs/NATIVE_UNVERIFIED.md`, "Owner threads").

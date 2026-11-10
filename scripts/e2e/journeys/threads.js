@@ -102,6 +102,13 @@ async function run(h) {
   const faceKinds = await Promise.all(['respond-photo', 'respond-voice', 'respond-note'].map((id) => has(`[data-testid=${id}]`)));
   check(faceKinds.every(Boolean) && !(await has('[data-testid=viewer-menu]')), 'OT1: Respond shows photo, voice and note on the viewer\'s face, with no menu open');
   check((await has('[data-testid=viewer-edit-note]')) === false, 'OT22: the viewer\'s own menu items wait in More, as before');
+  // fix respond-bottom (the owner, Nov 10): no "Respond" label; the row stands just above the moment it answers.
+  await pg.waitForTimeout(300);
+  const bar = await pg.locator('[data-testid=respond-bar]').boundingBox();
+  const answered = await pg.locator('[data-testid=capture-viewer] >> text=looked strong at the pier').first().boundingBox();
+  const above = bar && answered ? answered.y - (bar.y + bar.height) : -1;
+  check(above >= 0 && above < 60 && !(await has('[data-testid=capture-viewer] >> text="Respond"')), `fix respond-bottom: Respond stands just above the moment, with no label (${Math.round(above)} px above it)`);
+  await shot(pg, '70b-threads-respond');
 
   // OT2, OT4: a note reply is kept as a moment of its own, linked to what it answers, in its thread.
   await pg.click('[data-testid=respond-note]');
