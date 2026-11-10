@@ -220,7 +220,8 @@ export function CaptureRow(props: {
             </Pressable>
           </View>
         )}
-        {!recording && <SpaceLine />}
+        {/* Only on the screen in front: Memories' band stays mounted under Navigate, ready (decision 0112). */}
+        {!recording && props.focused !== false && <SpaceLine />}
       </View>
       <CaptureStack
         layout={props.layout}
