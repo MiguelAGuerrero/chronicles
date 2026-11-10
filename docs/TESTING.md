@@ -110,7 +110,15 @@ npx tsx --test --test-name-pattern "rides audit" src/lib/__tests__/rides/rides.t
   `memoryDb()` and the IndexedDB store (`db/index.web.ts` over
   fake-indexeddb, a fresh module per case, since it caches its connection)
   to the same cases. Every `Db` method needs a case (`FC7 every Db method has
-  a contract case`). The SQLite adapter can't run in Node.
+  a contract case`). Since the moment table (MT11, decision 0123) the native
+  store runs the same cases: `db/sqliteStore.ts` over Node's built-in SQLite
+  through `__tests__/fakes/nodeSqlite.ts`, a small stand-in for the
+  `expo-sqlite` calls it makes, one in-memory database per case. A case marked
+  "(web store as it is)" pins each store's own answer (`store` is 'sqlite').
+  `storage/momentMigration.test.ts` runs every SQLite migration in Node and the
+  IndexedDB upgrade from a version-17 database built by the frozen schema
+  `scripts/e2e/fixtures/web17.js`; the `upgrade` journey does the same in the
+  browser.
 - **Fixtures** live in `src/lib/__tests__/`:
   - `mvtFixture.ts`: a test-only vector-tile encoder, since the tile host is
     blocked from cloud sessions. No test imports it now (its user went with
@@ -249,9 +257,40 @@ no-console-errors checks (`h.nothingLeaves()`, `h.noConsoleErrors()`).
 | `E2E_SHOTS=<dir>` | a screenshot of each screen along the way (`shot(pg, name)`) |
 | `E2E_FAIL_SHOT=<file>` | the page at the failure, plus every other open page as `<file>-N.png` |
 | `E2E_BASE=/chronicles` | serve and load the build under that sub-path (see below) |
+| `E2E_FORCE=1` | run a journey that is already green on these inputs (see "The e2e's economy") |
 
 Measured: `E2E_ONLY=qol npm run e2e:web` passed 19 checks in 32 s (the full
 flow, several minutes, was not timed).
+
+### The e2e's economy
+
+A journey is minutes of browser, and the owner's rule (decision 0074) is that a change
+runs the journeys `npm run check:affected` names and no more. The tooling holds a session
+to it (`scripts/e2e/economy.js`; tests `arch/e2eEconomy.test.ts`):
+
+- **A green cache** (`.e2e-green.json`, never committed). A journey that passes with
+  `E2E_ONLY` records its inputs: its own file, the files it covers, the harness
+  (`scripts/e2e/*`, the fixtures and encoders), the exported build (`dist/index.html`)
+  and the flags (`E2E_MOBILE`, `E2E_MILES`, `E2E_BASE`, `E2E_SOFT`). The same inputs
+  again print "already green" and exit 0; `E2E_FORCE=1` runs it anyway. A failed or
+  `E2E_SOFT` run is never recorded, so a failure and its reruns always run.
+- **The plan** (`npm run check:e2e`, and the end of `check:affected`): a source change
+  that is only comments or types does not name a journey (the file is compared as
+  TypeScript's transpile: comments and types gone, code, strings and JSX text kept; a file
+  that does not parse is never taken for a comment); a journey whose own file changed is
+  named; a journey that passed with its covered files as they are is listed apart as
+  already green. `--since <sha>` compares with that commit, for the files changed since a
+  slice's last green run or an audit's start.
+- **Known flakes are labelled, never skipped.** `npm run e2e:baseline -- <journey>
+  [--runs N]` runs the journey on a scratch worktree of `origin/main` and records a check
+  that failed there in `scripts/e2e/flaky.json` (the commit, the date, how often). The
+  runner prints "known flake" under that check's failure and the run **still fails**:
+  nothing is skipped, quarantined or turned green. A journey that never failed on `main`
+  records nothing, so its failure on a branch is the branch's until shown otherwise.
+
+The habit it replaces: sweeping the whole named set at every checkpoint, rerunning a flaky
+check on the branch to see whether it flakes. Run each named journey once, at the end;
+rerun the ones you edited or whose covered files changed since.
 
 ### How a run reads
 

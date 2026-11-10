@@ -1,10 +1,11 @@
 /// <reference types="node" />
+import { type Faced, facedOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { fromLine, toMomentViews, wordsOf } from '../../resurface/views';
-import type { Capture, Walk } from '../../types';
+import type { Walk } from '../../types';
 
-const cap = (o: Partial<Capture>): Capture => ({ id: 'c', walk_id: null, t: 1, lat: null, lon: null, kind: 'text', file_path: null, body: null, segment_id: null, ...o });
+const cap = (o: Partial<Faced>): Faced => facedOf({ id: 'c', walk_id: null, t: 1, lat: null, lon: null, kind: 'text', file_path: null, body: null, segment_id: null, ...o });
 const walk = (o: Partial<Walk>): Walk => ({ id: 'w', started_at: new Date(2026, 9, 4, 10).getTime(), ended_at: 2, title: null, epilogue: null, open: false, area: 'Fox Point', snapped_build: null, ...o });
 
 test('RM5: a moment\'s words are its own: a note\'s text, a caption, a transcript when there is one', () => {

@@ -14,8 +14,9 @@
  * any overlay kind it adds: the story, the screens and other ceremonies stay
  * as they are.
  */
+import type { Faced } from '../moment';
 import type { TimedRun } from '../replay';
-import type { Capture, LngLat } from '../types';
+import type { LngLat } from '../types';
 
 /** One walk's trace, as the story knows it. */
 export interface StoryPath {
@@ -39,7 +40,7 @@ export interface StoryPath {
 /** Captures that share a stop, where they were, and the still time around them. */
 export interface StoryMoment {
   kind: 'moment';
-  captures: Capture[];
+  captures: Faced[];
   at: LngLat | null;
   /** When you came to a stand there, and when you moved on (both the capture's time when the trace can't tell). */
   arrive: number;
@@ -97,7 +98,7 @@ export interface Story {
   events: StoryEvent[];
   passes: StoryPass[];
   /** Every capture the story shows, in the order its moments come. */
-  captures: Capture[];
+  captures: Faced[];
 }
 
 /** The overlay kinds a stage can draw; each has a view (`components/ceremony/overlays.tsx`). */
@@ -108,7 +109,7 @@ export type OverlayKind = (typeof OVERLAY_KINDS)[number];
 export interface BubbleOverlay {
   kind: 'bubble';
   key: string;
-  capture: Capture;
+  capture: Faced;
   enter: number;
   exit: number;
   /** A memo's play time: on while it plays, with how far along (0 to 1). */
@@ -120,7 +121,7 @@ export interface BubbleOverlay {
 export interface CardOverlay {
   kind: 'card';
   key: string;
-  capture: Capture;
+  capture: Faced;
   /** Where it grows from: its pin, or null to grow in place. */
   from: LngLat | null;
   grow: number;
@@ -129,13 +130,17 @@ export interface CardOverlay {
   progress: number;
   /** Reduce motion: fade in place instead of moving. */
   fade: boolean;
+  /** A stack's grid (MS17): its photos and videos, how far each has swiped in (0 to 1), and how far it has scrolled. */
+  pieces?: Faced[];
+  shown?: number[];
+  scroll?: number;
 }
 
 export interface PileOverlay {
   kind: 'pile';
   key: 'pile';
   /** Oldest first. */
-  captures: Capture[];
+  captures: Faced[];
 }
 
 export interface WhisperOverlay {

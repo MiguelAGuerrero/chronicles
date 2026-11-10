@@ -1,7 +1,7 @@
 // @layer core
 import type { MediaEdit } from './mediaEdit';
-// The three truth tables (Walk, TracePoint, Capture) are append-only, apart
-// from the walk's own fields and a capture's placement at stop. Everything
+// The truth tables (Walk, TracePoint, Moment and its Capture pieces) are append-only, apart
+// from the walk's own fields and a moment's placement at stop. Everything
 // else (StreetSegment, VisitedSegment, WalkSummary) is a cache derived from
 // map tiles and the trace, tagged with the tile build it came from, and can
 // be dropped and rebuilt at any time.
@@ -34,13 +34,31 @@ export interface TracePoint {
 
 export type CaptureKind = 'photo' | 'video' | 'voice' | 'text';
 
-export interface Capture {
+/**
+ * A moment (decision 0123): truth, its one place and time (one fix per moment, 0036), holding its media as pieces.
+ * Every moment kept before the moment table has one piece, under the moment's own id, so threads, replies,
+ * reminders and finds keep pointing at the same ids.
+ */
+export interface Moment {
   id: string;
   /** The walk it was made on; null for a moment made outside any walk. */
   walk_id: string | null;
+  /** The moment's time: its first piece's. */
   t: number;
   lat: number | null;
   lon: number | null;
+  /** The street it was taken on, noted at the walk's stop; null outside a walk or away from a street. */
+  segment_id: string | null;
+  /** Its media, in capture order; never empty. */
+  pieces: Capture[];
+}
+
+/** One piece of a moment's media (decision 0123): truth, with its own capture time. */
+export interface Capture {
+  id: string;
+  /** The moment it belongs to. */
+  moment_id: string;
+  t: number;
   kind: CaptureKind;
   /**
    * Media reference, resolved to a playable URI by lib/media. Native: a path
@@ -49,7 +67,6 @@ export interface Capture {
   file_path: string | null;
   /** Text body for notes; duration in ms for voice memos and videos. */
   body: string | null;
-  segment_id: string | null;
   /** A photo's caption, drawn as a bar over it; the photo file itself is untouched. */
   caption?: string | null;
   /** Where the caption bar sits, as a fraction of the photo's height from the top. */

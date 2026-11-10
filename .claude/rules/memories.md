@@ -15,11 +15,11 @@ Earlier walks' captures shown as faint pins on a walk (`lib/memories`) and the m
     nearest first, never this walk's own.
   - A capture whose reminder card is up has no pin meanwhile.
   - Moments made outside any walk (`walk_id` null) count as earlier memories too.
-- **Cheap:** `memoryReader` reads the area with `db.capturesIn` in a 150 m box,
+- **Cheap:** `memoryReader` reads the area with `db.momentsIn` in a 150 m box,
   once per 50 m walked, one read at a time.
   - A slow read is never dropped when a fix comes in, a failed one is tried
     again on the next fix, and it sends only a changed set.
-  - On web, `capturesIn` uses the capture store's `lat` index (IndexedDB v9),
+  - On web, `momentsIn` uses the moment store's `lat` index (IndexedDB v18; the capture store's from v9),
     never `getAll` over the store.
 - **The pins:** the same round `CapturePinView`, `faint` (75%, 55% opacity), on
   their own map layer (`memories`, `onMemoryPress`). They are not mixed into

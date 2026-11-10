@@ -20,8 +20,8 @@ Deleting a walk, its media, or a moment (`lib/deletion`): what goes, Undo, and w
   recounted (`recountNewStreets`). A deleted moment takes its reminder and its
   find. Removing a walk's media keeps its finds (`keepFinds`). Offered places,
   checklists and busy areas never move.
-- **Threads follow the moments** (decision 0104): `deleteCaptures` and `deleteWalk` also delete the memberships and reply links of the moments they delete and dissolve a thread left with fewer than two, in the same transaction. Deleting a thread (`threads.deleteThread`) uses this same Undo window and deletes no moment.
-- **Storage:** `db.deleteWalk` and `db.deleteCaptures`, one transaction each
+- **Threads follow the moments** (decision 0104): `deleteMoments` and `deleteWalk` also delete the memberships and reply links of the moments they delete and dissolve a thread left with fewer than two, in the same transaction. Deleting a thread (`threads.deleteThread`) uses this same Undo window and deletes no moment.
+- **Storage:** `db.deleteWalk` and `db.deleteMoments` (a moment with every piece; decision 0123), one transaction each
   (web: any error aborts it, `atomically`). Rows go first, then files
   (`removeMedia`: each ref, plus a whole walk's `walks/<id>/` folder; never
   `walks/moments/`). A file that fails to delete is left behind, never a row
@@ -45,7 +45,7 @@ Deleting a walk, its media, or a moment (`lib/deletion`): what goes, Undo, and w
   - The recount counts named streets only (`isNamedStreet`, shared with
     `finish.ts`).
   - `saveSnap` writes nothing for a deleted walk, and takes its counts from
-    the capture rows inside its transaction (`countsOf`), as `deleteCaptures`
+    the capture rows inside its transaction (`countsOf`), as `deleteMoments`
     does. A delete overlapping a snap can't leave a count off.
   - A loose moment deleted before its fix finds nothing (`findForMoment`).
   - Explore re-reads finds after a delete.

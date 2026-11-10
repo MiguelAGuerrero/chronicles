@@ -1,6 +1,6 @@
-<!-- Compiled Nov 9-10, 2026 by research agents for decision 0112. Second pass read the vendors' own pages (support.apple.com at iOS 27, support.google.com/photos, dayoneapp.com, slack.com): each claim is marked Verified, Corrected, New or Unverified. Polarsteps and app-store pages refused automated fetches and stay unverified, as do claims that rested only on press articles. -->
+<!-- Compiled Nov 9-10, 2026 by research agents for decision 0114. Second pass read the vendors' own pages (support.apple.com at iOS 27, support.google.com/photos, dayoneapp.com, slack.com): each claim is marked Verified, Corrected, New or Unverified. Polarsteps and app-store pages refused automated fetches and stay unverified, as do claims that rested only on press articles. -->
 
-<!-- Second pass, compiled Nov 10, 2026 for decision 0112. Vendor help pages on support.apple.com, support.google.com, dayoneapp.com and slack.com were loaded directly and read; each claim is now marked Verified (with a quote and URL), Corrected, New (found on the page, not in the first pass) or Unverified (with the reason). Press sites, Polarsteps and the App Store stayed blocked, so claims resting only on them remain unverified. -->
+<!-- Second pass, compiled Nov 10, 2026 for decision 0114. Vendor help pages on support.apple.com, support.google.com, dayoneapp.com and slack.com were loaded directly and read; each claim is now marked Verified (with a quote and URL), Corrected, New (found on the page, not in the first pass) or Unverified (with the reason). Press sites, Polarsteps and the App Store stayed blocked, so claims resting only on them remain unverified. -->
 
 # Adjacent-app teardown for Chronicles' moment jobs (second pass)
 

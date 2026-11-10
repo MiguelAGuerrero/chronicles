@@ -1,4 +1,5 @@
 /// <reference types="node" />
+import { type Faced, facedOf, momentOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { compose, lately } from '../../resurface/feed';
@@ -10,16 +11,16 @@ import { createResurface } from '../../resurface/shell';
 import { sectionOnRoute } from '../../resurface/section';
 import { termsOf } from '../../resurface/terms';
 import { deriveThreads } from '../../resurface/threads';
-import type { Capture, Walk } from '../../types';
+import type { Walk } from '../../types';
 import { fakePorts } from '../fakes';
 import { at, DAY, moment, NOW } from './fixtures';
 
 const walk: Walk = { id: 'w1', started_at: at(2026, 3, 1), ended_at: at(2026, 3, 1) + 3600_000, title: null, epilogue: null, open: false, area: 'Fox Point', snapped_build: null };
-const note = (id: string, t: number, body: string): Capture => ({ id, walk_id: 'w1', t, lat: null, lon: null, kind: 'text', file_path: null, body, segment_id: null });
+const note = (id: string, t: number, body: string): Faced => facedOf({ id, walk_id: 'w1', t, lat: null, lon: null, kind: 'text', file_path: null, body, segment_id: null });
 async function seeded() {
   const p = fakePorts({ now: NOW });
   await p.db.createWalk(walk);
-  for (const [i, w] of ['harbor', 'harbor', 'harbor', 'orchard'].entries()) await p.db.addCapture(note(`n${i}`, at(2026, 3, 1 + i), w));
+  for (const [i, w] of ['harbor', 'harbor', 'harbor', 'orchard'].entries()) await p.db.addMoment(momentOf(note(`n${i}`, at(2026, 3, 1 + i), w)));
   const r = createResurface(p);
   await r.load();
   return { p, r };
@@ -78,16 +79,16 @@ test('resurfaced-moments audit 3: a load waits for a choice still being written,
 test('resurfaced-moments audit 3: of two overlapping loads, the one asked last wins', async () => {
   const { p, r } = await seeded();
   const g = gate();
-  const real = p.db.capturesBetween.bind(p.db);
+  const real = p.db.momentsBetween.bind(p.db);
   let calls = 0;
-  p.db.capturesBetween = async (a: number, b: number) => {
+  p.db.momentsBetween = async (a: number, b: number) => {
     const first = ++calls === 1;
     const rows = await real(a, b);
     if (first) await g.wait;
     return rows;
   };
   const slow = r.load();
-  await p.db.deleteCaptures(['n3']);
+  await p.db.deleteMoments(['n3']);
   const fast = r.load();
   await fast;
   g.open();
@@ -101,7 +102,7 @@ test('resurfaced-moments audit 4: a refresh keeps the seed, the top card and Ano
   r.another();
   r.another();
   const before = r.store.get();
-  await p.db.deleteCaptures(['n3']);
+  await p.db.deleteMoments(['n3']);
   await r.refresh();
   const after = r.store.get();
   assert.deepEqual([after.seed, after.index, after.lastShownAtOpen], [before.seed, before.index, before.lastShownAtOpen]);
@@ -149,6 +150,6 @@ test('resurfaced-moments audit 11: a 29 Feb moment resurfaces on 28 Feb of a com
 });
 
 test('resurfaced-moments audit 9: only the tabs and the walk reset the section (a replay, a day and Chronicle keep it)', () => {
-  for (const keep of ['/replay/w1', '/day/2026-11-04', '/chronicle']) assert.equal(sectionOnRoute('map', keep), 'map', keep);
-  for (const reset of ['/', '/navigate', '/explore', '/walk']) assert.equal(sectionOnRoute('map', reset), 'memories', reset);
+  for (const keep of ['/replay/w1', '/day/2026-11-04', '/']) assert.equal(sectionOnRoute('map', keep), 'map', keep);
+  for (const reset of ['/navigate', '/explore', '/walk']) assert.equal(sectionOnRoute('map', reset), 'memories', reset);
 });

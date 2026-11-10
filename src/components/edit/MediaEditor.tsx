@@ -1,3 +1,4 @@
+import type { Faced } from '../../lib/moment';
 import { useEventListener } from 'expo';
 import { useVideoPlayer } from 'expo-video';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
@@ -9,7 +10,7 @@ import { removeMedia } from '../../lib/media';
 import { keepEditedThumb } from '../../lib/media/thumb';
 import { ASPECTS, aspectRatio, cropFromRotated, cropToRotated, editedSize, PEN_COLORS, rotatedSize, SIZE_LABELS, type MediaEdit } from '../../lib/mediaEdit';
 import { THUMB } from '../../lib/thumbPlan';
-import type { Capture } from '../../lib/types';
+
 import { useMediaUri } from '../../lib/useMediaUri';
 import { useBaker } from '../Baker';
 import { CaptionBar, CaptionField } from '../Caption';
@@ -46,7 +47,7 @@ const DRAW_TOOLS: { id: 'pen' | 'marker' | 'eraser'; label: string; icon: IconNa
 export type MediaEditorHandle = { requestClose(): void };
 
 export const MediaEditor = forwardRef<MediaEditorHandle, {
-  capture: Capture;
+  capture: Faced;
   initialTool?: EditTool;
   overlay?: boolean;
   /** Stores a change to the capture: the edits and caption on Done, then the new small copy. */

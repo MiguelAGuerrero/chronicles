@@ -1,3 +1,4 @@
+import type { Faced } from '../../lib/moment';
 import { useFocusEffect, useIsFocused } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BackHandler, Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -24,7 +25,7 @@ import type { Waypoint } from '../../lib/nav/types';
 import { ready } from '../../lib/ready';
 import { destLine, type StartMode } from '../../lib/startPlan';
 import { formatDistance } from '../../lib/summary';
-import type { Capture, LngLat } from '../../lib/types';
+import type { LngLat } from '../../lib/types';
 import type { MomentState } from '../../lib/useCaptures';
 import { LOCATE_FIT_M, useLocate } from '../../lib/useLocate';
 import { useStartWalk } from '../../lib/useStartWalk';
@@ -79,9 +80,9 @@ export function useReady(props: {
   // Leaving mid-memo saves it (tabs audit 3).
   const focused = useIsFocused();
   // Moments outside walks, as pins where they were made (M16): gone from view while their delete waits (D5).
-  const [storedMoments, setMoments] = useState<Capture[]>([]);
+  const [storedMoments, setMoments] = useState<Faced[]>([]);
   const moments = useVisible(storedMoments);
-  const [viewing, setViewing] = useState<Capture[] | null>(null);
+  const [viewing, setViewing] = useState<Faced[] | null>(null);
   const [pinZoom, setPinZoom] = useState(() => (fix ? 16 : WORLD.zoom) >= MOMENT_PIN_ZOOM);
   const momentPins = useMemo(() => (pinZoom ? moments : NONE), [moments, pinZoom]);
 
@@ -140,7 +141,7 @@ export function useReady(props: {
     setWebNoteOff(true);
     ready.dismissWebNote().catch(() => {});
   };
-  const onMoment = useCallback((c: Capture, state: MomentState) => {
+  const onMoment = useCallback((c: Faced, state: MomentState) => {
     if (state !== 'placed') return;
     findForMoment(c).catch(() => {});
     if (placedMoments([c]).length) setMoments((prev) => upsertMoment(prev, c));
@@ -205,7 +206,7 @@ export function useReady(props: {
     captures: momentPins,
     // Mid-memo, pins do nothing, so a memo is never cut short (moments audit).
     // Nor with the bar up: one Escape would close the viewer and the bar (audit 12).
-    onPinPress: (cs: Capture[]) => !memoOn && !up && setViewing(cs),
+    onPinPress: (cs: Faced[]) => !memoOn && !up && setViewing(cs),
     onViewChange: (v: { zoom: number }) => setPinZoom(v.zoom >= MOMENT_PIN_ZOOM),
     walker: fix,
     marks: dest ? [dest.at] : undefined,
@@ -320,7 +321,7 @@ export function useReady(props: {
           setMoments((prev) => applyPatch(prev, c.id, patch));
         }}
         onSaveNote={async (c, body) => {
-          await ready.saveNote(c.id, body);
+          await ready.saveNote(c.piece_id, body);
           setMoments((prev) => applyPatch(prev, c.id, { body }));
           captureBus.patch(c.walk_id, c.id, { body }, null);
         }}

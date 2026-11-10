@@ -260,7 +260,7 @@ async function checks(h) {
         // The live walk's dot is one gliding marker; the layers stay empty for it.
         check((await page.locator('[data-testid=walker-puck]').count()) === 1 && (await page.locator('[data-testid=walker-puck] svg').count()) === 2, 'the walker is one gliding marker, dot and cone');
         // Within 60 m, the memorial's "?" shows what it is (E7).
-        check((await page.locator('[aria-label="Hessian Memorial, History & landmarks. Open"]').count()) === 1, 'a "?" shows its name and category within 60 m');
+        check((await page.locator('[aria-label="Hessian Memorial, History. Open"]').count()) === 1, 'a "?" shows its name and category within 60 m');
       }
       if (k === 15) {
         // The camera takes video too. The web caps clips at 15 s; a longer one is turned away.
@@ -274,14 +274,36 @@ async function checks(h) {
         await page.waitForSelector('text=Video saved here');
         // Within ~30 m at walking zoom, the video shares a pin with the memo. The pins regroup a moment after
         // the save; a fixed 2.5 s wait read the label too early on the /chronicles build (Nov 4 deploy).
-        // A capture with no fresh fix now asks for one of its own before it is placed (fix paused-pins), so the regroup can
-        // take longer than 10 s on a loaded machine.
-        await page.waitForSelector('[aria-label="2 captures here. Open"]', { timeout: 20000 }).catch(() => {});
-        const pinLabels = await page.evaluate(() => [...document.querySelectorAll('[aria-label$=" Open"]')].map((e) => e.getAttribute('aria-label')));
-        check((await page.locator('[aria-label="2 captures here. Open"]').count()) === 1, `a short video is kept, sharing a pin with the memo nearby (${JSON.stringify(pinLabels)})`);
+        // The memo and the video are kept 25-30 m apart, whichever fix the memo began on; pins share when within
+        // 44 px at the zoom shown (rounded to a half step, `useZoomPins`). So the pins are held to that rule: one shared
+        // pin when the two are that close, two pins when they are not (the journey's timing decides which).
+        const kept = await page.evaluate(() => new Promise((resolve) => {
+          const req = indexedDB.open('chronicles');
+          req.onsuccess = () => {
+            const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll();
+            g.onsuccess = () => resolve(g.result.filter((m) => m.pieces.some((p) => p.kind === 'voice' || p.kind === 'video')).map((m) => ({ kind: m.pieces[0].kind, lat: m.lat, lon: m.lon })));
+          };
+        }));
+        const zoomShown = await page.evaluate(() => Number([...document.querySelectorAll('[data-zoom]')].at(-1)?.getAttribute('data-zoom') ?? NaN));
+        const memo = kept.find((m) => m.kind === 'voice');
+        const video = kept.find((m) => m.kind === 'video');
+        const apartM = memo && video && memo.lat != null && video.lat != null ? h.distanceM([memo.lon, memo.lat], [video.lon, video.lat]) : null;
+        const half = Math.round(zoomShown * 2) / 2;
+        const reachM = (44 * 40_075_016.686 * Math.cos((Math.round(memo?.lat ?? 42) * Math.PI) / 180)) / (512 * 2 ** half);
+        // Wait for the state the rule expects (the pins regroup a moment after the save), never longer than needed.
+        const expectShared = apartM == null || apartM <= reachM;
+        await page.waitForFunction((one) => {
+          const labels = [...document.querySelectorAll('.maplibregl-map [aria-label$=". Open"]')].map((e) => e.getAttribute('aria-label'));
+          return one ? labels.includes('2 captures here. Open') : labels.includes('Voice memo. Open') && labels.includes('Video. Open');
+        }, expectShared, { timeout: 10000 }).catch(() => {});
+        const shared = (await page.locator('[aria-label="2 captures here. Open"]').count()) === 1;
+        const pinsAfter = await page.$$eval('.maplibregl-map [aria-label$=". Open"]', (es) => es.map((e) => e.getAttribute('aria-label')));
+        const twoPins = pinsAfter.includes('Voice memo. Open') && pinsAfter.includes('Video. Open');
+        const fair = apartM == null ? shared : apartM <= reachM ? shared : twoPins;
+        check(fair, `a short video is kept, sharing a pin with the memo when within the pins' reach (${apartM?.toFixed(1)} m apart, ${reachM.toFixed(1)} m reach at z${zoomShown}: ${pinsAfter.join(' / ')})`);
         // The video is taken about 40 m from the memorial: it finds it (E8). (The memo at step 10, 62 m off, does not.)
         await page.waitForTimeout(500);
-        check((await page.locator('[aria-label="Found: Hessian Memorial, History & landmarks"]').count()) === 1, 'a capture within 60 m finds the place, which stays drawn as found');
+        check((await page.locator('[aria-label="Found: Hessian Memorial, History"]').count()) === 1, 'a capture within 60 m finds the place, which stays drawn as found');
         const seenEnters = await page.evaluate(() => window.__enters.map((e) => ({ kind: e.kind, animated: e.animated, label: e.label })));
         check(seenEnters.some((e) => e.kind === 'pulse' && e.animated && /^Found: Hessian/.test(e.label)), 'a find pulses once from its pin (M12)');
         check(seenEnters.some((e) => e.kind === 'flip' && e.animated), 'a revealed "?" turns into its place, on its way to being found (M11)');
@@ -313,8 +335,8 @@ async function checks(h) {
         await page.waitForSelector('text=What happened here');
         // The note may share the spot with the video nearby: step to it.
         for (let i = 0; i < 4 && !(await page.getByText('The bakery smelled of cardamom.').count()); i++) {
-          if (!(await page.locator('[aria-label="Next capture"]').count())) break;
-          await page.click('[aria-label="Next capture"]');
+          if (!(await page.locator('[aria-label="Next moment"]').count())) break;
+          await page.click('[aria-label="Next moment"]');
           await page.waitForTimeout(300);
         }
         check((await page.getByText('The bakery smelled of cardamom.').count()) > 0, 'a long press on the map shows what happened there');
@@ -391,8 +413,8 @@ async function checks(h) {
         const photoId = (await page.evaluate(() => new Promise((resolve) => {
           const req = indexedDB.open('chronicles');
           req.onsuccess = () => {
-            const g = req.result.transaction('capture', 'readonly').objectStore('capture').getAll();
-            g.onsuccess = () => resolve(g.result.filter((c) => c.kind === 'photo').sort((a, b) => b.t - a.t)[0]?.id ?? null);
+            const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll();
+            g.onsuccess = () => resolve(g.result.map((m) => ({ ...m.pieces[0], id: m.id, walk_id: m.walk_id, t: m.t, lat: m.lat, lon: m.lon, segment_id: m.segment_id })).filter((c) => c.kind === 'photo').sort((a, b) => b.t - a.t)[0]?.id ?? null);
           };
         })));
         const drops = await page.evaluate((n) => window.__enters.slice(n).filter((e) => e.kind === 'drop').map((e) => ({ animated: e.animated, ids: e.ids })), before);
@@ -402,9 +424,9 @@ async function checks(h) {
           const req = indexedDB.open('chronicles');
           req.onsuccess = () => {
             const db = req.result;
-            const g = db.transaction('capture', 'readonly').objectStore('capture').get(id);
+            const g = db.transaction('moment', 'readonly').objectStore('moment').get(id);
             g.onsuccess = () => {
-              const path = g.result?.thumb_path;
+              const path = g.result?.pieces?.[0]?.thumb_path;
               if (!path) return resolve({ path: null });
               const stores = [...db.objectStoreNames].filter((n) => /media/.test(n));
               const m = db.transaction(stores[0], 'readonly').objectStore(stores[0]).get(path);
@@ -772,7 +794,7 @@ async function checks(h) {
 
 async function run(h) {
   const { page, url, routed } = h;
-  await page.goto(url);
+  await page.goto(h.exploreUrl);
   await page.waitForSelector('[data-testid=tab-explore][aria-selected=true]', { timeout: 30000 });
   await checks(h);
 }

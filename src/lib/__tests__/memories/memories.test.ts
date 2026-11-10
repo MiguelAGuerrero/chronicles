@@ -1,15 +1,16 @@
 /// <reference types="node" />
+import { type Faced, facedOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { groupFirst, groupRadiusM, MEMORY_RULES, memoriesNear, memoryReader, needsRead, previewLine } from '../../memories';
-import type { Capture, LngLat } from '../../types';
+import type { LngLat } from '../../types';
 
 const O: LngLat = [-71.4, 41.812];
 const dLat = 1 / 111320;
 const dLon = 1 / (111320 * Math.cos((O[1] * Math.PI) / 180));
 const m = (x: number, y: number): LngLat => [O[0] + x * dLon, O[1] + y * dLat];
 let n = 0;
-const cap = (walk: string, at: LngLat | null, o: Partial<Capture> = {}): Capture => ({
+const cap = (walk: string, at: LngLat | null, o: Partial<Faced> = {}): Faced => facedOf({
   id: `c${n++}`, walk_id: walk, t: 1e12 + n, lat: at?.[1] ?? null, lon: at?.[0] ?? null, kind: 'photo', file_path: 'p.jpg', body: null, segment_id: null, ...o,
 });
 
@@ -48,15 +49,15 @@ test('memories MR4: the preview line names the memory', () => {
 });
 
 test('memories audit 1: a slow read still lands, and a failed one is tried again on the next fix', async () => {
-  let release!: (c: Capture[]) => void;
+  let release!: (c: Faced[]) => void;
   let calls = 0;
   let fail = false;
-  const got: Capture[][] = [];
+  const got: Faced[][] = [];
   const reader = memoryReader(
     () => {
       calls++;
       if (fail) return Promise.reject(new Error('busy'));
-      return new Promise<Capture[]>((r) => (release = r));
+      return new Promise<Faced[]>((r) => (release = r));
     },
     (c) => got.push(c),
   );
@@ -80,7 +81,7 @@ test('memories audit 1: a slow read still lands, and a failed one is tried again
 
 test('memories audit 10: a read that finds the same captures sends nothing new', async () => {
   const a = cap('old', m(20, 0));
-  const got: Capture[][] = [];
+  const got: Faced[][] = [];
   const reader = memoryReader(() => Promise.resolve([a]), (c) => got.push(c));
   reader.poll(O);
   await new Promise((r) => setTimeout(r, 0));

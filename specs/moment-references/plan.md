@@ -4,7 +4,7 @@
 
 Main is 117 commits ahead, with moment stacks (0123: a `moment` table, pieces under it). It overlaps this
 branch in `CaptureView`, `deletion/*`, `threads/shell`, `useCaptures`, `MemoriesScreen` and `_layout`.
-Decision 0112 collides (main's "the app opens on Chronicle"): this branch's 0112 becomes 0114. Unit tests,
+Decision 0114 collides (main's "the app opens on Chronicle"): this branch's 0114 becomes 0114. Unit tests,
 typecheck, lint, then the journeys chosen as in `docs/TESTING.md`. This is the riskiest step of the plan.
 
 ## 1. Core (test first)

@@ -92,7 +92,7 @@ async function run(h) {
       await pg.addInitScript(() => {
         window.__launchFrames = [];
         const tick = () => {
-          window.__launchFrames.push({ path: location.pathname, covered: !!document.querySelector('[data-testid=launch-cover]'), walk: !!document.querySelector('[data-testid=stop]'), tabs: !!document.querySelector('[data-testid=tab-explore]') });
+          window.__launchFrames.push({ path: location.pathname, covered: !!document.querySelector('[data-testid=launch-cover]'), walk: !!document.querySelector('[data-testid=stop]'), tabs: !!document.querySelector('[data-testid=tab-explore]'), memories: !!document.querySelector('[data-testid=memories]') });
           if (window.__launchFrames.length < 600) requestAnimationFrame(tick);
         };
         requestAnimationFrame(tick);
@@ -103,6 +103,8 @@ async function run(h) {
       const frames = await pg.evaluate(() => window.__launchFrames);
       // Frames before the app's first paint are the empty page, not a screen.
       const seen = frames.filter((f) => !f.covered && f.tabs && !f.path.endsWith('/walk'));
+      const noChronicle = s.path === `${BASE}/walk` && s.stop === 'top' && seen.length === 0 && frames.length > 0 && !frames.some((f) => !f.covered && f.memories);
+      check(noChronicle, `HC2: a launch with a walk open shows the walk screen, never a frame of Chronicle (${frames.length} frames)`);
       check(s.path === `${BASE}/walk` && s.stop === 'top' && seen.length === 0 && frames.length > 0,
         `NV2 launch 1: opened at / with a walk open, the walk comes straight up, with no other screen first (${frames.length} frames, ${seen.length} showing ${JSON.stringify(seen[0] ?? null)})`);
       if (s.minimize === 'top') {

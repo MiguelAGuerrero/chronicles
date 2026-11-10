@@ -60,8 +60,8 @@ async function checks(h) {
     const captureRows = () => page.evaluate(() => new Promise((resolve) => {
       const req = indexedDB.open('chronicles');
       req.onsuccess = () => {
-        const g = req.result.transaction('capture', 'readonly').objectStore('capture').getAll();
-        g.onsuccess = () => resolve(g.result);
+        const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll();
+        g.onsuccess = () => resolve(g.result.map((m) => ({ ...m.pieces[0], id: m.id, walk_id: m.walk_id, t: m.t, lat: m.lat, lon: m.lon, segment_id: m.segment_id })));
       };
     }));
     const memoryPins = () => walkMap().locator('[data-testid=memory-pin]');
@@ -73,7 +73,7 @@ async function checks(h) {
     // Read by place, never the whole store (audit 2).
     const indexed = await page.evaluate(() => new Promise((resolve) => {
       const req = indexedDB.open('chronicles');
-      req.onsuccess = () => resolve([...req.result.transaction('capture', 'readonly').objectStore('capture').indexNames]);
+      req.onsuccess = () => resolve([...req.result.transaction('moment', 'readonly').objectStore('moment').indexNames]);
     }));
     check(indexed.includes('lat'), `captures are read by latitude, not with getAll over the store (audit 2: ${indexed.join(', ')})`);
     const recallRows = () => page.evaluate(() => new Promise((resolve) => {
@@ -172,8 +172,8 @@ async function checks(h) {
     const noteId = await page.evaluate(() => new Promise((resolve) => {
       const req = indexedDB.open('chronicles');
       req.onsuccess = () => {
-        const g = req.result.transaction('capture', 'readonly').objectStore('capture').getAll();
-        g.onsuccess = () => resolve(g.result.find((c) => /cardamom/.test(c.body ?? ''))?.id ?? null);
+        const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll();
+        g.onsuccess = () => resolve(g.result.map((m) => ({ ...m.pieces[0], id: m.id, walk_id: m.walk_id, t: m.t, lat: m.lat, lon: m.lon, segment_id: m.segment_id })).find((c) => /cardamom/.test(c.body ?? ''))?.id ?? null);
       };
     }));
     const tap = { type: 'notice-response', id: 'recall-x', data: { captureIds: [noteId] }, action: null };

@@ -1,4 +1,5 @@
 /// <reference types="node" />
+import { type Faced, facedOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { captureBus, mergeCaptures } from '../../captureBus';
@@ -6,10 +7,9 @@ import { recordingLine } from '../../recordingBar';
 import { NAV_KEY, navValue, walkHerePlan } from '../../startPlan';
 import { notifyWalkChanged, onWalkChange } from '../../walkEvents';
 import type { Waypoint } from '../../nav/types';
-import type { Capture } from '../../types';
 
 const spot: Waypoint = { at: [-71.4, 41.812], label: 'Your spot', kind: 'point' };
-const cap = (id: string, t: number, extra: Partial<Capture> = {}): Capture => ({
+const cap = (id: string, t: number, extra: Partial<Faced> = {}): Faced => facedOf({
   id, walk_id: 'w1', t, kind: 'photo', file_path: `walks/w1/${id}.jpg`, body: null, segment_id: null, lat: 41.812, lon: -71.4, ...extra,
 });
 

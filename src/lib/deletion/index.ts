@@ -1,9 +1,10 @@
 // @layer shell
+import { type Faced, facedAll, hasMore, pieceKey } from '../moment';
 import { db } from '../db';
 import { forgetRecalls, setRecallHidden } from '../discovery/recallCheck';
 import { mediaBytes, removeMedia } from '../media';
-import type { Capture, Walk } from '../types';
-import { filesOf, isMedia, mediaRemoveText, momentDeleteText, walkDeleteText, type ConfirmText } from './core';
+import type { CaptureKind, Walk } from '../types';
+import { filesOf, filesOfMoments, isMedia, mediaRemoveText, pieceDeleteText, stackDeleteText, momentDeleteText, walkDeleteText, type ConfirmText } from './core';
 import { createPending } from './pending';
 import { createDeleteRunner } from './runner';
 import { isPendingJob, isPendingJobs } from './saved';
@@ -42,8 +43,8 @@ void db
 /** What a walk's actions would take, for the confirm (D4, D11). */
 export interface WalkPlan {
   walk: Walk;
-  captures: Capture[];
-  media: Capture[];
+  captures: Faced[];
+  media: Faced[];
   streets: number;
   walkText: ConfirmText;
   mediaText: ConfirmText | null;
@@ -52,15 +53,15 @@ export interface WalkPlan {
 export async function planWalk(walkId: string): Promise<WalkPlan | null> {
   const walk = await db.getWalk(walkId);
   if (!walk || walk.open) return null;
-  const [captures, summaries] = await Promise.all([db.getCaptures(walkId), db.listSummaries()]);
+  const [captures, summaries] = await Promise.all([db.getMoments(walkId).then(facedAll), db.listSummaries()]);
   const shown = captures.filter((c) => !deletions.hidden().has(c.id));
   const media = shown.filter(isMedia);
   const streets = summaries.find((s) => s.walk_id === walkId)?.streets_walked ?? 0;
   const [walkBytes, mediaBytesN] = await Promise.all([
-    mediaBytes(filesOf(shown), [walkId]),
-    media.length ? mediaBytes(filesOf(media)) : Promise.resolve(0),
+    mediaBytes(filesOfMoments(shown), [walkId]),
+    media.length ? mediaBytes(filesOfMoments(media)) : Promise.resolve(0),
   ]);
-  const n = (k: Capture['kind']) => media.filter((c) => c.kind === k).length;
+  const n = (k: Faced['kind']) => media.filter((c) => c.kind === k).length;
   return {
     walk,
     captures: shown,
@@ -84,11 +85,28 @@ export function removeWalkMedia(plan: WalkPlan) {
 }
 
 /** What deleting one moment would say (D4). */
-export async function planMoment(c: Capture): Promise<ConfirmText> {
-  return momentDeleteText(c.kind, await mediaBytes(filesOf([c])).catch(() => 0));
+export async function planMoment(c: Faced): Promise<ConfirmText> {
+  const bytes = await mediaBytes(filesOfMoments([c])).catch(() => 0);
+  // A moment holding more than one piece is named as the moment, with every piece's size (MS13).
+  return hasMore(c) ? stackDeleteText(bytes) : momentDeleteText(c.kind, bytes);
 }
 
 /** D3: one moment, its reminder and its find. Its file and thumbnail go, read fresh (a thumbnail made since). */
-export function deleteMoment(c: Capture) {
-  deletions.schedule({ kind: 'moment', what: c.kind, ids: [c.id], spec: { type: 'moment', captureId: c.id } });
+export function deleteMoment(c: Faced) {
+  // A stacked moment's toast names the moment, never its face's kind (MS13).
+  deletions.schedule({ kind: 'moment', what: hasMore(c) ? undefined : c.kind, ids: [c.id], spec: { type: 'moment', captureId: c.id } });
+}
+
+/**
+ * MS13: one piece of a moment, after the Undo window; hidden meanwhile by `pieceKey`. The last piece takes the
+ * moment (`deletion/pieces`).
+ */
+export function deletePiece(m: Faced, pieceId: string, kind: CaptureKind) {
+  deletions.schedule({ kind: 'piece', what: kind, ids: [pieceKey(pieceId)], spec: { type: 'piece', momentId: m.id, pieceId } });
+}
+
+/** What deleting one piece, or a stacked moment, would say (MS13). */
+export async function planPiece(m: Faced, pieceId: string): Promise<ConfirmText> {
+  const p = m.pieces.find((x) => x.id === pieceId);
+  return pieceDeleteText(p?.kind ?? m.kind, await mediaBytes(filesOf(p ? [p] : [])).catch(() => 0));
 }

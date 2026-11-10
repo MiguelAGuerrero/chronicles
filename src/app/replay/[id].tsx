@@ -1,3 +1,4 @@
+import type { Faced } from '../../lib/moment';
 import { useUnits } from '../../lib/useUnits';
 import { foundLine, foundList, passedLine } from '../../lib/explore/explore';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -36,7 +37,7 @@ import { ensureTileBuild } from '../../lib/tiles';
 import { setAudioMode } from '../../lib/audioMode';
 import { FOG_MS } from '../../lib/replay';
 import { formatCaptures, formatDistance, formatDuration, loadReplay, suggestTitle, type ReplayData } from '../../lib/summary';
-import type { Capture, LngLat } from '../../lib/types';
+import type { LngLat } from '../../lib/types';
 import { summaryLess } from '../../lib/deletion/core';
 import { useHidden } from '../../lib/deletion/useDeletions';
 import { UndoToast } from '../../components/UndoToast';
@@ -90,7 +91,7 @@ export default function Replay() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [reduceMotion, setReduceMotion] = useState(false);
   const { width, height } = useWindowDimensions();
-  const [viewing, setViewing] = useState<Capture[] | null>(null);
+  const [viewing, setViewing] = useState<Faced[] | null>(null);
   // What happened here: a tap on the card's map shows every capture near that spot, on any walk.
   const [here, setHere] = useState<HereResult | null>(null);
   const hereTaps = useRef(0);
@@ -187,7 +188,7 @@ export default function Replay() {
   const leftForChronicle = useRef(false);
   const toChronicle = useCallback(() => {
     leftForChronicle.current = true;
-    router.dismissTo('/chronicle');
+    router.dismissTo('/');
   }, []);
   useEffect(() => {
     if (rewatch) return;
@@ -199,7 +200,7 @@ export default function Replay() {
     });
     return () => {
       back.remove();
-      if (!leftForChronicle.current) setTimeout(() => router.navigate('/chronicle'), 0);
+      if (!leftForChronicle.current) setTimeout(() => router.navigate('/'), 0);
     };
   }, [rewatch, toChronicle]);
 
@@ -233,7 +234,7 @@ export default function Replay() {
       if (!alive) return;
       if (!d) {
         // Opened on a walk that is no longer kept (a Home Screen app reopening on a stale link):
-        // straight to Explore, with no detour to Chronicle on the way out (NV2).
+        // straight to Chronicle at / (NV2, HC5).
         if (launchRoute.isLaunch(`/replay/${id}`)) {
           leftForChronicle.current = true;
           router.dismissTo('/');
@@ -383,7 +384,7 @@ export default function Replay() {
         {status === 'missing' ? (
           <>
             <Text style={styles.missing}>This walk could not be found.</Text>
-            <Button label="Back to walks" onPress={() => router.dismissTo('/chronicle')} />
+            <Button label="Back to walks" onPress={() => router.dismissTo('/')} />
           </>
         ) : (
           <Text style={styles.muted}>Opening your walk…</Text>
@@ -412,7 +413,7 @@ export default function Replay() {
       setSaving(false);
     }
   };
-  const close = () => (router.canGoBack() ? router.back() : router.dismissTo('/chronicle'));
+  const close = () => (router.canGoBack() ? router.back() : router.dismissTo('/'));
   const sheetPad = { top: 48 + insets.top, right: 32, bottom: sheetH + 24, left: 32 };
 
   return (
@@ -498,7 +499,7 @@ export default function Replay() {
         }}
         onSaveNote={async (c, body) => {
           // Stored first; the replay's own list and any open view of the walk then show it (QL25).
-          await db.updateCapture(c.id, { body });
+          await db.updatePiece(c.piece_id, { body });
           setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, { body }) });
           captureBus.patch(c.walk_id, c.id, { body }, null);
         }}
@@ -512,7 +513,7 @@ export default function Replay() {
         onClose={() => setHere(null)}
         onSaveNote={async (c, body) => {
           // Stored first; the replay's own list and any open view of the walk then show it (QL25).
-          await db.updateCapture(c.id, { body });
+          await db.updatePiece(c.piece_id, { body });
           setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, { body }) });
           captureBus.patch(c.walk_id, c.id, { body }, null);
         }}

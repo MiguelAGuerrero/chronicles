@@ -6,6 +6,8 @@ import { Icon } from '../icons';
 import { Button, theme } from '../ui';
 import { contextText, momentSpoken } from './MomentCard';
 import { MomentPicture } from './MomentPicture';
+import { hasMore } from '../../lib/moment';
+import { StackMark } from '../StackMark';
 
 /**
  * The moment brought back (RM5-RM9): a label that says why it is here, its own
@@ -33,6 +35,7 @@ export function Resurfaced(props: {
         onPress={props.onOpen}
       >
         {hasPicture && <MomentPicture capture={m.capture} style={styles.picture} iconSize={44} />}
+        {hasMore(m.capture) && <StackMark style={styles.mark} light={!hasPicture} />}
         <View style={styles.body}>
           <Text style={styles.eyebrow} testID="resurfaced-label">{label}</Text>
           {m.words ? <Text style={[styles.quote, styles.owner]} numberOfLines={8}>{m.words}</Text> : <Text style={styles.quote}>{m.kind === 'voice' ? 'A voice memo' : 'A moment you kept'}</Text>}
@@ -51,6 +54,7 @@ export function Resurfaced(props: {
 }
 
 const styles = StyleSheet.create({
+  mark: { position: 'absolute', top: 12, right: 12 },
   card: { backgroundColor: theme.surface, borderRadius: 22, borderWidth: 1, borderColor: theme.line, overflow: 'hidden' },
   picture: { height: 230, width: '100%' },
   body: { padding: 16, gap: 8 },

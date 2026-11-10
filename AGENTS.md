@@ -9,6 +9,7 @@ Expo ships breaking changes every SDK release. Before writing any code that touc
 ```bash
 EXPO_OFFLINE=1 npx expo install <package>   # never npm/yarn add; offline resolves from the installed expo
 npm run check:affected                      # the inner loop: layers, the tests that import what changed, typecheck, lint; names the e2e scenarios
+npm run check:e2e                           # the e2e journeys to run, minus those green or comment-only (--since <sha>; E2E_FORCE=1 reruns)
 npm run typecheck                           # tsc --noEmit, incremental: ~22 s cold, ~5 s after
 npm run lint                                # expo lint, ~40 s; includes the import boundaries below
 npm test                                    # every unit test, ~13 s; npm run test:affected for those a change reaches
@@ -19,7 +20,7 @@ npm run check:vision                        # score words, tallies, hosts, data-
 npx expo-doctor                             # dependency and config issues; npx expo install --fix for versions
 ```
 
-While working, run `npm run check:affected`; before declaring a task done, typecheck, lint, `npm test` and the e2e journeys chosen from those `check:affected` names (`docs/TESTING.md`, "Choosing the journeys"; decision 0074). A Stop hook (`.claude/hooks/check-done.sh`) refuses to end a turn that changed the repo while `npm run check:docs` fails or, with TypeScript changed, while the typecheck, the layer check or the affected unit tests fail; CI blocks the deploy on the docs check, the typecheck, `npm test` or lint.
+While working, run `npm run check:affected`; before declaring a task done, typecheck, lint, `npm test` and the e2e journeys picked as `docs/TESTING.md` says (decision 0074). A Stop hook (`.claude/hooks/check-done.sh`) blocks a turn that changed the repo while `check:docs`, or with TypeScript changed the typecheck, layer check or affected tests, fail; CI blocks a deploy on docs, typecheck, `npm test` or lint.
 
 Routing is Expo Router: routes live in `src/app/`, `_layout.tsx` files are navigators, non-route code stays outside `src/app/`. Import `Link`, `router` and `useLocalSearchParams` from `expo-router`; open the walk screen with `showWalk()` (`lib/walkNav`), never `router.push('/walk')`. `ios/` and `android/` are generated (never edit them; a hook blocks it); native behaviour is configured in `app.json` and config plugins. Native code needs a development build (`npx expo run:ios`, or `npx eas-cli@latest build --profile development`), never Expo Go. EAS builds, submits and ships over-the-air updates in the cloud (`npx eas-cli@latest build | submit | update`); there is no `eas.json` yet, so it is not set up for this app. Prefer the recommended Expo modules over third-party libraries, and check the available skills before adding a dependency.
 
@@ -58,7 +59,7 @@ Procedures are skills: `/vision` (the gate before any spec; `review` for drift; 
 - **Truth vs cache.** Walk, TracePoint and Capture are append-only truth (deletes aside). Streets, visited rows, summaries and areas are cache tagged with the tile build; recompute from the trace, never patch derived data. Changing a derivation rule bumps `SNAP_RULES`, `STREET_CODE` or `LANDING_CODE` (`lib/tiles.ts`).
 - **Raw fixes are stored unfiltered** and gated at read time by `readTrace` (`lib/rides.ts`). Always pass the walk's `started_at`, pauses, stills and gap fills; a pause is a break in the trace however short.
 - **No dataset is hard-coded.** Map data reaches the app through adapters (`areas/types.ts`, `discovery/tilePois.ts`, `landing/read.ts`); tests run against in-memory sources.
-- **Storage.** Schema changes are new entries in `MIGRATIONS` (SQLite, `PRAGMA user_version`) and a `VERSION` bump with an `oldVersion < N` step (IndexedDB). Never edit an existing migration. All native writes go through the single queue in `db/index.native.ts`.
+- **Storage.** Schema changes are new entries in `MIGRATIONS` (SQLite, `PRAGMA user_version`) and a `VERSION` bump with an `oldVersion < N` step (IndexedDB). Never edit an existing migration. All native writes go through the single queue in `db/sqliteStore.ts`.
 - **Functional core, imperative shell.** Every `src/lib` module starts with `// @layer core|shell|adapter|view`. Decisions go in core (no clock, randomness, timers or module state; imports only core) with a test first; effects go in a shell (a factory taking `ports`, and the app instance views call); views never import `ports`, the `db`, `recorder` or `notifier`. `npm test` and lint check it, with baselines that only shrink. Read `.claude/rules/functional-core.md` before adding a module.
 - **Pure logic is importable by `npm test`:** nothing a test imports may import React Native (that is why `tileMath.ts` is split from `tiles.ts`).
 - **Import boundaries** are lint errors with the fix in the message: `Modal` only from `components/Modal`, no Reanimated, `setAudioMode` from `lib/audioMode`, haptics only through `feedback()` in `lib/motion`. Timings come from `lib/motionTokens`; never hard-code a duration.

@@ -45,8 +45,9 @@ Not hikers (no trails), not runners (no fitness tracking), not completionists
 ## The three tabs
 
 The app is three tabs in one loop: Explore before, Navigate during,
-Chronicle after. The app opens on Explore. A walk screen opens over them while recording, and a
-recording bar brings a minimized walk back.
+Chronicle after. The bar reads Chronicle, Explore, Navigate, and the app opens on Chronicle's
+Memories, whose band keeps a moment in one tap (decision 0112). A walk screen opens over them while
+recording, and a recording bar brings a minimized walk back.
 
 ### Explore (before)
 
@@ -114,7 +115,7 @@ recording bar brings a minimized walk back.
   places as marks, from a weekly archive built from Wikidata. Curiosities are
   a kind of "Viewpoints & oddities" in What I'm into, on by default. Nothing
   is ranked or counted; a place shows only while its sources say it exists.
-  Built; the app reads the archive once its address is set (PW16). Since
+  Live since Nov 10, when its address was set (PW16). Since
   Nov 9 the archive comes from the places pipeline in chronicles-data
   (decision 0108): any open source can join through an adapter, a community
   source may only suggest a place for the owner's review, and an area is
@@ -150,6 +151,20 @@ recording bar brings a minimized walk back.
   same place before and during a walk. Before Start they keep a moment with no
   walk open ("jot it down"), stored at once and placed when its one fix arrives;
   nothing tracks between moments.
+- **A moment can hold several media** (moment stacks, decision 0123). After a capture, an "Add to this
+  moment" pill left of the stack offers the camera, the mic and a note, one tap each: what it keeps joins
+  the moment just made, with its own time, at the moment's one place (no new fix). It goes after two minutes
+  with no capture, after 100 m walked from the moment's first capture, on Not now, on leaving the screen,
+  opening another moment, or starting or stopping a walk. The stack's own buttons always make a new moment.
+  A stacked moment shows once everywhere, by its first photo or video, with a small two-card mark; its
+  viewer steps through what it holds (Previous and Next in this moment, the arrow keys, a swipe), never
+  saying how many; More offers Delete this photo (one) or Delete this moment (all). Separate moments are
+  grouped by a thread, never merged. More also offers Split this photo out (never the moment's first): it shows at
+  once as its own moment, placed on the walk's trace at its own time (off a walk, at the moment's place), and is
+  kept once its Undo has passed. Walk settings offer **Group captures into one moment**, off by default: with it on,
+  the stack's own buttons add to the open moment, and "Adding to this moment · New moment" shows where the pill was.
+  In the replay a stacked moment is one beat: its photos and videos come up together as a grid (up to 3×3, scrolling
+  past nine, videos muted), its memos and notes as bubbles beside it.
 - A Locate button sits above the stack (also on Explore): it reads one fresh
   fix, shows the dot there and frames 250 m around you. Nothing tracks after.
 
@@ -180,12 +195,20 @@ recording bar brings a minimized walk back.
 - **Pause** stops recording; captures still work while paused. A reminder
   shows after 10 min paused, as a notification on a phone.
 - **Navigation inside a walk**: a long press picks a spot (Go here); a pin's
-  viewer has Go here; **Walk me back** appears once 50 m from the start and
-  takes the shorter of the trace and the streets. A blue bar shows the
+  viewer has Go here; **Walk me back** appears once 50 m from where it leads and
+  takes the shorter of the trace and the streets. It leads to the walk's start,
+  or, after a ride (a drive, a bus), to where the last ride ended; "Walk back
+  here" on the long press's card sets the spot by hand for the walk (decision 0121). A blue bar shows the
   distance and time left, the route is drawn ahead of you, and the trace hides while
   navigating. Off-route re-routes quietly; arrival says "You're here".
   Bridges and tunnels cross what lies under them without a turn onto it, and a
   route starts on the street you are walking along.
+- **Drive there first** (decision 0121): on Explore's area card, Walk to a
+  place within 2 km starts the walk at once; past 2 km (or with no fresh
+  position) it asks **Walk now** or **When I get there**, and past 10 km offers
+  When I get there alone. When I get there keeps the place as Navigate's
+  destination and starts nothing: the walk starts only when you tap Start,
+  never because you arrived.
 - **Scenic routes** (decision 0095): on Go here, or a destination set before
   Start, the app shows Direct beside up to three scenic routes, one per
   leaning switched on: **Through green** (parks, gardens, woods), **Past the
@@ -244,7 +267,12 @@ recording bar brings a minimized walk back.
 
 - **Chronicle opens on Memories** (decision 0098): a control at the top chooses
   **Memories | Walks | Days | Map**, and leaving for another tab puts it back on
-  Memories. Memories is the feed:
+  Memories. The app opens here (decision 0112). Memories is the feed:
+  - **The band** at its foot: camera, mic and note, one tap each, in plain ink,
+    fixed while the feed scrolls and first for a screen reader. A moment kept there
+    heads Lately at once and is placed by its one fix ("Note kept here"); with a walk
+    minimized it goes to the walk ("Note saved to your walk"), and the recording bar
+    shows no camera on Memories. With nothing kept, Memories is one line and the band.
   - **A resurfaced moment** at the top, different on each open, in the user's own
     words, with a label that says why ("A year ago today", "Last October", "You
     keep coming back to the water"). **Relive it** opens the replay of its walk
@@ -378,10 +406,13 @@ recording bar brings a minimized walk back.
 | Reminder bell (a pin with a reminder wears a bell) | Shipped, audited (web verified by the e2e; native unverified) |
 | v1.5: landing (busy areas on the Explore tab, strip chip, dead-zone nudge) | Shipped |
 | Explore atlas (the tab as a grid of area tiles, presence bars, familiarity) | Shipped, audited (web verified by the e2e; native unverified) |
-| Discrete navigation (Explore's map steps from area to area, DN1-DN13) | Shipped, audited, an experiment (web verified by the e2e; native unverified) |
+| Discrete navigation (Explore's map never pans by one finger, DN1, DN10-DN13; the directional step retired by the carousel) | Shipped, audited, an experiment (web verified by the e2e; native unverified) |
+| Explore carousel (a full-height map and one row of area cards; the selected area highlighted and the only one named; a map swipe steps the row; EC1-EC20, decision 0124) | Built, web verified by the e2e (`carousel`, `snap`); native unverified; not audited |
 | Town presence (a town graded across its whole outline, with its busy areas listed) | Built (web verified by the e2e; native unverified) |
 | Resurfaced moments (Chronicle opens on Memories: a moment brought back, threads from the user's words, Lately) | Built (web verified by the e2e `resurface`; native unverified) |
 | Owner threads (respond to a moment; connect moments across walks; Threads on Memories) | Built (web verified by the e2e `threads`; native unverified) |
+| Capture from Chronicle (the app opens on Memories; the band keeps a moment in one tap; HC1-HC15) | Built (web verified by the e2e `capturehome`, `launch`; native unverified) |
+| Moment stacks (a moment holds its media; Add to this moment; one card and pin per moment; the viewer's pieces; deleting one; Split out; the replay's grid; Group captures) | Built, rounds 0-2 (web verified by the e2e `upgrade` and `stacks`; native unverified) |
 | Moments and days, memories on revisit, thumbnails | Shipped, audited |
 | Rides, clearing walks and moments, motion polish | Shipped, audited |
 | Navigation and tabs (three-tab layout, recording bar) | Shipped, two audit batches done |

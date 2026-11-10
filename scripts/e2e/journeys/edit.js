@@ -12,14 +12,16 @@ async function run(h) {
       try {
         await fn();
       } catch (e) {
-        check(false, `${name}: ${String(e.message).split('\n').filter((l) => /Timeout|waiting for|locator/.test(l)).slice(0, 3).join(' | ')}`);
+        const lines = String(e.message).split('\n');
+        const why = lines.filter((l) => /Timeout|waiting for|locator/.test(l)).slice(0, 3).join(' | ') || lines.slice(0, 2).join(' | ');
+        check(false, `${name}: ${why}`);
       }
     };
     const rowOf = (kind) => pg.evaluate((k) => new Promise((resolve) => {
       const req = indexedDB.open('chronicles');
       req.onsuccess = () => {
-        const g = req.result.transaction('capture', 'readonly').objectStore('capture').getAll();
-        g.onsuccess = () => resolve(g.result.filter((x) => x.kind === k).sort((a, b) => b.t - a.t)[0] ?? null);
+        const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll();
+        g.onsuccess = () => resolve(g.result.map((m) => ({ ...m.pieces[0], id: m.id, walk_id: m.walk_id, t: m.t, lat: m.lat, lon: m.lon, segment_id: m.segment_id })).filter((x) => x.kind === k).sort((a, b) => b.t - a.t)[0] ?? null);
       };
     }), kind);
     const thumbSize = (ref) => pg.evaluate((ref) => new Promise((resolve) => {
@@ -94,7 +96,7 @@ async function run(h) {
         await pg.waitForSelector('[data-testid=edited-photo]', { timeout: 10000 });
         await pg.waitForTimeout(600);
         shownEdits.push(await pg.locator('[data-testid=edited-photo]').first().getAttribute('data-edit'));
-        const next = pg.locator('[aria-label="Next capture"]:not([aria-disabled=true]) >> visible=true');
+        const next = pg.locator('[aria-label="Next moment"]:not([aria-disabled=true]) >> visible=true');
         if (!(await next.count())) break;
         await next.first().click();
       }
@@ -256,7 +258,7 @@ async function run(h) {
       const size = await pg.locator('[data-testid=edited-photo]').getAttribute('data-size');
       const [w, h] = size.split('x').map(Number);
       check(Math.abs(w - h) <= 1 && (await pg.locator('[aria-label="Caption: Corner shop"]').count()) === 1, `ME4: the viewer shows the edited photo (square ${size}) and its caption`);
-      // The photo viewer as a person sees it: the moment clear, Respond and Edit docked under it (decision 0112).
+      // The photo viewer as a person sees it: the moment clear, Respond and Edit docked under it (decision 0114).
       await pg.waitForTimeout(800);
       await shot(pg, '45-photo-viewer');
       check(!(await pg.locator('[data-testid=viewer-remind]').isVisible().catch(() => false)) && (await pg.locator('[data-testid=viewer-more]').isVisible()), 'UC9: the photo viewer\'s top bar is Close and More');
@@ -324,7 +326,7 @@ async function run(h) {
 
     await step('ME12, ME15, ME17, ME18 video in the viewer', async () => {
       // Two viewers' strips may be in the page (one beneath, hidden): the one in front.
-      await pg.locator('[aria-label="Next capture"] >> visible=true').first().click({ timeout: 10000 });
+      await pg.locator('[aria-label="Next moment"] >> visible=true').first().click({ timeout: 10000 });
       await pg.waitForSelector('[data-testid=edited-video]', { timeout: 10000 });
       await pg.waitForTimeout(1500);
       const v = await rowOf('video');
@@ -389,6 +391,8 @@ async function run(h) {
     await step('ME23 recording bar', async () => {
       await pg.click('[data-testid=walk-minimize]');
       await pg.waitForSelector('[data-testid=recording-bar]', { timeout: 10000 });
+      // On Memories the band's camera takes the bar's place (decision 0112): the bar's own camera is on the other tabs.
+      if (!(await pg.locator('[data-testid=bar-photo]').count())) await pg.click('[data-testid=tab-explore]');
       const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=bar-photo]')]);
       await chooser.setFiles(path.join(fixtures, 'photo.jpg'));
       const said = await pg.waitForSelector('[data-testid=recording-said]', { timeout: 10000 }).then((e) => e.innerText(), () => '');

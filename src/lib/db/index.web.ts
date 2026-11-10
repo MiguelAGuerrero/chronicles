@@ -9,16 +9,17 @@ import type { WalkTile } from '../walk/types';
 import type { AtlasArea } from '../atlas/atlas';
 import type { Mark, Place, Recall } from '../discovery/types';
 import { DERIVED_STORES } from './stores';
-import type { Capture, GapDecision, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
+import type { Capture, GapDecision, Moment, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 import { intersects, segmentBbox, segmentTile, tileKeysFor } from './segmentBounds';
 import { thinThreads } from '../threads/rules';
 import type { Link, Member, Thread, ThreadsChange } from '../threads/types';
 import type { Db } from './types';
 import { parseEdit } from '../mediaEdit';
+import { momentOf, type Flat } from '../moment';
 
 // Same tables as the native SQLite store, as IndexedDB object stores.
 const DB_NAME = 'chronicles';
-const VERSION = 17;
+const VERSION = 18;
 
 /** Raised when another open tab holds an older version of the database. */
 export class BlockedByOtherTabError extends Error {
@@ -27,7 +28,11 @@ export class BlockedByOtherTabError extends Error {
   }
 }
 
-function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number) {
+/**
+ * The upgrade steps from `oldVersion` up to `upTo` (the store's VERSION; a test opens an older one, MT1). Steps up to
+ * 17 run whatever `upTo` is: a database is never opened below 17 but by the frozen copy of these steps.
+ */
+export function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number, upTo: number = VERSION) {
   if (oldVersion < 1) {
     d.createObjectStore('walk', { keyPath: 'id' });
     d.createObjectStore('trace_point', { autoIncrement: true }).createIndex('walk_id', 'walk_id');
@@ -128,6 +133,26 @@ function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number) {
     const links = d.createObjectStore('moment_link', { keyPath: ['from_id', 'to_id'] });
     links.createIndex('from_id', 'from_id');
     links.createIndex('to_id', 'to_id');
+  }
+  if (oldVersion < 18 && upTo >= 18) {
+    // The moment table (MT1, decision 0123): one record per moment, its pieces inside it, so a read is one request
+    // and a moment with its pieces is one write. Every capture becomes a one-piece moment under its own id, so
+    // threads, replies, reminders and finds keep pointing at it. The capture store goes in the same upgrade.
+    const moments = d.createObjectStore('moment', { keyPath: 'id' });
+    moments.createIndex('walk_id', 'walk_id');
+    moments.createIndex('t', 't');
+    moments.createIndex('lat', 'lat');
+    moments.createIndex('piece_ids', 'piece_ids', { multiEntry: true });
+    const cur = tx.objectStore('capture').openCursor();
+    cur.onsuccess = () => {
+      const c = cur.result;
+      if (!c) {
+        d.deleteObjectStore('capture');
+        return;
+      }
+      moments.put(toRecord(momentOf(c.value as Flat)));
+      c.continue();
+    };
   }
 }
 
@@ -241,8 +266,17 @@ async function patch<T extends { id: string }>(name: string, id: string, p: Part
   await committed(tx);
 }
 
-/** A capture as read (ME21): its stored edit parsed, so a newer or broken one is none (media-editing audit 7). */
+/** A piece as read (ME21): its stored edit parsed, so a newer or broken one is none (media-editing audit 7). */
 const withEdit = (c: Capture): Capture => (c.edit === undefined ? c : { ...c, edit: parseEdit(c.edit) });
+
+/** A moment as stored: with its pieces' ids beside them, for the multiEntry index a piece's update reads. */
+type MomentRecord = Moment & { piece_ids: string[] };
+function toRecord(m: Moment): MomentRecord {
+  return { ...m, piece_ids: m.pieces.map((p) => p.id) };
+}
+const fromRecord = ({ piece_ids: _ids, ...m }: MomentRecord): Moment => ({ ...m, pieces: m.pieces.map(withEdit) });
+const byT = (a: { t: number }, b: { t: number }) => a.t - b.t;
+const piecesOf = (rows: MomentRecord[]) => rows.flatMap((m) => m.pieces);
 
 export const db: Db = {
   async createWalk(w) {
@@ -273,32 +307,88 @@ export const db: Db = {
     return (await byWalk<TracePoint>('trace_point', walkId)).sort((a, b) => a.t - b.t);
   },
 
-  async addCapture(c) {
-    await done((await store('capture', 'readwrite')).add(c));
+  async addMoment(m) {
+    if (!m.pieces.length) throw new Error(`A moment is never kept without a piece (${m.id}).`);
+    await done((await store('moment', 'readwrite')).add(toRecord(m)));
   },
-  async updateCapture(id, p) {
-    await patch<Capture>('capture', id, p);
+  async updateMoment(id, p) {
+    await patch<MomentRecord>('moment', id, p);
   },
-  async getCaptures(walkId) {
-    return (await byWalk<Capture>('capture', walkId)).map(withEdit).sort((a, b) => a.t - b.t);
+  async updatePiece(id, p) {
+    const tx = (await conn()).transaction('moment', 'readwrite');
+    const st = tx.objectStore('moment');
+    const m = (await done(st.index('piece_ids').get(id))) as MomentRecord | undefined;
+    if (m) st.put({ ...m, pieces: m.pieces.map((x) => (x.id === id ? { ...x, ...p } : x)) });
+    await committed(tx);
+  },
+  async addPiece(momentId, p) {
+    const tx = (await conn()).transaction('moment', 'readwrite');
+    return atomically(tx, async () => {
+      const st = tx.objectStore('moment');
+      const m = (await done(st.get(momentId))) as MomentRecord | undefined;
+      if (!m) throw new Error(`No moment ${momentId}.`);
+      if ((await done(st.index('piece_ids').count(p.id))) > 0) throw new Error(`A piece ${p.id} is kept already.`);
+      st.put(toRecord({ ...m, pieces: [...m.pieces, { ...p, moment_id: momentId }].sort(byT) }));
+    });
+  },
+  async deletePieces(ids) {
+    if (!ids.length) return;
+    const tx = (await conn()).transaction(['moment', 'walk_summary'], 'readwrite');
+    return atomically(tx, async () => {
+      const st = tx.objectStore('moment');
+      const gone = new Set(ids);
+      const hit = new Map<string, MomentRecord>();
+      for (const id of ids) {
+        const m = (await done(st.index('piece_ids').get(id))) as MomentRecord | undefined;
+        if (m) hit.set(m.id, m);
+      }
+      for (const m of hit.values()) {
+        const pieces = m.pieces.filter((p) => !gone.has(p.id));
+        if (!pieces.length) throw new Error('Deleting every piece of a moment is deleting the moment.');
+        st.put(toRecord({ ...m, pieces }));
+      }
+      const sums = tx.objectStore('walk_summary');
+      for (const w of new Set([...hit.values()].map((m) => m.walk_id))) {
+        if (w == null) continue;
+        const s = (await done(sums.get(w))) as WalkSummary | undefined;
+        const left = (await done(st.index('walk_id').getAll(w))) as MomentRecord[];
+        if (s) sums.put({ ...s, ...countsOf(piecesOf(left)) });
+      }
+    });
+  },
+  async splitPiece(pieceId, nm) {
+    const tx = (await conn()).transaction('moment', 'readwrite');
+    return atomically(tx, async () => {
+      const st = tx.objectStore('moment');
+      const m = (await done(st.index('piece_ids').get(pieceId))) as MomentRecord | undefined;
+      if (!m) throw new Error(`No piece ${pieceId}.`);
+      if (m.pieces.length < 2) throw new Error('A moment\'s last piece is the moment.');
+      if (await done(st.get(nm.id))) throw new Error(`A moment ${nm.id} is kept already.`);
+      const p = m.pieces.find((x) => x.id === pieceId)!;
+      st.put(toRecord({ ...m, pieces: m.pieces.filter((x) => x.id !== pieceId) }));
+      st.add(toRecord({ ...nm, pieces: [{ ...p, moment_id: nm.id }] }));
+    });
+  },
+  async getMoments(walkId) {
+    return (await byWalk<MomentRecord>('moment', walkId)).map(fromRecord).sort(byT);
   },
 
-  async capturesBetween(from, to) {
+  async momentsBetween(from, to) {
     if (!(to > from)) return [];
     const range = IDBKeyRange.bound(from, to, false, true);
-    return ((await done((await store('capture')).index('t').getAll(range))) as Capture[]).map(withEdit);
+    return ((await done((await store('moment')).index('t').getAll(range))) as MomentRecord[]).map(fromRecord);
   },
-  async getCapturesByIds(ids) {
-    const st = await store('capture');
-    const got = await Promise.all(ids.map((id) => done(st.get(id)) as Promise<Capture | undefined>));
-    return got.filter((c): c is Capture => !!c).map(withEdit).sort((a, b) => a.t - b.t);
+  async getMomentsByIds(ids) {
+    const st = await store('moment');
+    const got = await Promise.all(ids.map((id) => done(st.get(id)) as Promise<MomentRecord | undefined>));
+    return got.filter((m): m is MomentRecord => !!m).map(fromRecord).sort(byT);
   },
-  async capturesIn([w, s, e, n]) {
-    const band = (await done((await store('capture')).index('lat').getAll(IDBKeyRange.bound(s, n)))) as Capture[];
+  async momentsIn([w, s, e, n]) {
+    const band = (await done((await store('moment')).index('lat').getAll(IDBKeyRange.bound(s, n)))) as MomentRecord[];
     return band
-      .map(withEdit)
-      .filter((c) => c.lon != null && c.lon >= w && c.lon <= e)
-      .sort((a, b) => a.t - b.t);
+      .filter((m) => m.lon != null && m.lon >= w && m.lon <= e)
+      .map(fromRecord)
+      .sort(byT);
   },
 
   async listThreads() {
@@ -331,14 +421,14 @@ export const db: Db = {
   },
 
   async deleteWalk(walkId) {
-    const names = ['walk', 'trace_point', 'capture', 'pause', 'still', 'gap_fill', 'visited_segment', 'walk_summary', 'walk_area', 'area', 'find', 'recall', 'mark', 'meta', 'thread', 'thread_member', 'moment_link'];
+    const names = ['walk', 'trace_point', 'moment', 'pause', 'still', 'gap_fill', 'visited_segment', 'walk_summary', 'walk_area', 'area', 'find', 'recall', 'mark', 'meta', 'thread', 'thread_member', 'moment_link'];
     const tx = (await conn()).transaction(names, 'readwrite');
     const os = (n: string) => tx.objectStore(n);
     return atomically(tx, async () => {
-      const caps = (await done(os('capture').index('walk_id').getAll(walkId))) as Capture[];
+      const caps = (await done(os('moment').index('walk_id').getAll(walkId))) as MomentRecord[];
       await dropMoments(tx, caps.map((c) => c.id));
       for (const c of caps) {
-        os('capture').delete(c.id);
+        os('moment').delete(c.id);
         os('recall').delete(c.id);
       }
       await dropBy(os('trace_point'), 'walk_id', walkId);
@@ -365,12 +455,12 @@ export const db: Db = {
       }
     });
   },
-  async deleteCaptures(ids, opts = {}) {
+  async deleteMoments(ids, opts = {}) {
     if (!ids.length) return;
-    const tx = (await conn()).transaction(['capture', 'recall', 'find', 'walk_summary', 'thread', 'thread_member', 'moment_link'], 'readwrite');
+    const tx = (await conn()).transaction(['moment', 'recall', 'find', 'walk_summary', 'thread', 'thread_member', 'moment_link'], 'readwrite');
     return atomically(tx, async () => {
-      const capStore = tx.objectStore('capture');
-      const got = (await Promise.all(ids.map((id) => done(capStore.get(id)) as Promise<Capture | undefined>))).filter((c): c is Capture => !!c);
+      const capStore = tx.objectStore('moment');
+      const got = (await Promise.all(ids.map((id) => done(capStore.get(id)) as Promise<MomentRecord | undefined>))).filter((c): c is MomentRecord => !!c);
       await dropMoments(tx, got.map((c) => c.id));
       for (const c of got) {
         capStore.delete(c.id);
@@ -391,8 +481,8 @@ export const db: Db = {
       for (const w of new Set(got.map((c) => c.walk_id))) {
         if (w == null) continue;
         const s = (await done(sums.get(w))) as WalkSummary | undefined;
-        const left = (await done(capStore.index('walk_id').getAll(w))) as Capture[];
-        if (s) sums.put({ ...s, ...countsOf(left) });
+        const left = (await done(capStore.index('walk_id').getAll(w))) as MomentRecord[];
+        if (s) sums.put({ ...s, ...countsOf(piecesOf(left)) });
       }
     });
   },
@@ -452,15 +542,15 @@ export const db: Db = {
   },
 
   async saveSnap(walkId, segments, visited, summary, placed, complete = true) {
-    const names = ['street_segment', 'visited_segment', 'walk_summary', 'walk', 'area', 'walk_area', 'capture'];
+    const names = ['street_segment', 'visited_segment', 'walk_summary', 'walk', 'area', 'walk_area', 'moment'];
     const tx = (await conn()).transaction(names, 'readwrite');
     const walks = tx.objectStore('walk');
     const w = (await done(walks.get(walkId))) as Walk | undefined;
     // A walk deleted while its streets were read gets nothing back (audit 2).
     if (!w) return committed(tx);
     // Counts from the rows as they stand now, so a moment deleted meanwhile isn't counted (audit 3).
-    const rowsNow = (await done(tx.objectStore('capture').index('walk_id').getAll(walkId))) as Capture[];
-    summary = { ...summary, ...countsOf(rowsNow) };
+    const rowsNow = (await done(tx.objectStore('moment').index('walk_id').getAll(walkId))) as MomentRecord[];
+    summary = { ...summary, ...countsOf(piecesOf(rowsNow)) };
     const seg = tx.objectStore('street_segment');
     for (const x of segments) seg.put({ ...x, tile: segmentTile(x) });
     const vis = tx.objectStore('visited_segment');

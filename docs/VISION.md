@@ -7,7 +7,7 @@ with a decision record.
 
 - **Draft 1, 2026-11-05.** Lines marked **[proposed]** are recommendations not yet confirmed by the
   owner. The gate may cite them as reasons, never as rules, and says which is which.
-- **Last reviewed:** 2026-11-05 at `0a254ba` (`/vision review` moves this line).
+- **Last reviewed:** 2026-11-10 at `b7b28c2` (`/vision review` moves this line).
 
 ## Who it is for
 
@@ -133,3 +133,6 @@ same argument is not had twice.
 | 0109 | Listed places enter when remarkable and public: a listing is the gate, reachable from public ground the bar, never a mundane building or a closed place on a listing alone, a Landmark house excepted; the archive reads OpenStreetMap's tags; attractions pinned; Overture stays for busy streets (reshaped at the gate, Nov 9) |
 | 0110 | The slice's calls: OpenStreetMap only corroborates; the new kind is "Buildings and structures", never named for significance; passed places whisper as the card says them; reachability is said ("No street or path close by"), never a filter |
 | 0111 | The audit's calls: one place within 200 m for the same name and kind; a listed site, battlefield or wreck is a Monument, not a building |
+| 0112 | The app opens on Chronicle's Memories, which keeps a moment in one tap: the stack's three kinds in plain ink, fixed low, never a hero block (reshaped at the gate, Nov 9) |
+| 0115 | Places out of town: kinds filter what you see, never what exists; one-of-a-kind businesses only by a structural signal, never ratings or popularity; "?" within 50 km in countless stars, named only on a tap, never listed or counted (reshaped at the gate, Nov 9) |
+| 0121 | Drive there, walk back: a far Walk to asks "Walk now" or "When I get there"; the walk starts only on Start, never on arrival; Walk me back leads to where the last ride ended, or a spot chosen by hand; no waypoints (reshaped at the gate, Nov 10) |

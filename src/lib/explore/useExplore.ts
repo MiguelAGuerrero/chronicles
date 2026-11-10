@@ -1,4 +1,5 @@
 // @layer view
+import type { Faced } from '../moment';
 import { ensureOvertureRelease } from '../activity/overture';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MarkPin } from '../../components/MarkPinView';
@@ -8,7 +9,7 @@ import { categoryOf } from '../discovery/categories';
 import { boundsOf, distanceM } from '../geo';
 import { feedback } from '../motion';
 import { sweepCovered } from '../landing/view';
-import type { Capture, LngLat } from '../types';
+import type { LngLat } from '../types';
 import {
   pocketAlert,
   alertedFor,
@@ -51,7 +52,7 @@ export function useExplore(opts: {
   riding?: boolean;
   /** Every accepted fix of this walk, for what it revealed after a reload (E7). */
   fixes: LngLat[];
-  captures: Capture[];
+  captures: Faced[];
   /** The route ahead while navigating (E22), else null. */
   route: LngLat[] | null;
   /** The whole route being navigated: its areas are read once, keyed on it, not on each fix (audit 1). */

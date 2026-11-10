@@ -13,7 +13,7 @@ The concept doc's first milestone, a pocketed walk whose trace survives the scre
 
 **Recording a result.** A pass: tick the box, `- [x]`, and end the line with the date and the device, `— passed Nov 9, iPhone 13 (iOS 18.1)`. A failure stays open, `- [ ]`, and ends with what happened, `— failed Nov 9, Pixel 7 (Android 15): <what happened>`. Fix a failure like any other issue (`/fix`); the item stays open until it passes. The ids in parentheses at the end of an item are the criteria it accepts.
 
-## Migrations (SQLite, `db/index.native.ts` `MIGRATIONS`, tracked with `PRAGMA user_version`)
+## Migrations (SQLite, `db/migrations.ts` `MIGRATIONS`, tracked with `PRAGMA user_version`)
 
 The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each SQLite migration below has run only in code review. Migrations 1-4 (v0: the base tables, the versioned cache with `walk_summary` and `meta`, videos, pauses and captions) never ran on a device either. Each IndexedDB version named is the web's counterpart, for reference.
 
@@ -112,10 +112,10 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** on Android, edit a portrait photo taken with the phone turned (EXIF orientation set). **Expect:** `Image.getSize` with EXIF orientation agrees with how the SVG draws the photo: the crop frame and the saved crop match the upright picture (audit).
 - [ ] **Do:** edit a photo twice, tapping Done each time, then look in the app's folder (Xcode's container download or Android Studio's Device Explorer). **Expect:** the edited copy has its new name (`editedThumbName`), the pin shows the newest edit, and the old copy is removed (audit 3).
 
-## Deletion (`db.deleteWalk`, `db.deleteCaptures`, `removeMedia`)
+## Deletion (`db.deleteWalk`, `db.deleteMoments`, `removeMedia`)
 
 - [ ] **Do:** delete a finished walk from its More menu on Chronicle, let the 5 s Undo pass, then force-quit and reopen. **Expect:** the SQLite deletes hold: the walk, its trace, pauses and moments are gone after the relaunch, its star and counts drop it, and streets only it walked are fog again (Clearing walks and moments). (D1, D8)
-- [ ] **Do:** delete a capture that found a place, including one whose find is filed under another walk than the capture's, let Undo pass and relaunch. **Expect:** no replay or checklist shows any find of it: deleting a capture deletes every find of it, whatever walk the find is filed under (`deleteCaptures`; the web store keeps a find filed under another walk, a contract case says so). (D3)
+- [ ] **Do:** delete a capture that found a place, including one whose find is filed under another walk than the capture's, let Undo pass and relaunch. **Expect:** no replay or checklist shows any find of it: deleting a capture deletes every find of it, whatever walk the find is filed under (`deleteMoments`; the web store keeps a find filed under another walk; the contract pins both stores, SQLite over node:sqlite since MT11). (D3)
 - [ ] **Do:** delete a walk that only grazed a long street piece (far longer than 200 m, no junctions) at one end, while another walk walked the rest of it. **Expect:** the piece is recounted along its whole length: `getSegmentsIn` finds a piece that only grazes the bounds by comparing each piece's box (the web store files a piece by its centre's tile and misses it). (D7, D8)
 - [ ] **Do:** delete a walk with photos, a video and memos, noting "Frees about N MB" in the confirm; let Undo pass and check the app's storage in Settings. **Expect:** the media files and the walk's folder are removed, the storage drops by about N MB, and N is `Directory.size` of what goes (Clearing walks and moments). (D4, D11)
 - [ ] **Do:** delete a moment from the viewer's More menu, then tap Undo within 5 s. **Expect:** the Undo pill, `UndoToast`, "Moment deleted", shows over the viewer's Modal, not behind it, and Undo brings the moment back (Clearing walks and moments). (D5)
@@ -131,11 +131,27 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** with a walk minimized, tap Navigate, the recording bar and a reminder notification in quick succession. **Expect:** one walk screen on the stack (`dangerouslySingular` on the native stack's `walk`, `showWalk()`): one chevron or Back returns to the tab beneath (Navigation & tabs).
 - [ ] **Do:** on Navigate's ready screen, start a voice memo, then leave mid-memo by the chevron or another tab. **Expect:** the memo saved when Navigate blurs mid-memo is a moment that plays back (Navigation & tabs). (NR10)
 - [ ] **Do:** open a walk's replay from Chronicle and from a stopped walk, and press Android Back on each. **Expect:** the replay's `BackHandler` ends on Chronicle, showing the walk (Navigation & tabs, audit 6). (NV27)
-- [ ] **Do:** with no walk open, force-quit and open the app; go to Navigate and to Chronicle and press Android Back on each; press it again on Explore. **Expect:** the app opens on Explore at `/` on the native stack and tabs; Back on Navigate or Chronicle returns to Explore; on Explore it leaves the app (decision 0070). (NV2, NV5)
-- [ ] **Do:** with the app closed, open `chronicles://replay/nope` and then `chronicles://day/nope` from Notes or Safari. **Expect:** a deep link to a missing replay or day at launch goes straight to Explore, `router.dismissTo('/')` reaching it on the native stack (decision 0070). (NV2)
-- [ ] **Do:** on a fresh install, open the app and touch nothing. **Expect:** Explore's one fix at launch raises the location prompt before any tap, then frames where you are once (decision 0070). (NV16)
-- [ ] **Do:** add the web build to an iPhone's Home Screen, open a walk's replay, close the app from the app switcher, delete that walk in another session or wait for the link to go stale, and reopen it. **Expect:** an iPhone Home Screen app reopening on its last page lands on Explore (the `/explore` redirect, a stale replay link) (decision 0070). (NV2)
-- [ ] **Do:** start a walk, force-quit, and open the app again. **Expect:** the launch cover hides the native stack while the open walk is read, and the walk screen comes up under it before the recorder resumes: no flash of Explore (NV2 launch 1-5). (NV2)
+- [ ] **Do:** with no walk open, force-quit and open the app; go to Navigate and to Explore and press Android Back on each; press it again on Chronicle. **Expect:** the app opens on Chronicle's Memories at `/` on the native stack and tabs, the bar reading Chronicle, Explore, Navigate; Back on Navigate or Explore returns to Chronicle; on Chronicle it leaves the app (decision 0112). (NV2, NV5, HC1, HC3, HC4)
+- [ ] **Do:** with the app closed, open `chronicles://replay/nope` and then `chronicles://day/nope` from Notes or Safari. **Expect:** a deep link to a missing replay or day at launch goes straight to Chronicle, `router.dismissTo('/')` reaching it on the native stack (decisions 0070, 0112). (NV2, HC5)
+- [ ] **Do:** on a fresh install, open the app and touch nothing, then tap Explore. **Expect:** no location prompt while the app sits on Chronicle; Explore's first focus raises it, then frames where you are once (decision 0112). (NV16, HC14)
+- [ ] **Do:** add the web build to an iPhone's Home Screen, open a walk's replay, close the app from the app switcher, delete that walk in another session or wait for the link to go stale, and reopen it. **Expect:** an iPhone Home Screen app reopening on its last page lands on Chronicle (the `/chronicle` redirect, a stale replay link) (decision 0112). (NV2, HC5)
+- [ ] **Do:** start a walk, force-quit, and open the app again. **Expect:** the launch cover hides the native stack while the open walk is read, and the walk screen comes up under it before the recorder resumes: no flash of Chronicle (NV2 launch 1-5, HC2). (NV2, HC2)
+
+## Capture from Chronicle (HC1-HC15, decision 0112)
+
+- [ ] **Do:** on an iPhone with a home indicator, open the app on Memories and keep a photo, a voice memo and a note from the band. **Expect:** the band sits just above the tab bar and clear of the home indicator, each button takes one tap, and each moment heads Lately at once with its place once its fix comes. (HC6, HC7, HC9)
+- [ ] **Do:** start a voice memo from the band, then switch to Walks with the section bar (no route change). **Expect:** the memo is saved as the band loses focus, and plays back from Lately. (HC11)
+- [ ] **Do:** start a walk, minimize it, open Chronicle and keep a note and a photo from the band. **Expect:** the band sits above the recording bar, which shows no camera there; both say "saved to your walk" and are the walk's own captures on its replay. (HC7, HC10)
+- [ ] **Do:** with VoiceOver on, open the app and swipe right from the Memories options button. **Expect:** VoiceOver reaches the band's camera next, named "Keep a moment: take a photo or video", before the resurfaced card and Lately. (HC8)
+
+- [ ] **Do:** start a walk on Navigate, then record a voice memo from the walk screen; minimize mid-memo is off, so stop it, minimize, open Memories and record one from the band; go back to Navigate's walk screen at once and tap its mic. **Expect:** both memos are kept and play; the band's audio-mode reset never leaves the walk screen's recorder unable to record (iOS audio session; capture-from-chronicle audit). (HC11)
+- [ ] **Do:** from Memories' band, take a photo with the system camera, then a 15 s video; with a walk minimized, hold the bar's Stop while the video is still being kept. **Expect:** the camera opens over the tab, each is kept with its one fix, and the stopped walk's replay plays the video (`memoGate.kept()`, capture-from-chronicle audit 6). (HC9, HC10)
+- [ ] **Do:** deny the camera to Chronicles, tap the band's Photo, and tap Settings on the error. **Expect:** iOS opens Chronicles' settings (`Linking.openSettings`). (HC6)
+- [ ] **Do:** on Memories, write a note from the band with the keyboard up. **Expect:** the note editor sits above the keyboard (`KeyboardAvoidingView` over a tab). (HC6)
+- [ ] **Do:** with TalkBack on Android, open the app and move through Memories, then open a thread. **Expect:** the band comes right after the options button on Memories, and after the thread's Back inside a thread (an absolute layer with `zIndex: 2`; capture-from-chronicle audit 9). (HC8)
+- [ ] **Do:** scroll Lately so a card sits under the band, and tap the band's empty space between buttons. **Expect:** nothing opens; the band's hairline top border draws on iOS and Android (capture-from-chronicle audit 5). (HC7)
+- [ ] **Do:** with a walk minimized, tap Chronicle, then Explore, then Chronicle's Walks. **Expect:** the recording bar keeps its height and layout as its camera hides on Memories and comes back elsewhere (`barCamera`). (HC7)
+- [ ] **Do:** with no walk open, tap a reminder notification while the app is closed. **Expect:** the app opens on Chronicle with the moment's viewer (`router.navigate('/')` on a cold start). (HC1, NV13)
 
 ## Quality of life
 
@@ -165,19 +181,25 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** open Explore in a town with neighbours, then zoom out below z8. **Expect:** the `borders` GeoJSONSource draws your town with a soft fill and a firm border and the others as thin lines (fill and line layers, `filter`, `minzoom`) on MapLibre RN, the first overlay over the base map: under the trace and pins, gone below z8. (TB1, TB8)
 - [ ] **Do:** upgrade from a build before migration 18 that had outlines kept, open Explore, then reopen it in airplane mode. **Expect:** the app opens; SQLite migration 18 clears `outline_tile` and adds the `z` column; z10 tiles are read on a phone and the borders draw whole, and offline from the cache after. (TB6, TB7)
 
-## Discrete navigation (DN1-DN13)
+## Explore carousel (EC1-EC20, decision 0124; discrete navigation DN1, DN10, DN12, DN13)
 
-- [ ] **Do:** on Explore, swipe from one neighborhood to the next, then switch to a town and swipe again. **Expect:** `showPoint` on MapLibre RN still eases with `padding`: record whether the native camera keeps it and counts it again in a later `fitBounds`, as maplibre-gl did (the town fit then never moves); every fit lands (discrete-navigation fix 2, fixed on web only).
-- [ ] **Do:** drag one finger slowly across Explore's map. **Expect:** `dragPan={false}` on MapLibre RN's `Map`: one finger no longer pans Explore's map; on lifting it, the map has moved to an area or stayed put. (DN1)
-- [ ] **Do:** on Explore, swipe with one finger, then pinch, turn with two fingers, double tap and long press. **Expect:** `createSwiper` (`WalkMap.native.tsx`): the `PanResponder` takes the one-finger move from the map, while MapLibre's own pinch, two-finger turn, double tap and long press still work beside it. (DN2, DN10)
-- [ ] **Do:** with nothing selected, pan the map with two fingers, then swipe once. **Expect:** the swipe starts from the camera centre (`onRegionDidChange`'s centre), selecting the area next to the middle of the view. (DN3)
-- [ ] **Do:** with VoiceOver and then TalkBack on, swipe Explore's map to an area. **Expect:** `AccessibilityInfo.announceForAccessibility` says the area's name. (DN12)
-- [ ] **Do:** swipe to an area whose tile is off screen in the grid. **Expect:** the grid scrolls the selected tile into view (`measureInWindow` on the row and the ScrollView, then `scrollTo`), clear of the back pill. (DN6)
-- [ ] **Do:** long press Explore's map and slide the finger before lifting; start a pinch with one finger then add the second. **Expect:** neither is a swipe (`swiper.held()` from `onLongPress`, audit 3); record whether a granted JS responder cancels MapLibre's native recognizers on iOS or Android (a pinch that stops working). (DN10)
-- [ ] **Do:** right after opening Explore, before the map has settled, swipe once. **Expect:** the swipe starts from the map's real centre, not the default `[-71.4, 41.82]` before the first `onRegionDidChange`; record whether native's centre is the padded one, as the web's `getCenter()` is (audit 5). (DN3)
-- [ ] **Do:** swipe twice in quick succession, the second lifting the moment the first lands. **Expect:** each swipe moves one area from where the last landed: `swiper.sync` runs in an effect, and a release between a render and its effect would use the previous `onSwipe`. (DN2)
-- [ ] **Do:** zoom Explore's map in, swipe between areas; then turn reduce motion on and swipe again. **Expect:** `showPoint` (`Camera.easeTo` with padding) keeps the zoom you set; with reduced motion it jumps. (DN2)
-- [ ] **Do:** swipe to an area. **Expect:** the selected Marker shows its ring and accent colour, and the previous one loses them. (DN6)
+- [ ] **Do:** open Explore on iOS and Android. **Expect:** the map fills the screen above the tabs and one row of area cards sits at its bottom with the first card centred and its area ringed and named on the map; the next card's edge peeks. (EC1, EC2, EC5)
+- [ ] **Do:** swipe the row with a finger and let go between two cards. **Expect:** `snapToInterval` settles on one card, the map eases to that area keeping its zoom, and a screen reader says its name; no ping-pong between the row's own scroll and the selection. (EC4, EC5, EC13)
+- [ ] **Do:** swipe the map with one finger left, then right, then up. **Expect:** `createSwiper` (`WalkMap.native.tsx`): left steps to the next card and the row scrolls to it, right to the previous, up does nothing, and the map never pans; at the first and last card nothing changes. (EC8, EC10)
+- [ ] **Do:** on Explore, swipe with one finger, then pinch, turn with two fingers, double tap and long press. **Expect:** the `PanResponder` takes the one-finger move from the map, while MapLibre's own pinch, two-finger turn, double tap and long press still work beside it; the row's horizontal scroll and the map's swipe never both take one gesture. (EC10, DN10)
+- [ ] **Do:** long press Explore's map and slide the finger before lifting; start a pinch with one finger then add the second. **Expect:** neither is a swipe (`swiper.held()` from `onLongPress`, audit 3); record whether a granted JS responder cancels MapLibre's native recognizers on iOS or Android (a pinch that stops working). (EC10, DN10)
+- [ ] **Do:** swipe the map twice in quick succession, the second lifting the moment the first lands. **Expect:** each swipe steps one card from where the last landed: `swiper.sync` runs in an effect, and a release between a render and its effect would use the previous `onSwipe`. (EC8)
+- [ ] **Do:** tap a card that is not the centred one, then the centred one, then a town's card. **Expect:** the first only selects and centres it, the second opens its card, the town's selected card opens its page. (EC11)
+- [ ] **Do:** select a town card. **Expect:** the map frames the whole town and tints its border; no neighborhood is drawn with a name. (EC5, EC6)
+- [ ] **Do:** open a town's page, then a banner (turn location off and tap Locate). **Expect:** the back pill stays visible and tappable above the row, the banner above it, clear of the Locate column. (EC12, EC14)
+- [ ] **Do:** zoom Explore's map in and out near a busy area. **Expect:** the magenta busy streets draw at every zoom; their names appear only from zoom 13 and only near the selected area. (EC7)
+- [ ] **Do:** zoom Explore's map in, step between cards; then turn reduce motion on and step again. **Expect:** `showPoint` (`Camera.easeTo` with padding) keeps the zoom you set and the row scrolls without animation with reduced motion. (EC5)
+- [ ] **Do:** with VoiceOver and then TalkBack on, swipe the row and the map. **Expect:** every card is reachable by swiping, the selected card says it opens its card and the others that they select, and `announceForAccessibility` says an area's name when the selection changes. (EC13, DN12)
+- [ ] **Do:** on a phone with a home indicator, look at the row's bottom. **Expect:** the cards clear the indicator and sit above the tabs, and the map's Locate, Layers and compass are above the row. (EC19)
+
+- [ ] **Do:** open Explore, select a card past the first, leave the tab and come back (or let the list go empty and return). **Expect:** the row remounts scrolled to the selected card: a `scrollTo` issued before layout is not dropped (it would leave the row at the first card with another selected). (EC4)
+- [ ] **Do:** with a right-to-left language on, open Explore. **Expect:** the row's first card is on the reading side and a swipe steps in the reading direction, or the mirroring is recorded as not done (DEFERRED). (EC4)
+- [ ] **Do:** pull one card's name long ("Lehigh Valley Industrial Park District"). **Expect:** the name wraps in full and the row stays aligned to its top. (EC4)
 
 ## Explore atlas
 
@@ -206,8 +228,9 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 
 ## Functional core (slice 1, FC1-FC10)
 
+- [ ] **Do:** update the app over a phone with walks, loose moments, a thread, a reply and a reminder kept (a build before migration 22), then open Chronicle, a thread, a day, a walk's replay and a moment's viewer, and make a new photo and note. **Expect:** the app opens with no error; every walk, moment, thread, reply and reminder is there and opens as before, each moment once with its place; the new photo and note are kept and show at once (migration 22: the `moment` table and `capture.moment_id`; `db/sqliteStore.ts` reads one joined statement per read; IndexedDB 18). (MT1, MT2, MT9)
 - [ ] **Do:** on a fresh install, open Navigate. **Expect:** `lib/ports/index.ts` builds the real ports from the native db, recorder and notifier at module load; its first user is the ready walk screen's shell (`lib/ready`, Navigate, ready), so a phone's first run of it is the ready screen opening with your dot and choices, with no error.
-- [ ] **Do:** run the whole suite on one phone and check the items that read and write each `Db` method. **Expect:** the SQLite adapter (`db/index.native.ts`) answers as the Db contract (`src/lib/__tests__/dbContract.ts`) says: the suite runs only over the fake and IndexedDB in Node, so SQLite's match to it is by reading, and this suite's passes are its first evidence.
+- [ ] **Do:** run the whole suite on one phone and check the items that read and write each `Db` method. **Expect:** the SQLite store (`db/sqliteStore.ts`) answers as the Db contract (`src/lib/__tests__/dbContract.ts`) says: since MT11 the contract runs it over Node's built-in SQLite, so what remains for a phone is expo-sqlite itself (its bindings, WAL, the exclusive transactions under the background task). (MT11)
 
 ## Replay rhythm (RR1-RR22)
 
@@ -315,7 +338,7 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** on Android, open a moment, tap Respond (Back once closes the menu), then Respond, Note, type a few words, press Back; then press Back again. **Expect:** Back closes the menu, then the note being written and leaves the viewer open with Respond ready; the second closes the viewer. (owner-threads audit 9)
 - [ ] **Do:** with VoiceOver and TalkBack on, move through the Chronicle's Threads, the owner's Threads, a thread's timeline and the viewer's toolbar and its Respond menu. **Expect:** the two headings are said apart ("found for you", "connected by you"), each row reads as one named button with its heading and line, a reply says what it answers, and Respond's three kinds are buttons. (OT9, OT12)
 
-## UI conformance (UC1-UC13, decisions 0112, 0113)
+## UI conformance (UC1-UC13, decisions 0114, 0113)
 
 - [ ] **Do:** with VoiceOver on (iOS) and TalkBack on (Android), open a photo in the viewer and tap it. **Expect:** the bars stay up; with the screen reader off, the same tap hides them and a second brings them back. (UC7, UC8)
 - [ ] **Do:** delete a moment from the viewer, lock the phone for a minute, unlock. **Expect:** the pill with Undo is still there, and Undo brings the moment back. (UC1, UC2)
@@ -325,6 +348,16 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** delete a moment in the viewer, then go back to the previous screen before tapping anything. **Expect:** the pill goes, the moment is stored as deleted and stays gone; a delete waiting while a thread is changed is stored first. (audit 6, 4)
 - [ ] **Do:** with VoiceOver or TalkBack on, open a photo in the viewer and move focus onto it. **Expect:** it is not offered as a button. (audit 13)
 - [ ] **Do:** record a voice reply on a photo, then tap the photo. **Expect:** the bars stay up and Stop stays on screen. (audit 16)
+
+## Moment stacks (MS1-MS15, decision 0123)
+
+- [ ] **Do:** on Navigate's ready screen, take a photo with the edge camera, then tap the pill's camera and take another, then its mic and record a memo, then its pencil and write a note. **Expect:** after the system camera returns, the "Add to this moment" pill is there; each addition joins the first photo's moment (one card on Chronicle, with the two-card mark), with no second location prompt or fix, and the moment stays where the first photo was taken. (MS2, MS3)
+- [ ] **Do:** take a photo on a walk, wait two minutes, or walk on 100 m, without capturing. **Expect:** the pill goes by itself; the next capture is a new moment. Lock the phone with the pill showing and come back within two minutes: it is still there. (MS4)
+- [ ] **Do:** open a stacked moment in the viewer and swipe left and right; with VoiceOver and TalkBack, move through its buttons. **Expect:** the swipe steps through its photos, memo and note in the order taken; the buttons say "Previous in this moment" and "Next in this moment", apart from "Previous moment" and "Next moment", and nothing says how many it holds. (MS9, MS10)
+- [ ] **Do:** from a stacked moment's More, Split this photo out, look at the next moment, let the Undo pass, relaunch. **Expect:** the photo shows at once as its own moment, then is kept as one, placed where it was taken on the walk; the original keeps its other media, thread and reminder. (MS16)
+- [ ] **Do:** replay a walk with a stacked moment of four photos and a short video, then one of twelve photos. **Expect:** each is one grid on the stage (2×2 and 3×3), the pieces swipe in one after another, the video plays silently in its square, the twelve scroll slowly; no numbers or dots; a memo of the stack plays beside it. (MS17)
+- [ ] **Do:** turn on Group captures in Walk settings, take three captures with the stack's buttons, tap New moment, take one more, relaunch. **Expect:** the first three are one moment, the last its own; the setting is still on after the relaunch. (MS18, MS19)
+- [ ] **Do:** from a stacked moment's More, Delete this photo, let the Undo pass, then relaunch. **Expect:** the photo and its small copy are gone from storage; the moment keeps its other media, its reminder and its thread. (MS13)
 
 ## Network rules (`lib/net`, decision 0100)
 
@@ -356,7 +389,7 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 ## Remarkable and public (RP13-RP20, decisions 0109-0111)
 
 - [ ] **Do:** on a phone, take an exploring walk and open the card of a place to find that stands more than 60 m from any street or path (a building set back in a park), then one beside a street. **Expect:** the first card says "No street or path close by" under its name, the second says nothing of the kind, and both places can still be found (RP20).
-- [ ] **Do:** on a phone, open the walk's drawer with Explore on, on an install that already had kinds switched off. **Expect:** "What I'm into" lists Buildings and structures after Monuments and ruins, switched on, and the kinds switched off before stay off (RP18).
+- [ ] **Do:** on a phone, open the walk's drawer with Explore on, on an install that already had kinds switched off. **Expect:** "What I'm into" lists Buildings and structures after Monuments and memorials, switched on, and the kinds switched off before stay off (RP18).
 - [ ] **Do:** on a phone, in a dense downtown, tap several place pins quickly in a row. **Expect:** each card opens at once, the line "No street or path close by" appears only on the card of the place it belongs to, never on a found place, and the map stays smooth (RP20, remarkable-and-public audit 6).
 - [ ] **Do:** on a phone, replay a walk that passed four places to find without stopping. **Expect:** one whisper, "Passed a few places without stopping", as the walker reaches the last of them (RP19, audit 14).
 
@@ -374,3 +407,12 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** with under 100 MB free, take a photo, a 30 s video and a voice memo on a walk. **Expect:** after a capture the line becomes "There is almost no room left for new photos, videos and memos."; a save that fails shows "Not saved: there is no room left. It is held here for Retry." (never the system's own error text) and a "Photo not saved" or "Video not saved" pill; after freeing room, Retry keeps each with its time and place. (SA5, SA8, SA9)
 - [ ] **Do:** with a photo held, hold Stop. **Expect:** the walk does not end; it says the photo isn't saved yet with Retry, and a second hold ends the walk without it. (SA8)
 - [ ] **Do:** on an iPhone in Safari (not the Home Screen app), keep a moment on Navigate, ready. **Expect:** if Safari refuses to keep the data, the line "This browser may clear Chronicles’ moments when it needs room. The Home Screen app is less likely to." shows once there; from the Home Screen app, whether `persist()` is granted (nothing said). (SA10)
+
+## Permission refusals offer Settings (fix mic-settings, Nov 10)
+
+- [ ] **Do:** on an iPhone and an Android phone, turn Microphone off for Chronicles in Settings, open a moment from Memories, and tap Respond, Voice; then do the same from the planner's capture buttons during a walk. **Expect:** "Microphone access is off for Chronicles." stays about 8 seconds with an "Open Settings" button that opens Chronicles' page in Settings; after turning Microphone on and returning, Voice records.
+## Drive there, walk back (DW1-DW14, decision 0121)
+
+- [ ] **Do:** with Explore open, pick a town more than 2 km away, tap its Walk to, then When I get there; drive there with the app in the background, park a street away and wait a few minutes before opening it. **Expect:** no walk started and nothing told you that you'd arrived; Navigate, ready says "To <town> · <distance> away"; the walk starts only when you tap Start, from where you parked. (DW2, DW3, DW4)
+- [ ] **Do:** start a walk, drive 3 km inside it, get out and walk 200 m. **Expect:** "On a ride" while driving; afterwards VoiceOver or TalkBack reads Walk me back as "Walk me back to where the ride ended", and it leads to where you got out, not to where the drive began. (DW6, DW8, DW9)
+- [ ] **Do:** press and hold the walk map, tap Walk back here, then force-quit and reopen the app. **Expect:** "Walk me back now leads here." once; after the relaunch Walk me back still leads to that spot; Stop clears it. (DW7)

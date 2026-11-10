@@ -90,11 +90,11 @@ async function run(h) {
       recorded.then((video) => cv.toBlob((blob) => {
         const req = indexedDB.open('chronicles');
         req.onsuccess = () => {
-          const tx = req.result.transaction(['walk', 'trace_point', 'capture', 'media'], 'readwrite');
+          const tx = req.result.transaction(['walk', 'trace_point', 'moment', 'media'], 'readwrite');
           const w = tx.objectStore('walk').get(id);
           w.onsuccess = () => tx.objectStore('walk').put({ ...w.result, started_at: startedAt });
           for (const p of pts) tx.objectStore('trace_point').add(p);
-          for (const cap of caps) tx.objectStore('capture').put(cap);
+          for (const cap of caps) tx.objectStore('moment').put(((c) => ({ id: c.id, walk_id: c.walk_id ?? null, t: c.t, lat: c.lat ?? null, lon: c.lon ?? null, segment_id: c.segment_id ?? null, piece_ids: [c.id], pieces: [Object.fromEntries(Object.entries({ ...c, moment_id: c.id }).filter(([k]) => !['walk_id', 'lat', 'lon', 'segment_id'].includes(k)))] }))(cap));
           tx.objectStore('media').put({ key: 'rr-photo', blob });
           tx.objectStore('media').put({ key: 'rr-video', blob: video });
           tx.oncomplete = () => resolve(true);
@@ -265,7 +265,7 @@ async function run(h) {
     // The day (RR16): its replay reaches the day's card with no taps, the note on the way.
     const wakesBefore = (await pg.evaluate(() => window.__wake.log.length));
     await pg.click('[data-testid=not-now]');
-    await pg.waitForURL((u) => u.pathname === `${BASE}/chronicle`, { timeout: 15000 });
+    await pg.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 15000 });
     await h.mapUp(pg);
     await pg.click('[data-testid=sheet-days]');
     await pg.click('[data-testid=day-row]');

@@ -5,7 +5,7 @@ paths:
 ---
 # UI patterns
 
-Screens follow the platforms' own patterns before anything of our own (decision 0112). The sources, with quotes
+Screens follow the platforms' own patterns before anything of our own (decision 0114). The sources, with quotes
 and URLs, are in `docs/research/ui-references.md` (Apple HIG, Material Design 3, NN/g's heuristics H1-H10 and WCAG
 2.2, all read first-hand); rule ids below (T7, M3, H3, ...) point there. How adjacent apps solve our jobs is in
 `docs/research/ui-teardown.md` (each claim marked verified or not). Its goal-to-control matrix (section 2) is the first
@@ -24,7 +24,7 @@ stop for "which control is this?". **[app]** marks a house rule stricter than th
   also in the visible UI (M4, X6).
 - **"Capture is one tap away"** (`docs/VISION.md`) is about the capture stack on the screens you walk or capture
   from. An action on a moment that exists (reply, edit, add to a thread, save, delete) belongs in its toolbar or
-  menu (decision 0112).
+  menu (decision 0114).
 
 ## Confirmation and feedback
 

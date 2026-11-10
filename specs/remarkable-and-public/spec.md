@@ -95,7 +95,8 @@ Built Nov 9 on `claude/gallant-maxwell-hp14jb` (tests first `59d0663`, code `3a9
 Main moved the places pipeline to chronicles-data (decision 0108) while this slice was built. The owner's call at deploy
 (Nov 10, "Ship app side now"): the app's side ships (RP11, RP13-RP20, and the audit's app fixes 5-9, 14); the archive's
 rule (RP1-RP8, RP10, RP12, the audit's build fixes 1, 2, 4, 10-13, 18) moves to chronicles-data with its tests
-(`handoff.md`), and RP9 waits on the contract's v2 classes. `scripts/features.js` records each as deferred.
+(`handoff.md`). Built there Nov 10 (its RD1-RD14, with OSM's signals and an ODbL pack, the owner's call); the app took
+contract v2 the same day and RP9's test came back.
 
 ## Audit (Nov 9, at the owner's request)
 

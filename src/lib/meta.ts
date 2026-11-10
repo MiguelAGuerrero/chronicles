@@ -77,6 +77,7 @@ const isNav = (v: unknown) =>
   isLngLat(v.dest.at) &&
   typeof v.dest.label === 'string' &&
   typeof v.dest.kind === 'string';
+const isWayBack = (v: unknown) => isObject(v) && typeof v.walk_id === 'string' && isLngLat(v.at);
 const isLayerState = (v: unknown) => isObject(v) && Object.values(v).every((x) => typeof x === 'boolean');
 const isNearRead = (v: unknown) => isObject(v) && isLngLat(v.at) && typeof v.build === 'string' && typeof v.code === 'string';
 
@@ -104,6 +105,8 @@ export const META = {
   nav: { owner: 'nav', codec: json<{ walk_id: string | null; dest: Waypoint }>(isNav) },
   // Scenic routes (lib/routeLeanings): the leanings switched on in the walk settings (SR1).
   route_leanings: { owner: 'nav', codec: json<string[]>(isStrings) },
+  // Drive there, walk back (DW7, lib/nav/store): the spot chosen with Walk back here, for the open walk only.
+  way_back: { owner: 'nav', codec: json<{ walk_id: string; at: [number, number] }>(isWayBack) },
   // Navigate tab (lib/startPlan, the Start dialog)
   start_mode: { owner: 'navigate', codec: oneOf<StartMode>('quiet', 'explore') },
   web_note_dismissed: { owner: 'navigate', codec: flag },
@@ -133,6 +136,8 @@ export const META = {
   kindwalk_pref: { owner: 'kindwalk', codec: oneOf<'warn' | 'skip'>('warn', 'skip') },
   // Chronicle's Memories (lib/resurface): what the user chose to see less of, renamed or removed (RM21)
   resurface_prefs: { owner: 'resurface', codec: json<Prefs>((v) => parsePrefs(v) !== null) },
+  // Moment stacks (lib/momentPill): Group captures into one moment, off until switched on (MS18, decision 0123)
+  group_captures: { owner: 'captures', codec: onOff },
   // Settings
   units: { owner: 'settings', codec: oneOf<Units>('km', 'mi') },
   // Storage awareness (lib/space, SA4, SA10).

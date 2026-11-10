@@ -1,4 +1,4 @@
-<!-- Repo first: written from the owner's request in a session (Nov 10), not a tab of the concept doc (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7). Grounded in docs/research/ui-references.md (Apple HIG, Material 3, NN/g, WCAG 2.2); rule ids in brackets point there. Builds on decision 0112. -->
+<!-- Repo first: written from the owner's request in a session (Nov 10), not a tab of the concept doc (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7). Grounded in docs/research/ui-references.md (Apple HIG, Material 3, NN/g, WCAG 2.2); rule ids in brackets point there. Builds on decision 0114. -->
 
 # UI conformance: Undo that waits, deletes that don't ask, a viewer that steps aside
 
@@ -10,7 +10,7 @@ The sourced patterns (`docs/research/ui-references.md`) found five places where 
 
 Idea: Bring the app's deletes, Undo, moment viewer and confirmations in line with the platforms' own patterns: Undo that waits for you, no confirm before a delete you can undo, a viewer whose bars step aside on a tap, no pill for a result you can see, and a top bar of Close and More.
 Verb: honour and return (a moment arrives whole and can be looked at without chrome; what you remove can be brought back on your own time).
-Touches: Always "Restraint in motion, colour and copy: the content is the novelty, not the chrome" (the viewer's bars hide; pills that only congratulate go); Never "Celebration: confetti, fanfare, big numbers, accent-coloured wins" (nothing is added; pills are removed); Always "Capture is one tap away on every screen you walk or capture from" (untouched: the capture stack does not change; decision 0112 says actions on an existing moment live in its toolbar or menu); Never "Editing out the lows" (a delete is still the owner's own act; Undo makes it safer, not easier to lose); precedents 0112 (the viewer's toolbar and menu), D4 and D5 of `specs/clearing-walks-and-moments` (amended here).
+Touches: Always "Restraint in motion, colour and copy: the content is the novelty, not the chrome" (the viewer's bars hide; pills that only congratulate go); Never "Celebration: confetti, fanfare, big numbers, accent-coloured wins" (nothing is added; pills are removed); Always "Capture is one tap away on every screen you walk or capture from" (untouched: the capture stack does not change; decision 0114 says actions on an existing moment live in its toolbar or menu); Never "Editing out the lows" (a delete is still the owner's own act; Undo makes it safer, not easier to lose); precedents 0114 (the viewer's toolbar and menu), D4 and D5 of `specs/clearing-walks-and-moments` (amended here).
 Verdict: aligned
 Shape: as asked.
 Criteria: UC10 (no success pill for a result on screen, each still said to a screen reader); UC7, UC8 (the bars hide only on the owner's tap, and never with a screen reader on).

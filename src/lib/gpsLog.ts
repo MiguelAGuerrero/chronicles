@@ -1,5 +1,6 @@
 // @layer core
-import type { Capture, TracePoint } from './types';
+import type { Faced } from './moment';
+import type { TracePoint } from './types';
 
 /**
  * A walk's raw location readings as plain text, for the owner to paste when
@@ -8,7 +9,7 @@ import type { Capture, TracePoint } from './types';
  * accuracy, speed and course. Captures are listed with where they were placed.
  * Nothing is sent anywhere: the walk's options hand the text to the share sheet.
  */
-export function gpsLog(o: { startedAt: number; points: TracePoint[]; captures?: Capture[]; userAgent?: string }): string {
+export function gpsLog(o: { startedAt: number; points: TracePoint[]; captures?: Faced[]; userAgent?: string }): string {
   const s = (t: number) => ((t - o.startedAt) / 1000).toFixed(1);
   const n = (v: number | null | undefined, d: number) => (v == null || !Number.isFinite(v) ? '' : v.toFixed(d));
   const lines = [

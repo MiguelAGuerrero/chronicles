@@ -1,6 +1,10 @@
+import type { Faced } from '../lib/moment';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, usePathname } from 'expo-router';
+import { barCamera } from '../lib/captureBand';
+import { chronicleSection } from '../lib/resurface/sectionStore';
+import { useStore } from '../lib/useStore';
 import { useUnits } from '../lib/useUnits';
 import { db } from '../lib/db';
 import { memoGate } from '../lib/memoGate';
@@ -10,7 +14,7 @@ import { onRecallFired, RECALL_OPEN_KEY } from '../lib/discovery/recallCheck';
 import { feedback } from '../lib/motion';
 import { perfCount } from '../lib/perfCount';
 import { recordingLine } from '../lib/recordingBar';
-import type { Capture, Pause, Walk } from '../lib/types';
+import type { Pause, Walk } from '../lib/types';
 import type { LiveTrace } from '../lib/useLiveTrace';
 import { useCaptures } from '../lib/useCaptures';
 import { settleWithin } from '../lib/settleWithin';
@@ -54,13 +58,17 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   const [said, setSaid] = useState<{ text: string; error?: boolean } | null>(null);
   // After a photo or video, Edit is offered for a few seconds (ME23).
   const editOffer = useEditOffer();
-  const [editingKept, setEditingKept] = useState<Capture | null>(null);
+  const [editingKept, setEditingKept] = useState<Faced | null>(null);
   const onError = useCallback((e: { message: string }) => setSaid({ text: e.message, error: true }), []);
   const cap = useCaptures(walk.id, live.here, live.lastFixAt, onError);
+  // On Memories the band's camera files into the walk: the bar shows none there (decision 0112).
+  const path = usePathname();
+  const section = useStore(chronicleSection.store, (x) => x);
+  const showCamera = barCamera(path, section);
   // A photo still being kept: Return waits for it, so the walk screen opens with it (NV9).
   const keeping = useRef<Promise<unknown> | null>(null);
   const returning = useRef(false);
-  const [reminder, setReminder] = useState<Capture[] | null>(null);
+  const [reminder, setReminder] = useState<Faced[] | null>(null);
 
   useEffect(() => {
     if (!said) return;
@@ -87,7 +95,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   const distanceM = live.distanceM;
   const paused = pauses.some((p) => p.ended_at == null);
 
-  const back = async (open: Capture[] | null) => {
+  const back = async (open: Faced[] | null) => {
     if (returning.current) return;
     returning.current = true;
     try {
@@ -124,7 +132,8 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
         setSaid({ text: 'A voice memo is recording. Save it first.', error: true });
         return;
       }
-      await settleWithin(keeping.current, RETURN_WAIT_MS);
+      // The bar's photo, and one still being kept from Memories' band (capture-from-chronicle audit 6).
+      await settleWithin(Promise.all([keeping.current, memoGate.kept()]), RETURN_WAIT_MS);
       await stopWalk(walk.id);
       feedback('success');
       router.push(`/replay/${walk.id}`);
@@ -185,7 +194,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
           setEditingKept(cap.captures.find((c) => c.id === id) ?? null);
           editOffer.clear();
         }} />}
-        <Pressable
+        {(showCamera || cap.busy === 'photo') && <Pressable
           testID="bar-photo"
           accessibilityRole="button"
           accessibilityLabel="Take a photo or video for this walk"
@@ -196,7 +205,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
           style={({ pressed }) => [styles.camera, pressed && styles.pressed]}
         >
           {cap.busy === 'photo' ? <ActivityIndicator color={theme.ink} /> : <Icon name="camera" size={22} color={theme.ink} />}
-        </Pressable>
+        </Pressable>}
         {/* Stop from the bar itself, held as on the walk screen: a way out even when the walk screen
             can't be reached (the owner, Nov 2). */}
         <HoldButton
@@ -213,7 +222,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
         </HoldButton>
       </View>
       {editingKept && (
-        <MediaEditor key={editingKept.id} capture={editingKept} initialTool="crop" onClose={() => setEditingKept(null)} onSave={(patch) => cap.setEdit(editingKept.id, patch)} />
+        <MediaEditor key={editingKept.id} capture={editingKept} initialTool="crop" onClose={() => setEditingKept(null)} onSave={(patch) => cap.setEdit(editingKept, patch)} />
       )}
     </View>
   );

@@ -17,7 +17,7 @@ paths:
 
 Captures (photo, video, voice memo, note), their viewer, captions and baking, thumbnails, saving keepers, the backup bundle, and the voice-memo and web-video traps. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
 
-## The viewer (decision 0112)
+## The viewer (decision 0114)
 
 - **Top bar, toolbar, menu; nothing over the moment.** `CaptureViewer` draws its top bar (More, Close; Remind me here and Go here are More's items since UC9, and a set reminder says so in the info line, UC12), hides its bars on a tap on a photo (`chrome`, UC7; never with a screen reader, UC8), says a kept reply or an added thread in the info line rather than a pill (`statusOf`, UC10), and `ReplyDock` docks a toolbar under the moment (Respond, and Edit for a photo or video with `onSaveEdit`, or a note with `onSaveNote`). `CaptureContent` takes `dock` and leaves that room clear: the strip and the note card sit above it, and a photo or video starts under the top bar (`TOP_BAR_H`). More holds Remind me here, Go here, Save, Open in Maps, Add to a thread, Open its thread and Delete (no confirm; Undo on the pill, UC4).
 - **Screenshots are taken after the Modal's fade** (`waitForTimeout(800)`): a picture taken during it shows the screen beneath through the viewer.
@@ -27,6 +27,23 @@ Captures (photo, video, voice memo, note), their viewer, captions and baking, th
 - **Video** comes from the camera button (the system camera's own video mode),
   capped at 30 s on phones and 15 s on web. The mic stays the separate pocket
   recorder.
+
+## A moment's pieces (decision 0123)
+
+- **Screens read `Faced` moments** (`lib/moment`): the moment's id, walk, time and place with its face's media and
+  `piece_id`. Media writes name `piece_id` (`db.updatePiece`), place writes the moment (`db.updateMoment`). A
+  piece's small copy and files are named by the piece's id; a moment's first piece shares the moment's id.
+- **The viewer shows a stacked moment piece by piece** (`facedAt`): edits and note text are kept by `piece_id`;
+  the footer's "i of n" is for moments, never over pieces (MS9). A piece waiting in the Undo window is hidden by
+  `pieceKey(id)`, never its id, or the whole moment would vanish with its first piece.
+- **Split out** (MS16): `lib/split` through the one Undo window (kind `split`): the piece is hidden from its stack by
+  `pieceKey` and shown at once as its own moment (the viewer reads `split.store`, inserting it after its original);
+  `db.splitPiece` stores it once the window has passed, so Undo never joins two moments. Never the first piece.
+  Placed by `splitPlace` (the trace at its time, a pause's start, the last fix before a gap; off a walk the original's
+  place).
+- **Group captures** (MS18-MS21): `momentPill.grouping` (meta `group_captures`); the edge stack passes
+  `momentPill.edgeTarget()`, null with the setting off, so the edge makes a new moment by default.
+- **Adding a piece takes no fix** (`pieceStamp.stampFor` with `into`; MS3, 0036).
 
 ## What happened here
 
@@ -177,7 +194,7 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
   `readyState` at 1 until a `play()` is let through (Chromium loads a `blob:`
   video whatever its `preload` says).
 - **Edit a note** (QL24, QL25): the viewer's docked toolbar offers Edit for a note
-  when the screen passes `onSaveNote` (it was in More until decision 0112); `NoteEditor` opens inside the viewer's Modal (as
+  when the screen passes `onSaveNote` (it was in More until decision 0114); `NoteEditor` opens inside the viewer's Modal (as
   the caption and reminder editors do). `noteText` (`lib/noteEdit.ts`, pure) trims,
   cuts to 500 and refuses blank. The viewer keeps edited bodies and merges them into
   what it shows, so the text changes at once and rolls back on a failed save. Screens

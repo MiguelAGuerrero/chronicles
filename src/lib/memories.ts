@@ -1,6 +1,7 @@
 // @layer core
+import type { Faced } from './moment';
 import { distanceM } from './geo';
-import type { Capture, CaptureKind, LngLat } from './types';
+import type { CaptureKind, LngLat } from './types';
 
 /**
  * Memories on revisit (the concept doc's tab): captures from earlier walks
@@ -21,7 +22,7 @@ export const MEMORY_RULES = {
 } as const;
 
 /** Memories within reach (MR1): other walks only, with a place, nearest first, capped; minus any shown as a reminder (MR7). */
-export function memoriesNear(o: { pool: Capture[]; here: LngLat | null; walkId: string | null; hidden: Set<string> }): Capture[] {
+export function memoriesNear(o: { pool: Faced[]; here: LngLat | null; walkId: string | null; hidden: Set<string> }): Faced[] {
   const here = o.here;
   if (!here) return [];
   return o.pool
@@ -43,7 +44,7 @@ const clock = (ms: number) => {
 };
 
 /** The preview's line (MR4): a note's first line, a photo's caption, a memo's or video's length, else the kind. */
-export function previewLine(c: Capture): string {
+export function previewLine(c: Faced): string {
   if (c.kind === 'text') return (c.body ?? '').split('\n')[0].trim() || LABEL.text;
   if (c.kind === 'photo') return c.caption?.trim() || LABEL.photo;
   const ms = Number(c.body);
@@ -56,7 +57,7 @@ export function previewLine(c: Capture): string {
  * failed one marks nothing as read, so the next fix tries again (audit 1).
  * It sends only when the set of captures changed (audit 10).
  */
-export function memoryReader(read: (at: LngLat) => Promise<Capture[]>, onPool: (pool: Capture[]) => void) {
+export function memoryReader(read: (at: LngLat) => Promise<Faced[]>, onPool: (pool: Faced[]) => void) {
   let readAt: LngLat | null = null;
   let busy = false;
   let lastIds: string | null = null;
@@ -88,14 +89,14 @@ export function memoryReader(read: (at: LngLat) => Promise<Capture[]>, onPool: (
 }
 
 /** How far around a tapped group to look (audit 3): its farthest member and a margin, at least What happened here's 50 m. */
-export function groupRadiusM(at: LngLat, group: Capture[]): number {
+export function groupRadiusM(at: LngLat, group: Faced[]): number {
   let far = 0;
   for (const c of group) if (c.lat != null && c.lon != null) far = Math.max(far, distanceM(at, [c.lon, c.lat]));
   return Math.max(50, Math.ceil(far + 10));
 }
 
 /** What a tapped group opens (audit 3): its own captures first, then the rest nearby, oldest first; never this walk's. */
-export function groupFirst(group: Capture[], nearby: Capture[], walkId: string | null): Capture[] {
+export function groupFirst(group: Faced[], nearby: Faced[], walkId: string | null): Faced[] {
   const ids = new Set(group.map((c) => c.id));
   const rest = nearby.filter((c) => !ids.has(c.id)).sort((a, b) => a.t - b.t);
   return [...group, ...rest].filter((c) => c.walk_id !== walkId);

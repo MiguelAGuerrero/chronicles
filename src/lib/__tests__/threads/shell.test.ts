@@ -1,11 +1,11 @@
+import { type Faced, facedAll, facedOf, momentOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createThreads, type ThreadDeleteJob } from '../../threads/shell';
 import { createDeleteRunner } from '../../deletion/runner';
 import { fakePorts } from '../fakes';
-import type { Capture } from '../../types';
 
-const moment = (id: string, t: number, more: Partial<Capture> = {}): Capture => ({
+const moment = (id: string, t: number, more: Partial<Faced> = {}): Faced => facedOf({
   id, walk_id: null, t, lat: 41.8, lon: -71.4, kind: 'text', file_path: null, body: `note ${id}`, segment_id: null, ...more,
 });
 
@@ -13,7 +13,7 @@ async function setup(ids: string[] = ['m1', 'm2', 'm3']) {
   const ports = fakePorts();
   const jobs: ThreadDeleteJob[] = [];
   const threads = createThreads(ports, { schedule: (j) => jobs.push(j) });
-  for (const [i, id] of ids.entries()) await ports.db.addCapture(moment(id, 1000 + i));
+  for (const [i, id] of ids.entries()) await ports.db.addMoment(momentOf(moment(id, 1000 + i)));
   // What the Undo window does when the owner taps Close: store each waiting delete, then the screens read again.
   const runner = createDeleteRunner({ db: ports.db, removeMedia: async () => 0, forgetRecalls: () => {} });
   const storeJobs = async () => {
@@ -71,7 +71,7 @@ test('OT8: Remove from this thread keeps the moment, its other threads and its l
   assert.deepEqual(got.members.filter((m) => m.thread_id === a).map((m) => m.moment_id).sort(), ['m2', 'm3']);
   assert.ok(got.members.some((m) => m.thread_id === b && m.moment_id === 'm1'), 'its other thread keeps it');
   assert.equal(got.links.length, 1);
-  assert.equal((await ports.db.getCapturesByIds(['m1'])).length, 1, 'the moment is kept');
+  assert.equal((await ports.db.getMomentsByIds(['m1']).then(facedAll)).length, 1, 'the moment is kept');
 });
 
 test('OT2: a reply links to the moment it answers and joins its thread, or makes an unnamed thread of the two', async () => {
@@ -115,7 +115,7 @@ test('OT14: Delete this thread waits for the Undo window and then removes the th
   const got = await ports.db.listThreads();
   assert.deepEqual([got.threads, got.members], [[], []]);
   assert.equal(got.links.length, 1, 'the reply link is not the thread\'s');
-  assert.equal((await ports.db.getCapturesByIds(['m1', 'm2', 'm3'])).length, 3, 'no moment is deleted');
+  assert.equal((await ports.db.getMomentsByIds(['m1', 'm2', 'm3']).then(facedAll)).length, 3, 'no moment is deleted');
   assert.deepEqual(threads.store.get().data.threads, []);
 });
 
@@ -131,11 +131,11 @@ test('OT15: a thread left with fewer than two moments dissolves at once, name an
 
 test('OT18: linking never changes a moment\'s own row', async () => {
   const { ports, threads, storeJobs } = await setup(['m1', 'm2', 'r']);
-  const before = await ports.db.getCapturesByIds(['m1', 'm2', 'r']);
+  const before = await ports.db.getMomentsByIds(['m1', 'm2', 'r']).then(facedAll);
   const t = (await threads.startThread(['m1', 'm2']))!;
   await threads.reply('r', 'm1', t);
   threads.removeFromThread(t, 'r');
   await storeJobs();
   await threads.rename(t, 'x');
-  assert.deepEqual(await ports.db.getCapturesByIds(['m1', 'm2', 'r']), before);
+  assert.deepEqual(await ports.db.getMomentsByIds(['m1', 'm2', 'r']).then(facedAll), before);
 });

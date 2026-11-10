@@ -13,11 +13,11 @@ import type { LandingRow } from '../../landing/view';
 import { parseEdit } from '../../mediaEdit';
 import { thinThreads } from '../../threads/rules';
 import type { Link, Member, Thread, ThreadsChange } from '../../threads/types';
-import type { Capture, GapDecision, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../../types';
+import type { Capture, GapDecision, Moment, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../../types';
 
 /** The `Db` methods that only read: left out of a fake's `effects()` log. */
 export const DB_READS = [
-  'getWalk', 'listWalks', 'getOpenWalk', 'getPoints', 'getCaptures', 'capturesBetween', 'getCapturesByIds', 'capturesIn',
+  'getWalk', 'listWalks', 'getOpenWalk', 'getPoints', 'getMoments', 'momentsBetween', 'getMomentsByIds', 'momentsIn',
   'getPauses', 'getStills', 'getGapDecisions', 'listThreads',
   'listAreas', 'listWalkAreas', 'getSegmentsIn', 'getVisited', 'visitedSegmentIds', 'streetKeysBefore', 'listSummaries',
   'placesIn', 'listMarks', 'listRecalls', 'listLandings', 'listAtlasAreas', 'getOutlineTiles', 'getWalkTiles',
@@ -118,13 +118,16 @@ function band(lo: number, hi: number): (v: Key) => boolean {
  */
 export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
   const copy = <T>(v: T): T => structuredClone(v);
-  // As the real stores: a capture's edit is read through parseEdit (media-editing audit 7).
+  // As the real stores: a piece's edit is read through parseEdit (media-editing audit 7).
   const withEdit = (c: Capture): Capture => (c.edit === undefined ? c : { ...c, edit: parseEdit(c.edit) });
+  const readMoment = (m: Moment): Moment => ({ ...copy(m), pieces: m.pieces.map((p) => withEdit(copy(p))) });
   const out = <T>(rows: T[]): T[] => rows.map(copy);
   const walks = new Table<Walk>((w) => w.id);
   const points = new Table<TracePoint & { seq: number }>((p) => p.seq); // autoIncrement
   let seq = 0;
-  const captures = new Table<Capture>((c) => c.id);
+  // As the web store (decision 0123): one record per moment, its pieces inside it.
+  const moments = new Table<Moment>((m) => m.id);
+  const momentOfPiece = (id: string) => moments.all().find((m) => m.pieces.some((p) => p.id === id));
   const pauses = new Table<Pause>((p) => [p.walk_id, p.started_at]);
   const stills = new Table<Still>((p) => [p.walk_id, p.started_at]);
   const gapFills = new Table<GapDecision>((d) => [d.walk_id, d.t0]);
@@ -205,37 +208,69 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
       return points.where(walkOf, walkId).map(({ seq: _s, ...p }) => copy(p)).sort(byT);
     },
 
-    async addCapture(c) {
-      if (captures.has(c.id)) throw constraint(`capture ${c.id}`);
-      captures.put(c);
+    async addMoment(m) {
+      if (moments.has(m.id)) throw constraint(`moment ${m.id}`);
+      if (!m.pieces.length) throw new Error(`moment ${m.id} has no piece`);
+      for (const p of m.pieces) if (momentOfPiece(p.id)) throw constraint(`piece ${p.id}`);
+      moments.put(copy(m));
     },
-    async updateCapture(id, p) {
-      patch(captures, id, p);
+    async updateMoment(id, p) {
+      patch(moments, id, p);
     },
-    async getCaptures(walkId) {
-      return out(captures.where(walkOf, walkId)).map(withEdit).sort(byT);
+    async updatePiece(id, p) {
+      const m = momentOfPiece(id);
+      if (m) moments.put({ ...m, pieces: m.pieces.map((x) => (x.id === id ? { ...x, ...p } : x)) });
     },
-    async capturesBetween(from, to) {
+    async addPiece(momentId, p) {
+      const m = moments.get(momentId);
+      if (!m) throw new Error(`no moment ${momentId}`);
+      if (momentOfPiece(p.id)) throw constraint(`piece ${p.id}`);
+      moments.put({ ...m, pieces: [...m.pieces, copy({ ...p, moment_id: momentId })].sort(byT) });
+    },
+    async deletePieces(ids) {
+      const gone = new Set(ids);
+      const hit = moments.all().filter((m) => m.pieces.some((p) => gone.has(p.id)));
+      if (hit.some((m) => m.pieces.every((p) => gone.has(p.id)))) throw new Error('a moment would be left with no piece');
+      for (const m of hit) moments.put({ ...m, pieces: m.pieces.filter((p) => !gone.has(p.id)) });
+      for (const w of new Set(hit.map((m) => m.walk_id))) {
+        if (w == null) continue;
+        const s = summaries.get(w);
+        if (s) summaries.put({ ...s, ...countsOf(moments.where(walkOf, w).flatMap((m) => m.pieces)) });
+      }
+    },
+    async splitPiece(pieceId, nm) {
+      const m = momentOfPiece(pieceId);
+      if (!m) throw new Error(`no piece ${pieceId}`);
+      if (m.pieces.length < 2) throw new Error('a moment\'s last piece is the moment');
+      if (moments.has(nm.id)) throw constraint(`moment ${nm.id}`);
+      const p = m.pieces.find((x) => x.id === pieceId)!;
+      moments.put({ ...m, pieces: m.pieces.filter((x) => x.id !== pieceId) });
+      moments.put(copy({ ...nm, pieces: [{ ...p, moment_id: nm.id }] }));
+    },
+    async getMoments(walkId) {
+      return moments.where(walkOf, walkId).map(readMoment).sort(byT);
+    },
+    async momentsBetween(from, to) {
       if (!(to > from)) return [];
-      return out(captures.index((c) => c.t, (t) => typeof t === 'number' && t >= from && t < to)).map(withEdit);
+      return moments.index((m) => m.t, (t) => typeof t === 'number' && t >= from && t < to).map(readMoment);
     },
-    async getCapturesByIds(ids) {
+    async getMomentsByIds(ids) {
       return ids.flatMap((id) => {
-        const c = captures.get(id);
-        return c ? [withEdit(copy(c))] : [];
+        const m = moments.get(id);
+        return m ? [readMoment(m)] : [];
       }).sort(byT);
     },
-    async capturesIn([w, s, e, n]) {
-      return out(captures.index((c) => c.lat, band(s, n)))
-        .map(withEdit)
-        .filter((c) => c.lon != null && c.lon >= w && c.lon <= e)
+    async momentsIn([w, s, e, n]) {
+      return moments.index((m) => m.lat, band(s, n))
+        .map(readMoment)
+        .filter((m) => m.lon != null && m.lon >= w && m.lon <= e)
         .sort(byT);
     },
 
     async deleteWalk(walkId) {
-      dropMoments(captures.where(walkOf, walkId).map((c) => c.id));
-      for (const c of captures.where(walkOf, walkId)) {
-        captures.delete(c.id);
+      dropMoments(moments.where(walkOf, walkId).map((c) => c.id));
+      for (const c of moments.where(walkOf, walkId)) {
+        moments.delete(c.id);
         recalls.delete(c.id);
       }
       points.dropWhere(walkOf, walkId);
@@ -258,20 +293,20 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
         summaries.put({ ...byId.get(ch.walk_id)!, new_streets: ch.new_streets });
       }
     },
-    async deleteCaptures(ids, opts = {}) {
+    async deleteMoments(ids, opts = {}) {
       if (!ids.length) return;
       const got = ids.flatMap((id) => {
-        const c = captures.get(id);
+        const c = moments.get(id);
         return c ? [c] : [];
       });
       dropMoments(got.map((c) => c.id));
       for (const c of got) {
-        captures.delete(c.id);
+        moments.delete(c.id);
         recalls.delete(c.id);
       }
       if (!opts.keepFinds && got.length) {
-        // As the web store: finds are looked up by their captures' walks (all of them when a
-        // loose moment is among them), so only a find filed under its capture's walk goes.
+        // As the web store: finds are looked up by their moments' walks (all of them when a
+        // loose moment is among them), so only a find filed under its moment's walk goes.
         const gone = new Set(got.map((c) => c.id));
         const walkIds = [...new Set(got.map((c) => c.walk_id))];
         const rows = walkIds.includes(null) ? finds.all() : walkIds.flatMap((w) => finds.where(walkOf, w!));
@@ -281,7 +316,7 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
       for (const w of new Set(got.map((c) => c.walk_id))) {
         if (w == null) continue;
         const s = summaries.get(w);
-        if (s) summaries.put({ ...s, ...countsOf(captures.where(walkOf, w)) });
+        if (s) summaries.put({ ...s, ...countsOf(moments.where(walkOf, w).flatMap((m) => m.pieces)) });
       }
     },
 
@@ -340,7 +375,7 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
       // A walk deleted while its streets were read gets nothing back (audit 2).
       if (!w) return;
       // Counts from the rows as they stand now, so a moment deleted meanwhile isn't counted (audit 3).
-      summary = { ...summary, ...countsOf(captures.where(walkOf, walkId)) };
+      summary = { ...summary, ...countsOf(moments.where(walkOf, walkId).flatMap((m) => m.pieces)) };
       for (const x of segs) segments.put({ ...x, tile: segmentTile(x) });
       visited.dropWhere(walkOf, walkId);
       for (const v of vis) visited.put(v);

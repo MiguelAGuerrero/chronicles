@@ -1,5 +1,5 @@
 // @layer core
-import type { CaptureKind } from '../types';
+import type { CaptureKind, Moment } from '../types';
 import type { DeleteKind } from './core';
 
 /**
@@ -15,6 +15,10 @@ export type DeleteSpec =
   | { type: 'walk'; walkId: string }
   | { type: 'media'; walkId: string; captureIds: string[] }
   | { type: 'moment'; captureId: string }
+  /** One piece of a stacked moment (MS13); the last piece takes the moment. */
+  | { type: 'piece'; momentId: string; pieceId: string }
+  /** A piece split out as a moment of its own (MS16), placed when it was split. */
+  | { type: 'split'; pieceId: string; moment: Omit<Moment, 'pieces'> }
   | { type: 'thread'; threadId: string }
   | { type: 'remove'; threadId: string; momentId: string };
 

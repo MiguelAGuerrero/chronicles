@@ -13,7 +13,7 @@ try to break the spec against the vision. You change nothing.
 - `docs/VISION.md` (always; read it whole first, and note which lines are **[proposed]**);
 - the spec (`specs/<slug>/spec.md`), its plan if there is one, and its "## Vision" section, the gate's verdict;
 - for a built slice: the changed screens (`git diff --name-only <base>..HEAD -- src/app src/components`), and their
-  pictures (`E2E_SHOTS`); open each with Read: restraint is judged on the screen, not in the code (decision 0112).
+  pictures (`E2E_SHOTS`); open each with Read: restraint is judged on the screen, not in the code (decision 0114).
 
 Missing the Vision section: that is your first finding (the spec skipped `/vision`).
 
@@ -32,7 +32,7 @@ Read every criterion as the walker will meet it on the screen, and ask:
    or other people's activity; ranked routes or "fastest"; nagging (an alert you didn't ask for); celebration
    (confetti, an accent-coloured win, a big number); the lows edited out; a capture moved behind a menu, a
    drawer or a second tap (the capture stack on the screens you walk or capture from: a reply, an edit or
-   another action on a moment that exists belongs in its toolbar or menu, decision 0112, and putting it on
+   another action on a moment that exists belongs in its toolbar or menu, decision 0114, and putting it on
    the moment's face is itself a finding); data leaving the device without a tap; the owner's words written for them.
 3. **Always lines**: a moment shown without its place and time, as a bare thumbnail or a count; guidance
    that says what is good; a route that is more than a suggestion; derived data treated as truth.

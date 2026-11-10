@@ -5,7 +5,7 @@ import { createPending, type PendingJob } from '../../deletion/pending';
 import { isPendingJob } from '../../deletion/saved';
 import { metaStore } from '../../meta';
 import { fakePorts } from '../fakes';
-import type { Capture } from '../../types';
+import { type Flat, momentOf } from '../../moment';
 
 // UI conformance (specs/ui-conformance, decision 0113): the Undo window waits for the owner, and survives a kill.
 
@@ -14,7 +14,7 @@ const timers = () => {
   const pending: { fn: () => void; ms: number }[] = [];
   return { setTimer: (fn: () => void, ms: number) => pending.push({ fn, ms }), clearTimer: () => {}, pending };
 };
-const note = (id: string): Capture => ({ id, walk_id: null, t: 1, lat: null, lon: null, kind: 'text', file_path: null, body: id, segment_id: null });
+const note = (id: string): Flat => ({ id, walk_id: null, t: 1, lat: null, lon: null, kind: 'text', file_path: null, body: id, segment_id: null });
 const moment = (id: string): PendingJob => ({ kind: 'moment', what: 'text', ids: [id], spec: { type: 'moment', captureId: id } });
 
 async function app(ports = fakePorts()) {
@@ -27,33 +27,33 @@ async function app(ports = fakePorts()) {
 
 test('UC1: a waiting delete never ends on a timer', async () => {
   const { ports, window, t } = await app();
-  await ports.db.addCapture(note('a'));
+  await ports.db.addMoment(momentOf(note('a')));
   window.schedule(moment('a'));
   assert.equal(t.pending.length, 0, 'no timer is set for the window');
   await settle();
-  assert.equal((await ports.db.getCapturesByIds(['a'])).length, 1, 'still stored: it waits');
+  assert.equal((await ports.db.getMomentsByIds(['a'])).length, 1, 'still stored: it waits');
   assert.deepEqual(window.state().pending, { kind: 'moment', what: 'text' }, 'the pill is still up');
 });
 
 test('UC2: Close or another delete stores it at once; the background does not; Undo brings it back', async () => {
   const { ports, window } = await app();
-  for (const id of ['a', 'b', 'c']) await ports.db.addCapture(note(id));
+  for (const id of ['a', 'b', 'c']) await ports.db.addMoment(momentOf(note(id)));
   window.schedule(moment('a'));
   await window.dismiss();
-  assert.equal((await ports.db.getCapturesByIds(['a'])).length, 0, 'Close stores it');
+  assert.equal((await ports.db.getMomentsByIds(['a'])).length, 0, 'Close stores it');
   window.schedule(moment('b'));
   window.schedule(moment('c'));
   await settle();
   await settle();
-  assert.equal((await ports.db.getCapturesByIds(['b'])).length, 0, 'another delete stores the one before');
+  assert.equal((await ports.db.getMomentsByIds(['b'])).length, 0, 'another delete stores the one before');
   window.undo();
-  assert.equal((await ports.db.getCapturesByIds(['c'])).length, 1, 'Undo keeps it');
+  assert.equal((await ports.db.getMomentsByIds(['c'])).length, 1, 'Undo keeps it');
   assert.equal(window.hidden().has('c'), false, 'and shows it again');
 });
 
 test('UC13: a delete still waiting when the app is killed is stored on the next launch', async () => {
   const first = await app();
-  await first.ports.db.addCapture(note('a'));
+  await first.ports.db.addMoment(momentOf(note('a')));
   first.window.schedule(moment('a'));
   await settle();
   const saved = await first.meta.get('pending_delete');
@@ -63,7 +63,7 @@ test('UC13: a delete still waiting when the app is killed is stored on the next 
   const jobs = await next.meta.get('pending_delete');
   await next.window.resume(jobs!);
   await settle();
-  assert.equal((await next.ports.db.getCapturesByIds(['a'])).length, 0, 'stored at the next launch: it stays gone');
+  assert.equal((await next.ports.db.getMomentsByIds(['a'])).length, 0, 'stored at the next launch: it stays gone');
   assert.equal(next.window.state().pending, null, 'with no pill');
   assert.equal(await next.meta.get('pending_delete'), null, 'and nothing is left to run');
   assert.equal(isPendingJob({ kind: 'moment', ids: ['a'], spec: { type: 'nope' } }), false, 'a damaged saved delete is never run');
@@ -71,7 +71,7 @@ test('UC13: a delete still waiting when the app is killed is stored on the next 
 
 test('UC13: Undo clears what a relaunch would run', async () => {
   const { ports, window, meta } = await app();
-  await ports.db.addCapture(note('a'));
+  await ports.db.addMoment(momentOf(note('a')));
   window.schedule(moment('a'));
   window.undo();
   await settle();

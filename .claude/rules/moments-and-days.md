@@ -4,6 +4,8 @@ paths:
   - "src/lib/locate/**"
   - "src/app/day/**"
   - "src/components/MomentBar.tsx"
+  - "src/components/chronicle/MemoriesBand.tsx"
+  - "src/lib/captureBand.ts"
   - "src/lib/explore/momentFind/**"
   - "src/lib/__tests__/moments/**"
 ---
@@ -15,7 +17,7 @@ Captures outside a walk (moments), locating one fix for them, the days list and 
   "jot it down" in a store, not only on walks). `Capture.walk_id` and
   `Find.walk_id` are nullable: SQLite migration 11 rebuilds both tables
   (SQLite can't drop NOT NULL in place) and adds `capture_t`; IndexedDB v10 adds
-  the capture `t` index. `db.capturesBetween(from, to)` reads by time.
+  the capture `t` index. `db.momentsBetween(from, to)` reads by time. Since decision 0123 a moment holds its media as pieces (`Moment`, `lib/moment.ts`); screens read `Faced` moments, one per moment.
 - **Days are never stored** (`lib/days.ts`, pure): local midnight to midnight,
   a walk in the day it started with all its captures, open walks and captures
   of unknown walks left out. Days use the phone's current time zone (accepted).
@@ -26,6 +28,27 @@ Captures outside a walk (moments), locating one fix for them, the days list and 
   (the owner's rule: no all-day tracking). Media of loose moments go under
   `walks/moments/`. A loose moment finds a place like a walk's capture
   (`explore/momentFind/shell.ts`, tested over `fakePorts()`; `index.ts` passes the Undo window's ids).
+- **Capture from Chronicle** (HC6-HC15, decision 0112): Memories mounts `MemoriesBand`
+  (`components/chronicle/MemoriesBand.tsx`), a `MomentBar` with `layout="band"` and
+  `idPrefix="band"` (`band-photo`, `band-voice`, `band-note`, `band-toast`, ...); the pure
+  decisions are `lib/captureBand.ts` (`bandLayout`, `captureTarget`, `bandLabels`,
+  `momentToast`, `barCamera`). The band layer is the first child after the options
+  button (screen-reader order, HC8) and drawn at the foot with `zIndex: 2`; every list
+  pads its foot by the band's height, and Memories' Undo toast sits above it (HC15).
+  With a walk open, only `WalkBand` reads `useOpenWalk()` (the live trace), keyed by the
+  walk's id, so Memories isn't re-rendered by every fix; its captures are the walk's
+  (`useCaptures(walk.id, here, lastFixAt)`) and say "saved to your walk", since Lately
+  leaves out an open walk's moments (0098). `focused` is false while a viewer, a menu or
+  a reminder is open over Memories, so a memo is saved before anything plays (HC11).
+  Trap: in the headless e2e a fixed location never refreshes the walk's last fix, so a
+  walk capture waits for its place until stop unless the journey steps the position.
+  After the audit (capture-from-chronicle audit 1-12): Memories' Undo toast and the band's
+  error go in the band's pills column (`above`), one flex column, so nothing covers anything;
+  the band's strip takes its own taps (`pointerEvents="auto"`), never a card beneath; inside a
+  thread or Hidden the band follows the screen, so its Back comes first; every viewer on Memories
+  waits while the band's memo records (`memoOn`); the band waits until the keeper knows
+  (`captureTarget(walk, known)`); the web's error has no Settings button. A photo or video being
+  kept is tracked by `memoGate.keep`, and the bar's Stop waits on `memoGate.kept()`.
 - **The home** reads every capture row (never media) for the days list, which
   widens the old "walks, summaries, Area, WalkArea only" rule. The sheet has
   Days beside Walks, a day's timeline (a walk is one row), and Replay this

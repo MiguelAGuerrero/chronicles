@@ -5,7 +5,7 @@
 const BANNED = /\b(minutes?|mins?|hours?|ETA|pace|brisk|quick(er|est)?|fast(er|est)?|shorter|longer|more|most|best|densest|less|than|same)\b/i;
 
 async function run(h) {
-  const { url, at, check, freshPage, shot, openWalk, tabTo, tabBarShown } = h;
+  const { url, exploreUrl, at, check, freshPage, shot, openWalk, tabTo, tabBarShown } = h;
   const { c, pg } = await freshPage('planner');
   const walksCount = (page) => page.evaluate(() => new Promise((resolve) => {
     const req = indexedDB.open('chronicles');
@@ -17,7 +17,7 @@ async function run(h) {
   if (process.env.E2E_DEBUG) pg.on('console', (m) => /^PLAN/.test(m.text()) && console.log('PAGE', m.text()));
   const here = at(-120, 0);
   await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
-  await pg.goto(url);
+  await pg.goto(exploreUrl);
   const tile = pg.locator('[data-testid=atlas-tile][data-name="Green Row"]');
   await pg.waitForSelector('[data-testid=atlas-tile][data-name="Green Row"][data-read="1"]', { timeout: 60000 }).catch(() => {});
   await tile.click().catch(() => {});
@@ -130,7 +130,7 @@ async function run(h) {
   await pg.click('[data-testid=walk-minimize]');
   await pg.waitForTimeout(1500);
   await tabTo(pg, 'explore');
-  await pg.waitForSelector('[data-testid=atlas-grid]', { timeout: 30000 });
+  await pg.waitForSelector('[data-testid=atlas-carousel]', { timeout: 30000 });
   await pg.locator('[data-testid=atlas-tile][data-name="Green Row"]').click().catch(() => {});
   await pg.waitForSelector('[data-testid=atlas-card]', { timeout: 15000 });
   await pg.waitForTimeout(800);
@@ -144,8 +144,8 @@ async function run(h) {
   const saved = await pg.evaluate((id) => new Promise((resolve) => {
     const req = indexedDB.open('chronicles');
     req.onsuccess = () => {
-      const g = req.result.transaction('capture', 'readonly').objectStore('capture').getAll();
-      g.onsuccess = () => resolve(g.result.filter((x) => x.walk_id === id && /A note from the planner/.test(x.body ?? '')).length);
+      const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll();
+      g.onsuccess = () => resolve(g.result.map((m) => ({ ...m.pieces[0], id: m.id, walk_id: m.walk_id, t: m.t, lat: m.lat, lon: m.lon, segment_id: m.segment_id })).filter((x) => x.walk_id === id && /A note from the planner/.test(x.body ?? '')).length);
     };
   }), walkId);
   check(saved === 1, `WP23: a note taken on the planner arrives as a moment on the walk (${saved})`);

@@ -1,18 +1,19 @@
 /// <reference types="node" />
+import { type Faced, facedOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { rhythmFrame, rhythmPlan } from '../../ceremony/rhythm';
 import { walkStory, type WalkInput } from '../../ceremony/story';
 import { distanceM } from '../../geo';
 import { groupCaptures, timedRuns } from '../../replay';
-import type { Capture, LngLat, TracePoint } from '../../types';
+import type { LngLat, TracePoint } from '../../types';
 import { at, walkAlong } from '../foxPoint';
 
 // The replay's stops and its rhythm over a walk: nearby captures share a stop, gaps collapse, every
 // capture keeps its stop (.claude/rules/replay.md; replay rhythm RR4).
 
 /** A walk's story input from bare fixes and captures. */
-function storyOf(fixes: TracePoint[], captures: Capture[]): WalkInput {
+function storyOf(fixes: TracePoint[], captures: Faced[]): WalkInput {
   return {
     walk: { id: 'w1', started_at: fixes[0]?.t ?? 0, ended_at: fixes.at(-1)?.t ?? 0, title: null, epilogue: null, open: false, area: null, snapped_build: null },
     fixes, walkedFixes: fixes, breaks: [], pauses: [], runs: timedRuns(fixes).map((r) => r.map((x) => x.p)), rideRuns: [], rideTimed: [], captures, passed: [],
@@ -20,7 +21,7 @@ function storyOf(fixes: TracePoint[], captures: Capture[]): WalkInput {
 }
 
 test('replay: nearby captures share one stop, in order', () => {
-  const cap = (id: string, t: number, x: number, kind: Capture['kind'] = 'text'): Capture => ({
+  const cap = (id: string, t: number, x: number, kind: Faced['kind'] = 'text'): Faced => facedOf({
     id, walk_id: 'w1', t, lat: at(x, 0)[1], lon: at(x, 0)[0], kind, file_path: null, body: kind === 'voice' ? '6000' : 'hi', segment_id: null,
   });
   const caps = [cap('a', 20_000, 0.1), cap('b', 30_000, 0.15, 'voice'), cap('c', 150_000, 2.5)];
@@ -41,7 +42,7 @@ test('replay: gaps collapse, so a resumed walk does not crawl across the night (
 
 test('replay: every capture keeps its stop, and an empty walk has nothing to play', () => {
   const trace = walkAlong([at(0, 0), at(3, 0)]);
-  const many: Capture[] = Array.from({ length: 300 }, (_, i) => ({
+  const many: Faced[] = Array.from({ length: 300 }, (_, i) => facedOf({
     id: String(i), walk_id: 'w1', t: i * 150, lat: null, lon: null, kind: 'photo', file_path: 'x', body: null, segment_id: null,
   }));
   const p = rhythmPlan(walkStory(storyOf(trace, many)), { reduceMotion: false });
@@ -52,9 +53,9 @@ test('replay: every capture keeps its stop, and an empty walk has nothing to pla
 test('replay: a capture after the trace ends stops the path at its end, not after a long stand', () => {
   const trace = walkAlong([at(0, 0), at(3, 0)]);
   const last = trace.at(-1)!.t;
-  const late: Capture = {
+  const late: Faced = facedOf({
     id: 'late', walk_id: 'w1', t: last + 40 * 60_000, lat: null, lon: null, kind: 'photo', file_path: 'x', body: null, segment_id: null,
-  };
+  });
   const p = rhythmPlan(walkStory(storyOf(trace, [late])), { reduceMotion: false });
   const stop = p.segs.find((s) => s.k === 'stop')!;
   const end: LngLat = [trace.at(-1)!.lon, trace.at(-1)!.lat];

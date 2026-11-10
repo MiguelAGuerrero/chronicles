@@ -14,7 +14,13 @@ import type { useLayers } from '../lib/layers/useLayers';
 import { NotificationSettings } from './NotificationSettings';
 import { RouteLeaningSettings } from './RouteLeaningSettings';
 import { SwitchRow } from './SwitchRow';
+import { momentPill } from '../lib/momentPill';
+import { useStore } from '../lib/useStore';
+
 import { theme } from './ui';
+
+/** What Group captures does, and what it costs (MS18): said plainly, never sold. */
+const GROUP_NOTE = 'Captures join the moment just made; a separate moment takes New moment first.';
 
 /**
  * The walk's settings, inside the ready bar pulled up (NR7; the owner, Nov 3:
@@ -36,6 +42,7 @@ export function StartSettings(props: {
   layers?: ReturnType<typeof useLayers>;
 }) {
   const { mode, dest, fix, settings } = props;
+  const grouping = useStore(momentPill.store, (st) => st.grouping);
   // Distances in km or miles (QL16): saved as it changes, every screen redraws at once.
   const units = useUnits();
   return (
@@ -107,6 +114,14 @@ export function StartSettings(props: {
           onChange={(haptic) => props.onSettings({ ...settings, haptic })}
         />
       )}
+      {/* Moment stacks (MS18): off by default; its line says the cost plainly. */}
+      <SwitchRow
+        testID="group-captures"
+        label="Group captures into one moment"
+        note={GROUP_NOTE}
+        value={grouping}
+        onChange={(on) => void momentPill.setGrouping(on)}
+      />
       {/* Each switch saves as it changes, and turning one on asks permission from that tap (NV24). */}
       <NotificationSettings heading={false} />
 

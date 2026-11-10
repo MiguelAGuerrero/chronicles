@@ -1,6 +1,7 @@
 // @layer core
+import type { Faced } from './moment';
 import { distanceM } from './geo';
-import type { Capture, LngLat, Walk } from './types';
+import type { LngLat, Walk } from './types';
 
 /**
  * Moments and days (the concept doc's "Moments and days" tab). A capture is a
@@ -13,8 +14,8 @@ import type { Capture, LngLat, Walk } from './types';
 const SPOT_M = 100;
 
 export type DayEntry =
-  | { kind: 'moment'; t: number; capture: Capture }
-  | { kind: 'walk'; t: number; walk: Walk; captures: Capture[] };
+  | { kind: 'moment'; t: number; capture: Faced }
+  | { kind: 'walk'; t: number; walk: Walk; captures: Faced[] };
 
 export interface Day {
   /** Local date, YYYY-MM-DD. */
@@ -51,9 +52,9 @@ export function nextDayStart(key: string): number {
  * the day it started, with all its moments; open walks are left out (they are
  * still going), as are captures of a walk that is not listed.
  */
-export function buildDays(walks: Walk[], captures: Capture[]): Day[] {
+export function buildDays(walks: Walk[], captures: Faced[]): Day[] {
   const closed = new Map(walks.filter((w) => !w.open && w.ended_at != null).map((w) => [w.id, w]));
-  const byWalk = new Map<string, Capture[]>();
+  const byWalk = new Map<string, Faced[]>();
   const days = new Map<string, DayEntry[]>();
   const push = (e: DayEntry) => {
     const k = dayKey(e.t);
@@ -105,12 +106,12 @@ export function dayCounts(day: Day): string {
 }
 
 /** Every moment of a day, loose or in a walk, in time order. */
-export function dayCaptures(day: Day): Capture[] {
+export function dayCaptures(day: Day): Faced[] {
   return day.entries.flatMap((e) => (e.kind === 'walk' ? e.captures : [e.capture])).sort((a, b) => a.t - b.t);
 }
 
 /** Places on the card: moments within SPOT_M of one another are one; placeless moments are none (M13). */
-export function spotCount(captures: Capture[]): number {
+export function spotCount(captures: Faced[]): number {
   const spots: LngLat[] = [];
   for (const c of captures) {
     if (c.lat == null || c.lon == null) continue;

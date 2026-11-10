@@ -1,4 +1,5 @@
 // @layer shell
+import { type Faced, facedAll } from './moment';
 import type { CategoryId, Mark } from './discovery/types';
 import { db } from './db';
 import { exploredKey, passedAlong, type Kind } from './explore/explore';
@@ -10,7 +11,7 @@ import type { TimedRun } from './replay';
 import { walkBounds } from './finish';
 import { fillsOf, walkStretches, type Stretch } from './gaps';
 import type { Gap } from './gaps/infer';
-import type { Capture, LngLat, Pause, StreetSegment, TracePoint, Walk, WalkSummary } from './types';
+import type { LngLat, Pause, StreetSegment, TracePoint, Walk, WalkSummary } from './types';
 
 export interface ReplayData {
   walk: Walk;
@@ -29,7 +30,7 @@ export interface ReplayData {
   rides: { t0: number; t1: number }[];
   /** Ridden distance, from the trace: a summary written before rides has none (R6). */
   rideM: number;
-  captures: Capture[];
+  captures: Faced[];
   bounds: Bounds | null;
   /** Walked segments, ordered by when the trace first reached them. */
   walked: (StreetSegment & { first_t: number })[];
@@ -71,7 +72,7 @@ export async function loadReplay(walkId: string, opts: { readGaps?: boolean } = 
   const walkedFixes = smoothDwells(tr.walked);
   // The stands the smoothing keeps as their two ends, so the replay knows them from a gap (replay-rhythm audit 5).
   const stays = dwellsOf(tr.walked).map((d) => ({ t0: d.t0, t1: d.t1 }));
-  const captures = await db.getCaptures(walkId);
+  const captures = await db.getMoments(walkId).then(facedAll);
   // The view takes in the rides; streets and fog are only where you walked (R7).
   const bounds = walkBounds(fixes);
   const streetBounds = walkBounds(walkedFixes);

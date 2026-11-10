@@ -122,7 +122,11 @@ paths right.
    A todo id counts as untested (TG23). Between criteria, run
    `npm run check:affected`: the layer check, the tests that import what
    changed, the typecheck and lint of the changed files, and the e2e
-   scenarios that cover them. The whole suite is for step 9.
+   scenarios that cover them. The whole suite is for step 9. Between criteria
+   run only the journeys you edited, rewrote or added (`npm run check:e2e`
+   lists them): each named journey runs once, at the end, not at every
+   checkpoint. A journey already green on these inputs is not run again
+   (`E2E_FORCE=1` overrides, for a reason you can name).
 2. Keep truth vs cache: never patch derived data, recompute from the trace.
 3. Pass the walk's pauses (and stills) everywhere a trace is read, drawn or
    measured; `tr.walked` for walked-only consumers, `smoothKept(tr)` for the
@@ -159,6 +163,23 @@ npm run test:feature <feature>                          # the slice's feature, w
 npm run check:test-first <slug>                         # each criterion's todo came before its real test
 npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # the slice's own and those chosen as in docs/TESTING.md, "Choosing the journeys"
 ```
+
+**The e2e's economy (docs/TESTING.md, `scripts/e2e/economy.js`).** Each journey is minutes
+of browser, so the named ones run once, at the end, and the rest is mechanical:
+
+- `check:affected` leaves out a source change that is only comments or types, names a
+  journey whose own file you edited, and lists apart the journeys that passed with their
+  files as they are now. A journey already green on exactly these inputs (its file, the
+  files it covers, the harness, the build, the flags) prints "already green" and exits;
+  `E2E_FORCE=1` runs it anyway. Never re-sweep the whole set after a later change: rerun
+  the journeys that cover the files you changed since (`npm run check:affected -- --since <sha>`).
+- A failure outside the slice's files is not rerun on the branch to see if it flakes. Run
+  `npm run e2e:baseline -- <journey>` once: it runs the journey on a scratch worktree of
+  `main` and records a check that failed there in `scripts/e2e/flaky.json`. A recorded
+  check is labelled "known flake" and still fails the run: nothing is skipped or
+  quarantined. A journey that never failed on `main` leaves the failure the slice's own.
+- The slice's report says which journeys ran, how many runs there were, and why any ran
+  more than once.
 
 All green. A "Covered by nothing" line from `check:affected` for a file the
 slice wrote is a gap: give it a test (a shell over `fakePorts()`, a core unit

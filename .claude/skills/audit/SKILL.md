@@ -16,7 +16,7 @@ regression test for each accepted finding before its fix.
 - the rule file(s): `.claude/rules/<area>.md` whose `paths:` cover the slice;
 - the changed files: `git diff --name-only <base>..HEAD` for the slice's
   commits, or the plan's file list (`specs/<slug>/plan.md`);
-- **the screens as a person sees them** (decision 0112): run the journeys
+- **the screens as a person sees them** (decision 0114): run the journeys
   that show the changed screens (`docs/TESTING.md`, "Choosing the journeys") with `E2E_SHOTS=<scratchpad>/shots` (390 x 844), so
   every changed screen state is a PNG. A changed screen with no `shot()` in its
   journey gets one first (after the Modal's fade). List the pictures by screen.
@@ -88,9 +88,17 @@ Findings covered only by the e2e's flow and typecheck are said so in the record.
 
 ```bash
 npm run typecheck && npm run lint && npm test
-npm run check:affected                                  # names the e2e journeys for the fixed files
-npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # those chosen as in docs/TESTING.md, "Choosing the journeys"
+npm run check:affected -- --since <slice's last green commit>   # names the e2e journeys for the files the audit changed
+npm run export:web && E2E_ONLY=<journey> npm run e2e:web         # those chosen as in docs/TESTING.md, "Choosing the journeys"
 ```
+
+Only the journeys the audit's fixes touch: `--since` is the commit the slice last ran
+green, so the slice's whole set is not run again. Each regression test's journey runs
+once after its fix; a journey already green on these inputs prints "already green" and
+is not run again (`E2E_FORCE=1` overrides). A failure the fixes did not touch gets one
+`npm run e2e:baseline -- <journey>` on `main`, not repeated reruns on the branch: a
+recorded flake is labelled and still fails the run (`docs/TESTING.md`, "The e2e's
+economy"). The record says which journeys ran and how many times.
 
 The full e2e (no `E2E_ONLY`) only when the owner asks. When all pass, the
 owner decides on `/deploy`.

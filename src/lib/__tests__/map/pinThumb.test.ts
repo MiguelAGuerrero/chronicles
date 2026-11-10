@@ -1,14 +1,15 @@
 /// <reference types="node" />
+import { type Faced, facedOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { pinsFor, pinThumb, type CapturePin } from '../../pins';
 import { THUMB } from '../../thumbPlan';
-import type { Capture, CaptureKind } from '../../types';
+import type { CaptureKind } from '../../types';
 
-const cap = (id: string, kind: CaptureKind, o: Partial<Capture> = {}): Capture => ({
+const cap = (id: string, kind: CaptureKind, o: Partial<Faced> = {}): Faced => facedOf({
   id, walk_id: 'w1', t: 1000, lat: 41.812, lon: -71.4, kind, file_path: `walks/w1/${id}.jpg`, body: null, segment_id: null, thumb_path: null, ...o,
 });
-const pinOf = (...cs: Capture[]): CapturePin => {
+const pinOf = (...cs: Faced[]): CapturePin => {
   const pins = pinsFor(cs, 30);
   assert.equal(pins.length, 1);
   return pins[0];

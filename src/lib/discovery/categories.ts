@@ -15,7 +15,7 @@ export const CATEGORIES: readonly Category[] = [
   { id: 'art', label: 'Art', noun: 'art', icon: 'color-palette-outline' },
   { id: 'food', label: 'Food & drink', noun: 'food & drink', icon: 'cafe-outline' },
   { id: 'shops', label: 'Shops', noun: 'shops', icon: 'bag-handle-outline' },
-  { id: 'history', label: 'History & landmarks', noun: 'history', icon: 'library-outline' },
+  { id: 'history', label: 'History', noun: 'history', icon: 'library-outline' },
   { id: 'parks', label: 'Parks & green spaces', noun: 'parks', icon: 'leaf-outline' },
   { id: 'culture', label: 'Culture', noun: 'culture', icon: 'ticket-outline' },
   { id: 'viewpoints', label: 'Viewpoints & oddities', noun: 'viewpoints', icon: 'eye-outline' },

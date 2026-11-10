@@ -3,10 +3,10 @@
 // E2E_ONLY=outlines runs it alone.
 
 async function run(h) {
-  const { url, overtureAsked, check, shot, freshPage, divisions, at, tabTo, switchLayer } = h;
+  const { url, exploreUrl, overtureAsked, check, shot, freshPage, divisions, at, tabTo, switchLayer } = h;
     const titleOf = async (label) => {
       const { c, pg } = await freshPage(label);
-      await pg.goto(url);
+      await pg.goto(exploreUrl);
       // Town borders are a layer, off until switched on (specs/map-layers ML2).
       await switchLayer(pg, 'borders');
       await pg.waitForFunction(() => {

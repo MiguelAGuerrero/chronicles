@@ -22,9 +22,9 @@ const SEED = () => {
     const req = indexedDB.open('chronicles');
     req.onerror = () => reject(req.error);
     req.onsuccess = () => {
-      const tx = req.result.transaction(['walk', 'capture'], 'readwrite');
+      const tx = req.result.transaction(['walk', 'moment'], 'readwrite');
       tx.objectStore('walk').put(walk);
-      for (const c of caps) tx.objectStore('capture').put(c);
+      for (const c of caps) tx.objectStore('moment').put(((c) => ({ id: c.id, walk_id: c.walk_id ?? null, t: c.t, lat: c.lat ?? null, lon: c.lon ?? null, segment_id: c.segment_id ?? null, piece_ids: [c.id], pieces: [Object.fromEntries(Object.entries({ ...c, moment_id: c.id }).filter(([k]) => !['walk_id', 'lat', 'lon', 'segment_id'].includes(k)))] }))(c));
       tx.oncomplete = () => resolve(true);
       tx.onerror = () => reject(tx.error);
     };
@@ -65,9 +65,9 @@ const SEED_CONTEXT = () => {
     const req = indexedDB.open('chronicles');
     req.onerror = () => reject(req.error);
     req.onsuccess = () => {
-      const tx = req.result.transaction(['walk', 'capture', 'street_segment', 'pause'], 'readwrite');
+      const tx = req.result.transaction(['walk', 'moment', 'street_segment', 'pause'], 'readwrite');
       tx.objectStore('walk').put(walk);
-      for (const c of caps) tx.objectStore('capture').put(c);
+      for (const c of caps) tx.objectStore('moment').put(((c) => ({ id: c.id, walk_id: c.walk_id ?? null, t: c.t, lat: c.lat ?? null, lon: c.lon ?? null, segment_id: c.segment_id ?? null, piece_ids: [c.id], pieces: [Object.fromEntries(Object.entries({ ...c, moment_id: c.id }).filter(([k]) => !['walk_id', 'lat', 'lon', 'segment_id'].includes(k)))] }))(c));
       tx.objectStore('street_segment').put(segment);
       tx.objectStore('pause').put({ walk_id: 'w2', started_at: start + 20 * 60000, ended_at: start + 30 * 60000 });
       tx.oncomplete = () => resolve(true);
@@ -88,6 +88,8 @@ async function contextRun(h) {
   // seeded once it is running and Memories reads it as the tab comes to the front.
   await pg.waitForTimeout(1500);
   await pg.evaluate(SEED_CONTEXT);
+  // The app opens on Memories (0112): away and back, so Memories reads the seeded moments as a new open.
+  await tabTo(pg, 'explore');
   await tabTo(pg, 'chronicle', 'memories');
   await pg.waitForSelector('[data-testid=moment-card]', { timeout: 20000 });
   const cardOf = (words) => pg.locator(`[data-testid=moment-card]:has-text("${words}")`).first();
@@ -337,9 +339,9 @@ async function run(h) {
   await empty.pg.waitForSelector('[data-testid=tab-chronicle]', { timeout: 30000 });
   await tabTo(empty.pg, 'chronicle', 'memories');
   check(await empty.pg.waitForSelector('[data-testid=memories-empty]', { timeout: 15000 }).then(() => true, () => false)
-    && (await empty.pg.locator('[data-testid=memories-navigate]').count()) === 1
+    && (await empty.pg.locator('[data-testid=memories-navigate]').count()) === 0 && (await empty.pg.locator('[data-testid=capture-band]').count()) === 1
     && (await empty.pg.locator('[data-testid=resurfaced]').count()) === 0 && (await empty.pg.locator('[data-testid=threads-rail]').count()) === 0,
-    'RM4: with nothing kept, one quiet line and a Navigate button, and no card or rail');
+    'RM4: with nothing kept, one quiet line and the capture band, and no card or rail (amended by HC13)');
   await empty.c.close();
   await contextRun(h);
 }

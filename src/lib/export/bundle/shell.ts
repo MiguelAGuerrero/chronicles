@@ -31,9 +31,9 @@ export function createBundleWriter(p: Pick<Ports, 'db' | 'clock'>) {
   async function writeWalkBundle(walkId: string, io: BundleIO): Promise<{ walk: Walk; missing: number }> {
     const walk = await p.db.getWalk(walkId);
     if (!walk) throw new Error('This walk could not be found.');
-    const [points, captures, pauses, summaries] = await Promise.all([
+    const [points, moments, pauses, summaries] = await Promise.all([
       p.db.getPoints(walkId),
-      p.db.getCaptures(walkId),
+      p.db.getMoments(walkId),
       p.db.getPauses(walkId),
       p.db.listSummaries(),
     ]);
@@ -44,7 +44,9 @@ export function createBundleWriter(p: Pick<Ports, 'db' | 'clock'>) {
     });
     const media: Record<string, string> = {};
     let missing = 0;
-    for (const c of captures) {
+    // Each piece's media, named by the piece's own id (MT8, decision 0123).
+    const pieces = moments.flatMap((m) => m.pieces);
+    for (const c of pieces) {
       if (!c.file_path) continue;
       const chunks = await io.readMedia(c.file_path).catch(() => null);
       if (!chunks) {
@@ -66,13 +68,17 @@ export function createBundleWriter(p: Pick<Ports, 'db' | 'clock'>) {
     }
     const json = {
       format: 'chronicles-walk',
-      version: 1,
+      // Version 2: moments with their pieces (MT8, decision 0123); version 1 listed one capture per moment.
+      version: 2,
       exported_at: new Date(p.clock.now()).toISOString(),
       walk,
       summary: summaries.find((s) => s.walk_id === walkId) ?? null,
       pauses,
       // A photo's small copy isn't in the bundle: its path would dangle (audit 9).
-      captures: captures.map(({ thumb_path: _thumb, ...c }) => ({ ...c, media: media[c.id] ?? null, media_missing: !!c.file_path && !media[c.id] })),
+      moments: moments.map((m) => ({
+        ...m,
+        pieces: m.pieces.map(({ thumb_path: _thumb, ...c }) => ({ ...c, media: media[c.id] ?? null, media_missing: !!c.file_path && !media[c.id] })),
+      })),
       trace: points,
     };
     const doc = new ZipPassThrough('walk.json');

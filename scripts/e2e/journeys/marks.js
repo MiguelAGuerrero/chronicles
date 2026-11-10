@@ -74,7 +74,7 @@ async function run(h) {
     await startWalk();
     const second = await walkPast('second walk (area read before)');
     check(second.some((l) => /Hessian Memorial/.test(l)), `marks: a later exploring walk through an area read before draws the memorial it passes (${JSON.stringify(second)})`);
-    // RP18, RP8 (Remarkable and public): "What I'm into" lists Buildings and structures after Monuments and ruins, on by default.
+    // RP18, RP8 (Remarkable and public): "What I'm into" lists Buildings and structures after Monuments and memorials, on by default.
     {
       await pg.click('[data-testid=walk-summary]');
       await pg.waitForSelector('[data-testid=options-card]', { timeout: 10000 }).catch(() => {});
@@ -84,7 +84,7 @@ async function run(h) {
       const on = await pg.locator('[data-testid=kind-structures]').getAttribute('aria-checked').catch(() => null);
       const label = await pg.locator('[data-testid=kind-structures]').innerText().catch(() => '');
       check(!!mon && !!box && box.y > mon.y && on === 'true' && /Buildings and structures/.test(label),
-        `RP18: "What I'm into" lists Buildings and structures after Monuments and ruins, on by default (${JSON.stringify({ mon: mon?.y, at: box?.y, on, label })})`);
+        `RP18: "What I'm into" lists Buildings and structures after Monuments and memorials, on by default (${JSON.stringify({ mon: mon?.y, at: box?.y, on, label })})`);
       await pg.keyboard.press('Escape');
       await pg.waitForTimeout(800);
     }

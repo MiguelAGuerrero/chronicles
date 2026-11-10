@@ -34,7 +34,7 @@ async function checks(h) {
       await page.waitForSelector('[data-testid=start]');
       await page.waitForTimeout(1500);
       await tabTo(page, 'explore');
-      await page.waitForSelector('[data-testid=atlas-grid]');
+      await page.waitForSelector('[data-testid=atlas-carousel]');
     };
     await toExplore();
     await page.waitForSelector('[data-testid=atlas-tile][data-name="Fox Point"][data-read="1"]', { timeout: 60000 }).catch(() => {});
@@ -44,8 +44,8 @@ async function checks(h) {
       const label = (await fox.getAttribute('aria-label')) ?? '';
       check((await page.locator('canvas.maplibregl-canvas').count()) === 1 && names[0] === 'Fox Point' && /^Fox Point\. You’re here\./.test(label),
         `AT1: the atlas lists the neighborhoods near you, the one you're in first (${names.join(', ')}: ${label})`);
-      check((await fox.getAttribute('data-read')) === '1' && (await fox.locator('svg').count()) >= 1 && (await fox.locator('[data-kind]').count()) >= 1,
-        'AT3, AT5, AT6: its ring was read by itself; the tile has its picture and the kinds it has (round 3: only those present)');
+      check((await fox.getAttribute('data-read')) === '1' && (await fox.locator('[data-kind]').count()) >= 1 && (await fox.locator('svg').count()) === 0,
+        'AT3, AT5: its ring was read by itself; the card has the kinds it has (round 3: only those present) and no picture (the area\'s card has it, decision 0124)');
       check(/Walked (once|\d+ times)/.test(label) && /History: (some|plenty|lots)/.test(label),
         `AT3, AT13: the tile says how often you walked there and each kind present in words (${label})`);
       const atlasRows = await page.evaluate(() => new Promise((resolve) => {
@@ -102,8 +102,8 @@ async function checks(h) {
       const dy = dot ? dot.y + dot.height / 2 - (canvas.y + canvas.height / 2) : NaN;
       const selName = (await sel.count()) ? await sel.first().getAttribute('data-name') : null;
       // Explore's fit pads 84 px under its title and 24 px at the bottom: the area sits 30 px below the middle.
-      check(points >= hoods.length && !ringBefore && (await ring()) === '800' && selName === pickName && Math.abs(dx) <= 8 && Math.abs(dy - 30) <= 8,
-        `AT9: the small map shows the areas' points, and a selected tile frames its area with its 800 m ring (${points} points for ${hoods.length} tiles, ring ${JSON.stringify(ringBefore)} → ${await ring()}, ${selName} at (${dx.toFixed(1)}, ${dy.toFixed(1)}) px from the middle)`);
+      check(points >= hoods.length && ringBefore === '800' && (await ring()) === '800' && selName === pickName && Math.abs(dx) <= 8 && Math.abs(dy - 30) <= 8,
+        `AT9: the small map shows the areas' points, and the first area is selected on arrival, and opening its card frames it with its 800 m ring (${points} points for ${hoods.length} tiles, ring ${JSON.stringify(ringBefore)} → ${await ring()}, ${selName} at (${dx.toFixed(1)}, ${dy.toFixed(1)}) px from the middle)`);
     }
     {
       // AT8: a tile opens its card; unfound places are never named (AT7), finds are.
@@ -177,10 +177,10 @@ async function checks(h) {
       await page.waitForSelector('[data-testid=atlas-card]');
       await page.waitForTimeout(700);
       // The tab bar is folded away under the drawer, so leave the way a notification would: by the router.
-      await page.evaluate(() => { window.history.pushState({}, '', window.location.pathname.replace(/\/$/, '') + '/chronicle'); window.dispatchEvent(new PopStateEvent('popstate')); });
+      await page.evaluate((base) => { window.history.pushState({}, '', `${base}/`); window.dispatchEvent(new PopStateEvent('popstate')); }, BASE);
       await page.waitForTimeout(800);
       await tabTo(page, 'explore');
-      await page.waitForSelector('[data-testid=atlas-grid]');
+      await page.waitForSelector('[data-testid=atlas-carousel]');
       check((await page.locator('[data-testid=atlas-card]').count()) === 0, 'explore-atlas audit 8: leaving the tab closes its card');
       // AT2 (round 3): your own town is the title, never listed again among the other towns; the title opens its page.
       const towns = await page.locator('[data-testid=atlas-tile][data-level="town"]').evaluateAll((els) => els.map((e) => e.getAttribute('data-name')));
@@ -189,15 +189,7 @@ async function checks(h) {
       await page.click('[data-testid=atlas-title]');
       const head = await page.waitForSelector('[data-testid=atlas-town-head]', { timeout: 10000 }).then(() => true, () => false);
       check(head && (await page.locator('[data-testid=explore-area]').innerText()) === homeName && (await page.locator('[data-testid=atlas-back-pill]').count()) === 1,
-        `AT2: the title opens your town's own page, headed by its picture, with a way back low on the screen (${homeName})`);
-      {
-        // The town's tile takes its own height: iPhone Safari collapsed it (flex 0 is a 0% basis) and the heading
-        // and the empty line were drawn over it (Nov 3).
-        const tile = await page.locator('[data-testid=atlas-town-head]').boundingBox();
-        const sec = await page.locator('[data-testid=atlas-town-section]').boundingBox();
-        check(tile && sec && tile.height > 150 && tile.y + tile.height <= sec.y + 1,
-          `town page: its tile ends above its neighborhoods (tile ${tile && Math.round(tile.y)}+${tile && Math.round(tile.height)}, heading ${sec && Math.round(sec.y)})`);
-      }
+        `AT2: the title opens your town's own page, its own card first, with a way back low on the screen (${homeName})`);
       check((await page.locator('[data-testid=atlas-back]').count()) === 0, 'town page: one way back, the low pill; the title has no arrow (decision 0077)');
       await shot(page, '11d-atlas-town');
       await page.click('[data-testid=atlas-back-pill]');
@@ -243,6 +235,13 @@ async function checks(h) {
       tiles.delayMs = 0;
       check(gone && (await rows()).length === rowsBefore, 'cancelling a look stops it at once, with nothing kept');
       await press();
+      // EC19: the notice from the first look is still over the map; it sits above the long press's choices, never over them.
+      check(await page.evaluate(() => {
+        const e = document.querySelector('[data-testid=look-here]');
+        const r = e.getBoundingClientRect();
+        const t = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+        return !!t && e.contains(t);
+      }), 'EC19: a notice over the map never covers the long press\'s choices');
       await page.click('[data-testid=look-here]');
       const said = await page.waitForSelector('text=/A best guess from the map|Couldn’t read the map here/', { timeout: 30000 }).then((e) => e.innerText(), () => 'nothing');
       await shot(page, '11c-landing');
@@ -278,14 +277,18 @@ async function checks(h) {
       await page.reload();
       const back = await page.waitForSelector('[data-testid=atlas-tile][data-name="Fox Point"][data-read="1"]', { timeout: 30000 }).then(() => true, () => false);
       const label = back ? (await tileOf('Fox Point').getAttribute('aria-label')) ?? '' : '';
-      check(back && new URL(page.url()).pathname === `${BASE}/`,
+      check(back && new URL(page.url()).pathname === `${BASE}/explore`,
         `AT1, AT12: after a reload, the atlas is back on the same tab from where it last listed (${label}; the launch's one fix may already say "You're here", NV16)`);
       if (back) {
-        // AD14: the tile's small map draws its graded streets in magenta, a path per grade, wider as the grade rises.
-        const strokes = await tileOf('Fox Point').evaluate((el) => [...el.querySelectorAll('path')]
+        // AD14: the area's small map (on its card, decision 0124) draws its graded streets in magenta, a path per grade, wider as the grade rises.
+        await tileOf('Fox Point').click();
+        await page.waitForSelector('[data-testid=atlas-card]');
+        const strokes = await page.locator('[data-testid=atlas-card]').evaluate((el) => [...el.querySelectorAll('path')]
           .filter((p) => (p.getAttribute('stroke') ?? '').toLowerCase() === '#d6268c')
           .map((p) => Number(p.getAttribute('stroke-width'))));
-        check(strokes.length >= 2 && new Set(strokes).size === strokes.length, `AD14: Fox Point's tile draws its graded streets, one path per grade (${JSON.stringify(strokes)})`);
+        check(strokes.length >= 2 && new Set(strokes).size === strokes.length, `AD14: Fox Point's card draws its graded streets, one path per grade (${JSON.stringify(strokes)})`);
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(600);
         // AD16: the map credits Overture.
         const credits = await page.locator('.maplibregl-ctrl-attrib').first().textContent().catch(() => '');
         check(/Overture Maps Foundation/.test(credits ?? ''), `AD16: the map's credits name Overture Maps Foundation (${credits})`);

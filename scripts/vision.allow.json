@@ -7,14 +7,14 @@
     "why": "the viewer's position among the moments open, a pager, not a tally of what you did"
   },
   {
-    "file": "src/components/ceremony/StepThrough.tsx",
+    "file": "src/lib/ceremony/story.ts",
     "rule": "tally",
     "text": "{} of {}",
     "kind": "allowed",
-    "why": "the screen reader's step-through position in the replay, a pager, not a tally"
+    "why": "the screen reader's step-through position in the replay (stepPosition, moved from StepThrough.tsx), a pager over moments, not a tally; never over a moment's pieces (MS9)"
   },
   {
-    "file": "src/app/(tabs)/chronicle.tsx",
+    "file": "src/app/(tabs)/index.tsx",
     "rule": "tally",
     "text": "Placing your walks",
     "kind": "allowed",

@@ -1,9 +1,10 @@
 /// <reference types="node" />
+import { type Faced, facedOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { RECALL_RULES, afterFire, dueRecalls, editedRecall, isExpired, newRecall, reminderText } from '../../discovery/recall';
 import type { Recall } from '../../discovery/types';
-import type { Capture, LngLat } from '../../types';
+import type { LngLat } from '../../types';
 
 // Slice 4 of v1 (remind me here), written from criteria R2-R9 before the code.
 
@@ -14,14 +15,14 @@ const m = (x: number, y: number): LngLat => [O[0] + x * dLon, O[1] + y * dLat];
 const DAY = 86_400_000;
 const NOW = Date.UTC(2026, 9, 31, 15);
 
-const capture = (id: string, over: Partial<Capture> = {}): Capture => ({
+const capture = (id: string, over: Partial<Faced> = {}): Faced => facedOf({
   id, walk_id: 'w0', t: Date.UTC(2026, 9, 20, 15), lat: O[1], lon: O[0], kind: 'text', file_path: null,
   body: 'The bakery smelled of cardamom.', segment_id: null, caption: null, caption_y: null, ...over,
 });
 const recall = (captureId: string, over: Partial<Recall> = {}): Recall => ({
   capture_id: captureId, frequency: 'once', until: null, last_fired_at: null, fired_count: 0, last_walk_id: null, ...over,
 });
-const due = (o: { recalls: Recall[]; captures: Capture[]; here?: LngLat; walkId?: string; now?: number; quiet?: boolean }) =>
+const due = (o: { recalls: Recall[]; captures: Faced[]; here?: LngLat; walkId?: string; now?: number; quiet?: boolean }) =>
   dueRecalls({ here: o.here ?? m(0, 0), walkId: o.walkId ?? 'w1', now: o.now ?? NOW, quiet: o.quiet ?? false, recalls: o.recalls, captures: o.captures })
     .map((d) => d.capture.id);
 

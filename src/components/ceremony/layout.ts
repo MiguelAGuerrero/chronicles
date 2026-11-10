@@ -2,8 +2,9 @@
  * Where the stage puts things (RR9-RR15): shared by the overlay views, so a
  * card tucks into the pile where the pile is drawn.
  */
+import type { Faced } from '../../lib/moment';
 import { metersPerPixel } from '../../lib/pins';
-import type { Capture, LngLat } from '../../lib/types';
+import type { LngLat } from '../../lib/types';
 
 export interface StageCtx {
   width: number;
@@ -17,7 +18,7 @@ export interface StageCtx {
   paused: boolean;
   reduceMotion: boolean;
   /** Opens captures in the viewer (the replay holds while it is open). */
-  open(captures: Capture[]): void;
+  open(captures: Faced[]): void;
   /** A memo or video asks the stage's clock to wait for it, or lets it go (audit 20). Stable across renders. */
   wait(key: string, on: boolean): void;
 }

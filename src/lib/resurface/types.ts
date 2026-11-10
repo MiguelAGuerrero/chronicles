@@ -1,5 +1,6 @@
 // @layer core
-import type { Capture, CaptureKind } from '../types';
+import type { Faced } from '../moment';
+import type { CaptureKind } from '../types';
 
 /**
  * Resurfaced moments (specs/resurfaced-moments): the types the feed, the
@@ -18,7 +19,7 @@ export interface MomentView {
   place: string | null;
   /** False when a photo, video or memo has no file to show or play (RM7). */
   hasMedia: boolean;
-  capture: Capture;
+  capture: Faced;
 }
 
 /** Where a signal came from. Open on purpose: an image tagger adds its own. */

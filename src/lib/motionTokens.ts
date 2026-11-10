@@ -104,6 +104,9 @@ export const REPLAY_RHYTHM = {
   /** A card growing from its pin, and tucking into the pile. */
   grow: 380,
   tuck: 480,
+  /** A stack's grid (moment stacks MS17): each piece swipes in this long after the one before, and one past nine scrolls the grid this long. */
+  gridStagger: 180,
+  gridScroll: 2400,
   /** After a memo, before the walker moves on. */
   mediaTail: 400,
   /** Shortest a memo or video slot is, whatever its stored length. */

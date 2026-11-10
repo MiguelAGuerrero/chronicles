@@ -29,8 +29,8 @@ async function checks(h) {
       const captureRows = () => p2.evaluate(() => new Promise((resolve) => {
         const req = indexedDB.open('chronicles');
         req.onsuccess = () => {
-          const g = req.result.transaction('capture', 'readonly').objectStore('capture').getAll();
-          g.onsuccess = () => resolve(g.result.sort((a, b) => a.t - b.t));
+          const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll();
+          g.onsuccess = () => resolve(g.result.map((m) => ({ ...m.pieces[0], id: m.id, walk_id: m.walk_id, t: m.t, lat: m.lat, lon: m.lon, segment_id: m.segment_id })).sort((a, b) => a.t - b.t));
         };
       }));
       const note = async (open, input, save, text) => {
@@ -200,7 +200,7 @@ async function checks(h) {
 
       // Back home: the placed moment shows as a pin (M16), and the walk still opens its own replay (M17).
       await p2.waitForSelector('[data-testid=day-title]');
-      check(new URL(p2.url()).pathname === `${BASE}/chronicle`, 'the day replay closes back to Chronicle');
+      check(new URL(p2.url()).pathname === `${BASE}/`, 'the day replay closes back to Chronicle');
       await p2.click('[data-testid=sheet-map]');
       check(await p2.waitForSelector('[aria-label="Note. Open"]', { timeout: 15000 }).then(() => true, () => false), 'a placed moment shows as a pin on the home map (M16)');
       await h.mapUp(p2);

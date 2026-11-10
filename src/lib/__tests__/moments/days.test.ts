@@ -1,11 +1,12 @@
 /// <reference types="node" />
+import { type Faced, facedOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { buildDays, dayCard, dayKey, dayLabel, nextDayStart, spotCount, watchedKey } from '../../days';
 import { timedRuns } from '../../replay';
 import { dayStory, pathDrawnAt, positionAt, walkStory, type WalkInput } from '../../ceremony/story';
 import { rhythmFrame, rhythmPlan } from '../../ceremony/rhythm';
-import type { Capture, TracePoint, Walk } from '../../types';
+import type { TracePoint, Walk } from '../../types';
 
 // Moments and days (the concept doc's "Moments and days" tab), written from
 // its criteria before the code. Times are built from local dates, so the
@@ -15,7 +16,7 @@ const at = (d: number, h: number, m = 0) => new Date(2026, 10, d, h, m).getTime(
 const walk = (id: string, start: number, end: number | null, open = false): Walk => ({
   id, started_at: start, ended_at: end, title: null, epilogue: null, open, area: null, snapped_build: null,
 });
-const cap = (id: string, t: number, walk_id: string | null, lon: number | null = -71.4, lat: number | null = 41.812): Capture => ({
+const cap = (id: string, t: number, walk_id: string | null, lon: number | null = -71.4, lat: number | null = 41.812): Faced => facedOf({
   id, walk_id, t, lat, lon, kind: 'text', file_path: null, body: id, segment_id: null,
 });
 
@@ -81,7 +82,7 @@ function fixesAlong(t0: number, t1: number, a: number, b: number): TracePoint[] 
   const n = Math.round((t1 - t0) / 30_000);
   return Array.from({ length: n + 1 }, (_, i) => fix(t0 + i * 30_000, a + ((b - a) * i) / n));
 }
-const input = (w: Walk, fixes: TracePoint[], captures: Capture[]): WalkInput => ({
+const input = (w: Walk, fixes: TracePoint[], captures: Faced[]): WalkInput => ({
   walk: w, fixes, walkedFixes: fixes, breaks: [], pauses: [], runs: timedRuns(fixes).map((r) => r.map((x) => x.p)), rideRuns: [], rideTimed: [], captures, passed: [],
 });
 const kinds = (d: ReturnType<typeof dayStory>) => d.events.map((e) => e.kind);

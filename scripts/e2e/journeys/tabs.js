@@ -15,8 +15,8 @@ async function run(h) {
     const rows = (pg2, kind) => pg2.evaluate((k) => new Promise((resolve) => {
       const req = indexedDB.open('chronicles');
       req.onsuccess = () => {
-        const g = req.result.transaction('capture', 'readonly').objectStore('capture').getAll();
-        g.onsuccess = () => resolve(g.result.filter((x) => !k || x.kind === k));
+        const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll();
+        g.onsuccess = () => resolve(g.result.map((m) => ({ ...m.pieces[0], id: m.id, walk_id: m.walk_id, t: m.t, lat: m.lat, lon: m.lon, segment_id: m.segment_id })).filter((x) => !k || x.kind === k));
       };
     }), kind);
     const vh = 844;
@@ -153,10 +153,10 @@ async function run(h) {
       await pg.click('[data-testid=ready-close]');
       await pg.waitForTimeout(600);
       await tabTo(pg, 'explore');
-      await pg.waitForSelector('[data-testid=atlas-grid]');
+      await pg.waitForSelector('[data-testid=atlas-carousel]');
       await pg.waitForTimeout(1500);
       // Explore is the atlas now (AT1): the grid of areas near you, under a small map.
-      check((await pg.locator('[data-testid=atlas-grid]').count()) === 1, 'Explore opens on the atlas of areas near you (AT1)');
+      check((await pg.locator('[data-testid=atlas-carousel]').count()) === 1, 'Explore opens on the row of areas near you (AT1)');
       {
         const box = await pg.locator('canvas.maplibregl-canvas').boundingBox();
         await pg.mouse.move(box.x + box.width / 2 + 50, box.y + box.height / 2 - 40);
@@ -222,8 +222,8 @@ async function run(h) {
       await pg.evaluate(({ lon, lat }) => new Promise((resolve, reject) => {
         const req = indexedDB.open('chronicles');
         req.onsuccess = () => {
-          const tx = req.result.transaction(['capture'], 'readwrite');
-          tx.objectStore('capture').put({ id: 'audit-old-note', walk_id: 'old-walk', t: Date.now() - 86_400_000, kind: 'text', file_path: null, body: 'Under the arch', segment_id: null, lat, lon });
+          const tx = req.result.transaction(['moment'], 'readwrite');
+          tx.objectStore('moment').put(((c) => ({ id: c.id, walk_id: c.walk_id ?? null, t: c.t, lat: c.lat ?? null, lon: c.lon ?? null, segment_id: c.segment_id ?? null, piece_ids: [c.id], pieces: [Object.fromEntries(Object.entries({ ...c, moment_id: c.id }).filter(([k]) => !['walk_id', 'lat', 'lon', 'segment_id'].includes(k)))] }))({ id: 'audit-old-note', walk_id: 'old-walk', t: Date.now() - 86_400_000, kind: 'text', file_path: null, body: 'Under the arch', segment_id: null, lat, lon }));
           tx.oncomplete = () => resolve();
           tx.onerror = () => reject(tx.error);
         };
@@ -342,15 +342,15 @@ async function run(h) {
         `tabs audit U14: the first replay's card has a quiet Not now, and Name it stays (${notNow}, ${notNowBg})`);
       // tabs audit audit 6: Back from the first replay goes to Chronicle, like Keep it (NV27).
       await pg.goBack();
-      await pg.waitForURL((u) => u.pathname === `${BASE}/chronicle`, { timeout: 5000 }).catch(() => {});
+      await pg.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 5000 }).catch(() => {});
       await pg.waitForTimeout(1500);
       const path = new URL(pg.url()).pathname;
-      check(path === `${BASE}/chronicle` && (await pg.locator('[data-testid=to-name]').count()) === 0 && (await pg.locator('[data-testid=tab-chronicle][aria-selected=true]').count()) === 1,
+      check(path === `${BASE}/` && (await pg.locator('[data-testid=to-name]').count()) === 0 && (await pg.locator('[data-testid=tab-chronicle][aria-selected=true]').count()) === 1,
         `tabs audit audit 6: Back from the first replay goes to Chronicle, not the tab the walk began on (${path})`);
       const row = await walkRow(w.id);
       check(row && !row.open && row.title == null, 'tabs audit audit 6: the walk is kept, unnamed');
-      if (path !== `${BASE}/chronicle`) {
-        await pg.goto(`${url}chronicle`);
+      if (path !== `${BASE}/`) {
+        await pg.goto(url);
         await h.mapUp(pg);
         await pg.waitForSelector('[data-testid=home-sheet]');
       }
@@ -403,10 +403,10 @@ async function run(h) {
       await north(0.5, 0.6);
       await holdStop();
       await pg.click('[data-testid=not-now]');
-      await pg.waitForURL((u) => u.pathname === `${BASE}/chronicle`, { timeout: 5000 }).catch(() => {});
+      await pg.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 5000 }).catch(() => {});
       await pg.waitForTimeout(1000);
       const row = second && await walkRow(second.id);
-      check(new URL(pg.url()).pathname === `${BASE}/chronicle` && (await pg.locator('[data-testid=section-memories][aria-selected=true]').count()) === 1 && row && row.title == null && !row.open,
+      check(new URL(pg.url()).pathname === `${BASE}/` && (await pg.locator('[data-testid=section-memories][aria-selected=true]').count()) === 1 && row && row.title == null && !row.open,
         `tabs audit U14, RM3: Not now goes to Chronicle's Memories and leaves the walk unnamed (${pg.url()}, ${row && row.title})`);
     });
     await c.close();

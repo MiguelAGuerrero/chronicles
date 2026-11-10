@@ -1,4 +1,5 @@
 /// <reference types="node" />
+import type { Faced } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { areaKey } from '../../areas/assign';
@@ -7,7 +8,7 @@ import { metersPerPixel } from '../../pins';
 import { placeAll, withTimeout } from '../../placeAll';
 import { levelForZoom, placesIndex, placeWalks, starsFor, unplacedWalks } from '../../places';
 import { buildDays } from '../../days';
-import type { Capture, Walk } from '../../types';
+import type { Walk } from '../../types';
 
 // Slice 2 of v0.5 (the home map), written from its acceptance criteria before
 // the code. Everything here is built from walks, Area and WalkArea only.
@@ -103,7 +104,7 @@ test('home: a star tells whose place it is, its walks newest first, and how far 
 
 test('H9: the open walk shows nowhere on Chronicle until it stops: no star, no row, no place, no day, no count', () => {
   // w5 is open and already has rows from a live placement in Upper Montclair, and a capture.
-  const note = { id: 'c5', walk_id: 'w5', t: 5500, lat: upper.lat, lon: upper.lon, kind: 'text', file_path: null, body: 'open', segment_id: null } as Capture;
+  const note = { id: 'c5', walk_id: 'w5', t: 5500, lat: upper.lat, lon: upper.lon, kind: 'text', file_path: null, body: 'open', segment_id: null } as Faced;
   const shows = (ws: Walk[]) => {
     const ix = placesIndex(areas, rows, ws);
     const starred = ['neighborhood', 'town', 'state'].flatMap((l) => starsFor(ix, l as AreaLevel, 14, 40.8)).some((s) => s.walkIds.includes('w5'));

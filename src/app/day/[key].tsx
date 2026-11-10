@@ -1,3 +1,4 @@
+import { type Faced, facedAll } from '../../lib/moment';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useWalkBorders } from '../../lib/areas/useOutlineSet';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -23,7 +24,7 @@ import { boundsOf, type Bounds } from '../../lib/geo';
 import { loadReplay, type ReplayData } from '../../lib/summary';
 import { useHidden } from '../../lib/deletion/useDeletions';
 import { UndoToast } from '../../components/UndoToast';
-import type { Capture, LngLat } from '../../lib/types';
+import type { LngLat } from '../../lib/types';
 
 /** The drawn trace is rebuilt at most this often; the walker moves every frame. */
 const TRACE_STEP_MS = 66;
@@ -62,7 +63,7 @@ export default function DayReplay() {
   const [rewatched, setRewatched] = useState(false);
   // Reached by Skip: the day was not seen, so it isn't marked watched (audit).
   const [skipped, setSkipped] = useState(false);
-  const [viewing, setViewing] = useState<Capture[] | null>(null);
+  const [viewing, setViewing] = useState<Faced[] | null>(null);
   const hidden = useHidden();
 
   useEffect(() => {
@@ -78,19 +79,19 @@ export default function DayReplay() {
       // Only this day's captures, plus every capture of the walks it started (some may be past midnight).
       const [walks, inDay, summaries] = await Promise.all([
         db.listWalks(),
-        db.capturesBetween(dayStart(key), nextDayStart(key)),
+        db.momentsBetween(dayStart(key), nextDayStart(key)).then(facedAll),
         db.listSummaries().catch(() => []),
       ]);
       const from = dayStart(key);
       const to = nextDayStart(key);
       const started = walks.filter((w) => w.started_at >= from && w.started_at < to);
-      const ofWalks = (await Promise.all(started.map((w) => db.getCaptures(w.id)))).flat();
+      const ofWalks = (await Promise.all(started.map((w) => db.getMoments(w.id).then(facedAll)))).flat();
       const seenIds = new Set(inDay.map((c) => c.id));
       const captures = [...inDay, ...ofWalks.filter((c) => !seenIds.has(c.id))];
       const day = buildDays(started.concat(walks.filter((w) => !started.includes(w))), captures).find((d) => d.key === key) ?? null;
       if (!alive) return;
       if (!day) {
-        // Opened on a day with nothing kept (a Home Screen app reopening on a stale link): to Explore (NV2).
+        // Opened on a day with nothing kept (a Home Screen app reopening on a stale link): to Chronicle (NV2, HC5).
         if (launchRoute.isLaunch(`/day/${key}`)) {
           router.dismissTo('/');
           return;
@@ -215,7 +216,7 @@ export default function DayReplay() {
         {status === 'missing' ? (
           <>
             <Text style={styles.missing}>Nothing was kept on this day.</Text>
-            <Button label="Back to the map" onPress={() => router.dismissTo('/chronicle')} />
+            <Button label="Back to the map" onPress={() => router.dismissTo('/')} />
           </>
         ) : (
           <Text style={styles.muted}>Opening your day…</Text>
@@ -224,7 +225,7 @@ export default function DayReplay() {
     );
   }
 
-  const close = () => (router.canGoBack() ? router.back() : router.dismissTo('/chronicle'));
+  const close = () => (router.canGoBack() ? router.back() : router.dismissTo('/'));
 
   return (
     <View style={styles.screen}>
@@ -304,7 +305,7 @@ export default function DayReplay() {
         remind
         onSaveNote={async (c, body) => {
           // Stored first; the day's moments (Watch again) and any open view of the walk then show it (QL25).
-          await db.updateCapture(c.id, { body });
+          await db.updatePiece(c.piece_id, { body });
           setData((d) => d && withNote(d, c.id, body));
           captureBus.patch(c.walk_id, c.id, { body }, null);
         }}

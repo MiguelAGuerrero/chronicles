@@ -18,8 +18,8 @@ const SEED = () => {
     const req = indexedDB.open('chronicles');
     req.onerror = () => reject(req.error);
     req.onsuccess = () => {
-      const tx = req.result.transaction(['capture'], 'readwrite');
-      for (const c of caps) tx.objectStore('capture').put(c);
+      const tx = req.result.transaction(['moment'], 'readwrite');
+      for (const c of caps) tx.objectStore('moment').put(((c) => ({ id: c.id, walk_id: c.walk_id ?? null, t: c.t, lat: c.lat ?? null, lon: c.lon ?? null, segment_id: c.segment_id ?? null, piece_ids: [c.id], pieces: [Object.fromEntries(Object.entries({ ...c, moment_id: c.id }).filter(([k]) => !['walk_id', 'lat', 'lon', 'segment_id'].includes(k)))] }))(c));
       tx.oncomplete = () => resolve(true);
       tx.onerror = () => reject(tx.error);
     };
@@ -29,9 +29,9 @@ const SEED = () => {
 const stored = (pg) => pg.evaluate(() => new Promise((resolve) => {
   const req = indexedDB.open('chronicles');
   req.onsuccess = () => {
-    const tx = req.result.transaction(['thread', 'thread_member', 'moment_link', 'capture'], 'readonly');
+    const tx = req.result.transaction(['thread', 'thread_member', 'moment_link', 'moment'], 'readonly');
     const all = (n) => new Promise((r) => { const g = tx.objectStore(n).getAll(); g.onsuccess = () => r(g.result); });
-    Promise.all([all('thread'), all('thread_member'), all('moment_link'), all('capture')]).then(([threads, members, links, captures]) => resolve({ threads, members, links, captures }));
+    Promise.all([all('thread'), all('thread_member'), all('moment_link'), all('moment')]).then(([threads, members, links, captures]) => resolve({ threads, members, links, captures }));
   };
 }));
 
@@ -101,7 +101,9 @@ async function run(h) {
   check(await there('text=Connected', 5000), 'owner-threads audit 19: the pill says Connected, nothing warmer');
   let db = await stored(pg);
   check(db.threads.length === 1 && db.threads[0].name === null && db.members.length === 2, 'OT5, OT6: the thread is made of the two moments, unnamed');
-  check(JSON.stringify(db.captures.find((x) => x.id === 's1')) === JSON.stringify({ id: 's1', walk_id: null, t: db.captures.find((x) => x.id === 's1').t, lat: null, lon: null, kind: 'text', file_path: null, body: 'Someone said I looked strong at the pier.', segment_id: null }),
+  // The moment's record as seeded (decision 0123): its own fields, and its one piece.
+  const s1 = db.captures.find((x) => x.id === 's1');
+  check(JSON.stringify(s1) === JSON.stringify({ id: 's1', walk_id: null, t: s1.t, lat: null, lon: null, segment_id: null, piece_ids: ['s1'], pieces: [{ id: 's1', t: s1.t, kind: 'text', file_path: null, body: 'Someone said I looked strong at the pier.', moment_id: 's1' }] }),
     'OT18: linking left the moment\'s own row as it was');
 
   // OT11: the viewer says "in a thread", without the thread's name.
@@ -112,7 +114,7 @@ async function run(h) {
   const line1 = await meta();
   check(/In a thread$/.test(line1) && !/In a thread:/.test(line1), `OT11: the info line says "In a thread" and no name (${line1})`);
 
-  // OT1, OT11, OT27 (decision 0112): the viewer's actions are a docked toolbar and a menu, nothing over the moment.
+  // OT1, OT11, OT27 (decision 0114): the viewer's actions are a docked toolbar and a menu, nothing over the moment.
   const overMoment = () => pg.evaluate(() => {
     const card = document.querySelector('[data-testid=capture-card], [data-testid=edited-photo]');
     if (!card) return null;
@@ -159,7 +161,7 @@ async function run(h) {
   check((await has('[data-testid=viewer-respond]')) && (await has('[data-testid=viewer-edit-note]')), 'UC11: the toolbar\'s Respond and Edit are as they were');
   await pg.waitForTimeout(800);
   db = await stored(pg);
-  const reply = db.captures.find((x) => x.body === 'Same again today, at the same pier.');
+  const reply = db.captures.find((x) => x.pieces[0].body === 'Same again today, at the same pier.');
   check(reply && reply.walk_id === null && db.links.length === 1 && db.links[0].from_id === reply.id && db.links[0].to_id === 's1'
     && db.members.some((m) => m.moment_id === reply.id && m.thread_id === db.threads[0].id) && db.threads.length === 1,
     'OT2: the reply is its own moment, linked to the one it answers, and joins its thread');
@@ -231,7 +233,7 @@ async function run(h) {
   }
   await closePill();
   db = await stored(pg);
-  check(db.members.length === 3 && db.captures.some((x) => x.body === 'And a third, on the bridge.'), 'OT8: Remove from this thread keeps the moment kept');
+  check(db.members.length === 3 && db.captures.some((x) => x.pieces[0].body === 'And a third, on the bridge.'), 'OT8: Remove from this thread keeps the moment kept');
 
   // OT20, OT23: the thread's name appears nowhere but its own places.
   await pg.click('[data-testid=own-thread-back]');

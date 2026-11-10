@@ -1,4 +1,5 @@
 // @layer view
+import { type Faced, faced, facedAll, facedOf } from './moment';
 import {
   RecordingPresets, requestRecordingPermissionsAsync, useAudioRecorder,
 } from 'expo-audio';
@@ -18,16 +19,21 @@ import { makeThumb } from './media/thumb';
 import { isOutOfSpace, saveFailLine } from './space/core';
 import { space } from './space';
 import { captureThumbStillWanted, THUMB } from './thumbPlan';
-import type { Capture, CaptureKind, LngLat } from './types';
+import { stampFor } from './pieceStamp';
+import type { CaptureKind, LngLat, Moment } from './types';
 
 /** A fix older than this is not trusted as "where the capture was taken". */
-const FRESH_FIX_MS = 15_000;
 /** A voice memo shorter than this was an accidental tap. */
 const MIN_VOICE_MS = 1000;
 /**
  * Longest video. A minute of phone video is 50 to 150 MB; the web gets less,
  * since a browser's storage is smaller and can be cleared.
  */
+/** A refused permission. A phone's Settings has a button (`openSettings`); a web page cannot open them, so it says where. */
+const accessOff = (what: 'Camera' | 'Microphone') =>
+  Platform.OS === 'web'
+    ? `${what} access is off for Chronicles. Allow it in your browser’s site settings, then try again.`
+    : `${what} access is off for Chronicles.`;
 const MAX_VIDEO_S = Platform.OS === 'web' ? 15 : 30;
 
 /** How long a stop may take before it is given up on. */
@@ -46,6 +52,8 @@ interface Stamp {
   /** The moment a reply answers, fixed when the capture began, so a swipe meanwhile never moves it (ui-conformance audit 10). */
   replyTo?: { answeredId: string; from?: string | null } | null;
   locating?: Promise<LocateResult>;
+  /** The open moment this capture joins as a piece (moment stacks MS3, decision 0123): no fix, no reply. */
+  into?: string | null;
 }
 
 /**
@@ -99,9 +107,11 @@ export function useCaptures(
   onError?: (e: { message: string; openSettings?: boolean }) => void,
   opts: {
     loose?: boolean;
-    onMoment?: (c: Capture, state: MomentState, answeredId?: string | null) => void;
+    onMoment?: (c: Faced, state: MomentState, answeredId?: string | null) => void;
     /** Every moment this path keeps answers this one, and joins its thread (OT2); null when it answers nothing. */
     replyTo?: { answeredId: string; from?: string | null } | null;
+    /** Told when a capture is kept: a new moment, or a piece added to one (moment stacks, the pill). */
+    onKept?: (momentId: string, piece: boolean) => void;
   } = {},
 ) {
   const enabled = walkId != null || !!opts.loose;
@@ -109,11 +119,15 @@ export function useCaptures(
   useEffect(() => {
     onMoment.current = opts.onMoment;
   }, [opts.onMoment]);
+  const onKept = useRef(opts.onKept);
+  useEffect(() => {
+    onKept.current = opts.onKept;
+  }, [opts.onKept]);
   const replyTo = useRef(opts.replyTo ?? null);
   useEffect(() => {
     replyTo.current = opts.replyTo ?? null;
   }, [opts.replyTo]);
-  const [captures, setCaptures] = useState<Capture[]>([]);
+  const [captures, setCaptures] = useState<Faced[]>([]);
   const [busy, setBusy] = useState<Busy>(null);
   const [voiceStartedAt, setVoiceStartedAt] = useState<number | null>(null);
   const errorCb = useRef(onError);
@@ -149,18 +163,18 @@ export function useCaptures(
         if (alive.current) setCaptures((prev) => applyPatch(prev, id, patch));
       },
     );
-    db.getCaptures(walkId).then((stored) => {
+    db.getMoments(walkId).then(facedAll).then((stored) => {
       if (alive.current) setCaptures((prev) => mergeCaptures(stored, prev));
     });
     return off;
   }, [walkId, self]);
 
-  const stampNow = (locate = true): Stamp => {
-    const t = clockNow();
-    const { here: h, lastFixAt: f } = pos.current;
-    const at = h && f != null && t - f <= FRESH_FIX_MS ? h : null;
-    const s: Stamp = { t, at, replyTo: replyTo.current };
-    if (locate) startLocating(s);
+  const stampNow = (locate = true, into: string | null = null): Stamp => {
+    // A piece for an open moment takes no fix: the moment's one place is its place (MS3, `pieceStamp`).
+    const st = stampFor(clockNow(), pos.current, into);
+    // The reply is fixed when the capture begins (ui-conformance audit 10); a piece answers nothing.
+    const s: Stamp = { t: st.t, at: st.at, into: st.into, replyTo: st.into ? null : replyTo.current };
+    if (locate && st.locate) startLocating(s);
     return s;
   };
   /**
@@ -170,17 +184,40 @@ export function useCaptures(
    */
   const startLocating = (s: Stamp) => {
     // In a walk too: while paused the recorder is stopped, so the last fix is where the pause began.
-    if (!s.at && !s.locating) s.locating = locateOnce().catch(() => ({ at: null, reason: 'unavailable' as const }));
+    if (!s.at && !s.locating && !s.into) s.locating = locateOnce().catch(() => ({ at: null, reason: 'unavailable' as const }));
   };
   const folder = () => walkId ?? LOOSE_FOLDER;
 
+  /**
+   * A piece added to an open moment (moment stacks MS3, MS5): stored with its own time under the moment, whose place
+   * and time stay; shown here and told to the walk's other paths as the moment, now with its new piece.
+   */
+  async function addPiece(into: string, kind: CaptureKind, stamp: Stamp, file_path: string | null, body: string | null): Promise<{ momentId: string; pieceId: string } | null> {
+    const pieceId = newId();
+    const piece = { id: pieceId, moment_id: into, t: stamp.t, kind, file_path, body };
+    await db.addPiece(into, piece);
+    const [stored] = await db.getMomentsByIds([into]);
+    if (stored) {
+      const now = faced(stored);
+      if (alive.current) setCaptures((prev) => prev.map((x) => (x.id === into ? { ...now, lat: x.lat, lon: x.lon } : x)));
+      captureBus.emit(now, self);
+      if (!walkId) onMoment.current?.(now, 'kept');
+    }
+    onKept.current?.(into, true);
+    return { momentId: into, pieceId };
+  }
+
   async function add(kind: CaptureKind, stamp: Stamp, file_path: string | null, body: string | null): Promise<string | null> {
     if (!enabled) return null;
-    const c: Capture = {
-      id: newId(), walk_id: walkId, t: stamp.t, kind, file_path, body, segment_id: null,
-      lat: stamp.at?.[1] ?? null, lon: stamp.at?.[0] ?? null,
+    if (stamp.into) return (await addPiece(stamp.into, kind, stamp, file_path, body))?.pieceId ?? null;
+    // A new moment and its first piece, under one id (decision 0123): its one place and time, the piece's media.
+    const id = newId();
+    const m: Moment = {
+      id, walk_id: walkId, t: stamp.t, lat: stamp.at?.[1] ?? null, lon: stamp.at?.[0] ?? null, segment_id: null,
+      pieces: [{ id, moment_id: id, t: stamp.t, kind, file_path, body }],
     };
-    await db.addCapture(c);
+    await db.addMoment(m);
+    const c = faced(m);
     // A reply is linked once it is kept; a failed link leaves the moment kept, unconnected (OT2).
     const answers = stamp.replyTo !== undefined ? stamp.replyTo : replyTo.current;
     if (answers) void threads.reply(c.id, answers.answeredId, answers.from ?? null).catch(() => {});
@@ -192,6 +229,7 @@ export function useCaptures(
     // Told even once this path is gone: the walk screen may have come back meanwhile (NV9).
     captureBus.emit(shown, self);
     if (!walkId) onMoment.current?.(c, 'kept');
+    onKept.current?.(c.id, false);
     placeMoment(c, stamp);
     // The room again after each kept photo, video or memo (SA5); the web's request waits for a calm moment (SA10).
     if (kind !== 'text') void space.afterKept({ recording: walkId != null });
@@ -202,9 +240,9 @@ export function useCaptures(
    * A moment outside a walk is kept at once and placed when its one fix
    * arrives (M2), so a save never waits on GPS. No fix: it stays unplaced.
    */
-  function placeMoment(c: Capture, stamp: Stamp) {
+  function placeMoment(c: Faced, stamp: Stamp) {
     // In a walk, no fix leaves it for the trace to place at stop; nothing is reported.
-    const report = (x: Capture, state: MomentState) => {
+    const report = (x: Faced, state: MomentState) => {
       if (!walkId) onMoment.current?.(x, state);
     };
     if (c.lat != null || !stamp.locating) {
@@ -218,7 +256,7 @@ export function useCaptures(
           return;
         }
         const placed = { ...c, lon: r.at[0], lat: r.at[1] };
-        await db.updateCapture(c.id, { lon: placed.lon, lat: placed.lat });
+        await db.updateMoment(c.id, { lon: placed.lon, lat: placed.lat });
         if (alive.current) setCaptures((prev) => prev.map((x) => (x.id === c.id ? placed : x)));
         // The pin shown at the last position elsewhere moves too (NV9).
         if (walkId) captureBus.patch(walkId, c.id, { lon: placed.lon, lat: placed.lat }, self);
@@ -244,7 +282,6 @@ export function useCaptures(
     }
   }
 
-  /** The system camera, in photo or video mode as the person picks there. Resolves what was kept, if anything. */
   /** Photos and videos whose save failed, every one of them, held for Retry (SA8). */
   const [held, setHeld] = useState<HeldShot[]>([]);
 
@@ -253,8 +290,9 @@ export function useCaptures(
     let path = s.path;
     try {
       path = path ?? (await keepFile(s.uri, folder(), `${newId()}.${s.ext}`));
+      // With `into`, the id is the new piece's in that open moment (MS3).
       const id = await add(s.kind, s.stamp, path, s.ms == null ? null : String(s.ms));
-      if (id && s.kind === 'photo') thumbFor(id, path);
+      if (id && s.kind === 'photo') thumbFor(id, path, s.stamp.into ?? id);
       return { id };
     } catch (error) {
       return { failed: { ...s, path }, error };
@@ -262,14 +300,14 @@ export function useCaptures(
   }
 
   /** Keeps a new shot, or holds it with why in words, never the raw error (SA8, SA9). */
-  async function keepOrHold(s: HeldShot): Promise<{ kind: 'photo' | 'video'; id: string } | null> {
+  async function keepOrHold(s: HeldShot): Promise<{ kind: 'photo' | 'video'; id: string; momentId: string } | null> {
     const r = await keepShot(s);
     if ('failed' in r) {
       if (alive.current) setHeld((prev) => [...prev, r.failed]);
       setError({ message: saveFailLine(s.kind, isOutOfSpace(r.error)) });
       return null;
     }
-    return r.id ? { kind: s.kind, id: r.id } : null;
+    return r.id ? { kind: s.kind, id: r.id, momentId: s.stamp.into ?? r.id } : null;
   }
 
   /** Retry: each held shot saved in turn; one that fails again stays held (SA8). */
@@ -288,35 +326,46 @@ export function useCaptures(
       if (last) setError({ message: saveFailLine(last.kind, isOutOfSpace(last.error)) });
     });
 
-  /** A new photo's small copy for previews (TH1), after the capture is kept: never holds it up or fails it (TH2). */
-  function thumbFor(id: string, path: string) {
-    void makeThumb({ id, walk_id: folder(), t: Date.now(), lat: null, lon: null, kind: 'photo', file_path: path, body: null, segment_id: null }).then((thumb) => {
+  /**
+   * A new photo's small copy for previews (TH1), after the capture is kept: never holds it up or fails it (TH2). The
+   * copy is the piece's (`id`); the moment it sits in (`momentId`) is read fresh, and shows it when it is its face.
+   */
+  function thumbFor(id: string, path: string, momentId: string) {
+    void makeThumb(facedOf({ id, walk_id: folder(), t: Date.now(), lat: null, lon: null, kind: 'photo', file_path: path, body: null, segment_id: null })).then((thumb) => {
       if (!thumb) return;
       // An Edit offer's Done may have stored the edited copy meanwhile: this one then stands down (media-editing audit 8).
-      void db.getCapturesByIds([id]).then(([row]) => {
-        if (!captureThumbStillWanted(row ?? null)) {
+      void db.getMomentsByIds([momentId]).then(([m]) => {
+        const row = m?.pieces.find((x) => x.id === id) ?? null;
+        if (!captureThumbStillWanted(row)) {
           if (thumb !== THUMB.none) void removeMedia([thumb]).catch(() => {});
           return;
         }
-        if (alive.current) setCaptures((prev) => prev.map((x) => (x.id === id ? { ...x, thumb_path: thumb } : x)));
+        const isFace = !!m && faced(m).piece_id === id;
+        if (isFace && alive.current) setCaptures((prev) => prev.map((x) => (x.id === m.id ? { ...x, thumb_path: thumb } : x)));
         // Stored first, then told: a walk screen mounting meanwhile either reads it or hears it (tabs audit 5).
-        void db.updateCapture(id, { thumb_path: thumb }).then(
-          () => captureBus.patch(walkId, id, { thumb_path: thumb }, self),
+        void db.updatePiece(id, { thumb_path: thumb }).then(
+          () => {
+            if (isFace) captureBus.patch(walkId, m.id, { thumb_path: thumb }, self);
+          },
           () => {},
         );
       }, () => {});
     });
   }
 
-  const takePhoto = async (): Promise<{ kind: 'photo' | 'video'; id: string } | null> => {
-    let kept: { kind: 'photo' | 'video'; id: string } | null = null;
+  /**
+   * The system camera, in photo or video mode as the person picks there. Resolves what was kept, if anything. With
+   * `into`, what it keeps joins that open moment as a piece (MS2, MS3); `id` is then the piece's.
+   */
+  const takePhoto = async (into: string | null = null): Promise<{ kind: 'photo' | 'video'; id: string; momentId: string } | null> => {
+    let kept: { kind: 'photo' | 'video'; id: string; momentId: string } | null = null;
     await guarded('photo', async () => {
-      const stamp = stampNow(false);
+      const stamp = stampNow(false, into);
       const perm = await ImagePicker.requestCameraPermissionsAsync();
       if (!perm.granted) {
         // The request above already showed the system prompt if it could; a refusal now is only fixable in Settings.
         // (`canAskAgain` is not trusted: iOS can report true after a denial, which left no way to recover.)
-        setError({ message: 'Camera access is off for Chronicles.', openSettings: true });
+        setError({ message: accessOff('Camera'), openSettings: true });
         return;
       }
       startLocating(stamp);
@@ -328,21 +377,26 @@ export function useCaptures(
       });
       if (res.canceled || !res.assets[0]) return;
       const asset = res.assets[0];
-      if (asset.type === 'video') {
-        // The web picker reports seconds, native milliseconds.
-        const ms = Platform.OS === 'web' ? (asset.duration ?? 0) * 1000 : (asset.duration ?? 0);
-        // Browsers cannot cap a recording, so an over-long clip is turned away here.
-        if (ms > MAX_VIDEO_S * 1000 + 500) {
-          dropTemp(asset.uri);
-          setError({ message: `Videos can be up to ${MAX_VIDEO_S} seconds here. That one was ${Math.round(ms / 1000)} s.` });
+      // From here the file is being kept: Stop from the recording bar waits for it (capture-from-chronicle audit 6).
+      const keeping = (async () => {
+        if (asset.type === 'video') {
+          // The web picker reports seconds, native milliseconds.
+          const ms = Platform.OS === 'web' ? (asset.duration ?? 0) * 1000 : (asset.duration ?? 0);
+          // Browsers cannot cap a recording, so an over-long clip is turned away here.
+          if (ms > MAX_VIDEO_S * 1000 + 500) {
+            dropTemp(asset.uri);
+            setError({ message: `Videos can be up to ${MAX_VIDEO_S} seconds here. That one was ${Math.round(ms / 1000)} s.` });
+            return;
+          }
+          const ext = asset.mimeType?.split('/')[1]?.replace('quicktime', 'mov') ?? 'mp4';
+          kept = await keepOrHold({ kind: 'video', stamp, uri: asset.uri, ext, ms: Math.round(ms), path: null });
           return;
         }
-        const ext = asset.mimeType?.split('/')[1]?.replace('quicktime', 'mov') ?? 'mp4';
-        kept = await keepOrHold({ kind: 'video', stamp, uri: asset.uri, ext, ms: Math.round(ms), path: null });
-        return;
-      }
-      const ext = asset.mimeType?.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
-      kept = await keepOrHold({ kind: 'photo', stamp, uri: asset.uri, ext, ms: null, path: null });
+        const ext = asset.mimeType?.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
+        kept = await keepOrHold({ kind: 'photo', stamp, uri: asset.uri, ext, ms: null, path: null });
+      })();
+      memoGate.keep(keeping);
+      await keeping;
     });
     return kept;
   };
@@ -379,16 +433,20 @@ export function useCaptures(
   const resetAudioMode = () =>
     setAudioMode({ allowsRecording: false, playsInSilentMode: true, allowsBackgroundRecording: false }).catch(() => {});
 
-  const startVoice = (): Promise<boolean> =>
+  /** With `into`, the memo joins that open moment as a piece when saved (MS2, MS3). */
+  const startVoice = (into: string | null = null): Promise<boolean> =>
     enqueue(() =>
       withBusy(async () => {
         if (!enabled || voiceOn.current) return false;
         try {
-          const perm = await requestRecordingPermissionsAsync();
-          if (!perm.granted) {
+          // On the web expo-audio's permission request folds every getUserMedia failure into "denied" (a microphone
+          // another app or tab holds reads as refused although the site is allowed) and opens the microphone a second
+          // time; prepareToRecordAsync below asks too and throws the browser's own error, which the catch tells apart.
+          const perm = Platform.OS === 'web' ? null : await requestRecordingPermissionsAsync();
+          if (perm && !perm.granted) {
             // The request above already showed the system prompt if it could; a refusal now is only fixable in Settings.
             // (`canAskAgain` is not trusted: iOS can report true after a denial, which left no way to recover.)
-            setError({ message: 'Microphone access is off for Chronicles.', openSettings: true });
+            setError({ message: accessOff('Microphone'), openSettings: true });
             return false;
           }
           // Keeps recording with the phone locked and in a pocket.
@@ -399,7 +457,7 @@ export function useCaptures(
             await resetAudioMode();
             return false;
           }
-          voiceStamp.current = stampNow();
+          voiceStamp.current = stampNow(true, into);
           voice.record();
           voiceOn.current = true;
           memoGate.recording(self, true);
@@ -407,7 +465,15 @@ export function useCaptures(
           return true;
         } catch (e) {
           await resetAudioMode();
-          setError({ message: e instanceof Error ? e.message : String(e) });
+          const name = e instanceof Error ? e.name : '';
+          if (Platform.OS === 'web' && (name === 'NotAllowedError' || name === 'SecurityError')) {
+            setError({ message: accessOff('Microphone'), openSettings: true });
+          } else if (Platform.OS === 'web' && name) {
+            // Allowed, but the browser could not open it: say what it said (busy, none found) rather than "off".
+            setError({ message: `The microphone could not start (${name}${e instanceof Error && e.message ? `: ${e.message}` : ''}).` });
+          } else {
+            setError({ message: e instanceof Error ? e.message : String(e) });
+          }
           return false;
         }
       }),
@@ -547,8 +613,10 @@ export function useCaptures(
    * A photo's or video's edits and caption, or its new small copy (ME21):
    * stored, shown here, then sent on the bus so the walk's other views show it.
    */
-  async function setEdit(id: string, patch: CapturePatch) {
-    await db.updateCapture(id, patch);
+  async function setEdit(c: Pick<Faced, 'id' | 'piece_id'>, patch: CapturePatch) {
+    const id = c.id;
+    // The edit is the piece's own; the screens show it on the moment (decision 0123).
+    await db.updatePiece(c.piece_id, patch);
     if (alive.current) setCaptures((prev) => applyPatch(prev, id, patch));
     captureBus.patch(walkId, id, patch, self);
   }
@@ -558,15 +626,17 @@ export function useCaptures(
    * walk's other views (the walk screen, Navigate's live walk) show it too.
    * Its find and reminder hang on its id, so they stay.
    */
-  async function setNote(id: string, body: string) {
-    await db.updateCapture(id, { body });
+  async function setNote(c: Pick<Faced, 'id' | 'piece_id'>, body: string) {
+    const id = c.id;
+    await db.updatePiece(c.piece_id, { body });
     if (alive.current) setCaptures((prev) => applyPatch(prev, id, { body }));
     captureBus.patch(walkId, id, { body }, self);
   }
 
-  const saveNote = (text: string) =>
+  /** With `into`, the note joins that open moment as a piece (MS2, MS3). */
+  const saveNote = (text: string, into: string | null = null) =>
     guarded('text', async () => {
-      if (text.trim()) await add('text', stampNow(), null, text.trim());
+      if (text.trim()) await add('text', stampNow(true, into), null, text.trim());
     });
 
   return {

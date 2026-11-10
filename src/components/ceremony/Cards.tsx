@@ -3,6 +3,7 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useRef, useState } from 'react';
 import { Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { easeInOut, easeOut } from '../../lib/ceremony/ease';
+import { gridLayout } from '../../lib/ceremony/grid';
 import type { CardOverlay } from '../../lib/ceremony/types';
 import { editedSize, isEmptyEdit, type MediaEdit } from '../../lib/mediaEdit';
 import { useMediaUri } from '../../lib/useMediaUri';
@@ -12,7 +13,16 @@ import { Icon, KIND_LABEL } from '../icons';
 import { theme } from '../ui';
 import { cardWidth, PILE, pileCenter, project, restCenter, tiltOf, timeOf, type StageCtx } from './layout';
 import { Skeleton } from './Skeleton';
+import { StackGrid } from './Grid';
+
 import { useMediaWait } from './useMediaWait';
+
+/** A grid's height for its width: its rows of square cells (MS17). */
+function gridHeight(n: number, width: number): number {
+  const g = gridLayout(n);
+  const cell = (width - 4 * (g.cols - 1)) / g.cols;
+  return g.rows * cell + 4 * (g.rows - 1);
+}
 
 const lerp = (a: number, b: number, u: number) => a + (b - a) * u;
 /** How long a video may take to start before it is treated as refused sound (as the viewer's player). */
@@ -148,7 +158,9 @@ function MomentCard({ o, ctx }: { o: CardOverlay; ctx: StageCtx }) {
   // A photo's picture, once it has loaded: a skeleton stands in until then (RR23).
   const [loaded, setLoaded] = useState(false);
   const w = cardWidth(ctx);
-  const imgH = w * 1.15;
+  // A stack's grid sits in a square of the card's width (MS17).
+  const grid = !!o.pieces?.length;
+  const imgH = grid ? gridHeight(o.pieces!.length, w - 14) : w * 1.15;
   const h = imgH + 7 + 34;
   const rest = restCenter(ctx);
   // It grows from its pin, where the frame says the pin is (audit 10).
@@ -182,14 +194,16 @@ function MomentCard({ o, ctx }: { o: CardOverlay; ctx: StageCtx }) {
       style={[styles.card, { left: at[0] - w / 2, top: at[1] - h / 2, width: w, opacity, transform: [{ rotate: `${tilt}deg` }, { scale }] }]}
     >
       <View style={[styles.media, { height: imgH }]} pointerEvents="box-none">
-        {uri && o.capture.kind === 'video' ? (
+        {grid ? (
+          <StackGrid o={o} ctx={ctx} width={w - 14} />
+        ) : uri && o.capture.kind === 'video' ? (
           <CardVideo o={o} ctx={ctx} uri={uri} height={imgH} width={w - 14} />
         ) : uri && o.capture.edit && !isEmptyEdit(o.capture.edit) ? (
           <CardPhoto uri={uri} edit={o.capture.edit} width={w - 14} height={imgH} onLoad={() => setLoaded(true)} />
         ) : uri ? (
           <Image source={{ uri }} style={styles.fill} resizeMode="cover" accessibilityIgnoresInvertColors pointerEvents="none" onLoad={() => setLoaded(true)} />
         ) : null}
-        {(!uri || (o.capture.kind === 'photo' && !loaded)) && <Skeleton testID="media-skeleton" style={StyleSheet.absoluteFill} still={ctx.reduceMotion} />}
+        {!grid && (!uri || (o.capture.kind === 'photo' && !loaded)) && <Skeleton testID="media-skeleton" style={StyleSheet.absoluteFill} still={ctx.reduceMotion} />}
       </View>
       <View style={styles.cap} pointerEvents="none">
         <Text style={styles.capText} numberOfLines={1}>{label}</Text>

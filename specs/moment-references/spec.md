@@ -12,7 +12,7 @@ photos and memos.
 
 Idea: from the Chronicle, connect a moment to others as a response: type @ in a note to embed a moment, drawn as a card of its kind.
 Verb: return (coming back to a moment and tying it to the one it echoes; the recall of 0104).
-Touches: Always "A moment carries its context" (a card shows its kind, date and place); Always "Restraint … the content is the novelty, not the chrome" (no new menu item, no count); Always "Counts are words" (what mentions a moment is said in words); precedents 0104 (moments stay whole; connections are the owner's), 0112 (actions on a moment live in its toolbar or menu), 0123 (a moment holds several media), 0125.
+Touches: Always "A moment carries its context" (a card shows its kind, date and place); Always "Restraint … the content is the novelty, not the chrome" (no new menu item, no count); Always "Counts are words" (what mentions a moment is said in words); precedents 0104 (moments stay whole; connections are the owner's), 0114 (actions on a moment live in its toolbar or menu), 0123 (a moment holds several media), 0125.
 Verdict: aligned
 Shape: reshaped by the owner from a menu item to an @ reference in a note's text (0125).
 Criteria: RF1-RF8.

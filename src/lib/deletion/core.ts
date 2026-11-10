@@ -1,4 +1,5 @@
 // @layer core
+import type { Faced } from '../moment';
 import { THUMB } from '../thumbPlan';
 import type { Capture, CaptureKind, WalkSummary } from '../types';
 
@@ -8,7 +9,7 @@ import type { Capture, CaptureKind, WalkSummary } from '../types';
  * `db.deleteCaptures`; the Undo window is `pending.ts`.
  */
 
-export type DeleteKind = 'walk' | 'media' | 'moment' | 'thread' | 'remove';
+export type DeleteKind = 'walk' | 'media' | 'moment' | 'piece' | 'split' | 'thread' | 'remove';
 
 /** Photos, videos and memos: what "Remove photos, videos and memos" takes (D2). Notes stay. */
 export const isMedia = (c: { kind: CaptureKind }): boolean => c.kind !== 'text';
@@ -26,6 +27,11 @@ export function filesOf(captures: Pick<Capture, 'file_path' | 'thumb_path'>[]): 
     }
   }
   return out;
+}
+
+/** Every piece's files of a set of moments (MT6, decision 0123): what deleting them takes. */
+export function filesOfMoments(moments: { pieces: Pick<Capture, 'file_path' | 'thumb_path'>[] }[]): string[] {
+  return filesOf(moments.flatMap((m) => m.pieces));
 }
 
 /** Streets are counted by name (the owner's call): an unnamed path's key is its segment id, never a street. */
@@ -63,13 +69,13 @@ export function recountNewStreets(
 }
 
 /** A walk's moment counts, from its capture rows (D9, audit 3): never by subtraction. */
-export function countsOf(captures: Pick<Capture, 'kind'>[]): Pick<WalkSummary, 'photos' | 'videos' | 'voices' | 'notes'> {
+export function countsOf(captures: Pick<Faced, 'kind'>[]): Pick<WalkSummary, 'photos' | 'videos' | 'voices' | 'notes'> {
   const n = (k: CaptureKind) => captures.filter((c) => c.kind === k).length;
   return { photos: n('photo'), videos: n('video'), voices: n('voice'), notes: n('text') };
 }
 
 /** The walk's counts without the removed moments (D9); the walk's own numbers stay. */
-export function summaryLess(s: WalkSummary, removed: Pick<Capture, 'kind'>[]): WalkSummary {
+export function summaryLess(s: WalkSummary, removed: Pick<Faced, 'kind'>[]): WalkSummary {
   const n = (k: CaptureKind) => removed.filter((c) => c.kind === k).length;
   const less = (have: number | undefined, k: CaptureKind) => Math.max(0, (have ?? 0) - n(k));
   return { ...s, photos: less(s.photos, 'photo'), videos: less(s.videos, 'video'), voices: less(s.voices, 'voice'), notes: less(s.notes, 'text') };
@@ -125,6 +131,16 @@ export function momentDeleteText(kind: CaptureKind, bytes: number): ConfirmText 
   return { title: `Delete this ${KIND_NOUN[kind]}?`, body: withSize('You can undo it.', bytes), confirm: 'Delete' };
 }
 
+/** MS13: deleting a moment that holds more than one piece names the moment, never its face's kind. */
+export function stackDeleteText(bytes: number): ConfirmText {
+  return { title: 'Delete this moment and everything in it?', body: withSize('You can undo it.', bytes), confirm: 'Delete' };
+}
+
+/** MS13: deleting one piece of a moment, named by its kind; the moment and the rest stay. */
+export function pieceDeleteText(kind: CaptureKind, bytes: number): ConfirmText {
+  return { title: `Delete this ${KIND_NOUN[kind]} from the moment?`, body: withSize('The rest of the moment stays. You can undo it.', bytes), confirm: 'Delete' };
+}
+
 /** D5: the pill's words, naming the moment's kind when it is known. */
 export function toastText(kind: DeleteKind, what?: CaptureKind): string {
   if (kind === 'walk') return 'Walk deleted';
@@ -132,6 +148,14 @@ export function toastText(kind: DeleteKind, what?: CaptureKind): string {
   if (kind === 'thread') return 'Thread deleted';
   if (kind === 'remove') return 'Removed from the thread';
   if (!what) return 'Moment deleted';
+  if (kind === 'split') {
+    const noun = KIND_NOUN[what];
+    return `${noun[0].toUpperCase()}${noun.slice(1)} split out`;
+  }
+  if (kind === 'piece') {
+    const noun = KIND_NOUN[what];
+    return `${noun[0].toUpperCase()}${noun.slice(1)} deleted from the moment`;
+  }
   const noun = KIND_NOUN[what];
   return `${noun[0].toUpperCase()}${noun.slice(1)} deleted`;
 }
@@ -140,5 +164,6 @@ export function toastText(kind: DeleteKind, what?: CaptureKind): string {
 export function dismissLabel(kind: DeleteKind): string {
   if (kind === 'remove') return 'Close, it stays removed';
   if (kind === 'media') return 'Close, they stay removed';
+  if (kind === 'split') return 'Close, it stays split out';
   return 'Close, it stays deleted';
 }

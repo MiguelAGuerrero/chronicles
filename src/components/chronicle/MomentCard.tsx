@@ -8,6 +8,8 @@ import type { ContextEntry } from '../../lib/resurface/shell';
 import { Icon } from '../icons';
 import { theme } from '../ui';
 import { MomentPicture } from './MomentPicture';
+import { hasMore } from '../../lib/moment';
+import { StackMark, STACK_SPOKEN } from '../StackMark';
 
 const KIND_WORD = { photo: 'Photo', video: 'Video', voice: 'Voice memo', text: 'Note' } as const;
 
@@ -18,7 +20,8 @@ export function contextText(context: ContextEntry | undefined, m: MomentView, no
 
 /** What a moment says about itself in one line, for a screen reader (RM25). */
 export function momentSpoken(m: MomentView, now: number, context?: ContextEntry): string {
-  return [KIND_WORD[m.kind], m.words, contextText(context, m, now)].filter(Boolean).join(', ');
+  // A moment with more than one piece says so in words (MS8), never how many (MS9).
+  return [KIND_WORD[m.kind], hasMore(m.capture) ? STACK_SPOKEN : null, m.words, contextText(context, m, now)].filter(Boolean).join(', ');
 }
 
 /**
@@ -44,6 +47,7 @@ export function MomentCard(props: {
     <View style={styles.card} testID="moment-card">
       <Pressable testID="moment-open" accessibilityRole="button" accessibilityLabel={`${momentSpoken(m, now, props.context)}. Open`} onPress={props.onOpen}>
         {(m.kind === 'photo' || m.kind === 'video') && <MomentPicture capture={m.capture} style={styles.picture} iconSize={36} />}
+        {hasMore(m.capture) && <StackMark style={m.kind === 'photo' || m.kind === 'video' ? styles.markOnPicture : styles.markInline} light={!(m.kind === 'photo' || m.kind === 'video')} />}
         <View style={styles.body}>
           {m.kind === 'voice' && (
             <View style={styles.memo}>
@@ -85,4 +89,6 @@ const styles = StyleSheet.create({
   from: { flex: 1, minHeight: 32, justifyContent: 'center' },
   fromText: { color: theme.muted, fontSize: 13 },
   more: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  markOnPicture: { position: 'absolute', top: 10, right: 10 },
+  markInline: { position: 'absolute', top: 10, right: 10 },
 });

@@ -1,4 +1,4 @@
-# 0112. The viewer's actions: a docked toolbar and a menu, nothing over the moment; UI follows standard patterns
+# 0114. The viewer's actions: a docked toolbar and a menu, nothing over the moment; UI follows standard patterns
 
 Date: 2026-11-09 · Status: accepted · Area: captures, chronicle, process, vision
 
@@ -16,4 +16,4 @@ The owner's calls, Nov 9:
 - OT1, OT3 and OT11 are amended and OT27 added in `specs/owner-threads/spec.md`.
 - `RespondBar` and `ThreadChip` go; the viewer's dock and the reply sheet replace them.
 - The audit skill and the auditor and steward agents read the screenshots.
-- **Proposed edit to `docs/VISION.md`** (the owner makes it): under Always, "Capture is one tap away on every screen you walk or capture from" gains "(the capture stack; actions on a moment that exists live in its toolbar or menu, decision 0112)".
+- **Proposed edit to `docs/VISION.md`** (the owner makes it): under Always, "Capture is one tap away on every screen you walk or capture from" gains "(the capture stack; actions on a moment that exists live in its toolbar or menu, decision 0114)".

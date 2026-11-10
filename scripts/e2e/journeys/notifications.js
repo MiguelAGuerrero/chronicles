@@ -25,8 +25,8 @@ async function checks(h) {
       const anyId = await page.evaluate(() => new Promise((resolve) => {
         const req = indexedDB.open('chronicles');
         req.onsuccess = () => {
-          const g = req.result.transaction('capture', 'readonly').objectStore('capture').getAll();
-          g.onsuccess = () => resolve(g.result.find((c) => c.kind === 'text')?.id ?? null);
+          const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll();
+          g.onsuccess = () => resolve(g.result.map((m) => ({ ...m.pieces[0], id: m.id, walk_id: m.walk_id, t: m.t, lat: m.lat, lon: m.lon, segment_id: m.segment_id })).find((c) => c.kind === 'text')?.id ?? null);
         };
       }));
       const homeTap = { type: 'notice-response', id: 'recall-home', data: { captureIds: [anyId] }, action: null };
@@ -40,7 +40,7 @@ async function checks(h) {
       await page.waitForTimeout(800);
       await page.evaluate((m) => navigator.serviceWorker.dispatchEvent(new MessageEvent('message', { data: m })), homeTap);
       const onChronicle = await page.waitForSelector('[data-testid=viewer-close]', { timeout: 8000 }).then(() => true, () => false);
-      check(onChronicle && new URL(page.url()).pathname === `${BASE}/chronicle` && (await page.locator('[data-testid=viewer-close]').count()) === 1,
+      check(onChronicle && new URL(page.url()).pathname === `${BASE}/` && (await page.locator('[data-testid=viewer-close]').count()) === 1,
         `a reminder tapped on another tab opens its capture on Chronicle, once (NV13: ${page.url()})`);
       if (onChronicle) await page.click('[data-testid=viewer-close]');
     }

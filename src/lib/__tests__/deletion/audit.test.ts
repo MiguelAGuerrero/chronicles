@@ -10,12 +10,12 @@ import { dueRecalls } from '../../discovery/recall';
 import { createThreads } from '../../threads/shell';
 import { visibleThreads } from '../../threads/rules';
 import { fakePorts } from '../fakes';
-import type { Capture } from '../../types';
+import { type Flat, facedOf, momentOf } from '../../moment';
 
 // UI conformance audit (specs/ui-conformance, Audit): regression tests, each written before its fix.
 
 const settle = () => new Promise((r) => setImmediate(r));
-const note = (id: string, more: Partial<Capture> = {}): Capture => ({ id, walk_id: null, t: 1, lat: 41.8, lon: -71.4, kind: 'text', file_path: null, body: id, segment_id: null, ...more });
+const note = (id: string, more: Partial<Flat> = {}): Flat => ({ id, walk_id: null, t: 1, lat: 41.8, lon: -71.4, kind: 'text', file_path: null, body: id, segment_id: null, ...more });
 const moment = (id: string): PendingJob => ({ kind: 'moment', what: 'text', ids: [id], spec: { type: 'moment', captureId: id } });
 
 function world() {
@@ -29,7 +29,7 @@ function world() {
 
 test('ui-conformance audit 2: a moment added back to a thread after its removal was stored shows in it', async () => {
   const { ports, window, threads } = world();
-  for (const id of ['a', 'b', 'c']) await ports.db.addCapture(note(id));
+  for (const id of ['a', 'b', 'c']) await ports.db.addMoment(momentOf(note(id)));
   const t = (await threads.startThread(['a', 'b', 'c']))!;
   threads.removeFromThread(t, 'c');
   await window.dismiss();
@@ -41,7 +41,7 @@ test('ui-conformance audit 2: a moment added back to a thread after its removal 
 
 test('ui-conformance audit 4: adding a moment whose removal waits stores the removal first, so the add holds', async () => {
   const { ports, window, threads } = world();
-  for (const id of ['a', 'b', 'c']) await ports.db.addCapture(note(id));
+  for (const id of ['a', 'b', 'c']) await ports.db.addMoment(momentOf(note(id)));
   const t = (await threads.startThread(['a', 'b', 'c']))!;
   threads.removeFromThread(t, 'c');
   assert.equal(await threads.addToThread(t, 'c'), true);
@@ -74,7 +74,7 @@ test('ui-conformance audit 5: the saved deletes outlive every commit still runni
 });
 
 test('ui-conformance audit 7: no reminder fires for a moment waiting in Undo', () => {
-  const capture = note('a');
+  const capture = facedOf(note('a'));
   const recall = { capture_id: 'a', frequency: 'once' as const, until: null, last_fired_at: null, fired_count: 0, last_walk_id: null };
   const base = { here: [-71.4, 41.8] as [number, number], walkId: 'w', now: 1e12, quiet: false, recalls: [recall], captures: [capture] };
   assert.equal(dueRecalls(base).length, 1, 'without Undo it is due');
@@ -83,12 +83,12 @@ test('ui-conformance audit 7: no reminder fires for a moment waiting in Undo', (
 
 test('ui-conformance audit 9: a saved delete is stored even when a new one waits first', async () => {
   const { ports, window } = world();
-  for (const id of ['old', 'new']) await ports.db.addCapture(note(id));
+  for (const id of ['old', 'new']) await ports.db.addMoment(momentOf(note(id)));
   window.schedule(moment('new'));
   await window.resume([moment('old')]);
   await settle();
-  assert.equal((await ports.db.getCapturesByIds(['old'])).length, 0, 'the delete from before the kill is stored');
-  assert.equal((await ports.db.getCapturesByIds(['new'])).length, 1, 'the new one still waits for its owner');
+  assert.equal((await ports.db.getMomentsByIds(['old'])).length, 0, 'the delete from before the kill is stored');
+  assert.equal((await ports.db.getMomentsByIds(['new'])).length, 1, 'the new one still waits for its owner');
   assert.equal(isPendingJobs([moment('a')]), true);
   assert.equal(isPendingJobs([{ kind: 'moment' }]), false);
 });

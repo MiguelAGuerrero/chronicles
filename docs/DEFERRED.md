@@ -86,6 +86,9 @@ An item leaves only when it ships, or when it is rejected with a decision record
 ## Moments and days
 
 - Quick capture outside the app: widget, lock screen, share sheet (Moments and days)
+- A capture band on Chronicle's Walks, Days and Map (the owner's call, Nov 9: Memories only; decision 0112)
+- Lost toasts on Memories (capture-from-chronicle audit 13): "Too short, not kept" lands under a viewer opened mid-memo, unseen; "saved to your walk" goes when the walk stops and the band remounts loose
+- An open walk's moment from Memories' band joins Lately only once the walk is stopped (0098's rule, kept); the toast says "saved to your walk" meanwhile (Capture from Chronicle, steward S2)
 - Moments in a place's stars (Moments and days)
 - The home reads every capture row on focus; per-day counts would need storing (Moments and days)
 - Moment pins filtered to the viewport, `MOMENT_PIN_ZOOM` (Moments and days)
@@ -202,13 +205,14 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - The two core violations in `layers.baseline.json`: `format.ts` and `scaleBar.ts` read the global units as a default argument; pass the units in
 - The device's timezone and locale are read in core (`getHours`, `toLocaleDateString` in `days.ts`, `walkTitle.ts`, `months.ts`, `explore.ts`): pass them in (functional-core audit 10)
 - `components/map/types.ts` mixes pure helpers that tests import (`splitTrace`, `planViews`, `pressRadiusM`) with a hook, outside any layer check: move the helpers to a core module in `src/lib` (functional-core audit 13)
+- **The SQLite capture table's dead columns** (moment table, decision 0123): `capture.walk_id`, `lat`, `lon` and `segment_id` stay after migration 22, unread and unwritten; dropping them means rebuilding the table, a second risk for no behaviour. A later migration may drop them.
 - The Db contract found the web and native stores disagreeing; the fake follows the web store and the first two are pinned as "(web store as it is)" in `dbContract.ts`. Each needs the owner's call on which side is right:
-  - `deleteCaptures` deletes finds through the captures' walks on web, by capture id on native: a find filed under another walk survives on web
+  - `deleteMoments` deletes finds through the moments' walks on web, by moment id on native: a find filed under another walk survives on web (both pinned in the contract since MT11)
   - `getSegmentsIn` on web reads tiles around each piece's centre (bounds widened 250 m), so a piece much longer than 200 m that only grazes the bounds is missed; native compares bounding boxes
   - `startPause` / `startStill` at an earlier pause's start time replaces and reopens it on web; native's `INSERT` would fail on the primary key
-  - `deleteCaptures` with ids that don't exist: web clears reminders only for captures found, native for every id passed
+  - `deleteMoments` with ids that don't exist: web clears reminders only for captures found, native for every id passed
   - `addFind` on web swallows every transaction error, not just the duplicate key
-- `deleteWalk` / `deleteCaptures` all-or-nothing (D6) has no contract case: nothing shared can make IndexedDB fail halfway
+- `deleteWalk` / `deleteMoments` all-or-nothing (D6) has no contract case: nothing shared can make IndexedDB fail halfway
 
 ## Replay rhythm (RR1-RR22, decisions 0085, 0086)
 
@@ -328,7 +332,6 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 ## Places worth the stop (decision 0103)
 
-- **PW16, the real host:** PLACES_BASE stays empty until a real archive has been read by byte range from the chronicles-data Pages site; then it is set and the host is added to ALLOWED_HOSTS and `lib/net`'s table in the same commit.
 - **OpenStreetMap in the weekly build:** the build takes an OSM export to corroborate (a `demolished:` tag removes a place; since RP2 and RP5, a visitor's tag shows a listed place open and `access=private|no` keeps it out), but the weekly job feeds it Wikidata only: an OSM extract of the US is large for a runner, and the public Overpass blocks cloud ranges. the handoff's Overpass query asks only for elements with a `wikidata` tag.
 - **Classes not yet pinned:** historical markers (no Wikidata class with real use), petroglyphs (archaeology, not an oddity), water towers and rock formations (too broad), time capsules (the lookup's match looked wrong). Each is a deliberate change to `classify.mjs` and ARCHIVE_CLASSES.
 - **A line on why a place is worth the stop, Wikivoyage, the one-of-a-kind shops tier, the scenic routes' Sights leaning (PW18 pins it unchanged).**
@@ -345,14 +348,12 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 ## Remarkable and public (RP1-RP20, decisions 0109-0111)
 
-- **The listing rule moves to chronicles-data** (decision 0108, which moved the pipeline while this slice was built): RP1-RP8, RP10 and RP12, the audit's build-side fixes and their tests are in this repo's history, listed in `specs/remarkable-and-public/handoff.md`; the archive classes `church`, `cemetery`, `theatre`, `museum`, `historic_site` need its contract v2 before the app's table takes them (PP17).
+- **Remarkable and public's data side is built in chronicles-data** (its remarkable-and-public spec, RD1-RD14, Nov 10): the listing rule, OSM's corroboration over Geofabrik's extracts and osmium, the ODbL pack, contract v2. Its OSM fetch has never run (the first weekly build runs it); RP1-RP7, RP10 and RP12 are tested there.
 - **OpenStreetMap's signals in production:** RP2 (shown open by an OSM tag) and RP5 (`access=private|no`) act only once the weekly job passes the build `--osm`, built from the Overpass query of `specs/remarkable-and-public/handoff.md` (only elements with a `wikidata` tag, so far smaller than a US extract). Until then, a listed house or building is shown open only by its Wikidata type, and none is kept out as closed.
 - **Places only OpenStreetMap knows** (the Bethlehem Steel blast furnaces' own feature): the owner's call, corroborate only (0110); adding them makes the archive a derived ODbL database.
 - **Contributing buildings of a listed district:** a church inside a listed district with no designation of its own in Wikidata (Central Moravian Church, in the Historic Moravian Bethlehem Landmark district and World Heritage site) is not lifted past the name rule. A public-type place inside a Landmark district could be; the owner's call.
 - **Registers outside the US:** Zurich's 199 listed misses are on Swiss registers; another region is the same rule with its register's id.
-- **The category label "History & landmarks"** is in every History place's screen-reader label ("Hessian Memorial, History & landmarks") and in the find announcement ("Found: X, History & landmarks", `walk.tsx`), older than RP18, which covers kinds; the steward's concern about "landmark" applies to it too. A copy change for the owner.
 - **From the audit (Nov 9), deferred:** the review's atlas History step before and after per test area (audit 3: the build reads no tiles; the benchmark could compute it); the reach line under a "?" reads beside "Walk within 60 m to see what it is." as two instructions (copy, the owner's); whether "Buildings and structures" should ever take unlisted structures (OSM `man_made` bridges, towers, mills), so it names a type rather than standing in for a register (steward S3, rejected for now); whether a find should invite a capture at a Landmark private house (the steward's silent question).
-- **"Historic churches" for every place of worship** (a synagogue, a mosque): today's label for the tiles' places of worship too; "Places of worship" is a one-line change for the owner (steward 6).
 - **Wikidata's "tourist attraction" class** is not read (it holds businesses, events and tours); the tiles' `tourism=attraction` covers attractions (RP13).
 - **The noise review covers named test areas**, with a per-class summary for the region; thousands of listings nationally are reviewed only as counts.
 
@@ -365,7 +366,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 - **A loose moment has no place in words** (owner-threads audit 2): only a walk has an area name, so a reply or any moment made outside a walk shows its date in a thread, the picker and Lately, and a thread headed by one is headed by a date. Words for where a moment was need an area lookup for a single fix, a decision of its own.
 - **A reply's "answering" line in the walk, the day and the map** (owner-threads audit 1): it shows in Lately and in a thread; the replay, the day's timeline and the pins do not carry it.
-- **`applyThreads` does not check that a member's moment still exists** (owner-threads audit 7): the shell checks just before the write; a delete in that one round trip leaves a member row for a moment that is gone, which the screens ignore and the next `deleteCaptures` cannot clear. A check inside the transaction is the fix.
+- **`applyThreads` does not check that a member's moment still exists** (owner-threads audit 7): the shell checks just before the write; a delete in that one round trip leaves a member row for a moment that is gone, which the screens ignore and the next `deleteMoments` cannot clear. A check inside the transaction is the fix.
 - **A thread cannot be kept quiet from the resurfaced card** (OT23, the owner's call, Nov 6: it resurfaces like any moment, with no thread name). A per-thread "keep quiet" switch is the cheap way to add one if a thread turns out to be one the owner does not want brought back.
 - **A moment of a walk still open is not offered by the picker or listed in a thread** until the walk stops (`toMomentViews`), as in Lately (RM3).
 - **The moment picker lists the newest sixty matches** and searches only a moment's own words (notes, captions); memos have none until they are transcribed (0098).
@@ -385,16 +386,34 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **A town's page with its own tile selected names nothing on the map** (audit 2): the town's pin is not drawn there (one level only, fix map-levels audit 1), and the neighborhoods are dots. The page title, the wide tile and the border name the town. Drawing the town's pin as the lone named one would mix levels again; the owner's call.
 - **A dot has no accessible name and no tap** (audit 3): area points are `aria-hidden` with pointer events off on web and carry no label on native; the live region and the grid's tiles name areas. Predates the fix (dots were already unnamed), now more of them.
 
-## UI patterns and the UX research (decision 0112)
+## UI patterns and the UX research (decision 0114)
 
 - **Research gaps** (after the second pass, Nov 10, with the hosts allowed): Polarsteps and the app-store pages refuse automated fetches, so their teardown claims stay unverified; M3 has no page on photo or video viewers; the Apple HIG was read once (first pass) and not re-checked.
 
-## UI conformance (`specs/ui-conformance`, decisions 0112, 0113)
+## UI conformance (`specs/ui-conformance`, decisions 0114, 0113)
 
 - **Tap to hide on a video:** a video's own controls take its taps, so its bars stay up; hiding them over a playing video is its own change.
 - **Hiding unavailable menu items vs disabling them** (M5: the HIG hides, M3 and NN/g disable): not touched.
 - **What a delete frees** ("Moment deleted · about 3 MB", the steward's question): the walk's and the media's confirms still say it; the pill does not.
 - **A recoverable trash** (Recently deleted, as Photos and Google Photos have): a killed app now completes a waiting delete (0113); a durable trash would change the data model and is its own slice.
 - **The reminder editor's chip rows wrap at 390 px** (`specs/ui-conformance` audit 25, the `ux-reviewer`'s U4): "How often" and "Until" are rows of four chips each; the patterns say a single choice from a short list is a menu (matrix 15). Fix: two labelled rows ("How often: Once ▾", "Until: No end ▾"), each opening a menu. The editor predates the slice.
-- **The walk journey's video step is flaky** (seen Nov 10 on `claude/ui-conformance`): about half the runs keep the 4 s clip as its own pin ("Voice memo. Open", "Video. Open") instead of sharing one with the memo. The clip is placed by a fix of its own since fix paused-pins (main), while the journey's GPS keeps moving; the check now names the pins it saw. The same journey on `origin/main` failed earlier still, three runs of three, at NV23's long press ("1995.8 km away"), so main could not settle it. Neither path is touched by UI conformance.
 
+## Places out of town (specs/places-out-of-town, decisions 0115-0120)
+
+- **The whole slice, OP1-OP20, is queued** (the owner, Nov 9-10): the places archive went live first (PW16, Nov 10), and its archive phase is re-planned as adapters in chronicles-data's places pipeline (0120) before the slice starts. Its criteria are `deferred` in `UNTESTED` (`scripts/features.js`) until then.
+
+## Permission refusals (fix mic-settings, Nov 10)
+
+- **The minimized recording bar says "Camera access is off for Chronicles." with no Settings button** (`RecordingBar`): the whole line is one Pressable that returns to the walk, so a nested button needs a layout decision. The walk screen, Explore band, ready screen, moment viewer reply bar and planner offer it.
+
+## Explore carousel (EC1-EC20, decision 0124)
+
+- **Tapping a dot on the map to select its area**: dots stay inert, as before; selecting is by the row, a map swipe, an arrow key or a card.
+- **A wide card for a town** with its own sketch: a town's card in the row is the same card with a "See its neighborhoods" footer.
+- **The row's peek width on very narrow screens** beyond the clamp (78% of the width, at most 320 px).
+- **The map's swipe report still carries the framed middle and metres a pixel** (`WalkMap`'s `onSwipe`), which only the retired directional step read; the screen takes only the drag. Trimming it touches both maps.
+- **The Busy names' zoom (13) and ring (800 m) are first guesses** from the owner's screenshot; the e2e world has no busy streets, so only the unit tests hold the rule.
+- **Selecting a town on the page near you frames its reach (0.6 of it), not its whole outline**; a town's own page still frames the border.
+- **Dragging the row with a mouse on desktop web** (explore-carousel audit 1): react-native-web's horizontal scroll takes the wheel (shift) and touch, not a mouse drag. A desktop reader steps by a tap on a card, the map's swipe or the arrow keys. A web-only drag-to-scroll would be a web exception (ARCHITECTURE).
+- **A selection moved by a re-list is neither eased nor announced** (explore-carousel audit 5): the first card changes when Locate or the fix reorders the row; the ring and card move together and the map still frames the page's areas.
+- **Native: a row remounted with a card past the first selected** (explore-carousel audit, native): `scrollTo` before layout may be dropped, leaving the row at the first card with another selected; and the row in a right-to-left layout is not mirrored.

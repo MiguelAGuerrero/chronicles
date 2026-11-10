@@ -1,7 +1,8 @@
 // @layer core
+import type { Faced } from './moment';
 import { distanceM } from './geo';
 import { THUMB } from './thumbPlan';
-import type { Capture, CaptureKind, LngLat } from './types';
+import type { CaptureKind, LngLat } from './types';
 
 /** Pins closer than this on screen merge into one, with a count. */
 export const PIN_GROUP_PX = 44;
@@ -13,7 +14,7 @@ export interface CapturePin {
   id: string;
   lngLat: LngLat;
   /** In the order they were taken. */
-  captures: Capture[];
+  captures: Faced[];
   /** The icon to show: the one kind, or 'mixed'. */
   kind: CaptureKind | 'mixed';
 }
@@ -29,7 +30,7 @@ export function metersPerPixel(zoom: number, lat: number): number {
  * else starts its own. Captures are taken in time order, so the grouping is
  * the same however the list arrives.
  */
-export function pinsFor(captures: Capture[], radiusM: number): CapturePin[] {
+export function pinsFor(captures: Faced[], radiusM: number): CapturePin[] {
   const r = Math.min(radiusM, MAX_GROUP_M);
   const pins: CapturePin[] = [];
   for (const c of [...captures].sort((a, b) => a.t - b.t || a.id.localeCompare(b.id))) {

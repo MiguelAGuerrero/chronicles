@@ -1,10 +1,12 @@
+import { type Faced, facedAll, hasMore } from '../lib/moment';
+import { STACK_SPOKEN } from './StackMark';
 import { useEffect, useState } from 'react';
 import { db } from '../lib/db';
 import { makeThumb } from '../lib/media/thumb';
 import { thumbShown, wantsThumb } from '../lib/thumbPlan';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { previewLine } from '../lib/memories';
-import type { Capture } from '../lib/types';
+
 import { useMediaUri } from '../lib/useMediaUri';
 import { Icon, KIND_ICON } from './icons';
 import { LiftIn, theme } from './ui';
@@ -14,7 +16,7 @@ import { LiftIn, theme } from './ui';
  * and the walk, and "N more here". A tap on it opens the viewer (MR5).
  */
 export function MemoryPreview(props: {
-  captures: Capture[];
+  captures: Faced[];
   /** "Sunday night in Fox Point · 3 min in", from What happened here's context. */
   walkLine: string | null;
   onOpen: () => void;
@@ -24,18 +26,18 @@ export function MemoryPreview(props: {
   // A photo's small copy (TH4). An older photo makes it once, here (TH3), read fresh from storage,
   // since the walk's memory pool may be older than its copy (audit 3). Until it lands, the icon
   // rather than a second full decode (audit 7); a copy whose file is gone, the photo (audit 6).
-  const [row, setRow] = useState<Capture>(first);
+  const [row, setRow] = useState<Faced>(first);
   useEffect(() => {
     if (first.kind !== 'photo') return;
     let alive = true;
     (async () => {
-      const fresh = (await db.getCapturesByIds([first.id]).catch(() => []))[0] ?? first;
+      const fresh = (await db.getMomentsByIds([first.id]).then(facedAll).catch(() => []))[0] ?? first;
       if (!alive) return;
       setRow(fresh);
       if (!wantsThumb(fresh)) return;
       const t = await makeThumb(fresh);
       if (!t) return;
-      void db.updateCapture(fresh.id, { thumb_path: t }).catch(() => {});
+      void db.updatePiece(fresh.piece_id, { thumb_path: t }).catch(() => {});
       if (alive) setRow({ ...fresh, thumb_path: t });
     })();
     return () => {
@@ -54,7 +56,7 @@ export function MemoryPreview(props: {
       <Pressable
         testID="memory-open"
         accessibilityRole="button"
-        accessibilityLabel={`Memory from ${date}: ${line}${more > 0 ? `, and ${more} more here` : ''}. Open`}
+        accessibilityLabel={`Memory from ${date}: ${line}${hasMore(first) ? `, ${STACK_SPOKEN}` : ''}${more > 0 ? `, and ${more} more here` : ''}. Open`}
         onPress={props.onOpen}
         style={styles.body}
       >

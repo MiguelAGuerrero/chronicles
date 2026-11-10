@@ -25,8 +25,8 @@ export function ReplyDock(props: {
   bottomInset: number;
   stage: ReplyStage;
   setStage: (s: ReplyStage) => void;
-  /** Says what went wrong, in the viewer's pill. */
-  say: (text: string) => void;
+  /** Says what went wrong, in the viewer's pill; a refused microphone or camera offers Open Settings (fix mic-settings). */
+  say: (text: string, openSettings?: boolean) => void;
   /** Says a reply was kept, in the answered moment's info line (UC10; audit 10: the moment it answers, not the one shown). */
   kept: (answeredId: string, text: string) => void;
   /** A reply is being recorded: the viewer keeps its bars up, so Stop stays on screen (audit 16). */
@@ -43,7 +43,7 @@ export function ReplyDock(props: {
   }, [props.say, props.kept]);
   const replyTo = useMemo(() => ({ answeredId: props.answeredId, from: props.threadId ?? null }), [props.answeredId, props.threadId]);
   const walkId = props.walkId ?? null;
-  const cap = useCaptures(walkId, null, null, (e) => sayRef.current(e.message), {
+  const cap = useCaptures(walkId, null, null, (e) => sayRef.current(e.message, e.openSettings), {
     loose: !walkId,
     replyTo,
     onMoment: (_c, state, answered) => {
