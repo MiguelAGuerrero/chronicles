@@ -23,6 +23,8 @@ export const HOSTS: Record<string, HostPolicy> = {
   'tiles.openfreemap.org': { name: 'OpenFreeMap: the map tiles and their build' },
   'overturemaps-extras-us-west-2.s3.amazonaws.com': { name: 'Overture: places, divisions and transportation, by tile', ownBackoff: true },
   'overpass-api.de': { name: 'Overpass: the walkability fallback', ownBackoff: true },
+  // PW16 (Nov 10): the chronicles-data Pages site, the places archive by byte range (decision 0103).
+  'miguelaguerrero.github.io': { name: 'chronicles-data: the places archive and its manifest' },
 };
 
 /** What a phone's requests are signed with: the app and where it lives, never the person or the device. */

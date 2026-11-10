@@ -8,10 +8,11 @@ import type { LngLat } from '../types';
  */
 
 /**
- * Where the manifest and archives are served. Empty until PW16 is recorded (a real archive read by byte range
- * from the host): with no address the reader asks for nothing and Explore goes on as it does today.
+ * Where the manifest and archives are served: the chronicles-data Pages site. PW16 recorded Nov 10: a cross-origin
+ * byte range of a real archive (places-us-20261110.3.pmtiles) answered 206 with its content-range and
+ * `access-control-allow-origin: *`. The e2e build points elsewhere (`EXPO_PUBLIC_PLACES_BASE`).
  */
-export const PLACES_BASE = '';
+export const PLACES_BASE = 'https://miguelaguerrero.github.io/chronicles-data/';
 
 /** The archive's tile zoom: sparse points pack far smaller at z12 than at z14 (hosting audit). */
 export const ARCHIVE_ZOOM = 12;
