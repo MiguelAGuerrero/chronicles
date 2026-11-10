@@ -74,7 +74,7 @@ function describeTrain(t) {
   const lines = [`# e2e train ${t.stamp}`, '', `Base ${t.base}; ${t.build} build; train branch \`${t.trainBranch}\` at ${t.head ?? '(none)'}.`, ''];
   const ran = t.plan.filter((j) => t.results[j.name] && !t.results[j.name].skipped);
   const skipped = t.plan.filter((j) => t.results[j.name]?.skipped);
-  lines.push(`Journeys: ${t.plan.length} named across ${t.merged.length} branch${t.merged.length === 1 ? '' : 'es'}; ${ran.length} ran once each${skipped.length ? `, ${skipped.length} already green with their files unchanged (${skipped.map((j) => j.name).join(', ')})` : ''}.`);
+  lines.push(`Journeys: ${t.plan.length} named across ${t.merged.length} branch${t.merged.length === 1 ? '' : 'es'}; ${ran.length ? `${ran.length} ran once each` : 'none ran'}${skipped.length ? `, ${skipped.length} already green with their files unchanged (${skipped.map((j) => j.name).join(', ')})` : ''}.`);
   lines.push('');
   const failedCheck = (t.checks ?? []).find((c) => !c.ok);
   if (failedCheck) {
@@ -215,28 +215,33 @@ function main(argv) {
     const checksOk = checks.every((c) => c.ok);
     if (plan.length && checksOk) {
       console.log(`train: ${plan.length} journey${plan.length === 1 ? '' : 's'} named: ${plan.map((j) => j.name).join(', ')}`);
-      spawnSync('node', ['scripts/copy-maplibre-worker.js'], { cwd: dir, stdio: 'inherit' });
-      // The trains' own green cache: a journey green in an earlier train with its files as they are is not run again.
+      // The trains' own green cache: a journey green in an earlier train with its files as they are is not run again,
+      // and when none is left to run there is no export either.
       const cache = path.join(ROOT, OUT, 'green.json');
       if (fs.existsSync(cache)) fs.copyFileSync(cache, path.join(dir, economy.GREEN_FILE));
-      const env = { ...process.env, ...(root ? {} : { CHRONICLES_BASE_URL: '/chronicles' }) };
-      console.log(`train: exporting the ${root ? 'root' : '/chronicles'} build once`);
-      const exp = spawnSync('npm', ['run', 'export:web'], { cwd: dir, encoding: 'utf8', env, maxBuffer: 64 * 1024 * 1024 });
-      if (exp.status !== 0) {
-        console.error(`train: the export failed:\n${(exp.stdout + exp.stderr).split('\n').slice(-20).join('\n')}`);
-        process.exitCode = 1;
-        return;
-      }
       const { SCENARIOS } = require('./e2e-scenarios');
       const greens = economy.readGreen(dir);
       const flaky = economy.readFlaky(ROOT);
+      const toRun = [];
       for (const j of plan) {
-        const journey = SCENARIOS.find((s) => s.name === j.name);
+        const journey = SCENARIOS.find((x) => x.name === j.name);
         if (!force && journey && economy.isGreenSince(greens, j.name, economy.keys(dir, journey, { build: 'unused' }))) {
           results[j.name] = { skipped: 'green' };
           console.log(`  ${j.name}: already green in an earlier train, its files unchanged (--force runs it)`);
-          continue;
+        } else toRun.push(j);
+      }
+      if (toRun.length) {
+        spawnSync('node', ['scripts/copy-maplibre-worker.js'], { cwd: dir, stdio: 'inherit' });
+        const env = { ...process.env, ...(root ? {} : { CHRONICLES_BASE_URL: '/chronicles' }) };
+        console.log(`train: exporting the ${root ? 'root' : '/chronicles'} build once`);
+        const exp = spawnSync('npm', ['run', 'export:web'], { cwd: dir, encoding: 'utf8', env, maxBuffer: 64 * 1024 * 1024 });
+        if (exp.status !== 0) {
+          console.error(`train: the export failed:\n${(exp.stdout + exp.stderr).split('\n').slice(-20).join('\n')}`);
+          process.exitCode = 1;
+          return;
         }
+      }
+      for (const j of toRun) {
         const t0 = Date.now();
         const r = spawnSync('node', ['scripts/e2e-web.js'], {
           cwd: dir,
