@@ -219,6 +219,7 @@ async function run(h) {
   await pg.locator('[data-testid=own-thread] [data-testid=moment-card]:has-text("And a third") [data-testid=moment-more]').click();
   await pg.click('[data-testid=thread-menu-remove]');
   check((await there('[data-testid=undo-toast]')) && /Removed from the thread/.test(await pg.locator('[data-testid=undo-toast]').innerText()), 'UC6: Remove acts at once, with Undo');
+  await shot(pg, '75-removed-pill');
   await closePill();
   db = await stored(pg);
   check(db.members.length === 3 && db.captures.some((x) => x.body === 'And a third, on the bridge.'), 'OT8: Remove from this thread keeps the moment kept');

@@ -268,6 +268,7 @@ async function run(h) {
         await pg.waitForTimeout(500);
         const hidden = !(await pg.locator('[data-testid=viewer-toolbar]').isVisible().catch(() => false)) && !(await pg.locator('[data-testid=viewer-close]').isVisible().catch(() => false));
         const after = await pg.locator('[data-testid=edited-photo]').boundingBox();
+        await shot(pg, '46-photo-bars-hidden');
         check(hidden && before && after && after.height > before.height, 'UC7: a tap on the photo hides the bars and the photo fills the screen');
         if (hidden) {
           await tapPhoto();

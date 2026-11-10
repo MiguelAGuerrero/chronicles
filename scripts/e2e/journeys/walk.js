@@ -322,6 +322,8 @@ async function checks(h) {
           'UC9: the viewer\'s top bar holds Close and More only; Remind me here and Go here wait in More');
         // Remind me here, from the viewer: once by default, with an optional end (R1).
         await page.click('[data-testid=viewer-more]');
+        await page.waitForTimeout(300);
+        await shot(page, '03b-viewer-more');
         await page.click('[data-testid=viewer-remind]');
         await page.waitForSelector('[data-testid=remind-editor]');
         check((await page.locator('[data-testid=remind-once][aria-checked=true]').count()) === 1 && (await page.locator('[data-testid=remind-none][aria-checked=true]').count()) === 1, 'remind me here offers how often, once by default, and until when');
@@ -333,6 +335,7 @@ async function checks(h) {
         // The walk screen keeps two viewers mounted; the one open is the one whose line says it.
         const reminderSaid = (await page.locator('[data-testid=capture-meta]:has-text("Reminder set")').count()) > 0 && (await page.locator('[data-testid=viewer-pill]').count()) === 0;
         check(reminderSaid, 'UC10, UC12: a set reminder says so in the info line, with no pill');
+        await shot(page, '03c-reminder-set');
         // The map behind the open viewer already wears the bell, on the same element (RB5, audit 3, 4).
         await page.waitForSelector('[data-ids] [data-testid=pin-reminder]', { timeout: 5000 }).catch(() => null);
         const keptOnSave = await page.locator('[data-ids]:has([data-testid=pin-reminder])').evaluateAll((els) => els.length === 1 && els[0].__beforeBell === true);
