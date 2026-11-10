@@ -274,9 +274,33 @@ async function checks(h) {
         await page.waitForSelector('text=Video saved here');
         // Within ~30 m at walking zoom, the video shares a pin with the memo. The pins regroup a moment after
         // the save; a fixed 2.5 s wait read the label too early on the /chronicles build (Nov 4 deploy).
-        await page.waitForSelector('[aria-label="2 captures here. Open"]', { timeout: 10000 }).catch(() => {});
-        const pinsNow = await page.$$eval('.maplibregl-map [aria-label$=". Open"]', (es) => es.map((e) => e.getAttribute('aria-label')));
-        check((await page.locator('[aria-label="2 captures here. Open"]').count()) === 1, `a short video is kept, sharing a pin with the memo nearby (${pinsNow.join(' / ')})`);
+        // The memo and the video are kept 25-30 m apart, whichever fix the memo began on; pins share when within
+        // 44 px at the zoom shown (rounded to a half step, `useZoomPins`). So the pins are held to that rule: one shared
+        // pin when the two are that close, two pins when they are not (the journey's timing decides which).
+        const kept = await page.evaluate(() => new Promise((resolve) => {
+          const req = indexedDB.open('chronicles');
+          req.onsuccess = () => {
+            const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll();
+            g.onsuccess = () => resolve(g.result.filter((m) => m.pieces.some((p) => p.kind === 'voice' || p.kind === 'video')).map((m) => ({ kind: m.pieces[0].kind, lat: m.lat, lon: m.lon })));
+          };
+        }));
+        const zoomShown = await page.evaluate(() => Number([...document.querySelectorAll('[data-zoom]')].at(-1)?.getAttribute('data-zoom') ?? NaN));
+        const memo = kept.find((m) => m.kind === 'voice');
+        const video = kept.find((m) => m.kind === 'video');
+        const apartM = memo && video && memo.lat != null && video.lat != null ? h.distanceM([memo.lon, memo.lat], [video.lon, video.lat]) : null;
+        const half = Math.round(zoomShown * 2) / 2;
+        const reachM = (44 * 40_075_016.686 * Math.cos((Math.round(memo?.lat ?? 42) * Math.PI) / 180)) / (512 * 2 ** half);
+        // Wait for the state the rule expects (the pins regroup a moment after the save), never longer than needed.
+        const expectShared = apartM == null || apartM <= reachM;
+        await page.waitForFunction((one) => {
+          const labels = [...document.querySelectorAll('.maplibregl-map [aria-label$=". Open"]')].map((e) => e.getAttribute('aria-label'));
+          return one ? labels.includes('2 captures here. Open') : labels.includes('Voice memo. Open') && labels.includes('Video. Open');
+        }, expectShared, { timeout: 10000 }).catch(() => {});
+        const shared = (await page.locator('[aria-label="2 captures here. Open"]').count()) === 1;
+        const pinsAfter = await page.$$eval('.maplibregl-map [aria-label$=". Open"]', (es) => es.map((e) => e.getAttribute('aria-label')));
+        const twoPins = pinsAfter.includes('Voice memo. Open') && pinsAfter.includes('Video. Open');
+        const fair = apartM == null ? shared : apartM <= reachM ? shared : twoPins;
+        check(fair, `a short video is kept, sharing a pin with the memo when within the pins' reach (${apartM?.toFixed(1)} m apart, ${reachM.toFixed(1)} m reach at z${zoomShown}: ${pinsAfter.join(' / ')})`);
         // The video is taken about 40 m from the memorial: it finds it (E8). (The memo at step 10, 62 m off, does not.)
         await page.waitForTimeout(500);
         check((await page.locator('[aria-label="Found: Hessian Memorial, History"]').count()) === 1, 'a capture within 60 m finds the place, which stays drawn as found');
