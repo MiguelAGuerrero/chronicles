@@ -24,9 +24,6 @@ export interface ArchiveFile {
   file: string;
   version: string;
   bounds: [number, number, number, number];
-  /** SB6: the version this one changed from, with the z12 tiles it changed; absent on archives built before them. */
-  since?: string;
-  changed?: [number, number][];
 }
 
 export interface Region {
@@ -48,14 +45,7 @@ function fileOf(v: unknown): ArchiveFile | null {
   if (!f || typeof f.file !== 'string' || !FILE.test(f.file) || typeof f.version !== 'string') return null;
   const b = f.bounds;
   if (!Array.isArray(b) || b.length !== 4 || !b.every((n) => Number.isFinite(n))) return null;
-  const out: ArchiveFile = { file: f.file, version: f.version, bounds: [b[0], b[1], b[2], b[3]] };
-  // SB6: a change list is kept only whole: one bad tile and the version reads as unlisted (phones rebuild as before).
-  const tiles = f.changed;
-  if (typeof f.since === 'string' && Array.isArray(tiles) && tiles.every((t) => Array.isArray(t) && t.length === 2 && t.every((n) => Number.isInteger(n) && n >= 0))) {
-    out.since = f.since;
-    out.changed = tiles.map(([x, y]) => [x, y]);
-  }
-  return out;
+  return { file: f.file, version: f.version, bounds: [b[0], b[1], b[2], b[3]] };
 }
 
 /** PW2: the manifest, or null for anything that isn't one (then no archive is read). */
@@ -82,27 +72,6 @@ export function parseManifest(text: string): Manifest | null {
 export function pickRegion(m: Manifest, at: LngLat): Region | null {
   return m.regions.find(({ current: { bounds: [w, s, e, n] } }) => at[0] >= w && at[0] <= e && at[1] >= s && at[1] <= n) ?? null;
 }
-
-/**
- * SB10: the z12 tiles changed since `version`, as "x/y" keys: the union of the change lists of every served version
- * newer than it. 'all' when `version` is not served, or a link in the chain has no list.
- */
-export function changedSince(region: Region, version: string | null | undefined): Set<string> | 'all' {
-  const chain = [region.current, ...region.previous];
-  const at = version == null ? -1 : chain.findIndex((f) => f.version === version);
-  if (at < 0) return 'all';
-  const out = new Set<string>();
-  for (let i = 0; i < at; i++) {
-    const f = chain[i];
-    if (!f.changed || f.since !== chain[i + 1].version) return 'all';
-    for (const [x, y] of f.changed) out.add(`${x}/${y}`);
-  }
-  return out;
-}
-
-/** SB10: whether any of these z12 tiles changed. */
-export const touches = (changed: Set<string> | 'all', tiles: readonly [number, number][]): boolean =>
-  changed === 'all' || tiles.some(([x, y]) => changed.has(`${x}/${y}`));
 
 /** PW2: whether to check the manifest now (at most daily; a failed check waits 10 min). */
 export function manifestDue(checkedAt: number | null, failedAt: number | null, now: number): boolean {

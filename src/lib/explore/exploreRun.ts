@@ -4,7 +4,6 @@ import { outlines } from '../areas/outlineReader';
 import { withOutlines, withoutOutlines } from '../areas/outlines';
 import { placesFromTiles } from '../areas/tilePlaces';
 import { db } from '../db';
-import { placesArchive } from '../discovery/archive';
 import { fetchTiles } from '../discovery/tileFetch';
 import { boundsOf } from '../geo';
 import { analyzeArea } from '../landing/analyze';
@@ -65,8 +64,7 @@ export function exploreRead(centre: LngLat, opts: { remember: boolean }, shouldS
       const built = buildChecklists({
         places: read.places, candidates: points, centre, build, now, outlines: borders?.set ?? null,
         // PW12: an area built before the places archive (or with an older version) is built again.
-        // SB10: only where a tile it read changed since its version.
-        built: done.filter((a) => a.build === build && !archiveStale(a.archive, read.archive, placesArchive.changedSince(a.at, a.archive), a.at)),
+        built: done.filter((a) => a.build === build && !archiveStale(a.archive, read.archive)),
         archive: read.archive,
         // Audit 1-2: a place already found keeps its find's key through a rebuild.
         finds,

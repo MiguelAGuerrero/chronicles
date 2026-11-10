@@ -173,7 +173,7 @@ test('SB9: a failed assemble writes no release files', async () => {
   assert.deepEqual(written.sort(), ['changes-us-20261109.json', 'places-us-20261109.pmtiles', 'places-us.jsonl']);
 });
 
-test('SB10: an area away from the changed tiles is kept; one under them, or of an unserved version, is rebuilt', async () => {
+test('SB10: an area away from the changed tiles is kept; one under them, or of an unserved version, is rebuilt', { todo: 'test first' }, async () => {
   const { changedSince } = await app('../../discovery/archiveManifest');
   const { archiveStale } = await app('../../explore/explore');
   const near: [number, number] = [-75.2, 40.7];

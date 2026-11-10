@@ -4,11 +4,9 @@ import type { AreaLevel, PlaceCandidate } from '../areas/types';
 import { categoryOf } from '../discovery/categories';
 import { isMarkable } from '../discovery/noise';
 import { keepFindKeys } from '../discovery/archiveMerge';
-import { ARCHIVE_ZOOM, touches } from '../discovery/archiveManifest';
 import { isOffered } from '../discovery/places';
 import type { CategoryId, Kind, Place } from '../discovery/types';
-import { boundsOf, distanceM, nearPoints, projector } from '../geo';
-import { tilesIn } from '../tileMath';
+import { distanceM, nearPoints, projector } from '../geo';
 import type { LngLat } from '../types';
 
 export type { Kind } from '../discovery/types';
@@ -166,13 +164,10 @@ const covers = (centre: LngLat, c: PlaceCandidate) => distanceM(centre, c.at) + 
 
 /**
  * PW12: an area built without the places archive while this read has one, or with an older version, is rebuilt.
- * With no archive in this read (offline, outside every region), what was built stays. SB10: given what changed
- * since the area's version and its point, it is rebuilt only when a z12 tile within its read changed.
+ * With no archive in this read (offline, outside every region), what was built stays.
  */
-export function archiveStale(builtWith: string | null | undefined, now: string | null, changed?: Set<string> | 'all', at?: LngLat): boolean {
-  if (now == null || (builtWith ?? null) === now) return false;
-  if (!changed || !at) return true;
-  return touches(changed, tilesIn(boundsOf([at], EXPLORE_RULES.readM)!, ARCHIVE_ZOOM));
+export function archiveStale(builtWith: string | null | undefined, now: string | null): boolean {
+  return now != null && (builtWith ?? null) !== now;
 }
 
 /**
@@ -243,16 +238,12 @@ export function readCentre(o: {
   outlines?: OutlineSet | null;
   /** The places archive version known here (audit 3): an area built with an older one, or none, is read again. */
   archive?: string | null;
-  /** SB10: what changed at a point since a version; with it, an older area is read again only when its tiles changed. */
-  changedAt?: (at: LngLat, version: string | null | undefined) => Set<string> | 'all';
 }): LngLat | null {
   const near = o.reads.some((r) => r.build === o.build && distanceM(r.centre, o.fix) <= EXPLORE_RULES.rereadM);
   if (!near) return o.fix;
   const ref = areaFor(o.fix, uniqueAreas(o.candidates), o.outlines ?? null);
   if (!ref) return null;
-  return o.areas.some((a) => a.build === o.build && !archiveStale(a.archive, o.archive ?? null, o.changedAt?.(a.at, a.archive), a.at) && sameArea(a, ref))
-    ? null
-    : ref.at;
+  return o.areas.some((a) => a.build === o.build && !archiveStale(a.archive, o.archive ?? null) && sameArea(a, ref)) ? null : ref.at;
 }
 
 /** After a failed read, the next waits 2 min and 100 m walked (E5). */
