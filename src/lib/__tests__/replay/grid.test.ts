@@ -6,7 +6,7 @@ import { test } from 'node:test';
 type Mod = { gridLayout(n: number): { cols: number; rows: number; shown: number; scrolls: boolean } };
 const mod = () => import('../../ceremony/grid' + '') as Promise<Mod>;
 
-test('MS17: the grid is the closest square up to 3x3, and scrolls past nine', { todo: 'test first' }, async () => {
+test('MS17: the grid is the closest square up to 3x3, and scrolls past nine', async () => {
   const { gridLayout } = await mod();
   const shape = (n: number) => { const g = gridLayout(n); return [g.cols, g.rows, g.shown, g.scrolls]; };
   assert.deepEqual(shape(2), [2, 1, 2, false]);

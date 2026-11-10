@@ -7,7 +7,8 @@
  * photos and videos cards that tuck into a pile, passed places whisper by,
  * and a clock rolls with the walker. Every number is in REPLAY_RHYTHM.
  */
-import type { Faced } from '../moment';
+import { facedAt, hasMore, type Faced } from '../moment';
+import { gridDuration, GRID_MAX } from './grid';
 import { passedLine } from '../explore/explore';
 import { distanceM } from '../geo';
 import { REPLAY_RHYTHM as R } from '../motionTokens';
@@ -26,14 +27,18 @@ const lerp = (a: number, b: number, u: number) => a + (b - a) * u;
 const lerpAt = (a: LngLat | null, b: LngLat | null, u: number): LngLat | null =>
   a && b ? [lerp(a[0], b[0], u), lerp(a[1], b[1], u)] : (a ?? b);
 
-export type SlotKind = 'note' | 'memo' | 'photo' | 'video';
+export type SlotKind = 'note' | 'memo' | 'photo' | 'video' | 'grid';
 export interface Slot {
   capture: Faced;
   kind: SlotKind;
   t0: number;
   t1: number;
-  /** A memo's or video's play time. */
+  /** A memo's or video's play time; a grid's longest video. */
   len: number;
+  /** A stack's grid (MS17): its photos and videos, each the moment at that piece. */
+  pieces?: Faced[];
+  /** A stack's note or memo, shown beside its grid on its own clock from the grid's start (MS17). */
+  beside?: boolean;
 }
 interface Span {
   t0: number;
@@ -55,7 +60,8 @@ export interface RhythmPlan {
   segs: Seg[];
   reduceMotion: boolean;
   bubbles: { capture: Faced; ta: number; exitAt: number; len: number }[];
-  cards: { capture: Faced; t0: number; t1: number; len: number; from: LngLat | null }[];
+  /** One per moment (MS17): a stack's grid carries its photos and videos as `pieces`. */
+  cards: { capture: Faced; t0: number; t1: number; len: number; from: LngLat | null; pieces?: Faced[] }[];
   whispers: { key: string; text: string; at: LngLat; tw: number }[];
   lines: { t0: number; t1: number; text: string }[];
   /** For each path, the index of its last segment: past it, the path is drawn whole. */
@@ -80,6 +86,59 @@ export function notePause(text: string | null): number {
 }
 
 const slotKind = (c: Faced): SlotKind => (c.kind === 'text' ? 'note' : c.kind === 'voice' ? 'memo' : c.kind);
+const slotOf = (c: Faced): Slot => ({ capture: c, kind: slotKind(c), t0: 0, t1: slotDur(c), len: mediaLen(c) });
+
+/**
+ * A stop's slots (MS17): a lone moment is one slot, as before. A stacked moment with two or more photos and videos is
+ * one grid slot of them, its memos and notes beside it in capture order; one with fewer plays its pieces one by one.
+ */
+function stopSlots(captures: Faced[]): Slot[] {
+  const slots: Slot[] = [];
+  for (const c of [...captures].sort((a, b) => a.t - b.t)) {
+    if (!hasMore(c)) {
+      slots.push(slotOf(c));
+      continue;
+    }
+    const each = [...c.pieces].sort((a, b) => a.t - b.t).map((p) => facedAt(c, p.id));
+    const media = each.filter((x) => x.kind === 'photo' || x.kind === 'video');
+    if (media.length < 2) {
+      for (const x of each) slots.push(slotOf(x));
+      continue;
+    }
+    const longest = Math.max(0, ...media.filter((x) => x.kind === 'video').map(mediaLen));
+    slots.push({ capture: c, kind: 'grid', t0: 0, t1: gridDuration(media.length, longest), len: longest, pieces: media });
+    for (const x of each) if (x.kind === 'text' || x.kind === 'voice') slots.push({ ...slotOf(x), beside: true });
+  }
+  return slots;
+}
+
+/**
+ * A grid's frame (MS17): each piece swipes in a beat after the one before (`gridStagger`, over `bubbleIn`), and past
+ * nine the grid scrolls from the last swipe-in to the tuck. The stage only draws it.
+ */
+function gridFrame(pieces: Faced[], v: number, dur: number): { pieces: Faced[]; shown: number[]; scroll: number } {
+  const since = v - R.grow;
+  const first = Math.min(pieces.length, GRID_MAX);
+  const swipes = Math.max(0, first - 1) * R.gridStagger + R.bubbleIn;
+  const shown = pieces.map((_, i) => (i < first ? easeOut(clamp01((since - i * R.gridStagger) / R.bubbleIn)) : 1));
+  const span = Math.max(1, dur - R.grow - R.tuck - swipes);
+  return { pieces, shown, scroll: pieces.length > GRID_MAX ? easeInOut(clamp01((since - swipes) / span), 2) : 0 };
+}
+
+/** A stop's length: its slots one after another, a grid's beside slots running alongside it. */
+function stopLength(slots: Slot[]): number {
+  let t = 0;
+  let side = 0;
+  for (const s of slots) {
+    if (s.beside) {
+      side += s.t1;
+      continue;
+    }
+    t = Math.max(t, side) + s.t1;
+    side = s.kind === 'grid' ? t - s.t1 : 0;
+  }
+  return Math.max(t, side);
+}
 const mediaLen = (c: Faced) => Math.max(R.mediaMin, Number(c.body) || 0);
 function slotDur(c: Faced): number {
   switch (slotKind(c)) {
@@ -87,6 +146,8 @@ function slotDur(c: Faced): number {
     case 'memo': return mediaLen(c) + R.mediaTail;
     case 'photo': return R.photo;
     case 'video': return mediaLen(c) + R.grow + R.tuck;
+    // A capture alone is never a grid; a grid's length is `gridDuration`.
+    case 'grid': return R.photo;
   }
 }
 
@@ -120,10 +181,11 @@ function fitCap(draft: Draft[]) {
     if (d.k === 'stop')
       for (const s of d.slots) {
         if (s.kind === 'photo') items.push({ get: () => s.t1, set: (v) => (s.t1 = v), floor: R.floors.photo });
+        if (s.kind === 'grid') items.push({ get: () => s.t1, set: (v) => (s.t1 = v), floor: gridDuration(s.pieces?.length ?? 2, 0) - R.photo + R.floors.photo });
         if (s.kind === 'note') items.push({ get: () => s.t1, set: (v) => (s.t1 = v), floor: R.floors.note });
       }
   }
-  const total = () => draft.reduce((n, d) => n + (d.k === 'stop' ? d.slots.reduce((m, s) => m + s.t1, 0) : d.dur), 0);
+  const total = () => draft.reduce((n, d) => n + (d.k === 'stop' ? stopLength(d.slots) : d.dur), 0);
   const need = total() - R.cap;
   if (need <= 0) return;
   const slack = items.reduce((n, it) => n + Math.max(0, it.get() - it.floor), 0);
@@ -166,7 +228,7 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
       const at = (path ? positionAt(path, e.arrive) : null) ?? e.at ?? pos;
       const leave = (path ? positionAt(path, e.leave) : null) ?? at;
       // A slot's t1 holds its duration until the times are laid out.
-      const slots: Slot[] = [...e.captures].sort((a, b) => a.t - b.t).map((c) => ({ capture: c, kind: slotKind(c), t0: 0, t1: slotDur(c), len: mediaLen(c) }));
+      const slots = stopSlots(e.captures);
       draft.push({ k: 'stop', dur: 0, moment: e, slots, from: at, to: leave });
       pos = leave;
     }
@@ -180,12 +242,23 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
   for (const d of draft) {
     if (d.k === 'stop') {
       const t0 = t;
+      // A grid's beside slots run on their own clock from the grid's start (MS17).
+      let side = t;
       for (const s of d.slots) {
         const dur = s.t1;
+        if (s.beside) {
+          s.t0 = side;
+          s.t1 = side + dur;
+          side += dur;
+          continue;
+        }
+        t = Math.max(t, side);
         s.t0 = t;
         s.t1 = t + dur;
+        side = s.kind === 'grid' ? t : s.t1;
         t += dur;
       }
+      t = Math.max(t, side);
       const { dur: _dur, ...rest } = d;
       void _dur;
       segs.push({ ...rest, t0, t1: t } as Seg);
@@ -206,7 +279,7 @@ export function rhythmPlan(story: Story, opts: CeremonyOptions): RhythmPlan {
     if (s.k === 'stop')
       for (const sl of s.slots) {
         if (sl.kind === 'note' || sl.kind === 'memo') bubbles.push({ capture: sl.capture, ta: sl.t0, exitAt: Infinity, len: sl.kind === 'memo' ? sl.len : 0 });
-        else cards.push({ capture: sl.capture, t0: sl.t0, t1: sl.t1, len: sl.len, from: s.moment.at ?? s.from });
+        else cards.push({ capture: sl.capture, t0: sl.t0, t1: sl.t1, len: sl.len, from: s.moment.at ?? s.from, ...(sl.pieces ? { pieces: sl.pieces } : {}) });
       }
     if (s.k === 'cut') lines.push({ t0: s.t0, t1: s.t1 + R.lineAfter, text: laterLine(s.brk.t1 - s.brk.t0) });
     if (s.k === 'leg' && s.travel && s.travel.t1 - s.travel.t0 >= R.laterAfterMs) lines.push({ t0: s.t0, t1: s.t1 + R.lineAfter, text: laterLine(s.travel.t1 - s.travel.t0) });
@@ -370,7 +443,8 @@ export function rhythmFrame(plan: RhythmPlan, ms: number): Frame {
       from: c.from,
       grow: clamp01(v / R.grow),
       tuck: clamp01((v - (dur - R.tuck)) / R.tuck),
-      playing: video && v >= R.grow && v < dur - R.tuck,
+      ...(c.pieces ? gridFrame(c.pieces, v, dur) : {}),
+      playing: (video || !!c.pieces) && v >= R.grow && v < dur - R.tuck,
       progress: video ? clamp01((v - R.grow) / c.len) : 0,
       fade: still,
     });

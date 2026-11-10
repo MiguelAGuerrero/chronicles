@@ -32,7 +32,7 @@ const stack: Moment = {
 const lone: Moment = { id: 'l', walk_id: 'w1', t: t0 + 400_000, ...P(at(3, 0)), segment_id: null, pieces: [piece('l', 'l', t0 + 400_000, 'photo')] };
 type Card = { capture: Faced; t0: number; t1: number; pieces?: Faced[] };
 
-test('MS17: a stacked moment is one stop with one grid of its photos, held one photo slot after its swipe-ins; memos one after another beside it; one pile card per moment; under the cap', { todo: 'test first' }, () => {
+test('MS17: a stacked moment is one stop with one grid of its photos, held one photo slot after its swipe-ins; memos one after another beside it; one pile card per moment; under the cap', () => {
   const plan = rhythmPlan(walkStory(storyOf(trace, [faced(stack), faced(lone)])), { reduceMotion: false });
   const cards = plan.cards as Card[];
   assert.equal(cards.length, 2, 'one card per moment');
@@ -46,13 +46,13 @@ test('MS17: a stacked moment is one stop with one grid of its photos, held one p
   assert.ok(plan.total <= R.cap + 5_000);
 });
 
-test('MS17: a stack\'s stop spans its first piece to its last', { todo: 'test first' }, () => {
+test('MS17: a stack\'s stop spans its first piece to its last', () => {
   const story = walkStory(storyOf(trace, [faced(stack)]));
   const stop = story.events.find((e) => e.kind === 'moment');
   assert.ok(stop && stop.kind === 'moment' && stop.leave >= t0 + 110_000, `leaves at ${stop && stop.kind === 'moment' ? stop.leave - t0 : '?'} ms`);
 });
 
-test('MS17: built through walkStory, a stack and the same pieces apart give the same passed lines in the same order', { todo: 'test first' }, () => {
+test('MS17: built through walkStory, a stack and the same pieces apart give the same passed lines in the same order', () => {
   const passed: WalkInput['passed'] = [{ name: 'Old Mill', generic: false, at: at(2, 0), t: t0 + 200_000 }, { name: 'Green Gate', generic: false, at: at(3.5, 0), t: t0 + 450_000 }];
   const apart = stack.pieces.map((p): Moment => ({ ...stack, id: p.id, t: p.t, pieces: [{ ...p, moment_id: p.id }] }));
   const together = rhythmPlan(walkStory(storyOf(trace, [faced(stack), faced(lone)], passed)), { reduceMotion: false });
@@ -60,7 +60,7 @@ test('MS17: built through walkStory, a stack and the same pieces apart give the 
   assert.deepEqual(together.whispers.map((w) => w.text), separate.whispers.map((w) => w.text));
 });
 
-test('MS17: the screen reader\'s steps go through a stack\'s pieces in capture order, with no position over them', { todo: 'test first' }, async () => {
+test('MS17: the screen reader\'s steps go through a stack\'s pieces in capture order, with no position over them', async () => {
   const steps = storySteps(walkStory(storyOf(trace, [faced(stack), faced(lone)])));
   assert.deepEqual(steps[0].map((c) => c.piece_id), ['s', 's2', 's3', 'm1', 'm2', 'n']);
   const { stepPosition } = (await import('../../ceremony/story' + '')) as unknown as { stepPosition(items: Faced[], i: number): string | null };

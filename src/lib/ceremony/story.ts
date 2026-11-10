@@ -4,7 +4,7 @@
  * once from the walk's trace and captures. No timing, no look: a ceremony
  * decides how to tell it (decision 0086).
  */
-import type { Faced } from '../moment';
+import { facedAt, hasMore, type Faced } from '../moment';
 import { distanceM } from '../geo';
 import { groupCaptures, timedRuns, traceUntil, walkerAt, type TimedRun } from '../replay';
 import type { Day } from '../days';
@@ -253,7 +253,8 @@ export function walkStory(r: WalkInput): Story {
   };
   groups.forEach((g, i) => {
     const tFirst = g.captures[0].t;
-    const tLast = g.captures[g.captures.length - 1].t;
+    // A stacked moment's stop runs to its last piece (MS17), not its time, which is its first's.
+    const tLast = Math.max(...g.captures.map(lastPieceT));
     const next = groups[i + 1]?.captures[0].t ?? Infinity;
     const [arrive, leave] = stillSpan(path, tFirst, tLast, cursor, next);
     const n = events.length;
@@ -312,8 +313,26 @@ export function dayStory(day: Day, walks: Map<string, WalkInput | null>): Story 
   return b.story();
 }
 
-/** The story's moments in order, each its captures: the screen reader's way through (RR17, RR22). */
-export const storySteps = (s: Story): Faced[][] => s.events.flatMap((e) => (e.kind === 'moment' ? [e.captures] : []));
+/** A moment's last piece's time: a stack's stop ends there (MS17). */
+const lastPieceT = (c: Faced): number => (c.pieces?.length ? Math.max(c.t, ...c.pieces.map((p) => p.t)) : c.t);
+
+/**
+ * The story's moments in order, each its captures: the screen reader's way through (RR17, RR22). A stacked moment is
+ * stepped through piece by piece, in capture order (MS17), each shown as the moment at that piece (`facedAt`).
+ */
+export const storySteps = (s: Story): Faced[][] =>
+  s.events.flatMap((e) => (e.kind === 'moment' ? [e.captures.flatMap((c) => (hasMore(c) ? [...c.pieces].sort((a, b) => a.t - b.t).map((p) => facedAt(c, p.id)) : [c]))] : []));
+
+/**
+ * The position a step's footer says, counted in moments ("2 of 3"), never over a moment's pieces: null on a piece of a
+ * stack (MS9) or when the step holds one moment.
+ */
+export function stepPosition(items: Faced[], i: number): string | null {
+  const item = items[i];
+  if (!item || hasMore(item)) return null;
+  const ids = [...new Set(items.map((x) => x.id))];
+  return ids.length > 1 ? `${ids.indexOf(item.id) + 1} of ${ids.length}` : null;
+}
 
 /**
  * Where the screen reader's steps stand (audit 18): the same step, or the

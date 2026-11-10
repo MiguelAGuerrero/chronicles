@@ -130,6 +130,10 @@ export interface CardOverlay {
   progress: number;
   /** Reduce motion: fade in place instead of moving. */
   fade: boolean;
+  /** A stack's grid (MS17): its photos and videos, how far each has swiped in (0 to 1), and how far it has scrolled. */
+  pieces?: Faced[];
+  shown?: number[];
+  scroll?: number;
 }
 
 export interface PileOverlay {
