@@ -28,6 +28,11 @@ const MIN_VOICE_MS = 1000;
  * Longest video. A minute of phone video is 50 to 150 MB; the web gets less,
  * since a browser's storage is smaller and can be cleared.
  */
+/** A refused permission. A phone's Settings has a button (`openSettings`); a web page cannot open them, so it says where. */
+const accessOff = (what: 'Camera' | 'Microphone') =>
+  Platform.OS === 'web'
+    ? `${what} access is off for Chronicles. Allow it in your browser’s site settings, then try again.`
+    : `${what} access is off for Chronicles.`;
 const MAX_VIDEO_S = Platform.OS === 'web' ? 15 : 30;
 
 /** How long a stop may take before it is given up on. */
@@ -314,7 +319,7 @@ export function useCaptures(
       if (!perm.granted) {
         // The request above already showed the system prompt if it could; a refusal now is only fixable in Settings.
         // (`canAskAgain` is not trusted: iOS can report true after a denial, which left no way to recover.)
-        setError({ message: 'Camera access is off for Chronicles.', openSettings: true });
+        setError({ message: accessOff('Camera'), openSettings: true });
         return;
       }
       startLocating(stamp);
@@ -326,21 +331,26 @@ export function useCaptures(
       });
       if (res.canceled || !res.assets[0]) return;
       const asset = res.assets[0];
-      if (asset.type === 'video') {
-        // The web picker reports seconds, native milliseconds.
-        const ms = Platform.OS === 'web' ? (asset.duration ?? 0) * 1000 : (asset.duration ?? 0);
-        // Browsers cannot cap a recording, so an over-long clip is turned away here.
-        if (ms > MAX_VIDEO_S * 1000 + 500) {
-          dropTemp(asset.uri);
-          setError({ message: `Videos can be up to ${MAX_VIDEO_S} seconds here. That one was ${Math.round(ms / 1000)} s.` });
+      // From here the file is being kept: Stop from the recording bar waits for it (capture-from-chronicle audit 6).
+      const keeping = (async () => {
+        if (asset.type === 'video') {
+          // The web picker reports seconds, native milliseconds.
+          const ms = Platform.OS === 'web' ? (asset.duration ?? 0) * 1000 : (asset.duration ?? 0);
+          // Browsers cannot cap a recording, so an over-long clip is turned away here.
+          if (ms > MAX_VIDEO_S * 1000 + 500) {
+            dropTemp(asset.uri);
+            setError({ message: `Videos can be up to ${MAX_VIDEO_S} seconds here. That one was ${Math.round(ms / 1000)} s.` });
+            return;
+          }
+          const ext = asset.mimeType?.split('/')[1]?.replace('quicktime', 'mov') ?? 'mp4';
+          kept = await keepOrHold({ kind: 'video', stamp, uri: asset.uri, ext, ms: Math.round(ms), path: null });
           return;
         }
-        const ext = asset.mimeType?.split('/')[1]?.replace('quicktime', 'mov') ?? 'mp4';
-        kept = await keepOrHold({ kind: 'video', stamp, uri: asset.uri, ext, ms: Math.round(ms), path: null });
-        return;
-      }
-      const ext = asset.mimeType?.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
-      kept = await keepOrHold({ kind: 'photo', stamp, uri: asset.uri, ext, ms: null, path: null });
+        const ext = asset.mimeType?.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
+        kept = await keepOrHold({ kind: 'photo', stamp, uri: asset.uri, ext, ms: null, path: null });
+      })();
+      memoGate.keep(keeping);
+      await keeping;
     });
     return kept;
   };
@@ -382,11 +392,14 @@ export function useCaptures(
       withBusy(async () => {
         if (!enabled || voiceOn.current) return false;
         try {
-          const perm = await requestRecordingPermissionsAsync();
-          if (!perm.granted) {
+          // On the web expo-audio's permission request folds every getUserMedia failure into "denied" (a microphone
+          // another app or tab holds reads as refused although the site is allowed) and opens the microphone a second
+          // time; prepareToRecordAsync below asks too and throws the browser's own error, which the catch tells apart.
+          const perm = Platform.OS === 'web' ? null : await requestRecordingPermissionsAsync();
+          if (perm && !perm.granted) {
             // The request above already showed the system prompt if it could; a refusal now is only fixable in Settings.
             // (`canAskAgain` is not trusted: iOS can report true after a denial, which left no way to recover.)
-            setError({ message: 'Microphone access is off for Chronicles.', openSettings: true });
+            setError({ message: accessOff('Microphone'), openSettings: true });
             return false;
           }
           // Keeps recording with the phone locked and in a pocket.
@@ -405,7 +418,15 @@ export function useCaptures(
           return true;
         } catch (e) {
           await resetAudioMode();
-          setError({ message: e instanceof Error ? e.message : String(e) });
+          const name = e instanceof Error ? e.name : '';
+          if (Platform.OS === 'web' && (name === 'NotAllowedError' || name === 'SecurityError')) {
+            setError({ message: accessOff('Microphone'), openSettings: true });
+          } else if (Platform.OS === 'web' && name) {
+            // Allowed, but the browser could not open it: say what it said (busy, none found) rather than "off".
+            setError({ message: `The microphone could not start (${name}${e instanceof Error && e.message ? `: ${e.message}` : ''}).` });
+          } else {
+            setError({ message: e instanceof Error ? e.message : String(e) });
+          }
           return false;
         }
       }),

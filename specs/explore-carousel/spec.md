@@ -69,7 +69,7 @@ The auditor (8 findings) and the vision steward (8 findings, numbered 9-16 after
 6. A town selected in the row is framed twice: reject, not reproduced. The bounds do not change when the outline arrives; e2e `carousel` "explore-carousel audit 6" pins it.
 7. A long name is cut at two lines: accept. The name wraps in full; `carousel.test.ts` "explore-carousel audit 7" reads the card's source.
 8. `onSwipe` still carries the camera centre and metres a pixel, and `map.md` described them: accept the docs line, defer the payload (DEFERRED).
-9. VISION.md's Precedents does not list 0109: for the owner. The page is theirs to edit; it is in STATUS "Needs the owner".
+9. VISION.md's Precedents does not list 0123: for the owner. The page is theirs to edit; it is in STATUS "Needs the owner".
 10. The long press's hint shows until used, not once: accept. It is marked seen after 5 s on screen; e2e `carousel` "explore-carousel audit 10".
 11. The way back on a town's page disappears while the long press's choices show: accept. The pill and the overlay sit above them; e2e `carousel` "explore-carousel audit 11".
 12. "It is one area." states derived data as a fact: accept. `townNote` ("audit 12").

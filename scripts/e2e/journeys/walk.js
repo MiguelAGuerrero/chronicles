@@ -260,7 +260,7 @@ async function checks(h) {
         // The live walk's dot is one gliding marker; the layers stay empty for it.
         check((await page.locator('[data-testid=walker-puck]').count()) === 1 && (await page.locator('[data-testid=walker-puck] svg').count()) === 2, 'the walker is one gliding marker, dot and cone');
         // Within 60 m, the memorial's "?" shows what it is (E7).
-        check((await page.locator('[aria-label="Hessian Memorial, History & landmarks. Open"]').count()) === 1, 'a "?" shows its name and category within 60 m');
+        check((await page.locator('[aria-label="Hessian Memorial, History. Open"]').count()) === 1, 'a "?" shows its name and category within 60 m');
       }
       if (k === 15) {
         // The camera takes video too. The web caps clips at 15 s; a longer one is turned away.
@@ -278,7 +278,7 @@ async function checks(h) {
         check((await page.locator('[aria-label="2 captures here. Open"]').count()) === 1, 'a short video is kept, sharing a pin with the memo nearby');
         // The video is taken about 40 m from the memorial: it finds it (E8). (The memo at step 10, 62 m off, does not.)
         await page.waitForTimeout(500);
-        check((await page.locator('[aria-label="Found: Hessian Memorial, History & landmarks"]').count()) === 1, 'a capture within 60 m finds the place, which stays drawn as found');
+        check((await page.locator('[aria-label="Found: Hessian Memorial, History"]').count()) === 1, 'a capture within 60 m finds the place, which stays drawn as found');
         const seenEnters = await page.evaluate(() => window.__enters.map((e) => ({ kind: e.kind, animated: e.animated, label: e.label })));
         check(seenEnters.some((e) => e.kind === 'pulse' && e.animated && /^Found: Hessian/.test(e.label)), 'a find pulses once from its pin (M12)');
         check(seenEnters.some((e) => e.kind === 'flip' && e.animated), 'a revealed "?" turns into its place, on its way to being found (M11)');
@@ -757,7 +757,7 @@ async function checks(h) {
 
 async function run(h) {
   const { page, url, routed } = h;
-  await page.goto(url);
+  await page.goto(h.exploreUrl);
   await page.waitForSelector('[data-testid=tab-explore][aria-selected=true]', { timeout: 30000 });
   await checks(h);
 }

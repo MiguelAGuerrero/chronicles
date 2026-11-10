@@ -4,12 +4,29 @@
  * screen), and the saves still under way (tabs audit 3). A walk never starts
  * while a memo records: leaving Navigate mid-memo saves it, and a Start or
  * Walk here tapped meanwhile waits for that save rather than starting under
- * it. Pure: no storage, no React.
+ * it. Photos and videos being kept are tracked too, for the bar's Stop. Pure: no storage, no React.
  */
 export function createMemoGate() {
   const on = new Set<object>();
   const saves = new Set<Promise<unknown>>();
+  const keeps = new Set<Promise<unknown>>();
   return {
+    /**
+     * A photo or video being kept, from any capture path (capture-from-chronicle audit 6): Stop from the
+     * recording bar waits for it, so a capture from Memories' band lands before the walk ends.
+     */
+    keep(p: Promise<unknown>) {
+      const settled = p.then(
+        () => {},
+        () => {},
+      );
+      keeps.add(settled);
+      void settled.then(() => keeps.delete(settled));
+    },
+    /** Resolves once every capture being kept has landed (or failed). */
+    async kept(): Promise<void> {
+      while (keeps.size) await Promise.all([...keeps]);
+    },
     /** A capture path's memo started or stopped. */
     recording(owner: object, recording: boolean) {
       if (recording) on.add(owner);

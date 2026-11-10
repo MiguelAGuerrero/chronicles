@@ -5,7 +5,7 @@
 const BANNED = /\b(minutes?|mins?|hours?|ETA|pace|brisk|quick(er|est)?|fast(er|est)?|shorter|longer|more|most|best|densest|less|than|same)\b/i;
 
 async function run(h) {
-  const { url, at, check, freshPage, shot, openWalk, tabTo, tabBarShown } = h;
+  const { url, exploreUrl, at, check, freshPage, shot, openWalk, tabTo, tabBarShown } = h;
   const { c, pg } = await freshPage('planner');
   const walksCount = (page) => page.evaluate(() => new Promise((resolve) => {
     const req = indexedDB.open('chronicles');
@@ -17,7 +17,7 @@ async function run(h) {
   if (process.env.E2E_DEBUG) pg.on('console', (m) => /^PLAN/.test(m.text()) && console.log('PAGE', m.text()));
   const here = at(-120, 0);
   await c.setGeolocation({ longitude: here[0], latitude: here[1], accuracy: 6 });
-  await pg.goto(url);
+  await pg.goto(exploreUrl);
   const tile = pg.locator('[data-testid=atlas-tile][data-name="Green Row"]');
   await pg.waitForSelector('[data-testid=atlas-tile][data-name="Green Row"][data-read="1"]', { timeout: 60000 }).catch(() => {});
   await tile.click().catch(() => {});

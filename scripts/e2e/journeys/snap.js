@@ -1,14 +1,14 @@
-// Discrete navigation (DN1, DN10, DN12, DN13; amended by the Explore carousel, decision 0109): one finger never pans
+// Discrete navigation (DN1, DN10, DN12, DN13; amended by the Explore carousel, decision 0123): one finger never pans
 // Explore's map, a swipe steps the row of cards, and the other gestures work as before. The row itself is the `carousel`
 // journey. E2E_ONLY=snap runs it alone.
 
 async function run(h) {
-  const { url, distanceM, check, tabTo, freshPage, snapWorld } = h;
+  const { url, exploreUrl, distanceM, check, tabTo, freshPage, snapWorld } = h;
   snapWorld.serve = true;
   const { c, pg } = await freshPage('snap');
   await c.addInitScript(() => { window.__perf = {}; });
   try {
-    await pg.goto(url);
+    await pg.goto(exploreUrl);
     await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 5, null, { timeout: 60000 }).catch(() => {});
     await pg.waitForFunction(() => document.querySelectorAll('[data-testid=area-point]').length >= 5, null, { timeout: 30000 }).catch(() => {});
     await pg.waitForTimeout(2500);
@@ -95,7 +95,7 @@ async function run(h) {
     // discrete-navigation audit 1: on a wide screen the card is a side panel beside the map. A swipe with a card
     // open never leaves it showing another area.
     await pg.setViewportSize({ width: 1200, height: 800 });
-    await pg.goto(url);
+    await pg.goto(exploreUrl);
     await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 5, null, { timeout: 60000 }).catch(() => {});
     await pg.waitForTimeout(2000);
     // The first card is selected on arrival; a tap on it opens its card.
@@ -118,7 +118,7 @@ module.exports = {
   name: 'snap',
   // Discrete navigation (DN1, DN10, DN12, DN13): one finger never pans Explore's map; a swipe steps the row.
   covers: [
-    'src/app/(tabs)/index.tsx',
+    'src/app/(tabs)/explore.tsx',
     'src/lib/atlas/snap.ts',
     'src/components/map/WalkMap.web.tsx',
     'src/components/map/types.ts',

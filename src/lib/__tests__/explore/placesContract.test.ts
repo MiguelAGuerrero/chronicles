@@ -18,7 +18,7 @@ const { ALLOWED_HOSTS } = require('../../../../scripts/check-vision.js') as { AL
 const ROOT = join(__dirname, '../../../..');
 const C = join(__dirname, 'contract');
 const read = (p: string) => JSON.parse(readFileSync(join(C, p), 'utf8'));
-const PINNED_VERSION = 1;
+const PINNED_VERSION = 2;
 
 const memory = (buf: Uint8Array): Source => ({
   getKey: () => 'memory',

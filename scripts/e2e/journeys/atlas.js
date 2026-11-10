@@ -45,7 +45,7 @@ async function checks(h) {
       check((await page.locator('canvas.maplibregl-canvas').count()) === 1 && names[0] === 'Fox Point' && /^Fox Point\. You’re here\./.test(label),
         `AT1: the atlas lists the neighborhoods near you, the one you're in first (${names.join(', ')}: ${label})`);
       check((await fox.getAttribute('data-read')) === '1' && (await fox.locator('[data-kind]').count()) >= 1 && (await fox.locator('svg').count()) === 0,
-        'AT3, AT5: its ring was read by itself; the card has the kinds it has (round 3: only those present) and no picture (the area\'s card has it, decision 0109)');
+        'AT3, AT5: its ring was read by itself; the card has the kinds it has (round 3: only those present) and no picture (the area\'s card has it, decision 0123)');
       check(/Walked (once|\d+ times)/.test(label) && /History: (some|plenty|lots)/.test(label),
         `AT3, AT13: the tile says how often you walked there and each kind present in words (${label})`);
       const atlasRows = await page.evaluate(() => new Promise((resolve) => {
@@ -177,7 +177,7 @@ async function checks(h) {
       await page.waitForSelector('[data-testid=atlas-card]');
       await page.waitForTimeout(700);
       // The tab bar is folded away under the drawer, so leave the way a notification would: by the router.
-      await page.evaluate(() => { window.history.pushState({}, '', window.location.pathname.replace(/\/$/, '') + '/chronicle'); window.dispatchEvent(new PopStateEvent('popstate')); });
+      await page.evaluate((base) => { window.history.pushState({}, '', `${base}/`); window.dispatchEvent(new PopStateEvent('popstate')); }, BASE);
       await page.waitForTimeout(800);
       await tabTo(page, 'explore');
       await page.waitForSelector('[data-testid=atlas-carousel]');
@@ -277,10 +277,10 @@ async function checks(h) {
       await page.reload();
       const back = await page.waitForSelector('[data-testid=atlas-tile][data-name="Fox Point"][data-read="1"]', { timeout: 30000 }).then(() => true, () => false);
       const label = back ? (await tileOf('Fox Point').getAttribute('aria-label')) ?? '' : '';
-      check(back && new URL(page.url()).pathname === `${BASE}/`,
+      check(back && new URL(page.url()).pathname === `${BASE}/explore`,
         `AT1, AT12: after a reload, the atlas is back on the same tab from where it last listed (${label}; the launch's one fix may already say "You're here", NV16)`);
       if (back) {
-        // AD14: the area's small map (on its card, decision 0109) draws its graded streets in magenta, a path per grade, wider as the grade rises.
+        // AD14: the area's small map (on its card, decision 0123) draws its graded streets in magenta, a path per grade, wider as the grade rises.
         await tileOf('Fox Point').click();
         await page.waitForSelector('[data-testid=atlas-card]');
         const strokes = await page.locator('[data-testid=atlas-card]').evaluate((el) => [...el.querySelectorAll('path')]

@@ -11,7 +11,7 @@ const GAP = 12;
 const SETTLE_MS = 120;
 
 /**
- * The row of area cards (EC2-EC4, EC13; decision 0109): one horizontal row, one card centred at a time. A scroll that settles
+ * The row of area cards (EC2-EC4, EC13; decision 0123): one horizontal row, one card centred at a time. A scroll that settles
  * selects the card it stopped on (`onSettle`); a selection made elsewhere (a swipe on the map, a tap on another card) scrolls
  * the row to its card. The two never fight: a scroll the row made itself is not reported back. Snapping is the platform's on a
  * phone (`snapToInterval`); on web, which has no such prop, a settled scroll that stopped between cards is eased onto one.

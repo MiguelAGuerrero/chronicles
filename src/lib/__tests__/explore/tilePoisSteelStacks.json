@@ -1,0 +1,2262 @@
+{
+ "_note": "Decoded poi features of OpenFreeMap build 20261101_080013_pt (z14): the SteelStacks campus in Bethlehem, PA, plus Historic Hotel Bethlehem (lodging) and the National Aviary in Pittsburgh (zoo/aviary). Data (c) OpenStreetMap contributors, ODbL. Used by remarkablePublic.test.ts (RP13, RP15, RP16).",
+ "build": "20261101_080013_pt",
+ "features": [
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.371538,
+     40.612649
+    ]
+   },
+   "properties": {
+    "class": "hospital",
+    "subclass": "clinic",
+    "name": "Star Community Health Southside Internal Medicine– Bethlehem"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.371532,
+     40.612486
+    ]
+   },
+   "properties": {
+    "class": "hospital",
+    "subclass": "clinic",
+    "name": "Star Community Health KidsCare - Bethlehem"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.366275,
+     40.61449
+    ]
+   },
+   "properties": {
+    "class": "attraction",
+    "subclass": "attraction",
+    "name": "SteelStacks"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.37172,
+     40.612576
+    ]
+   },
+   "properties": {
+    "class": "college",
+    "subclass": "college",
+    "name": "Fowler Family Southside Center"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.371667,
+     40.612641
+    ]
+   },
+   "properties": {
+    "class": "college",
+    "subclass": "college",
+    "name": "NCC Fab Lab"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.371667,
+     40.612596
+    ]
+   },
+   "properties": {
+    "class": "college",
+    "subclass": "college",
+    "name": "Northeast Forensic Training Center"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.37165,
+     40.612421
+    ]
+   },
+   "properties": {
+    "class": "college",
+    "subclass": "college",
+    "name": "Follett Family Center for Innovation and Entrepreneurship"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.36951,
+     40.611631
+    ]
+   },
+   "properties": {
+    "class": "park",
+    "subclass": "park",
+    "name": "South Bethlehem Greenway"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.366415,
+     40.611114
+    ]
+   },
+   "properties": {
+    "class": "park",
+    "subclass": "park",
+    "name": "Lopes International Park"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.360922,
+     40.612275
+    ]
+   },
+   "properties": {
+    "class": "park",
+    "subclass": "park",
+    "name": "McNamara Park"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.362885,
+     40.612564
+    ]
+   },
+   "properties": {
+    "class": "shop",
+    "subclass": "convenience",
+    "name": "La Favorita Grocery Store"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.362756,
+     40.61111
+    ]
+   },
+   "properties": {
+    "class": "shop",
+    "subclass": "convenience",
+    "name": "LMT Mini Mart"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.368689,
+     40.614783
+    ]
+   },
+   "properties": {
+    "class": "fast_food",
+    "subclass": "fast_food",
+    "name": "Mack Truck Stop"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.369607,
+     40.612083
+    ]
+   },
+   "properties": {
+    "class": "fast_food",
+    "subclass": "fast_food",
+    "name": "Wingstop"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.367563,
+     40.614095
+    ]
+   },
+   "properties": {
+    "class": "bar",
+    "subclass": "bar",
+    "name": "Pour Bar"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.371865,
+     40.61201
+    ]
+   },
+   "properties": {
+    "class": "cafe",
+    "subclass": "cafe",
+    "name": "Starbucks"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.370733,
+     40.614938
+    ]
+   },
+   "properties": {
+    "class": "parking",
+    "subclass": "parking",
+    "name": "PNC Lot"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.367584,
+     40.614022
+    ]
+   },
+   "properties": {
+    "class": "art_gallery",
+    "subclass": "arts_centre",
+    "name": "ArtsQuest Center at SteelStacks"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.36819,
+     40.614779
+    ]
+   },
+   "properties": {
+    "class": "theatre",
+    "subclass": "theatre",
+    "name": "Levitt Pavilion SteelStacks"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.367879,
+     40.614262
+    ]
+   },
+   "properties": {
+    "class": "theatre",
+    "subclass": "theatre",
+    "name": "Highmark Blue Shield Community Stage"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.371463,
+     40.613952
+    ]
+   },
+   "properties": {
+    "class": "parking",
+    "subclass": "parking",
+    "name": "Ruins West"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.367316,
+     40.614034
+    ]
+   },
+   "properties": {
+    "class": "toilets",
+    "subclass": "toilets",
+    "name": "Women's Restroom"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.367321,
+     40.613997
+    ]
+   },
+   "properties": {
+    "class": "toilets",
+    "subclass": "toilets",
+    "name": "Men's Restroom"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.367429,
+     40.614062
+    ]
+   },
+   "properties": {
+    "class": "toilets",
+    "subclass": "toilets",
+    "name": "Family Restroom"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.367327,
+     40.614034
+    ]
+   },
+   "properties": {
+    "class": "toilets",
+    "subclass": "toilets",
+    "name": "Women's Restroom"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.367777,
+     40.613969
+    ]
+   },
+   "properties": {
+    "class": "cinema",
+    "subclass": "cinema",
+    "name": "Frank Banko Alehouse Cinemas"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.367257,
+     40.614461
+    ]
+   },
+   "properties": {
+    "class": "art_gallery",
+    "subclass": "artwork",
+    "name": "The Bridge"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.369526,
+     40.614869
+    ]
+   },
+   "properties": {
+    "class": "information",
+    "subclass": "office",
+    "name": "Bethlehem Visitor Center at SteelStacks"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.367316,
+     40.614103
+    ]
+   },
+   "properties": {
+    "class": "restaurant",
+    "subclass": "restaurant",
+    "name": "Palette & Pour"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.367509,
+     40.613957
+    ]
+   },
+   "properties": {
+    "class": "cinema",
+    "subclass": "cinema",
+    "name": "Frank Banko Alehouse Cinemas"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.370626,
+     40.612503
+    ]
+   },
+   "properties": {
+    "class": "parking",
+    "subclass": "parking",
+    "name": "NCC Lot"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.371511,
+     40.612792
+    ]
+   },
+   "properties": {
+    "class": "museum",
+    "subclass": "museum",
+    "name": "National Museum of Industrial History"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.370009,
+     40.613908
+    ]
+   },
+   "properties": {
+    "class": "parking",
+    "subclass": "parking",
+    "name": "Ruins East"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.370873,
+     40.612043
+    ]
+   },
+   "properties": {
+    "class": "restaurant",
+    "subclass": "restaurant",
+    "name": "Social Still"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.370819,
+     40.613822
+    ]
+   },
+   "properties": {
+    "class": "castle",
+    "subclass": "ruins",
+    "name": "Ruins"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.367552,
+     40.611338
+    ]
+   },
+   "properties": {
+    "class": "parking",
+    "subclass": "parking",
+    "name": "Evans Street Lot"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.370787,
+     40.612258
+    ]
+   },
+   "properties": {
+    "class": "bicycle_parking",
+    "subclass": "bicycle_parking",
+    "name": "Art Rack"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.367987,
+     40.613834
+    ]
+   },
+   "properties": {
+    "class": "bicycle_parking",
+    "subclass": "bicycle_parking",
+    "name": "Art Rack"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.371629,
+     40.612018
+    ]
+   },
+   "properties": {
+    "class": "restaurant",
+    "subclass": "restaurant",
+    "name": "El Jefe's Taqueria"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.369199,
+     40.611061
+    ]
+   },
+   "properties": {
+    "class": "office",
+    "subclass": "insurance",
+    "name": "Lehigh Partners"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.371468,
+     40.612026
+    ]
+   },
+   "properties": {
+    "class": "restaurant",
+    "subclass": "restaurant",
+    "name": "Mister Lee's Noodles Bethlehem"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.371334,
+     40.61203
+    ]
+   },
+   "properties": {
+    "class": "alcohol_shop",
+    "subclass": "wine",
+    "name": "B-side Bottle+Larder"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.371205,
+     40.612026
+    ]
+   },
+   "properties": {
+    "class": "restaurant",
+    "subclass": "restaurant",
+    "name": "HandHeldz"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.371532,
+     40.612531
+    ]
+   },
+   "properties": {
+    "class": "dentist",
+    "subclass": "dentist",
+    "name": "Star Community Health Dental - Bethlehem"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.371527,
+     40.612376
+    ]
+   },
+   "properties": {
+    "class": "restaurant",
+    "subclass": "restaurant",
+    "name": "Zime"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.371661,
+     40.612543
+    ]
+   },
+   "properties": {
+    "class": "office",
+    "subclass": "ngo",
+    "name": "Lehigh Valley Justice Institute"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.371656,
+     40.612491
+    ]
+   },
+   "properties": {
+    "class": "office",
+    "subclass": "association",
+    "name": "Cops 'n' Kids' Reading Room"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.361683,
+     40.615638
+    ]
+   },
+   "properties": {
+    "class": "parking",
+    "subclass": "parking",
+    "name": "Hotel & Event Center Parking"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.364516,
+     40.615646
+    ]
+   },
+   "properties": {
+    "class": "parking",
+    "subclass": "parking",
+    "name": "West Lot"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.365143,
+     40.613289
+    ]
+   },
+   "properties": {
+    "class": "parking",
+    "subclass": "parking",
+    "name": "Dealer School Lot"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.361367,
+     40.612148
+    ]
+   },
+   "properties": {
+    "class": "car",
+    "subclass": "car_repair",
+    "name": "Fortuna's Auto Body"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.366098,
+     40.612022
+    ]
+   },
+   "properties": {
+    "class": "bank",
+    "subclass": "bank",
+    "name": "PNC Bank"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.361313,
+     40.61168
+    ]
+   },
+   "properties": {
+    "class": "car",
+    "subclass": "car_repair",
+    "name": "Cholo's Garage"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.363486,
+     40.612173
+    ]
+   },
+   "properties": {
+    "class": "place_of_worship",
+    "subclass": "christian",
+    "name": "Spirit Temple Bible Church"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.364478,
+     40.612193
+    ]
+   },
+   "properties": {
+    "class": "bakery",
+    "subclass": "bakery",
+    "name": "Sweet Darlings"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.363014,
+     40.611094
+    ]
+   },
+   "properties": {
+    "class": "restaurant",
+    "subclass": "restaurant",
+    "name": "Parrillon Dos"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.362896,
+     40.612613
+    ]
+   },
+   "properties": {
+    "class": "grocery",
+    "subclass": "supermarket"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.366222,
+     40.614071
+    ]
+   },
+   "properties": {
+    "class": "parking",
+    "subclass": "parking"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.369666,
+     40.614563
+    ]
+   },
+   "properties": {
+    "class": "bicycle_parking",
+    "subclass": "bicycle_parking"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.367396,
+     40.614787
+    ]
+   },
+   "properties": {
+    "class": "castle",
+    "subclass": "ruins"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.366404,
+     40.614132
+    ]
+   },
+   "properties": {
+    "class": "bicycle_parking",
+    "subclass": "bicycle_parking"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.367354,
+     40.614111
+    ]
+   },
+   "properties": {
+    "class": "restaurant",
+    "subclass": "restaurant"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.36737,
+     40.614009
+    ]
+   },
+   "properties": {
+    "class": "drinking_water",
+    "subclass": "drinking_water"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.367359,
+     40.614009
+    ]
+   },
+   "properties": {
+    "class": "drinking_water",
+    "subclass": "drinking_water"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.369623,
+     40.611346
+    ]
+   },
+   "properties": {
+    "class": "parking",
+    "subclass": "parking"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.371221,
+     40.611688
+    ]
+   },
+   "properties": {
+    "class": "parking",
+    "subclass": "parking"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.370089,
+     40.611273
+    ]
+   },
+   "properties": {
+    "class": "parking",
+    "subclass": "parking"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.371302,
+     40.611248
+    ]
+   },
+   "properties": {
+    "class": "parking",
+    "subclass": "parking"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.366549,
+     40.611924
+    ]
+   },
+   "properties": {
+    "class": "parking",
+    "subclass": "parking"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.368555,
+     40.611179
+    ]
+   },
+   "properties": {
+    "class": "parking",
+    "subclass": "parking"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.370046,
+     40.611794
+    ]
+   },
+   "properties": {
+    "class": "parking",
+    "subclass": "parking"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.367944,
+     40.613826
+    ]
+   },
+   "properties": {
+    "class": "bicycle_parking",
+    "subclass": "bicycle_parking"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.371345,
+     40.612311
+    ]
+   },
+   "properties": {
+    "class": "bicycle_parking",
+    "subclass": "bicycle_parking"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.366721,
+     40.61214
+    ]
+   },
+   "properties": {
+    "class": "waste_basket",
+    "subclass": "waste_basket"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.366721,
+     40.612148
+    ]
+   },
+   "properties": {
+    "class": "recycling",
+    "subclass": "recycling"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.367852,
+     40.612588
+    ]
+   },
+   "properties": {
+    "class": "art_gallery",
+    "subclass": "artwork"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.371103,
+     40.612503
+    ]
+   },
+   "properties": {
+    "class": "waste_basket",
+    "subclass": "waste_basket"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.370599,
+     40.611517
+    ]
+   },
+   "properties": {
+    "class": "waste_basket",
+    "subclass": "waste_basket"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.37061,
+     40.611521
+    ]
+   },
+   "properties": {
+    "class": "recycling",
+    "subclass": "recycling"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.369285,
+     40.611652
+    ]
+   },
+   "properties": {
+    "class": "waste_basket",
+    "subclass": "waste_basket"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.36929,
+     40.61166
+    ]
+   },
+   "properties": {
+    "class": "recycling",
+    "subclass": "recycling"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.369505,
+     40.611762
+    ]
+   },
+   "properties": {
+    "class": "bollard",
+    "subclass": "bollard"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.369521,
+     40.611762
+    ]
+   },
+   "properties": {
+    "class": "bollard",
+    "subclass": "bollard"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.369537,
+     40.611762
+    ]
+   },
+   "properties": {
+    "class": "bollard",
+    "subclass": "bollard"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.363373,
+     40.615565
+    ]
+   },
+   "properties": {
+    "class": "parking",
+    "subclass": "parking"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.365889,
+     40.612038
+    ]
+   },
+   "properties": {
+    "class": "parking",
+    "subclass": "parking"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.360922,
+     40.612295
+    ]
+   },
+   "properties": {
+    "class": "pitch",
+    "subclass": "basketball"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.365825,
+     40.611554
+    ]
+   },
+   "properties": {
+    "class": "parking",
+    "subclass": "parking"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.362644,
+     40.611407
+    ]
+   },
+   "properties": {
+    "class": "parking",
+    "subclass": "parking"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.363078,
+     40.612002
+    ]
+   },
+   "properties": {
+    "class": "parking",
+    "subclass": "parking"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.363132,
+     40.612214
+    ]
+   },
+   "properties": {
+    "class": "parking",
+    "subclass": "parking"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.360932,
+     40.61214
+    ]
+   },
+   "properties": {
+    "class": "playground",
+    "subclass": "playground"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.362499,
+     40.612906
+    ]
+   },
+   "properties": {
+    "class": "parking",
+    "subclass": "parking"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.365959,
+     40.612287
+    ]
+   },
+   "properties": {
+    "class": "bicycle_parking",
+    "subclass": "bicycle_parking"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.365755,
+     40.612319
+    ]
+   },
+   "properties": {
+    "class": "bicycle_parking",
+    "subclass": "bicycle_parking"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.365615,
+     40.613342
+    ]
+   },
+   "properties": {
+    "class": "recycling",
+    "subclass": "recycling"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.360777,
+     40.612173
+    ]
+   },
+   "properties": {
+    "class": "drinking_water",
+    "subclass": "drinking_water"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.362204,
+     40.613122
+    ]
+   },
+   "properties": {
+    "class": "waste_basket",
+    "subclass": "waste_basket"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.36222,
+     40.613118
+    ]
+   },
+   "properties": {
+    "class": "recycling",
+    "subclass": "recycling"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.365004,
+     40.612499
+    ]
+   },
+   "properties": {
+    "class": "waste_basket",
+    "subclass": "waste_basket"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.365015,
+     40.612499
+    ]
+   },
+   "properties": {
+    "class": "recycling",
+    "subclass": "recycling"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.359393,
+     40.614461
+    ]
+   },
+   "properties": {
+    "class": "school",
+    "subclass": "school",
+    "name": "Wind Creek Dealer School"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.359243,
+     40.614665
+    ]
+   },
+   "properties": {
+    "class": "shop",
+    "subclass": "mall",
+    "name": "The Outlets at Wind Creek"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.358803,
+     40.614551
+    ]
+   },
+   "properties": {
+    "class": "shop",
+    "subclass": "general",
+    "name": "The General Store"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.359634,
+     40.614718
+    ]
+   },
+   "properties": {
+    "class": "shop",
+    "subclass": "perfumery",
+    "name": "Fragrance Outlet"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.358792,
+     40.614836
+    ]
+   },
+   "properties": {
+    "class": "shop",
+    "subclass": "shoes",
+    "name": "Famous Footwear"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.358669,
+     40.614848
+    ]
+   },
+   "properties": {
+    "class": "shop",
+    "subclass": "jewelry",
+    "name": "Kay Jewelers"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.359833,
+     40.615854
+    ]
+   },
+   "properties": {
+    "class": "shop",
+    "subclass": "beauty",
+    "name": "Spa at Wind Creek"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.359414,
+     40.61451
+    ]
+   },
+   "properties": {
+    "class": "shop",
+    "subclass": "ticket",
+    "name": "Wind Creek Event Center Box Office"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.35987,
+     40.612458
+    ]
+   },
+   "properties": {
+    "class": "shop",
+    "subclass": "convenience",
+    "name": "Rite-Stop Deli And Grocery"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.359827,
+     40.611322
+    ]
+   },
+   "properties": {
+    "class": "shop",
+    "subclass": "convenience",
+    "name": "Deli Boca Chica"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.35854,
+     40.614547
+    ]
+   },
+   "properties": {
+    "class": "fast_food",
+    "subclass": "fast_food",
+    "name": "Moe's Southwest Grill"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.358475,
+     40.614543
+    ]
+   },
+   "properties": {
+    "class": "fast_food",
+    "subclass": "fast_food",
+    "name": "Villa Italian Kitchen"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.358427,
+     40.614547
+    ]
+   },
+   "properties": {
+    "class": "fast_food",
+    "subclass": "fast_food",
+    "name": "Far East"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.358374,
+     40.614551
+    ]
+   },
+   "properties": {
+    "class": "fast_food",
+    "subclass": "fast_food",
+    "name": "Mo' Burger"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.358336,
+     40.614527
+    ]
+   },
+   "properties": {
+    "class": "fast_food",
+    "subclass": "fast_food",
+    "name": "South Philly Steaks & Fries"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.358304,
+     40.614596
+    ]
+   },
+   "properties": {
+    "class": "fast_food",
+    "subclass": "food_court",
+    "name": "The Market Gourmet Express"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.359511,
+     40.614747
+    ]
+   },
+   "properties": {
+    "class": "clothing_store",
+    "subclass": "clothes",
+    "name": "Tommy Hilfiger"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.359344,
+     40.614763
+    ]
+   },
+   "properties": {
+    "class": "clothing_store",
+    "subclass": "clothes",
+    "name": "Hartstrings"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.359151,
+     40.614482
+    ]
+   },
+   "properties": {
+    "class": "clothing_store",
+    "subclass": "bag",
+    "name": "Coach"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.358937,
+     40.61449
+    ]
+   },
+   "properties": {
+    "class": "clothing_store",
+    "subclass": "clothes",
+    "name": "Michael Kors"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.359151,
+     40.614804
+    ]
+   },
+   "properties": {
+    "class": "clothing_store",
+    "subclass": "clothes",
+    "name": "Guess"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.359017,
+     40.614824
+    ]
+   },
+   "properties": {
+    "class": "clothing_store",
+    "subclass": "clothes",
+    "name": "Chico's"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.358905,
+     40.614824
+    ]
+   },
+   "properties": {
+    "class": "clothing_store",
+    "subclass": "clothes",
+    "name": "Talbots"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.360004,
+     40.615699
+    ]
+   },
+   "properties": {
+    "class": "bar",
+    "subclass": "bar",
+    "name": "Mixx at Wind Creek"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.359559,
+     40.61537
+    ]
+   },
+   "properties": {
+    "class": "bar",
+    "subclass": "nightclub",
+    "name": "The Club at Wind Creek"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.358974,
+     40.614111
+    ]
+   },
+   "properties": {
+    "class": "parking",
+    "subclass": "parking",
+    "name": "Retail Lot"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.359795,
+     40.615431
+    ]
+   },
+   "properties": {
+    "class": "lodging",
+    "subclass": "hotel",
+    "name": "Wind Creek Bethlehem Hotel"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.359532,
+     40.61447
+    ]
+   },
+   "properties": {
+    "class": "beer",
+    "subclass": "pub",
+    "name": "Bethlehem Barrel and Drafthouse"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.359602,
+     40.614632
+    ]
+   },
+   "properties": {
+    "class": "cafe",
+    "subclass": "cafe",
+    "name": "Sweet Revenge"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.359237,
+     40.614518
+    ]
+   },
+   "properties": {
+    "class": "escape_game",
+    "subclass": "escape_game",
+    "name": "Angry Jack's Axe Throwing Club"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.359055,
+     40.614742
+    ]
+   },
+   "properties": {
+    "class": "sports_centre",
+    "subclass": "sports_centre",
+    "name": "Twisted Tees"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.358701,
+     40.614567
+    ]
+   },
+   "properties": {
+    "class": "office",
+    "subclass": "employment_agency",
+    "name": "Wind Creek Employment Center"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.358626,
+     40.614571
+    ]
+   },
+   "properties": {
+    "class": "museum",
+    "subclass": "museum",
+    "name": "Steelworkers' Archives"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.358524,
+     40.614856
+    ]
+   },
+   "properties": {
+    "class": "cafe",
+    "subclass": "cafe",
+    "name": "Starbucks"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.358298,
+     40.614543
+    ]
+   },
+   "properties": {
+    "class": "cafe",
+    "subclass": "cafe",
+    "name": "Bananas & Casa Java"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.358186,
+     40.611163
+    ]
+   },
+   "properties": {
+    "class": "place_of_worship",
+    "subclass": "christian",
+    "name": "Iglesia Esperanza for Bethlehem Moravian Church"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.358658,
+     40.611159
+    ]
+   },
+   "properties": {
+    "class": "place_of_worship",
+    "subclass": "christian",
+    "name": "Holy Bethel Pentecostal Church"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.360069,
+     40.61269
+    ]
+   },
+   "properties": {
+    "class": "car",
+    "subclass": "car_repair",
+    "name": "Fox Auto Repair"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.360058,
+     40.614677
+    ]
+   },
+   "properties": {
+    "class": "bicycle_parking",
+    "subclass": "bicycle_parking"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.360417,
+     40.613048
+    ]
+   },
+   "properties": {
+    "class": "swimming_pool",
+    "subclass": "swimming_pool"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.360015,
+     40.612719
+    ]
+   },
+   "properties": {
+    "class": "gate",
+    "subclass": "gate"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -75.382438,
+     40.62017
+    ]
+   },
+   "properties": {
+    "class": "lodging",
+    "subclass": "hotel",
+    "name": "Historic Hotel Bethlehem"
+   }
+  },
+  {
+   "type": "Feature",
+   "zoom": 14,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -80.009952,
+     40.453413
+    ]
+   },
+   "properties": {
+    "class": "zoo",
+    "subclass": "aviary",
+    "name": "National Aviary"
+   }
+  }
+ ]
+}

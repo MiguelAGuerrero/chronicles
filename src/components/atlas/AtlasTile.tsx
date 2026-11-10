@@ -14,7 +14,7 @@ const NO_KINDS = Object.fromEntries(ATLAS_ORDER.map((c) => [c, 0])) as Steps;
 const fmt = (m: number) => formatDistance(m);
 
 /**
- * One area as a card of the row (AT3, AT5, AT13, AT16, EC15; decision 0109). Reading order:
+ * One area as a card of the row (AT3, AT5, AT13, AT16, EC15; decision 0123). Reading order:
  * the name, what it's like in words, one quiet line of how far and your
  * familiarity, its busiest street, then the kinds it has as icons with dots. No
  * picture: the area's own card has it. A town's card (`drill`) says it opens the

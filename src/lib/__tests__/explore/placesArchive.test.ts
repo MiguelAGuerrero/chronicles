@@ -56,9 +56,17 @@ test('PW2: tiles are stored at z12; the reader asks for the one holding each z14
   assert.deepEqual(archiveTilesFor([[4768, 6160], [4769, 6161], [4772, 6160]]), [[1192, 1540], [1193, 1540]]);
 });
 
-test('PW2, PW16: a region\'s file is addressed by its versioned name; until PW16 is recorded the address is empty and nothing is asked', () => {
+test('PW2, PW16: a region\'s file is addressed by its versioned name; the address is the chronicles-data Pages site, recorded and allowed', async () => {
   assert.equal(regionUrl('https://example.org/data/', 'places-us-20261108.pmtiles'), 'https://example.org/data/places-us-20261108.pmtiles');
-  assert.equal(PLACES_BASE, '', 'the reader does nothing until a real archive has been read from the host (PW16)');
+  // PW16, recorded Nov 10: a cross-origin byte range of places-us-20261110.3.pmtiles answered 206 with its content-range and
+  // access-control-allow-origin: *, and the app's reader decoded Bethlehem's tile from it.
+  assert.equal(PLACES_BASE, 'https://miguelaguerrero.github.io/chronicles-data/');
+  const host = new URL(PLACES_BASE).host;
+  const { HOSTS } = await import('../../net/policy');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { ALLOWED_HOSTS } = require('../../../../scripts/check-vision.js') as { ALLOWED_HOSTS: Record<string, string> };
+  assert.ok(host in HOSTS, 'in lib/net\'s table');
+  assert.ok(host in ALLOWED_HOSTS, 'on the vision\'s allowed hosts, with its reason');
 });
 
 test('PW4: Curiosities is a kind, named in words, on by default, and a hidden one stays hidden', () => {
@@ -79,8 +87,9 @@ test('PW5: each archive class maps to one category and kind; the table is pinned
     monument: ['history', 'monuments'], memorial: ['history', 'monuments'], statue: ['history', 'monuments'], marker: ['history', 'monuments'],
     mural: ['art', 'public_art'], sculpture: ['art', 'public_art'],
     overlook: ['viewpoints', 'viewpoints'], tower: ['viewpoints', 'viewpoints'],
-    heritage_building: ['history', 'monuments'],
-  }, 'a new class is a deliberate change to this table (as AG5)');
+    church: ['history', 'churches'], cemetery: ['history', 'cemeteries'], theatre: ['culture', 'theatres'], museum: ['culture', 'museums'],
+    historic_site: ['history', 'monuments'], building_structure: ['history', 'structures'],
+  }, 'a new class is a deliberate change to this table (as AG5); contract v2 re-pinned it (RP8, decisions 0109, 0111)');
   const got = placesFromArchive([pt(-75.19, 40.69, { name: 'Bushkill Park Folly', class: 'folly', src: 'wd', id: 'Q1' }), pt(-75.19, 40.691, { name: 'A shop', class: 'shop', src: 'osm', id: 'n2' })], 'v20261108');
   assert.equal(got.length, 1, 'the shop\'s class is not in the table: left out, never guessed');
   assert.deepEqual([got[0].category, got[0].kind, got[0].markable, got[0].build], ['viewpoints', 'curiosities', true, 'v20261108']);

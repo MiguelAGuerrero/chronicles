@@ -4,7 +4,7 @@ For the owner to review before any code. The criteria are in `spec.md` (EC1-EC20
 
 ## What exists
 
-- `src/app/(tabs)/index.tsx` is a short `WalkMap` (170-260 px) over a vertical `ScrollView` grid of `AtlasTile`s (`neighborhoods`, then "Other towns"; on a town's page the wide tile, then its neighborhoods). From 1000 px the map and the grid sit side by side. `selected` and `open` are set by `pick()`; a town's page is `townSeen`, entered by `enterArea()`.
+- `src/app/(tabs)/explore.tsx` is a short `WalkMap` (170-260 px) over a vertical `ScrollView` grid of `AtlasTile`s (`neighborhoods`, then "Other towns"; on a town's page the wide tile, then its neighborhoods). From 1000 px the map and the grid sit side by side. `selected` and `open` are set by `pick()`; a town's page is `townSeen`, entered by `enterArea()`.
 - The map's one-finger swipe (`onSwipe`, DN1-DN13) lands where a pan would have and selects the nearest area on that side (`atlas/snap.ts`: `swipeHeading`, `landing`, `nextArea`, `snapScope`), and `createGridRows` scrolls the tile into view.
 - `areaPoints` already draws one level and names only the selected area (`areaPins`, fix map-levels and pins-selected-only).
 - The Busy layer's street names are DOM labels from `busy.view.labels` and `.strips` (`WalkMap.web.tsx:825`), drawn for every area read within 3 km: the stack in the screenshot.
@@ -23,7 +23,7 @@ For the owner to review before any code. The criteria are in `spec.md` (EC1-EC20
    - The selected card's accessibility label ends "Opens its card" (a town's "Opens its page"), the others' "Selects it" (EC13).
    - Scrolling that settles reports a key (`onSettle`); the screen selects it. A selection made elsewhere (a map swipe, a tap) scrolls the row to it (`scrollTo`, animated unless reduced motion). The two cannot loop: a settle that equals the selected key does nothing.
    - A status card (`atlas-empty`, the states EC14 lists) replaces the cards when there are none.
-3. **The screen (`(tabs)/index.tsx`).**
+3. **The screen (`(tabs)/explore.tsx`).**
    - Layout: the map takes `flex: 1`; the row (about 200 px, with the safe-area bottom) sits below it, above the tabs. The grid, its section headings, `createGridRows`, `reveal`, `gridWithBack` and the wide two-pane split go. Banners, the scanning line and the long-press hint become an overlay above the row.
    - `useEffect` on the order calls `firstSelection` and selects; a select goes through `setSelected` (not `pick`, so no card opens). The page's `enterArea`/`leave` already clear the selection; the next order selects the first card (EC1, EC12).
    - Map swipe: `onSwipe` → `rowStep` → `stepKey` → select, ease to it (`showPoint`), scroll the row, announce (EC8, EC13). The directional `nextArea`, `landing`, `swipeHeading` and `snapScope` are deleted with their tests.
@@ -63,7 +63,7 @@ The existing `snap` journey is rewritten around the row (its DN2-DN9, DN11 check
 
 ## Files
 
-`src/lib/atlas/carousel.ts` (new, core), `src/lib/atlas/snap.ts` (shrunk), `src/components/atlas/AtlasCarousel.tsx` (new), `src/components/atlas/AtlasTile.tsx` (`compact`), `src/app/(tabs)/index.tsx` (the layout and swipe), `src/components/map/WalkMap.web.tsx` and `.native.tsx` (only the arrow keys), `scripts/e2e/journeys/{carousel,snap,atlas}.js`, `scripts/features.js`, the rule file `.claude/rules/explore-and-discovery.md`, `docs/`. About 10 files, so a slice and not a fix.
+`src/lib/atlas/carousel.ts` (new, core), `src/lib/atlas/snap.ts` (shrunk), `src/components/atlas/AtlasCarousel.tsx` (new), `src/components/atlas/AtlasTile.tsx` (`compact`), `src/app/(tabs)/explore.tsx` (the layout and swipe), `src/components/map/WalkMap.web.tsx` and `.native.tsx` (only the arrow keys), `scripts/e2e/journeys/{carousel,snap,atlas}.js`, `scripts/features.js`, the rule file `.claude/rules/explore-and-discovery.md`, `docs/`. About 10 files, so a slice and not a fix.
 
 ## Data
 
@@ -82,7 +82,7 @@ The horizontal `ScrollView`'s snap and `scrollTo` on iOS and Android, the swipe 
 
 ## The steward's findings (Nov 10), triaged
 
-- **S1 accept:** one new decision record (`docs/decisions/0109-explore-carousel.md`, with the owner's answers below) names 0034, 0066, 0067, 0077 and 0092, says what is kept (presence as dots, familiarity in words, rings read by themselves, the card, one way back) and is added to VISION.md's Precedents by the owner's say. Written when the owner gives the go-ahead.
+- **S1 accept:** one new decision record (`docs/decisions/0123-explore-carousel.md`, with the owner's answers below) names 0034, 0066, 0067, 0077 and 0092, says what is kept (presence as dots, familiarity in words, rings read by themselves, the card, one way back) and is added to VISION.md's Precedents by the owner's say. Written when the owner gives the go-ahead.
 - **S2 accept:** EC15 names the card's contents; EC18 keeps the busiest street; the mini-map picture is dropped from the row's card and stays on the area's card (open call 4).
 - **S3 accept:** EC7 and EC18, and the spec says it amends 0034's names, never its information. The steward asked which colour the Busy layer is: `HOTSPOT` is `#d6268c`, magenta, as the screenshot shows (the "green" in a `WalkMap` comment is stale; fixed in passing with the layer code).
 - **S4 accept:** EC19, and the Touches line no longer says a capture lives on Explore. Reaching Walk to is select, then tap, as 0067's footer stays on the card; open call 2.

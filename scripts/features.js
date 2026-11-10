@@ -74,8 +74,8 @@ const FEATURES = [
     about: 'the way: routes, the heading, bridges, Open in Maps, time left',
     rule: 'navigation',
     source: ['src/lib/nav/**', 'src/lib/here/**', 'src/lib/routeLeanings/**', 'src/components/{RoutePreview,RouteLeaningSettings}.tsx'],
-    journeys: ['scenic'],
-    specs: ['v0.5-places', 'bridges-and-open-in-maps', 'quality-of-life', 'scenic-routes'],
+    journeys: ['scenic', 'drive'],
+    specs: ['v0.5-places', 'bridges-and-open-in-maps', 'quality-of-life', 'scenic-routes', 'drive-then-walk'],
   },
   {
     name: 'replay',
@@ -117,12 +117,12 @@ const FEATURES = [
     rule: 'tabs-and-home',
     source: [
       'src/app/(tabs)/**',
-      'src/app/{_layout,explore}.tsx',
+      'src/app/{_layout,chronicle}.tsx',
       'src/components/{StartSettings,HomeSheet,RecordingBar,SwitchRow,OpenWalk,Modal,ScreenError}.tsx',
-      'src/lib/{launchRoute,launchWalk,recordingBar,walkNav,walkGate,openWalkLoad,startPlan,useStartWalk,useTabMap,memoGate,quietLines,summary,walkEvents,settleWithin,tabsHidden,captureBus}.ts',
+      'src/lib/{launchRoute,launchWalk,recordingBar,walkNav,walkGate,openWalkLoad,startPlan,useStartWalk,useTabMap,memoGate,quietLines,summary,walkEvents,settleWithin,tabsHidden,captureBus,captureBand}.ts',
     ],
-    journeys: ['tabs', 'reload', 'launch'],
-    specs: ['navigation-and-tabs'],
+    journeys: ['tabs', 'reload', 'launch', 'capturehome'],
+    specs: ['navigation-and-tabs', 'capture-from-chronicle'],
   },
   {
     name: 'explore',
@@ -134,12 +134,12 @@ const FEATURES = [
       'src/lib/atlas/**',
       'src/lib/useReminded.ts',
       'src/lib/db/{exploreRow,placeRow,stores}.ts',
-      'src/app/(tabs)/index.tsx',
+      'src/app/(tabs)/explore.tsx',
       'src/components/atlas/**',
       'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx',
     ],
     journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities'],
-    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline'],
+    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town'],
   },
   {
     name: 'kind-walk',
@@ -227,7 +227,7 @@ const FEATURES = [
     name: 'chronicle',
     about: 'the Chronicle tab: the walks list, months, rename, editing a note',
     rule: 'tabs-and-home',
-    source: ['src/app/(tabs)/chronicle.tsx', 'src/lib/{rename,noteEdit,months,walkTitle}.ts', 'src/components/{NoteEditor,WalkActions}.tsx'],
+    source: ['src/app/(tabs)/index.tsx', 'src/lib/{rename,noteEdit,months,walkTitle}.ts', 'src/components/{NoteEditor,WalkActions}.tsx'],
     journeys: ['chronicle'],
     specs: ['quality-of-life'],
   },
@@ -335,7 +335,7 @@ const RETIRED = {
   // The test trim (Nov 5, the owner's call): the replay rhythm (decision 0085, RR1) replaced the ride's 4 s squeeze; a
   // ride is a stretch like any other, and still draws dashed (R5).
   rides: ['R10'],
-  // DN5 (Nov 4): a swipe back lands back by itself, so there is no trail. DN3, DN4, DN6-DN9 (Nov 10, decision 0109): the
+  // DN5 (Nov 4): a swipe back lands back by itself, so there is no trail. DN3, DN4, DN6-DN9 (Nov 10, decision 0123): the
   // grid and the directional swipe gave way to a row of cards that a swipe steps; the new criteria are the explore-carousel spec's.
   'discrete-navigation': ['DN3', 'DN4', 'DN5', 'DN6', 'DN7', 'DN8', 'DN9'],
 };
@@ -345,6 +345,41 @@ const RETIRED = {
  * make (the web build can't reach it), `deferred: <why>` for the owner's call to wait. Keyed by spec.
  */
 const UNTESTED = {
+  // Places out of town: queued, not started (the owner, Nov 9-10). Back to IN_PROGRESS when the slice begins.
+  'places-out-of-town': {
+    OP1: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP2: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP3: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP4: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP5: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP6: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP7: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP8: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP9: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP10: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP11: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP12: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP13: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP14: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP15: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP16: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP17: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP18: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP19: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP20: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+  },
+  // Remarkable and public: the archive's rule moves with the pipeline to chronicles-data; RP9 waits on its contract v2.
+  'remarkable-and-public': {
+    RP1: 'deferred: built and tested here, then the places pipeline moved to chronicles-data (decision 0108); the rule and its tests go there (specs/remarkable-and-public/handoff.md)',
+    RP2: 'deferred: built and tested here, then the places pipeline moved to chronicles-data (decision 0108); the rule and its tests go there (specs/remarkable-and-public/handoff.md)',
+    RP3: 'deferred: built and tested here, then the places pipeline moved to chronicles-data (decision 0108); the rule and its tests go there (specs/remarkable-and-public/handoff.md)',
+    RP4: 'deferred: built and tested here, then the places pipeline moved to chronicles-data (decision 0108); the rule and its tests go there (specs/remarkable-and-public/handoff.md)',
+    RP5: 'deferred: built and tested here, then the places pipeline moved to chronicles-data (decision 0108); the rule and its tests go there (specs/remarkable-and-public/handoff.md)',
+    RP6: 'deferred: built and tested here, then the places pipeline moved to chronicles-data (decision 0108); the rule and its tests go there (specs/remarkable-and-public/handoff.md)',
+    RP7: 'deferred: built and tested here, then the places pipeline moved to chronicles-data (decision 0108); the rule and its tests go there (specs/remarkable-and-public/handoff.md)',
+    RP10: 'deferred: built and tested here, then the places pipeline moved to chronicles-data (decision 0108); the rule and its tests go there (specs/remarkable-and-public/handoff.md)',
+    RP12: 'deferred: built and tested here, then the places pipeline moved to chronicles-data (decision 0108); the rule and its tests go there (specs/remarkable-and-public/handoff.md)',
+  },
   // react-native-web always reports a screen reader, so the screen-reader path runs only on a device.
   'replay-rhythm': { RR17: 'device: both replays step through the moments with a screen reader on, native only' },
 };
@@ -353,7 +388,8 @@ const UNTESTED = {
  * Specs a slice is building (TG22): from its plan until done, its criteria are exempt from the gate.
  * `{ slug: { branch, since: 'YYYY-MM-DD' } }`; an entry older than 7 days fails the docs check.
  */
-const IN_PROGRESS = {};
+const IN_PROGRESS = {
+};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 

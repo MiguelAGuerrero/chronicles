@@ -1,6 +1,6 @@
 // @layer core
 /*
- * Discrete navigation (DN1, DN10-DN13; the row of cards, decision 0109): Explore's map never pans by one finger.
+ * Discrete navigation (DN1, DN10-DN13; the row of cards, decision 0123): Explore's map never pans by one finger.
  * The pure part: what a drag means. The map reports drags; the screen turns them into row steps (`rowStep`, atlas/carousel).
  */
 

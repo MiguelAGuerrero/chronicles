@@ -609,7 +609,12 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     // How many times the drawing was sent: the e2e checks it is not sent once a fix (layers audit 2).
     container.current?.setAttribute('data-busy-sets', String(Number(container.current?.getAttribute('data-busy-sets') ?? 0) + 1));
   }, [ready, props.landing]);
-  useEffect(() => { if (ready) setData('marks', marksGeoJSON(props.marks)); }, [ready, props.marks]);
+  useEffect(() => {
+    if (!ready) return;
+    setData('marks', marksGeoJSON(props.marks));
+    // The e2e reads how many rings are marked (only when it is measuring): the way-back point is never one but the route's end (DW11).
+    if ((window as { __perf?: unknown }).__perf && container.current) container.current.dataset.marks = String(props.marks?.length ?? 0);
+  }, [ready, props.marks]);
   // The start and end markers (QL1, QL2): sent only when they move, not with every publish of the trace.
   // The grades drawn, as grade:width pairs, for the e2e (AD12).
   const gradedKey = useMemo(

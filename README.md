@@ -91,10 +91,10 @@ concept doc specifies for v0.
 ```
 index.js                  entry: registers the background location task before the router loads
 src/app/                  routes (Expo Router); every file is a screen
-  (tabs)/index.tsx          Explore (/), where the app opens
+  (tabs)/index.tsx          Chronicle (/), where the app opens
+  (tabs)/explore.tsx        Explore (/explore)
   (tabs)/navigate.tsx       Navigate (/navigate)
-  (tabs)/chronicle.tsx      Chronicle
-  explore.tsx               the old /explore path, sent on to /
+  chronicle.tsx             the old /chronicle path, sent on to /
   walk.tsx                  the open walk
   replay/[id].tsx           a walk's replay
   day/[key].tsx             a day's replay

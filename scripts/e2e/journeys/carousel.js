@@ -2,13 +2,13 @@
 // only one named, a swipe on the map steps the row. E2E_ONLY=carousel runs it alone.
 
 async function run(h) {
-  const { url, check, freshPage, snapWorld } = h;
+  const { url, exploreUrl, check, freshPage, snapWorld } = h;
   snapWorld.serve = true;
   const { c, pg } = await freshPage('carousel');
   await c.addInitScript(() => { window.__perf = {}; });
   const safe = async (fn, fallback = null) => fn().catch(() => fallback);
   try {
-    await pg.goto(url);
+    await pg.goto(exploreUrl);
     await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 5, null, { timeout: 60000 }).catch(() => {});
     await pg.waitForFunction(() => document.querySelectorAll('[data-testid=area-point]').length >= 5, null, { timeout: 30000 }).catch(() => {});
     await pg.waitForTimeout(2500);
@@ -185,12 +185,12 @@ async function run(h) {
 
 // EC12, EC14: a town's page; the pill is over the map above the row.
 async function townPage(h) {
-  const { url, check, freshPage, snapWorld, divisions } = h;
+  const { url, exploreUrl, check, freshPage, snapWorld, divisions } = h;
   snapWorld.serve = true;
   divisions.serve = true;
   const { c, pg } = await freshPage('carousel-town');
   try {
-    await pg.goto(url);
+    await pg.goto(exploreUrl);
     await pg.waitForFunction(() => document.querySelector('[data-testid=explore-area]')?.textContent === 'Allentown', null, { timeout: 60000 }).catch(() => {});
     await pg.click('[data-testid=atlas-title]').catch(() => {});
     await pg.waitForTimeout(3000);
@@ -224,12 +224,12 @@ async function townPage(h) {
 
 // EC16: from 1000 px the layout is the same and the card opens beside it.
 async function wide(h) {
-  const { url, check, freshPage, snapWorld } = h;
+  const { url, exploreUrl, check, freshPage, snapWorld } = h;
   snapWorld.serve = true;
   const { c, pg } = await freshPage('carousel-wide');
   try {
     await pg.setViewportSize({ width: 1200, height: 800 });
-    await pg.goto(url);
+    await pg.goto(exploreUrl);
     await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 5, null, { timeout: 60000 }).catch(() => {});
     await pg.waitForTimeout(2500);
     const map = await pg.locator('.maplibregl-map').first().boundingBox();
@@ -243,11 +243,11 @@ async function wide(h) {
 
 // explore-carousel audit 10: the long press's hint shows once, whether or not the long press was ever used.
 async function hintOnce(h) {
-  const { url, check, freshPage, snapWorld } = h;
+  const { url, exploreUrl, check, freshPage, snapWorld } = h;
   snapWorld.serve = true;
   const { c, pg } = await freshPage('carousel-hint');
   try {
-    await pg.goto(url);
+    await pg.goto(exploreUrl);
     await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 5, null, { timeout: 60000 }).catch(() => {});
     await pg.waitForTimeout(1500);
     const first = await pg.locator('[data-testid=atlas-press-hint]').count();
@@ -265,12 +265,12 @@ async function hintOnce(h) {
 
 // explore-carousel audit 6: selecting a town on the page near you frames the map once, not again when its outline arrives.
 async function townFramedOnce(h) {
-  const { url, check, freshPage, snapWorld, divisions } = h;
+  const { url, exploreUrl, check, freshPage, snapWorld, divisions } = h;
   snapWorld.serve = true;
   divisions.serve = true;
   const { c, pg } = await freshPage('carousel-frame');
   try {
-    await pg.goto(url);
+    await pg.goto(exploreUrl);
     await pg.waitForFunction(() => document.querySelector('[data-testid=explore-area]')?.textContent === 'Allentown', null, { timeout: 60000 }).catch(() => {});
     await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 2, null, { timeout: 30000 }).catch(() => {});
     await pg.waitForTimeout(2500);
@@ -298,7 +298,7 @@ module.exports = {
   name: 'carousel',
   // Explore carousel (EC1-EC20): the map and a row of area cards.
   covers: [
-    'src/app/(tabs)/index.tsx',
+    'src/app/(tabs)/explore.tsx',
     'src/lib/atlas/carousel.ts',
     'src/components/atlas/AtlasCarousel.tsx',
     'src/components/atlas/AtlasTile.tsx',

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Linking, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { noteText, NOTE_MAX } from '../../lib/noteEdit';
 import { useCaptures } from '../../lib/useCaptures';
 import { Icon, type IconName } from '../icons';
@@ -21,11 +21,14 @@ export function RespondBar(props: {
   setComposeFor: (id: string | null) => void;
 }) {
   const [message, setMessage] = useState<string | null>(null);
+  // A permission refusal is only fixable in Settings: it stays longer and offers the way there (the web has none).
+  const [settings, setSettings] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const say = (m: string) => {
+  const say = (m: string, openSettings?: boolean) => {
     setMessage(m);
+    setSettings(!!openSettings && Platform.OS !== 'web');
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => setMessage(null), 3500);
+    timer.current = setTimeout(() => setMessage(null), openSettings ? 8000 : 3500);
   };
   useEffect(
     () => () => {
@@ -35,7 +38,7 @@ export function RespondBar(props: {
   );
   const replyTo = useMemo(() => ({ answeredId: props.answeredId, from: props.threadId ?? null }), [props.answeredId, props.threadId]);
   const walkId = props.walkId ?? null;
-  const cap = useCaptures(walkId, null, null, (e) => say(e.message), {
+  const cap = useCaptures(walkId, null, null, (e) => say(e.message, e.openSettings), {
     loose: !walkId,
     replyTo,
     onMoment: (_c, state) => {
@@ -60,7 +63,16 @@ export function RespondBar(props: {
   );
   return (
     <View style={[styles.wrap, { top: props.top }]} testID="respond-bar" accessibilityLabel="Respond to this moment">
-      {message ? <Text style={styles.message} accessibilityLiveRegion="polite" testID="respond-message">{message}</Text> : null}
+      {message ? (
+        <View style={styles.messageRow}>
+          <Text style={styles.message} accessibilityLiveRegion="polite" testID="respond-message">{message}</Text>
+          {settings ? (
+            <Pressable testID="respond-settings" accessibilityRole="button" onPress={() => void Linking.openSettings()} style={styles.settings} hitSlop={8}>
+              <Text style={styles.toolText}>Open Settings</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
       {composing ? (
         <ReplyNote
           key={props.answeredId}
@@ -129,6 +141,8 @@ const styles = StyleSheet.create({
   toolText: { color: theme.ink, fontSize: 15, fontWeight: '600' },
   dim: { opacity: 0.4 },
   message: { color: '#ffffff', fontSize: 14, fontWeight: '600', backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12 },
+  messageRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, flexWrap: 'wrap' },
+  settings: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.92)' },
   compose: { width: '100%', maxWidth: 480, gap: 8, alignItems: 'stretch' },
   input: { backgroundColor: theme.surface, borderRadius: 14, padding: 12, minHeight: 84, color: theme.ink, fontSize: 16, textAlignVertical: 'top' },
 });
