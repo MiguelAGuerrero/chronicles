@@ -118,6 +118,8 @@ Before done: typecheck, lint, `npm test`, the journeys `check:affected` names, t
   phone with walks, moments, a thread and a reminder. **Expect:** every one is there and opens as before (MT1, MT2)).
 - The joined reads on expo-sqlite (covered in Node only if the extra above is taken).
 
-## Questions for round 1 (not needed now)
+## Round 1's open questions
 
-- MS4: when does "walked on" close the pill? I wrote 50 m from the moment's place as a placeholder; the number is yours.
+None. The steward reviewed `specs/moment-stacks/spec.md`. Its ten findings were accepted into MS1-MS21, and the owner
+answered the four it left open on Nov 10 (see that spec's Decisions and Steward sections). Round 1 gets its own plan once
+round 0 is merged.

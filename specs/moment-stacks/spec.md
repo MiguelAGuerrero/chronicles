@@ -16,7 +16,7 @@ Verb: honour (the moment arrives whole: the angles, what was said and written ab
 Touches: Never "A capture behind a menu, a drawer or an extra tap"; Always "Counts are words"; Always "A moment carries its context… never… a bare thumbnail, filename or count"; Always "Moments and the trace are truth"; 0036 "a moment gets one fix… nothing tracks between moments"; 0104 (a stack is not a thread; groups of separate moments stay threads); open question 5, "Nothing is ever calculated for you" (the concept doc's line, cited as a reason, not a rule).
 Verdict: aligned if reshaped
 Shape: The edge stack is unchanged: each tap makes a new moment. After a capture, an "Add to this moment" pill offers each kind, one tap each; it closes when you leave the screen, walk on, or dismiss it. A setting, off by default, groups automatically until two minutes pass with no capture or a one-tap "New moment". One moment, one place, one time, everywhere moments appear; its size never a number. Split out moves a piece into its own moment. Separate moments are never merged; Add to a thread is unchanged.
-Criteria: MS1 (one tap, unchanged), MS2-MS3 (one tap to add, own time, one fix), MS6 and MS7 (one moment, its context), MS8 (no count), MS13 (no merge), MS16 (one beat in the replay), MS18-MS20 (the setting, the words, no tracking).
+Criteria: MS1 (one tap, unchanged), MS2-MS4 (one tap to add, own time, one fix, the pill closes without tracking), MS6 (restraint), MS7-MS8 (one moment, its context), MS9 (no count), MS12 (no adding out of context), MS14 (no merge), MS17 (one beat in the replay, the lows kept), MS18-MS21 (the setting, the words, no tracking).
 Open: none (the owner's answers, Nov 9). The reasons rest on decision 0106; open question 5 of VISION.md is cited as a reason, not a rule.
 
 ## Decisions (the owner's calls, Nov 9, decision 0106)
@@ -27,7 +27,8 @@ Open: none (the owner's answers, Nov 9). The reasons rest on decision 0106; open
 - A piece can be **split out** into a moment of its own, keeping its own capture time.
 - Separate moments are never merged; grouping them is a thread (0104), unchanged.
 - The data model is a container: a moment table with captures as its media; existing captures migrate under the same ids (round 0, `specs/moment-table/spec.md`).
-- Two rounds after round 0: round 1 is MS1-MS14; round 2 is MS15-MS20.
+- Two rounds after round 0: round 1 is MS1-MS15; round 2 is MS16-MS21.
+- **The steward's review (Nov 9), the owner's answers (Nov 10):** the pill closes after two minutes with no capture everywhere, and on a walk also after 100 m of walked trace; the viewer adds only while the pill is open, otherwise it offers Respond; a walk's row keeps counting pieces by kind; with the setting on, a separate moment takes New moment and then the capture.
 
 ## Criteria
 
@@ -35,41 +36,46 @@ Open: none (the owner's answers, Nov 9). The reasons rest on decision 0106; open
 
 #### Capture
 
-1. **MS1 · One tap, unchanged.** With the setting off (the default), each tap on the edge stack's camera, mic or note makes a new moment, in one tap, on Navigate's ready screen and on a walk, as before this slice.
-2. **MS2 · Add to this moment.** Once a capture is kept, an **Add to this moment** pill shows in the walk screen's pills, left of the stack, offering camera, mic and note, one tap each, with nothing else to choose first. Each button has a spoken name ("Add a photo to this moment").
+1. **MS1 · One tap, unchanged.** With the setting off (the default), each tap on the edge stack's camera, mic or note, or the recording bar's camera, makes a new moment, in one tap, on Navigate's ready screen and on a walk, as before this slice.
+2. **MS2 · Add to this moment.** Once a capture is kept, an **Add to this moment** pill shows in the walk screen's pills, left of the stack, on the ready screen and on a walk, offering camera, mic and note, one tap each, with nothing else to choose first. Each button has a spoken name ("Add a photo to this moment"). A memo started from the pill's mic records as one from the stack does (NR10): Stop & save takes the mic's slot.
 3. **MS3 · A piece keeps its own time; the moment keeps its one place.** What the pill saves joins that moment as a piece with its own capture time. The moment's place and time stay its first capture's: adding a piece takes no new location fix (0036), and the moment's place never moves.
-4. **MS4 · The pill closes.** The pill closes when the walker leaves the walk screen (or minimizes the walk), starts or stops a walk, dismisses it, or, on a walk, walks on: the trace is more than 50 m from the moment's place. Once it has closed, the next capture is a new moment.
-5. **MS5 · Each new piece re-offers the pill.** After a piece is added, the pill stays for the same moment; a capture from the edge stack starts a new moment and the pill then offers that one.
+4. **MS4 · The pill closes.** The pill closes two minutes after the moment's last capture, on a walk or off one; on a walk, also once the walk's own recorded trace has gone 100 m since that capture (no other location is read, 0036); and when the walker dismisses it, opens a tab, minimizes the walk, opens another moment, or starts or stops a walk. Launching the system camera, recording a memo, writing a note, the Edit offer's editor and the app going to the background do not close it (the two minutes still run). Once closed, the next capture is a new moment, and a dismissed pill does not come back for that moment.
+5. **MS5 · Each new piece keeps the pill.** After a piece is added, the pill stays for the same moment and its two minutes start again; a capture from the edge stack starts a new moment and the pill then offers that one.
+6. **MS6 · Restraint.** The pill is ink-coloured, enters with a `motionTokens` timing, and has no pulse, sound or haptic beyond what a capture already gives. A saved piece is acknowledged by the existing saved toast, with no count. Its words never change with the moment's size.
 
 #### One moment everywhere
 
-6. **MS6 · Once, wherever moments appear.** A moment with several pieces appears once, with its one place and time, in Lately, a walk's and a day's moments, Memories here, a thread, the resurfaced card, the reminder card, What happened here and as one pin on every map.
-7. **MS7 · Its face.** A moment's row, pin and card show its first photo or video when it has one (else its first piece), with a quiet mark that it holds more than one piece, and its context line as any moment's (place, time, what came before).
-8. **MS8 · No count.** No view shows how many pieces a moment holds as a digit, a "+N", a number word above "three" or a percentage; where its size is said, it is a word from the fixed set ("a couple", "a few", "several", "many").
+7. **MS7 · Once, wherever moments appear.** A moment with several pieces appears once, with its one place and time, in Lately, a walk's and a day's moments, Memories here, a thread, the resurfaced card, the reminder card, What happened here, Explore's finds, the replay's pile, and as one pin on every map. A test lists these surfaces.
+8. **MS8 · Its face.** A moment's row, pin and card show its first photo or video when it has one (else its first piece), with a quiet mark that it holds more than one piece, and its context line as any moment's (place, time, what came before).
+9. **MS9 · No count.** Inside a moment, no visible text or spoken label gives a piece's position or the total. Map pins that gather nearby moments count moments, and one moment's pin shows no digit. Where a moment's size is said, it is a word from `sizeWord`'s cut-offs (2, 5, 11) and never a number word, digit, "+N" or percentage. A walk's row keeps counting pieces by kind, as today (the owner's call, Nov 10).
 
 #### The viewer
 
-9. **MS9 · Its pieces in order.** The viewer opened on a moment shows its pieces in capture order, one at a time; a swipe, the arrow keys (web) and Next/Previous buttons with spoken names move between them. Each piece shows as a lone capture of its kind does today (a photo with its caption and edits, a video, a memo, a note).
-10. **MS10 · What acts on a piece, what acts on the moment.** Edit, caption, Save and a note's text act on the piece shown. Respond, Add to a thread, Remind me here, Open in Maps and the moment's place and time act on the moment.
-11. **MS11 · Add from the viewer.** The viewer's **Add to this moment** offers camera, mic and note, one tap each; the piece keeps its own capture time and the moment its place (MS3).
+10. **MS10 · Its pieces in order.** The viewer opened on a moment shows its pieces in capture order, one at a time. A horizontal swipe, the left and right arrow keys (web) and buttons named "Previous piece" and "Next piece" move between pieces; the viewer's existing paging between moments is named "Previous moment" and "Next moment". Each piece shows as a lone capture of its kind does today (a photo with its caption and edits, a video, a memo, a note).
+11. **MS11 · What acts on a piece, what acts on the moment.** Edit, caption, Save and a note's text act on the piece shown. Respond, Add to a thread, Remind me here, Open in Maps and the moment's place and time act on the moment.
+12. **MS12 · Add from the viewer, only while the pill is open.** The viewer offers **Add to this moment** (camera, mic, note, one tap each) only while that moment's pill is open (MS4); at any other time it offers Respond (0104), which makes a new moment with its own place and time (the owner's call, Nov 10).
 
 #### Deleting
 
-12. **MS12 · A piece, the moment.** The viewer offers **Delete this piece** (when the moment holds more than one) and **Delete this moment**, each asking once in words and offering Undo for 5 s. Deleting a piece keeps the rest and the moment's threads, links, reminder and find. Deleting the last piece, or the moment, deletes the moment with its memberships, links, reminder and find (OT16), and every piece's files.
+13. **MS13 · A piece, the moment.** The viewer offers **Delete this piece** (when the moment holds more than one) and **Delete this moment**, each asking once in words and offering Undo for 5 s. Deleting a piece keeps the rest, and the moment keeps its place, time, threads, links, reminder and find; its face becomes the next by MS8. Deleting the last piece, or the moment, deletes the moment with its memberships, links, reminder and find (OT16), and every piece's files.
 
 #### Rules that hold
 
-13. **MS13 · Never merged.** No control joins two existing moments into one; connecting them stays Add to a thread (OT5), unchanged.
-14. **MS14 · Kept on the device.** A moment's pieces survive a restart, a reload (web) and an app update, and nothing about them leaves the device without a tap.
+14. **MS14 · Never merged.** No control joins two existing moments into one; connecting them stays Add to a thread (OT5), unchanged.
+15. **MS15 · Kept on the device.** A moment's pieces survive a restart, a reload (web) and an app update, and nothing about them leaves the device without a tap.
 
 ### Round 2: the replay, splitting, automatic grouping
 
-15. **MS15 · Split out.** In the viewer of a moment with more than one piece, **Split out** moves the piece shown into a moment of its own, with its own capture time; on a walk it is placed from the walk's trace at that time, off a walk at the original moment's place. The original keeps its threads, links, reminder and find. Undo for 5 s.
-16. **MS16 · One beat in the replay.** In a walk's and a day's replay, a moment with several pieces is one beat at its one pin: its photos and videos as one card that turns through them, its notes and memos as its bubbles, together, and the replay's wait at a moment (0002) is one wait per moment.
-17. **MS17 · The setting.** The walk's settings offer **Group captures into one moment**, off by default, with a line in words saying what it does; it is kept on the device and survives a restart.
-18. **MS18 · Grouping by itself.** With it on, a capture opens a moment and the edge stack's captures join it until two minutes pass with no capture, or the walker taps **New moment**, leaves the screen, starts or stops a walk, or walks on (MS4). While it is open, the screen says so in words ("Adding to this moment") beside **New moment**.
-19. **MS19 · Nothing tracks.** Off a walk, nothing watches the location to close a moment: it closes by time, a tap or leaving the screen (0036).
-20. **MS20 · The pill gives way.** With the setting on, the Add to this moment pill is not shown (the edge stack adds); with it off, behaviour is MS1-MS5.
+16. **MS16 · Split out.** In the viewer of a moment with more than one piece, **Split out** moves the piece shown into a moment of its own, with its own capture time; on a walk it is placed from the walk's trace at that time (in a gap or a pause, at the last fix before it, as captures are placed today), off a walk at the original moment's place. The original keeps its threads, links, reminder and find. Undo for 5 s.
+17. **MS17 · One beat in the replay.** In a walk's and a day's replay, a moment with several pieces is one beat at its one pin: its photos and videos as one card that turns through them within the rhythm's photo slot and under the 60 s soft cap (0085); its memos play one after another in capture order, its notes as its bubbles; nothing waits for a tap (0085). The pile holds one card per moment. What the replay says of places passed without stopping (`passedLine`) is the same as with the pieces as separate moments.
+18. **MS18 · The setting.** The walk's settings offer **Group captures into one moment**, off by default, with a line in words saying what it does; it is kept on the device and survives a restart.
+19. **MS19 · Grouping by itself.** With it on, a capture opens a moment and the edge stack's captures join it until it closes as the pill does (MS4) or the walker taps **New moment**. While it is open, the screen says "Adding to this moment" beside **New moment**, in words that never change with its size. Starting a separate moment takes New moment and then the capture (the owner accepted the two taps, Nov 10).
+20. **MS20 · Nothing tracks.** Off a walk, nothing watches the location to close a moment: it closes by time, a tap or leaving (0036).
+21. **MS21 · The pill gives way.** With the setting on, the Add to this moment pill is not shown (the edge stack adds); with it off, behaviour is MS1-MS6.
+
+## Steward (Nov 9) and triage
+
+S1 (adding later breaks context): accepted, MS12, the owner's call. S2 (no close off a walk): accepted, MS4. S3 (digits in the viewer, a pin, the walks row): accepted, MS9; the walks row is the owner's call (pieces, as today). S4 (size words): accepted, MS9. S5 (the 50 m): accepted, MS4, 100 m of walked trace, the owner's number. S6 (the replay's restraint; 0002 superseded by 0085): accepted, MS17. S7 ("leaves the screen"): accepted, MS4 lists each. S8 (restraint of the pill): accepted, MS6. S9 (surfaces left out): accepted, MS1, MS2, MS7. S10 (ambiguities): accepted, MS10, MS13, MS16, MS2. None rejected.
 
 ## Record
 
