@@ -78,7 +78,7 @@ test('MS12: the viewer may add only to the moment that is open', async () => {
   assert.equal(m.openId(m.initial, 10), null);
 });
 
-test('MS20: off a walk, a moment closes by time, a tap or leaving; walking is never read', { todo: 'test first' }, async () => {
+test('MS20: off a walk, a moment closes by time, a tap or leaving; walking is never read', async () => {
   const m = await mod();
   const s = run(m, [{ k: 'kept', id: 'a', t: 0, walking: false }, { k: 'walked', m: 10_000 }]);
   assert.equal(m.openId(s, 60_000), 'a', 'no distance closes it off a walk');

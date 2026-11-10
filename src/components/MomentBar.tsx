@@ -136,6 +136,10 @@ export function CaptureRow(props: {
     if (focused === false) momentPill.leave();
   }, [focused]);
   useEffect(() => () => momentPill.leave(), []);
+  // The Group captures setting, as kept on the device (MS18).
+  useEffect(() => {
+    void momentPill.loadGrouping().catch(() => {});
+  }, []);
   // The viewer's Add to this moment (MS12): run here, where the camera, the mic and the note are.
   const asked = useStore(momentPill.store, (st) => st.ask?.seq ?? 0);
   const onAsk = useRef<(kind: 'photo' | 'voice' | 'text') => void>(() => {});
@@ -210,17 +214,18 @@ export function CaptureRow(props: {
         busy={cap.busy}
         disabled={props.disabled}
         onPhoto={() =>
-          cap.takePhoto().then((k) => {
+          // With Group captures on, the edge adds to the open moment (MS19); off, a new moment (MS1).
+          cap.takePhoto(momentPill.edgeTarget()).then((k) => {
             if (!k) return;
             saved();
-            editOffer.show(k);
+            if (k.id === k.momentId) editOffer.show(k);
           })
         }
-        onVoice={() => cap.startVoice().then((ok) => ok && feedback('tap'))}
+        onVoice={() => cap.startVoice(momentPill.edgeTarget()).then((ok) => ok && feedback('tap'))}
         onSave={saveVoice}
         onDiscard={() => cap.discardVoice()}
         onNote={() => {
-          setNoteInto(null);
+          setNoteInto(momentPill.edgeTarget());
           setNoteOpen(true);
         }}
       />

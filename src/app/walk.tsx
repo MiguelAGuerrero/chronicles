@@ -1408,12 +1408,13 @@ function WalkScreen(props: { onMinimize: () => void }) {
         busy={cap.busy}
         disabled={stopping}
         hidden={isDrawing}
-        onPhoto={() => void photo(null)}
-        onVoice={() => void startVoice(null)}
+        // With Group captures on, the edge adds to the open moment (MS19); off, a new moment (MS1).
+        onPhoto={() => void photo(momentPill.edgeTarget())}
+        onVoice={() => void startVoice(momentPill.edgeTarget())}
         onSave={saveVoice}
         onDiscard={discardVoice}
         onNote={() => {
-          setNoteInto(null);
+          setNoteInto(momentPill.edgeTarget());
           setNoteOpen(true);
         }}
       />
