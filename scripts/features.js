@@ -74,7 +74,7 @@ const FEATURES = [
     about: 'the way: routes, the heading, bridges, Open in Maps, time left',
     rule: 'navigation',
     source: ['src/lib/nav/**', 'src/lib/here/**', 'src/lib/routeLeanings/**', 'src/components/{RoutePreview,RouteLeaningSettings}.tsx'],
-    journeys: ['scenic'],
+    journeys: ['scenic', 'drive'],
     specs: ['v0.5-places', 'bridges-and-open-in-maps', 'quality-of-life', 'scenic-routes', 'drive-then-walk'],
   },
   {
