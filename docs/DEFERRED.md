@@ -113,6 +113,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - On Navigate, a moment's "kept here" toast and its Edit pill can show together (media-editing audit 13)
 - A turned or cropped video has only play and pause, no scrubber or progress (media-editing audit 15)
 - A caption dragged near the bottom of a portrait photo sits behind the viewer's Respond row while the viewer is open (fix respond-bottom audit 5); the saved photo and the replay's card are not affected
+- On Android with edge-to-edge, the reported keyboard height leaves out the navigation bar beneath it, so Respond's Cancel and Keep reply may sit partly under the keyboard (fix respond-bottom audit 7): waits on a device run (NATIVE_UNVERIFIED), since whether the keyboard events reach the Modal's field at all is unknown
 
 ## Deletion
 

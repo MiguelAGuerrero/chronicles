@@ -76,7 +76,6 @@ export function RespondBar(props: {
   return (
     <View
       style={[styles.wrap, { bottom: lift }, props.bottom == null && styles.unmeasured]}
-      onLayout={(e) => setBar(e.nativeEvent.layout.height)}
       pointerEvents={props.bottom == null ? 'none' : 'box-none'}
       aria-hidden={props.bottom == null}
       testID="respond-bar"
@@ -92,29 +91,32 @@ export function RespondBar(props: {
           ) : null}
         </View>
       ) : null}
-      {composing ? (
-        <ReplyNote
-          key={props.answeredId}
-          onCancel={() => props.setComposeFor(null)}
-          onKeep={(text) => {
-            props.setComposeFor(null);
-            void cap.saveNote(text);
-          }}
-          tool={tool}
-        />
-      ) : (
-        <View style={styles.row}>
-          {recording ? (
-            tool('respond-voice-stop', 'stop', 'Stop and keep', () => void cap.finishVoice())
-          ) : (
-            <>
-              {tool('respond-photo', 'camera', 'Photo', () => void cap.takePhoto(), cap.busy != null, 'Reply with a photo')}
-              {tool('respond-voice', 'mic', 'Voice', () => void cap.startVoice(), cap.busy != null, 'Reply with a voice memo')}
-              {tool('respond-note', 'create-outline', 'Note', () => props.setComposeFor(props.answeredId), cap.busy != null, 'Reply with a note')}
-            </>
-          )}
-        </View>
-      )}
+      {/* Only the row or the note being written is measured: a message over it never moves it (audit 8). */}
+      <View style={styles.measured} onLayout={(e) => setBar(e.nativeEvent.layout.height)}>
+        {composing ? (
+          <ReplyNote
+            key={props.answeredId}
+            onCancel={() => props.setComposeFor(null)}
+            onKeep={(text) => {
+              props.setComposeFor(null);
+              void cap.saveNote(text);
+            }}
+            tool={tool}
+          />
+        ) : (
+          <View style={styles.row}>
+            {recording ? (
+              tool('respond-voice-stop', 'stop', 'Stop and keep', () => void cap.finishVoice())
+            ) : (
+              <>
+                {tool('respond-photo', 'camera', 'Photo', () => void cap.takePhoto(), cap.busy != null, 'Reply with a photo')}
+                {tool('respond-voice', 'mic', 'Voice', () => void cap.startVoice(), cap.busy != null, 'Reply with a voice memo')}
+                {tool('respond-note', 'create-outline', 'Note', () => props.setComposeFor(props.answeredId), cap.busy != null, 'Reply with a note')}
+              </>
+            )}
+          </View>
+        )}
+      </View>
     </View>
   );
 }
@@ -153,6 +155,7 @@ function ReplyNote(props: {
 
 const styles = StyleSheet.create({
   wrap: { position: 'absolute', left: 12, right: 12, gap: 8, alignItems: 'center' },
+  measured: { width: '100%', alignItems: 'center' },
   unmeasured: { opacity: 0 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'center' },
   tool: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 48, paddingHorizontal: 14, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.92)' },
@@ -162,5 +165,6 @@ const styles = StyleSheet.create({
   messageRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, flexWrap: 'wrap' },
   settings: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.92)' },
   compose: { width: '100%', maxWidth: 480, gap: 8, alignItems: 'stretch' },
-  input: { backgroundColor: theme.surface, borderRadius: 14, padding: 12, minHeight: 84, color: theme.ink, fontSize: 16, textAlignVertical: 'top' },
+  // A phone's multiline field grows with its text: capped, it scrolls, so a long reply never climbs off the top (audit 6).
+  input: { backgroundColor: theme.surface, borderRadius: 14, padding: 12, minHeight: 84, maxHeight: 160, color: theme.ink, fontSize: 16, textAlignVertical: 'top' },
 });
