@@ -114,7 +114,7 @@ first.
 
 ## Needs the owner
 
-- **Remarkable and public in chronicles-data:** port the listing rule, its pinned types, OSM's corroboration, the review and their tests (`specs/remarkable-and-public/handoff.md`), publish contract v2 with `church`, `cemetery`, `theatre`, `museum` and `historic_site`, then take the copy here (RP9 comes back). Your calls offered: the category label "History & landmarks"; "Places of worship" for "Historic churches"; contributing buildings of a Landmark district (`docs/DEFERRED.md`).
+- **Remarkable and public in chronicles-data:** port the listing rule, its pinned types, OSM's corroboration, the review and their tests (`specs/remarkable-and-public/handoff.md`), publish contract v2 with `church`, `cemetery`, `theatre`, `museum` and `historic_site`, then take the copy here (RP9 comes back). Your call offered: contributing buildings of a Landmark district (`docs/DEFERRED.md`).
 - **VISION.md and scenic routes:** decision 0095 proposes amending the Shapes rows "Suggested routes" and "Several routes to one point, Apple Maps style" to fit the row per leaning you kept at the gate (Nov 5); only you edit the page.
 - **The vision's open questions** (`docs/VISION.md`, decision 0094): likeness made by you or suggested; voice
   memos searchable on the phone only; the cloud as a mirror or a place where work happens; browse standard, dwell

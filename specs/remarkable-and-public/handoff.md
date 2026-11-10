@@ -26,7 +26,7 @@ All at commit `5a9a2bc` (after the audit's fixes) on the branch `claude/gallant-
 
 ## The contract
 
-The rule adds the archive classes `church` (History, Historic churches), `cemetery` (History, Cemeteries), `theatre`
+The rule adds the archive classes `church` (History, Places of worship), `cemetery` (History, Cemeteries), `theatre`
 (Culture, Theatres), `museum` (Culture, Museums and galleries) and `historic_site` (History, Monuments and ruins). They
 go into chronicles-data's contract as version 2; the app then takes the new copy (`src/lib/__tests__/explore/contract/`),
 adds them to `ARCHIVE_CLASSES`, and RP9's test comes back (a listed church in the tiles lifts the name rule).

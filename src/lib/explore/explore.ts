@@ -58,7 +58,7 @@ export const KINDS: readonly KindInfo[] = [
   { id: 'monuments', label: 'Monuments and ruins', icon: 'flag-outline' },
   // RP8, RP18: the archive's listed buildings and structures, named for what they are, never their listing (decision 0109).
   { id: 'structures', label: 'Buildings and structures', icon: 'library-outline' },
-  { id: 'churches', label: 'Historic churches', icon: 'business-outline' },
+  { id: 'churches', label: 'Places of worship', icon: 'business-outline' },
   { id: 'cemeteries', label: 'Cemeteries', icon: 'rose-outline' },
   { id: 'parks', label: 'Parks and gardens', icon: 'leaf-outline' },
   { id: 'viewpoints', label: 'Viewpoints and attractions', icon: 'eye-outline' },
