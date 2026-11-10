@@ -15,6 +15,8 @@ const CHAR_W = 7;
 const LINE_H = 15;
 const HEAD_W = 36;
 const HEAD_H = 44;
+/** Slack for a map that judges at a zoom a little off the one drawn (native steps by 0.25). */
+const PAD = 6;
 
 interface Box { x0: number; y0: number; x1: number; y1: number }
 
@@ -29,16 +31,16 @@ function px([lng, lat]: LngLat, zoom: number): [number, number] {
 
 /**
  * Ids of the marks whose name stays off the map because it would be written over another mark's
- * name or head: names that stack are unreadable. Earlier marks win; a hidden name is still in the
+ * name or head: names that stack are unreadable. The lower id wins, so a walk's changing order never swaps them; a hidden name is still in the
  * pin's spoken label, and zooming in brings it back as the marks part.
  */
 export function hiddenMarkNames(marks: readonly NamedMark[], zoom: number): Set<string> {
-  const placed = marks.map((m) => {
+  const placed = [...marks].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)).map((m) => {
     const [x, y] = px(m.at, zoom);
     const w = Math.min(NAME_MAX_W, m.name.length * CHAR_W);
-    const lines = m.name.length * CHAR_W > NAME_MAX_W ? 2 : 1;
+    const lines = Math.max(1, Math.ceil((m.name.length * CHAR_W) / NAME_MAX_W));
     const head: Box = { x0: x - HEAD_W / 2, x1: x + HEAD_W / 2, y0: y - HEAD_H, y1: y };
-    const name: Box = { x0: x - w / 2, x1: x + w / 2, y0: y + 2, y1: y + 2 + lines * LINE_H };
+    const name: Box = { x0: x - w / 2 - PAD, x1: x + w / 2 + PAD, y0: y + 2, y1: y + 2 + lines * LINE_H + PAD };
     return { m, head, name };
   });
   const hidden = new Set<string>();
@@ -58,7 +60,7 @@ export function declutterMarks<T extends { id: string; at: LngLat; name: string;
   zoom: number,
 ): (T & { nameHidden?: boolean })[] {
   const hidden = hiddenMarkNames(
-    marks.map((m) => ({ id: m.id, at: m.at, name: m.name, named: (m.revealed || !!m.found) && !m.faint && !m.found })),
+    marks.map((m) => ({ id: m.id, at: m.at, name: m.name, named: m.revealed && !m.faint && !m.found })),
     zoom,
   );
   return hidden.size ? marks.map((m) => (hidden.has(m.id) ? { ...m, nameHidden: true } : m)) : [...marks];
