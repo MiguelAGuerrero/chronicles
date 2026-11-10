@@ -75,3 +75,12 @@ test('MS13: removing a piece keeps the rest and gives the next face; removing th
   assert.equal(face(left).id, 'q');
   assert.equal(withoutPiece(moment('o', [piece('o', 'o', 1, 'text')]), 'o'), null);
 });
+
+test('MS11: a moment shown at its face reads the face\'s patched fields, not its stale pieces copy', async () => {
+  const { facedAt, faced } = (await import('../../moment')) as typeof import('../../moment');
+  const f = faced(moment('m', [piece('m', 'm', 1, 'photo'), piece('n', 'm', 2, 'text')]));
+  const patched = { ...f, edit: { v: 1 as const, rotate: 90 as const, crop: null, filter: 'mono' as const, strokes: [], trim: null } };
+  assert.equal(facedAt(patched, 'm').edit?.rotate, 90, 'the edit patched on the face shows');
+  assert.equal(facedAt(patched, 'n').kind, 'text');
+  assert.equal(facedAt(patched, 'n').edit, null, 'another piece shows its own media');
+});

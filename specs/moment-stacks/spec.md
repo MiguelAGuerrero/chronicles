@@ -80,4 +80,13 @@ S1 (adding later breaks context): accepted, MS12, the owner's call. S2 (no close
 
 ## Record
 
-Not started. Round 0 (`specs/moment-table/spec.md`) comes first.
+Round 0 (`specs/moment-table/spec.md`) built 2026-11-10.
+
+**Round 1 (MS1-MS15) built 2026-11-10** on `claude/wizardly-mayer-k9vmge` (tests first `b05c51c`; code `954b87a`, `8c088a8`, `1864477`, `d8076c9`, later commits; journey real at `d8076c9`).
+
+- Unit tests: `moments/openMoment`, `moments/momentPill`, `moments/oneMoment`, `moments/moment`, `captures/pieceStamp`, `walk-screen/addPill`, `deletion/deletion`, and `addPiece` / `deletePieces` in the Db contract over the fake, IndexedDB and SQLite. 1542 unit tests, typecheck and lint pass.
+- The `stacks` journey passes on the web build (19 checks), and every journey `check:affected` names: chronicle, days, deletion, edit, gaps, headsup, hidden, layers, marks, memories, nudge, outlines, qol, ready, reload, replay, resurface, snap, tabs, threads, upgrade, walk, walkability. The journeys' "Next capture" became "Next moment" (MS10). `deletion`'s walk check "a short video is kept, sharing a pin with the memo nearby" failed twice and passed on the third run (the pins regroup after a save): a timing flake, its message now names the pins seen.
+- Found by the journeys and fixed: the viewer read a stacked moment's face from its `pieces` copy, which a screen's patch (an edit, a note's new text) does not update; it now reads the face from the faced fields (`facedAt`, a unit test).
+- `check:test-first`: MS2, MS9, MS10 and MS11 fail it. All four were `check.todo` in `b05c51c`, before their code, but their ids sat on the line after `check.todo(` (MS2, MS9, MS10), or the check's words changed with the code (MS11), and the checker reads one line at a time; a regex's `.test(` on an MS10 line read as a real test. The journey now names each id on its check's own line. The owner's call on the history: see `docs/STATUS.md`.
+- Native: the pill over the system camera's return, a memo from the pill, swiping pieces, and a piece's delete have never run on a phone (`docs/NATIVE_UNVERIFIED.md`, Moment stacks).
+- Round 2 (MS16-MS21) is not started; the spec stays in `IN_PROGRESS` (`scripts/features.js`, since 2026-11-10, 7 days).

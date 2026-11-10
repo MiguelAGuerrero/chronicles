@@ -444,7 +444,7 @@ async function run(h) {
             if (shownNote) return;
           }
         }
-        const next = pg.locator('[aria-label="Next capture"]');
+        const next = pg.locator('[aria-label="Next moment"]');
         if (!(await next.count())) return;
         await next.first().click();
         await pg.waitForTimeout(400);

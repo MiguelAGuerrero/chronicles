@@ -12,7 +12,9 @@ async function run(h) {
       try {
         await fn();
       } catch (e) {
-        check(false, `${name}: ${String(e.message).split('\n').filter((l) => /Timeout|waiting for|locator/.test(l)).slice(0, 3).join(' | ')}`);
+        const lines = String(e.message).split('\n');
+        const why = lines.filter((l) => /Timeout|waiting for|locator/.test(l)).slice(0, 3).join(' | ') || lines.slice(0, 2).join(' | ');
+        check(false, `${name}: ${why}`);
       }
     };
     const rowOf = (kind) => pg.evaluate((k) => new Promise((resolve) => {
@@ -94,7 +96,7 @@ async function run(h) {
         await pg.waitForSelector('[data-testid=edited-photo]', { timeout: 10000 });
         await pg.waitForTimeout(600);
         shownEdits.push(await pg.locator('[data-testid=edited-photo]').first().getAttribute('data-edit'));
-        const next = pg.locator('[aria-label="Next capture"]:not([aria-disabled=true]) >> visible=true');
+        const next = pg.locator('[aria-label="Next moment"]:not([aria-disabled=true]) >> visible=true');
         if (!(await next.count())) break;
         await next.first().click();
       }
@@ -291,7 +293,7 @@ async function run(h) {
 
     await step('ME12, ME15, ME17, ME18 video in the viewer', async () => {
       // Two viewers' strips may be in the page (one beneath, hidden): the one in front.
-      await pg.locator('[aria-label="Next capture"] >> visible=true').first().click({ timeout: 10000 });
+      await pg.locator('[aria-label="Next moment"] >> visible=true').first().click({ timeout: 10000 });
       await pg.waitForSelector('[data-testid=edited-video]', { timeout: 10000 });
       await pg.waitForTimeout(1500);
       const v = await rowOf('video');

@@ -123,6 +123,9 @@ export function withoutPiece(m: Moment, id: string): Moment | null {
  * that piece's media; `piece_id` names it, so an edit, a caption or a note's text lands on the piece shown.
  */
 export function facedAt(f: Faced, pieceId: string): Faced {
+  // The face is read from the faced fields: a screen patches those (an edit, a note's new text, a small copy),
+  // and its `pieces` copy may lag behind them.
+  if (pieceId === f.piece_id) return f;
   const p = f.pieces.find((x) => x.id === pieceId);
   if (!p) return f;
   return {

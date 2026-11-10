@@ -275,7 +275,8 @@ async function checks(h) {
         // Within ~30 m at walking zoom, the video shares a pin with the memo. The pins regroup a moment after
         // the save; a fixed 2.5 s wait read the label too early on the /chronicles build (Nov 4 deploy).
         await page.waitForSelector('[aria-label="2 captures here. Open"]', { timeout: 10000 }).catch(() => {});
-        check((await page.locator('[aria-label="2 captures here. Open"]').count()) === 1, 'a short video is kept, sharing a pin with the memo nearby');
+        const pinsNow = await page.$$eval('.maplibregl-map [aria-label$=". Open"]', (es) => es.map((e) => e.getAttribute('aria-label')));
+        check((await page.locator('[aria-label="2 captures here. Open"]').count()) === 1, `a short video is kept, sharing a pin with the memo nearby (${pinsNow.join(' / ')})`);
         // The video is taken about 40 m from the memorial: it finds it (E8). (The memo at step 10, 62 m off, does not.)
         await page.waitForTimeout(500);
         check((await page.locator('[aria-label="Found: Hessian Memorial, History & landmarks"]').count()) === 1, 'a capture within 60 m finds the place, which stays drawn as found');
@@ -310,8 +311,8 @@ async function checks(h) {
         await page.waitForSelector('text=What happened here');
         // The note may share the spot with the video nearby: step to it.
         for (let i = 0; i < 4 && !(await page.getByText('The bakery smelled of cardamom.').count()); i++) {
-          if (!(await page.locator('[aria-label="Next capture"]').count())) break;
-          await page.click('[aria-label="Next capture"]');
+          if (!(await page.locator('[aria-label="Next moment"]').count())) break;
+          await page.click('[aria-label="Next moment"]');
           await page.waitForTimeout(300);
         }
         check((await page.getByText('The bakery smelled of cardamom.').count()) > 0, 'a long press on the map shows what happened there');

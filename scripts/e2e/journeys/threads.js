@@ -174,7 +174,7 @@ async function run(h) {
   await pg.click('[data-testid=thread-menu-remove]');
   await pg.waitForTimeout(500);
   db = await stored(pg);
-  check(db.members.length === 3 && db.captures.some((x) => x.body === 'And a third, on the bridge.'), 'OT8: Remove from this thread keeps the moment kept');
+  check(db.members.length === 3 && db.captures.some((x) => x.pieces[0].body === 'And a third, on the bridge.'), 'OT8: Remove from this thread keeps the moment kept');
 
   // OT20, OT23: the thread's name appears nowhere but its own places.
   await pg.click('[data-testid=own-thread-back]');
