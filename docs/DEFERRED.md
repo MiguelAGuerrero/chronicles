@@ -360,7 +360,8 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 ## UI patterns and the UX research (decision 0108)
 
-- **Research gaps:** Material Design 3 (m3.material.io), Nielsen Norman Group (nngroup.com) and w3.org were blocked from the cloud session's network, and every vendor help page for the app teardown too. `docs/research/ui-references.md` stands on the Apple HIG and WCAG 2.2 read first-hand (Material Components and developer.android.com for Android); `docs/research/ui-teardown.md` stands on search summaries. Re-run both with those hosts allowed.
+- **Research gaps** (after the second pass, Nov 10, with the hosts allowed): Polarsteps and the app-store pages refuse automated fetches, so their teardown claims stay unverified; M3 has no page on photo or video viewers; the Apple HIG was read once (first pass) and not re-checked.
+- **The Undo window ends after 5 s** (D5): M3 says a snackbar with an action shouldn't auto-dismiss, and NN/g faults a few-second Undo (F3 in `docs/research/ui-references.md`). An Undo that stays until used or dismissed is the owner's call.
 - **Deletes confirm and offer Undo** (D4, the clearing slice): the HIG says a common delete that can be undone is not confirmed (A3). Changing it is the owner's call.
 - **The viewer's chrome never hides:** the HIG lets a full-screen viewer hide its bars on a tap and run the picture under them (T7, V1). Ours keeps the bars up and the picture between them.
 - **"Reply kept" and the other routine confirmations:** the HIG gives routine success no confirmation (matrix 20); the viewer's pill says it anyway.

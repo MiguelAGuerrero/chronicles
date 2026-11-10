@@ -6,15 +6,16 @@ paths:
 # UI patterns
 
 Screens follow the platforms' own patterns before anything of our own (decision 0108). The sources, with quotes
-and URLs, are in `docs/research/ui-references.md` (Apple HIG and WCAG 2.2 read first-hand; Material 3 and NN/g not
-yet, see its header); rule ids below (T7, M3, ...) point there. How adjacent apps solve our jobs is in
-`docs/research/ui-teardown.md` (leads to verify, not facts). Its goal-to-control matrix (section 2) is the first
+and URLs, are in `docs/research/ui-references.md` (Apple HIG, Material Design 3, NN/g's heuristics H1-H10 and WCAG
+2.2, all read first-hand); rule ids below (T7, M3, H3, ...) point there. How adjacent apps solve our jobs is in
+`docs/research/ui-teardown.md` (each claim marked verified or not). Its goal-to-control matrix (section 2) is the first
 stop for "which control is this?". **[app]** marks a house rule stricter than the sources.
 
 ## Where actions live
 
 - **Controls live in bars, menus and sheets; never as loose buttons on content** (T7, V2). Content may run under a
-  bar (T7); a control may not float over it. A transient toast may cross content.
+  bar (T7); a control may not float over it. A transient toast may cross content. M3 allows icon buttons with their
+  own filled container over images; ours is stricter **[app]**, and an exception needs a container and 3:1 contrast.
 - **One primary action per bar or screen** (T-toolbar "only specify one primary action"; one FAB per screen).
 - **A choice of several kinds to create is a pull-down menu from its button** (M3: three or more items; with only
   one or two kinds, separate buttons). An **action sheet** is for clarifying an action already started, such as
@@ -27,6 +28,9 @@ stop for "which control is this?". **[app]** marks a house rule stricter than th
 
 ## Confirmation and feedback
 
+- **Undo stays until it is used or dismissed** (F3; M3: "Snackbars with actions shouldn't auto-dismiss"; NN/g faults
+  a few-second Undo). The app's 5 s Undo window (D5) predates this; see `docs/DEFERRED.md`.
+- **A dialog has at most two actions** (A6); three or more choices are a menu or a bottom sheet.
 - **Don't confirm a common delete that can be undone; act and offer Undo. Confirm a rare, irreversible one**,
   with the specific verb, never "OK" (A3, matrix 7, 8). (The app's delete-with-confirm-and-Undo, D4, predates this;
   see `docs/DEFERRED.md`.)
@@ -38,12 +42,15 @@ stop for "which control is this?". **[app]** marks a house rule stricter than th
 ## Layout and labels
 
 - **Labels or icons, consistently within a bar** (T5): never mix labelled and icon-only items in one bar. Our
-  toolbars are labelled **[app]**; icon-only buttons carry a spoken name (X4).
+  toolbars are labelled (NN/g: "text labels are necessary"; M3 cautions against unlabelled icons; only the HIG
+  prefers symbols); icon-only buttons carry a spoken name (X4).
+- **A bottom toolbar and the tab bar never show together** (T8): a toolbar belongs to a screen that covers the tabs.
 - **Targets 44 pt on iOS, 48 dp on Android** (X0); WCAG 2.5.8's minimum is 24 px, so the platform sizes govern.
+  Controls used while walking are bigger than the minimum (X0d).
 - **Text over a picture needs its own solid ground** (V4, X1): 3:1 for controls and 4.5:1 for text.
 - **Never colour alone to show state** (X3).
-- **Nothing wraps on a 320 px phone** **[app]** (stricter than WCAG 1.4.10): a row that can't fit has too many
-  controls.
+- **Nothing wraps on a 320 px phone at the default text size** **[app]**: a row that can't fit has too many
+  controls. At 200% text, labels may wrap (M3, WCAG 1.4.4); content must not be lost.
 - **Inputs are 16 px or more on the web** **[app]** (iOS zooms otherwise; `react-native-web.md`).
 - **In the moment viewer, the picture sits between its bars** **[app]**: the HIG lets content run under bars and
   hide them on a tap (T7, V1); ours keeps them up and the picture clear, until a tap-to-hide is built.
