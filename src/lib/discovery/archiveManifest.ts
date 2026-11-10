@@ -8,10 +8,11 @@ import type { LngLat } from '../types';
  */
 
 /**
- * Where the manifest and archives are served. Empty until PW16 is recorded (a real archive read by byte range
- * from the host): with no address the reader asks for nothing and Explore goes on as it does today.
+ * Where the manifest and archives are served: chronicles-data's Pages site (PW16, recorded Nov 10: a cross-origin byte
+ * range of the real archive answered 206 with `access-control-allow-origin: *`, and its tiles decode). The host is on
+ * `ALLOWED_HOSTS` and `lib/net`'s table. Any failure there is no archive (PW3).
  */
-export const PLACES_BASE = '';
+export const PLACES_BASE = 'https://miguelaguerrero.github.io/chronicles-data/';
 
 /** The archive's tile zoom: sparse points pack far smaller at z12 than at z14 (hosting audit). */
 export const ARCHIVE_ZOOM = 12;
