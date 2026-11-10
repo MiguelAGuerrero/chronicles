@@ -121,7 +121,7 @@ export interface WalkMapProps {
   landing?: LandingView | null;
   /** Spots to mark: where a route goes, or where a long press landed. */
   marks?: LngLat[];
-  /** Explore's areas: quiet dots, the nearest few and the selected one named (atlas round 3). */
+  /** Explore's areas: quiet dots, the selected one named (atlas round 3, fix pins-selected-only). */
   areaPoints?: AreaPointPin[];
   /** The "?" range preview (E21): a ring around a point, drawn only while the setting is open. */
   ring?: { center: LngLat; radiusM: number } | null;

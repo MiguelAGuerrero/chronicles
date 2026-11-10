@@ -536,16 +536,15 @@ export interface AreaPin {
 /**
  * The map's area points, of one level only (fix map-levels): the selected area's, else neighborhoods.
  * A town's point among its neighborhoods, or a neighborhood among towns, drew names over each other.
- * The nearest `named` of the level are named, and the selected one; the rest are dots.
+ * Only the selected area is named (fix pins-selected-only); every other point of the level is a dot.
  * On a town's own page (`inTown`) the level is always neighborhoods, even with the town's tile selected
  * (audit 1), and a town with none listed draws its own point (audit 2).
  */
-export function areaPins(listed: Listed[], selected: string | null, named: number, inTown: boolean): AreaPin[] {
+export function areaPins(listed: Listed[], selected: string | null, inTown: boolean): AreaPin[] {
   const level: AtlasLevel = inTown ? 'neighborhood' : listed.find((l) => l.area.key === selected)?.area.level ?? 'neighborhood';
   const found = listed.filter((l) => l.area.level === level);
   const same = inTown && found.length === 0 ? listed.slice(0, 1) : found;
-  const near = new Set(same.slice(0, named).map((l) => l.area.key));
-  return same.map((l) => ({ id: l.area.key, at: l.area.at, name: near.has(l.area.key) || l.area.key === selected ? l.area.name : null, selected: l.area.key === selected }));
+  return same.map((l) => ({ id: l.area.key, at: l.area.at, name: l.area.key === selected ? l.area.name : null, selected: l.area.key === selected }));
 }
 
 /**
