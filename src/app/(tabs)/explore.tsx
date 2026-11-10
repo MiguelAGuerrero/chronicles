@@ -6,6 +6,9 @@ import type { AreaPointPin } from '../../components/AreaPoint';
 import { AtlasCard, type CardLayout } from '../../components/atlas/AtlasCard';
 import { AtlasCarousel } from '../../components/atlas/AtlasCarousel';
 import { AtlasTile } from '../../components/atlas/AtlasTile';
+import { KIND_ICON_OF } from '../../components/atlas/kinds';
+import type { MarkPin } from '../../components/MarkPinView';
+import { CATEGORIES } from '../../lib/discovery/categories';
 import { LocateButton } from '../../components/LocateButton';
 import { CompassButton } from '../../components/CompassButton';
 import { LayersControl } from '../../components/LayersControl';
@@ -231,6 +234,17 @@ export default function Explore() {
   // Only the selected area's level is drawn, so a town's name and its neighborhoods' never overlay (fix map-levels).
   const areaPoints = useMemo<AreaPointPin[]>(() => areaPins(shown, selected, !!town), [shown, selected, town]);
   const sel = shown.find((l) => l.area.key === selected) ?? null;
+  // The selected area's places over the map (fix area-marks), what the grid's picture showed: one "?" per kind still to
+  // find, never named (AT7), and the finds, named. Only the selected area's, never every place in view.
+  const areaMarks = useMemo<MarkPin[]>(() => {
+    const r = sel ? ringOf.get(sel.area.key) : null;
+    if (!r) return NONE;
+    const label = (c: CategoryId) => CATEGORIES.find((x) => x.id === c)?.label ?? '';
+    return [
+      ...r.waiting.map((m) => ({ id: `waiting:${m.key}`, at: m.at, revealed: false, icon: KIND_ICON_OF[m.category], name: '', category: label(m.category) })),
+      ...r.finds.map((f) => ({ id: `found:${f.key}`, at: f.at, revealed: true, found: true, icon: KIND_ICON_OF[f.category], name: f.name, category: label(f.category) })),
+    ];
+  }, [sel, ringOf]);
   // Town borders (TB1, TB2): whole, from the z10 tile around you (or the open or selected town); yours tinted, the rest lined.
   // A town selected in the row is the one tinted (EC5).
   const litKey = town ? town.key : sel?.area.level === 'town' ? sel.area.key : null;
@@ -443,6 +457,13 @@ export default function Explore() {
           walker={from}
           marks={spot ? [spot.at] : NONE}
           areaPoints={areaPoints}
+          discoveries={areaMarks}
+          // A "?" opens the selected area's card, where its kinds are named (AT7: the map never names them).
+          onDiscoveryPress={() => {
+            if (!sel) return;
+            setSpot(null);
+            setOpen(sel.area.key);
+          }}
           // A neighborhood by its ring; a town by its tinted border (EC5).
           ring={sel?.area.level === 'neighborhood' ? { center: sel.area.at, radiusM: ATLAS_RULES.ringM } : null}
           // Town borders are a layer (ML12); a town's own page keeps the border it frames (TB2).
