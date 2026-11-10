@@ -117,12 +117,12 @@ const FEATURES = [
     rule: 'tabs-and-home',
     source: [
       'src/app/(tabs)/**',
-      'src/app/{_layout,explore}.tsx',
+      'src/app/{_layout,chronicle}.tsx',
       'src/components/{StartSettings,HomeSheet,RecordingBar,SwitchRow,OpenWalk,Modal,ScreenError}.tsx',
-      'src/lib/{launchRoute,launchWalk,recordingBar,walkNav,walkGate,openWalkLoad,startPlan,useStartWalk,useTabMap,memoGate,quietLines,summary,walkEvents,settleWithin,tabsHidden,captureBus}.ts',
+      'src/lib/{launchRoute,launchWalk,recordingBar,walkNav,walkGate,openWalkLoad,startPlan,useStartWalk,useTabMap,memoGate,quietLines,summary,walkEvents,settleWithin,tabsHidden,captureBus,captureBand}.ts',
     ],
-    journeys: ['tabs', 'reload', 'launch'],
-    specs: ['navigation-and-tabs'],
+    journeys: ['tabs', 'reload', 'launch', 'capturehome'],
+    specs: ['navigation-and-tabs', 'capture-from-chronicle'],
   },
   {
     name: 'explore',
@@ -134,12 +134,12 @@ const FEATURES = [
       'src/lib/atlas/**',
       'src/lib/useReminded.ts',
       'src/lib/db/{exploreRow,placeRow,stores}.ts',
-      'src/app/(tabs)/index.tsx',
+      'src/app/(tabs)/explore.tsx',
       'src/components/atlas/**',
       'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx',
     ],
     journeys: ['marks', 'atlas', 'grading', 'snap', 'curiosities'],
-    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'places-worth-the-stop', 'places-pipeline'],
+    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public'],
   },
   {
     name: 'kind-walk',
@@ -227,7 +227,7 @@ const FEATURES = [
     name: 'chronicle',
     about: 'the Chronicle tab: the walks list, months, rename, editing a note',
     rule: 'tabs-and-home',
-    source: ['src/app/(tabs)/chronicle.tsx', 'src/lib/{rename,noteEdit,months,walkTitle}.ts', 'src/components/{NoteEditor,WalkActions}.tsx'],
+    source: ['src/app/(tabs)/index.tsx', 'src/lib/{rename,noteEdit,months,walkTitle}.ts', 'src/components/{NoteEditor,WalkActions}.tsx'],
     journeys: ['chronicle'],
     specs: ['quality-of-life'],
   },
@@ -344,6 +344,19 @@ const RETIRED = {
  * make (the web build can't reach it), `deferred: <why>` for the owner's call to wait. Keyed by spec.
  */
 const UNTESTED = {
+  // Remarkable and public: the archive's rule moves with the pipeline to chronicles-data; RP9 waits on its contract v2.
+  'remarkable-and-public': {
+    RP1: 'deferred: built and tested here, then the places pipeline moved to chronicles-data (decision 0108); the rule and its tests go there (specs/remarkable-and-public/handoff.md)',
+    RP2: 'deferred: built and tested here, then the places pipeline moved to chronicles-data (decision 0108); the rule and its tests go there (specs/remarkable-and-public/handoff.md)',
+    RP3: 'deferred: built and tested here, then the places pipeline moved to chronicles-data (decision 0108); the rule and its tests go there (specs/remarkable-and-public/handoff.md)',
+    RP4: 'deferred: built and tested here, then the places pipeline moved to chronicles-data (decision 0108); the rule and its tests go there (specs/remarkable-and-public/handoff.md)',
+    RP5: 'deferred: built and tested here, then the places pipeline moved to chronicles-data (decision 0108); the rule and its tests go there (specs/remarkable-and-public/handoff.md)',
+    RP6: 'deferred: built and tested here, then the places pipeline moved to chronicles-data (decision 0108); the rule and its tests go there (specs/remarkable-and-public/handoff.md)',
+    RP7: 'deferred: built and tested here, then the places pipeline moved to chronicles-data (decision 0108); the rule and its tests go there (specs/remarkable-and-public/handoff.md)',
+    RP10: 'deferred: built and tested here, then the places pipeline moved to chronicles-data (decision 0108); the rule and its tests go there (specs/remarkable-and-public/handoff.md)',
+    RP12: 'deferred: built and tested here, then the places pipeline moved to chronicles-data (decision 0108); the rule and its tests go there (specs/remarkable-and-public/handoff.md)',
+    RP9: 'deferred: needs the archive class church, which waits on chronicles-data\'s contract v2 (PP17 pins v1)',
+  },
   // react-native-web always reports a screen reader, so the screen-reader path runs only on a device.
   'replay-rhythm': { RR17: 'device: both replays step through the moments with a screen reader on, native only' },
 };

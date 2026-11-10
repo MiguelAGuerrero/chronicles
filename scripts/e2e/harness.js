@@ -226,6 +226,8 @@ async function createHarness() {
   const url = `http://localhost:${server.address().port}${BASE}/`;
   // Explore is the root (NV2); scenarios that begin on Navigate open its own path.
   const navUrl = `${url}navigate`;
+  // Chronicle is the root since decision 0112 (HC1): the journeys that begin on Explore open it at its own path.
+  const exploreUrl = `${url}explore`;
   // A fake microphone, so voice memos can be recorded headless.
   // Sound only after a tap, as on iOS: the replay reaches its stops on its own clock.
   // The full Chromium in headless mode ('chromium' channel): the old headless shell always denies
@@ -604,7 +606,7 @@ async function createHarness() {
     await pg.click('[data-testid=layers]');
   };
   return {
-    url, navUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, iconOf, metricRegion, pressedScale, metaOf, drawerTo, tabTo, mapUp, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
+    url, navUrl, exploreUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, iconOf, metricRegion, pressedScale, metaOf, drawerTo, tabTo, mapUp, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
     onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, walkability, overpassAsked, OVERPASS_HOST, scenicWorld, routed, switchLayer, places,
   };
 }

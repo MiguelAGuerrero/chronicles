@@ -56,6 +56,8 @@ export const KINDS: readonly KindInfo[] = [
   { id: 'museums', label: 'Museums and galleries', icon: 'images-outline' },
   { id: 'theatres', label: 'Theatres', icon: 'ticket-outline' },
   { id: 'monuments', label: 'Monuments and ruins', icon: 'flag-outline' },
+  // RP8, RP18: the archive's listed buildings and structures, named for what they are, never their listing (decision 0109).
+  { id: 'structures', label: 'Buildings and structures', icon: 'library-outline' },
   { id: 'churches', label: 'Historic churches', icon: 'business-outline' },
   { id: 'cemeteries', label: 'Cemeteries', icon: 'rose-outline' },
   { id: 'parks', label: 'Parks and gardens', icon: 'leaf-outline' },
@@ -477,7 +479,8 @@ export const passedCount = (o: Parameters<typeof passedPlaces>[0]): number => pa
 
 /**
  * The places `passedPlaces` names, each with when the walk first came within
- * reach of it (RR15): the replay whispers each one as the walker gets there.
+ * reach of it (RR15): the replay whispers one or two by name as the walker gets there, more than two once, at the
+ * last, as the card says them (RP19, remarkable-and-public audit 14).
  */
 export function passedAlong(o: Parameters<typeof passedPlaces>[0]): (ChecklistItem & { t: number })[] {
   const fixes = o.fixes.filter((f) => f.t >= o.since);

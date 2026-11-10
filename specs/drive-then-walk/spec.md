@@ -55,9 +55,9 @@ Open: none (the owner, Nov 10: 2 km; towns past 10 km offer When I get there). E
 
 ### Amended
 
-- NV23 and NR8 in the navigation-and-tabs and navigate-ready specs ("a long press on Navigate's map sets the destination … the only way the drawer's destination is filled"): "When I get there" (DW3) is a second way. Decision 0109 records it.
-- Decisions 0021 and 0049 ("Walk here stays a one-tap start"): for Explore's area card, only for places past 2 km or with no fresh position (DW2, DW5). Decision 0109.
-- The area card's "Too far to walk from here" (explore-atlas, round 3): replaced by When I get there (DW14). Decision 0109.
+- NV23 and NR8 in the navigation-and-tabs and navigate-ready specs ("a long press on Navigate's map sets the destination … the only way the drawer's destination is filled"): "When I get there" (DW3) is a second way. Decision 0113 records it.
+- Decisions 0021 and 0049 ("Walk here stays a one-tap start"): for Explore's area card, only for places past 2 km or with no fresh position (DW2, DW5). Decision 0113.
+- The area card's "Too far to walk from here" (explore-atlas, round 3): replaced by When I get there (DW14). Decision 0113.
 
 ## Routes and data
 

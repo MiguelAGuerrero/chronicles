@@ -32,6 +32,7 @@ const ROOT = path.resolve(__dirname, '..');
 const ALLOWED_HOSTS = {
   'tiles.openfreemap.org': 'the map tiles (OpenStreetMap through OpenFreeMap)',
   'overturemaps-extras-us-west-2.s3.amazonaws.com': "Overture's places, divisions and transportation tiles (0080, 0083, 0093)",
+  'miguelaguerrero.github.io': "the places archive and its manifest, by tile and byte range, with no identifier (0103, 0108; PW16 recorded Nov 10)",
   'overpass-api.de': 'the walkability fallback when Overture cannot be read (0093)',
   'www.google.com': 'Open in Maps: a link the owner taps, carrying only the destination (bridges-and-open-in-maps)',
   'maps.apple.com': 'Open in Maps on iPhone: a link the owner taps (bridges-and-open-in-maps)',

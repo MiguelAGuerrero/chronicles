@@ -44,7 +44,7 @@ export function destLine(dest: Waypoint, from: LngLat | null): string {
   return `${dest.label} · ${m < 1000 ? `${Math.round(m / 10) * 10} m` : `${(m / 1000).toFixed(1)} km`} away`;
 }
 
-/** Explore's area card asks "Walk now" or "When I get there" past this, in a straight line (DW2, decision 0109). */
+/** Explore's area card asks "Walk now" or "When I get there" past this, in a straight line (DW2, decision 0113). */
 export const GET_THERE_M = 2000;
 /** A fix older than this is no position: the card asks rather than start a walk that might record a drive (DW5). */
 export const FRESH_FIX_MS = 30 * 60_000;
@@ -90,11 +90,11 @@ export function walkHerePlan(openWalkId: string | null, dest: Waypoint | null): 
   return { kind: 'route', meta: [[NAV_KEY, navValue(openWalkId, dest)]] };
 }
 
-/** The three tabs, in order (NV1), with their web paths (NV5). Explore is the root route, so the app opens there (NV2). */
+/** The three tabs, in order (HC3), with their web paths (NV5). Chronicle is the root route, so the app opens there (HC1, decision 0112). */
 export type TabId = 'explore' | 'navigate' | 'chronicle';
 export const TABS: { id: TabId; route: string; path: string; label: string; icon: string; iconOn: string }[] = [
-  { id: 'explore', route: 'index', path: '/', label: 'Explore', icon: 'compass-outline', iconOn: 'compass' },
+  { id: 'chronicle', route: 'index', path: '/', label: 'Chronicle', icon: 'book-outline', iconOn: 'book' },
+  { id: 'explore', route: 'explore', path: '/explore', label: 'Explore', icon: 'compass-outline', iconOn: 'compass' },
   { id: 'navigate', route: 'navigate', path: '/navigate', label: 'Navigate', icon: 'navigate-outline', iconOn: 'navigate' },
-  { id: 'chronicle', route: 'chronicle', path: '/chronicle', label: 'Chronicle', icon: 'book-outline', iconOn: 'book' },
 ];
 export const tabFor = (id: TabId) => TABS.find((t) => t.id === id)!;

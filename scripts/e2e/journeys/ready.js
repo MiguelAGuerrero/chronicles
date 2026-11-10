@@ -25,11 +25,15 @@ async function run(h) {
     // The map's test hooks (`__turn`, for the compass: CP2), defined only when the page is measuring.
     await c.addInitScript(() => { window.__perf = {}; });
     await pg.goto(url);
+    await pg.waitForSelector('[data-testid=tab-chronicle][aria-selected=true]');
+    await pg.waitForTimeout(1200);
+    // NR3 (amended Nov 9, decision 0112): with no walk open the app opens on Chronicle, at `/`.
+    check(pathOf(pg) === `${BASE}/` && (await pg.locator('[data-testid=ready-bar]').count()) === 0 && (await tabBarShown(pg)),
+      `ready NR3: with no walk open, the app opens on Chronicle (${pathOf(pg)})`);
+    // The rest begins on Explore, whose own map the ready screen opens over.
+    await pg.click('[data-testid=tab-explore]');
     await pg.waitForSelector('[data-testid=tab-explore][aria-selected=true]');
     await pg.waitForTimeout(1200);
-    // NR3 (the owner, Nov 4): with no walk open the app opens on Explore, at `/`.
-    check(pathOf(pg) === `${BASE}/` && (await pg.locator('[data-testid=ready-bar]').count()) === 0 && (await tabBarShown(pg)),
-      `ready NR3: with no walk open, the app opens on Explore (${pathOf(pg)})`);
     // NR1: Navigate opens the ready walk screen over it, with no tab bar.
     await pg.click('[data-testid=tab-navigate]');
     await pg.waitForSelector('[data-testid=start]');
@@ -67,10 +71,10 @@ async function run(h) {
       check((await boxOf(pg, 'compass')) === null, 'ready CP4: a tap on the compass sends the map back to north and it leaves');
     }
 
-    // NR4: the chevron goes back to the tab beneath, Explore after a launch.
+    // NR4: the chevron goes back to the tab beneath, here Explore.
     await pg.click('[data-testid=ready-close]');
     await pg.waitForTimeout(800);
-    check(pathOf(pg) === `${BASE}/` && (await selected(pg, 'explore')) && (await tabBarShown(pg)), `ready NR4: from Explore the chevron goes back to Explore (${pathOf(pg)})`);
+    check(pathOf(pg) === `${BASE}/explore` && (await selected(pg, 'explore')) && (await tabBarShown(pg)), `ready NR4: from Explore the chevron goes back to Explore (${pathOf(pg)})`);
     // NR1 from Chronicle, then NR4 back to it, by the chevron and by the browser's back.
     await tabTo(pg, 'chronicle');
     await pg.waitForTimeout(600);
@@ -86,10 +90,10 @@ async function run(h) {
     await pg.waitForTimeout(600);
     await pg.goBack();
     await pg.waitForTimeout(800);
-    check(viaChevron === `${BASE}/chronicle` && pathOf(pg) === `${BASE}/chronicle` && (await selected(pg, 'chronicle')),
+    check(viaChevron === `${BASE}/` && pathOf(pg) === `${BASE}/` && (await selected(pg, 'chronicle')),
       `ready NR4: the chevron and the browser's back return to Chronicle (${viaChevron}, ${pathOf(pg)})`);
 
-    // NR3: a reload of /walk, or a link to /navigate, opens the ready screen (over Explore).
+    // NR3: a reload of /walk, or a link to /navigate, opens the ready screen (over Chronicle, since 0112).
     await pg.goto(`${url}walk`);
     await pg.waitForSelector('[data-testid=ready-bar]');
     const onWalk = pathOf(pg);
@@ -233,7 +237,7 @@ async function run(h) {
     await pg.waitForSelector('[data-testid=stop]', { timeout: 10000 });
     await pg.waitForTimeout(600);
     check(minimizedTo === `${BASE}/` && bar === 1 && (await pg.locator('[data-testid=ready-bar]').count()) === 0 && !/^0:00/.test(await stats(pg)),
-      `ready NR2, NR4: minimized to Explore with the recording bar; Navigate opens that walk (${minimizedTo}, bar ${bar})`);
+      `ready NR2, NR4: minimized to Chronicle with the recording bar; Navigate opens that walk (${minimizedTo}, bar ${bar})`);
     check((await pg.locator('canvas.maplibregl-canvas').count()) === 1, 'ready NR12: one map during the walk');
     await c.close();
 

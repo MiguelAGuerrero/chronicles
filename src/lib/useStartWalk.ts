@@ -66,7 +66,7 @@ export function useStartWalk() {
     }
   };
   /**
-   * When I get there (DW3, DW4; decision 0109): the place becomes Navigate's destination and Navigate,
+   * When I get there (DW3, DW4; decision 0113): the place becomes Navigate's destination and Navigate,
    * ready, opens. No walk starts and nothing watches for arrival: only Start begins the walk.
    */
   const later = async (dest: Waypoint): Promise<void> => {

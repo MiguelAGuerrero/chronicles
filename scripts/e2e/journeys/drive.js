@@ -8,7 +8,7 @@ const footerIds = (pg) => pg.evaluate(() => ['atlas-walk', 'atlas-walk-now', 'at
   .filter((id) => document.querySelector(`[data-testid=${id}]`)));
 
 async function run(h) {
-  const { url, navUrl, at, distanceM, dLat, dLon, check, shot, freshPage, snapWorld, openWalk, routed, hosts, OVERTURE_HOST, metaOf } = h;
+  const { exploreUrl, navUrl, at, distanceM, dLat, dLon, check, shot, freshPage, snapWorld, openWalk, routed, hosts, OVERTURE_HOST, metaOf } = h;
   /** Moves the mocked GPS from a to b at v m/s, one fix a second. */
   const go = async (c, pg, a, b, v) => {
     const n = Math.max(1, Math.round(distanceM(a, b) / v));
@@ -37,7 +37,7 @@ async function run(h) {
     // ---- Getting there first: a far place asks, and When I get there starts nothing (DW2, DW3, DW14, DW4). ----
     {
       const { c, pg } = await freshPage('drive');
-      await pg.goto(url);
+      await pg.goto(exploreUrl);
       await openCard(pg, 'Cranston');
       await pg.click('[data-testid=atlas-walk]').catch(() => {});
       await pg.waitForTimeout(800);
@@ -64,7 +64,7 @@ async function run(h) {
       await pg.click('[data-testid=ready-close]').catch(() => {});
       const east = at(75, 0);
       await c.setGeolocation({ longitude: east[0], latitude: east[1], accuracy: 6 });
-      await pg.goto(url);
+      await pg.goto(exploreUrl);
       await openCard(pg, 'Cranston');
       const far = await footerIds(pg);
       const card = await pg.locator('[data-testid=atlas-card]').innerText().catch(() => '');
@@ -178,7 +178,7 @@ async function run(h) {
     // ---- Near starts at once (DW1). ----
     {
       const { c, pg } = await freshPage('drive-near');
-      await pg.goto(url);
+      await pg.goto(exploreUrl);
       await openCard(pg, 'Wickenden');
       await pg.click('[data-testid=atlas-walk]').catch(() => {});
       await pg.waitForSelector('[data-testid=cap-photo]', { timeout: 30000 }).catch(() => {});
@@ -204,7 +204,7 @@ module.exports = {
     'src/lib/startPlan.ts',
     'src/lib/useStartWalk.ts',
     'src/components/atlas/AtlasCard.tsx',
-    'src/app/(tabs)/index.tsx',
+    'src/app/(tabs)/explore.tsx',
     'src/app/walk.tsx',
   ],
   run,

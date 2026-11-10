@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { theme } from './ui';
 
-/** An area on Explore's small map: a quiet dot, named for the nearest few and the selected one (round 3). */
+/** An area on Explore's small map: a quiet dot, named only when selected (round 3, fix pins-selected-only). */
 export interface AreaPointPin {
   id: string;
   at: [number, number];

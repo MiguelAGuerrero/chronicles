@@ -86,6 +86,9 @@ An item leaves only when it ships, or when it is rejected with a decision record
 ## Moments and days
 
 - Quick capture outside the app: widget, lock screen, share sheet (Moments and days)
+- A capture band on Chronicle's Walks, Days and Map (the owner's call, Nov 9: Memories only; decision 0112)
+- Lost toasts on Memories (capture-from-chronicle audit 13): "Too short, not kept" lands under a viewer opened mid-memo, unseen; "saved to your walk" goes when the walk stops and the band remounts loose
+- An open walk's moment from Memories' band joins Lately only once the walk is stopped (0098's rule, kept); the toast says "saved to your walk" meanwhile (Capture from Chronicle, steward S2)
 - Moments in a place's stars (Moments and days)
 - The home reads every capture row on focus; per-day counts would need storing (Moments and days)
 - Moment pins filtered to the viewport, `MOMENT_PIN_ZOOM` (Moments and days)
@@ -328,8 +331,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 ## Places worth the stop (decision 0103)
 
-- **PW16, the real host:** PLACES_BASE stays empty until a real archive has been read by byte range from the chronicles-data Pages site; then it is set and the host is added to ALLOWED_HOSTS and `lib/net`'s table in the same commit.
-- **OpenStreetMap in the weekly build:** the build takes an OSM export to corroborate (a `demolished:` tag removes a place), but the weekly job feeds it Wikidata only: an OSM extract of the US is large for a runner, and the public Overpass blocks cloud ranges.
+- **OpenStreetMap in the weekly build:** the build takes an OSM export to corroborate (a `demolished:` tag removes a place; since RP2 and RP5, a visitor's tag shows a listed place open and `access=private|no` keeps it out), but the weekly job feeds it Wikidata only: an OSM extract of the US is large for a runner, and the public Overpass blocks cloud ranges. the handoff's Overpass query asks only for elements with a `wikidata` tag.
 - **Classes not yet pinned:** historical markers (no Wikidata class with real use), petroglyphs (archaeology, not an oddity), water towers and rock formations (too broad), time capsules (the lookup's match looked wrong). Each is a deliberate change to `classify.mjs` and ARCHIVE_CLASSES.
 - **A line on why a place is worth the stop, Wikivoyage, the one-of-a-kind shops tier, the scenic routes' Sights leaning (PW18 pins it unchanged).**
 - **From the slice's audit (Nov 6), deferred:** the manifest's region box is the archive's data bounds, which cover much of Canada and northern Mexico, so a read there asks for US tiles (F7: give a region its own boxes); a new `archiveEdits.json` reaches an area only when the archive version changes (F8); routine Wikidata edits change the archive's bytes almost every week, so every client rebuilds areas and re-reads rings weekly (compare a content hash of the places instead of the file's bytes); the weekly job installs the whole app for two packages; `KEEP: 3` counts releases across regions; a private app repo needs `APP_REPO_TOKEN`.
@@ -342,6 +344,19 @@ An item leaves only when it ships, or when it is rejected with a decision record
   chronicles-data when its contract version changes; PP17 fails until then. No script fetches it.
 - **Hiding a map-tile place:** the owner's edits no longer reach places from the map's own tiles (decision 0108,
   later the same day). Nothing replaces that yet; the edits file was empty.
+
+## Remarkable and public (RP1-RP20, decisions 0109-0111)
+
+- **The listing rule moves to chronicles-data** (decision 0108, which moved the pipeline while this slice was built): RP1-RP8, RP10 and RP12, the audit's build-side fixes and their tests are in this repo's history, listed in `specs/remarkable-and-public/handoff.md`; the archive classes `church`, `cemetery`, `theatre`, `museum`, `historic_site` need its contract v2 before the app's table takes them (PP17).
+- **OpenStreetMap's signals in production:** RP2 (shown open by an OSM tag) and RP5 (`access=private|no`) act only once the weekly job passes the build `--osm`, built from the Overpass query of `specs/remarkable-and-public/handoff.md` (only elements with a `wikidata` tag, so far smaller than a US extract). Until then, a listed house or building is shown open only by its Wikidata type, and none is kept out as closed.
+- **Places only OpenStreetMap knows** (the Bethlehem Steel blast furnaces' own feature): the owner's call, corroborate only (0110); adding them makes the archive a derived ODbL database.
+- **Contributing buildings of a listed district:** a church inside a listed district with no designation of its own in Wikidata (Central Moravian Church, in the Historic Moravian Bethlehem Landmark district and World Heritage site) is not lifted past the name rule. A public-type place inside a Landmark district could be; the owner's call.
+- **Registers outside the US:** Zurich's 199 listed misses are on Swiss registers; another region is the same rule with its register's id.
+- **The category label "History & landmarks"** is in every History place's screen-reader label ("Hessian Memorial, History & landmarks") and in the find announcement ("Found: X, History & landmarks", `walk.tsx`), older than RP18, which covers kinds; the steward's concern about "landmark" applies to it too. A copy change for the owner.
+- **From the audit (Nov 9), deferred:** the review's atlas History step before and after per test area (audit 3: the build reads no tiles; the benchmark could compute it); the reach line under a "?" reads beside "Walk within 60 m to see what it is." as two instructions (copy, the owner's); whether "Buildings and structures" should ever take unlisted structures (OSM `man_made` bridges, towers, mills), so it names a type rather than standing in for a register (steward S3, rejected for now); whether a find should invite a capture at a Landmark private house (the steward's silent question).
+- **"Historic churches" for every place of worship** (a synagogue, a mosque): today's label for the tiles' places of worship too; "Places of worship" is a one-line change for the owner (steward 6).
+- **Wikidata's "tourist attraction" class** is not read (it holds businesses, events and tours); the tiles' `tourism=attraction` covers attractions (RP13).
+- **The noise review covers named test areas**, with a per-class summary for the region; thousands of listings nationally are reviewed only as counts.
 
 ## Wrapped map names (fix long-names audit)
 
@@ -366,3 +381,8 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **Held captures live in memory**: leaving the screen or a reload drops a held photo or video (Stop warns first). Keeping them across a reload needs the file kept somewhere that survives, which a full disk may refuse.
 - **Retry on the recording bar's camera** (other tabs, NV9): it shows the SA9 words; the held pill is on the walk screen and Navigate, ready.
 - **A check before a video starts**: the system camera owns the recording; the line beside the captures says it beforehand.
+
+## Explore's map points (fix pins-selected-only, Nov 10)
+
+- **A town's page with its own tile selected names nothing on the map** (audit 2): the town's pin is not drawn there (one level only, fix map-levels audit 1), and the neighborhoods are dots. The page title, the wide tile and the border name the town. Drawing the town's pin as the lone named one would mix levels again; the owner's call.
+- **A dot has no accessible name and no tap** (audit 3): area points are `aria-hidden` with pointer events off on web and carry no label on native; the live region and the grid's tiles name areas. Predates the fix (dots were already unnamed), now more of them.

@@ -45,10 +45,10 @@ for its layout only. Chronicles keeps its own palette, Start button and map styl
    is set, no trace, and nothing ticking.
 2. **NR2 · With a walk open, Navigate opens that walk,** recording, as the recording
    bar's › does. Navigate has no view of its own any more.
-3. **NR3 · The launch** (the owner, Nov 4, keeping 0070): with no walk open the app
-   opens on Explore, at `/`; with a walk open it reopens straight onto that walk (the
-   walk screen, which Navigate is). On web, a reload of `/walk` or a link to `/navigate`
-   opens the ready screen over Explore.
+3. **NR3 · The launch** (the owner, Nov 4, keeping 0070; amended Nov 9 by HC1, decision 0112): with no
+   walk open the app opens on Chronicle's Memories, at `/`; with a walk open it reopens straight onto that
+   walk (the walk screen, which Navigate is). On web, a reload of `/walk` or a link to `/navigate`
+   opens the ready screen over Chronicle.
 4. **NR4 · The chevron goes back.** The chevron-down at the top-left (NV7's place)
    goes back to the tab you came from, Explore when there is none. In the ready state it
    just leaves. During a walk it minimizes to the recording bar, as today. Android

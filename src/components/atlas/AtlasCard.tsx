@@ -69,7 +69,7 @@ export function AtlasCard(props: {
   starting: boolean;
   /** DW14: past what can be walked (N5), the footer offers When I get there alone. */
   farOff?: boolean;
-  /** DW2, DW5: whether Walk to a place asks Walk now or When I get there first (decision 0109). */
+  /** DW2, DW5: whether Walk to a place asks Walk now or When I get there first (decision 0113). */
   askFirst?: (at: LngLat) => boolean;
   /** DW3: When I get there: the place is kept for Navigate's Start; no walk starts. */
   onLater?: (at: LngLat, label: string) => void;
