@@ -151,14 +151,14 @@ async function run(h) {
   await pg.waitForTimeout(400);
   await pg.click('[data-testid=capture-viewer] [aria-label="More"]').catch(() => {});
   const splitText = (await there('[data-testid=menu-split]', 3000)) ? await pg.locator('[data-testid=menu-split]').innerText() : '';
-  check.todo(/Split this (note|photo) out/.test(splitText), `MS16: More offers Split out by kind on a piece that is not the first (${splitText})`);
+  check(/Split this (note|photo) out/.test(splitText), `MS16: More offers Split out by kind on a piece that is not the first (${splitText})`);
   if (splitText) await pg.click('[data-testid=menu-split]');
   const shownAtOnce = await there('[data-testid=undo-toast]', 3000);
   const nextMoment = await pg.locator('[data-testid=capture-viewer] [aria-label="Next moment"]').count();
-  check.todo(shownAtOnce && nextMoment > 0, 'MS16: the split piece shows at once as its own moment, one Next moment away, with Undo');
+  check(shownAtOnce && nextMoment > 0, 'MS16: the split piece shows at once as its own moment, one Next moment away, with Undo');
   await pg.waitForTimeout(6500);
   ms = await moments(pg);
-  check.todo(ms.length === 3 && ms.every((m) => m.pieces.length >= 1), `MS16: after the window it is stored as a moment of its own (${ms.map((m) => m.pieces.length).join(',')})`);
+  check(ms.length === 3 && ms.every((m) => m.pieces.length >= 1), `MS16: after the window it is stored as a moment of its own (${ms.map((m) => m.pieces.length).join(',')})`);
   if (await pg.locator('[data-testid=viewer-close]').count()) await pg.click('[data-testid=viewer-close]');
 
   // The setting (MS18), then grouping by itself (MS19, MS21).
@@ -168,23 +168,23 @@ async function run(h) {
   const sw = await there('[data-testid=group-captures]', 5000);
   const swOn = sw ? await pg.locator('[data-testid=group-captures]').getAttribute('aria-checked') : null;
   const swNote = sw ? await pg.locator('[data-testid=start-settings]').innerText() : '';
-  check.todo(sw && swOn === 'false' && /Captures join the moment just made/.test(swNote), `MS18: Walk settings offer Group captures into one moment, off, with its line (${swOn})`);
+  check(sw && swOn === 'false' && /Captures join the moment just made/.test(swNote), `MS18: Walk settings offer Group captures into one moment, off, with its line (${swOn})`);
   if (sw) await pg.click('[data-testid=group-captures]');
   await h.drawerTo(pg, 'peek');
   const before = (await moments(pg)).length;
   await note('[data-testid=moment-note]', 'Grouped one');
   const adding = await there('[data-testid=adding-moment]', 3000);
   const addingText = adding ? await pg.locator('[data-testid=adding-moment]').innerText() : '';
-  check.todo(adding && /Adding to this moment/.test(addingText) && (await pg.locator('[data-testid=add-to-moment]').count()) === 0, `MS19, MS21: with grouping on, "Adding to this moment" and New moment show, and no pill (${addingText.replace(/\n/g, ' ')})`);
+  check(adding && /Adding to this moment/.test(addingText) && (await pg.locator('[data-testid=add-to-moment]').count()) === 0, `MS19, MS21: with grouping on, "Adding to this moment" and New moment show, and no pill (${addingText.replace(/\n/g, ' ')})`);
   await note('[data-testid=moment-note]', 'Grouped two');
   await pg.waitForTimeout(10_000);
   const addingLater = adding ? await pg.locator('[data-testid=adding-moment]').innerText().catch(() => '') : '';
   ms = await moments(pg);
-  check.todo(ms.length === before + 1 && ms.at(-1).pieces.length === 2 && addingLater === addingText, `MS19: two edge notes made one moment, and the words did not change (${ms.length - before}, ${ms.at(-1)?.pieces.length})`);
+  check(ms.length === before + 1 && ms.at(-1).pieces.length === 2 && addingLater === addingText, `MS19: two edge notes made one moment, and the words did not change (${ms.length - before}, ${ms.at(-1)?.pieces.length})`);
   if (adding) await pg.click('[data-testid=new-moment]');
   await note('[data-testid=moment-note]', 'A new one');
   ms = await moments(pg);
-  check.todo(ms.length === before + 2, `MS19: after New moment the next capture is a new moment (${ms.length - before})`);
+  check(ms.length === before + 2, `MS19: after New moment the next capture is a new moment (${ms.length - before})`);
 
   // The replay (MS17): a walk with a stacked moment of three photos and a memo shows one grid.
   await c.close();
@@ -199,7 +199,17 @@ async function replayGrid(h, check) {
   await pg.waitForSelector('[data-testid=start]', { timeout: 30000 });
   await pg.click('[data-testid=start]');
   await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
-  const walk = await h.openWalk(pg);
+  // The walk is stored a moment after Start: wait for it.
+  let walk = null;
+  for (let k = 0; k < 30 && !walk; k++) {
+    walk = await h.openWalk(pg);
+    if (!walk) await pg.waitForTimeout(500);
+  }
+  if (!walk) {
+    check(false, 'MS17: a walk to replay (none was open after Start)');
+    await c.close();
+    return;
+  }
   const now = Date.now();
   const pts = Array.from({ length: 40 }, (_, i) => { const p = at(-1 + i * 0.05, -0.5); return { walk_id: walk.id, t: now - 600_000 + i * 15_000, lat: p[1], lon: p[0], accuracy_m: 5, speed: 1.2, course: null }; });
   const mid = pts[12];
@@ -239,8 +249,8 @@ async function replayGrid(h, check) {
   const seen = await pg.waitForSelector('[data-testid=replay-grid]', { timeout: 40000 }).then(() => true, () => false);
   const cells = seen ? await pg.locator('[data-testid=replay-grid] [data-testid=grid-cell]').count() : 0;
   const text = seen ? await pg.locator('[data-testid=replay-grid]').innerText() : '';
-  check.todo(seen && cells === 3, `MS17: the stacked moment comes up as one grid, a cell for each of its photos (${cells})`);
-  check.todo(seen && !/\d/.test(text) && (await pg.locator('[data-testid=replay-grid] [role=progressbar]').count()) === 0, 'MS17: the grid has no dots, numbers or progress bar');
+  check(seen && cells === 3, `MS17: the stacked moment comes up as one grid, a cell for each of its photos (${cells})`);
+  check(seen && !/\d/.test(text) && (await pg.locator('[data-testid=replay-grid] [role=progressbar]').count()) === 0, 'MS17: the grid has no dots, numbers or progress bar');
   await c.close();
 }
 
