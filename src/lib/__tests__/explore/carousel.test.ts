@@ -17,10 +17,14 @@ const listed = (name: string, m: number, level: AtlasArea['level'] = 'neighborho
 const keys = (l: Listed[]) => l.map((x) => x.area.key);
 
 
-test('EC3: near you the row is the neighborhoods, then the other towns, in the order given', () => {
+test('EC3: near you the row is the towns alone, your town leading, then the others in the order given (fix explore-town-scope)', () => {
   const hoods = [listed('Fox Point', 100, 'neighborhood', true), listed('College Hill', 400), listed('Elmhurst', 900)];
-  const towns = [listed('Cranston', 5000, 'town'), listed('Pawtucket', 7000, 'town')];
-  assert.deepEqual(keys(rowOf({ ownTown: null, neighborhoods: hoods, towns })), ['Fox Point', 'College Hill', 'Elmhurst', 'Cranston', 'Pawtucket']);
+  const towns = [listed('Cranston', 5000, 'town'), listed('Providence', 6000, 'town', true), listed('Pawtucket', 7000, 'town')];
+  assert.deepEqual(keys(rowOf({ ownTown: null, neighborhoods: hoods, towns })), ['Providence', 'Cranston', 'Pawtucket'], 'no neighborhood shares the row with a town');
+  const away = [listed('Cranston', 5000, 'town'), listed('Pawtucket', 7000, 'town')];
+  assert.deepEqual(keys(rowOf({ ownTown: null, neighborhoods: hoods, towns: away })), ['Cranston', 'Pawtucket'], 'outside every town, nearest first');
+  assert.equal(firstSelection(keys(rowOf({ ownTown: null, neighborhoods: hoods, towns })), null), 'Providence', 'on arrival your town is selected');
+  assert.deepEqual(keys(rowOf({ ownTown: null, neighborhoods: hoods, towns: [] })), ['Fox Point', 'College Hill', 'Elmhurst'], 'with no town named around you, the neighborhoods near you, so the row is never empty for want of a town');
 });
 
 test('EC3: on a town\'s page the row is the town\'s own card, then its neighborhoods, never other towns', () => {

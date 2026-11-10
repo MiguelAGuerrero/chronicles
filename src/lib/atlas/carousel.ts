@@ -6,9 +6,16 @@ import type { Listed } from './atlas';
 
 /** Explore's row of area cards (EC1-EC15): what is in it, which card a swipe or a scroll means, and which Busy names the map keeps. */
 
-/** The row's areas in order (EC3): a town's own card first on its page, then its neighborhoods; near you, the neighborhoods, then the other towns. */
+/**
+ * The row's areas in order (EC3): a town's own card first on its page, then its neighborhoods; near you, the towns alone,
+ * the one you are in leading, then the others in the order given, or the neighborhoods where no town is named (fix
+ * explore-town-scope: one level per row).
+ */
 export function rowOf(p: { ownTown: Listed | null; neighborhoods: Listed[]; towns: Listed[] }): Listed[] {
-  return p.ownTown ? [p.ownTown, ...p.neighborhoods] : [...p.neighborhoods, ...p.towns];
+  if (p.ownTown) return [p.ownTown, ...p.neighborhoods];
+  // Where the map names no town around you, the neighborhoods near you, so the row is never empty for want of a town.
+  if (!p.towns.length) return p.neighborhoods;
+  return [...p.towns.filter((l) => l.here), ...p.towns.filter((l) => !l.here)];
 }
 
 /** The key to select now (EC1): the selected one while it is in the row, else the first, else null. */

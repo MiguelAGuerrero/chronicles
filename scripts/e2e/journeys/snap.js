@@ -8,10 +8,21 @@ async function run(h) {
   const { c, pg } = await freshPage('snap');
   await c.addInitScript(() => { window.__perf = {}; });
   try {
-    await pg.goto(exploreUrl);
-    await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 5, null, { timeout: 60000 }).catch(() => {});
-    await pg.waitForFunction(() => document.querySelectorAll('[data-testid=area-point]').length >= 5, null, { timeout: 30000 }).catch(() => {});
-    await pg.waitForTimeout(2500);
+    // Near you the row is the towns; the gestures step Providence's neighborhoods, on its page (fix explore-town-scope).
+    const intoTown = async () => {
+      await pg.goto(exploreUrl);
+      await h.areaTile(pg, 'Wickenden');
+      await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 4, null, { timeout: 60000 }).catch(() => {});
+      await pg.waitForFunction(() => document.querySelectorAll('[data-testid=area-point]').length >= 4, null, { timeout: 30000 }).catch(() => {});
+      await pg.waitForTimeout(2500);
+      // The town's own card leads; step onto its first neighborhood.
+      await pg.locator('.maplibregl-canvas').first().focus().catch(() => {});
+      if (process.env.E2E_DEBUG) console.log('DBG before', JSON.stringify(await pg.evaluate(() => ({ tiles: [...document.querySelectorAll('[data-testid=atlas-tile],[data-testid=atlas-town-head]')].map((e) => `${e.dataset.name}:${e.dataset.selected}`), pill: !!document.querySelector('[data-testid=atlas-back-pill]'), pts: [...document.querySelectorAll('[data-testid=area-point]')].map((e) => `${e.dataset.name}:${e.dataset.selected}`), active: document.activeElement?.className }))));
+      await pg.keyboard.press('ArrowRight');
+      await pg.waitForTimeout(1200);
+      if (process.env.E2E_DEBUG) console.log('DBG after', JSON.stringify(await pg.evaluate(() => ({ tiles: [...document.querySelectorAll('[data-testid=atlas-tile],[data-testid=atlas-town-head]')].map((e) => `${e.dataset.name}:${e.dataset.selected}`), pill: !!document.querySelector('[data-testid=atlas-back-pill]'), pts: [...document.querySelectorAll('[data-testid=area-point]')].map((e) => `${e.dataset.name}:${e.dataset.selected}`) }))));
+    };
+    await intoTown();
     const map = pg.locator('.maplibregl-map').first();
     const centre = async () => ((await map.getAttribute('data-center')) || '0,0').split(',').map(Number);
     const zoom = async () => Number(await map.getAttribute('data-zoom'));
@@ -95,10 +106,8 @@ async function run(h) {
     // discrete-navigation audit 1: on a wide screen the card is a side panel beside the map. A swipe with a card
     // open never leaves it showing another area.
     await pg.setViewportSize({ width: 1200, height: 800 });
-    await pg.goto(exploreUrl);
-    await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 5, null, { timeout: 60000 }).catch(() => {});
-    await pg.waitForTimeout(2000);
-    // The first card is selected on arrival; a tap on it opens its card.
+    await intoTown();
+    // A neighborhood is selected; a tap on it opens its card.
     const firstName = (await selected())[0];
     await pg.locator(`[data-testid=atlas-tile][data-name="${firstName}"]`).click().catch(() => {});
     await pg.waitForSelector('[data-testid=atlas-card]', { timeout: 5000 }).catch(() => {});

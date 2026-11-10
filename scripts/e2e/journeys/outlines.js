@@ -9,12 +9,11 @@ async function run(h) {
       await pg.goto(exploreUrl);
       // Town borders are a layer, off until switched on (specs/map-layers ML2).
       await switchLayer(pg, 'borders');
-      await pg.waitForFunction(() => {
-        const t = document.querySelector('[data-testid=explore-area]')?.textContent ?? '';
-        return t && t !== 'Near you';
-      }, null, { timeout: 45000 }).catch(() => {});
-      const title = await pg.locator('[data-testid=explore-area]').innerText().catch(() => '');
-      const subtitle = await pg.locator('[data-testid=explore-subtitle]').innerText().catch(() => '');
+      // Your town leads the row of towns near you, selected, its card saying you're here (fix explore-town-scope).
+      const yours = '[data-testid=atlas-tile][data-level="town"][data-selected="1"]';
+      await pg.waitForFunction((sel) => /You’re here/.test(document.querySelector(sel)?.textContent ?? ''), yours, { timeout: 45000 }).catch(() => {});
+      const title = await pg.locator(yours).first().getAttribute('data-name').catch(() => '') ?? '';
+      const subtitle = /You’re here/.test(await pg.locator(yours).first().innerText().catch(() => '')) ? 'Your town' : '';
       // TB1: what the map draws, once the z10 tile is in (the map writes it on its container).
       const drawn = async () => pg.locator('[data-borders]').first().getAttribute('data-borders').catch(() => null);
       await pg.waitForFunction(() => (document.querySelector('[data-borders]')?.getAttribute('data-borders') ?? '') !== '', null, { timeout: 15000 }).catch(() => {});
@@ -26,15 +25,15 @@ async function run(h) {
       const inView = async () => (await pg.locator('[data-bounds]').first().getAttribute('data-bounds').catch(() => '') ?? '').split(',').map(Number);
       const view = await inView();
       await shot(pg, `${label}-explore`);
-      // TB2: the town's own page (the title opens it) draws its border tinted.
+      // TB2: the town's own page (a tap on its selected card opens it) draws its border tinted.
       let page = null;
       let card = '';
       let how = '';
       let pageView = [];
       let roundTrip = [];
       let reopened = [];
-      if (title && title !== 'Near you') {
-        await pg.click('[data-testid=atlas-title]').catch(() => {});
+      if (title) {
+        await pg.click(yours).catch(() => {});
         await pg.waitForSelector('[data-testid=atlas-town-head]', { timeout: 10000 }).catch(() => {});
         await pg.waitForTimeout(800);
         page = await drawn();
@@ -51,7 +50,7 @@ async function run(h) {
         // audit 3: back near you, then the same town's page again.
         await pg.click('[data-testid=atlas-back-pill]').catch(() => {});
         await pg.waitForTimeout(1500);
-        await pg.click('[data-testid=atlas-title]').catch(() => {});
+        await pg.click(yours).catch(() => {});
         await pg.waitForSelector('[data-testid=atlas-town-head]', { timeout: 10000 }).catch(() => {});
         await pg.waitForTimeout(2500);
         reopened = await inView();

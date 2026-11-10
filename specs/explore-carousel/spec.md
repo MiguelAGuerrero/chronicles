@@ -29,7 +29,7 @@ Explore opens on a full-height map. The areas around you are one horizontal row 
 
 1. **EC1** While any area is listed, one is selected. On arrival the first in the row is, and again whenever the page changes or the selected area is no longer listed. A tap on the map away from an area never clears the selection.
 2. **EC2** The map fills the screen from the top to the row; the row sits above the tabs. There is no grid of tiles and no "Neighborhoods near you" or "Other towns" heading, on a phone and on a wide screen. No card or heading shows a count, a rank or a rating.
-3. **EC3** The row's order is fixed and not capped beyond what the atlas lists today (`ATLAS_RULES`). On the page near you: the neighborhoods nearest first, the one you are in leading, then the other towns nearest first. On a town's page: the town's own card, then its neighborhoods nearest first. The row says nothing of a rank, a first or a last.
+3. **EC3** The row's order is fixed and not capped beyond what the atlas lists today (`ATLAS_RULES`). On the page near you: the towns, the one you are in leading, then the others nearest first; where the map names no town around you, the neighborhoods nearest first (decision 0126, amending the owner's first call: neighborhoods, then towns). On a town's page: the town's own card, then its neighborhoods nearest first. The row says nothing of a rank, a first or a last.
 4. **EC4** Swiping the row (a finger's drag or flick; on desktop web the wheel, a tap on a card, a swipe or an arrow key on the map) settles on one card at a time and selects it. After it settles, the centred card and the selected area are the same, and a card's name is shown in full.
 5. **EC5** The selected area is highlighted on the map: a neighborhood by its ring, a town by its tinted border, either by its name in the accent colour. The map eases to it at the current zoom (jumps with reduced motion).
 6. **EC6** The map draws no name but the selected area's. The other areas of its level are unnamed dots; areas of another level are not drawn (fix map-levels, kept).
@@ -88,7 +88,7 @@ Built on branch `claude/keen-maxwell-5rxhkx`, Nov 10; the owner's go-ahead on th
 |---|---|
 | EC1 | `carousel.test.ts` "EC1: ..."; e2e `carousel` "EC1: on arrival one area is selected", "EC1: a tap on the map away from an area keeps the selection" |
 | EC2 | e2e `carousel` "EC2: the map is over 55% of the screen and the row sits below it", "EC2: there is no grid", "EC2: no section headings" |
-| EC3 | `carousel.test.ts` "EC3: ..." (two cases); e2e `carousel` "EC3: the row holds the neighborhoods, then the towns" |
+| EC3 | `carousel.test.ts` "EC3: ..." (two cases); e2e `carousel` "fix explore-town-scope: near you the row holds only towns, the first selected", "EC3: a town's page is its own card, then its neighborhoods" |
 | EC4 | `carousel.test.ts` "EC4: a scroll settles ..."; e2e `carousel` "EC4: the row settles with the selected card centred" |
 | EC5 | e2e `carousel` "EC5: the selected area has its ring on the map", "EC5: a town's card selected has no ring, and the map names only that town"; `snap` "DN12 ... keeps the zoom" |
 | EC6 | `atlas.test.ts` "fix map-levels", "fix pins-selected-only"; e2e `carousel` "EC6: the map names only the selected area" |

@@ -177,6 +177,10 @@ const snapFeatures = [
   { type: 'Feature', properties: { class: 'town', name: 'Cranston' }, geometry: { type: 'Point', coordinates: at(-40, 2) } },
 ];
 const snapWorld = { serve: false };
+// Quiet Hollow's town (fix explore-town-scope): near you Explore lists towns, and a neighborhood is on its town's page, so the
+// grading journey serves a town point beside it; only there, so other journeys' rows don't change.
+const hollowFeatures = [{ type: 'Feature', properties: { class: 'town', name: 'Hollow' }, geometry: { type: 'Point', coordinates: at(-61, 0.5) } }];
+const hollowWorld = { serve: false };
 // Scenic routes (SR2-SR14): India Point Park one block north of Transit Street, 30 m off it, with a footway
 // through it from the street at x=-0.5 to the one at x=3.5; only in the scenic journey (scenicWorld.serve),
 // so other journeys' routes don't change. Transit Street is the direct way; the footway is 15% longer.
@@ -424,7 +428,7 @@ async function createHarness() {
     if (tile && tiles.delayMs) await new Promise((res) => setTimeout(res, tiles.delayMs));
     if (tile) {
       const [z, x, y] = tile.slice(1).map(Number);
-      return r.fulfill({ contentType: 'application/x-protobuf', body: Buffer.from(encodeTile([...features, ...(snapWorld.serve ? [...snapFeatures, ...(divisions.serve ? snapTownFeatures : [])] : []), ...(scenicWorld.serve ? scenicFeatures : [])], z, x, y)) });
+      return r.fulfill({ contentType: 'application/x-protobuf', body: Buffer.from(encodeTile([...features, ...(snapWorld.serve ? [...snapFeatures, ...(divisions.serve ? snapTownFeatures : [])] : []), ...(scenicWorld.serve ? scenicFeatures : []), ...(hollowWorld.serve ? hollowFeatures : [])], z, x, y)) });
     }
     if (tiles.stall && r.request().url().endsWith('/planet')) await tiles.stall;
     return r.fulfill({
@@ -605,9 +609,21 @@ async function createHarness() {
     if (((await pg.locator(`[data-testid=layer-${id}]`).getAttribute('aria-checked')) === 'true') !== wantOn) await pg.click(`[data-testid=layer-${id}]`);
     await pg.click('[data-testid=layers]');
   };
+  // Near you Explore's row is the towns (fix explore-town-scope): a neighborhood's card is on its town's page. Waits for the
+  // area's card in the row, opening the selected town's page (yours, leading the row) while it is not there.
+  const areaTile = async (pg, name, timeout = 60000) => {
+    const sel = `[data-testid=atlas-tile][data-name="${name}"]`;
+    const until = Date.now() + timeout;
+    while (Date.now() < until && !(await pg.locator(sel).count())) {
+      const town = pg.locator('[data-testid=atlas-tile][data-level="town"][data-selected="1"]');
+      if (!(await pg.locator('[data-testid=atlas-back-pill]').count()) && (await town.count())) await town.first().click().catch(() => {});
+      await pg.waitForTimeout(500);
+    }
+    return pg.locator(sel).first();
+  };
   return {
     url, navUrl, exploreUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, iconOf, metricRegion, pressedScale, metaOf, drawerTo, tabTo, mapUp, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
-    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, walkability, overpassAsked, OVERPASS_HOST, scenicWorld, routed, switchLayer, places,
+    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, walkability, overpassAsked, OVERPASS_HOST, scenicWorld, routed, switchLayer, places, areaTile, hollowWorld,
   };
 }
 

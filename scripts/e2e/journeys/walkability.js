@@ -93,8 +93,10 @@ async function run(h) {
   await h.drawerTo(pg, 'peek');
   // WK11: the area card says, in words, how its streets treat someone on foot (a third of this ring's street is each band).
   await pg.goto(exploreUrl);
-  await pg.waitForSelector('[data-testid=atlas-tile][data-name="Fox Point"]', { timeout: 60000 });
-  await pg.click('[data-testid=atlas-tile][data-name="Fox Point"]');
+  // Near you the row is the towns: Fox Point is on Providence's page, where a first tap selects it and a second opens it (fix explore-town-scope).
+  const fox = await h.areaTile(pg, 'Fox Point');
+  await fox.click();
+  if (!(await pg.waitForSelector('[data-testid=atlas-card]', { timeout: 3000 }).then(() => true, () => false))) await fox.click();
   await pg.waitForSelector('[data-testid=atlas-onfoot-words]', { timeout: 30000 }).catch(() => {});
   const words = await pg.locator('[data-testid=atlas-onfoot-words]').innerText().catch(() => '');
   check(words === 'Streets close together, with crossings', `WK11, UF13, UF14: the area card for the neighborhood around the dense grid says what its ground is, in words (${JSON.stringify(words)})`);
