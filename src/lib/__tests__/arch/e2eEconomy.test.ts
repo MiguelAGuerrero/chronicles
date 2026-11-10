@@ -264,7 +264,7 @@ const readyJs = load(join(ROOT, 'scripts', 'ready.js')) as {
   isCandidateName(n: string): boolean;
   pickCopy(local: string | null, origin: string | null, rel: string | null): { sha: string | null; from: string };
   readyState(o: { tip: string; markerCommit: string | null; after: number }): { state: string; after?: number };
-  describeCandidates(list: Cand[]): string;
+  describeCandidates(list: Cand[], o?: { all?: boolean }): string;
 };
 
 test('e2e economy 12: a branch is ready while its marker is the tip; the copy ahead is the one taken, local or origin (0126)', () => {
@@ -278,11 +278,14 @@ test('e2e economy 12: a branch is ready while its marker is the tip; the copy ah
   assert.deepEqual(readyJs.readyState({ tip: 'a', markerCommit: 'a', after: 0 }), { state: 'ready' });
   assert.deepEqual(readyJs.readyState({ tip: 'b', markerCommit: 'a', after: 2 }), { state: 'stale', after: 2 }, 'a commit after the marker is work nobody vouched for');
   assert.deepEqual(readyJs.readyState({ tip: 'a', markerCommit: null, after: 0 }), { state: 'none' });
-  const said = readyJs.describeCandidates([
+  const list = [
     { branch: 'claude/a', sha: 'aaaaaaaaaaaa', from: 'origin', state: 'ready', marker: { journeys: ['space'] } },
     { branch: 'claude/b', sha: 'bbbbbbbbbbbb', from: 'local', state: 'stale', after: 1 },
     { branch: 'claude/c', sha: 'cccccccccccc', from: 'local', state: 'none' },
-  ]);
+  ];
+  const short = readyJs.describeCandidates(list);
+  assert.ok(!/claude\/c/.test(short) && /1 more not marked ready \(--all lists them\)/.test(short), 'old unmarked branches are a count, not a wall');
+  const said = readyJs.describeCandidates(list, { all: true });
   assert.match(said, /claude\/a: ready \(origin, aaaaaaaaa; ran space\)/);
   assert.match(said, /claude\/b: stale: 1 commit after its marker; mark it again/);
   assert.match(said, /claude\/c: not marked ready/);
@@ -310,7 +313,7 @@ test('e2e economy 13: a failure several branches could have caused is isolated: 
   assert.deepEqual([ta.red[0].sharedWith, tb.red[0].sharedWith], [['b'], ['a']], 'together: each is told the other');
   const report = t.describeTrain({ stamp: 's', base: 'b', build: '/chronicles', trainBranch: 'train/s', head: 'h', plan, results, logs: {}, merged: [{ branch: 'a', ready: 'ready' }, { branch: 'b', ready: 'none' }], excluded: [], verdicts: attr(plan, results, ['a', 'b'], { space: { a: false, b: true } }) });
   assert.match(report, /\*\*a: red\*\*[\s\S]*Isolated: it fails with this branch alone/);
-  assert.match(report, /\*\*b: green\*\* \(no journey covers it\); cleared: `space` failed in the train but passed with this branch alone \(it is a's\)/);
+  assert.match(report, /\*\*b: green\*\* \(no journey of its own failed\); cleared: `space` failed in the train but passed with this branch alone \(it is a's\)/);
   assert.match(report, /Named by hand, not marked ready \(npm run ready\): b \(no marker\)/);
   const together = t.describeTrain({ stamp: 's', base: 'b', build: '/chronicles', trainBranch: 'train/s', head: 'h', plan, results, logs: {}, merged: [], excluded: [], verdicts: attr(plan, results, ['a', 'b'], { space: { a: true, b: true } }) });
   assert.match(together, /fails only with b together: an interaction between them, or a flake/);

@@ -3,7 +3,7 @@
 // the ready branches itself instead of reading STATUS.md.
 //
 //   npm run ready [-- --force "<why>"]     mark this branch ready: commit .ready/<branch>.json (then push it)
-//   npm run e2e:train -- --list            every candidate branch, local and on origin, with its state
+//   npm run e2e:train -- --list [--all]    the candidate branches, local and on origin, with their states (--all: the unmarked too)
 //   npm run e2e:train -- --ready           the train of every branch marked ready
 //
 // The marker vouches for the commit it is made in: a branch is ready while the commit that last wrote its marker is still the
@@ -52,8 +52,8 @@ function readyState({ tip, markerCommit, after }) {
   return { state: 'stale', after };
 }
 
-/** The listing `--list` prints. */
-function describeCandidates(list) {
+/** The listing `--list` prints: the ready, stale and diverged in full, the unmarked as a count unless `o.all`. */
+function describeCandidates(list, o = {}) {
   if (!list.length) return 'No candidate branches: every branch is on main already, or there are none.';
   const say = (c) => {
     if (c.state === 'ready') return `ready (${c.from}, ${c.sha.slice(0, 9)}${c.marker?.journeys?.length ? `; ran ${c.marker.journeys.join(', ')}` : ''}${c.marker?.forced ? `; forced: ${c.marker.forced}` : ''})`;
@@ -61,7 +61,12 @@ function describeCandidates(list) {
     if (c.state === 'diverged') return 'diverged: the local branch and origin\'s each have commits the other lacks';
     return 'not marked ready';
   };
-  return list.map((c) => `  ${c.branch}: ${say(c)}`).join('\n');
+  const unmarked = list.filter((c) => c.state === 'none');
+  const shown = o.all ? list : list.filter((c) => c.state !== 'none');
+  const lines = shown.map((c) => `  ${c.branch}: ${say(c)}`);
+  if (!o.all && unmarked.length) lines.push(`  ${unmarked.length} more not marked ready (--all lists them).`);
+  if (!lines.length) lines.push('  none');
+  return lines.join('\n');
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

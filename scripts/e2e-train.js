@@ -4,7 +4,7 @@
 //
 //   npm run e2e:train -- <branch> [<branch> ...] [--base origin/main] [--root] [--force] [--keep] [--no-checks] [--no-isolate]
 //   npm run e2e:train -- --ready     the branches marked ready (npm run ready; decision 0126), local or on origin, whichever is ahead
-//   npm run e2e:train -- --list      every candidate branch and its state, and nothing else
+//   npm run e2e:train -- --list      the candidate branches and their states, and nothing else (--all: the unmarked too)
 //
 // A branch runs only the journeys it added or edited (`npm run check:e2e`); the journeys it reaches only through a shared file
 // (walk.tsx alone is in twelve) are deferred to here, so seven sessions touching one screen do not run its twelve journeys seven
@@ -115,7 +115,8 @@ function describeTrain(t) {
   for (const a of t.verdicts) {
     const cleared = (a.cleared ?? []).map((c) => `\`${c.journey}\` failed in the train but passed with this branch alone (it is ${c.culprits.join(', ')}'s)`);
     if (!a.red.length) {
-      lines.push(`- **${a.branch}: green** (${a.green.length ? a.green.join(', ') : 'no journey covers it'})${cleared.length ? `; cleared: ${cleared.join('; ')}` : ''}.`);
+      const passed = a.green.length ? a.green.join(', ') : cleared.length ? 'no journey of its own failed' : 'no journey covers it';
+      lines.push(`- **${a.branch}: green** (${passed})${cleared.length ? `; cleared: ${cleared.join('; ')}` : ''}.`);
       continue;
     }
     lines.push(`- **${a.branch}: red**`);
@@ -275,7 +276,7 @@ function main(argv) {
   let branches = argv.filter((a, i) => !a.startsWith('--') && argv[i - 1] !== '--base');
   if (argv.includes('--list') || argv.includes('--ready')) {
     const list = ready.candidates(base);
-    console.log(`Candidates for the train (not on ${base} yet):\n${ready.describeCandidates(list)}`);
+    console.log(`Candidates for the train (not on ${base} yet):\n${ready.describeCandidates(list, { all: argv.includes('--all') })}`);
     if (argv.includes('--list')) return;
     branches = [...branches, ...list.filter((c) => c.state === 'ready').map((c) => c.branch)];
     if (!branches.length) {
