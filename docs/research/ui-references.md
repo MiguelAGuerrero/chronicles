@@ -1,6 +1,6 @@
-<!-- Compiled Nov 9-10, 2026 by research agents for decision 0108. Read first-hand: Apple HIG (33 pages, first pass), Material Design 3 (29 pages, July-September 2026, M3 Expressive), Nielsen Norman Group (42 pages, the 10 heuristics as H1-H10), WCAG 2.2 (checked against w3.org). Not covered: an M3 page on photo or video viewers (there is none); NN/g on kebab menus and touch-and-hold. -->
+<!-- Compiled Nov 9-10, 2026 by research agents for decision 0112. Read first-hand: Apple HIG (33 pages, first pass), Material Design 3 (29 pages, July-September 2026, M3 Expressive), Nielsen Norman Group (42 pages, the 10 heuristics as H1-H10), WCAG 2.2 (checked against w3.org). Not covered: an M3 page on photo or video viewers (there is none); NN/g on kebab menus and touch-and-hold. -->
 
-<!-- Compiled Nov 9-10, 2026 by a research agent for decision 0108 (the owner asked for UI rules grounded in sources). Second pass 2026-11-10: Material Design 3 (m3.material.io), Nielsen Norman Group (nngroup.com) and WCAG 2.2 (w3.org) were read first-hand; Apple HIG was not re-fetched in this pass. -->
+<!-- Compiled Nov 9-10, 2026 by a research agent for decision 0112 (the owner asked for UI rules grounded in sources). Second pass 2026-11-10: Material Design 3 (m3.material.io), Nielsen Norman Group (nngroup.com) and WCAG 2.2 (w3.org) were read first-hand; Apple HIG was not re-fetched in this pass. -->
 
 # UI patterns reference, from primary sources
 

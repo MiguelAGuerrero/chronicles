@@ -24,7 +24,14 @@ export interface ArchiveFile {
   file: string;
   version: string;
   bounds: [number, number, number, number];
+  /** PP11: a hash of the places in each z8 block (`8/x/y`), from the places pipeline; absent in older manifests. */
+  blocks?: Record<string, string>;
 }
+
+/** The places pipeline's block zoom (PP11). */
+export const BLOCK_ZOOM = 8;
+const BLOCK_KEY = /^8\/\d+\/\d+$/;
+const BLOCK_HASH = /^[0-9a-f]{16}$/;
 
 export interface Region {
   id: string;
@@ -45,7 +52,31 @@ function fileOf(v: unknown): ArchiveFile | null {
   if (!f || typeof f.file !== 'string' || !FILE.test(f.file) || typeof f.version !== 'string') return null;
   const b = f.bounds;
   if (!Array.isArray(b) || b.length !== 4 || !b.every((n) => Number.isFinite(n))) return null;
-  return { file: f.file, version: f.version, bounds: [b[0], b[1], b[2], b[3]] };
+  const out: ArchiveFile = { file: f.file, version: f.version, bounds: [b[0], b[1], b[2], b[3]] };
+  const blocks = f.blocks as unknown;
+  if (blocks && typeof blocks === 'object' && !Array.isArray(blocks)) {
+    const entries = Object.entries(blocks as Record<string, unknown>);
+    if (entries.every(([k, v]) => BLOCK_KEY.test(k) && typeof v === 'string' && BLOCK_HASH.test(v))) out.blocks = Object.fromEntries(entries) as Record<string, string>;
+  }
+  return out;
+}
+
+/** PP11: the z8 block holding a point, as the pipeline names it. */
+export function blockKey([lon, lat]: LngLat): string {
+  const n = 2 ** BLOCK_ZOOM;
+  const r = (lat * Math.PI) / 180;
+  const x = Math.floor(((lon + 180) / 360) * n);
+  const y = Math.floor(((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * n);
+  return `${BLOCK_ZOOM}/${Math.min(Math.max(x, 0), n - 1)}/${Math.min(Math.max(y, 0), n - 1)}`;
+}
+
+/**
+ * PP13: what an area built at a point records as its archive: the hash of its block's places when the file has
+ * blocks (`b:` and the hash, `b:none` for a block with none), so it is rebuilt only when they change; else the
+ * file's version, as before.
+ */
+export function archiveTag(file: ArchiveFile, at: LngLat): string {
+  return file.blocks ? `b:${file.blocks[blockKey(at)] ?? 'none'}` : file.version;
 }
 
 /** PW2: the manifest, or null for anything that isn't one (then no archive is read). */

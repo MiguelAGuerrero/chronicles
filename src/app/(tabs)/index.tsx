@@ -51,8 +51,6 @@ const NEW_FAM: Familiarity = { walks: 0, last: null };
 const WORLD = { center: [-40, 30] as [number, number], zoom: 1.2 };
 /** Meta: the long press was used once, so its hint stops showing (atlas round 3). */
 const PRESS_HINT_KEY = 'atlas_press_seen';
-/** The nearest few areas are named on the map; the rest are dots. */
-const NAMED_POINTS = 3;
 /** Widths where the grid takes three columns, and where the map and grid sit side by side. */
 const THREE_COLS = 700;
 const TWO_PANES = 1000;
@@ -261,11 +259,11 @@ export default function Explore() {
     return m;
   }, [shown, fresh.finds, fresh.hidden, found]);
 
-  // The map's areas: the page's neighborhoods (and the town), the nearest few named, the selected one in the accent (round 3).
+  // The map's areas: the page's neighborhoods (and the town), dots, the selected one named in the accent (round 3).
   const pointsOf = useMemo(() => (town ? [{ area: town, distanceM: 0, here: false }, ...neighborhoods] : neighborhoods), [town, neighborhoods]);
   const points = useMemo(() => pointsOf.map((l) => l.area.at), [pointsOf]);
   // Only the selected area's level is drawn, so a town's name and its neighborhoods' never overlay (fix map-levels).
-  const areaPoints = useMemo<AreaPointPin[]>(() => areaPins(shown, selected, NAMED_POINTS, !!town), [shown, selected, town]);
+  const areaPoints = useMemo<AreaPointPin[]>(() => areaPins(shown, selected, !!town), [shown, selected, town]);
   // A tap protects only the points drawn (fix map-levels audit 3).
   const pinAts = useMemo(() => areaPoints.map((p) => p.at), [areaPoints]);
   const sel = shown.find((l) => l.area.key === selected) ?? null;

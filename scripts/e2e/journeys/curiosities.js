@@ -5,10 +5,18 @@
 
 async function run(h) {
   const { navUrl, BASE, at, check, freshPage, places } = h;
-  const { writeArchive } = await import('../../places-archive/archive.mjs');
+  // The archive is built in chronicles-data (decision 0108); here the e2e's own encoders write one of the same shape
+  // (z12 tiles, layer `places`, name, class, src and id), as the contract's example pack has.
+  const { encodeTile } = await import('../../mvt-encode.mjs');
+  const { encodeArchive } = await import('../../pmtiles-encode.mjs');
   // A folly just beside the first leg of the walk below (the marks journey's route), in the archive only.
   const [lon, lat] = at(0.1, -0.48);
-  const archive = writeArchive([{ name: 'Fox Point Folly', lon, lat, class: 'folly', src: 'wd', id: 'Q900001' }]);
+  const z = 12;
+  const x = Math.floor(((lon + 180) / 360) * 2 ** z);
+  const r = (lat * Math.PI) / 180;
+  const y = Math.floor(((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * 2 ** z);
+  const folly = { type: 'Feature', geometry: { type: 'Point', coordinates: [lon, lat] }, properties: { name: 'Fox Point Folly', class: 'folly', src: 'wd', id: 'p_0000000000900001' } };
+  const archive = encodeArchive([{ z, x, y, data: encodeTile([folly], z, x, y, () => ['places']) }], [-125, 24, -66.9, 49.4]);
   const file = 'places-us-20261108.pmtiles';
   places.files[file] = archive;
   places.manifest = JSON.stringify({
@@ -72,10 +80,8 @@ module.exports = {
   covers: [
     'src/lib/discovery/archive/**',
     'src/lib/discovery/{archiveManifest,archivePois,archiveMerge}.ts',
-    'src/lib/discovery/archiveEdits.json',
     'src/lib/net/tileReader.ts',
     'src/lib/landing/read.ts',
-    'scripts/places-archive/archive.mjs',
   ],
   run,
 };

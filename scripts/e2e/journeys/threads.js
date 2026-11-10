@@ -105,7 +105,7 @@ async function run(h) {
   const line1 = await meta();
   check(/In a thread$/.test(line1) && !/In a thread:/.test(line1), `OT11: the info line says "In a thread" and no name (${line1})`);
 
-  // OT1, OT11, OT27 (decision 0108): the viewer's actions are a docked toolbar and a menu, nothing over the moment.
+  // OT1, OT11, OT27 (decision 0112): the viewer's actions are a docked toolbar and a menu, nothing over the moment.
   const overMoment = () => pg.evaluate(() => {
     const card = document.querySelector('[data-testid=capture-card], [data-testid=edited-photo]');
     if (!card) return null;

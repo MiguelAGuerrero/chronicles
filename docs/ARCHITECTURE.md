@@ -224,6 +224,7 @@ Discovery and Explore (v1)
   atlas/snap.ts              discrete navigation (DN1-DN13): what a drag or an arrow key means, which way it points, which area lies that way
   explore/settings.ts        what I'm into, range, pocket alert (meta)
   explore/momentFind/        a loose moment finds a place (shell.ts, index.ts)
+  explore/reach/             a street or path close by, said on a place's card (rule.ts core, shell.ts, index.ts; RP20)
 Activity density (AD1-AD16)
   activity/weights.ts        what counts toward density and how much, for OSM and Overture
   activity/points.ts         places as weighted points from both sources; one place once across them
@@ -551,5 +552,5 @@ stores the record whole.
 
 ## The places archive (Places worth the stop, decision 0103)
 
-- **Built outside the app.** `scripts/places-archive/fetch-wikidata.mjs` asks the Wikidata Query Service one 2-degree US cell at a time; `scripts/build-places-archive.mjs` classifies (`scripts/places-archive/classify.mjs`: pinned Wikidata classes, type before age, National Historic Landmarks only, gone places out), applies `archiveEdits.json` and writes `places-<region>-<version>.pmtiles` (`archive.mjs`: z12, gzip, leaf directories); `publish.mjs` publishes only a changed archive. The chronicles-data repo runs them weekly and serves the newest three releases from its Pages site with a `manifest.json`.
+- **Built outside the app, in chronicles-data** (decision 0108): the places pipeline, its schemas, its class names and the owner's `edits.json` live there (https://github.com/MiguelAGuerrero/chronicles-data, its docs/spec.md). It builds the packs weekly, publishes them with `manifest.json` (each file's z8 `blocks`) and serves its `contract/` beside them. The app pins a copy of that contract (`src/lib/__tests__/explore/contract/`), and `placesContract.test.ts` holds the app's class table and reader to it (PP17); the owner's edits are applied in the build, never in the app. The listing rule of Remarkable and public, built in this repo before the move, is handed to it in `specs/remarkable-and-public/handoff.md`. `npm run places:coverage` (`scripts/places-coverage.ts`, `scripts/places-archive/coverage.mjs`) measures what the app keeps of seven areas' destinations.
 - **Read by tile in the app,** through `lib/net`, in the explore read (checklists, every walk) and the atlas ring read (PW10); never stored, merged with the map's places, the archive's kind winning. `EXPO_PUBLIC_PLACES_BASE` points the e2e build at `/places-e2e/` on the harness's server.

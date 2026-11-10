@@ -48,6 +48,8 @@ async function run(h) {
       await pg.click('[data-testid=go-here]');
     };
     const rows = (pg) => pg.locator('[data-testid^=route-row-]').evaluateAll((els) => els.map((e) => ({ label: e.getAttribute('aria-label'), text: e.innerText, selected: e.dataset.selected, route: e.dataset.route })));
+    // Which of the trace-like layers carry anything on the live map (the e2e measures: window.__perf); none while a preview is up.
+    const drawn = (pg) => pg.evaluate(() => [...document.querySelectorAll('.maplibregl-map')].pop()?.dataset.drawn ?? null);
     const alternates = (pg) => pg.evaluate(() => [...document.querySelectorAll('.maplibregl-map')].pop()?.dataset.alternates ?? null);
     const preview = (pg, timeout = 60000) => pg.waitForSelector('[data-testid=route-preview]', { timeout }).then(() => true, () => false);
     const gone = (pg, sel) => pg.waitForFunction((s) => !document.querySelector(s), `[data-testid=${sel}]`, { timeout: 5000 }).then(() => true, () => false);
@@ -75,6 +77,7 @@ async function run(h) {
 
     // SR2-SR4, SR14: east along Transit Street, the park beside it: Direct and Through green, in words.
     await pg.waitForTimeout(1100);
+    const drawnBefore = await drawn(pg);
     await goHere(pg, east);
     check(await preview(pg), 'scenic SR2: Go here shows the routes before going');
     const r = await rows(pg);
@@ -86,6 +89,9 @@ async function run(h) {
     check(r.length === 2 && /through India Point Park/.test(r[1].text), `scenic SR4: the park is named (${r[1]?.text})`);
     check(r.length === 2 && /^Through green, \d+ m, through India Point Park$/.test(r[1].label), `scenic SR14: the row's label says the whole row (${r[1]?.label})`);
     await shot(pg, 'scenic-preview');
+    await pg.waitForTimeout(400);
+    if (process.env.E2E_DEBUG) console.log('DRAWN', JSON.stringify([drawnBefore, await drawn(pg)]));
+    check((await drawn(pg)) === '', `fix preview-clutter: with the preview open only the routes are drawn, no trace, fog, gap stretch, hotspot or tint (before: ${drawnBefore}, now: ${await drawn(pg)})`);
 
     // SR8: a tap on a row highlights it; Cancel closes the preview and sets no destination.
     await pg.click('[data-testid=route-row-1]');
@@ -93,6 +99,8 @@ async function run(h) {
     const r2 = await rows(pg);
     check(r2[1]?.selected === '1' && r2[0]?.selected === '0', `scenic SR8: a tap on a row highlights it (${JSON.stringify(r2.map((x) => x.selected))})`);
     await pg.click('[data-testid=route-cancel]');
+    await pg.waitForTimeout(400);
+    check(/trace/.test(drawnBefore ?? '') && /trace/.test((await drawn(pg)) ?? ''), `fix preview-clutter audit 1: the trace was drawn before the preview and is drawn again as it closes (${drawnBefore} -> ${await drawn(pg)})`);
     check((await gone(pg, 'route-preview')) && (await pg.locator('[data-testid=nav-bar]').count()) === 0 && (await navDest(pg)) === null,
       'scenic SR8: Cancel closes the preview and sets no destination');
     // Escape does the same.

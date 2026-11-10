@@ -595,7 +595,11 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     setData('alternates', alternatesGeoJSON(props.alternates));
     // The e2e reads how many faint routes are drawn (only when it is measuring: window.__perf).
     if ((window as { __perf?: unknown }).__perf && container.current) container.current.dataset.alternates = String(props.alternates?.length ?? 0);
-  }, [ready, props.alternates]);
+    // The e2e reads which of the trace-like layers carry anything (only when it is measuring): none while a preview is up.
+    if ((window as { __perf?: unknown }).__perf && container.current) {
+      container.current.dataset.drawn = [['trace', props.trace?.length], ['walked', props.walked?.length], ['fog', props.fog?.length], ['faint', props.faint?.length], ['landing', props.landing ? 1 : 0], ['borders', props.borders ? 1 : 0], ['walkability', props.walkability ? 1 : 0]].filter(([, n]) => n).map(([k]) => k).join(',');
+    }
+  }, [ready, props.alternates, props.trace, props.walked, props.fog, props.faint, props.landing, props.borders, props.walkability]);
   useEffect(() => {
     if (!ready) return;
     setData('pockets', pocketsGeoJSON(props.landing));

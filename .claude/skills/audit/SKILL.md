@@ -16,7 +16,7 @@ regression test for each accepted finding before its fix.
 - the rule file(s): `.claude/rules/<area>.md` whose `paths:` cover the slice;
 - the changed files: `git diff --name-only <base>..HEAD` for the slice's
   commits, or the plan's file list (`specs/<slug>/plan.md`);
-- **the screens as a person sees them** (decision 0108): run each journey
+- **the screens as a person sees them** (decision 0112): run each journey
   `check:affected` names with `E2E_SHOTS=<scratchpad>/shots` (390 x 844), so
   every changed screen state is a PNG. A changed screen with no `shot()` in its
   journey gets one first (after the Modal's fade). List the pictures by screen.

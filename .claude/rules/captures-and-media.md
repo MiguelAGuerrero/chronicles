@@ -17,7 +17,7 @@ paths:
 
 Captures (photo, video, voice memo, note), their viewer, captions and baking, thumbnails, saving keepers, the backup bundle, and the voice-memo and web-video traps. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
 
-## The viewer (decision 0108)
+## The viewer (decision 0112)
 
 - **Top bar, toolbar, menu; nothing over the moment.** `CaptureViewer` draws its top bar (Remind, Go here, More, Close), and `ReplyDock` docks a toolbar under the moment (Respond, and Edit for a photo or video with `onSaveEdit`, or a note with `onSaveNote`). `CaptureContent` takes `dock` and leaves that room clear: the strip and the note card sit above it, and a photo or video starts under the top bar (`TOP_BAR_H`). More holds Save, Open in Maps, Add to a thread, Open its thread and Delete.
 - **Screenshots are taken after the Modal's fade** (`waitForTimeout(800)`): a picture taken during it shows the screen beneath through the viewer.
@@ -177,7 +177,7 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
   `readyState` at 1 until a `play()` is let through (Chromium loads a `blob:`
   video whatever its `preload` says).
 - **Edit a note** (QL24, QL25): the viewer's docked toolbar offers Edit for a note
-  when the screen passes `onSaveNote` (it was in More until decision 0108); `NoteEditor` opens inside the viewer's Modal (as
+  when the screen passes `onSaveNote` (it was in More until decision 0112); `NoteEditor` opens inside the viewer's Modal (as
   the caption and reminder editors do). `noteText` (`lib/noteEdit.ts`, pure) trims,
   cuts to 500 and refuses blank. The viewer keeps edited bodies and merges them into
   what it shows, so the text changes at once and rolls back on a failed save. Screens

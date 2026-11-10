@@ -27,7 +27,7 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
   time follows its length, not the minutes walked (a glide, or a zip with the camera
   pulled back past `zipAtM`); a break is a cut with "N min later"; notes and memos
   are bubbles, photos and videos cards that tuck into the pile; passed places
-  whisper by; a clock rolls with the walker. Every number is in `REPLAY_RHYTHM`
+  whisper by (one or two by name, more than two as one "Passed a few places without stopping", RP19); a clock rolls with the walker. Every number is in `REPLAY_RHYTHM`
   (`motionTokens.ts`). A soft cap of 60 s shrinks everything but memos and videos.
 - **Nothing waits for a tap.** A tap on the stage or Hold holds it; an open viewer
   pauses it (the clock and any sound); Skip goes to the card. First watch and

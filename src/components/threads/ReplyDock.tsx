@@ -13,7 +13,7 @@ export const DOCK_H = 60;
 export type ReplyStage = 'sheet' | 'note' | null;
 
 /**
- * The viewer's toolbar, docked under the moment (OT1, decision 0108): Respond, and Edit where the moment can be
+ * The viewer's toolbar, docked under the moment (OT1, decision 0112): Respond, and Edit where the moment can be
  * edited. Respond opens a pull-down menu of kinds; the reply is kept by the capture's own path and linked to the moment
  * it answers (`useCaptures` `replyTo`). One per open viewer, so swiping builds no new recorder (audit 10). The sheet and
  * the note are the viewer's to close with Back (`stage`, audit 9). Drawn inside the viewer's Modal, never a second one.

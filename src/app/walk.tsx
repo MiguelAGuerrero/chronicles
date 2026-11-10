@@ -25,6 +25,7 @@ import { KindSwitches, RangeSlider, walkNote } from '../components/ExploreSettin
 import { NotificationSettings } from '../components/NotificationSettings';
 import { RouteLeaningSettings } from '../components/RouteLeaningSettings';
 import { RoutePreview } from '../components/RoutePreview';
+import { forPreview } from '../lib/nav/previewView';
 import { SwitchRow } from '../components/SwitchRow';
 import { ReminderCard } from '../components/ReminderCard';
 import { onRecallFired, onRecallOpen, onRecallWaiting, takeRecallOpen } from '../lib/discovery/recallCheck';
@@ -36,6 +37,8 @@ import { canBuzz } from '../lib/canBuzz';
 import { clampRange, EXPLORE_KEY, exploredKey, kindOf, POCKET_ALERT_NOTE, type Kind } from '../lib/explore/explore';
 import { DEFAULT_SETTINGS, loadSettings, onSettings, saveSettings, type ExploreSettings } from '../lib/explore/settings';
 import { useExplore } from '../lib/explore/useExplore';
+import { reach } from '../lib/explore/reach';
+import { reachLine } from '../lib/explore/reach/rule';
 import { db } from '../lib/db';
 import { focusOn } from '../lib/focus';
 import { boundsOf, distanceM, distanceToLinesM, nearPoints, pausedMs } from '../lib/geo';
@@ -608,11 +611,28 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const layers = useLayers();
   const wk = useWalkability(live.here, !!layers.on.walkability);
   const busy = useBusyLayer(live.here, !!layers.on.busy);
+  // While choosing among a preview's routes only the routes are drawn, in blue; the trace, the fog, the busy streets' shading and the rest
+  // come back as it closes (fix preview-clutter).
+  const drawn = forPreview(!!navigation.preview, {
+    trace: live.runs,
+    rides: live.rides,
+    walked,
+    fog,
+    faint: gapView.faint,
+    gapLinks: isDrawing ? undefined : gapView.links,
+    landing: busy.view,
+    borders: layers.on.borders ? borders : null,
+    walkability: wk.draw,
+    veil: showUnwalked,
+    fogEmphasis: showUnwalked,
+  });
   const aheadLine = useRouteWarning(navigation.nav?.route.path ?? null, live.here, !!layers.on.walkability);
   // Explore (v1 slice 5): checklists are built quietly on every walk (E2); the layers show only
   // on an exploring walk (E1, E9), and a capture finds a place on any walk.
   const fixes = useMemo(() => live.runs.flat(), [live.runs]);
   const [markOpen, setMarkOpen] = useState<string | null>(null);
+  // RP20: whether the open place has a street or path close by, from the cached streets; said, never filtered.
+  const [markReach, setMarkReach] = useState<{ key: string; near: boolean | null } | null>(null);
   const [landings, setLandings] = useState<LandingRow[]>([]);
   const [exploring, setExploring] = useState(false);
   const quiet = !exploring;
@@ -645,6 +665,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   });
   const openMark = markOpen ? explore.itemOf(markOpen) : null;
   const openMarkNamed = !!openMark && (explore.revealed.has(openMark.key) || explore.found.has(openMark.key));
+  const openMarkReach = openMark && markReach?.key === openMark.key && !explore.found.has(openMark.key) ? reachLine(markReach.near) : null;
   // Going to a place: "A place to find" until it is revealed, then its name (E12).
   const navKey = navigation.nav?.dest.kind === 'find' ? navigation.nav.dest.placeKey : undefined;
   const navItem = navKey ? explore.itemOf(navKey) : null;
@@ -1060,26 +1081,18 @@ function WalkScreen(props: { onMinimize: () => void }) {
         <WalkMap {...ready.mapProps} borders={ready.bordersOn ? borders : null} ref={mapRef} onBearingChange={setBearing} scaleInset={{ bottom: scaleInsetBottom({ barTop: at.barTop, scaleBottom: SCALE_BOTTOM, mapEndsAtStrip: true }), left: sideInset + 12 }} />
       ) : (
       <WalkMap
-        landing={busy.view}
-        trace={live.runs}
-        rides={live.rides}
-        walked={walked}
-        fog={fog}
+        {...drawn}
         captures={captures}
         // Opening a capture would hide a memo that is still recording.
         // While drawing, a tap on a pin is a point along the way like any other (gap-drawing audit 8).
         onPinPress={recordingVoice || stopping || isDrawing ? undefined : setViewing}
         walker={live.here}
-        borders={layers.on.borders ? borders : null}
-        walkability={wk.draw}
         walkerSource={live.dot}
         glideWalker
         walkerHeading={live.heading}
         // Not while a route is found: the street read moves the camera itself.
         // Drawing holds the map where it is: a new fix never moves it under a tap (GW8).
         follow={following && !navigation.finding && !navigation.preview && !ring && !isDrawing ? live.here : null}
-        faint={gapView.faint}
-        gapLinks={isDrawing ? undefined : gapView.links}
         drawing={drawing.line}
         onPress={(at, radiusM) => {
           layers.closePanel();
@@ -1116,6 +1129,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
           setMemory(null);
           setGapOpen(null);
           setMarkOpen(id);
+          const item = explore.itemOf(id);
+          if (item) reach.ask(id, item.at, setMarkReach);
         }}
         marks={marks}
         ring={ring}
@@ -1138,8 +1153,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
         // While navigating the trace steps aside, so the route reads; it is still recorded (the owner's call, Nov 2).
         traceOpacity={navigation.nav ? 0 : 1}
         covered={navigation.finding}
-        veil={showUnwalked}
-        fogEmphasis={showUnwalked}
         ref={mapRef}
         // Started in place, the walk opens where the ready map was: around the last fix (NR6).
         initialCenter={live.here ?? getLastFix()?.at ?? undefined}
@@ -1585,6 +1598,11 @@ function WalkScreen(props: { onMinimize: () => void }) {
                   ? 'Take a photo, a memo or a note here to find it.'
                   : 'Walk within 60 m to see what it is.'}
             </Text>
+            {openMarkReach && (
+              <Text testID="mark-reach" style={styles.markSub}>
+                {openMarkReach}
+              </Text>
+            )}
             <View style={styles.spotActions}>
               <Button
                 testID="mark-go"
