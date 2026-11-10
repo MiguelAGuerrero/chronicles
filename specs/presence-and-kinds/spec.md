@@ -134,4 +134,8 @@ Built Nov 10 on `claude/dazzling-fermat-ws5c6a`, test-first by history (19 of 19
 `scripts/fixture-presence.mjs` (OpenFreeMap `20261101_080013_pt`; chronicles-data's classifier at its `main`, `22afcdf`).
 PK5 on the sample: the bars stay apart under the rule. Re-pinned on purpose: TP10 and PW10 (`ATLAS_CODE` a8, nothing
 carried), E16 (eleven kinds), AG5 (the community centre, by name). Deferred: `docs/DEFERRED.md`, "Presence and kinds".
-Nothing native is new; not audited (decision 0074).
+Nothing native is new; not audited (decision 0074). Journeys (one run each): atlas, curiosities, grading, marks,
+nudge, outlines, planner, replay pass; scenic failed one check (fix preview-clutter audit 1) on the branch's old base,
+passed 3 of 3 on main (`e2e:baseline`) and passed after main was merged in (`0f3f216`), so it ran twice. The decision is
+0126 (main took 0125 for moment references while this was built). PK15's report run live on the gate's areas: Lititz's
+Sturgis Pretzel House (0116's test case) is among the listed places held back for want of a sign it is open.
