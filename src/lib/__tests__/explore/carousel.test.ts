@@ -2,7 +2,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ATLAS_CODE, type AtlasArea, type Listed } from '../../atlas/atlas';
-import { busyNamesNear, firstSelection, offsetOf, rowOf, rowStep, settledIndex, stepKey } from '../../atlas/carousel';
+import { busyNamesNear, busyNamesOn, busyRadiusM, cardFooter, firstSelection, offsetOf, rowOf, rowStep, settledIndex, settleStep, stepKey, townNote } from '../../atlas/carousel';
+import { readFileSync } from 'node:fs';
 import type { LandingView } from '../../landing/view';
 import type { LngLat } from '../../types';
 
@@ -106,4 +107,52 @@ test('EC7: with no view or no selected area there are no names, and no view stay
   const none = busyNamesNear(view(), null, 15, 800, 13)!;
   assert.deepEqual([none.strips.length, none.labels.length], [0, 0]);
   assert.equal(none.graded.length, 1);
+});
+
+test('explore-carousel audit 2: a settle mid-way through the row\'s own scroll never selects a card, it aims again', () => {
+  // The row is scrolling itself to card 3 (selected) and the page stalled: the last offset read is card 1.
+  assert.deepEqual(settleStep({ index: 1, intended: 3, selected: 3 }), { report: null, scrollTo: 3 }, 'mid-way: scroll on to the target, report nothing');
+  assert.deepEqual(settleStep({ index: 3, intended: 3, selected: 3 }), { report: null, scrollTo: null }, 'arrived: nothing to do');
+  // The reader's own scroll (nothing intended): a different card is reported, the same one is not.
+  assert.deepEqual(settleStep({ index: 2, intended: null, selected: 3 }), { report: 2, scrollTo: null });
+  assert.deepEqual(settleStep({ index: 3, intended: null, selected: 3 }), { report: null, scrollTo: null });
+});
+
+test('explore-carousel audit 3: the names are on or off by one boolean, so the map is not sent a new Busy view on every camera move', () => {
+  assert.equal(busyNamesOn(13, 13), true);
+  assert.equal(busyNamesOn(15.7, 13), true);
+  assert.equal(busyNamesOn(12.99, 13), false);
+  assert.equal(busyNamesOn(0, 13), false, 'before the first view event there is no zoom: off');
+  assert.equal(busyNamesOn(11, 13), busyNamesOn(12, 13), 'zoomed out, every zoom is the same state');
+  const v = view();
+  const empty: LandingView = { pockets: [], strips: [], graded: [], labels: [] };
+  assert.equal(busyNamesNear(empty, O, 14, 800, 13), empty, 'a view with no names to drop is returned as it is');
+  assert.equal(busyNamesNear(v, O, 14, 800, 13)!.strips.length, 1, 'and one with names inside the ring keeps them');
+});
+
+test('explore-carousel audit 4: a card\'s footer shows only on the selected card, a town\'s and a town page head\'s', () => {
+  assert.equal(cardFooter({ drill: true, wide: false, selected: true }), 'See its neighborhoods');
+  assert.equal(cardFooter({ drill: true, wide: false, selected: false }), null, 'an unselected town only selects: no promise of a way in');
+  assert.equal(cardFooter({ drill: false, wide: true, selected: true }), 'What’s here');
+  assert.equal(cardFooter({ drill: false, wide: true, selected: false }), null);
+  assert.equal(cardFooter({ drill: false, wide: false, selected: true }), null, 'a neighborhood has none');
+});
+
+test('explore-carousel audit 12: the note over a town with no neighborhoods says what the map lacks, nothing of the town', () => {
+  assert.equal(townNote('Allentown', true), 'Reading Allentown…');
+  assert.equal(townNote('Allentown', false), 'The map names no neighborhoods in Allentown.');
+  assert.ok(!/one area/i.test(townNote('Allentown', false)));
+});
+
+test('explore-carousel audit 16: the Busy names reach a neighborhood\'s ring and a town\'s own reach, never an unseen 800 m', () => {
+  assert.equal(busyRadiusM('neighborhood', 800, 5000), 800);
+  assert.equal(busyRadiusM('town', 800, 5000), 5000);
+  assert.equal(busyRadiusM('town', 800, 300), 800, 'a small town is never less than the ring');
+});
+
+test('explore-carousel audit 7: a card\'s name is never cut to a number of lines (EC4: shown in full)', () => {
+  const src = readFileSync(new URL('../../../components/atlas/AtlasTile.tsx', import.meta.url), 'utf8');
+  const name = /<Text style=\{styles\.name\}[^>]*>/.exec(src)?.[0] ?? '';
+  assert.ok(name.includes('styles.name'), 'the card has its name Text');
+  assert.ok(!/numberOfLines/.test(name), `the name wraps in full (${name})`);
 });

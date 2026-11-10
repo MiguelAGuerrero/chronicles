@@ -123,6 +123,13 @@ async function run(h) {
     const stray = cards.filter((t) => t.replace(/\d+(\.\d+)?\s?(km|mi|min|m|ft|h)\b/gi, '').replace(/Walked \d+ times?/gi, '').match(/\d/));
     check(cards.length > 0 && stray.length === 0 && !cards.some((t) => /\b(nearest|top|best)\b/i.test(t)), 'EC15: no digit outside a distance or a Walked-N-times clause, and no ranking words on a card');
 
+    // explore-carousel audit 15: the row has an accessible name that holds no count.
+    const rowLabel = await safe(() => pg.locator('[data-testid=atlas-carousel]').getAttribute('aria-label'), '');
+    check(rowLabel === 'Areas near you', `explore-carousel audit 15: the row is named for a screen reader, with no count (${JSON.stringify(rowLabel)})`);
+    // explore-carousel audit 4: a town card that is not selected makes no promise of a way in.
+    const townFooters = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-tile][data-level="town"]')].map((e) => ({ sel: e.dataset.selected, has: /See its neighborhoods/.test(e.innerText) })));
+    check(townFooters.length > 0 && townFooters.every((t) => t.has === (t.sel === '1')), `explore-carousel audit 4: the footer shows only on the selected town card (${JSON.stringify(townFooters)})`);
+
     // EC19: Locate, Layers and the compass are inside the map, none under the row.
     const loc = await safe(() => pg.locator('[data-testid=locate]').boundingBox());
     check(loc && row && loc.y + loc.height <= row.y + 1, 'EC19: Locate is above the row');
@@ -193,6 +200,18 @@ async function townPage(h) {
     const pill = await pg.locator('[data-testid=atlas-back-pill]').boundingBox().catch(() => null);
     const row = await pg.locator('[data-testid=atlas-carousel]').boundingBox().catch(() => null);
     check(pill && row && pill.y + pill.height <= row.y + 1, 'EC12: the back pill is above the row');
+    // explore-carousel audit 11: with the long press's choices showing, the way back is still there, above them.
+    const mb = await pg.locator('.maplibregl-map').first().boundingBox();
+    await pg.mouse.move(mb.x + mb.width / 2, mb.y + mb.height / 2);
+    await pg.mouse.down();
+    await pg.waitForTimeout(800);
+    await pg.mouse.up();
+    await pg.waitForTimeout(800);
+    const spotBox = await pg.locator('[data-testid=atlas-spot]').boundingBox().catch(() => null);
+    const pill2 = await pg.locator('[data-testid=atlas-back-pill]').boundingBox().catch(() => null);
+    check(spotBox && pill2 && pill2.y + pill2.height <= spotBox.y + 1, `explore-carousel audit 11: on a town's page the back pill stays above the long press's choices (${pill2 && Math.round(pill2.y + pill2.height)} <= ${spotBox && Math.round(spotBox.y)})`);
+    await pg.locator('[data-testid=atlas-spot] [aria-label=Close]').click().catch(() => {});
+    await pg.waitForTimeout(500);
     await pg.keyboard.press('Escape');
     await pg.waitForTimeout(1500);
     check((await pg.locator('[data-testid=atlas-back-pill]').count()) === 0, 'EC12: Escape returns from the town\'s page');
@@ -222,6 +241,59 @@ async function wide(h) {
   }
 }
 
+// explore-carousel audit 10: the long press's hint shows once, whether or not the long press was ever used.
+async function hintOnce(h) {
+  const { url, check, freshPage, snapWorld } = h;
+  snapWorld.serve = true;
+  const { c, pg } = await freshPage('carousel-hint');
+  try {
+    await pg.goto(url);
+    await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 5, null, { timeout: 60000 }).catch(() => {});
+    await pg.waitForTimeout(1500);
+    const first = await pg.locator('[data-testid=atlas-press-hint]').count();
+    await pg.waitForTimeout(7000);
+    await pg.reload();
+    await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 5, null, { timeout: 60000 }).catch(() => {});
+    await pg.waitForTimeout(2500);
+    const second = await pg.locator('[data-testid=atlas-press-hint]').count();
+    check(first === 1 && second === 0, `explore-carousel audit 10: the hint shows once, and not again on the next visit (${first} → ${second})`);
+  } finally {
+    snapWorld.serve = false;
+    await c.close();
+  }
+}
+
+// explore-carousel audit 6: selecting a town on the page near you frames the map once, not again when its outline arrives.
+async function townFramedOnce(h) {
+  const { url, check, freshPage, snapWorld, divisions } = h;
+  snapWorld.serve = true;
+  divisions.serve = true;
+  const { c, pg } = await freshPage('carousel-frame');
+  try {
+    await pg.goto(url);
+    await pg.waitForFunction(() => document.querySelector('[data-testid=explore-area]')?.textContent === 'Allentown', null, { timeout: 60000 }).catch(() => {});
+    await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 2, null, { timeout: 30000 }).catch(() => {});
+    await pg.waitForTimeout(2500);
+    const map = pg.locator('.maplibregl-map').first();
+    await pg.locator('.maplibregl-canvas').first().focus().catch(() => {});
+    const selTown = () => pg.evaluate(() => !!document.querySelector('[data-testid=atlas-tile][data-level="town"][data-selected="1"]'));
+    for (let i = 0; i < 12 && !(await selTown()); i++) {
+      await pg.keyboard.press('ArrowRight');
+      await pg.waitForTimeout(700);
+    }
+    await pg.waitForTimeout(2500);
+    const tiles = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-tile]')].map((e) => `${e.dataset.name}:${e.dataset.level}:${e.dataset.selected}`));
+    const at1 = await map.getAttribute('data-bounds');
+    await pg.waitForTimeout(6000);
+    const at2 = await map.getAttribute('data-bounds');
+    check((await selTown()) && at1 === at2, `explore-carousel audit 6: a town selected in the row is framed once, not again when its outline arrives (${at1} → ${at2}; ${tiles.join(', ')})`);
+  } finally {
+    snapWorld.serve = false;
+    divisions.serve = false;
+    await c.close();
+  }
+}
+
 module.exports = {
   name: 'carousel',
   // Explore carousel (EC1-EC20): the map and a row of area cards.
@@ -238,5 +310,7 @@ module.exports = {
     await run(h);
     await townPage(h);
     await wide(h);
+    await hintOnce(h);
+    await townFramedOnce(h);
   },
 };

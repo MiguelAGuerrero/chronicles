@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent, type ScrollViewInstance } from 'react-native';
 import type { Listed } from '../../lib/atlas/atlas';
-import { offsetOf, settledIndex } from '../../lib/atlas/carousel';
+import { offsetOf, settledIndex, settleStep } from '../../lib/atlas/carousel';
 
 /** A card's width: most of a phone's width so the next one peeks, never wider than this. */
 const CARD_MAX = 320;
@@ -23,6 +23,8 @@ export function AtlasCarousel(props: {
   reduced: boolean;
   renderCard: (l: Listed, selected: boolean) => ReactNode;
   onSettle: (key: string) => void;
+  /** The row's name for a screen reader, holding no count (explore-carousel audit 15). */
+  label: string;
 }) {
   const { items, selected, width, reduced } = props;
   const cardW = Math.min(Math.round(width * CARD_SHARE), CARD_MAX);
@@ -57,14 +59,18 @@ export function AtlasCarousel(props: {
   const settle = useCallback(() => {
     const { items: list, selected: now, step: s, onSettle } = latest.current;
     const i = settledIndex(offset.current, s, list.length);
-    const mine = intended.current;
-    intended.current = null;
-    // The row's own scroll ended where it was sent: nothing to report.
-    if (mine === i) return;
+    const at = list.findIndex((l) => l.area.key === now);
+    const step = settleStep({ index: i, intended: intended.current, selected: at });
+    // The row's own scroll ended where it was sent: nothing to report; one that stalled short of it aims on (audit 2).
+    if (intended.current != null) {
+      if (step.scrollTo != null) scrollTo(step.scrollTo);
+      else intended.current = null;
+      return;
+    }
     // Stopped between two cards (web has no snap): ease onto the nearest, then report it.
     if (Math.abs(offset.current - offsetOf(i, s)) > 2) scrollTo(i);
-    const key = list[i]?.area.key;
-    if (key && key !== now) onSettle(key);
+    const key = step.report != null ? list[step.report]?.area.key : null;
+    if (key) onSettle(key);
   }, [scrollTo]);
 
   const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -81,6 +87,11 @@ export function AtlasCarousel(props: {
       ref={scroller}
       horizontal
       testID="atlas-carousel"
+      accessibilityLabel={props.label}
+      // A reader's own drag takes the scroll back from the row's (explore-carousel audit 2).
+      onScrollBeginDrag={() => {
+        intended.current = null;
+      }}
       showsHorizontalScrollIndicator={false}
       snapToInterval={step}
       decelerationRate="fast"

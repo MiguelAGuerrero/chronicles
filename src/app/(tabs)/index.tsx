@@ -25,7 +25,7 @@ import {
 } from '../../lib/atlas/atlas';
 import { mapTopInset } from '../../lib/mapTopInset';
 import { nearReads } from '../../lib/atlas/read';
-import { busyNamesNear, firstSelection, rowOf, rowStep, stepKey } from '../../lib/atlas/carousel';
+import { busyNamesNear, busyNamesOn, busyRadiusM, firstSelection, rowOf, rowStep, stepKey, townNote } from '../../lib/atlas/carousel';
 import { SNAP } from '../../lib/atlas/snap';
 import { useAtlas } from '../../lib/atlas/useAtlas';
 import { bordersFor, outlineIdHere, outlineOf, townFrame } from '../../lib/areas/borders';
@@ -55,6 +55,8 @@ const WORLD = { center: [-40, 30] as [number, number], zoom: 1.2 };
 const PRESS_HINT_KEY = 'atlas_press_seen';
 /** The Busy layer's street names show on the map only from this zoom, and only near the selected area (EC7, decision 0109). */
 const BUSY_NAMES_ZOOM = 13;
+/** How long the long press's hint stays up before it is marked seen (explore-carousel audit 10). */
+const HINT_MS = 5000;
 /** The long press's choices over the map's bottom (`spot`): the overlay sits above them, never over (EC19). */
 const SPOT_H = 68;
 /** From this width the area's card opens as a side panel beside the map; narrower, as a full-screen drawer. */
@@ -114,6 +116,16 @@ export default function Explore() {
   const [spot, setSpot] = useState<{ at: LngLat; zoom: number } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [pressSeen, setPressSeen] = useState(true);
+  // The hint is shown once (explore-carousel audit 10): after a few seconds on screen it is marked seen, used or not.
+  const hintShown = !pressSeen && !spot && !!from;
+  useEffect(() => {
+    if (!hintShown) return;
+    const t = setTimeout(() => {
+      setPressSeen(true);
+      db.setMeta(PRESS_HINT_KEY, '1').catch(() => {});
+    }, HINT_MS);
+    return () => clearTimeout(t);
+  }, [hintShown]);
   useEffect(() => {
     let live = true;
     db.getMeta(PRESS_HINT_KEY).then((v) => live && setPressSeen(v === '1'), () => {});
@@ -218,7 +230,8 @@ export default function Explore() {
   const sel = shown.find((l) => l.area.key === selected) ?? null;
   // Town borders (TB1, TB2): whole, from the z10 tile around you (or the open or selected town); yours tinted, the rest lined.
   // A town selected in the row is the one tinted (EC5).
-  const lit = town ?? (sel?.area.level === 'town' ? sel.area : null);
+  const litKey = town ? town.key : sel?.area.level === 'town' ? sel.area.key : null;
+  const lit = litKey == null ? null : town ?? shown.find((l) => l.area.key === litKey)?.area ?? null;
   // Town borders (TB1, TB2): whole, from the z10 tile around you (or the open town); yours tinted, the rest lined.
   const drawn = useOutlineSet([from, lit?.at], BORDER_ZOOM, focused);
   const tintedId = useMemo(
@@ -234,7 +247,14 @@ export default function Explore() {
   const wk = useWalkability(layersAt, !!layers.on.walkability);
   const busy = useBusyLayer(layersAt, !!layers.on.busy);
   // The Busy layer's lines draw at any zoom; its street names only near the selected area and zoomed in (EC7).
-  const busyView = useMemo(() => busyNamesNear(busy.view, sel?.area.at ?? null, view?.zoom ?? 0, ATLAS_RULES.ringM, BUSY_NAMES_ZOOM), [busy.view, sel, view]);
+  // On or off by one boolean, never the zoom itself, so a camera move does not send the map a new view (audit 3); a
+  // neighborhood's names reach its ring, a town's its own reach (audit 16).
+  const namesOn = busyNamesOn(view?.zoom ?? 0, BUSY_NAMES_ZOOM);
+  const namesAt = sel?.area.at ?? null;
+  const selLevel = sel?.area.level ?? 'neighborhood';
+  const selReach = sel ? sel.area.reachM : 0;
+  const namesM = busyRadiusM(selLevel, ATLAS_RULES.ringM, Math.min(selReach, ATLAS_RULES.townNeighborhoodsM));
+  const busyView = useMemo(() => busyNamesNear(busy.view, namesAt, namesOn ? BUSY_NAMES_ZOOM : 0, namesM, BUSY_NAMES_ZOOM), [busy.view, namesAt, namesOn, namesM]);
   // A card is only ever one of the areas shown, with its real distance (explore-atlas audit 7).
   const card = focused ? shown.find((l) => l.area.key === open) ?? null : null;
   const shownRef = useRef(shown);
@@ -364,9 +384,7 @@ export default function Explore() {
     ? { kind: 'side', width: 400, height: screen.h }
     : { kind: 'sheet', screenH: screen.h };
 
-  const townNote = town && ownTown && !neighborhoods.length
-    ? (listing ? `Reading ${town.name}…` : `No neighborhoods are named on the map in ${town.name}. It is one area.`)
-    : null;
+  const noteText = town && ownTown && !neighborhoods.length ? townNote(town.name, listing) : null;
   const overlay = error ? (
     <Banner
       tone="error"
@@ -399,10 +417,10 @@ export default function Explore() {
         <Text style={styles.scanCancelText}>Cancel</Text>
       </Pressable>
     </View>
-  ) : townNote ? (
+  ) : noteText ? (
     <View style={styles.note} testID="atlas-town-note" accessibilityLiveRegion="polite">
       {listing ? <ActivityIndicator color={theme.muted} /> : null}
-      <Text style={styles.noteText}>{townNote}</Text>
+      <Text style={styles.noteText}>{noteText}</Text>
     </View>
   ) : !pressSeen && !spot && from ? (
     <Text style={styles.hint} testID="atlas-press-hint">Press and hold the map to look anywhere.</Text>
@@ -523,10 +541,10 @@ export default function Explore() {
       {Platform.OS === 'web' ? <Text testID="atlas-snap-said" accessibilityLiveRegion="polite" style={styles.said}>{said.n % 2 ? `${said.text}\u200B` : said.text}</Text> : null}
       {/* One of an error, a notice, "Looking around…", a town's note or the hint at a time, over the map above the row, clear of
           the back pill and the map's buttons (EC12, EC14). */}
-      {overlay ? <View style={[styles.overlay, { bottom: spot ? 10 + SPOT_H + 8 : town ? 12 + 44 + 8 : 12 }]} pointerEvents="box-none">{overlay}</View> : null}
+      {overlay ? <View style={[styles.overlay, { bottom: (spot ? 10 + SPOT_H + 8 : 12) + (town ? 44 + 8 : 0) }]} pointerEvents="box-none">{overlay}</View> : null}
       {/* On a town's page, the way back also sits low, where a thumb reaches (round 3), over the map above the row. */}
-      {town && !spot ? (
-        <Pressable testID="atlas-back-pill" accessibilityRole="button" accessibilityLabel={`Back to ${home?.area.name ?? 'near you'}`} onPress={leave} style={styles.backPill}>
+      {town ? (
+        <Pressable testID="atlas-back-pill" accessibilityRole="button" accessibilityLabel={`Back to ${home?.area.name ?? 'near you'}`} onPress={leave} style={[styles.backPill, spot ? { bottom: 10 + SPOT_H + 8 } : null]}>
           <Icon name="chevron-back" size={18} color={theme.ink} />
           <Text style={styles.backPillText} numberOfLines={1}>{home?.area.name ?? 'Near you'}</Text>
         </Pressable>
@@ -545,6 +563,7 @@ export default function Explore() {
             selected={selected}
             width={screen.w}
             reduced={reduced}
+            label={town ? `Areas in ${town.name}` : 'Areas near you'}
             onSettle={selectKey}
             renderCard={(l, isSel) => (
               <AtlasTile

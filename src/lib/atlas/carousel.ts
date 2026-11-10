@@ -45,5 +45,39 @@ export function busyNamesNear(view: LandingView | null, at: LngLat | null, zoom:
   if (!view) return null;
   const named = at != null && zoom >= minZoom;
   const near = (p: LngLat) => named && distanceM(at, p) <= ringM;
-  return { ...view, strips: view.strips.filter((s) => near(s.at)), labels: view.labels.filter((l) => near(l.at)) };
+  const strips = view.strips.filter((s) => near(s.at));
+  const labels = view.labels.filter((l) => near(l.at));
+  // Nothing dropped: the same view, so the map is not sent it again (explore-carousel audit 3).
+  return strips.length === view.strips.length && labels.length === view.labels.length ? view : { ...view, strips, labels };
+}
+
+/**
+ * What a settled scroll means (explore-carousel audit 2). While the row is scrolling itself to a card (`intended`), a settle
+ * that stopped short of it (a stalled page) is never the reader's: it aims on. Otherwise the card it stopped on is reported
+ * when it is not already the selected one.
+ */
+export function settleStep(p: { index: number; intended: number | null; selected: number }): { report: number | null; scrollTo: number | null } {
+  if (p.intended != null) return { report: null, scrollTo: p.index === p.intended ? null : p.intended };
+  return { report: p.index === p.selected ? null : p.index, scrollTo: null };
+}
+
+/** The footer a card shows (explore-carousel audit 4, EC15): only the selected card, so a tap on it does what it says. */
+export function cardFooter(p: { drill: boolean; wide: boolean; selected: boolean }): string | null {
+  if (!p.selected) return null;
+  return p.drill ? 'See its neighborhoods' : p.wide ? 'What’s here' : null;
+}
+
+/** The words over the map for a town page with no neighborhoods: what the map lacks, nothing of the town (explore-carousel audit 12). */
+export function townNote(name: string, listing: boolean): string {
+  return listing ? `Reading ${name}…` : `The map names no neighborhoods in ${name}.`;
+}
+
+/** How far from the selected area's point the Busy names reach: a neighborhood's ring, a town's own reach, never less than the ring (explore-carousel audit 16). */
+export function busyRadiusM(level: 'neighborhood' | 'town', ringM: number, townReachM: number): number {
+  return level === 'town' ? Math.max(ringM, townReachM) : ringM;
+}
+
+/** Whether the Busy names are shown at this zoom: one boolean, so a camera move does not send the map a new view (explore-carousel audit 3). */
+export function busyNamesOn(zoom: number, minZoom: number): boolean {
+  return zoom >= minZoom;
 }

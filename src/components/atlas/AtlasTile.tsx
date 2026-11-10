@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ATLAS_ORDER, characterLine, distanceWords, familiarityWords, tileLabel, type Familiarity, type Listed, type Steps } from '../../lib/atlas/atlas';
+import { cardFooter } from '../../lib/atlas/carousel';
 import { formatDistance } from '../../lib/format';
 import { COLORS, HOTSPOT, HOTSPOT_INK } from '../map/types';
 import { Icon } from '../icons';
@@ -35,7 +36,8 @@ export const AtlasTile = memo(function AtlasTile(props: {
   const reading = !a.profile;
   // EC13: the selected card's label ends in what a tap does, the others' in "Selects it".
   const label = `${tileLabel(listed, fam, fmt)} ${props.selected ? (props.drill ? 'Opens its page' : 'Opens its card') : 'Selects it'}`;
-  const footer = props.drill ? 'See its neighborhoods' : props.wide ? 'What’s here' : null;
+  // Only the selected card promises a way in (explore-carousel audit 4): a tap on another only selects it.
+  const footer = cardFooter({ drill: !!props.drill, wide: !!props.wide, selected: props.selected });
   return (
     <View style={[styles.outer, props.drill && styles.stack]}>
       <Pressable
@@ -49,7 +51,7 @@ export const AtlasTile = memo(function AtlasTile(props: {
       >
         <View>
           <View style={[styles.body, reading && styles.dim]}>
-            <Text style={styles.name} numberOfLines={2}>{a.name}</Text>
+            <Text style={styles.name}>{a.name}</Text>
             {reading ? (
               <View style={styles.meta}>
                 <ActivityIndicator size="small" color={theme.muted} />

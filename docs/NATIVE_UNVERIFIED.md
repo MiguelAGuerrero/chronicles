@@ -181,6 +181,10 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** with VoiceOver and then TalkBack on, swipe the row and the map. **Expect:** every card is reachable by swiping, the selected card says it opens its card and the others that they select, and `announceForAccessibility` says an area's name when the selection changes. (EC13, DN12)
 - [ ] **Do:** on a phone with a home indicator, look at the row's bottom. **Expect:** the cards clear the indicator and sit above the tabs, and the map's Locate, Layers and compass are above the row. (EC19)
 
+- [ ] **Do:** open Explore, select a card past the first, leave the tab and come back (or let the list go empty and return). **Expect:** the row remounts scrolled to the selected card: a `scrollTo` issued before layout is not dropped (it would leave the row at the first card with another selected). (EC4)
+- [ ] **Do:** with a right-to-left language on, open Explore. **Expect:** the row's first card is on the reading side and a swipe steps in the reading direction, or the mirroring is recorded as not done (DEFERRED). (EC4)
+- [ ] **Do:** pull one card's name long ("Lehigh Valley Industrial Park District"). **Expect:** the name wraps in full and the row stays aligned to its top. (EC4)
+
 ## Explore atlas
 
 - [ ] **Do:** open Explore's atlas on iOS and Android. **Expect:** the react-native-svg mini-maps draw on all 12 tiles, each with its even-odd veil and dashed strokes as on the web. (AT6)

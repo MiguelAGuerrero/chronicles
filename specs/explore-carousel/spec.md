@@ -30,18 +30,18 @@ Explore opens on a full-height map. The areas around you are one horizontal row 
 1. **EC1** While any area is listed, one is selected. On arrival the first in the row is, and again whenever the page changes or the selected area is no longer listed. A tap on the map away from an area never clears the selection.
 2. **EC2** The map fills the screen from the top to the row; the row sits above the tabs. There is no grid of tiles and no "Neighborhoods near you" or "Other towns" heading, on a phone and on a wide screen. No card or heading shows a count, a rank or a rating.
 3. **EC3** The row's order is fixed and not capped beyond what the atlas lists today (`ATLAS_RULES`). On the page near you: the neighborhoods nearest first, the one you are in leading, then the other towns nearest first. On a town's page: the town's own card, then its neighborhoods nearest first. The row says nothing of a rank, a first or a last.
-4. **EC4** Swiping the row (a drag, a mouse drag, a flick) settles on one card at a time and selects it. After it settles, the centred card and the selected area are the same, and a card's name is shown in full.
+4. **EC4** Swiping the row (a finger's drag or flick; on desktop web the wheel, a tap on a card, a swipe or an arrow key on the map) settles on one card at a time and selects it. After it settles, the centred card and the selected area are the same, and a card's name is shown in full.
 5. **EC5** The selected area is highlighted on the map: a neighborhood by its ring, a town by its tinted border, either by its name in the accent colour. The map eases to it at the current zoom (jumps with reduced motion).
 6. **EC6** The map draws no name but the selected area's. The other areas of its level are unnamed dots; areas of another level are not drawn (fix map-levels, kept).
-7. **EC7** The Busy layer's lines draw at any zoom. Its street names are drawn only inside the selected area's ring and only from zoom 13; otherwise none.
+7. **EC7** The Busy layer's lines draw at any zoom. Its street names are drawn only near the selected area (a neighborhood's ring, a town's own reach) and only from zoom 13; otherwise none.
 8. **EC8** A one-finger swipe on the map steps the row by what is on screen: left, next card; right, previous, whatever the map's bearing. A swipe more vertical than horizontal does nothing. At the first or last card nothing changes.
 9. **EC9** On web, with the map focused, ArrowRight is next and ArrowLeft previous; ArrowUp and ArrowDown do nothing; `+` and `-` still zoom.
 10. **EC10** One finger never pans the map. Pinch, the wheel, a double tap, the two-finger turn, the long press (What's good here, Walk here) and Locate work as before (DN1, DN10).
 11. **EC11** A tap on the selected card opens its card, as a tile did; a tap on a town's selected card opens its page. A tap on any other card selects and centres it and opens nothing.
 12. **EC12** A town's page has the pill and Escape back (0077); opening or leaving a page selects the first card again and resets the row to it. The pill is visible and tappable while a banner, the hint or "Looking around…" shows, and Back (Android) still returns.
 13. **EC13** A screen reader hears an area's name when the selection changes, by a swipe, a key or a tap. Every card is reachable by a screen reader's swipe and by Tab, and is one control named by its area and where it is; the selected card's label ends "Opens its card" (a town's "Opens its page") and the others' "Selects it". The row is the screen reader's way to step areas.
-14. **EC14** With no area to show, the row's place holds one status card in words ("Reading the map around you…", "Couldn't read the map. It will try again in a moment.", "No neighborhoods are named on the map here."). A town with no neighborhoods shows its own card, and over the map the words "It is one area.". The errors, notices, "Looking around…" and the long-press hint sit over the map above the row, never inside it, and at most one of them shows at a time; the hint shows once, as now.
-15. **EC15** A card carries what a tile carries: the name, "You're here" or the distance in words, familiarity in words ("New to you", "Walked 3 times"), its character line, its busiest street and the kinds as dots; a town's also its "See its neighborhoods" footer, which does what a tap on the selected card does. No digit appears on a card outside a distance or a "Walked N times" clause, no rating or score, and no "nearest", "top" or "best" wording.
+14. **EC14** With no area to show, the row's place holds one status card in words ("Find where you are to see the areas around you." with a Find me button when there is no position, "Reading the map around you…", "Couldn't read the map. It will try again in a moment.", "No neighborhoods are named on the map here."). A town with no neighborhoods shows its own card, and over the map what the map lacks ("The map names no neighborhoods in X.", never a claim about the town). The errors, notices, "Looking around…" and the long-press hint sit over the map above the row, never inside it, and at most one of them shows at a time; the hint shows once: after a few seconds on screen it is marked seen, used or not.
+15. **EC15** A card carries what a tile carries: the name, "You're here" or the distance in words, familiarity in words ("New to you", "Walked 3 times"), its character line, its busiest street and the kinds as dots; a town's, when it is the selected card, its "See its neighborhoods" footer, which does what a tap on it does. No digit appears on a card outside a distance or a "Walked N times" clause, no rating or score, and no "nearest", "top" or "best" wording.
 16. **EC16** From 1000 px wide the layout is the same (map, row at the bottom of it) and the area's card opens as the side panel, as now.
 17. **EC17** Only Explore changes: Navigate, Chronicle, the replay and a day pan their maps freely (DN13).
 18. **EC18** Each area's busiest street is named on its card whether or not the map draws the name (the owner's complaint amends 0034's names on the map, never the information).
@@ -56,6 +56,29 @@ Explore opens on a full-height map. The areas around you are one horizontal row 
 ## Routes and data
 
 - No new routes, dependencies, storage or derivation rules. The row is a horizontal `ScrollView` with snapping, which both platforms have. The selection and the open card stay in the Explore screen's state; the row's order is derived from what `useAtlas` lists.
+
+## Audit (Nov 10, at the owner's request)
+
+The auditor (8 findings) and the vision steward (8 findings, numbered 9-16 after them): 16 findings, 9 fixed, 2 deferred, 3 rejected, 1 for the owner, 1 in part.
+
+1. A mouse drag on the row does nothing on desktop web: defer. Touch is the platform; a desktop reader steps by a tap on a card, the map's swipe or the arrow keys. EC4's wording says so now; a web-only drag-to-scroll would be a web exception (DEFERRED).
+2. A stalled page re-aims the row to a card nobody chose: accept. `settleStep` (`carousel.test.ts` "explore-carousel audit 2"); a reader's own drag clears the row's target. The component wiring is by review and the existing journeys.
+3. The Busy view is rebuilt on every camera move: accept. `busyNamesOn`, a view returned as it is when nothing is dropped, and the screen memoizes on that boolean ("audit 3").
+4. An unselected town card promises "See its neighborhoods": accept. `cardFooter` ("audit 4"); e2e `carousel` "explore-carousel audit 4".
+5. A selection moved by a re-list is not eased or announced: defer. It is not a selection event; the map frames the page's areas, and the card and ring move together (DEFERRED).
+6. A town selected in the row is framed twice: reject, not reproduced. The bounds do not change when the outline arrives; e2e `carousel` "explore-carousel audit 6" pins it.
+7. A long name is cut at two lines: accept. The name wraps in full; `carousel.test.ts` "explore-carousel audit 7" reads the card's source.
+8. `onSwipe` still carries the camera centre and metres a pixel, and `map.md` described them: accept the docs line, defer the payload (DEFERRED).
+9. VISION.md's Precedents does not list 0109: for the owner. The page is theirs to edit; it is in STATUS "Needs the owner".
+10. The long press's hint shows until used, not once: accept. It is marked seen after 5 s on screen; e2e `carousel` "explore-carousel audit 10".
+11. The way back on a town's page disappears while the long press's choices show: accept. The pill and the overlay sit above them; e2e `carousel` "explore-carousel audit 11".
+12. "It is one area." states derived data as a fact: accept. `townNote` ("audit 12").
+13. The first card is accented before the walker chose: reject. The owner asked for something always highlighted; a selection is not a win (the plan's S7).
+14. Hues on the cards (magenta busy line, route and trace colours, accent footer): reject. They are the tile's round-3 design (decision 0067), kept; a quieter card is the owner's call to ask for.
+15. The fourth status ("Find me") is missing from EC14, and the row has no name: accept both. EC14 lists it; the row is named "Areas near you" (or "Areas in X"); e2e `carousel` "explore-carousel audit 15".
+16. The Busy names use an unseen 800 m around a town: accept. `busyRadiusM`: a neighborhood's ring, a town's own reach ("audit 16").
+
+Silent questions the steward put to the owner: whether a far first card should be highlighted on arrival with no fix (the row's order is by distance and the card says how far); whether "You're here" in the route colour is a celebration (it is the tile's round-3 look); whether stepping the row should move what the Busy layer reads (it does: the map shows what is selected).
 
 ## Record
 
