@@ -416,8 +416,10 @@ export function CaptureViewer(props: {
         {/* The baker draws behind everything; the cover hides it. */}
         {baker}
         <View style={[StyleSheet.absoluteFill, styles.viewer]} />
-        {/* Down while the editor is up: a video never plays on beneath it, and the edited one mounts fresh. */}
-        {current && !editing && (
+        {/* Down while the editor, the reminder, a note or the thread picker is up: closing an overlay drawn over a mounted
+            capture leaves a stale copy of it in the web's DOM (Nov 4, and the reminder editor, ui-conformance audit), and a
+            video never plays on beneath one. */}
+        {current && !editing && !reminding && !noting && !adding && (
           <CaptureContent
             key={current.id}
             capture={current}

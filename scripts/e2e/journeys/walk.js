@@ -345,6 +345,8 @@ async function checks(h) {
         await page.click('[data-testid=viewer-remind]');
         await page.click('[data-testid=remind-stop]');
         await page.waitForFunction(() => ![...document.querySelectorAll('[data-testid=capture-meta]')].some((e) => /Reminder set/.test(e.textContent ?? '')), null, { timeout: 5000 });
+        const metaCopies = await page.locator('[data-testid=capture-meta]').count();
+        check(metaCopies === 1, `ui-conformance audit 1: closing the reminder editor leaves no stale copy of the moment behind (${metaCopies} info lines)`);
         await page.waitForFunction(() => !document.querySelector('[data-testid=pin-reminder]'), null, { timeout: 5000 }).catch(() => null);
         const bellsAfterStop = await page.locator('[data-testid=pin-reminder]').count();
         check(bellsAfterStop === 0, `Stop reminding me takes the pin's bell off at once (RB5: ${bellsAfterStop} bells)`);
