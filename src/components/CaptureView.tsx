@@ -116,6 +116,8 @@ function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () =
 }
 
 
+/** A video's own controls sit along the bottom of its picture; what stands above the strip leaves them this much. */
+
 /**
  * The picture's area: a plain view, or, in the viewer, a button whose tap shows or hides the bars (UC7). The
  * picture itself lets taps through to it.

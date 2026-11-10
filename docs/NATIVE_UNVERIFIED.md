@@ -348,6 +348,7 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** delete a moment in the viewer, then go back to the previous screen before tapping anything. **Expect:** the pill goes, the moment is stored as deleted and stays gone; a delete waiting while a thread is changed is stored first. (audit 6, 4)
 - [ ] **Do:** with VoiceOver or TalkBack on, open a photo in the viewer and move focus onto it. **Expect:** it is not offered as a button. (audit 13)
 - [ ] **Do:** record a voice reply on a photo, then tap the photo. **Expect:** the bars stay up and Stop stays on screen. (audit 16)
+- [ ] **Do:** on an iPhone (Safari and the Home Screen app) and an Android phone, open a moment, tap Respond → Note, and type until the keyboard is up. **Expect:** the note editor and its Save stay above the keyboard (`useKeyboardHeight` on the web, `KeyboardAvoidingView` on iOS). (fix respond-bottom, carried to the note editor)
 
 ## Moment stacks (MS1-MS15, decision 0123)
 

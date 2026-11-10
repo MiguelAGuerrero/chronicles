@@ -112,6 +112,8 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - A web export recorded in a hidden tab: requestAnimationFrame stops and frames freeze until it is shown again (media-editing audit 10)
 - On Navigate, a moment's "kept here" toast and its Edit pill can show together (media-editing audit 13)
 - A turned or cropped video has only play and pause, no scrubber or progress (media-editing audit 15)
+- A caption dragged near the bottom of a portrait photo sits behind the viewer's Respond row while the viewer is open (fix respond-bottom audit 5); the saved photo and the replay's card are not affected
+- On Android with edge-to-edge, the reported keyboard height leaves out the navigation bar beneath it, so Respond's Cancel and Keep reply may sit partly under the keyboard (fix respond-bottom audit 7): waits on a device run (NATIVE_UNVERIFIED), since whether the keyboard events reach the Modal's field at all is unknown
 
 ## Deletion
 
@@ -423,3 +425,10 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **@ in the capture stack's quick note** (Navigate, the walk and the Memories band): those notes are their own inline composers, not `NoteEditor`; a mention there needs the picker drawn over each. Write the note, then Edit it to mention a moment.
 - **A mention's words are those it was written with** in plain text: a moment renamed or placed later still reads its old words outside the viewer, whose card looks it up live.
 - **Mentions from a note to a note opened from a mention** stack in the viewer without a limit; Back pops one at a time.
+
+## Explore's map shows the selected area's places (fix area-marks, Nov 10)
+
+- **A town's finds past 800 m of its busiest pocket** (audit 1): finds are kept by `findsIn` within the ring around `sketchAt`, while a graded town's "?" come from its whole outline, so a find inside the border but far from the pocket shows on neither the map nor the card (the card had it before).
+- **The "?" pins sit together** (audit 2): `waitingMarks` places each kind's "?" at its place nearest the area's point (a rule made for the sketch, AT6), so on a town at whole-town zoom, or beside a neighborhood's name, they stack. Spreading them is a placement call for the owner.
+- **The "?" label is the walk's** (audit 3): "A place to find. Open", the same on every pin, while a tap opens the area's card. An Explore label ("Something to find in Fox Point") needs the shared `markLabel` to take one.
+- **The base map may name a hidden place under its "?"** (audit 5): if the style draws poi labels at that zoom; the walk screen has the same, and checking needs real tiles.

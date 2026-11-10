@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NOTE_MAX, noteText } from '../lib/noteEdit';
 import { editRefs, type EditorRef, fromEditor, insertRef, toEditor, typedAt } from '../lib/refs';
 import { refLabel } from '../lib/threads/lines';
+import { useKeyboardHeight } from '../lib/threads/useKeyboardHeight';
 import { useMomentPool } from './threads/useMomentPool';
 import { MomentPicker } from './threads/MomentPicker';
 import { Button, theme } from './ui';
@@ -23,6 +24,8 @@ export function NoteEditor(props: {
   mention?: { self: string | null };
 }) {
   const insets = useSafeAreaInsets();
+  // The web's keyboard is not avoided by KeyboardAvoidingView: rise above it by its height (fix respond-bottom audit 3).
+  const keyboard = useKeyboardHeight();
   const pool = useMomentPool();
   const [now] = useState(() => Date.now());
   const wordsOf = (id: string) => {
@@ -57,7 +60,7 @@ export function NoteEditor(props: {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={[StyleSheet.absoluteFill, styles.back, { paddingTop: insets.top + 56 }]}
+      style={[StyleSheet.absoluteFill, styles.back, { paddingTop: insets.top + 56, paddingBottom: Platform.OS === 'web' ? keyboard + 16 : 16 }]}
     >
       <View testID="note-editor" style={styles.card} accessibilityViewIsModal>
         <Text style={styles.title} accessibilityRole="header">{props.title ?? 'Edit note'}</Text>
