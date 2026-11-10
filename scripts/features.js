@@ -378,7 +378,6 @@ const UNTESTED = {
     RP7: 'deferred: built and tested here, then the places pipeline moved to chronicles-data (decision 0108); the rule and its tests go there (specs/remarkable-and-public/handoff.md)',
     RP10: 'deferred: built and tested here, then the places pipeline moved to chronicles-data (decision 0108); the rule and its tests go there (specs/remarkable-and-public/handoff.md)',
     RP12: 'deferred: built and tested here, then the places pipeline moved to chronicles-data (decision 0108); the rule and its tests go there (specs/remarkable-and-public/handoff.md)',
-    RP9: 'deferred: needs the archive class church, which waits on chronicles-data\'s contract v2 (PP17 pins v1)',
   },
   // react-native-web always reports a screen reader, so the screen-reader path runs only on a device.
   'replay-rhythm': { RR17: 'device: both replays step through the moments with a screen reader on, native only' },

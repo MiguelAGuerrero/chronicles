@@ -23,8 +23,18 @@ const placesNow = () => placesFromTilePois(tile, fixture.build);
 const poi = (cls: string, subclass: string, name: string, at: LngLat): TileFeature & { zoom?: number } =>
   ({ type: 'Feature', geometry: { type: 'Point', coordinates: at }, properties: { class: cls, subclass, name }, zoom: 14 } as unknown as TileFeature & { zoom?: number });
 
-// RP9 (a listed church lifts the name rule) needs the archive class `church`, which waits on chronicles-data's
-// contract v2 (PP17 pins v1): recorded in scripts/features.js UNTESTED, tested again when the class arrives.
+test('RP9: a listed church in the tiles with no notable word is one place to find, of the archive\'s kind (contract v2)', () => {
+  const at: LngLat = [-75.3807, 40.6206];
+  const tiles = placesFromTilePois([poi('place_of_worship', 'place_of_worship', 'Central Moravian Church', at)], 'b');
+  assert.equal(tiles.length, 1);
+  assert.equal(isMarkable(tiles[0]), false, 'the name rule stops it (no word from notable.json)');
+  const archived = archivePlace('Central Moravian Church', 'church', [at[0] + 0.0002, at[1]], 'v1');
+  assert.ok(archived, 'church is an archive class (contract v2)');
+  const found = mergePlaces(tiles, [archived!]).filter((p) => p.name === 'Central Moravian Church');
+  assert.equal(found.length, 1, 'one place');
+  assert.ok(isMarkable(found[0]));
+  assert.equal(found[0].kind, 'churches');
+});
 
 /** String literals in the files under `dir` that a screen could show. */
 function shownStrings(dir: string): string[] {
