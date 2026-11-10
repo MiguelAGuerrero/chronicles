@@ -21,11 +21,16 @@ async function run(h) {
   const tileOf = (pg, name) => pg.locator(`[data-testid=atlas-tile][data-name="${name}"]`);
   const openCard = async (pg, name) => {
     await pg.waitForSelector(`[data-testid=atlas-tile][data-name="${name}"]`, { timeout: 60000 });
-    await tileOf(pg, name).click();
-    await pg.waitForSelector('[data-testid=atlas-card]');
+    // A town's tile opens its page first (AT2); its wide tile there opens the card.
+    await tileOf(pg, name).first().click();
+    if (!(await pg.waitForSelector('[data-testid=atlas-card]', { timeout: 3000 }).catch(() => null))) {
+      await pg.click('[data-testid=atlas-town-head]', { timeout: 30000 });
+      await pg.waitForSelector('[data-testid=atlas-card]', { timeout: 15000 });
+    }
     await pg.waitForTimeout(700);
   };
-  const PROVIDENCE = at(29, 0);
+  // Cranston, a town 4 km west of the start (snap world); Providence is the town you are in.
+  const CRANSTON = at(-40, 2);
 
   snapWorld.serve = true;
   try {
@@ -33,12 +38,12 @@ async function run(h) {
     {
       const { c, pg } = await freshPage('drive');
       await pg.goto(url);
-      await openCard(pg, 'Providence');
+      await openCard(pg, 'Cranston');
       await pg.click('[data-testid=atlas-walk]').catch(() => {});
       await pg.waitForTimeout(800);
       const asked = await footerIds(pg);
       check(asked.includes('atlas-walk-now') && asked.includes('atlas-walk-later') && !(await openWalk(pg)),
-        `DW2: Walk to a place 2.9 km away asks Walk now or When I get there, and starts nothing (${asked.join(', ')})`);
+        `DW2: Walk to a town 4 km away asks Walk now or When I get there, and starts nothing (${asked.join(', ')})`);
       await shot(pg, 'drive-1-asks');
       await pg.keyboard.press('Escape');
       await pg.waitForTimeout(600);
@@ -51,35 +56,38 @@ async function run(h) {
       await pg.click('[data-testid=atlas-walk-later]').catch(() => {});
       await pg.waitForSelector('[data-testid=ready-dest]', { timeout: 15000 }).catch(() => {});
       const dest = await pg.locator('[data-testid=ready-dest]').innerText().catch(() => '');
-      check(/To Providence · .*away/.test(dest) && (await pg.locator('[data-testid=start]').count()) === 1 && !(await openWalk(pg)),
-        `DW3: When I get there opens Navigate, ready, "To Providence", and no walk starts (${dest})`);
+      check(/To Cranston · .*away/.test(dest) && (await pg.locator('[data-testid=start]').count()) === 1 && !(await openWalk(pg)),
+        `DW3: When I get there opens Navigate, ready, "To Cranston", and no walk starts (${dest})`);
       await shot(pg, 'drive-2-later');
 
-      // Too far to walk (DW14): from 10.4 km west, Providence's card offers When I get there alone.
+      // Too far to walk (DW14): from 11.5 km east, Cranston's card offers When I get there alone.
       await pg.click('[data-testid=ready-close]').catch(() => {});
-      const west = at(-75, 0);
-      await c.setGeolocation({ longitude: west[0], latitude: west[1], accuracy: 6 });
+      const east = at(75, 0);
+      await c.setGeolocation({ longitude: east[0], latitude: east[1], accuracy: 6 });
       await pg.goto(url);
-      await openCard(pg, 'Providence');
+      await openCard(pg, 'Cranston');
       const far = await footerIds(pg);
       const card = await pg.locator('[data-testid=atlas-card]').innerText().catch(() => '');
       check(far.length === 1 && far[0] === 'atlas-walk-later' && !/Too far to walk/.test(card),
         `DW14: past 10 km the card offers When I get there alone (${far.join(', ')})`);
       await pg.keyboard.press('Escape');
 
-      // Drive to Providence with the destination saved, and park there a minute: nothing starts (DW4).
-      await c.setGeolocation({ longitude: PROVIDENCE[0] - 2 * dLon, latitude: PROVIDENCE[1], accuracy: 6 });
+      // Drive to Cranston with the destination saved, and park there a minute: nothing starts (DW4).
+      await c.setGeolocation({ longitude: CRANSTON[0] - 2 * dLon, latitude: CRANSTON[1], accuracy: 6 });
       await pg.goto(navUrl);
       await pg.waitForSelector('[data-testid=start]', { timeout: 30000 });
-      let here = [PROVIDENCE[0] - 2 * dLon, PROVIDENCE[1]];
-      here = await go(c, pg, here, [PROVIDENCE[0] + 0.1 * dLon, PROVIDENCE[1] + 0.1 * dLat], 3);
+      // What Navigate already says (the web's one-time note, NR13) is not news from arriving.
+      const said = () => pg.locator('[data-testid=banner-dismiss]').evaluateAll((els) => els.map((e) => e.parentElement?.innerText ?? ''));
+      const before = await said();
+      let here = [CRANSTON[0] - 2 * dLon, CRANSTON[1]];
+      here = await go(c, pg, here, [CRANSTON[0] + 0.1 * dLon, CRANSTON[1] + 0.1 * dLat], 3);
       for (let k = 0; k < 60; k++) {
         await c.setGeolocation({ longitude: here[0], latitude: here[1] + (k % 2) * 1e-6, accuracy: 6 });
         await pg.waitForTimeout(1000);
       }
-      const banners = await pg.locator('[data-testid=banner-dismiss]').count();
+      const banners = (await said()).filter((t) => !before.includes(t)).length;
       const still = await pg.locator('[data-testid=ready-dest]').innerText().catch(() => '');
-      check(!(await openWalk(pg)) && banners === 0 && /To Providence/.test(still) && (await pg.locator('[data-testid=start]').count()) === 1,
+      check(!(await openWalk(pg)) && banners === 0 && /To Cranston/.test(still) && (await pg.locator('[data-testid=start]').count()) === 1,
         `DW4: at the place for a minute, nothing starts, nothing is said, Navigate waits (${banners} banners, "${still}")`);
       await pg.click('[data-testid=start]');
       await pg.waitForSelector('[data-testid=cap-photo]', { timeout: 30000 }).catch(() => {});
@@ -92,6 +100,8 @@ async function run(h) {
     // ---- The way back: a walk, a drive, a walk; then Walk back here (DW6-DW9, DW11, DW13). ----
     {
       const { c, pg } = await freshPage('drive-back');
+      // The map's mark count (data-marks) is written only while the page measures.
+      await c.addInitScript(() => { window.__perf = {}; });
       const s0 = at(-1.5, -0.5);
       await c.setGeolocation({ longitude: s0[0], latitude: s0[1], accuracy: 6 });
       await pg.goto(navUrl);
@@ -100,9 +110,14 @@ async function run(h) {
       await pg.waitForSelector('[data-testid=cap-photo]', { timeout: 30000 });
       await pg.waitForTimeout(1500);
       let here = await go(c, pg, s0, at(-0.5, -0.5), 5);
-      here = await go(c, pg, here, at(4, -0.5), 15);
-      const parked = here;
-      here = await go(c, pg, here, at(4, 1.5), 5);
+      // 45 s at 12 m/s, as the memories journey's bus: a ride (RIDE_RULES); then parked a few seconds, and 120 m on foot at
+      // 2 m/s (under 3 m/s: faster reads as slow traffic, still the ride).
+      here = await go(c, pg, here, at(4.9, -0.5), 12);
+      for (let k = 0; k < 5; k++) {
+        await c.setGeolocation({ longitude: here[0], latitude: here[1] + k * 1e-6, accuracy: 6 });
+        await pg.waitForTimeout(1000);
+      }
+      here = await go(c, pg, here, at(4.9, 0.7), 2);
       await pg.waitForTimeout(3000);
       const label = await pg.locator('[data-testid=walk-back]').getAttribute('aria-label').catch(() => null);
       check(label === 'Walk me back to where the ride ended', `DW6, DW8: after a drive, Walk me back names where the ride ended (${label})`);
@@ -113,7 +128,7 @@ async function run(h) {
       const bar = await pg.locator('[data-testid=nav-bar]').innerText().catch(() => '');
       const m = /([\d.]+)\s*(m|km)/.exec(await pg.locator('[data-testid=nav-left]').innerText().catch(() => ''));
       const left = m ? parseFloat(m[1]) * (m[2] === 'km' ? 1000 : 1) : NaN;
-      check(/Where the ride ended/.test(bar) && left > 120 && left < 320,
+      check(/Where the ride ended/.test(bar) && left > 60 && left < 220,
         `DW6, DW9: the way back leads to where the ride ended, along the walk, never the drive (${left} m, "${bar.replace(/\s+/g, ' ')}")`);
       check(!/\d+\s*min.*(faster|shorter)|fastest/i.test(bar), 'DW8: no minutes compared');
       const marksLed = await pg.locator('.maplibregl-map').last().getAttribute('data-marks').catch(() => null);
@@ -157,7 +172,6 @@ async function run(h) {
       await pg.waitForTimeout(3000);
       const label3 = await pg.locator('[data-testid=walk-back]').getAttribute('aria-label').catch(() => null);
       check(label3 === 'Walk me back to the spot you chose', `DW7: a reload keeps the spot chosen (${label3})`);
-      void parked;
       await c.close();
     }
 
