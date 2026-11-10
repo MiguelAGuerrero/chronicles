@@ -55,6 +55,8 @@ const WORLD = { center: [-40, 30] as [number, number], zoom: 1.2 };
 const PRESS_HINT_KEY = 'atlas_press_seen';
 /** The Busy layer's street names show on the map only from this zoom, and only near the selected area (EC7, decision 0109). */
 const BUSY_NAMES_ZOOM = 13;
+/** The long press's choices over the map's bottom (`spot`): the overlay sits above them, never over (EC19). */
+const SPOT_H = 68;
 /** From this width the area's card opens as a side panel beside the map; narrower, as a full-screen drawer. */
 const TWO_PANES = 1000;
 const fmt = (m: number) => formatDistance(m);
@@ -521,7 +523,7 @@ export default function Explore() {
       {Platform.OS === 'web' ? <Text testID="atlas-snap-said" accessibilityLiveRegion="polite" style={styles.said}>{said.n % 2 ? `${said.text}\u200B` : said.text}</Text> : null}
       {/* One of an error, a notice, "Looking around…", a town's note or the hint at a time, over the map above the row, clear of
           the back pill and the map's buttons (EC12, EC14). */}
-      {overlay ? <View style={[styles.overlay, { bottom: town ? 12 + 44 + 8 : 12 }]} pointerEvents="box-none">{overlay}</View> : null}
+      {overlay ? <View style={[styles.overlay, { bottom: spot ? 10 + SPOT_H + 8 : town ? 12 + 44 + 8 : 12 }]} pointerEvents="box-none">{overlay}</View> : null}
       {/* On a town's page, the way back also sits low, where a thumb reaches (round 3), over the map above the row. */}
       {town && !spot ? (
         <Pressable testID="atlas-back-pill" accessibilityRole="button" accessibilityLabel={`Back to ${home?.area.name ?? 'near you'}`} onPress={leave} style={styles.backPill}>
