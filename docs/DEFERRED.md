@@ -417,3 +417,9 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **Dragging the row with a mouse on desktop web** (explore-carousel audit 1): react-native-web's horizontal scroll takes the wheel (shift) and touch, not a mouse drag. A desktop reader steps by a tap on a card, the map's swipe or the arrow keys. A web-only drag-to-scroll would be a web exception (ARCHITECTURE).
 - **A selection moved by a re-list is neither eased nor announced** (explore-carousel audit 5): the first card changes when Locate or the fix reorders the row; the ring and card move together and the map still frames the page's areas.
 - **Native: a row remounted with a card past the first selected** (explore-carousel audit, native): `scrollTo` before layout may be dropped, leaving the row at the first card with another selected; and the row in a right-to-left layout is not mirrored.
+
+## Moment references (`specs/moment-references`, decision 0125)
+
+- **@ in the capture stack's quick note** (Navigate, the walk and the Memories band): those notes are their own inline composers, not `NoteEditor`; a mention there needs the picker drawn over each. Write the note, then Edit it to mention a moment.
+- **A mention's words are those it was written with** in plain text: a moment renamed or placed later still reads its old words outside the viewer, whose card looks it up live.
+- **Mentions from a note to a note opened from a mention** stack in the viewer without a limit; Back pops one at a time.

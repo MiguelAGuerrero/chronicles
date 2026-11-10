@@ -67,3 +67,16 @@ export function clipWords(text: string, max: number): string {
   const at = text.charAt(max) === ' ' ? max : cut.lastIndexOf(' ');
   return `${(at > 0 ? text.slice(0, at) : cut).trimEnd()}…`;
 }
+
+/** The words a reference is written with (moment references RF3, RF6): its place and date, "Pier, Sep 11". */
+export function refLabel(o: { place: string | null; t: number }, now: number): string {
+  return [o.place, dateLine(o.t, now)].filter(Boolean).join(', ');
+}
+
+/** A reference card's line (RF4, steward S1): place and date, and its walk, or that it was not on a walk. Never bare. */
+export function refCardLine(o: { place: string | null; t: number; walkLine: string | null }, now: number): string {
+  return contextLine({ place: o.place, t: o.t, walkLine: o.walkLine ?? 'not on a walk', now });
+}
+
+/** What the viewer says of a moment other notes mention (RF7): words, never a count. */
+export const MENTIONED = 'Mentioned in a note';

@@ -319,10 +319,56 @@ async function run(h) {
   db = await stored(pg);
   check(db.threads.length === 0 && db.members.length === 0 && db.captures.length === kept, 'UC6, ui-conformance audit 6: leaving the screen stores the removal: the thread ends and every moment stays kept');
 
-  // Moment references (RF1-RF8, decision 0125): a note mentions another moment with @. Tests first.
-  check.todo(false, 'RF1: typing @ in a note opens the moment picker, and a pick puts a reference at that point');
-  check.todo(false, 'RF4: the viewer draws a reference as a card of its moment, with its kind, date, place and walk, and a tap opens it');
-  check.todo(false, 'RF7: the referenced moment says Mentioned in a note, and More opens the note');
+  // Moment references (RF1-RF8, decision 0125): a note mentions another moment with @.
+  await tabTo(pg, 'chronicle', 'memories');
+  await openCard('Orchard blossoms');
+  await pg.click('[data-testid=viewer-respond]');
+  await pg.click('[data-testid=respond-note]');
+  await pg.waitForSelector('[data-testid=note-edit-input]');
+  await pg.click('[data-testid=note-edit-input]');
+  await pg.keyboard.type('Like the ');
+  await pg.keyboard.type('@');
+  const picker = await there('[data-testid=moment-picker]', 5000);
+  await pg.waitForTimeout(800);
+  await shot(pg, '76-mention-picker');
+  await pg.fill('[data-testid=moment-picker-search]', 'harbor at dusk');
+  await pg.waitForTimeout(300);
+  await pg.locator('[data-testid=moment-picker-row]').first().click();
+  await gone('[data-testid=moment-picker]');
+  const typed = await pg.locator('[data-testid=note-edit-input]').inputValue();
+  check(picker && /^Like the @\S/.test(typed) && !typed.includes('@['), `RF1: typing @ in a note opens the moment picker, and a pick puts a reference at that point ("${typed}")`);
+  await pg.keyboard.type('again.');
+  await pg.click('[data-testid=note-edit-save]');
+  await gone('[data-testid=note-editor]');
+  await closeViewer();
+  await pg.waitForTimeout(800);
+  db = await stored(pg);
+  const refNote = db.captures.find((m) => (m.pieces[0].body ?? '').startsWith('Like the @[h1'));
+  check(!!refNote && db.links.filter((l) => l.from_id === refNote.id).every((l) => l.to_id === 'o1'), `RF2: the reference is a token in the note's text, and links only what Respond links (${refNote?.pieces[0].body})`);
+  const cardText = await pg.locator('[data-testid=moment-card]:has-text("Like the")').first().innerText().catch(() => '');
+  check(cardText && !cardText.includes('@['), `RF6: Lately reads the reference as words, never a token (${cardText.replace(/\n/g, ' · ')})`);
+  await openCard('Like the');
+  const refCard = pg.locator('[data-testid=ref-card]').first();
+  const refLabel = await refCard.getAttribute('aria-label').catch(() => null);
+  await pg.waitForTimeout(800);
+  await shot(pg, '77-note-ref-card');
+  check(!!refLabel && /harbor at dusk/i.test(refLabel) && /not on a walk/.test(refLabel), `RF4: the viewer draws a reference as a card of its moment, with its kind, date, place and walk (${refLabel})`);
+  await refCard.click();
+  await pg.waitForTimeout(500);
+  const opened = (await pg.locator('[data-testid=capture-card]').last().innerText()).includes('The harbor at dusk');
+  const backLabel = await pg.locator('[data-testid=viewer-close]').getAttribute('aria-label');
+  check(opened && backLabel === 'Back to the note', `RF4: a tap opens it, with Back to the note (${backLabel})`);
+  const mentionedLine = await meta();
+  await pg.click('[data-testid=viewer-more]');
+  const openNote = await there('[data-testid=viewer-open-note]', 3000);
+  await pg.waitForTimeout(400);
+  await shot(pg, '78-mentioned-more');
+  check(/Mentioned in a note/.test(mentionedLine) && openNote && !/\d+ notes?/.test(mentionedLine), `RF7: the referenced moment says Mentioned in a note, and More opens the note (${mentionedLine})`);
+  await pg.mouse.click(20, 420);
+  await pg.click('[data-testid=viewer-close]');
+  await pg.waitForTimeout(400);
+  check((await pg.locator('[data-testid=capture-card]').last().innerText()).includes('Like the'), 'RF4: Back returns to the note');
+  await closeViewer();
   await c.close();
 }
 

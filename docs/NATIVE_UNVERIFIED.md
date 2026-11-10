@@ -359,6 +359,11 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** turn on Group captures in Walk settings, take three captures with the stack's buttons, tap New moment, take one more, relaunch. **Expect:** the first three are one moment, the last its own; the setting is still on after the relaunch. (MS18, MS19)
 - [ ] **Do:** from a stacked moment's More, Delete this photo, let the Undo pass, then relaunch. **Expect:** the photo and its small copy are gone from storage; the moment keeps its other media, its reminder and its thread. (MS13)
 
+## Moment references (RF1-RF8, decision 0125)
+
+- [ ] **Do:** on a phone, Respond → Note on a moment, type a few words and @, pick a moment, keep typing, then delete the reference with one backspace. **Expect:** the picker opens over the editor inside the viewer (no second Modal), the cursor lands after the reference, and one backspace takes the whole reference. (RF1, RF3)
+- [ ] **Do:** open a note that mentions a photo, tap its card, then Back. **Expect:** the photo opens in the same viewer with "Back to the note", and Back (the button or Android's back) returns to the note. (RF4)
+
 ## Network rules (`lib/net`, decision 0100)
 
 - Whether React Native's `fetch` sends the custom `User-Agent` (`Chronicles (+github.com/…)`) on iOS and Android, or the platform's own replaces it.

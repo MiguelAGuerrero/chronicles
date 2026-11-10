@@ -3,6 +3,7 @@ import type { Faced } from '../moment';
 import { distanceM } from '../geo';
 import type { LngLat } from '../types';
 import type { Recall, RecallFrequency } from './types';
+import { plainNote } from '../refs';
 
 /** Remind me here's numbers (R2, R4, R5). */
 export const RECALL_RULES = {
@@ -98,7 +99,7 @@ export function reminderText(captures: Faced[]): { title: string; body: string }
   if (captures.length > 1) return { title: `${captures.length} memories here`, body: kindsOf(captures) };
   const c = captures[0];
   if (c.kind === 'text' && c.body) {
-    const text = c.body.trim();
+    const text = (plainNote(c.body) ?? '').trim();
     return { title: 'A note from here', body: text.length > RECALL_RULES.noteChars ? `${text.slice(0, RECALL_RULES.noteChars)}…` : text };
   }
   if (c.caption) return { title: 'A memory from here', body: c.caption };

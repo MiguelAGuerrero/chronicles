@@ -287,10 +287,11 @@ async function run(h) {
       // A tap outside the menu closes it, as a menu does.
       await pg.mouse.click(20, 420);
       await pg.waitForSelector('[data-testid=viewer-menu]', { state: 'detached', timeout: 5000 });
+      // OT27 as amended (ui-conformance audit 28, the owner's call): the photo is centred in the whole screen, still
+      // whether the bars show or not, and the bars sit over its margins; no loose button sits over it.
       const photoBox = await pg.locator('[data-testid=edited-photo]').boundingBox();
-      const topBtns = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=viewer-close], [data-testid=viewer-more]')].map((b) => b.getBoundingClientRect().bottom));
-      const dockBox = await pg.locator('[data-testid=viewer-toolbar]').boundingBox();
-      check(photoBox && dockBox && topBtns.every((b) => b <= photoBox.y + 1) && photoBox.y + photoBox.height <= dockBox.y + 1, 'owner-threads OT27: the photo sits between the top bar and the docked toolbar, under no button');
+      const vh = pg.viewportSize().height;
+      check(photoBox && Math.abs(photoBox.y + photoBox.height / 2 - vh / 2) < 2, `owner-threads OT27: the photo is centred in the screen, the bars over its margins (${JSON.stringify(photoBox)})`);
       await pg.click('[data-testid=viewer-edit]');
       await pg.waitForSelector('[data-testid=media-editor]', { timeout: 10000 });
       check((await stage()).filter === 'mono', 'ME3: the editor opens on the current edits');

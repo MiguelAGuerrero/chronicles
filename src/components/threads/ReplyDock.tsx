@@ -115,6 +115,7 @@ export function ReplyDock(props: {
           key={props.answeredId}
           title="Reply"
           body=""
+          mention={{ self: props.answeredId }}
           onClose={() => props.setStage(null)}
           onSave={(text) => {
             props.setStage(null);

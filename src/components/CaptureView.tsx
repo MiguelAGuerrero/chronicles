@@ -29,12 +29,17 @@ import { NoteEditor } from './NoteEditor';
 import { UndoToast } from './UndoToast';
 import { deleteMoment, deletePiece } from '../lib/deletion';
 import { useHidden, useVisible } from '../lib/deletion/useDeletions';
+import { mentioning, plainNote } from '../lib/refs';
+import type { MomentView } from '../lib/resurface/types';
+import { useMomentPool } from './threads/useMomentPool';
+import { MomentPicker } from './threads/MomentPicker';
+import { NoteText } from './threads/NoteText';
 import { router } from 'expo-router';
 import { chronicleSection } from '../lib/resurface/sectionStore';
 import { threads } from '../lib/threads';
 import { AddToThread } from './threads/AddToThread';
 import { ReplyDock, DOCK_H, type ReplyStage } from './threads/ReplyDock';
-import { IN_A_THREAD } from '../lib/threads/lines';
+import { IN_A_THREAD, MENTIONED } from '../lib/threads/lines';
 import { barsShown, viewerLine } from '../lib/viewerBars';
 import { threadsOf } from '../lib/threads/rules';
 import { useThreads } from '../lib/threads/useThreads';
@@ -152,6 +157,8 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
   bare?: boolean;
   /** A tap on the picture (a photo in the viewer): shows or hides the viewer's bars (UC7). */
   onMediaTap?: () => void;
+  /** A note's mentions are drawn as cards that open their moments (moment references RF4); else they read as words (RF6). */
+  onOpenRef?: (v: MomentView) => void;
 }>(function CaptureContent(props, actionRef) {
   const { capture } = props;
   const insets = useSafeAreaInsets();
@@ -248,7 +255,8 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
     <View key="card" style={StyleSheet.absoluteFill} pointerEvents="box-none">
       <View style={[styles.cardRow, { bottom: (props.dock ?? 0) + insets.bottom + 16 }]} pointerEvents="box-none">
         <View style={styles.card} testID="capture-card">
-          {capture.kind === 'text' && <Text style={styles.note}>{capture.body}</Text>}
+          {capture.kind === 'text' &&
+            (props.onOpenRef ? <NoteText body={capture.body ?? ''} style={styles.note} onOpen={props.onOpenRef} /> : <Text style={styles.note}>{plainNote(capture.body)}</Text>)}
           {capture.kind === 'voice' && uri && (
             <VoicePlayer uri={uri} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} durationMs={Number(capture.body) || 0} />
           )}
@@ -298,6 +306,10 @@ export function CaptureViewer(props: {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const [index, setIndex] = useState(0);
+  const [openedStack, setOpenedStack] = useState<Faced[]>([]);
+  const [mentionPick, setMentionPick] = useState(false);
+  // Every kept moment, for the notes that mention the one shown (RF7), read when the viewer opens.
+  const pool = useMomentPool(props.captures);
   // The piece shown of a moment holding more than one (MS10); back to its first when the moment changes.
   const [pieceAt, setPieceAt] = useState<{ moment: string; i: number }>({ moment: '', i: 0 });
   const hidden = useHidden();
@@ -403,8 +415,11 @@ export function CaptureViewer(props: {
       if (overlay) dropBaked(overlay);
     }
   };
-  const i = Math.min(index, Math.max(0, list.length - 1));
-  const moment = list[i];
+  // A moment a note mentions, opened over the note (RF4): shown alone; Back or Close returns to the note.
+  const opened = useVisible(openedStack.length ? [openedStack[openedStack.length - 1]] : []);
+  const shownList = openedStack.length ? opened : list;
+  const i = openedStack.length ? 0 : Math.min(index, Math.max(0, list.length - 1));
+  const moment = shownList[i];
   // Its pieces, less any waiting in the Undo window (MS13).
   const pieces = moment ? moment.pieces.filter((p) => !hidden.has(pieceKey(p.id))) : [];
   const stacked = pieces.length > 1;
@@ -416,6 +431,10 @@ export function CaptureViewer(props: {
   const withBody = listed && editedBody != null && listed.body !== editedBody ? { ...listed, body: editedBody } : listed;
   const patch = withBody ? patched.get(withBody.piece_id) : undefined;
   const current = withBody && patch ? { ...withBody, ...patch } : withBody;
+  // The notes that mention the moment shown, read from their text (RF7): by date, never by count.
+  const mentionedBy = current
+    ? mentioning(pool.views.filter((v) => v.kind === 'text').map((v) => ({ id: v.id, t: v.t, body: v.capture.body })), current.id).filter((n) => !hidden.has(n.id))
+    : [];
   // Another moment opened closes the pill (MS4).
   const shownId = current?.id ?? null;
   useEffect(() => {
@@ -437,8 +456,12 @@ export function CaptureViewer(props: {
   }, [stacked]);
   // A horizontal swipe does the same on a phone (MS10).
   const swipeFrom = useRef<number | null>(null);
+  // Back to the note a mentioned moment was opened from (RF4).
+  const back = () => setOpenedStack((s) => s.slice(0, -1));
   const close = () => {
     setIndex(0);
+    setOpenedStack([]);
+    setMentionPick(false);
     setEditing(null);
     setNoting(null);
     setReminding(null);
@@ -456,6 +479,12 @@ export function CaptureViewer(props: {
   };
   // A moment is deleted at once, with Undo on the pill (UC4); nothing left to show and the host hears the viewer closed.
   const deleteNow = (c: Faced) => {
+    if (openedStack.length) {
+      // A mentioned moment deleted: back to the note, whose card now says it is no longer kept (RF5).
+      deleteMoment(c);
+      back();
+      return;
+    }
     const last = list.length <= 1;
     deleteMoment(c);
     if (last) close();
@@ -492,7 +521,7 @@ export function CaptureViewer(props: {
     <Modal
       visible={list.length > 0}
       animationType="fade"
-      onRequestClose={menu ? () => setMenu(false) : replyStage ? () => setReplyStage(null) : adding ? () => setAdding(null) : editing ? () => editor.current?.requestClose() : noting ? () => setNoting(null) : reminding ? () => setReminding(null) : close}
+      onRequestClose={menu ? () => setMenu(false) : mentionPick ? () => setMentionPick(false) : replyStage ? () => setReplyStage(null) : adding ? () => setAdding(null) : editing ? () => editor.current?.requestClose() : noting ? () => setNoting(null) : reminding ? () => setReminding(null) : openedStack.length ? back : close}
     >
       <View
         style={styles.viewer}
@@ -526,15 +555,17 @@ export function CaptureViewer(props: {
             parts={[
               props.context?.get(current.id),
               // No position over a moment's pieces (MS9): the pager's "i of n" stays for one-piece moments only.
-              list.length > 1 && !stacked ? `${i + 1} of ${list.length}` : null,
+              shownList.length > 1 && !stacked ? `${i + 1} of ${shownList.length}` : null,
               inThread,
+              mentionedBy.length ? MENTIONED : null,
               props.remind && recalls.has(current.id) ? 'Reminder set' : null,
               statusOf.get(current.id),
             ]}
             pieces={stacked ? { onPrev: pi > 0 ? () => stepPiece(-1) : undefined, onNext: pi < pieces.length - 1 ? () => stepPiece(1) : undefined } : undefined}
+            onOpenRef={(v) => setOpenedStack((st) => [...st, v.capture])}
             nav={
-              list.length > 1
-                ? { onPrev: i > 0 ? () => setIndex(i - 1) : undefined, onNext: i < list.length - 1 ? () => setIndex(i + 1) : undefined }
+              shownList.length > 1
+                ? { onPrev: i > 0 ? () => setIndex(i - 1) : undefined, onNext: i < shownList.length - 1 ? () => setIndex(i + 1) : undefined }
                 : undefined
             }
           />
@@ -597,8 +628,8 @@ export function CaptureViewer(props: {
               <Icon name="ellipsis-horizontal" size={22} color={theme.ink} />
             </Pressable>
           )}
-          <Pressable testID="viewer-close" accessibilityRole="button" accessibilityLabel="Close" onPress={close} style={styles.roundBtn} hitSlop={8}>
-            <Icon name="close" size={26} color={theme.ink} />
+          <Pressable testID="viewer-close" accessibilityRole="button" accessibilityLabel={openedStack.length ? 'Back to the note' : 'Close'} onPress={openedStack.length ? back : close} style={styles.roundBtn} hitSlop={8}>
+            <Icon name={openedStack.length ? 'arrow-back' : 'close'} size={26} color={theme.ink} />
           </Pressable>
         </View>
         )}
@@ -645,11 +676,25 @@ export function CaptureViewer(props: {
             }}
           />
         )}
+        {mentionPick && current && (
+          <MomentPicker
+            pool={pool}
+            self={current.id}
+            title="Notes that mention it"
+            only={mentionedBy.map((n) => n.id)}
+            onPick={(v) => {
+              setMentionPick(false);
+              setOpenedStack((st) => [...st, v.capture]);
+            }}
+            onClose={() => setMentionPick(false)}
+          />
+        )}
         {noting && (
           // Inside this Modal too (QL24).
           <NoteEditor
             key={noting.id}
             body={noting.body ?? ''}
+            mention={{ self: noting.id }}
             onClose={() => setNoting(null)}
             onSave={async (body) => {
               const c = noting;
@@ -774,6 +819,23 @@ export function CaptureViewer(props: {
                 >
                   <Icon name="open-outline" size={22} color={theme.ink} />
                   <Text style={styles.menuText}>Open in Maps</Text>
+                </Pressable>
+              )}
+              {mentionedBy.length > 0 && (
+                // The note that mentions it, or a list of them by their first words and date (RF7).
+                <Pressable
+                  testID="viewer-open-note"
+                  accessibilityRole="button"
+                  onPress={() => {
+                    setMenu(false);
+                    const only = mentionedBy.length === 1 ? pool.byId.get(mentionedBy[0].id) : undefined;
+                    if (only) setOpenedStack((st) => [...st, only.capture]);
+                    else setMentionPick(true);
+                  }}
+                  style={({ pressed }) => [styles.menuItem, pressed && styles.dim]}
+                >
+                  <Icon name="document-text-outline" size={22} color={theme.ink} />
+                  <Text style={styles.menuText}>{mentionedBy.length === 1 ? 'Open the note' : 'Open the notes'}</Text>
                 </Pressable>
               )}
               {mine.length > 0 && (

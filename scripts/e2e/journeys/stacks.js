@@ -109,16 +109,27 @@ async function run(h) {
   await pg.waitForTimeout(400);
   const onPhoto = await pg.locator('[data-testid=piece-shown]').getAttribute('data-kind').catch(() => null);
   const edit = await pg.locator('[data-testid=capture-viewer] [aria-label="Edit"]').count();
-  const remind = await pg.locator('[data-testid=capture-viewer] [data-testid=viewer-remind]').count();
+  // Remind me here is an item in More since UC9 (decision 0114): open it, count, and close it with a tap outside.
+  const remindInMore = async () => {
+    await pg.locator('[data-testid=viewer-more] >> visible=true').first().click();
+    await pg.waitForTimeout(300);
+    const n = await pg.locator('[data-testid=viewer-menu] [data-testid=viewer-remind]').count();
+    await pg.mouse.click(20, 420);
+    await pg.waitForSelector('[data-testid=viewer-menu]', { state: 'detached', timeout: 5000 }).catch(() => {});
+    return n;
+  };
+  const remind = await remindInMore();
   check(onPhoto === 'photo' && edit === 1 && remind === 1, `MS11: on the photo, Edit (the piece) and Remind me here (the moment) are both offered (${onPhoto}, edit ${edit}, remind ${remind})`);
   // On the note, Edit (a photo's) goes and Remind me here (the moment's) stays.
   await pg.keyboard.press('ArrowRight');
   await pg.waitForTimeout(400);
-  check((await pg.locator('[data-testid=capture-viewer] [aria-label="Edit"]').count()) === 0
-    && (await pg.locator('[data-testid=capture-viewer] [data-testid=viewer-remind]').count()) === 1, 'MS11: on the note, the photo\'s Edit goes and the moment\'s reminder stays');
+  // The photo's Edit (`viewer-edit`); a note's own Edit (`viewer-edit-note`) may show where the note can be edited.
+  const noteEdit = await pg.locator('[data-testid=capture-viewer] [data-testid=viewer-edit]').count();
+  const noteRemind = await remindInMore();
+  check(noteEdit === 0 && noteRemind === 1, `MS11: on the note, the photo's Edit goes and the moment's reminder stays (edit ${noteEdit}, remind ${noteRemind})`);
 
   // The viewer adds only while the pill is open; dismissed, it offers Respond (MS12).
-  const ms12ok = (await pg.locator('[data-testid=viewer-add]').count()) === 0 && (await pg.locator('[data-testid=respond-note]').count()) > 0;
+  const ms12ok = (await pg.locator('[data-testid=viewer-add]').count()) === 0 && (await pg.locator('[data-testid=viewer-respond]').count()) > 0;
   check(ms12ok, 'MS12: with the pill closed, the viewer offers Respond, not Add to this moment');
 
   // Deleting one piece keeps the rest (MS13), with words that name it by kind; Undo window then stored.
@@ -129,8 +140,11 @@ async function run(h) {
   check(/Delete this (photo|note)/.test(pieceText) && /Delete this moment/.test(momentText), `MS13: More offers the piece by its kind and the moment (${pieceText} / ${momentText})`);
   if (delPiece) {
     await pg.click('[data-testid=menu-delete-piece]');
-    if (await there('[data-testid=confirm-delete]', 3000)) await pg.click('[data-testid=confirm-delete]');
-    await pg.waitForTimeout(6500);
+    // At once, with Undo; Undo waits for the owner, so Close on the pill stores it (UC1, UC4, decision 0113).
+    const said = await pg.locator('[data-testid=undo-toast]').innerText().catch(() => '');
+    check((await pg.locator('[data-testid=confirm-delete]').count()) === 0 && /deleted from the moment/.test(said), `UC4, MS13: a piece is deleted at once, with Undo (${said.replace(/\n/g, ' ')})`);
+    await pg.click('[data-testid=undo-dismiss]');
+    await pg.waitForTimeout(800);
   }
   ms = await moments(pg);
   check(ms.length === 2 && ms[0].pieces.length === 2, `MS13: after the Undo window, one piece is gone and the moment stays (${ms.map((m) => m.pieces.length).join(',')})`);
@@ -156,7 +170,9 @@ async function run(h) {
   const shownAtOnce = await there('[data-testid=undo-toast]', 3000);
   const nextMoment = await pg.locator('[data-testid=capture-viewer] [aria-label="Next moment"]').count();
   check(shownAtOnce && nextMoment > 0, 'MS16: the split piece shows at once as its own moment, one Next moment away, with Undo');
-  await pg.waitForTimeout(6500);
+  // Close on the pill stores the split (UC1: Undo waits for the owner, never a timer).
+  if (shownAtOnce) await pg.click('[data-testid=undo-dismiss]');
+  await pg.waitForTimeout(800);
   ms = await moments(pg);
   check(ms.length === 3 && ms.every((m) => m.pieces.length >= 1), `MS16: after the window it is stored as a moment of its own (${ms.map((m) => m.pieces.length).join(',')})`);
   if (await pg.locator('[data-testid=viewer-close]').count()) await pg.click('[data-testid=viewer-close]');

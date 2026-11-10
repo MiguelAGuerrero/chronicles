@@ -3,12 +3,13 @@ import type { Faced } from '../moment';
 import { partOfDay, weekdayName } from './context';
 import type { Walk } from '../types';
 import type { MomentView } from './types';
+import { plainNote } from '../refs';
 
 const clean = (s: string | null | undefined) => (s && s.trim() ? s.trim() : null);
 
 /** A moment's own words, by kind. A memo has a transcript only once a transcriber gives it one (RM13). */
 export function wordsOf(c: Faced, transcript: (c: Faced) => string | null = () => null): string | null {
-  if (c.kind === 'text') return clean(c.body);
+  if (c.kind === 'text') return clean(plainNote(c.body));
   if (c.kind === 'photo' || c.kind === 'video') return clean(c.caption);
   return clean(transcript(c));
 }
