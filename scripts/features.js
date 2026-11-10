@@ -337,7 +337,6 @@ const UNTESTED = {
  * `{ slug: { branch, since: 'YYYY-MM-DD' } }`; an entry older than 7 days fails the docs check.
  */
 const IN_PROGRESS = {
-  'moment-table': { branch: 'claude/wizardly-mayer-k9vmge', since: '2026-11-09' },
   'moment-stacks': { branch: 'claude/wizardly-mayer-k9vmge', since: '2026-11-09' },
 };
 

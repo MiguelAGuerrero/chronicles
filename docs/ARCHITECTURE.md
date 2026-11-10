@@ -257,6 +257,8 @@ Walkability (WK1-WK23, UF1-UF20)
   walk/reader.ts             createWalkReader: the device's cache, one request at a time, deadlines (`walk_tile`)
   walk/switch.ts             the layer's switch (meta `walk_layer`)
   walk/useWalkability.ts, walk/useRouteWarning.ts  the hooks the maps and the walk screen call
+Kind walk (decisions 0101, 0102)
+  kindWalk/                  the kind walk: suggest.ts and plan.ts pick routes for a kind, density.ts, words.ts (core); prefs.ts, settings.ts (shells); app.ts the instance; useKindWalk.ts the view
 Landing (v1.5)
   landing/analyze.ts         busy streets, pockets, the landing point, from the grades
   landing/grade.ts           density along each named street, and its grades against the read
@@ -285,6 +287,7 @@ Captures and media
   pins.ts                    pinsFor: grouping captures by screen distance; pinReminded, the bell
   useReminded.ts             the captures with a live reminder, per map; re-read on recallCheck's onRecallsChanged and at nextExpiry
   momentPins.ts              moments outside walks as pins (Navigate, Chronicle) and Chronicle's fit around them
+  moment.ts                  a moment and its pieces (decision 0106): face, faced rows, foldRows (SQLite's joined reads), placeAt (a moment on the trace at stop)
   export/bundle/             writeWalkBundle (shell.ts over db and clock) (deferred; nothing in the UI reaches it); export/ per-platform keepers
 Deletion
   deletion/core.ts           what each delete takes; pending.ts: the Undo window on a given clock
