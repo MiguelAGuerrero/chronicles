@@ -16,13 +16,13 @@ const listed = (name: string, m: number, level: AtlasArea['level'] = 'neighborho
 const keys = (l: Listed[]) => l.map((x) => x.area.key);
 
 
-test('EC3: near you the row is the neighborhoods, then the other towns, in the order given', { todo: 'test first' }, () => {
+test('EC3: near you the row is the neighborhoods, then the other towns, in the order given', () => {
   const hoods = [listed('Fox Point', 100, 'neighborhood', true), listed('College Hill', 400), listed('Elmhurst', 900)];
   const towns = [listed('Cranston', 5000, 'town'), listed('Pawtucket', 7000, 'town')];
   assert.deepEqual(keys(rowOf({ ownTown: null, neighborhoods: hoods, towns })), ['Fox Point', 'College Hill', 'Elmhurst', 'Cranston', 'Pawtucket']);
 });
 
-test('EC3: on a town\'s page the row is the town\'s own card, then its neighborhoods, never other towns', { todo: 'test first' }, () => {
+test('EC3: on a town\'s page the row is the town\'s own card, then its neighborhoods, never other towns', () => {
   const own = listed('Providence', 0, 'town');
   const hoods = [listed('Fox Point', 100), listed('College Hill', 400)];
   assert.deepEqual(keys(rowOf({ ownTown: own, neighborhoods: hoods, towns: [listed('Cranston', 5000, 'town')] })), ['Providence', 'Fox Point', 'College Hill']);
@@ -30,7 +30,7 @@ test('EC3: on a town\'s page the row is the town\'s own card, then its neighborh
   assert.deepEqual(rowOf({ ownTown: null, neighborhoods: [], towns: [] }), [], 'nothing listed is an empty row');
 });
 
-test('EC1: the selected area stays while it is in the row; else the first; else none', { todo: 'test first' }, () => {
+test('EC1: the selected area stays while it is in the row; else the first; else none', () => {
   const order = ['Fox Point', 'College Hill', 'Cranston'];
   assert.equal(firstSelection(order, null), 'Fox Point', 'on arrival the first is selected');
   assert.equal(firstSelection(order, 'College Hill'), 'College Hill', 'a selection still listed stands');
@@ -39,7 +39,7 @@ test('EC1: the selected area stays while it is in the row; else the first; else 
   assert.equal(firstSelection([], 'Gone'), null);
 });
 
-test('EC8: left is next, right previous; a vertical or short drag is nothing; the bearing never enters', { todo: 'test first' }, () => {
+test('EC8: left is next, right previous; a vertical or short drag is nothing; the bearing never enters', () => {
   assert.equal(rowStep(-80, 5, 24), 1, 'a drag left goes to the next card');
   assert.equal(rowStep(80, -5, 24), -1, 'a drag right goes to the previous');
   assert.equal(rowStep(10, 0, 24), 0, 'under the 24 px floor is not a swipe');
@@ -48,7 +48,7 @@ test('EC8: left is next, right previous; a vertical or short drag is nothing; th
   assert.equal(rowStep(-30, 30, 24), 1, 'equal drags count as horizontal');
 });
 
-test('EC8: stepping holds at the ends and with nothing in the row', { todo: 'test first' }, () => {
+test('EC8: stepping holds at the ends and with nothing in the row', () => {
   const order = ['a', 'b', 'c'];
   assert.equal(stepKey(order, 'a', 1), 'b');
   assert.equal(stepKey(order, 'b', -1), 'a');
@@ -60,14 +60,14 @@ test('EC8: stepping holds at the ends and with nothing in the row', { todo: 'tes
   assert.equal(stepKey([], 'a', 1), null);
 });
 
-test('EC9: the arrow keys are the same steps: ArrowRight is a 48 px swipe left, next', { todo: 'test first' }, () => {
+test('EC9: the arrow keys are the same steps: ArrowRight is a 48 px swipe left, next', () => {
   assert.equal(rowStep(-48, 0, 24), 1);
   assert.equal(rowStep(48, 0, 24), -1);
   assert.equal(rowStep(0, 48, 24), 0, 'ArrowUp and ArrowDown do nothing');
   assert.equal(rowStep(0, -48, 24), 0);
 });
 
-test('EC4: a scroll settles on the nearest card, clamped to the row', { todo: 'test first' }, () => {
+test('EC4: a scroll settles on the nearest card, clamped to the row', () => {
   assert.equal(settledIndex(0, 324, 5), 0);
   assert.equal(settledIndex(150, 324, 5), 0, 'under half a step stays');
   assert.equal(settledIndex(170, 324, 5), 1, 'past half a step moves on');
@@ -89,7 +89,7 @@ const view = (): LandingView => ({
   labels: [{ name: 'A busy pocket', at: east(200) }, { name: 'Far pocket', at: east(6000) }],
 });
 
-test('EC7: the Busy names inside the selected area\'s ring stay, from zoom 13; its streets always draw', { todo: 'test first' }, () => {
+test('EC7: the Busy names inside the selected area\'s ring stay, from zoom 13; its streets always draw', () => {
   const v = view();
   const near = busyNamesNear(v, O, 14, 800, 13)!;
   assert.deepEqual(near.strips.map((s) => s.name), ['Wickenden Street'], 'the street 5 km away is not named');
@@ -101,7 +101,7 @@ test('EC7: the Busy names inside the selected area\'s ring stay, from zoom 13; i
   assert.deepEqual(far.graded, v.graded, 'the lines stay at any zoom');
 });
 
-test('EC7: with no view or no selected area there are no names, and no view stays none', { todo: 'test first' }, () => {
+test('EC7: with no view or no selected area there are no names, and no view stays none', () => {
   assert.equal(busyNamesNear(null, O, 15, 800, 13), null);
   const none = busyNamesNear(view(), null, 15, 800, 13)!;
   assert.deepEqual([none.strips.length, none.labels.length], [0, 0]);
