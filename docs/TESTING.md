@@ -283,6 +283,14 @@ tests `arch/e2eEconomy.test.ts`):
   (never committed). The trains keep their own green cache, so a train run again after a red
   branch is dropped, or after `main` moved, reruns only the journeys whose files changed.
   All green ships the tested commit: `git push origin train/<stamp>:main`.
+- **Ready, and isolated** (decision 0126). A branch says it is ready with `npm run ready`:
+  it commits `.ready/<branch>.json` (refusing a dirty tree, or a journey of its own that has
+  not passed), and stays ready while that commit is its tip. `npm run e2e:train -- --list`
+  shows every candidate, local and on origin (the copy that is ahead), as ready, stale,
+  diverged or not marked; `--ready` runs the train of the ready ones, and the train removes
+  the markers before it tests. A red journey two or more branches named is isolated: rerun
+  on `main` with each of them alone, it goes to the branch whose run alone fails, or stays
+  with all of them as "only together" (an interaction, or a flake) when none does.
 
 - **A green cache** (`.e2e-green.json`, never committed). A journey that passes with
   `E2E_ONLY` records its inputs: its own file, the files it covers, the harness

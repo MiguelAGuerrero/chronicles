@@ -572,4 +572,4 @@ async function main(cmd) {
 
 if (require.main === module) main(process.argv[2]);
 
-module.exports = { HARNESS, e2eHint, splitComment, changedFiles, changedPaths, importGraph, affectedTests, describeTests, lintTargets, e2eFor, runSteps, hookPlan, globToRegExp, coverage, describeCoverage, featureFolders, featureOfTest, allTests, coverageArgs };
+module.exports = { HARNESS, e2eHint, splitComment, greenStatus, changedFiles, changedPaths, importGraph, affectedTests, describeTests, lintTargets, e2eFor, runSteps, hookPlan, globToRegExp, coverage, describeCoverage, featureFolders, featureOfTest, allTests, coverageArgs };

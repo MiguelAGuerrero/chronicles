@@ -257,3 +257,75 @@ test('e2e economy 11: /slice, /audit, /deploy, /fix and the testing reference na
   assert.ok(!/check:affected/.test(verify.split('```')[1] ?? ''), '/audit step 6 does not rerun check:affected');
   assert.match(verify, /check:e2e -- --since/);
 });
+
+type Cand = { branch: string; sha: string; from: string; state: string; after?: number; marker?: { journeys?: string[]; forced?: string } };
+const readyJs = load(join(ROOT, 'scripts', 'ready.js')) as {
+  markerPath(b: string): string;
+  isCandidateName(n: string): boolean;
+  pickCopy(local: string | null, origin: string | null, rel: string | null): { sha: string | null; from: string };
+  readyState(o: { tip: string; markerCommit: string | null; after: number }): { state: string; after?: number };
+  describeCandidates(list: Cand[]): string;
+};
+
+test('e2e economy 12: a branch is ready while its marker is the tip; the copy ahead is the one taken, local or origin (0126)', () => {
+  assert.equal(readyJs.markerPath('claude/keen-maxwell-5rxhkx'), '.ready/claude__keen-maxwell-5rxhkx.json', 'one file per branch: two never conflict');
+  assert.ok(readyJs.isCandidateName('claude/x') && !readyJs.isCandidateName('main') && !readyJs.isCandidateName('train/20261110-1') && !readyJs.isCandidateName('HEAD'));
+  assert.deepEqual(readyJs.pickCopy('L', null, null), { sha: 'L', from: 'local' }, 'a worktree branch not pushed yet');
+  assert.deepEqual(readyJs.pickCopy(null, 'O', null), { sha: 'O', from: 'origin' }, 'a cloud session\'s pushed branch');
+  assert.deepEqual(readyJs.pickCopy('L', 'O', 'local-ahead'), { sha: 'L', from: 'local' });
+  assert.deepEqual(readyJs.pickCopy('L', 'O', 'origin-ahead'), { sha: 'O', from: 'origin' }, 'a stale local copy never hides newer pushed work');
+  assert.deepEqual(readyJs.pickCopy('L', 'O', 'diverged'), { sha: null, from: 'diverged' }, 'diverged copies are neither');
+  assert.deepEqual(readyJs.readyState({ tip: 'a', markerCommit: 'a', after: 0 }), { state: 'ready' });
+  assert.deepEqual(readyJs.readyState({ tip: 'b', markerCommit: 'a', after: 2 }), { state: 'stale', after: 2 }, 'a commit after the marker is work nobody vouched for');
+  assert.deepEqual(readyJs.readyState({ tip: 'a', markerCommit: null, after: 0 }), { state: 'none' });
+  const said = readyJs.describeCandidates([
+    { branch: 'claude/a', sha: 'aaaaaaaaaaaa', from: 'origin', state: 'ready', marker: { journeys: ['space'] } },
+    { branch: 'claude/b', sha: 'bbbbbbbbbbbb', from: 'local', state: 'stale', after: 1 },
+    { branch: 'claude/c', sha: 'cccccccccccc', from: 'local', state: 'none' },
+  ]);
+  assert.match(said, /claude\/a: ready \(origin, aaaaaaaaa; ran space\)/);
+  assert.match(said, /claude\/b: stale: 1 commit after its marker; mark it again/);
+  assert.match(said, /claude\/c: not marked ready/);
+  const script = read('scripts/ready.js');
+  assert.match(script, /status', '--porcelain'/, 'marking refuses a dirty tree');
+  assert.match(script, /notGreen/, 'marking refuses a branch whose own journeys have not passed');
+  const trainScript = read('scripts/e2e-train.js');
+  assert.match(trainScript, /git', \['rm', '-q', '-r', '--ignore-unmatch', ready\.DIR\]/, 'the train removes the markers, so none reaches main');
+  assert.match(trainScript, /ready\.candidates\(base\)/, '--ready and --list find the branches themselves');
+});
+
+test('e2e economy 13: a failure several branches could have caused is isolated: main with each alone; together when none fails alone (0126)', () => {
+  const t = load(join(ROOT, 'scripts', 'e2e-train.js')) as typeof train & { isolationOf(a: Record<string, boolean>): { culprits: string[]; cleared: string[]; together: boolean } };
+  assert.deepEqual(t.isolationOf({ a: false, b: true }), { culprits: ['a'], cleared: ['b'], together: false });
+  assert.deepEqual(t.isolationOf({ a: true, b: true }), { culprits: ['a', 'b'], cleared: [], together: true }, 'passes alone for each: it stays with both');
+  assert.deepEqual(t.isolationOf({ a: false, b: false }), { culprits: ['a', 'b'], cleared: [], together: false });
+  const plan = [{ name: 'space', branches: [{ branch: 'a', files: ['src/walk.tsx'], own: true }, { branch: 'b', files: ['src/walk.tsx'], own: false }] }];
+  const results = { space: { ok: false, failures: ['SA3: low'], flakes: [] } };
+  const attr = (t as unknown as { attribute(p: Plan, r: typeof results, o: string[], i?: Record<string, Record<string, boolean>>): (Verdict & { cleared: { journey: string; culprits: string[] }[] })[] }).attribute;
+  const [a, b] = attr(plan, results, ['a', 'b'], { space: { a: false, b: true } });
+  assert.deepEqual(a.red.map((r) => [r.journey, (r as { isolated?: string }).isolated, r.sharedWith]), [['space', 'alone', []]], 'the branch whose run alone fails keeps it');
+  assert.deepEqual(b.red, [], 'the branch cleared by isolation is not red');
+  assert.deepEqual(b.cleared, [{ journey: 'space', culprits: ['a'] }]);
+  const [ta, tb] = attr(plan, results, ['a', 'b'], { space: { a: true, b: true } });
+  assert.deepEqual([ta.red[0].sharedWith, tb.red[0].sharedWith], [['b'], ['a']], 'together: each is told the other');
+  const report = t.describeTrain({ stamp: 's', base: 'b', build: '/chronicles', trainBranch: 'train/s', head: 'h', plan, results, logs: {}, merged: [{ branch: 'a', ready: 'ready' }, { branch: 'b', ready: 'none' }], excluded: [], verdicts: attr(plan, results, ['a', 'b'], { space: { a: false, b: true } }) });
+  assert.match(report, /\*\*a: red\*\*[\s\S]*Isolated: it fails with this branch alone/);
+  assert.match(report, /\*\*b: green\*\* \(no journey covers it\); cleared: `space` failed in the train but passed with this branch alone \(it is a's\)/);
+  assert.match(report, /Named by hand, not marked ready \(npm run ready\): b \(no marker\)/);
+  const together = t.describeTrain({ stamp: 's', base: 'b', build: '/chronicles', trainBranch: 'train/s', head: 'h', plan, results, logs: {}, merged: [], excluded: [], verdicts: attr(plan, results, ['a', 'b'], { space: { a: true, b: true } }) });
+  assert.match(together, /fails only with b together: an interaction between them, or a flake/);
+  assert.match(read('scripts/e2e-train.js'), /--no-isolate/);
+});
+
+test('e2e economy 14: /slice, /audit, /deploy and the testing reference say how a branch is marked ready and found', () => {
+  const slice = read('.claude/skills/slice/SKILL.md');
+  const deploy = read('.claude/skills/deploy/SKILL.md');
+  const testing = read('docs/TESTING.md');
+  for (const [name, text] of [['slice', slice], ['deploy', deploy], ['TESTING', testing], ['audit', read('.claude/skills/audit/SKILL.md')]] as const) {
+    assert.match(text, /npm run ready/, `${name} names the marker`);
+    assert.match(text, /0126/, `${name} names the decision`);
+  }
+  assert.match(deploy, /e2e:train -- --ready/, '/deploy finds the ready branches itself');
+  assert.match(deploy, /e2e:train -- --list/);
+  assert.match(testing, /isolat/i, 'the reference says a shared failure is isolated');
+});

@@ -205,6 +205,11 @@ No e2e when the slice edited no journey and changes no screen; the full flow
 4. Commit, criterion ids in the message as the repo does:
    `Navigate: a Locate button (QL9-QL12)`. Do not push to `main`; that is
    `/deploy`.
+5. Mark the branch ready for the deploy's train, then push it (decision 0126):
+   `npm run ready && git push`. It commits `.ready/<branch>.json`, and refuses
+   a dirty tree or a journey of yours that has not passed. `/deploy` finds the
+   branch by it (`npm run e2e:train -- --ready`); any later commit makes it
+   stale, so mark it again after one. A slice left in flight is not marked.
 
 ## Report
 

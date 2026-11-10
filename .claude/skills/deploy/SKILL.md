@@ -28,8 +28,17 @@ https://miguelaguerrero.github.io/chronicles/.
 
 ## 1. Preconditions, per branch that ships
 
-Ask the owner which branches ship, if they did not say; every ready branch in
-STATUS.md's "In flight" goes in one train rather than one deploy each.
+The branches that ship are the ones marked ready (decision 0126: a slice ends
+with `npm run ready`, which commits `.ready/<branch>.json`; a commit after it
+makes it stale). See them, local and on origin, whichever copy is ahead:
+
+```bash
+npm run e2e:train -- --list      # every candidate: ready, stale (commits after its marker), diverged, not marked
+```
+
+Ship every ready branch in one train rather than one deploy each. A branch the
+owner names by hand can ride too; the report says it was not marked. Ask the
+owner only when the list and their words disagree.
 
 - `npm run check:test-first <slug>` passes for each slice that ships (its
   tests were committed as todos before its code), and no shipped slice's spec
@@ -43,7 +52,8 @@ Stop if any precondition fails; say which.
 ## 2. The train (decision 0125)
 
 ```bash
-npm run e2e:train -- <branch> [<branch> ...]
+npm run e2e:train -- --ready                 # every branch marked ready
+npm run e2e:train -- <branch> [<branch> ...] # or the branches the owner named
 ```
 
 One run for everything that ships, instead of each session running the journeys its
@@ -51,16 +61,22 @@ shared files reach: it merges the branches onto `origin/main` in a scratch workt
 (branch `train/<stamp>`), runs typecheck, lint and `npm test` once on the merged tree,
 exports the `/chronicles` build once (as Pages serves it), and runs the union of the
 journeys the branches name once each (a journey green in an earlier train with its files
-unchanged is not rerun). The report (`.e2e-train/<stamp>/report.md`) gives each branch
-its verdict: green, red with the failed checks and the branches it shares a failure with,
-or left out for a conflict. The full flow (no `E2E_ONLY`) runs only when the owner asks.
+unchanged is not rerun). A failure two or more branches could have caused is isolated:
+the journey reruns on `main` with each of them alone, and goes to the branch whose run
+alone fails, or to all of them as "only together" when none does (`--no-isolate` skips it;
+it costs an export per branch, only when something is red). The ready markers are removed
+in the train's last commit, so none reaches `main`. The report (`.e2e-train/<stamp>/report.md`)
+gives each branch its verdict: green, cleared by isolation, red with the failed checks and
+what isolation found, or left out for a conflict. The full flow (no `E2E_ONLY`) runs only
+when the owner asks.
 
 - **All green:** go to step 3.
 - **Red:** send each red branch its section of the report. Find the session working on
   it (STATUS.md's "In flight" row names it; `list_sessions` with `mine`, `get_session`
   to match the branch) and `send_message` it the section, with the reproduce line; if
-  no session matches, give the owner each section to paste. A failure shared between
-  branches goes to each. A known flake is labelled and still red. Then, with the owner's
+  no session matches, give the owner each section to paste. A failure isolation could
+  not pin to one branch goes to each. A known flake is labelled and still red. The red
+  branch's marker is stale once its session commits the fix; it marks it again. Then, with the owner's
   word, run the train again without the red branches (only the journeys whose files
   changed rerun) and ship the green ones; delete the red train's branch
   (`git branch -D train/<stamp>`).

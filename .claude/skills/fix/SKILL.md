@@ -157,7 +157,8 @@ branch so the owner can look, and list the open findings in the report.
    with the attribution lines the session gives.
 2. `--deploy=none`: stop here; the commit exists only in the worktree, so save
    it as a patch before cleanup (section 9) and say where.
-3. `--deploy=branch`: `git push -u origin fix/<short-name>` (retry network
+3. `--deploy=branch`: `npm run ready` (the marker the deploy's train finds it by,
+   decision 0126), then `git push -u origin fix/<short-name>` (retry network
    failures up to four times with backoff). Stop. Do not open a pull request
    unless the owner asked. Go to section 9.
 4. `--deploy=main` (the default): go on to section 8.

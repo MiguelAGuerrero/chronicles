@@ -88,8 +88,9 @@ the fixes did not touch gets one `npm run e2e:baseline -- <journey>` on `main`, 
 reruns on the branch: a recorded flake is labelled and still fails the run (`docs/TESTING.md`,
 "The e2e's economy"). The record says which journeys ran, how many times, and which were deferred.
 
-The full e2e (no `E2E_ONLY`) only when the owner asks. When all pass, the
-owner decides on `/deploy`.
+The full e2e (no `E2E_ONLY`) only when the owner asks. When all pass, mark the
+branch ready again (`npm run ready && git push`, decision 0126): the audit's
+commits made the slice's marker stale. Then the owner decides on `/deploy`.
 
 ## Report
 
