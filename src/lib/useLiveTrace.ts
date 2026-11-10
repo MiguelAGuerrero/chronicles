@@ -5,6 +5,7 @@ import { db } from './db';
 import { isBreak, type PauseSpan } from './geo';
 import { DotStore } from './liveDot';
 import { headingOf } from './nav/navigator';
+import { landingOf } from './nav/wayBack';
 import { recorder } from './recorder';
 import { gapKey, gapsOf, type Gap } from './gaps/infer';
 import { HiddenLog } from './hiddenLog';
@@ -30,6 +31,8 @@ export interface LiveTrace {
   lastGoodAt: number | null;
   /** On a ride now, through stops (R11, R12). */
   riding: boolean;
+  /** Where the last ride that has ended ended: Walk me back's target after a drive (DW6). */
+  landing: LngLat | null;
   /** The way the walker is going, in degrees from north; null when standing still. */
   heading: number | null;
   /** The live dot, fed fix by fix (the walk map's dot and the trace's end read it; nothing else). */
@@ -49,6 +52,8 @@ function sameRuns(a: LngLat[][], b: LngLat[][]): boolean {
 
 const NO_FILLS: Fill[] = [];
 
+const sameAt = (a: LngLat | null, b: LngLat | null) => a === b || (!!a && !!b && a[0] === b[0] && a[1] === b[1]);
+
 /**
  * When this page was out of front. A gap is reported only if it overlaps a spell of it: with
  * the page on screen, a gap is weak GPS, which the status chip already says (Nov 3, after
@@ -58,7 +63,7 @@ const hiddenLog = new HiddenLog(Date.now());
 if (AppState.currentState !== 'active') hiddenLog.hide(Date.now());
 AppState.addEventListener('change', (st) => (st === 'active' ? hiddenLog.show(Date.now()) : hiddenLog.hide(Date.now())));
 
-const EMPTY: LiveTrace = { runs: [], rides: [], here: null, distanceM: 0, rideM: 0, lastFixAt: null, lastGoodAt: null, riding: false, heading: null, dot: null };
+const EMPTY: LiveTrace = { runs: [], rides: [], here: null, distanceM: 0, rideM: 0, lastFixAt: null, lastGoodAt: null, riding: false, landing: null, heading: null, dot: null };
 
 /** The newest gap in the kept trace that isn't a pause: the app was closed or the page hidden. */
 function newestGap(kept: TracePoint[], pauses: PauseSpan[]): { ms: number; at: number } | null {
@@ -177,6 +182,7 @@ export function useLiveTrace(
       riding.current = ridingAt(tr, here, Date.now());
       lastRead.current = { tr, here };
       const rides = rideRuns(tr);
+      const landing = landingOf(tr, riding.current);
       setState((prev) => ({
         // Standstills held still, as the replay draws them (the scribble, Nov 1).
         runs: liveRuns(tr),
@@ -187,6 +193,7 @@ export function useLiveTrace(
         lastFixAt: last?.t ?? null,
         lastGoodAt: tr.lastGoodAt,
         riding: riding.current,
+        landing: sameAt(prev.landing, landing) ? prev.landing : landing,
         heading: headingOf(kept.slice(-30)),
         dot,
       }));

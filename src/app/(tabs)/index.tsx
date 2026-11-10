@@ -41,6 +41,8 @@ import { perfCount } from '../../lib/perfCount';
 import type { LngLat } from '../../lib/types';
 import { useLocate, type LocateError } from '../../lib/useLocate';
 import { useStartWalk } from '../../lib/useStartWalk';
+import { walkToChoice } from '../../lib/startPlan';
+import { useOpenWalkInfo } from '../../components/OpenWalk';
 import { useTabMap } from '../../lib/useTabMap';
 
 // A tab that throws shows what broke, with the tab bar and the recording bar still there (fix ios-video audit 1).
@@ -120,6 +122,7 @@ export default function Explore() {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const walkStart = useStartWalk();
+  const openInfo = useOpenWalkInfo();
   const [from, setFrom] = useState<LngLat | null>(() => getLastFix()?.at ?? null);
   // With no fix since launch (a reload), the atlas opens where it last listed areas, never saying "You're here" (AT1).
   const [stale, setStale] = useState(() => !getLastFix());
@@ -675,8 +678,17 @@ export default function Explore() {
           finds={ringOf.get(card.area.key)?.finds ?? NONE}
           you={from}
           nextDoor={nextDoor(card.area, shown.map((l) => l.area), fresh.build)}
-          walkTo={!card.here && canWalkTo(card.distanceM) ? walkTarget(card.area) : null}
+          walkTo={!card.here ? walkTarget(card.area) : null}
+          // DW14: too far to walk (N5) offers When I get there alone.
+          farOff={!canWalkTo(card.distanceM)}
           busyAreas={busyAreas(card.area).map((b) => ({ ...b, walkable: !!from && canWalkTo(metresBetween(from, b.at)) }))}
+          // DW1, DW2, DW5 (decision 0109): near with a fresh fix starts at once; far, or with no fresh fix, asks.
+          // With a walk open, Walk to routes that walk, as before (NV10).
+          askFirst={(to) => !openInfo.walk && walkToChoice(from ? metresBetween(from, to) : null, stale ? null : fixSeen.current || null, Date.now()) !== 'start'}
+          onLater={(at, label) => {
+            setOpen(null);
+            void walkStart.later({ at, label, kind: 'point' });
+          }}
           starting={walkStart.starting}
           onWalkAt={(at, label) => {
             setOpen(null);

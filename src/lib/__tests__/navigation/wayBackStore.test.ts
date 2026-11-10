@@ -9,7 +9,7 @@ const navShell = (): Promise<any> => import(`../../nav/store/${'shell'}`);
 
 const fox: Waypoint = { at: [-71.4, 41.812], label: 'Fox Point', kind: 'point' };
 
-test('DW3: When I get there saves the destination and starts no walk', { todo: 'test first' }, async () => {
+test('DW3: When I get there saves the destination and starts no walk', async () => {
   const { createNavStore } = await navShell();
   const p = fakePorts();
   const nav = createNavStore(p);
@@ -22,7 +22,7 @@ test('DW3: When I get there saves the destination and starts no walk', { todo: '
   assert.deepEqual(p.log.effects(), ['db.setMeta'], 'one write, nothing else');
 });
 
-test('DW4: arriving starts nothing: the saved destination waits for Start', { todo: 'test first' }, async () => {
+test('DW4: arriving starts nothing: the saved destination waits for Start', async () => {
   const { createNavStore } = await navShell();
   const p = fakePorts();
   const nav = createNavStore(p);
@@ -34,7 +34,7 @@ test('DW4: arriving starts nothing: the saved destination waits for Start', { to
   assert.deepEqual(await nav.loadPendingDest(), fox, 'still the destination');
 });
 
-test('DW7: the spot chosen is this walk\'s; a later one replaces it, another walk never sees it, Stop clears it', { todo: 'test first' }, async () => {
+test('DW7: the spot chosen is this walk\'s; a later one replaces it, another walk never sees it, Stop clears it', async () => {
   const { createNavStore } = await navShell();
   const p = fakePorts();
   const nav = createNavStore(p);
@@ -54,7 +54,7 @@ test('DW7: the spot chosen is this walk\'s; a later one replaces it, another wal
   assert.equal(await nav.loadWayBack('w1'), null, 'a failed read is none');
 });
 
-test('DW10: where the ride ended is never stored', { todo: 'test first' }, async () => {
+test('DW10: where the ride ended is never stored', async () => {
   const { createNavStore } = await navShell();
   const nav = createNavStore(fakePorts());
   assert.deepEqual(Object.keys(nav).filter((k) => /landing|ride/i.test(k)), [], 'the store keeps no landing: it is read from the trace');

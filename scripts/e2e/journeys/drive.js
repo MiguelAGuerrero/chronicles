@@ -37,13 +37,13 @@ async function run(h) {
       await pg.click('[data-testid=atlas-walk]').catch(() => {});
       await pg.waitForTimeout(800);
       const asked = await footerIds(pg);
-      check.todo(asked.includes('atlas-walk-now') && asked.includes('atlas-walk-later') && !(await openWalk(pg)),
+      check(asked.includes('atlas-walk-now') && asked.includes('atlas-walk-later') && !(await openWalk(pg)),
         `DW2: Walk to a place 2.9 km away asks Walk now or When I get there, and starts nothing (${asked.join(', ')})`);
       await shot(pg, 'drive-1-asks');
       await pg.keyboard.press('Escape');
       await pg.waitForTimeout(600);
       const after = await footerIds(pg);
-      check.todo(after.includes('atlas-walk') && !after.includes('atlas-walk-now') && (await pg.locator('[data-testid=atlas-card]').count()) === 1
+      check(after.includes('atlas-walk') && !after.includes('atlas-walk-now') && (await pg.locator('[data-testid=atlas-card]').count()) === 1
         && !(await openWalk(pg)) && !(await metaOf(pg, 'nav')),
         `DW2: Escape closes the question, not the card; nothing saved, no walk (${after.join(', ')})`);
 
@@ -51,7 +51,7 @@ async function run(h) {
       await pg.click('[data-testid=atlas-walk-later]').catch(() => {});
       await pg.waitForSelector('[data-testid=ready-dest]', { timeout: 15000 }).catch(() => {});
       const dest = await pg.locator('[data-testid=ready-dest]').innerText().catch(() => '');
-      check.todo(/To Providence · .*away/.test(dest) && (await pg.locator('[data-testid=start]').count()) === 1 && !(await openWalk(pg)),
+      check(/To Providence · .*away/.test(dest) && (await pg.locator('[data-testid=start]').count()) === 1 && !(await openWalk(pg)),
         `DW3: When I get there opens Navigate, ready, "To Providence", and no walk starts (${dest})`);
       await shot(pg, 'drive-2-later');
 
@@ -63,7 +63,7 @@ async function run(h) {
       await openCard(pg, 'Providence');
       const far = await footerIds(pg);
       const card = await pg.locator('[data-testid=atlas-card]').innerText().catch(() => '');
-      check.todo(far.length === 1 && far[0] === 'atlas-walk-later' && !/Too far to walk/.test(card),
+      check(far.length === 1 && far[0] === 'atlas-walk-later' && !/Too far to walk/.test(card),
         `DW14: past 10 km the card offers When I get there alone (${far.join(', ')})`);
       await pg.keyboard.press('Escape');
 
@@ -79,13 +79,13 @@ async function run(h) {
       }
       const banners = await pg.locator('[data-testid=banner-dismiss]').count();
       const still = await pg.locator('[data-testid=ready-dest]').innerText().catch(() => '');
-      check.todo(!(await openWalk(pg)) && banners === 0 && /To Providence/.test(still) && (await pg.locator('[data-testid=start]').count()) === 1,
+      check(!(await openWalk(pg)) && banners === 0 && /To Providence/.test(still) && (await pg.locator('[data-testid=start]').count()) === 1,
         `DW4: at the place for a minute, nothing starts, nothing is said, Navigate waits (${banners} banners, "${still}")`);
       await pg.click('[data-testid=start]');
       await pg.waitForSelector('[data-testid=cap-photo]', { timeout: 30000 }).catch(() => {});
       await pg.waitForTimeout(2000);
       const walk = await openWalk(pg);
-      check.todo(!!walk, 'DW4: only Start starts the walk, where you are');
+      check(!!walk, 'DW4: only Start starts the walk, where you are');
       await c.close();
     }
 
@@ -105,19 +105,19 @@ async function run(h) {
       here = await go(c, pg, here, at(4, 1.5), 5);
       await pg.waitForTimeout(3000);
       const label = await pg.locator('[data-testid=walk-back]').getAttribute('aria-label').catch(() => null);
-      check.todo(label === 'Walk me back to where the ride ended', `DW6, DW8: after a drive, Walk me back names where the ride ended (${label})`);
+      check(label === 'Walk me back to where the ride ended', `DW6, DW8: after a drive, Walk me back names where the ride ended (${label})`);
       const marksBefore = await pg.locator('.maplibregl-map').last().getAttribute('data-marks').catch(() => null);
-      check.todo(marksBefore === '0', `DW11: nothing marks the way-back point while not led back (${marksBefore})`);
+      check(marksBefore === '0', `DW11: nothing marks the way-back point while not led back (${marksBefore})`);
       await pg.click('[data-testid=walk-back]').catch(() => {});
       await routed(pg, 30000).catch(() => {});
       const bar = await pg.locator('[data-testid=nav-bar]').innerText().catch(() => '');
       const m = /([\d.]+)\s*(m|km)/.exec(await pg.locator('[data-testid=nav-left]').innerText().catch(() => ''));
       const left = m ? parseFloat(m[1]) * (m[2] === 'km' ? 1000 : 1) : NaN;
-      check.todo(/Where the ride ended/.test(bar) && left > 120 && left < 320,
+      check(/Where the ride ended/.test(bar) && left > 120 && left < 320,
         `DW6, DW9: the way back leads to where the ride ended, along the walk, never the drive (${left} m, "${bar.replace(/\s+/g, ' ')}")`);
-      check.todo(!/\d+\s*min.*(faster|shorter)|fastest/i.test(bar), 'DW8: no minutes compared');
+      check(!/\d+\s*min.*(faster|shorter)|fastest/i.test(bar), 'DW8: no minutes compared');
       const marksLed = await pg.locator('.maplibregl-map').last().getAttribute('data-marks').catch(() => null);
-      check.todo(marksLed === '1', `DW11: led back, the point is the route's end, one mark (${marksLed})`);
+      check(marksLed === '1', `DW11: led back, the point is the route's end, one mark (${marksLed})`);
       await pg.click('[data-testid=nav-end]').catch(() => {});
       await pg.waitForTimeout(800);
 
@@ -141,22 +141,22 @@ async function run(h) {
         return document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)?.closest('[data-testid]')?.getAttribute('data-testid') === id;
       }), ids);
       const same = before.every((b, i) => b && during[i] && Math.abs(b.x - during[i].x) < 1 && Math.abs(b.y - during[i].y) < 1);
-      check.todo((await pg.locator('[data-testid=spot-way-back]').count()) === 1 && free && same,
+      check((await pg.locator('[data-testid=spot-way-back]').count()) === 1 && free && same,
         `DW13: with Walk back here on the card at 320 px, the camera, mic and note stay put and in reach (free ${free}, same ${same})`);
       await pg.click('[data-testid=spot-way-back]').catch(() => {});
       await pg.waitForTimeout(800);
       const said = await pg.locator('body').innerText();
       const label2 = await pg.locator('[data-testid=walk-back]').getAttribute('aria-label').catch(() => null);
-      check.todo(/Walk me back now leads here\./.test(said) && label2 === 'Walk me back to the spot you chose',
+      check(/Walk me back now leads here\./.test(said) && label2 === 'Walk me back to the spot you chose',
         `DW7, DW8: Walk back here says so once and Walk me back now names the spot you chose (${label2})`);
       const marksChosen = await pg.locator('.maplibregl-map').last().getAttribute('data-marks').catch(() => null);
-      check.todo(marksChosen === '0', `DW11: the spot chosen is not marked on the map (${marksChosen})`);
+      check(marksChosen === '0', `DW11: the spot chosen is not marked on the map (${marksChosen})`);
       await pg.setViewportSize({ width: 390, height: 844 });
       await pg.reload();
       await pg.waitForSelector('[data-testid=cap-photo]', { timeout: 30000 });
       await pg.waitForTimeout(3000);
       const label3 = await pg.locator('[data-testid=walk-back]').getAttribute('aria-label').catch(() => null);
-      check.todo(label3 === 'Walk me back to the spot you chose', `DW7: a reload keeps the spot chosen (${label3})`);
+      check(label3 === 'Walk me back to the spot you chose', `DW7: a reload keeps the spot chosen (${label3})`);
       void parked;
       await c.close();
     }
@@ -169,14 +169,14 @@ async function run(h) {
       await pg.click('[data-testid=atlas-walk]').catch(() => {});
       await pg.waitForSelector('[data-testid=cap-photo]', { timeout: 30000 }).catch(() => {});
       await pg.waitForTimeout(1500);
-      check.todo(!!(await openWalk(pg)) && (await pg.locator('[data-testid=atlas-walk-now]').count()) === 0,
+      check(!!(await openWalk(pg)) && (await pg.locator('[data-testid=atlas-walk-now]').count()) === 0,
         'DW1: Walk to a neighborhood 1 km away starts the walk in one tap, with no question');
       await c.close();
     }
 
     // Nothing left the device (DW12): the journey asked only this server, the tile host and Overture.
     const away = [...hosts].filter((x) => !x.startsWith('localhost') && x !== 'tiles.openfreemap.org' && x !== OVERTURE_HOST);
-    check.todo(away.length === 0, `DW12: nothing is sent anywhere (${away.join(', ')})`);
+    check(away.length === 0, `DW12: nothing is sent anywhere (${away.join(', ')})`);
   } finally {
     snapWorld.serve = false;
   }

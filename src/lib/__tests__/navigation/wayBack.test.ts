@@ -55,7 +55,7 @@ const p = (f: TracePoint): LngLat => [f.lon, f.lat];
 
 // ---- Getting there first (Explore's area card) ----
 
-test('DW1: a place within 2 km starts at once, with a fresh fix', { todo: 'test first' }, async () => {
+test('DW1: a place within 2 km starts at once, with a fresh fix', async () => {
   const { walkToChoice, GET_THERE_M } = await startPlan();
   const now = 10 * 3600_000;
   assert.equal(GET_THERE_M, 2000);
@@ -63,14 +63,14 @@ test('DW1: a place within 2 km starts at once, with a fresh fix', { todo: 'test 
   assert.equal(walkToChoice(2000, now - 60_000, now), 'start', 'exactly 2 km is near');
 });
 
-test('DW2: a place past 2 km asks', { todo: 'test first' }, async () => {
+test('DW2: a place past 2 km asks', async () => {
   const { walkToChoice } = await startPlan();
   const now = 10 * 3600_000;
   assert.equal(walkToChoice(2001, now - 60_000, now), 'ask');
   assert.equal(walkToChoice(9_999, now, now), 'ask');
 });
 
-test('DW5: no position, or a fix over 30 minutes old, asks', { todo: 'test first' }, async () => {
+test('DW5: no position, or a fix over 30 minutes old, asks', async () => {
   const { walkToChoice, FRESH_FIX_MS } = await startPlan();
   const now = 10 * 3600_000;
   assert.equal(FRESH_FIX_MS, 30 * 60_000);
@@ -80,7 +80,7 @@ test('DW5: no position, or a fix over 30 minutes old, asks', { todo: 'test first
   assert.equal(walkToChoice(300, now - 30 * 60_000, now), 'start', 'exactly 30 min is fresh');
 });
 
-test('DW14: too far to walk offers When I get there alone', { todo: 'test first' }, async () => {
+test('DW14: too far to walk offers When I get there alone', async () => {
   const { walkToChoice } = await startPlan();
   const now = 10 * 3600_000;
   assert.equal(walkToChoice(10_001, now, now), 'later');
@@ -90,7 +90,7 @@ test('DW14: too far to walk offers When I get there alone', { todo: 'test first'
 
 // ---- The way back ----
 
-test('DW6: back to where the last ride ended; the start with none; a ride under way doesn\'t count', { todo: 'test first' }, async () => {
+test('DW6: back to where the last ride ended; the start with none; a ride under way doesn\'t count', async () => {
   const { landingOf, wayBackTarget } = await wayBack();
   // A drive, a walk, a bus, a walk.
   const pts = trip([{ v: WALK, s: 60 }, { v: CAR, s: 180 }, { v: WALK, s: 120, north: true }, { v: CAR, s: 120 }, { v: WALK, s: 120, north: true }]);
@@ -121,7 +121,7 @@ test('DW6: back to where the last ride ended; the start with none; a ride under 
   assert.equal(wayBackTarget({ start: null, landing: null, chosen: null }), null, 'nothing walked yet');
 });
 
-test('DW7: the spot chosen wins over where the ride ended and the start', { todo: 'test first' }, async () => {
+test('DW7: the spot chosen wins over where the ride ended and the start', async () => {
   const { wayBackTarget } = await wayBack();
   const chosen = at(500, 500);
   const t = wayBackTarget({ start: at(0, 0), landing: at(2000, 0), chosen });
@@ -129,7 +129,7 @@ test('DW7: the spot chosen wins over where the ride ended and the start', { todo
   assert.equal(t.kind, 'chosen');
 });
 
-test('DW8: the label names the target in words, with no digits; shown past 50 m', { todo: 'test first' }, async () => {
+test('DW8: the label names the target in words, with no digits; shown past 50 m', async () => {
   const { wayBackTarget, showsWayBack, CHOSEN_NOTICE } = await wayBack();
   const start = at(0, 0);
   const s = wayBackTarget({ start, landing: null, chosen: null });
@@ -153,7 +153,7 @@ test('DW8: the label names the target in words, with no digits; shown past 50 m'
   assert.equal(showsWayBack(s, null), false, 'no position yet');
 });
 
-test('DW9: the way back to where the ride ended never follows the ride', { todo: 'test first' }, async () => {
+test('DW9: the way back to where the ride ended never follows the ride', async () => {
   const { landingOf } = await wayBack();
   const pts = trip([{ v: WALK, s: 150 }, { v: CAR, s: 180 }, { v: WALK, s: 200, north: true }]);
   const tr = readTrace(pts, 0);
@@ -169,7 +169,7 @@ test('DW9: the way back to where the ride ended never follows the ride', { todo:
   assert.equal(src.route(here, p(tr.walked[0])), null, 'the start is across the drive: no walking way back there');
 });
 
-test('DW10: where the ride ended moves with RIDE_RULES, read from the trace', { todo: 'test first' }, async () => {
+test('DW10: where the ride ended moves with RIDE_RULES, read from the trace', async () => {
   const { landingOf } = await wayBack();
   // A bike at 5 m/s is under RIDE_RULES.speed (7 m/s): not a ride, so there is no landing and the target is the start.
   const bike = readTrace(trip([{ v: WALK, s: 60 }, { v: BIKE, s: 180 }, { v: WALK, s: 60 }]), 0);

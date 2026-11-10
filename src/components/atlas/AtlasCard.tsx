@@ -67,6 +67,12 @@ export function AtlasCard(props: {
   /** TP7: a graded town's busy areas, busiest first; `walkable` is whether navigation will route from where you are. */
   busyAreas: { label: string; at: LngLat; walkable: boolean }[];
   starting: boolean;
+  /** DW14: past what can be walked (N5), the footer offers When I get there alone. */
+  farOff?: boolean;
+  /** DW2, DW5: whether Walk to a place asks Walk now or When I get there first (decision 0109). */
+  askFirst?: (at: LngLat) => boolean;
+  /** DW3: When I get there: the place is kept for Navigate's Start; no walk starts. */
+  onLater?: (at: LngLat, label: string) => void;
   onWalk: () => void;
   onWalkAt: (at: LngLat, label: string) => void;
   /** WP1: a kind's "Suggest a walk" button opens the walk planner for it. */
@@ -85,10 +91,16 @@ export function AtlasCard(props: {
   const p = area.profile;
   const [how, setHow] = useState(false);
   const reduced = useReducedMotion();
+  // DW2: Walk to a far place asks first, in the footer; Back and Escape close the question before the card.
+  const [asking, setAsking] = useState<{ at: LngLat; label: string; now: () => void } | null>(null);
   const close = useRef(props.onClose);
   useEffect(() => {
-    close.current = props.onClose;
-  }, [props.onClose]);
+    close.current = asking ? () => setAsking(null) : props.onClose;
+  }, [props.onClose, asking]);
+  const walkTo = (at: LngLat, label: string, now: () => void) => {
+    if (props.askFirst?.(at)) setAsking({ at, label, now });
+    else now();
+  };
   useEffect(() => {
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
       close.current();
@@ -230,7 +242,7 @@ export function AtlasCard(props: {
                   <View key={`${b.label}-${i}`} style={styles.pocket} testID="atlas-busy-area">
                     <Text style={styles.pocketName}>{b.label}</Text>
                     {b.walkable ? (
-                      <Pressable testID="atlas-busy-walk" accessibilityRole="button" accessibilityLabel={`Walk to ${b.label}`} onPress={() => props.onWalkAt(b.at, b.label)} style={styles.pocketWalk}>
+                      <Pressable testID="atlas-busy-walk" accessibilityRole="button" accessibilityLabel={`Walk to ${b.label}`} onPress={() => walkTo(b.at, b.label, () => props.onWalkAt(b.at, b.label))} style={styles.pocketWalk}>
                         <Text style={styles.howText}>Walk to</Text>
                       </Pressable>
                     ) : null}
@@ -307,9 +319,39 @@ export function AtlasCard(props: {
         <View style={[styles.footer, sheet && { paddingBottom: 16 + insets.bottom }]}>
           {props.here ? (
             <Text style={[styles.you, styles.hereLine]}>You’re in {area.name}</Text>
+          ) : asking ? (
+            // DW2: Walk now starts as Walk to always did; When I get there keeps the place for Navigate's Start (DW3).
+            <>
+              <View style={styles.askHead}>
+                <Text style={styles.askTitle} numberOfLines={1} accessibilityRole="header">{asking.label}</Text>
+                <Pressable testID="atlas-walk-cancel" accessibilityRole="button" accessibilityLabel="Not now" onPress={() => setAsking(null)} style={styles.askClose}>
+                  <Icon name="close" size={22} color={theme.ink} />
+                </Pressable>
+              </View>
+              <View style={styles.askRow}>
+                <Button testID="atlas-walk-now" label="Walk now" busy={props.starting} busyLabel="Starting…" style={styles.askBtn}
+                  onPress={() => {
+                    const go = asking.now;
+                    setAsking(null);
+                    go();
+                  }} />
+                <Button testID="atlas-walk-later" variant="secondary" label="When I get there" style={styles.askBtn}
+                  accessibilityHint="Keeps it on Navigate. The walk starts when you tap Start."
+                  onPress={() => {
+                    const a = asking;
+                    setAsking(null);
+                    props.onLater?.(a.at, a.label);
+                  }} />
+              </View>
+            </>
+          ) : props.walkTo && props.farOff ? (
+            // DW14: too far to walk, not too far to go.
+            <Button testID="atlas-walk-later" label="When I get there" tall
+              accessibilityHint="Keeps it on Navigate. The walk starts when you tap Start."
+              onPress={() => props.walkTo && props.onLater?.(props.walkTo.at, props.walkTo.label)} />
           ) : props.walkTo ? (
             <>
-              <Button testID="atlas-walk" label={`Walk to ${props.walkTo.label}`} onPress={props.onWalk} busy={props.starting} busyLabel="Starting…" tall />
+              <Button testID="atlas-walk" label={`Walk to ${props.walkTo.label}`} onPress={() => props.walkTo && walkTo(props.walkTo.at, props.walkTo.label, props.onWalk)} busy={props.starting} busyLabel="Starting…" tall />
               {props.walkTo.via ? <Text style={styles.via} testID="atlas-walk-via">Starts you at {props.walkTo.via}, its busiest street</Text> : null}
             </>
           ) : (
@@ -431,5 +473,10 @@ const styles = StyleSheet.create({
   nbName: { fontSize: 14, fontWeight: '600', color: theme.ink },
   footer: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16, borderTopWidth: 1, borderTopColor: theme.line, gap: 6, backgroundColor: theme.surface },
   via: { fontSize: 13, color: theme.muted, textAlign: 'center' },
+  askHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  askTitle: { flex: 1, fontSize: 15, fontWeight: '600', color: theme.ink },
+  askClose: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  askRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  askBtn: { flexGrow: 1, flexBasis: 140 },
   hereLine: { color: COLORS.route, fontWeight: '600', textAlign: 'center', paddingVertical: 12 },
 });
