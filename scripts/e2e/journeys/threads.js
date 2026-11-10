@@ -107,6 +107,8 @@ async function run(h) {
   // OT11: the viewer says "in a thread", without the thread's name.
   await closeViewer();
   await openCard('looked strong at the pier');
+  const live = await pg.locator('[data-testid=capture-meta]').first().getAttribute('aria-live');
+  check(live === 'polite', 'ui-conformance audit 8: the info line is a live region, so what it says is announced on the web');
   const line1 = await meta();
   check(/In a thread$/.test(line1) && !/In a thread:/.test(line1), `OT11: the info line says "In a thread" and no name (${line1})`);
 
@@ -219,7 +221,14 @@ async function run(h) {
   await pg.locator('[data-testid=own-thread] [data-testid=moment-card]:has-text("And a third") [data-testid=moment-more]').click();
   await pg.click('[data-testid=thread-menu-remove]');
   check((await there('[data-testid=undo-toast]')) && /Removed from the thread/.test(await pg.locator('[data-testid=undo-toast]').innerText()), 'UC6: Remove acts at once, with Undo');
+  await pg.waitForTimeout(800);
   await shot(pg, '75-removed-pill');
+  {
+    const pill = await pg.locator('[data-testid=undo-toast]').boundingBox();
+    const back = await pg.locator('[data-testid=own-thread-back]').boundingBox();
+    const clear = pill && back && (pill.y >= back.y + back.height || pill.y + pill.height <= back.y);
+    check(!!clear, 'ui-conformance audit 6: the waiting pill never covers the thread\'s Back');
+  }
   await closePill();
   db = await stored(pg);
   check(db.members.length === 3 && db.captures.some((x) => x.body === 'And a third, on the bridge.'), 'OT8: Remove from this thread keeps the moment kept');
@@ -302,9 +311,11 @@ async function run(h) {
   await pg.locator('[data-testid=own-thread] [data-testid=moment-card] [data-testid=moment-more]').first().click();
   await pg.click('[data-testid=thread-menu-remove]');
   await pg.waitForSelector('[data-testid=undo-toast]');
-  await closePill();
+  // Leaving the screen stores what waits there (ui-conformance audit 6, the owner's call).
+  await tabTo(pg, 'explore');
+  await pg.waitForTimeout(800);
   db = await stored(pg);
-  check(db.threads.length === 0 && db.members.length === 0 && db.captures.length === kept, 'UC6: closed, the thread ends and every moment stays kept');
+  check(db.threads.length === 0 && db.members.length === 0 && db.captures.length === kept, 'UC6, ui-conformance audit 6: leaving the screen stores the removal: the thread ends and every moment stays kept');
   await c.close();
 }
 

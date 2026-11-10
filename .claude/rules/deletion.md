@@ -28,7 +28,7 @@ Deleting a walk, its media, or a moment (`lib/deletion`): what goes, Undo, and w
   without its file. `filesOf` skips `THUMB.none` and `data:` refs.
 - **Undo waits for the owner** (`deletion/pending.ts`, pure; `deletion/runner.ts` stores; `deletion/index.ts`
   wires them; UC1-UC6, UC13, decision 0113). A delete hides its ids at once and is stored only when the pill's
-  Close is tapped (`dismiss`) or another delete starts; never on a timer, never on going to the background. The
+  Close is tapped (`dismiss`), another delete starts, a thread write begins, or the owner leaves the screen (`flush` on every route change in `_layout.tsx`, the owner's call in the audit); never on a timer, never on going to the background. A stored removal unhides its key, and meta holds the list of jobs not yet stored. The
   waiting delete is data (`DeleteSpec`), kept in meta `pending_delete`, so a killed app stores it at the next launch
   (`resume`, no pill). A moment, a thread and a removal from a thread act with no confirm; a walk and a walk's
   media still ask (`ConfirmCard`, D4). A removal hides `thread/moment` (`membershipKey`). Ids stay hidden after they went, so a screen's stale
@@ -72,8 +72,6 @@ Deleting a walk, its media, or a moment (`lib/deletion`): what goes, Undo, and w
   - Native legacy `file://` refs from an old container leak on moment and
     media deletes (a walk delete removes its folder).
   - The home's reload after a delete reruns its whole load.
-  - On the web, a hidden page counts as the background, so switching tabs
-    stores a waiting delete at once.
   - A notification already shown for a deleted moment opens nothing.
 - **Native** (unverified on a device): the SQLite deletes, file and folder
   removal, `Directory.size`, the Undo pill over the viewer's Modal, the

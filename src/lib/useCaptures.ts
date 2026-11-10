@@ -43,6 +43,8 @@ export type VoiceResult = 'saved' | 'dropped' | 'discarded' | 'failed' | 'none';
 interface Stamp {
   t: number;
   at: LngLat | null;
+  /** The moment a reply answers, fixed when the capture began, so a swipe meanwhile never moves it (ui-conformance audit 10). */
+  replyTo?: { answeredId: string; from?: string | null } | null;
   locating?: Promise<LocateResult>;
 }
 
@@ -97,7 +99,7 @@ export function useCaptures(
   onError?: (e: { message: string; openSettings?: boolean }) => void,
   opts: {
     loose?: boolean;
-    onMoment?: (c: Capture, state: MomentState) => void;
+    onMoment?: (c: Capture, state: MomentState, answeredId?: string | null) => void;
     /** Every moment this path keeps answers this one, and joins its thread (OT2); null when it answers nothing. */
     replyTo?: { answeredId: string; from?: string | null } | null;
   } = {},
@@ -157,7 +159,7 @@ export function useCaptures(
     const t = clockNow();
     const { here: h, lastFixAt: f } = pos.current;
     const at = h && f != null && t - f <= FRESH_FIX_MS ? h : null;
-    const s: Stamp = { t, at };
+    const s: Stamp = { t, at, replyTo: replyTo.current };
     if (locate) startLocating(s);
     return s;
   };
@@ -180,7 +182,7 @@ export function useCaptures(
     };
     await db.addCapture(c);
     // A reply is linked once it is kept; a failed link leaves the moment kept, unconnected (OT2).
-    const answers = replyTo.current;
+    const answers = stamp.replyTo !== undefined ? stamp.replyTo : replyTo.current;
     if (answers) void threads.reply(c.id, answers.answeredId, answers.from ?? null).catch(() => {});
     // Without a fresh fix, it is stored unplaced (the trace places it at
     // stop), but pinned meanwhile at the last known position.

@@ -27,8 +27,10 @@ export function ReplyDock(props: {
   setStage: (s: ReplyStage) => void;
   /** Says what went wrong, in the viewer's pill. */
   say: (text: string) => void;
-  /** Says a reply was kept, in the moment's info line (UC10). */
-  kept: (text: string) => void;
+  /** Says a reply was kept, in the answered moment's info line (UC10; audit 10: the moment it answers, not the one shown). */
+  kept: (answeredId: string, text: string) => void;
+  /** A reply is being recorded: the viewer keeps its bars up, so Stop stays on screen (audit 16). */
+  onRecording?: (on: boolean) => void;
   edit?: { label: string; testID: string; onPress: () => void } | null;
   /** The viewer's bars are hidden (UC7): nothing shows, and a memo being recorded goes on. */
   hidden?: boolean;
@@ -44,11 +46,15 @@ export function ReplyDock(props: {
   const cap = useCaptures(walkId, null, null, (e) => sayRef.current(e.message), {
     loose: !walkId,
     replyTo,
-    onMoment: (_c, state) => {
-      if (state === 'kept') keptRef.current('Reply kept');
+    onMoment: (_c, state, answered) => {
+      if (state === 'kept') keptRef.current(answered ?? props.answeredId, 'Reply kept');
     },
   });
   const recording = cap.voiceStartedAt != null;
+  const onRecording = props.onRecording;
+  useEffect(() => {
+    onRecording?.(recording);
+  }, [recording, onRecording]);
   const tool = (testID: string, icon: IconName, label: string, onPress: () => void, disabled?: boolean) => (
     <Pressable
       testID={testID}
@@ -100,7 +106,7 @@ export function ReplyDock(props: {
           <View style={[styles.menu, { bottom: DOCK_H + props.bottomInset + 6 }]} testID="respond-sheet" accessibilityRole="menu">
             {item('respond-photo', 'camera', 'Photo or video', pick(() => void cap.takePhoto()))}
             {item('respond-voice', 'mic', 'Voice memo', pick(() => void cap.startVoice()))}
-            {item('respond-note', 'create-outline', 'Note', () => props.setStage('note'))}
+            {item('respond-note', 'document-text-outline', 'Note', () => props.setStage('note'))}
           </View>
         </View>
       )}

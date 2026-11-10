@@ -269,13 +269,22 @@ async function run(h) {
         const hidden = !(await pg.locator('[data-testid=viewer-toolbar]').isVisible().catch(() => false)) && !(await pg.locator('[data-testid=viewer-close]').isVisible().catch(() => false));
         const after = await pg.locator('[data-testid=edited-photo]').boundingBox();
         await shot(pg, '46-photo-bars-hidden');
-        check(hidden && before && after && after.height > before.height, 'UC7: a tap on the photo hides the bars and the photo fills the screen');
+        const still = before && after && Math.abs(after.y - before.y) < 2 && Math.abs(after.height - before.height) < 2;
+        check(hidden && still, `UC7, ui-conformance audit 28: a tap hides the bars and the photo does not move (${JSON.stringify([before, after])})`);
         if (hidden) {
           await tapPhoto();
           await pg.waitForTimeout(500);
         }
         check(await pg.locator('[data-testid=viewer-toolbar]').isVisible().catch(() => false), 'UC7: another tap brings the bars back');
       }
+      // UC9, ui-conformance audit 26: on the walk screen's viewer, Go here waits in More with Remind me here.
+      await pg.click('[data-testid=viewer-more]');
+      await pg.waitForTimeout(400);
+      await shot(pg, '44-viewer-more-go');
+      check(await pg.locator('[data-testid=viewer-menu] [data-testid=viewer-go]').isVisible().catch(() => false), 'ui-conformance audit 26: Go here is an item in More, not a button over the moment');
+      // A tap outside the menu closes it, as a menu does.
+      await pg.mouse.click(20, 420);
+      await pg.waitForSelector('[data-testid=viewer-menu]', { state: 'detached', timeout: 5000 });
       const photoBox = await pg.locator('[data-testid=edited-photo]').boundingBox();
       const topBtns = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=viewer-close], [data-testid=viewer-more]')].map((b) => b.getBoundingClientRect().bottom));
       const dockBox = await pg.locator('[data-testid=viewer-toolbar]').boundingBox();

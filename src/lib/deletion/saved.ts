@@ -26,3 +26,8 @@ export function isPendingJob(v: unknown): v is PendingJob {
       return false;
   }
 }
+
+/** The waiting and still-storing deletes, as saved (UC13, ui-conformance audit 5, 9). */
+export function isPendingJobs(v: unknown): v is PendingJob[] {
+  return Array.isArray(v) && v.every(isPendingJob);
+}

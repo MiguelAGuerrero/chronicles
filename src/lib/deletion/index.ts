@@ -1,12 +1,12 @@
 // @layer shell
 import { db } from '../db';
-import { forgetRecalls } from '../discovery/recallCheck';
+import { forgetRecalls, setRecallHidden } from '../discovery/recallCheck';
 import { mediaBytes, removeMedia } from '../media';
 import type { Capture, Walk } from '../types';
 import { filesOf, isMedia, mediaRemoveText, momentDeleteText, walkDeleteText, type ConfirmText } from './core';
 import { createPending } from './pending';
 import { createDeleteRunner } from './runner';
-import { isPendingJob } from './saved';
+import { isPendingJob, isPendingJobs } from './saved';
 
 /**
  * Clearing walks and moments (D1-D11): the app's one Undo window, wired to
@@ -22,15 +22,20 @@ export const deletions = createPending({
   clearTimer: (id) => clearTimeout(id as ReturnType<typeof setTimeout>),
   run,
   // Kept so a killed app stores it at the next launch (UC13, decision 0113); a failed write only loses that.
-  save: (job) => void db.setMeta(PENDING_KEY, job ? JSON.stringify(job) : '').catch(() => {}),
+  save: (jobs) => void db.setMeta(PENDING_KEY, jobs.length ? JSON.stringify(jobs) : '').catch(() => {}),
 });
+
+// A reminder never brings back a moment waiting in Undo (ui-conformance audit 7).
+setRecallHidden(() => deletions.hidden());
 
 // A delete still waiting when the app was last killed is stored now, with no pill (UC13).
 void db
   .getMeta(PENDING_KEY)
   .then((raw) => {
-    const job: unknown = raw ? JSON.parse(raw) : null;
-    return isPendingJob(job) ? deletions.resume(job) : undefined;
+    const saved: unknown = raw ? JSON.parse(raw) : null;
+    // An older app saved one delete; this one saves a list.
+    const jobs = isPendingJobs(saved) ? saved : isPendingJob(saved) ? [saved] : [];
+    return jobs.length ? deletions.resume(jobs) : undefined;
   })
   .catch(() => {});
 

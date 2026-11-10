@@ -23,7 +23,14 @@ export type ThreadDeleteJob = Pick<PendingJob, 'kind' | 'ids' | 'spec'>;
  * A moment is never touched. The Chronicle's own threads (`lib/resurface`) are a separate, computed thing; nothing
  * here reads them (OT19).
  */
-export function createThreads(p: Pick<Ports, 'db' | 'clock' | 'newId'>, deps: { schedule: (job: ThreadDeleteJob) => void }) {
+export function createThreads(
+  p: Pick<Ports, 'db' | 'clock' | 'newId'>,
+  deps: {
+    schedule: (job: ThreadDeleteJob) => void;
+    /** Stores whatever waits in the Undo window, so a write never works against a removal about to land (audit 4). */
+    flush?: () => Promise<void>;
+  },
+) {
   const store: Store<ThreadsState> = createStore<ThreadsState>({ loaded: false, data: NONE, open: null });
   let writes: Promise<unknown> = Promise.resolve();
 
@@ -37,7 +44,10 @@ export function createThreads(p: Pick<Ports, 'db' | 'clock' | 'newId'>, deps: { 
    * (owner-threads audit 6), and a moment deleted meanwhile is found out just before the write (audit 7).
    */
   function serial<T>(fn: () => Promise<T>): Promise<T> {
-    const run = writes.then(fn);
+    const run = writes.then(async () => {
+      await deps.flush?.();
+      return fn();
+    });
     writes = run.catch(() => {});
     return run;
   }

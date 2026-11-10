@@ -52,9 +52,11 @@ export function dueRecalls(o: {
   quiet: boolean;
   recalls: Recall[];
   captures: Capture[];
+  /** Moments waiting in Undo, or gone: never brought back by a reminder (ui-conformance audit 7). */
+  hidden?: ReadonlySet<string>;
 }): { recall: Recall; capture: Capture }[] {
   if (o.quiet) return [];
-  const byId = new Map(o.captures.map((c) => [c.id, c]));
+  const byId = new Map(o.captures.filter((c) => !o.hidden?.has(c.id)).map((c) => [c.id, c]));
   const path: LngLat[] = typeof o.here[0] === 'number' ? [o.here as LngLat] : (o.here as LngLat[]);
   const out: { recall: Recall; capture: Capture }[] = [];
   for (const r of o.recalls) {

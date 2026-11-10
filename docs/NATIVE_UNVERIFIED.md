@@ -322,6 +322,10 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** delete a moment, then force-quit the app before tapping anything, and reopen. **Expect:** the moment is gone, its file is removed, and no pill shows. (UC13)
 - [ ] **Do:** with VoiceOver on, delete a moment, then keep a reply and set a reminder. **Expect:** the pill is announced with Undo and Close; the reply and the reminder are announced without focus moving. (UC3, UC10)
 
+- [ ] **Do:** delete a moment in the viewer, then go back to the previous screen before tapping anything. **Expect:** the pill goes, the moment is stored as deleted and stays gone; a delete waiting while a thread is changed is stored first. (audit 6, 4)
+- [ ] **Do:** with VoiceOver or TalkBack on, open a photo in the viewer and move focus onto it. **Expect:** it is not offered as a button. (audit 13)
+- [ ] **Do:** record a voice reply on a photo, then tap the photo. **Expect:** the bars stay up and Stop stays on screen. (audit 16)
+
 ## Network rules (`lib/net`, decision 0100)
 
 - Whether React Native's `fetch` sends the custom `User-Agent` (`Chronicles (+github.com/…)`) on iOS and Android, or the platform's own replaces it.

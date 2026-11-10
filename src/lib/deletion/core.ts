@@ -122,7 +122,7 @@ const KIND_NOUN: Record<CaptureKind, string> = { photo: 'photo', video: 'video',
 
 /** D4: deleting one moment. */
 export function momentDeleteText(kind: CaptureKind, bytes: number): ConfirmText {
-  return { title: `Delete this ${KIND_NOUN[kind]}?`, body: withSize('You can undo it for 5 seconds.', bytes), confirm: 'Delete' };
+  return { title: `Delete this ${KIND_NOUN[kind]}?`, body: withSize('You can undo it.', bytes), confirm: 'Delete' };
 }
 
 /** D5: the pill's words, naming the moment's kind when it is known. */
@@ -134,4 +134,11 @@ export function toastText(kind: DeleteKind, what?: CaptureKind): string {
   if (!what) return 'Moment deleted';
   const noun = KIND_NOUN[what];
   return `${noun[0].toUpperCase()}${noun.slice(1)} deleted`;
+}
+
+/** What the pill's Close keeps, said for a screen reader (UC3, ui-conformance audit 11). */
+export function dismissLabel(kind: DeleteKind): string {
+  if (kind === 'remove') return 'Close, it stays removed';
+  if (kind === 'media') return 'Close, they stay removed';
+  return 'Close, it stays deleted';
 }

@@ -44,10 +44,13 @@ export function createPending(o: {
   clearTimer: (id: unknown) => void;
   /** Stores a delete. */
   run: (spec: DeleteSpec) => Promise<void>;
-  /** Keeps the waiting delete (or none) where a relaunch can find it (UC13). */
-  save?: (job: PendingJob | null) => void;
+  /** Keeps every delete not yet stored (the waiting one, and any still being stored) where a relaunch finds it (UC13). */
+  save?: (jobs: PendingJob[]) => void;
 }) {
   let waiting: PendingJob | null = null;
+  // Not yet stored: the waiting delete and those being stored now (ui-conformance audit 5, 9).
+  let unstored: PendingJob[] = [];
+  const keep = () => o.save?.([...unstored]);
   let errorTimer: unknown = null;
   // Waiting and gone ids, counted so two deletes of one id (a moment, then its walk) unhide right.
   const hiddenCount = new Map<string, number>();
@@ -82,6 +85,8 @@ export function createPending(o: {
   async function commit(job: PendingJob): Promise<void> {
     try {
       await o.run(job.spec);
+      // A removal from a thread can be undone by adding the moment back: its key is not hidden for good (audit 2).
+      if (job.kind === 'remove') unhide(job.ids);
       for (const fn of [...committed]) fn(job);
     } catch {
       unhide(job.ids);
@@ -92,8 +97,9 @@ export function createPending(o: {
       }, ERROR_MS);
       set({ error: FAILED_TEXT });
     }
-    // Stored (or failed): nothing to run after a relaunch, unless a newer delete waits and was saved meanwhile.
-    if (!waiting) o.save?.(null);
+    // Stored (or failed): this one is no longer run after a relaunch; the others still are.
+    unstored = unstored.filter((j) => j !== job);
+    keep();
   }
 
   /** Takes the waiting delete out of the window and stores it. */
@@ -111,7 +117,8 @@ export function createPending(o: {
       void release();
       hide(job.ids);
       waiting = job;
-      o.save?.(job);
+      unstored = [...unstored, job];
+      keep();
       set({ pending: { kind: job.kind, what: job.what }, error: null });
     },
     /** Takes back the waiting delete: nothing was stored. */
@@ -120,18 +127,24 @@ export function createPending(o: {
       const job = waiting;
       waiting = null;
       unhide(job.ids);
-      o.save?.(null);
+      unstored = unstored.filter((j) => j !== job);
+      keep();
       set({ pending: null });
     },
     /** Close on the pill: the delete stands, stored now (UC2). */
     dismiss: release,
     /** Stores what waits now. */
     flush: release,
-    /** A delete saved by a run that was killed: hidden, stored, and no pill (UC13). */
-    resume(job: PendingJob): Promise<void> {
-      if (waiting) return Promise.resolve();
-      hide(job.ids);
-      return commit(job);
+    /** Deletes saved by a run that was killed: hidden, stored, and no pill (UC13), whatever waits now (audit 9). */
+    resume(jobs: PendingJob[]): Promise<void> {
+      unstored = [...jobs, ...unstored];
+      keep();
+      return Promise.all(
+        jobs.map((job) => {
+          hide(job.ids);
+          return commit(job);
+        }),
+      ).then(() => {});
     },
     hidden: () => hidden,
     state: () => state,

@@ -21,7 +21,7 @@ async function app(ports = fakePorts()) {
   const meta = metaStore(ports.db);
   const run = createDeleteRunner({ db: ports.db, removeMedia: async () => 0, forgetRecalls: () => {} });
   const t = timers();
-  const window = createPending({ ...t, run, save: (job) => void (job ? meta.set('pending_delete', job) : meta.clear('pending_delete')) });
+  const window = createPending({ ...t, run, save: (jobs) => void (jobs.length ? meta.set('pending_delete', jobs) : meta.clear('pending_delete')) });
   return { ports, meta, window, t };
 }
 
@@ -57,11 +57,11 @@ test('UC13: a delete still waiting when the app is killed is stored on the next 
   first.window.schedule(moment('a'));
   await settle();
   const saved = await first.meta.get('pending_delete');
-  assert.ok(saved && isPendingJob(saved), 'the waiting delete is kept in meta');
+  assert.ok(saved && saved.length === 1 && isPendingJob(saved[0]), 'the waiting delete is kept in meta');
   // The app is killed: nothing else runs. The next launch reads the same storage.
   const next = await app(first.ports);
-  const job = await next.meta.get('pending_delete');
-  await next.window.resume(job!);
+  const jobs = await next.meta.get('pending_delete');
+  await next.window.resume(jobs!);
   await settle();
   assert.equal((await next.ports.db.getCapturesByIds(['a'])).length, 0, 'stored at the next launch: it stays gone');
   assert.equal(next.window.state().pending, null, 'with no pill');

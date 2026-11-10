@@ -1,6 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { AccessibilityInfo, Platform, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
-import { toastText } from '../lib/deletion/core';
+import { dismissLabel, toastText } from '../lib/deletion/core';
 import { deletions } from '../lib/deletion';
 import { usePendingState } from '../lib/deletion/useDeletions';
 import { Icon } from './icons';
@@ -24,7 +24,7 @@ const setHosts = (next: number[]) => {
 };
 
 /**
- * "Walk deleted · Undo" for 5 s (D5), or "Couldn't delete" after a failure
+ * "Walk deleted · Undo · Close" until the owner taps one (UC1), or "Couldn't delete" after a failure
  * (D6). Every screen that can delete renders one; only the newest shows.
  */
 export function UndoToast(props: { style?: StyleProp<ViewStyle> }) {
@@ -54,7 +54,7 @@ export function UndoToast(props: { style?: StyleProp<ViewStyle> }) {
             <Pressable testID="undo" accessibilityRole="button" accessibilityLabel="Undo" onPress={() => deletions.undo()} style={styles.undo}>
               <Text style={styles.undoText}>Undo</Text>
             </Pressable>
-            <Pressable testID="undo-dismiss" accessibilityRole="button" accessibilityLabel="Close, it stays deleted" onPress={() => void deletions.dismiss()} style={styles.dismiss}>
+            <Pressable testID="undo-dismiss" accessibilityRole="button" accessibilityLabel={dismissLabel(st.pending.kind)} onPress={() => void deletions.dismiss()} style={styles.dismiss}>
               <Icon name="close" size={20} color="rgba(255,255,255,0.75)" />
             </Pressable>
           </View>

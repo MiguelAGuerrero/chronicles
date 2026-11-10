@@ -5,4 +5,4 @@ import { ports } from '../ports';
 import { createThreads } from './shell';
 
 export type { ThreadsState } from './shell';
-export const threads = createThreads(ports, { schedule: (job) => deletions.schedule(job) });
+export const threads = createThreads(ports, { schedule: (job) => deletions.schedule(job), flush: () => deletions.flush() });

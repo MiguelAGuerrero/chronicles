@@ -41,7 +41,7 @@ function job(ids: string[], log: string[], fail = false): PendingJob {
 }
 
 /** The window over fake timers, storing into `log` (a walk id starting "fail:" throws). */
-function windowFor(t: ReturnType<typeof fakeTimers>, log: string[], save?: (j: PendingJob | null) => void) {
+function windowFor(t: ReturnType<typeof fakeTimers>, log: string[], save?: (jobs: PendingJob[]) => void) {
   return createPending({
     ...t,
     save,
@@ -235,8 +235,8 @@ test('D4: the confirm says what goes', () => {
     body: '3 photos and 1 voice memo go. The walk, its notes and its streets stay. Frees about 5 MB.',
     confirm: 'Remove',
   });
-  assert.deepEqual(momentDeleteText('voice', 0), { title: 'Delete this voice memo?', body: 'You can undo it for 5 seconds.', confirm: 'Delete' });
-  assert.equal(momentDeleteText('photo', 2_000_000).body, 'You can undo it for 5 seconds. Frees about 2 MB.');
+  assert.deepEqual(momentDeleteText('voice', 0), { title: 'Delete this voice memo?', body: 'You can undo it.', confirm: 'Delete' });
+  assert.equal(momentDeleteText('photo', 2_000_000).body, 'You can undo it. Frees about 2 MB.');
 });
 
 test('D5: the pill names what went', () => {

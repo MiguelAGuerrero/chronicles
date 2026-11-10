@@ -79,7 +79,7 @@ Open: none (OT23 and OT24 answered Nov 6). The reasons rest on decision 0104, no
 
 ### The viewer's actions (the owner's call, Nov 9, decision 0112)
 
-27. **OT27** Nothing the viewer offers sits over the moment itself: the photo or video area, and a note's or memo's card, are clear of every button. Actions live in the top bar (Close, More), the docked toolbar (Respond, Edit) and the More menu; no row of controls wraps onto a second line on a 320 px phone.
+27. **OT27** Nothing the viewer offers sits over the moment itself: the photo or video area, and a note's or memo's card, are clear of every loose button (a photo fills the screen and the bars sit over its margins, amended by `specs/ui-conformance` audit 28). Actions live in the top bar (Close, More), the docked toolbar (Respond, Edit) and the More menu; no row of controls wraps onto a second line on a 320 px phone.
 
 ## Record (Nov 6)
 

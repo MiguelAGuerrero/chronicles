@@ -1,7 +1,7 @@
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { forwardRef, useEffect, useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import { HANDOFF_HINT } from '../lib/nav/openInMaps';
-import { AccessibilityInfo, Linking, Platform, Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type LayoutRectangle, type StyleProp, type ViewStyle } from 'react-native';
+import { AccessibilityInfo, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type LayoutChangeEvent, type LayoutRectangle, type StyleProp, type ViewStyle } from 'react-native';
 import { Modal } from './Modal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { db } from '../lib/db';
@@ -31,6 +31,7 @@ import { threads } from '../lib/threads';
 import { AddToThread } from './threads/AddToThread';
 import { ReplyDock, DOCK_H, type ReplyStage } from './threads/ReplyDock';
 import { IN_A_THREAD } from '../lib/threads/lines';
+import { barsShown, viewerLine } from '../lib/viewerBars';
 import { threadsOf } from '../lib/threads/rules';
 import { useThreads } from '../lib/threads/useThreads';
 import { Icon, KIND_LABEL } from './icons';
@@ -132,6 +133,8 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
   autoPlay?: boolean;
   onVoiceFinished?: () => void;
   footer?: string;
+  /** The viewer's parts of the line, in order; it names the day first and keeps one thread status (audit 19, 21). */
+  parts?: (string | null | undefined)[];
   /** Unused by the full-screen layout; kept so callers can pass the safe area. */
   topInset?: number;
   nav?: { onPrev?: () => void; onNext?: () => void };
@@ -149,7 +152,8 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
   const uri = useMediaUri(capture);
   const media = (capture.kind === 'photo' || capture.kind === 'video') && !!uri;
   const [box, setBox] = useState<LayoutRectangle | null>(null);
-  const meta = `${KIND_LABEL[capture.kind]} · ${timeOf(capture)}${props.footer ? ` · ${props.footer}` : ''}`;
+  const [now] = useState(() => Date.now());
+  const meta = viewerLine({ kind: KIND_LABEL[capture.kind], t: capture.t, time: timeOf(capture), now, parts: props.parts ?? [props.footer] });
   const actions = (onDark: boolean) => (
     <>
       {props.action && (
@@ -194,9 +198,9 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
         <MediaArea
           onTap={props.onMediaTap}
           onLayout={(e) => setBox(e.nativeEvent.layout)}
-          // In the viewer (docked), the picture starts under the top bar, so no button sits on it (OT27); bare, it fills
-          // the screen (UC7).
-          style={[styles.mediaArea, props.dock && !props.bare ? { marginTop: (props.topInset ?? 0) + TOP_BAR_H } : null]}
+          // In the viewer the picture fills the whole screen in both states, so it never moves when the bars hide; the
+          // bars sit over its black margins (UC7, ui-conformance audit 28).
+          style={props.dock !== undefined ? StyleSheet.absoluteFill : styles.mediaArea}
         >
           {capture.kind === 'photo' && <EditedPhoto uri={uri!} edit={capture.edit ?? null} caption={capture.caption} captionY={capture.caption_y} box={box} />}
           {capture.kind === 'video' && (
@@ -204,9 +208,9 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
           )}
         </MediaArea>
         {props.bare ? null : (
-        <View style={[styles.strip, { paddingBottom: (props.dock ? props.dock : 0) + insets.bottom + 10 }]}>
+        <View style={[styles.strip, props.dock !== undefined && styles.stripOver, { paddingBottom: (props.dock ? props.dock : 0) + insets.bottom + 10 }]}>
           <View style={styles.stripInner}>
-            <Text style={styles.stripMeta} numberOfLines={2} testID="capture-meta">{meta}</Text>
+            <Text style={styles.stripMeta} numberOfLines={2} testID="capture-meta" accessibilityLiveRegion="polite">{meta}</Text>
             {actions(true)}
           </View>
         </View>
@@ -225,7 +229,7 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
           )}
           {capture.kind !== 'text' && !uri && <Text style={styles.note}>{KIND_LABEL[capture.kind]}</Text>}
           <View style={styles.metaRow}>
-            <Text style={[styles.meta, styles.metaText]} testID="capture-meta">{meta}</Text>
+            <Text style={[styles.meta, styles.metaText]} testID="capture-meta" accessibilityLiveRegion="polite">{meta}</Text>
             {actions(false)}
           </View>
         </View>
@@ -267,6 +271,7 @@ export function CaptureViewer(props: {
   thread?: { id: string; name: string | null } | null;
 }) {
   const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
   const [index, setIndex] = useState(0);
   const [editing, setEditing] = useState<Capture | null>(null);
   const editor = useRef<MediaEditorHandle>(null);
@@ -292,6 +297,7 @@ export function CaptureViewer(props: {
     };
   }, []);
   const [statusOf, setStatusOf] = useState<Map<string, string>>(() => new Map());
+  const [recordingReply, setRecordingReply] = useState(false);
   const [menu, setMenu] = useState(false);
   // Add to a thread (OT5): the picker is drawn inside this Modal.
   const [adding, setAdding] = useState<Capture | null>(null);
@@ -386,7 +392,8 @@ export function CaptureViewer(props: {
   };
   const busy = !!saveState?.busy;
   // The toolbar is docked while the moment shows on its own; an editor or a picker takes the screen (OT1, OT27).
-  const bars = chrome || reader;
+  // A note, a memo or a video always shows its bars; a reply being recorded keeps them up (audit 3, 16).
+  const bars = barsShown({ chrome, reader, recording: recordingReply, kind: current?.kind ?? 'text' });
   const docked = !!current && !editing && !noting && !reminding && !adding && bars;
   const mine = current ? threadsOf(current.id, owned) : [];
   const here = props.thread ? mine.find((t) => t.id === props.thread!.id) : undefined;
@@ -427,14 +434,14 @@ export function CaptureViewer(props: {
             topInset={insets.top}
             dock={docked ? DOCK_H : 0}
             bare={!bars}
-            onMediaTap={current.kind === 'photo' && !editing ? () => setChrome((c) => !c) : undefined}
-            footer={[
+            onMediaTap={current.kind === 'photo' && !editing && !reader && !recordingReply ? () => setChrome((c) => !c) : undefined}
+            parts={[
               props.context?.get(current.id),
               list.length > 1 ? `${i + 1} of ${list.length}` : null,
               inThread,
               props.remind && recalls.has(current.id) ? 'Reminder set' : null,
               statusOf.get(current.id),
-            ].filter(Boolean).join(' · ') || undefined}
+            ]}
             nav={
               list.length > 1
                 ? { onPrev: i > 0 ? () => setIndex(i - 1) : undefined, onNext: i < list.length - 1 ? () => setIndex(i + 1) : undefined }
@@ -492,7 +499,8 @@ export function CaptureViewer(props: {
             stage={replyStage}
             setStage={setReplyStage}
             say={(text) => setSaveState({ id: current.id, text })}
-            kept={(text) => tell(current.id, text)}
+            kept={(id, text) => tell(id, text)}
+            onRecording={setRecordingReply}
             edit={editAction}
           />
         )}
@@ -591,7 +599,7 @@ export function CaptureViewer(props: {
         {menu && current && (
           <>
             <Pressable style={StyleSheet.absoluteFill} onPress={() => setMenu(false)} accessible={false} />
-            <View style={[styles.menu, { top: insets.top + 64 }]} testID="viewer-menu">
+            <ScrollView style={[styles.menu, { top: insets.top + 64, maxHeight: Math.max(220, height - insets.top - insets.bottom - 140) }]} testID="viewer-menu">
               {current.lat != null && props.remind && (
                 // In More since UC9; its state is in the info line (UC12).
                 <Pressable
@@ -692,17 +700,14 @@ export function CaptureViewer(props: {
                 <Icon name="trash-outline" size={22} color={theme.danger} />
                 <Text style={[styles.menuText, { color: theme.danger }]}>Delete this {KIND_LABEL[current.kind].toLowerCase()}</Text>
               </Pressable>
-            </View>
+            </ScrollView>
           </>
         )}
-        <UndoToast style={{ top: insets.top + 64 }} />
+        <UndoToast style={{ bottom: (docked ? DOCK_H : 0) + insets.bottom + 72 }} />
       </View>
     </Modal>
   );
 }
-
-/** The viewer's top bar: its 48 px buttons at 8 px from the safe area, and room under them. */
-const TOP_BAR_H = 64;
 
 const styles = StyleSheet.create({
   // A full-width row centers the card on any screen width.
@@ -714,6 +719,7 @@ const styles = StyleSheet.create({
   },
   soundText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
   mediaScreen: { backgroundColor: '#000000' },
+  stripOver: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   mediaArea: { flex: 1 },
   // The thin strip under a photo or video: its details, then its actions.
   strip: { backgroundColor: '#14181f', paddingTop: 10, paddingHorizontal: 16, borderTopWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.15)' },
@@ -747,9 +753,9 @@ const styles = StyleSheet.create({
   aa: { fontSize: 18, fontWeight: '800', color: theme.ink },
   saved: { position: 'absolute', right: 12, flexDirection: 'row', gap: 10, alignItems: 'center', backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12, maxWidth: 280 },
   savedText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
-  viewerTitle: { backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: 999, paddingVertical: 8, paddingHorizontal: 14, maxWidth: '100%' },
-  viewerTitleText: { color: theme.ink, fontSize: 15, fontWeight: '700' },
-  menu: { position: 'absolute', right: 12, backgroundColor: theme.surface, borderRadius: theme.radius, paddingVertical: 6, minWidth: 220, elevation: 8, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 10, shadowOffset: { width: 0, height: 3 } },
+  viewerTitle: { paddingVertical: 8, paddingHorizontal: 4, maxWidth: '100%' },
+  viewerTitleText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
+  menu: { position: 'absolute', right: 12, maxWidth: 320, flexGrow: 0, backgroundColor: theme.surface, borderRadius: theme.radius, paddingVertical: 6, minWidth: 220, elevation: 8, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 10, shadowOffset: { width: 0, height: 3 } },
   menuItem: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48, paddingHorizontal: 16 },
   menuText: { fontSize: 16, fontWeight: '600', color: theme.ink },
   roundBtn: { flexShrink: 0, width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center' },

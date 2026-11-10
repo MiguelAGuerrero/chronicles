@@ -81,7 +81,7 @@ const FEATURES = [
     name: 'replay',
     about: 'the five beats after a walk, the summary, the quiet lines',
     rule: 'replay',
-    source: ['src/app/replay/**', 'src/lib/ceremony/**', 'src/components/ceremony/**', 'src/lib/{replay,quietLines,summary}.ts', 'src/components/CaptureView.tsx'],
+    source: ['src/app/replay/**', 'src/lib/ceremony/**', 'src/components/ceremony/**', 'src/lib/{replay,quietLines,summary}.ts', 'src/components/CaptureView.tsx', 'src/lib/viewerBars.ts'],
     journeys: ['replay'],
     specs: ['concept', 'replay-rhythm'],
   },

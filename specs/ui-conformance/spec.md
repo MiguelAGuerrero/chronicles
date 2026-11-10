@@ -38,7 +38,7 @@ Open: none (the owner answered Nov 10, decision 0113).
 
 ### A viewer that steps aside
 
-7. **UC7** In the moment viewer, a tap on a photo hides the top bar, the info line and the toolbar, and the photo fills the screen; another tap brings them back [T7, V1]. Swiping to the next moment keeps them as they were. A note or a voice memo keeps its card and its bars.
+7. **UC7** In the moment viewer, a tap on a photo hides the top bar, the info line and the toolbar; another tap brings them back [T7, V1]. The photo is centred in the whole screen in both states and does not move: the bars sit over its margins (audit 28, the owner's call Nov 10). Swiping to the next moment keeps them as they were. A note or a voice memo keeps its card and its bars.
 8. **UC8** With a screen reader on, the bars never hide (on a phone; the web build can't tell) [T2].
 9. **UC9** The viewer's top bar holds **Close** and **More** only. **Remind me here** (or, when one is set, "Reminder set: change or stop") and **Go here** are items in More, doing what they did [T-toolbar: one primary action; matrix 3].
 
@@ -51,7 +51,7 @@ Open: none (the owner answered Nov 10, decision 0113).
 
 ## Record (Nov 10)
 
-Built on `claude/ui-conformance` (from `claude/viewer-toolbar`, with `main` merged in); not audited (decision 0074). Tests first: `UI conformance: tests first (UC1-UC13, failing)`.
+Built on `claude/ui-conformance` (from `claude/viewer-toolbar`, with `main` merged in). Tests first: `UI conformance: tests first (UC1-UC13, failing)`. Audited Nov 10 (see Audit).
 
 - **Built as written:** UC1-UC13. Unit: `deletion/conformance.test.ts` (UC1, UC2, UC13), `threads/conformance.test.ts` (UC6), the Undo window's D5 and D6 tests moved to Close instead of a timer. Journeys: `deletion` (UC1, UC3, UC4, UC5), `threads` (UC4, UC6, UC10, UC11), `edit` (UC7, UC9), `walk`, `memories`, `chronicle` (UC9, UC10, UC12). UC8 is a device item (the web always reports a screen reader).
 - **D4, D5 and OT14 amended** (decision 0113): a moment, a thread and a removal act at once; Undo waits; a killed app completes the delete.
@@ -59,3 +59,39 @@ Built on `claude/ui-conformance` (from `claude/viewer-toolbar`, with `main` merg
 - **Looked at** (the screenshot rule): the photo viewer with Close and More (`45-photo-viewer`), the note viewer's toolbar, the Respond menu.
 - **Native:** the waiting delete across a kill, the announcements, the screen-reader check, the tap toggle: `docs/NATIVE_UNVERIFIED.md`, "UI conformance".
 
+
+## Audit (Nov 10)
+
+The auditor (F2-F15), the steward (S1-S6) and the `ux-reviewer` (U1-U10, from the pictures at 390 x 844), numbered on from my own finding. **31 findings: 24 fixed, 4 duplicates of fixed ones, 1 deferred, 2 rejected.** The owner's calls: a waiting delete is stored when you leave its screen (6), and the photo keeps still (28).
+
+1. The viewer behind an overlay stays in the page, so two info lines and two toolbars are found: accept, the moment unmounts while the editor, the reminder, the note or the thread picker is up (`ui-conformance audit 1`, walk journey).
+2. A removed membership stays hidden after it is stored, so adding the moment back shows nothing (F2): accept, a stored removal unhides its key (`ui-conformance audit 2`).
+3. Undo with the bars hidden can land on a video or note with no Close (F3): accept, only a photo hides its bars (`barsShown`, `ui-conformance audit 3`).
+4. Thread writes read the database, not what waits in Undo (F4): accept, a thread write stores what waits first (`ui-conformance audit 4`).
+5. An older commit clears `pending_delete` while a newer delete is still being stored (F5): accept, meta holds the list of what is not yet stored (`ui-conformance audit 5`).
+6. The pill no longer goes away, so it follows the owner and covers the thread page's Back and More (F6): accept, a waiting delete is stored on every route change (the owner's call), and the pill sits at the bottom (`ui-conformance audit 6`, threads journey).
+7. A moment waiting in Undo can come back as a reminder (F7): accept, `dueRecalls` skips hidden captures (`ui-conformance audit 7`).
+8. On the web, the info line's statuses reach no screen reader (F8): accept, the line is a polite live region (`ui-conformance audit 8`, threads journey).
+9. A saved delete is dropped if a new delete starts before launch reads meta (F9): accept, `resume` merges and stores every saved job (`ui-conformance audit 9`).
+10. "Reply kept" can land on the wrong moment (F10): accept, the reply's `replyTo` is taken when it starts; covered by typecheck and the threads journey.
+11. On a 320 px phone the pill's words wrap, and Close's name is wrong for a removal (F11): accept the name (`dismissLabel`, `ui-conformance audit 11`); reject the wrap, which is the pill's text at 200% (M3, WCAG 1.4.4).
+12. More has no scroll and no width limit (F12): accept, the menu scrolls within the screen; covered by typecheck and the edit journey.
+13. With a screen reader on, the photo is a button that does nothing (F13): accept, it takes no tap then; a device item (`docs/NATIVE_UNVERIFIED.md`).
+14. Drift between code, docs and tests (F14): accept, the copy names no time (`ui-conformance audit 14`) and the docs follow.
+15. A delete made to free space frees nothing until ✕ (F15): accept, resolved by 6 (leaving the screen stores it).
+16. A voice reply keeps recording after a tap hides its controls (S1): accept, the bars stay up while a reply records (`ui-conformance audit 16`).
+17. The waiting pill follows the owner onto the replay (S2): duplicate of 6.
+18. A moment's reminder can fire after it was deleted (S3): duplicate of 7.
+19. The viewer's info line has no date (S4): accept, it reads "Kind · day, time · …" (`ui-conformance audit 19`).
+20. The waiting pill covers the thread screen's Back and More (S5): duplicate of 6.
+21. The info line can say the same thing twice (S6): accept, "Added to a thread" stands in for "In a thread" (`ui-conformance audit 21`).
+22. Two pictures were taken mid-fade, and the walk's confirm had none (U1): accept, the deletion journey waits for the fade and shoots `27-walk-confirm`.
+23. The pill covers Back and More (U2): duplicate of 6.
+24. Two ✕ with different meanings sit a thumb apart (U3): accept, the viewer's pill sits above its toolbar, far from Close; covered by the pictures.
+25. The reminder editor's chip rows wrap at 390 px (U4): defer, the editor predates this slice (`docs/DEFERRED.md`).
+26. Go here appears in no picture of More (U5): accept, the edit journey opens More on the walk screen's viewer (`ui-conformance audit 26`, `44-viewer-more-go`).
+27. Edit and the Respond menu's Note share an icon (U6): accept, Note is a page.
+28. The photo jumps when the bars toggle (U7): accept, the owner's call: centred in the whole screen in both states (`ui-conformance audit 28`, edit journey).
+29. The viewer's title looks like a button (U8): accept, it is plain text.
+30. Two sections on Memories are both called "Threads" (U9): reject, the owner's call (decision 0105: one word, two marks).
+31. The wrapped info line starts with a separator (U10): reject, opinion; the line now leads with the day (19).

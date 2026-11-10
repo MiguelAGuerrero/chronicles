@@ -52,8 +52,8 @@ stop for "which control is this?". **[app]** marks a house rule stricter than th
 - **Nothing wraps on a 320 px phone at the default text size** **[app]**: a row that can't fit has too many
   controls. At 200% text, labels may wrap (M3, WCAG 1.4.4); content must not be lost.
 - **Inputs are 16 px or more on the web** **[app]** (iOS zooms otherwise; `react-native-web.md`).
-- **In the moment viewer, a tap on a photo hides the bars** (T7, V1; UC7) and the photo fills the screen; with the
-  bars up, the picture sits between them **[app]**. A screen reader keeps them up (T2; UC8). A video's own controls
+- **In the moment viewer, a tap on a photo hides the bars** (T7, V1; UC7) and the photo fills the screen; it is
+  centred in the whole screen in both states and never moves, the bars sitting over its margins (T7; UC7, audit 28). A screen reader keeps them up (T2; UC8). A video's own controls
   take its taps.
 
 ## How it is checked

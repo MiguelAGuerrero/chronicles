@@ -451,7 +451,8 @@ export function MemoriesScreen() {
         remind
         onSaveNote={(c, body) => resurface.saveNote(c, body)}
       />
-      <UndoToast style={{ top: 8 }} />
+      {/* Low on the screen, clear of the thread's Back and More: it waits now (ui-conformance audit 6). */}
+      <UndoToast style={{ bottom: 16 }} />
     </View>
   );
 }

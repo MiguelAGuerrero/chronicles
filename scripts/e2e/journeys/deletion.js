@@ -30,6 +30,7 @@ async function checks(h) {
       // The ride walk's card has More, with Delete walk (D1); Escape closes it, nothing changed.
       await page.click('[data-testid=card-more]');
       await page.waitForSelector('[data-testid=action-delete]');
+      await page.waitForTimeout(800);
       await shot(page, '24-walk-actions');
       // A finished walk shares its GPS log from More, every raw reading, the ride's too (the owner, Nov 3:
       // a gap that wasn't filled could not be looked into once the walk had ended).
@@ -137,6 +138,8 @@ async function checks(h) {
         await page.locator('[data-testid=walk-more]').nth(rowsBefore - 1).click();
         await page.click('[data-testid=action-delete]');
         await page.waitForSelector('[data-testid=confirm]');
+        await page.waitForTimeout(800);
+        await shot(page, '27-walk-confirm');
         const t = await page.locator('[data-testid=confirm]').innerText();
         await page.click('[data-testid=confirm-delete]');
         return t;

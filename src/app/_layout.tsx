@@ -1,3 +1,4 @@
+import { deletions } from '../lib/deletion';
 import { router, Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
@@ -33,6 +34,8 @@ export default function RootLayout() {
     launchRoute.note(pathname);
     // Chronicle opens on Memories again once the app has been elsewhere (RM1).
     chronicleSection.noteRoute(pathname);
+    // A delete waits on the screen where it was made: moving to another stores it, as Close does (ui-conformance audit 6).
+    void deletions.flush();
     at.current = pathname;
     if (pathname === '/walk') {
       walkInFront.current?.();
