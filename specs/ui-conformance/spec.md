@@ -14,11 +14,12 @@ Touches: Always "Restraint in motion, colour and copy: the content is the novelt
 Verdict: aligned
 Shape: as asked.
 Criteria: UC10 (no success pill for a result on screen, each still said to a screen reader); UC7, UC8 (the bars hide only on the owner's tap, and never with a screen reader on).
-Open: what a killed app does to a waiting delete (plan, "For you to decide").
+Open: none (the owner answered Nov 10, decision 0113).
 
 ## Decisions (the owner's calls, Nov 10)
 
 - The slice covers four of the five conflicts: Undo stays until used; no confirm for undoable deletes; the viewer's bars hide on a tap; quieter success and a slimmer top bar.
+- A killed app completes a waiting delete: on the next launch it is stored (Nov 10, decision 0113).
 - Deleting a whole walk keeps its confirm: it takes a trace, its moments and its streets at once (rare, and the most lost; matrix 8). Removing a walk's media keeps its confirm too (steward S2, accepted).
 
 ## Criteria
@@ -26,7 +27,7 @@ Open: what a killed app does to a waiting delete (plan, "For you to decide").
 ### Undo that waits (amends D5)
 
 1. **UC1** A delete's pill ("Moment deleted", "Walk deleted", "Photos, videos and memos removed", "Thread deleted", "Removed from the thread") stays until the owner taps **Undo** or **✕**, starts another delete, or leaves the app; it never ends on a timer [F3, M3 snackbar, NN/g].
-2. **UC2** Tapping ✕ or starting another delete stores the delete at once; Undo brings back what went, as it was. While it waits, what went is hidden from every list, as before (D5), and the wait survives the phone locking or the app going to the background (steward S1; how a killed app ends it is the owner's call, plan).
+2. **UC2** Tapping ✕ or starting another delete stores the delete at once; Undo brings back what went, as it was. While it waits, what went is hidden from every list, as before (D5), and the wait survives the phone locking or the app going to the background (steward S1).
 3. **UC3** The pill's Undo and ✕ are each at least 44 px and at least 8 px apart; Undo is the more prominent; ✕ is named for what it does ("Close, it stays deleted"); the pill is announced when it appears [X0, X0b, F4] (steward S5).
 
 ### Deletes that don't ask (amends D4)
@@ -46,3 +47,4 @@ Open: what a killed app does to a waiting delete (plan, "For you to decide").
 10. **UC10** No pill appears for an action whose result can be shown where it happened: a kept reply, adding to a thread, setting or stopping a reminder say so in the moment's info line instead ("Reply kept", "Added to a thread", "Reminder set") and to a screen reader, without moving focus [matrix 19, 20, F4] (steward S3). A failure, a result elsewhere ("Saved to Photos", "Downloaded") and a pill with Undo still show.
 11. **UC11** Nothing else on these screens changes: the toolbar's Respond and Edit, the More menu's other items, Delete's Undo and its effect on every list, the replay's viewer and its Continue.
 12. **UC12** With a reminder set on a moment, the viewer's info line says "Reminder set" without opening More (steward S4).
+13. **UC13** A delete still waiting when the app is killed is stored on the next launch: what went stays gone, and no pill is shown for it (decision 0113).

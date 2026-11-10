@@ -315,6 +315,13 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** on Android, open a moment, tap Respond (Back once closes the menu), then Respond, Note, type a few words, press Back; then press Back again. **Expect:** Back closes the menu, then the note being written and leaves the viewer open with Respond ready; the second closes the viewer. (owner-threads audit 9)
 - [ ] **Do:** with VoiceOver and TalkBack on, move through the Chronicle's Threads, the owner's Threads, a thread's timeline and the viewer's toolbar and its Respond menu. **Expect:** the two headings are said apart ("found for you", "connected by you"), each row reads as one named button with its heading and line, a reply says what it answers, and Respond's three kinds are buttons. (OT9, OT12)
 
+## UI conformance (UC1-UC13, decisions 0112, 0113)
+
+- [ ] **Do:** with VoiceOver on (iOS) and TalkBack on (Android), open a photo in the viewer and tap it. **Expect:** the bars stay up; with the screen reader off, the same tap hides them and a second brings them back. (UC7, UC8)
+- [ ] **Do:** delete a moment from the viewer, lock the phone for a minute, unlock. **Expect:** the pill with Undo is still there, and Undo brings the moment back. (UC1, UC2)
+- [ ] **Do:** delete a moment, then force-quit the app before tapping anything, and reopen. **Expect:** the moment is gone, its file is removed, and no pill shows. (UC13)
+- [ ] **Do:** with VoiceOver on, delete a moment, then keep a reply and set a reminder. **Expect:** the pill is announced with Undo and Close; the reply and the reminder are announced without focus moving. (UC3, UC10)
+
 ## Network rules (`lib/net`, decision 0100)
 
 - Whether React Native's `fetch` sends the custom `User-Agent` (`Chronicles (+github.com/…)`) on iOS and Android, or the platform's own replaces it.

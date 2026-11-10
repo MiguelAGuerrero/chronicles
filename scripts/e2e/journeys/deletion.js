@@ -71,6 +71,8 @@ async function checks(h) {
       await openNote();
       await page.click('[data-testid=viewer-more]');
       await page.click('[data-testid=viewer-delete]');
+      await page.waitForTimeout(400);
+      check.todo((await page.locator('[data-testid=confirm]').count()) === 0 && (await page.locator('[data-testid=undo-toast]').count()) === 1, 'UC4: deleting a moment acts at once, with no card first, and the pill with Undo follows');
       await page.waitForSelector('[data-testid=confirm]');
       const ask = await page.locator('[data-testid=confirm]').innerText();
       check(/Delete this note\?/.test(ask) && /undo it for 5 seconds/.test(ask), `deleting a moment asks first, saying what goes (D4: ${ask.replace(/\n/g, ' · ')})`);
@@ -83,6 +85,13 @@ async function checks(h) {
       await page.waitForSelector('[data-testid=undo-toast]');
       check(/Note deleted/.test(await toast()) && (await page.getByText('The bakery smelled of cardamom.').count()) === 0,
         'a deleted moment leaves at once, with Undo (D3, D5)');
+      {
+        const u = await page.locator('[data-testid=undo]').boundingBox();
+        // Never wait on a button that may not be there: the delete is stored when the window ends.
+        const x = (await page.locator('[data-testid=undo-dismiss]').count()) ? await page.locator('[data-testid=undo-dismiss]').boundingBox() : null;
+        check.todo(!!(u && x && u.height >= 44 && x.height >= 44 && x.width >= 44 && Math.abs(x.x - (u.x + u.width)) >= 8) && x !== null && (await page.locator('[data-testid=undo-dismiss]').getAttribute('aria-label')) === 'Close, it stays deleted',
+          'UC3: the pill has Undo and a Close, each 44 px, 8 px apart, Close named for what it does');
+      }
       await shot(page, '26-undo-moment');
       check((await capsOf()).some((c) => c.id === noteCap.id), 'nothing is stored before the 5 s are up (D5)');
       await page.click('[data-testid=undo]');
@@ -114,7 +123,9 @@ async function checks(h) {
       await page.click('[data-testid=confirm-delete]');
       await page.waitForSelector('[data-testid=undo-toast]');
       check(/Photos, videos and memos removed/.test(await toast()), 'the pill names what went (D5)');
+      check.todo((await page.locator('[data-testid=confirm]').count()) === 0, 'UC5: removing a walk\'s media asked first and says what goes (it did, above), then the pill');
       await past();
+      check.todo((await page.locator('[data-testid=undo-toast]').count()) === 1, 'UC1: the pill is still up after the old 5 s: it waits for Undo, Close or another delete');
       const keysNow = new Set(await mediaKeys());
       const capsNow = await capsOf();
       const s2 = await sumOf();

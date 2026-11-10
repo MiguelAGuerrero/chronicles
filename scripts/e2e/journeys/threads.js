@@ -148,6 +148,8 @@ async function run(h) {
   // OT2, OT4: a note reply is kept as a moment of its own, linked to what it answers, in its thread.
   await replyNote('Same again today, at the same pier.');
   check(await there('text=Reply kept'), 'OT1: a reply is kept (Reply kept)');
+  check.todo(/Reply kept/.test(await meta()) && (await pg.locator('[data-testid=viewer-pill]').count()) === 0, 'UC10: a kept reply says so in the info line, with no pill');
+  check.todo((await has('[data-testid=viewer-respond]')) && (await has('[data-testid=viewer-edit-note]')), 'UC11: the toolbar\'s Respond and Edit are as they were');
   await pg.waitForTimeout(800);
   db = await stored(pg);
   const reply = db.captures.find((x) => x.body === 'Same again today, at the same pier.');

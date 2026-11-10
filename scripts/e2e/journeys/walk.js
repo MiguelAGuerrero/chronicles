@@ -315,6 +315,8 @@ async function checks(h) {
           await page.waitForTimeout(300);
         }
         check((await page.getByText('The bakery smelled of cardamom.').count()) > 0, 'a long press on the map shows what happened there');
+        check.todo(!(await page.locator('[data-testid=viewer-remind]').isVisible().catch(() => false)) && !(await page.locator('[data-testid=viewer-go]').isVisible().catch(() => false)),
+          'UC9: the viewer\'s top bar holds Close and More only; Remind me here and Go here wait in More');
         // Remind me here, from the viewer: once by default, with an optional end (R1).
         await page.click('[data-testid=viewer-remind]');
         await page.waitForSelector('[data-testid=remind-editor]');
@@ -325,6 +327,8 @@ async function checks(h) {
         await page.click('[data-testid=remind-save]');
         await page.waitForSelector('text=It will come back when you pass here');
         check((await page.locator('[aria-label="Reminder set. Change or stop it"]').count()) === 1, 'the viewer shows the reminder is set');
+        check.todo(/Reminder set/.test(await page.locator('[data-testid=capture-meta]').first().innerText().catch(() => '')) && (await page.locator('[data-testid=viewer-pill]').count()) === 0,
+          'UC10, UC12: a set reminder says so in the info line, with no pill');
         // The map behind the open viewer already wears the bell, on the same element (RB5, audit 3, 4).
         await page.waitForSelector('[data-ids] [data-testid=pin-reminder]', { timeout: 5000 }).catch(() => null);
         const keptOnSave = await page.locator('[data-ids]:has([data-testid=pin-reminder])').evaluateAll((els) => els.length === 1 && els[0].__beforeBell === true);

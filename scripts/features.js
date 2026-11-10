@@ -344,6 +344,8 @@ const RETIRED = {
  * make (the web build can't reach it), `deferred: <why>` for the owner's call to wait. Keyed by spec.
  */
 const UNTESTED = {
+  // react-native-web always reports a screen reader, so the check that keeps the viewer's bars is a phone's (UC8).
+  'ui-conformance': { UC8: 'device: with VoiceOver or TalkBack on, a tap on a photo leaves the viewer\'s bars up; the web build always reports a screen reader' },
   // Remarkable and public: the archive's rule moves with the pipeline to chronicles-data; RP9 waits on its contract v2.
   'remarkable-and-public': {
     RP1: 'deferred: built and tested here, then the places pipeline moved to chronicles-data (decision 0108); the rule and its tests go there (specs/remarkable-and-public/handoff.md)',

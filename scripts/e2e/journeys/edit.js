@@ -259,6 +259,20 @@ async function run(h) {
       // The photo viewer as a person sees it: the moment clear, Respond and Edit docked under it (decision 0112).
       await pg.waitForTimeout(800);
       await shot(pg, '45-photo-viewer');
+      check.todo(!(await pg.locator('[data-testid=viewer-remind]').isVisible().catch(() => false)) && (await pg.locator('[data-testid=viewer-more]').isVisible()), 'UC9: the photo viewer\'s top bar is Close and More');
+      {
+        const before = await pg.locator('[data-testid=edited-photo]').boundingBox();
+        await pg.locator('[data-testid=edited-photo]').click({ position: { x: 20, y: 20 } });
+        await pg.waitForTimeout(500);
+        const hidden = !(await pg.locator('[data-testid=viewer-toolbar]').isVisible().catch(() => false)) && !(await pg.locator('[data-testid=viewer-close]').isVisible().catch(() => false));
+        const after = await pg.locator('[data-testid=edited-photo]').boundingBox();
+        check.todo(hidden && before && after && after.height > before.height, 'UC7: a tap on the photo hides the bars and the photo fills the screen');
+        if (hidden) {
+          await pg.locator('[data-testid=edited-photo]').click({ position: { x: 20, y: 20 } });
+          await pg.waitForTimeout(500);
+        }
+        check.todo(await pg.locator('[data-testid=viewer-toolbar]').isVisible().catch(() => false), 'UC7: another tap brings the bars back');
+      }
       const photoBox = await pg.locator('[data-testid=edited-photo]').boundingBox();
       const topBtns = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=viewer-close], [data-testid=viewer-more]')].map((b) => b.getBoundingClientRect().bottom));
       const dockBox = await pg.locator('[data-testid=viewer-toolbar]').boundingBox();

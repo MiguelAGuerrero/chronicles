@@ -57,9 +57,7 @@ The pill's announcement (`announceForAccessibility`), the screen-reader check th
 - **S5 tone, accepted:** Undo and ✕ 8 px apart, Undo the prominent one, ✕ named "Close, it stays deleted" (UC3).
 - **Silent, for you:** whether the pill should say what a delete frees ("Moment deleted · about 3 MB"); left out unless you want it.
 
-## For you to decide
+## Answered (Nov 10)
 
-1. **What a killed app does to a waiting delete.** The wait now survives the phone locking (steward S1). Today a killed app drops a waiting delete, so the moment comes back; with no timer the wait can be long. Options:
-   - **(a) Keep it waiting across a kill** (recommended): the waiting ids are kept in meta, so after a relaunch the delete is stored and the moment stays gone; Undo is offered only while the pill is up. Your act always happens. No migration, a meta key.
-   - **(b) A kill drops it** (today's rule): the moment comes back after a crash or a forced quit, with no word.
-   - **(c) A recoverable trash** (a deleted mark, files kept, a Recently deleted list, purged later): safest and the precedent's way (Photos, Google Photos), but a data model change, a migration and a new screen; its own slice.
+- **A killed app:** the delete happens (option a, decision 0113). The waiting delete is kept as data in meta `pending_delete` (`lib/meta.ts`), written as it is scheduled and cleared as it is stored or undone; `lib/deletion` runs a saved one at launch. Tests: `UC13` in `deletion/` over `fakePorts()`.
+- **Go-ahead:** given, Nov 10.
