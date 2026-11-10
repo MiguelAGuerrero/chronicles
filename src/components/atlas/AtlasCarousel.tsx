@@ -112,5 +112,6 @@ export function AtlasCarousel(props: {
 
 const styles = StyleSheet.create({
   row: { flexGrow: 0, flexShrink: 0 },
-  content: { gap: GAP, alignItems: 'flex-start', paddingVertical: 6 },
+  // Every card as tall as the tallest (fix card-heights): the row stretches them, each card fills its slot.
+  content: { gap: GAP, alignItems: 'stretch', paddingVertical: 6 },
 });

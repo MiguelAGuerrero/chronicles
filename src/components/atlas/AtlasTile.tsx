@@ -49,7 +49,7 @@ export const AtlasTile = memo(function AtlasTile(props: {
         style={({ pressed }) => [styles.tile, props.selected && styles.selected, pressed && styles.pressed]}
         {...{ dataSet: { name: a.name, read: reading ? '0' : '1', level: a.level, selected: props.selected ? '1' : '0' } }}
       >
-        <View>
+        <View style={styles.grow}>
           <View style={[styles.body, reading && styles.dim]}>
             <Text style={styles.name}>{a.name}</Text>
             {reading ? (
@@ -87,11 +87,14 @@ export const AtlasTile = memo(function AtlasTile(props: {
 });
 
 const styles = StyleSheet.create({
-  // The row sizes a card: it fills its slot and takes its content's height.
-  outer: { flexGrow: 0, flexShrink: 0, minWidth: 0 },
+  // The row sizes a card: it fills its slot, as tall as the row's tallest card (fix card-heights). A grow, never `flex: 1`
+  // or `flex: 0`, which react-native-web writes with a 0% basis.
+  outer: { flexGrow: 1, flexShrink: 0, minWidth: 0 },
+  // The body takes the height left, so a footer sits at the card's bottom.
+  grow: { flexGrow: 1 },
   // A town reads as a stack of places: a second card's edge shows beneath it.
   stack: { paddingBottom: 4, borderRadius: 18, backgroundColor: '#e8e4dc' },
-  tile: { backgroundColor: theme.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.line, overflow: 'hidden' },
+  tile: { flexGrow: 1, backgroundColor: theme.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.line, overflow: 'hidden' },
   selected: { borderColor: theme.accent, borderWidth: 2 },
   pressed: { opacity: 0.85 },
   dim: { opacity: 0.4 },
