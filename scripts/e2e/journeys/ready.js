@@ -27,7 +27,7 @@ async function run(h) {
     await pg.goto(url);
     await pg.waitForSelector('[data-testid=tab-chronicle][aria-selected=true]');
     await pg.waitForTimeout(1200);
-    // NR3 (amended Nov 9, decision 0106): with no walk open the app opens on Chronicle, at `/`.
+    // NR3 (amended Nov 9, decision 0112): with no walk open the app opens on Chronicle, at `/`.
     check(pathOf(pg) === `${BASE}/` && (await pg.locator('[data-testid=ready-bar]').count()) === 0 && (await tabBarShown(pg)),
       `ready NR3: with no walk open, the app opens on Chronicle (${pathOf(pg)})`);
     // The rest begins on Explore, whose own map the ready screen opens over.
@@ -93,7 +93,7 @@ async function run(h) {
     check(viaChevron === `${BASE}/` && pathOf(pg) === `${BASE}/` && (await selected(pg, 'chronicle')),
       `ready NR4: the chevron and the browser's back return to Chronicle (${viaChevron}, ${pathOf(pg)})`);
 
-    // NR3: a reload of /walk, or a link to /navigate, opens the ready screen (over Chronicle, since 0106).
+    // NR3: a reload of /walk, or a link to /navigate, opens the ready screen (over Chronicle, since 0112).
     await pg.goto(`${url}walk`);
     await pg.waitForSelector('[data-testid=ready-bar]');
     const onWalk = pathOf(pg);

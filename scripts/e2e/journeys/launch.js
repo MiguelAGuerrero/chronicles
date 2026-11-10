@@ -23,7 +23,7 @@ async function checks(h) {
     check(new URL(page.url()).pathname === `${BASE}/explore` && (await page.locator('[data-testid=tab-explore][aria-selected=true]').count()) === 1
       && (await page.locator('[data-testid=tab-bar-wrap]').count()) === 1, `HC5: /explore opens Explore, with one tab bar (${page.url()})`);
     await page.goto(url);
-    // Navigation & tabs (NV1-NV6, amended by decision 0106): the app opens on Chronicle's Memories, at /.
+    // Navigation & tabs (NV1-NV6, amended by decision 0112): the app opens on Chronicle's Memories, at /.
     await page.waitForSelector('[data-testid=tab-chronicle][aria-selected=true]');
     await page.waitForSelector('[data-testid=memories]', { timeout: 15000 });
     // Memos and videos play with the ringer switch off, on the web too (bug: silent playback on iPhone).
@@ -70,7 +70,7 @@ async function checks(h) {
     await page.goBack();
     await page.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 5000 }).catch(() => {});
     check(new URL(page.url()).pathname === `${BASE}/`, 'and on Navigate too (NV5)');
-    // The story goes on from Explore, as it began there before 0106.
+    // The story goes on from Explore, as it began there before 0112.
     await page.click('[data-testid=tab-explore]');
     await page.waitForSelector('[data-testid=tab-explore][aria-selected=true]');
 
@@ -163,7 +163,7 @@ async function fresh(h) {
       check(!/\/walk/.test(new URL(pg.url()).pathname) && (await tabBarShown(pg)) && /^Paused · \d+:\d\d · \d+ m$/.test(await barText())
         && Math.abs(barBox.y + barBox.height - tabBox.y) < 6 && (await pg.locator('[data-testid=recording-bar] [data-testid=stop]').count()) === 0,
         `minimized, a recording bar sits just above the tab bar: time, distance, Paused, and no Stop (NV9: "${await barText()}")`);
-      // Minimized to the tab beneath: Chronicle's Memories since 0106, which has no map. Never two.
+      // Minimized to the tab beneath: Chronicle's Memories since 0112, which has no map. Never two.
       const liveMaps = await pg.locator('canvas.maplibregl-canvas').count();
       check(liveMaps <= 1, `at most one live map with the walk minimized (NV4: ${liveMaps})`);
       // The bar's camera, while paused: the photo is kept for the open walk, and the walk screen stays down (NV9).
@@ -174,7 +174,7 @@ async function fresh(h) {
           g.onsuccess = () => resolve(g.result.filter((x) => x.walk_id === id && x.kind === 'photo'));
         };
       }), w.id);
-      // On Memories the band's camera takes the bar's place (decision 0106): the bar's own camera is on the other tabs.
+      // On Memories the band's camera takes the bar's place (decision 0112): the bar's own camera is on the other tabs.
       if (!(await pg.locator('[data-testid=bar-photo]').count())) await pg.click('[data-testid=tab-explore]');
       const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=bar-photo]')]);
       await chooser.setFiles(path.join(scriptsDir, 'fixtures', 'photo.jpg'));

@@ -98,7 +98,7 @@ Placing walks in neighborhoods, towns, cities and states (`lib/areas`), the boun
 ## Home is the places map
 
 - **Home is the places map** (the owner's call, v0.5; the log screen is gone).
-  `src/app/(tabs)/index.tsx` (the Chronicle tab, the home again since 0106) shows stars where walks were, at the level for the zoom
+  `src/app/(tabs)/index.tsx` (the Chronicle tab, the home again since 0112) shows stars where walks were, at the level for the zoom
   (`levelForZoom`: neighborhoods from z11, towns from z6, states below, and
   countries below z3 once two countries are walked). Stars merge within 44 px,
   and all are one size. A bottom sheet (`HomeSheet`, built on Animated and

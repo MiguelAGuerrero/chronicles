@@ -16,7 +16,7 @@ import { showWalk } from '../../lib/walkNav';
  * The three tabs (HC3): Chronicle · Explore · Navigate, in that order, with an
  * icon and a label, the same on web and phone. Every tab option lives here, so
  * the iOS build can move to native tabs by changing only this file. Chronicle
- * opens first, at `/` (HC1, the owner's call, Nov 9, decision 0106), and Back
+ * opens first, at `/` (HC1, the owner's call, Nov 9, decision 0112), and Back
  * on another tab returns to it (HC4). Navigate is the walk screen, ready
  * or walking (NR1, NR2): its press opens it over the tab in front, and never
  * shows a tab of its own. Each tab keeps its state while another is in front

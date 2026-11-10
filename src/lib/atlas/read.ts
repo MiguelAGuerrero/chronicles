@@ -24,7 +24,6 @@ import { extentTiles, inExtent } from './extent';
 import { findPockets, type Pocket } from './pockets';
 import { placesArchive } from '../discovery/archive';
 import type { ArchiveRead } from '../discovery/archive/shell';
-import { ARCHIVE_EDITS } from '../discovery/archiveMerge';
 
 /*
  * The atlas's reads (AT1, AT5, AT14): the tiles are fetched and decoded in
@@ -99,8 +98,8 @@ export function profileFrom(at: LngLat, feats: CollectedFeatures, build: string,
   const segments = deriveSegments(feats.roads, feats.names, build);
   const places = placesFromTilePois(feats.pois, build);
   const within: Within = extent ? (p) => inExtent(p, extent.outline) : (p) => distanceM(p, at) <= ATLAS_RULES.ringM;
-  // PW10: the map's places and the archive's, with the owner's edits; thin from the map's alone.
-  const counted = ringOf(places, archive?.places ?? null, at, within, { edits: ARCHIVE_EDITS, version: archive?.version ?? 'owner' }, finds);
+  // PW10: the map's places and the archive's (the owner's edits are already in it); thin from the map's alone.
+  const counted = ringOf(places, archive?.places ?? null, at, within, finds);
   const points = mergeSources(activityFromTilePois(feats.pois), overture?.points ?? []);
   const towns = placesFromTiles(feats.places);
   const transit = transitFromTilePois(feats.pois);

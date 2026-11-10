@@ -1,4 +1,4 @@
-// Capture from Chronicle (HC1-HC15, decision 0106): the app opens on Chronicle's Memories, which keeps a
+// Capture from Chronicle (HC1-HC15, decision 0112): the app opens on Chronicle's Memories, which keeps a
 // moment in one tap from a band at its foot. Its own browser: an empty app first, then seeded moments, then
 // a walk minimized. E2E_ONLY=capturehome runs it alone.
 
@@ -324,7 +324,7 @@ async function run(h) {
     `HC6: the band keeps a moment while Memories shows it failed to read (failed: ${failed})`);
 
   // HC10, HC7, HC15: with a walk minimized, the band files into the walk, sits above the recording bar,
-  // and the bar shows no camera on Memories (decision 0106).
+  // and the bar shows no camera on Memories (decision 0112).
   await tabTo(pg, 'navigate');
   await pg.waitForSelector('[data-testid=start]', { timeout: 15000 });
   await pg.click('[data-testid=start]');

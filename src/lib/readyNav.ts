@@ -5,7 +5,7 @@
  * them; the tabs layout, the Navigate route and the walk screen follow them.
  */
 
-/** The tab beneath the walk screen when nothing else is (Chronicle, at `/` since HC1, decision 0106; a bare reload of `/walk`). */
+/** The tab beneath the walk screen when nothing else is (Chronicle, at `/` since HC1, decision 0112; a bare reload of `/walk`). */
 export const BENEATH_TAB = '/' as const;
 
 export type ScreenState = 'loading' | 'ready' | 'walking';

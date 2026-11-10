@@ -19,5 +19,5 @@ Threads the owner makes: a moment stays whole, and a thread, its members and a d
 - **The viewer never says a name** except for the thread it was opened from (`thread`); the resurfaced card, Lately, notifications and shares never carry a thread's name or a title made from it. `ThreadChip` is the one place the viewer speaks of a thread.
 - **No digit but a date** leaves `threads/lines.ts`; a test checks the size words are the four-phrase set.
 - **Independence** is by import: `lib/threads` imports nothing from `lib/resurface` and `lib/resurface` nothing from `lib/threads` (`threads/arch.test.ts`). Components may use both; Keep as my thread copies, one way.
-- **"in a thread" opens a thread** through `threads.requestOpen` / `takeOpen` and the store, then `router.navigate('/')` (Chronicle, since 0106); `MemoriesScreen` takes the request on focus and on any later change.
+- **"in a thread" opens a thread** through `threads.requestOpen` / `takeOpen` and the store, then `router.navigate('/')` (Chronicle, since 0112); `MemoriesScreen` takes the request on focus and on any later change.
 - **E2E:** `E2E_ONLY=threads` (seeds IndexedDB, checks the stores directly).

@@ -268,7 +268,12 @@ async function run(h) {
       await emptyPeek('with a walk minimized and none finished');
     });
     await step('NR2: following the walk', async () => {
-      // Chronicle's Navigate opened the walk (U7 above): it goes on there, the trace growing to the walker.
+      // Chronicle's Navigate opened the walk (U7 above): it goes on there, the trace growing to the walker. A route preview left open from
+      // an earlier step shows only its routes (fix preview-clutter), so it is closed first: this step is about the trace.
+      if (await pg.locator('[data-testid=route-cancel]').count()) {
+        await pg.click('[data-testid=route-cancel]');
+        await pg.waitForTimeout(500);
+      }
       await north(-0.25, 0.25);
       await pg.waitForTimeout(2200);
       const last = at(-0.5, 0.25);

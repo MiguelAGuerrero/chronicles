@@ -35,7 +35,7 @@ Open: none.
 1. **RM1** Chronicle opens on **Memories**, not on the map: at launch, after another tab or the walk, and after a walk's first replay (RM3). A replay or a day opened from Walks, Days or Map keeps that section, so Back returns to the list it came from. A control at the top has four choices: Memories, Walks, Days, Map. It is a tab list for a screen reader, with the chosen one marked.
 2. **RM2** **Walks**, **Days** and **Map** show what Chronicle showed before this slice: the walks list under a month header per month, the days list with Replay this day, and the map with its stars and moment pins. Their behaviour is unchanged, including rename, delete, undo and the capture viewer.
 3. **RM3** Every way out of a walk's first replay ends on Chronicle's **Memories**, and that walk's moments are the newest in Lately.
-4. **RM4** With no moments at all, Memories shows one quiet line and the capture band (amended Nov 9 by HC13, decision 0106; it had a Navigate button, what the empty Chronicle showed), and no rail, no resurfaced card and no Lately.
+4. **RM4** With no moments at all, Memories shows one quiet line and the capture band (amended Nov 9 by HC13, decision 0112; it had a Navigate button, what the empty Chronicle showed), and no rail, no resurfaced card and no Lately.
 
 ### The resurfaced moment
 

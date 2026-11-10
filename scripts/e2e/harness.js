@@ -108,6 +108,10 @@ features.push({ type: 'Feature', properties: { class: 'minor', name: 'Row Street
 [[-126, 'Elm'], [-125.7, 'Oak'], [-121, 'Ash'], [-120.8, 'Fir'], [-115, 'Yew'], [-114.8, 'Bay']].forEach(([x, n]) => {
   features.push({ type: 'Feature', properties: { class: 'park', subclass: 'park', name: `${n} Green` }, geometry: { type: 'Point', coordinates: at(x, 1) } });
 });
+// Three memorials by the start of Row Street, in one cell: History along the parks' routes, so a row can say it "also passes" it (WP28).
+[[-124.2, 'First'], [-124, 'Second'], [-123.8, 'Third']].forEach(([x, n]) => {
+  features.push({ type: 'Feature', properties: { class: 'monument', subclass: 'memorial', name: `${n} Memorial` }, geometry: { type: 'Point', coordinates: at(x, 0.8) } });
+});
 // A busy strip 1.1 km east of Fox Point (v1.5 landing): Thayer Street lined with shops for 250 m,
 // inside the read around a press at Fox Point, and inside the walk's own explore read (E2).
 features.push({ type: 'Feature', properties: { class: 'tertiary', name: 'Thayer Street' }, geometry: { type: 'LineString', coordinates: [at(11, -3), at(11, 3)] } });
@@ -222,7 +226,7 @@ async function createHarness() {
   const url = `http://localhost:${server.address().port}${BASE}/`;
   // Explore is the root (NV2); scenarios that begin on Navigate open its own path.
   const navUrl = `${url}navigate`;
-  // Chronicle is the root since decision 0106 (HC1): the journeys that begin on Explore open it at its own path.
+  // Chronicle is the root since decision 0112 (HC1): the journeys that begin on Explore open it at its own path.
   const exploreUrl = `${url}explore`;
   // A fake microphone, so voice memos can be recorded headless.
   // Sound only after a tap, as on iOS: the replay reaches its stops on its own clock.

@@ -20,7 +20,7 @@ type BandProps = {
 };
 
 /**
- * Memories' capture band (HC6-HC11, decision 0106): camera, mic and note at the foot, one tap from launch.
+ * Memories' capture band (HC6-HC11, decision 0112): camera, mic and note at the foot, one tap from launch.
  * With no walk open each keeps a moment of its own; with a walk minimized, each files into that walk (HC10).
  * Only the walk's band reads the live trace, so Memories itself isn't re-rendered by every fix.
  */

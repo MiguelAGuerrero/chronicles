@@ -2,7 +2,7 @@
 import type { Capture } from './types';
 
 /**
- * Capture from Chronicle (HC6-HC10, HC15, decision 0106): the decisions behind Memories' capture band.
+ * Capture from Chronicle (HC6-HC10, HC15, decision 0112): the decisions behind Memories' capture band.
  * Pure, so `npm test` holds them; `MomentBar` and `MemoriesScreen` follow them.
  */
 
@@ -67,7 +67,7 @@ export function momentToast(kind: Capture['kind'], to: 'loose' | 'walk', reason?
 }
 
 /**
- * Whether the recording bar shows its camera (decision 0106): not on Chronicle's Memories, whose band
+ * Whether the recording bar shows its camera (decision 0112): not on Chronicle's Memories, whose band
  * already files into the walk, so the foot of the screen holds one camera, not two. Everywhere else it does.
  */
 export function barCamera(path: string, section: string): boolean {

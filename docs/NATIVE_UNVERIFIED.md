@@ -131,13 +131,13 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** with a walk minimized, tap Navigate, the recording bar and a reminder notification in quick succession. **Expect:** one walk screen on the stack (`dangerouslySingular` on the native stack's `walk`, `showWalk()`): one chevron or Back returns to the tab beneath (Navigation & tabs).
 - [ ] **Do:** on Navigate's ready screen, start a voice memo, then leave mid-memo by the chevron or another tab. **Expect:** the memo saved when Navigate blurs mid-memo is a moment that plays back (Navigation & tabs). (NR10)
 - [ ] **Do:** open a walk's replay from Chronicle and from a stopped walk, and press Android Back on each. **Expect:** the replay's `BackHandler` ends on Chronicle, showing the walk (Navigation & tabs, audit 6). (NV27)
-- [ ] **Do:** with no walk open, force-quit and open the app; go to Navigate and to Explore and press Android Back on each; press it again on Chronicle. **Expect:** the app opens on Chronicle's Memories at `/` on the native stack and tabs, the bar reading Chronicle, Explore, Navigate; Back on Navigate or Explore returns to Chronicle; on Chronicle it leaves the app (decision 0106). (NV2, NV5, HC1, HC3, HC4)
-- [ ] **Do:** with the app closed, open `chronicles://replay/nope` and then `chronicles://day/nope` from Notes or Safari. **Expect:** a deep link to a missing replay or day at launch goes straight to Chronicle, `router.dismissTo('/')` reaching it on the native stack (decisions 0070, 0106). (NV2, HC5)
-- [ ] **Do:** on a fresh install, open the app and touch nothing, then tap Explore. **Expect:** no location prompt while the app sits on Chronicle; Explore's first focus raises it, then frames where you are once (decision 0106). (NV16, HC14)
-- [ ] **Do:** add the web build to an iPhone's Home Screen, open a walk's replay, close the app from the app switcher, delete that walk in another session or wait for the link to go stale, and reopen it. **Expect:** an iPhone Home Screen app reopening on its last page lands on Chronicle (the `/chronicle` redirect, a stale replay link) (decision 0106). (NV2, HC5)
+- [ ] **Do:** with no walk open, force-quit and open the app; go to Navigate and to Explore and press Android Back on each; press it again on Chronicle. **Expect:** the app opens on Chronicle's Memories at `/` on the native stack and tabs, the bar reading Chronicle, Explore, Navigate; Back on Navigate or Explore returns to Chronicle; on Chronicle it leaves the app (decision 0112). (NV2, NV5, HC1, HC3, HC4)
+- [ ] **Do:** with the app closed, open `chronicles://replay/nope` and then `chronicles://day/nope` from Notes or Safari. **Expect:** a deep link to a missing replay or day at launch goes straight to Chronicle, `router.dismissTo('/')` reaching it on the native stack (decisions 0070, 0112). (NV2, HC5)
+- [ ] **Do:** on a fresh install, open the app and touch nothing, then tap Explore. **Expect:** no location prompt while the app sits on Chronicle; Explore's first focus raises it, then frames where you are once (decision 0112). (NV16, HC14)
+- [ ] **Do:** add the web build to an iPhone's Home Screen, open a walk's replay, close the app from the app switcher, delete that walk in another session or wait for the link to go stale, and reopen it. **Expect:** an iPhone Home Screen app reopening on its last page lands on Chronicle (the `/chronicle` redirect, a stale replay link) (decision 0112). (NV2, HC5)
 - [ ] **Do:** start a walk, force-quit, and open the app again. **Expect:** the launch cover hides the native stack while the open walk is read, and the walk screen comes up under it before the recorder resumes: no flash of Chronicle (NV2 launch 1-5, HC2). (NV2, HC2)
 
-## Capture from Chronicle (HC1-HC15, decision 0106)
+## Capture from Chronicle (HC1-HC15, decision 0112)
 
 - [ ] **Do:** on an iPhone with a home indicator, open the app on Memories and keep a photo, a voice memo and a note from the band. **Expect:** the band sits just above the tab bar and clear of the home indicator, each button takes one tap, and each moment heads Lately at once with its place once its fix comes. (HC6, HC7, HC9)
 - [ ] **Do:** start a voice memo from the band, then switch to Walks with the section bar (no route change). **Expect:** the memo is saved as the band loses focus, and plays back from Lately. (HC11)
@@ -336,16 +336,34 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - Whether React Native's `fetch` sends the custom `User-Agent` (`Chronicles (+github.com/…)`) on iOS and Android, or the platform's own replaces it.
 - The PMTiles source over `net.fetch` (byte ranges, `credentials: 'omit'`, `referrerPolicy: 'no-referrer'`) against Overture's bucket on a phone.
 
-## Kind walk (KW1-KW14, decision 0101)
+## Walk planner (WP1-WP27, KW15, decision 0102)
 
-- [ ] **Do:** open an area's card on a phone, tap Green, then tap Start this walk. **Expect:** the kind row (a `Pressable`) opens its panel inside the full-screen drawer's scroll; `showWalk()` opens the walk with a destination that carries `via` and `suggested`; the walk bar and announcements say a distance and no time left; walking off the way re-routes quietly through the stops still ahead. (KW1, KW7b, KW12, KW13)
-- [ ] **Do:** tap a kind on a phone's network in an area you never walked. **Expect:** the area's tiles are read at the tap, and the walkability tiles for the way's tiles, with nothing kept; "not known yet" reads when none could be read. (KW10, KW14)
+- [ ] **Do:** on a phone, open an area's card, tap a kind's "Suggest a walk" button, then pull the drawer down and open it again. **Expect:** the planner opens as a full-screen drawer over the card with the tabs folded away, Explore's map stepping aside; Back and the close button return to the card as it was. (WP1, KW15)
+- [ ] **Do:** open the planner and tap a row, then change the mode and the distance. **Expect:** the highlighted route is drawn on MapLibre RN with a band under it, wider where the kind is denser (`route-grades`), the other routes faint, the camera fitted to all of them; found places show as small pins (`found-pins`). The first route is selected when it opens. (WP4, WP16, WP18)
+- [ ] **Do:** with a walk recording, open the planner and take a photo, record a voice memo and write a note. **Expect:** the capture stack is on the page and each arrives as a moment on the walk with its place and time; the system camera and microphone permission prompts behave as on the walk screen. (WP23)
+- [ ] **Do:** on a phone's network in an area you have never walked, open the planner. **Expect:** the area's tiles are read when it opens and the way's walkability tiles for each route; "not known yet" reads where none could be read. (WP22, KW10)
+- [ ] **Do:** choose a loop, Start, and walk it, skipping one of its stops. **Expect:** the walk opens ready saying distance only, with no time left on the bar or in the announcements; it does not arrive at once; a skipped stop is let go and the quiet re-route does not pull back to it; it arrives once you are back where you began. (WP9, WP21, WP25, KW7b)
+- [ ] **Do:** plan with the three presets in a town of long streets on a mid-range phone and watch the page. **Expect:** the routes appear without freezing the screen or the walk's recording; if not, the planning moves off the JS thread (walk planner audit 10).
+- [ ] **Do:** walk a loop and wander 80 m off it, then return. **Expect:** the quiet re-route rejoins the planned loop and its way back; it does not take the streets the way out used. (WP9, WP20, audit 1)
+- [ ] **Do:** open an area card, open the planner over it, close the planner. **Expect:** the tabs stay hidden under the card, and come back when the card closes; the Back button closes the planner first. (audit 12)
+- [ ] **Do:** with a walk already recording and a destination set, Start a route from the planner. **Expect:** that walk is routed (no second walk starts) and the earlier destination is replaced. (WP19)
 
 ## Places worth the stop (PW1-PW19, decision 0103)
 
 - [ ] **Do:** install a build with SQLite migration 21 over one that has Explore checklists, then open Explore. **Expect:** the app opens with no error, and the old areas' checklists still show their finds.
 - [ ] **Do:** with PLACES_BASE set, take an exploring walk past a curiosity in the archive. **Expect:** it shows as a "?" and is named within 60 m, as any mark.
 - [ ] **Do:** take a quiet walk past a curiosity with the screen off, and take a photo beside it. **Expect:** the replay names it as found.
+
+## Places pipeline (PP13, decision 0108)
+
+- [ ] **Do:** with PLACES_BASE set and checklist areas built from an archive without blocks, install a build that reads blocks, walk the same areas, then again after a weekly archive that changed places elsewhere only. **Expect:** each area is rebuilt once after the install, and not again after the second archive. (PP13)
+
+## Remarkable and public (RP13-RP20, decisions 0109-0111)
+
+- [ ] **Do:** on a phone, take an exploring walk and open the card of a place to find that stands more than 60 m from any street or path (a building set back in a park), then one beside a street. **Expect:** the first card says "No street or path close by" under its name, the second says nothing of the kind, and both places can still be found (RP20).
+- [ ] **Do:** on a phone, open the walk's drawer with Explore on, on an install that already had kinds switched off. **Expect:** "What I'm into" lists Buildings and structures after Monuments and ruins, switched on, and the kinds switched off before stay off (RP18).
+- [ ] **Do:** on a phone, in a dense downtown, tap several place pins quickly in a row. **Expect:** each card opens at once, the line "No street or path close by" appears only on the card of the place it belongs to, never on a found place, and the map stays smooth (RP20, remarkable-and-public audit 6).
+- [ ] **Do:** on a phone, replay a walk that passed four places to find without stopping. **Expect:** one whisper, "Passed a few places without stopping", as the walker reaches the last of them (RP19, audit 14).
 
 ## Wrapped map names (fix long-names)
 
@@ -354,3 +372,10 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 ## Captures while paused (fix paused-pins)
 
 - [ ] **Do:** on a phone, start a walk, pause it, walk two streets, take a photo and a note, then resume and stop. **Expect:** each moment sits where you took it (a pin on the walk map within a few seconds, and on the replay), not where the pause began. With location refused, the moment sits where the pause began.
+
+## Storage awareness (SA1-SA10, decision 0107)
+
+- [ ] **Do:** on an iPhone and an Android phone, fill the storage until Settings shows under 500 MB free, then open Navigate and start a walk. **Expect:** Navigate, ready shows "Room for new photos and videos is running low." beside the capture buttons once, and the walk does not say it again; note what `Paths.availableDiskSpace` read against what Settings shows (on iOS it leaves out what the system can purge, so it may read lower). (SA1, SA3, SA4)
+- [ ] **Do:** with under 100 MB free, take a photo, a 30 s video and a voice memo on a walk. **Expect:** after a capture the line becomes "There is almost no room left for new photos, videos and memos."; a save that fails shows "Not saved: there is no room left. It is held here for Retry." (never the system's own error text) and a "Photo not saved" or "Video not saved" pill; after freeing room, Retry keeps each with its time and place. (SA5, SA8, SA9)
+- [ ] **Do:** with a photo held, hold Stop. **Expect:** the walk does not end; it says the photo isn't saved yet with Retry, and a second hold ends the walk without it. (SA8)
+- [ ] **Do:** on an iPhone in Safari (not the Home Screen app), keep a moment on Navigate, ready. **Expect:** if Safari refuses to keep the data, the line "This browser may clear Chronicles’ moments when it needs room. The Home Screen app is less likely to." shows once there; from the Home Screen app, whether `persist()` is granted (nothing said). (SA10)

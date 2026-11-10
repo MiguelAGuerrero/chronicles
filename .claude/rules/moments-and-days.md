@@ -28,7 +28,7 @@ Captures outside a walk (moments), locating one fix for them, the days list and 
   (the owner's rule: no all-day tracking). Media of loose moments go under
   `walks/moments/`. A loose moment finds a place like a walk's capture
   (`explore/momentFind/shell.ts`, tested over `fakePorts()`; `index.ts` passes the Undo window's ids).
-- **Capture from Chronicle** (HC6-HC15, decision 0106): Memories mounts `MemoriesBand`
+- **Capture from Chronicle** (HC6-HC15, decision 0112): Memories mounts `MemoriesBand`
   (`components/chronicle/MemoriesBand.tsx`), a `MomentBar` with `layout="band"` and
   `idPrefix="band"` (`band-photo`, `band-voice`, `band-note`, `band-toast`, ...); the pure
   decisions are `lib/captureBand.ts` (`bandLayout`, `captureTarget`, `bandLabels`,

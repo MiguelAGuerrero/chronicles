@@ -16,15 +16,13 @@ import { useReducedMotion } from '../../lib/motion';
 import { MOTION } from '../../lib/motionTokens';
 import { ATLAS_RULES } from '../../lib/atlas/atlas';
 import { useAreaWords } from '../../lib/walk/useAreaWords';
-import { tabsHidden } from '../../lib/tabsHidden';
+import { hideTabs } from '../../lib/tabsHidden';
 import type { LngLat } from '../../lib/types';
 import { COLORS, HOTSPOT, HOTSPOT_INK } from '../map/types';
 import { Icon } from '../icons';
 import { Button, theme } from '../ui';
 import { KIND_COLOR, KIND_ICON_OF } from './kinds';
-import type { Waypoint } from '../../lib/nav/types';
 import { KindRow } from './KindStrip';
-import { KindWalkPanel } from './KindWalkPanel';
 import { MiniMap } from './MiniMap';
 
 const fmt = (m: number) => formatDistance(m);
@@ -71,8 +69,8 @@ export function AtlasCard(props: {
   starting: boolean;
   onWalk: () => void;
   onWalkAt: (at: LngLat, label: string) => void;
-  /** KW12: a suggested walk from a kind, started as an ordinary walk. */
-  onStartWalk: (dest: Waypoint) => void;
+  /** WP1: a kind's "Suggest a walk" button opens the walk planner for it. */
+  onPlan: (kind: CategoryId) => void;
   onPick: (key: string) => void;
   onClose: () => void;
   /**
@@ -86,8 +84,6 @@ export function AtlasCard(props: {
   const onFoot = useAreaWords(area.at, ATLAS_RULES.ringM, true);
   const p = area.profile;
   const [how, setHow] = useState(false);
-  // The kind opened in place (KW1): one at a time.
-  const [openKind, setOpenKind] = useState<CategoryId | null>(null);
   const reduced = useReducedMotion();
   const close = useRef(props.onClose);
   useEffect(() => {
@@ -118,8 +114,7 @@ export function AtlasCard(props: {
   // The tabs fold away while the drawer is up, and come back when it goes (however it goes).
   useEffect(() => {
     if (!sheet) return;
-    tabsHidden.set(true);
-    return () => tabsHidden.set(false);
+    return hideTabs();
   }, [sheet]);
 
   // How far down the drawer is: 0 is full screen. It slides up as it opens and follows a pull down.
@@ -215,10 +210,7 @@ export function AtlasCard(props: {
               )}
               {p ? (
                 ATLAS_ORDER.map((c) => (
-                  <View key={c}>
-                    <KindRow kind={c} step={p.steps[c]} testID={`atlas-kind-${c}`} open={openKind === c} onPress={p.steps[c] ? () => setOpenKind((k) => (k === c ? null : c)) : undefined} />
-                    {openKind === c ? <KindWalkPanel kind={c} area={area} you={props.you} none={p.steps[c] === 0} starting={props.starting} onStart={props.onStartWalk} /> : null}
-                  </View>
+                  <KindRow key={c} kind={c} step={p.steps[c]} testID={`atlas-kind-${c}`} onPress={p.steps[c] ? () => props.onPlan(c) : undefined} />
                 ))
               ) : (
                 <Text style={styles.muted}>Reading this area…</Text>

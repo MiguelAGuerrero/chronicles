@@ -73,7 +73,7 @@ export function walkHerePlan(openWalkId: string | null, dest: Waypoint | null): 
   return { kind: 'route', meta: [[NAV_KEY, navValue(openWalkId, dest)]] };
 }
 
-/** The three tabs, in order (HC3), with their web paths (NV5). Chronicle is the root route, so the app opens there (HC1, decision 0106). */
+/** The three tabs, in order (HC3), with their web paths (NV5). Chronicle is the root route, so the app opens there (HC1, decision 0112). */
 export type TabId = 'explore' | 'navigate' | 'chronicle';
 export const TABS: { id: TabId; route: string; path: string; label: string; icon: string; iconOn: string }[] = [
   { id: 'chronicle', route: 'index', path: '/', label: 'Chronicle', icon: 'book-outline', iconOn: 'book' },

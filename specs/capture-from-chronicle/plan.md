@@ -1,10 +1,10 @@
 # Capture from Chronicle: plan
 
-For the owner's review before any code (`/slice` step 3). Spec: `specs/capture-from-chronicle/spec.md` (HC1-HC14); the owner's calls: decision 0106.
+For the owner's review before any code (`/slice` step 3). Spec: `specs/capture-from-chronicle/spec.md` (HC1-HC14); the owner's calls: decision 0112.
 
 ## Defaults for your review
 
-These are my calls where the owner's answers left room. Each can flip without touching the rest. **All four were taken by the owner's go-ahead ("Proceed", Nov 9) and recorded in decision 0106.**
+These are my calls where the owner's answers left room. Each can flip without touching the rest. **All four were taken by the owner's go-ahead ("Proceed", Nov 9) and recorded in decision 0112.**
 
 1. **Paths: Chronicle becomes the root route (`/`), Explore moves to `/explore`, `/chronicle` redirects to `/`.** This is what 0070 did for Explore, and it is what makes the Home Screen app (`start_url: "./"`) and a native cold start (expo-router always opens `/`) land on Chronicle with no redirect at launch. Rejected: keeping `/` as Explore and replacing it with `/chronicle` at launch. Every launch would pay a hidden redirect (one frame of Explore, or a cover as the open walk's launch uses), and Back's "initial route" would disagree with the URL.
 2. **The row is a band at the foot of Memories, three equal buttons, icon and one word each** (Photo, Voice, Note). The walk screen's stack is a column at the right edge, over a map; over a list it would sit on top of the cards' text (HC7), so on Memories it lies flat above the tab bar instead. The glyphs, order (camera, mic, note), ink and surface are the stack's. 56 pt tall, as the stack's buttons. While a memo records: Discard in the camera's place, Stop & save in the mic's, the timer in the note's, so nothing moves (HC11).
@@ -19,7 +19,7 @@ These are my calls where the owner's answers left room. Each can flip without to
    │  [recording bar, when a walk is minimized]  │
    │  Chronicle      Explore      Navigate │
    ```
-3. **Changed after the steward (S4), your call: the recording bar hides its camera while Memories is in front.** With a walk minimized, the bottom of Memories would otherwise stack the band, the bar with a second camera doing the same thing, and the tab bar. The bar keeps its camera on Explore and on Chronicle's other sections. If you'd rather keep the bar the same on every tab, say so; it is one line either way, and the choice gets recorded in 0106.
+3. **Changed after the steward (S4), your call: the recording bar hides its camera while Memories is in front.** With a walk minimized, the bottom of Memories would otherwise stack the band, the bar with a second camera doing the same thing, and the tab bar. The bar keeps its camera on Explore and on Chronicle's other sections. If you'd rather keep the bar the same on every tab, say so; it is one line either way, and the choice gets recorded in 0112.
 4. **Changed after the steward (S3): Memories' empty state loses its orange Navigate button.** It is "Nothing kept yet." and the band (HC13). Navigate is a tab, and an accent button would be the loudest thing on a first launch, pointing away from the band.
 
 ## Files
@@ -110,7 +110,7 @@ No new truth, no cache, no migration. A moment from the band is the same row `Mo
 
 ## Docs
 
-- Decision 0106 (written with this plan); `docs/VISION.md` Precedents gains its row (a precedent, not a rule).
+- Decision 0112 (written with this plan); `docs/VISION.md` Precedents gains its row (a precedent, not a rule).
 - `.claude/rules/tabs-and-home.md` (the opening tab, the e2e's `url`), `.claude/rules/moments-and-days.md` (capture from Chronicle), `.claude/rules/memories.md` (the band in Memories).
 - `docs/ARCHITECTURE.md` (routes), `docs/PRODUCT.md` (the launch, Chronicle, capture), `docs/STATUS.md`.
 - `specs/navigation-and-tabs/spec.md`: NV1, NV2, NV5, NV11, NV16 and the quick-capture line marked amended by HC, with the date.

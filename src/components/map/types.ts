@@ -110,6 +110,10 @@ export interface WalkMapProps {
   route?: LngLat[] | null;
   /** The other routes of a preview, drawn faint under the route (scenic routes, SR2). */
   alternates?: LngLat[][] | null;
+  /** The walk planner's highlighted route cut into runs of one grade (0 to 3), drawn as a band under the route, wider where the kind is denser (WP16). */
+  routeGrades?: { path: LngLat[]; grade: number }[] | null;
+  /** Places already found, as small pins on the walk planner's map (WP16); never a place not yet found. */
+  foundPins?: LngLat[] | null;
   /** Explore's marks, as "?" pins until revealed (E6-E8, E22). */
   discoveries?: MarkPin[];
   onDiscoveryPress?: (id: string) => void;
@@ -117,7 +121,7 @@ export interface WalkMapProps {
   landing?: LandingView | null;
   /** Spots to mark: where a route goes, or where a long press landed. */
   marks?: LngLat[];
-  /** Explore's areas: quiet dots, the nearest few and the selected one named (atlas round 3). */
+  /** Explore's areas: quiet dots, the selected one named (atlas round 3, fix pins-selected-only). */
   areaPoints?: AreaPointPin[];
   /** The "?" range preview (E21): a ring around a point, drawn only while the setting is open. */
   ring?: { center: LngLat; radiusM: number } | null;
@@ -343,6 +347,19 @@ export function routeGeoJSON(route: LngLat[] | null | undefined): GeoJSON.Featur
     type: 'FeatureCollection',
     features: route && route.length > 1 ? [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: route } }] : [],
   };
+}
+
+/** The planner's graded runs as lines, each carrying its band's width (WP16). */
+export function routeGradesGeoJSON(pieces: { path: LngLat[]; grade: number }[] | null | undefined): GeoJSON.FeatureCollection {
+  return {
+    type: 'FeatureCollection',
+    features: (pieces ?? []).filter((p) => p.path.length > 1 && p.grade > 0).map((p) => ({ type: 'Feature', properties: { grade: p.grade, width: 8 + 7 * p.grade }, geometry: { type: 'LineString', coordinates: p.path } })),
+  };
+}
+
+/** The planner's found-place pins as points (WP16). */
+export function pinsGeoJSON(pins: LngLat[] | null | undefined): GeoJSON.FeatureCollection {
+  return { type: 'FeatureCollection', features: (pins ?? []).map((c) => ({ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: c } })) };
 }
 
 /** A preview's other routes as faint lines (SR2). */

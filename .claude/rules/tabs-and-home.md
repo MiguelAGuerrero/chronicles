@@ -11,7 +11,7 @@ paths:
 
 The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar, the way to the walk screen, and the home map's lifecycle. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
 
-## The opening tab (the owner's call, Nov 9: 0106, superseding 0070's Explore)
+## The opening tab (the owner's call, Nov 9: 0112, superseding 0070's Explore)
 
 - **Chronicle is the root route** (`(tabs)/index.tsx`, `/`), Explore is
   `(tabs)/explore.tsx` at `/explore` and Navigate `(tabs)/navigate.tsx` at `/navigate`;
@@ -63,7 +63,7 @@ The three tabs (Chronicle, Explore, Navigate), the home sheet, the recording bar
   notification can ask before the router is ready, and that push is lost), but only once, and never
   past a walk screen up (`walkGate`). Chronicle's empty-peek Navigate calls `showWalk()` too. The
   Navigate tab is never the focused tab, so its icon is never tinted.
-- **The launch** (the owner, Nov 9, 0106): with no walk open the app opens on Chronicle's Memories at `/`;
+- **The launch** (the owner, Nov 9, 0112): with no walk open the app opens on Chronicle's Memories at `/`;
   with one, the root layout's launch cover brings the walk screen straight up (NV2 launch 1-5, HC2).
 - **Going to the walk screen is `showWalk()`** (`lib/walkNav`, gate in
   `lib/walkGate`), never `router.push('/walk')`: a second ask while one is on

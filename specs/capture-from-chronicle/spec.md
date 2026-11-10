@@ -1,4 +1,4 @@
-<!-- Repo first: written from the owner's request in a session (Nov 9), not yet a tab of the concept doc (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7). The owner's calls are decision 0106. -->
+<!-- Repo first: written from the owner's request in a session (Nov 9), not yet a tab of the concept doc (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7). The owner's calls are decision 0112. -->
 
 # Capture from Chronicle: the app opens where moments live, one tap from keeping one
 
@@ -14,9 +14,9 @@ Touches: VISION.md "What it is": "Chronicle first" and "Chronicle comes first; m
 Verdict: aligned if reshaped
 Shape: The app opens on Chronicle's Memories; Explore and Navigate are unchanged. Memories carries the same three kinds as the walk screen's stack (camera, mic, note), same glyphs and order, in plain ink, fixed low where the thumb is and never scrolled away; the feed scrolls under it. A moment kept there is stored at once, placed by its one fix, and heads Lately. The empty feed is one line in words beside the row. Reshaped from "three large buttons" only in register: large enough for a thumb, never a hero block, never the accent colour or prompt copy.
 Criteria: HC1-HC5 (the launch and the tabs), HC6-HC8 (one tap, fixed, first for a screen reader, never covering a moment), HC9-HC10 (context, one fix, the open walk), HC12 (restraint, no nagging), HC13 (no sample data, no accent button), HC14 (no location read at launch), HC15 (nothing over the row).
-Open: none (the four answered Nov 9: decision 0106).
+Open: none (the four answered Nov 9: decision 0112).
 
-## Decisions (the owner's calls, Nov 9, decision 0106)
+## Decisions (the owner's calls, Nov 9, decision 0112)
 
 - **The app opens on Chronicle's Memories** when no walk is open (supersedes 0070's "the app opens on Explore"). With a walk open, the walk screen still comes straight up (0076, NV2 launch).
 - **The tabs read Chronicle · Explore · Navigate**: the home is the leftmost tab.
@@ -98,7 +98,7 @@ Each fix has a regression test named `capture-from-chronicle audit N`, run faili
 12. HC9 and HC10's unit tests reached `captureTarget`, which no view called: accept, `MemoriesBand` decides with it now. Covered by typecheck and the journey's HC9, HC10 checks.
 13. Lost toasts: "Too short, not kept" under a viewer opened mid-memo, and "saved to your walk" when the walk stops and the band remounts: defer (`docs/DEFERRED.md`).
 
-**After the fixes:** typecheck, lint and `npm test` (1458) pass; the 21 journeys `check:affected` named pass on their latest run. `walk`'s video pin (its own comment calls it timing-sensitive), `edit`'s video step and `chronicle`'s star settle each failed once in a sequential run and passed on the next; `launch` and `edit` now take the recording bar's camera from Explore, since Memories hides it (0106).
+**After the fixes:** typecheck, lint and `npm test` (1458) pass; the 21 journeys `check:affected` named pass on their latest run. `walk`'s video pin (its own comment calls it timing-sensitive), `edit`'s video step and `chronicle`'s star settle each failed once in a sequential run and passed on the next; `launch` and `edit` now take the recording bar's camera from Explore, since Memories hides it (0112).
 
 For the owner, from the steward (silent): the note editor's placeholder, "What's worth remembering?", now one tap from launch, asks the walker to judge worth (VISION.md: "every moment captured is worth remembering"); keep it or say something neutral? And with a walk open, only the toast and the screen reader say a capture goes to the walk; the recording bar beneath is the visible cue.
 

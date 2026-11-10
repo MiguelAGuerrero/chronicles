@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import { exitPlan } from '../../readyNav';
 import { TABS, tabFor } from '../../startPlan';
 
-// Capture from Chronicle (specs/capture-from-chronicle, decision 0106): the app opens on Chronicle, and
+// Capture from Chronicle (specs/capture-from-chronicle, decision 0112): the app opens on Chronicle, and
 // Memories keeps a moment in one tap. The screen's own checks are in the `capturehome` journey.
 
 test('HC1: Chronicle is the root route, so the app opens there', () => {
@@ -76,7 +76,7 @@ test('HC15: the moment\'s toast says where it went, in words', async () => {
   assert.equal(momentToast('video', 'walk'), 'Video saved to your walk');
 });
 
-test('HC7: the recording bar shows no camera on Memories, where the band files into the walk (decision 0106)', async () => {
+test('HC7: the recording bar shows no camera on Memories, where the band files into the walk (decision 0112)', async () => {
   const { barCamera } = await import('../../captureBand');
   assert.equal(barCamera('/', 'memories'), false);
   assert.equal(barCamera('/', 'walks'), true);

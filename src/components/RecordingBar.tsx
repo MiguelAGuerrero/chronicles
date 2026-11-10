@@ -60,7 +60,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   const [editingKept, setEditingKept] = useState<Capture | null>(null);
   const onError = useCallback((e: { message: string }) => setSaid({ text: e.message, error: true }), []);
   const cap = useCaptures(walk.id, live.here, live.lastFixAt, onError);
-  // On Memories the band's camera files into the walk: the bar shows none there (decision 0106).
+  // On Memories the band's camera files into the walk: the bar shows none there (decision 0112).
   const path = usePathname();
   const section = useStore(chronicleSection.store, (x) => x);
   const showCamera = barCamera(path, section);
