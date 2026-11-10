@@ -25,7 +25,7 @@ const economy = load(join(ROOT, 'scripts', 'e2e', 'economy.js')) as {
   flakeFor(r: Flaky, journey: string, message: string): Flaky[string][number] | null;
   addFlake(r: Flaky, journey: string, e: Flaky[string][number]): Flaky;
   parseFailures(out: string): string[];
-  summarizeBaseline(runs: string[]): { runs: number; failed: { check: string; fails: string }[] };
+  summarizeBaseline(runs: string[]): { runs: number; failed: { check: string; fails: string; always: boolean }[] };
 };
 
 test('e2e economy 1: a change to comments or types is not a change to what the app does', () => {
@@ -111,12 +111,17 @@ test('e2e economy 6: a baseline records the checks that failed on main and how o
   const fail = (c: string) => `ok - a\nFAILED: ${c}\n`;
   const s = economy.summarizeBaseline([fail('x'), 'ok - a\nok - no console errors\n', fail('x'), fail('y')]);
   assert.equal(s.runs, 4);
-  assert.deepEqual(s.failed.sort((a, b) => a.check.localeCompare(b.check)), [{ check: 'x', fails: '2/4' }, { check: 'y', fails: '1/4' }]);
+  assert.deepEqual(s.failed.sort((a, b) => a.check.localeCompare(b.check)), [{ check: 'x', fails: '2/4', always: false }, { check: 'y', fails: '1/4', always: false }]);
+  // Every run failed it: not a flake (main, or the baseline's setup, is broken): the script records nothing for it.
+  assert.deepEqual(economy.summarizeBaseline([fail('z'), fail('z'), fail('z')]).failed, [{ check: 'z', fails: '3/3', always: true }]);
+  assert.deepEqual(economy.summarizeBaseline([fail('z')]).failed, [{ check: 'z', fails: '1/1', always: false }], 'one run proves nothing about flakiness');
   assert.deepEqual(economy.summarizeBaseline(['ok - a\n', 'ok - b\n']).failed, [], 'it never failed on main: nothing recorded');
   assert.deepEqual(economy.parseFailures('ok - a\nFAILED: one\nnot FAILED: two\nFAILED: three\n'), ['one', 'three']);
   const script = read('scripts/e2e-baseline.js');
   assert.match(script, /worktree/, 'it runs on a scratch worktree of main, never the branch');
   assert.match(script, /E2E_FORCE: '1'/, 'every baseline run really runs');
+  assert.match(script, /copy-maplibre-worker/, 'the worktree gets the map worker a hard-linked node_modules lacks (the 1995.8 km symptom)');
+  assert.match(script, /f\.always/, 'a check that failed every run is not recorded as a flake');
 });
 
 test('e2e economy 7: the plan names a journey whose own file changed, lists the green ones apart, and says what it left out', () => {

@@ -4,7 +4,7 @@
 //   npm run e2e:baseline -- <journey> [--runs N]     (N defaults to 3)
 //
 // Makes a scratch worktree of origin/main under .claude/worktrees/, exports its web build, runs the journey N times there, and
-// removes the worktree. A check that failed on main is recorded in scripts/e2e/flaky.json with the commit, the date and how
+// removes the worktree. A check that failed on main in some runs but not all is recorded in scripts/e2e/flaky.json with the commit, the date and how
 // often it failed. The record only labels: a journey that fails on a branch still fails (nothing is skipped or quarantined),
 // and a journey that never failed on main records nothing, so its failure on a branch is the branch's until shown otherwise.
 // (scripts/e2e/economy.js, docs/TESTING.md "The e2e's economy".)
@@ -42,6 +42,9 @@ function main(argv) {
     }
     if (sameLock && fs.existsSync(path.join(ROOT, 'node_modules'))) spawnSync('cp', ['-al', path.join(ROOT, 'node_modules'), path.join(dir, 'node_modules')], { stdio: 'inherit' });
     else spawnSync('npm', ['ci', '--no-audit', '--no-fund'], { cwd: dir, stdio: 'inherit' });
+    // What `npm ci`'s postinstall does and a hard-linked node_modules does not: the map's worker, a gitignored file the build
+    // needs. Without it the map never loads and every check that reads it fails (the "1995.8 km away" of AGENTS.md).
+    spawnSync('node', ['scripts/copy-maplibre-worker.js'], { cwd: dir, stdio: 'inherit' });
     const exp = spawnSync('npm', ['run', 'export:web'], { cwd: dir, encoding: 'utf8' });
     if (exp.status !== 0) {
       console.error(`baseline: the export on main failed:\n${(exp.stdout + exp.stderr).split('\n').slice(-15).join('\n')}`);
@@ -61,11 +64,17 @@ function main(argv) {
     }
     let registry = economy.readFlaky(ROOT);
     const seen = new Date().toISOString().slice(0, 10);
+    let recorded = 0;
     for (const f of s.failed) {
+      if (f.always) {
+        console.log(`baseline: on main (${base}) "${f.check}" failed every run (${f.fails}). That is not a flake: main is broken there, or this baseline's setup is. Not recorded.`);
+        continue;
+      }
       registry = economy.addFlake(registry, journey, { check: f.check, fails: f.fails, base, seen });
+      recorded++;
       console.log(`baseline: on main (${base}) "${f.check}" failed ${f.fails}. Recorded in scripts/e2e/flaky.json (a label only: it still fails a run).`);
     }
-    economy.writeFlaky(ROOT, registry);
+    if (recorded) economy.writeFlaky(ROOT, registry);
   } finally {
     spawnSync('git', ['worktree', 'remove', '--force', dir], { cwd: ROOT, stdio: 'ignore' });
     spawnSync('git', ['worktree', 'prune'], { cwd: ROOT, stdio: 'ignore' });

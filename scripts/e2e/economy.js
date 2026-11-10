@@ -168,13 +168,14 @@ function writeFlaky(root, registry) {
 }
 
 /**
- * What a baseline of one journey on `main` found, from each run's output (pure): which checks failed and how often.
- * Nothing recorded when no run failed: a failure on a branch is its own until shown otherwise.
+ * What a baseline of one journey on `main` found, from each run's output (pure): which checks failed, how often, and whether
+ * every run failed it. A check that failed every run is not a flake: main is broken, or the baseline's own setup is, and
+ * nothing is recorded for it. Nothing is recorded either when no run failed: a failure on a branch is its own until shown otherwise.
  */
 function summarizeBaseline(runs) {
   const counts = new Map();
   for (const out of runs) for (const c of new Set(parseFailures(out))) counts.set(c, (counts.get(c) ?? 0) + 1);
-  return { runs: runs.length, failed: [...counts].map(([check, n]) => ({ check, fails: `${n}/${runs.length}` })) };
+  return { runs: runs.length, failed: [...counts].map(([check, n]) => ({ check, fails: `${n}/${runs.length}`, always: runs.length > 1 && n === runs.length })) };
 }
 
 module.exports = {
