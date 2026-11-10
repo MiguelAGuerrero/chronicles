@@ -221,7 +221,8 @@ Discovery and Explore (v1)
   atlas/pockets.ts           a town's pockets of activity: peak picking on a smoothed 400 m grid (TP4)
   atlas/read.ts              the atlas's reads: areas near you, one ring or one whole town at a time (decoder)
   atlas/useAtlas.ts          the atlas's data and its read loop, while Explore is in front
-  atlas/snap.ts              discrete navigation (DN1-DN13): what a drag or an arrow key means, which way it points, which area lies that way
+  atlas/snap.ts              discrete navigation (DN1, DN10-DN13): what a drag or an arrow key means; one finger never pans Explore's map
+  atlas/carousel.ts          Explore's row of area cards (EC1-EC15): the row's order, the selection, a swipe as a row step, the card a scroll settled on, the Busy names kept near the selection
   explore/settings.ts        what I'm into, range, pocket alert (meta)
   explore/momentFind/        a loose moment finds a place (shell.ts, index.ts)
 Activity density (AD1-AD16)

@@ -371,3 +371,12 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 - **A town's page with its own tile selected names nothing on the map** (audit 2): the town's pin is not drawn there (one level only, fix map-levels audit 1), and the neighborhoods are dots. The page title, the wide tile and the border name the town. Drawing the town's pin as the lone named one would mix levels again; the owner's call.
 - **A dot has no accessible name and no tap** (audit 3): area points are `aria-hidden` with pointer events off on web and carry no label on native; the live region and the grid's tiles name areas. Predates the fix (dots were already unnamed), now more of them.
+
+## Explore carousel (EC1-EC20, decision 0109)
+
+- **Tapping a dot on the map to select its area**: dots stay inert, as before; selecting is by the row, a map swipe, an arrow key or a card.
+- **A wide card for a town** with its own sketch: a town's card in the row is the same card with a "See its neighborhoods" footer.
+- **The row's peek width on very narrow screens** beyond the clamp (78% of the width, at most 320 px).
+- **The map's swipe report still carries the framed middle and metres a pixel** (`WalkMap`'s `onSwipe`), which only the retired directional step read; the screen takes only the drag. Trimming it touches both maps.
+- **The Busy names' zoom (13) and ring (800 m) are first guesses** from the owner's screenshot; the e2e world has no busy streets, so only the unit tests hold the rule.
+- **Selecting a town on the page near you frames its reach (0.6 of it), not its whole outline**; a town's own page still frames the border.

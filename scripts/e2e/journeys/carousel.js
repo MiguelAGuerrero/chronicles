@@ -84,6 +84,19 @@ async function run(h) {
     await pg.waitForTimeout(1200);
     check((await selected())[0] === k0, 'EC9: ArrowLeft steps back');
 
+    // EC5, EC6: stepping on to a town's card selects it: no ring (a town has its border), and the map names only that town.
+    for (let i = 0; i < 8 && (await selected())[0] !== 'Cranston'; i++) {
+      await pg.keyboard.press('ArrowRight');
+      await pg.waitForTimeout(900);
+    }
+    const townNamed = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=area-point]')].filter((e) => e.dataset.name).map((e) => e.dataset.name));
+    check((await selected())[0] === 'Cranston' && ((await map.getAttribute('data-ring')) ?? '') === '' && townNamed.length === 1 && townNamed[0] === 'Cranston',
+      `EC5: a town's card selected has no ring, and the map names only that town (${JSON.stringify(await selected())}, ring "${await map.getAttribute('data-ring')}", ${JSON.stringify(townNamed)})`);
+    for (let i = 0; i < 8 && (await selected())[0] !== k0; i++) {
+      await pg.keyboard.press('ArrowLeft');
+      await pg.waitForTimeout(900);
+    }
+
     // EC10: one finger never pans; the wheel zooms.
     const c0 = await map.getAttribute('data-center');
     await drag(0, 24 + 5);

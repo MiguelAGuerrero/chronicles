@@ -59,4 +59,31 @@ Explore opens on a full-height map. The areas around you are one horizontal row 
 
 ## Record
 
-Not built yet. The plan is in `plan.md`.
+Built on branch `claude/keen-maxwell-5rxhkx`, Nov 10; the owner's go-ahead on the plan, the open calls answered with the recommended options.
+
+| Id | Passed by |
+|---|---|
+| EC1 | `carousel.test.ts` "EC1: ..."; e2e `carousel` "EC1: on arrival one area is selected", "EC1: a tap on the map away from an area keeps the selection" |
+| EC2 | e2e `carousel` "EC2: the map is over 55% of the screen and the row sits below it", "EC2: there is no grid", "EC2: no section headings" |
+| EC3 | `carousel.test.ts` "EC3: ..." (two cases); e2e `carousel` "EC3: the row holds the neighborhoods, then the towns" |
+| EC4 | `carousel.test.ts` "EC4: a scroll settles ..."; e2e `carousel` "EC4: the row settles with the selected card centred" |
+| EC5 | e2e `carousel` "EC5: the selected area has its ring on the map", "EC5: a town's card selected has no ring, and the map names only that town"; `snap` "DN12 ... keeps the zoom" |
+| EC6 | `atlas.test.ts` "fix map-levels", "fix pins-selected-only"; e2e `carousel` "EC6: the map names only the selected area" |
+| EC7 | `carousel.test.ts` "EC7: ..." (two cases); e2e `carousel` "EC7: zoomed out the map carries no Busy street names" (the e2e world has no busy streets) |
+| EC8 | `carousel.test.ts` "EC8: ..." (two cases); e2e `carousel` "EC8: a drag left on the map selects the next card", "a vertical drag ... does nothing", "a drag right goes back" |
+| EC9 | `carousel.test.ts` "EC9: ..."; `snap.test.ts` "DN11: ..."; e2e `carousel` "EC9: ArrowRight ... ArrowUp ... ArrowLeft" |
+| EC10 | e2e `carousel` "EC10: a drag never pans the map"; `snap` "DN1", "DN10" |
+| EC11 | e2e `carousel` "EC11: a tap on another card selects it and opens nothing", "EC11: a tap on the selected card opens its card" |
+| EC12 | e2e `carousel` "EC12: a town's page selects its own card first", "the back pill is above the row", "Escape returns" |
+| EC13 | e2e `carousel` "EC13: a step is announced", "EC13: the selected card's label ends \"Opens its card\"" |
+| EC14 | e2e `carousel` "EC14: with areas listed, no status card shows" (the status card and the one-banner rule are by code review: no e2e world has no areas) |
+| EC15 | e2e `carousel` "EC15: no digit outside a distance or a Walked-N-times clause, and no ranking words on a card" |
+| EC16 | e2e `carousel` "EC16: at 1200 px the map is full width and the row is at its bottom"; `snap` "discrete-navigation audit 1" |
+| EC17 | e2e `carousel` "EC17: Navigate's map still pans by a drag"; `snap` "DN13" |
+| EC18 | e2e `carousel` "EC18: a card names its busiest street" |
+| EC19 | e2e `carousel` "EC19: Locate is above the row", "EC19: Layers is above the row" |
+| EC20 | e2e `carousel` "EC20: the area's card still holds Walk to"; the `atlas` journey's card checks |
+
+- **Test-first, honestly:** the unit tests and the journey's checks were committed failing before any code, and seen failing (the unit tests against stubs that threw, the journey on the old layout: no grid, a 203 px map, nothing selected). The first tests-first commit wrote its todos through a helper constant and a wrapper function, which `check:test-first` does not read, so the literal forms followed in the next commit and the checker reports 9 criteria (EC1-EC4, EC7-EC9, EC13, EC15) as "real before todo". The order the tests ran in was the right one; the history does not show it.
+- **Changed from the plan:** the row's card is the existing `AtlasTile` without its picture (it keeps its testIDs); the selection is derived in render (`firstSelection`), not set by an effect; a town selected in the row tints its border through `lit`; the DN journeys were rewritten around the row. EC14's status card and one-banner rule have no e2e: the e2e worlds always list areas.
+- **Native, never run on a device:** `docs/NATIVE_UNVERIFIED.md` "Explore carousel".
