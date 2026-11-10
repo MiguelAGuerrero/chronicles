@@ -421,6 +421,8 @@ module.exports = {
     'src/app/replay/**',
     'src/components/{RecordingBar,OpenWalk,HomeSheet,MomentBar,StartSettings}.tsx',
     'src/lib/{walkNav,walkGate,memoGate,recordingBar,startPlan,useStartWalk,launchRoute}.ts',
+    // The walk screen's parts this journey checks (the walk screen in parts, WS3; specs/walk-screen-split/plan.md).
+    'src/components/walking/{NoticeBanner,WalkOptions,WalkStrip,WalkTop,WalkViewers,useShownWalk,useWalkLifecycle,useWalkNotice}.ts*',
   ],
   run,
 };

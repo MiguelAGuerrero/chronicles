@@ -504,7 +504,7 @@ async function checks(h) {
         // This window is busy with taps (memos, a video, a note, a long press); steady walking is about
         // 1.4 renders a second (scripts/perf-walk.js). Before the fixes it was 3.7 here.
         check(rate('render:walk') <= 2.5 && rate('setData:cone') <= 1.05 && rate('setData:trace') <= 0.6,
-          `walking stays within its render budget, FC10 (walk ${rate('render:walk').toFixed(2)}/s, cone ${rate('setData:cone').toFixed(2)}/s, trace ${rate('setData:trace').toFixed(2)}/s)`);
+          `WS8: walking stays within its render budget, FC10 (walk ${rate('render:walk').toFixed(2)}/s, cone ${rate('setData:cone').toFixed(2)}/s, trace ${rate('setData:trace').toFixed(2)}/s)`);
         check(leak1.bodyDivs - leak0.bodyDivs <= 3 && leak1.listeners - leak0.listeners < 2000,
           `walking leaks no portals or listeners (body ${leak0.bodyDivs} → ${leak1.bodyDivs}, listeners ${leak0.listeners} → ${leak1.listeners}, nodes ${leak0.nodes} → ${leak1.nodes})`);
       }
@@ -801,6 +801,8 @@ module.exports = {
     'src/lib/here/**',
     'src/lib/media/**',
     'src/components/Baker*.tsx',
+    // The walk screen's parts this journey checks (the walk screen in parts, WS3; specs/walk-screen-split/plan.md).
+    'src/components/walking/{EdgeButtons,MarkCard,NavBar,NoteSheet,SpotCard,UnwalkedButton,WalkBackButton,WalkCaptureStack,WalkOptions,WalkViewers,WalkingMap,useCards,useRecall,useShareLog,useWalkCaptures,useWalkExplore,useWalkMap,useWalkNavigation,useWalkStreets,useWayBack}.ts*',
   ],
   run,
   checks,

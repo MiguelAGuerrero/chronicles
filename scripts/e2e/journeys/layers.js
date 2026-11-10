@@ -227,7 +227,8 @@ module.exports = {
     'src/components/map/{types,WalkMap.web,WalkMap.native}.ts*',
     'src/components/walk/{layout,useReady}.ts*',
     'src/app/(tabs)/explore.tsx',
-    'src/app/walk.tsx',
+    // The walk screen's parts this journey checks (the walk screen in parts, WS3; specs/walk-screen-split/plan.md).
+    'src/components/walking/{WalkLayersControl,WalkOptions,WalkingMap,useWalkLayers}.ts*',
   ],
   run,
 };

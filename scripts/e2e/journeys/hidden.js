@@ -55,7 +55,8 @@ module.exports = {
   covers: [
     'src/lib/{hiddenLog,useLiveTrace}.ts',
     'src/components/OpenWalk.tsx',
-    'src/app/walk.tsx',
+    // The walk screen's parts this journey checks (the walk screen in parts, WS3; specs/walk-screen-split/plan.md).
+    'src/components/walking/{NoticeBanner,useWalkNotice}.ts*',
   ],
   run,
 };

@@ -412,3 +412,9 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **The "?" pins sit together** (audit 2): `waitingMarks` places each kind's "?" at its place nearest the area's point (a rule made for the sketch, AT6), so on a town at whole-town zoom, or beside a neighborhood's name, they stack. Spreading them is a placement call for the owner.
 - **The "?" label is the walk's** (audit 3): "A place to find. Open", the same on every pin, while a tap opens the area's card. An Explore label ("Something to find in Fox Point") needs the shared `markLabel` to take one.
 - **The base map may name a hidden place under its "?"** (audit 5): if the style draws poi labels at that zoom; the walk screen has the same, and checking needs real tiles.
+
+## The walk screen in parts (WS1-WS8, specs/walk-screen-split)
+
+- **No journey checks On a strip or the dead-zone nudge** (`components/walking/useHotspots.ts`, `components/walking/HotspotLines.tsx`; WS4): nothing checked them before the split either, and adding one is a screen check, which needs a slice of its own (a remembered area with strips, and ten minutes walked far from every pocket). Their decisions are unit-tested in `lib/landing/walk`.
+- **The cards as a core reducer**: the "one card at a time" rules moved into `useCards` exactly as they were, including where they differ between cards (the gap card hides under the drawer but doesn't close it). A `step(state, event)` reducer would change behaviour in a refactor that promises none.
+- **Pure decisions still inside view hooks**: the status chip's `problem` (`useRecorderStatus`) and Stop's guard order (`useWalkLifecycle`) moved with their hooks as they were; pulling them into core with unit tests is separate work.

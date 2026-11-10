@@ -189,7 +189,13 @@ test('TG10 every screen and component is covered by a journey row', () => {
     .map((p) => posix(relative(ROOT, p)))
     .filter((f) => /^src\/(app|components)\//.test(f));
   const compiled = SCENARIOS.map((s) => ({ name: s.name, res: s.covers.map(features.globToRegExp) }));
-  const uncovered = ui.filter((f) => !compiled.some((s) => s.res.some((r) => r.test(f))));
+  // Files no journey checks, each with its reason in docs/DEFERRED.md.
+  const NO_JOURNEY = new Set([
+    // On a strip and the dead-zone nudge: no journey checks them (DEFERRED, the walk screen in parts, WS4).
+    'src/components/walking/useHotspots.ts',
+    'src/components/walking/HotspotLines.tsx',
+  ]);
+  const uncovered = ui.filter((f) => !NO_JOURNEY.has(f) && !compiled.some((s) => s.res.some((r) => r.test(f))));
   assert.deepEqual(uncovered, [], `no journey row covers:\n  ${uncovered.join('\n  ')}\nAdd each to the covers of its feature's journey (scripts/e2e/journeys/), or list it in docs/DEFERRED.md and here.`);
 });
 

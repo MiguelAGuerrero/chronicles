@@ -101,6 +101,9 @@ const FEATURES = [
       'src/app/walk.tsx',
       'src/app/(tabs)/navigate.tsx',
       'src/components/walk/**',
+      // The walk screen in parts (WS1-WS8): its views and hooks, and its shell.
+      'src/components/walking/**',
+      'src/lib/walkScreen/**',
       'src/lib/readyNav.ts',
       'src/lib/pauseReminder.ts',
       'src/lib/stackSlots.ts',
@@ -109,7 +112,7 @@ const FEATURES = [
       'src/lib/{useCaptures,walkNav,walkGate,memoGate,useLiveTrace,walkEvents,recordingBar,walkMotion,captureBus}.ts',
     ],
     journeys: ['ready', 'walk'],
-    specs: ['navigate-ready'],
+    specs: ['navigate-ready', 'walk-screen-split'],
   },
   {
     name: 'tabs',

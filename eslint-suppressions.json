@@ -24,11 +24,6 @@
       "count": 1
     }
   },
-  "src/app/walk.tsx": {
-    "no-restricted-syntax": {
-      "count": 2
-    }
-  },
   "src/components/CaptureView.tsx": {
     "no-restricted-syntax": {
       "count": 2

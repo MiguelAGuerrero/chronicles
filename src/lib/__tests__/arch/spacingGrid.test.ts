@@ -38,9 +38,10 @@ test('banner-spacing 2: the screen-edge gutter is one 16 pt constant, used by th
   assert.doesNotMatch(layout, /Math\.max\(12,/, 'the stack and banners must not fall back to a 12 pt edge');
   assert.match(layout, /const sideInset = Math\.max\(GUTTER,/);
   assert.match(layout, /const right = Math\.max\(GUTTER,/);
-  for (const f of ['app/walk.tsx', 'components/walk/useReady.tsx']) {
+  // The walk's top overlay is the walk screen's parts since the split (WS1): WalkTop and WalkLoading.
+  for (const f of ['components/walking/WalkTop.tsx', 'components/walking/WalkLoading.tsx', 'components/walk/useReady.tsx']) {
     const src = read(f);
-    assert.match(src, /styles\.top\b[^\n]*left: (?:at\.)?sideInset, right: (?:at\.)?sideInset/, `${f} places its top overlay from the side inset`);
+    assert.match(src, /styles\.top\b[^\n]*left: (?:at\.|props\.)?sideInset, right: (?:at\.|props\.)?sideInset/, `${f} places its top overlay from the side inset`);
     assert.doesNotMatch(src, /(?:left|right): 12,|insets\.top \+ 12/, `${f} has a 12 pt edge`);
   }
 });

@@ -397,7 +397,8 @@ module.exports = {
     'src/components/{Baker,Baker.native,Baker.web,Baker.types,Caption,CaptureView,MomentBar,RecordingBar}.{ts,tsx}',
     'src/lib/{mediaEdit,editSession,editOffer,captureBus,useCaptures,thumbPlan,thumbJob}.ts',
     'src/lib/{captureEdits,videoEdit,media,export}/**',
-    'src/app/walk.tsx',
+    // The walk screen's parts this journey checks (the walk screen in parts, WS3; specs/walk-screen-split/plan.md).
+    'src/components/walking/{CapturePills,WalkCaptureStack,WalkStrip,WalkTop,WalkViewers,useWalkCaptures,useWalkLifecycle}.ts*',
   ],
   run,
 };

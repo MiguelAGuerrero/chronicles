@@ -325,6 +325,8 @@ module.exports = {
     // The app's web styles and shared primitives: every screen wears them, and the launch shows the first.
     'src/components/webStyles*.ts',
     'src/components/{icons,ui}.tsx',
+    // The walk screen's parts this journey checks (the walk screen in parts, WS3; specs/walk-screen-split/plan.md).
+    'src/components/walking/{NavBar,WalkOptions,WalkStrip,WalkTop,useWalkLifecycle}.ts*',
   ],
   run,
   checks,

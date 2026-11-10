@@ -596,6 +596,8 @@ module.exports = {
     'src/lib/{scaleBar,units,useUnits,useLocate,rename,noteEdit,months,pins,thumbPlan,thumbJob,walkTitle,useReminded}.ts',
       'src/lib/unitsStore/**',
     'src/lib/nav/eta.ts',
+    // The walk screen's parts this journey checks (the walk screen in parts, WS3; specs/walk-screen-split/plan.md).
+    'src/components/walking/{EdgeButtons,NoteSheet,NoticeBanner,StatusChip,WalkViewers,useRecorderStatus,useResumed,useWalkMap,useWalkNotice}.ts*',
   ],
   run,
 };

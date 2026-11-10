@@ -140,6 +140,8 @@ module.exports = {
     'src/app/walk.tsx',
     'src/components/{OpenWalk,RecordingBar}.tsx',
     'src/lib/{session,openWalkLoad,walkEvents}.ts',
+    // The walk screen's parts this journey checks (the walk screen in parts, WS3; specs/walk-screen-split/plan.md).
+    'src/components/walking/{WalkLoading,WalkStrip,WalkTop,useShownWalk,useWalkLifecycle}.ts*',
   ],
   run,
 };

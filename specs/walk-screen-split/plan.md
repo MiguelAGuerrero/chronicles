@@ -29,8 +29,8 @@ Journeys in **bold** check the part through an id or a behaviour today. The othe
 | `useWalkNotice.ts`, `NoticeBanner.tsx` | the notice and its timer; start and arrival notices; the hidden-page gap (`onWalkGap`); the pause reminder; the "press and hold" hint; Open Settings and Open in Maps | **hidden**, **drive**, **tabs**, **ready**, **qol** |
 | `useRecorderStatus.ts`, `StatusChip.tsx` | the recorder's status; its error said once; Not recording, Why? (QL19); the retry on return (QL20); weak GPS; the chip | **qol** |
 | `WalkTop.tsx` | the top column: Minimize and its row, the notice cell, the chip cell, the toast | **ready**, **reload**, **edit**, **tabs**, **launch** |
-| `useWalkNavigation.ts` | `useNavigation`, `goTo`, `handOff`, the preview's Back and Escape, the route ahead, the alternates, the preview's fit, "You're here" | **drive**, **headsup**, **scenic**, **walk** |
-| `NavBar.tsx` | the navigation bar (time left, Open in Maps, End), Finding a route and Cancel, Off your route | **drive**, **headsup**, **scenic**, **walk**, **launch** |
+| `useWalkNavigation.ts` | `useNavigation`, `goTo`, `handOff`, the preview's Back and Escape, the route ahead, the alternates, the preview's fit, "You're here" | **drive**, **headsup**, **memories**, **scenic**, **walk** |
+| `NavBar.tsx` | the navigation bar (time left, Open in Maps, End), Finding a route and Cancel, Off your route | **drive**, **headsup**, **memories**, **scenic**, **walk**, **launch** |
 | `useWalkLayers.ts` | Layers, walkability, busy streets, town borders (both states), what the map draws in a preview, the heads-up line | **layers**, **walkability**, **headsup** |
 | `HeadsUpLine.tsx` | the walk-ahead line in the pills | **headsup** |
 | `WalkLayersControl.tsx` | the Layers button and panel in the corner | **layers**, **walkability** |
@@ -38,8 +38,8 @@ Journeys in **bold** check the part through an id or a behaviour today. The othe
 | `UnwalkedButton.tsx` | Show unwalked streets, and its count | **ready**, **walk** |
 | `EdgeButtons.tsx` | Recenter and the compass in the column | **ready**, **walk**, **qol** |
 | `useWayBack.ts`, `WalkBackButton.tsx` | the spot chosen, and where Walk me back leads (DW6-DW8) | **drive**, **ready**, **walk** |
-| `useWalkCaptures.ts` | `useCaptures`, photo, voice, note, the edit offer, the Add to this moment pill and the viewer's ask, Back and the page warning while a memo records, the toasts | **ready**, **edit**, **space**, **walk**, **stacks** |
-| `CapturePills.tsx` | Add to this moment, the edit offer, the memo's Undo and Retry, held captures, the space line | **ready**, **edit**, **space**, **stacks** |
+| `useWalkCaptures.ts` | `useCaptures`, photo, voice, note, the edit offer, the Add to this moment pill and the viewer's ask, Back and the page warning while a memo records, the toasts | **ready**, **edit**, **space**, **walk** |
+| `CapturePills.tsx` | Add to this moment, the edit offer, the memo's Undo and Retry, held captures, the space line | **ready**, **edit**, **space** |
 | `WalkCaptureStack.tsx` | the capture stack on the walk (`cap-*`, Save and Discard) | **ready**, **edit**, **space**, **walk**, **gaps**, **drive** |
 | `NoteSheet.tsx` | the note's sheet | **ready**, **walk**, **qol** |
 | `useWalkLifecycle.ts` | Stop (with the unsaved-memo and held-capture guards), Pause and Resume, Minimize | **ready**, **reload**, **tabs**, **edit**, **gaps**, **marks**, **space**, **launch** |
@@ -47,6 +47,7 @@ Journeys in **bold** check the part through an id or a behaviour today. The othe
 | `WalkOptions.tsx` | the drawer: Explore, the range, kinds, the layers key, pocket alert, route leanings, notifications, motion, Share GPS log | **marks**, **ready**, **layers**, **walkability**, **tabs**, **walk**, **nudge**, **launch** |
 | `useWalkExplore.ts` | the walk's Explore switch, its settings, `useExplore`, the open mark and its reach, the range ring, the relabel | **marks**, **ready**, **walk**, **nudge** |
 | `MarkCard.tsx` | a place's card | **marks**, **walk** |
+| `useShareLog.ts` | Share GPS log: the log read as the drawer opens, shared from the tap | **walk** |
 | `useHotspots.ts`, `HotspotLines.tsx` | the remembered areas; On a strip; the dead-zone nudge | none (WS4: listed in DEFERRED) |
 | `useWalkMemories.ts`, `MemoryCard.tsx` | memories on revisit: the pool, the pins, the preview, Memories here | **memories** |
 | `useRecall.ts` | the reminder card, and a tapped reminder opening its captures | **memories**, **walk** |
@@ -75,7 +76,7 @@ Only `covers` changes, plus the WS8 name on `walk`'s budget check.
   - `ready`, `reload` and `tabs` keep `src/app/walk.tsx` and add their parts.
   - `drive`, `edit`, `gaps`, `headsup`, `hidden`, `layers`, `marks`, `space` and `walkability` swap `src/app/walk.tsx` for their parts.
 - **The 6 added (the owner's call):** `walk`, `qol`, `memories`, `scenic`, `nudge` and `launch` add their parts.
-- `stacks` is in the table on one condition: during extraction I confirm that its checks reach the walking pill (it starts a walk). If they don't, it comes off those rows and the table is corrected before WS3's test is made real.
+- `stacks` came off the table (checked during extraction): its pill checks are on the ready screen, and on the walk it only holds Stop to reach the replay grid. `memories` joined the navigation rows: it checks the navigation bar's text after Walk here.
 
 ## Tests (one per criterion, written as todos first)
 

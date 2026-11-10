@@ -245,6 +245,8 @@ module.exports = {
     'src/components/{MemoryPreview,ReminderCard,RemindEditor,Enter}.tsx',
     'src/lib/{useReminded,enter}.ts',
     'src/lib/discovery/recall*.ts',
+    // The walk screen's parts this journey checks (the walk screen in parts, WS3; specs/walk-screen-split/plan.md).
+    'src/components/walking/{MemoryCard,NavBar,WalkStrip,WalkingMap,useCards,useRecall,useWalkMemories,useWalkNavigation}.ts*',
   ],
   run,
   checks,

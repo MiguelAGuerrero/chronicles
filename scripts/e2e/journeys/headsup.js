@@ -126,7 +126,8 @@ module.exports = {
   covers: [
     'src/lib/walk/{ahead,aheadWatch,useRouteWarning,walkApp,reader,layer}.ts',
     'src/components/WalkBandIcon.tsx',
-    'src/app/walk.tsx',
+    // The walk screen's parts this journey checks (the walk screen in parts, WS3; specs/walk-screen-split/plan.md).
+    'src/components/walking/{HeadsUpLine,NavBar,SpotCard,useCards,useWalkLayers,useWalkNavigation}.ts*',
   ],
   run,
 };

@@ -248,6 +248,12 @@ it begins, a short `arrive` to Chronicle that does nothing in the full flow.
 The entry ends each named journey with the nothing-leaves-the-device and
 no-console-errors checks (`h.nothingLeaves()`, `h.noConsoleErrors()`).
 
+A hub file names every journey that covers it, so a hub is split rather than its
+`covers` trimmed. The walk screen is the example (WS1-WS8): `src/app/walk.tsx` is
+a composition that only `ready`, `reload` and `tabs` cover, and each of its parts
+in `src/components/walking/` names exactly the journeys that check it (the table
+in `specs/walk-screen-split/plan.md`, held by `arch/walkScreenSplit.test.ts`).
+
 | variable | effect |
 |---|---|
 | `E2E_ONLY=<scenario>` | run one scenario alone, in a fresh browser context |

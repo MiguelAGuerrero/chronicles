@@ -503,6 +503,8 @@ module.exports = {
     'src/components/{MomentBar,StartSettings,LocateButton,CompassButton}.tsx',
     'src/lib/{readyNav,walkNav,walkGate,useStartWalk}.ts',
     'src/lib/discovery/recallCheck.ts',
+    // The walk screen's parts this journey checks (the walk screen in parts, WS3; specs/walk-screen-split/plan.md).
+    'src/components/walking/{CapturePills,EdgeButtons,NoteSheet,NoticeBanner,UnwalkedButton,WalkBackButton,WalkCaptureStack,WalkLoading,WalkOptions,WalkStrip,WalkTop,WalkingMap,useShownWalk,useWalkCaptures,useWalkExplore,useWalkLifecycle,useWalkMap,useWalkNotice,useWalkStreets,useWayBack}.ts*',
   ],
   run,
 };

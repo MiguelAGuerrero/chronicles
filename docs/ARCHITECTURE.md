@@ -40,7 +40,9 @@ src/app/(tabs)/navigate.tsx  Navigate's entry route (/navigate): Explore beneath
 src/app/(tabs)/index.tsx     Chronicle (/), where the app opens (0112): Memories with the capture band; Walks, Days and Map (stars by area at the level for the zoom, moment pins from z11, the HomeSheet, old-walk placement)
 src/app/(tabs)/explore.tsx   Explore (/explore): the atlas of the areas near you (tiles, the area card; 0066, 0067); long press = What's good here / Walk here
 src/app/chronicle.tsx        the old /chronicle path: dismissTo("/") down to Chronicle (HC5, 0112)
-src/app/walk.tsx             the walk screen, and Navigate: one screen and one map, ready with no walk open (`useReady`), else live trace and dot, fog, captures, navigation bar, Explore marks, memories, reminders, options, hold-to-stop
+src/app/walk.tsx             the walk screen, and Navigate: one screen and one map, ready with no walk open (`useReady`), else the walk; a composition only (WS1): its parts are in components/walking/
+src/components/walking/      the walk screen's parts (WS1-WS8): a view hook per feature (state, effects) and a view per thing drawn (props only); live trace and dot, fog, captures, navigation bar, Explore marks, memories, reminders, options, hold-to-stop. specs/walk-screen-split/plan.md maps each to its journeys
+src/lib/walkScreen/          the walk screen's db and recorder effects (shell, WS6), so its views import neither (FC5)
 src/app/replay/[id].tsx      a walk's replay: the five beats; the path beat is a ceremony told over the map (lib/ceremony, components/ceremony), or the screen reader's steps; the card, naming
 src/app/day/[key].tsx        a day's replay: the day's story told by the same ceremony (or the screen reader's steps), a quiet card
 ```

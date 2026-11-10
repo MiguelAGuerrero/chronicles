@@ -209,7 +209,8 @@ module.exports = {
     'src/lib/useStartWalk.ts',
     'src/components/atlas/AtlasCard.tsx',
     'src/app/(tabs)/explore.tsx',
-    'src/app/walk.tsx',
+    // The walk screen's parts this journey checks (the walk screen in parts, WS3; specs/walk-screen-split/plan.md).
+    'src/components/walking/{NavBar,NoticeBanner,SpotCard,WalkBackButton,WalkCaptureStack,useCards,useWalkNavigation,useWalkNotice,useWayBack}.ts*',
   ],
   run,
 };

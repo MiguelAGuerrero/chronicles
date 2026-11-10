@@ -164,6 +164,13 @@ async function run(h) {
 
 module.exports = {
   name: 'scenic',
-  covers: ['src/components/{RoutePreview,RouteLeaningSettings}.tsx', 'src/lib/nav/{scenic,scenicSignals,useNavigation}.ts', 'src/lib/nav/scenicRead/**', 'src/lib/routeLeanings/**'],
+  covers: [
+    'src/components/{RoutePreview,RouteLeaningSettings}.tsx',
+    'src/lib/nav/{scenic,scenicSignals,useNavigation}.ts',
+    'src/lib/nav/scenicRead/**',
+    'src/lib/routeLeanings/**',
+    // The walk screen's parts this journey checks (the walk screen in parts, WS3; specs/walk-screen-split/plan.md).
+    'src/components/walking/{NavBar,SpotCard,WalkingMap,useCards,useWalkNavigation}.ts*',
+  ],
   run,
 };

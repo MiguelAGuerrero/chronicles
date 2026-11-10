@@ -123,7 +123,8 @@ module.exports = {
     'src/lib/atlas/**',
     'src/components/MarkPinView.tsx',
     'src/components/atlas/**',
-    'src/app/walk.tsx',
+    // The walk screen's parts this journey checks (the walk screen in parts, WS3; specs/walk-screen-split/plan.md).
+    'src/components/walking/{MarkCard,WalkOptions,WalkStrip,WalkingMap,useCards,useWalkExplore,useWalkLifecycle}.ts*',
   ],
   run,
 };

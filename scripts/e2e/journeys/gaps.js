@@ -212,7 +212,8 @@ module.exports = {
     'src/lib/gaps/**',
     'src/components/{GapCard,GapDraw}.tsx',
     'src/app/replay/**',
-    'src/app/walk.tsx',
+    // The walk screen's parts this journey checks (the walk screen in parts, WS3; specs/walk-screen-split/plan.md).
+    'src/components/walking/{WalkCaptureStack,WalkGapCard,WalkStrip,WalkingMap,useCards,useWalkGaps,useWalkLifecycle}.ts*',
   ],
   run,
 };

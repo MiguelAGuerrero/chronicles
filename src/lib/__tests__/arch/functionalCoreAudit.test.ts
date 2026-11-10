@@ -148,7 +148,8 @@ test('functional-core audit 7: the baselines never grow past slice 1', () => {
   const LAYERS_CEILING = ['src/lib/format.ts -> ./units', 'src/lib/scaleBar.ts -> ./units'];
   // 26: the rule landed on main (Nov 4) after main's launch commit (NV2 launch) added _layout.tsx's db import.
   // 24: Navigate, ready (Nov 4): navigate.tsx is an entry route, and the ready screen's effects are lib/ready.
-  const SUPPRESSED_CEILING = 24;
+  // 22: the walk screen in parts (Nov 10, WS5): walk.tsx's db and recorder effects are lib/walkScreen.
+  const SUPPRESSED_CEILING = 22;
   const baseline = JSON.parse(readFileSync(join(__dirname, '..', 'layers.baseline.json'), 'utf8')) as string[];
   for (const id of baseline) assert.ok(LAYERS_CEILING.includes(id), `${id} is new in layers.baseline.json: fix it instead`);
   const total = Object.values(suppressions()).reduce((n, rules) => n + Object.values(rules).reduce((k, r) => k + r.count, 0), 0);

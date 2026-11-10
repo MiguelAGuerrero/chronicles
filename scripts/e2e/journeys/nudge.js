@@ -93,6 +93,8 @@ module.exports = {
     'src/lib/{haptics,motion,motionTokens,canBuzz,canBuzz.web}.ts',
     'src/lib/explore/{explore,useExplore,settings}.ts',
     'src/components/{StartSettings,ExploreSettings}.tsx',
+    // The walk screen's parts this journey checks (the walk screen in parts, WS3; specs/walk-screen-split/plan.md).
+    'src/components/walking/{WalkOptions,useWalkExplore}.ts*',
   ],
   run,
 };

@@ -3,6 +3,8 @@ paths:
   - "src/lib/__tests__/walk-screen/**"
   - "src/app/walk.tsx"
   - "src/components/walk/**"
+  - "src/components/walking/**"
+  - "src/lib/walkScreen/**"
   - "src/lib/readyNav.ts"
   - "src/components/{Ticking,MomentBar,MemoryPreview,OpenWalk,ConfirmCard,ReminderCard,RemindEditor,ui}.tsx"
   - "src/lib/{useCaptures,walkNav,walkGate,memoGate,useLiveTrace,walkEvents,recordingBar,walkMotion}.ts"
@@ -10,6 +12,17 @@ paths:
 # Walk screen
 
 The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout, capture stack, pills, edge buttons, the ready bar and voice-memo controls. The codemap is in `docs/ARCHITECTURE.md`; the decisions and their history are in `docs/decisions/`.
+
+- **`walk.tsx` is a composition; the screen is parts** (the walk screen in parts, WS1-WS8, the owner, Nov 10). Each
+  feature is a view hook in `components/walking/` (its state and effects) and a view there (props only: no
+  `useState`, `useEffect` or `useStore`, so `render:walk` counts every render a fix causes, WS8). Its db and
+  recorder effects go through the `lib/walkScreen` shell (FC5). Each journey's `covers` names the parts it checks, so
+  an edit to one part names only its journeys (`specs/walk-screen-split/plan.md` has the table, and
+  `arch/walkScreenSplit.test.ts` holds it: change both together). A new walk-screen feature is a new part, with the
+  journeys that check it, never more lines in `walk.tsx` (WS1 fails past 300 lines, on its own state, or on a lib import
+  beyond routing). Only `ready`, `reload` and `tabs` cover `walk.tsx` itself. The React Compiler reads every field of
+  an object holding a ref as a ref: destructure `useWalkMap()`, and pass `resetNorth`, never `mapRef.current`, in render.
+  Cross-part state lives in the composition's hooks (`useShownWalk`, `useWalkMap`, `useCards`).
 
 - **Navigate is this screen, and it is one screen** (NR1-NR13, decision 0076; the owner, Nov 3: "one
   in the same", not a separate context from the walk's). `WalkRoute` in `walk.tsx` renders `WalkScreen`

@@ -73,7 +73,7 @@ Routing inside a walk (`lib/nav`): walk me back, Go here, the route sources, rul
     is hidden, as always). Only the destination leaves the device, on a tap.
   - The hint (`HANDOFF_HINT`) says recording pauses on the web: a hidden
     page takes no fixes. A failed route's banner stays until dismissed or a
-    new Go here (`goTo` in `walk.tsx`), its action 44 pt.
+    new Go here (`goTo` in `components/walking/useWalkNavigation.ts`), its action 44 pt.
   - **iPhone Home Screen app** (`navigator.standalone`): `window.open` of the https link left a blank
     window to navigate back from, so `mapsTarget` gives `appleApp` and the `maps://` scheme is set on
     `location.href`, which should open Maps without a window or an unload (unverified on a device).
@@ -162,7 +162,7 @@ Routing inside a walk (`lib/nav`): walk me back, Go here, the route sources, rul
     harness's `routed`, which takes Direct when a preview shows.
 - **Only the routes while choosing** (fix preview-clutter, the owner's phone screenshot): with the preview open, the live map draws
   none of the walked trace, rides, gap stretches and links, fog, walked streets, busy streets' shading, town borders, walkability tint or the "unwalked" veil
-  (`forPreview` in `nav/previewView.ts`, applied in `walk.tsx`); they come back as it closes. The e2e reads which of them carry anything
+  (`forPreview` in `nav/previewView.ts`, applied in `components/walking/WalkingMap.tsx`); they come back as it closes. The e2e reads which of them carry anything
   (`data-drawn`, under `window.__perf`). Pins and the walker stay.
 - **Time left** (QL17, QL18; `lib/nav/eta.ts`, pure): the walk's own pace (walked
   metres over moving time) once 100 m and 60 s are walked, clamped to 0.7–2.0 m/s,

@@ -115,7 +115,8 @@ module.exports = {
     'src/components/SpaceLine.tsx',
     'src/lib/useCaptures.ts',
     'src/components/MomentBar.tsx',
-    'src/app/walk.tsx',
+    // The walk screen's parts this journey checks (the walk screen in parts, WS3; specs/walk-screen-split/plan.md).
+    'src/components/walking/{CapturePills,WalkCaptureStack,useWalkCaptures,useWalkLifecycle}.ts*',
   ],
   run,
 };

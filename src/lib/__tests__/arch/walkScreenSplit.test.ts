@@ -25,8 +25,8 @@ export const PARTS: Record<string, string[]> = {
   'useRecorderStatus.ts': ['qol'],
   'StatusChip.tsx': ['qol'],
   'WalkTop.tsx': ['edit', 'launch', 'ready', 'reload', 'tabs'],
-  'useWalkNavigation.ts': ['drive', 'headsup', 'scenic', 'walk'],
-  'NavBar.tsx': ['drive', 'headsup', 'launch', 'scenic', 'walk'],
+  'useWalkNavigation.ts': ['drive', 'headsup', 'memories', 'scenic', 'walk'],
+  'NavBar.tsx': ['drive', 'headsup', 'launch', 'memories', 'scenic', 'walk'],
   'useWalkLayers.ts': ['headsup', 'layers', 'walkability'],
   'HeadsUpLine.tsx': ['headsup'],
   'WalkLayersControl.tsx': ['layers', 'walkability'],
@@ -35,8 +35,8 @@ export const PARTS: Record<string, string[]> = {
   'EdgeButtons.tsx': ['qol', 'ready', 'walk'],
   'useWayBack.ts': ['drive', 'ready', 'walk'],
   'WalkBackButton.tsx': ['drive', 'ready', 'walk'],
-  'useWalkCaptures.ts': ['edit', 'ready', 'space', 'stacks', 'walk'],
-  'CapturePills.tsx': ['edit', 'ready', 'space', 'stacks'],
+  'useWalkCaptures.ts': ['edit', 'ready', 'space', 'walk'],
+  'CapturePills.tsx': ['edit', 'ready', 'space'],
   'WalkCaptureStack.tsx': ['drive', 'edit', 'gaps', 'ready', 'space', 'walk'],
   'NoteSheet.tsx': ['qol', 'ready', 'walk'],
   'useWalkLifecycle.ts': ['edit', 'gaps', 'launch', 'marks', 'ready', 'reload', 'space', 'tabs'],
@@ -44,6 +44,7 @@ export const PARTS: Record<string, string[]> = {
   'WalkOptions.tsx': ['launch', 'layers', 'marks', 'nudge', 'ready', 'tabs', 'walk', 'walkability'],
   'useWalkExplore.ts': ['marks', 'nudge', 'ready', 'walk'],
   'MarkCard.tsx': ['marks', 'walk'],
+  'useShareLog.ts': ['walk'],
   'useHotspots.ts': [],
   'HotspotLines.tsx': [],
   'useWalkMemories.ts': ['memories'],
@@ -73,7 +74,7 @@ const IDS = [
   'cap-photo', 'cap-voice', 'cap-note', 'voice-save', 'voice-discard',
 ];
 
-test('WS1: walk.tsx is a composition: under 300 lines, no state or effects, routing imports only', { todo: 'test first' }, () => {
+test('WS1: walk.tsx is a composition: under 300 lines, no state or effects, routing imports only', () => {
   const src = read(WALK);
   const lines = src.split('\n').length;
   assert.ok(lines <= 300, `walk.tsx is ${lines} lines, over 300`);
@@ -85,19 +86,19 @@ test('WS1: walk.tsx is a composition: under 300 lines, no state or effects, rout
   assert.deepEqual(lib.filter((m) => !allowed.has(m)), [], 'walk.tsx imports from src/lib only what routes the screen');
 });
 
-test('WS2: only ready, reload and tabs cover walk.tsx; no journey covers walking/** whole', { todo: 'test first' }, () => {
+test('WS2: only ready, reload and tabs cover walk.tsx; no journey covers walking/** whole', () => {
   assert.deepEqual(e2eFor([WALK]), ['ready', 'reload', 'tabs']);
   for (const s of scenarios()) {
     for (const g of s.covers) assert.ok(!/^src\/components\/walking\/\*\*?$/.test(g) && g !== `${PARTS_DIR}/**`, `${s.name} covers ${g}: name the parts it checks`);
   }
 });
 
-test('WS3: each part names exactly its journeys', { todo: 'test first' }, () => {
+test('WS3: each part names exactly its journeys', () => {
   assert.deepEqual(parts(), Object.keys(PARTS).sort(), 'the parts on disk are the plan\'s table');
   for (const [f, journeys] of Object.entries(PARTS)) assert.deepEqual(e2eFor([`${PARTS_DIR}/${f}`]), [...journeys].sort(), f);
 });
 
-test('WS4: every part is named by a journey, or listed with its reason', { todo: 'test first' }, () => {
+test('WS4: every part is named by a journey, or listed with its reason', () => {
   const found = parts();
   assert.ok(found.length > 0, 'no parts yet');
   for (const f of found) {
@@ -108,7 +109,7 @@ test('WS4: every part is named by a journey, or listed with its reason', { todo:
   }
 });
 
-test("WS5: the walk screen's views import no db, recorder, notifier or ports; walk.tsx's suppressions are gone", { todo: 'test first' }, () => {
+test("WS5: the walk screen's views import no db, recorder, notifier or ports; walk.tsx's suppressions are gone", () => {
   const views = [WALK, ...parts().map((f) => `${PARTS_DIR}/${f}`)];
   for (const f of views) {
     const src = read(f);
@@ -122,7 +123,7 @@ test("WS5: the walk screen's views import no db, recorder, notifier or ports; wa
   assert.ok(parts().length > 0, 'no parts yet');
 });
 
-test('WS7: every testID walk.tsx rendered is still rendered', { todo: 'test first' }, () => {
+test('WS7: every testID walk.tsx rendered is still rendered', () => {
   assert.ok(parts().length > 0, 'no parts yet');
   const src = [WALK, ...parts().map((f) => `${PARTS_DIR}/${f}`)].map(read).join('\n');
   const missing = IDS.filter((id) => !src.includes(`'${id}'`) && !src.includes(`"${id}"`));
@@ -131,7 +132,7 @@ test('WS7: every testID walk.tsx rendered is still rendered', { todo: 'test firs
   assert.deepEqual([...new Set(added)], [], 'a part adds no id of its own');
 });
 
-test("WS8: the parts' views hold no state or subscriptions", { todo: 'test first' }, () => {
+test("WS8: the parts' views hold no state or subscriptions", () => {
   const views = parts().filter((f) => f.endsWith('.tsx'));
   assert.ok(views.length > 0, 'no views yet');
   for (const f of views) {
