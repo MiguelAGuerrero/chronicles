@@ -1,7 +1,8 @@
+import type { Faced } from '../../lib/moment';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { AccessibilityInfo, Pressable, StyleSheet, View } from 'react-native';
-import { stepAt } from '../../lib/ceremony/story';
-import type { Capture } from '../../lib/types';
+import { stepAt, stepPosition } from '../../lib/ceremony/story';
+
 import { focusOn } from '../../lib/focus';
 import { CaptureContent } from '../CaptureView';
 import { KIND_LABEL } from '../icons';
@@ -19,10 +20,10 @@ const AUTO_MS = 4000;
  * re-watch moves on by itself (0004 still holds here).
  */
 export function StepThrough(props: {
-  steps: Capture[][];
+  steps: Faced[][];
   auto: boolean;
   onDone: () => void;
-  footer?: (c: Capture) => string | null;
+  footer?: (c: Faced) => string | null;
   hint: string;
   testID: string;
   topInset: number;
@@ -76,18 +77,18 @@ export function StepThrough(props: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
   if (!capture || !pos) return null;
-  const n = props.steps[pos.step].length;
   return (
     <View style={styles.moment}>
       {capture.kind !== 'voice' && capture.kind !== 'video' && <Pressable style={StyleSheet.absoluteFill} onPress={() => advance()} accessible={false} />}
       <CaptureContent
-        key={capture.id}
+        key={`${capture.id}:${capture.piece_id}`}
         ref={continueRef}
         capture={capture}
         autoPlay
         topInset={props.topInset}
         onVoiceFinished={props.auto ? () => advance(true) : undefined}
-        footer={[props.footer?.(capture) ?? null, n > 1 ? `${pos.item + 1} of ${n}` : null].filter(Boolean).join(' · ') || undefined}
+        // Counted in moments, never over a moment's pieces (MS9, MS17).
+        footer={[props.footer?.(capture) ?? null, stepPosition(props.steps[pos.step], pos.item)].filter(Boolean).join(' · ') || undefined}
         action={{ label: 'Continue', hint: props.hint, onPress: () => advance(), testID: props.testID }}
       />
     </View>

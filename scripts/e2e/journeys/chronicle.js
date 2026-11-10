@@ -48,7 +48,7 @@ async function checks(h) {
     const pinsOnCard = page.locator('[aria-label$=". Open"]');
     await pinsOnCard.nth((await pinsOnCard.count()) - 1).click();
     for (let k = 0; k < 6 && !(await page.getByText('The bakery smelled of cardamom.').count()); k++) {
-      await page.click('[aria-label="Next capture"]');
+      await page.click('[aria-label="Next moment"]');
       await page.waitForTimeout(300);
     }
     await page.waitForSelector('text=The bakery smelled of cardamom. >> visible=true');

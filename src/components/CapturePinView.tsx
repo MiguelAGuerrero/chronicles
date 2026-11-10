@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { hasMore } from '../lib/moment';
+import { StackMark, STACK_SPOKEN } from './StackMark';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { pinThumb, type CapturePin } from '../lib/pins';
 import { useMediaUri } from '../lib/useMediaUri';
@@ -70,6 +72,7 @@ export function CapturePinView({ pin, faint = false, drop: dropNow = false, remi
         </View>
         <View style={[styles.stem, { backgroundColor: color }]} />
       </View>
+      {n === 1 && hasMore(pin.captures[0]) && <StackMark silent size={10} style={styles.stack} />}
       {/* Its clock stays solid and full size, so it reads as from the past at a glance (MR10, audit UX). */}
       {faint && (
         <View testID="memory-badge" style={styles.badge}>
@@ -94,12 +97,15 @@ export function pinLabel(pin: CapturePin, interactive = true, memory = false, re
   const kind = memory
     ? n > 1 ? `${n} memories here` : `Memory: ${KIND_LABEL[pin.captures[0].kind]}`
     : n > 1 ? `${n} captures here` : KIND_LABEL[pin.captures[0].kind];
+  // One moment with more than one piece says so in words, never how many (MS8, MS9).
+  const stacked = n === 1 && hasMore(pin.captures[0]) ? `, ${STACK_SPOKEN}` : '';
   // The bell said in words (RB7).
-  const what = reminded ? `${kind}, reminder set` : kind;
+  const what = reminded ? `${kind}${stacked}, reminder set` : `${kind}${stacked}`;
   return interactive ? `${what}. Open` : what;
 }
 
 const styles = StyleSheet.create({
+  stack: { position: 'absolute', top: -4, left: -4, width: 18, height: 18, borderRadius: 9 },
   wrap: { width: 36, height: PIN_HEIGHT, alignItems: 'center' },
   pin: { width: 36, height: PIN_HEIGHT, alignItems: 'center' },
   // Shrunk toward the stem's foot, so it still marks its point (audit 7).

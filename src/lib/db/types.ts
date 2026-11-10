@@ -7,7 +7,7 @@ import type { Mark, Place, Recall } from '../discovery/types';
 import type { ChecklistArea, ChecklistItem, ExploreRead, Find } from '../explore/explore';
 import type { LandingRow } from '../landing/view';
 import type { ThreadsChange, ThreadsData } from '../threads/types';
-import type { Capture, GapDecision, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
+import type { Capture, GapDecision, Moment, Pause, Still, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 
 /**
  * Local-only storage, mirroring the concept doc's tables. Native uses
@@ -24,15 +24,40 @@ export interface Db {
   appendPoints(points: TracePoint[]): Promise<void>;
   getPoints(walkId: string): Promise<TracePoint[]>;
 
-  addCapture(capture: Capture): Promise<void>;
-  updateCapture(id: string, patch: Partial<Omit<Capture, 'id'>>): Promise<void>;
-  getCaptures(walkId: string): Promise<Capture[]>;
-  /** Every capture, loose or in a walk, with from <= t < to, in time order (days, M6). */
-  capturesBetween(from: number, to: number): Promise<Capture[]>;
-  /** Captures by id, from any walk (a reminder notification's). */
-  getCapturesByIds(ids: string[]): Promise<Capture[]>;
-  /** Captures of every walk whose position lies inside the bounds. */
-  capturesIn(bounds: [number, number, number, number]): Promise<Capture[]>;
+  /**
+   * Keeps a moment and its pieces in one write (MT3, decision 0123): a moment is never kept without a piece, and an
+   * id is used once (the first stays).
+   */
+  addMoment(moment: Moment): Promise<void>;
+  /** A moment's own fields: its place (MT5), and its walk. A piece's update never moves them. */
+  updateMoment(id: string, patch: Partial<Pick<Moment, 'walk_id' | 'lat' | 'lon' | 'segment_id'>>): Promise<void>;
+  /** One piece's media fields: its caption, edit, small copy or text. */
+  updatePiece(id: string, patch: Partial<Omit<Capture, 'id' | 'moment_id'>>): Promise<void>;
+  /**
+   * Adds a piece to a moment that exists (moment stacks MS3): the moment's own place and time are untouched; the
+   * piece keeps its own time; a piece id is used once. Rejects for a missing moment.
+   */
+  addPiece(momentId: string, piece: Capture): Promise<void>;
+  /**
+   * Deletes pieces by id, in one transaction (MS13): their moments stay, with their reminders, finds, threads and
+   * links; the walks' counts follow. Rejects, deleting nothing, if that would leave a moment with no piece:
+   * deleting a moment's last piece is `deleteMoments`. Media files are the caller's.
+   */
+  deletePieces(ids: string[]): Promise<void>;
+  /**
+   * Takes a piece out of its moment and keeps it as a moment of its own (moment stacks MS16), in one transaction: the
+   * new moment's id, walk, time and place as given, the piece unchanged but for its moment. The original keeps its
+   * other pieces, threads, links, reminder and find. Rejects, changing nothing, for a missing piece or a moment's last.
+   */
+  splitPiece(pieceId: string, moment: Omit<Moment, 'pieces'>): Promise<void>;
+  /** A walk's moments, with their pieces, in time order. */
+  getMoments(walkId: string): Promise<Moment[]>;
+  /** Every moment, loose or in a walk, with from <= t < to, in time order (days, M6). */
+  momentsBetween(from: number, to: number): Promise<Moment[]>;
+  /** Moments by id, from any walk (a reminder notification's), skipping missing ones, in time order. */
+  getMomentsByIds(ids: string[]): Promise<Moment[]>;
+  /** Moments of every walk, and loose ones, whose place lies inside the bounds, in time order. */
+  momentsIn(bounds: [number, number, number, number]): Promise<Moment[]>;
 
   /**
    * Deletes a walk and everything tied to it, in one transaction (D1): its
@@ -42,11 +67,11 @@ export interface Db {
    */
   deleteWalk(walkId: string): Promise<void>;
   /**
-   * Deletes captures by id, in one transaction (D2, D3): their rows and
+   * Deletes moments by id, in one transaction (D2, D3, MT6): their pieces and
    * reminders, and their finds unless `keepFinds`; their walks' counts drop
    * (D9). Media files are the caller's.
    */
-  deleteCaptures(ids: string[], opts?: { keepFinds?: boolean }): Promise<void>;
+  deleteMoments(ids: string[], opts?: { keepFinds?: boolean }): Promise<void>;
 
   /**
    * The owner's threads (OT18, decision 0104): threads, memberships and replies. Truth, never derived; a moment's
@@ -56,7 +81,7 @@ export interface Db {
   /**
    * Applies one change in one transaction: puts replace a row of the same key, a deleted thread takes its memberships
    * (never a moment or a link), and a thread the change leaves with fewer than two members is dissolved with it (OT15).
-   * `deleteCaptures` and `deleteWalk` take the memberships and links of the moments they delete the same way (OT16, OT17).
+   * `deleteMoments` and `deleteWalk` take the memberships and links of the moments they delete the same way (OT16, OT17).
    */
   applyThreads(change: ThreadsChange): Promise<void>;
 

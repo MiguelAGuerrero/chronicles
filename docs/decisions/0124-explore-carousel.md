@@ -1,4 +1,4 @@
-# 0123. Explore is a map with a row of area cards
+# 0124. Explore is a map with a row of area cards
 
 Date: 2026-11-10 · Status: accepted · Area: explore, map
 

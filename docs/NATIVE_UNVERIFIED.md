@@ -13,7 +13,7 @@ The concept doc's first milestone, a pocketed walk whose trace survives the scre
 
 **Recording a result.** A pass: tick the box, `- [x]`, and end the line with the date and the device, `— passed Nov 9, iPhone 13 (iOS 18.1)`. A failure stays open, `- [ ]`, and ends with what happened, `— failed Nov 9, Pixel 7 (Android 15): <what happened>`. Fix a failure like any other issue (`/fix`); the item stays open until it passes. The ids in parentheses at the end of an item are the criteria it accepts.
 
-## Migrations (SQLite, `db/index.native.ts` `MIGRATIONS`, tracked with `PRAGMA user_version`)
+## Migrations (SQLite, `db/migrations.ts` `MIGRATIONS`, tracked with `PRAGMA user_version`)
 
 The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each SQLite migration below has run only in code review. Migrations 1-4 (v0: the base tables, the versioned cache with `walk_summary` and `meta`, videos, pauses and captions) never ran on a device either. Each IndexedDB version named is the web's counterpart, for reference.
 
@@ -112,10 +112,10 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** on Android, edit a portrait photo taken with the phone turned (EXIF orientation set). **Expect:** `Image.getSize` with EXIF orientation agrees with how the SVG draws the photo: the crop frame and the saved crop match the upright picture (audit).
 - [ ] **Do:** edit a photo twice, tapping Done each time, then look in the app's folder (Xcode's container download or Android Studio's Device Explorer). **Expect:** the edited copy has its new name (`editedThumbName`), the pin shows the newest edit, and the old copy is removed (audit 3).
 
-## Deletion (`db.deleteWalk`, `db.deleteCaptures`, `removeMedia`)
+## Deletion (`db.deleteWalk`, `db.deleteMoments`, `removeMedia`)
 
 - [ ] **Do:** delete a finished walk from its More menu on Chronicle, let the 5 s Undo pass, then force-quit and reopen. **Expect:** the SQLite deletes hold: the walk, its trace, pauses and moments are gone after the relaunch, its star and counts drop it, and streets only it walked are fog again (Clearing walks and moments). (D1, D8)
-- [ ] **Do:** delete a capture that found a place, including one whose find is filed under another walk than the capture's, let Undo pass and relaunch. **Expect:** no replay or checklist shows any find of it: deleting a capture deletes every find of it, whatever walk the find is filed under (`deleteCaptures`; the web store keeps a find filed under another walk, a contract case says so). (D3)
+- [ ] **Do:** delete a capture that found a place, including one whose find is filed under another walk than the capture's, let Undo pass and relaunch. **Expect:** no replay or checklist shows any find of it: deleting a capture deletes every find of it, whatever walk the find is filed under (`deleteMoments`; the web store keeps a find filed under another walk; the contract pins both stores, SQLite over node:sqlite since MT11). (D3)
 - [ ] **Do:** delete a walk that only grazed a long street piece (far longer than 200 m, no junctions) at one end, while another walk walked the rest of it. **Expect:** the piece is recounted along its whole length: `getSegmentsIn` finds a piece that only grazes the bounds by comparing each piece's box (the web store files a piece by its centre's tile and misses it). (D7, D8)
 - [ ] **Do:** delete a walk with photos, a video and memos, noting "Frees about N MB" in the confirm; let Undo pass and check the app's storage in Settings. **Expect:** the media files and the walk's folder are removed, the storage drops by about N MB, and N is `Directory.size` of what goes (Clearing walks and moments). (D4, D11)
 - [ ] **Do:** delete a moment from the viewer's More menu, then tap Undo within 5 s. **Expect:** the Undo pill, `UndoToast`, "Moment deleted", shows over the viewer's Modal, not behind it, and Undo brings the moment back (Clearing walks and moments). (D5)
@@ -181,7 +181,7 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** open Explore in a town with neighbours, then zoom out below z8. **Expect:** the `borders` GeoJSONSource draws your town with a soft fill and a firm border and the others as thin lines (fill and line layers, `filter`, `minzoom`) on MapLibre RN, the first overlay over the base map: under the trace and pins, gone below z8. (TB1, TB8)
 - [ ] **Do:** upgrade from a build before migration 18 that had outlines kept, open Explore, then reopen it in airplane mode. **Expect:** the app opens; SQLite migration 18 clears `outline_tile` and adds the `z` column; z10 tiles are read on a phone and the borders draw whole, and offline from the cache after. (TB6, TB7)
 
-## Explore carousel (EC1-EC20, decision 0123; discrete navigation DN1, DN10, DN12, DN13)
+## Explore carousel (EC1-EC20, decision 0124; discrete navigation DN1, DN10, DN12, DN13)
 
 - [ ] **Do:** open Explore on iOS and Android. **Expect:** the map fills the screen above the tabs and one row of area cards sits at its bottom with the first card centred and its area ringed and named on the map; the next card's edge peeks. (EC1, EC2, EC5)
 - [ ] **Do:** swipe the row with a finger and let go between two cards. **Expect:** `snapToInterval` settles on one card, the map eases to that area keeping its zoom, and a screen reader says its name; no ping-pong between the row's own scroll and the selection. (EC4, EC5, EC13)
@@ -228,8 +228,9 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 
 ## Functional core (slice 1, FC1-FC10)
 
+- [ ] **Do:** update the app over a phone with walks, loose moments, a thread, a reply and a reminder kept (a build before migration 22), then open Chronicle, a thread, a day, a walk's replay and a moment's viewer, and make a new photo and note. **Expect:** the app opens with no error; every walk, moment, thread, reply and reminder is there and opens as before, each moment once with its place; the new photo and note are kept and show at once (migration 22: the `moment` table and `capture.moment_id`; `db/sqliteStore.ts` reads one joined statement per read; IndexedDB 18). (MT1, MT2, MT9)
 - [ ] **Do:** on a fresh install, open Navigate. **Expect:** `lib/ports/index.ts` builds the real ports from the native db, recorder and notifier at module load; its first user is the ready walk screen's shell (`lib/ready`, Navigate, ready), so a phone's first run of it is the ready screen opening with your dot and choices, with no error.
-- [ ] **Do:** run the whole suite on one phone and check the items that read and write each `Db` method. **Expect:** the SQLite adapter (`db/index.native.ts`) answers as the Db contract (`src/lib/__tests__/dbContract.ts`) says: the suite runs only over the fake and IndexedDB in Node, so SQLite's match to it is by reading, and this suite's passes are its first evidence.
+- [ ] **Do:** run the whole suite on one phone and check the items that read and write each `Db` method. **Expect:** the SQLite store (`db/sqliteStore.ts`) answers as the Db contract (`src/lib/__tests__/dbContract.ts`) says: since MT11 the contract runs it over Node's built-in SQLite, so what remains for a phone is expo-sqlite itself (its bindings, WAL, the exclusive transactions under the background task). (MT11)
 
 ## Replay rhythm (RR1-RR22)
 
@@ -336,6 +337,16 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** on a moment in a thread, tap "In a thread" in the viewer, from Lately. **Expect:** the viewer closes and Chronicle's Memories opens on that thread (the navigation after a Modal's dismissal is not dropped). (OT11)
 - [ ] **Do:** on Android, open a moment, tap Respond's Note, type a few words, press Back; then press Back again. **Expect:** the first Back closes the note being written and leaves the viewer open with Respond ready; the second closes the viewer. (owner-threads audit 9)
 - [ ] **Do:** with VoiceOver and TalkBack on, move through the Chronicle's Threads, the owner's Threads, a thread's timeline and the Respond row. **Expect:** the two headings are said apart ("found for you", "connected by you"), each row reads as one named button with its heading and line, a reply says what it answers, and Respond's three kinds are buttons. (OT9, OT12)
+
+## Moment stacks (MS1-MS15, decision 0123)
+
+- [ ] **Do:** on Navigate's ready screen, take a photo with the edge camera, then tap the pill's camera and take another, then its mic and record a memo, then its pencil and write a note. **Expect:** after the system camera returns, the "Add to this moment" pill is there; each addition joins the first photo's moment (one card on Chronicle, with the two-card mark), with no second location prompt or fix, and the moment stays where the first photo was taken. (MS2, MS3)
+- [ ] **Do:** take a photo on a walk, wait two minutes, or walk on 100 m, without capturing. **Expect:** the pill goes by itself; the next capture is a new moment. Lock the phone with the pill showing and come back within two minutes: it is still there. (MS4)
+- [ ] **Do:** open a stacked moment in the viewer and swipe left and right; with VoiceOver and TalkBack, move through its buttons. **Expect:** the swipe steps through its photos, memo and note in the order taken; the buttons say "Previous in this moment" and "Next in this moment", apart from "Previous moment" and "Next moment", and nothing says how many it holds. (MS9, MS10)
+- [ ] **Do:** from a stacked moment's More, Split this photo out, look at the next moment, let the Undo pass, relaunch. **Expect:** the photo shows at once as its own moment, then is kept as one, placed where it was taken on the walk; the original keeps its other media, thread and reminder. (MS16)
+- [ ] **Do:** replay a walk with a stacked moment of four photos and a short video, then one of twelve photos. **Expect:** each is one grid on the stage (2×2 and 3×3), the pieces swipe in one after another, the video plays silently in its square, the twelve scroll slowly; no numbers or dots; a memo of the stack plays beside it. (MS17)
+- [ ] **Do:** turn on Group captures in Walk settings, take three captures with the stack's buttons, tap New moment, take one more, relaunch. **Expect:** the first three are one moment, the last its own; the setting is still on after the relaunch. (MS18, MS19)
+- [ ] **Do:** from a stacked moment's More, Delete this photo, let the Undo pass, then relaunch. **Expect:** the photo and its small copy are gone from storage; the moment keeps its other media, its reminder and its thread. (MS13)
 
 ## Network rules (`lib/net`, decision 0100)
 

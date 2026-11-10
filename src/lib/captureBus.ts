@@ -1,5 +1,5 @@
 // @layer shell
-import type { Capture } from './types';
+import type { Faced } from './moment';
 
 /**
  * News of a capture just kept, for the other capture paths of the same walk
@@ -11,22 +11,22 @@ import type { Capture } from './types';
  * gone (tabs audit 5). Storage stays the truth; this only keeps the screens'
  * lists in step.
  */
-export type CapturePatch = Partial<Pick<Capture, 'thumb_path' | 'lat' | 'lon' | 'caption' | 'caption_y' | 'body' | 'edit'>>;
+export type CapturePatch = Partial<Pick<Faced, 'thumb_path' | 'lat' | 'lon' | 'caption' | 'caption_y' | 'body' | 'edit'>>;
 /** The channel for loose moments, which belong to no walk (media-editing audit 2). */
 export const LOOSE_MOMENTS = '@loose-moments';
-type Listener = { walkId: string; owner: object; fn: (c: Capture) => void; onPatch?: (id: string, patch: CapturePatch) => void };
+type Listener = { walkId: string; owner: object; fn: (c: Faced) => void; onPatch?: (id: string, patch: CapturePatch) => void };
 const listeners = new Set<Listener>();
 
 export const captureBus = {
   /** Listen for captures of a walk kept (or changed) by any path but the owner's own. */
-  subscribe(walkId: string, owner: object, fn: (c: Capture) => void, onPatch?: (id: string, patch: CapturePatch) => void): () => void {
+  subscribe(walkId: string, owner: object, fn: (c: Faced) => void, onPatch?: (id: string, patch: CapturePatch) => void): () => void {
     const l = { walkId, owner, fn, onPatch };
     listeners.add(l);
     return () => {
       listeners.delete(l);
     };
   },
-  emit(c: Capture, from: object) {
+  emit(c: Faced, from: object) {
     if (!c.walk_id) return;
     for (const l of [...listeners]) if (l.walkId === c.walk_id && l.owner !== from) l.fn(c);
   },
@@ -43,7 +43,7 @@ export const captureBus = {
 };
 
 /** A list with one capture's fields changed; the same list when it isn't there. */
-export function applyPatch(list: Capture[], id: string, patch: CapturePatch): Capture[] {
+export function applyPatch(list: Faced[], id: string, patch: CapturePatch): Faced[] {
   if (!list.some((c) => c.id === id)) return list;
   return list.map((c) => (c.id === id ? { ...c, ...patch } : c));
 }
@@ -53,8 +53,8 @@ export function applyPatch(list: Capture[], id: string, patch: CapturePatch): Ca
  * id, the copy on screen winning (it is pinned at the last position until
  * stop, and carries a caption just set), in time order.
  */
-export function mergeCaptures(stored: Capture[], onScreen: Capture[]): Capture[] {
-  const byId = new Map<string, Capture>();
+export function mergeCaptures(stored: Faced[], onScreen: Faced[]): Faced[] {
+  const byId = new Map<string, Faced>();
   for (const c of stored) byId.set(c.id, c);
   for (const c of onScreen) byId.set(c.id, c);
   return [...byId.values()].sort((a, b) => a.t - b.t);

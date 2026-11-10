@@ -1,4 +1,5 @@
 // @layer shell
+import { facedAll } from '../moment';
 import { gpsLog } from '../gpsLog';
 import type { Ports } from '../ports/types';
 
@@ -10,7 +11,7 @@ import type { Ports } from '../ports/types';
 export function createWalkLog(p: Pick<Ports, 'db'>, device: () => string) {
   return {
     async walkLogText(walkId: string, startedAt: number): Promise<string> {
-      const [points, captures] = await Promise.all([p.db.getPoints(walkId), p.db.getCaptures(walkId)]);
+      const [points, captures] = await Promise.all([p.db.getPoints(walkId), p.db.getMoments(walkId).then(facedAll)]);
       return gpsLog({ startedAt, points, captures, userAgent: device() });
     },
   };

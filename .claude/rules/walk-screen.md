@@ -80,6 +80,13 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
 - Pills (the caption offer, voice Undo, Retry, a moment's toast) sit left of the stack, just above the
   strip (`at.pills`), right-aligned, so the stack never moves under the thumb. Zooming keeps following;
   only a pan or a turn stops it (web; native can't tell zoom from pan yet).
+- **The Add to this moment pill** (moment stacks MS1-MS6, decision 0123): `components/walk/AddToMomentPill`,
+  in the pills on both states, shown while `momentPill` (`lib/momentPill`, the reducer `lib/openMoment`) has a
+  moment open. Two screens wire it: the ready screen's `CaptureRow` (`MomentBar`) and the walking `walk.tsx`;
+  each passes `onKept` to `useCaptures` (a new moment opens it, a piece keeps it) and `into` to its camera, memo
+  and note. Never pass a press handler straight as `onPhoto={photo}`: the event would arrive as `into`. The
+  walked trace feeds `momentPill.walked` from `live.here`; a walk's id changing, blur and unmount close it. The
+  viewer's Add to this moment is `momentPill.ask(kind)`, run by the screen beneath (it holds the camera).
 - **The ready bar pulls up** (`components/walk/ReadyBar.tsx`, NR7): a drag on its grip or its numbers,
   or a tap on them, raises it to 60% of the screen (`raisedHeight`) with `StartSettings` in a scroll
   above Start; a drag down, Back or Escape lowers it. At 88% the range ring sat under it (audit 1), so

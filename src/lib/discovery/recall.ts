@@ -1,6 +1,7 @@
 // @layer core
+import type { Faced } from '../moment';
 import { distanceM } from '../geo';
-import type { Capture, LngLat } from '../types';
+import type { LngLat } from '../types';
 import type { Recall, RecallFrequency } from './types';
 
 /** Remind me here's numbers (R2, R4, R5). */
@@ -51,12 +52,12 @@ export function dueRecalls(o: {
   now: number;
   quiet: boolean;
   recalls: Recall[];
-  captures: Capture[];
-}): { recall: Recall; capture: Capture }[] {
+  captures: Faced[];
+}): { recall: Recall; capture: Faced }[] {
   if (o.quiet) return [];
   const byId = new Map(o.captures.map((c) => [c.id, c]));
   const path: LngLat[] = typeof o.here[0] === 'number' ? [o.here as LngLat] : (o.here as LngLat[]);
-  const out: { recall: Recall; capture: Capture }[] = [];
+  const out: { recall: Recall; capture: Faced }[] = [];
   for (const r of o.recalls) {
     const c = byId.get(r.capture_id);
     if (!c || c.lat == null || c.lon == null || c.walk_id === o.walkId || r.last_walk_id === o.walkId) continue;
@@ -88,10 +89,10 @@ export function newRecall(captureId: string, frequency: RecallFrequency, until: 
 export const editedRecall = (fresh: Recall, frequency: RecallFrequency, until: number | null): Recall => ({ ...fresh, frequency, until });
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const KIND_WORD: Record<Capture['kind'], string> = { photo: 'Photo', video: 'Video', voice: 'Voice memo', text: 'Note' };
+const KIND_WORD: Record<Faced['kind'], string> = { photo: 'Photo', video: 'Video', voice: 'Voice memo', text: 'Note' };
 
 /** The reminder's words, carrying the content (R4); two or more in reach are one (R7). */
-export function reminderText(captures: Capture[]): { title: string; body: string } {
+export function reminderText(captures: Faced[]): { title: string; body: string } {
   if (captures.length > 1) return { title: `${captures.length} memories here`, body: kindsOf(captures) };
   const c = captures[0];
   if (c.kind === 'text' && c.body) {
@@ -103,12 +104,12 @@ export function reminderText(captures: Capture[]): { title: string; body: string
   return { title: 'A memory from here', body: `${KIND_WORD[c.kind]}, ${MONTHS[d.getMonth()]} ${d.getDate()}` };
 }
 
-const ONE: Record<Capture['kind'], string> = { photo: 'a photo', video: 'a video', voice: 'a voice memo', text: 'a note' };
-const MANY: Record<Capture['kind'], string> = { photo: 'photos', video: 'videos', voice: 'voice memos', text: 'notes' };
+const ONE: Record<Faced['kind'], string> = { photo: 'a photo', video: 'a video', voice: 'a voice memo', text: 'a note' };
+const MANY: Record<Faced['kind'], string> = { photo: 'photos', video: 'videos', voice: 'voice memos', text: 'notes' };
 
 /** "A photo and a note", "2 voice memos and a note". */
-function kindsOf(captures: Capture[]): string {
-  const order: Capture['kind'][] = ['photo', 'video', 'voice', 'text'];
+function kindsOf(captures: Faced[]): string {
+  const order: Faced['kind'][] = ['photo', 'video', 'voice', 'text'];
   const parts = order
     .map((k) => [k, captures.filter((c) => c.kind === k).length] as const)
     .filter(([, n]) => n > 0)

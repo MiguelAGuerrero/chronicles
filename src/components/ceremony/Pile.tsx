@@ -1,7 +1,8 @@
+import type { Faced } from '../../lib/moment';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 import type { PileOverlay } from '../../lib/ceremony/types';
 import { THUMB } from '../../lib/thumbPlan';
-import type { Capture } from '../../lib/types';
+
 import { useMediaUri } from '../../lib/useMediaUri';
 import { COLORS } from '../map/types';
 import { Icon } from '../icons';
@@ -9,9 +10,9 @@ import { theme } from '../ui';
 import { PILE, pileCenter, tiltOf, type StageCtx } from './layout';
 
 /** A photo's small copy where it has one (a map never decodes full photos; nor does the pile). */
-const small = (c: Capture): Capture => (c.kind === 'photo' && c.thumb_path && c.thumb_path !== THUMB.none ? { ...c, file_path: c.thumb_path } : c);
+const small = (c: Faced): Faced => (c.kind === 'photo' && c.thumb_path && c.thumb_path !== THUMB.none ? { ...c, file_path: c.thumb_path } : c);
 
-function Thumb({ capture }: { capture: Capture }) {
+function Thumb({ capture }: { capture: Faced }) {
   const uri = useMediaUri(capture.kind === 'photo' ? small(capture) : null);
   return (
     <View style={[styles.thumb, { transform: [{ rotate: `${tiltOf(capture.id)}deg` }] }]}>

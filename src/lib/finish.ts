@@ -1,8 +1,9 @@
 // @layer shell
+import { piecesOf, placeAt } from './moment';
 import type { CollectedFeatures } from '../components/map/types';
 import { db } from './db';
 import { isNamedStreet } from './deletion/core';
-import { boundsOf, distanceM, pausedMs, positionAt, withoutPauses, type Bounds, type PauseSpan } from './geo';
+import { boundsOf, distanceM, pausedMs, withoutPauses, type Bounds, type PauseSpan } from './geo';
 import { keptFixes, readTrace, smoothKept, traceDistances, withFilled } from './rides';
 import { snap } from './snapper';
 import { deriveSegments, type RoadFeature } from './streets';
@@ -14,7 +15,7 @@ import { placesFromTiles } from './areas/tilePlaces';
 import type { Area, WalkArea } from './areas/types';
 import { fillsOf, walkStretches } from './gaps';
 import { ensureTileBuild } from './tiles';
-import type { LngLat, StreetSegment, TracePoint, Walk, WalkSummary } from './types';
+import type { LngLat, Moment, StreetSegment, TracePoint, Walk, WalkSummary } from './types';
 
 const AREA_PAD_M = 150;
 const NEIGHBORHOOD = ['neighbourhood', 'quarter', 'suburb'];
@@ -119,9 +120,11 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
   const earlier = await db.streetKeysBefore(walk.started_at);
   // Streets are counted by name (the owner's call); unnamed paths clear fog but are not streets.
   const keys = new Set(visited.map((v) => v.street_key).filter(isNamedStreet));
-  const captures = await db.getCaptures(walk.id);
-  // A capture on a ride lands on the ride line (R9).
-  await placeCaptures(captures, smoothKept(tr), pauses, segments);
+  const moments = await db.getMoments(walk.id);
+  // A moment on a ride lands on the ride line (R9).
+  await placeMoments(moments, smoothKept(tr), pauses, segments);
+  // A walk's row counts pieces by kind (the owner's call, Nov 10).
+  const captures = piecesOf(moments);
 
   const end = walk.ended_at ?? kept.at(-1)?.t ?? walk.started_at;
   const { walkedM, rideM } = traceDistances(tr);
@@ -150,30 +153,17 @@ export async function snapWalk(walk: Walk, collector: Collector): Promise<WalkSu
 }
 
 /**
- * Places each capture on the trace by its time, unless it was stamped with
- * a fresh fix when taken, and notes the street it was taken on. The trace is
- * the smoothed one, so a capture during a standstill sits on the still dot;
- * one taken while paused sits where the pause began, not on a line across it.
+ * Places each moment on the trace by its time (MT5, `placeAt`), unless it was stamped with a fresh fix when taken,
+ * and notes the street it was taken on. The trace is the smoothed one, so a moment during a standstill sits on the
+ * still dot; one taken while paused sits where the pause began, not on a line across it. The place is the moment's.
  */
-async function placeCaptures(
-  captures: { id: string; t: number; lat: number | null; lon: number | null }[],
-  fixes: TracePoint[],
-  pauses: PauseSpan[],
-  segments: StreetSegment[],
-) {
-  for (const c of captures) {
-    const inPause = pauses.find((p) => c.t >= p.started_at && c.t <= (p.ended_at ?? Infinity));
-    const pos = c.lat != null && c.lon != null ? ([c.lon, c.lat] as LngLat) : positionAt(fixes, inPause ? inPause.started_at : c.t);
-    if (!pos) continue;
-    let best: { id: string; d: number } | null = null;
-    for (const s of segments)
-      for (const line of s.geometry)
-        for (const v of line) {
-          const d = distanceM(pos, v);
-          if (d < 40 && (!best || d < best.d)) best = { id: s.id, d };
-        }
-    await db.updateCapture(c.id, { lat: pos[1], lon: pos[0], segment_id: best?.id ?? null });
-    c.lat = pos[1];
-    c.lon = pos[0];
+async function placeMoments(moments: Moment[], fixes: TracePoint[], pauses: PauseSpan[], segments: StreetSegment[]) {
+  for (const m of moments) {
+    const at = placeAt(m, fixes, pauses, segments);
+    if (!at) continue;
+    await db.updateMoment(m.id, at);
+    m.lat = at.lat;
+    m.lon = at.lon;
+    m.segment_id = at.segment_id;
   }
 }

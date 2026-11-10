@@ -134,6 +134,8 @@ export const META = {
   kindwalk_pref: { owner: 'kindwalk', codec: oneOf<'warn' | 'skip'>('warn', 'skip') },
   // Chronicle's Memories (lib/resurface): what the user chose to see less of, renamed or removed (RM21)
   resurface_prefs: { owner: 'resurface', codec: json<Prefs>((v) => parsePrefs(v) !== null) },
+  // Moment stacks (lib/momentPill): Group captures into one moment, off until switched on (MS18, decision 0123)
+  group_captures: { owner: 'captures', codec: onOff },
   // Settings
   units: { owner: 'settings', codec: oneOf<Units>('km', 'mi') },
   // Storage awareness (lib/space, SA4, SA10).

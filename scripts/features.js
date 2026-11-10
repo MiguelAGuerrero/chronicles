@@ -29,8 +29,8 @@ const FEATURES = [
     about: 'the db adapters, migrations and media paths',
     rule: 'storage',
     source: ['src/lib/db/**', 'src/lib/media/**', 'src/lib/space/**', 'src/components/SpaceLine.tsx'],
-    journeys: ['space'],
-    specs: ['storage-awareness'],
+    journeys: ['space', 'upgrade'],
+    specs: ['storage-awareness', 'moment-table'],
   },
   {
     name: 'recording',
@@ -89,7 +89,7 @@ const FEATURES = [
     name: 'moments',
     about: 'moments and days: the day screen, moment pins, the moment bar',
     rule: 'moments-and-days',
-    source: ['src/lib/{days,useLocate,momentPins}.ts', 'src/lib/locate/**', 'src/app/day/**', 'src/components/MomentBar.tsx', 'src/lib/explore/momentFind/**'],
+    source: ['src/lib/{days,useLocate,momentPins,moment}.ts', 'src/lib/locate/**', 'src/app/day/**', 'src/components/MomentBar.tsx', 'src/lib/explore/momentFind/**'],
     journeys: ['days'],
     specs: ['moments-and-days'],
   },
@@ -210,7 +210,11 @@ const FEATURES = [
       'src/components/Capture*.tsx',
       'src/components/{Caption,Baker}*.tsx',
       'src/lib/media/**',
-      'src/lib/{useCaptures,thumbPlan,thumbJob,useMediaUri,captureBus}.ts',
+      'src/lib/{useCaptures,thumbPlan,thumbJob,useMediaUri,captureBus,pieceStamp,openMoment,splitPlace}.ts',
+      'src/lib/split/**',
+      // Moment stacks (MS1-MS21): the open moment's store, the pill and the stacked mark.
+      'src/lib/momentPill/**',
+      'src/components/StackMark.tsx',
       'src/lib/here/**',
       'src/lib/audioMode*.ts',
       'src/lib/export/**',
@@ -220,8 +224,8 @@ const FEATURES = [
       'src/lib/{mediaEdit,editSession,editOffer,captionInput}.ts',
       'src/lib/{captureEdits,videoEdit}/**',
     ],
-    journeys: ['edit'],
-    specs: ['memories-on-revisit', 'media-editing'],
+    journeys: ['edit', 'stacks'],
+    specs: ['memories-on-revisit', 'media-editing', 'moment-stacks'],
   },
   {
     name: 'chronicle',
@@ -335,7 +339,7 @@ const RETIRED = {
   // The test trim (Nov 5, the owner's call): the replay rhythm (decision 0085, RR1) replaced the ride's 4 s squeeze; a
   // ride is a stretch like any other, and still draws dashed (R5).
   rides: ['R10'],
-  // DN5 (Nov 4): a swipe back lands back by itself, so there is no trail. DN3, DN4, DN6-DN9 (Nov 10, decision 0123): the
+  // DN5 (Nov 4): a swipe back lands back by itself, so there is no trail. DN3, DN4, DN6-DN9 (Nov 10, decision 0124): the
   // grid and the directional swipe gave way to a row of cards that a swipe steps; the new criteria are the explore-carousel spec's.
   'discrete-navigation': ['DN3', 'DN4', 'DN5', 'DN6', 'DN7', 'DN8', 'DN9'],
 };

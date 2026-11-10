@@ -1,12 +1,13 @@
 // @layer core
+import type { Faced } from '../moment';
 import { partOfDay, weekdayName } from './context';
-import type { Capture, Walk } from '../types';
+import type { Walk } from '../types';
 import type { MomentView } from './types';
 
 const clean = (s: string | null | undefined) => (s && s.trim() ? s.trim() : null);
 
 /** A moment's own words, by kind. A memo has a transcript only once a transcriber gives it one (RM13). */
-export function wordsOf(c: Capture, transcript: (c: Capture) => string | null = () => null): string | null {
+export function wordsOf(c: Faced, transcript: (c: Faced) => string | null = () => null): string | null {
   if (c.kind === 'text') return clean(c.body);
   if (c.kind === 'photo' || c.kind === 'video') return clean(c.caption);
   return clean(transcript(c));
@@ -16,7 +17,7 @@ export function wordsOf(c: Capture, transcript: (c: Capture) => string | null = 
  * Captures as the feed sees them. A moment of a walk still open, or of a walk
  * that is gone, is left out: it joins once the walk is stopped.
  */
-export function toMomentViews(captures: Capture[], walks: Walk[], transcript?: (c: Capture) => string | null): MomentView[] {
+export function toMomentViews(captures: Faced[], walks: Walk[], transcript?: (c: Faced) => string | null): MomentView[] {
   const byId = new Map(walks.map((w) => [w.id, w]));
   const out: MomentView[] = [];
   for (const c of captures) {

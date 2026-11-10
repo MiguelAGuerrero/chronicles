@@ -1,4 +1,5 @@
 /// <reference types="node" />
+import { type Faced, facedOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
@@ -173,7 +174,7 @@ const summary: WalkSummary = {
   walk_id: 'w', build: 'b', distance_m: 1200, duration_ms: 600_000, new_streets: 3, streets_walked: 5,
   photos: 3, videos: 1, voices: 2, notes: 1, streets_read: true,
 };
-const cap = (id: string, kind: Capture['kind'], extra: Partial<Capture> = {}): Capture => ({
+const cap = (id: string, kind: Faced['kind'], extra: Partial<Faced> = {}): Faced => facedOf({
   id, walk_id: 'w', t: 0, lat: null, lon: null, kind, file_path: kind === 'text' ? null : `walks/w/${id}.x`, body: null, segment_id: null, ...extra,
 });
 
@@ -193,7 +194,7 @@ test('audit 3: counts come from the capture rows', () => {
 });
 
 test('D2: only photos, videos and memos are media', () => {
-  assert.deepEqual(['photo', 'video', 'voice', 'text'].map((k) => isMedia({ kind: k as Capture['kind'] })), [true, true, true, false]);
+  assert.deepEqual(['photo', 'video', 'voice', 'text'].map((k) => isMedia({ kind: k as Faced['kind'] })), [true, true, true, false]);
 });
 
 test('D3: a moment\'s files are its media and its thumbnail; markers and inline data are not files', () => {
@@ -255,4 +256,50 @@ test('audit 10: a failure of an earlier delete is kept beside the newer one\'s U
   assert.equal(p.hidden().has('a'), false, 'A came back');
   assert.deepEqual(p.state().pending, { kind: 'moment', what: 'photo' }, 'B still waits, naming its kind');
   assert.equal(p.state().error, "Couldn't delete. Try again.", 'and A\'s failure is still there to show');
+});
+
+test('MT6: a moment\'s files are every piece\'s media and small copy', async () => {
+  type Piece = Pick<Faced, 'file_path' | 'thumb_path'>;
+  const { filesOfMoments } = (await import('../../deletion/core' + '')) as { filesOfMoments: (ms: { pieces: Piece[] }[]) => string[] };
+  const got = filesOfMoments([
+    { pieces: [{ file_path: 'walks/w/a.jpg', thumb_path: 'walks/w/a.thumb.jpg' }, { file_path: 'walks/w/b.m4a', thumb_path: null }] },
+    { pieces: [{ file_path: null, thumb_path: null }] },
+  ]);
+  assert.deepEqual(got, ['walks/w/a.jpg', 'walks/w/a.thumb.jpg', 'walks/w/b.m4a']);
+});
+
+// ---- Moment stacks, MS13 (decision 0123). Test first: the new words and the piece delete are reached by name.
+test('MS13: a stacked moment\'s delete names the moment and everything in it; one piece is named by its kind', async () => {
+  const core = (await import('../../deletion/core' + '')) as unknown as {
+    stackDeleteText(bytes: number): { title: string; body: string; confirm: string };
+    pieceDeleteText(kind: Capture['kind'], bytes: number): { title: string; body: string; confirm: string };
+  };
+  assert.equal(core.stackDeleteText(0).title, 'Delete this moment and everything in it?');
+  assert.equal(toastText('moment'), 'Moment deleted');
+  assert.equal(core.pieceDeleteText('photo', 0).title, 'Delete this photo from the moment?');
+  assert.equal(core.pieceDeleteText('voice', 0).title, 'Delete this voice memo from the moment?');
+  assert.doesNotMatch(core.stackDeleteText(0).body + core.pieceDeleteText('photo', 0).body, /\bpiece/);
+});
+
+test('MS13: deleting a piece keeps the rest and the moment\'s threads, reminder and find; the last piece takes the moment', async () => {
+  const { fakePorts } = await import('../fakes');
+  const { createPieceDelete } = (await import('../../deletion/pieces' + '')) as unknown as {
+    createPieceDelete(p: unknown): { run(m: { id: string; pieces: { id: string; file_path: string | null; thumb_path?: string | null }[] }, pieceId: string, removeMedia: (refs: string[]) => Promise<void>): Promise<void> };
+  };
+  const p = fakePorts();
+  const db = p.db as unknown as { addMoment(m: unknown): Promise<void>; addPiece(id: string, c: unknown): Promise<void>; getMomentsByIds(ids: string[]): Promise<{ id: string; pieces: { id: string }[] }[]>; setRecall(r: unknown): Promise<void>; listRecalls(): Promise<unknown[]> };
+  await db.addMoment({ id: 'm', walk_id: null, t: 1, lat: null, lon: null, segment_id: null, pieces: [{ id: 'm', moment_id: 'm', t: 1, kind: 'photo', file_path: 'm.jpg', body: null }] });
+  await db.addPiece('m', { id: 'p', moment_id: 'm', t: 2, kind: 'photo', file_path: 'p.jpg', body: null, thumb_path: 'p.thumb.jpg' });
+  await db.setRecall({ capture_id: 'm', frequency: 'once', until: null, last_fired_at: null, fired_count: 0, last_walk_id: null });
+  const gone: string[] = [];
+  const del = createPieceDelete(p);
+  let [m] = await db.getMomentsByIds(['m']);
+  await del.run(m as never, 'p', async (refs) => { gone.push(...refs); });
+  [m] = await db.getMomentsByIds(['m']);
+  assert.deepEqual(m.pieces.map((x) => x.id), ['m']);
+  assert.deepEqual(gone, ['p.jpg', 'p.thumb.jpg']);
+  assert.equal((await db.listRecalls()).length, 1, 'the reminder stays with the moment');
+  await del.run(m as never, 'm', async (refs) => { gone.push(...refs); });
+  assert.deepEqual(await db.getMomentsByIds(['m']), [], 'the last piece takes the moment');
+  assert.equal((await db.listRecalls()).length, 0);
 });

@@ -1,7 +1,8 @@
 // @layer shell
+import { type Faced, facedAll } from '../moment';
 import { createStore, type Store } from '../store';
 import type { Ports } from '../ports/types';
-import type { Capture, Walk } from '../types';
+import type { Walk } from '../types';
 import { addChange, canMakeThread, cleanName, replyChange } from './rules';
 import type { ThreadsData } from './types';
 
@@ -48,7 +49,7 @@ export function createThreads(p: Pick<Ports, 'db' | 'clock' | 'newId'>, deps: { 
     await p.db.applyThreads(change);
     return load();
   };
-  const keptIds = async (ids: string[]) => new Set((await p.db.getCapturesByIds([...new Set(ids)])).map((c) => c.id));
+  const keptIds = async (ids: string[]) => new Set((await p.db.getMomentsByIds([...new Set(ids)]).then(facedAll)).map((c) => c.id));
 
   return {
     store,
@@ -66,8 +67,8 @@ export function createThreads(p: Pick<Ports, 'db' | 'clock' | 'newId'>, deps: { 
     },
 
     /** Every kept moment, newest first, with the walks they belong to: what the moment picker lists (OT5). */
-    async moments(): Promise<{ captures: Capture[]; walks: Walk[] }> {
-      const [captures, walks] = await Promise.all([p.db.capturesBetween(0, p.clock.now() + 1), p.db.listWalks()]);
+    async moments(): Promise<{ captures: Faced[]; walks: Walk[] }> {
+      const [captures, walks] = await Promise.all([p.db.momentsBetween(0, p.clock.now() + 1).then(facedAll), p.db.listWalks()]);
       return { captures: captures.sort((a, b) => b.t - a.t), walks };
     },
 

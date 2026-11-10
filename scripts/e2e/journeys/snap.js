@@ -1,4 +1,4 @@
-// Discrete navigation (DN1, DN10, DN12, DN13; amended by the Explore carousel, decision 0123): one finger never pans
+// Discrete navigation (DN1, DN10, DN12, DN13; amended by the Explore carousel, decision 0124): one finger never pans
 // Explore's map, a swipe steps the row of cards, and the other gestures work as before. The row itself is the `carousel`
 // journey. E2E_ONLY=snap runs it alone.
 

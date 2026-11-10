@@ -82,7 +82,7 @@ The horizontal `ScrollView`'s snap and `scrollTo` on iOS and Android, the swipe 
 
 ## The steward's findings (Nov 10), triaged
 
-- **S1 accept:** one new decision record (`docs/decisions/0123-explore-carousel.md`, with the owner's answers below) names 0034, 0066, 0067, 0077 and 0092, says what is kept (presence as dots, familiarity in words, rings read by themselves, the card, one way back) and is added to VISION.md's Precedents by the owner's say. Written when the owner gives the go-ahead.
+- **S1 accept:** one new decision record (`docs/decisions/0124-explore-carousel.md`, with the owner's answers below) names 0034, 0066, 0067, 0077 and 0092, says what is kept (presence as dots, familiarity in words, rings read by themselves, the card, one way back) and is added to VISION.md's Precedents by the owner's say. Written when the owner gives the go-ahead.
 - **S2 accept:** EC15 names the card's contents; EC18 keeps the busiest street; the mini-map picture is dropped from the row's card and stays on the area's card (open call 4).
 - **S3 accept:** EC7 and EC18, and the spec says it amends 0034's names, never its information. The steward asked which colour the Busy layer is: `HOTSPOT` is `#d6268c`, magenta, as the screenshot shows (the "green" in a `WalkMap` comment is stale; fixed in passing with the layer code).
 - **S4 accept:** EC19, and the Touches line no longer says a capture lives on Explore. Reaching Walk to is select, then tap, as 0067's footer stays on the card; open call 2.

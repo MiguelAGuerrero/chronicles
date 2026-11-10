@@ -1,14 +1,15 @@
 // @layer shell
+import { type Faced, facedAll } from '../moment';
 import { boundsOf, distanceM, pausedMs } from '../geo';
 import type { Ports } from '../ports/types';
-import type { Capture, LngLat, Pause } from '../types';
+import type { LngLat, Pause } from '../types';
 import { suggestTitle } from '../walkTitle';
 
 /** "What happened here" looks this far around the tapped spot, unless the map says how far a tap reaches. */
 export const HERE_RADIUS_M = 50;
 
 export interface HereResult {
-  captures: Capture[];
+  captures: Faced[];
   /** Per capture id: "Tuesday evening in Fox Point · 40 min in"; the capture's own line has its date. */
   context: Map<string, string>;
 }
@@ -23,11 +24,11 @@ export function createHere(p: Pick<Ports, 'db'>) {
     async capturesHere(
       at: LngLat,
       /** The open walk's captures as shown: one taken without a fix has no stored place until stop. */
-      live: Capture[] = [],
+      live: Faced[] = [],
       radiusM = HERE_RADIUS_M,
     ): Promise<HereResult> {
-      const isNear = (c: Capture) => c.lat != null && c.lon != null && distanceM(at, [c.lon, c.lat]) <= radiusM;
-      const stored = (await p.db.capturesIn(boundsOf([at], radiusM)!)).filter(isNear);
+      const isNear = (c: Faced) => c.lat != null && c.lon != null && distanceM(at, [c.lon, c.lat]) <= radiusM;
+      const stored = (await p.db.momentsIn(boundsOf([at], radiusM)!).then(facedAll)).filter(isNear);
       const ids = new Set(stored.map((c) => c.id));
       const near = [...stored, ...live.filter((c) => !ids.has(c.id) && isNear(c))].sort((a, b) => a.t - b.t);
       const context = new Map<string, string>();

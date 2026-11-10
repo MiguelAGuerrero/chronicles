@@ -1,3 +1,4 @@
+import { type Faced, facedOf, momentOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { filterPicker, type PickItem } from '../../threads/picker';
@@ -6,9 +7,8 @@ import { clipWords, headingOf } from '../../threads/lines';
 import { removalDissolves } from '../../threads/rules';
 import { createThreads } from '../../threads/shell';
 import { fakePorts } from '../fakes';
-import type { Capture } from '../../types';
 
-const moment = (id: string, t: number): Capture => ({ id, walk_id: null, t, lat: 41.8, lon: -71.4, kind: 'text', file_path: null, body: `note ${id}`, segment_id: null });
+const moment = (id: string, t: number): Faced => facedOf({ id, walk_id: null, t, lat: 41.8, lon: -71.4, kind: 'text', file_path: null, body: `note ${id}`, segment_id: null });
 const item = (i: number, more: Partial<PickItem> = {}): PickItem => ({ id: `m${i}`, t: i, words: `word${i}`, context: `Providence, Oct ${(i % 28) + 1}`, ...more });
 
 test('owner-threads audit 1: a reply names the moment it answers wherever it is kept, not only inside the thread', () => {
@@ -43,7 +43,7 @@ test('owner-threads audit 5: removing the second-to-last moment would dissolve t
 test('owner-threads audit 6: two replies fired together join one thread, not two', async () => {
   const ports = fakePorts();
   const threads = createThreads(ports, { schedule: () => {} });
-  for (const id of ['a', 'r1', 'r2']) await ports.db.addCapture(moment(id, 1));
+  for (const id of ['a', 'r1', 'r2']) await ports.db.addMoment(momentOf(moment(id, 1)));
   await Promise.all([threads.reply('r1', 'a'), threads.reply('r2', 'a')]);
   const got = await ports.db.listThreads();
   assert.equal(got.threads.length, 1);
@@ -54,9 +54,9 @@ test('owner-threads audit 6: two replies fired together join one thread, not two
 test('owner-threads audit 7: a reply to a moment deleted before it was written makes nothing, and says so', async () => {
   const ports = fakePorts();
   const threads = createThreads(ports, { schedule: () => {} });
-  for (const id of ['a', 'r']) await ports.db.addCapture(moment(id, 1));
+  for (const id of ['a', 'r']) await ports.db.addMoment(momentOf(moment(id, 1)));
   const first = threads.reply('r', 'a');
-  await ports.db.deleteCaptures(['a']);
+  await ports.db.deleteMoments(['a']);
   assert.equal(await first, false);
   const got = await ports.db.listThreads();
   assert.deepEqual([got.threads, got.members, got.links], [[], [], []]);
@@ -65,7 +65,7 @@ test('owner-threads audit 7: a reply to a moment deleted before it was written m
 test('owner-threads audit 13: Keep as my thread keeps no name the owner did not give', async () => {
   const ports = fakePorts();
   const threads = createThreads(ports, { schedule: () => {} });
-  for (const id of ['a', 'b']) await ports.db.addCapture(moment(id, 1));
+  for (const id of ['a', 'b']) await ports.db.addMoment(momentOf(moment(id, 1)));
   const id = await threads.startThread(['a', 'b']);
   assert.equal((await ports.db.listThreads()).threads.find((t) => t.id === id)?.name, null);
 });

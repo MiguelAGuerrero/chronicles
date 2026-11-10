@@ -333,8 +333,8 @@ async function run(h) {
     const capRow = (kind) => pg.evaluate((k) => new Promise((resolve) => {
       const req = indexedDB.open('chronicles');
       req.onsuccess = () => {
-        const g = req.result.transaction('capture', 'readonly').objectStore('capture').getAll();
-        g.onsuccess = () => resolve(g.result.filter((c) => c.kind === k).sort((a, b) => b.t - a.t)[0] ?? null);
+        const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll();
+        g.onsuccess = () => resolve(g.result.map((m) => ({ ...m.pieces[0], id: m.id, walk_id: m.walk_id, t: m.t, lat: m.lat, lon: m.lon, segment_id: m.segment_id })).filter((c) => c.kind === k).sort((a, b) => b.t - a.t)[0] ?? null);
       };
     }), kind);
     // A photo's pin shows its small copy, made after the pin was drawn (QL26, QL27); then a note beside it.
@@ -444,7 +444,7 @@ async function run(h) {
             if (shownNote) return;
           }
         }
-        const next = pg.locator('[aria-label="Next capture"]');
+        const next = pg.locator('[aria-label="Next moment"]');
         if (!(await next.count())) return;
         await next.first().click();
         await pg.waitForTimeout(400);

@@ -1,8 +1,9 @@
 /// <reference types="node" />
+import { type Faced, facedOf, momentOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createResurface } from '../../resurface/shell';
-import type { Capture, StreetSegment, Walk } from '../../types';
+import type { StreetSegment, Walk } from '../../types';
 import { fakePorts } from '../fakes';
 import { at, NOW } from './fixtures';
 
@@ -13,14 +14,14 @@ const MIN = 60_000;
 const START = at(2026, 10, 20) - 5 * 3600_000;
 const walk: Walk = { id: 'w1', started_at: START, ended_at: START + 3600_000, title: null, epilogue: null, open: false, area: 'Fox Point', snapped_build: null };
 const seg = (id: string, name: string | null, lon: number, lat: number): StreetSegment => ({ id, name, kind_detail: 'residential', length_m: 100, geometry: [[[lon - 0.001, lat], [lon + 0.001, lat]]], build: 'b' });
-const cap = (id: string, minutesIn: number, o: Partial<Capture> = {}): Capture => ({
+const cap = (id: string, minutesIn: number, o: Partial<Faced> = {}): Faced => facedOf({
   id, walk_id: 'w1', t: START + minutesIn * MIN, lat: 41.8, lon: -71.4, kind: 'text', file_path: null, body: `harbor ${id}`, segment_id: 's1', ...o,
 });
-async function seeded(extra: Capture[] = []) {
+async function seeded(extra: Faced[] = []) {
   const p = fakePorts({ now: NOW });
   await p.db.createWalk(walk);
   await p.db.putSegments([seg('s1', 'Hope Street', -71.4, 41.8)]);
-  for (const c of [cap('m1', 5), cap('m2', 12), cap('m3', 40), ...extra]) await p.db.addCapture(c);
+  for (const c of [cap('m1', 5), cap('m2', 12), cap('m3', 40), ...extra]) await p.db.addMoment(momentOf(c));
   const r = createResurface(p) as Any;
   await r.load();
   return { p, r };
@@ -60,7 +61,7 @@ test('memories-context audit 4: a street 39 m east of a fix at 60 degrees north 
   const dLon = 39 / (111_320 * Math.cos((lat * Math.PI) / 180));
   await p.db.createWalk(walk);
   await p.db.putSegments([{ id: 'ns', name: 'Nordic Street', kind_detail: 'residential', length_m: 200, geometry: [[[-71.4 + dLon, lat - 0.001], [-71.4 + dLon, lat + 0.001]]], build: 'b' }]);
-  await p.db.addCapture(cap('n1', 5, { lat, lon: -71.4, segment_id: null }));
+  await p.db.addMoment(momentOf(cap('n1', 5, { lat, lon: -71.4, segment_id: null })));
   const r = createResurface(p) as Any;
   await r.load();
   await r.contextFor(['n1']);
@@ -81,8 +82,8 @@ test('memories-context audit 5: Forget can be undone, lists and renames both', a
 test('memories-context audit 6: a choice made while a refresh is reading is not overwritten', async () => {
   const { p, r } = await seeded();
   const g = gate();
-  const real = p.db.capturesBetween.bind(p.db);
-  p.db.capturesBetween = async (a: number, b: number) => { const rows = await real(a, b); await g.wait; return rows; };
+  const real = p.db.momentsBetween.bind(p.db);
+  p.db.momentsBetween = async (a: number, b: number) => { const rows = await real(a, b); await g.wait; return rows; };
   const refreshing = r.refresh();
   await new Promise((res) => setTimeout(res, 0));
   await r.setOff(true);
@@ -94,7 +95,7 @@ test('memories-context audit 6: a choice made while a refresh is reading is not 
 test('memories-context audit 7: Show less like this keeps the word as the owner wrote it', async () => {
   const p = fakePorts({ now: NOW });
   await p.db.createWalk(walk);
-  await p.db.addCapture(cap('c1', 5, { body: 'Cookies and bakeries on the corner' }));
+  await p.db.addMoment(momentOf(cap('c1', 5, { body: 'Cookies and bakeries on the corner' })));
   const r = createResurface(p) as Any;
   await r.load();
   const change = await r.less('c1');
@@ -133,7 +134,7 @@ test('memories-context audit 9: a delete in flight never lets a neighbour name t
   const real = p.db.getSegmentsIn.bind(p.db);
   p.db.getSegmentsIn = async (b: [number, number, number, number]) => { await g.wait; return real(b); };
   const reading = r.contextFor(['m2']);
-  await p.db.deleteCaptures(['m1']);
+  await p.db.deleteMoments(['m1']);
   await r.refresh();
   g.open();
   await reading;

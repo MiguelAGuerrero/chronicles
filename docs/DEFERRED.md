@@ -205,13 +205,14 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - The two core violations in `layers.baseline.json`: `format.ts` and `scaleBar.ts` read the global units as a default argument; pass the units in
 - The device's timezone and locale are read in core (`getHours`, `toLocaleDateString` in `days.ts`, `walkTitle.ts`, `months.ts`, `explore.ts`): pass them in (functional-core audit 10)
 - `components/map/types.ts` mixes pure helpers that tests import (`splitTrace`, `planViews`, `pressRadiusM`) with a hook, outside any layer check: move the helpers to a core module in `src/lib` (functional-core audit 13)
+- **The SQLite capture table's dead columns** (moment table, decision 0123): `capture.walk_id`, `lat`, `lon` and `segment_id` stay after migration 22, unread and unwritten; dropping them means rebuilding the table, a second risk for no behaviour. A later migration may drop them.
 - The Db contract found the web and native stores disagreeing; the fake follows the web store and the first two are pinned as "(web store as it is)" in `dbContract.ts`. Each needs the owner's call on which side is right:
-  - `deleteCaptures` deletes finds through the captures' walks on web, by capture id on native: a find filed under another walk survives on web
+  - `deleteMoments` deletes finds through the moments' walks on web, by moment id on native: a find filed under another walk survives on web (both pinned in the contract since MT11)
   - `getSegmentsIn` on web reads tiles around each piece's centre (bounds widened 250 m), so a piece much longer than 200 m that only grazes the bounds is missed; native compares bounding boxes
   - `startPause` / `startStill` at an earlier pause's start time replaces and reopens it on web; native's `INSERT` would fail on the primary key
-  - `deleteCaptures` with ids that don't exist: web clears reminders only for captures found, native for every id passed
+  - `deleteMoments` with ids that don't exist: web clears reminders only for captures found, native for every id passed
   - `addFind` on web swallows every transaction error, not just the duplicate key
-- `deleteWalk` / `deleteCaptures` all-or-nothing (D6) has no contract case: nothing shared can make IndexedDB fail halfway
+- `deleteWalk` / `deleteMoments` all-or-nothing (D6) has no contract case: nothing shared can make IndexedDB fail halfway
 
 ## Replay rhythm (RR1-RR22, decisions 0085, 0086)
 
@@ -365,7 +366,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 - **A loose moment has no place in words** (owner-threads audit 2): only a walk has an area name, so a reply or any moment made outside a walk shows its date in a thread, the picker and Lately, and a thread headed by one is headed by a date. Words for where a moment was need an area lookup for a single fix, a decision of its own.
 - **A reply's "answering" line in the walk, the day and the map** (owner-threads audit 1): it shows in Lately and in a thread; the replay, the day's timeline and the pins do not carry it.
-- **`applyThreads` does not check that a member's moment still exists** (owner-threads audit 7): the shell checks just before the write; a delete in that one round trip leaves a member row for a moment that is gone, which the screens ignore and the next `deleteCaptures` cannot clear. A check inside the transaction is the fix.
+- **`applyThreads` does not check that a member's moment still exists** (owner-threads audit 7): the shell checks just before the write; a delete in that one round trip leaves a member row for a moment that is gone, which the screens ignore and the next `deleteMoments` cannot clear. A check inside the transaction is the fix.
 - **A thread cannot be kept quiet from the resurfaced card** (OT23, the owner's call, Nov 6: it resurfaces like any moment, with no thread name). A per-thread "keep quiet" switch is the cheap way to add one if a thread turns out to be one the owner does not want brought back.
 - **A moment of a walk still open is not offered by the picker or listed in a thread** until the walk stops (`toMomentViews`), as in Lately (RM3).
 - **The moment picker lists the newest sixty matches** and searches only a moment's own words (notes, captions); memos have none until they are transcribed (0098).
@@ -393,7 +394,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 - **The minimized recording bar says "Camera access is off for Chronicles." with no Settings button** (`RecordingBar`): the whole line is one Pressable that returns to the walk, so a nested button needs a layout decision. The walk screen, Explore band, ready screen, moment viewer reply bar and planner offer it.
 
-## Explore carousel (EC1-EC20, decision 0123)
+## Explore carousel (EC1-EC20, decision 0124)
 
 - **Tapping a dot on the map to select its area**: dots stay inert, as before; selecting is by the row, a map swipe, an arrow key or a card.
 - **A wide card for a town** with its own sketch: a town's card in the row is the same card with a "See its neighborhoods" footer.

@@ -86,7 +86,7 @@ Test review: the DN5 unit line that could not fail now places a nearer area; DN6
 
 From Fountain Hill's page no swipe ever reached Bethlehem: within any 45° wedge that held it, a nearer town came first. DN2 is now "where the pan lands, the nearest area on that side, never the selected one", with a flick's coast (`landing`, `coastPx`: maplibre's own inertia constants); DN5's trail is retired. Tests: `snap.test.ts` "DN2: a swipe lands where it would have panned the map, turned with it", "DN2: a flick coasts further ...", "DN2: the nearest area to where the swipe lands wins, past a nearer one beside the way (Fountain Hill to Bethlehem)", "DN2: a short swipe always moves ...", "DN3: ...", "DN4: with no area on the side swiped toward ..."; e2e `snap` computes every expected area with the same projection, and "DN2: a flick coasts past the area a slow swipe would reach". The DN5 unit test and `discrete-navigation audit 9` (the trail after a blur) retire with the trail.
 
-## Amended (Nov 10, decision 0123): a swipe steps the row of cards
+## Amended (Nov 10, decision 0124): a swipe steps the row of cards
 
 Explore is now a full-height map with one row of area cards under it (`specs/explore-carousel/spec.md`, EC1-EC20), and a swipe on the map steps that row: left for the next card, right for the previous, by what is on screen. The areas are no longer chosen by where a pan would have landed.
 

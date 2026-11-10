@@ -17,7 +17,7 @@ Captures outside a walk (moments), locating one fix for them, the days list and 
   "jot it down" in a store, not only on walks). `Capture.walk_id` and
   `Find.walk_id` are nullable: SQLite migration 11 rebuilds both tables
   (SQLite can't drop NOT NULL in place) and adds `capture_t`; IndexedDB v10 adds
-  the capture `t` index. `db.capturesBetween(from, to)` reads by time.
+  the capture `t` index. `db.momentsBetween(from, to)` reads by time. Since decision 0123 a moment holds its media as pieces (`Moment`, `lib/moment.ts`); screens read `Faced` moments, one per moment.
 - **Days are never stored** (`lib/days.ts`, pure): local midnight to midnight,
   a walk in the day it started with all its captures, open walks and captures
   of unknown walks left out. Days use the phone's current time zone (accepted).

@@ -31,8 +31,8 @@ const SEED = ({ now, day }) => {
     const req = indexedDB.open('chronicles');
     req.onerror = () => reject(req.error);
     req.onsuccess = () => {
-      const tx = req.result.transaction(['capture'], 'readwrite');
-      for (const c of caps) tx.objectStore('capture').put(c);
+      const tx = req.result.transaction(['moment'], 'readwrite');
+      for (const c of caps) tx.objectStore('moment').put(((c) => ({ id: c.id, walk_id: c.walk_id ?? null, t: c.t, lat: c.lat ?? null, lon: c.lon ?? null, segment_id: c.segment_id ?? null, piece_ids: [c.id], pieces: [Object.fromEntries(Object.entries({ ...c, moment_id: c.id }).filter(([k]) => !['walk_id', 'lat', 'lon', 'segment_id'].includes(k)))] }))(c));
       tx.oncomplete = () => resolve(true);
       tx.onerror = () => reject(tx.error);
     };
@@ -42,10 +42,11 @@ const SEED = ({ now, day }) => {
 const stored = (pg) => pg.evaluate(() => new Promise((resolve) => {
   const req = indexedDB.open('chronicles');
   req.onsuccess = () => {
-    const names = ['capture', 'walk', 'thread_member'];
+    const names = ['moment', 'walk', 'thread_member'];
     const tx = req.result.transaction(names, 'readonly');
     const all = (n) => new Promise((r) => { const g = tx.objectStore(n).getAll(); g.onsuccess = () => r(g.result); });
-    Promise.all(names.map(all)).then(([captures, walks, members]) => resolve({ captures, walks, members }));
+    // Each moment read back as its one piece with the moment's own fields (decision 0123).
+    Promise.all(names.map(all)).then(([moments, walks, members]) => resolve({ captures: moments.map((m) => ({ ...m.pieces[0], id: m.id, walk_id: m.walk_id, t: m.t, lat: m.lat, lon: m.lon, segment_id: m.segment_id })), walks, members }));
   };
 }));
 
@@ -373,8 +374,8 @@ async function run(h) {
   const placedNote = await pg.waitForFunction(() => new Promise((resolve) => {
     const req = indexedDB.open('chronicles');
     req.onsuccess = () => {
-      const g = req.result.transaction(['capture'], 'readonly').objectStore('capture').getAll();
-      g.onsuccess = () => resolve(g.result.find((x) => x.body === 'Kept on the walk, from Memories.' && x.lat != null) ?? null);
+      const g = req.result.transaction(['moment'], 'readonly').objectStore('moment').getAll();
+      g.onsuccess = () => resolve(g.result.map((m) => ({ ...m.pieces[0], id: m.id, walk_id: m.walk_id, t: m.t, lat: m.lat, lon: m.lon, segment_id: m.segment_id })).find((x) => x.body === 'Kept on the walk, from Memories.' && x.lat != null) ?? null);
     };
   }), null, { timeout: 15000, polling: 500 }).then((v) => v.jsonValue(), () => null);
   check(!!placedNote && placedNote.walk_id === open?.id, `HC10: the stopped walk placed the note as its own capture (${placedNote && [placedNote.lat, placedNote.lon]})`);

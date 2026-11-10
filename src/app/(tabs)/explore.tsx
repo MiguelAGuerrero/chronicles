@@ -55,7 +55,7 @@ const NEW_FAM: Familiarity = { walks: 0, last: null };
 const WORLD = { center: [-40, 30] as [number, number], zoom: 1.2 };
 /** Meta: the long press was used once, so its hint stops showing (atlas round 3). */
 const PRESS_HINT_KEY = 'atlas_press_seen';
-/** The Busy layer's street names show on the map only from this zoom, and only near the selected area (EC7, decision 0123). */
+/** The Busy layer's street names show on the map only from this zoom, and only near the selected area (EC7, decision 0124). */
 const BUSY_NAMES_ZOOM = 13;
 /** How long the long press's hint stays up before it is marked seen (explore-carousel audit 10). */
 const HINT_MS = 5000;
@@ -66,7 +66,7 @@ const TWO_PANES = 1000;
 const fmt = (m: number) => formatDistance(m);
 
 /**
- * Explore as an atlas (AT1-AT16, EC1-EC20, decision 0123): the map fills the screen with the page's
+ * Explore as an atlas (AT1-AT16, EC1-EC20, decision 0124): the map fills the screen with the page's
  * title over it, and the areas are one row of cards at the bottom: the neighborhoods near you, then
  * the other towns. One is always selected, highlighted on the map and the only one named there. The
  * title opens your own town; the selected town's card opens its page, the selected neighborhood's

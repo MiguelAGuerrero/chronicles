@@ -1,3 +1,4 @@
+import { type Faced, facedAll } from '../lib/moment';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { AccessibilityInfo, ActivityIndicator, AppState, BackHandler, Switch, KeyboardAvoidingView, Linking, Platform, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
@@ -55,8 +56,11 @@ import { retryRecorder } from '../lib/recorderRetry';
 import { useUnits } from '../lib/useUnits';
 import { pauseWalk, restartRecording, resumeWalk, stopWalk } from '../lib/session';
 import { formatDistance, formatDuration, formatElapsed } from '../lib/summary';
-import type { Capture, LngLat, Pause, StreetSegment, Walk } from '../lib/types';
+import type { LngLat, Pause, StreetSegment, Walk } from '../lib/types';
 import { useCaptures } from '../lib/useCaptures';
+import { momentPill } from '../lib/momentPill';
+import { useStore } from '../lib/useStore';
+import { AddToMomentPill } from '../components/walk/AddToMomentPill';
 import { walkScreenShown } from '../lib/walkNav';
 import { askMotion, useMotionAccess } from '../lib/walkMotion';
 import { shareLogText, walkLogText } from '../lib/shareLog';
@@ -157,6 +161,8 @@ export default function WalkRoute() {
   // In front: another ask to show the walk does nothing (tabs audit 1). Only while in front, not
   // while mounted: a walk screen left mounted behind the tabs once left the bar's › dead (Nov 2).
   useFocusEffect(useCallback(() => walkScreenShown(), []));
+  // Leaving the walk screen (a tab, minimize) closes the Add to this moment pill (MS4).
+  useFocusEffect(useCallback(() => () => momentPill.leave(), []));
   const info = useOpenWalkInfo();
   const close = useCallback(() => {
     feedback('tap');
@@ -274,7 +280,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const mapRef = useRef<WalkMapHandle>(null);
   // The map's turn, for the compass (CP2): the map opens north-up and keeps no bearing (CP8).
   const [bearing, setBearing] = useState(0);
-  const [viewing, setViewing] = useState<Capture[] | null>(null);
+  const [viewing, setViewing] = useState<Faced[] | null>(null);
   // The walk's options card (A2).
   const [options, setOptions] = useState(false);
   // The GPS log, read when the card opens, so a tap can share it at once (a browser
@@ -349,7 +355,44 @@ function WalkScreen(props: { onMinimize: () => void }) {
     return bordersFor(drawnBorders, { firm: hereTown ? [hereTown] : [], near });
   }, [drawnBorders, hereTown, nearKey]);
   const motionAccess = useMotionAccess();
-  const cap = useCaptures(walk?.id ?? null, live.here, live.lastFixAt, onCaptureError);
+  const cap = useCaptures(walk?.id ?? null, live.here, live.lastFixAt, onCaptureError, {
+    // The pill (moment stacks MS2, MS5): a new moment opens it; a piece keeps it.
+    onKept: (id, piece) => (piece ? momentPill.piece(id) : momentPill.kept(id, true)),
+  });
+  // A walk started or stopped closes the pill (MS4); on a walk, the trace walked counts toward its 100 m.
+  const pillWalkId = walk?.id ?? null;
+  useEffect(() => {
+    momentPill.walk();
+  }, [pillWalkId]);
+  const lastHere = useRef<LngLat | null>(null);
+  useEffect(() => {
+    const h = live.here;
+    if (h && lastHere.current && pillWalkId) momentPill.walked(distanceM(lastHere.current, h));
+    lastHere.current = h;
+  }, [live.here, pillWalkId]);
+  // The open moment a note being written joins, fixed when it was begun (MS4); null for a new moment.
+  const [noteInto, setNoteInto] = useState<string | null>(null);
+  // The viewer's Add to this moment (MS12), run here where the camera, the mic and the note are; on a walk only
+  // (the ready screen's capture row runs its own).
+  const asked = useStore(momentPill.store, (st) => st.ask?.seq ?? 0);
+  const onAsk = useRef<(kind: 'photo' | 'voice' | 'text') => void>(() => {});
+  useEffect(() => {
+    onAsk.current = (kind) => {
+      const into = momentPill.target();
+      if (kind === 'photo') void photo(into);
+      else if (kind === 'voice') void startVoice(into);
+      else {
+        setNoteInto(into);
+        setNoteOpen(true);
+      }
+    };
+  });
+  useEffect(() => {
+    const ask = momentPill.store.get().ask;
+    if (!asked || !ask || !pillWalkId) return;
+    momentPill.asked();
+    onAsk.current(ask.kind);
+  }, [asked, pillWalkId]);
   // A walk shown: the room left, said beside the captures (SA3, SA4); nothing is asked mid-walk (SA10).
   const shownWalkId = walk?.id ?? null;
   useEffect(() => {
@@ -693,17 +736,17 @@ function WalkScreen(props: { onMinimize: () => void }) {
   // keeper, minimized or not (NV8); on a phone the location task checks every
   // batch. Fires reach this card while the screen is in front. A second fire
   // joins the open card (R7).
-  const [reminder, setReminder] = useState<{ captures: Capture[]; at: LngLat | null; shownAt: number } | null>(null);
+  const [reminder, setReminder] = useState<{ captures: Faced[]; at: LngLat | null; shownAt: number } | null>(null);
   // Memories on revisit: earlier walks' captures within 100 m, as faint pins, on every walk (the
   // owner's call), never a buzz or a notification (MR1, MR6). The area is read once per 50 m (MR8).
-  const [memoryStore, setMemoryPool] = useState<Capture[]>([]);
+  const [memoryStore, setMemoryPool] = useState<Faced[]>([]);
   // A memory deleted from its viewer leaves its pin (D3).
   const memoryPool = useVisible(memoryStore);
   // The memory card drops what was deleted from its viewer (deletion audit 7).
   const memoryShown = useVisible(memory?.result.captures);
   // One reader per walk: a slow read lands even as fixes come in, a failed one is tried again, and
   // it sends only a changed set (audit 1, 10).
-  const [memoryReads] = useState(() => memoryReader((at) => db.capturesIn(boundsOf([at], MEMORY_RULES.readBoxM)!), setMemoryPool));
+  const [memoryReads] = useState(() => memoryReader((at) => db.momentsIn(boundsOf([at], MEMORY_RULES.readBoxM)!).then(facedAll), setMemoryPool));
   useEffect(() => () => memoryReads.stop(), [memoryReads]);
   useEffect(() => {
     if (live.here) memoryReads.poll(live.here);
@@ -718,7 +761,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   }, [memoryIds, memoryPool]);
   const [memoryView, setMemoryView] = useState<HereResult | null>(null);
   const memoryTaps = useRef(0);
-  const openMemory = async (group: Capture[], at: LngLat) => {
+  const openMemory = async (group: Faced[], at: LngLat) => {
     const tap = ++memoryTaps.current;
     // The tapped pin's own captures first, then every other memory from that spot, reaching the
     // group's farthest member (MR5, audit 3); this walk's own captures aren't memories.
@@ -969,10 +1012,11 @@ function WalkScreen(props: { onMinimize: () => void }) {
   }
 
   async function saveNote() {
-    const ok = await cap.saveNote(note);
+    const ok = await cap.saveNote(note, noteInto);
     if (ok) {
       setNote('');
       setNoteOpen(false);
+      setNoteInto(null);
       feedback('tap');
       setToast('Note saved here');
     }
@@ -980,17 +1024,18 @@ function WalkScreen(props: { onMinimize: () => void }) {
 
   // After a photo or video, Edit is offered for a few seconds (ME23); it is opt-in.
   const editOffer = useEditOffer();
-  const [editingKept, setEditingKept] = useState<Capture | null>(null);
+  const [editingKept, setEditingKept] = useState<Faced | null>(null);
 
-  async function photo() {
-    const kept = await cap.takePhoto();
+  /** With `into`, the photo joins that open moment (MS2); Edit is offered for a new moment's photo only. */
+  async function photo(into: string | null = null) {
+    const kept = await cap.takePhoto(into);
     if (!kept) return;
     feedback('tap');
-    editOffer.show(kept);
+    if (kept.id === kept.momentId) editOffer.show(kept);
   }
 
-  async function startVoice() {
-    if (await cap.startVoice()) {
+  async function startVoice(into: string | null = null) {
+    if (await cap.startVoice(into)) {
       feedback('tap');
       giveUpMemo.current = false;
       AccessibilityInfo.announceForAccessibility('Recording voice memo');
@@ -1359,6 +1404,17 @@ function WalkScreen(props: { onMinimize: () => void }) {
       {/* The pills (caption, undo, retry): left of the stack, above the strip, so the stack never
           moves (NR10). */}
       <View style={[styles.pills, at.pills]} pointerEvents="box-none">
+        {walk && (
+          <AddToMomentPill
+            hidden={recordingVoice || noteOpen || !!spot || !!openMark || !!options || !!memory}
+            onPhoto={() => void photo(momentPill.target())}
+            onVoice={() => void startVoice(momentPill.target())}
+            onNote={() => {
+              setNoteInto(momentPill.target());
+              setNoteOpen(true);
+            }}
+          />
+        )}
         {aheadLine && navigation.nav && !recordingVoice && (
           // Quiet (WK15): no sound, no haptic, nothing to press, and it never touches the route (WK16).
           <View testID="walk-ahead" pointerEvents="none" style={styles.ahead} accessibilityLiveRegion="polite">
@@ -1415,11 +1471,15 @@ function WalkScreen(props: { onMinimize: () => void }) {
         busy={cap.busy}
         disabled={stopping}
         hidden={isDrawing}
-        onPhoto={photo}
-        onVoice={startVoice}
+        // With Group captures on, the edge adds to the open moment (MS19); off, a new moment (MS1).
+        onPhoto={() => void photo(momentPill.edgeTarget())}
+        onVoice={() => void startVoice(momentPill.edgeTarget())}
         onSave={saveVoice}
         onDiscard={discardVoice}
-        onNote={() => setNoteOpen(true)}
+        onNote={() => {
+          setNoteInto(momentPill.edgeTarget());
+          setNoteOpen(true);
+        }}
       />
 
       {/* The walk's strip is the ready bar's twin (NR7): pull it up for the walk's options, which are
@@ -1675,8 +1735,8 @@ function WalkScreen(props: { onMinimize: () => void }) {
         autoPlay={autoPlay}
         remind
         walkId={walk?.id ?? null}
-        onSaveEdit={(c, patch) => cap.setEdit(c.id, patch)}
-        onSaveNote={(c, body) => cap.setNote(c.id, body)}
+        onSaveEdit={(c, patch) => cap.setEdit(c, patch)}
+        onSaveNote={(c, body) => cap.setNote(c, body)}
         onGoHere={navigation.finding ? undefined : (c) => {
           setViewing(null);
           if (c.lat != null && c.lon != null) goTo({ at: [c.lon, c.lat], label: KIND_LABEL[c.kind], kind: 'capture' });
@@ -1686,7 +1746,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         }}
       />
       {editingKept && (
-        <MediaEditor key={editingKept.id} capture={editingKept} initialTool="crop" onClose={() => setEditingKept(null)} onSave={(patch) => cap.setEdit(editingKept.id, patch)} />
+        <MediaEditor key={editingKept.id} capture={editingKept} initialTool="crop" onClose={() => setEditingKept(null)} onSave={(patch) => cap.setEdit(editingKept, patch)} />
       )}
       {memory && memoryShown.length > 0 && !spot && !recordingVoice && (
         <View style={[styles.spotRow, cardAt]} pointerEvents="box-none">
@@ -1793,7 +1853,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
         captures={here?.captures ?? null}
         context={here?.context}
         onClose={() => setHere(null)}
-        onSaveNote={(c, body) => cap.setNote(c.id, body)}
+        onSaveNote={(c, body) => cap.setNote(c, body)}
       />
 
       {/* At the top, clear of the voice memo's own Undo and the caption pill above the capture row (UI review). */}

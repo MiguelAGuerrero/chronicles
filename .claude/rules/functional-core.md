@@ -37,7 +37,7 @@ Make a flow an explicit `step(state, event, now) => { state, effects }` (a discr
 
 - **Core:** unit tests, no fakes.
 - **Shell:** `fakePorts()` (`__tests__/fakes`); `recorder.emit(fix)` writes the fix to the fake db, then tells subscribers, as the real recorders do. Assert the end state (what the fake db holds, what the store holds). Assert the call log (`log.effects()`) only where order is the requirement, or for the notifier and recorder, whose effects leave the app. `failNext` a call to test a failure path; a failure only the fake can produce is labelled so in the test name.
-- **The fake db** is held to the real web store by one contract suite (`dbContract.ts`, run over both). A new or changed `Db` method gets a contract case first; `FC7 every Db method has a contract case` fails otherwise. SQLite can't run in Node.
+- **The fake db** is held to the real stores by one contract suite (`dbContract.ts`, run over the fake, IndexedDB and, since MT11, SQLite over `node:sqlite`). A new or changed `Db` method gets a contract case first; `FC7 every Db method has a contract case` fails otherwise.
 - **Views:** the e2e checks what is seen.
 
 ## The checks, and how to shrink a baseline

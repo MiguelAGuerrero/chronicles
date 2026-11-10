@@ -63,6 +63,7 @@ Replay ceremonies (decisions 0085, 0086)
   ceremony/Bubbles.tsx       notes and memos stacking in the bottom-left corner; a memo plays while its bubble says, pauses when held
   ceremony/Cards.tsx         a photo or video card that grows from the pin and tucks into the pile; the video plays in it
   ceremony/Pile.tsx          the photos and videos so far, the last three, no count; opens them in the viewer
+  ceremony/Grid.tsx          a stacked moment's grid in its card (MS17): square cells, swiping in, muted videos, the scroll past nine
   ceremony/Whispers.tsx      a passed place said beside it (projected from the map's centre and zoom)
   ceremony/RollingClock.tsx  the time of day, its digits on reels
   ceremony/StepThrough.tsx   the screen reader's way: the story's moments one at a time with Continue
@@ -99,7 +100,8 @@ Home / tabs
   MomentBar.tsx              MomentBar (loose moments from Navigate and Memories, or the open walk's from Memories' band) and CaptureRow (the controls, as a stack or a band)
   LocateButton.tsx           Locate me, an edge button
   StartSettings.tsx          the walk settings, shown in the ready bar pulled up (NR7)
-  walk/                      the walk screen's shared geometry (layout.ts), CaptureStack (a stack, or Memories' band), ReadyBar, useReady (the walk screen's ready state)
+  walk/                      the walk screen's shared geometry (layout.ts), CaptureStack (a stack, or Memories' band), AddToMomentPill (moment stacks), ReadyBar, useReady (the walk screen's ready state)
+  StackMark.tsx              the two-card mark of a moment holding more than one piece (MS8)
   GapCard.tsx                a filled or offered stretch: Keep, Not this way
   LandingMarks.tsx           a strip's name beside it on the map
   ExploreSettings.tsx        the shared pieces of the drawers' settings: `KindSwitches`, `RangeSlider`, `walkNote`
@@ -162,6 +164,7 @@ Streets, snapping, fog
   ceremony/types.ts          Story (paths, moves, moments, breaks, travel, passes), Frame, Overlay kinds, Ceremony (decision 0086)
   ceremony/story.ts          walkStory, dayStory, storySteps; metresAt, timeAtMetres, pathDrawnAt: what happened, no timing or look
   ceremony/rhythm.ts         the rhythm ceremony (RR1-RR19): rhythmPlan (legs, stops, cuts, the soft cap), rhythmFrame, laterLine, notePause
+  ceremony/grid.ts           a stacked moment's grid (MS17): gridLayout (closest square up to 3×3), gridDuration
   ceremony/registry.ts       CEREMONIES, DEFAULT_CEREMONY, ceremonyFor: a new ceremony is an entry here
   backlog.ts                 placeBacklog: places old walks in one pass through the home map
   mapReads.ts                one camera read at a time (mapReadLock)
@@ -262,6 +265,8 @@ Walkability (WK1-WK23, UF1-UF20)
   walk/reader.ts             createWalkReader: the device's cache, one request at a time, deadlines (`walk_tile`)
   walk/switch.ts             the layer's switch (meta `walk_layer`)
   walk/useWalkability.ts, walk/useRouteWarning.ts  the hooks the maps and the walk screen call
+Kind walk (decisions 0101, 0102)
+  kindWalk/                  the kind walk: suggest.ts and plan.ts pick routes for a kind, density.ts, words.ts (core); prefs.ts, settings.ts (shells); app.ts the instance; useKindWalk.ts the view
 Landing (v1.5)
   landing/analyze.ts         busy streets, pockets, the landing point, from the grades
   landing/grade.ts           density along each named street, and its grades against the read
@@ -292,10 +297,17 @@ Captures and media
   useReminded.ts             the captures with a live reminder, per map; re-read on recallCheck's onRecallsChanged and at nextExpiry
   momentPins.ts              moments outside walks as pins (Navigate, Chronicle) and Chronicle's fit around them
   captureBand.ts             Memories' capture band (0112): its layout, where a moment goes (loose or the open walk), its labels and toasts, and whether the recording bar shows its camera
+  moment.ts                  a moment and its pieces (decision 0123): face, faced rows, foldRows (SQLite's joined reads), placeAt (a moment on the trace at stop)
+  openMoment.ts              the Add to this moment pill's life as a reducer (MS4, MS5): two minutes, 100 m from the first capture, dismiss, leave, start/stop
+  momentPill/                its store on the app's clock (shell.ts, index.ts); the viewer's ask, run by the walk screen (MS12)
+  pieceStamp.ts              a capture's stamp: a piece for an open moment takes no fix (MS3)
+  splitPlace.ts              where a piece split out goes: the trace at its time, a pause's start, the last fix before a gap (MS16)
+  split/                     Split out through the Undo window (shell.ts, index.ts): shown at once, stored after (MS16)
   export/bundle/             writeWalkBundle (shell.ts over db and clock) (deferred; nothing in the UI reaches it); export/ per-platform keepers
 Deletion
   deletion/core.ts           what each delete takes; pending.ts: the Undo window on a given clock
   deletion/index.ts          the one Undo window wired to timers and storage; useDeletions.ts: useHidden / useVisible
+  deletion/pieces.ts         one piece of a moment deleted after its Undo window; the last piece takes the moment (MS13); piecesApp.ts its instance
 Notifications
   notify/core.ts             Notice, NoticeTransport, routeResponse: the contract
   notify/index.ts            notifier, the kind switches (meta `notify_off`, from notify/prefs.ts); builds from `db`, since `ports` imports it
@@ -323,7 +335,7 @@ Session, screens and small helpers
   perfCount.ts               opt-in counters when window.__perf is set
   id.ts                      newId
   types.ts                   the data model (below)
-  db/                        the Db contract (types.ts), SQLite (index.native.ts), IndexedDB (index.web.ts), row mappers (placeRow, exploreRow), DERIVED_STORES / KEPT_STORES (stores.ts)
+  db/                        the Db contract (types.ts), SQLite (sqliteStore.ts, the factory; index.native.ts, the app's instance; migrations.ts), IndexedDB (index.web.ts), row mappers (placeRow, exploreRow), DERIVED_STORES / KEPT_STORES (stores.ts)
 Layers (functional core, imperative shell)
   ports/                     Ports (types.ts: db, recorder, notifier, clock, newId) and the real instance (index.ts), the composition root a view hands a shell
   store.ts, useStore.ts      a shell's state (createStore) and a view's slice of it (useSyncExternalStore)
@@ -388,8 +400,9 @@ Layers (functional core, imperative shell)
   Overture release whose places no longer decode is passed over
   (`overturePlacesSchemaOk`).
 - **Storage.** SQLite: all writes go through the single queue in
-  `db/index.native.ts` with `withExclusiveTransactionAsync`; schema changes go
-  in `MIGRATIONS`, tracked with `PRAGMA user_version`. IndexedDB: bump
+  `db/sqliteStore.ts` (the factory; `db/index.native.ts` builds the app's
+  instance) with `withExclusiveTransactionAsync`; schema changes go in
+  `MIGRATIONS` (`db/migrations.ts`), tracked with `PRAGMA user_version`. IndexedDB: bump
   `VERSION` and add an `oldVersion < N` step in `migrate()`. Never edit an
   existing migration. `DERIVED_STORES` (`street_segment`, `place`,
   `explore_read`) are cleared by `purgeDerived`; `KEPT_STORES` (`offered`,
@@ -479,11 +492,21 @@ Truth (`lib/types.ts`):
 
 - `Walk`: id, started_at, ended_at, title, epilogue, open, area, snapped_build.
 - `TracePoint`: walk_id, t, lat, lon, accuracy_m, speed, course. Raw, unfiltered.
-- `Capture`: id, walk_id (null for a loose moment), t, lat/lon (null until
-  placed), kind (photo | video | voice | text), file_path, body, segment_id,
-  caption, caption_y, thumb_path, edit (a photo's or video's edits as data:
-  rotate, crop, filter, lines, trim; SQLite migration 17 stores it as JSON,
-  IndexedDB keeps the object; `parseEdit` reads both, decision 0090).
+- `Moment` (decision 0123): id, walk_id (null for a loose moment), t, lat/lon
+  (null until placed: its one fix, or the trace at stop, `placeAt`), segment_id,
+  and `pieces`, its media in capture order, never empty. Every moment kept
+  before the moment table has one piece under the moment's own id, so threads,
+  replies, reminders and finds point at the same ids as before.
+- `Capture`, a moment's piece: id, moment_id, t (its own capture time), kind
+  (photo | video | voice | text), file_path, body, caption, caption_y,
+  thumb_path, edit (a photo's or video's edits as data: rotate, crop, filter,
+  lines, trim; SQLite migration 17 stores it as JSON, IndexedDB keeps the
+  object; `parseEdit` reads both, decision 0090). Media files and small copies
+  are named by the piece's id.
+- Screens read `Faced` moments (`lib/moment.ts`): the moment's own fields with
+  its face's media (`face`: the first photo or video, else the first piece),
+  the face's id as `piece_id` for media writes (`db.updatePiece`), and every
+  piece. A place write is the moment's (`db.updateMoment`).
 - `Pause`, `Still`: walk_id, started_at, ended_at.
 - `GapDecision` (`gap_fill`, kept): a stretch kept or dismissed, with its line, so a map update never moves it.
 
@@ -491,7 +514,7 @@ Owner threads (`threads/types.ts`, truth, never derived, decision 0104): `Thread
 (`thread`: id, name nullable, created_at), `Member` (`thread_member`: thread_id,
 moment_id, added_at) and `Link` (`moment_link`: from_id answers to_id). A moment
 carries nothing of them. `applyThreads` dissolves a thread left with fewer than two
-members in the same transaction; `deleteCaptures` and `deleteWalk` take the
+members in the same transaction; `deleteMoments` and `deleteWalk` take the
 memberships and links of their moments. SQLite migration 22, IndexedDB 17.
 
 Cache (`lib/types.ts`, `areas/types.ts`): `StreetSegment` (id, name,
@@ -516,8 +539,12 @@ Meta is a key/value table (`getMeta` / `setMeta`): `tile_build`, `tile_url`,
 `explore_hidden`, `explore_range`, `explore_haptic`, `notify_off`,
 `recall_open`, `day_watched:<key>`.
 
-Migrations: SQLite has 14 (`PRAGMA user_version`), IndexedDB is at `VERSION`
-12. SQLite 14 and IndexedDB 12 add `gap_fill`. The most recent: SQLite 10 `ride_m` on summaries; 11 nullable
+Migrations: SQLite has 23 (`db/migrations.ts`, `PRAGMA user_version`), IndexedDB is at `VERSION`
+18. SQLite 22 (the 23rd entry) and IndexedDB 18 are the moment table (MT1): a
+`moment` table beside `capture` with `capture.moment_id` (SQLite; the capture
+table's old walk_id, lat, lon and segment_id are left unread), and on the web a
+`moment` store whose records hold their pieces (indexes `walk_id`, `t`, `lat`,
+multiEntry `piece_ids`), the `capture` store folded into it and removed. Older: SQLite 14 and IndexedDB 12 add `gap_fill`. The most recent: SQLite 10 `ride_m` on summaries; 11 nullable
 `Capture.walk_id` and `Find.walk_id` (tables rebuilt) plus `capture_t`; 12
 `thumb_path`; 13 the `still` table. IndexedDB 9 the capture `lat` index; 10
 the capture `t` index; 11 stills. `thumb_path` needed no IndexedDB bump: it

@@ -1,4 +1,5 @@
 /// <reference types="node" />
+import { type Faced, facedOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { assignAreas } from '../../areas/assign';
@@ -13,7 +14,7 @@ import { passedAlong, pocketAlert, type ChecklistItem } from '../../explore/expl
 import { REPLAY_RHYTHM } from '../../motionTokens';
 import { keptFixes, readTrace, rideRuns, ridingAt, smoothKept, timedRideRuns, traceDistances } from '../../rides';
 import { snap } from '../../snapper';
-import type { Capture, LngLat, StreetSegment, TracePoint } from '../../types';
+import type { LngLat, StreetSegment, TracePoint } from '../../types';
 
 // Rides (the concept doc's "Rides" tab, R1-R14), written before the code.
 // A walk can include a trolley, bus or train: drawn dashed, counted for
@@ -337,7 +338,7 @@ test('rides: a capture on a ride is placed on the ride line (R9)', () => {
 // The rhythm's longest stretch (RR1): a ride is a stretch like any other since decision 0085, so this is its cap too.
 const STRETCH_MAX_MS = REPLAY_RHYTHM.glide + REPLAY_RHYTHM.zip;
 
-const capture = (t: number): Capture => ({ id: `c${t}`, walk_id: 'w', t, lat: null, lon: null, kind: 'text', file_path: null, body: 'x', segment_id: null });
+const capture = (t: number): Faced => facedOf({ id: `c${t}`, walk_id: 'w', t, lat: null, lon: null, kind: 'text', file_path: null, body: 'x', segment_id: null });
 
 test('rides: the replay gives a long ride no more than a glide and a zip, and stops at a capture on it (RR1)', () => {
   const pts = trip([{ v: WALK, s: 300 }, { v: BUS, s: 1200 }, { v: WALK, s: 300 }], { reported: true });
@@ -457,7 +458,7 @@ test('rides audit 7: a walk is titled by where you walked, not where you rode th
 });
 
 /** The rhythm's plan for a trace read with its rides, and its captures. */
-function rhythmOf(fixes: TracePoint[], captures: Capture[] = [], tr?: ReturnType<typeof readTrace>): RhythmPlan {
+function rhythmOf(fixes: TracePoint[], captures: Faced[] = [], tr?: ReturnType<typeof readTrace>): RhythmPlan {
   return rhythmPlan(walkStory({
     walk: { id: 'w', started_at: fixes[0].t, ended_at: fixes.at(-1)!.t, title: null, epilogue: null, open: false, area: null, snapped_build: null },
     fixes, walkedFixes: fixes, breaks: [], pauses: [], runs: timedRuns(fixes).map((r) => r.map((x) => x.p)),

@@ -21,7 +21,7 @@ async function run(h) {
   const tileOf = (pg, name) => pg.locator(`[data-testid=atlas-tile][data-name="${name}"]`);
   const openCard = async (pg, name) => {
     await pg.waitForSelector(`[data-testid=atlas-tile][data-name="${name}"]`, { timeout: 60000 });
-    // The row (decision 0123): a tap on a card that is not selected only selects it; a tap on the selected card opens a
+    // The row (decision 0124): a tap on a card that is not selected only selects it; a tap on the selected card opens a
     // neighborhood's card, or a town's page (AT2), whose own card then opens the area's card.
     const cardUp = () => pg.waitForSelector('[data-testid=atlas-card]', { timeout: 3000 }).catch(() => null);
     await tileOf(pg, name).first().click();

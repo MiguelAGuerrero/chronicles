@@ -44,7 +44,8 @@ async function checks(h) {
       await page.waitForSelector('[data-testid=home-sheet]');
 
       const first = (await all('walk')).sort((a, b) => a.started_at - b.started_at)[0];
-      const capsOf = async () => (await all('capture')).filter((c) => c.walk_id === first.id);
+      // A moment record read back as its one piece with the moment's own fields (decision 0123).
+      const capsOf = async () => (await all('moment')).map((m) => ({ ...m.pieces[0], id: m.id, walk_id: m.walk_id, t: m.t, lat: m.lat, lon: m.lon })).filter((c) => c.walk_id === first.id);
       const sumOf = async () => (await all('walk_summary')).find((x) => x.walk_id === first.id);
       const findsBefore = (await all('find')).filter((f) => f.walk_id === first.id).length;
       await page.click('[data-testid=sheet-walks]');
@@ -63,7 +64,7 @@ async function checks(h) {
         const pins = page.locator('[aria-label$=". Open"]');
         await pins.nth((await pins.count()) - 1).click();
         for (let k = 0; k < 6 && !(await page.getByText('The bakery smelled of cardamom.').count()); k++) {
-          await page.click('[aria-label="Next capture"]');
+          await page.click('[aria-label="Next moment"]');
           await page.waitForTimeout(300);
         }
         await page.waitForSelector('text=The bakery smelled of cardamom. >> visible=true');

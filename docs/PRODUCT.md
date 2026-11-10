@@ -151,6 +151,20 @@ recording, and a recording bar brings a minimized walk back.
   same place before and during a walk. Before Start they keep a moment with no
   walk open ("jot it down"), stored at once and placed when its one fix arrives;
   nothing tracks between moments.
+- **A moment can hold several media** (moment stacks, decision 0123). After a capture, an "Add to this
+  moment" pill left of the stack offers the camera, the mic and a note, one tap each: what it keeps joins
+  the moment just made, with its own time, at the moment's one place (no new fix). It goes after two minutes
+  with no capture, after 100 m walked from the moment's first capture, on Not now, on leaving the screen,
+  opening another moment, or starting or stopping a walk. The stack's own buttons always make a new moment.
+  A stacked moment shows once everywhere, by its first photo or video, with a small two-card mark; its
+  viewer steps through what it holds (Previous and Next in this moment, the arrow keys, a swipe), never
+  saying how many; More offers Delete this photo (one) or Delete this moment (all). Separate moments are
+  grouped by a thread, never merged. More also offers Split this photo out (never the moment's first): it shows at
+  once as its own moment, placed on the walk's trace at its own time (off a walk, at the moment's place), and is
+  kept once its Undo has passed. Walk settings offer **Group captures into one moment**, off by default: with it on,
+  the stack's own buttons add to the open moment, and "Adding to this moment · New moment" shows where the pill was.
+  In the replay a stacked moment is one beat: its photos and videos come up together as a grid (up to 3×3, scrolling
+  past nine, videos muted), its memos and notes as bubbles beside it.
 - A Locate button sits above the stack (also on Explore): it reads one fresh
   fix, shows the dot there and frames 250 m around you. Nothing tracks after.
 
@@ -386,11 +400,12 @@ recording, and a recording bar brings a minimized walk back.
 | v1.5: landing (busy areas on the Explore tab, strip chip, dead-zone nudge) | Shipped |
 | Explore atlas (the tab as a grid of area tiles, presence bars, familiarity) | Shipped, audited (web verified by the e2e; native unverified) |
 | Discrete navigation (Explore's map never pans by one finger, DN1, DN10-DN13; the directional step retired by the carousel) | Shipped, audited, an experiment (web verified by the e2e; native unverified) |
-| Explore carousel (a full-height map and one row of area cards; the selected area highlighted and the only one named; a map swipe steps the row; EC1-EC20, decision 0123) | Built, web verified by the e2e (`carousel`, `snap`); native unverified; not audited |
+| Explore carousel (a full-height map and one row of area cards; the selected area highlighted and the only one named; a map swipe steps the row; EC1-EC20, decision 0124) | Built, web verified by the e2e (`carousel`, `snap`); native unverified; not audited |
 | Town presence (a town graded across its whole outline, with its busy areas listed) | Built (web verified by the e2e; native unverified) |
 | Resurfaced moments (Chronicle opens on Memories: a moment brought back, threads from the user's words, Lately) | Built (web verified by the e2e `resurface`; native unverified) |
 | Owner threads (respond to a moment; connect moments across walks; Threads on Memories) | Built (web verified by the e2e `threads`; native unverified) |
 | Capture from Chronicle (the app opens on Memories; the band keeps a moment in one tap; HC1-HC15) | Built (web verified by the e2e `capturehome`, `launch`; native unverified) |
+| Moment stacks (a moment holds its media; Add to this moment; one card and pin per moment; the viewer's pieces; deleting one; Split out; the replay's grid; Group captures) | Built, rounds 0-2 (web verified by the e2e `upgrade` and `stacks`; native unverified) |
 | Moments and days, memories on revisit, thumbnails | Shipped, audited |
 | Rides, clearing walks and moments, motion polish | Shipped, audited |
 | Navigation and tabs (three-tab layout, recording bar) | Shipped, two audit batches done |

@@ -1,3 +1,4 @@
+import { type Faced, facedAll, momentOf } from '../../moment';
 import 'fake-indexeddb/auto';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
@@ -9,7 +10,6 @@ import type { db as nativeDb } from '../../db/index.native';
 import type { db as webDb } from '../../db/index.web';
 import type { Db } from '../../db/types';
 import type { makeThumb } from '../../media/thumb';
-import type { Capture } from '../../types';
 
 /** The files these tests read by source (type-only, so nothing native loads): a change to one selects them. */
 export type ReadBySource = [typeof nativeDb, typeof webDb, typeof makeThumb];
@@ -24,7 +24,8 @@ const read = (rel: string) => readFileSync(join(LIB, rel), 'utf8');
 
 /** The SQL of each entry of `MIGRATIONS` in the native store, in order (entry N is migration N). */
 function nativeMigrations(): string[] {
-  const file = join(LIB, 'db', 'index.native.ts');
+  // The native store's migrations moved to their own module with the moment table (decision 0123).
+  const file = join(LIB, 'db', 'migrations.ts');
   const src = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true);
   let out: string[] = [];
   const visit = (node: ts.Node) => {
@@ -37,8 +38,8 @@ function nativeMigrations(): string[] {
   return out;
 }
 
-const photo = (o: Partial<Capture> = {}): Capture =>
-  ({ id: 'p1', walk_id: 'w1', t: 1000, lat: 41.82, lon: -71.4, kind: 'photo', file_path: 'walks/w1/p1.jpg', body: null, segment_id: null, ...o }) as Capture;
+const photo = (o: Partial<Faced> = {}): Faced =>
+  ({ id: 'p1', walk_id: 'w1', t: 1000, lat: 41.82, lon: -71.4, kind: 'photo', file_path: 'walks/w1/p1.jpg', body: null, segment_id: null, ...o }) as Faced;
 
 test('TH5: SQLite migration 12, read from its source (SQLite never runs in Node), adds the small copy as one nullable column on capture', () => {
   const m = nativeMigrations();
@@ -55,10 +56,10 @@ test('TH5: the web store keeps the small copy on the whole capture record, with 
   (globalThis as { indexedDB: IDBFactory }).indexedDB = new IDBFactory();
   const { db } = (await import(`../../db/index.web.ts?th5=1` as string)) as { db: Db };
   // A photo kept before its copy is made: no copy yet, then the path patched on, as the thumb job does.
-  await db.addCapture(photo());
-  assert.equal((await db.getCaptures('w1'))[0].thumb_path ?? null, null, 'null until made');
-  await db.updateCapture('p1', { thumb_path: 'walks/w1/p1.thumb.jpg' });
-  const [row] = await db.getCaptures('w1');
+  await db.addMoment(momentOf(photo()));
+  assert.equal((await db.getMoments('w1').then(facedAll))[0].thumb_path ?? null, null, 'null until made');
+  await db.updatePiece('p1', { thumb_path: 'walks/w1/p1.thumb.jpg' });
+  const [row] = await db.getMoments('w1').then(facedAll);
   assert.equal(row.thumb_path, 'walks/w1/p1.thumb.jpg');
   assert.equal(row.file_path, 'walks/w1/p1.jpg', 'the photo itself untouched');
 });

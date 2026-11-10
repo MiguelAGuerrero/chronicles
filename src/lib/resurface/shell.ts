@@ -1,15 +1,15 @@
 // @layer shell
+import { type Faced, facedAll } from '../moment';
 import { captureBus, type CapturePatch } from '../captureBus';
 import { createStore, type Store } from '../store';
 import type { Ports } from '../ports/types';
-import type { Capture, Pause, Walk } from '../types';
+import type { Pause, Walk } from '../types';
 import { DEFAULT_EXTRACTORS, signalsOf } from './extractors';
 import { pausedMs } from '../geo';
 import { arrivalLine, previousCapture, streetAt } from './context';
 import { EMPTY_PREFS, forgetChoices, hideMoment, lessLike, parsePrefs, removeThread, renameThread, restoreWord, revertChange, setOff, shown, unhideMoment, unremoveThread, type PrefsChange } from './prefs';
 import type { MomentView, Prefs, SignalExtractor } from './types';
 import { toMomentViews, wordsOf } from './views';
-
 
 /** Meta: what the user chose (RM21), one JSON value; ids and terms only. */
 export const PREFS_KEY = 'resurface_prefs';
@@ -41,7 +41,7 @@ const M_PER_DEG = 111_320;
 
 export interface ResurfaceOptions {
   /** Where a memo's words come from, once something transcribes them (RM13). */
-  transcript?: (c: Capture) => string | null;
+  transcript?: (c: Faced) => string | null;
   extractors?: SignalExtractor[];
 }
 
@@ -115,7 +115,7 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
     const choicesThen = choices;
     try {
       await writes;
-      const [prefs, captures, walks] = await Promise.all([readPrefs(), p.db.capturesBetween(0, Number.MAX_SAFE_INTEGER), p.db.listWalks()]);
+      const [prefs, captures, walks] = await Promise.all([readPrefs(), p.db.momentsBetween(0, Number.MAX_SAFE_INTEGER).then(facedAll), p.db.listWalks()]);
       if (mine !== generation) return;
       store.set((s) => ({
         status: 'ready',
@@ -178,7 +178,7 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
           // The moments were read again while this was running: what it knows may name a capture that is gone.
           if (began !== generation) return drop(id);
           let walkedMs: number | null = null;
-          let prev: { kind: Capture['kind']; walkedGapMs: number } | null = null;
+          let prev: { kind: Faced['kind']; walkedGapMs: number } | null = null;
           if (walk) {
             walkedMs = Math.max(0, c.t - walk.started_at - pausedMs(pauses, walk.started_at, c.t));
             const before = previousCapture(moments.filter((x) => x.walkId === walk.id).map((x) => x.capture), id, deleted);
@@ -242,14 +242,14 @@ export function createResurface(p: Pick<Ports, 'db' | 'clock'>, opts: ResurfaceO
         ...s,
         moments: s.moments.map((m) => {
           if (m.id !== id) return m;
-          const capture = { ...m.capture, ...change } as Capture;
+          const capture = { ...m.capture, ...change } as Faced;
           return { ...m, capture, words: wordsOf(capture, opts.transcript) };
         }),
       }));
     },
     /** Edit note in the viewer: stored first, then told to the other screens (QL25). */
-    async saveNote(c: Capture, body: string): Promise<void> {
-      await p.db.updateCapture(c.id, { body });
+    async saveNote(c: Faced, body: string): Promise<void> {
+      await p.db.updatePiece(c.piece_id, { body });
       captureBus.patch(c.walk_id, c.id, { body }, null);
       this.patch(c.id, { body });
     },

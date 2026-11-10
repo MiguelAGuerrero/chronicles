@@ -1,3 +1,4 @@
+import type { Faced } from '../lib/moment';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   AccessibilityInfo, BackHandler, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions,
@@ -5,6 +6,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { bandLayout, momentToast } from '../lib/captureBand';
 import { feedback } from '../lib/motion';
+import { momentPill } from '../lib/momentPill';
+import { useStore } from '../lib/useStore';
 import { space } from '../lib/space';
 import { heldLabel } from '../lib/space/core';
 import type { Capture, LngLat } from '../lib/types';
@@ -13,6 +16,7 @@ import { Modal } from './Modal';
 import { SpaceLine } from './SpaceLine';
 import { EditOfferPill, useEditOffer } from './edit/EditOffer';
 import { MediaEditor } from './edit/MediaEditor';
+import { AddToMomentPill } from './walk/AddToMomentPill';
 import { CaptureStack } from './walk/CaptureStack';
 import { useStackLayout } from './walk/layout';
 import { Button, LiftIn, theme } from './ui';
@@ -33,7 +37,7 @@ export interface BandWalk {
 export function MomentBar(props: {
   disabled?: boolean;
   /** A moment was kept ('kept', at once), then placed or not. */
-  onMoment: (c: Capture, state: MomentState) => void;
+  onMoment: (c: Faced, state: MomentState) => void;
   onError: (e: { message: string; openSettings?: boolean }) => void;
   /** Reports whether a memo is recording, so the home can hide what would cut it short. */
   onRecording?: (on: boolean) => void;
@@ -54,6 +58,8 @@ export function MomentBar(props: {
   const { onMoment, walk } = props;
   const cap = useCaptures(walk?.id ?? null, walk?.here ?? null, walk?.lastFixAt ?? null, props.onError, {
     loose: !walk,
+    // The pill (moment stacks, MS2, MS5): a new moment opens it; a piece keeps it.
+    onKept: (id, piece) => (piece ? momentPill.piece(id) : momentPill.kept(id, !!walk)),
     onMoment: (c, state) => {
       // The toast waits for the place; the lists hear of the moment at once (audit).
       if (state !== 'kept') setToast(momentToast(c.kind, 'loose', state === 'placed' ? undefined : state));
@@ -122,8 +128,10 @@ export function CaptureRow(props: {
   const [noteOpen, setNoteOpen] = useState(false);
   // After a photo or video, Edit is offered for a few seconds (ME23).
   const editOffer = useEditOffer();
-  const [editingKept, setEditingKept] = useState<Capture | null>(null);
+  const [editingKept, setEditingKept] = useState<Faced | null>(null);
   const [note, setNote] = useState('');
+  // The open moment a note being written joins (MS2), or null for a new moment: fixed when the note was begun (MS4).
+  const [noteInto, setNoteInto] = useState<string | null>(null);
   const recording = cap.voiceStartedAt != null;
   const { onRecording } = props;
   useEffect(() => {
@@ -153,9 +161,10 @@ export function CaptureRow(props: {
     onKept?.(kind);
   };
   const saveNote = async () => {
-    if (await cap.saveNote(note)) {
+    if (await cap.saveNote(note, noteInto)) {
       setNote('');
       setNoteOpen(false);
+      setNoteInto(null);
       saved('text');
     }
   };
@@ -174,6 +183,35 @@ export function CaptureRow(props: {
   useEffect(() => {
     if (focused === false && recording) void saveRef.current();
   }, [focused, recording]);
+  // Leaving the screen closes the pill (MS4).
+  useEffect(() => {
+    if (focused === false) momentPill.leave();
+  }, [focused]);
+  useEffect(() => () => momentPill.leave(), []);
+  // The Group captures setting, as kept on the device (MS18).
+  useEffect(() => {
+    void momentPill.loadGrouping().catch(() => {});
+  }, []);
+  // The viewer's Add to this moment (MS12): run here, where the camera, the mic and the note are.
+  const asked = useStore(momentPill.store, (st) => st.ask?.seq ?? 0);
+  const onAsk = useRef<(kind: 'photo' | 'voice' | 'text') => void>(() => {});
+  useEffect(() => {
+    onAsk.current = (kind) => {
+      const into = momentPill.target();
+      if (kind === 'photo') void cap.takePhoto(into).then((k) => k && saved(k.kind));
+      else if (kind === 'voice') void cap.startVoice(into).then((ok) => ok && feedback('tap'));
+      else {
+        setNoteInto(into);
+        setNoteOpen(true);
+      }
+    };
+  });
+  useEffect(() => {
+    const ask = momentPill.store.get().ask;
+    if (!asked || !ask) return;
+    momentPill.asked();
+    onAsk.current(ask.kind);
+  }, [asked]);
 
   return (
     <>
@@ -191,6 +229,15 @@ export function CaptureRow(props: {
             }}
           />
         )}
+        <AddToMomentPill
+          hidden={band || recording || noteOpen}
+          onPhoto={() => void cap.takePhoto(momentPill.target()).then((k) => k && saved(k.kind))}
+          onVoice={() => void cap.startVoice(momentPill.target()).then((ok) => ok && feedback('tap'))}
+          onNote={() => {
+            setNoteInto(momentPill.target());
+            setNoteOpen(true);
+          }}
+        />
         {toast && (
           <LiftIn testID={`${p}-toast`} style={styles.toast} accessibilityLiveRegion="polite">
             <Text style={styles.toastText}>{toast}</Text>
@@ -231,20 +278,24 @@ export function CaptureRow(props: {
         busy={cap.busy}
         disabled={props.disabled}
         onPhoto={() =>
-          cap.takePhoto().then((k) => {
+          // With Group captures on, the edge adds to the open moment (MS19); off, a new moment (MS1).
+          cap.takePhoto(momentPill.edgeTarget()).then((k) => {
             if (!k) return;
             saved(k.kind);
-            editOffer.show(k);
+            if (k.id === k.momentId) editOffer.show(k);
           })
         }
-        onVoice={() => cap.startVoice().then((ok) => ok && feedback('tap'))}
+        onVoice={() => cap.startVoice(momentPill.edgeTarget()).then((ok) => ok && feedback('tap'))}
         onSave={saveVoice}
         onDiscard={() => cap.discardVoice()}
-        onNote={() => setNoteOpen(true)}
+        onNote={() => {
+          setNoteInto(momentPill.edgeTarget());
+          setNoteOpen(true);
+        }}
       />
 
       {editingKept && (
-        <MediaEditor key={editingKept.id} capture={editingKept} initialTool="crop" onClose={() => setEditingKept(null)} onSave={(patch) => cap.setEdit(editingKept.id, patch)} />
+        <MediaEditor key={editingKept.id} capture={editingKept} initialTool="crop" onClose={() => setEditingKept(null)} onSave={(patch) => cap.setEdit(editingKept, patch)} />
       )}
 
       <Modal visible={noteOpen} transparent animationType="fade" onRequestClose={() => setNoteOpen(false)}>

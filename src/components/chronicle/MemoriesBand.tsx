@@ -1,7 +1,8 @@
+import type { Faced } from '../../lib/moment';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { bandLabels, captureTarget } from '../../lib/captureBand';
-import type { Capture } from '../../lib/types';
+
 import type { MomentState } from '../../lib/useCaptures';
 import { MomentBar } from '../MomentBar';
 import { useOpenWalk, useOpenWalkInfo } from '../OpenWalk';
@@ -12,7 +13,7 @@ const ERROR_MS = 6000;
 type BandProps = {
   /** Memories is in front and nothing is open over it: leaving, or opening something, saves a memo (HC11). */
   focused: boolean;
-  onMoment: (c: Capture, state: MomentState) => void;
+  onMoment: (c: Faced, state: MomentState) => void;
   /** Whether a memo is recording from the band: Memories holds a viewer back until it stops (audit 8). */
   onRecording?: (on: boolean) => void;
   /** Memories' own toast (Undo): stacked with the band's pills in one column, never over them (audit 2). */
