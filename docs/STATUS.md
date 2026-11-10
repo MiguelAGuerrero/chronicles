@@ -117,6 +117,8 @@ first.
 
 ## Needs the owner
 
+- **Explore, a neighborhood past its town's reach** (fix explore-town-scope audit 3, decision 0126): near you the row is the towns, and a town's page lists only neighborhoods within 5 km of its point, so in a large city the neighborhood you stand in can be listed nowhere. Recorded in `docs/DEFERRED.md`; the next step, if wanted, is a town's page that takes every neighborhood inside its outline.
+
 - **VISION.md and the Explore carousel:** decision 0124 (the row of cards; it supersedes 0066's grid and 0092's swipe and amends 0034's names on the map only) is not yet in the page's Precedents, and 0034's row does not mention the amendment. The page is yours to edit.
 - **The vision review of Nov 10** (`0a254ba` to `b7b28c2`, 260 commits; no breach, every change serves a verb):
   1. **The page trails its decisions (drift):** the Shapes rows "Suggested routes" and "Several routes … Apple Maps
