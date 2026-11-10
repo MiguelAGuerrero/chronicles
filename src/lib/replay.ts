@@ -1,6 +1,7 @@
 // @layer core
+import type { Faced } from './moment';
 import { distanceM, isBreak, type PauseSpan } from './geo';
-import type { Capture, LngLat, TracePoint } from './types';
+import type { LngLat, TracePoint } from './types';
 
 /**
  * The replay's shared pieces: the fog beat's length, captures grouped into
@@ -20,11 +21,11 @@ export interface PauseGroup {
   t: number;
   at: LngLat | null;
   /** Shown one after another, each until the viewer moves on. */
-  captures: Capture[];
+  captures: Faced[];
 }
 
 /** Captures taken close together, in space and time, share one stop. */
-export function groupCaptures(captures: Capture[]): PauseGroup[] {
+export function groupCaptures(captures: Faced[]): PauseGroup[] {
   const groups: PauseGroup[] = [];
   for (const c of [...captures].sort((a, b) => a.t - b.t)) {
     const pos: LngLat | null = c.lat != null && c.lon != null ? [c.lon, c.lat] : null;

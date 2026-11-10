@@ -1,10 +1,11 @@
 // @layer adapter
+import type { Faced } from '../moment';
 import { Directory, File, FileMode, Paths } from 'expo-file-system';
 import { Asset, requestPermissionsAsync } from 'expo-media-library';
 import * as Sharing from 'expo-sharing';
 import { db } from '../db';
 import { resolveMedia } from '../media';
-import type { Capture } from '../types';
+
 import { bundleName, KeeperError, writeWalkBundle } from './bundle';
 
 export { KeeperError };
@@ -15,7 +16,7 @@ const CHUNK = 1 << 20;
  * Saves a keeper to the Photos library. `bakedUri` is a captioned copy of a
  * photo made for this export; otherwise the stored file is saved as it is.
  */
-export async function saveKeeper(capture: Capture, bakedUri?: string): Promise<void> {
+export async function saveKeeper(capture: Faced, bakedUri?: string): Promise<void> {
   const perm = await requestPermissionsAsync(true);
   if (!perm.granted) throw new KeeperError('Photos access is off for Chronicles. Allow adding photos in Settings.', true);
   const uri = bakedUri ?? (capture.file_path ? await resolveMedia(capture.file_path) : null);

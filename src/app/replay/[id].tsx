@@ -1,3 +1,4 @@
+import type { Faced } from '../../lib/moment';
 import { useUnits } from '../../lib/useUnits';
 import { foundLine, foundList, passedLine } from '../../lib/explore/explore';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -36,7 +37,7 @@ import { ensureTileBuild } from '../../lib/tiles';
 import { setAudioMode } from '../../lib/audioMode';
 import { FOG_MS } from '../../lib/replay';
 import { formatCaptures, formatDistance, formatDuration, loadReplay, suggestTitle, type ReplayData } from '../../lib/summary';
-import type { Capture, LngLat } from '../../lib/types';
+import type { LngLat } from '../../lib/types';
 import { summaryLess } from '../../lib/deletion/core';
 import { useHidden } from '../../lib/deletion/useDeletions';
 import { UndoToast } from '../../components/UndoToast';
@@ -90,7 +91,7 @@ export default function Replay() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [reduceMotion, setReduceMotion] = useState(false);
   const { width, height } = useWindowDimensions();
-  const [viewing, setViewing] = useState<Capture[] | null>(null);
+  const [viewing, setViewing] = useState<Faced[] | null>(null);
   // What happened here: a tap on the card's map shows every capture near that spot, on any walk.
   const [here, setHere] = useState<HereResult | null>(null);
   const hereTaps = useRef(0);
@@ -498,7 +499,7 @@ export default function Replay() {
         }}
         onSaveNote={async (c, body) => {
           // Stored first; the replay's own list and any open view of the walk then show it (QL25).
-          await db.updateCapture(c.id, { body });
+          await db.updatePiece(c.piece_id, { body });
           setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, { body }) });
           captureBus.patch(c.walk_id, c.id, { body }, null);
         }}
@@ -512,7 +513,7 @@ export default function Replay() {
         onClose={() => setHere(null)}
         onSaveNote={async (c, body) => {
           // Stored first; the replay's own list and any open view of the walk then show it (QL25).
-          await db.updateCapture(c.id, { body });
+          await db.updatePiece(c.piece_id, { body });
           setData((d) => d && { ...d, captures: applyPatch(d.captures, c.id, { body }) });
           captureBus.patch(c.walk_id, c.id, { body }, null);
         }}

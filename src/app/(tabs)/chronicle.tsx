@@ -1,3 +1,4 @@
+import { type Faced, facedAll } from '../../lib/moment';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Linking, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
@@ -27,7 +28,7 @@ import { bordersFor, outlineIdsOf, townPlaces } from '../../lib/areas/borders';
 import { BORDER_ZOOM } from '../../lib/areas/outlines';
 import { useOutlineSet } from '../../lib/areas/useOutlineSet';
 import { levelForZoom, placesIndex, starsFor, unplacedWalks, type Star } from '../../lib/places';
-import type { Capture, LngLat, Walk, WalkSummary } from '../../lib/types';
+import type { LngLat, Walk, WalkSummary } from '../../lib/types';
 import { deletions } from '../../lib/deletion';
 import { useHidden, useOnDeleted } from '../../lib/deletion/useDeletions';
 import { fitWithMoments, MOMENT_PIN_ZOOM, placedMoments } from '../../lib/momentPins';
@@ -50,7 +51,7 @@ const boundsKey = (b: Bounds | null) => (b ? b.map((v) => v.toFixed(5)).join(','
 /** The closest any of Chronicle's fits may zoom (tabs audit U15). */
 const FIT_MAX_ZOOM = 15;
 /** Every capture, loose or in a walk, for the days (M7): rows only, never media. */
-const allCaptures = () => db.capturesBetween(0, Number.MAX_SAFE_INTEGER);
+const allCaptures = () => db.momentsBetween(0, Number.MAX_SAFE_INTEGER).then(facedAll);
 
 /**
  * Chronicle (NV11-NV13): review. Stars where you have walked, a sheet that
@@ -114,14 +115,14 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
   // The place view's found places (E10).
   const [checklists, setChecklists] = useState<ChecklistArea[]>([]);
   const [finds, setFinds] = useState<Find[]>([]);
-  const [recalled, setRecalled] = useState<Capture[] | null>(null);
+  const [recalled, setRecalled] = useState<Faced[] | null>(null);
   // Moments (M7-M9, M16): every capture's row, and the viewer for a timeline row or a pin.
-  const [storedCaptures, setCaptures] = useState<Capture[]>([]);
+  const [storedCaptures, setCaptures] = useState<Faced[]>([]);
   const captures = useMemo(
     () => storedCaptures.filter((c) => !hidden.has(c.id) && !(c.walk_id && hidden.has(c.walk_id))),
     [storedCaptures, hidden],
   );
-  const [viewing, setViewing] = useState<Capture[] | null>(null);
+  const [viewing, setViewing] = useState<Faced[] | null>(null);
   // A reminder tapped with no walk open opens here at once (audit 1, NV13); with a walk open, the walk
   // screen opens it, and Chronicle declines. Whether a walk is open is decided when the tap comes, from
   // the open walk's keeper, never from what this tab read when it last came to the front: a walk started
@@ -155,11 +156,11 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
           showWalk();
           return null;
         }
-        const recalled = openWalk ? [] : await takeRecallOpen().catch(() => [] as Capture[]);
+        const recalled = openWalk ? [] : await takeRecallOpen().catch(() => [] as Faced[]);
         if (!live) return null;
         setChecklists(await db.listChecklistAreas().catch(() => [] as ChecklistArea[]));
         setFinds(await db.listFinds().catch(() => [] as Find[]));
-        const caps = await allCaptures().catch(() => [] as Capture[]);
+        const caps = await allCaptures().catch(() => [] as Faced[]);
         setCaptures(caps);
         if (recalled.length) setRecalled(recalled);
         setData({ walks, summaries, areas, rows });
@@ -327,7 +328,7 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
         remind
         onSaveNote={async (c, body) => {
           // Stored first; Chronicle's pins and any open view of the walk then show it (QL25).
-          await db.updateCapture(c.id, { body });
+          await db.updatePiece(c.piece_id, { body });
           setCaptures((prev) => applyPatch(prev, c.id, { body }));
           captureBus.patch(c.walk_id, c.id, { body }, null);
         }}
@@ -344,7 +345,7 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
         }}
         onSaveNote={async (c, body) => {
           // Stored first; Chronicle's pins and any open view of the walk then show it (QL25).
-          await db.updateCapture(c.id, { body });
+          await db.updatePiece(c.piece_id, { body });
           setCaptures((prev) => applyPatch(prev, c.id, { body }));
           captureBus.patch(c.walk_id, c.id, { body }, null);
         }}

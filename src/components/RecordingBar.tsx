@@ -1,3 +1,4 @@
+import type { Faced } from '../lib/moment';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
@@ -10,7 +11,7 @@ import { onRecallFired, RECALL_OPEN_KEY } from '../lib/discovery/recallCheck';
 import { feedback } from '../lib/motion';
 import { perfCount } from '../lib/perfCount';
 import { recordingLine } from '../lib/recordingBar';
-import type { Capture, Pause, Walk } from '../lib/types';
+import type { Pause, Walk } from '../lib/types';
 import type { LiveTrace } from '../lib/useLiveTrace';
 import { useCaptures } from '../lib/useCaptures';
 import { settleWithin } from '../lib/settleWithin';
@@ -54,13 +55,13 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   const [said, setSaid] = useState<{ text: string; error?: boolean } | null>(null);
   // After a photo or video, Edit is offered for a few seconds (ME23).
   const editOffer = useEditOffer();
-  const [editingKept, setEditingKept] = useState<Capture | null>(null);
+  const [editingKept, setEditingKept] = useState<Faced | null>(null);
   const onError = useCallback((e: { message: string }) => setSaid({ text: e.message, error: true }), []);
   const cap = useCaptures(walk.id, live.here, live.lastFixAt, onError);
   // A photo still being kept: Return waits for it, so the walk screen opens with it (NV9).
   const keeping = useRef<Promise<unknown> | null>(null);
   const returning = useRef(false);
-  const [reminder, setReminder] = useState<Capture[] | null>(null);
+  const [reminder, setReminder] = useState<Faced[] | null>(null);
 
   useEffect(() => {
     if (!said) return;
@@ -87,7 +88,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
   const distanceM = live.distanceM;
   const paused = pauses.some((p) => p.ended_at == null);
 
-  const back = async (open: Capture[] | null) => {
+  const back = async (open: Faced[] | null) => {
     if (returning.current) return;
     returning.current = true;
     try {
@@ -213,7 +214,7 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
         </HoldButton>
       </View>
       {editingKept && (
-        <MediaEditor key={editingKept.id} capture={editingKept} initialTool="crop" onClose={() => setEditingKept(null)} onSave={(patch) => cap.setEdit(editingKept.id, patch)} />
+        <MediaEditor key={editingKept.id} capture={editingKept} initialTool="crop" onClose={() => setEditingKept(null)} onSave={(patch) => cap.setEdit(editingKept, patch)} />
       )}
     </View>
   );

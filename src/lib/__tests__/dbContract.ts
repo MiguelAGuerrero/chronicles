@@ -8,32 +8,35 @@ import type { Db } from '../db/types';
 import type { Mark, Place, Recall } from '../discovery/types';
 import type { ChecklistArea, ChecklistItem, ExploreRead, Find } from '../explore/explore';
 import type { LandingRow } from '../landing/view';
-import type { Capture, GapDecision, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
+import type { Capture, GapDecision, Moment, StreetSegment, TracePoint, VisitedSegment, Walk, WalkSummary } from '../types';
 import { parseEdit, type MediaEdit } from '../mediaEdit';
+import { momentOf, type Flat } from '../moment';
 
 /**
- * What every `Db` must do (FC7), run against each implementation that can run
- * in Node: the in-memory fake (`fakes/memoryDb`) and the IndexedDB store
- * (`db/index.web.ts` over fake-indexeddb). It pins the behavior shells rely
- * on, so the fake can't drift from the real store unnoticed. SQLite can't run
- * in Node; `db/index.native.ts` is held to the same behavior by hand.
+ * What every `Db` must do (FC7), run against every implementation: the in-memory fake (`fakes/memoryDb`), the
+ * IndexedDB store (`db/index.web.ts` over fake-indexeddb) and, since MT11 (decision 0106), the native store
+ * (`db/sqliteStore.ts` over Node's built-in SQLite, `fakes/nodeSqlite`). It pins the behavior shells rely on, so
+ * no store can drift from the others unnoticed.
  *
  * Every title starts `FC7 <method>, ...: `; `db.contract.test.ts` fails when
  * a `Db` method is named in no title. Lists whose order the interface doesn't
  * state are compared sorted. A case marked "(web store as it is)" pins what
  * the IndexedDB store does where that differs from its doc comment or from the
- * native store: the fake follows the web store, and the case says so.
+ * native store, and what the native store does instead (`store` is 'sqlite'): the fake follows the web store.
  */
 /** Rows only an older app wrote: the retired scan's marks, which old walks' replays still read (`listMarks`). */
 export type Legacy = { marks?: Mark[] };
 
-export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>) {
+/** Which store runs the suite: the native store (MT11) differs from the web store and the fake where a case says so. */
+export type StoreKind = 'web' | 'sqlite';
+
+export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>, store: StoreKind = 'web') {
   const LON = -71.4, LAT = 41.812;
   const walk = (id: string, started_at: number, more: Partial<Walk> = {}): Walk => ({
     id, started_at, ended_at: null, title: null, epilogue: null, open: false, area: null, snapped_build: null, ...more,
   });
   const point = (walk_id: string, t: number): TracePoint => ({ walk_id, t, lat: LAT, lon: LON, accuracy_m: 5, speed: 1, course: null });
-  const capture = (id: string, walk_id: string | null, t: number, more: Partial<Capture> = {}): Capture => ({
+  const capture = (id: string, walk_id: string | null, t: number, more: Partial<Flat> = {}): Flat => ({
     id, walk_id, t, lat: LAT, lon: LON, kind: 'text', file_path: null, body: 'hi', segment_id: null, ...more,
   });
   const segment = (id: string, dLon = 0, build = 'b1'): StreetSegment => ({
@@ -94,6 +97,12 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
   const box: [number, number, number, number] = [LON - 0.01, LAT - 0.01, LON + 0.01, LAT + 0.01];
   const sorted = (xs: string[]) => [...xs].sort();
   const ids = (rows: { id: string }[]) => rows.map((r) => r.id);
+  // A one-piece moment read back as the flat record it was kept from (MT4: the reads return what they did).
+  const flat = (m: Moment): Flat => {
+    const { moment_id: _m, ...media } = m.pieces[0];
+    return { ...media, walk_id: m.walk_id, lat: m.lat, lon: m.lon, segment_id: m.segment_id };
+  };
+  const flats = (ms: Moment[]) => ms.map(flat);
   const keys = (rows: { key: string }[]) => sorted(rows.map((r) => r.key));
 
   describe(`Db contract: ${name}`, () => {
@@ -130,7 +139,7 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.equal((await db.getWalk('a'))?.started_at, 1);
     });
 
-    test('FC7 getWalk, listWalks, getCaptures, listMarks, getVisited, listSummaries: rows go in and come out as copies', async () => {
+    test('FC7 getWalk, listWalks, getMoments, listMarks, getVisited, listSummaries: rows go in and come out as copies', async () => {
       const m = mark('m1', 'a', 1);
       const db = await fresh({ marks: [m] });
       const w = walk('a', 1);
@@ -142,10 +151,10 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.equal((await db.getWalk('a'))?.title, null);
 
       const c = capture('c1', 'a', 1);
-      await db.addCapture(c);
+      await db.addMoment(momentOf(c));
       c.body = 'changed';
-      (await db.getCaptures('a'))[0].body = 'changed';
-      assert.equal((await db.getCaptures('a'))[0].body, 'hi');
+      (await db.getMoments('a'))[0].pieces[0].body = 'changed';
+      assert.equal((await db.getMoments('a'))[0].pieces[0].body, 'hi');
 
       m.at[0] = 0;
       (await db.listMarks('a'))[0].at[0] = 0;
@@ -179,45 +188,45 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
 
     // ---- captures
 
-    test('FC7 addCapture, updateCapture, getCaptures, getCapturesByIds: per walk in time order, by id skipping missing ones, patches merge', async () => {
+    test('FC7 addMoment, updatePiece, getMoments, getMomentsByIds: per walk in time order, by id skipping missing ones, patches merge', async () => {
       const db = await fresh();
-      await db.addCapture(capture('c2', 'a', 2));
-      await db.addCapture(capture('c1', 'a', 1));
-      await db.addCapture(capture('c3', 'b', 3));
-      await db.addCapture(capture('loose', null, 4));
-      await db.updateCapture('c1', { caption: 'hello', caption_y: 0.5 });
-      await db.updateCapture('missing', { caption: 'x' });
-      assert.deepEqual(ids(await db.getCaptures('a')), ['c1', 'c2']);
-      assert.deepEqual((await db.getCaptures('a'))[0], capture('c1', 'a', 1, { caption: 'hello', caption_y: 0.5 }));
-      assert.deepEqual(ids(await db.getCapturesByIds(['loose', 'c2', 'nope', 'c1'])), ['c1', 'c2', 'loose']);
-      assert.deepEqual(await db.getCapturesByIds([]), []);
-      assert.deepEqual(await db.getCapturesByIds(['missing']), []);
+      await db.addMoment(momentOf(capture('c2', 'a', 2)));
+      await db.addMoment(momentOf(capture('c1', 'a', 1)));
+      await db.addMoment(momentOf(capture('c3', 'b', 3)));
+      await db.addMoment(momentOf(capture('loose', null, 4)));
+      await db.updatePiece('c1', { caption: 'hello', caption_y: 0.5 });
+      await db.updatePiece('missing', { caption: 'x' });
+      assert.deepEqual(ids(flats(await db.getMoments('a'))), ['c1', 'c2']);
+      assert.deepEqual((flats(await db.getMoments('a')))[0], capture('c1', 'a', 1, { caption: 'hello', caption_y: 0.5 }));
+      assert.deepEqual(ids(flats(await db.getMomentsByIds(['loose', 'c2', 'nope', 'c1']))), ['c1', 'c2', 'loose']);
+      assert.deepEqual(flats(await db.getMomentsByIds([])), []);
+      assert.deepEqual(flats(await db.getMomentsByIds(['missing'])), []);
     });
 
-    test('ME21: updateCapture keeps an edit, and clears it with null', async () => {
+    test('ME21: updatePiece keeps an edit, and clears it with null', async () => {
       const db = await fresh();
-      await db.addCapture(capture('c1', 'a', 1));
+      await db.addMoment(momentOf(capture('c1', 'a', 1)));
       const edit: MediaEdit = { v: 1, rotate: 90, crop: { x: 0.1, y: 0.2, w: 0.5, h: 0.5 }, filter: 'mono', strokes: [{ tool: 'pen', color: 'red', w: 0.01, pts: [0.1, 0.2, 0.3, 0.4] }], trim: null };
-      await db.updateCapture('c1', { edit, caption: 'hi', caption_y: 0.4 });
-      const [got] = await db.getCapturesByIds(['c1']);
+      await db.updatePiece('c1', { edit, caption: 'hi', caption_y: 0.4 });
+      const [got] = flats(await db.getMomentsByIds(['c1']));
       assert.deepEqual(parseEdit(got.edit), edit);
       assert.equal(got.caption, 'hi');
-      await db.updateCapture('c1', { edit: null });
-      assert.equal(parseEdit((await db.getCaptures('a'))[0].edit), null);
+      await db.updatePiece('c1', { edit: null });
+      assert.equal(parseEdit((flats(await db.getMoments('a')))[0].edit), null);
     });
 
     test('media-editing audit 7: every capture read gives the edit parsed; a newer or broken one reads as none', async () => {
       const db = await fresh();
       const edit: MediaEdit = { v: 1, rotate: 180, crop: null, filter: 'noir', strokes: [], trim: null };
-      await db.addCapture({ ...capture('ok', 'a', 1), lat: 41.8, lon: -71.4 });
-      await db.addCapture({ ...capture('bad', 'a', 2), lat: 41.8, lon: -71.4 });
-      await db.updateCapture('ok', { edit });
-      await db.updateCapture('bad', { edit: { v: 2, rotate: 45 } as unknown as MediaEdit });
+      await db.addMoment(momentOf({ ...capture('ok', 'a', 1), lat: 41.8, lon: -71.4 }));
+      await db.addMoment(momentOf({ ...capture('bad', 'a', 2), lat: 41.8, lon: -71.4 }));
+      await db.updatePiece('ok', { edit });
+      await db.updatePiece('bad', { edit: { v: 2, rotate: 45 } as unknown as MediaEdit });
       const reads = [
-        await db.getCaptures('a'),
-        await db.getCapturesByIds(['ok', 'bad']),
-        await db.capturesBetween(0, 10),
-        await db.capturesIn([-72, 41, -71, 42]),
+        flats(await db.getMoments('a')),
+        flats(await db.getMomentsByIds(['ok', 'bad'])),
+        flats(await db.momentsBetween(0, 10)),
+        flats(await db.momentsIn([-72, 41, -71, 42])),
       ];
       for (const rows of reads) {
         assert.deepEqual(rows.find((r) => r.id === 'ok')?.edit, edit);
@@ -225,66 +234,53 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       }
     });
 
-    test('FC7 addCapture: a capture id is used once; the first stays', async () => {
+    test('FC7 addMoment: a moment id is used once; the first stays', async () => {
       const db = await fresh();
-      await db.addCapture(capture('c1', 'a', 1));
-      await assert.rejects(db.addCapture(capture('c1', 'b', 9)));
-      assert.deepEqual(await db.getCapturesByIds(['c1']), [capture('c1', 'a', 1)]);
+      await db.addMoment(momentOf(capture('c1', 'a', 1)));
+      await assert.rejects(db.addMoment(momentOf(capture('c1', 'b', 9))));
+      assert.deepEqual(flats(await db.getMomentsByIds(['c1'])), [capture('c1', 'a', 1)]);
     });
 
-    test('FC7 updateCapture: moving a capture to another walk moves it between walks\' lists', async () => {
+    test('FC7 updateMoment: moving a moment to another walk moves it between walks\' lists', async () => {
       const db = await fresh();
-      await db.addCapture(capture('c1', null, 1));
-      await db.updateCapture('c1', { walk_id: 'a' });
-      assert.deepEqual(ids(await db.getCaptures('a')), ['c1']);
+      await db.addMoment(momentOf(capture('c1', null, 1)));
+      await db.updateMoment('c1', { walk_id: 'a' });
+      assert.deepEqual(ids(flats(await db.getMoments('a'))), ['c1']);
     });
 
-    test('FC7 capturesIn: captures with a position inside the bounds (edges included), loose ones too, in time order', async () => {
+    test('FC7 momentsIn: moments with a position inside the bounds (edges included), loose ones too, in time order', async () => {
       const db = await fresh();
-      await db.addCapture(capture('c2', 'a', 2));
-      await db.addCapture(capture('c1', 'b', 1, { lat: LAT - 0.01, lon: LON + 0.01 })); // on the corner
-      await db.addCapture(capture('loose', null, 3));
-      await db.addCapture(capture('noplace', 'a', 4, { lat: null, lon: null }));
-      await db.addCapture(capture('east', 'a', 5, { lon: LON + 1 }));
-      await db.addCapture(capture('north', 'a', 6, { lat: LAT + 1 }));
-      assert.deepEqual(ids(await db.capturesIn(box)), ['c1', 'c2', 'loose']);
+      await db.addMoment(momentOf(capture('c2', 'a', 2)));
+      await db.addMoment(momentOf(capture('c1', 'b', 1, { lat: LAT - 0.01, lon: LON + 0.01 }))); // on the corner
+      await db.addMoment(momentOf(capture('loose', null, 3)));
+      await db.addMoment(momentOf(capture('noplace', 'a', 4, { lat: null, lon: null })));
+      await db.addMoment(momentOf(capture('east', 'a', 5, { lon: LON + 1 })));
+      await db.addMoment(momentOf(capture('north', 'a', 6, { lat: LAT + 1 })));
+      assert.deepEqual(ids(flats(await db.momentsIn(box))), ['c1', 'c2', 'loose']);
     });
 
-    test('FC7 capturesBetween: every capture, loose or in a walk, with from <= t < to, in time order; an empty range is empty', async () => {
+    test('FC7 momentsBetween: every moment, loose or in a walk, with from <= t < to, in time order; an empty range is empty', async () => {
       const db = await fresh();
-      await db.addCapture(capture('c3', 'a', 30));
-      await db.addCapture(capture('loose', null, 20));
-      await db.addCapture(capture('c1', 'b', 10));
-      await db.addCapture(capture('end', 'a', 40));
-      await db.addCapture(capture('before', 'a', 9));
-      assert.deepEqual(ids(await db.capturesBetween(10, 40)), ['c1', 'loose', 'c3']);
-      assert.deepEqual(await db.capturesBetween(40, 40), []);
-      assert.deepEqual(await db.capturesBetween(40, 10), []);
-      assert.deepEqual(ids(await db.capturesBetween(0, 100)), ['before', 'c1', 'loose', 'c3', 'end']);
+      await db.addMoment(momentOf(capture('c3', 'a', 30)));
+      await db.addMoment(momentOf(capture('loose', null, 20)));
+      await db.addMoment(momentOf(capture('c1', 'b', 10)));
+      await db.addMoment(momentOf(capture('end', 'a', 40)));
+      await db.addMoment(momentOf(capture('before', 'a', 9)));
+      assert.deepEqual(ids(flats(await db.momentsBetween(10, 40))), ['c1', 'loose', 'c3']);
+      assert.deepEqual(flats(await db.momentsBetween(40, 40)), []);
+      assert.deepEqual(flats(await db.momentsBetween(40, 10)), []);
+      assert.deepEqual(ids(flats(await db.momentsBetween(0, 100))), ['before', 'c1', 'loose', 'c3', 'end']);
     });
 
-    // ---- moments (Moment table, MT3-MT6, decision 0106). Test first: the new methods are reached through
-    // `planned`, so these run before they exist.
+    // ---- moments (Moment table, MT3-MT6, decision 0106)
 
-    type Piece = Omit<Capture, 'walk_id' | 'lat' | 'lon' | 'segment_id'> & { moment_id: string };
-    type Moment = { id: string; walk_id: string | null; t: number; lat: number | null; lon: number | null; segment_id: string | null; pieces: Piece[] };
-    type Planned = Db & {
-      addMoment(m: Moment): Promise<void>;
-      updateMoment(id: string, patch: Partial<Pick<Moment, 'walk_id' | 'lat' | 'lon' | 'segment_id'>>): Promise<void>;
-      updatePiece(id: string, patch: Partial<Omit<Piece, 'id' | 'moment_id'>>): Promise<void>;
-      getMoments(walkId: string): Promise<Moment[]>;
-      momentsBetween(from: number, to: number): Promise<Moment[]>;
-      getMomentsByIds(ids: string[]): Promise<Moment[]>;
-      momentsIn(bounds: [number, number, number, number]): Promise<Moment[]>;
-      deleteMoments(ids: string[], opts?: { keepFinds?: boolean }): Promise<void>;
-    };
-    const planned = async (legacy?: Legacy) => (await fresh(legacy)) as unknown as Planned;
-    const one = (id: string, walk_id: string | null, t: number, more: Partial<Moment> = {}, media: Partial<Piece> = {}): Moment => ({
+    const planned = fresh;
+    const one = (id: string, walk_id: string | null, t: number, more: Partial<Moment> = {}, media: Partial<Capture> = {}): Moment => ({
       id, walk_id, t, lat: LAT, lon: LON, segment_id: null,
       pieces: [{ id, moment_id: id, t, kind: 'text', file_path: null, body: 'hi', ...media }], ...more,
     });
 
-    test('FC7 addMoment, MT3: a moment and its first piece are one write; an id is used once and the first stays', { todo: 'test first' }, async () => {
+    test('FC7 addMoment, MT3: a moment and its first piece are one write; an id is used once and the first stays', async () => {
       const db = await planned();
       await db.addMoment(one('m1', 'a', 1));
       await assert.rejects(db.addMoment(one('m1', 'b', 9)));
@@ -293,7 +289,7 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(await db.getMomentsByIds(['m2']), []);
     });
 
-    test('FC7 getMoments, momentsBetween, getMomentsByIds, momentsIn, MT4: moments with their pieces, as the capture reads were', { todo: 'test first' }, async () => {
+    test('FC7 getMoments, momentsBetween, getMomentsByIds, momentsIn, MT4: moments with their pieces, as the capture reads were', async () => {
       const db = await planned();
       await db.addMoment(one('c2', 'a', 2));
       await db.addMoment(one('c1', 'b', 1, { lat: LAT - 0.01, lon: LON + 0.01 }));
@@ -309,7 +305,7 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual((await db.getMoments('a'))[0], one('c2', 'a', 2));
     });
 
-    test('FC7 updateMoment, updatePiece, MT5: the place is the moment\'s; a piece\'s update never moves it, and patches merge', { todo: 'test first' }, async () => {
+    test('FC7 updateMoment, updatePiece, MT5: the place is the moment\'s; a piece\'s update never moves it, and patches merge', async () => {
       const db = await planned();
       await db.addMoment(one('m1', null, 1, { lat: null, lon: null }));
       await db.updateMoment('m1', { lat: LAT, lon: LON, segment_id: 's1' });
@@ -325,7 +321,7 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual((await db.getMomentsByIds(['m1']))[0].pieces[0].edit, edit);
     });
 
-    test('FC7 deleteMoments, MT6: a moment goes with its pieces, reminder, find, memberships and links; others stay', { todo: 'test first' }, async () => {
+    test('FC7 deleteMoments, MT6: a moment goes with its pieces, reminder, find, memberships and links; others stay', async () => {
       const db = await planned();
       await db.addMoment(one('m1', 'a', 1));
       await db.addMoment(one('m2', 'a', 2));
@@ -348,7 +344,7 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
         await db.endPause(w, t + 1);
         await db.startStill(w, t);
         await db.putGapDecision(gap(w, t));
-        await db.addCapture(capture(`c-${w}`, w, t));
+        await db.addMoment(momentOf(capture(`c-${w}`, w, t)));
         await db.setRecall(recall(`c-${w}`));
         await db.saveSnap(w, [segment(`s-${w}`)], [visit(`s-${w}`, w, `name:${w} st`)], summary(w), {
           areas: [area(`A-${w}`)], rows: [walkArea(w, `A-${w}`)],
@@ -366,8 +362,8 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(await db.getPauses('a'), []);
       assert.deepEqual(await db.getStills('a'), []);
       assert.deepEqual(await db.getGapDecisions('a'), []);
-      assert.deepEqual(await db.getCaptures('a'), []);
-      assert.deepEqual(await db.getCapturesByIds(['c-a']), []);
+      assert.deepEqual(flats(await db.getMoments('a')), []);
+      assert.deepEqual(flats(await db.getMomentsByIds(['c-a'])), []);
       assert.deepEqual(await db.getVisited('a'), []);
       assert.deepEqual(await db.listFinds('a'), []);
       assert.deepEqual(await db.listMarks('a'), []);
@@ -382,7 +378,7 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.equal((await db.getPauses('b')).length, 1);
       assert.equal((await db.getStills('b')).length, 1);
       assert.equal((await db.getGapDecisions('b')).length, 1);
-      assert.equal((await db.getCaptures('b')).length, 1);
+      assert.equal((flats(await db.getMoments('b'))).length, 1);
       assert.equal((await db.getVisited('b')).length, 1);
       assert.equal((await db.listFinds('b')).length, 1);
       assert.equal((await db.listMarks('b')).length, 1);
@@ -413,22 +409,22 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
     test('FC7 deleteWalk: a walk that doesn\'t exist changes nothing; loose captures stay', async () => {
       const db = await fresh();
       await db.createWalk(walk('a', 1));
-      await db.addCapture(capture('loose', null, 1));
+      await db.addMoment(momentOf(capture('loose', null, 1)));
       await db.saveSnap('a', [], [visit('s1', 'a')], summary('a'), { areas: [area('A')], rows: [walkArea('a', 'A')] });
       await db.deleteWalk('nope');
       assert.deepEqual(ids(await db.listWalks()), ['a']);
-      assert.deepEqual(ids(await db.getCapturesByIds(['loose'])), ['loose']);
+      assert.deepEqual(ids(flats(await db.getMomentsByIds(['loose']))), ['loose']);
       assert.deepEqual(keys(await db.listAreas()), ['A']);
       assert.equal((await db.listSummaries())[0].new_streets, 1);
     });
 
-    test('FC7 deleteCaptures: removes the rows, their reminders and finds; the walks\' counts follow from the rows left (D2, D3, D9)', async () => {
+    test('FC7 deleteMoments: removes the rows, their reminders and finds; the walks\' counts follow from the rows left (D2, D3, D9)', async () => {
       const db = await fresh();
       await db.createWalk(walk('a', 1));
-      await db.addCapture(capture('p1', 'a', 1, { kind: 'photo' }));
-      await db.addCapture(capture('p2', 'a', 2, { kind: 'photo' }));
-      await db.addCapture(capture('n1', 'a', 3));
-      await db.addCapture(capture('v1', 'a', 4, { kind: 'voice' }));
+      await db.addMoment(momentOf(capture('p1', 'a', 1, { kind: 'photo' })));
+      await db.addMoment(momentOf(capture('p2', 'a', 2, { kind: 'photo' })));
+      await db.addMoment(momentOf(capture('n1', 'a', 3)));
+      await db.addMoment(momentOf(capture('v1', 'a', 4, { kind: 'voice' })));
       await db.saveSnap('a', [], [], summary('a', 'b1', { distance_m: 321 }));
       assert.deepEqual(
         (({ photos, videos, voices, notes }) => ({ photos, videos, voices, notes }))((await db.listSummaries())[0]),
@@ -438,8 +434,8 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       await db.setRecall(recall('n1'));
       await db.addFind(find('f1', 'a', 'p1'));
       await db.addFind(find('f2', 'a', 'n1'));
-      await db.deleteCaptures(['p1', 'v1', 'missing']);
-      assert.deepEqual(ids(await db.getCaptures('a')), ['p2', 'n1']);
+      await db.deleteMoments(['p1', 'v1', 'missing']);
+      assert.deepEqual(ids(flats(await db.getMoments('a'))), ['p2', 'n1']);
       assert.deepEqual((await db.listRecalls()).map((r) => r.capture_id), ['n1']);
       assert.deepEqual(keys(await db.listFinds()), ['f2']);
       const s = (await db.listSummaries())[0];
@@ -448,30 +444,30 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       });
     });
 
-    test('FC7 deleteCaptures: keepFinds keeps the finds; a loose moment\'s find goes; an empty list or only missing ids change nothing', async () => {
+    test('FC7 deleteMoments: keepFinds keeps the finds; a loose moment\'s find goes; an empty list or only missing ids change nothing', async () => {
       const db = await fresh();
-      await db.addCapture(capture('c1', 'a', 1));
-      await db.addCapture(capture('loose', null, 2));
+      await db.addMoment(momentOf(capture('c1', 'a', 1)));
+      await db.addMoment(momentOf(capture('loose', null, 2)));
       await db.addFind(find('f1', 'a', 'c1'));
       await db.addFind(find('f2', null, 'loose'));
-      await db.deleteCaptures([]);
-      await db.deleteCaptures(['missing']);
-      assert.equal((await db.getCapturesByIds(['c1', 'loose'])).length, 2);
-      await db.deleteCaptures(['c1'], { keepFinds: true });
-      assert.deepEqual(await db.getCaptures('a'), []);
+      await db.deleteMoments([]);
+      await db.deleteMoments(['missing']);
+      assert.equal((flats(await db.getMomentsByIds(['c1', 'loose']))).length, 2);
+      await db.deleteMoments(['c1'], { keepFinds: true });
+      assert.deepEqual(flats(await db.getMoments('a')), []);
       assert.deepEqual(keys(await db.listFinds()), ['f1', 'f2']);
-      await db.deleteCaptures(['loose']);
+      await db.deleteMoments(['loose']);
       assert.deepEqual(keys(await db.listFinds()), ['f1']);
     });
 
-    test('FC7 deleteCaptures: (web store as it is) a find filed under another walk than its capture\'s stays (SQLite deletes every find of the capture: a device check)', async () => {
+    test('FC7 deleteMoments: (web store as it is) a find filed under another walk than its moment\'s stays (SQLite deletes every find of the moment, MT11)', async () => {
       // The web store looks finds up by the deleted captures' walks; SQLite deletes by capture_id.
       // Finds are written with their capture's walk, so this only shows if a capture moves walk.
       const db = await fresh();
-      await db.addCapture(capture('c1', 'a', 1));
+      await db.addMoment(momentOf(capture('c1', 'a', 1)));
       await db.addFind(find('f1', 'other', 'c1'));
-      await db.deleteCaptures(['c1']);
-      assert.deepEqual(keys(await db.listFinds()), ['f1']);
+      await db.deleteMoments(['c1']);
+      assert.deepEqual(keys(await db.listFinds()), store === 'sqlite' ? [] : ['f1']);
     });
 
     // ---- pauses, stills, gaps
@@ -534,13 +530,13 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(ids(await db.getSegmentsIn([LON + 0.999, LAT - 0.01, LON + 1.01, LAT + 0.01])), ['far']);
     });
 
-    test('FC7 getSegmentsIn: (web store as it is) a piece is found by the tile of its centre, so a piece far longer than 200 m that only grazes the bounds is missed (SQLite compares each piece\'s box: a device check)', async () => {
+    test('FC7 getSegmentsIn: (web store as it is) a piece is found by the tile of its centre, so a piece far longer than 200 m that only grazes the bounds is missed (SQLite compares each piece\'s box, MT11)', async () => {
       // The web store files pieces under one z14 tile and reads the bounds' tiles widened by 250 m
       // (pieces are at most 200 m); SQLite compares each piece's box.
       const db = await fresh();
       const long: StreetSegment = { ...segment('long'), geometry: [[[LON + 0.009, LAT], [LON + 0.2, LAT]]] };
       await db.putSegments([long]);
-      assert.deepEqual(await db.getSegmentsIn(box), []);
+      assert.deepEqual(ids(await db.getSegmentsIn(box)), store === 'sqlite' ? ['long'] : []);
       assert.deepEqual(ids(await db.getSegmentsIn([LON + 0.09, LAT - 0.01, LON + 0.11, LAT + 0.01])), ['long']);
     });
 
@@ -566,11 +562,13 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
     test('FC7 saveSnap: the summary\'s moment counts are taken from the walk\'s capture rows as they stand; the rest is kept as given', async () => {
       const db = await fresh();
       await db.createWalk(walk('a', 1));
-      await db.addCapture(capture('p', 'a', 1, { kind: 'photo' }));
-      await db.addCapture(capture('v', 'a', 2, { kind: 'video' }));
-      await db.addCapture(capture('other', 'b', 3, { kind: 'photo' }));
+      await db.addMoment(momentOf(capture('p', 'a', 1, { kind: 'photo' })));
+      await db.addMoment(momentOf(capture('v', 'a', 2, { kind: 'video' })));
+      await db.addMoment(momentOf(capture('other', 'b', 3, { kind: 'photo' })));
       await db.saveSnap('a', [], [], summary('a', 'b1', { photos: 9, videos: 9, voices: 9, notes: 9, distance_m: 42 }));
-      assert.deepEqual(await db.listSummaries(), [summary('a', 'b1', { photos: 1, videos: 1, voices: 0, notes: 0, distance_m: 42 })]);
+      // SQLite's column gives a summary kept without a ride its default, 0 (MT11); the others keep it absent.
+      const ride = store === 'sqlite' ? { ride_m: 0 } : {};
+      assert.deepEqual(await db.listSummaries(), [summary('a', 'b1', { photos: 1, videos: 1, voices: 0, notes: 0, distance_m: 42, ...ride })]);
     });
 
     test('FC7 saveSnap: a walk deleted (or never made) gets nothing back: no segments, visited rows, summary or areas', async () => {
@@ -591,12 +589,12 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       await db.saveSnap('a', [], [], summary('a'), { areas: [area('Old'), area('Shared')], rows: [walkArea('a', 'Old'), walkArea('a', 'Shared')] });
       await db.saveSnap('b', [], [], summary('b'), { areas: [area('Shared')], rows: [walkArea('b', 'Shared')] });
       await db.saveSnap('a', [], [], summary('a'), { areas: [area('New')], rows: [walkArea('a', 'New')] });
-      assert.deepEqual(keys(await db.listAreas()), ['New', 'Shared']);
+      assert.deepEqual(keys(await db.listAreas()).sort(), ['New', 'Shared']);
       assert.deepEqual((await db.listWalkAreas()).map((r) => `${r.walk_id}:${r.area_key}`).sort(), ['a:New', 'b:Shared']);
       await db.saveSnap('a', [], [], summary('a'), null);
       await db.saveSnap('a', [], [], summary('a'));
       assert.deepEqual((await db.listWalkAreas()).map((r) => `${r.walk_id}:${r.area_key}`).sort(), ['a:New', 'b:Shared']);
-      assert.deepEqual(await db.listAreas(), [area('New'), area('Shared')].sort((x, y) => (x.key < y.key ? -1 : 1)));
+      assert.deepEqual((await db.listAreas()).sort((x, y) => (x.key < y.key ? -1 : 1)), [area('New'), area('Shared')].sort((x, y) => (x.key < y.key ? -1 : 1)));
       await db.saveSnap('a', [], [], summary('a'), { areas: [], rows: [] });
       assert.deepEqual(keys(await db.listAreas()), ['Shared']);
       assert.deepEqual((await db.listWalkAreas()).map((r) => r.walk_id), ['b']);
@@ -814,9 +812,9 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
     test('FC7 listThreads, applyThreads: puts, replaces and reads back threads, members and replies; deleting a thread keeps the moments and links (OT14, OT18)', async () => {
       const db = await fresh();
       await db.createWalk(walk('a', 1));
-      await db.addCapture(capture('m1', 'a', 10));
-      await db.addCapture(capture('m2', 'a', 20));
-      const before = await db.getCaptures('a');
+      await db.addMoment(momentOf(capture('m1', 'a', 10)));
+      await db.addMoment(momentOf(capture('m2', 'a', 20)));
+      const before = flats(await db.getMoments('a'));
       assert.deepEqual(await db.listThreads(), { threads: [], members: [], links: [] });
       await db.applyThreads({
         putThreads: [{ id: 't1', name: null, created_at: 1 }],
@@ -828,12 +826,12 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(got.threads, [{ id: 't1', name: 'Compliments', created_at: 1 }]);
       assert.equal(got.members.length, 2);
       assert.deepEqual(got.links, [{ from_id: 'm2', to_id: 'm1', created_at: 3 }]);
-      assert.deepEqual(await db.getCaptures('a'), before, 'linking never touches a moment\'s row');
+      assert.deepEqual(flats(await db.getMoments('a')), before, 'linking never touches a moment\'s row');
       await db.applyThreads({ deleteThreads: ['t1'] });
       const left = await db.listThreads();
       assert.deepEqual([left.threads, left.members], [[], []]);
       assert.equal(left.links.length, 1, 'a reply link is its own record');
-      assert.equal((await db.getCaptures('a')).length, 2, 'deleting a thread deletes no moment');
+      assert.equal((flats(await db.getMoments('a'))).length, 2, 'deleting a thread deletes no moment');
     });
 
     test('FC7 applyThreads: removing a member dissolves a thread left with fewer than two, name and all; a second thread of the moment stays (OT15)', async () => {
@@ -853,10 +851,10 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual((await db.listThreads()).threads.map((t) => t.id), ['b'], 'a thread put with one member never exists');
     });
 
-    test('FC7 deleteCaptures: takes the moments\' memberships and links, dissolves a thread left with fewer than two, leaves the other moments (OT16)', async () => {
+    test('FC7 deleteMoments: takes the moments\' memberships and links, dissolves a thread left with fewer than two, leaves the other moments (OT16)', async () => {
       const db = await fresh();
       await db.createWalk(walk('a', 1));
-      for (const id of ['m1', 'm2', 'm3']) await db.addCapture(capture(id, 'a', 10));
+      for (const id of ['m1', 'm2', 'm3']) await db.addMoment(momentOf(capture(id, 'a', 10)));
       await db.applyThreads({
         putThreads: [{ id: 't1', name: 'T', created_at: 1 }, { id: 't2', name: null, created_at: 1 }],
         putMembers: [
@@ -865,22 +863,22 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
         ],
         putLinks: [{ from_id: 'm2', to_id: 'm1', created_at: 1 }, { from_id: 'm3', to_id: 'm2', created_at: 1 }],
       });
-      await db.deleteCaptures(['m1']);
+      await db.deleteMoments(['m1']);
       const got = await db.listThreads();
       assert.deepEqual(got.threads.map((t) => t.id), ['t1'], 't2 had two moments and m1 went');
       assert.deepEqual(got.members.map((m) => m.moment_id).sort(), ['m2', 'm3']);
       assert.deepEqual(got.links, [{ from_id: 'm3', to_id: 'm2', created_at: 1 }], 'only the links touching m1 went');
-      assert.deepEqual((await db.getCaptures('a')).map((c) => c.id), ['m2', 'm3']);
+      assert.deepEqual((flats(await db.getMoments('a'))).map((c) => c.id), ['m2', 'm3']);
     });
 
     test('FC7 deleteWalk: takes its moments\' memberships and links, and dissolves the threads that leaves (OT17)', async () => {
       const db = await fresh();
       await db.createWalk(walk('a', 1));
       await db.createWalk(walk('b', 2));
-      await db.addCapture(capture('a1', 'a', 10));
-      await db.addCapture(capture('a2', 'a', 11));
-      await db.addCapture(capture('b1', 'b', 20));
-      await db.addCapture(capture('b2', 'b', 21));
+      await db.addMoment(momentOf(capture('a1', 'a', 10)));
+      await db.addMoment(momentOf(capture('a2', 'a', 11)));
+      await db.addMoment(momentOf(capture('b1', 'b', 20)));
+      await db.addMoment(momentOf(capture('b2', 'b', 21)));
       await db.applyThreads({
         putThreads: [{ id: 'x', name: null, created_at: 1 }, { id: 'y', name: null, created_at: 1 }],
         putMembers: [

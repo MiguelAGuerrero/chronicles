@@ -2,6 +2,7 @@
 // Replay rhythm (specs/replay-rhythm/spec.md, RR1-RR22), written before the code.
 // A replay is a story (what happened) told by a ceremony (how it is shown);
 // the rhythm is the first ceremony (decisions 0085, 0086).
+import { type Faced, facedOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { distanceM, dwellsOf, smoothDwells, splitAtGaps, stepToward } from '../../geo';
@@ -20,7 +21,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { OVERLAY_KINDS, type Ceremony, type Frame, type Story } from '../../ceremony/types';
 import type { Day } from '../../days';
-import type { Capture, LngLat, TracePoint } from '../../types';
+import type { LngLat, TracePoint } from '../../types';
 
 const O: LngLat = [-71.4, 41.812];
 const mLat = 1 / 111320;
@@ -51,11 +52,11 @@ function stand(p: LngLat, t0: number, ms: number, walkId = 'w'): TracePoint[] {
 const endT = (pts: TracePoint[]) => pts[pts.length - 1].t;
 
 let ids = 0;
-function cap(kind: Capture['kind'], t: number, p: LngLat | null, body: string | null = null, walkId: string | null = 'w'): Capture {
-  return { id: `c${++ids}`, walk_id: walkId, t, lat: p ? p[1] : null, lon: p ? p[0] : null, kind, file_path: kind === 'text' ? null : 'x', body, segment_id: null };
+function cap(kind: Faced['kind'], t: number, p: LngLat | null, body: string | null = null, walkId: string | null = 'w'): Faced {
+  return facedOf({ id: `c${++ids}`, walk_id: walkId, t, lat: p ? p[1] : null, lon: p ? p[0] : null, kind, file_path: kind === 'text' ? null : 'x', body, segment_id: null });
 }
 
-function input(fixes: TracePoint[], captures: Capture[], o: { id?: string; passed?: WalkInput['passed']; pauses?: { started_at: number; ended_at: number | null }[]; stays?: WalkInput['stays'] } = {}): WalkInput {
+function input(fixes: TracePoint[], captures: Faced[], o: { id?: string; passed?: WalkInput['passed']; pauses?: { started_at: number; ended_at: number | null }[]; stays?: WalkInput['stays'] } = {}): WalkInput {
   const id = o.id ?? 'w';
   const pauses = (o.pauses ?? []).map((p) => ({ walk_id: id, ...p }));
   return {
@@ -80,7 +81,7 @@ const D = at(900, 1200);
 const D2 = at(1200, 1200);
 
 /** A→B (600 m), ten minutes at B with a photo, B→C (1200 m), a 20-minute gap, D→D2 (300 m), a note at the end. */
-function sampleWalk(extra: Capture[] = [], passed: WalkInput['passed'] = []) {
+function sampleWalk(extra: Faced[] = [], passed: WalkInput['passed'] = []) {
   const ab = line(A, B, 0);
   const still = stand(B, endT(ab), 10 * MIN);
   const bc = line(B, C, endT(still));
@@ -233,7 +234,7 @@ test('RR4: laterLine says minutes and hours', () => {
 
 test('RR5: a plan over 60 s shrinks to fit, above its floors; memos and videos keep their length', () => {
   const pts: TracePoint[] = [];
-  const caps: Capture[] = [];
+  const caps: Faced[] = [];
   let t = 0;
   let x = 0;
   for (let i = 0; i < 40; i++) {
@@ -256,7 +257,7 @@ test('RR5: a plan over 60 s shrinks to fit, above its floors; memos and videos k
   assert.ok(plan(sampleWalk().story).total < R.cap / 2);
   // A walk that can fit is shrunk to fit, with room left above the floors (audit: the test above can't fit).
   const pts2: TracePoint[] = [];
-  const caps2: Capture[] = [];
+  const caps2: Faced[] = [];
   let t2 = 0;
   for (let i = 0; i < 20; i++) {
     const seg = line(at(i * 300, 0), at(i * 300 + 300, 0), t2);
@@ -301,7 +302,7 @@ test('RR8: the clock runs from arrival to leaving at a moment, with the walker b
 
 test('RR9: notes enter as the walker arrives, at most three, each out after 9 s or when pushed', () => {
   const pts: TracePoint[] = [];
-  const caps: Capture[] = [];
+  const caps: Faced[] = [];
   let t = 0;
   for (let i = 0; i < 6; i++) {
     const seg = line(at(i * 200, 0), at(i * 200 + 200, 0), t);
@@ -619,7 +620,7 @@ function jitterStand(p: LngLat, t0: number, ms: number): TracePoint[] {
   return out;
 }
 /** A walk's story input read from raw fixes the way loadReplay reads it (readTrace, smoothKept, smoothDwells, dwellsOf). */
-function asLoaded(raw: TracePoint[], captures: Capture[], pauses: { started_at: number; ended_at: number | null }[] = []): WalkInput {
+function asLoaded(raw: TracePoint[], captures: Faced[], pauses: { started_at: number; ended_at: number | null }[] = []): WalkInput {
   const ps = pauses.map((p) => ({ walk_id: 'w', ...p }));
   const tr = readTrace(raw, raw[0].t, ps, []);
   const walkedFixes = smoothDwells(tr.walked);
@@ -743,7 +744,7 @@ test('replay-rhythm audit 31: a rebuilt day telling keeps its place inside a loo
   const photo = cap('photo', 9 * 60 * MIN, at(-500, 0), null, null);
   const memo = cap('voice', 12 * 60 * MIN, A, '20000', null);
   const note = cap('text', 15 * 60 * MIN, B, 'Late', null);
-  const day = (caps: Capture[]): Day => ({ key: '2026-11-04', entries: caps.map((c) => ({ kind: 'moment', t: c.t, capture: c })), moments: caps.length, walks: 0 });
+  const day = (caps: Faced[]): Day => ({ key: '2026-11-04', entries: caps.map((c) => ({ kind: 'moment', t: c.t, capture: c })), moments: caps.length, walks: 0 });
   const before = rhythm.show(dayStory(day([photo, memo, note]), new Map()), { reduceMotion: false });
   let ms = 0;
   while (!before.frame(ms).overlays.some((o) => o.kind === 'bubble' && o.capture.id === memo.id)) ms += 20;

@@ -4,11 +4,12 @@
  * once from the walk's trace and captures. No timing, no look: a ceremony
  * decides how to tell it (decision 0086).
  */
+import type { Faced } from '../moment';
 import { distanceM } from '../geo';
 import { groupCaptures, timedRuns, traceUntil, walkerAt, type TimedRun } from '../replay';
 import type { Day } from '../days';
 import type { ReplayData } from '../summary';
-import type { Capture, LngLat } from '../types';
+import type { LngLat } from '../types';
 import type { Story, StoryEvent, StoryMoment, StoryPass, StoryPath } from './types';
 
 /** What a walk's story is read from: the replay's data, with where and when each passed place was passed. */
@@ -176,7 +177,7 @@ function span(p: StoryPath, a: number, b: number, out: StoryEvent[]) {
   });
 }
 
-const looseMoments = (captures: Capture[]): StoryMoment[] =>
+const looseMoments = (captures: Faced[]): StoryMoment[] =>
   groupCaptures(captures).map((g) => ({
     kind: 'moment',
     captures: g.captures,
@@ -288,7 +289,7 @@ export function walkStory(r: WalkInput): Story {
  */
 export function dayStory(day: Day, walks: Map<string, WalkInput | null>): Story {
   const b = builder();
-  let pending: Capture[] = [];
+  let pending: Faced[] = [];
   const flush = () => {
     for (const m of looseMoments(pending)) b.moment(m);
     pending = [];
@@ -312,13 +313,13 @@ export function dayStory(day: Day, walks: Map<string, WalkInput | null>): Story 
 }
 
 /** The story's moments in order, each its captures: the screen reader's way through (RR17, RR22). */
-export const storySteps = (s: Story): Capture[][] => s.events.flatMap((e) => (e.kind === 'moment' ? [e.captures] : []));
+export const storySteps = (s: Story): Faced[][] => s.events.flatMap((e) => (e.kind === 'moment' ? [e.captures] : []));
 
 /**
  * Where the screen reader's steps stand (audit 18): the same step, or the
  * next moment when the one showing was deleted, or null when none is left.
  */
-export function stepAt(steps: Capture[][], at: { step: number; item: number }): { step: number; item: number } | null {
+export function stepAt(steps: Faced[][], at: { step: number; item: number }): { step: number; item: number } | null {
   for (let step = at.step, item = at.item; step < steps.length; step++, item = 0) if (item < steps[step].length) return { step, item };
   return null;
 }

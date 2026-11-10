@@ -1,3 +1,4 @@
+import type { Faced } from '../lib/moment';
 import { useEffect, useRef, useState } from 'react';
 import {
   AccessibilityInfo, BackHandler, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View,
@@ -5,7 +6,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { feedback } from '../lib/motion';
 import type { LocateResult } from '../lib/locate/types';
-import type { Capture } from '../lib/types';
+
 import { useCaptures, type MomentState } from '../lib/useCaptures';
 import { Modal } from './Modal';
 import { EditOfferPill, useEditOffer } from './edit/EditOffer';
@@ -17,7 +18,7 @@ import { Button, LiftIn, theme } from './ui';
 const KIND_NAME = { photo: 'Photo', video: 'Video', voice: 'Voice memo', text: 'Note' } as const;
 
 /** What a moment's toast says once it is placed, or once no place came (M2). */
-function momentToast(kind: Capture['kind'], reason?: LocateResult['reason']): string {
+function momentToast(kind: Faced['kind'], reason?: LocateResult['reason']): string {
   const what = KIND_NAME[kind];
   if (!reason) return `${what} kept here`;
   return reason === 'denied' ? `${what} kept · No location (location is off)` : `${what} kept · No location`;
@@ -31,7 +32,7 @@ function momentToast(kind: Capture['kind'], reason?: LocateResult['reason']): st
 export function MomentBar(props: {
   disabled?: boolean;
   /** A moment was kept ('kept', at once), then placed or not. */
-  onMoment: (c: Capture, state: MomentState) => void;
+  onMoment: (c: Faced, state: MomentState) => void;
   onError: (e: { message: string; openSettings?: boolean }) => void;
   /** Reports whether a memo is recording, so the home can hide what would cut it short. */
   onRecording?: (on: boolean) => void;
@@ -74,7 +75,7 @@ export function CaptureRow(props: {
   const [noteOpen, setNoteOpen] = useState(false);
   // After a photo or video, Edit is offered for a few seconds (ME23).
   const editOffer = useEditOffer();
-  const [editingKept, setEditingKept] = useState<Capture | null>(null);
+  const [editingKept, setEditingKept] = useState<Faced | null>(null);
   const [note, setNote] = useState('');
   const recording = cap.voiceStartedAt != null;
   const { onRecording } = props;
@@ -180,7 +181,7 @@ export function CaptureRow(props: {
       />
 
       {editingKept && (
-        <MediaEditor key={editingKept.id} capture={editingKept} initialTool="crop" onClose={() => setEditingKept(null)} onSave={(patch) => cap.setEdit(editingKept.id, patch)} />
+        <MediaEditor key={editingKept.id} capture={editingKept} initialTool="crop" onClose={() => setEditingKept(null)} onSave={(patch) => cap.setEdit(editingKept, patch)} />
       )}
 
       <Modal visible={noteOpen} transparent animationType="fade" onRequestClose={() => setNoteOpen(false)}>

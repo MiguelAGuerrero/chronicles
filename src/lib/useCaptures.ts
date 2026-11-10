@@ -1,4 +1,5 @@
 // @layer view
+import { type Faced, faced, facedAll, facedOf } from './moment';
 import {
   RecordingPresets, requestRecordingPermissionsAsync, useAudioRecorder,
 } from 'expo-audio';
@@ -16,7 +17,7 @@ import type { LocateResult } from './locate/types';
 import { dropTemp, keepFile, removeMedia } from './media';
 import { makeThumb } from './media/thumb';
 import { captureThumbStillWanted, THUMB } from './thumbPlan';
-import type { Capture, CaptureKind, LngLat } from './types';
+import type { CaptureKind, LngLat, Moment } from './types';
 
 /** A fix older than this is not trusted as "where the capture was taken". */
 const FRESH_FIX_MS = 15_000;
@@ -81,7 +82,7 @@ export function useCaptures(
   onError?: (e: { message: string; openSettings?: boolean }) => void,
   opts: {
     loose?: boolean;
-    onMoment?: (c: Capture, state: MomentState) => void;
+    onMoment?: (c: Faced, state: MomentState) => void;
     /** Every moment this path keeps answers this one, and joins its thread (OT2); null when it answers nothing. */
     replyTo?: { answeredId: string; from?: string | null } | null;
   } = {},
@@ -95,7 +96,7 @@ export function useCaptures(
   useEffect(() => {
     replyTo.current = opts.replyTo ?? null;
   }, [opts.replyTo]);
-  const [captures, setCaptures] = useState<Capture[]>([]);
+  const [captures, setCaptures] = useState<Faced[]>([]);
   const [busy, setBusy] = useState<Busy>(null);
   const [voiceStartedAt, setVoiceStartedAt] = useState<number | null>(null);
   const errorCb = useRef(onError);
@@ -131,7 +132,7 @@ export function useCaptures(
         if (alive.current) setCaptures((prev) => applyPatch(prev, id, patch));
       },
     );
-    db.getCaptures(walkId).then((stored) => {
+    db.getMoments(walkId).then(facedAll).then((stored) => {
       if (alive.current) setCaptures((prev) => mergeCaptures(stored, prev));
     });
     return off;
@@ -158,11 +159,14 @@ export function useCaptures(
 
   async function add(kind: CaptureKind, stamp: Stamp, file_path: string | null, body: string | null): Promise<string | null> {
     if (!enabled) return null;
-    const c: Capture = {
-      id: newId(), walk_id: walkId, t: stamp.t, kind, file_path, body, segment_id: null,
-      lat: stamp.at?.[1] ?? null, lon: stamp.at?.[0] ?? null,
+    // A new moment and its first piece, under one id (decision 0106): its one place and time, the piece's media.
+    const id = newId();
+    const m: Moment = {
+      id, walk_id: walkId, t: stamp.t, lat: stamp.at?.[1] ?? null, lon: stamp.at?.[0] ?? null, segment_id: null,
+      pieces: [{ id, moment_id: id, t: stamp.t, kind, file_path, body }],
     };
-    await db.addCapture(c);
+    await db.addMoment(m);
+    const c = faced(m);
     // A reply is linked once it is kept; a failed link leaves the moment kept, unconnected (OT2).
     const answers = replyTo.current;
     if (answers) void threads.reply(c.id, answers.answeredId, answers.from ?? null).catch(() => {});
@@ -182,9 +186,9 @@ export function useCaptures(
    * A moment outside a walk is kept at once and placed when its one fix
    * arrives (M2), so a save never waits on GPS. No fix: it stays unplaced.
    */
-  function placeMoment(c: Capture, stamp: Stamp) {
+  function placeMoment(c: Faced, stamp: Stamp) {
     // In a walk, no fix leaves it for the trace to place at stop; nothing is reported.
-    const report = (x: Capture, state: MomentState) => {
+    const report = (x: Faced, state: MomentState) => {
       if (!walkId) onMoment.current?.(x, state);
     };
     if (c.lat != null || !stamp.locating) {
@@ -198,7 +202,7 @@ export function useCaptures(
           return;
         }
         const placed = { ...c, lon: r.at[0], lat: r.at[1] };
-        await db.updateCapture(c.id, { lon: placed.lon, lat: placed.lat });
+        await db.updateMoment(c.id, { lon: placed.lon, lat: placed.lat });
         if (alive.current) setCaptures((prev) => prev.map((x) => (x.id === c.id ? placed : x)));
         // The pin shown at the last position elsewhere moves too (NV9).
         if (walkId) captureBus.patch(walkId, c.id, { lon: placed.lon, lat: placed.lat }, self);
@@ -265,17 +269,17 @@ export function useCaptures(
       if (id) {
         kept = { kind: 'photo', id };
         // Its small copy for previews (TH1), after the capture is kept: never holds it up or fails it (TH2).
-        void makeThumb({ id, walk_id: folder(), t: Date.now(), lat: null, lon: null, kind: 'photo', file_path: path, body: null, segment_id: null }).then((thumb) => {
+        void makeThumb(facedOf({ id, walk_id: folder(), t: Date.now(), lat: null, lon: null, kind: 'photo', file_path: path, body: null, segment_id: null })).then((thumb) => {
           if (!thumb) return;
           // An Edit offer's Done may have stored the edited copy meanwhile: this one then stands down (media-editing audit 8).
-          void db.getCapturesByIds([id]).then(([row]) => {
+          void db.getMomentsByIds([id]).then(facedAll).then(([row]) => {
             if (!captureThumbStillWanted(row ?? null)) {
               if (thumb !== THUMB.none) void removeMedia([thumb]).catch(() => {});
               return;
             }
             if (alive.current) setCaptures((prev) => prev.map((x) => (x.id === id ? { ...x, thumb_path: thumb } : x)));
             // Stored first, then told: a walk screen mounting meanwhile either reads it or hears it (tabs audit 5).
-            void db.updateCapture(id, { thumb_path: thumb }).then(
+            void db.updatePiece(id, { thumb_path: thumb }).then(
               () => captureBus.patch(walkId, id, { thumb_path: thumb }, self),
               () => {},
             );
@@ -486,8 +490,10 @@ export function useCaptures(
    * A photo's or video's edits and caption, or its new small copy (ME21):
    * stored, shown here, then sent on the bus so the walk's other views show it.
    */
-  async function setEdit(id: string, patch: CapturePatch) {
-    await db.updateCapture(id, patch);
+  async function setEdit(c: Pick<Faced, 'id' | 'piece_id'>, patch: CapturePatch) {
+    const id = c.id;
+    // The edit is the piece's own; the screens show it on the moment (decision 0106).
+    await db.updatePiece(c.piece_id, patch);
     if (alive.current) setCaptures((prev) => applyPatch(prev, id, patch));
     captureBus.patch(walkId, id, patch, self);
   }
@@ -497,8 +503,9 @@ export function useCaptures(
    * walk's other views (the walk screen, Navigate's live walk) show it too.
    * Its find and reminder hang on its id, so they stay.
    */
-  async function setNote(id: string, body: string) {
-    await db.updateCapture(id, { body });
+  async function setNote(c: Pick<Faced, 'id' | 'piece_id'>, body: string) {
+    const id = c.id;
+    await db.updatePiece(c.piece_id, { body });
     if (alive.current) setCaptures((prev) => applyPatch(prev, id, { body }));
     captureBus.patch(walkId, id, { body }, self);
   }

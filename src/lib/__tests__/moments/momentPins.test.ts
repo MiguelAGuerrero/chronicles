@@ -1,10 +1,10 @@
 /// <reference types="node" />
+import { type Faced, facedOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { fitWithMoments, MOMENT_FRAME_M, placedMoments, upsertMoment } from '../../momentPins';
-import type { Capture } from '../../types';
 
-const cap = (id: string, o: Partial<Capture> = {}): Capture => ({
+const cap = (id: string, o: Partial<Faced> = {}): Faced => facedOf({
   id, walk_id: null, t: 1000, lat: 41.812, lon: -71.4, kind: 'text', file_path: null, body: 'A blue door', segment_id: null, ...o,
 });
 

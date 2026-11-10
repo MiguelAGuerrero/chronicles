@@ -1,13 +1,13 @@
 /// <reference types="node" />
+import { type Faced, facedOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { applyPatch, captureBus } from '../../captureBus';
 import { createMemoGate } from '../../memoGate';
 import { createLatestLoader } from '../../openWalkLoad';
 import { createWalkGate } from '../../walkGate';
-import type { Capture } from '../../types';
 
-const cap = (id: string, extra: Partial<Capture> = {}): Capture => ({
+const cap = (id: string, extra: Partial<Faced> = {}): Faced => facedOf({
   id, walk_id: 'w1', t: 1, kind: 'photo', file_path: `walks/w1/${id}.jpg`, body: null, segment_id: null, lat: 41.812, lon: -71.4, ...extra,
 });
 const tick = () => new Promise((r) => setTimeout(r, 0));
@@ -39,7 +39,7 @@ test('tabs audit 3: a save that fails still lets a walk start once the memo is o
 test('tabs audit 5: a thumbnail made by another path of the walk reaches the walk screen’s list', () => {
   const other = {};
   const screen = {};
-  let list: Capture[] = [cap('p1')];
+  let list: Faced[] = [cap('p1')];
   const off = captureBus.subscribe('w1', screen, () => {}, (id, patch) => (list = applyPatch(list, id, patch)));
   // The bar's camera made the copy after the photo's news went out, and after the bar itself was gone.
   captureBus.patch('w1', 'p1', { thumb_path: 'walks/w1/p1.thumb.jpg' }, other);

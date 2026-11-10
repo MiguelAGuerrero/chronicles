@@ -1,3 +1,4 @@
+import type { Faced } from '../../lib/moment';
 import {
   Camera, GeoJSONSource, Layer, Map, Marker, VectorSource, type CameraRef, type MapRef, type VectorSourceRef,
 } from '@maplibre/maplibre-react-native';
@@ -9,7 +10,7 @@ import { StripLabel } from '../LandingMarks';
 import { AreaPointView } from '../AreaPoint';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { RoadFeature } from '../../lib/streets';
-import type { Capture, LngLat } from '../../lib/types';
+import type { LngLat } from '../../lib/types';
 import { TILEJSON_URL } from '../../lib/tiles';
 import { metersPerPixel, pinReminded, pinThumb } from '../../lib/pins';
 import { useReminded } from '../../lib/useReminded';
@@ -592,7 +593,7 @@ function useDotLead(source: DotSource | null | undefined): LngLat | null {
   return source ? lead : null;
 }
 
-const NO_CAPTURES: Capture[] = [];
+const NO_CAPTURES: Faced[] = [];
 
 const markState = (p: { revealed: boolean; found?: boolean; faint?: boolean }) => `${p.revealed ? 'r' : ''}${p.found ? 'f' : ''}${p.faint ? 'w' : ''}`;
 const markFrom = (v: string | undefined) => (v == null ? undefined : { revealed: v.includes('r'), found: v.includes('f'), faint: v.includes('w') });

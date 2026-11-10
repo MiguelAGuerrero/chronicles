@@ -1,7 +1,8 @@
 // @layer shell
+import { type Faced, facedAll } from '../moment';
 import type { Ports } from '../ports/types';
 import { parseStartMode, START_MODE_KEY, type StartMode } from '../startPlan';
-import type { Capture, Walk } from '../types';
+import type { Walk } from '../types';
 
 /** Meta: the web's "keep this page open" note was dismissed (U9). */
 const WEB_NOTE_KEY = 'web_note_dismissed';
@@ -13,7 +14,7 @@ export type ReadyChoices = {
   firstWalk: boolean;
   webNoteOff: boolean;
   /** Every capture row (never media), for the moments' pins (M16); null if the read failed. */
-  captures: Capture[] | null;
+  captures: Faced[] | null;
 };
 
 /**
@@ -28,7 +29,7 @@ export function createReady(p: Pick<Ports, 'db' | 'recorder'>) {
         p.db.getMeta(START_MODE_KEY).catch(() => null),
         p.db.listWalks().catch(() => [] as Walk[]),
         p.db.getMeta(WEB_NOTE_KEY).catch(() => null),
-        p.db.capturesBetween(0, Number.MAX_SAFE_INTEGER).catch(() => null),
+        p.db.momentsBetween(0, Number.MAX_SAFE_INTEGER).then(facedAll).catch(() => null),
       ]);
       return { mode: parseStartMode(mode), firstWalk: walks.length === 0, webNoteOff: !!note, captures };
     },
@@ -36,6 +37,7 @@ export function createReady(p: Pick<Ports, 'db' | 'recorder'>) {
     dismissWebNote: () => p.db.setMeta(WEB_NOTE_KEY, '1'),
     /** Whether the recorder keeps tracing in the background (a phone), or only while the page is open (web). */
     background: () => p.recorder.capabilities.background,
-    saveNote: (id: string, body: string) => p.db.updateCapture(id, { body }),
+    /** A note's text is its piece's own (decision 0106). */
+    saveNote: (pieceId: string, body: string) => p.db.updatePiece(pieceId, { body }),
   };
 }

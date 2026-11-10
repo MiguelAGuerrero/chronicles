@@ -1,7 +1,8 @@
+import type { Faced } from '../../lib/moment';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { AccessibilityInfo, Pressable, StyleSheet, View } from 'react-native';
 import { stepAt } from '../../lib/ceremony/story';
-import type { Capture } from '../../lib/types';
+
 import { focusOn } from '../../lib/focus';
 import { CaptureContent } from '../CaptureView';
 import { KIND_LABEL } from '../icons';
@@ -19,10 +20,10 @@ const AUTO_MS = 4000;
  * re-watch moves on by itself (0004 still holds here).
  */
 export function StepThrough(props: {
-  steps: Capture[][];
+  steps: Faced[][];
   auto: boolean;
   onDone: () => void;
-  footer?: (c: Capture) => string | null;
+  footer?: (c: Faced) => string | null;
   hint: string;
   testID: string;
   topInset: number;

@@ -1,3 +1,4 @@
+import { facedAll, momentOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
@@ -38,8 +39,9 @@ test('OT20: nothing about a thread can leave the device: no network, share, expo
 });
 
 test('OT21: the stores are added by a new migration (SQLite, IndexedDB 17) and the earlier ones are left alone', () => {
-  const native = readFileSync(join(LIB, 'db', 'index.native.ts'), 'utf8');
-  const block = native.slice(native.indexOf('const MIGRATIONS = ['), native.indexOf('\n];', native.indexOf('const MIGRATIONS = [')));
+  // The native store's migrations moved to their own module with the moment table (decision 0106).
+  const native = readFileSync(join(LIB, 'db', 'migrations.ts'), 'utf8');
+  const block = native.slice(native.indexOf('const MIGRATIONS'), native.indexOf('\n];', native.indexOf('const MIGRATIONS')));
   const entries = block.split(/^  `\n/m).slice(1);
   const mine = entries.findIndex((e) => /CREATE TABLE thread\b/.test(e));
   assert.ok(mine >= 20, 'the threads migration is added after the 20 that existed, never among them');
@@ -53,10 +55,10 @@ test('OT21: the stores are added by a new migration (SQLite, IndexedDB 17) and t
 test('OT24: a reply is placed by its own capture, never from the moment it answers; its row names the answered place', async () => {
   const ports = fakePorts();
   const threads = createThreads(ports, { schedule: () => {} });
-  await ports.db.addCapture({ id: 'orig', walk_id: null, t: 1, lat: 41.8, lon: -71.4, kind: 'text', file_path: null, body: 'a', segment_id: null });
-  await ports.db.addCapture({ id: 'home', walk_id: null, t: 9, lat: 40.0, lon: -73.0, kind: 'text', file_path: null, body: 'b', segment_id: null });
+  await ports.db.addMoment(momentOf({ id: 'orig', walk_id: null, t: 1, lat: 41.8, lon: -71.4, kind: 'text', file_path: null, body: 'a', segment_id: null }));
+  await ports.db.addMoment(momentOf({ id: 'home', walk_id: null, t: 9, lat: 40.0, lon: -73.0, kind: 'text', file_path: null, body: 'b', segment_id: null }));
   assert.equal(await threads.reply('home', 'orig'), true);
-  const [reply] = await ports.db.getCapturesByIds(['home']);
+  const [reply] = await ports.db.getMomentsByIds(['home']).then(facedAll);
   assert.deepEqual([reply.lat, reply.lon], [40.0, -73.0], 'the reply keeps where it was written');
   assert.match(answeringLine({ place: 'Providence', t: new Date(2026, 9, 20).getTime(), walkLine: null }, Date.now()), /Providence/);
 });

@@ -1,10 +1,10 @@
 // @layer view
+import type { Faced } from './moment';
 import { useEffect, useState } from 'react';
 import { releaseMedia, resolveMedia } from './media';
-import type { Capture } from './types';
 
 /** Resolves a capture's stored media to a URI it can be shown or played from. */
-export function useMediaUri(capture: Capture | null): string | null {
+export function useMediaUri(capture: Faced | null): string | null {
   const [uri, setUri] = useState<string | null>(null);
   useEffect(() => {
     let alive = true;

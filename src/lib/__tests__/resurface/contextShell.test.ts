@@ -1,9 +1,10 @@
 /// <reference types="node" />
+import { type Faced, facedOf, momentOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { EMPTY_PREFS } from '../../resurface/prefs';
 import { createResurface } from '../../resurface/shell';
-import type { Capture, StreetSegment, Walk } from '../../types';
+import type { StreetSegment, Walk } from '../../types';
 import { fakePorts } from '../fakes';
 import { at, NOW } from './fixtures';
 
@@ -15,7 +16,7 @@ const START = at(2026, 10, 20) - 5 * 3600_000; // 07:00 local that day
 const MIN = 60_000;
 const walk: Walk = { id: 'w1', started_at: START, ended_at: START + 3600_000, title: null, epilogue: null, open: false, area: 'Fox Point', snapped_build: null };
 const seg = (id: string, name: string | null, lon: number, lat: number): StreetSegment => ({ id, name, kind_detail: 'residential', length_m: 100, geometry: [[[lon - 0.001, lat], [lon + 0.001, lat]]], build: 'b' });
-const cap = (id: string, minutesIn: number, o: Partial<Capture> = {}): Capture => ({
+const cap = (id: string, minutesIn: number, o: Partial<Faced> = {}): Faced => facedOf({
   id, walk_id: 'w1', t: START + minutesIn * MIN, lat: 41.8, lon: -71.4, kind: 'text', file_path: null, body: `harbor ${id}`, segment_id: 's1', ...o,
 });
 
@@ -26,7 +27,7 @@ async function seeded() {
   // a pause of 10 minutes between minute 20 and 30
   await p.db.startPause('w1', START + 20 * MIN);
   await p.db.endPause('w1', START + 30 * MIN);
-  for (const c of [cap('m1', 5), cap('m2', 12, { kind: 'photo', file_path: 'f', body: null, caption: 'x' }), cap('m3', 40), cap('m4', 45, { segment_id: null, lat: 41.9, lon: -71.5 })]) await p.db.addCapture(c);
+  for (const c of [cap('m1', 5), cap('m2', 12, { kind: 'photo', file_path: 'f', body: null, caption: 'x' }), cap('m3', 40), cap('m4', 45, { segment_id: null, lat: 41.9, lon: -71.5 })]) await p.db.addMoment(momentOf(c));
   const r = createResurface(p) as Any;
   await r.load();
   return { p, r };
@@ -157,7 +158,7 @@ test('MC5: after a delete, a neighbour is read again, so a deleted capture is ne
   const { p, r } = await seeded();
   await r.contextFor(['m2']);
   assert.match(ctxOf(r, 'm2').line, /after a note$/);
-  await p.db.deleteCaptures(['m1']);
+  await p.db.deleteMoments(['m1']);
   await r.refresh();
   assert.equal(ctxOf(r, 'm2'), undefined, 'its cached line named the capture that is gone');
   await r.contextFor(['m2']);

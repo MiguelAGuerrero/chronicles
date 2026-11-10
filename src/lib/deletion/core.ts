@@ -1,4 +1,5 @@
 // @layer core
+import type { Faced } from '../moment';
 import { THUMB } from '../thumbPlan';
 import type { Capture, CaptureKind, WalkSummary } from '../types';
 
@@ -26,6 +27,11 @@ export function filesOf(captures: Pick<Capture, 'file_path' | 'thumb_path'>[]): 
     }
   }
   return out;
+}
+
+/** Every piece's files of a set of moments (MT6, decision 0106): what deleting them takes. */
+export function filesOfMoments(moments: { pieces: Pick<Capture, 'file_path' | 'thumb_path'>[] }[]): string[] {
+  return filesOf(moments.flatMap((m) => m.pieces));
 }
 
 /** Streets are counted by name (the owner's call): an unnamed path's key is its segment id, never a street. */
@@ -63,13 +69,13 @@ export function recountNewStreets(
 }
 
 /** A walk's moment counts, from its capture rows (D9, audit 3): never by subtraction. */
-export function countsOf(captures: Pick<Capture, 'kind'>[]): Pick<WalkSummary, 'photos' | 'videos' | 'voices' | 'notes'> {
+export function countsOf(captures: Pick<Faced, 'kind'>[]): Pick<WalkSummary, 'photos' | 'videos' | 'voices' | 'notes'> {
   const n = (k: CaptureKind) => captures.filter((c) => c.kind === k).length;
   return { photos: n('photo'), videos: n('video'), voices: n('voice'), notes: n('text') };
 }
 
 /** The walk's counts without the removed moments (D9); the walk's own numbers stay. */
-export function summaryLess(s: WalkSummary, removed: Pick<Capture, 'kind'>[]): WalkSummary {
+export function summaryLess(s: WalkSummary, removed: Pick<Faced, 'kind'>[]): WalkSummary {
   const n = (k: CaptureKind) => removed.filter((c) => c.kind === k).length;
   const less = (have: number | undefined, k: CaptureKind) => Math.max(0, (have ?? 0) - n(k));
   return { ...s, photos: less(s.photos, 'photo'), videos: less(s.videos, 'video'), voices: less(s.voices, 'voice'), notes: less(s.notes, 'text') };

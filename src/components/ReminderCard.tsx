@@ -1,6 +1,7 @@
+import type { Faced } from '../lib/moment';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { reminderText } from '../lib/discovery/recall';
-import type { Capture } from '../lib/types';
+
 import { thumbShown } from '../lib/thumbPlan';
 import { useMediaUri } from '../lib/useMediaUri';
 import { Icon } from './icons';
@@ -11,7 +12,7 @@ import { theme } from './ui';
  * or "Voice memo, Oct 20". Open shows it in the viewer, where a memo or video
  * plays; two or more in reach are one card, "2 memories here" (R7).
  */
-export function ReminderCard(props: { captures: Capture[]; onOpen: () => void; onDismiss: () => void }) {
+export function ReminderCard(props: { captures: Faced[]; onOpen: () => void; onDismiss: () => void }) {
   const text = reminderText(props.captures);
   const photo = props.captures.length === 1 && props.captures[0].kind === 'photo' ? props.captures[0] : null;
   // Its small copy when there is one (audit 8), else the photo as before.

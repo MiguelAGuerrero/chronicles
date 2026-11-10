@@ -59,7 +59,7 @@ async function seedWeb17() {
 let n = 0;
 const openWeb = async () => ((await import(`../../db/index.web.ts?upgrade=${++n}` as string)) as { db: Planned }).db;
 
-test('MT1: a version-17 IndexedDB upgrades to one-piece moments under the same ids', { todo: 'test first' }, async () => {
+test('MT1: a version-17 IndexedDB upgrades to one-piece moments under the same ids', async () => {
   await seedWeb17();
   const db = await openWeb();
   assert.deepEqual(await db.getMoments('w1'), [asMoment(OLD_CAPTURES[0]), asMoment(OLD_CAPTURES[1])]);
@@ -70,7 +70,7 @@ test('MT1: a version-17 IndexedDB upgrades to one-piece moments under the same i
   d.close();
 });
 
-test('MT1: the frozen version-17 schema is the store\'s own steps up to 17', { todo: 'test first' }, async () => {
+test('MT1: the frozen version-17 schema is the store\'s own steps up to 17', async () => {
   const shape = async (run: (d: IDBDatabase, tx: IDBTransaction, old: number) => void) => {
     (globalThis as { indexedDB: IDBFactory }).indexedDB = new IDBFactory();
     const open = indexedDB.open('chronicles', 17);
@@ -100,7 +100,7 @@ async function sqliteAt22(): Promise<{ d: Sqlite; MIGRATIONS: string[] }> {
   return { d, MIGRATIONS };
 }
 
-test('MT1: SQLite migration 22 turns every capture into a one-piece moment (node:sqlite)', { todo: 'test first' }, async () => {
+test('MT1: SQLite migration 22 turns every capture into a one-piece moment (node:sqlite)', async () => {
   const { d, MIGRATIONS } = await sqliteAt22();
   const put = d.prepare('INSERT INTO capture (id, walk_id, t, lat, lon, kind, file_path, body, segment_id, caption, caption_y, thumb_path, edit) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)');
   for (const c of OLD_CAPTURES) put.run(c.id, c.walk_id, c.t, c.lat, c.lon, c.kind, c.file_path, c.body, c.segment_id, c.caption, c.caption_y, c.thumb_path, c.edit);
@@ -113,7 +113,7 @@ test('MT1: SQLite migration 22 turns every capture into a one-piece moment (node
   assert.equal(MIGRATIONS.length, 23);
 });
 
-test('MT1: no earlier SQLite migration changed', { todo: 'test first' }, async () => {
+test('MT1: no earlier SQLite migration changed', async () => {
   const { MIGRATIONS } = (await import('../../db/migrations' + '')) as { MIGRATIONS: string[] };
   const hashes = MIGRATIONS.slice(0, 22).map((m) => createHash('sha256').update(m).digest('hex').slice(0, 12));
   assert.deepEqual(hashes, [
@@ -123,7 +123,7 @@ test('MT1: no earlier SQLite migration changed', { todo: 'test first' }, async (
   ]);
 });
 
-test('MT2: threads, links, reminders, finds and the resurfaced card\'s state reach the same moments after the upgrade', { todo: 'test first' }, async () => {
+test('MT2: threads, links, reminders, finds and the resurfaced card\'s state reach the same moments after the upgrade', async () => {
   await seedWeb17();
   const db = await openWeb();
   const reach = async (ids: string[]) => (await db.getMomentsByIds(ids)).map((m) => m.id).sort();

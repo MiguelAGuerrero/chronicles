@@ -1,3 +1,4 @@
+import type { Faced } from '../../lib/moment';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -14,7 +15,7 @@ import { onRecallOpen, recallWaiting, takeRecallOpen } from '../../lib/discovery
 import { useOpenWalkInfo } from '../OpenWalk';
 import { UndoToast } from '../UndoToast';
 import { useStore } from '../../lib/useStore';
-import type { Capture } from '../../lib/types';
+
 import { showWalk } from '../../lib/walkNav';
 import { CaptureViewer } from '../CaptureView';
 import { Icon } from '../icons';
@@ -86,12 +87,12 @@ export function MemoriesScreen() {
       void resurface.refresh();
     });
   }, []);
-  const [viewing, setViewing] = useState<Capture[] | null>(null);
+  const [viewing, setViewing] = useState<Faced[] | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [hiddenOpen, setHiddenOpen] = useState(false);
   // A reminder tapped with no walk open lands on Chronicle and opens its capture at once (NV13), as the map's
   // screen does; with a walk open, the walk screen opens it and this declines. Until the keeper knows, it declines.
-  const [recalled, setRecalled] = useState<Capture[] | null>(null);
+  const [recalled, setRecalled] = useState<Faced[] | null>(null);
   const openInfo = useOpenWalkInfo();
   const openRef = useRef(openInfo);
   useEffect(() => {
@@ -122,7 +123,7 @@ export function MemoriesScreen() {
           showWalk();
           return;
         }
-        const found = open ? [] : await takeRecallOpen().catch(() => [] as Capture[]);
+        const found = open ? [] : await takeRecallOpen().catch(() => [] as Faced[]);
         if (live && found.length) setRecalled(found);
       })().catch(() => {});
       return () => {

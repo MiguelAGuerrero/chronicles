@@ -1,3 +1,4 @@
+import type { Faced } from '../../lib/moment';
 import type { BorderView } from '../../lib/areas/borders';
 import type { WalkTint } from '../../lib/walk/tint';
 import type { DotSource } from '../../lib/liveDot';
@@ -10,7 +11,7 @@ import type { RoadFeature } from '../../lib/streets';
 import { useMemo } from 'react';
 import { metersPerPixel, PIN_GROUP_PX, pinsFor, type CapturePin } from '../../lib/pins';
 import type { Star } from '../../lib/places';
-import type { Capture, LngLat, StreetSegment } from '../../lib/types';
+import type { LngLat, StreetSegment } from '../../lib/types';
 
 export const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
 /** OpenMapTiles tops out at z14; road detail is only complete from there. */
@@ -84,17 +85,17 @@ export interface WalkMapProps {
    * Captures to pin where they were taken. The map groups them itself, by
    * screen distance at its current zoom, so nearby pins never pile up.
    */
-  captures: Capture[];
+  captures: Faced[];
   /** Called when the person pans, zooms or rotates the map themselves. */
   onUserMove?: () => void;
   /** The map's bearing in degrees from north, when it changes by more than half a degree (CP2). */
   onBearingChange?: (bearing: number) => void;
   /** Opens a pin's captures; without it, pins are shown but not pressable. */
-  onPinPress?: (captures: Capture[]) => void;
+  onPinPress?: (captures: Faced[]) => void;
   /** Captures from earlier walks nearby, drawn as faint pins (Memories on revisit, MR1-MR3). */
-  memories?: Capture[];
+  memories?: Faced[];
   /** A memory pin was tapped, with its group's captures and where it sits. */
-  onMemoryPress?: (captures: Capture[], at: LngLat) => void;
+  onMemoryPress?: (captures: Faced[], at: LngLat) => void;
   /** Places walked, drawn as stars (the home map); the caller picks them for the zoom. */
   stars?: Star[];
   onStarPress?: (star: Star) => void;
@@ -321,7 +322,7 @@ export const WORLD_VEIL: GeoJSON.FeatureCollection = {
  * Pins for the map's current zoom. The zoom is rounded to half levels, so
  * pins regroup when the view zooms, not on every camera move.
  */
-export function useZoomPins(captures: Capture[], zoom: number | null, lat: number | null): CapturePin[] {
+export function useZoomPins(captures: Faced[], zoom: number | null, lat: number | null): CapturePin[] {
   const z = zoom == null ? 16 : Math.round(zoom * 2) / 2;
   const at = lat ?? captures.find((c) => c.lat != null)?.lat ?? 0;
   const latBucket = Math.round(at);

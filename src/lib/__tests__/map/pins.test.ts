@@ -1,14 +1,15 @@
 /// <reference types="node" />
+import { type Faced, facedOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { metersPerPixel, PIN_GROUP_PX, pinsFor } from '../../pins';
-import type { Capture } from '../../types';
+
 import { at, O } from '../foxPoint';
 
 // Capture pins on the map, grouped by screen distance (.claude/rules/map.md).
 
 test('pins: grouped by screen distance at the zoom, joining the nearest pin', () => {
-  const cap = (id: string, x: number, kind: Capture['kind'], t = 0): Capture => ({
+  const cap = (id: string, x: number, kind: Faced['kind'], t = 0): Faced => facedOf({
     id, walk_id: 'w', t, lat: at(x, 0)[1], lon: at(x, 0)[0], kind, file_path: null, body: null, segment_id: null,
   });
   const caps = [cap('a', 0, 'photo'), cap('b', 0.1, 'photo', 5), cap('c', 0.15, 'voice', 9), cap('d', 2, 'text', 20)];

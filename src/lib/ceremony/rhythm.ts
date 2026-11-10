@@ -7,11 +7,12 @@
  * photos and videos cards that tuck into a pile, passed places whisper by,
  * and a clock rolls with the walker. Every number is in REPLAY_RHYTHM.
  */
+import type { Faced } from '../moment';
 import { passedLine } from '../explore/explore';
 import { distanceM } from '../geo';
 import { REPLAY_RHYTHM as R } from '../motionTokens';
 import { GAP_MS } from '../replay';
-import type { Capture, LngLat } from '../types';
+import type { LngLat } from '../types';
 import { easeInOut, easeOut } from './ease';
 import { positionAt, timeAtMetres } from './story';
 import type {
@@ -27,7 +28,7 @@ const lerpAt = (a: LngLat | null, b: LngLat | null, u: number): LngLat | null =>
 
 export type SlotKind = 'note' | 'memo' | 'photo' | 'video';
 export interface Slot {
-  capture: Capture;
+  capture: Faced;
   kind: SlotKind;
   t0: number;
   t1: number;
@@ -53,8 +54,8 @@ export interface RhythmPlan {
   total: number;
   segs: Seg[];
   reduceMotion: boolean;
-  bubbles: { capture: Capture; ta: number; exitAt: number; len: number }[];
-  cards: { capture: Capture; t0: number; t1: number; len: number; from: LngLat | null }[];
+  bubbles: { capture: Faced; ta: number; exitAt: number; len: number }[];
+  cards: { capture: Faced; t0: number; t1: number; len: number; from: LngLat | null }[];
   whispers: { key: string; text: string; at: LngLat; tw: number }[];
   lines: { t0: number; t1: number; text: string }[];
   /** For each path, the index of its last segment: past it, the path is drawn whole. */
@@ -78,9 +79,9 @@ export function notePause(text: string | null): number {
   return Math.min(R.noteMax, R.note + Math.ceil((words - R.noteWords) / 5) * R.notePerFive);
 }
 
-const slotKind = (c: Capture): SlotKind => (c.kind === 'text' ? 'note' : c.kind === 'voice' ? 'memo' : c.kind);
-const mediaLen = (c: Capture) => Math.max(R.mediaMin, Number(c.body) || 0);
-function slotDur(c: Capture): number {
+const slotKind = (c: Faced): SlotKind => (c.kind === 'text' ? 'note' : c.kind === 'voice' ? 'memo' : c.kind);
+const mediaLen = (c: Faced) => Math.max(R.mediaMin, Number(c.body) || 0);
+function slotDur(c: Faced): number {
   switch (slotKind(c)) {
     case 'note': return notePause(c.body);
     case 'memo': return mediaLen(c) + R.mediaTail;
@@ -352,7 +353,7 @@ export function rhythmFrame(plan: RhythmPlan, ms: number): Frame {
       progress: b.len > 0 ? clamp01((ms - b.ta) / b.len) : 0,
     });
   }
-  const pile: Capture[] = [];
+  const pile: Faced[] = [];
   for (const c of plan.cards) {
     if (ms >= c.t1) {
       pile.push(c.capture);

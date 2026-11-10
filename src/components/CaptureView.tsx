@@ -1,3 +1,4 @@
+import type { Faced } from '../lib/moment';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { forwardRef, useEffect, useRef, useState, type ComponentRef } from 'react';
 import { HANDOFF_HINT } from '../lib/nav/openInMaps';
@@ -11,7 +12,7 @@ import { notifier } from '../lib/notify';
 import type { Recall } from '../lib/discovery/types';
 import { dropBaked, KeeperError, saveKeeper } from '../lib/export';
 import { probeVideoSize, releaseMedia, resolveMedia } from '../lib/media';
-import type { Capture } from '../lib/types';
+
 import { useMediaUri } from '../lib/useMediaUri';
 import { useBaker } from './Baker';
 import { EditedPhoto } from './edit/EditedPhoto';
@@ -38,7 +39,7 @@ import { theme } from './ui';
 
 export { useMediaUri };
 
-const timeOf = (c: Capture) => new Date(c.t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+const timeOf = (c: Faced) => new Date(c.t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
 /** A refused memo in a replay that moves on by itself waits this long, as a photo does. */
 const REFUSED_MOVE_ON_MS = 4000;
@@ -113,7 +114,7 @@ function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () =
  * or voice memo sits in a card over whatever is behind it.
  */
 export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
-  capture: Capture;
+  capture: Faced;
   autoPlay?: boolean;
   onVoiceFinished?: () => void;
   footer?: string;
@@ -217,7 +218,7 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
  * pin they open, so it always starts on that pin's first capture.
  */
 export function CaptureViewer(props: {
-  captures: Capture[] | null;
+  captures: Faced[] | null;
   onClose: () => void;
   /** Extra words per capture, e.g. which walk it came from. */
   context?: Map<string, string>;
@@ -228,13 +229,13 @@ export function CaptureViewer(props: {
    * viewer. Stores a change to the capture: its edits and caption, then its
    * new small copy.
    */
-  onSaveEdit?: (c: Capture, patch: CapturePatch) => Promise<void>;
+  onSaveEdit?: (c: Faced, patch: CapturePatch) => Promise<void>;
   /** Offers "Edit note" on notes (QL24); the editor opens inside the viewer. */
-  onSaveNote?: (c: Capture, body: string) => Promise<void>;
+  onSaveNote?: (c: Faced, body: string) => Promise<void>;
   /** Offers navigating to where the capture was taken (during a walk). */
-  onGoHere?: (c: Capture) => void;
+  onGoHere?: (c: Faced) => void;
   /** Open in Maps (NH6): hands the capture's place to the phone's maps app, from the More menu. */
-  onOpenInMaps?: (c: Capture) => void;
+  onOpenInMaps?: (c: Faced) => void;
   /** Offers "Remind me here" (v1, R1); the viewer reads and writes the flags itself. */
   remind?: boolean;
   /** The open walk, if any: a flag set during it waits for the next walk (audit). */
@@ -246,25 +247,25 @@ export function CaptureViewer(props: {
 }) {
   const insets = useSafeAreaInsets();
   const [index, setIndex] = useState(0);
-  const [editing, setEditing] = useState<Capture | null>(null);
+  const [editing, setEditing] = useState<Faced | null>(null);
   const editor = useRef<MediaEditorHandle>(null);
   // Edits saved here show at once, whether or not the caller's list hears of it (ME21).
   const [patched, setPatched] = useState<Map<string, CapturePatch>>(() => new Map());
-  const [noting, setNoting] = useState<Capture | null>(null);
+  const [noting, setNoting] = useState<Faced | null>(null);
   // Notes edited here show their new text at once, whether or not the
   // caller's list hears of it (QL25).
   const [edited, setEdited] = useState<Map<string, string>>(() => new Map());
   // What was deleted (D3, D5) leaves the viewer at once.
   const list = useVisible(props.captures);
-  const [deleting, setDeleting] = useState<{ capture: Capture; text: ConfirmText } | null>(null);
+  const [deleting, setDeleting] = useState<{ capture: Faced; text: ConfirmText } | null>(null);
   const [menu, setMenu] = useState(false);
   // Add to a thread (OT5): the picker is drawn inside this Modal.
-  const [adding, setAdding] = useState<Capture | null>(null);
+  const [adding, setAdding] = useState<Faced | null>(null);
   // The reply note being written, for the moment it answers: Back and Escape close it before the viewer (owner-threads audit 9).
   const [composeFor, setComposeFor] = useState<string | null>(null);
   // Remind me here: the flags of the captures shown, read when the viewer opens.
   const [recalls, setRecalls] = useState<Map<string, Recall>>(() => new Map());
-  const [reminding, setReminding] = useState<Capture | null>(null);
+  const [reminding, setReminding] = useState<Faced | null>(null);
   const listKey = list.map((c) => c.id).join(',');
   useEffect(() => {
     if (!props.remind || !listKey) return;
@@ -284,7 +285,7 @@ export function CaptureViewer(props: {
     const t = setTimeout(() => setSaveState(null), 3000);
     return () => clearTimeout(t);
   }, [saveState]);
-  const saveCurrent = async (c: Capture) => {
+  const saveCurrent = async (c: Faced) => {
     if (saveState?.busy) return;
     setSaveState({ id: c.id, text: 'Saving…', busy: true });
     let source: string | null = null;
@@ -336,7 +337,7 @@ export function CaptureViewer(props: {
     setMenu(false);
     props.onClose();
   };
-  const askDelete = (c: Capture) => {
+  const askDelete = (c: Faced) => {
     planMoment(c).then(
       (text) => setDeleting({ capture: c, text }),
       () => setDeleting({ capture: c, text: momentDeleteText(c.kind, 0) }),

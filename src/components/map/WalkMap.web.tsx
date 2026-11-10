@@ -1,3 +1,4 @@
+import type { Faced } from '../../lib/moment';
 import { AttributionControl, Map as MapLibreMap, Marker, setWorkerUrl, type GeoJSONFeature, type MapMouseEvent, type MapTouchEvent } from 'maplibre-gl';
 // @ts-expect-error: a CSS side-effect import, which Metro bundles on web.
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -16,7 +17,7 @@ import { scaleBar } from '../../lib/scaleBar';
 import { traceEnds } from '../../lib/traceEnds';
 import type { RoadFeature } from '../../lib/streets';
 import { ScaleBar, SCALE_MAX_PX } from './ScaleBar';
-import type { Capture, LngLat } from '../../lib/types';
+import type { LngLat } from '../../lib/types';
 import { distanceM } from '../../lib/geo';
 import { arrowSwipe, swipeOf, zoomStart } from '../../lib/atlas/snap';
 import { useGlideFrames, type GlideFrame } from '../../lib/useGlidingWalker';
@@ -1030,7 +1031,7 @@ const styles = StyleSheet.create({
   cover: { ...StyleSheet.absoluteFill, backgroundColor: COLORS.veil },
 });
 
-const NO_CAPTURES: Capture[] = [];
+const NO_CAPTURES: Faced[] = [];
 
 /**
  * A layer of capture-style pins as DOM markers. Clicks look the pin up by id

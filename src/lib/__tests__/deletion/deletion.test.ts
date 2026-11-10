@@ -1,11 +1,12 @@
 /// <reference types="node" />
+import { type Faced, facedOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
   countsOf, filesOf, isMedia, isNamedStreet, mediaRemoveText, momentDeleteText, recountNewStreets, sizeText, summaryLess, toastText, walkDeleteText,
 } from '../../deletion/core';
 import { createPending, type PendingJob } from '../../deletion/pending';
-import type { Capture, WalkSummary } from '../../types';
+import type { WalkSummary } from '../../types';
 
 // A clock the tests drive by hand.
 function fakeTimers() {
@@ -173,7 +174,7 @@ const summary: WalkSummary = {
   walk_id: 'w', build: 'b', distance_m: 1200, duration_ms: 600_000, new_streets: 3, streets_walked: 5,
   photos: 3, videos: 1, voices: 2, notes: 1, streets_read: true,
 };
-const cap = (id: string, kind: Capture['kind'], extra: Partial<Capture> = {}): Capture => ({
+const cap = (id: string, kind: Faced['kind'], extra: Partial<Faced> = {}): Faced => facedOf({
   id, walk_id: 'w', t: 0, lat: null, lon: null, kind, file_path: kind === 'text' ? null : `walks/w/${id}.x`, body: null, segment_id: null, ...extra,
 });
 
@@ -193,7 +194,7 @@ test('audit 3: counts come from the capture rows', () => {
 });
 
 test('D2: only photos, videos and memos are media', () => {
-  assert.deepEqual(['photo', 'video', 'voice', 'text'].map((k) => isMedia({ kind: k as Capture['kind'] })), [true, true, true, false]);
+  assert.deepEqual(['photo', 'video', 'voice', 'text'].map((k) => isMedia({ kind: k as Faced['kind'] })), [true, true, true, false]);
 });
 
 test('D3: a moment\'s files are its media and its thumbnail; markers and inline data are not files', () => {
@@ -257,8 +258,8 @@ test('audit 10: a failure of an earlier delete is kept beside the newer one\'s U
   assert.equal(p.state().error, "Couldn't delete. Try again.", 'and A\'s failure is still there to show');
 });
 
-test('MT6: a moment\'s files are every piece\'s media and small copy', { todo: 'test first' }, async () => {
-  type Piece = Pick<Capture, 'file_path' | 'thumb_path'>;
+test('MT6: a moment\'s files are every piece\'s media and small copy', async () => {
+  type Piece = Pick<Faced, 'file_path' | 'thumb_path'>;
   const { filesOfMoments } = (await import('../../deletion/core' + '')) as { filesOfMoments: (ms: { pieces: Piece[] }[]) => string[] };
   const got = filesOfMoments([
     { pieces: [{ file_path: 'walks/w/a.jpg', thumb_path: 'walks/w/a.thumb.jpg' }, { file_path: 'walks/w/b.m4a', thumb_path: null }] },

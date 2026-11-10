@@ -1,19 +1,20 @@
 /// <reference types="node" />
+import { type Faced, facedAll, facedOf, momentOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { compose } from '../../resurface/feed';
 import { createResurface } from '../../resurface/shell';
-import type { Capture, Walk } from '../../types';
+import type { Walk } from '../../types';
 import { fakePorts } from '../fakes';
 import { at, NOW } from './fixtures';
 
 const walk: Walk = { id: 'w1', started_at: at(2026, 3, 1), ended_at: at(2026, 3, 1) + 3600_000, title: null, epilogue: null, open: false, area: 'Fox Point', snapped_build: null };
-const note = (id: string, t: number, body: string, walk_id: string | null = 'w1'): Capture => ({ id, walk_id, t, lat: null, lon: null, kind: 'text', file_path: null, body, segment_id: null });
+const note = (id: string, t: number, body: string, walk_id: string | null = 'w1'): Faced => facedOf({ id, walk_id, t, lat: null, lon: null, kind: 'text', file_path: null, body, segment_id: null });
 
 async function seeded() {
   const p = fakePorts({ now: NOW });
   await p.db.createWalk(walk);
-  for (const [i, w] of ['harbor', 'harbor', 'harbor', 'orchard'].entries()) await p.db.addCapture(note(`n${i}`, at(2026, 3, 1 + i), w));
+  for (const [i, w] of ['harbor', 'harbor', 'harbor', 'orchard'].entries()) await p.db.addMoment(momentOf(note(`n${i}`, at(2026, 3, 1 + i), w)));
   const r = createResurface(p);
   await r.load();
   return { p, r };
@@ -34,7 +35,7 @@ test('RM17: load reads every moment of the stopped walks, and the memories are r
 test('RM21: the choices are read before the first moment is picked', async () => {
   const p = fakePorts({ now: NOW });
   await p.db.createWalk(walk);
-  for (const [i, w] of ['harbor', 'orchard'].entries()) await p.db.addCapture(note(`n${i}`, at(2026, 3, 1 + i), w));
+  for (const [i, w] of ['harbor', 'orchard'].entries()) await p.db.addMoment(momentOf(note(`n${i}`, at(2026, 3, 1 + i), w)));
   await p.db.setMeta('resurface_prefs', JSON.stringify({ hidden: ['n0'], dim: [], less: [], renames: {}, removed: [], lastShown: null }));
   const r = createResurface(p);
   await r.load();
@@ -75,7 +76,7 @@ test('RM16: Rename and Not a thread are kept, and touch no moment', async () => 
   await r.removeThread('harbor');
   assert.deepEqual(view(r).threads, []);
   assert.equal(r.store.get().moments.length, count);
-  assert.deepEqual(p.log.effects('db.').filter((c) => c !== 'db.setMeta'), ['db.createWalk', 'db.addCapture', 'db.addCapture', 'db.addCapture', 'db.addCapture']);
+  assert.deepEqual(p.log.effects('db.').filter((c) => c !== 'db.setMeta'), ['db.createWalk', 'db.addMoment', 'db.addMoment', 'db.addMoment', 'db.addMoment']);
 });
 
 test('RM8, RM21: the moment shown last is kept, so the next open starts elsewhere', async () => {
@@ -101,7 +102,7 @@ test('RM18: a note edited in the viewer shows at once, in the store and in the d
   const c = r.store.get().moments.find((m) => m.id === 'n3')!.capture;
   await r.saveNote(c, 'a quiet orchard in spring');
   assert.equal(r.store.get().moments.find((m) => m.id === 'n3')!.words, 'a quiet orchard in spring');
-  assert.equal((await p.db.getCapturesByIds(['n3']))[0].body, 'a quiet orchard in spring');
+  assert.equal((await p.db.getMomentsByIds(['n3']).then(facedAll))[0].body, 'a quiet orchard in spring');
 });
 
 test('RM8: Another steps on, and each open gets its own seed', async () => {
@@ -118,7 +119,7 @@ test('RM8: Another steps on, and each open gets its own seed', async () => {
 test('RM23: reading writes nothing; the only write is the meta key', async () => {
   const p = fakePorts({ now: NOW });
   await p.db.createWalk(walk);
-  await p.db.addCapture(note('n0', at(2026, 3, 1), 'harbor'));
+  await p.db.addMoment(momentOf(note('n0', at(2026, 3, 1), 'harbor')));
   p.log.clear();
   const r = createResurface(p);
   await r.load();
@@ -129,7 +130,7 @@ test('RM23: reading writes nothing; the only write is the meta key', async () =>
 
 test('RM4: a failed read says so, and the next load recovers', async () => {
   const p = fakePorts({ now: NOW });
-  p.db.failNext('capturesBetween');
+  p.db.failNext('momentsBetween');
   const r = createResurface(p);
   await r.load();
   assert.equal(r.store.get().status, 'failed');

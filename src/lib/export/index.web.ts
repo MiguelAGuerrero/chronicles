@@ -1,6 +1,7 @@
 // @layer adapter
+import type { Faced } from '../moment';
 import { releaseMedia, resolveMedia } from '../media';
-import type { Capture } from '../types';
+
 import { bundleName, extensionOf, KeeperError, writeWalkBundle } from './bundle';
 
 export { KeeperError };
@@ -32,7 +33,7 @@ async function mediaBlob(ref: string): Promise<Blob | null> {
 const EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'video/webm': 'webm', 'video/mp4': 'mp4', 'audio/webm': 'webm', 'audio/mp4': 'm4a' };
 
 /** On the web a keeper downloads as a file; `bakedUri` is a captioned copy of a photo. */
-export async function saveKeeper(capture: Capture, bakedUri?: string): Promise<void> {
+export async function saveKeeper(capture: Faced, bakedUri?: string): Promise<void> {
   const blob = bakedUri ? await (await fetch(bakedUri)).blob() : capture.file_path ? await mediaBlob(capture.file_path) : null;
   if (!blob) throw new KeeperError('This capture has no file to save.');
   // Named for what the bytes are: a photo re-encoded at capture is a JPEG whatever its ref says.

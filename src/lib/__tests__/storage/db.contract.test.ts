@@ -8,6 +8,8 @@ import ts from 'typescript';
 import type { Db } from '../../db/types';
 import { dbContract, type Legacy } from '../dbContract';
 import { memoryDb } from '../fakes';
+import { nodeSqlite } from '../fakes/nodeSqlite';
+import { makeSqliteDb } from '../../db/sqliteStore';
 
 // The fake shells are tested against...
 dbContract('memoryDb (fake)', async (legacy) => memoryDb(legacy));
@@ -78,11 +80,19 @@ test('FC7 every Db method has a contract case', () => {
 });
 
 // MT11 (decision 0106, the owner's call Nov 10): the native store under the same contract, over Node's built-in
-// SQLite. Test first: the store's factory and the adapter are reached by name.
-test('MT11: the native store opens over node:sqlite, from an empty database and from one at user_version 22', { todo: 'test first' }, async () => {
-  type Sql = { open: () => Promise<unknown>; userVersion: () => number; at22: () => Promise<unknown> };
-  const { nodeSqlite } = (await import('../fakes/nodeSqlite' + '')) as { nodeSqlite: () => Sql };
-  const { makeSqliteDb } = (await import('../../db/sqliteStore' + '')) as { makeSqliteDb: (open: () => Promise<unknown>) => Db };
+// SQLite (fakes/nodeSqlite), one in-memory database per case. The retired scan's marks are put as an older app did.
+dbContract('SQLite (db/sqliteStore.ts over node:sqlite)', async (legacy?: Legacy) => {
+  const sql = nodeSqlite();
+  const db = makeSqliteDb(sql.open);
+  if (legacy?.marks?.length) {
+    await db.listWalks(); // migrates
+    const put = sql.raw.prepare('INSERT INTO mark (id, walk_id, key, name, category, lon, lat, generic, origin, state, created_at, resolved_at, capture_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)');
+    for (const m of legacy.marks) put.run(m.id, m.walk_id, m.key, m.name, m.category, m.at[0], m.at[1], m.generic ? 1 : 0, m.origin, m.state, m.created_at, m.resolved_at, m.capture_id);
+  }
+  return db;
+}, 'sqlite');
+
+test('MT11: the native store opens over node:sqlite, from an empty database and from one at user_version 22', async () => {
   const empty = nodeSqlite();
   assert.deepEqual(await makeSqliteDb(empty.open).listWalks(), []);
   assert.equal(empty.userVersion(), 23);

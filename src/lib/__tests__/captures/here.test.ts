@@ -1,14 +1,15 @@
+import { type Faced, facedOf, momentOf } from '../../moment';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createHere } from '../../here/shell';
-import type { Capture, LngLat, Walk } from '../../types';
+import type { LngLat, Walk } from '../../types';
 import { fakePorts } from '../fakes';
 import { at } from '../foxPoint';
 
 // "What happened here": the chronicle read by place (specs/test-gaps, TD3). `at(x, y)` is in units of 100 m.
 
 const walk = (id: string, started_at: number, title: string | null = null): Walk => ({ id, started_at, ended_at: started_at + 3_600_000, title, epilogue: null, open: false, area: 'Fox Point', snapped_build: null });
-const cap = (id: string, walk_id: string | null, t: number, where: LngLat | null): Capture => ({
+const cap = (id: string, walk_id: string | null, t: number, where: LngLat | null): Faced => facedOf({
   id, walk_id, t, kind: 'text', file_path: null, body: id, segment_id: null, lat: where ? where[1] : null, lon: where ? where[0] : null,
 });
 
@@ -20,10 +21,10 @@ test('TD3 every capture within reach, across walks, oldest first, with its walk 
   // Walk 1 paused for 10 min, 20 min in.
   await p.db.startPause('w1', t0 + 20 * 60_000);
   await p.db.endPause('w1', t0 + 30 * 60_000);
-  await p.db.addCapture(cap('late', 'w1', t0 + 40 * 60_000, at(0.1, 0)));
-  await p.db.addCapture(cap('first', 'w1', t0, at(0, 0.2)));
-  await p.db.addCapture(cap('next-day', 'w2', t0 + 86_400_000 + 5 * 60_000, at(0, 0)));
-  await p.db.addCapture(cap('far', 'w1', t0 + 5 * 60_000, at(3, 0)));
+  await p.db.addMoment(momentOf(cap('late', 'w1', t0 + 40 * 60_000, at(0.1, 0))));
+  await p.db.addMoment(momentOf(cap('first', 'w1', t0, at(0, 0.2))));
+  await p.db.addMoment(momentOf(cap('next-day', 'w2', t0 + 86_400_000 + 5 * 60_000, at(0, 0))));
+  await p.db.addMoment(momentOf(cap('far', 'w1', t0 + 5 * 60_000, at(3, 0))));
   // The open walk's capture, shown but not stored yet.
   const live = cap('live', 'w2', t0 + 86_400_000 + 9 * 60_000, at(0.2, 0));
   const r = await createHere(p).capturesHere(at(0, 0), [live]);
@@ -36,8 +37,8 @@ test('TD3 every capture within reach, across walks, oldest first, with its walk 
 
 test('TD3 a moment outside any walk says so; one whose walk is gone is left out', async () => {
   const p = fakePorts();
-  await p.db.addCapture(cap('moment', null, 1000, at(0, 0)));
-  await p.db.addCapture(cap('orphan', 'gone', 2000, at(0, 0.1)));
+  await p.db.addMoment(momentOf(cap('moment', null, 1000, at(0, 0))));
+  await p.db.addMoment(momentOf(cap('orphan', 'gone', 2000, at(0, 0.1))));
   const r = await createHere(p).capturesHere(at(0, 0));
   assert.deepEqual(r.captures.map((c) => c.id), ['moment']);
   assert.equal(r.context.get('moment'), 'Not on a walk');

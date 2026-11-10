@@ -1,3 +1,4 @@
+import type { Faced } from '../lib/moment';
 import { router } from 'expo-router';
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import {
@@ -13,7 +14,7 @@ import { walkRowMeta } from '../lib/quietLines';
 import { useUnits } from '../lib/useUnits';
 import { dayCounts, dayLabel, type Day, type DayEntry } from '../lib/days';
 import { byMonth } from '../lib/months';
-import type { Capture, Walk, WalkSummary } from '../lib/types';
+import type { Walk, WalkSummary } from '../lib/types';
 import { Icon, KIND_ICON, KIND_LABEL } from './icons';
 import { theme } from './ui';
 
@@ -203,7 +204,7 @@ export function HomeSheet(props: {
   /** Days with something in them, newest first (M7). */
   days?: Day[];
   /** Opens moments in the viewer (M8). */
-  onOpenMoments?: (captures: Capture[]) => void;
+  onOpenMoments?: (captures: Faced[]) => void;
   /** Opens a finished walk's actions: remove its media, or delete it (D1, D2). */
   onWalkActions?: (walkId: string) => void;
   /** The home's clock, for naming today and yesterday. */
@@ -459,7 +460,7 @@ function MoreButton({ walk, title, onMore, disabled }: { walk: Walk; title: stri
   );
 }
 
-function EntryRow({ entry: e, summary: s, disabled, onOpen, onMore }: { entry: DayEntry; summary: WalkSummary | null; disabled?: boolean; onOpen: (c: Capture[]) => void; onMore?: (walkId: string) => void }) {
+function EntryRow({ entry: e, summary: s, disabled, onOpen, onMore }: { entry: DayEntry; summary: WalkSummary | null; disabled?: boolean; onOpen: (c: Faced[]) => void; onMore?: (walkId: string) => void }) {
   if (e.kind === 'walk') {
     const n = e.captures.length;
     const line = ['Walk', s ? formatDistance(s.distance_m) : null, `${n} ${n === 1 ? 'moment' : 'moments'}`].filter(Boolean).join(' · ');

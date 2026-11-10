@@ -1,7 +1,8 @@
+import type { Faced } from '../../lib/moment';
 import { useState } from 'react';
 import { Image, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { thumbShown } from '../../lib/thumbPlan';
-import type { Capture } from '../../lib/types';
+
 import { useMediaUri } from '../../lib/useMediaUri';
 import { Icon, KIND_ICON } from '../icons';
 import { theme } from '../ui';
@@ -11,7 +12,7 @@ import { theme } from '../ui';
  * memo or a video shows its kind on a soft ground (RM18). Decorative: the
  * words around it say what it is.
  */
-export function MomentPicture(props: { capture: Capture; style?: StyleProp<ViewStyle>; iconSize?: number }) {
+export function MomentPicture(props: { capture: Faced; style?: StyleProp<ViewStyle>; iconSize?: number }) {
   const { capture } = props;
   const [copyBroken, setCopyBroken] = useState(false);
   const [broken, setBroken] = useState<string | null>(null);

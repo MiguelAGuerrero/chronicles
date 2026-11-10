@@ -1,10 +1,11 @@
 // @layer shell
+import { type Faced, facedAll } from '../moment';
 import { AppState } from 'react-native';
 import { createOpeners } from '../openers';
 import { db } from '../db';
 import { boundsOf, distanceM } from '../geo';
 import { notifier } from '../notify';
-import type { Capture, LngLat } from '../types';
+import type { LngLat } from '../types';
 import { afterFire, dueRecalls, isExpired, RECALL_RULES, reminderText } from './recall';
 import type { Recall } from './types';
 
@@ -57,14 +58,14 @@ export async function storedRecall(captureId: string): Promise<Recall | null> {
 
 // Fires go to the walk screen when it is in front, else to a notification:
 // decided when a fire is shown, not where it was checked (audit).
-let screen: ((captures: Capture[]) => void) | null = null;
-export function onRecallFired(fn: (captures: Capture[]) => void): () => void {
+let screen: ((captures: Faced[]) => void) | null = null;
+export function onRecallFired(fn: (captures: Faced[]) => void): () => void {
   screen = fn;
   return () => {
     if (screen === fn) screen = null;
   };
 }
-async function deliver(walkId: string, captures: Capture[]) {
+async function deliver(walkId: string, captures: Faced[]) {
   if (screen && AppState.currentState === 'active') screen(captures);
   else await notifier.recall(reminderText(captures), captures.map((c) => c.id), walkId).catch(() => {});
 }
@@ -94,7 +95,7 @@ export function checkRecalls(walkId: string, path: LngLat[], now = Date.now()): 
     // a reminder is set on purpose, not discovery.
     const quiet = false;
     const box = boundsOf(path, RECALL_RULES.reachM + 10)!;
-    const due = dueRecalls({ here: path, walkId, now, quiet, recalls: await recalls(), captures: await db.capturesIn(box) });
+    const due = dueRecalls({ here: path, walkId, now, quiet, recalls: await recalls(), captures: await db.momentsIn(box).then(facedAll) });
     if (!due.length) return false;
     for (const { recall } of due) {
       const next = afterFire(recall, walkId, now);
@@ -113,9 +114,9 @@ export function checkRecalls(walkId: string, path: LngLat[], now = Date.now()): 
 
 // A tapped reminder opens on the screen in front at once (audit 1): meta only waits for a cold start.
 // Every screen that can open one listens; the newest is asked first, and one that can't passes it on.
-const openers = createOpeners<Capture[]>();
+const openers = createOpeners<Faced[]>();
 /** Listen for tapped reminders; return true when this screen opened it. */
-export function onRecallOpen(fn: (captures: Capture[]) => boolean): () => void {
+export function onRecallOpen(fn: (captures: Faced[]) => boolean): () => void {
   return openers.add(fn);
 }
 /**
@@ -132,7 +133,7 @@ export function onRecallWaiting(fn: () => void): () => void {
 /** Opens a tapped reminder's captures where a screen takes them; else keeps them for the next screen (R4). Resolves whether one opened. */
 export async function openRecall(ids: string[]): Promise<boolean> {
   if (openers.size()) {
-    const found = await db.getCapturesByIds(ids).catch(() => []);
+    const found = await db.getMomentsByIds(ids).then(facedAll).catch(() => []);
     if (found.length && openers.offer(found)) return true;
   }
   await db.setMeta(RECALL_OPEN_KEY, JSON.stringify(ids));
@@ -143,12 +144,12 @@ export async function openRecall(ids: string[]): Promise<boolean> {
 export const recallWaiting = async () => !!(await db.getMeta(RECALL_OPEN_KEY));
 
 /** The captures a tapped notification asked to open, once (R4); found by id, wherever the walker is now. */
-export async function takeRecallOpen(): Promise<Capture[]> {
+export async function takeRecallOpen(): Promise<Faced[]> {
   const raw = await db.getMeta(RECALL_OPEN_KEY);
   if (!raw) return [];
   await db.setMeta(RECALL_OPEN_KEY, '');
   try {
-    return await db.getCapturesByIds(JSON.parse(raw) as string[]);
+    return await db.getMomentsByIds(JSON.parse(raw) as string[]).then(facedAll);
   } catch {
     return [];
   }

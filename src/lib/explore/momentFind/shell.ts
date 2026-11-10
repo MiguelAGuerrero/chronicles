@@ -1,7 +1,8 @@
 // @layer shell
+import { type Faced, facedAll } from '../../moment';
 import { boundsOf } from '../../geo';
 import type { Ports } from '../../ports/types';
-import type { Capture } from '../../types';
+
 import { EXPLORE_RULES, findFor, type Find } from '../explore';
 
 /**
@@ -13,7 +14,7 @@ import { EXPLORE_RULES, findFor, type Find } from '../explore';
  */
 export function createMomentFind(p: Pick<Ports, 'db' | 'clock'> & { hidden: () => ReadonlySet<string> }) {
   return {
-    async findForMoment(c: Capture): Promise<Find | null> {
+    async findForMoment(c: Faced): Promise<Find | null> {
       if (c.lat == null || c.lon == null) return null;
       // A moment deleted before its fix came finds nothing (audit 4): waiting in Undo, or gone.
       if (p.hidden().has(c.id)) return null;
@@ -24,7 +25,7 @@ export function createMomentFind(p: Pick<Ports, 'db' | 'clock'> & { hidden: () =
       const item = findFor(at, items, new Set(finds.map((f) => f.key)));
       if (!item) return null;
       const f: Find = { ...item, walk_id: c.walk_id, capture_id: c.id, found_at: p.clock.now() };
-      if (p.hidden().has(c.id) || !(await p.db.getCapturesByIds([c.id])).length) return null;
+      if (p.hidden().has(c.id) || !(await p.db.getMomentsByIds([c.id]).then(facedAll)).length) return null;
       await p.db.addFind(f);
       return f;
     },

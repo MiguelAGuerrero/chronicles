@@ -1,3 +1,4 @@
+import type { Faced } from '../../lib/moment';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,7 +9,7 @@ import { contextLine, headingOf, threadLine } from '../../lib/threads/lines';
 import { useThreads } from '../../lib/threads/useThreads';
 import type { MomentView } from '../../lib/resurface/types';
 import { fromLine, toMomentViews } from '../../lib/resurface/views';
-import type { Capture, Walk } from '../../lib/types';
+import type { Walk } from '../../lib/types';
 import { Icon } from '../icons';
 import { theme } from '../ui';
 
@@ -29,7 +30,7 @@ function rowOf(m: MomentView, walks: Map<string, Walk>, now: number) {
  * with. Drawn inside the viewer's Modal, never as a second one (iOS can't present a Modal over a Modal). Nothing is
  * made without two kept moments (OT6).
  */
-export function AddToThread(props: { moment: Capture; onClose: () => void; onDone: (message: string) => void }) {
+export function AddToThread(props: { moment: Faced; onClose: () => void; onDone: (message: string) => void }) {
   const insets = useSafeAreaInsets();
   const { data } = useThreads();
   const [pool, setPool] = useState<{ views: MomentView[]; walks: Map<string, Walk> } | null>(null);

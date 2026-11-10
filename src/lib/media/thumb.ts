@@ -1,6 +1,7 @@
 // @layer adapter
+import type { Faced } from '../moment';
 import { ImageManipulator, SaveFormat, type ImageRef } from 'expo-image-manipulator';
-import type { Capture } from '../types';
+
 import { cropToRotated, rotatedSize } from '../mediaEdit';
 import { thumbJob } from '../thumbJob';
 import { editedThumbName, THUMB } from '../thumbPlan';
@@ -12,7 +13,7 @@ import { keepFile, releaseMedia, resolveMedia } from './index';
  * later, because its file was gone, keeps them. The filter and lines need
  * the baker, which only the editor has mounted.
  */
-async function withCropAndRotation(ref: ImageRef, c: Capture): Promise<ImageRef> {
+async function withCropAndRotation(ref: ImageRef, c: Faced): Promise<ImageRef> {
   const e = c.edit;
   if (!e || (e.rotate === 0 && !e.crop)) return ref;
   const ctx = ImageManipulator.manipulate(ref);
@@ -35,8 +36,9 @@ async function withCropAndRotation(ref: ImageRef, c: Capture): Promise<ImageRef>
  * photo is never in memory), its canvases released after (audit 2). Never
  * worth failing a capture over (TH2).
  */
-export function makeThumb(c: Capture): Promise<string | null> {
-  return thumbJob(c, {
+export function makeThumb(c: Faced): Promise<string | null> {
+  // Named by the piece it is a copy of (decision 0106).
+  return thumbJob({ ...c, id: c.piece_id }, {
     resolve: resolveMedia,
     async render(uri, max) {
       const ctx = ImageManipulator.manipulate(uri, { maxWidth: max, maxHeight: max });
@@ -65,6 +67,6 @@ export function makeThumb(c: Capture): Promise<string | null> {
  * filter and lines, no caption. Named by the edit, so its ref changes and
  * previews load it (media-editing audit 3). Resolves its stored path.
  */
-export function keepEditedThumb(c: Pick<Capture, 'id' | 'walk_id'>, bakedUri: string, edit: MediaEdit | null): Promise<string> {
-  return keepFile(bakedUri, c.walk_id ?? 'moments', editedThumbName(c, edit), { replace: true });
+export function keepEditedThumb(c: Pick<Faced, 'piece_id' | 'walk_id'>, bakedUri: string, edit: MediaEdit | null): Promise<string> {
+  return keepFile(bakedUri, c.walk_id ?? 'moments', editedThumbName({ id: c.piece_id }, edit), { replace: true });
 }
