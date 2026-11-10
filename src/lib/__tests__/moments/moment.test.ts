@@ -56,7 +56,7 @@ test('MT10: moment.ts is a core module', () => {
 type Round1 = { withPiece(m: Moment, p: Capture): Moment; withoutPiece(m: Moment, id: string): Moment | null; hasMore(m: Pick<Moment, 'pieces'>): boolean };
 const round1 = () => import('../../moment' + '') as unknown as Promise<Round1>;
 
-test('MS8: a stacked moment\'s face is its first photo or video, and it says it holds more', { todo: 'test first' }, async () => {
+test('MS8: a stacked moment\'s face is its first photo or video, and it says it holds more', async () => {
   const { withPiece, hasMore } = await round1();
   const m = moment('m', [piece('m', 'm', 1, 'text')]);
   assert.equal(hasMore(m), false);
@@ -67,7 +67,7 @@ test('MS8: a stacked moment\'s face is its first photo or video, and it says it 
   assert.equal(two.t, 1, 'the moment keeps its own time');
 });
 
-test('MS13: removing a piece keeps the rest and gives the next face; removing the last gives no moment', { todo: 'test first' }, async () => {
+test('MS13: removing a piece keeps the rest and gives the next face; removing the last gives no moment', async () => {
   const { withoutPiece } = await round1();
   const m = moment('m', [piece('m', 'm', 1, 'text'), piece('p', 'm', 3, 'photo'), piece('q', 'm', 4, 'photo')]);
   const left = withoutPiece(m, 'p')!;

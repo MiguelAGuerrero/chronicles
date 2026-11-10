@@ -269,7 +269,7 @@ test('MT6: a moment\'s files are every piece\'s media and small copy', async () 
 });
 
 // ---- Moment stacks, MS13 (decision 0106). Test first: the new words and the piece delete are reached by name.
-test('MS13: a stacked moment\'s delete names the moment and everything in it; one piece is named by its kind', { todo: 'test first' }, async () => {
+test('MS13: a stacked moment\'s delete names the moment and everything in it; one piece is named by its kind', async () => {
   const core = (await import('../../deletion/core' + '')) as unknown as {
     stackDeleteText(bytes: number): { title: string; body: string; confirm: string };
     pieceDeleteText(kind: Capture['kind'], bytes: number): { title: string; body: string; confirm: string };
@@ -281,7 +281,7 @@ test('MS13: a stacked moment\'s delete names the moment and everything in it; on
   assert.doesNotMatch(core.stackDeleteText(0).body + core.pieceDeleteText('photo', 0).body, /\bpiece/);
 });
 
-test('MS13: deleting a piece keeps the rest and the moment\'s threads, reminder and find; the last piece takes the moment', { todo: 'test first' }, async () => {
+test('MS13: deleting a piece keeps the rest and the moment\'s threads, reminder and find; the last piece takes the moment', async () => {
   const { fakePorts } = await import('../fakes');
   const { createPieceDelete } = (await import('../../deletion/pieces' + '')) as unknown as {
     createPieceDelete(p: unknown): { run(m: { id: string; pieces: { id: string; file_path: string | null; thumb_path?: string | null }[] }, pieceId: string, removeMedia: (refs: string[]) => Promise<void>): Promise<void> };

@@ -321,12 +321,11 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual((await db.getMomentsByIds(['m1']))[0].pieces[0].edit, edit);
     });
 
-    // ---- moment stacks, round 1 (MS3, MS13, MS15; decision 0106). Test first: reached through `stacks`.
-    type Stacks = Db & { addPiece(momentId: string, piece: Capture): Promise<void>; deletePieces(ids: string[]): Promise<void> };
-    const stacks = async () => (await fresh()) as unknown as Stacks;
+    // ---- moment stacks, round 1 (MS3, MS13, MS15; decision 0106)
+    const stacks = fresh;
     const piece = (id: string, moment_id: string, t: number, more: Partial<Capture> = {}): Capture => ({ id, moment_id, t, kind: 'photo', file_path: `${id}.jpg`, body: null, ...more });
 
-    test('FC7 addPiece, MS3, MS15: a piece joins its moment with its own time; the moment\'s place and time stay', { todo: 'test first' }, async () => {
+    test('FC7 addPiece, MS3, MS15: a piece joins its moment with its own time; the moment\'s place and time stay', async () => {
       const db = await stacks();
       await db.addMoment(one('m1', 'a', 10));
       await db.addPiece('m1', piece('p2', 'm1', 40));
@@ -341,7 +340,7 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.equal((await db.getMomentsByIds(['m1']))[0].pieces[1].caption, 'side');
     });
 
-    test('FC7 deletePieces, MS13: pieces go and their moment stays; a moment\'s last piece is never deleted this way', { todo: 'test first' }, async () => {
+    test('FC7 deletePieces, MS13: pieces go and their moment stays; a moment\'s last piece is never deleted this way', async () => {
       const db = await stacks();
       await db.createWalk(walk('a', 1));
       await db.addMoment(one('m1', 'a', 10, {}, { kind: 'photo', file_path: 'm1.jpg', body: null }));

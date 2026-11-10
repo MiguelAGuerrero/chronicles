@@ -103,3 +103,17 @@ export function piecesOf(moments: Pick<Moment, 'pieces'>[]): Capture[] {
 
 /** Moments as rows, pins and cards show them: `faced` over a store read. */
 export const facedAll = (ms: Moment[]): Faced[] => ms.map(faced);
+
+/** Whether a moment holds more than one piece (the stacked mark, MS8). */
+export const hasMore = (m: Pick<Moment, 'pieces'>): boolean => m.pieces.length > 1;
+
+/** The moment with a piece added, its pieces in capture order; its own place and time unchanged (MS3). */
+export function withPiece(m: Moment, p: Capture): Moment {
+  return { ...m, pieces: [...m.pieces.filter((x) => x.id !== p.id), { ...p, moment_id: m.id }].sort((a, b) => a.t - b.t) };
+}
+
+/** The moment without one piece; null when it was the last, for then the moment goes (MS13). */
+export function withoutPiece(m: Moment, id: string): Moment | null {
+  const pieces = m.pieces.filter((p) => p.id !== id);
+  return pieces.length ? { ...m, pieces } : null;
+}

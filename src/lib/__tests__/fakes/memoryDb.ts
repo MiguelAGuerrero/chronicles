@@ -221,6 +221,23 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
       const m = momentOfPiece(id);
       if (m) moments.put({ ...m, pieces: m.pieces.map((x) => (x.id === id ? { ...x, ...p } : x)) });
     },
+    async addPiece(momentId, p) {
+      const m = moments.get(momentId);
+      if (!m) throw new Error(`no moment ${momentId}`);
+      if (momentOfPiece(p.id)) throw constraint(`piece ${p.id}`);
+      moments.put({ ...m, pieces: [...m.pieces, copy({ ...p, moment_id: momentId })].sort(byT) });
+    },
+    async deletePieces(ids) {
+      const gone = new Set(ids);
+      const hit = moments.all().filter((m) => m.pieces.some((p) => gone.has(p.id)));
+      if (hit.some((m) => m.pieces.every((p) => gone.has(p.id)))) throw new Error('a moment would be left with no piece');
+      for (const m of hit) moments.put({ ...m, pieces: m.pieces.filter((p) => !gone.has(p.id)) });
+      for (const w of new Set(hit.map((m) => m.walk_id))) {
+        if (w == null) continue;
+        const s = summaries.get(w);
+        if (s) summaries.put({ ...s, ...countsOf(moments.where(walkOf, w).flatMap((m) => m.pieces)) });
+      }
+    },
     async getMoments(walkId) {
       return moments.where(walkOf, walkId).map(readMoment).sort(byT);
     },

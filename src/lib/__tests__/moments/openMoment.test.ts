@@ -23,7 +23,7 @@ type Mod = {
 const mod = () => import('../../openMoment' + '') as Promise<Mod>;
 const run = (m: Mod, events: Event[]) => events.reduce((s, e) => m.step(s, e), m.initial);
 
-test('MS4: the pill closes two minutes after the last capture, on a walk or off one', { todo: 'test first' }, async () => {
+test('MS4: the pill closes two minutes after the last capture, on a walk or off one', async () => {
   const m = await mod();
   assert.equal(m.OPEN_MS, 120_000);
   for (const walking of [false, true]) {
@@ -33,7 +33,7 @@ test('MS4: the pill closes two minutes after the last capture, on a walk or off 
   }
 });
 
-test('MS4: on a walk it closes 100 m of walked trace from the moment\'s first capture, so pieces 60 m apart never chain', { todo: 'test first' }, async () => {
+test('MS4: on a walk it closes 100 m of walked trace from the moment\'s first capture, so pieces 60 m apart never chain', async () => {
   const m = await mod();
   assert.equal(m.WALK_ON_M, 100);
   let s = run(m, [{ k: 'kept', id: 'a', t: 0, walking: true }, { k: 'walked', m: 60 }]);
@@ -45,7 +45,7 @@ test('MS4: on a walk it closes 100 m of walked trace from the moment\'s first ca
   assert.equal(m.openId(s, 1000), 'b');
 });
 
-test('MS4: dismissing, leaving, starting or stopping a walk, or opening another moment close it; a dismissed moment never reopens', { todo: 'test first' }, async () => {
+test('MS4: dismissing, leaving, starting or stopping a walk, or opening another moment close it; a dismissed moment never reopens', async () => {
   const m = await mod();
   const kept: Event = { k: 'kept', id: 'a', t: 0, walking: false };
   for (const e of [{ k: 'dismiss' }, { k: 'leave' }, { k: 'walk' }, { k: 'opened', id: 'other' }] as Event[]) {
@@ -55,14 +55,14 @@ test('MS4: dismissing, leaving, starting or stopping a walk, or opening another 
   assert.equal(m.openId(run(m, [kept, { k: 'dismiss' }, { k: 'piece', id: 'a', t: 5 }]), 10), null, 'dismissed stays dismissed');
 });
 
-test('MS4: a capture begun while the pill is open joins the moment even if the pill closes before it is kept', { todo: 'test first' }, async () => {
+test('MS4: a capture begun while the pill is open joins the moment even if the pill closes before it is kept', async () => {
   const m = await mod();
   const s = run(m, [{ k: 'kept', id: 'a', t: 0, walking: false }]);
   assert.equal(m.target(s, 100_000), 'a', 'begun inside the two minutes');
   assert.equal(m.target(s, 130_000), null, 'begun after: a new moment');
 });
 
-test('MS5: a piece keeps the pill and restarts its two minutes; an edge capture moves the pill to the new moment', { todo: 'test first' }, async () => {
+test('MS5: a piece keeps the pill and restarts its two minutes; an edge capture moves the pill to the new moment', async () => {
   const m = await mod();
   let s = run(m, [{ k: 'kept', id: 'a', t: 0, walking: false }, { k: 'piece', id: 'a', t: 100_000 }]);
   assert.equal(m.openId(s, 200_000), 'a');
@@ -70,7 +70,7 @@ test('MS5: a piece keeps the pill and restarts its two minutes; an edge capture 
   assert.equal(m.openId(s, 160_000), 'b');
 });
 
-test('MS12: the viewer may add only to the moment that is open', { todo: 'test first' }, async () => {
+test('MS12: the viewer may add only to the moment that is open', async () => {
   const m = await mod();
   const s = run(m, [{ k: 'kept', id: 'a', t: 0, walking: false }]);
   assert.equal(m.openId(s, 10) === 'a', true);

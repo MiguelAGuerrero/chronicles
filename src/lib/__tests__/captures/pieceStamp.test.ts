@@ -9,7 +9,7 @@ type Stamp = { t: number; at: [number, number] | null; locate: boolean; into: st
 type Mod = { stampFor(now: number, pos: { here: [number, number] | null; lastFixAt: number | null }, into: string | null): Stamp };
 const mod = () => import('../../pieceStamp' + '') as Promise<Mod>;
 
-test('MS3: a piece\'s stamp asks for no fix and carries no place; a new moment\'s takes a fresh fix or asks for one', { todo: 'test first' }, async () => {
+test('MS3: a piece\'s stamp asks for no fix and carries no place; a new moment\'s takes a fresh fix or asks for one', async () => {
   const { stampFor } = await mod();
   const fresh = { here: [-71.4, 41.8] as [number, number], lastFixAt: 9_000 };
   assert.deepEqual(stampFor(10_000, fresh, 'm1'), { t: 10_000, at: null, locate: false, into: 'm1' });

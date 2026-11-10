@@ -24,7 +24,7 @@ const stacked = (walk_id: string | null): Moment => ({
 });
 const walk: Walk = { id: 'w', started_at: 0, ended_at: 3_600_000, title: null, epilogue: null, open: false, area: null, snapped_build: null };
 
-test('MS7: a three-piece moment is one entry for every reader of moments', { todo: 'test first' }, () => {
+test('MS7: a three-piece moment is one entry for every reader of moments', () => {
   const loose = facedAll([stacked(null)]);
   const walked = facedAll([stacked('w')]);
   assert.equal(toMomentViews(loose, []).length, 1, 'Memories and the resurfaced card');
@@ -40,7 +40,7 @@ test('MS7: a three-piece moment is one entry for every reader of moments', { tod
   assert.equal(faced(stacked(null)).pieces.length, 3, 'and every piece is still there to open');
 });
 
-test('MS14: no store method merges moments, and a piece is only ever added to a moment that exists', { todo: 'test first' }, () => {
+test('MS14: no store method merges moments, and a piece is only ever added to a moment that exists', () => {
   const file = join(__dirname, '../../db/types.ts');
   const src = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true);
   const names: string[] = [];

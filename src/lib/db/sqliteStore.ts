@@ -177,6 +177,36 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
       if (!sql) return Promise.resolve();
       return write((t) => t.runAsync(`UPDATE capture SET ${sql} WHERE id = ?`, ...values, id).then(() => {}));
     },
+    addPiece(momentId, c) {
+      return write(async (t) => {
+        if (!(await t.getFirstAsync('SELECT 1 FROM moment WHERE id = ?', momentId))) throw new Error(`No moment ${momentId}.`);
+        await t.runAsync(
+          'INSERT INTO capture (id, moment_id, t, kind, file_path, body, caption, caption_y, thumb_path, edit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          c.id, momentId, c.t, c.kind, c.file_path, c.body, c.caption ?? null, c.caption_y ?? null, c.thumb_path ?? null, serializeEdit(c.edit),
+        );
+      });
+    },
+    deletePieces(ids) {
+      if (!ids.length) return Promise.resolve();
+      const marks = ids.map(() => '?').join(',');
+      return write(async (t) => {
+        const hit = await t.getAllAsync<{ moment_id: string; walk_id: string | null }>(
+          `SELECT DISTINCT c.moment_id, m.walk_id FROM capture c JOIN moment m ON c.moment_id = m.id WHERE c.id IN (${marks})`, ...ids,
+        );
+        await t.runAsync(`DELETE FROM capture WHERE id IN (${marks})`, ...ids);
+        for (const h of hit) {
+          if (!(await t.getFirstAsync('SELECT 1 FROM capture WHERE moment_id = ?', h.moment_id))) {
+            throw new Error('Deleting every piece of a moment is deleting the moment.'); // rolls the transaction back
+          }
+        }
+        for (const w of new Set(hit.map((h) => h.walk_id))) {
+          if (w == null) continue;
+          const left = await t.getAllAsync<{ kind: Capture['kind'] }>('SELECT c.kind FROM capture c JOIN moment m ON c.moment_id = m.id WHERE m.walk_id = ?', w);
+          const s = countsOf(left);
+          await t.runAsync('UPDATE walk_summary SET photos = ?, videos = ?, voices = ?, notes = ? WHERE walk_id = ?', s.photos, s.videos ?? 0, s.voices, s.notes, w);
+        }
+      });
+    },
     async getMoments(walkId) {
       return foldRows(await (await conn()).getAllAsync<JoinedRow>(`${MOMENT_SELECT} WHERE m.walk_id = ?${ORDER}`, walkId));
     },

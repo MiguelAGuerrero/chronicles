@@ -33,6 +33,17 @@ export interface Db {
   updateMoment(id: string, patch: Partial<Pick<Moment, 'walk_id' | 'lat' | 'lon' | 'segment_id'>>): Promise<void>;
   /** One piece's media fields: its caption, edit, small copy or text. */
   updatePiece(id: string, patch: Partial<Omit<Capture, 'id' | 'moment_id'>>): Promise<void>;
+  /**
+   * Adds a piece to a moment that exists (moment stacks MS3): the moment's own place and time are untouched; the
+   * piece keeps its own time; a piece id is used once. Rejects for a missing moment.
+   */
+  addPiece(momentId: string, piece: Capture): Promise<void>;
+  /**
+   * Deletes pieces by id, in one transaction (MS13): their moments stay, with their reminders, finds, threads and
+   * links; the walks' counts follow. Rejects, deleting nothing, if that would leave a moment with no piece:
+   * deleting a moment's last piece is `deleteMoments`. Media files are the caller's.
+   */
+  deletePieces(ids: string[]): Promise<void>;
   /** A walk's moments, with their pieces, in time order. */
   getMoments(walkId: string): Promise<Moment[]>;
   /** Every moment, loose or in a walk, with from <= t < to, in time order (days, M6). */

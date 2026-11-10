@@ -321,6 +321,41 @@ export const db: Db = {
     if (m) st.put({ ...m, pieces: m.pieces.map((x) => (x.id === id ? { ...x, ...p } : x)) });
     await committed(tx);
   },
+  async addPiece(momentId, p) {
+    const tx = (await conn()).transaction('moment', 'readwrite');
+    return atomically(tx, async () => {
+      const st = tx.objectStore('moment');
+      const m = (await done(st.get(momentId))) as MomentRecord | undefined;
+      if (!m) throw new Error(`No moment ${momentId}.`);
+      if ((await done(st.index('piece_ids').count(p.id))) > 0) throw new Error(`A piece ${p.id} is kept already.`);
+      st.put(toRecord({ ...m, pieces: [...m.pieces, { ...p, moment_id: momentId }].sort(byT) }));
+    });
+  },
+  async deletePieces(ids) {
+    if (!ids.length) return;
+    const tx = (await conn()).transaction(['moment', 'walk_summary'], 'readwrite');
+    return atomically(tx, async () => {
+      const st = tx.objectStore('moment');
+      const gone = new Set(ids);
+      const hit = new Map<string, MomentRecord>();
+      for (const id of ids) {
+        const m = (await done(st.index('piece_ids').get(id))) as MomentRecord | undefined;
+        if (m) hit.set(m.id, m);
+      }
+      for (const m of hit.values()) {
+        const pieces = m.pieces.filter((p) => !gone.has(p.id));
+        if (!pieces.length) throw new Error('Deleting every piece of a moment is deleting the moment.');
+        st.put(toRecord({ ...m, pieces }));
+      }
+      const sums = tx.objectStore('walk_summary');
+      for (const w of new Set([...hit.values()].map((m) => m.walk_id))) {
+        if (w == null) continue;
+        const s = (await done(sums.get(w))) as WalkSummary | undefined;
+        const left = (await done(st.index('walk_id').getAll(w))) as MomentRecord[];
+        if (s) sums.put({ ...s, ...countsOf(piecesOf(left)) });
+      }
+    });
+  },
   async getMoments(walkId) {
     return (await byWalk<MomentRecord>('moment', walkId)).map(fromRecord).sort(byT);
   },

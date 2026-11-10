@@ -131,6 +131,16 @@ export function momentDeleteText(kind: CaptureKind, bytes: number): ConfirmText 
   return { title: `Delete this ${KIND_NOUN[kind]}?`, body: withSize('You can undo it for 5 seconds.', bytes), confirm: 'Delete' };
 }
 
+/** MS13: deleting a moment that holds more than one piece names the moment, never its face's kind. */
+export function stackDeleteText(bytes: number): ConfirmText {
+  return { title: 'Delete this moment and everything in it?', body: withSize('You can undo it for 5 seconds.', bytes), confirm: 'Delete' };
+}
+
+/** MS13: deleting one piece of a moment, named by its kind; the moment and the rest stay. */
+export function pieceDeleteText(kind: CaptureKind, bytes: number): ConfirmText {
+  return { title: `Delete this ${KIND_NOUN[kind]} from the moment?`, body: withSize('The rest of the moment stays. You can undo it for 5 seconds.', bytes), confirm: 'Delete' };
+}
+
 /** D5: the pill's words, naming the moment's kind when it is known. */
 export function toastText(kind: DeleteKind, what?: CaptureKind): string {
   if (kind === 'walk') return 'Walk deleted';
