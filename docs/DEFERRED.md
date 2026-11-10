@@ -443,3 +443,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **Deferred (audit 5):** outside every town, the nearest town leads and is framed whole on arrival, so the page titled
   "Near you" may open on a town some kilometres off; and when an outline arrives that marks another town as yours, the
   selection and the frame move to it. Framing the selected town is the row's rule (EC5).
+- **Deferred (fix add-pill-cramped audit 3, 4):** the "Adding to this moment" pill (grouping) is still a capsule whose label
+  can wrap at very narrow widths, and the stacked "Add to this moment" card (radius 28) differs in shape from the
+  capsule pills beside it. Next, if wanted: give the grouping pill the same stacked treatment once both are seen in a
+  phone-size screenshot.

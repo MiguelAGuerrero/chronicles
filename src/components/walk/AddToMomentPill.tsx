@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
   stacked: { alignItems: 'center', gap: 6, backgroundColor: theme.ink, borderRadius: 28, maxWidth: '100%', paddingTop: 10, paddingBottom: 4, paddingHorizontal: 4 },
   label: { color: '#ffffff', fontSize: 15, fontWeight: '600', textAlign: 'center', paddingHorizontal: 10 },
   text: { color: '#ffffff', fontSize: 15, fontWeight: '600', flexShrink: 1 },
-  row: { flexDirection: 'row', gap: 4 },
+  row: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 4 },
   newBtn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)' },
   newText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
   btn: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)' },
