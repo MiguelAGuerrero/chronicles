@@ -72,7 +72,8 @@
     "check:vision": "node scripts/check-vision.js",
     "e2e:baseline": "node scripts/e2e-baseline.js",
     "check:e2e": "node scripts/affected.js e2e",
-    "places:coverage": "tsx scripts/places-coverage.ts"
+    "places:coverage": "tsx scripts/places-coverage.ts",
+    "e2e:train": "node scripts/e2e-train.js"
   },
   "private": true
 }

@@ -127,18 +127,19 @@ test('e2e economy 6: a baseline records the checks that failed on main and how o
 test('e2e economy 7: the plan names a journey whose own file changed, lists the green ones apart, and says what it left out', () => {
   const affected = load(join(ROOT, 'scripts', 'affected.js')) as {
     e2eFor(changed: string[], s: { name: string; covers: string[]; file?: string }[]): { scenarios: { name: string }[] };
-    e2eHint(changed: string[], all: boolean, status: (n: string) => string | null, comment: string[]): string;
+    e2eHint(changed: string[], all: boolean, status: (n: string) => string | null, comment: string[], o?: { train?: boolean }): string;
   };
   const table = [{ name: 'atlas', covers: ['src/atlas/**'], file: 'scripts/e2e/journeys/atlas.js' }, { name: 'snap', covers: ['src/snap/**'], file: 'scripts/e2e/journeys/snap.js' }];
   assert.deepEqual(affected.e2eFor(['scripts/e2e/journeys/snap.js'], table).scenarios.map((s) => s.name), ['snap'], 'editing a journey names it');
   // Over the real journeys: a change AtlasTile makes names several; one of them already green is listed apart, not named to run.
+  // (As a train names them: on a branch, the ones it did not edit are deferred, "e2e economy 9".)
   const real = ['src/components/atlas/AtlasTile.tsx'];
-  const hint = affected.e2eHint(real, false, (n) => (n === 'atlas' ? 'green' : null), ['src/map/types.ts']);
+  const hint = affected.e2eHint(real, false, (n) => (n === 'atlas' ? 'green' : null), ['src/map/types.ts'], { train: true });
   assert.match(hint, /E2E_ONLY=carousel npm run e2e:web/, 'a journey not yet green is named');
   assert.ok(!/E2E_ONLY=atlas npm run e2e:web/.test(hint), 'one already green is not');
   assert.match(hint, /Already green, with their files unchanged since \(not run again\): atlas\./);
   assert.match(hint, /Left out as comment-only.*src\/map\/types\.ts/);
-  assert.match(affected.e2eHint(real, false, () => 'green', []), /every journey that covers what changed is already green/);
+  assert.match(affected.e2eHint(real, false, () => 'green', [], { train: true }), /every journey that covers what changed is already green/);
   assert.match(hint, /once, at the end/);
 });
 
@@ -158,4 +159,101 @@ test('e2e economy 8: /slice, /audit and the testing reference tell a session the
   assert.match(testing, /flaky\.json/);
   assert.match(testing, /never skipped|never skips|still fails/i, 'a known flake still fails a run');
   assert.match(read('.gitignore'), /\.e2e-green\.json/, 'the green cache is never committed');
+});
+
+type Hit = { name: string; files: string[]; own: boolean };
+const affectedPlan = load(join(ROOT, 'scripts', 'affected.js')) as {
+  e2eFor(changed: string[], s?: { name: string; covers: string[]; file?: string }[]): { scenarios: Hit[] };
+  e2eHint(changed: string[], all: boolean, status: (n: string) => string | null, comment: string[], o?: { train?: boolean }): string;
+};
+
+test('e2e economy 9: a branch runs the journeys it added or edited; one named only through a shared file is deferred to the train (0125)', () => {
+  const table = [
+    { name: 'space', covers: ['src/walk.tsx', 'src/space/**'], file: 'scripts/e2e/journeys/space.js' },
+    { name: 'gaps', covers: ['src/walk.tsx', 'src/gaps/**'], file: 'scripts/e2e/journeys/gaps.js' },
+  ];
+  const hits = affectedPlan.e2eFor(['src/walk.tsx', 'scripts/e2e/journeys/space.js'], table).scenarios;
+  assert.deepEqual(hits.map((h) => [h.name, h.own]), [['space', true], ['gaps', false]], 'own: the branch edited the journey itself');
+  // Over the real journeys: walk.tsx alone names a dozen; with the space journey edited, only space is the branch's to run.
+  const hint = affectedPlan.e2eHint(['src/app/walk.tsx', 'scripts/e2e/journeys/space.js'], false, () => null, []);
+  assert.match(hint, /yours to run[\s\S]*E2E_ONLY=space npm run e2e:web/);
+  const named = [...hint.matchAll(/E2E_ONLY=(\w+) npm run e2e:web/g)].map((m) => m[1]);
+  assert.deepEqual(named, ['space'], 'nothing else is named to run on the branch');
+  assert.match(hint, /Deferred to the deploy's train[^\n]*decision 0125[^\n]*gaps/, 'the rest is said, as deferred');
+  assert.match(hint, /npm run e2e:train/);
+  // A branch that edited no journey runs none, and says what the train will run.
+  const none = affectedPlan.e2eHint(['src/app/walk.tsx'], false, () => null, []);
+  assert.ok(!/E2E_ONLY=/.test(none), 'no journey named to run');
+  assert.match(none, /no journey of yours to run here/);
+  // A run that ships alone (/fix) is its own train: every journey is named, none deferred.
+  const alone = affectedPlan.e2eHint(['src/app/walk.tsx'], false, () => null, [], { train: true });
+  assert.ok([...alone.matchAll(/E2E_ONLY=(\w+)/g)].length >= 10 && !/Deferred/.test(alone));
+});
+
+type Plan = { name: string; branches: { branch: string; files: string[]; own: boolean }[] }[];
+type Verdict = { branch: string; red: { journey: string; failures: string[]; flakes: string[]; through: string[]; own: boolean; sharedWith: string[] }[]; green: string[] };
+const train = load(join(ROOT, 'scripts', 'e2e-train.js')) as {
+  trainPlan(branches: { branch: string; changed: string[] }[], e2eFor: (c: string[]) => { scenarios: Hit[] }): Plan;
+  attribute(plan: Plan, results: Record<string, { ok?: boolean; failures?: string[]; flakes?: string[]; skipped?: string }>, order: string[]): Verdict[];
+  describeTrain(t: Record<string, unknown>): string;
+};
+
+test('e2e economy 10: the train runs the union of the branches\' journeys once and sends each failure to the branches whose files it covers', () => {
+  const table = [
+    { name: 'space', covers: ['src/walk.tsx', 'src/space/**'], file: 'scripts/e2e/journeys/space.js' },
+    { name: 'gaps', covers: ['src/walk.tsx', 'src/gaps/**'], file: 'scripts/e2e/journeys/gaps.js' },
+    { name: 'atlas', covers: ['src/atlas/**'], file: 'scripts/e2e/journeys/atlas.js' },
+  ];
+  const e2eFor = (c: string[]) => affectedPlan.e2eFor(c, table);
+  const branches = [
+    { branch: 'a', changed: ['src/walk.tsx', 'scripts/e2e/journeys/space.js'] },
+    { branch: 'b', changed: ['src/walk.tsx'] },
+    { branch: 'c', changed: ['src/atlas/x.ts'] },
+  ];
+  const plan = train.trainPlan(branches, e2eFor);
+  assert.deepEqual(plan.map((j) => [j.name, j.branches.map((b) => b.branch)]), [['atlas', ['c']], ['gaps', ['a', 'b']], ['space', ['a', 'b']]], 'each journey once, with every branch that named it');
+  const v = train.attribute(plan, { atlas: { ok: true, failures: [] }, gaps: { skipped: 'green' }, space: { ok: false, failures: ['SA3: low'], flakes: [] } }, ['a', 'b', 'c']);
+  const by = Object.fromEntries(v.map((x) => [x.branch, x]));
+  assert.deepEqual(by.c.red, [], 'a branch whose journeys passed is green');
+  assert.deepEqual(by.c.green, ['atlas']);
+  assert.deepEqual(by.a.red.map((r) => [r.journey, r.own, r.sharedWith]), [['space', true, ['b']]], 'the branch that edited the journey is told, and with whom it shares it');
+  assert.deepEqual(by.b.red.map((r) => [r.journey, r.own, r.sharedWith]), [['space', false, ['a']]]);
+  assert.deepEqual(by.a.green, ['gaps'], 'a journey green in an earlier train with its files unchanged counts as green');
+  const report = train.describeTrain({ stamp: 's', base: 'origin/main (abc)', build: '/chronicles', trainBranch: 'train/s', head: 'def', plan, results: { atlas: { ok: true }, gaps: { skipped: 'green' }, space: { ok: false, failures: ['SA3: low'], flakes: ['SA3: low'] } }, logs: { space: '.e2e-train/s/space.log' }, merged: branches, excluded: [{ branch: 'd', conflict: true, why: 'conflicts in src/x.ts' }], verdicts: train.attribute(plan, { atlas: { ok: true }, gaps: { skipped: 'green' }, space: { ok: false, failures: ['SA3: low'], flakes: ['SA3: low'] } }, ['a', 'b', 'c']) });
+  assert.match(report, /\*\*a: red\*\*[\s\S]*FAILED: SA3: low \(known flake[^)]*still fails the run\)/, 'a known flake is labelled and still red');
+  assert.match(report, /\*\*c: green\*\*/);
+  assert.match(report, /\*\*d: left out\*\* \(conflicts in src\/x\.ts\)\. Rebase it/);
+  assert.match(report, /Not shippable as is/);
+  assert.match(report, /2 ran once each, 1 already green/);
+  const green = train.describeTrain({ stamp: 's', base: 'b', build: '/chronicles', trainBranch: 'train/s', head: 'h', plan: [], results: {}, logs: {}, merged: [{ branch: 'a' }], excluded: [], verdicts: [{ branch: 'a', red: [], green: [] }] });
+  assert.match(green, /git push origin train\/s:main/, 'all green: the tested commit is what ships');
+  const script = read('scripts/e2e-train.js');
+  assert.match(script, /CHRONICLES_BASE_URL: '\/chronicles'/, 'the train runs on the build Pages serves');
+  assert.match(script, /copy-maplibre-worker/, 'the worktree gets the map worker');
+  assert.match(script, /meaningfulPaths/, 'comment-only changes name nothing, as on the branch');
+  assert.match(read('.gitignore'), /\.e2e-train/, 'its reports and cache are never committed');
+});
+
+test('e2e economy 11: /slice, /audit, /deploy, /fix and the testing reference name the train, and the end of a slice runs each check once', () => {
+  const slice = read('.claude/skills/slice/SKILL.md');
+  const audit = read('.claude/skills/audit/SKILL.md');
+  const deploy = read('.claude/skills/deploy/SKILL.md');
+  const fix = read('.claude/skills/fix/SKILL.md');
+  const testing = read('docs/TESTING.md');
+  for (const [name, text] of [['slice', slice], ['audit', audit], ['deploy', deploy], ['TESTING', testing]] as const) {
+    assert.match(text, /e2e:train/, `${name} names the train`);
+    assert.match(text, /0125/, `${name} names the decision`);
+  }
+  assert.match(slice, /deferred/i, '/slice: the journeys a branch did not edit are deferred, and said');
+  assert.match(audit, /deferred/i);
+  assert.match(fix, /check:e2e -- --train/, '/fix ships alone: it is its own train');
+  // Step 9 runs typecheck, lint and the unit tests once: check:e2e for the plan, not check:affected (which runs all three again),
+  // and no test:feature (npm test already ran that folder).
+  const done = slice.slice(slice.indexOf('## 9.'), slice.indexOf('## Report'));
+  assert.ok(!/npm run check:affected\b/.test(done.split('```')[1] ?? ''), '/slice step 9 does not rerun check:affected');
+  assert.ok(!/test:feature/.test(done), '/slice step 9 does not rerun the feature\'s tests');
+  assert.match(done, /npm run check:e2e/);
+  const verify = audit.slice(audit.indexOf('## 6.'), audit.indexOf('## Report'));
+  assert.ok(!/check:affected/.test(verify.split('```')[1] ?? ''), '/audit step 6 does not rerun check:affected');
+  assert.match(verify, /check:e2e -- --since/);
 });

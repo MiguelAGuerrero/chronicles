@@ -72,23 +72,27 @@ Findings covered only by the e2e's flow and typecheck are said so in the record.
 ## 6. Verify, then deploy
 
 ```bash
-npm run typecheck && npm run lint && npm test
-npm run check:affected -- --since <slice's last green commit>   # names the e2e journeys for the files the audit changed
-npm run export:web && E2E_ONLY=<journey> npm run e2e:web         # each journey it names
+npm run typecheck && npm run lint && npm test                # each once
+npm run check:e2e -- --since <slice's last green commit>     # the journeys the audit's fixes touch: yours to run, the rest deferred
+npm run export:web                                           # once, then each journey yours to run:
+E2E_ONLY=<journey> npm run e2e:web
 ```
 
-Only the journeys the audit's fixes touch: `--since` is the commit the slice last ran
-green, so the slice's whole set is not run again. Each regression test's journey runs
-once after its fix; a journey already green on these inputs prints "already green" and
-is not run again (`E2E_FORCE=1` overrides). A failure the fixes did not touch gets one
-`npm run e2e:baseline -- <journey>` on `main`, not repeated reruns on the branch: a
-recorded flake is labelled and still fails the run (`docs/TESTING.md`, "The e2e's
-economy"). The record says which journeys ran and how many times.
+`--since` is the commit the slice last ran green, so only what the audit changed counts.
+The journeys the audit added or edited a check in (each `step('<slice> audit N ...')`) are
+yours to run, once after their fixes. Every other journey the plan names is deferred to the
+deploy's train (decision 0125, `npm run e2e:train`): it runs once there for every branch that
+ships together, and the record says "deferred to the train: …". A journey already green on
+these inputs prints "already green" and is not run again (`E2E_FORCE=1` overrides). A failure
+the fixes did not touch gets one `npm run e2e:baseline -- <journey>` on `main`, not repeated
+reruns on the branch: a recorded flake is labelled and still fails the run (`docs/TESTING.md`,
+"The e2e's economy"). The record says which journeys ran, how many times, and which were deferred.
 
 The full e2e (no `E2E_ONLY`) only when the owner asks. When all pass, the
 owner decides on `/deploy`.
 
 ## Report
 
-The counts, each accepted finding's test name, the deferred list, and the
-native paths still unverified on a device.
+The counts, each accepted finding's test name, the deferred list, the journeys
+run and those deferred to the train, and the native paths still unverified on a
+device.

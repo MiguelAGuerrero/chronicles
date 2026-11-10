@@ -45,7 +45,7 @@ and lint before Pages deploys.
 | `none` | nothing beyond the hook's gates; the owner verifies by hand | none |
 | `lean` | `npm run typecheck`, `npm run lint:affected` | only if the bug is in a core module (cheap, pure) |
 | `scoped` | `npm run check:affected` (layers, affected tests, typecheck, lint) | a failing-first regression test, in the feature's folder (`src/lib/__tests__/<feature>/`) |
-| `e2e` | `scoped`, then `npm test`, then each journey `check:affected` names, against the sub-path build as in `/deploy` | regression test, plus a journey step if a screen changed |
+| `e2e` | `scoped`, then `npm test`, then each journey `npm run check:e2e -- --train` names (a fix that deploys itself ships alone, so it is its own train and defers nothing; decision 0125), against the sub-path build; with `--deploy=branch\|none`, only the journeys the fix added or edited (`npm run check:e2e`), the rest deferred to the train that ships it | regression test, plus a journey step if a screen changed |
 | `full` | `e2e`, then the full e2e flow (no `E2E_ONLY`) | as `e2e` |
 
 If the owner gave no `--tests` and the fix touches storage, the recorder,
@@ -164,7 +164,8 @@ branch so the owner can look, and list the open findings in the report.
 
 ## 8. Deploy to main (the default)
 
-Follow `/deploy` steps 1-3 without asking again, with these limits:
+Follow `/deploy`'s preconditions (step 1) and its check of the run (step 4) without
+asking again; the level's verify stands in for the train (step 2), with these limits:
 
 - the worktree has only this fix's changes;
 - `git fetch origin main`; if `main` moved, rebase the branch, re-run the

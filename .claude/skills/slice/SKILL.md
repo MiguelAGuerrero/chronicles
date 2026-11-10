@@ -8,7 +8,8 @@ argument-hint: <slice-name>
 # Slice: $ARGUMENTS
 
 Spec first, tests first, then code. The slice is done when every criterion's
-test passes with typecheck, lint, `npm test` and the e2e, and the docs say so.
+test passes with typecheck, lint, `npm test` and the journeys it added or edited
+(the rest wait for the deploy's train, decision 0125), and the docs say so.
 
 ## Standing rules
 
@@ -116,12 +117,15 @@ paths right.
    commit as its code: drop `{ todo: ... }`, turn `check.todo(` into `check(`.
    A todo id counts as untested (TG23). Between criteria, run
    `npm run check:affected`: the layer check, the tests that import what
-   changed, the typecheck and lint of the changed files, and the e2e
-   scenarios that cover them. The whole suite is for step 9. Between criteria
-   run only the journeys you edited, rewrote or added (`npm run check:e2e`
-   lists them): each named journey runs once, at the end, not at every
-   checkpoint. A journey already green on these inputs is not run again
-   (`E2E_FORCE=1` overrides, for a reason you can name).
+   changed, the typecheck and lint of the changed files, and the e2e plan.
+   The whole suite is for step 9; when a change reaches deep into the
+   slice's feature, `npm run test:feature <feature>` runs its whole folder
+   in between. The only journeys a slice runs are the ones
+   it added or edited (the plan's "yours to run"), and only when the criteria
+   they check are built, not at every checkpoint. Every other journey the plan
+   names is deferred to the deploy's train (decision 0125): do not run it here,
+   however near the slice it looks. A journey already green on these inputs is
+   not run again (`E2E_FORCE=1` overrides, for a reason you can name).
 2. Keep truth vs cache: never patch derived data, recompute from the trace.
 3. Pass the walk's pauses (and stills) everywhere a trace is read, drawn or
    measured; `tr.walked` for walked-only consumers, `smoothKept(tr)` for the
@@ -151,41 +155,52 @@ accepted findings, each behind a regression test named `<slug> audit N`.
 
 ## 9. Before done
 
+Each check runs once here: `check:e2e` is the plan alone, since the first line already ran
+the typecheck, lint and every unit test (the slice's feature folder included).
+
 ```bash
-npm run typecheck && npm run lint && npm test
-npm run check:affected                                  # names the e2e journeys for the slice's files
-npm run test:feature <feature>                          # the slice's feature, whole
+npm run typecheck && npm run lint && npm test           # each once
+npm run check:e2e                                       # what covers nothing; the journeys yours to run, and those deferred to the train
 npm run check:test-first <slug>                         # each criterion's todo came before its real test
-npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # each journey it names, the slice's own included
+npm run export:web                                      # once, then each journey yours to run:
+E2E_ONLY=<journey> npm run e2e:web
 ```
 
-**The e2e's economy (docs/TESTING.md, `scripts/e2e/economy.js`).** Each journey is minutes
-of browser, so the named ones run once, at the end, and the rest is mechanical:
+**The e2e's economy (docs/TESTING.md, decisions 0074 and 0125).** Each journey is minutes of
+browser, and several sessions build slices at once, so a branch runs the fewest:
 
-- `check:affected` leaves out a source change that is only comments or types, names a
-  journey whose own file you edited, and lists apart the journeys that passed with their
-  files as they are now. A journey already green on exactly these inputs (its file, the
-  files it covers, the harness, the build, the flags) prints "already green" and exits;
-  `E2E_FORCE=1` runs it anyway. Never re-sweep the whole set after a later change: rerun
-  the journeys that cover the files you changed since (`npm run check:affected -- --since <sha>`).
+- **Yours to run:** the journeys the slice added or edited, which hold its screen criteria.
+  Each runs once, at the end; after a later change, rerun only the journeys that cover the
+  files changed since (`npm run check:e2e -- --since <sha>`), never the whole set again.
+- **Deferred to the train:** every other journey the plan names, reached only through a
+  shared file (`walk.tsx` alone is covered by twelve). They run once at `/deploy`, in
+  `npm run e2e:train`, for all the branches that ship together, and a failure comes back to
+  the branch whose files the failing journey covers. Do not run one "to be safe"; write the
+  list in the slice's STATUS.md row and its report: "deferred to the train: …". A failure the
+  train sends back is fixed like any other, then that journey alone reruns here.
+- `check:e2e` leaves out a source change that is only comments or types and lists apart the
+  journeys that passed with their files as they are now. A journey already green on exactly
+  these inputs (its file, the files it covers, the harness, the build, the flags) prints
+  "already green" and exits; `E2E_FORCE=1` runs it anyway.
 - A failure outside the slice's files is not rerun on the branch to see if it flakes. Run
   `npm run e2e:baseline -- <journey>` once: it runs the journey on a scratch worktree of
   `main` and records a check that failed there in `scripts/e2e/flaky.json`. A recorded
   check is labelled "known flake" and still fails the run: nothing is skipped or
   quarantined. A journey that never failed on `main` leaves the failure the slice's own.
-- The slice's report says which journeys ran, how many runs there were, and why any ran
-  more than once.
+- The slice's report says which journeys ran, how many runs there were, why any ran more
+  than once, and which were deferred to the train.
 
-All green. A "Covered by nothing" line from `check:affected` for a file the
+All green. A "Covered by nothing" line from `check:e2e` for a file the
 slice wrote is a gap: give it a test (a shell over `fakePorts()`, a core unit
 test, a check in the feature's journey) or record it in `docs/DEFERRED.md`.
-No e2e when no journey covers the slice's files and it changes no
-screen; the full flow (no `E2E_ONLY`) only when the owner asks. Then:
+No e2e when the slice edited no journey and changes no screen; the full flow
+(no `E2E_ONLY`) only when the owner asks. Then:
 
 1. Take the spec out of `IN_PROGRESS` in `scripts/features.js`; `npm run
    check:docs` then holds every criterion to a test (TG20).
 2. Update `docs/STATUS.md`: move the row to "Shipped" (or leave it in flight
-   with its state), with the audit's counts if there was one.
+   with its state), with the audit's counts if there was one and the journeys
+   deferred to the train.
 3. Run `/docs-gc`.
 4. Commit, criterion ids in the message as the repo does:
    `Navigate: a Locate button (QL9-QL12)`. Do not push to `main`; that is
@@ -193,5 +208,6 @@ screen; the full flow (no `E2E_ONLY`) only when the owner asks. Then:
 
 ## Report
 
-State what shipped by criterion id, what is deferred, the audit's counts, and
-that native code has not run on a device.
+State what shipped by criterion id, what is deferred, the audit's counts, the
+journeys run and those deferred to the train, and that native code has not run
+on a device.

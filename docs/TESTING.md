@@ -264,9 +264,25 @@ flow, several minutes, was not timed).
 
 ### The e2e's economy
 
-A journey is minutes of browser, and the owner's rule (decision 0074) is that a change
-runs the journeys `npm run check:affected` names and no more. The tooling holds a session
-to it (`scripts/e2e/economy.js`; tests `arch/e2eEconomy.test.ts`):
+A journey is minutes of browser, and several sessions build at once. The owner's rules:
+a change runs only the journeys `npm run check:affected` names (decision 0074), and a
+branch runs only those it added or edited, the rest once in the deploy's train (decision
+0125). The tooling holds a session to it (`scripts/e2e/economy.js`, `scripts/e2e-train.js`;
+tests `arch/e2eEconomy.test.ts`):
+
+- **Yours, or deferred to the train.** The plan marks a journey whose own file the branch
+  added or edited "yours to run"; one named only through the source files it covers (a
+  shared file: `walk.tsx` is in twelve journeys, `explore.tsx` in seven) is "deferred to the
+  deploy's train", and the session writes the list in its report and STATUS.md row instead
+  of running it. `--train` names them all to run, for a run that ships alone (`/fix`).
+- **The train** (`npm run e2e:train -- <branch> ...`, run by `/deploy`): the branches merged
+  onto `origin/main` in a scratch worktree (a conflicting one left out), typecheck, lint and
+  `npm test` once on the merged tree, one `/chronicles` export, and the union of the
+  branches' journeys once each. A failure goes to every branch whose files the journey
+  covers, the one that edited the journey marked; the report is `.e2e-train/<stamp>/report.md`
+  (never committed). The trains keep their own green cache, so a train run again after a red
+  branch is dropped, or after `main` moved, reruns only the journeys whose files changed.
+  All green ships the tested commit: `git push origin train/<stamp>:main`.
 
 - **A green cache** (`.e2e-green.json`, never committed). A journey that passes with
   `E2E_ONLY` records its inputs: its own file, the files it covers, the harness
@@ -288,9 +304,11 @@ to it (`scripts/e2e/economy.js`; tests `arch/e2eEconomy.test.ts`):
   nothing is skipped, quarantined or turned green. A journey that never failed on `main`
   records nothing, so its failure on a branch is the branch's until shown otherwise.
 
-The habit it replaces: sweeping the whole named set at every checkpoint, rerunning a flaky
-check on the branch to see whether it flakes. Run each named journey once, at the end;
-rerun the ones you edited or whose covered files changed since.
+The habits it replaces: sweeping the whole named set at every checkpoint; rerunning a flaky
+check on the branch to see whether it flakes; seven sessions each running the same dozen
+journeys a shared file reaches, then `/deploy` running them all again on the sub-path build.
+Run each journey of yours once, at the end; rerun the ones you edited or whose covered files
+changed since; leave the rest to the train.
 
 ### How a run reads
 

@@ -7,10 +7,13 @@ argument-hint: [scenario]
 
 # e2e: $ARGUMENTS
 
-**Run less, not more.** A journey that already passed on exactly these inputs prints "already green"
-and exits (`E2E_FORCE=1` runs it anyway); `npm run check:e2e` lists what a change needs; a failure
-that may be a flake gets one `npm run e2e:baseline -- <journey>` on `main`, not reruns on the branch
-(docs/TESTING.md, "The e2e's economy").
+**Run less, not more.** A branch runs only the journeys it added or edited; `npm run check:e2e`
+lists them as yours and defers the rest, reached through shared files, to the deploy's train
+(`npm run e2e:train`, decision 0125), which runs them once for every branch that ships together.
+A journey that already passed on exactly these inputs prints "already green" and exits
+(`E2E_FORCE=1` runs it anyway); a failure that may be a flake gets one
+`npm run e2e:baseline -- <journey>` on `main`, not reruns on the branch (docs/TESTING.md,
+"The e2e's economy").
 
 The web build is exported, served from `dist/` by the script, and driven by
 Playwright's full Chromium (`channel: 'chromium'`; the old headless shell
@@ -21,7 +24,8 @@ memos. The app itself has no simulation. The rest is in `docs/TESTING.md`.
 ## Run
 
 ```bash
-npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # one journey, fresh browser: the normal run
+npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # one journey, fresh browser: the normal run (export once for several)
+npm run e2e:train -- <branch> [<branch> ...]          # /deploy: the branches merged, one build, the union of their journeys once
 npm run export:web && npm run e2e:web                 # the whole flow, about 15 minutes: only when the owner asks (decision 0074)
 CHRONICLES_BASE_URL=/chronicles npm run export:web && E2E_BASE=/chronicles npm run e2e:web   # the Pages sub-path build
 ```

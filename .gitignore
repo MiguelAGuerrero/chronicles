@@ -46,3 +46,5 @@ yarn-error.*
 
 # the e2e runner's record of journeys that passed (scripts/e2e/economy.js)
 /.e2e-green.json
+# the deploy's train: its reports, logs and its own green cache (scripts/e2e-train.js)
+/.e2e-train/

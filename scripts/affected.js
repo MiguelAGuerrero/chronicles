@@ -7,13 +7,16 @@
 //   node scripts/affected.js lint     lint the changed files
 //   node scripts/affected.js check    layers, tests, typecheck, lint, then the e2e scenarios to run
 //   node scripts/affected.js hook     what the Stop hook runs (layers and tests, when TypeScript changed)
-//   node scripts/affected.js e2e      only the e2e plan: the journeys to run, and which are already green
+//   node scripts/affected.js e2e      only the e2e plan and what covers nothing: yours to run, deferred to the train, already green
+//                                     (--train: every named journey is to run here, for a run that ships alone: /fix)
 //
 // "Changed" is everything that differs from the merge base with origin/main
 // (or main): commits on the branch, edits, new files, renames and deletes. `--since <sha>` compares with that
 // commit instead (the last green run, an audit's start). For the e2e plan a change to a source file that
 // leaves its code as it was (comments or types) does not count, and a journey that passed with
-// its files as they are now is listed as already green (scripts/e2e/economy.js).
+// its files as they are now is listed as already green (scripts/e2e/economy.js). A journey named only through the
+// source files it covers is deferred to the deploy's train (decision 0125, scripts/e2e-train.js): a branch runs
+// only the journeys it added or edited, and the rest run once for every branch that ships together.
 
 const { execFileSync, spawnSync } = require('child_process');
 const fs = require('fs');
@@ -352,7 +355,10 @@ const { globToRegExp } = features;
 function e2eFor(changed, scenarios = require('./e2e-scenarios').SCENARIOS) {
   // A journey's own file counts as covered: editing a journey names it (it is what changed).
   const compiled = scenarios.map((s) => ({ name: s.name, res: [...s.covers, ...(s.file ? [s.file] : [])].map(globToRegExp) }));
-  const hits = compiled.map((s) => ({ name: s.name, files: changed.filter((c) => s.res.some((r) => r.test(c))) })).filter((s) => s.files.length);
+  // `own`: the branch added or edited the journey itself, so it is the branch's to run (decision 0125).
+  const hits = compiled
+    .map((s, i) => ({ name: s.name, files: changed.filter((c) => s.res.some((r) => r.test(c))), own: !!scenarios[i].file && changed.includes(scenarios[i].file) }))
+    .filter((s) => s.files.length);
   const covered = new Set(hits.flatMap((h) => h.files));
   const uncovered = changed.filter((c) => /^src\/(app|components)\//.test(c) && !covered.has(c));
   return { scenarios: hits, uncovered };
@@ -454,19 +460,29 @@ function typecheckStep() {
 }
 
 /**
- * The e2e plan (explore-carousel's lesson, Nov 10): the journeys that cover what changed, minus the changes that cannot alter
- * behaviour, and each one's state: to run, or already green with its files as they are. `status(name)` is 'green' or null.
+ * The e2e plan (explore-carousel's lesson, Nov 10; decision 0125): the journeys that cover what changed, minus the changes
+ * that cannot alter behaviour, each one yours to run (the branch added or edited the journey), deferred to the deploy's train
+ * (named only through the files it covers), or already green with its files as they are. `status(name)` is 'green' or null.
+ * `o.train`: this run ships alone (/fix), so every named journey is to run here and none is deferred.
  */
-function e2eHint(changed, all, status = () => null, comment = []) {
+function e2eHint(changed, all, status = () => null, comment = [], o = {}) {
   const r = e2eFor(changed);
   const lines = [];
-  const need = r.scenarios.filter((s) => status(s.name) !== 'green');
+  const open = r.scenarios.filter((s) => status(s.name) !== 'green');
   const done = r.scenarios.filter((s) => status(s.name) === 'green');
+  const need = o.train ? open : open.filter((s) => s.own);
+  const later = o.train ? [] : open.filter((s) => !s.own);
+  const row = (s) => `  E2E_ONLY=${s.name} npm run e2e:web    (${features.featureOfJourney(s.name)?.name ?? 'no feature'}: ${s.files.join(', ')})`;
   if (need.length) {
-    lines.push('E2E journeys that cover what changed (npm run export:web, then):');
-    for (const s of need) lines.push(`  E2E_ONLY=${s.name} npm run e2e:web    (${features.featureOfJourney(s.name)?.name ?? 'no feature'}: ${s.files.join(', ')})`);
-  } else if (r.scenarios.length) lines.push('E2E: every journey that covers what changed is already green with its files as they are.');
+    lines.push(o.train ? 'E2E journeys that cover what changed (npm run export:web once, then each):' : 'E2E journeys yours to run, the ones this branch added or edited (npm run export:web once, then each):');
+    for (const s of need) lines.push(row(s));
+  } else if (later.length) lines.push('E2E: no journey of yours to run here (this branch added or edited none).');
+  else if (r.scenarios.length) lines.push('E2E: every journey that covers what changed is already green with its files as they are.');
   else lines.push('E2E: no journey covers what changed.');
+  if (later.length) {
+    lines.push(`  Deferred to the deploy's train, not run here (named only through files they cover; decision 0125): ${later.map((s) => s.name).join(', ')}.`);
+    lines.push("  They run once, in npm run e2e:train at /deploy, for every branch that ships together; a failure comes back to the branch whose files it covers. Say them in the report and STATUS.md.");
+  }
   if (done.length) lines.push(`  Already green, with their files unchanged since (not run again): ${done.map((s) => s.name).join(', ')}. E2E_FORCE=1 runs one anyway.`);
   if (comment.length) lines.push(`  Left out as comment-only, no behaviour changed: ${comment.join(', ')}.`);
   if (r.uncovered.length) {
@@ -529,11 +545,16 @@ async function main(cmd) {
   } else if (cmd === 'check') {
     steps = [step('layers', layersStep), step('tests', () => testsStep(changed, all)), step('typecheck', typecheckStep), step('lint', () => lintStep(changed, all))];
   } else if (cmd === 'e2e') {
+    // The end of a slice runs typecheck, lint and npm test itself; this is the rest of what check:affected says.
+    if (!all) {
+      const cov = describeCoverage(coverage(ROOT, changed));
+      if (cov) console.log(cov);
+    }
     const { real, comment } = splitComment(ROOT, base, changed);
-    console.log(e2eHint(real, all, greenStatus(ROOT), comment));
+    console.log(e2eHint(real, all, greenStatus(ROOT), comment, { train: process.argv.includes('--train') }));
     return;
   } else {
-    console.error('usage: node scripts/affected.js test | lint | check | hook | e2e | feature <name...> | coverage [<name...>]  (check, e2e: [--since <sha>])');
+    console.error('usage: node scripts/affected.js test | lint | check | hook | e2e | feature <name...> | coverage [<name...>]  (check, e2e: [--since <sha>] [--train])');
     process.exit(64);
   }
   const r = await runSteps(steps);
@@ -545,7 +566,7 @@ async function main(cmd) {
   }
   if (cmd === 'check') {
     const { real, comment } = splitComment(ROOT, base, changed);
-    console.log(`\n${e2eHint(real, all, greenStatus(ROOT), comment)}`);
+    console.log(`\n${e2eHint(real, all, greenStatus(ROOT), comment, { train: process.argv.includes('--train') })}`);
   }
 }
 

@@ -217,8 +217,8 @@ test('AC9, TG9 a changed file names the scenarios that cover it; an uncovered sc
   ];
   const r = affected.e2eFor(['src/lib/gaps/infer.ts', 'src/app/(tabs)/navigate.tsx', 'src/components/Ticking.tsx', 'docs/a.md'], table);
   assert.deepEqual(r.scenarios, [
-    { name: 'gaps', files: ['src/lib/gaps/infer.ts'] },
-    { name: 'tabs', files: ['src/app/(tabs)/navigate.tsx'] },
+    { name: 'gaps', files: ['src/lib/gaps/infer.ts'], own: false },
+    { name: 'tabs', files: ['src/app/(tabs)/navigate.tsx'], own: false },
   ]);
   assert.deepEqual(r.uncovered, ['src/components/Ticking.tsx']);
   // The repo's table lists journeys only: the full flow runs only when the owner asks (decision 0074),

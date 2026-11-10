@@ -1,14 +1,14 @@
 ---
 name: deploy
-description: Deploy the web build to GitHub Pages by pushing main (the only branch Pages accepts), after typecheck, lint, the unit tests and the slice's e2e journeys are green and STATUS.md is updated (the full e2e and an audit only if the owner asked); then check the Pages run with the GitHub MCP tools. Use only when the owner asks to deploy, ship or release.
+description: Deploy the web build to GitHub Pages by pushing main (the only branch Pages accepts) - the ready branches ship together as one train (decision 0125) that runs typecheck, lint, the unit tests and the union of their e2e journeys once on one build and sends each failure back to its branch; STATUS.md updated (the full e2e and an audit only if the owner asked); then check the Pages run with the GitHub MCP tools. Use only when the owner asks to deploy, ship or release.
 when_to_use: The owner says deploy, ship, release, publish, or merge to main.
 disable-model-invocation: true
-allowed-tools: Bash, Read, Grep, Glob, mcp__github__actions_list, mcp__github__actions_get, mcp__github__get_job_logs
+allowed-tools: Bash, Read, Grep, Glob, mcp__github__actions_list, mcp__github__actions_get, mcp__github__get_job_logs, mcp__claude-code-remote__list_sessions, mcp__claude-code-remote__get_session, mcp__claude-code-remote__send_message
 ---
 
 # Deploy
 
-`/fix` (decision 0081) runs steps 1-3 itself from its worktree; typing it is the owner's go-ahead.
+`/fix` (decision 0081) deploys itself from its worktree, a train of one; typing it is the owner's go-ahead.
 
 A push to `main` runs `.github/workflows/pages.yml`: `npm ci`, `check:docs`,
 typecheck, `npm test`, lint, `expo export --platform web` with `CHRONICLES_BASE_URL=/chronicles`
@@ -20,22 +20,17 @@ https://miguelaguerrero.github.io/chronicles/.
 ## The owner's rules
 
 - `main` is the only branch the Pages environment accepts.
-- Merge to `main` only when typecheck, lint, `npm test` and the slice's e2e
-  journeys pass. The full e2e and `/audit` run only when the owner asks
-  (decision 0074); if they ran, their fixes must pass too.
+- Merge to `main` only when typecheck, lint, `npm test` and the e2e journeys
+  of what ships pass together, on the merged tree: the train (decision 0125).
+  The full e2e and `/audit` run only when the owner asks (decision 0074); if
+  they ran, their fixes must pass too.
 - Never add a server, an account, or anything that leaves the device.
 
-## 1. Preconditions (all of them)
+## 1. Preconditions, per branch that ships
 
-```bash
-git status --short                       # clean, on the branch to ship
-npm run typecheck && npm run lint && npm test
-npm run check:affected                   # names the e2e journeys for what ships
-CHRONICLES_BASE_URL=/chronicles npm run export:web && E2E_BASE=/chronicles E2E_ONLY=<journey> npm run e2e:web   # each journey it names
-```
+Ask the owner which branches ship, if they did not say; every ready branch in
+STATUS.md's "In flight" goes in one train rather than one deploy each.
 
-- The journeys run against the sub-path build, as Pages serves it. The full
-  flow (no `E2E_ONLY`) only when the owner asks for it.
 - `npm run check:test-first <slug>` passes for each slice that ships (its
   tests were committed as todos before its code), and no shipped slice's spec
   is still in `IN_PROGRESS` in `scripts/features.js`.
@@ -45,19 +40,47 @@ CHRONICLES_BASE_URL=/chronicles npm run export:web && E2E_BASE=/chronicles E2E_O
 
 Stop if any precondition fails; say which.
 
-## 2. Push main
+## 2. The train (decision 0125)
+
+```bash
+npm run e2e:train -- <branch> [<branch> ...]
+```
+
+One run for everything that ships, instead of each session running the journeys its
+shared files reach: it merges the branches onto `origin/main` in a scratch worktree
+(branch `train/<stamp>`), runs typecheck, lint and `npm test` once on the merged tree,
+exports the `/chronicles` build once (as Pages serves it), and runs the union of the
+journeys the branches name once each (a journey green in an earlier train with its files
+unchanged is not rerun). The report (`.e2e-train/<stamp>/report.md`) gives each branch
+its verdict: green, red with the failed checks and the branches it shares a failure with,
+or left out for a conflict. The full flow (no `E2E_ONLY`) runs only when the owner asks.
+
+- **All green:** go to step 3.
+- **Red:** send each red branch its section of the report. Find the session working on
+  it (STATUS.md's "In flight" row names it; `list_sessions` with `mine`, `get_session`
+  to match the branch) and `send_message` it the section, with the reproduce line; if
+  no session matches, give the owner each section to paste. A failure shared between
+  branches goes to each. A known flake is labelled and still red. Then, with the owner's
+  word, run the train again without the red branches (only the journeys whose files
+  changed rerun) and ship the green ones; delete the red train's branch
+  (`git branch -D train/<stamp>`).
+- **The merged tree fails typecheck, lint or tests:** the branches break each other.
+  Tell the owner which branches the log names; nothing ships until one is rebased.
+
+## 3. Push main
 
 ```bash
 git fetch origin main
-git log --oneline origin/main..HEAD      # what ships
-git checkout main && git merge --ff-only <branch>   # or the owner's merge
-git push origin main
+git log --oneline origin/main..train/<stamp>     # what ships
+git push origin train/<stamp>:main               # the tested commit; a fast-forward
+git branch -D train/<stamp>
 ```
 
-Push only what the owner agreed to ship. If a fast-forward is not possible,
-show the owner the divergence before merging.
+Push only what the owner agreed to ship. If `main` moved since the train (the push is
+not a fast-forward), run the train again: journeys whose files did not change are not
+rerun. Never force-push `main`.
 
-## 3. Check the run
+## 4. Check the run
 
 `gh` is not available in cloud sessions; use the GitHub MCP tools:
 
@@ -68,7 +91,7 @@ show the owner the divergence before merging.
 3. Open https://miguelaguerrero.github.io/chronicles/ and confirm the build
    is the new one (a changed screen, or the commit's visible change).
 
-## 4. If the export fails
+## 5. If the export fails
 
 1. Read the job log: the failing step is typecheck, test or export.
 2. Reproduce it locally with the same command and
@@ -78,9 +101,11 @@ show the owner the divergence before merging.
    `process.env.EXPO_BASE_URL`.
 4. A route 404 after deploy: the `404.html` copy step, or a path not under
    the base URL.
-5. Fix on a branch, rerun the preconditions, push `main` again. Never fix on
+5. Fix on a branch, run the train again, push `main` again. Never fix on
    the Pages artifact or by hand.
 
 ## Report
 
-The commit deployed, the run's URL and result, and the page checked.
+The branches shipped and the commit deployed; the train's journeys (ran,
+already green) and each red branch's verdict and whether its session was sent
+it; the run's URL and result, and the page checked.
