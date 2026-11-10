@@ -212,7 +212,7 @@ const FEATURES = [
       'src/lib/{mediaEdit,editSession,editOffer,captionInput}.ts',
       'src/lib/{captureEdits,videoEdit}/**',
     ],
-    journeys: ['edit'],
+    journeys: ['edit', 'stacks'],
     specs: ['memories-on-revisit', 'media-editing', 'moment-stacks'],
   },
   {
@@ -337,7 +337,7 @@ const UNTESTED = {
  * `{ slug: { branch, since: 'YYYY-MM-DD' } }`; an entry older than 7 days fails the docs check.
  */
 const IN_PROGRESS = {
-  'moment-stacks': { branch: 'claude/wizardly-mayer-k9vmge', since: '2026-11-09' },
+  'moment-stacks': { branch: 'claude/wizardly-mayer-k9vmge', since: '2026-11-10' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));

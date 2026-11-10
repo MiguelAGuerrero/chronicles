@@ -6,7 +6,7 @@ import {
   countsOf, filesOf, isMedia, isNamedStreet, mediaRemoveText, momentDeleteText, recountNewStreets, sizeText, summaryLess, toastText, walkDeleteText,
 } from '../../deletion/core';
 import { createPending, type PendingJob } from '../../deletion/pending';
-import type { WalkSummary } from '../../types';
+import type { Capture, WalkSummary } from '../../types';
 
 // A clock the tests drive by hand.
 function fakeTimers() {
@@ -266,4 +266,40 @@ test('MT6: a moment\'s files are every piece\'s media and small copy', async () 
     { pieces: [{ file_path: null, thumb_path: null }] },
   ]);
   assert.deepEqual(got, ['walks/w/a.jpg', 'walks/w/a.thumb.jpg', 'walks/w/b.m4a']);
+});
+
+// ---- Moment stacks, MS13 (decision 0106). Test first: the new words and the piece delete are reached by name.
+test('MS13: a stacked moment\'s delete names the moment and everything in it; one piece is named by its kind', { todo: 'test first' }, async () => {
+  const core = (await import('../../deletion/core' + '')) as unknown as {
+    stackDeleteText(bytes: number): { title: string; body: string; confirm: string };
+    pieceDeleteText(kind: Capture['kind'], bytes: number): { title: string; body: string; confirm: string };
+  };
+  assert.equal(core.stackDeleteText(0).title, 'Delete this moment and everything in it?');
+  assert.equal(toastText('moment'), 'Moment deleted');
+  assert.equal(core.pieceDeleteText('photo', 0).title, 'Delete this photo from the moment?');
+  assert.equal(core.pieceDeleteText('voice', 0).title, 'Delete this voice memo from the moment?');
+  assert.doesNotMatch(core.stackDeleteText(0).body + core.pieceDeleteText('photo', 0).body, /\bpiece/);
+});
+
+test('MS13: deleting a piece keeps the rest and the moment\'s threads, reminder and find; the last piece takes the moment', { todo: 'test first' }, async () => {
+  const { fakePorts } = await import('../fakes');
+  const { createPieceDelete } = (await import('../../deletion/pieces' + '')) as unknown as {
+    createPieceDelete(p: unknown): { run(m: { id: string; pieces: { id: string; file_path: string | null; thumb_path?: string | null }[] }, pieceId: string, removeMedia: (refs: string[]) => Promise<void>): Promise<void> };
+  };
+  const p = fakePorts();
+  const db = p.db as unknown as { addMoment(m: unknown): Promise<void>; addPiece(id: string, c: unknown): Promise<void>; getMomentsByIds(ids: string[]): Promise<{ id: string; pieces: { id: string }[] }[]>; setRecall(r: unknown): Promise<void>; listRecalls(): Promise<unknown[]> };
+  await db.addMoment({ id: 'm', walk_id: null, t: 1, lat: null, lon: null, segment_id: null, pieces: [{ id: 'm', moment_id: 'm', t: 1, kind: 'photo', file_path: 'm.jpg', body: null }] });
+  await db.addPiece('m', { id: 'p', moment_id: 'm', t: 2, kind: 'photo', file_path: 'p.jpg', body: null, thumb_path: 'p.thumb.jpg' });
+  await db.setRecall({ capture_id: 'm', frequency: 'once', until: null, last_fired_at: null, fired_count: 0, last_walk_id: null });
+  const gone: string[] = [];
+  const del = createPieceDelete(p);
+  let [m] = await db.getMomentsByIds(['m']);
+  await del.run(m as never, 'p', async (refs) => { gone.push(...refs); });
+  [m] = await db.getMomentsByIds(['m']);
+  assert.deepEqual(m.pieces.map((x) => x.id), ['m']);
+  assert.deepEqual(gone, ['p.jpg', 'p.thumb.jpg']);
+  assert.equal((await db.listRecalls()).length, 1, 'the reminder stays with the moment');
+  await del.run(m as never, 'm', async (refs) => { gone.push(...refs); });
+  assert.deepEqual(await db.getMomentsByIds(['m']), [], 'the last piece takes the moment');
+  assert.equal((await db.listRecalls()).length, 0);
 });

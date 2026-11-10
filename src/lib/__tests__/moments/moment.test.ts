@@ -51,3 +51,27 @@ test('MT10: moment.ts is a core module', () => {
   const src = readFileSync(join(__dirname, '../../moment.ts'), 'utf8');
   assert.match(src.split('\n')[0], /^\/\/ @layer core$/);
 });
+
+// ---- Moment stacks, round 1 (MS8, MS13; decision 0106). Test first: the new helpers are reached by name.
+type Round1 = { withPiece(m: Moment, p: Capture): Moment; withoutPiece(m: Moment, id: string): Moment | null; hasMore(m: Pick<Moment, 'pieces'>): boolean };
+const round1 = () => import('../../moment' + '') as unknown as Promise<Round1>;
+
+test('MS8: a stacked moment\'s face is its first photo or video, and it says it holds more', { todo: 'test first' }, async () => {
+  const { withPiece, hasMore } = await round1();
+  const m = moment('m', [piece('m', 'm', 1, 'text')]);
+  assert.equal(hasMore(m), false);
+  const two = withPiece(withPiece(m, piece('v', 'm', 5, 'voice')), piece('p', 'm', 3, 'photo'));
+  assert.deepEqual(two.pieces.map((p) => p.id), ['m', 'p', 'v'], 'pieces in capture order');
+  assert.equal(face(two).id, 'p');
+  assert.equal(hasMore(two), true);
+  assert.equal(two.t, 1, 'the moment keeps its own time');
+});
+
+test('MS13: removing a piece keeps the rest and gives the next face; removing the last gives no moment', { todo: 'test first' }, async () => {
+  const { withoutPiece } = await round1();
+  const m = moment('m', [piece('m', 'm', 1, 'text'), piece('p', 'm', 3, 'photo'), piece('q', 'm', 4, 'photo')]);
+  const left = withoutPiece(m, 'p')!;
+  assert.deepEqual(left.pieces.map((p) => p.id), ['m', 'q']);
+  assert.equal(face(left).id, 'q');
+  assert.equal(withoutPiece(moment('o', [piece('o', 'o', 1, 'text')]), 'o'), null);
+});

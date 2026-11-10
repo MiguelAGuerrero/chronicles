@@ -321,6 +321,43 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual((await db.getMomentsByIds(['m1']))[0].pieces[0].edit, edit);
     });
 
+    // ---- moment stacks, round 1 (MS3, MS13, MS15; decision 0106). Test first: reached through `stacks`.
+    type Stacks = Db & { addPiece(momentId: string, piece: Capture): Promise<void>; deletePieces(ids: string[]): Promise<void> };
+    const stacks = async () => (await fresh()) as unknown as Stacks;
+    const piece = (id: string, moment_id: string, t: number, more: Partial<Capture> = {}): Capture => ({ id, moment_id, t, kind: 'photo', file_path: `${id}.jpg`, body: null, ...more });
+
+    test('FC7 addPiece, MS3, MS15: a piece joins its moment with its own time; the moment\'s place and time stay', { todo: 'test first' }, async () => {
+      const db = await stacks();
+      await db.addMoment(one('m1', 'a', 10));
+      await db.addPiece('m1', piece('p2', 'm1', 40));
+      await db.addPiece('m1', piece('p1', 'm1', 20));
+      const [m] = await db.getMoments('a');
+      assert.deepEqual([m.t, m.lat, m.lon], [10, LAT, LON]);
+      assert.deepEqual(m.pieces.map((p) => [p.id, p.t]), [['m1', 10], ['p1', 20], ['p2', 40]]);
+      assert.deepEqual(ids(await db.momentsBetween(0, 100)), ['m1'], 'still one moment');
+      await assert.rejects(db.addPiece('missing', piece('p3', 'missing', 50)), 'no piece without its moment');
+      await assert.rejects(db.addPiece('m1', piece('p1', 'm1', 60)), 'a piece id is used once');
+      await db.updatePiece('p1', { caption: 'side' });
+      assert.equal((await db.getMomentsByIds(['m1']))[0].pieces[1].caption, 'side');
+    });
+
+    test('FC7 deletePieces, MS13: pieces go and their moment stays; a moment\'s last piece is never deleted this way', { todo: 'test first' }, async () => {
+      const db = await stacks();
+      await db.createWalk(walk('a', 1));
+      await db.addMoment(one('m1', 'a', 10, {}, { kind: 'photo', file_path: 'm1.jpg', body: null }));
+      await db.addPiece('m1', piece('p1', 'm1', 20));
+      await db.addPiece('m1', piece('v1', 'm1', 30, { kind: 'voice', file_path: 'v1.m4a' }));
+      await db.setRecall(recall('m1'));
+      await db.saveSnap('a', [], [], summary('a'));
+      await db.deletePieces(['p1']);
+      assert.deepEqual((await db.getMoments('a'))[0].pieces.map((p) => p.id), ['m1', 'v1']);
+      assert.deepEqual((await db.listRecalls()).map((r) => r.capture_id), ['m1'], 'the moment keeps its reminder');
+      const s = (await db.listSummaries())[0];
+      assert.deepEqual([s.photos, s.voices], [1, 1], 'the walk\'s counts follow the pieces left');
+      await assert.rejects(db.deletePieces(['m1', 'v1']), 'deleting every piece is deleting the moment');
+      assert.deepEqual((await db.getMoments('a'))[0].pieces.map((p) => p.id), ['m1', 'v1'], 'and nothing went');
+    });
+
     test('FC7 deleteMoments, MT6: a moment goes with its pieces, reminder, find, memberships and links; others stay', async () => {
       const db = await planned();
       await db.addMoment(one('m1', 'a', 1));
