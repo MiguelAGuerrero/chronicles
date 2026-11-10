@@ -58,6 +58,22 @@ Open: none (the four answered Nov 9: decision 0106).
 - **Navigation & tabs** (`specs/navigation-and-tabs/spec.md`): NV1 (the order), NV2 (the opening tab and the stale-link target), NV5 (paths and Back), NV11 (quick capture on Chronicle's Memories), NV16 (Explore's fix on its first focus), and the "Quick capture belongs to navigating and walking" line.
 - **0070** is superseded on the opening tab; its stale-link and replay-error rules carry over to the new root.
 
-## Record
+## Record (Nov 9-10)
 
-Not built yet.
+- **Built as written:** HC1-HC15, on branch `claude/eager-fermat-6bcwrd`. Tests first at `aec466c`; the code in
+  `caf8b38` (HC1, HC3, HC4, HC5) and `26f7a94` (HC6-HC15).
+- **Tests:** unit tests in `src/lib/__tests__/tabs/homeCapture.test.ts` and `resurface/section.test.ts`; the
+  `capturehome` journey (every criterion, including a walk minimized, a memo cut short by leaving and by
+  opening a moment, and a note played in the walk's replay); HC2 in `reload`, HC3 and HC5 in `launch`.
+- **Typecheck, lint and `npm test` pass** (1455 tests). Each journey `check:affected` named passes on its latest
+  run, as do the five whose start or paths changed (atlas, grading, kindwalk, outlines, scenic).
+- **Flaky under load, not changed by this slice:** `chronicle`'s star settle (M9) and `walk`'s video pin (inside
+  `atlas`) failed once with two journeys running at once and passed alone; `edit`'s video step failed once
+  alone and passed on the next run. `launch`'s fresh "Walk here on Explore starts a walk, recording" step
+  failed in two of five runs and never in a standalone script, even with the location delayed
+  (`docs/DEFERRED.md`).
+- **`check:test-first`:** HC2 and HC13 report "never a todo first". Their todos are in `aec466c` but split
+  across two lines, which the line-based reader cannot see; both now sit on one line.
+- **Amended:** NV1, NV2, NV5, NV11, NV16 (Navigation & tabs), NR3 (Navigate, ready), RM4 (resurfaced moments).
+- **Native:** never run on a device; four items in `docs/NATIVE_UNVERIFIED.md`, and the launch items there now
+  say Chronicle.

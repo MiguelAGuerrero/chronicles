@@ -163,7 +163,9 @@ async function fresh(h) {
       check(!/\/walk/.test(new URL(pg.url()).pathname) && (await tabBarShown(pg)) && /^Paused · \d+:\d\d · \d+ m$/.test(await barText())
         && Math.abs(barBox.y + barBox.height - tabBox.y) < 6 && (await pg.locator('[data-testid=recording-bar] [data-testid=stop]').count()) === 0,
         `minimized, a recording bar sits just above the tab bar: time, distance, Paused, and no Stop (NV9: "${await barText()}")`);
-      check((await pg.locator('canvas.maplibregl-canvas').count()) === 1, 'one live map with the walk minimized (NV4)');
+      // Minimized to the tab beneath: Chronicle's Memories since 0106, which has no map. Never two.
+      const liveMaps = await pg.locator('canvas.maplibregl-canvas').count();
+      check(liveMaps <= 1, `at most one live map with the walk minimized (NV4: ${liveMaps})`);
       // The bar's camera, while paused: the photo is kept for the open walk, and the walk screen stays down (NV9).
       const photosOf = () => pg.evaluate((id) => new Promise((resolve) => {
         const req = indexedDB.open('chronicles');
