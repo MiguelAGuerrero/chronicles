@@ -388,3 +388,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 ## Places out of town (specs/places-out-of-town, decisions 0115-0120)
 
 - **The whole slice, OP1-OP20, is queued** (the owner, Nov 9-10): the places archive went live first (PW16, Nov 10), and its archive phase is re-planned as adapters in chronicles-data's places pipeline (0120) before the slice starts. Its criteria are `deferred` in `UNTESTED` (`scripts/features.js`) until then.
+
+## Permission refusals (fix mic-settings, Nov 10)
+
+- **The minimized recording bar says "Camera access is off for Chronicles." with no Settings button** (`RecordingBar`): the whole line is one Pressable that returns to the walk, so a nested button needs a layout decision. The walk screen, Explore band, ready screen, moment viewer reply bar and planner offer it.
