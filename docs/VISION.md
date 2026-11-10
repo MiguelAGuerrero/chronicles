@@ -135,3 +135,4 @@ same argument is not had twice.
 | 0111 | The audit's calls: one place within 200 m for the same name and kind; a listed site, battlefield or wreck is a Monument, not a building |
 | 0112 | The app opens on Chronicle's Memories, which keeps a moment in one tap: the stack's three kinds in plain ink, fixed low, never a hero block (reshaped at the gate, Nov 9) |
 | 0115 | Places out of town: kinds filter what you see, never what exists; one-of-a-kind businesses only by a structural signal, never ratings or popularity; "?" within 50 km in countless stars, named only on a tap, never listed or counted (reshaped at the gate, Nov 9) |
+| 0121 | Drive there, walk back: a far Walk to asks "Walk now" or "When I get there"; the walk starts only on Start, never on arrival; Walk me back leads to where the last ride ended, or a spot chosen by hand; no waypoints (reshaped at the gate, Nov 10) |

@@ -28,6 +28,11 @@ const MIN_VOICE_MS = 1000;
  * Longest video. A minute of phone video is 50 to 150 MB; the web gets less,
  * since a browser's storage is smaller and can be cleared.
  */
+/** A refused permission. A phone's Settings has a button (`openSettings`); a web page cannot open them, so it says where. */
+const accessOff = (what: 'Camera' | 'Microphone') =>
+  Platform.OS === 'web'
+    ? `${what} access is off for Chronicles. Allow it in your browser’s site settings, then try again.`
+    : `${what} access is off for Chronicles.`;
 const MAX_VIDEO_S = Platform.OS === 'web' ? 15 : 30;
 
 /** How long a stop may take before it is given up on. */
@@ -314,7 +319,7 @@ export function useCaptures(
       if (!perm.granted) {
         // The request above already showed the system prompt if it could; a refusal now is only fixable in Settings.
         // (`canAskAgain` is not trusted: iOS can report true after a denial, which left no way to recover.)
-        setError({ message: 'Camera access is off for Chronicles.', openSettings: true });
+        setError({ message: accessOff('Camera'), openSettings: true });
         return;
       }
       startLocating(stamp);
@@ -391,7 +396,7 @@ export function useCaptures(
           if (!perm.granted) {
             // The request above already showed the system prompt if it could; a refusal now is only fixable in Settings.
             // (`canAskAgain` is not trusted: iOS can report true after a denial, which left no way to recover.)
-            setError({ message: 'Microphone access is off for Chronicles.', openSettings: true });
+            setError({ message: accessOff('Microphone'), openSettings: true });
             return false;
           }
           // Keeps recording with the phone locked and in a pocket.

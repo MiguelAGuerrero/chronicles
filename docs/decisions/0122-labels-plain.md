@@ -1,4 +1,4 @@
-# 0121. Plain labels: "History", "Places of worship", "Monuments and memorials"
+# 0122. Plain labels: "History", "Places of worship", "Monuments and memorials"
 
 Date: 2026-11-10 · Status: accepted · Area: explore, discovery
 

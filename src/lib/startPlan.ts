@@ -1,6 +1,7 @@
 // @layer core
 import { EXPLORE_KEY, exploredKey } from './explore/explore';
 import { distanceM } from './geo';
+import { NAV } from './nav/rules';
 import type { Waypoint } from './nav/types';
 import type { LngLat } from './types';
 
@@ -41,6 +42,22 @@ export function destLine(dest: Waypoint, from: LngLat | null): string {
   if (!from) return dest.label;
   const m = distanceM(from, dest.at);
   return `${dest.label} · ${m < 1000 ? `${Math.round(m / 10) * 10} m` : `${(m / 1000).toFixed(1)} km`} away`;
+}
+
+/** Explore's area card asks "Walk now" or "When I get there" past this, in a straight line (DW2, decision 0121). */
+export const GET_THERE_M = 2000;
+/** A fix older than this is no position: the card asks rather than start a walk that might record a drive (DW5). */
+export const FRESH_FIX_MS = 30 * 60_000;
+
+/**
+ * What Walk to does on Explore's area card (DW1, DW2, DW5, DW14): start at once when near and the fix is
+ * fresh; ask when far, or with no fresh fix; past what can be walked (N5), only When I get there.
+ * `distanceM` is from where you are, or where the atlas last listed areas; `fixT` the fix's time, null with none.
+ */
+export function walkToChoice(distanceM: number | null, fixT: number | null, now: number): 'start' | 'ask' | 'later' {
+  if (distanceM != null && distanceM > NAV.maxM) return 'later';
+  if (distanceM == null || fixT == null || now - fixT > FRESH_FIX_MS) return 'ask';
+  return distanceM > GET_THERE_M ? 'ask' : 'start';
 }
 
 export interface StartPlan {

@@ -186,7 +186,8 @@ Navigation (inside a walk)
   nav/graph.ts               a small walking graph with A*
   nav/traceRoute.ts, streetRoute.ts         the two RouteSources: along this trace; over derived streets
   nav/navigator.ts           routeTo: first source that can, or why none
-  nav/store/                 the destination in meta `nav` (shell.ts the factory, index.ts the app's instance)
+  nav/store/                 the destination in meta `nav`, and Walk back here's spot in `way_back` (shell.ts the factory, index.ts the app's instance)
+  nav/wayBack.ts             where Walk me back leads: the spot chosen, where the last ride ended (`landingOf`), or the start; its words
   nav/useNavigation.ts       routing, re-routing, arrival and the street read on the walk screen
   nav/handoff.ts             Open in Maps: picks the maps app and its links per platform and browser
   nav/openInMaps.ts          opens them with Linking.openURL straight from the tap
@@ -194,6 +195,8 @@ Navigation (inside a walk)
   nav/scenicSignals.ts       green (landcover), sights and busy streets of a corridor; their per-routing indexes
   nav/scenicRead/            the corridor's tiles and Overture places for a scenic route (shell.ts, index.ts)
   routeLeanings/             the "Scenic routes" switches in meta `route_leanings` (`lib/routeLeanings`: shell.ts, index.ts)
+  kindWalk/                  a suggested walk where a kind is dense (`lib/kindWalk`: density, plan, words, its settings and prefs)
+  walkPlanner/               the walk planner's page (`lib/walkPlanner`: planner, presets, exposure, words; app.ts the instance)
 Filling gaps
   gaps/rules.ts              GAP_RULES: what counts as a gap, the paces, the budgets
   gaps/infer.ts              gapsOf, the likely way over street pieces (A*), certain / offered / nothing

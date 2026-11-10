@@ -181,12 +181,20 @@ recording, and a recording bar brings a minimized walk back.
 - **Pause** stops recording; captures still work while paused. A reminder
   shows after 10 min paused, as a notification on a phone.
 - **Navigation inside a walk**: a long press picks a spot (Go here); a pin's
-  viewer has Go here; **Walk me back** appears once 50 m from the start and
-  takes the shorter of the trace and the streets. A blue bar shows the
+  viewer has Go here; **Walk me back** appears once 50 m from where it leads and
+  takes the shorter of the trace and the streets. It leads to the walk's start,
+  or, after a ride (a drive, a bus), to where the last ride ended; "Walk back
+  here" on the long press's card sets the spot by hand for the walk (decision 0121). A blue bar shows the
   distance and time left, the route is drawn ahead of you, and the trace hides while
   navigating. Off-route re-routes quietly; arrival says "You're here".
   Bridges and tunnels cross what lies under them without a turn onto it, and a
   route starts on the street you are walking along.
+- **Drive there first** (decision 0121): on Explore's area card, Walk to a
+  place within 2 km starts the walk at once; past 2 km (or with no fresh
+  position) it asks **Walk now** or **When I get there**, and past 10 km offers
+  When I get there alone. When I get there keeps the place as Navigate's
+  destination and starts nothing: the walk starts only when you tap Start,
+  never because you arrived.
 - **Scenic routes** (decision 0095): on Go here, or a destination set before
   Start, the app shows Direct beside up to three scenic routes, one per
   leaning switched on: **Through green** (parks, gardens, woods), **Past the

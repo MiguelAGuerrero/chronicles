@@ -25,11 +25,10 @@ export function RespondBar(props: {
   const [settings, setSettings] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const say = (m: string, openSettings?: boolean) => {
-    const offer = !!openSettings && Platform.OS !== 'web';
     setMessage(m);
-    setSettings(offer);
+    setSettings(!!openSettings && Platform.OS !== 'web');
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => setMessage(null), offer ? 8000 : 3500);
+    timer.current = setTimeout(() => setMessage(null), openSettings ? 8000 : 3500);
   };
   useEffect(
     () => () => {
