@@ -90,4 +90,11 @@ Round 0 (`specs/moment-table/spec.md`) built 2026-11-10.
 - Found by the journeys and fixed: the viewer read a stacked moment's face from its `pieces` copy, which a screen's patch (an edit, a note's new text) does not update; it now reads the face from the faced fields (`facedAt`, a unit test).
 - `check:test-first`: all fifteen round-1 criteria pass, on the history rebuilt on Nov 10 at the owner's call. In the first history MS2, MS9, MS10 and MS11 were `check.todo` in the tests-first commit, but their ids sat on the line after `check.todo(`, which the checker (one line at a time) does not read. The branch was replayed with only `scripts/e2e/journeys/stacks.js` rewritten, each check on one line, in the four commits that had the old layout; every other file, message and date is kept, and the final tree is unchanged (tests first is now `6006598`).
 - Native: the pill over the system camera's return, a memo from the pill, swiping pieces, and a piece's delete have never run on a phone (`docs/NATIVE_UNVERIFIED.md`, Moment stacks).
-- Round 2 (MS16-MS21) is not started; the spec stays in `IN_PROGRESS` (`scripts/features.js`, since 2026-11-10, 7 days).
+
+**Round 2 (MS16-MS21) built 2026-11-10** (tests first `ff5fa2e`; code `3898244`, `5dfe721`, `7f3a4cc`; journey real at the commit after).
+
+- Unit tests: `moments/splitPlace`, `moments/split`, `replay/grid`, `replay/stacks`, `moments/momentPill`, `moments/openMoment`, and `splitPiece` in the Db contract over the fake, IndexedDB and SQLite. 1557 unit tests, typecheck and lint pass; `check:test-first` passes all 21 criteria.
+- The `stacks` journey passes on the web build with its round-2 checks (Split out, the setting, grouping, a replay's grid).
+- Of the journeys `check:affected` names, 19 pass on round 2 (replay, days, walk, chronicle, deletion, edit, gaps, headsup, hidden, layers, marks, memories, nudge, outlines, qol, ready, reload, resurface, snap). **Deferred at the owner's word (Nov 10, "Defer testing"):** `tabs`, `threads`, `upgrade` and `walkability` were not run on round 2, and `stacks` was stopped mid-run in that batch (it passed on its own just before). `docs/DEFERRED.md` lists them.
+- The owner's calls of Nov 10 are in Decisions: a split piece shown at once, never the first piece, the original's place off a walk; the replay's grid.
+- Native: Split out, the grid on MapLibre RN's stage and the setting have never run on a phone (`docs/NATIVE_UNVERIFIED.md`).
