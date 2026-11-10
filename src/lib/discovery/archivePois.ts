@@ -28,14 +28,9 @@ export const ARCHIVE_CLASSES: Record<string, readonly [CategoryId, Kind]> = {
   sculpture: ['art', 'public_art'],
   overlook: ['viewpoints', 'viewpoints'],
   tower: ['viewpoints', 'viewpoints'],
-  // RP8 (decision 0104): listed places by type; a listed building or structure of any other type is Buildings and structures.
-  church: ['history', 'churches'],
-  cemetery: ['history', 'cemeteries'],
-  theatre: ['culture', 'theatres'],
-  museum: ['culture', 'museums'],
+  // RP8 (decision 0109): a listed building or structure is Buildings and structures. The classes by type (church,
+  // cemetery, theatre, museum, historic_site) wait on chronicles-data's contract v2 (PP17 pins v1).
   heritage_building: ['history', 'structures'],
-  // Audit 10 (the owner, Nov 9): a listed site, battlefield or wreck is no building.
-  historic_site: ['history', 'monuments'],
 };
 
 /** One archive place as the app's `Place`: a mark of its class's kind, tagged with the archive's version. */

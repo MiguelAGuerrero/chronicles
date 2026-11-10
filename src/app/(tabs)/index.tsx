@@ -13,11 +13,13 @@ import { useBusyLayer } from '../../lib/layers/useBusyLayer';
 import { useLayers } from '../../lib/layers/useLayers';
 import { useWalkability } from '../../lib/walk/useWalkability';
 import { WalkMap } from '../../components/map/WalkMap';
+import { PlannerDrawer } from '../../components/planner/PlannerDrawer';
+import type { CategoryId } from '../../lib/discovery/types';
 import type { WalkMapHandle } from '../../components/map/types';
 import { Icon } from '../../components/icons';
 import { Banner, Button, theme } from '../../components/ui';
 import {
-  ATLAS_RULES, busyAreas, canWalkTo, distanceWords, familiarity, findsIn, nextDoor, otherTowns, nextFrame, townReachM, waitingMarks, walkTarget,
+  ATLAS_RULES, areaPins, busyAreas, canWalkTo, distanceWords, familiarity, findsIn, nextDoor, otherTowns, nextFrame, townReachM, waitingMarks, walkTarget,
   type AtlasArea, type Familiarity, type Listed, type PageFramed,
 } from '../../lib/atlas/atlas';
 import { mapTopInset } from '../../lib/mapTopInset';
@@ -175,6 +177,8 @@ export default function Explore() {
   // Back on the tab, a newer fix from Navigate moves the atlas with you (explore-atlas audit 1).
   const fixSeen = useRef(getLastFix()?.t ?? 0);
   const mapRef = useRef<WalkMapHandle>(null);
+  // The walk planner's kind (WP1): a page over the card, with a map of its own, so Explore's map steps aside while it is open.
+  const [plan, setPlan] = useState<CategoryId | null>(null);
   const [bearing, setBearing] = useState(0);
   // The map comes down when Explore loses focus and opens north-up again (CP8).
   useFocusEffect(useCallback(() => () => setBearing(0), []));
@@ -260,10 +264,10 @@ export default function Explore() {
   // The map's areas: the page's neighborhoods (and the town), the nearest few named, the selected one in the accent (round 3).
   const pointsOf = useMemo(() => (town ? [{ area: town, distanceM: 0, here: false }, ...neighborhoods] : neighborhoods), [town, neighborhoods]);
   const points = useMemo(() => pointsOf.map((l) => l.area.at), [pointsOf]);
-  const areaPoints = useMemo<AreaPointPin[]>(() => {
-    const near = new Set(pointsOf.slice(0, NAMED_POINTS).map((l) => l.area.key));
-    return pointsOf.map((l) => ({ id: l.area.key, at: l.area.at, name: near.has(l.area.key) || l.area.key === selected ? l.area.name : null, selected: l.area.key === selected }));
-  }, [pointsOf, selected]);
+  // Only the selected area's level is drawn, so a town's name and its neighborhoods' never overlay (fix map-levels).
+  const areaPoints = useMemo<AreaPointPin[]>(() => areaPins(shown, selected, NAMED_POINTS, !!town), [shown, selected, town]);
+  // A tap protects only the points drawn (fix map-levels audit 3).
+  const pinAts = useMemo(() => areaPoints.map((p) => p.at), [areaPoints]);
   const sel = shown.find((l) => l.area.key === selected) ?? null;
   // Map layers (ML3-ML9): what is drawn over the base map, one setting for every map, around the selected area else around you.
   const layers = useLayers();
@@ -432,7 +436,7 @@ export default function Explore() {
   const mapPane = (
     <View style={[styles.map, { height: mapH, width: mapW }, wide && styles.mapWide]}>
       {/* Only while Explore is in front (NV4): one map is live at a time. */}
-      {focused && (
+      {focused && !plan && (
         <WalkMap
           trace={NONE}
           walked={NONE}
@@ -465,7 +469,7 @@ export default function Explore() {
             // A tap closes the long press's choices; with none open, it clears the selection (DN9),
             // only away from every area's point: a tap on the selected dot keeps it (audit 6).
             if (spot) setSpot(null);
-            else if (tapClears(at, radiusM, points)) {
+            else if (tapClears(at, radiusM, pinAts)) {
               setSelected(null);
             }
           }}
@@ -678,10 +682,7 @@ export default function Explore() {
             setOpen(null);
             walkStart.start({ at, label, kind: 'point' });
           }}
-          onStartWalk={(dest) => {
-            setOpen(null);
-            walkStart.start(dest);
-          }}
+          onPlan={(k) => setPlan(k)}
           onWalk={() => {
             const t = walkTarget(card.area);
             setOpen(null);
@@ -690,6 +691,22 @@ export default function Explore() {
           onPick={pick}
           onClose={() => setOpen(null)}
           layout={cardLayout}
+        />
+      )}
+      {card && plan && (
+        <PlannerDrawer
+          kind={plan}
+          area={card.area}
+          you={getLastFix()?.at ?? from}
+          lastFixAt={getLastFix()?.t ?? null}
+          fixNow={() => getLastFix()?.at ?? from}
+          starting={walkStart.starting}
+          onClose={() => setPlan(null)}
+          onStart={(dest) => {
+            setPlan(null);
+            setOpen(null);
+            walkStart.start(dest);
+          }}
         />
       )}
     </View>

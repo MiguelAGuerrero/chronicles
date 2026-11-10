@@ -2,7 +2,7 @@
 import { coveredBy, townAt, withOutlines, type OutlineSet } from '../areas/outlines';
 import { AREA_REACH_M } from '../areas/rules';
 import type { Area, PlaceCandidate, WalkArea } from '../areas/types';
-import { applyEdits, keepFindKeys, mergePlaces, type ArchiveEdits } from '../discovery/archiveMerge';
+import { keepFindKeys, mergePlaces } from '../discovery/archiveMerge';
 import { isMarkable, MARK_CATEGORIES } from '../discovery/noise';
 import type { CategoryId, Kind, Place } from '../discovery/types';
 import { boundsOf, distanceM, projector, type Bounds } from '../geo';
@@ -525,6 +525,29 @@ export function walkTarget(area: AtlasArea): { at: LngLat; label: string; via: s
 /** Atlas round 3: the town you're in is the page's title, so it isn't listed again among the other towns. */
 export const otherTowns = (towns: Listed[]): Listed[] => towns.filter((l) => !l.here);
 
+/** A point on Explore's small map: named, or a dot alone when `name` is null. */
+export interface AreaPin {
+  id: string;
+  at: LngLat;
+  name: string | null;
+  selected: boolean;
+}
+
+/**
+ * The map's area points, of one level only (fix map-levels): the selected area's, else neighborhoods.
+ * A town's point among its neighborhoods, or a neighborhood among towns, drew names over each other.
+ * The nearest `named` of the level are named, and the selected one; the rest are dots.
+ * On a town's own page (`inTown`) the level is always neighborhoods, even with the town's tile selected
+ * (audit 1), and a town with none listed draws its own point (audit 2).
+ */
+export function areaPins(listed: Listed[], selected: string | null, named: number, inTown: boolean): AreaPin[] {
+  const level: AtlasLevel = inTown ? 'neighborhood' : listed.find((l) => l.area.key === selected)?.area.level ?? 'neighborhood';
+  const found = listed.filter((l) => l.area.level === level);
+  const same = inTown && found.length === 0 ? listed.slice(0, 1) : found;
+  const near = new Set(same.slice(0, named).map((l) => l.area.key));
+  return same.map((l) => ({ id: l.area.key, at: l.area.at, name: near.has(l.area.key) || l.area.key === selected ? l.area.name : null, selected: l.area.key === selected }));
+}
+
 /**
  * How the marks work, in words (atlas round 3, AG4): presence, never a count of
  * places, the same everywhere, and what each kind counts.
@@ -644,13 +667,13 @@ export function marksOf<T extends AtlasMark & { name?: string }>(places: T[], ma
 
 /**
  * PW10: a ring's findable kinds and marks, from the map's places and the places archive's together (one mark per
- * place, PW8; the owner's edits, PW13), against the fixed STEPS. `thin` is judged from the map's places alone, so a
+ * place, PW8; the owner's edits are applied when the archive is built), against the fixed STEPS. `thin` is judged from the map's places alone, so a
  * ring reads the same with or without the archive.
  */
-export function ringOf(tilePlaces: Place[], archivePlaces: Place[] | null, centre: LngLat, within: Within = ringWithin(centre), edits?: { edits: ArchiveEdits; version: string }, finds: { key: string; name: string; at: LngLat }[] = []) {
+export function ringOf(tilePlaces: Place[], archivePlaces: Place[] | null, centre: LngLat, within: Within = ringWithin(centre), finds: { key: string; name: string; at: LngLat }[] = []) {
   const merged = archivePlaces ? mergePlaces(tilePlaces, archivePlaces) : tilePlaces;
   // A found place keeps its find's key, so the atlas shows it found (places-worth-the-stop audit 1).
-  const counted = keepFindKeys(edits ? applyEdits(merged, edits.edits, edits.version) : merged, finds);
+  const counted = keepFindKeys(merged, finds);
   // AG1: each place says whether it could be found (chains too), so the findable kinds count only those.
   const ring = counted.filter((p) => within(p.at)).map((p) => ({ ...p, markable: isMarkable(p) }));
   const mapRing = tilePlaces.filter((p) => within(p.at));

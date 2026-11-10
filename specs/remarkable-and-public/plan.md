@@ -1,6 +1,6 @@
 # Remarkable and public: the plan
 
-For the owner to read before any code. Spec: `specs/remarkable-and-public/spec.md` (RP1-RP17). Decisions 0103, 0104.
+For the owner to read before any code. Spec: `specs/remarkable-and-public/spec.md` (RP1-RP17). Decisions 0103, 0109.
 
 ## The owner's answers (Nov 9)
 
@@ -90,7 +90,7 @@ No native code. Nothing to add to `docs/NATIVE_UNVERIFIED.md`.
 1. **Breach: "Landmarks" puts the listing on screen**, since a kind's label shows beside every place (`walk.tsx:1554`, `foundLine`). **Accepted:** the recommendation is now "Buildings and structures" (question 1), and RP18 forbids significance words in a kind's label.
 2. **The replay whispers every place passed, unbounded** (`rhythm.ts`). **Accepted as question 2** (it amends RR15, the owner's call); RP19 if yes.
 3. **RP17's "plausible destinations" could measure fame.** **Accepted:** RP17 defines a destination by structure only (register, pinned type, standing, not a district), never by sitelinks or articles, and reports in words and lists, never a percentage. The Nov 9 measurement used sitelinks for "well known"; the kept benchmark does not.
-4. **A Landmark house can be one you can't reach without trespassing.** **Accepted as question 3** (RP20 if yes). The Precedents row for 0104 now says "a Landmark house excepted", so it no longer reads against RP4.
+4. **A Landmark house can be one you can't reach without trespassing.** **Accepted as question 3** (RP20 if yes). The Precedents row for 0109 now says "a Landmark house excepted", so it no longer reads against RP4.
 5. **RP11 doesn't test what it says** ("historic" left out of the grep, since "Historic churches" now holds listed places; "never sized or ordered" not carried). **Accepted:** RP11 now says the existing kind labels are the only words beside a listed place, in the same order, size and colour as any place.
 6. **"Historic churches" for a synagogue or a mosque** (tone). **Noted, not changed:** it is today's label for every place of worship from the tiles too, so renaming it ("Places of worship") is a copy change beyond this slice. Offered to the owner as a one-line follow-up.
 7. **The atlas's History dots will mostly reflect listing density.** **Accepted:** named under `ATLAS_CODE` above; RP12's review shows the History step before and after per test area.

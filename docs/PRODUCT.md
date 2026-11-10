@@ -71,13 +71,18 @@ recording bar brings a minimized walk back.
   and nightlife count every place. A ring with fewer than three mapped places
   says nothing about its kinds (atlas grading, decision 0084).
 - Rings are read by themselves while the tab is open, nearest first.
-- **A walk through a kind** (decision 0101, kind walk KW1-KW14): on an area's card, tapping a kind under "What's here" (Green,
-  History, ...) opens it in place with one suggested walk through where that kind is concentrated (the same 400 m cells as
-  the busy areas), moved onto streets. It says its length as a distance in the displayed unit, never a time, and whether it can
-  be walked the whole way (a stretch built around cars is named; "not known" when nothing could be read). Settings: about how
-  far (steps in km or miles, 2 km by default) and what to do about a stretch built around cars (say so, the default, or don't
-  suggest it). "Start this walk" opens the walk screen ready; the walk says distance only and is otherwise ordinary. It names
-  no place, so the "?" marks stay hidden until reached. Scenic routes (0095) are a separate feature on Go here; this walk skips their preview.
+- **A walk planner for a kind** (decision 0102, walk planner WP1-WP27): on an area's card, a kind that has something under "What's here"
+  (Green, History, ...) has a "Suggest a walk" button, which opens a page of its own over Explore. It plans up to three routes from where
+  you are, drawn on the map and listed as rows: through the middle of where the kind is, across the area, and around the edge. The first is selected when the page opens, as in Apple or Google Maps. Each says
+  only its own distance in the displayed unit, how much of the kind it passes and where ("plenty along much of the way", "mostly near the
+  end"), how much of it is only getting there, which other kinds it also passes (by kind, never by place), and whether it can be walked the whole way; a strip along each row and a shading of the
+  highlighted route show the same without a number. It never shows or names a place not yet found, so the "?" marks stay hidden until
+  reached; only places you have already found may be pinned. The settings are on the page: a loop (the default, back where you start)
+  or a one way, a distance as a hard ceiling (2 km by default; where the kind fills less ground the route is shorter, and the page
+  says so), how much of the kind a route must pass, and what to do about a stretch built around cars. "Suggest different routes"
+  replaces the three and keeps no history. Start plans again from where you are and either routes the walk you have open (capture is
+  on the page meanwhile) or starts one ready; it says distance only, never a time left. Scenic routes (0095) are a separate feature on
+  Go here.
 - **The small map moves in steps** (discrete navigation, decision 0092, an
   experiment): a swipe goes to the next area that way, never panning. It
   selects the next neighborhood (its ring, its name, its tile scrolled into
@@ -109,21 +114,23 @@ recording bar brings a minimized walk back.
   places as marks, from a weekly archive built from Wikidata. Curiosities are
   a kind of "Viewpoints & oddities" in What I'm into, on by default. Nothing
   is ranked or counted; a place shows only while its sources say it exists.
-  Built; the app reads the archive once its address is set (PW16).
-- **Remarkable and public** (decisions 0104, 0105): the archive also takes a
-  National Register listing when the place is public: its type is public by
-  nature (places of worship, cemeteries, civic buildings, stations, bridges,
-  dams, mills, factories, furnaces, lighthouses, forts), or a source shows it
-  open to visitors (a museum), or it is a National Historic Landmark. A listed
-  house, school, office or hotel without one of those stays out, and a place
-  OpenStreetMap marks private never enters. Listed churches are Historic
-  churches; other listed buildings and structures are a new kind, "Buildings
-  and structures", on by default. Attractions in the map stay places to find,
-  and the National Aviary joins them. A place to find with no street or path
-  within 60 m says "No street or path close by" on its card; nothing is hidden
-  for it. The replay whispers one or two passed places by name, more as "a few
-  places". `npm run places:coverage` measures what the app keeps of a town's
-  destinations, for the owner.
+  Built; the app reads the archive once its address is set (PW16). Since
+  Nov 9 the archive comes from the places pipeline in chronicles-data
+  (decision 0108): any open source can join through an adapter, a community
+  source may only suggest a place for the owner's review, and an area is
+  rebuilt only when its own places change. The app keeps to the contract that
+  repo publishes.
+- **Remarkable and public** (decisions 0109-0111): attractions in the map
+  stay places to find, and the National Aviary joins them. A new kind,
+  "Buildings and structures", on by default, holds the archive's listed
+  buildings and structures. A place to find with no street or path within 60 m
+  says "No street or path close by" on its card; nothing is hidden for it. The
+  replay whispers one or two passed places by name, more as "a few places". A
+  place in both the map and the archive, of the same name and kind within
+  200 m, is one place. The rule that takes a National Register listing when the
+  place is public (its type, a sign it is open, or a Landmark) is built and
+  moves to chronicles-data's pipeline. `npm run places:coverage` measures what
+  the app keeps of a town's destinations, for the owner.
 
 ### Navigate (during)
 
@@ -160,6 +167,11 @@ recording bar brings a minimized walk back.
 - Capture buttons (camera, mic, pencil) are stacked at the right edge, above the strip. Photos and
   videos come from the system camera (video capped at 30 s), memos from the
   mic, notes from the pencil. Captions can be added to photos later.
+- When room for new photos and videos runs low, one line says so in words beside the capture buttons, once
+  for each level (low under 500 MB, very low under 100 MB), with OK to dismiss; it never blocks a capture and
+  never shows a number. A photo or video whose save fails is held with Retry ("Photo not saved"), and says why
+  in words. On the web the app asks the browser once to keep its data, never mid-walk, and says once on
+  Navigate, ready if it was refused. There is no Storage screen (0041). Storage awareness, decision 0107.
 - The bottom strip has time, distance, Pause, walk options and hold-to-stop.
   A status chip shows only when something is wrong (waiting for GPS, weak GPS,
   not recording) or on a ride. "Not recording" is a button: it says why, with
@@ -254,6 +266,17 @@ recording bar brings a minimized walk back.
   - **Show less like this** and **Not this one** (on the ... of the top card and
     of every card) change what is brought back, never what is kept; both have Undo.
   - Memos show here but join threads only once they have a transcript (not yet).
+- **Threads the owner makes** (decisions 0104, 0105): moments the owner connected, beside the
+  Chronicle's threads above it; both are "threads", told apart by an icon (a link for
+  the owner's, a repeat arrow for the Chronicle's), spoken as "connected by you" and "found for you". From a moment's menu, **Add to a thread** names a
+  thread or makes a new one with a second kept moment; **Respond** (photo, voice,
+  note, one tap each on the viewer's face) keeps a new moment linked to the one it
+  answers, in its thread. A thread reads oldest first, a reply under what it
+  answers; its size is a phrase ("a few moments, since March"), its name is the
+  owner's and optional. **Remove from this thread** and **Delete this thread**
+  (with Undo) never delete a moment; a thread left with fewer than two moments
+  dissolves. **Keep as my thread** copies a Chronicle thread. The viewer says "In a
+  thread" and names it only from the thread itself.
 - **Walks, Days and Map** are what Chronicle was before: the walks list, the days
   list with Replay this day, and the map with its stars. The map is mounted only
   there.
@@ -351,6 +374,7 @@ recording bar brings a minimized walk back.
 | Discrete navigation (Explore's map steps from area to area, DN1-DN13) | Shipped, audited, an experiment (web verified by the e2e; native unverified) |
 | Town presence (a town graded across its whole outline, with its busy areas listed) | Built (web verified by the e2e; native unverified) |
 | Resurfaced moments (Chronicle opens on Memories: a moment brought back, threads from the user's words, Lately) | Built (web verified by the e2e `resurface`; native unverified) |
+| Owner threads (respond to a moment; connect moments across walks; Threads on Memories) | Built (web verified by the e2e `threads`; native unverified) |
 | Moments and days, memories on revisit, thumbnails | Shipped, audited |
 | Rides, clearing walks and moments, motion polish | Shipped, audited |
 | Navigation and tabs (three-tab layout, recording bar) | Shipped, two audit batches done |
@@ -362,6 +386,7 @@ recording bar brings a minimized walk back.
 | Scenic routes (Go here offers Direct and one route per leaning: green, sights, streets with life) | Shipped on web (native unverified) |
 | Explore's route preview, "Walk this way" | Deferred |
 | Media editing: crop, rotate, filters, drawing, text, video trim, all saved out | Shipped on web (native unverified; the video module never compiled) |
+| Storage awareness: the room left said in words beside the captures; a failed save held for Retry; the web asks to be kept | Shipped on web (web verified by the space e2e; native unverified) |
 | Backup and export of a walk | Code exists, no UI, deferred |
 | Quick capture outside the app (widget, lock screen, share sheet) | Deferred |
 | Remind me here outside a walk | Deferred (needs background location) |

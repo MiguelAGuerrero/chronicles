@@ -7,7 +7,7 @@ export type CategoryId =
 /** The finer kinds of attraction the "What I'm into" filter switches (E16). */
 export type Kind =
   | 'public_art' | 'museums' | 'theatres' | 'monuments' | 'churches' | 'cemeteries' | 'parks' | 'viewpoints'
-  /** Listed buildings and structures of the places archive: a bridge, a mill, a station, a courthouse (RP8, decision 0104). */
+  /** Listed buildings and structures of the places archive: a bridge, a mill, a station, a courthouse (RP8, decision 0109). */
   | 'structures'
   /** Odd places of the Viewpoints & oddities category, from the places archive (PW4, decision 0103). */
   | 'curiosities';

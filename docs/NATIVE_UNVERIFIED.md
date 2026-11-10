@@ -304,15 +304,33 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** make a moment at 1 am, then look at it the next afternoon. **Expect:** it reads "Late <the evening before> night", not "<today> night". (audit 10)
 
 
+## Owner threads (OT1-OT24, decision 0104)
+
+- [ ] **Do:** update the app from a build before threads, open a walk with moments, then delete one moment that was in a thread and a whole walk that held two others. **Expect:** the migration to 22 runs once, no thread or link table is missing, the threads those deletes leave thin are gone and the others keep their moments. (OT16, OT17, OT21)
+- [ ] **Do:** open a moment from Lately on a phone and tap Photo, then Voice (and Stop and keep), then Note under Respond. **Expect:** the camera, the mic and the keyboard each open over the viewer's Modal, each reply is kept as a moment of its own with where you are and when, and it joins the answered moment's thread. (OT1, OT2, OT24)
+- [ ] **Do:** open a moment from "Memories here" during a walk, tap Respond's Note and keep a reply. **Expect:** the reply belongs to the walk and shows in its replay; the live memo and the reply's recorder do not collide. (owner-threads audit 11)
+- [ ] **Do:** open a moment in the viewer, then More, Add to a thread, A new thread, search for a word and tap a moment. **Expect:** the picker draws inside the viewer (no second Modal), the keyboard does not hide the rows, and the thread is made. (OT5)
+- [ ] **Do:** open a thread, tap a moment's ellipsis, Remove from this thread; then Delete this thread and tap Undo on the pill; then delete it again. **Expect:** the menu sheet and the confirm card open and close cleanly, the pill shows over the screen with Undo, Undo brings the thread back with its name, and after the window the thread is gone and every moment is still in Lately. (OT8, OT14, OT15)
+- [ ] **Do:** on a moment in a thread, tap "In a thread" in the viewer, from Lately. **Expect:** the viewer closes and Chronicle's Memories opens on that thread (the navigation after a Modal's dismissal is not dropped). (OT11)
+- [ ] **Do:** on Android, open a moment, tap Respond's Note, type a few words, press Back; then press Back again. **Expect:** the first Back closes the note being written and leaves the viewer open with Respond ready; the second closes the viewer. (owner-threads audit 9)
+- [ ] **Do:** with VoiceOver and TalkBack on, move through the Chronicle's Threads, the owner's Threads, a thread's timeline and the Respond row. **Expect:** the two headings are said apart ("found for you", "connected by you"), each row reads as one named button with its heading and line, a reply says what it answers, and Respond's three kinds are buttons. (OT9, OT12)
+
 ## Network rules (`lib/net`, decision 0100)
 
 - Whether React Native's `fetch` sends the custom `User-Agent` (`Chronicles (+github.com/…)`) on iOS and Android, or the platform's own replaces it.
 - The PMTiles source over `net.fetch` (byte ranges, `credentials: 'omit'`, `referrerPolicy: 'no-referrer'`) against Overture's bucket on a phone.
 
-## Kind walk (KW1-KW14, decision 0101)
+## Walk planner (WP1-WP27, KW15, decision 0102)
 
-- [ ] **Do:** open an area's card on a phone, tap Green, then tap Start this walk. **Expect:** the kind row (a `Pressable`) opens its panel inside the full-screen drawer's scroll; `showWalk()` opens the walk with a destination that carries `via` and `suggested`; the walk bar and announcements say a distance and no time left; walking off the way re-routes quietly through the stops still ahead. (KW1, KW7b, KW12, KW13)
-- [ ] **Do:** tap a kind on a phone's network in an area you never walked. **Expect:** the area's tiles are read at the tap, and the walkability tiles for the way's tiles, with nothing kept; "not known yet" reads when none could be read. (KW10, KW14)
+- [ ] **Do:** on a phone, open an area's card, tap a kind's "Suggest a walk" button, then pull the drawer down and open it again. **Expect:** the planner opens as a full-screen drawer over the card with the tabs folded away, Explore's map stepping aside; Back and the close button return to the card as it was. (WP1, KW15)
+- [ ] **Do:** open the planner and tap a row, then change the mode and the distance. **Expect:** the highlighted route is drawn on MapLibre RN with a band under it, wider where the kind is denser (`route-grades`), the other routes faint, the camera fitted to all of them; found places show as small pins (`found-pins`). The first route is selected when it opens. (WP4, WP16, WP18)
+- [ ] **Do:** with a walk recording, open the planner and take a photo, record a voice memo and write a note. **Expect:** the capture stack is on the page and each arrives as a moment on the walk with its place and time; the system camera and microphone permission prompts behave as on the walk screen. (WP23)
+- [ ] **Do:** on a phone's network in an area you have never walked, open the planner. **Expect:** the area's tiles are read when it opens and the way's walkability tiles for each route; "not known yet" reads where none could be read. (WP22, KW10)
+- [ ] **Do:** choose a loop, Start, and walk it, skipping one of its stops. **Expect:** the walk opens ready saying distance only, with no time left on the bar or in the announcements; it does not arrive at once; a skipped stop is let go and the quiet re-route does not pull back to it; it arrives once you are back where you began. (WP9, WP21, WP25, KW7b)
+- [ ] **Do:** plan with the three presets in a town of long streets on a mid-range phone and watch the page. **Expect:** the routes appear without freezing the screen or the walk's recording; if not, the planning moves off the JS thread (walk planner audit 10).
+- [ ] **Do:** walk a loop and wander 80 m off it, then return. **Expect:** the quiet re-route rejoins the planned loop and its way back; it does not take the streets the way out used. (WP9, WP20, audit 1)
+- [ ] **Do:** open an area card, open the planner over it, close the planner. **Expect:** the tabs stay hidden under the card, and come back when the card closes; the Back button closes the planner first. (audit 12)
+- [ ] **Do:** with a walk already recording and a destination set, Start a route from the planner. **Expect:** that walk is routed (no second walk starts) and the earlier destination is replaced. (WP19)
 
 ## Places worth the stop (PW1-PW19, decision 0103)
 
@@ -320,7 +338,11 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** with PLACES_BASE set, take an exploring walk past a curiosity in the archive. **Expect:** it shows as a "?" and is named within 60 m, as any mark.
 - [ ] **Do:** take a quiet walk past a curiosity with the screen off, and take a photo beside it. **Expect:** the replay names it as found.
 
-## Remarkable and public (RP1-RP20, decisions 0104, 0105)
+## Places pipeline (PP13, decision 0108)
+
+- [ ] **Do:** with PLACES_BASE set and checklist areas built from an archive without blocks, install a build that reads blocks, walk the same areas, then again after a weekly archive that changed places elsewhere only. **Expect:** each area is rebuilt once after the install, and not again after the second archive. (PP13)
+
+## Remarkable and public (RP13-RP20, decisions 0109-0111)
 
 - [ ] **Do:** on a phone, take an exploring walk and open the card of a place to find that stands more than 60 m from any street or path (a building set back in a park), then one beside a street. **Expect:** the first card says "No street or path close by" under its name, the second says nothing of the kind, and both places can still be found (RP20).
 - [ ] **Do:** on a phone, open the walk's drawer with Explore on, on an install that already had kinds switched off. **Expect:** "What I'm into" lists Buildings and structures after Monuments and ruins, switched on, and the kinds switched off before stay off (RP18).
@@ -334,3 +356,10 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 ## Captures while paused (fix paused-pins)
 
 - [ ] **Do:** on a phone, start a walk, pause it, walk two streets, take a photo and a note, then resume and stop. **Expect:** each moment sits where you took it (a pin on the walk map within a few seconds, and on the replay), not where the pause began. With location refused, the moment sits where the pause began.
+
+## Storage awareness (SA1-SA10, decision 0107)
+
+- [ ] **Do:** on an iPhone and an Android phone, fill the storage until Settings shows under 500 MB free, then open Navigate and start a walk. **Expect:** Navigate, ready shows "Room for new photos and videos is running low." beside the capture buttons once, and the walk does not say it again; note what `Paths.availableDiskSpace` read against what Settings shows (on iOS it leaves out what the system can purge, so it may read lower). (SA1, SA3, SA4)
+- [ ] **Do:** with under 100 MB free, take a photo, a 30 s video and a voice memo on a walk. **Expect:** after a capture the line becomes "There is almost no room left for new photos, videos and memos."; a save that fails shows "Not saved: there is no room left. It is held here for Retry." (never the system's own error text) and a "Photo not saved" or "Video not saved" pill; after freeing room, Retry keeps each with its time and place. (SA5, SA8, SA9)
+- [ ] **Do:** with a photo held, hold Stop. **Expect:** the walk does not end; it says the photo isn't saved yet with Retry, and a second hold ends the walk without it. (SA8)
+- [ ] **Do:** on an iPhone in Safari (not the Home Screen app), keep a moment on Navigate, ready. **Expect:** if Safari refuses to keep the data, the line "This browser may clear Chronicles’ moments when it needs room. The Home Screen app is less likely to." shows once there; from the Home Screen app, whether `persist()` is granted (nothing said). (SA10)

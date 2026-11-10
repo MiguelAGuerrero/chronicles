@@ -83,6 +83,14 @@ Chronicle's Memories (decision 0098)
   resurface/shell.ts         createResurface(ports): load, choices in meta `resurface_prefs`, saveNote, patch; index.ts is the app instance
   resurface/useResurface.ts  the view hook (reads on focus and after a delete)
   chronicle/                 SectionBar, MemoriesScreen, Resurfaced, ThreadsRail, ThreadScreen, MomentCard, MomentPicture, MemoryMenu
+Owner threads (decision 0104)
+  threads/types.ts           Thread, Member, Link (all truth), ThreadsData, ThreadsChange (one atomic change)
+  threads/rules.ts           thinThreads (dissolve below two), canMakeThread, threadForReply, replyChange, addChange, visibleThreads (what Undo hides)
+  threads/timeline.ts        buildTimeline: oldest first, a reply under what it answers
+  threads/lines.ts           every sentence: size words from a fixed set, since March, answering, context, a heading
+  threads/shell.ts           createThreads(ports, { schedule }): startThread, addToThread, removeFromThread, rename, deleteThread (Undo), reply, moments
+  threads/index.ts           the app instance (the Undo window is `deletions`); useThreads.ts the view hook
+  threads/                   (components/) RespondBar, AddToThread, ThreadChip, MyThreads, OwnThreadScreen, ThreadMomentMenu, ThreadMark (the made/found icon, decision 0105)
 Home / tabs
   HomeSheet.tsx              the three-height bottom sheet (Animated + responders), Walks | Days, a place's walks, a day's timeline
   StarView.tsx               a star for a place; all one size; the 8 busiest carry names
@@ -273,6 +281,7 @@ Captures and media
   captureEdits/              saving a moment's edits from a screen with no capture path: stored, then told on the bus (shell)
   videoEdit/                 an edited video as one file: the local module on phones, canvas + MediaRecorder on the web
   media/                     where files are kept: Documents (relative paths) on native, Blobs in IndexedDB on web; resolveMedia
+  space/                     storage awareness (SA1-SA10, 0107): core.ts levels, words, the once rule; shell.ts reads the probe, keeps meta space_said/space_persist; probe.native/web.ts
   media/thumb.ts             the 240 px copy with expo-image-manipulator; thumbPlan.ts decides when; thumbJob.ts runs one job per photo at a time
   useMediaUri.ts             a capture's media as a playable URI
   pins.ts                    pinsFor: grouping captures by screen distance; pinReminded, the bell
@@ -448,6 +457,10 @@ own code only where no Expo module covers the feature on web:
   screen, but desktop Chrome has `navigator.vibrate` and no motor (audit 4);
   expo-haptics has no availability call. The buzz itself goes through expo-haptics, as on a
   phone (decision 0079).
+- **The room left** (storage awareness, SA1, SA10, decision 0107): `space/probe.web.ts` reads
+  `navigator.storage.estimate()` (the quota minus what the app uses) and asks `navigator.storage.persist()`.
+  expo-file-system's web build reports `availableDiskSpace` as 0, and no Expo module asks a browser to
+  keep an app's data. Phones read `Paths.availableDiskSpace` (`space/probe.native.ts`).
 - **Browser fixes** with no native counterpart: `webStyles.web.ts` (pinned
   viewport, long-press guards) and the muted-autoplay fallback.
 
@@ -468,6 +481,13 @@ Truth (`lib/types.ts`):
   IndexedDB keeps the object; `parseEdit` reads both, decision 0090).
 - `Pause`, `Still`: walk_id, started_at, ended_at.
 - `GapDecision` (`gap_fill`, kept): a stretch kept or dismissed, with its line, so a map update never moves it.
+
+Owner threads (`threads/types.ts`, truth, never derived, decision 0104): `Thread`
+(`thread`: id, name nullable, created_at), `Member` (`thread_member`: thread_id,
+moment_id, added_at) and `Link` (`moment_link`: from_id answers to_id). A moment
+carries nothing of them. `applyThreads` dissolves a thread left with fewer than two
+members in the same transaction; `deleteCaptures` and `deleteWalk` take the
+memberships and links of their moments. SQLite migration 22, IndexedDB 17.
 
 Cache (`lib/types.ts`, `areas/types.ts`): `StreetSegment` (id, name,
 kind_detail, length_m, geometry, build), `VisitedSegment` (segment_id,
@@ -532,5 +552,5 @@ stores the record whole.
 
 ## The places archive (Places worth the stop, decision 0103)
 
-- **Built outside the app.** `scripts/places-archive/fetch-wikidata.mjs` asks the Wikidata Query Service one 2-degree US cell at a time; `scripts/build-places-archive.mjs` classifies (`scripts/places-archive/classify.mjs`: pinned Wikidata classes, type before age; a National Register listing or a Landmark when public, by the types `pin-types.mjs` pinned in `public-types.json`, with OpenStreetMap's tags from `osm.overpassql` only corroborating; gone places out; decisions 0104, 0105), applies `archiveEdits.json` and writes `places-<region>-<version>.pmtiles` (`archive.mjs`: z12, gzip, leaf directories); `publish.mjs` publishes only a changed archive; `--review` writes the owner's review beside it, never in it. `npm run places:coverage` (`scripts/places-coverage.ts`, `scripts/places-archive/coverage.mjs`) measures what the app keeps of seven areas' destinations. The chronicles-data repo runs them weekly and serves the newest three releases from its Pages site with a `manifest.json`.
+- **Built outside the app, in chronicles-data** (decision 0108): the places pipeline, its schemas, its class names and the owner's `edits.json` live there (https://github.com/MiguelAGuerrero/chronicles-data, its docs/spec.md). It builds the packs weekly, publishes them with `manifest.json` (each file's z8 `blocks`) and serves its `contract/` beside them. The app pins a copy of that contract (`src/lib/__tests__/explore/contract/`), and `placesContract.test.ts` holds the app's class table and reader to it (PP17); the owner's edits are applied in the build, never in the app. The listing rule of Remarkable and public, built in this repo before the move, is handed to it in `specs/remarkable-and-public/handoff.md`. `npm run places:coverage` (`scripts/places-coverage.ts`, `scripts/places-archive/coverage.mjs`) measures what the app keeps of seven areas' destinations.
 - **Read by tile in the app,** through `lib/net`, in the explore read (checklists, every walk) and the atlas ring read (PW10); never stored, merged with the map's places, the archive's kind winning. `EXPO_PUBLIC_PLACES_BASE` points the e2e build at `/places-e2e/` on the harness's server.

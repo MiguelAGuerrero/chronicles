@@ -17,7 +17,10 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - Scenic routes: a Sights row in a dense centre often says only "past places to find", since most places there are not yet found and never named (scenic routes, SR4)
 - Scenic routes: a start or destination that snaps onto a street piece not joined to the rest (seen once in the Zurich tiles) finds no route at all, direct or scenic; today's Go here has the same gap (scenic routes)
 - A complete walk through every point of interest in an area, which may double back: its own architecture, especially in dense areas such as Philadelphia or New York (decision 0102)
-- Kind walk (decision 0101): a sketch of the way in the panel; mixed-kind walks from the card's head; a walk built across a whole town outline (it is built from 1.5 km around the area's point); distance steps above 5 km or below 1 km. The rest of a suggested walk's choices (a leaning, a preview) are scenic routes' (0095)
+- Walk planner audit 18 (the owner's call): repeated "Suggest different routes" rotate the start among the eight densest cells, so enough presses cover them all, at the cells' resolution. Keep (it is the feature), or keep the first cells fixed?
+- Walk planner audit 16: when Start replaces a destination already set, a line says so; whether the old one should be restorable is the owner's call.
+- Walk planner audit 10: planning three routes (up to 6! orders per trial) has not been timed on a phone; the unit tests take seconds per scenario. Profile on a device, and move it off the JS thread if it blocks.
+- Walk planner (decision 0102): other kinds in the same route (the opened kind is pre-selected; the page is laid out for a chooser); a sketch of the strip as a profile; pins for places the map draws (only found places are pinned); another street between the same cells for "Suggest different routes" (it turns the way round a loop and rotates the start cell); a walk across a whole town outline (it is built from 1.5 km around the area's point)
 - Open in Maps on the Explore mark card (v0.5 navigate, Open in Maps)
 - Open in Maps on the dead-zone nudge (v0.5 navigate, Open in Maps)
 - Open in Maps on the home's Walk here (v0.5 navigate, Open in Maps)
@@ -331,10 +334,20 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **A line on why a place is worth the stop, Wikivoyage, the one-of-a-kind shops tier, the scenic routes' Sights leaning (PW18 pins it unchanged).**
 - **From the slice's audit (Nov 6), deferred:** the manifest's region box is the archive's data bounds, which cover much of Canada and northern Mexico, so a read there asks for US tiles (F7: give a region its own boxes); a new `archiveEdits.json` reaches an area only when the archive version changes (F8); routine Wikidata edits change the archive's bytes almost every week, so every client rebuilds areas and re-reads rings weekly (compare a content hash of the places instead of the file's bytes); the weekly job installs the whole app for two packages; `KEEP: 3` counts releases across regions; a private app repo needs `APP_REPO_TOKEN`.
 
-## Remarkable and public (RP1-RP20, decisions 0104, 0105)
+## Places pipeline (decision 0108)
 
+- **The pipeline's deferrals live in chronicles-data** (its docs/spec.md, Record): town and city pack entries,
+  GeoParquet and DuckDB, the Overture, OSM and nominating adapters, the ODbL question, conditional requests, R2.
+- **The app takes a new contract by hand:** the pinned copy (`src/lib/__tests__/explore/contract/`) is copied from
+  chronicles-data when its contract version changes; PP17 fails until then. No script fetches it.
+- **Hiding a map-tile place:** the owner's edits no longer reach places from the map's own tiles (decision 0108,
+  later the same day). Nothing replaces that yet; the edits file was empty.
+
+## Remarkable and public (RP1-RP20, decisions 0109-0111)
+
+- **The listing rule moves to chronicles-data** (decision 0108, which moved the pipeline while this slice was built): RP1-RP8, RP10 and RP12, the audit's build-side fixes and their tests are in this repo's history, listed in `specs/remarkable-and-public/handoff.md`; the archive classes `church`, `cemetery`, `theatre`, `museum`, `historic_site` need its contract v2 before the app's table takes them (PP17).
 - **OpenStreetMap's signals in production:** RP2 (shown open by an OSM tag) and RP5 (`access=private|no`) act only once the weekly job passes the build `--osm`, built from `scripts/places-archive/osm.overpassql` (only elements with a `wikidata` tag, so far smaller than a US extract). Until then, a listed house or building is shown open only by its Wikidata type, and none is kept out as closed.
-- **Places only OpenStreetMap knows** (the Bethlehem Steel blast furnaces' own feature): the owner's call, corroborate only (0105); adding them makes the archive a derived ODbL database.
+- **Places only OpenStreetMap knows** (the Bethlehem Steel blast furnaces' own feature): the owner's call, corroborate only (0110); adding them makes the archive a derived ODbL database.
 - **Contributing buildings of a listed district:** a church inside a listed district with no designation of its own in Wikidata (Central Moravian Church, in the Historic Moravian Bethlehem Landmark district and World Heritage site) is not lifted past the name rule. A public-type place inside a Landmark district could be; the owner's call.
 - **Registers outside the US:** Zurich's 199 listed misses are on Swiss registers; another region is the same rule with its register's id.
 - **The category label "History & landmarks"** is in every History place's screen-reader label ("Hessian Memorial, History & landmarks") and in the find announcement ("Found: X, History & landmarks", `walk.tsx`), older than RP18, which covers kinds; the steward's concern about "landmark" applies to it too. A copy change for the owner.
@@ -348,4 +361,21 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **No line cap:** a very long name (60+ characters) wraps to many lines under its pin and can cover neighbouring pins. The owner asked for names not to be truncated, so no cap was added; a cap is the owner's call.
 - **Busy-street label shifts up when it wraps:** `StripLabel`'s marker is centre-anchored, so its first line moves about 8 px up per extra line. Cosmetic; check on a device.
 
+## Threads the owner makes (decision 0104)
+
+- **A loose moment has no place in words** (owner-threads audit 2): only a walk has an area name, so a reply or any moment made outside a walk shows its date in a thread, the picker and Lately, and a thread headed by one is headed by a date. Words for where a moment was need an area lookup for a single fix, a decision of its own.
+- **A reply's "answering" line in the walk, the day and the map** (owner-threads audit 1): it shows in Lately and in a thread; the replay, the day's timeline and the pins do not carry it.
+- **`applyThreads` does not check that a member's moment still exists** (owner-threads audit 7): the shell checks just before the write; a delete in that one round trip leaves a member row for a moment that is gone, which the screens ignore and the next `deleteCaptures` cannot clear. A check inside the transaction is the fix.
+- **A thread cannot be kept quiet from the resurfaced card** (OT23, the owner's call, Nov 6: it resurfaces like any moment, with no thread name). A per-thread "keep quiet" switch is the cheap way to add one if a thread turns out to be one the owner does not want brought back.
+- **A moment of a walk still open is not offered by the picker or listed in a thread** until the walk stops (`toMomentViews`), as in Lately (RM3).
+- **The moment picker lists the newest sixty matches** and searches only a moment's own words (notes, captions); memos have none until they are transcribed (0098).
+- **A place-rooted journal**: a thread with no moments, started top-down and rooted in a place. Out of the owner-made threads slice by the owner's call (a thread comes only from connecting moments that have their own time and place). It would be its own feature and goes through `/vision` first.
 - **A failed resume drops the paused reminder** (fix pause-banner audit 2, Nov 9): the error notice replaces the "Paused for N min" one, and `remindedFor` keeps it from coming back, so the walk stays paused with no banner. Predates the fix; low.
+
+## Storage awareness (SA1-SA10, decision 0107)
+
+- **Apple's "available for important usage" capacity**: it counts what iOS can purge for a user's save, so it reads closer to Settings than `Paths.availableDiskSpace` (the plain free size, which reads low). Needs a native module; the owner chose Expo first (Nov 9).
+- **Caps on the caches that can be rebuilt** (`walk_tile`, old builds' rows, remembered ward ids, above): the only "limit" the vision allows; the owner asked for limitations too, so this is next if the room keeps running low.
+- **Held captures live in memory**: leaving the screen or a reload drops a held photo or video (Stop warns first). Keeping them across a reload needs the file kept somewhere that survives, which a full disk may refuse.
+- **Retry on the recording bar's camera** (other tabs, NV9): it shows the SA9 words; the held pill is on the walk screen and Navigate, ready.
+- **A check before a video starts**: the system camera owns the recording; the line beside the captures says it beforehand.

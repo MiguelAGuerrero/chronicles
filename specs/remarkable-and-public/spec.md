@@ -22,18 +22,18 @@ Wikidata's located items against what the app keeps from the real tiles (OpenFre
 Idea: Close the measured gap in places to find: heritage listings as the landmark signal (the National Register, not only Landmarks), a listing lifting a tile place past the name-word rule, OpenStreetMap's tags read by the archive, attractions kept, the aviary folded in; Overture as a source was put to the gate and reshaped away (the owner, Nov 9).
 Verb: earn (it raises what you notice: the buildings, bridges, mills and churches that make a town itself, which the tiles can't carry)
 Touches: Never, "Ratings, reviews, stars, 'best of', rankings of places" (nearest fit: "open-data signals such as a heritage listing"); Never, "Popularity, trending, foot traffic"; Always, "Guidance is structural: where there is a lot, and what makes a place itself, never whether it is good"; decision 0103 ("a listed building enters only as a National Historic Landmark", Nov 6, after 847 of 900 places in a test cell were National Register listings; "Significance is a gate, never a measure"; "Type decides, never age or listing"); PW7 (name, class, src, id); PW15 (OSM only corroborates); the "signal" rule of Places worth the stop ("A shop or eatery becomes a place only with a signal"); the activity-density rule (Overture's places, never marks); AG5 (`MARKABLE_CLASSES` pinned).
-Verdict: aligned if reshaped (decision 0104)
+Verdict: aligned if reshaped (decision 0109)
 Shape: A listing is a gate on what a place is, never a measure or a label: a listed place enters when it is public (its type public by nature, or a source showing it open) or a Landmark, never a district and never a place OSM marks closed. OpenStreetMap's tags corroborate Wikidata items; Overture stays for busy streets. On screen nothing new: these are places to find of the existing kinds, never labelled listed or historic, never sized, ordered or counted by notability.
 Criteria: RP1-RP6 (the rule), RP7 (OSM corroborates), RP8 (kinds by type), RP9 (the name rule lifted), RP11 (nothing about a listing shown or stored; order and size unchanged), RP12 (the owner's review, never published), RP13-RP14 (attractions), RP15 (aviary), RP16 (no hotels from tiles), RP17 (the benchmark structural), RP18 (no kind named for significance), RP19 (whispers bounded), RP20 (reachability said, never filtered).
 Open: none (the plan's questions answered Nov 9).
 
 ## Decisions
 
-- **Nov 9 (decision 0104):** a listed place enters when remarkable (a heritage listing; the National Register counts) and public (reachable from public ground: "Reachable from public ground"; a bridge, a monument, the furnaces count though they can't be entered).
+- **Nov 9 (decision 0109):** a listed place enters when remarkable (a heritage listing; the National Register counts) and public (reachable from public ground: "Reachable from public ground"; a bridge, a monument, the furnaces count though they can't be entered).
 - **Nov 9:** mundane buildings with no historic precedent or remarkability stay out ("not every building might not be publicly available. So like a private residence or a reserve that can't be entered").
 - **Nov 9:** a private house that is a National Historic Landmark is a place to find ("Yes, if NHL"; the gate recommended never).
 - **Nov 9:** "ensure that we have attractions supported too": the tiles' attractions are pinned; the listing rules never remove one; Wikidata's loose "tourist attraction" class is not used.
-- **Nov 9:** OpenStreetMap only corroborates ("Corroborate only"): its tags decide whether a listed Wikidata item is public, closed or gone; a place found only in OSM is not added (deferred, with its licence question: an archive with OSM-only places is a derived ODbL database). This supersedes 0104's "a place found only there enters by the same pinned class table" (recorded in a new decision with the slice).
+- **Nov 9:** OpenStreetMap only corroborates ("Corroborate only"): its tags decide whether a listed Wikidata item is public, closed or gone; a place found only in OSM is not added (deferred, with its licence question: an archive with OSM-only places is a derived ODbL database). This supersedes 0109's "a place found only there enters by the same pinned class table" (recorded in a new decision with the slice).
 - **Nov 9:** Overture stays for busy streets; historic hotels are not added to `tilePois`.
 - **Nov 9 (the plan's questions):** the new kind is "Buildings and structures", on by default; the replay's whispers follow the card's rule ("Bound them like the card"; amends RR15); reachability is not a filter ("Trust the tags, but just develop a way to warn or inspect whether something might or may not be accessible, but don't limit the data because of it"), and the warning goes to both the owner's review and the walker's card ("Both").
 - **Nov 9:** "Viewpoints and attractions" (the kind) and "Viewpoints & oddities" (its category) are two levels, not two names for one thing; both stay.
@@ -80,7 +80,7 @@ The replay and reachability:
 
 ## Record
 
-Built Nov 9 on `claude/gallant-maxwell-hp14jb` (tests first `59d0663`, code `3a99310`; decision 0105 for the slice's calls).
+Built Nov 9 on `claude/gallant-maxwell-hp14jb` (tests first `59d0663`, code `3a99310`; decision 0110 for the slice's calls).
 
 - **Passed:** RP1-RP20, each by its named test (`npm run check:test-first remarkable-and-public`: 20 of 20 tested first). Unit tests 1,422 pass; typecheck and lint clean. E2E: `marks` (RP18, RP20 and its own checks), and `curiosities`, `edit`, `gaps`, `headsup`, `hidden`, `layers`, `nudge`, `ready`, `reload`, `replay`, `tabs`, `walkability`, all green on the e2e build.
 - **Re-pinned on purpose:** PW5 (`ARCHIVE_CLASSES`), E16 (ten kinds), PW14's fetch rows (`listed`) and its audit-5 message (listings are asked for).
@@ -90,26 +90,33 @@ Built Nov 9 on `claude/gallant-maxwell-hp14jb` (tests first `59d0663`, code `3a9
 - **Native:** the card's line and the new switch have never run on a phone (`docs/NATIVE_UNVERIFIED.md`).
 - **Audit:** see "Audit" below.
 
+## Shipped (Nov 10)
+
+Main moved the places pipeline to chronicles-data (decision 0108) while this slice was built. The owner's call at deploy
+(Nov 10, "Ship app side now"): the app's side ships (RP11, RP13-RP20, and the audit's app fixes 5-9, 14); the archive's
+rule (RP1-RP8, RP10, RP12, the audit's build fixes 1, 2, 4, 10-13, 18) moves to chronicles-data with its tests
+(`handoff.md`), and RP9 waits on the contract's v2 classes. `scripts/features.js` records each as deferred.
+
 ## Audit (Nov 9, at the owner's request)
 
-The auditor (13 findings) and the steward (6, numbered on after them). 19 findings: 17 fixed, 1 fixed in part and deferred in part, 1 rejected. Regression tests `remarkable-and-public audit N` in `placesArchiveBuild.test.ts`, `remarkablePublic.test.ts`, `placesCoverage.test.ts` and `replay/ceremony.test.ts`, each committed failing (`remarkable-and-public audit: regression tests first`) before its fix. The owner's two calls are decision 0106.
+The auditor (13 findings) and the steward (6, numbered on after them). 19 findings: 17 fixed, 1 fixed in part and deferred in part, 1 rejected. Regression tests `remarkable-and-public audit N` in `placesArchiveBuild.test.ts`, `remarkablePublic.test.ts`, `placesCoverage.test.ts` and `replay/ceremony.test.ts`, each committed failing (`remarkable-and-public audit: regression tests first`) before its fix. The owner's two calls are decision 0111.
 
 1. Listed courthouses, town halls, city halls and libraries never entered (they are offices to Wikidata): accept, fixed. A home is never public by type; another mundane class stays public when a public root reaches it; libraries are public roots. The overlap kept is civic: county courthouses (1,298 listings), town halls, courthouses, armories, city halls. (audit 1)
 2. `osm.overpassql` did not parse and one statement was unbounded; the build read any `--osm` shape as empty: accept, fixed. (audit 2)
 3. The review lacked the History step before and after, and the reach flag: accept in part. The reach flag is the benchmark's (`places:coverage --review`, matched by `areaKey` since audit 8); the History step needs the atlas's tiles, which the build does not read: deferred.
 4. `was:*` dropped repurposed, still-standing stations and churches: accept, fixed (only `demolished:`, `razed:`, `destroyed:` mean gone). (audit 4)
-5. A large place showed twice (Wikidata at the gate, the map mid-grounds): accept, the owner's call, 200 m for the same name and category (decision 0106). (audit 5)
+5. A large place showed twice (Wikidata at the gate, the map mid-grounds): accept, the owner's call, 200 m for the same name and category (decision 0111). (audit 5)
 6. Two fast taps could lose the second card's line: accept, fixed (the shell answers only the latest ask). (audit 6)
 7. "No street or path close by" at the edge of the read tiles: accept, fixed (said only when every tile under the 60 m disc holds cached streets). (audit 7)
 8. The benchmark counted rail and ferries as ways, missed "Jim Thorpe", and matched on one shared word: accept, fixed. (audit 8)
 9. A day replay bounded passes across its walks: accept, fixed (bounded per walk). (audit 9)
-10. Sites, battlefields and wrecks were "Buildings and structures": accept, the owner's call, Monuments and ruins (decision 0106). (audit 10)
+10. Sites, battlefields and wrecks were "Buildings and structures": accept, the owner's call, Monuments and ruins (decision 0111). (audit 10)
 11. `wikidata=Q1;Q2` was ignored: accept, fixed. (audit 11)
 12. A district also typed ghost town or monument entered: accept, fixed. (audit 12)
 13. An ended listing counted; a cut-off answer killed the fetch: accept, fixed. (audit 13)
 14. (steward S1) "Passed a few places" came at the first place, false when said: accept, fixed (at the last). (audit 14)
 15. (steward S2) Absence the cache cannot know: accept, the same as 7, fixed there.
-16. (steward S3) "Buildings and structures" stands in for "listed": reject for now: only listed places fill it by design (0105); widening it to unlisted structures is the owner's open question (DEFERRED).
+16. (steward S3) "Buildings and structures" stands in for "listed": reject for now: only listed places fill it by design (0110); widening it to unlisted structures is the owner's open question (DEFERRED).
 17. (steward S4) The deferred "History & landmarks" entry should name the find announcement too: accept, DEFERRED says so.
 18. (steward S5) The review was written into the archive's folder: accept, fixed (`--review-out`, refused when it is `--out`). (audit 18)
 19. (steward S6) `passedAlong`'s comment described the old whispers: accept, fixed.

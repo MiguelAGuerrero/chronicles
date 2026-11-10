@@ -10,3 +10,21 @@ import { createStore } from './store';
  * tabs hidden.
  */
 export const tabsHidden = createStore(false);
+
+let holds = 0;
+
+/**
+ * Hides the tabs until the returned function is called, however many cards hold them: the area card, and the walk planner over it. The
+ * tabs come back only when the last hold is released, in whatever order they unmount (walk planner audit 12).
+ */
+export function hideTabs(): () => void {
+  holds += 1;
+  tabsHidden.set(true);
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    holds -= 1;
+    tabsHidden.set(holds > 0);
+  };
+}

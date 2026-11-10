@@ -4,7 +4,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { archivePlace } from '../../discovery/archivePois';
-import { applyEdits, mergePlaces } from '../../discovery/archiveMerge';
+import { mergePlaces } from '../../discovery/archiveMerge';
 import { isMarkable } from '../../discovery/noise';
 import { categoryOfPoi, placesFromTilePois } from '../../discovery/tilePois';
 import { KINDS } from '../../explore/explore';
@@ -15,29 +15,16 @@ import type { TileFeature } from '../../areas/tilePlaces';
 import type { LngLat } from '../../types';
 import fixture from './tilePoisSteelStacks.json';
 
-// Remarkable and public (RP9-RP20, decision 0104): what the app does with listed places, attractions, the aviary and
+// Remarkable and public (RP9-RP20, decision 0109): what the app does with listed places, attractions, the aviary and
 // reachability. Written before the code, from specs/remarkable-and-public/spec.md.
 
 const tile = fixture.features as unknown as (TileFeature & { zoom?: number })[];
 const placesNow = () => placesFromTilePois(tile, fixture.build);
 const poi = (cls: string, subclass: string, name: string, at: LngLat): TileFeature & { zoom?: number } =>
   ({ type: 'Feature', geometry: { type: 'Point', coordinates: at }, properties: { class: cls, subclass, name }, zoom: 14 } as unknown as TileFeature & { zoom?: number });
-/** A module the slice adds, loaded by a path TypeScript doesn't resolve, so the test fails while it is missing. */
-const later = (path: string): Promise<Record<string, unknown>> => import(String(path));
 
-test('RP9: a listed church in the tiles with no notable word is one place to find, of the archive\'s kind', () => {
-  const at: LngLat = [-75.3807, 40.6206];
-  const tiles = placesFromTilePois([poi('place_of_worship', 'place_of_worship', 'Central Moravian Church', at)], 'b');
-  assert.equal(tiles.length, 1);
-  assert.equal(isMarkable(tiles[0]), false, 'today the name rule stops it (no word from notable.json)');
-  const archived = archivePlace('Central Moravian Church', 'church', [at[0] + 0.0002, at[1]], 'v1');
-  assert.ok(archived, 'church is an archive class');
-  const merged = applyEdits(mergePlaces(tiles, [archived!]), { remove: [], add: [] }, 'v1');
-  const found = merged.filter((p) => p.name === 'Central Moravian Church');
-  assert.equal(found.length, 1, 'one place');
-  assert.ok(isMarkable(found[0]));
-  assert.equal(found[0].kind, 'churches');
-});
+// RP9 (a listed church lifts the name rule) needs the archive class `church`, which waits on chronicles-data's
+// contract v2 (PP17 pins v1): recorded in scripts/features.js UNTESTED, tested again when the class arrives.
 
 /** String literals in the files under `dir` that a screen could show. */
 function shownStrings(dir: string): string[] {
@@ -50,15 +37,14 @@ function shownStrings(dir: string): string[] {
   return out;
 }
 
-test('RP11: an archive point carries name, class, src and id only, and no copy names a listing', async () => {
-  const { build } = await later('../../../../scripts/build-places-archive.mjs') as { build: (o: unknown) => { places: Record<string, unknown>[] } };
-  const r = build({ items: [{ id: 'Q1', name: 'A Church', lon: -75.3, lat: 40.6, p31: ['Q16970'], listed: true, nhl: false }], region: 'us', version: '20261109' });
-  assert.equal(r.places.length, 1, 'a listed church enters');
-  assert.deepEqual(Object.keys(r.places[0]).sort(), ['class', 'id', 'lat', 'lon', 'name', 'src']);
+test('RP11: no copy names a listing; an archive place carries its name, class and kind only', () => {
   const root = join(__dirname, '..', '..', '..');
   const said = [...shownStrings(join(root, 'app')), ...shownStrings(join(root, 'components')), ...KINDS.map((k) => k.label)];
   const listing = said.filter((s) => /\b(National Register|listed building|listed place|heritage[- ]listed|landmark|NRHP)\b/i.test(s));
   assert.deepEqual(listing, [], 'no screen names a listing or a register');
+  const p = archivePlace('Bethlehem Silk Mill', 'heritage_building', [-75.37, 40.61], 'v1')!;
+  assert.deepEqual(Object.keys(p).sort(), ['at', 'build', 'category', 'generic', 'key', 'kind', 'markable', 'name'], 'nothing about a listing on the place');
+  assert.equal(p.kind, 'structures');
 });
 
 test('RP13: every named attraction in the tiles is a place to find, SteelStacks among them', () => {
@@ -76,16 +62,15 @@ test('RP13: every named attraction in the tiles is a place to find, SteelStacks 
   assert.ok(KINDS.some((k) => k.id === ('structures' as never)), 'the slice adds Buildings and structures beside it');
 });
 
-test('RP14: an attraction stays one place to find through the merge and the edits', () => {
+test('RP14: an attraction stays one place to find through the merge', () => {
   const tiles = placesNow();
   const steel = tiles.find((p) => p.name === 'SteelStacks')!;
   const listedNear = archivePlace('Bethlehem Steel Lehigh Plant Mill No. 2 Annex', 'heritage_building', [steel.at[0] + 0.0003, steel.at[1]], 'v1')!;
   assert.ok(listedNear, 'a listed building beside it is an archive place');
-  const merged = applyEdits(mergePlaces(tiles, [listedNear]), { remove: [], add: [] }, 'v1');
+  const merged = mergePlaces(tiles, [listedNear]);
   assert.equal(merged.filter((p) => p.name === 'SteelStacks' && isMarkable(p)).length, 1);
   assert.equal(listedNear.kind, 'structures');
-  const struck = applyEdits(merged, { remove: [{ name: 'SteelStacks', at: steel.at }], add: [] }, 'v1');
-  assert.equal(struck.filter((p) => p.name === 'SteelStacks').length, 0, 'only the owner\'s remove takes it away');
+  // The owner's edits are applied when the archive is built, in chronicles-data (decision 0108), never here.
 });
 
 test('RP15: the National Aviary (zoo/aviary) is a place to find', () => {
@@ -138,12 +123,13 @@ test('RP20: a place with no street or path within 60 m is said, never filtered; 
 test('remarkable-and-public audit 5: a listed cemetery 120 m from the tiles\' same-named one is one place to find', () => {
   const tiles = placesFromTilePois([poi('cemetery', 'cemetery', 'Nisky Hill Cemetery', [-75.3725, 40.6235])], 'b');
   const gate: LngLat = [-75.3725 + 120 / 84400, 40.6235];
-  const archived = archivePlace('Nisky Hill Cemetery', 'cemetery', gate, 'v1')!;
+  // A listed cemetery is heritage_building (History) until the contract's cemetery class arrives.
+  const archived = archivePlace('Nisky Hill Cemetery', 'heritage_building', gate, 'v1')!;
   const merged = mergePlaces(tiles, [archived]);
   assert.equal(merged.filter((p) => p.name === 'Nisky Hill Cemetery').length, 1, 'same name, same category, within 200 m (the owner, Nov 9)');
-  const far = archivePlace('Nisky Hill Cemetery', 'cemetery', [-75.3725 + 250 / 84400, 40.6235], 'v1')!;
+  const far = archivePlace('Nisky Hill Cemetery', 'heritage_building', [-75.3725 + 250 / 84400, 40.6235], 'v1')!;
   assert.equal(mergePlaces(tiles, [far]).filter((p) => p.name === 'Nisky Hill Cemetery').length, 2, 'past 200 m they are two');
-  const otherKind = archivePlace('Nisky Hill Cemetery', 'museum', gate, 'v1')!;
+  const otherKind = archivePlace('Nisky Hill Cemetery', 'sculpture', gate, 'v1')!;
   assert.equal(mergePlaces(tiles, [otherKind]).filter((p) => p.name === 'Nisky Hill Cemetery').length, 2, 'another category merges only within 50 m');
 });
 

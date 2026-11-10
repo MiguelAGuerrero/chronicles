@@ -77,6 +77,10 @@ raise the level to `e2e`. An explicit `--tests` always wins.
 
    It is gitignored; never commit it.
 
+   A new worktree also lacks the map's worker file (`public/maplibre-gl-worker.mjs`, copied by `npm ci`'s postinstall and gitignored):
+   without it the web map never loads and the e2e dies at `window.__project is not a function`. Run
+   `node scripts/copy-maplibre-worker.js` in the worktree.
+
 ## 1. Understand and reproduce
 
 1. Read `docs/STATUS.md` and the `.claude/rules/<area>.md` files that cover the

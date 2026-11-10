@@ -1,18 +1,19 @@
-// The coverage benchmark's pure parts (Remarkable and public, RP17, decision 0104): which Wikidata items are
+// The coverage benchmark's pure parts (Remarkable and public, RP17, decision 0109): which Wikidata items are
 // destinations, and what became of each in the app. A destination is defined by structure only (a listing or a
-// pinned public type, standing, not a district), never by sitelinks, articles or page views (steward 3).
-import { createRequire } from 'node:module';
-import { DISTRICT, NHL, NRHP } from './classify.mjs';
+// standing, not a district), never by sitelinks, articles or page views (steward 3). The archive's own classifier
+// lives in chronicles-data since decision 0108, so the benchmark measures the app's side only.
 
-const TYPES = createRequire(import.meta.url)('./public-types.json');
-const PUBLIC = new Set(['church', 'cemetery', 'theatre', 'public', 'museum'].flatMap((g) => TYPES.groups[g]));
+/** National Register listing, National Historic Landmark and historic district, as Wikidata names them. */
+export const NRHP = 'Q19558910';
+export const NHL = 'Q624232';
+export const DISTRICT = 'Q15243209';
 
-/** RP17: a destination: listed (National Register or Landmark) or of a pinned public type, standing, not a district. */
+/** RP17: a destination: listed (National Register or Landmark), standing, not a district. */
 export function isDestination(item) {
   const p31 = item.p31 ?? [];
   if (item.dissolved || p31.includes(DISTRICT)) return false;
   const heritage = item.heritage ?? [];
-  return !!item.listed || !!item.nhl || heritage.includes(NRHP) || heritage.includes(NHL) || p31.some((q) => PUBLIC.has(q));
+  return !!item.listed || !!item.nhl || heritage.includes(NRHP) || heritage.includes(NHL);
 }
 
 const STOP = /\b(the|of|at|and|a|saint|st|church|museum|park|building|house|center|centre)\b/g;

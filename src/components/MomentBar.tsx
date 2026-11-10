@@ -5,9 +5,12 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { feedback } from '../lib/motion';
 import type { LocateResult } from '../lib/locate/types';
+import { space } from '../lib/space';
+import { heldLabel } from '../lib/space/core';
 import type { Capture } from '../lib/types';
 import { useCaptures, type MomentState } from '../lib/useCaptures';
 import { Modal } from './Modal';
+import { SpaceLine } from './SpaceLine';
 import { EditOfferPill, useEditOffer } from './edit/EditOffer';
 import { MediaEditor } from './edit/MediaEditor';
 import { CaptureStack } from './walk/CaptureStack';
@@ -48,6 +51,11 @@ export function MomentBar(props: {
       onMoment(c, state);
     },
   });
+  // Navigate, ready shown: the room left (SA3) and the web's request, off the walk (SA10).
+  const { focused } = props;
+  useEffect(() => {
+    if (focused !== false) void space.check({ recording: false });
+  }, [focused]);
   return <CaptureRow cap={cap} toast={toast} setToast={setToast} disabled={props.disabled} onRecording={props.onRecording} focused={props.focused} />;
 }
 
@@ -159,6 +167,15 @@ export function CaptureRow(props: {
             </Pressable>
           </View>
         )}
+        {cap.held.length > 0 && (
+          <View testID="held-captures" style={styles.pill} accessibilityLiveRegion="polite">
+            <Text style={styles.pillText}>{heldLabel(cap.held)}</Text>
+            <Pressable testID="held-retry" accessibilityRole="button" onPress={() => cap.retryHeld()} hitSlop={10} style={styles.pillBtn}>
+              <Text style={styles.pillBtnText}>Retry</Text>
+            </Pressable>
+          </View>
+        )}
+        {!recording && <SpaceLine />}
       </View>
       <CaptureStack
         ids={{ photo: 'moment-photo', voice: 'moment-voice', note: 'moment-note', save: 'moment-voice-save', discard: 'moment-voice-discard' }}

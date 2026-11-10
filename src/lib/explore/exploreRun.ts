@@ -5,6 +5,7 @@ import { withOutlines, withoutOutlines } from '../areas/outlines';
 import { placesFromTiles } from '../areas/tilePlaces';
 import { db } from '../db';
 import { fetchTiles } from '../discovery/tileFetch';
+import { placesArchive } from '../discovery/archive';
 import { boundsOf } from '../geo';
 import { analyzeArea } from '../landing/analyze';
 import { readAround, rememberArea } from '../landing/read';
@@ -61,11 +62,13 @@ export function exploreRead(centre: LngLat, opts: { remember: boolean }, shouldS
       const now = Date.now();
       // Areas built for this build stay as they are; earlier reads' candidates keep places with their areas (audit 3).
       const [done, reads, finds] = await Promise.all([db.listChecklistAreas(), db.listExploreReads(), db.listFinds().catch(() => [])]);
+      // PP13: with the pipeline's blocks, each area is tagged and judged at its own point, from the file this read used.
+      const archiveAt = (at: LngLat) => (read.archive == null ? null : placesArchive.versionAt(at) ?? read.archive);
       const built = buildChecklists({
         places: read.places, candidates: points, centre, build, now, outlines: borders?.set ?? null,
         // PW12: an area built before the places archive (or with an older version) is built again.
-        built: done.filter((a) => a.build === build && !archiveStale(a.archive, read.archive)),
-        archive: read.archive,
+        built: done.filter((a) => a.build === build && !archiveStale(a.archive, archiveAt(a.at))),
+        archive: archiveAt,
         // Audit 1-2: a place already found keeps its find's key through a rebuild.
         finds,
         known: reads.filter((r) => r.build === build).flatMap((r) => r.candidates),

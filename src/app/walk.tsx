@@ -25,6 +25,7 @@ import { KindSwitches, RangeSlider, walkNote } from '../components/ExploreSettin
 import { NotificationSettings } from '../components/NotificationSettings';
 import { RouteLeaningSettings } from '../components/RouteLeaningSettings';
 import { RoutePreview } from '../components/RoutePreview';
+import { forPreview } from '../lib/nav/previewView';
 import { SwitchRow } from '../components/SwitchRow';
 import { ReminderCard } from '../components/ReminderCard';
 import { onRecallFired, onRecallOpen, onRecallWaiting, takeRecallOpen } from '../lib/discovery/recallCheck';
@@ -84,6 +85,9 @@ import { UndoToast } from '../components/UndoToast';
 import { bordersFor, outlineIdAt } from '../lib/areas/borders';
 import { BORDER_ZOOM, OUTLINE_ZOOM } from '../lib/areas/outlines';
 import { useOutlineSet } from '../lib/areas/useOutlineSet';
+import { SpaceLine } from '../components/SpaceLine';
+import { space } from '../lib/space';
+import { heldLabel } from '../lib/space/core';
 
 /** Streets around the walker: read from the map and shown as fog this far out. */
 const NEAR_RADIUS_M = 1000;
@@ -255,6 +259,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const [walked, setWalked] = useState<StreetSegment[]>([]);
   // The memo whose save failed at Stop; holding Stop again ends the walk without it.
   const giveUpMemo = useRef(false);
+  const giveUpHeld = useRef(false);
   const saveRef = useRef<PressableRef>(null);
   const mapRef = useRef<WalkMapHandle>(null);
   // The map's turn, for the compass (CP2): the map opens north-up and keeps no bearing (CP8).
@@ -335,6 +340,11 @@ function WalkScreen(props: { onMinimize: () => void }) {
   }, [drawnBorders, hereTown, nearKey]);
   const motionAccess = useMotionAccess();
   const cap = useCaptures(walk?.id ?? null, live.here, live.lastFixAt, onCaptureError);
+  // A walk shown: the room left, said beside the captures (SA3, SA4); nothing is asked mid-walk (SA10).
+  const shownWalkId = walk?.id ?? null;
+  useEffect(() => {
+    if (shownWalkId) void space.check({ recording: true });
+  }, [shownWalkId]);
   // A deleted moment leaves the pins, Explore and the viewer at once (D3, D5).
   const captures = useVisible(cap.captures);
 
@@ -601,6 +611,21 @@ function WalkScreen(props: { onMinimize: () => void }) {
   const layers = useLayers();
   const wk = useWalkability(live.here, !!layers.on.walkability);
   const busy = useBusyLayer(live.here, !!layers.on.busy);
+  // While choosing among a preview's routes only the routes are drawn, in blue; the trace, the fog, the busy streets' shading and the rest
+  // come back as it closes (fix preview-clutter).
+  const drawn = forPreview(!!navigation.preview, {
+    trace: live.runs,
+    rides: live.rides,
+    walked,
+    fog,
+    faint: gapView.faint,
+    gapLinks: isDrawing ? undefined : gapView.links,
+    landing: busy.view,
+    borders: layers.on.borders ? borders : null,
+    walkability: wk.draw,
+    veil: showUnwalked,
+    fogEmphasis: showUnwalked,
+  });
   const aheadLine = useRouteWarning(navigation.nav?.route.path ?? null, live.here, !!layers.on.walkability);
   // Explore (v1 slice 5): checklists are built quietly on every walk (E2); the layers show only
   // on an exploring walk (E1, E9), and a capture finds a place on any walk.
@@ -864,6 +889,12 @@ function WalkScreen(props: { onMinimize: () => void }) {
         setNotice({ message: 'The voice memo could not be saved. Retry, or hold Stop again to end the walk without it.', tone: 'error', sticky: true });
         return;
       }
+      // A photo or video still held is said before the walk ends without it (SA8).
+      if (cap.held.length > 0 && !giveUpHeld.current) {
+        giveUpHeld.current = true;
+        setNotice({ message: `${heldLabel(cap.held)} yet. Retry, or hold Stop again to end the walk without it.`, tone: 'error', sticky: true });
+        return;
+      }
       // The walk stays on screen until the replay replaces it (the keeper hears it ended first).
       setEnded(walk);
       await stopWalk(walk.id);
@@ -1050,26 +1081,18 @@ function WalkScreen(props: { onMinimize: () => void }) {
         <WalkMap {...ready.mapProps} borders={ready.bordersOn ? borders : null} ref={mapRef} onBearingChange={setBearing} scaleInset={{ bottom: scaleInsetBottom({ barTop: at.barTop, scaleBottom: SCALE_BOTTOM, mapEndsAtStrip: true }), left: sideInset + 12 }} />
       ) : (
       <WalkMap
-        landing={busy.view}
-        trace={live.runs}
-        rides={live.rides}
-        walked={walked}
-        fog={fog}
+        {...drawn}
         captures={captures}
         // Opening a capture would hide a memo that is still recording.
         // While drawing, a tap on a pin is a point along the way like any other (gap-drawing audit 8).
         onPinPress={recordingVoice || stopping || isDrawing ? undefined : setViewing}
         walker={live.here}
-        borders={layers.on.borders ? borders : null}
-        walkability={wk.draw}
         walkerSource={live.dot}
         glideWalker
         walkerHeading={live.heading}
         // Not while a route is found: the street read moves the camera itself.
         // Drawing holds the map where it is: a new fix never moves it under a tap (GW8).
         follow={following && !navigation.finding && !navigation.preview && !ring && !isDrawing ? live.here : null}
-        faint={gapView.faint}
-        gapLinks={isDrawing ? undefined : gapView.links}
         drawing={drawing.line}
         onPress={(at, radiusM) => {
           layers.closePanel();
@@ -1130,8 +1153,6 @@ function WalkScreen(props: { onMinimize: () => void }) {
         // While navigating the trace steps aside, so the route reads; it is still recorded (the owner's call, Nov 2).
         traceOpacity={navigation.nav ? 0 : 1}
         covered={navigation.finding}
-        veil={showUnwalked}
-        fogEmphasis={showUnwalked}
         ref={mapRef}
         // Started in place, the walk opens where the ready map was: around the last fix (NR6).
         initialCenter={live.here ?? getLastFix()?.at ?? undefined}
@@ -1346,6 +1367,15 @@ function WalkScreen(props: { onMinimize: () => void }) {
             </Pressable>
           </View>
         )}
+        {walk && cap.held.length > 0 && !recordingVoice && !spot && !openMark && !options && !memory && (
+          <View testID="held-captures" style={styles.undo} accessibilityLiveRegion="polite">
+            <Text style={styles.undoText}>{heldLabel(cap.held)}</Text>
+            <Pressable testID="held-retry" accessibilityRole="button" onPress={() => cap.retryHeld()} hitSlop={10} style={styles.undoBtn}>
+              <Text style={styles.undoBtnText}>Retry</Text>
+            </Pressable>
+          </View>
+        )}
+        {walk && !recordingVoice && !spot && !openMark && !options && !memory && <SpaceLine />}
       </View>
       {/* The capture stack at the right edge (NR9): where it was on the ready screen. While recording,
           Save takes the mic's own place, so tapping the mic again saves; Discard is smaller, in the

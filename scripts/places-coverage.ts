@@ -1,7 +1,8 @@
-// The coverage benchmark (Remarkable and public, RP17, decision 0104): the Nov 9 measurement, kept. For a fixed set of
+// The coverage benchmark (Remarkable and public, RP17, decision 0109): the Nov 9 measurement, kept. For a fixed set of
 // areas it reads the map tiles (OpenFreeMap's current build) and Wikidata, runs the app's own rules over them, and
-// prints, per area, the destinations, those shown, those the archive's rule would add, and those still missed with
-// why; places the archive would add with no street or path within 60 m are flagged "may not be reachable" (RP20).
+// prints, per area, the destinations, those shown, and those still missed with why; a missed destination, or a place
+// of the owner's review (--review), with no street or path within 60 m is flagged "may not be reachable" (RP20).
+// What the archive's rule would add is measured where the rule lives, in chronicles-data (decision 0108).
 // Network only; never in `npm test` or CI. Its reports are the owner's, in words and lists, never a percentage.
 //
 //   npm run places:coverage [-- --area bethlehem] [-- --review out/review-us-20261109.json]
@@ -12,8 +13,7 @@ import { isMarkable } from '../src/lib/discovery/noise';
 import { placesFromTilePois } from '../src/lib/discovery/tilePois';
 import { wayNear } from '../src/lib/explore/reach/rule';
 import type { LngLat } from '../src/lib/types';
-import { areaKey, isDestination, outcome, walkable } from './places-archive/coverage.mjs';
-import { keep, NHL, NRHP } from './places-archive/classify.mjs';
+import { areaKey, isDestination, NHL, NRHP, outcome, walkable } from './places-archive/coverage.mjs';
 
 const AGENT = 'Chronicles places coverage (+github.com/MiguelAGuerrero/chronicles; owner-run, one query at a time)';
 /** The Nov 9 areas: three Lehigh Valley towns, a small tourist town, two cities' cores and one outside the US. */
@@ -98,25 +98,20 @@ async function main() {
     const places = placesFromTilePois(t.pois as never, t.build).map((p) => ({ name: p.name, at: p.at, mark: isMarkable(p) }));
     const raw = t.pois.map((f) => ({ name: String(f.properties.name ?? ''), at: f.geometry.coordinates as LngLat }));
     const by: Record<string, string[]> = { shown: [], 'stopped by the name rule': [], 'dropped by the adapter': [], 'not in the tiles': [] };
-    const adds: string[] = [];
     const far: string[] = [];
     for (const it of items.filter(isDestination)) {
       const o = outcome(it, { places, raw });
       by[o].push(it.name);
-      if (o !== 'shown' && keep(it)) {
-        adds.push(it.name);
-        if (wayNear(it.at, t.ways) === false) far.push(it.name);
-      }
+      if (o !== 'shown' && wayNear(it.at, t.ways) === false) far.push(it.name);
     }
     for (const p of review?.areas.find((a) => areaKey(a.name) === area)?.places ?? [])
       if (wayNear(p.at, t.ways) === false && !far.includes(p.name)) far.push(p.name);
     const n = Object.values(by).reduce((a, b) => a + b.length, 0);
     console.log(`\n## ${area} (tiles ${t.build})\n${n} destinations.`);
     console.log(`Shown: ${list(by.shown)}`);
-    console.log(`The archive's rule would add: ${list(adds)}`);
-    console.log(`Still missed, not in the tiles: ${list(by['not in the tiles'].filter((x) => !adds.includes(x)))}`);
-    console.log(`Still missed, dropped by the adapter: ${list(by['dropped by the adapter'].filter((x) => !adds.includes(x)))}`);
-    console.log(`Still missed, stopped by the name rule: ${list(by['stopped by the name rule'].filter((x) => !adds.includes(x)))}`);
+    console.log(`Missed, not in the tiles: ${list(by['not in the tiles'])}`);
+    console.log(`Missed, dropped by the adapter: ${list(by['dropped by the adapter'])}`);
+    console.log(`Missed, stopped by the name rule: ${list(by['stopped by the name rule'])}`);
     console.log(`May not be reachable (no street or path within 60 m): ${list(far)}`);
     await new Promise((r) => setTimeout(r, 1500));
   }
