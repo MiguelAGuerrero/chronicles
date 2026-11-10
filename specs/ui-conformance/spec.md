@@ -48,3 +48,14 @@ Open: none (the owner answered Nov 10, decision 0113).
 11. **UC11** Nothing else on these screens changes: the toolbar's Respond and Edit, the More menu's other items, Delete's Undo and its effect on every list, the replay's viewer and its Continue.
 12. **UC12** With a reminder set on a moment, the viewer's info line says "Reminder set" without opening More (steward S4).
 13. **UC13** A delete still waiting when the app is killed is stored on the next launch: what went stays gone, and no pill is shown for it (decision 0113).
+
+## Record (Nov 10)
+
+Built on `claude/ui-conformance` (from `claude/viewer-toolbar`, with `main` merged in); not audited (decision 0074). Tests first: `UI conformance: tests first (UC1-UC13, failing)`.
+
+- **Built as written:** UC1-UC13. Unit: `deletion/conformance.test.ts` (UC1, UC2, UC13), `threads/conformance.test.ts` (UC6), the Undo window's D5 and D6 tests moved to Close instead of a timer. Journeys: `deletion` (UC1, UC3, UC4, UC5), `threads` (UC4, UC6, UC10, UC11), `edit` (UC7, UC9), `walk`, `memories`, `chronicle` (UC9, UC10, UC12). UC8 is a device item (the web always reports a screen reader).
+- **D4, D5 and OT14 amended** (decision 0113): a moment, a thread and a removal act at once; Undo waits; a killed app completes the delete.
+- **Steward (Nov 10):** 0 breaches, 4 drift, 1 tone, all accepted (the plan).
+- **Looked at** (the screenshot rule): the photo viewer with Close and More (`45-photo-viewer`), the note viewer's toolbar, the Respond menu.
+- **Native:** the waiting delete across a kill, the announcements, the screen-reader check, the tap toggle: `docs/NATIVE_UNVERIFIED.md`, "UI conformance".
+

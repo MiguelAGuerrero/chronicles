@@ -84,8 +84,8 @@ async function checks(h) {
         const u = await page.locator('[data-testid=undo]').boundingBox();
         // Never wait on a button that may not be there: the delete is stored when the window ends.
         const x = (await page.locator('[data-testid=undo-dismiss]').count()) ? await page.locator('[data-testid=undo-dismiss]').boundingBox() : null;
-        check(!!(u && x && u.height >= 44 && x.height >= 44 && x.width >= 44 && Math.abs(x.x - (u.x + u.width)) >= 8) && x !== null && (await page.locator('[data-testid=undo-dismiss]').getAttribute('aria-label')) === 'Close, it stays deleted',
-          'UC3: the pill has Undo and a Close, each 44 px, 8 px apart, Close named for what it does');
+        const pillOk = !!(u && x && u.height >= 44 && x.height >= 44 && x.width >= 44 && Math.abs(x.x - (u.x + u.width)) >= 8) && x !== null && (await page.locator('[data-testid=undo-dismiss]').getAttribute('aria-label')) === 'Close, it stays deleted';
+        check(pillOk, 'UC3: the pill has Undo and a Close, each 44 px, 8 px apart, Close named for what it does');
       }
       await shot(page, '26-undo-moment');
       await past();

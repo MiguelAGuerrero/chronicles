@@ -277,7 +277,8 @@ async function checks(h) {
         // A capture with no fresh fix now asks for one of its own before it is placed (fix paused-pins), so the regroup can
         // take longer than 10 s on a loaded machine.
         await page.waitForSelector('[aria-label="2 captures here. Open"]', { timeout: 20000 }).catch(() => {});
-        check((await page.locator('[aria-label="2 captures here. Open"]').count()) === 1, 'a short video is kept, sharing a pin with the memo nearby');
+        const pinLabels = await page.evaluate(() => [...document.querySelectorAll('[aria-label$=" Open"]')].map((e) => e.getAttribute('aria-label')));
+        check((await page.locator('[aria-label="2 captures here. Open"]').count()) === 1, `a short video is kept, sharing a pin with the memo nearby (${JSON.stringify(pinLabels)})`);
         // The video is taken about 40 m from the memorial: it finds it (E8). (The memo at step 10, 62 m off, does not.)
         await page.waitForTimeout(500);
         check((await page.locator('[aria-label="Found: Hessian Memorial, History & landmarks"]').count()) === 1, 'a capture within 60 m finds the place, which stays drawn as found');
@@ -330,8 +331,8 @@ async function checks(h) {
         await page.click('[data-testid=remind-save]');
         await page.waitForSelector('[data-testid=capture-meta] >> text=/Reminder set/');
         // The walk screen keeps two viewers mounted; the one open is the one whose line says it.
-        check((await page.locator('[data-testid=capture-meta]:has-text("Reminder set")').count()) > 0 && (await page.locator('[data-testid=viewer-pill]').count()) === 0,
-          'UC10, UC12: a set reminder says so in the info line, with no pill');
+        const reminderSaid = (await page.locator('[data-testid=capture-meta]:has-text("Reminder set")').count()) > 0 && (await page.locator('[data-testid=viewer-pill]').count()) === 0;
+        check(reminderSaid, 'UC10, UC12: a set reminder says so in the info line, with no pill');
         // The map behind the open viewer already wears the bell, on the same element (RB5, audit 3, 4).
         await page.waitForSelector('[data-ids] [data-testid=pin-reminder]', { timeout: 5000 }).catch(() => null);
         const keptOnSave = await page.locator('[data-ids]:has([data-testid=pin-reminder])').evaluateAll((els) => els.length === 1 && els[0].__beforeBell === true);
