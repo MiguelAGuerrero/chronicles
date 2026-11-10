@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { KeyboardAvoidingView, Linking, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Linking, Platform, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { noteText, NOTE_MAX } from '../../lib/noteEdit';
+import { respondLift } from '../../lib/threads/respondLift';
+import { useKeyboardHeight } from '../../lib/threads/useKeyboardHeight';
 import { useCaptures } from '../../lib/useCaptures';
 import { Icon, type IconName } from '../icons';
 import { theme } from '../ui';
@@ -13,15 +15,16 @@ import { theme } from '../ui';
  * note being written belongs to one moment and is the viewer's to close with Back (`composeFor`, audit 9).
  *
  * It stands just above the moment it answers (the photo's strip, the note's card), as a reply sits under what it
- * answers, so no label says "Respond" (the owner, Nov 10). `bottom` is how far that moment reaches up from the
- * screen's foot; null until the viewer has measured it, when the bar is laid out but not shown. A note being written
- * rises with the keyboard (iOS; Android resizes the window itself).
+ * answers, so no label says "Respond" (the owner, Nov 10); each button says it replies. `bottom` is how far that
+ * moment reaches up from the screen's foot; null until the viewer has measured it, when the bar is laid out but not
+ * shown. A note being written rises above the keyboard; `respondLift` decides where, never past `topClear`.
  */
 export function RespondBar(props: {
   answeredId: string;
   threadId?: string | null;
   walkId?: string | null;
   bottom: number | null;
+  topClear: number;
   composeFor: string | null;
   setComposeFor: (id: string | null) => void;
 }) {
@@ -52,11 +55,15 @@ export function RespondBar(props: {
   });
   const recording = cap.voiceStartedAt != null;
   const composing = props.composeFor === props.answeredId;
-  const tool = (testID: string, icon: IconName, label: string, onPress: () => void, disabled?: boolean) => (
+  const keyboard = useKeyboardHeight();
+  const { height: windowHeight } = useWindowDimensions();
+  const [bar, setBar] = useState(48);
+  const lift = respondLift({ foot: props.bottom ?? 0, keyboard: composing ? keyboard : 0, window: windowHeight, topClear: props.topClear, bar });
+  const tool = (testID: string, icon: IconName, label: string, onPress: () => void, disabled?: boolean, spoken?: string) => (
     <Pressable
       testID={testID}
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={spoken ?? label}
       accessibilityState={{ disabled: !!disabled }}
       disabled={disabled}
       onPress={onPress}
@@ -67,9 +74,9 @@ export function RespondBar(props: {
     </Pressable>
   );
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[StyleSheet.absoluteFill, styles.anchor]} pointerEvents="box-none">
     <View
-      style={[styles.wrap, { marginBottom: (props.bottom ?? 0) + 12 }, props.bottom == null && styles.unmeasured]}
+      style={[styles.wrap, { bottom: lift }, props.bottom == null && styles.unmeasured]}
+      onLayout={(e) => setBar(e.nativeEvent.layout.height)}
       pointerEvents={props.bottom == null ? 'none' : 'box-none'}
       aria-hidden={props.bottom == null}
       testID="respond-bar"
@@ -101,15 +108,14 @@ export function RespondBar(props: {
             tool('respond-voice-stop', 'stop', 'Stop and keep', () => void cap.finishVoice())
           ) : (
             <>
-              {tool('respond-photo', 'camera', 'Photo', () => void cap.takePhoto(), cap.busy != null)}
-              {tool('respond-voice', 'mic', 'Voice', () => void cap.startVoice(), cap.busy != null)}
-              {tool('respond-note', 'create-outline', 'Note', () => props.setComposeFor(props.answeredId), cap.busy != null)}
+              {tool('respond-photo', 'camera', 'Photo', () => void cap.takePhoto(), cap.busy != null, 'Reply with a photo')}
+              {tool('respond-voice', 'mic', 'Voice', () => void cap.startVoice(), cap.busy != null, 'Reply with a voice memo')}
+              {tool('respond-note', 'create-outline', 'Note', () => props.setComposeFor(props.answeredId), cap.busy != null, 'Reply with a note')}
             </>
           )}
         </View>
       )}
     </View>
-    </KeyboardAvoidingView>
   );
 }
 
@@ -117,7 +123,7 @@ export function RespondBar(props: {
 function ReplyNote(props: {
   onCancel: () => void;
   onKeep: (text: string) => void;
-  tool: (testID: string, icon: IconName, label: string, onPress: () => void, disabled?: boolean) => ReactNode;
+  tool: (testID: string, icon: IconName, label: string, onPress: () => void, disabled?: boolean, spoken?: string) => ReactNode;
 }) {
   const [text, setText] = useState('');
   const kept = noteText(text);
@@ -146,9 +152,7 @@ function ReplyNote(props: {
 }
 
 const styles = StyleSheet.create({
-  // In the flow, not absolute: the keyboard's padding must lift it.
-  anchor: { justifyContent: 'flex-end' },
-  wrap: { marginHorizontal: 12, gap: 8, alignItems: 'center' },
+  wrap: { position: 'absolute', left: 12, right: 12, gap: 8, alignItems: 'center' },
   unmeasured: { opacity: 0 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'center' },
   tool: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 48, paddingHorizontal: 14, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.92)' },

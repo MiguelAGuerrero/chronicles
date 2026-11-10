@@ -112,6 +112,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - A web export recorded in a hidden tab: requestAnimationFrame stops and frames freeze until it is shown again (media-editing audit 10)
 - On Navigate, a moment's "kept here" toast and its Edit pill can show together (media-editing audit 13)
 - A turned or cropped video has only play and pause, no scrubber or progress (media-editing audit 15)
+- A caption dragged near the bottom of a portrait photo sits behind the viewer's Respond row while the viewer is open (fix respond-bottom audit 5); the saved photo and the replay's card are not affected
 
 ## Deletion
 
