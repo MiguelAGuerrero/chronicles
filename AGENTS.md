@@ -9,6 +9,7 @@ Expo ships breaking changes every SDK release. Before writing any code that touc
 ```bash
 EXPO_OFFLINE=1 npx expo install <package>   # never npm/yarn add; offline resolves from the installed expo
 npm run check:affected                      # the inner loop: layers, the tests that import what changed, typecheck, lint; names the e2e scenarios
+npm run check:e2e                           # the e2e journeys to run, minus those green or comment-only (--since <sha>; E2E_FORCE=1 reruns)
 npm run typecheck                           # tsc --noEmit, incremental: ~22 s cold, ~5 s after
 npm run lint                                # expo lint, ~40 s; includes the import boundaries below
 npm test                                    # every unit test, ~13 s; npm run test:affected for those a change reaches

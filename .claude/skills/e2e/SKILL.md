@@ -7,6 +7,11 @@ argument-hint: [scenario]
 
 # e2e: $ARGUMENTS
 
+**Run less, not more.** A journey that already passed on exactly these inputs prints "already green"
+and exits (`E2E_FORCE=1` runs it anyway); `npm run check:e2e` lists what a change needs; a failure
+that may be a flake gets one `npm run e2e:baseline -- <journey>` on `main`, not reruns on the branch
+(docs/TESTING.md, "The e2e's economy").
+
 The web build is exported, served from `dist/` by the script, and driven by
 Playwright's full Chromium (`channel: 'chromium'`; the old headless shell
 denies notifications). GPS is mocked, the tile host is replaced by a fake

@@ -43,3 +43,6 @@ yarn-error.*
 # copied from node_modules on install
 /public/maplibre-gl-worker.mjs
 .claude/worktrees/
+
+# the e2e runner's record of journeys that passed (scripts/e2e/economy.js)
+/.e2e-green.json

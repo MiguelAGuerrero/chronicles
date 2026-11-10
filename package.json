@@ -69,7 +69,9 @@
     "e2e:web": "node scripts/e2e-web.js",
     "check:specs": "node scripts/check-specs.js",
     "check:docs": "node scripts/check-docs.js",
-    "check:vision": "node scripts/check-vision.js"
+    "check:vision": "node scripts/check-vision.js",
+    "e2e:baseline": "node scripts/e2e-baseline.js",
+    "check:e2e": "node scripts/affected.js e2e"
   },
   "private": true
 }
