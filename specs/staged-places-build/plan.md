@@ -35,7 +35,7 @@ For the owner to review before any code. The criteria are `spec.md` (SB1-SB10). 
 
 ### Workflows (`chronicles-data`, kept thin: they only call the scripts)
 
-- **`fetch-wikidata.yml`** (replaces `weekly-build.yml`): weekly in changes mode; by hand in sweep mode with an optional box; on the owner's safety cadence in sweep mode (open choice below); on success uploads the kept output to `sources` (SB1, SB3, SB12). The first run, with nothing kept, sweeps every cell.
+- **`fetch-wikidata.yml`** (replaces `weekly-build.yml`): weekly in changes mode; by hand in sweep mode with an optional box; plus, in the same run, a sweep of this week's thirteenth of the cells (the quarterly safety sweep); on success uploads the kept output to `sources` (SB1, SB3, SB12). The first run, with nothing kept, sweeps every cell.
 - **`assemble.yml`:** on a completed fetch (`workflow_run`), daily, and by hand (SB8). Downloads `sources` and the newest release's archive; builds; publishes a release with the archive and its changes file only when `places_sha256` differs; starts `pages.yml` (SB5, SB9). The daily run checks the app repo's `main` for a change to `archiveEdits.json` or the class lists by hashing them (open choice 1).
 - A failed step stops before any upload or release (SB9).
 
@@ -89,6 +89,4 @@ None new: SB10 is core logic used by the same shells on every platform.
 3. Wikidata is asked for changes first (SB3, SB4, SB11); a cell sweep runs only when needed (SB12).
 4. The first archive comes from the new pipeline's first run, which sweeps every cell.
 
-## Still open for the owner
-
-- **The safety sweep's cadence (SB12):** how often a full cell sweep runs to catch places with no country in Wikidata (about 2%). Recommended: every three months, one sweep spread over its weeks so no single run is long; or never, leaving it to a sweep by hand.
+5. The safety sweep runs every quarter, spread out: each weekly run also sweeps the cells whose index modulo 13 equals the ISO week modulo 13 (about 50 cells, a few minutes).
