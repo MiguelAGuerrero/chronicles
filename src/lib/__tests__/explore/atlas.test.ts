@@ -483,27 +483,31 @@ test('fix map-levels: the map draws only the selected area\'s level, never a tow
   const hoods = ['Fox Point', 'College Hill', 'Federal Hill', 'Elmhurst', 'Mount Hope'].map((n, i) => ({ area: row(n, east(300 * (i + 1))), distanceM: 300 * (i + 1), here: i === 0 }));
   const cranston = { area: row('Cranston', east(9000), { level: 'town' }), distanceM: 9000, here: false };
   const pool = [town, ...hoods, cranston];
-  const none = areaPins(pool, null, 3, false);
+  const none = areaPins(pool, null, false);
   assert.deepEqual(none.map((p) => p.id), hoods.map((h) => h.area.key), 'nothing selected: the neighborhoods only');
-  assert.deepEqual(none.filter((p) => p.name).map((p) => p.id), ['Fox Point', 'College Hill', 'Federal Hill'], 'the nearest three are named');
-  const hood = areaPins(pool, 'Mount Hope', 3, false);
+  assert.deepEqual(none.filter((p) => p.name).map((p) => p.id), [], 'nothing selected: every point is a dot');
+  const hood = areaPins(pool, 'Mount Hope', false);
   assert.equal(hood.some((p) => p.id === 'Providence' || p.id === 'Cranston'), false, 'a neighborhood selected: no towns');
-  assert.deepEqual(hood.filter((p) => p.name).map((p) => p.id), ['Fox Point', 'College Hill', 'Federal Hill', 'Mount Hope']);
-  const towns = areaPins(pool, 'Cranston', 3, false);
+  assert.deepEqual(hood.filter((p) => p.name).map((p) => p.id), ['Mount Hope'], 'only the selected area is named; the rest are dots');
+  assert.equal(hood.length, hoods.length, 'the others are still there as dots');
+  const towns = areaPins(pool, 'Cranston', false);
   assert.deepEqual(towns.map((p) => p.id), ['Providence', 'Cranston'], 'a town selected: towns only, no neighborhoods');
+  assert.deepEqual(towns.filter((p) => p.name).map((p) => p.id), ['Cranston'], 'the other town is a dot');
   assert.equal(towns.find((p) => p.id === 'Cranston')?.selected, true);
-  assert.equal(areaPins(pool, 'Gone', 3, false).length, hoods.length, 'a selection not on the list changes nothing');
+  assert.equal(areaPins(pool, 'Gone', false).length, hoods.length, 'a selection not on the list changes nothing');
 });
 
 test('fix map-levels audit 1: a town\'s own page keeps drawing its neighborhoods when the town tile is selected', () => {
   const town = { area: row('Providence', O, { level: 'town' }), distanceM: 0, here: true };
   const hoods = ['Fox Point', 'College Hill'].map((n, i) => ({ area: row(n, east(300 * (i + 1))), distanceM: 300 * (i + 1), here: false }));
-  const pins = areaPins([town, ...hoods], 'Providence', 3, true);
+  const pins = areaPins([town, ...hoods], 'Providence', true);
   assert.deepEqual(pins.map((p) => p.id), ['Fox Point', 'College Hill']);
+  assert.deepEqual(pins.filter((p) => p.name), [], 'the town is selected but not drawn, so no neighborhood is named');
+  assert.deepEqual(areaPins([town, ...hoods], 'College Hill', true).filter((p) => p.name).map((p) => p.id), ['College Hill']);
 });
 
 test('fix map-levels audit 2: a town with no listed neighborhoods still draws its own point on its page', () => {
   const town = { area: row('Providence', O, { level: 'town' }), distanceM: 0, here: true };
-  assert.deepEqual(areaPins([town], null, 3, true).map((p) => p.id), ['Providence']);
-  assert.deepEqual(areaPins([town], null, 3, false), [], 'the near page draws no town among neighborhoods');
+  assert.deepEqual(areaPins([town], null, true).map((p) => p.id), ['Providence']);
+  assert.deepEqual(areaPins([town], null, false), [], 'the near page draws no town among neighborhoods');
 });
