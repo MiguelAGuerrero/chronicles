@@ -26,6 +26,15 @@ export function nearWords(row: Listed[]): { subtitle: string; label: string } {
     : { subtitle: 'Areas around you', label: 'Areas near you' };
 }
 
+/**
+ * Where the map's layers read (ML3-ML9): around the selected area, but around you while your own town is selected, as it is on
+ * arrival near you; its label point can be kilometres off (fix explore-town-scope audit 8).
+ */
+export function layerCentre(sel: Listed | null, from: LngLat | null): LngLat | null {
+  if (sel && sel.here && sel.area.level === 'town' && from) return from;
+  return sel?.area.at ?? from;
+}
+
 /** The key to select now (EC1): the selected one while it is in the row, else the first, else null. */
 export function firstSelection(order: string[], selected: string | null): string | null {
   if (selected != null && order.includes(selected)) return selected;

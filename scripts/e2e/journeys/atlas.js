@@ -89,7 +89,9 @@ async function checks(h) {
       const ringBefore = await ring();
       const hoods = await page.locator('[data-testid=atlas-tile]:not([data-level="town"])').evaluateAll((els) => els.map((e) => e.getAttribute('data-name')));
       const pickName = hoods.find((n) => n !== 'Fox Point') ?? 'Fox Point';
+      // On a town's page its own card is selected on arrival: a first tap selects the area, a second opens it (EC11).
       await tileOf(pickName).click();
+      if (!(await page.waitForSelector('[data-testid=atlas-card]', { timeout: 3000 }).then(() => true, () => false))) await tileOf(pickName).click();
       await page.waitForSelector('[data-testid=atlas-card]');
       await page.keyboard.press('Escape');
       await page.waitForTimeout(1500);

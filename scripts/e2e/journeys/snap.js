@@ -27,9 +27,8 @@ async function run(h) {
     const selected = () => pg.evaluate(() => [...document.querySelectorAll('[data-testid=area-point][data-selected="1"]')].map((e) => e.dataset.name));
     const said = () => pg.locator('[data-testid=atlas-snap-said]').textContent().catch(() => '');
     const drag = async (dx, dy) => {
-      const b = await map.boundingBox();
-      const x = b.x + b.width / 2;
-      const y = b.y + b.height * 0.5;
+      // On bare map: a "?" or an area point under the finger takes the touch (fix explore-town-scope).
+      const { x, y } = await h.bareMapPoint(pg);
       await pg.mouse.move(x, y);
       await pg.mouse.down();
       await pg.mouse.move(x + dx, y + dy, { steps: 6 });

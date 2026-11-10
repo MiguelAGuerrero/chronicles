@@ -621,9 +621,24 @@ async function createHarness() {
     }
     return pg.locator(sel).first();
   };
+  // Where a gesture on Explore's map starts: a point over the bare canvas, never a "?" or an area point, which take the
+  // touch themselves (a tap on a "?" opens the area's card). The middle first, then around it.
+  const bareMapPoint = (pg) => pg.evaluate(() => {
+    const m = document.querySelector('.maplibregl-map').getBoundingClientRect();
+    for (const fy of [0.5, 0.4, 0.6, 0.3, 0.7]) {
+      for (const fx of [0.5, 0.35, 0.65, 0.25, 0.75]) {
+        const x = m.x + m.width * fx;
+        const y = m.y + m.height * fy;
+        // Room for the drag's own path too: its ends and middle are bare canvas.
+        const bare = [-90, 0, 90].every((d) => document.elementFromPoint(x + d, y)?.tagName === 'CANVAS');
+        if (bare) return { x, y };
+      }
+    }
+    return { x: m.x + m.width / 2, y: m.y + m.height / 2 };
+  });
   return {
     url, navUrl, exploreUrl, BASE, browser, ctx, page, errors, hosts, start, at, distanceM, dLat, dLon, features, names, overtureFeatures, OVERTURE_HOST, OVERTURE_RELEASE, overtureAsked, style, check, shot, glyph, iconOf, metricRegion, pressedScale, metaOf, drawerTo, tabTo, mapUp, shownCount, tabBarShown, tileRoute, overtureRoute, freshPage, openWalk, tiles, scriptsDir,
-    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, walkability, overpassAsked, OVERPASS_HOST, scenicWorld, routed, switchLayer, places, areaTile, hollowWorld,
+    onTab, walkMap, walkMarks, walkRoute, walkPts, nothingLeaves, noConsoleErrors, close, divisions, snapWorld, walkability, overpassAsked, OVERPASS_HOST, scenicWorld, routed, switchLayer, places, areaTile, hollowWorld, bareMapPoint,
   };
 }
 

@@ -32,3 +32,5 @@ Touches: Never "rankings of places" (the order is distance and the row says noth
   alone ..." holds it. The journeys reach a neighborhood through its town's page (`areaTile` in the harness);
   the grading journey serves a town beside Quiet Hollow (`hollowWorld`).
 - `otherTowns` is no longer used by the screen (your town is in the row, not the title).
+- The map's layers read around you while your own town is selected (`layerCentre`), since its label point can be
+  kilometres from you; any other selected area reads around its point, as before.

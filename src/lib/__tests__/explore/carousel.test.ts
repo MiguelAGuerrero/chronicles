@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ATLAS_CODE, type AtlasArea, type Listed } from '../../atlas/atlas';
-import { busyNamesNear, busyNamesOn, busyRadiusM, cardFooter, firstSelection, nearWords, offsetOf, rowOf, rowStep, settledIndex, settleStep, stepKey, townNote } from '../../atlas/carousel';
+import { busyNamesNear, busyNamesOn, busyRadiusM, cardFooter, firstSelection, layerCentre, nearWords, offsetOf, rowOf, rowStep, settledIndex, settleStep, stepKey, townNote } from '../../atlas/carousel';
 import { readFileSync } from 'node:fs';
 import type { LandingView } from '../../landing/view';
 import type { LngLat } from '../../types';
@@ -33,6 +33,16 @@ test('fix explore-town-scope audit 1: a row of neighborhoods is never titled or 
   assert.deepEqual(nearWords(rowOf({ ownTown: null, neighborhoods: hoods, towns: [], townsListed: true })), { subtitle: 'Areas around you', label: 'Areas near you' });
   assert.deepEqual(nearWords([listed('Cranston', 5000, 'town')]), { subtitle: 'Towns around you', label: 'Towns near you' });
   assert.deepEqual(nearWords([]), { subtitle: 'Areas around you', label: 'Areas near you' }, 'nothing listed claims no towns');
+});
+
+test('fix explore-town-scope audit 8: the layers read around you while your own town is selected, else around the selected area', () => {
+  const me: LngLat = east(300);
+  const home = listed('Providence', 2900, 'town', true);
+  assert.deepEqual(layerCentre(home, me), me, 'your town selected on arrival: around you, not its label point kilometres off');
+  assert.deepEqual(layerCentre(listed('Cranston', 5000, 'town'), me), east(5000), 'another town: around it, as before');
+  assert.deepEqual(layerCentre(listed('Fox Point', 100, 'neighborhood', true), me), east(100), 'a neighborhood: around it');
+  assert.deepEqual(layerCentre(home, null), home.area.at, 'no position: the town');
+  assert.equal(layerCentre(null, null), null);
 });
 
 test('EC3: on a town\'s page the row is the town\'s own card, then its neighborhoods, never other towns', () => {

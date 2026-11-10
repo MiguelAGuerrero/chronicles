@@ -28,7 +28,7 @@ import {
 } from '../../lib/atlas/atlas';
 import { mapTopInset } from '../../lib/mapTopInset';
 import { nearReads } from '../../lib/atlas/read';
-import { busyNamesNear, busyNamesOn, busyRadiusM, firstSelection, nearWords, rowOf, rowStep, stepKey, townNote } from '../../lib/atlas/carousel';
+import { busyNamesNear, busyNamesOn, busyRadiusM, firstSelection, layerCentre, nearWords, rowOf, rowStep, stepKey, townNote } from '../../lib/atlas/carousel';
 import { SNAP } from '../../lib/atlas/snap';
 import { useAtlas } from '../../lib/atlas/useAtlas';
 import { bordersFor, outlineIdHere, outlineOf, townFrame } from '../../lib/areas/borders';
@@ -262,14 +262,15 @@ export default function Explore() {
   const townBox = useMemo(() => townFrame(drawn, tintedId), [drawn, tintedId]);
   // Map layers (ML3-ML9): what is drawn over the base map, one setting for every map, around the selected area else around you.
   const layers = useLayers();
-  const layersAt = sel?.area.at ?? from ?? null;
+  const layersAt = layerCentre(sel, from);
   const wk = useWalkability(layersAt, !!layers.on.walkability);
   const busy = useBusyLayer(layersAt, !!layers.on.busy);
   // The Busy layer's lines draw at any zoom; its street names only near the selected area and zoomed in (EC7).
   // On or off by one boolean, never the zoom itself, so a camera move does not send the map a new view (audit 3); a
   // neighborhood's names reach its ring, a town's its own reach (audit 16).
   const namesOn = busyNamesOn(view?.zoom ?? 0, BUSY_NAMES_ZOOM);
-  const namesAt = sel?.area.at ?? null;
+  // Your own town's names are kept around you, where its layers read (fix explore-town-scope audit 8).
+  const namesAt = sel ? layersAt : null;
   const selLevel = sel?.area.level ?? 'neighborhood';
   const selReach = sel ? sel.area.reachM : 0;
   const namesM = busyRadiusM(selLevel, ATLAS_RULES.ringM, Math.min(selReach, ATLAS_RULES.townNeighborhoodsM));
