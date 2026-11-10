@@ -1,9 +1,10 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, BackHandler, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type ScrollViewInstance } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, BackHandler, Linking, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { AreaPointPin } from '../../components/AreaPoint';
 import { AtlasCard, type CardLayout } from '../../components/atlas/AtlasCard';
+import { AtlasCarousel } from '../../components/atlas/AtlasCarousel';
 import { AtlasTile } from '../../components/atlas/AtlasTile';
 import { LocateButton } from '../../components/LocateButton';
 import { CompassButton } from '../../components/CompassButton';
@@ -24,7 +25,8 @@ import {
 } from '../../lib/atlas/atlas';
 import { mapTopInset } from '../../lib/mapTopInset';
 import { nearReads } from '../../lib/atlas/read';
-import { nextArea, revealTo, snapScope, tapClears, type Swipe } from '../../lib/atlas/snap';
+import { busyNamesNear, firstSelection, rowOf, rowStep, stepKey } from '../../lib/atlas/carousel';
+import { SNAP } from '../../lib/atlas/snap';
 import { useAtlas } from '../../lib/atlas/useAtlas';
 import { bordersFor, outlineIdHere, outlineOf, townFrame } from '../../lib/areas/borders';
 import { BORDER_ZOOM } from '../../lib/areas/outlines';
@@ -51,63 +53,18 @@ const NEW_FAM: Familiarity = { walks: 0, last: null };
 const WORLD = { center: [-40, 30] as [number, number], zoom: 1.2 };
 /** Meta: the long press was used once, so its hint stops showing (atlas round 3). */
 const PRESS_HINT_KEY = 'atlas_press_seen';
-/** Widths where the grid takes three columns, and where the map and grid sit side by side. */
-const THREE_COLS = 700;
+/** The Busy layer's street names show on the map only from this zoom, and only near the selected area (EC7, decision 0109). */
+const BUSY_NAMES_ZOOM = 13;
+/** From this width the area's card opens as a side panel beside the map; narrower, as a full-screen drawer. */
 const TWO_PANES = 1000;
 const fmt = (m: number) => formatDistance(m);
 
-type Measured = { measureInWindow: (cb: (x: number, y: number, w: number, h: number) => void) => void };
-
 /**
- * The grid's rows by the areas in them, and its scroll, made once per screen: a swipe brings the
- * selected tile into view only when it is out of it (DN6). The row and the grid are measured when it
- * is asked, never from a remembered layout: on web a row moved by a banner above it never reports
- * again (discrete-navigation audit 4).
- */
-function createGridRows() {
-  const rows = new Map<string, Measured>();
-  const refs = new Map<string, (v: Measured | null) => void>();
-  let scrollY = 0;
-  return {
-    /** One stable ref per row, holding it under each of its areas. */
-    rowRef: (keys: string[]) => {
-      const id = keys.join('|');
-      let ref = refs.get(id);
-      if (!ref) {
-        let mine: Measured | null = null;
-        ref = (v) => {
-          for (const k of keys) {
-            if (v) rows.set(k, v);
-            else if (rows.get(k) === mine) rows.delete(k);
-          }
-          mine = v;
-        };
-        refs.set(id, ref);
-      }
-      return ref;
-    },
-    scrolled: (y: number) => {
-      scrollY = y;
-    },
-    /** `insetBottom`: what covers the grid's bottom, a town's back pill (discrete-navigation audit 8). */
-    reveal: (key: string, scroller: ScrollViewInstance | null, animated: boolean, insetBottom: number) => {
-      const row = rows.get(key);
-      if (!row || !scroller) return;
-      scroller.measureInWindow((_gx, gy, _gw, gh) => {
-        row.measureInWindow((_x, y, _w, h) => {
-          const to = revealTo({ top: y - gy, h, viewH: gh, scrollY, insetBottom });
-          if (to != null) scroller.scrollTo({ y: to, animated });
-        });
-      });
-    },
-  };
-}
-
-/**
- * Explore as an atlas (AT1-AT16, round 3): the map with the page's title over
- * it; below (or beside, on a wide screen), the neighborhoods near you, then
- * the other towns. The title opens your own town; a town's tile opens its page.
- * A neighborhood opens its card, a sheet that keeps the map in sight. Rings are
+ * Explore as an atlas (AT1-AT16, EC1-EC20, decision 0109): the map fills the screen with the page's
+ * title over it, and the areas are one row of cards at the bottom: the neighborhoods near you, then
+ * the other towns. One is always selected, highlighted on the map and the only one named there. The
+ * title opens your own town; the selected town's card opens its page, the selected neighborhood's
+ * its card, a sheet that keeps the map in sight. Rings are
  * read by themselves while the tab is open. A long press on the map offers
  * What's good here and Walk here, over the map. It never tracks you: it reads
  * one fix as the app opens (it is the first tab, NV2), then moves with your last
@@ -135,12 +92,11 @@ export default function Explore() {
   }, [from]);
   const [fit, setFit] = useState<{ bounds: Bounds | null; key: number }>({ bounds: null, key: 0 });
   const { focused, savedCamera, onCameraChange, onFitSettled } = useTabMap({ key: fit.key, refit: () => setFit((f) => ({ ...f, key: f.key + 1 })) });
-  const [selected, setSelected] = useState<string | null>(null);
+  // What the reader chose; the selected area is this while it is in the row, else the row's first (EC1).
+  const [picked, setSelected] = useState<string | null>(null);
   // What a swipe landed on, for the screen reader (DN12): web's live region, since react-native-web's announce does nothing.
   // A count beside it, so the same name twice in a row still changes the region and is said again (audit 7).
   const [said, setSaid] = useState({ text: '', n: 0 });
-  const [gridRows] = useState(createGridRows);
-  const gridRef = useRef<ScrollViewInstance>(null);
   const [open, setOpen] = useState<string | null>(null);
   // The town whose page is open (AT2); null is the page of the areas near you.
   const [townSeen, setTownSeen] = useState<AtlasArea | null>(null);
@@ -151,15 +107,6 @@ export default function Explore() {
   // Your own town is the title, never listed again (atlas round 3).
   const towns = useMemo(() => otherTowns(allTowns), [allTowns]);
   const home = stale ? null : fresh.home;
-  // Town borders (TB1, TB2): whole, from the z10 tile around you (or the open town); yours tinted, the rest lined.
-  const drawn = useOutlineSet([from, town?.at], BORDER_ZOOM, focused);
-  const tintedId = useMemo(
-    () => (town ? outlineOf({ name: town.name, at: town.at }, drawn)?.id : home && from ? outlineIdHere(from, home.area.name, fresh.outlines) : null) ?? null,
-    [drawn, town, home, from, fresh.outlines],
-  );
-  const borders = useMemo(() => bordersFor(drawn, { tinted: tintedId ? [tintedId] : [], near: town?.at ?? from }), [drawn, tintedId, town, from]);
-  // TB11: the whole of the tinted town (yours, or a page's) once its border is known; the page frames it below.
-  const townBox = useMemo(() => townFrame(drawn, tintedId), [drawn, tintedId]);
   // What this visit to the page has framed; opening a page or going back starts a new visit.
   const framed = useRef<PageFramed | null>(null);
   const [spot, setSpot] = useState<{ at: LngLat; zoom: number } | null>(null);
@@ -240,7 +187,9 @@ export default function Explore() {
     if (!town) return null;
     return allTowns.find((x) => x.area.key === town.key) ?? { area: town, distanceM: 0, here: false };
   }, [town, allTowns]);
-  const shown = useMemo(() => [...(ownTown ? [ownTown] : []), ...neighborhoods, ...(town ? [] : towns)], [ownTown, neighborhoods, towns, town]);
+  const shown = useMemo(() => rowOf({ ownTown, neighborhoods, towns }), [ownTown, neighborhoods, towns]);
+  const order = useMemo(() => shown.map((l) => l.area.key), [shown]);
+  const selected = useMemo(() => firstSelection(order, picked), [order, picked]);
   const famOf = useMemo(() => {
     const m = new Map<string, Familiarity>();
     for (const l of shown) m.set(l.area.key, familiarity(l.area, fresh.areas, fresh.walkAreas));
@@ -264,14 +213,26 @@ export default function Explore() {
   const points = useMemo(() => pointsOf.map((l) => l.area.at), [pointsOf]);
   // Only the selected area's level is drawn, so a town's name and its neighborhoods' never overlay (fix map-levels).
   const areaPoints = useMemo<AreaPointPin[]>(() => areaPins(shown, selected, !!town), [shown, selected, town]);
-  // A tap protects only the points drawn (fix map-levels audit 3).
-  const pinAts = useMemo(() => areaPoints.map((p) => p.at), [areaPoints]);
   const sel = shown.find((l) => l.area.key === selected) ?? null;
+  // Town borders (TB1, TB2): whole, from the z10 tile around you (or the open or selected town); yours tinted, the rest lined.
+  // A town selected in the row is the one tinted (EC5).
+  const lit = town ?? (sel?.area.level === 'town' ? sel.area : null);
+  // Town borders (TB1, TB2): whole, from the z10 tile around you (or the open town); yours tinted, the rest lined.
+  const drawn = useOutlineSet([from, lit?.at], BORDER_ZOOM, focused);
+  const tintedId = useMemo(
+    () => (lit ? outlineOf({ name: lit.name, at: lit.at }, drawn)?.id : home && from ? outlineIdHere(from, home.area.name, fresh.outlines) : null) ?? null,
+    [drawn, lit, home, from, fresh.outlines],
+  );
+  const borders = useMemo(() => bordersFor(drawn, { tinted: tintedId ? [tintedId] : [], near: town?.at ?? from }), [drawn, tintedId, town, from]);
+  // TB11: the whole of the tinted town (yours, or a page's) once its border is known; the page frames it below.
+  const townBox = useMemo(() => townFrame(drawn, tintedId), [drawn, tintedId]);
   // Map layers (ML3-ML9): what is drawn over the base map, one setting for every map, around the selected area else around you.
   const layers = useLayers();
   const layersAt = sel?.area.at ?? from ?? null;
   const wk = useWalkability(layersAt, !!layers.on.walkability);
   const busy = useBusyLayer(layersAt, !!layers.on.busy);
+  // The Busy layer's lines draw at any zoom; its street names only near the selected area and zoomed in (EC7).
+  const busyView = useMemo(() => busyNamesNear(busy.view, sel?.area.at ?? null, view?.zoom ?? 0, ATLAS_RULES.ringM, BUSY_NAMES_ZOOM), [busy.view, sel, view]);
   // A card is only ever one of the areas shown, with its real distance (explore-atlas audit 7).
   const card = focused ? shown.find((l) => l.area.key === open) ?? null : null;
   const shownRef = useRef(shown);
@@ -294,10 +255,6 @@ export default function Explore() {
     setSelected(null);
     frame([area.at], townReachM(area) * 0.6);
   }, [frame]);
-  const enter = useCallback((key: string) => {
-    const l = shownRef.current.find((x) => x.area.key === key);
-    if (l) enterArea(l.area);
-  }, [enterArea]);
   const leave = useCallback(() => {
     setSpot(null);
     framed.current = null;
@@ -352,48 +309,49 @@ export default function Explore() {
   };
 
   const topInset = mapTopInset(insets.top, Platform.OS === 'web');
-  // The fit's padding, so a swipe centres an area where a tap's frame would (DN2).
+  // The fit's padding, so selecting an area centres it where a tap's frame would (EC5).
   const mapPad = useMemo(() => ({ top: topInset + 84, right: 24, bottom: spot ? 80 : 24, left: 24 }), [topInset, spot]);
   const reduced = useReducedMotion();
-  // Discrete navigation (DN2-DN8, DN12): a swipe lands where it would have panned the map and selects the
-  // area nearest there, on that side (the owner, Nov 4), never opening its card; on a town's page with none of
-  // its neighborhoods selected, it opens that town's page.
-  const onSwipe = useCallback(({ center, mpp, ...swipe }: Swipe & { center: LngLat; mpp: number }) => {
-    const say = (name: string) => {
-      setSaid((s) => ({ text: name, n: s.n + 1 }));
-      AccessibilityInfo.announceForAccessibility(name);
-    };
-    if (town && snapScope({ townPage: town.key, selected }) === 'towns') {
-      // From where you are looking: the town's page frames the whole town.
-      const next = nextArea(center, town.key, allTowns.map((l) => ({ key: l.area.key, at: l.area.at })), swipe, bearing, mpp);
-      const to = next ? allTowns.find((l) => l.area.key === next.key) : null;
-      if (!to) return;
-      // A swipe only selects: a card left open (a side panel on a wide screen) never outlives it (audit 1).
-      setOpen(null);
-      enterArea(to.area);
-      say(to.area.name);
-      return;
-    }
-    const next = nextArea(sel?.area.at ?? center, sel?.area.key ?? null, neighborhoods.map((l) => ({ key: l.area.key, at: l.area.at })), swipe, bearing, mpp);
-    const to = next ? neighborhoods.find((l) => l.area.key === next.key) : null;
-    if (!to) return;
+  const say = useCallback((name: string) => {
+    setSaid((s) => ({ text: name, n: s.n + 1 }));
+    AccessibilityInfo.announceForAccessibility(name);
+  }, []);
+  // Selecting an area, by the row, a swipe, a key or a tap on its card (EC5, EC13): the map eases to it keeping its zoom
+  // (a town is framed whole), a card or the long press's choices never outlive it, a screen reader hears its name.
+  const selectKey = useCallback((key: string) => {
+    const l = shownRef.current.find((x) => x.area.key === key);
+    if (!l) return;
     setSpot(null);
     setOpen(null);
-    setSelected(to.area.key);
-    mapRef.current?.showPoint(to.area.at, mapPad);
-    // On a town's page the back pill (44 pt, 12 from the bottom) covers the grid's bottom (audit 8).
-    gridRows.reveal(to.area.key, gridRef.current, !reduced, town ? 44 + 12 + 8 : 0);
-    say(to.area.name);
-  }, [bearing, town, selected, sel, allTowns, neighborhoods, enterArea, mapPad, gridRows, reduced]);
+    setSelected(key);
+    if (l.area.level === 'town') frame([l.area.at], townReachM(l.area) * 0.6);
+    else mapRef.current?.showPoint(l.area.at, mapPad);
+    say(l.area.name);
+  }, [frame, mapPad, say]);
+  // A swipe on the map steps the row, by what is on screen (EC8, EC9, EC10): left is the next card, right the previous.
+  const onSwipe = useCallback(({ dx, dy }: { dx: number; dy: number }) => {
+    const key = stepKey(order, selected, rowStep(dx, dy, SNAP.minSwipePx));
+    if (key) selectKey(key);
+  }, [order, selected, selectKey]);
+  // A tap on a card (EC11): the selected one opens (a town's its page, an area's its card), another only selects.
+  const onCard = useCallback((key: string) => {
+    const l = shownRef.current.find((x) => x.area.key === key);
+    if (!l) return;
+    if (key !== selected) {
+      selectKey(key);
+      return;
+    }
+    if (!town && l.area.level === 'town') {
+      setOpen(null);
+      enterArea(l.area);
+      return;
+    }
+    setSpot(null);
+    setOpen(key);
+    frame([l.area.at], ATLAS_RULES.ringM);
+  }, [selected, town, selectKey, enterArea, frame]);
 
   const wide = screen.w >= TWO_PANES;
-  const cols = screen.w >= THREE_COLS ? 3 : 2;
-  const gridMax = wide ? 960 : cols === 3 ? 960 : 640;
-  // The map runs under the status bar to the top of the screen, so no band of it is left empty.
-  const mapH = wide ? screen.h : topInset + Math.round(Math.min(260, Math.max(170, screen.h * 0.26)));
-  const mapW = wide ? Math.round(screen.w * 0.4) : screen.w;
-  // The title lines up with the grid's column on a wide single pane (round 3).
-  const titleLeft = wide ? 12 : Math.max(12, (screen.w - gridMax) / 2 + 12);
   const error = walkStart.error ?? locError;
   const title = town?.name ?? home?.area.name ?? 'Near you';
   const subtitle = town
@@ -404,35 +362,52 @@ export default function Explore() {
     ? { kind: 'side', width: 400, height: screen.h }
     : { kind: 'sheet', screenH: screen.h };
 
-  const grid = (list: Listed[], drill: boolean) => {
-    const rows: Listed[][] = [];
-    for (let i = 0; i < list.length; i += cols) rows.push(list.slice(i, i + cols));
-    return rows.map((row) => (
-      <View key={row[0].area.key} style={styles.row} ref={gridRows.rowRef(row.map((l) => l.area.key))}>
-        {row.map((l) => {
-          const r = ringOf.get(l.area.key);
-          return (
-            <AtlasTile
-              key={l.area.key}
-              listed={l}
-              fam={famOf.get(l.area.key) ?? NEW_FAM}
-              walked={fresh.walked}
-              waiting={r?.waiting ?? NONE}
-              finds={r?.finds ?? NONE}
-              here={from}
-              selected={selected === l.area.key}
-              drill={drill}
-              onPress={drill ? enter : pick}
-            />
-          );
-        })}
-        {Array.from({ length: cols - row.length }, (_, i) => <View key={`gap${i}`} style={styles.spacer} />)}
-      </View>
-    ));
-  };
+  const townNote = town && ownTown && !neighborhoods.length
+    ? (listing ? `Reading ${town.name}…` : `No neighborhoods are named on the map in ${town.name}. It is one area.`)
+    : null;
+  const overlay = error ? (
+    <Banner
+      tone="error"
+      onDismiss={() => {
+        walkStart.setError(null);
+        setLocError(null);
+      }}
+      action={error.openSettings ? { label: 'Open Settings', onPress: () => Linking.openSettings() } : undefined}
+    >
+      {error.message}
+    </Banner>
+  ) : notice ? (
+    <Banner tone={notice.tone} onDismiss={() => setNotice(null)}>
+      {notice.message}
+    </Banner>
+  ) : looking ? (
+    <View style={styles.scanning} accessibilityLiveRegion="polite">
+      <ActivityIndicator color={theme.ink} />
+      <Text style={styles.scanningText}>Looking around…</Text>
+      <Pressable
+        testID="look-cancel"
+        accessibilityRole="button"
+        accessibilityLabel="Stop looking around"
+        onPress={() => {
+          cancelled.current = true;
+          setLooking(false);
+        }}
+        style={styles.scanCancel}
+      >
+        <Text style={styles.scanCancelText}>Cancel</Text>
+      </Pressable>
+    </View>
+  ) : townNote ? (
+    <View style={styles.note} testID="atlas-town-note" accessibilityLiveRegion="polite">
+      {listing ? <ActivityIndicator color={theme.muted} /> : null}
+      <Text style={styles.noteText}>{townNote}</Text>
+    </View>
+  ) : !pressSeen && !spot && from ? (
+    <Text style={styles.hint} testID="atlas-press-hint">Press and hold the map to look anywhere.</Text>
+  ) : null;
 
   const mapPane = (
-    <View style={[styles.map, { height: mapH, width: mapW }, wide && styles.mapWide]}>
+    <View style={styles.map}>
       {/* Only while Explore is in front (NV4): one map is live at a time. */}
       {focused && !plan && (
         <WalkMap
@@ -445,11 +420,12 @@ export default function Explore() {
           walker={from}
           marks={spot ? [spot.at] : NONE}
           areaPoints={areaPoints}
-          ring={sel ? { center: sel.area.at, radiusM: ATLAS_RULES.ringM } : null}
+          // A neighborhood by its ring; a town by its tinted border (EC5).
+          ring={sel?.area.level === 'neighborhood' ? { center: sel.area.at, radiusM: ATLAS_RULES.ringM } : null}
           // Town borders are a layer (ML12); a town's own page keeps the border it frames (TB2).
           borders={layers.on.borders || town ? borders : null}
           walkability={wk.draw}
-          landing={busy.view}
+          landing={busyView}
           onLongPress={(at) => {
             if (looking) return;
             if ((view?.zoom ?? 0) < 10) {
@@ -462,14 +438,10 @@ export default function Explore() {
               db.setMeta(PRESS_HINT_KEY, '1').catch(() => {});
             }
           }}
-          onPress={(at, radiusM) => {
+          onPress={() => {
             layers.closePanel();
-            // A tap closes the long press's choices; with none open, it clears the selection (DN9),
-            // only away from every area's point: a tap on the selected dot keeps it (audit 6).
+            // A tap closes the long press's choices; the selection stays: something is always selected (EC1).
             if (spot) setSpot(null);
-            else if (tapClears(at, radiusM, pinAts)) {
-              setSelected(null);
-            }
           }}
           onSwipe={onSwipe}
           onViewChange={setView}
@@ -485,7 +457,7 @@ export default function Explore() {
       )}
       {/* The page's title floats over the map, lifted by a shadow; near you, it is the way into your own town.
           On a town's page it has no back arrow: the pill low on the screen is the one way back (decision 0077). */}
-      <View style={[styles.titleWrap, { top: topInset + 8, left: titleLeft }]} pointerEvents="box-none">
+      <View style={[styles.titleWrap, { top: topInset + 8, left: 12 }]} pointerEvents="box-none">
         <View style={styles.titleCard}>
           <Pressable
             disabled={!!town || !home}
@@ -541,123 +513,64 @@ export default function Explore() {
         <LocateButton busy={locating} onPress={locate} bottom={8} />
       )}
       {/* The compass (CP2): above Locate, only while the map is turned and on screen. */}
-      {focused && !spot && <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed })} top={insets.top + 8} right={12} paneWidth={mapW} clearBottom={insets.bottom + 100} />}
+      {focused && !spot && <LayersControl layers={layers} notes={layerNotes({ walkability: wk.status, busyReading: busy.reading, busyFailed: busy.failed })} top={insets.top + 8} right={12} paneWidth={screen.w} clearBottom={insets.bottom + 100} />}
       {focused && !spot && <CompassButton bearing={bearing} onPress={() => mapRef.current?.resetNorth()} bottom={8 + 44 + 12} />}
       {toast ? <View style={styles.toast} accessibilityLiveRegion="polite"><Text style={styles.toastText}>{toast}</Text></View> : null}
       {/* DN12 on web: react-native-web's announceForAccessibility does nothing, so a hidden live region says it.
           Phones announce through the call alone (a live region too would say it twice on Android). */}
       {Platform.OS === 'web' ? <Text testID="atlas-snap-said" accessibilityLiveRegion="polite" style={styles.said}>{said.n % 2 ? `${said.text}\u200B` : said.text}</Text> : null}
+      {/* One of an error, a notice, "Looking around…", a town's note or the hint at a time, over the map above the row, clear of
+          the back pill and the map's buttons (EC12, EC14). */}
+      {overlay ? <View style={[styles.overlay, { bottom: town ? 12 + 44 + 8 : 12 }]} pointerEvents="box-none">{overlay}</View> : null}
+      {/* On a town's page, the way back also sits low, where a thumb reaches (round 3), over the map above the row. */}
+      {town && !spot ? (
+        <Pressable testID="atlas-back-pill" accessibilityRole="button" accessibilityLabel={`Back to ${home?.area.name ?? 'near you'}`} onPress={leave} style={styles.backPill}>
+          <Icon name="chevron-back" size={18} color={theme.ink} />
+          <Text style={styles.backPillText} numberOfLines={1}>{home?.area.name ?? 'Near you'}</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 
   return (
-    <View style={[styles.screen, wide && styles.screenWide]} onLayout={(e) => setScreen({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
+    <View style={styles.screen} onLayout={(e) => setScreen({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
       {mapPane}
-      <View style={styles.listPane}>
-        <ScrollView
-          ref={gridRef}
-          style={styles.grid}
-          contentContainerStyle={[styles.gridContent, { maxWidth: gridMax }, town && styles.gridWithBack]}
-          testID="atlas-grid"
-          scrollEventThrottle={64}
-          onScroll={(e) => gridRows.scrolled(e.nativeEvent.contentOffset.y)}
-        >
-          {!pressSeen && !spot && from ? (
-            <Text style={styles.hint} testID="atlas-press-hint">Press and hold the map to look anywhere.</Text>
-          ) : null}
-          {error && (
-            <Banner
-              tone="error"
-              onDismiss={() => {
-                walkStart.setError(null);
-                setLocError(null);
-              }}
-              action={error.openSettings ? { label: 'Open Settings', onPress: () => Linking.openSettings() } : undefined}
-            >
-              {error.message}
-            </Banner>
-          )}
-          {looking && (
-            <View style={styles.scanning} accessibilityLiveRegion="polite">
-              <ActivityIndicator color={theme.ink} />
-              <Text style={styles.scanningText}>Looking around…</Text>
-              <Pressable
-                testID="look-cancel"
-                accessibilityRole="button"
-                accessibilityLabel="Stop looking around"
-                onPress={() => {
-                  cancelled.current = true;
-                  setLooking(false);
-                }}
-                style={styles.scanCancel}
-              >
-                <Text style={styles.scanCancelText}>Cancel</Text>
-              </Pressable>
-            </View>
-          )}
-          {notice && (
-            <Banner tone={notice.tone} onDismiss={() => setNotice(null)}>
-              {notice.message}
-            </Banner>
-          )}
-
-          {!from ? (
-            <View style={styles.empty} testID="atlas-empty">
-              <Icon name="locate-outline" size={22} color={theme.muted} />
-              <Text style={styles.emptyText}>Find where you are to see the areas around you.</Text>
-              <Button testID="atlas-locate" label="Find me" variant="secondary" onPress={locate} busy={locating} busyLabel="Finding you…" />
-            </View>
-          ) : town && ownTown ? (
-            <>
-              {/* AT2: a town's own page: its picture and marks around its centre, then its own neighborhoods. */}
+      {/* The row of areas under the map (EC2, EC3): one card at a time is selected; with no area to show, one status card. */}
+      <View style={styles.rowPane} testID="atlas-row">
+        {shown.length ? (
+          <AtlasCarousel
+            items={shown}
+            selected={selected}
+            width={screen.w}
+            reduced={reduced}
+            onSettle={selectKey}
+            renderCard={(l, isSel) => (
               <AtlasTile
-                listed={ownTown}
-                fam={famOf.get(ownTown.area.key) ?? NEW_FAM}
-                walked={fresh.walked}
-                waiting={ringOf.get(ownTown.area.key)?.waiting ?? NONE}
-                finds={ringOf.get(ownTown.area.key)?.finds ?? NONE}
-                here={from}
-                selected={selected === ownTown.area.key}
-                wide
-                onPress={pick}
+                listed={l}
+                fam={famOf.get(l.area.key) ?? NEW_FAM}
+                selected={isSel}
+                drill={!town && l.area.level === 'town'}
+                wide={!!town && l.area.key === town.key}
+                onPress={onCard}
               />
-              <Text style={styles.section} accessibilityRole="header" testID="atlas-town-section">Neighborhoods of {town.name}</Text>
-              {neighborhoods.length ? grid(neighborhoods, false) : (
-                <View style={styles.empty} testID="atlas-empty">
-                  {listing ? <ActivityIndicator color={theme.muted} /> : null}
-                  <Text style={styles.emptyText}>{listing ? `Reading ${town.name}…` : `No neighborhoods are named on the map in ${town.name}. It is one area.`}</Text>
-                </View>
-              )}
-            </>
-          ) : (
-            <>
-              <Text style={styles.section} accessibilityRole="header">Neighborhoods near you</Text>
-              {neighborhoods.length ? grid(neighborhoods, false) : (
-                <View style={styles.empty} testID="atlas-empty">
-                  {listing ? <ActivityIndicator color={theme.muted} /> : null}
-                  <Text style={styles.emptyText}>
-                    {listing ? 'Reading the map around you…'
-                      : fresh.status === 'offline' ? 'Couldn’t read the map. It will try again in a moment.'
-                        : 'No neighborhoods are named on the map here.'}
-                  </Text>
-                </View>
-              )}
-              {towns.length > 0 && (
-                <>
-                  <Text style={styles.section} accessibilityRole="header">Other towns</Text>
-                  {grid(towns, true)}
-                </>
-              )}
-            </>
-          )}
-        </ScrollView>
-        {/* On a town's page, the way back also sits low, where a thumb reaches (round 3). */}
-        {town ? (
-          <Pressable testID="atlas-back-pill" accessibilityRole="button" accessibilityLabel={`Back to ${home?.area.name ?? 'near you'}`} onPress={leave} style={styles.backPill}>
-            <Icon name="chevron-back" size={18} color={theme.ink} />
-            <Text style={styles.backPillText} numberOfLines={1}>{home?.area.name ?? 'Near you'}</Text>
-          </Pressable>
-        ) : null}
+            )}
+          />
+        ) : !from ? (
+          <View style={styles.empty} testID="atlas-empty">
+            <Icon name="locate-outline" size={22} color={theme.muted} />
+            <Text style={styles.emptyText}>Find where you are to see the areas around you.</Text>
+            <Button testID="atlas-locate" label="Find me" variant="secondary" onPress={locate} busy={locating} busyLabel="Finding you…" />
+          </View>
+        ) : (
+          <View style={styles.empty} testID="atlas-empty">
+            {listing ? <ActivityIndicator color={theme.muted} /> : null}
+            <Text style={styles.emptyText}>
+              {listing ? 'Reading the map around you…'
+                : fresh.status === 'offline' ? 'Couldn’t read the map. It will try again in a moment.'
+                  : 'No neighborhoods are named on the map here.'}
+            </Text>
+          </View>
+        )}
       </View>
 
       {card && (
@@ -714,11 +627,13 @@ export default function Explore() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
   said: { position: 'absolute', width: 1, height: 1, overflow: 'hidden', opacity: 0 },
-  screenWide: { flexDirection: 'row' },
-  // Overflow visible, above the grid: the Layers panel opens over the cards below the short map like a popover (ML4).
-  map: { borderBottomWidth: 1, borderColor: theme.line, overflow: 'visible', zIndex: 5 },
-  mapWide: { borderBottomWidth: 0, borderRightWidth: 1 },
-  listPane: { flex: 1, minWidth: 0 },
+  // The map takes what the row leaves. Overflow visible, above the row: the Layers panel opens over the cards like a popover (ML4).
+  map: { flex: 1, minHeight: 0, borderBottomWidth: 1, borderColor: theme.line, overflow: 'visible', zIndex: 5 },
+  // The row under the map sizes to its cards: never `flex: 1` (react-native-web would stretch it).
+  rowPane: { flexGrow: 0, flexShrink: 0, paddingBottom: 8, paddingTop: 4 },
+  overlay: { position: 'absolute', left: 12, right: 64, alignItems: 'flex-start', gap: 8 },
+  note: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.surface, borderRadius: 14, paddingVertical: 8, paddingHorizontal: 12 },
+  noteText: { fontSize: 14, color: theme.muted, flexShrink: 1 },
   titleWrap: { position: 'absolute', right: 12, alignItems: 'flex-start' },
   titleCard: {
     flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: theme.surface, borderRadius: 14, paddingVertical: 8, paddingLeft: 14, paddingRight: 14,
@@ -728,14 +643,8 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   title: { fontSize: 22, fontWeight: '800', color: theme.ink, flexShrink: 1 },
   subtitle: { fontSize: 13, color: theme.muted, marginTop: 1 },
-  grid: { flex: 1 },
-  gridContent: { padding: 12, gap: 10, paddingBottom: 24, width: '100%', alignSelf: 'center' },
-  gridWithBack: { paddingBottom: 80 },
-  hint: { fontSize: 13, color: theme.muted, paddingHorizontal: 4 },
-  section: { fontSize: 12, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', color: theme.muted, paddingHorizontal: 4, paddingTop: 6 },
-  row: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
-  spacer: { flex: 1 },
-  empty: { backgroundColor: theme.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.line, padding: 16, gap: 10, alignItems: 'center' },
+  hint: { fontSize: 13, color: theme.muted, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: theme.surface, borderRadius: 14, overflow: 'hidden' },
+  empty: { marginHorizontal: 12, backgroundColor: theme.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.line, padding: 16, gap: 10, alignItems: 'center' },
   emptyText: { fontSize: 15, color: theme.muted, textAlign: 'center' },
   spot: {
     position: 'absolute', left: 12, right: 12, bottom: 10, maxWidth: 420, alignSelf: 'center', flexDirection: 'row', alignItems: 'center',

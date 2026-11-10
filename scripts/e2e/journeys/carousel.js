@@ -33,20 +33,20 @@ async function run(h) {
 
     // EC1: something is always selected; a tap on the map away from an area keeps it.
     const first = await selected();
-    check.todo(first.length === 1, `EC1: on arrival one area is selected (${JSON.stringify(first)})`);
+    check(first.length === 1, `EC1: on arrival one area is selected (${JSON.stringify(first)})`);
     if (mapBox) await pg.mouse.click(mapBox.x + mapBox.width * 0.9, mapBox.y + mapBox.height * 0.2);
     await pg.waitForTimeout(500);
-    check.todo((await selected()).length === 1, 'EC1: a tap on the map away from an area keeps the selection');
+    check((await selected()).length === 1, 'EC1: a tap on the map away from an area keeps the selection');
 
     // EC2: the map is most of the screen, the row under it, no grid and no section headings.
-    check.todo(mapBox && row && mapBox.height > vh * 0.55 && row.y >= mapBox.y + mapBox.height - 2, `EC2: the map is over 55% of the screen and the row sits below it (${mapBox?.height}/${vh})`);
-    check.todo((await pg.locator('[data-testid=atlas-grid]').count()) === 0, 'EC2: there is no grid');
+    check(mapBox && row && mapBox.height > vh * 0.55 && row.y >= mapBox.y + mapBox.height - 2, `EC2: the map is over 55% of the screen and the row sits below it (${mapBox?.height}/${vh})`);
+    check((await pg.locator('[data-testid=atlas-grid]').count()) === 0, 'EC2: there is no grid');
     const text = await pg.evaluate(() => document.body.innerText);
-    check.todo(!/Neighborhoods near you|Other towns/.test(text), 'EC2: no section headings');
+    check(!/Neighborhoods near you|Other towns/.test(text), 'EC2: no section headings');
 
     // EC3: neighborhoods nearest first, then the towns, in one row.
     const order = await names();
-    check.todo(order.length >= 6 && order.indexOf('Cranston') > order.indexOf('Ship Street'), `EC3: the row holds the neighborhoods, then the towns (${order.join(', ')})`);
+    check(order.length >= 6 && order.indexOf('Cranston') > order.indexOf('Ship Street'), `EC3: the row holds the neighborhoods, then the towns (${order.join(', ')})`);
 
     // EC4, EC8: a drag left on the map steps to the next card, and the row settles on it.
     const before = (await selected())[0];
@@ -59,16 +59,16 @@ async function run(h) {
       const b = t.getBoundingClientRect();
       return Math.abs(b.x + b.width / 2 - (r.x + r.width / 2)) < 40;
     }), false);
-    check.todo(before && after && after !== before && (await names()).indexOf(after) === (await names()).indexOf(before) + 1, `EC8: a drag left on the map selects the next card (${before} → ${after})`);
-    check.todo(centred, 'EC4: the row settles with the selected card centred');
+    check(before && after && after !== before && (await names()).indexOf(after) === (await names()).indexOf(before) + 1, `EC8: a drag left on the map selects the next card (${before} → ${after})`);
+    check(centred, 'EC4: the row settles with the selected card centred');
     await drag(0, -90);
-    check.todo((await selected())[0] === after, 'EC8: a vertical drag on the map does nothing');
+    check((await selected())[0] === after, 'EC8: a vertical drag on the map does nothing');
     await drag(80, 0);
-    check.todo((await selected())[0] === before, 'EC8: a drag right goes back to the previous card');
+    check((await selected())[0] === before, 'EC8: a drag right goes back to the previous card');
 
     // EC5, EC6: the selected area has its ring and the one name; the other points are unnamed dots.
     const named = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=area-point]')].filter((e) => e.dataset.name).map((e) => e.dataset.name));
-    check.todo(named.length === 1 && named[0] === (await selected())[0], `EC6: the map names only the selected area (${JSON.stringify(named)})`);
+    check(named.length === 1 && named[0] === (await selected())[0], `EC6: the map names only the selected area (${JSON.stringify(named)})`);
 
     // EC9: the arrow keys on the focused map.
     await map.focus().catch(() => {});
@@ -76,62 +76,72 @@ async function run(h) {
     await pg.keyboard.press('ArrowRight');
     await pg.waitForTimeout(1200);
     const k1 = (await selected())[0];
-    check.todo(k0 && k1 && k1 !== k0, `EC9: ArrowRight steps to the next card (${k0} → ${k1})`);
+    check(k0 && k1 && k1 !== k0, `EC9: ArrowRight steps to the next card (${k0} → ${k1})`);
     await pg.keyboard.press('ArrowUp');
     await pg.waitForTimeout(800);
-    check.todo((await selected())[0] === k1, 'EC9: ArrowUp does nothing');
+    check((await selected())[0] === k1, 'EC9: ArrowUp does nothing');
     await pg.keyboard.press('ArrowLeft');
     await pg.waitForTimeout(1200);
-    check.todo((await selected())[0] === k0, 'EC9: ArrowLeft steps back');
+    check((await selected())[0] === k0, 'EC9: ArrowLeft steps back');
 
     // EC10: one finger never pans; the wheel zooms.
     const c0 = await map.getAttribute('data-center');
     await drag(0, 24 + 5);
-    check.todo(await safe(async () => (await map.getAttribute('data-center')) === c0, false), 'EC10: a drag never pans the map');
+    check(await safe(async () => (await map.getAttribute('data-center')) === c0, false), 'EC10: a drag never pans the map');
 
     // EC11: a tap on the selected card opens its card; a tap on another selects and opens nothing.
     const other = pg.locator('[data-testid=atlas-tile]:not([data-selected="1"]):not([data-selected="true"])').first();
     const otherName = await safe(() => other.getAttribute('data-name'));
     await safe(() => other.click());
     await pg.waitForTimeout(1200);
-    check.todo(otherName && (await selected())[0] === otherName && (await pg.locator('[data-testid=atlas-card-close]').count()) === 0, `EC11: a tap on another card selects it and opens nothing (${otherName})`);
+    check(otherName && (await selected())[0] === otherName && (await pg.locator('[data-testid=atlas-card-close]').count()) === 0, `EC11: a tap on another card selects it and opens nothing (${otherName})`);
     await safe(() => pg.locator('[data-testid=atlas-tile][data-selected="1"], [data-testid=atlas-tile][data-selected="true"]').first().click());
     await pg.waitForTimeout(1200);
-    check.todo((await pg.locator('[data-testid=atlas-card-close]').count()) === 1, 'EC11: a tap on the selected card opens its card');
+    check((await pg.locator('[data-testid=atlas-card-close]').count()) === 1, 'EC11: a tap on the selected card opens its card');
     await safe(() => pg.click('[data-testid=atlas-card-close]'));
 
     // EC13: a step is announced; a card is one labelled control.
-    check.todo(!!(await said()), 'EC13: a step is announced');
+    check(!!(await said()), 'EC13: a step is announced');
     const label = await safe(() => pg.locator('[data-testid=atlas-tile][data-selected="1"], [data-testid=atlas-tile][data-selected="true"]').first().getAttribute('aria-label'), '');
-    check.todo(/Opens its (card|page)$/.test(label ?? ''), `EC13: the selected card's label ends "Opens its card" (${label})`);
+    check(/Opens its (card|page)$/.test(label ?? ''), `EC13: the selected card's label ends "Opens its card" (${label})`);
 
     // EC15, EC18: a card shows no digit outside a distance or a "Walked N times" clause, and no ranking words.
     const cards = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-tile]')].map((e) => e.innerText));
-    const stray = cards.filter((t) => t.replace(/\d+(\.\d+)?\s?(km|mi|m|ft)\b/gi, '').replace(/Walked \d+ times?/gi, '').match(/\d/));
-    check.todo(cards.length > 0 && stray.length === 0 && !cards.some((t) => /\b(nearest|top|best)\b/i.test(t)), 'EC15: no digit outside a distance or a Walked-N-times clause, and no ranking words on a card');
+    const stray = cards.filter((t) => t.replace(/\d+(\.\d+)?\s?(km|mi|min|m|ft|h)\b/gi, '').replace(/Walked \d+ times?/gi, '').match(/\d/));
+    check(cards.length > 0 && stray.length === 0 && !cards.some((t) => /\b(nearest|top|best)\b/i.test(t)), 'EC15: no digit outside a distance or a Walked-N-times clause, and no ranking words on a card');
 
     // EC19: Locate, Layers and the compass are inside the map, none under the row.
     const loc = await safe(() => pg.locator('[data-testid=locate]').boundingBox());
-    check.todo(loc && row && loc.y + loc.height <= row.y + 1, 'EC19: Locate is above the row');
+    check(loc && row && loc.y + loc.height <= row.y + 1, 'EC19: Locate is above the row');
     const layersBtn = await safe(() => pg.locator('[data-testid=layers]').boundingBox());
-    check.todo(layersBtn && row && layersBtn.y + layersBtn.height <= row.y, 'EC19: Layers is above the row');
+    check(layersBtn && row && layersBtn.y + layersBtn.height <= row.y, 'EC19: Layers is above the row');
 
     // EC5: the selected neighborhood has its ring; EC7: zoomed out, the map carries no street names.
     const ringOn = await safe(() => map.evaluate((el) => !!el.getAttribute('data-ring')), false);
-    check.todo(ringOn, 'EC5: the selected area has its ring on the map');
-    const z = Number(await map.getAttribute('data-zoom'));
-    check.todo(z >= 13 || (await pg.locator('.maplibregl-map >> text=/Street|Avenue|Road/').count()) === 0, `EC7: at zoom ${z.toFixed(1)} no street names are on the map`);
+    check(ringOn, 'EC5: the selected area has its ring on the map');
+    // The Busy layer's names are DOM markers that are not area points. This world has no busy streets to name, so what
+    // the journey can show is that zoomed out the map carries none; the distance and zoom rule is `carousel.test.ts` (EC7).
+    const busyNames = () => pg.evaluate(() => [...document.querySelectorAll('.maplibregl-marker')].filter((m) => !m.matches('[data-testid=area-point]') && !m.querySelector('[data-testid=area-point]') && /Street|Avenue|Road/.test(m.textContent ?? '')).length);
+    const mb = await map.boundingBox();
+    await pg.mouse.move(mb.x + mb.width / 2, mb.y + mb.height / 2);
+    for (let i = 0; i < 6 && Number(await map.getAttribute('data-zoom')) >= 12.5; i++) {
+      await pg.mouse.wheel(0, 400);
+      await pg.waitForTimeout(500);
+    }
+    await pg.waitForTimeout(800);
+    const zOut = Number(await map.getAttribute('data-zoom'));
+    check(zOut < 13 && (await busyNames()) === 0, `EC7: zoomed out (${zOut.toFixed(1)}) the map carries no Busy street names`);
 
     // EC18: a card names its busiest street; EC20: the area's card still holds Walk to.
     const busiest = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-tile]')].filter((e) => /Street|Avenue|Road/.test(e.innerText)).length);
-    check.todo(busiest > 0, `EC18: a card names its busiest street (${busiest} cards)`);
+    check(busiest > 0, `EC18: a card names its busiest street (${busiest} cards)`);
     await safe(() => pg.locator('[data-testid=atlas-tile][data-selected="1"], [data-testid=atlas-tile][data-selected="true"]').first().click());
     await pg.waitForTimeout(1200);
-    check.todo((await pg.locator('[data-testid=atlas-walk-to]').count()) + (await pg.getByText('Walk to').count()) > 0, 'EC20: the area\'s card still holds Walk to');
+    check((await pg.locator('[data-testid=atlas-walk-to]').count()) + (await pg.getByText('Walk to').count()) > 0, 'EC20: the area\'s card still holds Walk to');
     await safe(() => pg.click('[data-testid=atlas-card-close]'));
 
     // EC14: no status card unless no area is listed (the empty row is checked on the town page below); EC17: Navigate pans.
-    check.todo((await pg.locator('[data-testid=atlas-empty]').count()) === 0, 'EC14: with areas listed, no status card shows');
+    check((await pg.locator('[data-testid=atlas-empty]').count()) === 0, 'EC14: with areas listed, no status card shows');
     await safe(() => h.tabTo(pg, 'navigate'));
     await pg.waitForSelector('[data-testid=ready-bar]', { timeout: 15000 }).catch(() => {});
     await pg.waitForTimeout(1500);
@@ -146,7 +156,7 @@ async function run(h) {
     }
     await pg.waitForTimeout(1200);
     const n1 = ((await safe(() => nav.getAttribute('data-center'), '0,0')) || '0,0').split(',').map(Number);
-    check.todo(h.distanceM(n0, n1) > 20, `EC17: Navigate's map still pans by a drag (${h.distanceM(n0, n1).toFixed(0)} m)`);
+    check(h.distanceM(n0, n1) > 20, `EC17: Navigate's map still pans by a drag (${h.distanceM(n0, n1).toFixed(0)} m)`);
   } finally {
     snapWorld.serve = false;
     await c.close();
@@ -165,14 +175,14 @@ async function townPage(h) {
     await pg.click('[data-testid=atlas-title]').catch(() => {});
     await pg.waitForTimeout(3000);
     const first = await pg.evaluate(() => document.querySelector('[data-testid=atlas-town-head], [data-testid=atlas-tile]')?.dataset.name ?? null);
-    const sel = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=area-point][data-selected="1"], [data-testid=atlas-tile][data-selected="1"]')].map((e) => e.dataset.name));
-    check.todo(first && sel.includes(first), `EC12: a town's page selects its own card first (${first} ${JSON.stringify(sel)})`);
+    const sel = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-town-head][data-selected="1"], [data-testid=atlas-tile][data-selected="1"]')].map((e) => e.dataset.name));
+    check(first && sel.includes(first), `EC12: a town's page selects its own card first (${first} ${JSON.stringify(sel)})`);
     const pill = await pg.locator('[data-testid=atlas-back-pill]').boundingBox().catch(() => null);
     const row = await pg.locator('[data-testid=atlas-carousel]').boundingBox().catch(() => null);
-    check.todo(pill && row && pill.y + pill.height <= row.y + 1, 'EC12: the back pill is above the row');
+    check(pill && row && pill.y + pill.height <= row.y + 1, 'EC12: the back pill is above the row');
     await pg.keyboard.press('Escape');
     await pg.waitForTimeout(1500);
-    check.todo((await pg.locator('[data-testid=atlas-back-pill]').count()) === 0, 'EC12: Escape returns from the town\'s page');
+    check((await pg.locator('[data-testid=atlas-back-pill]').count()) === 0, 'EC12: Escape returns from the town\'s page');
   } finally {
     snapWorld.serve = false;
     divisions.serve = false;
@@ -184,14 +194,15 @@ async function townPage(h) {
 async function wide(h) {
   const { url, check, freshPage, snapWorld } = h;
   snapWorld.serve = true;
-  const { c, pg } = await freshPage('carousel-wide', { viewport: { width: 1200, height: 800 } });
+  const { c, pg } = await freshPage('carousel-wide');
   try {
+    await pg.setViewportSize({ width: 1200, height: 800 });
     await pg.goto(url);
     await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 5, null, { timeout: 60000 }).catch(() => {});
     await pg.waitForTimeout(2500);
     const map = await pg.locator('.maplibregl-map').first().boundingBox();
     const row = await pg.locator('[data-testid=atlas-carousel]').boundingBox().catch(() => null);
-    check.todo(!!(map && row && map.width > 1000 && row.y >= map.y + map.height - 2), `EC16: at 1200 px the map is full width and the row is at its bottom (${map?.width})`);
+    check(!!(map && row && map.width > 1000 && row.y >= map.y + map.height - 2), `EC16: at 1200 px the map is full width and the row is at its bottom (${map?.width})`);
   } finally {
     snapWorld.serve = false;
     await c.close();

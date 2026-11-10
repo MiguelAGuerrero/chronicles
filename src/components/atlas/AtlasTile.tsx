@@ -1,14 +1,11 @@
 import { memo } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ATLAS_ORDER, characterLine, distanceWords, familiarityWords, tileLabel, type Familiarity, type Listed, type Steps } from '../../lib/atlas/atlas';
-import type { CategoryId } from '../../lib/discovery/types';
 import { formatDistance } from '../../lib/format';
-import type { LngLat } from '../../lib/types';
 import { COLORS, HOTSPOT, HOTSPOT_INK } from '../map/types';
 import { Icon } from '../icons';
 import { theme } from '../ui';
 import { KindStrip } from './KindStrip';
-import { MiniMap } from './MiniMap';
 
 /** A thin ring's tile shows no kinds (AG3). */
 const NO_KINDS = Object.fromEntries(ATLAS_ORDER.map((c) => [c, 0])) as Steps;
@@ -16,20 +13,17 @@ const NO_KINDS = Object.fromEntries(ATLAS_ORDER.map((c) => [c, 0])) as Steps;
 const fmt = (m: number) => formatDistance(m);
 
 /**
- * One area on the atlas (AT3, AT5, AT6, AT13, AT16; round 3). Reading order:
+ * One area as a card of the row (AT3, AT5, AT13, AT16, EC15; decision 0109). Reading order:
  * the name, what it's like in words, one quiet line of how far and your
- * familiarity, its busiest street, then the kinds it has as icons with dots.
- * A town's tile (`drill`) says it opens the town's neighborhoods, in a footer
- * that looks like a way in; the wide tile heading a town's page says it opens
- * what's there.
+ * familiarity, its busiest street, then the kinds it has as icons with dots. No
+ * picture: the area's own card has it. A town's card (`drill`) says it opens the
+ * town's neighborhoods, in a footer that looks like a way in; the card heading a
+ * town's page (`wide`) says it opens what's there. The selected card says what a
+ * tap does; the others say they select.
  */
 export const AtlasTile = memo(function AtlasTile(props: {
   listed: Listed;
   fam: Familiarity;
-  walked: Set<string>;
-  waiting: { category: CategoryId; at: LngLat }[];
-  finds: { category: CategoryId; at: LngLat }[];
-  here: LngLat | null;
   selected: boolean;
   /** A town: the tile opens its neighborhoods. */
   drill?: boolean;
@@ -39,10 +33,11 @@ export const AtlasTile = memo(function AtlasTile(props: {
   const { listed, fam } = props;
   const a = listed.area;
   const reading = !a.profile;
-  const label = tileLabel(listed, fam, fmt) + (props.drill ? ' Opens its neighborhoods.' : props.wide ? ' Opens what’s here.' : '');
+  // EC13: the selected card's label ends in what a tap does, the others' in "Selects it".
+  const label = `${tileLabel(listed, fam, fmt)} ${props.selected ? (props.drill ? 'Opens its page' : 'Opens its card') : 'Selects it'}`;
   const footer = props.drill ? 'See its neighborhoods' : props.wide ? 'What’s here' : null;
   return (
-    <View style={props.wide ? styles.outerWide : [styles.outer, props.drill && styles.stack]}>
+    <View style={[styles.outer, props.drill && styles.stack]}>
       <Pressable
         testID={props.wide ? 'atlas-town-head' : 'atlas-tile'}
         accessibilityRole="button"
@@ -50,14 +45,11 @@ export const AtlasTile = memo(function AtlasTile(props: {
         accessibilityState={{ selected: props.selected }}
         onPress={() => props.onPress(a.key)}
         style={({ pressed }) => [styles.tile, props.selected && styles.selected, pressed && styles.pressed]}
-        {...{ dataSet: { name: a.name, read: reading ? '0' : '1', level: a.level } }}
+        {...{ dataSet: { name: a.name, read: reading ? '0' : '1', level: a.level, selected: props.selected ? '1' : '0' } }}
       >
-        <View style={props.wide ? styles.wideRow : null}>
-          <View style={[props.wide ? styles.mapWide : styles.map, reading && styles.dim]}>
-            <MiniMap area={a} walked={props.walked} waiting={props.waiting} finds={props.finds} here={listed.here ? props.here : null} />
-          </View>
-          <View style={[styles.body, props.wide && styles.bodyWide]}>
-            <Text style={[styles.name, props.wide && styles.nameWide]} numberOfLines={2}>{a.name}</Text>
+        <View>
+          <View style={[styles.body, reading && styles.dim]}>
+            <Text style={styles.name} numberOfLines={2}>{a.name}</Text>
             {reading ? (
               <View style={styles.meta}>
                 <ActivityIndicator size="small" color={theme.muted} />
@@ -93,24 +85,16 @@ export const AtlasTile = memo(function AtlasTile(props: {
 });
 
 const styles = StyleSheet.create({
-  outer: { flex: 1, minWidth: 0 },
-  // The wide tile heads a town's page, in the scrolled column: it takes its content's height. Never `flex: 0`,
-  // which react-native-web writes as `flex: 0 1 0%`; with a View's `min-height: 0`, iPhone Safari shrank it to
-  // almost nothing and drew the heading and the empty line over it (Nov 3).
-  outerWide: { flexGrow: 0, flexShrink: 0, minWidth: 0 },
+  // The row sizes a card: it fills its slot and takes its content's height.
+  outer: { flexGrow: 0, flexShrink: 0, minWidth: 0 },
   // A town reads as a stack of places: a second card's edge shows beneath it.
   stack: { paddingBottom: 4, borderRadius: 18, backgroundColor: '#e8e4dc' },
   tile: { backgroundColor: theme.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.line, overflow: 'hidden' },
   selected: { borderColor: theme.accent, borderWidth: 2 },
   pressed: { opacity: 0.85 },
-  wideRow: { flexDirection: 'row' },
-  map: { width: '100%', aspectRatio: 4 / 3 },
-  mapWide: { width: '44%', aspectRatio: 4 / 3, alignSelf: 'center' },
   dim: { opacity: 0.4 },
-  body: { paddingHorizontal: 10, paddingTop: 8, paddingBottom: 10, gap: 4 },
-  bodyWide: { flex: 1, minWidth: 0, justifyContent: 'center' },
-  name: { fontSize: 17, fontWeight: '700', color: theme.ink, lineHeight: 21 },
-  nameWide: { fontSize: 20, lineHeight: 24 },
+  body: { paddingHorizontal: 12, paddingTop: 10, paddingBottom: 10, gap: 4 },
+  name: { fontSize: 18, fontWeight: '700', color: theme.ink, lineHeight: 22 },
   character: { fontSize: 14, color: theme.ink, lineHeight: 18 },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 16 },
   metaText: { fontSize: 12, color: theme.muted, lineHeight: 16 },
