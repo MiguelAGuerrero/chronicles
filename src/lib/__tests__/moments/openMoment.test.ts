@@ -77,3 +77,15 @@ test('MS12: the viewer may add only to the moment that is open', async () => {
   assert.equal(m.openId(s, 10) === 'z', false);
   assert.equal(m.openId(m.initial, 10), null);
 });
+
+test('MS20: off a walk, a moment closes by time, a tap or leaving; walking is never read', { todo: 'test first' }, async () => {
+  const m = await mod();
+  const s = run(m, [{ k: 'kept', id: 'a', t: 0, walking: false }, { k: 'walked', m: 10_000 }]);
+  assert.equal(m.openId(s, 60_000), 'a', 'no distance closes it off a walk');
+  assert.equal(m.openId(s, m.OPEN_MS), null, 'time does');
+  assert.equal(m.openId(m.step(s, { k: 'dismiss' }), 1), null, 'a tap does');
+  assert.equal(m.openId(m.step(s, { k: 'leave' }), 1), null, 'leaving does');
+  // The module reads no location: it imports nothing that could.
+  const src = (await import('node:fs')).readFileSync(require.resolve('../../openMoment'), 'utf8');
+  assert.doesNotMatch(src, /locate|geolocation|expo-location|recorder/);
+});

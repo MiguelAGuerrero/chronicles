@@ -14,6 +14,7 @@ const moments = (pg) => pg.evaluate(() => new Promise((resolve) => {
 
 async function run(h) {
   const { navUrl, check, shot, tabTo, freshPage, scriptsDir } = h;
+  let geoAfter = 0;
   const fixtures = path.join(scriptsDir, 'fixtures');
   const { c, pg } = await freshPage('stacks');
   // Location reads, counted, so adding a piece is seen to take no fix (MS3, 0036).
@@ -53,7 +54,7 @@ async function run(h) {
   const geoBefore = await pg.evaluate(() => window.__geo);
   if (pill) await note('[data-testid=add-note]', 'Its painted back');
   let ms = await moments(pg);
-  const geoAfter = await pg.evaluate(() => window.__geo);
+  geoAfter = await pg.evaluate(() => window.__geo);
   const ms3ok = ms.length === 1 && ms[0].pieces.length === 2 && ms[0].pieces[1].t > ms[0].pieces[0].t && ms[0].pieces[1].kind === 'text';
   check(ms3ok, `MS3: the note joined the photo's moment as a second piece with its own time (${ms.map((m) => m.pieces.length).join(',')})`);
   check(geoAfter === geoBefore, `MS3: adding a piece read no location (${geoBefore} → ${geoAfter})`);
@@ -139,6 +140,107 @@ async function run(h) {
   await pg.waitForTimeout(2500);
   ms = await moments(pg);
   check(ms.length === 2 && ms[0].pieces.length === 2, `MS15: the stacked moment survives a reload (${ms.map((m) => m.pieces.length).join(',')})`);
+
+  // ---- Round 2 (MS16-MS21).
+  // Split out (MS16): the stacked moment's note leaves it, shown at once as its own moment, stored after the window.
+  await tabTo(pg, 'chronicle', 'memories');
+  await pg.waitForTimeout(1500);
+  await pg.locator('[data-testid=moment-card]:has([data-testid=stack-mark]) [data-testid=moment-open]').first().click().catch(() => {});
+  await there('[data-testid=viewer-close]');
+  await pg.keyboard.press('ArrowRight');
+  await pg.waitForTimeout(400);
+  await pg.click('[data-testid=capture-viewer] [aria-label="More"]').catch(() => {});
+  const splitText = (await there('[data-testid=menu-split]', 3000)) ? await pg.locator('[data-testid=menu-split]').innerText() : '';
+  check.todo(/Split this (note|photo) out/.test(splitText), `MS16: More offers Split out by kind on a piece that is not the first (${splitText})`);
+  if (splitText) await pg.click('[data-testid=menu-split]');
+  const shownAtOnce = await there('[data-testid=undo-toast]', 3000);
+  const nextMoment = await pg.locator('[data-testid=capture-viewer] [aria-label="Next moment"]').count();
+  check.todo(shownAtOnce && nextMoment > 0, 'MS16: the split piece shows at once as its own moment, one Next moment away, with Undo');
+  await pg.waitForTimeout(6500);
+  ms = await moments(pg);
+  check.todo(ms.length === 3 && ms.every((m) => m.pieces.length >= 1), `MS16: after the window it is stored as a moment of its own (${ms.map((m) => m.pieces.length).join(',')})`);
+  if (await pg.locator('[data-testid=viewer-close]').count()) await pg.click('[data-testid=viewer-close]');
+
+  // The setting (MS18), then grouping by itself (MS19, MS21).
+  await tabTo(pg, 'navigate');
+  await pg.waitForSelector('[data-testid=ready-bar]', { timeout: 15000 });
+  await h.drawerTo(pg, 'up');
+  const sw = await there('[data-testid=group-captures]', 5000);
+  const swOn = sw ? await pg.locator('[data-testid=group-captures]').getAttribute('aria-checked') : null;
+  const swNote = sw ? await pg.locator('[data-testid=start-settings]').innerText() : '';
+  check.todo(sw && swOn === 'false' && /Captures join the moment just made/.test(swNote), `MS18: Walk settings offer Group captures into one moment, off, with its line (${swOn})`);
+  if (sw) await pg.click('[data-testid=group-captures]');
+  await h.drawerTo(pg, 'peek');
+  const before = (await moments(pg)).length;
+  await note('[data-testid=moment-note]', 'Grouped one');
+  const adding = await there('[data-testid=adding-moment]', 3000);
+  const addingText = adding ? await pg.locator('[data-testid=adding-moment]').innerText() : '';
+  check.todo(adding && /Adding to this moment/.test(addingText) && (await pg.locator('[data-testid=add-to-moment]').count()) === 0, `MS19, MS21: with grouping on, "Adding to this moment" and New moment show, and no pill (${addingText.replace(/\n/g, ' ')})`);
+  await note('[data-testid=moment-note]', 'Grouped two');
+  await pg.waitForTimeout(10_000);
+  const addingLater = adding ? await pg.locator('[data-testid=adding-moment]').innerText().catch(() => '') : '';
+  ms = await moments(pg);
+  check.todo(ms.length === before + 1 && ms.at(-1).pieces.length === 2 && addingLater === addingText, `MS19: two edge notes made one moment, and the words did not change (${ms.length - before}, ${ms.at(-1)?.pieces.length})`);
+  if (adding) await pg.click('[data-testid=new-moment]');
+  await note('[data-testid=moment-note]', 'A new one');
+  ms = await moments(pg);
+  check.todo(ms.length === before + 2, `MS19: after New moment the next capture is a new moment (${ms.length - before})`);
+
+  // The replay (MS17): a walk with a stacked moment of three photos and a memo shows one grid.
+  await c.close();
+  await replayGrid(h, check);
+}
+
+/** A walk seeded with a stacked moment, stopped so its replay plays: one grid, a cell per photo, no count (MS17). */
+async function replayGrid(h, check) {
+  const { navUrl, BASE, start, at, freshPage } = h;
+  const { c, pg } = await freshPage('stacks-replay');
+  await pg.goto(navUrl);
+  await pg.waitForSelector('[data-testid=start]', { timeout: 30000 });
+  await pg.click('[data-testid=start]');
+  await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+  const walk = await h.openWalk(pg);
+  const now = Date.now();
+  const pts = Array.from({ length: 40 }, (_, i) => { const p = at(-1 + i * 0.05, -0.5); return { walk_id: walk.id, t: now - 600_000 + i * 15_000, lat: p[1], lon: p[0], accuracy_m: 5, speed: 1.2, course: null }; });
+  const mid = pts[12];
+  const piece = (id, t, kind, file_path, body) => ({ id, moment_id: 'grid-m', t, kind, file_path, body, caption: null, caption_y: null, thumb_path: null, edit: null });
+  const moment = {
+    id: 'grid-m', walk_id: walk.id, t: mid.t, lat: mid.lat, lon: mid.lon, segment_id: null, piece_ids: ['grid-m', 'grid-2', 'grid-3', 'grid-memo'],
+    pieces: [piece('grid-m', mid.t, 'photo', 'g-photo', null), piece('grid-2', mid.t + 10_000, 'photo', 'g-photo', null), piece('grid-3', mid.t + 20_000, 'photo', 'g-photo', null), piece('grid-memo', mid.t + 30_000, 'voice', null, '2000')],
+  };
+  await pg.evaluate(([id, startedAt, pts, m]) => new Promise((resolve) => {
+    const cv = document.createElement('canvas');
+    cv.width = 120; cv.height = 120;
+    cv.getContext('2d').fillRect(0, 0, 120, 120);
+    cv.toBlob((blob) => {
+      const req = indexedDB.open('chronicles');
+      req.onsuccess = () => {
+        const tx = req.result.transaction(['walk', 'trace_point', 'moment', 'media'], 'readwrite');
+        const w = tx.objectStore('walk').get(id);
+        w.onsuccess = () => tx.objectStore('walk').put({ ...w.result, started_at: startedAt });
+        for (const p of pts) tx.objectStore('trace_point').add(p);
+        tx.objectStore('moment').put(m);
+        tx.objectStore('media').put({ key: 'g-photo', blob });
+        tx.oncomplete = () => resolve(true);
+      };
+    }, 'image/png');
+  }), [walk.id, pts[0].t - 1000, pts, moment]);
+  await pg.reload();
+  await pg.waitForURL((u) => u.pathname === `${BASE}/walk`, { timeout: 15000 });
+  await c.setGeolocation({ longitude: start[0], latitude: start[1], accuracy: 6 });
+  await pg.waitForTimeout(2000);
+  const b = await pg.locator('[data-testid=stop]').boundingBox();
+  await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+  await pg.mouse.down();
+  await pg.waitForTimeout(1100);
+  await pg.mouse.up();
+  await pg.waitForURL(/replay/, { timeout: 30000 }).catch(() => {});
+  await pg.waitForSelector('[data-testid=replay-clock]', { timeout: 60000 }).catch(() => {});
+  const seen = await pg.waitForSelector('[data-testid=replay-grid]', { timeout: 40000 }).then(() => true, () => false);
+  const cells = seen ? await pg.locator('[data-testid=replay-grid] [data-testid=grid-cell]').count() : 0;
+  const text = seen ? await pg.locator('[data-testid=replay-grid]').innerText() : '';
+  check.todo(seen && cells === 3, `MS17: the stacked moment comes up as one grid, a cell for each of its photos (${cells})`);
+  check.todo(seen && !/\d/.test(text) && (await pg.locator('[data-testid=replay-grid] [role=progressbar]').count()) === 0, 'MS17: the grid has no dots, numbers or progress bar');
   await c.close();
 }
 
@@ -153,6 +255,10 @@ module.exports = {
     'src/components/chronicle/{MomentCard,MomentPicture}.tsx',
     'src/components/StackMark.tsx',
     'src/lib/deletion/pieces.ts',
+    'src/lib/split/**',
+    'src/lib/splitPlace.ts',
+    'src/lib/ceremony/grid.ts',
+    'src/components/ceremony/Grid.tsx',
   ],
   run,
 };
