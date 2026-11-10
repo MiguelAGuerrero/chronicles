@@ -4,7 +4,7 @@ import type { TileFeature } from '../../areas/tilePlaces';
 import { TileReader } from '../../net/tileReader';
 import type { Ports } from '../../ports/types';
 import type { LngLat } from '../../types';
-import { ARCHIVE_ZOOM, archiveTilesFor, manifestDue, parseManifest, pickRegion, regionUrl, type Manifest } from '../archiveManifest';
+import { ARCHIVE_ZOOM, archiveTag, archiveTilesFor, manifestDue, parseManifest, pickRegion, regionUrl, type ArchiveFile, type Manifest } from '../archiveManifest';
 import { placesFromArchive } from '../archivePois';
 import type { Place } from '../types';
 
@@ -32,7 +32,7 @@ export function createPlacesArchive(p: Pick<Ports, 'db' | 'clock'> & { io: Archi
   /** Files the manifest listed that answered 403/404 this session, and those the manifest was read again for (audit 4). */
   const missing = new Set<string>();
   const rechecked = new Set<string>();
-  const usable = (region: { current: { file: string; version: string }; previous: { file: string; version: string }[] }) =>
+  const usable = (region: { current: ArchiveFile; previous: ArchiveFile[] }) =>
     [region.current, ...region.previous].find((f) => !missing.has(f.file)) ?? null;
   const reader = new TileReader<Place & { id: string }>({
     open: (file) => p.io.open(regionUrl(p.io.base, file)),
@@ -74,11 +74,12 @@ export function createPlacesArchive(p: Pick<Ports, 'db' | 'clock'> & { io: Archi
     async refresh(): Promise<void> {
       if (p.io.base) await ensureManifest().catch(() => null);
     },
-    /** PW10: the version the loaded manifest names for a point; null before it is read, outside every region, or with no address. */
+    /** PW10, PP13: the version (or, with blocks, the block's tag) the loaded manifest names for a point; null before it is read, outside every region, or with no address. */
     versionAt(at: LngLat): string | null {
       if (!p.io.base || !manifest) return null;
       const region = pickRegion(manifest, at);
-      return region ? (usable(region)?.version ?? null) : null;
+      const file = region ? usable(region) : null;
+      return file ? archiveTag(file, at) : null;
     },
     /** PW1-PW3: the archive's places for a read's z14 tiles around `centre`, with the version they came from; null when there are none to read. */
     async read(tiles: [number, number][], centre: LngLat, shouldStop?: () => boolean): Promise<ArchiveRead> {
@@ -101,7 +102,7 @@ export function createPlacesArchive(p: Pick<Ports, 'db' | 'clock'> & { io: Archi
         return null;
       }
       const version = file.version;
-      return { version, places: r.items.map(({ id: _id, ...pl }) => ({ ...pl, build: version })) };
+      return { version: archiveTag(file, centre), places: r.items.map(({ id: _id, ...pl }) => ({ ...pl, build: version })) };
     },
   };
 }

@@ -70,18 +70,42 @@ export function routeVia(
   return { route: { path, lengthM, source } };
 }
 
+/**
+ * How many of a route's stops the walker has passed (WP25): those they came within a few arrivals of, and those they have gone by
+ * along the route, so a stop skipped on the way is let go and does not pull the re-route back. Never fewer than `already`.
+ */
+export function passedStops(path: LngLat[], stops: readonly LngLat[], here: LngLat, already = 0, seg?: number): number {
+  let n = already;
+  const me = progressOn(path, here, seg);
+  while (n < stops.length) {
+    if (distanceM(here, stops[n]) <= NAV.arriveM * 4) {
+      n += 1;
+      continue;
+    }
+    const stopLeft = progressOn(path, stops[n]).leftM;
+    if (me.offM <= NAV.offM * 2 && me.leftM < stopLeft - 60) {
+      n += 1;
+      continue;
+    }
+    break;
+  }
+  return n;
+}
+
 /** The stops of `via` still ahead: those after the last one the walker has come within `passedM` of. */
 export function viaAhead(via: readonly LngLat[], passed: number): LngLat[] {
   return via.slice(Math.max(0, Math.min(passed, via.length)));
 }
 
 /** How far is left along the path from where you are, and how far off it you are (N7, N8). */
-export function progressOn(path: LngLat[], at: LngLat): { leftM: number; offM: number } {
-  if (path.length < 2) return { leftM: path[0] ? distanceM(at, path[0]) : 0, offM: path[0] ? distanceM(at, path[0]) : 0 };
+export function progressOn(path: LngLat[], at: LngLat, fromSeg = 1): { leftM: number; offM: number; seg: number; t: number } {
+  if (path.length < 2) return { leftM: path[0] ? distanceM(at, path[0]) : 0, offM: path[0] ? distanceM(at, path[0]) : 0, seg: 1, t: 0 };
   const proj = projector(at);
   const xy = path.map(proj);
   let best = { i: 1, t: 0, d: Infinity };
-  for (let i = 1; i < xy.length; i++) {
+  // A path that touches itself (a loop begins and ends at one point) is searched from the segment last matched, a little back, so the
+  // finish is not mistaken for the start (walk planner audit 4).
+  for (let i = Math.max(1, fromSeg - 2); i < xy.length; i++) {
     const d = pointSegmentDist([0, 0], xy[i - 1], xy[i]);
     if (d < best.d) {
       const [ax, ay] = xy[i - 1];
@@ -94,7 +118,26 @@ export function progressOn(path: LngLat[], at: LngLat): { leftM: number; offM: n
   const segLen = (i: number) => distanceM(path[i - 1], path[i]);
   let left = segLen(best.i) * (1 - best.t);
   for (let i = best.i + 1; i < path.length; i++) left += segLen(i);
-  return { leftM: left, offM: best.d };
+  return { leftM: left, offM: best.d, seg: best.i, t: best.t };
+}
+
+/**
+ * A planned way, rejoined (walk planner audit 1): from where the walker is, the shortest way to the nearest point on the planned path,
+ * then the rest of the planned path as it was planned, so a loop's way back is not replaced by the streets the way out used.
+ */
+export function rejoinPlanned(planned: readonly LngLat[], here: LngLat, leg: (a: LngLat, b: LngLat) => Route | null): Route | null {
+  if (planned.length < 2) return null;
+  const p = progressOn([...planned], here);
+  const a = planned[p.seg - 1];
+  const b = planned[p.seg];
+  const join: LngLat = [a[0] + (b[0] - a[0]) * p.t, a[1] + (b[1] - a[1]) * p.t];
+  const to = distanceM(here, join) < 5 ? null : leg(here, join);
+  if (distanceM(here, join) >= 5 && !to) return null;
+  const rest = [join, ...planned.slice(p.seg)];
+  let lengthM = to ? to.lengthM : 0;
+  for (let i = 1; i < rest.length; i++) lengthM += distanceM(rest[i - 1], rest[i]);
+  const path = to ? [...to.path, ...rest.slice(1)] : [here, ...rest];
+  return { path, lengthM, source: 'planned' };
 }
 
 /** The route from where you are on it to its end: the part already walked is not drawn. */
@@ -204,6 +247,8 @@ export interface NavState {
   offCount: number;
   offRoute: boolean;
   arrived: boolean;
+  /** The segment of the route last matched, for a loop (a path that touches itself): progress follows the walker's order. */
+  seg?: number;
 }
 
 export function startNav(dest: Waypoint, route: Route, _now: number): NavState {
@@ -215,15 +260,22 @@ export function startNav(dest: Waypoint, route: Route, _now: number): NavState {
  * NAV.offFixes fixes in a row further than NAV.offM (re-routing at most every
  * NAV.rerouteMs), and arrival within NAV.arriveM (N7-N9).
  */
-export function navStep(state: NavState, at: LngLat, now: number): { state: NavState; reroute: boolean } {
+export function navStep(state: NavState, at: LngLat, now: number, stopsLeft = 0): { state: NavState; reroute: boolean } {
+  // A loop ends where it began: it is not arrived at while stops are still ahead (WP9).
+  if (stopsLeft > 0) return stepAlong(state, at, now);
   if (distanceM(at, state.dest.at) <= NAV.arriveM) return { state: { ...state, arrived: true, leftM: 0, offRoute: false }, reroute: false };
   // The end of the route counts too: a spot in a park or a block lies off the streets that reach it.
   const routeEnd = state.route.path.length > 1 ? state.route.path[state.route.path.length - 2] : state.dest.at;
   if (distanceM(at, routeEnd) <= NAV.arriveM) return { state: { ...state, arrived: true, leftM: 0, offRoute: false }, reroute: false };
-  const p = progressOn(state.route.path, at);
+  return stepAlong(state, at, now);
+}
+
+/** Distance left, and off the route after NAV.offFixes fixes in a row: everything but arriving. */
+function stepAlong(state: NavState, at: LngLat, now: number): { state: NavState; reroute: boolean } {
+  const p = progressOn(state.route.path, at, state.dest.loop ? state.seg : undefined);
   const off = p.offM > NAV.offM;
   const offCount = off ? state.offCount + 1 : 0;
   const offRoute = offCount >= NAV.offFixes;
   const reroute = offRoute && (state.reroutedAt == null || now - state.reroutedAt >= NAV.rerouteMs);
-  return { state: { ...state, leftM: p.leftM, offCount, offRoute, reroutedAt: reroute ? now : state.reroutedAt }, reroute };
+  return { state: { ...state, leftM: p.leftM, offCount, offRoute, reroutedAt: reroute ? now : state.reroutedAt, ...(state.dest.loop ? { seg: p.seg } : {}) }, reroute };
 }

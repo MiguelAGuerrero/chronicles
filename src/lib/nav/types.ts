@@ -24,6 +24,10 @@ export interface Waypoint {
    * cleared with the walk, never on the walk.
    */
   suggested?: boolean;
+  /** A loop (the walk planner, WP8): `at` is where it began, so it arrives only once the stops are passed (WP9). */
+  loop?: boolean;
+  /** The way the planner planned, from where the walker stood: followed as it is, not made again by the shortest streets (WP20, KW17). */
+  path?: LngLat[];
   /** The scenic route chosen for the way there (SR8, SR11); none is the direct way. */
   leanings?: Leaning[];
 }

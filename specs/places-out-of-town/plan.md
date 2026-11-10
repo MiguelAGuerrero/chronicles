@@ -12,6 +12,10 @@ For the owner to review before any code. The criteria are `spec.md` (OP1-OP17). 
 - **Walking reach:** the navigator refuses a route over 10 km in a straight line (`NAV.maxM`, `nav/rules.ts`). OP13 uses that, so no new number.
 - A 50 km radius at z12 is 100-170 tile reads; at z8 it is 4 at most.
 
+## Since this plan (Nov 10)
+
+The places archive became a pipeline of adapters in chronicles-data (decision 0108), and the staged build's changes-first fetch was ported there (0114). Phase 1 below is now one adapter slice per source in that pipeline (OpenStreetMap from Geofabrik extracts, GeoNames, Canada's registers), each with its declaration (license, attribution, pace, role); the town flag and the z8 overview are packaging steps there; the app's side (phase 2) is unchanged. Re-plan phase 1 against chronicles-data's `docs/spec.md` before it starts.
+
 ## Design
 
 ### Phase 1: the archive (`scripts/places-archive/`, run by the weekly job in chronicles-data)

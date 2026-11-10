@@ -13,7 +13,7 @@ import type { LngLat } from '../types';
 import { analyzeArea, centreFor, LANDING_RULES, readTiles, type AreaAnalysis } from './analyze';
 import { keyFor, LANDING_VERSION, replacesRow, type LandingRow } from './view';
 import { placesArchive } from '../discovery/archive';
-import { applyEdits, ARCHIVE_EDITS, mergePlaces } from '../discovery/archiveMerge';
+import { mergePlaces } from '../discovery/archiveMerge';
 
 /** Towns and cities are in the place layer from z10; z11 tiles keep the read to a few. */
 const TOWNS_ZOOM = 11;
@@ -40,7 +40,7 @@ export async function readAround(url: string, build: string, at: LngLat, shouldS
   await db.putSegments(segments).catch(() => {});
   await db.putPlaces(tilePlaces).catch(() => {});
   // PW8, PW13: one mark per place across the map and the archive, then the owner's removals and adds.
-  const places = applyEdits(archive ? mergePlaces(tilePlaces, archive.places) : tilePlaces, ARCHIVE_EDITS, archive?.version ?? 'owner');
+  const places = archive ? mergePlaces(tilePlaces, archive.places) : tilePlaces;
   const points = mergeSources(activityFromTilePois(features.pois), overture?.points ?? []);
   return { segments, places, points, overture: overture?.release ?? null, archive: archive?.version ?? null, towns: placesFromTiles(features.places), transit: transitFromTilePois(features.pois) };
 }
