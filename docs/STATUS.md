@@ -116,7 +116,7 @@ first.
 
 ## Needs the owner
 
-- **Remarkable and public in chronicles-data:** port the listing rule, its pinned types, OSM's corroboration, the review and their tests (`specs/remarkable-and-public/handoff.md`), publish contract v2 with `church`, `cemetery`, `theatre`, `museum` and `historic_site`, then take the copy here (RP9 comes back). Your call offered: contributing buildings of a Landmark district (`docs/DEFERRED.md`).
+- **Remarkable and public in chronicles-data:** built on its `claude/gallant-maxwell-hp14jb` (RD1-RD14) and merged with the app's contract v2. Run the weekly build by hand once (Actions, "Weekly places build", Run workflow): until it publishes a v2 archive, the live v1 archive's `heritage_building` places (the Landmark buildings) are not shown by the app, which now reads v2's `building_structure`. The first run is also the first real OSM fetch; its `report` artifact is your review.
 - **VISION.md and scenic routes:** decision 0095 proposes amending the Shapes rows "Suggested routes" and "Several routes to one point, Apple Maps style" to fit the row per leaning you kept at the gate (Nov 5); only you edit the page.
 - **The vision's open questions** (`docs/VISION.md`, decision 0094): likeness made by you or suggested; voice
   memos searchable on the phone only; the cloud as a mirror or a place where work happens; browse standard, dwell

@@ -52,7 +52,7 @@ test('RP11: no copy names a listing; an archive place carries its name, class an
   const said = [...shownStrings(join(root, 'app')), ...shownStrings(join(root, 'components')), ...KINDS.map((k) => k.label)];
   const listing = said.filter((s) => /\b(National Register|listed building|listed place|heritage[- ]listed|landmark|NRHP)\b/i.test(s));
   assert.deepEqual(listing, [], 'no screen names a listing or a register');
-  const p = archivePlace('Bethlehem Silk Mill', 'heritage_building', [-75.37, 40.61], 'v1')!;
+  const p = archivePlace('Bethlehem Silk Mill', 'building_structure', [-75.37, 40.61], 'v1')!;
   assert.deepEqual(Object.keys(p).sort(), ['at', 'build', 'category', 'generic', 'key', 'kind', 'markable', 'name'], 'nothing about a listing on the place');
   assert.equal(p.kind, 'structures');
 });
@@ -75,7 +75,7 @@ test('RP13: every named attraction in the tiles is a place to find, SteelStacks 
 test('RP14: an attraction stays one place to find through the merge', () => {
   const tiles = placesNow();
   const steel = tiles.find((p) => p.name === 'SteelStacks')!;
-  const listedNear = archivePlace('Bethlehem Steel Lehigh Plant Mill No. 2 Annex', 'heritage_building', [steel.at[0] + 0.0003, steel.at[1]], 'v1')!;
+  const listedNear = archivePlace('Bethlehem Steel Lehigh Plant Mill No. 2 Annex', 'building_structure', [steel.at[0] + 0.0003, steel.at[1]], 'v1')!;
   assert.ok(listedNear, 'a listed building beside it is an archive place');
   const merged = mergePlaces(tiles, [listedNear]);
   assert.equal(merged.filter((p) => p.name === 'SteelStacks' && isMarkable(p)).length, 1);
@@ -133,11 +133,10 @@ test('RP20: a place with no street or path within 60 m is said, never filtered; 
 test('remarkable-and-public audit 5: a listed cemetery 120 m from the tiles\' same-named one is one place to find', () => {
   const tiles = placesFromTilePois([poi('cemetery', 'cemetery', 'Nisky Hill Cemetery', [-75.3725, 40.6235])], 'b');
   const gate: LngLat = [-75.3725 + 120 / 84400, 40.6235];
-  // A listed cemetery is heritage_building (History) until the contract's cemetery class arrives.
-  const archived = archivePlace('Nisky Hill Cemetery', 'heritage_building', gate, 'v1')!;
+  const archived = archivePlace('Nisky Hill Cemetery', 'cemetery', gate, 'v1')!;
   const merged = mergePlaces(tiles, [archived]);
   assert.equal(merged.filter((p) => p.name === 'Nisky Hill Cemetery').length, 1, 'same name, same category, within 200 m (the owner, Nov 9)');
-  const far = archivePlace('Nisky Hill Cemetery', 'heritage_building', [-75.3725 + 250 / 84400, 40.6235], 'v1')!;
+  const far = archivePlace('Nisky Hill Cemetery', 'cemetery', [-75.3725 + 250 / 84400, 40.6235], 'v1')!;
   assert.equal(mergePlaces(tiles, [far]).filter((p) => p.name === 'Nisky Hill Cemetery').length, 2, 'past 200 m they are two');
   const otherKind = archivePlace('Nisky Hill Cemetery', 'sculpture', gate, 'v1')!;
   assert.equal(mergePlaces(tiles, [otherKind]).filter((p) => p.name === 'Nisky Hill Cemetery').length, 2, 'another category merges only within 50 m');
