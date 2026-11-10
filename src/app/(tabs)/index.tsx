@@ -362,7 +362,9 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
       <UndoToast style={{ top: insets.top + 64 }} />
 
       {placing && (
-        <View style={[styles.center, styles.over]} pointerEvents="box-none" accessibilityLiveRegion="polite">
+        // Above the sheet at whatever height it stands, never at a fixed fraction of the screen: a half-height
+        // sheet (the Days list) ran under a cover pinned at 38% and hid its Walks and Days chips.
+        <Animated.View style={[styles.center, styles.over, aboveSheet]} pointerEvents="box-none" accessibilityLiveRegion="polite">
           <Text style={styles.centerText}>
             {`Placing your walks (${Math.min(placing.done + 1, placing.of)} of ${placing.of})`}
           </Text>
@@ -379,7 +381,7 @@ function ChronicleMap({ section }: { section: 'walks' | 'days' | 'map' }) {
           >
             <Text style={styles.skipText}>Skip</Text>
           </Pressable>
-        </View>
+        </Animated.View>
       )}
 
       <View style={[StyleSheet.absoluteFill, styles.under]}>
@@ -434,7 +436,7 @@ const styles = StyleSheet.create({
   under: { zIndex: 0 },
   over: { zIndex: 1 },
   top: { position: 'absolute', left: 16, right: 16, gap: 8, maxWidth: 640, alignSelf: 'center' },
-  center: { position: 'absolute', left: 24, right: 24, top: '38%', alignItems: 'center', gap: 10 },
+  center: { position: 'absolute', left: 24, right: 24, alignItems: 'center', gap: 10 },
   centerText: {
     backgroundColor: 'rgba(255,255,255,0.94)', color: theme.ink, fontSize: 16, fontWeight: '600',
     paddingVertical: 10, paddingHorizontal: 16, borderRadius: 999, overflow: 'hidden', textAlign: 'center',
