@@ -120,6 +120,17 @@ recording bar brings a minimized walk back.
   source may only suggest a place for the owner's review, and an area is
   rebuilt only when its own places change. The app keeps to the contract that
   repo publishes.
+- **Remarkable and public** (decisions 0109-0111): attractions in the map
+  stay places to find, and the National Aviary joins them. A new kind,
+  "Buildings and structures", on by default, holds the archive's listed
+  buildings and structures. A place to find with no street or path within 60 m
+  says "No street or path close by" on its card; nothing is hidden for it. The
+  replay whispers one or two passed places by name, more as "a few places". A
+  place in both the map and the archive, of the same name and kind within
+  200 m, is one place. The rule that takes a National Register listing when the
+  place is public (its type, a sign it is open, or a Landmark) is built and
+  moves to chronicles-data's pipeline. `npm run places:coverage` measures what
+  the app keeps of a town's destinations, for the owner.
 
 ### Navigate (during)
 

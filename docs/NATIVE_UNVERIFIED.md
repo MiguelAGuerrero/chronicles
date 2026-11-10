@@ -342,6 +342,13 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 
 - [ ] **Do:** with PLACES_BASE set and checklist areas built from an archive without blocks, install a build that reads blocks, walk the same areas, then again after a weekly archive that changed places elsewhere only. **Expect:** each area is rebuilt once after the install, and not again after the second archive. (PP13)
 
+## Remarkable and public (RP13-RP20, decisions 0109-0111)
+
+- [ ] **Do:** on a phone, take an exploring walk and open the card of a place to find that stands more than 60 m from any street or path (a building set back in a park), then one beside a street. **Expect:** the first card says "No street or path close by" under its name, the second says nothing of the kind, and both places can still be found (RP20).
+- [ ] **Do:** on a phone, open the walk's drawer with Explore on, on an install that already had kinds switched off. **Expect:** "What I'm into" lists Buildings and structures after Monuments and ruins, switched on, and the kinds switched off before stay off (RP18).
+- [ ] **Do:** on a phone, in a dense downtown, tap several place pins quickly in a row. **Expect:** each card opens at once, the line "No street or path close by" appears only on the card of the place it belongs to, never on a found place, and the map stays smooth (RP20, remarkable-and-public audit 6).
+- [ ] **Do:** on a phone, replay a walk that passed four places to find without stopping. **Expect:** one whisper, "Passed a few places without stopping", as the walker reaches the last of them (RP19, audit 14).
+
 ## Wrapped map names (fix long-names)
 
 - [ ] **Do:** on a phone, find a mark, a star and an Explore area point with a name over 20 characters (e.g. "Lopes International Park and gardens"), and a busy-street name that long. **Expect:** each name wraps onto further lines at 140/160 pt, centred, with no "…"; lines 2 and up are not clipped by the marker's box on iOS or Android; the pin stays on its point; a wrapped busy-street label stays near its street.
