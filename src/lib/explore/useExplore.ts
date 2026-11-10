@@ -140,7 +140,7 @@ export function useExplore(opts: {
     const candidates = k.reads.filter((r) => r.build === build).flatMap((r) => r.candidates);
     // Audit 3: the archive's version here, so an area built before it (or with an older one) is read again.
     await placesArchive.refresh();
-    let centre = readCentre({ fix, candidates, areas: k.areas, reads: k.reads, build, archive: placesArchive.versionAt(fix) });
+    let centre = readCentre({ fix, candidates, areas: k.areas, reads: k.reads, build, archive: placesArchive.versionAt(fix), changedAt: placesArchive.changedSince });
     if (!centre && latest.current.exploring && !sweptAt.current.some((p) => distanceM(p, fix) <= EXPLORE_RULES.rereadM)) {
       const rows = await db.listLandings().catch(() => []);
       // Asked, not assumed: on a walk opened straight from a launch the release isn't known yet (activity-density audit 8).
@@ -186,7 +186,7 @@ export function useExplore(opts: {
         if (build === 'unknown') break;
         const k = known.current ?? (await loadKnown());
         const candidates = k.reads.filter((r) => r.build === build).flatMap((r) => r.candidates);
-        const centre = readCentre({ fix: p, candidates, areas: k.areas, reads: k.reads, build, archive: placesArchive.versionAt(p) });
+        const centre = readCentre({ fix: p, candidates, areas: k.areas, reads: k.reads, build, archive: placesArchive.versionAt(p), changedAt: placesArchive.changedSince });
         if (centre && !(await readAt(centre))) break;
       }
       const box = boundsOf(routePath, EXPLORE_RULES.rangeMax);

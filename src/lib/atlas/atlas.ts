@@ -2,6 +2,7 @@
 import { coveredBy, townAt, withOutlines, type OutlineSet } from '../areas/outlines';
 import { AREA_REACH_M } from '../areas/rules';
 import type { Area, PlaceCandidate, WalkArea } from '../areas/types';
+import { touches } from '../discovery/archiveManifest';
 import { applyEdits, keepFindKeys, mergePlaces, type ArchiveEdits } from '../discovery/archiveMerge';
 import { isMarkable, MARK_CATEGORIES } from '../discovery/noise';
 import type { CategoryId, Kind, Place } from '../discovery/types';
@@ -117,6 +118,8 @@ export interface AtlasProfile {
   overture: string | null;
   /** The places archive version its findable kinds counted; null or missing without one (PW10). */
   archive?: string | null;
+  /** SB10: the archive's z12 tiles the read covered; missing on rows from before (they are read again on any new version). */
+  archiveTiles?: [number, number][];
   /** The map knows almost nothing here: the kinds say nothing (AG3). */
   thin?: boolean;
   /** TP1: what the bars were counted across: the town's whole outline, or the 800 m ring around its point (absent: the ring). */
@@ -243,18 +246,20 @@ export function nearList(rows: AtlasArea[], from: LngLat, level: AtlasLevel, bui
 
 /** AT5: the next ring to read, nearest first, skipping one that failed less than the retry wait ago. */
 /** When a ring read with another Overture release, or without one, is due to be read again (AD6, AD7); null when it isn't stale. */
-export function rereadAt(a: AtlasArea, release: string | null, archive: string | null = null): number | null {
+export function rereadAt(a: AtlasArea, release: string | null, archive: string | null = null, changed?: Set<string> | 'all'): number | null {
   if (!a.profile) return null;
   const read = a.read_at ?? 0;
   // TP12: a town's ring read for want of its outline is asked again once the retry wait is over.
   const due: number[] = a.profile.outlineRetry ? [read + ATLAS_RULES.retryMs] : [];
   if (profileStale(a.profile, release)) due.push(read + (a.profile.overture == null ? ATLAS_RULES.overtureRetryMs : ATLAS_RULES.retryMs));
   // PW10: the places archive, as Overture: 30 min after one is known for a ring measured without it.
-  if (archiveStaleProfile(a.profile, archive)) due.push(read + (a.profile.archive == null ? ATLAS_RULES.overtureRetryMs : ATLAS_RULES.retryMs));
+  if (archiveStaleProfile(a.profile, archive, changed)) due.push(read + (a.profile.archive == null ? ATLAS_RULES.overtureRetryMs : ATLAS_RULES.retryMs));
   return due.length ? Math.min(...due) : null;
 }
 
-const archiveStaleProfile = (p: AtlasProfile, archive: string | null) => archive != null && (p.archive ?? null) !== archive;
+/** PW10, SB10: measured with another archive version, and (when what changed is known) over a tile that changed. */
+const archiveStaleProfile = (p: AtlasProfile, archive: string | null, changed?: Set<string> | 'all') =>
+  archive != null && (p.archive ?? null) !== archive && (changed == null || p.archive == null || !p.archiveTiles || touches(changed, p.archiveTiles));
 
 /** AD6, activity-density audit 13: a ring measured with another release, or without Overture while one is known. */
 export const profileStale = (p: AtlasProfile, release: string | null, archive: string | null = null) =>
@@ -264,11 +269,17 @@ export const profileStale = (p: AtlasProfile, release: string | null, archive: s
 export const keptProfile = (old: AtlasProfile | null, fresh: AtlasProfile): AtlasProfile =>
   (old?.overture != null && fresh.overture == null) || (old?.archive != null && fresh.archive == null) ? old! : fresh;
 
-export function readQueue(list: Listed[], now: number, release: string | null = null, archiveAt: (at: LngLat) => string | null = () => null): AtlasArea | null {
+export function readQueue(
+  list: Listed[],
+  now: number,
+  release: string | null = null,
+  archiveAt: (at: LngLat) => string | null = () => null,
+  changedAt?: ChangedAt,
+): AtlasArea | null {
   for (const l of list) {
     const a = l.area;
     if (a.profile) {
-      const due = rereadAt(a, release, archiveAt(a.at));
+      const due = rereadAt(a, release, archiveAt(a.at), changedAt?.(a.at, a.profile.archive));
       if (due == null || now < due) continue;
     }
     if (a.failed_at != null && now - a.failed_at < ATLAS_RULES.retryMs) continue;
@@ -633,7 +644,12 @@ interface StepInput {
   release?: string | null;
   /** The places archive version known for a point, or null (PW10). */
   archiveAt?: (at: LngLat) => string | null;
+  /** SB10: what changed at a point since a version. */
+  changedAt?: ChangedAt;
 }
+
+/** SB10: the archive's z12 tiles changed at a point since a version, or 'all' when unknown. */
+export type ChangedAt = (at: LngLat, version: string | null | undefined) => Set<string> | 'all';
 
 export type AtlasStepNear = { kind: 'near'; level: AtlasLevel; at: LngLat; radiusM: number };
 
@@ -648,13 +664,13 @@ function afterBuild(o: StepInput, build: string): AtlasStep {
   const near = o.nears.find((n) => needsNear(n.reads, n.at, build, n.radiusM));
   if (near) return { kind: 'near', level: near.level, at: near.at, radiusM: near.radiusM };
   const archiveAt = o.archiveAt ?? (() => null);
-  const next = readQueue(o.list, o.now, o.release ?? null, archiveAt);
+  const next = readQueue(o.list, o.now, o.release ?? null, archiveAt, o.changedAt);
   if (next) return { kind: 'ring', area: next };
   // A ring that failed is tried again once its wait is over (AT5, audit 3).
   const waits = o.list.filter((l) => !l.area.profile && l.area.failed_at != null).map((l) => l.area.failed_at! + ATLAS_RULES.retryMs - o.now);
   // And a ring due a re-read for Overture is asked for when it comes due (activity-density audit 10).
   for (const l of o.list) {
-    const due = rereadAt(l.area, o.release ?? null, archiveAt(l.area.at));
+    const due = rereadAt(l.area, o.release ?? null, archiveAt(l.area.at), l.area.profile ? o.changedAt?.(l.area.at, l.area.profile.archive) : undefined);
     if (due != null) waits.push(due - o.now);
   }
   return waits.length ? { kind: 'wait', ms: Math.max(0, Math.min(...waits)) } : { kind: 'idle' };

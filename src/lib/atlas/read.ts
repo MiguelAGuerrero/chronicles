@@ -24,6 +24,7 @@ import { extentTiles, inExtent } from './extent';
 import { findPockets, type Pocket } from './pockets';
 import { placesArchive } from '../discovery/archive';
 import type { ArchiveRead } from '../discovery/archive/shell';
+import { archiveTilesFor } from '../discovery/archiveManifest';
 import { ARCHIVE_EDITS } from '../discovery/archiveMerge';
 
 /*
@@ -189,6 +190,8 @@ export function readRing(area: AtlasArea, shouldStop: () => boolean): Promise<At
       // rewritten into the shared caches, so the write queue stays free for the walk.
       const { profile } = profileFrom(area.at, f, area.build, overture, extent, archive, finds);
       if (outlineRetry) profile.outlineRetry = true;
+      // SB10: the archive tiles this read covered, so a new version re-reads it only when one of them changed.
+      if (archive) profile.archiveTiles = archiveTilesFor(tiles);
       // read_at moves on either way, so a ring Overture didn't answer for waits before asking again.
       const row: AtlasArea = { ...area, profile: keptProfile(area.profile, profile), read_at: Date.now(), failed_at: null };
       await db.putAtlasAreas([row]);

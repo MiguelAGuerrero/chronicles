@@ -4,7 +4,7 @@ import type { TileFeature } from '../../areas/tilePlaces';
 import { TileReader } from '../../net/tileReader';
 import type { Ports } from '../../ports/types';
 import type { LngLat } from '../../types';
-import { ARCHIVE_ZOOM, archiveTilesFor, manifestDue, parseManifest, pickRegion, regionUrl, type Manifest } from '../archiveManifest';
+import { ARCHIVE_ZOOM, archiveTilesFor, changedSince as changesSince, manifestDue, parseManifest, pickRegion, regionUrl, type Manifest } from '../archiveManifest';
 import { placesFromArchive } from '../archivePois';
 import type { Place } from '../types';
 
@@ -79,6 +79,12 @@ export function createPlacesArchive(p: Pick<Ports, 'db' | 'clock'> & { io: Archi
       if (!p.io.base || !manifest) return null;
       const region = pickRegion(manifest, at);
       return region ? (usable(region)?.version ?? null) : null;
+    },
+    /** SB10: the z12 tiles changed here since `version`, from the loaded manifest; 'all' when it can't say. */
+    changedSince(at: LngLat, version: string | null | undefined): Set<string> | 'all' {
+      if (!p.io.base || !manifest) return 'all';
+      const region = pickRegion(manifest, at);
+      return region ? changesSince(region, version) : 'all';
     },
     /** PW1-PW3: the archive's places for a read's z14 tiles around `centre`, with the version they came from; null when there are none to read. */
     async read(tiles: [number, number][], centre: LngLat, shouldStop?: () => boolean): Promise<ArchiveRead> {

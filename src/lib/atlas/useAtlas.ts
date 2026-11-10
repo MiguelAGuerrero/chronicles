@@ -165,7 +165,7 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
           : { level: 'neighborhood', at: from, radiusM: ATLAS_RULES.nearNeighborhoodM, reads: nb },
         { level: 'town', at: from, radiusM: ATLAS_RULES.nearTownM, reads: tw },
       ];
-      const step = atlasStep({ build, latest, nears, list: queueRef.current, now: Date.now(), release, archiveAt: (at) => placesArchive.versionAt(at) });
+      const step = atlasStep({ build, latest, nears, list: queueRef.current, now: Date.now(), release, archiveAt: (at) => placesArchive.versionAt(at), changedAt: placesArchive.changedSince });
       if (step.kind === 'adopt') {
         // A new map build (or the first known one): its rows are listed afresh, never chased (audit 2, 4).
         setBuild(step.build);
