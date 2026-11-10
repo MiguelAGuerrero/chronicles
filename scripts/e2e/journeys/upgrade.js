@@ -49,26 +49,29 @@ async function run(h) {
   await pg.goto(url);
   await pg.waitForSelector('[data-testid=tab-chronicle]', { timeout: 30000 });
   const db = await version(pg);
-  check.todo(db.v === 18 && db.stores.includes('moment') && !db.stores.includes('capture'), `MT9: the app opened a version-17 database and upgraded it (${JSON.stringify(db)})`);
+  check(db.v === 18 && db.stores.includes('moment') && !db.stores.includes('capture'), `MT9: the app opened a version-17 database and upgraded it (${JSON.stringify(db)})`);
 
   await tabTo(pg, 'chronicle', 'memories');
   const thread = await pg.waitForSelector('[data-testid=my-thread-row]:has-text("Before the upgrade")', { timeout: 20000 }).then(() => true, () => false);
-  check.todo(thread, 'MT9: the thread made before the upgrade is listed, by its name');
+  check(thread, 'MT9: the thread made before the upgrade is listed, by its name');
   if (thread) {
     await pg.locator('[data-testid=my-thread-row]:has-text("Before the upgrade")').first().click();
     const both = await pg.waitForSelector('[data-testid=own-thread] [data-testid=moment-card]:has-text("answering the first")', { timeout: 10000 }).then(() => true, () => false);
-    check.todo(both && (await pg.locator('[data-testid=own-thread] [data-testid=moment-card]:has-text("A loose note from before")').count()) > 0,
+    check(both && (await pg.locator('[data-testid=own-thread] [data-testid=moment-card]:has-text("A loose note from before")').count()) > 0,
       'MT9: its two moments are in it, as before');
     await pg.locator('[data-testid=own-thread] [data-testid=moment-card]:has-text("A loose note from before") [data-testid=moment-open]').first().click();
     const opened = await pg.waitForSelector('[data-testid=viewer-close]', { timeout: 10000 }).then(() => true, () => false);
-    check.todo(opened && (await pg.locator('text=A loose note from before the upgrade.').count()) > 0, 'MT9: a moment from before the upgrade opens in the viewer with its words');
+    check(opened && (await pg.locator('text=A loose note from before the upgrade.').count()) > 0, 'MT9: a moment from before the upgrade opens in the viewer with its words');
     await shot(pg, '90-upgrade-viewer');
     if (opened) await pg.click('[data-testid=viewer-close]');
   }
 
   await tabTo(pg, 'chronicle');
+  // The walks list is in the home sheet's Walks section (as the chronicle journey opens it).
+  await pg.waitForSelector('[data-testid=sheet-walks]', { timeout: 20000 }).catch(() => {});
+  await pg.click('[data-testid=sheet-walks]').catch(() => {});
   const walk = await pg.waitForSelector('[data-testid=walk-row]:has-text("Old walk")', { timeout: 20000 }).then(() => true, () => false);
-  check.todo(walk, 'MT9: the walk from before the upgrade is in the walks list');
+  check(walk, 'MT9: the walk from before the upgrade is in the walks list');
   await c.close();
 }
 

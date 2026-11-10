@@ -124,8 +124,8 @@ async function fresh(h) {
       await pg.evaluate(({ lon, lat }) => new Promise((resolve, reject) => {
         const req = indexedDB.open('chronicles');
         req.onsuccess = () => {
-          const tx = req.result.transaction(['capture', 'recall'], 'readwrite');
-          tx.objectStore('capture').put({ id: 'old-note', walk_id: 'old-walk', t: Date.now() - 86_400_000, kind: 'text', file_path: null, body: 'The old bench by the steps', segment_id: null, lat, lon });
+          const tx = req.result.transaction(['moment', 'recall'], 'readwrite');
+          tx.objectStore('moment').put(((c) => ({ id: c.id, walk_id: c.walk_id ?? null, t: c.t, lat: c.lat ?? null, lon: c.lon ?? null, segment_id: c.segment_id ?? null, piece_ids: [c.id], pieces: [Object.fromEntries(Object.entries({ ...c, moment_id: c.id }).filter(([k]) => !['walk_id', 'lat', 'lon', 'segment_id'].includes(k)))] }))({ id: 'old-note', walk_id: 'old-walk', t: Date.now() - 86_400_000, kind: 'text', file_path: null, body: 'The old bench by the steps', segment_id: null, lat, lon }));
           tx.objectStore('recall').put({ capture_id: 'old-note', frequency: 'visit', until: null, last_fired_at: null, fired_count: 0, last_walk_id: null });
           tx.oncomplete = () => resolve();
           tx.onerror = () => reject(tx.error);
@@ -165,8 +165,8 @@ async function fresh(h) {
       const photosOf = () => pg.evaluate((id) => new Promise((resolve) => {
         const req = indexedDB.open('chronicles');
         req.onsuccess = () => {
-          const g = req.result.transaction('capture', 'readonly').objectStore('capture').getAll();
-          g.onsuccess = () => resolve(g.result.filter((x) => x.walk_id === id && x.kind === 'photo'));
+          const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll();
+          g.onsuccess = () => resolve(g.result.map((m) => ({ ...m.pieces[0], id: m.id, walk_id: m.walk_id, t: m.t, lat: m.lat, lon: m.lon, segment_id: m.segment_id })).filter((x) => x.walk_id === id && x.kind === 'photo'));
         };
       }), w.id);
       const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=bar-photo]')]);

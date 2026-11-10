@@ -18,8 +18,8 @@ async function run(h) {
     const rowOf = (kind) => pg.evaluate((k) => new Promise((resolve) => {
       const req = indexedDB.open('chronicles');
       req.onsuccess = () => {
-        const g = req.result.transaction('capture', 'readonly').objectStore('capture').getAll();
-        g.onsuccess = () => resolve(g.result.filter((x) => x.kind === k).sort((a, b) => b.t - a.t)[0] ?? null);
+        const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll();
+        g.onsuccess = () => resolve(g.result.map((m) => ({ ...m.pieces[0], id: m.id, walk_id: m.walk_id, t: m.t, lat: m.lat, lon: m.lon, segment_id: m.segment_id })).filter((x) => x.kind === k).sort((a, b) => b.t - a.t)[0] ?? null);
       };
     }), kind);
     const thumbSize = (ref) => pg.evaluate((ref) => new Promise((resolve) => {

@@ -376,8 +376,8 @@ async function checks(h) {
         const photoId = (await page.evaluate(() => new Promise((resolve) => {
           const req = indexedDB.open('chronicles');
           req.onsuccess = () => {
-            const g = req.result.transaction('capture', 'readonly').objectStore('capture').getAll();
-            g.onsuccess = () => resolve(g.result.filter((c) => c.kind === 'photo').sort((a, b) => b.t - a.t)[0]?.id ?? null);
+            const g = req.result.transaction('moment', 'readonly').objectStore('moment').getAll();
+            g.onsuccess = () => resolve(g.result.map((m) => ({ ...m.pieces[0], id: m.id, walk_id: m.walk_id, t: m.t, lat: m.lat, lon: m.lon, segment_id: m.segment_id })).filter((c) => c.kind === 'photo').sort((a, b) => b.t - a.t)[0]?.id ?? null);
           };
         })));
         const drops = await page.evaluate((n) => window.__enters.slice(n).filter((e) => e.kind === 'drop').map((e) => ({ animated: e.animated, ids: e.ids })), before);
@@ -387,9 +387,9 @@ async function checks(h) {
           const req = indexedDB.open('chronicles');
           req.onsuccess = () => {
             const db = req.result;
-            const g = db.transaction('capture', 'readonly').objectStore('capture').get(id);
+            const g = db.transaction('moment', 'readonly').objectStore('moment').get(id);
             g.onsuccess = () => {
-              const path = g.result?.thumb_path;
+              const path = g.result?.pieces?.[0]?.thumb_path;
               if (!path) return resolve({ path: null });
               const stores = [...db.objectStoreNames].filter((n) => /media/.test(n));
               const m = db.transaction(stores[0], 'readonly').objectStore(stores[0]).get(path);

@@ -18,8 +18,8 @@ const SEED = () => {
     const req = indexedDB.open('chronicles');
     req.onerror = () => reject(req.error);
     req.onsuccess = () => {
-      const tx = req.result.transaction(['capture'], 'readwrite');
-      for (const c of caps) tx.objectStore('capture').put(c);
+      const tx = req.result.transaction(['moment'], 'readwrite');
+      for (const c of caps) tx.objectStore('moment').put(((c) => ({ id: c.id, walk_id: c.walk_id ?? null, t: c.t, lat: c.lat ?? null, lon: c.lon ?? null, segment_id: c.segment_id ?? null, piece_ids: [c.id], pieces: [Object.fromEntries(Object.entries({ ...c, moment_id: c.id }).filter(([k]) => !['walk_id', 'lat', 'lon', 'segment_id'].includes(k)))] }))(c));
       tx.oncomplete = () => resolve(true);
       tx.onerror = () => reject(tx.error);
     };
@@ -29,9 +29,9 @@ const SEED = () => {
 const stored = (pg) => pg.evaluate(() => new Promise((resolve) => {
   const req = indexedDB.open('chronicles');
   req.onsuccess = () => {
-    const tx = req.result.transaction(['thread', 'thread_member', 'moment_link', 'capture'], 'readonly');
+    const tx = req.result.transaction(['thread', 'thread_member', 'moment_link', 'moment'], 'readonly');
     const all = (n) => new Promise((r) => { const g = tx.objectStore(n).getAll(); g.onsuccess = () => r(g.result); });
-    Promise.all([all('thread'), all('thread_member'), all('moment_link'), all('capture')]).then(([threads, members, links, captures]) => resolve({ threads, members, links, captures }));
+    Promise.all([all('thread'), all('thread_member'), all('moment_link'), all('moment')]).then(([threads, members, links, captures]) => resolve({ threads, members, links, captures }));
   };
 }));
 
@@ -87,7 +87,9 @@ async function run(h) {
   check(await there('text=Connected', 5000), 'owner-threads audit 19: the pill says Connected, nothing warmer');
   let db = await stored(pg);
   check(db.threads.length === 1 && db.threads[0].name === null && db.members.length === 2, 'OT5, OT6: the thread is made of the two moments, unnamed');
-  check(JSON.stringify(db.captures.find((x) => x.id === 's1')) === JSON.stringify({ id: 's1', walk_id: null, t: db.captures.find((x) => x.id === 's1').t, lat: null, lon: null, kind: 'text', file_path: null, body: 'Someone said I looked strong at the pier.', segment_id: null }),
+  // The moment's record as seeded (decision 0106): its own fields, and its one piece.
+  const s1 = db.captures.find((x) => x.id === 's1');
+  check(JSON.stringify(s1) === JSON.stringify({ id: 's1', walk_id: null, t: s1.t, lat: null, lon: null, segment_id: null, piece_ids: ['s1'], pieces: [{ id: 's1', t: s1.t, kind: 'text', file_path: null, body: 'Someone said I looked strong at the pier.', moment_id: 's1' }] }),
     'OT18: linking left the moment\'s own row as it was');
 
   // OT11: the viewer says "in a thread", without the thread's name.
@@ -108,7 +110,7 @@ async function run(h) {
   check(await there('[data-testid=respond-message]'), 'OT1: a reply is kept (Reply kept)');
   await pg.waitForTimeout(800);
   db = await stored(pg);
-  const reply = db.captures.find((x) => x.body === 'Same again today, at the same pier.');
+  const reply = db.captures.find((x) => x.pieces[0].body === 'Same again today, at the same pier.');
   check(reply && reply.walk_id === null && db.links.length === 1 && db.links[0].from_id === reply.id && db.links[0].to_id === 's1'
     && db.members.some((m) => m.moment_id === reply.id && m.thread_id === db.threads[0].id) && db.threads.length === 1,
     'OT2: the reply is its own moment, linked to the one it answers, and joins its thread');

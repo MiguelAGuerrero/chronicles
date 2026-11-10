@@ -22,9 +22,9 @@ const SEED = () => {
     const req = indexedDB.open('chronicles');
     req.onerror = () => reject(req.error);
     req.onsuccess = () => {
-      const tx = req.result.transaction(['walk', 'capture'], 'readwrite');
+      const tx = req.result.transaction(['walk', 'moment'], 'readwrite');
       tx.objectStore('walk').put(walk);
-      for (const c of caps) tx.objectStore('capture').put(c);
+      for (const c of caps) tx.objectStore('moment').put(((c) => ({ id: c.id, walk_id: c.walk_id ?? null, t: c.t, lat: c.lat ?? null, lon: c.lon ?? null, segment_id: c.segment_id ?? null, piece_ids: [c.id], pieces: [Object.fromEntries(Object.entries({ ...c, moment_id: c.id }).filter(([k]) => !['walk_id', 'lat', 'lon', 'segment_id'].includes(k)))] }))(c));
       tx.oncomplete = () => resolve(true);
       tx.onerror = () => reject(tx.error);
     };
@@ -65,9 +65,9 @@ const SEED_CONTEXT = () => {
     const req = indexedDB.open('chronicles');
     req.onerror = () => reject(req.error);
     req.onsuccess = () => {
-      const tx = req.result.transaction(['walk', 'capture', 'street_segment', 'pause'], 'readwrite');
+      const tx = req.result.transaction(['walk', 'moment', 'street_segment', 'pause'], 'readwrite');
       tx.objectStore('walk').put(walk);
-      for (const c of caps) tx.objectStore('capture').put(c);
+      for (const c of caps) tx.objectStore('moment').put(((c) => ({ id: c.id, walk_id: c.walk_id ?? null, t: c.t, lat: c.lat ?? null, lon: c.lon ?? null, segment_id: c.segment_id ?? null, piece_ids: [c.id], pieces: [Object.fromEntries(Object.entries({ ...c, moment_id: c.id }).filter(([k]) => !['walk_id', 'lat', 'lon', 'segment_id'].includes(k)))] }))(c));
       tx.objectStore('street_segment').put(segment);
       tx.objectStore('pause').put({ walk_id: 'w2', started_at: start + 20 * 60000, ended_at: start + 30 * 60000 });
       tx.oncomplete = () => resolve(true);
