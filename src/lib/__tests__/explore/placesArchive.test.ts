@@ -232,10 +232,10 @@ test('PW10: a read without the archive never replaces one measured with it; a ri
   assert.equal(rereadAt(area(prof('v1')), 'r1', 'v1'), null);
 });
 
-test('PW10: ATLAS_CODE is bumped, and rows measured under a6 stand until an archive is known', () => {
-  assert.equal(ATLAS_CODE, 'a7');
+test('PW10: ATLAS_CODE is bumped past a7; since a8 rows from a6 are read again too (PK7: the bars changed at every level)', () => {
+  assert.equal(ATLAS_CODE, 'a8');
   for (const level of ['neighborhood', 'town'] as const)
-    assert.equal(rowCurrent({ build: 'b1', code: 'a6', level }, 'b1'), true, `${level} rows from a6 are not read again for nothing`);
+    assert.equal(rowCurrent({ build: 'b1', code: 'a6', level }, 'b1'), false, `${level} rows from a6 are read again`);
 });
 
 test('PW11: no count, rank or "popular" mark: the kinds, their labels and the marks text carry no digit', () => {

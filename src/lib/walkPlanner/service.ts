@@ -1,8 +1,10 @@
 // @layer shell
 import { ATLAS_LABEL, ATLAS_ORDER } from '../atlas/atlas';
 import type { CategoryId, Place } from '../discovery/types';
+import { barsOf, passesBy } from '../discovery/bars';
 import { distanceM } from '../geo';
 import { densestCells, onStreets } from '../kindWalk/density';
+import { MIN_CELLS } from '../kindWalk/plan';
 import type { KindWalkPrefs } from '../kindWalk/prefs';
 import type { Reach } from '../kindWalk/words';
 import { routeTo } from '../nav/navigator';
@@ -95,15 +97,21 @@ export function createPlanner(deps: PlannerDeps) {
       // The same rule for every kind, the opened one too: a kind that can be found counts only places that could be, as the atlas does,
       // so a cell of churches that cannot be found is not dense (walk planner audit 5).
       const counted = read.places.filter((p) => distanceM(p.at, i.area.at) <= radiusM && (p.markable === undefined ? isMarkable(p) : p.markable !== false || !MARK_KINDS.has(p.category)));
-      const places = counted.filter((p) => p.category === i.kind);
+      // PK8: the places that light the bar, a museum the data calls historic among History's.
+      const places = counted.filter((p) => barsOf(p).includes(i.kind));
       if (!places.length) return { routes: [], reasons: ['few'], found: [] };
-      const cells = onStreets(densestCells(places, i.area.at), read.segments.flatMap((s) => s.geometry));
-      const planned = planRoutes({ cells, from: i.from, mode: i.prefs.mode, ceilingM: i.prefs.budgetM, density: i.prefs.density, round: i.round, shown: i.shown }, legOver(read.segments));
+      const lines = read.segments.flatMap((s) => s.geometry);
+      const all = onStreets(densestCells(places, i.area.at), lines);
+      // PK9: the places you pass choose the stops when they make the minimum; every place of the bar grades the route.
+      const passed = onStreets(densestCells(places.filter(passesBy), i.area.at), lines);
+      const cells = passed.length >= MIN_CELLS ? passed : all;
+      const planned = planRoutes({ cells, graded: all, from: i.from, mode: i.prefs.mode, ceilingM: i.prefs.budgetM, density: i.prefs.density, round: i.round, shown: i.shown }, legOver(read.segments));
       // Every other kind's dense cells, at the cells' resolution and counting every place found or not (WP28): a presence along the
       // route, never a place. A kind that can be found counts only places that could be (as the atlas does).
       const inRange = counted;
       const cellsByKind: Partial<Record<CategoryId, ReturnType<typeof densestCells>>> = {};
-      for (const k of ATLAS_ORDER) if (k !== i.kind) cellsByKind[k] = densestCells(inRange.filter((p) => p.category === k), i.area.at);
+      // PK10: a place counts toward every bar it lights.
+      for (const k of ATLAS_ORDER) if (k !== i.kind) cellsByKind[k] = densestCells(inRange.filter((p) => barsOf(p).includes(k)), i.area.at);
       const withReach = await Promise.all(planned.routes.map(async (r): Promise<PlannerRoute> => ({
         ...r,
         reach: await deps.reach(r.path).catch((): Reach => ({ cars: [], unknown: true })),

@@ -6,14 +6,23 @@
 // Network only; never in `npm test` or CI. Its reports are the owner's, in words and lists, never a percentage.
 //
 //   npm run places:coverage [-- --area bethlehem] [-- --review out/review-us-20261109.json]
+//   npm run places:coverage -- --gate <chronicles-data checkout> [--area coplay]
+//
+// `--gate` (Presence and kinds, PK15): for the gate's areas, small towns first, the listed places chronicles-data's
+// classifier (read from the checkout given) holds back until a source says they are open, by name, and whether History
+// and Culture are lit apart, with what the classifier admits counted as the archive would hold it.
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { VectorTile } from '@mapbox/vector-tile';
 import { PbfReader } from 'pbf';
+import { ringOf } from '../src/lib/atlas/atlas';
+import { archivePlace } from '../src/lib/discovery/archivePois';
 import { isMarkable } from '../src/lib/discovery/noise';
+import type { Place } from '../src/lib/discovery/types';
 import { placesFromTilePois } from '../src/lib/discovery/tilePois';
 import { wayNear } from '../src/lib/explore/reach/rule';
 import type { LngLat } from '../src/lib/types';
-import { areaKey, isDestination, NHL, NRHP, outcome, walkable } from './places-archive/coverage.mjs';
+import { areaKey, gateReport, isDestination, NHL, NRHP, outcome, walkable } from './places-archive/coverage.mjs';
 
 const AGENT = 'Chronicles places coverage (+github.com/MiguelAGuerrero/chronicles; owner-run, one query at a time)';
 /** The Nov 9 areas: three Lehigh Valley towns, a small tourist town, two cities' cores and one outside the US. */
@@ -22,6 +31,11 @@ const AREAS: Record<string, LngLat> = {
   pittsburgh: [-79.993, 40.443], philadelphia: [-75.148, 39.95], zurich: [8.542, 47.372],
 };
 const HALF_M = 1670;
+/** PK15: the gate's areas: the Nov 10 small towns (each at its map point) and two cities' cores. */
+const GATE_AREAS: Record<string, LngLat> = {
+  coplay: [-75.4955, 40.6701], lititz: [-76.307, 40.157], galena: [-90.4295, 42.4157], andalusia: [-86.4824, 31.3081], luray: [-78.46, 38.665],
+  edenton: [-76.609, 36.058], jefferson: [-94.346, 32.757], bethlehem: [-75.372, 40.617], philadelphia: [-75.148, 39.95],
+};
 
 type Item = { id: string; name: string; at: LngLat; lon: number; lat: number; p31: string[]; heritage: string[]; listed: boolean; nhl: boolean; dissolved: boolean };
 type Feature = { type: 'Feature'; geometry: { type: string; coordinates: unknown }; properties: Record<string, unknown>; zoom: number };
@@ -88,8 +102,42 @@ async function tiles(box: number[]) {
 
 const list = (xs: string[]) => (xs.length ? xs.join('; ') : 'none');
 
+type Classifier = {
+  keep: (i: Item) => string | null;
+  listing: (i: Item) => { needsOpen: boolean } | null;
+  ORDER: string[];
+  CLASSES: Record<string, string[]>;
+};
+
+/** PK15: the gate measured, in words and lists (`gateReport`). */
+async function gate(dataRepo: string, only: string | null) {
+  const c = (await import(resolve(dataRepo, 'src/adapters/wikidata/classify.mjs'))) as Classifier;
+  const byType = (i: Item) => c.ORDER.some((k) => c.CLASSES[k].some((q) => i.p31.includes(q)));
+  const waits = (i: Item) => !!c.keep(i) && !byType(i) && !!c.listing(i)?.needsOpen;
+  const out = [];
+  for (const [area, centre] of Object.entries(GATE_AREAS)) {
+    if (only && only !== area) continue;
+    const box = boxOf(centre);
+    const [items, t] = await Promise.all([wikidata(box), tiles(box)]);
+    const admitted = items.flatMap((i) => {
+      const cls = c.keep(i);
+      const p = cls && !waits(i) ? archivePlace(i.name, cls, i.at, 'gate') : null;
+      return p ? [p] : [];
+    });
+    const s = ringOf(placesFromTilePois(t.pois as never, t.build), admitted as Place[], centre).steps;
+    out.push({
+      name: area,
+      held: items.filter(waits).map((i) => i.name),
+      apart: { historyAlone: Number(s.history > 0 && !s.culture), cultureAlone: Number(s.culture > 0 && !s.history), both: Number(s.history > 0 && s.culture > 0) },
+    });
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+  console.log(gateReport(out));
+}
+
 async function main() {
   const only = arg('area');
+  if (arg('gate')) return gate(arg('gate')!, only);
   const review = arg('review') ? (JSON.parse(readFileSync(arg('review')!, 'utf8')) as { areas: { name: string; places: { name: string; at: LngLat }[] }[] }) : null;
   for (const [area, centre] of Object.entries(AREAS)) {
     if (only && only !== area) continue;

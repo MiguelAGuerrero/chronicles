@@ -23,7 +23,7 @@ const planner = (places: Place[]) =>
     found: async () => [],
   } satisfies PlannerDeps);
 
-test('PK8: a bar lit by museums the data calls historic plans a route through them; one alone is "few"', { todo: 'test first' }, async () => {
+test('PK8: a bar lit by museums the data calls historic plans a route through them; one alone is "few"', async () => {
   const two = await planner([museum('Old Mill Museum', at(250, 250)), museum('Kiln Museum', at(1000, 900))]).plan({ kind: 'history', area, from: at(130, 130), prefs });
   assert.ok(two.routes.length > 0, `reasons: ${two.reasons.join(', ')}`);
   const alone = await planner([museum('Kiln Museum', at(1000, 900))]).plan({ kind: 'history', area, from: at(130, 130), prefs });
@@ -31,7 +31,7 @@ test('PK8: a bar lit by museums the data calls historic plans a route through th
   assert.ok(alone.reasons.includes('few'), 'one place is not "a lot"');
 });
 
-test('PK9: cells come from places you pass when they make the minimum, else from all', { todo: 'test first' }, async () => {
+test('PK9: cells come from places you pass when they make the minimum, else from all', async () => {
   // Monuments in two cells near the south-west; museums, more of them, in two cells near the north-east.
   const monuments = [at(200, 200), at(220, 210), at(900, 300), at(910, 320)].map((p, i) => place(`m${i}`, 'history', 'monuments', p));
   const museums = [at(1000, 1000), at(1010, 990), at(1020, 1010), at(1250, 1000), at(1260, 1010), at(1240, 990)].map((p, i) => museum(`Old Museum ${i}`, p));
@@ -45,7 +45,7 @@ test('PK9: cells come from places you pass when they make the minimum, else from
   assert.ok(all.routes[0].stops.some((s) => museums.some((m) => distanceM(m.at, s) <= 300)), 'the museums choose cells too');
 });
 
-test('PK10: a museum the data calls historic counts toward History along the route', { todo: 'test first' }, async () => {
+test('PK10: a museum the data calls historic counts toward History along the route', async () => {
   const parks = [at(130, 130), at(160, 150), at(850, 140), at(880, 120), at(1250, 130)].map((p, i) => place(`p${i}`, 'parks', 'parks', p));
   const along = [at(500, 130), at(520, 140), at(700, 130), at(720, 120), at(1000, 140), at(1020, 130)].map((p, i) => museum(`Old Museum ${i}`, p));
   const r = await planner([...parks, ...along]).plan({ kind: 'parks', area, from: at(130, 130), prefs });
@@ -55,7 +55,7 @@ test('PK10: a museum the data calls historic counts toward History along the rou
   assert.ok(kinds.includes('culture'), `also: ${kinds.join(', ')}`);
 });
 
-test('PK17: the planner\'s words name no place, say no count and never the lean', { todo: 'test first' }, () => {
+test('PK17: the planner\'s words name no place, say no count and never the lean', () => {
   const lean = /pass[- ]by|places you pass|go into|destination kind/i;
   for (const f of ['../../walkPlanner/words.ts', '../../walkPlanner/exposure.ts', '../../../components/planner/PlannerDrawer.tsx']) {
     const src = readFileSync(new URL(f, import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');

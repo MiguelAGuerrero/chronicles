@@ -35,7 +35,8 @@ const POI: Record<string, Rule[]> = {
   music: [[['music', 'musical_instrument'], 'shops']],
   monument: [['*', 'history']],
   castle: [[['castle', 'ruins'], 'history']],
-  town_hall: [[['townhall', 'courthouse'], 'history']],
+  // PK11, PK12: a community centre is a place of Culture, a place to find only by a notable name (MARK_BY_NAME, as a town hall).
+  town_hall: [[['townhall', 'courthouse'], 'history'], [['community_centre'], 'culture']],
   cemetery: [[['cemetery', 'grave_yard'], 'history']],
   // Places of worship count as historic buildings (the owner's call).
   place_of_worship: [['*', 'history']],
@@ -84,8 +85,11 @@ export const MARKABLE_CLASSES: readonly { cls: string; sub: string; category: Ca
       : (subs === '*' ? ['*'] : subs).map((sub) => ({ cls, sub, category, byName: MARK_BY_NAME.has(cls) }))),
 );
 
+/** Culture's places for gathering, not for showing (PK13): community centres, arts centres, libraries. */
+const COMMUNITY = new Set(['community_centre', 'arts_centre', 'library']);
+
 /** An attraction's kind for the filter (E16): the history and culture categories split finer. */
-function kindFor(cls: string, category: CategoryId): Kind | undefined {
+function kindFor(cls: string, sub: string, category: CategoryId): Kind | undefined {
   switch (category) {
     case 'art':
       return 'public_art';
@@ -98,7 +102,8 @@ function kindFor(cls: string, category: CategoryId): Kind | undefined {
       if (cls === 'cemetery') return 'cemeteries';
       return 'monuments';
     case 'culture':
-      return cls === 'theatre' ? 'theatres' : 'museums';
+      if (cls === 'theatre') return 'theatres';
+      return COMMUNITY.has(sub) ? 'community' : 'museums';
     default:
       return undefined;
   }
@@ -138,7 +143,7 @@ export function placesFromTilePois(features: (TileFeature & { zoom?: number })[]
     const name = generic ? GENERIC[sub] : raw;
     if (out.has(key)) continue;
     const markable = markableFor(cls, category, name);
-    const kind = markable ? kindFor(cls, category) : undefined;
+    const kind = markable ? kindFor(cls, sub, category) : undefined;
     out.set(key, { key, name, category, at, generic, build, markable, ...(kind ? { kind } : {}) });
   }
   return [...out.values()];

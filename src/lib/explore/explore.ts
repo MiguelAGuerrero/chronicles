@@ -55,6 +55,8 @@ export const KINDS: readonly KindInfo[] = [
   { id: 'public_art', label: 'Public art', icon: 'color-palette-outline' },
   { id: 'museums', label: 'Museums and galleries', icon: 'images-outline' },
   { id: 'theatres', label: 'Theatres', icon: 'ticket-outline' },
+  // PK11-PK13: community centres (by a notable name), arts centres and libraries, in Culture (the owner, Nov 10).
+  { id: 'community', label: 'Community spaces', icon: 'people-outline' },
   { id: 'monuments', label: 'Monuments and memorials', icon: 'flag-outline' },
   // RP8, RP18: the archive's listed buildings and structures, named for what they are, never their listing (decision 0109).
   { id: 'structures', label: 'Buildings and structures', icon: 'library-outline' },
@@ -502,12 +504,22 @@ export function passedLine(places: { name: string; generic: boolean }[]): string
   return `Passed ${names.join(' and ')} without stopping`;
 }
 
-/** The "What I'm into" filter as stored (meta `explore_hidden`): the kinds switched off. */
-export function parseHidden(raw: string | null): Set<Kind> {
+const kindsIn = (raw: string | null): Kind[] => {
   try {
     const v = raw ? JSON.parse(raw) : [];
-    return new Set((Array.isArray(v) ? v : []).filter((k): k is Kind => KINDS.some((x) => x.id === k)));
+    return (Array.isArray(v) ? v : []).filter((k): k is Kind => KINDS.some((x) => x.id === k));
   } catch {
-    return new Set();
+    return [];
   }
+};
+
+/**
+ * The "What I'm into" filter as stored (meta `explore_hidden`): the kinds switched off. `known` is the kinds there were
+ * when it was saved (meta `explore_kinds_known`). PK18: a choice saved before Community spaces existed keeps hiding the
+ * libraries and arts centres it hid under Museums and galleries.
+ */
+export function parseHidden(raw: string | null, known: string | null = null): Set<Kind> {
+  const out = new Set(kindsIn(raw));
+  if (out.has('museums') && !kindsIn(known).includes('community')) out.add('community');
+  return out;
 }

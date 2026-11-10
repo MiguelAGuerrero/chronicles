@@ -4,6 +4,7 @@ import { AREA_REACH_M } from '../areas/rules';
 import type { Area, PlaceCandidate, WalkArea } from '../areas/types';
 import { keepFindKeys, mergePlaces } from '../discovery/archiveMerge';
 import { isMarkable, MARK_CATEGORIES } from '../discovery/noise';
+import { barsOf } from '../discovery/bars';
 import type { CategoryId, Kind, Place } from '../discovery/types';
 import { boundsOf, distanceM, projector, type Bounds } from '../geo';
 import { NAV } from '../nav/rules';
@@ -24,10 +25,11 @@ import type { Pocket } from './pockets';
 /** a5: towns graded across their whole outline, with pockets of activity (TP1-TP11); neighborhoods read as under a4. */
 /** a6: wards inside a city are not towns (fix ward-subdivision); neighborhood rows stand as under a5. */
 /** a7: the places archive's curiosities and landmarks count among the findable kinds (PW10); rows stand until an archive is known, then read again (profileStale). */
-export const ATLAS_CODE = 'a7';
+/** a8: presence by bars (PK1-PK7): a museum the data calls historic lights History too; community spaces join Culture. */
+export const ATLAS_CODE = 'a8';
 
-/** TP10: the older rules a level's rows still stand under, because the change did not touch that level. */
-const CARRIED: Partial<Record<AtlasLevel, readonly string[]>> = { neighborhood: ['a4', 'a5', 'a6'], town: ['a6'] };
+/** TP10: the older rules a level's rows still stand under, because the change did not touch that level. None since a8 (PK7): the bars changed at every level. */
+const CARRIED: Partial<Record<AtlasLevel, readonly string[]>> = {};
 
 export const ATLAS_RULES = {
   /** Every area is measured inside this ring around its point, whatever its level (AT4). */
@@ -89,6 +91,10 @@ export interface AtlasPlace {
   at: LngLat;
   /** Whether it could be a "?" mark (`isMarkable`); a findable kind counts only these (AG1). */
   markable?: boolean;
+  /** What `barsOf` reads to light a second bar (PK1, PK2); absent, a place lights its category alone. */
+  name?: string;
+  kind?: Kind;
+  alsoBars?: CategoryId[];
 }
 
 /** A place that could be found (a mark's place): never named on the tab (AT7). */
@@ -180,7 +186,8 @@ export function presenceSteps(places: AtlasPlace[], centre: LngLat, within: With
     if (p.markable === false && MARK_CATEGORIES.includes(p.category)) continue;
     if (seen.has(p.key) || !within(p.at)) continue;
     seen.add(p.key);
-    counts[p.category] += 1;
+    // PK1-PK4: a place lights each of its bars once (a museum the data calls historic, History and Culture).
+    for (const bar of barsOf({ category: p.category, name: p.name ?? '', kind: p.kind, alsoBars: p.alsoBars })) counts[bar] += 1;
   }
   return Object.fromEntries(ATLAS_ORDER.map((c) => [c, STEPS[c].filter((s) => counts[c] >= s).length as Step])) as Steps;
 }

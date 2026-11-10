@@ -37,7 +37,7 @@ test('remarkable-and-public audit 8: the benchmark measures reach over walkable 
 });
 
 // Presence and kinds, PK15: the gate's measurement, written before the code.
-test('PK15: the gate report lists names and says overlap in words, no percentage', { todo: 'test first' }, async () => {
+test('PK15: the gate report lists names and says overlap in words, no percentage', async () => {
   const m = await later('../../../../scripts/places-archive/coverage.mjs') as {
     gateReport?: (areas: { name: string; held: string[]; apart: { historyAlone: number; cultureAlone: number; both: number } }[]) => string;
   };
