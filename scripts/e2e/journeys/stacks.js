@@ -138,7 +138,7 @@ module.exports = {
   covers: [
     'src/components/walk/AddToMomentPill.tsx',
     'src/lib/openMoment.ts',
-    'src/lib/openMoment/**',
+    'src/lib/momentPill/**',
     'src/lib/pieceStamp.ts',
     'src/components/CaptureView.tsx',
     'src/components/chronicle/{MomentCard,MomentPicture,StackMark}.tsx',
