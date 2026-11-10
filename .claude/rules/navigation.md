@@ -121,7 +121,7 @@ Routing inside a walk (`lib/nav`): walk me back, Go here, the route sources, rul
   - The long press on the walk map opens a small sheet: Go here, plus "What
     happened here (N)" when captures are near.
   - Walk me back is the top edge button.
-- **Drive there, walk back** (DW1-DW14, decision 0113, the owner, Nov 10):
+- **Drive there, walk back** (DW1-DW14, decision 0121, the owner, Nov 10):
   - Walk me back's target is `wayBackTarget` (`nav/wayBack.ts`, core): the spot chosen with "Walk back here" (meta
     `way_back`, `{ walk_id, at }`, cleared by `stopWalk`), else where the last ride that has ended ended (`landingOf`, the
     first walked fix after it, published by `useLiveTrace` as `landing`; a ride under way is skipped), else the start.

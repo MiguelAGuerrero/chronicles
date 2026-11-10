@@ -894,7 +894,7 @@ function WalkScreen(props: { onMinimize: () => void }) {
     };
   }, [walkId]);
   const chosenAt = chosen && chosen.walkId === walkId ? chosen.at : null;
-  // Walk me back leads to the spot chosen, else where the last ride ended, else the start (DW6-DW8, decision 0113),
+  // Walk me back leads to the spot chosen, else where the last ride ended, else the start (DW6-DW8, decision 0121),
   // once there is somewhere to walk back from.
   const wayBack = useMemo(() => wayBackTarget({ start: walkStart, landing: live.landing, chosen: chosenAt }), [walkStart, live.landing, chosenAt]);
   const awayFromStart = showsWayBack(wayBack, live.here);

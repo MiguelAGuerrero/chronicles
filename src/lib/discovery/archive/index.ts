@@ -30,7 +30,7 @@ async function fetchText(url: string): Promise<string> {
 export const placesArchive = createPlacesArchive({
   ...ports,
   io: {
-    // The e2e build serves its own archive; the app's address stays empty until PW16 is recorded.
+    // The e2e build serves its own archive; the app reads chronicles-data's Pages site (PW16).
     base: process.env.EXPO_PUBLIC_PLACES_BASE ?? PLACES_BASE,
     fetchText,
     open: (url) => new PMTiles(net.source(url)),

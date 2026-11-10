@@ -680,7 +680,7 @@ export default function Explore() {
           // DW14: too far to walk (N5) offers When I get there alone.
           farOff={!canWalkTo(card.distanceM)}
           busyAreas={busyAreas(card.area).map((b) => ({ ...b, walkable: !!from && canWalkTo(metresBetween(from, b.at)) }))}
-          // DW1, DW2, DW5 (decision 0113): near with a fresh fix starts at once; far, or with no fresh fix, asks.
+          // DW1, DW2, DW5 (decision 0121): near with a fresh fix starts at once; far, or with no fresh fix, asks.
           // With a walk open, Walk to routes that walk, as before (NV10).
           askFirst={(to) => !openInfo.walk && walkToChoice(from ? metresBetween(from, to) : null, stale ? null : fixSeen.current || null, Date.now()) !== 'start'}
           onLater={(at, label) => {

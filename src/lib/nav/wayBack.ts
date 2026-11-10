@@ -4,7 +4,7 @@ import type { ReadTrace } from '../rides';
 import type { LngLat } from '../types';
 
 /**
- * Where Walk me back leads (specs/drive-then-walk, DW6-DW10; decision 0113): the spot chosen with
+ * Where Walk me back leads (specs/drive-then-walk, DW6-DW10; decision 0121): the spot chosen with
  * Walk back here, else where the last ride ended, else the walk's start. Read from the trace each
  * time, never stored, so a change to RIDE_RULES moves it with the trace.
  */

@@ -44,7 +44,7 @@ export function destLine(dest: Waypoint, from: LngLat | null): string {
   return `${dest.label} · ${m < 1000 ? `${Math.round(m / 10) * 10} m` : `${(m / 1000).toFixed(1)} km`} away`;
 }
 
-/** Explore's area card asks "Walk now" or "When I get there" past this, in a straight line (DW2, decision 0113). */
+/** Explore's area card asks "Walk now" or "When I get there" past this, in a straight line (DW2, decision 0121). */
 export const GET_THERE_M = 2000;
 /** A fix older than this is no position: the card asks rather than start a walk that might record a drive (DW5). */
 export const FRESH_FIX_MS = 30 * 60_000;

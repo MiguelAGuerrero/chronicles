@@ -139,7 +139,7 @@ const FEATURES = [
       'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx',
     ],
     journeys: ['marks', 'atlas', 'grading', 'snap', 'curiosities'],
-    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public'],
+    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town'],
   },
   {
     name: 'kind-walk',
@@ -344,6 +344,29 @@ const RETIRED = {
  * make (the web build can't reach it), `deferred: <why>` for the owner's call to wait. Keyed by spec.
  */
 const UNTESTED = {
+  // Places out of town: queued, not started (the owner, Nov 9-10). Back to IN_PROGRESS when the slice begins.
+  'places-out-of-town': {
+    OP1: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP2: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP3: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP4: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP5: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP6: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP7: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP8: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP9: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP10: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP11: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP12: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP13: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP14: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP15: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP16: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP17: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP18: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP19: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+    OP20: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',
+  },
   // Remarkable and public: the archive's rule moves with the pipeline to chronicles-data; RP9 waits on its contract v2.
   'remarkable-and-public': {
     RP1: 'deferred: built and tested here, then the places pipeline moved to chronicles-data (decision 0108); the rule and its tests go there (specs/remarkable-and-public/handoff.md)',
@@ -365,7 +388,8 @@ const UNTESTED = {
  * Specs a slice is building (TG22): from its plan until done, its criteria are exempt from the gate.
  * `{ slug: { branch, since: 'YYYY-MM-DD' } }`; an entry older than 7 days fails the docs check.
  */
-const IN_PROGRESS = {};
+const IN_PROGRESS = {
+};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 

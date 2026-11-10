@@ -177,7 +177,7 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
 - **The area card is sized in pixels** from the screen's measured height: sized by percent and insets, it showed only its header on an iPhone's Safari (Nov 3).
 - **Round 3 (decision 0067, the design review):**
   - Presence is dots (`KindStrip`'s `Dots`). A tile shows only the kinds present; the card's `KindRow` shows all eight, with "none" at full ink. `MARKS_EXPLAINED` has no numbers, and the e2e checks it.
-  - Walk to is the card's footer (`walkTarget` → `label`, `via`). **Drive there first** (DW1-DW14, decision 0113):
+  - Walk to is the card's footer (`walkTarget` → `label`, `via`). **Drive there first** (DW1-DW14, decision 0121):
     `walkToChoice` (`startPlan.ts`, core) decides on the tap: within `GET_THERE_M` (2 km) with a fix under
     `FRESH_FIX_MS` (30 min) it starts; otherwise the footer asks Walk now (`atlas-walk-now`) or When I get there
     (`atlas-walk-later`, close `atlas-walk-cancel`; Back and Escape close the question before the card); past

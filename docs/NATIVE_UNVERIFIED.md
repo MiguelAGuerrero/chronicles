@@ -380,7 +380,10 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** with a photo held, hold Stop. **Expect:** the walk does not end; it says the photo isn't saved yet with Retry, and a second hold ends the walk without it. (SA8)
 - [ ] **Do:** on an iPhone in Safari (not the Home Screen app), keep a moment on Navigate, ready. **Expect:** if Safari refuses to keep the data, the line "This browser may clear Chronicles’ moments when it needs room. The Home Screen app is less likely to." shows once there; from the Home Screen app, whether `persist()` is granted (nothing said). (SA10)
 
-## Drive there, walk back (DW1-DW14, decision 0113)
+## Permission refusals offer Settings (fix mic-settings, Nov 10)
+
+- [ ] **Do:** on an iPhone and an Android phone, turn Microphone off for Chronicles in Settings, open a moment from Memories, and tap Respond, Voice; then do the same from the planner's capture buttons during a walk. **Expect:** "Microphone access is off for Chronicles." stays about 8 seconds with an "Open Settings" button that opens Chronicles' page in Settings; after turning Microphone on and returning, Voice records.
+## Drive there, walk back (DW1-DW14, decision 0121)
 
 - [ ] **Do:** with Explore open, pick a town more than 2 km away, tap its Walk to, then When I get there; drive there with the app in the background, park a street away and wait a few minutes before opening it. **Expect:** no walk started and nothing told you that you'd arrived; Navigate, ready says "To <town> · <distance> away"; the walk starts only when you tap Start, from where you parked. (DW2, DW3, DW4)
 - [ ] **Do:** start a walk, drive 3 km inside it, get out and walk 200 m. **Expect:** "On a ride" while driving; afterwards VoiceOver or TalkBack reads Walk me back as "Walk me back to where the ride ended", and it leads to where you got out, not to where the drive began. (DW6, DW8, DW9)

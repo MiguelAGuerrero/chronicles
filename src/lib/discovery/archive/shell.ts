@@ -16,7 +16,7 @@ import type { Place } from '../types';
  */
 
 export interface ArchiveIo {
-  /** Where the manifest and archives are served; empty until PW16 is recorded, and then nothing is asked. */
+  /** Where the manifest and archives are served (PW16); empty asks for nothing (a test's, or the app with none set). */
   base: string;
   fetchText(url: string): Promise<string>;
   open(url: string): Archive;

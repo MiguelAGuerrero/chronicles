@@ -59,7 +59,7 @@ Nothing native is new. The meta write, the card and the label run on the same co
 
 1. **The distance:** 2 km, kept.
 2. **Towns past 10 km:** offer When I get there (DW14).
-3. **The decision record:** 0113, listed in VISION.md's Precedents table (the steward's S5).
+3. **The decision record:** 0121, listed in VISION.md's Precedents table (the steward's S5).
 
 ## The steward's findings (Nov 10), triaged
 
@@ -69,7 +69,7 @@ Nothing native is new. The meta write, the card and the label run on the same co
 | S2 the chosen spot is invisible once set; the button's label is spoken only | accepted: DW7's one notice; DW8 says the label is spoken and the bar shows the name |
 | S3 DW3's "no background location, no alert" untested | accepted: the DW3 shell test checks the location task and the notifier |
 | S4 DW11 against the route's end mark | accepted: DW11 reworded |
-| S5 NV23/NR8 and 0021/0049 amended without saying so; Precedents row | accepted: the spec's "Amended"; 0113 listed in Precedents |
+| S5 NV23/NR8 and 0021/0049 amended without saying so; Precedents row | accepted: the spec's "Amended"; 0121 listed in Precedents |
 | S6 "where you are" has no age | accepted: DW5, a fix over 30 min old asks |
 | S7 towns past 10 km would widen the slice | the owner said yes: DW14 |
 | S8 "where you got off" names a bus | accepted: "where the ride ended" |
