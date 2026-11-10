@@ -41,8 +41,6 @@ src/app/(tabs)/index.tsx     Chronicle (/), where the app opens (0112): Memories
 src/app/(tabs)/explore.tsx   Explore (/explore): the atlas of the areas near you (tiles, the area card; 0066, 0067); long press = What's good here / Walk here
 src/app/chronicle.tsx        the old /chronicle path: dismissTo("/") down to Chronicle (HC5, 0112)
 src/app/walk.tsx             the walk screen, and Navigate: one screen and one map, ready with no walk open (`useReady`), else the walk; a composition only (WS1): its parts are in components/walking/
-src/components/walking/      the walk screen's parts (WS1-WS8): a view hook per feature (state, effects) and a view per thing drawn (props only); live trace and dot, fog, captures, navigation bar, Explore marks, memories, reminders, options, hold-to-stop. specs/walk-screen-split/plan.md maps each to its journeys
-src/lib/walkScreen/          the walk screen's db and recorder effects (shell, WS6), so its views import neither (FC5)
 src/app/replay/[id].tsx      a walk's replay: the five beats; the path beat is a ceremony told over the map (lib/ceremony, components/ceremony), or the screen reader's steps; the card, naming
 src/app/day/[key].tsx        a day's replay: the day's story told by the same ceremony (or the screen reader's steps), a quiet card
 ```
@@ -103,6 +101,7 @@ Home / tabs
   LocateButton.tsx           Locate me, an edge button
   StartSettings.tsx          the walk settings, shown in the ready bar pulled up (NR7)
   walk/                      the walk screen's shared geometry (layout.ts), CaptureStack (a stack, or Memories' band), AddToMomentPill (moment stacks), ReadyBar, useReady (the walk screen's ready state)
+  walking/                   the walk screen's parts (WS1-WS8): a view hook per feature (state, effects) and a view per thing drawn (props only); live trace and dot, fog, captures, navigation bar, Explore marks, memories, reminders, options, hold-to-stop. specs/walk-screen-split/plan.md maps each to its journeys
   StackMark.tsx              the two-card mark of a moment holding more than one piece (MS8)
   GapCard.tsx                a filled or offered stretch: Keep, Not this way
   LandingMarks.tsx           a strip's name beside it on the map
@@ -289,6 +288,7 @@ Captures and media
   editSession.ts             the editor's draft, undo/redo, close/discard/done (core)
   editOffer.ts               the after-capture Edit offer's timing and words (core)
   ready/                     Navigate, ready's shell (`createReady`: its choices, one fix, notes and moments' writes) and the app's instance
+  walkScreen/                the walk screen's db and recorder effects (shell, WS6), so its views import neither (FC5)
   captureEdits/              saving a moment's edits from a screen with no capture path: stored, then told on the bus (shell)
   videoEdit/                 an edited video as one file: the local module on phones, canvas + MediaRecorder on the web
   media/                     where files are kept: Documents (relative paths) on native, Blobs in IndexedDB on web; resolveMedia
