@@ -14,7 +14,7 @@ export type ReplyStage = 'sheet' | 'note' | null;
 
 /**
  * The viewer's toolbar, docked under the moment (OT1, decision 0108): Respond, and Edit where the moment can be
- * edited. Respond opens an action sheet of kinds; the reply is kept by the capture's own path and linked to the moment
+ * edited. Respond opens a pull-down menu of kinds; the reply is kept by the capture's own path and linked to the moment
  * it answers (`useCaptures` `replyTo`). One per open viewer, so swiping builds no new recorder (audit 10). The sheet and
  * the note are the viewer's to close with Back (`stage`, audit 9). Drawn inside the viewer's Modal, never a second one.
  */
@@ -86,16 +86,14 @@ export function ReplyDock(props: {
         )}
       </View>
       {props.stage === 'sheet' && (
-        <View style={styles.back} accessibilityViewIsModal>
-          <Pressable style={StyleSheet.absoluteFill} onPress={() => props.setStage(null)} accessible={false} />
-          <View style={[styles.sheet, { paddingBottom: props.bottomInset + 12 }]} testID="respond-sheet">
-            <Text style={styles.sheetTitle} accessibilityRole="header">Respond with</Text>
+        // A pull-down menu from the Respond button (HIG: a button that asks what kind of thing to add, M3); a tap
+        // outside dismisses it, as a menu does. Not an action sheet, which is for clarifying an action already started.
+        <View style={StyleSheet.absoluteFill}>
+          <Pressable testID="respond-dismiss" style={StyleSheet.absoluteFill} onPress={() => props.setStage(null)} accessibilityRole="button" accessibilityLabel="Close the menu" />
+          <View style={[styles.menu, { bottom: DOCK_H + props.bottomInset + 6 }]} testID="respond-sheet" accessibilityRole="menu">
             {item('respond-photo', 'camera', 'Photo or video', pick(() => void cap.takePhoto()))}
             {item('respond-voice', 'mic', 'Voice memo', pick(() => void cap.startVoice()))}
             {item('respond-note', 'create-outline', 'Note', () => props.setStage('note'))}
-            <Pressable testID="respond-cancel" accessibilityRole="button" onPress={() => props.setStage(null)} style={styles.item}>
-              <Text style={[styles.itemText, styles.cancel]}>Cancel</Text>
-            </Pressable>
           </View>
         </View>
       )}
@@ -124,10 +122,7 @@ const styles = StyleSheet.create({
   rec: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
   dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: theme.danger },
   recText: { color: '#ffffff', fontSize: 14 },
-  back: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end', zIndex: 20 },
-  sheet: { backgroundColor: theme.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingTop: 8, paddingHorizontal: 12, width: '100%', maxWidth: 640, alignSelf: 'center' },
-  sheetTitle: { color: theme.muted, fontSize: 13, fontWeight: '600', paddingHorizontal: 12, paddingVertical: 8 },
+  menu: { position: 'absolute', left: 12, minWidth: 220, backgroundColor: theme.surface, borderRadius: 14, paddingVertical: 6, elevation: 8, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } },
   item: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 52, paddingHorizontal: 12, borderRadius: 12 },
   itemText: { color: theme.ink, fontSize: 16, fontWeight: '600' },
-  cancel: { color: theme.muted },
 });

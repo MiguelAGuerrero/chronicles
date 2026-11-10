@@ -71,7 +71,12 @@ Write `specs/<slug>/plan.md`:
   (`src/lib/__tests__/<feature>/`) and the name for each id; a new feature (a
   folder and a row in `scripts/features.js`) or a new journey, if the slice needs one;
 - what is deferred, and why;
-- native paths that will not run on a device.
+- native paths that will not run on a device;
+- for every screen it adds or changes, one line per action: the user's goal, how
+  often and in what situation, the control, and its row in the goal-to-control
+  matrix (`docs/research/ui-references.md`, section 2), with a precedent from
+  `docs/research/ui-teardown.md` where there is one. A control the matrix says
+  to avoid needs a reason the owner accepts (`.claude/rules/ui-patterns.md`).
 
 Then run the `steward` subagent (`.claude/agents/steward.md`) on the spec and
 plan, unless the gate said no surface. Triage each finding in the plan (accept

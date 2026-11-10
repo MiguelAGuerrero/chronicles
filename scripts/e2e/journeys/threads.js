@@ -125,12 +125,17 @@ async function run(h) {
   check((await pg.locator('[data-testid=viewer-in-thread]').count()) === 0 && /In a thread/.test(await pg.locator('[data-testid=capture-meta]').first().innerText().catch(() => '')),
     'OT11: "In a thread" is said in the moment\'s info line, not as a chip over it');
 
-  // OT1: Respond opens an action sheet of kinds, and Cancel leaves the viewer as it was.
+  // OT1: Respond opens a pull-down menu of kinds from its button; a tap outside closes it.
   await pg.click('[data-testid=viewer-respond]');
-  const kinds = await Promise.all(['respond-photo', 'respond-voice', 'respond-note', 'respond-cancel'].map((id) => has(`[data-testid=respond-sheet] [data-testid=${id}]`)));
-  check(kinds.every(Boolean), 'OT1: Respond opens an action sheet: Photo or video, Voice memo, Note, Cancel');
-  await pg.click('[data-testid=respond-cancel]');
-  check(!(await has('[data-testid=respond-sheet]')) && (await has('[data-testid=viewer-respond]')), 'OT1: Cancel closes the sheet and leaves the viewer');
+  const kinds = await Promise.all(['respond-photo', 'respond-voice', 'respond-note'].map((id) => has(`[data-testid=respond-sheet] [data-testid=${id}]`)));
+  const menuBox = await pg.locator('[data-testid=respond-sheet]').boundingBox();
+  const btnBox = await pg.locator('[data-testid=viewer-respond]').boundingBox();
+  check(kinds.every(Boolean) && menuBox && btnBox && menuBox.y + menuBox.height <= btnBox.y && menuBox.width < 390, 'OT1: Respond opens a menu of Photo or video, Voice memo and Note, just above its button');
+  await pg.waitForTimeout(300);
+  await shot(pg, '74-respond-menu');
+  await pg.mouse.click(200, 120);
+  await pg.waitForTimeout(300);
+  check(!(await has('[data-testid=respond-sheet]')) && (await has('[data-testid=viewer-respond]')), 'OT1: a tap outside closes the menu and leaves the viewer');
   // OT22: Edit is the toolbar's; Save, Open in Maps, Add to a thread and Delete wait in More.
   check((await has('[data-testid=viewer-toolbar] [data-testid=viewer-edit-note]')) && !(await has('[data-testid=viewer-delete]')), 'OT22: Edit is in the toolbar; Delete and the rest wait in More');
   const toolbarBox = await pg.locator('[data-testid=viewer-toolbar]').boundingBox();

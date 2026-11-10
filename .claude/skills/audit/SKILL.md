@@ -38,6 +38,14 @@ Give it the three inputs above and ask for a report-only pass that:
 It may run `npm test` and single test files; it edits nothing. Wait for its
 report before going on.
 
+Beside them, run the `ux-reviewer` subagent (`.claude/agents/ux-reviewer.md`) with
+the pictures, the spec and the plan's goal-to-control lines: a review of every
+changed screen against `docs/research/ui-references.md` (the cited patterns and
+the goal-to-control matrix), `docs/research/ui-teardown.md` and
+`.claude/rules/ui-patterns.md`. Each finding cites its source or is marked
+opinion; an opinion is triaged as one. Its findings are numbered on after the
+steward's.
+
 Beside it, run the `steward` subagent (`.claude/agents/steward.md`) with the spec,
 its "## Vision" section, the changed screens and their pictures: does the built thing still pass
 the gate it was given (decision 0094)? Its findings are triaged with the

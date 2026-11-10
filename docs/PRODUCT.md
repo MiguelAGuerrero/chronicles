@@ -254,7 +254,7 @@ recording bar brings a minimized walk back.
   Chronicle's threads above it; both are "threads", told apart by an icon (a link for
   the owner's, a repeat arrow for the Chronicle's), spoken as "connected by you" and "found for you". From a moment's menu, **Add to a thread** names a
   thread or makes a new one with a second kept moment; **Respond**, in the viewer's toolbar under the moment
-  (an action sheet: photo or video, voice memo, note), keeps a new moment linked to the one it
+  (a menu: photo or video, voice memo, note), keeps a new moment linked to the one it
   answers, in its thread. A thread reads oldest first, a reply under what it
   answers; its size is a phrase ("a few moments, since March"), its name is the
   owner's and optional. **Remove from this thread** and **Delete this thread**

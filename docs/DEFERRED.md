@@ -357,3 +357,11 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **Held captures live in memory**: leaving the screen or a reload drops a held photo or video (Stop warns first). Keeping them across a reload needs the file kept somewhere that survives, which a full disk may refuse.
 - **Retry on the recording bar's camera** (other tabs, NV9): it shows the SA9 words; the held pill is on the walk screen and Navigate, ready.
 - **A check before a video starts**: the system camera owns the recording; the line beside the captures says it beforehand.
+
+## UI patterns and the UX research (decision 0108)
+
+- **Research gaps:** Material Design 3 (m3.material.io), Nielsen Norman Group (nngroup.com) and w3.org were blocked from the cloud session's network, and every vendor help page for the app teardown too. `docs/research/ui-references.md` stands on the Apple HIG and WCAG 2.2 read first-hand (Material Components and developer.android.com for Android); `docs/research/ui-teardown.md` stands on search summaries. Re-run both with those hosts allowed.
+- **Deletes confirm and offer Undo** (D4, the clearing slice): the HIG says a common delete that can be undone is not confirmed (A3). Changing it is the owner's call.
+- **The viewer's chrome never hides:** the HIG lets a full-screen viewer hide its bars on a tap and run the picture under them (T7, V1). Ours keeps the bars up and the picture between them.
+- **"Reply kept" and the other routine confirmations:** the HIG gives routine success no confirmation (matrix 20); the viewer's pill says it anyway.
+- **The viewer's top bar has four round buttons** (Remind, Go here, More, Close): more than one primary action and a More; moving Remind and Go here into More changes Remind me here and Go here.
