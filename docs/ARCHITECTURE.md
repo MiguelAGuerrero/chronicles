@@ -99,7 +99,8 @@ Home / tabs
   MomentBar.tsx              MomentBar (loose moments from Navigate) and CaptureRow (captures for the open walk)
   LocateButton.tsx           Locate me, an edge button
   StartSettings.tsx          the walk settings, shown in the ready bar pulled up (NR7)
-  walk/                      the walk screen's shared geometry (layout.ts), CaptureStack, ReadyBar, useReady (the walk screen's ready state)
+  walk/                      the walk screen's shared geometry (layout.ts), CaptureStack, AddToMomentPill (moment stacks), ReadyBar, useReady (the walk screen's ready state)
+  StackMark.tsx              the two-card mark of a moment holding more than one piece (MS8)
   GapCard.tsx                a filled or offered stretch: Keep, Not this way
   LandingMarks.tsx           a strip's name beside it on the map
   ExploreSettings.tsx        the shared pieces of the drawers' settings: `KindSwitches`, `RangeSlider`, `walkNote`
@@ -288,10 +289,14 @@ Captures and media
   useReminded.ts             the captures with a live reminder, per map; re-read on recallCheck's onRecallsChanged and at nextExpiry
   momentPins.ts              moments outside walks as pins (Navigate, Chronicle) and Chronicle's fit around them
   moment.ts                  a moment and its pieces (decision 0106): face, faced rows, foldRows (SQLite's joined reads), placeAt (a moment on the trace at stop)
+  openMoment.ts              the Add to this moment pill's life as a reducer (MS4, MS5): two minutes, 100 m from the first capture, dismiss, leave, start/stop
+  momentPill/                its store on the app's clock (shell.ts, index.ts); the viewer's ask, run by the walk screen (MS12)
+  pieceStamp.ts              a capture's stamp: a piece for an open moment takes no fix (MS3)
   export/bundle/             writeWalkBundle (shell.ts over db and clock) (deferred; nothing in the UI reaches it); export/ per-platform keepers
 Deletion
   deletion/core.ts           what each delete takes; pending.ts: the Undo window on a given clock
   deletion/index.ts          the one Undo window wired to timers and storage; useDeletions.ts: useHidden / useVisible
+  deletion/pieces.ts         one piece of a moment deleted after its Undo window; the last piece takes the moment (MS13); piecesApp.ts its instance
 Notifications
   notify/core.ts             Notice, NoticeTransport, routeResponse: the contract
   notify/index.ts            notifier, the kind switches (meta `notify_off`, from notify/prefs.ts); builds from `db`, since `ports` imports it
