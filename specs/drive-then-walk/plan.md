@@ -31,7 +31,7 @@ Nothing changes `SNAP_RULES`, `STREET_CODE` or `LANDING_CODE`: no derived rule c
 | DW1 | `DW1: a place within 2 km starts at once` (core: `walkToChoice`), plus the e2e's near Walk to | `src/lib/__tests__/navigation/wayBack.test.ts`; journey `drive` |
 | DW2 | `DW2: past 2 km asks; Walk now starts; cancel saves nothing` | journey `drive`, plus the core `walkToChoice` case |
 | DW3 | `DW3: When I get there saves the destination and starts no walk` (shell over `fakePorts()`: `nav` holds it for no walk, no walk is open, the recorder never started, no location task, the notifier has nothing scheduled), plus the e2e's ready bar "To <place>" | `src/lib/__tests__/navigation/wayBackStore.test.ts`; journey `drive` |
-| DW4 | `DW4: Start with the saved destination walks from where you are` | journey `drive` |
+| DW4 | `DW4: only Start starts the walk; arriving starts nothing` (e2e: after When I get there, the mocked GPS drives to within 30 m of the place and sits there 2 min; no walk is open, no notice or prompt shows, the ready bar is unchanged; then Start opens the walk where the fix is, routed to the place), plus the DW3 shell test's empty recorder, location-task and notifier logs | journey `drive`; `wayBackStore.test.ts` |
 | DW5 | `DW5: no position, or one over 30 min old, asks` | `wayBack.test.ts` |
 | DW6 | `DW6: back to where the last ride ended; the start with none; a ride under way doesn't count` (a drive, then a walk, then a bus, then a walk; a walk with no ride; a ride still under way) | `wayBack.test.ts`; journey `drive` (a ride in mocked GPS) |
 | DW7 | `DW7: the spot chosen wins, a later one replaces it, another walk never sees it, Stop clears it` (shell) and the e2e's reload | `wayBackStore.test.ts`; journey `drive` |

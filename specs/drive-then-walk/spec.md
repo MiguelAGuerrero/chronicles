@@ -24,6 +24,7 @@ Open: the distance at which Walk to asks (2 km suggested); Explore's long press 
 - **Several rides: the end of the last one** (at the gate). It is the furthest point back you can reach on foot.
 - **The pain is the walk starting at once** (at the gate: "The navigate automatically starts a 'walk' is the pain point"). The fix is on Explore's area card, the place the owner picks from.
 - **Walk to asks only when far** (at the gate, over always asking and over a separate Open in Maps). Near places stay a one-tap start (0021 holds for them).
+- **The walk starts on your tap, never on arrival** (the owner, Nov 10: "not when the app detects they're at the place … to avoid issues of finding parking and such"). Being near or at the saved place starts nothing, offers nothing and says nothing; only Start does (DW4).
 - **The steward's read (Nov 10):** S1 (DW13), S2 (DW7's notice, DW8's spoken label), S3 (DW3's test), S4 (DW11), S5 (Amended, below), S6 (DW5) and S8 ("where the ride ended", true of a car, a bus or a train) accepted; S7 waits on the owner (towns past 10 km).
 
 ## Criteria
@@ -33,7 +34,7 @@ Open: the distance at which Walk to asks (2 km suggested); Explore's long press 
 1. **DW1 · Near starts at once.** On Explore's area card, Walk to (the footer's, and a busy street's) for a place within 2 km in a straight line of where you are starts the walk in one tap, exactly as today.
 2. **DW2 · Far asks.** For a place more than 2 km away, the tap asks first, on the card: "Walk now" and "When I get there". "Walk now" starts the walk exactly as DW1. Back, Escape or the choice's close button cancels: nothing is saved and no walk starts.
 3. **DW3 · When I get there starts nothing.** "When I get there" saves the place as Navigate's destination and opens Navigate, ready, whose bar says "To <place> · <distance> away". No walk starts, nothing is recorded, no location is read in the background, and nothing alerts you on arrival.
-4. **DW4 · Start where you got there.** Start on Navigate, ready, with that destination, begins the walk where you are then, routed to the place, as Navigate's Start does with any destination (NV25).
+4. **DW4 · Start on your own terms.** The walk begins only when you tap Start on Navigate, ready, wherever you are then (parked a street away, or past the place), routed to the place, as Navigate's Start does with any destination (NV25). Reaching the place, or any distance from it, never starts a walk, raises a prompt or a notification, or opens a screen: the app doesn't watch for your arrival at all.
 5. **DW5 · No fresh position asks.** With no position known, or one older than 30 minutes, Walk to asks as DW2 does: a wrong one-tap start would record a drive, which a question never does. (The steward's S6; Explore reads a fix as it opens, NV16, so this is rare.)
 
 ### The way back
