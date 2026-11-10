@@ -1,0 +1,59 @@
+<!-- Repo first: written from the owner's request in a session (Nov 10, with a screenshot of the cluttered map), not yet a tab of the concept doc (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7). -->
+
+# Explore carousel: most of the screen is the map, the areas are a row of cards
+
+Nov 10, 2026 · @Miguel Guerrero
+
+## Vision
+
+Idea: Explore's map is still cluttered (the Busy layer's magenta street names stack when zoomed out, area names crowd the small map). Make browsing a single row of cards you swipe between, at the bottom, with most of the screen the map, Atlas Obscura style. For any selection (neighborhood, town or city) the area is highlighted on the map and no neighbouring area is drawn with its text; a swipe on the map steps the row; the first area is selected on arrival (the owner, Nov 10).
+Verb: earn (it raises what you notice: one area at a time, named and shown, instead of a map of competing labels)
+Touches: Always, "Restraint in motion, colour and copy: the content is the novelty, not the chrome"; Always, "Counts are words" and Never, "Tallies" (a card shows no count); Never, "Scores, ... rankings" (the row's order is the nearest first, never a rank, and says so in no copy); Always, "Capture is one tap away" (the tabs and the walk entry stay on screen); decisions 0066 and 0067 (the atlas is a grid, "no level switch", a card as a full-screen drawer), 0077 (one way back on a town's page), 0092 (discrete navigation, an experiment): the carousel amends the grid and the swipe, by the owner's call.
+Verdict: aligned if reshaped
+Shape: As asked, with these changes. The row is ordered nearest first and never labelled "best" or "top"; a card carries what a tile carries today (name, where it is, its character in words, kinds as dots) and never a count or a rating. The Busy layer's names are drawn only for the selected area and only when zoomed in; its lines draw at any zoom. The first area is selected on arrival by distance and "you are in it", never by popularity.
+Criteria: EC2, EC3 (no rank, no count on a card); EC6, EC7 (the map's only names are the selected area's and the Busy names near it); EC15 (a card carries no count, rating or score).
+Open: the three navigation calls in `plan.md` (towns in the same row, tap behaviour, wide screens).
+
+## What it is
+
+Explore opens on a full-height map. The areas around you are one horizontal row of cards docked at the bottom, above the tabs. One card is always the selected one; it is highlighted on the map, and swiping the row, swiping the map or tapping a card moves the selection. This replaces the grid of tiles below a short map (0066) and the map's directional swipe (DN2, 0092).
+
+## Decisions (the owner's calls, Nov 10)
+
+- **A carousel, for any selection.** Browsing neighborhoods is a single row you swipe between; the same for a town or a city. Most of the screen is the map.
+- **The map shows only what is selected.** The selected area is highlighted; adjacent neighborhoods, towns and cities are not drawn with their text.
+- **A swipe on the map steps the row**, in the row's order, left for the next card and right for the previous.
+- **The first area is selected on arrival**, the one you are in or the nearest, so something is always highlighted and named.
+
+## Criteria
+
+1. **EC1** While any area is listed, one is selected. On arrival the first in the row is, and again whenever the page changes or the selected area is no longer listed. A tap on the map away from an area never clears the selection.
+2. **EC2** The map fills the screen from the top to the row; the row sits above the tabs. There is no grid of tiles and no "Neighborhoods near you" or "Other towns" heading, on a phone and on a wide screen. No card or heading shows a count, a rank or a rating.
+3. **EC3** The row's order is fixed. On the page near you: the neighborhoods nearest first, the one you are in leading, then the other towns nearest first. On a town's page: the town's own card, then its neighborhoods nearest first.
+4. **EC4** Swiping the row (a drag, a mouse drag, a flick) settles on one card at a time and selects it. After it settles, the centred card and the selected area are the same, and a card's name is shown in full.
+5. **EC5** The selected area is highlighted on the map: a neighborhood by its ring, a town by its tinted border, either by its name in the accent colour. The map eases to it at the current zoom (jumps with reduced motion).
+6. **EC6** The map draws no name but the selected area's. The other areas of its level are unnamed dots; areas of another level are not drawn (fix map-levels, kept).
+7. **EC7** The Busy layer's lines draw at any zoom. Its street names are drawn only inside the selected area's ring and only from zoom 13; otherwise none.
+8. **EC8** A one-finger swipe on the map steps the row by what is on screen: left, next card; right, previous, whatever the map's bearing. A swipe more vertical than horizontal does nothing. At the first or last card nothing changes.
+9. **EC9** On web, with the map focused, ArrowRight is next and ArrowLeft previous; ArrowUp and ArrowDown do nothing; `+` and `-` still zoom.
+10. **EC10** One finger never pans the map. Pinch, the wheel, a double tap, the two-finger turn, the long press (What's good here, Walk here) and Locate work as before (DN1, DN10).
+11. **EC11** A tap on the selected card opens its card, as a tile did; a tap on a town's selected card opens its page. A tap on any other card selects and centres it and opens nothing.
+12. **EC12** A town's page has the pill and Escape back (0077); opening or leaving a page selects the first card again and resets the row to it.
+13. **EC13** A screen reader hears an area's name when the selection changes, by a swipe, a key or a tap, and each card is one control named by its area and where it is.
+14. **EC14** With no area to show, the row's place holds one status card in words ("Reading the map around you…", "Couldn't read the map. It will try again in a moment.", "No neighborhoods are named on the map here."; a town's page "It is one area."); the errors, notices, "Looking around…" and the long-press hint sit over the map above the row, never inside it.
+15. **EC15** A card carries what a tile carried: the name, "You're here" or the distance in words, its character line, the kinds as dots. No count, rating or score, and no "nearest", "top" or "best" wording.
+16. **EC16** From 1000 px wide the layout is the same (map, row at the bottom of it) and the area's card opens as the side panel, as now.
+17. **EC17** Only Explore changes: Navigate, Chronicle, the replay and a day pan their maps freely (DN13).
+
+## Amended and retired (DN, discrete navigation 0092)
+
+- **Retired:** DN2 (the swipe lands where a pan would have), DN3, DN4 (a swipe with nothing that way), DN6's tile in a grid, DN7, DN8 (a town step is a row step), DN9 (a tap clearing the selection), DN11's four arrows. They are replaced by EC1, EC8, EC9, EC11.
+- **Kept:** DN1, DN10, DN12 (EC10, EC13), DN13 (EC17); `swipeOf`'s 24 px floor and the web and native swipe reports.
+
+## Routes and data
+
+- No new routes, dependencies, storage or derivation rules. The row is a horizontal `ScrollView` with snapping, which both platforms have. The selection and the open card stay in the Explore screen's state; the row's order is derived from what `useAtlas` lists.
+
+## Record
+
+Not built yet. The plan is in `plan.md`.
