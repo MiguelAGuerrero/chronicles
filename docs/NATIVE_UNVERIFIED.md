@@ -379,3 +379,7 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** with under 100 MB free, take a photo, a 30 s video and a voice memo on a walk. **Expect:** after a capture the line becomes "There is almost no room left for new photos, videos and memos."; a save that fails shows "Not saved: there is no room left. It is held here for Retry." (never the system's own error text) and a "Photo not saved" or "Video not saved" pill; after freeing room, Retry keeps each with its time and place. (SA5, SA8, SA9)
 - [ ] **Do:** with a photo held, hold Stop. **Expect:** the walk does not end; it says the photo isn't saved yet with Retry, and a second hold ends the walk without it. (SA8)
 - [ ] **Do:** on an iPhone in Safari (not the Home Screen app), keep a moment on Navigate, ready. **Expect:** if Safari refuses to keep the data, the line "This browser may clear Chronicles’ moments when it needs room. The Home Screen app is less likely to." shows once there; from the Home Screen app, whether `persist()` is granted (nothing said). (SA10)
+
+## Permission refusals offer Settings (fix mic-settings, Nov 10)
+
+- [ ] **Do:** on an iPhone and an Android phone, turn Microphone off for Chronicles in Settings, open a moment from Memories, and tap Respond, Voice; then do the same from the planner's capture buttons during a walk. **Expect:** "Microphone access is off for Chronicles." stays about 8 seconds with an "Open Settings" button that opens Chronicles' page in Settings; after turning Microphone on and returning, Voice records.

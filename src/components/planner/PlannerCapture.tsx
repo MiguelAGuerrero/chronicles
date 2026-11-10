@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AccessibilityInfo, StyleSheet, Text, TextInput, View } from 'react-native';
+import { AccessibilityInfo, Linking, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { LngLat } from '../../lib/types';
 import { feedback } from '../../lib/motion';
 import { useCaptures } from '../../lib/useCaptures';
@@ -12,7 +12,12 @@ import { Button, theme } from '../ui';
  */
 export function PlannerCapture(props: { walkId: string; here: LngLat | null; lastFixAt: number | null }) {
   const [message, setMessage] = useState<string | null>(null);
-  const cap = useCaptures(props.walkId, props.here, props.lastFixAt, (e) => setMessage(e.message));
+  // A permission refusal is only fixable in Settings; the web has none to open.
+  const [settings, setSettings] = useState(false);
+  const cap = useCaptures(props.walkId, props.here, props.lastFixAt, (e) => {
+    setMessage(e.message);
+    setSettings(!!e.openSettings && Platform.OS !== 'web');
+  });
   const [noteOpen, setNoteOpen] = useState(false);
   const [note, setNote] = useState('');
   async function photo() {
@@ -59,6 +64,11 @@ export function PlannerCapture(props: { walkId: string; here: LngLat | null; las
         onNote={() => setNoteOpen(true)}
       />
       {message ? <Text style={styles.toast} accessibilityLiveRegion="polite">{message}</Text> : null}
+      {message && settings ? (
+        <Pressable testID="plan-cap-settings" accessibilityRole="button" onPress={() => void Linking.openSettings()} style={styles.settings} hitSlop={8}>
+          <Text style={styles.settingsText}>Open Settings</Text>
+        </Pressable>
+      ) : null}
       {noteOpen ? (
         <View style={styles.note} testID="plan-note">
           <TextInput value={note} onChangeText={setNote} placeholder="A note, here" multiline style={styles.input} accessibilityLabel="A note, here" autoFocus />
@@ -74,6 +84,8 @@ export function PlannerCapture(props: { walkId: string; here: LngLat | null; las
 
 const styles = StyleSheet.create({
   toast: { position: 'absolute', left: 16, right: 16, bottom: 140, textAlign: 'center', backgroundColor: theme.ink, color: '#ffffff', paddingVertical: 8, borderRadius: 12, overflow: 'hidden' },
+  settings: { position: 'absolute', alignSelf: 'center', bottom: 188, minHeight: 44, justifyContent: 'center', paddingHorizontal: 16, borderRadius: 22, backgroundColor: theme.surface },
+  settingsText: { color: theme.ink, fontSize: 15, fontWeight: '600' },
   note: { position: 'absolute', left: 12, right: 12, bottom: 90, backgroundColor: theme.surface, borderRadius: 14, padding: 12, gap: 8, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, elevation: 6 },
   input: { minHeight: 80, fontSize: 16, color: theme.ink, textAlignVertical: 'top' },
   noteRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
