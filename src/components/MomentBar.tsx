@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   AccessibilityInfo, BackHandler, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions,
 } from 'react-native';
@@ -44,6 +44,8 @@ export function MomentBar(props: {
   labels?: { photo: string; voice: string; note: string };
   /** An open walk to file into (HC10), or none for moments of their own. */
   walk?: BandWalk | null;
+  /** What the screen says above the band (an error, its own Undo): first in the pills' column (audit 2, 3). */
+  above?: ReactNode;
 }) {
   const [toast, setToast] = useState<string | null>(null);
   const { onMoment, walk } = props;
@@ -69,6 +71,7 @@ export function MomentBar(props: {
       idPrefix={props.idPrefix}
       labels={props.labels}
       onKept={onKept}
+      above={props.above}
     />
   );
 }
@@ -96,6 +99,8 @@ export function CaptureRow(props: {
   labels?: { photo: string; voice: string; note: string };
   /** A capture was kept (after its tap): a walk's band says where it went (HC10). */
   onKept?: (kind: Capture['kind']) => void;
+  /** Said above this row's own pills, in the same column, so nothing covers anything (audit 2, 3). */
+  above?: ReactNode;
 }) {
   const insets = useSafeAreaInsets();
   const at = useStackLayout();
@@ -165,6 +170,7 @@ export function CaptureRow(props: {
     <>
       {/* Pills and the toast: left of the stack, above the strip, so the stack never moves (NR10). */}
       <View style={[styles.pills, pillsAt]} pointerEvents="box-none">
+        {props.above}
         {editOffer.offer && !recording && (
           <EditOfferPill
             offer={editOffer.offer}

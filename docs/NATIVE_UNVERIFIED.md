@@ -144,6 +144,15 @@ The web's IndexedDB steps (`db/index.web.ts` `migrate()`) run in the e2e; each S
 - [ ] **Do:** start a walk, minimize it, open Chronicle and keep a note and a photo from the band. **Expect:** the band sits above the recording bar, which shows no camera there; both say "saved to your walk" and are the walk's own captures on its replay. (HC7, HC10)
 - [ ] **Do:** with VoiceOver on, open the app and swipe right from the Memories options button. **Expect:** VoiceOver reaches the band's camera next, named "Keep a moment: take a photo or video", before the resurfaced card and Lately. (HC8)
 
+- [ ] **Do:** start a walk on Navigate, then record a voice memo from the walk screen; minimize mid-memo is off, so stop it, minimize, open Memories and record one from the band; go back to Navigate's walk screen at once and tap its mic. **Expect:** both memos are kept and play; the band's audio-mode reset never leaves the walk screen's recorder unable to record (iOS audio session; capture-from-chronicle audit). (HC11)
+- [ ] **Do:** from Memories' band, take a photo with the system camera, then a 15 s video; with a walk minimized, hold the bar's Stop while the video is still being kept. **Expect:** the camera opens over the tab, each is kept with its one fix, and the stopped walk's replay plays the video (`memoGate.kept()`, capture-from-chronicle audit 6). (HC9, HC10)
+- [ ] **Do:** deny the camera to Chronicles, tap the band's Photo, and tap Settings on the error. **Expect:** iOS opens Chronicles' settings (`Linking.openSettings`). (HC6)
+- [ ] **Do:** on Memories, write a note from the band with the keyboard up. **Expect:** the note editor sits above the keyboard (`KeyboardAvoidingView` over a tab). (HC6)
+- [ ] **Do:** with TalkBack on Android, open the app and move through Memories, then open a thread. **Expect:** the band comes right after the options button on Memories, and after the thread's Back inside a thread (an absolute layer with `zIndex: 2`; capture-from-chronicle audit 9). (HC8)
+- [ ] **Do:** scroll Lately so a card sits under the band, and tap the band's empty space between buttons. **Expect:** nothing opens; the band's hairline top border draws on iOS and Android (capture-from-chronicle audit 5). (HC7)
+- [ ] **Do:** with a walk minimized, tap Chronicle, then Explore, then Chronicle's Walks. **Expect:** the recording bar keeps its height and layout as its camera hides on Memories and comes back elsewhere (`barCamera`). (HC7)
+- [ ] **Do:** with no walk open, tap a reminder notification while the app is closed. **Expect:** the app opens on Chronicle with the moment's viewer (`router.navigate('/')` on a cold start). (HC1, NV13)
+
 ## Quality of life
 
 - [ ] **Do:** stop a walk and open its replay. **Expect:** the `ends` layer (`lib/traceEnds.ts`) draws the start and end markers with the `match` stroke colour, as on the web (Quality of life). (QL1, QL2)

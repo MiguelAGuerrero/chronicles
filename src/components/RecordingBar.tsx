@@ -131,7 +131,8 @@ function Bar({ walk, pauses, live }: { walk: Walk; pauses: Pause[]; live: LiveTr
         setSaid({ text: 'A voice memo is recording. Save it first.', error: true });
         return;
       }
-      await settleWithin(keeping.current, RETURN_WAIT_MS);
+      // The bar's photo, and one still being kept from Memories' band (capture-from-chronicle audit 6).
+      await settleWithin(Promise.all([keeping.current, memoGate.kept()]), RETURN_WAIT_MS);
       await stopWalk(walk.id);
       feedback('success');
       router.push(`/replay/${walk.id}`);

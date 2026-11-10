@@ -116,7 +116,8 @@ function Band({ saveRef, ...props }: StackProps) {
     </View>
   );
   return (
-    <View testID="capture-band" style={[styles.band, { height: at.height }, props.hidden && styles.hidden]} pointerEvents={props.hidden ? 'none' : 'box-none'}>
+    // The whole strip is the band's: a tap between its buttons lands on it, never on a card scrolled beneath (audit 5).
+    <View testID="capture-band" style={[styles.band, { height: at.height }, props.hidden && styles.hidden]} pointerEvents={props.hidden ? 'none' : 'auto'}>
       {recording ? (
         <>
           {cell(0, (

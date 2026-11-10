@@ -245,43 +245,48 @@ export function useCaptures(
       });
       if (res.canceled || !res.assets[0]) return;
       const asset = res.assets[0];
-      if (asset.type === 'video') {
-        // The web picker reports seconds, native milliseconds.
-        const ms = Platform.OS === 'web' ? (asset.duration ?? 0) * 1000 : (asset.duration ?? 0);
-        // Browsers cannot cap a recording, so an over-long clip is turned away here.
-        if (ms > MAX_VIDEO_S * 1000 + 500) {
-          dropTemp(asset.uri);
-          setError({ message: `Videos can be up to ${MAX_VIDEO_S} seconds here. That one was ${Math.round(ms / 1000)} s.` });
+      // From here the file is being kept: Stop from the recording bar waits for it (capture-from-chronicle audit 6).
+      const keeping = (async () => {
+        if (asset.type === 'video') {
+          // The web picker reports seconds, native milliseconds.
+          const ms = Platform.OS === 'web' ? (asset.duration ?? 0) * 1000 : (asset.duration ?? 0);
+          // Browsers cannot cap a recording, so an over-long clip is turned away here.
+          if (ms > MAX_VIDEO_S * 1000 + 500) {
+            dropTemp(asset.uri);
+            setError({ message: `Videos can be up to ${MAX_VIDEO_S} seconds here. That one was ${Math.round(ms / 1000)} s.` });
+            return;
+          }
+          const ext = asset.mimeType?.split('/')[1]?.replace('quicktime', 'mov') ?? 'mp4';
+          const id = await add('video', stamp, await keepFile(asset.uri, folder(), `${newId()}.${ext}`), String(Math.round(ms)));
+          if (id) kept = { kind: 'video', id };
           return;
         }
-        const ext = asset.mimeType?.split('/')[1]?.replace('quicktime', 'mov') ?? 'mp4';
-        const id = await add('video', stamp, await keepFile(asset.uri, folder(), `${newId()}.${ext}`), String(Math.round(ms)));
-        if (id) kept = { kind: 'video', id };
-        return;
-      }
-      const ext = asset.mimeType?.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
-      const path = await keepFile(asset.uri, folder(), `${newId()}.${ext}`);
-      const id = await add('photo', stamp, path, null);
-      if (id) {
-        kept = { kind: 'photo', id };
-        // Its small copy for previews (TH1), after the capture is kept: never holds it up or fails it (TH2).
-        void makeThumb({ id, walk_id: folder(), t: Date.now(), lat: null, lon: null, kind: 'photo', file_path: path, body: null, segment_id: null }).then((thumb) => {
-          if (!thumb) return;
-          // An Edit offer's Done may have stored the edited copy meanwhile: this one then stands down (media-editing audit 8).
-          void db.getCapturesByIds([id]).then(([row]) => {
-            if (!captureThumbStillWanted(row ?? null)) {
-              if (thumb !== THUMB.none) void removeMedia([thumb]).catch(() => {});
-              return;
-            }
-            if (alive.current) setCaptures((prev) => prev.map((x) => (x.id === id ? { ...x, thumb_path: thumb } : x)));
-            // Stored first, then told: a walk screen mounting meanwhile either reads it or hears it (tabs audit 5).
-            void db.updateCapture(id, { thumb_path: thumb }).then(
-              () => captureBus.patch(walkId, id, { thumb_path: thumb }, self),
-              () => {},
-            );
-          }, () => {});
-        });
-      }
+        const ext = asset.mimeType?.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
+        const path = await keepFile(asset.uri, folder(), `${newId()}.${ext}`);
+        const id = await add('photo', stamp, path, null);
+        if (id) {
+          kept = { kind: 'photo', id };
+          // Its small copy for previews (TH1), after the capture is kept: never holds it up or fails it (TH2).
+          void makeThumb({ id, walk_id: folder(), t: Date.now(), lat: null, lon: null, kind: 'photo', file_path: path, body: null, segment_id: null }).then((thumb) => {
+            if (!thumb) return;
+            // An Edit offer's Done may have stored the edited copy meanwhile: this one then stands down (media-editing audit 8).
+            void db.getCapturesByIds([id]).then(([row]) => {
+              if (!captureThumbStillWanted(row ?? null)) {
+                if (thumb !== THUMB.none) void removeMedia([thumb]).catch(() => {});
+                return;
+              }
+              if (alive.current) setCaptures((prev) => prev.map((x) => (x.id === id ? { ...x, thumb_path: thumb } : x)));
+              // Stored first, then told: a walk screen mounting meanwhile either reads it or hears it (tabs audit 5).
+              void db.updateCapture(id, { thumb_path: thumb }).then(
+                () => captureBus.patch(walkId, id, { thumb_path: thumb }, self),
+                () => {},
+              );
+            }, () => {});
+          });
+        }
+      })();
+      memoGate.keep(keeping);
+      await keeping;
     });
     return kept;
   };

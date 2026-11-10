@@ -42,6 +42,13 @@ Captures outside a walk (moments), locating one fix for them, the days list and 
   a reminder is open over Memories, so a memo is saved before anything plays (HC11).
   Trap: in the headless e2e a fixed location never refreshes the walk's last fix, so a
   walk capture waits for its place until stop unless the journey steps the position.
+  After the audit (capture-from-chronicle audit 1-12): Memories' Undo toast and the band's
+  error go in the band's pills column (`above`), one flex column, so nothing covers anything;
+  the band's strip takes its own taps (`pointerEvents="auto"`), never a card beneath; inside a
+  thread or Hidden the band follows the screen, so its Back comes first; every viewer on Memories
+  waits while the band's memo records (`memoOn`); the band waits until the keeper knows
+  (`captureTarget(walk, known)`); the web's error has no Settings button. A photo or video being
+  kept is tracked by `memoGate.keep`, and the bar's Stop waits on `memoGate.kept()`.
 - **The home** reads every capture row (never media) for the days list, which
   widens the old "walks, summaries, Area, WalkArea only" rule. The sheet has
   Days beside Walks, a day's timeline (a walk is one row), and Replay this

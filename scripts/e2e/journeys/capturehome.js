@@ -54,6 +54,7 @@ const box = async (pg, sel) => {
   return b && { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) };
 };
 const same = (a, b) => !!a && !!b && a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h;
+const overlap = (a, b) => !!a && !!b && a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 
 async function run(h) {
   const { url, BASE, check, shot, glyph, iconOf, tabTo } = h;
@@ -167,6 +168,26 @@ async function run(h) {
     `HC15: Memories' Undo toast sits above the band (${JSON.stringify({ undoBox, bandWithUndo })})`);
   await pg.locator('[data-testid=memories-undo]').click({ timeout: 3000 }).catch(() => {});
 
+  // capture-from-chronicle audit 2: a moment's toast and Memories' Undo at once stack, never overlap, and Undo stays tappable.
+  await pg.click('[data-testid=band-note]').catch(() => {});
+  await pg.fill('[data-testid=band-note-input]', 'Kept while an Undo was up.').catch(() => {});
+  await pg.click('[data-testid=band-note-save]').catch(() => {});
+  await pg.waitForSelector('[data-testid=band-toast]', { timeout: 15000 }).catch(() => {});
+  await pg.locator('[data-testid=memories-list] [data-testid=moment-card]').nth(1).locator('[data-testid=moment-more]').click().catch(() => {});
+  await pg.locator('[data-testid=memory-menu-hide], [data-testid=menu-hide]').first().click({ timeout: 3000 }).catch(() => {});
+  await pg.waitForSelector('[data-testid=memories-toast]', { timeout: 5000 }).catch(() => {});
+  const both = { band: await box(pg, '[data-testid=band-toast]'), undo: await box(pg, '[data-testid=memories-toast]'), row: await box(pg, band) };
+  const undoHit = await pg.evaluate(() => {
+    const u = document.querySelector('[data-testid=memories-undo]');
+    if (!u) return false;
+    const r = u.getBoundingClientRect();
+    const at = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+    return !!at && (at === u || u.contains(at));
+  });
+  check(!!both.band && !!both.undo && !overlap(both.band, both.undo) && both.undo.y + both.undo.h <= both.row.y && both.band.y + both.band.h <= both.row.y && undoHit,
+    `capture-from-chronicle audit 2: the moment's toast and Memories' Undo stack above the band, and Undo is tappable (${JSON.stringify(both)}, hit ${undoHit})`);
+  await pg.locator('[data-testid=memories-undo]').click({ timeout: 3000 }).catch(() => {});
+
   // HC7: with many moments, the band stays put while Lately scrolls, and the last card clears it.
   await pg.evaluate(SEED, { now: Date.now(), day: DAY });
   await tabTo(pg, 'explore');
@@ -184,6 +205,26 @@ async function run(h) {
   check(same(beforeScroll, afterScroll) && !!lastCard && !!afterScroll && lastCard.y + lastCard.height <= afterScroll.y + 0.5,
     `HC7: the band stays put as Lately scrolls, and the last card clears it (${JSON.stringify({ beforeScroll, afterScroll, last: lastCard && Math.round(lastCard.y + lastCard.height) })})`);
   await shot(pg, '91-capturehome-scrolled');
+
+  // capture-from-chronicle audit 5: a tap on the band between its buttons opens nothing scrolled beneath it.
+  await list.evaluate((e) => {
+    const sc = [e, ...e.querySelectorAll('*')].find((x) => x.scrollHeight > x.clientHeight + 4 && /(auto|scroll)/.test(getComputedStyle(x).overflowY));
+    if (sc) sc.scrollTop = Math.round((sc.scrollHeight - sc.clientHeight) / 2);
+  });
+  await pg.waitForTimeout(600);
+  const b0 = await box(pg, '[data-testid=band-photo]');
+  const b1 = await box(pg, '[data-testid=band-voice]');
+  const gapAt = b0 && b1 ? { x: Math.round((b0.x + b0.w + b1.x) / 2), y: Math.round(b0.y + b0.h / 2) } : null;
+  const beneath = gapAt ? await pg.evaluate(({ x, y }) => {
+    // What lies under the band at that point: the band itself must take it.
+    const at = document.elementFromPoint(x, y);
+    return at ? (at.closest('[data-testid=capture-band]') ? 'band' : (at.closest('[data-testid=moment-card]') ? 'card' : at.tagName)) : null;
+  }, gapAt) : null;
+  if (gapAt) await pg.mouse.click(gapAt.x, gapAt.y);
+  await pg.waitForTimeout(800);
+  const gapOpened = await shown('[data-testid=viewer-close]');
+  check(beneath === 'band' && !gapOpened, `capture-from-chronicle audit 5: a tap between the band's buttons is the band's, and opens nothing beneath (${beneath}, viewer ${gapOpened})`);
+  if (gapOpened) await pg.locator('[data-testid=viewer-close]').click().catch(() => {});
 
   // HC7, HC8: inside a Chronicle thread the band is still there, and a note kept there joins no thread.
   let inThread = false;
@@ -205,6 +246,13 @@ async function run(h) {
     && (await pg.locator('[data-testid=thread-screen] [data-testid=moment-card]').count()) === threadCards
     && afterThread.captures.some((x) => x.body === 'Kept while reading a thread.' && x.walk_id == null),
     'HC8: a note kept while a thread is open is kept, and joins no thread');
+  // capture-from-chronicle audit 9: in a thread, its Back and heading come before the band for a screen reader.
+  const backFirst = inThread && await pg.evaluate(() => {
+    const back = document.querySelector('[data-testid=thread-back]');
+    const cam = document.querySelector('[data-testid=band-photo]');
+    return !!back && !!cam && !!(back.compareDocumentPosition(cam) & Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+  check(backFirst, 'capture-from-chronicle audit 9: in a thread, Back comes before the band in reading order');
   if (inThread) await pg.locator('[data-testid=thread-back]').click().catch(() => {});
 
   // HC6: Walks, Days and Map show no band.
@@ -240,8 +288,20 @@ async function run(h) {
   await pg.click('[data-testid=band-voice]').catch(() => {});
   await pg.waitForSelector('[data-testid=band-voice-save]', { timeout: 8000 }).catch(() => {});
   await pg.waitForTimeout(1600);
+  await pg.evaluate(() => {
+    // Every frame for two seconds: a viewer and a recording memo never on screen together (audit 8).
+    window.__both = false;
+    const t0 = performance.now();
+    const tick = () => {
+      if (document.querySelector('[data-testid=viewer-close]') && document.querySelector('[data-testid=band-voice-save]')) window.__both = true;
+      if (performance.now() - t0 < 2000) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
   await pg.locator('[data-testid=memories-list] [data-testid=moment-open]').first().click().catch(() => {});
   await pg.waitForTimeout(2000);
+  const together = await pg.evaluate(() => window.__both);
+  check(!together, 'capture-from-chronicle audit 8: a moment opened mid-memo shows only once the memo has stopped, so nothing plays over it');
   const voicesOpened = (await stored(pg)).captures.filter((x) => x.kind === 'voice').length;
   check(voicesOpened === voicesAfter + 1 && !(await shown('[data-testid=band-voice-save]')),
     `HC11: opening a moment mid-memo saves the memo first (${voicesAfter} → ${voicesOpened})`);
@@ -252,6 +312,9 @@ async function run(h) {
   await tabTo(pg, 'explore');
   await tabTo(pg, 'chronicle', 'memories');
   const failed = await there('[data-testid=memories-failed]', 8000);
+  const failedAccent = failed && await pg.evaluate(() => [...document.querySelectorAll('[data-testid=memories-failed], [data-testid=memories-failed] *')]
+    .some((e) => { const cs = getComputedStyle(e); return [cs.color, cs.backgroundColor, cs.borderTopColor].includes('rgb(194, 65, 12)'); }));
+  check(failed && !failedAccent, `capture-from-chronicle audit 11: Memories' failed state, now on the launch screen, uses no accent colour (${failedAccent})`);
   await pg.evaluate(() => { window.__breakReads = false; });
   await pg.click('[data-testid=band-note]').catch(() => {});
   await pg.fill('[data-testid=band-note-input]', 'Kept while the list was down.').catch(() => {});
@@ -317,6 +380,32 @@ async function run(h) {
   check(!!placedNote && placedNote.walk_id === open?.id, `HC10: the stopped walk placed the note as its own capture (${placedNote && [placedNote.lat, placedNote.lon]})`);
   const played = await pg.waitForSelector('text=Kept on the walk, from Memories.', { timeout: 60000 }).then(() => true, () => false);
   check(played, 'HC10: the walk\'s replay plays the note kept from Memories');
+
+  // capture-from-chronicle audit 3, 4: a denied mic on the web says so above the band, with no Settings button
+  // (the web has no settings to open), and the error and a moment's toast stack without covering each other.
+  {
+    const { c: c3, pg: p3 } = await h.freshPage('capturehome-mic', { permissions: ['geolocation'] });
+    await c3.addInitScript(() => {
+      const no = () => Promise.reject(new DOMException('Permission denied', 'NotAllowedError'));
+      if (navigator.mediaDevices) navigator.mediaDevices.getUserMedia = no;
+      const q = navigator.permissions.query.bind(navigator.permissions);
+      navigator.permissions.query = (d) => (d && d.name === 'microphone' ? Promise.resolve({ state: 'denied', onchange: null, addEventListener() {}, removeEventListener() {} }) : q(d));
+    });
+    await p3.goto(url);
+    await p3.waitForSelector('[data-testid=band-voice]', { timeout: 30000 });
+    await p3.click('[data-testid=band-voice]');
+    const err = await p3.waitForSelector('[data-testid=band-error]', { timeout: 8000 }).then(() => true, () => false);
+    const settingsBtn = err ? await p3.locator('[data-testid=band-error] [role=button]').count() : -1;
+    check(err && settingsBtn === 0, `capture-from-chronicle audit 4: on the web a denied mic is said above the band, with no Settings button (${err}, ${settingsBtn})`);
+    await p3.click('[data-testid=band-note]').catch(() => {});
+    await p3.fill('[data-testid=band-note-input]', 'Kept beside an error.').catch(() => {});
+    await p3.click('[data-testid=band-note-save]').catch(() => {});
+    await p3.waitForSelector('[data-testid=band-toast]', { timeout: 15000 }).catch(() => {});
+    const pair = { err: await box(p3, '[data-testid=band-error]'), toast: await box(p3, '[data-testid=band-toast]') };
+    check(!!pair.err && !!pair.toast && !overlap(pair.err, pair.toast),
+      `capture-from-chronicle audit 3: an error above the band and a moment's toast stack, never covering each other (${JSON.stringify(pair)})`);
+    await c3.close();
+  }
 
   // HC14: Explore reads its one fix the first time it comes to the front.
   await pg.click('[data-testid=walk-minimize]').catch(() => {});

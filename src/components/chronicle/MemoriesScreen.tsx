@@ -195,6 +195,8 @@ export function MemoriesScreen() {
   // menu, Relive or a replay mid-memo saves the memo first, and nothing plays over a recording.
   const isFocused = useIsFocused();
   const bandFocused = isFocused && !viewing && !recalled && !menuFor && !ownMenuFor && !menuOpen;
+  // A viewer opened mid-memo waits until the memo has stopped, so nothing plays over a recording (audit 8).
+  const [memoOn, setMemoOn] = useState(false);
   // A moment kept from the band heads Lately at once, and gains its place when its fix comes (HC9).
   const onMoment = useCallback((_c: Capture, state: MomentState) => {
     if (state === 'kept' || state === 'placed') void resurface.refresh();
@@ -203,6 +205,25 @@ export function MemoriesScreen() {
   const bandH = bandLayout(width).height;
   // Every list scrolls its last card clear above the band (HC7), and the toast sits above it (HC15).
   const clear = { paddingBottom: bandH + 24 };
+  // Memories' own toast (Undo) goes in the band's column, above its pills, so the two never cover each other (audit 2).
+  const undoToast = toast ? (
+    <View style={styles.toast} accessibilityLiveRegion="polite" testID="memories-toast">
+          <Text style={styles.toastText}>{toast.msg}</Text>
+          <Pressable
+            testID="memories-undo"
+            accessibilityRole="button"
+            accessibilityLabel="Undo"
+            style={styles.undoHit}
+            onPress={() => {
+              const change = toast.change;
+              setToast(null);
+              void resurface.undo(change);
+            }}
+          >
+            <Text style={styles.undo}>Undo</Text>
+          </Pressable>
+        </View>
+  ) : null;
   const menuMoment = menuFor ? byId.get(menuFor) ?? null : null;
   const walkOf = (m: MomentView) => (m.walkId ? state.walks[m.walkId] : undefined);
   // A reply says what it answers wherever it is listed (audit 1).
@@ -220,7 +241,7 @@ export function MemoriesScreen() {
     body = (
       <View style={styles.quiet} testID="memories-failed">
         <Text style={styles.quietText}>Couldn’t read your moments.</Text>
-        <Button label="Try again" onPress={() => { setHiddenOpen(false); void resurface.load(); }} />
+        <Button label="Try again" variant="secondary" onPress={() => { setHiddenOpen(false); void resurface.load(); }} />
       </View>
     );
   } else if (state.status === 'ready' && feed.moments.length === 0) {
@@ -355,6 +376,13 @@ export function MemoriesScreen() {
     );
   }
 
+  const subScreen = !!thread || !!own || (hiddenOpen && state.status === 'ready');
+  const bandLayer = (
+    <View style={styles.bandLayer} pointerEvents="box-none">
+      <MemoriesBand focused={bandFocused} onMoment={onMoment} onRecording={setMemoOn} above={undoToast} />
+    </View>
+  );
+
   return (
     <View style={styles.screen} testID="memories">
       {state.status === 'ready' && !thread && !hiddenOpen && (
@@ -364,11 +392,11 @@ export function MemoriesScreen() {
           </Pressable>
         </View>
       )}
-      {/* First after the options button, so a screen reader reaches the band before the feed (HC8); drawn at the foot. */}
-      <View style={styles.bandLayer} pointerEvents="box-none">
-        <MemoriesBand focused={bandFocused} onMoment={onMoment} />
-      </View>
+      {/* First after the options button, so a screen reader reaches the band before the feed (HC8); drawn at the foot.
+          Inside a thread or Hidden, after the screen, so its Back and heading come first (audit 9). */}
+      {!subScreen && bandLayer}
       {body}
+      {subScreen && bandLayer}
       <MemoriesMenu
         open={menuOpen}
         off={state.prefs.off}
@@ -451,27 +479,9 @@ export function MemoriesScreen() {
           }}
         />
       )}
-      {toast && (
-        <View style={[styles.toast, { bottom: bandH + 12 }]} accessibilityLiveRegion="polite" testID="memories-toast">
-          <Text style={styles.toastText}>{toast.msg}</Text>
-          <Pressable
-            testID="memories-undo"
-            accessibilityRole="button"
-            accessibilityLabel="Undo"
-            style={styles.undoHit}
-            onPress={() => {
-              const change = toast.change;
-              setToast(null);
-              void resurface.undo(change);
-            }}
-          >
-            <Text style={styles.undo}>Undo</Text>
-          </Pressable>
-        </View>
-      )}
       <CaptureViewer
         key={`memory:${viewing?.[0]?.id ?? 'none'}`}
-        captures={viewing && viewing.map((v) => byId.get(v.id)?.capture ?? v)}
+        captures={!memoOn && viewing ? viewing.map((v) => byId.get(v.id)?.capture ?? v) : null}
         onClose={() => {
           setViewing(null);
           // A reply made from the viewer is a new moment: Memories and the threads read again.
@@ -488,7 +498,7 @@ export function MemoriesScreen() {
       />
       <CaptureViewer
         key={recalled?.[0]?.id ?? 'none'}
-        captures={recalled}
+        captures={memoOn ? null : recalled}
         onClose={() => setRecalled(null)}
         autoPlay
         remind
@@ -516,7 +526,7 @@ const styles = StyleSheet.create({
   hint: { color: theme.muted, fontSize: 14, borderWidth: 1, borderStyle: 'dashed', borderColor: theme.line, borderRadius: 14, padding: 12 },
   quiet: { padding: 24, gap: 14, alignItems: 'flex-start' },
   quietText: { color: theme.ink, fontSize: 16, lineHeight: 23 },
-  toast: { position: 'absolute', bottom: 16, left: 16, right: 16, alignSelf: 'center', maxWidth: 480, backgroundColor: theme.ink, borderRadius: 14, paddingHorizontal: 16, minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  toast: { width: '100%', maxWidth: 480, backgroundColor: theme.ink, borderRadius: 14, paddingHorizontal: 16, minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   toastText: { color: theme.bg, fontSize: 14, flex: 1 },
   undo: { color: '#ffb48a', fontSize: 14, fontWeight: '700', paddingHorizontal: 8 },
   undoHit: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },

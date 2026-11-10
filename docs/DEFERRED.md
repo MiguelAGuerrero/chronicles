@@ -12,7 +12,6 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 ## Navigation and routes
 
-- `launch`'s fresh "Walk here on Explore starts a walk at once, recording" failed in two of five runs after the app moved to Chronicle (Nov 9, Capture from Chronicle): the URL reaches the walk, but "Walk started · recording" did not show within 10 s. Never reproduced in a standalone script, even with the location delayed. Suspect Explore's first fix, now read on its first focus (HC14), landing around the long press
 - Explore's route preview and "Walk this way": Explore's Walk here and an area's "Walk to its busiest street" start at once, with no scenic preview (Positioning; scenic routes, decision 0095)
 - Scenic routes (decision 0095), left out: a detour via one named stop; a loop with no destination ("back here in 30 min"); choosing a route on the ready screen before Start (the preview comes up as Start records); "Streets new to you" as a leaning; a choice of detour size; water and riversides as green; routes past 5 km
 - Scenic routes: a Sights row in a dense centre often says only "past places to find", since most places there are not yet found and never named (scenic routes, SR4)
@@ -85,6 +84,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 - Quick capture outside the app: widget, lock screen, share sheet (Moments and days)
 - A capture band on Chronicle's Walks, Days and Map (the owner's call, Nov 9: Memories only; decision 0106)
+- Lost toasts on Memories (capture-from-chronicle audit 13): "Too short, not kept" lands under a viewer opened mid-memo, unseen; "saved to your walk" goes when the walk stops and the band remounts loose
 - An open walk's moment from Memories' band joins Lately only once the walk is stopped (0098's rule, kept); the toast says "saved to your walk" meanwhile (Capture from Chronicle, steward S2)
 - Moments in a place's stars (Moments and days)
 - The home reads every capture row on focus; per-day counts would need storing (Moments and days)

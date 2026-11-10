@@ -34,8 +34,13 @@ export function bandLayout(width: number): BandLayout {
   };
 }
 
-/** Where a moment from the band goes (HC9, HC10): into the open walk, as the recording bar's camera does, else a moment of its own. */
-export function captureTarget(openWalk: { id: string } | null): { walkId: string } | { loose: true } {
+/**
+ * Where a moment from the band goes (HC9, HC10): into the open walk, as the recording bar's camera does, else a
+ * moment of its own. Until the keeper knows whether a walk is open, nowhere: the band waits rather than keep a
+ * loose moment for a walk that is open (capture-from-chronicle audit 7).
+ */
+export function captureTarget(openWalk: { id: string } | null, known = true): { walkId: string } | { loose: true } | { wait: true } {
+  if (!known) return { wait: true };
   return openWalk ? { walkId: openWalk.id } : { loose: true };
 }
 

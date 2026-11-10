@@ -70,10 +70,33 @@ Open: none (the four answered Nov 9: decision 0106).
 - **Flaky under load, not changed by this slice:** `chronicle`'s star settle (M9) and `walk`'s video pin (inside
   `atlas`) failed once with two journeys running at once and passed alone; `edit`'s video step failed once
   alone and passed on the next run. `launch`'s fresh "Walk here on Explore starts a walk, recording" step
-  failed in two of five runs and never in a standalone script, even with the location delayed
-  (`docs/DEFERRED.md`).
+  failed in two of five runs and never in a standalone script, even with the location delayed; the audit
+  found the race (audit 1) and fixed it.
 - **`check:test-first`:** HC2 and HC13 report "never a todo first". Their todos are in `aec466c` but split
   across two lines, which the line-based reader cannot see; both now sit on one line.
 - **Amended:** NV1, NV2, NV5, NV11, NV16 (Navigation & tabs), NR3 (Navigate, ready), RM4 (resurfaced moments).
 - **Native:** never run on a device; four items in `docs/NATIVE_UNVERIFIED.md`, and the launch items there now
   say Chronicle.
+
+## Audit (Nov 10)
+
+The auditor's report-only pass (1-9, 12, 13) and the steward's (10, 11), triaged. 13 findings: 11 fixed, 1 deferred, 1 rejected.
+Each fix has a regression test named `capture-from-chronicle audit N`, run failing before its fix: unit tests in
+`src/lib/__tests__/tabs/homeCapture.test.ts` (1, 6, 7), checks in the `capturehome` journey (2, 3, 4, 5, 8, 9, 11).
+
+1. A walk screen up before the keeper reads the new walk never says "Walk started · recording" (the notice was set only as the screen mounted; the likely cause of `launch`'s flaky Walk here step): accept, the notice follows the walk's arrival (`arrivalNotice`, `walk.tsx`).
+2. A moment's toast covers Memories' Undo: accept, Memories' toast goes in the band's pills column (`above`), which stacks.
+3. The band's error pill covers a failed memo's Retry: accept, the error goes in the same column. The journey checks the error and a toast together (a denied mic); a failed save needs a broken store, so Retry itself is covered by the column, not its own check.
+4. "Settings" on the band's error throws on the web (`Linking.openSettings` is missing): accept, no button on the web.
+5. A tap between the band's buttons opens a card scrolled beneath: accept, the band's strip takes its taps (`pointerEvents="auto"`).
+6. The bar's Stop doesn't wait for a photo or video being kept from the band: accept, `memoGate.keep` / `kept()` track every capture path's keep, and Stop waits for them.
+7. With the keeper not yet known, the band keeps a loose moment for a walk that is open: accept, `captureTarget(walk, known)` says wait and the band is disabled until it knows. Covered by the unit test; the delayed keeper is not staged in the journey.
+8. A reminder (or a moment) opened mid-memo can play over the recording: accept, Memories holds every viewer back until the band's memo has stopped.
+9. In a thread or Hidden, the band comes before the screen's Back for a screen reader: accept, the band goes after the screen there.
+10. The steward's B1, a moment's toast over Undo: reject, the same as 2, fixed there.
+11. The failed state's orange "Try again" is on the launch screen now (steward B2): accept, `variant="secondary"`.
+12. HC9 and HC10's unit tests reached `captureTarget`, which no view called: accept, `MemoriesBand` decides with it now. Covered by typecheck and the journey's HC9, HC10 checks.
+13. Lost toasts: "Too short, not kept" under a viewer opened mid-memo, and "saved to your walk" when the walk stops and the band remounts: defer (`docs/DEFERRED.md`).
+
+For the owner, from the steward (silent): the note editor's placeholder, "What's worth remembering?", now one tap from launch, asks the walker to judge worth (VISION.md: "every moment captured is worth remembering"); keep it or say something neutral? And with a walk open, only the toast and the screen reader say a capture goes to the walk; the recording bar beneath is the visible cue.
+

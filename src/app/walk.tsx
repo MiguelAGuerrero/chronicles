@@ -66,7 +66,7 @@ import { useBusyLayer } from '../lib/layers/useBusyLayer';
 import { useLayers } from '../lib/layers/useLayers';
 import { useRouteWarning } from '../lib/walk/useRouteWarning';
 import { useWalkability } from '../lib/walk/useWalkability';
-import { exitPlan, screenState, startNotice } from '../lib/readyNav';
+import { arrivalNotice, exitPlan, screenState, startNotice } from '../lib/readyNav';
 import { noticeShown } from '../lib/pauseReminder';
 import { getLastFix } from '../lib/lastFix';
 import { CaptureStack } from '../components/walk/CaptureStack';
@@ -245,6 +245,14 @@ function WalkScreen(props: { onMinimize: () => void }) {
           ? { message: 'Walk started · recording' }
           : null,
   );
+  // Walk here or Start can bring this screen up before the keeper has read the new walk: the notice follows
+  // the walk's arrival, not the screen's mount (capture-from-chronicle audit 1).
+  const [noticedWalk, setNoticedWalk] = useState<string | null>(shownWalk?.id ?? null);
+  if (shownWalk && noticedWalk !== shownWalk.id) {
+    setNoticedWalk(shownWalk.id);
+    const message = rawNotice ? null : arrivalNotice(params);
+    if (message) setNotice({ message });
+  }
   const [noteOpen, setNoteOpen] = useState(false);
   const [note, setNote] = useState('');
   const [toast, setToast] = useState<string | null>(null);

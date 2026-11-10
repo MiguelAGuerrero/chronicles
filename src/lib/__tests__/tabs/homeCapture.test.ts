@@ -83,3 +83,37 @@ test('HC7: the recording bar shows no camera on Memories, where the band files i
   assert.equal(barCamera('/explore', 'memories'), true);
   assert.equal(barCamera('/day/2026-11-09', 'memories'), true);
 });
+
+// The audit (Nov 10): regression tests, each written to fail before its fix.
+
+test('capture-from-chronicle audit 1: a walk that arrives after the walk screen mounted still says it is recording', async () => {
+  const { arrivalNotice } = await import('../../readyNav');
+  assert.equal(arrivalNotice({ started: '1' }), 'Walk started · recording');
+  assert.equal(arrivalNotice({ warning: 'Background off', started: '1' }), 'Background off');
+  assert.equal(arrivalNotice({}), null);
+});
+
+test('capture-from-chronicle audit 6: Stop can wait for a photo or video still being kept, from any capture path', async () => {
+  const { createMemoGate } = await import('../../memoGate');
+  const gate = createMemoGate();
+  let done!: () => void;
+  const keeping = new Promise<void>((r) => { done = r; });
+  gate.keep(keeping);
+  let settled = false;
+  const waited = gate.kept().then(() => { settled = true; });
+  await Promise.resolve();
+  assert.equal(settled, false, 'kept() waits while a capture is being kept');
+  done();
+  await waited;
+  assert.equal(settled, true);
+  // A keep that fails is waited for too, and never throws out of kept().
+  gate.keep(Promise.reject(new Error('disk full')));
+  await gate.kept();
+});
+
+test('capture-from-chronicle audit 7: until the open walk is known, the band keeps nothing', async () => {
+  const { captureTarget } = await import('../../captureBand');
+  assert.deepEqual(captureTarget(null, false), { wait: true });
+  assert.deepEqual(captureTarget(null, true), { loose: true });
+  assert.deepEqual(captureTarget({ id: 'w1' }, true), { walkId: 'w1' });
+});
