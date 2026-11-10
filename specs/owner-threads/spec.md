@@ -54,7 +54,7 @@ Open: none (OT23 and OT24 answered Nov 6). The reasons rest on decision 0104, no
 
 ### Ending a thread
 
-14. **OT14** **Delete this thread** removes the thread and its memberships and no moment, link or file. It asks once, in words, and offers Undo for 5 s, as a moment delete does.
+14. **OT14** **Delete this thread** removes the thread and its memberships and no moment, link or file. It acts at once and offers Undo until the pill is closed, as a moment delete does (amended Nov 10 by `specs/ui-conformance` UC4, decision 0113: it asked first).
 15. **OT15** When a delete or Remove leaves a thread with fewer than two moments, the thread dissolves, name and all, at once; Undo of that delete brings back the moment and the thread with its name and members.
 16. **OT16** Deleting a moment deletes its memberships and links and nothing else. A reply whose answered moment is deleted stays, as its own moment, in its thread if the thread still has two moments.
 17. **OT17** Deleting a walk deletes the memberships and links of its moments in the same transaction, and dissolves the threads that leave.

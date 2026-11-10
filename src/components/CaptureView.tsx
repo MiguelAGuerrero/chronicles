@@ -1,7 +1,7 @@
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import { forwardRef, useEffect, useRef, useState, type ComponentRef } from 'react';
+import { forwardRef, useEffect, useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import { HANDOFF_HINT } from '../lib/nav/openInMaps';
-import { Linking, Platform, Pressable, StyleSheet, Text, View, type LayoutRectangle } from 'react-native';
+import { AccessibilityInfo, Linking, Platform, Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type LayoutRectangle, type StyleProp, type ViewStyle } from 'react-native';
 import { Modal } from './Modal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { db } from '../lib/db';
@@ -22,10 +22,8 @@ import { exportPlan, isEmptyEdit } from '../lib/mediaEdit';
 import { exportVideo } from '../lib/videoEdit';
 import { RemindEditor } from './RemindEditor';
 import { NoteEditor } from './NoteEditor';
-import { ConfirmCard } from './ConfirmCard';
 import { UndoToast } from './UndoToast';
-import { deleteMoment, planMoment } from '../lib/deletion';
-import { momentDeleteText, type ConfirmText } from '../lib/deletion/core';
+import { deleteMoment } from '../lib/deletion';
 import { useVisible } from '../lib/deletion/useDeletions';
 import { router } from 'expo-router';
 import { chronicleSection } from '../lib/resurface/sectionStore';
@@ -109,6 +107,21 @@ function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () =
 
 
 /**
+ * The picture's area: a plain view, or, in the viewer, a button whose tap shows or hides the bars (UC7). The
+ * picture itself lets taps through to it.
+ */
+function MediaArea(props: { onTap?: () => void; onLayout: (e: LayoutChangeEvent) => void; style: StyleProp<ViewStyle>; children: ReactNode }) {
+  if (!props.onTap) {
+    return <View style={props.style} onLayout={props.onLayout} pointerEvents="box-none">{props.children}</View>;
+  }
+  return (
+    <Pressable style={props.style} onLayout={props.onLayout} onPress={props.onTap} accessibilityRole="button" accessibilityLabel="Show or hide the controls" testID="viewer-media">
+      {props.children}
+    </Pressable>
+  );
+}
+
+/**
  * One capture, full screen. A photo or video fills everything above a thin
  * strip holding its details and the actions (previous and next, or the
  * replay's Continue), so the player's own controls never meet them. A note
@@ -126,6 +139,10 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
   action?: { label: string; hint?: string; onPress: () => void; testID?: string };
   /** Room left clear at the bottom for the viewer's docked toolbar, so nothing sits over the moment (OT27). */
   dock?: number;
+  /** The viewer's bars are hidden: no strip, and the picture fills the screen (UC7). */
+  bare?: boolean;
+  /** A tap on the picture (a photo in the viewer): shows or hides the viewer's bars (UC7). */
+  onMediaTap?: () => void;
 }>(function CaptureContent(props, actionRef) {
   const { capture } = props;
   const insets = useSafeAreaInsets();
@@ -174,26 +191,26 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
       // Keyed apart from the card layout, which shows while the file loads:
       // reusing its views would leave the media area unmeasured on web.
       <View key="media" style={[StyleSheet.absoluteFill, styles.mediaScreen]} pointerEvents="box-none">
-        <View
-          // In the viewer (docked), the picture starts under the top bar, so no button sits on it (OT27).
-          style={[styles.mediaArea, props.dock ? { marginTop: (props.topInset ?? 0) + TOP_BAR_H } : null]}
+        <MediaArea
+          onTap={props.onMediaTap}
           onLayout={(e) => setBox(e.nativeEvent.layout)}
-          // A photo lets taps through (the replay moves on with one); a video
-          // keeps its controls. Set on the photo, not this view: on web a view
-          // with pointerEvents "none" never reports its layout.
-          pointerEvents="box-none"
+          // In the viewer (docked), the picture starts under the top bar, so no button sits on it (OT27); bare, it fills
+          // the screen (UC7).
+          style={[styles.mediaArea, props.dock && !props.bare ? { marginTop: (props.topInset ?? 0) + TOP_BAR_H } : null]}
         >
           {capture.kind === 'photo' && <EditedPhoto uri={uri!} edit={capture.edit ?? null} caption={capture.caption} captionY={capture.caption_y} box={box} />}
           {capture.kind === 'video' && (
             <EditedVideo uri={uri!} edit={capture.edit ?? null} caption={capture.caption} captionY={capture.caption_y} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} />
           )}
-        </View>
+        </MediaArea>
+        {props.bare ? null : (
         <View style={[styles.strip, { paddingBottom: (props.dock ? props.dock : 0) + insets.bottom + 10 }]}>
           <View style={styles.stripInner}>
             <Text style={styles.stripMeta} numberOfLines={2} testID="capture-meta">{meta}</Text>
             {actions(true)}
           </View>
         </View>
+        )}
       </View>
     );
   }
@@ -261,7 +278,20 @@ export function CaptureViewer(props: {
   const [edited, setEdited] = useState<Map<string, string>>(() => new Map());
   // What was deleted (D3, D5) leaves the viewer at once.
   const list = useVisible(props.captures);
-  const [deleting, setDeleting] = useState<{ capture: Capture; text: ConfirmText } | null>(null);
+  // A tap on a photo hides the bars (UC7); a screen reader keeps them (UC8, on a phone: the web always reports one).
+  const [chrome, setChrome] = useState(true);
+  const [reader, setReader] = useState(false);
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    let live = true;
+    AccessibilityInfo.isScreenReaderEnabled().then((on) => live && setReader(on), () => {});
+    const sub = AccessibilityInfo.addEventListener('screenReaderChanged', (on) => setReader(on));
+    return () => {
+      live = false;
+      sub.remove();
+    };
+  }, []);
+  const [statusOf, setStatusOf] = useState<Map<string, string>>(() => new Map());
   const [menu, setMenu] = useState(false);
   // Add to a thread (OT5): the picker is drawn inside this Modal.
   const [adding, setAdding] = useState<Capture | null>(null);
@@ -337,29 +367,27 @@ export function CaptureViewer(props: {
     setEditing(null);
     setNoting(null);
     setReminding(null);
-    setDeleting(null);
     setAdding(null);
+    setChrome(true);
     setReplyStage(null);
     setMenu(false);
     props.onClose();
   };
-  const askDelete = (c: Capture) => {
-    planMoment(c).then(
-      (text) => setDeleting({ capture: c, text }),
-      () => setDeleting({ capture: c, text: momentDeleteText(c.kind, 0) }),
-    );
-  };
-  const confirmDelete = () => {
-    if (!deleting) return;
+  // A moment is deleted at once, with Undo on the pill (UC4); nothing left to show and the host hears the viewer closed.
+  const deleteNow = (c: Capture) => {
     const last = list.length <= 1;
-    deleteMoment(deleting.capture);
-    setDeleting(null);
-    // Nothing left to show: the host hears the viewer closed.
+    deleteMoment(c);
     if (last) close();
+  };
+  // What the moment's info line says about what was just done to it, in place of a pill (UC10): said, not shown off.
+  const tell = (id: string, text: string) => {
+    setStatusOf((m) => new Map(m).set(id, text));
+    AccessibilityInfo.announceForAccessibility(text);
   };
   const busy = !!saveState?.busy;
   // The toolbar is docked while the moment shows on its own; an editor or a picker takes the screen (OT1, OT27).
-  const docked = !!current && !editing && !noting && !reminding && !adding;
+  const bars = chrome || reader;
+  const docked = !!current && !editing && !noting && !reminding && !adding && bars;
   const mine = current ? threadsOf(current.id, owned) : [];
   const here = props.thread ? mine.find((t) => t.id === props.thread!.id) : undefined;
   const inThreadWords = here?.name ? `${IN_A_THREAD}: ${here.name}` : IN_A_THREAD;
@@ -382,7 +410,7 @@ export function CaptureViewer(props: {
     <Modal
       visible={list.length > 0}
       animationType="fade"
-      onRequestClose={menu ? () => setMenu(false) : replyStage ? () => setReplyStage(null) : adding ? () => setAdding(null) : deleting ? () => setDeleting(null) : editing ? () => editor.current?.requestClose() : noting ? () => setNoting(null) : reminding ? () => setReminding(null) : close}
+      onRequestClose={menu ? () => setMenu(false) : replyStage ? () => setReplyStage(null) : adding ? () => setAdding(null) : editing ? () => editor.current?.requestClose() : noting ? () => setNoting(null) : reminding ? () => setReminding(null) : close}
     >
       <View style={styles.viewer}>
         {/* The baker draws behind everything; the cover hides it. */}
@@ -396,7 +424,15 @@ export function CaptureViewer(props: {
             autoPlay={props.autoPlay}
             topInset={insets.top}
             dock={docked ? DOCK_H : 0}
-            footer={[props.context?.get(current.id), list.length > 1 ? `${i + 1} of ${list.length}` : null, inThread].filter(Boolean).join(' · ') || undefined}
+            bare={!bars}
+            onMediaTap={current.kind === 'photo' && !editing ? () => setChrome((c) => !c) : undefined}
+            footer={[
+              props.context?.get(current.id),
+              list.length > 1 ? `${i + 1} of ${list.length}` : null,
+              inThread,
+              props.remind && recalls.has(current.id) ? 'Reminder set' : null,
+              statusOf.get(current.id),
+            ].filter(Boolean).join(' · ') || undefined}
             nav={
               list.length > 1
                 ? { onPrev: i > 0 ? () => setIndex(i - 1) : undefined, onNext: i < list.length - 1 ? () => setIndex(i + 1) : undefined }
@@ -405,7 +441,7 @@ export function CaptureViewer(props: {
           />
         )}
         {saveState && saveState.id === current?.id && (
-          <View style={[styles.saved, { top: insets.top + 64 }]} accessibilityLiveRegion="polite" pointerEvents="box-none">
+          <View style={[styles.saved, { top: insets.top + 64 }]} accessibilityLiveRegion="polite" pointerEvents="box-none" testID="viewer-pill">
             <Text style={styles.savedText}>{saveState.text}</Text>
             {saveState.openSettings && (
               <Pressable accessibilityRole="button" onPress={() => Linking.openSettings()} hitSlop={8}>
@@ -415,6 +451,7 @@ export function CaptureViewer(props: {
           </View>
         )}
         {/* Title and buttons share one row, so a long title never runs under them. */}
+        {bars && (
         <View style={[styles.viewerTop, { top: insets.top + 8 }]} pointerEvents="box-none">
           <View style={styles.viewerTitleSlot} pointerEvents="none">
             {props.title ? (
@@ -423,34 +460,6 @@ export function CaptureViewer(props: {
               </View>
             ) : null}
           </View>
-          {current && current.lat != null && props.remind && (
-            <Pressable
-              testID="viewer-remind"
-              accessibilityRole="button"
-              accessibilityLabel={recalls.has(current.id) ? 'Reminder set. Change or stop it' : 'Remind me here'}
-              onPress={() => setReminding(current)}
-              style={styles.roundBtn}
-              hitSlop={8}
-            >
-              <Icon name={recalls.has(current.id) ? 'notifications' : 'notifications-outline'} size={22} color={theme.ink} />
-            </Pressable>
-          )}
-          {current && current.lat != null && props.onGoHere && (
-            <Pressable
-              testID="viewer-go"
-              accessibilityRole="button"
-              accessibilityLabel="Go here"
-              onPress={() => {
-                const c = current;
-                setIndex(0);
-                props.onGoHere?.(c);
-              }}
-              style={styles.roundBtn}
-              hitSlop={8}
-            >
-              <Icon name="navigate" size={22} color={theme.ink} />
-            </Pressable>
-          )}
           {current && (
             // Save and Delete share one button, so the row fits a 320 px phone (deletion audit 5).
             <Pressable
@@ -469,8 +478,11 @@ export function CaptureViewer(props: {
             <Icon name="close" size={26} color={theme.ink} />
           </Pressable>
         </View>
-        {docked && current && (
+        )}
+        {current && !editing && !noting && !reminding && !adding && (
+          // Kept mounted while the bars are hidden, so a voice reply being recorded goes on (UC7).
           <ReplyDock
+            hidden={!bars}
             answeredId={current.id}
             threadId={props.thread?.id ?? null}
             walkId={props.walkId ?? null}
@@ -478,6 +490,7 @@ export function CaptureViewer(props: {
             stage={replyStage}
             setStage={setReplyStage}
             say={(text) => setSaveState({ id: current.id, text })}
+            kept={(text) => tell(current.id, text)}
             edit={editAction}
           />
         )}
@@ -485,10 +498,11 @@ export function CaptureViewer(props: {
           <AddToThread
             moment={adding}
             onClose={() => setAdding(null)}
-            onDone={(text) => {
+            onDone={(text, ok) => {
               const id = adding.id;
               setAdding(null);
-              setSaveState({ id, text });
+              if (ok) tell(id, 'Added to a thread');
+              else setSaveState({ id, text });
             }}
           />
         )}
@@ -549,7 +563,8 @@ export function CaptureViewer(props: {
                 const r = fresh ? editedRecall(fresh, frequency, until) : newRecall(id, frequency, until, props.walkId ?? null);
                 await saveRecall(r);
                 setRecalls((m) => new Map(m).set(r.capture_id, r));
-                setSaveState({ id: r.capture_id, text: 'It will come back when you pass here' });
+                // The info line says Reminder set (UC12); the rest is said, not shown (UC10).
+                AccessibilityInfo.announceForAccessibility('Reminder set. It will come back when you pass here');
               } catch {
                 setSaveState({ id, text: 'The reminder could not be saved' });
               }
@@ -564,7 +579,7 @@ export function CaptureViewer(props: {
                   n.delete(id);
                   return n;
                 });
-                setSaveState({ id, text: 'No more reminders here' });
+                AccessibilityInfo.announceForAccessibility('No more reminders here');
               } catch {
                 setSaveState({ id, text: 'The reminder could not be stopped' });
               }
@@ -575,6 +590,37 @@ export function CaptureViewer(props: {
           <>
             <Pressable style={StyleSheet.absoluteFill} onPress={() => setMenu(false)} accessible={false} />
             <View style={[styles.menu, { top: insets.top + 64 }]} testID="viewer-menu">
+              {current.lat != null && props.remind && (
+                // In More since UC9; its state is in the info line (UC12).
+                <Pressable
+                  testID="viewer-remind"
+                  accessibilityRole="button"
+                  onPress={() => {
+                    setMenu(false);
+                    setReminding(current);
+                  }}
+                  style={({ pressed }) => [styles.menuItem, pressed && styles.dim]}
+                >
+                  <Icon name={recalls.has(current.id) ? 'notifications' : 'notifications-outline'} size={22} color={theme.ink} />
+                  <Text style={styles.menuText}>{recalls.has(current.id) ? 'Reminder set: change or stop' : 'Remind me here'}</Text>
+                </Pressable>
+              )}
+              {current.lat != null && props.onGoHere && (
+                <Pressable
+                  testID="viewer-go"
+                  accessibilityRole="button"
+                  onPress={() => {
+                    const c = current;
+                    setMenu(false);
+                    setIndex(0);
+                    props.onGoHere?.(c);
+                  }}
+                  style={({ pressed }) => [styles.menuItem, pressed && styles.dim]}
+                >
+                  <Icon name="navigate" size={22} color={theme.ink} />
+                  <Text style={styles.menuText}>Go here</Text>
+                </Pressable>
+              )}
               {(current.kind === 'photo' || current.kind === 'video') && current.file_path && (
                 <Pressable
                   testID="viewer-save"
@@ -637,7 +683,7 @@ export function CaptureViewer(props: {
                 accessibilityRole="button"
                 onPress={() => {
                   setMenu(false);
-                  askDelete(current);
+                  deleteNow(current);
                 }}
                 style={({ pressed }) => [styles.menuItem, pressed && styles.dim]}
               >
@@ -647,7 +693,6 @@ export function CaptureViewer(props: {
             </View>
           </>
         )}
-        {deleting && <ConfirmCard testID="confirm" text={deleting.text} onCancel={() => setDeleting(null)} onConfirm={confirmDelete} />}
         <UndoToast style={{ top: insets.top + 64 }} />
       </View>
     </Modal>

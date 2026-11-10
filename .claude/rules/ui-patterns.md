@@ -29,11 +29,11 @@ stop for "which control is this?". **[app]** marks a house rule stricter than th
 ## Confirmation and feedback
 
 - **Undo stays until it is used or dismissed** (F3; M3: "Snackbars with actions shouldn't auto-dismiss"; NN/g faults
-  a few-second Undo). The app's 5 s Undo window (D5) predates this; see `docs/DEFERRED.md`.
+  a few-second Undo): the pill has Undo and Close, and a killed app completes the delete (decision 0113).
 - **A dialog has at most two actions** (A6); three or more choices are a menu or a bottom sheet.
 - **Don't confirm a common delete that can be undone; act and offer Undo. Confirm a rare, irreversible one**,
-  with the specific verb, never "OK" (A3, matrix 7, 8). (The app's delete-with-confirm-and-Undo, D4, predates this;
-  see `docs/DEFERRED.md`.)
+  with the specific verb, never "OK" (A3, matrix 7, 8). A moment, a thread and a removal act at once; a walk and a
+  walk's media (a bulk loss) still ask (`specs/ui-conformance` UC4, UC5).
 - **One modal at a time** (S2): a sheet closes before another opens; overlays inside the viewer, never a Modal on a
   Modal (iOS).
 - **No confirmation for routine success** (matrix 20); a status that needs no action sits inline and is announced
@@ -52,8 +52,9 @@ stop for "which control is this?". **[app]** marks a house rule stricter than th
 - **Nothing wraps on a 320 px phone at the default text size** **[app]**: a row that can't fit has too many
   controls. At 200% text, labels may wrap (M3, WCAG 1.4.4); content must not be lost.
 - **Inputs are 16 px or more on the web** **[app]** (iOS zooms otherwise; `react-native-web.md`).
-- **In the moment viewer, the picture sits between its bars** **[app]**: the HIG lets content run under bars and
-  hide them on a tap (T7, V1); ours keeps them up and the picture clear, until a tap-to-hide is built.
+- **In the moment viewer, a tap on a photo hides the bars** (T7, V1; UC7) and the photo fills the screen; with the
+  bars up, the picture sits between them **[app]**. A screen reader keeps them up (T2; UC8). A video's own controls
+  take its taps.
 
 ## How it is checked
 

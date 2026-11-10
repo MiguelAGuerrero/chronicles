@@ -22,6 +22,11 @@ async function checks(h) {
       }));
       const toast = () => page.locator('[data-testid=undo-toast]').innerText().catch(() => '');
       const past = () => page.waitForTimeout(5800);
+      // Close on the pill: the delete stands and is stored now (UC2); Undo never ends on a timer (UC1).
+      const closePill = async () => {
+        await page.click('[data-testid=undo-dismiss]');
+        await page.waitForTimeout(800);
+      };
       // The ride walk's card has More, with Delete walk (D1); Escape closes it, nothing changed.
       await page.click('[data-testid=card-more]');
       await page.waitForSelector('[data-testid=action-delete]');
@@ -72,43 +77,32 @@ async function checks(h) {
       await page.click('[data-testid=viewer-more]');
       await page.click('[data-testid=viewer-delete]');
       await page.waitForTimeout(400);
-      check.todo((await page.locator('[data-testid=confirm]').count()) === 0 && (await page.locator('[data-testid=undo-toast]').count()) === 1, 'UC4: deleting a moment acts at once, with no card first, and the pill with Undo follows');
-      await page.waitForSelector('[data-testid=confirm]');
-      const ask = await page.locator('[data-testid=confirm]').innerText();
-      check(/Delete this note\?/.test(ask) && /undo it for 5 seconds/.test(ask), `deleting a moment asks first, saying what goes (D4: ${ask.replace(/\n/g, ' · ')})`);
-      await shot(page, '25-confirm-moment');
-      await page.click('[data-testid=confirm-cancel]');
-      check((await page.getByText('The bakery smelled of cardamom.').count()) > 0, 'Cancel keeps the moment (D4)');
-      await page.click('[data-testid=viewer-more]');
-      await page.click('[data-testid=viewer-delete]');
-      await page.click('[data-testid=confirm-delete]');
-      await page.waitForSelector('[data-testid=undo-toast]');
+      check((await page.locator('[data-testid=confirm]').count()) === 0 && (await page.locator('[data-testid=undo-toast]').count()) === 1, 'UC4: deleting a moment acts at once, with no card first, and the pill with Undo follows');
       check(/Note deleted/.test(await toast()) && (await page.getByText('The bakery smelled of cardamom.').count()) === 0,
         'a deleted moment leaves at once, with Undo (D3, D5)');
       {
         const u = await page.locator('[data-testid=undo]').boundingBox();
         // Never wait on a button that may not be there: the delete is stored when the window ends.
         const x = (await page.locator('[data-testid=undo-dismiss]').count()) ? await page.locator('[data-testid=undo-dismiss]').boundingBox() : null;
-        check.todo(!!(u && x && u.height >= 44 && x.height >= 44 && x.width >= 44 && Math.abs(x.x - (u.x + u.width)) >= 8) && x !== null && (await page.locator('[data-testid=undo-dismiss]').getAttribute('aria-label')) === 'Close, it stays deleted',
+        check(!!(u && x && u.height >= 44 && x.height >= 44 && x.width >= 44 && Math.abs(x.x - (u.x + u.width)) >= 8) && x !== null && (await page.locator('[data-testid=undo-dismiss]').getAttribute('aria-label')) === 'Close, it stays deleted',
           'UC3: the pill has Undo and a Close, each 44 px, 8 px apart, Close named for what it does');
       }
       await shot(page, '26-undo-moment');
-      check((await capsOf()).some((c) => c.id === noteCap.id), 'nothing is stored before the 5 s are up (D5)');
+      await past();
+      check((await capsOf()).some((c) => c.id === noteCap.id) && (await page.locator('[data-testid=undo-toast]').count()) === 1, 'UC1: nothing is stored while the pill waits, and it is still up after the old 5 s (D5 amended)');
       await page.click('[data-testid=undo]');
       await page.waitForTimeout(300);
       if (await page.locator('[data-testid=viewer-close]').count()) await page.click('[data-testid=viewer-close]');
-      await past();
       check((await capsOf()).some((c) => c.id === noteCap.id) && (await page.locator('[data-testid=undo-toast]').count()) === 0, 'Undo brings the moment back as it was (D5)');
       await openNote();
       check(true, 'the moment is back on the map after Undo');
       await page.click('[data-testid=viewer-more]');
       await page.click('[data-testid=viewer-delete]');
-      await page.click('[data-testid=confirm-delete]');
       await page.waitForSelector('[data-testid=undo-toast]');
-      await past();
+      await closePill();
       if (await page.locator('[data-testid=viewer-close]').count()) await page.click('[data-testid=viewer-close]');
       const recallsLeft = (await all('recall')).filter((r) => r.capture_id === noteCap.id).length;
-      check(!(await capsOf()).some((c) => c.id === noteCap.id) && recallsLeft === 0, `after 5 s the moment and its reminder are gone (D3: ${recallsLeft} reminders)`);
+      check(!(await capsOf()).some((c) => c.id === noteCap.id) && recallsLeft === 0, `once the pill is closed the moment and its reminder are gone (D3, UC2: ${recallsLeft} reminders)`);
       check((await sumOf()).notes === notesBefore - 1, `the walk's counts follow (D9: notes ${notesBefore} → ${(await sumOf()).notes})`);
 
       // D2: the walk's photos, videos and memos go; the walk, its notes and its finds stay.
@@ -123,9 +117,10 @@ async function checks(h) {
       await page.click('[data-testid=confirm-delete]');
       await page.waitForSelector('[data-testid=undo-toast]');
       check(/Photos, videos and memos removed/.test(await toast()), 'the pill names what went (D5)');
-      check.todo((await page.locator('[data-testid=confirm]').count()) === 0, 'UC5: removing a walk\'s media asked first and says what goes (it did, above), then the pill');
+      check((await page.locator('[data-testid=confirm]').count()) === 0 && /Remove photos, videos and memos\?/.test(askMedia), 'UC5: removing a walk\'s media asked first and said what goes, then the pill');
       await past();
-      check.todo((await page.locator('[data-testid=undo-toast]').count()) === 1, 'UC1: the pill is still up after the old 5 s: it waits for Undo, Close or another delete');
+      check((await page.locator('[data-testid=undo-toast]').count()) === 1, 'UC1: the pill is still up after the old 5 s: it waits for Undo, Close or another delete');
+      await closePill();
       const keysNow = new Set(await mediaKeys());
       const capsNow = await capsOf();
       const s2 = await sumOf();
@@ -153,8 +148,10 @@ async function checks(h) {
       await page.click('[data-testid=undo]');
       await page.waitForTimeout(300);
       check((await page.locator('[data-testid=walk-row]').count()) === rowsBefore, 'Undo brings the walk back (D5)');
+      check(/Delete this walk\?/.test(askWalk), 'UC5: deleting a whole walk still asks first, then the pill');
       await deleteFirst();
-      await past();
+      await page.waitForSelector('[data-testid=undo-toast]');
+      await closePill();
       const left = {
         walk: (await all('walk')).filter((w) => w.id === first.id).length,
         trace: (await all('trace_point')).filter((x) => x.walk_id === first.id).length,

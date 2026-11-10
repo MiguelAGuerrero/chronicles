@@ -32,7 +32,6 @@ import { answeringLine, headingOf, threadLine as ownThreadLine } from '../../lib
 import { removalDissolves } from '../../lib/threads/rules';
 import { answeredBy } from '../../lib/threads/timeline';
 import { useThreads } from '../../lib/threads/useThreads';
-import { ConfirmCard } from '../ConfirmCard';
 import { MyThreads, type MyThreadRow } from '../threads/MyThreads';
 import { OwnThreadScreen } from '../threads/OwnThreadScreen';
 import { ThreadMomentMenu } from '../threads/ThreadMomentMenu';
@@ -60,9 +59,6 @@ export function MemoriesScreen() {
   // The owner's threads (OT9-OT14): the one open, a moment's menu inside it, and the delete's confirm.
   const [ownId, setOwnId] = useState<string | null>(null);
   const [ownMenuFor, setOwnMenuFor] = useState<string | null>(null);
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
-  // Remove from this thread asks first when it would end the thread (owner-threads audit 5).
-  const [removing, setRemoving] = useState<{ threadId: string; momentId: string } | null>(null);
   // A kept Chronicle thread's own name, offered in the name field and never stored (audit 13); and one Keep at a time (audit 12).
   const [suggested, setSuggested] = useState<string | null>(null);
   const keeping = useRef(false);
@@ -229,7 +225,11 @@ export function MemoriesScreen() {
           onWalk={(id) => router.push(`/replay/${id}?ceremony=0`)}
           onMore={(m) => setOwnMenuFor(m.id)}
           onRename={(name) => void threads.rename(own.id, name).catch(() => {})}
-          onDelete={() => setConfirmingDelete(true)}
+          onDelete={() => {
+            // At once, with Undo (UC4): a thread can be brought back until the pill is closed.
+            setOwnId(null);
+            threads.deleteThread(own.id);
+          }}
           momentById={(id) => byId.get(id)}
           suggestion={suggested}
         />
@@ -403,35 +403,11 @@ export function MemoriesScreen() {
           const m = ownMenuMoment;
           setOwnMenuFor(null);
           if (!m || !own) return;
-          if (removalDissolves(mine.members, own.id)) setRemoving({ threadId: own.id, momentId: m.id });
-          else void threads.removeFromThread(own.id, m.id).catch(() => {});
+          // At once, with Undo (UC6); a thread it ends leaves the screen until Undo or Close.
+          if (removalDissolves(mine.members, own.id)) setOwnId(null);
+          threads.removeFromThread(own.id, m.id);
         }}
       />
-      {removing && (
-        <ConfirmCard
-          testID="confirm-remove"
-          text={{ title: 'Remove it from this thread?', body: 'This thread has two moments, so removing one ends it. The moments stay kept.', confirm: 'Remove' }}
-          onCancel={() => setRemoving(null)}
-          onConfirm={() => {
-            const r = removing;
-            setRemoving(null);
-            setOwnId(null);
-            void threads.removeFromThread(r.threadId, r.momentId).catch(() => {});
-          }}
-        />
-      )}
-      {confirmingDelete && own && (
-        <ConfirmCard
-          testID="confirm"
-          text={{ title: 'Delete this thread?', body: 'The moments stay kept. You can undo it for 5 seconds.', confirm: 'Delete' }}
-          onCancel={() => setConfirmingDelete(false)}
-          onConfirm={() => {
-            setConfirmingDelete(false);
-            setOwnId(null);
-            threads.deleteThread(own.id);
-          }}
-        />
-      )}
       {toast && (
         <View style={styles.toast} accessibilityLiveRegion="polite" testID="memories-toast">
           <Text style={styles.toastText}>{toast.msg}</Text>

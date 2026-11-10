@@ -19,7 +19,7 @@ Captures (photo, video, voice memo, note), their viewer, captions and baking, th
 
 ## The viewer (decision 0112)
 
-- **Top bar, toolbar, menu; nothing over the moment.** `CaptureViewer` draws its top bar (Remind, Go here, More, Close), and `ReplyDock` docks a toolbar under the moment (Respond, and Edit for a photo or video with `onSaveEdit`, or a note with `onSaveNote`). `CaptureContent` takes `dock` and leaves that room clear: the strip and the note card sit above it, and a photo or video starts under the top bar (`TOP_BAR_H`). More holds Save, Open in Maps, Add to a thread, Open its thread and Delete.
+- **Top bar, toolbar, menu; nothing over the moment.** `CaptureViewer` draws its top bar (More, Close; Remind me here and Go here are More's items since UC9, and a set reminder says so in the info line, UC12), hides its bars on a tap on a photo (`chrome`, UC7; never with a screen reader, UC8), says a kept reply or an added thread in the info line rather than a pill (`statusOf`, UC10), and `ReplyDock` docks a toolbar under the moment (Respond, and Edit for a photo or video with `onSaveEdit`, or a note with `onSaveNote`). `CaptureContent` takes `dock` and leaves that room clear: the strip and the note card sit above it, and a photo or video starts under the top bar (`TOP_BAR_H`). More holds Remind me here, Go here, Save, Open in Maps, Add to a thread, Open its thread and Delete (no confirm; Undo on the pill, UC4).
 - **Screenshots are taken after the Modal's fade** (`waitForTimeout(800)`): a picture taken during it shows the screen beneath through the viewer.
 
 ## Video

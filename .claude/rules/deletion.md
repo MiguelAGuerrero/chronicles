@@ -26,10 +26,12 @@ Deleting a walk, its media, or a moment (`lib/deletion`): what goes, Undo, and w
   (`removeMedia`: each ref, plus a whole walk's `walks/<id>/` folder; never
   `walks/moments/`). A file that fails to delete is left behind, never a row
   without its file. `filesOf` skips `THUMB.none` and `data:` refs.
-- **Undo is memory, not storage** (`deletion/pending.ts`, pure; `deletion/index.ts`
-  wires it). A delete hides its ids at once and runs after 5 s, or at once when
-  the app goes to the background or another delete is confirmed. A killed app
-  drops a waiting delete. Ids stay hidden after they went, so a screen's stale
+- **Undo waits for the owner** (`deletion/pending.ts`, pure; `deletion/runner.ts` stores; `deletion/index.ts`
+  wires them; UC1-UC6, UC13, decision 0113). A delete hides its ids at once and is stored only when the pill's
+  Close is tapped (`dismiss`) or another delete starts; never on a timer, never on going to the background. The
+  waiting delete is data (`DeleteSpec`), kept in meta `pending_delete`, so a killed app stores it at the next launch
+  (`resume`, no pill). A moment, a thread and a removal from a thread act with no confirm; a walk and a walk's
+  media still ask (`ConfirmCard`, D4). A removal hides `thread/moment` (`membershipKey`). Ids stay hidden after they went, so a screen's stale
   list never shows them. A failure unhides them and says "Couldn't delete."
   - Every screen that lists walks or captures filters by `useHidden` /
     `useVisible`: the home (walks, rows, summaries, capture rows), the walk

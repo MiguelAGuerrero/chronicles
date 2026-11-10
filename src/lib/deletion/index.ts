@@ -1,26 +1,38 @@
 // @layer shell
-import { AppState } from 'react-native';
 import { db } from '../db';
 import { forgetRecalls } from '../discovery/recallCheck';
 import { mediaBytes, removeMedia } from '../media';
 import type { Capture, Walk } from '../types';
 import { filesOf, isMedia, mediaRemoveText, momentDeleteText, walkDeleteText, type ConfirmText } from './core';
 import { createPending } from './pending';
+import { createDeleteRunner } from './runner';
+import { isPendingJob } from './saved';
 
 /**
  * Clearing walks and moments (D1-D11): the app's one Undo window, wired to
  * real timers and storage. Every delete goes through here: rows first, in one
  * transaction, then files (a file left behind is never a row without its file).
  */
+/** Meta: the delete waiting in the Undo window (UC13), as JSON; `isPendingJob` reads it back. */
+export const PENDING_KEY = 'pending_delete';
+const run = createDeleteRunner({ db, removeMedia, forgetRecalls });
+
 export const deletions = createPending({
   setTimer: (fn, ms) => setTimeout(fn, ms),
   clearTimer: (id) => clearTimeout(id as ReturnType<typeof setTimeout>),
+  run,
+  // Kept so a killed app stores it at the next launch (UC13, decision 0113); a failed write only loses that.
+  save: (job) => void db.setMeta(PENDING_KEY, job ? JSON.stringify(job) : '').catch(() => {}),
 });
 
-// Going to the background stores what waits (D5): a pocketed phone may never come back to it.
-AppState.addEventListener('change', (s) => {
-  if (s === 'background') void deletions.flush();
-});
+// A delete still waiting when the app was last killed is stored now, with no pill (UC13).
+void db
+  .getMeta(PENDING_KEY)
+  .then((raw) => {
+    const job: unknown = raw ? JSON.parse(raw) : null;
+    return isPendingJob(job) ? deletions.resume(job) : undefined;
+  })
+  .catch(() => {});
 
 /** What a walk's actions would take, for the confirm (D4, D11). */
 export interface WalkPlan {
@@ -57,34 +69,13 @@ export async function planWalk(walkId: string): Promise<WalkPlan | null> {
 /** D1: the walk and everything tied to it, after the Undo window. */
 export function deleteWalk(plan: WalkPlan) {
   const { walk, captures } = plan;
-  deletions.schedule({
-    kind: 'walk',
-    ids: [walk.id, ...captures.map((c) => c.id)],
-    run: async () => {
-      // Read again at the end of the window: a moment made since (none for a finished walk) or one deleted meanwhile.
-      const now = await db.getCaptures(walk.id);
-      await db.deleteWalk(walk.id);
-      forgetRecalls();
-      await removeMedia(filesOf(now), [walk.id]);
-    },
-  });
+  deletions.schedule({ kind: 'walk', ids: [walk.id, ...captures.map((c) => c.id)], spec: { type: 'walk', walkId: walk.id } });
 }
 
 /** D2: the walk's photos, videos and memos; the places they found stay found. */
 export function removeWalkMedia(plan: WalkPlan) {
-  const media = plan.media;
-  deletions.schedule({
-    kind: 'media',
-    ids: media.map((c) => c.id),
-    run: async () => {
-      const ids = media.map((c) => c.id);
-      // Read fresh: a thumbnail made since the menu opened goes too.
-      const fresh = await db.getCapturesByIds(ids);
-      await db.deleteCaptures(ids, { keepFinds: true });
-      forgetRecalls();
-      await removeMedia([...new Set(filesOf([...media, ...fresh]))]);
-    },
-  });
+  const ids = plan.media.map((c) => c.id);
+  deletions.schedule({ kind: 'media', ids, spec: { type: 'media', walkId: plan.walk.id, captureIds: ids } });
 }
 
 /** What deleting one moment would say (D4). */
@@ -94,15 +85,5 @@ export async function planMoment(c: Capture): Promise<ConfirmText> {
 
 /** D3: one moment, its reminder and its find. Its file and thumbnail go, read fresh (a thumbnail made since). */
 export function deleteMoment(c: Capture) {
-  deletions.schedule({
-    kind: 'moment',
-    what: c.kind,
-    ids: [c.id],
-    run: async () => {
-      const [fresh] = await db.getCapturesByIds([c.id]);
-      await db.deleteCaptures([c.id]);
-      forgetRecalls();
-      await removeMedia([...new Set(filesOf(fresh ? [c, fresh] : [c]))]);
-    },
-  });
+  deletions.schedule({ kind: 'moment', what: c.kind, ids: [c.id], spec: { type: 'moment', captureId: c.id } });
 }

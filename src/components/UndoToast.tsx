@@ -3,6 +3,7 @@ import { AccessibilityInfo, Platform, Pressable, StyleSheet, Text, View, type St
 import { toastText } from '../lib/deletion/core';
 import { deletions } from '../lib/deletion';
 import { usePendingState } from '../lib/deletion/useDeletions';
+import { Icon } from './icons';
 import { LiftIn, theme } from './ui';
 
 // One pill shows at a time, in the newest host: a screen, or the capture
@@ -48,9 +49,15 @@ export function UndoToast(props: { style?: StyleProp<ViewStyle> }) {
       <LiftIn style={styles.pill} testID="undo-toast" accessibilityLiveRegion="polite">
         <Text style={styles.text}>{text}</Text>
         {st.pending && (
-          <Pressable testID="undo" accessibilityRole="button" accessibilityLabel="Undo" onPress={() => deletions.undo()} hitSlop={8} style={styles.undo}>
-            <Text style={styles.undoText}>Undo</Text>
-          </Pressable>
+          // Undo waits for the owner (UC1): Undo takes it back, Close lets it stand and stores it now (UC2, UC3).
+          <View style={styles.actions}>
+            <Pressable testID="undo" accessibilityRole="button" accessibilityLabel="Undo" onPress={() => deletions.undo()} style={styles.undo}>
+              <Text style={styles.undoText}>Undo</Text>
+            </Pressable>
+            <Pressable testID="undo-dismiss" accessibilityRole="button" accessibilityLabel="Close, it stays deleted" onPress={() => void deletions.dismiss()} style={styles.dismiss}>
+              <Icon name="close" size={20} color="rgba(255,255,255,0.75)" />
+            </Pressable>
+          </View>
         )}
       </LiftIn>
     </View>
@@ -65,6 +72,8 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 6,
   },
   text: { color: '#ffffff', fontSize: 15, fontWeight: '600', flexShrink: 1, paddingVertical: 12, paddingRight: 8 },
-  undo: { minHeight: 40, minWidth: 64, paddingHorizontal: 16, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.14)' },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  undo: { minHeight: 44, minWidth: 72, paddingHorizontal: 16, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.18)' },
+  dismiss: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   undoText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
 });

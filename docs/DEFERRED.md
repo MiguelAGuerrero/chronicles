@@ -388,8 +388,11 @@ An item leaves only when it ships, or when it is rejected with a decision record
 ## UI patterns and the UX research (decision 0112)
 
 - **Research gaps** (after the second pass, Nov 10, with the hosts allowed): Polarsteps and the app-store pages refuse automated fetches, so their teardown claims stay unverified; M3 has no page on photo or video viewers; the Apple HIG was read once (first pass) and not re-checked.
-- **The Undo window ends after 5 s** (D5): M3 says a snackbar with an action shouldn't auto-dismiss, and NN/g faults a few-second Undo (F3 in `docs/research/ui-references.md`). An Undo that stays until used or dismissed is the owner's call.
-- **Deletes confirm and offer Undo** (D4, the clearing slice): the HIG says a common delete that can be undone is not confirmed (A3). Changing it is the owner's call.
-- **The viewer's chrome never hides:** the HIG lets a full-screen viewer hide its bars on a tap and run the picture under them (T7, V1). Ours keeps the bars up and the picture between them.
-- **"Reply kept" and the other routine confirmations:** the HIG gives routine success no confirmation (matrix 20); the viewer's pill says it anyway.
-- **The viewer's top bar has four round buttons** (Remind, Go here, More, Close): more than one primary action and a More; moving Remind and Go here into More changes Remind me here and Go here.
+
+## UI conformance (`specs/ui-conformance`, decisions 0112, 0113)
+
+- **Tap to hide on a video:** a video's own controls take its taps, so its bars stay up; hiding them over a playing video is its own change.
+- **Hiding unavailable menu items vs disabling them** (M5: the HIG hides, M3 and NN/g disable): not touched.
+- **What a delete frees** ("Moment deleted · about 3 MB", the steward's question): the walk's and the media's confirms still say it; the pill does not.
+- **A recoverable trash** (Recently deleted, as Photos and Google Photos have): a killed app now completes a waiting delete (0113); a durable trash would change the data model and is its own slice.
+

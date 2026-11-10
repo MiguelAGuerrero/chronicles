@@ -6,6 +6,8 @@ import type { StartMode } from './startPlan';
 import { parsePrefs } from './resurface/prefs';
 import type { Prefs } from './resurface/types';
 import type { Units } from './units';
+import { isPendingJob } from './deletion/saved';
+import type { PendingJob } from './deletion/pending';
 
 /**
  * Every key in the meta store, with its owner and how its value is encoded.
@@ -137,6 +139,8 @@ export const META = {
   space_said: { owner: 'space', codec: oneOf<'low' | 'very-low'>('low', 'very-low') },
   space_persist: { owner: 'space', codec: oneOf<'due' | 'refused' | 'asked'>('due', 'refused', 'asked') },
   notify_off: { owner: 'notifications', codec: json<string[]>(isStrings) },
+  // Clearing (lib/deletion): the delete waiting in the Undo window, so a killed app stores it at the next launch (UC13, decision 0113)
+  pending_delete: { owner: 'deletion', codec: json<PendingJob>(isPendingJob) },
 } as const;
 
 /**

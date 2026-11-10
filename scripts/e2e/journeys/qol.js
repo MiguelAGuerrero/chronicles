@@ -483,15 +483,16 @@ async function run(h) {
       const before = await bells();
       await openNote();
       await pg.evaluate(() => document.querySelectorAll('[data-ids]').forEach((e) => { e.__beforeBell = true; }));
+      await pg.click('[data-testid=viewer-more]');
       await pg.click('[data-testid=viewer-remind]');
       await pg.click('[data-testid=remind-save]');
-      await pg.waitForSelector('text=It will come back when you pass here', { timeout: 5000 });
+      await pg.waitForSelector('[data-testid=capture-meta] >> text=/Reminder set/', { timeout: 5000 });
       await pg.waitForSelector('[data-ids] [data-testid=pin-reminder]', { timeout: 5000 }).catch(() => null);
       const belled = pg.locator('[data-ids]:has([data-testid=pin-reminder])');
       const set = { n: await belled.count(), kept: await belled.evaluateAll((els) => els.every((e) => e.__beforeBell === true)), label: (await belled.count()) ? await belled.first().getAttribute('aria-label') : '' };
+      await pg.click('[data-testid=viewer-more]');
       await pg.click('[data-testid=viewer-remind]');
       await pg.click('[data-testid=remind-stop]');
-      await pg.waitForSelector('text=No more reminders here', { timeout: 5000 });
       await pg.waitForFunction(() => !document.querySelector('[data-testid=pin-reminder]'), null, { timeout: 5000 }).catch(() => null);
       const after = await bells();
       check(before === 0 && set.n === 1 && set.kept && /reminder set\. Open$/.test(set.label) && after === 0,

@@ -36,27 +36,31 @@ function fakeTimers() {
 const settle = () => new Promise((r) => setImmediate(r));
 
 function job(ids: string[], log: string[], fail = false): PendingJob {
-  return {
-    kind: 'walk',
-    ids,
-    run: async () => {
-      log.push(`run:${ids.join(',')}`);
-      if (fail) throw new Error('disk');
-    },
-  };
+  void log;
+  return { kind: 'walk', ids, spec: { type: 'walk', walkId: `${fail ? 'fail:' : ''}${ids.join(',')}` } };
 }
 
-test('D5: a delete hides at once and reaches storage only after 5 s; what went stays hidden', async () => {
+/** The window over fake timers, storing into `log` (a walk id starting "fail:" throws). */
+function windowFor(t: ReturnType<typeof fakeTimers>, log: string[], save?: (j: PendingJob | null) => void) {
+  return createPending({
+    ...t,
+    save,
+    run: async (spec) => {
+      const id = spec.type === 'walk' ? spec.walkId : spec.type;
+      if (id.startsWith('fail:')) throw new Error('disk');
+      log.push(`run:${id}`);
+    },
+  });
+}
+
+test('D5: a delete hides at once and reaches storage only when the pill is closed; what went stays hidden', async () => {
   const t = fakeTimers();
-  const p = createPending(t);
   const log: string[] = [];
+  const p = windowFor(t, log);
   p.schedule(job(['w1', 'c1'], log));
   assert.ok(p.hidden().has('w1') && p.hidden().has('c1'), 'hidden at once');
   assert.equal(p.state().pending?.kind, 'walk', 'the pill shows');
-  t.advance(4999);
-  assert.deepEqual(log, [], 'nothing stored before 5 s');
-  t.advance(1);
-  await settle();
+  await p.dismiss();
   assert.deepEqual(log, ['run:w1,c1']);
   assert.equal(p.state().pending, null, 'the pill goes');
   assert.ok(p.hidden().has('w1'), 'still hidden after it went, so stale lists never show it');
@@ -64,8 +68,8 @@ test('D5: a delete hides at once and reaches storage only after 5 s; what went s
 
 test('D5: Undo brings it back as it was, and nothing is stored', async () => {
   const t = fakeTimers();
-  const p = createPending(t);
   const log: string[] = [];
+  const p = windowFor(t, log);
   p.schedule(job(['w1'], log));
   p.undo();
   assert.equal(p.hidden().has('w1'), false);
@@ -77,8 +81,8 @@ test('D5: Undo brings it back as it was, and nothing is stored', async () => {
 
 test('D5: a second delete stores the first at once and takes the pill', async () => {
   const t = fakeTimers();
-  const p = createPending(t);
   const log: string[] = [];
+  const p = windowFor(t, log);
   p.schedule(job(['a'], log));
   p.schedule({ ...job(['b'], log), kind: 'moment' });
   await settle();
@@ -89,27 +93,25 @@ test('D5: a second delete stores the first at once and takes the pill', async ()
   assert.equal(p.hidden().has('b'), false);
 });
 
-test('D5: a flush (what going to the background runs, native only) stores what waits', async () => {
+test('D5: a flush stores what waits, once', async () => {
   const t = fakeTimers();
-  const p = createPending(t);
   const log: string[] = [];
+  const p = windowFor(t, log);
   p.schedule(job(['a'], log));
   await p.flush();
   assert.deepEqual(log, ['run:a']);
-  t.advance(10_000);
-  await settle();
+  await p.dismiss();
   assert.deepEqual(log, ['run:a'], 'never twice');
 });
 
 test('D6: a failed delete comes back and says so; Undo after the fact does nothing', async () => {
   const t = fakeTimers();
-  const p = createPending(t);
   const log: string[] = [];
+  const p = windowFor(t, log);
   const seen: (string | null)[] = [];
   p.subscribe(() => seen.push(p.state().error));
   p.schedule(job(['a'], log, true));
-  t.advance(5000);
-  await settle();
+  await p.dismiss();
   assert.equal(p.hidden().has('a'), false, 'it comes back');
   assert.equal(p.state().error, "Couldn't delete. Try again.");
   p.undo();
@@ -121,16 +123,19 @@ test('D6: a failed delete comes back and says so; Undo after the fact does nothi
 
 test('D5: listeners hear when a delete reached storage, so screens re-read', async () => {
   const t = fakeTimers();
-  const p = createPending(t);
+  const p = windowFor(t, []);
   const done: string[] = [];
   p.onCommitted((j) => done.push(j.kind));
   p.schedule(job(['a'], []));
-  t.advance(5000);
-  await settle();
+  await p.dismiss();
   assert.deepEqual(done, ['walk']);
+  assert.equal(toastText('moment'), 'Moment deleted');
+  // UI review: the pill names the kind the confirm named.
+  assert.equal(toastText('moment', 'photo'), 'Photo deleted');
+  assert.equal(toastText('moment', 'voice'), 'Voice memo deleted');
+  assert.equal(toastText('remove'), 'Removed from the thread');
 });
 
-// D7: walks A, B, C in time order. A first walked x; B walked x and y; C walked y and z.
 test('D7: deleting a walk recounts later walks\' new streets without it', () => {
   const walks = [
     { id: 'A', started_at: 1 },
@@ -247,8 +252,8 @@ test('D5: the pill names what went', () => {
 // told, beside B's Undo.
 test('audit 10: a failure of an earlier delete is kept beside the newer one\'s Undo', async () => {
   const t = fakeTimers();
-  const p = createPending(t);
   const log: string[] = [];
+  const p = windowFor(t, log);
   p.schedule(job(['a'], log, true));
   p.schedule({ ...job(['b'], log), kind: 'moment', what: 'photo' });
   await settle();

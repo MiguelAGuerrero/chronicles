@@ -25,21 +25,27 @@ export function ReplyDock(props: {
   bottomInset: number;
   stage: ReplyStage;
   setStage: (s: ReplyStage) => void;
-  /** Says a short line in the viewer's own pill ("Reply kept", or what went wrong). */
+  /** Says what went wrong, in the viewer's pill. */
   say: (text: string) => void;
+  /** Says a reply was kept, in the moment's info line (UC10). */
+  kept: (text: string) => void;
   edit?: { label: string; testID: string; onPress: () => void } | null;
+  /** The viewer's bars are hidden (UC7): nothing shows, and a memo being recorded goes on. */
+  hidden?: boolean;
 }) {
   const sayRef = useRef(props.say);
+  const keptRef = useRef(props.kept);
   useEffect(() => {
     sayRef.current = props.say;
-  }, [props.say]);
+    keptRef.current = props.kept;
+  }, [props.say, props.kept]);
   const replyTo = useMemo(() => ({ answeredId: props.answeredId, from: props.threadId ?? null }), [props.answeredId, props.threadId]);
   const walkId = props.walkId ?? null;
   const cap = useCaptures(walkId, null, null, (e) => sayRef.current(e.message), {
     loose: !walkId,
     replyTo,
     onMoment: (_c, state) => {
-      if (state === 'kept') sayRef.current('Reply kept');
+      if (state === 'kept') keptRef.current('Reply kept');
     },
   });
   const recording = cap.voiceStartedAt != null;
@@ -67,6 +73,7 @@ export function ReplyDock(props: {
     props.setStage(null);
     fn();
   };
+  if (props.hidden) return null;
   return (
     <>
       <View style={[styles.dock, { paddingBottom: props.bottomInset, height: DOCK_H + props.bottomInset }]} testID="viewer-toolbar">

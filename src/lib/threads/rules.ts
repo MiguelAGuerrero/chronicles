@@ -1,4 +1,5 @@
 // @layer core
+import { membershipKey } from '../deletion/pending';
 import type { Link, Member, Thread, ThreadsChange, ThreadsData } from './types';
 
 /** A thread holds at least two moments, or it is not a connection (OT15). */
@@ -70,7 +71,7 @@ export function cleanName(name: string): string | null {
  * their links and hidden threads gone, and a thread that is thin without them gone too (OT14, OT15).
  */
 export function visibleThreads(data: ThreadsData, hidden: ReadonlySet<string>): ThreadsData {
-  const members = data.members.filter((m) => !hidden.has(m.moment_id) && !hidden.has(m.thread_id));
+  const members = data.members.filter((m) => !hidden.has(m.moment_id) && !hidden.has(m.thread_id) && !hidden.has(membershipKey(m.thread_id, m.moment_id)));
   const thin = new Set(thinThreads(data.threads.map((t) => t.id), members));
   const threads = data.threads.filter((t) => !hidden.has(t.id) && !thin.has(t.id));
   const live = new Set(threads.map((t) => t.id));

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createThreads, type ThreadDeleteJob } from '../../threads/shell';
+import { createDeleteRunner } from '../../deletion/runner';
 import { fakePorts } from '../fakes';
 import type { Capture } from '../../types';
 
@@ -13,7 +14,13 @@ async function setup(ids: string[] = ['m1', 'm2', 'm3']) {
   const jobs: ThreadDeleteJob[] = [];
   const threads = createThreads(ports, { schedule: (j) => jobs.push(j) });
   for (const [i, id] of ids.entries()) await ports.db.addCapture(moment(id, 1000 + i));
-  return { ports, threads, jobs };
+  // What the Undo window does when the owner taps Close: store each waiting delete, then the screens read again.
+  const runner = createDeleteRunner({ db: ports.db, removeMedia: async () => 0, forgetRecalls: () => {} });
+  const storeJobs = async () => {
+    while (jobs.length) await runner(jobs.shift()!.spec);
+    await threads.load();
+  };
+  return { ports, threads, jobs, storeJobs };
 }
 
 test('OT5: a new thread is made of kept moments the owner picks, and named only if they say so', async () => {
@@ -54,11 +61,12 @@ test('OT7: a moment may be in several threads, and adding it twice changes nothi
 });
 
 test('OT8: Remove from this thread keeps the moment, its other threads and its links', async () => {
-  const { ports, threads } = await setup();
+  const { ports, threads, storeJobs } = await setup();
   const a = (await threads.startThread(['m1', 'm2', 'm3']))!;
   const b = (await threads.startThread(['m1', 'm2']))!;
   await ports.db.applyThreads({ putLinks: [{ from_id: 'm2', to_id: 'm1', created_at: 1 }] });
-  await threads.removeFromThread(a, 'm1');
+  threads.removeFromThread(a, 'm1');
+  await storeJobs();
   const got = await ports.db.listThreads();
   assert.deepEqual(got.members.filter((m) => m.thread_id === a).map((m) => m.moment_id).sort(), ['m2', 'm3']);
   assert.ok(got.members.some((m) => m.thread_id === b && m.moment_id === 'm1'), 'its other thread keeps it');
@@ -96,14 +104,14 @@ test('OT13: the name is the owner\'s: set, changed, cleared, never filled in for
 });
 
 test('OT14: Delete this thread waits for the Undo window and then removes the thread and memberships only', async () => {
-  const { ports, threads, jobs } = await setup();
+  const { ports, threads, jobs, storeJobs } = await setup();
   const t = (await threads.startThread(['m1', 'm2']))!;
   await ports.db.applyThreads({ putLinks: [{ from_id: 'm2', to_id: 'm1', created_at: 1 }] });
   threads.deleteThread(t);
   assert.equal(jobs.length, 1);
   assert.deepEqual(jobs[0].ids, [t], 'every screen hides the thread meanwhile');
   assert.equal((await ports.db.listThreads()).threads.length, 1, 'nothing is stored until the window ends: Undo costs nothing');
-  await jobs[0].run();
+  await storeJobs();
   const got = await ports.db.listThreads();
   assert.deepEqual([got.threads, got.members], [[], []]);
   assert.equal(got.links.length, 1, 'the reply link is not the thread\'s');
@@ -112,20 +120,22 @@ test('OT14: Delete this thread waits for the Undo window and then removes the th
 });
 
 test('OT15: a thread left with fewer than two moments dissolves at once, name and all', async () => {
-  const { ports, threads } = await setup();
+  const { ports, threads, storeJobs } = await setup();
   const t = (await threads.startThread(['m1', 'm2'], 'Named'))!;
-  await threads.removeFromThread(t, 'm2');
+  threads.removeFromThread(t, 'm2');
+  await storeJobs();
   assert.deepEqual((await ports.db.listThreads()).threads, []);
   assert.deepEqual((await ports.db.listThreads()).members, []);
   assert.deepEqual(threads.store.get().data.threads, []);
 });
 
 test('OT18: linking never changes a moment\'s own row', async () => {
-  const { ports, threads } = await setup(['m1', 'm2', 'r']);
+  const { ports, threads, storeJobs } = await setup(['m1', 'm2', 'r']);
   const before = await ports.db.getCapturesByIds(['m1', 'm2', 'r']);
   const t = (await threads.startThread(['m1', 'm2']))!;
   await threads.reply('r', 'm1', t);
-  await threads.removeFromThread(t, 'r');
+  threads.removeFromThread(t, 'r');
+  await storeJobs();
   await threads.rename(t, 'x');
   assert.deepEqual(await ports.db.getCapturesByIds(['m1', 'm2', 'r']), before);
 });

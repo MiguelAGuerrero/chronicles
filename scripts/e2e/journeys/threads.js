@@ -62,6 +62,11 @@ async function run(h) {
     await pg.fill('[data-testid=note-edit-input]', text);
     await pg.click('[data-testid=note-edit-save]');
   };
+  // Close on the Undo pill: the delete stands and is stored now (UC2).
+  const closePill = async () => {
+    await pg.click('[data-testid=undo-dismiss]');
+    await pg.waitForTimeout(800);
+  };
   const closeViewer = async () => {
     await pg.click('[data-testid=viewer-close]');
     await gone('[data-testid=viewer-close]');
@@ -148,8 +153,8 @@ async function run(h) {
   // OT2, OT4: a note reply is kept as a moment of its own, linked to what it answers, in its thread.
   await replyNote('Same again today, at the same pier.');
   check(await there('text=Reply kept'), 'OT1: a reply is kept (Reply kept)');
-  check.todo(/Reply kept/.test(await meta()) && (await pg.locator('[data-testid=viewer-pill]').count()) === 0, 'UC10: a kept reply says so in the info line, with no pill');
-  check.todo((await has('[data-testid=viewer-respond]')) && (await has('[data-testid=viewer-edit-note]')), 'UC11: the toolbar\'s Respond and Edit are as they were');
+  check(/Reply kept/.test(await meta()) && (await pg.locator('[data-testid=viewer-pill]').count()) === 0, 'UC10: a kept reply says so in the info line, with no pill');
+  check((await has('[data-testid=viewer-respond]')) && (await has('[data-testid=viewer-edit-note]')), 'UC11: the toolbar\'s Respond and Edit are as they were');
   await pg.waitForTimeout(800);
   db = await stored(pg);
   const reply = db.captures.find((x) => x.body === 'Same again today, at the same pier.');
@@ -213,7 +218,8 @@ async function run(h) {
   // OT8: Remove from this thread keeps the moment.
   await pg.locator('[data-testid=own-thread] [data-testid=moment-card]:has-text("And a third") [data-testid=moment-more]').click();
   await pg.click('[data-testid=thread-menu-remove]');
-  await pg.waitForTimeout(500);
+  check((await there('[data-testid=undo-toast]')) && /Removed from the thread/.test(await pg.locator('[data-testid=undo-toast]').innerText()), 'UC6: Remove acts at once, with Undo');
+  await closePill();
   db = await stored(pg);
   check(db.members.length === 3 && db.captures.some((x) => x.body === 'And a third, on the bridge.'), 'OT8: Remove from this thread keeps the moment kept');
 
@@ -243,33 +249,32 @@ async function run(h) {
   check((await pg.locator('[data-testid=thread-tile]').count()) === 1 && (await pg.locator('[data-testid=my-thread-row]').count()) === 2,
     'OT19: the Chronicle\'s thread is still there beside the owner\'s two');
 
-  // OT14, OT15: Delete this thread asks, waits for Undo, takes the thread and no moment.
+  // OT14, OT15, UC4: Delete this thread acts at once, waits for Undo, takes the thread and no moment.
   await pg.locator('[data-testid=my-thread-row]:has-text("Compliments")').click();
   await pg.waitForSelector('[data-testid=own-thread]');
   const before = (await stored(pg)).captures.length;
   await pg.click('[data-testid=own-thread-delete]');
-  await pg.waitForSelector('[data-testid=confirm]');
-  check(/moments stay kept/.test(await pg.locator('[data-testid=confirm]').innerText()), 'OT14: Delete this thread asks once, in words, and says the moments stay');
-  await pg.click('[data-testid=confirm-delete]');
-  check((await there('[data-testid=undo-toast]')) && /Thread deleted/.test(await pg.locator('[data-testid=undo-toast]').innerText()), 'OT14: a pill says Thread deleted, with Undo');
+  await pg.waitForTimeout(300);
+  check((await pg.locator('[data-testid=confirm]').count()) === 0 && (await there('[data-testid=undo-toast]')) && /Thread deleted/.test(await pg.locator('[data-testid=undo-toast]').innerText()),
+    'UC4, OT14: Delete this thread acts at once, with no card, and a pill says Thread deleted, with Undo');
   await pg.click('[data-testid=undo]');
   await pg.waitForTimeout(300);
   check((await pg.locator('[data-testid=my-thread-row]:has-text("Compliments")').count()) === 1 && (await stored(pg)).threads.length === 2, 'OT15: Undo brings the thread back, name and members');
   await pg.locator('[data-testid=my-thread-row]:has-text("Compliments")').click();
   await pg.click('[data-testid=own-thread-delete]');
-  await pg.click('[data-testid=confirm-delete]');
-  await pg.waitForTimeout(5800);
+  await pg.waitForSelector('[data-testid=undo-toast]');
+  await closePill();
   db = await stored(pg);
   check(db.threads.length === 1 && db.captures.length === before && (await pg.locator('[data-testid=my-thread-row]:has-text("Compliments")').count()) === 0,
-    'OT14: after the Undo window the thread and its memberships are gone, and every moment is kept');
+    'OT14: once the pill is closed the thread and its memberships are gone, and every moment is kept');
   await shot(pg, '72-threads-after');
 
   // OT16: deleting a moment takes only its membership; a thread left with one moment dissolves (OT15).
   await openCard('Harbor lights again');
   await pg.click('[data-testid=viewer-more]');
   await pg.click('[data-testid=viewer-delete]');
-  await pg.click('[data-testid=confirm-delete]');
-  await pg.waitForTimeout(5800);
+  await pg.waitForSelector('[data-testid=undo-toast]');
+  await closePill();
   db = await stored(pg);
   check(db.threads.length === 1 && db.members.length === 2 && !db.captures.some((x) => x.id === 'h2'), 'OT16: deleting a moment removed its membership only; the thread kept its two others');
 
@@ -280,21 +285,25 @@ async function run(h) {
   await pg.waitForSelector('[data-testid=my-threads]', { timeout: 20000 });
   check((await there('[data-testid=my-thread-row]', 15000)) && (await pg.locator('[data-testid=my-thread-row]').count()) === 1, 'OT21: the owner\'s thread is still there after a reload');
 
-  // owner-threads audit 5: Remove asks first when it would end the thread; Cancel keeps it, Remove ends it, the moments stay.
+  // UC6 (replaces owner-threads audit 5's confirm): Remove that ends the thread acts at once with Undo; Undo brings it back, Close ends it.
   await pg.locator('[data-testid=my-thread-row]').first().click();
   await pg.waitForSelector('[data-testid=own-thread]');
   const kept = (await stored(pg)).captures.length;
   await pg.locator('[data-testid=own-thread] [data-testid=moment-card] [data-testid=moment-more]').first().click();
   await pg.click('[data-testid=thread-menu-remove]');
-  check(await there('[data-testid=confirm-remove]', 5000), 'owner-threads audit 5: Remove asks first when it would end the thread');
-  await pg.click('[data-testid=confirm-remove] [data-testid=confirm-cancel]');
-  check((await stored(pg)).threads.length === 1, 'owner-threads audit 5: Cancel keeps the thread');
+  await pg.waitForTimeout(300);
+  check((await pg.locator('[data-testid=confirm-remove], [data-testid=confirm]').count()) === 0 && (await pg.locator('[data-testid=my-thread-row]').count()) === 0
+    && /Removed from the thread/.test(await pg.locator('[data-testid=undo-toast]').innerText()), 'UC6: Remove that ends the thread acts at once: the thread leaves, with Undo');
+  await pg.click('[data-testid=undo]');
+  await pg.waitForTimeout(300);
+  check((await pg.locator('[data-testid=my-thread-row]').count()) === 1 && (await stored(pg)).threads.length === 1, 'UC6: Undo brings the thread back');
+  await pg.locator('[data-testid=my-thread-row]').first().click();
   await pg.locator('[data-testid=own-thread] [data-testid=moment-card] [data-testid=moment-more]').first().click();
   await pg.click('[data-testid=thread-menu-remove]');
-  await pg.click('[data-testid=confirm-remove] [data-testid=confirm-delete]');
-  await pg.waitForTimeout(600);
+  await pg.waitForSelector('[data-testid=undo-toast]');
+  await closePill();
   db = await stored(pg);
-  check(db.threads.length === 0 && db.members.length === 0 && db.captures.length === kept, 'owner-threads audit 5: confirmed, the thread ends and every moment stays kept');
+  check(db.threads.length === 0 && db.members.length === 0 && db.captures.length === kept, 'UC6: closed, the thread ends and every moment stays kept');
   await c.close();
 }
 
