@@ -139,7 +139,7 @@ const FEATURES = [
       'src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx',
     ],
     journeys: ['marks', 'atlas', 'grading', 'snap', 'carousel', 'curiosities'],
-    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town'],
+    specs: ['v1-discovery', 'explore-atlas', 'pocket-alert-nudge', 'reminder-bell', 'atlas-grading', 'town-presence', 'discrete-navigation', 'explore-carousel', 'places-worth-the-stop', 'places-pipeline', 'remarkable-and-public', 'places-out-of-town', 'presence-and-kinds'],
   },
   {
     name: 'kind-walk',
@@ -155,7 +155,7 @@ const FEATURES = [
     rule: 'walk-planner',
     source: ['src/lib/walkPlanner/**', 'src/components/planner/**'],
     journeys: ['planner'],
-    specs: ['walk-planner'],
+    specs: ['walk-planner', 'presence-and-kinds'],
   },
   {
     name: 'layers',
@@ -393,6 +393,7 @@ const UNTESTED = {
  * `{ slug: { branch, since: 'YYYY-MM-DD' } }`; an entry older than 7 days fails the docs check.
  */
 const IN_PROGRESS = {
+  'presence-and-kinds': { branch: 'claude/dazzling-fermat-ws5c6a', since: '2026-11-10' },
 };
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
