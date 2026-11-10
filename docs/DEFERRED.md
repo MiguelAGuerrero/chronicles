@@ -331,7 +331,6 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 ## Places worth the stop (decision 0103)
 
-- **PW16, the real host:** PLACES_BASE stays empty until a real archive has been read by byte range from the chronicles-data Pages site; then it is set and the host is added to ALLOWED_HOSTS and `lib/net`'s table in the same commit.
 - **OpenStreetMap in the weekly build:** the build takes an OSM export to corroborate (a `demolished:` tag removes a place; since RP2 and RP5, a visitor's tag shows a listed place open and `access=private|no` keeps it out), but the weekly job feeds it Wikidata only: an OSM extract of the US is large for a runner, and the public Overpass blocks cloud ranges. the handoff's Overpass query asks only for elements with a `wikidata` tag.
 - **Classes not yet pinned:** historical markers (no Wikidata class with real use), petroglyphs (archaeology, not an oddity), water towers and rock formations (too broad), time capsules (the lookup's match looked wrong). Each is a deliberate change to `classify.mjs` and ARCHIVE_CLASSES.
 - **A line on why a place is worth the stop, Wikivoyage, the one-of-a-kind shops tier, the scenic routes' Sights leaning (PW18 pins it unchanged).**
