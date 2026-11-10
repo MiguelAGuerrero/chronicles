@@ -168,3 +168,7 @@ test('labels-plain 1: the History category is "History" and the worship kind "Pl
   for (const c of CATEGORIES) assert.ok(!/\b(landmarks?|notable|listed|remarkable|historic)\b/i.test(c.label), c.label);
   for (const k of KINDS) assert.ok(!/\bhistoric\b/i.test(k.label), k.label);
 });
+
+test('labels-plain 2: the Monuments switch is "Monuments and memorials", never "landmarks" (the owner, Nov 10, amending 0116)', () => {
+  assert.equal(KINDS.find((k) => k.id === 'monuments')?.label, 'Monuments and memorials');
+});
