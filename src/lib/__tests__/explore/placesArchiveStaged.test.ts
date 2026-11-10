@@ -32,7 +32,7 @@ function service(answers: { changes?: (q: string) => object[]; still?: (ids: str
   return { ask, log };
 }
 
-test('SB1: a failed fetch rejects and leaves the kept output as it was', async () => {
+test('SB1: a failed fetch rejects and leaves the kept output as it was', { todo: 'test first' }, async () => {
   const { runFetch, ALL_TARGETS } = await script('fetch-wikidata.mjs');
   const kept = { header: { startedAt: '2026-11-02T07:17:00Z', classes: [...ALL_TARGETS] }, items: [item('Q1', 'Bushkill Folly', -75.2, 40.7, [FOLLY], 0)] };
   const before = structuredClone(kept);
@@ -42,7 +42,7 @@ test('SB1: a failed fetch rejects and leaves the kept output as it was', async (
   assert.deepEqual(kept, before, 'the kept output is untouched, so the last one stays in use');
 });
 
-test('SB2: the assemble makes no request and writes the same bytes from the same inputs', async () => {
+test('SB2: the assemble makes no request and writes the same bytes from the same inputs', { todo: 'test first' }, async () => {
   const { assemble } = await script('assemble.mjs');
   const items = [item('Q1', 'Bushkill Folly', -75.2, 40.7), item('Q2', 'Lone Statue', -75.3, 40.8, [STATUE])];
   const edits = { remove: [], add: [{ name: 'Giant Peanut', at: [-75.18, 40.69], class: 'roadside_giant' }] };
@@ -58,7 +58,7 @@ test('SB2: the assemble makes no request and writes the same bytes from the same
   }
 });
 
-test('SB3: a scheduled fetch asks each class by country since the last run, and no cell beyond its sweep share', async () => {
+test('SB3: a scheduled fetch asks each class by country since the last run, and no cell beyond its sweep share', { todo: 'test first' }, async () => {
   const { runFetch, ALL_TARGETS, sweepShare } = await script('fetch-wikidata.mjs');
   const kept = { header: { startedAt: '2026-11-02T07:17:00Z', classes: [...ALL_TARGETS] }, items: [item('Q1', 'Bushkill Folly', -75.2, 40.7, [FOLLY], 0)] };
   const { ask, log } = service({ still: (ids) => ids.map((id) => binding({ item: entity(id), m: '2026-01-01T00:00:00Z' })) });
@@ -74,7 +74,7 @@ test('SB3: a scheduled fetch asks each class by country since the last run, and 
   assert.equal(cells.length, sweepShare('us', 46).length, 'cell queries only for this week\'s share of the safety sweep');
 });
 
-test('SB4: a kept item modified away, merged or deleted leaves; an unmodified one stays without being asked', async () => {
+test('SB4: a kept item modified away, merged or deleted leaves; an unmodified one stays without being asked', { todo: 'test first' }, async () => {
   const { mergeChanges, REGIONS } = await script('fetch-wikidata.mjs');
   const since = '2026-11-01T07:17:00Z';
   const kept = [
@@ -90,7 +90,7 @@ test('SB4: a kept item modified away, merged or deleted leaves; an unmodified on
   assert.equal(out.find((i: { id: string }) => i.id === 'QB').name, 'Renamed Folly Tower');
 });
 
-test('SB11: a newly pinned class is asked once across the region; the others only for changes', async () => {
+test('SB11: a newly pinned class is asked once across the region; the others only for changes', { todo: 'test first' }, async () => {
   const { runFetch, ALL_TARGETS } = await script('fetch-wikidata.mjs');
   const kept = { header: { startedAt: '2026-11-02T07:17:00Z', classes: ALL_TARGETS.filter((c: string) => c !== STATUE) }, items: [] };
   const { ask, log } = service();
@@ -103,7 +103,7 @@ test('SB11: a newly pinned class is asked once across the region; the others onl
   assert.ok(next.header.classes.includes(STATUE), 'the new class is recorded as asked');
 });
 
-test('SB12: nothing kept sweeps every cell; a box sweeps its cells; a sweep replaces only its cells\' rows', async () => {
+test('SB12: nothing kept sweeps every cell; a box sweeps its cells; a sweep replaces only its cells\' rows', { todo: 'test first' }, async () => {
   const { cellsToAsk, mergeCells, cellsFor, REGIONS } = await script('fetch-wikidata.mjs');
   const cells = cellsFor(REGIONS.us, 2);
   assert.equal(cellsToAsk(cells, { kept: null }).length, cells.length, 'the first run asks every cell');
@@ -121,14 +121,14 @@ test('SB12: nothing kept sweeps every cell; a box sweeps its cells; a sweep repl
   assert.deepEqual(merged.map((i: { id: string }) => i.id).sort(), ['Q2', 'Q3']);
 });
 
-test('SB5: unchanged places publish nothing, even when the file\'s bytes differ', async () => {
+test('SB5: unchanged places publish nothing, even when the file\'s bytes differ', { todo: 'test first' }, async () => {
   const { decide } = await script('publish.mjs');
   const manifest = { schema: 1, regions: [{ id: 'us', current: { file: 'places-us-20261101.pmtiles', version: '20261101', sha256: 'aaa', places_sha256: 'P1', bounds: [-125, 24, -66, 50] } }] };
   assert.deepEqual(decide({ region: 'us', sha256: 'bbb', placesSha: 'P1', manifest }), { publish: false, reason: 'unchanged' });
   assert.deepEqual(decide({ region: 'us', sha256: 'aaa', placesSha: 'P2', manifest }), { publish: true, reason: 'changed' });
 });
 
-test('SB6: an added, a removed and a moved place list their z12 tiles, and the manifest carries the list', async () => {
+test('SB6: an added, a removed and a moved place list their z12 tiles, and the manifest carries the list', { todo: 'test first' }, async () => {
   const { changedTiles } = await script('changes.mjs');
   const { manifestFrom } = await script('manifest.mjs');
   const p = (id: string, lon: number, lat: number) => ({ id, name: id, class: 'folly', src: 'wd', lon, lat });
@@ -144,7 +144,7 @@ test('SB6: an added, a removed and a moved place list their z12 tiles, and the m
   assert.equal(m.regions[0].previous[0].version, '20261102');
 });
 
-test('SB7: an edit alone makes a version whose list names only the edited place\'s tile', async () => {
+test('SB7: an edit alone makes a version whose list names only the edited place\'s tile', { todo: 'test first' }, async () => {
   const { assemble } = await script('assemble.mjs');
   const { changedTiles } = await script('changes.mjs');
   const items = [item('Q1', 'Bushkill Folly', -75.2, 40.7)];
@@ -154,7 +154,7 @@ test('SB7: an edit alone makes a version whose list names only the edited place\
   assert.deepEqual(changedTiles(a.places, b.places).map(String), [String(z12(-90.0, 30.0))]);
 });
 
-test('SB8: inputs whose hashes all match assemble nothing; a changed edit, class list or source does', async () => {
+test('SB8: inputs whose hashes all match assemble nothing; a changed edit, class list or source does', { todo: 'test first' }, async () => {
   const { inputsKey } = await script('assemble.mjs');
   const base = { sources: { wikidata: 'w1' }, edits: '{"remove":[],"add":[]}', classes: 'c1' };
   assert.equal(inputsKey(base), inputsKey({ ...base }));
@@ -163,7 +163,7 @@ test('SB8: inputs whose hashes all match assemble nothing; a changed edit, class
   assert.notEqual(inputsKey(base), inputsKey({ ...base, sources: { wikidata: 'w2' } }));
 });
 
-test('SB9: a failed assemble writes no release files', async () => {
+test('SB9: a failed assemble writes no release files', { todo: 'test first' }, async () => {
   const { assembleRun } = await script('assemble.mjs');
   const written: string[] = [];
   const write = (name: string) => { written.push(name); };

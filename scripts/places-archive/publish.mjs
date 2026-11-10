@@ -3,27 +3,21 @@
 // it differs from the current release's, so the weekly build is also the check for changes. Run by the
 // chronicles-data workflow:
 //
-//   node scripts/places-archive/publish.mjs --region us --archive out/places-us-20261108.pmtiles
-//        [--changes out/changes-us-20261108.json] --manifest-url https://…/manifest.json
+//   node scripts/places-archive/publish.mjs --region us --archive out/places-us-20261108.pmtiles --manifest-url https://…/manifest.json
 //
 // Prints `publish=true|false` and the reason, for the workflow to read.
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 
-/**
- * PW19, SB5: whether to publish, from the built archive's SHA-256 (null when the build made none), the hash of its
- * place rows, and the live manifest. When both sides carry a places hash, only the places decide: routine bytes
- * that changed with the same places publish nothing (a staged places build, decision 0110).
- */
-export function decide({ region, sha256, placesSha = null, manifest, unreachable = false }) {
+/** PW19: whether to publish, from the built archive's SHA-256 (null when the build made none) and the live manifest. */
+export function decide({ region, sha256, manifest, unreachable = false }) {
   if (!sha256) return { publish: false, reason: 'no archive built' };
   // One network error must not publish a duplicate (places-worth-the-stop audit 7): only a real 404 is no manifest.
   if (unreachable) return { publish: false, reason: 'manifest unreachable' };
   if (!manifest) return { publish: true, reason: 'no manifest yet' };
   const current = (manifest.regions ?? []).find((r) => r.id === region)?.current;
   if (!current) return { publish: true, reason: 'new region' };
-  const same = placesSha && current.places_sha256 ? current.places_sha256 === placesSha : current.sha256 === sha256;
-  return same ? { publish: false, reason: 'unchanged' } : { publish: true, reason: 'changed' };
+  return current.sha256 === sha256 ? { publish: false, reason: 'unchanged' } : { publish: true, reason: 'changed' };
 }
 
 function arg(name) {
@@ -36,8 +30,6 @@ async function main() {
   const archive = arg('archive');
   const url = arg('manifest-url');
   const sha256 = archive && existsSync(archive) ? createHash('sha256').update(readFileSync(archive)).digest('hex') : null;
-  const changes = arg('changes');
-  const placesSha = changes && existsSync(changes) ? JSON.parse(readFileSync(changes, 'utf8')).places_sha256 ?? null : null;
   let manifest = null;
   let unreachable = false;
   try {
@@ -47,7 +39,7 @@ async function main() {
   } catch {
     unreachable = true;
   }
-  const d = decide({ region, sha256, placesSha, manifest, unreachable });
+  const d = decide({ region, sha256, manifest, unreachable });
   console.log(`publish=${d.publish}`);
   console.log(`reason=${d.reason}`);
 }
