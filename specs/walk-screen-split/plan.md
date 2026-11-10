@@ -6,7 +6,7 @@ For the owner's review before any code (`/slice` step 3). The spec is `spec.md` 
 
 `src/app/walk.tsx` keeps `WalkRoute` and `WalkScreen`, and `WalkScreen` becomes a composition. It calls each part's hook, passes the results to the part's view, and lays the views out in the same order as today. The map stays at one place in the tree in both states, so Start never remounts it.
 
-Each part is a view hook (`use*.ts`, its state and effects), a view (`*.tsx`, what it draws), or both. All of them live in `src/components/walking/`. Hooks that take a callback keep it in a ref updated in an effect. No hook calls `setState` in an effect body. Each part keeps its code exactly as it is in `walk.tsx` today, moved but not rewritten. A part that renders on a fix counts its renders as `render:walk:<part>` (WS8).
+Each part is a view hook (`use*.ts`, its state and effects), a view (`*.tsx`, what it draws), or both. All of them live in `src/components/walking/`. Hooks that take a callback keep it in a ref updated in an effect. No hook calls `setState` in an effect body. Each part keeps its code exactly as it is in `walk.tsx` today, moved but not rewritten. Views take props only: their state and subscriptions are in the hooks `WalkScreen` calls, so `render:walk` still counts every render a fix causes (WS8).
 
 Cross-part state stays in the composition's hooks, never in a module:
 
@@ -69,7 +69,7 @@ Journeys in **bold** check the part through an id or a behaviour today. The othe
 
 ## How the journeys change
 
-Only `covers` changes, plus the WS8 line in `walk`.
+Only `covers` changes, plus the WS8 name on `walk`'s budget check.
 
 - **The 12:**
   - `ready`, `reload` and `tabs` keep `src/app/walk.tsx` and add their parts.
@@ -88,7 +88,7 @@ Only `covers` changes, plus the WS8 line in `walk`.
 | WS5 | same | `WS5: the walk screen's views import no db, recorder, notifier or ports; walk.tsx's suppressions are gone` (and the ceiling in `functional-core/functionalCoreAudit.test.ts` drops by 2) |
 | WS6 | `src/lib/__tests__/walk-screen/walkScreenShell.test.ts` | `WS6: streets around: writes streets and places, then reads the fog`, `WS6: landings of the current rules only`, `WS6: explored marked the first time only`, `WS6: the dead-zone nudge once a walk`, `WS6: the hint once`, `WS6: the recorder's status passes through`, `WS6: moments near a spot` |
 | WS7 | `walkScreenSplit.test.ts` | `WS7: every testID walk.tsx rendered is still rendered` (the ids at the base commit, as data) |
-| WS8 | journey `walk` | `check(..., 'WS8: walking stays within its render budget, the parts counted')` |
+| WS8 | `walkScreenSplit.test.ts`; journey `walk` | `WS8: the parts' views hold no state or subscriptions`; the budget check in `walk` named `WS8: walking stays within its render budget` |
 
 No new feature folder: the tests go in `walk-screen`. No new journey: the slice changes no screen.
 
@@ -102,7 +102,7 @@ Each step goes through `npm run check:affected`, then a commit naming its criter
 4. **Hooks that own their state:** `useResumed`, `useShownWalk`, `useWalkMap`, `useWalkNotice`, `useWalkStreets`, `useWalkLayers`, `useWalkMemories`, `useRecall`, `useHotspots`, `useWayBack`, `useWalkNavigation`, `useWalkExplore`, `useWalkGaps`, `useWalkCaptures`, `useWalkLifecycle`.
 5. **The cards:** `useCards`, then `SpotCard`, `MarkCard`, `MemoryCard`, `WalkGapCard` and the route preview.
 6. **The rest of the layout:** `WalkingMap`, `WalkOptions`, `EdgeButtons`, `UnwalkedButton`, `WalkBackButton`, `CapturePills`, `WalkCaptureStack`, `WalkTop`, `WalkLayersControl`. `walk.tsx` is then a composition (WS1, WS7).
-7. **The journeys:** each journey's `covers` (WS2-WS4); the parts' `perfCount` and the WS8 line in `walk`.
+7. **The journeys:** each journey's `covers` (WS2-WS4); the budget check in `walk` named WS8.
 8. **Before done:** typecheck, lint and `npm test`; `check:e2e`; `check:test-first walk-screen-split`; one export; then each of the 18 journeys once: the 12, plus `walk`, `qol`, `memories`, `scenic`, `nudge` and `launch`.
 
 ## Docs
@@ -131,4 +131,4 @@ No native path moves: the same components and the same Expo calls, in other file
 ## Risks
 
 - **Several sessions edit `walk.tsx`.** Every in-flight branch that touches it will conflict with this one. The STATUS row says so. Merging main in often, and landing this branch early, keeps that small.
-- **Render counts move.** State that moves into a child re-renders the child, not `WalkScreen`. WS8 sums both, so the budget can't hide a cost.
+- **Render counts.** A view with its own state would re-render apart from `WalkScreen`, and the budget wouldn't see it. WS8 keeps all state in the hooks `WalkScreen` calls.

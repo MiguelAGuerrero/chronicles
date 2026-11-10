@@ -42,11 +42,11 @@ Criteria: none
    - it shows the "press and hold" hint once ever;
    - it passes on the recorder's status and whether it records in the background.
 7. **WS7 · The same ids.** Every `testID` that `walk.tsx` rendered at the commit the slice started from is rendered by `walk.tsx` or a part, and no part adds a new one.
-8. **WS8 · The render budget holds, counting the parts.** In the `walk` journey, walking stays within the budget (decision FC10) when the parts' own renders are counted too: `render:walk` plus every `render:walk:<part>` stays at or under 2.5 a second.
+8. **WS8 · The render budget holds, and counts every part.** Every view in `src/components/walking/` is drawn from its props: it calls no `useState`, `useReducer`, `useEffect` or `useStore`, and doesn't subscribe to the open walk itself. Its state and subscriptions live in hooks the composition calls, so `render:walk` counts every render a fix causes. In the `walk` journey, walking stays within the budget (decision FC10): `render:walk` at or under 2.5 a second.
 
 ## Constraint: nothing a person sees changes
 
-Behaviour stays the same. This slice edits each journey's `covers`, and adds the WS8 line to `walk`. It edits no journey's other checks. The proof is the journeys' own checks. Every journey this slice edits runs once at the end: the 12 above, plus `walk`, `qol`, `memories`, `scenic`, `nudge` and `launch`. The record below lists each run.
+Behaviour stays the same. This slice edits each journey's `covers`, and names the `walk` journey's render-budget check WS8. It edits no journey's other checks. The proof is the journeys' own checks. Every journey this slice edits runs once at the end: the 12 above, plus `walk`, `qol`, `memories`, `scenic`, `nudge` and `launch`. The record below lists each run.
 
 ## Routes and data
 
