@@ -11,11 +11,19 @@ import type { Listed } from './atlas';
  * the one you are in leading, then the others in the order given, or the neighborhoods where no town is named (fix
  * explore-town-scope: one level per row).
  */
-export function rowOf(p: { ownTown: Listed | null; neighborhoods: Listed[]; towns: Listed[] }): Listed[] {
+export function rowOf(p: { ownTown: Listed | null; neighborhoods: Listed[]; towns: Listed[]; townsListed: boolean }): Listed[] {
   if (p.ownTown) return [p.ownTown, ...p.neighborhoods];
-  // Where the map names no town around you, the neighborhoods near you, so the row is never empty for want of a town.
-  if (!p.towns.length) return p.neighborhoods;
+  // Where the map names no town around you, the neighborhoods near you, so the row is never empty for want of a town; never
+  // while the towns are still being listed, or the row would show neighborhoods, then swap (fix explore-town-scope audit 1).
+  if (!p.towns.length) return p.townsListed ? p.neighborhoods : [];
   return [...p.towns.filter((l) => l.here), ...p.towns.filter((l) => !l.here)];
+}
+
+/** The words near you name the row's level (decision 0126): the towns, or the areas where no town is named (fix explore-town-scope audit 1). */
+export function nearWords(row: Listed[]): { subtitle: string; label: string } {
+  return row.length && row.every((l) => l.area.level === 'town')
+    ? { subtitle: 'Towns around you', label: 'Towns near you' }
+    : { subtitle: 'Areas around you', label: 'Areas near you' };
 }
 
 /** The key to select now (EC1): the selected one while it is in the row, else the first, else null. */

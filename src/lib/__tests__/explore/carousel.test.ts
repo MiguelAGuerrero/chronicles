@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ATLAS_CODE, type AtlasArea, type Listed } from '../../atlas/atlas';
-import { busyNamesNear, busyNamesOn, busyRadiusM, cardFooter, firstSelection, offsetOf, rowOf, rowStep, settledIndex, settleStep, stepKey, townNote } from '../../atlas/carousel';
+import { busyNamesNear, busyNamesOn, busyRadiusM, cardFooter, firstSelection, nearWords, offsetOf, rowOf, rowStep, settledIndex, settleStep, stepKey, townNote } from '../../atlas/carousel';
 import { readFileSync } from 'node:fs';
 import type { LandingView } from '../../landing/view';
 import type { LngLat } from '../../types';
@@ -20,19 +20,27 @@ const keys = (l: Listed[]) => l.map((x) => x.area.key);
 test('EC3: near you the row is the towns alone, your town leading, then the others in the order given (fix explore-town-scope)', () => {
   const hoods = [listed('Fox Point', 100, 'neighborhood', true), listed('College Hill', 400), listed('Elmhurst', 900)];
   const towns = [listed('Cranston', 5000, 'town'), listed('Providence', 6000, 'town', true), listed('Pawtucket', 7000, 'town')];
-  assert.deepEqual(keys(rowOf({ ownTown: null, neighborhoods: hoods, towns })), ['Providence', 'Cranston', 'Pawtucket'], 'no neighborhood shares the row with a town');
+  assert.deepEqual(keys(rowOf({ ownTown: null, neighborhoods: hoods, towns, townsListed: true })), ['Providence', 'Cranston', 'Pawtucket'], 'no neighborhood shares the row with a town');
   const away = [listed('Cranston', 5000, 'town'), listed('Pawtucket', 7000, 'town')];
-  assert.deepEqual(keys(rowOf({ ownTown: null, neighborhoods: hoods, towns: away })), ['Cranston', 'Pawtucket'], 'outside every town, nearest first');
-  assert.equal(firstSelection(keys(rowOf({ ownTown: null, neighborhoods: hoods, towns })), null), 'Providence', 'on arrival your town is selected');
-  assert.deepEqual(keys(rowOf({ ownTown: null, neighborhoods: hoods, towns: [] })), ['Fox Point', 'College Hill', 'Elmhurst'], 'with no town named around you, the neighborhoods near you, so the row is never empty for want of a town');
+  assert.deepEqual(keys(rowOf({ ownTown: null, neighborhoods: hoods, towns: away, townsListed: true })), ['Cranston', 'Pawtucket'], 'outside every town, nearest first');
+  assert.equal(firstSelection(keys(rowOf({ ownTown: null, neighborhoods: hoods, towns, townsListed: true })), null), 'Providence', 'on arrival your town is selected');
+  assert.deepEqual(keys(rowOf({ ownTown: null, neighborhoods: hoods, towns: [], townsListed: true })), ['Fox Point', 'College Hill', 'Elmhurst'], 'with no town named around you, the neighborhoods near you, so the row is never empty for want of a town');
+});
+
+test('fix explore-town-scope audit 1: a row of neighborhoods is never titled or labelled as towns, and never shown while the towns are being listed', () => {
+  const hoods = [listed('Fox Point', 100, 'neighborhood', true), listed('College Hill', 400)];
+  assert.deepEqual(rowOf({ ownTown: null, neighborhoods: hoods, towns: [], townsListed: false }), [], 'towns still being listed: no neighborhoods to swap away');
+  assert.deepEqual(nearWords(rowOf({ ownTown: null, neighborhoods: hoods, towns: [], townsListed: true })), { subtitle: 'Areas around you', label: 'Areas near you' });
+  assert.deepEqual(nearWords([listed('Cranston', 5000, 'town')]), { subtitle: 'Towns around you', label: 'Towns near you' });
+  assert.deepEqual(nearWords([]), { subtitle: 'Areas around you', label: 'Areas near you' }, 'nothing listed claims no towns');
 });
 
 test('EC3: on a town\'s page the row is the town\'s own card, then its neighborhoods, never other towns', () => {
   const own = listed('Providence', 0, 'town');
   const hoods = [listed('Fox Point', 100), listed('College Hill', 400)];
-  assert.deepEqual(keys(rowOf({ ownTown: own, neighborhoods: hoods, towns: [listed('Cranston', 5000, 'town')] })), ['Providence', 'Fox Point', 'College Hill']);
-  assert.deepEqual(keys(rowOf({ ownTown: own, neighborhoods: [], towns: [] })), ['Providence'], 'a town with no neighborhoods is one card');
-  assert.deepEqual(rowOf({ ownTown: null, neighborhoods: [], towns: [] }), [], 'nothing listed is an empty row');
+  assert.deepEqual(keys(rowOf({ ownTown: own, neighborhoods: hoods, towns: [listed('Cranston', 5000, 'town')], townsListed: true })), ['Providence', 'Fox Point', 'College Hill']);
+  assert.deepEqual(keys(rowOf({ ownTown: own, neighborhoods: [], towns: [], townsListed: true })), ['Providence'], 'a town with no neighborhoods is one card');
+  assert.deepEqual(rowOf({ ownTown: null, neighborhoods: [], towns: [], townsListed: true }), [], 'nothing listed is an empty row');
 });
 
 test('EC1: the selected area stays while it is in the row; else the first; else none', () => {

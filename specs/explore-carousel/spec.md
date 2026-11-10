@@ -75,7 +75,7 @@ The auditor (8 findings) and the vision steward (8 findings, numbered 9-16 after
 12. "It is one area." states derived data as a fact: accept. `townNote` ("audit 12").
 13. The first card is accented before the walker chose: reject. The owner asked for something always highlighted; a selection is not a win (the plan's S7).
 14. Hues on the cards (magenta busy line, route and trace colours, accent footer): reject. They are the tile's round-3 design (decision 0067), kept; a quieter card is the owner's call to ask for.
-15. The fourth status ("Find me") is missing from EC14, and the row has no name: accept both. EC14 lists it; the row is named "Areas near you" (or "Areas in X"); e2e `carousel` "explore-carousel audit 15".
+15. The fourth status ("Find me") is missing from EC14, and the row has no name: accept both. EC14 lists it; the row is named "Areas near you" (or "Areas in X"; since decision 0126, "Towns near you" for the row of towns); e2e `carousel` "explore-carousel audit 15".
 16. The Busy names use an unseen 800 m around a town: accept. `busyRadiusM`: a neighborhood's ring, a town's own reach ("audit 16").
 
 Silent questions the steward put to the owner: whether a far first card should be highlighted on arrival with no fix (the row's order is by distance and the card says how far); whether "You're here" in the route colour is a celebration (it is the tile's round-3 look); whether stepping the row should move what the Busy layer reads (it does: the map shows what is selected).

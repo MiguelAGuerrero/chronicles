@@ -70,7 +70,7 @@ async function run(h) {
     };
     divisions.serve = false;
     const before = await titleOf('outlines-off');
-    check(before.title === 'Providence', `TO3: with no outline holding you, the town is the nearest point's, as before (${before.title})`);
+    check(before.title === 'Providence' && before.subtitle === 'Your town', `TO3: with no outline holding you, the town is the nearest point's, as before (${before.title}, ${before.subtitle})`);
     check(!before.borders, `TB1, TB7: no outline known, no border drawn, never a guess (${before.borders})`);
     divisions.serve = true;
     const after = await titleOf('outlines-on');

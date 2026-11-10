@@ -55,8 +55,8 @@ async function run(h) {
       `fix explore-town-scope: a town's page is titled with its name and its pill reads "Towns" (${townSel}, ${JSON.stringify(pillText)})`);
     const pageLevels = await pg.evaluate(() => [...document.querySelectorAll('[data-testid=atlas-town-head], [data-testid=atlas-tile]')].map((e) => e.dataset.level));
     check(pageLevels[0] === 'town' && pageLevels.slice(1).every((l) => l === 'neighborhood'), `EC3: a town's page is its own card, then its neighborhoods (${pageLevels.join(', ')})`);
-    // The town's own card leads; step onto its first neighborhood for the gestures.
-    await map.focus().catch(() => {});
+    // The town's own card leads; step onto its first neighborhood for the gestures (the keys go to the canvas, audit 3).
+    await pg.locator('.maplibregl-canvas').first().focus().catch(() => {});
     await pg.keyboard.press('ArrowRight');
     await pg.waitForTimeout(1200);
     const row = await safe(() => pg.locator('[data-testid=atlas-carousel]').boundingBox());
@@ -65,7 +65,7 @@ async function run(h) {
 
     // EC1: something is always selected; a tap on the map away from an area keeps it.
     const first = await selected();
-    check(first.length === 1, `EC1: one area is selected (${JSON.stringify(first)})`);
+    check(first.length === 1, `EC1: on arrival one area is selected (${JSON.stringify(first)})`);
     if (mapBox) await pg.mouse.click(mapBox.x + mapBox.width * 0.9, mapBox.y + mapBox.height * 0.2);
     await pg.waitForTimeout(500);
     check((await selected()).length === 1, 'EC1: a tap on the map away from an area keeps the selection');

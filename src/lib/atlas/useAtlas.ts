@@ -139,7 +139,8 @@ export function useAtlas(focused: boolean, from: LngLat | null, town: AtlasArea 
     const t = town ? rows.find((r) => r.key === town.key) ?? town : null;
     return t && from ? [{ area: t, distanceM: 0, here: false }] : [];
   }, [rows, town, from]);
-  const queue = useMemo(() => [...own, ...neighborhoods, ...towns], [own, neighborhoods, towns]);
+  // Read in the row's order (AT5): near you the towns are the row, so they come before the neighborhoods (fix explore-town-scope audit 4).
+  const queue = useMemo(() => (town ? [...own, ...neighborhoods, ...towns] : [...towns, ...neighborhoods]), [town, own, neighborhoods, towns]);
   const queueRef = useRef(queue);
   useEffect(() => {
     queueRef.current = queue;

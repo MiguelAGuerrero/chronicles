@@ -104,7 +104,7 @@ the e2e's Explore section. Native has not run on a device.
 - **Walk to:** a footer always in sight, "Walk to <area>", with "Starts you at <street>, its busiest street".
 - **The card:** a sheet that opens at 58% of the screen and rises to 90% by its handle. On wide screens it is a side panel. Focus moves to its name. Next door says "11 min from <area>".
 - **The long press:** its choices sit over the map in one row. They clear on any page change or when the tab is left. Below z10 it shows "Zoom in to look closer". A one-time hint says the long press exists.
-- **Your town:** it is the title and the way into its page, never listed again; the others are "Other towns". Town tiles have a "See its neighborhoods" footer. A back pill sits low on a town's page.
+- **Your town:** it is the title and the way into its page, never listed again; the others are "Other towns". Town tiles have a "See its neighborhoods" footer. A back pill sits low on a town's page. (Superseded by decision 0126: your town leads the row of towns near you, selected; the title names the level; the pill reads "Towns".)
 - **Presence (decision 0067):**
   - presence as dots;
   - tiles show only the kinds present;

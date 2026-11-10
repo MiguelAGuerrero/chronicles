@@ -28,7 +28,7 @@ import {
 } from '../../lib/atlas/atlas';
 import { mapTopInset } from '../../lib/mapTopInset';
 import { nearReads } from '../../lib/atlas/read';
-import { busyNamesNear, busyNamesOn, busyRadiusM, firstSelection, rowOf, rowStep, stepKey, townNote } from '../../lib/atlas/carousel';
+import { busyNamesNear, busyNamesOn, busyRadiusM, firstSelection, nearWords, rowOf, rowStep, stepKey, townNote } from '../../lib/atlas/carousel';
 import { SNAP } from '../../lib/atlas/snap';
 import { useAtlas } from '../../lib/atlas/useAtlas';
 import { bordersFor, outlineIdHere, outlineOf, townFrame } from '../../lib/areas/borders';
@@ -206,7 +206,10 @@ export default function Explore() {
     return allTowns.find((x) => x.area.key === town.key) ?? { area: town, distanceM: 0, here: false };
   }, [town, allTowns]);
   // Near you the row is the towns, yours leading and so selected on arrival; a town's page is the town, then its neighborhoods.
-  const shown = useMemo(() => rowOf({ ownTown, neighborhoods, towns: allTowns }), [ownTown, neighborhoods, allTowns]);
+  // The neighborhoods stand in only once the towns are listed and none is named (fix explore-town-scope audit 1).
+  const listing = fresh.status === 'listing' || (fresh.status === 'idle' && !fresh.build);
+  const shown = useMemo(() => rowOf({ ownTown, neighborhoods, towns: allTowns, townsListed: !listing }), [ownTown, neighborhoods, allTowns, listing]);
+  const words = useMemo(() => nearWords(shown), [shown]);
   const order = useMemo(() => shown.map((l) => l.area.key), [shown]);
   const selected = useMemo(() => firstSelection(order, picked), [order, picked]);
   const famOf = useMemo(() => {
@@ -396,8 +399,7 @@ export default function Explore() {
   const title = town?.name ?? 'Near you';
   const subtitle = town
     ? (ownTown?.here || (home && home.area.key === town.key) ? 'You’re here' : distanceWords(ownTown?.distanceM ?? 0, false, fmt))
-    : 'Towns around you';
-  const listing = fresh.status === 'listing' || (fresh.status === 'idle' && !fresh.build);
+    : words.subtitle;
   const cardLayout: CardLayout = wide
     ? { kind: 'side', width: 400, height: screen.h }
     : { kind: 'sheet', screenH: screen.h };
@@ -580,7 +582,7 @@ export default function Explore() {
             selected={selected}
             width={screen.w}
             reduced={reduced}
-            label={town ? `Areas in ${town.name}` : 'Towns near you'}
+            label={town ? `Areas in ${town.name}` : words.label}
             onSettle={selectKey}
             renderCard={(l, isSel) => (
               <AtlasTile

@@ -432,3 +432,14 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **The "?" pins sit together** (audit 2): `waitingMarks` places each kind's "?" at its place nearest the area's point (a rule made for the sketch, AT6), so on a town at whole-town zoom, or beside a neighborhood's name, they stack. Spreading them is a placement call for the owner.
 - **The "?" label is the walk's** (audit 3): "A place to find. Open", the same on every pin, while a tap opens the area's card. An Explore label ("Something to find in Fox Point") needs the shared `markLabel` to take one.
 - **The base map may name a hidden place under its "?"** (audit 5): if the style draws poi labels at that zoom; the walk screen has the same, and checking needs real tiles.
+
+## Explore: a neighborhood with no listed town (fix explore-town-scope, decision 0126)
+
+- **Deferred, the owner's call (Nov 10):** near you the row is the towns; a neighborhood is only on its town's page, which
+  looks within `townReachM` (capped at 5 km) of the town's point. A neighborhood past every town's reach is shown nowhere,
+  even the one you stand in, deep inside a large city's outline far from its point (audit 3). The neighborhoods stand in
+  only when no town is named around you. Next, if wanted: a town's page takes the neighborhoods inside its outline,
+  whatever their distance from its point.
+- **Deferred (audit 5):** outside every town, the nearest town leads and is framed whole on arrival, so the page titled
+  "Near you" may open on a town some kilometres off; and when an outline arrives that marks another town as yours, the
+  selection and the frame move to it. Framing the selected town is the row's rule (EC5).

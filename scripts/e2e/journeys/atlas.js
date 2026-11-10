@@ -44,7 +44,7 @@ async function checks(h) {
       const names = await page.locator('[data-testid=atlas-tile]').evaluateAll((els) => els.map((e) => e.getAttribute('data-name')));
       const fox = tileOf('Fox Point');
       const label = (await fox.getAttribute('aria-label')) ?? '';
-      check((await page.locator('canvas.maplibregl-canvas').count()) === 1 && names[0] === 'Fox Point' && /^Fox Point\. You’re here\./.test(label),
+      check((await page.locator('canvas.maplibregl-canvas').count()) === 1 && (await page.locator('[data-testid=atlas-back-pill]').count()) === 1 && names[0] === 'Fox Point' && /^Fox Point\. You’re here\./.test(label),
         `AT1: your town's page lists its neighborhoods, the one you're in first (${names.join(', ')}: ${label})`);
       check((await fox.getAttribute('data-read')) === '1' && (await fox.locator('[data-kind]').count()) >= 1 && (await fox.locator('svg').count()) === 0,
         'AT3, AT5: its ring was read by itself; the card has the kinds it has (round 3: only those present) and no picture (the area\'s card has it, decision 0124)');

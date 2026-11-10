@@ -17,10 +17,8 @@ async function run(h) {
       await pg.waitForTimeout(2500);
       // The town's own card leads; step onto its first neighborhood.
       await pg.locator('.maplibregl-canvas').first().focus().catch(() => {});
-      if (process.env.E2E_DEBUG) console.log('DBG before', JSON.stringify(await pg.evaluate(() => ({ tiles: [...document.querySelectorAll('[data-testid=atlas-tile],[data-testid=atlas-town-head]')].map((e) => `${e.dataset.name}:${e.dataset.selected}`), pill: !!document.querySelector('[data-testid=atlas-back-pill]'), pts: [...document.querySelectorAll('[data-testid=area-point]')].map((e) => `${e.dataset.name}:${e.dataset.selected}`), active: document.activeElement?.className }))));
       await pg.keyboard.press('ArrowRight');
       await pg.waitForTimeout(1200);
-      if (process.env.E2E_DEBUG) console.log('DBG after', JSON.stringify(await pg.evaluate(() => ({ tiles: [...document.querySelectorAll('[data-testid=atlas-tile],[data-testid=atlas-town-head]')].map((e) => `${e.dataset.name}:${e.dataset.selected}`), pill: !!document.querySelector('[data-testid=atlas-back-pill]'), pts: [...document.querySelectorAll('[data-testid=area-point]')].map((e) => `${e.dataset.name}:${e.dataset.selected}`) }))));
     };
     await intoTown();
     const map = pg.locator('.maplibregl-map').first();

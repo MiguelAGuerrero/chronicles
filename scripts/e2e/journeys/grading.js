@@ -5,6 +5,7 @@ async function run(h) {
   const { url, exploreUrl, at, check, freshPage, areaTile, hollowWorld } = h;
   hollowWorld.serve = true;
     const { c, pg } = await freshPage('grading');
+    try {
     const hollow = at(-60, 0);
     await c.setGeolocation({ longitude: hollow[0], latitude: hollow[1], accuracy: 6 });
     await pg.goto(exploreUrl);
@@ -23,8 +24,11 @@ async function run(h) {
     check((await card.count()) === 1 && (await card.locator('[data-testid^=atlas-kind-]').count()) === 0
       && (await card.locator('[data-testid=atlas-how]').count()) === 0 && !/\bnone\b/.test(await card.innerText().catch(() => '')),
       'AG3: a thin ring\'s card shows no kind rows, no "none", no "How the marks work"');
-    await c.close();
-    hollowWorld.serve = false;
+    } finally {
+      // Never left on for the journeys after this one (fix explore-town-scope audit 7).
+      hollowWorld.serve = false;
+      await c.close();
+    }
 }
 
 module.exports = {
