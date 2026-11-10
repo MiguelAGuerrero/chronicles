@@ -8,6 +8,7 @@ import { feedback } from '../lib/motion';
 import type { LocateResult } from '../lib/locate/types';
 
 import { momentPill } from '../lib/momentPill';
+import { useStore } from '../lib/useStore';
 import { useCaptures, type MomentState } from '../lib/useCaptures';
 import { Modal } from './Modal';
 import { EditOfferPill, useEditOffer } from './edit/EditOffer';
@@ -135,6 +136,26 @@ export function CaptureRow(props: {
     if (focused === false) momentPill.leave();
   }, [focused]);
   useEffect(() => () => momentPill.leave(), []);
+  // The viewer's Add to this moment (MS12): run here, where the camera, the mic and the note are.
+  const asked = useStore(momentPill.store, (st) => st.ask?.seq ?? 0);
+  const onAsk = useRef<(kind: 'photo' | 'voice' | 'text') => void>(() => {});
+  useEffect(() => {
+    onAsk.current = (kind) => {
+      const into = momentPill.target();
+      if (kind === 'photo') void cap.takePhoto(into).then((k) => k && saved());
+      else if (kind === 'voice') void cap.startVoice(into).then((ok) => ok && feedback('tap'));
+      else {
+        setNoteInto(into);
+        setNoteOpen(true);
+      }
+    };
+  });
+  useEffect(() => {
+    const ask = momentPill.store.get().ask;
+    if (!asked || !ask) return;
+    momentPill.asked();
+    onAsk.current(ask.kind);
+  }, [asked]);
 
   return (
     <>

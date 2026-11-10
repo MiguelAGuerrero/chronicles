@@ -6,6 +6,11 @@ import { createStore, type Store } from '../store';
 /** What a view reads: the moment the Add to this moment pill is open for, or null (MS2, MS12). */
 export interface PillState {
   id: string | null;
+  /**
+   * The viewer asked to add to the open moment (MS12): the walk screen beneath, which holds the camera, the mic and
+   * the note, runs it. `seq` changes with each ask, so a view can react to it as a primitive.
+   */
+  ask: { kind: 'photo' | 'voice' | 'text'; seq: number } | null;
 }
 
 /**
@@ -20,11 +25,12 @@ export function createMomentPill(
 ) {
   let state: OpenState = initial;
   let timer: unknown = null;
-  const store: Store<PillState> = createStore<PillState>({ id: null });
+  const store: Store<PillState> = createStore<PillState>({ id: null, ask: null });
+  let seq = 0;
   const settle = () => {
     const now = p.clock.now();
     const id = openId(state, now);
-    if (store.get().id !== id) store.set({ id });
+    if (store.get().id !== id) store.set({ ...store.get(), id });
     if (timer != null) deps.clearTimer(timer);
     timer = null;
     // Looked at again when its two minutes are up (MS4).
@@ -48,6 +54,12 @@ export function createMomentPill(
     walk: () => send({ k: 'walk' }),
     /** A moment opened in the viewer. */
     opened: (id: string) => send({ k: 'opened', id }),
+    /** The viewer's Add to this moment (MS12): only while a moment is open. */
+    ask: (kind: 'photo' | 'voice' | 'text') => {
+      if (openId(state, p.clock.now())) store.set({ ...store.get(), ask: { kind, seq: ++seq } });
+    },
+    /** The walk screen took the ask. */
+    asked: () => store.set({ ...store.get(), ask: null }),
     /** The moment a capture begun now from the pill joins, or null (MS4: begun while open, it joins). */
     target: (): string | null => target(state, p.clock.now()),
   };

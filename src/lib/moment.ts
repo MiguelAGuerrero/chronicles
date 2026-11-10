@@ -117,3 +117,19 @@ export function withoutPiece(m: Moment, id: string): Moment | null {
   const pieces = m.pieces.filter((p) => p.id !== id);
   return pieces.length ? { ...m, pieces } : null;
 }
+
+/**
+ * A faced moment shown at one of its pieces (the viewer, MS10, MS11): the moment's own id, walk, time and place, with
+ * that piece's media; `piece_id` names it, so an edit, a caption or a note's text lands on the piece shown.
+ */
+export function facedAt(f: Faced, pieceId: string): Faced {
+  const p = f.pieces.find((x) => x.id === pieceId);
+  if (!p) return f;
+  return {
+    ...f, piece_id: p.id, kind: p.kind, file_path: p.file_path, body: p.body,
+    caption: p.caption ?? null, caption_y: p.caption_y ?? null, thumb_path: p.thumb_path ?? null, edit: p.edit ?? null,
+  };
+}
+
+/** A piece waiting in the Undo window is hidden by this key, never by its id: a moment's first piece shares its id. */
+export const pieceKey = (pieceId: string): string => `piece:${pieceId}`;

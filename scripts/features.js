@@ -203,8 +203,9 @@ const FEATURES = [
       'src/components/{Caption,Baker}*.tsx',
       'src/lib/media/**',
       'src/lib/{useCaptures,thumbPlan,thumbJob,useMediaUri,captureBus,pieceStamp,openMoment}.ts',
-      // Moment stacks (MS1-MS21): the open moment's store and the pill.
+      // Moment stacks (MS1-MS21): the open moment's store, the pill and the stacked mark.
       'src/lib/momentPill/**',
+      'src/components/StackMark.tsx',
       'src/lib/here/**',
       'src/lib/audioMode*.ts',
       'src/lib/export/**',

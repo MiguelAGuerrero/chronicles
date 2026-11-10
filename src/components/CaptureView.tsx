@@ -1,4 +1,6 @@
-import type { Faced } from '../lib/moment';
+import { type Faced, facedAt, pieceKey } from '../lib/moment';
+import { momentPill } from '../lib/momentPill';
+import { useStore } from '../lib/useStore';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { forwardRef, useEffect, useRef, useState, type ComponentRef } from 'react';
 import { HANDOFF_HINT } from '../lib/nav/openInMaps';
@@ -25,9 +27,9 @@ import { RemindEditor } from './RemindEditor';
 import { NoteEditor } from './NoteEditor';
 import { ConfirmCard } from './ConfirmCard';
 import { UndoToast } from './UndoToast';
-import { deleteMoment, planMoment } from '../lib/deletion';
-import { momentDeleteText, type ConfirmText } from '../lib/deletion/core';
-import { useVisible } from '../lib/deletion/useDeletions';
+import { deleteMoment, deletePiece, planMoment, planPiece } from '../lib/deletion';
+import { momentDeleteText, pieceDeleteText, type ConfirmText } from '../lib/deletion/core';
+import { useHidden, useVisible } from '../lib/deletion/useDeletions';
 import { router } from 'expo-router';
 import { chronicleSection } from '../lib/resurface/sectionStore';
 import { threads } from '../lib/threads';
@@ -121,6 +123,8 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
   /** Unused by the full-screen layout; kept so callers can pass the safe area. */
   topInset?: number;
   nav?: { onPrev?: () => void; onNext?: () => void };
+  /** Stepping through a moment's pieces (MS10): drawn unlike `nav`, spoken "in this moment". */
+  pieces?: { onPrev?: () => void; onNext?: () => void };
   /** A primary action (the replay's Continue), within thumb reach. The ref is the action's. */
   action?: { label: string; hint?: string; onPress: () => void; testID?: string };
 }>(function CaptureContent(props, actionRef) {
@@ -145,9 +149,28 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
           <Icon name="chevron-forward" size={20} color="#ffffff" />
         </Pressable>
       )}
+      {props.pieces && (
+        <View style={styles.nav}>
+          {([['Previous in this moment', 'arrow-back-circle-outline', props.pieces.onPrev], ['Next in this moment', 'arrow-forward-circle-outline', props.pieces.onNext]] as const).map(
+            ([label, icon, onPress]) => (
+              <Pressable
+                key={label}
+                testID={label === 'Next in this moment' ? 'piece-next' : 'piece-prev'}
+                accessibilityRole="button"
+                accessibilityLabel={label}
+                disabled={!onPress}
+                onPress={onPress}
+                style={[styles.pieceBtn, !onPress && styles.dim]}
+              >
+                <Icon name={icon} size={30} color={onDark ? '#ffffff' : theme.ink} />
+              </Pressable>
+            ),
+          )}
+        </View>
+      )}
       {props.nav && (
         <View style={styles.nav}>
-          {([['Previous capture', 'chevron-back', props.nav.onPrev], ['Next capture', 'chevron-forward', props.nav.onNext]] as const).map(
+          {([['Previous moment', 'chevron-back', props.nav.onPrev], ['Next moment', 'chevron-forward', props.nav.onNext]] as const).map(
             ([label, icon, onPress]) => (
               <Pressable
                 key={label}
@@ -247,6 +270,10 @@ export function CaptureViewer(props: {
 }) {
   const insets = useSafeAreaInsets();
   const [index, setIndex] = useState(0);
+  // The piece shown of a moment holding more than one (MS10); back to its first when the moment changes.
+  const [pieceAt, setPieceAt] = useState<{ moment: string; i: number }>({ moment: '', i: 0 });
+  const hidden = useHidden();
+  const openForAdd = useStore(momentPill.store, (s) => s.id);
   const [editing, setEditing] = useState<Faced | null>(null);
   const editor = useRef<MediaEditorHandle>(null);
   // Edits saved here show at once, whether or not the caller's list hears of it (ME21).
@@ -257,7 +284,7 @@ export function CaptureViewer(props: {
   const [edited, setEdited] = useState<Map<string, string>>(() => new Map());
   // What was deleted (D3, D5) leaves the viewer at once.
   const list = useVisible(props.captures);
-  const [deleting, setDeleting] = useState<{ capture: Faced; text: ConfirmText } | null>(null);
+  const [deleting, setDeleting] = useState<{ capture: Faced; text: ConfirmText; piece?: string } | null>(null);
   const [menu, setMenu] = useState(false);
   // Add to a thread (OT5): the picker is drawn inside this Modal.
   const [adding, setAdding] = useState<Faced | null>(null);
@@ -321,11 +348,39 @@ export function CaptureViewer(props: {
     }
   };
   const i = Math.min(index, Math.max(0, list.length - 1));
-  const listed = list[i];
-  const editedBody = listed ? edited.get(listed.id) : undefined;
+  const moment = list[i];
+  // Its pieces, less any waiting in the Undo window (MS13).
+  const pieces = moment ? moment.pieces.filter((p) => !hidden.has(pieceKey(p.id))) : [];
+  const stacked = pieces.length > 1;
+  const pi = moment && pieceAt.moment === moment.id ? Math.min(pieceAt.i, Math.max(0, pieces.length - 1)) : 0;
+  const stepPiece = (d: number) => moment && setPieceAt({ moment: moment.id, i: Math.max(0, Math.min(pieces.length - 1, pi + d)) });
+  const listed = moment && pieces[pi] ? facedAt(moment, pieces[pi].id) : moment;
+  // Edits and notes are the piece's own (MS11): kept by the piece's id.
+  const editedBody = listed ? edited.get(listed.piece_id) : undefined;
   const withBody = listed && editedBody != null && listed.body !== editedBody ? { ...listed, body: editedBody } : listed;
-  const patch = withBody ? patched.get(withBody.id) : undefined;
+  const patch = withBody ? patched.get(withBody.piece_id) : undefined;
   const current = withBody && patch ? { ...withBody, ...patch } : withBody;
+  // Another moment opened closes the pill (MS4).
+  const shownId = current?.id ?? null;
+  useEffect(() => {
+    if (shownId) momentPill.opened(shownId);
+  }, [shownId]);
+  // The arrow keys step through a moment's pieces on the web (MS10).
+  const stepRef = useRef(stepPiece);
+  useEffect(() => {
+    stepRef.current = stepPiece;
+  });
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !stacked || typeof window === 'undefined') return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') stepRef.current(1);
+      else if (e.key === 'ArrowLeft') stepRef.current(-1);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [stacked]);
+  // A horizontal swipe does the same on a phone (MS10).
+  const swipeFrom = useRef<number | null>(null);
   const close = () => {
     setIndex(0);
     setEditing(null);
@@ -343,8 +398,23 @@ export function CaptureViewer(props: {
       () => setDeleting({ capture: c, text: momentDeleteText(c.kind, 0) }),
     );
   };
+  // One piece of a stacked moment (MS13), named by its kind.
+  const askDeletePiece = (c: Faced) => {
+    const pieceId = c.piece_id;
+    const m = moment ?? c;
+    planPiece(m, pieceId).then(
+      (text) => setDeleting({ capture: c, text, piece: pieceId }),
+      () => setDeleting({ capture: c, text: pieceDeleteText(c.kind, 0), piece: pieceId }),
+    );
+  };
   const confirmDelete = () => {
     if (!deleting) return;
+    if (deleting.piece && moment) {
+      deletePiece(moment, deleting.piece, deleting.capture.kind);
+      setPieceAt({ moment: moment.id, i: Math.max(0, pi - 1) });
+      setDeleting(null);
+      return;
+    }
     const last = list.length <= 1;
     deleteMoment(deleting.capture);
     setDeleting(null);
@@ -358,24 +428,63 @@ export function CaptureViewer(props: {
       animationType="fade"
       onRequestClose={menu ? () => setMenu(false) : composeFor ? () => setComposeFor(null) : adding ? () => setAdding(null) : deleting ? () => setDeleting(null) : editing ? () => editor.current?.requestClose() : noting ? () => setNoting(null) : reminding ? () => setReminding(null) : close}
     >
-      <View style={styles.viewer}>
+      <View
+        style={styles.viewer}
+        testID="capture-viewer"
+        onTouchStart={(e) => {
+          swipeFrom.current = stacked ? e.nativeEvent.pageX : null;
+        }}
+        onTouchEnd={(e) => {
+          const from = swipeFrom.current;
+          swipeFrom.current = null;
+          if (from == null) return;
+          const dx = e.nativeEvent.pageX - from;
+          if (Math.abs(dx) > 60) stepPiece(dx < 0 ? 1 : -1);
+        }}
+      >
         {/* The baker draws behind everything; the cover hides it. */}
         {baker}
         <View style={[StyleSheet.absoluteFill, styles.viewer]} />
         {/* Down while the editor is up: a video never plays on beneath it, and the edited one mounts fresh. */}
         {current && !editing && (
           <CaptureContent
-            key={current.id}
+            key={`${current.id}:${current.piece_id}`}
             capture={current}
             autoPlay={props.autoPlay}
             topInset={insets.top}
-            footer={[props.context?.get(current.id), list.length > 1 ? `${i + 1} of ${list.length}` : null].filter(Boolean).join(' · ') || undefined}
+            // No position over a moment's pieces (MS9): the pager's "i of n" stays for one-piece moments only.
+            footer={[props.context?.get(current.id), list.length > 1 && !stacked ? `${i + 1} of ${list.length}` : null].filter(Boolean).join(' · ') || undefined}
+            pieces={stacked ? { onPrev: pi > 0 ? () => stepPiece(-1) : undefined, onNext: pi < pieces.length - 1 ? () => stepPiece(1) : undefined } : undefined}
             nav={
               list.length > 1
                 ? { onPrev: i > 0 ? () => setIndex(i - 1) : undefined, onNext: i < list.length - 1 ? () => setIndex(i + 1) : undefined }
                 : undefined
             }
           />
+        )}
+        {current && (
+          // What the viewer shows, for the e2e (MS10): the piece and its kind, never seen or said.
+          <View testID="piece-shown" pointerEvents="none" style={styles.hiddenMark} {...({ dataSet: { kind: current.kind, piece: current.piece_id } } as object)} />
+        )}
+        {current && openForAdd === current.id && !editing && !noting && !reminding && !adding && (
+          // Add to this moment, only while its pill is open (MS12): back to the walk screen, which adds to it.
+          <View style={[styles.addRow, { top: insets.top + 68 }]} testID="viewer-add">
+            {([['Add a photo to this moment', 'camera', 'photo'], ['Add a voice memo to this moment', 'mic', 'voice'], ['Add a note to this moment', 'create', 'text']] as const).map(([label, icon, kind]) => (
+              <Pressable
+                key={kind}
+                accessibilityRole="button"
+                accessibilityLabel={label}
+                onPress={() => {
+                  close();
+                  momentPill.ask(kind);
+                }}
+                style={styles.roundBtn}
+                hitSlop={6}
+              >
+                <Icon name={icon} size={22} color={theme.ink} />
+              </Pressable>
+            ))}
+          </View>
         )}
         {saveState && saveState.id === current?.id && (
           <View style={[styles.saved, { top: insets.top + 64 }]} accessibilityLiveRegion="polite" pointerEvents="box-none">
@@ -454,7 +563,7 @@ export function CaptureViewer(props: {
             <Icon name="close" size={26} color={theme.ink} />
           </Pressable>
         </View>
-        {current && !editing && !noting && !reminding && !adding && (
+        {current && openForAdd !== current.id && !editing && !noting && !reminding && !adding && (
           <>
             <ThreadChip
               key={`chip:${current.id}`}
@@ -495,7 +604,7 @@ export function CaptureViewer(props: {
             onSave={async (p) => {
               const c = editing;
               await props.onSaveEdit?.(c, p);
-              setPatched((m) => new Map(m).set(c.id, { ...m.get(c.id), ...p }));
+              setPatched((m) => new Map(m).set(c.piece_id, { ...m.get(c.piece_id), ...p }));
             }}
           />
         )}
@@ -508,15 +617,15 @@ export function CaptureViewer(props: {
             onSave={async (body) => {
               const c = noting;
               setNoting(null);
-              const before = edited.get(c.id);
-              setEdited((m) => new Map(m).set(c.id, body));
+              const before = edited.get(c.piece_id);
+              setEdited((m) => new Map(m).set(c.piece_id, body));
               try {
                 await props.onSaveNote?.(c, body);
               } catch {
                 setEdited((m) => {
                   const n = new Map(m);
-                  if (before == null) n.delete(c.id);
-                  else n.set(c.id, before);
+                  if (before == null) n.delete(c.piece_id);
+                  else n.set(c.piece_id, before);
                   return n;
                 });
                 setSaveState({ id: c.id, text: 'The note could not be saved' });
@@ -624,17 +733,32 @@ export function CaptureViewer(props: {
                 <Icon name="link" size={22} color={theme.ink} />
                 <Text style={styles.menuText}>Add to a thread</Text>
               </Pressable>
+              {stacked && (
+                // One piece, named by its kind (MS13); the moment and the rest stay.
+                <Pressable
+                  testID="menu-delete-piece"
+                  accessibilityRole="button"
+                  onPress={() => {
+                    setMenu(false);
+                    askDeletePiece(current);
+                  }}
+                  style={({ pressed }) => [styles.menuItem, pressed && styles.dim]}
+                >
+                  <Icon name="remove-circle-outline" size={22} color={theme.danger} />
+                  <Text style={[styles.menuText, { color: theme.danger }]}>Delete this {KIND_LABEL[current.kind].toLowerCase()}</Text>
+                </Pressable>
+              )}
               <Pressable
-                testID="viewer-delete"
+                testID={stacked ? 'menu-delete' : 'viewer-delete'}
                 accessibilityRole="button"
                 onPress={() => {
                   setMenu(false);
-                  askDelete(current);
+                  askDelete(moment ?? current);
                 }}
                 style={({ pressed }) => [styles.menuItem, pressed && styles.dim]}
               >
                 <Icon name="trash-outline" size={22} color={theme.danger} />
-                <Text style={[styles.menuText, { color: theme.danger }]}>Delete this {KIND_LABEL[current.kind].toLowerCase()}</Text>
+                <Text style={[styles.menuText, { color: theme.danger }]}>{stacked ? 'Delete this moment' : `Delete this ${KIND_LABEL[current.kind].toLowerCase()}`}</Text>
               </Pressable>
             </View>
           </>
@@ -647,6 +771,8 @@ export function CaptureViewer(props: {
 }
 
 const styles = StyleSheet.create({
+  hiddenMark: { position: 'absolute', width: 0, height: 0, opacity: 0 },
+  addRow: { position: 'absolute', right: 16, flexDirection: 'row', gap: 8 },
   // A full-width row centers the card on any screen width.
   cardRow: { position: 'absolute', left: 0, right: 0, paddingHorizontal: 16, alignItems: 'center' },
   fill: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
@@ -674,6 +800,7 @@ const styles = StyleSheet.create({
     borderRadius: 24, backgroundColor: theme.accent,
   },
   actionText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
+  pieceBtn: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
   navBtn: { width: 48, height: 48, borderRadius: 24, borderWidth: 1.5, borderColor: theme.edge, alignItems: 'center', justifyContent: 'center' },
   note: { fontSize: 20, lineHeight: 27, color: theme.ink },
   meta: { fontSize: 14, color: theme.muted },

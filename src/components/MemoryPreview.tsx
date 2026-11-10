@@ -1,4 +1,5 @@
-import { type Faced, facedAll } from '../lib/moment';
+import { type Faced, facedAll, hasMore } from '../lib/moment';
+import { STACK_SPOKEN } from './StackMark';
 import { useEffect, useState } from 'react';
 import { db } from '../lib/db';
 import { makeThumb } from '../lib/media/thumb';
@@ -55,7 +56,7 @@ export function MemoryPreview(props: {
       <Pressable
         testID="memory-open"
         accessibilityRole="button"
-        accessibilityLabel={`Memory from ${date}: ${line}${more > 0 ? `, and ${more} more here` : ''}. Open`}
+        accessibilityLabel={`Memory from ${date}: ${line}${hasMore(first) ? `, ${STACK_SPOKEN}` : ''}${more > 0 ? `, and ${more} more here` : ''}. Open`}
         onPress={props.onOpen}
         style={styles.body}
       >

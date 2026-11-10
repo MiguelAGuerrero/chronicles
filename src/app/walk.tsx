@@ -56,6 +56,7 @@ import { formatDistance, formatDuration, formatElapsed } from '../lib/summary';
 import type { LngLat, Pause, StreetSegment, Walk } from '../lib/types';
 import { useCaptures } from '../lib/useCaptures';
 import { momentPill } from '../lib/momentPill';
+import { useStore } from '../lib/useStore';
 import { AddToMomentPill } from '../components/walk/AddToMomentPill';
 import { walkScreenShown } from '../lib/walkNav';
 import { askMotion, useMotionAccess } from '../lib/walkMotion';
@@ -354,6 +355,27 @@ function WalkScreen(props: { onMinimize: () => void }) {
   }, [live.here, walkId]);
   // The open moment a note being written joins, fixed when it was begun (MS4); null for a new moment.
   const [noteInto, setNoteInto] = useState<string | null>(null);
+  // The viewer's Add to this moment (MS12), run here where the camera, the mic and the note are; on a walk only
+  // (the ready screen's capture row runs its own).
+  const asked = useStore(momentPill.store, (st) => st.ask?.seq ?? 0);
+  const onAsk = useRef<(kind: 'photo' | 'voice' | 'text') => void>(() => {});
+  useEffect(() => {
+    onAsk.current = (kind) => {
+      const into = momentPill.target();
+      if (kind === 'photo') void photo(into);
+      else if (kind === 'voice') void startVoice(into);
+      else {
+        setNoteInto(into);
+        setNoteOpen(true);
+      }
+    };
+  });
+  useEffect(() => {
+    const ask = momentPill.store.get().ask;
+    if (!asked || !ask || !walkId) return;
+    momentPill.asked();
+    onAsk.current(ask.kind);
+  }, [asked, walkId]);
   // A deleted moment leaves the pins, Explore and the viewer at once (D3, D5).
   const captures = useVisible(cap.captures);
 

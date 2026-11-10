@@ -14,7 +14,7 @@ const moments = (pg) => pg.evaluate(() => new Promise((resolve) => {
 
 async function run(h) {
   const { navUrl, check, shot, tabTo, freshPage, scriptsDir } = h;
-  const fixtures = path.join(scriptsDir, 'e2e', 'fixtures');
+  const fixtures = path.join(scriptsDir, 'fixtures');
   const { c, pg } = await freshPage('stacks');
   // Location reads, counted, so adding a piece is seen to take no fix (MS3, 0036).
   await c.addInitScript(() => {
@@ -141,7 +141,8 @@ module.exports = {
     'src/lib/momentPill/**',
     'src/lib/pieceStamp.ts',
     'src/components/CaptureView.tsx',
-    'src/components/chronicle/{MomentCard,MomentPicture,StackMark}.tsx',
+    'src/components/chronicle/{MomentCard,MomentPicture}.tsx',
+    'src/components/StackMark.tsx',
     'src/lib/deletion/pieces.ts',
   ],
   run,

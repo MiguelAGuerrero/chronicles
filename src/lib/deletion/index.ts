@@ -1,11 +1,12 @@
 // @layer shell
-import { type Faced, facedAll } from '../moment';
+import { type Faced, facedAll, hasMore, pieceKey } from '../moment';
 import { AppState } from 'react-native';
 import { db } from '../db';
 import { forgetRecalls } from '../discovery/recallCheck';
 import { mediaBytes, removeMedia } from '../media';
-import type { Walk } from '../types';
-import { filesOfMoments, isMedia, mediaRemoveText, momentDeleteText, walkDeleteText, type ConfirmText } from './core';
+import type { CaptureKind, Walk } from '../types';
+import { pieceDelete } from './piecesApp';
+import { filesOf, filesOfMoments, isMedia, mediaRemoveText, pieceDeleteText, stackDeleteText, momentDeleteText, walkDeleteText, type ConfirmText } from './core';
 import { createPending } from './pending';
 
 /**
@@ -90,14 +91,17 @@ export function removeWalkMedia(plan: WalkPlan) {
 
 /** What deleting one moment would say (D4). */
 export async function planMoment(c: Faced): Promise<ConfirmText> {
-  return momentDeleteText(c.kind, await mediaBytes(filesOfMoments([c])).catch(() => 0));
+  const bytes = await mediaBytes(filesOfMoments([c])).catch(() => 0);
+  // A moment holding more than one piece is named as the moment, with every piece's size (MS13).
+  return hasMore(c) ? stackDeleteText(bytes) : momentDeleteText(c.kind, bytes);
 }
 
 /** D3: one moment, its reminder and its find. Its file and thumbnail go, read fresh (a thumbnail made since). */
 export function deleteMoment(c: Faced) {
   deletions.schedule({
     kind: 'moment',
-    what: c.kind,
+    // A stacked moment's toast names the moment, never its face's kind (MS13).
+    what: hasMore(c) ? undefined : c.kind,
     ids: [c.id],
     run: async () => {
       const [fresh] = await db.getMomentsByIds([c.id]).then(facedAll);
@@ -106,4 +110,28 @@ export function deleteMoment(c: Faced) {
       await removeMedia([...new Set(filesOfMoments(fresh ? [c, fresh] : [c]))]);
     },
   });
+}
+
+/**
+ * MS13: one piece of a moment, after the Undo window; hidden meanwhile by `pieceKey`. The last piece takes the
+ * moment (`deletion/pieces`).
+ */
+export function deletePiece(m: Faced, pieceId: string, kind: CaptureKind) {
+  deletions.schedule({
+    kind: 'piece',
+    what: kind,
+    ids: [pieceKey(pieceId)],
+    run: async () => {
+      await pieceDelete.run(m, pieceId, async (refs) => {
+        await removeMedia(refs);
+      });
+      forgetRecalls();
+    },
+  });
+}
+
+/** What deleting one piece, or a stacked moment, would say (MS13). */
+export async function planPiece(m: Faced, pieceId: string): Promise<ConfirmText> {
+  const p = m.pieces.find((x) => x.id === pieceId);
+  return pieceDeleteText(p?.kind ?? m.kind, await mediaBytes(filesOf(p ? [p] : [])).catch(() => 0));
 }
