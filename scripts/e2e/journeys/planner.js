@@ -130,7 +130,7 @@ async function run(h) {
   await pg.click('[data-testid=walk-minimize]');
   await pg.waitForTimeout(1500);
   await tabTo(pg, 'explore');
-  await pg.waitForSelector('[data-testid=atlas-grid]', { timeout: 30000 });
+  await pg.waitForSelector('[data-testid=atlas-carousel]', { timeout: 30000 });
   await pg.locator('[data-testid=atlas-tile][data-name="Green Row"]').click().catch(() => {});
   await pg.waitForSelector('[data-testid=atlas-card]', { timeout: 15000 });
   await pg.waitForTimeout(800);

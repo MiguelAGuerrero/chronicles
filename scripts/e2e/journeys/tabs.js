@@ -153,10 +153,10 @@ async function run(h) {
       await pg.click('[data-testid=ready-close]');
       await pg.waitForTimeout(600);
       await tabTo(pg, 'explore');
-      await pg.waitForSelector('[data-testid=atlas-grid]');
+      await pg.waitForSelector('[data-testid=atlas-carousel]');
       await pg.waitForTimeout(1500);
       // Explore is the atlas now (AT1): the grid of areas near you, under a small map.
-      check((await pg.locator('[data-testid=atlas-grid]').count()) === 1, 'Explore opens on the atlas of areas near you (AT1)');
+      check((await pg.locator('[data-testid=atlas-carousel]').count()) === 1, 'Explore opens on the row of areas near you (AT1)');
       {
         const box = await pg.locator('canvas.maplibregl-canvas').boundingBox();
         await pg.mouse.move(box.x + box.width / 2 + 50, box.y + box.height / 2 - 40);

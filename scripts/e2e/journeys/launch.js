@@ -96,7 +96,7 @@ async function fresh(h) {
       await pg.waitForSelector('[data-testid=start]');
       await pg.waitForTimeout(1500);
       await tabTo(pg, 'explore');
-      await pg.waitForSelector('[data-testid=atlas-grid]');
+      await pg.waitForSelector('[data-testid=atlas-carousel]');
       await pg.waitForTimeout(1500);
       const box = await pg.locator('canvas.maplibregl-canvas').boundingBox();
       await pg.mouse.move(box.x + box.width / 2 + 50, box.y + box.height / 2 - 40);
