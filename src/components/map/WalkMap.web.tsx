@@ -12,6 +12,7 @@ import { StripLabel } from '../LandingMarks';
 import { AreaPointView } from '../AreaPoint';
 import { namedStars, StarView, starLabel } from '../StarView';
 import type { Star } from '../../lib/places';
+import { declutterMarks } from '../../lib/markNames';
 import { metersPerPixel, pinReminded, pinThumb, type CapturePin } from '../../lib/pins';
 import { scaleBar } from '../../lib/scaleBar';
 import { traceEnds } from '../../lib/traceEnds';
@@ -779,6 +780,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   useEffect(() => {
     markLatest.current = props.onDiscoveryPress;
   });
+  const viewZoom = view?.zoom ?? 16;
   const markMarkers = useRef(new Map<string, { marker: Marker; root: Root; key: string; state: { revealed: boolean; found?: boolean; faint?: boolean } }>());
   useEffect(() => {
     const map = mapRef.current;
@@ -788,7 +790,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       queueMicrotask(() => m.root.unmount());
     };
     const live = new Set<string>();
-    for (const pin of props.discoveries ?? []) {
+    for (const pin of declutterMarks(props.discoveries ?? [], viewZoom)) {
       live.add(pin.id);
       const key = `${pin.at.join(',')}|${markKey(pin)}|${pin.name}|${pin.icon}`;
       const existing = markMarkers.current.get(pin.id);
@@ -819,7 +821,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
       drop(m);
       markMarkers.current.delete(id);
     }
-  }, [ready, props.discoveries]);
+  }, [ready, props.discoveries, viewZoom]);
   useEffect(() => () => {
     for (const m of markMarkers.current.values()) {
       m.marker.remove();

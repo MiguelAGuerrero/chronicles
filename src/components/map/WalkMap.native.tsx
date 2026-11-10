@@ -12,6 +12,7 @@ import { namedStars, StarView, starLabel } from '../StarView';
 import type { RoadFeature } from '../../lib/streets';
 import type { LngLat } from '../../lib/types';
 import { TILEJSON_URL } from '../../lib/tiles';
+import { declutterMarks } from '../../lib/markNames';
 import { metersPerPixel, pinReminded, pinThumb } from '../../lib/pins';
 import { useReminded } from '../../lib/useReminded';
 import { scaleBar } from '../../lib/scaleBar';
@@ -523,7 +524,7 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
             </View>
           </Marker>
         ))}
-        {(props.discoveries ?? []).map((pin) => (
+        {declutterMarks(props.discoveries ?? [], view?.zoom ?? props.initialZoom ?? 16).map((pin) => (
           <Marker
             key={`mark:${pin.id}:${markKey(pin)}`}
             id={`mark:${pin.id}:${markKey(pin)}`}
