@@ -129,4 +129,9 @@ From the gate:
 
 ## Record
 
-Not started.
+Built Nov 10 on `claude/dazzling-fermat-ws5c6a`, test-first by history (19 of 19: todos at `598efef`, real at
+`e64a507`). PK1-PK19 pass with typecheck, lint and `npm test`. The fixtures are real data recorded by
+`scripts/fixture-presence.mjs` (OpenFreeMap `20261101_080013_pt`; chronicles-data's classifier at its `main`, `22afcdf`).
+PK5 on the sample: the bars stay apart under the rule. Re-pinned on purpose: TP10 and PW10 (`ATLAS_CODE` a8, nothing
+carried), E16 (eleven kinds), AG5 (the community centre, by name). Deferred: `docs/DEFERRED.md`, "Presence and kinds".
+Nothing native is new; not audited (decision 0074).

@@ -414,3 +414,12 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **The "?" pins sit together** (audit 2): `waitingMarks` places each kind's "?" at its place nearest the area's point (a rule made for the sketch, AT6), so on a town at whole-town zoom, or beside a neighborhood's name, they stack. Spreading them is a placement call for the owner.
 - **The "?" label is the walk's** (audit 3): "A place to find. Open", the same on every pin, while a tap opens the area's card. An Explore label ("Something to find in Fox Point") needs the shared `markLabel` to take one.
 - **The base map may name a hidden place under its "?"** (audit 5): if the style draws poi labels at that zoom; the walk screen has the same, and checking needs real tiles.
+
+## Presence and kinds (PK1-PK19, decision 0125, Nov 10)
+
+- **Plazas and art walkways** (the owner's picture of Culture): no data the app reads holds them; a source that adds places is 0115's question, not a sorting one (0117).
+- **Food and Parks are lit in most areas**, and Food wherever nearly any other bar is: they say little when lit. For the owner.
+- **The planner ignores "What I'm into"** (before this slice too): a History route may pass a museum the walker switched off. Whether 0115's "kinds shape Explore, Navigate and the kind walk" covers the planner's cells is the owner's question.
+- **The live places archive is still v1** (its manifest unchanged since Nov 10, 05:35): the Kilns show on a phone only after a v2 archive publishes; PK1 and PK6 hold the rule with recorded fixtures.
+- **An arts centre or library already on a kept checklist** keeps its old kind (Museums and galleries) until its area is rebuilt: kept data is never patched.
+- **The gate itself** (chronicles-data's RD8, 343 of 425 listed buildings in the sample held back): measured by `npm run places:coverage -- --gate <checkout>` (PK15) once a v2 archive publishes; changing it is the owner's call on 0109.

@@ -127,7 +127,8 @@ async function gate(dataRepo: string, only: string | null) {
     const s = ringOf(placesFromTilePois(t.pois as never, t.build), admitted as Place[], centre).steps;
     out.push({
       name: area,
-      held: items.filter(waits).map((i) => i.name),
+      // One name per item: Wikidata answers a row per coordinate.
+      held: [...new Map(items.filter(waits).map((i) => [i.id, i.name])).values()],
       apart: { historyAlone: Number(s.history > 0 && !s.culture), cultureAlone: Number(s.culture > 0 && !s.history), both: Number(s.history > 0 && s.culture > 0) },
     });
     await new Promise((r) => setTimeout(r, 1500));

@@ -71,13 +71,20 @@ recording, and a recording bar brings a minimized walk back.
   turn up as a "?"), so a plain parish church counts toward nothing; food, shops
   and nightlife count every place. A ring with fewer than three mapped places
   says nothing about its kinds (atlas grading, decision 0084).
+- A place may light two bars (presence and kinds, decision 0125): a museum or
+  gallery lights History as well as Culture when the data already says it is
+  historic (a listed museum in the places archive, or a historic word in its
+  name), so the Coplay Cement Company Kilns light Coplay's History. A plain
+  museum lights Culture alone, so the two bars never say the same thing.
 - Rings are read by themselves while the tab is open, nearest first.
 - **A walk planner for a kind** (decision 0102, walk planner WP1-WP27): on an area's card, a kind that has something under "What's here"
   (Green, History, ...) has a "Suggest a walk" button, which opens a page of its own over Explore. It plans up to three routes from where
   you are, drawn on the map and listed as rows: through the middle of where the kind is, across the area, and around the edge. The first is selected when the page opens, as in Apple or Google Maps. Each says
   only its own distance in the displayed unit, how much of the kind it passes and where ("plenty along much of the way", "mostly near the
   end"), how much of it is only getting there, which other kinds it also passes (by kind, never by place), and whether it can be walked the whole way; a strip along each row and a shading of the
-  highlighted route show the same without a number. It never shows or names a place not yet found, so the "?" marks stay hidden until
+  highlighted route show the same without a number. A route leans on the places you pass (monuments, buildings,
+  churches, art, views) when there are enough of them to make one; museums and theatres, which you go into, still count
+  toward how much of the kind it passes (decision 0125). It never shows or names a place not yet found, so the "?" marks stay hidden until
   reached; only places you have already found may be pinned. The settings are on the page: a loop (the default, back where you start)
   or a one way, a distance as a hard ceiling (2 km by default; where the kind fills less ground the route is shorter, and the page
   says so), how much of the kind a route must pass, and what to do about a stretch built around cars. "Suggest different routes"
@@ -124,7 +131,9 @@ recording, and a recording bar brings a minimized walk back.
 - **Remarkable and public** (decisions 0109-0111): attractions in the map
   stay places to find, and the National Aviary joins them. A new kind,
   "Buildings and structures", on by default, holds the archive's listed
-  buildings and structures. A place to find with no street or path within 60 m
+  buildings and structures. "Community spaces" (decision 0125), on by default
+  unless Museums and galleries was switched off, holds arts centres, libraries
+  and community centres whose names say they are historic. A place to find with no street or path within 60 m
   says "No street or path close by" on its card; nothing is hidden for it. The
   replay whispers one or two passed places by name, more as "a few places". A
   place in both the map and the archive, of the same name and kind within
