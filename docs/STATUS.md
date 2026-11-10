@@ -116,10 +116,24 @@ first.
 
 - **Remarkable and public in chronicles-data:** port the listing rule, its pinned types, OSM's corroboration, the review and their tests (`specs/remarkable-and-public/handoff.md`), publish contract v2 with `church`, `cemetery`, `theatre`, `museum` and `historic_site`, then take the copy here (RP9 comes back). Your calls offered: the category label "History & landmarks"; "Places of worship" for "Historic churches"; contributing buildings of a Landmark district (`docs/DEFERRED.md`).
 - **VISION.md and scenic routes:** decision 0095 proposes amending the Shapes rows "Suggested routes" and "Several routes to one point, Apple Maps style" to fit the row per leaning you kept at the gate (Nov 5); only you edit the page.
-- **The vision's open questions** (`docs/VISION.md`, decision 0094): likeness made by you or suggested; voice
-  memos searchable on the phone only; the cloud as a mirror or a place where work happens; browse standard, dwell
-  diegetic; where "nothing is calculated for you" ends. The found tally (open question 6) is answered: removed (decision 0099),
-  and the page's question waits on your edit. Lines marked [proposed] on the page wait on these.
+- **The vision's open questions** (`docs/VISION.md`, decision 0094): voice memos searchable on the phone only; the cloud
+  as a mirror or a place where work happens; browse standard, dwell diegetic; where "nothing is calculated for you" ends.
+  Two are answered and wait on your edit of the page: likeness (open question 1: your threads and the Chronicle's
+  suggestions, independent, one word with two marks; decisions 0104, 0105, whose proposed edit is in 0104) and the found
+  tally (open question 6: removed, decision 0099). Lines marked [proposed] on the page wait on these.
+- **From the vision review (Nov 10, `0a254ba..55b4305`):**
+  - **The page's Precedents leave out two gate reshapes:** 0101 (the kind walk) and 0104 (threads the owner makes),
+    and 0102 (the walk planner, which kept the gate's "places not yet found are never named on a route"). Add their rows?
+  - **Accent on the front door:** since 0112 the app opens on Memories, which carries the accent in five places: the
+    resurfaced card's and both thread screens' uppercase eyebrows, the thread quote's rule, the moment card's play
+    button and Hidden's Bring back. None is a win (VISION.md: Never "accent-coloured wins"), but Always "Restraint in
+    motion, colour and copy" and 0112's own reason for taking the accent off the empty and failed states apply. Keep,
+    or eyebrows and play in ink?
+  - **The note editor's placeholder, "What's worth remembering?"**, one tap from launch since 0112, asks you to judge
+    worth, where the page says "every moment captured is worth remembering" (the steward, Capture from Chronicle
+    audit). Keep, or something neutral ("A note")? It is shared with Navigate, ready.
+  - **Open question 5 is sharper now:** every open of the app leads with a moment the Chronicle chose (0098, 0112).
+    Memories' switch turns it off; is that the line?
 - **Functional core, next:** the walk screen's fog refresh moves to a shell (the first shell, and the rules for shells with it).
 - **The web and native stores disagree** in five places the Db contract found (`docs/DEFERRED.md`, Functional core): which side is right, per case.
 - **`WALKED_THRESHOLD` (0.5)** in snapping is "still an open product decision"
@@ -144,7 +158,8 @@ first.
 - **The Navigation & tabs doc** (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7)
   still says NV2 opens on Navigate and NV5's paths are `/` Navigate and
   `/explore`. The mirror (`specs/navigation-and-tabs/spec.md`) has the owner's
-  Nov 3 call (0070); the doc needs the same edit.
+  Nov 9 call (0112: Chronicle at `/`, the tabs Chronicle · Explore · Navigate, quick
+  capture on Memories); the doc needs the same edit.
 
 ## In flight
 

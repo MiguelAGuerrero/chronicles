@@ -7,7 +7,7 @@ with a decision record.
 
 - **Draft 1, 2026-11-05.** Lines marked **[proposed]** are recommendations not yet confirmed by the
   owner. The gate may cite them as reasons, never as rules, and says which is which.
-- **Last reviewed:** 2026-11-05 at `0a254ba` (`/vision review` moves this line).
+- **Last reviewed:** 2026-11-10 at `55b4305` (`/vision review` moves this line).
 
 ## Who it is for
 
