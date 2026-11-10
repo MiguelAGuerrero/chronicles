@@ -170,6 +170,22 @@ async function run(h) {
   await pg.waitForSelector('[data-testid=respond-note]');
   await pg.click('[data-testid=respond-note]');
   await pg.fill('[data-testid=respond-note-input]', 'half a thought');
+  // fix respond-bottom audit 3: a keyboard 300 px tall (the visual viewport shrinks) leaves Keep reply in view.
+  const kbTop = await pg.evaluate(() => {
+    const vv = window.visualViewport;
+    const h = window.innerHeight - 300;
+    Object.defineProperty(vv, 'height', { configurable: true, get: () => h });
+    vv.dispatchEvent(new Event('resize'));
+    return h;
+  });
+  await pg.waitForTimeout(300);
+  const keep = await pg.locator('[data-testid=respond-note-save]').boundingBox();
+  const input = await pg.locator('[data-testid=respond-note-input]').boundingBox();
+  check(!!keep && !!input && keep.y + keep.height <= kbTop && input.y >= 0, `fix respond-bottom audit 3: with the keyboard up, the note being written and Keep reply stay above it (${keep && Math.round(keep.y + keep.height)} <= ${kbTop})`);
+  await pg.evaluate(() => {
+    delete window.visualViewport.height;
+    window.visualViewport.dispatchEvent(new Event('resize'));
+  });
   // The web's viewer takes no Escape; native's Back goes through the same composeFor first (NATIVE_UNVERIFIED).
   await pg.click('[data-testid=respond-note-cancel]');
   await pg.waitForTimeout(300);

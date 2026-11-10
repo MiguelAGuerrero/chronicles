@@ -604,7 +604,7 @@ export function CaptureViewer(props: {
                 router.navigate('/');
               }}
             />
-            <RespondBar answeredId={current.id} threadId={props.thread?.id ?? null} walkId={props.walkId ?? null} bottom={foot} composeFor={composeFor} setComposeFor={setComposeFor} />
+            <RespondBar answeredId={current.id} threadId={props.thread?.id ?? null} walkId={props.walkId ?? null} bottom={foot} topClear={insets.top + 116} composeFor={composeFor} setComposeFor={setComposeFor} />
           </>
         )}
         {adding && (
