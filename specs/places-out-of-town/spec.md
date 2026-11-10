@@ -1,4 +1,4 @@
-<!-- Repo first: written from the owner's calls in a session (Nov 9, decisions 0109-0111), not yet a tab of the concept doc (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7). -->
+<!-- Repo first: written from the owner's calls in a session (Nov 9, decisions 0115-0117), not yet a tab of the concept doc (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7). -->
 
 # Places out of town
 
@@ -10,22 +10,22 @@ It builds on Places worth the stop, which must be live first (PW16; the owner, N
 
 ## Decisions (the owner's calls, Nov 9)
 
-- **Kinds filter what you see, never what exists** (0109). Kinds shape Explore, Navigate and the kind walk only. Any notable place enters the archive; a place nothing sorts goes under a new "Other places" switch, so every "?" can be hidden.
-- **The type-to-kind mapping lives in the app** (0109): the archive stores each place's type.
-- **Sources** (0109): OpenStreetMap places with a name and a pinned tag, with or without a Wikidata entry; more Wikidata classes; GeoNames; Canada's heritage registers once their licences are checked. Canada is a second region. Atlas Obscura, Roadside America and the Historical Marker Database are not open data and stay out.
-- **Kinds for the new places** (0110): wayside shrines and crosses under Monuments; a pilgrimage site with a church under Historic churches; grottoes under Curiosities; a historic business under Monuments, in History & landmarks. The Monuments switch is relabelled "Monuments and landmarks".
-- **One-of-a-kind businesses** (0109, 0110) enter only by a structural signal (a heritage listing, a historic or heritage tag, the owner's add), never ratings, reviews, popularity or a Wikipedia article, never a chain; they show wherever they are in range, in town and out, as any mark.
-- **Showing a place is the value; its kind is a bonus** (0111). Nothing is fetched or joined only to sort a place; no age threshold; no measuring step.
-- **On the map** (0109): places beyond every area's reach show as "?" within 50 km of you, merged into same-size stars with no number; a tap on one names it, with Walk here or Open in Maps.
-- **Plan choices** (Nov 9, decision 0112): the build flags a place within a town's reach, from city, town and village points with the app's own reach numbers; OpenStreetMap places come from Geofabrik's state and province extracts filtered with osmium; Other places get a presence dot and a kind row on the atlas like any kind; the owner's add file needs no stated reason.
-- **Test cases** (0110): a rural Saskatchewan shrine out of town; the Julius Sturgis Pretzel Bakery in Lititz, Pennsylvania, a historic business in town.
+- **Kinds filter what you see, never what exists** (0115). Kinds shape Explore, Navigate and the kind walk only. Any notable place enters the archive; a place nothing sorts goes under a new "Other places" switch, so every "?" can be hidden.
+- **The type-to-kind mapping lives in the app** (0115): the archive stores each place's type.
+- **Sources** (0115): OpenStreetMap places with a name and a pinned tag, with or without a Wikidata entry; more Wikidata classes; GeoNames; Canada's heritage registers once their licences are checked. Canada is a second region. Atlas Obscura, Roadside America and the Historical Marker Database are not open data and stay out.
+- **Kinds for the new places** (0116): wayside shrines and crosses under Monuments; a pilgrimage site with a church under Historic churches; grottoes under Curiosities; a historic business under Monuments, in History & landmarks. The Monuments switch is relabelled "Monuments and landmarks".
+- **One-of-a-kind businesses** (0115, 0116) enter only by a structural signal (a heritage listing, a historic or heritage tag, the owner's add), never ratings, reviews, popularity or a Wikipedia article, never a chain; they show wherever they are in range, in town and out, as any mark.
+- **Showing a place is the value; its kind is a bonus** (0117). Nothing is fetched or joined only to sort a place; no age threshold; no measuring step.
+- **On the map** (0115): places beyond every area's reach show as "?" within 50 km of you, merged into same-size stars with no number; a tap on one names it, with Walk here or Open in Maps.
+- **Plan choices** (Nov 9, decision 0118): the build flags a place within a town's reach, from city, town and village points with the app's own reach numbers; OpenStreetMap places come from Geofabrik's state and province extracts filtered with osmium; Other places get a presence dot and a kind row on the atlas like any kind; the owner's add file needs no stated reason.
+- **Test cases** (0116): a rural Saskatchewan shrine out of town; the Julius Sturgis Pretzel Bakery in Lititz, Pennsylvania, a historic business in town.
 
 ## Vision
 
 Idea: Show notable places outside any town (a rural shrine, a roadside oddity) on Explore's map within 50 km of you, from more open sources and a Canada region; every notable place enters whether or not it fits a kind, with an "Other places" switch; "?" grouped into countless stars, named on a tap, with Walk here or Open in Maps (the owner, Nov 9).
 Verb: earn (it raises what you notice: places the tiles never carry and the town-based reads never reach; a find there is a memory)
 Touches: Who it is for, "not tourists working through a list"; decision 0031, "discoveries in the moment, not a planned list" (and 0101); Never, "Tallies such as '12 of 87'" (no counts on Explore, NV14); Always, "Guidance is structural: … never whether it is good"; Never, "Ratings, reviews, stars, 'best of', rankings of places"; Never, "Popularity, trending"; Never, "Data leaving the device without a tap" (tile reads, the accepted class of 0080, 0083, 0093, 0103); the Shapes table, "Open in Maps hands that job to the phone's maps app"; decisions 0103 (class table, one mark per place), 0044 (a mark is an attraction), 0084 and AG5 (grading, what a mark is).
-Verdict: aligned if reshaped (decisions 0109-0111)
+Verdict: aligned if reshaped (decisions 0115-0117)
 Shape: Only places beyond every area's reach, within 50 km, kind switched on; a "?" with no label, merged into a same-size star with no number, a tap on a star zooms in; a tap on one place opens a card with its name, its kind and its distance in words, Walk here only within walking reach, else Open in Maps; never a list, a count or an order; no change to any area's grading. A business enters only by a structural signal, never a chain, and the card never says why a place is good.
 Criteria: OP10-OP16, OP18, OP19, OP7, OP5.
 Open: none for the gate. A line in VISION.md's Shapes table for places reached by car ("a walk can start where you park") is the owner's to make.
@@ -39,7 +39,7 @@ Open: none for the gate. A line in VISION.md's Shapes table for places reached b
 3. **OP3 Every notable place enters.** A place whose type no kind covers is kept, with its type; it is never dropped for lacking a kind. The app shows it under "Other places".
 4. **OP4 Kinds for the new types.** A wayside shrine or cross is Monuments; a pilgrimage site with a church is Historic churches; a grotto is Curiosities; a historic business is Monuments, in History & landmarks. A test pins the app's table of types to kinds, so each new type is a deliberate change.
 5. **OP5 A business only by a structural signal.** A shop, eatery or other business enters only with a heritage listing, a historic or heritage tag, or the owner's add. A chain (`chains.json`) never enters; an ordinary business with none of these never enters. No source's rating, review count, popularity, page views or Wikipedia article is read. The build's output test fails on any other property (PW7's rule, extended).
-6. **OP6 Nothing fetched only to sort a place.** A place's kind comes from what the build already reads for it to enter: its type, its tags, its name. The build makes no request and joins no data set whose only use is to sort a place (decision 0111).
+6. **OP6 Nothing fetched only to sort a place.** A place's kind comes from what the build already reads for it to enter: its type, its tags, its name. The build makes no request and joins no data set whose only use is to sort a place (decision 0117).
 
 ### What I'm into
 

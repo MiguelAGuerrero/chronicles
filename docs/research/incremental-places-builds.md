@@ -40,7 +40,7 @@ A look (Nov 9) at how map and place-data pipelines take in a small change (a new
 |---|---|---|
 | Fetch | One job asks Wikidata about every cell, every week | One job per source, each on its own schedule or by hand, each keeping its output (a compressed JSON-lines file and its SHA-256) as an asset of a fixed "sources" release |
 | Wikidata | Every cell, every run | Kept per cell; each week re-asks a rotating quarter of the cells, or one box by hand. (The Recent Changes route catches edits to items already held but not new items entering a class, so cells are still needed.) |
-| OpenStreetMap | Not yet a source | Geofabrik state and province extracts kept between runs and brought up to date with `pyosmium-up-to-date` (decision 0112); a fresh download only past three months |
+| OpenStreetMap | Not yet a source | Geofabrik state and province extracts kept between runs and brought up to date with `pyosmium-up-to-date` (decision 0118); a fresh download only past three months |
 | Assemble | Inside the fetch job | Its own short job: download the newest source files, merge, apply the owner's edits and the town flag, write the region file. Starts after any fetch, or when the app's `archiveEdits.json`, the class lists or the reach numbers change |
 | Publish | When the file's bytes differ | When the places differ (a hash of the sorted rows, not the file), with a list of the tiles that changed |
 | Phones | A new version rebuilds every area | Rebuild only areas that read a changed tile (the published list), as osm2pgsql expiry and Overture's changelog do |

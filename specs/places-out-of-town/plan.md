@@ -14,7 +14,7 @@ For the owner to review before any code. The criteria are `spec.md` (OP1-OP17). 
 
 ## Since this plan (Nov 10)
 
-The places archive became a pipeline of adapters in chronicles-data (decision 0108), and the staged build's changes-first fetch was ported there (0114). Phase 1 below is now one adapter slice per source in that pipeline (OpenStreetMap from Geofabrik extracts, GeoNames, Canada's registers), each with its declaration (license, attribution, pace, role); the town flag and the z8 overview are packaging steps there; the app's side (phase 2) is unchanged. Re-plan phase 1 against chronicles-data's `docs/spec.md` before it starts.
+The places archive became a pipeline of adapters in chronicles-data (decision 0108), and the staged build's changes-first fetch was ported there (0120). Phase 1 below is now one adapter slice per source in that pipeline (OpenStreetMap from Geofabrik extracts, GeoNames, Canada's registers), each with its declaration (license, attribution, pace, role); the town flag and the z8 overview are packaging steps there; the app's side (phase 2) is unchanged. Re-plan phase 1 against chronicles-data's `docs/spec.md` before it starts.
 
 ## Design
 
@@ -39,7 +39,7 @@ The places archive became a pipeline of adapters in chronicles-data (decision 01
 4. **`discovery/outOfTown.ts` (core, new):** `farMarks(places, at, hidden)`: archive places without the town flag, within 50 km, kind on (OP10, OP7); `farCard(place, at, units)`: name, kind label, distance in words, and `walkable` from `NAV.maxM` (OP12, OP13). No list, sort or count is exported (OP14).
 5. **`discovery/archive/shell.ts`:** `readFar(at)`: the overview tiles within 50 km, silent on failure, read again after 10 km moved or a new version (OP16). Places are never stored (the archive's rule).
 6. **The view** (`src/app/(tabs)/index.tsx`, `components/map/WalkMap.web.tsx` and native): a `farMarks` prop drawn as "?" pins without labels (DOM markers on web, `Marker` on native), grouped by `groupPins` at the map's zoom; a tap on a group frames its points; a tap on one opens `components/atlas/FarCard.tsx`: its name, kind, distance, and Walk here (`showWalk` with the destination) or Open in Maps (`nav/handoff`). `tapClears` protects a far mark as it protects an area's point. Hidden while an area's card or a town's page is open.
-7. **Grading** (`atlas/`): `other` joins the kinds with its own steps, a dot on a tile and a row on the card (OP20, decision 0112); far places never enter a ring read (OP15). `ATLAS_CODE` is bumped, so every area is read again once.
+7. **Grading** (`atlas/`): `other` joins the kinds with its own steps, a dot on a tile and a row on the card (OP20, decision 0118); far places never enter a ring read (OP15). `ATLAS_CODE` is bumped, so every area is read again once.
 8. **Credits:** GeoNames beside OpenStreetMap where the map's credits are (OP17).
 
 ## Data
@@ -77,9 +77,9 @@ A new e2e journey, `out-of-town` (`scripts/e2e/journeys/`), serves a fixture arc
 
 ## Deferred, and why
 
-- Canada's heritage registers, until their licences are recorded (0109).
-- Sorting by name words or a recorded date: welcome, but not a step of this slice (0111).
-- HABS and other registers that add places of their own: a source question for later (0111).
+- Canada's heritage registers, until their licences are recorded (0115).
+- Sorting by name words or a recorded date: welcome, but not a step of this slice (0117).
+- HABS and other registers that add places of their own: a source question for later (0117).
 - "Where you're heading" for the 50 km: the app knows only walk routes.
 - VISION.md's Shapes line for places reached by car: the owner's to write.
 
@@ -100,11 +100,11 @@ Places worth the stop is merged and live first (PW16). Then phase 1 (the build, 
 | S3 [drift] the card's kind line could show a listing | Accepted into OP12: a `KINDS` label word for word, "A place" for Other places |
 | S4 [drift] swipes or a next/previous could page through far places | Accepted: OP19 |
 | S5 [drift] OP14's "no digit" contradicts the card's distance | Accepted into OP14: a digit only in the distance line; labels and titles scanned too |
-| Silent 1: the owner's add file is the one editorial way in | Put to the owner: no reason needed, the owner's call is enough (decision 0112) |
+| Silent 1: the owner's add file is the one editorial way in | Put to the owner: no reason needed, the owner's call is enough (decision 0118) |
 | Silent 2: when the layer reads | Accepted into OP16: only while Explore's map is on screen, as the atlas's loop |
 | Silent 3: a 50 km field invites planning a drive | The owner's pending Shapes line ("a walk can start where you park") |
 
-## The owner's choices (Nov 9, decision 0112)
+## The owner's choices (Nov 9, decision 0118)
 
 1. Out of town is a build flag, from city, town and village points with the app's reach numbers.
 2. OpenStreetMap places come from Geofabrik's state and province extracts, filtered with osmium one at a time.

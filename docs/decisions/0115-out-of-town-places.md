@@ -1,4 +1,4 @@
-# 0109. Places out of town: kinds filter what you see, never what exists
+# 0115. Places out of town: kinds filter what you see, never what exists
 
 Date: 2026-11-09 · Status: accepted · Area: explore, discovery, vision
 
