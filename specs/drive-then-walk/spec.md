@@ -14,8 +14,8 @@ Verb: earn (Navigate: a walk you can find your way back from frees you to wander
 Touches: 0021 and 0049, "Walk here stays a one-tap start from Chronicle and Explore" (amended for far places only, by the owner's call, Nov 10). Never "All-day tracking", whose fitting shape is "A walk you start" (waiting for you to arrive reads no location before a walk). Never "Several ways ranked by minutes", whose fitting shape is "only Walk me back is the shortest (0029)" (it holds). 0040, rides: Walk me back never follows a ride (R13); a drive meets RIDE_RULES. 0058: Open in Maps stays deferred on Explore's card. "Who it is for": not "tourists working through a list" (no waypoints).
 Verdict: aligned if reshaped
 Shape: On Explore's area card, Walk to on a near place starts at once, as today; on a place beyond a set distance it asks "Walk now" or "When I get there". "When I get there" saves the place as the destination and starts nothing. Walk me back goes on its own to where the last ride in the walk ended, or to the start if there was none. The walk map's press-and-hold card gains "Walk back here", which sets the walk-back point by hand for this walk. No waypoints, pins or lists.
-Criteria: DW1-DW13.
-Open: the distance at which Walk to asks (2 km suggested); Explore's long press and the walk planner (not asked for: as today).
+Criteria: DW1-DW14.
+Open: none (the owner, Nov 10: 2 km; towns past 10 km offer When I get there). Explore's long press, Chronicle's Walk here and the walk planner stay as they are.
 ```
 
 ## Decisions (the owner's calls, Nov 10)
@@ -25,7 +25,8 @@ Open: the distance at which Walk to asks (2 km suggested); Explore's long press 
 - **The pain is the walk starting at once** (at the gate: "The navigate automatically starts a 'walk' is the pain point"). The fix is on Explore's area card, the place the owner picks from.
 - **Walk to asks only when far** (at the gate, over always asking and over a separate Open in Maps). Near places stay a one-tap start (0021 holds for them).
 - **The walk starts on your tap, never on arrival** (the owner, Nov 10: "not when the app detects they're at the place … to avoid issues of finding parking and such"). Being near or at the saved place starts nothing, offers nothing and says nothing; only Start does (DW4).
-- **The steward's read (Nov 10):** S1 (DW13), S2 (DW7's notice, DW8's spoken label), S3 (DW3's test), S4 (DW11), S5 (Amended, below), S6 (DW5) and S8 ("where the ride ended", true of a car, a bus or a train) accepted; S7 waits on the owner (towns past 10 km).
+- **The steward's read (Nov 10):** S1 (DW13), S2 (DW7's notice, DW8's spoken label), S3 (DW3's test), S4 (DW11), S5 (Amended, below), S6 (DW5) and S8 ("where the ride ended", true of a car, a bus or a train) accepted; S7 answered by the owner (DW14).
+- **2 km, and towns past 10 km** (the owner, Nov 10, on the plan): Walk to asks past 2 km in a straight line; a place too far to walk (past 10 km, N5) offers When I get there alone, in place of "Too far to walk from here" (DW14). The plan was approved the same day.
 
 ## Criteria
 
@@ -50,11 +51,13 @@ Open: the distance at which Walk to asks (2 km suggested); Explore's long press 
 11. **DW11 · No waypoints.** No pin, ring, list or saved place marks the walk-back point on any map, and no new screen lists one, unless you are being led back: then it is the route's end, marked like any destination's.
 12. **DW12 · Nothing leaves the device.** Saving a destination for later, and the walk-back point, stay on the device; nothing is sent anywhere.
 13. **DW13 · Capture stays one tap away.** With the press-and-hold card open and all its actions shown, at 320 px wide, the camera, mic and note buttons stay visible, where they were, one tap each.
+14. **DW14 · Too far to walk, not too far to go.** On the area card of a place too far to walk (past 10 km in a straight line, N5), the footer offers "When I get there" alone, in place of "Too far to walk from here", and it behaves as DW3. There is no Walk now. A busy street too far to walk still has no Walk to.
 
 ### Amended
 
 - NV23 and NR8 in the navigation-and-tabs and navigate-ready specs ("a long press on Navigate's map sets the destination … the only way the drawer's destination is filled"): "When I get there" (DW3) is a second way. Decision 0109 records it.
 - Decisions 0021 and 0049 ("Walk here stays a one-tap start"): for Explore's area card, only for places past 2 km or with no fresh position (DW2, DW5). Decision 0109.
+- The area card's "Too far to walk from here" (explore-atlas, round 3): replaced by When I get there (DW14). Decision 0109.
 
 ## Routes and data
 
@@ -67,4 +70,4 @@ See `plan.md`.
 
 ## Record
 
-Not started.
+Plan approved Nov 10; building.

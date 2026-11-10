@@ -130,3 +130,4 @@ same argument is not had twice.
 | 0103 | A static places archive in the chronicles-data repo, read by tile; significance is a gate, never a measure; Curiosities are a kind of "Viewpoints & oddities"; reverses 0084's "no host" (reshaped at the gate, Nov 5) |
 | 0107 | Storage awareness: the room left said in words beside the captures, once for each level; every failed save held for Retry; no gauge, no limit on capturing, no Storage screen (reshaped at the gate, Nov 9) |
 | 0108 | The places archive becomes a pipeline of adapters; a community source may only nominate, and a nomination reaches only the owner's review list, never a pack (the steward's finding, the owner's call, Nov 9) |
+| 0109 | Drive there, walk back: a far Walk to asks "Walk now" or "When I get there"; the walk starts only on Start, never on arrival; Walk me back leads to where the last ride ended, or a spot chosen by hand; no waypoints (reshaped at the gate, Nov 10) |
