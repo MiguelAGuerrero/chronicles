@@ -16,7 +16,8 @@ const HEADER = 127;
 
 const zig = (v) => (v << 1) ^ (v >> 31);
 
-function tileOf(lon, lat, z) {
+/** The tile holding a point at zoom z, with its fractional position (the app's `tilesIn` uses the same formula). */
+export function tileOf(lon, lat, z) {
   const n = 2 ** z;
   const r = (lat * Math.PI) / 180;
   const fx = ((lon + 180) / 360) * n;
