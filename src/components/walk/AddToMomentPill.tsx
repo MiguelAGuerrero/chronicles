@@ -32,8 +32,8 @@ export function AddToMomentPill(props: { hidden?: boolean; onPhoto: () => void; 
     </Pressable>
   );
   return (
-    <LiftIn testID="add-to-moment" style={styles.pill} accessibilityLiveRegion="polite">
-      <Text style={styles.text}>Add to this moment</Text>
+    <LiftIn testID="add-to-moment" style={styles.stacked} accessibilityLiveRegion="polite">
+      <Text style={styles.label}>Add to this moment</Text>
       <View style={styles.row}>
         {btn('Add a photo to this moment', KIND_ICON.photo, props.onPhoto, 'add-photo')}
         {btn('Add a voice memo to this moment', KIND_ICON.voice, props.onVoice, 'add-voice')}
@@ -49,6 +49,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: theme.ink, borderRadius: 999, maxWidth: '100%',
     paddingVertical: 4, paddingLeft: 14, paddingRight: 4,
   },
+  // The four buttons are ~190 wide, so beside them the label wrapped to three lines in the room left of the capture
+  // stack: it sits above them instead, on one line, and the pill is a rounded card rather than a capsule.
+  stacked: { alignItems: 'center', gap: 6, backgroundColor: theme.ink, borderRadius: 28, maxWidth: '100%', paddingTop: 10, paddingBottom: 4, paddingHorizontal: 4 },
+  label: { color: '#ffffff', fontSize: 15, fontWeight: '600', textAlign: 'center', paddingHorizontal: 10 },
   text: { color: '#ffffff', fontSize: 15, fontWeight: '600', flexShrink: 1 },
   row: { flexDirection: 'row', gap: 4 },
   newBtn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)' },
