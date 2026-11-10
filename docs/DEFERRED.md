@@ -366,3 +366,8 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **Held captures live in memory**: leaving the screen or a reload drops a held photo or video (Stop warns first). Keeping them across a reload needs the file kept somewhere that survives, which a full disk may refuse.
 - **Retry on the recording bar's camera** (other tabs, NV9): it shows the SA9 words; the held pill is on the walk screen and Navigate, ready.
 - **A check before a video starts**: the system camera owns the recording; the line beside the captures says it beforehand.
+
+## Explore's map points (fix pins-selected-only, Nov 10)
+
+- **A town's page with its own tile selected names nothing on the map** (audit 2): the town's pin is not drawn there (one level only, fix map-levels audit 1), and the neighborhoods are dots. The page title, the wide tile and the border name the town. Drawing the town's pin as the lone named one would mix levels again; the owner's call.
+- **A dot has no accessible name and no tap** (audit 3): area points are `aria-hidden` with pointer events off on web and carry no label on native; the live region and the grid's tiles name areas. Predates the fix (dots were already unnamed), now more of them.
