@@ -55,4 +55,16 @@ Behaviour stays the same. This slice edits each journey's `covers`, and names th
 
 ## Record
 
-(Filled in as the slice is built.)
+Built Nov 10, 2026, on `claude/walk-screen-split`, test-first: the todos are in `267111d` and the code in `de0073f`; `check:test-first` reports 8 of 8.
+
+- **WS1-WS8 tested.** `arch/walkScreenSplit.test.ts` covers WS1-WS5, WS7 and WS8's views. `walk-screen/walkScreenShell.test.ts` covers WS6, with 8 tests over `fakePorts()`. The `walk` journey's budget check carries WS8.
+- **The file.** `walk.tsx` went from 1,988 lines to 216. There are 39 part files in `src/components/walking/` (`useShareLog.ts` was added during the build, checked by `walk`) and the shell in `lib/walkScreen/`. FC5 suppressions went from 24 to 22, and the ceiling dropped to match.
+- **Same screen.** Every accessibility label and every user-facing string in the old file is the same in the parts, checked by a diff. WS7 holds every `testID`.
+- **Render budget.** WS8 measured 2.00 renders a second while walking, against a budget of 2.5.
+- **Journeys.** Each of the 18 ran once on the branch's export, before `main` was merged in:
+  - 15 passed: `ready`, `reload`, `drive`, `edit`, `gaps`, `headsup`, `hidden`, `layers`, `marks`, `space`, `walkability`, `walk`, `qol`, `memories`, `nudge`.
+  - `scenic` failed "fix preview-clutter audit 1", the trace before the preview. It fails the same way on `main` (`38765c9`, `e2e:baseline`), and is recorded in `scripts/e2e/flaky.json`.
+  - `tabs` and `launch` stopped on a timeout in Explore and the launch. `tabs` waited for `look-here` and `launch` for `walk-here`, both in `(tabs)/explore.tsx`, a file this slice doesn't touch. On a scratch worktree of `main` (`38765c9`), both fail too: `tabs` on a timeout earlier still, `launch` at NV16 (Explore frames where you are). Neither reached the walk screen's checks on `main` either.
+- **Deferred** (`docs/DEFERRED.md`): a journey for On a strip and the dead-zone nudge; the cards as a core reducer; the pure decisions still inside view hooks.
+- **Native.** No native path moved. The walk screen has never run on a device.
+- **Not audited** (decision 0074).
