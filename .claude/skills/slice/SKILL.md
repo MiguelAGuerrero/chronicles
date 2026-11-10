@@ -157,7 +157,7 @@ npm run typecheck && npm run lint && npm test
 npm run check:affected                                  # names the e2e journeys for the slice's files
 npm run test:feature <feature>                          # the slice's feature, whole
 npm run check:test-first <slug>                         # each criterion's todo came before its real test
-npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # each journey it names, the slice's own included
+npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # the slice's own and those chosen as in docs/TESTING.md, "Choosing the journeys"
 ```
 
 All green. A "Covered by nothing" line from `check:affected` for a file the
