@@ -110,6 +110,9 @@ function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () =
 }
 
 
+/** A video's own controls sit along the bottom of its picture; what stands above the strip leaves them this much. */
+const VIDEO_CONTROLS = 56;
+
 /**
  * One capture, full screen. A photo or video fills everything above a thin
  * strip holding its details and the actions (previous and next, or the
@@ -128,6 +131,8 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
   pieces?: { onPrev?: () => void; onNext?: () => void };
   /** A primary action (the replay's Continue), within thumb reach. The ref is the action's. */
   action?: { label: string; hint?: string; onPress: () => void; testID?: string };
+  /** How far the strip or card reaches up from the screen's foot, with room for a video's own controls above it. */
+  onFoot?: (height: number) => void;
 }>(function CaptureContent(props, actionRef) {
   const { capture } = props;
   const insets = useSafeAreaInsets();
@@ -208,7 +213,10 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
             <EditedVideo uri={uri!} edit={capture.edit ?? null} caption={capture.caption} captionY={capture.caption_y} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} />
           )}
         </View>
-        <View style={[styles.strip, { paddingBottom: insets.bottom + 10 }]}>
+        <View
+          style={[styles.strip, { paddingBottom: insets.bottom + 10 }]}
+          onLayout={props.onFoot && ((e) => props.onFoot?.(e.nativeEvent.layout.height + (capture.kind === 'video' ? VIDEO_CONTROLS : 0)))}
+        >
           <View style={styles.stripInner}>
             <Text style={styles.stripMeta} numberOfLines={2}>{meta}</Text>
             {actions(true)}
@@ -221,7 +229,7 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
   return (
     <View key="card" style={StyleSheet.absoluteFill} pointerEvents="box-none">
       <View style={[styles.cardRow, { bottom: insets.bottom + 16 }]} pointerEvents="box-none">
-        <View style={styles.card}>
+        <View style={styles.card} onLayout={props.onFoot && ((e) => props.onFoot?.(e.nativeEvent.layout.height + insets.bottom + 16))}>
           {capture.kind === 'text' && <Text style={styles.note}>{capture.body}</Text>}
           {capture.kind === 'voice' && uri && (
             <VoicePlayer uri={uri} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} durationMs={Number(capture.body) || 0} />
@@ -303,6 +311,9 @@ export function CaptureViewer(props: {
   const [adding, setAdding] = useState<Faced | null>(null);
   // The reply note being written, for the moment it answers: Back and Escape close it before the viewer (owner-threads audit 9).
   const [composeFor, setComposeFor] = useState<string | null>(null);
+  // How far the shown moment reaches up from the foot: Respond stands just above it. Kept across a swipe until the
+  // next moment measures, so the bar never blinks out (it is one bar for every moment, audit 10).
+  const [foot, setFoot] = useState<number | null>(null);
   // Remind me here: the flags of the captures shown, read when the viewer opens.
   const [recalls, setRecalls] = useState<Map<string, Recall>>(() => new Map());
   const [reminding, setReminding] = useState<Faced | null>(null);
@@ -473,6 +484,7 @@ export function CaptureViewer(props: {
                 ? { onPrev: i > 0 ? () => setIndex(i - 1) : undefined, onNext: i < list.length - 1 ? () => setIndex(i + 1) : undefined }
                 : undefined
             }
+            onFoot={setFoot}
           />
         )}
         {current && (
@@ -592,7 +604,7 @@ export function CaptureViewer(props: {
                 router.navigate('/');
               }}
             />
-            <RespondBar answeredId={current.id} threadId={props.thread?.id ?? null} walkId={props.walkId ?? null} top={insets.top + 116} composeFor={composeFor} setComposeFor={setComposeFor} />
+            <RespondBar answeredId={current.id} threadId={props.thread?.id ?? null} walkId={props.walkId ?? null} bottom={foot} composeFor={composeFor} setComposeFor={setComposeFor} />
           </>
         )}
         {adding && (

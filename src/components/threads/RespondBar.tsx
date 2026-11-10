@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Linking, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Linking, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { noteText, NOTE_MAX } from '../../lib/noteEdit';
 import { useCaptures } from '../../lib/useCaptures';
 import { Icon, type IconName } from '../icons';
@@ -11,12 +11,17 @@ import { theme } from '../ui';
  * thread (`useCaptures` `replyTo`). Outside a walk it is a moment of its own, placed by one fix (OT24); on a walk it
  * belongs to the walk. One bar serves every moment the viewer shows, so swiping builds no new recorder (audit 10); the
  * note being written belongs to one moment and is the viewer's to close with Back (`composeFor`, audit 9).
+ *
+ * It stands just above the moment it answers (the photo's strip, the note's card), as a reply sits under what it
+ * answers, so no label says "Respond" (the owner, Nov 10). `bottom` is how far that moment reaches up from the
+ * screen's foot; null until the viewer has measured it, when the bar is laid out but not shown. A note being written
+ * rises with the keyboard (iOS; Android resizes the window itself).
  */
 export function RespondBar(props: {
   answeredId: string;
   threadId?: string | null;
   walkId?: string | null;
-  top: number;
+  bottom: number | null;
   composeFor: string | null;
   setComposeFor: (id: string | null) => void;
 }) {
@@ -62,7 +67,14 @@ export function RespondBar(props: {
     </Pressable>
   );
   return (
-    <View style={[styles.wrap, { top: props.top }]} testID="respond-bar" accessibilityLabel="Respond to this moment">
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[StyleSheet.absoluteFill, styles.anchor]} pointerEvents="box-none">
+    <View
+      style={[styles.wrap, { marginBottom: (props.bottom ?? 0) + 12 }, props.bottom == null && styles.unmeasured]}
+      pointerEvents={props.bottom == null ? 'none' : 'box-none'}
+      aria-hidden={props.bottom == null}
+      testID="respond-bar"
+      accessibilityLabel="Respond to this moment"
+    >
       {message ? (
         <View style={styles.messageRow}>
           <Text style={styles.message} accessibilityLiveRegion="polite" testID="respond-message">{message}</Text>
@@ -85,7 +97,6 @@ export function RespondBar(props: {
         />
       ) : (
         <View style={styles.row}>
-          <Text style={styles.label} accessibilityRole="header">Respond</Text>
           {recording ? (
             tool('respond-voice-stop', 'stop', 'Stop and keep', () => void cap.finishVoice())
           ) : (
@@ -98,6 +109,7 @@ export function RespondBar(props: {
         </View>
       )}
     </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -134,9 +146,11 @@ function ReplyNote(props: {
 }
 
 const styles = StyleSheet.create({
-  wrap: { position: 'absolute', left: 12, right: 12, gap: 8, alignItems: 'center' },
+  // In the flow, not absolute: the keyboard's padding must lift it.
+  anchor: { justifyContent: 'flex-end' },
+  wrap: { marginHorizontal: 12, gap: 8, alignItems: 'center' },
+  unmeasured: { opacity: 0 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'center' },
-  label: { color: '#ffffff', fontSize: 14, fontWeight: '700', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: 'rgba(20,24,32,0.72)', overflow: 'hidden' },
   tool: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 48, paddingHorizontal: 14, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.92)' },
   toolText: { color: theme.ink, fontSize: 15, fontWeight: '600' },
   dim: { opacity: 0.4 },
