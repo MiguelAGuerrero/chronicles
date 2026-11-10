@@ -1,8 +1,9 @@
-import { type Faced, facedAt, pieceKey } from '../lib/moment';
+import { type Faced, faced, facedAt, pieceKey } from '../lib/moment';
+import { split } from '../lib/split';
 import { momentPill } from '../lib/momentPill';
 import { useStore } from '../lib/useStore';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import { forwardRef, useEffect, useRef, useState, type ComponentRef } from 'react';
+import { forwardRef, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { HANDOFF_HINT } from '../lib/nav/openInMaps';
 import { Linking, Platform, Pressable, StyleSheet, Text, View, type LayoutRectangle } from 'react-native';
 import { Modal } from './Modal';
@@ -282,8 +283,20 @@ export function CaptureViewer(props: {
   // Notes edited here show their new text at once, whether or not the
   // caller's list hears of it (QL25).
   const [edited, setEdited] = useState<Map<string, string>>(() => new Map());
-  // What was deleted (D3, D5) leaves the viewer at once.
-  const list = useVisible(props.captures);
+  // What was deleted (D3, D5) leaves the viewer at once; a piece split out (MS16) shows at once as its own moment,
+  // right after the one it came from, while its split waits or once it is stored.
+  const visible = useVisible(props.captures);
+  const splits = useStore(split.store, (st) => st.pending);
+  const hiddenNow = useHidden();
+  const list = useMemo(() => {
+    const out: Faced[] = [];
+    for (const c of visible) {
+      out.push(c);
+      for (const x of splits)
+        if (x.from === c.id && hiddenNow.has(pieceKey(x.moment.id)) && !visible.some((v) => v.id === x.moment.id)) out.push(faced(x.moment));
+    }
+    return out;
+  }, [visible, splits, hiddenNow]);
   const [deleting, setDeleting] = useState<{ capture: Faced; text: ConfirmText; piece?: string } | null>(null);
   const [menu, setMenu] = useState(false);
   // Add to a thread (OT5): the picker is drawn inside this Modal.
@@ -733,6 +746,24 @@ export function CaptureViewer(props: {
                 <Icon name="link" size={22} color={theme.ink} />
                 <Text style={styles.menuText}>Add to a thread</Text>
               </Pressable>
+              {stacked && pi > 0 && moment && (
+                // Split out (MS16): never the first piece, the moment's anchor.
+                <Pressable
+                  testID="menu-split"
+                  accessibilityRole="button"
+                  onPress={() => {
+                    setMenu(false);
+                    const m = moment;
+                    const { piece_id: _f, ...rest } = m;
+                    void split.split({ id: rest.id, walk_id: rest.walk_id, t: rest.t, lat: rest.lat, lon: rest.lon, segment_id: rest.segment_id, pieces: rest.pieces }, current.piece_id).catch(() => {});
+                    setPieceAt({ moment: m.id, i: Math.max(0, pi - 1) });
+                  }}
+                  style={({ pressed }) => [styles.menuItem, pressed && styles.dim]}
+                >
+                  <Icon name="git-branch-outline" size={22} color={theme.ink} />
+                  <Text style={styles.menuText}>Split this {KIND_LABEL[current.kind].toLowerCase()} out</Text>
+                </Pressable>
+              )}
               {stacked && (
                 // One piece, named by its kind (MS13); the moment and the rest stay.
                 <Pressable

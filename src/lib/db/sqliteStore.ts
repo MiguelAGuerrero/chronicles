@@ -207,6 +207,19 @@ export function makeSqliteDb(open: () => Promise<SQLiteDatabase>): Db {
         }
       });
     },
+    splitPiece(pieceId, nm) {
+      return write(async (t) => {
+        const row = await t.getFirstAsync<{ moment_id: string }>('SELECT moment_id FROM capture WHERE id = ?', pieceId);
+        if (!row) throw new Error(`No piece ${pieceId}.`);
+        const left = await t.getFirstAsync<{ n: number }>('SELECT COUNT(*) AS n FROM capture WHERE moment_id = ?', row.moment_id);
+        if (!left || left.n < 2) throw new Error("A moment's last piece is the moment.");
+        await t.runAsync(
+          'INSERT INTO moment (id, walk_id, t, lat, lon, segment_id) VALUES (?, ?, ?, ?, ?, ?)',
+          nm.id, nm.walk_id, nm.t, nm.lat, nm.lon, nm.segment_id,
+        );
+        await t.runAsync('UPDATE capture SET moment_id = ? WHERE id = ?', nm.id, pieceId);
+      });
+    },
     async getMoments(walkId) {
       return foldRows(await (await conn()).getAllAsync<JoinedRow>(`${MOMENT_SELECT} WHERE m.walk_id = ?${ORDER}`, walkId));
     },

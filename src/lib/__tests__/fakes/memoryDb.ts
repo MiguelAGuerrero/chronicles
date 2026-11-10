@@ -238,6 +238,15 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
         if (s) summaries.put({ ...s, ...countsOf(moments.where(walkOf, w).flatMap((m) => m.pieces)) });
       }
     },
+    async splitPiece(pieceId, nm) {
+      const m = momentOfPiece(pieceId);
+      if (!m) throw new Error(`no piece ${pieceId}`);
+      if (m.pieces.length < 2) throw new Error('a moment\'s last piece is the moment');
+      if (moments.has(nm.id)) throw constraint(`moment ${nm.id}`);
+      const p = m.pieces.find((x) => x.id === pieceId)!;
+      moments.put({ ...m, pieces: m.pieces.filter((x) => x.id !== pieceId) });
+      moments.put(copy({ ...nm, pieces: [{ ...p, moment_id: nm.id }] }));
+    },
     async getMoments(walkId) {
       return moments.where(walkOf, walkId).map(readMoment).sort(byT);
     },

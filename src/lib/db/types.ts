@@ -44,6 +44,12 @@ export interface Db {
    * deleting a moment's last piece is `deleteMoments`. Media files are the caller's.
    */
   deletePieces(ids: string[]): Promise<void>;
+  /**
+   * Takes a piece out of its moment and keeps it as a moment of its own (moment stacks MS16), in one transaction: the
+   * new moment's id, walk, time and place as given, the piece unchanged but for its moment. The original keeps its
+   * other pieces, threads, links, reminder and find. Rejects, changing nothing, for a missing piece or a moment's last.
+   */
+  splitPiece(pieceId: string, moment: Omit<Moment, 'pieces'>): Promise<void>;
   /** A walk's moments, with their pieces, in time order. */
   getMoments(walkId: string): Promise<Moment[]>;
   /** Every moment, loose or in a walk, with from <= t < to, in time order (days, M6). */

@@ -32,7 +32,7 @@ async function seeded() {
   return p;
 }
 
-test('MS16: Split out keeps the original\'s threads, replies, reminder and find, and the piece becomes its own moment after the window', { todo: 'test first' }, async () => {
+test('MS16: Split out keeps the original\'s threads, replies, reminder and find, and the piece becomes its own moment after the window', async () => {
   const p = await seeded();
   const jobs: PendingJob[] = [];
   const s = (await mod()).createSplit(p, { schedule: (j) => jobs.push(j) });
@@ -48,7 +48,7 @@ test('MS16: Split out keeps the original\'s threads, replies, reminder and find,
   assert.equal((await p.db.listFinds())[0].capture_id, 'm');
 });
 
-test('MS16: Undo (the job never run) leaves both as they were; the first piece is never split', { todo: 'test first' }, async () => {
+test('MS16: Undo (the job never run) leaves both as they were; the first piece is never split', async () => {
   const p = await seeded();
   const jobs: PendingJob[] = [];
   const s = (await mod()).createSplit(p, { schedule: (j) => jobs.push(j) });

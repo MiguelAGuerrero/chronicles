@@ -356,6 +356,19 @@ export const db: Db = {
       }
     });
   },
+  async splitPiece(pieceId, nm) {
+    const tx = (await conn()).transaction('moment', 'readwrite');
+    return atomically(tx, async () => {
+      const st = tx.objectStore('moment');
+      const m = (await done(st.index('piece_ids').get(pieceId))) as MomentRecord | undefined;
+      if (!m) throw new Error(`No piece ${pieceId}.`);
+      if (m.pieces.length < 2) throw new Error('A moment\'s last piece is the moment.');
+      if (await done(st.get(nm.id))) throw new Error(`A moment ${nm.id} is kept already.`);
+      const p = m.pieces.find((x) => x.id === pieceId)!;
+      st.put(toRecord({ ...m, pieces: m.pieces.filter((x) => x.id !== pieceId) }));
+      st.add(toRecord({ ...nm, pieces: [{ ...p, moment_id: nm.id }] }));
+    });
+  },
   async getMoments(walkId) {
     return (await byWalk<MomentRecord>('moment', walkId)).map(fromRecord).sort(byT);
   },

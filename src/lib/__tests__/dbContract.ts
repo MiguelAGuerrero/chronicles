@@ -357,8 +357,8 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual((await db.getMoments('a'))[0].pieces.map((p) => p.id), ['m1', 'v1'], 'and nothing went');
     });
 
-    test('FC7 splitPiece, MS16: a piece leaves its moment as a moment of its own, in one write; the original keeps the rest', { todo: 'test first' }, async () => {
-      const db = (await fresh()) as Db & { splitPiece(pieceId: string, m: Omit<Moment, 'pieces'>): Promise<void> };
+    test('FC7 splitPiece, MS16: a piece leaves its moment as a moment of its own, in one write; the original keeps the rest', async () => {
+      const db = await fresh();
       await db.addMoment(one('m1', 'a', 10));
       await db.addPiece('m1', piece('p1', 'm1', 20));
       await db.addPiece('m1', piece('p2', 'm1', 30));
@@ -367,7 +367,7 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(ms.map((m) => [m.id, m.t, m.pieces.map((p) => [p.id, p.moment_id])]), [['m1', 10, [['m1', 'm1'], ['p2', 'm1']]], ['p1', 20, [['p1', 'p1']]]]);
       assert.equal(ms[1].lat, LAT + 0.001);
       await assert.rejects(db.splitPiece('missing', { id: 'x', walk_id: 'a', t: 1, lat: null, lon: null, segment_id: null }));
-      await assert.rejects(db.splitPiece('p1', { id: 'p1b', walk_id: 'a', t: 20, lat: null, lon: null, segment_id: null }), 'a moment\'s last piece is the moment');
+      await assert.rejects(db.splitPiece('p1', { id: 'p1b', walk_id: 'a', t: 20, lat: null, lon: null, segment_id: null }), 'p1 alone is its moment: never split');
       assert.deepEqual((await db.getMoments('a')).map((m) => m.id), ['m1', 'p1'], 'and nothing changed');
     });
 
