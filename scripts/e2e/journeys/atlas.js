@@ -106,8 +106,8 @@ async function checks(h) {
       const dy = dot ? dot.y + dot.height / 2 - (canvas.y + canvas.height / 2) : NaN;
       const selName = (await sel.count()) ? await sel.first().getAttribute('data-name') : null;
       // Explore's fit pads 84 px under its title and 24 px at the bottom: the area sits 30 px below the middle.
-      check(points >= hoods.length && ringBefore === '800' && (await ring()) === '800' && selName === pickName && Math.abs(dx) <= 8 && Math.abs(dy - 30) <= 8,
-        `AT9: the small map shows the areas' points, and the first area is selected on arrival, and opening its card frames it with its 800 m ring (${points} points for ${hoods.length} tiles, ring ${JSON.stringify(ringBefore)} → ${await ring()}, ${selName} at (${dx.toFixed(1)}, ${dy.toFixed(1)}) px from the middle)`);
+      check(points >= hoods.length && !ringBefore && (await ring()) === '800' && selName === pickName && Math.abs(dx) <= 8 && Math.abs(dy - 30) <= 8,
+        `AT9: the small map shows the areas' points; on your town's page its own card is selected on arrival (no ring), and opening an area's card frames it with its 800 m ring (${points} points for ${hoods.length} tiles, ring ${JSON.stringify(ringBefore)} → ${await ring()}, ${selName} at (${dx.toFixed(1)}, ${dy.toFixed(1)}) px from the middle)`);
     }
     {
       // AT8: a tile opens its card; unfound places are never named (AT7), finds are.
@@ -292,7 +292,9 @@ async function checks(h) {
         `AT1, AT12: after a reload, the atlas is back on the same tab from where it last listed (${label}; the launch's one fix may already say "You're here", NV16)`);
       if (back) {
         // AD14: the area's small map (on its card, decision 0124) draws its graded streets in magenta, a path per grade, wider as the grade rises.
+        // On your town's page its own card is selected on arrival: a first tap selects Fox Point, a second opens it (EC11).
         await tileOf('Fox Point').click();
+        if (!(await page.waitForSelector('[data-testid=atlas-card]', { timeout: 3000 }).then(() => true, () => false))) await tileOf('Fox Point').click();
         await page.waitForSelector('[data-testid=atlas-card]');
         const strokes = await page.locator('[data-testid=atlas-card]').evaluate((el) => [...el.querySelectorAll('path')]
           .filter((p) => (p.getAttribute('stroke') ?? '').toLowerCase() === '#d6268c')
