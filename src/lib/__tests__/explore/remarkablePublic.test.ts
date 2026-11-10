@@ -160,3 +160,11 @@ test('remarkable-and-public audit 7: with the tile beside a place unread, a plac
   const westStreet = [[edgeLon - 30 * m, lat - 0.002], [edgeLon - 30 * m, lat + 0.002]] as LngLat[];
   assert.equal(wayNear(place, [farInTile, westStreet]), true);
 });
+
+test('labels-plain 1: the History category is "History" and the worship kind "Places of worship"; no category label names significance (the owner, Nov 10)', async () => {
+  const { CATEGORIES } = await import('../../discovery/categories');
+  assert.equal(CATEGORIES.find((c) => c.id === 'history')?.label, 'History');
+  assert.equal(KINDS.find((k) => k.id === 'churches')?.label, 'Places of worship');
+  for (const c of CATEGORIES) assert.ok(!/\b(landmarks?|notable|listed|remarkable|historic)\b/i.test(c.label), c.label);
+  for (const k of KINDS) assert.ok(!/\bhistoric\b/i.test(k.label), k.label);
+});
