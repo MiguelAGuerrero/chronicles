@@ -61,12 +61,12 @@ For the owner to review before any code. The criteria are `spec.md` (SB1-SB10). 
 | SB4 | `placesArchiveStaged.test.ts`: "SB4: a kept item modified away, merged or deleted leaves; an unmodified one stays unasked" | build (pure) |
 | SB11 | `placesArchiveStaged.test.ts`: "SB11: a newly pinned class is asked once across the region; the others are not" | build (pure) |
 | SB12 | `placesArchiveStaged.test.ts`: "SB12: nothing kept sweeps every cell; a box sweeps its cells and replaces only their rows" | build (pure) |
-| SB5 | `placesArchiveStaged.test.ts`: "SB5: unchanged places with different bytes publish nothing" | build (pure) |
+| SB5 | `placesArchiveBuild.test.ts`: "SB5: unchanged places with different bytes publish nothing" | build (pure) |
 | SB6 | `placesArchiveStaged.test.ts`: "SB6: an added, a removed and a moved place list their z12 tiles; the manifest carries them" | build |
 | SB7 | `placesArchiveStaged.test.ts`: "SB7: an edit alone makes a version listing only its tile" | build |
 | SB8 | `placesArchiveStaged.test.ts`: "SB8: inputs whose hashes match publish nothing" | build (pure) |
 | SB9 | `placesArchiveStaged.test.ts`: "SB9: a failed assemble writes no release files" | build |
-| SB10 | `placesArchiveStaged.test.ts`: "SB10: an area away from the changed tiles is kept; one under them, or of an unserved version, is rebuilt" | core |
+| SB10 | `placesArchive.test.ts`: "SB10: an area away from the changed tiles is kept; one under them, or of an unserved version, is rebuilt" | core |
 
 The workflows themselves can't run here; they only call the tested scripts, and the first real run is checked by hand (the owner starts it).
 
