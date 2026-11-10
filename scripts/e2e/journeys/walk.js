@@ -327,7 +327,8 @@ async function checks(h) {
         await page.evaluate(() => document.querySelectorAll('[data-ids]').forEach((e) => { e.__beforeBell = true; }));
         await page.click('[data-testid=remind-save]');
         await page.waitForSelector('[data-testid=capture-meta] >> text=/Reminder set/');
-        check(/Reminder set/.test(await page.locator('[data-testid=capture-meta]').first().innerText().catch(() => '')) && (await page.locator('[data-testid=viewer-pill]').count()) === 0,
+        // The walk screen keeps two viewers mounted; the one open is the one whose line says it.
+        check((await page.locator('[data-testid=capture-meta]:has-text("Reminder set")').count()) > 0 && (await page.locator('[data-testid=viewer-pill]').count()) === 0,
           'UC10, UC12: a set reminder says so in the info line, with no pill');
         // The map behind the open viewer already wears the bell, on the same element (RB5, audit 3, 4).
         await page.waitForSelector('[data-ids] [data-testid=pin-reminder]', { timeout: 5000 }).catch(() => null);
