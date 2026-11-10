@@ -1,6 +1,6 @@
 # Explore carousel: the plan
 
-For the owner to review before any code. The criteria are in `spec.md` (EC1-EC17).
+For the owner to review before any code. The criteria are in `spec.md` (EC1-EC20).
 
 ## What exists
 
@@ -19,7 +19,8 @@ For the owner to review before any code. The criteria are in `spec.md` (EC1-EC17
    - `busyNamesNear(view, at, zoom, ringM)`: the Busy view with its names kept only inside the selected area's ring and from zoom 13 (EC7). Its lines stay.
 2. **The row (`components/atlas/AtlasCarousel.tsx`, a view).**
    - A horizontal `ScrollView` with `snapToInterval`, `decelerationRate="fast"` and the card width `min(screenW * 0.78, 320)` with a 12 px gap and padding so the first and last card centre. No new dependency: the same `ScrollView` both platforms have.
-   - Each card is the existing `AtlasTile` in a compact variant (`compact` prop, no change for the town's wide tile), with its testIDs kept (`atlas-tile`, `data-name`, `data-selected`), so the journeys' selectors still find them. It renders `AtlasTile`'s name, distance words, character line and kind dots; no count anywhere (EC15).
+   - Each card is the existing `AtlasTile` in a compact variant (`compact` prop, no change for the town's wide tile), with its testIDs kept (`atlas-tile`, `data-name`, `data-selected`), so the journeys' selectors still find them. It keeps name, distance words, familiarity words, character line, busiest street and kind dots, and a town's "See its neighborhoods" footer (EC15, EC18). **What goes is the 4:3 mini-map picture**: at a card 312 px wide it alone is about 234 px, which would leave the map under half the screen. The card is about 190 px tall; the area's own card (EC20) still shows the picture. This is the one thing the owner has to accept (open call 4).
+   - The selected card's accessibility label ends "Opens its card" (a town's "Opens its page"), the others' "Selects it" (EC13).
    - Scrolling that settles reports a key (`onSettle`); the screen selects it. A selection made elsewhere (a map swipe, a tap) scrolls the row to it (`scrollTo`, animated unless reduced motion). The two cannot loop: a settle that equals the selected key does nothing.
    - A status card (`atlas-empty`, the states EC14 lists) replaces the cards when there are none.
 3. **The screen (`(tabs)/index.tsx`).**
@@ -52,6 +53,11 @@ For the owner to review before any code. The criteria are in `spec.md` (EC1-EC17
 | EC15 | e2e `carousel` "EC15: no digit-only text and no 'nearest/top/best' on a card" (the existing text scans) |
 | EC16 | e2e `carousel` "EC16: at 1200 px the row is at the map's bottom and a card opens beside it" |
 | EC17 | e2e `snap` "DN13" and the `qol` journey stand |
+| EC18 | e2e `carousel` "EC18: a card names its busiest street" |
+| EC19 | e2e `carousel` "EC19: Locate, Layers, the compass and the long press's choices are inside the map, none under the row", "EC19: What's good here is reachable with the row showing" |
+| EC20 | e2e `atlas` (its existing card checks: the Walk to footer, the busy streets' Walk to) stand against the row |
+
+EC12's "pill visible over a banner" and EC14's "one banner at a time" are checks in `carousel` too ("EC12: the pill is above the row and visible while a banner shows", "EC14: only one of a banner, the hint and Looking around shows"). The e2e text scan for EC15 allows a digit only inside a distance or a "Walked N times" clause.
 
 The existing `snap` journey is rewritten around the row (its DN2-DN9, DN11 checks retire with their criteria; DN1, DN10, DN12, DN13 stay), `atlas` and `grading` keep their tile selectors, and the other journeys that read Explore (`layers`, `walkability`, `outlines`, `marks`, `tabs`) are re-run. The retired DN ids go in `RETIRED` in `scripts/features.js`; `explore-carousel` is added to the explore feature's `specs` and, while built, to `IN_PROGRESS`.
 
@@ -74,8 +80,26 @@ None: no migration, no `ATLAS_CODE` or derivation bump. The row is derived from 
 
 The horizontal `ScrollView`'s snap and `scrollTo` on iOS and Android, the swipe over the new layout (the `PanResponder` and the row's own scroll sharing a screen), and the row's safe-area bottom. Each goes in `docs/NATIVE_UNVERIFIED.md` as a `Do / Expect` item.
 
+## The steward's findings (Nov 10), triaged
+
+- **S1 accept:** one new decision record (`docs/decisions/0109-explore-carousel.md`, with the owner's answers below) names 0034, 0066, 0067, 0077 and 0092, says what is kept (presence as dots, familiarity in words, rings read by themselves, the card, one way back) and is added to VISION.md's Precedents by the owner's say. Written when the owner gives the go-ahead.
+- **S2 accept:** EC15 names the card's contents; EC18 keeps the busiest street; the mini-map picture is dropped from the row's card and stays on the area's card (open call 4).
+- **S3 accept:** EC7 and EC18, and the spec says it amends 0034's names, never its information. The steward asked which colour the Busy layer is: `HOTSPOT` is `#d6268c`, magenta, as the screenshot shows (the "green" in a `WalkMap` comment is stale; fixed in passing with the layer code).
+- **S4 accept:** EC19, and the Touches line no longer says a capture lives on Explore. Reaching Walk to is select, then tap, as 0067's footer stays on the card; open call 2.
+- **S5 accept:** EC12's pill is above the row, over the map, and never under a banner; checked in `carousel`.
+- **S6 accept:** EC14 (a town with no neighborhoods shows its own card and the words over the map).
+- **S7 accept in part:** EC14 gains "one banner, hint or status at a time" and "the hint shows once". The selected name stays in the accent colour: a selection is not a win, and it is what the map already does.
+- **S8 accept:** EC13 (labels, reachability, the row is the screen reader's stepping).
+- **S9 accept:** a town's footer and a tap on its selected card do the same (EC15). The plan's `drill` footer stays.
+- **Silent 1 (a long row's last card):** the row says nothing of a rank (EC3); not capped beyond today's `ATLAS_RULES`.
+- **Silent 2 (the first area far from you):** the arrival keeps today's framing (`nextFrame`: the areas and your dot), and the selection does not ease the camera away; open call 5.
+- **Silent 3 (the same-scale mini-map comparison):** lost in the row, kept on the area's card; open call 4.
+- **Silent 4 (looking beside the selected area):** the long press, as now; pinch and the wheel to zoom out; open call 5.
+
 ## Open calls for the owner
 
 1. Towns in the same row after the neighborhoods (recommended), or the towns as their own row?
 2. A tap on the selected card opens its card, a tap on another card only selects (recommended), or any tap opens?
 3. Wide screens: the same layout with the card as a side panel (recommended), or keep the map beside a list?
+4. The row's card drops the mini-map picture so the map keeps over half the screen (recommended), or keeps it and the row is taller?
+5. With one-finger panning gone, to look beside the selected area you pinch out or long-press; arrival keeps today's framing of the areas and you. Acceptable (recommended)?
