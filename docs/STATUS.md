@@ -117,6 +117,23 @@ first.
 
 ## Needs the owner
 
+- **The vision review of Nov 10** (`0a254ba` to `b7b28c2`, 260 commits; no breach, every change serves a verb):
+  1. **The page trails its decisions (drift):** the Shapes rows "Suggested routes" and "Several routes … Apple Maps
+     style | out" against the scenic rows (0095) and the planner's three routes (0102, 0106); line 88's [proposed] and
+     open question 1, which 0104 answered; Precedents rows missing for 0098, 0102, 0104, 0105, 0106 and 0122. Amend?
+  2. **Public data read by tile** (the map, Overture, the places archive, now live): should the page say that a read
+     carrying no identifier is not data leaving the device, with `ALLOWED_HOSTS` as the list? Only 0103 says it now.
+  3. **"Viewpoints and attractions":** "attraction" is a draw on visitors, the nearest word to the Never on popularity;
+     keep it, or "Viewpoints & oddities" at both levels?
+  4. **The accent at launch:** "A year ago today" and "Relive it" carry the accent on the screen the app opens on,
+     while capture is plain ink (also the "Thread" labels and MomentCard's play button). Muted ink and a secondary
+     button?
+  5. **"Placing your walks (N of M)"**, the one excused tally worth a look: keep the count, or "Placing your walks…"
+     with Skip?
+  6. **Open question 5**, "nothing is ever calculated for you", against resurfacing and suggested threads (0098):
+     where is the line?
+  - Note: the commits `2a00092` and `29dac68` cite decisions 0112 and 0121 for the plain labels; the record is 0122.
+
 - **Remarkable and public in chronicles-data:** built on its `claude/gallant-maxwell-hp14jb` (RD1-RD14) and merged with the app's contract v2. Run the weekly build by hand once (Actions, "Weekly places build", Run workflow): until it publishes a v2 archive, the live v1 archive's `heritage_building` places (the Landmark buildings) are not shown by the app, which now reads v2's `building_structure`. The first run is also the first real OSM fetch; its `report` artifact is your review.
 - **VISION.md and scenic routes:** decision 0095 proposes amending the Shapes rows "Suggested routes" and "Several routes to one point, Apple Maps style" to fit the row per leaning you kept at the gate (Nov 5); only you edit the page.
 - **The vision's open questions** (`docs/VISION.md`, decision 0094): likeness made by you or suggested; voice
