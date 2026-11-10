@@ -31,12 +31,12 @@ Data: none (no migration). No new feature folder: tests go in `deletion/`, `thre
 
 | Screen | Action | Goal, frequency, situation | Control | Matrix | Precedent |
 |---|---|---|---|---|---|
-| Any list or viewer | Delete a moment, media, a thread; remove from a thread | Occasional, at home looking back | Act at once + Undo pill that waits | 7 (undoable delete), 10 (undo) | Google Photos: trash with undo; Apple Photos: Recently Deleted (teardown) |
-| Walk actions | Delete a whole walk | Rare, much lost | Confirm card with the verb, then Undo | 8 | |
+| Any list or viewer, the walk screen's viewer too | Delete a moment or a thread; remove from a thread | Routine; at home, and on a walk one-handed | Act at once + Undo pill that waits, kept recoverable through a lock (UC2) | 7 (undoable delete, "if restorable"), 10 (undo) | Google Photos: trash with undo; Apple Photos: Recently Deleted (teardown) |
+| Walk actions | Delete a whole walk; remove its photos, videos and memos | Rare, much lost | Confirm card that says what goes, then Undo | 8 | |
 | The pill | Undo, Dismiss | Just after a delete | Snackbar-style pill with two labelled actions, no auto-dismiss | 10, F3 | M3 snackbar with action |
 | Viewer | Look at the photo without chrome | Every visit | Tap toggles the bars | 2 | Apple Photos, Google Photos: tap hides the controls (teardown, verified) |
-| Viewer | Remind me here, Go here | Occasional | Items in More | 3 | Google Photos: More at the top (verified) |
-| Viewer | Reply kept, Connected, reminder set | After the action | No pill; screen-reader announcement; the result shows in the info line or More | 19, 20 | HIG: no confirmation for routine success |
+| Viewer | Remind me here, Go here | Occasional | Items in More; a reminder's state in the info line | 1 (the bar holds one or two actions), 3 | Google Photos: More at the top (verified) |
+| Viewer | Reply kept, added to a thread, reminder set | After the action | No pill: an inline status in the info line, announced | 19 (inline status near the thing), 20 | HIG: no confirmation for routine success |
 
 ## Deferred, and why
 
@@ -48,9 +48,18 @@ Data: none (no migration). No new feature folder: tests go in `deletion/`, `thre
 
 The pill's announcement (`announceForAccessibility`), the screen-reader check that keeps the bars (UC8), the tap toggle on a native photo, the background flush. Each goes into `docs/NATIVE_UNVERIFIED.md` with its UC id. Native has never run on a device.
 
+## Steward triage (Nov 10: 0 breaches, 4 drift, 1 tone, all accepted)
+
+- **S1 drift, accepted:** with no confirm, an Undo stored when the app goes to the background lasts only until the phone locks. The wait now survives the background (UC2); what a kill does is the decision below. A4 (a destructive item from a menu is confirmed elsewhere) gives way to A3 only because the delete stays restorable while the pill is up.
+- **S2 drift, accepted:** removing a walk's media keeps its confirm (UC5).
+- **S3 drift, accepted:** a kept reply, an added thread and a reminder say so inline in the info line, not by a pill and not by nothing (UC10).
+- **S4 drift, accepted:** a set reminder shows in the info line (UC12); the table cites matrix row 1.
+- **S5 tone, accepted:** Undo and ✕ 8 px apart, Undo the prominent one, ✕ named "Close, it stays deleted" (UC3).
+- **Silent, for you:** whether the pill should say what a delete frees ("Moment deleted · about 3 MB"); left out unless you want it.
+
 ## For you to decide
 
-1. **When a waiting Undo is stored, besides Undo, ✕, another delete and the app going to the background.** With no timer, a delete can wait a long time; a killed app drops a waiting delete (the thing comes back), as it does today in its 5 s. Options:
-   - **(a) Also when you leave the screen** (a route change): the pill stays while you look around the screen you deleted from, and is stored as you move on. No data model change. (Recommended.)
-   - **(b) Only on Undo, ✕, another delete or the background:** the pill follows you between screens until one of those. Simplest, but the longest window for a kill to drop it.
-   - **(c) Store at once, keep a recoverable copy until the pill goes** (a "deleted" mark, files kept, purged later): survives a kill, but is a data model change (a migration) and a new cleanup path.
+1. **What a killed app does to a waiting delete.** The wait now survives the phone locking (steward S1). Today a killed app drops a waiting delete, so the moment comes back; with no timer the wait can be long. Options:
+   - **(a) Keep it waiting across a kill** (recommended): the waiting ids are kept in meta, so after a relaunch the delete is stored and the moment stays gone; Undo is offered only while the pill is up. Your act always happens. No migration, a meta key.
+   - **(b) A kill drops it** (today's rule): the moment comes back after a crash or a forced quit, with no word.
+   - **(c) A recoverable trash** (a deleted mark, files kept, a Recently deleted list, purged later): safest and the precedent's way (Photos, Google Photos), but a data model change, a migration and a new screen; its own slice.

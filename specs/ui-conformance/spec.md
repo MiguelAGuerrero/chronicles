@@ -14,25 +14,25 @@ Touches: Always "Restraint in motion, colour and copy: the content is the novelt
 Verdict: aligned
 Shape: as asked.
 Criteria: UC10 (no success pill for a result on screen, each still said to a screen reader); UC7, UC8 (the bars hide only on the owner's tap, and never with a screen reader on).
-Open: when a waiting Undo is committed besides Undo, ✕, another delete and the app going to the background (see plan, "For you to decide").
+Open: what a killed app does to a waiting delete (plan, "For you to decide").
 
 ## Decisions (the owner's calls, Nov 10)
 
 - The slice covers four of the five conflicts: Undo stays until used; no confirm for undoable deletes; the viewer's bars hide on a tap; quieter success and a slimmer top bar.
-- Deleting a whole walk keeps its confirm: it takes a trace, its moments and its streets at once (rare, and the most lost; matrix 8).
+- Deleting a whole walk keeps its confirm: it takes a trace, its moments and its streets at once (rare, and the most lost; matrix 8). Removing a walk's media keeps its confirm too (steward S2, accepted).
 
 ## Criteria
 
 ### Undo that waits (amends D5)
 
 1. **UC1** A delete's pill ("Moment deleted", "Walk deleted", "Photos, videos and memos removed", "Thread deleted", "Removed from the thread") stays until the owner taps **Undo** or **✕**, starts another delete, or leaves the app; it never ends on a timer [F3, M3 snackbar, NN/g].
-2. **UC2** Tapping ✕ (or starting another delete, or the app going to the background) stores the delete at once; Undo brings back what went, as it was. While it waits, what went is hidden from every list, as before (D5).
-3. **UC3** The pill's Undo and ✕ are each at least 44 px, named for a screen reader ("Undo", "Dismiss"), and the pill is announced when it appears [X0, F4].
+2. **UC2** Tapping ✕ or starting another delete stores the delete at once; Undo brings back what went, as it was. While it waits, what went is hidden from every list, as before (D5), and the wait survives the phone locking or the app going to the background (steward S1; how a killed app ends it is the owner's call, plan).
+3. **UC3** The pill's Undo and ✕ are each at least 44 px and at least 8 px apart; Undo is the more prominent; ✕ is named for what it does ("Close, it stays deleted"); the pill is announced when it appears [X0, X0b, F4] (steward S5).
 
 ### Deletes that don't ask (amends D4)
 
-4. **UC4** Deleting a moment, removing a walk's photos, videos and memos, and deleting a thread act at once, with no "Delete this?" card first; the pill with Undo follows [A3, matrix 7].
-5. **UC5** Deleting a whole walk still asks first, as D4 says, and then shows the pill with Undo [matrix 8].
+4. **UC4** Deleting a moment, deleting a thread and removing a moment from a thread act at once, with no "Delete this?" card first; the pill with Undo follows [A3, matrix 7].
+5. **UC5** Deleting a whole walk, and removing a walk's photos, videos and memos, still ask first and say what goes, as D4 says, then show the pill with Undo [matrix 8] (steward S2: a bulk loss, the lows included).
 6. **UC6** **Remove from this thread** acts at once with Undo, also when it ends the thread; Undo brings the thread back with its name and members (replaces owner-threads audit 5's confirm).
 
 ### A viewer that steps aside
@@ -43,5 +43,6 @@ Open: when a waiting Undo is committed besides Undo, ✕, another delete and the
 
 ### Quieter success
 
-10. **UC10** No pill appears for a result already on screen: adding to a thread or replying (the info line says "In a thread"), setting or stopping a reminder (More says so). Each is announced to a screen reader instead, without moving focus [matrix 20, F4]. A failure, a result elsewhere ("Saved to Photos", "Downloaded") and a pill with Undo still show.
+10. **UC10** No pill appears for an action whose result can be shown where it happened: a kept reply, adding to a thread, setting or stopping a reminder say so in the moment's info line instead ("Reply kept", "Added to a thread", "Reminder set") and to a screen reader, without moving focus [matrix 19, 20, F4] (steward S3). A failure, a result elsewhere ("Saved to Photos", "Downloaded") and a pill with Undo still show.
 11. **UC11** Nothing else on these screens changes: the toolbar's Respond and Edit, the More menu's other items, Delete's Undo and its effect on every list, the replay's viewer and its Continue.
+12. **UC12** With a reminder set on a moment, the viewer's info line says "Reminder set" without opening More (steward S4).
