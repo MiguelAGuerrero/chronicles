@@ -8,9 +8,10 @@ import { test } from 'node:test';
 // motionTokens (through LiftIn), no hard-coded duration, no haptic or sound of its own, no accent colour, no count.
 const FILE = join(__dirname, '../../../components/walk/AddToMomentPill.tsx');
 
-test('MS6: the pill enters by LiftIn\'s motionTokens timing, with no haptic, sound, accent colour or number of its own', { todo: 'test first' }, () => {
+test('MS6: the pill enters by LiftIn\'s motionTokens timing, with no haptic, sound, accent colour or number of its own', () => {
   assert.ok(existsSync(FILE), 'components/walk/AddToMomentPill.tsx');
-  const src = readFileSync(FILE, 'utf8');
+  // The code alone: its comments may say what it never does.
+  const src = readFileSync(FILE, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
   assert.match(src, /\bLiftIn\b/);
   assert.doesNotMatch(src, /duration\s*:\s*\d|withTiming|setTimeout\([^)]*\d{3}/, 'no duration of its own');
   assert.doesNotMatch(src, /feedback\(|Haptics|Audio|playSound/, 'no haptic or sound beyond the capture\'s');

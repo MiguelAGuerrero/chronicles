@@ -17,10 +17,10 @@ import type { LocateResult } from './locate/types';
 import { dropTemp, keepFile, removeMedia } from './media';
 import { makeThumb } from './media/thumb';
 import { captureThumbStillWanted, THUMB } from './thumbPlan';
+import { stampFor } from './pieceStamp';
 import type { CaptureKind, LngLat, Moment } from './types';
 
 /** A fix older than this is not trusted as "where the capture was taken". */
-const FRESH_FIX_MS = 15_000;
 /** A voice memo shorter than this was an accidental tap. */
 const MIN_VOICE_MS = 1000;
 /**
@@ -43,6 +43,8 @@ interface Stamp {
   t: number;
   at: LngLat | null;
   locating?: Promise<LocateResult>;
+  /** The open moment this capture joins as a piece (moment stacks MS3, decision 0106): no fix, no reply. */
+  into?: string | null;
 }
 
 /**
@@ -85,6 +87,8 @@ export function useCaptures(
     onMoment?: (c: Faced, state: MomentState) => void;
     /** Every moment this path keeps answers this one, and joins its thread (OT2); null when it answers nothing. */
     replyTo?: { answeredId: string; from?: string | null } | null;
+    /** Told when a capture is kept: a new moment, or a piece added to one (moment stacks, the pill). */
+    onKept?: (momentId: string, piece: boolean) => void;
   } = {},
 ) {
   const enabled = walkId != null || !!opts.loose;
@@ -92,6 +96,10 @@ export function useCaptures(
   useEffect(() => {
     onMoment.current = opts.onMoment;
   }, [opts.onMoment]);
+  const onKept = useRef(opts.onKept);
+  useEffect(() => {
+    onKept.current = opts.onKept;
+  }, [opts.onKept]);
   const replyTo = useRef(opts.replyTo ?? null);
   useEffect(() => {
     replyTo.current = opts.replyTo ?? null;
@@ -138,12 +146,11 @@ export function useCaptures(
     return off;
   }, [walkId, self]);
 
-  const stampNow = (locate = true): Stamp => {
-    const t = clockNow();
-    const { here: h, lastFixAt: f } = pos.current;
-    const at = h && f != null && t - f <= FRESH_FIX_MS ? h : null;
-    const s: Stamp = { t, at };
-    if (locate) startLocating(s);
+  const stampNow = (locate = true, into: string | null = null): Stamp => {
+    // A piece for an open moment takes no fix: the moment's one place is its place (MS3, `pieceStamp`).
+    const st = stampFor(clockNow(), pos.current, into);
+    const s: Stamp = { t: st.t, at: st.at, into: st.into };
+    if (locate && st.locate) startLocating(s);
     return s;
   };
   /**
@@ -153,12 +160,32 @@ export function useCaptures(
    */
   const startLocating = (s: Stamp) => {
     // In a walk too: while paused the recorder is stopped, so the last fix is where the pause began.
-    if (!s.at && !s.locating) s.locating = locateOnce().catch(() => ({ at: null, reason: 'unavailable' as const }));
+    if (!s.at && !s.locating && !s.into) s.locating = locateOnce().catch(() => ({ at: null, reason: 'unavailable' as const }));
   };
   const folder = () => walkId ?? LOOSE_FOLDER;
 
+  /**
+   * A piece added to an open moment (moment stacks MS3, MS5): stored with its own time under the moment, whose place
+   * and time stay; shown here and told to the walk's other paths as the moment, now with its new piece.
+   */
+  async function addPiece(into: string, kind: CaptureKind, stamp: Stamp, file_path: string | null, body: string | null): Promise<{ momentId: string; pieceId: string } | null> {
+    const pieceId = newId();
+    const piece = { id: pieceId, moment_id: into, t: stamp.t, kind, file_path, body };
+    await db.addPiece(into, piece);
+    const [stored] = await db.getMomentsByIds([into]);
+    if (stored) {
+      const now = faced(stored);
+      if (alive.current) setCaptures((prev) => prev.map((x) => (x.id === into ? { ...now, lat: x.lat, lon: x.lon } : x)));
+      captureBus.emit(now, self);
+      if (!walkId) onMoment.current?.(now, 'kept');
+    }
+    onKept.current?.(into, true);
+    return { momentId: into, pieceId };
+  }
+
   async function add(kind: CaptureKind, stamp: Stamp, file_path: string | null, body: string | null): Promise<string | null> {
     if (!enabled) return null;
+    if (stamp.into) return (await addPiece(stamp.into, kind, stamp, file_path, body))?.pieceId ?? null;
     // A new moment and its first piece, under one id (decision 0106): its one place and time, the piece's media.
     const id = newId();
     const m: Moment = {
@@ -178,6 +205,7 @@ export function useCaptures(
     // Told even once this path is gone: the walk screen may have come back meanwhile (NV9).
     captureBus.emit(shown, self);
     if (!walkId) onMoment.current?.(c, 'kept');
+    onKept.current?.(c.id, false);
     placeMoment(c, stamp);
     return c.id;
   }
@@ -228,11 +256,15 @@ export function useCaptures(
     }
   }
 
-  /** The system camera, in photo or video mode as the person picks there. Resolves what was kept, if anything. */
-  const takePhoto = async (): Promise<{ kind: 'photo' | 'video'; id: string } | null> => {
-    let kept: { kind: 'photo' | 'video'; id: string } | null = null;
+  /**
+   * The system camera, in photo or video mode as the person picks there. Resolves what was kept, if anything. With
+   * `into`, what it keeps joins that open moment as a piece (MS2, MS3); `id` is then the piece's.
+   */
+  const takePhoto = async (into: string | null = null): Promise<{ kind: 'photo' | 'video'; id: string; momentId: string } | null> => {
+    let kept: { kind: 'photo' | 'video'; id: string; momentId: string } | null = null;
     await guarded('photo', async () => {
-      const stamp = stampNow(false);
+      const stamp = stampNow(false, into);
+      const momentOf = (id: string) => stamp.into ?? id;
       const perm = await ImagePicker.requestCameraPermissionsAsync();
       if (!perm.granted) {
         // The request above already showed the system prompt if it could; a refusal now is only fixable in Settings.
@@ -260,27 +292,31 @@ export function useCaptures(
         }
         const ext = asset.mimeType?.split('/')[1]?.replace('quicktime', 'mov') ?? 'mp4';
         const id = await add('video', stamp, await keepFile(asset.uri, folder(), `${newId()}.${ext}`), String(Math.round(ms)));
-        if (id) kept = { kind: 'video', id };
+        if (id) kept = { kind: 'video', id, momentId: momentOf(id) };
         return;
       }
       const ext = asset.mimeType?.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
       const path = await keepFile(asset.uri, folder(), `${newId()}.${ext}`);
       const id = await add('photo', stamp, path, null);
       if (id) {
-        kept = { kind: 'photo', id };
+        kept = { kind: 'photo', id, momentId: momentOf(id) };
         // Its small copy for previews (TH1), after the capture is kept: never holds it up or fails it (TH2).
         void makeThumb(facedOf({ id, walk_id: folder(), t: Date.now(), lat: null, lon: null, kind: 'photo', file_path: path, body: null, segment_id: null })).then((thumb) => {
           if (!thumb) return;
           // An Edit offer's Done may have stored the edited copy meanwhile: this one then stands down (media-editing audit 8).
-          void db.getMomentsByIds([id]).then(facedAll).then(([row]) => {
-            if (!captureThumbStillWanted(row ?? null)) {
+          // The small copy is the piece's (`id`); the moment it sits in is read fresh.
+          void db.getMomentsByIds([momentOf(id)]).then(([m]) => {
+            const row = m?.pieces.find((x) => x.id === id) ?? null;
+            if (!captureThumbStillWanted(row)) {
               if (thumb !== THUMB.none) void removeMedia([thumb]).catch(() => {});
               return;
             }
-            if (alive.current) setCaptures((prev) => prev.map((x) => (x.id === id ? { ...x, thumb_path: thumb } : x)));
+            // A moment shows its face's copy: patched on the moment only when this piece is its face.
+            const isFace = !!m && faced(m).piece_id === id;
+            if (isFace && alive.current) setCaptures((prev) => prev.map((x) => (x.id === m.id ? { ...x, thumb_path: thumb } : x)));
             // Stored first, then told: a walk screen mounting meanwhile either reads it or hears it (tabs audit 5).
             void db.updatePiece(id, { thumb_path: thumb }).then(
-              () => captureBus.patch(walkId, id, { thumb_path: thumb }, self),
+              () => { if (isFace) captureBus.patch(walkId, m.id, { thumb_path: thumb }, self); },
               () => {},
             );
           }, () => {});
@@ -322,7 +358,8 @@ export function useCaptures(
   const resetAudioMode = () =>
     setAudioMode({ allowsRecording: false, playsInSilentMode: true, allowsBackgroundRecording: false }).catch(() => {});
 
-  const startVoice = (): Promise<boolean> =>
+  /** With `into`, the memo joins that open moment as a piece when saved (MS2, MS3). */
+  const startVoice = (into: string | null = null): Promise<boolean> =>
     enqueue(() =>
       withBusy(async () => {
         if (!enabled || voiceOn.current) return false;
@@ -342,7 +379,7 @@ export function useCaptures(
             await resetAudioMode();
             return false;
           }
-          voiceStamp.current = stampNow();
+          voiceStamp.current = stampNow(true, into);
           voice.record();
           voiceOn.current = true;
           memoGate.recording(self, true);
@@ -510,9 +547,10 @@ export function useCaptures(
     captureBus.patch(walkId, id, { body }, self);
   }
 
-  const saveNote = (text: string) =>
+  /** With `into`, the note joins that open moment as a piece (MS2, MS3). */
+  const saveNote = (text: string, into: string | null = null) =>
     guarded('text', async () => {
-      if (text.trim()) await add('text', stampNow(), null, text.trim());
+      if (text.trim()) await add('text', stampNow(true, into), null, text.trim());
     });
 
   return {

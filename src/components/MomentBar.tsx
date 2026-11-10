@@ -7,10 +7,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { feedback } from '../lib/motion';
 import type { LocateResult } from '../lib/locate/types';
 
+import { momentPill } from '../lib/momentPill';
 import { useCaptures, type MomentState } from '../lib/useCaptures';
 import { Modal } from './Modal';
 import { EditOfferPill, useEditOffer } from './edit/EditOffer';
 import { MediaEditor } from './edit/MediaEditor';
+import { AddToMomentPill } from './walk/AddToMomentPill';
 import { CaptureStack } from './walk/CaptureStack';
 import { useStackLayout } from './walk/layout';
 import { Button, LiftIn, theme } from './ui';
@@ -43,6 +45,8 @@ export function MomentBar(props: {
   const { onMoment } = props;
   const cap = useCaptures(null, null, null, props.onError, {
     loose: true,
+    // The pill (moment stacks, MS2, MS5): a new moment opens it; a piece keeps it.
+    onKept: (id, piece) => (piece ? momentPill.piece(id) : momentPill.kept(id, false)),
     onMoment: (c, state) => {
       // The toast waits for the place; the lists hear of the moment at once (audit).
       if (state !== 'kept') setToast(momentToast(c.kind, state === 'placed' ? undefined : state));
@@ -77,6 +81,8 @@ export function CaptureRow(props: {
   const editOffer = useEditOffer();
   const [editingKept, setEditingKept] = useState<Faced | null>(null);
   const [note, setNote] = useState('');
+  // The open moment a note being written joins (MS2), or null for a new moment: fixed when the note was begun (MS4).
+  const [noteInto, setNoteInto] = useState<string | null>(null);
   const recording = cap.voiceStartedAt != null;
   const { onRecording } = props;
   useEffect(() => {
@@ -102,9 +108,10 @@ export function CaptureRow(props: {
 
   const saved = () => feedback('tap');
   const saveNote = async () => {
-    if (await cap.saveNote(note)) {
+    if (await cap.saveNote(note, noteInto)) {
       setNote('');
       setNoteOpen(false);
+      setNoteInto(null);
       saved();
     }
   };
@@ -123,6 +130,11 @@ export function CaptureRow(props: {
   useEffect(() => {
     if (focused === false && recording) void saveRef.current();
   }, [focused, recording]);
+  // Leaving the screen closes the pill (MS4).
+  useEffect(() => {
+    if (focused === false) momentPill.leave();
+  }, [focused]);
+  useEffect(() => () => momentPill.leave(), []);
 
   return (
     <>
@@ -139,6 +151,15 @@ export function CaptureRow(props: {
             }}
           />
         )}
+        <AddToMomentPill
+          hidden={recording || noteOpen}
+          onPhoto={() => void cap.takePhoto(momentPill.target()).then((k) => k && saved())}
+          onVoice={() => void cap.startVoice(momentPill.target()).then((ok) => ok && feedback('tap'))}
+          onNote={() => {
+            setNoteInto(momentPill.target());
+            setNoteOpen(true);
+          }}
+        />
         {toast && (
           <LiftIn testID="moment-toast" style={styles.toast} accessibilityLiveRegion="polite">
             <Text style={styles.toastText}>{toast}</Text>
@@ -177,7 +198,10 @@ export function CaptureRow(props: {
         onVoice={() => cap.startVoice().then((ok) => ok && feedback('tap'))}
         onSave={saveVoice}
         onDiscard={() => cap.discardVoice()}
-        onNote={() => setNoteOpen(true)}
+        onNote={() => {
+          setNoteInto(null);
+          setNoteOpen(true);
+        }}
       />
 
       {editingKept && (
