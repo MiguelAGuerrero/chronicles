@@ -113,8 +113,8 @@ async function run(h) {
   // On the note, Edit (a photo's) goes and Remind me here (the moment's) stays.
   await pg.keyboard.press('ArrowRight');
   await pg.waitForTimeout(400);
-  const ms11ok = (await pg.locator('[data-testid=capture-viewer] [aria-label="Edit"]').count()) === 0 && (await pg.locator('[data-testid=capture-viewer] [data-testid=viewer-remind]').count()) === 1;
-  check(ms11ok, 'MS11: on the note, the photo\'s Edit goes and the moment\'s reminder stays');
+  check((await pg.locator('[data-testid=capture-viewer] [aria-label="Edit"]').count()) === 0
+    && (await pg.locator('[data-testid=capture-viewer] [data-testid=viewer-remind]').count()) === 1, 'MS11: on the note, the photo\'s Edit goes and the moment\'s reminder stays');
 
   // The viewer adds only while the pill is open; dismissed, it offers Respond (MS12).
   const ms12ok = (await pg.locator('[data-testid=viewer-add]').count()) === 0 && (await pg.locator('[data-testid=respond-note]').count()) > 0;

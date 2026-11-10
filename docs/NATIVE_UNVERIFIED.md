@@ -316,6 +316,13 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** on Android, open a moment, tap Respond's Note, type a few words, press Back; then press Back again. **Expect:** the first Back closes the note being written and leaves the viewer open with Respond ready; the second closes the viewer. (owner-threads audit 9)
 - [ ] **Do:** with VoiceOver and TalkBack on, move through the Chronicle's Threads, the owner's Threads, a thread's timeline and the Respond row. **Expect:** the two headings are said apart ("found for you", "connected by you"), each row reads as one named button with its heading and line, a reply says what it answers, and Respond's three kinds are buttons. (OT9, OT12)
 
+## Moment stacks (MS1-MS15, decision 0106)
+
+- [ ] **Do:** on Navigate's ready screen, take a photo with the edge camera, then tap the pill's camera and take another, then its mic and record a memo, then its pencil and write a note. **Expect:** after the system camera returns, the "Add to this moment" pill is there; each addition joins the first photo's moment (one card on Chronicle, with the two-card mark), with no second location prompt or fix, and the moment stays where the first photo was taken. (MS2, MS3)
+- [ ] **Do:** take a photo on a walk, wait two minutes, or walk on 100 m, without capturing. **Expect:** the pill goes by itself; the next capture is a new moment. Lock the phone with the pill showing and come back within two minutes: it is still there. (MS4)
+- [ ] **Do:** open a stacked moment in the viewer and swipe left and right; with VoiceOver and TalkBack, move through its buttons. **Expect:** the swipe steps through its photos, memo and note in the order taken; the buttons say "Previous in this moment" and "Next in this moment", apart from "Previous moment" and "Next moment", and nothing says how many it holds. (MS9, MS10)
+- [ ] **Do:** from a stacked moment's More, Delete this photo, let the Undo pass, then relaunch. **Expect:** the photo and its small copy are gone from storage; the moment keeps its other media, its reminder and its thread. (MS13)
+
 ## Network rules (`lib/net`, decision 0100)
 
 - Whether React Native's `fetch` sends the custom `User-Agent` (`Chronicles (+github.com/…)`) on iOS and Android, or the platform's own replaces it.

@@ -23,6 +23,16 @@ Captures (photo, video, voice memo, note), their viewer, captions and baking, th
   capped at 30 s on phones and 15 s on web. The mic stays the separate pocket
   recorder.
 
+## A moment's pieces (decision 0106)
+
+- **Screens read `Faced` moments** (`lib/moment`): the moment's id, walk, time and place with its face's media and
+  `piece_id`. Media writes name `piece_id` (`db.updatePiece`), place writes the moment (`db.updateMoment`). A
+  piece's small copy and files are named by the piece's id; a moment's first piece shares the moment's id.
+- **The viewer shows a stacked moment piece by piece** (`facedAt`): edits and note text are kept by `piece_id`;
+  the footer's "i of n" is for moments, never over pieces (MS9). A piece waiting in the Undo window is hidden by
+  `pieceKey(id)`, never its id, or the whole moment would vanish with its first piece.
+- **Adding a piece takes no fix** (`pieceStamp.stampFor` with `into`; MS3, 0036).
+
 ## What happened here
 
 - **What happened here:** a long press on the walk screen (so stray taps do

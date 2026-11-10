@@ -129,6 +129,15 @@ recording bar brings a minimized walk back.
   same place before and during a walk. Before Start they keep a moment with no
   walk open ("jot it down"), stored at once and placed when its one fix arrives;
   nothing tracks between moments.
+- **A moment can hold several media** (moment stacks, decision 0106). After a capture, an "Add to this
+  moment" pill left of the stack offers the camera, the mic and a note, one tap each: what it keeps joins
+  the moment just made, with its own time, at the moment's one place (no new fix). It goes after two minutes
+  with no capture, after 100 m walked from the moment's first capture, on Not now, on leaving the screen,
+  opening another moment, or starting or stopping a walk. The stack's own buttons always make a new moment.
+  A stacked moment shows once everywhere, by its first photo or video, with a small two-card mark; its
+  viewer steps through what it holds (Previous and Next in this moment, the arrow keys, a swipe), never
+  saying how many; More offers Delete this photo (one) or Delete this moment (all). Separate moments are
+  grouped by a thread, never merged.
 - A Locate button sits above the stack (also on Explore): it reads one fresh
   fix, shows the dot there and frames 250 m around you. Nothing tracks after.
 
@@ -349,6 +358,7 @@ recording bar brings a minimized walk back.
 | Town presence (a town graded across its whole outline, with its busy areas listed) | Built (web verified by the e2e; native unverified) |
 | Resurfaced moments (Chronicle opens on Memories: a moment brought back, threads from the user's words, Lately) | Built (web verified by the e2e `resurface`; native unverified) |
 | Owner threads (respond to a moment; connect moments across walks; Threads on Memories) | Built (web verified by the e2e `threads`; native unverified) |
+| Moment stacks, round 0 and 1 (a moment holds its media; Add to this moment; one card and pin per moment; the viewer's pieces; deleting one) | Built (web verified by the e2e `upgrade` and `stacks`; native unverified); round 2 (Split out, the replay's one beat, automatic grouping) next |
 | Moments and days, memories on revisit, thumbnails | Shipped, audited |
 | Rides, clearing walks and moments, motion polish | Shipped, audited |
 | Navigation and tabs (three-tab layout, recording bar) | Shipped, two audit batches done |
