@@ -55,15 +55,40 @@ function base() {
   return null;
 }
 
+/**
+ * The lines naming an id, from `git grep -n -B1` output (pure): a line that names an id but opens no call is read with
+ * the line before it, so a call whose id sits on its next line (`check.todo(cond,` then `'UC3: ...'`) still counts as
+ * that call. Match lines look like `12:text`, the line before them `11-text`; `--` separates groups.
+ */
+function callLines(raw) {
+  const out = [];
+  let prev = null;
+  for (const l of raw) {
+    if (l === '--') {
+      prev = null;
+      continue;
+    }
+    const m = /^(\d+)([:-])(.*)$/.exec(l);
+    if (!m) continue;
+    const text = m[3];
+    if (m[2] === ':') {
+      const opensNone = !TODO.test(text) && !REAL.test(text);
+      out.push(opensNone && prev != null && (TODO.test(prev) || REAL.test(prev)) ? `${prev.trim()} ${text.trim()}` : text);
+    }
+    prev = text;
+  }
+  return out;
+}
+
 /** The lines naming an id in the test files at a commit: the unit tests and the e2e journeys. */
 function testLines(sha) {
   let out = '';
   try {
-    out = git('grep', '-hE', '[A-Z][0-9]', sha, '--', 'src/lib/__tests__', 'scripts/e2e');
+    out = git('grep', '-hnE', '-B1', '[A-Z][0-9]', sha, '--', 'src/lib/__tests__', 'scripts/e2e');
   } catch {
     return [];
   }
-  return out.split('\n').filter(Boolean);
+  return callLines(out.split('\n').filter(Boolean));
 }
 
 function main(argv) {
@@ -106,4 +131,4 @@ function main(argv) {
 
 if (require.main === module) main(process.argv.slice(2));
 
-module.exports = { testFirst };
+module.exports = { testFirst, callLines };
