@@ -757,7 +757,7 @@ async function checks(h) {
 
 async function run(h) {
   const { page, url, routed } = h;
-  await page.goto(url);
+  await page.goto(h.exploreUrl);
   await page.waitForSelector('[data-testid=tab-explore][aria-selected=true]', { timeout: 30000 });
   await checks(h);
 }

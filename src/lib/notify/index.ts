@@ -33,7 +33,7 @@ export const notifier = createNotifier({
         return;
       }
       const { router } = await import('expo-router');
-      router.navigate('/chronicle');
+      router.navigate('/');
     })().catch(() => {});
   },
   onStop: (ids) => {

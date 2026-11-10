@@ -1,5 +1,5 @@
 {
-  "src/app/(tabs)/chronicle.tsx": {
+  "src/app/(tabs)/explore.tsx": {
     "no-restricted-syntax": {
       "count": 1
     }

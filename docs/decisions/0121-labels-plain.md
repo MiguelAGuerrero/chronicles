@@ -1,4 +1,4 @@
-# 0112. Plain labels: "History" and "Places of worship"
+# 0121. Plain labels: "History" and "Places of worship"
 
 Date: 2026-11-10 · Status: accepted · Area: explore, discovery
 
