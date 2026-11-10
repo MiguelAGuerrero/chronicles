@@ -32,9 +32,9 @@ Open: none (OT23 and OT24 answered Nov 6). The reasons rest on decision 0104, no
 
 ### Responding
 
-1. **OT1** A moment's viewer shows **Respond** on its face, not in the More menu, as the capture row's own kinds (photo, voice, note). Each kind is one tap from the viewer, with no menu opened first. The new moment is saved by the capture's own path with its own time and place (the fix, or placed later, as a moment outside a walk is). Capture from the edge stack takes the same one tap as before, with no thread step in front of it. (Steward S1.)
+1. **OT1** A moment's viewer has a toolbar docked under the photo, below its info line, with **Respond** (and **Edit** where the moment can be edited). Respond opens a pull-down menu from its button: Photo or video, Voice memo, Note (a tap outside closes it). The new moment is saved by the capture's own path with its own time and place (the fix, or placed later, as a moment outside a walk is). Capture from the edge stack takes the same one tap as before, with no thread step in front of it. (Amended Nov 9, decision 0114: Respond was a row of kinds on the viewer's face, one tap each.)
 2. **OT2** Saving a reply writes a directed link from the new moment to the one it answers, and adds the new moment to the answered moment's thread. If the answered moment is in no thread, an unnamed thread of the two is made. If it is in several, the reply joins the one the Respond started from (OT3).
-3. **OT3** Respond is offered from a moment seen in a thread (it answers that moment and joins that thread), from the viewer opened on a faint pin ("Memories here", whose preview also shows the kinds, one tap each), and from the viewer anywhere else (it answers that moment).
+3. **OT3** Respond is offered from a moment seen in a thread (it answers that moment and joins that thread), from the viewer opened on a faint pin ("Memories here"), and from the viewer anywhere else (it answers that moment). (Amended Nov 9: the faint pin's preview carries no kinds of its own.)
 4. **OT4** A reply is a moment like any other: it appears in Lately, its walk, its day and the map. It never appears as a bare note: its row names the moment it answers and when ("answering Oct 20, just after the bakery"). A reply whose answered moment is gone shows no "answering" line, only its own place and time (OT16). (Steward S4.)
 
 ### Connecting
@@ -48,13 +48,13 @@ Open: none (OT23 and OT24 answered Nov 6). The reasons rest on decision 0104, no
 
 9. **OT9** A thread opens as a plain typographic timeline of its moments, oldest first, read like a conversation with yourself. Every moment shows its place and its time, and what came just before it (its walk's context line) when it has a walk; a moment with no walk shows place and date. Never a bare thumbnail, filename or count; the same holds for every row of the moment picker. (Steward S4.) A reply is set under the moment it answers.
 10. **OT10** A thread's size is one of a short fixed set of words ("a couple of moments", "a few", "several", "many"), never a number word above "three", a digit, rank, total, streak or percentage; its span is "since March". No unread, new-reply or progress mark ever appears on a thread. Dates and times are fine. (Steward S3.)
-11. **OT11** Where a moment is in a thread, its viewer says "in a thread" without the name, and opening it opens the thread. The viewer shows the thread's name only when it was opened from that thread. (Steward S2.)
+11. **OT11** Where a moment is in a thread, its viewer's info line says "In a thread" without the name, and the More menu's **Open its thread** opens it. The viewer shows the thread's name only when it was opened from that thread. (Amended Nov 9, decision 0114: was a chip over the photo.)
 12. **OT12** The owner's threads are listed on Memories in a block of their own beside the Chronicle's own threads (the 0098 rail), both headed **Threads** and told apart by a mark (OT25): the owner's ordered by the latest moment in them, and saying so, with no rank, count or progress shown. The Chronicle's threads are unchanged by this slice. (Amended Nov 9, decision 0105: was "their own heading", "Threads you made".)
 13. **OT13** A thread has a name only the owner gives it: **Name this thread** in its menu, optional, editable, never overwritten. A thread with no name is headed by its oldest moment's place and date, with the first words of that moment as a second line; no heading is a clipped fragment on its own. (Steward S5.)
 
 ### Ending a thread
 
-14. **OT14** **Delete this thread** removes the thread and its memberships and no moment, link or file. It asks once, in words, and offers Undo for 5 s, as a moment delete does.
+14. **OT14** **Delete this thread** removes the thread and its memberships and no moment, link or file. It acts at once and offers Undo until the pill is closed, as a moment delete does (amended Nov 10 by `specs/ui-conformance` UC4, decision 0113: it asked first).
 15. **OT15** When a delete or Remove leaves a thread with fewer than two moments, the thread dissolves, name and all, at once; Undo of that delete brings back the moment and the thread with its name and members.
 16. **OT16** Deleting a moment deletes its memberships and links and nothing else. A reply whose answered moment is deleted stays, as its own moment, in its thread if the thread still has two moments.
 17. **OT17** Deleting a walk deletes the memberships and links of its moments in the same transaction, and dissolves the threads that leave.
@@ -77,6 +77,10 @@ Open: none (OT23 and OT24 answered Nov 6). The reasons rest on decision 0104, no
 25. **OT25** Wherever a thread is listed or opened, a small mark says who made it: one icon for a thread the owner made, another for a thread the Chronicle suggests (from the user's own words, 0098). The mark is an icon in the ink colour, never a colour on its own, and it carries a spoken name ("connected by you", "found for you"). No accent colour, badge or count marks either kind. The Chronicle's threads keep their own words (0098) beside the mark.
 26. **OT26** An unnamed thread's heading follows its moments (the place and date of its oldest, with its first words beneath) and may change as they do; the owner may name it, or rename it, at any time, and a name they gave never changes by itself.
 
+### The viewer's actions (the owner's call, Nov 9, decision 0114)
+
+27. **OT27** Nothing the viewer offers sits over the moment itself: the photo or video area, and a note's or memo's card, are clear of every loose button (a photo fills the screen and the bars sit over its margins, amended by `specs/ui-conformance` audit 28). Actions live in the top bar (Close, More), the docked toolbar (Respond, Edit) and the More menu; no row of controls wraps onto a second line on a 320 px phone.
+
 ## Record (Nov 6)
 
 Built on `claude/owner-threads-decision`; not audited (decision 0074). Tests first: `Owner threads: tests first (OT1-OT24, failing)`. Unit tests in `src/lib/__tests__/threads/` (`core`, `shell`, `arch`) and the contract cases in `dbContract.ts` (OT14-OT18); the journey `threads` covers the screens. Typecheck, lint, `npm test` and the journeys `threads`, `resurface`, `deletion`, `edit`, `qol`, `walk` pass on the web build.
@@ -85,7 +89,7 @@ Built on `claude/owner-threads-decision`; not audited (decision 0074). Tests fir
 - **Gate steward (Nov 6):** 1 breach, 4 drift, 1 tone, all accepted (see `plan.md`).
 - **Choices made in the build, for the owner to confirm:**
   - The heading is **Threads** ("Moments you connected, the latest first"), beside the Chronicle's own Threads and told apart by a mark (decision 0105, OT25; it was "Your threads", then "Threads you made"); the Chronicle's rail keeps **Threads** ("Things you keep coming back to"). Two near names, as the plan warned.
-  - **Respond** sits in a floating row under the viewer's top buttons, not at the bottom, because the viewer's own strip and card fill the bottom.
+  - **Respond** sat in a floating row under the viewer's top buttons, not at the bottom, because the viewer's own strip and card fill the bottom. Changed by the owner (fix respond-bottom, Nov 10): the row stands just above the moment's strip or card, with no "Respond" label; its place says what it is, and a reply note being written rises with the keyboard.
   - **Keep as my thread** keeps no name (audit 13): the Chronicle's is only a placeholder in the name field.
   - A reply made from a viewer opened during a walk belongs to that walk (audit 11).
 - **Native:** every path is unverified on a device (`docs/NATIVE_UNVERIFIED.md`, "Owner threads").
@@ -119,4 +123,12 @@ Built on `claude/owner-threads-decision`; not audited (decision 0074). Tests fir
 ## Round 2 (Nov 9, decision 0105)
 
 OT12 amended and OT25, OT26 added at the owner's word: "thread" for both kinds, an icon to tell them apart, an unnamed heading free to change and be renamed. Built as `ThreadMark` (a link for the owner's, a repeat arrow for the Chronicle's, in ink, with a spoken name); the choice of an icon over a colour is the build's, for restraint and screen readers. Unit test `OT26` (`threads/core.test.ts`); journey checks OT12 and OT25 (`threads`). Native: the marks' spoken names are on the device list.
+
+## Round 3 (Nov 9, decision 0114)
+
+The owner saw Respond on a phone: a row of buttons floating over the photo, wrapping onto two lines. "This UI is atrocious." The viewer now follows the standard photo-viewer pattern: a top bar (Close, More, and the existing Remind and Go here), a toolbar docked under the moment (Respond, Edit), and the More menu (Add to a thread, Open its thread, Save, Open in Maps, Delete). Respond opens a pull-down menu of kinds (first built as an action sheet; the HIG keeps action sheets for clarifying an action already started, M3 in `docs/research/ui-references.md`); a note reply uses the note editor titled Reply. "In a thread" is a phrase in the info line. A photo or video starts under the top bar, so nothing sits over it. OT1, OT3 and OT11 amended; OT27 added; tests first (`Viewer toolbar: tests first`), then the code. Checked by the `threads` journey (the action sheet, the dock on one row, no button over the note's card) and the `edit` journey (the photo between the top bar and the dock), and by looking at both screens at 390 x 844 (`73-viewer-toolbar`, `45-photo-viewer`).
+
+The steward's S1 (Respond one tap from the face) is overruled by the owner: a reply is an action on a moment that exists, not the capture stack. Guardrails added: `.claude/rules/ui-patterns.md` and a screenshot review in `/audit` (the auditor and the steward open the pictures).
+
+Left for the owner: the top bar still carries four round buttons (Remind, Go here, More, Close) on a photo. The patterns page says at most two actions and More; moving Remind and Go here into More is a change to Remind me here (R) and Go here (NH) and was not made here.
 

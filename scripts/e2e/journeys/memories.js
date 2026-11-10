@@ -87,13 +87,14 @@ async function checks(h) {
     const left = (await recallRows()).length;
     check(left === 0, `a "once" reminder clears when it fires (${left} left)`);
     await page.click('[data-testid=reminder-open]');
-    await page.waitForSelector('[data-testid=viewer-remind]');
+    await page.waitForSelector('[data-testid=viewer-more]');
     check(true, 'the reminder opens its capture');
     // Flagged again here, mid-walk, every visit: it waits for the next walk, not two seconds (audit).
+    await page.click('[data-testid=viewer-more]');
     await page.click('[data-testid=viewer-remind]');
     await page.click('[data-testid=remind-visit]');
     await page.click('[data-testid=remind-save]');
-    await page.waitForSelector('text=It will come back when you pass here');
+    await page.waitForSelector('[data-testid=capture-meta] >> text=/Reminder set/');
     await page.click('[aria-label="Close"]');
     for (let j = 1; j <= 4; j++) {
       await ctx.setGeolocation({ longitude: pts[25][0], latitude: pts[25][1] + j * 0.00005, accuracy: 6 });

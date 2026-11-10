@@ -70,6 +70,12 @@ async function deliver(walkId: string, captures: Faced[]) {
   else await notifier.recall(reminderText(captures), captures.map((c) => c.id), walkId).catch(() => {});
 }
 
+// What waits in Undo, told by the Undo window (lib/deletion), which imports this module: so it is set, not imported.
+let hiddenNow: () => ReadonlySet<string> = () => new Set();
+export function setRecallHidden(fn: () => ReadonlySet<string>) {
+  hiddenNow = fn;
+}
+
 let running: Promise<boolean> | null = null;
 let last: { walkId: string; at: LngLat } | null = null;
 
@@ -95,7 +101,7 @@ export function checkRecalls(walkId: string, path: LngLat[], now = Date.now()): 
     // a reminder is set on purpose, not discovery.
     const quiet = false;
     const box = boundsOf(path, RECALL_RULES.reachM + 10)!;
-    const due = dueRecalls({ here: path, walkId, now, quiet, recalls: await recalls(), captures: await db.momentsIn(box).then(facedAll) });
+    const due = dueRecalls({ here: path, walkId, now, quiet, recalls: await recalls(), captures: await db.momentsIn(box).then(facedAll), hidden: hiddenNow() });
     if (!due.length) return false;
     for (const { recall } of due) {
       const next = afterFire(recall, walkId, now);

@@ -1,26 +1,39 @@
 // @layer core
-import type { CaptureKind } from '../types';
+import type { CaptureKind, Moment } from '../types';
 import type { DeleteKind } from './core';
 
 /**
- * The Undo window (D5, D6), pure with its clock passed in. A delete hides its
- * ids at once and reaches storage only after `waitMs`, or sooner on `flush`
- * (the app going to the background) or when another delete is confirmed. Undo
- * reaches only the newest delete still waiting. Nothing is ever put back in
- * storage: a delete that waits is only hidden, and a killed app drops it.
+ * The Undo window (D5, amended by UC1-UC2 and UC13, decision 0113), pure with its effects passed in. A delete
+ * hides its ids at once and reaches storage only when the owner taps Close (`dismiss`), starts another delete,
+ * or something calls `flush`; Undo takes back the newest one still waiting. It never ends on a timer, and the
+ * app going to the background no longer stores it. A waiting delete is data (`DeleteSpec`), handed to `save` so
+ * a killed app can store it at the next launch (`resume`).
  */
+
+/** What a waiting delete stores: data, never a closure, so it can be saved and run after a relaunch. */
+export type DeleteSpec =
+  | { type: 'walk'; walkId: string }
+  | { type: 'media'; walkId: string; captureIds: string[] }
+  | { type: 'moment'; captureId: string }
+  /** One piece of a stacked moment (MS13); the last piece takes the moment. */
+  | { type: 'piece'; momentId: string; pieceId: string }
+  /** A piece split out as a moment of its own (MS16), placed when it was split. */
+  | { type: 'split'; pieceId: string; moment: Omit<Moment, 'pieces'> }
+  | { type: 'thread'; threadId: string }
+  | { type: 'remove'; threadId: string; momentId: string };
 
 export interface PendingJob {
   kind: DeleteKind;
   /** A single moment's kind, so the pill can name it. */
   what?: CaptureKind;
-  /** Walk and capture ids every screen hides while it waits, and after it went. */
+  /** Ids every screen hides while it waits, and after it went (a removal hides `thread/moment`). */
   ids: string[];
-  /** Does the delete in storage. */
-  run(): Promise<void>;
+  spec: DeleteSpec;
 }
 
-export const UNDO_MS = 5000;
+/** The key a waiting removal from a thread hides (UC6). */
+export const membershipKey = (threadId: string, momentId: string) => `${threadId}/${momentId}`;
+
 export const ERROR_MS = 4000;
 export const FAILED_TEXT = "Couldn't delete. Try again.";
 
@@ -33,10 +46,15 @@ export interface PendingState {
 export function createPending(o: {
   setTimer: (fn: () => void, ms: number) => unknown;
   clearTimer: (id: unknown) => void;
-  waitMs?: number;
+  /** Stores a delete. */
+  run: (spec: DeleteSpec) => Promise<void>;
+  /** Keeps every delete not yet stored (the waiting one, and any still being stored) where a relaunch finds it (UC13). */
+  save?: (jobs: PendingJob[]) => void;
 }) {
-  const waitMs = o.waitMs ?? UNDO_MS;
-  let waiting: { job: PendingJob; timer: unknown } | null = null;
+  let waiting: PendingJob | null = null;
+  // Not yet stored: the waiting delete and those being stored now (ui-conformance audit 5, 9).
+  let unstored: PendingJob[] = [];
+  const keep = () => o.save?.([...unstored]);
   let errorTimer: unknown = null;
   // Waiting and gone ids, counted so two deletes of one id (a moment, then its walk) unhide right.
   const hiddenCount = new Map<string, number>();
@@ -70,7 +88,9 @@ export function createPending(o: {
 
   async function commit(job: PendingJob): Promise<void> {
     try {
-      await job.run();
+      await o.run(job.spec);
+      // A removal from a thread can be undone by adding the moment back: its key is not hidden for good (audit 2).
+      if (job.kind === 'remove') unhide(job.ids);
       for (const fn of [...committed]) fn(job);
     } catch {
       unhide(job.ids);
@@ -81,36 +101,55 @@ export function createPending(o: {
       }, ERROR_MS);
       set({ error: FAILED_TEXT });
     }
+    // Stored (or failed): this one is no longer run after a relaunch; the others still are.
+    unstored = unstored.filter((j) => j !== job);
+    keep();
   }
 
   /** Takes the waiting delete out of the window and stores it. */
   function release(): Promise<void> {
     if (!waiting) return Promise.resolve();
-    const { job, timer } = waiting;
+    const job = waiting;
     waiting = null;
-    o.clearTimer(timer);
     set({ pending: null });
     return commit(job);
   }
 
   return {
+    /** A new delete: the one waiting is stored first (UC2), this one is hidden and waits for the owner (UC1). */
     schedule(job: PendingJob): void {
       void release();
       hide(job.ids);
-      const timer = o.setTimer(() => void release(), waitMs);
-      waiting = { job, timer };
+      waiting = job;
+      unstored = [...unstored, job];
+      keep();
       set({ pending: { kind: job.kind, what: job.what }, error: null });
     },
+    /** Takes back the waiting delete: nothing was stored. */
     undo(): void {
       if (!waiting) return;
-      const { job, timer } = waiting;
+      const job = waiting;
       waiting = null;
-      o.clearTimer(timer);
       unhide(job.ids);
+      unstored = unstored.filter((j) => j !== job);
+      keep();
       set({ pending: null });
     },
-    /** Stores what waits now (the app is going to the background). */
+    /** Close on the pill: the delete stands, stored now (UC2). */
+    dismiss: release,
+    /** Stores what waits now. */
     flush: release,
+    /** Deletes saved by a run that was killed: hidden, stored, and no pill (UC13), whatever waits now (audit 9). */
+    resume(jobs: PendingJob[]): Promise<void> {
+      unstored = [...jobs, ...unstored];
+      keep();
+      return Promise.all(
+        jobs.map((job) => {
+          hide(job.ids);
+          return commit(job);
+        }),
+      ).then(() => {});
+    },
     hidden: () => hidden,
     state: () => state,
     subscribe(fn: () => void): () => void {

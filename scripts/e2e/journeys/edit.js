@@ -258,6 +258,40 @@ async function run(h) {
       const size = await pg.locator('[data-testid=edited-photo]').getAttribute('data-size');
       const [w, h] = size.split('x').map(Number);
       check(Math.abs(w - h) <= 1 && (await pg.locator('[aria-label="Caption: Corner shop"]').count()) === 1, `ME4: the viewer shows the edited photo (square ${size}) and its caption`);
+      // The photo viewer as a person sees it: the moment clear, Respond and Edit docked under it (decision 0114).
+      await pg.waitForTimeout(800);
+      await shot(pg, '45-photo-viewer');
+      check(!(await pg.locator('[data-testid=viewer-remind]').isVisible().catch(() => false)) && (await pg.locator('[data-testid=viewer-more]').isVisible()), 'UC9: the photo viewer\'s top bar is Close and More');
+      {
+        const before = await pg.locator('[data-testid=edited-photo]').boundingBox();
+        // The photo lets taps through to the viewer (pointerEvents none), so the tap goes to its place on screen.
+        const tapPhoto = () => pg.mouse.click(before.x + before.width / 2, before.y + before.height / 2);
+        await tapPhoto();
+        await pg.waitForTimeout(500);
+        const hidden = !(await pg.locator('[data-testid=viewer-toolbar]').isVisible().catch(() => false)) && !(await pg.locator('[data-testid=viewer-close]').isVisible().catch(() => false));
+        const after = await pg.locator('[data-testid=edited-photo]').boundingBox();
+        await shot(pg, '46-photo-bars-hidden');
+        const still = before && after && Math.abs(after.y - before.y) < 2 && Math.abs(after.height - before.height) < 2;
+        check(hidden && still, `UC7, ui-conformance audit 28: a tap hides the bars and the photo does not move (${JSON.stringify([before, after])})`);
+        if (hidden) {
+          await tapPhoto();
+          await pg.waitForTimeout(500);
+        }
+        check(await pg.locator('[data-testid=viewer-toolbar]').isVisible().catch(() => false), 'UC7: another tap brings the bars back');
+      }
+      // UC9, ui-conformance audit 26: on the walk screen's viewer, Go here waits in More with Remind me here.
+      await pg.click('[data-testid=viewer-more]');
+      await pg.waitForTimeout(400);
+      await shot(pg, '44-viewer-more-go');
+      check(await pg.locator('[data-testid=viewer-menu] [data-testid=viewer-go]').isVisible().catch(() => false), 'ui-conformance audit 26: Go here is an item in More, not a button over the moment');
+      // A tap outside the menu closes it, as a menu does.
+      await pg.mouse.click(20, 420);
+      await pg.waitForSelector('[data-testid=viewer-menu]', { state: 'detached', timeout: 5000 });
+      // OT27 as amended (ui-conformance audit 28, the owner's call): the photo is centred in the whole screen, still
+      // whether the bars show or not, and the bars sit over its margins; no loose button sits over it.
+      const photoBox = await pg.locator('[data-testid=edited-photo]').boundingBox();
+      const vh = pg.viewportSize().height;
+      check(photoBox && Math.abs(photoBox.y + photoBox.height / 2 - vh / 2) < 2, `owner-threads OT27: the photo is centred in the screen, the bars over its margins (${JSON.stringify(photoBox)})`);
       await pg.click('[data-testid=viewer-edit]');
       await pg.waitForSelector('[data-testid=media-editor]', { timeout: 10000 });
       check((await stage()).filter === 'mono', 'ME3: the editor opens on the current edits');

@@ -112,6 +112,8 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - A web export recorded in a hidden tab: requestAnimationFrame stops and frames freeze until it is shown again (media-editing audit 10)
 - On Navigate, a moment's "kept here" toast and its Edit pill can show together (media-editing audit 13)
 - A turned or cropped video has only play and pause, no scrubber or progress (media-editing audit 15)
+- A caption dragged near the bottom of a portrait photo sits behind the viewer's Respond row while the viewer is open (fix respond-bottom audit 5); the saved photo and the replay's card are not affected
+- On Android with edge-to-edge, the reported keyboard height leaves out the navigation bar beneath it, so Respond's Cancel and Keep reply may sit partly under the keyboard (fix respond-bottom audit 7): waits on a device run (NATIVE_UNVERIFIED), since whether the keyboard events reach the Modal's field at all is unknown
 
 ## Deletion
 
@@ -386,6 +388,18 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **A town's page with its own tile selected names nothing on the map** (audit 2): the town's pin is not drawn there (one level only, fix map-levels audit 1), and the neighborhoods are dots. The page title, the wide tile and the border name the town. Drawing the town's pin as the lone named one would mix levels again; the owner's call.
 - **A dot has no accessible name and no tap** (audit 3): area points are `aria-hidden` with pointer events off on web and carry no label on native; the live region and the grid's tiles name areas. Predates the fix (dots were already unnamed), now more of them.
 
+## UI patterns and the UX research (decision 0114)
+
+- **Research gaps** (after the second pass, Nov 10, with the hosts allowed): Polarsteps and the app-store pages refuse automated fetches, so their teardown claims stay unverified; M3 has no page on photo or video viewers; the Apple HIG was read once (first pass) and not re-checked.
+
+## UI conformance (`specs/ui-conformance`, decisions 0114, 0113)
+
+- **Tap to hide on a video:** a video's own controls take its taps, so its bars stay up; hiding them over a playing video is its own change.
+- **Hiding unavailable menu items vs disabling them** (M5: the HIG hides, M3 and NN/g disable): not touched.
+- **What a delete frees** ("Moment deleted · about 3 MB", the steward's question): the walk's and the media's confirms still say it; the pill does not.
+- **A recoverable trash** (Recently deleted, as Photos and Google Photos have): a killed app now completes a waiting delete (0113); a durable trash would change the data model and is its own slice.
+- **The reminder editor's chip rows wrap at 390 px** (`specs/ui-conformance` audit 25, the `ux-reviewer`'s U4): "How often" and "Until" are rows of four chips each; the patterns say a single choice from a short list is a menu (matrix 15). Fix: two labelled rows ("How often: Once ▾", "Until: No end ▾"), each opening a menu. The editor predates the slice.
+
 ## Places out of town (specs/places-out-of-town, decisions 0115-0120)
 
 - **The whole slice, OP1-OP20, is queued** (the owner, Nov 9-10): the places archive went live first (PW16, Nov 10), and its archive phase is re-planned as adapters in chronicles-data's places pipeline (0120) before the slice starts. Its criteria are `deferred` in `UNTESTED` (`scripts/features.js`) until then.
@@ -405,6 +419,12 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **Dragging the row with a mouse on desktop web** (explore-carousel audit 1): react-native-web's horizontal scroll takes the wheel (shift) and touch, not a mouse drag. A desktop reader steps by a tap on a card, the map's swipe or the arrow keys. A web-only drag-to-scroll would be a web exception (ARCHITECTURE).
 - **A selection moved by a re-list is neither eased nor announced** (explore-carousel audit 5): the first card changes when Locate or the fix reorders the row; the ring and card move together and the map still frames the page's areas.
 - **Native: a row remounted with a card past the first selected** (explore-carousel audit, native): `scrollTo` before layout may be dropped, leaving the row at the first card with another selected; and the row in a right-to-left layout is not mirrored.
+
+## Moment references (`specs/moment-references`, decision 0125)
+
+- **@ in the capture stack's quick note** (Navigate, the walk and the Memories band): those notes are their own inline composers, not `NoteEditor`; a mention there needs the picker drawn over each. Write the note, then Edit it to mention a moment.
+- **A mention's words are those it was written with** in plain text: a moment renamed or placed later still reads its old words outside the viewer, whose card looks it up live.
+- **Mentions from a note to a note opened from a mention** stack in the viewer without a limit; Back pops one at a time.
 
 ## Explore's map shows the selected area's places (fix area-marks, Nov 10)
 

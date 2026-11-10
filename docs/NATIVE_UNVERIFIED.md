@@ -330,13 +330,25 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 ## Owner threads (OT1-OT24, decision 0104)
 
 - [ ] **Do:** update the app from a build before threads, open a walk with moments, then delete one moment that was in a thread and a whole walk that held two others. **Expect:** the migration to 22 runs once, no thread or link table is missing, the threads those deletes leave thin are gone and the others keep their moments. (OT16, OT17, OT21)
-- [ ] **Do:** open a moment from Lately on a phone and tap Photo, then Voice (and Stop and keep), then Note under Respond. **Expect:** the camera, the mic and the keyboard each open over the viewer's Modal, each reply is kept as a moment of its own with where you are and when, and it joins the answered moment's thread. (OT1, OT2, OT24)
-- [ ] **Do:** open a moment from "Memories here" during a walk, tap Respond's Note and keep a reply. **Expect:** the reply belongs to the walk and shows in its replay; the live memo and the reply's recorder do not collide. (owner-threads audit 11)
+- [ ] **Do:** open a moment from Lately on a phone, tap Respond in the toolbar and choose Photo or video, then Voice memo (and Stop and keep in the toolbar), then Note. **Expect:** the menu opens above Respond inside the viewer (no second Modal), the camera, the mic and the keyboard each open over the viewer's Modal, the toolbar sits above the home indicator, each reply is kept as a moment of its own with where you are and when, and it joins the answered moment's thread. (OT1, OT2, OT24)
+- [ ] **Do:** open a moment from "Memories here" during a walk, tap Respond, Note, and keep a reply. **Expect:** the reply belongs to the walk and shows in its replay; the live memo and the reply's recorder do not collide. (owner-threads audit 11)
 - [ ] **Do:** open a moment in the viewer, then More, Add to a thread, A new thread, search for a word and tap a moment. **Expect:** the picker draws inside the viewer (no second Modal), the keyboard does not hide the rows, and the thread is made. (OT5)
 - [ ] **Do:** open a thread, tap a moment's ellipsis, Remove from this thread; then Delete this thread and tap Undo on the pill; then delete it again. **Expect:** the menu sheet and the confirm card open and close cleanly, the pill shows over the screen with Undo, Undo brings the thread back with its name, and after the window the thread is gone and every moment is still in Lately. (OT8, OT14, OT15)
 - [ ] **Do:** on a moment in a thread, tap "In a thread" in the viewer, from Lately. **Expect:** the viewer closes and Chronicle's Memories opens on that thread (the navigation after a Modal's dismissal is not dropped). (OT11)
-- [ ] **Do:** on Android, open a moment, tap Respond's Note, type a few words, press Back; then press Back again. **Expect:** the first Back closes the note being written and leaves the viewer open with Respond ready; the second closes the viewer. (owner-threads audit 9)
-- [ ] **Do:** with VoiceOver and TalkBack on, move through the Chronicle's Threads, the owner's Threads, a thread's timeline and the Respond row. **Expect:** the two headings are said apart ("found for you", "connected by you"), each row reads as one named button with its heading and line, a reply says what it answers, and Respond's three kinds are buttons. (OT9, OT12)
+- [ ] **Do:** on Android, open a moment, tap Respond (Back once closes the menu), then Respond, Note, type a few words, press Back; then press Back again. **Expect:** Back closes the menu, then the note being written and leaves the viewer open with Respond ready; the second closes the viewer. (owner-threads audit 9)
+- [ ] **Do:** with VoiceOver and TalkBack on, move through the Chronicle's Threads, the owner's Threads, a thread's timeline and the viewer's toolbar and its Respond menu. **Expect:** the two headings are said apart ("found for you", "connected by you"), each row reads as one named button with its heading and line, a reply says what it answers, and Respond's three kinds are buttons. (OT9, OT12)
+
+## UI conformance (UC1-UC13, decisions 0114, 0113)
+
+- [ ] **Do:** with VoiceOver on (iOS) and TalkBack on (Android), open a photo in the viewer and tap it. **Expect:** the bars stay up; with the screen reader off, the same tap hides them and a second brings them back. (UC7, UC8)
+- [ ] **Do:** delete a moment from the viewer, lock the phone for a minute, unlock. **Expect:** the pill with Undo is still there, and Undo brings the moment back. (UC1, UC2)
+- [ ] **Do:** delete a moment, then force-quit the app before tapping anything, and reopen. **Expect:** the moment is gone, its file is removed, and no pill shows. (UC13)
+- [ ] **Do:** with VoiceOver on, delete a moment, then keep a reply and set a reminder. **Expect:** the pill is announced with Undo and Close; the reply and the reminder are announced without focus moving. (UC3, UC10)
+
+- [ ] **Do:** delete a moment in the viewer, then go back to the previous screen before tapping anything. **Expect:** the pill goes, the moment is stored as deleted and stays gone; a delete waiting while a thread is changed is stored first. (audit 6, 4)
+- [ ] **Do:** with VoiceOver or TalkBack on, open a photo in the viewer and move focus onto it. **Expect:** it is not offered as a button. (audit 13)
+- [ ] **Do:** record a voice reply on a photo, then tap the photo. **Expect:** the bars stay up and Stop stays on screen. (audit 16)
+- [ ] **Do:** on an iPhone (Safari and the Home Screen app) and an Android phone, open a moment, tap Respond → Note, and type until the keyboard is up. **Expect:** the note editor and its Save stay above the keyboard (`useKeyboardHeight` on the web, `KeyboardAvoidingView` on iOS). (fix respond-bottom, carried to the note editor)
 
 ## Moment stacks (MS1-MS15, decision 0123)
 
@@ -347,6 +359,11 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** replay a walk with a stacked moment of four photos and a short video, then one of twelve photos. **Expect:** each is one grid on the stage (2×2 and 3×3), the pieces swipe in one after another, the video plays silently in its square, the twelve scroll slowly; no numbers or dots; a memo of the stack plays beside it. (MS17)
 - [ ] **Do:** turn on Group captures in Walk settings, take three captures with the stack's buttons, tap New moment, take one more, relaunch. **Expect:** the first three are one moment, the last its own; the setting is still on after the relaunch. (MS18, MS19)
 - [ ] **Do:** from a stacked moment's More, Delete this photo, let the Undo pass, then relaunch. **Expect:** the photo and its small copy are gone from storage; the moment keeps its other media, its reminder and its thread. (MS13)
+
+## Moment references (RF1-RF8, decision 0125)
+
+- [ ] **Do:** on a phone, Respond → Note on a moment, type a few words and @, pick a moment, keep typing, then delete the reference with one backspace. **Expect:** the picker opens over the editor inside the viewer (no second Modal), the cursor lands after the reference, and one backspace takes the whole reference. (RF1, RF3)
+- [ ] **Do:** open a note that mentions a photo, tap its card, then Back. **Expect:** the photo opens in the same viewer with "Back to the note", and Back (the button or Android's back) returns to the note. (RF4)
 
 ## Network rules (`lib/net`, decision 0100)
 

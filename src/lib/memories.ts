@@ -2,6 +2,7 @@
 import type { Faced } from './moment';
 import { distanceM } from './geo';
 import type { CaptureKind, LngLat } from './types';
+import { plainNote } from './refs';
 
 /**
  * Memories on revisit (the concept doc's tab): captures from earlier walks
@@ -45,7 +46,7 @@ const clock = (ms: number) => {
 
 /** The preview's line (MR4): a note's first line, a photo's caption, a memo's or video's length, else the kind. */
 export function previewLine(c: Faced): string {
-  if (c.kind === 'text') return (c.body ?? '').split('\n')[0].trim() || LABEL.text;
+  if (c.kind === 'text') return (plainNote(c.body) ?? '').split('\n')[0].trim() || LABEL.text;
   if (c.kind === 'photo') return c.caption?.trim() || LABEL.photo;
   const ms = Number(c.body);
   return Number.isFinite(ms) && ms > 0 ? `${LABEL[c.kind]} · ${clock(ms)}` : LABEL[c.kind];

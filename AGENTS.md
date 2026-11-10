@@ -20,7 +20,7 @@ npm run check:vision                        # score words, tallies, hosts, data-
 npx expo-doctor                             # dependency and config issues; npx expo install --fix for versions
 ```
 
-While working, run `npm run check:affected`; before declaring a task done, typecheck, lint, `npm test` and the e2e journeys `check:affected` names (decision 0074). A Stop hook (`.claude/hooks/check-done.sh`) refuses to end a turn that changed the repo while `npm run check:docs` fails or, with TypeScript changed, while the typecheck, the layer check or the affected unit tests fail; CI blocks the deploy on the docs check, the typecheck, `npm test` or lint.
+While working, run `npm run check:affected`; before declaring a task done, typecheck, lint, `npm test` and the e2e journeys picked as `docs/TESTING.md` says (decision 0074). A Stop hook (`.claude/hooks/check-done.sh`) blocks a turn that changed the repo while `check:docs`, or with TypeScript changed the typecheck, layer check or affected tests, fail; CI blocks a deploy on docs, typecheck, `npm test` or lint.
 
 Routing is Expo Router: routes live in `src/app/`, `_layout.tsx` files are navigators, non-route code stays outside `src/app/`. Import `Link`, `router` and `useLocalSearchParams` from `expo-router`; open the walk screen with `showWalk()` (`lib/walkNav`), never `router.push('/walk')`. `ios/` and `android/` are generated (never edit them; a hook blocks it); native behaviour is configured in `app.json` and config plugins. Native code needs a development build (`npx expo run:ios`, or `npx eas-cli@latest build --profile development`), never Expo Go. EAS builds, submits and ships over-the-air updates in the cloud (`npx eas-cli@latest build | submit | update`); there is no `eas.json` yet, so it is not set up for this app. Prefer the recommended Expo modules over third-party libraries, and check the available skills before adding a dependency.
 
@@ -45,9 +45,9 @@ The app is a companion for wandering towns on foot: Explore before (busy areas, 
 | Which feature owns a file, its tests, journeys and specs | `scripts/features.js`; tests in `src/lib/__tests__/<feature>/` |
 | Rules and traps of one area | `.claude/rules/<area>.md`: they load by themselves when you read or edit that area's files. Read one directly when planning work in an area you haven't opened yet |
 
-Rule areas: captures-and-media, deletion, explore-and-discovery, functional-core, gaps, kind-walk, landing, map, memories, moments-and-days, motion-polish, navigation, notifications, places-and-areas, react-native-web, recording-and-traces, replay, rides, storage, streets-fog-snapping, tabs-and-home, walk-screen, walkability.
+Rule areas: captures-and-media, deletion, explore-and-discovery, functional-core, gaps, kind-walk, landing, map, memories, moments-and-days, motion-polish, navigation, notifications, places-and-areas, react-native-web, recording-and-traces, replay, rides, storage, streets-fog-snapping, tabs-and-home, ui-patterns, walk-screen, walkability.
 
-Procedures are skills: `/vision` (the gate before any spec; `review` for drift; the `steward` subagent), `/slice` (spec-first, test-first), `/audit` (the adversarial pass, with the `auditor` subagent, when the owner asks), `/e2e`, `/deploy`, `/docs-gc` (end-of-slice drift check), `/fix` (one issue end to end in a worktree; deploys by default, `--deploy=branch` stops at a pushed branch; decision 0081).
+Procedures are skills: `/vision` (the gate before any spec; `review` for drift; the `steward` subagent), `/slice` (spec-first, test-first), `/audit` (the adversarial pass, with the `auditor`, `steward` and `ux-reviewer` subagents and screenshots, when the owner asks), `/e2e`, `/deploy`, `/docs-gc` (end-of-slice drift check), `/fix` (one issue end to end in a worktree; deploys by default, `--deploy=branch` stops at a pushed branch; decision 0081).
 
 ## Rules that hold everywhere
 

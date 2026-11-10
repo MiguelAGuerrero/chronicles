@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { PendingJob } from '../../deletion/pending';
+import { createDeleteRunner } from '../../deletion/runner';
 import type { Moment } from '../../types';
 import { fakePorts } from '../fakes';
 
@@ -39,7 +40,7 @@ test('MS16: Split out keeps the original\'s threads, replies, reminder and find,
   await s.split(stacked(), 'p');
   assert.deepEqual(s.pending().map((m) => [m.id, m.pieces.map((x) => x.id), m.t, m.lat]), [['p', ['p'], 5, 41.8]], 'shown at once as its own moment');
   assert.deepEqual((await p.db.getMomentsByIds(['m']))[0].pieces.map((x) => x.id), ['m', 'p', 'n'], 'nothing stored before the window');
-  await jobs[0].run();
+  await createDeleteRunner({ db: p.db, removeMedia: async () => 0, forgetRecalls: () => {} })(jobs[0].spec);
   assert.deepEqual((await p.db.getMomentsByIds(['m']))[0].pieces.map((x) => x.id), ['m', 'n']);
   assert.deepEqual((await p.db.getMomentsByIds(['p']))[0].pieces.map((x) => [x.id, x.moment_id, x.t]), [['p', 'p', 5]]);
   const { members, links } = await p.db.listThreads();

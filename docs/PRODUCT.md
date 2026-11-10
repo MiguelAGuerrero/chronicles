@@ -294,11 +294,15 @@ recording, and a recording bar brings a minimized walk back.
   - **Show less like this** and **Not this one** (on the ... of the top card and
     of every card) change what is brought back, never what is kept; both have Undo.
   - Memos show here but join threads only once they have a transcript (not yet).
+- **A note mentions moments** (decision 0125): typing @ in a note (Respond → Note, Edit on a note) picks
+  another moment; the viewer draws it as a card of that moment (its picture or kind, date, place and walk) that
+  opens it, with Back to the note; elsewhere it reads as words. The moment mentioned says "Mentioned in a note",
+  and its More opens the note. A mention touches no thread.
 - **Threads the owner makes** (decisions 0104, 0105): moments the owner connected, beside the
   Chronicle's threads above it; both are "threads", told apart by an icon (a link for
   the owner's, a repeat arrow for the Chronicle's), spoken as "connected by you" and "found for you". From a moment's menu, **Add to a thread** names a
-  thread or makes a new one with a second kept moment; **Respond** (photo, voice,
-  note, one tap each on the viewer's face) keeps a new moment linked to the one it
+  thread or makes a new one with a second kept moment; **Respond**, in the viewer's toolbar under the moment
+  (a menu: photo or video, voice memo, note), keeps a new moment linked to the one it
   answers, in its thread. A thread reads oldest first, a reply under what it
   answers; its size is a phrase ("a few moments, since March"), its name is the
   owner's and optional. **Remove from this thread** and **Delete this thread**
@@ -353,8 +357,15 @@ recording, and a recording bar brings a minimized walk back.
   swatches, Undo, Redo); a text bar; a trim for videos. The file is never changed:
   edits are kept with the moment and can be changed or reverted later. Saving out
   renders everything into one photo or video.
-- **Deletes** (a walk, a walk's media, one moment) hide at once with a 5 s
-  Undo, then run as if it never happened.
+- **Deletes** (a walk, a walk's media, one moment, a thread) hide at once with an
+  Undo that waits until you tap Undo or Close or delete something else, then run
+  as if it never happened. A moment or a thread goes with no question first; a
+  walk and a walk's photos, videos and memos still ask and say what goes. A delete
+  waiting when the app is killed is completed at the next launch (decision 0113).
+- **The moment viewer** steps aside: a tap on a photo hides its bars. Its top bar
+  is Close and More (Remind me here and Go here are in More), and what you just
+  did to a moment (a reply kept, added to a thread, a reminder set) is said in its
+  info line rather than in a pill.
 
 ## Settings and notifications
 
@@ -404,6 +415,7 @@ recording, and a recording bar brings a minimized walk back.
 | Town presence (a town graded across its whole outline, with its busy areas listed) | Built (web verified by the e2e; native unverified) |
 | Resurfaced moments (Chronicle opens on Memories: a moment brought back, threads from the user's words, Lately) | Built (web verified by the e2e `resurface`; native unverified) |
 | Owner threads (respond to a moment; connect moments across walks; Threads on Memories) | Built (web verified by the e2e `threads`; native unverified) |
+| Moment references (a note mentions moments with @) | Built on `claude/ui-conformance` (web verified by the e2e `threads`; native unverified) |
 | Capture from Chronicle (the app opens on Memories; the band keeps a moment in one tap; HC1-HC15) | Built (web verified by the e2e `capturehome`, `launch`; native unverified) |
 | Moment stacks (a moment holds its media; Add to this moment; one card and pin per moment; the viewer's pieces; deleting one; Split out; the replay's grid; Group captures) | Built, rounds 0-2 (web verified by the e2e `upgrade` and `stacks`; native unverified) |
 | Moments and days, memories on revisit, thumbnails | Shipped, audited |

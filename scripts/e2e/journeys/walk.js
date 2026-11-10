@@ -340,7 +340,12 @@ async function checks(h) {
           await page.waitForTimeout(300);
         }
         check((await page.getByText('The bakery smelled of cardamom.').count()) > 0, 'a long press on the map shows what happened there');
+        check(!(await page.locator('[data-testid=viewer-remind]').isVisible().catch(() => false)) && !(await page.locator('[data-testid=viewer-go]').isVisible().catch(() => false)),
+          'UC9: the viewer\'s top bar holds Close and More only; Remind me here and Go here wait in More');
         // Remind me here, from the viewer: once by default, with an optional end (R1).
+        await page.click('[data-testid=viewer-more]');
+        await page.waitForTimeout(300);
+        await shot(page, '03b-viewer-more');
         await page.click('[data-testid=viewer-remind]');
         await page.waitForSelector('[data-testid=remind-editor]');
         check((await page.locator('[data-testid=remind-once][aria-checked=true]').count()) === 1 && (await page.locator('[data-testid=remind-none][aria-checked=true]').count()) === 1, 'remind me here offers how often, once by default, and until when');
@@ -348,22 +353,29 @@ async function checks(h) {
         // Every pin element as it stands, to see that the bell redraws it in place (reminder-bell audit 3, 4).
         await page.evaluate(() => document.querySelectorAll('[data-ids]').forEach((e) => { e.__beforeBell = true; }));
         await page.click('[data-testid=remind-save]');
-        await page.waitForSelector('text=It will come back when you pass here');
-        check((await page.locator('[aria-label="Reminder set. Change or stop it"]').count()) === 1, 'the viewer shows the reminder is set');
+        await page.waitForSelector('[data-testid=capture-meta] >> text=/Reminder set/');
+        // The walk screen keeps two viewers mounted; the one open is the one whose line says it.
+        const reminderSaid = (await page.locator('[data-testid=capture-meta]:has-text("Reminder set")').count()) > 0 && (await page.locator('[data-testid=viewer-pill]').count()) === 0;
+        check(reminderSaid, 'UC10, UC12: a set reminder says so in the info line, with no pill');
+        await shot(page, '03c-reminder-set');
         // The map behind the open viewer already wears the bell, on the same element (RB5, audit 3, 4).
         await page.waitForSelector('[data-ids] [data-testid=pin-reminder]', { timeout: 5000 }).catch(() => null);
         const keptOnSave = await page.locator('[data-ids]:has([data-testid=pin-reminder])').evaluateAll((els) => els.length === 1 && els[0].__beforeBell === true);
         check(keptOnSave, 'reminder-bell audit 3: the bell redraws the same pin element in place, so focus can return to it and a photo keeps its picture (audit 4)');
         // Stop from the viewer takes the bell off at once (RB5), then set again for the walk ahead.
+        await page.click('[data-testid=viewer-more]');
         await page.click('[data-testid=viewer-remind]');
         await page.click('[data-testid=remind-stop]');
-        await page.waitForSelector('text=No more reminders here');
+        await page.waitForFunction(() => ![...document.querySelectorAll('[data-testid=capture-meta]')].some((e) => /Reminder set/.test(e.textContent ?? '')), null, { timeout: 5000 });
+        const metaCopies = await page.locator('[data-testid=capture-meta]').count();
+        check(metaCopies === 1, `ui-conformance audit 1: closing the reminder editor leaves no stale copy of the moment behind (${metaCopies} info lines)`);
         await page.waitForFunction(() => !document.querySelector('[data-testid=pin-reminder]'), null, { timeout: 5000 }).catch(() => null);
         const bellsAfterStop = await page.locator('[data-testid=pin-reminder]').count();
         check(bellsAfterStop === 0, `Stop reminding me takes the pin's bell off at once (RB5: ${bellsAfterStop} bells)`);
+        await page.click('[data-testid=viewer-more]');
         await page.click('[data-testid=viewer-remind]');
         await page.click('[data-testid=remind-save]');
-        await page.waitForSelector('text=It will come back when you pass here');
+        await page.waitForSelector('[data-testid=capture-meta] >> text=/Reminder set/');
         await page.click('[aria-label="Close"]');
         // Its pin wears the bell at once, top right, and says so (RB1, RB5, RB7).
         const belled = await page.waitForSelector('[data-ids] [data-testid=pin-reminder]', { timeout: 5000 }).then(() => true, () => false);

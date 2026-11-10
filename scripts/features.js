@@ -81,7 +81,7 @@ const FEATURES = [
     name: 'replay',
     about: 'the five beats after a walk, the summary, the quiet lines',
     rule: 'replay',
-    source: ['src/app/replay/**', 'src/lib/ceremony/**', 'src/components/ceremony/**', 'src/lib/{replay,quietLines,summary}.ts', 'src/components/CaptureView.tsx'],
+    source: ['src/app/replay/**', 'src/lib/ceremony/**', 'src/components/ceremony/**', 'src/lib/{replay,quietLines,summary}.ts', 'src/components/CaptureView.tsx', 'src/lib/viewerBars.ts'],
     journeys: ['replay'],
     specs: ['concept', 'replay-rhythm'],
   },
@@ -250,9 +250,9 @@ const FEATURES = [
     name: 'threads',
     about: 'threads the owner makes: respond to a moment, connect moments across walks; a thread, its members and a directed reply are stored apart from the moments',
     rule: 'threads',
-    source: ['src/lib/threads/**', 'src/components/threads/**'],
+    source: ['src/lib/threads/**', 'src/lib/refs.ts', 'src/components/threads/**'],
     journeys: ['threads'],
-    specs: ['owner-threads'],
+    specs: ['owner-threads', 'moment-references'],
   },
   {
     name: 'motion',
@@ -276,7 +276,7 @@ const FEATURES = [
     rule: 'deletion',
     source: ['src/lib/deletion/**', 'src/components/{WalkActions,UndoToast}.tsx'],
     journeys: ['deletion'],
-    specs: ['clearing-walks-and-moments'],
+    specs: ['clearing-walks-and-moments', 'ui-conformance'],
   },
   {
     name: 'memories',
@@ -352,6 +352,8 @@ const RETIRED = {
  * make (the web build can't reach it), `deferred: <why>` for the owner's call to wait. Keyed by spec.
  */
 const UNTESTED = {
+  // react-native-web always reports a screen reader, so the check that keeps the viewer's bars is a phone's (UC8).
+  'ui-conformance': { UC8: 'device: with VoiceOver or TalkBack on, a tap on a photo leaves the viewer\'s bars up; the web build always reports a screen reader' },
   // Places out of town: queued, not started (the owner, Nov 9-10). Back to IN_PROGRESS when the slice begins.
   'places-out-of-town': {
     OP1: 'deferred: queued by the owner (decisions 0115-0118); its archive phase is re-planned as pipeline adapters in chronicles-data (0120) before the slice starts',

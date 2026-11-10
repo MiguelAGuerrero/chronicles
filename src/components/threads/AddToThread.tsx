@@ -30,7 +30,7 @@ function rowOf(m: MomentView, walks: Map<string, Walk>, now: number) {
  * with. Drawn inside the viewer's Modal, never as a second one (iOS can't present a Modal over a Modal). Nothing is
  * made without two kept moments (OT6).
  */
-export function AddToThread(props: { moment: Faced; onClose: () => void; onDone: (message: string) => void }) {
+export function AddToThread(props: { moment: Faced; onClose: () => void; onDone: (message: string, ok: boolean) => void }) {
   const insets = useSafeAreaInsets();
   const { data } = useThreads();
   const [pool, setPool] = useState<{ views: MomentView[]; walks: Map<string, Walk> } | null>(null);
@@ -73,11 +73,11 @@ export function AddToThread(props: { moment: Faced; onClose: () => void; onDone:
 
   const addTo = async (threadId: string) => {
     const ok = await threads.addToThread(threadId, props.moment.id).catch(() => false);
-    props.onDone(ok ? 'Connected' : 'Could not connect');
+    props.onDone(ok ? 'Connected' : 'Could not connect', ok);
   };
   const joinWith = async (other: MomentView) => {
     const id = await threads.startThread([props.moment.id, other.id]).catch(() => null);
-    props.onDone(id ? 'Connected' : 'Could not connect');
+    props.onDone(id ? 'Connected' : 'Could not connect', !!id);
   };
   return (
     <View style={[StyleSheet.absoluteFill, styles.back, { paddingTop: insets.top + 56, paddingBottom: insets.bottom + 12 }]}>

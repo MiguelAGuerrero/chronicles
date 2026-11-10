@@ -89,9 +89,10 @@ Owner threads (decision 0104)
   threads/rules.ts           thinThreads (dissolve below two), canMakeThread, threadForReply, replyChange, addChange, visibleThreads (what Undo hides)
   threads/timeline.ts        buildTimeline: oldest first, a reply under what it answers
   threads/lines.ts           every sentence: size words from a fixed set, since March, answering, context, a heading
+  threads/useKeyboardHeight(.web).ts  how far the keyboard reaches up: Keyboard events on phones, visualViewport on web (the note editor rises above it)
   threads/shell.ts           createThreads(ports, { schedule }): startThread, addToThread, removeFromThread, rename, deleteThread (Undo), reply, moments
   threads/index.ts           the app instance (the Undo window is `deletions`); useThreads.ts the view hook
-  threads/                   (components/) RespondBar, AddToThread, ThreadChip, MyThreads, OwnThreadScreen, ThreadMomentMenu, ThreadMark (the made/found icon, decision 0105)
+  threads/                   (components/) ReplyDock (the viewer's toolbar: Respond, Edit, the Respond menu), AddToThread, MyThreads, OwnThreadScreen, ThreadMomentMenu, ThreadMark (the made/found icon, decision 0105)
 Home / tabs
   HomeSheet.tsx              the three-height bottom sheet (Animated + responders), Walks | Days, a place's walks, a day's timeline
   StarView.tsx               a star for a place; all one size; the 8 busiest carry names
@@ -471,6 +472,9 @@ own code only where no Expo module covers the feature on web:
   `navigator.userAgent` and `maxTouchPoints`, since `Platform.OS` is just
   `web` and no Expo module says which phone a browser runs on. The link
   itself goes through React Native's `Linking`, as on a phone.
+- **The keyboard's height** (Respond's note, fix respond-bottom): `threads/useKeyboardHeight.web.ts` reads
+  `visualViewport`. react-native-web's `Keyboard` reports nothing and its `KeyboardAvoidingView` does nothing, and
+  `#root` is pinned, so a field near the foot was left under the keyboard.
 - **Can it buzz** (the pocket alert's switch): `canBuzz.web.ts` asks
   whether the pointer is coarse. expo-haptics' web build vibrates where
   `navigator.vibrate` exists and tries iPhone Safari's switch haptic on a touch

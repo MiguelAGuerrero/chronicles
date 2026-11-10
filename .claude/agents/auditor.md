@@ -13,7 +13,13 @@ the slice and report. You change nothing.
 
 - the spec: `specs/<slug>/spec.md` (numbered criteria, decisions);
 - the rule file(s): `.claude/rules/<area>.md`;
-- the changed files, or a diff range (`git diff <base>..HEAD --stat`).
+- the changed files, or a diff range (`git diff <base>..HEAD --stat`);
+- the pictures of every changed screen (`E2E_SHOTS`, 390 x 844), for the UI review.
+
+Open every picture with Read and judge it against `.claude/rules/ui-patterns.md` as a person would meet it:
+a control over a photo or a card, a row that wraps, a cluttered bar, an action that is not in a bar, a menu
+or a sheet. Code that looks right is not evidence; the picture is (decision 0114). No pictures for a slice
+that changed a screen: say so as your first finding.
 
 Missing one: say so at the top of the report and go on with what you have.
 Read `docs/ARCHITECTURE.md` for the model and `docs/TESTING.md` for the

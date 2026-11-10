@@ -3,6 +3,7 @@ import type { Faced } from '../moment';
 import { distanceM } from '../geo';
 import type { LngLat } from '../types';
 import type { Recall, RecallFrequency } from './types';
+import { plainNote } from '../refs';
 
 /** Remind me here's numbers (R2, R4, R5). */
 export const RECALL_RULES = {
@@ -53,9 +54,11 @@ export function dueRecalls(o: {
   quiet: boolean;
   recalls: Recall[];
   captures: Faced[];
+  /** Moments waiting in Undo, or gone: never brought back by a reminder (ui-conformance audit 7). */
+  hidden?: ReadonlySet<string>;
 }): { recall: Recall; capture: Faced }[] {
   if (o.quiet) return [];
-  const byId = new Map(o.captures.map((c) => [c.id, c]));
+  const byId = new Map(o.captures.filter((c) => !o.hidden?.has(c.id)).map((c) => [c.id, c]));
   const path: LngLat[] = typeof o.here[0] === 'number' ? [o.here as LngLat] : (o.here as LngLat[]);
   const out: { recall: Recall; capture: Faced }[] = [];
   for (const r of o.recalls) {
@@ -96,7 +99,7 @@ export function reminderText(captures: Faced[]): { title: string; body: string }
   if (captures.length > 1) return { title: `${captures.length} memories here`, body: kindsOf(captures) };
   const c = captures[0];
   if (c.kind === 'text' && c.body) {
-    const text = c.body.trim();
+    const text = (plainNote(c.body) ?? '').trim();
     return { title: 'A note from here', body: text.length > RECALL_RULES.noteChars ? `${text.slice(0, RECALL_RULES.noteChars)}…` : text };
   }
   if (c.caption) return { title: 'A memory from here', body: c.caption };

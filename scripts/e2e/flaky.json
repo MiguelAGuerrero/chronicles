@@ -1,1 +1,10 @@
-{}
+{
+  "scenic": [
+    {
+      "check": "fix preview-clutter audit 1: the trace was drawn before the preview and is drawn again as it closes ( -> )",
+      "fails": "1/1",
+      "base": "38765c9",
+      "seen": "2026-11-10"
+    }
+  ]
+}
