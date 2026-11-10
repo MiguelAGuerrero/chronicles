@@ -75,7 +75,7 @@ const FEATURES = [
     rule: 'navigation',
     source: ['src/lib/nav/**', 'src/lib/here/**', 'src/lib/routeLeanings/**', 'src/components/{RoutePreview,RouteLeaningSettings}.tsx'],
     journeys: ['scenic'],
-    specs: ['v0.5-places', 'bridges-and-open-in-maps', 'quality-of-life', 'scenic-routes'],
+    specs: ['v0.5-places', 'bridges-and-open-in-maps', 'quality-of-life', 'scenic-routes', 'drive-then-walk'],
   },
   {
     name: 'replay',
@@ -352,7 +352,9 @@ const UNTESTED = {
  * Specs a slice is building (TG22): from its plan until done, its criteria are exempt from the gate.
  * `{ slug: { branch, since: 'YYYY-MM-DD' } }`; an entry older than 7 days fails the docs check.
  */
-const IN_PROGRESS = {};
+const IN_PROGRESS = {
+  'drive-then-walk': { branch: 'claude/gracious-hopper-34sdrs', since: '2026-11-10' },
+};
 
 const byName = new Map(FEATURES.map((f) => [f.name, f]));
 
