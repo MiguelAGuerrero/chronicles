@@ -1,4 +1,4 @@
-# 0125. Presence by bars: a place may light two; routes lean on places you pass; Community spaces
+# 0126. Presence by bars: a place may light two; routes lean on places you pass; Community spaces
 
 Date: 2026-11-10 · Status: accepted · Area: explore, discovery, walk-planner
 

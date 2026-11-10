@@ -9,7 +9,7 @@ import type { Capture, CaptureKind, WalkSummary } from '../types';
  * `db.deleteCaptures`; the Undo window is `pending.ts`.
  */
 
-export type DeleteKind = 'walk' | 'media' | 'moment' | 'piece' | 'split' | 'thread';
+export type DeleteKind = 'walk' | 'media' | 'moment' | 'piece' | 'split' | 'thread' | 'remove';
 
 /** Photos, videos and memos: what "Remove photos, videos and memos" takes (D2). Notes stay. */
 export const isMedia = (c: { kind: CaptureKind }): boolean => c.kind !== 'text';
@@ -128,17 +128,17 @@ const KIND_NOUN: Record<CaptureKind, string> = { photo: 'photo', video: 'video',
 
 /** D4: deleting one moment. */
 export function momentDeleteText(kind: CaptureKind, bytes: number): ConfirmText {
-  return { title: `Delete this ${KIND_NOUN[kind]}?`, body: withSize('You can undo it for 5 seconds.', bytes), confirm: 'Delete' };
+  return { title: `Delete this ${KIND_NOUN[kind]}?`, body: withSize('You can undo it.', bytes), confirm: 'Delete' };
 }
 
 /** MS13: deleting a moment that holds more than one piece names the moment, never its face's kind. */
 export function stackDeleteText(bytes: number): ConfirmText {
-  return { title: 'Delete this moment and everything in it?', body: withSize('You can undo it for 5 seconds.', bytes), confirm: 'Delete' };
+  return { title: 'Delete this moment and everything in it?', body: withSize('You can undo it.', bytes), confirm: 'Delete' };
 }
 
 /** MS13: deleting one piece of a moment, named by its kind; the moment and the rest stay. */
 export function pieceDeleteText(kind: CaptureKind, bytes: number): ConfirmText {
-  return { title: `Delete this ${KIND_NOUN[kind]} from the moment?`, body: withSize('The rest of the moment stays. You can undo it for 5 seconds.', bytes), confirm: 'Delete' };
+  return { title: `Delete this ${KIND_NOUN[kind]} from the moment?`, body: withSize('The rest of the moment stays. You can undo it.', bytes), confirm: 'Delete' };
 }
 
 /** D5: the pill's words, naming the moment's kind when it is known. */
@@ -146,6 +146,7 @@ export function toastText(kind: DeleteKind, what?: CaptureKind): string {
   if (kind === 'walk') return 'Walk deleted';
   if (kind === 'media') return 'Photos, videos and memos removed';
   if (kind === 'thread') return 'Thread deleted';
+  if (kind === 'remove') return 'Removed from the thread';
   if (!what) return 'Moment deleted';
   if (kind === 'split') {
     const noun = KIND_NOUN[what];
@@ -157,4 +158,12 @@ export function toastText(kind: DeleteKind, what?: CaptureKind): string {
   }
   const noun = KIND_NOUN[what];
   return `${noun[0].toUpperCase()}${noun.slice(1)} deleted`;
+}
+
+/** What the pill's Close keeps, said for a screen reader (UC3, ui-conformance audit 11). */
+export function dismissLabel(kind: DeleteKind): string {
+  if (kind === 'remove') return 'Close, it stays removed';
+  if (kind === 'media') return 'Close, they stay removed';
+  if (kind === 'split') return 'Close, it stays split out';
+  return 'Close, it stays deleted';
 }

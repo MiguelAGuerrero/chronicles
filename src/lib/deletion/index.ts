@@ -1,28 +1,44 @@
 // @layer shell
 import { type Faced, facedAll, hasMore, pieceKey } from '../moment';
-import { AppState } from 'react-native';
 import { db } from '../db';
-import { forgetRecalls } from '../discovery/recallCheck';
+import { forgetRecalls, setRecallHidden } from '../discovery/recallCheck';
 import { mediaBytes, removeMedia } from '../media';
 import type { CaptureKind, Walk } from '../types';
-import { pieceDelete } from './piecesApp';
 import { filesOf, filesOfMoments, isMedia, mediaRemoveText, pieceDeleteText, stackDeleteText, momentDeleteText, walkDeleteText, type ConfirmText } from './core';
 import { createPending } from './pending';
+import { createDeleteRunner } from './runner';
+import { isPendingJob, isPendingJobs } from './saved';
 
 /**
  * Clearing walks and moments (D1-D11): the app's one Undo window, wired to
  * real timers and storage. Every delete goes through here: rows first, in one
  * transaction, then files (a file left behind is never a row without its file).
  */
+/** Meta: the delete waiting in the Undo window (UC13), as JSON; `isPendingJob` reads it back. */
+export const PENDING_KEY = 'pending_delete';
+const run = createDeleteRunner({ db, removeMedia, forgetRecalls });
+
 export const deletions = createPending({
   setTimer: (fn, ms) => setTimeout(fn, ms),
   clearTimer: (id) => clearTimeout(id as ReturnType<typeof setTimeout>),
+  run,
+  // Kept so a killed app stores it at the next launch (UC13, decision 0113); a failed write only loses that.
+  save: (jobs) => void db.setMeta(PENDING_KEY, jobs.length ? JSON.stringify(jobs) : '').catch(() => {}),
 });
 
-// Going to the background stores what waits (D5): a pocketed phone may never come back to it.
-AppState.addEventListener('change', (s) => {
-  if (s === 'background') void deletions.flush();
-});
+// A reminder never brings back a moment waiting in Undo (ui-conformance audit 7).
+setRecallHidden(() => deletions.hidden());
+
+// A delete still waiting when the app was last killed is stored now, with no pill (UC13).
+void db
+  .getMeta(PENDING_KEY)
+  .then((raw) => {
+    const saved: unknown = raw ? JSON.parse(raw) : null;
+    // An older app saved one delete; this one saves a list.
+    const jobs = isPendingJobs(saved) ? saved : isPendingJob(saved) ? [saved] : [];
+    return jobs.length ? deletions.resume(jobs) : undefined;
+  })
+  .catch(() => {});
 
 /** What a walk's actions would take, for the confirm (D4, D11). */
 export interface WalkPlan {
@@ -59,34 +75,13 @@ export async function planWalk(walkId: string): Promise<WalkPlan | null> {
 /** D1: the walk and everything tied to it, after the Undo window. */
 export function deleteWalk(plan: WalkPlan) {
   const { walk, captures } = plan;
-  deletions.schedule({
-    kind: 'walk',
-    ids: [walk.id, ...captures.map((c) => c.id)],
-    run: async () => {
-      // Read again at the end of the window: a moment made since (none for a finished walk) or one deleted meanwhile.
-      const now = await db.getMoments(walk.id).then(facedAll);
-      await db.deleteWalk(walk.id);
-      forgetRecalls();
-      await removeMedia(filesOfMoments(now), [walk.id]);
-    },
-  });
+  deletions.schedule({ kind: 'walk', ids: [walk.id, ...captures.map((c) => c.id)], spec: { type: 'walk', walkId: walk.id } });
 }
 
 /** D2: the walk's photos, videos and memos; the places they found stay found. */
 export function removeWalkMedia(plan: WalkPlan) {
-  const media = plan.media;
-  deletions.schedule({
-    kind: 'media',
-    ids: media.map((c) => c.id),
-    run: async () => {
-      const ids = media.map((c) => c.id);
-      // Read fresh: a thumbnail made since the menu opened goes too.
-      const fresh = await db.getMomentsByIds(ids).then(facedAll);
-      await db.deleteMoments(ids, { keepFinds: true });
-      forgetRecalls();
-      await removeMedia([...new Set(filesOfMoments([...media, ...fresh]))]);
-    },
-  });
+  const ids = plan.media.map((c) => c.id);
+  deletions.schedule({ kind: 'media', ids, spec: { type: 'media', walkId: plan.walk.id, captureIds: ids } });
 }
 
 /** What deleting one moment would say (D4). */
@@ -98,18 +93,8 @@ export async function planMoment(c: Faced): Promise<ConfirmText> {
 
 /** D3: one moment, its reminder and its find. Its file and thumbnail go, read fresh (a thumbnail made since). */
 export function deleteMoment(c: Faced) {
-  deletions.schedule({
-    kind: 'moment',
-    // A stacked moment's toast names the moment, never its face's kind (MS13).
-    what: hasMore(c) ? undefined : c.kind,
-    ids: [c.id],
-    run: async () => {
-      const [fresh] = await db.getMomentsByIds([c.id]).then(facedAll);
-      await db.deleteMoments([c.id]);
-      forgetRecalls();
-      await removeMedia([...new Set(filesOfMoments(fresh ? [c, fresh] : [c]))]);
-    },
-  });
+  // A stacked moment's toast names the moment, never its face's kind (MS13).
+  deletions.schedule({ kind: 'moment', what: hasMore(c) ? undefined : c.kind, ids: [c.id], spec: { type: 'moment', captureId: c.id } });
 }
 
 /**
@@ -117,17 +102,7 @@ export function deleteMoment(c: Faced) {
  * moment (`deletion/pieces`).
  */
 export function deletePiece(m: Faced, pieceId: string, kind: CaptureKind) {
-  deletions.schedule({
-    kind: 'piece',
-    what: kind,
-    ids: [pieceKey(pieceId)],
-    run: async () => {
-      await pieceDelete.run(m, pieceId, async (refs) => {
-        await removeMedia(refs);
-      });
-      forgetRecalls();
-    },
-  });
+  deletions.schedule({ kind: 'piece', what: kind, ids: [pieceKey(pieceId)], spec: { type: 'piece', momentId: m.id, pieceId } });
 }
 
 /** What deleting one piece, or a stacked moment, would say (MS13). */

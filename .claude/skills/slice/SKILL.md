@@ -71,7 +71,12 @@ Write `specs/<slug>/plan.md`:
   (`src/lib/__tests__/<feature>/`) and the name for each id; a new feature (a
   folder and a row in `scripts/features.js`) or a new journey, if the slice needs one;
 - what is deferred, and why;
-- native paths that will not run on a device.
+- native paths that will not run on a device;
+- for every screen it adds or changes, one line per action: the user's goal, how
+  often and in what situation, the control, and its row in the goal-to-control
+  matrix (`docs/research/ui-references.md`, section 2), with a precedent from
+  `docs/research/ui-teardown.md` where there is one. A control the matrix says
+  to avoid needs a reason the owner accepts (`.claude/rules/ui-patterns.md`).
 
 Then run the `steward` subagent (`.claude/agents/steward.md`) on the spec and
 plan, unless the gate said no surface. Triage each finding in the plan (accept
@@ -156,7 +161,7 @@ npm run typecheck && npm run lint && npm test
 npm run check:affected                                  # names the e2e journeys for the slice's files
 npm run test:feature <feature>                          # the slice's feature, whole
 npm run check:test-first <slug>                         # each criterion's todo came before its real test
-npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # each journey it names, the slice's own included
+npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # the slice's own and those chosen as in docs/TESTING.md, "Choosing the journeys"
 ```
 
 **The e2e's economy (docs/TESTING.md, `scripts/e2e/economy.js`).** Each journey is minutes

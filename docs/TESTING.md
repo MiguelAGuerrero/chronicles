@@ -387,8 +387,29 @@ minutes): it is the agent's job before merging.
 npm run typecheck && npm run lint && npm test
 npm run check:affected                                  # names the e2e journeys for what changed, and what nothing covers
 npm run test:feature <feature>                          # the slice's feature, whole
-npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # each journey it names
+npm run export:web && E2E_ONLY=<journey> npm run e2e:web   # the journeys chosen below, not every one it names
 ```
+
+### Choosing the journeys
+
+`check:affected` names every journey of every feature that owns a changed file: a list of what a change
+*reaches*, not what it must run. Choose from it (the owner's call, Nov 10, after the UI conformance audit ran
+eight journeys for 27 minutes where three, about 12, proved every fix):
+
+1. **Logic a unit test proves needs no journey.** A core or shell change with its own test (the Undo window,
+   a reminder filter, a view rule like `viewerBars`) is done by `npm test`.
+2. **Run a journey only for what a person sees or the wiring between screens**, and only one that holds a
+   check for it: `grep -l "<criterion ids>\|<slice> audit" scripts/e2e/journeys/*.js`. A journey with no check
+   on the change is a reach, not a must.
+3. **Count the prerequisites.** `chronicle`, `memories` and `deletion` run `walk` first, and `deletion` runs
+   the `memories` checks too: running `walk`, `chronicle`, `memories` and `deletion` by name walks four
+   times. Run the one that contains the others. If the chosen set would replay more than the full flow
+   (about 15 minutes, every journey once), ask the owner for the full flow instead.
+4. **Run a new or edited check alone first**, in its own journey, before any batch: a wrong assumption in
+   the check (an item that screen never offers) costs one journey, not a batch.
+5. **After a fix, rerun only the journeys whose files or checks the fix touched.**
+
+State in the report which journeys ran, which were reached and skipped, and why.
 
 A slice that changes a screen adds or extends its own journey (`/e2e`); one
 that changes no screen runs no e2e. The full flow (no `E2E_ONLY`, about 15

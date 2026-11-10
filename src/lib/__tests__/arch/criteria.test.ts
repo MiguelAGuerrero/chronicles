@@ -94,8 +94,28 @@ test('TG23 a todo is not a test: an id named only by a todo unit test or check.t
 
 type TestFirst = {
   testFirst(ids: string[], commits: { sha: string; lines: string[] }[]): { id: string; ok: boolean; why: string }[];
+  callLines(raw: string[]): string[];
 };
 const tf = load(join(ROOT, 'scripts', 'test-first.js')) as TestFirst;
+
+test('TG24 test-first: an id on the line after its call opens is read with that call', () => {
+  // git grep -n -B1: `11-` the line before, `12:` the match, `--` between groups.
+  const lines = tf.callLines([
+    '11-        check.todo(!!(u && x), ',
+    "12:          'XX1: the pill has Undo and a Close');",
+    '--',
+    "40:  check(ok, 'XX2: on one line');",
+    '--',
+    '70-  const note = 1;',
+    "71:  // XX3 named in a comment, in no call",
+  ]);
+  assert.equal(lines.length, 3);
+  assert.match(lines[0], /check\.todo\(.*XX1/, 'read with its check.todo(');
+  assert.equal(lines[1], "  check(ok, 'XX2: on one line');");
+  assert.equal(lines[2], '  // XX3 named in a comment, in no call', 'a line before that opens no call is not joined');
+  const r = tf.testFirst(['XX1'], [{ sha: 'a1', lines: [lines[0]] }, { sha: 'b2', lines: ["check(ok, 'XX1: real')"] }]);
+  assert.equal(r[0].ok, true, r[0].why);
+});
 
 test('TG24 test-first: each id was a todo test in an earlier commit than the one that made it real', () => {
   const todo = (id: string) => `test('${id}: x', { todo: 'test first' }, () => {});`;

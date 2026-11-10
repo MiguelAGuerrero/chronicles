@@ -388,6 +388,18 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **A town's page with its own tile selected names nothing on the map** (audit 2): the town's pin is not drawn there (one level only, fix map-levels audit 1), and the neighborhoods are dots. The page title, the wide tile and the border name the town. Drawing the town's pin as the lone named one would mix levels again; the owner's call.
 - **A dot has no accessible name and no tap** (audit 3): area points are `aria-hidden` with pointer events off on web and carry no label on native; the live region and the grid's tiles name areas. Predates the fix (dots were already unnamed), now more of them.
 
+## UI patterns and the UX research (decision 0114)
+
+- **Research gaps** (after the second pass, Nov 10, with the hosts allowed): Polarsteps and the app-store pages refuse automated fetches, so their teardown claims stay unverified; M3 has no page on photo or video viewers; the Apple HIG was read once (first pass) and not re-checked.
+
+## UI conformance (`specs/ui-conformance`, decisions 0114, 0113)
+
+- **Tap to hide on a video:** a video's own controls take its taps, so its bars stay up; hiding them over a playing video is its own change.
+- **Hiding unavailable menu items vs disabling them** (M5: the HIG hides, M3 and NN/g disable): not touched.
+- **What a delete frees** ("Moment deleted · about 3 MB", the steward's question): the walk's and the media's confirms still say it; the pill does not.
+- **A recoverable trash** (Recently deleted, as Photos and Google Photos have): a killed app now completes a waiting delete (0113); a durable trash would change the data model and is its own slice.
+- **The reminder editor's chip rows wrap at 390 px** (`specs/ui-conformance` audit 25, the `ux-reviewer`'s U4): "How often" and "Until" are rows of four chips each; the patterns say a single choice from a short list is a menu (matrix 15). Fix: two labelled rows ("How often: Once ▾", "Until: No end ▾"), each opening a menu. The editor predates the slice.
+
 ## Places out of town (specs/places-out-of-town, decisions 0115-0120)
 
 - **The whole slice, OP1-OP20, is queued** (the owner, Nov 9-10): the places archive went live first (PW16, Nov 10), and its archive phase is re-planned as adapters in chronicles-data's places pipeline (0120) before the slice starts. Its criteria are `deferred` in `UNTESTED` (`scripts/features.js`) until then.
@@ -408,6 +420,12 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **A selection moved by a re-list is neither eased nor announced** (explore-carousel audit 5): the first card changes when Locate or the fix reorders the row; the ring and card move together and the map still frames the page's areas.
 - **Native: a row remounted with a card past the first selected** (explore-carousel audit, native): `scrollTo` before layout may be dropped, leaving the row at the first card with another selected; and the row in a right-to-left layout is not mirrored.
 
+## Moment references (`specs/moment-references`, decision 0125)
+
+- **@ in the capture stack's quick note** (Navigate, the walk and the Memories band): those notes are their own inline composers, not `NoteEditor`; a mention there needs the picker drawn over each. Write the note, then Edit it to mention a moment.
+- **A mention's words are those it was written with** in plain text: a moment renamed or placed later still reads its old words outside the viewer, whose card looks it up live.
+- **Mentions from a note to a note opened from a mention** stack in the viewer without a limit; Back pops one at a time.
+
 ## Explore's map shows the selected area's places (fix area-marks, Nov 10)
 
 - **A town's finds past 800 m of its busiest pocket** (audit 1): finds are kept by `findsIn` within the ring around `sketchAt`, while a graded town's "?" come from its whole outline, so a find inside the border but far from the pocket shows on neither the map nor the card (the card had it before).
@@ -415,7 +433,7 @@ An item leaves only when it ships, or when it is rejected with a decision record
 - **The "?" label is the walk's** (audit 3): "A place to find. Open", the same on every pin, while a tap opens the area's card. An Explore label ("Something to find in Fox Point") needs the shared `markLabel` to take one.
 - **The base map may name a hidden place under its "?"** (audit 5): if the style draws poi labels at that zoom; the walk screen has the same, and checking needs real tiles.
 
-## Presence and kinds (PK1-PK19, decision 0125, Nov 10)
+## Presence and kinds (PK1-PK19, decision 0126, Nov 10)
 
 - **Plazas and art walkways** (the owner's picture of Culture): no data the app reads holds them; a source that adds places is 0115's question, not a sorting one (0117).
 - **Food and Parks are lit in most areas**, and Food wherever nearly any other bar is: they say little when lit. For the owner.

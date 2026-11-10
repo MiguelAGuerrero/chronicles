@@ -17,6 +17,7 @@ import { byMonth } from '../lib/months';
 import type { Walk, WalkSummary } from '../lib/types';
 import { Icon, KIND_ICON, KIND_LABEL } from './icons';
 import { theme } from './ui';
+import { plainNote } from '../lib/refs';
 
 /** What the sheet shows: the summary, every walk, one place's walks, every day, or one day's timeline. */
 export type SheetMode =
@@ -487,7 +488,7 @@ function EntryRow({ entry: e, summary: s, disabled, onOpen, onMore }: { entry: D
     );
   }
   const c = e.capture;
-  const what = c.kind === 'text' ? (c.body ?? '') : KIND_LABEL[c.kind];
+  const what = c.kind === 'text' ? (plainNote(c.body) ?? '') : KIND_LABEL[c.kind];
   return (
     <Pressable
       testID="timeline-moment"

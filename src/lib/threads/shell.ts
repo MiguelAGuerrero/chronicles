@@ -5,6 +5,7 @@ import type { Ports } from '../ports/types';
 import type { Walk } from '../types';
 import { addChange, canMakeThread, cleanName, replyChange } from './rules';
 import type { ThreadsData } from './types';
+import { membershipKey, type PendingJob } from '../deletion/pending';
 
 export interface ThreadsState {
   loaded: boolean;
@@ -15,19 +16,22 @@ export interface ThreadsState {
 
 const NONE: ThreadsData = { threads: [], members: [], links: [] };
 
-/** A delete that waits in the Undo window; the app's `deletions` runs it, a test runs it by hand (OT14). */
-export interface ThreadDeleteJob {
-  /** The thread id every screen hides while it waits. */
-  ids: string[];
-  run(): Promise<void>;
-}
+/** A delete that waits in the Undo window; the app's `deletions` stores it, a test stores it by hand (OT14, UC6). */
+export type ThreadDeleteJob = Pick<PendingJob, 'kind' | 'ids' | 'spec'>;
 
 /**
  * Owner threads (specs/owner-threads, decision 0104): reads and writes the owner's threads, memberships and replies.
  * A moment is never touched. The Chronicle's own threads (`lib/resurface`) are a separate, computed thing; nothing
  * here reads them (OT19).
  */
-export function createThreads(p: Pick<Ports, 'db' | 'clock' | 'newId'>, deps: { schedule: (job: ThreadDeleteJob) => void }) {
+export function createThreads(
+  p: Pick<Ports, 'db' | 'clock' | 'newId'>,
+  deps: {
+    schedule: (job: ThreadDeleteJob) => void;
+    /** Stores whatever waits in the Undo window, so a write never works against a removal about to land (audit 4). */
+    flush?: () => Promise<void>;
+  },
+) {
   const store: Store<ThreadsState> = createStore<ThreadsState>({ loaded: false, data: NONE, open: null });
   let writes: Promise<unknown> = Promise.resolve();
 
@@ -41,7 +45,10 @@ export function createThreads(p: Pick<Ports, 'db' | 'clock' | 'newId'>, deps: { 
    * (owner-threads audit 6), and a moment deleted meanwhile is found out just before the write (audit 7).
    */
   function serial<T>(fn: () => Promise<T>): Promise<T> {
-    const run = writes.then(fn);
+    const run = writes.then(async () => {
+      await deps.flush?.();
+      return fn();
+    });
     writes = run.catch(() => {});
     return run;
   }
@@ -97,9 +104,12 @@ export function createThreads(p: Pick<Ports, 'db' | 'clock' | 'newId'>, deps: { 
       });
     },
 
-    /** Takes one moment out of one thread; the moment and its other threads stay (OT8). A thread left thin dissolves. */
-    async removeFromThread(threadId: string, momentId: string): Promise<void> {
-      await serial(() => commit({ deleteMembers: [{ thread_id: threadId, moment_id: momentId }] }));
+    /**
+     * Takes one moment out of one thread, through the Undo window (UC6): hidden at once, stored on Close or the next
+     * delete. The moment and its other threads stay (OT8); a thread left thin dissolves when it is stored.
+     */
+    removeFromThread(threadId: string, momentId: string): void {
+      deps.schedule({ kind: 'remove', ids: [membershipKey(threadId, momentId)], spec: { type: 'remove', threadId, momentId } });
     },
 
     /** Names a thread; a blank name clears it (OT13). */
@@ -112,7 +122,7 @@ export function createThreads(p: Pick<Ports, 'db' | 'clock' | 'newId'>, deps: { 
 
     /** Deletes the thread and its memberships after the Undo window; every moment stays (OT14). */
     deleteThread(threadId: string): void {
-      deps.schedule({ ids: [threadId], run: () => serial(() => commit({ deleteThreads: [threadId] })).then(() => {}) });
+      deps.schedule({ kind: 'thread', ids: [threadId], spec: { type: 'thread', threadId } });
     },
 
     /**

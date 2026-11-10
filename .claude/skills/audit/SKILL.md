@@ -15,7 +15,11 @@ regression test for each accepted finding before its fix.
 - the spec: `specs/<slug>/spec.md` (criteria and the decisions list);
 - the rule file(s): `.claude/rules/<area>.md` whose `paths:` cover the slice;
 - the changed files: `git diff --name-only <base>..HEAD` for the slice's
-  commits, or the plan's file list (`specs/<slug>/plan.md`).
+  commits, or the plan's file list (`specs/<slug>/plan.md`);
+- **the screens as a person sees them** (decision 0114): run the journeys
+  that show the changed screens (`docs/TESTING.md`, "Choosing the journeys") with `E2E_SHOTS=<scratchpad>/shots` (390 x 844), so
+  every changed screen state is a PNG. A changed screen with no `shot()` in its
+  journey gets one first (after the Modal's fade). List the pictures by screen.
 
 ## 2. Spawn the auditor
 
@@ -25,14 +29,25 @@ Give it the three inputs above and ask for a report-only pass that:
 - tries to break the slice with concrete failure scenarios (inputs, the wrong
   output, the file and function), each with a severity;
 - reviews the UI/UX against the spec and the product's restraint (counts are
-  words, nothing is a score, no celebration);
+  words, nothing is a score, no celebration), **by opening every picture** and
+  judging it against `.claude/rules/ui-patterns.md` (controls over content,
+  wrapped rows, more than one primary action, actions outside a bar, a menu or
+  a sheet); a UI finding names its picture;
 - flags every native code path the slice touches that has not run on a device.
 
 It may run `npm test` and single test files; it edits nothing. Wait for its
 report before going on.
 
+Beside them, run the `ux-reviewer` subagent (`.claude/agents/ux-reviewer.md`) with
+the pictures, the spec and the plan's goal-to-control lines: a review of every
+changed screen against `docs/research/ui-references.md` (the cited patterns and
+the goal-to-control matrix), `docs/research/ui-teardown.md` and
+`.claude/rules/ui-patterns.md`. Each finding cites its source or is marked
+opinion; an opinion is triaged as one. Its findings are numbered on after the
+steward's.
+
 Beside it, run the `steward` subagent (`.claude/agents/steward.md`) with the spec,
-its "## Vision" section and the changed screens: does the built thing still pass
+its "## Vision" section, the changed screens and their pictures: does the built thing still pass
 the gate it was given (decision 0094)? Its findings are triaged with the
 auditor's, numbered on after them.
 
@@ -74,7 +89,7 @@ Findings covered only by the e2e's flow and typecheck are said so in the record.
 ```bash
 npm run typecheck && npm run lint && npm test
 npm run check:affected -- --since <slice's last green commit>   # names the e2e journeys for the files the audit changed
-npm run export:web && E2E_ONLY=<journey> npm run e2e:web         # each journey it names
+npm run export:web && E2E_ONLY=<journey> npm run e2e:web         # those chosen as in docs/TESTING.md, "Choosing the journeys"
 ```
 
 Only the journeys the audit's fixes touch: `--since` is the commit the slice last ran

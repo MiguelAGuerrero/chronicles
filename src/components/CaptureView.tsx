@@ -3,9 +3,9 @@ import { split } from '../lib/split';
 import { momentPill } from '../lib/momentPill';
 import { useStore } from '../lib/useStore';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import { forwardRef, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
+import { forwardRef, useEffect, useMemo, useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import { HANDOFF_HINT } from '../lib/nav/openInMaps';
-import { Linking, Platform, Pressable, StyleSheet, Text, View, type LayoutRectangle } from 'react-native';
+import { AccessibilityInfo, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type LayoutChangeEvent, type LayoutRectangle, type StyleProp, type ViewStyle } from 'react-native';
 import { Modal } from './Modal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { db } from '../lib/db';
@@ -26,17 +26,23 @@ import { exportPlan, isEmptyEdit } from '../lib/mediaEdit';
 import { exportVideo } from '../lib/videoEdit';
 import { RemindEditor } from './RemindEditor';
 import { NoteEditor } from './NoteEditor';
-import { ConfirmCard } from './ConfirmCard';
 import { UndoToast } from './UndoToast';
-import { deleteMoment, deletePiece, planMoment, planPiece } from '../lib/deletion';
-import { momentDeleteText, pieceDeleteText, type ConfirmText } from '../lib/deletion/core';
+import { deleteMoment, deletePiece } from '../lib/deletion';
 import { useHidden, useVisible } from '../lib/deletion/useDeletions';
+import { mentioning, plainNote } from '../lib/refs';
+import type { MomentView } from '../lib/resurface/types';
+import { useMomentPool } from './threads/useMomentPool';
+import { MomentPicker } from './threads/MomentPicker';
+import { NoteText } from './threads/NoteText';
 import { router } from 'expo-router';
 import { chronicleSection } from '../lib/resurface/sectionStore';
 import { threads } from '../lib/threads';
 import { AddToThread } from './threads/AddToThread';
-import { RespondBar } from './threads/RespondBar';
-import { ThreadChip } from './threads/ThreadChip';
+import { ReplyDock, DOCK_H, type ReplyStage } from './threads/ReplyDock';
+import { IN_A_THREAD, MENTIONED } from '../lib/threads/lines';
+import { barsShown, viewerLine } from '../lib/viewerBars';
+import { threadsOf } from '../lib/threads/rules';
+import { useThreads } from '../lib/threads/useThreads';
 import { Icon, KIND_LABEL } from './icons';
 import { theme } from './ui';
 
@@ -111,7 +117,21 @@ function VoicePlayer(props: { uri: string; autoPlay?: boolean; onFinished?: () =
 
 
 /** A video's own controls sit along the bottom of its picture; what stands above the strip leaves them this much. */
-const VIDEO_CONTROLS = 56;
+
+/**
+ * The picture's area: a plain view, or, in the viewer, a button whose tap shows or hides the bars (UC7). The
+ * picture itself lets taps through to it.
+ */
+function MediaArea(props: { onTap?: () => void; onLayout: (e: LayoutChangeEvent) => void; style: StyleProp<ViewStyle>; children: ReactNode }) {
+  if (!props.onTap) {
+    return <View style={props.style} onLayout={props.onLayout} pointerEvents="box-none">{props.children}</View>;
+  }
+  return (
+    <Pressable style={props.style} onLayout={props.onLayout} onPress={props.onTap} accessibilityRole="button" accessibilityLabel="Show or hide the controls" testID="viewer-media">
+      {props.children}
+    </Pressable>
+  );
+}
 
 /**
  * One capture, full screen. A photo or video fills everything above a thin
@@ -124,6 +144,8 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
   autoPlay?: boolean;
   onVoiceFinished?: () => void;
   footer?: string;
+  /** The viewer's parts of the line, in order; it names the day first and keeps one thread status (audit 19, 21). */
+  parts?: (string | null | undefined)[];
   /** Unused by the full-screen layout; kept so callers can pass the safe area. */
   topInset?: number;
   nav?: { onPrev?: () => void; onNext?: () => void };
@@ -131,15 +153,22 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
   pieces?: { onPrev?: () => void; onNext?: () => void };
   /** A primary action (the replay's Continue), within thumb reach. The ref is the action's. */
   action?: { label: string; hint?: string; onPress: () => void; testID?: string };
-  /** How far the strip or card reaches up from the screen's foot, with room for a video's own controls above it. */
-  onFoot?: (height: number) => void;
+  /** Room left clear at the bottom for the viewer's docked toolbar, so nothing sits over the moment (OT27). */
+  dock?: number;
+  /** The viewer's bars are hidden: no strip, and the picture fills the screen (UC7). */
+  bare?: boolean;
+  /** A tap on the picture (a photo in the viewer): shows or hides the viewer's bars (UC7). */
+  onMediaTap?: () => void;
+  /** A note's mentions are drawn as cards that open their moments (moment references RF4); else they read as words (RF6). */
+  onOpenRef?: (v: MomentView) => void;
 }>(function CaptureContent(props, actionRef) {
   const { capture } = props;
   const insets = useSafeAreaInsets();
   const uri = useMediaUri(capture);
   const media = (capture.kind === 'photo' || capture.kind === 'video') && !!uri;
   const [box, setBox] = useState<LayoutRectangle | null>(null);
-  const meta = `${KIND_LABEL[capture.kind]} · ${timeOf(capture)}${props.footer ? ` · ${props.footer}` : ''}`;
+  const [now] = useState(() => Date.now());
+  const meta = viewerLine({ kind: KIND_LABEL[capture.kind], t: capture.t, time: timeOf(capture), now, parts: props.parts ?? [props.footer] });
   const actions = (onDark: boolean) => (
     <>
       {props.action && (
@@ -200,43 +229,42 @@ export const CaptureContent = forwardRef<ComponentRef<typeof Pressable>, {
       // Keyed apart from the card layout, which shows while the file loads:
       // reusing its views would leave the media area unmeasured on web.
       <View key="media" style={[StyleSheet.absoluteFill, styles.mediaScreen]} pointerEvents="box-none">
-        <View
-          style={styles.mediaArea}
+        <MediaArea
+          onTap={props.onMediaTap}
           onLayout={(e) => setBox(e.nativeEvent.layout)}
-          // A photo lets taps through (the replay moves on with one); a video
-          // keeps its controls. Set on the photo, not this view: on web a view
-          // with pointerEvents "none" never reports its layout.
-          pointerEvents="box-none"
+          // In the viewer the picture fills the whole screen in both states, so it never moves when the bars hide; the
+          // bars sit over its black margins (UC7, ui-conformance audit 28).
+          style={props.dock !== undefined ? StyleSheet.absoluteFill : styles.mediaArea}
         >
           {capture.kind === 'photo' && <EditedPhoto uri={uri!} edit={capture.edit ?? null} caption={capture.caption} captionY={capture.caption_y} box={box} />}
           {capture.kind === 'video' && (
             <EditedVideo uri={uri!} edit={capture.edit ?? null} caption={capture.caption} captionY={capture.caption_y} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} />
           )}
-        </View>
-        <View
-          style={[styles.strip, { paddingBottom: insets.bottom + 10 }]}
-          onLayout={props.onFoot && ((e) => props.onFoot?.(e.nativeEvent.layout.height + (capture.kind === 'video' ? VIDEO_CONTROLS : 0)))}
-        >
+        </MediaArea>
+        {props.bare ? null : (
+        <View style={[styles.strip, props.dock !== undefined && styles.stripOver, { paddingBottom: (props.dock ? props.dock : 0) + insets.bottom + 10 }]}>
           <View style={styles.stripInner}>
-            <Text style={styles.stripMeta} numberOfLines={2}>{meta}</Text>
+            <Text style={styles.stripMeta} numberOfLines={2} testID="capture-meta" accessibilityLiveRegion="polite">{meta}</Text>
             {actions(true)}
           </View>
         </View>
+        )}
       </View>
     );
   }
 
   return (
     <View key="card" style={StyleSheet.absoluteFill} pointerEvents="box-none">
-      <View style={[styles.cardRow, { bottom: insets.bottom + 16 }]} pointerEvents="box-none">
-        <View style={styles.card} onLayout={props.onFoot && ((e) => props.onFoot?.(e.nativeEvent.layout.height + insets.bottom + 16))}>
-          {capture.kind === 'text' && <Text style={styles.note}>{capture.body}</Text>}
+      <View style={[styles.cardRow, { bottom: (props.dock ?? 0) + insets.bottom + 16 }]} pointerEvents="box-none">
+        <View style={styles.card} testID="capture-card">
+          {capture.kind === 'text' &&
+            (props.onOpenRef ? <NoteText body={capture.body ?? ''} style={styles.note} onOpen={props.onOpenRef} /> : <Text style={styles.note}>{plainNote(capture.body)}</Text>)}
           {capture.kind === 'voice' && uri && (
             <VoicePlayer uri={uri} autoPlay={props.autoPlay} onFinished={props.onVoiceFinished} durationMs={Number(capture.body) || 0} />
           )}
           {capture.kind !== 'text' && !uri && <Text style={styles.note}>{KIND_LABEL[capture.kind]}</Text>}
           <View style={styles.metaRow}>
-            <Text style={[styles.meta, styles.metaText]}>{meta}</Text>
+            <Text style={[styles.meta, styles.metaText]} testID="capture-meta" accessibilityLiveRegion="polite">{meta}</Text>
             {actions(false)}
           </View>
         </View>
@@ -278,7 +306,12 @@ export function CaptureViewer(props: {
   thread?: { id: string; name: string | null } | null;
 }) {
   const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
   const [index, setIndex] = useState(0);
+  const [openedStack, setOpenedStack] = useState<Faced[]>([]);
+  const [mentionPick, setMentionPick] = useState(false);
+  // Every kept moment, for the notes that mention the one shown (RF7), read when the viewer opens.
+  const pool = useMomentPool(props.captures);
   // The piece shown of a moment holding more than one (MS10); back to its first when the moment changes.
   const [pieceAt, setPieceAt] = useState<{ moment: string; i: number }>({ moment: '', i: 0 });
   const hidden = useHidden();
@@ -305,15 +338,28 @@ export function CaptureViewer(props: {
     }
     return out;
   }, [visible, splits, hiddenNow]);
-  const [deleting, setDeleting] = useState<{ capture: Faced; text: ConfirmText; piece?: string } | null>(null);
+  // A tap on a photo hides the bars (UC7); a screen reader keeps them (UC8, on a phone: the web always reports one).
+  const [chrome, setChrome] = useState(true);
+  const [reader, setReader] = useState(false);
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    let live = true;
+    AccessibilityInfo.isScreenReaderEnabled().then((on) => live && setReader(on), () => {});
+    const sub = AccessibilityInfo.addEventListener('screenReaderChanged', (on) => setReader(on));
+    return () => {
+      live = false;
+      sub.remove();
+    };
+  }, []);
+  const [statusOf, setStatusOf] = useState<Map<string, string>>(() => new Map());
+  const [recordingReply, setRecordingReply] = useState(false);
   const [menu, setMenu] = useState(false);
   // Add to a thread (OT5): the picker is drawn inside this Modal.
   const [adding, setAdding] = useState<Faced | null>(null);
-  // The reply note being written, for the moment it answers: Back and Escape close it before the viewer (owner-threads audit 9).
-  const [composeFor, setComposeFor] = useState<string | null>(null);
-  // How far the shown moment reaches up from the foot: Respond stands just above it. Kept across a swipe until the
-  // next moment measures, so the bar never blinks out (it is one bar for every moment, audit 10).
-  const [foot, setFoot] = useState<number | null>(null);
+  // Respond's sheet or its note, open: Back closes it before the viewer (owner-threads audit 9).
+  const [replyStage, setReplyStage] = useState<ReplyStage>(null);
+  // The owner's threads, so the info line can say a moment is in one (OT11).
+  const { data: owned } = useThreads();
   // Remind me here: the flags of the captures shown, read when the viewer opens.
   const [recalls, setRecalls] = useState<Map<string, Recall>>(() => new Map());
   const [reminding, setReminding] = useState<Faced | null>(null);
@@ -371,8 +417,11 @@ export function CaptureViewer(props: {
       if (overlay) dropBaked(overlay);
     }
   };
-  const i = Math.min(index, Math.max(0, list.length - 1));
-  const moment = list[i];
+  // A moment a note mentions, opened over the note (RF4): shown alone; Back or Close returns to the note.
+  const opened = useVisible(openedStack.length ? [openedStack[openedStack.length - 1]] : []);
+  const shownList = openedStack.length ? opened : list;
+  const i = openedStack.length ? 0 : Math.min(index, Math.max(0, list.length - 1));
+  const moment = shownList[i];
   // Its pieces, less any waiting in the Undo window (MS13).
   const pieces = moment ? moment.pieces.filter((p) => !hidden.has(pieceKey(p.id))) : [];
   const stacked = pieces.length > 1;
@@ -384,6 +433,10 @@ export function CaptureViewer(props: {
   const withBody = listed && editedBody != null && listed.body !== editedBody ? { ...listed, body: editedBody } : listed;
   const patch = withBody ? patched.get(withBody.piece_id) : undefined;
   const current = withBody && patch ? { ...withBody, ...patch } : withBody;
+  // The notes that mention the moment shown, read from their text (RF7): by date, never by count.
+  const mentionedBy = current
+    ? mentioning(pool.views.filter((v) => v.kind === 'text').map((v) => ({ id: v.id, t: v.t, body: v.capture.body })), current.id).filter((n) => !hidden.has(n.id))
+    : [];
   // Another moment opened closes the pill (MS4).
   const shownId = current?.id ?? null;
   useEffect(() => {
@@ -405,52 +458,72 @@ export function CaptureViewer(props: {
   }, [stacked]);
   // A horizontal swipe does the same on a phone (MS10).
   const swipeFrom = useRef<number | null>(null);
+  // Back to the note a mentioned moment was opened from (RF4).
+  const back = () => setOpenedStack((s) => s.slice(0, -1));
   const close = () => {
     setIndex(0);
+    setOpenedStack([]);
+    setMentionPick(false);
     setEditing(null);
     setNoting(null);
     setReminding(null);
-    setDeleting(null);
     setAdding(null);
-    setComposeFor(null);
+    setChrome(true);
+    setReplyStage(null);
     setMenu(false);
     props.onClose();
   };
-  const askDelete = (c: Faced) => {
-    planMoment(c).then(
-      (text) => setDeleting({ capture: c, text }),
-      () => setDeleting({ capture: c, text: momentDeleteText(c.kind, 0) }),
-    );
+  // One piece of a stacked moment (MS13), named by its kind: at once, with Undo, as a moment is (UC4).
+  const deletePieceNow = (c: Faced) => {
+    if (!moment) return;
+    deletePiece(moment, c.piece_id, c.kind);
+    setPieceAt({ moment: moment.id, i: Math.max(0, pi - 1) });
   };
-  // One piece of a stacked moment (MS13), named by its kind.
-  const askDeletePiece = (c: Faced) => {
-    const pieceId = c.piece_id;
-    const m = moment ?? c;
-    planPiece(m, pieceId).then(
-      (text) => setDeleting({ capture: c, text, piece: pieceId }),
-      () => setDeleting({ capture: c, text: pieceDeleteText(c.kind, 0), piece: pieceId }),
-    );
-  };
-  const confirmDelete = () => {
-    if (!deleting) return;
-    if (deleting.piece && moment) {
-      deletePiece(moment, deleting.piece, deleting.capture.kind);
-      setPieceAt({ moment: moment.id, i: Math.max(0, pi - 1) });
-      setDeleting(null);
+  // A moment is deleted at once, with Undo on the pill (UC4); nothing left to show and the host hears the viewer closed.
+  const deleteNow = (c: Faced) => {
+    if (openedStack.length) {
+      // A mentioned moment deleted: back to the note, whose card now says it is no longer kept (RF5).
+      deleteMoment(c);
+      back();
       return;
     }
     const last = list.length <= 1;
-    deleteMoment(deleting.capture);
-    setDeleting(null);
-    // Nothing left to show: the host hears the viewer closed.
+    deleteMoment(c);
     if (last) close();
   };
+  // What the moment's info line says about what was just done to it, in place of a pill (UC10): said, not shown off.
+  const tell = (id: string, text: string) => {
+    setStatusOf((m) => new Map(m).set(id, text));
+    AccessibilityInfo.announceForAccessibility(text);
+  };
   const busy = !!saveState?.busy;
+  // The toolbar is docked while the moment shows on its own; an editor or a picker takes the screen (OT1, OT27).
+  // A note, a memo or a video always shows its bars; a reply being recorded keeps them up (audit 3, 16).
+  const bars = barsShown({ chrome, reader, recording: recordingReply, kind: current?.kind ?? 'text' });
+  const docked = !!current && !editing && !noting && !reminding && !adding && bars;
+  const mine = current ? threadsOf(current.id, owned) : [];
+  const here = props.thread ? mine.find((t) => t.id === props.thread!.id) : undefined;
+  const inThreadWords = here?.name ? `${IN_A_THREAD}: ${here.name}` : IN_A_THREAD;
+  const inThread = mine.length ? inThreadWords[0].toUpperCase() + inThreadWords.slice(1) : null;
+  const openThread = (id: string) => {
+    close();
+    // Already on that thread's screen: closing the viewer is opening it.
+    if (props.thread?.id === id) return;
+    threads.requestOpen(id);
+    chronicleSection.set('memories');
+    router.navigate('/chronicle');
+  };
+  const editAction =
+    current && (current.kind === 'photo' || current.kind === 'video') && props.onSaveEdit
+      ? { label: 'Edit', testID: 'viewer-edit', onPress: () => setEditing(current) }
+      : current && current.kind === 'text' && props.onSaveNote
+        ? { label: 'Edit', testID: 'viewer-edit-note', onPress: () => setNoting(current) }
+        : null;
   return (
     <Modal
       visible={list.length > 0}
       animationType="fade"
-      onRequestClose={menu ? () => setMenu(false) : composeFor ? () => setComposeFor(null) : adding ? () => setAdding(null) : deleting ? () => setDeleting(null) : editing ? () => editor.current?.requestClose() : noting ? () => setNoting(null) : reminding ? () => setReminding(null) : close}
+      onRequestClose={menu ? () => setMenu(false) : mentionPick ? () => setMentionPick(false) : replyStage ? () => setReplyStage(null) : adding ? () => setAdding(null) : editing ? () => editor.current?.requestClose() : noting ? () => setNoting(null) : reminding ? () => setReminding(null) : openedStack.length ? back : close}
     >
       <View
         style={styles.viewer}
@@ -469,22 +542,34 @@ export function CaptureViewer(props: {
         {/* The baker draws behind everything; the cover hides it. */}
         {baker}
         <View style={[StyleSheet.absoluteFill, styles.viewer]} />
-        {/* Down while the editor is up: a video never plays on beneath it, and the edited one mounts fresh. */}
-        {current && !editing && (
+        {/* Down while the editor, the reminder, a note or the thread picker is up: closing an overlay drawn over a mounted
+            capture leaves a stale copy of it in the web's DOM (Nov 4, and the reminder editor, ui-conformance audit), and a
+            video never plays on beneath one. */}
+        {current && !editing && !reminding && !noting && !adding && (
           <CaptureContent
             key={`${current.id}:${current.piece_id}`}
             capture={current}
             autoPlay={props.autoPlay}
             topInset={insets.top}
-            // No position over a moment's pieces (MS9): the pager's "i of n" stays for one-piece moments only.
-            footer={[props.context?.get(current.id), list.length > 1 && !stacked ? `${i + 1} of ${list.length}` : null].filter(Boolean).join(' · ') || undefined}
+            dock={docked ? DOCK_H : 0}
+            bare={!bars}
+            onMediaTap={current.kind === 'photo' && !editing && !reader && !recordingReply ? () => setChrome((c) => !c) : undefined}
+            parts={[
+              props.context?.get(current.id),
+              // No position over a moment's pieces (MS9): the pager's "i of n" stays for one-piece moments only.
+              shownList.length > 1 && !stacked ? `${i + 1} of ${shownList.length}` : null,
+              inThread,
+              mentionedBy.length ? MENTIONED : null,
+              props.remind && recalls.has(current.id) ? 'Reminder set' : null,
+              statusOf.get(current.id),
+            ]}
             pieces={stacked ? { onPrev: pi > 0 ? () => stepPiece(-1) : undefined, onNext: pi < pieces.length - 1 ? () => stepPiece(1) : undefined } : undefined}
+            onOpenRef={(v) => setOpenedStack((st) => [...st, v.capture])}
             nav={
-              list.length > 1
-                ? { onPrev: i > 0 ? () => setIndex(i - 1) : undefined, onNext: i < list.length - 1 ? () => setIndex(i + 1) : undefined }
+              shownList.length > 1
+                ? { onPrev: i > 0 ? () => setIndex(i - 1) : undefined, onNext: i < shownList.length - 1 ? () => setIndex(i + 1) : undefined }
                 : undefined
             }
-            onFoot={setFoot}
           />
         )}
         {current && (
@@ -512,7 +597,7 @@ export function CaptureViewer(props: {
           </View>
         )}
         {saveState && saveState.id === current?.id && (
-          <View style={[styles.saved, { top: insets.top + 64 }]} accessibilityLiveRegion="polite" pointerEvents="box-none">
+          <View style={[styles.saved, { top: insets.top + 64 }]} accessibilityLiveRegion="polite" pointerEvents="box-none" testID="viewer-pill">
             <Text style={styles.savedText}>{saveState.text}</Text>
             {saveState.openSettings && (
               <Pressable accessibilityRole="button" onPress={() => Linking.openSettings()} hitSlop={8}>
@@ -522,6 +607,7 @@ export function CaptureViewer(props: {
           </View>
         )}
         {/* Title and buttons share one row, so a long title never runs under them. */}
+        {bars && (
         <View style={[styles.viewerTop, { top: insets.top + 8 }]} pointerEvents="box-none">
           <View style={styles.viewerTitleSlot} pointerEvents="none">
             {props.title ? (
@@ -530,46 +616,6 @@ export function CaptureViewer(props: {
               </View>
             ) : null}
           </View>
-          {(current?.kind === 'photo' || current?.kind === 'video') && props.onSaveEdit && (
-            <Pressable
-              testID="viewer-edit"
-              accessibilityRole="button"
-              accessibilityLabel="Edit"
-              onPress={() => setEditing(current)}
-              style={styles.roundBtn}
-              hitSlop={8}
-            >
-              <Icon name="options" size={22} color={theme.ink} />
-            </Pressable>
-          )}
-          {current && current.lat != null && props.remind && (
-            <Pressable
-              testID="viewer-remind"
-              accessibilityRole="button"
-              accessibilityLabel={recalls.has(current.id) ? 'Reminder set. Change or stop it' : 'Remind me here'}
-              onPress={() => setReminding(current)}
-              style={styles.roundBtn}
-              hitSlop={8}
-            >
-              <Icon name={recalls.has(current.id) ? 'notifications' : 'notifications-outline'} size={22} color={theme.ink} />
-            </Pressable>
-          )}
-          {current && current.lat != null && props.onGoHere && (
-            <Pressable
-              testID="viewer-go"
-              accessibilityRole="button"
-              accessibilityLabel="Go here"
-              onPress={() => {
-                const c = current;
-                setIndex(0);
-                props.onGoHere?.(c);
-              }}
-              style={styles.roundBtn}
-              hitSlop={8}
-            >
-              <Icon name="navigate" size={22} color={theme.ink} />
-            </Pressable>
-          )}
           {current && (
             // Save and Delete share one button, so the row fits a 320 px phone (deletion audit 5).
             <Pressable
@@ -584,37 +630,36 @@ export function CaptureViewer(props: {
               <Icon name="ellipsis-horizontal" size={22} color={theme.ink} />
             </Pressable>
           )}
-          <Pressable testID="viewer-close" accessibilityRole="button" accessibilityLabel="Close" onPress={close} style={styles.roundBtn} hitSlop={8}>
-            <Icon name="close" size={26} color={theme.ink} />
+          <Pressable testID="viewer-close" accessibilityRole="button" accessibilityLabel={openedStack.length ? 'Back to the note' : 'Close'} onPress={openedStack.length ? back : close} style={styles.roundBtn} hitSlop={8}>
+            <Icon name={openedStack.length ? 'arrow-back' : 'close'} size={26} color={theme.ink} />
           </Pressable>
         </View>
+        )}
         {current && openForAdd !== current.id && !editing && !noting && !reminding && !adding && (
-          <>
-            <ThreadChip
-              key={`chip:${current.id}`}
-              momentId={current.id}
-              top={insets.top + 68}
-              from={props.thread}
-              onOpen={(id) => {
-                close();
-                // Already on that thread's screen: closing the viewer is opening it.
-                if (props.thread?.id === id) return;
-                threads.requestOpen(id);
-                chronicleSection.set('memories');
-                router.navigate('/');
-              }}
-            />
-            <RespondBar answeredId={current.id} threadId={props.thread?.id ?? null} walkId={props.walkId ?? null} bottom={foot} topClear={insets.top + 116} composeFor={composeFor} setComposeFor={setComposeFor} />
-          </>
+          // Kept mounted while the bars are hidden, so a voice reply being recorded goes on (UC7).
+          <ReplyDock
+            hidden={!bars}
+            answeredId={current.id}
+            threadId={props.thread?.id ?? null}
+            walkId={props.walkId ?? null}
+            bottomInset={insets.bottom}
+            stage={replyStage}
+            setStage={setReplyStage}
+            say={(text, openSettings) => setSaveState({ id: current.id, text, openSettings: openSettings && Platform.OS !== 'web' })}
+            kept={(id, text) => tell(id, text)}
+            onRecording={setRecordingReply}
+            edit={editAction}
+          />
         )}
         {adding && (
           <AddToThread
             moment={adding}
             onClose={() => setAdding(null)}
-            onDone={(text) => {
+            onDone={(text, ok) => {
               const id = adding.id;
               setAdding(null);
-              setSaveState({ id, text });
+              if (ok) tell(id, 'Added to a thread');
+              else setSaveState({ id, text });
             }}
           />
         )}
@@ -633,11 +678,25 @@ export function CaptureViewer(props: {
             }}
           />
         )}
+        {mentionPick && current && (
+          <MomentPicker
+            pool={pool}
+            self={current.id}
+            title="Notes that mention it"
+            only={mentionedBy.map((n) => n.id)}
+            onPick={(v) => {
+              setMentionPick(false);
+              setOpenedStack((st) => [...st, v.capture]);
+            }}
+            onClose={() => setMentionPick(false)}
+          />
+        )}
         {noting && (
           // Inside this Modal too (QL24).
           <NoteEditor
             key={noting.id}
             body={noting.body ?? ''}
+            mention={{ self: noting.id }}
             onClose={() => setNoting(null)}
             onSave={async (body) => {
               const c = noting;
@@ -675,7 +734,8 @@ export function CaptureViewer(props: {
                 const r = fresh ? editedRecall(fresh, frequency, until) : newRecall(id, frequency, until, props.walkId ?? null);
                 await saveRecall(r);
                 setRecalls((m) => new Map(m).set(r.capture_id, r));
-                setSaveState({ id: r.capture_id, text: 'It will come back when you pass here' });
+                // The info line says Reminder set (UC12); the rest is said, not shown (UC10).
+                AccessibilityInfo.announceForAccessibility('Reminder set. It will come back when you pass here');
               } catch {
                 setSaveState({ id, text: 'The reminder could not be saved' });
               }
@@ -690,7 +750,7 @@ export function CaptureViewer(props: {
                   n.delete(id);
                   return n;
                 });
-                setSaveState({ id, text: 'No more reminders here' });
+                AccessibilityInfo.announceForAccessibility('No more reminders here');
               } catch {
                 setSaveState({ id, text: 'The reminder could not be stopped' });
               }
@@ -700,7 +760,38 @@ export function CaptureViewer(props: {
         {menu && current && (
           <>
             <Pressable style={StyleSheet.absoluteFill} onPress={() => setMenu(false)} accessible={false} />
-            <View style={[styles.menu, { top: insets.top + 64 }]} testID="viewer-menu">
+            <ScrollView style={[styles.menu, { top: insets.top + 64, maxHeight: Math.max(220, height - insets.top - insets.bottom - 140) }]} testID="viewer-menu">
+              {current.lat != null && props.remind && (
+                // In More since UC9; its state is in the info line (UC12).
+                <Pressable
+                  testID="viewer-remind"
+                  accessibilityRole="button"
+                  onPress={() => {
+                    setMenu(false);
+                    setReminding(current);
+                  }}
+                  style={({ pressed }) => [styles.menuItem, pressed && styles.dim]}
+                >
+                  <Icon name={recalls.has(current.id) ? 'notifications' : 'notifications-outline'} size={22} color={theme.ink} />
+                  <Text style={styles.menuText}>{recalls.has(current.id) ? 'Reminder set: change or stop' : 'Remind me here'}</Text>
+                </Pressable>
+              )}
+              {current.lat != null && props.onGoHere && (
+                <Pressable
+                  testID="viewer-go"
+                  accessibilityRole="button"
+                  onPress={() => {
+                    const c = current;
+                    setMenu(false);
+                    setIndex(0);
+                    props.onGoHere?.(c);
+                  }}
+                  style={({ pressed }) => [styles.menuItem, pressed && styles.dim]}
+                >
+                  <Icon name="navigate" size={22} color={theme.ink} />
+                  <Text style={styles.menuText}>Go here</Text>
+                </Pressable>
+              )}
               {(current.kind === 'photo' || current.kind === 'video') && current.file_path && (
                 <Pressable
                   testID="viewer-save"
@@ -732,18 +823,35 @@ export function CaptureViewer(props: {
                   <Text style={styles.menuText}>Open in Maps</Text>
                 </Pressable>
               )}
-              {current.kind === 'text' && props.onSaveNote && (
+              {mentionedBy.length > 0 && (
+                // The note that mentions it, or a list of them by their first words and date (RF7).
                 <Pressable
-                  testID="viewer-edit-note"
+                  testID="viewer-open-note"
                   accessibilityRole="button"
                   onPress={() => {
                     setMenu(false);
-                    setNoting(current);
+                    const only = mentionedBy.length === 1 ? pool.byId.get(mentionedBy[0].id) : undefined;
+                    if (only) setOpenedStack((st) => [...st, only.capture]);
+                    else setMentionPick(true);
                   }}
                   style={({ pressed }) => [styles.menuItem, pressed && styles.dim]}
                 >
-                  <Icon name="create-outline" size={22} color={theme.ink} />
-                  <Text style={styles.menuText}>Edit note</Text>
+                  <Icon name="document-text-outline" size={22} color={theme.ink} />
+                  <Text style={styles.menuText}>{mentionedBy.length === 1 ? 'Open the note' : 'Open the notes'}</Text>
+                </Pressable>
+              )}
+              {mine.length > 0 && (
+                <Pressable
+                  testID="viewer-open-thread"
+                  accessibilityRole="button"
+                  onPress={() => {
+                    setMenu(false);
+                    openThread((here ?? mine[0]).id);
+                  }}
+                  style={({ pressed }) => [styles.menuItem, pressed && styles.dim]}
+                >
+                  <Icon name="link" size={22} color={theme.ink} />
+                  <Text style={styles.menuText}>Open its thread</Text>
                 </Pressable>
               )}
               <Pressable
@@ -783,7 +891,7 @@ export function CaptureViewer(props: {
                   accessibilityRole="button"
                   onPress={() => {
                     setMenu(false);
-                    askDeletePiece(current);
+                    deletePieceNow(current);
                   }}
                   style={({ pressed }) => [styles.menuItem, pressed && styles.dim]}
                 >
@@ -796,18 +904,17 @@ export function CaptureViewer(props: {
                 accessibilityRole="button"
                 onPress={() => {
                   setMenu(false);
-                  askDelete(moment ?? current);
+                  deleteNow(moment ?? current);
                 }}
                 style={({ pressed }) => [styles.menuItem, pressed && styles.dim]}
               >
                 <Icon name="trash-outline" size={22} color={theme.danger} />
                 <Text style={[styles.menuText, { color: theme.danger }]}>{stacked ? 'Delete this moment' : `Delete this ${KIND_LABEL[current.kind].toLowerCase()}`}</Text>
               </Pressable>
-            </View>
+            </ScrollView>
           </>
         )}
-        {deleting && <ConfirmCard testID="confirm" text={deleting.text} onCancel={() => setDeleting(null)} onConfirm={confirmDelete} />}
-        <UndoToast style={{ top: insets.top + 64 }} />
+        <UndoToast style={{ bottom: (docked ? DOCK_H : 0) + insets.bottom + 72 }} />
       </View>
     </Modal>
   );
@@ -825,6 +932,7 @@ const styles = StyleSheet.create({
   },
   soundText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
   mediaScreen: { backgroundColor: '#000000' },
+  stripOver: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   mediaArea: { flex: 1 },
   // The thin strip under a photo or video: its details, then its actions.
   strip: { backgroundColor: '#14181f', paddingTop: 10, paddingHorizontal: 16, borderTopWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.15)' },
@@ -859,9 +967,9 @@ const styles = StyleSheet.create({
   aa: { fontSize: 18, fontWeight: '800', color: theme.ink },
   saved: { position: 'absolute', right: 12, flexDirection: 'row', gap: 10, alignItems: 'center', backgroundColor: theme.ink, borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12, maxWidth: 280 },
   savedText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
-  viewerTitle: { backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: 999, paddingVertical: 8, paddingHorizontal: 14, maxWidth: '100%' },
-  viewerTitleText: { color: theme.ink, fontSize: 15, fontWeight: '700' },
-  menu: { position: 'absolute', right: 12, backgroundColor: theme.surface, borderRadius: theme.radius, paddingVertical: 6, minWidth: 220, elevation: 8, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 10, shadowOffset: { width: 0, height: 3 } },
+  viewerTitle: { paddingVertical: 8, paddingHorizontal: 4, maxWidth: '100%' },
+  viewerTitleText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
+  menu: { position: 'absolute', right: 12, maxWidth: 320, flexGrow: 0, backgroundColor: theme.surface, borderRadius: theme.radius, paddingVertical: 6, minWidth: 220, elevation: 8, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 10, shadowOffset: { width: 0, height: 3 } },
   menuItem: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48, paddingHorizontal: 16 },
   menuText: { fontSize: 16, fontWeight: '600', color: theme.ink },
   roundBtn: { flexShrink: 0, width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center' },

@@ -71,7 +71,7 @@ recording, and a recording bar brings a minimized walk back.
   turn up as a "?"), so a plain parish church counts toward nothing; food, shops
   and nightlife count every place. A ring with fewer than three mapped places
   says nothing about its kinds (atlas grading, decision 0084).
-- A place may light two bars (presence and kinds, decision 0125): a museum or
+- A place may light two bars (presence and kinds, decision 0126): a museum or
   gallery lights History as well as Culture when the data already says it is
   historic (a listed museum in the places archive, or a historic word in its
   name), so the Coplay Cement Company Kilns light Coplay's History. A plain
@@ -84,7 +84,7 @@ recording, and a recording bar brings a minimized walk back.
   end"), how much of it is only getting there, which other kinds it also passes (by kind, never by place), and whether it can be walked the whole way; a strip along each row and a shading of the
   highlighted route show the same without a number. A route leans on the places you pass (monuments, buildings,
   churches, art, views) when there are enough of them to make one; museums and theatres, which you go into, still count
-  toward how much of the kind it passes (decision 0125). It never shows or names a place not yet found, so the "?" marks stay hidden until
+  toward how much of the kind it passes (decision 0126). It never shows or names a place not yet found, so the "?" marks stay hidden until
   reached; only places you have already found may be pinned. The settings are on the page: a loop (the default, back where you start)
   or a one way, a distance as a hard ceiling (2 km by default; where the kind fills less ground the route is shorter, and the page
   says so), how much of the kind a route must pass, and what to do about a stretch built around cars. "Suggest different routes"
@@ -131,7 +131,7 @@ recording, and a recording bar brings a minimized walk back.
 - **Remarkable and public** (decisions 0109-0111): attractions in the map
   stay places to find, and the National Aviary joins them. A new kind,
   "Buildings and structures", on by default, holds the archive's listed
-  buildings and structures. "Community spaces" (decision 0125), on by default
+  buildings and structures. "Community spaces" (decision 0126), on by default
   unless Museums and galleries was switched off, holds arts centres, libraries
   and community centres whose names say they are historic. A place to find with no street or path within 60 m
   says "No street or path close by" on its card; nothing is hidden for it. The
@@ -303,11 +303,15 @@ recording, and a recording bar brings a minimized walk back.
   - **Show less like this** and **Not this one** (on the ... of the top card and
     of every card) change what is brought back, never what is kept; both have Undo.
   - Memos show here but join threads only once they have a transcript (not yet).
+- **A note mentions moments** (decision 0125): typing @ in a note (Respond → Note, Edit on a note) picks
+  another moment; the viewer draws it as a card of that moment (its picture or kind, date, place and walk) that
+  opens it, with Back to the note; elsewhere it reads as words. The moment mentioned says "Mentioned in a note",
+  and its More opens the note. A mention touches no thread.
 - **Threads the owner makes** (decisions 0104, 0105): moments the owner connected, beside the
   Chronicle's threads above it; both are "threads", told apart by an icon (a link for
   the owner's, a repeat arrow for the Chronicle's), spoken as "connected by you" and "found for you". From a moment's menu, **Add to a thread** names a
-  thread or makes a new one with a second kept moment; **Respond** (photo, voice,
-  note, one tap each on the viewer's face) keeps a new moment linked to the one it
+  thread or makes a new one with a second kept moment; **Respond**, in the viewer's toolbar under the moment
+  (a menu: photo or video, voice memo, note), keeps a new moment linked to the one it
   answers, in its thread. A thread reads oldest first, a reply under what it
   answers; its size is a phrase ("a few moments, since March"), its name is the
   owner's and optional. **Remove from this thread** and **Delete this thread**
@@ -362,8 +366,15 @@ recording, and a recording bar brings a minimized walk back.
   swatches, Undo, Redo); a text bar; a trim for videos. The file is never changed:
   edits are kept with the moment and can be changed or reverted later. Saving out
   renders everything into one photo or video.
-- **Deletes** (a walk, a walk's media, one moment) hide at once with a 5 s
-  Undo, then run as if it never happened.
+- **Deletes** (a walk, a walk's media, one moment, a thread) hide at once with an
+  Undo that waits until you tap Undo or Close or delete something else, then run
+  as if it never happened. A moment or a thread goes with no question first; a
+  walk and a walk's photos, videos and memos still ask and say what goes. A delete
+  waiting when the app is killed is completed at the next launch (decision 0113).
+- **The moment viewer** steps aside: a tap on a photo hides its bars. Its top bar
+  is Close and More (Remind me here and Go here are in More), and what you just
+  did to a moment (a reply kept, added to a thread, a reminder set) is said in its
+  info line rather than in a pill.
 
 ## Settings and notifications
 
@@ -413,6 +424,7 @@ recording, and a recording bar brings a minimized walk back.
 | Town presence (a town graded across its whole outline, with its busy areas listed) | Built (web verified by the e2e; native unverified) |
 | Resurfaced moments (Chronicle opens on Memories: a moment brought back, threads from the user's words, Lately) | Built (web verified by the e2e `resurface`; native unverified) |
 | Owner threads (respond to a moment; connect moments across walks; Threads on Memories) | Built (web verified by the e2e `threads`; native unverified) |
+| Moment references (a note mentions moments with @) | Built on `claude/ui-conformance` (web verified by the e2e `threads`; native unverified) |
 | Capture from Chronicle (the app opens on Memories; the band keeps a moment in one tap; HC1-HC15) | Built (web verified by the e2e `capturehome`, `launch`; native unverified) |
 | Moment stacks (a moment holds its media; Add to this moment; one card and pin per moment; the viewer's pieces; deleting one; Split out; the replay's grid; Group captures) | Built, rounds 0-2 (web verified by the e2e `upgrade` and `stacks`; native unverified) |
 | Moments and days, memories on revisit, thumbnails | Shipped, audited |

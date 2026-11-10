@@ -31,7 +31,7 @@ https://miguelaguerrero.github.io/chronicles/.
 git status --short                       # clean, on the branch to ship
 npm run typecheck && npm run lint && npm test
 npm run check:affected                   # names the e2e journeys for what ships
-CHRONICLES_BASE_URL=/chronicles npm run export:web && E2E_BASE=/chronicles E2E_ONLY=<journey> npm run e2e:web   # each journey it names
+CHRONICLES_BASE_URL=/chronicles npm run export:web && E2E_BASE=/chronicles E2E_ONLY=<journey> npm run e2e:web   # those chosen as in docs/TESTING.md, "Choosing the journeys"
 ```
 
 - The journeys run against the sub-path build, as Pages serves it. The full

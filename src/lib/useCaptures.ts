@@ -49,6 +49,8 @@ export type VoiceResult = 'saved' | 'dropped' | 'discarded' | 'failed' | 'none';
 interface Stamp {
   t: number;
   at: LngLat | null;
+  /** The moment a reply answers, fixed when the capture began, so a swipe meanwhile never moves it (ui-conformance audit 10). */
+  replyTo?: { answeredId: string; from?: string | null } | null;
   locating?: Promise<LocateResult>;
   /** The open moment this capture joins as a piece (moment stacks MS3, decision 0123): no fix, no reply. */
   into?: string | null;
@@ -105,7 +107,7 @@ export function useCaptures(
   onError?: (e: { message: string; openSettings?: boolean }) => void,
   opts: {
     loose?: boolean;
-    onMoment?: (c: Faced, state: MomentState) => void;
+    onMoment?: (c: Faced, state: MomentState, answeredId?: string | null) => void;
     /** Every moment this path keeps answers this one, and joins its thread (OT2); null when it answers nothing. */
     replyTo?: { answeredId: string; from?: string | null } | null;
     /** Told when a capture is kept: a new moment, or a piece added to one (moment stacks, the pill). */
@@ -170,7 +172,8 @@ export function useCaptures(
   const stampNow = (locate = true, into: string | null = null): Stamp => {
     // A piece for an open moment takes no fix: the moment's one place is its place (MS3, `pieceStamp`).
     const st = stampFor(clockNow(), pos.current, into);
-    const s: Stamp = { t: st.t, at: st.at, into: st.into };
+    // The reply is fixed when the capture begins (ui-conformance audit 10); a piece answers nothing.
+    const s: Stamp = { t: st.t, at: st.at, into: st.into, replyTo: st.into ? null : replyTo.current };
     if (locate && st.locate) startLocating(s);
     return s;
   };
@@ -216,7 +219,7 @@ export function useCaptures(
     await db.addMoment(m);
     const c = faced(m);
     // A reply is linked once it is kept; a failed link leaves the moment kept, unconnected (OT2).
-    const answers = replyTo.current;
+    const answers = stamp.replyTo !== undefined ? stamp.replyTo : replyTo.current;
     if (answers) void threads.reply(c.id, answers.answeredId, answers.from ?? null).catch(() => {});
     // Without a fresh fix, it is stored unplaced (the trace places it at
     // stop), but pinned meanwhile at the last known position.
