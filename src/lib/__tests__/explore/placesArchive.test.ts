@@ -14,9 +14,6 @@ import type { PlaceCandidate } from '../../areas/types';
 import { createPlacesArchive } from '../../discovery/archive/shell';
 import { fakePorts } from '../fakes';
 import { archiveTag, archiveTilesFor, ARCHIVE_ZOOM, blockKey, manifestDue, parseManifest, pickRegion, PLACES_BASE, regionUrl } from '../../discovery/archiveManifest';
-import { HOSTS } from '../../net/policy';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { ALLOWED_HOSTS } = require('../../../../scripts/check-vision.js') as { ALLOWED_HOSTS: Record<string, string> };
 
 // Places worth the stop (specs/places-worth-the-stop, PW1-PW19), written from the spec before the code.
 
@@ -59,12 +56,17 @@ test('PW2: tiles are stored at z12; the reader asks for the one holding each z14
   assert.deepEqual(archiveTilesFor([[4768, 6160], [4769, 6161], [4772, 6160]]), [[1192, 1540], [1193, 1540]]);
 });
 
-test('PW2, PW16: a region\'s file is addressed by its versioned name, on the host PW16 verified, which both host lists allow', () => {
+test('PW2, PW16: a region\'s file is addressed by its versioned name; the address is the chronicles-data Pages site, recorded and allowed', async () => {
   assert.equal(regionUrl('https://example.org/data/', 'places-us-20261108.pmtiles'), 'https://example.org/data/places-us-20261108.pmtiles');
-  assert.equal(PLACES_BASE, 'https://miguelaguerrero.github.io/chronicles-data/', 'the Pages site a real archive was range-read from (Nov 10)');
+  // PW16, recorded Nov 10: a cross-origin byte range of places-us-20261110.3.pmtiles answered 206 with its content-range and
+  // access-control-allow-origin: *, and the app's reader decoded Bethlehem's tile from it.
+  assert.equal(PLACES_BASE, 'https://miguelaguerrero.github.io/chronicles-data/');
   const host = new URL(PLACES_BASE).host;
-  assert.ok(HOSTS[host], 'on lib/net\'s table');
-  assert.ok(host in ALLOWED_HOSTS, 'on ALLOWED_HOSTS, with its reason');
+  const { HOSTS } = await import('../../net/policy');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { ALLOWED_HOSTS } = require('../../../../scripts/check-vision.js') as { ALLOWED_HOSTS: Record<string, string> };
+  assert.ok(host in HOSTS, 'in lib/net\'s table');
+  assert.ok(host in ALLOWED_HOSTS, 'on the vision\'s allowed hosts, with its reason');
 });
 
 test('PW4: Curiosities is a kind, named in words, on by default, and a hidden one stays hidden', () => {

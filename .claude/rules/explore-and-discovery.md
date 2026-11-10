@@ -3,7 +3,7 @@ paths:
   - "src/lib/discovery/**"
   - "src/lib/explore/**"
   - "src/lib/db/{exploreRow,placeRow,stores}.ts"
-  - "src/app/(tabs)/index.tsx"
+  - "src/app/(tabs)/explore.tsx"
   - "src/lib/atlas/**"
   - "src/components/atlas/**"
   - "src/components/{MarkPinView,ExploreSettings,ReminderCard,RemindEditor}.tsx"
@@ -206,6 +206,6 @@ Places of interest from the tiles, marks, checklists and finds (Explore), and Re
 - **The benchmark:** `npm run places:coverage` (network, never in CI) runs the app's own rules over OpenFreeMap's tiles and Wikidata for seven areas, per area in lists (RP17); destinations are structural (a listing or a Landmark, standing, not a district), never sitelinks.
 - **Curiosities** are a kind of `viewpoints` (Viewpoints & oddities), on by default (PW4). Attractions (`attraction/attraction`) are places to find of kind viewpoints, "Viewpoints and attractions" (RP13, pinned with a fixture of the SteelStacks tiles); `zoo/aviary` too (RP15).
 - **Versions:** a checklist area records the archive version it was built with (`archive`, SQLite migration 21) and is rebuilt when a newer one is known (`archiveStale`, PW12). The atlas profile records it too (`profile.archive`): stale and re-read 30 min after one is known, never replaced by a read without it; `thin` is judged from the map's places alone (`ringOf`, PW10). `ATLAS_CODE` a7; a6 rows stand until an archive is known.
-- **Silent when it fails:** any failure is no archive (PW3). `PLACES_BASE` is chronicles-data's Pages site (PW16, Nov 10); an empty base asks nothing (tests). The e2e build sets `EXPO_PUBLIC_PLACES_BASE=/places-e2e/`, which the harness serves (an empty manifest unless the `curiosities` journey sets one).
+- **Silent and off by default:** any failure is no archive (PW3); `PLACES_BASE` is the chronicles-data Pages site (PW16, recorded Nov 10; the host is in `ALLOWED_HOSTS` and `lib/net`). The e2e build sets `EXPO_PUBLIC_PLACES_BASE=/places-e2e/`, which the harness serves (an empty manifest unless the `curiosities` journey sets one).
 - **Meta:** `places_archive_manifest`, `places_archive_checked_at`, read and written with direct `getMeta`/`setMeta` so the meta scan sees them.
 - **The build is chronicles-data's** (decision 0108): the pipeline, its schemas and class names, and the owner's edits live there, as the interface the app consumes; a new contract version fails PP17 until the app takes its copy (`__tests__/explore/contract/`) and its class table follows. Only a `locates` source puts a place on the map; a community source only reaches the owner's review list, never a pack. Place IDs are opaque (`p_` + 16 hex). The manifest's `blocks` (z8 tile to a hash of its places) let `versionAt` tag an area with its block's hash (`b:<hash>`), and Explore tags and judges each area at its own point, so an area is rebuilt only when its block's places change (PP13).

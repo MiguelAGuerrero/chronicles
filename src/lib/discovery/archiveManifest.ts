@@ -8,9 +8,9 @@ import type { LngLat } from '../types';
  */
 
 /**
- * Where the manifest and archives are served: chronicles-data's Pages site (PW16, recorded Nov 10: a cross-origin byte
- * range of the real archive answered 206 with `access-control-allow-origin: *`, and its tiles decode). The host is on
- * `ALLOWED_HOSTS` and `lib/net`'s table. Any failure there is no archive (PW3).
+ * Where the manifest and archives are served: the chronicles-data Pages site. PW16 recorded Nov 10: a cross-origin
+ * byte range of a real archive (places-us-20261110.3.pmtiles) answered 206 with its content-range and
+ * `access-control-allow-origin: *`. The e2e build points elsewhere (`EXPO_PUBLIC_PLACES_BASE`).
  */
 export const PLACES_BASE = 'https://miguelaguerrero.github.io/chronicles-data/';
 

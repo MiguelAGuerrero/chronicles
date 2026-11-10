@@ -24,7 +24,7 @@ export const unstable_settings = { initialRouteName: '(tabs)' };
 const LAUNCH_COVER_MAX_MS = 3000;
 
 export default function RootLayout() {
-  // The path the app opened on, so a stale replay link at launch goes to Explore (NV2).
+  // The path the app opened on, so a stale replay link at launch goes to Chronicle (NV2, HC5).
   const pathname = usePathname();
   // The launch's way to the walk settles once the router is on it (NV2 launch 5).
   const at = useRef(pathname);
@@ -40,7 +40,7 @@ export default function RootLayout() {
     }
   }, [pathname]);
   // Until the launch knows whether a walk is open, the app is covered, so a walk
-  // comes straight back without Explore showing first (NV2 launch 1).
+  // comes straight back without Chronicle showing first (NV2 launch 1, HC2).
   const [covered, setCovered] = useState(true);
   // An open walk is picked back up at launch or reload, wherever the app
   // opened: the walk screen comes back, then recording re-attaches.
@@ -82,7 +82,7 @@ export default function RootLayout() {
             contentStyle: { backgroundColor: theme.bg },
           }}
         >
-          {/* The three tabs (Explore, Navigate, Chronicle), edge to edge: no header. The walk and the
+          {/* The three tabs (Chronicle, Explore, Navigate), edge to edge: no header. The walk and the
               replays sit over them, full screen, so the tab bar is hidden while they are up (NV6). */}
           <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Chronicles' }} />
           {/* No header: the growing trace says a walk is on. Its way out is Minimize, to the bar above the
@@ -92,8 +92,8 @@ export default function RootLayout() {
           <Stack.Screen name="replay/[id]" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
           {/* The day's replay (M10): moments and walks in time order. */}
           <Stack.Screen name="day/[key]" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
-          {/* The old Explore path, sent on to / (NV2). */}
-          <Stack.Screen name="explore" options={{ headerShown: false }} />
+          {/* The old Chronicle path, sent on to / (HC5). */}
+          <Stack.Screen name="chronicle" options={{ headerShown: false }} />
         </Stack>
         {covered && <View testID="launch-cover" style={[StyleSheet.absoluteFill, { backgroundColor: theme.bg }]} />}
       </OpenWalkProvider>

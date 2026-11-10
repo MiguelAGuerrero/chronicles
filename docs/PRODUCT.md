@@ -45,8 +45,9 @@ Not hikers (no trails), not runners (no fitness tracking), not completionists
 ## The three tabs
 
 The app is three tabs in one loop: Explore before, Navigate during,
-Chronicle after. The app opens on Explore. A walk screen opens over them while recording, and a
-recording bar brings a minimized walk back.
+Chronicle after. The bar reads Chronicle, Explore, Navigate, and the app opens on Chronicle's
+Memories, whose band keeps a moment in one tap (decision 0112). A walk screen opens over them while
+recording, and a recording bar brings a minimized walk back.
 
 ### Explore (before)
 
@@ -114,7 +115,7 @@ recording bar brings a minimized walk back.
   places as marks, from a weekly archive built from Wikidata. Curiosities are
   a kind of "Viewpoints & oddities" in What I'm into, on by default. Nothing
   is ranked or counted; a place shows only while its sources say it exists.
-  Built; the app reads the archive from chronicles-data's Pages site (PW16, Nov 10). Since
+  Live since Nov 10, when its address was set (PW16). Since
   Nov 9 the archive comes from the places pipeline in chronicles-data
   (decision 0108): any open source can join through an adapter, a community
   source may only suggest a place for the owner's review, and an area is
@@ -244,7 +245,12 @@ recording bar brings a minimized walk back.
 
 - **Chronicle opens on Memories** (decision 0098): a control at the top chooses
   **Memories | Walks | Days | Map**, and leaving for another tab puts it back on
-  Memories. Memories is the feed:
+  Memories. The app opens here (decision 0112). Memories is the feed:
+  - **The band** at its foot: camera, mic and note, one tap each, in plain ink,
+    fixed while the feed scrolls and first for a screen reader. A moment kept there
+    heads Lately at once and is placed by its one fix ("Note kept here"); with a walk
+    minimized it goes to the walk ("Note saved to your walk"), and the recording bar
+    shows no camera on Memories. With nothing kept, Memories is one line and the band.
   - **A resurfaced moment** at the top, different on each open, in the user's own
     words, with a label that says why ("A year ago today", "Last October", "You
     keep coming back to the water"). **Relive it** opens the replay of its walk
@@ -375,6 +381,7 @@ recording bar brings a minimized walk back.
 | Town presence (a town graded across its whole outline, with its busy areas listed) | Built (web verified by the e2e; native unverified) |
 | Resurfaced moments (Chronicle opens on Memories: a moment brought back, threads from the user's words, Lately) | Built (web verified by the e2e `resurface`; native unverified) |
 | Owner threads (respond to a moment; connect moments across walks; Threads on Memories) | Built (web verified by the e2e `threads`; native unverified) |
+| Capture from Chronicle (the app opens on Memories; the band keeps a moment in one tap; HC1-HC15) | Built (web verified by the e2e `capturehome`, `launch`; native unverified) |
 | Moments and days, memories on revisit, thumbnails | Shipped, audited |
 | Rides, clearing walks and moments, motion polish | Shipped, audited |
 | Navigation and tabs (three-tab layout, recording bar) | Shipped, two audit batches done |

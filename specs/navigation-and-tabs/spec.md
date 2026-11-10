@@ -12,7 +12,7 @@ The one crowded home becomes three tabs, AllTrails-style: Explore finds new plac
 - **Expo tooling first, for parity** (the owner's rule, Nov 1). The app ships on iPhone and is tuned for it; the web is the dev loop, so it must preview the phone layout. Hence Expo Router's JS `Tabs` now (bundled with expo-router, no new dependency), with native tabs for the iOS build later, behind the one tab layout file.
 - **Start just starts; the drawer holds the extras** (the owner's call, Nov 1, after AllTrails: its Navigate page is a Start button that starts where you are). Start sits at the drawer's peek and starts at once, with the saved choices and the destination if one is set. Pulling the drawer up shows the additional settings: quiet or Explore (opening on the last mode picked), what I'm into and the range, the destination, reminders and alerts.
 - **Walk here is a one-tap start** (the owner's call, Nov 1, confirmed again after the drawer-filling draft). It starts a walk to that spot at once with the saved choices, and never opens or fills the drawer.
-- **Quick capture belongs to navigating and walking:** Navigate and the walk screen have it, Chronicle doesn't. It is always one tap away there (the owner's baseline, Nov 1): the capture row never hides behind the drawer, a sheet or a card.
+- **Quick capture belongs to navigating and walking:** Navigate and the walk screen have it, Chronicle doesn't. *(Amended Nov 9, decision 0112: Chronicle's Memories has it too, and the app opens there; `specs/capture-from-chronicle/spec.md`.)* It is always one tap away there (the owner's baseline, Nov 1): the capture row never hides behind the drawer, a sheet or a card.
 - **The walk takes over the screen, and can be minimized** to a recording bar above the tabs. Stop stays on the walk screen.
 - **Spec first.** This tab is reviewed before any code; each criterion becomes a failing test first.
 
@@ -34,11 +34,11 @@ Navigate's Start starts a walk where you are; Walk here on Explore or Chronicle 
 
 The tab bar
 
-1. **NV1** Expo Router's `Tabs` draws a bottom bar with Explore, Navigate and Chronicle, in that order, each with an icon and a label, the same on web and phone. All tab options live in `(tabs)/_layout.tsx`, so moving the iOS build to native tabs later touches only that file.
-2. **NV2** The app opens on Explore (the owner's call, Nov 3, over the Nov 1 default of Navigate). An open walk still opens the walk screen at launch, as today. A launch on a walk's or a day's replay that is no longer kept (a Home Screen app reopening on a stale link) goes straight to Explore; reached from inside the app, the replay keeps its message and its way back. A replay that fails to load says so, with Try again, and is never taken for a missing one.
+1. **NV1** Expo Router's `Tabs` draws a bottom bar with Chronicle, Explore and Navigate, in that order (amended Nov 9 by HC3, decision 0112; was Explore, Navigate, Chronicle), each with an icon and a label, the same on web and phone. All tab options live in `(tabs)/_layout.tsx`, so moving the iOS build to native tabs later touches only that file.
+2. **NV2** The app opens on Chronicle's Memories (amended Nov 9 by HC1, decision 0112; it opened on Explore from Nov 3, over the Nov 1 default of Navigate). An open walk still opens the walk screen at launch, as today. A launch on a walk's or a day's replay that is no longer kept (a Home Screen app reopening on a stale link) goes straight to Chronicle (HC5); reached from inside the app, the replay keeps its message and its way back. A replay that fails to load says so, with Try again, and is never taken for a missing one.
 3. **NV3** Each tab keeps its drawer height and map view when you leave it and come back.
 4. **NV4** One live map at a time: a tab's map is taken down while another tab, the walk or a replay is in front, and comes back where it was. The e2e counts one canvas on every tab, during a walk, and with a walk minimized.
-5. **NV5** Back (Android) or the browser's back on Navigate or Chronicle goes to Explore; on Explore it leaves the app. On web each tab has its own path (`/` Explore, `/navigate`, `/chronicle`), so a reload keeps the tab.
+5. **NV5** Back (Android) or the browser's back on Navigate or Explore goes to Chronicle; on Chronicle it leaves the app. On web each tab has its own path (`/` Chronicle, `/explore`, `/navigate`), so a reload keeps the tab. (Amended Nov 9 by HC1, HC4, decision 0112; was `/` Explore and `/chronicle`.)
 6. **NV6** The tab bar hides while the walk screen or a replay is up.
 
 Minimizing a walk
@@ -50,7 +50,7 @@ Minimizing a walk
 
 Chronicle: review
 
-11. **NV11** Chronicle holds the stars, the sheet (Walks, Days, a place's walks) and the walk and day replays. Start walk, the Explore button, What's good here and the quick-capture row leave it.
+11. **NV11** Chronicle holds the stars, the sheet (Walks, Days, a place's walks) and the walk and day replays. Start walk, the Explore button and What's good here leave it. The quick-capture row leaves the map, and comes back on Memories (amended Nov 9 by HC6, decision 0112).
 12. **NV12** A star's sheet and a long press at z12 or closer keep **Walk here**: one tap starts a walk with that destination and the saved choices, as today ("Walk started · recording"). It never opens or fills Navigate's drawer.
 13. **NV13** Notification taps open captures on Chronicle as the home does today (`onRecallOpen`), and go on to the walk when one is open.
 
@@ -58,7 +58,7 @@ Explore
 
 14. **NV14** Explore shows the remembered busy areas (magenta) and each area's places to find and its finds, with no counts (nothing is a score).
 15. **NV15** A long press from z10 runs **What's good here?**, as the home does today; at z12 or closer the sheet offers Walk here too, a one-tap start (NV12).
-16. **NV16** Explore's drawer peeks with the area in view and opens to its busy streets and places to find. Explore never tracks you: it reads one fix when the app opens and frames it, once per launch (the owner's call, Nov 3, now that Explore opens first), then uses your last fix or the area in view.
+16. **NV16** Explore's drawer peeks with the area in view and opens to its busy streets and places to find. Explore never tracks you: it reads one fix the first time it comes to the front in a launch and frames it, once per launch (the owner's call, Nov 3; amended Nov 9 by HC14, decision 0112: the app opens on Chronicle, which reads none), then uses your last fix or the area in view.
 
 Navigate: capture and the pre-start drawer
 

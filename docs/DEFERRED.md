@@ -86,6 +86,9 @@ An item leaves only when it ships, or when it is rejected with a decision record
 ## Moments and days
 
 - Quick capture outside the app: widget, lock screen, share sheet (Moments and days)
+- A capture band on Chronicle's Walks, Days and Map (the owner's call, Nov 9: Memories only; decision 0112)
+- Lost toasts on Memories (capture-from-chronicle audit 13): "Too short, not kept" lands under a viewer opened mid-memo, unseen; "saved to your walk" goes when the walk stops and the band remounts loose
+- An open walk's moment from Memories' band joins Lately only once the walk is stopped (0098's rule, kept); the toast says "saved to your walk" meanwhile (Capture from Chronicle, steward S2)
 - Moments in a place's stars (Moments and days)
 - The home reads every capture row on focus; per-day counts would need storing (Moments and days)
 - Moment pins filtered to the viewport, `MOMENT_PIN_ZOOM` (Moments and days)
@@ -328,7 +331,6 @@ An item leaves only when it ships, or when it is rejected with a decision record
 
 ## Places worth the stop (decision 0103)
 
-- **PW16, the real host:** recorded Nov 10 (PLACES_BASE set, the host on ALLOWED_HOSTS and `lib/net`'s table). Still deferred from it: the US region's box is the archive's data bounds, so a read in Canada asks the US file and finds empty tiles (F7 below) until a Canada region exists.
 - **OpenStreetMap in the weekly build:** the build takes an OSM export to corroborate (a `demolished:` tag removes a place; since RP2 and RP5, a visitor's tag shows a listed place open and `access=private|no` keeps it out), but the weekly job feeds it Wikidata only: an OSM extract of the US is large for a runner, and the public Overpass blocks cloud ranges. the handoff's Overpass query asks only for elements with a `wikidata` tag.
 - **Classes not yet pinned:** historical markers (no Wikidata class with real use), petroglyphs (archaeology, not an oddity), water towers and rock formations (too broad), time capsules (the lookup's match looked wrong). Each is a deliberate change to `classify.mjs` and ARCHIVE_CLASSES.
 - **A line on why a place is worth the stop, Wikivoyage, the one-of-a-kind shops tier, the scenic routes' Sights leaning (PW18 pins it unchanged).**

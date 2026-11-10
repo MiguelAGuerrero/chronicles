@@ -4,13 +4,13 @@
 // all three leanings off. E2E_ONLY=scenic runs it alone.
 
 async function run(h) {
-  const { url, at, check, shot, freshPage, scenicWorld, drawerTo, metaOf } = h;
+  const { url, exploreUrl, at, check, shot, freshPage, scenicWorld, drawerTo, metaOf } = h;
   scenicWorld.serve = true;
   try {
     const open = async (label) => {
       const { c, pg } = await freshPage(label);
       await c.addInitScript(() => { window.__perf = {}; });
-      await pg.goto(url);
+      await pg.goto(exploreUrl);
       await pg.waitForSelector('[data-testid=tab-explore][aria-selected=true]');
       await pg.click('[data-testid=tab-navigate]');
       await pg.waitForSelector('[data-testid=start]');

@@ -187,7 +187,7 @@ export default function Replay() {
   const leftForChronicle = useRef(false);
   const toChronicle = useCallback(() => {
     leftForChronicle.current = true;
-    router.dismissTo('/chronicle');
+    router.dismissTo('/');
   }, []);
   useEffect(() => {
     if (rewatch) return;
@@ -199,7 +199,7 @@ export default function Replay() {
     });
     return () => {
       back.remove();
-      if (!leftForChronicle.current) setTimeout(() => router.navigate('/chronicle'), 0);
+      if (!leftForChronicle.current) setTimeout(() => router.navigate('/'), 0);
     };
   }, [rewatch, toChronicle]);
 
@@ -233,7 +233,7 @@ export default function Replay() {
       if (!alive) return;
       if (!d) {
         // Opened on a walk that is no longer kept (a Home Screen app reopening on a stale link):
-        // straight to Explore, with no detour to Chronicle on the way out (NV2).
+        // straight to Chronicle at / (NV2, HC5).
         if (launchRoute.isLaunch(`/replay/${id}`)) {
           leftForChronicle.current = true;
           router.dismissTo('/');
@@ -383,7 +383,7 @@ export default function Replay() {
         {status === 'missing' ? (
           <>
             <Text style={styles.missing}>This walk could not be found.</Text>
-            <Button label="Back to walks" onPress={() => router.dismissTo('/chronicle')} />
+            <Button label="Back to walks" onPress={() => router.dismissTo('/')} />
           </>
         ) : (
           <Text style={styles.muted}>Opening your walk…</Text>
@@ -412,7 +412,7 @@ export default function Replay() {
       setSaving(false);
     }
   };
-  const close = () => (router.canGoBack() ? router.back() : router.dismissTo('/chronicle'));
+  const close = () => (router.canGoBack() ? router.back() : router.dismissTo('/'));
   const sheetPad = { top: 48 + insets.top, right: 32, bottom: sheetH + 24, left: 32 };
 
   return (
