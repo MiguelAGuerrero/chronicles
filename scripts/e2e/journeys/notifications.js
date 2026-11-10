@@ -40,7 +40,7 @@ async function checks(h) {
       await page.waitForTimeout(800);
       await page.evaluate((m) => navigator.serviceWorker.dispatchEvent(new MessageEvent('message', { data: m })), homeTap);
       const onChronicle = await page.waitForSelector('[data-testid=viewer-close]', { timeout: 8000 }).then(() => true, () => false);
-      check(onChronicle && new URL(page.url()).pathname === `${BASE}/chronicle` && (await page.locator('[data-testid=viewer-close]').count()) === 1,
+      check(onChronicle && new URL(page.url()).pathname === `${BASE}/` && (await page.locator('[data-testid=viewer-close]').count()) === 1,
         `a reminder tapped on another tab opens its capture on Chronicle, once (NV13: ${page.url()})`);
       if (onChronicle) await page.click('[data-testid=viewer-close]');
     }

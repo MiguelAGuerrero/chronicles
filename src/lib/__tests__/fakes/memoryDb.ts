@@ -125,7 +125,7 @@ export function memoryDb(legacy: { marks?: Mark[] } = {}): Db {
   const walks = new Table<Walk>((w) => w.id);
   const points = new Table<TracePoint & { seq: number }>((p) => p.seq); // autoIncrement
   let seq = 0;
-  // As the web store (decision 0106): one record per moment, its pieces inside it.
+  // As the web store (decision 0123): one record per moment, its pieces inside it.
   const moments = new Table<Moment>((m) => m.id);
   const momentOfPiece = (id: string) => moments.all().find((m) => m.pieces.some((p) => p.id === id));
   const pauses = new Table<Pause>((p) => [p.walk_id, p.started_at]);

@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
-// Moment stacks, MS6 (decision 0106): the Add to this moment pill's restraint, read from its source: a timing from
+// Moment stacks, MS6 (decision 0123): the Add to this moment pill's restraint, read from its source: a timing from
 // motionTokens (through LiftIn), no hard-coded duration, no haptic or sound of its own, no accent colour, no count.
 const FILE = join(__dirname, '../../../components/walk/AddToMomentPill.tsx');
 

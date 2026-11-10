@@ -14,7 +14,7 @@ import { momentOf, type Flat } from '../moment';
 
 /**
  * What every `Db` must do (FC7), run against every implementation: the in-memory fake (`fakes/memoryDb`), the
- * IndexedDB store (`db/index.web.ts` over fake-indexeddb) and, since MT11 (decision 0106), the native store
+ * IndexedDB store (`db/index.web.ts` over fake-indexeddb) and, since MT11 (decision 0123), the native store
  * (`db/sqliteStore.ts` over Node's built-in SQLite, `fakes/nodeSqlite`). It pins the behavior shells rely on, so
  * no store can drift from the others unnoticed.
  *
@@ -272,7 +272,7 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual(ids(flats(await db.momentsBetween(0, 100))), ['before', 'c1', 'loose', 'c3', 'end']);
     });
 
-    // ---- moments (Moment table, MT3-MT6, decision 0106)
+    // ---- moments (Moment table, MT3-MT6, decision 0123)
 
     const planned = fresh;
     const one = (id: string, walk_id: string | null, t: number, more: Partial<Moment> = {}, media: Partial<Capture> = {}): Moment => ({
@@ -321,7 +321,7 @@ export function dbContract(name: string, fresh: (legacy?: Legacy) => Promise<Db>
       assert.deepEqual((await db.getMomentsByIds(['m1']))[0].pieces[0].edit, edit);
     });
 
-    // ---- moment stacks, round 1 (MS3, MS13, MS15; decision 0106)
+    // ---- moment stacks, round 1 (MS3, MS13, MS15; decision 0123)
     const stacks = fresh;
     const piece = (id: string, moment_id: string, t: number, more: Partial<Capture> = {}): Capture => ({ id, moment_id, t, kind: 'photo', file_path: `${id}.jpg`, body: null, ...more });
 

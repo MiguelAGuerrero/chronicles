@@ -19,7 +19,7 @@ export interface PillState {
 }
 
 /**
- * The Add to this moment pill's state (moment stacks MS4, MS5, MS12; decision 0106): `openMoment`'s reducer with
+ * The Add to this moment pill's state (moment stacks MS4, MS5, MS12; decision 0123): `openMoment`'s reducer with
  * the app's clock and one timer, so the pill goes by itself when its two minutes are up. The walk screen tells it
  * what happened; the pill and the viewer read `store`. `setTimer` is passed in (the app's `setTimeout`; a test's
  * hand-driven clock).

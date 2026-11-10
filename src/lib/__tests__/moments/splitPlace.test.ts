@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import { placeAt } from '../../moment';
 import type { TracePoint } from '../../types';
 
-// Moment stacks MS16 (decision 0106): where a split piece goes. Test first: the module is reached by name.
+// Moment stacks MS16 (decision 0123): where a split piece goes. Test first: the module is reached by name.
 type Mod = {
   splitPlace(
     t: number,

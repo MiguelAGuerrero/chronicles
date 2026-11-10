@@ -27,9 +27,9 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
   time follows its length, not the minutes walked (a glide, or a zip with the camera
   pulled back past `zipAtM`); a break is a cut with "N min later"; notes and memos
   are bubbles, photos and videos cards that tuck into the pile; passed places
-  whisper by; a clock rolls with the walker. Every number is in `REPLAY_RHYTHM`
+  whisper by (one or two by name, more than two as one "Passed a few places without stopping", RP19); a clock rolls with the walker. Every number is in `REPLAY_RHYTHM`
   (`motionTokens.ts`). A soft cap of 60 s shrinks everything but memos and videos.
-- **A stacked moment is one beat** (moment stacks MS17, decision 0106): `rhythm.ts` `stopSlots` makes a moment
+- **A stacked moment is one beat** (moment stacks MS17, decision 0123): `rhythm.ts` `stopSlots` makes a moment
   with two or more photos and videos one `grid` slot (`ceremony/grid.ts`: the closest square up to 3×3, scrolling past
   nine; `gridDuration`: swipe-ins, then one photo slot or the longest muted video), its memos and notes `beside` slots
   on their own clock from the grid's start; fewer than two play piece by piece. One card, one pile entry per moment.

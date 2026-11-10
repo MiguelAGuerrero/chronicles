@@ -5,7 +5,7 @@ import type { PendingJob } from '../../deletion/pending';
 import type { Moment } from '../../types';
 import { fakePorts } from '../fakes';
 
-// Moment stacks MS16 (decision 0106): Split out through the Undo window, over fakePorts. Test first: reached by name.
+// Moment stacks MS16 (decision 0123): Split out through the Undo window, over fakePorts. Test first: reached by name.
 type Split = {
   split(m: Moment, pieceId: string): Promise<void>;
   /** The moments shown at once, before they are stored: the viewer's "one Next moment away". */

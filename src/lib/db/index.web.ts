@@ -135,7 +135,7 @@ export function migrate(d: IDBDatabase, tx: IDBTransaction, oldVersion: number, 
     links.createIndex('to_id', 'to_id');
   }
   if (oldVersion < 18 && upTo >= 18) {
-    // The moment table (MT1, decision 0106): one record per moment, its pieces inside it, so a read is one request
+    // The moment table (MT1, decision 0123): one record per moment, its pieces inside it, so a read is one request
     // and a moment with its pieces is one write. Every capture becomes a one-piece moment under its own id, so
     // threads, replies, reminders and finds keep pointing at it. The capture store goes in the same upgrade.
     const moments = d.createObjectStore('moment', { keyPath: 'id' });

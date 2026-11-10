@@ -37,9 +37,9 @@ index.js                     entry: imports lib/recorder (defines the background
 src/app/_layout.tsx          root stack: the tabs first, then walk and replay over them; opens the open walk at launch under a cover (lib/launchWalk), then reconciles the recorder; sets the audio mode; notes the launch path (lib/launchRoute)
 src/app/(tabs)/_layout.tsx   the three tabs, Explore · Navigate · Chronicle; Explore opens first, at / (NV2); Navigate's press opens the walk screen (NR1)
 src/app/(tabs)/navigate.tsx  Navigate's entry route (/navigate): Explore beneath, then the walk screen, ready (NR1, NR3)
-src/app/(tabs)/index.tsx     Explore (/): the atlas of the areas near you (tiles, the area card; 0066, 0067); long press = What's good here / Walk here
-src/app/(tabs)/chronicle.tsx Chronicle, the home: stars by area at the level for the zoom, moment pins from z11, the HomeSheet (Walks | Days), old-walk placement
-src/app/explore.tsx          the old /explore path: dismissTo("/") down to Explore (NV2, 0070)
+src/app/(tabs)/index.tsx     Chronicle (/), where the app opens (0112): Memories with the capture band; Walks, Days and Map (stars by area at the level for the zoom, moment pins from z11, the HomeSheet, old-walk placement)
+src/app/(tabs)/explore.tsx   Explore (/explore): the atlas of the areas near you (tiles, the area card; 0066, 0067); long press = What's good here / Walk here
+src/app/chronicle.tsx        the old /chronicle path: dismissTo("/") down to Chronicle (HC5, 0112)
 src/app/walk.tsx             the walk screen, and Navigate: one screen and one map, ready with no walk open (`useReady`), else live trace and dot, fog, captures, navigation bar, Explore marks, memories, reminders, options, hold-to-stop
 src/app/replay/[id].tsx      a walk's replay: the five beats; the path beat is a ceremony told over the map (lib/ceremony, components/ceremony), or the screen reader's steps; the card, naming
 src/app/day/[key].tsx        a day's replay: the day's story told by the same ceremony (or the screen reader's steps), a quiet card
@@ -83,7 +83,7 @@ Chronicle's Memories (decision 0098)
   resurface/section.ts       which Chronicle section after a route; sectionStore.ts holds it
   resurface/shell.ts         createResurface(ports): load, choices in meta `resurface_prefs`, saveNote, patch; index.ts is the app instance
   resurface/useResurface.ts  the view hook (reads on focus and after a delete)
-  chronicle/                 SectionBar, MemoriesScreen, Resurfaced, ThreadsRail, ThreadScreen, MomentCard, MomentPicture, MemoryMenu
+  chronicle/                 SectionBar, MemoriesScreen, MemoriesBand (the capture band, HC6-HC15), Resurfaced, ThreadsRail, ThreadScreen, MomentCard, MomentPicture, MemoryMenu
 Owner threads (decision 0104)
   threads/types.ts           Thread, Member, Link (all truth), ThreadsData, ThreadsChange (one atomic change)
   threads/rules.ts           thinThreads (dissolve below two), canMakeThread, threadForReply, replyChange, addChange, visibleThreads (what Undo hides)
@@ -97,10 +97,10 @@ Home / tabs
   StarView.tsx               a star for a place; all one size; the 8 busiest carry names
   OpenWalk.tsx               the open walk kept above the tabs: walk, pauses, live trace, useOpenWalk / useOpenWalkInfo
   RecordingBar.tsx           the bar above the tabs while a walk is minimized: time, distance, camera, Stop, › back to the walk
-  MomentBar.tsx              MomentBar (loose moments from Navigate) and CaptureRow (captures for the open walk)
+  MomentBar.tsx              MomentBar (loose moments from Navigate and Memories, or the open walk's from Memories' band) and CaptureRow (the controls, as a stack or a band)
   LocateButton.tsx           Locate me, an edge button
   StartSettings.tsx          the walk settings, shown in the ready bar pulled up (NR7)
-  walk/                      the walk screen's shared geometry (layout.ts), CaptureStack, AddToMomentPill (moment stacks), ReadyBar, useReady (the walk screen's ready state)
+  walk/                      the walk screen's shared geometry (layout.ts), CaptureStack (a stack, or Memories' band), AddToMomentPill (moment stacks), ReadyBar, useReady (the walk screen's ready state)
   StackMark.tsx              the two-card mark of a moment holding more than one piece (MS8)
   GapCard.tsx                a filled or offered stretch: Keep, Not this way
   LandingMarks.tsx           a strip's name beside it on the map
@@ -189,7 +189,8 @@ Navigation (inside a walk)
   nav/graph.ts               a small walking graph with A*
   nav/traceRoute.ts, streetRoute.ts         the two RouteSources: along this trace; over derived streets
   nav/navigator.ts           routeTo: first source that can, or why none
-  nav/store/                 the destination in meta `nav` (shell.ts the factory, index.ts the app's instance)
+  nav/store/                 the destination in meta `nav`, and Walk back here's spot in `way_back` (shell.ts the factory, index.ts the app's instance)
+  nav/wayBack.ts             where Walk me back leads: the spot chosen, where the last ride ended (`landingOf`), or the start; its words
   nav/useNavigation.ts       routing, re-routing, arrival and the street read on the walk screen
   nav/handoff.ts             Open in Maps: picks the maps app and its links per platform and browser
   nav/openInMaps.ts          opens them with Linking.openURL straight from the tap
@@ -197,6 +198,8 @@ Navigation (inside a walk)
   nav/scenicSignals.ts       green (landcover), sights and busy streets of a corridor; their per-routing indexes
   nav/scenicRead/            the corridor's tiles and Overture places for a scenic route (shell.ts, index.ts)
   routeLeanings/             the "Scenic routes" switches in meta `route_leanings` (`lib/routeLeanings`: shell.ts, index.ts)
+  kindWalk/                  a suggested walk where a kind is dense (`lib/kindWalk`: density, plan, words, its settings and prefs)
+  walkPlanner/               the walk planner's page (`lib/walkPlanner`: planner, presets, exposure, words; app.ts the instance)
 Filling gaps
   gaps/rules.ts              GAP_RULES: what counts as a gap, the paces, the budgets
   gaps/infer.ts              gapsOf, the likely way over street pieces (A*), certain / offered / nothing
@@ -208,7 +211,7 @@ Discovery and Explore (v1)
   discovery/tilePois.ts the OpenMapTiles poi classes, markable, kindFor (the only file that knows them)
   discovery/archivePois.ts   the places archive's schema: ARCHIVE_CLASSES (pinned, PW5), placesFromArchive (the only file that knows it; decision 0103)
   discovery/archiveMerge.ts  mergePlaces (one mark per place, PW8), ARCHIVE_EDITS and applyEdits (archiveEdits.json, PW13)
-  discovery/archiveManifest.ts the manifest (PW2): parse, pickRegion, manifestDue, z12 tiles for a read, PLACES_BASE (empty until PW16)
+  discovery/archiveManifest.ts the manifest (PW2): parse, pickRegion, manifestDue, z12 tiles for a read, PLACES_BASE (the chronicles-data Pages site, PW16)
   discovery/archive/shell.ts createPlacesArchive: the manifest daily, the region, the read's tiles through net/tileReader; index.ts is the app's instance
   discovery/places.ts placeKey, normalization, same-place rules
   discovery/noise.ts         MARK_CATEGORIES, chains.json and notable.json rules
@@ -227,6 +230,7 @@ Discovery and Explore (v1)
   atlas/snap.ts              discrete navigation (DN1-DN13): what a drag or an arrow key means, which way it points, which area lies that way
   explore/settings.ts        what I'm into, range, pocket alert (meta)
   explore/momentFind/        a loose moment finds a place (shell.ts, index.ts)
+  explore/reach/             a street or path close by, said on a place's card (rule.ts core, shell.ts, index.ts; RP20)
 Activity density (AD1-AD16)
   activity/weights.ts        what counts toward density and how much, for OSM and Overture
   activity/points.ts         places as weighted points from both sources; one place once across them
@@ -285,12 +289,14 @@ Captures and media
   captureEdits/              saving a moment's edits from a screen with no capture path: stored, then told on the bus (shell)
   videoEdit/                 an edited video as one file: the local module on phones, canvas + MediaRecorder on the web
   media/                     where files are kept: Documents (relative paths) on native, Blobs in IndexedDB on web; resolveMedia
+  space/                     storage awareness (SA1-SA10, 0107): core.ts levels, words, the once rule; shell.ts reads the probe, keeps meta space_said/space_persist; probe.native/web.ts
   media/thumb.ts             the 240 px copy with expo-image-manipulator; thumbPlan.ts decides when; thumbJob.ts runs one job per photo at a time
   useMediaUri.ts             a capture's media as a playable URI
   pins.ts                    pinsFor: grouping captures by screen distance; pinReminded, the bell
   useReminded.ts             the captures with a live reminder, per map; re-read on recallCheck's onRecallsChanged and at nextExpiry
   momentPins.ts              moments outside walks as pins (Navigate, Chronicle) and Chronicle's fit around them
-  moment.ts                  a moment and its pieces (decision 0106): face, faced rows, foldRows (SQLite's joined reads), placeAt (a moment on the trace at stop)
+  captureBand.ts             Memories' capture band (0112): its layout, where a moment goes (loose or the open walk), its labels and toasts, and whether the recording bar shows its camera
+  moment.ts                  a moment and its pieces (decision 0123): face, faced rows, foldRows (SQLite's joined reads), placeAt (a moment on the trace at stop)
   openMoment.ts              the Add to this moment pill's life as a reducer (MS4, MS5): two minutes, 100 m from the first capture, dismiss, leave, start/stop
   momentPill/                its store on the app's clock (shell.ts, index.ts); the viewer's ask, run by the walk screen (MS12)
   pieceStamp.ts              a capture's stamp: a piece for an open moment takes no fix (MS3)
@@ -468,6 +474,10 @@ own code only where no Expo module covers the feature on web:
   screen, but desktop Chrome has `navigator.vibrate` and no motor (audit 4);
   expo-haptics has no availability call. The buzz itself goes through expo-haptics, as on a
   phone (decision 0079).
+- **The room left** (storage awareness, SA1, SA10, decision 0107): `space/probe.web.ts` reads
+  `navigator.storage.estimate()` (the quota minus what the app uses) and asks `navigator.storage.persist()`.
+  expo-file-system's web build reports `availableDiskSpace` as 0, and no Expo module asks a browser to
+  keep an app's data. Phones read `Paths.availableDiskSpace` (`space/probe.native.ts`).
 - **Browser fixes** with no native counterpart: `webStyles.web.ts` (pinned
   viewport, long-press guards) and the muted-autoplay fallback.
 
@@ -481,7 +491,7 @@ Truth (`lib/types.ts`):
 
 - `Walk`: id, started_at, ended_at, title, epilogue, open, area, snapped_build.
 - `TracePoint`: walk_id, t, lat, lon, accuracy_m, speed, course. Raw, unfiltered.
-- `Moment` (decision 0106): id, walk_id (null for a loose moment), t, lat/lon
+- `Moment` (decision 0123): id, walk_id (null for a loose moment), t, lat/lon
   (null until placed: its one fix, or the trace at stop, `placeAt`), segment_id,
   and `pieces`, its media in capture order, never empty. Every moment kept
   before the moment table has one piece under the moment's own id, so threads,
@@ -573,5 +583,5 @@ stores the record whole.
 
 ## The places archive (Places worth the stop, decision 0103)
 
-- **Built outside the app.** `scripts/places-archive/fetch-wikidata.mjs` asks the Wikidata Query Service one 2-degree US cell at a time; `scripts/build-places-archive.mjs` classifies (`scripts/places-archive/classify.mjs`: pinned Wikidata classes, type before age, National Historic Landmarks only, gone places out), applies `archiveEdits.json` and writes `places-<region>-<version>.pmtiles` (`archive.mjs`: z12, gzip, leaf directories); `publish.mjs` publishes only a changed archive. The chronicles-data repo runs them weekly and serves the newest three releases from its Pages site with a `manifest.json`.
+- **Built outside the app, in chronicles-data** (decision 0108): the places pipeline, its schemas, its class names and the owner's `edits.json` live there (https://github.com/MiguelAGuerrero/chronicles-data, its docs/spec.md). It builds the packs weekly, publishes them with `manifest.json` (each file's z8 `blocks`) and serves its `contract/` beside them. The app pins a copy of that contract (`src/lib/__tests__/explore/contract/`), and `placesContract.test.ts` holds the app's class table and reader to it (PP17); the owner's edits are applied in the build, never in the app. The listing rule of Remarkable and public, built in this repo before the move, is handed to it in `specs/remarkable-and-public/handoff.md`. `npm run places:coverage` (`scripts/places-coverage.ts`, `scripts/places-archive/coverage.mjs`) measures what the app keeps of seven areas' destinations.
 - **Read by tile in the app,** through `lib/net`, in the explore read (checklists, every walk) and the atlas ring read (PW10); never stored, merged with the map's places, the archive's kind winning. `EXPO_PUBLIC_PLACES_BASE` points the e2e build at `/places-e2e/` on the harness's server.

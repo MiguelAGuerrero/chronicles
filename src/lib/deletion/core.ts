@@ -29,7 +29,7 @@ export function filesOf(captures: Pick<Capture, 'file_path' | 'thumb_path'>[]): 
   return out;
 }
 
-/** Every piece's files of a set of moments (MT6, decision 0106): what deleting them takes. */
+/** Every piece's files of a set of moments (MT6, decision 0123): what deleting them takes. */
 export function filesOfMoments(moments: { pieces: Pick<Capture, 'file_path' | 'thumb_path'>[] }[]): string[] {
   return filesOf(moments.flatMap((m) => m.pieces));
 }

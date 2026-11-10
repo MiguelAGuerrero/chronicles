@@ -4,7 +4,7 @@ import { parseEdit } from './mediaEdit';
 import type { Capture, LngLat, Moment, StreetSegment, TracePoint } from './types';
 
 /**
- * A moment holds its media (decision 0106, MT4, MT5, MT10): the pure helpers over it. The store keeps a moment's
+ * A moment holds its media (decision 0123, MT4, MT5, MT10): the pure helpers over it. The store keeps a moment's
  * place and time once; its pieces keep their own capture times.
  */
 

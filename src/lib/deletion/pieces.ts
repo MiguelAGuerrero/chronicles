@@ -5,7 +5,7 @@ import type { Moment } from '../types';
 import { filesOf } from './core';
 
 /**
- * Deleting one piece of a moment (moment stacks MS13, decision 0106), once its Undo window has passed: the piece and
+ * Deleting one piece of a moment (moment stacks MS13, decision 0123), once its Undo window has passed: the piece and
  * its files go, and the moment stays with its place, time, threads, links, reminder and find. The last piece is the
  * moment itself: then the moment goes, with everything `deleteMoments` takes (OT16). `removeMedia` is passed in so
  * this loads in Node (the media module loads React Native).

@@ -110,7 +110,7 @@ npx tsx --test --test-name-pattern "rides audit" src/lib/__tests__/rides/rides.t
   `memoryDb()` and the IndexedDB store (`db/index.web.ts` over
   fake-indexeddb, a fresh module per case, since it caches its connection)
   to the same cases. Every `Db` method needs a case (`FC7 every Db method has
-  a contract case`). Since the moment table (MT11, decision 0106) the native
+  a contract case`). Since the moment table (MT11, decision 0123) the native
   store runs the same cases: `db/sqliteStore.ts` over Node's built-in SQLite
   through `__tests__/fakes/nodeSqlite.ts`, a small stand-in for the
   `expo-sqlite` calls it makes, one in-memory database per case. A case marked

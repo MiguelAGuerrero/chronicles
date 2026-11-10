@@ -23,7 +23,7 @@ Captures (photo, video, voice memo, note), their viewer, captions and baking, th
   capped at 30 s on phones and 15 s on web. The mic stays the separate pocket
   recorder.
 
-## A moment's pieces (decision 0106)
+## A moment's pieces (decision 0123)
 
 - **Screens read `Faced` moments** (`lib/moment`): the moment's id, walk, time and place with its face's media and
   `piece_id`. Media writes name `piece_id` (`db.updatePiece`), place writes the moment (`db.updateMoment`). A
@@ -146,6 +146,11 @@ expo-image-manipulator; `lib/thumbPlan.ts` pure, `media/thumb.ts`).
 - Voice memos stop when the phone locks unless `setAudioModeAsync` gets
   `allowsBackgroundRecording: true` and the expo-audio plugin has
   `enableBackgroundRecording`.
+
+- **A failed photo or video is held** (SA8, decision 0107): `useCaptures` keeps every one (`held`, the
+  file's kept path once it is), the walk screen and Navigate, ready show "Photo not saved" with Retry
+  (`heldLabel`), Retry saves each with its stamp, and Stop warns once before ending without them. Every
+  save failure is worded by `saveFailLine` (lack of room told apart by `isOutOfSpace`), never the raw error.
 
 - All voice actions (start, save, discard, undo, retry) run on one promise queue in
   `useCaptures`, so taps never interleave. Stop waits for that queue.

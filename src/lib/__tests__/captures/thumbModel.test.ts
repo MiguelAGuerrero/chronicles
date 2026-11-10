@@ -24,7 +24,7 @@ const read = (rel: string) => readFileSync(join(LIB, rel), 'utf8');
 
 /** The SQL of each entry of `MIGRATIONS` in the native store, in order (entry N is migration N). */
 function nativeMigrations(): string[] {
-  // The native store's migrations moved to their own module with the moment table (decision 0106).
+  // The native store's migrations moved to their own module with the moment table (decision 0123).
   const file = join(LIB, 'db', 'migrations.ts');
   const src = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true);
   let out: string[] = [];

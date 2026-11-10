@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-// Moment stacks MS17 (decision 0106): a stack's grid in the replay. Test first: reached by name.
+// Moment stacks MS17 (decision 0123): a stack's grid in the replay. Test first: reached by name.
 type Mod = { gridLayout(n: number): { cols: number; rows: number; shown: number; scrolls: boolean } };
 const mod = () => import('../../ceremony/grid' + '') as Promise<Mod>;
 

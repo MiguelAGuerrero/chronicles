@@ -121,6 +121,18 @@ Routing inside a walk (`lib/nav`): walk me back, Go here, the route sources, rul
   - The long press on the walk map opens a small sheet: Go here, plus "What
     happened here (N)" when captures are near.
   - Walk me back is the top edge button.
+- **Drive there, walk back** (DW1-DW14, decision 0121, the owner, Nov 10):
+  - Walk me back's target is `wayBackTarget` (`nav/wayBack.ts`, core): the spot chosen with "Walk back here" (meta
+    `way_back`, `{ walk_id, at }`, cleared by `stopWalk`), else where the last ride that has ended ended (`landingOf`, the
+    first walked fix after it, published by `useLiveTrace` as `landing`; a ride under way is skipped), else the start.
+    Never store the landing: it is read from the trace. It routes as `kind: 'start'` (trace and streets, shortest).
+  - Its label is spoken only (the icon stays): "Walk me back to the start" / "to where the ride ended" / "to the spot you
+    chose"; the bar names it "Start", "Where the ride ended", "The spot you chose". "Got off" named a bus (the steward).
+  - The live walk's map writes `data-marks` (the rings drawn) under `window.__perf`; the way-back point is never one
+    unless you are led there.
+  - **E2E** (`E2E_ONLY=drive`): a drive is 45 s at 12 m/s; walking off must be under 3 m/s (`RIDE_RULES.edge`), or the
+    ride joins across it as slow traffic and "On a ride" stays. A town's Explore tile opens its page; its card is
+    behind `atlas-town-head`.
   - A pin's viewer has Go here.
 - **Scenic routes** (SR1-SR15, decision 0095, the owner's calls, Nov 4): Go here offers Direct and one
   route per leaning switched on (green, sights, streets with life), side by side, at most 30% longer.
@@ -148,6 +160,10 @@ Routing inside a walk (`lib/nav`): walk me back, Go here, the route sources, rul
   - Settings: meta `route_leanings` (`lib/routeLeanings`), loaded at launch; the switches are in both drawers.
   - E2E: `E2E_ONLY=scenic` (India Point Park, `scenicWorld`). Other journeys reach a route through the
     harness's `routed`, which takes Direct when a preview shows.
+- **Only the routes while choosing** (fix preview-clutter, the owner's phone screenshot): with the preview open, the live map draws
+  none of the walked trace, rides, gap stretches and links, fog, walked streets, busy streets' shading, town borders, walkability tint or the "unwalked" veil
+  (`forPreview` in `nav/previewView.ts`, applied in `walk.tsx`); they come back as it closes. The e2e reads which of them carry anything
+  (`data-drawn`, under `window.__perf`). Pins and the walker stay.
 - **Time left** (QL17, QL18; `lib/nav/eta.ts`, pure): the walk's own pace (walked
   metres over moving time) once 100 m and 60 s are walked, clamped to 0.7–2.0 m/s,
   else 1.3 m/s. The bar says "450 m · 6 min · Your spot"; its label and the stepped

@@ -1,4 +1,4 @@
-<!-- Repo first: written from the owner's request in a session (Nov 9), not yet a tab of the concept doc (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7). The owner's calls are decision 0106. Round 0, the moment table, is its own spec: specs/moment-table/spec.md. -->
+<!-- Repo first: written from the owner's request in a session (Nov 9), not yet a tab of the concept doc (https://claude.ai/artifact/6P9aUdZJAdReBi6yFVtwa7). The owner's calls are decision 0123. Round 0, the moment table, is its own spec: specs/moment-table/spec.md. -->
 
 # Moment stacks: several media, one moment
 
@@ -17,9 +17,9 @@ Touches: Never "A capture behind a menu, a drawer or an extra tap"; Always "Coun
 Verdict: aligned if reshaped
 Shape: The edge stack is unchanged: each tap makes a new moment. After a capture, an "Add to this moment" pill offers each kind, one tap each; it closes when you leave the screen, walk on, or dismiss it. A setting, off by default, groups automatically until two minutes pass with no capture or a one-tap "New moment". One moment, one place, one time, everywhere moments appear; its size never a number. Split out moves a piece into its own moment. Separate moments are never merged; Add to a thread is unchanged.
 Criteria: MS1 (one tap, unchanged), MS2-MS4 (one tap to add, own time, one fix, the pill closes without tracking), MS6 (restraint), MS7-MS8 (one moment, its context), MS9 (no count), MS12 (no adding out of context), MS14 (no merge), MS17 (one beat in the replay, the lows kept), MS18-MS21 (the setting, the words, no tracking).
-Open: none (the owner's answers, Nov 9). The reasons rest on decision 0106; open question 5 of VISION.md is cited as a reason, not a rule.
+Open: none (the owner's answers, Nov 9). The reasons rest on decision 0123; open question 5 of VISION.md is cited as a reason, not a rule.
 
-## Decisions (the owner's calls, Nov 9, decision 0106)
+## Decisions (the owner's calls, Nov 9, decision 0123)
 
 - Every kind of media can share a moment: photo, video, voice memo, note.
 - Grouping is explicit by default: an **Add to this moment** pill after a capture, beside the edge stack, one tap per kind. The edge stack itself always makes a new moment while the setting is off.

@@ -44,7 +44,7 @@ export function createBundleWriter(p: Pick<Ports, 'db' | 'clock'>) {
     });
     const media: Record<string, string> = {};
     let missing = 0;
-    // Each piece's media, named by the piece's own id (MT8, decision 0106).
+    // Each piece's media, named by the piece's own id (MT8, decision 0123).
     const pieces = moments.flatMap((m) => m.pieces);
     for (const c of pieces) {
       if (!c.file_path) continue;
@@ -68,7 +68,7 @@ export function createBundleWriter(p: Pick<Ports, 'db' | 'clock'>) {
     }
     const json = {
       format: 'chronicles-walk',
-      // Version 2: moments with their pieces (MT8, decision 0106); version 1 listed one capture per moment.
+      // Version 2: moments with their pieces (MT8, decision 0123); version 1 listed one capture per moment.
       version: 2,
       exported_at: new Date(p.clock.now()).toISOString(),
       walk,

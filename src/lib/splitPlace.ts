@@ -4,7 +4,7 @@ import { GAP_MS } from './replay';
 import type { TracePoint } from './types';
 
 /**
- * Where a piece split out of its moment goes (moment stacks MS16, decision 0106): on a walk, the trace at its own time,
+ * Where a piece split out of its moment goes (moment stacks MS16, decision 0123): on a walk, the trace at its own time,
  * as a capture is placed today (`placeAt`): inside a pause, where the pause began; inside a gap in the fixes (none
  * within `GAP_MS` on either side), the last fix before it, never a line across the gap. Off a walk, or with no fix
  * to place it by, the original moment's place: nothing reads the location again (0036).

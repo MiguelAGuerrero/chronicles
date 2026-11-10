@@ -1,4 +1,4 @@
-// Moment stacks, round 1 (MS1-MS15, decision 0106): the Add to this moment pill on Navigate's ready screen, one
+// Moment stacks, round 1 (MS1-MS15, decision 0123): the Add to this moment pill on Navigate's ready screen, one
 // moment everywhere, the viewer's pieces, deleting a piece. In a fresh browser with nothing kept. E2E_ONLY=stacks.
 
 const path = require('path');

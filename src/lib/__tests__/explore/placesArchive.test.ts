@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { applyEdits, mergePlaces } from '../../discovery/archiveMerge';
+import { mergePlaces } from '../../discovery/archiveMerge';
 import { ARCHIVE_CLASSES, placesFromArchive } from '../../discovery/archivePois';
 import { placeKey } from '../../discovery/places';
 import type { Place } from '../../discovery/types';
@@ -13,7 +13,7 @@ import { buildChecklists, placeFinds, readCentre, type ChecklistArea, type Find 
 import type { PlaceCandidate } from '../../areas/types';
 import { createPlacesArchive } from '../../discovery/archive/shell';
 import { fakePorts } from '../fakes';
-import { archiveTilesFor, ARCHIVE_ZOOM, manifestDue, parseManifest, pickRegion, PLACES_BASE, regionUrl } from '../../discovery/archiveManifest';
+import { archiveTag, archiveTilesFor, ARCHIVE_ZOOM, blockKey, manifestDue, parseManifest, pickRegion, PLACES_BASE, regionUrl } from '../../discovery/archiveManifest';
 
 // Places worth the stop (specs/places-worth-the-stop, PW1-PW19), written from the spec before the code.
 
@@ -56,9 +56,17 @@ test('PW2: tiles are stored at z12; the reader asks for the one holding each z14
   assert.deepEqual(archiveTilesFor([[4768, 6160], [4769, 6161], [4772, 6160]]), [[1192, 1540], [1193, 1540]]);
 });
 
-test('PW2, PW16: a region\'s file is addressed by its versioned name; until PW16 is recorded the address is empty and nothing is asked', () => {
+test('PW2, PW16: a region\'s file is addressed by its versioned name; the address is the chronicles-data Pages site, recorded and allowed', async () => {
   assert.equal(regionUrl('https://example.org/data/', 'places-us-20261108.pmtiles'), 'https://example.org/data/places-us-20261108.pmtiles');
-  assert.equal(PLACES_BASE, '', 'the reader does nothing until a real archive has been read from the host (PW16)');
+  // PW16, recorded Nov 10: a cross-origin byte range of places-us-20261110.3.pmtiles answered 206 with its content-range and
+  // access-control-allow-origin: *, and the app's reader decoded Bethlehem's tile from it.
+  assert.equal(PLACES_BASE, 'https://miguelaguerrero.github.io/chronicles-data/');
+  const host = new URL(PLACES_BASE).host;
+  const { HOSTS } = await import('../../net/policy');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { ALLOWED_HOSTS } = require('../../../../scripts/check-vision.js') as { ALLOWED_HOSTS: Record<string, string> };
+  assert.ok(host in HOSTS, 'in lib/net\'s table');
+  assert.ok(host in ALLOWED_HOSTS, 'on the vision\'s allowed hosts, with its reason');
 });
 
 test('PW4: Curiosities is a kind, named in words, on by default, and a hidden one stays hidden', () => {
@@ -79,8 +87,9 @@ test('PW5: each archive class maps to one category and kind; the table is pinned
     monument: ['history', 'monuments'], memorial: ['history', 'monuments'], statue: ['history', 'monuments'], marker: ['history', 'monuments'],
     mural: ['art', 'public_art'], sculpture: ['art', 'public_art'],
     overlook: ['viewpoints', 'viewpoints'], tower: ['viewpoints', 'viewpoints'],
-    heritage_building: ['history', 'monuments'],
-  }, 'a new class is a deliberate change to this table (as AG5)');
+    church: ['history', 'churches'], cemetery: ['history', 'cemeteries'], theatre: ['culture', 'theatres'], museum: ['culture', 'museums'],
+    historic_site: ['history', 'monuments'], building_structure: ['history', 'structures'],
+  }, 'a new class is a deliberate change to this table (as AG5); contract v2 re-pinned it (RP8, decisions 0109, 0111)');
   const got = placesFromArchive([pt(-75.19, 40.69, { name: 'Bushkill Park Folly', class: 'folly', src: 'wd', id: 'Q1' }), pt(-75.19, 40.691, { name: 'A shop', class: 'shop', src: 'osm', id: 'n2' })], 'v20261108');
   assert.equal(got.length, 1, 'the shop\'s class is not in the table: left out, never guessed');
   assert.deepEqual([got[0].category, got[0].kind, got[0].markable, got[0].build], ['viewpoints', 'curiosities', true, 'v20261108']);
@@ -99,13 +108,6 @@ test('PW8: a place in the tiles and in the archive, same name within 50 m in any
   assert.deepEqual(merged.map((p) => [p.name, p.kind ?? null]).sort(), [['Hessian Powder Magazine', 'curiosities'], ['Main Street Bakery', null]]);
   const far = mergePlaces([tilePlace('Hessian Powder Magazine', 'history', [-75.19, 40.70])], archive);
   assert.equal(far.length, 2, 'the same name a kilometre away is another place');
-});
-
-test('PW13: the owner\'s file removes a place whichever source named it, and adds one as a mark of its class', () => {
-  const places = mergePlaces([tilePlace('Old Water Tower', 'history', [-75.19, 40.69])], placesFromArchive([pt(-75.2, 40.69, { name: 'Odd Rock', class: 'natural_oddity', src: 'wd', id: 'Q3' })], 'v1'));
-  const edited = applyEdits(places, { remove: [{ name: 'old water tower', at: [-75.19002, 40.69001] }, { name: 'Odd Rock', at: [-75.2, 40.69] }], add: [{ name: 'Giant Peanut', at: [-75.18, 40.69], class: 'roadside_giant' }] }, 'v1');
-  assert.deepEqual(edited.map((p) => [p.name, p.category, p.kind]), [['Giant Peanut', 'viewpoints', 'curiosities']]);
-  assert.deepEqual(applyEdits(places, { remove: [], add: [{ name: 'Mystery', at: [0, 0], class: 'unknown' }] }, 'v1').length, 2, 'an added place of an unknown class is left out');
 });
 
 // ——— The archive's network side (PW1, PW2, PW3, PW16), over fakes ———
@@ -269,7 +271,7 @@ test('places-worth-the-stop audit 1: a find made on the map\'s place stays found
   const built = buildChecklists({ places: mergePlaces([tile], archive), candidates: [fox], centre: CENTRE, build: 'b1', now: 2, archive: 'v1', finds: [found] });
   const item = built.items.find((i) => i.name === 'Hessian Powder Magazine');
   assert.equal(item?.key, found.key, 'the rebuilt item keeps the find\'s key, so it shows as found and is never found again');
-  const ring = ringOf([tile], archive, CENTRE, undefined, undefined, [found]);
+  const ring = ringOf([tile], archive, CENTRE, undefined, [found]);
   assert.ok(ring.marks.some((m) => m.key === found.key), 'the atlas sees the same find');
 });
 
@@ -291,6 +293,17 @@ test('places-worth-the-stop audit 3: a fix in an area built with an older archiv
   assert.equal(readCentre({ fix: CENTRE, candidates: [fox], areas: [area(null)], reads, build: 'b1', archive: null }), null, 'no archive known: nothing to read for');
 });
 
+test('PP13: with blocks, an area is tagged and judged at its own point, so one by a block\'s edge is not read on every fix', () => {
+  const reads = [{ centre: CENTRE, build: 'b1' }];
+  // Its point is in block A; the walker stands just over the edge in block B.
+  const tagAt = (at: [number, number]) => (blockKey(at) === blockKey(CENTRE) ? 'b:aaaaaaaaaaaaaaaa' : 'b:bbbbbbbbbbbbbbbb');
+  const area = { level: 'neighborhood' as const, name: 'Fox', at: CENTRE, build: 'b1', archive: 'b:aaaaaaaaaaaaaaaa' };
+  assert.equal(readCentre({ fix: CENTRE, candidates: [fox], areas: [area], reads, build: 'b1', archive: tagAt }), null);
+  assert.equal(tagAt([CENTRE[0], CENTRE[1] + 0.7]), 'b:bbbbbbbbbbbbbbbb', 'a fix in the next block has another tag');
+  const built = buildChecklists({ places: [], candidates: [fox], centre: CENTRE, build: 'b1', now: 1, archive: tagAt });
+  assert.equal(built.areas[0]?.archive, 'b:aaaaaaaaaaaaaaaa', 'each area records its own block\'s tag');
+});
+
 test('places-worth-the-stop audit 4: a version listed but missing is passed over for the previous one, without asking again and again', async () => {
   const ports = fakePorts();
   const prevFile = 'places-us-20261101.pmtiles';
@@ -310,4 +323,35 @@ test('places-worth-the-stop audit 4: a version listed but missing is passed over
   const fetched = log.fetched.length;
   for (let i = 0; i < 5; i++) await archive.read(READ, CENTRE);
   assert.equal(log.fetched.length, fetched, 'the manifest is not asked for again on every read');
+});
+
+// Places pipeline (specs/places-pipeline): written before its code (decision 0018).
+test('PP13: an area is rebuilt only when its block\'s hash changes, and once for an area tagged with a file version', async () => {
+  const here = blockKey(CENTRE);
+  assert.equal(here, '8/74/96');
+  const withBlocks = (h: string, other = 'cccccccccccccccc', version = '20261108') =>
+    JSON.stringify({ ...manifest, regions: [{ ...manifest.regions[0], current: { ...manifest.regions[0].current, file: `places-us-${version}.pmtiles`, version, blocks: { [here]: h, '8/40/90': other } } }] });
+  const ports = fakePorts();
+  let text = withBlocks('aaaaaaaaaaaaaaaa');
+  const { io } = fakeIo({ manifest: async () => text });
+  const archive = createPlacesArchive({ ...ports, io });
+  const first = await archive.read(READ, CENTRE);
+  assert.equal(first?.version, 'b:aaaaaaaaaaaaaaaa', 'an area records its block\'s hash');
+  assert.equal(archive.versionAt(CENTRE), 'b:aaaaaaaaaaaaaaaa');
+  assert.equal(archive.versionAt([-110, 40]), 'b:none', 'a block with no places');
+  assert.equal(archiveStale('20261108', archive.versionAt(CENTRE)), true, 'an area tagged with a file version is rebuilt once');
+  assert.equal(archiveStale(first!.version, archive.versionAt(CENTRE)), false);
+  // A new file whose other blocks changed but not this one: the area stands.
+  text = withBlocks('aaaaaaaaaaaaaaaa', 'dddddddddddddddd', '20261115');
+  ports.clock.advance(24 * 3600_000);
+  await archive.refresh();
+  assert.equal(archiveStale(first!.version, archive.versionAt(CENTRE)), false, 'a new file version alone rebuilds nothing');
+  text = withBlocks('bbbbbbbbbbbbbbbb');
+  ports.clock.advance(24 * 3600_000);
+  await archive.refresh();
+  assert.equal(archiveStale(first!.version, archive.versionAt(CENTRE)), true, 'its block changed: rebuilt');
+  // A malformed blocks map is ignored, and the file's version is the tag as before.
+  const bad = parseManifest(JSON.stringify({ ...manifest, regions: [{ ...manifest.regions[0], current: { ...manifest.regions[0].current, blocks: { here: 'x' } } }] }));
+  assert.equal(bad?.regions[0].current.blocks, undefined);
+  assert.equal(archiveTag(bad!.regions[0].current, CENTRE), '20261108');
 });

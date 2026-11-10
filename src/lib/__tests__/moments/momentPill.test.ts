@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import { createMomentPill } from '../../momentPill/shell';
 import { fakePorts } from '../fakes';
 
-// Moment stacks MS4, MS12 (decision 0106): the pill's store on a hand-driven clock and timer.
+// Moment stacks MS4, MS12 (decision 0123): the pill's store on a hand-driven clock and timer.
 function timers() {
   const due = new Map<number, { at: number; fn: () => void }>();
   let seq = 0;

@@ -65,6 +65,9 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
   "Too short, not kept" toast. A memo that fails to save offers Retry. Leaving the screen mid-memo
   saves it: the walk's Minimize is disabled mid-memo, the ready screen's chevron closes and the memo is
   finished as `useCaptures` unmounts.
+- **The notice follows the walk's arrival** (capture-from-chronicle audit 1): Walk here and Start can
+  show the screen before the keeper reads the new walk, so `WalkScreen` sets `arrivalNotice(params)`
+  (`lib/readyNav`) when the walk first appears, not only as it mounts.
 - A quick tap on Stop shows "Hold to stop the walk".
 - Walk options (the Explore switch, its range and kinds, motion, Share GPS log) are the strip's
   drawer, not a button (the owner, Nov 4): the walk's strip is the same `ReadyBar` as the ready
@@ -77,7 +80,7 @@ The walk screen (`src/app/walk.tsx`), which is also Navigate, ready: its layout,
 - Pills (the caption offer, voice Undo, Retry, a moment's toast) sit left of the stack, just above the
   strip (`at.pills`), right-aligned, so the stack never moves under the thumb. Zooming keeps following;
   only a pan or a turn stops it (web; native can't tell zoom from pan yet).
-- **The Add to this moment pill** (moment stacks MS1-MS6, decision 0106): `components/walk/AddToMomentPill`,
+- **The Add to this moment pill** (moment stacks MS1-MS6, decision 0123): `components/walk/AddToMomentPill`,
   in the pills on both states, shown while `momentPill` (`lib/momentPill`, the reducer `lib/openMoment`) has a
   moment open. Two screens wire it: the ready screen's `CaptureRow` (`MomentBar`) and the walking `walk.tsx`;
   each passes `onKept` to `useCaptures` (a new moment opens it, a piece keeps it) and `into` to its camera, memo

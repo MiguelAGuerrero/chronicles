@@ -2,7 +2,7 @@
 // E2E_ONLY=snap runs it alone.
 
 async function run(h) {
-  const { url, at, distanceM, dLat, dLon, check, shot, tabTo, freshPage, snapWorld } = h;
+  const { url, exploreUrl, at, distanceM, dLat, dLon, check, shot, tabTo, freshPage, snapWorld } = h;
     snapWorld.serve = true;
     const { c, pg } = await freshPage('snap');
     // window.__project, to find where an area sits on the map's screen.
@@ -27,7 +27,7 @@ async function run(h) {
         }
         return best;
       };
-      await pg.goto(url);
+      await pg.goto(exploreUrl);
       await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 5, null, { timeout: 60000 }).catch(() => {});
       await pg.waitForFunction(() => document.querySelectorAll('[data-testid=area-point]').length >= 5, null, { timeout: 30000 }).catch(() => {});
       await pg.waitForTimeout(2500);
@@ -232,7 +232,7 @@ async function run(h) {
       // discrete-navigation audit 1: on a wide screen the card is a side panel beside the map. A swipe with a card
       // open never leaves it showing another area; on a town's page Escape still leaves after a swipe to the next town.
       await pg.setViewportSize({ width: 1200, height: 800 });
-      await pg.goto(url);
+      await pg.goto(exploreUrl);
       await pg.waitForFunction(() => document.querySelectorAll('[data-testid=atlas-tile]').length >= 5, null, { timeout: 60000 }).catch(() => {});
       await pg.waitForTimeout(2000);
       await pg.locator('[data-testid=atlas-tile][data-name="Fox Point"]').click().catch(() => {});
@@ -267,11 +267,11 @@ async function run(h) {
 // DN2 (the owner, Nov 4): a flick coasts as a pan would. From Ship Street a slow 40 px north lands by Fox Point;
 // the same 40 px flicked coasts on to Hope Village, the farthest north.
 async function flick(h) {
-  const { url, check, freshPage, snapWorld } = h;
+  const { url, exploreUrl, check, freshPage, snapWorld } = h;
   snapWorld.serve = true;
   const { c, pg } = await freshPage('snap-flick');
   try {
-    await pg.goto(url);
+    await pg.goto(exploreUrl);
     await pg.waitForFunction(() => document.querySelectorAll('[data-testid=area-point]').length >= 5, null, { timeout: 60000 }).catch(() => {});
     await pg.waitForTimeout(2500);
     const map = pg.locator('.maplibregl-map').first();
@@ -305,7 +305,7 @@ async function flick(h) {
 // swipe first. Its ease left the frame's padding on the map, and maplibre counts a map's padding again in every
 // later fit; on a 200 px map the two left no room, so the fit found no camera and did nothing.
 async function townSwipe(h, touch = false, afterHood = false) {
-  const { url, at, check, shot, freshPage, snapWorld, divisions } = h;
+  const { url, exploreUrl, at, check, shot, freshPage, snapWorld, divisions } = h;
   snapWorld.serve = true;
   divisions.serve = true;
   const { c, pg } = await freshPage(`snap-towns${touch ? '-touch' : ''}${afterHood ? '-after' : ''}`, touch ? { touch: true } : {});
@@ -327,7 +327,7 @@ async function townSwipe(h, touch = false, afterHood = false) {
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   };
   try {
-    await pg.goto(url);
+    await pg.goto(exploreUrl);
     await h.switchLayer(pg, 'borders');
     await pg.waitForFunction(() => document.querySelector('[data-testid=explore-area]')?.textContent === 'Allentown', null, { timeout: 60000 }).catch(() => {});
     if (afterHood) {
@@ -370,7 +370,7 @@ module.exports = {
   name: 'snap',
   // Discrete navigation (DN1-DN13): Explore's map steps from area to area.
   covers: [
-    'src/app/(tabs)/index.tsx',
+    'src/app/(tabs)/explore.tsx',
     'src/lib/atlas/snap.ts',
     'src/components/map/WalkMap.web.tsx',
     'src/components/map/types.ts',

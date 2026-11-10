@@ -39,7 +39,7 @@ test('OT20: nothing about a thread can leave the device: no network, share, expo
 });
 
 test('OT21: the stores are added by a new migration (SQLite, IndexedDB 17) and the earlier ones are left alone', () => {
-  // The native store's migrations moved to their own module with the moment table (decision 0106).
+  // The native store's migrations moved to their own module with the moment table (decision 0123).
   const native = readFileSync(join(LIB, 'db', 'migrations.ts'), 'utf8');
   const block = native.slice(native.indexOf('const MIGRATIONS'), native.indexOf('\n];', native.indexOf('const MIGRATIONS')));
   const entries = block.split(/^  `\n/m).slice(1);

@@ -200,7 +200,7 @@ async function checks(h) {
 
       // Back home: the placed moment shows as a pin (M16), and the walk still opens its own replay (M17).
       await p2.waitForSelector('[data-testid=day-title]');
-      check(new URL(p2.url()).pathname === `${BASE}/chronicle`, 'the day replay closes back to Chronicle');
+      check(new URL(p2.url()).pathname === `${BASE}/`, 'the day replay closes back to Chronicle');
       await p2.click('[data-testid=sheet-map]');
       check(await p2.waitForSelector('[aria-label="Note. Open"]', { timeout: 15000 }).then(() => true, () => false), 'a placed moment shows as a pin on the home map (M16)');
       await h.mapUp(p2);

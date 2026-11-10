@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-// Moment stacks, round 1 (MS4, MS5, MS12; decision 0106): the Add to this moment pill's life, as a reducer.
+// Moment stacks, round 1 (MS4, MS5, MS12; decision 0123): the Add to this moment pill's life, as a reducer.
 // Test first: the module is reached by name, so this file runs before it exists.
 
 type State = unknown;

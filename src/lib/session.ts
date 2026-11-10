@@ -1,7 +1,7 @@
 // @layer shell
 import { db } from './db';
 import { newId } from './id';
-import { clearNav } from './nav/store';
+import { clearNav, clearWayBack } from './nav/store';
 import { notifier } from './notify';
 import { recorder } from './recorder';
 import type { Walk } from './types';
@@ -63,6 +63,8 @@ export function stopWalk(walkId: string): Promise<void> {
       void notifier.walkEnded(walkId);
       // Navigation ends with the walk (N10).
       await clearNav().catch(() => {});
+      // So does the spot chosen with Walk back here (DW7).
+      await clearWayBack().catch(() => {});
     })().finally(() => {
       stopping = null;
     });

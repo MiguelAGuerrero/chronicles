@@ -1,6 +1,6 @@
 # Plan: moment stacks, round 1 (MS1-MS15)
 
-For the owner's review before any code. Decision 0106; spec `specs/moment-stacks/spec.md`. Round 0 (`specs/moment-table`)
+For the owner's review before any code. Decision 0123; spec `specs/moment-stacks/spec.md`. Round 0 (`specs/moment-table`)
 built the storage: a moment already holds its pieces, so **this round needs no migration**.
 
 ## What the walker sees

@@ -16,6 +16,8 @@ import { memoGate } from './memoGate';
 import type { LocateResult } from './locate/types';
 import { dropTemp, keepFile, removeMedia } from './media';
 import { makeThumb } from './media/thumb';
+import { isOutOfSpace, saveFailLine } from './space/core';
+import { space } from './space';
 import { captureThumbStillWanted, THUMB } from './thumbPlan';
 import { stampFor } from './pieceStamp';
 import type { CaptureKind, LngLat, Moment } from './types';
@@ -27,6 +29,11 @@ const MIN_VOICE_MS = 1000;
  * Longest video. A minute of phone video is 50 to 150 MB; the web gets less,
  * since a browser's storage is smaller and can be cleared.
  */
+/** A refused permission. A phone's Settings has a button (`openSettings`); a web page cannot open them, so it says where. */
+const accessOff = (what: 'Camera' | 'Microphone') =>
+  Platform.OS === 'web'
+    ? `${what} access is off for Chronicles. Allow it in your browser’s site settings, then try again.`
+    : `${what} access is off for Chronicles.`;
 const MAX_VIDEO_S = Platform.OS === 'web' ? 15 : 30;
 
 /** How long a stop may take before it is given up on. */
@@ -43,7 +50,7 @@ interface Stamp {
   t: number;
   at: LngLat | null;
   locating?: Promise<LocateResult>;
-  /** The open moment this capture joins as a piece (moment stacks MS3, decision 0106): no fix, no reply. */
+  /** The open moment this capture joins as a piece (moment stacks MS3, decision 0123): no fix, no reply. */
   into?: string | null;
 }
 
@@ -58,6 +65,20 @@ const clockNow = () => Date.now();
 
 /** Folder for the media of moments made outside any walk. */
 const LOOSE_FOLDER = 'moments';
+
+/**
+ * A photo or video whose save failed, held for Retry with the time and place it was taken (SA8). `path`
+ * is set once its file is kept, so a Retry after a failed row write doesn't move the file twice.
+ */
+interface HeldShot {
+  kind: 'photo' | 'video';
+  stamp: Stamp;
+  uri: string;
+  ext: string;
+  /** A video's length in ms, its capture's body. */
+  ms: number | null;
+  path: string | null;
+}
 
 interface StoppedMemo {
   uri: string | null;
@@ -186,7 +207,7 @@ export function useCaptures(
   async function add(kind: CaptureKind, stamp: Stamp, file_path: string | null, body: string | null): Promise<string | null> {
     if (!enabled) return null;
     if (stamp.into) return (await addPiece(stamp.into, kind, stamp, file_path, body))?.pieceId ?? null;
-    // A new moment and its first piece, under one id (decision 0106): its one place and time, the piece's media.
+    // A new moment and its first piece, under one id (decision 0123): its one place and time, the piece's media.
     const id = newId();
     const m: Moment = {
       id, walk_id: walkId, t: stamp.t, lat: stamp.at?.[1] ?? null, lon: stamp.at?.[0] ?? null, segment_id: null,
@@ -207,6 +228,8 @@ export function useCaptures(
     if (!walkId) onMoment.current?.(c, 'kept');
     onKept.current?.(c.id, false);
     placeMoment(c, stamp);
+    // The room again after each kept photo, video or memo (SA5); the web's request waits for a calm moment (SA10).
+    if (kind !== 'text') void space.afterKept({ recording: walkId != null });
     return c.id;
   }
 
@@ -256,6 +279,77 @@ export function useCaptures(
     }
   }
 
+  /** Photos and videos whose save failed, every one of them, held for Retry (SA8). */
+  const [held, setHeld] = useState<HeldShot[]>([]);
+
+  /** Keeps a shot's file, then its row; on a failure, the shot as far as it got and why. */
+  async function keepShot(s: HeldShot): Promise<{ id: string | null } | { failed: HeldShot; error: unknown }> {
+    let path = s.path;
+    try {
+      path = path ?? (await keepFile(s.uri, folder(), `${newId()}.${s.ext}`));
+      // With `into`, the id is the new piece's in that open moment (MS3).
+      const id = await add(s.kind, s.stamp, path, s.ms == null ? null : String(s.ms));
+      if (id && s.kind === 'photo') thumbFor(id, path, s.stamp.into ?? id);
+      return { id };
+    } catch (error) {
+      return { failed: { ...s, path }, error };
+    }
+  }
+
+  /** Keeps a new shot, or holds it with why in words, never the raw error (SA8, SA9). */
+  async function keepOrHold(s: HeldShot): Promise<{ kind: 'photo' | 'video'; id: string; momentId: string } | null> {
+    const r = await keepShot(s);
+    if ('failed' in r) {
+      if (alive.current) setHeld((prev) => [...prev, r.failed]);
+      setError({ message: saveFailLine(s.kind, isOutOfSpace(r.error)) });
+      return null;
+    }
+    return r.id ? { kind: s.kind, id: r.id, momentId: s.stamp.into ?? r.id } : null;
+  }
+
+  /** Retry: each held shot saved in turn; one that fails again stays held (SA8). */
+  const retryHeld = () =>
+    guarded(held[0]?.kind ?? 'photo', async () => {
+      const still: HeldShot[] = [];
+      let last: { kind: HeldShot['kind']; error: unknown } | null = null;
+      for (const s of held) {
+        const r = await keepShot(s);
+        if ('failed' in r) {
+          still.push(r.failed);
+          last = { kind: s.kind, error: r.error };
+        }
+      }
+      if (alive.current) setHeld(still);
+      if (last) setError({ message: saveFailLine(last.kind, isOutOfSpace(last.error)) });
+    });
+
+  /**
+   * A new photo's small copy for previews (TH1), after the capture is kept: never holds it up or fails it (TH2). The
+   * copy is the piece's (`id`); the moment it sits in (`momentId`) is read fresh, and shows it when it is its face.
+   */
+  function thumbFor(id: string, path: string, momentId: string) {
+    void makeThumb(facedOf({ id, walk_id: folder(), t: Date.now(), lat: null, lon: null, kind: 'photo', file_path: path, body: null, segment_id: null })).then((thumb) => {
+      if (!thumb) return;
+      // An Edit offer's Done may have stored the edited copy meanwhile: this one then stands down (media-editing audit 8).
+      void db.getMomentsByIds([momentId]).then(([m]) => {
+        const row = m?.pieces.find((x) => x.id === id) ?? null;
+        if (!captureThumbStillWanted(row)) {
+          if (thumb !== THUMB.none) void removeMedia([thumb]).catch(() => {});
+          return;
+        }
+        const isFace = !!m && faced(m).piece_id === id;
+        if (isFace && alive.current) setCaptures((prev) => prev.map((x) => (x.id === m.id ? { ...x, thumb_path: thumb } : x)));
+        // Stored first, then told: a walk screen mounting meanwhile either reads it or hears it (tabs audit 5).
+        void db.updatePiece(id, { thumb_path: thumb }).then(
+          () => {
+            if (isFace) captureBus.patch(walkId, m.id, { thumb_path: thumb }, self);
+          },
+          () => {},
+        );
+      }, () => {});
+    });
+  }
+
   /**
    * The system camera, in photo or video mode as the person picks there. Resolves what was kept, if anything. With
    * `into`, what it keeps joins that open moment as a piece (MS2, MS3); `id` is then the piece's.
@@ -264,12 +358,11 @@ export function useCaptures(
     let kept: { kind: 'photo' | 'video'; id: string; momentId: string } | null = null;
     await guarded('photo', async () => {
       const stamp = stampNow(false, into);
-      const momentOf = (id: string) => stamp.into ?? id;
       const perm = await ImagePicker.requestCameraPermissionsAsync();
       if (!perm.granted) {
         // The request above already showed the system prompt if it could; a refusal now is only fixable in Settings.
         // (`canAskAgain` is not trusted: iOS can report true after a denial, which left no way to recover.)
-        setError({ message: 'Camera access is off for Chronicles.', openSettings: true });
+        setError({ message: accessOff('Camera'), openSettings: true });
         return;
       }
       startLocating(stamp);
@@ -281,47 +374,26 @@ export function useCaptures(
       });
       if (res.canceled || !res.assets[0]) return;
       const asset = res.assets[0];
-      if (asset.type === 'video') {
-        // The web picker reports seconds, native milliseconds.
-        const ms = Platform.OS === 'web' ? (asset.duration ?? 0) * 1000 : (asset.duration ?? 0);
-        // Browsers cannot cap a recording, so an over-long clip is turned away here.
-        if (ms > MAX_VIDEO_S * 1000 + 500) {
-          dropTemp(asset.uri);
-          setError({ message: `Videos can be up to ${MAX_VIDEO_S} seconds here. That one was ${Math.round(ms / 1000)} s.` });
+      // From here the file is being kept: Stop from the recording bar waits for it (capture-from-chronicle audit 6).
+      const keeping = (async () => {
+        if (asset.type === 'video') {
+          // The web picker reports seconds, native milliseconds.
+          const ms = Platform.OS === 'web' ? (asset.duration ?? 0) * 1000 : (asset.duration ?? 0);
+          // Browsers cannot cap a recording, so an over-long clip is turned away here.
+          if (ms > MAX_VIDEO_S * 1000 + 500) {
+            dropTemp(asset.uri);
+            setError({ message: `Videos can be up to ${MAX_VIDEO_S} seconds here. That one was ${Math.round(ms / 1000)} s.` });
+            return;
+          }
+          const ext = asset.mimeType?.split('/')[1]?.replace('quicktime', 'mov') ?? 'mp4';
+          kept = await keepOrHold({ kind: 'video', stamp, uri: asset.uri, ext, ms: Math.round(ms), path: null });
           return;
         }
-        const ext = asset.mimeType?.split('/')[1]?.replace('quicktime', 'mov') ?? 'mp4';
-        const id = await add('video', stamp, await keepFile(asset.uri, folder(), `${newId()}.${ext}`), String(Math.round(ms)));
-        if (id) kept = { kind: 'video', id, momentId: momentOf(id) };
-        return;
-      }
-      const ext = asset.mimeType?.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
-      const path = await keepFile(asset.uri, folder(), `${newId()}.${ext}`);
-      const id = await add('photo', stamp, path, null);
-      if (id) {
-        kept = { kind: 'photo', id, momentId: momentOf(id) };
-        // Its small copy for previews (TH1), after the capture is kept: never holds it up or fails it (TH2).
-        void makeThumb(facedOf({ id, walk_id: folder(), t: Date.now(), lat: null, lon: null, kind: 'photo', file_path: path, body: null, segment_id: null })).then((thumb) => {
-          if (!thumb) return;
-          // An Edit offer's Done may have stored the edited copy meanwhile: this one then stands down (media-editing audit 8).
-          // The small copy is the piece's (`id`); the moment it sits in is read fresh.
-          void db.getMomentsByIds([momentOf(id)]).then(([m]) => {
-            const row = m?.pieces.find((x) => x.id === id) ?? null;
-            if (!captureThumbStillWanted(row)) {
-              if (thumb !== THUMB.none) void removeMedia([thumb]).catch(() => {});
-              return;
-            }
-            // A moment shows its face's copy: patched on the moment only when this piece is its face.
-            const isFace = !!m && faced(m).piece_id === id;
-            if (isFace && alive.current) setCaptures((prev) => prev.map((x) => (x.id === m.id ? { ...x, thumb_path: thumb } : x)));
-            // Stored first, then told: a walk screen mounting meanwhile either reads it or hears it (tabs audit 5).
-            void db.updatePiece(id, { thumb_path: thumb }).then(
-              () => { if (isFace) captureBus.patch(walkId, m.id, { thumb_path: thumb }, self); },
-              () => {},
-            );
-          }, () => {});
-        });
-      }
+        const ext = asset.mimeType?.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
+        kept = await keepOrHold({ kind: 'photo', stamp, uri: asset.uri, ext, ms: null, path: null });
+      })();
+      memoGate.keep(keeping);
+      await keeping;
     });
     return kept;
   };
@@ -364,11 +436,14 @@ export function useCaptures(
       withBusy(async () => {
         if (!enabled || voiceOn.current) return false;
         try {
-          const perm = await requestRecordingPermissionsAsync();
-          if (!perm.granted) {
+          // On the web expo-audio's permission request folds every getUserMedia failure into "denied" (a microphone
+          // another app or tab holds reads as refused although the site is allowed) and opens the microphone a second
+          // time; prepareToRecordAsync below asks too and throws the browser's own error, which the catch tells apart.
+          const perm = Platform.OS === 'web' ? null : await requestRecordingPermissionsAsync();
+          if (perm && !perm.granted) {
             // The request above already showed the system prompt if it could; a refusal now is only fixable in Settings.
             // (`canAskAgain` is not trusted: iOS can report true after a denial, which left no way to recover.)
-            setError({ message: 'Microphone access is off for Chronicles.', openSettings: true });
+            setError({ message: accessOff('Microphone'), openSettings: true });
             return false;
           }
           // Keeps recording with the phone locked and in a pocket.
@@ -387,7 +462,15 @@ export function useCaptures(
           return true;
         } catch (e) {
           await resetAudioMode();
-          setError({ message: e instanceof Error ? e.message : String(e) });
+          const name = e instanceof Error ? e.name : '';
+          if (Platform.OS === 'web' && (name === 'NotAllowedError' || name === 'SecurityError')) {
+            setError({ message: accessOff('Microphone'), openSettings: true });
+          } else if (Platform.OS === 'web' && name) {
+            // Allowed, but the browser could not open it: say what it said (busy, none found) rather than "off".
+            setError({ message: `The microphone could not start (${name}${e instanceof Error && e.message ? `: ${e.message}` : ''}).` });
+          } else {
+            setError({ message: e instanceof Error ? e.message : String(e) });
+          }
           return false;
         }
       }),
@@ -441,7 +524,7 @@ export function useCaptures(
           return 'saved';
         } catch (e) {
           if (alive.current) setUnsaved(m);
-          setError({ message: `The voice memo could not be saved: ${e instanceof Error ? e.message : e}` });
+          setError({ message: saveFailLine('voice', isOutOfSpace(e)) });
           return 'failed';
         }
       }),
@@ -458,7 +541,7 @@ export function useCaptures(
           setUnsaved(null);
           return 'saved';
         } catch (e) {
-          setError({ message: `The voice memo could not be saved: ${e instanceof Error ? e.message : e}` });
+          setError({ message: saveFailLine('voice', isOutOfSpace(e)) });
           return 'failed';
         }
       }),
@@ -503,7 +586,7 @@ export function useCaptures(
           return 'saved';
         } catch (e) {
           setUnsaved(m);
-          setError({ message: `The voice memo could not be saved: ${e instanceof Error ? e.message : e}` });
+          setError({ message: saveFailLine('voice', isOutOfSpace(e)) });
           return 'failed';
         }
       }),
@@ -529,7 +612,7 @@ export function useCaptures(
    */
   async function setEdit(c: Pick<Faced, 'id' | 'piece_id'>, patch: CapturePatch) {
     const id = c.id;
-    // The edit is the piece's own; the screens show it on the moment (decision 0106).
+    // The edit is the piece's own; the screens show it on the moment (decision 0123).
     await db.updatePiece(c.piece_id, patch);
     if (alive.current) setCaptures((prev) => applyPatch(prev, id, patch));
     captureBus.patch(walkId, id, patch, self);
@@ -565,6 +648,9 @@ export function useCaptures(
     discarded: discarded != null,
     retrySave,
     unsaved: unsaved != null,
+    /** What is held for Retry, by kind, in the order taken (SA8). */
+    held: held.map((h) => h.kind),
+    retryHeld,
     saveNote,
     setEdit,
     setNote,

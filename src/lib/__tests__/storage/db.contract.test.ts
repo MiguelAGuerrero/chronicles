@@ -79,7 +79,7 @@ test('FC7 every Db method has a contract case', () => {
   assert.deepEqual(missing, [], `add a contract case for these Db methods in src/lib/__tests__/dbContract.ts: ${missing.join(', ')}`);
 });
 
-// MT11 (decision 0106, the owner's call Nov 10): the native store under the same contract, over Node's built-in
+// MT11 (decision 0123, the owner's call Nov 10): the native store under the same contract, over Node's built-in
 // SQLite (fakes/nodeSqlite), one in-memory database per case. The retired scan's marks are put as an older app did.
 dbContract('SQLite (db/sqliteStore.ts over node:sqlite)', async (legacy?: Legacy) => {
   const sql = nodeSqlite();

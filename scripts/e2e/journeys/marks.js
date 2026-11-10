@@ -74,6 +74,44 @@ async function run(h) {
     await startWalk();
     const second = await walkPast('second walk (area read before)');
     check(second.some((l) => /Hessian Memorial/.test(l)), `marks: a later exploring walk through an area read before draws the memorial it passes (${JSON.stringify(second)})`);
+    // RP18, RP8 (Remarkable and public): "What I'm into" lists Buildings and structures after Monuments and memorials, on by default.
+    {
+      await pg.click('[data-testid=walk-summary]');
+      await pg.waitForSelector('[data-testid=options-card]', { timeout: 10000 }).catch(() => {});
+      await pg.locator('[data-testid=kind-structures]').scrollIntoViewIfNeeded().catch(() => {});
+      const mon = await pg.locator('[data-testid=kind-monuments]').boundingBox().catch(() => null);
+      const box = await pg.locator('[data-testid=kind-structures]').boundingBox().catch(() => null);
+      const on = await pg.locator('[data-testid=kind-structures]').getAttribute('aria-checked').catch(() => null);
+      const label = await pg.locator('[data-testid=kind-structures]').innerText().catch(() => '');
+      check(!!mon && !!box && box.y > mon.y && on === 'true' && /Buildings and structures/.test(label),
+        `RP18: "What I'm into" lists Buildings and structures after Monuments and memorials, on by default (${JSON.stringify({ mon: mon?.y, at: box?.y, on, label })})`);
+      await pg.keyboard.press('Escape');
+      await pg.waitForTimeout(800);
+    }
+    // RP20: Fox Point Museum stands 67 m past the grid's east end: still shown and findable, its card says so.
+    {
+      const legs = [[[0.65, -0.5], [3.5, -0.5]], [[3.5, -0.5], [3.5, 1.5]], [[3.5, 1.5], [4.1, 1.7]]];
+      for (const [[x0, y0], [x1, y1]] of legs) {
+        const steps = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 0.06);
+        for (let k = 1; k <= steps; k++) {
+          const p = at(x0 + ((x1 - x0) * k) / steps, y0 + ((y1 - y0) * k) / steps);
+          await c.setGeolocation({ longitude: p[0], latitude: p[1], accuracy: 6 });
+          await pg.waitForTimeout(1000);
+        }
+      }
+      await pg.waitForTimeout(2000);
+      const labels = await marksNow();
+      const pin = pg.locator('[data-testid=mark-pin][aria-label*="Fox Point Museum"]');
+      if ((await pin.count()) > 0) await pin.first().click();
+      await pg.waitForSelector('[data-testid=mark-card]', { timeout: 5000 }).catch(() => {});
+      await pg.waitForSelector('[data-testid=mark-reach]', { timeout: 5000 }).catch(() => {});
+      const said = await pg.locator('[data-testid=mark-reach]').innerText().catch(() => '');
+      const title = await pg.locator('[data-testid=mark-card]').innerText().catch(() => '');
+      check(/Fox Point Museum/.test(title) && said === 'No street or path close by',
+        `RP20: a place to find with no street or path within 60 m is still shown, and its card says "No street or path close by" (${JSON.stringify({ labels, said, title: title.slice(0, 80) })})`);
+      // Near the grid, the memorial's card says nothing of the kind.
+      await pg.click('[data-testid=mark-close]').catch(() => {});
+    }
     await c.close();
 }
 

@@ -91,7 +91,7 @@ export default function DayReplay() {
       const day = buildDays(started.concat(walks.filter((w) => !started.includes(w))), captures).find((d) => d.key === key) ?? null;
       if (!alive) return;
       if (!day) {
-        // Opened on a day with nothing kept (a Home Screen app reopening on a stale link): to Explore (NV2).
+        // Opened on a day with nothing kept (a Home Screen app reopening on a stale link): to Chronicle (NV2, HC5).
         if (launchRoute.isLaunch(`/day/${key}`)) {
           router.dismissTo('/');
           return;
@@ -216,7 +216,7 @@ export default function DayReplay() {
         {status === 'missing' ? (
           <>
             <Text style={styles.missing}>Nothing was kept on this day.</Text>
-            <Button label="Back to the map" onPress={() => router.dismissTo('/chronicle')} />
+            <Button label="Back to the map" onPress={() => router.dismissTo('/')} />
           </>
         ) : (
           <Text style={styles.muted}>Opening your day…</Text>
@@ -225,7 +225,7 @@ export default function DayReplay() {
     );
   }
 
-  const close = () => (router.canGoBack() ? router.back() : router.dismissTo('/chronicle'));
+  const close = () => (router.canGoBack() ? router.back() : router.dismissTo('/'));
 
   return (
     <View style={styles.screen}>

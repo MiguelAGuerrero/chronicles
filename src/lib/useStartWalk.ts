@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { db } from './db';
 import { memoGate } from './memoGate';
 import { askMotion } from './walkMotion';
+import { saveForLater } from './nav/store';
 import type { Waypoint } from './nav/types';
 import { RecorderError } from './recorder/types';
 import { startWalk } from './session';
@@ -64,5 +65,18 @@ export function useStartWalk() {
       setStarting(false);
     }
   };
-  return { start, starting, error, setError };
+  /**
+   * When I get there (DW3, DW4; decision 0121): the place becomes Navigate's destination and Navigate,
+   * ready, opens. No walk starts and nothing watches for arrival: only Start begins the walk.
+   */
+  const later = async (dest: Waypoint): Promise<void> => {
+    setError(null);
+    try {
+      await saveForLater(dest);
+      showWalk();
+    } catch (e) {
+      setError({ message: e instanceof Error ? e.message : String(e) });
+    }
+  };
+  return { start, later, starting, error, setError };
 }

@@ -268,7 +268,12 @@ async function run(h) {
       await emptyPeek('with a walk minimized and none finished');
     });
     await step('NR2: following the walk', async () => {
-      // Chronicle's Navigate opened the walk (U7 above): it goes on there, the trace growing to the walker.
+      // Chronicle's Navigate opened the walk (U7 above): it goes on there, the trace growing to the walker. A route preview left open from
+      // an earlier step shows only its routes (fix preview-clutter), so it is closed first: this step is about the trace.
+      if (await pg.locator('[data-testid=route-cancel]').count()) {
+        await pg.click('[data-testid=route-cancel]');
+        await pg.waitForTimeout(500);
+      }
       await north(-0.25, 0.25);
       await pg.waitForTimeout(2200);
       const last = at(-0.5, 0.25);
@@ -337,15 +342,15 @@ async function run(h) {
         `tabs audit U14: the first replay's card has a quiet Not now, and Name it stays (${notNow}, ${notNowBg})`);
       // tabs audit audit 6: Back from the first replay goes to Chronicle, like Keep it (NV27).
       await pg.goBack();
-      await pg.waitForURL((u) => u.pathname === `${BASE}/chronicle`, { timeout: 5000 }).catch(() => {});
+      await pg.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 5000 }).catch(() => {});
       await pg.waitForTimeout(1500);
       const path = new URL(pg.url()).pathname;
-      check(path === `${BASE}/chronicle` && (await pg.locator('[data-testid=to-name]').count()) === 0 && (await pg.locator('[data-testid=tab-chronicle][aria-selected=true]').count()) === 1,
+      check(path === `${BASE}/` && (await pg.locator('[data-testid=to-name]').count()) === 0 && (await pg.locator('[data-testid=tab-chronicle][aria-selected=true]').count()) === 1,
         `tabs audit audit 6: Back from the first replay goes to Chronicle, not the tab the walk began on (${path})`);
       const row = await walkRow(w.id);
       check(row && !row.open && row.title == null, 'tabs audit audit 6: the walk is kept, unnamed');
-      if (path !== `${BASE}/chronicle`) {
-        await pg.goto(`${url}chronicle`);
+      if (path !== `${BASE}/`) {
+        await pg.goto(url);
         await h.mapUp(pg);
         await pg.waitForSelector('[data-testid=home-sheet]');
       }
@@ -398,10 +403,10 @@ async function run(h) {
       await north(0.5, 0.6);
       await holdStop();
       await pg.click('[data-testid=not-now]');
-      await pg.waitForURL((u) => u.pathname === `${BASE}/chronicle`, { timeout: 5000 }).catch(() => {});
+      await pg.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 5000 }).catch(() => {});
       await pg.waitForTimeout(1000);
       const row = second && await walkRow(second.id);
-      check(new URL(pg.url()).pathname === `${BASE}/chronicle` && (await pg.locator('[data-testid=section-memories][aria-selected=true]').count()) === 1 && row && row.title == null && !row.open,
+      check(new URL(pg.url()).pathname === `${BASE}/` && (await pg.locator('[data-testid=section-memories][aria-selected=true]').count()) === 1 && row && row.title == null && !row.open,
         `tabs audit U14, RM3: Not now goes to Chronicle's Memories and leaves the walk unnamed (${pg.url()}, ${row && row.title})`);
     });
     await c.close();

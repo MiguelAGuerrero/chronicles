@@ -358,6 +358,8 @@ async function run(h) {
     await step('ME23 recording bar', async () => {
       await pg.click('[data-testid=walk-minimize]');
       await pg.waitForSelector('[data-testid=recording-bar]', { timeout: 10000 });
+      // On Memories the band's camera takes the bar's place (decision 0112): the bar's own camera is on the other tabs.
+      if (!(await pg.locator('[data-testid=bar-photo]').count())) await pg.click('[data-testid=tab-explore]');
       const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=bar-photo]')]);
       await chooser.setFiles(path.join(fixtures, 'photo.jpg'));
       const said = await pg.waitForSelector('[data-testid=recording-said]', { timeout: 10000 }).then((e) => e.innerText(), () => '');

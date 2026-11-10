@@ -1,4 +1,4 @@
-// The launch (NV1-NV6, NV11, NV16, NT1, NT2): the old /explore path, stale replay and day links, the three
+// The launch (NV1-NV6, NV11, NV16, HC3, HC5, NT1, NT2): the old /chronicle path, stale replay and day links, the three
 // tabs at their paths with one live map, the manifest and the service worker; then, in fresh browsers,
 // Walk here from Explore (NV12, NV15), a reload with a walk minimized (NV8), and Start with Explore and a
 // destination (NV25). Nothing precedes it: `checks` runs on the shared page as it opens.
@@ -7,40 +7,42 @@ const path = require('path');
 
 async function checks(h) {
   const { url, BASE, browser, page, start, at, check, shownCount, tabBarShown, onTab, routed } = h;
-    // The old /explore path still opens Explore, with one tab bar (NV2).
-    await page.goto(`${url}explore`);
-    await page.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 15000 }).catch(() => {});
-    await page.waitForSelector('[data-testid=tab-explore][aria-selected=true]', { timeout: 30000 }).catch(() => {});
-    check(new URL(page.url()).pathname === `${BASE}/` && (await page.locator('[data-testid=tab-explore][aria-selected=true]').count()) === 1,
-      `the old /explore path opens Explore at / (NV2: ${page.url()})`);
-    // A launch on a replay or a day that is no longer kept goes straight to Explore (NV2: the owner's
-    // Home Screen app reopened on "This walk could not be found", Nov 3).
-    for (const stale of ['replay/no-such-walk', 'day/1999-01-01']) {
+    // HC5: a launch on a replay or a day that is no longer kept, and the old /chronicle path, open Chronicle
+    // at /, with one tab bar (NV2: the owner's Home Screen app reopened on "This walk could not be found", Nov 3).
+    for (const stale of ['replay/no-such-walk', 'day/1999-01-01', 'chronicle']) {
       await page.goto(`${url}${stale}`);
       await page.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 15000 }).catch(() => {});
-      await page.waitForSelector('[data-testid=tab-explore][aria-selected=true]', { timeout: 15000 }).catch(() => {});
-      check(new URL(page.url()).pathname === `${BASE}/` && (await page.locator('[data-testid=tab-explore][aria-selected=true]').count()) === 1
-        && (await page.locator('text=This walk could not be found.').count()) === 0 && (await page.locator('text=Nothing was kept on this day.').count()) === 0,
-        `a launch on a stale ${stale.split('/')[0]} link opens Explore (NV2: ${page.url()})`);
+      await page.waitForSelector('[data-testid=tab-chronicle][aria-selected=true]', { timeout: 15000 }).catch(() => {});
+      check(new URL(page.url()).pathname === `${BASE}/` && (await page.locator('[data-testid=tab-chronicle][aria-selected=true]').count()) === 1
+        && (await page.locator('[data-testid=tab-bar-wrap]').count()) === 1 && (await page.locator('text=This walk could not be found.').count()) === 0
+        && (await page.locator('text=Nothing was kept on this day.').count()) === 0,
+        `HC5: a launch on ${stale.split('/')[0]} opens Chronicle at / (${page.url()})`);
     }
+    await page.goto(`${url}explore`);
+    await page.waitForSelector('[data-testid=tab-explore][aria-selected=true]', { timeout: 15000 }).catch(() => {});
+    check(new URL(page.url()).pathname === `${BASE}/explore` && (await page.locator('[data-testid=tab-explore][aria-selected=true]').count()) === 1
+      && (await page.locator('[data-testid=tab-bar-wrap]').count()) === 1, `HC5: /explore opens Explore, with one tab bar (${page.url()})`);
     await page.goto(url);
-    // Navigation & tabs (NV1-NV6): the app opens on Explore, at / (NV2, the owner's call, Nov 3).
-    await page.waitForSelector('[data-testid=tab-explore][aria-selected=true]');
+    // Navigation & tabs (NV1-NV6, amended by decision 0112): the app opens on Chronicle's Memories, at /.
+    await page.waitForSelector('[data-testid=tab-chronicle][aria-selected=true]');
+    await page.waitForSelector('[data-testid=memories]', { timeout: 15000 });
     // Memos and videos play with the ringer switch off, on the web too (bug: silent playback on iPhone).
     check(await page.evaluate(() => navigator.audioSession.type) === 'playback', 'the page asks to play sound even in silent mode');
-    check(new URL(page.url()).pathname === `${BASE}/` && (await page.locator('[data-testid=tab-explore][aria-selected=true]').count()) === 1
-      && (await page.locator('canvas.maplibregl-canvas').count()) === 1,
-      `the app opens on Explore, at its own path, one live map (NV2, NV4, NV5: ${page.url()})`);
-    // Explore reads one fix as the app opens and frames it (NV16, the owner's call, Nov 3).
+    check(new URL(page.url()).pathname === `${BASE}/` && (await page.locator('[data-testid=tab-chronicle][aria-selected=true]').count()) === 1
+      && (await page.locator('canvas.maplibregl-canvas').count()) === 0,
+      `the app opens on Chronicle's Memories, at /, with no live map (NV2, NV4, NV5: ${page.url()})`);
+    const tabs = await page.locator('[data-testid=tab-explore], [data-testid=tab-navigate], [data-testid=tab-chronicle]').evaluateAll((els) => els.map((e) => `${e.dataset.testid}:${e.innerText.replace(/[^A-Za-z]/g, "")}:${e.querySelectorAll('svg, [aria-hidden], div').length > 1}`));
+    check(tabs.join(',') === 'tab-chronicle:Chronicle:true,tab-explore:Explore:true,tab-navigate:Navigate:true', `a bottom bar with Chronicle, Explore and Navigate, in that order, each with an icon and a label (NV1, HC3: ${tabs.join(', ')})`);
+    // Explore reads one fix the first time it comes to the front, and frames it (NV16, amended by HC14).
+    const ex = await onTab('explore');
     await page.waitForFunction((s) => [...document.querySelectorAll('[data-center]')].some((e) => {
       if (e.closest('[aria-hidden=true]')) return false;
       const [lon, lat] = (e.getAttribute('data-center') ?? '').split(',').map(Number);
       return Math.abs(lon - s[0]) < 0.004 && Math.abs(lat - s[1]) < 0.004;
     }), start, { timeout: 15000 }).then(() => true, () => false).then((ok) =>
-      check(ok, 'Explore frames where you are as the app opens, from one fix of its own (NV16)'));
-    const tabs = await page.locator('[data-testid=tab-explore], [data-testid=tab-navigate], [data-testid=tab-chronicle]').evaluateAll((els) => els.map((e) => `${e.dataset.testid}:${e.innerText.replace(/[^A-Za-z]/g, "")}:${e.querySelectorAll('svg, [aria-hidden], div').length > 1}`));
-    check(tabs.join(',') === 'tab-explore:Explore:true,tab-navigate:Navigate:true,tab-chronicle:Chronicle:true', `a bottom bar with Explore, Navigate and Chronicle, in that order, each with an icon and a label (NV1: ${tabs.join(', ')})`);
-    // Each tab at its own path, with one live map (NV4, NV5); Chronicle is review only (NV11).
+      check(ok, 'Explore frames where you are the first time it comes to the front, from one fix of its own (NV16)'));
+    check(ex.path === '/explore' && ex.canvases === 1, `Explore at /explore, one live map (NV4, NV5: ${JSON.stringify(ex)})`);
+    // Each tab at its own path, with one live map (NV4, NV5).
     const nv = await onTab('navigate');
     await page.waitForSelector('[data-testid=start]');
     check(nv.path === '/walk' && (await page.locator('[data-testid=ready-bar]').count()) === 1 && !(await tabBarShown(page))
@@ -50,26 +52,27 @@ async function checks(h) {
       'Start alone in the bar, with no destination line (NV19, NR5, NR8)');
     check((await page.locator('[data-testid=moment-photo]').count()) === 1 && (await page.locator('[data-testid=moment-note]').isVisible()), 'Navigate has quick capture, outside the bar (NV18, NR9)');
     await page.waitForTimeout(1500);
-    const ex = await onTab('explore');
-    check(ex.path === '/' && ex.canvases === 1, `Explore at /, one live map (NV4, NV5: ${JSON.stringify(ex)})`);
     const ch = await onTab('chronicle');
     await h.mapUp(page);
     await page.waitForSelector('text=Walk somewhere and it is starred here');
-    check(ch.path === '/chronicle' && ch.canvases === 1, `Chronicle at /chronicle, one live map (NV4, NV5: ${JSON.stringify(ch)})`);
-    check((await shownCount(page, '[data-testid=start], [data-testid=moment-note], [data-testid=look-here]')) === 0,
-      'Chronicle has no Start, Explore button, quick capture or What’s good here (NV11)');
+    check(ch.path === '/' && ch.canvases === 1, `Chronicle's map at /, one live map (NV4, NV5: ${JSON.stringify(ch)})`);
+    check((await shownCount(page, '[data-testid=start], [data-testid=moment-note], [data-testid=band-note], [data-testid=look-here]')) === 0,
+      'Chronicle\'s map has no Start, Explore button, quick capture or What’s good here; the band is on Memories only (NV11, HC6)');
     await page.reload();
-    await h.mapUp(page);
-    await page.waitForSelector('[data-testid=home-sheet]');
-    check(new URL(page.url()).pathname === `${BASE}/chronicle` && (await page.locator('[data-testid=tab-chronicle][aria-selected=true]').count()) === 1, 'a reload keeps the tab (NV5)');
+    await page.waitForSelector('[data-testid=tab-chronicle][aria-selected=true]');
+    check(new URL(page.url()).pathname === `${BASE}/` && (await page.locator('[data-testid=tab-chronicle][aria-selected=true]').count()) === 1, 'a reload keeps the tab (NV5)');
+    await onTab('explore');
     await page.goBack();
     await page.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 5000 }).catch(() => {});
     await page.waitForTimeout(800);
-    check(new URL(page.url()).pathname === `${BASE}/` && (await page.locator('canvas.maplibregl-canvas').count()) === 1 && (await page.locator('[data-testid=tab-explore][aria-selected=true]').count()) === 1, 'the browser’s back on Chronicle goes to Explore (NV5)');
+    check(new URL(page.url()).pathname === `${BASE}/` && (await page.locator('[data-testid=tab-chronicle][aria-selected=true]').count()) === 1, 'the browser’s back on Explore goes to Chronicle (NV5, HC4)');
     await onTab('navigate');
     await page.goBack();
     await page.waitForURL((u) => u.pathname === `${BASE}/`, { timeout: 5000 }).catch(() => {});
     check(new URL(page.url()).pathname === `${BASE}/`, 'and on Navigate too (NV5)');
+    // The story goes on from Explore, as it began there before 0112.
+    await page.click('[data-testid=tab-explore]');
+    await page.waitForSelector('[data-testid=tab-explore][aria-selected=true]');
 
     // Notifications on the web (v1 slice 6). Installable: the manifest is linked under the base path and served (NT1).
     const manifestHref = await page.evaluate(() => document.querySelector('link[rel=manifest]')?.getAttribute('href'));
@@ -160,7 +163,9 @@ async function fresh(h) {
       check(!/\/walk/.test(new URL(pg.url()).pathname) && (await tabBarShown(pg)) && /^Paused · \d+:\d\d · \d+ m$/.test(await barText())
         && Math.abs(barBox.y + barBox.height - tabBox.y) < 6 && (await pg.locator('[data-testid=recording-bar] [data-testid=stop]').count()) === 0,
         `minimized, a recording bar sits just above the tab bar: time, distance, Paused, and no Stop (NV9: "${await barText()}")`);
-      check((await pg.locator('canvas.maplibregl-canvas').count()) === 1, 'one live map with the walk minimized (NV4)');
+      // Minimized to the tab beneath: Chronicle's Memories since 0112, which has no map. Never two.
+      const liveMaps = await pg.locator('canvas.maplibregl-canvas').count();
+      check(liveMaps <= 1, `at most one live map with the walk minimized (NV4: ${liveMaps})`);
       // The bar's camera, while paused: the photo is kept for the open walk, and the walk screen stays down (NV9).
       const photosOf = () => pg.evaluate((id) => new Promise((resolve) => {
         const req = indexedDB.open('chronicles');
@@ -169,6 +174,8 @@ async function fresh(h) {
           g.onsuccess = () => resolve(g.result.map((m) => ({ ...m.pieces[0], id: m.id, walk_id: m.walk_id, t: m.t, lat: m.lat, lon: m.lon, segment_id: m.segment_id })).filter((x) => x.walk_id === id && x.kind === 'photo'));
         };
       }), w.id);
+      // On Memories the band's camera takes the bar's place (decision 0112): the bar's own camera is on the other tabs.
+      if (!(await pg.locator('[data-testid=bar-photo]').count())) await pg.click('[data-testid=tab-explore]');
       const [chooser] = await Promise.all([pg.waitForEvent('filechooser'), pg.click('[data-testid=bar-photo]')]);
       await chooser.setFiles(path.join(scriptsDir, 'fixtures', 'photo.jpg'));
       const saidPhoto = await pg.waitForSelector('[data-testid=recording-said]', { timeout: 10000 }).then((e) => e.innerText(), () => '');
@@ -312,7 +319,7 @@ async function run(h) {
 module.exports = {
   name: 'launch',
   covers: [
-    'src/app/{_layout,explore}.tsx',
+    'src/app/{_layout,chronicle}.tsx',
     'src/lib/{launchWalk,launchRoute,lastFix,settleWithin,tabsHidden}.ts',
     'src/components/{ScreenError,Modal}.tsx',
     // The app's web styles and shared primitives: every screen wears them, and the launch shows the first.

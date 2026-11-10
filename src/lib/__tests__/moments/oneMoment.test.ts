@@ -13,7 +13,7 @@ import { groupCaptures } from '../../replay';
 import { toMomentViews } from '../../resurface/views';
 import type { Capture, Moment, Walk } from '../../types';
 
-// Moment stacks, MS7 and MS14 (decision 0106): a moment with several pieces is one entry wherever moments are read,
+// Moment stacks, MS7 and MS14 (decision 0123): a moment with several pieces is one entry wherever moments are read,
 // and nothing merges two moments into one.
 
 const LAT = 41.812, LON = -71.4;

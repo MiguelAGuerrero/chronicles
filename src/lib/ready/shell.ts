@@ -37,7 +37,7 @@ export function createReady(p: Pick<Ports, 'db' | 'recorder'>) {
     dismissWebNote: () => p.db.setMeta(WEB_NOTE_KEY, '1'),
     /** Whether the recorder keeps tracing in the background (a phone), or only while the page is open (web). */
     background: () => p.recorder.capabilities.background,
-    /** A note's text is its piece's own (decision 0106). */
+    /** A note's text is its piece's own (decision 0123). */
     saveNote: (pieceId: string, body: string) => p.db.updatePiece(pieceId, { body }),
   };
 }

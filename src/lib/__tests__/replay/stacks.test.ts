@@ -9,7 +9,7 @@ import { timedRuns } from '../../replay';
 import type { Capture, LngLat, Moment, TracePoint } from '../../types';
 import { at, walkAlong } from '../foxPoint';
 
-// Moment stacks MS17 (decision 0106): a stacked moment is one beat in the replay: one grid of its photos and videos,
+// Moment stacks MS17 (decision 0123): a stacked moment is one beat in the replay: one grid of its photos and videos,
 // its memos and notes as bubbles, one pile card. Test first: the new fields are reached through casts.
 
 function storyOf(fixes: TracePoint[], captures: Faced[], passed: WalkInput['passed'] = []): WalkInput {

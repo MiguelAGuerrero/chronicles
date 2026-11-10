@@ -7,7 +7,7 @@ import { createStore, type Store } from '../store';
 import type { Moment } from '../types';
 
 /**
- * Split out (moment stacks MS16, decision 0106): a piece leaves its moment through the Undo window. At once it is
+ * Split out (moment stacks MS16, decision 0123): a piece leaves its moment through the Undo window. At once it is
  * hidden from its stack (by `pieceKey`) and shown as a moment of its own (`store`, read by the viewer); the split is
  * stored once the window has passed (`db.splitPiece`), so Undo never joins two moments back. The moment's first
  * piece is its anchor and is never split. The new moment's id is the piece's; it is placed by `splitPlace`.

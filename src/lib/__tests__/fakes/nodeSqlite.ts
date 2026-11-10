@@ -4,7 +4,7 @@ import { MIGRATIONS } from '../../db/migrations';
 
 /**
  * The few `expo-sqlite` calls the native store makes (`db/sqliteStore.ts`), over Node's built-in SQLite, so the
- * store runs in `npm test` under the Db contract (MT11, decision 0106). One in-memory database per call; the
+ * store runs in `npm test` under the Db contract (MT11, decision 0123). One in-memory database per call; the
  * store's own write queue serializes writes, as on a phone. `statements()` counts every statement run, for MT7.
  * Bindings follow expo-sqlite's: variadic, `undefined` as null. Rows come back as plain objects.
  */

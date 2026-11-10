@@ -87,7 +87,7 @@ async function run(h) {
   check(await there('text=Connected', 5000), 'owner-threads audit 19: the pill says Connected, nothing warmer');
   let db = await stored(pg);
   check(db.threads.length === 1 && db.threads[0].name === null && db.members.length === 2, 'OT5, OT6: the thread is made of the two moments, unnamed');
-  // The moment's record as seeded (decision 0106): its own fields, and its one piece.
+  // The moment's record as seeded (decision 0123): its own fields, and its one piece.
   const s1 = db.captures.find((x) => x.id === 's1');
   check(JSON.stringify(s1) === JSON.stringify({ id: 's1', walk_id: null, t: s1.t, lat: null, lon: null, segment_id: null, piece_ids: ['s1'], pieces: [{ id: 's1', t: s1.t, kind: 'text', file_path: null, body: 'Someone said I looked strong at the pier.', moment_id: 's1' }] }),
     'OT18: linking left the moment\'s own row as it was');

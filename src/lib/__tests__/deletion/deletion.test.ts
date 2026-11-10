@@ -268,7 +268,7 @@ test('MT6: a moment\'s files are every piece\'s media and small copy', async () 
   assert.deepEqual(got, ['walks/w/a.jpg', 'walks/w/a.thumb.jpg', 'walks/w/b.m4a']);
 });
 
-// ---- Moment stacks, MS13 (decision 0106). Test first: the new words and the piece delete are reached by name.
+// ---- Moment stacks, MS13 (decision 0123). Test first: the new words and the piece delete are reached by name.
 test('MS13: a stacked moment\'s delete names the moment and everything in it; one piece is named by its kind', async () => {
   const core = (await import('../../deletion/core' + '')) as unknown as {
     stackDeleteText(bytes: number): { title: string; body: string; confirm: string };

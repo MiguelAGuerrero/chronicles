@@ -37,7 +37,7 @@ async function withCropAndRotation(ref: ImageRef, c: Faced): Promise<ImageRef> {
  * worth failing a capture over (TH2).
  */
 export function makeThumb(c: Faced): Promise<string | null> {
-  // Named by the piece it is a copy of (decision 0106).
+  // Named by the piece it is a copy of (decision 0123).
   return thumbJob({ ...c, id: c.piece_id }, {
     resolve: resolveMedia,
     async render(uri, max) {

@@ -35,7 +35,7 @@ export interface TracePoint {
 export type CaptureKind = 'photo' | 'video' | 'voice' | 'text';
 
 /**
- * A moment (decision 0106): truth, its one place and time (one fix per moment, 0036), holding its media as pieces.
+ * A moment (decision 0123): truth, its one place and time (one fix per moment, 0036), holding its media as pieces.
  * Every moment kept before the moment table has one piece, under the moment's own id, so threads, replies,
  * reminders and finds keep pointing at the same ids.
  */
@@ -53,7 +53,7 @@ export interface Moment {
   pieces: Capture[];
 }
 
-/** One piece of a moment's media (decision 0106): truth, with its own capture time. */
+/** One piece of a moment's media (decision 0123): truth, with its own capture time. */
 export interface Capture {
   id: string;
   /** The moment it belongs to. */

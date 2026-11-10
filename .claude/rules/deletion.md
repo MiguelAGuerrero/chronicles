@@ -21,7 +21,7 @@ Deleting a walk, its media, or a moment (`lib/deletion`): what goes, Undo, and w
   find. Removing a walk's media keeps its finds (`keepFinds`). Offered places,
   checklists and busy areas never move.
 - **Threads follow the moments** (decision 0104): `deleteMoments` and `deleteWalk` also delete the memberships and reply links of the moments they delete and dissolve a thread left with fewer than two, in the same transaction. Deleting a thread (`threads.deleteThread`) uses this same Undo window and deletes no moment.
-- **Storage:** `db.deleteWalk` and `db.deleteMoments` (a moment with every piece; decision 0106), one transaction each
+- **Storage:** `db.deleteWalk` and `db.deleteMoments` (a moment with every piece; decision 0123), one transaction each
   (web: any error aborts it, `atomically`). Rows go first, then files
   (`removeMedia`: each ref, plus a whole walk's `walks/<id>/` folder; never
   `walks/moments/`). A file that fails to delete is left behind, never a row

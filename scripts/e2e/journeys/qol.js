@@ -592,7 +592,7 @@ module.exports = {
   covers: [
     'src/components/{LocateButton,CompassButton,HomeSheet,CaptureView,CapturePinView}.tsx',
     'src/components/map/**',
-    'src/app/(tabs)/chronicle.tsx',
+    'src/app/(tabs)/index.tsx',
     'src/lib/{scaleBar,units,useUnits,useLocate,rename,noteEdit,months,pins,thumbPlan,thumbJob,walkTitle,useReminded}.ts',
       'src/lib/unitsStore/**',
     'src/lib/nav/eta.ts',

@@ -5,7 +5,7 @@ import { REPLAY_RHYTHM as R } from '../motionTokens';
 export const GRID_MAX = 9;
 
 /**
- * A stack's grid in the replay (moment stacks MS17, decision 0106): the closest square layout for its photos and
+ * A stack's grid in the replay (moment stacks MS17, decision 0123): the closest square layout for its photos and
  * videos, at most 3×3 at once; with more, it scrolls through the hold. 2 → 2×1, 3-4 → 2×2, 5-6 → 3×2, 7-9 → 3×3.
  */
 export function gridLayout(n: number): { cols: number; rows: number; shown: number; scrolls: boolean } {

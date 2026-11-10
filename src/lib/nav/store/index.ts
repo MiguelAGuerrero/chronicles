@@ -3,4 +3,4 @@
 import { ports } from '../../ports';
 import { createNavStore } from './shell';
 
-export const { saveNav, loadNav, clearNav, loadPendingDest, savePendingDest } = createNavStore(ports);
+export const { saveNav, loadNav, clearNav, loadPendingDest, savePendingDest, saveForLater, saveWayBack, loadWayBack, clearWayBack } = createNavStore(ports);

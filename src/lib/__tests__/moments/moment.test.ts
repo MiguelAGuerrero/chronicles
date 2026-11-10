@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import { face, foldRows, placeAt, type JoinedRow } from '../../moment';
 import type { Capture, CaptureKind, Moment, StreetSegment, TracePoint } from '../../types';
 
-// Moment table (MT4, MT5, MT10, decision 0106): a moment holds its media. The pure helpers over it.
+// Moment table (MT4, MT5, MT10, decision 0123): a moment holds its media. The pure helpers over it.
 
 type Row = JoinedRow;
 const mod = async () => ({ face, foldRows, placeAt });
@@ -52,7 +52,7 @@ test('MT10: moment.ts is a core module', () => {
   assert.match(src.split('\n')[0], /^\/\/ @layer core$/);
 });
 
-// ---- Moment stacks, round 1 (MS8, MS13; decision 0106). Test first: the new helpers are reached by name.
+// ---- Moment stacks, round 1 (MS8, MS13; decision 0123). Test first: the new helpers are reached by name.
 type Round1 = { withPiece(m: Moment, p: Capture): Moment; withoutPiece(m: Moment, id: string): Moment | null; hasMore(m: Pick<Moment, 'pieces'>): boolean };
 const round1 = () => import('../../moment' + '') as unknown as Promise<Round1>;
 

@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import { IDBFactory } from 'fake-indexeddb';
 import type { Db } from '../../db/types';
 
-// Moment table, MT1 and MT2 (decision 0106): every capture becomes a one-piece moment under its own id, on both
+// Moment table, MT1 and MT2 (decision 0123): every capture becomes a one-piece moment under its own id, on both
 // stores, and every record that pointed at a capture reaches the same moment. Test first: the new store API and
 // the SQLite migrations' module are reached by name, so this file runs before they exist.
 

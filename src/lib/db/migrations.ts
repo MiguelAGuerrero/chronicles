@@ -222,7 +222,7 @@ export const MIGRATIONS: readonly string[] = [
   );
   CREATE INDEX moment_link_to ON moment_link (to_id);
   `,
-  // 22: the moment table (MT1, decision 0106): a moment holds its media. Every capture becomes a one-piece moment
+  // 22: the moment table (MT1, decision 0123): a moment holds its media. Every capture becomes a one-piece moment
   // under its own id, so threads, replies, reminders and finds keep pointing at it; a capture is a piece, read
   // through its moment. The capture table's own walk_id, lat, lon and segment_id are left as they were and no
   // longer read or written (dropping them would rebuild the table; docs/DEFERRED.md).

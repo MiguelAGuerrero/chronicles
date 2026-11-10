@@ -6,7 +6,7 @@ import { theme } from './ui';
 export const STACK_SPOKEN = 'with more in this moment';
 
 /**
- * The quiet mark of a moment that holds more than one piece (moment stacks MS8, decision 0106): a small two-card
+ * The quiet mark of a moment that holds more than one piece (moment stacks MS8, decision 0123): a small two-card
  * glyph in ink, never the accent colour, never beside a number. The row it sits on adds `STACK_SPOKEN` to its own
  * spoken label; the mark carries the words too, for a reader that stops on it.
  */

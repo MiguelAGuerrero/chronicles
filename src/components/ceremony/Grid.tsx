@@ -32,7 +32,7 @@ function GridVideo({ piece, play, size }: { piece: Faced; play: boolean; size: n
 }
 
 /**
- * A stack's grid in its replay card (moment stacks MS17, decision 0106): the closest square up to 3×3, each picture
+ * A stack's grid in its replay card (moment stacks MS17, decision 0123): the closest square up to 3×3, each picture
  * cropped to fill its square, each piece swiping in a beat after the one before, the grid held, and past nine it
  * scrolls slowly through the hold (the frame's `shown` and `scroll`). Videos play muted in their cells. No dots, numbers,
  * position or progress bar: the pieces are the content.

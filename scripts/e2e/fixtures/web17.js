@@ -1,5 +1,5 @@
 // The web store's schema at IndexedDB version 17, frozen: a copy of `migrate` in src/lib/db/index.web.ts as it
-// stood before the moment table (decision 0106, MT1). An old schema never changes, so this copy stays exact. The
+// stood before the moment table (decision 0123, MT1). An old schema never changes, so this copy stays exact. The
 // upgrade journey runs it in the browser (as a string, `migrate17.toString()`) to seed a version-17 database
 // before the app loads; momentMigration.test.ts holds it to the store's own steps up to 17.
 function migrate17(d, tx, oldVersion) {

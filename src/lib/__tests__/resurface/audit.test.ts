@@ -150,6 +150,6 @@ test('resurfaced-moments audit 11: a 29 Feb moment resurfaces on 28 Feb of a com
 });
 
 test('resurfaced-moments audit 9: only the tabs and the walk reset the section (a replay, a day and Chronicle keep it)', () => {
-  for (const keep of ['/replay/w1', '/day/2026-11-04', '/chronicle']) assert.equal(sectionOnRoute('map', keep), 'map', keep);
-  for (const reset of ['/', '/navigate', '/explore', '/walk']) assert.equal(sectionOnRoute('map', reset), 'memories', reset);
+  for (const keep of ['/replay/w1', '/day/2026-11-04', '/']) assert.equal(sectionOnRoute('map', keep), 'map', keep);
+  for (const reset of ['/navigate', '/explore', '/walk']) assert.equal(sectionOnRoute('map', reset), 'memories', reset);
 });

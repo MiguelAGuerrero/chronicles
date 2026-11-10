@@ -14,7 +14,7 @@
     "why": "the screen reader's step-through position in the replay (stepPosition, moved from StepThrough.tsx), a pager over moments, not a tally; never over a moment's pieces (MS9)"
   },
   {
-    "file": "src/app/(tabs)/chronicle.tsx",
+    "file": "src/app/(tabs)/index.tsx",
     "rule": "tally",
     "text": "Placing your walks",
     "kind": "allowed",

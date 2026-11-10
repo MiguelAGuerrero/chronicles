@@ -25,7 +25,7 @@ export interface Db {
   getPoints(walkId: string): Promise<TracePoint[]>;
 
   /**
-   * Keeps a moment and its pieces in one write (MT3, decision 0106): a moment is never kept without a piece, and an
+   * Keeps a moment and its pieces in one write (MT3, decision 0123): a moment is never kept without a piece, and an
    * id is used once (the first stays).
    */
   addMoment(moment: Moment): Promise<void>;

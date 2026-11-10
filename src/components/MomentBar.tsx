@@ -1,16 +1,19 @@
 import type { Faced } from '../lib/moment';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
-  AccessibilityInfo, BackHandler, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View,
+  AccessibilityInfo, BackHandler, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { bandLayout, momentToast } from '../lib/captureBand';
 import { feedback } from '../lib/motion';
-import type { LocateResult } from '../lib/locate/types';
-
 import { momentPill } from '../lib/momentPill';
 import { useStore } from '../lib/useStore';
+import { space } from '../lib/space';
+import { heldLabel } from '../lib/space/core';
+import type { Capture, LngLat } from '../lib/types';
 import { useCaptures, type MomentState } from '../lib/useCaptures';
 import { Modal } from './Modal';
+import { SpaceLine } from './SpaceLine';
 import { EditOfferPill, useEditOffer } from './edit/EditOffer';
 import { MediaEditor } from './edit/MediaEditor';
 import { AddToMomentPill } from './walk/AddToMomentPill';
@@ -18,19 +21,18 @@ import { CaptureStack } from './walk/CaptureStack';
 import { useStackLayout } from './walk/layout';
 import { Button, LiftIn, theme } from './ui';
 
-const KIND_NAME = { photo: 'Photo', video: 'Video', voice: 'Voice memo', text: 'Note' } as const;
-
-/** What a moment's toast says once it is placed, or once no place came (M2). */
-function momentToast(kind: Faced['kind'], reason?: LocateResult['reason']): string {
-  const what = KIND_NAME[kind];
-  if (!reason) return `${what} kept here`;
-  return reason === 'denied' ? `${what} kept · No location (location is off)` : `${what} kept · No location`;
+/** The open walk a moment from the band files into (HC10), with where the walk last was. */
+export interface BandWalk {
+  id: string;
+  here: LngLat | null;
+  lastFixAt: number | null;
 }
 
 /**
- * Camera, mic and pencil on the ready screen (M1, NR9): a moment in one tap, with no walk
- * open. Each moment asks for one fix as it is begun and is kept at once; the
- * toast says where it landed when the fix comes, or "No location" (M2).
+ * Camera, mic and pencil on the ready screen (M1, NR9) and on Chronicle's Memories (HC6): a moment in
+ * one tap. With no walk open, each moment asks for one fix as it is begun and is kept at once; the toast
+ * says where it landed when the fix comes, or "No location" (M2). Given an open walk (Memories with a
+ * walk minimized, HC10), it keeps the walk's own captures instead, as the recording bar's camera does.
  */
 export function MomentBar(props: {
   disabled?: boolean;
@@ -41,21 +43,55 @@ export function MomentBar(props: {
   onRecording?: (on: boolean) => void;
   /** Whether the tab is in front: leaving it mid-memo saves the memo (tabs audit 3). */
   focused?: boolean;
+  /** `band` on Memories (HC6, HC7); the walk screen's stack otherwise. */
+  layout?: 'stack' | 'band';
+  /** The ids' prefix: `moment` on the ready screen, `band` on Memories. */
+  idPrefix?: string;
+  /** Names for a screen reader (HC8); the ready screen's by default. */
+  labels?: { photo: string; voice: string; note: string };
+  /** An open walk to file into (HC10), or none for moments of their own. */
+  walk?: BandWalk | null;
+  /** What the screen says above the band (an error, its own Undo): first in the pills' column (audit 2, 3). */
+  above?: ReactNode;
 }) {
   const [toast, setToast] = useState<string | null>(null);
-  const { onMoment } = props;
-  const cap = useCaptures(null, null, null, props.onError, {
-    loose: true,
+  const { onMoment, walk } = props;
+  const cap = useCaptures(walk?.id ?? null, walk?.here ?? null, walk?.lastFixAt ?? null, props.onError, {
+    loose: !walk,
     // The pill (moment stacks, MS2, MS5): a new moment opens it; a piece keeps it.
-    onKept: (id, piece) => (piece ? momentPill.piece(id) : momentPill.kept(id, false)),
+    onKept: (id, piece) => (piece ? momentPill.piece(id) : momentPill.kept(id, !!walk)),
     onMoment: (c, state) => {
       // The toast waits for the place; the lists hear of the moment at once (audit).
-      if (state !== 'kept') setToast(momentToast(c.kind, state === 'placed' ? undefined : state));
+      if (state !== 'kept') setToast(momentToast(c.kind, 'loose', state === 'placed' ? undefined : state));
       onMoment(c, state);
     },
   });
-  return <CaptureRow cap={cap} toast={toast} setToast={setToast} disabled={props.disabled} onRecording={props.onRecording} focused={props.focused} />;
+  // Navigate, ready, or Memories shown: the room left (SA3) and the web's request; a walk's band says it is recording (SA10).
+  const { focused } = props;
+  const recording = !!walk;
+  useEffect(() => {
+    if (focused !== false) void space.check({ recording });
+  }, [focused, recording]);
+  // A walk's capture is never a loose moment: it says it went to the walk, at once (HC10, HC15).
+  const onKept = walk ? (kind: Capture['kind']) => setToast(momentToast(kind, 'walk')) : undefined;
+  return (
+    <CaptureRow
+      cap={cap}
+      toast={toast}
+      setToast={setToast}
+      disabled={props.disabled}
+      onRecording={props.onRecording}
+      focused={props.focused}
+      layout={props.layout}
+      idPrefix={props.idPrefix}
+      labels={props.labels}
+      onKept={onKept}
+      above={props.above}
+    />
+  );
 }
+
+const READY_LABELS = { photo: 'Keep a moment: take a photo or video', voice: 'Keep a moment: record a voice memo', note: 'Keep a moment: write a note' };
 
 /** What useCaptures gives a capture row. */
 export type CaptureControls = ReturnType<typeof useCaptures>;
@@ -73,9 +109,21 @@ export function CaptureRow(props: {
   disabled?: boolean;
   onRecording?: (on: boolean) => void;
   focused?: boolean;
+  layout?: 'stack' | 'band';
+  idPrefix?: string;
+  labels?: { photo: string; voice: string; note: string };
+  /** A capture was kept (after its tap): a walk's band says where it went (HC10). */
+  onKept?: (kind: Capture['kind']) => void;
+  /** Said above this row's own pills, in the same column, so nothing covers anything (audit 2, 3). */
+  above?: ReactNode;
 }) {
   const insets = useSafeAreaInsets();
   const at = useStackLayout();
+  const { width } = useWindowDimensions();
+  const band = props.layout === 'band';
+  const p = props.idPrefix ?? 'moment';
+  // Pills and toasts sit above the band on Memories (HC15), left of the stack on the walk screen (NR10).
+  const pillsAt = band ? { left: 16, right: 16, bottom: bandLayout(width).height + 12, alignItems: 'center' as const } : at.pills;
   const { cap, toast, setToast } = props;
   const [noteOpen, setNoteOpen] = useState(false);
   // After a photo or video, Edit is offered for a few seconds (ME23).
@@ -107,18 +155,22 @@ export function CaptureRow(props: {
     };
   }, [recording]);
 
-  const saved = () => feedback('tap');
+  const { onKept } = props;
+  const saved = (kind: Capture['kind']) => {
+    feedback('tap');
+    onKept?.(kind);
+  };
   const saveNote = async () => {
     if (await cap.saveNote(note, noteInto)) {
       setNote('');
       setNoteOpen(false);
       setNoteInto(null);
-      saved();
+      saved('text');
     }
   };
   const saveVoice = async () => {
     const r = await cap.finishVoice();
-    if (r === 'saved') saved();
+    if (r === 'saved') saved('voice');
     else if (r === 'dropped') setToast('Too short, not kept');
   };
   // The screen went mid-memo (the chevron, another tab): it is saved, as leaving the walk
@@ -146,7 +198,7 @@ export function CaptureRow(props: {
   useEffect(() => {
     onAsk.current = (kind) => {
       const into = momentPill.target();
-      if (kind === 'photo') void cap.takePhoto(into).then((k) => k && saved());
+      if (kind === 'photo') void cap.takePhoto(into).then((k) => k && saved(k.kind));
       else if (kind === 'voice') void cap.startVoice(into).then((ok) => ok && feedback('tap'));
       else {
         setNoteInto(into);
@@ -164,7 +216,8 @@ export function CaptureRow(props: {
   return (
     <>
       {/* Pills and the toast: left of the stack, above the strip, so the stack never moves (NR10). */}
-      <View style={[styles.pills, at.pills]} pointerEvents="box-none">
+      <View style={[styles.pills, pillsAt]} pointerEvents="box-none">
+        {props.above}
         {editOffer.offer && !recording && (
           <EditOfferPill
             offer={editOffer.offer}
@@ -177,8 +230,8 @@ export function CaptureRow(props: {
           />
         )}
         <AddToMomentPill
-          hidden={recording || noteOpen}
-          onPhoto={() => void cap.takePhoto(momentPill.target()).then((k) => k && saved())}
+          hidden={band || recording || noteOpen}
+          onPhoto={() => void cap.takePhoto(momentPill.target()).then((k) => k && saved(k.kind))}
           onVoice={() => void cap.startVoice(momentPill.target()).then((ok) => ok && feedback('tap'))}
           onNote={() => {
             setNoteInto(momentPill.target());
@@ -186,14 +239,14 @@ export function CaptureRow(props: {
           }}
         />
         {toast && (
-          <LiftIn testID="moment-toast" style={styles.toast} accessibilityLiveRegion="polite">
+          <LiftIn testID={`${p}-toast`} style={styles.toast} accessibilityLiveRegion="polite">
             <Text style={styles.toastText}>{toast}</Text>
           </LiftIn>
         )}
         {cap.discarded && !recording && (
           <View style={styles.pill} accessibilityLiveRegion="polite">
             <Text style={styles.pillText}>Voice memo discarded</Text>
-            <Pressable testID="moment-voice-undo" accessibilityRole="button" onPress={() => cap.undoDiscard()} hitSlop={10} style={styles.pillBtn}>
+            <Pressable testID={`${p}-voice-undo`} accessibilityRole="button" onPress={() => cap.undoDiscard()} hitSlop={10} style={styles.pillBtn}>
               <Text style={styles.pillBtnText}>Undo</Text>
             </Pressable>
           </View>
@@ -206,10 +259,21 @@ export function CaptureRow(props: {
             </Pressable>
           </View>
         )}
+        {cap.held.length > 0 && (
+          <View testID="held-captures" style={styles.pill} accessibilityLiveRegion="polite">
+            <Text style={styles.pillText}>{heldLabel(cap.held)}</Text>
+            <Pressable testID="held-retry" accessibilityRole="button" onPress={() => cap.retryHeld()} hitSlop={10} style={styles.pillBtn}>
+              <Text style={styles.pillBtnText}>Retry</Text>
+            </Pressable>
+          </View>
+        )}
+        {/* Only on the screen in front: Memories' band stays mounted under Navigate, ready (decision 0112). */}
+        {!recording && props.focused !== false && <SpaceLine />}
       </View>
       <CaptureStack
-        ids={{ photo: 'moment-photo', voice: 'moment-voice', note: 'moment-note', save: 'moment-voice-save', discard: 'moment-voice-discard' }}
-        labels={{ photo: 'Keep a moment: take a photo or video', voice: 'Keep a moment: record a voice memo', note: 'Keep a moment: write a note' }}
+        layout={props.layout}
+        ids={{ photo: `${p}-photo`, voice: `${p}-voice`, note: `${p}-note`, save: `${p}-voice-save`, discard: `${p}-voice-discard`, timer: `${p}-voice-timer` }}
+        labels={props.labels ?? READY_LABELS}
         voiceStartedAt={cap.voiceStartedAt}
         busy={cap.busy}
         disabled={props.disabled}
@@ -217,7 +281,7 @@ export function CaptureRow(props: {
           // With Group captures on, the edge adds to the open moment (MS19); off, a new moment (MS1).
           cap.takePhoto(momentPill.edgeTarget()).then((k) => {
             if (!k) return;
-            saved();
+            saved(k.kind);
             if (k.id === k.momentId) editOffer.show(k);
           })
         }
@@ -241,7 +305,7 @@ export function CaptureRow(props: {
             <Pressable style={styles.modal} onPress={() => {}} accessible={false}>
               <Text style={styles.modalTitle} accessibilityRole="header">Jot it down</Text>
               <TextInput
-                testID="moment-note-input"
+                testID={`${p}-note-input`}
                 autoFocus
                 multiline
                 value={note}
@@ -257,7 +321,7 @@ export function CaptureRow(props: {
               />
               <View style={styles.modalRow}>
                 <Button variant="ghost" label="Close" onPress={() => setNoteOpen(false)} />
-                <Button testID="moment-note-save" label="Save" onPress={saveNote} busy={cap.busy === 'text'} disabled={!note.trim()} />
+                <Button testID={`${p}-note-save`} label="Save" onPress={saveNote} busy={cap.busy === 'text'} disabled={!note.trim()} />
               </View>
             </Pressable>
           </KeyboardAvoidingView>

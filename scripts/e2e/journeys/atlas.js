@@ -177,7 +177,7 @@ async function checks(h) {
       await page.waitForSelector('[data-testid=atlas-card]');
       await page.waitForTimeout(700);
       // The tab bar is folded away under the drawer, so leave the way a notification would: by the router.
-      await page.evaluate(() => { window.history.pushState({}, '', window.location.pathname.replace(/\/$/, '') + '/chronicle'); window.dispatchEvent(new PopStateEvent('popstate')); });
+      await page.evaluate((base) => { window.history.pushState({}, '', `${base}/`); window.dispatchEvent(new PopStateEvent('popstate')); }, BASE);
       await page.waitForTimeout(800);
       await tabTo(page, 'explore');
       await page.waitForSelector('[data-testid=atlas-grid]');
@@ -278,7 +278,7 @@ async function checks(h) {
       await page.reload();
       const back = await page.waitForSelector('[data-testid=atlas-tile][data-name="Fox Point"][data-read="1"]', { timeout: 30000 }).then(() => true, () => false);
       const label = back ? (await tileOf('Fox Point').getAttribute('aria-label')) ?? '' : '';
-      check(back && new URL(page.url()).pathname === `${BASE}/`,
+      check(back && new URL(page.url()).pathname === `${BASE}/explore`,
         `AT1, AT12: after a reload, the atlas is back on the same tab from where it last listed (${label}; the launch's one fix may already say "You're here", NV16)`);
       if (back) {
         // AD14: the tile's small map draws its graded streets in magenta, a path per grade, wider as the grade rises.

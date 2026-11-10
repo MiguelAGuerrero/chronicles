@@ -4,7 +4,7 @@
 // E2E_ONLY=walkability runs it alone.
 
 async function run(h) {
-  const { url, navUrl, BASE, at, check, shot, freshPage, overtureAsked, overpassAsked, walkability, hosts, OVERPASS_HOST } = h;
+  const { url, exploreUrl, navUrl, BASE, at, check, shot, freshPage, overtureAsked, overpassAsked, walkability, hosts, OVERPASS_HOST } = h;
   const openPanel = async (pg) => {
     if (!(await pg.locator('[data-testid=layers-panel]').count())) await pg.click('[data-testid=layers]');
     await pg.waitForSelector('[data-testid=layers-panel]', { timeout: 5000 });
@@ -12,7 +12,7 @@ async function run(h) {
   const isOn = async (pg) => (await pg.locator('[data-testid=layer-walkability]').getAttribute('aria-checked')) === 'true';
   const drawn = (pg) => pg.locator('[data-walk]').first().getAttribute('data-walk').catch(() => null);
   const { c, pg } = await freshPage('walk');
-  await pg.goto(url);
+  await pg.goto(exploreUrl);
   await pg.waitForSelector('[data-testid=layers]', { timeout: 30000 });
   await openPanel(pg);
   check(!(await isOn(pg)) && (await pg.locator('[data-testid=layer-legend-walkability]').count()) === 0 && !(await drawn(pg)), 'WK13, ML2: the Walkability layer is off until switched on, and draws nothing');
@@ -92,7 +92,7 @@ async function run(h) {
   check((await pg.locator('[data-testid=layer-legend-walkability]').count()) === 0, 'WK13: switching off hides the legend');
   await h.drawerTo(pg, 'peek');
   // WK11: the area card says, in words, how its streets treat someone on foot (a third of this ring's street is each band).
-  await pg.goto(url);
+  await pg.goto(exploreUrl);
   await pg.waitForSelector('[data-testid=atlas-tile][data-name="Fox Point"]', { timeout: 60000 });
   await pg.click('[data-testid=atlas-tile][data-name="Fox Point"]');
   await pg.waitForSelector('[data-testid=atlas-onfoot-words]', { timeout: 30000 }).catch(() => {});
@@ -105,7 +105,7 @@ async function run(h) {
   // WK1b, WK3: Overture can't be read (not a PMTiles file), so Overpass answers, with the tile's bounds and nothing else.
   walkability.mode = 'broken';
   const { c: c2, pg: p2 } = await freshPage('walk-fallback');
-  await p2.goto(url);
+  await p2.goto(exploreUrl);
   await p2.waitForSelector('[data-testid=layers]', { timeout: 30000 });
   await openPanel(p2);
   await p2.click('[data-testid=layer-walkability]');
@@ -132,7 +132,7 @@ module.exports = {
     'src/components/map/{types,WalkMap.web,WalkMap.native}.ts*',
     'src/components/walk/{layout,useReady}.ts*',
     'src/components/atlas/AtlasCard.tsx',
-    'src/app/(tabs)/index.tsx',
+    'src/app/(tabs)/explore.tsx',
     'src/app/walk.tsx',
   ],
   run,

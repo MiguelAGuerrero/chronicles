@@ -5,7 +5,7 @@ import { Icon, KIND_ICON } from '../icons';
 import { LiftIn, theme } from '../ui';
 
 /**
- * Add to this moment (moment stacks MS2, MS6; decision 0106): after a capture, a quiet pill left of the capture
+ * Add to this moment (moment stacks MS2, MS6; decision 0123): after a capture, a quiet pill left of the capture
  * stack offers the camera, the mic and a note, one tap each; what it keeps joins the moment just made. Ink, never the
  * accent; it enters by `LiftIn` (a `motionTokens` timing) with no pulse, sound or haptic of its own; its words never
  * change with the moment's size. It shows while `momentPill` says a moment is open; × dismisses it for that moment.

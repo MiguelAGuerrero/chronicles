@@ -27,7 +27,7 @@ import { useUnits } from '../../lib/useUnits';
 import { useReminded } from '../../lib/useReminded';
 import { MOTION } from '../../lib/motionTokens';
 import {
-  alternatesGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
+  alternatesGeoJSON, routeGradesGeoJSON, pinsGeoJSON, BORDER, bordersGeoJSON, WALK_STYLE, walkabilityGeoJSON, COLORS, coneGeoJSON, OVERTURE_CREDIT, DERIVE_ZOOM, endsGeoJSON, FOG_STYLE, HOTSPOT, marksGeoJSON, pocketsGeoJSON, ringGeoJSON, RING_COLOR, stripsGeoJSON, PLACES_ZOOM, pressRadiusM, routeGeoJSON, FOG_BOLD, MAP_STYLE_URL, WORLD_VEIL, segmentsGeoJSON, splitTrace, traceGeoJSON, RIDE_DASH, FAINT_OPACITY, GAP_LINK_DASH, DRAWING_DASH, useZoomPins, walkerGeoJSON,
   type CollectedFeatures, type WalkMapHandle, type WalkMapProps,
 } from './types';
 
@@ -69,8 +69,8 @@ function addOverlay(map: MapLibreMap) {
   // Lines are simplified a little more than the default and keep a smaller tile buffer: less to
   // re-tile on each update (perf, Nov 1; tolerance 0.375 and buffer 128 are maplibre's defaults).
   const lineSource = { type: 'geojson' as const, data: empty, tolerance: 1, buffer: 64 };
-  for (const id of ['fog', 'walked', 'alternates', 'route', 'gap-links', 'faint', 'rides', 'trace-history', 'trace', 'trace-link', 'drawing']) map.addSource(id, lineSource);
-  for (const id of ['pockets', 'strips', 'cone', 'marks', 'points', 'ring', 'ends']) map.addSource(id, { type: 'geojson', data: empty });
+  for (const id of ['fog', 'walked', 'alternates', 'route-grades', 'route', 'gap-links', 'faint', 'rides', 'trace-history', 'trace', 'trace-link', 'drawing']) map.addSource(id, lineSource);
+  for (const id of ['pockets', 'strips', 'cone', 'marks', 'points', 'ring', 'ends', 'found-pins']) map.addSource(id, { type: 'geojson', data: empty });
   const lineLayout = { 'line-cap': 'round', 'line-join': 'round' } as const;
   // Hotspots under the streets: pockets shaded, strips bold, in the one green no other layer uses (L9).
   // Stale areas (an older map or rules) are dimmed until looked at again (L11).
@@ -86,6 +86,8 @@ function addOverlay(map: MapLibreMap) {
   // A preview's other routes, faint, under the one highlighted (SR2).
   map.addLayer({ id: 'alternates-edge', type: 'line', source: 'alternates', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': 9, 'line-opacity': 0.8 } });
   map.addLayer({ id: 'alternates', type: 'line', source: 'alternates', layout: lineLayout, paint: { 'line-color': COLORS.route, 'line-width': 6, 'line-opacity': 0.4 } });
+  // The walk planner's graded stretches: a band under the route, wider where the kind is denser (WP16).
+  map.addLayer({ id: 'route-grades', type: 'line', source: 'route-grades', layout: lineLayout, paint: { 'line-color': HOTSPOT, 'line-width': ['get', 'width'], 'line-opacity': 0.45 } });
   // The route under the trace and walker, so where you walked stays on top (N6).
   map.addLayer({ id: 'route-edge', type: 'line', source: 'route', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': 12 } });
   map.addLayer({ id: 'route', type: 'line', source: 'route', layout: lineLayout, paint: { 'line-color': COLORS.route, 'line-width': 8 } });
@@ -120,6 +122,8 @@ function addOverlay(map: MapLibreMap) {
   map.addLayer({ id: 'ring-fill', type: 'fill', source: 'ring', paint: { 'fill-color': RING_COLOR, 'fill-opacity': 0.12 } });
   map.addLayer({ id: 'ring', type: 'line', source: 'ring', paint: { 'line-color': RING_COLOR, 'line-width': 2.5, 'line-dasharray': [2, 1.5] } });
   map.addLayer({ id: 'cone', type: 'fill', source: 'cone', paint: { 'fill-color': COLORS.walker, 'fill-opacity': 0.25 } });
+  // Places already found, on the walk planner's map: a filled disc in the kind's green on a white ring (WP16).
+  map.addLayer({ id: 'found-pins', type: 'circle', source: 'found-pins', paint: { 'circle-color': HOTSPOT, 'circle-radius': 7, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 3 } });
   map.addLayer({ id: 'marks', type: 'circle', source: 'marks',
     paint: { 'circle-color': '#ffffff', 'circle-radius': 9, 'circle-stroke-color': COLORS.walker, 'circle-stroke-width': 4 } });
   map.addLayer({ id: 'points', type: 'circle', source: 'points',
@@ -585,12 +589,18 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
   useEffect(() => { if (ready) setData('gap-links', traceGeoJSON(props.gapLinks ?? [])); }, [ready, props.gapLinks]);
   useEffect(() => { if (ready) setData('drawing', traceGeoJSON(props.drawing ? [props.drawing] : [])); }, [ready, props.drawing]);
   useEffect(() => { if (ready) setData('route', routeGeoJSON(props.route)); }, [ready, props.route]);
+  useEffect(() => { if (ready) setData('route-grades', routeGradesGeoJSON(props.routeGrades)); }, [ready, props.routeGrades]);
+  useEffect(() => { if (ready) setData('found-pins', pinsGeoJSON(props.foundPins)); }, [ready, props.foundPins]);
   useEffect(() => {
     if (!ready) return;
     setData('alternates', alternatesGeoJSON(props.alternates));
     // The e2e reads how many faint routes are drawn (only when it is measuring: window.__perf).
     if ((window as { __perf?: unknown }).__perf && container.current) container.current.dataset.alternates = String(props.alternates?.length ?? 0);
-  }, [ready, props.alternates]);
+    // The e2e reads which of the trace-like layers carry anything (only when it is measuring): none while a preview is up.
+    if ((window as { __perf?: unknown }).__perf && container.current) {
+      container.current.dataset.drawn = [['trace', props.trace?.length], ['walked', props.walked?.length], ['fog', props.fog?.length], ['faint', props.faint?.length], ['landing', props.landing ? 1 : 0], ['borders', props.borders ? 1 : 0], ['walkability', props.walkability ? 1 : 0]].filter(([, n]) => n).map(([k]) => k).join(',');
+    }
+  }, [ready, props.alternates, props.trace, props.walked, props.fog, props.faint, props.landing, props.borders, props.walkability]);
   useEffect(() => {
     if (!ready) return;
     setData('pockets', pocketsGeoJSON(props.landing));
@@ -600,7 +610,12 @@ export const WalkMap = forwardRef<WalkMapHandle, WalkMapProps>(function WalkMap(
     // How many times the drawing was sent: the e2e checks it is not sent once a fix (layers audit 2).
     container.current?.setAttribute('data-busy-sets', String(Number(container.current?.getAttribute('data-busy-sets') ?? 0) + 1));
   }, [ready, props.landing]);
-  useEffect(() => { if (ready) setData('marks', marksGeoJSON(props.marks)); }, [ready, props.marks]);
+  useEffect(() => {
+    if (!ready) return;
+    setData('marks', marksGeoJSON(props.marks));
+    // The e2e reads how many rings are marked (only when it is measuring): the way-back point is never one but the route's end (DW11).
+    if ((window as { __perf?: unknown }).__perf && container.current) container.current.dataset.marks = String(props.marks?.length ?? 0);
+  }, [ready, props.marks]);
   // The start and end markers (QL1, QL2): sent only when they move, not with every publish of the trace.
   // The grades drawn, as grade:width pairs, for the e2e (AD12).
   const gradedKey = useMemo(

@@ -1,0 +1,51 @@
+{
+  "contractVersion": 2,
+  "classes": [
+    "monument",
+    "memorial",
+    "statue",
+    "marker",
+    "mural",
+    "sculpture",
+    "overlook",
+    "tower",
+    "folly",
+    "novelty_building",
+    "roadside_giant",
+    "natural_oddity",
+    "odd_engineering",
+    "marks_a_fact",
+    "art_environment",
+    "ruin",
+    "church",
+    "cemetery",
+    "theatre",
+    "museum",
+    "historic_site",
+    "building_structure"
+  ],
+  "sources": [
+    {
+      "name": "wikidata",
+      "code": "wd",
+      "license": "CC0 1.0",
+      "licenseFamily": "cc0",
+      "attribution": "Wikidata",
+      "role": "locates",
+      "hosts": [
+        "query.wikidata.org"
+      ]
+    },
+    {
+      "name": "osm",
+      "code": "osm",
+      "license": "ODbL 1.0",
+      "licenseFamily": "odbl",
+      "attribution": "© OpenStreetMap contributors",
+      "role": "confirms",
+      "hosts": [
+        "download.geofabrik.de"
+      ]
+    }
+  ]
+}

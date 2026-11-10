@@ -55,8 +55,10 @@ export const KINDS: readonly KindInfo[] = [
   { id: 'public_art', label: 'Public art', icon: 'color-palette-outline' },
   { id: 'museums', label: 'Museums and galleries', icon: 'images-outline' },
   { id: 'theatres', label: 'Theatres', icon: 'ticket-outline' },
-  { id: 'monuments', label: 'Monuments and ruins', icon: 'flag-outline' },
-  { id: 'churches', label: 'Historic churches', icon: 'business-outline' },
+  { id: 'monuments', label: 'Monuments and memorials', icon: 'flag-outline' },
+  // RP8, RP18: the archive's listed buildings and structures, named for what they are, never their listing (decision 0109).
+  { id: 'structures', label: 'Buildings and structures', icon: 'library-outline' },
+  { id: 'churches', label: 'Places of worship', icon: 'business-outline' },
   { id: 'cemeteries', label: 'Cemeteries', icon: 'rose-outline' },
   { id: 'parks', label: 'Parks and gardens', icon: 'leaf-outline' },
   { id: 'viewpoints', label: 'Viewpoints and attractions', icon: 'eye-outline' },
@@ -170,6 +172,11 @@ export function archiveStale(builtWith: string | null | undefined, now: string |
   return now != null && (builtWith ?? null) !== now;
 }
 
+/** The places archive's tag for a point: one for the whole read, or, with the pipeline's blocks, per point (PP13). */
+export type ArchiveAt = string | null | ((at: LngLat) => string | null);
+export const archiveTagAt = (archive: ArchiveAt | undefined, at: LngLat): string | null =>
+  typeof archive === 'function' ? archive(at) : (archive ?? null);
+
 /**
  * One read's checklists (E2, E3): each attraction (markable, with a kind)
  * goes to its area; only areas the read saw whole are built, with 0 when they
@@ -189,8 +196,8 @@ export function buildChecklists(o: {
   known?: PlaceCandidate[];
   /** Town borders read around the centre (TO11): an outline-only town gets a list too. */
   outlines?: OutlineSet | null;
-  /** The places archive version this read used, or null (PW12). */
-  archive?: string | null;
+  /** The places archive version this read used, or null (PW12); per point with blocks (PP13). */
+  archive?: ArchiveAt;
   /** Finds so far: a place matching one keeps its key (places-worth-the-stop audit 1-2). */
   finds?: Pick<Find, 'key' | 'name' | 'at'>[];
 }): { areas: ChecklistArea[]; items: ChecklistItem[] } {
@@ -203,7 +210,7 @@ export function buildChecklists(o: {
     if ((c.level !== 'neighborhood' && c.level !== 'town') || !covers(o.centre, c)) continue;
     if (built.some((b) => sameArea(b, c))) continue;
     const ref: AreaRef = { level: c.level, name: c.name, at: c.at };
-    areas.set(checklistKey(ref), { key: checklistKey(ref), ...ref, build: o.build, built_at: o.now, count: 0, archive: o.archive ?? null });
+    areas.set(checklistKey(ref), { key: checklistKey(ref), ...ref, build: o.build, built_at: o.now, count: 0, archive: archiveTagAt(o.archive, ref.at) });
   }
   const items: ChecklistItem[] = [];
   for (const p of keepFindKeys(o.places, o.finds ?? [])) {
@@ -236,14 +243,17 @@ export function readCentre(o: {
   reads: Pick<ExploreRead, 'centre' | 'build'>[];
   build: string;
   outlines?: OutlineSet | null;
-  /** The places archive version known here (audit 3): an area built with an older one, or none, is read again. */
-  archive?: string | null;
+  /**
+   * The places archive version known here (audit 3): an area built with an older one, or none, is read again. With
+   * blocks it is asked at the area's own point, never the fix's, so an area by a block's edge isn't read on every fix (PP13).
+   */
+  archive?: ArchiveAt;
 }): LngLat | null {
   const near = o.reads.some((r) => r.build === o.build && distanceM(r.centre, o.fix) <= EXPLORE_RULES.rereadM);
   if (!near) return o.fix;
   const ref = areaFor(o.fix, uniqueAreas(o.candidates), o.outlines ?? null);
   if (!ref) return null;
-  return o.areas.some((a) => a.build === o.build && !archiveStale(a.archive, o.archive ?? null) && sameArea(a, ref)) ? null : ref.at;
+  return o.areas.some((a) => a.build === o.build && !archiveStale(a.archive, archiveTagAt(o.archive, a.at)) && sameArea(a, ref)) ? null : ref.at;
 }
 
 /** After a failed read, the next waits 2 min and 100 m walked (E5). */
@@ -469,7 +479,8 @@ export const passedCount = (o: Parameters<typeof passedPlaces>[0]): number => pa
 
 /**
  * The places `passedPlaces` names, each with when the walk first came within
- * reach of it (RR15): the replay whispers each one as the walker gets there.
+ * reach of it (RR15): the replay whispers one or two by name as the walker gets there, more than two once, at the
+ * last, as the card says them (RP19, remarkable-and-public audit 14).
  */
 export function passedAlong(o: Parameters<typeof passedPlaces>[0]): (ChecklistItem & { t: number })[] {
   const fixes = o.fixes.filter((f) => f.t >= o.since);

@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-// Moment stacks, MS3 (decision 0106, 0036): a capture's stamp. A piece for an open moment takes no fix; a new
+// Moment stacks, MS3 (decision 0123, 0036): a capture's stamp. A piece for an open moment takes no fix; a new
 // moment takes a fresh one or asks for one. Test first: the module is reached by name.
 
 type Stamp = { t: number; at: [number, number] | null; locate: boolean; into: string | null };

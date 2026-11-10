@@ -7,7 +7,7 @@ import type { Moment } from '../../types';
 import { makeSqliteDb } from '../../db/sqliteStore';
 import { nodeSqlite } from '../fakes/nodeSqlite';
 
-// Moment table, MT7 (decision 0106): reads stay one statement (SQLite) or one request per store read (IndexedDB),
+// Moment table, MT7 (decision 0123): reads stay one statement (SQLite) or one request per store read (IndexedDB),
 // never one query per moment. Test first: the new API is reached by name.
 
 type Planned = Db;

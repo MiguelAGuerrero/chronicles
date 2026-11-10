@@ -2,11 +2,11 @@
 // on its tile and on its card. E2E_ONLY=grading runs it alone.
 
 async function run(h) {
-  const { url, at, check, freshPage } = h;
+  const { url, exploreUrl, at, check, freshPage } = h;
     const { c, pg } = await freshPage('grading');
     const hollow = at(-60, 0);
     await c.setGeolocation({ longitude: hollow[0], latitude: hollow[1], accuracy: 6 });
-    await pg.goto(url);
+    await pg.goto(exploreUrl);
     const tile = pg.locator('[data-testid=atlas-tile][data-name="Quiet Hollow"]');
     await pg.waitForSelector('[data-testid=atlas-tile][data-name="Quiet Hollow"][data-read="1"]', { timeout: 60000 }).catch(() => {});
     const label = (await tile.getAttribute('aria-label').catch(() => null)) ?? '';

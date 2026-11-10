@@ -1,6 +1,6 @@
 # Plan: moment stacks, round 2 (MS16-MS21)
 
-For the owner's review before any code. Decision 0106; spec `specs/moment-stacks/spec.md`. Rounds 0 and 1 are built
+For the owner's review before any code. Decision 0123; spec `specs/moment-stacks/spec.md`. Rounds 0 and 1 are built
 on this branch. **No migration**: a split moves a piece row (SQLite) or a piece between records (IndexedDB).
 
 ## What the walker sees

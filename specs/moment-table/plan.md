@@ -1,6 +1,6 @@
 # Plan: moment table (round 0 of moment stacks, MT1-MT10)
 
-For the owner's review before any code. Decision 0106; spec `specs/moment-table/spec.md`. Nothing on screen changes.
+For the owner's review before any code. Decision 0123; spec `specs/moment-table/spec.md`. Nothing on screen changes.
 
 ## The model
 
@@ -104,7 +104,7 @@ Thumbnails and media files are named by the piece's id, which is unchanged, so n
 `execAsync`, `withTransactionAsync`). Today SQLite is "held to the same behavior by hand"; with this every migration and query of
 the native store would run in `npm test`. Test: `db.contract.test.ts` gains a third run, `dbContract('sqlite', …)`, over `__tests__/fakes/nodeSqlite.ts`.
 
-Before done: typecheck, lint, `npm test`, the journeys `check:affected` names, then the **full e2e flow** (the owner's call in 0106).
+Before done: typecheck, lint, `npm test`, the journeys `check:affected` names, then the **full e2e flow** (the owner's call in 0123).
 
 ## Deferred
 

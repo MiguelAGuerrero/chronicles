@@ -1,10 +1,10 @@
-<!-- Repo only: round 0 of moment stacks (decision 0106), an engineering slice with no visible change. Not a concept-doc tab. -->
+<!-- Repo only: round 0 of moment stacks (decision 0123), an engineering slice with no visible change. Not a concept-doc tab. -->
 
 # Moment table: a moment holds its media (round 0 of moment stacks)
 
 Nov 9, 2026 · @Miguel Guerrero
 
-Today a `Capture` row is a moment: one piece of media with its own walk, time and place. Decision 0106 makes the moment a
+Today a `Capture` row is a moment: one piece of media with its own walk, time and place. Decision 0123 makes the moment a
 container: a `moment` row (its walk, time and place, its one fix) with captures under it as its media, each keeping its own
 capture time. This round moves the storage and every reader to that model **with nothing on screen changing**: every
 existing capture becomes a moment of one piece, under the same id, so threads, replies, reminders, finds and the resurfaced
@@ -14,7 +14,7 @@ card keep pointing where they did. Stacks themselves (more than one piece) come 
 
 Verdict: no surface (storage and readers move to moments; every screen shows what it showed before, MT9).
 
-## Decisions (the owner's calls, Nov 9, decision 0106)
+## Decisions (the owner's calls, Nov 9, decision 0123)
 
 - A container model (like Day One's entries or Instagram's carousels) over a group key on each media row (Apple Photos' bursts): moment-level facts have one home, and "one fix per moment" (0036) is one row.
 - A risky change is accepted if it is capable and fast; this round goes first, with no visible change, so a regression shows before stacks exist.
@@ -36,7 +36,7 @@ Verdict: no surface (storage and readers move to moments; every screen shows wha
 
 ### Nothing on screen changes
 
-9. **MT9 · No visible change.** Every e2e journey passes unchanged, run as the full flow once at the end of the round (the owner's call, decision 0106), and every unit test's expected values are unchanged apart from the shape of a moment.
+9. **MT9 · No visible change.** Every e2e journey passes unchanged, run as the full flow once at the end of the round (the owner's call, decision 0123), and every unit test's expected values are unchanged apart from the shape of a moment.
 10. **MT10 · Layers.** The moment's shape and the pure readers over it are core modules with tests first; views read moments through the existing shells and never import the `db` (functional core).
 
 ### The native store, tested

@@ -1,6 +1,6 @@
 // @layer core
 /**
- * The Add to this moment pill's life (moment stacks MS4, MS5, MS12; decision 0106), as a reducer with no clock:
+ * The Add to this moment pill's life (moment stacks MS4, MS5, MS12; decision 0123), as a reducer with no clock:
  * every event carries its own time, and `openId` asks at a given `now`.
  *
  * A capture from the edge stack opens its moment. The pill stays for that moment until two minutes pass with no

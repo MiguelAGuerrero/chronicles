@@ -1,4 +1,4 @@
-// Moment table, MT9 (decision 0106): an app upgraded over a browser that kept moments at IndexedDB version 17 shows
+// Moment table, MT9 (decision 0123): an app upgraded over a browser that kept moments at IndexedDB version 17 shows
 // them as before. The database is seeded at version 17 from the frozen schema (fixtures/web17.js) before the app's
 // code first runs, then the app opens it at its own version and folds every capture into a moment. E2E_ONLY=upgrade.
 
