@@ -274,7 +274,9 @@ async function checks(h) {
         await page.waitForSelector('text=Video saved here');
         // Within ~30 m at walking zoom, the video shares a pin with the memo. The pins regroup a moment after
         // the save; a fixed 2.5 s wait read the label too early on the /chronicles build (Nov 4 deploy).
-        await page.waitForSelector('[aria-label="2 captures here. Open"]', { timeout: 10000 }).catch(() => {});
+        // A capture with no fresh fix now asks for one of its own before it is placed (fix paused-pins), so the regroup can
+        // take longer than 10 s on a loaded machine.
+        await page.waitForSelector('[aria-label="2 captures here. Open"]', { timeout: 20000 }).catch(() => {});
         check((await page.locator('[aria-label="2 captures here. Open"]').count()) === 1, 'a short video is kept, sharing a pin with the memo nearby');
         // The video is taken about 40 m from the memorial: it finds it (E8). (The memo at step 10, 62 m off, does not.)
         await page.waitForTimeout(500);
