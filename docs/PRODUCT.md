@@ -137,7 +137,12 @@ recording bar brings a minimized walk back.
   A stacked moment shows once everywhere, by its first photo or video, with a small two-card mark; its
   viewer steps through what it holds (Previous and Next in this moment, the arrow keys, a swipe), never
   saying how many; More offers Delete this photo (one) or Delete this moment (all). Separate moments are
-  grouped by a thread, never merged.
+  grouped by a thread, never merged. More also offers Split this photo out (never the moment's first): it shows at
+  once as its own moment, placed on the walk's trace at its own time (off a walk, at the moment's place), and is
+  kept once its Undo has passed. Walk settings offer **Group captures into one moment**, off by default: with it on,
+  the stack's own buttons add to the open moment, and "Adding to this moment · New moment" shows where the pill was.
+  In the replay a stacked moment is one beat: its photos and videos come up together as a grid (up to 3×3, scrolling
+  past nine, videos muted), its memos and notes as bubbles beside it.
 - A Locate button sits above the stack (also on Explore): it reads one fresh
   fix, shows the dot there and frames 250 m around you. Nothing tracks after.
 
@@ -358,7 +363,7 @@ recording bar brings a minimized walk back.
 | Town presence (a town graded across its whole outline, with its busy areas listed) | Built (web verified by the e2e; native unverified) |
 | Resurfaced moments (Chronicle opens on Memories: a moment brought back, threads from the user's words, Lately) | Built (web verified by the e2e `resurface`; native unverified) |
 | Owner threads (respond to a moment; connect moments across walks; Threads on Memories) | Built (web verified by the e2e `threads`; native unverified) |
-| Moment stacks, round 0 and 1 (a moment holds its media; Add to this moment; one card and pin per moment; the viewer's pieces; deleting one) | Built (web verified by the e2e `upgrade` and `stacks`; native unverified); round 2 (Split out, the replay's one beat, automatic grouping) next |
+| Moment stacks (a moment holds its media; Add to this moment; one card and pin per moment; the viewer's pieces; deleting one; Split out; the replay's grid; Group captures) | Built, rounds 0-2 (web verified by the e2e `upgrade` and `stacks`; native unverified) |
 | Moments and days, memories on revisit, thumbnails | Shipped, audited |
 | Rides, clearing walks and moments, motion polish | Shipped, audited |
 | Navigation and tabs (three-tab layout, recording bar) | Shipped, two audit batches done |

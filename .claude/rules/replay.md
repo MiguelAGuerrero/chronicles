@@ -29,6 +29,13 @@ A walk's replay and the day replay: the five beats, the story and its ceremonies
   are bubbles, photos and videos cards that tuck into the pile; passed places
   whisper by; a clock rolls with the walker. Every number is in `REPLAY_RHYTHM`
   (`motionTokens.ts`). A soft cap of 60 s shrinks everything but memos and videos.
+- **A stacked moment is one beat** (moment stacks MS17, decision 0106): `rhythm.ts` `stopSlots` makes a moment
+  with two or more photos and videos one `grid` slot (`ceremony/grid.ts`: the closest square up to 3×3, scrolling past
+  nine; `gridDuration`: swipe-ins, then one photo slot or the longest muted video), its memos and notes `beside` slots
+  on their own clock from the grid's start; fewer than two play piece by piece. One card, one pile entry per moment.
+  The rhythm hands the stage each cell's swipe-in (`shown`) and the `scroll`; `Grid.tsx` only draws them (the stage
+  never reads `REPLAY_RHYTHM`). A stack's stop runs to its last piece (`lastPieceT`). The screen reader steps through
+  a stack's pieces; `stepPosition` counts moments, never pieces (MS9).
 - **Nothing waits for a tap.** A tap on the stage or Hold holds it; an open viewer
   pauses it (the clock and any sound); Skip goes to the card. First watch and
   re-watches play the same. Only the screen reader's steps (`StepThrough`) wait for

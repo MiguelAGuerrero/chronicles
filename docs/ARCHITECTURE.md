@@ -63,6 +63,7 @@ Replay ceremonies (decisions 0085, 0086)
   ceremony/Bubbles.tsx       notes and memos stacking in the bottom-left corner; a memo plays while its bubble says, pauses when held
   ceremony/Cards.tsx         a photo or video card that grows from the pin and tucks into the pile; the video plays in it
   ceremony/Pile.tsx          the photos and videos so far, the last three, no count; opens them in the viewer
+  ceremony/Grid.tsx          a stacked moment's grid in its card (MS17): square cells, swiping in, muted videos, the scroll past nine
   ceremony/Whispers.tsx      a passed place said beside it (projected from the map's centre and zoom)
   ceremony/RollingClock.tsx  the time of day, its digits on reels
   ceremony/StepThrough.tsx   the screen reader's way: the story's moments one at a time with Continue
@@ -163,6 +164,7 @@ Streets, snapping, fog
   ceremony/types.ts          Story (paths, moves, moments, breaks, travel, passes), Frame, Overlay kinds, Ceremony (decision 0086)
   ceremony/story.ts          walkStory, dayStory, storySteps; metresAt, timeAtMetres, pathDrawnAt: what happened, no timing or look
   ceremony/rhythm.ts         the rhythm ceremony (RR1-RR19): rhythmPlan (legs, stops, cuts, the soft cap), rhythmFrame, laterLine, notePause
+  ceremony/grid.ts           a stacked moment's grid (MS17): gridLayout (closest square up to 3×3), gridDuration
   ceremony/registry.ts       CEREMONIES, DEFAULT_CEREMONY, ceremonyFor: a new ceremony is an entry here
   backlog.ts                 placeBacklog: places old walks in one pass through the home map
   mapReads.ts                one camera read at a time (mapReadLock)
@@ -292,6 +294,8 @@ Captures and media
   openMoment.ts              the Add to this moment pill's life as a reducer (MS4, MS5): two minutes, 100 m from the first capture, dismiss, leave, start/stop
   momentPill/                its store on the app's clock (shell.ts, index.ts); the viewer's ask, run by the walk screen (MS12)
   pieceStamp.ts              a capture's stamp: a piece for an open moment takes no fix (MS3)
+  splitPlace.ts              where a piece split out goes: the trace at its time, a pause's start, the last fix before a gap (MS16)
+  split/                     Split out through the Undo window (shell.ts, index.ts): shown at once, stored after (MS16)
   export/bundle/             writeWalkBundle (shell.ts over db and clock) (deferred; nothing in the UI reaches it); export/ per-platform keepers
 Deletion
   deletion/core.ts           what each delete takes; pending.ts: the Undo window on a given clock
