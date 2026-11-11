@@ -19,17 +19,32 @@ test('QL23: the title and the line are trimmed', () => {
   });
 });
 
-test('QL23: an empty title becomes the suggested one', () => {
+test('QL23, tend chronicle T1: an empty title becomes no title, shown as the suggestion', () => {
   const w = walk();
-  assert.equal(renamePatch(w, '', 'x').title, suggestTitle(w));
-  assert.equal(renamePatch(w, '   \n ', 'x').title, suggestTitle(w));
-  assert.match(renamePatch(w, '', null).title, /Fox Point/);
+  assert.equal(renamePatch(w, '', 'x').title, null);
+  assert.equal(renamePatch(w, '   \n ', 'x').title, null);
+  assert.equal(renamePatch(w, '', null).title, null);
+  assert.equal(renamePatch(walk({ area: null }), ' ', '').title, null);
 });
 
-test('QL23: the suggested title follows the walk, without an area too', () => {
-  const w = walk({ area: null });
-  assert.equal(renamePatch(w, ' ', '').title, suggestTitle(w));
-  assert.match(suggestTitle(w), /walk$/);
+test('tend chronicle T1: the suggested title kept as it was is no title, so it follows the walk', () => {
+  // Named before its area was read: the field showed "… evening walk" and Keep it stored nothing.
+  const before = walk({ title: null, area: null });
+  assert.equal(renamePatch(before, suggestTitle(before), '').title, null);
+  assert.equal(renamePatch(before, `  ${suggestTitle(before)} `, '').title, null);
+  // Once finish.ts reads Fox Point, the walk is shown with the suggestion that names it.
+  const after = { ...before, ...renamePatch(before, suggestTitle(before), ''), area: 'Fox Point' };
+  assert.equal(after.title ?? suggestTitle(after), suggestTitle(after));
+  assert.match(after.title ?? suggestTitle(after), /Fox Point/);
+});
+
+test('tend chronicle T1: words that differ from the suggestion are stored, a frozen old title too', () => {
+  const w = walk({ title: null });
+  assert.equal(renamePatch(w, `${suggestTitle(w)}!`, '').title, `${suggestTitle(w)}!`);
+  // A walk saved before keeps its stored words when they are saved unchanged.
+  const old = walk({ title: 'Tuesday evening walk', area: 'Fox Point' });
+  assert.notEqual(suggestTitle(old), 'Tuesday evening walk');
+  assert.equal(renamePatch(old, old.title, '').title, 'Tuesday evening walk');
 });
 
 test('QL23: an empty line becomes none', () => {

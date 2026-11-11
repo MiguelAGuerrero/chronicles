@@ -11,7 +11,7 @@ import { Icon } from './icons';
 import { Modal } from './Modal';
 import { Button, theme } from './ui';
 
-export type RenamePatch = { title: string; epilogue: string | null };
+export type RenamePatch = { title: string | null; epilogue: string | null };
 
 /**
  * A finished walk's actions: rename it (QL22, in the same sheet: never a

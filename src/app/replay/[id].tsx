@@ -37,6 +37,7 @@ import { ensureTileBuild } from '../../lib/tiles';
 import { setAudioMode } from '../../lib/audioMode';
 import { FOG_MS } from '../../lib/replay';
 import { formatCaptures, formatDistance, formatDuration, loadReplay, suggestTitle, type ReplayData } from '../../lib/summary';
+import { renamePatch } from '../../lib/rename';
 import type { LngLat } from '../../lib/types';
 import { summaryLess } from '../../lib/deletion/core';
 import { useHidden } from '../../lib/deletion/useDeletions';
@@ -408,7 +409,8 @@ export default function Replay() {
     setSaving(true);
     setSaveError(null);
     try {
-      await db.updateWalk(data.walk.id, { title: title.trim() || suggestTitle(data.walk), epilogue: epilogue.trim() || null });
+      // The suggestion kept as it was stores no title, so it follows the walk's area (tend chronicle T1).
+      await db.updateWalk(data.walk.id, renamePatch(data.walk, title, epilogue));
       toChronicle();
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : String(e));
@@ -682,7 +684,7 @@ export default function Replay() {
         // The card shows the new name at once, and the name beat's fields with it (QL23).
         onRenamed={(walkId, patch) => {
           setData((d) => (d && d.walk.id === walkId ? { ...d, walk: { ...d.walk, ...patch } } : d));
-          setTitle(patch.title);
+          setTitle(patch.title ?? suggestTitle(data.walk));
           setEpilogue(patch.epilogue ?? '');
         }}
       />
