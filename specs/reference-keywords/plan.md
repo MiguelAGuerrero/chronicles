@@ -1,8 +1,12 @@
-# Plan: reference keywords (RK1-RK17)
+# Plan: reference keywords (RK1-RK20)
 
 For the owner's review before any code. Built on moment references (`specs/moment-references`, decision 0125): the token, `lib/refs.ts`, `NoteEditor`, `NoteText`, `plainNote`.
 
-## 0. Calls I need from you (the plan stops here until answered)
+## 0. Calls made (the owner, Nov 11)
+
+Answered: the fix (1) and the token (2) as recommended; over there is a resolution picker (RK18); time words are basic prose anchors (RK16); the plain form is word plus value in parentheses by default, with a setting (RK9, RK19); references survive removal from a walk and go with their moment, and a pointer to a deleted moment goes alone (RK20). What follows is the plan as first written, with these applied in section 8.
+
+Originally:
 
 1. **Which fix does a keyword resolve from while a note is being written?** This is the one architectural question.
    - A note's moment often has no fix when the editor opens: a loose moment is placed when its fix arrives (M2), and a walk's moments are placed by the trace at stop. `Capture` has no coordinates; `Moment.lat/lon` does, and `useCaptures` stamps `pos.current.here` (the last known position) when a capture begins.
@@ -68,3 +72,12 @@ Never run on a device: the phone keyboard's `@`, the map pick, tile reads from a
 - **S7** (a token that is more than words) into RK17: shares render words; the token and coordinates stay in the stored note.
 - **S8** (a bare moment row) into RK8: every moment row carries place and date.
 - The steward's silent questions are Open 6 and 7 in the spec, and "over there" being a stored coordinate is Open 1's map pick, which I read as the owner's own choice, not tracking.
+
+## 8. After the owner's calls (Nov 11)
+
+- **Token:** `@{kind|word|value|payload}` is the markdown-like pair, a displayed word and its actual value (`kind`: `here`, `near`, `there`, `time`). The moment token keeps its form; a moment's `label` is its word and value.
+- **Resolution picker (RK18):** one component, `RefPicker`, for "over there" and for correcting a reference: places from `placesNear` in distance order (the adapters' gate, no number or "closest"), and "Choose on the map", a one-tap point pick that opens at the moment's fix, never a fresh read (RK15).
+- **Setting (RK19):** `showRefValues`, default true, in the typed meta beside the other saved settings (`shells-saved-settings` pattern: a factory over `ports`, an `@instance`), a switch in the settings dialog. `plainRefs` takes it as an argument, so core stays pure; every plain-text reader gets it through one hook. No migration.
+- **Time words (RK16):** `KEYWORDS.time` is the allow-list; `resolveTime(word, t)` is pure and returns the absolute value; a test checks no entry names quality or mood.
+- **Deletion (RK20):** `deleteMoments` already cascades notes by hand; a note's references go with its own moment. For a pointer to a deleted moment, `plainRefs` and `NoteText` read the carried word and value instead of `GONE` (so RF5 and RF6's "a moment no longer kept" is amended); nothing rewrites a note. `deleteWalk`/removal from a walk is checked to leave a moment's note untouched. The two existing `refs.test.ts` cases for RF5 and RF6 change in the tests-first commit.
+- **Extra tests:** RK18 (the picker lists by distance and has the map entry; no location call), RK19 (the setting's shell; both forms on every surface), RK20 (unit over `refs.ts`, shell over the deletion fake).
