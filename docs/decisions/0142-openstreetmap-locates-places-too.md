@@ -24,10 +24,12 @@ The owner's calls, Nov 11:
 - **Scope: named monuments and memorials, by a pinned table.** `historic=monument`, and `historic=memorial` with a
   `memorial=*` or `monument=*` value the table names (obelisk, statue, war memorial, stone, cross and the like).
   Plaques, benches, stolpersteine, ghost bikes and grave markers stay out. An unmapped value is left out, never
-  guessed (0109). A test pins the table.
-- **Unnamed monuments enter** (the owner's answer, Nov 11, once confirmed): the obelisk may have no name tag. The
-  pack's schema then allows a place with no name for this source, which is a contract change (version 3). The app
-  says what it is in words ("A monument"), never a count.
+  guessed (0109). A test pins the table. A `historic=memorial` with no value enters too, as a memorial.
+- **Unnamed places enter, under the same filter.** The obelisk may have no name tag, and the owner wants it there. The
+  excluded values, the access and lifecycle tags and the merge rule apply to an unnamed place exactly as to a named
+  one. The pack's schema then allows a place with no name for this source, which is a contract change (version 3).
+  The app calls it "Monument", because "unnamed" doesn't match standing in front of one, which often has a plaque
+  (the owner, Nov 11); never a count.
 - **The same place in both sources is one place** (the 50 m rule, 0111); the gate stays blind to sources and counts
   (PP6, PP7). Nothing is ranked by how many sources name a place.
 - **Noise is reviewed before publishing** (0109): the build reports what it added, by area and class, and the owner
