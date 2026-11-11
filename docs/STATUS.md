@@ -124,13 +124,6 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 
 ### From /tend
 
-- **T2 [owner] Chronicle: Rename asks for a line "while the feeling is fresh", weeks later** (2026-11-11)
-  Area: chronicle. Seen: `src/components/WalkActions.tsx`, the Rename editor's label (picture `qol-04b-rename-editor`).
-  Rests on: VISION.md Always, "Restraint in motion, colour and copy"; the concept doc's epilogue is "one line in your
-  own words while the feeling is fresh", said of the first replay. Recommended: Rename's label reads "One line, in
-  your own words"; the first replay keeps its own. /vision: aligned (Return). Otherwise: leave it.
-  Answered yes Nov 11; waits for the next `/tend inbox T2 yes` (one build per run, and T1 was built first).
-
 - **T4 [owner] Explore: an area's busy streets are listed busiest first, and its walk starts on "its busiest street"** (2026-11-11)
   Area: explore. Seen: `src/components/atlas/AtlasCard.tsx:236` ("each busy street once, busiest first") and `:355` ("Starts you at {via}, its busiest street"). Rests on: VISION.md Never, "Ratings, reviews, stars, 'best of', rankings of places"; the steward calls it drift, not a breach: decisions 0034, 0080 and 0127 make busy streets information, and no rank number shows. Recommended: list the busy streets by distance from you, and say "Starts you on {via}"; the words "busy streets" stay. /vision: not run as a gate this time; the steward's reading stands in, so the answer is yours. Otherwise: leave it; the order is the information.
 - **T5 [owner] Explore: "How the marks work" is always open on an area's card, about a third of the sheet** (2026-11-11)
@@ -157,14 +150,11 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 11, `/tend explore`** (a sweep, from `8bdca99`). One loop commit: `tend explore 1` Explore's notice and the Towns back pill no
-longer sit over the scale bar (`lib/atlas/overlaySlots`, pictured before and after); the review's one accepted finding is `tend explore audit 1` (the long press's choices covered it too), two low ones deferred. Filed: T4 (busy streets listed busiest first), T5 (the
-marks explainer always open); `docs/DEFERRED.md` Explore and discovery, six items. The balance: in step; explore is rough, the sweep was
-not whole. Lenses run: 1 (the `atlas`, `carousel` and `marks` journeys, 21 pictures, both reviewers), 5 (the auditor, static only),
-6 (`check:vision` clean). Not run: lens 2 beyond what the pictures showed (320 px, 200% text, offline, interrupted, done twice), 3 (siblings),
-4 (the shipped criteria beyond their tests), 7 only for the DEFERRED items read; the `grading`, `snap` and `curiosities` journeys were not run.
-The reviewers read some pictures only partly, and several pictures the UX review was given are walk screens, not Explore. Nothing here has run
-on a phone.
+**Nov 11, `/tend inbox`** (from `0193552`; the owner chose T2 of the two waiting yeses). One build: `tend chronicle T2`,
+Rename's line reads "One line, in your own words", shown and spoken; the first replay keeps "while the feeling is fresh"
+(`qol` pictures `qol-04b-rename-editor` before and after). G1 (the section bar) waits for the next `/tend inbox G1 yes`;
+T4 and T5 left unanswered by the owner's choice. No sweep, so no lens ran and the balance was not read again. Nothing
+here has run on a phone.
 
 ### Open before the loop
 
