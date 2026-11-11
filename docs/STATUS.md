@@ -125,24 +125,17 @@ Answer with `/tend inbox T3 yes, G2 yes, T4 no: <reason>`.
 
 ### From /tend
 
+- **T6 [owner] Chronicle: the bar's Walks and the sheet's Walks move the map differently** (2026-11-11)
+  Area: chronicle. Seen: `src/app/(tabs)/index.tsx`, the sheet's `onMode` (the walks list's zoom-out, decision 0054)
+  runs for the sheet's Walks and a drag up, never for the bar's Walks; the steward's S3 on `section-bar`. Rests on:
+  NN/g H4, "Users should not have to wonder whether different words, situations, or actions mean the same thing";
+  decision 0136, the bar and the sheet name the same thing. Recommended: the bar's Walks zooms out as the sheet's does,
+  when some places walked are out of view (0054's rule, one fit). Gate: aligned (Return), read against G1's Touches;
+  `/vision` not run on its own. Otherwise: neither zooms out (0054 retired), or leave it.
+
 ### Next evolutions
 
 The loop's proposals for what to build next (`G<n>`, three at most, decision 0129). Answer with `/tend inbox G1 yes`.
-
-- **G1 [S] Chronicle: the section bar names what the sheet shows** (2026-11-11) · Return · aligned (T3's verdict)
-  Area: chronicle. From: T3, answered yes Nov 11 (decision 0136); NN/g H4, "Users should not have to wonder whether
-  different words, situations, or actions mean the same thing"; pictures `10-home-walks`, `qol-04-chronicle-renamed`.
-  Touches: decision 0098, "One screen, four sections" and "A replay or a day opened from a section returns to it";
-  RM2 (each section as it was); NV3 (the map keeps its view). No Never or Always line.
-  The slice: 1. The sheet's Walks | Days switch and its Map button set Chronicle's section, so the section bar selects
-  the one the sheet shows. 2. The bar's Walks, Days and Map change the sheet as today (Walks and Days open it on that
-  list, Map lowers it to rest). 3. Moving among Walks, Days and Map, by either control, keeps one map: no new canvas,
-  the camera where it was (`ChronicleMap` is no longer keyed by section). 4. A place's walks and a day's timeline keep
-  the section they were opened from, and a replay or a day opened from a section returns to it. 5. A journey step each
-  way checks the bar and the sheet agree and one canvas stands, with a picture of each.
-  Payoff: every visit to Chronicle past Memories; the bar stops contradicting the sheet. Cost: S, one screen
-  (`(tabs)/index.tsx`, `HomeSheet`), no native code. Reopens: chronicle (rough). After it: the sheet's switch could be
-  reconsidered once the bar is trusted. Instead: hide the sheet's switch while the bar shows (a removal).
 
 - **G2 [M] Explore: "busy" becomes "storefronts", listed nearest first** (2026-11-11) · Earn · aligned
   Area: explore (and layers, landing, the route leaning). From: T4, reshaped by the owner Nov 11: "busy" implies traffic,
@@ -185,13 +178,16 @@ The loop's proposals for what to build next (`G<n>`, three at most, decision 012
 
 ### Last tend
 
-**Nov 11, `/tend navigation`** (from `8bad3baa`). Not a whole sweep: the scenic and drive journeys fail in this container
-(`fix preview-clutter audit 1`; `atlas-card` after DW3) from a cause not found, so the nav bar, Open in Maps and the
-leanings drawer were not pictured. One commit: `tend navigation 1`, each route's Go has its own spoken name (X4).
-Filed in DEFERRED: two medium `useNavigation` races (Cancel after the last check; a re-route read swallowing Go here),
-dead eta exports, the selected row's border-only mark, the far-town card's two close buttons, the unexplained e2e
-failures. Docs: `nav/eta.ts` and `nav/previewView.ts` added to ARCHITECTURE. No T or G entries. Steward: nothing found.
-Area `rough`.
+**Nov 11, `/tend inbox G1 yes`** (from `911bc42`; rebased twice as `main` moved, the second time over the media gallery's
+fifth section). G1 built as the slice `section-bar` (decision 0130): `d684ec7` tests first (SB1-SB5); `dcbccd1` the bar
+names what the sheet shows and one map stays up; a commit counting Media among the sections; `03d6374` the record; the
+review's `c720f34`, `section-bar audit 1, 2, 3, 5`. The steward (before the code): S1, S2, S4 accepted into SB1 and
+SB2, S3 kept as before and filed as T6. The auditor (one round): five findings, four fixed (audit 1, the sheet's
+Escape and Back on a replay or viewer moved the bar, seen failing first; 2, SB3 could not see a remount; 3, the drags;
+5, the pictures), one deferred (F4, the day labels' clock), and the rest of audit 3 deferred (the long press and a
+star cleared by the bar). Journeys `chronicle`, `capturehome`, `qol`, `resurface`, `tabs`. `chronicle`'s M9 failed on
+`main` 3 of 3 (`e2e:baseline`): not a flake; filed. Filed: T6. No sweep, so no lens ran and the balance was not read.
+Nothing here has run on a phone.
 
 ### Open before the loop
 

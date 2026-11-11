@@ -465,3 +465,9 @@ Where the headless web e2e fakes what a phone does. Each item is the real thing 
 - [ ] **Do:** choose Months, tap a month of last year. **Expect:** Days opens at that month's first day (MG19).
 - [ ] **Do:** open an older photo (taken before small copies existed) in the grid. **Expect:** its tile shows a glyph, then its small copy; the full photo is never decoded for the tile (MG11).
 - [ ] **Do:** with VoiceOver (iPhone) and TalkBack (Android), go here to a spot with a scenic route and swipe across the route preview. **Expect:** each row is read, then its Go as "Go: Direct", "Go: Through green", with no second hint spoken (`tend navigation 1`).
+
+## The section bar (SB1-SB5, decision 0136)
+
+- [ ] **Do:** on Chronicle, switch Walks, Days and Map twenty times, by the bar and by the sheet, then pan the map. **Expect:** the bar and the sheet always name the same list; the map never blanks or reloads, its stars and pins stay, the camera holds where it was (one MapLibre map mounted across the three, SB3).
+- [ ] **Do:** on Android, open Days, a day, then its walk's replay, and press Back once. **Expect:** the replay closes and Chronicle shows Days and the day as they were; the sheet beneath never took the Back (section-bar audit 1).
+- [ ] **Do:** on an iPhone, press the bar's selected Map with a place's walks open. **Expect:** the sheet lowers to rest at once, with no flicker or second jump (the press handled while rendering, SB2).

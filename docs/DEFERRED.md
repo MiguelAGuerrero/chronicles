@@ -169,6 +169,7 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 - No sounds yet (Polish: motion)
 - [loop] The map's attribution (i) is about 22 px and sits on the map at the top right (X0, T7; `/tend chronicle`'s UX review, Nov 11, low; the map area's)
 - [loop] The `chronicle` journey's M9 check reads `window.__enters` as soon as `place-title` shows, before the harness's `requestAnimationFrame` has recorded the bounce, and its sheet-drag step can read the sheet before it settles: each failed once in four runs of `/tend inbox`, Nov 11, on code that leaves those screens as they were; wait for the entry (`waitForFunction`) and the settle (low)
+  - Since then (`/tend inbox G1 yes`, Nov 11): `npm run e2e:baseline -- chronicle` on `main` (`1912c19`) failed M9 in 3 runs of 3, so it is no longer a flake; `main` fails it, before any change of the run. The cause is not looked for yet.
 
 ## Quality of life (in the owner's order, decisions 0063-0065; rounds 1-3 shipped)
 
@@ -190,6 +191,8 @@ Tags at the start of an item say who may take it (decision 0128; `/tend triage` 
 16. [owner] One walk, described three ways: a walks row says date, distance, time and kinds; a day's timeline "Walk · distance · N moments"; the card's More "More for this walk", the row's "More for <title>" (NN/g H4; `/tend chronicle`, Nov 11, low)
 17. [loop] A backup bundle of a walk with no stored title is named by its area, not by the title it shows (`bundleName` reads `walk.title ?? walk.area`, `export/bundle/shell.ts`): since T1, a walk kept with its suggestion is such a walk (`/tend inbox` review F5, Nov 11, low)
 18. [kept] A walk kept with its suggestion shows the suggestion as the device reads it now, so a walk started at 01:00 in Lisbon reads "Tuesday evening" back in New York; walks left unnamed with Not now did already. The timezone item under Functional core is its fix (`/tend inbox` review F4, Nov 11, low)
+19. [loop] The section bar's checks miss the long press that lowers the sheet (SB1) and a bar press clearing a selected star or a Walk here card (SB2); only the drags, the switch and Map are checked (section-bar audit 3, Nov 11, low)
+20. [loop] Chronicle's day labels ("Today", "Yesterday") read the clock only when Chronicle comes to the front, so a section switch past midnight no longer refreshes them, as staying on Days never did (`now` in `ChronicleMap`; section-bar review F4, Nov 11, low)
 
 ## Town outlines (TO1-TO12, decision 0083)
 
