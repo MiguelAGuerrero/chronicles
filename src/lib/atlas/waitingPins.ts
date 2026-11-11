@@ -149,6 +149,15 @@ export function waitingLabel(area: string, marks: readonly Pick<AtlasMark, 'cate
   return kinds.length ? `Waiting in ${area}: ${kinds.join(', ')}` : '';
 }
 
+/**
+ * Back or Escape on a town's page steps out of one thing (tend explore 6, audit 1): the Layers panel, then the long press's
+ * choices, then the page. The panel is the page's to close too, since it listens for Escape only on the web.
+ */
+export function pageBack(o: { layersOpen: boolean; spot: boolean }): 'layers' | 'spot' | 'leave' {
+  if (o.layersOpen) return 'layers';
+  return o.spot ? 'spot' : 'leave';
+}
+
 /** Whole-towns audit 9: what a tap on Explore's map does: close the Layers panel, clear the long press, zoom to a dot, or nothing. One thing a tap. */
 export function tapDoes(o: { panelOpen: boolean; spot: boolean; dot: boolean }): 'close-panel' | 'clear-spot' | 'zoom' | 'none' {
   if (o.panelOpen) return 'close-panel';

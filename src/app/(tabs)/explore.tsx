@@ -33,7 +33,7 @@ import { nearReads } from '../../lib/atlas/read';
 import { busyNamesNear, busyNamesOn, busyRadiusM, firstSelection, layerCentre, nearWords, rowOf, rowStep, stepKey, townNote } from '../../lib/atlas/carousel';
 import { SNAP } from '../../lib/atlas/snap';
 import { useAtlas } from '../../lib/atlas/useAtlas';
-import { areaMapMarks, dotAt, halfZoom, metresPerPx, PIN_ROOM, roomZoom, tapDoes, tapZoom, viewOf, waitingLabel } from '../../lib/atlas/waitingPins';
+import { areaMapMarks, dotAt, halfZoom, metresPerPx, PIN_ROOM, pageBack, roomZoom, tapDoes, tapZoom, viewOf, waitingLabel } from '../../lib/atlas/waitingPins';
 import { bordersFor, outlineIdHere, outlineOf, townFrame } from '../../lib/areas/borders';
 import { BORDER_ZOOM } from '../../lib/areas/outlines';
 import { useOutlineSet } from '../../lib/areas/useOutlineSet';
@@ -286,6 +286,7 @@ export default function Explore() {
   const townBox = useMemo(() => townFrame(drawn, tintedId), [drawn, tintedId]);
   // Map layers (ML3-ML9): what is drawn over the base map, one setting for every map, around the selected area else around you.
   const layers = useLayers();
+  const { open: layersOpen, closePanel: closeLayers } = layers;
   const layersAt = layerCentre(sel, from, !town);
   const wk = useWalkability(layersAt, !!layers.on.walkability);
   const busy = useBusyLayer(layersAt, !!layers.on.busy);
@@ -329,10 +330,14 @@ export default function Explore() {
     setTownSeen(null);
   }, [townSeen]);
   useEffect(() => {
-    // tend explore 6: one Back or Escape steps out of one thing. The Layers panel closes itself first; the long press's
-    // choices close before the page does.
-    if (!townSeen || open || !focused || layers.open) return;
-    const out = () => (spot ? setSpot(null) : leave());
+    // tend explore 6, audit 1: one Back or Escape steps out of one thing: the Layers panel, the long press's choices, the page.
+    if (!townSeen || open || !focused) return;
+    const out = () => {
+      const does = pageBack({ layersOpen: layersOpen, spot: !!spot });
+      if (does === 'layers') closeLayers();
+      else if (does === 'spot') setSpot(null);
+      else leave();
+    };
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
       out();
       return true;
@@ -343,7 +348,7 @@ export default function Explore() {
       back.remove();
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.removeEventListener('keydown', onKey);
     };
-  }, [townSeen, open, focused, leave, layers.open, spot]);
+  }, [townSeen, open, focused, leave, layersOpen, closeLayers, spot]);
   // Each visit to a page is framed (AT9, TB11): its areas until its town's border is known, then the whole
   // town, and nothing undoes that within the visit (`nextFrame`, fix explore-fit-area).
   useEffect(() => {
