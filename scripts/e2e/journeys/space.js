@@ -99,6 +99,44 @@ async function run(h) {
   const kept = await pg.waitForSelector('[data-testid=held-captures]', { state: 'detached', timeout: 10000 }).then(() => true, () => false);
   check(!!pill && kept && (await photoRows()) === before + 2, `SA8: Retry keeps both photos (${(await photoRows()) - before})`);
 
+  // tend walk-screen 1: Stop warns about what is held at that moment, not only the first time in the walk (SA8). A held photo,
+  // Stop's warning, Retry keeps it; a later photo is held too: Stop warns again instead of ending the walk without it.
+  const holdStop = async () => {
+    const b = await pg.locator('[data-testid=stop]').boundingBox();
+    await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+    await pg.mouse.down();
+    await pg.waitForTimeout(1100);
+    await pg.mouse.up();
+    await pg.waitForTimeout(1500);
+  };
+  const warned = () => pg.locator('text=/hold Stop again/').count();
+  // Let the kept photos' own writes (their small copies) land first, so the one refusal falls on the next photo.
+  await pg.waitForTimeout(2500);
+  await pg.evaluate(() => { window.__failMedia = 1; });
+  await shoot('cap-photo');
+  await pg.waitForSelector('[data-testid=held-captures]', { timeout: 10000 }).catch(() => {});
+  await holdStop();
+  check((await warned()) > 0 && /\/walk/.test(pg.url()), `SA8: Stop with a held photo warns first and the walk goes on (${await warned()}, ${pg.url().slice(-12)})`);
+  await pg.click('[data-testid=held-retry]').catch(() => {});
+  await pg.waitForSelector('[data-testid=held-captures]', { state: 'detached', timeout: 10000 }).catch(() => {});
+  await pg.waitForTimeout(2500);
+  await pg.evaluate(() => { window.__failMedia = 1; });
+  await shoot('cap-photo');
+  await pg.waitForSelector('[data-testid=held-captures]', { timeout: 10000 }).catch(() => {});
+  await pg.evaluate(() => document.querySelectorAll('[data-testid=banner-dismiss]').forEach((b) => b.click()));
+  await pg.waitForTimeout(300);
+  await holdStop();
+  check(/\/walk/.test(pg.url()) && (await pg.locator('[data-testid=held-captures]').count()) > 0, `tend walk-screen 1: a photo held after the first warning is warned about too; the walk does not end without it (${pg.url().slice(-12)})`);
+  if (/\/walk/.test(pg.url())) {
+    await pg.click('[data-testid=held-retry]').catch(() => {});
+    await pg.waitForSelector('[data-testid=held-captures]', { state: 'detached', timeout: 10000 }).catch(() => {});
+  } else {
+    await pg.goto(navUrl);
+    await pg.waitForSelector('[data-testid=start]', { timeout: 30000 });
+    await pg.click('[data-testid=start]');
+    await pg.waitForURL(/\/walk/, { timeout: 30000 });
+  }
+
   // A reload: the room is low again, which is better than very low, so nothing is said; nothing is asked (SA4, SA10).
   await pg.reload();
   await pg.waitForSelector('[data-testid=cap-photo]', { timeout: 30000 });

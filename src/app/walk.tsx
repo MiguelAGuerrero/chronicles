@@ -359,6 +359,11 @@ function WalkScreen(props: { onMinimize: () => void }) {
     // The pill (moment stacks MS2, MS5): a new moment opens it; a piece keeps it.
     onKept: (id, piece) => (piece ? momentPill.piece(id) : momentPill.kept(id, true)),
   });
+  // Nothing held any more: a photo that fails later is warned about again at Stop, not ended without (SA8).
+  const heldCount = cap.held.length;
+  useEffect(() => {
+    if (heldCount === 0) giveUpHeld.current = false;
+  }, [heldCount]);
   // A walk started or stopped closes the pill (MS4); on a walk, the trace walked counts toward its 100 m.
   const pillWalkId = walk?.id ?? null;
   useEffect(() => {
