@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ATLAS_CODE, ATLAS_RULES, type AtlasArea, type Listed, type NearRead } from '../../atlas/atlas';
-import { busyNamesNear, busyNamesOn, busyRadiusM, cardFooter, firstSelection, layerCentre, nearWords, townsListedAfter, offsetOf, rowOf, rowStep, settledIndex, settleStep, stepKey, townNote } from '../../atlas/carousel';
+import { liveReport, busyNamesNear, busyNamesOn, busyRadiusM, cardFooter, firstSelection, layerCentre, nearWords, townsListedAfter, offsetOf, rowOf, rowStep, settledIndex, settleStep, stepKey, townNote } from '../../atlas/carousel';
 import { readFileSync } from 'node:fs';
 import type { LandingView } from '../../landing/view';
 import type { LngLat } from '../../types';
@@ -188,4 +188,12 @@ test('explore-carousel audit 7: a card\'s name is never cut to a number of lines
   const name = /<Text style=\{styles\.name\}[^>]*>/.exec(src)?.[0] ?? '';
   assert.ok(name.includes('styles.name'), 'the card has its name Text');
   assert.ok(!/numberOfLines/.test(name), `the name wraps in full (${name})`);
+});
+
+test('fix carousel-live-select: a card is selected as the reader scrolls past it, not after the scroll settles', () => {
+  assert.equal(liveReport({ index: 2, intended: null, selected: 1, last: null }), 2, 'the nearest card is not selected yet: report it now');
+  assert.equal(liveReport({ index: 2, intended: null, selected: 1, last: 2 }), null, 'already reported this one');
+  assert.equal(liveReport({ index: 1, intended: null, selected: 1, last: 1 }), null, 'already the selected one');
+  assert.equal(liveReport({ index: 1, intended: null, selected: 2, last: 2 }), 1, 'scrolling back reports the earlier card');
+  assert.equal(liveReport({ index: 2, intended: 3, selected: 1, last: null }), null, 'the row scrolling itself to a card never selects on the way');
 });

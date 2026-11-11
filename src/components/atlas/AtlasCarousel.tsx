@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent, type ScrollViewInstance } from 'react-native';
 import type { Listed } from '../../lib/atlas/atlas';
-import { offsetOf, settledIndex, settleStep } from '../../lib/atlas/carousel';
+import { liveReport, offsetOf, settledIndex, settleStep } from '../../lib/atlas/carousel';
 
 /** A card's width: most of a phone's width so the next one peeks, never wider than this. */
 const CARD_MAX = 320;
@@ -35,6 +35,8 @@ export function AtlasCarousel(props: {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // The card the row scrolled to by itself; the settle that ends that scroll is not the reader's.
   const intended = useRef<number | null>(null);
+  // The card the reader's own scroll last selected: the selection that follows it is already in the middle, never scrolled to.
+  const lastReported = useRef<number | null>(null);
   const index = useMemo(() => items.findIndex((l) => l.area.key === selected), [items, selected]);
 
   // What the settle needs, as the screen last drew it: a timer's callback must never read an older row.
@@ -52,6 +54,9 @@ export function AtlasCarousel(props: {
   // A selection made elsewhere brings its card to the middle; one the reader just scrolled to is already there.
   useEffect(() => {
     if (index < 0 || step <= 0) return;
+    // The reader's scroll selected this card while passing it: leave the scroll alone (fix carousel-live-select).
+    if (lastReported.current === index) return;
+    lastReported.current = null;
     if (Math.abs(offset.current - offsetOf(index, step)) < 2) return;
     scrollTo(index);
   }, [index, step, scrollTo]);
@@ -75,6 +80,14 @@ export function AtlasCarousel(props: {
 
   const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     offset.current = e.nativeEvent.contentOffset.x;
+    // The card nearest the middle is selected as it passes, so the map previews it while the reader is still scrolling.
+    const { items: list, selected: now, step: s, onSettle } = latest.current;
+    const i = settledIndex(offset.current, s, list.length);
+    const at = list.findIndex((l) => l.area.key === now);
+    const report = liveReport({ index: i, intended: intended.current, selected: at, last: lastReported.current });
+    if (intended.current == null) lastReported.current = i;
+    const key = report != null ? list[report]?.area.key : null;
+    if (key) onSettle(key);
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(settle, SETTLE_MS);
   }, [settle]);

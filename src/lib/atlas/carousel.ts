@@ -96,6 +96,16 @@ export function settleStep(p: { index: number; intended: number | null; selected
   return { report: p.index === p.selected ? null : p.index, scrollTo: null };
 }
 
+/**
+ * The card to select while the reader's own scroll is still moving (fix carousel-live-select): the one nearest the middle, as
+ * soon as it is not the selected one nor the one last reported, so each card previews as it passes, not after the scroll
+ * settles. Never while the row is scrolling itself to a card (`intended`).
+ */
+export function liveReport(p: { index: number; intended: number | null; selected: number; last: number | null }): number | null {
+  if (p.intended != null) return null;
+  return p.index === p.selected || p.index === p.last ? null : p.index;
+}
+
 /** The footer a card shows (explore-carousel audit 4, EC15): only the selected card, so a tap on it does what it says. */
 export function cardFooter(p: { drill: boolean; wide: boolean; selected: boolean }): string | null {
   if (!p.selected) return null;
