@@ -6,7 +6,7 @@ import { areaKey } from '../../areas/assign';
 import type { Area, AreaLevel, WalkArea } from '../../areas/types';
 import { metersPerPixel } from '../../pins';
 import { placeAll, withTimeout } from '../../placeAll';
-import { fitsOnRead, levelForZoom, placesIndex, placeWalks, starsFor, unplacedWalks } from '../../places';
+import { fitsOnRead, levelForZoom, placesIndex, placeWalks, shownPlaces, starsFor, unplacedWalks } from '../../places';
 import { buildDays } from '../../days';
 import type { Walk } from '../../types';
 
@@ -221,4 +221,13 @@ test('fix background-placing audit 9: places that came from the background never
   assert.equal(fitsOnRead('', 'b', true), true, 'nothing was framed yet');
   assert.equal(fitsOnRead('a', 'b', false), true, 'a new walk, a delete');
   assert.equal(fitsOnRead('a', 'a', false), false, 'coming back with nothing changed');
+});
+
+// T7's review: the map that mounts on Walks framed a walk deleted while its Undo pill was still up (D5), a place
+// with no star; the walks list's own zoom-out reads the walks with the deleted ones hidden.
+test('tend chronicle audit 1: the places a zoom-out frames leave out a walk being deleted', () => {
+  assert.deepEqual(shownPlaces(areas, rows, walks, new Set()), index.bounds, 'nothing hidden: every place walked');
+  const g = shownPlaces(areas, rows, walks, new Set(['w3']))!;
+  assert.ok(g[1] > 40.795, `Glen Ridge, walked only by w3, is left out (south edge ${g[1]})`);
+  assert.equal(shownPlaces(areas, rows, walks, new Set(['w1', 'w2', 'w3'])), null, 'every placed walk hidden: nothing to frame');
 });

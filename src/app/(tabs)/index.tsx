@@ -30,7 +30,7 @@ import type { Bounds } from '../../lib/geo';
 import { bordersFor, outlineIdsOf, townPlaces } from '../../lib/areas/borders';
 import { BORDER_ZOOM } from '../../lib/areas/outlines';
 import { useOutlineSet } from '../../lib/areas/useOutlineSet';
-import { fitsOnRead, levelForZoom, placesIndex, starsFor, unplacedWalks, type Star } from '../../lib/places';
+import { fitsOnRead, levelForZoom, placesIndex, shownPlaces, starsFor, unplacedWalks, type Star } from '../../lib/places';
 import type { LngLat, Walk, WalkSummary } from '../../lib/types';
 import { deletions } from '../../lib/deletion';
 import { useHidden, useOnDeleted } from '../../lib/deletion/useDeletions';
@@ -194,8 +194,7 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
         // The places walked and the placed moments (M16, moment pins 3): a moment far from any walk, or
         // one made before any walk, is framed too, so its pin is in view. A moment being deleted isn't.
         const gone = deletions.hidden();
-        const placed = placesIndex(areas, rows, walks).bounds;
-        const bounds = fitWithMoments(placed, caps.filter((c) => !gone.has(c.id)));
+        const bounds = fitWithMoments(placesIndex(areas, rows, walks).bounds, caps.filter((c) => !gone.has(c.id)));
         // A walk placed in the background (refit false) moves the map only when nothing was framed yet; otherwise
         // its places count as framed, so coming back from a replay keeps the view you left (H5; audit 2).
         const key = boundsKey(bounds);
@@ -208,7 +207,8 @@ const ChronicleMap = forwardRef<ChronicleMapHandle, { section: 'walks' | 'days' 
         }
         if (zoomOnMount.current) {
           zoomOnMount.current = false;
-          if (!framed && placed) mountZoom.current?.(placed);
+          const shown = framed ? null : shownPlaces(areas, rows, walks, gone);
+          if (shown) mountZoom.current?.(shown);
         }
         return { walks, rows };
       };
