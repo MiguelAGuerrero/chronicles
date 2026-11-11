@@ -66,3 +66,11 @@ test('QL23: the title is cut to 60 characters and the line to 200', () => {
 test('QL23: the patch holds only the title and the line', () => {
   assert.deepEqual(Object.keys(renamePatch(walk(), 'T', 'L')).sort(), ['epilogue', 'title']);
 });
+
+test('tend chronicle audit 2: a suggestion longer than the title field, kept unchanged, stores no title', () => {
+  const w = walk({ title: null, area: 'Royal Borough of Kensington and Chelsea and Somewhere Else' });
+  assert.ok(suggestTitle(w).length > TITLE_MAX);
+  assert.equal(renamePatch(w, suggestTitle(w), '').title, null);
+  // As the web field shows a value set from code whole, and a phone's field may cut it.
+  assert.equal(renamePatch(w, suggestTitle(w).slice(0, TITLE_MAX), '').title, null);
+});
