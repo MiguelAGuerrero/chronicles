@@ -33,4 +33,4 @@ Chronicle's section bar (Memories | Walks | Days | Map) and the sheet over the m
 
 ## Record
 
-In progress.
+Built 2026-11-11 from `/tend inbox G1 yes` (decision 0130), tests first (`e75c913`, then `eb40c5c`): SB1, SB2, SB4 in `resurface/section.test.ts`; SB1-SB3, SB5 in the `chronicle` journey (pictures `chronicle-sb-sheet-to-bar`, `chronicle-sb-bar-to-sheet`). The steward's S1, S2, S4 went into SB1 and SB2; S3 (the bar's Walks has no zoom-out, the sheet's has) is kept as before and filed for the owner. No native code; the shared map on MapLibre RN is unverified on a device, as all of it.

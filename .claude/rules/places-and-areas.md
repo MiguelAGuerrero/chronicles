@@ -123,8 +123,8 @@ Placing walks in neighborhoods, towns, cities and states (`lib/areas`), the boun
   - It runs in one pass, and every tile read in it times out.
   - It needs a known tile build to start.
   - The pass's state is the shell's (`backlogStatus`: the walk at hand and a
-    placed count), never the screen's: Chronicle remounts on a section switch
-    (keyed by section), and a screen-held "Placing…" and refresh were lost
+    placed count), never the screen's: Chronicle remounted on a section switch
+    then (keyed by section, until SB3), and a screen-held "Placing…" and refresh were lost
     mid-pass (audit 1). A second pass waits for the one under way, then
     places what is left, never joining its callbacks (`placeAll`'s join); a
     queued pass whose screen left meanwhile places nothing, and no walk is

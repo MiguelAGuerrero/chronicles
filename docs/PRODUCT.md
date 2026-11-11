@@ -282,7 +282,9 @@ recording, and a recording bar brings a minimized walk back.
 
 - **Chronicle opens on Memories** (decision 0098): a control at the top chooses
   **Memories | Walks | Days | Map | Media**, and leaving for another tab puts it back on
-  Memories. The app opens here (decision 0112). Memories is the feed:
+  Memories. The bar always names what is shown: the sheet's own Walks | Days and Map
+  (and a drag, or a long press's Walk here) move it too, and one map stays up across
+  Walks, Days and Map (SB1-SB5, decision 0136). The app opens here (decision 0112). Memories is the feed:
   - **The band** at its foot: camera, mic and note, one tap each, in plain ink,
     fixed while the feed scrolls and first for a screen reader. A moment kept there
     heads Lately at once and is placed by its one fix ("Note kept here"); with a walk
